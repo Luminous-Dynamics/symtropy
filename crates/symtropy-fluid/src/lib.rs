@@ -94,12 +94,11 @@ impl<const D: usize> FluidSimulation<D> {
     }
 
     fn calculate_forces(&mut self, gravity: &SVector<f64, D>) {
-        let h = self.config.smoothing_radius;
         // Gradients/Laplacians for pressure/viscosity (placeholders)
 
         for i in 0..self.particles.len() {
-            let mut f_press = SVector::<f64, D>::zeros();
-            let mut f_visc = SVector::<f64, D>::zeros();
+            let f_press = SVector::<f64, D>::zeros();
+            let f_visc = SVector::<f64, D>::zeros();
 
             // Simplified force calculation (O(N^2) for initial scaffolding)
             // ... (real gradients would go here)

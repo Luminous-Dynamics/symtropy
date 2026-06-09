@@ -1,77 +1,59 @@
 # Symtropy
 
-State-coupled N-dimensional physics engine. Any metric you define modulates forces, friction, and energy budgets in real-time through a thermodynamically-closed system.
+Reusable N-dimensional math, physics, geometry, and simulation substrate for Luminous Dynamics projects.
 
-Ships with Phi (integrated information) as the default metric and 63 research experiments. But the coupling framework is generic — plug in health, wealth, trust, skill, or any [0,1] value per body.
+The public workspace currently focuses on self-contained substrate crates: geometric primitives, rigid-body physics, fluid/mesh/soft-body scaffolding, and deterministic network-core utilities.
 
-**423 tests | 5 shapes | 5 joints | CCD | raycasting | warm-starting | island sleeping | 12 crates on crates.io**
+**Symtropy is not Symthaea.** Symthaea owns the cognitive architecture, RHN/Broca, active inference, and higher-level agent loops.
 
-## The Symtropy Adoption Story
+**Symtropy is not Mycelix.** Mycelix owns civic/governance/commons infrastructure.
 
-Symtropy is more than a physics engine; it is the physical substrate for a **Type 1 Civilization**.
+Symtropy provides the lower-level substrate those systems can build on.
 
-### 1. The Permissive Core (Track B)
-For game developers and industrial simulation, Symtropy provides a high-performance, N-dimensional rigid body engine on Bevy. Use it for standard games where you need deterministic replay, 4D physics, or custom per-body metrics (health, trust, wealth) without any copyleft obligations.
-- **Crates:** `symtropy-core`, `symtropy-physics`, `symtropy-bevy-core`.
-- **License:** Apache-2.0 OR MIT.
+**N-dimensional geometry | GJK/EPA physics | CCD | raycasting | warm-starting | replay | 6 checked workspace crates**
 
-### 2. The Research Hero (Track A)
-For researchers in AI, A-Life, and Integrated Information Theory (IIT), Symtropy integrates Φ (integrated information) as a first-class physical law. This enables simulations where an agent's internal complexity (consciousness) meaningfully modulates its motor authority and energy efficiency.
-- **Crates:** `symtropy-consciousness-physics`, `symtropy-bevy`.
-- **License:** GNU AGPL v3.
+## Public Workspace
 
-### 3. The Civilizational Stack (Symthaea + Mycelix)
-When combined with **Symthaea** (cognitive loop) and **Mycelix** (decentralized governance), Symtropy becomes a test-bed for autonomous societies.
-- **Cognition:** FEP-driven agents (`symthaea-fep`) with multi-theory consciousness.
-- **Governance:** Real-time peer-to-peer voting and resource allocation via Holochain DHT.
-- **Metabolism:** Digital twins of physical bootstrap hardware (plastic shredders, solar grids).
+The initial public workspace is intentionally conservative:
+
+| Crate | Purpose |
+|-------|---------|
+| `symtropy-math` | Const-generic N-dimensional geometry primitives. |
+| `symtropy-physics` | GJK/EPA collision, CCD, joints, raycasting, replay. |
+| `symtropy-fluid` | Early fluid simulation substrate. |
+| `symtropy-mesh` | Mesh and narrowphase scaffolding. |
+| `symtropy-soft` | Early soft-body substrate. |
+| `symtropy-net-core` | Deterministic networking and authority primitives. |
+
+Other exported crates and demos remain in-tree but outside the checked public workspace until their dependencies and platform feature sets are split cleanly.
+
+See [EXPORT_NOTES.md](EXPORT_NOTES.md) for the export boundary.
 
 ## Architecture
 
 ```
 symtropy-math                  N-dimensional geometric algebra (const-generic, stack-allocated)
   |-- symtropy-physics         GJK+EPA collision, CCD, joints, raycasting, replay
-  |     |-- symtropy-consciousness-physics   Phi-coupling, thermodynamics, harmony fields
-  |     |     |-- symtropy-world             Macro/micro simulation bridge
-  |     |-- symtropy-render-bridge           ND-to-Bevy projection, 4D cross-section slicing
-  |     |-- symtropy-robotics-bridge         FEP agents, 6 embodied platforms
-  |     |-- symtropy-net                     P2P spatial authority, lockstep protocol
+  |-- symtropy-fluid           Fluid substrate
+  |-- symtropy-mesh            Mesh/narrowphase substrate
+  |-- symtropy-soft            Soft-body substrate
+  |-- symtropy-net-core        Network authority primitives
 ```
 
 See [ARCHITECTURE.md](ARCHITECTURE.md) for the full crate guide.
 
-## Quick Start: Generic State-Coupling
+## Quick Start
 
 ```rust
-use symtropy_physics::PhysicsWorld;
-use symtropy_consciousness_physics::SimpleCoupledField;
-use symtropy_math::Point;
 use nalgebra::SVector;
+use symtropy_math::Point;
+use symtropy_physics::PhysicsWorld;
 
-// 1. Create a 2D physics world
 let mut world = PhysicsWorld::<2>::new(SVector::from([0.0, -9.81]));
-
-// 2. Add bodies
 let agent = world.add_sphere(Point::new([0.0, 10.0]), 1.0, 1.0);
 
-// 3. Create a state-coupled field (works with ANY metric)
-let mut field = SimpleCoupledField::<2>::new();
-field.register(agent, 100.0, 10.0);
-field.set_metric(agent, 0.8);  // your metric: health, trust, skill, wealth...
-
-// 4. Step — forces and friction are modulated by your metric
-world.step_with_callback(0.016, &mut field);
-```
-
-For Phi-specific research (IIT, Master Consciousness Equation, 7-theory synthesis), use `ConsciousnessField` instead:
-
-```rust
-use symtropy_consciousness_physics::ConsciousnessField;
-
-let mut phi_field = ConsciousnessField::<3>::new();
-phi_field.register(handle, 100.0, 10.0);
-// Phi computed from ConsciousnessInputs via the Master Equation
-world.step_with_callback(0.016, &mut phi_field);
+world.step(0.016);
+assert!(world.body(agent).is_some());
 ```
 
 ## Five Coupling Channels
@@ -127,41 +109,15 @@ Zero heap allocation in the physics hot path. All types use `const D: usize` gen
 
 ## Feature Flags
 
-| Flag | What it enables |
-|------|----------------|
-| `consciousness-curvature` | Conformal geometry: Phi curves space, agents follow geodesics |
-| `consciousness-hdc` | 16,384D hyperdimensional computing substrate for Phi |
-| `mycelix` | Governance/economy/crypto integration (game-specific) |
-| `atlas` | Sol Atlas planetary globe view (game-specific) |
-| `live-audio` | Real-time Phi-driven music synthesis (requires ALSA) |
-| `net` | P2P networking with spatial authority |
+Feature flags are crate-specific. The initial public workspace is validated with default features.
 
 ## Research Experiments
 
-63 experiments in `crates/symtropy-consciousness-physics/examples/`:
-
-```bash
-# Core cooperation emergence (the definitive experiment)
-cargo run --example cooperation_emergence
-
-# J/Phi convergence (novel thermodynamic metric)
-cargo run --example jphi_convergence
-
-# All examples
-cargo run --example cooperation_1000    # scaling to large populations
-cargo run --example inequality_emergence # wealth gap self-organization
-cargo run --example tragedy_commons      # tragedy of the commons
-cargo run --example dunbar_number        # social network size limits
-cargo run --example anesthesia_transition # Phi level transitions
-# ... and 57 more
-```
-
-3 experiments require feature flags:
-```bash
-cargo run --example curvature_lensing --features consciousness-curvature
-cargo run --example curvature_selforg --features consciousness-curvature
-cargo run --example hdc_cooperation --features consciousness-hdc
-```
+The exported tree includes historical research material under
+`crates/symtropy-consciousness-physics/`, but that crate is outside the initial
+checked public workspace because it still depends on higher-level research
+crates. Treat it as source material until it is split into a self-contained
+public workspace member.
 
 ## Key Results
 
@@ -183,18 +139,14 @@ cargo run --example hdc_cooperation --features consciousness-hdc
 ## Building
 
 ```bash
-# Run all engine tests
-cd symtropy
-cargo test -p symtropy-math -p symtropy-physics -p symtropy-consciousness-physics --lib
+# Check the public workspace
+cargo check --workspace --all-targets --locked
+
+# Run public workspace tests
+cargo test --workspace --locked
 
 # Run benchmarks
 cd crates/symtropy-physics && cargo bench
-
-# Build the game (requires Bevy 0.18)
-cargo build --release
-
-# Build with Mycelix governance integration
-cargo build --release --features mycelix
 ```
 
 ## License
@@ -203,7 +155,7 @@ cargo build --release --features mycelix
 
 - **Permissive today** (`symtropy-math`, `symtropy-physics`, `symtropy-render-bridge`): **Apache-2.0 OR MIT** — zero AGPL deps, ship in proprietary products freely.
 - **AGPL today, permissive `-core` variants in Phase 0.5** (`symtropy-bevy`, `symtropy-robotics-bridge`, `symtropy-net`): each currently requires an AGPL dep; see [LICENSING.md](LICENSING.md) for the split plan.
-- **Research layer** (`symtropy-consciousness-physics`, `symtropy-sim-bridge`, game crates): **AGPL-3.0-or-later** — modifications must be shared back under AGPL, or negotiate a [commercial license](../COMMERCIAL_LICENSE.md).
+- **Research layer** (`symtropy-consciousness-physics`, `symtropy-sim-bridge`, game crates): **AGPL-3.0-or-later** — modifications must be shared back under AGPL, or negotiate a commercial license.
 
 ## References
 

@@ -52,9 +52,7 @@ fn main() {
             let p = body.position();
             println!(
                 "  Body {}: y={:.2} sleeping={}",
-                body.handle.0,
-                p[1],
-                body.sleeping
+                body.handle.0, p[1], body.sleeping
             );
         }
     }

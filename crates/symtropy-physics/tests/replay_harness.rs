@@ -3,9 +3,9 @@
 // Commercial licensing: see COMMERCIAL_LICENSE.md at repository root
 use nalgebra::SVector;
 use symtropy_math::{Point, Sphere};
-use symtropy_physics::body::{BodyHandle, RigidBody};
-use symtropy_physics::replay::{apply_commands, ReplayTape, WorldCommand, WorldSnapshot};
 use symtropy_physics::PhysicsWorld;
+use symtropy_physics::body::{BodyHandle, RigidBody};
+use symtropy_physics::replay::{ReplayTape, WorldCommand, WorldSnapshot, apply_commands};
 
 fn build_world() -> (PhysicsWorld<3>, [BodyHandle; 3]) {
     // Use power-of-two fractions where possible to reduce noise and keep tape "clean".

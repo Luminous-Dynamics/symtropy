@@ -1,12 +1,12 @@
 // Copyright (C) 2024-2026 Tristan Stoltz / Luminous Dynamics
 // SPDX-License-Identifier: Apache-2.0 OR MIT
 // Commercial licensing: see COMMERCIAL_LICENSE.md at repository root
-use criterion::{black_box, criterion_group, criterion_main, Criterion};
+use criterion::{Criterion, black_box, criterion_group, criterion_main};
 use nalgebra::SVector;
 use symtropy_math::{Capsule, ConvexHull, HyperBox, Point, Sphere};
+use symtropy_physics::PhysicsWorld;
 use symtropy_physics::gjk;
 use symtropy_physics::raycast;
-use symtropy_physics::{BodyHandle, PhysicsWorld, RigidBody};
 
 fn bench_gjk_sphere_sphere(c: &mut Criterion) {
     let a = Sphere::<3>::unit();

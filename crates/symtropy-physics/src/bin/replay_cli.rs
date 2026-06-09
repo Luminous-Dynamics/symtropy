@@ -13,10 +13,10 @@ use std::io::{self, BufReader, BufWriter, Read, Write};
 
 use nalgebra::SVector;
 use symtropy_math::{Bivector, Point, Sphere};
+use symtropy_physics::PhysicsWorld;
 use symtropy_physics::body::{BodyHandle, BodyType, NetId, RigidBody};
 use symtropy_physics::integrator;
 use symtropy_physics::replay::WorldSnapshot;
-use symtropy_physics::PhysicsWorld;
 
 const MAGIC: [u8; 8] = *b"SYMTAPE\0";
 const VERSION: u32 = 1;
@@ -819,7 +819,7 @@ fn read_command<const D: usize>(r: &mut impl Read) -> io::Result<TapeCommand<D>>
             return Err(io::Error::new(
                 io::ErrorKind::InvalidData,
                 format!("unknown command kind {kind}"),
-            ))
+            ));
         }
     })
 }

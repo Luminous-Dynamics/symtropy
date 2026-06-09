@@ -168,7 +168,7 @@ fn ray_sphere_intersection<const D: usize>(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use symtropy_math::{Point, Sphere};
+    use symtropy_math::Point;
 
     #[test]
     fn ray_hits_sphere() {
@@ -217,7 +217,7 @@ mod tests {
     fn ray_closest_hit() {
         let mut world = PhysicsWorld::<3>::new(SVector::zeros());
         let h1 = world.add_sphere(Point::new([5.0, 0.0, 0.0]), 1.0, 1.0);
-        let h2 = world.add_sphere(Point::new([10.0, 0.0, 0.0]), 1.0, 1.0);
+        let _h2 = world.add_sphere(Point::new([10.0, 0.0, 0.0]), 1.0, 1.0);
 
         let origin = SVector::from([0.0, 0.0, 0.0]);
         let dir = SVector::from([1.0, 0.0, 0.0]);

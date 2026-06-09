@@ -3,7 +3,7 @@
 Symtropy uses a **dual-track license model**. The split is designed to:
 
 1. **Make the core engine freely adoptable** by game studios, indies, research groups, and industrial users — including in proprietary and commercial contexts.
-2. **Protect the research IP** (consciousness-physics, Mycelix governance/economy/crypto integration) with strong copyleft so improvements flow back to the commons.
+2. **Protect the research IP** (consciousness-physics and higher-level integration layers) with strong copyleft so improvements flow back to the commons.
 
 ## At a glance
 
@@ -21,10 +21,8 @@ Symtropy uses a **dual-track license model**. The split is designed to:
 | `symtropy-world` | **AGPL-3.0-or-later** | Depends on consciousness-physics (transitively AGPL). |
 | `symtropy-holochain-relay` | **AGPL-3.0-or-later** | Holochain DHT persistence for consciousness profiles. |
 | `symtropy-lightyear` | **AGPL-3.0-or-later** | Game-tier netcode wrapper (can become permissive later). |
-| `symthaea-bevy-brain` | **AGPL-3.0-or-later** | Full Symthaea cognitive loop integration. |
 | `symtropy-gravcraft-demo` | **AGPL-3.0-or-later** | Demo game. |
 | `symtropy-manipulator-demo` | **AGPL-3.0-or-later** | Demo game. |
-| Root `symtropy` (game crate) | **AGPL-3.0-or-later** | *The Room That Remembers You* + Sol Atlas. |
 
 > **Note 1** — These three crates were initially targeted for permissive licensing to support generalist adoption, but each has required dependencies on AGPL crates. AGPL is viral: any crate that *requires* AGPL code cannot itself be permissively licensed without misrepresenting the combined work's terms. The Phase 0.5 / Phase 1 roadmap extracts permissive `-core` variants by feature-gating the AGPL integrations:
 >
@@ -51,13 +49,13 @@ Under the permissive (Apache-2.0 OR MIT) core crates:
 ### You must open-source (AGPL-3.0) if you use
 
 - `symtropy-consciousness-physics` — if you ship or run as a service, your modifications must be released under AGPL.
-- `symtropy-sim-bridge` — Mycelix governance integration is copyleft.
+- `symtropy-sim-bridge` — higher-level integration bridge is copyleft.
 - Any of the game-layer crates.
 
 ### You need a commercial license if you
 
 - Want to integrate any of the **AGPL crates** into a **proprietary** product or service without releasing your modifications.
-- See the parent `COMMERCIAL_LICENSE.md` in `/srv/luminous-dynamics/COMMERCIAL_LICENSE.md` for terms.
+- Contact Luminous Dynamics for commercial licensing terms.
 - Cooperatives, B-corps, and mission-aligned organisations may qualify for favourable terms.
 
 ### Contact for commercial licensing
@@ -81,7 +79,7 @@ AGPL alone is an adoption blocker for studios and many indie developers — they
 The split resolves this:
 
 - The **physics + rendering + networking core** — generic infrastructure that happens to be very good — is given away freely. This is the widest possible funnel for adoption and contribution.
-- The **consciousness-physics + Mycelix** layer — the research contribution that is genuinely novel and took years to develop — stays copyleft. Studios and proprietary users who want it negotiate a commercial license; the commons stays protected.
+- The **consciousness-physics and higher-level integration** layer — the research contribution that is genuinely novel and took years to develop — stays copyleft. Studios and proprietary users who want it negotiate a commercial license; the commons stays protected.
 
 This is the same structural model used by many successful OSS projects (e.g. MongoDB's SSPL / Server Side Public License before, Redis Labs' modules, Elastic before 7.11), adapted to a consciousness-research context.
 
@@ -112,6 +110,6 @@ Users who want permissive licensing should depend on `symtropy-math >= 0.2.0`, `
 
 - Apache License 2.0: `LICENSE-APACHE`
 - MIT License: `LICENSE-MIT`
-- GNU AGPL v3: `/srv/luminous-dynamics/LICENSE`
-- Commercial licensing terms: `/srv/luminous-dynamics/COMMERCIAL_LICENSE.md`
-- CLA: `/srv/luminous-dynamics/CLA.md`
+- GNU AGPL v3: https://www.gnu.org/licenses/agpl-3.0.html
+- Commercial licensing: contact Luminous Dynamics.
+- CLA: see [CONTRIBUTING.md](CONTRIBUTING.md).
