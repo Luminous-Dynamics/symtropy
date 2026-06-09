@@ -1,0 +1,5 @@
+# mdBook rendered output
+book/book/
+
+# Rust build output
+target/

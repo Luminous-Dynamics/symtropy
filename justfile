@@ -1,0 +1,101 @@
+# Symtropy development commands
+# Usage: just <command>
+
+# NixOS pkg-config paths for build
+alsa_path := `nix-build '<nixpkgs>' -A alsa-lib.dev --no-out-link 2>/dev/null` + "/lib/pkgconfig"
+x11_path := `nix-build '<nixpkgs>' -A xorg.libX11.dev --no-out-link 2>/dev/null` + "/lib/pkgconfig"
+xcursor_path := `nix-build '<nixpkgs>' -A xorg.libXcursor.dev --no-out-link 2>/dev/null` + "/lib/pkgconfig"
+xi_path := `nix-build '<nixpkgs>' -A xorg.libXi.dev --no-out-link 2>/dev/null` + "/lib/pkgconfig"
+xrandr_path := `nix-build '<nixpkgs>' -A xorg.libXrandr.dev --no-out-link 2>/dev/null` + "/lib/pkgconfig"
+xkbcommon_path := `nix-build '<nixpkgs>' -A libxkbcommon.dev --no-out-link 2>/dev/null` + "/lib/pkgconfig"
+wayland_path := `nix-build '<nixpkgs>' -A wayland.dev --no-out-link 2>/dev/null` + "/lib/pkgconfig"
+
+export PKG_CONFIG_PATH := alsa_path + ":" + x11_path + ":" + xcursor_path + ":" + xi_path + ":" + xrandr_path + ":" + xkbcommon_path + ":" + wayland_path + ":" + env("PKG_CONFIG_PATH", "")
+
+# Default: build and run debug
+default: run
+
+# Build debug
+build:
+    cargo build
+
+# Build release
+release:
+    cargo build --release
+
+# Run debug build
+run: build
+    ./run.sh
+
+# Run release build
+run-release: release
+    ./run.sh --release
+
+# Run with X11 backend
+run-x11: build
+    ./run.sh --x11
+
+# Check compilation only (fast)
+check:
+    cargo check
+
+# Run headless governance integration tests (scenarios)
+verify-governance:
+    RUSTC_WRAPPER= SCCACHE_DISABLE=1 cargo run -p symtropy-sim-bridge --bin headless_test -- --ticks 100
+
+# Canonical core verification gate for Phase 0.1.
+# This intentionally avoids demo/runtime crates so it can run on headless CI.
+verify-core:
+    # 1. License check
+    ./scripts/check-licenses.sh
+    # 2. Formatting (check only)
+    cargo fmt --all -- --check
+    # 3. Compilation & Clippy (deny warnings on core crates)
+    RUSTC_WRAPPER= SCCACHE_DISABLE=1 cargo clippy -p symtropy-math -p symtropy-physics -p symtropy-render-bridge -p symtropy-bevy-core -p symtropy-consciousness-physics -- -D warnings
+    RUSTC_WRAPPER= SCCACHE_DISABLE=1 cargo check -p symtropy-cli
+    # 4. Core Tests
+    RUSTC_WRAPPER= SCCACHE_DISABLE=1 cargo test -p symtropy-math -p symtropy-physics -p symtropy-consciousness-physics --lib
+    RUSTC_WRAPPER= SCCACHE_DISABLE=1 cargo test -p symtropy-physics --test replay_harness --test callback_contract
+    RUSTC_WRAPPER= SCCACHE_DISABLE=1 cargo test -p symtropy-consciousness-physics --test accounting_verification
+
+# Run all symtropy workspace tests in release mode (required for perf guards)
+test:
+    cargo test --workspace --release
+
+# Run just the pendulum_swarm demo design guards
+# Protects four empirical constants documented in
+# crates/symtropy-bevy/examples/pendulum_swarm.md:
+#   - DistanceConstraint pendulum behavior
+#   - LOW/HIGH damping visual contrast
+#   - MasterConsciousnessEquation phi response magnitude
+#   - 100-body physics step fits 60 Hz budget
+test-pendulum-swarm:
+    cargo test -p symtropy-bevy --test pendulum_swarm_invariants --release -- --nocapture
+
+# Run the pendulum_swarm demo (100-pendulum Phi-coupled physics scene)
+run-pendulum-swarm:
+    cargo run -p symtropy-bevy --example pendulum_swarm --release
+
+# Run the 3D pendulum_swarm demo (PBR meshes + Camera3d)
+run-pendulum-swarm-3d:
+    cargo run -p symtropy-bevy --example pendulum_swarm_3d --release
+
+# Run the 4D pendulum_swarm demo (hyperplane slicing, [/] to move slice)
+run-pendulum-swarm-4d:
+    cargo run -p symtropy-bevy --example pendulum_swarm_4d --release
+
+# Run biometrics tests
+test-biometrics:
+    cd ../symthaea && cargo test -p symthaea-biometrics --features muse-bridge
+
+# Build the 4D pendulum swarm for the browser
+build-wasm:
+    rustup target add wasm32-unknown-unknown
+    RUSTFLAGS="--cfg=web_sys_unstable_apis" cargo build -p symtropy-bevy --example pendulum_swarm_4d --target wasm32-unknown-unknown --release
+    mkdir -p out/wasm
+    # Note: Requires wasm-bindgen-cli installed on the host
+    wasm-bindgen --out-dir ./out/wasm --target web ./target/wasm32-unknown-unknown/release/examples/pendulum_swarm_4d.wasm
+
+# Clean build artifacts
+clean:
+    cargo clean

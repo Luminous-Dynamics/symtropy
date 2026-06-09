@@ -1,0 +1,99 @@
+\documentclass[12pt,a4paper]{book}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage[margin=1in]{geometry}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{amsmath}
+\usepackage{longtable}
+\usepackage{xcolor}
+\usepackage{hyperref}
+
+\hypersetup{
+    colorlinks=true,
+    linkcolor=black,
+    urlcolor=blue!60!black
+}
+
+\title{\textbf{\Huge The Thermodynamics of Togetherness}\\[1em]
+\Large How We Built a Cooperation Engine,\\Proved It Worked, Then Proved We Were Wrong\\[2em]
+\large A Computational Investigation in 53 Findings}
+\author{Tristan Stoltz\\[0.5em]\textit{Luminous Dynamics}}
+\date{2026}
+
+\begin{document}
+
+\frontmatter
+\maketitle
+
+\chapter*{Epigraph}
+\begin{quote}
+\textit{``Physics doesn't cooperate. It clusters at the wells.\\Everything we called society was resource geometry.''}\\[1em]
+--- Chapter 15
+\end{quote}
+
+\vfill
+
+\begin{quote}
+\textit{``The tragedy of walking away is that you lose benefits\\you never knew you were receiving.''}\\[1em]
+--- Chapter 16
+\end{quote}
+
+\tableofcontents
+
+\mainmatter
+
+% ============================================================
+\part{The Engine}
+% ============================================================
+
+\input{ch01}
+\input{ch02}
+\input{ch03}
+\input{ch04}
+
+% ============================================================
+\part{The Illusion}
+% ============================================================
+
+\input{part2preface}
+\input{ch05}
+\input{ch06}
+\input{ch07}
+\input{ch08}
+\input{ch09}
+\input{ch10}
+\input{ch11}
+\input{ch12}
+
+% ============================================================
+\part{The Unraveling}
+% ============================================================
+
+\input{ch13new}
+\input{ch14new}
+\input{ch15new}
+\input{ch16new}
+
+\backmatter
+
+\input{appendix_reinterp}
+\input{afterword}
+
+\chapter*{Reproduction}
+\addcontentsline{toc}{chapter}{Reproduction}
+
+All 63 experiments reported in this book can be reproduced:
+
+\begin{verbatim}
+cargo run --example [experiment_name] --release
+\end{verbatim}
+
+Seeds are deterministic. Results are bitwise reproducible on the same platform (verified by lock-in test). Statistical methods, effect sizes, and Holm--Bonferroni corrections are computed inline.
+
+63 experiment files. 53 findings. 95 library tests + 2 integration tests. AGPL-3.0.
+
+If the prose and the data disagree, trust the data. We did.
+
+\end{document}

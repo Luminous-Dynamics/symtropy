@@ -1,0 +1,27 @@
+[package]
+name = "symtropy-bevy-core"
+version = "0.1.0"
+edition = "2024"
+license = "Apache-2.0 OR MIT"
+description = "Permissively-licensed Bevy plugin for symtropy-physics N-dimensional physics. Generic over PhysicsCallback."
+
+[dependencies]
+symtropy-physics = { path = "../symtropy-physics" }
+symtropy-math = { path = "../symtropy-math" }
+bevy = { version = "0.18", default-features = false, features = [
+    "bevy_asset",
+    "bevy_core_pipeline",
+    "bevy_render",
+    "bevy_sprite",
+    "bevy_sprite_render",
+    "bevy_winit",
+    "bevy_color",
+    "bevy_state",
+    "bevy_log",
+    "multi_threaded",
+    "x11",
+] }
+nalgebra = "0.34"
+
+[features]
+default = []
