@@ -1,0 +1,18 @@
+[package]
+name = "symthaea"
+version = "0.1.0"
+edition = "2024"
+license = "AGPL-3.0-or-later"
+description = "Standalone-repo stub: minimal type-compatible stand-in for the full (unpublished, ~1.68M LOC) symthaea crate. Exposes only the cognitive_loop surface actually consumed by symtropy's symthaea-bevy-brain crate. Maintained IN this standalone repo, not synced from the monorepo -- see scripts/sync-to-standalone.sh."
+publish = false
+
+[dependencies]
+symthaea-core = "0.5.1"
+
+[features]
+default = []
+vision-manifold = []
+muse = []
+reasoning_engine = []
+humanoid = []
+vehicle = []

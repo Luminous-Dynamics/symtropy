@@ -1,0 +1,38 @@
+[package]
+name = "symtropy-net"
+version = "0.1.0"
+edition = "2024"
+license = "AGPL-3.0-or-later"
+description = "Deterministic lockstep physics sync for Symtropy: tested lockstep protocol + in-memory loopback transport; WebSocket relay transport compiles but is untested against a live server; Iroh QUIC P2P transport is a documented stub (see iroh_transport.rs)"
+
+[features]
+default = []
+# Compiles the WebSocket-based signaling client (`signaling.rs`) and the
+# relay transport that piggybacks game data over that same WebSocket
+# (`relay_transport.rs`). This makes `RelayTransport` compile and run
+# against a real signaling server, but it has NOT been validated
+# end-to-end against a live server (no integration test drives it) —
+# see `relay_transport.rs` module docs for known trade-offs.
+webrtc = ["dep:tokio-tungstenite", "dep:futures-util", "dep:log"]
+logging = []
+
+[dependencies]
+symtropy-net-core = { path = "../../core/symtropy-net-core" }
+symtropy-math = { path = "../../core/symtropy-math" }
+symtropy-physics = { path = "../../core/symtropy-physics" }
+symtropy-holochain-relay = { package = "symtropy-holochain-relay-bridge", path = "../../bridges/symtropy-holochain-relay" }
+nalgebra = "0.34"
+serde = { version = "1.0", features = ["derive"] }
+rmp-serde = "1.3"
+serde_json = "1.0"
+# webrtc feature only (signaling.rs / relay_transport.rs). Version matches
+# the sibling symtropy-holochain-relay-bridge crate for consistency.
+tokio-tungstenite = { version = "0.24", optional = true }
+futures-util = { version = "0.3", optional = true }
+log = { version = "0.4", optional = true }
+
+[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
+tokio = { version = "1", features = ["full"] }
+
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+tokio = { version = "1", features = ["sync", "macros", "rt"] }

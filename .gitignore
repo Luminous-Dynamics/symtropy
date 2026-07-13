@@ -1,5 +1,27 @@
 # mdBook rendered output
 book/book/
 
-# Rust build output
-target/
+# Python
+__pycache__/
+*.pyc
+pyphi.log
+temp_deps.txt
+__pyphi_cache__/
+.pytest_cache/
+
+# LaTeX
+*.aux
+*.log
+*.out
+texput.log
+
+# Nix
+result
+.direnv/
+
+# Generated / vendored / archival — not useful checked into git
+chronicle/
+archive/
+_archive-*/
+deps/
+symthaea-deps/

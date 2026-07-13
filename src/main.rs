@@ -1,0 +1,258 @@
+// Copyright (C) 2024-2026 Tristan Stoltz / Luminous Dynamics
+// SPDX-License-Identifier: AGPL-3.0-or-later
+//! Symtropy Engine — consciousness-first technology platform.
+//!
+//! Experiences:
+//! - The Room That Remembers You (consciousness survival horror)
+//! - Sol Atlas (civilizational planetary instrument)
+//!
+//! Run:
+//! ```sh
+//! export LD_LIBRARY_PATH="$(cat /tmp/bevy_ld_library_path.txt)"
+//! RUST_LOG=warn,symtropy=info ./target/release/symtropy
+//! ```
+
+use bevy::prelude::*;
+use bevy::render::RenderPlugin;
+use bevy::render::settings::{RenderCreation, WgpuSettings};
+use symtropy_launcher::plugin::SymtropyPlugin;
+
+fn main() {
+    // Crash handler — writes to both stderr and a crash log file
+    std::panic::set_hook(Box::new(|info| {
+        let bt = std::backtrace::Backtrace::force_capture();
+        let msg = format!(
+            "\n=== SYMTROPY CRASH ===\n{info}\n\nBacktrace:\n{bt}\n======================\n"
+        );
+        eprintln!("{msg}");
+        // Also write to file so we can inspect after window closes
+        let log_path = std::env::temp_dir().join("symtropy_panic.log");
+        let _ = std::fs::write(&log_path, &msg);
+    }));
+
+    eprintln!("[symtropy] Starting...");
+    eprintln!(
+        "[symtropy] DISPLAY={}",
+        std::env::var("DISPLAY").unwrap_or_default()
+    );
+    eprintln!(
+        "[symtropy] WAYLAND_DISPLAY={}",
+        std::env::var("WAYLAND_DISPLAY").unwrap_or_default()
+    );
+
+    // Configure wgpu to be more resilient — prefer Vulkan, fall back to GL
+    let wgpu_settings = WgpuSettings {
+        // Let wgpu choose the best available backend
+        ..default()
+    };
+
+    // CLI flags
+    let autostart = std::env::args().any(|a| a == "--autostart");
+    let ai_player = std::env::args().any(|a| a == "--ai-player");
+    // --experience <id>: select a specific ExperienceRegistry entry before
+    // autostarting (e.g. "waterworks-3d" for the 3D FPS layer, vs. the
+    // default "the-room" 2.5D experience). No-op without --autostart.
+    let experience_id: Option<String> = std::env::args()
+        .collect::<Vec<_>>()
+        .windows(2)
+        .find(|w| w[0] == "--experience")
+        .map(|w| w[1].clone());
+    #[cfg(feature = "atlas")]
+    let globe_mode = std::env::args().any(|a| a == "--globe");
+    #[cfg(feature = "atlas")]
+    let record_mode = std::env::args().any(|a| a == "--record");
+    #[cfg(feature = "atlas")]
+    let demo_mode = std::env::args().any(|a| a == "--demo");
+    #[cfg(feature = "atlas")]
+    let cinematic_mode = std::env::args().any(|a| a == "--cinematic");
+
+    let mut app = App::new();
+    app.add_plugins(
+        DefaultPlugins
+            .set(WindowPlugin {
+                primary_window: Some(Window {
+                    title: "Symtropy Engine".into(),
+                    resolution: bevy::window::WindowResolution::new(1280, 720),
+                    present_mode: bevy::window::PresentMode::AutoVsync,
+                    ..default()
+                }),
+                ..default()
+            })
+            .set(RenderPlugin {
+                render_creation: RenderCreation::Automatic(Box::new(wgpu_settings)),
+                ..default()
+            })
+            .set(ImagePlugin::default_nearest()),
+    )
+    // MSAA: Bevy 0.18 defaults to Sample4 via Msaa enum (set per-camera if needed)
+    .add_plugins(SymtropyPlugin)
+    // Env-gated no-op unless SYMTROPY_DEMO_CAPTURE_DIR is set — see
+    // symtropy-demo-capture's doc comment for the schedule (t=1.5/4.0/7.0s,
+    // exit at t=8.5s).
+    .add_plugins(symtropy_demo_capture::CapturePlugin::new("symtropy"))
+    .add_systems(Startup, log_renderer_info);
+
+    if let Some(id) = experience_id.clone() {
+        eprintln!("[symtropy] --experience {id}: selecting before autostart");
+        app.add_systems(
+            Startup,
+            move |mut registry: ResMut<symtropy_launcher::experience::ExperienceRegistry>| {
+                if let Some(idx) = registry.experiences.iter().position(|e| e.id == id) {
+                    registry.selected = idx;
+                } else {
+                    eprintln!("[symtropy] --experience {id}: no such experience id, ignoring");
+                }
+            },
+        );
+    }
+
+    if autostart || ai_player {
+        eprintln!("[symtropy] --autostart: skipping menu, starting game immediately");
+        app.add_systems(
+            Startup,
+            |mut next: ResMut<
+                bevy::prelude::NextState<symtropy_launcher::resources::GamePhase>,
+            >| {
+                next.set(symtropy_launcher::resources::GamePhase::Loading);
+            },
+        );
+    }
+
+    // --globe: enter globe view from main menu (requires --features atlas)
+    #[cfg(feature = "atlas")]
+    if globe_mode {
+        eprintln!("[symtropy] --globe: entering Sol Atlas globe view from MainMenu");
+        app.add_systems(
+            Update,
+            (|mut next: ResMut<
+                bevy::prelude::NextState<symtropy_launcher::resources::GamePhase>,
+            >| {
+                next.set(symtropy_launcher::resources::GamePhase::GlobeView);
+            })
+            .run_if(bevy::prelude::in_state(
+                symtropy_launcher::resources::GamePhase::MainMenu,
+            )),
+        );
+    }
+
+    // --demo: auto-start demo director when globe view activates
+    #[cfg(feature = "atlas")]
+    if demo_mode && globe_mode {
+        eprintln!("[symtropy] --demo: cinematic demo director enabled");
+        app.add_systems(
+            Update,
+            (|mut director: ResMut<symtropy_launcher::systems::demo_director::DemoDirector>| {
+                if !director.enabled {
+                    director.enabled = true;
+                    info!("[demo] Director started — 30s cinematic sequence");
+                }
+            })
+            .run_if(bevy::prelude::in_state(
+                symtropy_launcher::resources::GamePhase::GlobeView,
+            )),
+        );
+    }
+
+    // --record: auto-start frame capture when globe view activates
+    #[cfg(feature = "atlas")]
+    if record_mode && globe_mode {
+        eprintln!("[symtropy] --record: auto-capturing frames to /tmp/terra-atlas-frames/");
+        app.add_systems(
+            Update,
+            (|mut config: ResMut<sol_atlas_bevy::frame_capture::FrameCaptureConfig>| {
+                if !config.active && config.frame_count == 0 {
+                    config.active = true;
+                    let _ = std::fs::create_dir_all(&config.output_dir);
+                }
+            })
+            .run_if(bevy::prelude::in_state(
+                symtropy_launcher::resources::GamePhase::GlobeView,
+            )),
+        );
+    }
+
+    // --cinematic: full-spectrum 90s cinematic demo
+    #[cfg(feature = "atlas")]
+    if cinematic_mode {
+        eprintln!("[symtropy] --cinematic: full-spectrum cinematic (90s, 18 phases)");
+        // Insert cinematic resources
+        app.insert_resource(
+            symtropy_launcher::systems::cinematic_director::CinematicDirector {
+                enabled: true,
+                ..Default::default()
+            },
+        );
+        app.insert_resource(symtropy_launcher::systems::cinematic_director::ScreenFade::default());
+        app.insert_resource(
+            symtropy_launcher::systems::cinematic_director::NarrationState::default(),
+        );
+        app.insert_resource(
+            symtropy_launcher::systems::cinematic_director::VoiceNarration::default(),
+        );
+        // Frame capture with cinematic output dir
+        app.insert_resource(sol_atlas_bevy::frame_capture::FrameCaptureConfig {
+            output_dir: "/tmp/symtropy-cinematic-frames".into(),
+            max_frames: 720,
+            active: true,
+            ..Default::default()
+        });
+        // AI player (starts disabled, cinematic enables it during dungeon phases).
+        #[cfg(feature = "fep-ai")]
+        app.insert_resource(symtropy_launcher::systems::ai_player::AiPlayer::new());
+        // Auto-start Loading phase
+        app.add_systems(
+            Update,
+            (|mut next: ResMut<
+                bevy::prelude::NextState<symtropy_launcher::resources::GamePhase>,
+            >| {
+                next.set(symtropy_launcher::resources::GamePhase::Loading);
+            })
+            .run_if(bevy::prelude::in_state(
+                symtropy_launcher::resources::GamePhase::MainMenu,
+            )),
+        );
+    }
+
+    configure_ai_player(&mut app, ai_player);
+
+    app.run();
+
+    eprintln!("[symtropy] Clean exit.");
+}
+
+#[cfg(feature = "fep-ai")]
+fn configure_ai_player(app: &mut App, ai_player: bool) {
+    if ai_player {
+        eprintln!("[symtropy] --ai-player: Symthaea is playing the game");
+        let mut ai = symtropy_launcher::systems::ai_player::AiPlayer::new();
+        ai.enabled = true;
+        app.insert_resource(ai);
+        app.add_systems(
+            Update,
+            symtropy_launcher::systems::ai_player::ai_player_system.run_if(
+                bevy::prelude::in_state(symtropy_launcher::resources::GamePhase::Playing),
+            ),
+        );
+    } else {
+        app.insert_resource(symtropy_launcher::systems::ai_player::AiPlayer::new());
+    }
+}
+
+#[cfg(not(feature = "fep-ai"))]
+fn configure_ai_player(_app: &mut App, ai_player: bool) {
+    if ai_player {
+        eprintln!(
+            "[symtropy] --ai-player requires `--features fep-ai`; continuing with manual input"
+        );
+    }
+}
+
+/// Log renderer info on startup to help debug GPU issues.
+fn log_renderer_info() {
+    eprintln!("[symtropy] Renderer initialized successfully");
+    eprintln!("[symtropy] Window should be visible — if black, check GPU drivers");
+}
+
+// Window icon: use symtropy.desktop file for Linux desktop integration.
+// Bevy 0.18 doesn't expose winit window icon API directly.
+// Install: cp symtropy.desktop ~/.local/share/applications/

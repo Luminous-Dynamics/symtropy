@@ -1,18 +1,162 @@
+[package]
+# Renamed 2026-04-18 from `symtropy` → `symtropy-launcher` to free up the
+# `symtropy` name for the new meta-crate at `crates/symtropy/`. The launcher
+# is genuinely a launcher (multi-experience: The Room + Sol Atlas), so
+# this makes semantic sense.
+name = "symtropy-launcher"
+version = "0.1.0"
+edition = "2024"
+authors = ["Tristan Stoltz <tristan.stoltz@evolvingresonantcocreationism.com>"]
+license = "AGPL-3.0-or-later"
+publish = false
+
+[features]
+default = []
+city-scale = ["dep:symtropy-mycelix-village"]
+biometrics-runtime = ["dep:symthaea-biometrics"]
+consciousness-runtime = [
+    "dep:symtropy-consciousness-physics",
+    "dep:symthaea-consciousness-equation",
+]
+fep-ai = ["consciousness-runtime", "dep:symthaea-fep"]
+gpu-physics = ["dep:symtropy-physics-gpu"]
+terrain = ["dep:symtropy-terrain"]
+symthaea-stack = ["dep:symthaea", "dep:symthaea-core"]
+muse-audio = ["dep:symthaea-muse"]
+live-audio = ["muse-audio", "dep:cpal"]
+egui-ui = ["dep:bevy_egui", "symtropy-render-bridge/inspector"]
+physics-bridge = [
+    "dep:symtropy-bevy",
+    "dep:symtropy-bevy-scene",
+    "dep:symtropy-rapier3d-bridge",
+    "dep:symtropy-core",
+]
+full-stack = [
+    "city-scale",
+    "biometrics-runtime",
+    "consciousness-runtime",
+    "fep-ai",
+    "gpu-physics",
+    "terrain",
+    "symthaea-stack",
+    "muse-audio",
+    "live-audio",
+    "egui-ui",
+    "physics-bridge",
+]
+# Physicalized cryptography / governance systems (see systems/mod.rs).
+# Enabled via `cargo build --features mycelix`. NOT verified by this
+# workspace's default `cargo check` — symtropy-sim-bridge (used in
+# plugin.rs's mycelix block) isn't wired as a dependency here yet.
+mycelix = ["fep-ai"]
+# [standalone-stripped -- referenced deps above are stripped] atlas = ["dep:sol-atlas-bevy", "dep:sol-atlas-core", "fep-ai"]
+
+[dependencies]
+bevy = { version = "0.19", default-features = false, features = [
+    "bevy_asset", "bevy_core_pipeline", "bevy_render",
+    "bevy_sprite", "bevy_sprite_render",
+    "bevy_text", "bevy_ui", "bevy_ui_render",
+    "bevy_winit", "bevy_color", "bevy_state",
+    "bevy_log", "bevy_post_process", "bevy_shader",
+    "bevy_gizmos", "bevy_gizmos_render",
+    "multi_threaded", "x11", # Explicitly include X11, exclude Wayland
+    "default_font", "png",
+] }
+symthaea = { path = "stubs/symthaea", default-features = false, features = ["vision-manifold", "muse", "reasoning_engine", "humanoid", "vehicle"], optional = true }
+symthaea-muse = { path = "stubs/symthaea-muse", features = ["muse-live"], optional = true }
+symtropy-bevy = { path = "crates/bridges/symtropy-bevy", optional = true }
+symtropy-bevy-core = { path = "crates/core/symtropy-bevy-core" }
+symtropy-bevy-scene = { path = "crates/core/symtropy-bevy-scene", optional = true }
+symtropy-physics = { path = "crates/core/symtropy-physics" }
+symtropy-rapier3d-bridge = { path = "crates/bridges/symtropy-rapier3d-bridge", optional = true }
+symtropy-physics-gpu = { path = "crates/domains/symtropy-physics-gpu", optional = true }
+symtropy-core = { path = "crates/core/symtropy-core", optional = true }
+symtropy-math = { path = "crates/core/symtropy-math" }
+symtropy-mycelix-village = { path = "crates/apps/symtropy-mycelix-village", optional = true }
+symtropy-terrain = { path = "crates/domains/symtropy-terrain", optional = true }
+symtropy-basin = { path = "crates/domains/symtropy-basin" }
+symtropy-demo-capture = { path = "crates/apps/symtropy-demo-capture" }
+symtropy-consciousness-physics = { path = "crates/domains/symtropy-consciousness-physics", optional = true }
+symtropy-render-bridge = { path = "crates/bridges/symtropy-render-bridge" }
+symthaea-bevy-brain = { path = "crates/bridges/symthaea-bevy-brain", optional = true }
+symtropy-symthaea-adapter = { path = "crates/bridges/symtropy-symthaea-adapter", optional = true }
+symtropy-mycelix-bridge = { path = "crates/bridges/symtropy-mycelix-bridge", optional = true }
+# [standalone-stripped, not published, atlas feature only] sol-atlas-bevy = { path = "../sol-atlas-bevy", optional = true }
+# [standalone-stripped, not published, atlas feature only] sol-atlas-core = { path = "../sol-atlas-core", optional = true }
+
+symthaea-fep = "0.1.0"
+
+symthaea-biometrics = { path = "stubs/symthaea-biometrics", optional = true }
+symthaea-consciousness-equation = "0.1.0"
+nalgebra = "0.34"
+rand = "0.8"
+hound = "3.5"
+image = { version = "0.24", features = ["png"] }
+cpal = { version = "0.17", optional = true }
+bevy_egui = { version = "0.40", optional = true }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+symthaea-core = "0.5.1"
+bytemuck = { version = "1.18", features = ["derive"] }
+
 [workspace]
+# --- Members intentionally excluded from the STANDALONE workspace ---
+# (the private monorepo workspace still builds these; they're removed here
+# only because they need dependencies that are unpublished/private and too
+# large to responsibly stub or vendor -- see scripts/sync-to-standalone.sh
+# for the full per-crate reasoning)
+#   symtropy-auv-demo, symtropy-exoskeleton-demo, symtropy-flight-demo,
+#   symtropy-gravcraft-demo, symtropy-helicopter-demo, symtropy-humanoid-demo,
+#   symtropy-manipulator-demo, symtropy-orbital-demo, symtropy-quadruped-demo,
+#   symtropy-scavenger-demo, symtropy-surgical-demo, symtropy-vehicle-demo,
+#   symtropy-world, symtropy-sim-bridge
+
 resolver = "2"
+exclude = [
+    "crates/bridges/symtropy-robotics-bridge",
+]
 members = [
-    "crates/symtropy-math",
-    "crates/symtropy-physics",
-    "crates/symtropy-fluid",
+    ".",
+    "crates/apps/symtropy-cli",
+    "crates/bridges/symtropy-bevy",
+    "crates/core/symtropy-bevy-core",
+    "crates/core/symtropy-bevy-scene",
+    "crates/bridges/symthaea-bevy-brain",
+    "crates/bridges/symtropy-symthaea-adapter",
+    "crates/apps/symtropy-mycelix-village",
+    "crates/domains/symtropy-net",
+    "crates/domains/symtropy-lifesim-core",
+    "crates/domains/symtropy-colony",
+    "crates/domains/symtropy-mycelium",
+    "crates/domains/symtropy-basin",
+
+    "crates/bridges/symtropy-robotics-bridge-core",
+    "crates/bridges/symtropy-rapier3d-bridge",
+    "crates/domains/symtropy-physics-gpu",
+    "crates/core/symtropy-core",
+    "crates/domains/symtropy-devconsole",
+    "crates/core/symtropy-math",
+    "crates/core/symtropy-physics",
+    "crates/bridges/symtropy-render-bridge",
+    "crates/bridges/symtropy-mycelix-bridge",
+    "crates/bridges/symtropy-foundry",
+    "crates/domains/symtropy-terrain",
+    "crates/domains/symtropy-lightyear",
+    "crates/apps/symtropy-multiplayer-demo",
     "crates/symtropy-mesh",
-    "crates/symtropy-soft",
-    "crates/symtropy-net-core",
+
+    # Restored 2026-07-03 (demo-crate rot triage): Cargo.toml deps had gone
+    # empty despite `src/` importing real crates, orphaning these from the
+    # workspace. See `symtropy/archive/orphaned-demos-2026-07/README.md` for
+    # the ones that were archived instead.
+    "crates/apps/symtropy-web-gallery",
 ]
 
-[workspace.package]
-edition = "2024"
-license = "Apache-2.0 OR MIT"
-repository = "https://github.com/Luminous-Dynamics/symtropy"
-
-[workspace.lints.clippy]
+[lints.clippy]
 all = "warn"
+
+[profile.dev]
+opt-level = 1
+
+[profile.dev.package."*"]
+opt-level = 3

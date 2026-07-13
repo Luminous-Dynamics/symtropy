@@ -1,0 +1,18 @@
+[package]
+name = "symtropy-terrain"
+version = "0.1.0"
+edition = "2024"
+license = "Apache-2.0 OR MIT"
+description = "Volumetric terrain and excavation systems for Symtropy."
+
+[dependencies]
+symtropy-math = { path = "../../core/symtropy-math" }
+symtropy-physics = { path = "../../core/symtropy-physics" }
+symtropy-physics-gpu = { path = "../../domains/symtropy-physics-gpu" }
+symtropy-rapier3d-bridge = { path = "../../bridges/symtropy-rapier3d-bridge" }
+rapier3d = "0.18"
+nalgebra = "0.34"
+image = "0.25"
+bevy = { version = "0.19", default-features = false, features = ["bevy_render", "bevy_asset", "bevy_image", "bevy_state", "bevy_log", "multi_threaded"] }
+bevy_mesh = "0.19"
+futures-lite = "2.0"

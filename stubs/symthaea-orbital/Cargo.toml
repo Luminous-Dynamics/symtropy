@@ -1,0 +1,10 @@
+[package]
+name = "symthaea-orbital"
+version = "0.1.0"
+edition = "2024"
+license = "AGPL-3.0-or-later"
+description = "Standalone-repo stub: minimal EmbodimentBridge for the orbital platform, sufficient only for symtropy-symthaea-adapter's integration test. Not a physics simulator. Maintained IN this standalone repo -- see scripts/sync-to-standalone.sh."
+publish = false
+
+[dependencies]
+symthaea-core = "0.5.1"

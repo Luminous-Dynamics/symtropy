@@ -1,0 +1,47 @@
+[package]
+name = "symtropy-launcher"
+version = "0.1.0"
+edition = "2024"
+authors = ["Tristan Stoltz <tristan.stoltz@evolvingresonantcocreationism.com>"]
+license = "AGPL-3.0-or-later"
+publish = false
+
+[workspace]
+
+[[bin]]
+name = "symtropy-launcher"
+path = "../src/main.rs"
+
+[dependencies]
+bevy = { version = "0.19", default-features = false, features = [
+    "bevy_asset", "bevy_core_pipeline", "bevy_render",
+    "bevy_sprite", "bevy_sprite_render",
+    "bevy_text", "bevy_ui", "bevy_ui_render",
+    "bevy_winit", "bevy_color", "bevy_state",
+    "bevy_log", "bevy_post_process", "bevy_shader",
+    "bevy_gizmos", "bevy_gizmos_render",
+    "multi_threaded", "x11", "default_font", "png",
+] }
+# NOTE (2026-07-10): dependency paths repaired (the `symthaea` dep pointed at
+# `../../symthaea/crates/symthaea-core`, a path dead since the June 30 symthaea
+# reorg — and whose package is named `symthaea-core`, not `symthaea`; the
+# internal deps were machine-specific absolute /srv/... paths). This shim
+# duplicates the root `symtropy-launcher` package's bin and has NOT been
+# build-verified since the repair — its dep list predates the root crate's
+# feature-gating scheme and may need aligning (e.g. symtropy-basin,
+# symtropy-demo-capture) before it compiles. Possibly vestigial; see
+# SYMTROPY_IMPROVEMENT_PLAN_2026-07-10.md P1.5.
+symthaea = { path = "../stubs/symthaea", default-features = false, features = ["vision-manifold", "muse", "reasoning_engine"] }
+symthaea-fep = "0.1.0"
+symtropy-bevy = { path = "../crates/bridges/symtropy-bevy" }
+symtropy-bevy-core = { path = "../crates/core/symtropy-bevy-core" }
+symtropy-bevy-scene = { path = "../crates/core/symtropy-bevy-scene" }
+symtropy-consciousness-physics = { path = "../crates/domains/symtropy-consciousness-physics" }
+symtropy-core = { path = "../crates/core/symtropy-core" }
+symtropy-math = { path = "../crates/core/symtropy-math" }
+symtropy-mycelix-village = { path = "../crates/apps/symtropy-mycelix-village" }
+symtropy-physics = { path = "../crates/core/symtropy-physics" }
+symtropy-physics-gpu = { path = "../crates/domains/symtropy-physics-gpu" }
+symtropy-rapier3d-bridge = { path = "../crates/bridges/symtropy-rapier3d-bridge" }
+symtropy-render-bridge = { path = "../crates/bridges/symtropy-render-bridge" }
+symtropy-terrain = { path = "../crates/domains/symtropy-terrain" }

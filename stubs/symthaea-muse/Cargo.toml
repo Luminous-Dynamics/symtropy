@@ -1,0 +1,14 @@
+[package]
+name = "symthaea-muse"
+version = "0.1.0"
+edition = "2024"
+license = "AGPL-3.0-or-later"
+description = "Standalone-repo stub: minimal type-compatible stand-in for symthaea-muse's public config/state types actually used by symtropy (MuseConfig/MusicalState/ReverbConfig). Maintained IN this standalone repo -- see scripts/sync-to-standalone.sh."
+publish = false
+
+[dependencies]
+serde = { version = "1.0", features = ["derive"] }
+
+[features]
+default = []
+muse-live = []

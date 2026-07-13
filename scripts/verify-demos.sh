@@ -6,7 +6,7 @@
 # t = 1.5, 4.0, 7.0 s and then exits cleanly at 8.5 s. We also wrap
 # in `timeout 45s` as a belt-and-braces fallback in case a demo hangs.
 #
-# NixOS runtime note: Bevy 0.18 needs libX11/libXi/vulkan-loader/libGL at
+# NixOS runtime note: Bevy 0.19 needs libX11/libXi/vulkan-loader/libGL at
 # runtime. The monorepo flake at /srv/luminous-dynamics/flake.nix already
 # sets LD_LIBRARY_PATH for these, so this script auto-re-execs inside
 # `nix develop` when it isn't already.
@@ -58,7 +58,7 @@ mkdir -p "$BASE_CAPTURE"
 rm -rf "$BASE_CAPTURE"/*
 
 # ─── Pre-build pass ─────────────────────────────────────────────────
-# Bevy 0.18 cold-builds take minutes per demo — larger than
+# Bevy cold-builds take minutes per demo — larger than
 # HARD_TIMEOUT. Without this pre-pass every demo would time out
 # during compilation and never reach runtime. We `cargo build`
 # each crate serially BEFORE the timed loop so the subsequent
@@ -70,14 +70,19 @@ if [ "${SYMTROPY_VERIFY_SKIP_BUILD:-0}" != "1" ]; then
     build_start="$(date +%s)"
     build_failed=()
     for demo in "${DEMOS[@]}"; do
-        crate_dir="$REPO/symtropy/crates/symtropy-${demo}-demo"
+        crate_dir="$REPO/symtropy/crates/apps/symtropy-${demo}-demo"
         if [ ! -f "$crate_dir/Cargo.toml" ]; then
+            # Loud, not silent: a missing demo dir means this script is
+            # stale (it happened once — the 2026-06 apps/ reorg left the
+            # old path here and every demo was skipped).
+            echo "  MISSING demo crate: $crate_dir (script stale?)"
+            build_failed+=("$demo")
             continue
         fi
         printf "  building %-15s ... " "$demo"
         per_start="$(date +%s)"
         if cargo build --release --manifest-path "$crate_dir/Cargo.toml" \
-                --bin "${demo}-demo" > "$BASE_CAPTURE/build_${demo}.log" 2>&1; then
+                --bin "symtropy-${demo}-demo" > "$BASE_CAPTURE/build_${demo}.log" 2>&1; then
             per_elapsed=$(($(date +%s) - per_start))
             echo "ok (${per_elapsed}s)"
         else
@@ -104,7 +109,7 @@ printf -- "--------------- | ------ | ---- | -----------\n"
 
 fail_count=0
 for demo in "${DEMOS[@]}"; do
-    crate_dir="$REPO/symtropy/crates/symtropy-${demo}-demo"
+    crate_dir="$REPO/symtropy/crates/apps/symtropy-${demo}-demo"
     capture_dir="$BASE_CAPTURE/$demo"
     mkdir -p "$capture_dir"
 
@@ -117,7 +122,7 @@ for demo in "${DEMOS[@]}"; do
     SYMTROPY_DEMO_CAPTURE_DIR="$capture_dir" \
     timeout "${HARD_TIMEOUT}s" \
         cargo run --release --manifest-path "$crate_dir/Cargo.toml" \
-            --bin "${demo}-demo" \
+            --bin "symtropy-${demo}-demo" \
             > "$capture_dir/stdout.log" 2> "$capture_dir/stderr.log"
     exit_code=$?
 

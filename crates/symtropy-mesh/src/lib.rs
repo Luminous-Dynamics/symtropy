@@ -3,6 +3,7 @@
 
 //! Triangle mesh collider and BVH-based narrowphase.
 
+pub mod meshlet_physics;
 pub mod narrowphase;
 
 use nalgebra::SVector;
@@ -11,6 +12,7 @@ use symtropy_math::{Point, Shape};
 use symtropy_physics::broadphase::Aabb;
 
 pub use narrowphase::generate_mesh_contacts;
+pub use narrowphase::generate_meshlet_contacts;
 
 /// A single triangle in 3D.
 #[derive(Clone, Debug)]
@@ -253,4 +255,32 @@ impl Shape<3> for TriangleMesh {
     fn clone_box(&self) -> Box<dyn Shape<3>> {
         Box::new(self.clone())
     }
+}
+
+/// Wire triangle-mesh narrowphase into a 3D `PhysicsWorld`.
+///
+/// Call this once during world setup:
+/// ```ignore
+/// symtropy_mesh::install_triangle_mesh_narrowphase(&mut world);
+/// ```
+/// After this call, any body whose collider is a [`TriangleMesh`] will use
+/// the BVH narrowphase instead of silently falling back to its convex hull.
+///
+/// Internally this registers a closure with
+/// [`PhysicsWorld::register_mesh_contact_fn`] that can perform the concrete
+/// `downcast_ref::<TriangleMesh>()` — something `symtropy-physics` itself
+/// cannot do due to the circular crate dependency (this crate depends on
+/// `symtropy-physics`, not the reverse).
+pub fn install_triangle_mesh_narrowphase(world: &mut symtropy_physics::world::PhysicsWorld<3>) {
+    world.register_mesh_contact_fn(|shape_a, pos_a, shape_b, pos_b, handle_a, handle_b| {
+        use symtropy_physics::manifold_gen::MeshColliderMetadata;
+        if let Some(mesh) = shape_a.as_any().downcast_ref::<TriangleMesh>() {
+            return Some(mesh.generate_mesh_contacts(handle_a, pos_a, shape_b, handle_b, pos_b));
+        }
+        if let Some(mesh) = shape_b.as_any().downcast_ref::<TriangleMesh>() {
+            return Some(mesh.generate_mesh_contacts(handle_b, pos_b, shape_a, handle_a, pos_a));
+        }
+        // Neither shape is a TriangleMesh — fall through to GJK.
+        None
+    });
 }

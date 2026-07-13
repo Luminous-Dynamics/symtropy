@@ -1,0 +1,7 @@
+// Copyright (C) 2026 Tristan Stoltz / Luminous Dynamics
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
+fn main() {
+    crate::systems::chronicle_recorder::record_demo_event().expect("Failed to record event");
+    println!("Event recorded.");
+}

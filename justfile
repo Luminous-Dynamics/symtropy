@@ -49,14 +49,32 @@ verify-core:
     # 1. License check
     ./scripts/check-licenses.sh
     # 2. Formatting (check only)
-    cargo fmt --all -- --check
+    ./scripts/check-format.sh check
     # 3. Compilation & Clippy (deny warnings on core crates)
     RUSTC_WRAPPER= SCCACHE_DISABLE=1 cargo clippy -p symtropy-math -p symtropy-physics -p symtropy-render-bridge -p symtropy-bevy-core -p symtropy-consciousness-physics -- -D warnings
     RUSTC_WRAPPER= SCCACHE_DISABLE=1 cargo check -p symtropy-cli
     # 4. Core Tests
+    RUSTC_WRAPPER= SCCACHE_DISABLE=1 cargo test -p symtropy-lifesim-core -p symtropy-colony -p symtropy-mycelium -p symtropy-basin
     RUSTC_WRAPPER= SCCACHE_DISABLE=1 cargo test -p symtropy-math -p symtropy-physics -p symtropy-consciousness-physics --lib
     RUSTC_WRAPPER= SCCACHE_DISABLE=1 cargo test -p symtropy-physics --test replay_harness --test callback_contract
     RUSTC_WRAPPER= SCCACHE_DISABLE=1 cargo test -p symtropy-consciousness-physics --test accounting_verification
+    # 5. Asset Foundry tests
+    nix develop -c pytest tools/symtropy_assets/tests
+    # 6. Governance Scenarios
+    RUSTC_WRAPPER= SCCACHE_DISABLE=1 cargo run -p symtropy-sim-bridge --bin headless_test -- --ticks 100
+
+# Verify the Asset Foundry Python pipeline only.
+verify-asset-foundry:
+    nix develop -c pytest tools/symtropy_assets/tests
+
+# Verify the optional WGPU field stepper. The test compiles the WGSL backend
+# everywhere and executes parity when a compatible adapter is available.
+verify-lifesim-wgpu:
+    nix develop -c cargo test -p symtropy-lifesim-core --features wgpu -- --nocapture
+
+# Generate workspace documentation
+doc:
+    cargo doc --workspace --no-deps --open
 
 # Run all symtropy workspace tests in release mode (required for perf guards)
 test:
@@ -84,6 +102,22 @@ run-pendulum-swarm-3d:
 run-pendulum-swarm-4d:
     cargo run -p symtropy-bevy --example pendulum_swarm_4d --release
 
+# Run the Old Waterworks living-basin Bevy micro-slice
+run-old-waterworks:
+    cargo run -p symtropy-bevy-core --example old_waterworks_micro_slice
+
+# Fast guard for the active Old Waterworks slice.
+# Keeps camera/input/living-basin work out of the full Symthaea/Mycelix stack.
+verify-old-waterworks-fast:
+    cargo test -p symtropy-bevy-core --lib -- --nocapture
+    cargo test -p symtropy-basin --lib old_waterworks -- --nocapture
+    nix develop --command cargo test -p symtropy-launcher --lib old_waterworks_view --no-default-features -- --nocapture
+    nix develop --command cargo check -p symtropy-launcher --lib --no-default-features
+
+# Run only the lean Old Waterworks camera/view contract tests.
+test-old-waterworks-view:
+    nix develop --command cargo test -p symtropy-launcher --lib old_waterworks_view --no-default-features -- --nocapture
+
 # Run biometrics tests
 test-biometrics:
     cd ../symthaea && cargo test -p symthaea-biometrics --features muse-bridge
@@ -99,3 +133,37 @@ build-wasm:
 # Clean build artifacts
 clean:
     cargo clean
+
+# --- Asset Foundry ---
+
+# Path to the Foundry CLI
+foundry_cli := "python3 tools/symtropy_assets/cli.py"
+asset_root := "assets/symtropy-foundry-data"
+
+# Show registry status
+foundry-status:
+    {{foundry_cli}} --asset-root {{asset_root}} registry status
+
+# Ingest a manifest
+foundry-ingest manifest:
+    {{foundry_cli}} --asset-root {{asset_root}} ingest {{manifest}}
+
+# Normalize and audit an asset (requires Blender in PATH)
+foundry-convert asset_id filepath:
+    {{foundry_cli}} --asset-root {{asset_root}} convert {{filepath}} --asset-id {{asset_id}}
+
+# Normalize and audit ALL pending assets
+foundry-audit-all:
+    {{foundry_cli}} --asset-root {{asset_root}} audit-all
+
+# Generate review gallery
+foundry-gallery:
+    {{foundry_cli}} --asset-root {{asset_root}} gallery --output {{asset_root}}/reports/gallery.md
+
+# Export approved assets to Bevy
+foundry-export:
+    {{foundry_cli}} --asset-root {{asset_root}} export --pack default --target {{asset_root}}/bevy_export
+
+# Export themed assets to Bevy
+foundry-export-biome biome:
+    {{foundry_cli}} --asset-root {{asset_root}} export --pack {{biome}} --target {{asset_root}}/bevy_export/{{biome}} --biome {{biome}}

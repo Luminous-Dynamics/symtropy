@@ -1,0 +1,13 @@
+[package]
+name = "symthaea-biometrics"
+version = "0.1.0"
+edition = "2024"
+license = "AGPL-3.0-or-later"
+description = "Standalone-repo stub: minimal type-compatible stand-in for symthaea-biometrics (mouse/keyboard -> stress vector). Uses simple velocity/rate heuristics instead of the real crate's private Echo-State-Network surprise detector. Maintained IN this standalone repo -- see scripts/sync-to-standalone.sh."
+publish = false
+
+[dependencies]
+
+[features]
+default = []
+muse-bridge = []

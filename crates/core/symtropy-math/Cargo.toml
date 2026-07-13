@@ -1,0 +1,21 @@
+[package]
+name = "symtropy-math"
+version = "0.2.1"
+edition = "2024"
+license = "Apache-2.0 OR MIT"
+description = "N-dimensional geometric algebra: const-generic points, bivectors, rotors, and collision shapes (2D/3D/4D+). Stack-allocated, zero-heap physics primitives."
+repository = "https://github.com/luminous-dynamics/symtropy"
+keywords = ["physics", "n-dimensional", "geometric-algebra", "collision", "bivector"]
+categories = ["mathematics", "game-engines", "simulation", "science"]
+readme = "README.md"
+
+[package.metadata.docs.rs]
+all-features = true
+rustdoc-args = ["--cfg", "docsrs"]
+
+[dependencies]
+nalgebra = { version = "0.34", features = ["serde-serialize"] }
+serde = { version = "1.0", features = ["derive"] }
+
+[dev-dependencies]
+proptest = "1.4"

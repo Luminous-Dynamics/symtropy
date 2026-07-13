@@ -1,0 +1,18 @@
+[package]
+name = "symtropy-rapier3d-bridge"
+version = "0.1.0"
+edition = "2024"
+license = "Apache-2.0 OR MIT"
+description = "Bridge between Rapier3D and Symtropy's state-coupling framework."
+
+[dependencies]
+bevy = { version = "0.19", default-features = false }
+rapier3d = "0.18"
+symtropy-physics = { path = "../../core/symtropy-physics" }
+symtropy-math = { path = "../../core/symtropy-math" }
+symtropy-robotics-bridge-core = { path = "../../bridges/symtropy-robotics-bridge-core" }
+symthaea-bevy-brain = { path = "../../bridges/symthaea-bevy-brain" }
+nalgebra = "0.34"
+
+[features]
+default = []
