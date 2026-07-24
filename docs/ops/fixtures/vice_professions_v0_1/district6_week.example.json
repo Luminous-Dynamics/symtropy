@@ -1,0 +1,159 @@
+{
+  "scenario_id": "district6_festival_week_seed_0001",
+  "district": {
+    "legal_name": "Municipal Entertainment and Night Economy District 6",
+    "aliases": [
+      "Six",
+      "Afterhours",
+      "the Stripworks"
+    ],
+    "sites": [
+      "residential_core",
+      "cooperative_block",
+      "casino_hotel",
+      "public_clinic",
+      "adult_worker_coop",
+      "informal_market",
+      "theater",
+      "transit_hub",
+      "sanitation_yard",
+      "utility_substation",
+      "licensing_office"
+    ]
+  },
+  "days": [
+    {
+      "day": 1,
+      "events": [
+        "festival_preparation",
+        "drain_fault",
+        "capacity_dispute"
+      ]
+    },
+    {
+      "day": 2,
+      "events": [
+        "visitor_surge",
+        "advantage_play",
+        "powerful_client_refusal"
+      ]
+    },
+    {
+      "day": 3,
+      "events": [
+        "product_alert",
+        "sample_test",
+        "privacy_conflict"
+      ]
+    },
+    {
+      "day": 4,
+      "events": [
+        "reserve_inconsistency",
+        "selective_inspection",
+        "transport_extortion"
+      ]
+    },
+    {
+      "day": 5,
+      "events": [
+        "cooling_failure",
+        "drainage_failure",
+        "temporary_repair_decision"
+      ]
+    },
+    {
+      "day": 6,
+      "events": [
+        "festival_peak",
+        "serious_incident",
+        "ordinary_delight"
+      ]
+    },
+    {
+      "day": 7,
+      "events": [
+        "cleanup",
+        "payment_dispute",
+        "public_hearing",
+        "ordinary_monday"
+      ]
+    }
+  ],
+  "profession_anchors": [
+    {
+      "profession_id": "sanitation",
+      "name": "Ravi Mbeki"
+    },
+    {
+      "profession_id": "nightlife_medic",
+      "name": "Dr. Imani Kaur"
+    },
+    {
+      "profession_id": "maintenance",
+      "name": "Pavel Orlov"
+    },
+    {
+      "profession_id": "dealer",
+      "name": "Sena Ito"
+    },
+    {
+      "profession_id": "substance_steward",
+      "name": "Marisol Anwar"
+    },
+    {
+      "profession_id": "performer",
+      "name": "Lark Chen"
+    },
+    {
+      "profession_id": "adult_service_worker",
+      "name": "Nia Vale"
+    },
+    {
+      "profession_id": "deescalation",
+      "name": "Osei Hart"
+    },
+    {
+      "profession_id": "hospitality",
+      "name": "Mara Quill"
+    },
+    {
+      "profession_id": "gambling_auditor",
+      "name": "Kez-14"
+    },
+    {
+      "profession_id": "licensing_inspector",
+      "name": "Jules Adebayo"
+    },
+    {
+      "profession_id": "late_shift_transit",
+      "name": "Tamsin Reed"
+    }
+  ],
+  "pressures": [
+    "utility_load",
+    "worker_fatigue",
+    "housing_pressure",
+    "visitor_demand",
+    "medical_capacity",
+    "transit_capacity",
+    "sanitation_backlog",
+    "venue_solvency",
+    "gambling_debt",
+    "public_trust",
+    "informal_dependence",
+    "regulatory_capture",
+    "cultural_vitality"
+  ],
+  "hard_failures": [
+    "unfunded_money",
+    "laborless_venue",
+    "inferred_consent",
+    "private_data_leak",
+    "deleted_informal_services",
+    "profession_rhythm_collapse",
+    "player_omniscience",
+    "absence_freeze",
+    "missing_aftermath"
+  ]
+}

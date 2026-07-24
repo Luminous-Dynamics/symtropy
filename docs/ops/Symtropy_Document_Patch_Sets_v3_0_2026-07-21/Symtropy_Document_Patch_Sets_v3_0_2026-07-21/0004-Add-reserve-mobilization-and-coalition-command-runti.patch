@@ -1,0 +1,438 @@
+From fdbb1fd95c41697ce7489762be89314a76df3917 Mon Sep 17 00:00:00 2001
+From: OpenAI Symtropy Document Steward <symtropy-docs@openai.invalid>
+Date: Tue, 21 Jul 2026 14:41:01 +0000
+Subject: [PATCH 04/10] Add reserve mobilization and coalition command runtime
+
+---
+ ...OMMAND_AND_MISSION_SCOPING_RUNTIME_V0_1.md | 419 ++++++++++++++++++
+ 1 file changed, 419 insertions(+)
+ create mode 100644 tech/RESERVE_MOBILIZATION_COALITION_COMMAND_AND_MISSION_SCOPING_RUNTIME_V0_1.md
+
+diff --git a/tech/RESERVE_MOBILIZATION_COALITION_COMMAND_AND_MISSION_SCOPING_RUNTIME_V0_1.md b/tech/RESERVE_MOBILIZATION_COALITION_COMMAND_AND_MISSION_SCOPING_RUNTIME_V0_1.md
+new file mode 100644
+index 0000000..120f5e4
+--- /dev/null
++++ b/tech/RESERVE_MOBILIZATION_COALITION_COMMAND_AND_MISSION_SCOPING_RUNTIME_V0_1.md
+@@ -0,0 +1,419 @@
++---
++title: Reserve Mobilization, Coalition Command, and Mission Scoping Runtime
++version: 0.1
++status: technical-draft
++scope: alerts, readiness, reserve call-up, coalition formation, delegated command, mission scope, communications delay, demobilization, and after-action review
++owner: engineering/simulation/protectorate/operations
++related:
++  - ../canon/PROTECTORATE_FEDERATION_CIVIL_DEFENSE_AND_NON_IMPERIAL_AUTHORITY_CONTRACT_V0_1.md
++  - PROTECTORATE_UNIT_REGISTRY_CHARTER_INTEROPERABILITY_AND_LOCAL_LEGITIMACY_RUNTIME_V0_1.md
++  - ../canon/PROTECTORATE_REFUSAL_RIGHTS_CIVILIAN_OVERSIGHT_AND_ANTI_WARLORD_SAFEGUARDS_CONTRACT_V0_1.md
++  - PROTECTORATE_LOGISTICS_RESCUE_MEDICAL_EVIDENCE_AND_RECOVERY_RUNTIME_V0_1.md
++  - ../ops/PROTECTORATE_20000_UNIT_FEDERATION_BENCHMARK_V0_1.md
++---
++
++# Reserve Mobilization, Coalition Command, and Mission Scoping Runtime
++
++## 1. Purpose
++
++This runtime turns a federated registry into a playable response system.
++
++It must support crises ranging from a local habitat fire to a system-wide convoy war without assuming that every unit is permanently mobilized or instantly obedient.
++
++> **Mobilization is the temporary conversion of distributed capacity into coordinated action. It is not the suspension of every participant's law, household, or judgment.**
++
++# 2. Incident Object
++
++Every mobilization begins with one or more incident claims.
++
++An incident records:
++
++- source;
++- time and location;
++- affected populations;
++- hazard class;
++- uncertainty;
++- urgency;
++- evidence provenance;
++- predicted spread;
++- requested capabilities;
++- known hostile actors;
++- infrastructure dependencies;
++- communication conditions;
++- potential political manipulation.
++
++Incident claims may be:
++
++- confirmed;
++- probable;
++- contested;
++- incomplete;
++- fabricated;
++- outdated;
++- maliciously altered.
++
++No single alarm automatically grants strategic authority.
++
++# 3. Alert Levels
++
++Alert levels describe preparation, not moral certainty.
++
++## Advisory
++
++Units review status and local leaders receive information.
++
++## Readiness
++
++Personnel are contacted, equipment inspected, and routes checked.
++
++## Partial mobilization
++
++Selected capabilities activate while normal life continues.
++
++## Full mission mobilization
++
++Named units accept a defined operational charter.
++
++## Strategic emergency
++
++Multiple regions and strategic service assets coordinate under exceptional but still scoped authority.
++
++## Existential continuity emergency
++
++A civilization-scale threat may activate succession, evacuation, archive protection, and seed continuity protocols. This level still does not erase protected rights automatically.
++
++# 4. Mobilization Request
++
++A request contains:
++
++- incident reference;
++- issuing authority;
++- requested units or capability classes;
++- mission purpose;
++- operational area;
++- expected duration;
++- command proposal;
++- force permissions;
++- logistics commitments;
++- civilian protections;
++- review body;
++- withdrawal conditions;
++- compensation and household support;
++- information classification.
++
++Units evaluate requests against their charter, readiness, obligations, and local conditions.
++
++# 5. Unit Response States
++
++A unit may:
++
++- accept fully;
++- accept with limits;
++- provide only one capability;
++- provide matériel but no personnel;
++- provide local replacement coverage;
++- delay pending evidence;
++- request clarification;
++- refuse lawfully;
++- refuse unlawfully;
++- fail to respond;
++- falsely report acceptance;
++- become unable to mobilize after accepting.
++
++These states create operational consequences and later review.
++
++# 6. Household and Civilian Cost
++
++Reserve service affects real lives.
++
++Mobilization draws from:
++
++- workplaces;
++- households;
++- care networks;
++- schools;
++- farms;
++- hospitals;
++- maintenance crews;
++- political institutions.
++
++The runtime tracks:
++
++- dependent care;
++- lost income;
++- replacement staffing;
++- fatigue;
++- household consent or conflict;
++- injury and death support;
++- duration away;
++- demobilization recovery.
++
++A federation that repeatedly mobilizes the same marginalized communities loses capability and legitimacy.
++
++# 7. Coalition Formation
++
++A coalition is a versioned mission institution.
++
++It contains:
++
++- mission identifier;
++- founding incident;
++- participating units;
++- recognized command structure;
++- scope;
++- expiration;
++- rules of engagement;
++- communications plan;
++- logistics plan;
++- evidence and reporting rules;
++- civilian liaison;
++- dispute-resolution process;
++- withdrawal and relief procedures.
++
++Coalitions can include public agencies, cooperatives, private vessels, alien partners, machine formations, and unaffiliated volunteers.
++
++# 8. Command Graph
++
++Command is modeled as a graph of delegated authorities rather than one hierarchy.
++
++Command roles may include:
++
++- mission coordinator;
++- local incident commander;
++- convoy movement authority;
++- medical authority;
++- engineering authority;
++- flight or navigation authority;
++- use-of-force authority;
++- evidence custodian;
++- civilian evacuation authority;
++- liaison to autonomous partner units.
++
++One person or AI should rarely hold every authority.
++
++Conflicting authorities require explicit arbitration or emergency precedence rules.
++
++# 9. Mission Scope
++
++A mission scope contains hard boundaries:
++
++- objective;
++- area;
++- target or protected population;
++- permitted methods;
++- excluded methods;
++- intelligence assumptions;
++- duration;
++- escalation thresholds;
++- conditions for success;
++- conditions for withdrawal;
++- post-mission obligations.
++
++Scope changes require recorded amendment unless immediate survival makes delay impossible. Emergency deviations remain reviewable.
++
++# 10. Communication Delay and Partition
++
++Coalition command must function without perfect connectivity.
++
++The runtime supports:
++
++- local autonomy envelopes;
++- predelegated contingencies;
++- delayed orders;
++- conflicting order versions;
++- lost authentication;
++- Atlas latency;
++- partitioned fleets;
++- outdated threat pictures;
++- independent surrender negotiations;
++- later reconciliation.
++
++A commander cannot micromanage units across light-delay or network partition.
++
++# 11. Intent-Based Orders
++
++Orders should specify:
++
++- intended outcome;
++- protected constraints;
++- known facts;
++- confidence;
++- available support;
++- escalation boundary;
++- reporting expectations.
++
++Example:
++
++“Preserve the evacuation corridor through Meridian Gate until the final medical carrier clears. Do not pursue withdrawing attackers beyond the beacon boundary. Rescue disabled hostile craft when doing so does not close the corridor.”
++
++This permits local judgment while preserving accountability.
++
++# 12. Operational Planning
++
++Planning resolves:
++
++- routes;
++- timing;
++- formation;
++- fuel and power;
++- medical capacity;
++- evacuation throughput;
++- repair capacity;
++- communication windows;
++- reserves;
++- fallback positions;
++- surrender handling;
++- evidence collection;
++- civilian behavior;
++- environmental effects.
++
++Plans are hypotheses. The runtime records assumptions so failures can be interpreted later.
++
++# 13. Dynamic Reassignment
++
++During a mission, units may be reassigned because of:
++
++- casualties;
++- equipment loss;
++- new incidents;
++- route closure;
++- civilian movement;
++- unexpected partner arrival;
++- political withdrawal;
++- contamination;
++- command loss;
++- changing weather or orbital geometry.
++
++Reassignment must respect unit capability and charter where time permits.
++
++# 14. Strategic Reserve
++
++Coalitions should retain reserve capacity.
++
++Reserve forms include:
++
++- uncommitted response teams;
++- replacement crews;
++- medical beds;
++- fuel and reaction mass;
++- repair berths;
++- evacuation craft;
++- communication relays;
++- political mediation capacity.
++
++Using every asset at once may create impressive force and catastrophic fragility.
++
++# 15. Mobilization Friction
++
++Delay may come from:
++
++- law;
++- disbelief;
++- missing transport;
++- damaged equipment;
++- household obligations;
++- political rivalry;
++- religious observance;
++- fatigue;
++- poor interoperability;
++- fear;
++- corruption;
++- deliberate obstruction;
++- incompatible time standards;
++- alien decision processes.
++
++Friction should not be represented solely as a timer. It creates people, scenes, negotiations, and consequences.
++
++# 16. Demobilization
++
++A mission is not complete when immediate danger ends.
++
++Demobilization includes:
++
++- relief and handover;
++- return transport;
++- equipment accounting;
++- medical screening;
++- psychological support;
++- household reintegration;
++- compensation;
++- temporary authority expiration;
++- release of detainees or transfer to lawful process;
++- unexploded hazard clearance;
++- archive and evidence transfer;
++- public explanation;
++- memorial and burial;
++- readiness recovery.
++
++Units that remain indefinitely after their mission ends become occupation forces regardless of original intent.
++
++# 17. After-Action Review
++
++Review reconstructs:
++
++- what was believed;
++- what orders were issued;
++- what participants observed;
++- what constraints existed;
++- what deviations occurred;
++- who was harmed or protected;
++- what evidence remains uncertain;
++- which systems failed;
++- whether authority exceeded scope;
++- what repairs, compensation, or discipline are required.
++
++Reviews can disagree. The Chronicle stores competing interpretations with provenance.
++
++# 18. Player Experience
++
++Players may participate at multiple scales:
++
++- receive a local alert;
++- help inspect readiness;
++- negotiate reserve service with a household;
++- operate a station;
++- plan a route;
++- coordinate several units;
++- challenge an unlawful mission amendment;
++- assume emergency command after communications loss;
++- conduct demobilization;
++- testify during review.
++
++Strategic command gameplay must alternate with embodied consequences.
++
++# 19. Symthaea Direction Rules
++
++Symthaea may:
++
++- identify meaningful mobilization bottlenecks;
++- surface conflicting information;
++- compose encounters from real operational state;
++- manage fidelity across thousands of units;
++- protect pacing and legibility.
++
++It may not:
++
++- fabricate a crisis because players are bored;
++- force units to accept orders against their state;
++- teleport reserves;
++- secretly repair logistics;
++- give commanders perfect knowledge;
++- prolong war solely to preserve content.
++
++# 20. Failure Conditions
++
++Reject the runtime if:
++
++- pressing one button mobilizes the federation;
++- all units obey one commander automatically;
++- emergency authority has no expiration;
++- reserves have no household or economic cost;
++- communication delay is cosmetic;
++- mission scope cannot be challenged;
++- demobilization is absent;
++- after-action evidence is replaced by one canonical score;
++- local units have no meaningful agency.
++
++# Closing Principle
++
++> **The achievement of coalition command is not making thousands of units behave like one body. It is helping thousands of institutions act together long enough to protect people without permanently becoming one sovereign body.**
+-- 
+2.47.3
+

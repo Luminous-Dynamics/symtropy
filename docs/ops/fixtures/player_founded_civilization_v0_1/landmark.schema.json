@@ -1,0 +1,48 @@
+{
+  "$id": "symtropy://schemas/landmark/v0.1",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "associated_events": {
+      "items": {
+        "type": "string"
+      },
+      "type": "array"
+    },
+    "entity_id": {
+      "type": "string"
+    },
+    "heritage_status": {
+      "items": {
+        "type": "string"
+      },
+      "type": "array"
+    },
+    "maintenance_state": {
+      "type": "string"
+    },
+    "names": {
+      "items": {
+        "type": "string"
+      },
+      "minItems": 1,
+      "type": "array"
+    },
+    "recognition_by_group": {
+      "additionalProperties": {
+        "maximum": 1,
+        "minimum": 0,
+        "type": "number"
+      },
+      "type": "object"
+    }
+  },
+  "required": [
+    "entity_id",
+    "names",
+    "associated_events",
+    "recognition_by_group"
+  ],
+  "title": "Landmark State",
+  "type": "object"
+}

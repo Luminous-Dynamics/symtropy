@@ -328,7 +328,7 @@ mod tests {
     fn phi_is_nonzero_after_stepping() {
         let mut ctx = HdcConsciousnessContext::new(42);
         let inputs = [0.8, 0.5, 0.7, 0.5, 0.9, 0.6, 0.5];
-        let harmony = [0.9, 0.2, 0.1, 0.1, 0.1, 0.1, 0.1, 0.8];
+        let harmony = [0.9, 0.2, 0.1, 0.1, 0.1, 0.1, 0.1, 0.8, 0.5];
 
         for _ in 0..50 {
             ctx.step(&inputs, &harmony, 1.0 / 64.0);

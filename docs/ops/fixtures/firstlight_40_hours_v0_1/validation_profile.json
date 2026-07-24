@@ -1,0 +1,31 @@
+{
+  "version": "0.1",
+  "required_flagship_characters": 6,
+  "required_recurring_residents": 24,
+  "required_professions": 3,
+  "required_action_scenarios": 4,
+  "required_emotional_anchor_kinds": [
+    "person",
+    "place",
+    "practice",
+    "object",
+    "promise",
+    "mystery"
+  ],
+  "required_worldline_branches": 3,
+  "minimum_required_regions": 10,
+  "maximum_offline_guilt_messages": 0,
+  "gates": {
+    "meaningful_control_seconds_median_max": 120,
+    "first_task_explanation_rate_min": 0.8,
+    "ten_hour_three_people_recall_min": 0.7,
+    "ten_hour_four_places_recall_min": 0.7,
+    "learned_cue_demonstration_min": 0.65,
+    "self_chosen_next_desire_min": 0.7,
+    "seven_day_people_places_practice_recall_min": 0.6,
+    "major_action_positive_tension_min": 0.7,
+    "persistent_consequence_comprehension_min": 0.7,
+    "manipulation_report_rate_max": 0.15
+  },
+  "evidence_status": "hypothesis-until-playtest"
+}

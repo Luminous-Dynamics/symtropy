@@ -1,19 +1,12 @@
 ---
-
 title: Seedworks Tech Tree Dependency Spine
+version: 0.1
 status: canonical-draft
 milestone: seedworks-v0.1-to-v1.0
 scope: technology dependencies, unlock logic, production planning
 owner: design/engineering
-depends_on:
-
-* TECH_UNLOCK_TABLE_V0_1_TO_V0_3.md
-* ROBOTICS_PLATFORM_TECH_TREE_ADDENDUM.md
-* DEVICE_BUS_SUBSTRATE_SYSTEMS.md
-  recommended_path: docs/seedworks/00_canon/TECH_TREE_DEPENDENCY_SPINE.md
-
+recommended_path: docs/seedworks/00_canon/TECH_TREE_DEPENDENCY_SPINE.md
 ---
-
 # Symtropy: Seedworks Tech Tree Dependency Spine
 
 ## Working Title

@@ -1,0 +1,140 @@
+{
+  "benchmark_id": "firstlight-love-v0.1",
+  "worldline": "public-repair",
+  "target_hours": 40,
+  "required_regions": [
+    "bent_pump",
+    "commons",
+    "clinic",
+    "fabricator_hall",
+    "transit_yard",
+    "floodline",
+    "wetlands",
+    "old_lift",
+    "lower_works",
+    "annex_4c"
+  ],
+  "flagship_characters": [
+    "sera-vale",
+    "amadi-nko",
+    "morrow-7",
+    "nia-kgosana",
+    "mara-quill",
+    "lio-dlamini"
+  ],
+  "recurring_resident_count": 24,
+  "professions": [
+    "maintenance",
+    "field_medicine",
+    "civic_witness"
+  ],
+  "action_scenarios": [
+    "bent_feeder",
+    "bridge_seven",
+    "flooded_annex",
+    "firstlight_night"
+  ],
+  "emotional_anchors": [
+    {
+      "anchor_id": "a-person-sera",
+      "kind": "person",
+      "subject_id": "sera-vale",
+      "provenance": [
+        "bent_feeder",
+        "load_test"
+      ],
+      "player_observed": true,
+      "character_knows": true,
+      "recall_prompt_eligible": true,
+      "private": false,
+      "notes": "technical trust and overflow project"
+    },
+    {
+      "anchor_id": "a-place-commons",
+      "kind": "place",
+      "subject_id": "commons-rain-court",
+      "provenance": [
+        "arrival",
+        "market_evening",
+        "aftermath"
+      ],
+      "player_observed": true,
+      "character_knows": true,
+      "recall_prompt_eligible": true,
+      "private": false,
+      "notes": "home and public recovery"
+    },
+    {
+      "anchor_id": "a-practice-bearing",
+      "kind": "practice",
+      "subject_id": "maintenance-acoustic-cue",
+      "provenance": [
+        "quiet_pump"
+      ],
+      "player_observed": true,
+      "character_knows": true,
+      "recall_prompt_eligible": true,
+      "private": false,
+      "notes": "learned bad bearing cue"
+    },
+    {
+      "anchor_id": "a-object-probe",
+      "kind": "object",
+      "subject_id": "acoustic-probe-02",
+      "provenance": [
+        "fabricator_practice",
+        "quiet_pump"
+      ],
+      "player_observed": true,
+      "character_knows": true,
+      "recall_prompt_eligible": true,
+      "private": false,
+      "notes": "repaired casing and familiar sound"
+    },
+    {
+      "anchor_id": "a-promise-route",
+      "kind": "promise",
+      "subject_id": "night-route-materials",
+      "provenance": [
+        "nia_conversation"
+      ],
+      "player_observed": true,
+      "character_knows": true,
+      "recall_prompt_eligible": true,
+      "private": false,
+      "notes": "bounded explicit promise"
+    },
+    {
+      "anchor_id": "a-mystery-annex",
+      "kind": "mystery",
+      "subject_id": "annex-4c-missing-minutes",
+      "provenance": [
+        "junction_nine",
+        "annex_records"
+      ],
+      "player_observed": true,
+      "character_knows": true,
+      "recall_prompt_eligible": true,
+      "private": false,
+      "notes": "unresolved by hour forty"
+    }
+  ],
+  "required_consequences": [
+    "opening_repair_ages",
+    "bridge_route_changes",
+    "one_claim_enters_public_record",
+    "festival_damage_persists",
+    "one_companion_project_advances",
+    "return_location_changes"
+  ],
+  "required_absence": {
+    "minimum_in_world_days": 7,
+    "maximum_in_world_days": 180,
+    "offline_guilt_messages": 0
+  },
+  "worldline_branches": [
+    "public-repair",
+    "corporate-stabilization",
+    "fragmented-recovery"
+  ]
+}

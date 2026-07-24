@@ -22,6 +22,8 @@ crate-type = ["cdylib", "rlib"]
 symtropy-math = { version = "0.2.0", path = "../../core/symtropy-math" }
 symtropy-physics = { version = "0.2.0", path = "../../core/symtropy-physics" }
 symthaea-consciousness-equation = "0.1.0"
+# Required by hdc_context.rs (gated behind the `consciousness-hdc` feature below).
+symthaea-core = { version = "0.5.1", optional = true }
 nalgebra = "0.34"
 rand = "0.8"
 
@@ -34,7 +36,7 @@ console_error_panic_hook = { version = "0.1", optional = true }
 [features]
 default = []
 consciousness-curvature = []
-consciousness-hdc = []
+consciousness-hdc = ["dep:symthaea-core"]
 pyphi-validation = []
 # Enables wasm-bindgen exports for the browser research demo.
 # Build: cargo build -p symtropy-consciousness-physics --target wasm32-unknown-unknown --features wasm

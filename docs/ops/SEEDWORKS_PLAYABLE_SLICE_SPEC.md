@@ -1,3 +1,11 @@
+---
+status: superseded
+superseded_by: SEEDWORKS_REGIONAL_CIVILIZATION_SLICE_V0_2.md
+retained_role: Old Waterworks authored mission and implementation reference
+---
+
+> **Canon notice:** This specification remains useful for the Old Waterworks mission, Field Deck tutorial, and Chronicle prototype. It no longer defines the whole Seedworks opening. The canonical regional slice is `SEEDWORKS_REGIONAL_CIVILIZATION_SLICE_V0_2.md`.
+
 # SEEDWORKS_PLAYABLE_SLICE_SPEC.md
 
 # Symtropy: Seedworks Playable Slice Spec

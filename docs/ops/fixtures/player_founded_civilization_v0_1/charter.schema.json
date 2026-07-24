@@ -1,0 +1,70 @@
+{
+  "$id": "symtropy://schemas/charter/v0.1",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "amendment_process": {
+      "type": "string"
+    },
+    "charter_id": {
+      "type": "string"
+    },
+    "clauses": {
+      "items": {
+        "additionalProperties": true,
+        "properties": {
+          "clause_id": {
+            "type": "string"
+          },
+          "domain": {
+            "type": "string"
+          },
+          "rule": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "clause_id",
+          "domain",
+          "rule"
+        ],
+        "type": "object"
+      },
+      "minItems": 5,
+      "type": "array"
+    },
+    "parent_charter_id": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "ratification": {
+      "type": "string"
+    },
+    "rights_floor": {
+      "items": {
+        "type": "string"
+      },
+      "minItems": 5,
+      "type": "array"
+    },
+    "settlement_id": {
+      "type": "string"
+    },
+    "version": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "charter_id",
+    "settlement_id",
+    "version",
+    "rights_floor",
+    "clauses",
+    "amendment_process",
+    "ratification"
+  ],
+  "title": "Settlement Charter",
+  "type": "object"
+}

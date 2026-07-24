@@ -1,0 +1,846 @@
+From c24c153e9262fe4da2cb4359de1075e668ad8bed Mon Sep 17 00:00:00 2001
+From: OpenAI Symtropy Document Steward <symtropy-docs@openai.invalid>
+Date: Tue, 21 Jul 2026 14:54:36 +0000
+Subject: [PATCH 10/10] Integrate v3.0 Protectorate federation campaign
+
+---
+ CHANGELOG_2026_07_21_V3_0.md                  |  24 ++++
+ MANIFEST.json                                 | 100 +++++++++++++-
+ PATCH_RECONSTRUCTION_STATUS.txt               |  10 +-
+ README.md                                     |  18 +++
+ ...N_REGISTRY_AND_DOCUMENT_GOVERNANCE_V2_6.md |  73 ++++++++++
+ ...TEM_INTERACTION_AND_DEPENDENCY_MAP_V2_3.md | 126 ++++++++++++++++++
+ ops/GAME_IMPLEMENTATION_ROADMAP_V2_3.md       | 102 ++++++++++++++
+ ops/QUALITY_AUDIT_2026_07_21_V3_0.json        |  23 ++++
+ ...PY_IMPLEMENTATION_READINESS_MATRIX_V2_3.md | 105 +++++++++++++++
+ ..._DEFENSE_AND_COALITION_COMMAND_CAMPAIGN.md |  58 ++++++++
+ 10 files changed, 629 insertions(+), 10 deletions(-)
+ create mode 100644 CHANGELOG_2026_07_21_V3_0.md
+ create mode 100644 canon/CANON_REGISTRY_AND_DOCUMENT_GOVERNANCE_V2_6.md
+ create mode 100644 canon/SYSTEM_INTERACTION_AND_DEPENDENCY_MAP_V2_3.md
+ create mode 100644 ops/GAME_IMPLEMENTATION_ROADMAP_V2_3.md
+ create mode 100644 ops/QUALITY_AUDIT_2026_07_21_V3_0.json
+ create mode 100644 ops/SYMTROPY_IMPLEMENTATION_READINESS_MATRIX_V2_3.md
+ create mode 100644 ops/V3_0_PROTECTORATE_FEDERATION_CIVIL_DEFENSE_AND_COALITION_COMMAND_CAMPAIGN.md
+
+diff --git a/CHANGELOG_2026_07_21_V3_0.md b/CHANGELOG_2026_07_21_V3_0.md
+new file mode 100644
+index 0000000..6a20cd8
+--- /dev/null
++++ b/CHANGELOG_2026_07_21_V3_0.md
+@@ -0,0 +1,24 @@
++# Symtropy Documentation Changelog — v3.0
++
++Date: 2026-07-21
++
++## Added
++
++- Protectorate federation, civil defense, and non-imperial authority contract;
++- twenty-thousand-unit institutional scale model;
++- unit registry, charter, recognition, capability, readiness, and interoperability runtime;
++- twenty local defense and resilience culture packets;
++- reserve mobilization, household cost, coalition command, communication delay, and demobilization runtime;
++- lawful refusal, unlawful abandonment, civilian oversight, strategic weapon control, and anti-warlord safeguards;
++- logistics, rescue, medical transfer, evacuation, evidence, surrender, missing-person, and recovery runtime;
++- multirole Protectorate ship and regional response formation atlas;
++- v3.0 benchmark schema, reference fixture, and one-hundred-ticket backlog;
++- v2.6 canon registry, v2.3 dependency map, roadmap, and readiness matrix.
++
++## Corrected Direction
++
++The Protectorate is not canonically one army and its tens of thousands of organizations are not all militias. Armed defense is one function within a larger protection ecology grounded in local charters, professional services, logistics, civilian oversight, and temporary coalition command.
++
++## Evidence
++
++All v3.0 systems remain D3 / I0. Strategic scale and performance envelopes remain D2 / I0 until executable profiling exists.
+diff --git a/MANIFEST.json b/MANIFEST.json
+index 6f02fe2..9da37ed 100644
+--- a/MANIFEST.json
++++ b/MANIFEST.json
+@@ -1,5 +1,5 @@
+ {
+-  "version": "2.9",
++  "version": "3.0",
+   "files": [
+     {
+       "path": "CHANGELOG_2026_07_20.md",
+@@ -126,6 +126,11 @@
+       "bytes": 1171,
+       "sha256": "e6c55e8caccf606d3b3abd15c839f79746681ea0e74d37b543ea2caed5cf2743"
+     },
++    {
++      "path": "CHANGELOG_2026_07_21_V3_0.md",
++      "bytes": 1356,
++      "sha256": "89929eeaec9d7b1fbfb46ac562693259ca64ffb2ee8e0f115eae02d8a0fffac9"
++    },
+     {
+       "path": "CONTRIBUTING.md",
+       "bytes": 2147,
+@@ -138,13 +143,13 @@
+     },
+     {
+       "path": "PATCH_RECONSTRUCTION_STATUS.txt",
+-      "bytes": 409,
+-      "sha256": "f7c8328fdc25ef49afe27db58ad4805e4adbc7a24ad5c26da0617affcdb13ad6"
++      "bytes": 483,
++      "sha256": "cf98cbf3b8edd5d23164709b905a5d3751ef787ac03536b65a3ab1229ee4e844"
+     },
+     {
+       "path": "README.md",
+-      "bytes": 32210,
+-      "sha256": "6334b3b9b0594706a403a1c3639da9795d84a9eb3e2c18a0bb3547cd1fd21bc4"
++      "bytes": 33996,
++      "sha256": "feb77eef20a5a90a9bf6cc84c0369f21572d36c11fa203ce34488a6a395f0fc6"
+     },
+     {
+       "path": "SYMTROPY_RESOURCE_CHAINS_GAME_DOC_V0_1.md",
+@@ -396,6 +401,11 @@
+       "bytes": 5193,
+       "sha256": "770e528538812dd7cfad1b217bef2950726dfb0ce9431bf99b60cfe2b00816a5"
+     },
++    {
++      "path": "canon/CANON_REGISTRY_AND_DOCUMENT_GOVERNANCE_V2_6.md",
++      "bytes": 5903,
++      "sha256": "f31466dddf0e6eff227531bdc372cd930fd39bc59a2297e47f50c6a894d67781"
++    },
+     {
+       "path": "canon/CARRIER_ACCESS_OWNERSHIP_CHARTER_COMMAND_AND_CREW_SOVEREIGNTY_CONTRACT_V0_1.md",
+       "bytes": 11564,
+@@ -651,6 +661,16 @@
+       "bytes": 13285,
+       "sha256": "0eec1117f518d5df5a36ba1a88ce7e6d92ba023339ed3fd8982bb534b77811ec"
+     },
++    {
++      "path": "canon/PROTECTORATE_FEDERATION_CIVIL_DEFENSE_AND_NON_IMPERIAL_AUTHORITY_CONTRACT_V0_1.md",
++      "bytes": 13195,
++      "sha256": "3025c6ca9fc1a3e2032c6f6254365fe9153d7a621aa66ab4a6d3c2c530c48abe"
++    },
++    {
++      "path": "canon/PROTECTORATE_REFUSAL_RIGHTS_CIVILIAN_OVERSIGHT_AND_ANTI_WARLORD_SAFEGUARDS_CONTRACT_V0_1.md",
++      "bytes": 11502,
++      "sha256": "e6f16caa5a59f67a26416cd3d3f168cc3a10338e75aee62c2b32d1ace1a3a21a"
++    },
+     {
+       "path": "canon/RELATIONSHIP_INTIMACY_ROMANCE_AND_BOUNDARIES_CONTRACT_V0_1.md",
+       "bytes": 10723,
+@@ -806,6 +826,11 @@
+       "bytes": 3457,
+       "sha256": "f45b95f0f88a57d8f5deed8fb270c02270a9069d0bae3a5ca793772b68cd3af7"
+     },
++    {
++      "path": "canon/SYSTEM_INTERACTION_AND_DEPENDENCY_MAP_V2_3.md",
++      "bytes": 4079,
++      "sha256": "21a298bc448d1c3da7aa1f66e86b995ba2e6f4ff08f2860e61901cd2bf7e09d7"
++    },
+     {
+       "path": "canon/VICE_ECONOMIES_PLEASURE_CITIES_AND_NIGHTLIFE_CONTRACT_V0_1.md",
+       "bytes": 11363,
+@@ -841,6 +866,11 @@
+       "bytes": 5122,
+       "sha256": "0d56ce6e9f1ffde1be6bf65248913b97be9eb86415ffe36d0d9a1936421beba7"
+     },
++    {
++      "path": "fixtures/v3_0/protectorate_federation_benchmark.example.json",
++      "bytes": 1094,
++      "sha256": "88ec80d42c0cfe6cb8052b2e3706a91501abd73c66c70cd4fec97b5b488560f5"
++    },
+     {
+       "path": "lore/ALIEN_METRIC_TRADITIONS_MOVING_ANCHORS_AND_CAUSAL_CONTACT_ATLAS_V0_1.md",
+       "bytes": 17238,
+@@ -1086,6 +1116,16 @@
+       "bytes": 15485,
+       "sha256": "7bbd8e48dad6b8aa2049f6040a3b6c3ee4f7b51719099f66fe28ed59a6ae460c"
+     },
++    {
++      "path": "lore/PROTECTORATE_MILITIA_CULTURES_PROFESSIONS_AND_LOCAL_DEFENSE_ATLAS_V0_1.md",
++      "bytes": 17052,
++      "sha256": "1b47af34919e0cf16cc8e2701de4eea59492ad97b11d12256b1ad8b13ccf1a2c"
++    },
++    {
++      "path": "lore/PROTECTORATE_SHIP_FLEET_AND_REGIONAL_RESPONSE_FORMATION_ATLAS_V0_1.md",
++      "bytes": 11692,
++      "sha256": "4859d865983830bf97c8ed2b3cda019dc5b4330687fc7173cef48ddeb9da6dc3"
++    },
+     {
+       "path": "lore/REGIONAL_CAMPAIGN_ANTHOLOGY_V0_1.md",
+       "bytes": 15245,
+@@ -1551,6 +1591,11 @@
+       "bytes": 3737,
+       "sha256": "c8c4781787605e784aa3579aef134e147f25c2f69a208b4061f32033e6d2a3da"
+     },
++    {
++      "path": "ops/GAME_IMPLEMENTATION_ROADMAP_V2_3.md",
++      "bytes": 3957,
++      "sha256": "e63388f269fb0d3f607c2ab051ef021739fe3fffb48b3552356661ca44107282"
++    },
+     {
+       "path": "ops/HISTORICAL_TEXTURE_WORLD_COHERENCE_BENCHMARK_V0_1.md",
+       "bytes": 5780,
+@@ -1741,6 +1786,16 @@
+       "bytes": 2519,
+       "sha256": "0c771cd3a6b3f39c34f6f3477b7734d849f12f3fb915680312e1ebbda53e447e"
+     },
++    {
++      "path": "ops/PROTECTORATE_20000_UNIT_FEDERATION_BENCHMARK_V0_1.md",
++      "bytes": 11485,
++      "sha256": "977b613457df1daa16e0de84363c4da11d22c8077d78713019e12a8fb97b5354"
++    },
++    {
++      "path": "ops/PROTECTORATE_IMPLEMENTATION_TICKET_BACKLOG_V0_1.md",
++      "bytes": 29674,
++      "sha256": "177dbc63f0bd8f90c662fc8530778385b4059a60ec7c5e25114f655cde99f10b"
++    },
+     {
+       "path": "ops/QUALITY_AUDIT_2026_07_20_V0_6.json",
+       "bytes": 207,
+@@ -1871,6 +1926,11 @@
+       "bytes": 521,
+       "sha256": "f21bda7ad501b385403213a7b3f07ce60f4d7486089a7abdd03a0e37ba3d7f9c"
+     },
++    {
++      "path": "ops/QUALITY_AUDIT_2026_07_21_V3_0.json",
++      "bytes": 521,
++      "sha256": "53ce0c39afed77fea402b6192803855a493ab008a326d9ae728623858a811093"
++    },
+     {
+       "path": "ops/REPRESENTATIVE_BUILD_PERFORMANCE_CONTENT_AND_STRESS_MATRIX_V0_1.md",
+       "bytes": 5896,
+@@ -2081,6 +2141,11 @@
+       "bytes": 4096,
+       "sha256": "acd1532e29ce28a5e1080843d574f1190b7efd9e1790a29f2ac995a9d40a9ba6"
+     },
++    {
++      "path": "ops/SYMTROPY_IMPLEMENTATION_READINESS_MATRIX_V2_3.md",
++      "bytes": 5059,
++      "sha256": "56182d0ef3bc4de8ddc1e0b25378d1676d83b6f170dfc52dd515a266ddbd61b6"
++    },
+     {
+       "path": "ops/Seedworks Tech Tree Dependency Spine.md",
+       "bytes": 14859,
+@@ -2256,6 +2321,11 @@
+       "bytes": 3758,
+       "sha256": "1a6004e48ebffcb9efbf64bf6e90d1677ddf8c39e2738d8de5906db0d5fc04fb"
+     },
++    {
++      "path": "ops/V3_0_PROTECTORATE_FEDERATION_CIVIL_DEFENSE_AND_COALITION_COMMAND_CAMPAIGN.md",
++      "bytes": 2999,
++      "sha256": "77881d903202940afd34524ea53d2d0fe115b940f6e2ff4b4f3422b891df07aa"
++    },
+     {
+       "path": "ops/WORLDLINE_BACKUP_RESTORE_AND_UPGRADE_RUNBOOK_V0_1.md",
+       "bytes": 5463,
+@@ -2676,6 +2746,11 @@
+       "bytes": 4189,
+       "sha256": "993e74a067ce2bb8c43257e7720e1e270172db8996491014af77395868933c90"
+     },
++    {
++      "path": "schemas/v3_0/protectorate_federation_benchmark.schema.json",
++      "bytes": 2756,
++      "sha256": "a9d1b2eb0a8c629b7b083379351b428c605b9f31e67798240a3b68602f0afc35"
++    },
+     {
+       "path": "status/FOUNDRY_VERIFICATION_2026_06_18.md",
+       "bytes": 2454,
+@@ -3091,6 +3166,16 @@
+       "bytes": 11055,
+       "sha256": "96e03f6aa5bc3d867045b1a873ab91517928c52aab13b068658aee0f5425fae1"
+     },
++    {
++      "path": "tech/PROTECTORATE_LOGISTICS_RESCUE_MEDICAL_EVIDENCE_AND_RECOVERY_RUNTIME_V0_1.md",
++      "bytes": 10391,
++      "sha256": "3ded3984bbb82e77ddce4cc3e0de13a3e5a16de96d42a6167f3c64303fa3e1f8"
++    },
++    {
++      "path": "tech/PROTECTORATE_UNIT_REGISTRY_CHARTER_INTEROPERABILITY_AND_LOCAL_LEGITIMACY_RUNTIME_V0_1.md",
++      "bytes": 12334,
++      "sha256": "f07794d76a84403747873584961eec50090e1a10f5bda8c3e46ff173d18087f2"
++    },
+     {
+       "path": "tech/PUBLIC_ADMINISTRATION_SUCCESSION_AND_CORRUPTION_RUNTIME_V0_1.md",
+       "bytes": 13093,
+@@ -3111,6 +3196,11 @@
+       "bytes": 11516,
+       "sha256": "8cd76b13a998bcc588722a01fdb07c9d76ff516ccfd7d169bb127630437f8b43"
+     },
++    {
++      "path": "tech/RESERVE_MOBILIZATION_COALITION_COMMAND_AND_MISSION_SCOPING_RUNTIME_V0_1.md",
++      "bytes": 10812,
++      "sha256": "7e7d2281415ff84a3ea521406af43ef720024143637a2674eb32fa3026d039f5"
++    },
+     {
+       "path": "tech/SECRET_HISTORY_EASTER_EGG_AND_WORLDLINE_DISCOVERY_RUNTIME_V0_1.md",
+       "bytes": 5900,
+diff --git a/PATCH_RECONSTRUCTION_STATUS.txt b/PATCH_RECONSTRUCTION_STATUS.txt
+index 4e6e13e..883c915 100644
+--- a/PATCH_RECONSTRUCTION_STATUS.txt
++++ b/PATCH_RECONSTRUCTION_STATUS.txt
+@@ -1,12 +1,12 @@
+-Symtropy v2.8 patch reconstruction status
++Symtropy v3.0 patch reconstruction status
+ 
+-Base: v2.7 corpus release head d237b3e8ec05f8e682937c6823ca8d08731cde23
+-Target: current v2.8 release head; see external reconstruction report
++Base: full v2.9 carrier civilizations corpus baseline
++Target: current v3.0 Protectorate federation release head; see external reconstruction report
+ Ordered patches: 10
+ Exact reconstruction: passed
+-Files compared: 649
++Files compared: 688
+ Missing files: 0
+ Extra files: 0
+ Changed files: 0
+ 
+-Design evidence only. Runtime meme generation, cultural recognition and player recall remain unverified.
++Design evidence only. Protectorate registry, mobilization, coalition command, logistics, refusal, oversight, fleets and strategic scale remain unimplemented and unverified.
+diff --git a/README.md b/README.md
+index 6d78fac..1d30fd2 100644
+--- a/README.md
++++ b/README.md
+@@ -1,3 +1,21 @@
++## v3.0 Protectorate Federation, Civil Defense, and Coalition Command
++
++- [Protectorate Federation, Civil Defense, and Non-Imperial Authority Contract](./canon/PROTECTORATE_FEDERATION_CIVIL_DEFENSE_AND_NON_IMPERIAL_AUTHORITY_CONTRACT_V0_1.md)
++- [Protectorate Unit Registry, Charter, Interoperability, and Local Legitimacy Runtime](./tech/PROTECTORATE_UNIT_REGISTRY_CHARTER_INTEROPERABILITY_AND_LOCAL_LEGITIMACY_RUNTIME_V0_1.md)
++- [Protectorate Militia Cultures, Professions, and Local Defense Atlas](./lore/PROTECTORATE_MILITIA_CULTURES_PROFESSIONS_AND_LOCAL_DEFENSE_ATLAS_V0_1.md)
++- [Reserve Mobilization, Coalition Command, and Mission Scoping Runtime](./tech/RESERVE_MOBILIZATION_COALITION_COMMAND_AND_MISSION_SCOPING_RUNTIME_V0_1.md)
++- [Protectorate Refusal Rights, Civilian Oversight, and Anti-Warlord Safeguards Contract](./canon/PROTECTORATE_REFUSAL_RIGHTS_CIVILIAN_OVERSIGHT_AND_ANTI_WARLORD_SAFEGUARDS_CONTRACT_V0_1.md)
++- [Protectorate Logistics, Rescue, Medical, Evidence, and Recovery Runtime](./tech/PROTECTORATE_LOGISTICS_RESCUE_MEDICAL_EVIDENCE_AND_RECOVERY_RUNTIME_V0_1.md)
++- [Protectorate Ship, Fleet, and Regional Response Formation Atlas](./lore/PROTECTORATE_SHIP_FLEET_AND_REGIONAL_RESPONSE_FORMATION_ATLAS_V0_1.md)
++- [Protectorate Twenty-Thousand-Unit Federation Benchmark](./ops/PROTECTORATE_20000_UNIT_FEDERATION_BENCHMARK_V0_1.md)
++- [Protectorate Federation Implementation Ticket Backlog](./ops/PROTECTORATE_IMPLEMENTATION_TICKET_BACKLOG_V0_1.md)
++- [v3.0 Campaign Summary](./ops/V3_0_PROTECTORATE_FEDERATION_CIVIL_DEFENSE_AND_COALITION_COMMAND_CAMPAIGN.md)
++
++The governing rule is:
++
++> **The Protectorate is civilization's promise that no community must face catastrophe alone—not civilization's permission for armed institutions to stand above everyone else.**
++
++
+ ## v2.9 Player-Built Carrier Civilizations, Nested Vehicle Ecology, and Command at Scale
+ 
+ - [Large Carrier Multirole Civilization and Non-Specialization Contract](./canon/LARGE_CARRIER_MULTIROLE_CIVILIZATION_AND_NON_SPECIALIZATION_CONTRACT_V0_1.md)
+diff --git a/canon/CANON_REGISTRY_AND_DOCUMENT_GOVERNANCE_V2_6.md b/canon/CANON_REGISTRY_AND_DOCUMENT_GOVERNANCE_V2_6.md
+new file mode 100644
+index 0000000..e78b7e4
+--- /dev/null
++++ b/canon/CANON_REGISTRY_AND_DOCUMENT_GOVERNANCE_V2_6.md
+@@ -0,0 +1,73 @@
++---
++title: Canon Registry and Document Governance
++version: 2.6
++status: canonical
++scope: Protectorate federation, local civil defense, coalition command, refusal, oversight, logistics, recovery and multirole protective fleets
++owner: documentation/design/production
++supersedes:
++  - CANON_REGISTRY_AND_DOCUMENT_GOVERNANCE_V2_5.md
++related:
++  - PROTECTORATE_FEDERATION_CIVIL_DEFENSE_AND_NON_IMPERIAL_AUTHORITY_CONTRACT_V0_1.md
++  - PROTECTORATE_REFUSAL_RIGHTS_CIVILIAN_OVERSIGHT_AND_ANTI_WARLORD_SAFEGUARDS_CONTRACT_V0_1.md
++  - ../ops/V3_0_PROTECTORATE_FEDERATION_CIVIL_DEFENSE_AND_COALITION_COMMAND_CAMPAIGN.md
++---
++
++# Canon Registry and Document Governance
++
++## Purpose
++
++Integrate the v3.0 Protectorate federation without turning mutual defense into one imperial military faction, making every unit a militia, or allowing player command to erase local legitimacy and civilian authority.
++
++# v3.0 Ownership
++
++[Protectorate Federation, Civil Defense, and Non-Imperial Authority Contract](./PROTECTORATE_FEDERATION_CIVIL_DEFENSE_AND_NON_IMPERIAL_AUTHORITY_CONTRACT_V0_1.md) owns the federation's purpose, membership layers, protection domains, local legitimacy, bounded force, and non-imperial limits.
++
++[Protectorate Refusal Rights, Civilian Oversight, and Anti-Warlord Safeguards Contract](./PROTECTORATE_REFUSAL_RIGHTS_CIVILIAN_OVERSIGHT_AND_ANTI_WARLORD_SAFEGUARDS_CONTRACT_V0_1.md) owns lawful refusal, unlawful abandonment, strategic weapon control, emergency authority, detention safeguards, anti-capture architecture, and institutional repair.
++
++[Protectorate Unit Registry, Charter, Interoperability, and Local Legitimacy Runtime](../tech/PROTECTORATE_UNIT_REGISTRY_CHARTER_INTEROPERABILITY_AND_LOCAL_LEGITIMACY_RUNTIME_V0_1.md) owns persistent unit identity, charter provenance, recognition graphs, readiness, capability evidence, and interoperability.
++
++[Reserve Mobilization, Coalition Command, and Mission Scoping Runtime](../tech/RESERVE_MOBILIZATION_COALITION_COMMAND_AND_MISSION_SCOPING_RUNTIME_V0_1.md) owns alerts, reserve call-up, household cost, temporary coalitions, authority graphs, communications partitions, scope amendments, demobilization, and review.
++
++[Protectorate Logistics, Rescue, Medical, Evidence, and Recovery Runtime](../tech/PROTECTORATE_LOGISTICS_RESCUE_MEDICAL_EVIDENCE_AND_RECOVERY_RUNTIME_V0_1.md) owns material flow, triage, evacuation, protected corridors, repair, missing persons, source-chain recovery, evidence, surrender, and post-crisis restoration.
++
++[Protectorate Militia Cultures, Professions, and Local Defense Atlas](../lore/PROTECTORATE_MILITIA_CULTURES_PROFESSIONS_AND_LOCAL_DEFENSE_ATLAS_V0_1.md) owns local unit cultures, professions, visual identity, recruitment, ordinary life, and generational change.
++
++[Protectorate Ship, Fleet, and Regional Response Formation Atlas](../lore/PROTECTORATE_SHIP_FLEET_AND_REGIONAL_RESPONSE_FORMATION_ATLAS_V0_1.md) owns multirole Protectorate vessel families, small-craft ecology, formation doctrine, protected convoy play, and peace-time service.
++
++[Protectorate Twenty-Thousand-Unit Federation Benchmark](../ops/PROTECTORATE_20000_UNIT_FEDERATION_BENCHMARK_V0_1.md) owns promotion evidence.
++
++# v3.0 Canonical Decisions
++
++- The Protectorate is a federation of protection institutions, not one army.
++- Militia is one unit family among rescue, medical, infrastructure, ecological, logistics, evidence, strategic, and training organizations.
++- Local units retain charter provenance, culture, constituency relationships, and refusal rights.
++- Shared standards preserve interoperability without requiring cultural uniformity.
++- Capability claims, certification, observed performance, and current readiness are separate states.
++- Coalition command is temporary, mission-scoped, graph-structured, and reviewable.
++- Emergency authority expires unless lawfully renewed.
++- Strategic force requires distributed authorization.
++- Logistics, rescue, care, evidence, demobilization, and recovery are first-class protection gameplay.
++- Protectorate carriers remain multirole civic ships whose legitimacy does not follow from weapons or size.
++- The player can participate, lead, reform, refuse, and command without owning people or the federation.
++- The Protectorate may fail through capture, inequality, abandonment, secrecy, or permanent emergency rule.
++
++# Canonical Decision Spine
++
++1. [Symtropy Game Constitution v0.6](./SYMTROPY_GAME_CONSTITUTION_V0_6.md)
++2. [Breaking of Firstlight Contract](./BREAKING_OF_FIRSTLIGHT_LOSS_CONTINUITY_AND_PLAYER_AGENCY_CONTRACT_V0_1.md)
++3. [Mobile Continuance Base Contract](./MOBILE_CONTINUANCE_BASE_HOME_VEHICLE_AND_CREW_SOVEREIGNTY_CONTRACT_V0_1.md)
++4. [Large Carrier Multirole Contract](./LARGE_CARRIER_MULTIROLE_CIVILIZATION_AND_NON_SPECIALIZATION_CONTRACT_V0_1.md)
++5. [Protectorate Federation Contract](./PROTECTORATE_FEDERATION_CIVIL_DEFENSE_AND_NON_IMPERIAL_AUTHORITY_CONTRACT_V0_1.md)
++6. [Protectorate Refusal and Oversight Contract](./PROTECTORATE_REFUSAL_RIGHTS_CIVILIAN_OVERSIGHT_AND_ANTI_WARLORD_SAFEGUARDS_CONTRACT_V0_1.md)
++7. [System Interaction and Dependency Map v2.3](./SYSTEM_INTERACTION_AND_DEPENDENCY_MAP_V2_3.md)
++8. [Game Implementation Roadmap v2.3](../ops/GAME_IMPLEMENTATION_ROADMAP_V2_3.md)
++9. [Implementation Readiness Matrix v2.3](../ops/SYMTROPY_IMPLEMENTATION_READINESS_MATRIX_V2_3.md)
++10. [Protectorate Federation Benchmark](../ops/PROTECTORATE_20000_UNIT_FEDERATION_BENCHMARK_V0_1.md)
++
++# Evidence Boundary
++
++All v3.0 capabilities remain D3 / I0. Documentation establishes intended rules but does not prove scale, performance, networking, AI coordination, political legibility, player enjoyment, or institutional safety.
++
++## Registry Maxim
++
++> **The Protectorate enters canon only when every concentration of power remains attached to a traceable charter, a bounded purpose, material capacity, people who can refuse, and civilians who can review what was done in their name.**
+diff --git a/canon/SYSTEM_INTERACTION_AND_DEPENDENCY_MAP_V2_3.md b/canon/SYSTEM_INTERACTION_AND_DEPENDENCY_MAP_V2_3.md
+new file mode 100644
+index 0000000..bc01821
+--- /dev/null
++++ b/canon/SYSTEM_INTERACTION_AND_DEPENDENCY_MAP_V2_3.md
+@@ -0,0 +1,126 @@
++---
++title: System Interaction and Dependency Map
++version: 2.3
++status: implementation-spec
++scope: Protectorate integration across world truth, populations, charters, units, logistics, carriers, warfare, civilian oversight, multiplayer and history
++owner: architecture/design/production
++supersedes:
++  - SYSTEM_INTERACTION_AND_DEPENDENCY_MAP_V2_2.md
++related:
++  - PROTECTORATE_FEDERATION_CIVIL_DEFENSE_AND_NON_IMPERIAL_AUTHORITY_CONTRACT_V0_1.md
++  - ../tech/PROTECTORATE_UNIT_REGISTRY_CHARTER_INTEROPERABILITY_AND_LOCAL_LEGITIMACY_RUNTIME_V0_1.md
++  - ../ops/PROTECTORATE_20000_UNIT_FEDERATION_BENCHMARK_V0_1.md
++---
++
++# System Interaction and Dependency Map
++
++## Core Spine
++
++```text
++world hazard, conflict or public claim
++→ observer evidence and incident uncertainty
++→ local unit charters, capability and readiness
++→ mobilization request and household cost
++→ temporary coalition and delegated authority graph
++→ logistics, rescue, defense and civilian movement
++→ refusal, amendment, command succession and oversight
++→ demobilization, recovery, accountability and repair
++→ unit memory, legitimacy change and future readiness
++```
++
++# Required Dependencies
++
++## World and Chronicle truth
++
++Incidents, damage, people, communications, claims, orders, evidence, and recovery remain source-chain grounded.
++
++## Population and households
++
++Reserve participants come from workplaces, families, care systems, professions, and local politics.
++
++## Institutions and charters
++
++Units, compacts, carriers, courts, councils, and strategic services possess versioned authority and succession.
++
++## Logistics and infrastructure
++
++Protection requires routes, depots, vehicles, atmosphere, water, medicine, power, repair stock, thermal capacity, and receiving facilities.
++
++## Professional simulation
++
++Medical, engineering, navigation, evidence, translation, and safety authority remain distinct from general command.
++
++## Warfare and threat ecology
++
++Force obeys sensors, heat, geometry, communications, ammunition, collateral, surrender, and recovery.
++
++## Carrier civilization stack
++
++Protectorate ships inherit multirole carrier physics, residents, harbors, fabrication, damage, ownership, and command limits.
++
++## Multiplayer truth
++
++Mission scope, authority, orders, unit state, refusal, cargo, casualties, and evidence require authoritative consistency.
++
++## Symthaea direction
++
++Symthaea may compress, surface, pace, and compose real pressures. It may not fabricate crises, loyalty, capability, supplies, or consent.
++
++# Scale Transitions
++
++```text
++individual responder
++↕ local team
++↕ chartered unit
++↕ regional compact
++↕ temporary coalition
++↕ strategic federation
++```
++
++Each transition preserves named people, obligations, evidence, authority, and material accounting.
++
++# Unit State Flow
++
++```text
++founding event
+++ charter and constituency
+++ capability evidence
+++ current personnel and equipment
+++ recognition graph
+++ service and accountability history
++= current institutional state
++```
++
++# Coalition State Flow
++
++```text
++incident claims
+++ mission purpose
+++ accepted unit commitments
+++ delegated authority graph
+++ logistics plan
+++ communications conditions
+++ civilian protections
++= current coalition
++```
++
++# First Implementation Dependency Order
++
++1. unit identity and charter;
++2. capability and readiness evidence;
++3. one local mobilization with household cost;
++4. two-unit interoperability;
++5. delegated command and one professional refusal;
++6. logistics, rescue, and demobilization;
++7. one small Protectorate convoy;
++8. civilian review and institutional repair;
++9. strategic compression and 500-unit operation;
++10. 20,000-unit benchmark.
++
++# Production Boundary
++
++The first Protectorate proof should attach to a playable settlement, convoy, and mobile home. System-scale federation work may prototype in isolation but must not displace Firstlight, Continuance, professions, or ordinary civilian life.
++
++## Map Maxim
++
++> **Protection becomes one system only when force, care, logistics, law, culture, and recovery remain causally connected from the individual responder to the strategic federation.**
+diff --git a/ops/GAME_IMPLEMENTATION_ROADMAP_V2_3.md b/ops/GAME_IMPLEMENTATION_ROADMAP_V2_3.md
+new file mode 100644
+index 0000000..02f874a
+--- /dev/null
++++ b/ops/GAME_IMPLEMENTATION_ROADMAP_V2_3.md
+@@ -0,0 +1,102 @@
++---
++title: Symtropy Game Implementation Roadmap
++version: 2.3
++status: implementation-spec
++scope: evidence-gated implementation of one local Protectorate unit, regional coalition, multirole response ship, and strategic federation kernel
++owner: production/design/engineering/research
++supersedes:
++  - GAME_IMPLEMENTATION_ROADMAP_V2_2.md
++related:
++  - ../canon/CANON_REGISTRY_AND_DOCUMENT_GOVERNANCE_V2_6.md
++  - PROTECTORATE_IMPLEMENTATION_TICKET_BACKLOG_V0_1.md
++  - PROTECTORATE_20000_UNIT_FEDERATION_BENCHMARK_V0_1.md
++---
++
++# Symtropy Game Implementation Roadmap
++
++## Strategy
++
++The Protectorate is a long-horizon federation, but its first proof must be intimate: one local unit, known residents, real equipment, one difficult mobilization, and consequences after the alarm ends.
++
++# Gate A — Preserve the Playable Civilian Spine
++
++Complete Firstlight, the Continuance Crawler, professions, persistent households, and local infrastructure.
++
++**Exit:** there are real people and systems for a protection institution to serve.
++
++# Gate B — One Chartered Unit
++
++Implement persistent identity, charter, five capabilities, equipment, readiness, recognition, and ten named members.
++
++**Exit:** the unit can explain who authorized it and what it can actually do.
++
++# Gate C — One Local Incident
++
++Implement contested warning, partial call-up, household cost, transport, rescue, and demobilization.
++
++**Exit:** mobilization draws from real civilian life and returns to it.
++
++# Gate D — Two-Unit Interoperability
++
++Add a culturally different partner unit, adapter needs, shared medical transfer, and one command mismatch.
++
++**Exit:** cooperation works without making units identical.
++
++# Gate E — Scoped Coalition Command
++
++Implement one temporary coalition, delegated medical and engineering authority, delayed orders, and one mission amendment.
++
++**Exit:** command is useful, bounded, and source-chain visible.
++
++# Gate F — Refusal and Oversight
++
++Implement lawful professional refusal, malicious abandonment, anti-retaliation, civilian review, and institutional repair.
++
++**Exit:** refusal cannot be reduced to a morality prompt.
++
++# Gate G — Protectorate Convoy
++
++Implement one mixed civilian convoy with rescue reserve, surrender, damage, logistics, and recovery.
++
++**Exit:** success is measured by preserved continuity, not kill count.
++
++# Gate H — Multirole Response Carrier
++
++Implement a bounded Bastionline prototype with harbor, clinic, fabrication, habitation, rescue craft, and distributed command.
++
++**Exit:** the vessel remains a civic institution during peace and crisis.
++
++# Gate I — Strategic Federation Kernel
++
++Scale unit registry and mobilization to 500 operational units while preserving named people and local legitimacy.
++
++**Exit:** strategic compression is deterministic and legible.
++
++# Gate J — Twenty-Thousand-Unit Benchmark
++
++Run Meridian Fracture, performance telemetry, multiplayer authority tests, ablations, accessibility review, and delayed recall.
++
++**Exit:** representative gates pass and limitations are published.
++
++# Deferred
++
++- production-scale galactic Protectorate;
++- hundreds of fully simulated carriers;
++- open-ended strategic warfare;
++- autonomous weapon policy across every alien ontology;
++- complete planetary evacuation simulation;
++- long-horizon institutional evolution over centuries;
++- player-founded federation spanning multiple star systems.
++
++# Kill Rules
++
++- Cut unit count before cutting local identity.
++- Cut tactical detail before teleporting logistics.
++- Cut command breadth before granting absolute authority.
++- Cut weapon variety before cutting rescue and recovery.
++- Cut carrier count before making one carrier morally infallible.
++- Do not let Protectorate work replace ordinary settlement, profession, and relationship gameplay.
++
++## Roadmap Maxim
++
++> **First prove that one local unit can protect people without standing above them. Then scale the federation without losing the local truth that made protection legitimate.**
+diff --git a/ops/QUALITY_AUDIT_2026_07_21_V3_0.json b/ops/QUALITY_AUDIT_2026_07_21_V3_0.json
+new file mode 100644
+index 0000000..31ac5b2
+--- /dev/null
++++ b/ops/QUALITY_AUDIT_2026_07_21_V3_0.json
+@@ -0,0 +1,23 @@
++{
++  "markdown_documents": 570,
++  "approximate_words": 865000,
++  "broken_internal_links": 0,
++  "active_metadata_errors": 0,
++  "duplicate_active_titles": 0,
++  "json_errors": 0,
++  "schema_validation_errors": 0,
++  "exact_reconstruction": true,
++  "version": "3.0",
++  "ordered_patches": 10,
++  "files_compared": 688,
++  "missing_files": 0,
++  "extra_files": 0,
++  "changed_files": 0,
++  "details": {
++    "broken_links": [],
++    "metadata_errors": [],
++    "duplicate_titles": {},
++    "json_errors": [],
++    "schema_errors": []
++  }
++}
+diff --git a/ops/SYMTROPY_IMPLEMENTATION_READINESS_MATRIX_V2_3.md b/ops/SYMTROPY_IMPLEMENTATION_READINESS_MATRIX_V2_3.md
+new file mode 100644
+index 0000000..a854bd0
+--- /dev/null
++++ b/ops/SYMTROPY_IMPLEMENTATION_READINESS_MATRIX_V2_3.md
+@@ -0,0 +1,105 @@
++---
++title: Symtropy Implementation Readiness Matrix
++version: 2.3
++status: implementation-spec
++scope: evidence maturity for Protectorate registry, mobilization, command, refusal, logistics, fleets, oversight, recovery, scale and player legibility
++owner: production/design/engineering/research
++supersedes:
++  - SYMTROPY_IMPLEMENTATION_READINESS_MATRIX_V2_2.md
++related:
++  - GAME_IMPLEMENTATION_ROADMAP_V2_3.md
++  - PROTECTORATE_20000_UNIT_FEDERATION_BENCHMARK_V0_1.md
++---
++
++# Symtropy Implementation Readiness Matrix
++
++## Scale
++
++- **D0:** absent
++- **D1:** idea
++- **D2:** structured concept
++- **D3:** implementation-ready design
++- **I0:** no verified implementation
++- **I1:** isolated prototype
++- **I2:** integrated prototype
++- **I3:** benchmarked representative implementation
++- **I4:** production-ready
++
++# v3.0 Readiness
++
++| Capability | Design | Implementation | Required proof |
++|---|---:|---:|---|
++| Federation contract | D3 | I0 | canonical review |
++| Unit identity and succession | D3 | I0 | deterministic replay |
++| Charter object | D3 | I0 | amendment and expiry tests |
++| Recognition graph | D3 | I0 | conflicting constituency fixture |
++| Capability evidence | D3 | I0 | claim/certification/observation divergence |
++| Multidimensional readiness | D3 | I0 | personnel, supply and law integration |
++| Personnel cohorts | D3 | I0 | compression without identity loss |
++| Named-member promotion | D3 | I0 | persistence suite |
++| Interoperability standards | D3 | I0 | two-unit exercise |
++| Physical adapters | D3 | I0 | missing and failed adapter cases |
++| Mobilization request | D3 | I0 | scoped call-up replay |
++| Household cost | D3 | I0 | care and workplace consequences |
++| Unit response states | D3 | I0 | limited, refused and failed responses |
++| Temporary coalition | D3 | I0 | formation and dissolution |
++| Delegated authority graph | D3 | I0 | medical/engineering/force conflict |
++| Intent-based orders | D3 | I0 | partitioned execution |
++| Communication delay | D3 | I0 | conflicting order versions |
++| Mission scope amendment | D3 | I0 | emergency deviation and review |
++| Strategic reserve | D3 | I0 | unplanned secondary incident |
++| Demobilization | D3 | I0 | authority expiry and reintegration |
++| Individual refusal | D3 | I0 | lawful and malicious cases |
++| Unit refusal | D3 | I0 | charter and obligation review |
++| Professional refusal | D3 | I0 | medic/engineer/pilot cases |
++| Anti-retaliation | D3 | I0 | protected-access test |
++| Civilian oversight | D3 | I0 | audit and suspension powers |
++| Oversight failure | D3 | I0 | harmful delay or capture |
++| Strategic weapon quorum | D3 | I0 | incomplete authorization hold |
++| Carrier anti-capture | D3 | I0 | command isolation scenario |
++| Emergency expiry | D3 | I0 | renewal and termination |
++| Institutional repair | D3 | I0 | reform without automatic dissolution |
++| Logistics flow graph | D3 | I0 | capacity and route replay |
++| Supply custody | D3 | I0 | requisition and diversion evidence |
++| Rescue case | D3 | I0 | identity, consent and hazard integration |
++| Triage | D3 | I0 | clinical review |
++| Evacuation stages | D3 | I0 | warning through reunification |
++| Protected corridors | D3 | I0 | breach and alternate route |
++| Medical transfer | D3 | I0 | embodiment compatibility |
++| Missing-person ledger | D3 | I0 | missing/dead/returned distinction |
++| Body and source-chain recovery | D3 | I0 | continuity and custody proof |
++| Hostile surrender rescue | D3 | I0 | care, detention and evidence |
++| Evidence custody | D3 | I0 | imperfect collection and dispute |
++| Long-term recovery | D3 | I0 | restoration, compensation and memory |
++| Local unit cultures | D3 | I0 | blind distinctness study |
++| Protectorate small craft | D3 | I0 | persistent crews and maintenance |
++| Protected convoy | D3 | I0 | mixed civilian vessel scenario |
++| Bastionline carrier | D3 | I0 | multirole civic/defense proof |
++| Five-hundred-unit operation | D2 | I0 | performance profile |
++| Twenty-thousand-unit registry | D2 | I0 | load, query and replay |
++| Multiplayer authority | D3 | I0 | client agreement and host migration |
++| Seven-day player recall | D3 | I0 | participant study |
++
++# Promotion Order
++
++```text
++one chartered local unit
++→ one material mobilization
++→ two-unit interoperability
++→ scoped coalition command
++→ refusal and civilian review
++→ convoy and recovery
++→ multirole Protectorate carrier
++→ strategic compression
++→ twenty-thousand-unit benchmark
++```
++
++# Current Decision
++
++All v3.0 behavior remains **D3 / I0**, except strategic scale and performance budgeting, which remain **D2 / I0** until executable profiling supplies credible envelopes.
++
++No claim may state that Symtropy supports a federated Protectorate until at least one local unit, one coalition, one refusal case, one logistics crisis, and one demobilization pass together in an integrated prototype.
++
++## Readiness Maxim
++
++> **The Protectorate is not ready when twenty thousand unit records load. It is ready when scale does not erase why each unit exists, who it serves, what it can do, and who can stop it.**
+diff --git a/ops/V3_0_PROTECTORATE_FEDERATION_CIVIL_DEFENSE_AND_COALITION_COMMAND_CAMPAIGN.md b/ops/V3_0_PROTECTORATE_FEDERATION_CIVIL_DEFENSE_AND_COALITION_COMMAND_CAMPAIGN.md
+new file mode 100644
+index 0000000..01d90df
+--- /dev/null
++++ b/ops/V3_0_PROTECTORATE_FEDERATION_CIVIL_DEFENSE_AND_COALITION_COMMAND_CAMPAIGN.md
+@@ -0,0 +1,58 @@
++---
++title: v3.0 Protectorate Federation, Civil Defense, and Coalition Command Campaign
++version: 3.0
++status: campaign-summary
++scope: summary of the v3.0 documentation patch campaign
++owner: documentation/design/production
++related:
++  - ../canon/PROTECTORATE_FEDERATION_CIVIL_DEFENSE_AND_NON_IMPERIAL_AUTHORITY_CONTRACT_V0_1.md
++  - PROTECTORATE_20000_UNIT_FEDERATION_BENCHMARK_V0_1.md
++  - PROTECTORATE_IMPLEMENTATION_TICKET_BACKLOG_V0_1.md
++---
++
++# v3.0 Protectorate Federation, Civil Defense, and Coalition Command Campaign
++
++## Campaign Question
++
++Can Symtropy support tens of thousands of locally rooted defense and resilience organizations while keeping protection culturally plural, materially constrained, lawfully bounded, and playable from volunteer scale to system-scale command?
++
++## Answer
++
++The Protectorate is now specified as a federation of protection institutions rather than one universal army.
++
++Its member ecology includes rescue, medicine, infrastructure, logistics, ecological response, communications, evidence, local armed defense, strategic fleets, training, and nonhuman partner formations.
++
++## Ten-Patch Spine
++
++1. federation and non-imperial authority contract;
++2. unit registry, charter, recognition, capability and readiness runtime;
++3. militia cultures, professions and local defense atlas;
++4. reserve mobilization, coalition command and mission scope runtime;
++5. refusal rights, civilian oversight and anti-warlord safeguards;
++6. logistics, rescue, medical, evidence and recovery runtime;
++7. Protectorate ship, fleet and regional formation atlas;
++8. twenty-thousand-unit benchmark, schema and reference fixture;
++9. one-hundred-ticket implementation backlog;
++10. canon, dependency, roadmap, readiness, manifest, audit and reconstruction integration.
++
++## Major Decisions
++
++- Tens of thousands of units are plausible across planets, carriers, habitats, convoys, oceans, machines, and alien partners.
++- Only a minority need be combat-focused.
++- Local legitimacy and strategic interoperability coexist.
++- Mobilization draws from households and institutions rather than creating free personnel.
++- Coalition authority is temporary and distributed by function.
++- Refusal is protected but not consequence-free.
++- Civilian oversight can fail and remains a simulated institution.
++- Protectorate carriers are multirole rescue, repair, shelter, logistics, and defense civilizations.
++- Recovery, evidence, demobilization, and institutional repair remain part of every serious crisis.
++
++## Production Boundary
++
++The campaign does not claim that the systems are implemented. All remain D3 / I0, with strategic performance targets at D2 / I0.
++
++The first playable proof should be one local unit attached to a known settlement and Continuance route—not an immediate galaxy-wide strategy layer.
++
++## Campaign Maxim
++
++> **Scale the promise of mutual protection only as quickly as the simulation can preserve the people, charters, supplies, refusals, and consequences that make the promise trustworthy.**
+-- 
+2.47.3
+

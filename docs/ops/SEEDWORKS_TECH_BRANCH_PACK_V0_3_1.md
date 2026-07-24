@@ -15,6 +15,7 @@ depends_on:
   - ROBOTICS_PLATFORM_ROADMAP.md
   - WORLD_TIMELINE_2000_2168.md
   - SPACE_HISTORY_2000_2168.md
+version: 0.3.1
 ---
 
 # Symtropy: Seedworks Tech Branch Pack v0.3.1

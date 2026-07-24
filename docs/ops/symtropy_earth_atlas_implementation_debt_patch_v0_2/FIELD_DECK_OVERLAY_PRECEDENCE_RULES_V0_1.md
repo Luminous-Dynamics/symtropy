@@ -8,6 +8,9 @@ depends_on:
   - EARTH_ATLAS_2168_TEMPLATE.md
   - IN_WORLD_COMPUTING_AND_SYMTROPYOS.md
   - MULTIPLAYER_TRUTH_MODEL.md
+version: 0.1
+scope: Field Deck overlay conflict resolution, priority and presentation rules
+owner: design/UI/engineering
 ---
 
 # Field Deck Overlay Precedence Rules v0.1

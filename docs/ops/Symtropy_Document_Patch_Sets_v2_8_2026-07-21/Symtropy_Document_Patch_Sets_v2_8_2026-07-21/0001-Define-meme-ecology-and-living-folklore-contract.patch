@@ -1,0 +1,360 @@
+From f6baab08d2dbe96221347e30eb968f99e244aaf6 Mon Sep 17 00:00:00 2001
+From: OpenAI <noreply@openai.com>
+Date: Tue, 21 Jul 2026 07:40:08 +0000
+Subject: [PATCH 01/10] Define meme ecology and living folklore contract
+
+---
+ ...KLORE_AND_CULTURAL_AGENCY_CONTRACT_V0_1.md | 344 ++++++++++++++++++
+ 1 file changed, 344 insertions(+)
+ create mode 100644 canon/MEME_ECOLOGY_HUMOR_LIVING_FOLKLORE_AND_CULTURAL_AGENCY_CONTRACT_V0_1.md
+
+diff --git a/canon/MEME_ECOLOGY_HUMOR_LIVING_FOLKLORE_AND_CULTURAL_AGENCY_CONTRACT_V0_1.md b/canon/MEME_ECOLOGY_HUMOR_LIVING_FOLKLORE_AND_CULTURAL_AGENCY_CONTRACT_V0_1.md
+new file mode 100644
+index 0000000..569f673
+--- /dev/null
++++ b/canon/MEME_ECOLOGY_HUMOR_LIVING_FOLKLORE_AND_CULTURAL_AGENCY_CONTRACT_V0_1.md
+@@ -0,0 +1,344 @@
++---
++title: Meme Ecology, Humor, Living Folklore, and Cultural Agency Contract
++version: 0.1
++status: canonical-draft
++scope: memes, jokes, catchphrases, remixes, folklore, cultural mutation, social spread, ownership, provenance and historical memory
++owner: design/culture/narrative/simulation/safety
++related:
++  - INFORMATION_ECOLOGY_RUMOR_MEDIA_AND_REPUTATION_CONTRACT_V0_1.md
++  - CULTURAL_EVOLUTION_LANGUAGE_AND_INTERGENERATIONAL_TRANSMISSION_CONTRACT_V0_1.md
++  - PLAYER_AUTHORSHIP_SANDBOX_AND_MODDING_CONTRACT_V0_1.md
++  - ../tech/MEMETIC_EVENT_EXTRACTION_GENOME_AND_CANDIDATE_FOUNDRY_RUNTIME_V0_1.md
++  - ../tech/MEME_MUTATION_DISTRIBUTION_SELECTION_DECAY_AND_PROVENANCE_RUNTIME_V0_1.md
++  - ../ops/MEME_ECOLOGY_FIRSTLIGHT_CONTINUANCE_BENCHMARK_V0_1.md
++---
++
++# Meme Ecology, Humor, Living Folklore, and Cultural Agency Contract
++
++## Owned Question
++
++**How can Symtropy generate effectively unbounded humor and living folklore from actual world history without becoming a random caption machine, a cruelty engine, a feed addiction system, or a collection of contemporary references pasted onto future societies?**
++
++## Core Thesis
++
++A meme is not merely a formatted joke. It is a compact cultural object through which people remember, bond, flirt, teach, mock authority, survive grief, advertise identity, spread prejudice, or reinterpret history.
++
++Symtropy therefore treats memes as part of the same causal world as tools, institutions, rumors, songs, architecture, and law.
++
++```text
++event or belief
++→ witnessed contradiction or memorable form
++→ local expression
++→ adoption or rejection
++→ mutation through real networks
++→ decay, revival, institutionalization or folklore
++```
++
++> **The generator does not endlessly invent jokes. It endlessly transforms shared memory into culture.**
++
++# 1. Canonical Boundaries
++
++1. **Memes require provenance.** Every authoritative meme descends from an event, claim, artifact, person, practice, prior meme, or recognizable cultural contradiction.
++2. **Humor belongs to situated communities.** A joke has creators, audiences, outsiders, translation limits, and possible targets.
++3. **Spread requires contact.** Memes travel through conversations, performances, media, schools, workplaces, migration, trade, Atlas communication, machine protocols, or physical artifacts.
++4. **No universal feed consciousness.** Disconnected worlds do not instantly receive the same joke.
++5. **No guaranteed virality.** Most candidates die locally or never leave their first audience.
++6. **Mutation remains historical.** Later versions may obscure their origins, but the simulation preserves lineage and provenance.
++7. **People retain agency.** NPCs may ignore, dislike, misunderstand, remix, suppress, commercialize, reclaim, or refuse a meme.
++8. **Humor may be harmful without being flattened into a forbidden category.** The game models target, power, reach, consent, repair, and consequence.
++9. **Symthaea may curate attention, not manufacture suffering.** It cannot injure, humiliate, traumatize, or betray inhabitants simply to obtain content.
++10. **The player is not the automatic center.** Most memes should concern local life, professions, institutions, celebrities, children, machines, weather, transit, and old events.
++11. **No engagement-maximizing infinite feed.** Memes appear in places and relationships rather than through an unbounded attention trap.
++12. **Comedy remains compatible with dignity.** Serious worlds require jokes, but private pain is not public material by default.
++
++# 2. What Counts as a Meme
++
++A memetic object may be:
++
++- a captioned image;
++- a six-second video loop;
++- a voice clip;
++- a recurring phrase;
++- a hand gesture;
++- a dance;
++- a melody or rhythmic sting;
++- graffiti;
++- a sticker or badge;
++- an altered warning sign;
++- a fake official notice;
++- a tool decoration;
++- a procedural joke performed at work;
++- a machine diagnostic response;
++- a children’s rhyme;
++- an architectural imitation;
++- a clothing style;
++- an alien sensory pattern;
++- a repeated social scenario;
++- a remembered object whose meaning becomes shorthand.
++
++The contract does not require that every meme be funny. Some operate as:
++
++```text
++admiration
++mourning
++warning
++propaganda
++solidarity
++harassment
++status display
++professional teaching
++historical compression
++identity claim
++```
++
++# 3. Meme Eligibility
++
++An event becomes a strong candidate when it contains several of the following:
++
++- a visible contradiction;
++- a concise recognizable image or sound;
++- an expectation reversed by reality;
++- a famous or locally salient participant;
++- a phrase that can be detached and reapplied;
++- emotional release after danger;
++- a repeated institutional failure;
++- an unusually competent success;
++- a mistake that is safe to laugh about;
++- an official statement contradicted by ordinary experience;
++- an object that persists through several situations;
++- a cross-cultural misunderstanding;
++- a professional pattern recognizable to insiders.
++
++Weak candidates include:
++
++- arbitrary randomness;
++- jokes that require simulation truth unavailable to the audience;
++- humiliation with no social witness or transmission path;
++- direct paraphrases of current internet memes with no in-world adaptation;
++- slogans unsupported by a creator or institution;
++- humor whose only function is to remind the player that a generator exists.
++
++# 4. Cultural Ownership
++
++A meme’s first creator does not permanently control every later interpretation, but provenance and power remain relevant.
++
++The simulation records:
++
++- originator or earliest known source;
++- intended audience;
++- initial meaning;
++- restricted or private context;
++- source culture;
++- later adapters;
++- commercial beneficiaries;
++- suppressed or disputed variants;
++- whether the source community recognizes the later use.
++
++A private household joke may become public only through:
++
++- consent;
++- accidental disclosure;
++- betrayal;
++- independent reinvention;
++- historical release;
++- transformed reference that no longer exposes private facts.
++
++The game must distinguish appreciation, exchange, satire, exploitation, and appropriation rather than treating all remixing as morally identical.
++
++# 5. Humor and Power
++
++The same format changes meaning depending on who speaks and who bears the cost.
++
++Examples:
++
++- workers mocking their own dangerous improvisation;
++- management using the same joke to normalize unsafe labor;
++- a marginalized group reclaiming an insult;
++- outsiders commercializing the reclaimed term;
++- friends teasing one another within known boundaries;
++- strangers repeating the same phrase as harassment;
++- a machine lineage parodying human maintenance habits;
++- humans treating the machine parody as proof machines are unserious.
++
++Required evaluation dimensions:
++
++```text
++speaker power
++target power
++audience relationship
++consent history
++reach
++persistence
++privacy
++material consequence
++capacity for reply or repair
++```
++
++No single “offensiveness score” may replace these dimensions.
++
++# 6. The Player and Memetic History
++
++The player may become:
++
++- the subject of a joke;
++- an anonymous source;
++- a deliberate creator;
++- a remixer;
++- a target;
++- a sponsor;
++- a censor;
++- an archivist;
++- a person whose action becomes famous for the wrong reason;
++- someone credited for a phrase they never said.
++
++Player-specific memes must derive from worldline events such as:
++
++- what was loaded into the Continuance Crawler;
++- a profession-specific mistake or triumph;
++- a relationship incident witnessed by others;
++- a public argument;
++- a rescue method;
++- an unusual vehicle modification;
++- an IRIS phrase repeated by survivors;
++- an object carried from Firstlight;
++- a successful preparation everyone had mocked.
++
++The system must not publish private player behavior merely because telemetry exists.
++
++# 7. Memes Across Time
++
++Memes age through recognizable stages:
++
++1. eyewitness expression;
++2. local repetition;
++3. variant formation;
++4. wider circulation;
++5. political or commercial capture;
++6. fatigue;
++7. generational embarrassment;
++8. nostalgic revival;
++9. historical misunderstanding;
++10. folklore, ritual, proverb, or extinction.
++
++A joke may become:
++
++- a convoy motto;
++- a protest chant;
++- a safety procedure;
++- a fashion;
++- an election slogan;
++- an insult;
++- a children’s game;
++- a memorial phrase;
++- an artifact whose humorous origin is forgotten.
++
++# 8. Cross-Species and Machine Humor
++
++Nonhuman humor must not merely be human jokes spoken by unfamiliar bodies.
++
++Possible structures include:
++
++- timing deviations meaningful only at a different cognitive speed;
++- intentionally inefficient machine procedures;
++- pressure, color, scent, topology, or mass-current patterns;
++- symbiotic jokes where no single organism owns the punchline;
++- lithic repetitions whose setup lasts years;
++- post-biological identity jokes about copies and originals;
++- quarantine-culture humor built around one-way communication.
++
++Translation may produce:
++
++- partial recognition;
++- accidental offense;
++- a new hybrid format;
++- false religious interpretation;
++- a joke that humans cannot perceive without instrumentation.
++
++# 9. Symthaea’s Role
++
++Symthaea may:
++
++- detect memetic potential in real events;
++- generate bounded candidates using cultural grammars;
++- test recognizability, novelty, voice, and harm;
++- simulate adoption and mutation;
++- select natural presentation locations;
++- suppress repetition overload;
++- preserve lineage;
++- notice when a joke becomes propaganda, harassment, ritual, or historical evidence.
++
++Symthaea may not:
++
++- cause a disaster for a meme;
++- force a companion to embarrass themselves;
++- disclose private cognition;
++- make every serious event comic;
++- make every community share the same humor;
++- guarantee the player’s jokes succeed;
++- alter NPC preferences to maximize player approval;
++- insert memes into inaccessible contexts without equivalent alternatives.
++
++# 10. Player Presentation
++
++Memes should appear through the world:
++
++- on a locker;
++- in a group chat the character belongs to;
++- during a meal;
++- on a market stall;
++- in a song;
++- in a machine response;
++- on a broadcast;
++- in children’s play;
++- in graffiti discovered years later;
++- through a rival’s deliberate remix.
++
++The default interface should not become an endless scrolling feed.
++
++A bounded media device may show recent local culture, but it must respect:
++
++- character knowledge;
++- network reach;
++- attention settings;
++- age and content settings;
++- privacy;
++- real publication cadence.
++
++# 11. Failure Conditions
++
++Fail this system if:
++
++- memes appear without source events or beliefs;
++- current real-world formats dominate future cultures;
++- all factions share the same sarcastic voice;
++- every player action becomes a joke;
++- serious harm is automatically converted into comic relief;
++- NPCs are humiliated to improve engagement;
++- private disclosures become collectible content;
++- the most powerful institution controls all visible culture;
++- mutation destroys provenance in authoritative state;
++- generated text produces incoherent names, identities, or references;
++- memes spread across disconnected systems without a route;
++- players cannot disable or reduce meme presentation;
++- humor becomes more common than ordinary speech;
++- the system produces volume rather than memory.
++
++# 12. Promotion Standard
++
++The system remains D3 / I0 until a representative implementation proves:
++
++- deterministic candidate generation;
++- worldline-specific references;
++- coherent faction voice;
++- real network propagation;
++- mutation lineage;
++- decay and revival;
++- privacy and harm boundaries;
++- multiplayer agreement;
++- accessibility alternatives;
++- player recognition without explanation;
++- delayed recall of at least one locally generated joke and its originating event.
++
++## Canonical Maxim
++
++> **A living world does not merely remember what happened. It discovers which parts can be repeated, exaggerated, sung, mocked, protected, misunderstood, and carried into another generation.**

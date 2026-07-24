@@ -7,5 +7,9 @@
 pub mod hdc;
 pub mod spacetime;
 
+/// Versioned deterministic HDC substrate for new research integrations.
+/// The legacy `hdc` module remains unchanged for replay compatibility.
+pub use symtropy_hdc_core as deterministic_hdc;
+
 pub use hdc::*;
 pub use spacetime::*;

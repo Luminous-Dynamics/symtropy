@@ -1,0 +1,455 @@
+From b3dfaa2d777f4e3beadeb1c435bd6976a1265b0f Mon Sep 17 00:00:00 2001
+From: OpenAI Symtropy Document Steward <symtropy-docs@openai.invalid>
+Date: Tue, 21 Jul 2026 14:44:00 +0000
+Subject: [PATCH 06/10] Add Protectorate logistics rescue and recovery runtime
+
+---
+ ...ICAL_EVIDENCE_AND_RECOVERY_RUNTIME_V0_1.md | 436 ++++++++++++++++++
+ 1 file changed, 436 insertions(+)
+ create mode 100644 tech/PROTECTORATE_LOGISTICS_RESCUE_MEDICAL_EVIDENCE_AND_RECOVERY_RUNTIME_V0_1.md
+
+diff --git a/tech/PROTECTORATE_LOGISTICS_RESCUE_MEDICAL_EVIDENCE_AND_RECOVERY_RUNTIME_V0_1.md b/tech/PROTECTORATE_LOGISTICS_RESCUE_MEDICAL_EVIDENCE_AND_RECOVERY_RUNTIME_V0_1.md
+new file mode 100644
+index 0000000..9788775
+--- /dev/null
++++ b/tech/PROTECTORATE_LOGISTICS_RESCUE_MEDICAL_EVIDENCE_AND_RECOVERY_RUNTIME_V0_1.md
+@@ -0,0 +1,436 @@
++---
++title: Protectorate Logistics, Rescue, Medical, Evidence, and Recovery Runtime
++version: 0.1
++status: technical-draft
++scope: supply, evacuation, rescue, medical care, repair, evidence, casualty recovery, missing persons, detainees, and post-crisis restoration
++owner: engineering/simulation/protectorate/logistics-and-care
++related:
++  - ../canon/PROTECTORATE_FEDERATION_CIVIL_DEFENSE_AND_NON_IMPERIAL_AUTHORITY_CONTRACT_V0_1.md
++  - RESERVE_MOBILIZATION_COALITION_COMMAND_AND_MISSION_SCOPING_RUNTIME_V0_1.md
++  - ../canon/PROTECTORATE_REFUSAL_RIGHTS_CIVILIAN_OVERSIGHT_AND_ANTI_WARLORD_SAFEGUARDS_CONTRACT_V0_1.md
++  - ../lore/PROTECTORATE_SHIP_FLEET_AND_REGIONAL_RESPONSE_FORMATION_ATLAS_V0_1.md
++  - ../ops/PROTECTORATE_20000_UNIT_FEDERATION_BENCHMARK_V0_1.md
++---
++
++# Protectorate Logistics, Rescue, Medical, Evidence, and Recovery Runtime
++
++## 1. Purpose
++
++This runtime makes protection materially real.
++
++A unit cannot protect a community merely because it has personnel, weapons, or good intentions. It must move food, air, medicine, power, people, evidence, repair capacity, and information through damaged environments.
++
++> **Protection is logistics performed under moral constraint.**
++
++# 2. Operational Flow Graph
++
++Every mission creates a flow graph with nodes and edges.
++
++Nodes may include:
++
++- depots;
++- shelters;
++- hospitals;
++- docks;
++- carriers;
++- mobile bases;
++- damaged infrastructure;
++- landing zones;
++- evacuation assembly points;
++- quarantine areas;
++- evidence repositories;
++- repair yards;
++- temporary morgues and memorial spaces.
++
++Edges may include:
++
++- roads;
++- rail;
++- ocean routes;
++- air corridors;
++- orbital transfer paths;
++- docking chains;
++- Atlas links;
++- communications;
++- power and fluid lines.
++
++Each edge has:
++
++- capacity;
++- latency;
++- risk;
++- environmental state;
++- legal access;
++- control claims;
++- observability;
++- failure history.
++
++# 3. Supply Classes
++
++The runtime distinguishes at least:
++
++- breathable atmosphere and scrubber capacity;
++- water;
++- food;
++- medicine;
++- blood or equivalent biological materials;
++- power;
++- thermal capacity;
++- propellant and fuel;
++- repair stock;
++- certified pressure components;
++- sanitation supplies;
++- shelter volume;
++- communication equipment;
++- source-chain recovery hardware;
++- ammunition and defensive consumables;
++- ecological restoration stock.
++
++Supplies have storage life, compatibility, contamination state, ownership, and handling requirements.
++
++# 4. Logistics Authority
++
++Possession of supplies does not automatically grant command over recipients.
++
++The runtime records:
++
++- owner;
++- custodian;
++- intended beneficiaries;
++- requisition authority;
++- public-trust conditions;
++- debt or compensation;
++- emergency seizure;
++- disputed claims;
++- diversion history.
++
++A commander who seizes medicine for tactical advantage may preserve a mission and destroy legitimacy.
++
++# 5. Rescue Incidents
++
++A rescue case contains:
++
++- people or entities at risk;
++- location;
++- hazard;
++- time window;
++- access path;
++- environmental requirements;
++- identity uncertainty;
++- extraction capacity;
++- receiving capacity;
++- consent or incapacity state;
++- expected rescuer risk;
++- conflict or jurisdiction.
++
++Rescue may involve:
++
++- trapped residents;
++- damaged spacecraft;
++- underwater habitats;
++- missing patrols;
++- hostile crews requesting surrender;
++- machine instances in failing chassis;
++- alien organisms whose rescue needs are misunderstood;
++- bodies or source cores requiring recovery.
++
++# 6. Triage
++
++Triage is based on scarce capacity and clinical evidence, not moral worth.
++
++The system tracks:
++
++- urgency;
++- survivability with available care;
++- required resources;
++- transport tolerance;
++- contamination;
++- identity uncertainty;
++- patient preferences;
++- dependent relationships;
++- professional judgment;
++- disagreement.
++
++Commanders may set mission priorities, but qualified medical authority controls clinical decisions within law.
++
++# 7. Evacuation
++
++Evacuation is a multi-stage process:
++
++1. warning;
++2. trust and interpretation;
++3. assembly;
++4. accessibility support;
++5. registration or identity preservation;
++6. embarkation;
++7. transit;
++8. reception;
++9. family or group reunification;
++10. housing and care;
++11. return, resettlement, or long-term displacement.
++
++The runtime preserves why people remain:
++
++- refusal;
++- caregiving obligations;
++- inaccessible transport;
++- distrust;
++- political restriction;
++- attachment to place;
++- missing warning;
++- imprisonment;
++- physical inability;
++- deliberate resistance.
++
++“Not evacuated” is not one state.
++
++# 8. Protected Corridors
++
++A protected corridor requires:
++
++- declared route;
++- recognition by relevant parties;
++- schedule;
++- identification procedures;
++- traffic control;
++- medical and repair support;
++- monitoring;
++- evidence;
++- breach response;
++- alternate routes.
++
++Corridors may fail through attack, congestion, weather, misinformation, unauthorized military use, panic, or mechanical breakdown.
++
++# 9. Damage Control and Repair
++
++Protectorate repair focuses on restoring minimum life-preserving function first.
++
++Priority classes:
++
++1. immediate life support;
++2. uncontrolled energy or contamination;
++3. rescue access;
++4. mobility and communication;
++5. sanitation and shelter;
++6. sustained service;
++7. full restoration.
++
++Repairs have provenance, certification, temporary limits, and handover requirements.
++
++The runtime supports cannibalization, substitution, derating, field improvisation, and later correction.
++
++# 10. Medical Transfer Network
++
++Care is distributed across:
++
++- field responders;
++- local clinics;
++- mobile hospitals;
++- Protectorate ships;
++- specialist facilities;
++- long-term recovery communities.
++
++Transfers consider:
++
++- travel time;
++- life-support compatibility;
++- pressure and gravity;
++- species or embodiment;
++- infection control;
++- bed capacity;
++- family access;
++- political borders;
++- continuity of records;
++- patient consent.
++
++# 11. Missing Persons and Uncertain Identity
++
++Missing-person state includes:
++
++- last confirmed observation;
++- intended route;
++- communications;
++- environmental probability;
++- custody claims;
++- source-chain records;
++- witness testimony;
++- recovered possessions;
++- possible forks or reconstitutions;
++- search status.
++
++Missing is not dead. Returned is not automatically verified. Verification is not the same as legal or social acceptance.
++
++# 12. Death, Bodies, and Source Chains
++
++Recovery may involve:
++
++- living person;
++- injured person;
++- deceased body;
++- partial remains;
++- source core;
++- damaged identity record;
++- machine chassis;
++- alien continuity substrate;
++- conflicting active instances.
++
++The runtime preserves dignity, chain of custody, cultural practice, public-health needs, and evidence.
++
++Bodies are not generic loot containers or cleanup objects.
++
++# 13. Surrender and Hostile Casualties
++
++Protectorate obligations extend to surrendered, disabled, or incapacitated adversaries when feasible.
++
++The system tracks:
++
++- surrender signal;
++- threat status;
++- weapon separation;
++- medical need;
++- identity;
++- detention authority;
++- rescue risk;
++- receiving facility;
++- evidence of treatment.
++
++Rescue may be delayed by immediate danger, but deliberate abandonment remains reviewable.
++
++# 14. Evidence Runtime
++
++Evidence types include:
++
++- sensor logs;
++- body and suit telemetry;
++- communications;
++- command records;
++- physical debris;
++- medical findings;
++- witness testimony;
++- source-chain records;
++- environmental samples;
++- financial and supply records.
++
++Evidence tracks:
++
++- collector;
++- time;
++- location;
++- method;
++- custody;
++- integrity;
++- access;
++- interpretation;
++- uncertainty;
++- alteration claims.
++
++Operational urgency may force imperfect collection. The runtime records imperfection rather than pretending evidence is either valid or absent.
++
++# 15. Recovery Operations
++
++After immediate danger, recovery includes:
++
++- unexploded hazard clearance;
++- wreck stabilization;
++- missing-person search;
++- body recovery;
++- archive retrieval;
++- restoration of utilities;
++- environmental cleanup;
++- temporary housing;
++- property and salvage disputes;
++- public health;
++- memorialization;
++- investigation;
++- return or resettlement.
++
++Recovery can take longer and involve more people than combat.
++
++# 16. Long-Term Care for Responders
++
++Responder continuity tracks:
++
++- injury;
++- disability;
++- contamination;
++- trauma;
++- moral injury;
++- family strain;
++- debt;
++- career interruption;
++- public recognition;
++- stigma;
++- retirement;
++- reconstitution consequences.
++
++Units that consume personnel without long-term care gradually lose trust and readiness.
++
++# 17. Logistics Politics
++
++Resource decisions create political conflict:
++
++- protect the hospital or the drive yard;
++- reserve fuel for extraction or use it to rescue another convoy;
++- fabricate ammunition or water filters;
++- accept refugees beyond rated capacity;
++- send medicine to an enemy settlement;
++- preserve evidence or clear a blocked route;
++- repair a famous carrier or several small local craft.
++
++The game should make these decisions legible without converting them into simplistic morality meters.
++
++# 18. Co-op Roles
++
++Players can meaningfully act as:
++
++- dispatcher;
++- route planner;
++- cargo coordinator;
++- medic;
++- rescue pilot;
++- diver;
++- engineer;
++- evidence custodian;
++- shelter steward;
++- casualty liaison;
++- recovery lead;
++- convoy commander.
++
++Multiple roles should interact in one crisis.
++
++# 19. Simulation Compression
++
++At strategic scale, the runtime uses flows, capacities, cohorts, and incident queues.
++
++Near players, it resolves into:
++
++- actual cargo;
++- individual patients;
++- vehicles;
++- doors and corridors;
++- tools;
++- pressure;
++- heat;
++- communication;
++- physical movement;
++- mistakes and improvisation.
++
++All compression transitions preserve accounting and named identities.
++
++# 20. Failure Conditions
++
++Reject the implementation if:
++
++- supplies teleport;
++- medical capacity is one healing number;
++- evacuation ends at vehicle boarding;
++- missing people become dead automatically;
++- evidence has no custody or uncertainty;
++- hostile casualties are irrelevant after surrender;
++- repairs restore full function instantly;
++- responder households and long-term harm are absent;
++- logistics choices have no political ownership.
++
++# Closing Principle
++
++> **The Protectorate's deepest power is not how much force it can concentrate. It is how many fragile continuities it can move through catastrophe without losing track of the people, evidence, obligations, and places that make survival worth having.**
+-- 
+2.47.3
+

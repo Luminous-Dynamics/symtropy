@@ -3,9 +3,10 @@
 // Commercial licensing: see COMMERCIAL_LICENSE.md at repository root
 //! Semi-implicit Euler integrator for ND rigid body dynamics.
 //!
-//! Angular velocity is a bivector (element of so(n)), integrated via the
-//! rotation matrix exponential. For small timesteps, the Rodrigues formula
-//! approximation is sufficient and avoids matrix exponential computation.
+//! Angular velocity is a bivector (element of `so(D)`) integrated through the
+//! rotation-group exponential map. This is exact for simultaneous independent
+//! rotation planes (including 4D double rotations); it does not rely on the
+//! single-plane Rodrigues formula.
 
 use crate::body::RigidBody;
 use nalgebra::SVector;
@@ -109,10 +110,13 @@ pub fn integrate<const D: usize>(body: &mut RigidBody<D>, gravity: &SVector<f64,
         body.angular_velocity = body.angular_velocity.scale(100.0 / ang_speed);
     }
 
-    // Integrate rotation: small angle approximation via Rodrigues
-    if ang_speed > 1e-12 {
-        let delta_angle = ang_speed * dt;
-        let delta_rotation = Rotor::from_plane_angle(&body.angular_velocity, delta_angle);
+    // Integrate rotation through the SO(D) exponential map. The bivector
+    // components are angular rates, so scaling by dt produces the generator's
+    // angular displacement directly. This remains correct when angular motion
+    // occupies several independent planes at once (e.g. a 4D double rotation).
+    if body.angular_velocity.norm_squared() > 1e-24 {
+        let delta_generator = body.angular_velocity.scale(dt);
+        let delta_rotation = Rotor::from_bivector(&delta_generator);
         body.transform.rotation = delta_rotation.compose(&body.transform.rotation);
     }
 
@@ -331,6 +335,50 @@ mod tests {
         assert!(
             body.linear_velocity.iter().all(|v| v.is_finite()),
             "Inf force propagated to velocity"
+        );
+    }
+    #[test]
+    fn integrates_4d_double_rotation_with_exponential_map() {
+        let mut body = RigidBody::<4>::dynamic_sphere(BodyHandle(0), Point::origin(), 1.0, 1.0);
+        body.linear_damping = 0.0;
+        body.angular_damping = 0.0;
+        body.angular_velocity.set(0, 1, 0.7);
+        body.angular_velocity.set(2, 3, -1.1);
+
+        let initial_omega = body.angular_velocity;
+        let dt = 0.25;
+        integrate(&mut body, &SVector::zeros(), dt);
+
+        let expected = Rotor::from_bivector(&initial_omega.scale(dt));
+        let actual = body.transform.rotation.to_matrix();
+        for i in 0..4 {
+            for j in 0..4 {
+                assert!(
+                    (actual[(i, j)] - expected.to_matrix()[(i, j)]).abs() < 1e-11,
+                    "rotation mismatch at ({i}, {j})"
+                );
+            }
+        }
+        assert!(body.transform.rotation.is_proper_rotation(1e-10));
+    }
+
+    #[test]
+    fn long_double_rotation_integration_preserves_so4_invariants() {
+        let mut body = RigidBody::<4>::dynamic_sphere(BodyHandle(0), Point::origin(), 1.0, 1.0);
+        body.linear_damping = 0.0;
+        body.angular_damping = 0.0;
+        body.angular_velocity.set(0, 1, 0.4);
+        body.angular_velocity.set(2, 3, 0.9);
+
+        for _ in 0..10_000 {
+            integrate(&mut body, &SVector::zeros(), 0.001);
+        }
+
+        assert!(
+            body.transform.rotation.is_proper_rotation(1e-9),
+            "orthogonality={}, determinant={}",
+            body.transform.rotation.orthogonality_error(),
+            body.transform.rotation.determinant()
         );
     }
 }

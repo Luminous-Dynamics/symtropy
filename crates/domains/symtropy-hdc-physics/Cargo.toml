@@ -1,0 +1,19 @@
+[package]
+name = "symtropy-hdc-physics"
+version = "0.1.0"
+edition = "2024"
+license = "Apache-2.0 OR MIT"
+description = "Deterministic semantic encoding of Symtropy physics state for associative memory and open research."
+repository = "https://github.com/luminous-dynamics/symtropy"
+keywords = ["physics", "hdc", "semantic-memory", "research"]
+categories = ["science", "simulation", "game-engines"]
+readme = "README.md"
+
+[dependencies]
+symtropy-hdc-core = { version = "0.1.0", path = "../../core/symtropy-hdc-core" }
+symtropy-math = { version = "0.2.1", path = "../../core/symtropy-math" }
+symtropy-physics = { version = "0.2.1", path = "../../core/symtropy-physics" }
+serde = { version = "1.0", features = ["derive"] }
+
+[dev-dependencies]
+nalgebra = "0.34"

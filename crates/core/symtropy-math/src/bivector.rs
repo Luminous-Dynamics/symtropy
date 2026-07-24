@@ -364,3 +364,173 @@ mod tests {
         );
     }
 }
+
+#[cfg(test)]
+mod proptests {
+    use super::*;
+    use proptest::prelude::*;
+
+    /// `to_matrix()` must always be antisymmetric (zero diagonal, M[j,i] =
+    /// -M[i,j]) for every possible bivector, not just the hand-picked
+    /// examples in the unit tests above -- this is the algebraic property
+    /// the whole rotor construction (`Rotor::from_plane_angle`) relies on.
+    proptest! {
+        #[test]
+        fn to_matrix_is_antisymmetric(
+            e01 in -10.0f64..10.0, e02 in -10.0f64..10.0, e03 in -10.0f64..10.0,
+            e12 in -10.0f64..10.0, e13 in -10.0f64..10.0, e23 in -10.0f64..10.0,
+        ) {
+            let mut bv = Bivector::<4>::zero();
+            bv.set(0, 1, e01);
+            bv.set(0, 2, e02);
+            bv.set(0, 3, e03);
+            bv.set(1, 2, e12);
+            bv.set(1, 3, e13);
+            bv.set(2, 3, e23);
+
+            let mat = bv.to_matrix();
+            for i in 0..4 {
+                prop_assert!((mat[(i, i)]).abs() < 1e-12, "diagonal must be zero");
+                for j in (i + 1)..4 {
+                    prop_assert!(
+                        (mat[(i, j)] + mat[(j, i)]).abs() < 1e-10,
+                        "M[{i},{j}]={} should be -M[{j},{i}]={}", mat[(i, j)], mat[(j, i)]
+                    );
+                }
+            }
+        }
+    }
+
+    proptest! {
+        /// `from_matrix` must exactly invert `to_matrix` for any bivector --
+        /// generalizes the single fixed-example `matrix_roundtrip` unit test.
+        #[test]
+        fn matrix_roundtrip_random(
+            e01 in -10.0f64..10.0, e02 in -10.0f64..10.0, e03 in -10.0f64..10.0,
+            e12 in -10.0f64..10.0, e13 in -10.0f64..10.0, e23 in -10.0f64..10.0,
+        ) {
+            let mut bv = Bivector::<4>::zero();
+            bv.set(0, 1, e01);
+            bv.set(0, 2, e02);
+            bv.set(0, 3, e03);
+            bv.set(1, 2, e12);
+            bv.set(1, 3, e13);
+            bv.set(2, 3, e23);
+
+            let recovered = Bivector::<4>::from_matrix(&bv.to_matrix());
+            prop_assert_eq!(bv, recovered);
+        }
+    }
+
+    proptest! {
+        /// `a ∧ b = -(b ∧ a)` for arbitrary (not just hand-picked) vectors --
+        /// generalizes `wedge_antisymmetric`.
+        #[test]
+        fn wedge_antisymmetric_random(
+            ax in -10.0f64..10.0, ay in -10.0f64..10.0, az in -10.0f64..10.0,
+            bx in -10.0f64..10.0, by in -10.0f64..10.0, bz in -10.0f64..10.0,
+        ) {
+            let a = SVector::from([ax, ay, az]);
+            let b = SVector::from([bx, by, bz]);
+            let ab = Bivector::<3>::from_wedge(&a, &b);
+            let ba = Bivector::<3>::from_wedge(&b, &a);
+            prop_assert_eq!(ab, ba.scale(-1.0));
+        }
+    }
+
+    proptest! {
+        /// Bilinearity in the first argument: `(a1+a2) ∧ b = a1∧b + a2∧b`.
+        /// This is a fundamental exterior-algebra identity that
+        /// `from_wedge`'s per-component `a_i*b_j - a_j*b_i` formula must
+        /// satisfy for the torque-accumulation code (which sums wedge
+        /// products across multiple contact points) to be physically valid.
+        #[test]
+        fn wedge_bilinear_in_first_argument(
+            a1x in -10.0f64..10.0, a1y in -10.0f64..10.0, a1z in -10.0f64..10.0,
+            a2x in -10.0f64..10.0, a2y in -10.0f64..10.0, a2z in -10.0f64..10.0,
+            bx in -10.0f64..10.0, by in -10.0f64..10.0, bz in -10.0f64..10.0,
+        ) {
+            let a1 = SVector::from([a1x, a1y, a1z]);
+            let a2 = SVector::from([a2x, a2y, a2z]);
+            let b = SVector::from([bx, by, bz]);
+
+            let sum_then_wedge = Bivector::<3>::from_wedge(&(a1 + a2), &b);
+            let wedge_then_sum = Bivector::<3>::from_wedge(&a1, &b).add(&Bivector::<3>::from_wedge(&a2, &b));
+            // `Bivector`'s `PartialEq` uses a fixed 1e-14 *absolute* epsilon,
+            // too tight for the ~100-magnitude values these ranges produce
+            // (floating-point addition/multiplication in a different order
+            // legitimately differs in the last 1-2 ULPs at this scale) --
+            // compare via the difference bivector's norm instead, which
+            // scales sensibly with the inputs' own magnitude.
+            let diff = sum_then_wedge.add(&wedge_then_sum.scale(-1.0));
+            prop_assert!(diff.norm() < 1e-8, "diff={:?}", diff);
+        }
+    }
+
+    proptest! {
+        /// Scaling distributes over addition: `(a+b)*s = a*s + b*s`.
+        #[test]
+        fn scale_distributes_over_add(
+            e01 in -10.0f64..10.0, e02 in -10.0f64..10.0, e12 in -10.0f64..10.0,
+            f01 in -10.0f64..10.0, f02 in -10.0f64..10.0, f12 in -10.0f64..10.0,
+            s in -5.0f64..5.0,
+        ) {
+            let mut a = Bivector::<3>::zero();
+            a.set(0, 1, e01);
+            a.set(0, 2, e02);
+            a.set(1, 2, e12);
+            let mut b = Bivector::<3>::zero();
+            b.set(0, 1, f01);
+            b.set(0, 2, f02);
+            b.set(1, 2, f12);
+
+            let lhs = a.add(&b).scale(s);
+            let rhs = a.scale(s).add(&b.scale(s));
+            // Same rationale as `wedge_bilinear_in_first_argument`: compare
+            // via the difference's norm, not the type's tight-epsilon
+            // `PartialEq`, since `s` up to 5x amplifies rounding to well
+            // past 1e-14 in absolute terms at these magnitudes.
+            let diff = lhs.add(&rhs.scale(-1.0));
+            prop_assert!(diff.norm() < 1e-8, "diff={:?}", diff);
+        }
+    }
+
+    proptest! {
+        /// Triangle inequality: `|a+b| <= |a| + |b|` for any two bivectors --
+        /// a basic norm-consistency property that would be violated by any
+        /// accidental non-Euclidean component weighting in `norm_squared`.
+        #[test]
+        fn norm_triangle_inequality(
+            e01 in -10.0f64..10.0, e02 in -10.0f64..10.0, e12 in -10.0f64..10.0,
+            f01 in -10.0f64..10.0, f02 in -10.0f64..10.0, f12 in -10.0f64..10.0,
+        ) {
+            let mut a = Bivector::<3>::zero();
+            a.set(0, 1, e01);
+            a.set(0, 2, e02);
+            a.set(1, 2, e12);
+            let mut b = Bivector::<3>::zero();
+            b.set(0, 1, f01);
+            b.set(0, 2, f02);
+            b.set(1, 2, f12);
+
+            prop_assert!(a.add(&b).norm() <= a.norm() + b.norm() + 1e-9);
+        }
+    }
+
+    proptest! {
+        /// A normalized non-zero bivector always has norm exactly 1.
+        #[test]
+        fn normalized_has_unit_norm(
+            e01 in -10.0f64..10.0, e02 in -10.0f64..10.0, e12 in -10.0f64..10.0,
+        ) {
+            let mut bv = Bivector::<3>::zero();
+            bv.set(0, 1, e01);
+            bv.set(0, 2, e02);
+            bv.set(1, 2, e12);
+            prop_assume!(bv.norm() > 1e-6); // skip the near-zero degenerate case
+
+            let unit = bv.normalized().expect("non-zero bivector should normalize");
+            prop_assert!((unit.norm() - 1.0).abs() < 1e-9);
+        }
+    }
+}

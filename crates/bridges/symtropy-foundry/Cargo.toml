@@ -30,6 +30,3 @@ notify = "8.0"
 rusqlite = { version = "0.37", features = ["bundled"] }
 rand = "0.8"
 uuid = { version = "1.0", features = ["v4"] }
-
-[dev-dependencies]
-symtropy-launcher = { path = "../../../" }

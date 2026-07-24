@@ -114,7 +114,7 @@ fn run_experiment(condition: Condition, seed: u64) -> RunResult {
             let harmony_acts = entity.map(|e| e.harmony_activations).unwrap_or([0.0; 9]);
 
             let nearby = if let Some(body) = world.body(h) {
-                let pos = SVector::from(e.position());
+                let pos = SVector::from(body.position());
                 handles
                     .iter()
                     .filter(|&&oh| {
@@ -122,7 +122,7 @@ fn run_experiment(condition: Condition, seed: u64) -> RunResult {
                             && world
                                 .body(oh)
                                 .map(|ob| {
-                                    (SVector::from(b.position()) - pos).norm()
+                                    (SVector::from(body.position()) - pos).norm()
                                         < consciousness.constants.harmony_range
                                 })
                                 .unwrap_or(false)
@@ -219,7 +219,7 @@ fn run_experiment(condition: Condition, seed: u64) -> RunResult {
             .filter_map(|&h| {
                 let body = world.body(h)?;
                 let entity = consciousness.entities.get(&h)?;
-                Some((SVector::from(b.position()), entity.harmony_activations))
+                Some((SVector::from(body.position()), entity.harmony_activations))
             })
             .collect();
         let well_data: Vec<(SVector<f64, 2>, f64)> =
@@ -233,7 +233,7 @@ fn run_experiment(condition: Condition, seed: u64) -> RunResult {
             if entity.energy.is_collapsed() {
                 continue;
             }
-            let pos = SVector::from(e.position());
+            let pos = SVector::from(body.position());
             let ef = entity.energy.fraction_remaining();
             let harmony = entity.harmony_activations;
             let nearby: Vec<_> = agent_data
@@ -261,7 +261,7 @@ fn run_experiment(condition: Condition, seed: u64) -> RunResult {
                 world
                     .body(h)
                     .map(|body| {
-                        let pos = SVector::from(e.position());
+                        let pos = SVector::from(body.position());
                         well_positions.iter().any(|&wp| (pos - wp).norm() < 35.0)
                     })
                     .unwrap_or(false)

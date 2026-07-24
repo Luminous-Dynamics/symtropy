@@ -1,0 +1,40 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "symtropy://schemas/companion_profile/v0.1",
+  "title": "Symtropy Companion Profile",
+  "type": "object",
+  "required": ["companion_id", "name", "profession", "life_anchor", "independent_projects", "refusal_boundaries", "relationships"],
+  "properties": {
+    "companion_id": {"type": "string", "minLength": 1},
+    "name": {"type": "string", "minLength": 1},
+    "profession": {"type": "string", "minLength": 1},
+    "life_anchor": {
+      "type": "object",
+      "required": ["home_site", "current_region"],
+      "properties": {
+        "home_site": {"type": ["string", "null"]},
+        "household_id": {"type": ["string", "null"]},
+        "current_region": {"type": "string"}
+      },
+      "additionalProperties": false
+    },
+    "independent_projects": {"type": "array", "minItems": 1, "items": {"type": "string"}},
+    "refusal_boundaries": {"type": "array", "minItems": 1, "items": {"type": "string"}},
+    "relationships": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["agent_id", "summary"],
+        "properties": {
+          "agent_id": {"type": "string"},
+          "summary": {"type": "string"}
+        },
+        "additionalProperties": false
+      }
+    },
+    "ordinary_habits": {"type": "array", "items": {"type": "string"}},
+    "possible_departures": {"type": "array", "items": {"type": "string"}}
+  },
+  "additionalProperties": false
+}

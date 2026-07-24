@@ -75,7 +75,7 @@ fn run_experiment(curvature_scale: f64, seed: u64) -> OrgResult {
         // Apply geodesic corrections from consciousness curvature
         for &h in &handles {
             if let Some(body) = world.body(h) {
-                let pos = SVector::from(e.position());
+                let pos = SVector::from(body.position());
                 let vel = body.linear_velocity;
 
                 if curvature_scale > 1e-15 {
@@ -95,7 +95,7 @@ fn run_experiment(curvature_scale: f64, seed: u64) -> OrgResult {
         // Track minimum distance to origin
         for &h in &handles {
             if let Some(body) = world.body(h) {
-                let dist = SVector::from(b.position()).norm();
+                let dist = SVector::from(body.position()).norm();
                 if dist < min_distance {
                     min_distance = dist;
                 }

@@ -1,0 +1,447 @@
+From 2c94bb248b1825d6f2fbf9a70bc36b59ea0121ad Mon Sep 17 00:00:00 2001
+From: OpenAI Symtropy Document Steward <symtropy-docs@openai.invalid>
+Date: Tue, 21 Jul 2026 14:35:36 +0000
+Subject: [PATCH 01/10] Define Protectorate federation and non-imperial
+ authority
+
+---
+ ...ND_NON_IMPERIAL_AUTHORITY_CONTRACT_V0_1.md | 427 ++++++++++++++++++
+ 1 file changed, 427 insertions(+)
+ create mode 100644 canon/PROTECTORATE_FEDERATION_CIVIL_DEFENSE_AND_NON_IMPERIAL_AUTHORITY_CONTRACT_V0_1.md
+
+diff --git a/canon/PROTECTORATE_FEDERATION_CIVIL_DEFENSE_AND_NON_IMPERIAL_AUTHORITY_CONTRACT_V0_1.md b/canon/PROTECTORATE_FEDERATION_CIVIL_DEFENSE_AND_NON_IMPERIAL_AUTHORITY_CONTRACT_V0_1.md
+new file mode 100644
+index 0000000..24e250f
+--- /dev/null
++++ b/canon/PROTECTORATE_FEDERATION_CIVIL_DEFENSE_AND_NON_IMPERIAL_AUTHORITY_CONTRACT_V0_1.md
+@@ -0,0 +1,427 @@
++---
++title: Protectorate Federation, Civil Defense, and Non-Imperial Authority Contract
++version: 0.1
++status: canonical-draft
++scope: federation of local protectorate units, civil defense, strategic response, legitimacy, scope of force, and non-imperial authority
++owner: design/governance/protectorate/war-and-peace
++related:
++  - CARRIER_ACCESS_OWNERSHIP_CHARTER_COMMAND_AND_CREW_SOVEREIGNTY_CONTRACT_V0_1.md
++  - LARGE_CARRIER_MULTIROLE_CIVILIZATION_AND_NON_SPECIALIZATION_CONTRACT_V0_1.md
++  - ../tech/PROTECTORATE_UNIT_REGISTRY_CHARTER_INTEROPERABILITY_AND_LOCAL_LEGITIMACY_RUNTIME_V0_1.md
++  - ../tech/RESERVE_MOBILIZATION_COALITION_COMMAND_AND_MISSION_SCOPING_RUNTIME_V0_1.md
++  - PROTECTORATE_REFUSAL_RIGHTS_CIVILIAN_OVERSIGHT_AND_ANTI_WARLORD_SAFEGUARDS_CONTRACT_V0_1.md
++  - ../ops/PROTECTORATE_20000_UNIT_FEDERATION_BENCHMARK_V0_1.md
++---
++
++# Protectorate Federation, Civil Defense, and Non-Imperial Authority Contract
++
++## Owned Question
++
++**Can Symtropy support a Protectorate containing tens of thousands of militias and response organizations without turning the setting into one centralized military empire or reducing protection to combat?**
++
++## Core Answer
++
++Yes, but the Protectorate must be modeled as a **federated protection ecology** rather than a single army.
++
++It may include tens of thousands of locally rooted organizations, but those organizations differ in purpose, size, law, culture, equipment, readiness, and relationship to force. The federation exists to make large-scale mutual aid, interoperability, and strategic defense possible while preserving local legitimacy and civilian sovereignty.
++
++> **The Protectorate is civilization's promise that no community must face catastrophe alone. It is not civilization's permission for armed institutions to stand above everyone else.**
++
++# 1. What Counts as a Protectorate Unit
++
++A Protectorate unit is any chartered organization that accepts defined obligations for collective safety and can interoperate with other members during emergencies.
++
++Valid unit families include:
++
++- neighborhood and habitat emergency teams;
++- volunteer fire and rescue brigades;
++- medical reserve corps;
++- infrastructure defense and rapid-repair teams;
++- search-and-recovery crews;
++- convoy escort and route-clearance units;
++- cyberdefense and communications restoration teams;
++- contamination and quarantine response teams;
++- ecological emergency services;
++- evidence, witness, and accountability teams;
++- local armed militias;
++- professional strategic formations;
++- Protectorate carrier crews;
++- machine and alien partner formations;
++- reserve logistics, fabrication, and transport networks.
++
++The word **militia** applies only to units whose charter includes organized armed defense. It is not the universal term for every Protectorate member.
++
++# 2. Membership Is Layered
++
++## 2.1 Local units
++
++Local units belong first to a specific community, institution, habitat, route, convoy, watershed, ship, district, or settlement.
++
++They possess:
++
++- local knowledge;
++- relationships with residents;
++- familiarity with infrastructure;
++- cultural legitimacy;
++- limited territorial or functional authority;
++- accountability to a local charter.
++
++They are the most numerous layer.
++
++## 2.2 Regional compacts
++
++Nearby units create standing compacts for:
++
++- mutual aid;
++- shared training;
++- equipment compatibility;
++- reserve mobilization;
++- cross-border rescue;
++- intelligence sharing;
++- dispute arbitration;
++- route defense.
++
++Regional compacts cannot automatically absorb member units into a permanent army.
++
++## 2.3 Strategic service
++
++A smaller professional service maintains capabilities that require continuous readiness and large institutions:
++
++- deep-space rescue;
++- Protectorate carriers;
++- strategic logistics;
++- fleet coordination;
++- high-risk boarding and recovery;
++- dangerous-munitions control;
++- large-scale evacuation;
++- system-wide sensing;
++- first-contact security;
++- training and certification;
++- independent investigation.
++
++The strategic service is permanently staffed but remains legally subordinate to its charter and oversight institutions.
++
++## 2.4 Temporary coalition formations
++
++A crisis may compose many independent units into one mission formation.
++
++The coalition exists for a named purpose, such as:
++
++- protect a convoy;
++- evacuate a moon;
++- reopen an Atlas route;
++- contain a spreading weapon;
++- defend a settlement system;
++- recover missing carriers;
++- suppress piracy along a defined corridor;
++- respond to a planetary disaster.
++
++The coalition dissolves or renegotiates when its mandate expires.
++
++# 3. The Federation Must Not Become One Military Culture
++
++Protectorate interoperability does not require cultural uniformity.
++
++Member units may differ in:
++
++- rank traditions;
++- uniforms and symbols;
++- species and embodiment;
++- relationship to weapons;
++- religious or civic obligations;
++- command style;
++- concepts of territory;
++- language;
++- honor and shame practices;
++- funeral and recovery rites;
++- machine-personhood law;
++- willingness to serve outside their home region.
++
++The federation standardizes interfaces and minimum protections, not every identity.
++
++# 4. Protection Domains
++
++A complete Protectorate must defend more than territory.
++
++## 4.1 Life
++
++- rescue;
++- medical stabilization;
++- evacuation;
++- shelter;
++- food and water continuity;
++- source-chain recovery;
++- missing-person search.
++
++## 4.2 Infrastructure
++
++- power;
++- atmosphere;
++- sanitation;
++- communications;
++- transport;
++- flood control;
++- orbital traffic;
++- ship repair;
++- emergency fabrication.
++
++## 4.3 Civic continuity
++
++- records;
++- elections and public authority;
++- courts and evidence;
++- minority protections;
++- archives;
++- continuity of care;
++- lawful succession.
++
++## 4.4 Ecology
++
++- wildfire response;
++- marine rescue;
++- contamination control;
++- habitat preservation;
++- invasive threat containment;
++- restoration after conflict.
++
++## 4.5 Defense
++
++- deterrence;
++- interception;
++- escort;
++- fortification;
++- counter-sabotage;
++- anti-piracy;
++- defense against invasion;
++- protection of surrender and evacuation corridors.
++
++Combat is one domain among several.
++
++# 5. Scale
++
++A mature interplanetary or interstellar Protectorate can plausibly contain tens of thousands of units.
++
++A representative mature federation might include:
++
++- 20,000 to 60,000 chartered organizations;
++- millions of active and reserve participants;
++- a much smaller permanent strategic service;
++- hundreds of regional compacts;
++- dozens of major carriers;
++- thousands of small response craft;
++- extensive civilian logistics and fabrication partnerships.
++
++Unit size may range from:
++
++- eight volunteers in a remote pressure habitat;
++- thirty flood responders in a river settlement;
++- two hundred convoy reservists;
++- several thousand members across a metropolitan emergency service;
++- tens of thousands aboard a planetary or carrier-based strategic formation.
++
++The number of organizations may be vast while the number of permanently mobilized combatants remains bounded.
++
++# 6. Local Legitimacy
++
++A unit becomes legitimate through a traceable relationship to people and law.
++
++Possible foundations include:
++
++- election;
++- public charter;
++- cooperative membership;
++- household or convoy compact;
++- treaty recognition;
++- professional licensing;
++- inherited institution subject to renewed consent;
++- emergency formation later ratified by residents;
++- machine or alien governance process.
++
++Possession of weapons, uniforms, a carrier, or a historic name does not create legitimacy by itself.
++
++# 7. Authority Is Scoped
++
++Every Protectorate authority must answer five questions:
++
++1. **Who granted it?**
++2. **For what purpose?**
++3. **Over whom and where does it apply?**
++4. **How long does it last?**
++5. **Who reviews its use?**
++
++Authority may be:
++
++- geographic;
++- mission-specific;
++- system-specific;
++- profession-specific;
++- temporary;
++- emergency-only;
++- conditional upon evidence or coalition consent.
++
++No emergency declaration creates unlimited authority over unrelated civilian life.
++
++# 8. Force Is Bounded by Protective Purpose
++
++Protectorate force must be evaluated against:
++
++- necessity;
++- proportionality;
++- discrimination between military and civilian targets;
++- available alternatives;
++- expected secondary harm;
++- reversibility;
++- surrender opportunities;
++- post-action rescue capacity;
++- evidence preservation;
++- long-term political consequence.
++
++A tactic that wins quickly but destroys the people or infrastructure being protected may violate the Protectorate's purpose.
++
++# 9. Participation Is Not Automatic Obedience
++
++Member units accept interoperability and mutual obligations. They do not surrender all independent judgment.
++
++A unit may have duties to:
++
++- answer a lawful mobilization;
++- disclose readiness honestly;
++- maintain shared standards;
++- protect coalition partners;
++- avoid abandoning an active mission without transition;
++- preserve evidence;
++- report unlawful orders;
++- accept review.
++
++A unit also retains rights to:
++
++- refuse unlawful orders;
++- withdraw from missions outside its charter under defined procedures;
++- protect its residents from indefinite mobilization;
++- challenge fabricated emergencies;
++- appeal coalition decisions;
++- preserve culturally necessary practices when compatible with safety.
++
++# 10. Protectorate Ships
++
++Protectorate carriers are infrastructure for coalition protection.
++
++They may serve as:
++
++- rescue harbors;
++- hospitals;
++- fabrication centers;
++- command platforms;
++- training institutions;
++- evacuation habitats;
++- sensor relays;
++- protected convoy anchors;
++- arbitration spaces;
++- evidence repositories.
++
++A carrier does not automatically command every nearby unit. Its authority depends on mission charter, treaty, emergency scope, and recognized legitimacy.
++
++# 11. Relationship to Warships
++
++Protectorate ships and warships may share technology, but their design purpose and law differ.
++
++A Protectorate vessel prioritizes:
++
++- survival of others;
++- rescue throughput;
++- escort;
++- compartmentalized protection;
++- evidence;
++- surrender handling;
++- repair and recovery;
++- continued civilian life.
++
++A warship prioritizes defeating organized adversaries and controlling strategic space.
++
++Some polities blur the distinction. The game must record the difference between what a ship is called, what it was built for, and how it is used.
++
++# 12. Political Failure Modes
++
++The Protectorate can fail through:
++
++- warlord capture;
++- permanent emergency rule;
++- unequal protection based on wealth or species;
++- privatized strategic weapons;
++- suppression of political opposition under security pretexts;
++- forced annexation presented as rescue;
++- command cults;
++- secret detention;
++- false-flag mobilization;
++- fabricated readiness reports;
++- abandonment of peripheral communities;
++- professional contempt for local units;
++- militia refusal that leaves civilians exposed;
++- local units becoming partisan enforcement arms.
++
++These are not merely lore events. They must be representable as institutional states and gameplay consequences.
++
++# 13. Nonhuman and Machine Participation
++
++Protectorate membership cannot assume human bodies, territorial borders, or command psychology.
++
++Examples include:
++
++- machine swarms that provide persistent sensing and repair;
++- oceanic communities whose defense zones follow currents and migration;
++- lithic beings whose mobilization takes years but whose shelters endure centuries;
++- symbiotic organisms that cannot separate medical care from habitat care;
++- post-biological copies that dispute which instance holds mission authority.
++
++Interoperability standards must translate function without forcing every participant into a human military ontology.
++
++# 14. Player Relationship
++
++Players may engage as:
++
++- volunteer responders;
++- residents protected by the federation;
++- professional specialists;
++- militia members;
++- rescue pilots;
++- legal witnesses;
++- logistics workers;
++- unit founders;
++- coalition coordinators;
++- carrier officers;
++- elected overseers;
++- critics, reformers, or conscientious refusers.
++
++The player should encounter the Protectorate early as service and mutual aid, not only as late-game military command.
++
++# 15. Canonical Prohibitions
++
++The Protectorate must not be designed as:
++
++- one omnipotent galactic army;
++- a universal police state;
++- a faction whose authority follows weapon strength;
++- an excuse to erase local institutions;
++- an infinite source of obedient combatants;
++- a player-owned NPC army;
++- an organization that automatically represents moral good;
++- a system where civilian life exists only as escort objectives.
++
++# 16. Acceptance Criteria
++
++A Protectorate implementation is not credible unless it demonstrates:
++
++- at least five noncombat protection domains;
++- local charter provenance;
++- temporary mission-scoped coalition command;
++- interoperable but culturally distinct units;
++- lawful and unlawful refusal paths;
++- civilian oversight;
++- anti-warlord safeguards;
++- unequal-readiness and resource conflicts;
++- recovery and repair after force;
++- strategic capability without automatic imperial authority.
++
++# Closing Principle
++
++> **A civilization becomes safer not when one force can command everyone, but when many communities can reliably help one another without surrendering the right to remain communities.**
+-- 
+2.47.3
+

@@ -1,0 +1,467 @@
+From b701c5222e6085a17bca00c58e66ee0eba4d1c21 Mon Sep 17 00:00:00 2001
+From: OpenAI Symtropy Documentation <symtropy-docs@example.invalid>
+Date: Tue, 21 Jul 2026 11:01:14 +0000
+Subject: [PATCH 06/10] Add carrier construction and commissioning runtime
+
+---
+ ...FICATION_AND_COMMISSIONING_RUNTIME_V0_1.md | 448 ++++++++++++++++++
+ 1 file changed, 448 insertions(+)
+ create mode 100644 tech/CARRIER_CONSTRUCTION_YARDS_SUPPLY_CHAINS_CERTIFICATION_AND_COMMISSIONING_RUNTIME_V0_1.md
+
+diff --git a/tech/CARRIER_CONSTRUCTION_YARDS_SUPPLY_CHAINS_CERTIFICATION_AND_COMMISSIONING_RUNTIME_V0_1.md b/tech/CARRIER_CONSTRUCTION_YARDS_SUPPLY_CHAINS_CERTIFICATION_AND_COMMISSIONING_RUNTIME_V0_1.md
+new file mode 100644
+index 0000000..bb7487d
+--- /dev/null
++++ b/tech/CARRIER_CONSTRUCTION_YARDS_SUPPLY_CHAINS_CERTIFICATION_AND_COMMISSIONING_RUNTIME_V0_1.md
+@@ -0,0 +1,448 @@
++---
++title: Carrier Construction Yards, Supply Chains, Certification, and Commissioning Runtime
++version: 0.1
++status: implementation-spec
++scope: player-buildable large spacecraft, design campaigns, industrial yards, suppliers, labor, certification, trials, finance and lifecycle support
++owner: engineering/economy/construction/spacecraft
++related:
++  - ../canon/CARRIER_ACCESS_OWNERSHIP_CHARTER_COMMAND_AND_CREW_SOVEREIGNTY_CONTRACT_V0_1.md
++  - ../canon/CONSTRUCTION_REPAIR_AND_STRUCTURAL_TRANSFORMATION_CONTRACT_V0_1.md
++  - ../canon/ECONOMY_INTEGRITY_MARKETS_LABOR_AND_ANTI_EXPLOIT_CONTRACT_V0_1.md
++  - LARGE_CARRIER_COMMON_CORE_OPEN_INTERFACES_AND_ROLE_ENVELOPE_RUNTIME_V0_1.md
++  - INDUSTRIAL_TRANSFORMATION_ENERGY_MATERIALS_AND_MACHINE_PRODUCTION_RUNTIME_V0_1.md
++---
++
++# Carrier Construction Yards, Supply Chains, Certification, and Commissioning Runtime
++
++## Runtime Purpose
++
++Make every large carrier family genuinely player-buildable while preserving the reality that civilization-scale construction depends on institutions, labor, yards, resources, standards, politics and time.
++
++> **The player may author the project. The ship is built by a civilization.**
++
++# 1. Construction Campaign Model
++
++A carrier project is a persistent program with linked workstreams.
++
++```text
++CarrierConstructionProgram
++├── need and mission case
++├── charter and stakeholders
++├── requirements baseline
++├── design lineage and architecture
++├── yard and orbital/site preparation
++├── finance and risk allocation
++├── material and component supply chains
++├── labor and training
++├── structural assembly
++├── systems integration
++├── habitat and ecological commissioning
++├── certification and trials
++├── population embarkation
++├── launch or departure
++└── lifecycle support
++```
++
++Each workstream can advance, stall, fail, fork or be renegotiated.
++
++# 2. Entry Paths
++
++Players should not always begin from a blank design.
++
++## 2.1 New public project
++
++A settlement, federation or route authority commissions a new carrier.
++
++## 2.2 Cooperative build
++
++Workers, residents and partner settlements pool capital, labor and future capacity.
++
++## 2.3 Private commission
++
++A wealthy character or firm funds construction under law, debt and resident obligations.
++
++## 2.4 Incomplete hull recovery
++
++The player acquires or is entrusted with a stalled project.
++
++## 2.5 Conversion
++
++A cargo vessel, military hull, habitat or station becomes a carrier through major refit.
++
++## 2.6 Distributed assembly
++
++Many regions manufacture modules later joined in orbit or at a route node.
++
++## 2.7 Grown or symbiotic project
++
++A living or adaptive carrier is cultivated through ecological, medical and diplomatic work rather than ordinary assembly.
++
++# 3. Requirements Phase
++
++The project must define:
++
++- intended population range;
++- mission emphasis vector;
++- common-core capacity;
++- operating regions;
++- acceleration and gravity strategy;
++- autonomy duration;
++- carried-base ecology;
++- dock and interface standards;
++- hazard environment;
++- repair doctrine;
++- governance and ownership;
++- design life;
++- expansion plan;
++- evacuation and rescue obligations;
++- affordability and lifecycle budget.
++
++Requirements may conflict.
++
++The player can facilitate, engineer, manipulate or expose these conflicts, but cannot make mass, heat, labor or politics disappear.
++
++# 4. Design Authority
++
++Design work may be performed by:
++
++- public engineering institutes;
++- player-founded design office;
++- cooperative guild;
++- corporation;
++- route house;
++- machine collective;
++- alien partner;
++- inherited standards body.
++
++Authorship records:
++
++- contributors;
++- intellectual and cultural provenance;
++- safety responsibility;
++- licensing;
++- restricted knowledge;
++- later modifications.
++
++A player can become principal architect without personally drawing every pipe.
++
++# 5. Yard Types
++
++## 5.1 Surface heavy yard
++
++Builds atmospheric or ocean-capable modules and launches them through heavy lift, orbital elevator or assembled carrier stages.
++
++## 5.2 Orbital dock
++
++Assembles hulls without planetary weight but depends on transport, workforce habitats and orbital safety.
++
++## 5.3 Asteroid foundry
++
++Uses local metal and shielding mass, reducing launch burden while creating remote logistics.
++
++## 5.4 Mobile yard carrier
++
++A multirole carrier with strong construction emphasis builds or refits other vessels while remaining a habitat and logistics center.
++
++## 5.5 Distributed cooperative yard
++
++Many small fabricators produce standardized sections. Integration risk and governance become central.
++
++## 5.6 Biological nursery
++
++Grows living hull tissues, microbial ecologies or symbiotic organs under negotiated agency.
++
++A project can combine yard types.
++
++# 6. Yard Capacity
++
++Yard capability includes:
++
++- maximum structural envelope;
++- lifting and positioning;
++- vacuum or pressure work;
++- clean integration spaces;
++- high-energy testing;
++- material processing;
++- precision metrology;
++- software and identity integration;
++- life-support ecology commissioning;
++- workforce habitation;
++- emergency response;
++- traffic and exclusion zones.
++
++Players may need to upgrade the yard before building the ship.
++
++# 7. Supply Chains
++
++Carrier construction requires categories such as:
++
++- structural metals, composites or biological tissues;
++- pressure membranes;
++- radiation shielding;
++- propellant tanks;
++- drives and power conversion;
++- radiators and thermal fluids;
++- sensors and communications;
++- control hardware;
++- docking systems;
++- atmosphere, water and waste equipment;
++- medical systems;
++- fabrication machinery;
++- agricultural and microbial cultures;
++- furniture, tools and ordinary domestic goods.
++
++The ordinary goods matter. A hull is not habitable because its reactor works.
++
++## 7.1 Supplier state
++
++Every major supply contract tracks:
++
++- producer;
++- standards;
++- delivery schedule;
++- quality evidence;
++- labor conditions;
++- transport route;
++- price and currency;
++- replacement guarantee;
++- geopolitical risk;
++- dependency on rare inputs.
++
++# 8. Labor and Skill
++
++Construction requires:
++
++- structural engineers;
++- welders, assemblers and fabricators;
++- electricians and thermal technicians;
++- software and control engineers;
++- life-support ecologists;
++- medical and accessibility reviewers;
++- logisticians;
++- inspectors;
++- pilots and tug crews;
++- safety teams;
++- educators and apprentices;
++- future residents.
++
++Player actions may include:
++
++- performing specialist work;
++- training apprentices;
++- resolving labor disputes;
++- improving tools;
++- redesigning unsafe access;
++- negotiating schedules;
++- investigating defects;
++- organizing worker ownership.
++
++# 9. Construction Stages
++
++## Stage 1: program formation
++
++Need, stakeholders, finance and governance.
++
++## Stage 2: yard readiness
++
++Site, tools, workforce and exclusions.
++
++## Stage 3: long-lead components
++
++Drives, power, pressure structures, radiators and docking systems.
++
++## Stage 4: structural assembly
++
++Load paths and major hull sections.
++
++## Stage 5: utilities
++
++Power, thermal, atmosphere, water, information and transit.
++
++## Stage 6: districts
++
++Homes, workspaces, care, gardens, commons, education and harbors.
++
++## Stage 7: integration
++
++Systems interact under realistic loads.
++
++## Stage 8: commissioning
++
++Cleaning, calibration, ecological startup, stocking and training.
++
++## Stage 9: trials
++
++Static, maneuvering, endurance, emergency and carried-base tests.
++
++## Stage 10: acceptance and departure
++
++Defects, title, debt, public obligations and initial mission are settled.
++
++# 10. Time and Compression
++
++A civilization carrier may take years or decades in-world.
++
++The game supports:
++
++- time acceleration;
++- character switching;
++- profession play at the yard;
++- remote management;
++- generational succession;
++- milestone ceremonies;
++- urgent side missions affecting the project;
++- progressive use of completed districts.
++
++Long time must create history rather than a passive timer.
++
++# 11. Finance
++
++Funding sources include:
++
++- public budgets;
++- cooperative shares;
++- bonds;
++- route-service contracts;
++- future transport rights;
++- philanthropic or religious endowments;
++- salvage proceeds;
++- private equity;
++- intersettlement treaties;
++- alien exchange agreements.
++
++Finance creates claims and obligations.
++
++The game must distinguish:
++
++- title;
++- debt;
++- voting rights;
++- service guarantees;
++- public trust restrictions;
++- creditor seizure rights;
++- resident protections.
++
++# 12. Certification
++
++Certification is evidence that a defined configuration is safe for a defined operating envelope.
++
++Required evidence may include:
++
++- structural proof;
++- pressure testing;
++- fire and atmosphere containment;
++- electrical isolation;
++- thermal balance;
++- propulsion and control;
++- docking compatibility;
++- software and cybersecurity;
++- medical and accessibility review;
++- evacuation time;
++- life-support endurance;
++- contamination handling;
++- carried-craft deployment.
++
++Certification may be:
++
++- recognized across many jurisdictions;
++- local only;
++- provisional;
++- expired;
++- fraudulent;
++- contested by another species or legal system.
++
++# 13. Trials
++
++Trials should be playable and dangerous without becoming arbitrary sabotage.
++
++Examples:
++
++- cold-start from dormant state;
++- maximum planned acceleration;
++- partial radiator loss;
++- district pressure isolation;
++- emergency docking;
++- evacuation drill;
++- contaminated craft arrival;
++- high-load fabrication;
++- long-duration habitat closure;
++- simultaneous deployment and casualty response;
++- command succession after simulated loss.
++
++Failed trials create defects, redesign, political conflict and schedule cost.
++
++# 14. Commissioning Population
++
++Future residents should participate before departure.
++
++They:
++
++- test homes;
++- establish schools and clinics;
++- seed gardens;
++- name districts;
++- create local rules;
++- discover inaccessible design errors;
++- decide what cultural objects travel;
++- negotiate work and governance.
++
++A carrier is not commissioned when the engines start. It is commissioned when its technical and civic systems can sustain real life.
++
++# 15. Player-Buildability Levels
++
++## Module builder
++
++The player designs or fabricates one module.
++
++## Systems integrator
++
++The player coordinates several connected modules.
++
++## Yard organizer
++
++The player expands construction capacity and supply networks.
++
++## Program founder
++
++The player creates the charter, financing and mission coalition.
++
++## Principal builder
++
++The player guides the overall design and construction campaign.
++
++## Inheritor
++
++The player receives an unfinished, damaged or politically troubled carrier project.
++
++All are valid “I helped build this ship” fantasies.
++
++# 16. Anti-Grind Rules
++
++- Do not require one player to deliver millions of identical material units manually.
++- Let infrastructure and institutions perform repeated throughput after being established.
++- Keep decisions, bottlenecks, exceptional work and consequences playable.
++- Compress familiar tasks.
++- Make quality, route, politics and timing matter more than repetitive clicking.
++- Never sell progress through artificial wait timers or monetized acceleration.
++
++# 17. Failure Outcomes
++
++A project may become:
++
++- completed as designed;
++- completed smaller;
++- delayed;
++- over budget;
++- politically captured;
++- converted to another mission;
++- split into several vessels;
++- abandoned and later recovered;
++- launched with known defects;
++- transformed into a station;
++- completed by a successor generation.
++
++Failure can create a valuable world artifact rather than deleting the project.
++
++## Runtime Maxim
++
++> **Building a carrier is not the act of collecting enough resources. It is the act of making thousands of dependencies trustworthy enough to leave home together.**
+-- 
+2.47.3
+

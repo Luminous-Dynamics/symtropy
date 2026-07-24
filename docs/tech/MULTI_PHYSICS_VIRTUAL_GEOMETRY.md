@@ -115,8 +115,8 @@ Bevy's custom WGSL vertex shaders read this buffer directly. If a local node's v
 
 ## 6. Implementation References
 
-- **Data layouts:** [meshlet_physics.rs](../../crates/symtropy-mesh/src/meshlet_physics.rs)
-- **Narrowphase collision:** [narrowphase.rs](../../crates/symtropy-mesh/src/narrowphase.rs)
-- **Soft TGS solver:** [world.rs](../../crates/core/symtropy-physics/src/world.rs)
-- **GPU buffers:** [telemetry_ssbo.rs](../../crates/bridges/symtropy-render-bridge/src/telemetry_ssbo.rs)
-- **Sandboxed asset baking CLI:** [mycelix-asset-bake.rs](../../crates/symtropy-mesh/src/bin/mycelix-asset-bake.rs)
+- **Data layouts:** `crates/symtropy-mesh/src/meshlet_physics.rs`
+- **Narrowphase collision:** `crates/symtropy-mesh/src/narrowphase.rs`
+- **Soft TGS solver:** `crates/core/symtropy-physics/src/world.rs`
+- **GPU buffers:** `crates/bridges/symtropy-render-bridge/src/telemetry_ssbo.rs`
+- **Sandboxed asset baking CLI:** `crates/symtropy-mesh/src/bin/mycelix-asset-bake.rs`

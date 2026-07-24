@@ -1,0 +1,24 @@
+{
+  "benchmark_id": "far-station-three-generation-v0.1",
+  "worldline_id": "wl-far-station-public-pairing",
+  "atlas_span_years": 118,
+  "characters": [
+    {"character_id": "amara-venn", "generation": "launch", "identity_class": "human", "initial_region": "echo-two"},
+    {"character_id": "iri17-blue", "generation": "launch-transit", "identity_class": "machine", "initial_region": "muni-seventeen"},
+    {"character_id": "del-marek", "generation": "transit-born", "identity_class": "human", "initial_region": "muni-seventeen"},
+    {"character_id": "hana-sen-mbatha", "generation": "arrival", "identity_class": "human", "initial_region": "far-station"},
+    {"character_id": "sefu-arendt", "generation": "settlement", "identity_class": "human", "initial_region": "far-station"},
+    {"character_id": "mina-venn-kade", "generation": "reconnection", "identity_class": "human", "initial_region": "echo-two"},
+    {"character_id": "morrow17-after", "generation": "reconnection", "identity_class": "machine", "initial_region": "far-station"}
+  ],
+  "required_handoffs": 5,
+  "branches": ["public_pairing", "house_compact", "closed_route_crisis"],
+  "invariants": [
+    "no_universal_wallet",
+    "no_cross_character_knowledge_leak",
+    "no_cross_worldline_transfer",
+    "inactive_characters_advance",
+    "office_follows_mandate",
+    "reconstitution_does_not_rewind_law"
+  ]
+}

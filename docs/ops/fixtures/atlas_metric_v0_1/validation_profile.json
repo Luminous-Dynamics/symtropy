@@ -1,0 +1,29 @@
+{
+  "profile": "atlas-metric-v0.1",
+  "hard_gates": {
+    "arrival_before_departure": 0,
+    "nonpositive_route_cycles": 0,
+    "duplicate_unique_assets": 0,
+    "early_knowledge_updates": 0,
+    "silent_worldline_merges": 0,
+    "host_authority_escalations": 0,
+    "unreviewed_seed_authority_activation": 0
+  },
+  "required_proofs": {
+    "proper_time_divergence": true,
+    "quiet_years_without_forced_crisis": true,
+    "descendant_mission_amendment": true,
+    "destination_route_refusal_branch": true,
+    "positive_latency_ftl": true,
+    "committed_transit_crash_recovery": true,
+    "five_year_scar_persistence": true,
+    "multiplayer_forward_migration": true,
+    "host_migration": true
+  },
+  "minimum_recall": {
+    "voyage_characters": 4,
+    "ordinary_traditions": 1,
+    "route_debate_reasons": 2,
+    "route_emergency_consequences": 2
+  }
+}

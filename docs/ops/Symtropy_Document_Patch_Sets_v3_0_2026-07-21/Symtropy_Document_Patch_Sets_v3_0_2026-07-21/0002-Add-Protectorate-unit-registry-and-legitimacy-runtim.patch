@@ -1,0 +1,510 @@
+From f4a94ecb84a93508b721dbff7ec49a78ae8f33bf Mon Sep 17 00:00:00 2001
+From: OpenAI Symtropy Document Steward <symtropy-docs@openai.invalid>
+Date: Tue, 21 Jul 2026 14:37:10 +0000
+Subject: [PATCH 02/10] Add Protectorate unit registry and legitimacy runtime
+
+---
+ ...ILITY_AND_LOCAL_LEGITIMACY_RUNTIME_V0_1.md | 491 ++++++++++++++++++
+ 1 file changed, 491 insertions(+)
+ create mode 100644 tech/PROTECTORATE_UNIT_REGISTRY_CHARTER_INTEROPERABILITY_AND_LOCAL_LEGITIMACY_RUNTIME_V0_1.md
+
+diff --git a/tech/PROTECTORATE_UNIT_REGISTRY_CHARTER_INTEROPERABILITY_AND_LOCAL_LEGITIMACY_RUNTIME_V0_1.md b/tech/PROTECTORATE_UNIT_REGISTRY_CHARTER_INTEROPERABILITY_AND_LOCAL_LEGITIMACY_RUNTIME_V0_1.md
+new file mode 100644
+index 0000000..de9401d
+--- /dev/null
++++ b/tech/PROTECTORATE_UNIT_REGISTRY_CHARTER_INTEROPERABILITY_AND_LOCAL_LEGITIMACY_RUNTIME_V0_1.md
+@@ -0,0 +1,491 @@
++---
++title: Protectorate Unit Registry, Charter, Interoperability, and Local Legitimacy Runtime
++version: 0.1
++status: technical-draft
++scope: unit identity, charter provenance, readiness, jurisdiction, interoperability, local trust, recognition, and federated registry operations
++owner: engineering/simulation/protectorate/governance
++related:
++  - ../canon/PROTECTORATE_FEDERATION_CIVIL_DEFENSE_AND_NON_IMPERIAL_AUTHORITY_CONTRACT_V0_1.md
++  - RESERVE_MOBILIZATION_COALITION_COMMAND_AND_MISSION_SCOPING_RUNTIME_V0_1.md
++  - PROTECTORATE_LOGISTICS_RESCUE_MEDICAL_EVIDENCE_AND_RECOVERY_RUNTIME_V0_1.md
++  - ../canon/PROTECTORATE_REFUSAL_RIGHTS_CIVILIAN_OVERSIGHT_AND_ANTI_WARLORD_SAFEGUARDS_CONTRACT_V0_1.md
++  - ../ops/PROTECTORATE_20000_UNIT_FEDERATION_BENCHMARK_V0_1.md
++---
++
++# Protectorate Unit Registry, Charter, Interoperability, and Local Legitimacy Runtime
++
++## 1. Purpose
++
++This runtime represents tens of thousands of distinct Protectorate organizations without collapsing them into one faction record or simulating every participant continuously.
++
++It answers:
++
++- who a unit is;
++- who authorized it;
++- what it may do;
++- where it is recognized;
++- what it can actually perform;
++- what standards it satisfies;
++- who trusts it;
++- what obligations it has accepted;
++- how its status changes through history.
++
++The registry is not a leaderboard. It is a distributed record of institutional identity, capability, obligation, and contested legitimacy.
++
++# 2. Unit Identity
++
++Every unit receives a persistent `protectorate_unit_id` bound to a worldline and source chain.
++
++Identity fields include:
++
++- canonical name;
++- local names and translated names;
++- founding event;
++- parent institutions;
++- member communities;
++- unit family;
++- headquarters or mobile anchor;
++- jurisdiction claims;
++- charter sources;
++- current officers or coordination roles;
++- legal status;
++- recognition graph;
++- readiness profile;
++- equipment classes;
++- cultural markers;
++- service history;
++- disciplinary and accountability history;
++- successor and predecessor units.
++
++Units may merge, split, dissolve, reform, become captured, enter exile, or continue under disputed identities.
++
++# 3. Unit Families
++
++The registry uses functional families rather than one militia type:
++
++- civil rescue;
++- fire and hazard response;
++- medical reserve;
++- infrastructure continuity;
++- ecological emergency;
++- cyber and communications defense;
++- evidence and accountability;
++- convoy and route protection;
++- local armed defense;
++- strategic fleet;
++- search and recovery;
++- training and standards;
++- fabrication and logistics;
++- quarantine and contamination;
++- alien or machine partner formation.
++
++A unit may belong to several families with one declared primary obligation.
++
++# 4. Charter Model
++
++A charter is a versioned, signed institutional object.
++
++Required fields:
++
++- charter identity;
++- issuing authority or authorities;
++- ratification process;
++- represented population or institution;
++- mission scope;
++- geographic, route, vessel, or functional jurisdiction;
++- permitted force level;
++- mobilization conditions;
++- command appointment rules;
++- member rights;
++- refusal and withdrawal procedures;
++- civilian protections;
++- evidence and audit requirements;
++- emergency powers;
++- expiration and renewal;
++- dissolution and succession;
++- amendment history.
++
++The runtime stores both charter text and executable constraints derived from it.
++
++A charter can be:
++
++- active;
++- provisional;
++- expired;
++- suspended;
++- under review;
++- disputed;
++- captured;
++- superseded;
++- dissolved.
++
++# 5. Recognition Graph
++
++Legitimacy is relational, not a universal Boolean.
++
++Each community, polity, carrier, treaty body, guild, machine lineage, or alien institution may recognize a unit differently.
++
++Recognition edges include:
++
++- full recognition;
++- functional recognition only;
++- emergency-only recognition;
++- treaty recognition;
++- tolerated but unrecognized;
++- disputed;
++- sanctioned;
++- designated hostile;
++- unknown.
++
++Reasons are preserved:
++
++- valid election;
++- treaty accession;
++- historic service;
++- professional certification;
++- inherited recognition;
++- corruption finding;
++- atrocity finding;
++- secession dispute;
++- false registry claim;
++- command capture;
++- failure to renew public consent.
++
++This allows a unit to be lawful in one region, distrusted in another, and prohibited in a third.
++
++# 6. Local Legitimacy State
++
++Local legitimacy is computed from evidence, not assigned as a moral score.
++
++Inputs may include:
++
++- charter provenance;
++- participation in ratification;
++- demographic inclusion;
++- service record;
++- protection equity;
++- transparency;
++- corruption;
++- use-of-force history;
++- responsiveness;
++- ties to local households and institutions;
++- treatment of minorities and outsiders;
++- fulfillment of obligations;
++- public memory;
++- propaganda and misinformation.
++
++The runtime records multiple constituency perspectives rather than one truth value.
++
++Example:
++
++- industrial workers may trust a unit for defending power infrastructure;
++- displaced residents may distrust it for a past forced evacuation;
++- local elites may support it because it protects trade;
++- a machine community may reject it because its medical protocols ignore machine personhood.
++
++# 7. Capability Profile
++
++Capability is modeled by domains and evidence.
++
++Each domain contains:
++
++- nominal capacity;
++- trained personnel;
++- equipment availability;
++- consumables;
++- maintenance state;
++- mobilization time;
++- geographic reach;
++- endurance;
++- command coherence;
++- recent exercise evidence;
++- failure history;
++- certification state.
++
++Example domains:
++
++- fire suppression;
++- vacuum rescue;
++- flood response;
++- trauma medicine;
++- contamination containment;
++- orbital interception;
++- convoy escort;
++- cyber restoration;
++- heavy fabrication;
++- evidence recovery;
++- evacuation sheltering.
++
++A unit may claim a capability it cannot deliver. Registry records separate:
++
++- self-reported capability;
++- certified capability;
++- observed capability;
++- current degraded capability;
++- unknown capability.
++
++# 8. Readiness
++
++Readiness is not a single percentage.
++
++It includes:
++
++- personnel availability;
++- fatigue;
++- equipment readiness;
++- supply depth;
++- communications status;
++- leadership continuity;
++- legal mobilization state;
++- local political support;
++- transport access;
++- environmental suitability;
++- intelligence confidence;
++- interoperability with expected partners.
++
++Readiness updates at different frequencies according to unit importance and active risk.
++
++Dormant units may be summarized by cohorts and inventories. Activated units resolve into named personnel, vehicles, command relationships, and actual supply state.
++
++# 9. Interoperability Standards
++
++The federation standardizes interfaces that allow assistance without erasing local design.
++
++Minimum standards may cover:
++
++- emergency communications;
++- identity and command authentication;
++- medical triage exchange;
++- docking and pressure transfer;
++- rescue markings;
++- atmosphere, power, and data umbilicals;
++- casualty and missing-person records;
++- evidence handling;
++- surrender signals;
++- hazard classification;
++- route and map exchange;
++- source-chain recovery;
++- equipment status vocabulary;
++- cross-species accommodation declarations.
++
++Compliance can be:
++
++- native;
++- adapter-mediated;
++- partial;
++- expired;
++- waived for emergency;
++- incompatible.
++
++Adapters have mass, cost, training, failure states, and political significance.
++
++# 10. Training and Certification
++
++Training records bind to people and units.
++
++Certification authorities may be:
++
++- public academies;
++- professional guilds;
++- carrier institutions;
++- treaty organizations;
++- machine consensus systems;
++- alien partner bodies;
++- recognized local schools.
++
++The runtime preserves:
++
++- certification scope;
++- issuer;
++- evidence;
++- expiration;
++- practical exercises;
++- disciplinary findings;
++- cultural and embodiment accommodations;
++- equivalency mappings.
++
++A remote unit may be highly competent but formally uncertified. A prestigious unit may retain certificates while its real readiness decays.
++
++# 11. Personnel Resolution
++
++At planetary scale, most personnel exist as structured cohorts:
++
++- profession distribution;
++- readiness distribution;
++- embodiment needs;
++- household obligations;
++- fatigue;
++- trust;
++- deployment willingness;
++- experience bands.
++
++Personnel become named persistent individuals when they:
++
++- interact directly with players;
++- hold command or witness roles;
++- suffer consequential events;
++- become socially connected;
++- carry unique expertise;
++- participate in a disputed decision;
++- become missing, injured, dead, or decorated.
++
++Named people never collapse back into anonymous totals.
++
++# 12. Equipment and Depots
++
++Units possess equipment through explicit claims:
++
++- owned;
++- leased;
++- public trust;
++- cooperative;
++- borrowed under compact;
++- requisitioned;
++- salvaged;
++- disputed;
++- captured;
++- personally owned by members.
++
++Depots track:
++
++- location;
++- access controls;
++- maintenance;
++- consumables;
++- environmental exposure;
++- security;
++- sabotage;
++- customs restrictions;
++- mobilization time.
++
++A unit with excellent vehicles in an inaccessible depot may have poor operational readiness.
++
++# 13. Registration and Fraud
++
++The system supports:
++
++- duplicate names;
++- false credentials;
++- forged charters;
++- stolen unit identities;
++- splinter groups claiming continuity;
++- captured command keys;
++- propaganda organizations mimicking trusted markings;
++- obsolete records after communication isolation.
++
++Verification relies on source chains, treaty registries, local testimony, physical evidence, and historical continuity.
++
++IRIS may report confidence and provenance. It must not declare legitimacy without evidence.
++
++# 14. Federation Search and Discovery
++
++Players and institutions can query the registry by:
++
++- location;
++- capability;
++- recognition;
++- readiness;
++- unit family;
++- language;
++- embodiment accommodation;
++- past service;
++- sanctions;
++- current mobilization;
++- equipment compatibility.
++
++Query results reflect the user's access and knowledge. Secret units, incomplete records, delayed Atlas updates, and contested evidence remain uncertain.
++
++# 15. Simulation Compression
++
++The runtime uses three resolution levels.
++
++## Strategic summary
++
++For distant inactive units:
++
++- charter state;
++- readiness distributions;
++- aggregate inventory;
++- obligations;
++- recognition;
++- major history.
++
++## Operational resolution
++
++For units in active campaigns:
++
++- subunits;
++- named leaders;
++- vehicles;
++- depots;
++- schedules;
++- current orders;
++- logistics routes.
++
++## Local embodied resolution
++
++Near players:
++
++- individual people;
++- station actions;
++- tools;
++- communication;
++- movement;
++- injury;
++- fear;
++- refusal;
++- mistakes;
++- improvisation.
++
++Transitions preserve identity and accounting.
++
++# 16. API-Like State Boundaries
++
++The runtime should expose stable concepts such as:
++
++- `UnitIdentity`
++- `CharterVersion`
++- `RecognitionEdge`
++- `CapabilityEvidence`
++- `ReadinessSnapshot`
++- `InteroperabilityProfile`
++- `MobilizationObligation`
++- `PersonnelCohort`
++- `NamedMember`
++- `DepotClaim`
++- `DisciplinaryFinding`
++- `SuccessorClaim`
++
++No UI should directly edit derived legitimacy or readiness scores without recording the underlying event or evidence.
++
++# 17. Failure Conditions
++
++Reject an implementation if:
++
++- every unit is represented as one strength number;
++- charter authority is untraceable;
++- recognition is globally uniform;
++- claimed capability equals actual capability automatically;
++- named people disappear into aggregates;
++- interoperability erases cultural and technological difference;
++- unit readiness ignores fatigue, logistics, law, or equipment;
++- registration proves moral legitimacy;
++- units can mobilize without routes, supplies, or participants.
++
++# 18. Benchmark Expectations
++
++The runtime must support at least:
++
++- 20,000 distinct unit records;
++- 500 simultaneous operational units;
++- 50 mixed-species or mixed-technology units;
++- 100 disputed charters;
++- 200 recognition conflicts;
++- 1,000 interoperability adapter relationships;
++- delayed and partitioned registry updates;
++- unit split, merge, capture, dissolution, and succession;
++- deterministic reconstruction from event history.
++
++# Closing Principle
++
++> **A federation becomes believable when every unit can answer not only what it can do, but who asked it to exist, who trusts it, what it owes, and what happens when its claims are challenged.**
+-- 
+2.47.3
+

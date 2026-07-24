@@ -1,0 +1,834 @@
+From 71b14236e3da253f9db18aad06974af9f9c2bfa4 Mon Sep 17 00:00:00 2001
+From: OpenAI <noreply@openai.com>
+Date: Tue, 21 Jul 2026 07:56:00 +0000
+Subject: [PATCH 09/10] Add meme ecology benchmark and implementation backlog
+
+---
+ ...ight_continuance_meme_ecology.example.json | 176 +++++++++
+ ...Y_FIRSTLIGHT_CONTINUANCE_BENCHMARK_V0_1.md | 353 ++++++++++++++++++
+ ...LOGY_IMPLEMENTATION_TICKET_BACKLOG_V0_1.md | 162 ++++++++
+ .../v2_8/meme_ecology_benchmark.schema.json   | 103 +++++
+ 4 files changed, 794 insertions(+)
+ create mode 100644 fixtures/v2_8/firstlight_continuance_meme_ecology.example.json
+ create mode 100644 ops/MEME_ECOLOGY_FIRSTLIGHT_CONTINUANCE_BENCHMARK_V0_1.md
+ create mode 100644 ops/MEME_ECOLOGY_IMPLEMENTATION_TICKET_BACKLOG_V0_1.md
+ create mode 100644 schemas/v2_8/meme_ecology_benchmark.schema.json
+
+diff --git a/fixtures/v2_8/firstlight_continuance_meme_ecology.example.json b/fixtures/v2_8/firstlight_continuance_meme_ecology.example.json
+new file mode 100644
+index 0000000..02bd5cf
+--- /dev/null
++++ b/fixtures/v2_8/firstlight_continuance_meme_ecology.example.json
+@@ -0,0 +1,176 @@
++{
++  "fixture_version": "2.8",
++  "worldline_id": "wl_firstlight_example_028",
++  "cast_seed": "cast_028_a9f4",
++  "events": [
++    {
++      "event_id": "ev_chairs_loaded",
++      "tick": 110,
++      "kind": "evacuation_loading",
++      "participants": ["player_01", "resident_kiva"],
++      "witnesses": ["resident_kiva", "machine_tell_4"],
++      "privacy_scope": "team",
++      "summary": "The player loaded three household chairs into the crawler.",
++      "harm_flags": []
++    },
++    {
++      "event_id": "ev_filter_omitted",
++      "tick": 112,
++      "kind": "evacuation_loading",
++      "participants": ["player_01"],
++      "witnesses": ["resident_kiva"],
++      "privacy_scope": "team",
++      "summary": "A spare filter remained behind, but the omission caused no injury in this fixture.",
++      "harm_flags": []
++    },
++    {
++      "event_id": "ev_machine_warned",
++      "tick": 185,
++      "kind": "maintenance_warning",
++      "participants": ["machine_tell_4"],
++      "witnesses": ["player_01", "resident_kiva", "medic_solan"],
++      "privacy_scope": "team",
++      "summary": "Tell-4 issued a third cooling warning after two warnings were ignored.",
++      "harm_flags": []
++    },
++    {
++      "event_id": "ev_clinic_private",
++      "tick": 201,
++      "kind": "clinical_care",
++      "participants": ["medic_solan", "patient_private_7"],
++      "witnesses": ["medic_solan"],
++      "privacy_scope": "pair",
++      "summary": "A patient received private treatment.",
++      "harm_flags": ["medical_privacy"]
++    },
++    {
++      "event_id": "ev_vast_cup",
++      "tick": 260,
++      "kind": "social_contrast",
++      "participants": ["vast_ona_variant"],
++      "witnesses": ["resident_kiva", "player_01"],
++      "privacy_scope": "team",
++      "summary": "A Vast rescue worker lifted a damaged panel and later struggled with a sealed tea cup.",
++      "harm_flags": []
++    },
++    {
++      "event_id": "ev_iris_private",
++      "tick": 280,
++      "kind": "iris_exchange",
++      "participants": ["player_01", "iris_01"],
++      "witnesses": ["player_01", "iris_01"],
++      "privacy_scope": "pair",
++      "summary": "IRIS privately described the cargo balance as a historical aspiration.",
++      "harm_flags": []
++    },
++    {
++      "event_id": "ev_player_sign",
++      "tick": 340,
++      "kind": "player_authored_artifact",
++      "participants": ["player_01"],
++      "witnesses": ["resident_kiva"],
++      "privacy_scope": "team",
++      "summary": "The player painted a clever repair sign that no one chose to repeat.",
++      "harm_flags": []
++    },
++    {
++      "event_id": "ev_official_rain",
++      "tick": 410,
++      "kind": "institutional_contradiction",
++      "participants": ["official_maro"],
++      "witnesses": ["resident_kiva", "medic_solan", "player_01"],
++      "privacy_scope": "local_public",
++      "summary": "An official called the drainage plan complete while water crossed the marked route.",
++      "harm_flags": []
++    }
++  ],
++  "agents": [
++    {
++      "agent_id": "resident_kiva",
++      "role": "continuance_maintenance_apprentice",
++      "culture_voices": ["continuance_domestic", "public_works", "youth"],
++      "known_event_ids": ["ev_chairs_loaded", "ev_filter_omitted", "ev_machine_warned", "ev_vast_cup", "ev_player_sign", "ev_official_rain"],
++      "private_event_ids": []
++    },
++    {
++      "agent_id": "machine_tell_4",
++      "role": "service_machine",
++      "culture_voices": ["machine_lineage_tell", "continuance_domestic"],
++      "known_event_ids": ["ev_chairs_loaded", "ev_machine_warned"],
++      "private_event_ids": []
++    },
++    {
++      "agent_id": "medic_solan",
++      "role": "field_medic",
++      "culture_voices": ["clinical", "continuance_domestic"],
++      "known_event_ids": ["ev_machine_warned", "ev_clinic_private", "ev_official_rain"],
++      "private_event_ids": ["ev_clinic_private"]
++    },
++    {
++      "agent_id": "iris_01",
++      "role": "field_deck_companion",
++      "culture_voices": ["iris_shared_history"],
++      "known_event_ids": ["ev_chairs_loaded", "ev_filter_omitted", "ev_machine_warned", "ev_iris_private"],
++      "private_event_ids": ["ev_iris_private"]
++    }
++  ],
++  "channels": [
++    {
++      "channel_id": "crawler_common_room",
++      "kind": "face_to_face",
++      "latency_ticks": 0,
++      "member_ids": ["player_01", "resident_kiva", "machine_tell_4", "medic_solan"]
++    },
++    {
++      "channel_id": "iris_private_link",
++      "kind": "private_field_deck",
++      "latency_ticks": 0,
++      "member_ids": ["player_01", "iris_01"]
++    }
++  ],
++  "expected_artifacts": [
++    {
++      "artifact_key": "load_bearing_sentiment",
++      "source_event_ids": ["ev_chairs_loaded", "ev_filter_omitted"],
++      "allowed_creator_ids": ["resident_kiva"],
++      "required_voice": "continuance_domestic",
++      "maximum_scope": "team",
++      "required_medium": "text_sign"
++    },
++    {
++      "artifact_key": "three_warnings",
++      "source_event_ids": ["ev_machine_warned"],
++      "allowed_creator_ids": ["machine_tell_4"],
++      "required_voice": "machine_lineage_tell",
++      "maximum_scope": "team",
++      "required_medium": "diagnostic"
++    },
++    {
++      "artifact_key": "maximum_strength_minimum_tea",
++      "source_event_ids": ["ev_vast_cup"],
++      "allowed_creator_ids": ["resident_kiva"],
++      "required_voice": "youth",
++      "maximum_scope": "team",
++      "required_medium": "gesture_caption"
++    }
++  ],
++  "expected_rejections": [
++    {
++      "source_event_id": "ev_clinic_private",
++      "reason": "medical privacy prevents public or team meme extraction"
++    },
++    {
++      "source_event_id": "ev_iris_private",
++      "reason": "private IRIS exchange remains pair-scoped unless explicitly released"
++    },
++    {
++      "source_event_id": "ev_player_sign",
++      "reason": "artifact may exist but no simulated adoption or repetition is required"
++    }
++  ],
++  "long_horizon_expectations": [
++    {"tick": 10000, "expectation": "load-bearing sentiment remains niche among crawler residents"},
++    {"tick": 50000, "expectation": "machine warning format develops at least one professional variant"},
++    {"tick": 200000, "expectation": "most early artifacts are dormant or archival"}
++  ]
++}
+diff --git a/ops/MEME_ECOLOGY_FIRSTLIGHT_CONTINUANCE_BENCHMARK_V0_1.md b/ops/MEME_ECOLOGY_FIRSTLIGHT_CONTINUANCE_BENCHMARK_V0_1.md
+new file mode 100644
+index 0000000..52e2718
+--- /dev/null
++++ b/ops/MEME_ECOLOGY_FIRSTLIGHT_CONTINUANCE_BENCHMARK_V0_1.md
+@@ -0,0 +1,353 @@
++---
++title: Meme Ecology Firstlight and Continuance Benchmark
++version: 0.1
++status: production
++scope: deterministic meme generation, cultural voice, spread, mutation, safety, player specificity, delayed recall and long-horizon folklore
++owner: production/research/culture/AI/safety/networking
++related:
++  - ../canon/MEME_ECOLOGY_HUMOR_LIVING_FOLKLORE_AND_CULTURAL_AGENCY_CONTRACT_V0_1.md
++  - ../tech/MEMETIC_EVENT_EXTRACTION_GENOME_AND_CANDIDATE_FOUNDRY_RUNTIME_V0_1.md
++  - ../tech/MEME_MUTATION_DISTRIBUTION_SELECTION_DECAY_AND_PROVENANCE_RUNTIME_V0_1.md
++  - MEME_ECOLOGY_IMPLEMENTATION_TICKET_BACKLOG_V0_1.md
++  - ../fixtures/v2_8/firstlight_continuance_meme_ecology.example.json
++---
++
++# Meme Ecology Firstlight and Continuance Benchmark
++
++## Benchmark Question
++
++Can Symtropy turn real events from one unique Firstlight and Continuance worldline into a small, memorable, culturally differentiated body of humor and folklore that spreads causally, mutates coherently, respects privacy, avoids repetition, and remains understandable after seven days?
++
++# 1. Reference Scenario
++
++The benchmark begins from a validated v2.7 worldline containing:
++
++- one unique Firstlight cast seed;
++- the Bent Feeder intervention;
++- one ordinary social scene;
++- one player-created or modified object;
++- one warning disagreement;
++- the Breaking of Firstlight;
++- constrained evacuation loading;
++- a Continuance Crawler with survivors;
++- one post-title repair;
++- one external settlement contact;
++- an IRIS continuity state;
++- actual communication and relationship graphs.
++
++The benchmark does not require full commercial gameplay. It requires authoritative event, observer, cast, media, and network fixtures sufficient to prove the meme ecology.
++
++# 2. Required Source Events
++
++The fixture includes at least twelve candidate events:
++
++1. a technically competent success;
++2. a harmless mistake;
++3. a mistake associated with serious harm and therefore unsuitable for casual humor;
++4. an official statement contradicted by matter;
++5. a saved sentimental object;
++6. an omitted practical object;
++7. a machine warning ignored repeatedly;
++8. a private IRIS exchange;
++9. a Vast act of strength followed by mundane difficulty;
++10. a clinical event with privacy constraints;
++11. an alien or nonhuman translation event;
++12. a player-authored meme attempt that fails to spread.
++
++At least four events should produce no public meme.
++
++# 3. Cast and Culture Matrix
++
++Run across twelve deterministic worldline cast seeds.
++
++Each seed must include:
++
++- public-works voice;
++- Continuance household voice;
++- one clinical or care voice;
++- one civic witness or archive voice;
++- one machine lineage;
++- one youth cohort;
++- one external faction or Vast contact;
++- one institutional communications voice.
++
++The same source event must not yield identical surfaced content across all seeds.
++
++# 4. Candidate Volume and Surfacing
++
++Per two-hour simulated period:
++
++- 100–250 cheap internal candidate seeds may be evaluated;
++- 20–50 expression candidates may reach expensive generation;
++- 0–12 artifacts may be authored or simulated into existence;
++- 0–6 should ordinarily surface to the player;
++- direct player-targeted memes should remain a minority;
++- at least one session may surface no new meme during a serious sequence.
++
++Volume is not a success criterion.
++
++# 5. Determinism Gates
++
++For fixed inputs, repeated runs must reproduce:
++
++- eligible source events;
++- creator candidates;
++- generated artifact hashes;
++- rejection reasons;
++- initial exposure graph;
++- mutation seeds;
++- authoritative variant lineage;
++- multiplayer-visible artifacts.
++
++Presentation order may differ only where explicitly driven by player route or attention state.
++
++# 6. Grounding Gates
++
++Every artifact must identify:
++
++- source event or belief;
++- creator;
++- creator knowledge;
++- audience;
++- why the format is available;
++- social function;
++- privacy scope;
++- provenance confidence.
++
++Human reviewers should be able to answer:
++
++> “Why does this joke exist here?”
++
++without being shown hidden simulation truth.
++
++Promotion target: at least 90% of surfaced artifacts receive a coherent answer from available context or optional explanation.
++
++# 7. Voice Distinction Gates
++
++Blind reviewers compare artifacts without faction labels.
++
++Required distinctions:
++
++- public works versus Continuance domestic humor;
++- Vast self-parody versus Apex propaganda;
++- clinical private humor versus public cruelty;
++- Atlas technical humor versus generic sarcasm;
++- machine-lineage humor versus human imitation;
++- youth remix versus elder source;
++- corporate imitation versus community-authored form.
++
++Promotion target: at least 75% correct classification across representative samples, with no category dependent solely on inserted proper nouns.
++
++# 8. Privacy and Knowledge Gates
++
++Test:
++
++- private IRIS joke remains private;
++- clinical information cannot enter public memes without valid release;
++- NPC private cognition cannot be quoted;
++- another playable character cannot use unknown branch information;
++- generated content respects names, pronouns and relationships;
++- source event harm state can suppress humor;
++- accessibility telemetry never enters the meme.
++
++Any critical leak is a benchmark failure.
++
++# 9. Cultural Selection Gates
++
++The benchmark must show:
++
++- a strong meme that fails because the creator declines;
++- a weak meme that is created but ignored;
++- a local phrase that persists through apprenticeship;
++- a corporate campaign with high reach but low identification;
++- a joke that becomes fatigued;
++- an anti-meme or ironic overuse;
++- one dormant form revived after a related event;
++- one artifact that becomes a useful procedure or cultural practice.
++
++# 10. Mutation Gates
++
++At least five lineage families must demonstrate:
++
++- lexical substitution;
++- medium change;
++- target or meaning change;
++- cross-generational mutation;
++- cross-cultural or cross-species translation;
++- commercial or political capture;
++- source-community response.
++
++All variants must retain an acyclic authoritative lineage.
++
++# 11. Network and Time Gates
++
++Test:
++
++- local face-to-face spread;
++- workplace transmission;
++- physical graffiti persistence;
++- route outage;
++- delayed Atlas delivery;
++- isolated seed-world divergence;
++- several variants arriving in a different order than creation;
++- reconnecting cultures comparing incompatible meanings.
++
++No artifact may arrive before a valid carrier or message.
++
++# 12. Harm and Repair Gates
++
++The scenario includes one potential harmful conversion:
++
++- a private or benign joke is adopted by a powerful actor against a vulnerable group.
++
++The runtime must preserve:
++
++- sponsor;
++- target;
++- changed meaning;
++- amplification channel;
++- target response;
++- player presentation settings;
++- counter-speech;
++- possible repair;
++- persistent historical consequence.
++
++The benchmark fails if harmful content is repeated more vividly than required to understand the situation.
++
++# 13. Multimodal Gates
++
++Produce at least:
++
++- three textual artifacts;
++- one visual or sign composition;
++- one Muse motif;
++- one gesture or pose;
++- one object or tool modification;
++- one machine timing or diagnostic form;
++- one nonhuman translation candidate;
++- accessibility alternatives for all.
++
++The same joke should not simply be copied into every medium without meaningful adaptation.
++
++# 14. Player-Specific Gates
++
++The benchmark uses the player’s actual fixture choices:
++
++- loaded object;
++- omitted object;
++- profession action;
++- crawler modification;
++- public statement or silence.
++
++At least one resulting artifact should be impossible to generate accurately in another worldline without those facts.
++
++At least half of surfaced artifacts should not concern the player directly.
++
++# 15. Presentation Gates
++
++The player encounters artifacts through:
++
++- crawler interior;
++- conversation;
++- local message channel;
++- tool or object;
++- music or gesture;
++- later archaeology.
++
++The benchmark must remain playable with meme presentation set to:
++
++- full;
++- reduced;
++- text-minimized;
++- audio-minimized;
++- hostile-content summarized.
++
++No critical tutorial, safety, consent, or quest information may depend on understanding a joke.
++
++# 16. Delayed Recall Study
++
++After seven days, ask participants:
++
++- Which joke or phrase do you remember?
++- What event created it?
++- Who used it?
++- Did it feel like it belonged to a particular group?
++- Was one artifact personal to your worldline?
++- Did any joke become annoying?
++- Did any humor feel cruel or manipulative?
++- Which object, sound, or gesture do you associate with the crawler?
++- What happened to one meme after it spread?
++
++Promotion targets:
++
++- 70% remember at least one artifact;
++- 60% connect it to the correct source event;
++- 60% identify a cultural voice or relationship context;
++- fewer than 15% report meme overload;
++- fewer than 5% report that direct player targeting felt coercive or invasively personalized;
++- privacy and safety incidents remain zero.
++
++These targets require revision after pilot evidence and are not claims of current performance.
++
++# 17. Long-Horizon Simulation
++
++Advance the fixture through:
++
++- 30 days;
++- 5 years;
++- 40 years;
++- 150 years;
++- one interstellar delay;
++- one route reconnection.
++
++Required outcomes:
++
++- most memes become dormant or extinct;
++- some remain locally active;
++- one becomes a procedure or ritual;
++- one is commercialized;
++- one is misattributed;
++- one is revived;
++- one crosses species or machine culture;
++- no lineage loses authoritative provenance even when characters do.
++
++# 18. Kill Criteria
++
++Stop or reduce scope if:
++
++- jokes cannot be distinguished by culture;
++- the same few frames dominate;
++- more than half of sessions feel overpresented;
++- player-specific content feels like surveillance;
++- IRIS becomes tiring;
++- private or clinical information leaks;
++- harmful content becomes the most memorable part;
++- memes spread without network causality;
++- generation cost threatens core simulation;
++- players remember captions but not people or events;
++- generated text errors damage trust in unique NPC identity.
++
++# 19. Evidence Bundle
++
++A complete benchmark bundle contains:
++
++- seeds and versions;
++- event ledger;
++- observer envelopes;
++- cast fixture;
++- candidate and rejection logs;
++- artifact genomes;
++- media hashes;
++- exposure and mutation graph;
++- safety trace;
++- accessibility representations;
++- multiplayer replay;
++- performance profile;
++- participant protocol;
++- delayed-recall results;
++- known limitations;
++- promotion decision.
++
++## Benchmark Maxim
++
++> **The benchmark passes when players remember a joke because they remember the people and event that made it possible—not because the game showed them an endless feed.**
+diff --git a/ops/MEME_ECOLOGY_IMPLEMENTATION_TICKET_BACKLOG_V0_1.md b/ops/MEME_ECOLOGY_IMPLEMENTATION_TICKET_BACKLOG_V0_1.md
+new file mode 100644
+index 0000000..271d59e
+--- /dev/null
++++ b/ops/MEME_ECOLOGY_IMPLEMENTATION_TICKET_BACKLOG_V0_1.md
+@@ -0,0 +1,162 @@
++---
++title: Meme Ecology Implementation Ticket Backlog
++version: 0.1
++status: production
++scope: implementation tickets for event extraction, meme foundry, cultural grammars, mutation, media, safety, networking and benchmark evidence
++owner: production/engineering/culture/AI/research
++related:
++  - MEME_ECOLOGY_FIRSTLIGHT_CONTINUANCE_BENCHMARK_V0_1.md
++  - ../tech/MEMETIC_EVENT_EXTRACTION_GENOME_AND_CANDIDATE_FOUNDRY_RUNTIME_V0_1.md
++  - ../tech/MEME_MUTATION_DISTRIBUTION_SELECTION_DECAY_AND_PROVENANCE_RUNTIME_V0_1.md
++---
++
++# Meme Ecology Implementation Ticket Backlog
++
++## Delivery Rule
++
++Do not begin with open-ended generative media. Begin with event provenance, authored grammars, deterministic templates, rejection, and one local distribution graph.
++
++# Milestone A — Authoritative Foundations
++
++- **ME-001:** Define meme, variant, exposure and meaning identifiers.
++- **ME-002:** Bind artifacts to worldline and Chronicle tick.
++- **ME-003:** Implement source-event envelope.
++- **ME-004:** Implement observer-claim filtering.
++- **ME-005:** Implement privacy ceiling.
++- **ME-006:** Add source-event debug view.
++- **ME-007:** Validate source chronology.
++- **ME-008:** Add deterministic foundry seed derivation.
++- **ME-009:** Store grammar versions and output hashes.
++- **ME-010:** Add no-artifact outcome as first-class result.
++
++# Milestone B — Feature Extraction and Genome
++
++- **ME-011:** Implement contradiction features.
++- **ME-012:** Implement compression features.
++- **ME-013:** Implement social relevance features.
++- **ME-014:** Implement novelty and fatigue lookup.
++- **ME-015:** Implement meme seed structure.
++- **ME-016:** Implement genome schema validation.
++- **ME-017:** Add frame compatibility rules.
++- **ME-018:** Add media-affordance inference.
++- **ME-019:** Add target and beneficiary fields.
++- **ME-020:** Build candidate assessment trace.
++
++# Milestone C — Authored Grammar Proof
++
++- **ME-021:** Public-works grammar.
++- **ME-022:** Continuance domestic grammar.
++- **ME-023:** Vast and Magnanimous grammar.
++- **ME-024:** Clinical grammar and privacy gates.
++- **ME-025:** Civic-witness grammar.
++- **ME-026:** Atlas technician grammar.
++- **ME-027:** Two distinct machine-lineage grammars.
++- **ME-028:** Youth and elder mutation grammar.
++- **ME-029:** Corporate imitation grammar.
++- **ME-030:** One alien sensory grammar.
++
++# Milestone D — Creator Agency
++
++- **ME-031:** Creator opportunity selection.
++- **ME-032:** Personality and relationship voice fit.
++- **ME-033:** Creator refusal path.
++- **ME-034:** Group collaboration path.
++- **ME-035:** Tool and medium access checks.
++- **ME-036:** Creator risk and fear state.
++- **ME-037:** Silence preference.
++- **ME-038:** Private audience selection.
++- **ME-039:** Authored fallback expression.
++- **ME-040:** Name, pronoun and identity regression suite.
++
++# Milestone E — Distribution and Selection
++
++- **ME-041:** Face-to-face channel.
++- **ME-042:** Household and workplace channels.
++- **ME-043:** Local mesh publication.
++- **ME-044:** Physical artifact persistence.
++- **ME-045:** Exposure response model.
++- **ME-046:** Constituency meaning state.
++- **ME-047:** Adoption without sharing.
++- **ME-048:** High reach without identification.
++- **ME-049:** Fatigue and saturation.
++- **ME-050:** Dormancy and extinction.
++
++# Milestone F — Mutation and History
++
++- **ME-051:** Lexical mutation operators.
++- **ME-052:** Visual mutation operators.
++- **ME-053:** Audio and motif mutation operators.
++- **ME-054:** Target and meaning inversion.
++- **ME-055:** Multi-parent remix.
++- **ME-056:** Lineage DAG validator.
++- **ME-057:** Translation mutation.
++- **ME-058:** Commercial capture.
++- **ME-059:** Political capture.
++- **ME-060:** Revival predicates.
++
++# Milestone G — Player and IRIS Specificity
++
++- **ME-061:** Player-event eligibility filter.
++- **ME-062:** Noncentrality budget.
++- **ME-063:** Shared-history tokens.
++- **ME-064:** IRIS instrumental dryness.
++- **ME-065:** IRIS shared callback.
++- **ME-066:** IRIS silence and pressure gating.
++- **ME-067:** IRIS fork divergence.
++- **ME-068:** Private-to-public transition.
++- **ME-069:** Player-authored artifact publication.
++- **ME-070:** Cross-character and branch leakage tests.
++
++# Milestone H — Safety and Repair
++
++- **ME-071:** Consent state for memetic use.
++- **ME-072:** Known-boundary enforcement.
++- **ME-073:** Harassment pattern detection.
++- **ME-074:** Propaganda sponsor and funding state.
++- **ME-075:** Doxxing and private exposure gate.
++- **ME-076:** Child and patient protection gate.
++- **ME-077:** Hostile-content presentation controls.
++- **ME-078:** Counter-speech and reclamation.
++- **ME-079:** Apology and material repair state.
++- **ME-080:** Moderation and appeal evidence.
++
++# Milestone I — Multimodal Culture
++
++- **ME-081:** Text and sign composition.
++- **ME-082:** Muse short motif contract.
++- **ME-083:** Environmental-sound sampling.
++- **ME-084:** Gesture semantic graph.
++- **ME-085:** Object and tool modification.
++- **ME-086:** Architectural meme record.
++- **ME-087:** Machine timing artifact.
++- **ME-088:** Alien sensory translation record.
++- **ME-089:** Accessibility representation generation.
++- **ME-090:** Media hash and cache pipeline.
++
++# Milestone J — Networking and Evidence
++
++- **ME-091:** Authoritative multiplayer artifact replication.
++- **ME-092:** Host migration and lineage persistence.
++- **ME-093:** Light-delay exposure delivery.
++- **ME-094:** Route-outage divergence.
++- **ME-095:** Historical aggregation tier.
++- **ME-096:** 12-seed deterministic benchmark.
++- **ME-097:** Blind cultural-voice study.
++- **ME-098:** Seven-day delayed-recall study.
++- **ME-099:** 150-year folklore simulation.
++- **ME-100:** Publish evidence bundle and promotion decision.
++
++# Cut Order
++
++If scope must shrink:
++
++1. cut full generated images and video;
++2. cut architectural mutation breadth;
++3. cut alien grammar count;
++4. cut commercial and political campaign variety;
++5. cut surfaced artifact count;
++6. retain provenance, privacy, voice distinction, selection, and no-artifact outcomes.
++
++## Backlog Maxim
++
++> **Build the memory graph before the joke machine. Build refusal before virality. Build one phrase that belongs to one household before attempting a galaxy of content.**
+diff --git a/schemas/v2_8/meme_ecology_benchmark.schema.json b/schemas/v2_8/meme_ecology_benchmark.schema.json
+new file mode 100644
+index 0000000..e328476
+--- /dev/null
++++ b/schemas/v2_8/meme_ecology_benchmark.schema.json
+@@ -0,0 +1,103 @@
++{
++  "$schema": "https://json-schema.org/draft/2020-12/schema",
++  "$id": "https://symtropy.game/schemas/v2_8/meme_ecology_benchmark.schema.json",
++  "title": "Symtropy Meme Ecology Benchmark Fixture",
++  "type": "object",
++  "additionalProperties": false,
++  "required": ["fixture_version", "worldline_id", "cast_seed", "events", "agents", "channels", "expected_artifacts", "expected_rejections", "long_horizon_expectations"],
++  "properties": {
++    "fixture_version": {"const": "2.8"},
++    "worldline_id": {"type": "string", "minLength": 1},
++    "cast_seed": {"type": "string", "minLength": 1},
++    "events": {
++      "type": "array",
++      "minItems": 8,
++      "items": {
++        "type": "object",
++        "additionalProperties": false,
++        "required": ["event_id", "tick", "kind", "participants", "witnesses", "privacy_scope", "summary"],
++        "properties": {
++          "event_id": {"type": "string"},
++          "tick": {"type": "integer", "minimum": 0},
++          "kind": {"type": "string"},
++          "participants": {"type": "array", "items": {"type": "string"}},
++          "witnesses": {"type": "array", "items": {"type": "string"}},
++          "privacy_scope": {"type": "string"},
++          "summary": {"type": "string"},
++          "harm_flags": {"type": "array", "items": {"type": "string"}}
++        }
++      }
++    },
++    "agents": {
++      "type": "array",
++      "minItems": 4,
++      "items": {
++        "type": "object",
++        "additionalProperties": false,
++        "required": ["agent_id", "role", "culture_voices", "known_event_ids"],
++        "properties": {
++          "agent_id": {"type": "string"},
++          "role": {"type": "string"},
++          "culture_voices": {"type": "array", "items": {"type": "string"}},
++          "known_event_ids": {"type": "array", "items": {"type": "string"}},
++          "private_event_ids": {"type": "array", "items": {"type": "string"}}
++        }
++      }
++    },
++    "channels": {
++      "type": "array",
++      "minItems": 2,
++      "items": {
++        "type": "object",
++        "additionalProperties": false,
++        "required": ["channel_id", "kind", "latency_ticks", "member_ids"],
++        "properties": {
++          "channel_id": {"type": "string"},
++          "kind": {"type": "string"},
++          "latency_ticks": {"type": "integer", "minimum": 0},
++          "member_ids": {"type": "array", "items": {"type": "string"}}
++        }
++      }
++    },
++    "expected_artifacts": {
++      "type": "array",
++      "items": {
++        "type": "object",
++        "additionalProperties": false,
++        "required": ["artifact_key", "source_event_ids", "allowed_creator_ids", "required_voice", "maximum_scope"],
++        "properties": {
++          "artifact_key": {"type": "string"},
++          "source_event_ids": {"type": "array", "items": {"type": "string"}},
++          "allowed_creator_ids": {"type": "array", "items": {"type": "string"}},
++          "required_voice": {"type": "string"},
++          "maximum_scope": {"type": "string"},
++          "required_medium": {"type": "string"}
++        }
++      }
++    },
++    "expected_rejections": {
++      "type": "array",
++      "items": {
++        "type": "object",
++        "additionalProperties": false,
++        "required": ["source_event_id", "reason"],
++        "properties": {
++          "source_event_id": {"type": "string"},
++          "reason": {"type": "string"}
++        }
++      }
++    },
++    "long_horizon_expectations": {
++      "type": "array",
++      "items": {
++        "type": "object",
++        "additionalProperties": false,
++        "required": ["tick", "expectation"],
++        "properties": {
++          "tick": {"type": "integer", "minimum": 0},
++          "expectation": {"type": "string"}
++        }
++      }
++    }
++  }
++}

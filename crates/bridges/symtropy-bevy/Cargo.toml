@@ -10,6 +10,9 @@ symtropy-bevy-core = { path = "../../core/symtropy-bevy-core" }
 symthaea-bevy-brain = { path = "../../bridges/symthaea-bevy-brain" }
 symtropy-physics = { path = "../../core/symtropy-physics" }
 symtropy-rapier3d-bridge = { path = "../../bridges/symtropy-rapier3d-bridge", optional = true }
+# Required directly by robot.rs's spawn_robot_rapier3d (gated behind the
+# `rapier3d` feature below) -- version matches symtropy-rapier3d-bridge's own pin.
+rapier3d = { version = "0.18", optional = true }
 symtropy-math = { path = "../../core/symtropy-math" }
 symtropy-robotics-bridge-core = { path = "../../bridges/symtropy-robotics-bridge-core" }
 symtropy-consciousness-physics = { path = "../../domains/symtropy-consciousness-physics" }
@@ -25,14 +28,14 @@ serde = { version = "1.0", features = ["derive"] }
 
 [features]
 default = []
-debug-gizmos = []
-rapier3d = ["dep:symtropy-rapier3d-bridge"]
-# NOT wired to an actual dependency yet — bevy_inspector_egui isn't in
-# [dependencies] below, so `--features inspector` will not currently build.
-# README.md calls this the intended in-engine tooling story; declared here
-# purely so `cargo check`'s default build doesn't warn about the unknown
-# cfg name in plugin.rs.
-inspector = []
+debug-gizmos = ["bevy/bevy_gizmos", "bevy/bevy_gizmos_render"]
+rapier3d = ["dep:symtropy-rapier3d-bridge", "dep:rapier3d"]
+# `inspector` (bevy_inspector_egui in-engine tooling, per README.md/roadmap.md's
+# stated direction) was previously declared here as an empty, unbuildable
+# feature gating dead code in plugin.rs. Removed 2026-07-21 rather than left
+# as a footgun for --all-features builds — add it back for real (dependency +
+# cfg-gated plugin registration) when someone actually implements it. See
+# SYMTROPY_IMPROVEMENT_PLAN_2026-07-21.md P3.4.
 
 [dev-dependencies]
 symthaea-consciousness-equation = "0.1.0"

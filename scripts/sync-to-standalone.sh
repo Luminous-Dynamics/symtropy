@@ -238,6 +238,24 @@ ensure_stub_file() {
 }
 
 if ! $DRY_RUN; then
+    # One-time migration: origin/main's last real push (2026-07-13, a prior
+    # session, predates this one) committed these two stub files with
+    # content that has since drifted from the heredocs below --
+    # symthaea-biometrics/src/lib.rs was missing
+    # InputTelemetryEncoder::{reset, velocity_surprise} (both used
+    # unconditionally by plugin.rs/player.rs/postprocess.rs), and
+    # symthaea-orbital/src/lib.rs's apply_moral_gate() had a rustfmt
+    # violation under the CI toolchain (1.95.0). ensure_stub_file's "only
+    # if missing" is correct going forward (don't clobber hand edits made
+    # directly in the standalone repo), but it means a fix to already-
+    # committed genesis content needs a forced one-time regeneration --
+    # otherwise `git reset --hard origin/main` above just restores the
+    # stale committed version every run, forever. Safe to delete each of
+    # these two lines once that file has been pushed once with the
+    # corrected content.
+    rm -f "${STANDALONE_REPO}/stubs/symthaea-biometrics/src/lib.rs"
+    rm -f "${STANDALONE_REPO}/stubs/symthaea-orbital/src/lib.rs"
+
     info "=== Ensuring stub crates exist (created only if missing) ==="
 
     # --- stubs/symthaea ---
@@ -651,6 +669,21 @@ pub mod input_telemetry {
             }
         }
 
+        /// Simplified stand-in for the real crate's ESN-based prediction
+        /// error: this stub has no ESN, so it just reports the current
+        /// smoothed velocity as a same-range [0, 1] proxy signal.
+        pub fn velocity_surprise(&self) -> f32 {
+            self.velocity_ema.clamp(0.0, 1.0)
+        }
+
+        /// Clears history and smoothed state (matches the real crate's
+        /// reset() semantics for this stub's smaller state set).
+        pub fn reset(&mut self) {
+            self.mouse_history.clear();
+            self.velocity_ema = 0.0;
+            self.keystroke_rate_ema = 0.0;
+        }
+
         pub fn compute_stress_vector(&self) -> StressVector {
             let arousal = (self.velocity_ema * 0.5 + self.keystroke_rate_ema * 0.5).clamp(0.0, 1.0);
             StressVector {
@@ -865,16 +898,16 @@ pub mod embodiment {
         }
 
         fn apply_moral_gate(&mut self, gate: MoralGateInput) {
-            self.moral_safety = if gate.ahimsa_violated || gate.verdict == MoralGateInput::VERDICT_BLOCKED
-            {
-                Some(MotorSafetyLevel::Red)
-            } else if gate.consent_violation {
-                Some(MotorSafetyLevel::Orange)
-            } else if gate.verdict == MoralGateInput::VERDICT_CAUTION {
-                Some(MotorSafetyLevel::Yellow)
-            } else {
-                None
-            };
+            self.moral_safety =
+                if gate.ahimsa_violated || gate.verdict == MoralGateInput::VERDICT_BLOCKED {
+                    Some(MotorSafetyLevel::Red)
+                } else if gate.consent_violation {
+                    Some(MotorSafetyLevel::Orange)
+                } else if gate.verdict == MoralGateInput::VERDICT_CAUTION {
+                    Some(MotorSafetyLevel::Yellow)
+                } else {
+                    None
+                };
         }
     }
 }
@@ -889,6 +922,30 @@ info "Copying Cargo.toml with standalone fixups..."
 if ! $DRY_RUN; then
     TOML="${STANDALONE_REPO}/Cargo.toml"
     cp "${SYMTROPY_DIR}/Cargo.toml" "$TOML"
+
+    # --- 0. Force naga's "termcolor" feature for the standalone-only ----
+    #        old wgpu/naga stack pulled in via published symthaea-core
+    #
+    # The monorepo's own symthaea-core is a local path dependency and never
+    # hits this — only the standalone repo's crates.io symthaea-core@0.5.1
+    # pins wgpu = "^27.0" (-> naga 27.0.3), which coexists here alongside
+    # the Bevy 0.19 stack's own naga 29.0.4 (two incompatible major
+    # versions, both legitimately needed — not a version conflict to
+    # resolve away). naga 27.0.3 has a real upstream bug: its
+    # emit_to_string_with_path() unconditionally requires the WriteColor
+    # -implementing DiagnosticBuffer variant, which only exists behind
+    # naga's own "termcolor" feature. wgpu 27.0.1 does declare
+    # `features = ["termcolor"]` on its naga dependency, but empirically
+    # that request isn't reaching the final build's feature resolution in
+    # this workspace (root cause of that specific gap not fully pinned
+    # down — plausibly a resolver-v2 feature-unification interaction
+    # between the two coexisting naga major versions). Forcing an
+    # explicit top-level dependency with the feature is the standard,
+    # low-risk fix for "a transitive optional feature isn't propagating
+    # as expected" regardless of the exact resolver mechanism, and is
+    # scoped to the standalone Cargo.toml only (never written back to the
+    # monorepo, so it can't introduce a second naga version there).
+    sed -i '/^\[dependencies\]/a naga = { version = "27", default-features = false, features = ["termcolor"] }' "$TOML"
 
     # --- 1. Fix internal absolute paths ---------------------------------
     #
@@ -948,14 +1005,39 @@ if ! $DRY_RUN; then
     # published on crates.io. Replace the whole dependency table (dropping
     # any path= and pre-existing version=) with a plain version string,
     # wherever each appears in the tree.
+    #
+    # IMPORTANT: preserve `optional = true` if the original table had it.
+    # All 3 of these deps are declared optional in the monorepo root
+    # Cargo.toml and referenced via `dep:<name>` in the `symthaea-stack`/
+    # `fep-ai`/`consciousness-runtime` features (added by the Jul 2026
+    # feature-gating refactor) -- collapsing to a bare version string
+    # silently drops that flag, which breaks manifest parsing entirely
+    # (`dep:X` requires X to be an optional dependency; Cargo errors with
+    # "but `X` is not an optional dependency" during metadata resolution,
+    # i.e. `cargo fmt`/`cargo check` fail before compiling anything). Found
+    # by actually running this script's own post-sync check, not guessed —
+    # see SYMTROPY_IMPROVEMENT_PLAN_2026-07-21.md.
     info "Rewriting published symthaea-* deps to version pins..."
     rewrite_published_dep() {
         local dep_name="$1"
         local version="$2"
-        find "${STANDALONE_REPO}" -name Cargo.toml -not -path '*/target/*' -not -path '*/stubs/*' -print0 |
-        xargs -0 sed -i -E \
-            "s#^${dep_name}[[:space:]]*=[[:space:]]*\{[^}]*path[[:space:]]*=[[:space:]]*\"[^\"]*/symthaea/crates/(core|domains)/${dep_name}\"[^}]*\}#${dep_name} = \"${version}\"#"
-        ok "Rewrote ${dep_name} -> \"${version}\" wherever a monorepo path was used"
+        while IFS= read -r -d '' toml_file; do
+            # Case 1: table includes `optional = true` in either order relative
+            # to `path` -- keep it, collapsing only to `{ version = ..., optional = true }`.
+            sed -i -E \
+                "s#^${dep_name}[[:space:]]*=[[:space:]]*\{([^}]*path[[:space:]]*=[[:space:]]*\"[^\"]*/symthaea/crates/(core|domains)/${dep_name}\"[^}]*optional[[:space:]]*=[[:space:]]*true[^}]*)\}#${dep_name} = { version = \"${version}\", optional = true }#" \
+                "$toml_file"
+            sed -i -E \
+                "s#^${dep_name}[[:space:]]*=[[:space:]]*\{([^}]*optional[[:space:]]*=[[:space:]]*true[^}]*path[[:space:]]*=[[:space:]]*\"[^\"]*/symthaea/crates/(core|domains)/${dep_name}\"[^}]*)\}#${dep_name} = { version = \"${version}\", optional = true }#" \
+                "$toml_file"
+            # Case 2: non-optional path dependency -- collapse to a bare version
+            # pin. Runs after case 1, so a line already rewritten above no
+            # longer matches this (it no longer contains `path = ".../symthaea/...")`.
+            sed -i -E \
+                "s#^${dep_name}[[:space:]]*=[[:space:]]*\{[^}]*path[[:space:]]*=[[:space:]]*\"[^\"]*/symthaea/crates/(core|domains)/${dep_name}\"[^}]*\}#${dep_name} = \"${version}\"#" \
+                "$toml_file"
+        done < <(find "${STANDALONE_REPO}" -name Cargo.toml -not -path '*/target/*' -not -path '*/stubs/*' -print0)
+        ok "Rewrote ${dep_name} -> \"${version}\" wherever a monorepo path was used (preserving optional=true if present)"
     }
     rewrite_published_dep "symthaea-core" "$SYMTHAEA_CORE_VERSION"
     rewrite_published_dep "symthaea-fep" "$SYMTHAEA_FEP_VERSION"
@@ -972,6 +1054,26 @@ if ! $DRY_RUN; then
     sed -i '/^sol-atlas-bevy\s*=.*path.*\.\.\//s/^/# [standalone-stripped, not published, atlas feature only] /' "$TOML"
     sed -i '/^sol-atlas-core\s*=.*path.*\.\.\//s/^/# [standalone-stripped, not published, atlas feature only] /' "$TOML"
     sed -i '/^atlas\s*=\s*\[/s/^/# [standalone-stripped -- referenced deps above are stripped] /' "$TOML"
+
+    # --- 4b. Strip the `mycelix` feature ---------------------------------
+    #
+    # A pre-existing, documented gap (see CLAUDE.md's "mycelix" feature
+    # note, and the comment right above the `[workspace] members` list
+    # a few lines above the one we're patching): plugin.rs's `#[cfg(feature
+    # = "mycelix")]` block and components.rs's real-vs-fallback type switch
+    # reference symtropy_sim_bridge / mycelix_bridge_common /
+    # mycelix_core_types directly, but none of the three is ever declared
+    # as a Cargo.toml dependency of symtropy-launcher -- there's nothing to
+    # rewrite-to-a-stub the way sol-atlas-bevy/sol-atlas-core are just
+    # above, because the gap is a missing `[dependencies]` entry, not an
+    # escaping path. All three need the private mycelix-workspace tree
+    # (same reasoning as symtropy-sim-bridge/symtropy-world being excluded
+    # from workspace members below) -- not published, not stubbed. Since
+    # `mycelix` isn't in default features, this doesn't affect the normal
+    # build; it only matters for `--all-features` (which `cargo check
+    # --workspace --all-targets --all-features` below exercises).
+    info "Stripping mycelix feature (pre-existing gap -- needs private mycelix-workspace, not published)..."
+    sed -i '/^mycelix\s*=\s*\[/s/^/# [standalone-stripped -- symtropy_sim_bridge\/mycelix_bridge_common\/mycelix_core_types are unpublished, needs private mycelix-workspace] /' "$TOML"
 
     # --- 5. Exclude workspace members that need unpublished/unstubbable --
     #        deps too large to responsibly vendor or stub
@@ -1124,9 +1226,22 @@ if ! $DRY_RUN && ! $SKIP_CHECK; then
     # nix develop shell) -- wrap every verification call in nix develop so
     # the check actually runs instead of failing closed on an environment
     # error.
+    #
+    # IMPORTANT: every call site pipes cargo's output through `head`/`tail`
+    # (to bound how much gets printed) -- without `set -o pipefail` inside
+    # this inner `bash -c`, the pipeline's exit status is `head`/`tail`'s,
+    # not cargo's, so a genuinely failing `cargo fmt`/`cargo check` gets
+    # silently reported as "[ok] ... passed" (head/tail almost always exit
+    # 0). This is the same "piped command masks the real exit code" bug
+    # class this project has already hit before elsewhere -- found here by
+    # actually running the check and seeing a real manifest error printed
+    # right above a bogus "[ok]" line, not guessed. Since `SYNC_CHECK_FAILED`
+    # gates whether this script proceeds to the commit/push confirmation
+    # prompts, this bug meant a genuinely broken standalone tree could sail
+    # through believing it passed. See SYMTROPY_IMPROVEMENT_PLAN_2026-07-21.md.
     run_standalone_cargo() {
         nix develop "${MONOREPO_ROOT}" --command bash -c \
-            "cd '${STANDALONE_REPO}' && $1"
+            "set -o pipefail; cd '${STANDALONE_REPO}' && $1"
     }
 
     info "Running cargo fmt --all --check in standalone repo..."

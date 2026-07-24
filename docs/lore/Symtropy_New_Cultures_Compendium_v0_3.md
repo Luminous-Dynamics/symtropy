@@ -1,3 +1,15 @@
+---
+title: Symtropy New Cultures Compendium
+version: 0.3
+status: canonical-draft
+scope: culture registry, production texture, encounter and faction seeds
+owner: narrative/world
+supersedes:
+  - Symtropy_New_Cultures_Compendium_v0_1.md
+related:
+  - SYMTROPY_CULTURAL_LOGIC_ATLAS_V0_1.md
+  - ../vision/CIVILIZATION_DELIGHT_PLAY_AND_EVERYDAY_LIFE_BIBLE_V0_1.md
+---
 # Symtropy New Cultures Compendium v0.3
 
 **Production Texture and Enforcement Pass**  

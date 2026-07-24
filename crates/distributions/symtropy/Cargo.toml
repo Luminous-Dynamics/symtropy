@@ -1,0 +1,50 @@
+[package]
+name = "symtropy"
+version = "0.1.0"
+edition = "2024"
+license = "AGPL-3.0-or-later"
+description = "The Symtropy distribution: an opinionated Bevy bundle with consciousness-coupled physics, scene scaffolding, and a built-in dev console. One dependency for the full Symtropy game-dev experience."
+repository = "https://github.com/luminous-dynamics/symtropy"
+keywords = ["bevy", "game-engine", "symtropy", "physics", "distribution"]
+categories = ["game-engines"]
+readme = "README.md"
+
+# This crate is intentionally tiny — it's a re-export bundle, not a
+# component. The work happens in the named sibling crates.
+
+[dependencies]
+# Bevy with NO default features. Audio backends (cpal/alsa) collide with
+# downstream consumers that pin a different cpal version (e.g. some
+# Symthaea crates), and most users want to opt into Bevy features
+# themselves. Users add `bevy = "0.19"` separately if they want defaults.
+bevy = { version = "0.19", default-features = false }
+
+# The four Symtropy distribution crates. Versions are tested-together per
+# meta-crate release.
+symtropy-bevy = { version = "0.2.0", path = "../../bridges/symtropy-bevy" }
+symtropy-bevy-scene = { version = "0.1.0", path = "../../core/symtropy-bevy-scene" }
+symtropy-devconsole = { version = "0.1.0", path = "../../domains/symtropy-devconsole" }
+# Physics + math primitives are always pulled in so the prelude can re-export
+# Point, Sphere, BodyHandle, RigidBody, DistanceConstraint without users
+# adding extra dependencies. The `low-level` feature surfaces them as
+# `symtropy::physics::*` / `symtropy::math::*` modules in addition to the
+# prelude items.
+symtropy-physics = { version = "0.2.0", path = "../../core/symtropy-physics" }
+symtropy-math = { version = "0.2.0", path = "../../core/symtropy-math" }
+symtropy-hdc-core = { version = "0.1.0", path = "../../core/symtropy-hdc-core", optional = true }
+symtropy-hdc-physics = { version = "0.1.0", path = "../../domains/symtropy-hdc-physics", optional = true }
+
+[features]
+default = ["devconsole-phi"]
+
+# Surface the Φ Inspector panel in the devconsole. Pulls in
+# `symtropy-bevy` (AGPL transitively).
+devconsole-phi = ["symtropy-devconsole/phi-panel"]
+
+# Surface `symtropy::physics::*` / `symtropy::math::*` modules in addition
+# to the prelude items. Useful for low-level work that goes beyond the
+# common-case primitives.
+low-level = []
+
+# Deterministic HDC primitives plus the physics episode encoder and reference memory.
+hdc-research = ["dep:symtropy-hdc-core", "dep:symtropy-hdc-physics"]

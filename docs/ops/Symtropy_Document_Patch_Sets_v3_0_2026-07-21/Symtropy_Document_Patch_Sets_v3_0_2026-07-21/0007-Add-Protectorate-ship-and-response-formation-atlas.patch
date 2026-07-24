@@ -1,0 +1,418 @@
+From 327cdf17f00e10c692cba0916043b617ad07452d Mon Sep 17 00:00:00 2001
+From: OpenAI Symtropy Document Steward <symtropy-docs@openai.invalid>
+Date: Tue, 21 Jul 2026 14:45:32 +0000
+Subject: [PATCH 07/10] Add Protectorate ship and response formation atlas
+
+---
+ ..._REGIONAL_RESPONSE_FORMATION_ATLAS_V0_1.md | 399 ++++++++++++++++++
+ 1 file changed, 399 insertions(+)
+ create mode 100644 lore/PROTECTORATE_SHIP_FLEET_AND_REGIONAL_RESPONSE_FORMATION_ATLAS_V0_1.md
+
+diff --git a/lore/PROTECTORATE_SHIP_FLEET_AND_REGIONAL_RESPONSE_FORMATION_ATLAS_V0_1.md b/lore/PROTECTORATE_SHIP_FLEET_AND_REGIONAL_RESPONSE_FORMATION_ATLAS_V0_1.md
+new file mode 100644
+index 0000000..023409b
+--- /dev/null
++++ b/lore/PROTECTORATE_SHIP_FLEET_AND_REGIONAL_RESPONSE_FORMATION_ATLAS_V0_1.md
+@@ -0,0 +1,399 @@
++---
++title: Protectorate Ship, Fleet, and Regional Response Formation Atlas
++version: 0.1
++status: lore-draft
++scope: Protectorate ship families, response formations, convoy defense, carrier roles, regional adaptations, and formation culture
++owner: lore/spacecraft/protectorate/fleet
++related:
++  - ../canon/PROTECTORATE_FEDERATION_CIVIL_DEFENSE_AND_NON_IMPERIAL_AUTHORITY_CONTRACT_V0_1.md
++  - ../tech/RESERVE_MOBILIZATION_COALITION_COMMAND_AND_MISSION_SCOPING_RUNTIME_V0_1.md
++  - ../tech/PROTECTORATE_LOGISTICS_RESCUE_MEDICAL_EVIDENCE_AND_RECOVERY_RUNTIME_V0_1.md
++  - ../canon/LARGE_CARRIER_MULTIROLE_CIVILIZATION_AND_NON_SPECIALIZATION_CONTRACT_V0_1.md
++  - MULTIROLE_CARRIER_FAMILIES_MISSION_PROFILES_AND_WORLD_ADAPTATION_ATLAS_V0_1.md
++---
++
++# Protectorate Ship, Fleet, and Regional Response Formation Atlas
++
++## 1. Purpose
++
++This atlas defines Protectorate spacecraft and formations as **protective infrastructure with combat capability**, not conventional navy classes renamed with benevolent language.
++
++A vessel or formation is distinguished by:
++
++- what it can shelter;
++- what it can repair;
++- how quickly it can reach danger;
++- what force it can safely apply;
++- how long it can sustain civilians and responders;
++- what authority it can lawfully coordinate;
++- what happens after violence ends.
++
++# 2. Common Protectorate Ship Baseline
++
++Every major Protectorate vessel should retain meaningful capacity for:
++
++- habitation;
++- medical care;
++- rescue;
++- fabrication and repair;
++- logistics;
++- communications;
++- evidence preservation;
++- training;
++- diplomacy;
++- evacuation;
++- proportionate defense.
++
++Mission emphasis changes allocation, not personhood or civic baseline.
++
++# 3. Ship Families
++
++## 3.1 Bastionline Protectorate Carrier
++
++**Role envelope:** escort, rescue, command, repair, protected habitation, sustained defense.
++
++**Architecture:** separated command citadels, protected harbor canyon, redundant propulsion clusters, distributed radiator fields, compartmentalized shelter districts.
++
++**Carried ecology:** interceptors, rescue tugs, hospital craft, repair pods, boarding and evidence teams, evacuation modules.
++
++**Signature gameplay:** keeping a mixed civilian convoy coherent under attack and infrastructure failure.
++
++**Risk:** emergency command becoming permanent fleet sovereignty.
++
++## 3.2 Shield-Harbor Carrier
++
++**Role envelope:** physically shelter vulnerable vessels, provide protected docking, route passage, and rapid repair.
++
++**Architecture:** open central harbor with movable shielding petals and sacrificial debris structures.
++
++**Strength:** civilian survival during bombardment, debris storms, and route collapse.
++
++**Weakness:** slow maneuvering and enormous heat burden when harbor shields are closed.
++
++**Political meaning:** welcomed as refuge, feared as a mobile customs and detention authority.
++
++## 3.3 Recovery Ark
++
++**Role envelope:** post-battle rescue, casualty care, body and source-chain recovery, evidence preservation, contamination handling.
++
++**Architecture:** large medical and quarantine districts, pale high-visibility hull, protected morgue and identity-reconstruction facilities.
++
++**Strength:** restoring personhood and records after violence.
++
++**Weakness:** limited stand-off combat and extreme political exposure to all sides.
++
++## 3.4 Route Sentinel
++
++**Role envelope:** persistent patrol, traffic protection, beacon repair, anti-piracy, search and rescue.
++
++**Architecture:** medium multirole vessel with strong sensors, long endurance, several utility bays, modest habitation.
++
++**Strength:** early presence and local relationships.
++
++**Weakness:** insufficient mass for major fleet combat without coalition support.
++
++## 3.5 Pursuit Interceptor Tender
++
++**Role envelope:** rapid response, reconnaissance, interception, remote rescue, and pursuit of threats away from civilian space.
++
++**Architecture:** compact carrier optimized around fast craft maintenance and crew recovery rather than heavy weapons.
++
++**Strength:** speed and distributed reach.
++
++**Weakness:** limited shelter capacity and dependence on supply nodes.
++
++## 3.6 Planetary Protectorate Carrier
++
++**Role envelope:** atmosphere, orbit, surface logistics, evacuation, disaster response, and limited defense.
++
++**Architecture:** orbital mothership carrying trans-atmospheric rescue craft, surface mobile bases, drones, and environmental packages.
++
++**Strength:** connecting orbital safety to embodied planetary rescue.
++
++**Weakness:** must divide resources among several media and legal jurisdictions.
++
++## 3.7 Ocean Protectorate Cradle
++
++**Role envelope:** flotilla defense, submarine rescue, storm response, marine ecology protection, coastal evacuation.
++
++**Architecture:** orbital or surface carrier with amphibious landers, submarines, floating hospitals, dive systems, and acoustic command networks.
++
++**Strength:** water-world and under-ice operations.
++
++**Weakness:** pressure-rated systems consume mass and maintenance capacity.
++
++## 3.8 Debris Shepherd Fleet Tender
++
++**Role envelope:** orbital cleanup, wreck stabilization, collision avoidance, salvage arbitration, disabled-vessel rescue.
++
++**Architecture:** open truss ship with tug berths, material recovery systems, tracking arrays, and external work habitats.
++
++**Strength:** preventing the battlefield from remaining lethal for centuries.
++
++**Weakness:** vulnerable during extended external operations.
++
++## 3.9 Boundary Translation Vessel
++
++**Role envelope:** first-contact safety, quarantine, translation, ritual compliance, diplomatic extraction.
++
++**Architecture:** reconfigurable environmental interfaces, multisensory communication spaces, several independent diplomatic habitats.
++
++**Strength:** preventing ontological misunderstanding from becoming war.
++
++**Weakness:** slower command cycle and high dependence on rare specialists.
++
++## 3.10 Siege-Relief Carrier
++
++**Role envelope:** break blockades, deliver food and medicine, evacuate civilians, restore utilities, defend corridors.
++
++**Architecture:** heavily redundant cargo and repair systems, distributed defensive weapons, hardened landing and transfer craft.
++
++**Strength:** enduring concentrated danger while continuing service.
++
++**Weakness:** easily reinterpreted as an offensive siege-breaker and politically destabilizing.
++
++# 4. Small Craft Ecology
++
++Protectorate ships rely on many small craft:
++
++- rescue skiffs;
++- medevac shuttles;
++- debris interceptors;
++- repair tugs;
++- boarding and inspection craft;
++- firefighting pods;
++- atmospheric dropships;
++- ocean rescue vehicles;
++- contamination capsules;
++- evidence couriers;
++- mobile shelters;
++- sensor pickets;
++- escort drones;
++- surrender reception craft.
++
++Small craft should have persistent crews, repair histories, and local cultures. They are not expendable ammunition.
++
++# 5. Formation Families
++
++## 5.1 Protected convoy
++
++Contains:
++
++- civilian carriers;
++- cargo ships;
++- mobile homes;
++- hospital craft;
++- escorts;
++- rescue reserve;
++- repair tender;
++- sensor pickets.
++
++Success is measured by protected continuity, not enemy destruction.
++
++## 5.2 Disaster response group
++
++Contains:
++
++- medical carrier;
++- fabrication tender;
++- evacuation ships;
++- ecological teams;
++- communications restoration;
++- local units.
++
++Command may be shared between technical, medical, and civic authorities.
++
++## 5.3 Route reopening group
++
++Contains:
++
++- scouts;
++- debris shepherds;
++- repair crews;
++- security escorts;
++- archive and evidence teams;
++- diplomatic liaison.
++
++The route is not reopened until it is safe and politically usable, not merely cleared of enemies.
++
++## 5.4 Hostile-world recovery group
++
++Contains:
++
++- survival carrier;
++- quarantine vessel;
++- scientific and translation teams;
++- rescue craft;
++- armed reserve;
++- remote probes.
++
++Primary objective may shift from rescue to containment or withdrawal.
++
++## 5.5 Blockade relief coalition
++
++Contains:
++
++- Siege-Relief carrier;
++- convoy ships;
++- escort units;
++- medical reserve;
++- negotiation vessel;
++- public witness and evidence teams.
++
++Its greatest challenge is preserving civilian purpose while under military pressure.
++
++## 5.6 Planetary evacuation lattice
++
++Not one fleet, but a network of:
++
++- orbital carriers;
++- atmospheric shuttles;
++- surface convoys;
++- shelters;
++- ports;
++- hospitals;
++- registries;
++- receiving settlements.
++
++This formation is defined by flows, not a single commander.
++
++# 6. Formation Command Culture
++
++Different formations may use:
++
++- lead vessel command;
++- rotating mission coordination;
++- distributed intent;
++- profession-specific authority;
++- consensus between autonomous units;
++- machine vote or proof systems;
++- alien ritual timing.
++
++The fleet UI must show where authority actually resides.
++
++# 7. Combat Doctrine
++
++Protectorate doctrine should prioritize:
++
++1. detect and identify;
++2. warn and de-escalate;
++3. move civilians and vulnerable systems;
++4. deny attack paths;
++5. intercept threats;
++6. disable where feasible;
++7. destroy when necessary;
++8. rescue and recover;
++9. preserve evidence;
++10. restore passage and ordinary life.
++
++This order may compress under immediate attack but remains the institutional ideal.
++
++# 8. Weapons and Constraints
++
++Protectorate vessels may use:
++
++- point defense;
++- interceptors;
++- electronic warfare;
++- directed energy;
++- kinetic interception;
++- missiles;
++- mines or area-denial systems under strict law;
++- boarding teams;
++- metric or alien defensive technologies.
++
++Every weapon requires:
++
++- power;
++- cooling;
++- ammunition or reaction mass;
++- sensor confidence;
++- firing geometry;
++- safe exclusion zones;
++- command authorization;
++- collateral prediction;
++- post-use evidence.
++
++# 9. Peace-Time Life
++
++Protectorate vessels spend much of their lives on:
++
++- training;
++- rescue;
++- inspections;
++- route maintenance;
++- escort;
++- debris clearance;
++- disaster response;
++- public education;
++- joint exercises;
++- ship repair;
++- political negotiation.
++
++Residents maintain schools, kitchens, relationships, art, worship, arguments, and ordinary work. A Protectorate carrier is not permanently at battle stations.
++
++# 10. Failure and Damage Culture
++
++Ships should fail according to architecture:
++
++- harbor collision;
++- radiator puncture;
++- propulsion separation;
++- command partition;
++- medical overload;
++- shelter crowding;
++- contaminated rescue craft;
++- interceptor losses;
++- communication deception;
++- civilian mutiny against prolonged emergency authority.
++
++Damage changes politics and life, not only combat statistics.
++
++# 11. Factional Variants
++
++The same ship lineage may be operated by:
++
++- municipal federation;
++- worker cooperative;
++- Vast Burden House;
++- machine continuity compact;
++- ocean treaty;
++- corporate protection service;
++- authoritarian protectorate;
++- alien partner civilization.
++
++Doctrine, interiors, crew rights, and surrender behavior should reveal the operator.
++
++# 12. Player Progression
++
++Players can progress through:
++
++- rescue volunteer;
++- small-craft crew;
++- station qualification;
++- interceptor or tug captain;
++- formation planner;
++- ship department lead;
++- temporary mission coordinator;
++- carrier commander;
++- charter reformer;
++- shipyard founder.
++
++The progression fantasy is stewardship of increasing interdependence, not possession of larger guns.
++
++# 13. Concept-Art Requirements
++
++Future ship art should show:
++
++- protected civilians and carried craft;
++- obvious rescue and repair architecture;
++- distributed radiators and power;
++- habitation and ordinary life;
++- damage-control access;
++- culturally specific markings;
++- scale references;
++- weapons integrated as constrained systems rather than decorative turrets.
++
++# Closing Principle
++
++> **A Protectorate fleet should look powerful, but the reason for that power should remain visible in every harbor, hospital, shelter, repair dock, and civilian vessel traveling inside its protection.**
+-- 
+2.47.3
+

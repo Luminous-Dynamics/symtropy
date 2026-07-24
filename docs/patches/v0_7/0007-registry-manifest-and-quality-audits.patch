@@ -1,0 +1,3667 @@
+diff --git a/MANIFEST.json b/MANIFEST.json
+index a001439..c5af922 100644
+--- a/MANIFEST.json
++++ b/MANIFEST.json
+@@ -1,64 +1,27 @@
+ {
+   "generated_at": "2026-07-20",
+-  "package": "Symtropy_Docs_Integrated_2026-07-20_v0_6",
+-  "base": "Symtropy_Docs_Improved_2026-07-20",
+-  "files_total_excluding_manifest": 164,
+-  "new_files": [
+-    "CHANGELOG_2026_07_20_V0_6.md",
+-    "canon/CANON_REGISTRY_AND_DOCUMENT_GOVERNANCE_V0_2.md",
+-    "canon/PLAYER_EXPERIENCE_AND_SESSION_RHYTHM_CONTRACT_V0_1.md",
+-    "canon/PROGRESSION_ECONOMY_AND_MASTERY_CONTRACT_V0_1.md",
+-    "canon/SYMTROPY_GAME_CONSTITUTION_V0_6.md",
+-    "canon/SYSTEM_INTERACTION_AND_DEPENDENCY_MAP_V0_1.md",
+-    "ops/DOCUMENT_METADATA_MIGRATION_AND_CONSOLIDATION_PLAN_V0_2.md",
+-    "ops/DOCUMENT_REGISTRY.json",
+-    "ops/DOCUMENT_REGISTRY_SUMMARY.md",
+-    "ops/LINK_AUDIT_2026_07_20.json",
+-    "ops/PLAYTEST_RESEARCH_PROGRAM_V0_2.md",
+-    "ops/QUALITY_AUDIT_2026_07_20_V0_6.json",
+-    "ops/SEEDWORKS_ONBOARDING_AND_FIRST_TEN_HOURS_V0_1.md",
+-    "ops/SEEDWORKS_PRODUCTION_BUDGET_AND_CONTENT_PLAN_V0_1.md",
+-    "ops/V0_6_CHANGED_FILES.txt",
+-    "vision/CIVILIZATION_DELIGHT_PLAY_AND_EVERYDAY_LIFE_BIBLE_V0_1.md"
+-  ],
+-  "changed_files": [
+-    "CONTRIBUTING.md",
+-    "README.md",
+-    "canon/CANON_REGISTRY_AND_DOCUMENT_GOVERNANCE_V0_1.md",
+-    "canon/CORE_GAMEPLAY_PILLARS_AND_VERB_MATRIX_V0_1.md",
+-    "canon/SCALE_LADDER_AND_PROGRESSION_CONSTITUTION_V0_1.md",
+-    "canon/SYMTROPY_GAME_CONSTITUTION_V0_5.md",
+-    "lore/SYMTROPY_LITHIC_AND_SUBCRUST_CULTURES_V0_1.md",
+-    "lore/Symtropy_New_Cultures_Compendium_v0_1.md",
+-    "lore/Symtropy_New_Cultures_Compendium_v0_3.md",
+-    "ops/DOCUMENT_CORPUS_AUDIT_2026_07_20.md",
+-    "ops/PLAYTEST_CHECKLIST.md",
+-    "ops/ROADMAP.md",
+-    "ops/SEEDWORKS_REGIONAL_CIVILIZATION_SLICE_V0_2.md",
+-    "ops/Substrate Systems Implementation Tickets.md",
+-    "ops/symtropy_earth_atlas_implementation_debt_patch_v0_2/CHOKED_VALVE_COURT_GHOST_MINE_CONTINUITY_PATCH_V0_2.md",
+-    "ops/symtropy_earth_atlas_implementation_debt_patch_v0_2/EARTH_ATLAS_IMPLEMENTATION_DEBT_PATCH_README_V0_2.md",
+-    "ops/symtropy_earth_atlas_implementation_debt_patch_v0_2/PENINSULA_REFUGE_COALITION_DYNAMICS_PATCH_V0_1.md",
+-    "ops/symtropy_earth_atlas_implementation_debt_patch_v0_2/XENO_CONTACT_PRESSURE_SEMANTICS_PATCH_V0_1.md",
+-    "tech/Device Bus Substrate Systems.md",
+-    "tech/MULTIPLAYER_TRUTH_MODEL.md",
+-    "tech/MULTI_PHYSICS_VIRTUAL_GEOMETRY.md",
+-    "tech/NETWORKING_STACK_DECISION.md",
+-    "tech/PROCEDURAL_FACTION_EVOLUTION.md",
+-    "tech/PROCEDURAL_HISTORY_ENGINE.md",
+-    "vision/Symtropy Vision Document.md"
+-  ],
+-  "removed_files": [],
+-  "unchanged_files_count": 123,
++  "package": "Symtropy_Docs_Patched_2026-07-20_v0_7",
++  "base": "Symtropy_Docs_Integrated_2026-07-20_v0_6",
++  "files_total_excluding_manifest": 177,
+   "quality_audit": {
+-    "document_count": 159,
+-    "approximate_words": 347023,
+-    "front_matter_count": 69,
+-    "unclassified_count": 90,
+-    "links_checked": 65,
++    "document_count": 168,
++    "approximate_words": 358887,
++    "front_matter_count": 76,
++    "unclassified_count": 92,
++    "status_counts": {
++      "unclassified": 92,
++      "implementation-spec": 9,
++      "canonical-draft": 45,
++      "superseded": 4,
++      "canonical": 9,
++      "supporting": 6,
++      "historical": 3
++    },
++    "links_checked": 46,
+     "broken_links": 0,
+     "link_issues": [],
+-    "metadata_problems": []
++    "metadata_problems": [],
++    "duplicate_active_titles": {}
+   },
+   "files": [
+     {
+@@ -71,10 +34,15 @@
+       "bytes": 3502,
+       "sha256": "ac15a04b9a40575e0a311f9a91fcf74f7b5fe9e05807f138fdd5c16502459e64"
+     },
++    {
++      "path": "CHANGELOG_2026_07_20_V0_7.md",
++      "bytes": 1078,
++      "sha256": "cd498d56bcc78427fb961e525fd19d710d9ba553a8d00ad1e52428f599d5dd01"
++    },
+     {
+       "path": "CONTRIBUTING.md",
+-      "bytes": 2149,
+-      "sha256": "64b805a4c46f00e63807f350eb12355f1e101c618d89ee35656fa63742100daf"
++      "bytes": 2147,
++      "sha256": "680ad6fc80effc03a676593a28764d95a13634e1ca24e51684d6a2ad16281400"
+     },
+     {
+       "path": "LICENSING.md",
+@@ -83,18 +51,18 @@
+     },
+     {
+       "path": "README.md",
+-      "bytes": 5288,
+-      "sha256": "90053fc4573ca9baece8921a30890b87bebe7418ad4c793e47ffee67d551fc72"
++      "bytes": 3848,
++      "sha256": "3733d06e0483a6ac69837ece571bb0839917b6ce738295afa74baf4f4b9de4c0"
+     },
+     {
+       "path": "SYMTROPY_RESOURCE_CHAINS_GAME_DOC_V0_1.md",
+-      "bytes": 37311,
+-      "sha256": "2f2aac92cb3645b32b45f2e314acebf9b1ff412acd35a19bf1c5bc0ae02644d9"
++      "bytes": 37333,
++      "sha256": "d177257348ce9e321964eb6ff682a78bf980fd4f62eadd75961fdde12cc7fb7f"
+     },
+     {
+       "path": "SYMTROPY_SPACECRAFT_DESIGN_BIBLE_V0_1.md",
+-      "bytes": 37171,
+-      "sha256": "c643fce1529050c8ff9b1df881d7a35a5b69ebdb25b3171b4d9bbea3ebcf6335"
++      "bytes": 37323,
++      "sha256": "da9aad60cb8cad83fa4b2283560aad1cc8995e27f8eb1896592132dbb1cd9f28"
+     },
+     {
+       "path": "Symtropy Design Doc Init Steward.md",
+@@ -103,8 +71,8 @@
+     },
+     {
+       "path": "Symtropy Dungeons and Raids Design Bible.md",
+-      "bytes": 43574,
+-      "sha256": "8e85424ef60d85a3ccec0a1c0e34780a9f63f758fd7a26fce28c94d64db4ce77"
++      "bytes": 43527,
++      "sha256": "3356862286579f382a1130a76686d21a079ccee435ef4411fdeea5c75c331a1d"
+     },
+     {
+       "path": "Symtropy Player Cities & Society.md",
+@@ -113,8 +81,8 @@
+     },
+     {
+       "path": "Symtropy Profession Loops and Legibility Progression.md",
+-      "bytes": 29105,
+-      "sha256": "8fbdc7375ce320699acba3c6d7db11303bfbef2b1fe3c0a439cf044f361e815f"
++      "bytes": 29044,
++      "sha256": "b727cc4ae1b30df753d56021ae181e935442a94025ad606e1924ad1438541086"
+     },
+     {
+       "path": "archive/Symtropy_Production_Doc_Set_v0_1.zip",
+@@ -178,29 +146,49 @@
+     },
+     {
+       "path": "canon/CANON_REGISTRY_AND_DOCUMENT_GOVERNANCE_V0_2.md",
+-      "bytes": 8599,
+-      "sha256": "63aa42b62918d6c73e8e3fc750a016fe1f4f78d77e15528097bcb51acba215cb"
++      "bytes": 8668,
++      "sha256": "0e7c9a53b80a11127f81c2793170f1a673163191900962a900e56ee998b8dd7c"
++    },
++    {
++      "path": "canon/CANON_REGISTRY_AND_DOCUMENT_GOVERNANCE_V0_3.md",
++      "bytes": 9332,
++      "sha256": "f0f0eee913dd42cc4a349cdd608c4fb97cd6bd9f4da12ca9a319bb66de8349fe"
+     },
+     {
+       "path": "canon/CORE_GAMEPLAY_PILLARS_AND_VERB_MATRIX_V0_1.md",
+       "bytes": 7426,
+       "sha256": "8504e910f3c3bc50c0e0aed5fc470cb213f7365fc38320657474a64ac74d0cb6"
+     },
++    {
++      "path": "canon/MISSION_EVENT_AND_CONTRACT_GRAMMAR_V0_1.md",
++      "bytes": 14899,
++      "sha256": "2bba26afa015839f63055ef1cddb8b87f4042a0491e15e06ad703dcfcf1bd200"
++    },
++    {
++      "path": "canon/PLAYER_AUTHORSHIP_SANDBOX_AND_MODDING_CONTRACT_V0_1.md",
++      "bytes": 8854,
++      "sha256": "b34a9a51a028db033b88805330e93b11beed2041579798cde5543c4e41937ff2"
++    },
+     {
+       "path": "canon/PLAYER_EXPERIENCE_AND_SESSION_RHYTHM_CONTRACT_V0_1.md",
+-      "bytes": 13729,
+-      "sha256": "04bae49f5ff77e5ee74a7009e43dec7aa87f230d5cda7f19730ef92348613958"
++      "bytes": 14451,
++      "sha256": "1a07bdbf66bc3cfecb414916672acbfbc98bdee0b8fcf94ca2539e5a87204d7f"
+     },
+     {
+       "path": "canon/PROGRESSION_ECONOMY_AND_MASTERY_CONTRACT_V0_1.md",
+-      "bytes": 11458,
+-      "sha256": "26196e902e7bff5aea6e59e896fe4cc9b3e52d9b8ab88de8a7e0adb1bde9b75d"
++      "bytes": 12707,
++      "sha256": "9b247134e9de428f9d7b3b94fac86acd453e1d06b900b7f96160dc4d29e1cf3b"
+     },
+     {
+       "path": "canon/SCALE_LADDER_AND_PROGRESSION_CONSTITUTION_V0_1.md",
+       "bytes": 6463,
+       "sha256": "f69193acabdd230d139fd4a62270ceddd5d752ccd0528ad8203dc173bda5f38f"
+     },
++    {
++      "path": "canon/SCIENCE_RESEARCH_AND_DISCOVERY_CONTRACT_V0_1.md",
++      "bytes": 9974,
++      "sha256": "8269f3697d88dbf95311dcda1498140e2e2c8646e438e0d5243889af861594b9"
++    },
+     {
+       "path": "canon/SYMTROPY_GAME_CONSTITUTION_V0_5.md",
+       "bytes": 8593,
+@@ -213,8 +201,13 @@
+     },
+     {
+       "path": "canon/SYSTEM_INTERACTION_AND_DEPENDENCY_MAP_V0_1.md",
+-      "bytes": 13747,
+-      "sha256": "b9176cdbc98a8f54e2133122dc353f0efb0ba529ac8284191b5985115e5f1f97"
++      "bytes": 15744,
++      "sha256": "7819f32bcd6f36071de1297d294882b88e5a671c11d0e625d53a628cbdfcfa25"
++    },
++    {
++      "path": "canon/WORLDLINE_LONG_HORIZON_AND_ENDGAME_CONTRACT_V0_1.md",
++      "bytes": 8630,
++      "sha256": "c91133fb268e4c9195736e4de84ca52cd30929687d555ce39ce6fc6fcc9e9619"
+     },
+     {
+       "path": "lore/ALIEN_TYPES_AND_FIRST_CONTACT_EC.md",
+@@ -228,8 +221,8 @@
+     },
+     {
+       "path": "lore/EARTH_ATLAS_2168_TEMPLATE.md",
+-      "bytes": 19843,
+-      "sha256": "946c9dee9b9dde5813f37371be6bfa0e71ad6862fe42b0d404f491bf8a776539"
++      "bytes": 19877,
++      "sha256": "9d61d1930aaad179aad657c9f8a16de979cbcfaa997755ad075f5903efe8211e"
+     },
+     {
+       "path": "lore/ENCOUNTER_CONTRACTS_AND_NONLETHAL_RESOLUTION.md",
+@@ -258,8 +251,8 @@
+     },
+     {
+       "path": "lore/Human Tech Tree and Xeno-Translation Economy.md",
+-      "bytes": 17187,
+-      "sha256": "1c32079658586270a63efacaf01a9e8628342c8c0838834d31e9b75a73429d18"
++      "bytes": 17052,
++      "sha256": "21270e67c112a1c691b64a20deb8deff85df1c9f6b243485d333b6c5d041d611"
+     },
+     {
+       "path": "lore/NONHUMAN_GAME_THEORY_AND_AGENCY.md",
+@@ -278,8 +271,8 @@
+     },
+     {
+       "path": "lore/SOUTHERN_AFRICAN_WATER_ENERGY_COMPACT_V0_1.md",
+-      "bytes": 44065,
+-      "sha256": "bf2af08ca0bb01a73efd67d9c438ed22f92aa65f4b5cb78eb0cf0e9045cd1c38"
++      "bytes": 44099,
++      "sha256": "cecfb496faae099eaf15b7967aecece78eb0fe1c1508ca4785fae0f3e342403b"
+     },
+     {
+       "path": "lore/SPACE_HISTORY_2000_2168.md",
+@@ -303,23 +296,23 @@
+     },
+     {
+       "path": "lore/SYMTROPY_LITHIC_AND_SUBCRUST_CULTURES_V0_2.md",
+-      "bytes": 27873,
+-      "sha256": "568e873befcb28fa607df8930aad5cfc48859c3108fc3db0e38e24f370d3390c"
++      "bytes": 28010,
++      "sha256": "3c634566ea5dd77b83b7c267849a6ce73dbd1751f048421593668b59b428daa4"
+     },
+     {
+       "path": "lore/SYMTROPY_REFUSAL_BUNKERS_AND_NULL_CARE_VAULTS_V0_1.md",
+-      "bytes": 28804,
+-      "sha256": "885c1e8b385d66fdff77c15d5329948daf538286f43a3f96028106d37318da36"
++      "bytes": 28945,
++      "sha256": "35995ffdf7135f8d3b13a853113cd1b4ce31ed31046d8506ebd523cf7db9e880"
+     },
+     {
+       "path": "lore/SYMTROPY_SPACEPORTS_AND_LAUNCH_CIVILIZATIONS_V0_1.md",
+-      "bytes": 35893,
+-      "sha256": "1c7e39165f29db1afa8032e96ea2988837151c172dab376788531935fedee453"
++      "bytes": 36036,
++      "sha256": "eddb8852514b22e3c8778de0624bc0f0c3f3e51dcbe859451b9f91cf239f35b4"
+     },
+     {
+       "path": "lore/Solar Mandala Confluence.md",
+-      "bytes": 24134,
+-      "sha256": "d2dc17b31c74848ce50b4fba64c27463044214d415256859a04dc4109e4ad829"
++      "bytes": 24094,
++      "sha256": "7ec71b007eab3bed159af2fb404c025502bac4a2e7f28203dcb265a28751c77f"
+     },
+     {
+       "path": "lore/Symtropy Alien Architecture Design.md",
+@@ -383,8 +376,8 @@
+     },
+     {
+       "path": "lore/WHITE_LEDGER_TERRITORIES_ANTARCTICA_V0_1.md",
+-      "bytes": 44888,
+-      "sha256": "7f680a40808053b8c9bdeec9658b3696992d9a3b1f2ea36169ad44ad7e16eca0"
++      "bytes": 44922,
++      "sha256": "54534f63052cf21642f130bcaf32237948f387ded005b74610d64b891f53af6f"
+     },
+     {
+       "path": "lore/WORLD_TIMELINE_2000_2168.md",
+@@ -403,13 +396,13 @@
+     },
+     {
+       "path": "ops/DOCUMENT_REGISTRY.json",
+-      "bytes": 82622,
+-      "sha256": "ee9d10dcef5cb14ffb5343e886e883c280ac6d8ae79860b18cf740d6fc6f89fb"
++      "bytes": 60054,
++      "sha256": "fef192428e91095e0d08f7c47830fa38a7ef1fe35cf5e75d524cadaa1fa13c7f"
+     },
+     {
+       "path": "ops/DOCUMENT_REGISTRY_SUMMARY.md",
+-      "bytes": 2264,
+-      "sha256": "36e94b117b75093958ae7bcd00ef36abb70e3564412af74691e77b86427e9727"
++      "bytes": 402,
++      "sha256": "9a0ebda919fef1b95c1cf734a98ef10e07cf0a883ff7d36bd5beab28879f3188"
+     },
+     {
+       "path": "ops/FOUNDING_TRIANGLE_START_FLOW.md",
+@@ -421,6 +414,11 @@
+       "bytes": 51,
+       "sha256": "ccb4670085ee4609de1e40fe7bcb76a71e4a30d44fecf1dd16198566ccc955eb"
+     },
++    {
++      "path": "ops/LINK_AUDIT_2026_07_20_V0_7.json",
++      "bytes": 48,
++      "sha256": "e7b9a1df51ffbf675dc00776df0246aa4ead5b8133f844e290729f2145090c2f"
++    },
+     {
+       "path": "ops/PLAYTEST_CHECKLIST.md",
+       "bytes": 3084,
+@@ -428,23 +426,28 @@
+     },
+     {
+       "path": "ops/PLAYTEST_RESEARCH_PROGRAM_V0_2.md",
+-      "bytes": 11210,
+-      "sha256": "f496613bac90c19dd2e69e758d84845d77d4a3ee4faa8b1dac037dea44242811"
++      "bytes": 12722,
++      "sha256": "adfa95209402cb215ec2d0224e13523e04e3b93baa6f5e65f22f5f19990fb2ab"
+     },
+     {
+       "path": "ops/QUALITY_AUDIT_2026_07_20_V0_6.json",
+       "bytes": 207,
+       "sha256": "87ca0f328e457148313ba892dd2fd6de69d3359f2c1d2a5296a6732e2d639df0"
+     },
++    {
++      "path": "ops/QUALITY_AUDIT_2026_07_20_V0_7.json",
++      "bytes": 429,
++      "sha256": "4a8fa8a7a2d98e2f5a2ce12de30c9395be3f9f39d84d9f83eb5856e029d25c61"
++    },
+     {
+       "path": "ops/ROADMAP.md",
+-      "bytes": 42121,
+-      "sha256": "68a2408cc62bdb66c503a07f8cd70b5bc328d943235b33d22c5e94b4bb64659f"
++      "bytes": 42832,
++      "sha256": "463898b50bc6dd93878abda5541b40fa9b105d3f3ccd1dcd6296fa2a88cde6a8"
+     },
+     {
+       "path": "ops/ROBOTICS_ROADMAP_TECH_TREE_EXPANSION_V0_3_2.md",
+-      "bytes": 32561,
+-      "sha256": "e7efd74f26c9a348cc9cf640e17b89417224a6723521271a6a411abb0bde1e4e"
++      "bytes": 32576,
++      "sha256": "7acabf7209c6b1ed8d53ef9eccd3619b6b91352023dcfc2bae55b8d497a69158"
+     },
+     {
+       "path": "ops/Robotics_Platform_ROADMAP.md",
+@@ -483,28 +486,28 @@
+     },
+     {
+       "path": "ops/SEEDWORKS_TECH_BRANCH_PACK_V0_3_1.md",
+-      "bytes": 63213,
+-      "sha256": "7d5eeaa40556a51ca08ede71da721c7d2cabaed82fccc0916dbf0840c5c2e832"
++      "bytes": 63228,
++      "sha256": "402af1f10cab0acb3be7212571bf4ed4003c50ecfd876152446f0fc30501a902"
+     },
+     {
+       "path": "ops/SEEDWORKS_TECH_TREE_AUDIT_AND_HORIZON_GATES_V0_3_3.md",
+-      "bytes": 63241,
+-      "sha256": "0da305998a09e1685550813687a8ebd2af124c235b7d076032227dc7d12ad021"
++      "bytes": 63256,
++      "sha256": "26b3e1b60117a707d867fa9a1151271f5b3bf1ce9f0c4dd5759f47e6f6312832"
+     },
+     {
+       "path": "ops/Seedworks Tech Tree Dependency Spine.md",
+-      "bytes": 14976,
+-      "sha256": "579cf692d3db366a593a8171fd913d9ba68a6354521482805066528d95ab6faf"
++      "bytes": 14859,
++      "sha256": "2b98d11df0fdbac40960fb283cf52f814fdc85dd1934bc382f1365f1b75fcff2"
+     },
+     {
+       "path": "ops/Seedworks Tech Unlock Table v0.1–v0.3.md",
+-      "bytes": 55581,
+-      "sha256": "87c52ca983af972c599a3969177938174b063cfbc6c38c251fb5cecf2c2d15eb"
++      "bytes": 55450,
++      "sha256": "76e190452289abe320d5b4cbb06a67234810b2d78f1fd58b8c7753ebdb630fc9"
+     },
+     {
+       "path": "ops/Substrate Systems Implementation Tickets.md",
+-      "bytes": 10820,
+-      "sha256": "e59c07ce7e87f1670a8a3ee821c775f8dafeb89e6ff94fed5a1c01b00cf3dec7"
++      "bytes": 10740,
++      "sha256": "e06a47226dafc63d18236875db4f5ac0822409ccc28c691203ca3b2d8d577a93"
+     },
+     {
+       "path": "ops/Symtropy Milestone Spec Seedwork.md",
+@@ -513,8 +516,23 @@
+     },
+     {
+       "path": "ops/V0_6_CHANGED_FILES.txt",
+-      "bytes": 1922,
+-      "sha256": "85ed1147eba2a4c412796703859147848c05efd1322aaf9b3e06cc9b0db20aaf"
++      "bytes": 1949,
++      "sha256": "9deb2c66e97f03fa26872503f2f84e8c91bf788fd17f34135a03cadac9cab0a4"
++    },
++    {
++      "path": "ops/V0_7_CHANGED_FILES.txt",
++      "bytes": 758,
++      "sha256": "e321f9d34e1966711a4ce3c5f3047b148a81bb0972ab65d1d518959987f69562"
++    },
++    {
++      "path": "ops/V0_7_INTEGRATION_PATCH_CAMPAIGN.md",
++      "bytes": 2227,
++      "sha256": "0f15aaf822db8cbc18454676f8de31a2055bfce15bf9a8cfcdc0af05b68e7c74"
++    },
++    {
++      "path": "ops/V0_7_METADATA_PATCH_FILES.txt",
++      "bytes": 1838,
++      "sha256": "a543591d12206fadbf82048407c48b7e095f35dd311e9e675e2a2c8c49ce2e51"
+     },
+     {
+       "path": "ops/symtropy_earth_atlas_implementation_debt_patch_v0_2/CHOKED_VALVE_COURT_GHOST_MINE_CONTINUITY_PATCH_V0_2.md",
+@@ -523,8 +541,8 @@
+     },
+     {
+       "path": "ops/symtropy_earth_atlas_implementation_debt_patch_v0_2/CHRONICLE_MVP_SPEC_V0_1.md",
+-      "bytes": 7520,
+-      "sha256": "0c9ca7d017041865eff1aa7f4b04ffbac71f61d886afebaf9f4a0e1681727729"
++      "bytes": 7653,
++      "sha256": "6d662ad0bb97392292bd1d99c4b706dac2a9e380dae485218cd06f86fd9c7fea"
+     },
+     {
+       "path": "ops/symtropy_earth_atlas_implementation_debt_patch_v0_2/EARTH_ATLAS_IMPLEMENTATION_DEBT_PATCH_README_V0_2.md",
+@@ -533,13 +551,13 @@
+     },
+     {
+       "path": "ops/symtropy_earth_atlas_implementation_debt_patch_v0_2/FIELD_DECK_OVERLAY_PRECEDENCE_RULES_V0_1.md",
+-      "bytes": 7944,
+-      "sha256": "82cd5f7bc3df382a6f3baf3d81317afb5d026022ea36052378779ea881126723"
++      "bytes": 8065,
++      "sha256": "2cd6a0b2eea68173a491b9eada752479af9c7a13f4913b2e2f79e8009980e9af"
+     },
+     {
+       "path": "ops/symtropy_earth_atlas_implementation_debt_patch_v0_2/GREEN_COVER_LIE_RESOLUTION_MECHANIC_V0_1.md",
+-      "bytes": 7477,
+-      "sha256": "8c739542cadf8f7c418f4cff59124f957d395d5d06a9db419fbc337d9f7dab79"
++      "bytes": 7622,
++      "sha256": "f52d0f573e479f05f00b5910f9c35ca8b23b5cbc434417ce88876db74d4e0991"
+     },
+     {
+       "path": "ops/symtropy_earth_atlas_implementation_debt_patch_v0_2/PENINSULA_REFUGE_COALITION_DYNAMICS_PATCH_V0_1.md",
+@@ -548,13 +566,13 @@
+     },
+     {
+       "path": "ops/symtropy_earth_atlas_implementation_debt_patch_v0_2/ROAD_CHOIR_MOBILE_ACCOUNTABILITY_MECHANICS_V0_1.md",
+-      "bytes": 7976,
+-      "sha256": "c5eef1cda7c61e4be4fcb5b7b691faae96d421e23ba64bbbdeafbe7cb705f512"
++      "bytes": 8102,
++      "sha256": "7ab051faea67b66ed5ed4fabd54857f3167833ee008f1b17973c8ed402fecaf2"
+     },
+     {
+       "path": "ops/symtropy_earth_atlas_implementation_debt_patch_v0_2/SUBGLACIAL_LISTENING_FAULT_VERTICAL_SLICE_V0_1.md",
+-      "bytes": 11689,
+-      "sha256": "75a81d2e9f4034159c54f029d6819e0ddbc189374453297ebaf0a1c78a1134d2"
++      "bytes": 11838,
++      "sha256": "423052be122074c12a3de10f9c0b13f1e0f35aa4cf973e6bbfd7c163e5da4aef"
+     },
+     {
+       "path": "ops/symtropy_earth_atlas_implementation_debt_patch_v0_2/XENO_CONTACT_PRESSURE_SEMANTICS_PATCH_V0_1.md",
+@@ -628,8 +646,8 @@
+     },
+     {
+       "path": "tech/COMBAT_THREAT_AND_SYSTEMIC_ENCOUNTER_DESIGN_V0_1.md",
+-      "bytes": 7677,
+-      "sha256": "a5a0b4f9ee1cd898442c798197be3fafa2448a3be9934a3a93f3cfce4adc90bf"
++      "bytes": 7703,
++      "sha256": "87ee05e4e59c0fe23ca4734fa55dea6722eefdb48bb91c02d72eb83b215a30e3"
+     },
+     {
+       "path": "tech/DEVICE_BUS_RUNTIME_SAFETY.md",
+@@ -638,8 +656,8 @@
+     },
+     {
+       "path": "tech/Device Bus Substrate Systems.md",
+-      "bytes": 17161,
+-      "sha256": "084c0bf7b2c2b89048f5d276262d94d0e160e45264ea4bf5317e7802715c49c2"
++      "bytes": 17139,
++      "sha256": "fe6127000813d5d7cab9a7c7930b7e2c4c22492283f0835ad54cbe8d13039318"
+     },
+     {
+       "path": "tech/ENGINE.md",
+@@ -678,19 +696,24 @@
+     },
+     {
+       "path": "tech/Infrastructure Loom Tech Node Data Schema.md",
+-      "bytes": 44013,
+-      "sha256": "b94ed7373e4e5d5d375b874796602ac0fa45568c50469a864166673c1f584661"
++      "bytes": 43820,
++      "sha256": "cb9933c678afbf661c662dfff2c3175da730f19f2300a9413f6a28d62557ccfb"
+     },
+     {
+       "path": "tech/Infrastructure Loom UI-UX Spec.md",
+-      "bytes": 19875,
+-      "sha256": "57de0cb9bdfa22026e678d42d1352b10b78bcf181268ff2ddb9b0fcf81c7a470"
++      "bytes": 19684,
++      "sha256": "94f940ec86cabc9e0000f4feff6384d8ea9f81b69453db5c14b8487cdccc02bb"
+     },
+     {
+       "path": "tech/MK0_BOOTSTRAPPER_PROTOCOL.md",
+       "bytes": 9219,
+       "sha256": "436c5ca04dc7bdca1383935202310b960e39159f6000cf89d77a644ef4bbae36"
+     },
++    {
++      "path": "tech/MULTIPLAYER_SOCIAL_SAFETY_GRIEFING_AND_MODERATION_V0_1.md",
++      "bytes": 8393,
++      "sha256": "744e9e9b84902f632f764994f72722234ea177d368687581e033e73c716ea569"
++    },
+     {
+       "path": "tech/MULTIPLAYER_TRUTH_MODEL.md",
+       "bytes": 16847,
+@@ -728,13 +751,13 @@
+     },
+     {
+       "path": "tech/Public Works Fabrication Branch v0.2.md",
+-      "bytes": 25370,
+-      "sha256": "80aae927d12a30823a8858b24f93080c213438dfe194feca59c1d72959812fd5"
++      "bytes": 25221,
++      "sha256": "b04944376762d50566a433cee92ce126c3353a26dafc8a34c5dfaca48d31ebe1"
+     },
+     {
+       "path": "tech/REGIONAL_PLANETARY_CIVILIZATION_SIMULATION_ARCHITECTURE_V0_1.md",
+-      "bytes": 7701,
+-      "sha256": "224c3a1c5518e7f5787ede225a10382ff566b1c4a0ee8bf739d2ede9f682a0ff"
++      "bytes": 7738,
++      "sha256": "61b391493bcc2d453eccbcd4c053e228430c2291607805671415954697cfb584"
+     },
+     {
+       "path": "tech/SEEDWORKS_ARCHITECTURE.md",
+@@ -803,14 +826,19 @@
+     },
+     {
+       "path": "tech/WORLDLINE_MECHANICAL_DELTA_SCHEMA_V0_1.md",
+-      "bytes": 19335,
+-      "sha256": "e249e7cf470a5da5e57111c9add19de566b8195bc07ece2d220686543ae3b127"
++      "bytes": 19477,
++      "sha256": "dbcbf0c33312e355fab63f9ea6cbef6d7ccf878f24ed38662e93c9aa87776a9b"
+     },
+     {
+       "path": "tech/WORLD_PERSISTENCE_PROTOCOL.md",
+       "bytes": 1193,
+       "sha256": "9d5c7f2fc68d4c51de11b1a1444173f5280e2d4879e7a304dae4346a93b7caa1"
+     },
++    {
++      "path": "tech/WORLD_STATE_REVISITABILITY_AND_CONSEQUENCE_PRESENTATION_V0_1.md",
++      "bytes": 6009,
++      "sha256": "9275743ef9786640ba36fce769c8fab00fc294379adcbf24551b2695ed217787"
++    },
+     {
+       "path": "vision/CIVILIZATION_DELIGHT_PLAY_AND_EVERYDAY_LIFE_BIBLE_V0_1.md",
+       "bytes": 10812,
+@@ -818,8 +846,8 @@
+     },
+     {
+       "path": "vision/EXPLORATION_DISCOVERY_AND_AWE_DESIGN_BIBLE_V0_1.md",
+-      "bytes": 7392,
+-      "sha256": "ed30b62dd6518356f27a5d7801deb5db603bb0fb9fd1c05b141b5384b781b3eb"
++      "bytes": 7416,
++      "sha256": "bd1ce9885a975d6876a5d9c8e6fb191f67a3ab5f3d822988c835a67439726947"
+     },
+     {
+       "path": "vision/NPC_DAILY_LIFE_RELATIONSHIPS_AND_SOCIAL_MEMORY_BIBLE_V0_2.md",
+@@ -838,8 +866,8 @@
+     },
+     {
+       "path": "vision/SYMTROPY_ORBITAL_HABITATS_AND_DOCKSIDE_SOCIETIES_V0_1.md",
+-      "bytes": 31582,
+-      "sha256": "70169f9977a1795310c4b9703b99c24fa467aa849d587b843ce7e28b91f56fa1"
++      "bytes": 31733,
++      "sha256": "917b5aa47f1e8bbf07edc7064c9164d57ee6d9040803fa814356e3670082bf4e"
+     },
+     {
+       "path": "vision/SYMTROPY_PRESENTATION_ARCHITECTURE_AND_3D_PIVOT_V0_1.md",
+diff --git a/ops/DOCUMENT_REGISTRY.json b/ops/DOCUMENT_REGISTRY.json
+index 0b0216e..cec95e7 100644
+--- a/ops/DOCUMENT_REGISTRY.json
++++ b/ops/DOCUMENT_REGISTRY.json
+@@ -1,2563 +1,1685 @@
+ {
+   "generated_at": "2026-07-20",
+-  "root": "Symtropy_Docs_Integrated_2026-07-20_v0_6",
+-  "document_count": 159,
+-  "approximate_words": 347023,
++  "schema_version": "0.7",
+   "documents": [
+     {
+       "path": "CHANGELOG_2026_07_20.md",
+-      "category": "root",
+-      "title": "Symtropy Documentation Improvement Pass — 2026-07-20",
++      "title": null,
+       "version": null,
+       "status": "unclassified",
+       "scope": null,
+       "owner": null,
+-      "supersedes": null,
+-      "superseded_by": null,
+-      "front_matter": false,
+-      "words": 136,
+       "bytes": 1077,
+-      "links": 0,
+       "sha256": "1f3b22c24506c95f21cb15918ffed093ad456d6bcf2d643fa2c1ac8e40df35eb"
+     },
+     {
+       "path": "CHANGELOG_2026_07_20_V0_6.md",
+-      "category": "root",
+       "title": "Symtropy Documentation Integration Pass Changelog",
+-      "version": "0.6",
++      "version": 0.6,
+       "status": "implementation-spec",
+       "scope": "documentation changes made in the v0.6 integration and production-readiness pass",
+       "owner": "documentation/design",
+-      "supersedes": null,
+-      "superseded_by": null,
+-      "front_matter": true,
+-      "words": 371,
+       "bytes": 3502,
+-      "links": 0,
+       "sha256": "ac15a04b9a40575e0a311f9a91fcf74f7b5fe9e05807f138fdd5c16502459e64"
+     },
++    {
++      "path": "CHANGELOG_2026_07_20_V0_7.md",
++      "title": null,
++      "version": null,
++      "status": "unclassified",
++      "scope": null,
++      "owner": null,
++      "bytes": 1078,
++      "sha256": "cd498d56bcc78427fb961e525fd19d710d9ba553a8d00ad1e52428f599d5dd01"
++    },
+     {
+       "path": "CONTRIBUTING.md",
+-      "category": "root",
+-      "title": "Contributing to Symtropy",
++      "title": null,
+       "version": null,
+       "status": "unclassified",
+       "scope": null,
+       "owner": null,
+-      "supersedes": null,
+-      "superseded_by": null,
+-      "front_matter": false,
+-      "words": 258,
+-      "bytes": 2149,
+-      "links": 2,
+-      "sha256": "64b805a4c46f00e63807f350eb12355f1e101c618d89ee35656fa63742100daf"
++      "bytes": 2147,
++      "sha256": "680ad6fc80effc03a676593a28764d95a13634e1ca24e51684d6a2ad16281400"
+     },
+     {
+       "path": "LICENSING.md",
+-      "category": "root",
+-      "title": "Symtropy Licensing",
++      "title": null,
+       "version": null,
+       "status": "unclassified",
+       "scope": null,
+       "owner": null,
+-      "supersedes": null,
+-      "superseded_by": null,
+-      "front_matter": false,
+-      "words": 981,
+       "bytes": 7999,
+-      "links": 0,
+       "sha256": "f63674bcf8cc953df7f3950c650f7f0fca80cc767140edc8561ffc693be5cee9"
+     },
+     {
+       "path": "README.md",
+-      "category": "root",
+-      "title": "Symtropy Knowledge Base",
++      "title": null,
+       "version": null,
+       "status": "unclassified",
+       "scope": null,
+       "owner": null,
+-      "supersedes": null,
+-      "superseded_by": null,
+-      "front_matter": false,
+-      "words": 528,
+-      "bytes": 5288,
+-      "links": 43,
+-      "sha256": "90053fc4573ca9baece8921a30890b87bebe7418ad4c793e47ffee67d551fc72"
++      "bytes": 3848,
++      "sha256": "3733d06e0483a6ac69837ece571bb0839917b6ce738295afa74baf4f4b9de4c0"
+     },
+     {
+       "path": "SYMTROPY_RESOURCE_CHAINS_GAME_DOC_V0_1.md",
+-      "category": "root",
+       "title": "Symtropy Resource Chains Game Design Document",
+-      "version": "0.1",
++      "version": 0.1,
+       "status": "canonical-draft",
+       "scope": "resource chains, material provenance, logistics, fabrication, civic authorization, settlement metabolism, worldline history",
+-      "owner": null,
+-      "supersedes": null,
+-      "superseded_by": null,
+-      "front_matter": true,
+-      "words": 4695,
+-      "bytes": 37311,
+-      "links": 0,
+-      "sha256": "2f2aac92cb3645b32b45f2e314acebf9b1ff412acd35a19bf1c5bc0ae02644d9"
++      "owner": "design/systems",
++      "bytes": 37333,
++      "sha256": "d177257348ce9e321964eb6ff682a78bf980fd4f62eadd75961fdde12cc7fb7f"
+     },
+     {
+       "path": "SYMTROPY_SPACECRAFT_DESIGN_BIBLE_V0_1.md",
+-      "category": "root",
+       "title": "SYMTROPY_SPACECRAFT_DESIGN_BIBLE_V0_1",
+-      "version": null,
++      "version": 0.1,
+       "status": "canonical-draft",
+-      "scope": null,
+-      "owner": null,
+-      "supersedes": null,
+-      "superseded_by": null,
+-      "front_matter": true,
+-      "words": 4518,
+-      "bytes": 37171,
+-      "links": 0,
+-      "sha256": "c643fce1529050c8ff9b1df881d7a35a5b69ebdb25b3171b4d9bbea3ebcf6335"
++      "scope": "human and alien spacecraft, life support, cargo, crew society, Field Deck and Chronicle integration",
++      "owner": "design/engineering/world",
++      "bytes": 37323,
++      "sha256": "da9aad60cb8cad83fa4b2283560aad1cc8995e27f8eb1896592132dbb1cd9f28"
+     },
+     {
+       "path": "Symtropy Design Doc Init Steward.md",
+-      "category": "root",
+-      "title": "Symtropy Design Doc: Init / Steward Protocol Dynamic Narrator",
++      "title": null,
+       "version": null,
+       "status": "unclassified",
+       "scope": null,
+       "owner": null,
+-      "supersedes": null,
+-      "superseded_by": null,
+-      "front_matter": false,
+-      "words": 3066,
+       "bytes": 23567,
+-      "links": 0,
+       "sha256": "f7e244d8940825be40fc3b3ecf548be2438a6c90598a95e49d51ce4f9d3a4236"
+     },
+     {
+       "path": "Symtropy Dungeons and Raids Design Bible.md",
+-      "category": "root",
+       "title": "Symtropy Dungeons and Raids Design Bible",
+-      "version": "0.1",
++      "version": 0.1,
+       "status": "canonical-draft",
+       "scope": "dungeon grammar, raid grammar, civic wound-sites, boss systems, profession integration, Chronicle outcomes",
+-      "owner": null,
+-      "supersedes": null,
+-      "superseded_by": null,
+-      "front_matter": true,
+-      "words": 5453,
+-      "bytes": 43574,
+-      "links": 0,
+-      "sha256": "8e85424ef60d85a3ccec0a1c0e34780a9f63f758fd7a26fce28c94d64db4ce77"
++      "owner": "design/narrative/gameplay",
++      "bytes": 43527,
++      "sha256": "3356862286579f382a1130a76686d21a079ccee435ef4411fdeea5c75c331a1d"
+     },
+     {
+       "path": "Symtropy Player Cities & Society.md",
+-      "category": "root",
+-      "title": "Symtropy Player Cities & Society Operating System",
++      "title": null,
+       "version": null,
+       "status": "unclassified",
+       "scope": null,
+       "owner": null,
+-      "supersedes": null,
+-      "superseded_by": null,
+-      "front_matter": false,
+-      "words": 3437,
+       "bytes": 26474,
+-      "links": 0,
+       "sha256": "e8769417f4c9fead7e15e9aa03910c0e6fd5650aea8f13fd7d6b1d8ef618fe0a"
+     },
+     {
+       "path": "Symtropy Profession Loops and Legibility Progression.md",
+-      "category": "root",
+       "title": "Symtropy Profession Loops and Legibility Progression",
+-      "version": "0.1",
++      "version": 0.1,
+       "status": "canonical-draft",
+       "scope": "Seedworks professions, skillful gameplay loops, Field Deck literacy, witness reputation, co-op role differentiation",
+-      "owner": null,
+-      "supersedes": null,
+-      "superseded_by": null,
+-      "front_matter": true,
+-      "words": 3694,
+-      "bytes": 29105,
+-      "links": 0,
+-      "sha256": "8fbdc7375ce320699acba3c6d7db11303bfbef2b1fe3c0a439cf044f361e815f"
++      "owner": "design/gameplay/systems",
++      "bytes": 29044,
++      "sha256": "b727cc4ae1b30df753d56021ae181e935442a94025ad606e1924ad1438541086"
+     },
+     {
+       "path": "archive/status/BRIDGE_STATUS.md",
+-      "category": "archive",
+-      "title": "BRIDGE_STATUS",
++      "title": null,
+       "version": null,
+       "status": "unclassified",
+       "scope": null,
+       "owner": null,
+-      "supersedes": null,
+-      "superseded_by": null,
+-      "front_matter": false,
+-      "words": 13,
+       "bytes": 113,
+-      "links": 0,
+       "sha256": "fb345d4bbe4457b35d68e1945ed6ed1d7119783f0eae32fc24e6805b64cd029f"
+     },
+     {
+       "path": "archive/status/FINAL_STATUS.md",
+-      "category": "archive",
+-      "title": "FINAL_STATUS",
++      "title": null,
+       "version": null,
+       "status": "unclassified",
+       "scope": null,
+       "owner": null,
+-      "supersedes": null,
+-      "superseded_by": null,
+-      "front_matter": false,
+-      "words": 29,
+       "bytes": 268,
+-      "links": 0,
+       "sha256": "6ead187234b50b5ddf43aa5f64ee59b91714253b0afe7010d11bd3b1b317186c"
+     },
+     {
+       "path": "archive/status/FOUNDRY_USAGE.md",
+-      "category": "archive",
+-      "title": "Symtropy Asset Foundry - Usage Guide",
++      "title": null,
+       "version": null,
+       "status": "unclassified",
+       "scope": null,
+       "owner": null,
+-      "supersedes": null,
+-      "superseded_by": null,
+-      "front_matter": false,
+-      "words": 157,
+       "bytes": 1240,
+-      "links": 0,
+       "sha256": "20598d8dbb8703526300d9c42a716004f8ea70e2711ea8e7d41b66d3c91f98a1"
+     },
+     {
+       "path": "archive/status/FOUNDRY_USAGE_AGENT_FINISH_PLAN.md",
+-      "category": "archive",
+-      "title": "Symtropy Asset Foundry — Agent Handoff, Usage Guide, and Finished-State Plan",
++      "title": null,
+       "version": null,
+       "status": "unclassified",
+       "scope": null,
+       "owner": null,
+-      "supersedes": null,
+-      "superseded_by": null,
+-      "front_matter": false,
+-      "words": 3269,
+       "bytes": 26541,
+-      "links": 0,
+       "sha256": "03329a87fbe0138a3a1b875c3c9adebbad90b3ba693ae9c01f5cb189e3f49aa0"
+     },
+     {
+       "path": "archive/status/HANDOVER.md",
+-      "category": "archive",
+-      "title": "Project Stabilization & Phase 2 Integration Handover",
++      "title": null,
+       "version": null,
+       "status": "unclassified",
+       "scope": null,
+       "owner": null,
+-      "supersedes": null,
+-      "superseded_by": null,
+-      "front_matter": false,
+-      "words": 159,
+       "bytes": 1411,
+-      "links": 0,
+       "sha256": "7facee2ef644b49f39cbe4c67e49f97cab147ed5f47f031dd6907b77a2bcfca3"
+     },
+     {
+       "path": "archive/status/HYGIENE_GATE_STATUS.md",
+-      "category": "archive",
+-      "title": "HYGIENE_GATE_STATUS",
++      "title": null,
+       "version": null,
+       "status": "unclassified",
+       "scope": null,
+       "owner": null,
+-      "supersedes": null,
+-      "superseded_by": null,
+-      "front_matter": false,
+-      "words": 18,
+       "bytes": 134,
+-      "links": 0,
+       "sha256": "051dd49378b0d6057b1470c9a669a8c90175a9779fe0dd6e3ffa7f75f7043a9f"
+     },
+     {
+       "path": "archive/status/STABILIZATION_FINAL_REPORT.md",
+-      "category": "archive",
+-      "title": "STABILIZATION_FINAL_REPORT",
++      "title": null,
+       "version": null,
+       "status": "unclassified",
+       "scope": null,
+       "owner": null,
+-      "supersedes": null,
+-      "superseded_by": null,
+-      "front_matter": false,
+-      "words": 13,
+       "bytes": 111,
+-      "links": 0,
+       "sha256": "787c66fc3e5f952799afe1126b985f7b656da0682cdcbeddc07c51398c2bd5e0"
+     },
+     {
+       "path": "archive/status/STABILIZATION_RESULT.md",
+-      "category": "archive",
+-      "title": "STABILIZATION_RESULT",
++      "title": null,
+       "version": null,
+       "status": "unclassified",
+       "scope": null,
+       "owner": null,
+-      "supersedes": null,
+-      "superseded_by": null,
+-      "front_matter": false,
+-      "words": 11,
+       "bytes": 97,
+-      "links": 0,
+       "sha256": "486d7ed83e5e5b840b8d40da306433b933ed2656c9a1b928a49098a01676eda4"
+     },
+     {
+       "path": "archive/status/STABILIZATION_SUMMARY.md",
+-      "category": "archive",
+-      "title": "STABILIZATION_SUMMARY",
++      "title": null,
+       "version": null,
+       "status": "unclassified",
+       "scope": null,
+       "owner": null,
+-      "supersedes": null,
+-      "superseded_by": null,
+-      "front_matter": false,
+-      "words": 44,
+       "bytes": 346,
+-      "links": 0,
+       "sha256": "c22de1f6e56f03a6a9b1b391710ddcbbdf64b2855422eadcbe12a82940421d73"
+     },
+     {
+       "path": "archive/status/STATUS.md",
+-      "category": "archive",
+-      "title": "Symtropy Asset Foundry - Status Report",
++      "title": null,
+       "version": null,
+       "status": "unclassified",
+       "scope": null,
+       "owner": null,
+-      "supersedes": null,
+-      "superseded_by": null,
+-      "front_matter": false,
+-      "words": 193,
+       "bytes": 1599,
+-      "links": 0,
+       "sha256": "a71d7329f4e7be7df8fa0a921c7dfa368597155500067522d1e7e9774ae8d0dc"
+     },
+     {
+       "path": "canon/CANON_REGISTRY_AND_DOCUMENT_GOVERNANCE_V0_1.md",
+-      "category": "canon",
+       "title": "Canon Registry and Document Governance",
+-      "version": "0.1",
++      "version": 0.1,
+       "status": "superseded",
+       "scope": "documentation lifecycle",
+       "owner": null,
+-      "supersedes": null,
+-      "superseded_by": "canon/CANON_REGISTRY_AND_DOCUMENT_GOVERNANCE_V0_2.md",
+-      "front_matter": true,
+-      "words": 598,
+       "bytes": 5260,
+-      "links": 0,
+       "sha256": "a5fa29ada4d76e5794148b03700e08ca3e9c8a610817b0b5ff5be0ec39c3c23a"
+     },
+     {
+       "path": "canon/CANON_REGISTRY_AND_DOCUMENT_GOVERNANCE_V0_2.md",
+-      "category": "canon",
+       "title": "Canon Registry and Document Governance",
+-      "version": "0.2",
++      "version": 0.2,
++      "status": "superseded",
++      "scope": "documentation lifecycle, canonical spine, ownership, supersession, registry policy",
++      "owner": "documentation/design",
++      "bytes": 8668,
++      "sha256": "0e7c9a53b80a11127f81c2793170f1a673163191900962a900e56ee998b8dd7c"
++    },
++    {
++      "path": "canon/CANON_REGISTRY_AND_DOCUMENT_GOVERNANCE_V0_3.md",
++      "title": "Canon Registry and Document Governance",
++      "version": 0.3,
+       "status": "canonical",
+       "scope": "documentation lifecycle, canonical spine, ownership, supersession, registry policy",
+       "owner": "documentation/design",
+-      "supersedes": [
+-        "CANON_REGISTRY_AND_DOCUMENT_GOVERNANCE_V0_1.md"
+-      ],
+-      "superseded_by": null,
+-      "front_matter": true,
+-      "words": 884,
+-      "bytes": 8599,
+-      "links": 0,
+-      "sha256": "63aa42b62918d6c73e8e3fc750a016fe1f4f78d77e15528097bcb51acba215cb"
++      "bytes": 9332,
++      "sha256": "f0f0eee913dd42cc4a349cdd608c4fb97cd6bd9f4da12ca9a319bb66de8349fe"
+     },
+     {
+       "path": "canon/CORE_GAMEPLAY_PILLARS_AND_VERB_MATRIX_V0_1.md",
+-      "category": "canon",
+       "title": "Core Gameplay Pillars and Verb Matrix",
+-      "version": "0.1",
++      "version": 0.1,
+       "status": "canonical",
+       "scope": "moment-to-moment, session, and long-loop gameplay",
+       "owner": "design/gameplay",
+-      "supersedes": null,
+-      "superseded_by": null,
+-      "front_matter": true,
+-      "words": 832,
+       "bytes": 7426,
+-      "links": 0,
+       "sha256": "8504e910f3c3bc50c0e0aed5fc470cb213f7365fc38320657474a64ac74d0cb6"
+     },
++    {
++      "path": "canon/MISSION_EVENT_AND_CONTRACT_GRAMMAR_V0_1.md",
++      "title": "Mission, Event, and Contract Grammar",
++      "version": 0.1,
++      "status": "canonical",
++      "scope": "activity generation, authored missions, simulation opportunities, objective structure, failure continuation",
++      "owner": "design/narrative/systems",
++      "bytes": 14899,
++      "sha256": "2bba26afa015839f63055ef1cddb8b87f4042a0491e15e06ad703dcfcf1bd200"
++    },
++    {
++      "path": "canon/PLAYER_AUTHORSHIP_SANDBOX_AND_MODDING_CONTRACT_V0_1.md",
++      "title": "Player Authorship, Sandbox, and Modding Contract",
++      "version": 0.1,
++      "status": "canonical-draft",
++      "scope": "player-created systems, settlements, scripts, blueprints, scenarios, mods, creative modes, provenance",
++      "owner": "design/tools/platform",
++      "bytes": 8854,
++      "sha256": "b34a9a51a028db033b88805330e93b11beed2041579798cde5543c4e41937ff2"
++    },
+     {
+       "path": "canon/PLAYER_EXPERIENCE_AND_SESSION_RHYTHM_CONTRACT_V0_1.md",
+-      "category": "canon",
+       "title": "Player Experience and Session Rhythm Contract",
+-      "version": "0.1",
++      "version": 0.1,
+       "status": "canonical",
+       "scope": "minute-to-minute experience, session composition, pacing, friction, delight, closure",
+       "owner": "design/gameplay",
+-      "supersedes": null,
+-      "superseded_by": null,
+-      "front_matter": true,
+-      "words": 1734,
+-      "bytes": 13729,
+-      "links": 0,
+-      "sha256": "04bae49f5ff77e5ee74a7009e43dec7aa87f230d5cda7f19730ef92348613958"
++      "bytes": 14451,
++      "sha256": "1a07bdbf66bc3cfecb414916672acbfbc98bdee0b8fcf94ca2539e5a87204d7f"
+     },
+     {
+       "path": "canon/PROGRESSION_ECONOMY_AND_MASTERY_CONTRACT_V0_1.md",
+-      "category": "canon",
+       "title": "Progression, Economy, and Mastery Contract",
+-      "version": "0.1",
++      "version": 0.1,
+       "status": "canonical",
+       "scope": "player progression, capability gates, resource economy, specialization, anti-grind rules",
+       "owner": "design/systems",
+-      "supersedes": null,
+-      "superseded_by": null,
+-      "front_matter": true,
+-      "words": 1381,
+-      "bytes": 11458,
+-      "links": 0,
+-      "sha256": "26196e902e7bff5aea6e59e896fe4cc9b3e52d9b8ab88de8a7e0adb1bde9b75d"
++      "bytes": 12707,
++      "sha256": "9b247134e9de428f9d7b3b94fac86acd453e1d06b900b7f96160dc4d29e1cf3b"
+     },
+     {
+       "path": "canon/SCALE_LADDER_AND_PROGRESSION_CONSTITUTION_V0_1.md",
+-      "category": "canon",
+       "title": "Scale Ladder and Progression Constitution",
+-      "version": "0.1",
++      "version": 0.1,
+       "status": "canonical",
+       "scope": "progression, technology eras, world expansion",
+       "owner": "design/systems",
+-      "supersedes": null,
+-      "superseded_by": null,
+-      "front_matter": true,
+-      "words": 753,
+       "bytes": 6463,
+-      "links": 0,
+       "sha256": "f69193acabdd230d139fd4a62270ceddd5d752ccd0528ad8203dc173bda5f38f"
+     },
++    {
++      "path": "canon/SCIENCE_RESEARCH_AND_DISCOVERY_CONTRACT_V0_1.md",
++      "title": "Science, Research, and Discovery Contract",
++      "version": 0.1,
++      "status": "canonical",
++      "scope": "scientific gameplay, experiments, knowledge claims, research institutions, translation, reproducibility",
++      "owner": "design/simulation/narrative",
++      "bytes": 9974,
++      "sha256": "8269f3697d88dbf95311dcda1498140e2e2c8646e438e0d5243889af861594b9"
++    },
+     {
+       "path": "canon/SYMTROPY_GAME_CONSTITUTION_V0_5.md",
+-      "category": "canon",
+       "title": "Symtropy Game Constitution",
+-      "version": "0.5",
++      "version": 0.5,
+       "status": "superseded",
+       "scope": "whole-game identity, product boundaries, player promise",
+       "owner": null,
+-      "supersedes": null,
+-      "superseded_by": "canon/SYMTROPY_GAME_CONSTITUTION_V0_6.md",
+-      "front_matter": true,
+-      "words": 1155,
+       "bytes": 8593,
+-      "links": 0,
+       "sha256": "2bb8fb9dbb68dc9056a571c808e364b1817be70bff98176650ca651f6b879f68"
+     },
+     {
+       "path": "canon/SYMTROPY_GAME_CONSTITUTION_V0_6.md",
+-      "category": "canon",
+       "title": "Symtropy Game Constitution",
+-      "version": "0.6",
++      "version": 0.6,
+       "status": "canonical",
+       "scope": "whole-game identity, product boundaries, player promise, anti-reduction rules",
+       "owner": "design/creative-direction",
+-      "supersedes": [
+-        "canon/SYMTROPY_GAME_CONSTITUTION_V0_5.md"
+-      ],
+-      "superseded_by": null,
+-      "front_matter": true,
+-      "words": 1728,
+       "bytes": 12965,
+-      "links": 0,
+       "sha256": "d7573747cf84cc094e5585e8fdee4c4e42f56d61d3d11d6ac7374a460312cdf2"
+     },
+     {
+       "path": "canon/SYSTEM_INTERACTION_AND_DEPENDENCY_MAP_V0_1.md",
+-      "category": "canon",
+       "title": "System Interaction and Dependency Map",
+-      "version": "0.1",
++      "version": 0.1,
+       "status": "canonical",
+       "scope": "cross-system contracts, authority boundaries, event flow, integration gates",
+       "owner": "design/engineering",
+-      "supersedes": null,
+-      "superseded_by": null,
+-      "front_matter": true,
+-      "words": 1547,
+-      "bytes": 13747,
+-      "links": 0,
+-      "sha256": "b9176cdbc98a8f54e2133122dc353f0efb0ba529ac8284191b5985115e5f1f97"
++      "bytes": 15744,
++      "sha256": "7819f32bcd6f36071de1297d294882b88e5a671c11d0e625d53a628cbdfcfa25"
++    },
++    {
++      "path": "canon/WORLDLINE_LONG_HORIZON_AND_ENDGAME_CONTRACT_V0_1.md",
++      "title": "Worldline Long-Horizon and Endgame Contract",
++      "version": 0.1,
++      "status": "canonical-draft",
++      "scope": "late-game purpose, worldline maturity, planetary arcs, legacy, new-player continuity, non-terminal victory",
++      "owner": "design/worldline/systems",
++      "bytes": 8630,
++      "sha256": "c91133fb268e4c9195736e4de84ca52cd30929687d555ce39ce6fc6fcc9e9619"
+     },
+     {
+       "path": "lore/ALIEN_TYPES_AND_FIRST_CONTACT_EC.md",
+-      "category": "lore",
+-      "title": "ALIEN_TYPES_AND_FIRST_CONTACT_ECOLOGY.md",
++      "title": null,
+       "version": null,
+       "status": "unclassified",
+       "scope": null,
+       "owner": null,
+-      "supersedes": null,
+-      "superseded_by": null,
+-      "front_matter": false,
+-      "words": 6572,
+       "bytes": 51655,
+-      "links": 0,
+       "sha256": "c43de412510af45dc1b391f28499da1e219ee107af57d23f3ee6297905e03a1d"
+     },
+     {
+       "path": "lore/BELIEF_SYSTEMS_AND_CULTS.md",
+-      "category": "lore",
+-      "title": "BELIEF_SYSTEMS_AND_CULTS.md",
++      "title": null,
+       "version": null,
+       "status": "unclassified",
+       "scope": null,
+       "owner": null,
+-      "supersedes": null,
+-      "superseded_by": null,
+-      "front_matter": false,
+-      "words": 1923,
+       "bytes": 15194,
+-      "links": 0,
+       "sha256": "6445c35f9a702d8c0b28b41b7758c921e1ca94bdab43e05d9ea494a9e79981ee"
+     },
+     {
+       "path": "lore/EARTH_ATLAS_2168_TEMPLATE.md",
+-      "category": "lore",
+       "title": "Symtropy Earth Atlas 2168 Template",
+       "version": "v0.1",
+       "status": "canonical-draft",
+       "scope": "earth geography, nation-state transformation, regional pressure vectors, culture spectrum, Field Deck overlays, procedural history hooks",
+-      "owner": null,
+-      "supersedes": null,
+-      "superseded_by": null,
+-      "front_matter": true,
+-      "words": 2075,
+-      "bytes": 19843,
+-      "links": 0,
+-      "sha256": "946c9dee9b9dde5813f37371be6bfa0e71ad6862fe42b0d404f491bf8a776539"
++      "owner": "narrative/world/simulation",
++      "bytes": 19877,
++      "sha256": "9d61d1930aaad179aad657c9f8a16de979cbcfaa997755ad075f5903efe8211e"
+     },
+     {
+       "path": "lore/ENCOUNTER_CONTRACTS_AND_NONLETHAL_RESOLUTION.md",
+-      "category": "lore",
+-      "title": "ENCOUNTER_CONTRACTS_AND_NONLETHAL_RESOLUTION.md",
++      "title": null,
+       "version": null,
+       "status": "unclassified",
+       "scope": null,
+       "owner": null,
+-      "supersedes": null,
+-      "superseded_by": null,
+-      "front_matter": false,
+-      "words": 2726,
+       "bytes": 23103,
+-      "links": 0,
+       "sha256": "4bfc62d95134610e702e16fe299729df3af3c5ad722d604fc6ba4d57ad80c051"
+     },
+     {
+       "path": "lore/FACTION_LEGIBILITY_AND_AESTHETIC.md",
+-      "category": "lore",
+-      "title": "FACTION_LEGIBILITY_AND_AESTHETIC_GRAMMAR.md",
++      "title": null,
+       "version": null,
+       "status": "unclassified",
+       "scope": null,
+       "owner": null,
+-      "supersedes": null,
+-      "superseded_by": null,
+-      "front_matter": false,
+-      "words": 1209,
+       "bytes": 9958,
+-      "links": 0,
+       "sha256": "72d1f8ff485009ee20f61ad676e0b2b06b6c4659ac150f1b3b11e084a6ed18aa"
+     },
+     {
+       "path": "lore/FIRST_CONTACT_ESCALATION_LADDER.md",
+-      "category": "lore",
+-      "title": "FIRST_CONTACT_ESCALATION_LADDER.md",
++      "title": null,
+       "version": null,
+       "status": "unclassified",
+       "scope": null,
+       "owner": null,
+-      "supersedes": null,
+-      "superseded_by": null,
+-      "front_matter": false,
+-      "words": 2571,
+       "bytes": 20222,
+-      "links": 0,
+       "sha256": "31023b5af4dcffbc6c2be67031882e5cca42a21dcab1c59fecafe79c51dade78"
+     },
+     {
+       "path": "lore/HOSTILE_FACTIONS_AND_THREAT_ECOLOGY.md",
+-      "category": "lore",
+-      "title": "HOSTILE_FACTIONS_AND_THREAT_ECOLOGY.md",
++      "title": null,
+       "version": null,
+       "status": "unclassified",
+       "scope": null,
+       "owner": null,
+-      "supersedes": null,
+-      "superseded_by": null,
+-      "front_matter": false,
+-      "words": 5131,
+       "bytes": 39620,
+-      "links": 0,
+       "sha256": "13a752d819d106aec98d2057ec2e881ca8105a10badd16b86cbb8d1a9dfd8699"
+     },
+     {
+       "path": "lore/High-Gravity and Super-Earth Worlds.md",
+-      "category": "lore",
+-      "title": "High-Gravity and Super-Earth World Design Addendum",
++      "title": null,
+       "version": null,
+       "status": "unclassified",
+       "scope": null,
+       "owner": null,
+-      "supersedes": null,
+-      "superseded_by": null,
+-      "front_matter": false,
+-      "words": 1163,
+       "bytes": 9316,
+-      "links": 0,
+       "sha256": "395e93a317b67f84a82f1a0e823cd684194bb2869fe2d1602a59700c1689cd65"
+     },
+     {
+       "path": "lore/Human Tech Tree and Xeno-Translation Economy.md",
+-      "category": "lore",
+       "title": "Human Tech Tree and Xeno-Translation Economy",
+-      "version": null,
++      "version": 0.1,
+       "status": "canonical-draft",
+       "scope": "progression, trade, technology translation",
+-      "owner": "design",
+-      "supersedes": null,
+-      "superseded_by": null,
+-      "front_matter": true,
+-      "words": 2064,
+-      "bytes": 17187,
+-      "links": 0,
+-      "sha256": "1c32079658586270a63efacaf01a9e8628342c8c0838834d31e9b75a73429d18"
++      "owner": "design/systems/world",
++      "bytes": 17052,
++      "sha256": "21270e67c112a1c691b64a20deb8deff85df1c9f6b243485d333b6c5d041d611"
+     },
+     {
+       "path": "lore/NONHUMAN_GAME_THEORY_AND_AGENCY.md",
+-      "category": "lore",
+-      "title": "NONHUMAN_GAME_THEORY_AND_AGENCY.md",
++      "title": null,
+       "version": null,
+       "status": "unclassified",
+       "scope": null,
+       "owner": null,
+-      "supersedes": null,
+-      "superseded_by": null,
+-      "front_matter": false,
+-      "words": 3834,
+       "bytes": 31506,
+-      "links": 0,
+       "sha256": "6e4d76fd4b85544f097b8fedd287c93d6b5b77872c1bea4efd60f0323c5a6454"
+     },
+     {
+       "path": "lore/OLD_WATERWORKS_LEVEL_BIBLE.md",
+-      "category": "lore",
+-      "title": "OLD_WATERWORKS_LEVEL_BIBLE.md",
++      "title": null,
+       "version": null,
+       "status": "supporting",
+       "scope": null,
+       "owner": null,
+-      "supersedes": null,
+-      "superseded_by": null,
+-      "front_matter": true,
+-      "words": 3715,
+       "bytes": 29441,
+-      "links": 0,
+       "sha256": "4b5522af71d60cef6a37f52fcf1e55219e9a1bda5f69b8722345ef2bd11cdd9f"
+     },
+     {
+       "path": "lore/SOCIAL_SYSTEMS_AND_CHARTERS.md",
+-      "category": "lore",
+-      "title": "SOCIAL_SYSTEMS_AND_CHARTERS.md",
++      "title": null,
+       "version": null,
+       "status": "unclassified",
+       "scope": null,
+       "owner": null,
+-      "supersedes": null,
+-      "superseded_by": null,
+-      "front_matter": false,
+-      "words": 1965,
+       "bytes": 15553,
+-      "links": 0,
+       "sha256": "f124c015f8fd342f9c5b8bdcc26d79822c6803c9e2d6cd741161273a91bd2dcf"
+     },
+     {
+       "path": "lore/SOUTHERN_AFRICAN_WATER_ENERGY_COMPACT_V0_1.md",
+-      "category": "lore",
+       "title": "Southern African Water-Energy Compact",
+       "version": "v0.1",
+       "status": "canonical-draft",
+       "scope": "Earth Atlas 2168 showcase region, water-energy law, lithic hydro-rights, solar repair economy, post-state compacts",
+-      "owner": null,
+-      "supersedes": null,
+-      "superseded_by": null,
+-      "front_matter": true,
+-      "words": 4787,
+-      "bytes": 44065,
+-      "links": 0,
+-      "sha256": "bf2af08ca0bb01a73efd67d9c438ed22f92aa65f4b5cb78eb0cf0e9045cd1c38"
++      "owner": "narrative/world/simulation",
++      "bytes": 44099,
++      "sha256": "cecfb496faae099eaf15b7967aecece78eb0fe1c1508ca4785fae0f3e342403b"
+     },
+     {
+       "path": "lore/SPACE_HISTORY_2000_2168.md",
+-      "category": "lore",
+-      "title": "SPACE_HISTORY_2000_2168.md",
++      "title": null,
+       "version": null,
+       "status": "unclassified",
+       "scope": null,
+       "owner": null,
+-      "supersedes": null,
+-      "superseded_by": null,
+-      "front_matter": false,
+-      "words": 2790,
+       "bytes": 22573,
+-      "links": 0,
+       "sha256": "b8ef89b6c1e160e88a80b5f64e24766d2fc2b4169610684e60949fa79ac9cab2"
+     },
+     {
+       "path": "lore/SYMTROPY_CULTURAL_LOGIC_ATLAS_V0_1.md",
+-      "category": "lore",
+-      "title": "SYMTROPY_CULTURAL_LOGIC_ATLAS_V0_1.md",
++      "title": null,
+       "version": null,
+       "status": "unclassified",
+       "scope": null,
+       "owner": null,
+-      "supersedes": null,
+-      "superseded_by": null,
+-      "front_matter": false,
+-      "words": 8836,
+       "bytes": 73003,
+-      "links": 0,
+       "sha256": "11703975ed19220e56dc630e8797557f06e05c308acba450adb1e8f9a2985262"
+     },
+     {
+       "path": "lore/SYMTROPY_DARK_CULTURES_CODEX_V0_2.md",
+-      "category": "lore",
+-      "title": "SYMTROPY_DARK_CULTURES_CODEX_V0_2",
++      "title": null,
+       "version": null,
+       "status": "unclassified",
+       "scope": null,
+       "owner": null,
+-      "supersedes": null,
+-      "superseded_by": null,
+-      "front_matter": false,
+-      "words": 9187,
+       "bytes": 70496,
+-      "links": 0,
+       "sha256": "8dbf0a3e3da48ebcbe9140a8bf719f009ffeb42de937d88f944b46b4f33f7e26"
+     },
+     {
+       "path": "lore/SYMTROPY_LITHIC_AND_SUBCRUST_CULTURES_V0_1.md",
+-      "category": "lore",
+       "title": "Lithic and Subcrust Cultures",
+-      "version": "0.1",
++      "version": 0.1,
+       "status": "historical",
+       "scope": "early culture family draft",
+       "owner": "narrative/world",
+-      "supersedes": null,
+-      "superseded_by": "SYMTROPY_LITHIC_AND_SUBCRUST_CULTURES_V0_2.md",
+-      "front_matter": true,
+-      "words": 2935,
+       "bytes": 21869,
+-      "links": 0,
+       "sha256": "34a81be1bf85bd3dcb4da3475bc92f91469707df860962b67fa39d1abc6421b2"
+     },
+     {
+       "path": "lore/SYMTROPY_LITHIC_AND_SUBCRUST_CULTURES_V0_2.md",
+-      "category": "lore",
+       "title": "SYMTROPY_LITHIC_AND_SUBCRUST_CULTURES_V0_2",
+-      "version": null,
++      "version": 0.2,
+       "status": "canonical-draft",
+-      "scope": null,
+-      "owner": null,
+-      "supersedes": [
+-        "SYMTROPY_LITHIC_AND_SUBCRUST_CULTURES_V0_1.md"
+-      ],
+-      "superseded_by": null,
+-      "front_matter": true,
+-      "words": 3380,
+-      "bytes": 27873,
+-      "links": 0,
+-      "sha256": "568e873befcb28fa607df8930aad5cfc48859c3108fc3db0e38e24f370d3390c"
++      "scope": "lithic and subterranean culture systems, environments, Field Deck and encounter design",
++      "owner": "narrative/world/design",
++      "bytes": 28010,
++      "sha256": "3c634566ea5dd77b83b7c267849a6ce73dbd1751f048421593668b59b428daa4"
+     },
+     {
+       "path": "lore/SYMTROPY_REFUSAL_BUNKERS_AND_NULL_CARE_VAULTS_V0_1.md",
+-      "category": "lore",
+       "title": "SYMTROPY_REFUSAL_BUNKERS_AND_NULL_CARE_VAULTS_V0_1",
+-      "version": null,
++      "version": 0.1,
+       "status": "canonical-draft",
+-      "scope": null,
+-      "owner": null,
+-      "supersedes": null,
+-      "superseded_by": null,
+-      "front_matter": true,
+-      "words": 3481,
+-      "bytes": 28804,
+-      "links": 0,
+-      "sha256": "885c1e8b385d66fdff77c15d5329948daf538286f43a3f96028106d37318da36"
++      "scope": "refusal bunker and Null-care society systems, consent, containment, Field Deck interaction",
++      "owner": "narrative/world/design",
++      "bytes": 28945,
++      "sha256": "35995ffdf7135f8d3b13a853113cd1b4ce31ed31046d8506ebd523cf7db9e880"
+     },
+     {
+       "path": "lore/SYMTROPY_SPACEPORTS_AND_LAUNCH_CIVILIZATIONS_V0_1.md",
+-      "category": "lore",
+       "title": "SYMTROPY_SPACEPORTS_AND_LAUNCH_CIVILIZATIONS_V0_1",
+-      "version": null,
++      "version": 0.1,
+       "status": "canonical-draft",
+-      "scope": null,
+-      "owner": null,
+-      "supersedes": null,
+-      "superseded_by": null,
+-      "front_matter": true,
+-      "words": 4312,
+-      "bytes": 35893,
+-      "links": 0,
+-      "sha256": "1c7e39165f29db1afa8032e96ea2988837151c172dab376788531935fedee453"
++      "scope": "spaceport societies, launch infrastructure, labor, law, Chronicle and Field Deck interaction",
++      "owner": "narrative/world/design",
++      "bytes": 36036,
++      "sha256": "eddb8852514b22e3c8778de0624bc0f0c3f3e51dcbe859451b9f91cf239f35b4"
+     },
+     {
+       "path": "lore/Solar Mandala Confluence.md",
+-      "category": "lore",
+       "title": "Solar Mandala Confluence",
+-      "version": "0.1",
++      "version": 0.1,
+       "status": "canonical-draft",
+       "scope": "society design, architecture, festival law, solarpunk rave culture, city-building mechanics, crisis hooks",
+-      "owner": null,
+-      "supersedes": null,
+-      "superseded_by": null,
+-      "front_matter": true,
+-      "words": 2974,
+-      "bytes": 24134,
+-      "links": 0,
+-      "sha256": "d2dc17b31c74848ce50b4fba64c27463044214d415256859a04dc4109e4ad829"
++      "owner": "narrative/world/design",
++      "bytes": 24094,
++      "sha256": "7ec71b007eab3bed159af2fb404c025502bac4a2e7f28203dcb265a28751c77f"
+     },
+     {
+       "path": "lore/Symtropy Alien Architecture Design.md",
+-      "category": "lore",
+-      "title": "Symtropy Alien Architecture Design Bible",
++      "title": null,
+       "version": null,
+       "status": "unclassified",
+       "scope": null,
+       "owner": null,
+-      "supersedes": null,
+-      "superseded_by": null,
+-      "front_matter": false,
+-      "words": 2789,
+       "bytes": 23497,
+-      "links": 0,
+       "sha256": "8bf00bc74888640fb374418471d6f130abef05cbcf6da5071be199c8bc4e99dd"
+     },
+     {
+       "path": "lore/Symtropy Alien Technology, Deep-Time Presence, and Earth Contact Doctrine.md",
+-      "category": "lore",
+-      "title": "Symtropy Alien Technology, Deep-Time Presence, and Earth Contact Doctrine",
++      "title": null,
+       "version": null,
+       "status": "unclassified",
+       "scope": null,
+       "owner": null,
+-      "supersedes": null,
+-      "superseded_by": null,
+-      "front_matter": false,
+-      "words": 2963,
+       "bytes": 24376,
+-      "links": 0,
+       "sha256": "ab3c523e937d2b0e7289aa4f3bac2004a46603763b88fcc7db62de07729cb258"
+     },
+     {
+       "path": "lore/Symtropy Lore-Site Doc: The Dead Company-Town Utility.md",
+-      "category": "lore",
+-      "title": "Symtropy Lore-Site Doc: The Dead Company-Town Utility",
++      "title": null,
+       "version": null,
+       "status": "unclassified",
+       "scope": null,
+       "owner": null,
+-      "supersedes": null,
+-      "superseded_by": null,
+-      "front_matter": false,
+-      "words": 1062,
+       "bytes": 8125,
+-      "links": 0,
+       "sha256": "a37048af800055a4ae95b3056ec6a18b7659a00b5466fa8b6155ab337165a348"
+     },
+     {
+       "path": "lore/Symtropy Lore-Site Doc: The First Continuance Shelter.md",
+-      "category": "lore",
+-      "title": "Symtropy Lore-Site Doc: The First Continuance Shelter",
++      "title": null,
+       "version": null,
+       "status": "unclassified",
+       "scope": null,
+       "owner": null,
+-      "supersedes": null,
+-      "superseded_by": null,
+-      "front_matter": false,
+-      "words": 1204,
+       "bytes": 9112,
+-      "links": 0,
+       "sha256": "0302aef19a2e1e9e12cdc735561c4c46853cd115976a88f32c4eada943a5df10"
+     },
+     {
+       "path": "lore/Symtropy Lore-Site Doc: The Military Flood Control Facility.md",
+-      "category": "lore",
+-      "title": "Symtropy Lore-Site Doc: The Military Flood Control Facility",
++      "title": null,
+       "version": null,
+       "status": "unclassified",
+       "scope": null,
+       "owner": null,
+-      "supersedes": null,
+-      "superseded_by": null,
+-      "front_matter": false,
+-      "words": 1084,
+       "bytes": 8409,
+-      "links": 0,
+       "sha256": "815c8263970fa593ebc895ebdc13485890f7289b4e5ad796ef14c7c7e2a9b5a4"
+     },
+     {
+       "path": "lore/Symtropy Lore-Site Doc: The Missing Registry.md",
+-      "category": "lore",
+-      "title": "Symtropy Lore-Site Doc: The Missing Registry",
++      "title": null,
+       "version": null,
+       "status": "unclassified",
+       "scope": null,
+       "owner": null,
+-      "supersedes": null,
+-      "superseded_by": null,
+-      "front_matter": false,
+-      "words": 1231,
+       "bytes": 9362,
+-      "links": 0,
+       "sha256": "1f18d7dc4b882855c56e2b0ed9473659338022269ff253e5170d3c4daeb8d4e8"
+     },
+     {
+       "path": "lore/Symtropy Naval & Fleet Design Bible.md",
+-      "category": "lore",
+-      "title": "Symtropy Naval & Fleet Design Bible",
++      "title": null,
+       "version": null,
+       "status": "unclassified",
+       "scope": null,
+       "owner": null,
+-      "supersedes": null,
+-      "superseded_by": null,
+-      "front_matter": false,
+-      "words": 4846,
+       "bytes": 37785,
+-      "links": 0,
+       "sha256": "07ac4bdf9a728a88be78d6c4f214c4004473edcea6e1a9fd665ab830f7f46e1f"
+     },
+     {
+       "path": "lore/Symtropy Society Design Bible: The Titration Commonwealth.md",
+-      "category": "lore",
+-      "title": "Symtropy Society Design Bible: The Titration Commonwealth",
++      "title": null,
+       "version": null,
+       "status": "unclassified",
+       "scope": null,
+       "owner": null,
+-      "supersedes": null,
+-      "superseded_by": null,
+-      "front_matter": false,
+-      "words": 2846,
+       "bytes": 22613,
+-      "links": 0,
+       "sha256": "f49361996aaa50c1f7041bdd599bff0416be333c2dc2c849ee63d2a9686624fa"
+     },
+     {
+       "path": "lore/Symtropy Subcultural Society Atlas.md",
+-      "category": "lore",
+-      "title": "Symtropy Subcultural Society Atlas v0.1",
++      "title": null,
+       "version": null,
+       "status": "unclassified",
+       "scope": null,
+       "owner": null,
+-      "supersedes": null,
+-      "superseded_by": null,
+-      "front_matter": false,
+-      "words": 2574,
+       "bytes": 20310,
+-      "links": 0,
+       "sha256": "c8c1113e46cca83d30fa46f6ab19c2d155c962d549da3a4288dbf0c5a81c84b6"
+     },
+     {
+       "path": "lore/Symtropy_Dreamglass_Mesh_Lore_Module_v0_3.md",
+-      "category": "lore",
+-      "title": "Symtropy: Dreamglass Mesh & Refuge Cities v0.3",
++      "title": null,
+       "version": null,
+       "status": "unclassified",
+       "scope": null,
+       "owner": null,
+-      "supersedes": null,
+-      "superseded_by": null,
+-      "front_matter": false,
+-      "words": 5221,
+       "bytes": 39288,
+-      "links": 0,
+       "sha256": "ce4070d28d902e76385f3358b84518cfc6b73326e3c314e2c4c435fe13c93ac7"
+     },
+     {
+       "path": "lore/Symtropy_New_Cultures_Compendium_v0_1.md",
+-      "category": "lore",
+       "title": "Symtropy New Cultures Compendium",
+-      "version": "0.1",
++      "version": 0.1,
+       "status": "historical",
+       "scope": "early culture compendium",
+       "owner": "narrative/world",
+-      "supersedes": null,
+-      "superseded_by": "Symtropy_New_Cultures_Compendium_v0_3.md",
+-      "front_matter": true,
+-      "words": 3464,
+       "bytes": 26652,
+-      "links": 0,
+       "sha256": "ab032f68f3328edf04e33142dde0e16503331535a015d25152790a3cb476af30"
+     },
+     {
+       "path": "lore/Symtropy_New_Cultures_Compendium_v0_3.md",
+-      "category": "lore",
+       "title": "Symtropy New Cultures Compendium",
+-      "version": "0.3",
++      "version": 0.3,
+       "status": "canonical-draft",
+       "scope": "culture registry, production texture, encounter and faction seeds",
+       "owner": "narrative/world",
+-      "supersedes": [
+-        "Symtropy_New_Cultures_Compendium_v0_1.md"
+-      ],
+-      "superseded_by": null,
+-      "front_matter": true,
+-      "words": 5305,
+       "bytes": 40202,
+-      "links": 0,
+       "sha256": "17e1f841f931fbdecf4b11e21739ec0d56a2abb445d0b9cfd2fdf917eedbbd17"
+     },
+     {
+       "path": "lore/WHITE_LEDGER_TERRITORIES_ANTARCTICA_V0_1.md",
+-      "category": "lore",
+       "title": "White Ledger Territories / Antarctica 2168",
+       "version": "v0.1",
+       "status": "canonical-draft",
+       "scope": "Earth Atlas 2168 anchor region, Antarctica, treaty inheritance, archive sanctuaries, geothermal habitats, refuge politics",
+-      "owner": null,
+-      "supersedes": null,
+-      "superseded_by": null,
+-      "front_matter": true,
+-      "words": 4837,
+-      "bytes": 44888,
+-      "links": 0,
+-      "sha256": "7f680a40808053b8c9bdeec9658b3696992d9a3b1f2ea36169ad44ad7e16eca0"
++      "owner": "narrative/world/simulation",
++      "bytes": 44922,
++      "sha256": "54534f63052cf21642f130bcaf32237948f387ded005b74610d64b891f53af6f"
+     },
+     {
+       "path": "lore/WORLD_TIMELINE_2000_2168.md",
+-      "category": "lore",
+-      "title": "Macro-History Layer: Nation-States, Energy, Technology, and Collapse",
++      "title": null,
+       "version": null,
+       "status": "unclassified",
+       "scope": null,
+       "owner": null,
+-      "supersedes": null,
+-      "superseded_by": null,
+-      "front_matter": false,
+-      "words": 2685,
+       "bytes": 22082,
+-      "links": 0,
+       "sha256": "4eea7197f0a32863432ad21141c91e6d4a9c2ee61fad245f9cbd5417c6bac45c"
+     },
+     {
+       "path": "ops/DOCUMENT_CORPUS_AUDIT_2026_07_20.md",
+-      "category": "ops",
+       "title": "Symtropy Document Corpus Audit",
+-      "version": "1.0",
++      "version": 1.0,
+       "status": "implementation-spec",
+       "scope": "documentation structure, overlap, gaps, canonicalization",
+       "owner": "documentation/design",
+-      "supersedes": null,
+-      "superseded_by": null,
+-      "front_matter": true,
+-      "words": 743,
+       "bytes": 6607,
+-      "links": 0,
+       "sha256": "ace7a000eb1948c12303fd46a0312f7181fdc18dd18ffe629f83764fc91bf4f4"
+     },
+     {
+       "path": "ops/DOCUMENT_METADATA_MIGRATION_AND_CONSOLIDATION_PLAN_V0_2.md",
+-      "category": "ops",
+       "title": "Document Metadata Migration and Consolidation Plan",
+-      "version": "0.2",
++      "version": 0.2,
+       "status": "implementation-spec",
+       "scope": "corpus metadata, duplicate families, canonical ownership, archive migration",
+       "owner": "documentation/design",
+-      "supersedes": null,
+-      "superseded_by": null,
+-      "front_matter": true,
+-      "words": 601,
+       "bytes": 5512,
+-      "links": 0,
+       "sha256": "fc1946043709b825860806ae6db297b8dad49c42dbe3a438507dbe2f0d187e2f"
+     },
+     {
+       "path": "ops/DOCUMENT_REGISTRY_SUMMARY.md",
+-      "category": "ops",
+-      "title": "Document Registry Summary",
+-      "version": "0.2",
+-      "status": "implementation-spec",
+-      "scope": "generated corpus inventory summary",
+-      "owner": "documentation/design",
+-      "supersedes": null,
+-      "superseded_by": null,
+-      "front_matter": true,
+-      "words": 186,
+-      "bytes": 2177,
+-      "links": 14,
+-      "sha256": "7dcc20b5a7172ad090ac6701d3cdd5b0bc2f603557c9525a12f64cd36037b5b5"
++      "title": null,
++      "version": null,
++      "status": "unclassified",
++      "scope": null,
++      "owner": null,
++      "bytes": 402,
++      "sha256": "9a0ebda919fef1b95c1cf734a98ef10e07cf0a883ff7d36bd5beab28879f3188"
+     },
+     {
+       "path": "ops/FOUNDING_TRIANGLE_START_FLOW.md",
+-      "category": "ops",
+-      "title": "FOUNDING_TRIANGLE_START_FLOW.md",
++      "title": null,
+       "version": null,
+       "status": "unclassified",
+       "scope": null,
+       "owner": null,
+-      "supersedes": null,
+-      "superseded_by": null,
+-      "front_matter": false,
+-      "words": 2256,
+       "bytes": 16327,
+-      "links": 0,
+       "sha256": "dd8690f60ebd7e6161bb9d57737a5e815d06823c39f9669a1ca6ea59419e0010"
+     },
+     {
+       "path": "ops/PLAYTEST_CHECKLIST.md",
+-      "category": "ops",
+       "title": "Symtropy Prototype Playtest Checklist",
+       "version": "legacy",
+       "status": "historical",
+       "scope": "early dungeon/Mycelix prototype functional checks",
+       "owner": "archive/qa",
+-      "supersedes": null,
+-      "superseded_by": "PLAYTEST_RESEARCH_PROGRAM_V0_2.md",
+-      "front_matter": true,
+-      "words": 352,
+       "bytes": 3084,
+-      "links": 1,
+       "sha256": "6e78ffbea54d48e03f29c6f3c4fdcda0ea0117e8d27dfb27a279cd2195a9b389"
+     },
+     {
+       "path": "ops/PLAYTEST_RESEARCH_PROGRAM_V0_2.md",
+-      "category": "ops",
+       "title": "Symtropy Playtest Research Program",
+-      "version": "0.2",
++      "version": 0.2,
+       "status": "implementation-spec",
+       "scope": "qualitative and quantitative validation of representative gameplay",
+       "owner": "research/design/qa",
+-      "supersedes": [
+-        "ops/PLAYTEST_CHECKLIST.md"
+-      ],
+-      "superseded_by": null,
+-      "front_matter": true,
+-      "words": 1394,
+-      "bytes": 11210,
+-      "links": 0,
+-      "sha256": "f496613bac90c19dd2e69e758d84845d77d4a3ee4faa8b1dac037dea44242811"
++      "bytes": 12722,
++      "sha256": "adfa95209402cb215ec2d0224e13523e04e3b93baa6f5e65f22f5f19990fb2ab"
+     },
+     {
+       "path": "ops/ROADMAP.md",
+-      "category": "ops",
+       "title": "Symtropy Engineering Roadmap",
+       "version": "2026-07-20",
+       "status": "canonical-draft",
+       "scope": "engineering phases, crate integration, platform expansion, physics work",
+       "owner": "engineering/production",
+-      "supersedes": null,
+-      "superseded_by": null,
+-      "front_matter": true,
+-      "words": 5001,
+-      "bytes": 42121,
+-      "links": 3,
+-      "sha256": "68a2408cc62bdb66c503a07f8cd70b5bc328d943235b33d22c5e94b4bb64659f"
++      "bytes": 42832,
++      "sha256": "463898b50bc6dd93878abda5541b40fa9b105d3f3ccd1dcd6296fa2a88cde6a8"
+     },
+     {
+       "path": "ops/ROBOTICS_ROADMAP_TECH_TREE_EXPANSION_V0_3_2.md",
+-      "category": "ops",
+       "title": "Robotics Roadmap + Seedworks Tech Tree Expansion v0.3.2",
+-      "version": null,
++      "version": "0.3.2",
+       "status": "canonical-draft",
+       "scope": "robotics roadmap, tech-tree expansion, Infrastructure Loom integration, future-tech horizon",
+       "owner": "design/engineering",
+-      "supersedes": null,
+-      "superseded_by": null,
+-      "front_matter": true,
+-      "words": 3804,
+-      "bytes": 32561,
+-      "links": 0,
+-      "sha256": "e7efd74f26c9a348cc9cf640e17b89417224a6723521271a6a411abb0bde1e4e"
++      "bytes": 32576,
++      "sha256": "7acabf7209c6b1ed8d53ef9eccd3619b6b91352023dcfc2bae55b8d497a69158"
+     },
+     {
+       "path": "ops/Robotics_Platform_ROADMAP.md",
+-      "category": "ops",
+-      "title": "Symtropy Roadmap: The Metabolism of a Type 1 Civilization",
++      "title": null,
+       "version": null,
+       "status": "unclassified",
+       "scope": null,
+       "owner": null,
+-      "supersedes": null,
+-      "superseded_by": null,
+-      "front_matter": false,
+-      "words": 620,
+       "bytes": 5796,
+-      "links": 0,
+       "sha256": "1798b789036719b0491c1945fa548d3c472e1b121a323bb4d62ae18cc32183f4"
+     },
+     {
+       "path": "ops/SEEDWORKS_FACTION_VERTICAL_SLICE.md",
+-      "category": "ops",
+-      "title": "SEEDWORKS_FACTION_VERTICAL_SLICE.md",
++      "title": null,
+       "version": null,
+       "status": "unclassified",
+       "scope": null,
+       "owner": null,
+-      "supersedes": null,
+-      "superseded_by": null,
+-      "front_matter": false,
+-      "words": 1450,
+       "bytes": 11723,
+-      "links": 0,
+       "sha256": "eb688a7028c52fc0a94468fb3e4894d0ee14806deeddff83dc21cb9b486f23b8"
+     },
+     {
+       "path": "ops/SEEDWORKS_NEXT_BUILD_PLAN.md",
+-      "category": "ops",
+-      "title": "SEEDWORKS_NEXT_BUILD_PLAN.md",
++      "title": null,
+       "version": null,
+       "status": "unclassified",
+       "scope": null,
+       "owner": null,
+-      "supersedes": null,
+-      "superseded_by": null,
+-      "front_matter": false,
+-      "words": 1043,
+       "bytes": 7662,
+-      "links": 0,
+       "sha256": "80a24857421551fb7e57f49768862532623f94c7ca78749d84c61fa3e2a33fb7"
+     },
+     {
+       "path": "ops/SEEDWORKS_ONBOARDING_AND_FIRST_TEN_HOURS_V0_1.md",
+-      "category": "ops",
+       "title": "Seedworks Onboarding and First Ten Hours",
+-      "version": "0.1",
++      "version": 0.1,
+       "status": "canonical-draft",
+       "scope": "new-player onboarding, complexity reveal, early goals, first-ten-hour progression",
+       "owner": "design/production",
+-      "supersedes": null,
+-      "superseded_by": null,
+-      "front_matter": true,
+-      "words": 1813,
+       "bytes": 13570,
+-      "links": 0,
+       "sha256": "b31d36759d2029a2a0b9ab31c8431f1efff6326b290235a32c4889f9e683dc48"
+     },
+     {
+       "path": "ops/SEEDWORKS_PLAYABLE_SLICE_SPEC.md",
+-      "category": "ops",
+-      "title": "SEEDWORKS_PLAYABLE_SLICE_SPEC.md",
++      "title": null,
+       "version": null,
+       "status": "superseded",
+       "scope": null,
+       "owner": null,
+-      "supersedes": null,
+-      "superseded_by": "SEEDWORKS_REGIONAL_CIVILIZATION_SLICE_V0_2.md",
+-      "front_matter": true,
+-      "words": 4091,
+       "bytes": 31542,
+-      "links": 0,
+       "sha256": "c79f1d07a5b2d7e1e2eb1569fe4e7b94c00d0aca217c441e93bf281fede66828"
+     },
+     {
+       "path": "ops/SEEDWORKS_PRODUCTION_BUDGET_AND_CONTENT_PLAN_V0_1.md",
+-      "category": "ops",
+       "title": "Seedworks Production Budget and Content Plan",
+-      "version": "0.1",
++      "version": 0.1,
+       "status": "canonical-draft",
+       "scope": "representative regional build, content budgets, cut lines, milestone proof gates",
+       "owner": "production/design/engineering",
+-      "supersedes": null,
+-      "superseded_by": null,
+-      "front_matter": true,
+-      "words": 1598,
+       "bytes": 12350,
+-      "links": 0,
+       "sha256": "cd077e3d1f0f51924175709cbe7db0031d4f2cc10ea8a897bd5e1ecf7d231e0d"
+     },
+     {
+       "path": "ops/SEEDWORKS_REGIONAL_CIVILIZATION_SLICE_V0_2.md",
+-      "category": "ops",
+       "title": "Seedworks Regional Civilization Slice",
+-      "version": "0.2",
++      "version": 0.2,
+       "status": "canonical-draft",
+       "scope": "Firstlight Basin regional vertical slice",
+       "owner": "design/production",
+-      "supersedes": [
+-        "ops/SEEDWORKS_PLAYABLE_SLICE_SPEC.md"
+-      ],
+-      "superseded_by": null,
+-      "front_matter": true,
+-      "words": 1689,
+       "bytes": 12991,
+-      "links": 0,
+       "sha256": "d31fc1bcbd7a270cda66245a056e9a00e479e08e1ee4680551ead169451e5e93"
+     },
+     {
+       "path": "ops/SEEDWORKS_TECH_BRANCH_PACK_V0_3_1.md",
+-      "category": "ops",
+       "title": "Seedworks Tech Branch Pack v0.3.1",
+-      "version": null,
++      "version": "0.3.1",
+       "status": "canonical-draft",
+       "scope": "infrastructure loom, branch design, future tech, robotics roadmap, serialized node planning",
+       "owner": "design/engineering/worldbuilding",
+-      "supersedes": null,
+-      "superseded_by": null,
+-      "front_matter": true,
+-      "words": 7455,
+-      "bytes": 63213,
+-      "links": 0,
+-      "sha256": "7d5eeaa40556a51ca08ede71da721c7d2cabaed82fccc0916dbf0840c5c2e832"
++      "bytes": 63228,
++      "sha256": "402af1f10cab0acb3be7212571bf4ed4003c50ecfd876152446f0fc30501a902"
+     },
+     {
+       "path": "ops/SEEDWORKS_TECH_TREE_AUDIT_AND_HORIZON_GATES_V0_3_3.md",
+-      "category": "ops",
+       "title": "Seedworks Tech Tree Audit and Horizon Gates v0.3.3",
+-      "version": null,
++      "version": "0.3.3",
+       "status": "canonical-draft",
+       "scope": "tech-tree validation, horizon gates, robotics permission envelopes, corruption branches, Chronicle event map, Loom UI requirements",
+       "owner": "design/engineering/worldbuilding",
+-      "supersedes": null,
+-      "superseded_by": null,
+-      "front_matter": true,
+-      "words": 7433,
+-      "bytes": 63241,
+-      "links": 0,
+-      "sha256": "0da305998a09e1685550813687a8ebd2af124c235b7d076032227dc7d12ad021"
++      "bytes": 63256,
++      "sha256": "26b3e1b60117a707d867fa9a1151271f5b3bf1ce9f0c4dd5759f47e6f6312832"
+     },
+     {
+       "path": "ops/Seedworks Tech Tree Dependency Spine.md",
+-      "category": "ops",
+       "title": "Seedworks Tech Tree Dependency Spine",
+-      "version": null,
++      "version": 0.1,
+       "status": "canonical-draft",
+       "scope": "technology dependencies, unlock logic, production planning",
+       "owner": "design/engineering",
+-      "supersedes": null,
+-      "superseded_by": null,
+-      "front_matter": true,
+-      "words": 1815,
+-      "bytes": 14976,
+-      "links": 0,
+-      "sha256": "579cf692d3db366a593a8171fd913d9ba68a6354521482805066528d95ab6faf"
++      "bytes": 14859,
++      "sha256": "2b98d11df0fdbac40960fb283cf52f814fdc85dd1934bc382f1365f1b75fcff2"
+     },
+     {
+       "path": "ops/Seedworks Tech Unlock Table v0.1–v0.3.md",
+-      "category": "ops",
+       "title": "Seedworks Tech Unlock Table v0.1–v0.3",
+-      "version": null,
++      "version": "0.1-0.3",
+       "status": "canonical-draft",
+       "scope": "progression, unlocks, production roadmap",
+       "owner": "design/engineering",
+-      "supersedes": null,
+-      "superseded_by": null,
+-      "front_matter": true,
+-      "words": 5818,
+-      "bytes": 55581,
+-      "links": 0,
+-      "sha256": "87c52ca983af972c599a3969177938174b063cfbc6c38c251fb5cecf2c2d15eb"
++      "bytes": 55450,
++      "sha256": "76e190452289abe320d5b4cbb06a67234810b2d78f1fd58b8c7753ebdb630fc9"
+     },
+     {
+       "path": "ops/Substrate Systems Implementation Tickets.md",
+-      "category": "ops",
+       "title": "Substrate Systems Implementation Tickets",
+-      "version": "0.1",
++      "version": 0.1,
+       "status": "implementation-spec",
+       "scope": "engineering tickets",
+       "owner": "engineering",
+-      "supersedes": null,
+-      "superseded_by": null,
+-      "front_matter": true,
+-      "words": 1267,
+-      "bytes": 10820,
+-      "links": 0,
+-      "sha256": "e59c07ce7e87f1670a8a3ee821c775f8dafeb89e6ff94fed5a1c01b00cf3dec7"
++      "bytes": 10740,
++      "sha256": "e06a47226dafc63d18236875db4f5ac0822409ccc28c691203ca3b2d8d577a93"
+     },
+     {
+       "path": "ops/Symtropy Milestone Spec Seedwork.md",
+-      "category": "ops",
+-      "title": "Symtropy Milestone Spec: Seedworks v0.1",
++      "title": null,
+       "version": null,
+       "status": "unclassified",
+       "scope": null,
+       "owner": null,
+-      "supersedes": null,
+-      "superseded_by": null,
+-      "front_matter": false,
+-      "words": 2046,
+       "bytes": 15458,
+-      "links": 0,
+       "sha256": "ef6c0fa027cfb830354ae72613785ce8d3fbd7a7ee469066adb9712ddc851797"
+     },
++    {
++      "path": "ops/V0_7_INTEGRATION_PATCH_CAMPAIGN.md",
++      "title": "Symtropy v0.7 Integration Patch Campaign",
++      "version": 0.7,
++      "status": "implementation-spec",
++      "scope": "patch grouping, prototype gates, adoption order, deferrals",
++      "owner": "documentation/design/engineering",
++      "bytes": 2227,
++      "sha256": "0f15aaf822db8cbc18454676f8de31a2055bfce15bf9a8cfcdc0af05b68e7c74"
++    },
+     {
+       "path": "ops/symtropy_earth_atlas_implementation_debt_patch_v0_2/CHOKED_VALVE_COURT_GHOST_MINE_CONTINUITY_PATCH_V0_2.md",
+-      "category": "ops",
+       "title": "Choked Valve Court Ghost Mine Continuity Patch v0.2",
+       "version": null,
+       "status": "supporting",
+       "scope": null,
+       "owner": null,
+-      "supersedes": null,
+-      "superseded_by": null,
+-      "front_matter": true,
+-      "words": 949,
+       "bytes": 7427,
+-      "links": 0,
+       "sha256": "6448b96bf87dd8fe14440046319edb1152981f612459f3e3820212c5ac47612b"
+     },
+     {
+       "path": "ops/symtropy_earth_atlas_implementation_debt_patch_v0_2/CHRONICLE_MVP_SPEC_V0_1.md",
+-      "category": "ops",
+       "title": "Chronicle MVP Spec v0.1",
+-      "version": null,
++      "version": 0.1,
+       "status": "canonical-draft",
+-      "scope": null,
+-      "owner": null,
+-      "supersedes": null,
+-      "superseded_by": null,
+-      "front_matter": true,
+-      "words": 810,
+-      "bytes": 7520,
+-      "links": 0,
+-      "sha256": "0c9ca7d017041865eff1aa7f4b04ffbac71f61d886afebaf9f4a0e1681727729"
++      "scope": "minimum Chronicle implementation, event capture, rendering, persistence and validation",
++      "owner": "design/engineering",
++      "bytes": 7653,
++      "sha256": "6d662ad0bb97392292bd1d99c4b706dac2a9e380dae485218cd06f86fd9c7fea"
+     },
+     {
+       "path": "ops/symtropy_earth_atlas_implementation_debt_patch_v0_2/EARTH_ATLAS_IMPLEMENTATION_DEBT_PATCH_README_V0_2.md",
+-      "category": "ops",
+       "title": "Earth Atlas Implementation Debt Patch README v0.2",
+       "version": null,
+       "status": "supporting",
+       "scope": null,
+       "owner": null,
+-      "supersedes": null,
+-      "superseded_by": null,
+-      "front_matter": true,
+-      "words": 382,
+       "bytes": 3355,
+-      "links": 0,
+       "sha256": "db597148b35a800f650fbedcb5f6a6224b6d99577bc24deacaee0bebf784b291"
+     },
+     {
+       "path": "ops/symtropy_earth_atlas_implementation_debt_patch_v0_2/FIELD_DECK_OVERLAY_PRECEDENCE_RULES_V0_1.md",
+-      "category": "ops",
+       "title": "Field Deck Overlay Precedence Rules v0.1",
+-      "version": null,
++      "version": 0.1,
+       "status": "canonical-draft",
+-      "scope": null,
+-      "owner": null,
+-      "supersedes": null,
+-      "superseded_by": null,
+-      "front_matter": true,
+-      "words": 967,
+-      "bytes": 7944,
+-      "links": 0,
+-      "sha256": "82cd5f7bc3df382a6f3baf3d81317afb5d026022ea36052378779ea881126723"
++      "scope": "Field Deck overlay conflict resolution, priority and presentation rules",
++      "owner": "design/UI/engineering",
++      "bytes": 8065,
++      "sha256": "2cd6a0b2eea68173a491b9eada752479af9c7a13f4913b2e2f79e8009980e9af"
+     },
+     {
+       "path": "ops/symtropy_earth_atlas_implementation_debt_patch_v0_2/GREEN_COVER_LIE_RESOLUTION_MECHANIC_V0_1.md",
+-      "category": "ops",
+       "title": "Green Cover Lie Resolution Mechanic v0.1",
+-      "version": null,
++      "version": 0.1,
+       "status": "canonical-draft",
+-      "scope": null,
+-      "owner": null,
+-      "supersedes": null,
+-      "superseded_by": null,
+-      "front_matter": true,
+-      "words": 940,
+-      "bytes": 7477,
+-      "links": 0,
+-      "sha256": "8c739542cadf8f7c418f4cff59124f957d395d5d06a9db419fbc337d9f7dab79"
++      "scope": "ecological evidence, deceptive restoration claims, investigation and resolution mechanics",
++      "owner": "design/simulation/narrative",
++      "bytes": 7622,
++      "sha256": "f52d0f573e479f05f00b5910f9c35ca8b23b5cbc434417ce88876db74d4e0991"
+     },
+     {
+       "path": "ops/symtropy_earth_atlas_implementation_debt_patch_v0_2/PENINSULA_REFUGE_COALITION_DYNAMICS_PATCH_V0_1.md",
+-      "category": "ops",
+       "title": "Peninsula Refuge Coalition Dynamics Patch v0.1",
+       "version": null,
+       "status": "supporting",
+       "scope": null,
+       "owner": null,
+-      "supersedes": null,
+-      "superseded_by": null,
+-      "front_matter": true,
+-      "words": 977,
+       "bytes": 8276,
+-      "links": 0,
+       "sha256": "ca890cb45a6a8c7b14390749c9ad46e30a559021e45e626266fe587388b4079f"
+     },
+     {
+       "path": "ops/symtropy_earth_atlas_implementation_debt_patch_v0_2/ROAD_CHOIR_MOBILE_ACCOUNTABILITY_MECHANICS_V0_1.md",
+-      "category": "ops",
+       "title": "Road Choir Mobile Accountability Mechanics v0.1",
+-      "version": null,
++      "version": 0.1,
+       "status": "canonical-draft",
+-      "scope": null,
+-      "owner": null,
+-      "supersedes": null,
+-      "superseded_by": null,
+-      "front_matter": true,
+-      "words": 1005,
+-      "bytes": 7976,
+-      "links": 0,
+-      "sha256": "c5eef1cda7c61e4be4fcb5b7b691faae96d421e23ba64bbbdeafbe7cb705f512"
++      "scope": "mobile accountability, convoy testimony and road-choir gameplay mechanics",
++      "owner": "design/narrative/systems",
++      "bytes": 8102,
++      "sha256": "7ab051faea67b66ed5ed4fabd54857f3167833ee008f1b17973c8ed402fecaf2"
+     },
+     {
+       "path": "ops/symtropy_earth_atlas_implementation_debt_patch_v0_2/SUBGLACIAL_LISTENING_FAULT_VERTICAL_SLICE_V0_1.md",
+-      "category": "ops",
+       "title": "Subglacial Listening Fault Vertical Slice v0.1",
+-      "version": null,
++      "version": 0.1,
+       "status": "canonical-draft",
+-      "scope": null,
+-      "owner": null,
+-      "supersedes": null,
+-      "superseded_by": null,
+-      "front_matter": true,
+-      "words": 1385,
+-      "bytes": 11689,
+-      "links": 0,
+-      "sha256": "75a81d2e9f4034159c54f029d6819e0ddbc189374453297ebaf0a1c78a1134d2"
++      "scope": "subglacial listening-fault vertical slice, nonhuman agency, instrumentation and consequences",
++      "owner": "design/narrative/engineering",
++      "bytes": 11838,
++      "sha256": "423052be122074c12a3de10f9c0b13f1e0f35aa4cf973e6bbfd7c163e5da4aef"
+     },
+     {
+       "path": "ops/symtropy_earth_atlas_implementation_debt_patch_v0_2/XENO_CONTACT_PRESSURE_SEMANTICS_PATCH_V0_1.md",
+-      "category": "ops",
+       "title": "Xeno Contact Pressure Semantics Patch v0.1",
+       "version": null,
+       "status": "supporting",
+       "scope": null,
+       "owner": null,
+-      "supersedes": null,
+-      "superseded_by": null,
+-      "front_matter": true,
+-      "words": 685,
+       "bytes": 6260,
+-      "links": 0,
+       "sha256": "2944d853d9abee3a81a945b8b67f03a4bdf3116d2c309719c9848a02acd968fa"
+     },
+     {
+       "path": "recipes/CHARACTER_CONTROLLERS.md",
+-      "category": "recipes",
+-      "title": "Character Controllers",
++      "title": null,
+       "version": null,
+       "status": "unclassified",
+       "scope": null,
+       "owner": null,
+-      "supersedes": null,
+-      "superseded_by": null,
+-      "front_matter": false,
+-      "words": 239,
+       "bytes": 2266,
+-      "links": 1,
+       "sha256": "3587bba66887717f3a6725e6b153af4641ae6ddde8f2fd13218cf853a916c9a4"
+     },
+     {
+       "path": "recipes/NPC_AI.md",
+-      "category": "recipes",
+-      "title": "NPC AI: When to use `big-brain` vs `symthaea-bevy-brain`",
++      "title": null,
+       "version": null,
+       "status": "unclassified",
+       "scope": null,
+       "owner": null,
+-      "supersedes": null,
+-      "superseded_by": null,
+-      "front_matter": false,
+-      "words": 257,
+       "bytes": 2173,
+-      "links": 1,
+       "sha256": "c4916e4455bdaa0f1dba760839cc8515f7c7e0528442ef2a3d339fe56ab2344e"
+     },
+     {
+       "path": "recipes/PATHFINDING.md",
+-      "category": "recipes",
+-      "title": "Pathfinding with Oxidized Navigation",
++      "title": null,
+       "version": null,
+       "status": "unclassified",
+       "scope": null,
+       "owner": null,
+-      "supersedes": null,
+-      "superseded_by": null,
+-      "front_matter": false,
+-      "words": 313,
+       "bytes": 2920,
+-      "links": 1,
+       "sha256": "e25ff999b03a1ae0357bd575059765c60df726722be0ff9469a6059b5e7e5d20"
+     },
+     {
+       "path": "recipes/SAVE_LOAD.md",
+-      "category": "recipes",
+-      "title": "Save/Load and Identity",
++      "title": null,
+       "version": null,
+       "status": "unclassified",
+       "scope": null,
+       "owner": null,
+-      "supersedes": null,
+-      "superseded_by": null,
+-      "front_matter": false,
+-      "words": 217,
+       "bytes": 1862,
+-      "links": 1,
+       "sha256": "f2efee3ace2ceaf2674509050ec118d886a0aa8716ccaa284cd476a6d7c0e5f0"
+     },
+     {
+       "path": "recipes/VFX_PARTICLES.md",
+-      "category": "recipes",
+-      "title": "VFX Particles",
++      "title": null,
+       "version": null,
+       "status": "unclassified",
+       "scope": null,
+       "owner": null,
+-      "supersedes": null,
+-      "superseded_by": null,
+-      "front_matter": false,
+-      "words": 243,
+       "bytes": 2107,
+-      "links": 1,
+       "sha256": "61f0c20e6783cd48dbabc0b0c848b69dc08a6f3d2ceb8e2b5468448bae3d09d7"
+     },
+     {
+       "path": "recipes/character-controllers.md",
+-      "category": "recipes",
+-      "title": "Character Controllers",
++      "title": null,
+       "version": null,
+       "status": "unclassified",
+       "scope": null,
+       "owner": null,
+-      "supersedes": null,
+-      "superseded_by": null,
+-      "front_matter": false,
+-      "words": 132,
+       "bytes": 1060,
+-      "links": 0,
+       "sha256": "1d0b39d0ff02e933b90d6e92ac838123d8b90fc148bd29e39a223f7a64d57a48"
+     },
+     {
+       "path": "recipes/input-mapping.md",
+-      "category": "recipes",
+-      "title": "Input Mapping",
++      "title": null,
+       "version": null,
+       "status": "unclassified",
+       "scope": null,
+       "owner": null,
+-      "supersedes": null,
+-      "superseded_by": null,
+-      "front_matter": false,
+-      "words": 67,
+       "bytes": 691,
+-      "links": 0,
+       "sha256": "d4ec68c6df1290d48befb0989b10868dfd638db53b49b03291c417e9c3fa717e"
+     },
+     {
+       "path": "status/FOUNDRY_VERIFICATION_2026_06_18.md",
+-      "category": "status",
+-      "title": "Foundry Verification Report - 2026-06-18",
++      "title": null,
+       "version": null,
+       "status": "unclassified",
+       "scope": null,
+       "owner": null,
+-      "supersedes": null,
+-      "superseded_by": null,
+-      "front_matter": false,
+-      "words": 280,
+       "bytes": 2454,
+-      "links": 0,
+       "sha256": "dcc7181f1224a205ce1c745f55b20ceab4d379b9de600de9656b0b261d12d055"
+     },
+     {
+       "path": "tech/ARCHITECTURE.md",
+-      "category": "tech",
+-      "title": "Symtropy Architecture",
++      "title": null,
+       "version": null,
+       "status": "unclassified",
+       "scope": null,
+       "owner": null,
+-      "supersedes": null,
+-      "superseded_by": null,
+-      "front_matter": false,
+-      "words": 721,
+       "bytes": 6469,
+-      "links": 0,
+       "sha256": "9e8472115a2d11b7dc78c8f41f2f43abf3695b1e67184e25d135596b398b1d89"
+     },
+     {
+       "path": "tech/ARCHITECTURE_CRYSTAL.md",
+-      "category": "tech",
+-      "title": "Spacetime Crystallization: Architectural Foundation",
++      "title": null,
+       "version": null,
+       "status": "unclassified",
+       "scope": null,
+       "owner": null,
+-      "supersedes": null,
+-      "superseded_by": null,
+-      "front_matter": false,
+-      "words": 242,
+       "bytes": 2078,
+-      "links": 0,
+       "sha256": "efb3ca71e1d4aaa0aa3dbb1c62f64ffc3016eb5ce500cf49b3f4598e38c90372"
+     },
+     {
+       "path": "tech/ASSET_PHYSICAL_FINGERPRINTING.md",
+-      "category": "tech",
+-      "title": "Asset Physical Fingerprinting Protocol",
++      "title": null,
+       "version": null,
+       "status": "unclassified",
+       "scope": null,
+       "owner": null,
+-      "supersedes": null,
+-      "superseded_by": null,
+-      "front_matter": false,
+-      "words": 329,
+       "bytes": 2583,
+-      "links": 0,
+       "sha256": "23e2b9afda4ee2260288a8833f0e4fb3276b1eb35954e3486d19d4336e3f5972"
+     },
+     {
+       "path": "tech/ASSET_SEMANTIC_LINKER.md",
+-      "category": "tech",
+-      "title": "Symtropy Foundry Semantic Linker (Behavioral Injection)",
++      "title": null,
+       "version": null,
+       "status": "unclassified",
+       "scope": null,
+       "owner": null,
+-      "supersedes": null,
+-      "superseded_by": null,
+-      "front_matter": false,
+-      "words": 163,
+       "bytes": 1326,
+-      "links": 0,
+       "sha256": "3ea6f85e2f40a3df098abf495f0932d751151cc5621bc8c7d3d8506ee86408a0"
+     },
+     {
+       "path": "tech/CHRONICLE_EVENT_SCHEMA.md",
+-      "category": "tech",
+-      "title": "CHRONICLE_EVENT_SCHEMA.md",
++      "title": null,
+       "version": null,
+       "status": "unclassified",
+       "scope": null,
+       "owner": null,
+-      "supersedes": null,
+-      "superseded_by": null,
+-      "front_matter": false,
+-      "words": 3516,
+       "bytes": 31182,
+-      "links": 0,
+       "sha256": "1df5ffc6c1ac3efba696212d301f88508c4f770b12ddf39ee80022b38f3570d5"
+     },
+     {
+       "path": "tech/COMBAT_THREAT_AND_SYSTEMIC_ENCOUNTER_DESIGN_V0_1.md",
+-      "category": "tech",
+       "title": "Combat, Threat, and Systemic Encounter Design",
+-      "version": "0.1",
++      "version": 0.1,
+       "status": "canonical-draft",
+       "scope": "weapons, enemies, danger, raids, defense, nonlethal outcomes",
+-      "owner": null,
+-      "supersedes": null,
+-      "superseded_by": null,
+-      "front_matter": true,
+-      "words": 918,
+-      "bytes": 7677,
+-      "links": 0,
+-      "sha256": "a5a0b4f9ee1cd898442c798197be3fafa2448a3be9934a3a93f3cfce4adc90bf"
++      "owner": "design/gameplay/AI",
++      "bytes": 7703,
++      "sha256": "87ee05e4e59c0fe23ca4734fa55dea6722eefdb48bb91c02d72eb83b215a30e3"
+     },
+     {
+       "path": "tech/DEVICE_BUS_RUNTIME_SAFETY.md",
+-      "category": "tech",
+-      "title": "DEVICE_BUS_RUNTIME_SAFETY.md",
++      "title": null,
+       "version": null,
+       "status": "unclassified",
+       "scope": null,
+       "owner": null,
+-      "supersedes": null,
+-      "superseded_by": null,
+-      "front_matter": false,
+-      "words": 1517,
+       "bytes": 12374,
+-      "links": 0,
+       "sha256": "c775f2b7b17e5052caeb6e675df8a22c3f49435ceaeaf5c7042858d97c07f343"
+     },
+     {
+       "path": "tech/Device Bus Substrate Systems.md",
+-      "category": "tech",
+       "title": "Device Bus Substrate Systems",
+-      "version": null,
++      "version": 0.1,
+       "status": "canonical-draft",
+-      "scope": "substrate systems",
++      "scope": "power, audio, proof-of-repair, and Device Bus substrate signals",
+       "owner": "design/engineering",
+-      "supersedes": null,
+-      "superseded_by": null,
+-      "front_matter": true,
+-      "words": 2082,
+-      "bytes": 17161,
+-      "links": 0,
+-      "sha256": "084c0bf7b2c2b89048f5d276262d94d0e160e45264ea4bf5317e7802715c49c2"
++      "bytes": 17139,
++      "sha256": "fe6127000813d5d7cab9a7c7930b7e2c4c22492283f0835ad54cbe8d13039318"
+     },
+     {
+       "path": "tech/ENGINE.md",
+-      "category": "tech",
+-      "title": "Symtropy Integration-Physics Engine",
++      "title": null,
+       "version": null,
+       "status": "unclassified",
+       "scope": null,
+       "owner": null,
+-      "supersedes": null,
+-      "superseded_by": null,
+-      "front_matter": false,
+-      "words": 633,
+       "bytes": 5487,
+-      "links": 0,
+       "sha256": "036b77f98580774a5b870fcec9717bface11bd73d96b8c4ee001f889f8ba4105"
+     },
+     {
+       "path": "tech/FIELD_DECK_AND_INTERFACE_SOVEREIGNTY.md",
+-      "category": "tech",
+-      "title": "FIELD_DECK_INTERACTION_MODEL.md",
++      "title": null,
+       "version": null,
+       "status": "unclassified",
+       "scope": null,
+       "owner": null,
+-      "supersedes": null,
+-      "superseded_by": null,
+-      "front_matter": false,
+-      "words": 1746,
+       "bytes": 12956,
+-      "links": 0,
+       "sha256": "5a36e3a553685efbea6324de9df3eae1f5582fb37f98f1a285b1864465918abd"
+     },
+     {
+       "path": "tech/FIELD_DECK_INTERACTION_AND_MODES.md",
+-      "category": "tech",
+-      "title": "FIELD_DECK_INTERACTION_AND_MODES.md",
++      "title": null,
+       "version": null,
+       "status": "unclassified",
+       "scope": null,
+       "owner": null,
+-      "supersedes": null,
+-      "superseded_by": null,
+-      "front_matter": false,
+-      "words": 3039,
+       "bytes": 23315,
+-      "links": 0,
+       "sha256": "051ecfeb1d3f32021a32e5d1612ce870a27972e9a26b1fbddeb8201ad8046dcb"
+     },
+     {
+       "path": "tech/FIELD_DECK_INTERFACE_AND_INFORMATION_ARCHITECTURE_BIBLE_V0_2.md",
+-      "category": "tech",
+       "title": "Field Deck Interface and Information Architecture Bible",
+-      "version": "0.2",
++      "version": 0.2,
+       "status": "canonical-draft",
+       "scope": "Field Deck physical UX, data hierarchy, modes, source trust, co-op, death states",
+       "owner": "UX/UI/design/engineering/audio/accessibility",
+-      "supersedes": null,
+-      "superseded_by": null,
+-      "front_matter": true,
+-      "words": 2934,
+       "bytes": 23654,
+-      "links": 0,
+       "sha256": "78e753b586c03242e73949bc59da321510bb6b729a8651979c3d43883b754bca"
+     },
+     {
+       "path": "tech/FORMAL_SPECIFICATION.md",
+-      "category": "tech",
+-      "title": "Consciousness as a Physical Force: Formal Mathematical Specification",
++      "title": null,
+       "version": null,
+       "status": "unclassified",
+       "scope": null,
+       "owner": null,
+-      "supersedes": null,
+-      "superseded_by": null,
+-      "front_matter": false,
+-      "words": 960,
+       "bytes": 6880,
+-      "links": 0,
+       "sha256": "e101152726bf7813168689b66b874f017fa72fc8d26055ed4f9a6be0888519e5"
+     },
+     {
+       "path": "tech/GAME_ENGINE_COMPONENTS.md",
+-      "category": "tech",
+-      "title": "Game Engine Components — Coverage & Gap Analysis",
++      "title": null,
+       "version": null,
+       "status": "unclassified",
+       "scope": null,
+       "owner": null,
+-      "supersedes": null,
+-      "superseded_by": null,
+-      "front_matter": false,
+-      "words": 2521,
+       "bytes": 22562,
+-      "links": 1,
+       "sha256": "8b59c38b9144d70619dc46022a527fdde25151fde134f86020b380e6b5f6e0b1"
+     },
+     {
+       "path": "tech/IN_WORLD_COMPUTING_AND_SYMTROPYOS.md",
+-      "category": "tech",
+-      "title": "IN_WORLD_COMPUTING_AND_SYMTROPYOS.md",
++      "title": null,
+       "version": null,
+       "status": "unclassified",
+       "scope": null,
+       "owner": null,
+-      "supersedes": null,
+-      "superseded_by": null,
+-      "front_matter": false,
+-      "words": 4302,
+       "bytes": 34980,
+-      "links": 0,
+       "sha256": "05508fc5d2e4b6cf8289c7816724b04653818b54ff87e0338643afb0691b6c4a"
+     },
+     {
+       "path": "tech/Infrastructure Loom Tech Node Data Schema.md",
+-      "category": "tech",
+       "title": "Infrastructure Loom Tech Node Data Schema",
+-      "version": null,
++      "version": 0.1,
+       "status": "canonical-draft",
+       "scope": "data model, unlock logic, UI state, serialization, implementation",
+       "owner": "design/engineering",
+-      "supersedes": null,
+-      "superseded_by": null,
+-      "front_matter": true,
+-      "words": 4171,
+-      "bytes": 44013,
+-      "links": 0,
+-      "sha256": "b94ed7373e4e5d5d375b874796602ac0fa45568c50469a864166673c1f584661"
++      "bytes": 43820,
++      "sha256": "cb9933c678afbf661c662dfff2c3175da730f19f2300a9413f6a28d62557ccfb"
+     },
+     {
+       "path": "tech/Infrastructure Loom UI-UX Spec.md",
+-      "category": "tech",
+       "title": "Infrastructure Loom UI/UX Spec",
+-      "version": null,
++      "version": 0.1,
+       "status": "canonical-draft",
+       "scope": "UI/UX, tech tree visualization, Field Deck modes, player interaction",
+       "owner": "design/UI/engineering",
+-      "supersedes": null,
+-      "superseded_by": null,
+-      "front_matter": true,
+-      "words": 2459,
+-      "bytes": 19875,
+-      "links": 0,
+-      "sha256": "57de0cb9bdfa22026e678d42d1352b10b78bcf181268ff2ddb9b0fcf81c7a470"
++      "bytes": 19684,
++      "sha256": "94f940ec86cabc9e0000f4feff6384d8ea9f81b69453db5c14b8487cdccc02bb"
+     },
+     {
+       "path": "tech/MK0_BOOTSTRAPPER_PROTOCOL.md",
+-      "category": "tech",
+-      "title": "Mk0 Bootstrapper Protocol",
++      "title": null,
+       "version": null,
+       "status": "unclassified",
+       "scope": null,
+       "owner": null,
+-      "supersedes": null,
+-      "superseded_by": null,
+-      "front_matter": false,
+-      "words": 1221,
+       "bytes": 9219,
+-      "links": 0,
+       "sha256": "436c5ca04dc7bdca1383935202310b960e39159f6000cf89d77a644ef4bbae36"
+     },
++    {
++      "path": "tech/MULTIPLAYER_SOCIAL_SAFETY_GRIEFING_AND_MODERATION_V0_1.md",
++      "title": "Multiplayer Social Safety, Griefing, and Moderation",
++      "version": 0.1,
++      "status": "implementation-spec",
++      "scope": "permissions, PvP consent, grief prevention, moderation, abuse recovery, anti-cheat boundaries, civic safety",
++      "owner": "multiplayer/security/community",
++      "bytes": 8393,
++      "sha256": "744e9e9b84902f632f764994f72722234ea177d368687581e033e73c716ea569"
++    },
+     {
+       "path": "tech/MULTIPLAYER_TRUTH_MODEL.md",
+-      "category": "tech",
+       "title": "Symtropy Multiplayer Truth Model",
+-      "version": "0.1",
++      "version": 0.1,
+       "status": "canonical-draft",
+       "scope": "layered truth model for real-time, device, civic, and worldline state",
+       "owner": "engineering/networking",
+-      "supersedes": null,
+-      "superseded_by": null,
+-      "front_matter": true,
+-      "words": 2012,
+       "bytes": 16847,
+-      "links": 0,
+       "sha256": "8e90b873703cb62db7c0b90f14016af56bd846557588b2af7abb81f6b48e0600"
+     },
+     {
+       "path": "tech/MULTI_PHYSICS_VIRTUAL_GEOMETRY.md",
+-      "category": "tech",
+-      "title": "Multi-Physics Virtual Geometry (MPVG)",
++      "title": null,
+       "version": null,
+       "status": "unclassified",
+       "scope": null,
+       "owner": null,
+-      "supersedes": null,
+-      "superseded_by": null,
+-      "front_matter": false,
+-      "words": 737,
+       "bytes": 6148,
+-      "links": 0,
+       "sha256": "994bf81ad49d0feb5aa6b332d14f9fda398f6f47ff2b4ac7d367c5db706f125d"
+     },
+     {
+       "path": "tech/NETWORKING_STACK_DECISION.md",
+-      "category": "tech",
+       "title": "Symtropy Networking Stack Decision",
+-      "version": "0.1",
++      "version": 0.1,
+       "status": "implementation-spec",
+       "scope": "real-time networking and durable history boundaries",
+       "owner": "engineering/networking",
+-      "supersedes": null,
+-      "superseded_by": null,
+-      "front_matter": true,
+-      "words": 1714,
+       "bytes": 14185,
+-      "links": 0,
+       "sha256": "b25a4ef8f7cea1947a55ff76216ca004636a5a9ce572601a4890e1be96b5a1fa"
+     },
+     {
+       "path": "tech/NEURAL_LINK_SPEC.md",
+-      "category": "tech",
+-      "title": "Symtropy Foundry Neural-Link (LLM Integration)",
++      "title": null,
+       "version": null,
+       "status": "unclassified",
+       "scope": null,
+       "owner": null,
+-      "supersedes": null,
+-      "superseded_by": null,
+-      "front_matter": false,
+-      "words": 385,
+       "bytes": 2968,
+-      "links": 0,
+       "sha256": "4a0edcb148d5f88df09da7d20f36bf060a7e91f4261a961de595cb17284fbf3b"
+     },
+     {
+       "path": "tech/ORCHESTRATOR_BLUEPRINT_SCHEMA.md",
+-      "category": "tech",
+-      "title": "Symtropy Foundry Orchestrator (World-Gen Schema)",
++      "title": null,
+       "version": null,
+       "status": "unclassified",
+       "scope": null,
+       "owner": null,
+-      "supersedes": null,
+-      "superseded_by": null,
+-      "front_matter": false,
+-      "words": 144,
+       "bytes": 1228,
+-      "links": 0,
+       "sha256": "dae20263f1e62ba4e2acb5d2b92e5924d94462b381ab307616c57133db992ba0"
+     },
+     {
+       "path": "tech/PROCEDURAL_FACTION_EVOLUTION.md",
+-      "category": "tech",
+       "title": "Symtropy Procedural Faction Evolution",
+-      "version": "0.1",
++      "version": 0.1,
+       "status": "canonical-draft",
+       "scope": "faction pressure, interpretation, identity drift, schism, and reform",
+       "owner": "design/simulation",
+-      "supersedes": null,
+-      "superseded_by": null,
+-      "front_matter": true,
+-      "words": 1452,
+       "bytes": 11820,
+-      "links": 0,
+       "sha256": "86b35702eabddfa0aa104ab67d0412f3147ed7b06775d43e4c72438a091a725d"
+     },
+     {
+       "path": "tech/PROCEDURAL_HISTORY_ENGINE.md",
+-      "category": "tech",
+       "title": "Symtropy Procedural History Engine",
+-      "version": "0.1",
++      "version": 0.1,
+       "status": "canonical-draft",
+       "scope": "generated causal history, scars, claims, and playable repair paths",
+       "owner": "design/simulation",
+-      "supersedes": null,
+-      "superseded_by": null,
+-      "front_matter": true,
+-      "words": 3724,
+       "bytes": 34227,
+-      "links": 0,
+       "sha256": "5ebd00c9add461bfc497468b9615bdb0cecfd51b217bf45bfa8c96d325f37d31"
+     },
+     {
+       "path": "tech/Public Works Fabrication Branch v0.2.md",
+-      "category": "tech",
+       "title": "Public Works Fabrication Branch v0.2",
+-      "version": null,
++      "version": 0.2,
+       "status": "canonical-draft",
+       "scope": "fabrication, recipes, repair grades, tool access, robotics dependencies",
+       "owner": "design/engineering",
+-      "supersedes": null,
+-      "superseded_by": null,
+-      "front_matter": true,
+-      "words": 3051,
+-      "bytes": 25370,
+-      "links": 0,
+-      "sha256": "80aae927d12a30823a8858b24f93080c213438dfe194feca59c1d72959812fd5"
++      "bytes": 25221,
++      "sha256": "b04944376762d50566a433cee92ce126c3353a26dafc8a34c5dfaca48d31ebe1"
+     },
+     {
+       "path": "tech/REGIONAL_PLANETARY_CIVILIZATION_SIMULATION_ARCHITECTURE_V0_1.md",
+-      "category": "tech",
+       "title": "Regional, Planetary, and Civilizational Simulation Architecture",
+-      "version": "0.1",
++      "version": 0.1,
+       "status": "canonical-draft",
+       "scope": "simulation layers, fidelity, causality, persistence",
+-      "owner": null,
+-      "supersedes": null,
+-      "superseded_by": null,
+-      "front_matter": true,
+-      "words": 882,
+-      "bytes": 7701,
+-      "links": 0,
+-      "sha256": "224c3a1c5518e7f5787ede225a10382ff566b1c4a0ee8bf739d2ede9f682a0ff"
++      "owner": "simulation/engineering/design",
++      "bytes": 7738,
++      "sha256": "61b391493bcc2d453eccbcd4c053e228430c2291607805671415954697cfb584"
+     },
+     {
+       "path": "tech/SEEDWORKS_ARCHITECTURE.md",
+-      "category": "tech",
+-      "title": "Symtropy: Seedworks Architectural Blueprint",
++      "title": null,
+       "version": null,
+       "status": "unclassified",
+       "scope": null,
+       "owner": null,
+-      "supersedes": null,
+-      "superseded_by": null,
+-      "front_matter": false,
+-      "words": 268,
+       "bytes": 2451,
+-      "links": 0,
+       "sha256": "d98c41ee829f1c595a8c7f41f90561dd7b068832b6c6bd1cfb6efbac46221da0"
+     },
+     {
+       "path": "tech/Symtropy Design Doc Anomaly Verification & No-Magic Rule.md",
+-      "category": "tech",
+-      "title": "Symtropy Design Doc: Anomaly Verification & No-Magic Rule",
++      "title": null,
+       "version": null,
+       "status": "unclassified",
+       "scope": null,
+       "owner": null,
+-      "supersedes": null,
+-      "superseded_by": null,
+-      "front_matter": false,
+-      "words": 1831,
+       "bytes": 14134,
+-      "links": 0,
+       "sha256": "63648f2eff21209c9134915cb37d5fcd35977c562a7851628c4d525ac8614673"
+     },
+     {
+       "path": "tech/Symtropy Design Doc Earth Species.md",
+-      "category": "tech",
+-      "title": "Symtropy Design Doc: Earth Species Scope Firewall & Trophic Systems",
++      "title": null,
+       "version": null,
+       "status": "unclassified",
+       "scope": null,
+       "owner": null,
+-      "supersedes": null,
+-      "superseded_by": null,
+-      "front_matter": false,
+-      "words": 4792,
+       "bytes": 37494,
+-      "links": 0,
+       "sha256": "4ab3ed625e1b008a2f28cd3a021aa76944905c3c745f930760d21aa05a763cde"
+     },
+     {
+       "path": "tech/Symtropy Design Doc Physicalized.md",
+-      "category": "tech",
+-      "title": "Symtropy Design Doc: Physicalized Cargo & Material Ledgers",
++      "title": null,
+       "version": null,
+       "status": "unclassified",
+       "scope": null,
+       "owner": null,
+-      "supersedes": null,
+-      "superseded_by": null,
+-      "front_matter": false,
+-      "words": 2991,
+       "bytes": 22719,
+-      "links": 0,
+       "sha256": "41abc81d6fc9bf0572dfc543d86f50984362ec21781ae5d2b9f273c1134790f1"
+     },
+     {
+       "path": "tech/Symtropy Design Doc: Cybernetic Crafting & Physical Node Assembly.md",
+-      "category": "tech",
+-      "title": "Symtropy Design Doc: Cybernetic Crafting & Physical Node Assembly",
++      "title": null,
+       "version": null,
+       "status": "unclassified",
+       "scope": null,
+       "owner": null,
+-      "supersedes": null,
+-      "superseded_by": null,
+-      "front_matter": false,
+-      "words": 3118,
+       "bytes": 24411,
+-      "links": 0,
+       "sha256": "b9f23b2814a89aba372acf06dd72cd2f0c7b775a39b1fd819963cb6a102749d8"
+     },
+     {
+       "path": "tech/Symtropy Design Doc: Death, Reconstitution, and Source-Chain Recovery.md",
+-      "category": "tech",
+-      "title": "Symtropy Design Doc: Death, Reconstitution, and Source-Chain Recovery",
++      "title": null,
+       "version": null,
+       "status": "unclassified",
+       "scope": null,
+       "owner": null,
+-      "supersedes": null,
+-      "superseded_by": null,
+-      "front_matter": false,
+-      "words": 3078,
+       "bytes": 24286,
+-      "links": 0,
+       "sha256": "4a1d867d1d057b8f15b59ff755f4deccfde0a848543b91cd1955ea66529b8c98"
+     },
+     {
+       "path": "tech/Symtropy Design Doc: Infrastructure-Locked Interstellar Transit.md",
+-      "category": "tech",
+-      "title": "Symtropy Design Doc: Infrastructure-Locked Interstellar Transit",
++      "title": null,
+       "version": null,
+       "status": "unclassified",
+       "scope": null,
+       "owner": null,
+-      "supersedes": null,
+-      "superseded_by": null,
+-      "front_matter": false,
+-      "words": 1230,
+       "bytes": 10041,
+-      "links": 0,
+       "sha256": "7ed35583c4ecc0ada68798854273d7e4665e82c285f6157b719559056fdb8d96"
+     },
+     {
+       "path": "tech/Symtropy Design Doc: Registered Infrastructure Adjudication.md",
+-      "category": "tech",
+-      "title": "Symtropy Design Doc: Registered Infrastructure Adjudication",
++      "title": null,
+       "version": null,
+       "status": "unclassified",
+       "scope": null,
+       "owner": null,
+-      "supersedes": null,
+-      "superseded_by": null,
+-      "front_matter": false,
+-      "words": 2157,
+       "bytes": 17736,
+-      "links": 0,
+       "sha256": "7a8d66decb8981704d1b9f0e3974c703dab3e07176ceb9891670af8641edf826"
+     },
+     {
+       "path": "tech/Symtropy Vehicle & Mobility Design.md",
+-      "category": "tech",
+-      "title": "Symtropy Vehicle & Mobility Design Bible",
++      "title": null,
+       "version": null,
+       "status": "unclassified",
+       "scope": null,
+       "owner": null,
+-      "supersedes": null,
+-      "superseded_by": null,
+-      "front_matter": false,
+-      "words": 3866,
+       "bytes": 31305,
+-      "links": 0,
+       "sha256": "2e97948729c79ffddb36cd4ccc382852a6d4348242b07e633e383d95cc9cf393"
+     },
+     {
+       "path": "tech/Symtropy_Bevy_Rendering_Strategy_v0.2.md",
+-      "category": "tech",
+-      "title": "Symtropy Bevy Rendering Strategy v0.2",
++      "title": null,
+       "version": null,
+       "status": "unclassified",
+       "scope": null,
+       "owner": null,
+-      "supersedes": null,
+-      "superseded_by": null,
+-      "front_matter": false,
+-      "words": 2820,
+       "bytes": 22322,
+-      "links": 0,
+       "sha256": "733003a6e7120b2e2bb525adc69f3d17198953858349a89d7cb2cca3e46f618a"
+     },
+     {
+       "path": "tech/Symtropy_Public_Asset_Automation_Foundry_v0.2.md",
+-      "category": "tech",
+-      "title": "Symtropy Public Asset Automation Foundry v0.2",
++      "title": null,
+       "version": null,
+       "status": "unclassified",
+       "scope": null,
+       "owner": null,
+-      "supersedes": null,
+-      "superseded_by": null,
+-      "front_matter": false,
+-      "words": 4305,
+       "bytes": 34957,
+-      "links": 0,
+       "sha256": "1a899d5b4aaffef478d5145bfa59d67079c6346603d433709852b06d5b7b883b"
+     },
+     {
+       "path": "tech/Symtropy_Visual_Vocabulary_and_Biome_Palette_Spec_v0.1.md",
+-      "category": "tech",
+-      "title": "Symtropy Visual Vocabulary and Biome Palette Spec v0.1",
++      "title": null,
+       "version": null,
+       "status": "unclassified",
+       "scope": null,
+       "owner": null,
+-      "supersedes": null,
+-      "superseded_by": null,
+-      "front_matter": false,
+-      "words": 2436,
+       "bytes": 19528,
+-      "links": 0,
+       "sha256": "ada09b78bd29c73adde5c0c7455b072eb30dbc74ed79307065944ff217f94345"
+     },
+     {
+       "path": "tech/WASM_FIRST_AUTOMATION_ARCHITECTURE.md",
+-      "category": "tech",
+-      "title": "WASM_FIRST_AUTOMATION_ARCHITECTURE.md",
++      "title": null,
+       "version": null,
+       "status": "unclassified",
+       "scope": null,
+       "owner": null,
+-      "supersedes": null,
+-      "superseded_by": null,
+-      "front_matter": false,
+-      "words": 1586,
+       "bytes": 12433,
+-      "links": 0,
+       "sha256": "210eb0204c90d27ebd07fffa4bbc2183752d882b64bd922e449f5d43cb78cc31"
+     },
+     {
+       "path": "tech/WORLDLINE_MECHANICAL_DELTA_SCHEMA_V0_1.md",
+-      "category": "tech",
+       "title": "Worldline Mechanical Delta Schema v0.1",
+-      "version": null,
++      "version": 0.1,
+       "status": "canonical-draft",
+-      "scope": null,
+-      "owner": null,
+-      "supersedes": null,
+-      "superseded_by": null,
+-      "front_matter": true,
+-      "words": 1518,
+-      "bytes": 19335,
+-      "links": 0,
+-      "sha256": "e249e7cf470a5da5e57111c9add19de566b8195bc07ece2d220686543ae3b127"
++      "scope": "worldline mechanical differences, state deltas, validation and gameplay consequences",
++      "owner": "simulation/design/engineering",
++      "bytes": 19477,
++      "sha256": "dbcbf0c33312e355fab63f9ea6cbef6d7ccf878f24ed38662e93c9aa87776a9b"
+     },
+     {
+       "path": "tech/WORLD_PERSISTENCE_PROTOCOL.md",
+-      "category": "tech",
+-      "title": "Foundry World-State Persistence (Epoch Snapshot)",
++      "title": null,
+       "version": null,
+       "status": "unclassified",
+       "scope": null,
+       "owner": null,
+-      "supersedes": null,
+-      "superseded_by": null,
+-      "front_matter": false,
+-      "words": 150,
+       "bytes": 1193,
+-      "links": 0,
+       "sha256": "9d5c7f2fc68d4c51de11b1a1444173f5280e2d4879e7a304dae4346a93b7caa1"
+     },
++    {
++      "path": "tech/WORLD_STATE_REVISITABILITY_AND_CONSEQUENCE_PRESENTATION_V0_1.md",
++      "title": "World-State Revisitability and Consequence Presentation",
++      "version": 0.1,
++      "status": "implementation-spec",
++      "scope": "visible state change, site variants, revisit loops, causal presentation, content authoring budgets",
++      "owner": "world/design/art/simulation",
++      "bytes": 6009,
++      "sha256": "9275743ef9786640ba36fce769c8fab00fc294379adcbf24551b2695ed217787"
++    },
+     {
+       "path": "vision/CIVILIZATION_DELIGHT_PLAY_AND_EVERYDAY_LIFE_BIBLE_V0_1.md",
+-      "category": "vision",
+       "title": "Civilization Delight, Play, and Everyday Life Bible",
+-      "version": "0.1",
++      "version": 0.1,
+       "status": "canonical-draft",
+       "scope": "leisure, self-expression, art, humor, intimacy, domestic life, festivals, non-instrumental play",
+       "owner": "design/narrative/world",
+-      "supersedes": null,
+-      "superseded_by": null,
+-      "front_matter": true,
+-      "words": 1374,
+       "bytes": 10812,
+-      "links": 0,
+       "sha256": "5c4d23efa2087a89cfdb4adca29cc57349851a8b21f87f85e6e4bb9d2c6677b9"
+     },
+     {
+       "path": "vision/EXPLORATION_DISCOVERY_AND_AWE_DESIGN_BIBLE_V0_1.md",
+-      "category": "vision",
+       "title": "Exploration, Discovery, and Awe Design Bible",
+-      "version": "0.1",
++      "version": 0.1,
+       "status": "canonical-draft",
+       "scope": "exploration, scientific discovery, wonder, traversal rewards",
+-      "owner": null,
+-      "supersedes": null,
+-      "superseded_by": null,
+-      "front_matter": true,
+-      "words": 906,
+-      "bytes": 7392,
+-      "links": 0,
+-      "sha256": "ed30b62dd6518356f27a5d7801deb5db603bb0fb9fd1c05b141b5384b781b3eb"
++      "owner": "design/world/art",
++      "bytes": 7416,
++      "sha256": "bd1ce9885a975d6876a5d9c8e6fb191f67a3ab5f3d822988c835a67439726947"
+     },
+     {
+       "path": "vision/NPC_DAILY_LIFE_RELATIONSHIPS_AND_SOCIAL_MEMORY_BIBLE_V0_2.md",
+-      "category": "vision",
+       "title": "NPC Daily Life, Relationships, and Social Memory Bible",
+-      "version": "0.2",
++      "version": 0.2,
+       "status": "canonical-draft",
+       "scope": "Seedworks named NPCs, ambient population, schedules, relationships, memory, ordinary life",
+       "owner": "AI/narrative/design/simulation/audio",
+-      "supersedes": null,
+-      "superseded_by": null,
+-      "front_matter": true,
+-      "words": 3195,
+       "bytes": 25224,
+-      "links": 0,
+       "sha256": "3828ade9bea3baa2fe2ddecf851cbc35f1327ecf832b295466383d9f69046a39"
+     },
+     {
+       "path": "vision/PLAYER_FEEL_AND_EMBODIED_INTERACTION_BIBLE_V0_2.md",
+-      "category": "vision",
+       "title": "Player Feel and Embodied Interaction Bible",
+-      "version": "0.2",
++      "version": 0.2,
+       "status": "canonical-draft",
+       "scope": "Seedworks first-person body, tools, repair, combat, co-op embodiment",
+       "owner": "design/animation/audio/engineering/accessibility",
+-      "supersedes": null,
+-      "superseded_by": null,
+-      "front_matter": true,
+-      "words": 2897,
+       "bytes": 22520,
+-      "links": 0,
+       "sha256": "e320a7bc7b4f2665812efc73351c497615fe2d99f0bede36dc854cd9dedfaaff"
+     },
+     {
+       "path": "vision/PLAYER_ORIGINS_AND_WORLDLINE_STARTS.md",
+-      "category": "vision",
+-      "title": "PLAYER_ORIGINS_AND_WORLDLINE_STARTS.md",
++      "title": null,
+       "version": null,
+       "status": "unclassified",
+       "scope": null,
+       "owner": null,
+-      "supersedes": null,
+-      "superseded_by": null,
+-      "front_matter": false,
+-      "words": 2354,
+       "bytes": 18385,
+-      "links": 0,
+       "sha256": "6976976503032c366275b4aebd3b0a5e2088518588e13f70daf153f6f404ece1"
+     },
+     {
+       "path": "vision/SYMTROPY_ORBITAL_HABITATS_AND_DOCKSIDE_SOCIETIES_V0_1.md",
+-      "category": "vision",
+       "title": "SYMTROPY_ORBITAL_HABITATS_AND_DOCKSIDE_SOCIETIES_V0_1",
+-      "version": null,
++      "version": 0.1,
+       "status": "canonical-draft",
+-      "scope": null,
+-      "owner": null,
+-      "supersedes": null,
+-      "superseded_by": null,
+-      "front_matter": true,
+-      "words": 3883,
+-      "bytes": 31582,
+-      "links": 0,
+-      "sha256": "70169f9977a1795310c4b9703b99c24fa467aa849d587b843ce7e28b91f56fa1"
++      "scope": "orbital habitats, dockside societies, labor, life-support law, Field Deck and Chronicle interactions",
++      "owner": "narrative/world/design",
++      "bytes": 31733,
++      "sha256": "917b5aa47f1e8bbf07edc7064c9164d57ee6d9040803fa814356e3670082bf4e"
+     },
+     {
+       "path": "vision/SYMTROPY_PRESENTATION_ARCHITECTURE_AND_3D_PIVOT_V0_1.md",
+-      "category": "vision",
+-      "title": "Symtropy Presentation Architecture & 3D Pivot (v0.1)",
++      "title": null,
+       "version": null,
+       "status": "unclassified",
+       "scope": null,
+       "owner": null,
+-      "supersedes": null,
+-      "superseded_by": null,
+-      "front_matter": false,
+-      "words": 701,
+       "bytes": 6633,
+-      "links": 0,
+       "sha256": "495862092384b5c58fe98624ee916477687f5178ac05c4fe4036c93eaf00f6be"
+     },
+     {
+       "path": "vision/Symtropy Architecture Design Bible.md",
+-      "category": "vision",
+-      "title": "Symtropy Architecture Design Bible",
++      "title": null,
+       "version": null,
+       "status": "unclassified",
+       "scope": null,
+       "owner": null,
+-      "supersedes": null,
+-      "superseded_by": null,
+-      "front_matter": false,
+-      "words": 4025,
+       "bytes": 34319,
+-      "links": 0,
+       "sha256": "1b110eade45b9a9ed096414faa715abcb3d00cef0b2e9f22e85d590e8a6ab7b2"
+     },
+     {
+       "path": "vision/Symtropy Genetic Modification, Biological Firmware, and Body Sovereignty Design Bible.md",
+-      "category": "vision",
+-      "title": "Symtropy Genetic Modification, Biological Firmware, and Body Sovereignty Design Bible",
++      "title": null,
+       "version": null,
+       "status": "unclassified",
+       "scope": null,
+       "owner": null,
+-      "supersedes": null,
+-      "superseded_by": null,
+-      "front_matter": false,
+-      "words": 3273,
+       "bytes": 26974,
+-      "links": 0,
+       "sha256": "7500cca29ca4a7fef5dd512be3fb83a436b843fcd9e194183e5a40d67706c22d"
+     },
+     {
+       "path": "vision/Symtropy Planetary World Types Design Bible.md",
+-      "category": "vision",
+-      "title": "Symtropy Planetary World Types Design Bible",
++      "title": null,
+       "version": null,
+       "status": "unclassified",
+       "scope": null,
+       "owner": null,
+-      "supersedes": null,
+-      "superseded_by": null,
+-      "front_matter": false,
+-      "words": 2220,
+       "bytes": 18366,
+-      "links": 0,
+       "sha256": "83f9bcc18986bef9d1a5e66d9e0e70c99a4c4dddcb6327bb63e997f87ad93194"
+     },
+     {
+       "path": "vision/Symtropy Player Origins Full Des.md",
+-      "category": "vision",
+-      "title": "Symtropy Player Origins Full Design",
++      "title": null,
+       "version": null,
+       "status": "unclassified",
+       "scope": null,
+       "owner": null,
+-      "supersedes": null,
+-      "superseded_by": null,
+-      "front_matter": false,
+-      "words": 6422,
+       "bytes": 49945,
+-      "links": 0,
+       "sha256": "be3f3da81267f382273afacebcfd29e902bcccc16c3d5fbf2f2fdf1cd0f040ae"
+     },
+     {
+       "path": "vision/Symtropy Societies of Desire, Restraint, Care, and Control.md",
+-      "category": "vision",
+-      "title": "Symtropy Societies of Desire, Restraint, Care, and Control",
++      "title": null,
+       "version": null,
+       "status": "unclassified",
+       "scope": null,
+       "owner": null,
+-      "supersedes": null,
+-      "superseded_by": null,
+-      "front_matter": false,
+-      "words": 2617,
+       "bytes": 21146,
+-      "links": 0,
+       "sha256": "d1d9d995fffabfb7f43efd449418b99483dc818beac3b789c2b51e07bd8acfb5"
+     },
+     {
+       "path": "vision/Symtropy Transformative Biologies Design Bible.md",
+-      "category": "vision",
+-      "title": "Symtropy Transformative Biologies Design Bible",
++      "title": null,
+       "version": null,
+       "status": "unclassified",
+       "scope": null,
+       "owner": null,
+-      "supersedes": null,
+-      "superseded_by": null,
+-      "front_matter": false,
+-      "words": 2739,
+       "bytes": 22592,
+-      "links": 0,
+       "sha256": "63073d11f6341af86dcedfd89a28b07fbdb2b8c0f0ae1daa60a0a93333ba4c5d"
+     },
+     {
+       "path": "vision/Symtropy Vision Document.md",
+-      "category": "vision",
+       "title": "Symtropy Vision Document",
+-      "version": "0.5",
++      "version": 0.5,
+       "status": "supporting",
+       "scope": "broad long-horizon vision and world promise",
+       "owner": "design/creative-direction",
+-      "supersedes": null,
+-      "superseded_by": null,
+-      "front_matter": true,
+-      "words": 2977,
+       "bytes": 23334,
+-      "links": 1,
+       "sha256": "3045b98cac51ae7a5163d0376e5952ca870a3711d171a9c226ed4873d50892bf"
+     }
+   ]
+diff --git a/ops/DOCUMENT_REGISTRY_SUMMARY.md b/ops/DOCUMENT_REGISTRY_SUMMARY.md
+index 8c4db3d..dcc3b2e 100644
+--- a/ops/DOCUMENT_REGISTRY_SUMMARY.md
++++ b/ops/DOCUMENT_REGISTRY_SUMMARY.md
+@@ -1,68 +1,23 @@
+----
+-title: Document Registry Summary
+-version: 0.2
+-status: implementation-spec
+-scope: generated corpus inventory summary
+-owner: documentation/design
+-related:
+-  - DOCUMENT_REGISTRY.json
+----
++# Document Registry Summary v0.7
+ 
+-# Document Registry Summary
+-
+-## Corpus
+-
+-```text
+-Markdown documents: 159
+-Approximate words: 347,023
+-Documents with front matter: 69
+-Documents needing metadata: 90
+-```
++- Markdown documents: 168
++- Approximate words: 358,887
++- Front matter: 76
++- Unclassified: 92
+ 
+ ## Status Counts
+ 
+-- `unclassified`: 90
+-- `canonical-draft`: 43
+-- `implementation-spec`: 7
+-- `canonical`: 7
+-- `supporting`: 6
+-- `superseded`: 3
++- `canonical`: 9
++- `canonical-draft`: 45
+ - `historical`: 3
++- `implementation-spec`: 9
++- `superseded`: 4
++- `supporting`: 6
++- `unclassified`: 92
+ 
+-## Category Counts
+-
+-- `tech`: 42
+-- `lore`: 35
+-- `ops`: 30
+-- `vision`: 14
+-- `root`: 11
+-- `archive`: 10
+-- `canon`: 9
+-- `recipes`: 7
+-- `status`: 1
+-
+-## Canonical Documents
+-
+-- [Canon Registry and Document Governance](../canon/CANON_REGISTRY_AND_DOCUMENT_GOVERNANCE_V0_2.md)
+-- [Core Gameplay Pillars and Verb Matrix](../canon/CORE_GAMEPLAY_PILLARS_AND_VERB_MATRIX_V0_1.md)
+-- [Player Experience and Session Rhythm Contract](../canon/PLAYER_EXPERIENCE_AND_SESSION_RHYTHM_CONTRACT_V0_1.md)
+-- [Progression, Economy, and Mastery Contract](../canon/PROGRESSION_ECONOMY_AND_MASTERY_CONTRACT_V0_1.md)
+-- [Scale Ladder and Progression Constitution](../canon/SCALE_LADDER_AND_PROGRESSION_CONSTITUTION_V0_1.md)
+-- [Symtropy Game Constitution](../canon/SYMTROPY_GAME_CONSTITUTION_V0_6.md)
+-- [System Interaction and Dependency Map](../canon/SYSTEM_INTERACTION_AND_DEPENDENCY_MAP_V0_1.md)
+-
+-## Implementation Specifications
+-
+-- [Symtropy Documentation Integration Pass Changelog](../CHANGELOG_2026_07_20_V0_6.md)
+-- [Symtropy Document Corpus Audit](../ops/DOCUMENT_CORPUS_AUDIT_2026_07_20.md)
+-- [Document Metadata Migration and Consolidation Plan](../ops/DOCUMENT_METADATA_MIGRATION_AND_CONSOLIDATION_PLAN_V0_2.md)
+-- [Document Registry Summary](../ops/DOCUMENT_REGISTRY_SUMMARY.md)
+-- [Symtropy Playtest Research Program](../ops/PLAYTEST_RESEARCH_PROGRAM_V0_2.md)
+-- [Substrate Systems Implementation Tickets](../ops/Substrate%20Systems%20Implementation%20Tickets.md)
+-- [Symtropy Networking Stack Decision](../tech/NETWORKING_STACK_DECISION.md)
+-
+-## Metadata Migration
+-
+-Files without front matter remain `unclassified` and are not canonical by default.
++## Validation
+ 
+-See [Document Metadata Migration and Consolidation Plan](./DOCUMENT_METADATA_MIGRATION_AND_CONSOLIDATION_PLAN_V0_2.md).
++- Markdown links checked: 46
++- Broken links: 0
++- Metadata issues: 0
++- Duplicate active titles: 0
+diff --git a/ops/LINK_AUDIT_2026_07_20_V0_7.json b/ops/LINK_AUDIT_2026_07_20_V0_7.json
+new file mode 100644
+index 0000000..f67df9a
+--- /dev/null
++++ b/ops/LINK_AUDIT_2026_07_20_V0_7.json
+@@ -0,0 +1,4 @@
++{
++  "links_checked": 46,
++  "broken_links": []
++}
+diff --git a/ops/QUALITY_AUDIT_2026_07_20_V0_7.json b/ops/QUALITY_AUDIT_2026_07_20_V0_7.json
+new file mode 100644
+index 0000000..dd8ef4e
+--- /dev/null
++++ b/ops/QUALITY_AUDIT_2026_07_20_V0_7.json
+@@ -0,0 +1,20 @@
++{
++  "document_count": 168,
++  "approximate_words": 358887,
++  "front_matter_count": 76,
++  "unclassified_count": 92,
++  "status_counts": {
++    "unclassified": 92,
++    "implementation-spec": 9,
++    "canonical-draft": 45,
++    "superseded": 4,
++    "canonical": 9,
++    "supporting": 6,
++    "historical": 3
++  },
++  "links_checked": 46,
++  "broken_links": 0,
++  "link_issues": [],
++  "metadata_problems": [],
++  "duplicate_active_titles": {}
++}
+diff --git a/ops/V0_7_CHANGED_FILES.txt b/ops/V0_7_CHANGED_FILES.txt
+new file mode 100644
+index 0000000..36f26c8
+--- /dev/null
++++ b/ops/V0_7_CHANGED_FILES.txt
+@@ -0,0 +1,16 @@
++CHANGELOG_2026_07_20_V0_7.md
++README.md
++canon/CANON_REGISTRY_AND_DOCUMENT_GOVERNANCE_V0_2.md
++canon/CANON_REGISTRY_AND_DOCUMENT_GOVERNANCE_V0_3.md
++canon/MISSION_EVENT_AND_CONTRACT_GRAMMAR_V0_1.md
++canon/PLAYER_AUTHORSHIP_SANDBOX_AND_MODDING_CONTRACT_V0_1.md
++canon/PLAYER_EXPERIENCE_AND_SESSION_RHYTHM_CONTRACT_V0_1.md
++canon/PROGRESSION_ECONOMY_AND_MASTERY_CONTRACT_V0_1.md
++canon/SCIENCE_RESEARCH_AND_DISCOVERY_CONTRACT_V0_1.md
++canon/SYSTEM_INTERACTION_AND_DEPENDENCY_MAP_V0_1.md
++canon/WORLDLINE_LONG_HORIZON_AND_ENDGAME_CONTRACT_V0_1.md
++ops/PLAYTEST_RESEARCH_PROGRAM_V0_2.md
++ops/ROADMAP.md
++ops/V0_7_INTEGRATION_PATCH_CAMPAIGN.md
++tech/MULTIPLAYER_SOCIAL_SAFETY_GRIEFING_AND_MODERATION_V0_1.md
++tech/WORLD_STATE_REVISITABILITY_AND_CONSEQUENCE_PRESENTATION_V0_1.md

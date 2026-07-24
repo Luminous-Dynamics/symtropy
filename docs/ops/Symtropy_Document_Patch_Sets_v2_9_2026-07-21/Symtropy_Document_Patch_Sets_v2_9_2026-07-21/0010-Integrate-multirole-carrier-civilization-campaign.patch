@@ -1,0 +1,1789 @@
+From 39d093921c82cad7b83ecae5c8874701945f3440 Mon Sep 17 00:00:00 2001
+From: OpenAI Symtropy Documentation <symtropy-docs@example.invalid>
+Date: Tue, 21 Jul 2026 11:13:27 +0000
+Subject: [PATCH 10/10] Integrate multirole carrier civilization campaign
+
+---
+ CHANGELOG_2026_07_21_V2_9.md                  |  25 ++
+ MANIFEST.json                                 | 131 +++++-
+ README.md                                     |  18 +
+ ...N_REGISTRY_AND_DOCUMENT_GOVERNANCE_V2_4.md |   2 +-
+ ...N_REGISTRY_AND_DOCUMENT_GOVERNANCE_V2_5.md |  74 +++
+ ...TEM_INTERACTION_AND_DEPENDENCY_MAP_V2_1.md |   2 +-
+ ...TEM_INTERACTION_AND_DEPENDENCY_MAP_V2_2.md | 112 +++++
+ ops/DOCUMENT_REGISTRY.json                    | 424 +++++++++++++++---
+ ops/DOCUMENT_REGISTRY_SUMMARY_V2_9.md         |  37 ++
+ ops/GAME_IMPLEMENTATION_ROADMAP_V2_1.md       |   2 +-
+ ops/GAME_IMPLEMENTATION_ROADMAP_V2_2.md       | 103 +++++
+ ops/QUALITY_AUDIT_2026_07_21_V2_9.json        |  23 +
+ ...PY_IMPLEMENTATION_READINESS_MATRIX_V2_1.md |   2 +-
+ ...PY_IMPLEMENTATION_READINESS_MATRIX_V2_2.md |  95 ++++
+ ...E_ECOLOGY_AND_COMMAND_AT_SCALE_CAMPAIGN.md |  69 +++
+ ...FICATION_AND_COMMISSIONING_RUNTIME_V0_1.md |   2 +-
+ ...E_AND_GRACEFUL_DEGRADATION_RUNTIME_V0_1.md |   4 +-
+ ...TERFACES_AND_ROLE_ENVELOPE_RUNTIME_V0_1.md |   4 +-
+ ...EPLOYMENT_AND_BASE_CARRIER_RUNTIME_V0_1.md |   2 +-
+ 19 files changed, 1058 insertions(+), 73 deletions(-)
+ create mode 100644 CHANGELOG_2026_07_21_V2_9.md
+ create mode 100644 canon/CANON_REGISTRY_AND_DOCUMENT_GOVERNANCE_V2_5.md
+ create mode 100644 canon/SYSTEM_INTERACTION_AND_DEPENDENCY_MAP_V2_2.md
+ create mode 100644 ops/DOCUMENT_REGISTRY_SUMMARY_V2_9.md
+ create mode 100644 ops/GAME_IMPLEMENTATION_ROADMAP_V2_2.md
+ create mode 100644 ops/QUALITY_AUDIT_2026_07_21_V2_9.json
+ create mode 100644 ops/SYMTROPY_IMPLEMENTATION_READINESS_MATRIX_V2_2.md
+ create mode 100644 ops/V2_9_PLAYER_BUILT_CARRIER_CIVILIZATIONS_NESTED_VEHICLE_ECOLOGY_AND_COMMAND_AT_SCALE_CAMPAIGN.md
+
+diff --git a/CHANGELOG_2026_07_21_V2_9.md b/CHANGELOG_2026_07_21_V2_9.md
+new file mode 100644
+index 0000000..4806ad9
+--- /dev/null
++++ b/CHANGELOG_2026_07_21_V2_9.md
+@@ -0,0 +1,25 @@
++# Symtropy Documentation Changelog — v2.9
++
++Date: 2026-07-21
++
++## Added
++
++- large-carrier multirole and non-specialization contract;
++- common civic core, open interfaces and mission-role envelope;
++- carrier profile schema;
++- eight hull-lineage grammars and internal city atlas;
++- nested carriers, base-carriers, mobile homes and field vehicles;
++- access, qualification, ownership, charter and command progression;
++- industrial construction, yards, suppliers, certification and commissioning;
++- crew stations, NPC delegation, automation and graceful degradation;
++- ten multirole carrier family profiles, including ocean and hostile-world carriers;
++- benchmark schema, fixture and one-hundred-ticket backlog;
++- v2.9 registry, dependency map, roadmap and readiness matrix.
++
++## Corrected Direction
++
++Earlier carrier concepts could be read as single-purpose classes. v2.9 makes each large carrier a broad civilization with a common baseline and configurable emphasis. Family names now identify lineages and customary profiles rather than exclusive capabilities.
++
++## Evidence
++
++All new capabilities remain D3 / I0 until representative implementation and benchmark evidence exist.
+diff --git a/MANIFEST.json b/MANIFEST.json
+index 0546148..6f02fe2 100644
+--- a/MANIFEST.json
++++ b/MANIFEST.json
+@@ -1,5 +1,5 @@
+ {
+-  "version": "2.8",
++  "version": "2.9",
+   "files": [
+     {
+       "path": "CHANGELOG_2026_07_20.md",
+@@ -121,6 +121,11 @@
+       "bytes": 1297,
+       "sha256": "e6161391f533d84d96fb75b2dda9d8ded9ac0334cab683797da7f4569588984a"
+     },
++    {
++      "path": "CHANGELOG_2026_07_21_V2_9.md",
++      "bytes": 1171,
++      "sha256": "e6c55e8caccf606d3b3abd15c839f79746681ea0e74d37b543ea2caed5cf2743"
++    },
+     {
+       "path": "CONTRIBUTING.md",
+       "bytes": 2147,
+@@ -138,8 +143,8 @@
+     },
+     {
+       "path": "README.md",
+-      "bytes": 30434,
+-      "sha256": "bae5c81d14f3ae02827f8c656a4b9d22844c8656b43723b62e477a63b6fe61d9"
++      "bytes": 32210,
++      "sha256": "6334b3b9b0594706a403a1c3639da9795d84a9eb3e2c18a0bb3547cd1fd21bc4"
+     },
+     {
+       "path": "SYMTROPY_RESOURCE_CHAINS_GAME_DOC_V0_1.md",
+@@ -383,8 +388,18 @@
+     },
+     {
+       "path": "canon/CANON_REGISTRY_AND_DOCUMENT_GOVERNANCE_V2_4.md",
+-      "bytes": 5444,
+-      "sha256": "6be584e49f2425c0f03124e5dac3256b43476c82394e9c7bc56b6118d2ef6771"
++      "bytes": 5445,
++      "sha256": "04a5c3cb46e5ab9cb9d127c0f2b5ff7ae922183a1b4af700c5434296c12817c8"
++    },
++    {
++      "path": "canon/CANON_REGISTRY_AND_DOCUMENT_GOVERNANCE_V2_5.md",
++      "bytes": 5193,
++      "sha256": "770e528538812dd7cfad1b217bef2950726dfb0ce9431bf99b60cfe2b00816a5"
++    },
++    {
++      "path": "canon/CARRIER_ACCESS_OWNERSHIP_CHARTER_COMMAND_AND_CREW_SOVEREIGNTY_CONTRACT_V0_1.md",
++      "bytes": 11564,
++      "sha256": "dffaee9ba5e75e9ebe6990d1e1f34df457ef00e2a98e9721e1b3102044728781"
+     },
+     {
+       "path": "canon/CIVIC_SUCCESSION_PUBLIC_SERVICE_AND_INSTITUTIONAL_CONTINUITY_CONTRACT_V0_1.md",
+@@ -516,6 +531,11 @@
+       "bytes": 11738,
+       "sha256": "8b38de65ceb377e79d3c18e474de56c7b42bd0b543967982b4cce39f86525255"
+     },
++    {
++      "path": "canon/LARGE_CARRIER_MULTIROLE_CIVILIZATION_AND_NON_SPECIALIZATION_CONTRACT_V0_1.md",
++      "bytes": 9799,
++      "sha256": "cc00ca7b65f660b41974a2dc20945db303405cf43735d3e442ea5cd08fde7554"
++    },
+     {
+       "path": "canon/LIFE_COURSE_HOUSEHOLDS_KINSHIP_AND_EDUCATION_CONTRACT_V0_1.md",
+       "bytes": 13636,
+@@ -778,8 +798,13 @@
+     },
+     {
+       "path": "canon/SYSTEM_INTERACTION_AND_DEPENDENCY_MAP_V2_1.md",
+-      "bytes": 5949,
+-      "sha256": "97848bb438e5bd699c1e052f9207a566193e6cfcd405d1313aa56840560a6731"
++      "bytes": 5940,
++      "sha256": "b83c35d6d92f9b5e17474bc1ba574a57330c2e0e42db254439b39b9b2903a276"
++    },
++    {
++      "path": "canon/SYSTEM_INTERACTION_AND_DEPENDENCY_MAP_V2_2.md",
++      "bytes": 3457,
++      "sha256": "f45b95f0f88a57d8f5deed8fb270c02270a9069d0bae3a5ca793772b68cd3af7"
+     },
+     {
+       "path": "canon/VICE_ECONOMIES_PLEASURE_CITIES_AND_NIGHTLIFE_CONTRACT_V0_1.md",
+@@ -811,6 +836,11 @@
+       "bytes": 6104,
+       "sha256": "7559647836665a33f181d6d9db978130ccb6fb64e6d957b37c3ca1dfa5c226e1"
+     },
++    {
++      "path": "fixtures/v2_9/multirole_carrier_benchmark.example.json",
++      "bytes": 5122,
++      "sha256": "0d56ce6e9f1ffde1be6bf65248913b97be9eb86415ffe36d0d9a1936421beba7"
++    },
+     {
+       "path": "lore/ALIEN_METRIC_TRADITIONS_MOVING_ANCHORS_AND_CAUSAL_CONTACT_ATLAS_V0_1.md",
+       "bytes": 17238,
+@@ -996,6 +1026,11 @@
+       "bytes": 7369,
+       "sha256": "d23c68d84b89e379317a0893feaf8343b87ef0efa5c8fae5e36a21372fffa42b"
+     },
++    {
++      "path": "lore/LARGE_CARRIER_HULL_LINEAGES_CULTURAL_VARIETY_AND_INTERNAL_CITY_ATLAS_V0_1.md",
++      "bytes": 14028,
++      "sha256": "5beddc290800ce5a6f27d8555e18136d345ece472744c9ca1eb60a4b2d2dbecb"
++    },
+     {
+       "path": "lore/LEGENDARY_CITIES_HABITATS_AND_WORLD_REGIONS_ATLAS_V0_1.md",
+       "bytes": 16312,
+@@ -1011,6 +1046,11 @@
+       "bytes": 16811,
+       "sha256": "ec02164f71af5ebad7c8e6356f81e8fe7f1c41f2c53526791aace99f3ea4e188"
+     },
++    {
++      "path": "lore/MULTIROLE_CARRIER_FAMILIES_MISSION_PROFILES_AND_WORLD_ADAPTATION_ATLAS_V0_1.md",
++      "bytes": 13801,
++      "sha256": "bd47613bccb5ea6c85150bdca599f761079c51d33a96e6dd4632dcbb70c497a4"
++    },
+     {
+       "path": "lore/NAMING_PLURALITY_LOCAL_REGISTER_AND_LINGUISTIC_HISTORY_ATLAS_V0_1.md",
+       "bytes": 14822,
+@@ -1248,8 +1288,8 @@
+     },
+     {
+       "path": "ops/DOCUMENT_REGISTRY.json",
+-      "bytes": 286724,
+-      "sha256": "52c29742dcb0fab8c1720ceac892045de559b51b47f41590a939649690dfa471"
++      "bytes": 300546,
++      "sha256": "3b6dd977b53de51480509d0abb4f5a2322285e7cd7a312edf7ccfd10e4dbdfb9"
+     },
+     {
+       "path": "ops/DOCUMENT_REGISTRY_SUMMARY.md",
+@@ -1331,6 +1371,11 @@
+       "bytes": 865,
+       "sha256": "c97b8261c1ce2b5e20436ab4257eb1720fde77b63116d193f9cb970aa0844616"
+     },
++    {
++      "path": "ops/DOCUMENT_REGISTRY_SUMMARY_V2_9.md",
++      "bytes": 1158,
++      "sha256": "ac757d8c867b72e32b9b8b11ed6e623c8842daa34fe138f3931ae4618cb2c63d"
++    },
+     {
+       "path": "ops/FIFTY_YEAR_CIVILIZATION_CONTINUITY_BENCHMARK_V0_1.md",
+       "bytes": 12804,
+@@ -1498,8 +1543,13 @@
+     },
+     {
+       "path": "ops/GAME_IMPLEMENTATION_ROADMAP_V2_1.md",
+-      "bytes": 3826,
+-      "sha256": "9fd8e60233b621f443bf46c39ae05c722c31cb3a699cc3c3d459c95f9bc9cdd7"
++      "bytes": 3817,
++      "sha256": "ef3e509c00d3884802eef20abbbc926bd95fb7167e551bd5d63cb0c698af8e59"
++    },
++    {
++      "path": "ops/GAME_IMPLEMENTATION_ROADMAP_V2_2.md",
++      "bytes": 3737,
++      "sha256": "c8c4781787605e784aa3579aef134e147f25c2f69a208b4061f32033e6d2a3da"
+     },
+     {
+       "path": "ops/HISTORICAL_TEXTURE_WORLD_COHERENCE_BENCHMARK_V0_1.md",
+@@ -1511,6 +1561,16 @@
+       "bytes": 12071,
+       "sha256": "3baf0c5dbb609d04deaeef89ee2014d139421d1942e675f924c1d278bdf26275"
+     },
++    {
++      "path": "ops/LARGE_CARRIER_IMPLEMENTATION_TICKET_BACKLOG_V0_1.md",
++      "bytes": 19965,
++      "sha256": "69db0f087314ba038b1967604934a4a8bafb1690ad97d571209a3549ab19dcf1"
++    },
++    {
++      "path": "ops/LARGE_CARRIER_OWNERSHIP_BUILD_AND_COMMAND_BENCHMARK_V0_1.md",
++      "bytes": 7754,
++      "sha256": "daaffa170d1d44932a3c773c19b4b1402ac1f902b6027f06ef4f9a1fd763dfca"
++    },
+     {
+       "path": "ops/LEGENDARY_DESTINATION_PRODUCTION_PACKS_V0_1.md",
+       "bytes": 14346,
+@@ -1806,6 +1866,11 @@
+       "bytes": 521,
+       "sha256": "843293534ab63a15493dfed9acde2053688b668044ade291246fd9a738c01bd5"
+     },
++    {
++      "path": "ops/QUALITY_AUDIT_2026_07_21_V2_9.json",
++      "bytes": 521,
++      "sha256": "f21bda7ad501b385403213a7b3f07ce60f4d7486089a7abdd03a0e37ba3d7f9c"
++    },
+     {
+       "path": "ops/REPRESENTATIVE_BUILD_PERFORMANCE_CONTENT_AND_STRESS_MATRIX_V0_1.md",
+       "bytes": 5896,
+@@ -2008,8 +2073,13 @@
+     },
+     {
+       "path": "ops/SYMTROPY_IMPLEMENTATION_READINESS_MATRIX_V2_1.md",
+-      "bytes": 4408,
+-      "sha256": "c066e151cadff2094de9e150fa85575238766ae9e631705bec555edb1348cfb1"
++      "bytes": 4399,
++      "sha256": "16c3f181c8817663ce996780904161869132f0eb44748f2d4d0b5be3aa690cc6"
++    },
++    {
++      "path": "ops/SYMTROPY_IMPLEMENTATION_READINESS_MATRIX_V2_2.md",
++      "bytes": 4096,
++      "sha256": "acd1532e29ce28a5e1080843d574f1190b7efd9e1790a29f2ac995a9d40a9ba6"
+     },
+     {
+       "path": "ops/Seedworks Tech Tree Dependency Spine.md",
+@@ -2181,6 +2251,11 @@
+       "bytes": 3052,
+       "sha256": "0cb805849122be341ffff348c6d7649ed0ac96fb15b512d12cecfc6decf43c9f"
+     },
++    {
++      "path": "ops/V2_9_PLAYER_BUILT_CARRIER_CIVILIZATIONS_NESTED_VEHICLE_ECOLOGY_AND_COMMAND_AT_SCALE_CAMPAIGN.md",
++      "bytes": 3758,
++      "sha256": "1a6004e48ebffcb9efbf64bf6e90d1677ddf8c39e2738d8de5906db0d5fc04fb"
++    },
+     {
+       "path": "ops/WORLDLINE_BACKUP_RESTORE_AND_UPGRADE_RUNBOOK_V0_1.md",
+       "bytes": 5463,
+@@ -2591,6 +2666,16 @@
+       "bytes": 3178,
+       "sha256": "13f49ed58d8b924671f6d91258ca679a84b7bd765575c775436385277b391c6f"
+     },
++    {
++      "path": "schemas/v2_9/large_carrier_benchmark.schema.json",
++      "bytes": 2909,
++      "sha256": "dd4311307239f3170a15811525c15ba7db5e8954a3f5fc7c5c0a14f88f1896a6"
++    },
++    {
++      "path": "schemas/v2_9/large_carrier_profile.schema.json",
++      "bytes": 4189,
++      "sha256": "993e74a067ce2bb8c43257e7720e1e270172db8996491014af77395868933c90"
++    },
+     {
+       "path": "status/FOUNDRY_VERIFICATION_2026_06_18.md",
+       "bytes": 2454,
+@@ -2646,6 +2731,16 @@
+       "bytes": 12893,
+       "sha256": "c18d2fb713c59c04f92eaac0c45fdcb2592bf9f5891b919a5e314f7a67a8c25d"
+     },
++    {
++      "path": "tech/CARRIER_CONSTRUCTION_YARDS_SUPPLY_CHAINS_CERTIFICATION_AND_COMMISSIONING_RUNTIME_V0_1.md",
++      "bytes": 11628,
++      "sha256": "46bacf500af859691f18ab2382bbba2ba3d7b21dd63bc0a762131b220b78d177"
++    },
++    {
++      "path": "tech/CARRIER_CREW_AUTOMATION_STATIONS_DAMAGE_AND_GRACEFUL_DEGRADATION_RUNTIME_V0_1.md",
++      "bytes": 10617,
++      "sha256": "ab8486139c804d5199ffeec6a65ff8791a1dfe84c958a9c841b8575068a8c028"
++    },
+     {
+       "path": "tech/CAUSAL_EXPLANATION_AND_PLAYER_FEEDBACK_RUNTIME_V0_1.md",
+       "bytes": 9099,
+@@ -2851,6 +2946,11 @@
+       "bytes": 11988,
+       "sha256": "ea726011e88083692e02340b300b4e9feef3054bcc00bafe2f7b635c11aeddad"
+     },
++    {
++      "path": "tech/LARGE_CARRIER_COMMON_CORE_OPEN_INTERFACES_AND_ROLE_ENVELOPE_RUNTIME_V0_1.md",
++      "bytes": 11167,
++      "sha256": "a1a60688236076cd37900aa523eb921bd021c61dbfd98634ddeb2d0552597dbc"
++    },
+     {
+       "path": "tech/LIGHT_DELAY_COMMUNICATION_TIMEKEEPING_AND_ASYNC_COORDINATION_RUNTIME_V0_1.md",
+       "bytes": 11336,
+@@ -2901,6 +3001,11 @@
+       "bytes": 6148,
+       "sha256": "994bf81ad49d0feb5aa6b332d14f9fda398f6f47ff2b4ac7d367c5db706f125d"
+     },
++    {
++      "path": "tech/NESTED_VEHICLE_ECOLOGY_DOCKING_DEPLOYMENT_AND_BASE_CARRIER_RUNTIME_V0_1.md",
++      "bytes": 10283,
++      "sha256": "4c9993327241c8c0f4a599435bba01984bc41bead1a7775341738119bd0dcec2"
++    },
+     {
+       "path": "tech/NETWORKING_STACK_DECISION.md",
+       "bytes": 14185,
+diff --git a/README.md b/README.md
+index 39e1da6..6d78fac 100644
+--- a/README.md
++++ b/README.md
+@@ -1,3 +1,21 @@
++## v2.9 Player-Built Carrier Civilizations, Nested Vehicle Ecology, and Command at Scale
++
++- [Large Carrier Multirole Civilization and Non-Specialization Contract](./canon/LARGE_CARRIER_MULTIROLE_CIVILIZATION_AND_NON_SPECIALIZATION_CONTRACT_V0_1.md)
++- [Large Carrier Common Core, Open Interfaces, and Role Envelope Runtime](./tech/LARGE_CARRIER_COMMON_CORE_OPEN_INTERFACES_AND_ROLE_ENVELOPE_RUNTIME_V0_1.md)
++- [Large Carrier Hull Lineages, Cultural Variety, and Internal City Atlas](./lore/LARGE_CARRIER_HULL_LINEAGES_CULTURAL_VARIETY_AND_INTERNAL_CITY_ATLAS_V0_1.md)
++- [Nested Vehicle Ecology, Docking, Deployment, and Base-Carrier Runtime](./tech/NESTED_VEHICLE_ECOLOGY_DOCKING_DEPLOYMENT_AND_BASE_CARRIER_RUNTIME_V0_1.md)
++- [Carrier Access, Ownership, Charter, Command, and Crew Sovereignty Contract](./canon/CARRIER_ACCESS_OWNERSHIP_CHARTER_COMMAND_AND_CREW_SOVEREIGNTY_CONTRACT_V0_1.md)
++- [Carrier Construction Yards, Supply Chains, Certification, and Commissioning Runtime](./tech/CARRIER_CONSTRUCTION_YARDS_SUPPLY_CHAINS_CERTIFICATION_AND_COMMISSIONING_RUNTIME_V0_1.md)
++- [Carrier Crew, Automation, Stations, Damage, and Graceful Degradation Runtime](./tech/CARRIER_CREW_AUTOMATION_STATIONS_DAMAGE_AND_GRACEFUL_DEGRADATION_RUNTIME_V0_1.md)
++- [Multirole Carrier Families, Mission Profiles, and World Adaptation Atlas](./lore/MULTIROLE_CARRIER_FAMILIES_MISSION_PROFILES_AND_WORLD_ADAPTATION_ATLAS_V0_1.md)
++- [Large Carrier Ownership, Build, Multirole, and Command Benchmark](./ops/LARGE_CARRIER_OWNERSHIP_BUILD_AND_COMMAND_BENCHMARK_V0_1.md)
++- [Large Carrier Implementation Ticket Backlog](./ops/LARGE_CARRIER_IMPLEMENTATION_TICKET_BACKLOG_V0_1.md)
++
++The governing rule is:
++
++> **Large ships are broad civilizations with different emphases—not single-purpose classes.**
++
++
+ ## v2.8 Meme Ecology, Cultural Mutation, Humor, and Living Folklore
+ 
+ - [Meme Ecology, Humor, Living Folklore, and Cultural Agency](./canon/MEME_ECOLOGY_HUMOR_LIVING_FOLKLORE_AND_CULTURAL_AGENCY_CONTRACT_V0_1.md)
+diff --git a/canon/CANON_REGISTRY_AND_DOCUMENT_GOVERNANCE_V2_4.md b/canon/CANON_REGISTRY_AND_DOCUMENT_GOVERNANCE_V2_4.md
+index c5167ef..9fcec72 100644
+--- a/canon/CANON_REGISTRY_AND_DOCUMENT_GOVERNANCE_V2_4.md
++++ b/canon/CANON_REGISTRY_AND_DOCUMENT_GOVERNANCE_V2_4.md
+@@ -1,7 +1,7 @@
+ ---
+ title: Canon Registry and Document Governance
+ version: 2.4
+-status: canonical
++status: superseded
+ scope: documentation lifecycle, meme ecology, cultural mutation, humor safety, living folklore, provenance and evidence boundaries
+ owner: documentation/design/production
+ supersedes:
+diff --git a/canon/CANON_REGISTRY_AND_DOCUMENT_GOVERNANCE_V2_5.md b/canon/CANON_REGISTRY_AND_DOCUMENT_GOVERNANCE_V2_5.md
+new file mode 100644
+index 0000000..b815f16
+--- /dev/null
++++ b/canon/CANON_REGISTRY_AND_DOCUMENT_GOVERNANCE_V2_5.md
+@@ -0,0 +1,74 @@
++---
++title: Canon Registry and Document Governance
++version: 2.5
++status: canonical
++scope: multirole carrier civilizations, nested mobile bases, player buildability, ownership, command and large-ship variety
++owner: documentation/design/production
++supersedes:
++  - CANON_REGISTRY_AND_DOCUMENT_GOVERNANCE_V2_4.md
++related:
++  - LARGE_CARRIER_MULTIROLE_CIVILIZATION_AND_NON_SPECIALIZATION_CONTRACT_V0_1.md
++  - CARRIER_ACCESS_OWNERSHIP_CHARTER_COMMAND_AND_CREW_SOVEREIGNTY_CONTRACT_V0_1.md
++  - ../ops/V2_9_PLAYER_BUILT_CARRIER_CIVILIZATIONS_NESTED_VEHICLE_ECOLOGY_AND_COMMAND_AT_SCALE_CAMPAIGN.md
++---
++
++# Canon Registry and Document Governance
++
++## Purpose
++
++Integrate v2.9 large-carrier decisions without replacing the Firstlight and Continuance production spine or converting spacecraft into single-role classes, personal loot or scenery inhabited by people without agency.
++
++# v2.9 Ownership
++
++[Large Carrier Multirole Civilization and Non-Specialization Contract](./LARGE_CARRIER_MULTIROLE_CIVILIZATION_AND_NON_SPECIALIZATION_CONTRACT_V0_1.md) owns the common civic baseline, mission-emphasis model and variety boundaries.
++
++[Carrier Access, Ownership, Charter, Command, and Crew Sovereignty Contract](./CARRIER_ACCESS_OWNERSHIP_CHARTER_COMMAND_AND_CREW_SOVEREIGNTY_CONTRACT_V0_1.md) owns progression, property, authority, command legitimacy and resident rights.
++
++[Large Carrier Common Core, Open Interfaces, and Role Envelope Runtime](../tech/LARGE_CARRIER_COMMON_CORE_OPEN_INTERFACES_AND_ROLE_ENVELOPE_RUNTIME_V0_1.md) owns component graphs, capacity domains, standard interfaces, profile allocation and configuration.
++
++[Nested Vehicle Ecology, Docking, Deployment, and Base-Carrier Runtime](../tech/NESTED_VEHICLE_ECOLOGY_DOCKING_DEPLOYMENT_AND_BASE_CARRIER_RUNTIME_V0_1.md) owns carriers of carriers, persistent mobile-home identity and deployment.
++
++[Carrier Construction Yards, Supply Chains, Certification, and Commissioning Runtime](../tech/CARRIER_CONSTRUCTION_YARDS_SUPPLY_CHAINS_CERTIFICATION_AND_COMMISSIONING_RUNTIME_V0_1.md) owns player-buildability at industrial scale.
++
++[Carrier Crew, Automation, Stations, Damage, and Graceful Degradation Runtime](../tech/CARRIER_CREW_AUTOMATION_STATIONS_DAMAGE_AND_GRACEFUL_DEGRADATION_RUNTIME_V0_1.md) owns operations, delegation, station play and survivable failure.
++
++[Large Carrier Hull Lineages, Cultural Variety, and Internal City Atlas](../lore/LARGE_CARRIER_HULL_LINEAGES_CULTURAL_VARIETY_AND_INTERNAL_CITY_ATLAS_V0_1.md) owns structural and cultural variation.
++
++[Multirole Carrier Families, Mission Profiles, and World Adaptation Atlas](../lore/MULTIROLE_CARRIER_FAMILIES_MISSION_PROFILES_AND_WORLD_ADAPTATION_ATLAS_V0_1.md) owns the ten reference families as emphases rather than classes.
++
++[Large Carrier Ownership, Build, Multirole, and Command Benchmark](../ops/LARGE_CARRIER_OWNERSHIP_BUILD_AND_COMMAND_BENCHMARK_V0_1.md) owns promotion evidence.
++
++# v2.9 Canonical Decisions
++
++- Large carriers are broad civilizations with mission emphases.
++- All inhabited large carriers retain a common civic and operational baseline.
++- Shared interfaces do not require shared silhouettes or cultures.
++- Carrier families are lineages and customary profiles, not exclusive classes.
++- Mobile homes remain persistent identities while nested inside larger craft.
++- Access, qualification, authority, ownership and command are separate progressions.
++- Meaningful carrier participation begins long before ownership.
++- Civilization carriers are normally built through institutions, yards and multi-year campaigns.
++- Command coordinates autonomous people and departments; it does not own them.
++- Automation compresses routine but cannot erase political and ethical decisions.
++- Damage produces graceful degradation, changed mission and history.
++- The first proof remains bounded and may not displace Firstlight or Continuance implementation.
++
++# Canonical Decision Spine
++
++1. [Symtropy Game Constitution v0.6](./SYMTROPY_GAME_CONSTITUTION_V0_6.md)
++2. [Breaking of Firstlight Contract](./BREAKING_OF_FIRSTLIGHT_LOSS_CONTINUITY_AND_PLAYER_AGENCY_CONTRACT_V0_1.md)
++3. [Mobile Continuance Base Contract](./MOBILE_CONTINUANCE_BASE_HOME_VEHICLE_AND_CREW_SOVEREIGNTY_CONTRACT_V0_1.md)
++4. [Large Carrier Multirole Contract](./LARGE_CARRIER_MULTIROLE_CIVILIZATION_AND_NON_SPECIALIZATION_CONTRACT_V0_1.md)
++5. [Carrier Ownership and Command Contract](./CARRIER_ACCESS_OWNERSHIP_CHARTER_COMMAND_AND_CREW_SOVEREIGNTY_CONTRACT_V0_1.md)
++6. [System Interaction and Dependency Map v2.2](./SYSTEM_INTERACTION_AND_DEPENDENCY_MAP_V2_2.md)
++7. [Game Implementation Roadmap v2.2](../ops/GAME_IMPLEMENTATION_ROADMAP_V2_2.md)
++8. [Implementation Readiness Matrix v2.2](../ops/SYMTROPY_IMPLEMENTATION_READINESS_MATRIX_V2_2.md)
++9. [Large Carrier Benchmark](../ops/LARGE_CARRIER_OWNERSHIP_BUILD_AND_COMMAND_BENCHMARK_V0_1.md)
++
++# Evidence Boundary
++
++All v2.9 systems remain D3 / I0. The documents define intended behavior but do not prove simulation, performance, UI, networking, variety, player comprehension or fun.
++
++## Registry Maxim
++
++> **A carrier enters canon as a civilization only when the documentation remembers both what the hull can do and who has the right to decide what it should do.**
+diff --git a/canon/SYSTEM_INTERACTION_AND_DEPENDENCY_MAP_V2_1.md b/canon/SYSTEM_INTERACTION_AND_DEPENDENCY_MAP_V2_1.md
+index 4f3d154..766fc59 100644
+--- a/canon/SYSTEM_INTERACTION_AND_DEPENDENCY_MAP_V2_1.md
++++ b/canon/SYSTEM_INTERACTION_AND_DEPENDENCY_MAP_V2_1.md
+@@ -1,7 +1,7 @@
+ ---
+ title: System Interaction and Dependency Map
+ version: 2.1
+-status: implementation-spec
++status: superseded
+ scope: meme ecology integration across world events, observers, casts, networks, culture, IRIS, Muse, safety, history and presentation
+ owner: architecture/design/production
+ supersedes:
+diff --git a/canon/SYSTEM_INTERACTION_AND_DEPENDENCY_MAP_V2_2.md b/canon/SYSTEM_INTERACTION_AND_DEPENDENCY_MAP_V2_2.md
+new file mode 100644
+index 0000000..3261390
+--- /dev/null
++++ b/canon/SYSTEM_INTERACTION_AND_DEPENDENCY_MAP_V2_2.md
+@@ -0,0 +1,112 @@
++---
++title: System Interaction and Dependency Map
++version: 2.2
++status: implementation-spec
++scope: carrier integration across spacecraft physics, mobile homes, construction, economy, crews, governance, multiplayer, worlds and history
++owner: architecture/design/production
++supersedes:
++  - SYSTEM_INTERACTION_AND_DEPENDENCY_MAP_V2_1.md
++related:
++  - LARGE_CARRIER_MULTIROLE_CIVILIZATION_AND_NON_SPECIALIZATION_CONTRACT_V0_1.md
++  - ../tech/LARGE_CARRIER_COMMON_CORE_OPEN_INTERFACES_AND_ROLE_ENVELOPE_RUNTIME_V0_1.md
++  - ../ops/LARGE_CARRIER_OWNERSHIP_BUILD_AND_COMMAND_BENCHMARK_V0_1.md
++---
++
++# System Interaction and Dependency Map
++
++## Core Spine
++
++```text
++world and mission need
++→ charter, ownership and requirements
++→ hull lineage and common-core capacity
++→ yard, supply chains and construction
++→ districts, residents and institutions
++→ carried mobile-base ecology
++→ qualification, automation and command
++→ deployment, travel, work and emergency
++→ damage, refit and historical transformation
++→ successor mission and carrier identity
++```
++
++# Required Dependencies
++
++## Spacecraft physics
++
++Mass, inertia, propulsion, power, thermal rejection, pressure, radiation and trajectory remain authoritative.
++
++## Closed-loop habitat
++
++Population, atmosphere, water, food, waste, disease and ecology determine true endurance.
++
++## Mobile-home lineage
++
++Crawlers, submarines, flotillas and other homes retain identity while embarked.
++
++## Construction and economy
++
++Yards, materials, labor, finance, certification and maintenance make buildability real.
++
++## NPC work and institutions
++
++Departments require people, qualifications, schedules, authority and professional ethics.
++
++## Governance and justice
++
++Title, command, resident rights, emergency authority, refusal and succession remain separate.
++
++## Networking and worldline truth
++
++Docking, ownership, damage and configuration are authoritative and cannot duplicate during locality transfer.
++
++## Symthaea direction
++
++Symthaea may surface meaningful operations and emergencies from true state. It may not invent failures, crew disobedience or vulnerabilities for drama.
++
++# Scale Transitions
++
++```text
++field vehicle
++↕ mobile home
++↕ base-carrier
++↕ civilization carrier
++↕ station, route or seed convoy
++```
++
++Each transition preserves people, cargo, damage, authority and history.
++
++# Carrier Profile Flow
++
++```text
++common civic core
+++ hull lineage
+++ mission emphasis vector
+++ installed modules
+++ carried-base mix
+++ residents and charter
+++ damage and repair ancestry
++= current carrier configuration
++```
++
++No label alone grants capability.
++
++# First Implementation Dependency Order
++
++1. authoritative carrier identity;
++2. twelve common-core domains;
++3. one hull and three mission profiles;
++4. one dock and one mobile-home identity;
++5. bounded station operation and NPC delegation;
++6. ownership and authority ledger;
++7. one construction proof;
++8. one graceful-degradation emergency;
++9. second hull lineage and blind variety study;
++10. wider carrier family content.
++
++# Production Boundary
++
++The carrier stack depends on a playable Continuance Crawler, persistent residents and basic spacecraft locality. Carrier work may develop schemas and isolated prototypes earlier, but should not become the critical path for the first playable release.
++
++## Map Maxim
++
++> **The large ship is where vehicle physics, household life, industrial production and political legitimacy become one system. None may be replaced by the others.**
+diff --git a/ops/DOCUMENT_REGISTRY.json b/ops/DOCUMENT_REGISTRY.json
+index f9ddf95..0f53626 100644
+--- a/ops/DOCUMENT_REGISTRY.json
++++ b/ops/DOCUMENT_REGISTRY.json
+@@ -1,9 +1,9 @@
+ {
+-  "version": "2.8",
++  "version": "2.9",
+   "documents": [
+     {
+       "path": "CHANGELOG_2026_07_20.md",
+-      "title": "Symtropy Documentation Improvement Pass \u2014 2026-07-20",
++      "title": "Symtropy Documentation Improvement Pass — 2026-07-20",
+       "version": null,
+       "declared_status": "unclassified",
+       "effective_status": "unclassified",
+@@ -27,7 +27,7 @@
+     },
+     {
+       "path": "CHANGELOG_2026_07_20_V0_7.md",
+-      "title": "Symtropy Documentation v0.7 \u2014 Integration Patch Campaign",
++      "title": "Symtropy Documentation v0.7 — Integration Patch Campaign",
+       "version": null,
+       "declared_status": "unclassified",
+       "effective_status": "unclassified",
+@@ -39,7 +39,7 @@
+     },
+     {
+       "path": "CHANGELOG_2026_07_20_V0_8.md",
+-      "title": "Symtropy Documentation v0.8 \u2014 Implementation Hardening",
++      "title": "Symtropy Documentation v0.8 — Implementation Hardening",
+       "version": null,
+       "declared_status": "unclassified",
+       "effective_status": "unclassified",
+@@ -87,7 +87,7 @@
+     },
+     {
+       "path": "CHANGELOG_2026_07_20_V1_2.md",
+-      "title": "Symtropy Documentation Changelog \u2014 v1.2",
++      "title": "Symtropy Documentation Changelog — v1.2",
+       "version": null,
+       "declared_status": "unclassified",
+       "effective_status": "unclassified",
+@@ -99,7 +99,7 @@
+     },
+     {
+       "path": "CHANGELOG_2026_07_20_V1_3.md",
+-      "title": "Symtropy Documentation Changelog \u2014 v1.3",
++      "title": "Symtropy Documentation Changelog — v1.3",
+       "version": null,
+       "declared_status": "unclassified",
+       "effective_status": "unclassified",
+@@ -123,7 +123,7 @@
+     },
+     {
+       "path": "CHANGELOG_2026_07_20_V1_5.md",
+-      "title": "Symtropy Documentation Changelog \u2014 v1.5",
++      "title": "Symtropy Documentation Changelog — v1.5",
+       "version": null,
+       "declared_status": "unclassified",
+       "effective_status": "unclassified",
+@@ -183,7 +183,7 @@
+     },
+     {
+       "path": "CHANGELOG_2026_07_20_V2_0.md",
+-      "title": "Symtropy Documentation Changelog \u2014 v2.0",
++      "title": "Symtropy Documentation Changelog — v2.0",
+       "version": null,
+       "declared_status": "unclassified",
+       "effective_status": "unclassified",
+@@ -195,7 +195,7 @@
+     },
+     {
+       "path": "CHANGELOG_2026_07_20_V2_1.md",
+-      "title": "Symtropy Documentation Changelog \u2014 v2.1",
++      "title": "Symtropy Documentation Changelog — v2.1",
+       "version": null,
+       "declared_status": "unclassified",
+       "effective_status": "unclassified",
+@@ -207,7 +207,7 @@
+     },
+     {
+       "path": "CHANGELOG_2026_07_20_V2_2.md",
+-      "title": "Symtropy Documentation v2.2 \u2014 Companions and Emotional Continuity",
++      "title": "Symtropy Documentation v2.2 — Companions and Emotional Continuity",
+       "version": null,
+       "declared_status": "unclassified",
+       "effective_status": "unclassified",
+@@ -219,7 +219,7 @@
+     },
+     {
+       "path": "CHANGELOG_2026_07_20_V2_3.md",
+-      "title": "Symtropy Documentation v2.3 \u2014 Player-Founded Civilizations and Living Legacy",
++      "title": "Symtropy Documentation v2.3 — Player-Founded Civilizations and Living Legacy",
+       "version": 2.3,
+       "declared_status": "implementation-spec",
+       "effective_status": "implementation-spec",
+@@ -255,7 +255,7 @@
+     },
+     {
+       "path": "CHANGELOG_2026_07_20_V2_6.md",
+-      "title": "Symtropy Documentation Changelog \u2014 v2.6",
++      "title": "Symtropy Documentation Changelog — v2.6",
+       "version": null,
+       "declared_status": "unclassified",
+       "effective_status": "unclassified",
+@@ -267,7 +267,7 @@
+     },
+     {
+       "path": "CHANGELOG_2026_07_21_V2_7.md",
+-      "title": "Symtropy Documentation Changelog \u2014 v2.7",
++      "title": "Symtropy Documentation Changelog — v2.7",
+       "version": null,
+       "declared_status": "unclassified",
+       "effective_status": "unclassified",
+@@ -279,7 +279,7 @@
+     },
+     {
+       "path": "CHANGELOG_2026_07_21_V2_8.md",
+-      "title": "Symtropy Documentation Changelog \u2014 v2.8",
++      "title": "Symtropy Documentation Changelog — v2.8",
+       "version": null,
+       "declared_status": "unclassified",
+       "effective_status": "unclassified",
+@@ -289,6 +289,18 @@
+       "bytes": 1297,
+       "words": 148
+     },
++    {
++      "path": "CHANGELOG_2026_07_21_V2_9.md",
++      "title": "Symtropy Documentation Changelog — v2.9",
++      "version": null,
++      "declared_status": "unclassified",
++      "effective_status": "unclassified",
++      "scope": null,
++      "owner": null,
++      "sha256": "e6c55e8caccf606d3b3abd15c839f79746681ea0e74d37b543ea2caed5cf2743",
++      "bytes": 1171,
++      "words": 139
++    },
+     {
+       "path": "CONTRIBUTING.md",
+       "title": "Contributing to Symtropy",
+@@ -315,15 +327,15 @@
+     },
+     {
+       "path": "README.md",
+-      "title": "Map of the Manifold \u2014 v2.4 Atlas Metric Engineering and Galactic Reach",
++      "title": "Map of the Manifold — v2.4 Atlas Metric Engineering and Galactic Reach",
+       "version": null,
+       "declared_status": "unclassified",
+       "effective_status": "unclassified",
+       "scope": null,
+       "owner": null,
+-      "sha256": "bae5c81d14f3ae02827f8c656a4b9d22844c8656b43723b62e477a63b6fe61d9",
+-      "bytes": 30434,
+-      "words": 2570
++      "sha256": "6334b3b9b0594706a403a1c3639da9795d84a9eb3e2c18a0bb3547cd1fd21bc4",
++      "bytes": 32210,
++      "words": 2711
+     },
+     {
+       "path": "SYMTROPY_RESOURCE_CHAINS_GAME_DOC_V0_1.md",
+@@ -397,6 +409,126 @@
+       "bytes": 29142,
+       "words": 3857
+     },
++    {
++      "path": "archive/status/BRIDGE_STATUS.md",
++      "title": "BRIDGE_STATUS",
++      "version": null,
++      "declared_status": "unclassified",
++      "effective_status": "unclassified",
++      "scope": null,
++      "owner": null,
++      "sha256": "fb345d4bbe4457b35d68e1945ed6ed1d7119783f0eae32fc24e6805b64cd029f",
++      "bytes": 113,
++      "words": 13
++    },
++    {
++      "path": "archive/status/FINAL_STATUS.md",
++      "title": "FINAL_STATUS",
++      "version": null,
++      "declared_status": "unclassified",
++      "effective_status": "unclassified",
++      "scope": null,
++      "owner": null,
++      "sha256": "6ead187234b50b5ddf43aa5f64ee59b91714253b0afe7010d11bd3b1b317186c",
++      "bytes": 268,
++      "words": 29
++    },
++    {
++      "path": "archive/status/FOUNDRY_USAGE.md",
++      "title": "Symtropy Asset Foundry - Usage Guide",
++      "version": null,
++      "declared_status": "unclassified",
++      "effective_status": "unclassified",
++      "scope": null,
++      "owner": null,
++      "sha256": "20598d8dbb8703526300d9c42a716004f8ea70e2711ea8e7d41b66d3c91f98a1",
++      "bytes": 1240,
++      "words": 157
++    },
++    {
++      "path": "archive/status/FOUNDRY_USAGE_AGENT_FINISH_PLAN.md",
++      "title": "Symtropy Asset Foundry — Agent Handoff, Usage Guide, and Finished-State Plan",
++      "version": null,
++      "declared_status": "unclassified",
++      "effective_status": "unclassified",
++      "scope": null,
++      "owner": null,
++      "sha256": "03329a87fbe0138a3a1b875c3c9adebbad90b3ba693ae9c01f5cb189e3f49aa0",
++      "bytes": 26541,
++      "words": 3269
++    },
++    {
++      "path": "archive/status/HANDOVER.md",
++      "title": "Project Stabilization & Phase 2 Integration Handover",
++      "version": null,
++      "declared_status": "unclassified",
++      "effective_status": "unclassified",
++      "scope": null,
++      "owner": null,
++      "sha256": "7facee2ef644b49f39cbe4c67e49f97cab147ed5f47f031dd6907b77a2bcfca3",
++      "bytes": 1411,
++      "words": 159
++    },
++    {
++      "path": "archive/status/HYGIENE_GATE_STATUS.md",
++      "title": "HYGIENE_GATE_STATUS",
++      "version": null,
++      "declared_status": "unclassified",
++      "effective_status": "unclassified",
++      "scope": null,
++      "owner": null,
++      "sha256": "051dd49378b0d6057b1470c9a669a8c90175a9779fe0dd6e3ffa7f75f7043a9f",
++      "bytes": 134,
++      "words": 18
++    },
++    {
++      "path": "archive/status/STABILIZATION_FINAL_REPORT.md",
++      "title": "STABILIZATION_FINAL_REPORT",
++      "version": null,
++      "declared_status": "unclassified",
++      "effective_status": "unclassified",
++      "scope": null,
++      "owner": null,
++      "sha256": "787c66fc3e5f952799afe1126b985f7b656da0682cdcbeddc07c51398c2bd5e0",
++      "bytes": 111,
++      "words": 13
++    },
++    {
++      "path": "archive/status/STABILIZATION_RESULT.md",
++      "title": "STABILIZATION_RESULT",
++      "version": null,
++      "declared_status": "unclassified",
++      "effective_status": "unclassified",
++      "scope": null,
++      "owner": null,
++      "sha256": "486d7ed83e5e5b840b8d40da306433b933ed2656c9a1b928a49098a01676eda4",
++      "bytes": 97,
++      "words": 11
++    },
++    {
++      "path": "archive/status/STABILIZATION_SUMMARY.md",
++      "title": "STABILIZATION_SUMMARY",
++      "version": null,
++      "declared_status": "unclassified",
++      "effective_status": "unclassified",
++      "scope": null,
++      "owner": null,
++      "sha256": "c22de1f6e56f03a6a9b1b391710ddcbbdf64b2855422eadcbe12a82940421d73",
++      "bytes": 346,
++      "words": 44
++    },
++    {
++      "path": "archive/status/STATUS.md",
++      "title": "Symtropy Asset Foundry - Status Report",
++      "version": null,
++      "declared_status": "unclassified",
++      "effective_status": "unclassified",
++      "scope": null,
++      "owner": null,
++      "sha256": "a71d7329f4e7be7df8fa0a921c7dfa368597155500067522d1e7e9774ae8d0dc",
++      "bytes": 1599,
++      "words": 193
++    },
+     {
+       "path": "canon/ADULT_SEXUALITY_INTIMACY_SEX_WORK_REPRODUCTIVE_AUTONOMY_AND_COERCION_CONTRACT_V0_1.md",
+       "title": "Adult Sexuality, Intimacy, Sex Work, Reproductive Autonomy, and Coercion Contract",
+@@ -773,14 +905,38 @@
+       "path": "canon/CANON_REGISTRY_AND_DOCUMENT_GOVERNANCE_V2_4.md",
+       "title": "Canon Registry and Document Governance",
+       "version": 2.4,
+-      "declared_status": "canonical",
+-      "effective_status": "canonical",
++      "declared_status": "superseded",
++      "effective_status": "superseded",
+       "scope": "documentation lifecycle, meme ecology, cultural mutation, humor safety, living folklore, provenance and evidence boundaries",
+       "owner": "documentation/design/production",
+-      "sha256": "6be584e49f2425c0f03124e5dac3256b43476c82394e9c7bc56b6118d2ef6771",
+-      "bytes": 5444,
++      "sha256": "04a5c3cb46e5ab9cb9d127c0f2b5ff7ae922183a1b4af700c5434296c12817c8",
++      "bytes": 5445,
+       "words": 542
+     },
++    {
++      "path": "canon/CANON_REGISTRY_AND_DOCUMENT_GOVERNANCE_V2_5.md",
++      "title": "Canon Registry and Document Governance",
++      "version": 2.5,
++      "declared_status": "canonical",
++      "effective_status": "canonical",
++      "scope": "multirole carrier civilizations, nested mobile bases, player buildability, ownership, command and large-ship variety",
++      "owner": "documentation/design/production",
++      "sha256": "770e528538812dd7cfad1b217bef2950726dfb0ce9431bf99b60cfe2b00816a5",
++      "bytes": 5193,
++      "words": 505
++    },
++    {
++      "path": "canon/CARRIER_ACCESS_OWNERSHIP_CHARTER_COMMAND_AND_CREW_SOVEREIGNTY_CONTRACT_V0_1.md",
++      "title": "Carrier Access, Ownership, Charter, Command, and Crew Sovereignty Contract",
++      "version": 0.1,
++      "declared_status": "canonical-draft",
++      "effective_status": "canonical-draft",
++      "scope": "progression into large ships, property, finance, command legitimacy, departments, residents, automation and multiplayer authority",
++      "owner": "design/governance/spacecraft/multiplayer",
++      "sha256": "dffaee9ba5e75e9ebe6990d1e1f34df457ef00e2a98e9721e1b3102044728781",
++      "bytes": 11564,
++      "words": 1430
++    },
+     {
+       "path": "canon/CIVIC_SUCCESSION_PUBLIC_SERVICE_AND_INSTITUTIONAL_CONTINUITY_CONTRACT_V0_1.md",
+       "title": "Civic Succession, Public Service, and Institutional Continuity Contract",
+@@ -1093,6 +1249,18 @@
+       "bytes": 11738,
+       "words": 1451
+     },
++    {
++      "path": "canon/LARGE_CARRIER_MULTIROLE_CIVILIZATION_AND_NON_SPECIALIZATION_CONTRACT_V0_1.md",
++      "title": "Large Carrier Multirole Civilization and Non-Specialization Contract",
++      "version": 0.1,
++      "declared_status": "canonical-draft",
++      "effective_status": "canonical-draft",
++      "scope": "large spacecraft, carrier civilizations, multirole design, civic baselines, mission emphasis, player progression",
++      "owner": "design/spacecraft/society/gameplay",
++      "sha256": "cc00ca7b65f660b41974a2dc20945db303405cf43735d3e442ea5cd08fde7554",
++      "bytes": 9799,
++      "words": 1186
++    },
+     {
+       "path": "canon/LIFE_COURSE_HOUSEHOLDS_KINSHIP_AND_EDUCATION_CONTRACT_V0_1.md",
+       "title": "Life Course, Households, Kinship, and Education Contract",
+@@ -1721,14 +1889,26 @@
+       "path": "canon/SYSTEM_INTERACTION_AND_DEPENDENCY_MAP_V2_1.md",
+       "title": "System Interaction and Dependency Map",
+       "version": 2.1,
+-      "declared_status": "implementation-spec",
+-      "effective_status": "implementation-spec",
++      "declared_status": "superseded",
++      "effective_status": "superseded",
+       "scope": "meme ecology integration across world events, observers, casts, networks, culture, IRIS, Muse, safety, history and presentation",
+       "owner": "architecture/design/production",
+-      "sha256": "97848bb438e5bd699c1e052f9207a566193e6cfcd405d1313aa56840560a6731",
+-      "bytes": 5949,
++      "sha256": "b83c35d6d92f9b5e17474bc1ba574a57330c2e0e42db254439b39b9b2903a276",
++      "bytes": 5940,
+       "words": 694
+     },
++    {
++      "path": "canon/SYSTEM_INTERACTION_AND_DEPENDENCY_MAP_V2_2.md",
++      "title": "System Interaction and Dependency Map",
++      "version": 2.2,
++      "declared_status": "implementation-spec",
++      "effective_status": "implementation-spec",
++      "scope": "carrier integration across spacecraft physics, mobile homes, construction, economy, crews, governance, multiplayer, worlds and history",
++      "owner": "architecture/design/production",
++      "sha256": "f45b95f0f88a57d8f5deed8fb270c02270a9069d0bae3a5ca793772b68cd3af7",
++      "bytes": 3457,
++      "words": 394
++    },
+     {
+       "path": "canon/VICE_ECONOMIES_PLEASURE_CITIES_AND_NIGHTLIFE_CONTRACT_V0_1.md",
+       "title": "Vice Economies, Pleasure Cities, and Nightlife Civilization Contract",
+@@ -2221,6 +2401,18 @@
+       "bytes": 7369,
+       "words": 945
+     },
++    {
++      "path": "lore/LARGE_CARRIER_HULL_LINEAGES_CULTURAL_VARIETY_AND_INTERNAL_CITY_ATLAS_V0_1.md",
++      "title": "Large Carrier Hull Lineages, Cultural Variety, and Internal City Atlas",
++      "version": 0.1,
++      "declared_status": "design-bible",
++      "effective_status": "design-bible",
++      "scope": "carrier silhouettes, construction traditions, internal districts, cultural expression, sensory identity, procedural variation",
++      "owner": "design/lore/spacecraft/art",
++      "sha256": "5beddc290800ce5a6f27d8555e18136d345ece472744c9ca1eb60a4b2d2dbecb",
++      "bytes": 14028,
++      "words": 1732
++    },
+     {
+       "path": "lore/LEGENDARY_CITIES_HABITATS_AND_WORLD_REGIONS_ATLAS_V0_1.md",
+       "title": "Legendary Cities, Habitats, and World Regions Atlas",
+@@ -2257,6 +2449,18 @@
+       "bytes": 16811,
+       "words": 2192
+     },
++    {
++      "path": "lore/MULTIROLE_CARRIER_FAMILIES_MISSION_PROFILES_AND_WORLD_ADAPTATION_ATLAS_V0_1.md",
++      "title": "Multirole Carrier Families, Mission Profiles, and World Adaptation Atlas",
++      "version": 0.1,
++      "declared_status": "design-bible",
++      "effective_status": "design-bible",
++      "scope": "player-buildable carrier families, profile variants, carried bases, world adaptations, gameplay roles and cultural identity",
++      "owner": "design/lore/spacecraft/gameplay",
++      "sha256": "bd47613bccb5ea6c85150bdca599f761079c51d33a96e6dd4632dcbb70c497a4",
++      "bytes": 13801,
++      "words": 1576
++    },
+     {
+       "path": "lore/NAMING_PLURALITY_LOCAL_REGISTER_AND_LINGUISTIC_HISTORY_ATLAS_V0_1.md",
+       "title": "Naming Plurality, Local Register, and Linguistic History Atlas",
+@@ -2466,7 +2670,7 @@
+       "title": "Lithic and Subcrust Cultures",
+       "version": 0.1,
+       "declared_status": "historical",
+-      "effective_status": "historical",
++      "effective_status": "superseded",
+       "scope": "early culture family draft",
+       "owner": "narrative/world",
+       "sha256": "34a81be1bf85bd3dcb4da3475bc92f91469707df860962b67fa39d1abc6421b2",
+@@ -2646,7 +2850,7 @@
+       "title": "Symtropy New Cultures Compendium",
+       "version": 0.1,
+       "declared_status": "historical",
+-      "effective_status": "historical",
++      "effective_status": "superseded",
+       "scope": "early culture compendium",
+       "owner": "narrative/world",
+       "sha256": "ab032f68f3328edf04e33142dde0e16503331535a015d25152790a3cb476af30",
+@@ -2823,7 +3027,7 @@
+     },
+     {
+       "path": "ops/DOCUMENT_REGISTRY_SUMMARY.md",
+-      "title": "Symtropy Document Registry Summary \u2014 v2.1",
++      "title": "Symtropy Document Registry Summary — v2.1",
+       "version": null,
+       "declared_status": "unclassified",
+       "effective_status": "unclassified",
+@@ -2835,7 +3039,7 @@
+     },
+     {
+       "path": "ops/DOCUMENT_REGISTRY_SUMMARY_V1_0.md",
+-      "title": "Symtropy Document Registry Summary \u2014 v1.0",
++      "title": "Symtropy Document Registry Summary — v1.0",
+       "version": null,
+       "declared_status": "unclassified",
+       "effective_status": "unclassified",
+@@ -2847,7 +3051,7 @@
+     },
+     {
+       "path": "ops/DOCUMENT_REGISTRY_SUMMARY_V1_1.md",
+-      "title": "Symtropy Document Registry Summary \u2014 v1.1",
++      "title": "Symtropy Document Registry Summary — v1.1",
+       "version": null,
+       "declared_status": "unclassified",
+       "effective_status": "unclassified",
+@@ -2859,7 +3063,7 @@
+     },
+     {
+       "path": "ops/DOCUMENT_REGISTRY_SUMMARY_V1_2.md",
+-      "title": "Symtropy Document Registry Summary \u2014 v1.2",
++      "title": "Symtropy Document Registry Summary — v1.2",
+       "version": null,
+       "declared_status": "unclassified",
+       "effective_status": "unclassified",
+@@ -2871,7 +3075,7 @@
+     },
+     {
+       "path": "ops/DOCUMENT_REGISTRY_SUMMARY_V1_3.md",
+-      "title": "Symtropy Document Registry Summary \u2014 v1.3",
++      "title": "Symtropy Document Registry Summary — v1.3",
+       "version": null,
+       "declared_status": "unclassified",
+       "effective_status": "unclassified",
+@@ -2907,7 +3111,7 @@
+     },
+     {
+       "path": "ops/DOCUMENT_REGISTRY_SUMMARY_V1_6.md",
+-      "title": "Symtropy Document Registry Summary \u2014 v1.6",
++      "title": "Symtropy Document Registry Summary — v1.6",
+       "version": null,
+       "declared_status": "unclassified",
+       "effective_status": "unclassified",
+@@ -2919,7 +3123,7 @@
+     },
+     {
+       "path": "ops/DOCUMENT_REGISTRY_SUMMARY_V1_7.md",
+-      "title": "Symtropy Document Registry Summary \u2014 v1.7",
++      "title": "Symtropy Document Registry Summary — v1.7",
+       "version": null,
+       "declared_status": "unclassified",
+       "effective_status": "unclassified",
+@@ -2931,7 +3135,7 @@
+     },
+     {
+       "path": "ops/DOCUMENT_REGISTRY_SUMMARY_V1_8.md",
+-      "title": "Symtropy Document Registry Summary \u2014 v1.8",
++      "title": "Symtropy Document Registry Summary — v1.8",
+       "version": null,
+       "declared_status": "unclassified",
+       "effective_status": "unclassified",
+@@ -2943,7 +3147,7 @@
+     },
+     {
+       "path": "ops/DOCUMENT_REGISTRY_SUMMARY_V2_0.md",
+-      "title": "Symtropy Document Registry Summary \u2014 v2.0",
++      "title": "Symtropy Document Registry Summary — v2.0",
+       "version": null,
+       "declared_status": "unclassified",
+       "effective_status": "unclassified",
+@@ -2955,7 +3159,7 @@
+     },
+     {
+       "path": "ops/DOCUMENT_REGISTRY_SUMMARY_V2_1.md",
+-      "title": "Symtropy Document Registry Summary \u2014 v2.1",
++      "title": "Symtropy Document Registry Summary — v2.1",
+       "version": null,
+       "declared_status": "unclassified",
+       "effective_status": "unclassified",
+@@ -3013,6 +3217,18 @@
+       "bytes": 865,
+       "words": 93
+     },
++    {
++      "path": "ops/DOCUMENT_REGISTRY_SUMMARY_V2_9.md",
++      "title": "Document Registry Summary v2.9",
++      "version": 2.9,
++      "declared_status": "production",
++      "effective_status": "production",
++      "scope": "new large carrier documents and integration state",
++      "owner": "documentation/production",
++      "sha256": "ac757d8c867b72e32b9b8b11ed6e623c8842daa34fe138f3931ae4618cb2c63d",
++      "bytes": 1158,
++      "words": 138
++    },
+     {
+       "path": "ops/FIFTY_YEAR_CIVILIZATION_CONTINUITY_BENCHMARK_V0_1.md",
+       "title": "Fifty-Year Civilization Continuity Benchmark",
+@@ -3413,14 +3629,26 @@
+       "path": "ops/GAME_IMPLEMENTATION_ROADMAP_V2_1.md",
+       "title": "Symtropy Game Implementation Roadmap",
+       "version": 2.1,
+-      "declared_status": "implementation-spec",
+-      "effective_status": "implementation-spec",
++      "declared_status": "superseded",
++      "effective_status": "superseded",
+       "scope": "evidence-gated implementation of Firstlight, Continuance and one bounded meme-ecology proof",
+       "owner": "production/design/engineering/research",
+-      "sha256": "9fd8e60233b621f443bf46c39ae05c722c31cb3a699cc3c3d459c95f9bc9cdd7",
+-      "bytes": 3826,
++      "sha256": "ef3e509c00d3884802eef20abbbc926bd95fb7167e551bd5d63cb0c698af8e59",
++      "bytes": 3817,
+       "words": 471
+     },
++    {
++      "path": "ops/GAME_IMPLEMENTATION_ROADMAP_V2_2.md",
++      "title": "Symtropy Game Implementation Roadmap",
++      "version": 2.2,
++      "declared_status": "implementation-spec",
++      "effective_status": "implementation-spec",
++      "scope": "evidence-gated implementation of Firstlight, Continuance, nested mobile bases and one multirole carrier proof",
++      "owner": "production/design/engineering/research",
++      "sha256": "c8c4781787605e784aa3579aef134e147f25c2f69a208b4061f32033e6d2a3da",
++      "bytes": 3737,
++      "words": 468
++    },
+     {
+       "path": "ops/HISTORICAL_TEXTURE_WORLD_COHERENCE_BENCHMARK_V0_1.md",
+       "title": "Historical Texture and World Coherence Benchmark",
+@@ -3445,6 +3673,30 @@
+       "bytes": 12071,
+       "words": 1480
+     },
++    {
++      "path": "ops/LARGE_CARRIER_IMPLEMENTATION_TICKET_BACKLOG_V0_1.md",
++      "title": "Large Carrier Implementation Ticket Backlog",
++      "version": 0.1,
++      "declared_status": "implementation-spec",
++      "effective_status": "implementation-spec",
++      "scope": "one hundred ordered tickets for multirole carriers, nested bases, construction, ownership, command and benchmark evidence",
++      "owner": "production/engineering/design",
++      "sha256": "69db0f087314ba038b1967604934a4a8bafb1690ad97d571209a3549ab19dcf1",
++      "bytes": 19965,
++      "words": 2195
++    },
++    {
++      "path": "ops/LARGE_CARRIER_OWNERSHIP_BUILD_AND_COMMAND_BENCHMARK_V0_1.md",
++      "title": "Large Carrier Ownership, Build, Multirole, and Command Benchmark",
++      "version": 0.1,
++      "declared_status": "benchmark-spec",
++      "effective_status": "benchmark-spec",
++      "scope": "carrier variety, common-core capability, player access, ownership, construction, nested bases, co-op command and graceful degradation",
++      "owner": "production/research/engineering/design",
++      "sha256": "daaffa170d1d44932a3c773c19b4b1402ac1f902b6027f06ef4f9a1fd763dfca",
++      "bytes": 7754,
++      "words": 952
++    },
+     {
+       "path": "ops/LEGENDARY_DESTINATION_PRODUCTION_PACKS_V0_1.md",
+       "title": "Legendary Destination Production Packs",
+@@ -4061,14 +4313,26 @@
+       "path": "ops/SYMTROPY_IMPLEMENTATION_READINESS_MATRIX_V2_1.md",
+       "title": "Symtropy Implementation Readiness Matrix",
+       "version": 2.1,
+-      "declared_status": "implementation-spec",
+-      "effective_status": "implementation-spec",
++      "declared_status": "superseded",
++      "effective_status": "superseded",
+       "scope": "evidence maturity for meme ecology, cultural voice, mutation, player specificity, safety, multimodal media and folklore",
+       "owner": "production/design/engineering/research",
+-      "sha256": "c066e151cadff2094de9e150fa85575238766ae9e631705bec555edb1348cfb1",
+-      "bytes": 4408,
++      "sha256": "16c3f181c8817663ce996780904161869132f0eb44748f2d4d0b5be3aa690cc6",
++      "bytes": 4399,
+       "words": 506
+     },
++    {
++      "path": "ops/SYMTROPY_IMPLEMENTATION_READINESS_MATRIX_V2_2.md",
++      "title": "Symtropy Implementation Readiness Matrix",
++      "version": 2.2,
++      "declared_status": "implementation-spec",
++      "effective_status": "implementation-spec",
++      "scope": "evidence maturity for multirole carriers, nested bases, ownership, construction, command, variety and graceful degradation",
++      "owner": "production/design/engineering/research",
++      "sha256": "acd1532e29ce28a5e1080843d574f1190b7efd9e1790a29f2ac995a9d40a9ba6",
++      "bytes": 4096,
++      "words": 462
++    },
+     {
+       "path": "ops/Seedworks Tech Tree Dependency Spine.md",
+       "title": "Seedworks Tech Tree Dependency Spine",
+@@ -4082,8 +4346,8 @@
+       "words": 1846
+     },
+     {
+-      "path": "ops/Seedworks Tech Unlock Table v0.1\u2013v0.3.md",
+-      "title": "Seedworks Tech Unlock Table v0.1\u2013v0.3",
++      "path": "ops/Seedworks Tech Unlock Table v0.1–v0.3.md",
++      "title": "Seedworks Tech Unlock Table v0.1–v0.3",
+       "version": "0.1-0.3",
+       "declared_status": "canonical-draft",
+       "effective_status": "canonical-draft",
+@@ -4441,6 +4705,18 @@
+       "bytes": 3052,
+       "words": 404
+     },
++    {
++      "path": "ops/V2_9_PLAYER_BUILT_CARRIER_CIVILIZATIONS_NESTED_VEHICLE_ECOLOGY_AND_COMMAND_AT_SCALE_CAMPAIGN.md",
++      "title": "v2.9 Player-Built Carrier Civilizations, Nested Vehicle Ecology, and Command at Scale Campaign",
++      "version": 2.9,
++      "declared_status": "production",
++      "effective_status": "production",
++      "scope": "campaign summary, decisions, patch order, implementation priority and evidence boundary",
++      "owner": "design/production/documentation/spacecraft",
++      "sha256": "1a6004e48ebffcb9efbf64bf6e90d1677ddf8c39e2738d8de5906db0d5fc04fb",
++      "bytes": 3758,
++      "words": 468
++    },
+     {
+       "path": "ops/WORLDLINE_BACKUP_RESTORE_AND_UPGRADE_RUNBOOK_V0_1.md",
+       "title": "Worldline Backup, Restore, and Upgrade Runbook",
+@@ -4909,6 +5185,30 @@
+       "bytes": 12893,
+       "words": 1327
+     },
++    {
++      "path": "tech/CARRIER_CONSTRUCTION_YARDS_SUPPLY_CHAINS_CERTIFICATION_AND_COMMISSIONING_RUNTIME_V0_1.md",
++      "title": "Carrier Construction Yards, Supply Chains, Certification, and Commissioning Runtime",
++      "version": 0.1,
++      "declared_status": "implementation-spec",
++      "effective_status": "implementation-spec",
++      "scope": "player-buildable large spacecraft, design campaigns, industrial yards, suppliers, labor, certification, trials, finance and lifecycle support",
++      "owner": "engineering/economy/construction/spacecraft",
++      "sha256": "46bacf500af859691f18ab2382bbba2ba3d7b21dd63bc0a762131b220b78d177",
++      "bytes": 11628,
++      "words": 1370
++    },
++    {
++      "path": "tech/CARRIER_CREW_AUTOMATION_STATIONS_DAMAGE_AND_GRACEFUL_DEGRADATION_RUNTIME_V0_1.md",
++      "title": "Carrier Crew, Automation, Stations, Damage, and Graceful Degradation Runtime",
++      "version": 0.1,
++      "declared_status": "implementation-spec",
++      "effective_status": "implementation-spec",
++      "scope": "large-ship operation, crew roles, co-op stations, automation, watchstanding, damage networks, emergency command and recovery",
++      "owner": "engineering/gameplay/ai/spacecraft",
++      "sha256": "ab8486139c804d5199ffeec6a65ff8791a1dfe84c958a9c841b8575068a8c028",
++      "bytes": 10617,
++      "words": 1259
++    },
+     {
+       "path": "tech/CAUSAL_EXPLANATION_AND_PLAYER_FEEDBACK_RUNTIME_V0_1.md",
+       "title": "Causal Explanation and Player Feedback Runtime",
+@@ -5211,7 +5511,7 @@
+     },
+     {
+       "path": "tech/GAME_ENGINE_COMPONENTS.md",
+-      "title": "Game Engine Components \u2014 Coverage & Gap Analysis",
++      "title": "Game Engine Components — Coverage & Gap Analysis",
+       "version": null,
+       "declared_status": "unclassified",
+       "effective_status": "unclassified",
+@@ -5401,6 +5701,18 @@
+       "bytes": 11988,
+       "words": 1236
+     },
++    {
++      "path": "tech/LARGE_CARRIER_COMMON_CORE_OPEN_INTERFACES_AND_ROLE_ENVELOPE_RUNTIME_V0_1.md",
++      "title": "Large Carrier Common Core, Open Interfaces, and Role Envelope Runtime",
++      "version": 0.1,
++      "declared_status": "implementation-spec",
++      "effective_status": "implementation-spec",
++      "scope": "carrier component graphs, common civic core, modular interfaces, mission profiles, capacity allocation, variant generation",
++      "owner": "engineering/spacecraft/simulation",
++      "sha256": "a1a60688236076cd37900aa523eb921bd021c61dbfd98634ddeb2d0552597dbc",
++      "bytes": 11167,
++      "words": 1292
++    },
+     {
+       "path": "tech/LIGHT_DELAY_COMMUNICATION_TIMEKEEPING_AND_ASYNC_COORDINATION_RUNTIME_V0_1.md",
+       "title": "Light-Delay Communication, Timekeeping, and Asynchronous Coordination Runtime",
+@@ -5521,6 +5833,18 @@
+       "bytes": 6148,
+       "words": 737
+     },
++    {
++      "path": "tech/NESTED_VEHICLE_ECOLOGY_DOCKING_DEPLOYMENT_AND_BASE_CARRIER_RUNTIME_V0_1.md",
++      "title": "Nested Vehicle Ecology, Docking, Deployment, and Base-Carrier Runtime",
++      "version": 0.1,
++      "declared_status": "implementation-spec",
++      "effective_status": "implementation-spec",
++      "scope": "carriers of carriers, mobile-base nesting, docks, cargo, deployment, autonomy, recovery and transmodal continuity",
++      "owner": "engineering/vehicles/spacecraft/networking",
++      "sha256": "4c9993327241c8c0f4a599435bba01984bc41bead1a7775341738119bd0dcec2",
++      "bytes": 10283,
++      "words": 1190
++    },
+     {
+       "path": "tech/NETWORKING_STACK_DECISION.md",
+       "title": "Symtropy Networking Stack Decision",
+@@ -5967,7 +6291,7 @@
+     },
+     {
+       "path": "tech/Symtropy Design Doc: Infrastructure-Locked Interstellar Transit.md",
+-      "title": "Infrastructure-Locked Interstellar Transit \u2014 Legacy Design",
++      "title": "Infrastructure-Locked Interstellar Transit — Legacy Design",
+       "version": 0.1,
+       "declared_status": "superseded",
+       "effective_status": "superseded",
+diff --git a/ops/DOCUMENT_REGISTRY_SUMMARY_V2_9.md b/ops/DOCUMENT_REGISTRY_SUMMARY_V2_9.md
+new file mode 100644
+index 0000000..bae9141
+--- /dev/null
++++ b/ops/DOCUMENT_REGISTRY_SUMMARY_V2_9.md
+@@ -0,0 +1,37 @@
++---
++title: Document Registry Summary v2.9
++version: 2.9
++status: production
++scope: new large carrier documents and integration state
++owner: documentation/production
++---
++
++# Document Registry Summary v2.9
++
++## New canonical contracts
++
++- Large Carrier Multirole Civilization and Non-Specialization Contract
++- Carrier Access, Ownership, Charter, Command, and Crew Sovereignty Contract
++
++## New technical runtimes
++
++- Large Carrier Common Core, Open Interfaces, and Role Envelope Runtime
++- Nested Vehicle Ecology, Docking, Deployment, and Base-Carrier Runtime
++- Carrier Construction Yards, Supply Chains, Certification, and Commissioning Runtime
++- Carrier Crew, Automation, Stations, Damage, and Graceful Degradation Runtime
++
++## New content atlases
++
++- Large Carrier Hull Lineages, Cultural Variety, and Internal City Atlas
++- Multirole Carrier Families, Mission Profiles, and World Adaptation Atlas
++
++## New production evidence specifications
++
++- Large Carrier Ownership, Build, Multirole, and Command Benchmark
++- Large Carrier Implementation Ticket Backlog
++- large carrier profile and benchmark schemas
++- fixed benchmark fixture
++
++## Status
++
++Documentation only: D3 / I0.
+diff --git a/ops/GAME_IMPLEMENTATION_ROADMAP_V2_1.md b/ops/GAME_IMPLEMENTATION_ROADMAP_V2_1.md
+index 3b205db..d86f3b2 100644
+--- a/ops/GAME_IMPLEMENTATION_ROADMAP_V2_1.md
++++ b/ops/GAME_IMPLEMENTATION_ROADMAP_V2_1.md
+@@ -1,7 +1,7 @@
+ ---
+ title: Symtropy Game Implementation Roadmap
+ version: 2.1
+-status: implementation-spec
++status: superseded
+ scope: evidence-gated implementation of Firstlight, Continuance and one bounded meme-ecology proof
+ owner: production/design/engineering/research
+ supersedes:
+diff --git a/ops/GAME_IMPLEMENTATION_ROADMAP_V2_2.md b/ops/GAME_IMPLEMENTATION_ROADMAP_V2_2.md
+new file mode 100644
+index 0000000..66a27ed
+--- /dev/null
++++ b/ops/GAME_IMPLEMENTATION_ROADMAP_V2_2.md
+@@ -0,0 +1,103 @@
++---
++title: Symtropy Game Implementation Roadmap
++version: 2.2
++status: implementation-spec
++scope: evidence-gated implementation of Firstlight, Continuance, nested mobile bases and one multirole carrier proof
++owner: production/design/engineering/research
++supersedes:
++  - GAME_IMPLEMENTATION_ROADMAP_V2_1.md
++related:
++  - ../canon/CANON_REGISTRY_AND_DOCUMENT_GOVERNANCE_V2_5.md
++  - LARGE_CARRIER_IMPLEMENTATION_TICKET_BACKLOG_V0_1.md
++  - LARGE_CARRIER_OWNERSHIP_BUILD_AND_COMMAND_BENCHMARK_V0_1.md
++---
++
++# Symtropy Game Implementation Roadmap
++
++## Strategy
++
++Large carriers are a long-horizon promise. The near-term implementation proves the smallest architecture that preserves the promise without delaying Firstlight and the Continuance Crawler.
++
++# Gate A — Preserve the Playable Spine
++
++Complete movement, physical interaction, unique residents, the Breaking and one drivable mobile home.
++
++**Exit:** the player has a place and people worth carrying.
++
++# Gate B — Carrier Data Kernel
++
++Implement carrier identity, configuration epochs, district graph and twelve common-core capacity domains.
++
++**Exit:** one fixed carrier profile validates and replays.
++
++# Gate C — One Hull, Three Profiles
++
++Use one hull to instantiate habitation, survey and relief emphases.
++
++**Exit:** capacity and workflow differ while all common-core domains remain useful.
++
++# Gate D — One Nested Chain
++
++Embark a Continuance crawler aboard one medium base-carrier and one large carrier.
++
++**Exit:** identity, residents, cargo, damage and authority survive deployment and recovery.
++
++# Gate E — Station and Delegation Proof
++
++Implement one navigation, one engineering and one harbor station with qualified NPC delegation.
++
++**Exit:** single-player and two-player operation work from the same state.
++
++# Gate F — Ownership and Authority Ledger
++
++Separate title, module claims, debt, operational authority, command and resident governance.
++
++**Exit:** a player can command without owning and own without unlimited command.
++
++# Gate G — Graceful Degradation
++
++Implement radiator loss, dock isolation, clinic surge and command succession.
++
++**Exit:** the carrier survives with changed capability and persistent damage.
++
++# Gate H — Construction Program Proof
++
++Implement one charter, yard, two supply chains, labor requirement, defect, trial and commissioning milestone sequence.
++
++**Exit:** the player can materially shape a carrier build without inventory grind.
++
++# Gate I — Variety Proof
++
++Add a second and third hull lineage, internal topologies and sensory identities.
++
++**Exit:** blind reviewers distinguish ships without labels or color.
++
++# Gate J — Representative Benchmark
++
++Run six profiles, nested chain, four ownership forms, single/co-op emergency and performance evidence.
++
++**Exit:** all promotion gates pass and limitations are published.
++
++# Deferred
++
++- fully simulated populations of thousands at local AI detail;
++- ten production-ready carrier families;
++- open-ended hull generation;
++- interstellar seed-ark gameplay;
++- complete naval and ocean carrier simulation;
++- fleet warfare at civilization scale;
++- player-built Atlas Gate Tenders;
++- alien-grown carrier construction campaigns.
++
++# Kill Rules
++
++- Cut carrier count before cutting common-core truth.
++- Cut direct station detail before making NPC crew incompetent.
++- Cut construction breadth before turning it into resource grind.
++- Cut visual modularity before accepting one universal best hull.
++- Do not make ownership the only path to meaningful play.
++- Do not let carrier work delay the first compelling mobile-home experience.
++
++## Roadmap Maxim
++
++> **First prove that one home can be carried without losing itself. Then prove that one large ship can contain many homes without pretending it owns them.**
+diff --git a/ops/QUALITY_AUDIT_2026_07_21_V2_9.json b/ops/QUALITY_AUDIT_2026_07_21_V2_9.json
+new file mode 100644
+index 0000000..a0d96a5
+--- /dev/null
++++ b/ops/QUALITY_AUDIT_2026_07_21_V2_9.json
+@@ -0,0 +1,23 @@
++{
++  "markdown_documents": 555,
++  "approximate_words": 847344,
++  "broken_internal_links": 0,
++  "active_metadata_errors": 0,
++  "duplicate_active_titles": 0,
++  "json_errors": 0,
++  "schema_validation_errors": 0,
++  "exact_reconstruction": true,
++  "version": "2.9",
++  "ordered_patches": 10,
++  "files_compared": 670,
++  "missing_files": 0,
++  "extra_files": 0,
++  "changed_files": 0,
++  "details": {
++    "broken_links": [],
++    "metadata_errors": [],
++    "duplicate_titles": {},
++    "json_errors": [],
++    "schema_errors": []
++  }
++}
+diff --git a/ops/SYMTROPY_IMPLEMENTATION_READINESS_MATRIX_V2_1.md b/ops/SYMTROPY_IMPLEMENTATION_READINESS_MATRIX_V2_1.md
+index 83c9215..cf4e112 100644
+--- a/ops/SYMTROPY_IMPLEMENTATION_READINESS_MATRIX_V2_1.md
++++ b/ops/SYMTROPY_IMPLEMENTATION_READINESS_MATRIX_V2_1.md
+@@ -1,7 +1,7 @@
+ ---
+ title: Symtropy Implementation Readiness Matrix
+ version: 2.1
+-status: implementation-spec
++status: superseded
+ scope: evidence maturity for meme ecology, cultural voice, mutation, player specificity, safety, multimodal media and folklore
+ owner: production/design/engineering/research
+ supersedes:
+diff --git a/ops/SYMTROPY_IMPLEMENTATION_READINESS_MATRIX_V2_2.md b/ops/SYMTROPY_IMPLEMENTATION_READINESS_MATRIX_V2_2.md
+new file mode 100644
+index 0000000..5a75034
+--- /dev/null
++++ b/ops/SYMTROPY_IMPLEMENTATION_READINESS_MATRIX_V2_2.md
+@@ -0,0 +1,95 @@
++---
++title: Symtropy Implementation Readiness Matrix
++version: 2.2
++status: implementation-spec
++scope: evidence maturity for multirole carriers, nested bases, ownership, construction, command, variety and graceful degradation
++owner: production/design/engineering/research
++supersedes:
++  - SYMTROPY_IMPLEMENTATION_READINESS_MATRIX_V2_1.md
++related:
++  - GAME_IMPLEMENTATION_ROADMAP_V2_2.md
++  - LARGE_CARRIER_OWNERSHIP_BUILD_AND_COMMAND_BENCHMARK_V0_1.md
++---
++
++# Symtropy Implementation Readiness Matrix
++
++## Scale
++
++- **D0:** absent
++- **D1:** idea
++- **D2:** structured concept
++- **D3:** implementation-ready design
++- **I0:** no verified implementation
++- **I1:** isolated prototype
++- **I2:** integrated prototype
++- **I3:** benchmarked representative implementation
++- **I4:** production-ready
++
++# v2.9 Readiness
++
++| Capability | Design | Implementation | Required proof |
++|---|---:|---:|---|
++| Multirole carrier contract | D3 | I0 | canonical review |
++| Twelve-domain common core | D3 | I0 | capacity fixture |
++| Mission-emphasis vector | D3 | I0 | profile allocation tests |
++| Concentration limit | D3 | I0 | anti-class regression |
++| Carrier profile schema | D3 | I0 | parser and validation |
++| Hull-lineage registry | D3 | I0 | three authored grammars |
++| Internal city topology | D3 | I0 | navigation and district proof |
++| Standard structural interfaces | D3 | I0 | docking compatibility suite |
++| Utility handshake | D3 | I0 | isolation and exchange tests |
++| Nested vehicle identity | D3 | I0 | embark/deploy replay |
++| Carried resident persistence | D3 | I0 | no-loss worldline test |
++| Mass and balance update | D3 | I0 | physics integration |
++| Medium base-carrier | D3 | I0 | one playable implementation |
++| Ocean/submarine carriage | D3 | I0 | later marine proof |
++| Access progression | D3 | I0 | passenger-to-operator playtest |
++| Qualification | D3 | I0 | mastery and authorization test |
++| Authority scopes | D3 | I0 | permission suite |
++| Ownership ledger | D3 | I0 | four-model fixture |
++| Carrier charter | D3 | I0 | governance transitions |
++| Command legitimacy | D3 | I0 | succession and refusal tests |
++| NPC station delegation | D3 | I0 | single-player scenario |
++| Co-op station play | D3 | I0 | two/four-player scenario |
++| Routine automation | D3 | I0 | bounded-autonomy tests |
++| Emergency autonomy | D3 | I0 | rights and audit review |
++| Construction program | D3 | I0 | milestone replay |
++| Yard capability | D3 | I0 | prerequisite enforcement |
++| Supply contracts | D3 | I0 | delay and defect proof |
++| Skilled labor | D3 | I0 | staffing dependency |
++| Certification | D3 | I0 | evidence and expiry |
++| Commissioning trials | D3 | I0 | playable test sequence |
++| Graceful degradation | D3 | I0 | three failure states |
++| District isolation | D3 | I0 | network propagation test |
++| Carried-craft auxiliary support | D3 | I0 | emergency scenario |
++| Command-player disconnect | D3 | I0 | multiplayer succession |
++| Visual lineage variety | D3 | I0 | blind silhouette study |
++| Sensory identity | D3 | I0 | audio/motion recognition |
++| Cultural district variety | D3 | I0 | resident playtest |
++| Reversed-emphasis build | D3 | I0 | anti-stereotype fixture |
++| Six-profile benchmark | D3 | I0 | complete evidence bundle |
++| Performance envelope | D2 | I0 | representative profiling |
++
++# Promotion Order
++
++```text
++identity and common core
++→ one hull and three profiles
++→ nested mobile home
++→ station and delegation
++→ ownership and command
++→ damage and succession
++→ construction proof
++→ hull variety
++→ benchmark and performance
++```
++
++# Current Decision
++
++All v2.9 capabilities remain **D3 / I0**, except performance budgeting which remains **D2 / I0** until engine profiling supplies credible targets.
++
++No claim may state that Symtropy supports player-built civilization carriers until a representative construction, docking, ownership and operations implementation passes the benchmark.
++
++## Readiness Maxim
++
++> **A carrier is not ready when its model is large. It is ready when its many roles, people, vehicles and failures remain coherent under one authoritative truth.**
+diff --git a/ops/V2_9_PLAYER_BUILT_CARRIER_CIVILIZATIONS_NESTED_VEHICLE_ECOLOGY_AND_COMMAND_AT_SCALE_CAMPAIGN.md b/ops/V2_9_PLAYER_BUILT_CARRIER_CIVILIZATIONS_NESTED_VEHICLE_ECOLOGY_AND_COMMAND_AT_SCALE_CAMPAIGN.md
+new file mode 100644
+index 0000000..ca56878
+--- /dev/null
++++ b/ops/V2_9_PLAYER_BUILT_CARRIER_CIVILIZATIONS_NESTED_VEHICLE_ECOLOGY_AND_COMMAND_AT_SCALE_CAMPAIGN.md
+@@ -0,0 +1,69 @@
++---
++title: v2.9 Player-Built Carrier Civilizations, Nested Vehicle Ecology, and Command at Scale Campaign
++version: 2.9
++status: production
++scope: campaign summary, decisions, patch order, implementation priority and evidence boundary
++owner: design/production/documentation/spacecraft
++related:
++  - ../canon/LARGE_CARRIER_MULTIROLE_CIVILIZATION_AND_NON_SPECIALIZATION_CONTRACT_V0_1.md
++  - LARGE_CARRIER_OWNERSHIP_BUILD_AND_COMMAND_BENCHMARK_V0_1.md
++---
++
++# v2.9 Player-Built Carrier Civilizations, Nested Vehicle Ecology, and Command at Scale Campaign
++
++## Campaign Question
++
++Can Symtropy make civilization-scale spacecraft player-buildable and commandable while keeping them varied, multirole, inhabited, politically legitimate and physically connected to smaller mobile homes?
++
++## Canonical Decisions
++
++1. Large carriers are broad-spectrum civilizations, not single-role classes.
++2. A common civic core is mandatory; mission profiles allocate emphasis.
++3. Shared interfaces enable interoperability without visual sameness.
++4. Hull lineages, internal city plans, cultures and repair ancestry provide variety.
++5. Large ships carry smaller base-carriers, which carry mobile homes and field vehicles.
++6. Nested homes preserve identity, people, cargo, ownership, damage and memory.
++7. Access begins early; qualification, authority, ownership and command progress separately.
++8. Ownership is usually shared, public, cooperative, chartered, financed or contested.
++9. Construction is a playable industrial and political campaign, not handheld crafting.
++10. Command coordinates departments and autonomous people; it is not absolute control.
++11. Automation compresses routine while preserving human and machine agency.
++12. Damage creates partial survival, changed mission and history.
++13. Ocean, hostile-world, route, care, trade and foundry carriers remain multirole.
++14. The first implementation proves one hull, three profiles and one nested chain.
++
++## Patch Sequence
++
++1. Multirole carrier civilization and non-specialization contract.
++2. Common core, open interfaces and role-envelope runtime with schema.
++3. Hull lineages, internal cities and cultural variety atlas.
++4. Nested vehicle ecology, docking and deployment runtime.
++5. Access, ownership, charter, command and crew sovereignty contract.
++6. Construction yards, supply chains, certification and commissioning runtime.
++7. Crew, automation, stations, damage and graceful degradation runtime.
++8. Ten multirole carrier families and world adaptation atlas.
++9. Benchmark, schemas, fixture and 100-ticket backlog.
++10. Registry, dependency, roadmap, readiness and release integration.
++
++## Difficulty Answer
++
++| Relationship | Intended difficulty |
++|---|---|
++| Board and live aboard | early and accessible |
++| Perform useful supervised work | early-mid with training |
++| Become independent operator | substantial mastery |
++| Lead a department or carried base | major trust and responsibility |
++| Command a mission | late-mid or late, legitimacy-dependent |
++| Own a meaningful share | difficult but reachable through several economic paths |
++| Hold sole title to a large carrier | rare, expensive and still bounded by rights |
++| Build a medium base-carrier | settlement-scale campaign |
++| Build a civilization carrier | late-game, multi-institution, often multi-generational campaign |
++| Absolutely control all people aboard | never canonical |
++
++## Evidence Boundary
++
++These files are D3 / I0 documentation. They do not prove large-ship physics, player construction, procedural variety, docking, crew behavior, command UX, networking or fun.
++
++## Campaign Maxim
++
++> **The player does not earn a large carrier by becoming rich enough to purchase a city. They earn a place in its future by learning how to help a city move.**
+diff --git a/tech/CARRIER_CONSTRUCTION_YARDS_SUPPLY_CHAINS_CERTIFICATION_AND_COMMISSIONING_RUNTIME_V0_1.md b/tech/CARRIER_CONSTRUCTION_YARDS_SUPPLY_CHAINS_CERTIFICATION_AND_COMMISSIONING_RUNTIME_V0_1.md
+index bb7487d..3920f3a 100644
+--- a/tech/CARRIER_CONSTRUCTION_YARDS_SUPPLY_CHAINS_CERTIFICATION_AND_COMMISSIONING_RUNTIME_V0_1.md
++++ b/tech/CARRIER_CONSTRUCTION_YARDS_SUPPLY_CHAINS_CERTIFICATION_AND_COMMISSIONING_RUNTIME_V0_1.md
+@@ -9,7 +9,7 @@ related:
+   - ../canon/CONSTRUCTION_REPAIR_AND_STRUCTURAL_TRANSFORMATION_CONTRACT_V0_1.md
+   - ../canon/ECONOMY_INTEGRITY_MARKETS_LABOR_AND_ANTI_EXPLOIT_CONTRACT_V0_1.md
+   - LARGE_CARRIER_COMMON_CORE_OPEN_INTERFACES_AND_ROLE_ENVELOPE_RUNTIME_V0_1.md
+-  - INDUSTRIAL_TRANSFORMATION_ENERGY_MATERIALS_AND_MACHINE_PRODUCTION_RUNTIME_V0_1.md
++  - ../SYMTROPY_RESOURCE_CHAINS_GAME_DOC_V0_1.md
+ ---
+ 
+ # Carrier Construction Yards, Supply Chains, Certification, and Commissioning Runtime
+diff --git a/tech/CARRIER_CREW_AUTOMATION_STATIONS_DAMAGE_AND_GRACEFUL_DEGRADATION_RUNTIME_V0_1.md b/tech/CARRIER_CREW_AUTOMATION_STATIONS_DAMAGE_AND_GRACEFUL_DEGRADATION_RUNTIME_V0_1.md
+index a43f022..cae34db 100644
+--- a/tech/CARRIER_CREW_AUTOMATION_STATIONS_DAMAGE_AND_GRACEFUL_DEGRADATION_RUNTIME_V0_1.md
++++ b/tech/CARRIER_CREW_AUTOMATION_STATIONS_DAMAGE_AND_GRACEFUL_DEGRADATION_RUNTIME_V0_1.md
+@@ -8,8 +8,8 @@ related:
+   - ../canon/CARRIER_ACCESS_OWNERSHIP_CHARTER_COMMAND_AND_CREW_SOVEREIGNTY_CONTRACT_V0_1.md
+   - LARGE_CARRIER_COMMON_CORE_OPEN_INTERFACES_AND_ROLE_ENVELOPE_RUNTIME_V0_1.md
+   - NESTED_VEHICLE_ECOLOGY_DOCKING_DEPLOYMENT_AND_BASE_CARRIER_RUNTIME_V0_1.md
+-  - NPC_WORK_SCHEDULES_INSTITUTIONS_AND_AUTHORITY_RUNTIME_V0_1.md
+-  - PHYSICAL_INJURY_TREATMENT_RECOVERY_AND_SCAR_RUNTIME_V0_1.md
++  - SHIFT_PROJECT_CAREER_TOOL_AND_HANDOVER_RUNTIME_V0_1.md
++  - BODY_HEALTH_TRAUMA_AND_RECOVERY_RUNTIME_V0_1.md
+ ---
+ 
+ # Carrier Crew, Automation, Stations, Damage, and Graceful Degradation Runtime
+diff --git a/tech/LARGE_CARRIER_COMMON_CORE_OPEN_INTERFACES_AND_ROLE_ENVELOPE_RUNTIME_V0_1.md b/tech/LARGE_CARRIER_COMMON_CORE_OPEN_INTERFACES_AND_ROLE_ENVELOPE_RUNTIME_V0_1.md
+index 406042c..544efa4 100644
+--- a/tech/LARGE_CARRIER_COMMON_CORE_OPEN_INTERFACES_AND_ROLE_ENVELOPE_RUNTIME_V0_1.md
++++ b/tech/LARGE_CARRIER_COMMON_CORE_OPEN_INTERFACES_AND_ROLE_ENVELOPE_RUNTIME_V0_1.md
+@@ -6,8 +6,8 @@ scope: carrier component graphs, common civic core, modular interfaces, mission
+ owner: engineering/spacecraft/simulation
+ related:
+   - ../canon/LARGE_CARRIER_MULTIROLE_CIVILIZATION_AND_NON_SPECIALIZATION_CONTRACT_V0_1.md
+-  - SPACECRAFT_PROPULSION_POWER_THERMAL_AND_RADIATION_RUNTIME_V0_1.md
+-  - CLOSED_LOOP_HABITAT_MASS_FLOW_RELIABILITY_AND_INTERGENERATIONAL_RUNTIME_V0_1.md
++  - VEHICLE_SPACECRAFT_PHYSICS_AND_OPERATIONS_RUNTIME_V0_1.md
++  - HABITAT_METABOLISM_LIFE_SUPPORT_AND_POPULATION_RUNTIME_V0_1.md
+   - CONTINUANCE_CRAWLER_MODULE_MASS_POWER_CARGO_AND_DAMAGE_RUNTIME_V0_1.md
+   - NESTED_VEHICLE_ECOLOGY_DOCKING_DEPLOYMENT_AND_BASE_CARRIER_RUNTIME_V0_1.md
+   - ../schemas/v2_9/large_carrier_profile.schema.json
+diff --git a/tech/NESTED_VEHICLE_ECOLOGY_DOCKING_DEPLOYMENT_AND_BASE_CARRIER_RUNTIME_V0_1.md b/tech/NESTED_VEHICLE_ECOLOGY_DOCKING_DEPLOYMENT_AND_BASE_CARRIER_RUNTIME_V0_1.md
+index 9b4388e..0e2dd65 100644
+--- a/tech/NESTED_VEHICLE_ECOLOGY_DOCKING_DEPLOYMENT_AND_BASE_CARRIER_RUNTIME_V0_1.md
++++ b/tech/NESTED_VEHICLE_ECOLOGY_DOCKING_DEPLOYMENT_AND_BASE_CARRIER_RUNTIME_V0_1.md
+@@ -9,7 +9,7 @@ related:
+   - LARGE_CARRIER_COMMON_CORE_OPEN_INTERFACES_AND_ROLE_ENVELOPE_RUNTIME_V0_1.md
+   - CONTINUANCE_CRAWLER_MODULE_MASS_POWER_CARGO_AND_DAMAGE_RUNTIME_V0_1.md
+   - ../canon/MOBILE_CONTINUANCE_BASE_HOME_VEHICLE_AND_CREW_SOVEREIGNTY_CONTRACT_V0_1.md
+-  - ORBITAL_ATLAS_SPACECRAFT_OPERATIONAL_STACK_V0_1.md
++  - VEHICLE_SPACECRAFT_PHYSICS_AND_OPERATIONS_RUNTIME_V0_1.md
+ ---
+ 
+ # Nested Vehicle Ecology, Docking, Deployment, and Base-Carrier Runtime
+-- 
+2.47.3
+

@@ -6,8 +6,11 @@ domain: Chronicle / Civic Truth / Field Deck / Worldline History
 recommended_path: docs/systems/chronicle/CHRONICLE_MVP_SPEC_V0_1.md
 depends_on:
   - MULTIPLAYER_TRUTH_MODEL.md
-  - Symtropy Design Doc: Death, Reconstitution, and Source-Chain Recovery.md
+  - Symtropy Design Doc - Death, Reconstitution, and Source-Chain Recovery.md
   - PROCEDURAL_HISTORY_ENGINE.md
+version: 0.1
+scope: minimum Chronicle implementation, event capture, rendering, persistence and validation
+owner: design/engineering
 ---
 
 # Chronicle MVP Spec v0.1

@@ -1,0 +1,12 @@
+Symtropy v2.7 patch reconstruction status
+
+Base: v2.6 corpus import commit d33ce17a7a3fae1d17ea925ecef5b98f0e78ded0
+Target: current v2.7 release head; see external reconstruction report
+Ordered patches: 10
+Exact reconstruction: passed
+Files compared: 628
+Missing files: 0
+Extra files: 0
+Changed files: 0
+
+Design evidence only. Runtime implementation and player attachment remain unverified.

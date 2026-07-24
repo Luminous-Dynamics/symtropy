@@ -1,0 +1,49 @@
+{
+  "$id": "symtropy://schemas/cultural_practice/v0.1",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "adoption_by_group": {
+      "additionalProperties": {
+        "maximum": 1,
+        "minimum": 0,
+        "type": "number"
+      },
+      "type": "object"
+    },
+    "artifact_id": {
+      "type": "string"
+    },
+    "artifact_type": {
+      "type": "string"
+    },
+    "associated_places": {
+      "items": {
+        "type": "string"
+      },
+      "type": "array"
+    },
+    "creators": {
+      "items": {
+        "type": "string"
+      },
+      "minItems": 1,
+      "type": "array"
+    },
+    "variants": {
+      "items": {
+        "type": "string"
+      },
+      "type": "array"
+    }
+  },
+  "required": [
+    "artifact_id",
+    "artifact_type",
+    "creators",
+    "adoption_by_group",
+    "variants"
+  ],
+  "title": "Cultural Practice",
+  "type": "object"
+}

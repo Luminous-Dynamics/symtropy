@@ -13,7 +13,8 @@
 //! platform's own physics.
 //!
 //! [`EmbodimentPlanner`] glues those two worlds together. It:
-//! 1. Encodes the observation vector into a [`ContinuousHV`] "thought".
+//! 1. Encodes the observation vector into a [`ContinuousHV`] "thought" using
+//!    compatibility tiling or an opt-in deterministic semantic HDC encoder.
 //! 2. Calls `bridge.step(&thought_hv, dt, gain as f64)`.
 //! 3. Returns a per-actuator `Vec<f64>` sized to `num_actuators`, where each
 //!    slot holds the bridge's commanded authority for that actuator — gated
@@ -43,6 +44,9 @@
 
 use symthaea_core::embodiment::EmbodimentBridge;
 use symthaea_core::hdc::ContinuousHV;
+use symtropy_hdc_core::{
+    BipolarBundle, EncoderSpec, HdcError, ItemMemory, LevelEncoder, StableHash64,
+};
 use symtropy_robotics_bridge_core::motor::MotorPlanner;
 
 /// Default simulation timestep fed to `EmbodimentBridge::step` (60 Hz).
@@ -60,6 +64,79 @@ pub struct EmbodimentPlanner {
     bridge: Box<dyn EmbodimentBridge>,
     dt: f32,
     hv_dim: usize,
+    observation_encoder: ObservationEncoding,
+}
+
+/// Observation encoding used before a thought vector enters Symthaea.
+///
+/// Legacy tiling remains the default for source and behavior compatibility.
+/// Semantic HDC is opt-in until platform-level validation is complete.
+pub enum ObservationEncoding {
+    LegacyTiled,
+    SemanticHdc(SemanticObservationEncoder),
+}
+
+/// Deterministic role/value encoder for numeric observation channels.
+pub struct SemanticObservationEncoder {
+    memory: ItemMemory,
+    scalar: LevelEncoder,
+    value_extent: f64,
+}
+
+impl SemanticObservationEncoder {
+    pub fn new(spec: EncoderSpec, value_extent: f64) -> Result<Self, HdcError> {
+        if !value_extent.is_finite() || value_extent <= 0.0 {
+            return Err(HdcError::InvalidEncoderSpec(
+                "observation value_extent must be finite and positive".to_owned(),
+            ));
+        }
+        let memory = ItemMemory::new(spec)?;
+        let scalar = memory.scalar_encoder("symtropy.symthaea.observation.v1");
+        Ok(Self {
+            memory,
+            scalar,
+            value_extent,
+        })
+    }
+
+    pub fn dimension(&self) -> usize {
+        self.memory.spec().dimension
+    }
+
+    /// Stable provenance fingerprint for the semantic observation contract.
+    pub fn fingerprint(&self) -> u64 {
+        let mut hash = StableHash64::with_seed(self.memory.spec().fingerprint());
+        hash.write(b"symtropy.symthaea.observation.v1");
+        hash.write_u64(self.value_extent.to_bits());
+        hash.finish()
+    }
+
+    pub fn encode(&self, observation: &[f64]) -> Result<ContinuousHV, HdcError> {
+        let mut bundle = BipolarBundle::new(self.dimension());
+        bundle.add(&self.memory.item("record-kind", "numeric-observation"))?;
+        bundle.add(&self.memory.bind_role_value(
+            "channel-count",
+            "channel-count",
+            &observation.len().to_string(),
+        ))?;
+        for (index, value) in observation.iter().copied().enumerate() {
+            let finite = if value.is_finite() { value } else { 0.0 };
+            let role = self.memory.role(&format!("channel.{index}"));
+            let encoded = self
+                .scalar
+                .encode(finite, -self.value_extent, self.value_extent)?;
+            bundle.add(&role.bind(&encoded)?)?;
+        }
+        let bipolar = bundle.finish(&self.memory.tie_breaker("numeric-observation"))?;
+        let normalization = (bipolar.len() as f32).sqrt().recip();
+        Ok(ContinuousHV::from_vec(
+            bipolar
+                .values
+                .iter()
+                .map(|value| f32::from(*value) * normalization)
+                .collect(),
+        ))
+    }
 }
 
 impl EmbodimentPlanner {
@@ -69,6 +146,7 @@ impl EmbodimentPlanner {
             bridge,
             dt: DEFAULT_DT,
             hv_dim: DEFAULT_HV_DIM,
+            observation_encoder: ObservationEncoding::LegacyTiled,
         }
     }
 
@@ -78,9 +156,32 @@ impl EmbodimentPlanner {
         self
     }
 
-    /// Override the hypervector dimension used when encoding observations.
+    /// Override the hypervector dimension used by legacy tiling.
+    /// Semantic HDC uses the dimension in its `EncoderSpec`.
     pub fn with_hv_dim(mut self, hv_dim: usize) -> Self {
         self.hv_dim = hv_dim;
+        self
+    }
+
+    /// Opt into deterministic semantic HDC observation encoding.
+    ///
+    /// The supplied encoder spec becomes part of experiment provenance. Legacy
+    /// tiling remains the default so existing platform behavior does not change
+    /// silently.
+    pub fn with_semantic_hdc(
+        mut self,
+        spec: EncoderSpec,
+        value_extent: f64,
+    ) -> Result<Self, HdcError> {
+        let encoder = SemanticObservationEncoder::new(spec, value_extent)?;
+        self.hv_dim = encoder.dimension();
+        self.observation_encoder = ObservationEncoding::SemanticHdc(encoder);
+        Ok(self)
+    }
+
+    /// Restore the compatibility encoder.
+    pub fn with_legacy_tiling(mut self) -> Self {
+        self.observation_encoder = ObservationEncoding::LegacyTiled;
         self
     }
 
@@ -98,11 +199,25 @@ impl EmbodimentPlanner {
     pub fn dt(&self) -> f32 {
         self.dt
     }
+
+    /// Semantic encoder fingerprint for research provenance, or `None` while
+    /// compatibility tiling is active.
+    pub fn observation_encoder_fingerprint(&self) -> Option<u64> {
+        match &self.observation_encoder {
+            ObservationEncoding::LegacyTiled => None,
+            ObservationEncoding::SemanticHdc(encoder) => Some(encoder.fingerprint()),
+        }
+    }
 }
 
 impl MotorPlanner for EmbodimentPlanner {
     fn plan(&mut self, observation: &[f64], gain: f64, num_actuators: usize) -> Vec<f64> {
-        let thought_hv = encode_observation(observation, self.hv_dim);
+        let thought_hv = match &self.observation_encoder {
+            ObservationEncoding::LegacyTiled => encode_observation(observation, self.hv_dim),
+            ObservationEncoding::SemanticHdc(encoder) => encoder.encode(observation).expect(
+                "validated semantic observation encoder cannot fail on finite-clamped input",
+            ),
+        };
         let result = self.bridge.step(&thought_hv, self.dt, gain);
 
         // Translate the bridge's scalar response into a per-actuator vector.
@@ -136,6 +251,17 @@ pub fn encode_observation(obs: &[f64], hv_dim: usize) -> ContinuousHV {
         values.push(obs[i % obs.len()] as f32);
     }
     ContinuousHV::from_vec(values)
+}
+
+/// Encode numeric observations with versioned semantic HDC rather than raw
+/// value tiling. This helper is useful for research harnesses that do not need
+/// an `EmbodimentPlanner`.
+pub fn encode_observation_semantic(
+    observation: &[f64],
+    spec: EncoderSpec,
+    value_extent: f64,
+) -> Result<ContinuousHV, HdcError> {
+    SemanticObservationEncoder::new(spec, value_extent)?.encode(observation)
 }
 
 #[cfg(test)]
@@ -237,6 +363,51 @@ mod tests {
 
     fn make_planner() -> EmbodimentPlanner {
         EmbodimentPlanner::new(Box::new(MockBridge::new()))
+    }
+
+    #[test]
+    fn semantic_observation_encoding_is_deterministic_and_unit_norm() {
+        let spec = EncoderSpec {
+            schema_version: 1,
+            dimension: 4_096,
+            seed: 9,
+            scalar_levels: 129,
+        };
+        let a = encode_observation_semantic(&[0.2, -0.7, 1.1], spec.clone(), 2.0).unwrap();
+        let b = encode_observation_semantic(&[0.2, -0.7, 1.1], spec, 2.0).unwrap();
+        assert_eq!(a.values, b.values);
+        let norm = a
+            .values
+            .iter()
+            .map(|value| value * value)
+            .sum::<f32>()
+            .sqrt();
+        assert!((norm - 1.0).abs() < 1.0e-5);
+    }
+
+    #[test]
+    fn semantic_observation_encoding_preserves_channel_roles() {
+        let spec = EncoderSpec {
+            schema_version: 1,
+            dimension: 4_096,
+            seed: 11,
+            scalar_levels: 129,
+        };
+        let left = encode_observation_semantic(&[0.9, -0.3], spec.clone(), 1.0).unwrap();
+        let swapped = encode_observation_semantic(&[-0.3, 0.9], spec, 1.0).unwrap();
+        assert_ne!(left.values, swapped.values);
+    }
+
+    #[test]
+    fn semantic_planner_exposes_encoder_fingerprint() {
+        let spec = EncoderSpec {
+            schema_version: 1,
+            dimension: 4_096,
+            seed: 13,
+            scalar_levels: 129,
+        };
+        let planner = make_planner().with_semantic_hdc(spec, 2.0).unwrap();
+        assert!(planner.observation_encoder_fingerprint().is_some());
     }
 
     #[test]

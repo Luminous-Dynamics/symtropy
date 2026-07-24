@@ -1,6 +1,10 @@
 ---
 title: Peninsula Refuge Coalition Dynamics Patch v0.1
-status: canonical-patch
+version: 0.1
+scope: Peninsula Refuge coalition dynamics and faction ecology
+owner: world-design/faction-simulation
+status: supporting
+patch_status: accepted
 project: Symtropy
 domain: Antarctica / Peninsula Refuge Cities / Faction Ecology
 recommended_path: docs/earth-atlas/antarctica/PENINSULA_REFUGE_COALITION_DYNAMICS_PATCH_V0_1.md

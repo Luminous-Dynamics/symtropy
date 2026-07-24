@@ -1,0 +1,26 @@
+{
+  "version": "0.1",
+  "assessment_scope": "documentation readiness only",
+  "implementation_audit_complete": false,
+  "maturity_models": {
+    "design": ["D0", "D1", "D2", "D3", "D4"],
+    "implementation": ["I0", "I1", "I2", "I3", "I4", "I5", "I6"],
+    "content": ["C0", "C1", "C2", "C3", "C4", "C5"]
+  },
+  "capabilities": [
+    {"id":"embodied_interaction","design":"D3","implementation":"I0","evidence":[]},
+    {"id":"field_deck","design":"D3","implementation":"I0","evidence":[]},
+    {"id":"device_bus","design":"D3","implementation":"I0","evidence":[]},
+    {"id":"construction","design":"D3","implementation":"I0","evidence":[]},
+    {"id":"economy_custody","design":"D3","implementation":"I0","evidence":[]},
+    {"id":"npc_cognition","design":"D3","implementation":"I0","evidence":[]},
+    {"id":"combat","design":"D3","implementation":"I0","evidence":[]},
+    {"id":"strategic_conflict","design":"D3","implementation":"I0","evidence":[]},
+    {"id":"regional_simulation","design":"D3","implementation":"I0","evidence":[]},
+    {"id":"chronicle","design":"D3","implementation":"I0","evidence":[]},
+    {"id":"co_op","design":"D3","implementation":"I0","evidence":[]},
+    {"id":"persistence_migration","design":"D3","implementation":"I0","evidence":[]},
+    {"id":"player_authorship","design":"D2","implementation":"I0","evidence":[]},
+    {"id":"worldline_long_horizon","design":"D2","implementation":"I0","evidence":[]}
+  ]
+}

@@ -1,3 +1,11 @@
+---
+title: Symtropy New Cultures Compendium
+version: 0.1
+status: historical
+scope: early culture compendium
+owner: narrative/world
+superseded_by: Symtropy_New_Cultures_Compendium_v0_3.md
+---
 # Symtropy New Cultures Compendium v0.1
 
 A working design bible for the new society-cultures developed for Symtropy. These cultures are not simple factions or biomes. Each one is a living civic contradiction: a beautiful survival strategy that becomes dangerous when it hardens into infrastructure, law, caste, ritual, or automated habit.

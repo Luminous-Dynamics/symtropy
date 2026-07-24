@@ -1,0 +1,516 @@
+From 91d67b648de25535b5fe768cbc90ca5090fe321f Mon Sep 17 00:00:00 2001
+From: OpenAI Symtropy Documentation <symtropy-docs@example.invalid>
+Date: Tue, 21 Jul 2026 10:55:30 +0000
+Subject: [PATCH 02/10] Add carrier common core and role envelope runtime
+
+---
+ .../v2_9/large_carrier_profile.schema.json    | 109 +++++
+ ...TERFACES_AND_ROLE_ENVELOPE_RUNTIME_V0_1.md | 380 ++++++++++++++++++
+ 2 files changed, 489 insertions(+)
+ create mode 100644 schemas/v2_9/large_carrier_profile.schema.json
+ create mode 100644 tech/LARGE_CARRIER_COMMON_CORE_OPEN_INTERFACES_AND_ROLE_ENVELOPE_RUNTIME_V0_1.md
+
+diff --git a/schemas/v2_9/large_carrier_profile.schema.json b/schemas/v2_9/large_carrier_profile.schema.json
+new file mode 100644
+index 0000000..53b2c51
+--- /dev/null
++++ b/schemas/v2_9/large_carrier_profile.schema.json
+@@ -0,0 +1,109 @@
++{
++  "$schema": "https://json-schema.org/draft/2020-12/schema",
++  "$id": "https://luminous-dynamics.org/symtropy/schemas/v2_9/large_carrier_profile.schema.json",
++  "title": "Large Carrier Profile",
++  "type": "object",
++  "required": [
++    "profile_id",
++    "worldline_id",
++    "name",
++    "hull_lineage",
++    "construction_epoch",
++    "common_core",
++    "mission_emphasis",
++    "districts",
++    "interfaces",
++    "governance",
++    "configuration_epoch"
++  ],
++  "properties": {
++    "profile_id": {"type": "string", "minLength": 1},
++    "worldline_id": {"type": "string", "minLength": 1},
++    "name": {"type": "string", "minLength": 1},
++    "hull_lineage": {"type": "string", "minLength": 1},
++    "construction_epoch": {"type": "integer", "minimum": 0},
++    "configuration_epoch": {"type": "integer", "minimum": 0},
++    "gravity_strategy": {
++      "enum": ["microgravity", "continuous_acceleration", "rotational", "field_assisted", "mixed", "biological_or_unknown"]
++    },
++    "common_core": {
++      "type": "object",
++      "required": ["habitation", "life_support", "mobility", "energy_thermal", "repair_fabrication", "care", "logistics", "information", "governance", "culture_education", "rescue_emergency", "defense"],
++      "additionalProperties": {"$ref": "#/$defs/capacityDomain"}
++    },
++    "mission_emphasis": {
++      "type": "object",
++      "minProperties": 2,
++      "additionalProperties": {"type": "number", "minimum": 0, "maximum": 0.7}
++    },
++    "districts": {
++      "type": "array",
++      "minItems": 3,
++      "items": {"$ref": "#/$defs/district"}
++    },
++    "interfaces": {
++      "type": "array",
++      "items": {"$ref": "#/$defs/interface"}
++    },
++    "carried_base_ids": {
++      "type": "array",
++      "items": {"type": "string"},
++      "uniqueItems": true
++    },
++    "governance": {
++      "type": "object",
++      "required": ["charter_id", "title_holder_ids", "operator_authority_ids", "resident_governance_mode"],
++      "properties": {
++        "charter_id": {"type": "string"},
++        "title_holder_ids": {"type": "array", "items": {"type": "string"}},
++        "operator_authority_ids": {"type": "array", "items": {"type": "string"}},
++        "resident_governance_mode": {"type": "string"}
++      },
++      "additionalProperties": true
++    },
++    "maintenance_debt": {"type": "number", "minimum": 0},
++    "damage_state": {"type": "array", "items": {"type": "object"}}
++  },
++  "$defs": {
++    "capacityDomain": {
++      "type": "object",
++      "required": ["installed", "effective", "reserve", "demand"],
++      "properties": {
++        "installed": {"type": "number", "minimum": 0},
++        "effective": {"type": "number", "minimum": 0},
++        "reserve": {"type": "number", "minimum": 0},
++        "demand": {"type": "number", "minimum": 0},
++        "qualified_staff": {"type": "integer", "minimum": 0},
++        "automation_coverage": {"type": "number", "minimum": 0, "maximum": 1},
++        "dependencies": {"type": "array", "items": {"type": "string"}}
++      },
++      "additionalProperties": false
++    },
++    "district": {
++      "type": "object",
++      "required": ["district_id", "name", "functions", "pressure_zone", "population_capacity"],
++      "properties": {
++        "district_id": {"type": "string"},
++        "name": {"type": "string"},
++        "functions": {"type": "array", "items": {"type": "string"}, "minItems": 1},
++        "pressure_zone": {"type": "string"},
++        "population_capacity": {"type": "integer", "minimum": 0},
++        "structural_neighbors": {"type": "array", "items": {"type": "string"}},
++        "utility_neighbors": {"type": "array", "items": {"type": "string"}}
++      },
++      "additionalProperties": true
++    },
++    "interface": {
++      "type": "object",
++      "required": ["interface_id", "kind", "standard", "state"],
++      "properties": {
++        "interface_id": {"type": "string"},
++        "kind": {"enum": ["dock", "cargo", "power", "thermal", "atmosphere", "water", "data", "tow", "medical", "other"]},
++        "standard": {"type": "string"},
++        "state": {"enum": ["available", "occupied", "isolated", "damaged", "quarantined", "incompatible"]}
++      },
++      "additionalProperties": true
++    }
++  },
++  "additionalProperties": true
++}
+diff --git a/tech/LARGE_CARRIER_COMMON_CORE_OPEN_INTERFACES_AND_ROLE_ENVELOPE_RUNTIME_V0_1.md b/tech/LARGE_CARRIER_COMMON_CORE_OPEN_INTERFACES_AND_ROLE_ENVELOPE_RUNTIME_V0_1.md
+new file mode 100644
+index 0000000..406042c
+--- /dev/null
++++ b/tech/LARGE_CARRIER_COMMON_CORE_OPEN_INTERFACES_AND_ROLE_ENVELOPE_RUNTIME_V0_1.md
+@@ -0,0 +1,380 @@
++---
++title: Large Carrier Common Core, Open Interfaces, and Role Envelope Runtime
++version: 0.1
++status: implementation-spec
++scope: carrier component graphs, common civic core, modular interfaces, mission profiles, capacity allocation, variant generation
++owner: engineering/spacecraft/simulation
++related:
++  - ../canon/LARGE_CARRIER_MULTIROLE_CIVILIZATION_AND_NON_SPECIALIZATION_CONTRACT_V0_1.md
++  - SPACECRAFT_PROPULSION_POWER_THERMAL_AND_RADIATION_RUNTIME_V0_1.md
++  - CLOSED_LOOP_HABITAT_MASS_FLOW_RELIABILITY_AND_INTERGENERATIONAL_RUNTIME_V0_1.md
++  - CONTINUANCE_CRAWLER_MODULE_MASS_POWER_CARGO_AND_DAMAGE_RUNTIME_V0_1.md
++  - NESTED_VEHICLE_ECOLOGY_DOCKING_DEPLOYMENT_AND_BASE_CARRIER_RUNTIME_V0_1.md
++  - ../schemas/v2_9/large_carrier_profile.schema.json
++---
++
++# Large Carrier Common Core, Open Interfaces, and Role Envelope Runtime
++
++## Runtime Purpose
++
++Define a shared technical grammar that lets large carriers exchange parts, host smaller bases and satisfy common safety obligations without collapsing into one silhouette or one optimal build.
++
++The runtime separates:
++
++- immutable physical requirements;
++- standardized interoperability surfaces;
++- hull-lineage decisions;
++- mission-profile allocations;
++- installed modules;
++- temporary cargo and carried craft;
++- cultural and historical expression.
++
++# 1. Carrier Entity Model
++
++A carrier is represented as a persistent graph of districts, modules, trunks, boundaries and interfaces.
++
++```text
++CarrierProfile
++├── identity and worldline provenance
++├── hull lineage and construction generation
++├── structural graph
++├── pressure and atmosphere graph
++├── power and thermal graph
++├── water, food and waste graph
++├── transit and docking graph
++├── information and command graph
++├── districts and population
++├── mission emphasis profile
++├── installed modules
++├── carried-base manifest
++├── legal and governance state
++├── maintenance and damage state
++└── historical modifications
++```
++
++No single `ship_type` field determines capability.
++
++# 2. Common Civic Core
++
++Every inhabited large carrier must declare capacity in twelve domains.
++
++| Domain | Minimum runtime outputs |
++|---|---|
++| Habitation | safe berths, privacy classes, accessibility, common space |
++| Life support | atmosphere, water, food reserve, waste closure |
++| Mobility | propulsion, attitude control, navigation, traffic safety |
++| Energy and heat | generation, storage, distribution, radiator margin |
++| Repair and fabrication | inspection, spare production, structural intervention |
++| Care | clinic, emergency surgery or stabilization, quarantine |
++| Logistics | cargo, stores, inventory provenance, material handling |
++| Information | sensing, communications, records, local computation |
++| Governance | authority graph, audit, deliberation and emergency procedures |
++| Culture and education | learning, recreation, ritual and artistic production |
++| Rescue and emergency | shelter, fire control, escape, casualty movement |
++| Defense | warning, hardening, cyber/physical containment, proportionate force |
++
++Each domain reports:
++
++- installed capacity;
++- effective capacity;
++- reserve;
++- dependencies;
++- qualified staff;
++- automation coverage;
++- current demand;
++- legal minimum;
++- failure consequences.
++
++# 3. Role Envelope
++
++A mission profile is a vector of emphasis weights, not a class identifier.
++
++Example domains:
++
++```text
++habitation
++survey
++care
++fabrication
++trade
++route_engineering
++security
++planetary_interface
++ecological_continuity
++education_and_culture
++```
++
++Weights influence design targets and scheduling priority, but they cannot authorize deletion of common-core functions.
++
++## 3.1 Allocation Constraints
++
++The allocator must enforce:
++
++- total configurable capacity is bounded;
++- common-core minimums are reserved before emphasis allocation;
++- reserve margins are explicit;
++- staffing and maintenance scale with installed systems;
++- added capability consumes mass, volume, heat, power and attention;
++- redundancy is not free;
++- carried craft consume dock, handling and support capacity;
++- emergency surge capacity cannot be treated as normal throughput indefinitely.
++
++## 3.2 Profile Blending
++
++A carrier may blend several emphases.
++
++Examples:
++
++- 0.30 habitation, 0.20 survey, 0.20 fabrication, 0.15 care, 0.15 trade;
++- 0.25 route engineering, 0.20 fabrication, 0.20 security, 0.20 logistics, 0.15 habitation;
++- 0.25 ecological continuity, 0.20 habitation, 0.20 education, 0.20 planetary interface, 0.15 care.
++
++Profiles may change through refit, emergency conversion, mission transition or political decision.
++
++# 4. Standard Interface Families
++
++## 4.1 Structural Interfaces
++
++Standardize:
++
++- attachment load envelopes;
++- capture and docking geometry classes;
++- pressure-boundary mating rules;
++- cargo restraint and handling points;
++- emergency tow points;
++- inspection and nondestructive-testing markers.
++
++Do not standardize the whole hull.
++
++## 4.2 Utility Interfaces
++
++Every compatible interface declares:
++
++- voltage, frequency and conversion limits;
++- thermal loop temperature and pressure bands;
++- atmosphere composition and contamination state;
++- potable, process and waste-water classes;
++- data bandwidth and trust domain;
++- time synchronization and causal epoch;
++- emergency shutdown authority;
++- metering and ownership.
++
++## 4.3 Human and Multispecies Interfaces
++
++Compatibility includes:
++
++- physical access geometry;
++- pressure and atmosphere;
++- gravity and acceleration tolerance;
++- sensory safety;
++- pathogen and biochemical boundaries;
++- machine-body service needs;
++- privacy and legal jurisdiction.
++
++A docking collar may be mechanically compatible while socially or biologically unsafe.
++
++# 5. Hull Lineage Parameters
++
++A hull lineage defines constraints and tendencies rather than a fixed model.
++
++Parameters include:
++
++- load path topology;
++- pressure-volume arrangement;
++- distributed versus centralized propulsion;
++- gravity strategy;
++- radiator architecture;
++- armor and shielding philosophy;
++- internal district topology;
++- docking orientation;
++- construction material families;
++- field repair access;
++- expansion surfaces;
++- design life;
++- fabrication method;
++- home yard and standards tradition.
++
++A lineage may generate many visually and functionally distinct ships.
++
++# 6. Internal City Topologies
++
++Supported patterns should include:
++
++## Spine
++
++A central transit and utility axis with districts attached along its length.
++
++Strengths: legibility, expansion, cargo movement.
++Weaknesses: chokepoints and long transit distances.
++
++## Ring
++
++Circular or toroidal transit with distributed districts.
++
++Strengths: redundancy and possible rotational gravity.
++Weaknesses: complex construction and docking.
++
++## Cluster
++
++Several semi-independent habitat and work nodes.
++
++Strengths: isolation and graceful degradation.
++Weaknesses: duplicated services and coordination overhead.
++
++## Courtyard
++
++Large shared pressure volumes surrounded by workshops and homes.
++
++Strengths: civic life and visual identity.
++Weaknesses: pressure-volume risk and high structural demand.
++
++## Raft
++
++Parallel modules connected by trusses and utility bridges.
++
++Strengths: modular growth and exterior work access.
++Weaknesses: radiation, micrometeoroid exposure and transit complexity.
++
++## Symbiotic or grown topology
++
++Living tissues, machine swarms or adaptive structures change arrangement over time.
++
++Strengths and weaknesses depend on organism agency, growth limits and maintenance ecology.
++
++# 7. Capacity Accounting
++
++The runtime must track at least:
++
++- dry mass;
++- propellant and reaction mass;
++- consumables;
++- cargo mass and volume;
++- rotating mass;
++- center of mass and inertia tensor;
++- thrust and acceleration envelope;
++- power generation and storage;
++- peak and sustained thermal rejection;
++- pressure volume;
++- shielding distribution;
++- crew time;
++- maintenance debt;
++- dock cycle capacity;
++- fabrication throughput;
++- medical and shelter surge capacity;
++- food and water closure;
++- spare-part diversity.
++
++## Crew Attention as a Resource
++
++Installed systems require:
++
++- operators;
++- maintainers;
++- inspectors;
++- planners;
++- governance;
++- emergency response.
++
++Automation reduces routine attention but creates verification, cybersecurity, repair and authority requirements.
++
++# 8. Configuration and Refit
++
++Refit classes:
++
++### Soft configuration
++
++Software, stores, staffing, carried craft and deployable equipment change without structural work.
++
++### Module exchange
++
++Dock or yard replaces compatible modules.
++
++### District conversion
++
++A pressure volume changes function, requiring construction, relocation and social negotiation.
++
++### Structural refit
++
++Load paths, propulsion, radiators or major docking systems change in a shipyard.
++
++### Lineage transformation
++
++The carrier is rebuilt across generations while preserving identity and provenance.
++
++Each refit records:
++
++- removed capability;
++- new dependencies;
++- displaced residents or institutions;
++- ownership of installed work;
++- certification state;
++- historical continuity claims.
++
++# 9. Variant Generation
++
++Procedural variation should operate over bounded authored grammars.
++
++A generated carrier can vary:
++
++- number and arrangement of districts;
++- module manufacturers and eras;
++- radiator and propulsion placement;
++- external vehicle racks;
++- repair patches;
++- paint, symbols and surface culture;
++- window and public-space distribution;
++- garden strategy;
++- docking mix;
++- legacy components;
++- acoustic signature;
++- lighting and wayfinding;
++- mission-profile allocation;
++- legal charter;
++- crew composition.
++
++Generation must pass engineering and civic constraints before acceptance.
++
++# 10. Anti-Metagame Rules
++
++The runtime must resist one universal best carrier.
++
++- Mission value depends on route, environment, crew and politics.
++- Large unused capacity still costs mass and maintenance.
++- Extreme modularity reduces structural and volumetric efficiency.
++- Highly integrated hulls gain efficiency but become harder to refit.
++- Common parts ease logistics but may be locally unavailable.
++- Rare technology creates dependency and political attention.
++- Weapon capacity creates legal and diplomatic cost.
++- Luxury increases morale and legitimacy for some communities but consumes scarce capacity.
++- Redundancy improves survival but can reduce peak mission throughput.
++
++# 11. Determinism and Multiplayer
++
++Authoritative state includes:
++
++- profile identifier;
++- module graph hashes;
++- mission weights;
++- installed and effective capacities;
++- docked-craft state;
++- ownership and authority references;
++- damage and maintenance debt;
++- configuration epoch.
++
++Clients may stream presentation detail, but cannot independently decide capacity or docking state.
++
++# 12. Debug Explainability
++
++A developer view must answer:
++
++- Why can this carrier perform this role?
++- Which modules and staff enable it?
++- Which common-core minimum would be violated by this refit?
++- What consumes the current heat, power and crew budget?
++- Why can this craft dock but not safely exchange atmosphere?
++- Which mission profile influenced this generated layout?
++- What capability would be lost if a district were isolated?
++
++## Runtime Maxim
++
++> **Standardize the handshakes, not the civilizations.**
+-- 
+2.47.3
+

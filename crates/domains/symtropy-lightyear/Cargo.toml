@@ -6,10 +6,15 @@ license = "AGPL-3.0-or-later"
 description = "Lightyear integration for Symtropy — prediction, rollback, interpolation over Iroh QUIC"
 
 [dependencies]
-# Lightyear netcode
-lightyear = "0.26"
+# Lightyear netcode. Must stay >= 0.28 (first release supporting bevy 0.19,
+# per lightyear's own compat table) -- 0.26 pulled in bevy_render/bevy_shader
+# 0.18.1, which transitively requires naga 27.0.3, a version with a real
+# upstream bug (WriteColor not satisfied for String; gfx-rs/wgpu#7968,
+# fixed via a codespan-reporting bump naga only picked up starting at 29.x).
+# See SYMTROPY_IMPROVEMENT_PLAN_2026-07-21.md P3.2.
+lightyear = "0.28"
 
-# Bevy sub-crates (match Symtropy's Bevy 0.18)
+# Bevy sub-crates (all on Symtropy's Bevy 0.19)
 bevy_app = "0.19"
 bevy_ecs = "0.19"
 bevy_log = "0.19"

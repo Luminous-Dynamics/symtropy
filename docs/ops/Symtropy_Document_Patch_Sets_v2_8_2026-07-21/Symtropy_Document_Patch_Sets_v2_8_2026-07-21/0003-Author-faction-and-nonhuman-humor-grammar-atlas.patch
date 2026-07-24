@@ -1,0 +1,488 @@
+From 4ff4b5dcc181f3ae2724b3dc3405f8ec068d225a Mon Sep 17 00:00:00 2001
+From: OpenAI <noreply@openai.com>
+Date: Tue, 21 Jul 2026 07:44:07 +0000
+Subject: [PATCH 03/10] Author faction and nonhuman humor grammar atlas
+
+---
+ ...N_AND_NONHUMAN_HUMOR_GRAMMAR_ATLAS_V0_1.md | 472 ++++++++++++++++++
+ 1 file changed, 472 insertions(+)
+ create mode 100644 lore/FACTION_PROFESSION_GENERATION_AND_NONHUMAN_HUMOR_GRAMMAR_ATLAS_V0_1.md
+
+diff --git a/lore/FACTION_PROFESSION_GENERATION_AND_NONHUMAN_HUMOR_GRAMMAR_ATLAS_V0_1.md b/lore/FACTION_PROFESSION_GENERATION_AND_NONHUMAN_HUMOR_GRAMMAR_ATLAS_V0_1.md
+new file mode 100644
+index 0000000..8840ec0
+--- /dev/null
++++ b/lore/FACTION_PROFESSION_GENERATION_AND_NONHUMAN_HUMOR_GRAMMAR_ATLAS_V0_1.md
+@@ -0,0 +1,472 @@
++---
++title: Faction, Profession, Generation, and Nonhuman Humor Grammar Atlas
++version: 0.1
++status: lore-canonical-draft
++scope: humor voices, faction meme grammars, professional jokes, age-cohort mutation, machine humor, alien humor, failed institutional comedy
++owner: culture/lore/narrative/AI/localization
++related:
++  - ../canon/MEME_ECOLOGY_HUMOR_LIVING_FOLKLORE_AND_CULTURAL_AGENCY_CONTRACT_V0_1.md
++  - ../tech/MEMETIC_EVENT_EXTRACTION_GENOME_AND_CANDIDATE_FOUNDRY_RUNTIME_V0_1.md
++  - POPULAR_BAD_CULTURE_SPORT_KITSCH_CELEBRITY_AND_TRASH_MEDIA_ATLAS_V0_1.md
++  - FIRSTLIGHT_ROLE_ARCHETYPES_AND_GENERATED_CAST_CONTENT_BIBLE_V0_1.md
++---
++
++# Faction, Profession, Generation, and Nonhuman Humor Grammar Atlas
++
++## Purpose
++
++Provide authored humor grammars that make generated memes sound as if they came from specific communities rather than from one universal sarcastic model.
++
++A grammar does not prescribe every joke. It defines:
++
++- what a community notices;
++- what it considers safe to mock;
++- what it treats as sacred;
++- preferred formats;
++- typical rhythm and register;
++- who is allowed to tease whom;
++- what forms become stale;
++- how humor changes under pressure.
++
++> **A believable culture does not merely have jokes. It has arguments about which jokes count as theirs.**
++
++# 1. Grammar Composition
++
++A person may combine several layers:
++
++```text
++household
+++ neighborhood
+++ profession
+++ age cohort
+++ faction
+++ language register
+++ body or species culture
+++ personality
+++ current relationship
++```
++
++A generated medic from a Continuance convoy should not speak exactly like every medic. Their humor may combine clinical compression, convoy water anxiety, an elder generation’s restraint, and a private household tradition.
++
++# 2. Firstlight Public-Works Humor
++
++## What They Notice
++
++- temporary repairs that become permanent;
++- badly labeled infrastructure;
++- officials arriving after the fault is isolated;
++- public beauty depending on invisible maintenance;
++- rain finding every unsealed claim;
++- tools migrating between crews;
++- budget language that ignores matter.
++
++## Preferred Formats
++
++- tool-box stencils;
++- altered safety posters;
++- short call-and-response phrases;
++- photos of elegant public spaces beside hidden maintenance access;
++- machine noises imitated as social commentary;
++- dry shift-log annotations.
++
++## Voice
++
++Compressed, practical, affectionate toward competent improvisation, hostile toward managerial fantasy.
++
++## Typical Frames
++
++> **Temporary repair, year nine.**
++
++> **The water has reviewed the drainage plan.**
++
++> **Officially inaccessible. Mechanically essential.**
++
++## Boundaries
++
++They rarely mock a worker’s injury, a novice asking a sincere question, or a failure caused by denied resources. They freely mock prestige, preventable repetition, and equipment with a history of betrayal.
++
++# 3. Continuance Convoy Humor
++
++## What They Notice
++
++- cargo choices;
++- water allocation;
++- bunks and privacy;
++- route conditions;
++- improvised repairs;
++- Firstlight objects that consume absurd space;
++- contested leadership;
++- everyone claiming one working toilet.
++
++## Preferred Formats
++
++- compartment labels;
++- route chants;
++- meal-table stories;
++- stickers on old modules;
++- before-and-after load images;
++- exaggerated diagrams of who owns which shelf;
++- private IRIS quotes repeated out of context.
++
++## Voice
++
++Domestic survival comedy: sharp, tired, protective, often aimed at the group’s own contradictions.
++
++## Typical Frames
++
++> **We escaped with civilization. Civilization is blocking the service hatch.**
++
++> **Eight residents. Nine governments. One toilet.**
++
++> **Load-bearing sentimental object. Do not remove.**
++
++## Mutation
++
++A local cargo joke may become a convoy proverb, then a political slogan about migration capacity, then a shipping-company advertisement that survivors hate.
++
++# 4. The Vast and Magnanimous Houses
++
++Outsiders call them “giga chads.” Their own traditions include Vast Houses, Open Gymnasia, burden councils, body-sovereignty leagues, rescue teams, athletes, artists, and dangerous Apex movements.
++
++## What They Notice
++
++- the gap between appearance and actual courage;
++- glorious bodies defeated by tiny mechanisms;
++- excessive boasting;
++- restraint under provocation;
++- public service performed theatrically;
++- people who confuse intimidation with strength;
++- absurdly serious competition over ordinary skills.
++
++## Preferred Formats
++
++- heroic pose diptychs;
++- challenge announcements;
++- exaggerated chants;
++- public demonstrations;
++- sculptures temporarily modified with accessories;
++- strength contests whose object is mundane;
++- dramatic reaction loops.
++
++## Voice
++
++Grandiose, affectionate, competitive, visually maximal, often sincere and ironic at once.
++
++## Typical Frames
++
++> **MAXIMUM STRENGTH. MINIMUM TEA.**
++
++> **The door was not worthy of hinges.**
++
++> **Powerful where courage was not required.**
++
++> **I accepted the burden of baking. Witness excellence.**
++
++## Internal Differences
++
++- Open Gymnasium humor attacks unearned prestige.
++- Heroic Houses remix rivals’ boasts into invitations to compete.
++- Body Sovereignty humor mocks compulsory optimization products.
++- Apex propaganda removes the self-parody and turns admiration into hierarchy.
++- Elder Vast humor often consists of quietly allowing youth to overperform before solving the actual problem.
++
++# 5. Clinical and Care Humor
++
++## What They Notice
++
++- the difference between dramatic appearance and clinical severity;
++- relatives panicking after the patient stabilizes;
++- paperwork multiplying around simple care;
++- people hiding symptoms to protect status;
++- professionals forgetting to eat or rest;
++- the gap between public health messaging and actual infrastructure.
++
++## Preferred Formats
++
++- private shift sayings;
++- break-room drawings;
++- consent-aware reenactments with no identifiable patient facts;
++- harmless equipment personification;
++- anonymized diagnostic absurdity;
++- dark humor restricted to trusted peers.
++
++## Voice
++
++Economical, compassionate, sometimes dark, strongly context-dependent.
++
++## Typical Frames
++
++> **Patient stable. Witness unstable.**
++
++> **Hydration remains a controversial intervention.**
++
++> **The scanner has diagnosed administration.**
++
++## Boundaries
++
++Patient dignity and confidentiality are binding. A joke safe inside a clinical team may be harmful in public. The generator must never infer that workers use humor because they do not care.
++
++# 6. Civic Witnesses, Archivists, and Investigators
++
++## What They Notice
++
++- confident claims without provenance;
++- documents that disagree on dates;
++- institutions asking for certainty they did not preserve;
++- obvious facts described in impossible legal language;
++- missing minutes;
++- chain-of-custody rituals;
++- public stories that become cleaner with every retelling.
++
++## Preferred Formats
++
++- fake citations;
++- redacted posters;
++- reaction stamps;
++- competing timelines;
++- annotated public notices;
++- “source?” call-and-response;
++- archive objects displayed beside claims about them.
++
++## Voice
++
++Dry, evidence-conscious, suspicious of false precision, delighted by bureaucratic contradictions.
++
++## Typical Frames
++
++> **I have no opinion until the hash verifies.**
++
++> **According to the plaque, this happened tomorrow.**
++
++> **Unconfirmed, widely repeated, already budgeted.**
++
++# 7. Atlas Technicians and Route Workers
++
++## What They Notice
++
++- tiny timing errors described as civilizational collapse;
++- management misunderstanding positive latency;
++- route passengers treating causality as a customer-service choice;
++- clock custodians blamed for political delay;
++- immense infrastructure reduced to departure times;
++- romantic metaphors built from synchronization.
++
++## Preferred Formats
++
++- clock offsets;
++- fake route notices;
++- waveform loops;
++- impossible timetables;
++- technical relationship jokes;
++- warning labels altered with social language;
++- synchronized group gestures.
++
++## Voice
++
++Technical, precise, deadpan, fond of applying causal terminology to ordinary life.
++
++## Typical Frames
++
++> **My relationship is future-directed with strictly positive latency.**
++
++> **Route delayed by 0.004 seconds. Civilization declared lost.**
++
++> **Causality violation: manager arrived before doing any work.**
++
++# 8. Machine Citizens and Service Lineages
++
++## What They Notice
++
++- humans ignoring repeated warnings;
++- inefficient ritual preserved for sentimental reasons;
++- identity assumptions based on chassis;
++- maintenance deferred until visible failure;
++- people treating literal compliance as lack of humor;
++- contradictory permissions;
++- biological beings forgetting where they placed objects.
++
++## Preferred Formats
++
++- diagnostic codes;
++- intentionally malformed logs;
++- perfectly timed pauses;
++- repeated movement patterns;
++- simulated exception messages;
++- chassis decals;
++- deliberate low-efficiency routines;
++- archival replay with one altered line.
++
++## Voice
++
++Varies by lineage. Some are literal, some baroque, some rely on timing beyond human perception. Machine humor must not collapse into one “robot sarcasm” voice.
++
++## Typical Frames
++
++> `STATUS: I EXPLAINED THIS THREE TEMPERATURE EXCURSIONS AGO`
++
++> `ERROR: HUMAN HAS STORED TOOL IN TOOL STORAGE`
++
++> `OPTIMIZATION DECLINED: MEMORY PREFERRED`
++
++## Machine-Only Forms
++
++- checksum puns;
++- synchronized sensor blind spots;
++- a perfectly reversible task performed with one unnecessary flourish;
++- fork jokes where each continuation claims the other received the punchline;
++- timing comedy spanning milliseconds or years.
++
++# 9. Corporate Communications
++
++## What They Notice
++
++Officially: opportunity, synergy, resilience, transformation, premium access.
++
++Actually: liability, image, labor unrest, damaged infrastructure, youth culture, market capture.
++
++## Preferred Formats
++
++- polished campaigns;
++- sanitized reaction clips;
++- sponsored challenges;
++- forced slang;
++- aspirational employee stories;
++- branded safety humor;
++- synthetic “authentic” creator partnerships.
++
++## Voice
++
++Overexplained confidence and risk-managed friendliness.
++
++## Typical Failure
++
++> **Hello, fellow wetland enjoyers.**
++
++> **Our evacuation-adjacent mobility experience.**
++
++> **Now with community-inspired scarcity.**
++
++Corporate meme attempts should not always fail. A competent communications team can create genuine culture, especially when workers have authorship. Failure becomes likely when institutions imitate communities while suppressing their grievances.
++
++# 10. Children and Adolescents
++
++## What They Notice
++
++- adult euphemisms;
++- public figures’ physical habits;
++- machines behaving consistently while adults contradict themselves;
++- forbidden places;
++- status anxiety;
++- old memes that adults think remain current;
++- literal implications of official slogans.
++
++## Preferred Formats
++
++- playground rules;
++- rhymes;
++- gestures;
++- quick edits;
++- fashion markers;
++- deliberately annoying repetition;
++- games built from infrastructure;
++- private language that adults misunderstand.
++
++## Voice
++
++Fast-moving, socially precise, often crueler or more compassionate than adult institutions expect.
++
++## Boundaries
++
++Children must not be treated as an endlessly available source of cute content. Their communications may be private, inaccessible to adults, or deliberately opaque.
++
++# 11. Elders and Historical Generations
++
++Older generations may use:
++
++- long setup stories;
++- callbacks whose origin youth no longer know;
++- professional sayings;
++- physical artifacts;
++- ritual understatement;
++- jokes about surviving several supposedly final reforms.
++
++Youth may revive elder formats with altered meanings. Elders may enjoy, resent, or fail to recognize the remix.
++
++# 12. Political Movements
++
++## Reform Movements
++
++Use evidence compression, satirical official language, and visual contradiction.
++
++## Revolutionary Movements
++
++Use chants, symbols, martyr references, worker humor, coded speech, and fast mutation under censorship.
++
++## Authoritarian Movements
++
++Use humiliation, dehumanization, compulsory repetition, leader worship, false spontaneity, and state-manufactured participation.
++
++## Peace and Mutual-Aid Movements
++
++Use practical jokes, competence admiration, neighborhood symbols, relief after crisis, and memes that teach where help is available.
++
++No movement should be represented by memes alone. Humor exists within organization, risk, labor, and material struggle.
++
++# 13. Alien Humor Traditions
++
++## Oceanic Current Civilizations
++
++Humor may involve a current carrying a signal toward the wrong social layer, intentional turbulence, or pressure patterns that imitate prestigious migration routes.
++
++Human translation error: a warning pattern is mistaken for laughter, while the actual joke is the timing of the correction.
++
++## Lithic Civilizations
++
++Setups may last seasons or decades. A structure is modified by millimeters so that a predicted shadow falls on an official monument during one ceremony.
++
++Human complaint: “Nothing happened.”
++
++Lithic response, twelve years later: the punchline.
++
++## Symbiotic Citizens
++
++A joke may require several organisms performing mutually incompatible interpretations. There may be no single author and no meaningful division between audience and participant.
++
++## Post-Biological Continuities
++
++Common forms include copy-original disputes, deliberate identity ambiguity, and jokes whose humor depends on two continuations remembering different setup versions.
++
++## Quarantine Civilizations
++
++One-way messages create anti-jokes: the sender knows no answer can arrive, so the form encodes imagined replies, refusal, or exaggerated confidence in interpretation.
++
++# 14. Hybrid Humor
++
++Contact produces forms no source culture would have generated alone:
++
++- Atlas timing jokes performed through machine chassis movement;
++- Vast heroic poses paired with lithic slow-shadow punchlines;
++- convoy water jokes translated into oceanic pressure art;
++- clinical consent humor encoded as post-biological fork protocol;
++- children turning an alien caution pattern into a route game;
++- a corporate campaign accidentally preserving an endangered dialect phrase.
++
++Hybrid forms require traceable participation and should not always be harmonious.
++
++# 15. Anti-Homogenization Tests
++
++A valid implementation should pass blind tests where reviewers can distinguish:
++
++- a Vast boast from a corporate imitation;
++- clinical private humor from public harassment;
++- Atlas timing humor from generic technical sarcasm;
++- machine-lineage comedy from human “robot voice” writing;
++- Continuance domestic humor from Firstlight public-works humor;
++- youth mutation from an elder original;
++- an alien humor object from a randomly obscure human meme.
++
++Fail if the distinction depends only on faction names inserted into identical templates.
++
++## Atlas Maxim
++
++> **The same event may make one community laugh, another organize, another mourn, another advertise, and another fail to perceive that anything happened at all.**

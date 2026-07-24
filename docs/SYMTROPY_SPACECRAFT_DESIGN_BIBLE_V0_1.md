@@ -14,7 +14,10 @@ related:
   - NONHUMAN_GAME_THEORY_AND_AGENCY.md
   - CHRONICLE_MVP_SPEC_V0_1.md
   - FIELD_DECK_OVERLAY_PRECEDENCE_RULES_V0_1.md
-  - Symtropy Design Doc: Death, Reconstitution, and Source-Chain Recovery.md
+  - Symtropy Design Doc - Death, Reconstitution, and Source-Chain Recovery.md
+version: 0.1
+scope: human and alien spacecraft, life support, cargo, crew society, Field Deck and Chronicle integration
+owner: design/engineering/world
 ---
 
 > **Code status (2026-07-02 review):** No corresponding implementation found — the "spacecraft" hits in `crates/apps/symtropy-orbital-demo` are the unrelated robotics orbital-platform demo, not this player-facing spacecraft/vehicle design. Design/vision document only.

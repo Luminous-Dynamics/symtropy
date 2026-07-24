@@ -2,7 +2,8 @@
 // SPDX-License-Identifier: Apache-2.0 OR MIT
 //! OLD WATERWORKS MICRO-SLICE — Ticket 1, 2, 5
 //!
-//! This is the first concrete playable foundation for Symtropy.
+//! This is the first concrete Bevy presentation and interaction prototype for Symtropy.
+//! Authoritative product rules now live in `apps/symtropy-firstlight` and its headless crates.
 //! - Floor, walls, and greybox machinery (pump, tank, console).
 //! - Intent-based first-person movement (WASD + mouse look).
 //! - Proximity-based interaction with the console (Press E).
@@ -1093,7 +1094,7 @@ fn setup(
             parent.spawn((
                 Text::new(""),
                 TextFont {
-                    font_size: 30.0,
+                    font_size: bevy::prelude::FontSize::Px(30.0),
                     ..default()
                 },
                 TextColor(Color::WHITE),
@@ -1127,7 +1128,7 @@ fn setup(
                     inner.spawn((
                         Text::new("FIELD DECK MK0 - OFFLINE LINK"),
                         TextFont {
-                            font_size: 20.0,
+                            font_size: bevy::prelude::FontSize::Px(20.0),
                             ..default()
                         },
                         TextColor(Color::srgb(1.0, 0.8, 0.2)),
@@ -1148,7 +1149,7 @@ fn setup(
                     inner.spawn((
                         Text::new(""),
                         TextFont {
-                            font_size: 40.0,
+                            font_size: bevy::prelude::FontSize::Px(40.0),
                             ..default()
                         },
                         TextColor(Color::srgb(1.0, 0.8, 0.2)),
@@ -1168,7 +1169,7 @@ fn setup(
                     inner.spawn((
                         Text::new("Press Esc/Shift to Panic Drop"),
                         TextFont {
-                            font_size: 20.0,
+                            font_size: bevy::prelude::FontSize::Px(20.0),
                             ..default()
                         },
                         TextColor(Color::srgb(1.0, 0.5, 0.0)), // More orange/warning
@@ -1190,7 +1191,7 @@ fn setup(
         ObjectiveOverlay,
         Text::new(""),
         TextFont {
-            font_size: 16.0,
+            font_size: bevy::prelude::FontSize::Px(16.0),
             ..default()
         },
         TextColor(Color::srgb(0.88, 0.96, 1.0)),
@@ -1210,7 +1211,7 @@ fn setup(
         ControlsOverlay,
         Text::new(""),
         TextFont {
-            font_size: 16.0,
+            font_size: bevy::prelude::FontSize::Px(16.0),
             ..default()
         },
         TextColor(Color::srgb(0.86, 0.9, 1.0)),
@@ -1230,7 +1231,7 @@ fn setup(
         DevPanelOverlay,
         Text::new(""),
         TextFont {
-            font_size: 16.0,
+            font_size: bevy::prelude::FontSize::Px(16.0),
             ..default()
         },
         TextColor(Color::srgb(1.0, 0.76, 0.46)),
@@ -1250,7 +1251,7 @@ fn setup(
         ChroniclePanelOverlay,
         Text::new(""),
         TextFont {
-            font_size: 16.0,
+            font_size: bevy::prelude::FontSize::Px(16.0),
             ..default()
         },
         TextColor(Color::srgb(0.88, 0.94, 1.0)),
@@ -1270,7 +1271,7 @@ fn setup(
         EndingCardOverlay,
         Text::new(""),
         TextFont {
-            font_size: 18.0,
+            font_size: bevy::prelude::FontSize::Px(18.0),
             ..default()
         },
         TextColor(Color::srgb(1.0, 0.90, 0.66)),

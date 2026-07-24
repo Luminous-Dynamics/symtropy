@@ -1,0 +1,22 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminous-dynamics.org/symtropy/worldline-character-profile-v0.1.schema.json",
+  "title": "Symtropy Worldline Character Profile",
+  "type": "object",
+  "required": ["character_id", "worldline_id", "identity_class", "proper_time_years", "availability", "knowledge_envelope_id", "private_assets", "institutional_roles"],
+  "properties": {
+    "character_id": {"type": "string", "minLength": 1},
+    "worldline_id": {"type": "string", "minLength": 1},
+    "identity_class": {"type": "string", "enum": ["human", "machine", "alien", "distributed", "other_declared"]},
+    "proper_time_years": {"type": "number", "minimum": 0},
+    "availability": {"type": "string"},
+    "knowledge_envelope_id": {"type": "string"},
+    "source_chain_root": {"type": ["string", "null"]},
+    "current_region": {"type": "string"},
+    "private_assets": {"type": "array", "items": {"type": "string"}, "uniqueItems": true},
+    "institutional_roles": {"type": "array", "items": {"type": "string"}, "uniqueItems": true},
+    "household_ids": {"type": "array", "items": {"type": "string"}, "uniqueItems": true},
+    "obligation_ids": {"type": "array", "items": {"type": "string"}, "uniqueItems": true}
+  },
+  "additionalProperties": false
+}

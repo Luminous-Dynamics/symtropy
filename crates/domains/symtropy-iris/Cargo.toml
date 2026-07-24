@@ -1,0 +1,11 @@
+[package]
+name = "symtropy-iris"
+version = "0.1.0"
+edition = "2024"
+license = "AGPL-3.0-or-later"
+description = "Bounded IRIS observations, hypotheses, uncertainty, permissions, and refusal."
+
+[dependencies]
+serde = { version = "1.0", features = ["derive"] }
+symtropy-game-state = { path = "../symtropy-game-state" }
+symtropy-residents = { path = "../symtropy-residents" }

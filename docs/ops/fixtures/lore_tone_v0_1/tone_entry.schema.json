@@ -1,0 +1,22 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "symtropy://schemas/lore-tone-entry-v0.1",
+  "title": "Symtropy Lore Tone Benchmark Entry",
+  "type": "object",
+  "required": ["entry_id", "source_path", "source_hash", "family", "full_excerpt", "masked_excerpt", "rhetorical_skeleton", "tags"],
+  "properties": {
+    "entry_id": {"type": "string", "pattern": "^[a-z0-9._-]+$"},
+    "source_path": {"type": "string"},
+    "source_hash": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "family": {"enum": ["corporate", "place", "campaign", "diaspora", "shadow", "event", "figure", "culture", "artifact", "ordinary_institution", "nonhuman", "historiography"]},
+    "region_id": {"type": ["string", "null"]},
+    "full_excerpt": {"type": "string", "minLength": 80},
+    "masked_excerpt": {"type": "string", "minLength": 80},
+    "rhetorical_skeleton": {"type": "string", "minLength": 30},
+    "tags": {"type": "array", "items": {"type": "string"}, "uniqueItems": true},
+    "proper_nouns_removed": {"type": "array", "items": {"type": "string"}},
+    "known_risks": {"type": "array", "items": {"type": "string"}},
+    "privacy_reviewed": {"type": "boolean", "default": false}
+  },
+  "additionalProperties": false
+}

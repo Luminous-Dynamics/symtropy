@@ -1,0 +1,598 @@
+diff --git a/CONTRIBUTING.md b/CONTRIBUTING.md
+index 5e50605..63c3234 100644
+--- a/CONTRIBUTING.md
++++ b/CONTRIBUTING.md
+@@ -33,5 +33,5 @@ Symtropy uses a **dual-track license model** — see [LICENSING.md](LICENSING.md
+ 
+ By submitting a contribution to a given crate, you agree your contribution is licensed under that crate's terms. This matches the convention used by the Rust compiler and Bevy itself.
+ 
+-Commercial licensing for the AGPL tier: see [../COMMERCIAL_LICENSE.md](../COMMERCIAL_LICENSE.md) or contact tristan.stoltz@evolvingresonantcocreationism.com.
++Commercial licensing for the AGPL tier: see [LICENSING.md](LICENSING.md) or contact tristan.stoltz@evolvingresonantcocreationism.com.
+ 
+diff --git a/SYMTROPY_RESOURCE_CHAINS_GAME_DOC_V0_1.md b/SYMTROPY_RESOURCE_CHAINS_GAME_DOC_V0_1.md
+index ce83f53..9444ee9 100644
+--- a/SYMTROPY_RESOURCE_CHAINS_GAME_DOC_V0_1.md
++++ b/SYMTROPY_RESOURCE_CHAINS_GAME_DOC_V0_1.md
+@@ -5,6 +5,7 @@ version: 0.1
+ milestone: seedworks-v0.1-to-v1.0
+ scope: resource chains, material provenance, logistics, fabrication, civic authorization, settlement metabolism, worldline history
+ recommended_path: docs/seedworks/00_canon/SYMTROPY_RESOURCE_CHAINS_GAME_DOC_V0_1.md
++owner: design/systems
+ ---
+ 
+ # Symtropy Resource Chains Game Design Document
+diff --git a/SYMTROPY_SPACECRAFT_DESIGN_BIBLE_V0_1.md b/SYMTROPY_SPACECRAFT_DESIGN_BIBLE_V0_1.md
+index 1baed9e..9ac3435 100644
+--- a/SYMTROPY_SPACECRAFT_DESIGN_BIBLE_V0_1.md
++++ b/SYMTROPY_SPACECRAFT_DESIGN_BIBLE_V0_1.md
+@@ -15,6 +15,9 @@ related:
+   - CHRONICLE_MVP_SPEC_V0_1.md
+   - FIELD_DECK_OVERLAY_PRECEDENCE_RULES_V0_1.md
+   - Symtropy Design Doc: Death, Reconstitution, and Source-Chain Recovery.md
++version: 0.1
++scope: human and alien spacecraft, life support, cargo, crew society, Field Deck and Chronicle integration
++owner: design/engineering/world
+ ---
+ 
+ > **Code status (2026-07-02 review):** No corresponding implementation found — the "spacecraft" hits in `crates/apps/symtropy-orbital-demo` are the unrelated robotics orbital-platform demo, not this player-facing spacecraft/vehicle design. Design/vision document only.
+diff --git a/Symtropy Dungeons and Raids Design Bible.md b/Symtropy Dungeons and Raids Design Bible.md
+index 367508b..9bc41b2 100644
+--- a/Symtropy Dungeons and Raids Design Bible.md	
++++ b/Symtropy Dungeons and Raids Design Bible.md	
+@@ -1,12 +1,11 @@
+ ---
+-
+ title: Symtropy Dungeons and Raids Design Bible
+-status: canonical-draft
+ version: 0.1
++status: canonical-draft
+ scope: dungeon grammar, raid grammar, civic wound-sites, boss systems, profession integration, Chronicle outcomes
++owner: design/narrative/gameplay
+ recommended_path: docs/seedworks/00_canon/DUNGEONS_AND_RAIDS_DESIGN_BIBLE_V0_1.md
+----------------------------------------------------------------------------------
+-
++---
+ > **Code status (2026-07-02 review):** No corresponding raid/boss/wound-site system found in `symtropy/crates` or `symtropy/src` (the existing `living_dungeon`/`settlement` systems in `src/systems/` are a separate, already-implemented mechanic, not this design). Design/vision document only.
+ 
+ # Symtropy Dungeons and Raids Design Bible
+diff --git a/Symtropy Profession Loops and Legibility Progression.md b/Symtropy Profession Loops and Legibility Progression.md
+index 5a0bd74..fa0b296 100644
+--- a/Symtropy Profession Loops and Legibility Progression.md	
++++ b/Symtropy Profession Loops and Legibility Progression.md	
+@@ -1,12 +1,11 @@
+ ---
+-
+ title: Symtropy Profession Loops and Legibility Progression
+-status: canonical-draft
+ version: 0.1
++status: canonical-draft
+ scope: Seedworks professions, skillful gameplay loops, Field Deck literacy, witness reputation, co-op role differentiation
++owner: design/gameplay/systems
+ recommended_path: docs/seedworks/00_canon/PROFESSION_LOOPS_AND_LEGIBILITY_PROGRESSION_V0_1.md
+----------------------------------------------------------------------------------------------
+-
++---
+ # Symtropy Profession Loops and Legibility Progression
+ 
+ > **Code status (2026-07-02 review):** No corresponding implementation found in `symtropy/crates` or `symtropy/src`. Design/vision document only.
+diff --git a/lore/EARTH_ATLAS_2168_TEMPLATE.md b/lore/EARTH_ATLAS_2168_TEMPLATE.md
+index 08bb1f4..8775f5b 100644
+--- a/lore/EARTH_ATLAS_2168_TEMPLATE.md
++++ b/lore/EARTH_ATLAS_2168_TEMPLATE.md
+@@ -14,6 +14,7 @@ companion_docs:
+   - Symtropy Architecture Design Bible.md
+   - HOSTILE_FACTIONS_AND_THREAT_ECOLOGY.md
+   - NONHUMAN_GAME_THEORY_AND_AGENCY.md
++owner: narrative/world/simulation
+ ---
+ 
+ # Symtropy Earth Atlas 2168 Template
+diff --git a/lore/Human Tech Tree and Xeno-Translation Economy.md b/lore/Human Tech Tree and Xeno-Translation Economy.md
+index d6b744c..aa9415e 100644
+--- a/lore/Human Tech Tree and Xeno-Translation Economy.md	
++++ b/lore/Human Tech Tree and Xeno-Translation Economy.md	
+@@ -1,20 +1,12 @@
+ ---
+-
+ title: Human Tech Tree and Xeno-Translation Economy
++version: 0.1
+ status: canonical-draft
+ milestone: seedworks-v0.2+
+ scope: progression, trade, technology translation
+-owner: design
+-depends_on:
+-
+-* DEVICE_BUS_SUBSTRATE_SYSTEMS.md
+-* PHYSICALIZED_CARGO_AND_MATERIAL_LEDGERS.md
+-* THE_SYSTEMS_WAR.md
+-* REGISTERED_INFRASTRUCTURE_ADJUDICATION.md
+-  recommended_path: docs/seedworks/03_history_and_factions/HUMAN_TECH_TREE_AND_XENO_TRANSLATION.md
+-
++owner: design/systems/world
++recommended_path: docs/seedworks/03_history_and_factions/HUMAN_TECH_TREE_AND_XENO_TRANSLATION.md
+ ---
+-
+ # Symtropy Design Doc: Human Tech Tree and Xeno-Translation Economy
+ 
+ ## Working Title
+diff --git a/lore/SOUTHERN_AFRICAN_WATER_ENERGY_COMPACT_V0_1.md b/lore/SOUTHERN_AFRICAN_WATER_ENERGY_COMPACT_V0_1.md
+index e7a52e1..f384d04 100644
+--- a/lore/SOUTHERN_AFRICAN_WATER_ENERGY_COMPACT_V0_1.md
++++ b/lore/SOUTHERN_AFRICAN_WATER_ENERGY_COMPACT_V0_1.md
+@@ -12,6 +12,7 @@ companion_docs:
+   - SYMTROPY_LITHIC_AND_SUBCRUST_CULTURES_V0_1.md
+   - Symtropy Architecture Design Bible.md
+   - HOSTILE_FACTIONS_AND_THREAT_ECOLOGY.md
++owner: narrative/world/simulation
+ ---
+ 
+ # Southern African Water-Energy Compact
+diff --git a/lore/SYMTROPY_LITHIC_AND_SUBCRUST_CULTURES_V0_2.md b/lore/SYMTROPY_LITHIC_AND_SUBCRUST_CULTURES_V0_2.md
+index c1d5ba6..d9bb768 100644
+--- a/lore/SYMTROPY_LITHIC_AND_SUBCRUST_CULTURES_V0_2.md
++++ b/lore/SYMTROPY_LITHIC_AND_SUBCRUST_CULTURES_V0_2.md
+@@ -12,6 +12,9 @@ related:
+   - CHRONICLE_SCALE_ESCALATION_RULES_V0_1.md
+   - FIELD_DECK_OVERLAY_PRECEDENCE_RULES_V0_1.md
+   - ORIGIN_BIAS_FIELD_DECK_SCHEMA_V0_1.md
++version: 0.2
++scope: lithic and subterranean culture systems, environments, Field Deck and encounter design
++owner: narrative/world/design
+ ---
+ 
+ # SYMTROPY_LITHIC_AND_SUBCRUST_CULTURES_V0_2
+diff --git a/lore/SYMTROPY_REFUSAL_BUNKERS_AND_NULL_CARE_VAULTS_V0_1.md b/lore/SYMTROPY_REFUSAL_BUNKERS_AND_NULL_CARE_VAULTS_V0_1.md
+index 8c1ff4c..94f1eb4 100644
+--- a/lore/SYMTROPY_REFUSAL_BUNKERS_AND_NULL_CARE_VAULTS_V0_1.md
++++ b/lore/SYMTROPY_REFUSAL_BUNKERS_AND_NULL_CARE_VAULTS_V0_1.md
+@@ -12,6 +12,9 @@ related:
+   - FIELD_DECK_OVERLAY_PRECEDENCE_RULES_V0_1.md
+   - ORIGIN_BIAS_FIELD_DECK_SCHEMA_V0_1.md
+   - Symtropy Design Doc: Death, Reconstitution, and Source-Chain Recovery.md
++version: 0.1
++scope: refusal bunker and Null-care society systems, consent, containment, Field Deck interaction
++owner: narrative/world/design
+ ---
+ 
+ # SYMTROPY_REFUSAL_BUNKERS_AND_NULL_CARE_VAULTS_V0_1
+diff --git a/lore/SYMTROPY_SPACEPORTS_AND_LAUNCH_CIVILIZATIONS_V0_1.md b/lore/SYMTROPY_SPACEPORTS_AND_LAUNCH_CIVILIZATIONS_V0_1.md
+index 3223a3d..7df31b2 100644
+--- a/lore/SYMTROPY_SPACEPORTS_AND_LAUNCH_CIVILIZATIONS_V0_1.md
++++ b/lore/SYMTROPY_SPACEPORTS_AND_LAUNCH_CIVILIZATIONS_V0_1.md
+@@ -15,6 +15,9 @@ related:
+   - Symtropy Alien Technology, Deep-Time Presence, and Earth Contact Doctrine.md
+   - Symtropy Design Doc: Cybernetic Crafting & Physical Node Assembly.md
+   - NETWORKING_STACK_DECISION.md
++version: 0.1
++scope: spaceport societies, launch infrastructure, labor, law, Chronicle and Field Deck interaction
++owner: narrative/world/design
+ ---
+ 
+ # SYMTROPY_SPACEPORTS_AND_LAUNCH_CIVILIZATIONS_V0_1
+diff --git a/lore/Solar Mandala Confluence.md b/lore/Solar Mandala Confluence.md
+index 0f39d77..05cf4ef 100644
+--- a/lore/Solar Mandala Confluence.md	
++++ b/lore/Solar Mandala Confluence.md	
+@@ -1,12 +1,11 @@
+ ---
+-
+ title: Solar Mandala Confluence
+-status: canonical-draft
+ version: 0.1
++status: canonical-draft
+ scope: society design, architecture, festival law, solarpunk rave culture, city-building mechanics, crisis hooks
++owner: narrative/world/design
+ recommended_path: docs/world/societies/SOLAR_MANDALA_CONFLUENCE_V0_1.md
+------------------------------------------------------------------------
+-
++---
+ # Solar Mandala Confluence
+ 
+ ## Working Title
+diff --git a/lore/WHITE_LEDGER_TERRITORIES_ANTARCTICA_V0_1.md b/lore/WHITE_LEDGER_TERRITORIES_ANTARCTICA_V0_1.md
+index d27b509..3dd4227 100644
+--- a/lore/WHITE_LEDGER_TERRITORIES_ANTARCTICA_V0_1.md
++++ b/lore/WHITE_LEDGER_TERRITORIES_ANTARCTICA_V0_1.md
+@@ -12,6 +12,7 @@ companion_docs:
+   - SOCIAL_SYSTEMS_AND_CHARTERS.md
+   - Symtropy Architecture Design Bible.md
+   - HOSTILE_FACTIONS_AND_THREAT_ECOLOGY.md
++owner: narrative/world/simulation
+ ---
+ 
+ # White Ledger Territories / Antarctica 2168
+diff --git a/ops/ROBOTICS_ROADMAP_TECH_TREE_EXPANSION_V0_3_2.md b/ops/ROBOTICS_ROADMAP_TECH_TREE_EXPANSION_V0_3_2.md
+index e543a35..323fae0 100644
+--- a/ops/ROBOTICS_ROADMAP_TECH_TREE_EXPANSION_V0_3_2.md
++++ b/ops/ROBOTICS_ROADMAP_TECH_TREE_EXPANSION_V0_3_2.md
+@@ -11,6 +11,7 @@ supersedes_or_extends:
+   - INFRASTRUCTURE_LOOM_TECH_NODE_SCHEMA.md
+   - INFRASTRUCTURE_LOOM_UI_UX_SPEC.md
+ recommended_path: docs/seedworks/00_canon/ROBOTICS_ROADMAP_TECH_TREE_EXPANSION_V0_3_2.md
++version: 0.3.2
+ ---
+ 
+ # Symtropy Robotics Roadmap + Seedworks Tech Tree Expansion v0.3.2
+diff --git a/ops/SEEDWORKS_TECH_BRANCH_PACK_V0_3_1.md b/ops/SEEDWORKS_TECH_BRANCH_PACK_V0_3_1.md
+index ef5fd68..45c5114 100644
+--- a/ops/SEEDWORKS_TECH_BRANCH_PACK_V0_3_1.md
++++ b/ops/SEEDWORKS_TECH_BRANCH_PACK_V0_3_1.md
+@@ -15,6 +15,7 @@ depends_on:
+   - ROBOTICS_PLATFORM_ROADMAP.md
+   - WORLD_TIMELINE_2000_2168.md
+   - SPACE_HISTORY_2000_2168.md
++version: 0.3.1
+ ---
+ 
+ # Symtropy: Seedworks Tech Branch Pack v0.3.1
+diff --git a/ops/SEEDWORKS_TECH_TREE_AUDIT_AND_HORIZON_GATES_V0_3_3.md b/ops/SEEDWORKS_TECH_TREE_AUDIT_AND_HORIZON_GATES_V0_3_3.md
+index 582122b..54ec90d 100644
+--- a/ops/SEEDWORKS_TECH_TREE_AUDIT_AND_HORIZON_GATES_V0_3_3.md
++++ b/ops/SEEDWORKS_TECH_TREE_AUDIT_AND_HORIZON_GATES_V0_3_3.md
+@@ -14,6 +14,7 @@ extends:
+   - WORLD_TIMELINE_2000_2168.md
+   - SPACE_HISTORY_2000_2168.md
+ recommended_path: docs/seedworks/00_canon/SEEDWORKS_TECH_TREE_AUDIT_AND_HORIZON_GATES_V0_3_3.md
++version: 0.3.3
+ ---
+ 
+ # Symtropy: Seedworks Tech Tree Audit and Horizon Gates v0.3.3
+diff --git a/ops/Seedworks Tech Tree Dependency Spine.md b/ops/Seedworks Tech Tree Dependency Spine.md
+index 21cc8e4..866bc07 100644
+--- a/ops/Seedworks Tech Tree Dependency Spine.md	
++++ b/ops/Seedworks Tech Tree Dependency Spine.md	
+@@ -1,19 +1,12 @@
+ ---
+-
+ title: Seedworks Tech Tree Dependency Spine
++version: 0.1
+ status: canonical-draft
+ milestone: seedworks-v0.1-to-v1.0
+ scope: technology dependencies, unlock logic, production planning
+ owner: design/engineering
+-depends_on:
+-
+-* TECH_UNLOCK_TABLE_V0_1_TO_V0_3.md
+-* ROBOTICS_PLATFORM_TECH_TREE_ADDENDUM.md
+-* DEVICE_BUS_SUBSTRATE_SYSTEMS.md
+-  recommended_path: docs/seedworks/00_canon/TECH_TREE_DEPENDENCY_SPINE.md
+-
++recommended_path: docs/seedworks/00_canon/TECH_TREE_DEPENDENCY_SPINE.md
+ ---
+-
+ # Symtropy: Seedworks Tech Tree Dependency Spine
+ 
+ ## Working Title
+diff --git "a/ops/Seedworks Tech Unlock Table v0.1\342\200\223v0.3.md" "b/ops/Seedworks Tech Unlock Table v0.1\342\200\223v0.3.md"
+index 2a5e5ae..6c27918 100644
+--- "a/ops/Seedworks Tech Unlock Table v0.1\342\200\223v0.3.md"	
++++ "b/ops/Seedworks Tech Unlock Table v0.1\342\200\223v0.3.md"	
+@@ -1,20 +1,12 @@
+ ---
+-
+ title: Seedworks Tech Unlock Table v0.1–v0.3
++version: 0.1-0.3
+ status: canonical-draft
+ milestone: seedworks-v0.1-to-v0.3
+ scope: progression, unlocks, production roadmap
+ owner: design/engineering
+ recommended_path: docs/seedworks/00_canon/TECH_UNLOCK_TABLE_V0_1_TO_V0_3.md
+-depends_on:
+-
+-* SEEDWORKS_PLAYABLE_SLICE_SPEC.md
+-* SEEDWORKS_NEXT_BUILD_PLAN.md
+-* SEEDWORKS_FACTION_VERTICAL_SLICE.md
+-* SEEDWORKS_ARCHITECTURE.md
+-
+ ---
+-
+ # Symtropy: Seedworks Tech Unlock Table v0.1–v0.3
+ 
+ ## Working Title
+diff --git a/ops/Substrate Systems Implementation Tickets.md b/ops/Substrate Systems Implementation Tickets.md
+index c12b6f8..890fb3a 100644
+--- a/ops/Substrate Systems Implementation Tickets.md	
++++ b/ops/Substrate Systems Implementation Tickets.md	
+@@ -1,19 +1,12 @@
+ ---
+-
+ title: Substrate Systems Implementation Tickets
+ version: 0.1
+ status: implementation-spec
+ milestone: seedworks-v0.1
+ scope: engineering tickets
+ owner: engineering
+-depends_on:
+-
+-* DEVICE_BUS_SUBSTRATE_SYSTEMS.md
+-* SEEDWORKS_ARCHITECTURE.md
+-  recommended_path: docs/seedworks/04_engine/SUBSTRATE_SYSTEMS_IMPLEMENTATION_TICKETS.md
+-
++recommended_path: docs/seedworks/04_engine/SUBSTRATE_SYSTEMS_IMPLEMENTATION_TICKETS.md
+ ---
+-
+ # Symtropy Engineering Doc: Substrate Systems Implementation Tickets
+ 
+ ## Purpose
+diff --git a/ops/V0_7_METADATA_PATCH_FILES.txt b/ops/V0_7_METADATA_PATCH_FILES.txt
+new file mode 100644
+index 0000000..a866ef3
+--- /dev/null
++++ b/ops/V0_7_METADATA_PATCH_FILES.txt
+@@ -0,0 +1,33 @@
++CONTRIBUTING.md
++SYMTROPY_RESOURCE_CHAINS_GAME_DOC_V0_1.md
++SYMTROPY_SPACECRAFT_DESIGN_BIBLE_V0_1.md
++Symtropy Dungeons and Raids Design Bible.md
++Symtropy Profession Loops and Legibility Progression.md
++lore/EARTH_ATLAS_2168_TEMPLATE.md
++lore/Human Tech Tree and Xeno-Translation Economy.md
++lore/SOUTHERN_AFRICAN_WATER_ENERGY_COMPACT_V0_1.md
++lore/SYMTROPY_LITHIC_AND_SUBCRUST_CULTURES_V0_2.md
++lore/SYMTROPY_REFUSAL_BUNKERS_AND_NULL_CARE_VAULTS_V0_1.md
++lore/SYMTROPY_SPACEPORTS_AND_LAUNCH_CIVILIZATIONS_V0_1.md
++lore/Solar Mandala Confluence.md
++lore/WHITE_LEDGER_TERRITORIES_ANTARCTICA_V0_1.md
++ops/ROBOTICS_ROADMAP_TECH_TREE_EXPANSION_V0_3_2.md
++ops/SEEDWORKS_TECH_BRANCH_PACK_V0_3_1.md
++ops/SEEDWORKS_TECH_TREE_AUDIT_AND_HORIZON_GATES_V0_3_3.md
++ops/Seedworks Tech Tree Dependency Spine.md
++ops/Seedworks Tech Unlock Table v0.1–v0.3.md
++ops/Substrate Systems Implementation Tickets.md
++ops/symtropy_earth_atlas_implementation_debt_patch_v0_2/CHRONICLE_MVP_SPEC_V0_1.md
++ops/symtropy_earth_atlas_implementation_debt_patch_v0_2/FIELD_DECK_OVERLAY_PRECEDENCE_RULES_V0_1.md
++ops/symtropy_earth_atlas_implementation_debt_patch_v0_2/GREEN_COVER_LIE_RESOLUTION_MECHANIC_V0_1.md
++ops/symtropy_earth_atlas_implementation_debt_patch_v0_2/ROAD_CHOIR_MOBILE_ACCOUNTABILITY_MECHANICS_V0_1.md
++ops/symtropy_earth_atlas_implementation_debt_patch_v0_2/SUBGLACIAL_LISTENING_FAULT_VERTICAL_SLICE_V0_1.md
++tech/COMBAT_THREAT_AND_SYSTEMIC_ENCOUNTER_DESIGN_V0_1.md
++tech/Device Bus Substrate Systems.md
++tech/Infrastructure Loom Tech Node Data Schema.md
++tech/Infrastructure Loom UI-UX Spec.md
++tech/Public Works Fabrication Branch v0.2.md
++tech/REGIONAL_PLANETARY_CIVILIZATION_SIMULATION_ARCHITECTURE_V0_1.md
++tech/WORLDLINE_MECHANICAL_DELTA_SCHEMA_V0_1.md
++vision/EXPLORATION_DISCOVERY_AND_AWE_DESIGN_BIBLE_V0_1.md
++vision/SYMTROPY_ORBITAL_HABITATS_AND_DOCKSIDE_SOCIETIES_V0_1.md
+diff --git a/ops/symtropy_earth_atlas_implementation_debt_patch_v0_2/CHRONICLE_MVP_SPEC_V0_1.md b/ops/symtropy_earth_atlas_implementation_debt_patch_v0_2/CHRONICLE_MVP_SPEC_V0_1.md
+index 851d21a..2bdabb8 100644
+--- a/ops/symtropy_earth_atlas_implementation_debt_patch_v0_2/CHRONICLE_MVP_SPEC_V0_1.md
++++ b/ops/symtropy_earth_atlas_implementation_debt_patch_v0_2/CHRONICLE_MVP_SPEC_V0_1.md
+@@ -8,6 +8,9 @@ depends_on:
+   - MULTIPLAYER_TRUTH_MODEL.md
+   - Symtropy Design Doc: Death, Reconstitution, and Source-Chain Recovery.md
+   - PROCEDURAL_HISTORY_ENGINE.md
++version: 0.1
++scope: minimum Chronicle implementation, event capture, rendering, persistence and validation
++owner: design/engineering
+ ---
+ 
+ # Chronicle MVP Spec v0.1
+diff --git a/ops/symtropy_earth_atlas_implementation_debt_patch_v0_2/FIELD_DECK_OVERLAY_PRECEDENCE_RULES_V0_1.md b/ops/symtropy_earth_atlas_implementation_debt_patch_v0_2/FIELD_DECK_OVERLAY_PRECEDENCE_RULES_V0_1.md
+index 3137c58..2a8a7b0 100644
+--- a/ops/symtropy_earth_atlas_implementation_debt_patch_v0_2/FIELD_DECK_OVERLAY_PRECEDENCE_RULES_V0_1.md
++++ b/ops/symtropy_earth_atlas_implementation_debt_patch_v0_2/FIELD_DECK_OVERLAY_PRECEDENCE_RULES_V0_1.md
+@@ -8,6 +8,9 @@ depends_on:
+   - EARTH_ATLAS_2168_TEMPLATE.md
+   - IN_WORLD_COMPUTING_AND_SYMTROPYOS.md
+   - MULTIPLAYER_TRUTH_MODEL.md
++version: 0.1
++scope: Field Deck overlay conflict resolution, priority and presentation rules
++owner: design/UI/engineering
+ ---
+ 
+ # Field Deck Overlay Precedence Rules v0.1
+diff --git a/ops/symtropy_earth_atlas_implementation_debt_patch_v0_2/GREEN_COVER_LIE_RESOLUTION_MECHANIC_V0_1.md b/ops/symtropy_earth_atlas_implementation_debt_patch_v0_2/GREEN_COVER_LIE_RESOLUTION_MECHANIC_V0_1.md
+index fcf502a..12d9111 100644
+--- a/ops/symtropy_earth_atlas_implementation_debt_patch_v0_2/GREEN_COVER_LIE_RESOLUTION_MECHANIC_V0_1.md
++++ b/ops/symtropy_earth_atlas_implementation_debt_patch_v0_2/GREEN_COVER_LIE_RESOLUTION_MECHANIC_V0_1.md
+@@ -6,6 +6,9 @@ domain: Southern Africa / Toxic Legacy / Ecological Repair / Mission Mechanics
+ recommended_path: docs/earth-atlas/southern-africa/GREEN_COVER_LIE_RESOLUTION_MECHANIC_V0_1.md
+ patches:
+   - SOUTHERN_AFRICA_TOXIC_LEGACY_TEXTURE_PASS_V0_1.md
++version: 0.1
++scope: ecological evidence, deceptive restoration claims, investigation and resolution mechanics
++owner: design/simulation/narrative
+ ---
+ 
+ # Green Cover Lie Resolution Mechanic v0.1
+diff --git a/ops/symtropy_earth_atlas_implementation_debt_patch_v0_2/ROAD_CHOIR_MOBILE_ACCOUNTABILITY_MECHANICS_V0_1.md b/ops/symtropy_earth_atlas_implementation_debt_patch_v0_2/ROAD_CHOIR_MOBILE_ACCOUNTABILITY_MECHANICS_V0_1.md
+index 33519f7..b9830d0 100644
+--- a/ops/symtropy_earth_atlas_implementation_debt_patch_v0_2/ROAD_CHOIR_MOBILE_ACCOUNTABILITY_MECHANICS_V0_1.md
++++ b/ops/symtropy_earth_atlas_implementation_debt_patch_v0_2/ROAD_CHOIR_MOBILE_ACCOUNTABILITY_MECHANICS_V0_1.md
+@@ -6,6 +6,9 @@ domain: Earth Atlas / Road Choirs / Mobile Law / Accountability / Vehicle System
+ recommended_path: docs/earth-atlas/southern-africa/ROAD_CHOIR_MOBILE_ACCOUNTABILITY_MECHANICS_V0_1.md
+ patches:
+   - ROAD_CHOIR_CONVOYS_INTERIOR_LIFE_V0_1.md
++version: 0.1
++scope: mobile accountability, convoy testimony and road-choir gameplay mechanics
++owner: design/narrative/systems
+ ---
+ 
+ # Road Choir Mobile Accountability Mechanics v0.1
+diff --git a/ops/symtropy_earth_atlas_implementation_debt_patch_v0_2/SUBGLACIAL_LISTENING_FAULT_VERTICAL_SLICE_V0_1.md b/ops/symtropy_earth_atlas_implementation_debt_patch_v0_2/SUBGLACIAL_LISTENING_FAULT_VERTICAL_SLICE_V0_1.md
+index bbdae97..5149828 100644
+--- a/ops/symtropy_earth_atlas_implementation_debt_patch_v0_2/SUBGLACIAL_LISTENING_FAULT_VERTICAL_SLICE_V0_1.md
++++ b/ops/symtropy_earth_atlas_implementation_debt_patch_v0_2/SUBGLACIAL_LISTENING_FAULT_VERTICAL_SLICE_V0_1.md
+@@ -9,6 +9,9 @@ depends_on:
+   - CHRONICLE_MVP_SPEC_V0_1.md
+   - FIELD_DECK_OVERLAY_PRECEDENCE_RULES_V0_1.md
+   - XENO_CONTACT_PRESSURE_SEMANTICS_PATCH_V0_1.md
++version: 0.1
++scope: subglacial listening-fault vertical slice, nonhuman agency, instrumentation and consequences
++owner: design/narrative/engineering
+ ---
+ 
+ # Subglacial Listening Fault Vertical Slice v0.1
+diff --git a/tech/COMBAT_THREAT_AND_SYSTEMIC_ENCOUNTER_DESIGN_V0_1.md b/tech/COMBAT_THREAT_AND_SYSTEMIC_ENCOUNTER_DESIGN_V0_1.md
+index 5dd2362..7ee5a70 100644
+--- a/tech/COMBAT_THREAT_AND_SYSTEMIC_ENCOUNTER_DESIGN_V0_1.md
++++ b/tech/COMBAT_THREAT_AND_SYSTEMIC_ENCOUNTER_DESIGN_V0_1.md
+@@ -7,6 +7,7 @@ related:
+   - lore/HOSTILE_FACTIONS_AND_THREAT_ECOLOGY.md
+   - Symtropy Dungeons and Raids Design Bible.md
+   - lore/ENCOUNTER_CONTRACTS_AND_NONLETHAL_RESOLUTION.md
++owner: design/gameplay/AI
+ ---
+ 
+ # Combat, Threat, and Systemic Encounter Design
+diff --git a/tech/Device Bus Substrate Systems.md b/tech/Device Bus Substrate Systems.md
+index 33ef4ef..1c2db45 100644
+--- a/tech/Device Bus Substrate Systems.md	
++++ b/tech/Device Bus Substrate Systems.md	
+@@ -1,18 +1,12 @@
+ ---
+-
+ title: Device Bus Substrate Systems
++version: 0.1
+ status: canonical-draft
+ milestone: seedworks-v0.1-to-v0.2
+-scope: substrate systems
++scope: power, audio, proof-of-repair, and Device Bus substrate signals
+ owner: design/engineering
+-depends_on:
+-
+-* SEEDWORKS_PLAYABLE_SLICE_SPEC.md
+-* SEEDWORKS_ARCHITECTURE.md
+-  recommended_path: docs/seedworks/01_milestone_v0_1_old_waterworks/DEVICE_BUS_SUBSTRATE_SYSTEMS.md
+-
++recommended_path: docs/seedworks/01_milestone_v0_1_old_waterworks/DEVICE_BUS_SUBSTRATE_SYSTEMS.md
+ ---
+-
+ > **Code status (2026-07-02 review):** the `status: implementation` above does not hold — `crates/symtropy-device-bus/src/lib.rs` is a 20-line stub with no tests. This is substantially still a design document.
+ 
+ # Symtropy Design Doc: Device Bus Substrate Systems
+diff --git a/tech/Infrastructure Loom Tech Node Data Schema.md b/tech/Infrastructure Loom Tech Node Data Schema.md
+index 1d73f55..9729462 100644
+--- a/tech/Infrastructure Loom Tech Node Data Schema.md	
++++ b/tech/Infrastructure Loom Tech Node Data Schema.md	
+@@ -1,21 +1,12 @@
+ ---
+-
+ title: Infrastructure Loom Tech Node Data Schema
++version: 0.1
+ status: canonical-draft
+ milestone: seedworks-v0.1-to-v0.3
+ scope: data model, unlock logic, UI state, serialization, implementation
+ owner: design/engineering
+-depends_on:
+-
+-* TECH_UNLOCK_TABLE_V0_1_TO_V0_3.md
+-* TECH_TREE_DEPENDENCY_SPINE.md
+-* INFRASTRUCTURE_LOOM_UI_UX_SPEC.md
+-* PUBLIC_WORKS_FABRICATION_BRANCH_V0_2.md
+-* ROBOTICS_PLATFORM_TECH_TREE_ADDENDUM.md
+-  recommended_path: docs/seedworks/04_engine/INFRASTRUCTURE_LOOM_TECH_NODE_SCHEMA.md
+-
++recommended_path: docs/seedworks/04_engine/INFRASTRUCTURE_LOOM_TECH_NODE_SCHEMA.md
+ ---
+-
+ > **Code status (2026-07-02 review):** No corresponding implementation found in `symtropy/crates` or `symtropy/src`. Design/vision document only.
+ 
+ # Symtropy Engineering Spec: Infrastructure Loom Tech Node Data Schema
+diff --git a/tech/Infrastructure Loom UI-UX Spec.md b/tech/Infrastructure Loom UI-UX Spec.md
+index c2198b9..8c1e710 100644
+--- a/tech/Infrastructure Loom UI-UX Spec.md	
++++ b/tech/Infrastructure Loom UI-UX Spec.md	
+@@ -1,21 +1,12 @@
+ ---
+-
+ title: Infrastructure Loom UI/UX Spec
++version: 0.1
+ status: canonical-draft
+ milestone: seedworks-v0.1-to-v0.3
+ scope: UI/UX, tech tree visualization, Field Deck modes, player interaction
+ owner: design/UI/engineering
+-depends_on:
+-
+-* TECH_UNLOCK_TABLE_V0_1_TO_V0_3.md
+-* TECH_TREE_DEPENDENCY_SPINE.md
+-* PUBLIC_WORKS_FABRICATION_BRANCH_V0_2.md
+-* ROBOTICS_PLATFORM_TECH_TREE_ADDENDUM.md
+-* DEVICE_BUS_SUBSTRATE_SYSTEMS.md
+-  recommended_path: docs/seedworks/04_engine/INFRASTRUCTURE_LOOM_UI_UX_SPEC.md
+-
++recommended_path: docs/seedworks/04_engine/INFRASTRUCTURE_LOOM_UI_UX_SPEC.md
+ ---
+-
+ > **Code status (2026-07-02 review):** No corresponding implementation found in `symtropy/crates` or `symtropy/src`. Design/vision document only.
+ 
+ # Symtropy UI/UX Spec: The Infrastructure Loom
+diff --git a/tech/Public Works Fabrication Branch v0.2.md b/tech/Public Works Fabrication Branch v0.2.md
+index 6b4edd2..8143dc8 100644
+--- a/tech/Public Works Fabrication Branch v0.2.md	
++++ b/tech/Public Works Fabrication Branch v0.2.md	
+@@ -1,20 +1,12 @@
+ ---
+-
+ title: Public Works Fabrication Branch v0.2
++version: 0.2
+ status: canonical-draft
+ milestone: seedworks-v0.2
+ scope: fabrication, recipes, repair grades, tool access, robotics dependencies
+ owner: design/engineering
+-depends_on:
+-
+-* TECH_UNLOCK_TABLE_V0_1_TO_V0_3.md
+-* TECH_TREE_DEPENDENCY_SPINE.md
+-* DEVICE_BUS_SUBSTRATE_SYSTEMS.md
+-* ROBOTICS_PLATFORM_TECH_TREE_ADDENDUM.md
+-  recommended_path: docs/seedworks/00_canon/PUBLIC_WORKS_FABRICATION_BRANCH_V0_2.md
+-
++recommended_path: docs/seedworks/00_canon/PUBLIC_WORKS_FABRICATION_BRANCH_V0_2.md
+ ---
+-
+ > **Code status (2026-07-02 review):** The only matching code is a thin `fabrication_allowed: bool` gate in `symtropy-sim-bridge`'s unrelated MK0 Bootstrapper Protocol — not this doc's public infrastructure fabrication system. Design/vision document only.
+ 
+ # Symtropy: Public Works Fabrication Branch v0.2
+diff --git a/tech/REGIONAL_PLANETARY_CIVILIZATION_SIMULATION_ARCHITECTURE_V0_1.md b/tech/REGIONAL_PLANETARY_CIVILIZATION_SIMULATION_ARCHITECTURE_V0_1.md
+index 47f97cd..652c56e 100644
+--- a/tech/REGIONAL_PLANETARY_CIVILIZATION_SIMULATION_ARCHITECTURE_V0_1.md
++++ b/tech/REGIONAL_PLANETARY_CIVILIZATION_SIMULATION_ARCHITECTURE_V0_1.md
+@@ -8,6 +8,7 @@ related:
+   - tech/PROCEDURAL_FACTION_EVOLUTION.md
+   - tech/WORLD_PERSISTENCE_PROTOCOL.md
+   - Symtropy Player Cities & Society.md
++owner: simulation/engineering/design
+ ---
+ 
+ # Regional, Planetary, and Civilizational Simulation Architecture
+diff --git a/tech/WORLDLINE_MECHANICAL_DELTA_SCHEMA_V0_1.md b/tech/WORLDLINE_MECHANICAL_DELTA_SCHEMA_V0_1.md
+index 027da4f..65876d6 100644
+--- a/tech/WORLDLINE_MECHANICAL_DELTA_SCHEMA_V0_1.md
++++ b/tech/WORLDLINE_MECHANICAL_DELTA_SCHEMA_V0_1.md
+@@ -8,6 +8,9 @@ extends:
+   - EARTH_ATLAS_2168_TEMPLATE.md
+   - PROCEDURAL_HISTORY_ENGINE.md
+   - MULTIPLAYER_TRUTH_MODEL.md
++version: 0.1
++scope: worldline mechanical differences, state deltas, validation and gameplay consequences
++owner: simulation/design/engineering
+ ---
+ 
+ # Worldline Mechanical Delta Schema v0.1
+diff --git a/vision/EXPLORATION_DISCOVERY_AND_AWE_DESIGN_BIBLE_V0_1.md b/vision/EXPLORATION_DISCOVERY_AND_AWE_DESIGN_BIBLE_V0_1.md
+index 5d133c9..eac1374 100644
+--- a/vision/EXPLORATION_DISCOVERY_AND_AWE_DESIGN_BIBLE_V0_1.md
++++ b/vision/EXPLORATION_DISCOVERY_AND_AWE_DESIGN_BIBLE_V0_1.md
+@@ -7,6 +7,7 @@ related:
+   - vision/Symtropy Planetary World Types Design Bible.md
+   - tech/Symtropy Vehicle & Mobility Design.md
+   - tech/FIELD_DECK_INTERACTION_AND_MODES.md
++owner: design/world/art
+ ---
+ 
+ # Exploration, Discovery, and Awe Design Bible
+diff --git a/vision/SYMTROPY_ORBITAL_HABITATS_AND_DOCKSIDE_SOCIETIES_V0_1.md b/vision/SYMTROPY_ORBITAL_HABITATS_AND_DOCKSIDE_SOCIETIES_V0_1.md
+index cc8ddfe..3b4f579 100644
+--- a/vision/SYMTROPY_ORBITAL_HABITATS_AND_DOCKSIDE_SOCIETIES_V0_1.md
++++ b/vision/SYMTROPY_ORBITAL_HABITATS_AND_DOCKSIDE_SOCIETIES_V0_1.md
+@@ -14,6 +14,9 @@ related:
+   - ORIGIN_BIAS_FIELD_DECK_SCHEMA_V0_1.md
+   - Symtropy Design Doc: Death, Reconstitution, and Source-Chain Recovery.md
+   - Symtropy Design Doc: Cybernetic Crafting & Physical Node Assembly.md
++version: 0.1
++scope: orbital habitats, dockside societies, labor, life-support law, Field Deck and Chronicle interactions
++owner: narrative/world/design
+ ---
+ 
+ # SYMTROPY_ORBITAL_HABITATS_AND_DOCKSIDE_SOCIETIES_V0_1

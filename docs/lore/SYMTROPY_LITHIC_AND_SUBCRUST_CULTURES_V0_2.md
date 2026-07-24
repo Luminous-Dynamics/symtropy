@@ -12,6 +12,9 @@ related:
   - CHRONICLE_SCALE_ESCALATION_RULES_V0_1.md
   - FIELD_DECK_OVERLAY_PRECEDENCE_RULES_V0_1.md
   - ORIGIN_BIAS_FIELD_DECK_SCHEMA_V0_1.md
+version: 0.2
+scope: lithic and subterranean culture systems, environments, Field Deck and encounter design
+owner: narrative/world/design
 ---
 
 # SYMTROPY_LITHIC_AND_SUBCRUST_CULTURES_V0_2

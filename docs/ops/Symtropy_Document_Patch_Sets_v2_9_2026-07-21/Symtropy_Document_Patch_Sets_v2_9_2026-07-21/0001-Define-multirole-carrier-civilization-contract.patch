@@ -1,0 +1,308 @@
+From e81bcd865e7cc6e921507d28d711eb4d4b590c36 Mon Sep 17 00:00:00 2001
+From: OpenAI Symtropy Documentation <symtropy-docs@example.invalid>
+Date: Tue, 21 Jul 2026 10:53:53 +0000
+Subject: [PATCH 01/10] Define multirole carrier civilization contract
+
+---
+ ...ON_AND_NON_SPECIALIZATION_CONTRACT_V0_1.md | 289 ++++++++++++++++++
+ 1 file changed, 289 insertions(+)
+ create mode 100644 canon/LARGE_CARRIER_MULTIROLE_CIVILIZATION_AND_NON_SPECIALIZATION_CONTRACT_V0_1.md
+
+diff --git a/canon/LARGE_CARRIER_MULTIROLE_CIVILIZATION_AND_NON_SPECIALIZATION_CONTRACT_V0_1.md b/canon/LARGE_CARRIER_MULTIROLE_CIVILIZATION_AND_NON_SPECIALIZATION_CONTRACT_V0_1.md
+new file mode 100644
+index 0000000..570a584
+--- /dev/null
++++ b/canon/LARGE_CARRIER_MULTIROLE_CIVILIZATION_AND_NON_SPECIALIZATION_CONTRACT_V0_1.md
+@@ -0,0 +1,289 @@
++---
++title: Large Carrier Multirole Civilization and Non-Specialization Contract
++version: 0.1
++status: canonical-draft
++scope: large spacecraft, carrier civilizations, multirole design, civic baselines, mission emphasis, player progression
++owner: design/spacecraft/society/gameplay
++related:
++  - MOBILE_CONTINUANCE_BASE_HOME_VEHICLE_AND_CREW_SOVEREIGNTY_CONTRACT_V0_1.md
++  - CLOSED_LOOP_HABITATS_GENERATION_SHIPS_AND_SETTLEMENT_CONTINUITY_CONTRACT_V0_1.md
++  - ORBITAL_PLANETARY_INTERFACE_AND_SPACEPORT_GOVERNANCE_CONTRACT_V0_1.md
++  - INTERPLANETARY_CIVILIZATION_LATENCY_AND_DISTRIBUTED_SOVEREIGNTY_CONTRACT_V0_1.md
++  - ../tech/LARGE_CARRIER_COMMON_CORE_OPEN_INTERFACES_AND_ROLE_ENVELOPE_RUNTIME_V0_1.md
++  - ../lore/MULTIROLE_CARRIER_FAMILIES_MISSION_PROFILES_AND_WORLD_ADAPTATION_ATLAS_V0_1.md
++---
++
++# Large Carrier Multirole Civilization and Non-Specialization Contract
++
++## Owned Question
++
++**How can Symtropy let players inhabit, help build, command and transform enormous carrier spacecraft without reducing them to single-role classes, implausible personal possessions, or decorative city-ships?**
++
++## Core Thesis
++
++A large carrier is not a giant tool with one job.
++
++It is a moving settlement, industrial system, transport network, emergency refuge, political institution and home whose design may emphasize one mission while retaining a broad civic capability envelope.
++
++> **Large ships specialize by allocation, doctrine and history—not by becoming incapable of ordinary civilization.**
++
++A care-emphasis carrier still fabricates, explores, trades, defends, teaches and deploys vehicles. A foundry-emphasis carrier still houses families, treats injuries, grows food, preserves culture and performs rescue. A security-emphasis carrier still obeys civilian rights and cannot become a gun wrapped around disposable crew.
++
++# 1. Shared Large-Carrier Baseline
++
++Every inhabited large carrier must provide a credible minimum in the following domains:
++
++1. habitation and privacy;
++2. atmosphere, water, food and waste cycling;
++3. navigation, propulsion and traffic control;
++4. energy generation, storage and thermal rejection;
++5. maintenance, fabrication and structural repair;
++6. medical care, quarantine and casualty response;
++7. cargo, stores, logistics and deployment;
++8. communications, sensing and knowledge stewardship;
++9. governance, records, justice and dispute resolution;
++10. education, culture, recreation and spiritual or philosophical life;
++11. emergency shelter, fire control, evacuation and rescue;
++12. proportionate defense and safe-mode survival.
++
++A vessel may perform some functions through attached craft, convoy partners or host infrastructure, but those dependencies must remain explicit and failure-tested.
++
++# 2. Mission Emphasis, Not Ship Class
++
++Carrier identity is expressed through a **mission emphasis profile** rather than a rigid class.
++
++Examples include:
++
++- habitation and migration;
++- exploration and survey;
++- care and disaster relief;
++- fabrication and construction;
++- trade and cultural exchange;
++- route engineering;
++- hostile-world survival;
++- ocean and planetary interface;
++- security and convoy protection;
++- seed continuity and ecological carriage.
++
++An emphasis profile changes:
++
++- module allocation;
++- staffing depth;
++- carried-base mix;
++- reserve policy;
++- training;
++- mission reputation;
++- internal district plan;
++- political obligations;
++- maintenance burden;
++- preferred operating environment.
++
++It does not remove the common carrier baseline.
++
++# 3. The Seventy-Percent Rule
++
++No flagship carrier family should devote more than roughly seventy percent of configurable mission capacity to its primary emphasis in a normal civilian or mixed-use build.
++
++The remaining capacity must preserve:
++
++- broad survival;
++- repair;
++- care;
++- transport;
++- civic life;
++- flexible growth;
++- response to unexpected conditions.
++
++Military emergency configurations may temporarily exceed this allocation, but doing so creates visible losses in habitation, care, trade, redundancy, legitimacy and long-horizon resilience.
++
++The exact threshold is a balancing target rather than a magical physical constant. Its purpose is to prevent concept art labels from becoming hard gameplay classes.
++
++# 4. Commonality Without Sameness
++
++Some carrier systems should be standardized because shared parts and interfaces make civilization possible.
++
++Likely common systems include:
++
++- pressure-bulkhead standards;
++- docking collars;
++- cargo container geometries;
++- utility trunks;
++- emergency atmosphere couplings;
++- data and identity interfaces;
++- rescue beacons;
++- medical evacuation interfaces;
++- power conversion envelopes;
++- maintenance access conventions;
++- source-chain and Chronicle records.
++
++Standardization must not produce visual or cultural sameness.
++
++Variety should emerge through:
++
++- hull morphology;
++- propulsion architecture;
++- radiator form;
++- gravity strategy;
++- construction era;
++- local materials;
++- repair history;
++- internal city topology;
++- exterior work decks;
++- carried-vehicle ecology;
++- cultural decoration;
++- ownership and governance;
++- mission history;
++- alien or symbiotic integration.
++
++> **Shared interfaces let ships cooperate. Different histories make them worth remembering.**
++
++# 5. Scale and Player Relationship
++
++A player should encounter large carriers through several relationships long before full command:
++
++- passenger;
++- evacuee;
++- apprentice;
++- contractor;
++- vehicle owner using carrier services;
++- station operator;
++- department specialist;
++- elected delegate;
++- mission planner;
++- module steward;
++- co-owner or cooperative member;
++- captain or command coordinator;
++- founder of a construction campaign.
++
++The fantasy is not delayed until ownership. Meaningful access begins early.
++
++# 6. Ownership Is Not Occupant Ownership
++
++No property claim over a carrier grants ownership of:
++
++- residents;
++- workers;
++- dependent children;
++- machine persons;
++- attached living vehicles;
++- public archives;
++- medical patients;
++- refugees;
++- alien guests;
++- sovereign convoy partners.
++
++A carrier may be:
++
++- publicly owned;
++- cooperatively held;
++- household-owned;
++- chartered by multiple institutions;
++- financed through debt;
++- leased;
++- held by a route house;
++- operated as a commons;
++- privately owned with strong resident rights;
++- claimed by competing legal traditions.
++
++Operational authority, beneficial ownership, title, debt, public duty and mission command remain separate records.
++
++# 7. Command Is Bounded Coordination
++
++The command role authorizes decisions within a chartered envelope.
++
++It does not provide an omnipotent interface for:
++
++- overriding bodily autonomy;
++- ordering unlawful sacrifice;
++- reading private quarters;
++- confiscating resident property without process;
++- disabling escape rights;
++- forcing autonomous attached craft to deploy;
++- inventing emergencies;
++- suppressing safety reports;
++- converting public assets to personal loot.
++
++A large ship requires distributed authority because no one person can competently or safely control every system.
++
++# 8. Buildability
++
++Every carrier family may ultimately be player-authored and player-buildable, but construction difficulty scales with physical and institutional reality.
++
++The player may:
++
++- develop requirements;
++- select or design a hull lineage;
++- negotiate land, orbit or yard access;
++- secure finance and materials;
++- commission modules;
++- recruit institutions and workers;
++- choose standards and governance;
++- supervise trials;
++- participate physically in construction;
++- accept compromises;
++- inherit, refit or complete an unfinished hull.
++
++The player does not fabricate a civilization-scale carrier alone from handheld inventory.
++
++# 9. Failure and Graceful Degradation
++
++Large carriers should fail as networks rather than one health bar.
++
++Damage may cause:
++
++- district isolation;
++- reduced acceleration;
++- heat-budget restrictions;
++- water rationing;
++- lost docking capacity;
++- degraded fabrication;
++- evacuation of one neighborhood;
++- political conflict over reserves;
++- dependence on attached craft;
++- temporary loss of mission emphasis.
++
++A ship can survive while becoming less capable, less comfortable or less legitimate.
++
++# 10. Variety Requirements
++
++A production set of large carriers should satisfy all of the following:
++
++- at least four clearly different hull silhouettes;
++- at least three gravity strategies;
++- at least four propulsion families;
++- multiple internal city topologies;
++- multiple construction lineages and eras;
++- multiple cultural ownership models;
++- multiple carried-base ecologies;
++- different failure signatures;
++- different sensory identities;
++- no family whose entire identity is one profession.
++
++# 11. Anti-Patterns
++
++Reject designs where:
++
++- the hospital ship cannot perform meaningful repair;
++- the foundry ship treats habitation as crew storage;
++- the carrier is one enormous hangar with no society;
++- the military ship has no civilian or rescue obligations;
++- the seed ship has no ordinary life;
++- the trade ship has no production or emergency reserve;
++- the exploration ship cannot shelter people it discovers;
++- every hull shares the same rectangular module silhouette;
++- a color palette is the only source of variety;
++- one player presses every button while thousands of inhabitants become scenery.
++
++# 12. First Implementation Slice
++
++The first proof should use one carrier hull with three configurable mission profiles:
++
++1. Continuance convoy and habitation emphasis;
++2. survey and planetary deployment emphasis;
++3. relief, repair and refuge emphasis.
++
++All three configurations must retain the common baseline and visibly trade capacity rather than changing into disconnected classes.
++
++## Contract Maxim
++
++> **A large carrier is not a specialized ship that happens to contain people. It is a broad civilization that has chosen what to emphasize for this voyage.**
+-- 
+2.47.3
+

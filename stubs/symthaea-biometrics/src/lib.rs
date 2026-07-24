@@ -69,6 +69,21 @@ pub mod input_telemetry {
             }
         }
 
+        /// Simplified stand-in for the real crate's ESN-based prediction
+        /// error: this stub has no ESN, so it just reports the current
+        /// smoothed velocity as a same-range [0, 1] proxy signal.
+        pub fn velocity_surprise(&self) -> f32 {
+            self.velocity_ema.clamp(0.0, 1.0)
+        }
+
+        /// Clears history and smoothed state (matches the real crate's
+        /// reset() semantics for this stub's smaller state set).
+        pub fn reset(&mut self) {
+            self.mouse_history.clear();
+            self.velocity_ema = 0.0;
+            self.keystroke_rate_ema = 0.0;
+        }
+
         pub fn compute_stress_vector(&self) -> StressVector {
             let arousal = (self.velocity_ema * 0.5 + self.keystroke_rate_ema * 0.5).clamp(0.0, 1.0);
             StressVector {

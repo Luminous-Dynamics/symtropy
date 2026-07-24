@@ -1,0 +1,427 @@
+From 321318b54b045209d6427abe2fac3b068f4fd277 Mon Sep 17 00:00:00 2001
+From: OpenAI Symtropy Documentation <symtropy-docs@example.invalid>
+Date: Tue, 21 Jul 2026 10:59:51 +0000
+Subject: [PATCH 05/10] Define carrier ownership and command progression
+
+---
+ ...MAND_AND_CREW_SOVEREIGNTY_CONTRACT_V0_1.md | 408 ++++++++++++++++++
+ 1 file changed, 408 insertions(+)
+ create mode 100644 canon/CARRIER_ACCESS_OWNERSHIP_CHARTER_COMMAND_AND_CREW_SOVEREIGNTY_CONTRACT_V0_1.md
+
+diff --git a/canon/CARRIER_ACCESS_OWNERSHIP_CHARTER_COMMAND_AND_CREW_SOVEREIGNTY_CONTRACT_V0_1.md b/canon/CARRIER_ACCESS_OWNERSHIP_CHARTER_COMMAND_AND_CREW_SOVEREIGNTY_CONTRACT_V0_1.md
+new file mode 100644
+index 0000000..bf8be65
+--- /dev/null
++++ b/canon/CARRIER_ACCESS_OWNERSHIP_CHARTER_COMMAND_AND_CREW_SOVEREIGNTY_CONTRACT_V0_1.md
+@@ -0,0 +1,408 @@
++---
++title: Carrier Access, Ownership, Charter, Command, and Crew Sovereignty Contract
++version: 0.1
++status: canonical-draft
++scope: progression into large ships, property, finance, command legitimacy, departments, residents, automation and multiplayer authority
++owner: design/governance/spacecraft/multiplayer
++related:
++  - LARGE_CARRIER_MULTIROLE_CIVILIZATION_AND_NON_SPECIALIZATION_CONTRACT_V0_1.md
++  - MOBILE_CONTINUANCE_BASE_HOME_VEHICLE_AND_CREW_SOVEREIGNTY_CONTRACT_V0_1.md
++  - HOUSEHOLDS_LINEAGES_DYNASTIES_GUILDS_AND_CIVIC_SUCCESSION_CONTRACT_V0_1.md
++  - ECONOMY_INTEGRITY_MARKETS_LABOR_AND_ANTI_EXPLOIT_CONTRACT_V0_1.md
++  - ../tech/CARRIER_CONSTRUCTION_YARDS_SUPPLY_CHAINS_CERTIFICATION_AND_COMMISSIONING_RUNTIME_V0_1.md
++  - ../ops/LARGE_CARRIER_OWNERSHIP_BUILD_AND_COMMAND_BENCHMARK_V0_1.md
++---
++
++# Carrier Access, Ownership, Charter, Command, and Crew Sovereignty Contract
++
++## Owned Question
++
++**How hard should it be for a player to reach, own, build and control a large carrier while preserving a satisfying progression fantasy and the reality that such a vessel is inhabited and produced by a society?**
++
++## Core Answer
++
++- **Access should begin early.**
++- **Useful operation should require training but remain approachable.**
++- **Department leadership should be a substantial achievement.**
++- **Command should require trust, legitimacy and demonstrated coordination.**
++- **Ownership should normally be shared, financed, chartered or institutional.**
++- **Independent construction should be a civilization-scale campaign.**
++- **Absolute personal control should not exist over autonomous inhabitants.**
++
++> **The player should not wait hundreds of hours to experience a carrier. They should spend hundreds of hours discovering how many different relationships a person can have with one.**
++
++# 1. Five Separate Progression Axes
++
++## 1.1 Access
++
++Can the character enter, reside aboard or use carrier services?
++
++Access can be earned through:
++
++- travel ticket;
++- refugee protection;
++- employment;
++- invitation;
++- household relationship;
++- public service;
++- trade;
++- convoy membership;
++- emergency rescue;
++- citizenship or residency.
++
++Access is the easiest axis and should appear early.
++
++## 1.2 Qualification
++
++Can the character safely operate a station, craft, module or procedure?
++
++Qualification requires:
++
++- instruction;
++- supervised practice;
++- demonstrated competence;
++- current medical or embodiment fitness where relevant;
++- legal recognition;
++- equipment familiarity;
++- periodic renewal for high-risk work.
++
++## 1.3 Authority
++
++May the character decide how a system or department is used?
++
++Authority derives from:
++
++- job role;
++- election;
++- appointment;
++- ownership of a specific module;
++- emergency delegation;
++- mission charter;
++- court or civic process;
++- machine or alien consent.
++
++Authority has scope and expiration.
++
++## 1.4 Ownership and beneficial interest
++
++Who holds title, debt, investment, salvage rights, public trust or future proceeds?
++
++Ownership can be fragmented and disputed.
++
++## 1.5 Command legitimacy
++
++Who may coordinate vessel-wide action under ordinary and emergency conditions?
++
++Command is a political and professional relationship, not the highest ownership tier.
++
++# 2. Recommended Difficulty Curve
++
++## Early game: encounter and contribute
++
++Within the first major planetary or orbital progression, the player should be able to:
++
++- board a carrier;
++- travel aboard it;
++- use public spaces;
++- work a supervised station;
++- bring a mobile home into a carrier berth;
++- meet residents and institutions;
++- participate in one emergency.
++
++This makes the fantasy visible before ownership.
++
++## Midgame: specialize and steward
++
++The player can:
++
++- qualify for several stations;
++- lead a watch or small department;
++- steward a module;
++- operate a carried base;
++- plan deployments;
++- negotiate refits;
++- hold cooperative shares;
++- earn command trust.
++
++## Late midgame: coordinate and charter
++
++The player can:
++
++- become department head;
++- command a mission;
++- serve on the carrier council;
++- captain a medium base-carrier;
++- acquire a major module or minority ownership interest;
++- organize a construction consortium;
++- propose a new carrier charter.
++
++## Late game: build or inherit a civilization hull
++
++The player can:
++
++- coordinate a full carrier build;
++- complete an abandoned hull;
++- lead a major refit;
++- become elected or appointed vessel commander;
++- found a carrier cooperative or public authority;
++- inherit a complex claim;
++- split, merge or transform a carrier polity;
++- commission a seed continuity vessel.
++
++The achievement is not “unlocking the ship.” It is creating the material and social capacity to sustain it.
++
++# 3. Ownership Models
++
++## Public carrier
++
++Owned by a municipality, federation, planetary service or route authority.
++
++Player progression comes through office, expertise, trust and democratic mandate.
++
++## Cooperative carrier
++
++Workers, residents and partner institutions hold shares and governance rights.
++
++Player influence grows by contribution and coalition, not purchase alone.
++
++## Household or lineage carrier
++
++A multi-generational family or house holds title under obligations to residents, creditors and public law.
++
++Inheritance can produce conflict without making bloodline authority absolute.
++
++## Charter consortium
++
++Several settlements, firms, cooperatives and public services finance and govern the carrier.
++
++No party can unilaterally repurpose it.
++
++## Private carrier
++
++A person or company holds substantial title, but resident, worker, environmental and safety rights remain binding.
++
++Private ownership may grant strategic influence and financial risk, not ownership of lives.
++
++## Commons or mission trust
++
++The carrier is legally dedicated to a purpose such as rescue, seed continuity, ecological preservation or route maintenance.
++
++Trustees cannot lawfully liquidate it for unrelated gain.
++
++## Captured or salvaged carrier
++
++Physical possession initiates claims and duties; it does not instantly settle title.
++
++# 4. How Expensive Should Ownership Be?
++
++A medium base-carrier should be comparable to owning a major industrial vessel, district-scale infrastructure or regional institution.
++
++A civilization carrier should normally exceed the personal wealth of an ordinary character by orders of magnitude.
++
++Players can still become central through:
++
++- cooperative ownership;
++- public office;
++- founder equity;
++- debt organization;
++- salvaging an abandoned project;
++- political mandate;
++- rare expertise;
++- institutional alliance;
++- building a new settlement economy around the project.
++
++The game must not communicate that personal wealth is the only legitimate path to large-scale agency.
++
++# 5. Construction Difficulty
++
++A large carrier build requires:
++
++- design authority;
++- yard capacity;
++- energy;
++- materials;
++- component suppliers;
++- software and identity systems;
++- life-support ecology;
++- trained labor;
++- safety review;
++- financing;
++- political permission;
++- launch or orbital assembly logistics;
++- commissioning crew;
++- long-term maintenance plan.
++
++The player can influence all of these through different professions.
++
++Construction should be a chain of playable campaigns, not one progress bar.
++
++# 6. Control Surfaces
++
++## Direct embodied control
++
++Appropriate for:
++
++- piloting smaller craft;
++- local maneuvering;
++- emergency station work;
++- tools and repair;
++- EVA;
++- physical inspections.
++
++## Station control
++
++Appropriate for:
++
++- propulsion;
++- navigation;
++- thermal systems;
++- traffic;
++- medical coordination;
++- fabrication;
++- sensors;
++- defense.
++
++## Department coordination
++
++The player sets priorities and approves plans while qualified people execute details.
++
++## Vessel command
++
++The player or NPC command team selects mission intent, risk posture, route, emergency priorities and interdepartmental tradeoffs.
++
++## Governance
++
++Residents and institutions decide charter, budgets, rights, long-term purpose and leadership through the vessel's political structure.
++
++No single interface should flatten all five layers.
++
++# 7. Automation
++
++Automation should make large ships playable without implying that people are decorative.
++
++Automation can:
++
++- hold routine attitude and course;
++- balance utilities;
++- schedule maintenance;
++- detect faults;
++- run fabrication sequences;
++- coordinate traffic;
++- propose emergency responses.
++
++Automation cannot legitimately decide without bounded authority:
++
++- whose district loses atmosphere;
++- whether patients are abandoned;
++- whether residents are conscripted;
++- whether a sovereign craft is seized;
++- whether lethal force is used;
++- whether the ship changes its constitutional mission.
++
++Player settings may reduce mechanical workload, but not erase social consequence.
++
++# 8. Crew and Resident Agency
++
++Crew may:
++
++- disagree with commands;
++- report unsafe orders;
++- refuse unlawful work;
++- demand relief;
++- form unions;
++- leave when safely possible;
++- seek transfer;
++- vote or petition under the charter;
++- preserve professional ethics;
++- act independently during loss of command.
++
++Residents may not be treated as crew merely because they live aboard.
++
++Children, patients, guests and dependents retain distinct status and protection.
++
++# 9. Failure of Legitimacy
++
++A technically functional carrier may lose legitimate command through:
++
++- corruption;
++- repeated safety violations;
++- concealment of damage;
++- unlawful violence;
++- failure to honor rescue duties;
++- resident abuse;
++- command incapacity;
++- charter breach;
++- loss of confidence;
++- external court order;
++- succession dispute.
++
++Possible outcomes:
++
++- investigation;
++- recall;
++- mutiny with varied legitimacy;
++- command split;
++- departmental refusal;
++- external trusteeship;
++- secession of attached craft;
++- negotiated charter reform.
++
++# 10. Multiplayer Command
++
++A player group should be able to divide roles naturally.
++
++Possible arrangement:
++
++- one mission commander;
++- one navigation lead;
++- one engineering lead;
++- one harbor and deployment lead;
++- one care or habitation lead;
++- one governance delegate;
++- multiple independent carried-base captains.
++
++Absence and disconnection rules must:
++
++- delegate routine authority;
++- prevent one player from holding the carrier hostage;
++- protect owned property;
++- preserve character consent;
++- record emergency actions for later review;
++- allow command succession.
++
++# 11. Difficulty Presets Without Canon Breakage
++
++Groups may choose assistance levels:
++
++## Guided operations
++
++High automation, clear recommendations, forgiving schedules, broad delegation.
++
++## Professional operations
++
++More station work, deeper planning, realistic staffing and maintenance.
++
++## Command simulation
++
++Detailed authority, watch rotations, logistics, failures and political negotiation.
++
++## Continuity-hardcore
++
++Limited replacement, severe rescue delays, binding damage and demanding governance.
++
++All presets preserve the same world rules. They alter interface assistance, workload compression and failure tolerance—not whether physics or rights exist.
++
++# 12. Success Criteria
++
++The design succeeds when players can say:
++
++- “I mattered aboard the carrier before I owned anything.”
++- “Becoming qualified felt different from becoming powerful.”
++- “We built this with a society, not a crafting menu.”
++- “Command meant responsibility rather than omnipotence.”
++- “The ship kept living when one player logged out.”
++- “Owning part of the carrier created duties as well as privileges.”
++
++## Contract Maxim
++
++> **Make the carrier easy to dream about, early to enter, demanding to master, hard to own, monumental to build, and impossible to rule as though nobody else aboard were real.**
+-- 
+2.47.3
+

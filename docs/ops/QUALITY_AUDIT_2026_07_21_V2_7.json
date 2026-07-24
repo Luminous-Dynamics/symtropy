@@ -1,0 +1,23 @@
+{
+  "markdown_documents": 512,
+  "approximate_words": 809216,
+  "broken_internal_links": 0,
+  "active_metadata_errors": 0,
+  "duplicate_active_titles": 0,
+  "json_errors": 0,
+  "schema_validation_errors": 0,
+  "exact_reconstruction": true,
+  "version": "2.7",
+  "ordered_patches": 10,
+  "files_compared": 628,
+  "missing_files": 0,
+  "extra_files": 0,
+  "changed_files": 0,
+  "details": {
+    "broken_links": [],
+    "metadata_errors": [],
+    "duplicate_titles": {},
+    "json_errors": [],
+    "schema_errors": []
+  }
+}

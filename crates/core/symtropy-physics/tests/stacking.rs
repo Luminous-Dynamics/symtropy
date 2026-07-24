@@ -24,13 +24,21 @@
 //! simplex has fewer than 4 points) significantly overestimating the
 //! penetration depth for box-vs-box contact in some configurations -- e.g.
 //! reporting ~1.4 units of penetration for two half-extent-0.5 boxes that
-//! were only fractionally overlapping. That is a GJK/EPA convex-geometry
-//! accuracy gap unrelated to the 5 solver fixes in this change (CCD,
-//! restitution, lever-arm contact response, hinge motor, isotropic-inertia
-//! TODO), so it is out of scope here and left as a follow-up; this test is
-//! scoped to the box-vs-halfspace path (fully analytical, no GJK/EPA
-//! involved) so it reliably guards the angular contact code without also
-//! depending on that separate, pre-existing gap.
+//! were only fractionally overlapping. That was a GJK/EPA convex-geometry
+//! accuracy gap unrelated to the 5 solver fixes originally landed in this
+//! change (CCD, restitution, lever-arm contact response, hinge motor,
+//! isotropic-inertia TODO), so it was left out of scope here as a follow-up
+//! (P2.2); this test remained scoped to the box-vs-halfspace path (fully
+//! analytical, no GJK/EPA involved) so it reliably guarded the angular
+//! contact code without also depending on that separate, pre-existing gap.
+//!
+//! P2.2 is now fixed for the axis-aligned case (`world.rs`'s
+//! `contact_box_vs_box`, an analytical SAT fast path that bypasses GJK/EPA
+//! entirely for HyperBox-vs-HyperBox pairs -- see
+//! SYMTROPY_IMPROVEMENT_PLAN_2026-07-21.md P2.2 for why a general GJK/EPA
+//! fix was reverted in favor of this narrower, lower-risk one) -- see
+//! `boxes_stack_without_explosive_impulse` below for the box-on-box
+//! regression this file was originally missing.
 
 use nalgebra::SVector;
 use symtropy_math::{HalfSpace, HyperBox, Point, Transform};
@@ -150,4 +158,82 @@ fn resting_boxes_settle_without_jitter() {
     // lever-arm torque code).
     assert!(pos_a.iter().all(|v| v.is_finite()));
     assert!(pos_b.iter().all(|v| v.is_finite()));
+}
+
+/// P2.2 regression: box B dropped directly on top of box A, resting on a
+/// ground half-space. Box-on-box contact used to go through the generic
+/// GJK/EPA path (unlike box-vs-halfspace, which has its own analytical fast
+/// path) and hit `epa_3d`'s bounding-sphere-fallback bug there: GJK
+/// terminates with a degenerate (<4 point) simplex for axis-aligned
+/// face-to-face box contact, and the fallback badly overestimated
+/// penetration depth (~1.4 units for two half-extent-0.5 boxes only
+/// fractionally overlapping), which the solver would try to resolve in a
+/// single frame -- an explosive impulse large enough to send a stacked box
+/// flying rather than letting it settle. Box-vs-box now bypasses GJK/EPA
+/// entirely via the analytical `contact_box_vs_box` SAT fast path
+/// (`world.rs`), which reports the exact true penetration depth.
+#[test]
+fn boxes_stack_without_explosive_impulse() {
+    let gravity = SVector::from([0.0, -9.81, 0.0]);
+    let mut world = PhysicsWorld::<3>::new(gravity);
+    world.solver_iterations = 8;
+
+    let ground = RigidBody::<3>::static_body(
+        BodyHandle(0),
+        Point::origin(),
+        Box::new(HalfSpace::<3>::new(SVector::from([0.0, 1.0, 0.0]), 0.0)),
+    );
+    world.add_body(ground);
+
+    let half = [0.5, 0.5, 0.5];
+    let a = world.add_body(make_box(Point::new([0.0, 0.5, 0.0]), half, 1.0));
+    // B starts already overlapping A slightly (y=1.45 vs. A's top at y=1.0,
+    // half-extent 0.5 each -> true initial penetration 0.05) to force the
+    // box-vs-box path on the very first step, before any CCD/contact
+    // generation from a falling approach has a chance to mask the bug.
+    let b = world.add_body(make_box(Point::new([0.0, 1.45, 0.0]), half, 1.0));
+
+    let dt = 1.0 / 60.0;
+    let mut max_speed = 0.0_f64;
+    for _ in 0..300 {
+        world.step(dt);
+        let va = world.body(a).unwrap().linear_velocity.norm();
+        let vb = world.body(b).unwrap().linear_velocity.norm();
+        max_speed = max_speed.max(va).max(vb);
+    }
+
+    let pos_a = world.body(a).unwrap().position();
+    let pos_b = world.body(b).unwrap().position();
+
+    assert!(
+        pos_a.iter().all(|v| v.is_finite()),
+        "box A exploded: {pos_a:?}"
+    );
+    assert!(
+        pos_b.iter().all(|v| v.is_finite()),
+        "box B exploded: {pos_b:?}"
+    );
+
+    // With the old bounding-sphere fallback (depth ~1.4-1.7 for this
+    // configuration), a single-frame impulse resolving that overlap at
+    // solver_iterations=8 would send a 1kg box to well over 10 m/s. The
+    // true 0.05-unit overlap should never need anywhere close to that.
+    assert!(
+        max_speed < 5.0,
+        "peak speed {max_speed} m/s -- looks like an explosive impulse from an \
+         overestimated penetration depth"
+    );
+
+    // Box B should settle on top of A (both near y=0.5 and y=1.5), not end
+    // up beside/through it.
+    assert!(
+        (pos_a[1] - 0.5).abs() < 0.2,
+        "box A should stay near y=0.5, got y={}",
+        pos_a[1]
+    );
+    assert!(
+        (pos_b[1] - 1.5).abs() < 0.3,
+        "box B should settle stacked near y=1.5, got y={}",
+        pos_b[1]
+    );
 }

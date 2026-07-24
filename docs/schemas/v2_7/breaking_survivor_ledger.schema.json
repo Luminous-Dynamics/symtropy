@@ -1,0 +1,43 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.org/symtropy/schemas/v2_7/breaking_survivor_ledger.schema.json",
+  "title": "Breaking of Firstlight Survivor Ledger",
+  "type": "object",
+  "required": ["worldline_id", "threshold_event_id", "persons"],
+  "properties": {
+    "worldline_id": {"type": "string"},
+    "threshold_event_id": {"type": "string"},
+    "persons": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["person_id", "status", "last_confirmed_time", "evidence_level"],
+        "properties": {
+          "person_id": {"type": "string"},
+          "status": {
+            "enum": [
+              "confirmed_safe",
+              "departed_other_route",
+              "remaining_by_choice",
+              "unable_to_evacuate",
+              "missing",
+              "confirmed_dead",
+              "recovery_possible",
+              "forked_claim",
+              "unknown_unobserved"
+            ]
+          },
+          "last_confirmed_location": {"type": "string"},
+          "last_confirmed_time": {"type": "number"},
+          "evidence_level": {"enum": ["direct", "authenticated", "corroborated", "claimed", "inferred", "none"]},
+          "route_id": {"type": ["string", "null"]},
+          "group_id": {"type": ["string", "null"]},
+          "injuries": {"type": "array", "items": {"type": "string"}},
+          "continuity_state": {"type": "object"}
+        },
+        "additionalProperties": true
+      }
+    }
+  },
+  "additionalProperties": true
+}

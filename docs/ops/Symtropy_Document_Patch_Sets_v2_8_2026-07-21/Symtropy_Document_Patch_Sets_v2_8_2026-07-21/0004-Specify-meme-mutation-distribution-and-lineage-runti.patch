@@ -1,0 +1,615 @@
+From 39aef0c33b60bb7bd439889b74b48272bba5efe7 Mon Sep 17 00:00:00 2001
+From: OpenAI <noreply@openai.com>
+Date: Tue, 21 Jul 2026 07:46:01 +0000
+Subject: [PATCH 04/10] Specify meme mutation distribution and lineage runtime
+
+---
+ schemas/v2_8/meme_lineage.schema.json         |  75 +++
+ ...CTION_DECAY_AND_PROVENANCE_RUNTIME_V0_1.md | 516 ++++++++++++++++++
+ 2 files changed, 591 insertions(+)
+ create mode 100644 schemas/v2_8/meme_lineage.schema.json
+ create mode 100644 tech/MEME_MUTATION_DISTRIBUTION_SELECTION_DECAY_AND_PROVENANCE_RUNTIME_V0_1.md
+
+diff --git a/schemas/v2_8/meme_lineage.schema.json b/schemas/v2_8/meme_lineage.schema.json
+new file mode 100644
+index 0000000..29de2ff
+--- /dev/null
++++ b/schemas/v2_8/meme_lineage.schema.json
+@@ -0,0 +1,75 @@
++{
++  "$schema": "https://json-schema.org/draft/2020-12/schema",
++  "$id": "https://symtropy.game/schemas/v2_8/meme_lineage.schema.json",
++  "title": "Symtropy Meme Lineage",
++  "type": "object",
++  "additionalProperties": false,
++  "required": ["worldline_id", "artifact_id", "variants", "exposures", "meaning_states"],
++  "properties": {
++    "worldline_id": {"type": "string", "minLength": 1},
++    "artifact_id": {"type": "string", "minLength": 1},
++    "variants": {
++      "type": "array",
++      "minItems": 1,
++      "items": {
++        "type": "object",
++        "additionalProperties": false,
++        "required": ["variant_id", "parent_ids", "creator_id", "created_tick", "location_id", "mutation_ops", "expression_hash"],
++        "properties": {
++          "variant_id": {"type": "string", "minLength": 1},
++          "parent_ids": {"type": "array", "uniqueItems": true, "items": {"type": "string"}},
++          "creator_id": {"type": "string", "minLength": 1},
++          "created_tick": {"type": "integer", "minimum": 0},
++          "location_id": {"type": "string", "minLength": 1},
++          "mutation_ops": {"type": "array", "items": {"type": "string", "minLength": 1}},
++          "expression_hash": {"type": "string", "pattern": "^[a-fA-F0-9]{64}$"},
++          "state": {"enum": ["active", "niche", "fatigued", "dormant", "archival", "misremembered", "ritualized", "commercial_fossil", "extinct"]}
++        }
++      }
++    },
++    "exposures": {
++      "type": "array",
++      "items": {
++        "type": "object",
++        "additionalProperties": false,
++        "required": ["exposure_id", "variant_id", "recipient_id", "channel_id", "emitted_tick", "received_tick", "response"],
++        "properties": {
++          "exposure_id": {"type": "string"},
++          "variant_id": {"type": "string"},
++          "recipient_id": {"type": "string"},
++          "channel_id": {"type": "string"},
++          "emitted_tick": {"type": "integer", "minimum": 0},
++          "received_tick": {"type": "integer", "minimum": 0},
++          "response": {"enum": ["unnoticed", "unrecognized", "rejected", "forgotten", "adopted", "shared", "mutated", "suppressed", "archived", "commercialized", "reported"]}
++        }
++      }
++    },
++    "meaning_states": {
++      "type": "array",
++      "items": {
++        "type": "object",
++        "additionalProperties": false,
++        "required": ["variant_id", "constituency_id", "awareness", "usage", "identification", "frames"],
++        "properties": {
++          "variant_id": {"type": "string"},
++          "constituency_id": {"type": "string"},
++          "awareness": {"type": "number", "minimum": 0, "maximum": 1},
++          "usage": {"type": "number", "minimum": 0, "maximum": 1},
++          "identification": {"type": "number", "minimum": 0, "maximum": 1},
++          "frames": {
++            "type": "array",
++            "items": {
++              "type": "object",
++              "additionalProperties": false,
++              "required": ["frame", "weight"],
++              "properties": {
++                "frame": {"type": "string"},
++                "weight": {"type": "number", "minimum": 0, "maximum": 1}
++              }
++            }
++          }
++        }
++      }
++    }
++  }
++}
+diff --git a/tech/MEME_MUTATION_DISTRIBUTION_SELECTION_DECAY_AND_PROVENANCE_RUNTIME_V0_1.md b/tech/MEME_MUTATION_DISTRIBUTION_SELECTION_DECAY_AND_PROVENANCE_RUNTIME_V0_1.md
+new file mode 100644
+index 0000000..9d73a7c
+--- /dev/null
++++ b/tech/MEME_MUTATION_DISTRIBUTION_SELECTION_DECAY_AND_PROVENANCE_RUNTIME_V0_1.md
+@@ -0,0 +1,516 @@
++---
++title: Meme Mutation, Distribution, Selection, Decay, and Provenance Runtime
++version: 0.1
++status: implementation-spec
++scope: meme variants, network spread, cultural selection, mutation, fatigue, suppression, revival, provenance and archival state
++owner: simulation/culture/networking/narrative/AI
++related:
++  - ../canon/MEME_ECOLOGY_HUMOR_LIVING_FOLKLORE_AND_CULTURAL_AGENCY_CONTRACT_V0_1.md
++  - MEMETIC_EVENT_EXTRACTION_GENOME_AND_CANDIDATE_FOUNDRY_RUNTIME_V0_1.md
++  - SOCIAL_SIGNAL_RUMOR_REPUTATION_AND_PUBLIC_OPINION_RUNTIME_V0_1.md
++  - LIGHT_DELAY_COMMUNICATION_TIMEKEEPING_AND_ASYNC_COORDINATION_RUNTIME_V0_1.md
++  - ../schemas/v2_8/meme_lineage.schema.json
++---
++
++# Meme Mutation, Distribution, Selection, Decay, and Provenance Runtime
++
++## Purpose
++
++Define how a created memetic artifact moves through actual social and communications networks, acquires variants, competes for attention, changes meaning, disappears, returns, and becomes evidence or folklore.
++
++The runtime must produce cultural history rather than a global virality counter.
++
++# 1. Authoritative Objects
++
++```rust
++struct MemeArtifact {
++    meme_id: MemeId,
++    genome_ref: MemeGenomeRef,
++    creator: AgentOrGroupId,
++    created_tick: ChronicleTick,
++    origin_location: EntityId,
++    initial_audience: ConstituencyId,
++    publication_scope: DisclosureScope,
++    media_refs: Vec<MediaRef>,
++    provenance: ProvenanceRecord,
++}
++
++struct MemeVariant {
++    variant_id: MemeVariantId,
++    parent_ids: Vec<MemeVariantId>,
++    artifact_id: MemeId,
++    mutation_ops: Vec<MutationOp>,
++    expression: ExpressionRef,
++    meaning_frames: Vec<WeightedMeaning>,
++    created_by: AgentOrGroupId,
++    created_tick: ChronicleTick,
++    location_id: EntityId,
++}
++
++struct MemeExposure {
++    exposure_id: ExposureId,
++    variant_id: MemeVariantId,
++    recipient: AgentOrGroupId,
++    channel_id: ChannelId,
++    emitted_tick: ChronicleTick,
++    received_tick: ChronicleTick,
++    attention_quality: f32,
++    comprehension: ConfidenceBand,
++    response: ExposureResponse,
++}
++```
++
++# 2. Distribution Graph
++
++Memes move only through valid edges.
++
++Channels include:
++
++- face-to-face speech;
++- household messages;
++- workplace shifts;
++- public mesh networks;
++- local broadcasts;
++- commercial media;
++- performances;
++- schools;
++- religious gatherings;
++- migration;
++- trade;
++- military service;
++- graffiti and durable objects;
++- machine protocols;
++- Atlas communications;
++- seed-ship archives;
++- alien translation interfaces.
++
++Every edge declares:
++
++- bandwidth;
++- latency;
++- access;
++- censorship;
++- cost;
++- audience composition;
++- persistence;
++- discoverability;
++- content constraints;
++- translation path.
++
++Disconnected systems cannot share variants until a carrier or communication path exists.
++
++# 3. Exposure Is Not Adoption
++
++A recipient may:
++
++```text
++not notice
++notice but not understand
++understand and dislike
++understand and forget
++share unchanged
++share with mutation
++quote privately
++use as a response
++commercialize
++report
++suppress
++archive
++reclaim
++weaponize
++```
++
++Adoption depends on:
++
++- relevance;
++- relationship to sender;
++- cultural voice fit;
++- emotional state;
++- status and prestige;
++- usefulness;
++- ease of reproduction;
++- risk;
++- novelty;
++- repetition;
++- competing artifacts;
++- whether the recipient wants to affiliate with the source group.
++
++# 4. Mutation Operators
++
++The runtime supports traceable operators.
++
++## Lexical
++
++- substitute a person, place, institution, tool, or event;
++- shorten;
++- expand;
++- translate;
++- alter register;
++- deliberately mistranslate;
++- turn technical language into slang;
++- replace a proper name with a role.
++
++## Visual
++
++- crop;
++- juxtapose;
++- redraw;
++- alter pose;
++- recolor according to local symbolism;
++- replace background;
++- simplify into iconography;
++- add or remove institutional branding.
++
++## Musical and Audio
++
++- transpose;
++- alter rhythm;
++- change instrumentation;
++- sample a phrase;
++- call-and-response;
++- stretch or compress timing;
++- imitate a machine or environmental sound;
++- convert speech cadence into melody.
++
++## Social
++
++- change the target;
++- reverse admiration and ridicule;
++- move from private to public;
++- reclaim an insult;
++- turn coping humor into propaganda;
++- commercialize;
++- ritualize;
++- attach to a new event;
++- merge with an older local story.
++
++## Material
++
++- stencil onto a vehicle;
++- turn into clothing;
++- alter an architectural feature;
++- add to a tool;
++- encode in a route procedure;
++- convert into a game or gesture.
++
++Every operator preserves parentage, even when characters no longer know it.
++
++# 5. Mutation Pressure
++
++Mutation probability rises when:
++
++- the meme crosses language or species boundaries;
++- the medium changes;
++- the audience lacks the original referent;
++- political interests benefit from reinterpretation;
++- a new event resembles the old structure;
++- youth adopt an older form;
++- censorship requires coded speech;
++- commercial actors need generic reuse;
++- memory becomes incomplete;
++- the source community deliberately reclaims control.
++
++Mutation probability falls when:
++
++- the artifact is technically fixed;
++- provenance is institutionally protected;
++- ritual requires exact repetition;
++- the audience treats alteration as disrespect;
++- automated systems verify exact hashes;
++- a private group actively contains the joke.
++
++# 6. Meaning Drift
++
++The system separates expression from interpreted meaning.
++
++A single variant may mean:
++
++- affectionate teasing to one household;
++- political criticism to workers;
++- aspirational branding to a company;
++- evidence of disrespect to an elder group;
++- an incomprehensible old phrase to children;
++- a sacred remembrance to survivors.
++
++Meaning state is constituency-specific.
++
++```rust
++struct MemeMeaningState {
++    variant_id: MemeVariantId,
++    constituency_id: ConstituencyId,
++    awareness: f32,
++    usage: f32,
++    identification: f32,
++    affect: AffectVector,
++    frames: Vec<WeightedMeaning>,
++    source_attribution: Vec<WeightedSourceClaim>,
++    taboo_state: TabooState,
++}
++```
++
++# 7. Cultural Selection
++
++Selection is not one fitness score. The runtime evaluates several dimensions:
++
++```text
++recognizability
++reusability
++emotional release
++identity value
++prestige
++power support
++risk
++cost of reproduction
++network reach
++translation resilience
++material durability
++novelty
++fatigue
++```
++
++A low-reach workplace phrase may persist for centuries because apprenticeship reproduces it. A globally promoted corporate format may vanish in weeks because nobody identifies with it.
++
++# 8. Fatigue and Saturation
++
++Every audience maintains fatigue by:
++
++- variant family;
++- frame;
++- referent;
++- medium;
++- creator;
++- social function.
++
++Consequences of fatigue:
++
++- reduced attention;
++- ironic overuse;
++- anti-memes;
++- generational rejection;
++- migration to a new format;
++- institutional abandonment;
++- nostalgia after absence.
++
++Symthaea’s presentation layer should suppress overexposure before the culture itself necessarily stops using the meme.
++
++# 9. Decay
++
++Memes decay when:
++
++- source groups disperse;
++- channels close;
++- the referent loses relevance;
++- reproduction becomes costly;
++- language changes;
++- competing formats dominate;
++- institutions suppress them;
++- embarrassment leads to deliberate forgetting;
++- archives are lost;
++- the joke depends on private knowledge no longer transmitted.
++
++Decay states:
++
++```text
++active
++niche
++fatigued
++dormant
++archival
++misremembered
++ritualized
++commercial fossil
++extinct
++```
++
++Extinct in active culture does not mean deleted from historical evidence.
++
++# 10. Revival
++
++Revival may follow:
++
++- anniversary;
++- political recurrence;
++- discovery of an old recording;
++- retro fashion;
++- descendants reclaiming a founder joke;
++- a new event fitting the old frame;
++- contact with an isolated settlement where the meme remained active;
++- corporate repackaging;
++- scholarly or archaeological interest.
++
++A revival may preserve, invert, sanitize, radicalize, or misunderstand the original meaning.
++
++# 11. Suppression and Censorship
++
++Institutions may:
++
++- remove content;
++- punish creators;
++- throttle networks;
++- flood channels with alternatives;
++- purchase or co-opt the format;
++- classify the source event;
++- alter archives;
++- criminalize symbols;
++- pressure employers or households;
++- use automated filters.
++
++Suppression creates costs and traces:
++
++- missing posts;
++- arrests or disciplinary records;
++- coded variants;
++- diaspora preservation;
++- Streisand effects;
++- false provenance;
++- chilling effects;
++- migration to material media.
++
++The runtime does not assume suppression makes a meme stronger. Many are successfully erased from public circulation.
++
++# 12. Commercialization
++
++Commercial actors can:
++
++- sponsor creators;
++- license a format;
++- sell merchandise;
++- remove risky specificity;
++- attach the meme to products;
++- manufacture apparent grassroots adoption;
++- pay for distribution;
++- compensate or exploit source communities.
++
++Commercialization may increase reach while reducing identification, or may give a source community resources and prestige.
++
++# 13. Propaganda Conversion
++
++A joke can become propaganda when actors deliberately use its compression and familiarity to shape political belief.
++
++Required state:
++
++- sponsor;
++- intended claim;
++- target audience;
++- amplification resources;
++- provenance concealment;
++- factual relationship;
++- dehumanization or harassment risk;
++- counter-speech;
++- measurable institutional consequences.
++
++The cultural runtime records this transformation rather than creating a separate unrelated propaganda artifact.
++
++# 14. Light Delay and Atlas Networks
++
++Interplanetary and interstellar memes carry dates and knowledge age.
++
++A system may receive:
++
++- a meme about an official who has been dead for years;
++- a response after the original political crisis ended;
++- a format whose source civilization no longer exists;
++- several variants arriving through different routes in the wrong historical order.
++
++Atlas corridors reduce latency only while operational. Route outages create divergent local meme lineages.
++
++# 15. Multiplayer Authority
++
++The server or authoritative worldline service owns:
++
++- artifact creation;
++- variant identity;
++- exposure events;
++- network delivery;
++- mutation seed;
++- provenance lineage;
++- moderation and content settings.
++
++Clients may locally suppress presentation according to settings, but cannot create contradictory public culture without an authoritative player action.
++
++Player-created media enters through validated publication actions with:
++
++- creator identity;
++- content hash;
++- scope;
++- moderation state;
++- licensing;
++- worldline binding.
++
++# 16. Provenance Graph
++
++Every variant belongs to a directed acyclic lineage graph within a worldline.
++
++Merge variants may have several parents.
++
++Required invariants:
++
++- no variant is its own ancestor;
++- parent creation precedes child creation;
++- required source claims were available to the creator;
++- cross-worldline references require explicit artifact import or Chronicle-only comparison;
++- deletion from presentation does not silently delete provenance;
++- archival uncertainty is represented rather than resolved by fiat.
++
++# 17. Historical Reconstruction
++
++Characters may investigate meme origins through:
++
++- interviews;
++- old messages;
++- hashes;
++- graffiti layers;
++- recordings;
++- tool provenance;
++- publication archives;
++- machine memory;
++- translation comparison;
++- contradictory oral histories.
++
++The authoritative runtime may know the exact lineage while the player-facing history remains uncertain.
++
++# 18. Performance and Aggregation
++
++Distant regions do not simulate every exposure individually.
++
++Aggregation tiers:
++
++## Embodied
++
++Specific people, messages, performances, and objects.
++
++## Social Network
++
++Group-level exposure with promoted individuals for major adoption or conflict.
++
++## Historical
++
++Variant-family prevalence, meaning, institutions, suppression, and durable artifacts.
++
++## Archival
++
++Lineage summaries, surviving records, extinct forms, and revival predicates.
++
++Promotion restores specific artifacts from deterministic records without inventing false witnesses.
++
++# 19. Validation
++
++Required tests:
++
++- local spread without global leakage;
++- light-delay delivery order;
++- isolated seed-world divergence;
++- private joke containment;
++- multi-parent remix lineage;
++- fatigue and anti-meme formation;
++- corporate amplification without automatic affection;
++- censorship with and without successful suppression;
++- source-community reclamation;
++- extinct-to-revival transition;
++- multiplayer host migration;
++- archival reconstruction with disputed attribution;
++- 100-year aggregate replay stability.
++
++## Runtime Maxim
++
++> **A meme becomes endless not because it is generated forever, but because people keep finding new uses for a remembered form as the world around it changes.**

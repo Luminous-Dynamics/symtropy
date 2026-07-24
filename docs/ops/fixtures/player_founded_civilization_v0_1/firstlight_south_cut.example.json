@@ -1,0 +1,43 @@
+{
+  "cohort": [
+    "sera-vale",
+    "tomas-reed",
+    "amadi-nko",
+    "morrow-7",
+    "nia-kgosana",
+    "mara-quill",
+    "lio-dlamini",
+    "kez-14",
+    "ana-patel",
+    "mika-rowe",
+    "jo-ramokgopa",
+    "emil-sato"
+  ],
+  "compact_paths": [
+    "emergency-stewardship",
+    "household-assembly",
+    "worker-service-cooperative"
+  ],
+  "founding_mode": "reconstruction",
+  "prior_claims": [
+    "wetland-migration-boundary",
+    "old-utility-easement",
+    "displaced-household-return-claim"
+  ],
+  "protected_zones": [
+    "south-cut-wetland",
+    "old-pump-memorial-channel"
+  ],
+  "region_id": "firstlight-basin",
+  "services": [
+    "water",
+    "clinic",
+    "sanitation",
+    "workshop",
+    "food",
+    "transport",
+    "records"
+  ],
+  "settlement_id": "firstlight-south-cut",
+  "worldline_id": "benchmark-root"
+}

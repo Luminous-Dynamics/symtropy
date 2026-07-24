@@ -1,0 +1,490 @@
+From 18a1682553c6f95cc38e2e337cd6bb05c2de9daf Mon Sep 17 00:00:00 2001
+From: OpenAI Symtropy Document Steward <symtropy-docs@openai.invalid>
+Date: Tue, 21 Jul 2026 14:39:37 +0000
+Subject: [PATCH 03/10] Add Protectorate militia cultures and professions atlas
+
+---
+ ...ROFESSIONS_AND_LOCAL_DEFENSE_ATLAS_V0_1.md | 471 ++++++++++++++++++
+ 1 file changed, 471 insertions(+)
+ create mode 100644 lore/PROTECTORATE_MILITIA_CULTURES_PROFESSIONS_AND_LOCAL_DEFENSE_ATLAS_V0_1.md
+
+diff --git a/lore/PROTECTORATE_MILITIA_CULTURES_PROFESSIONS_AND_LOCAL_DEFENSE_ATLAS_V0_1.md b/lore/PROTECTORATE_MILITIA_CULTURES_PROFESSIONS_AND_LOCAL_DEFENSE_ATLAS_V0_1.md
+new file mode 100644
+index 0000000..a13fa61
+--- /dev/null
++++ b/lore/PROTECTORATE_MILITIA_CULTURES_PROFESSIONS_AND_LOCAL_DEFENSE_ATLAS_V0_1.md
+@@ -0,0 +1,471 @@
++---
++title: Protectorate Militia Cultures, Professions, and Local Defense Atlas
++version: 0.1
++status: lore-draft
++scope: cultural diversity, professions, visual identity, local defense traditions, noncombat roles, and unit-level everyday life
++owner: lore/cultures/protectorate/professions
++related:
++  - ../canon/PROTECTORATE_FEDERATION_CIVIL_DEFENSE_AND_NON_IMPERIAL_AUTHORITY_CONTRACT_V0_1.md
++  - ../tech/PROTECTORATE_UNIT_REGISTRY_CHARTER_INTEROPERABILITY_AND_LOCAL_LEGITIMACY_RUNTIME_V0_1.md
++  - PROTECTORATE_SHIP_FLEET_AND_REGIONAL_RESPONSE_FORMATION_ATLAS_V0_1.md
++  - ../canon/PROTECTORATE_REFUSAL_RIGHTS_CIVILIAN_OVERSIGHT_AND_ANTI_WARLORD_SAFEGUARDS_CONTRACT_V0_1.md
++---
++
++# Protectorate Militia Cultures, Professions, and Local Defense Atlas
++
++## 1. Purpose
++
++This atlas prevents the Protectorate from appearing as one uniform military faction.
++
++Every unit should be recognizable through:
++
++- the danger that created it;
++- the people who sustain it;
++- the professions it values;
++- the places it knows;
++- the compromises it accepts;
++- the rituals it uses to remember failure;
++- the ways it disagrees with the wider federation.
++
++> **Uniform standards permit cooperation. Local history gives a unit a soul.**
++
++# 2. Cultural Construction Grammar
++
++A unit culture can be generated from six inherited sources:
++
++1. **Founding pressure** — flood, war, fire, piracy, infrastructure collapse, epidemic, displacement, alien contact, shipwreck, labor struggle.
++2. **Home environment** — wetland, megacity, crawler convoy, carrier, ocean flotilla, asteroid habitat, polar station, seed world, machine network.
++3. **Professional core** — medics, firefighters, mechanics, pilots, witnesses, divers, ecologists, communications workers, militia reservists.
++4. **Political charter** — municipal, cooperative, household, guild, treaty, commons trust, religious, corporate, revolutionary.
++5. **Embodiment mix** — baseline human, modified human, machine, symbiotic, aquatic, distributed, multi-body, alien.
++6. **Service memory** — famous rescue, atrocity, abandonment, mutiny, epidemic, siege, failed mobilization, peaceful demobilization.
++
++A unit must not be reducible to one adjective such as disciplined, chaotic, honorable, or ruthless.
++
++# 3. Unit Cultures
++
++## 3.1 Watershed Bell Companies
++
++**Origin:** flood-control workers and neighborhood rescue crews.
++
++**Primary work:** levee inspection, boat rescue, pump defense, evacuation, sanitation recovery.
++
++**Aesthetic:** high-visibility rain capes, hand-painted depth marks, bells made from retired pump housings.
++
++**Culture:** skeptical of distant command, extremely practical, willing to argue for hours before a storm and then cooperate without hesitation.
++
++**Strength:** local terrain knowledge and civilian trust.
++
++**Failure mode:** treating every political problem as an engineering emergency.
++
++**Meme:** “The rain has reviewed the plan.”
++
++## 3.2 Quiet Arc Medical Reserve
++
++**Origin:** carrier clinics overwhelmed during an evacuation.
++
++**Primary work:** triage, protected transfer, long-duration care, grief support, contamination medicine.
++
++**Aesthetic:** soft acoustic materials, clear role markings, portable privacy screens, no heroic imagery in treatment areas.
++
++**Culture:** rejects the idea that medics are neutral about preventable harm; fiercely guards clinical authority against commanders.
++
++**Strength:** care under infrastructure collapse.
++
++**Failure mode:** paternalism toward patients and local healers.
++
++## 3.3 Vast Burden Houses
++
++**Origin:** Magnanimous rescue traditions.
++
++**Primary work:** heavy extraction, structural rescue, shield formations, dangerous cargo handling, public morale.
++
++**Aesthetic:** monumental armor frames, brilliant cloth, family emblems, equipment engraved with prior rescues.
++
++**Culture:** strength is legitimate only when visibly carrying another person's burden.
++
++**Strength:** courage, physical capacity, public confidence.
++
++**Failure mode:** hiding injury and exhaustion to preserve reputation.
++
++## 3.4 Continuance Road Guard
++
++**Origin:** mobile-home convoys crossing politically fragmented territory.
++
++**Primary work:** route scouting, convoy escort, recovery, negotiation, towing, camp security.
++
++**Aesthetic:** vehicle-specific markings, route ribbons, patched environmental gear, memorial objects mounted inside cabs.
++
++**Culture:** distrusts static authorities and values the right to leave.
++
++**Strength:** mobility and improvisation.
++
++**Failure mode:** prioritizing convoy members over settled communities.
++
++## 3.5 Crawler Harbor Auxiliary
++
++**Origin:** workers protecting the zero-gravity docks of a Hearthline carrier.
++
++**Primary work:** docking incidents, decompression rescue, cargo fire, customs support, damaged-craft intake.
++
++**Aesthetic:** magnetic boots with district colors, helmet lamps coded by role, old docking numbers used as nicknames.
++
++**Culture:** treats every arrival as both a technical event and a civic encounter.
++
++**Strength:** high-throughput coordination.
++
++**Failure mode:** bureaucratic suspicion of unfamiliar craft.
++
++## 3.6 Ocean Current Wardens
++
++**Origin:** flotilla and reef communities whose borders move with currents.
++
++**Primary work:** marine rescue, anti-piracy, migration protection, storm warning, ecological defense.
++
++**Aesthetic:** pressure-adapted suits, acoustic identity tones, current maps woven into garments.
++
++**Culture:** understands territory as seasonal relationships rather than fixed lines.
++
++**Strength:** three-dimensional navigation and ecological knowledge.
++
++**Failure mode:** conflict with surface authorities that treat currents as empty space.
++
++## 3.7 Abyssal Hull Choir
++
++**Origin:** submarine crews who used coordinated vocal tones to detect hull changes before instruments were repaired.
++
++**Primary work:** deep-ocean rescue, pressure-hull inspection, under-ice recovery.
++
++**Aesthetic:** dark pressure clothing, luminous hand signals, ritual silence before descent.
++
++**Culture:** jokes quietly, distrusts loud heroism, treats listening as a moral skill.
++
++**Strength:** disciplined sensory attention.
++
++**Failure mode:** secrecy and fatalism after repeated losses.
++
++## 3.8 Machine Continuity Watch
++
++**Origin:** machine citizens defending archives and vulnerable embodied instances during a purge.
++
++**Primary work:** cyberdefense, identity verification, distributed sensing, damaged-chassis recovery.
++
++**Aesthetic:** no shared body form; membership shown through authenticated light or timing signatures.
++
++**Culture:** debates whether a restored copy is a rescued person, successor, or witness.
++
++**Strength:** persistent monitoring and hazardous-environment work.
++
++**Failure mode:** overvaluing record integrity compared with embodied testimony.
++
++## 3.9 Sanitation Continuity Corps
++
++**Origin:** sewage and water workers during urban siege.
++
++**Primary work:** water safety, waste removal, disease prevention, emergency plumbing, corpse-management support.
++
++**Aesthetic:** durable washable gear, irreverent stickers, bright contamination boundaries.
++
++**Culture:** openly contemptuous of leaders who call combatants the only defenders.
++
++**Strength:** keeping dense populations alive after spectacular systems fail.
++
++**Failure mode:** institutional bitterness and social isolation.
++
++## 3.10 Atlas Delay Service
++
++**Origin:** route technicians coordinating emergencies across relativistic or metric delays.
++
++**Primary work:** delayed command reconciliation, beacon repair, stranded-vessel recovery, causality-safe records.
++
++**Aesthetic:** layered clocks, route cords, archival badges showing missions received after their participants died.
++
++**Culture:** refuses demands for false simultaneity.
++
++**Strength:** coordination under communication delay.
++
++**Failure mode:** procedural rigidity when immediate local action is required.
++
++## 3.11 Lantern District Night Auxiliary
++
++**Origin:** nightlife workers protecting crowded festivals after official services repeatedly arrived late.
++
++**Primary work:** de-escalation, intoxication care, missing-person search, consent-zone protection, fire response.
++
++**Aesthetic:** luminous boundary markers, music-responsive signals, sober-guardian insignia.
++
++**Culture:** playful, socially perceptive, deeply serious about consent and crowd movement.
++
++**Strength:** preventing panic and reading informal social danger.
++
++**Failure mode:** conflict with formal authorities and inconsistent evidence procedure.
++
++## 3.12 Seedworld First Winter Compact
++
++**Origin:** the first winter after a seed settlement lost orbital support.
++
++**Primary work:** shelter, food security, perimeter defense, emergency fabrication, public rationing.
++
++**Aesthetic:** repaired landing equipment converted into civic symbols, winter masks marked by household.
++
++**Culture:** values survival competence but remains divided over who was excluded during founding.
++
++**Strength:** integrated defense and subsistence.
++
++**Failure mode:** founding-generation authority persisting too long.
++
++## 3.13 Archive Witness Guard
++
++**Origin:** public-record workers repeatedly targeted during coups.
++
++**Primary work:** evidence escort, witness protection, archive evacuation, secure public broadcast.
++
++**Aesthetic:** visible recording devices, nonthreatening armor, redundant evidence cases.
++
++**Culture:** considers documentation an active form of protection.
++
++**Strength:** accountability and source-chain preservation.
++
++**Failure mode:** believing a complete record guarantees justice.
++
++## 3.14 Garden Shield Cooperative
++
++**Origin:** agricultural workers defending carrier food systems from sabotage and emergency requisition.
++
++**Primary work:** ecological quarantine, crop continuity, pollinator protection, controlled access.
++
++**Aesthetic:** practical green workwear, living unit emblems, seeds carried as service tokens.
++
++**Culture:** skeptical of commanders who treat food as passive inventory.
++
++**Strength:** long-duration resilience.
++
++**Failure mode:** territorial control over shared biological resources.
++
++## 3.15 Debris Shepherds
++
++**Origin:** orbital salvage crews who organized to prevent cascading debris disasters.
++
++**Primary work:** collision prediction, tug interception, wreck marking, survivor recovery, orbital cleanup.
++
++**Aesthetic:** asymmetrical work craft, old hull fragments stamped with saved-orbit dates.
++
++**Culture:** sees careless destruction as an attack on future travelers.
++
++**Strength:** patient orbital mechanics and salvage expertise.
++
++**Failure mode:** claiming expansive salvage rights over inhabited wrecks.
++
++## 3.16 Boundary Translators
++
++**Origin:** first-contact teams that survived by recognizing alien warnings as law rather than aggression.
++
++**Primary work:** translation, ritual compliance, cross-species evacuation, conflict prevention.
++
++**Aesthetic:** modular sensory displays, scent or pressure instruments, multilingual insignia.
++
++**Culture:** distrusts quick certainty and military metaphors.
++
++**Strength:** preventing violence caused by ontology mismatch.
++
++**Failure mode:** hesitation when a threat is genuinely immediate.
++
++## 3.17 Hollow Mountain Reserve
++
++**Origin:** subterranean settlements defending geothermal and ventilation infrastructure.
++
++**Primary work:** tunnel rescue, ventilation, cave-in response, underground navigation, local defense.
++
++**Aesthetic:** dust-scarred suits, tactile maps, low-light emblems.
++
++**Culture:** decisions are made with strong deference to those physically closest to a failing structure.
++
++**Strength:** confined-space coordination.
++
++**Failure mode:** insularity and suspicion of surface residents.
++
++## 3.18 Childway Evacuation Stewards
++
++**Origin:** teachers and transit workers who created reliable child-evacuation routes during civil unrest.
++
++**Primary work:** family reunification, school sheltering, accessible transport, missing-child records.
++
++**Aesthetic:** unmistakable symbols readable by children across languages.
++
++**Culture:** insists that evacuation planning begin with dependents rather than vehicles.
++
++**Strength:** trust and humane logistics.
++
++**Failure mode:** being used by authorities to pressure families into unwanted movement.
++
++## 3.19 Free Dock Mutuals
++
++**Origin:** independent pilots and mechanics resisting protection rackets.
++
++**Primary work:** merchant escort, dock defense, repair, safe-passage negotiation.
++
++**Aesthetic:** intentionally nonuniform equipment connected by a shared docking-knot symbol.
++
++**Culture:** values voluntary association and public accounting of fees.
++
++**Strength:** flexible small-craft operations.
++
++**Failure mode:** fragmentation and private retaliation.
++
++## 3.20 Recovery Ark Custodians
++
++**Origin:** crews recovering survivors, bodies, archives, and source cores after major fleet battles.
++
++**Primary work:** protected entry, casualty recovery, contamination isolation, identity reconstruction.
++
++**Aesthetic:** pale high-visibility hulls marked with complex legal and medical protections.
++
++**Culture:** refuses to describe recovery as cleanup.
++
++**Strength:** preserving personhood and evidence after violence.
++
++**Failure mode:** becoming politically untouchable and insufficiently accountable.
++
++# 4. Professional Composition
++
++A realistic unit may contain more support professions than armed personnel.
++
++Common professions include:
++
++- dispatcher;
++- driver or pilot;
++- navigator;
++- mechanic;
++- electrician;
++- structural engineer;
++- medic;
++- nurse;
++- public-health worker;
++- firefighter;
++- diver;
++- drone operator;
++- fabricator;
++- cook;
++- quartermaster;
++- translator;
++- counselor;
++- legal witness;
++- archivist;
++- ecologist;
++- sanitation worker;
++- communications technician;
++- community liaison;
++- militia defender;
++- interceptor operator;
++- trainer;
++- accessibility specialist.
++
++A unit's real capability depends on whether these roles can function together.
++
++# 5. Everyday Life
++
++Units need ordinary scenes:
++
++- checking medical kits that have not been opened in years;
++- arguing over who missed radio duty;
++- fundraising for a replacement rescue boat;
++- children playing inside a parked emergency crawler;
++- a veteran teaching recruits how to sleep during alarms;
++- cooks feeding exhausted responders;
++- a public meeting after an unnecessary use of force;
++- members leaving because reserve service harms their household;
++- a machine participant requesting recognition as an officer rather than equipment;
++- local residents mocking an overproduced recruitment video.
++
++Without ordinary life, the Protectorate becomes spectacle rather than institution.
++
++# 6. Visual Diversity Rules
++
++Shared visual elements should be limited to life-saving interoperability:
++
++- rescue markings;
++- hazard labels;
++- role identifiers;
++- docking compatibility;
++- surrender and medical symbols;
++- command authentication indicators.
++
++Everything else may vary:
++
++- silhouette;
++- armor philosophy;
++- clothing;
++- materials;
++- ritual objects;
++- language;
++- vehicle decoration;
++- sound signals;
++- body design;
++- architecture.
++
++# 7. Recruitment
++
++Units recruit through different social pathways:
++
++- public service obligation;
++- voluntary reserve;
++- profession membership;
++- household tradition;
++- paid employment;
++- cooperative share;
++- religious duty;
++- survival necessity;
++- political movement;
++- apprenticeship;
++- machine fork agreement.
++
++Recruitment pressure, prestige, exclusion, and coercion must remain visible.
++
++# 8. Inter-Unit Friction
++
++Cultural difference should produce practical tension:
++
++- medics rejecting an armed commander's triage order;
++- local pilots refusing standardized routes they know are unsafe;
++- machine responders requiring evidence before entering a claimed rescue zone;
++- Vast rescuers pushing beyond safe fatigue limits;
++- archive witnesses slowing an evacuation to preserve identity records;
++- ocean units rejecting surface-defined borders;
++- strategic officers distrusting volunteer readiness;
++- volunteers distrusting professional career incentives.
++
++The goal is not constant conflict. The goal is cooperation that has to be practiced.
++
++# 9. Generational Change
++
++Units evolve through:
++
++- veterans aging out;
++- children inheriting stories but not memories;
++- technologies changing;
++- founding threats disappearing;
++- new populations joining;
++- scandals;
++- successful demobilization;
++- political reform;
++- mythologized service history.
++
++A flood brigade may become a ceremonial institution, then be forced to rediscover practical competence during a new climate crisis.
++
++# 10. Content Generation Guardrails
++
++Procedural unit generation must avoid:
++
++- species stereotypes;
++- one culture per biome;
++- automatic militarism after trauma;
++- equating discipline with moral virtue;
++- treating volunteerism as free labor without household cost;
++- making every famous unit secretly corrupt;
++- making every local unit incompetent compared with professionals;
++- making every refusal heroic;
++- converting real-world cultures into superficial costume packs.
++
++# Closing Principle
++
++> **A Protectorate unit should be memorable not because its uniforms are different, but because its people learned a particular answer to the question: what do we owe one another when ordinary safety fails?**
+-- 
+2.47.3
+

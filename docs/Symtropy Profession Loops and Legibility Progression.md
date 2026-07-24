@@ -1,12 +1,12 @@
 ---
-
 title: Symtropy Profession Loops and Legibility Progression
-status: canonical-draft
 version: 0.1
+status: supporting
 scope: Seedworks professions, skillful gameplay loops, Field Deck literacy, witness reputation, co-op role differentiation
+owner: design/gameplay/systems
 recommended_path: docs/seedworks/00_canon/PROFESSION_LOOPS_AND_LEGIBILITY_PROGRESSION_V0_1.md
----------------------------------------------------------------------------------------------
-
+superseded_by: canon/PROFESSION_SIMULATION_EMBODIED_MASTERY_AND_PUBLIC_RESPONSIBILITY_CONTRACT_V0_1.md
+---
 # Symtropy Profession Loops and Legibility Progression
 
 > **Code status (2026-07-02 review):** No corresponding implementation found in `symtropy/crates` or `symtropy/src`. Design/vision document only.

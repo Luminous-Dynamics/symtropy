@@ -1,0 +1,113 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://symtropy.example/schemas/firstlight-player-session-0.1.json",
+  "title": "Firstlight Player Session",
+  "type": "object",
+  "required": [
+    "session_id",
+    "stage",
+    "character_id",
+    "start_atlas_time",
+    "events",
+    "assistance_profile"
+  ],
+  "properties": {
+    "session_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "stage": {
+      "enum": [
+        "ten_minute",
+        "first_hour",
+        "five_hour",
+        "ten_hour",
+        "forty_hour",
+        "delayed_recall"
+      ]
+    },
+    "character_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "start_atlas_time": {
+      "type": "number"
+    },
+    "end_atlas_time": {
+      "type": [
+        "number",
+        "null"
+      ]
+    },
+    "events": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "event_id",
+          "kind",
+          "atlas_time",
+          "provenance"
+        ],
+        "properties": {
+          "event_id": {
+            "type": "string"
+          },
+          "kind": {
+            "type": "string"
+          },
+          "atlas_time": {
+            "type": "number"
+          },
+          "provenance": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "result": {
+            "type": [
+              "string",
+              "object",
+              "null"
+            ]
+          }
+        },
+        "additionalProperties": true
+      }
+    },
+    "assistance_profile": {
+      "type": "object",
+      "required": [
+        "interaction",
+        "iris",
+        "tutorial"
+      ],
+      "properties": {
+        "interaction": {
+          "type": "string"
+        },
+        "iris": {
+          "type": "string"
+        },
+        "tutorial": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": true
+    },
+    "self_directed_moments": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "safe_stop_reason": {
+      "type": [
+        "string",
+        "null"
+      ]
+    }
+  },
+  "additionalProperties": false
+}

@@ -1,0 +1,63 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "symtropy://schemas/iris-trace/v0.1",
+  "title": "IRIS Redacted Decision Trace",
+  "type": "object",
+  "required": [
+    "trace_id",
+    "instance_id",
+    "snapshot_hash",
+    "fact_refs",
+    "memory_refs",
+    "advice",
+    "authority_warnings",
+    "integrity",
+    "worldline"
+  ],
+  "properties": {
+    "trace_id": {
+      "type": "string"
+    },
+    "instance_id": {
+      "type": "string"
+    },
+    "snapshot_hash": {
+      "type": "string"
+    },
+    "fact_refs": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "memory_refs": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "advice": {
+      "type": "object"
+    },
+    "authority_warnings": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "integrity": {
+      "type": "string"
+    },
+    "renderer_lane": {
+      "type": "string"
+    },
+    "private_fields_redacted": {
+      "type": "boolean",
+      "const": true
+    },
+    "worldline": {
+      "type": "string"
+    }
+  },
+  "additionalProperties": false
+}

@@ -1,0 +1,426 @@
+From feb6d2d9b80cff811aa1f51ee23884ec32977d36 Mon Sep 17 00:00:00 2001
+From: OpenAI Symtropy Documentation <symtropy-docs@example.invalid>
+Date: Tue, 21 Jul 2026 10:57:16 +0000
+Subject: [PATCH 03/10] Add diverse carrier hull and internal city atlas
+
+---
+ ...AL_VARIETY_AND_INTERNAL_CITY_ATLAS_V0_1.md | 407 ++++++++++++++++++
+ 1 file changed, 407 insertions(+)
+ create mode 100644 lore/LARGE_CARRIER_HULL_LINEAGES_CULTURAL_VARIETY_AND_INTERNAL_CITY_ATLAS_V0_1.md
+
+diff --git a/lore/LARGE_CARRIER_HULL_LINEAGES_CULTURAL_VARIETY_AND_INTERNAL_CITY_ATLAS_V0_1.md b/lore/LARGE_CARRIER_HULL_LINEAGES_CULTURAL_VARIETY_AND_INTERNAL_CITY_ATLAS_V0_1.md
+new file mode 100644
+index 0000000..ed568fe
+--- /dev/null
++++ b/lore/LARGE_CARRIER_HULL_LINEAGES_CULTURAL_VARIETY_AND_INTERNAL_CITY_ATLAS_V0_1.md
+@@ -0,0 +1,407 @@
++---
++title: Large Carrier Hull Lineages, Cultural Variety, and Internal City Atlas
++version: 0.1
++status: design-bible
++scope: carrier silhouettes, construction traditions, internal districts, cultural expression, sensory identity, procedural variation
++owner: design/lore/spacecraft/art
++related:
++  - ../canon/LARGE_CARRIER_MULTIROLE_CIVILIZATION_AND_NON_SPECIALIZATION_CONTRACT_V0_1.md
++  - ../tech/LARGE_CARRIER_COMMON_CORE_OPEN_INTERFACES_AND_ROLE_ENVELOPE_RUNTIME_V0_1.md
++  - MULTIROLE_CARRIER_FAMILIES_MISSION_PROFILES_AND_WORLD_ADAPTATION_ATLAS_V0_1.md
++  - ../SYMTROPY_SPACECRAFT_DESIGN_BIBLE_V0_1.md
++---
++
++# Large Carrier Hull Lineages, Cultural Variety, and Internal City Atlas
++
++## Design Purpose
++
++Give Symtropy's large carriers enough structural, cultural and historical variety that players can recognize them at a distance, understand how they live inside, and believe that many societies independently learned to build enormous moving homes.
++
++The atlas rejects two weak extremes:
++
++- every ship is the same modular brick with different paint;
++- every ship is a bespoke sculpture with no shared engineering logic.
++
++> **A carrier should reveal where it was built, what its builders feared, how its residents govern themselves, and what generations of repair have done to the original plan.**
++
++# 1. Sources of Variety
++
++Carrier variety comes from nine layers.
++
++## 1.1 Physical environment
++
++- vacuum and radiation;
++- orbital debris;
++- atmospheric interface;
++- ocean deployment;
++- high gravity;
++- long darkness;
++- corrosive dust;
++- alien biochemical exposure.
++
++## 1.2 Mission history
++
++A carrier built for migration but used for relief for thirty years should not resemble its original specification.
++
++## 1.3 Construction tradition
++
++- public orbital yard;
++- cooperative distributed fabrication;
++- military conversion;
++- asteroid foundry;
++- seed-ship descendant;
++- alien-grown hull;
++- salvage coalition;
++- corporate standardized series;
++- one-off prestige commission.
++
++## 1.4 Gravity strategy
++
++- microgravity habitat;
++- rotating ring;
++- spin drums inside a static hull;
++- tether pair;
++- continuous-acceleration decks;
++- field-assisted gravity;
++- mixed zones.
++
++## 1.5 Internal urban form
++
++- corridor city;
++- ring neighborhoods;
++- clustered villages;
++- vertical pressure courts;
++- modular raft;
++- nested shells;
++- biological cavities.
++
++## 1.6 Political structure
++
++The placement of bridges, assembly halls, kitchens, checkpoints and private decks reflects power.
++
++## 1.7 Cultural expression
++
++- symbols and paint;
++- gardens;
++- material finish;
++- lighting;
++- sound;
++- food production;
++- privacy customs;
++- memorials;
++- ritual movement;
++- public art.
++
++## 1.8 Carried-base ecology
++
++A carrier built around crawlers has different docks, decks and mass distribution from one built around submarines, aerostats, shuttles or mobile clinics.
++
++## 1.9 Repair ancestry
++
++Patches, replaced modules, incompatible standards, captured equipment and improvised additions create historical texture.
++
++# 2. Hull Lineage Families
++
++These are construction grammars, not rigid classes.
++
++## 2.1 The Keel-and-Spine Lineage
++
++A long structural spine carries propulsion, utilities and cargo transfer. Districts attach as reinforced blocks or pressure cylinders.
++
++**Visual identity:** long, asymmetrical, industrial, visibly expandable.
++
++**Strengths:** cargo flow, extension, repair access, carrier docks.
++
++**Weaknesses:** long internal journeys, vulnerable utility chokepoints, bending modes.
++
++**Cultural tendencies:** railway metaphors, district autonomy, strong engineering unions, rituals around crossing the full ship.
++
++**Variants:**
++
++- clean public-yard spine with standardized modules;
++- century-old route carrier with five construction eras;
++- military spine converted into refugee neighborhoods;
++- ocean interface spine carrying submersible cradles.
++
++## 2.2 The Ring Harbor Lineage
++
++A rotating or partly rotating ring surrounds docks, tanks, radiators or a nonrotating core.
++
++**Visual identity:** circular skyline, radial docks, bright civic ring.
++
++**Strengths:** gravity, redundant circulation, clear neighborhoods, large public spaces.
++
++**Weaknesses:** bearing maintenance, difficult structural refit, rotational docking complexity.
++
++**Cultural tendencies:** ring districts, processions, strong ideas of inner and outer neighborhoods, political symbolism around the hub.
++
++## 2.3 The Archipelago Lineage
++
++Several large pressure habitats and work hulls fly in a mechanically connected or closely coordinated formation.
++
++**Visual identity:** clustered vessels, bridges, tethers, service craft in constant motion.
++
++**Strengths:** isolation, independent evacuation, gradual growth, political plurality.
++
++**Weaknesses:** duplicated systems, traffic complexity, fragile connectors, alignment work.
++
++**Cultural tendencies:** island identities, federation politics, ferry culture, district flags and strong local accents.
++
++## 2.4 The Shell and Courtyard Lineage
++
++A broad protective shell surrounds civic courts, vehicle bays and inner habitats.
++
++**Visual identity:** massive enclosing armor or shielding with luminous interior voids.
++
++**Strengths:** radiation protection, protected deployment, spectacular common space.
++
++**Weaknesses:** high mass, large pressure volumes, difficult heat rejection.
++
++**Cultural tendencies:** strong central commons, public ceremonies, contested access to interior light and garden space.
++
++## 2.5 The Truss Garden Lineage
++
++Pressure modules, gardens and work platforms attach to a sparse structural truss with large radiators and exterior paths.
++
++**Visual identity:** open, delicate, visibly mechanical, dense with green habitat nodes.
++
++**Strengths:** thermal performance, modular growth, easy exterior access.
++
++**Weaknesses:** exposure, long EVA routes, limited shielding without local mass.
++
++**Cultural tendencies:** exterior-work pride, transparent infrastructure, neighborhood greenhouse identity.
++
++## 2.6 The Deep Hull Lineage
++
++A compact, heavily shielded body with nested pressure zones, few windows and distributed safe rooms.
++
++**Visual identity:** dense, armored, dark, rounded or faceted.
++
++**Strengths:** hostile environments, radiation, impact resistance, quarantine.
++
++**Weaknesses:** claustrophobia, difficult expansion, heat concentration, limited observation.
++
++**Cultural tendencies:** sound-based wayfinding, communal meals, privacy negotiations, memorials for sealed districts.
++
++## 2.7 The Ocean Cradle Lineage
++
++Designed around atmospheric descent, surface flotation, submersible deployment or transport of ocean bases.
++
++**Visual identity:** broad buoyant sections, heat shielding, ballast volumes, wet docks and corrosion-resistant surfaces.
++
++**Strengths:** planetary interface, marine rescue, amphibious logistics, habitat deployment.
++
++**Weaknesses:** extra structural mass, atmospheric loads, salt and contamination management.
++
++**Cultural tendencies:** watch rotations tied to tides, wet/dry district etiquette, sea-law traditions, acoustic culture.
++
++## 2.8 The Grown Continuity Lineage
++
++Biological, symbiotic or adaptive machine structures produce and maintain the hull.
++
++**Visual identity:** branching, layered, partially translucent, responsive or difficult to classify.
++
++**Strengths:** self-repair, local adaptation, efficient integration with some ecologies.
++
++**Weaknesses:** organism needs, consent, uncertain growth, biological attack surfaces, incompatible maintenance.
++
++**Cultural tendencies:** caretaking professions, negotiated architecture, rituals of feeding, molting, pruning or memory transfer.
++
++# 3. Internal City Districts
++
++Every large carrier should contain a mix of districts rather than one repeated corridor kit.
++
++## 3.1 Threshold District
++
++Arrival halls, docks, customs, quarantine, guest accommodation and public wayfinding.
++
++It communicates whether outsiders are welcomed, processed, distrusted or celebrated.
++
++## 3.2 Work Heart
++
++Fabrication, machine shops, stores, repair planning, suit rooms and heavy circulation.
++
++Its sound and shift culture often define the carrier's public identity.
++
++## 3.3 Commons
++
++Assembly, food, markets, performance, worship, recreation and informal politics.
++
++A carrier without commons is a barracks, not a civilization.
++
++## 3.4 Care Quarter
++
++Clinic, recovery, mental-health care, quiet rooms, pharmacy, quarantine and caregiving support.
++
++It should remain integrated with ordinary life without exposing patients.
++
++## 3.5 Learning and Archive Quarter
++
++Schools, apprenticeship bays, libraries, simulations, Chronicle records, museums and technical memory.
++
++## 3.6 Garden and Metabolic Quarter
++
++Food, water processing, microbial systems, air regeneration, seed banks and ecological research.
++
++This district can be beautiful while remaining unmistakably infrastructural.
++
++## 3.7 Vehicle Harbor
++
++Hangars, cradles, dry docks, cargo transfer, repair stands and departure galleries.
++
++Residents may gather to watch vehicles leave and return.
++
++## 3.8 Quiet Residential Districts
++
++Homes, household commons, childcare, elder care, small workshops and local rituals.
++
++They should differ by tenure, culture, wealth, gravity and construction era.
++
++## 3.9 Command and Coordination District
++
++Navigation, traffic, emergency coordination, mission planning and legitimate deliberation.
++
++It is not automatically the most luxurious district.
++
++## 3.10 Memorial and Continuity Spaces
++
++Preserved hull sections, name walls, gardens, recovered objects, source-chain records and contested historical exhibitions.
++
++# 4. Cultural Variants on Shared Hardware
++
++The same standardized pressure module may become:
++
++- a cooperative kitchen with open maintenance panels;
++- a private corporate dining club;
++- a Vast training hall and feast space;
++- a machine-person charging commons;
++- an oceanic acoustic chapel;
++- a refugee household cluster;
++- a seed-lineage classroom;
++- an alien quarantine garden.
++
++Variation should affect use, access, materials, schedule, sound and social meaning—not merely decoration.
++
++# 5. Sensory Identity
++
++Each carrier lineage needs a recognizable sensory profile.
++
++## Sound
++
++- drive harmonics;
++- ventilation rhythm;
++- rail and lift noise;
++- dock alarms;
++- rotating-structure resonance;
++- local music and announcements;
++- water movement;
++- repair sounds.
++
++## Smell
++
++- machine oils;
++- gardens;
++- cooking;
++- salt and wet equipment;
++- sterilization;
++- old insulation;
++- alien biochemistry.
++
++## Light
++
++- sunlight mirrors;
++- warm household lighting;
++- work-deck glare;
++- bioluminescence;
++- low-energy emergency modes;
++- cultural color restrictions or preferences.
++
++## Motion
++
++- spin gravity;
++- acceleration shifts;
++- flexible truss movement;
++- docking impacts;
++- ocean swell in landed configurations.
++
++# 6. Age and Historical Texture
++
++A new carrier should look commissioned, not lived-in.
++
++Age adds:
++
++- incompatible panels;
++- district renaming;
++- inherited graffiti;
++- polished handrails;
++- sealed passages;
++- memorial objects;
++- unofficial shortcuts;
++- modified signs;
++- old systems kept for cultural reasons;
++- replacement parts from other factions;
++- neighborhoods occupying former cargo space.
++
++Historical texture must correspond to recorded events and maintenance, not random grunge.
++
++# 7. Procedural Authoring Rules
++
++A generated carrier needs:
++
++1. one hull lineage;
++2. one construction tradition;
++3. one gravity strategy;
++4. one primary and at least two secondary mission emphases;
++5. one governance form;
++6. one carried-base ecology;
++7. three to seven culturally distinctive districts;
++8. at least two historical modifications;
++9. one visible dependency;
++10. one unresolved internal disagreement.
++
++Reject any generation where the ship's description can be reduced to “the medical one,” “the military one” or “the trade one.”
++
++# 8. Art Direction Matrix
++
++| Axis | Low end | High end |
++|---|---|---|
++| Integration | visibly modular | sculpturally unified |
++| Age | newly commissioned | multi-century palimpsest |
++| Openness | enclosed deep hull | exposed truss city |
++| Symmetry | highly asymmetric workship | ceremonial axial plan |
++| Civic visibility | private/internal | public plazas visible from space |
++| Biological content | sterile machine | living symbiosis |
++| Carrier density | a few large craft | swarms of small bases |
++| Cultural marking | restrained standards | layered banners, gardens and monuments |
++
++No axis alone defines faction morality or competence.
++
++# 9. Reference Carrier Variations
++
++## The Hearth After Rain
++
++A keel-and-spine carrier assembled from municipal evacuation hulls. It emphasizes habitation, logistics and repair, but also carries survey landers, clinics, gardens and a small construction yard. Its oldest crawler is preserved inside an active vehicle bay rather than a museum.
++
++## The Nine Harbors
++
++An archipelago carrier federation whose districts vote independently on route decisions. It specializes in nothing, but its political structure makes rapid emergency coordination difficult and makes long-term cultural survival unusually strong.
++
++## The Quiet Meridian
++
++A deep-hull carrier built for radiation corridors. Its residents created elaborate acoustic public art because exterior views are rare. It has excellent care and shelter capacity, strong fabrication, and only moderate vehicle deployment.
++
++## The Salt Lantern
++
++An ocean-cradle carrier capable of deploying flotilla homes, submarines, crawlers and relief modules. Its internal wet dock is also a market, memorial and public theater.
++
++## The Orchard Argument
++
++A truss-garden carrier whose agricultural districts became politically powerful. It can survey, fabricate, trade and rescue, but every expansion debate becomes a dispute over light, water and radiator shadow.
++
++## The Patient Animal
++
++A grown carrier that regards attached vehicles as temporary symbionts. Its residents negotiate modifications with the hull intelligence, making refits slow but remarkably adaptive.
++
++## Atlas Maxim
++
++> **The large ship is recognizable not because it has one job, but because thousands of ordinary decisions have made one way of carrying many jobs feel like home.**
+-- 
+2.47.3
+

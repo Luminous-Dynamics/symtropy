@@ -1,18 +1,12 @@
 ---
-
 title: Substrate Systems Implementation Tickets
-status: implementation
+version: 0.1
+status: implementation-spec
 milestone: seedworks-v0.1
 scope: engineering tickets
 owner: engineering
-depends_on:
-
-* DEVICE_BUS_SUBSTRATE_SYSTEMS.md
-* SEEDWORKS_ARCHITECTURE.md
-  recommended_path: docs/seedworks/04_engine/SUBSTRATE_SYSTEMS_IMPLEMENTATION_TICKETS.md
-
+recommended_path: docs/seedworks/04_engine/SUBSTRATE_SYSTEMS_IMPLEMENTATION_TICKETS.md
 ---
-
 # Symtropy Engineering Doc: Substrate Systems Implementation Tickets
 
 ## Purpose

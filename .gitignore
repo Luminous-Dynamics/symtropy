@@ -25,3 +25,10 @@ archive/
 _archive-*/
 deps/
 symthaea-deps/
+
+# Patchset staging archives — these are download-manager artifacts left over
+# from applying patchsets (extract, forget to remove the archive). Landed in
+# git 3x in one week (2026-07-20/21) at 1.2-2.9MB each, byte-for-byte
+# redundant with the already-extracted+tracked source. See
+# SYMTROPY_IMPROVEMENT_PLAN_2026-07-21.md P3.5.
+*.tar.gz

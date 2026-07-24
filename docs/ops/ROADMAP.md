@@ -1,8 +1,18 @@
+---
+title: Symtropy Engineering Roadmap
+version: 2026-07-20
+status: canonical-draft
+scope: engineering phases, crate integration, platform expansion, physics work
+owner: engineering/production
+related:
+  - SEEDWORKS_PRODUCTION_BUDGET_AND_CONTENT_PLAN_V0_1.md
+  - SEEDWORKS_NEXT_BUILD_PLAN.md
+---
 # Symtropy Roadmap
 
 ## North Star
 
-**Component-level gap analysis:** see [`docs/GAME_ENGINE_COMPONENTS.md`](docs/GAME_ENGINE_COMPONENTS.md) for a per-component matrix of what's covered by Symtropy vs Bevy vs Symthaea/Mycelix vs community crates vs still-missing, with concrete crate recommendations for each gap. The doc complements this ROADMAP: the ROADMAP is phase-oriented; the components doc is a living checklist.
+**Component-level gap analysis:** see [`../tech/GAME_ENGINE_COMPONENTS.md`](../tech/GAME_ENGINE_COMPONENTS.md) for a per-component matrix of what's covered by Symtropy vs Bevy vs Symthaea/Mycelix vs community crates vs still-missing, with concrete crate recommendations for each gap. The doc complements this ROADMAP: the ROADMAP is phase-oriented; the components doc is a living checklist.
 
 Dual-track engine:
 
@@ -42,7 +52,7 @@ Cheap moves that unlock every later phase.
 
 - **License split** (partially done, 2026-04-17):
   - ✅ **Apache-2.0 OR MIT** (no AGPL deps, publishable now): `symtropy-math`, `symtropy-physics`, `symtropy-render-bridge`
-  - ⏳ **AGPL today, permissive variant arrives in Phase 0.5**: `symtropy-bevy`, `symtropy-robotics-bridge`, `symtropy-net` — each has required AGPL deps that must be feature-gated before the permissive claim is honest. See [LICENSING.md](./LICENSING.md) Note 1.
+  - ⏳ **AGPL today, permissive variant arrives in Phase 0.5**: `symtropy-bevy`, `symtropy-robotics-bridge`, `symtropy-net` — each has required AGPL deps that must be feature-gated before the permissive claim is honest. See [LICENSING.md](../LICENSING.md) Note 1.
   - ✅ **AGPL-3.0-or-later** (research / integration): `symtropy-consciousness-physics`, `symtropy-sim-bridge`, `symtropy-world`, `symtropy-holochain-relay`, `symtropy-lightyear`, `symthaea-bevy-brain`, game crates
 
 ### Phase 0.5 — Bevy / net / robotics-bridge split (partially done, 2026-04-17)
@@ -66,7 +76,7 @@ Give external users one obvious path from curiosity to success.
 
 - **Hero demo:** one polished replayable 4D/state-coupled scene with visible Φ/metric controls, contact/energy overlays, and screenshot capture.
 - **Starter template:** `cargo generate` or `symtropy new` flow for a small Bevy app using `symtropy-bevy-core` by default, with AGPL Φ/Mycelix sections as explicit opt-ins.
-- **Recipe docs:** short guides for character controllers, input mapping, pathfinding, save/load, VFX, profiling, and Mycelix cloud-save/identity opt-in. These should live under `docs/recipes/` and reflect `docs/GAME_ENGINE_COMPONENTS.md`.
+- **Recipe docs:** short guides for character controllers, input mapping, pathfinding, save/load, VFX, profiling, and Mycelix cloud-save/identity opt-in. These should live under `docs/recipes/` and reflect `../tech/GAME_ENGINE_COMPONENTS.md`.
 - **Comparative benchmarks:** one public Criterion report comparing native Symtropy, Rapier3D bridge targets, and Bevy ecosystem physics on a few representative workloads.
 - **README adoption story:** surface why Symtropy + Symthaea + Mycelix is more than a physics crate without forcing that stack on permissive-core users.
 
@@ -536,4 +546,17 @@ These remain outside the core engine's scope. Reframed from "never" to "not here
 6. **Terrain + Soft-body** — Phase 5 ecosystem crates, not core engine builds.
 7. **Mycelix-in-Bevy** — three tracks across phases, *preferred architectural path is Track B*. Track A (WASM + CSS-3D iframe) covers browser-only hero demo. Track C (native Bevy UI screens) covers desktop-native player interaction. Track B (direct Holochain client as Bevy Resource) is the architectural foundation all three share. WebView-embed of real Leptos apps on native desktop is **not pursued** due to wry offscreen-rendering limitations.
 
+# Documentation Integration Gate v0.7
 
+Before expanding the setting catalog further, prototype or data-model the following contracts:
+
+```text
+Mission/Event Grammar: one authored and one simulation-driven activity with failure continuation
+Science Contract: one observation-hypothesis-replication loop
+Consequence Presentation: two resolution states plus delayed revisit for one site
+Multiplayer Safety: declared conflict profile and protected infrastructure permission test
+Player Authorship: blueprint provenance and mod manifest prototype
+Long-Horizon: one Great Work dependency and intermediate-state model
+```
+
+These are integration gates, not commitments to ship full endgame or modding in Seedworks v0.1.

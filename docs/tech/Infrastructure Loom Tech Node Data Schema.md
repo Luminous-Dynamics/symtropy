@@ -1,21 +1,12 @@
 ---
-
 title: Infrastructure Loom Tech Node Data Schema
+version: 0.1
 status: canonical-draft
 milestone: seedworks-v0.1-to-v0.3
 scope: data model, unlock logic, UI state, serialization, implementation
 owner: design/engineering
-depends_on:
-
-* TECH_UNLOCK_TABLE_V0_1_TO_V0_3.md
-* TECH_TREE_DEPENDENCY_SPINE.md
-* INFRASTRUCTURE_LOOM_UI_UX_SPEC.md
-* PUBLIC_WORKS_FABRICATION_BRANCH_V0_2.md
-* ROBOTICS_PLATFORM_TECH_TREE_ADDENDUM.md
-  recommended_path: docs/seedworks/04_engine/INFRASTRUCTURE_LOOM_TECH_NODE_SCHEMA.md
-
+recommended_path: docs/seedworks/04_engine/INFRASTRUCTURE_LOOM_TECH_NODE_SCHEMA.md
 ---
-
 > **Code status (2026-07-02 review):** No corresponding implementation found in `symtropy/crates` or `symtropy/src`. Design/vision document only.
 
 # Symtropy Engineering Spec: Infrastructure Loom Tech Node Data Schema

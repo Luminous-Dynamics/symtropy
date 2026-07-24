@@ -1,0 +1,456 @@
+From f20283829df2e04aec26ce6a42c9a46ce5ff228d Mon Sep 17 00:00:00 2001
+From: OpenAI Symtropy Documentation <symtropy-docs@example.invalid>
+Date: Tue, 21 Jul 2026 11:02:27 +0000
+Subject: [PATCH 07/10] Add carrier crew automation and damage runtime
+
+---
+ ...E_AND_GRACEFUL_DEGRADATION_RUNTIME_V0_1.md | 437 ++++++++++++++++++
+ 1 file changed, 437 insertions(+)
+ create mode 100644 tech/CARRIER_CREW_AUTOMATION_STATIONS_DAMAGE_AND_GRACEFUL_DEGRADATION_RUNTIME_V0_1.md
+
+diff --git a/tech/CARRIER_CREW_AUTOMATION_STATIONS_DAMAGE_AND_GRACEFUL_DEGRADATION_RUNTIME_V0_1.md b/tech/CARRIER_CREW_AUTOMATION_STATIONS_DAMAGE_AND_GRACEFUL_DEGRADATION_RUNTIME_V0_1.md
+new file mode 100644
+index 0000000..a43f022
+--- /dev/null
++++ b/tech/CARRIER_CREW_AUTOMATION_STATIONS_DAMAGE_AND_GRACEFUL_DEGRADATION_RUNTIME_V0_1.md
+@@ -0,0 +1,437 @@
++---
++title: Carrier Crew, Automation, Stations, Damage, and Graceful Degradation Runtime
++version: 0.1
++status: implementation-spec
++scope: large-ship operation, crew roles, co-op stations, automation, watchstanding, damage networks, emergency command and recovery
++owner: engineering/gameplay/ai/spacecraft
++related:
++  - ../canon/CARRIER_ACCESS_OWNERSHIP_CHARTER_COMMAND_AND_CREW_SOVEREIGNTY_CONTRACT_V0_1.md
++  - LARGE_CARRIER_COMMON_CORE_OPEN_INTERFACES_AND_ROLE_ENVELOPE_RUNTIME_V0_1.md
++  - NESTED_VEHICLE_ECOLOGY_DOCKING_DEPLOYMENT_AND_BASE_CARRIER_RUNTIME_V0_1.md
++  - NPC_WORK_SCHEDULES_INSTITUTIONS_AND_AUTHORITY_RUNTIME_V0_1.md
++  - PHYSICAL_INJURY_TREATMENT_RECOVERY_AND_SCAR_RUNTIME_V0_1.md
++---
++
++# Carrier Crew, Automation, Stations, Damage, and Graceful Degradation Runtime
++
++## Runtime Purpose
++
++Make enormous carriers playable by one person, a cooperative group or a mostly NPC community without pretending that a single captain manually operates a city-sized machine.
++
++The runtime must preserve:
++
++- embodied station play;
++- professional mastery;
++- delegated routine;
++- autonomous crew agency;
++- understandable failure;
++- meaningful command decisions;
++- continuity when players are absent.
++
++# 1. Operational Layers
++
++## 1.1 Local physical work
++
++Inspection, repair, medicine, cargo handling, EVA and machinery operation occur in the physical world.
++
++## 1.2 Station operation
++
++A qualified operator controls one bounded system through instruments, procedures and automation.
++
++## 1.3 Watch coordination
++
++A watch lead coordinates several stations during a period of operation.
++
++## 1.4 Department management
++
++A department allocates labor, maintenance, reserves, training and priorities.
++
++## 1.5 Mission command
++
++Command resolves cross-department tradeoffs and external commitments.
++
++## 1.6 Governance
++
++The carrier polity determines charter, leadership, budgets and rights.
++
++These layers must remain distinct in interface and authority.
++
++# 2. Core Operational Departments
++
++Large carriers need overlapping departments rather than one bridge doing everything.
++
++## Navigation and flight
++
++- trajectory;
++- attitude;
++- traffic;
++- local maneuvering;
++- route planning;
++- docking coordination.
++
++## Engineering
++
++- propulsion;
++- power;
++- thermal;
++- structure;
++- atmosphere and water;
++- damage control.
++
++## Harbor and deployment
++
++- docks;
++- cargo transfer;
++- carried craft;
++- tugs;
++- landing and recovery;
++- quarantine interface.
++
++## Habitat and ecology
++
++- homes;
++- food;
++- water;
++- waste;
++- gardens;
++- public spaces;
++- population needs.
++
++## Care
++
++- medicine;
++- mental health;
++- disability support;
++- quarantine;
++- casualty planning.
++
++## Fabrication and stores
++
++- production;
++- maintenance planning;
++- tools;
++- spares;
++- material accounting.
++
++## Information and contact
++
++- sensors;
++- communications;
++- records;
++- translation;
++- cybersecurity;
++- scientific observation.
++
++## Safety and security
++
++- emergency coordination;
++- fire and pressure response;
++- rescue;
++- proportionate defense;
++- investigation.
++
++## Civic and cultural services
++
++- education;
++- deliberation;
++- justice;
++- archives;
++- art;
++- ritual;
++- hospitality.
++
++Departments can be organized differently by culture, but the work still exists.
++
++# 3. Station Design
++
++A station should expose:
++
++- current state;
++- intended state;
++- uncertainty;
++- constraints;
++- alerts with provenance;
++- available actions;
++- predicted consequences;
++- authority scope;
++- automation state;
++- nearby collaborators;
++- physical location of relevant equipment.
++
++Avoid generic glowing panels disconnected from machinery.
++
++A player should be able to leave the station and inspect the system it represents.
++
++# 4. Qualification and Mastery
++
++Operator capability derives from:
++
++- conceptual knowledge;
++- practiced procedures;
++- familiarity with this carrier;
++- embodiment and tools;
++- current stress and injury;
++- team coordination;
++- automation support;
++- valid authorization.
++
++Progression unlocks better perception, planning and execution—not arbitrary permission to violate physics.
++
++Experienced operators notice:
++
++- subtle trends;
++- misleading sensor combinations;
++- dangerous shortcuts;
++- hidden dependencies;
++- when automation is technically correct but contextually wrong.
++
++# 5. Automation Modes
++
++## Advisory
++
++Automation predicts and recommends; people act.
++
++## Supervised control
++
++Automation operates within a narrow envelope while a qualified person monitors.
++
++## Routine autonomy
++
++Automation performs stable, certified tasks and escalates exceptions.
++
++## Emergency autonomy
++
++Automation acts to preserve life under declared rules when human response is unavailable.
++
++## Delegated mission autonomy
++
++An authorized machine person or agent coordinates a bounded mission with audit and appeal.
++
++Automation state must be visible and attributable.
++
++# 6. Single-Player Accessibility
++
++One player should be able to inhabit a large carrier through delegation.
++
++The game should:
++
++- assign qualified NPCs to routine stations;
++- summarize stable watches;
++- surface meaningful exceptions;
++- let the player choose focus;
++- permit time acceleration during stable operation;
++- provide command recommendations;
++- allow switching to another character when appropriate;
++- preserve consequences of staffing and trust.
++
++The player is not required to perform every watch, but their organization choices matter.
++
++# 7. Co-op Operations
++
++Co-op becomes valuable during:
++
++- difficult docking;
++- high-acceleration burns;
++- storm or atmospheric interface;
++- simultaneous deployments;
++- major damage;
++- quarantine;
++- rescue;
++- combat;
++- first contact;
++- political crisis.
++
++Players may occupy different stations, move physically between them, or command independent carried bases.
++
++No station should consist of passive waiting. Stable tasks can be delegated or compressed.
++
++# 8. Watchstanding
++
++Carrier life uses watches, shifts or culturally equivalent systems.
++
++Watch state includes:
++
++- assigned people;
++- qualifications;
++- fatigue;
++- handover notes;
++- outstanding faults;
++- current mission phase;
++- authority transfer;
++- absence and substitution.
++
++Poor handover can create risk, but should not become repetitive paperwork after mastery.
++
++# 9. Crew Trust and Professional Ethics
++
++Crew response depends on:
++
++- player competence;
++- honesty;
++- treatment of subordinates;
++- respect for safety;
++- reliability;
++- mission values;
++- political legitimacy;
++- past outcomes.
++
++A respected commander can obtain discretionary effort. An abusive commander may face concealment, departure, refusal, union action or lawful removal.
++
++# 10. Damage as Network State
++
++Damage affects component and district graphs.
++
++Damage types include:
++
++- structural fracture;
++- pressure breach;
++- fire;
++- electrical fault;
++- thermal-loop loss;
++- contamination;
++- software compromise;
++- sensor degradation;
++- drive damage;
++- dock obstruction;
++- habitat ecology collapse;
++- personnel loss;
++- maintenance backlog.
++
++# 11. Graceful Degradation
++
++A carrier should often remain alive after losing peak capability.
++
++Possible responses:
++
++- isolate one district;
++- reduce acceleration;
++- shut down a fabrication line;
++- ration heat or water;
++- convert public halls to shelter;
++- use carried craft as auxiliary power or evacuation;
++- split the carrier cluster;
++- abandon a damaged module;
++- accept tow;
++- become a temporary station;
++- change mission.
++
++Failure is a new operating state, not always an explosion.
++
++# 12. Emergency Priorities
++
++Emergency plans contain declared priorities such as:
++
++1. preserve immediate life;
++2. contain cascading hazard;
++3. maintain minimum command and communication;
++4. preserve evacuation paths;
++5. protect care and dependent populations;
++6. retain maneuvering or safe orbit;
++7. preserve irreplaceable ecological and historical continuity;
++8. restore mission capability.
++
++Different charters may order some priorities differently, but cannot erase basic rights.
++
++# 13. Damage-Control Gameplay
++
++Meaningful tasks include:
++
++- diagnose source rather than chase alarms;
++- close and verify boundaries;
++- reroute power and fluids;
++- physically reach damaged equipment;
++- coordinate suits and tools;
++- move residents;
++- choose repair versus isolation;
++- use carried craft;
++- fabricate substitute parts;
++- manage heat and time;
++- document uncertainty.
++
++After familiar procedures are mastered, routine steps compress while diagnosis and decisions remain.
++
++# 14. Command Loss and Succession
++
++The carrier must continue if the bridge, captain or player is unavailable.
++
++Succession state includes:
++
++- declared chain;
++- department autonomy;
++- emergency council;
++- machine authority;
++- external trustees;
++- quorum rules;
++- later review.
++
++Command loss should create tension without making the entire ship stupid.
++
++# 15. Enemy and Horror Interactions
++
++The director may exploit actual vulnerabilities but cannot cheat.
++
++Threats may:
++
++- observe emissions;
++- damage exposed systems;
++- infiltrate through valid access;
++- disrupt communications;
++- exploit neglected maintenance;
++- target docks or logistics;
++- spread contamination through real paths.
++
++They may not:
++
++- spawn in sealed spaces;
++- know private plans without an information path;
++- force a failure because pacing is low;
++- disable redundant systems without affecting them.
++
++# 16. Player Legibility
++
++At every scale, players need to know:
++
++- what is wrong;
++- what is believed rather than confirmed;
++- who is working on it;
++- what happens if ignored;
++- what resources are needed;
++- what authority they possess;
++- what tradeoffs an action creates.
++
++Use map layers, physical signs, crew reports, IRIS interpretation and station instruments. Avoid one omniscient damage list unless accessibility settings request it.
++
++# 17. Performance Model
++
++Distant stable systems update in coarse intervals.
++
++High-frequency simulation is reserved for:
++
++- active maneuvers;
++- damaged networks;
++- player-local machinery;
++- life-critical thresholds;
++- combat and docking;
++- time-sensitive ecology.
++
++Named crew and continuity-critical institutions persist even when their routine work is aggregated.
++
++# 18. First Benchmark Scenario
++
++One multirole carrier performs:
++
++- routine transit;
++- crawler deployment;
++- an external craft return with contamination uncertainty;
++- simultaneous radiator damage;
++- a clinic surge;
++- command-player disconnection;
++- NPC succession;
++- partial district isolation;
++- recovery without total mission failure.
++
++The scenario must be completable in single-player assisted mode and four-player professional mode from the same authoritative state.
++
++## Runtime Maxim
++
++> **The ship becomes playable not when one person can do everything, but when responsibility can move between people without the civilization losing itself.**
+-- 
+2.47.3
+

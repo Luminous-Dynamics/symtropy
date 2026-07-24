@@ -5,6 +5,9 @@ version: 0.1
 milestone: seedworks-v0.1-to-v1.0
 scope: resource chains, material provenance, logistics, fabrication, civic authorization, settlement metabolism, worldline history
 recommended_path: docs/seedworks/00_canon/SYMTROPY_RESOURCE_CHAINS_GAME_DOC_V0_1.md
+owner: design/systems
+related:
+  - canon/ECONOMY_INTEGRITY_MARKETS_LABOR_AND_ANTI_EXPLOIT_CONTRACT_V0_1.md
 ---
 
 # Symtropy Resource Chains Game Design Document
@@ -59,6 +62,10 @@ The resource economy should make players feel that civilization is not an abstra
 It is water in pipes, charge in batteries, medicine in cold storage, seals on valves, food in kitchens, steel in bridges, testimony in archives, and trust in the hands that move it all.
 
 ---
+
+## Economy Boundary
+
+This document owns the physical and industrial transformation chains. Market integrity, custody, labor, currency, property, and anti-exploit rules are defined in [Economy Integrity, Markets, Labor, and Anti-Exploit Contract](canon/ECONOMY_INTEGRITY_MARKETS_LABOR_AND_ANTI_EXPLOIT_CONTRACT_V0_1.md).
 
 # 1. Purpose
 

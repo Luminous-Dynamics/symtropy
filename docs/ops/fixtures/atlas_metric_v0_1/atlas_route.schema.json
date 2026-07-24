@@ -1,0 +1,33 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://symtropy.local/schemas/atlas_route.schema.json",
+  "title": "Atlas Route",
+  "type": "object",
+  "required": ["route_id", "worldline_id", "origin", "destination", "minimum_latency_seconds", "nominal_latency_seconds", "maximum_mass_kg", "status"],
+  "properties": {
+    "route_id": {"type": "string", "minLength": 1},
+    "worldline_id": {"type": "string", "minLength": 1},
+    "origin": {"type": "string", "minLength": 1},
+    "destination": {"type": "string", "minLength": 1},
+    "minimum_latency_seconds": {"type": "integer", "minimum": 1},
+    "nominal_latency_seconds": {"type": "integer", "minimum": 1},
+    "maximum_latency_seconds": {"type": "integer", "minimum": 1},
+    "maximum_mass_kg": {"type": "number", "exclusiveMinimum": 0},
+    "information_bandwidth_bps": {"type": "number", "minimum": 0},
+    "valid_from_atlas_tick": {"type": "string", "pattern": "^[0-9]+$"},
+    "valid_until_atlas_tick": {"type": ["string", "null"], "pattern": "^[0-9]+$"},
+    "route_solution_hash": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "status": {"enum": ["survey", "pairing", "certification", "open", "degraded", "closed", "scarred", "retired"]}
+  },
+  "allOf": [
+    {
+      "if": {"required": ["maximum_latency_seconds"]},
+      "then": {
+        "properties": {
+          "maximum_latency_seconds": {"minimum": 1}
+        }
+      }
+    }
+  ],
+  "additionalProperties": false
+}

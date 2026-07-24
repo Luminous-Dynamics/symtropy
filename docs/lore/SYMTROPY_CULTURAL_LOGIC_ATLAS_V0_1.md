@@ -2,6 +2,10 @@
 
 ## Symtropy Cultural Logic Atlas
 
+## v1.9 cross-contamination note
+
+Cultural entries are design anchors rather than claims of ideological uniformity. Unrelated institutions, minority practices, mixed households, class divisions, assimilation, heritage markets, reactionaries, and ordinary nonparticipants are developed in [Cultural Cross-Contamination, Minorities, Mixed Households, and Ordinary Nonparticipants Atlas](CULTURAL_CROSS_CONTAMINATION_MINORITIES_MIXED_HOUSEHOLDS_AND_ORDINARY_NONPARTICIPANTS_ATLAS_V0_1.md).
+
 **Version:** 0.1  
 **Purpose:** Convert cultural, subcultural, philosophical, ecological, spiritual, professional, and aesthetic lineages into ethical fictional design systems for Symtropy.  
 **Status:** Foundation draft for society generation, region design, concept art, Field Deck UI, Chronicle hooks, and charter mechanics.

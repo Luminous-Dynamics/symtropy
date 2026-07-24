@@ -14,7 +14,9 @@
 
 use arrayvec::ArrayVec;
 use nalgebra::SVector;
-use symtropy_math::Shape;
+use symtropy_math::{Point, Shape, Transform};
+
+use crate::support_map::{TransformedShape, WorldSupportMap};
 
 /// Maximum GJK iterations before giving up.
 const MAX_ITERATIONS: usize = 64;
@@ -35,35 +37,53 @@ pub struct GjkResult<const D: usize> {
     pub iterations: usize,
 }
 
-/// Test if two shapes intersect using the GJK algorithm.
+/// Test if two translated shapes intersect using the GJK algorithm.
 ///
-/// `pos_a` and `pos_b` are the world-space positions of the shapes' origins.
-/// The shapes' support functions are in local space.
+/// This compatibility entry point preserves the original API. New code should
+/// prefer [`intersects_transformed`] so orientation is included.
 pub fn intersects<const D: usize>(
     shape_a: &dyn Shape<D>,
     pos_a: &SVector<f64, D>,
     shape_b: &dyn Shape<D>,
     pos_b: &SVector<f64, D>,
 ) -> GjkResult<D> {
-    // Initial direction: from A to B
-    let mut direction = pos_b - pos_a;
+    let transform_a = Transform::from_translation(Point(*pos_a));
+    let transform_b = Transform::from_translation(Point(*pos_b));
+    intersects_transformed(shape_a, &transform_a, shape_b, &transform_b)
+}
+
+/// Test two local-space shapes after their complete rigid transforms have been
+/// applied. This is the canonical GJK entry point used by `PhysicsWorld`.
+pub fn intersects_transformed<const D: usize>(
+    shape_a: &dyn Shape<D>,
+    transform_a: &Transform<D>,
+    shape_b: &dyn Shape<D>,
+    transform_b: &Transform<D>,
+) -> GjkResult<D> {
+    let map_a = TransformedShape::new(shape_a, transform_a);
+    let map_b = TransformedShape::new(shape_b, transform_b);
+    intersects_support_maps(&map_a, &map_b)
+}
+
+/// GJK over arbitrary world-space support maps.
+pub fn intersects_support_maps<const D: usize>(
+    shape_a: &dyn WorldSupportMap<D>,
+    shape_b: &dyn WorldSupportMap<D>,
+) -> GjkResult<D> {
+    // Initial direction: from A to B.
+    let mut direction = shape_b.center_world() - shape_a.center_world();
     if direction.norm_squared() < 1e-20 {
-        // Shapes at same position — pick arbitrary direction
         direction = SVector::zeros();
         direction[0] = 1.0;
     }
 
-    // First support point on the Minkowski difference
-    let first = minkowski_support(shape_a, pos_a, shape_b, pos_b, &direction);
+    let first = minkowski_support(shape_a, shape_b, &direction);
     let mut simplex = Simplex::new();
     simplex.push(first);
-
-    // New search direction: toward the origin from the first point
     direction = -first;
 
     for iteration in 0..MAX_ITERATIONS {
         if direction.norm_squared() < 1e-20 {
-            // Origin is on the simplex — intersection
             return GjkResult {
                 intersecting: true,
                 simplex,
@@ -71,9 +91,7 @@ pub fn intersects<const D: usize>(
             };
         }
 
-        let new_point = minkowski_support(shape_a, pos_a, shape_b, pos_b, &direction);
-
-        // If the new point didn't pass the origin, no intersection
+        let new_point = minkowski_support(shape_a, shape_b, &direction);
         if new_point.dot(&direction) < -1e-10 {
             return GjkResult {
                 intersecting: false,
@@ -83,8 +101,6 @@ pub fn intersects<const D: usize>(
         }
 
         simplex.push(new_point);
-
-        // Process the simplex — try to enclose the origin
         if do_simplex(&mut simplex, &mut direction) {
             return GjkResult {
                 intersecting: true,
@@ -94,7 +110,6 @@ pub fn intersects<const D: usize>(
         }
     }
 
-    // Max iterations — assume not intersecting
     GjkResult {
         intersecting: false,
         simplex,
@@ -103,16 +118,13 @@ pub fn intersects<const D: usize>(
 }
 
 /// Support point on the Minkowski difference A - B.
+#[inline]
 fn minkowski_support<const D: usize>(
-    shape_a: &dyn Shape<D>,
-    pos_a: &SVector<f64, D>,
-    shape_b: &dyn Shape<D>,
-    pos_b: &SVector<f64, D>,
+    shape_a: &dyn WorldSupportMap<D>,
+    shape_b: &dyn WorldSupportMap<D>,
     direction: &SVector<f64, D>,
 ) -> SVector<f64, D> {
-    let sa = shape_a.support(direction) + pos_a;
-    let sb = shape_b.support(&-direction) + pos_b;
-    sa - sb
+    shape_a.support_world(direction) - shape_b.support_world(&(-*direction))
 }
 
 /// Process the simplex and update the search direction.
@@ -619,5 +631,42 @@ mod proptests {
                 );
             }
         }
+    }
+
+    #[test]
+    fn rotated_thin_box_uses_full_transform() {
+        use std::f64::consts::FRAC_PI_2;
+        use symtropy_math::{Bivector, HyperBox, Rotor, Transform};
+
+        // Local long axis is X. After a 90-degree XY rotation it is vertical,
+        // so a sphere at y=1.5 must overlap the box. A position-only query
+        // would incorrectly see the box as only 0.25 units tall.
+        let box_shape = HyperBox::<3>::new([2.0, 0.25, 0.25]);
+        let sphere = Sphere::<3>::unit();
+        let box_transform = Transform {
+            translation: Point::origin(),
+            rotation: Rotor::from_plane_angle(&Bivector::unit_plane(0, 1), FRAC_PI_2),
+        };
+        let sphere_transform = Transform::from_translation(Point::new([0.0, 1.5, 0.0]));
+
+        let result = intersects_transformed(&box_shape, &box_transform, &sphere, &sphere_transform);
+        assert!(result.intersecting);
+    }
+
+    #[test]
+    fn rotated_thin_box_separation_is_not_axis_aligned_false_positive() {
+        use std::f64::consts::FRAC_PI_2;
+        use symtropy_math::{Bivector, HyperBox, Rotor, Transform};
+
+        let box_shape = HyperBox::<3>::new([2.0, 0.25, 0.25]);
+        let sphere = Sphere::<3>::new(Point::origin(), 0.2);
+        let box_transform = Transform {
+            translation: Point::origin(),
+            rotation: Rotor::from_plane_angle(&Bivector::unit_plane(0, 1), FRAC_PI_2),
+        };
+        let sphere_transform = Transform::from_translation(Point::new([1.0, 0.0, 0.0]));
+
+        let result = intersects_transformed(&box_shape, &box_transform, &sphere, &sphere_transform);
+        assert!(!result.intersecting);
     }
 }

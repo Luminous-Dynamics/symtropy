@@ -1,0 +1,396 @@
+From 2398cee3064ac9488dddb8df637d5404bb4a3fe9 Mon Sep 17 00:00:00 2001
+From: OpenAI Symtropy Document Steward <symtropy-docs@openai.invalid>
+Date: Tue, 21 Jul 2026 14:42:31 +0000
+Subject: [PATCH 05/10] Define Protectorate refusal rights and anti-warlord
+ safeguards
+
+---
+ ...D_ANTI_WARLORD_SAFEGUARDS_CONTRACT_V0_1.md | 376 ++++++++++++++++++
+ 1 file changed, 376 insertions(+)
+ create mode 100644 canon/PROTECTORATE_REFUSAL_RIGHTS_CIVILIAN_OVERSIGHT_AND_ANTI_WARLORD_SAFEGUARDS_CONTRACT_V0_1.md
+
+diff --git a/canon/PROTECTORATE_REFUSAL_RIGHTS_CIVILIAN_OVERSIGHT_AND_ANTI_WARLORD_SAFEGUARDS_CONTRACT_V0_1.md b/canon/PROTECTORATE_REFUSAL_RIGHTS_CIVILIAN_OVERSIGHT_AND_ANTI_WARLORD_SAFEGUARDS_CONTRACT_V0_1.md
+new file mode 100644
+index 0000000..c197ca0
+--- /dev/null
++++ b/canon/PROTECTORATE_REFUSAL_RIGHTS_CIVILIAN_OVERSIGHT_AND_ANTI_WARLORD_SAFEGUARDS_CONTRACT_V0_1.md
+@@ -0,0 +1,376 @@
++---
++title: Protectorate Refusal Rights, Civilian Oversight, and Anti-Warlord Safeguards Contract
++version: 0.1
++status: canonical-draft
++scope: lawful refusal, unlawful abandonment, civilian control, strategic weapons, emergency authority, detention, discipline, anti-capture, and institutional repair
++owner: design/governance/protectorate/accountability
++related:
++  - PROTECTORATE_FEDERATION_CIVIL_DEFENSE_AND_NON_IMPERIAL_AUTHORITY_CONTRACT_V0_1.md
++  - ../tech/RESERVE_MOBILIZATION_COALITION_COMMAND_AND_MISSION_SCOPING_RUNTIME_V0_1.md
++  - ../tech/PROTECTORATE_UNIT_REGISTRY_CHARTER_INTEROPERABILITY_AND_LOCAL_LEGITIMACY_RUNTIME_V0_1.md
++  - ../ops/PROTECTORATE_20000_UNIT_FEDERATION_BENCHMARK_V0_1.md
++---
++
++# Protectorate Refusal Rights, Civilian Oversight, and Anti-Warlord Safeguards Contract
++
++## 1. Owned Question
++
++**How can locally autonomous Protectorate units refuse unlawful command without making federation defense unreliable, and how can powerful carriers and commanders be prevented from becoming warlords?**
++
++## 2. Core Answer
++
++Refusal must be protected, procedural, evidentiary, and consequential.
++
++Civilian oversight must be distributed, continuous, and able to survive crisis. No single safeguard is sufficient. The system requires overlapping limits on authority, finance, weapons, information, appointment, detention, logistics, and historical legitimacy.
++
++> **A Protectorate that cannot refuse unlawful violence is an army of obedience. A Protectorate that cannot fulfill lawful obligations is only a collection of armed preferences.**
++
++# 3. Refusal Categories
++
++## 3.1 Immediate unlawful-order refusal
++
++A participant may refuse an order that reasonably appears to require:
++
++- deliberate attack on civilians;
++- torture;
++- secret disappearance;
++- unlawful execution;
++- forced medical treatment without emergency justification;
++- destruction of protected evacuation corridors;
++- falsification of evidence;
++- surrender violation;
++- forced annexation outside mission scope;
++- use of prohibited weapons;
++- erasure of machine or alien personhood recognized by the charter.
++
++The participant should record the order and grounds when possible, but inability to record does not erase the right.
++
++## 3.2 Scope refusal
++
++A unit may challenge or refuse deployment beyond:
++
++- its geographic charter;
++- permitted force level;
++- agreed mission duration;
++- capability certification;
++- represented community's mandate.
++
++Emergency deviation may be possible when immediate lives are at stake, but must remain reviewable.
++
++## 3.3 Professional refusal
++
++Certain professions retain protected authority:
++
++- medics may reject medically harmful commands;
++- engineers may refuse unsafe operations;
++- pilots may refuse impossible flight profiles;
++- evidence custodians may reject destruction or falsification;
++- quarantine officers may block contaminated transfer;
++- translators may reject knowingly false translations.
++
++## 3.4 Conscientious withdrawal
++
++Individuals or units may seek reassignment or withdrawal based on deeply held objection, provided transition does not immediately abandon protected people.
++
++## 3.5 Unlawful abandonment
++
++Refusal becomes potentially unlawful when a unit:
++
++- abandons an active protective duty without warning;
++- fabricates legal grounds;
++- withholds critical information;
++- deserts for private gain;
++- refuses solely to harm political rivals;
++- leaves civilians exposed after accepting command and support.
++
++The runtime must distinguish refusal from sabotage and abandonment.
++
++# 4. Refusal Procedure
++
++When conditions permit:
++
++1. identify the order;
++2. state the objection;
++3. cite charter, law, profession, evidence, or capability limit;
++4. request confirmation or amendment;
++5. notify an independent witness channel;
++6. preserve operational safety;
++7. propose a lawful alternative;
++8. record retaliation or pressure;
++9. submit to later review.
++
++During immediate danger, steps may compress. The system must not demand impossible formalism before protecting life.
++
++# 5. Anti-Retaliation
++
++Protected refusers must not automatically lose:
++
++- employment;
++- housing;
++- medical care;
++- citizenship;
++- family access;
++- certification;
++- source-chain services;
++- public voice.
++
++Temporary reassignment may occur for safety, but punitive measures require review.
++
++False or malicious refusal claims can be disciplined after evidence, not presumed.
++
++# 6. Civilian Oversight Bodies
++
++Oversight should be plural.
++
++Possible bodies include:
++
++- elected charter councils;
++- resident assemblies;
++- worker and crew councils;
++- professional review boards;
++- independent courts;
++- treaty observers;
++- machine or alien representation chambers;
++- public auditors;
++- victim and survivor representatives;
++- rotating citizen review panels.
++
++No one body should control appointments, money, weapons, detention, evidence, and adjudication simultaneously.
++
++# 7. Oversight Powers
++
++Oversight may possess authority to:
++
++- review mobilization;
++- audit readiness and spending;
++- inspect detention;
++- review use of force;
++- suspend officers;
++- protect witnesses;
++- demand public explanation;
++- limit emergency extensions;
++- authorize strategic weapons;
++- appoint independent investigators;
++- order compensation or institutional reform;
++- dissolve captured units through lawful process.
++
++Classified information may limit public detail, but secrecy itself must remain scoped and reviewable.
++
++# 8. Strategic Weapon Control
++
++Strategic weapons must require distributed authorization.
++
++Possible controls:
++
++- two or more independent command keys;
++- civilian authorization;
++- professional safety concurrence;
++- target and collateral verification;
++- time-limited release;
++- authenticated mission scope;
++- automatic evidence logging;
++- protected abort authority;
++- post-use public review.
++
++No private owner, charismatic commander, or carrier captain should have unilateral strategic-fire authority by default.
++
++# 9. Carrier Anti-Capture Architecture
++
++Large Protectorate ships are especially vulnerable to political capture because they combine mobility, weapons, housing, logistics, and communication.
++
++Safeguards include:
++
++- distributed command citadels;
++- independent engineering authority;
++- resident council access to emergency records;
++- compartment-level refusal and safe shutdown;
++- separate control of weapons, propulsion, and detention;
++- authenticated temporary command grants;
++- public succession rules;
++- external treaty recognition;
++- protected communication beacons;
++- crew rotation and leave;
++- anti-cult institutional practices.
++
++A captain cannot lawfully convert residents into subjects merely by isolating the vessel.
++
++# 10. Emergency Power
++
++Emergency powers must define:
++
++- triggering facts;
++- geographic and functional scope;
++- permitted actions;
++- excluded actions;
++- duration;
++- renewal procedure;
++- oversight access;
++- succession;
++- termination conditions;
++- remedy for misuse.
++
++Automatic expiry is preferable to indefinite continuation.
++
++A continuing emergency may justify renewal, not disappearance of review.
++
++# 11. Detention and Surrender
++
++Protectorate units must have explicit rules for:
++
++- temporary safety detention;
++- prisoners of conflict;
++- surrendered crews;
++- suspected saboteurs;
++- contaminated persons;
++- children and dependents;
++- machine instances;
++- alien persons with incompatible embodiment.
++
++Requirements include:
++
++- identity preservation;
++- medical care;
++- communication where safe;
++- recorded grounds;
++- review;
++- separation of detention from punishment;
++- transfer or release process;
++- protection against disappearance.
++
++# 12. Financial Anti-Capture
++
++Warlordism often begins through logistics, not ideology.
++
++The runtime should track:
++
++- who pays units;
++- who controls fuel and food;
++- private debts;
++- equipment ownership;
++- contractor dependence;
++- protection fees;
++- seized cargo;
++- informal tribute;
++- opaque procurement;
++- commander-linked firms.
++
++A unit can become politically captured before its charter changes.
++
++# 13. Information Anti-Capture
++
++Safeguards include:
++
++- independent sensor archives;
++- public incident summaries;
++- multiple witness channels;
++- source-chain verification;
++- protected whistleblower transmission;
++- delayed-release evidence bundles;
++- external Chronicle replication;
++- separation between propaganda and operational records.
++
++A federation that receives only the commander's version of events is already failing.
++
++# 14. Appointment and Succession
++
++Command appointments should have:
++
++- eligibility rules;
++- term or mission limits;
++- transparent succession;
++- conflict-of-interest disclosure;
++- removal procedures;
++- emergency replacement;
++- anti-nepotism constraints where appropriate;
++- recognition of competence without permanent office.
++
++Hereditary or household lineages may nominate leaders, but cannot erase resident and treaty rights.
++
++# 15. Militia-Partisan Boundary
++
++Local defense units can become instruments of political exclusion.
++
++Warning states include:
++
++- membership tied to one ethnicity, species, sect, or party;
++- selective protection;
++- intimidation during elections;
++- private detention;
++- political patrols outside charter;
++- weapon distribution to loyalists;
++- propaganda portraying residents as internal enemies;
++- refusal to recognize lawful civilian review.
++
++The system should allow reform, suspension, replacement, or conflict rather than instantly relabeling every captured unit as an enemy faction.
++
++# 16. Oversight Failure
++
++Oversight can also become abusive through:
++
++- political micromanagement of emergencies;
++- leaking protected information;
++- punishing lawful tactical judgment;
++- elite capture;
++- performative investigations;
++- delayed decisions that cost lives;
++- hostility to minority units;
++- impossible compliance burdens.
++
++The design must not treat civilian oversight as automatically wise.
++
++# 17. Institutional Repair
++
++After abuse or capture, possible remedies include:
++
++- public accounting;
++- officer removal;
++- victim compensation;
++- charter amendment;
++- unit retraining;
++- equipment transfer;
++- temporary external supervision;
++- demobilization;
++- split or merger;
++- memorialization;
++- criminal or civil process;
++- rebuilding local trust through service.
++
++Disbanding every failed unit may erase useful capacity and drive members underground. Repair should be available but not guaranteed.
++
++# 18. Player Experience
++
++Players may:
++
++- receive and challenge an order;
++- protect a subordinate refuser;
++- discover hidden financial capture;
++- serve on an oversight panel;
++- expose fabricated emergency evidence;
++- defend a commander wrongly accused;
++- negotiate a lawful mission amendment;
++- remove a warlord without destroying the unit;
++- choose whether to obey a popular but unlawful command;
++- testify after a convoy abandonment.
++
++There should be no universal “good refusal” dialogue option. The truth depends on evidence, timing, duty, and consequence.
++
++# 19. Acceptance Criteria
++
++A valid implementation demonstrates:
++
++- refusal at individual and unit levels;
++- protected professional authority;
++- unlawful abandonment;
++- retaliation and anti-retaliation;
++- civilian oversight with real powers;
++- oversight failure modes;
++- distributed strategic weapon control;
++- carrier anti-capture design;
++- emergency expiry;
++- detention safeguards;
++- financial and information capture;
++- institutional repair.
++
++# Closing Principle
++
++> **The Protectorate proves its legitimacy not when every order is obeyed, but when it can remain capable while allowing conscience, law, evidence, and civilian authority to interrupt power.**
+-- 
+2.47.3
+

@@ -1,8 +1,21 @@
+---
+title: Symtropy Vision Document
+version: 0.5
+status: supporting
+scope: broad long-horizon vision and world promise
+owner: design/creative-direction
+canonical_interpretation: ../canon/SYMTROPY_GAME_CONSTITUTION_V0_6.md
+related:
+  - ../canon/PLAYER_EXPERIENCE_AND_SESSION_RHYTHM_CONTRACT_V0_1.md
+  - ../ops/SEEDWORKS_REGIONAL_CIVILIZATION_SLICE_V0_2.md
+---
+
+> **Canon notice:** This document remains the broad long-horizon vision. Product boundaries and conflict resolution are governed by the [Game Constitution v0.6](../canon/SYMTROPY_GAME_CONSTITUTION_V0_6.md).
 # GAME_VISION.md
 
 # Symtropy: Seedworks
 
-## Version 0.4 — One Galaxy, Infinite Histories, Player-Built Futures
+## Version 0.5 — One Galaxy, Infinite Histories, Player-Built Futures
 
 ## One-Sentence Pitch
 
@@ -125,47 +138,48 @@ It contains:
 
 The basin is small enough to finish and polish, but it should be architected as part of a full procedural planet.
 
-## First 30 Minutes
+## First 30–90 Minutes
 
 The opening should teach the entire game fantasy without a lore dump.
 
-The player wakes during a storm in Seedworks Outpost.
+The player wakes or arrives during a storm in Seedworks Outpost.
 
-Power is unstable.
+The basin is experiencing a connected cascade:
 
-The water pump is failing.
+* reserve power is falling;
+* the medbay needs cooling;
+* the greenhouse is overheating;
+* water pressure is declining;
+* a convoy is stranded beyond a collapsed bridge;
+* the archive relay is broadcasting contradictory identity records;
+* a rogue factory has resumed emergency production;
+* wildlife is leaving the wetlands;
+* orbital debris is crossing the sky.
 
-NPCs are arguing over whether the last battery reserve should go to the medbay, the fabricator, perimeter defense, or the water system.
+The player moves through a living settlement before choosing a first commitment.
 
-A friendly service robot asks for help.
+Possible opening priorities include:
 
-A red signal pulses from a rogue factory in the distance.
+1. Reopen the route and recover the convoy.
+2. Enter and constrain the rogue factory.
+3. Stabilize greenhouse and wetland systems.
+4. Restore the ridge signal relay.
+5. Restore water continuity at Old Waterworks.
 
-The player must:
+No single path represents the whole game.
 
-1. Pick up a repair tool.
-2. Restore a local power junction.
-3. Salvage parts from a nearby wreck.
-4. Repair or fabricate a pump component.
-5. Transport the part to the waterworks.
-6. Fight simple rogue machine drones.
-7. Restore water flow.
-8. Return to the settlement.
-9. Watch NPC behavior change.
-10. Participate in the first public vote.
+Across the regional slice, the player should experience:
 
-In one short arc, the player experiences:
-
-* survival
-* repair
-* salvage
-* fabrication
-* logistics
-* combat
-* infrastructure
-* NPC stakes
-* governance
-* settlement state change
+* embodied survival and traversal;
+* exploration and discovery;
+* physical tools and construction;
+* combat or meaningful danger;
+* cargo, vehicles, and logistics;
+* infrastructure and ecology;
+* NPC lives and relationships;
+* culture beyond crisis;
+* persistent regional state change;
+* a glimpse of the planetary and cosmic horizon.
 
 That is Symtropy in seed form.
 
@@ -711,75 +725,73 @@ Autonomous seed civilizations, deep-time governance, new solar systems.
 
 The first playable slice should include:
 
-* one region: Firstlight Basin
-* first-person controller
-* repair tool
-* scan tool
-* salvage loop
-* simple weapon
-* inventory
-* basic construction
-* basic power grid
-* basic water system
-* one fabricator
-* one rover
-* one friendly robot
-* 5–8 named NPCs
-* ambient civilians and bots
-* one rogue factory
-* several Null enemy types
-* one ghost civic ruin
-* one public vote
-* settlement state vector
-* procedural archetype weights
-* Chronicle event log
-* visible timeline scars
+* one region: Firstlight Basin;
+* one living settlement hub;
+* several traversable routes;
+* first-person controller and embodied tools;
+* one rover or mobility transition;
+* salvage and cargo handling;
+* one excellent weapon and one industrial tool with combat utility;
+* basic construction or persistent repair;
+* power, food, water, signal, and route pressures;
+* one fabricator;
+* one friendly robot;
+* 5–8 named NPCs plus ambient life;
+* one rogue factory or equivalent industrial site;
+* several Null enemy roles;
+* one ecological mystery;
+* one archive or communication site;
+* one cultural scene;
+* one concise coordination decision;
+* a regional state vector;
+* a Chronicle event summary;
+* visible orbital and planetary horizons.
 
 The first version does not need to simulate the whole galaxy.
 
-It needs one place where every system points toward the galaxy.
+It needs one region where every pillar points toward the galaxy.
 
 ## Version Roadmap
 
-### v0.1 — Seedworks Outpost
+### v0.1 — Basin Wake
 
-One basin, one settlement, one water crisis, one public vote, one rogue factory.
+One region, one settlement, three playable crisis threads, one vehicle, one construction choice, one Null enemy family, one persistent Chronicle outcome.
 
 ### v0.2 — Frontier Contracts
 
-Squad missions, convoy defense, better combat, mission board, more enemy types.
+Squad missions, convoy defense, stronger combat, mission board, additional sites, and route recovery.
 
-### v0.3 — Civic Machine
+### v0.3 — Living Settlement
 
-Settlement state vector, laws, public works, NPC trust, legitimacy, budgets, emergency powers.
+NPC schedules and relationships, settlement state, public works, culture, trust, legitimacy, and emergency response.
 
 ### v0.4 — Factory and Logistics
 
-Automation, vehicles, warehouses, roads, rail, storage, route planning, production chains.
+Automation, vehicle fleets, warehouses, roads, rail, storage, route planning, and production chains.
 
 ### v0.5 — Procedural Society Prototype
 
-Archetype vectors, faction pressures, legitimacy debt, civic drift, schism events.
+Archetype vectors, faction pressures, legitimacy debt, cultural drift, schism events, and migration.
 
 ### v0.6 — Worldline Foundations
 
-Self-hosted shards, signed histories, portable blueprints, worldline identity, local archives.
+Self-hosted shards, signed histories, portable blueprints, worldline identity, and local archives.
 
 ### v0.7 — Procedural Planet Prototype
 
-Spherical planet, biomes, ruins, resources, settlement zones, timeline metadata.
+Spherical planet, biomes, weather, ruins, resources, settlement zones, and timeline metadata.
 
 ### v0.8 — Chronicle Engine
 
-Historical records, myths, battles, NPC legends, artifacts, schisms, player canon.
+Historical records, myths, battles, discoveries, NPC legends, artifacts, schisms, and player canon.
 
 ### v0.9 — Confluence Contact
 
-Signals from other worldlines, blueprint migration, early treaty/trade bridge prototypes.
+Signals from other worldlines, blueprint migration, first-contact systems, and early treaty or trade bridge prototypes.
 
 ### v1.0 — The Seed Age
 
-A complete survival-civilization sandbox with building, combat, NPCs, governance, procedural societies, living planets, and persistent worldline history.
+A complete survival-civilization sandbox with exploration, construction, combat, vehicles, ecology, NPCs, governance, procedural societies, living planets, and persistent worldline history.
 
 ## Art Direction
 

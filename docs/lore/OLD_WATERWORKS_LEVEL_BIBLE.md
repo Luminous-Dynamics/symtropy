@@ -1,3 +1,15 @@
+---
+title: Symtropy Old Waterworks Level Bible
+version: 0.1
+status: supporting
+scope: authored Old Waterworks site, infrastructure dungeon, repair and civic encounter
+owner: level-design/narrative/systems
+canonical_role: authored infrastructure dungeon within Firstlight Basin
+related:
+  - ../ops/SEEDWORKS_REGIONAL_CIVILIZATION_SLICE_V0_2.md
+---
+> **Scope notice:** Old Waterworks is one important site in Firstlight Basin, not the identity of Symtropy or the sole first-playable path.
+
 # OLD_WATERWORKS_LEVEL_BIBLE.md
 
 # Symtropy: Old Waterworks Level Bible

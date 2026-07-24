@@ -1,18 +1,12 @@
 ---
-
 title: Device Bus Substrate Systems
-status: implementation
+version: 0.1
+status: canonical-draft
 milestone: seedworks-v0.1-to-v0.2
-scope: substrate systems
+scope: power, audio, proof-of-repair, and Device Bus substrate signals
 owner: design/engineering
-depends_on:
-
-* SEEDWORKS_PLAYABLE_SLICE_SPEC.md
-* SEEDWORKS_ARCHITECTURE.md
-  recommended_path: docs/seedworks/01_milestone_v0_1_old_waterworks/DEVICE_BUS_SUBSTRATE_SYSTEMS.md
-
+recommended_path: docs/seedworks/01_milestone_v0_1_old_waterworks/DEVICE_BUS_SUBSTRATE_SYSTEMS.md
 ---
-
 > **Code status (2026-07-02 review):** the `status: implementation` above does not hold — `crates/symtropy-device-bus/src/lib.rs` is a 20-line stub with no tests. This is substantially still a design document.
 
 # Symtropy Design Doc: Device Bus Substrate Systems

@@ -1,12 +1,11 @@
 ---
-
 title: Solar Mandala Confluence
-status: canonical-draft
 version: 0.1
+status: canonical-draft
 scope: society design, architecture, festival law, solarpunk rave culture, city-building mechanics, crisis hooks
+owner: narrative/world/design
 recommended_path: docs/world/societies/SOLAR_MANDALA_CONFLUENCE_V0_1.md
------------------------------------------------------------------------
-
+---
 # Solar Mandala Confluence
 
 ## Working Title

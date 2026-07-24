@@ -1,3 +1,13 @@
+---
+title: Symtropy Prototype Playtest Checklist
+version: legacy
+status: historical
+scope: early dungeon/Mycelix prototype functional checks
+owner: archive/qa
+superseded_by: PLAYTEST_RESEARCH_PROGRAM_V0_2.md
+---
+
+> **Historical notice:** This checklist verifies an early prototype. Current experience, systems, accessibility, and integrated validation are defined in [PLAYTEST_RESEARCH_PROGRAM_V0_2.md](./PLAYTEST_RESEARCH_PROGRAM_V0_2.md).
 # Symtropy Playtest Checklist
 
 Run with: `cargo run --features mycelix`

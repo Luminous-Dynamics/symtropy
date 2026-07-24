@@ -1,0 +1,43 @@
+{
+  "version": "0.8",
+  "assessment_scope": "documentation only",
+  "default_implementation_status": "I0",
+  "v1_5_capabilities": [
+    {
+      "capability": "interplanetary latency and distributed sovereignty",
+      "design": "D3",
+      "implementation": "I0"
+    },
+    {
+      "capability": "closed-loop habitats and generation ships",
+      "design": "D3",
+      "implementation": "I0"
+    },
+    {
+      "capability": "deep-space logistics rescue and salvage",
+      "design": "D3",
+      "implementation": "I0"
+    },
+    {
+      "capability": "interplanetary fleets and restraint",
+      "design": "D3",
+      "implementation": "I0"
+    },
+    {
+      "capability": "settlement autonomy and non-extractive expansion",
+      "design": "D3",
+      "implementation": "I0"
+    },
+    {
+      "capability": "interplanetary trade finance and custody",
+      "design": "D3",
+      "implementation": "I0"
+    },
+    {
+      "capability": "integrated solar-system civilization",
+      "design": "D3",
+      "implementation": "I0"
+    }
+  ],
+  "evidence_required": "ops/TWO_CENTURY_SOLAR_SYSTEM_CIVILIZATION_BENCHMARK_V0_1.md"
+}

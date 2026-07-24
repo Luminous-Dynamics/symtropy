@@ -8,6 +8,9 @@ extends:
   - EARTH_ATLAS_2168_TEMPLATE.md
   - PROCEDURAL_HISTORY_ENGINE.md
   - MULTIPLAYER_TRUTH_MODEL.md
+version: 0.1
+scope: worldline mechanical differences, state deltas, validation and gameplay consequences
+owner: simulation/design/engineering
 ---
 
 # Worldline Mechanical Delta Schema v0.1

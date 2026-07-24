@@ -13,7 +13,7 @@ use sol_atlas_bevy::markers::DataMarker;
 use sol_atlas_bevy::timeline::{TimelineLayer, TimelineState};
 use sol_atlas_core::geo;
 use sol_atlas_core::lod::LodLevel;
-use sol_atlas_core::types::Layer;
+use sol_atlas_core::types::{Layer, OrbitalObjectType};
 
 /// Tag for markers that are only visible at Surface LOD (close zoom).
 #[derive(Component)]
@@ -137,7 +137,7 @@ impl DataView {
                 Layer::Infrastructure,
                 Layer::Chokepoints,
             ],
-            Self::Interplanetary => vec![], // planets + colonies only (no Earth markers)
+            Self::Interplanetary => vec![Layer::Orbital], // planets + colonies + Earth-orbit objects
         }
     }
 }
@@ -1168,6 +1168,47 @@ pub fn setup_globe_view(
         ));
     }
 
+    // ─── Orbital Objects (real satellites + debris, SGP4-propagated) ──
+    // Point-in-time snapshot from CelesTrak; see
+    // orbital-mechanics/examples/sol_atlas_export.rs. Rendered above the
+    // surface at a schematic (not true-to-scale) altitude: real LEO-to-MEO
+    // altitudes span ~400-20,600km, which at true scale would place GPS
+    // markers ~4x the globe's radius away.
+    let orbital_mesh = meshes.add(Sphere::new(1.0).mesh().uv(6, 6));
+    for obj in &data.orbital_objects {
+        let radius = 1.04 + (obj.alt_km / 20_000.0).clamp(0.0, 1.0) * 0.3;
+        let pos = geo::lat_lon_to_xyz(obj.lat, obj.lon, radius);
+        let (c, size) = match obj.object_type {
+            OrbitalObjectType::Payload => ([0.49, 0.83, 0.99], 0.010),
+            OrbitalObjectType::RocketBody => ([0.7, 0.7, 0.75], 0.008),
+            OrbitalObjectType::Debris => ([0.9, 0.5, 0.3], 0.005),
+        };
+        let mat = materials.add(StandardMaterial {
+            base_color: Color::linear_rgba(c[0], c[1], c[2], 0.8),
+            emissive: LinearRgba::new(c[0] * 0.6, c[1] * 0.6, c[2] * 0.6, 1.0),
+            unlit: true,
+            alpha_mode: AlphaMode::Blend,
+            ..default()
+        });
+        commands.spawn((
+            Mesh3d(orbital_mesh.clone()),
+            MeshMaterial3d(mat),
+            Transform::from_xyz(pos[0], pos[1], pos[2]).with_scale(Vec3::splat(size)),
+            MarkerPulse {
+                speed: 1.5,
+                amplitude: 0.2,
+                phase: obj.lon as f32 * 0.1,
+                base_scale: size,
+            },
+            DataMarker {
+                layer: Layer::Orbital,
+                name: format!("{} ({:?}, {:.0}km)", obj.name, obj.object_type, obj.alt_km),
+            },
+            AtlasEntity,
+        ));
+    }
+    marker_count += data.orbital_objects.len();
+
     // ─── Solar System Bodies ────────────────────────────────────
     let bodies = sol_atlas_core::solar_system::solar_system_bodies();
     let body_mesh = meshes.add(Sphere::new(1.0).mesh().uv(32, 32));
@@ -1528,19 +1569,24 @@ pub fn draw_arcs_system(
     }
 
     // ═══ SHIPPING LANES (Infrastructure view only) ════════════════
-    let lanes = sol_atlas_bevy::data::load_shipping_lanes();
-    let lane_color = Color::linear_rgba(0.15, 0.3, 0.55, 0.10);
-    // Shipping lanes disabled by default — enable in Infrastructure view
-    for route in &lanes {
-        break; // disabled by default — too noisy. Enable in Infrastructure view.
-        for w in route.windows(2) {
-            let a = geo::lat_lon_to_xyz(w[0][1], w[0][0], 1.04);
-            let b = geo::lat_lon_to_xyz(w[1][1], w[1][0], 1.04);
-            gizmos.line(
-                Vec3::new(a[0], a[1], a[2]),
-                Vec3::new(b[0], b[1], b[2]),
-                lane_color,
-            );
+    // Was unconditionally `break`-ing out of the loop before it ever drew
+    // anything, regardless of view -- the comment's stated intent ("enable
+    // in Infrastructure view") was never actually wired to the real
+    // DataView check the rest of this function uses. Fixed: gate on view
+    // instead of a hardcoded break.
+    if *view == DataView::Infrastructure || *view == DataView::All {
+        let lanes = sol_atlas_bevy::data::load_shipping_lanes();
+        let lane_color = Color::linear_rgba(0.15, 0.3, 0.55, 0.10);
+        for route in &lanes {
+            for w in route.windows(2) {
+                let a = geo::lat_lon_to_xyz(w[0][1], w[0][0], 1.04);
+                let b = geo::lat_lon_to_xyz(w[1][1], w[1][0], 1.04);
+                gizmos.line(
+                    Vec3::new(a[0], a[1], a[2]),
+                    Vec3::new(b[0], b[1], b[2]),
+                    lane_color,
+                );
+            }
         }
     }
 }

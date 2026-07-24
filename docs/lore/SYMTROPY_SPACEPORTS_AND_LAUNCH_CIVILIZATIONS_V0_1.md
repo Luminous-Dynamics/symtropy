@@ -13,8 +13,11 @@ related:
   - FIELD_DECK_OVERLAY_PRECEDENCE_RULES_V0_1.md
   - ORIGIN_BIAS_FIELD_DECK_SCHEMA_V0_1.md
   - Symtropy Alien Technology, Deep-Time Presence, and Earth Contact Doctrine.md
-  - Symtropy Design Doc: Cybernetic Crafting & Physical Node Assembly.md
+  - Symtropy Design Doc - Cybernetic Crafting & Physical Node Assembly.md
   - NETWORKING_STACK_DECISION.md
+version: 0.1
+scope: spaceport societies, launch infrastructure, labor, law, Chronicle and Field Deck interaction
+owner: narrative/world/design
 ---
 
 # SYMTROPY_SPACEPORTS_AND_LAUNCH_CIVILIZATIONS_V0_1

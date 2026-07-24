@@ -1,0 +1,76 @@
+{
+  "$id": "symtropy://schemas/settlement_foundation/v0.1",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "cohort": {
+      "items": {
+        "type": "string"
+      },
+      "minItems": 8,
+      "type": "array"
+    },
+    "compact_paths": {
+      "items": {
+        "type": "string"
+      },
+      "minItems": 3,
+      "type": "array"
+    },
+    "founding_mode": {
+      "enum": [
+        "emergency",
+        "invited",
+        "reconstruction",
+        "secession",
+        "mobile",
+        "habitat",
+        "research",
+        "cooperative",
+        "other"
+      ]
+    },
+    "prior_claims": {
+      "items": {
+        "type": "string"
+      },
+      "minItems": 1,
+      "type": "array"
+    },
+    "protected_zones": {
+      "items": {
+        "type": "string"
+      },
+      "type": "array"
+    },
+    "region_id": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "services": {
+      "items": {
+        "type": "string"
+      },
+      "minItems": 5,
+      "type": "array"
+    },
+    "settlement_id": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "worldline_id": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "settlement_id",
+    "region_id",
+    "founding_mode",
+    "prior_claims",
+    "cohort",
+    "services",
+    "compact_paths"
+  ],
+  "title": "Settlement Foundation",
+  "type": "object"
+}

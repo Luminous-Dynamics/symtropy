@@ -12,8 +12,11 @@ related:
   - CHRONICLE_SCALE_ESCALATION_RULES_V0_1.md
   - FIELD_DECK_OVERLAY_PRECEDENCE_RULES_V0_1.md
   - ORIGIN_BIAS_FIELD_DECK_SCHEMA_V0_1.md
-  - Symtropy Design Doc: Death, Reconstitution, and Source-Chain Recovery.md
-  - Symtropy Design Doc: Cybernetic Crafting & Physical Node Assembly.md
+  - Symtropy Design Doc - Death, Reconstitution, and Source-Chain Recovery.md
+  - Symtropy Design Doc - Cybernetic Crafting & Physical Node Assembly.md
+version: 0.1
+scope: orbital habitats, dockside societies, labor, life-support law, Field Deck and Chronicle interactions
+owner: narrative/world/design
 ---
 
 # SYMTROPY_ORBITAL_HABITATS_AND_DOCKSIDE_SOCIETIES_V0_1

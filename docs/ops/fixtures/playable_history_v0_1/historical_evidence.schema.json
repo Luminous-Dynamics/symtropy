@@ -1,0 +1,57 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "symtropy://schemas/playable-history/historical-evidence/v0.1",
+  "title": "Symtropy Historical Evidence Object",
+  "type": "object",
+  "required": [
+    "trace_id",
+    "trace_type",
+    "provenance",
+    "custody",
+    "integrity",
+    "access_scope",
+    "worldline_ancestry"
+  ],
+  "properties": {
+    "trace_id": {
+      "type": "string"
+    },
+    "trace_type": {
+      "enum": [
+        "physical_trace",
+        "functional_remnant",
+        "artifact",
+        "administrative_record",
+        "sensor_record",
+        "private_archive",
+        "testimony",
+        "machine_witness",
+        "memorial",
+        "ecological_scar",
+        "forgery"
+      ]
+    },
+    "provenance": {
+      "type": "object"
+    },
+    "custody": {
+      "type": "object"
+    },
+    "integrity": {
+      "type": "string"
+    },
+    "access_scope": {
+      "type": "string"
+    },
+    "worldline_ancestry": {
+      "type": "string"
+    },
+    "interpretations": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    }
+  },
+  "additionalProperties": true
+}

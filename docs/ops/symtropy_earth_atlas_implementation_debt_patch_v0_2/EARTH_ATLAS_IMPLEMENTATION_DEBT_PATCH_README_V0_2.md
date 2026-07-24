@@ -1,6 +1,10 @@
 ---
 title: Earth Atlas Implementation Debt Patch README v0.2
-status: package-readme
+version: 0.2
+scope: Earth Atlas implementation debt package navigation
+owner: documentation/world-design
+status: supporting
+package_role: readme
 project: Symtropy
 domain: Earth Atlas / Implementation Hardening
 recommended_path: docs/earth-atlas/EARTH_ATLAS_IMPLEMENTATION_DEBT_PATCH_README_V0_2.md

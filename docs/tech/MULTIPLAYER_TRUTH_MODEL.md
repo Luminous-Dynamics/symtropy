@@ -1,3 +1,14 @@
+---
+title: Symtropy Multiplayer Truth Model
+version: 0.1
+status: canonical-draft
+scope: layered truth model for real-time, device, civic, and worldline state
+owner: engineering/networking
+related:
+  - NETWORKING_STACK_DECISION.md
+  - CHRONICLE_EVENT_SCHEMA.md
+  - ../canon/SYSTEM_INTERACTION_AND_DEPENDENCY_MAP_V0_1.md
+---
 # MULTIPLAYER_TRUTH_MODEL.md
 
 # Symtropy Multiplayer Truth Model

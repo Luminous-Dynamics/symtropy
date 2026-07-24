@@ -6,6 +6,9 @@ domain: Earth Atlas / Road Choirs / Mobile Law / Accountability / Vehicle System
 recommended_path: docs/earth-atlas/southern-africa/ROAD_CHOIR_MOBILE_ACCOUNTABILITY_MECHANICS_V0_1.md
 patches:
   - ROAD_CHOIR_CONVOYS_INTERIOR_LIFE_V0_1.md
+version: 0.1
+scope: mobile accountability, convoy testimony and road-choir gameplay mechanics
+owner: design/narrative/systems
 ---
 
 # Road Choir Mobile Accountability Mechanics v0.1

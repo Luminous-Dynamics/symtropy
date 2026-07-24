@@ -8,13 +8,14 @@ use crate::TriangleMesh;
 use crate::meshlet_physics::MultiPhysicsMeshletMesh;
 use arrayvec::ArrayVec;
 use nalgebra::SVector;
-use symtropy_math::Shape;
+use symtropy_math::{Point, Shape, Transform};
 use symtropy_physics::body::BodyHandle;
 use symtropy_physics::broadphase::Aabb;
 use symtropy_physics::contact::{ContactManifold, ContactPoint};
+use symtropy_physics::support_map::{TransformedShape, WorldSupportMap, support_aabb};
 use symtropy_physics::{epa, gjk};
 
-/// Generate contacts between a triangle mesh and another convex shape.
+/// Generate contacts using the legacy translation-only interface.
 pub fn generate_mesh_contacts(
     mesh: &TriangleMesh,
     mesh_handle: BodyHandle,
@@ -23,22 +24,40 @@ pub fn generate_mesh_contacts(
     other_handle: BodyHandle,
     other_pos: &SVector<f64, 3>,
 ) -> Vec<ContactManifold<3>> {
+    let mesh_transform = Transform::from_translation(Point(*mesh_pos));
+    let other_transform = Transform::from_translation(Point(*other_pos));
+    generate_mesh_contacts_transformed(
+        mesh,
+        mesh_handle,
+        &mesh_transform,
+        other_shape,
+        other_handle,
+        &other_transform,
+    )
+}
+
+/// Generate contacts between a fully transformed triangle mesh and convex shape.
+pub fn generate_mesh_contacts_transformed(
+    mesh: &TriangleMesh,
+    mesh_handle: BodyHandle,
+    mesh_transform: &Transform<3>,
+    other_shape: &dyn Shape<3>,
+    other_handle: BodyHandle,
+    other_transform: &Transform<3>,
+) -> Vec<ContactManifold<3>> {
     let mut manifolds = Vec::new();
 
-    // 1. Compute AABB for the other shape
-    let (center, radius) = other_shape.bounding_sphere();
-    let center_v = SVector::<f64, 3>::from([center.0[0], center.0[1], center.0[2]]);
+    // 1. Compute a tight world AABB for the transformed convex shape.
+    let other_map = TransformedShape::new(other_shape, other_transform);
+    let (other_min, other_max) = support_aabb(&other_map);
     let other_aabb_world = Aabb {
-        min: center_v + *other_pos - SVector::from_element(radius),
-        max: center_v + *other_pos + SVector::from_element(radius),
+        min: other_min,
+        max: other_max,
     };
 
-    // 2. Query BVH for overlapping triangles
-    // Need AABB in mesh local space
-    let other_aabb_local = Aabb {
-        min: other_aabb_world.min - *mesh_pos,
-        max: other_aabb_world.max - *mesh_pos,
-    };
+    // 2. Transform all world-AABB corners into mesh local space to obtain a
+    // conservative local query box even when the mesh itself is rotated.
+    let other_aabb_local = aabb_to_local(&other_aabb_world, mesh_transform);
 
     let tri_indices = mesh.query_overlap(&other_aabb_local);
 
@@ -47,18 +66,26 @@ pub fn generate_mesh_contacts(
         let tri = &mesh.triangles[idx];
 
         // GJK in world space
-        let gjk_res = gjk::intersects(tri, mesh_pos, other_shape, other_pos);
+        let gjk_res =
+            gjk::intersects_transformed(tri, mesh_transform, other_shape, other_transform);
 
         if gjk_res.intersecting {
             // EPA for penetration
-            if let Some(epa_res) =
-                epa::penetration(tri, mesh_pos, other_shape, other_pos, &gjk_res.simplex)
-            {
+            if let Some(epa_res) = epa::penetration_transformed(
+                tri,
+                mesh_transform,
+                other_shape,
+                other_transform,
+                &gjk_res.simplex,
+            ) {
                 // Generate multi-point manifold (simplified: single point for now)
                 let mut points = ArrayVec::new();
 
-                // Contact point is tri.support(normal) + mesh_pos
-                let contact_pos = tri.support(&epa_res.normal) + mesh_pos;
+                let tri_map = TransformedShape::new(tri, mesh_transform);
+                let other_map = TransformedShape::new(other_shape, other_transform);
+                let contact_pos = (tri_map.support_world(&epa_res.normal)
+                    + other_map.support_world(&(-epa_res.normal)))
+                    * 0.5;
 
                 points.push(ContactPoint {
                     position: contact_pos,
@@ -81,6 +108,26 @@ pub fn generate_mesh_contacts(
     manifolds
 }
 
+fn aabb_to_local(aabb: &Aabb<3>, transform: &Transform<3>) -> Aabb<3> {
+    let inverse = transform.inverse();
+    let mut local = Aabb::empty();
+    for bits in 0..8usize {
+        let corner = SVector::<f64, 3>::from_fn(|axis, _| {
+            if bits & (1 << axis) != 0 {
+                aabb.max[axis]
+            } else {
+                aabb.min[axis]
+            }
+        });
+        let point = inverse.transform_point(&Point(corner)).0;
+        for axis in 0..3 {
+            local.min[axis] = local.min[axis].min(point[axis]);
+            local.max[axis] = local.max[axis].max(point[axis]);
+        }
+    }
+    local
+}
+
 /// Generate contacts between a multi-physics virtual geometry meshlet mesh and another convex shape.
 ///
 /// Accelerates collision detection using a midphase sphere-sphere check at the meshlet
@@ -93,13 +140,31 @@ pub fn generate_meshlet_contacts(
     other_handle: BodyHandle,
     other_pos: &SVector<f64, 3>,
 ) -> Vec<ContactManifold<3>> {
+    let mesh_transform = Transform::from_translation(Point(*mesh_pos));
+    let other_transform = Transform::from_translation(Point(*other_pos));
+    generate_meshlet_contacts_transformed(
+        mesh,
+        mesh_handle,
+        &mesh_transform,
+        other_shape,
+        other_handle,
+        &other_transform,
+    )
+}
+
+pub fn generate_meshlet_contacts_transformed(
+    mesh: &MultiPhysicsMeshletMesh,
+    mesh_handle: BodyHandle,
+    mesh_transform: &Transform<3>,
+    other_shape: &dyn Shape<3>,
+    other_handle: BodyHandle,
+    other_transform: &Transform<3>,
+) -> Vec<ContactManifold<3>> {
     let mut manifolds = Vec::new();
 
     // 1. Compute bounding sphere for the other shape in world space
-    let (other_center, other_radius) = other_shape.bounding_sphere();
-    let other_center_v =
-        SVector::<f64, 3>::from([other_center.0[0], other_center.0[1], other_center.0[2]]);
-    let other_sphere_world_center = other_center_v + *other_pos;
+    let other_map = TransformedShape::new(other_shape, other_transform);
+    let (other_sphere_world_center, other_radius) = other_map.bounding_sphere_world();
 
     // 2. Iterate through meshlets and perform midphase sphere-sphere check
     for meshlet in &mesh.meshlets {
@@ -123,7 +188,9 @@ pub fn generate_meshlet_contacts(
             meshlet.center_of_mass[1] as f64,
             meshlet.center_of_mass[2] as f64,
         ]);
-        let meshlet_center_world = meshlet_center_local + *mesh_pos;
+        let meshlet_center_world = mesh_transform
+            .transform_point(&Point(meshlet_center_local))
+            .0;
 
         // Check sphere-sphere intersection
         let dist = (meshlet_center_world - other_sphere_world_center).norm();
@@ -164,14 +231,22 @@ pub fn generate_meshlet_contacts(
                 ],
             };
 
-            let gjk_res = gjk::intersects(&tri, mesh_pos, other_shape, other_pos);
+            let gjk_res =
+                gjk::intersects_transformed(&tri, mesh_transform, other_shape, other_transform);
 
             if gjk_res.intersecting {
-                if let Some(epa_res) =
-                    epa::penetration(&tri, mesh_pos, other_shape, other_pos, &gjk_res.simplex)
-                {
+                if let Some(epa_res) = epa::penetration_transformed(
+                    &tri,
+                    mesh_transform,
+                    other_shape,
+                    other_transform,
+                    &gjk_res.simplex,
+                ) {
                     let mut points = ArrayVec::new();
-                    let contact_pos = tri.support(&epa_res.normal) + mesh_pos;
+                    let tri_map = TransformedShape::new(&tri, mesh_transform);
+                    let contact_pos = (tri_map.support_world(&epa_res.normal)
+                        + other_map.support_world(&(-epa_res.normal)))
+                        * 0.5;
 
                     points.push(ContactPoint {
                         position: contact_pos,
@@ -369,5 +444,38 @@ mod tests {
         // Check that elasticity values are correctly propagated to manifolds (with float tolerance)
         assert!((stiff_m.elasticity.unwrap() - 200e9).abs() < 1e5);
         assert!((soft_m.elasticity.unwrap() - 100e3).abs() < 1e1);
+    }
+
+    #[test]
+    fn world_aabb_is_conservatively_mapped_into_rotated_mesh_space() {
+        use std::f64::consts::FRAC_PI_2;
+        use symtropy_math::{Bivector, Rotor};
+
+        let world = Aabb {
+            min: SVector::from([-1.0, -0.5, -0.25]),
+            max: SVector::from([1.0, 0.5, 0.25]),
+        };
+        let transform = Transform {
+            translation: Point::new([3.0, 0.0, 0.0]),
+            rotation: Rotor::from_plane_angle(&Bivector::unit_plane(0, 1), FRAC_PI_2),
+        };
+        let local = aabb_to_local(&world, &transform);
+
+        // Translation shifts the world box before inverse rotation; all eight
+        // corners must still be enclosed by the returned local AABB.
+        for bits in 0..8usize {
+            let corner = SVector::<f64, 3>::from_fn(|axis, _| {
+                if bits & (1 << axis) != 0 {
+                    world.max[axis]
+                } else {
+                    world.min[axis]
+                }
+            });
+            let point = transform.inverse().transform_point(&Point(corner)).0;
+            for axis in 0..3 {
+                assert!(point[axis] >= local.min[axis] - 1e-12);
+                assert!(point[axis] <= local.max[axis] + 1e-12);
+            }
+        }
     }
 }

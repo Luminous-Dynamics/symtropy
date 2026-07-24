@@ -2,6 +2,10 @@
 
 # Symtropy Alien Types and First Contact Ecology
 
+## v1.9 everyday-life note
+
+The alien types below primarily define contact and agency problems. Ordinary maintenance, play, status, error, care, humor, domestic boundaries, internal disagreement, boredom, and nonhuman bad taste are developed in [Nonhuman Everyday Life, Humor, Play, Status, and Domesticity Atlas](NONHUMAN_EVERYDAY_LIFE_HUMOR_PLAY_STATUS_AND_DOMESTICITY_ATLAS_V0_1.md). Nonhuman beings should not appear only when humans require diplomacy or moral instruction.
+
 ## Version 0.1 — No Species Is the Enemy
 
 ## Purpose

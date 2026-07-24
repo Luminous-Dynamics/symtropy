@@ -1,0 +1,51 @@
+{
+  "fixture_version": "0.1",
+  "worldline_id": "wl-atlas-benchmark-a",
+  "origin": {
+    "region_id": "sol-echo-two",
+    "name": "Sol Exterior Metric Transfer Authority Endpoint 2",
+    "simulated_through_atlas_year": 241.0
+  },
+  "voyage": {
+    "voyage_id": "voyage-c17",
+    "ship_id": "municipal-seed-vessel-c17",
+    "worldline_id": "wl-atlas-benchmark-a",
+    "origin_region": "sol-echo-two",
+    "destination_region": "h441-far-station",
+    "departure_atlas_tick": "1000000000",
+    "expected_arrival_atlas_tick": "1064000000",
+    "expected_proper_seconds": 999807120,
+    "population": 480,
+    "households": 126,
+    "critical_professions": ["navigation", "metric_engineering", "ecology", "medicine", "fabrication", "sanitation", "education", "governance"],
+    "mission_amendment_policy": "ratified review every five civic years and at protected branch events",
+    "atlas_seed_authority": "local_ratification_required",
+    "player_travelers": ["player-a"]
+  },
+  "destination": {
+    "region_id": "h441-far-station",
+    "survey_name": "Hestia Survey Object 441-c",
+    "local_name": "Far Station",
+    "population_at_pairing": 18342,
+    "route_policy": "seasonal_limited_pairing"
+  },
+  "route": {
+    "route_id": "echo-two-far-station-01",
+    "worldline_id": "wl-atlas-benchmark-a",
+    "origin": "sol-echo-two",
+    "destination": "h441-far-station",
+    "minimum_latency_seconds": 691200,
+    "nominal_latency_seconds": 950400,
+    "maximum_latency_seconds": 1555200,
+    "maximum_mass_kg": 2400000,
+    "information_bandwidth_bps": 64000000,
+    "valid_from_atlas_tick": "1110000000",
+    "valid_until_atlas_tick": null,
+    "route_solution_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "status": "certification"
+  },
+  "required_branches": ["public_reconnection", "seasonal_limited", "independent_refusal"],
+  "negative_cycle_test_required": true,
+  "route_emergency_required": true,
+  "host_migration_required": true
+}

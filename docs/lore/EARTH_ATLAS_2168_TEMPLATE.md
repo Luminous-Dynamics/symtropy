@@ -14,6 +14,7 @@ companion_docs:
   - Symtropy Architecture Design Bible.md
   - HOSTILE_FACTIONS_AND_THREAT_ECOLOGY.md
   - NONHUMAN_GAME_THEORY_AND_AGENCY.md
+owner: narrative/world/simulation
 ---
 
 # Symtropy Earth Atlas 2168 Template

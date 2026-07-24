@@ -1,0 +1,662 @@
+From a397b74434a48cd4c1a612b23bb87e75ee908ab5 Mon Sep 17 00:00:00 2001
+From: OpenAI Symtropy Document Steward <symtropy-docs@openai.invalid>
+Date: Tue, 21 Jul 2026 14:48:54 +0000
+Subject: [PATCH 09/10] Add one-hundred-ticket Protectorate implementation
+ backlog
+
+---
+ ...RATE_IMPLEMENTATION_TICKET_BACKLOG_V0_1.md | 642 ++++++++++++++++++
+ 1 file changed, 642 insertions(+)
+ create mode 100644 ops/PROTECTORATE_IMPLEMENTATION_TICKET_BACKLOG_V0_1.md
+
+diff --git a/ops/PROTECTORATE_IMPLEMENTATION_TICKET_BACKLOG_V0_1.md b/ops/PROTECTORATE_IMPLEMENTATION_TICKET_BACKLOG_V0_1.md
+new file mode 100644
+index 0000000..9ae5535
+--- /dev/null
++++ b/ops/PROTECTORATE_IMPLEMENTATION_TICKET_BACKLOG_V0_1.md
+@@ -0,0 +1,642 @@
++---
++title: Protectorate Federation Implementation Ticket Backlog
++version: 0.1
++status: planning-draft
++scope: one hundred implementation tickets for the v3.0 Protectorate federation campaign
++owner: ops/production/protectorate
++related:
++  - PROTECTORATE_20000_UNIT_FEDERATION_BENCHMARK_V0_1.md
++  - ../canon/PROTECTORATE_FEDERATION_CIVIL_DEFENSE_AND_NON_IMPERIAL_AUTHORITY_CONTRACT_V0_1.md
++  - ../tech/PROTECTORATE_UNIT_REGISTRY_CHARTER_INTEROPERABILITY_AND_LOCAL_LEGITIMACY_RUNTIME_V0_1.md
++  - ../tech/RESERVE_MOBILIZATION_COALITION_COMMAND_AND_MISSION_SCOPING_RUNTIME_V0_1.md
++---
++
++# Protectorate Federation Implementation Ticket Backlog
++
++All tickets begin at D3 / I0. Completion requires code, tests, fixtures, benchmark evidence, and documentation updates. Ticket numbers indicate ordering guidance, not guaranteed implementation sequence.
++
++# Federation foundations
++
++## PR-001 — Unit identity type
++
++Implement persistent worldline-scoped Protectorate unit identifiers and predecessor/successor links.
++
++**Acceptance:** deterministic tests cover the primary state transition, failure behavior is explicit, and the result contributes evidence to the v3.0 federation benchmark.
++
++## PR-002 — Unit family taxonomy
++
++Add noncombat and combat unit families with multi-family membership.
++
++**Acceptance:** deterministic tests cover the primary state transition, failure behavior is explicit, and the result contributes evidence to the v3.0 federation benchmark.
++
++## PR-003 — Charter object
++
++Implement versioned charter records with issuer, scope, expiry, amendment, and dissolution.
++
++**Acceptance:** deterministic tests cover the primary state transition, failure behavior is explicit, and the result contributes evidence to the v3.0 federation benchmark.
++
++## PR-004 — Recognition graph
++
++Represent polity- and constituency-specific recognition edges.
++
++**Acceptance:** deterministic tests cover the primary state transition, failure behavior is explicit, and the result contributes evidence to the v3.0 federation benchmark.
++
++## PR-005 — Founding provenance
++
++Bind each unit to founding events, represented communities, and institutional source chains.
++
++**Acceptance:** deterministic tests cover the primary state transition, failure behavior is explicit, and the result contributes evidence to the v3.0 federation benchmark.
++
++## PR-006 — Unit split and merge
++
++Support lawful and disputed split, merger, reform, and dissolution.
++
++**Acceptance:** deterministic tests cover the primary state transition, failure behavior is explicit, and the result contributes evidence to the v3.0 federation benchmark.
++
++## PR-007 — False identity state
++
++Represent forged registry credentials and stolen unit identities.
++
++**Acceptance:** deterministic tests cover the primary state transition, failure behavior is explicit, and the result contributes evidence to the v3.0 federation benchmark.
++
++## PR-008 — Registry query API
++
++Query by capability, location, recognition, readiness, and compatibility.
++
++**Acceptance:** deterministic tests cover the primary state transition, failure behavior is explicit, and the result contributes evidence to the v3.0 federation benchmark.
++
++## PR-009 — Registry access control
++
++Respect public, protected, classified, and delayed records.
++
++**Acceptance:** deterministic tests cover the primary state transition, failure behavior is explicit, and the result contributes evidence to the v3.0 federation benchmark.
++
++## PR-010 — Deterministic registry replay
++
++Reconstruct registry state exactly from authoritative events.
++
++**Acceptance:** deterministic tests cover the primary state transition, failure behavior is explicit, and the result contributes evidence to the v3.0 federation benchmark.
++
++# Capability and readiness
++
++## PR-011 — Capability evidence model
++
++Separate claimed, certified, observed, degraded, and unknown capability.
++
++**Acceptance:** deterministic tests cover the primary state transition, failure behavior is explicit, and the result contributes evidence to the v3.0 federation benchmark.
++
++## PR-012 — Readiness dimensions
++
++Track personnel, equipment, supplies, law, transport, fatigue, and communications.
++
++**Acceptance:** deterministic tests cover the primary state transition, failure behavior is explicit, and the result contributes evidence to the v3.0 federation benchmark.
++
++## PR-013 — Depot claims
++
++Model owned, leased, borrowed, disputed, captured, and public-trust equipment.
++
++**Acceptance:** deterministic tests cover the primary state transition, failure behavior is explicit, and the result contributes evidence to the v3.0 federation benchmark.
++
++## PR-014 — Maintenance decay
++
++Degrade equipment and certification through time and neglected maintenance.
++
++**Acceptance:** deterministic tests cover the primary state transition, failure behavior is explicit, and the result contributes evidence to the v3.0 federation benchmark.
++
++## PR-015 — Personnel cohort model
++
++Represent distant reserve participants without losing household and profession distributions.
++
++**Acceptance:** deterministic tests cover the primary state transition, failure behavior is explicit, and the result contributes evidence to the v3.0 federation benchmark.
++
++## PR-016 — Named-person promotion
++
++Promote consequential participants to persistent identities.
++
++**Acceptance:** deterministic tests cover the primary state transition, failure behavior is explicit, and the result contributes evidence to the v3.0 federation benchmark.
++
++## PR-017 — Training record
++
++Bind qualifications to issuer, evidence, scope, and expiry.
++
++**Acceptance:** deterministic tests cover the primary state transition, failure behavior is explicit, and the result contributes evidence to the v3.0 federation benchmark.
++
++## PR-018 — Equivalency mapping
++
++Support cross-region and cross-species certification equivalence.
++
++**Acceptance:** deterministic tests cover the primary state transition, failure behavior is explicit, and the result contributes evidence to the v3.0 federation benchmark.
++
++## PR-019 — Readiness fraud
++
++Allow false reporting, concealed shortages, and later discovery.
++
++**Acceptance:** deterministic tests cover the primary state transition, failure behavior is explicit, and the result contributes evidence to the v3.0 federation benchmark.
++
++## PR-020 — Capability dashboard prototype
++
++Present readiness uncertainty without one misleading strength score.
++
++**Acceptance:** deterministic tests cover the primary state transition, failure behavior is explicit, and the result contributes evidence to the v3.0 federation benchmark.
++
++# Interoperability
++
++## PR-021 — Emergency vocabulary
++
++Define shared hazard, medical, rescue, surrender, and command terms.
++
++**Acceptance:** deterministic tests cover the primary state transition, failure behavior is explicit, and the result contributes evidence to the v3.0 federation benchmark.
++
++## PR-022 — Docking compatibility
++
++Model docking collars, atmosphere transfer, and adapter requirements.
++
++**Acceptance:** deterministic tests cover the primary state transition, failure behavior is explicit, and the result contributes evidence to the v3.0 federation benchmark.
++
++## PR-023 — Power and fluid interfaces
++
++Implement emergency utility connections with capacity and failure.
++
++**Acceptance:** deterministic tests cover the primary state transition, failure behavior is explicit, and the result contributes evidence to the v3.0 federation benchmark.
++
++## PR-024 — Medical transfer profile
++
++Exchange embodiment, pressure, gravity, and contamination requirements.
++
++**Acceptance:** deterministic tests cover the primary state transition, failure behavior is explicit, and the result contributes evidence to the v3.0 federation benchmark.
++
++## PR-025 — Command authentication
++
++Verify scoped coalition orders and detect stale or forged grants.
++
++**Acceptance:** deterministic tests cover the primary state transition, failure behavior is explicit, and the result contributes evidence to the v3.0 federation benchmark.
++
++## PR-026 — Evidence interchange
++
++Preserve custody and integrity across unit boundaries.
++
++**Acceptance:** deterministic tests cover the primary state transition, failure behavior is explicit, and the result contributes evidence to the v3.0 federation benchmark.
++
++## PR-027 — Adapter inventory
++
++Track physical and software adapters as real resources.
++
++**Acceptance:** deterministic tests cover the primary state transition, failure behavior is explicit, and the result contributes evidence to the v3.0 federation benchmark.
++
++## PR-028 — Emergency waiver
++
++Allow recorded temporary compatibility waivers.
++
++**Acceptance:** deterministic tests cover the primary state transition, failure behavior is explicit, and the result contributes evidence to the v3.0 federation benchmark.
++
++## PR-029 — Translation mismatch
++
++Represent semantic incompatibility and uncertain equivalence.
++
++**Acceptance:** deterministic tests cover the primary state transition, failure behavior is explicit, and the result contributes evidence to the v3.0 federation benchmark.
++
++## PR-030 — Joint exercise simulator
++
++Measure interoperability through exercises rather than declarations.
++
++**Acceptance:** deterministic tests cover the primary state transition, failure behavior is explicit, and the result contributes evidence to the v3.0 federation benchmark.
++
++# Mobilization and households
++
++## PR-031 — Incident claim object
++
++Represent source, urgency, uncertainty, affected populations, and requested capabilities.
++
++**Acceptance:** deterministic tests cover the primary state transition, failure behavior is explicit, and the result contributes evidence to the v3.0 federation benchmark.
++
++## PR-032 — Alert ladder
++
++Implement advisory, readiness, partial, full, strategic, and continuity alerts.
++
++**Acceptance:** deterministic tests cover the primary state transition, failure behavior is explicit, and the result contributes evidence to the v3.0 federation benchmark.
++
++## PR-033 — Mobilization request
++
++Create scoped requests with authority, duration, logistics, and protections.
++
++**Acceptance:** deterministic tests cover the primary state transition, failure behavior is explicit, and the result contributes evidence to the v3.0 federation benchmark.
++
++## PR-034 — Unit response states
++
++Support full, limited, delayed, refused, failed, and deceptive responses.
++
++**Acceptance:** deterministic tests cover the primary state transition, failure behavior is explicit, and the result contributes evidence to the v3.0 federation benchmark.
++
++## PR-035 — Reserve contact graph
++
++Resolve who can actually be contacted during partition or disaster.
++
++**Acceptance:** deterministic tests cover the primary state transition, failure behavior is explicit, and the result contributes evidence to the v3.0 federation benchmark.
++
++## PR-036 — Household obligations
++
++Track dependents, replacement care, lost income, and mobilization conflict.
++
++**Acceptance:** deterministic tests cover the primary state transition, failure behavior is explicit, and the result contributes evidence to the v3.0 federation benchmark.
++
++## PR-037 — Workplace replacement
++
++Model civilian service degradation when reservists deploy.
++
++**Acceptance:** deterministic tests cover the primary state transition, failure behavior is explicit, and the result contributes evidence to the v3.0 federation benchmark.
++
++## PR-038 — Mobilization transport
++
++Require routes and vehicles to move personnel and equipment.
++
++**Acceptance:** deterministic tests cover the primary state transition, failure behavior is explicit, and the result contributes evidence to the v3.0 federation benchmark.
++
++## PR-039 — Fatigue and repeat call-up
++
++Penalize repeated unequal mobilization across communities.
++
++**Acceptance:** deterministic tests cover the primary state transition, failure behavior is explicit, and the result contributes evidence to the v3.0 federation benchmark.
++
++## PR-040 — Demobilization reintegration
++
++Return participants through screening, compensation, and household recovery.
++
++**Acceptance:** deterministic tests cover the primary state transition, failure behavior is explicit, and the result contributes evidence to the v3.0 federation benchmark.
++
++# Coalition command
++
++## PR-041 — Coalition mission entity
++
++Create temporary mission institutions with participating units and expiry.
++
++**Acceptance:** deterministic tests cover the primary state transition, failure behavior is explicit, and the result contributes evidence to the v3.0 federation benchmark.
++
++## PR-042 — Delegated authority graph
++
++Separate medical, engineering, movement, force, evidence, and civic authority.
++
++**Acceptance:** deterministic tests cover the primary state transition, failure behavior is explicit, and the result contributes evidence to the v3.0 federation benchmark.
++
++## PR-043 — Intent-based orders
++
++Represent objective, constraints, assumptions, and escalation bounds.
++
++**Acceptance:** deterministic tests cover the primary state transition, failure behavior is explicit, and the result contributes evidence to the v3.0 federation benchmark.
++
++## PR-044 — Mission scope amendments
++
++Version scope changes and preserve emergency deviations.
++
++**Acceptance:** deterministic tests cover the primary state transition, failure behavior is explicit, and the result contributes evidence to the v3.0 federation benchmark.
++
++## PR-045 — Local autonomy envelope
++
++Permit action under communication loss within delegated constraints.
++
++**Acceptance:** deterministic tests cover the primary state transition, failure behavior is explicit, and the result contributes evidence to the v3.0 federation benchmark.
++
++## PR-046 — Conflicting order handling
++
++Detect and reconcile delayed or incompatible command versions.
++
++**Acceptance:** deterministic tests cover the primary state transition, failure behavior is explicit, and the result contributes evidence to the v3.0 federation benchmark.
++
++## PR-047 — Command succession
++
++Resolve loss, isolation, incapacity, and contested succession.
++
++**Acceptance:** deterministic tests cover the primary state transition, failure behavior is explicit, and the result contributes evidence to the v3.0 federation benchmark.
++
++## PR-048 — Strategic reserve planner
++
++Hold back medical, repair, fuel, and response capacity.
++
++**Acceptance:** deterministic tests cover the primary state transition, failure behavior is explicit, and the result contributes evidence to the v3.0 federation benchmark.
++
++## PR-049 — Coalition dispute process
++
++Provide arbitration, liaison, and operational objection channels.
++
++**Acceptance:** deterministic tests cover the primary state transition, failure behavior is explicit, and the result contributes evidence to the v3.0 federation benchmark.
++
++## PR-050 — Authority expiry
++
++Automatically expire temporary grants and require lawful renewal.
++
++**Acceptance:** deterministic tests cover the primary state transition, failure behavior is explicit, and the result contributes evidence to the v3.0 federation benchmark.
++
++# Refusal and oversight
++
++## PR-051 — Individual refusal event
++
++Record order, objection, evidence, alternative, and retaliation.
++
++**Acceptance:** deterministic tests cover the primary state transition, failure behavior is explicit, and the result contributes evidence to the v3.0 federation benchmark.
++
++## PR-052 — Unit refusal event
++
++Support charter-based limited or complete unit refusal.
++
++**Acceptance:** deterministic tests cover the primary state transition, failure behavior is explicit, and the result contributes evidence to the v3.0 federation benchmark.
++
++## PR-053 — Professional safety authority
++
++Allow medics, engineers, pilots, and witnesses to block unsafe actions.
++
++**Acceptance:** deterministic tests cover the primary state transition, failure behavior is explicit, and the result contributes evidence to the v3.0 federation benchmark.
++
++## PR-054 — Unlawful abandonment review
++
++Distinguish conscience from sabotage or reckless desertion.
++
++**Acceptance:** deterministic tests cover the primary state transition, failure behavior is explicit, and the result contributes evidence to the v3.0 federation benchmark.
++
++## PR-055 — Anti-retaliation state
++
++Protect housing, care, employment, and access pending review.
++
++**Acceptance:** deterministic tests cover the primary state transition, failure behavior is explicit, and the result contributes evidence to the v3.0 federation benchmark.
++
++## PR-056 — Civilian oversight bodies
++
++Implement plural councils, courts, auditors, and professional boards.
++
++**Acceptance:** deterministic tests cover the primary state transition, failure behavior is explicit, and the result contributes evidence to the v3.0 federation benchmark.
++
++## PR-057 — Oversight powers
++
++Support audit, suspension, investigation, weapon hold, and reform orders.
++
++**Acceptance:** deterministic tests cover the primary state transition, failure behavior is explicit, and the result contributes evidence to the v3.0 federation benchmark.
++
++## PR-058 — Oversight failure
++
++Allow delay, bias, capture, leaks, and harmful micromanagement.
++
++**Acceptance:** deterministic tests cover the primary state transition, failure behavior is explicit, and the result contributes evidence to the v3.0 federation benchmark.
++
++## PR-059 — Strategic weapon quorum
++
++Require distributed authorization and protected abort authority.
++
++**Acceptance:** deterministic tests cover the primary state transition, failure behavior is explicit, and the result contributes evidence to the v3.0 federation benchmark.
++
++## PR-060 — Institutional repair workflow
++
++Support amendment, retraining, compensation, supervision, or dissolution.
++
++**Acceptance:** deterministic tests cover the primary state transition, failure behavior is explicit, and the result contributes evidence to the v3.0 federation benchmark.
++
++# Logistics and care
++
++## PR-061 — Operational flow graph
++
++Represent depots, shelters, hospitals, docks, routes, and capacities.
++
++**Acceptance:** deterministic tests cover the primary state transition, failure behavior is explicit, and the result contributes evidence to the v3.0 federation benchmark.
++
++## PR-062 — Supply classes
++
++Track atmosphere, water, food, medicine, power, thermal, propellant, and repair stock.
++
++**Acceptance:** deterministic tests cover the primary state transition, failure behavior is explicit, and the result contributes evidence to the v3.0 federation benchmark.
++
++## PR-063 — Supply custody
++
++Model ownership, public trust, requisition, diversion, and compensation.
++
++**Acceptance:** deterministic tests cover the primary state transition, failure behavior is explicit, and the result contributes evidence to the v3.0 federation benchmark.
++
++## PR-064 — Rescue case object
++
++Represent hazard, access, identity, consent, time window, and extraction.
++
++**Acceptance:** deterministic tests cover the primary state transition, failure behavior is explicit, and the result contributes evidence to the v3.0 federation benchmark.
++
++## PR-065 — Triage engine
++
++Use clinical evidence and resource requirements rather than moral worth.
++
++**Acceptance:** deterministic tests cover the primary state transition, failure behavior is explicit, and the result contributes evidence to the v3.0 federation benchmark.
++
++## PR-066 — Evacuation stages
++
++Implement warning through reception, reunification, and resettlement.
++
++**Acceptance:** deterministic tests cover the primary state transition, failure behavior is explicit, and the result contributes evidence to the v3.0 federation benchmark.
++
++## PR-067 — Protected corridor
++
++Model declaration, recognition, traffic, breach, and alternate routes.
++
++**Acceptance:** deterministic tests cover the primary state transition, failure behavior is explicit, and the result contributes evidence to the v3.0 federation benchmark.
++
++## PR-068 — Field repair priorities
++
++Restore life support, hazard control, access, mobility, and sustained service in order.
++
++**Acceptance:** deterministic tests cover the primary state transition, failure behavior is explicit, and the result contributes evidence to the v3.0 federation benchmark.
++
++## PR-069 — Medical transfer network
++
++Route patients by compatibility, capacity, consent, and travel risk.
++
++**Acceptance:** deterministic tests cover the primary state transition, failure behavior is explicit, and the result contributes evidence to the v3.0 federation benchmark.
++
++## PR-070 — Responder long-term care
++
++Track disability, trauma, moral injury, family strain, and retirement.
++
++**Acceptance:** deterministic tests cover the primary state transition, failure behavior is explicit, and the result contributes evidence to the v3.0 federation benchmark.
++
++# Evidence and recovery
++
++## PR-071 — Evidence item
++
++Track collector, method, custody, integrity, access, and uncertainty.
++
++**Acceptance:** deterministic tests cover the primary state transition, failure behavior is explicit, and the result contributes evidence to the v3.0 federation benchmark.
++
++## PR-072 — Command record archive
++
++Preserve orders, amendments, authentication, and local interpretations.
++
++**Acceptance:** deterministic tests cover the primary state transition, failure behavior is explicit, and the result contributes evidence to the v3.0 federation benchmark.
++
++## PR-073 — Missing-person ledger
++
++Distinguish missing, detained, stranded, dead, returned, and identity-disputed.
++
++**Acceptance:** deterministic tests cover the primary state transition, failure behavior is explicit, and the result contributes evidence to the v3.0 federation benchmark.
++
++## PR-074 — Body and source-chain recovery
++
++Support culturally and biologically diverse continuity substrates.
++
++**Acceptance:** deterministic tests cover the primary state transition, failure behavior is explicit, and the result contributes evidence to the v3.0 federation benchmark.
++
++## PR-075 — Hostile surrender handling
++
++Record surrender, threat separation, medical care, detention, and transfer.
++
++**Acceptance:** deterministic tests cover the primary state transition, failure behavior is explicit, and the result contributes evidence to the v3.0 federation benchmark.
++
++## PR-076 — Wreck stabilization
++
++Model hazards, salvage claims, evidence, and survivor access.
++
++**Acceptance:** deterministic tests cover the primary state transition, failure behavior is explicit, and the result contributes evidence to the v3.0 federation benchmark.
++
++## PR-077 — Environmental cleanup
++
++Represent contamination, debris, unexploded hazards, and ecological recovery.
++
++**Acceptance:** deterministic tests cover the primary state transition, failure behavior is explicit, and the result contributes evidence to the v3.0 federation benchmark.
++
++## PR-078 — Public incident summary
++
++Produce source-grounded explanations with classified omissions marked.
++
++**Acceptance:** deterministic tests cover the primary state transition, failure behavior is explicit, and the result contributes evidence to the v3.0 federation benchmark.
++
++## PR-079 — After-action reconstruction
++
++Compare plan assumptions, observations, harm, protection, and deviations.
++
++**Acceptance:** deterministic tests cover the primary state transition, failure behavior is explicit, and the result contributes evidence to the v3.0 federation benchmark.
++
++## PR-080 — Compensation and memorialization
++
++Connect loss records to restitution, public memory, and institutional change.
++
++**Acceptance:** deterministic tests cover the primary state transition, failure behavior is explicit, and the result contributes evidence to the v3.0 federation benchmark.
++
++# Ships and formations
++
++## PR-081 — Bastionline reference vessel
++
++Prototype multirole Protectorate carrier common core and protected harbor.
++
++**Acceptance:** deterministic tests cover the primary state transition, failure behavior is explicit, and the result contributes evidence to the v3.0 federation benchmark.
++
++## PR-082 — Small craft persistence
++
++Give rescue, interceptor, tug, and evidence craft crews and service history.
++
++**Acceptance:** deterministic tests cover the primary state transition, failure behavior is explicit, and the result contributes evidence to the v3.0 federation benchmark.
++
++## PR-083 — Protected convoy formation
++
++Coordinate civilian vessels with varied acceleration, heat, and authority.
++
++**Acceptance:** deterministic tests cover the primary state transition, failure behavior is explicit, and the result contributes evidence to the v3.0 federation benchmark.
++
++## PR-084 — Disaster response formation
++
++Compose medical, fabrication, ecology, evacuation, and local units.
++
++**Acceptance:** deterministic tests cover the primary state transition, failure behavior is explicit, and the result contributes evidence to the v3.0 federation benchmark.
++
++## PR-085 — Route reopening formation
++
++Integrate scouts, debris crews, repair, security, and diplomacy.
++
++**Acceptance:** deterministic tests cover the primary state transition, failure behavior is explicit, and the result contributes evidence to the v3.0 federation benchmark.
++
++## PR-086 — Planetary evacuation lattice
++
++Coordinate orbit, atmosphere, surface, shelters, and receiving settlements.
++
++**Acceptance:** deterministic tests cover the primary state transition, failure behavior is explicit, and the result contributes evidence to the v3.0 federation benchmark.
++
++## PR-087 — Damage-control authority
++
++Separate ship command, engineering, medical, and resident protection.
++
++**Acceptance:** deterministic tests cover the primary state transition, failure behavior is explicit, and the result contributes evidence to the v3.0 federation benchmark.
++
++## PR-088 — Carrier anti-capture controls
++
++Prototype distributed command, safe shutdown, and external witness links.
++
++**Acceptance:** deterministic tests cover the primary state transition, failure behavior is explicit, and the result contributes evidence to the v3.0 federation benchmark.
++
++## PR-089 — Peace-time service loops
++
++Add training, patrol, rescue, inspection, and public education gameplay.
++
++**Acceptance:** deterministic tests cover the primary state transition, failure behavior is explicit, and the result contributes evidence to the v3.0 federation benchmark.
++
++## PR-090 — Fleet doctrine telemetry
++
++Measure protected continuity, collateral, recovery, and legitimacy—not kill count.
++
++**Acceptance:** deterministic tests cover the primary state transition, failure behavior is explicit, and the result contributes evidence to the v3.0 federation benchmark.
++
++# Scale, UX, and evidence
++
++## PR-091 — Twenty-thousand-unit load test
++
++Load and query the reference federation.
++
++**Acceptance:** deterministic tests cover the primary state transition, failure behavior is explicit, and the result contributes evidence to the v3.0 federation benchmark.
++
++## PR-092 — Five-hundred-unit operation
++
++Run the Meridian Fracture with 500 operational units.
++
++**Acceptance:** deterministic tests cover the primary state transition, failure behavior is explicit, and the result contributes evidence to the v3.0 federation benchmark.
++
++## PR-093 — Resolution transition test
++
++Move units between strategic, operational, and embodied fidelity without identity loss.
++
++**Acceptance:** deterministic tests cover the primary state transition, failure behavior is explicit, and the result contributes evidence to the v3.0 federation benchmark.
++
++## PR-094 — Multiplayer authority test
++
++Verify command and refusal consistency across connected clients.
++
++**Acceptance:** deterministic tests cover the primary state transition, failure behavior is explicit, and the result contributes evidence to the v3.0 federation benchmark.
++
++## PR-095 — Communication partition test
++
++Run delayed Atlas and local-autonomy scenarios.
++
++**Acceptance:** deterministic tests cover the primary state transition, failure behavior is explicit, and the result contributes evidence to the v3.0 federation benchmark.
++
++## PR-096 — Legibility study
++
++Test whether players can explain authority, readiness, and local legitimacy.
++
++**Acceptance:** deterministic tests cover the primary state transition, failure behavior is explicit, and the result contributes evidence to the v3.0 federation benchmark.
++
++## PR-097 — Accessibility review
++
++Provide multimodal alerts, command views, and cognitive-load controls.
++
++**Acceptance:** deterministic tests cover the primary state transition, failure behavior is explicit, and the result contributes evidence to the v3.0 federation benchmark.
++
++## PR-098 — Seven-day recall study
++
++Measure recall of local units, civilians, disputes, and recovery.
++
++**Acceptance:** deterministic tests cover the primary state transition, failure behavior is explicit, and the result contributes evidence to the v3.0 federation benchmark.
++
++## PR-099 — Ablation campaign
++
++Compare full design against hierarchy-only, no-logistics, and no-oversight versions.
++
++**Acceptance:** deterministic tests cover the primary state transition, failure behavior is explicit, and the result contributes evidence to the v3.0 federation benchmark.
++
++## PR-100 — Evidence bundle exporter
++
++Export seed, registry, command, logistics, replay hashes, telemetry, and study results.
++
++**Acceptance:** deterministic tests cover the primary state transition, failure behavior is explicit, and the result contributes evidence to the v3.0 federation benchmark.
++
++# Release Gate
++
++The v3.0 campaign must not be promoted beyond D3 / I0 until the benchmark demonstrates scale, local legitimacy, material mobilization, lawful refusal, civilian oversight, coalition command, recovery, and player legibility together.
++
++> **Do not optimize the Protectorate into one army merely because one army is easier to simulate.**
+-- 
+2.47.3
+

@@ -1,0 +1,25 @@
+{
+  "profile_id": "companions-v0.1",
+  "required_companion_fields": [
+    "profession",
+    "life_anchor",
+    "independent_projects",
+    "refusal_boundaries",
+    "relationships"
+  ],
+  "hard_failures": [
+    "unconditional_player_commands",
+    "global_affection_power_unlock",
+    "private_cognition_leak",
+    "offscreen_freeze",
+    "teleporting_companion",
+    "worldline_identity_duplication",
+    "secret_contains_critical_safety_information",
+    "romance_gates_best_capabilities"
+  ],
+  "recall_target": {
+    "companions": 4,
+    "categories_per_companion": 5,
+    "delay_days": 7
+  }
+}

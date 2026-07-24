@@ -1,3 +1,14 @@
+---
+title: Symtropy Procedural Faction Evolution
+version: 0.1
+status: canonical-draft
+scope: faction pressure, interpretation, identity drift, schism, and reform
+owner: design/simulation
+related:
+  - PROCEDURAL_HISTORY_ENGINE.md
+  - REGIONAL_PLANETARY_CIVILIZATION_SIMULATION_ARCHITECTURE_V0_1.md
+  - ../canon/WAR_DIPLOMACY_TERRITORY_AND_LOGISTICS_CONTRACT_V0_1.md
+---
 # PROCEDURAL_FACTION_EVOLUTION.md
 
 # Procedural Faction Evolution

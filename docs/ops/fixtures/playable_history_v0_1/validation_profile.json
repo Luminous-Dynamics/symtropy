@@ -1,0 +1,24 @@
+{
+  "version": "0.1",
+  "required_checks": [
+    "schema",
+    "causal_graph",
+    "authority",
+    "material_conservation",
+    "knowledge_scope",
+    "named_agent_preservation",
+    "worldline_uniqueness",
+    "budget",
+    "accessibility",
+    "localization"
+  ],
+  "hard_failures": [
+    "orphan_pressure",
+    "dialogue_mutates_authority",
+    "private_evidence_public",
+    "service_deleted_with_leader",
+    "unique_entity_duplicated",
+    "no_ordinary_life",
+    "missing_cut_order"
+  ]
+}

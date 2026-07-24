@@ -1,0 +1,33 @@
+CONTRIBUTING.md
+SYMTROPY_RESOURCE_CHAINS_GAME_DOC_V0_1.md
+SYMTROPY_SPACECRAFT_DESIGN_BIBLE_V0_1.md
+Symtropy Dungeons and Raids Design Bible.md
+Symtropy Profession Loops and Legibility Progression.md
+lore/EARTH_ATLAS_2168_TEMPLATE.md
+lore/Human Tech Tree and Xeno-Translation Economy.md
+lore/SOUTHERN_AFRICAN_WATER_ENERGY_COMPACT_V0_1.md
+lore/SYMTROPY_LITHIC_AND_SUBCRUST_CULTURES_V0_2.md
+lore/SYMTROPY_REFUSAL_BUNKERS_AND_NULL_CARE_VAULTS_V0_1.md
+lore/SYMTROPY_SPACEPORTS_AND_LAUNCH_CIVILIZATIONS_V0_1.md
+lore/Solar Mandala Confluence.md
+lore/WHITE_LEDGER_TERRITORIES_ANTARCTICA_V0_1.md
+ops/ROBOTICS_ROADMAP_TECH_TREE_EXPANSION_V0_3_2.md
+ops/SEEDWORKS_TECH_BRANCH_PACK_V0_3_1.md
+ops/SEEDWORKS_TECH_TREE_AUDIT_AND_HORIZON_GATES_V0_3_3.md
+ops/Seedworks Tech Tree Dependency Spine.md
+ops/Seedworks Tech Unlock Table v0.1–v0.3.md
+ops/Substrate Systems Implementation Tickets.md
+ops/symtropy_earth_atlas_implementation_debt_patch_v0_2/CHRONICLE_MVP_SPEC_V0_1.md
+ops/symtropy_earth_atlas_implementation_debt_patch_v0_2/FIELD_DECK_OVERLAY_PRECEDENCE_RULES_V0_1.md
+ops/symtropy_earth_atlas_implementation_debt_patch_v0_2/GREEN_COVER_LIE_RESOLUTION_MECHANIC_V0_1.md
+ops/symtropy_earth_atlas_implementation_debt_patch_v0_2/ROAD_CHOIR_MOBILE_ACCOUNTABILITY_MECHANICS_V0_1.md
+ops/symtropy_earth_atlas_implementation_debt_patch_v0_2/SUBGLACIAL_LISTENING_FAULT_VERTICAL_SLICE_V0_1.md
+tech/COMBAT_THREAT_AND_SYSTEMIC_ENCOUNTER_DESIGN_V0_1.md
+tech/Device Bus Substrate Systems.md
+tech/Infrastructure Loom Tech Node Data Schema.md
+tech/Infrastructure Loom UI-UX Spec.md
+tech/Public Works Fabrication Branch v0.2.md
+tech/REGIONAL_PLANETARY_CIVILIZATION_SIMULATION_ARCHITECTURE_V0_1.md
+tech/WORLDLINE_MECHANICAL_DELTA_SCHEMA_V0_1.md
+vision/EXPLORATION_DISCOVERY_AND_AWE_DESIGN_BIBLE_V0_1.md
+vision/SYMTROPY_ORBITAL_HABITATS_AND_DOCKSIDE_SOCIETIES_V0_1.md

@@ -1,0 +1,36 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.org/symtropy/schemas/v2_7/continuance_crawler.schema.json",
+  "title": "Continuance Crawler State",
+  "type": "object",
+  "required": ["vehicle_id", "worldline_id", "chassis", "modules", "networks", "cargo", "residents", "claims"],
+  "properties": {
+    "vehicle_id": {"type": "string"},
+    "worldline_id": {"type": "string"},
+    "chassis": {"type": "object"},
+    "modules": {"type": "array", "items": {"type": "object"}},
+    "networks": {
+      "type": "object",
+      "required": ["power", "thermal", "water"],
+      "properties": {
+        "power": {"type": "object"},
+        "thermal": {"type": "object"},
+        "water": {"type": "object"},
+        "data": {"type": "object"}
+      }
+    },
+    "cargo": {"type": "array", "items": {"type": "object"}},
+    "residents": {"type": "array", "items": {"type": "object"}},
+    "claims": {"type": "array", "items": {"type": "object"}},
+    "total_mass_kg": {"type": "number", "minimum": 0},
+    "center_of_gravity_m": {
+      "type": "array",
+      "prefixItems": [{"type": "number"}, {"type": "number"}, {"type": "number"}],
+      "minItems": 3,
+      "maxItems": 3
+    },
+    "damage_events": {"type": "array", "items": {"type": "object"}},
+    "maintenance_events": {"type": "array", "items": {"type": "object"}}
+  },
+  "additionalProperties": true
+}

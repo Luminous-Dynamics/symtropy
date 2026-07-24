@@ -1,20 +1,12 @@
 ---
-
 title: Seedworks Tech Unlock Table v0.1–v0.3
+version: 0.1-0.3
 status: canonical-draft
 milestone: seedworks-v0.1-to-v0.3
 scope: progression, unlocks, production roadmap
 owner: design/engineering
 recommended_path: docs/seedworks/00_canon/TECH_UNLOCK_TABLE_V0_1_TO_V0_3.md
-depends_on:
-
-* SEEDWORKS_PLAYABLE_SLICE_SPEC.md
-* SEEDWORKS_NEXT_BUILD_PLAN.md
-* SEEDWORKS_FACTION_VERTICAL_SLICE.md
-* SEEDWORKS_ARCHITECTURE.md
-
 ---
-
 # Symtropy: Seedworks Tech Unlock Table v0.1–v0.3
 
 ## Working Title

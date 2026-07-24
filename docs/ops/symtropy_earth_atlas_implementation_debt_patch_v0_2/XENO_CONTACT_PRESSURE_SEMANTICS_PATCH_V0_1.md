@@ -1,6 +1,10 @@
 ---
 title: Xeno Contact Pressure Semantics Patch v0.1
-status: canonical-patch
+version: 0.1
+scope: Earth Atlas xeno-contact pressure semantics
+owner: world-design/xeno/simulation
+status: supporting
+patch_status: accepted
 project: Symtropy
 domain: Earth Atlas / Xeno Contact / Pressure Vectors
 recommended_path: docs/earth-atlas/00_schema/XENO_CONTACT_PRESSURE_SEMANTICS_PATCH_V0_1.md

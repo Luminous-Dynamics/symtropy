@@ -267,7 +267,7 @@ fn run_experiment(ctrl: Ctrl, res_threshold: f64, seed: u64) -> ResGateResult {
                                         let other_at_well = world
                                             .body(other)
                                             .map(|ob| {
-                                                (SVector::from(b.position()) - w).norm() < 35.0
+                                                (SVector::from(ob.position()) - w).norm() < 35.0
                                             })
                                             .unwrap_or(false);
                                         if !other_at_well {

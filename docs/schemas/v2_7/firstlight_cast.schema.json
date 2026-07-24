@@ -1,0 +1,35 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.org/symtropy/schemas/v2_7/firstlight_cast.schema.json",
+  "title": "Firstlight Worldline Cast",
+  "type": "object",
+  "required": ["worldline_id", "cast_seed", "persons", "households", "role_assignments"],
+  "properties": {
+    "worldline_id": {"type": "string", "minLength": 1},
+    "cast_seed": {"type": "string", "minLength": 16},
+    "campaign_version": {"const": "2.7"},
+    "persons": {
+      "type": "array",
+      "minItems": 8,
+      "items": {
+        "type": "object",
+        "required": ["person_id", "display_name", "continuity_kind", "practice_domains", "household_ids", "voice_signature", "evacuation_policy"],
+        "properties": {
+          "person_id": {"type": "string"},
+          "display_name": {"type": "string"},
+          "continuity_kind": {"enum": ["biological", "machine", "reconstituted", "fork", "alien", "mixed"]},
+          "practice_domains": {"type": "array", "items": {"type": "string"}},
+          "household_ids": {"type": "array", "items": {"type": "string"}},
+          "voice_signature": {"type": "object"},
+          "evacuation_policy": {"type": "object"},
+          "observed": {"type": "boolean", "default": false}
+        },
+        "additionalProperties": true
+      }
+    },
+    "households": {"type": "array", "items": {"type": "object"}},
+    "role_assignments": {"type": "object", "additionalProperties": {"type": "string"}},
+    "relationship_edges": {"type": "array", "items": {"type": "object"}}
+  },
+  "additionalProperties": false
+}

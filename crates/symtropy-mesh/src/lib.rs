@@ -8,11 +8,11 @@ pub mod narrowphase;
 
 use nalgebra::SVector;
 use std::any::Any;
-use symtropy_math::{Point, Shape};
+use symtropy_math::{Point, Shape, Transform};
 use symtropy_physics::broadphase::Aabb;
 
-pub use narrowphase::generate_mesh_contacts;
-pub use narrowphase::generate_meshlet_contacts;
+pub use narrowphase::{generate_mesh_contacts, generate_mesh_contacts_transformed};
+pub use narrowphase::{generate_meshlet_contacts, generate_meshlet_contacts_transformed};
 
 /// A single triangle in 3D.
 #[derive(Clone, Debug)]
@@ -212,18 +212,18 @@ impl symtropy_physics::manifold_gen::MeshColliderMetadata<3> for TriangleMesh {
     fn generate_mesh_contacts(
         &self,
         self_handle: symtropy_physics::body::BodyHandle,
-        self_pos: &SVector<f64, 3>,
+        self_transform: &Transform<3>,
         other_shape: &dyn Shape<3>,
         other_handle: symtropy_physics::body::BodyHandle,
-        other_pos: &SVector<f64, 3>,
+        other_transform: &Transform<3>,
     ) -> Vec<symtropy_physics::contact::ContactManifold<3>> {
-        crate::narrowphase::generate_mesh_contacts(
+        crate::narrowphase::generate_mesh_contacts_transformed(
             self,
             self_handle,
-            self_pos,
+            self_transform,
             other_shape,
             other_handle,
-            other_pos,
+            other_transform,
         )
     }
 }
@@ -267,20 +267,34 @@ impl Shape<3> for TriangleMesh {
 /// the BVH narrowphase instead of silently falling back to its convex hull.
 ///
 /// Internally this registers a closure with
-/// [`PhysicsWorld::register_mesh_contact_fn`] that can perform the concrete
+/// [`PhysicsWorld::register_mesh_contact_transform_fn`] that can perform the concrete
 /// `downcast_ref::<TriangleMesh>()` — something `symtropy-physics` itself
 /// cannot do due to the circular crate dependency (this crate depends on
 /// `symtropy-physics`, not the reverse).
 pub fn install_triangle_mesh_narrowphase(world: &mut symtropy_physics::world::PhysicsWorld<3>) {
-    world.register_mesh_contact_fn(|shape_a, pos_a, shape_b, pos_b, handle_a, handle_b| {
-        use symtropy_physics::manifold_gen::MeshColliderMetadata;
-        if let Some(mesh) = shape_a.as_any().downcast_ref::<TriangleMesh>() {
-            return Some(mesh.generate_mesh_contacts(handle_a, pos_a, shape_b, handle_b, pos_b));
-        }
-        if let Some(mesh) = shape_b.as_any().downcast_ref::<TriangleMesh>() {
-            return Some(mesh.generate_mesh_contacts(handle_b, pos_b, shape_a, handle_a, pos_a));
-        }
-        // Neither shape is a TriangleMesh — fall through to GJK.
-        None
-    });
+    world.register_mesh_contact_transform_fn(
+        |shape_a, transform_a, shape_b, transform_b, handle_a, handle_b| {
+            use symtropy_physics::manifold_gen::MeshColliderMetadata;
+            if let Some(mesh) = shape_a.as_any().downcast_ref::<TriangleMesh>() {
+                return Some(mesh.generate_mesh_contacts(
+                    handle_a,
+                    transform_a,
+                    shape_b,
+                    handle_b,
+                    transform_b,
+                ));
+            }
+            if let Some(mesh) = shape_b.as_any().downcast_ref::<TriangleMesh>() {
+                return Some(mesh.generate_mesh_contacts(
+                    handle_b,
+                    transform_b,
+                    shape_a,
+                    handle_a,
+                    transform_a,
+                ));
+            }
+            // Neither shape is a TriangleMesh — fall through to GJK.
+            None
+        },
+    );
 }

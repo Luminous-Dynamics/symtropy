@@ -1,0 +1,20 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://symtropy.local/schemas/chronology_event.schema.json",
+  "title": "Atlas Chronology Event",
+  "type": "object",
+  "required": ["event_id", "worldline_id", "atlas_tick", "region_id", "event_kind", "input_hash", "output_hash"],
+  "properties": {
+    "event_id": {"type": "string", "minLength": 1},
+    "worldline_id": {"type": "string", "minLength": 1},
+    "atlas_tick": {"type": "string", "pattern": "^[0-9]+$"},
+    "parent_events": {"type": "array", "items": {"type": "string"}, "uniqueItems": true},
+    "region_id": {"type": "string", "minLength": 1},
+    "event_kind": {"type": "string", "minLength": 1},
+    "input_hash": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "output_hash": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "visibility": {"enum": ["public", "restricted", "private", "classified"]},
+    "evidence_refs": {"type": "array", "items": {"type": "string"}}
+  },
+  "additionalProperties": false
+}

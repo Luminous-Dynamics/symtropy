@@ -14,6 +14,7 @@ categories = ["simulation", "science"]
 # matrix into that workspace's build.
 
 [dependencies]
+symtropy-hdc-core = { version = "0.1.0", path = "../../core/symtropy-hdc-core" }
 symtropy-robotics-bridge-core = { version = "0.1.0", path = "../symtropy-robotics-bridge-core" }
 symthaea-core = "0.5.1"
 

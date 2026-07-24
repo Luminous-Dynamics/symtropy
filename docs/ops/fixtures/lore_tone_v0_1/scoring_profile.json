@@ -1,0 +1,30 @@
+{
+  "profile_id": "symtropy-lore-tone-v0.1",
+  "scale": {"min": 0, "max": 4},
+  "dimensions": [
+    "material_specificity",
+    "voice_variance",
+    "institutional_asymmetry",
+    "ordinary_life",
+    "human_motive_range",
+    "historical_noise",
+    "popular_culture",
+    "privacy_boundaries",
+    "nonhuman_everyday_depth",
+    "worldline_durability"
+  ],
+  "promotion": {
+    "minimum_overall_mean": 2.8,
+    "minimum_dimension": 2.0,
+    "minimum_material_specificity": 3.0,
+    "minimum_ordinary_life": 3.0,
+    "minimum_voice_variance": 2.5,
+    "hard_failures_allowed": 0
+  },
+  "diagnostic_thresholds": {
+    "maximum_single_template_cluster_fraction": 0.35,
+    "maximum_lore_aphorisms_per_1200_words": 1,
+    "minimum_flagship_entities_with_two_alternate_names_fraction": 0.70,
+    "minimum_flagship_entities_with_mundane_name_fraction": 0.35
+  }
+}

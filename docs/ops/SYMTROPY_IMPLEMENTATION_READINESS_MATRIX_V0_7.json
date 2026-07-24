@@ -1,0 +1,47 @@
+{
+  "version": "0.7",
+  "documentation_version": "1.4",
+  "implementation_default": "I0 \u2014 not assessed",
+  "planetary_capabilities": [
+    {
+      "capability": "planetary federation and subsidiarity",
+      "design": "D3",
+      "implementation": "I0"
+    },
+    {
+      "capability": "planetary infrastructure networks",
+      "design": "D3",
+      "implementation": "I0"
+    },
+    {
+      "capability": "interregional trade and customs",
+      "design": "D3",
+      "implementation": "I0"
+    },
+    {
+      "capability": "planetary climate coordination",
+      "design": "D3",
+      "implementation": "I0"
+    },
+    {
+      "capability": "orbital-planetary interface",
+      "design": "D3",
+      "implementation": "I0"
+    },
+    {
+      "capability": "secession and federation forks",
+      "design": "D3",
+      "implementation": "I0"
+    },
+    {
+      "capability": "planetary diplomacy and nonhuman sovereignty",
+      "design": "D3",
+      "implementation": "I0"
+    },
+    {
+      "capability": "integrated planetary society",
+      "design": "D3",
+      "implementation": "I0"
+    }
+  ]
+}

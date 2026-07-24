@@ -1,12 +1,11 @@
 ---
-
 title: Symtropy Dungeons and Raids Design Bible
-status: canonical-draft
 version: 0.1
+status: canonical-draft
 scope: dungeon grammar, raid grammar, civic wound-sites, boss systems, profession integration, Chronicle outcomes
+owner: design/narrative/gameplay
 recommended_path: docs/seedworks/00_canon/DUNGEONS_AND_RAIDS_DESIGN_BIBLE_V0_1.md
----------------------------------------------------------------------------------
-
+---
 > **Code status (2026-07-02 review):** No corresponding raid/boss/wound-site system found in `symtropy/crates` or `symtropy/src` (the existing `living_dungeon`/`settlement` systems in `src/systems/` are a separate, already-implemented mechanic, not this design). Design/vision document only.
 
 # Symtropy Dungeons and Raids Design Bible

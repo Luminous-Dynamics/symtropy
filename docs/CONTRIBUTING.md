@@ -33,5 +33,5 @@ Symtropy uses a **dual-track license model** — see [LICENSING.md](LICENSING.md
 
 By submitting a contribution to a given crate, you agree your contribution is licensed under that crate's terms. This matches the convention used by the Rust compiler and Bevy itself.
 
-Commercial licensing for the AGPL tier: see [../COMMERCIAL_LICENSE.md](../COMMERCIAL_LICENSE.md) or contact tristan.stoltz@evolvingresonantcocreationism.com.
+Commercial licensing for the AGPL tier: see [LICENSING.md](LICENSING.md) or contact tristan.stoltz@evolvingresonantcocreationism.com.
 

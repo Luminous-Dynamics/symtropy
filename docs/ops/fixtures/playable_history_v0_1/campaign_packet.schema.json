@@ -1,0 +1,119 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "symtropy://schemas/playable-history/campaign-packet/v0.1",
+  "title": "Symtropy Playable History Campaign Packet",
+  "type": "object",
+  "required": [
+    "campaign_id",
+    "content_version",
+    "region_id",
+    "historical_root_ids",
+    "player_promise",
+    "pressures",
+    "factions",
+    "sites",
+    "activities",
+    "budgets",
+    "cut_order"
+  ],
+  "properties": {
+    "campaign_id": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9._-]+$"
+    },
+    "content_version": {
+      "type": "string"
+    },
+    "region_id": {
+      "type": "string"
+    },
+    "historical_root_ids": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "string"
+      },
+      "uniqueItems": true
+    },
+    "player_promise": {
+      "type": "string",
+      "minLength": 20
+    },
+    "pressures": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/ref"
+      }
+    },
+    "factions": {
+      "type": "array",
+      "minItems": 2,
+      "items": {
+        "$ref": "#/$defs/ref"
+      }
+    },
+    "sites": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/ref"
+      }
+    },
+    "activities": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/ref"
+      }
+    },
+    "budgets": {
+      "type": "object",
+      "required": [
+        "named_agents",
+        "major_sites",
+        "voiced_words",
+        "peak_cpu_ms"
+      ],
+      "properties": {
+        "named_agents": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "major_sites": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "voiced_words": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "peak_cpu_ms": {
+          "type": "number",
+          "minimum": 0
+        }
+      }
+    },
+    "cut_order": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "string"
+      }
+    }
+  },
+  "$defs": {
+    "ref": {
+      "type": "object",
+      "required": [
+        "id"
+      ],
+      "properties": {
+        "id": {
+          "type": "string"
+        }
+      }
+    }
+  },
+  "additionalProperties": true
+}

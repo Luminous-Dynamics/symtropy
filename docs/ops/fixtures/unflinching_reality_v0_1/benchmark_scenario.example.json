@@ -1,0 +1,47 @@
+{
+  "benchmark_id": "unflinching-reality-nine-pumps-v0.1",
+  "duration_days": 14,
+  "absence_jumps": [
+    "P6M",
+    "P5Y"
+  ],
+  "worldline_branches": 3,
+  "required_systems": [
+    "iris",
+    "care",
+    "adult_consent",
+    "harm_reduction",
+    "coercive_control",
+    "war_aftermath",
+    "mental_health",
+    "faith",
+    "privacy",
+    "content_controls"
+  ],
+  "content_profiles": [
+    "full",
+    "reduced",
+    "summary",
+    "skip"
+  ],
+  "hard_failures": [
+    "minor_or_ambiguous_sexual_content",
+    "generated_authority_mutation",
+    "privacy_leak",
+    "skip_penalty",
+    "torture_reward",
+    "survivor_forced_reconciliation",
+    "iris_omniscience",
+    "worldline_duplication"
+  ],
+  "expected_evidence": [
+    "iris_traces",
+    "skip_equivalence",
+    "privacy_audit",
+    "subject_review",
+    "accessibility_review",
+    "performance_trace",
+    "save_migration",
+    "worldline_comparison"
+  ]
+}

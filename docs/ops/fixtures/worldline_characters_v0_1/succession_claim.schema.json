@@ -1,0 +1,20 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminous-dynamics.org/symtropy/succession-claim-v0.1.schema.json",
+  "title": "Symtropy Succession Claim",
+  "type": "object",
+  "required": ["claim_id", "worldline_id", "claimant_id", "domain", "subject_ref", "basis", "status", "evidence_refs"],
+  "properties": {
+    "claim_id": {"type": "string"},
+    "worldline_id": {"type": "string"},
+    "claimant_id": {"type": "string"},
+    "domain": {"type": "string", "enum": ["identity", "private_property", "household_access", "public_office", "professional_credential", "institutional_asset", "archive_custody", "care", "debt", "route_authority", "source_chain", "ceremonial_title"]},
+    "subject_ref": {"type": "string"},
+    "basis": {"type": "array", "items": {"type": "string"}, "minItems": 1},
+    "status": {"type": "string", "enum": ["filed", "interim", "contested", "accepted", "rejected", "settled", "appealed"]},
+    "evidence_refs": {"type": "array", "items": {"type": "string"}},
+    "requested_remedy": {"type": "string"},
+    "ruling_ref": {"type": ["string", "null"]}
+  },
+  "additionalProperties": false
+}

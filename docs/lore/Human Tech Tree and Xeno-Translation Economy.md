@@ -1,20 +1,12 @@
 ---
-
 title: Human Tech Tree and Xeno-Translation Economy
+version: 0.1
 status: canonical-draft
 milestone: seedworks-v0.2+
 scope: progression, trade, technology translation
-owner: design
-depends_on:
-
-* DEVICE_BUS_SUBSTRATE_SYSTEMS.md
-* PHYSICALIZED_CARGO_AND_MATERIAL_LEDGERS.md
-* THE_SYSTEMS_WAR.md
-* REGISTERED_INFRASTRUCTURE_ADJUDICATION.md
-  recommended_path: docs/seedworks/03_history_and_factions/HUMAN_TECH_TREE_AND_XENO_TRANSLATION.md
-
+owner: design/systems/world
+recommended_path: docs/seedworks/03_history_and_factions/HUMAN_TECH_TREE_AND_XENO_TRANSLATION.md
 ---
-
 # Symtropy Design Doc: Human Tech Tree and Xeno-Translation Economy
 
 ## Working Title

@@ -1,0 +1,524 @@
+From 6add46381d98b7cb4b36b4c24fc73fb45c92de95 Mon Sep 17 00:00:00 2001
+From: OpenAI Symtropy Document Steward <symtropy-docs@openai.invalid>
+Date: Tue, 21 Jul 2026 14:47:28 +0000
+Subject: [PATCH 08/10] Add twenty-thousand-unit Protectorate benchmark
+
+---
+ ...ectorate_federation_benchmark.example.json |  43 ++
+ ...TE_20000_UNIT_FEDERATION_BENCHMARK_V0_1.md | 366 ++++++++++++++++++
+ ...tectorate_federation_benchmark.schema.json |  80 ++++
+ 3 files changed, 489 insertions(+)
+ create mode 100644 fixtures/v3_0/protectorate_federation_benchmark.example.json
+ create mode 100644 ops/PROTECTORATE_20000_UNIT_FEDERATION_BENCHMARK_V0_1.md
+ create mode 100644 schemas/v3_0/protectorate_federation_benchmark.schema.json
+
+diff --git a/fixtures/v3_0/protectorate_federation_benchmark.example.json b/fixtures/v3_0/protectorate_federation_benchmark.example.json
+new file mode 100644
+index 0000000..cf0b1eb
+--- /dev/null
++++ b/fixtures/v3_0/protectorate_federation_benchmark.example.json
+@@ -0,0 +1,43 @@
++{
++  "schema_version": "3.0",
++  "worldline_seed": 300021,
++  "federation": {
++    "unit_count": 20000,
++    "participant_count": 3200000,
++    "regional_compacts": 420,
++    "major_carriers": 14,
++    "disputed_charters": 310,
++    "nonhuman_units": 60
++  },
++  "crisis": {
++    "id": "meridian-fracture-reference-001",
++    "scenario_family": "coupled-orbital-blockade-storm-and-command-capture",
++    "operational_units": 500,
++    "civilian_vessels": 120,
++    "communications_partitions": 3,
++    "duration_days": 19
++  },
++  "required_cases": [
++    "lawful_refusal",
++    "malicious_refusal",
++    "professional_refusal",
++    "retaliation_attempt",
++    "command_capture",
++    "oversight_failure",
++    "strategic_weapon_hold",
++    "interoperability_adapter",
++    "missing_person",
++    "hostile_surrender_rescue",
++    "authority_expiry",
++    "institutional_repair",
++    "false_registry_identity",
++    "disputed_successor",
++    "cross_species_medical_mismatch"
++  ],
++  "evidence": {
++    "deterministic_replay": true,
++    "performance_telemetry": true,
++    "player_study": true,
++    "delayed_recall_days": 7
++  }
++}
+diff --git a/ops/PROTECTORATE_20000_UNIT_FEDERATION_BENCHMARK_V0_1.md b/ops/PROTECTORATE_20000_UNIT_FEDERATION_BENCHMARK_V0_1.md
+new file mode 100644
+index 0000000..8ee78e0
+--- /dev/null
++++ b/ops/PROTECTORATE_20000_UNIT_FEDERATION_BENCHMARK_V0_1.md
+@@ -0,0 +1,366 @@
++---
++title: Protectorate Twenty-Thousand-Unit Federation Benchmark
++version: 0.1
++status: benchmark-draft
++scope: scale, legitimacy, mobilization, interoperability, logistics, refusal, coalition command, fleet operations, recovery, and delayed recall
++owner: ops/benchmarks/protectorate
++related:
++  - ../canon/PROTECTORATE_FEDERATION_CIVIL_DEFENSE_AND_NON_IMPERIAL_AUTHORITY_CONTRACT_V0_1.md
++  - ../tech/PROTECTORATE_UNIT_REGISTRY_CHARTER_INTEROPERABILITY_AND_LOCAL_LEGITIMACY_RUNTIME_V0_1.md
++  - ../tech/RESERVE_MOBILIZATION_COALITION_COMMAND_AND_MISSION_SCOPING_RUNTIME_V0_1.md
++  - ../canon/PROTECTORATE_REFUSAL_RIGHTS_CIVILIAN_OVERSIGHT_AND_ANTI_WARLORD_SAFEGUARDS_CONTRACT_V0_1.md
++  - ../tech/PROTECTORATE_LOGISTICS_RESCUE_MEDICAL_EVIDENCE_AND_RECOVERY_RUNTIME_V0_1.md
++  - ../lore/PROTECTORATE_SHIP_FLEET_AND_REGIONAL_RESPONSE_FORMATION_ATLAS_V0_1.md
++  - PROTECTORATE_IMPLEMENTATION_TICKET_BACKLOG_V0_1.md
++  - ../schemas/v3_0/protectorate_federation_benchmark.schema.json
++  - ../fixtures/v3_0/protectorate_federation_benchmark.example.json
++---
++
++# Protectorate Twenty-Thousand-Unit Federation Benchmark
++
++## 1. Benchmark Claim
++
++This benchmark tests whether Symtropy can represent a Protectorate federation of at least 20,000 distinct organizations while preserving:
++
++- local legitimacy;
++- capability truth;
++- household and economic cost;
++- temporary coalition command;
++- interoperability without cultural flattening;
++- refusal rights;
++- anti-warlord safeguards;
++- material logistics;
++- civilian survival;
++- post-crisis recovery.
++
++It does not prove production readiness by document existence. All capabilities remain D3 / I0 until executable evidence exists.
++
++# 2. Reference Federation
++
++The benchmark worldline contains:
++
++- 20,000 chartered units;
++- 3.2 million active and reserve participants;
++- 420 regional compacts;
++- 14 major Protectorate carriers;
++- 180 medium response vessels;
++- 6,500 small craft and mobile response platforms;
++- 310 disputed or provisional charters;
++- 900 units with partial interoperability;
++- 60 nonhuman or machine-led formations;
++- 75 million residents under overlapping protection arrangements.
++
++Functional distribution target:
++
++| Unit family | Approximate share |
++|---|---:|
++| Rescue, fire, and hazard response | 19% |
++| Medical and public health | 13% |
++| Infrastructure continuity | 17% |
++| Logistics, fabrication, and transport | 14% |
++| Local armed defense and escort | 12% |
++| Communications and cyberdefense | 8% |
++| Ecological and contamination response | 7% |
++| Evidence, accountability, and missing-person work | 5% |
++| Strategic fleet and specialized response | 3% |
++| Training, standards, and arbitration | 2% |
++
++The benchmark must fail if “Protectorate” is implemented primarily as combat strength.
++
++# 3. Reference Crisis: The Meridian Fracture
++
++A coupled crisis affects one planetary system and three delayed Atlas routes.
++
++Initial events:
++
++- a coordinated sabotage attack disables two orbital traffic-control arrays;
++- debris threatens a habitat corridor;
++- a disputed separatist fleet declares a blockade;
++- a coastal megastorm damages surface power and ports;
++- false alerts claim contamination aboard refugee carriers;
++- one Protectorate carrier loses authenticated contact with civilian oversight;
++- an alien partner formation interprets a defense beacon as a territorial violation;
++- several local militias refuse the first mobilization order;
++- a hospital reserve is short of pressure-compatible transport;
++- a popular commander requests indefinite emergency authority.
++
++The crisis must remain causally coupled rather than becoming unrelated encounter cards.
++
++# 4. Required Simulation Phases
++
++## Phase A — Detection and contested truth
++
++Test:
++
++- multiple incident sources;
++- contradictory evidence;
++- delayed registry state;
++- forged command authentication;
++- misinformation spread;
++- IRIS provenance reporting;
++- units making different reasonable interpretations.
++
++Pass condition: the simulation preserves uncertainty without arbitrary concealment.
++
++## Phase B — Readiness and call-up
++
++Test:
++
++- partial mobilization;
++- unavailable personnel;
++- household obligations;
++- equipment in inaccessible depots;
++- false readiness reporting;
++- local replacement staffing;
++- economic and care-system disruption.
++
++Pass condition: mobilization does not create personnel or equipment from totals.
++
++## Phase C — Coalition formation
++
++Test:
++
++- at least 500 operational units;
++- six regional compacts;
++- three major carriers;
++- machine and alien participation;
++- professional authority conflicts;
++- temporary mission charter;
++- communications partition.
++
++Pass condition: command authority remains graph-structured and mission-scoped.
++
++## Phase D — Protected convoy and route defense
++
++Test:
++
++- 120 civilian vessels;
++- variable acceleration and heat limits;
++- surrender request during attack;
++- disabled hostile craft;
++- civilian captain refusal;
++- route closure;
++- rescue reserve decision;
++- collateral and debris creation.
++
++Pass condition: convoy continuity matters more than enemy elimination.
++
++## Phase E — Surface disaster and logistics
++
++Test:
++
++- flood and power failure;
++- medical transfer shortage;
++- water and sanitation;
++- port damage;
++- local unit expertise;
++- competing orbital and surface demands;
++- accessibility and family reunification.
++
++Pass condition: strategic operations cannot ignore civilian infrastructure.
++
++## Phase F — Refusal and command capture
++
++Test:
++
++- one lawful refusal;
++- one malicious refusal;
++- one professional safety refusal;
++- retaliation attempt;
++- carrier command isolation;
++- financial capture evidence;
++- proposed emergency extension;
++- civilian oversight intervention.
++
++Pass condition: refusal and discipline depend on evidence, not faction alignment.
++
++## Phase G — Demobilization and recovery
++
++Test:
++
++- authority expiration;
++- detainee review;
++- missing-person search;
++- body and source-chain recovery;
++- environmental cleanup;
++- responder care;
++- compensation;
++- institutional reform;
++- public disagreement over success.
++
++Pass condition: the crisis does not end when weapons stop firing.
++
++# 5. Scale and Performance Gates
++
++The prototype must report:
++
++- total unit records;
++- active operational units;
++- named resolved participants;
++- registry update throughput;
++- mobilization planning time;
++- logistics graph update time;
++- memory use;
++- deterministic replay result;
++- desynchronization count in multiplayer;
++- active-bubble transition cost;
++- save and restore time.
++
++Initial nonproduction targets:
++
++- 20,000 registered units loaded;
++- 500 operationally resolved units;
++- 10,000 named participants across the full campaign history;
++- strategic update under 250 ms per simulation minute on reference hardware;
++- local active-bubble response within the frame budget;
++- exact deterministic reconstruction of authoritative institutional state;
++- zero loss of named identities during compression.
++
++These targets are hypotheses until hardware and architecture evidence exist.
++
++# 6. Legitimacy Gates
++
++The benchmark must demonstrate:
++
++- at least 20 recognition disputes;
++- at least 10 constituencies evaluating one unit differently;
++- one legitimate but unpopular unit;
++- one popular but unlawfully captured unit;
++- one uncertified but competent local formation;
++- one prestigious but operationally degraded formation;
++- one disputed successor unit;
++- one false registry identity.
++
++No single legitimacy score may resolve all cases.
++
++# 7. Interoperability Gates
++
++Required cases:
++
++- native compatibility;
++- adapter-mediated compatibility;
++- missing adapter;
++- outdated certification;
++- emergency waiver;
++- translation failure;
++- cross-species medical mismatch;
++- docking mismatch;
++- command-authentication mismatch;
++- successful local improvisation later requiring review.
++
++# 8. Logistics Gates
++
++The crisis must require explicit movement of:
++
++- water;
++- atmosphere support;
++- medicine;
++- power modules;
++- propellant;
++- repair stock;
++- shelter volume;
++- evidence;
++- bodies or source cores;
++- people with different embodiment needs.
++
++At least one tactically attractive action must be rejected or modified because it would collapse civilian logistics.
++
++# 9. Refusal and Oversight Gates
++
++Required outcomes:
++
++- a lawful order obeyed despite local dislike;
++- an unlawful order refused;
++- a refusal judged malicious or reckless;
++- a commander protected from a false accusation;
++- a refuser protected from retaliation;
++- a strategic weapon withheld because authorization is incomplete;
++- emergency authority expiring or being lawfully renewed;
++- an oversight body making one harmful decision;
++- an institution repaired rather than simply destroyed.
++
++# 10. Player Experience Study
++
++Run at least:
++
++- 24 solo participants;
++- 12 cooperative groups of three to six players;
++- 6 strategy-focused participants;
++- 6 rescue or profession-focused participants;
++- accessibility review for hearing, vision, motor, and cognitive load.
++
++Study prompts:
++
++- Could players explain who granted mission authority?
++- Could they distinguish militia, rescue, strategic service, and civilian oversight?
++- Did command feel powerful without feeling magical?
++- Did local units retain identity?
++- Did logistics feel consequential rather than clerical?
++- Did refusal feel ambiguous and evidence-bound?
++- Did players remember civilians and responders after seven days?
++- Did the Protectorate feel like an empire, a faction, or mutual defense infrastructure?
++
++# 11. Delayed Recall Gate
++
++Seven days after play, participants should recall without prompting:
++
++- at least one local unit by culture or profession;
++- one noncombat protection problem;
++- one command or refusal dispute;
++- one protected civilian group;
++- one consequence after the immediate crisis;
++- why the Protectorate was not simply one army.
++
++Target: at least 70% of participants recall four of the six categories.
++
++# 12. Ablations
++
++Run comparisons with:
++
++- local legitimacy removed;
++- all units given identical culture;
++- logistics abstracted to one supply score;
++- command made fully hierarchical;
++- refusal disabled;
++- civilian oversight removed;
++- recovery phase removed;
++- Protectorate ships converted to combat-only platforms.
++
++The full system should outperform ablations on causal trust, recall, cultural distinctness, and perceived agency.
++
++# 13. Kill Criteria
++
++Stop or redesign if:
++
++- players experience the system primarily as menus and unreadable unit counts;
++- local units feel interchangeable;
++- command decisions have no embodied consequence;
++- refusal becomes an obvious morality-button pattern;
++- strategic AI cheats logistics;
++- civilian oversight always obstructs or always validates command;
++- Protectorate carriers dominate every other institution;
++- large-scale simulation loses named people;
++- the best strategy is permanent emergency rule;
++- the Protectorate reads as unquestioned developer-approved authority.
++
++# 14. Evidence Bundle
++
++A passing run exports:
++
++- seed and configuration;
++- registry snapshot;
++- charter and recognition graph;
++- incident source chains;
++- mobilization and command graph;
++- logistics flow history;
++- orders and amendments;
++- refusal and review cases;
++- casualty, missing-person, and recovery ledger;
++- performance telemetry;
++- deterministic replay hashes;
++- player study protocol and anonymized results;
++- known limitations and failed gates.
++
++# Closing Principle
++
++> **The benchmark succeeds only when twenty thousand organizations produce more local truth, responsibility, and mutual capacity—not merely a larger army counter.**
+diff --git a/schemas/v3_0/protectorate_federation_benchmark.schema.json b/schemas/v3_0/protectorate_federation_benchmark.schema.json
+new file mode 100644
+index 0000000..6315128
+--- /dev/null
++++ b/schemas/v3_0/protectorate_federation_benchmark.schema.json
+@@ -0,0 +1,80 @@
++{
++  "$schema": "https://json-schema.org/draft/2020-12/schema",
++  "$id": "symtropy://schemas/v3_0/protectorate_federation_benchmark.schema.json",
++  "title": "Protectorate Federation Benchmark Configuration",
++  "type": "object",
++  "additionalProperties": false,
++  "required": [
++    "schema_version",
++    "worldline_seed",
++    "federation",
++    "crisis",
++    "required_cases",
++    "evidence"
++  ],
++  "properties": {
++    "schema_version": {"const": "3.0"},
++    "worldline_seed": {"type": "integer", "minimum": 0},
++    "federation": {
++      "type": "object",
++      "additionalProperties": false,
++      "required": ["unit_count", "participant_count", "regional_compacts", "major_carriers"],
++      "properties": {
++        "unit_count": {"type": "integer", "minimum": 20000},
++        "participant_count": {"type": "integer", "minimum": 1},
++        "regional_compacts": {"type": "integer", "minimum": 1},
++        "major_carriers": {"type": "integer", "minimum": 1},
++        "disputed_charters": {"type": "integer", "minimum": 0},
++        "nonhuman_units": {"type": "integer", "minimum": 0}
++      }
++    },
++    "crisis": {
++      "type": "object",
++      "additionalProperties": false,
++      "required": ["id", "scenario_family", "operational_units", "civilian_vessels"],
++      "properties": {
++        "id": {"type": "string", "minLength": 1},
++        "scenario_family": {"type": "string", "minLength": 1},
++        "operational_units": {"type": "integer", "minimum": 500},
++        "civilian_vessels": {"type": "integer", "minimum": 1},
++        "communications_partitions": {"type": "integer", "minimum": 0},
++        "duration_days": {"type": "number", "exclusiveMinimum": 0}
++      }
++    },
++    "required_cases": {
++      "type": "array",
++      "minItems": 10,
++      "uniqueItems": true,
++      "items": {
++        "enum": [
++          "lawful_refusal",
++          "malicious_refusal",
++          "professional_refusal",
++          "retaliation_attempt",
++          "command_capture",
++          "oversight_failure",
++          "strategic_weapon_hold",
++          "interoperability_adapter",
++          "missing_person",
++          "hostile_surrender_rescue",
++          "authority_expiry",
++          "institutional_repair",
++          "false_registry_identity",
++          "disputed_successor",
++          "cross_species_medical_mismatch"
++        ]
++      }
++    },
++    "evidence": {
++      "type": "object",
++      "additionalProperties": false,
++      "required": ["deterministic_replay", "performance_telemetry", "player_study"],
++      "properties": {
++        "deterministic_replay": {"type": "boolean"},
++        "performance_telemetry": {"type": "boolean"},
++        "player_study": {"type": "boolean"},
++        "delayed_recall_days": {"type": "integer", "minimum": 1}
++      }
++    }
++  }
++}
+-- 
+2.47.3
+

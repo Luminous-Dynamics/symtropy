@@ -1,0 +1,27 @@
+{
+  "campaign_version": "2.7",
+  "worldline_id": "benchmark-firstlight-001",
+  "cast_seed": "89f75bbf06e54216ac39e46f10bf7d11",
+  "scenario_family": "watershed_resonance_tower_wake",
+  "signature_wonder": "rain_bends_around_metric_trim_craft",
+  "initial_crawler_state": {
+    "brakes": 0.62,
+    "sanitation": 0.48,
+    "power": 0.77,
+    "water_liters": 420,
+    "available_seats": 8,
+    "stretcher_positions": 1
+  },
+  "route_variants": ["escarpment_service_road", "floodline_causeway", "old_lift_tunnel"],
+  "required_role_anchors": [
+    "utility_steward",
+    "care_steward",
+    "service_machine_witness",
+    "transit_keeper",
+    "public_record_agitator",
+    "cultural_spark",
+    "base_keeper",
+    "charismatic_rival"
+  ],
+  "validation_profile": "breaking_firstlight_v0_1"
+}

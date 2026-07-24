@@ -14,6 +14,8 @@
 use crate::body::{BodyHandle, BodyType, RigidBody};
 use nalgebra::SVector;
 
+use crate::support_map::{TransformedShape, support_aabb};
+
 /// Pair of body handles that may be colliding.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub struct BroadphasePair(pub BodyHandle, pub BodyHandle);
@@ -58,6 +60,12 @@ impl<const D: usize> Aabb<D> {
             min: center - SVector::from_element(radius),
             max: center + SVector::from_element(radius),
         }
+    }
+    /// Exact world-axis bounds for a bounded convex rigid body.
+    pub fn from_body(body: &RigidBody<D>) -> Self {
+        let map = TransformedShape::new(body.collider.as_ref(), &body.transform);
+        let (min, max) = support_aabb(&map);
+        Self { min, max }
     }
 }
 
@@ -129,9 +137,7 @@ impl<const D: usize> Lbvh<D> {
         let mut world_min = SVector::<f64, D>::from_element(f64::MAX);
         let mut world_max = SVector::<f64, D>::from_element(f64::MIN);
         for body in bodies {
-            let (c_local, r) = body.collider.bounding_sphere();
-            let c_world = body.transform.transform_point(&c_local).0;
-            let aabb = Aabb::from_sphere(&c_world, r);
+            let aabb = Aabb::from_body(body);
             for i in 0..D {
                 if aabb.min[i] < world_min[i] {
                     world_min[i] = aabb.min[i];
@@ -310,8 +316,8 @@ pub fn find_pairs<const D: usize>(bodies: &[RigidBody<D>]) -> Vec<BroadphasePair
 /// Pre-computed broadphase descriptor for a single body (AABB + sphere + filter).
 ///
 /// Decoupled from `RigidBody<D>` so it can be cached without holding references.
-/// Stores both the AABB (for static-cache queries) and the bounding sphere center
-/// and radius (for dynamic–dynamic sphere-distance test, matching `find_pairs_brute`).
+/// Stores a tight orientation-aware AABB for pair rejection and a bounding sphere
+/// for diagnostics and future coarse hierarchy construction.
 #[derive(Clone, Debug)]
 pub struct BpEntry<const D: usize> {
     pub handle: BodyHandle,
@@ -331,7 +337,7 @@ impl<const D: usize> BpEntry<D> {
         let c_world = body.transform.transform_point(&c_local).0;
         BpEntry {
             handle: body.handle,
-            aabb: Aabb::from_sphere(&c_world, r),
+            aabb: Aabb::from_body(body),
             sphere_center: c_world,
             sphere_radius: r,
             body_type: body.body_type,
@@ -381,7 +387,7 @@ impl<const D: usize> StaticBroadphase<D> {
 
     /// Enumerate pairs between a dynamic entry and all cached static entries.
     ///
-    /// Uses sphere-distance test (same as `find_pairs_brute`) for exact equivalence.
+    /// Uses orientation-aware AABB overlap.
     fn query_against<'a>(
         &'a self,
         dyn_entry: &'a BpEntry<D>,
@@ -390,8 +396,7 @@ impl<const D: usize> StaticBroadphase<D> {
             let group_ok = (dyn_entry.collision_group & s.collision_mask != 0)
                 && (s.collision_group & dyn_entry.collision_mask != 0);
             if group_ok {
-                let dist = (dyn_entry.sphere_center - s.sphere_center).norm();
-                if dist <= dyn_entry.sphere_radius + s.sphere_radius {
+                if dyn_entry.aabb.overlaps(&s.aabb) {
                     let (ha, hb) = (dyn_entry.handle, s.handle);
                     let pair = if ha < hb {
                         BroadphasePair(ha, hb)
@@ -452,7 +457,7 @@ pub fn find_pairs_incremental<const D: usize>(
 
     let mut pairs = Vec::new();
 
-    // Dynamic–dynamic pairs (brute force, sphere distance test matching find_pairs_brute)
+    // Dynamic–dynamic pairs (brute force, orientation-aware AABB overlap)
     for i in 0..dynamic.len() {
         for j in (i + 1)..dynamic.len() {
             let a = &dynamic[i];
@@ -460,8 +465,7 @@ pub fn find_pairs_incremental<const D: usize>(
             let group_ok = (a.collision_group & b.collision_mask != 0)
                 && (b.collision_group & a.collision_mask != 0);
             if group_ok {
-                let dist = (a.sphere_center - b.sphere_center).norm();
-                if dist <= a.sphere_radius + b.sphere_radius {
+                if a.aabb.overlaps(&b.aabb) {
                     let (ha, hb) = (a.handle, b.handle);
                     if ha < hb {
                         pairs.push(BroadphasePair(ha, hb));
@@ -494,11 +498,9 @@ fn find_pairs_brute<const D: usize>(bodies: &[RigidBody<D>]) -> Vec<BroadphasePa
             if !should_collide(&bodies[i], &bodies[j]) {
                 continue;
             }
-            let (ci, ri) = bodies[i].collider.bounding_sphere();
-            let (cj, rj) = bodies[j].collider.bounding_sphere();
-            let wi = bodies[i].transform.transform_point(&ci);
-            let wj = bodies[j].transform.transform_point(&cj);
-            if wi.distance(&wj) <= ri + rj {
+            let aabb_i = Aabb::from_body(&bodies[i]);
+            let aabb_j = Aabb::from_body(&bodies[j]);
+            if aabb_i.overlaps(&aabb_j) {
                 pairs.push(BroadphasePair(bodies[i].handle, bodies[j].handle));
             }
         }
@@ -713,5 +715,54 @@ mod tests {
 
         static_bp.rebuild(&bodies);
         assert_eq!(static_bp.len(), 1, "should cache the one static body");
+    }
+
+    #[test]
+    fn rotated_box_aabb_uses_orientation() {
+        use std::f64::consts::FRAC_PI_2;
+        use symtropy_math::{Bivector, HyperBox, Rotor, Transform};
+
+        let body = RigidBody::new(
+            BodyHandle(0),
+            BodyType::Dynamic,
+            Transform {
+                translation: Point::new([1.0, 2.0, 0.0]),
+                rotation: Rotor::from_plane_angle(&Bivector::unit_plane(0, 1), FRAC_PI_2),
+            },
+            Box::new(HyperBox::<3>::new([2.0, 0.5, 0.25])),
+            1.0,
+            SVector::from_element(1.0),
+        );
+
+        let aabb = Aabb::from_body(&body);
+        assert!((aabb.min[0] - 0.5).abs() < 1e-10);
+        assert!((aabb.max[0] - 1.5).abs() < 1e-10);
+        assert!((aabb.min[1] - 0.0).abs() < 1e-10);
+        assert!((aabb.max[1] - 4.0).abs() < 1e-10);
+    }
+
+    #[test]
+    fn rotated_thin_boxes_are_rejected_by_tight_aabbs() {
+        use std::f64::consts::FRAC_PI_2;
+        use symtropy_math::{Bivector, HyperBox, Rotor, Transform};
+
+        let make = |handle, x| {
+            RigidBody::new(
+                BodyHandle(handle),
+                BodyType::Dynamic,
+                Transform {
+                    translation: Point::new([x, 0.0, 0.0]),
+                    rotation: Rotor::from_plane_angle(&Bivector::unit_plane(0, 1), FRAC_PI_2),
+                },
+                Box::new(HyperBox::<3>::new([2.0, 0.1, 0.1])),
+                1.0,
+                SVector::from_element(1.0),
+            )
+        };
+
+        // Bounding spheres overlap heavily (radius ~= 2), but after rotation
+        // each box is only 0.2 units wide on X.
+        let bodies = vec![make(0, 0.0), make(1, 1.0)];
+        assert!(find_pairs(&bodies).is_empty());
     }
 }

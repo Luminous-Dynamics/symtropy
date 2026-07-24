@@ -1,0 +1,1505 @@
+From 477b71056ed51d6081b5a432d045046b2a35220d Mon Sep 17 00:00:00 2001
+From: OpenAI <noreply@openai.com>
+Date: Tue, 21 Jul 2026 07:59:49 +0000
+Subject: [PATCH 10/10] Integrate v2.8 meme ecology campaign
+
+---
+ CHANGELOG_2026_07_21_V2_8.md                  |  34 +++
+ MANIFEST.json                                 | 135 ++++++++--
+ PATCH_RECONSTRUCTION_STATUS.txt               |  10 +-
+ README.md                                     |  18 ++
+ ...N_REGISTRY_AND_DOCUMENT_GOVERNANCE_V2_3.md |  16 +-
+ ...N_REGISTRY_AND_DOCUMENT_GOVERNANCE_V2_4.md |  78 ++++++
+ ...TEM_INTERACTION_AND_DEPENDENCY_MAP_V2_0.md |  14 +-
+ ...TEM_INTERACTION_AND_DEPENDENCY_MAP_V2_1.md | 239 ++++++++++++++++++
+ ops/DOCUMENT_REGISTRY.json                    | 232 +++++++++++++++--
+ ops/GAME_IMPLEMENTATION_ROADMAP_V2_0.md       |  14 +-
+ ops/GAME_IMPLEMENTATION_ROADMAP_V2_1.md       | 104 ++++++++
+ ops/QUALITY_AUDIT_2026_07_21_V2_8.json        |  23 ++
+ ...PY_IMPLEMENTATION_READINESS_MATRIX_V2_0.md |  12 +-
+ ...PY_IMPLEMENTATION_READINESS_MATRIX_V2_1.md | 105 ++++++++
+ ...TION_HUMOR_AND_LIVING_FOLKLORE_CAMPAIGN.md |  66 +++++
+ 15 files changed, 1036 insertions(+), 64 deletions(-)
+ create mode 100644 CHANGELOG_2026_07_21_V2_8.md
+ create mode 100644 canon/CANON_REGISTRY_AND_DOCUMENT_GOVERNANCE_V2_4.md
+ create mode 100644 canon/SYSTEM_INTERACTION_AND_DEPENDENCY_MAP_V2_1.md
+ create mode 100644 ops/GAME_IMPLEMENTATION_ROADMAP_V2_1.md
+ create mode 100644 ops/QUALITY_AUDIT_2026_07_21_V2_8.json
+ create mode 100644 ops/SYMTROPY_IMPLEMENTATION_READINESS_MATRIX_V2_1.md
+ create mode 100644 ops/V2_8_MEME_ECOLOGY_CULTURAL_MUTATION_HUMOR_AND_LIVING_FOLKLORE_CAMPAIGN.md
+
+diff --git a/CHANGELOG_2026_07_21_V2_8.md b/CHANGELOG_2026_07_21_V2_8.md
+new file mode 100644
+index 0000000..237d77d
+--- /dev/null
++++ b/CHANGELOG_2026_07_21_V2_8.md
+@@ -0,0 +1,34 @@
++# Symtropy Documentation Changelog — v2.8
++
++## Added
++
++- meme ecology, humor, living folklore and cultural-agency contract;
++- memetic event extraction, genome and candidate Foundry runtime;
++- meme genome schema;
++- faction, profession, generation and nonhuman humor grammar atlas;
++- mutation, distribution, selection, fatigue, decay, revival and provenance runtime;
++- meme lineage schema;
++- player-specific worldline meme and IRIS private-joke runtime;
++- memetic harm, propaganda, harassment, consent and repair contract;
++- multimodal media, Muse, gesture, architecture and translation runtime;
++- thirty-two-packet meme archaeology and historical mutation anthology;
++- deterministic Firstlight and Continuance benchmark;
++- 100-ticket implementation backlog;
++- benchmark schema and fixture;
++- updated registry, dependency map, roadmap and readiness matrix.
++
++## Direction
++
++v2.8 defines an endless cultural mutation engine rather than an endless content feed:
++
++```text
++world history
++→ situated joke or artifact
++→ real social spread
++→ mutation and conflict
++→ fatigue, revival or folklore
++```
++
++## Evidence Boundary
++
++All capabilities remain D3 / I0 pending implementation, deterministic replay, multiplayer, cultural review, safety review, accessibility, performance and delayed-recall evidence.
+diff --git a/MANIFEST.json b/MANIFEST.json
+index 0d24ca1..0546148 100644
+--- a/MANIFEST.json
++++ b/MANIFEST.json
+@@ -1,5 +1,5 @@
+ {
+-  "version": "2.7",
++  "version": "2.8",
+   "files": [
+     {
+       "path": "CHANGELOG_2026_07_20.md",
+@@ -116,6 +116,11 @@
+       "bytes": 1280,
+       "sha256": "981b5196750352219e817f0b4df57a72616e32cd2aa3e5ed17f509f714d8b08a"
+     },
++    {
++      "path": "CHANGELOG_2026_07_21_V2_8.md",
++      "bytes": 1297,
++      "sha256": "e6161391f533d84d96fb75b2dda9d8ded9ac0334cab683797da7f4569588984a"
++    },
+     {
+       "path": "CONTRIBUTING.md",
+       "bytes": 2147,
+@@ -128,13 +133,13 @@
+     },
+     {
+       "path": "PATCH_RECONSTRUCTION_STATUS.txt",
+-      "bytes": 391,
+-      "sha256": "243e1ac43d9b1d7bfa7f5775cdca979abbe9cbbf06ebaac2bba2cd1c5b7a1352"
++      "bytes": 409,
++      "sha256": "f7c8328fdc25ef49afe27db58ad4805e4adbc7a24ad5c26da0617affcdb13ad6"
+     },
+     {
+       "path": "README.md",
+-      "bytes": 28853,
+-      "sha256": "bcead8811c5d6f3dfd01148b79f7cdf2277f4a7d57650db7e0ee5336843ede66"
++      "bytes": 30434,
++      "sha256": "bae5c81d14f3ae02827f8c656a4b9d22844c8656b43723b62e477a63b6fe61d9"
+     },
+     {
+       "path": "SYMTROPY_RESOURCE_CHAINS_GAME_DOC_V0_1.md",
+@@ -373,8 +378,13 @@
+     },
+     {
+       "path": "canon/CANON_REGISTRY_AND_DOCUMENT_GOVERNANCE_V2_3.md",
+-      "bytes": 12592,
+-      "sha256": "9b67e3aadc8c5191dd02d13456ebb2181d9d8a38f819a5aa3cbcee73fc2ae73f"
++      "bytes": 12647,
++      "sha256": "2df1ae5dbf45ed06c023141f81202c3bc63129e6b5cffa1b09552120221e57e8"
++    },
++    {
++      "path": "canon/CANON_REGISTRY_AND_DOCUMENT_GOVERNANCE_V2_4.md",
++      "bytes": 5444,
++      "sha256": "6be584e49f2425c0f03124e5dac3256b43476c82394e9c7bc56b6118d2ef6771"
+     },
+     {
+       "path": "canon/CIVIC_SUCCESSION_PUBLIC_SERVICE_AND_INSTITUTIONAL_CONTINUITY_CONTRACT_V0_1.md",
+@@ -516,6 +526,16 @@
+       "bytes": 11780,
+       "sha256": "50d0b8218b8fa866e39c618ecda41a0e2f21dbd61ef5365d25f70d8595e1ed0a"
+     },
++    {
++      "path": "canon/MEMETIC_HARM_PROPAGANDA_HARASSMENT_CONSENT_AND_REPAIR_CONTRACT_V0_1.md",
++      "bytes": 12485,
++      "sha256": "8461af8b68abfe2d98de615c852daefe10978f3058ca01d37cec47f0461087d2"
++    },
++    {
++      "path": "canon/MEME_ECOLOGY_HUMOR_LIVING_FOLKLORE_AND_CULTURAL_AGENCY_CONTRACT_V0_1.md",
++      "bytes": 11913,
++      "sha256": "b91aa802005f2a08b5abe062085a142e3b17b8ab0fcdcd75bafda00a46cb3a1a"
++    },
+     {
+       "path": "canon/MENTAL_HEALTH_FAITH_GRIEF_AND_AMBIGUOUS_EXPERIENCE_CONTRACT_V0_1.md",
+       "bytes": 11540,
+@@ -753,8 +773,13 @@
+     },
+     {
+       "path": "canon/SYSTEM_INTERACTION_AND_DEPENDENCY_MAP_V2_0.md",
+-      "bytes": 5360,
+-      "sha256": "909e7f18ec0d466613feab611df4ea2cbb1399efd5f396e20ecdc332aa9d4a5e"
++      "bytes": 5406,
++      "sha256": "406139d8f9c12538bb9e67b097a2714ee7747c6280fbcc473deb5ae82cdba50a"
++    },
++    {
++      "path": "canon/SYSTEM_INTERACTION_AND_DEPENDENCY_MAP_V2_1.md",
++      "bytes": 5949,
++      "sha256": "97848bb438e5bd699c1e052f9207a566193e6cfcd405d1313aa56840560a6731"
+     },
+     {
+       "path": "canon/VICE_ECONOMIES_PLEASURE_CITIES_AND_NIGHTLIFE_CONTRACT_V0_1.md",
+@@ -781,6 +806,11 @@
+       "bytes": 789,
+       "sha256": "caaff2e9a121e8732c22414290c5229f9862bbb221e9b091f534a99720074f7c"
+     },
++    {
++      "path": "fixtures/v2_8/firstlight_continuance_meme_ecology.example.json",
++      "bytes": 6104,
++      "sha256": "7559647836665a33f181d6d9db978130ccb6fb64e6d957b37c3ca1dfa5c226e1"
++    },
+     {
+       "path": "lore/ALIEN_METRIC_TRADITIONS_MOVING_ANCHORS_AND_CAUSAL_CONTACT_ATLAS_V0_1.md",
+       "bytes": 17238,
+@@ -876,6 +906,11 @@
+       "bytes": 9958,
+       "sha256": "72d1f8ff485009ee20f61ad676e0b2b06b6c4659ac150f1b3b11e084a6ed18aa"
+     },
++    {
++      "path": "lore/FACTION_PROFESSION_GENERATION_AND_NONHUMAN_HUMOR_GRAMMAR_ATLAS_V0_1.md",
++      "bytes": 14840,
++      "sha256": "a9bf468a4e0c31e2d68554b2f8d19c9b2f61938666099c165a02ea08b461cab9"
++    },
+     {
+       "path": "lore/FIRSTLIGHT_40_HOUR_CAMPAIGN_AND_ORDINARY_LIFE_ANTHOLOGY_V0_1.md",
+       "bytes": 15286,
+@@ -971,6 +1006,11 @@
+       "bytes": 12536,
+       "sha256": "d229800abc420ce0a297438056178d4c8da2db9569304b0d4d6be5baf6f8d015"
+     },
++    {
++      "path": "lore/MEME_ARCHAEOLOGY_FOLKLORE_AND_HISTORICAL_MUTATION_ANTHOLOGY_V0_1.md",
++      "bytes": 16811,
++      "sha256": "ec02164f71af5ebad7c8e6356f81e8fe7f1c41f2c53526791aace99f3ea4e188"
++    },
+     {
+       "path": "lore/NAMING_PLURALITY_LOCAL_REGISTER_AND_LINGUISTIC_HISTORY_ATLAS_V0_1.md",
+       "bytes": 14822,
+@@ -1208,8 +1248,8 @@
+     },
+     {
+       "path": "ops/DOCUMENT_REGISTRY.json",
+-      "bytes": 277159,
+-      "sha256": "5d654efa396527fdaa4250808391e3bb92213cf08f233de4bcb64ff8c9f8d14b"
++      "bytes": 286724,
++      "sha256": "52c29742dcb0fab8c1720ceac892045de559b51b47f41590a939649690dfa471"
+     },
+     {
+       "path": "ops/DOCUMENT_REGISTRY_SUMMARY.md",
+@@ -1453,8 +1493,13 @@
+     },
+     {
+       "path": "ops/GAME_IMPLEMENTATION_ROADMAP_V2_0.md",
+-      "bytes": 4670,
+-      "sha256": "3de288a09648682b6a4f4fbf46a3e9872e2b3187ee006f597cef3a0fefafea06"
++      "bytes": 4706,
++      "sha256": "005a0b11518d0596d4956e62f26337f6a7ed688ab51636e19ab0f5ec77707646"
++    },
++    {
++      "path": "ops/GAME_IMPLEMENTATION_ROADMAP_V2_1.md",
++      "bytes": 3826,
++      "sha256": "9fd8e60233b621f443bf46c39ae05c722c31cb3a699cc3c3d459c95f9bc9cdd7"
+     },
+     {
+       "path": "ops/HISTORICAL_TEXTURE_WORLD_COHERENCE_BENCHMARK_V0_1.md",
+@@ -1566,6 +1611,16 @@
+       "bytes": 9135,
+       "sha256": "17c0d5697d781cc42fb1dc2573efe6a56078895d9ff324611ca038dffc94870a"
+     },
++    {
++      "path": "ops/MEME_ECOLOGY_FIRSTLIGHT_CONTINUANCE_BENCHMARK_V0_1.md",
++      "bytes": 10611,
++      "sha256": "88384c701c33dbd17a2450b0cdcfa457449b1e200416c7a2740763fcd92f4931"
++    },
++    {
++      "path": "ops/MEME_ECOLOGY_IMPLEMENTATION_TICKET_BACKLOG_V0_1.md",
++      "bytes": 6197,
++      "sha256": "6d6b41ecb8ad9a0211a32249c98acc9065a1a1f8b7db6901781c7e1bc8e8979a"
++    },
+     {
+       "path": "ops/NPC_COGNITION_ABLATION_EVALUATION_AND_PLAYTEST_PROGRAM_V0_1.md",
+       "bytes": 7582,
+@@ -1746,6 +1801,11 @@
+       "bytes": 521,
+       "sha256": "4da953e087b20c1066e7284278da5a3b1984282adca39d4e708a90e3b6e5f66a"
+     },
++    {
++      "path": "ops/QUALITY_AUDIT_2026_07_21_V2_8.json",
++      "bytes": 521,
++      "sha256": "843293534ab63a15493dfed9acde2053688b668044ade291246fd9a738c01bd5"
++    },
+     {
+       "path": "ops/REPRESENTATIVE_BUILD_PERFORMANCE_CONTENT_AND_STRESS_MATRIX_V0_1.md",
+       "bytes": 5896,
+@@ -1943,8 +2003,13 @@
+     },
+     {
+       "path": "ops/SYMTROPY_IMPLEMENTATION_READINESS_MATRIX_V2_0.md",
+-      "bytes": 4522,
+-      "sha256": "4416ab32fb273f82719e8d7949ca83e4898e7101fa3cfe4e8ff308a30c852efe"
++      "bytes": 4573,
++      "sha256": "d5e16175c7670daac8807adaa6f3c9891c18c118c389473cd5250084209bab43"
++    },
++    {
++      "path": "ops/SYMTROPY_IMPLEMENTATION_READINESS_MATRIX_V2_1.md",
++      "bytes": 4408,
++      "sha256": "c066e151cadff2094de9e150fa85575238766ae9e631705bec555edb1348cfb1"
+     },
+     {
+       "path": "ops/Seedworks Tech Tree Dependency Spine.md",
+@@ -2111,6 +2176,11 @@
+       "bytes": 2615,
+       "sha256": "55d3166e4c490c448f7e1894cf2bae20c36c3fb763956fdeed99a0e6f5fd23a3"
+     },
++    {
++      "path": "ops/V2_8_MEME_ECOLOGY_CULTURAL_MUTATION_HUMOR_AND_LIVING_FOLKLORE_CAMPAIGN.md",
++      "bytes": 3052,
++      "sha256": "0cb805849122be341ffff348c6d7649ed0ac96fb15b512d12cecfc6decf43c9f"
++    },
+     {
+       "path": "ops/WORLDLINE_BACKUP_RESTORE_AND_UPGRADE_RUNBOOK_V0_1.md",
+       "bytes": 5463,
+@@ -2506,6 +2576,21 @@
+       "bytes": 1589,
+       "sha256": "3f5510335c49abd5325987df109583f1321b632fa781fa733552e507c291fd20"
+     },
++    {
++      "path": "schemas/v2_8/meme_ecology_benchmark.schema.json",
++      "bytes": 3693,
++      "sha256": "99ff205b2bf842579018573a165751d14f39906d517fbb63d904a66cbe75a2c0"
++    },
++    {
++      "path": "schemas/v2_8/meme_genome.schema.json",
++      "bytes": 4347,
++      "sha256": "eb7d8eb0085af6f0584063385e6cc3caeaf621349a8e7c28c0e87d09f0620c80"
++    },
++    {
++      "path": "schemas/v2_8/meme_lineage.schema.json",
++      "bytes": 3178,
++      "sha256": "13f49ed58d8b924671f6d91258ca679a84b7bd765575c775436385277b391c6f"
++    },
+     {
+       "path": "status/FOUNDRY_VERIFICATION_2026_06_18.md",
+       "bytes": 2454,
+@@ -2771,6 +2856,16 @@
+       "bytes": 11336,
+       "sha256": "b7743ca09e28949c5fc9e861813bc1c3cb8c2a79d27f63eb503bfbfc264ca983"
+     },
++    {
++      "path": "tech/MEMETIC_EVENT_EXTRACTION_GENOME_AND_CANDIDATE_FOUNDRY_RUNTIME_V0_1.md",
++      "bytes": 11138,
++      "sha256": "7cb578105b02df751df4f37bc582f3f94480d2d9090f71e47ee13b72674964e0"
++    },
++    {
++      "path": "tech/MEME_MUTATION_DISTRIBUTION_SELECTION_DECAY_AND_PROVENANCE_RUNTIME_V0_1.md",
++      "bytes": 12675,
++      "sha256": "fce8dd65a683151ec70b506547c93ef7bb1dbbed926e4bab3626950c5240155a"
++    },
+     {
+       "path": "tech/METRIC_TRIM_SAIL_ANCHOR_CORRIDOR_AND_BRIDGE_RUNTIME_V0_1.md",
+       "bytes": 15165,
+@@ -2781,6 +2876,11 @@
+       "bytes": 9219,
+       "sha256": "436c5ca04dc7bdca1383935202310b960e39159f6000cf89d77a644ef4bbae36"
+     },
++    {
++      "path": "tech/MULTIMODAL_MEME_MEDIA_MUSE_GESTURE_ARCHITECTURE_AND_TRANSLATION_RUNTIME_V0_1.md",
++      "bytes": 11750,
++      "sha256": "2c319ab903ea45401f803ecf32628f4a92a4680e995f9c242d21e4bc6e019cb9"
++    },
+     {
+       "path": "tech/MULTIPLAYER_EPOCH_MIGRATION_ASYNC_REGION_AND_RECONNECTION_RUNTIME_V0_1.md",
+       "bytes": 12630,
+@@ -2861,6 +2961,11 @@
+       "bytes": 9576,
+       "sha256": "9c66ed15b19d4bf0166cb397cc53c117ebe25d01b3d5454e05908d6a4b4ee410"
+     },
++    {
++      "path": "tech/PLAYER_SPECIFIC_WORLDLINE_MEME_MEMORY_AND_IRIS_PRIVATE_JOKE_RUNTIME_V0_1.md",
++      "bytes": 10468,
++      "sha256": "f52f589bf5baecdbfbf73d89e17106ac9710b82565c9332bdeb8464f3a75fb44"
++    },
+     {
+       "path": "tech/PLEASURE_CITY_METABOLISM_LABOR_AND_24_HOUR_OPERATIONS_RUNTIME_V0_1.md",
+       "bytes": 9220,
+diff --git a/PATCH_RECONSTRUCTION_STATUS.txt b/PATCH_RECONSTRUCTION_STATUS.txt
+index a4c21eb..4e6e13e 100644
+--- a/PATCH_RECONSTRUCTION_STATUS.txt
++++ b/PATCH_RECONSTRUCTION_STATUS.txt
+@@ -1,12 +1,12 @@
+-Symtropy v2.7 patch reconstruction status
++Symtropy v2.8 patch reconstruction status
+ 
+-Base: v2.6 corpus import commit d33ce17a7a3fae1d17ea925ecef5b98f0e78ded0
+-Target: current v2.7 release head; see external reconstruction report
++Base: v2.7 corpus release head d237b3e8ec05f8e682937c6823ca8d08731cde23
++Target: current v2.8 release head; see external reconstruction report
+ Ordered patches: 10
+ Exact reconstruction: passed
+-Files compared: 628
++Files compared: 649
+ Missing files: 0
+ Extra files: 0
+ Changed files: 0
+ 
+-Design evidence only. Runtime implementation and player attachment remain unverified.
++Design evidence only. Runtime meme generation, cultural recognition and player recall remain unverified.
+diff --git a/README.md b/README.md
+index 203c637..39e1da6 100644
+--- a/README.md
++++ b/README.md
+@@ -1,3 +1,21 @@
++## v2.8 Meme Ecology, Cultural Mutation, Humor, and Living Folklore
++
++- [Meme Ecology, Humor, Living Folklore, and Cultural Agency](./canon/MEME_ECOLOGY_HUMOR_LIVING_FOLKLORE_AND_CULTURAL_AGENCY_CONTRACT_V0_1.md)
++- [Memetic Event Extraction, Genome, and Candidate Foundry](./tech/MEMETIC_EVENT_EXTRACTION_GENOME_AND_CANDIDATE_FOUNDRY_RUNTIME_V0_1.md)
++- [Faction, Profession, Generation, and Nonhuman Humor Grammars](./lore/FACTION_PROFESSION_GENERATION_AND_NONHUMAN_HUMOR_GRAMMAR_ATLAS_V0_1.md)
++- [Meme Mutation, Distribution, Selection, Decay, and Provenance](./tech/MEME_MUTATION_DISTRIBUTION_SELECTION_DECAY_AND_PROVENANCE_RUNTIME_V0_1.md)
++- [Player-Specific Worldline Memes and IRIS Private Jokes](./tech/PLAYER_SPECIFIC_WORLDLINE_MEME_MEMORY_AND_IRIS_PRIVATE_JOKE_RUNTIME_V0_1.md)
++- [Memetic Harm, Propaganda, Harassment, Consent, and Repair](./canon/MEMETIC_HARM_PROPAGANDA_HARASSMENT_CONSENT_AND_REPAIR_CONTRACT_V0_1.md)
++- [Multimodal Meme Media, Muse, Gesture, Architecture, and Translation](./tech/MULTIMODAL_MEME_MEDIA_MUSE_GESTURE_ARCHITECTURE_AND_TRANSLATION_RUNTIME_V0_1.md)
++- [Meme Archaeology, Folklore, and Historical Mutation Anthology](./lore/MEME_ARCHAEOLOGY_FOLKLORE_AND_HISTORICAL_MUTATION_ANTHOLOGY_V0_1.md)
++- [Meme Ecology Firstlight and Continuance Benchmark](./ops/MEME_ECOLOGY_FIRSTLIGHT_CONTINUANCE_BENCHMARK_V0_1.md)
++- [Meme Ecology Implementation Ticket Backlog](./ops/MEME_ECOLOGY_IMPLEMENTATION_TICKET_BACKLOG_V0_1.md)
++
++The governing rule is:
++
++> **The generator does not endlessly invent jokes. It endlessly transforms shared memory into culture.**
++
++
+ ## v2.6 Firstlight First 40 Hours Playable Realization
+ 
+ - [First 40 Hours Player Love and Retention Contract](./canon/FIRST_40_HOURS_PLAYER_LOVE_AND_RETENTION_CONTRACT_V0_1.md)
+diff --git a/canon/CANON_REGISTRY_AND_DOCUMENT_GOVERNANCE_V2_3.md b/canon/CANON_REGISTRY_AND_DOCUMENT_GOVERNANCE_V2_3.md
+index edb2870..ba8bfd2 100644
+--- a/canon/CANON_REGISTRY_AND_DOCUMENT_GOVERNANCE_V2_3.md
++++ b/canon/CANON_REGISTRY_AND_DOCUMENT_GOVERNANCE_V2_3.md
+@@ -1,16 +1,18 @@
+ ---
+ title: Canon Registry and Document Governance
+ version: 2.3
+-status: canonical
+-scope: documentation lifecycle, canonical spine, Firstlight Breaking, unique worldline casts, mobile continuance bases, ownership and evidence boundaries
++status: superseded
++scope: documentation lifecycle, canonical spine, Firstlight Breaking, unique worldline
++  casts, mobile continuance bases, ownership and evidence boundaries
+ owner: documentation/design/production
+ supersedes:
+-  - CANON_REGISTRY_AND_DOCUMENT_GOVERNANCE_V2_2.md
++- CANON_REGISTRY_AND_DOCUMENT_GOVERNANCE_V2_2.md
+ related:
+-  - BREAKING_OF_FIRSTLIGHT_LOSS_CONTINUITY_AND_PLAYER_AGENCY_CONTRACT_V0_1.md
+-  - MOBILE_CONTINUANCE_BASE_HOME_VEHICLE_AND_CREW_SOVEREIGNTY_CONTRACT_V0_1.md
+-  - ../ops/V2_7_BREAKING_FIRSTLIGHT_UNIQUE_CASTS_AND_MOBILE_CONTINUANCE_CAMPAIGN.md
+-  - ../ops/BREAKING_OF_FIRSTLIGHT_AND_CONTINUANCE_BASE_BENCHMARK_V0_1.md
++- BREAKING_OF_FIRSTLIGHT_LOSS_CONTINUITY_AND_PLAYER_AGENCY_CONTRACT_V0_1.md
++- MOBILE_CONTINUANCE_BASE_HOME_VEHICLE_AND_CREW_SOVEREIGNTY_CONTRACT_V0_1.md
++- ../ops/V2_7_BREAKING_FIRSTLIGHT_UNIQUE_CASTS_AND_MOBILE_CONTINUANCE_CAMPAIGN.md
++- ../ops/BREAKING_OF_FIRSTLIGHT_AND_CONTINUANCE_BASE_BENCHMARK_V0_1.md
++superseded_by: CANON_REGISTRY_AND_DOCUMENT_GOVERNANCE_V2_4.md
+ ---
+ 
+ 
+diff --git a/canon/CANON_REGISTRY_AND_DOCUMENT_GOVERNANCE_V2_4.md b/canon/CANON_REGISTRY_AND_DOCUMENT_GOVERNANCE_V2_4.md
+new file mode 100644
+index 0000000..c5167ef
+--- /dev/null
++++ b/canon/CANON_REGISTRY_AND_DOCUMENT_GOVERNANCE_V2_4.md
+@@ -0,0 +1,78 @@
++---
++title: Canon Registry and Document Governance
++version: 2.4
++status: canonical
++scope: documentation lifecycle, meme ecology, cultural mutation, humor safety, living folklore, provenance and evidence boundaries
++owner: documentation/design/production
++supersedes:
++  - CANON_REGISTRY_AND_DOCUMENT_GOVERNANCE_V2_3.md
++related:
++  - MEME_ECOLOGY_HUMOR_LIVING_FOLKLORE_AND_CULTURAL_AGENCY_CONTRACT_V0_1.md
++  - MEMETIC_HARM_PROPAGANDA_HARASSMENT_CONSENT_AND_REPAIR_CONTRACT_V0_1.md
++  - ../ops/V2_8_MEME_ECOLOGY_CULTURAL_MUTATION_HUMOR_AND_LIVING_FOLKLORE_CAMPAIGN.md
++  - ../ops/MEME_ECOLOGY_FIRSTLIGHT_CONTINUANCE_BENCHMARK_V0_1.md
++---
++
++# Canon Registry and Document Governance
++
++## Purpose
++
++Integrate v2.8 meme ecology into the current Symtropy decision spine without allowing generated humor to overwrite world truth, privacy, cultural authorship, or the production priority of Firstlight and the Continuance Crawler.
++
++# v2.8 Ownership
++
++[Meme Ecology, Humor, Living Folklore, and Cultural Agency Contract](./MEME_ECOLOGY_HUMOR_LIVING_FOLKLORE_AND_CULTURAL_AGENCY_CONTRACT_V0_1.md) owns the canonical boundaries for memes, jokes, folklore, cultural ownership, network-grounded spread and Symthaea restraint.
++
++[Memetic Harm, Propaganda, Harassment, Consent, and Repair Contract](./MEMETIC_HARM_PROPAGANDA_HARASSMENT_CONSENT_AND_REPAIR_CONTRACT_V0_1.md) owns harmful use, power, privacy, consent, propaganda, moderation, counter-speech and repair.
++
++[Memetic Event Extraction, Genome, and Candidate Foundry Runtime](../tech/MEMETIC_EVENT_EXTRACTION_GENOME_AND_CANDIDATE_FOUNDRY_RUNTIME_V0_1.md) owns source-event extraction, meme genomes, creator opportunity and deterministic candidate generation.
++
++[Meme Mutation, Distribution, Selection, Decay, and Provenance Runtime](../tech/MEME_MUTATION_DISTRIBUTION_SELECTION_DECAY_AND_PROVENANCE_RUNTIME_V0_1.md) owns spread, mutation, lineage, fatigue, suppression, revival and historical aggregation.
++
++[Player-Specific Worldline Meme, Memory, and IRIS Private Joke Runtime](../tech/PLAYER_SPECIFIC_WORLDLINE_MEME_MEMORY_AND_IRIS_PRIVATE_JOKE_RUNTIME_V0_1.md) owns player specificity, shared-history callbacks, IRIS humor and branch privacy.
++
++[Multimodal Meme Media, Muse, Gesture, Architecture, and Translation Runtime](../tech/MULTIMODAL_MEME_MEDIA_MUSE_GESTURE_ARCHITECTURE_AND_TRANSLATION_RUNTIME_V0_1.md) owns media forms, Muse motifs, gestures, object culture, architecture, accessibility and nonhuman translation.
++
++[Faction, Profession, Generation, and Nonhuman Humor Grammar Atlas](../lore/FACTION_PROFESSION_GENERATION_AND_NONHUMAN_HUMOR_GRAMMAR_ATLAS_V0_1.md) owns authored cultural voices.
++
++[Meme Archaeology, Folklore, and Historical Mutation Anthology](../lore/MEME_ARCHAEOLOGY_FOLKLORE_AND_HISTORICAL_MUTATION_ANTHOLOGY_V0_1.md) owns reference lineages and deep-time cultural packets.
++
++[Meme Ecology Firstlight and Continuance Benchmark](../ops/MEME_ECOLOGY_FIRSTLIGHT_CONTINUANCE_BENCHMARK_V0_1.md) owns promotion evidence.
++
++# v2.8 Core Boundaries
++
++- Memes descend from world events, beliefs, artifacts or prior culture.
++- Spread requires a valid social, media, migration or communications path.
++- Candidate generation does not imply creation, adoption or virality.
++- Most candidates disappear before the player sees them.
++- Cultural voice is layered and may not collapse into universal sarcasm.
++- Generated people remain persistent identities rather than role placeholders.
++- Private jokes remain private until a valid disclosure event.
++- IRIS may use bounded shared-history humor but may not manipulate attachment.
++- Symthaea may curate attention but may not manufacture suffering for content.
++- Harm is evaluated through power, consent, privacy, reach and consequence.
++- Player-specific content remains a minority of surfaced culture.
++- Multimodal memes obey material production, rights and accessibility.
++- Provenance persists even when inhabitants forget or dispute it.
++- No endless engagement feed is part of the canonical experience.
++
++# Canonical Decision Spine
++
++1. [Symtropy Game Constitution v0.6](./SYMTROPY_GAME_CONSTITUTION_V0_6.md)
++2. [Breaking of Firstlight Contract](./BREAKING_OF_FIRSTLIGHT_LOSS_CONTINUITY_AND_PLAYER_AGENCY_CONTRACT_V0_1.md)
++3. [Meme Ecology Contract](./MEME_ECOLOGY_HUMOR_LIVING_FOLKLORE_AND_CULTURAL_AGENCY_CONTRACT_V0_1.md)
++4. [Unique Worldline Cast Runtime](../tech/UNIQUE_WORLDLINE_CAST_GENERATION_IDENTITY_AND_PERSISTENCE_RUNTIME_V0_1.md)
++5. [Mobile Continuance Base Contract](./MOBILE_CONTINUANCE_BASE_HOME_VEHICLE_AND_CREW_SOVEREIGNTY_CONTRACT_V0_1.md)
++6. [Information Ecology Contract](./INFORMATION_ECOLOGY_RUMOR_MEDIA_AND_REPUTATION_CONTRACT_V0_1.md)
++7. [System Interaction and Dependency Map v2.1](./SYSTEM_INTERACTION_AND_DEPENDENCY_MAP_V2_1.md)
++8. [Game Implementation Roadmap v2.1](../ops/GAME_IMPLEMENTATION_ROADMAP_V2_1.md)
++9. [Implementation Readiness Matrix v2.1](../ops/SYMTROPY_IMPLEMENTATION_READINESS_MATRIX_V2_1.md)
++10. [Meme Ecology Benchmark](../ops/MEME_ECOLOGY_FIRSTLIGHT_CONTINUANCE_BENCHMARK_V0_1.md)
++
++# Evidence Boundary
++
++All v2.8 capabilities remain documentation evidence at D3 / I0. Generated jokes, cultural distinction, player recognition, safety, propagation, Muse output and historical mutation remain unimplemented and unverified.
++
++## Registry Maxim
++
++> **Humor joins the canonical simulation only when it remembers who knew what, who made the artifact, how it traveled, who could refuse, and why anyone kept repeating it.**
+diff --git a/canon/SYSTEM_INTERACTION_AND_DEPENDENCY_MAP_V2_0.md b/canon/SYSTEM_INTERACTION_AND_DEPENDENCY_MAP_V2_0.md
+index 055241c..972e90e 100644
+--- a/canon/SYSTEM_INTERACTION_AND_DEPENDENCY_MAP_V2_0.md
++++ b/canon/SYSTEM_INTERACTION_AND_DEPENDENCY_MAP_V2_0.md
+@@ -1,15 +1,17 @@
+ ---
+ title: System Interaction and Dependency Map
+ version: 2.0
+-status: implementation-spec
+-scope: Breaking of Firstlight, unique casts, catastrophe causality, mobile-base physics, survivor continuity, post-title travel
++status: superseded
++scope: Breaking of Firstlight, unique casts, catastrophe causality, mobile-base physics,
++  survivor continuity, post-title travel
+ owner: architecture/design/production
+ supersedes:
+-  - SYSTEM_INTERACTION_AND_DEPENDENCY_MAP_V1_9.md
++- SYSTEM_INTERACTION_AND_DEPENDENCY_MAP_V1_9.md
+ related:
+-  - BREAKING_OF_FIRSTLIGHT_LOSS_CONTINUITY_AND_PLAYER_AGENCY_CONTRACT_V0_1.md
+-  - MOBILE_CONTINUANCE_BASE_HOME_VEHICLE_AND_CREW_SOVEREIGNTY_CONTRACT_V0_1.md
+-  - ../ops/BREAKING_OF_FIRSTLIGHT_AND_CONTINUANCE_BASE_BENCHMARK_V0_1.md
++- BREAKING_OF_FIRSTLIGHT_LOSS_CONTINUITY_AND_PLAYER_AGENCY_CONTRACT_V0_1.md
++- MOBILE_CONTINUANCE_BASE_HOME_VEHICLE_AND_CREW_SOVEREIGNTY_CONTRACT_V0_1.md
++- ../ops/BREAKING_OF_FIRSTLIGHT_AND_CONTINUANCE_BASE_BENCHMARK_V0_1.md
++superseded_by: SYSTEM_INTERACTION_AND_DEPENDENCY_MAP_V2_1.md
+ ---
+ 
+ # System Interaction and Dependency Map
+diff --git a/canon/SYSTEM_INTERACTION_AND_DEPENDENCY_MAP_V2_1.md b/canon/SYSTEM_INTERACTION_AND_DEPENDENCY_MAP_V2_1.md
+new file mode 100644
+index 0000000..4f3d154
+--- /dev/null
++++ b/canon/SYSTEM_INTERACTION_AND_DEPENDENCY_MAP_V2_1.md
+@@ -0,0 +1,239 @@
++---
++title: System Interaction and Dependency Map
++version: 2.1
++status: implementation-spec
++scope: meme ecology integration across world events, observers, casts, networks, culture, IRIS, Muse, safety, history and presentation
++owner: architecture/design/production
++supersedes:
++  - SYSTEM_INTERACTION_AND_DEPENDENCY_MAP_V2_0.md
++related:
++  - MEME_ECOLOGY_HUMOR_LIVING_FOLKLORE_AND_CULTURAL_AGENCY_CONTRACT_V0_1.md
++  - ../tech/MEMETIC_EVENT_EXTRACTION_GENOME_AND_CANDIDATE_FOUNDRY_RUNTIME_V0_1.md
++  - ../ops/MEME_ECOLOGY_FIRSTLIGHT_CONTINUANCE_BENCHMARK_V0_1.md
++---
++
++# System Interaction and Dependency Map
++
++## Purpose
++
++Identify the minimum integrated state required for living humor and folklore to emerge from the same causal world as Firstlight, unique casts, the Continuance Crawler, professions, media, institutions and distant civilizations.
++
++# 1. Core Causal Spine
++
++```text
++world event or social claim
++→ observer knowledge and privacy envelope
++→ memetic feature extraction
++→ bounded candidate genome
++→ creator agency and cultural grammar
++→ artifact or no artifact
++→ real distribution channel
++→ exposure, adoption or rejection
++→ mutation and meaning drift
++→ fatigue, decay, revival or folklore
++→ Chronicle and archaeological evidence
++```
++
++# 2. Required Dependencies
++
++## World Truth
++
++Chronicle events, objects, people, places, institutions and causal ancestry.
++
++## Observer Truth
++
++Witnesses, claims, confidence, communication and privacy.
++
++## Unique Cast
++
++Persistent identities, relationships, schedules, professions, voices, boundaries and creative skills.
++
++## Cultural State
++
++Household, neighborhood, profession, generation, faction, language, species and body cultures.
++
++## Distribution
++
++Conversation, workplace, physical objects, media, travel, Atlas routes and archives.
++
++## Safety
++
++Consent, power, target, sponsor, reach, content settings, moderation and repair.
++
++## Presentation
++
++Attention director, cognitive load, accessibility and character knowledge.
++
++# 3. Firstlight and Continuance Inputs
++
++The initial proof depends on:
++
++- generated residents;
++- Bent Feeder work;
++- warning and preparation history;
++- evacuation loading;
++- survivor ledger;
++- crawler cargo, sounds and interior objects;
++- private IRIS history;
++- post-title repair and social life.
++
++Meme ecology reads these states. It does not create substitute history.
++
++# 4. Symthaea Integration
++
++Symthaea may:
++
++- detect eligible events;
++- schedule low-cost candidate evaluation;
++- curate presentation opportunities;
++- protect contrast and suppress overload;
++- promote historical artifacts into detailed play.
++
++Symthaea may not:
++
++- alter event truth;
++- create harm for content;
++- publish private facts;
++- force creator participation;
++- guarantee audience adoption;
++- use account telemetry as an in-world source.
++
++# 5. IRIS Integration
++
++IRIS depends on:
++
++- player-known facts;
++- private shared-history tokens;
++- presentation preferences;
++- current pressure;
++- disclosure scope.
++
++IRIS output can become public culture only through a valid witness, recording or publication event.
++
++# 6. Muse and Media Integration
++
++Muse receives approved event, voice, motif and rights state.
++
++Media creation depends on:
++
++- creator skills and tools;
++- source assets;
++- rights and consent;
++- physical production where applicable;
++- accessibility alternatives;
++- deterministic hashes.
++
++Architecture and object memes also depend on labor, materials, ownership and maintenance.
++
++# 7. Information Ecology Integration
++
++Memes may carry claims, but expression and truth remain separate.
++
++```text
++what happened
++≠ what a witness believed
++≠ what a meme implies
++≠ what an audience concludes
++≠ what an institution publishes
++```
++
++Corrections may change belief without deleting the artifact or consequences.
++
++# 8. Harm and Justice Integration
++
++Harmful spread feeds:
++
++- reputation;
++- relationships;
++- employment;
++- migration;
++- justice;
++- platform policy;
++- propaganda;
++- repair.
++
++Targets retain independent response. The player is not guaranteed central authority.
++
++# 9. Time and Network Integration
++
++Interplanetary and interstellar culture depends on:
++
++- emission and reception time;
++- light delay or Atlas latency;
++- route availability;
++- archive custody;
++- translation;
++- local generation during isolation.
++
++Disconnected worlds develop divergent lineages.
++
++# 10. Simulation Fidelity
++
++## Full Detail
++
++Specific creators, expressions, exposures and objects.
++
++## Social Detail
++
++Group-level circulation, promoted creators and meaning state.
++
++## Historical Detail
++
++Variant families, institutions, durable media and conflicts.
++
++## Archival Detail
++
++Lineage, surviving evidence, disputed origin and revival predicates.
++
++Demotion may compress exposure history but must preserve unique artifacts, harmful campaigns, player-specific objects and branch points.
++
++# 11. Save, Replay and Multiplayer
++
++Authoritative state includes:
++
++- meme and variant ids;
++- source event ids;
++- creator;
++- expression hash;
++- lineage;
++- exposure summaries;
++- meaning by constituency;
++- privacy and moderation state;
++- media assets;
++- worldline binding.
++
++Clients do not independently regenerate public artifacts.
++
++# 12. Failure Chains
++
++Reject these chains:
++
++```text
++player telemetry → NPC joke
++private clinical event → public meme
++world truth → audience knowledge without channel
++random caption → culture
++high generation score → guaranteed virality
++harmful content → engagement reward
++branch event → another worldline’s folklore
++```
++
++# 13. Minimum Integrated Proof
++
++```text
++one Firstlight cast seed
+++ twelve source events
+++ eight cultural voices
+++ one private IRIS token
+++ one physical crawler object
+++ one machine artifact
+++ one Muse motif
+++ one failed meme
+++ one harmful conversion and repair path
+++ one delayed route
+++ seven-day recall
++```
++
++## Map Maxim
++
++> **The meme engine is downstream of truth, people and infrastructure. If it can generate culture without them, it is not integrated into Symtropy.**
+diff --git a/ops/DOCUMENT_REGISTRY.json b/ops/DOCUMENT_REGISTRY.json
+index 15d5452..f9ddf95 100644
+--- a/ops/DOCUMENT_REGISTRY.json
++++ b/ops/DOCUMENT_REGISTRY.json
+@@ -1,5 +1,5 @@
+ {
+-  "version": "2.7",
++  "version": "2.8",
+   "documents": [
+     {
+       "path": "CHANGELOG_2026_07_20.md",
+@@ -277,6 +277,18 @@
+       "bytes": 1280,
+       "words": 143
+     },
++    {
++      "path": "CHANGELOG_2026_07_21_V2_8.md",
++      "title": "Symtropy Documentation Changelog \u2014 v2.8",
++      "version": null,
++      "declared_status": "unclassified",
++      "effective_status": "unclassified",
++      "scope": null,
++      "owner": null,
++      "sha256": "e6161391f533d84d96fb75b2dda9d8ded9ac0334cab683797da7f4569588984a",
++      "bytes": 1297,
++      "words": 148
++    },
+     {
+       "path": "CONTRIBUTING.md",
+       "title": "Contributing to Symtropy",
+@@ -309,9 +321,9 @@
+       "effective_status": "unclassified",
+       "scope": null,
+       "owner": null,
+-      "sha256": "bcead8811c5d6f3dfd01148b79f7cdf2277f4a7d57650db7e0ee5336843ede66",
+-      "bytes": 28853,
+-      "words": 2443
++      "sha256": "bae5c81d14f3ae02827f8c656a4b9d22844c8656b43723b62e477a63b6fe61d9",
++      "bytes": 30434,
++      "words": 2570
+     },
+     {
+       "path": "SYMTROPY_RESOURCE_CHAINS_GAME_DOC_V0_1.md",
+@@ -749,13 +761,25 @@
+       "path": "canon/CANON_REGISTRY_AND_DOCUMENT_GOVERNANCE_V2_3.md",
+       "title": "Canon Registry and Document Governance",
+       "version": 2.3,
++      "declared_status": "superseded",
++      "effective_status": "superseded",
++      "scope": "documentation lifecycle, canonical spine, Firstlight Breaking, unique worldline casts, mobile continuance bases, ownership and evidence boundaries",
++      "owner": "documentation/design/production",
++      "sha256": "2df1ae5dbf45ed06c023141f81202c3bc63129e6b5cffa1b09552120221e57e8",
++      "bytes": 12647,
++      "words": 1353
++    },
++    {
++      "path": "canon/CANON_REGISTRY_AND_DOCUMENT_GOVERNANCE_V2_4.md",
++      "title": "Canon Registry and Document Governance",
++      "version": 2.4,
+       "declared_status": "canonical",
+       "effective_status": "canonical",
+-      "scope": "documentation lifecycle, canonical spine, Firstlight Breaking, unique worldline casts, mobile continuance bases, ownership and evidence boundaries",
++      "scope": "documentation lifecycle, meme ecology, cultural mutation, humor safety, living folklore, provenance and evidence boundaries",
+       "owner": "documentation/design/production",
+-      "sha256": "9b67e3aadc8c5191dd02d13456ebb2181d9d8a38f819a5aa3cbcee73fc2ae73f",
+-      "bytes": 12592,
+-      "words": 1350
++      "sha256": "6be584e49f2425c0f03124e5dac3256b43476c82394e9c7bc56b6118d2ef6771",
++      "bytes": 5444,
++      "words": 542
+     },
+     {
+       "path": "canon/CIVIC_SUCCESSION_PUBLIC_SERVICE_AND_INSTITUTIONAL_CONTINUITY_CONTRACT_V0_1.md",
+@@ -1093,6 +1117,30 @@
+       "bytes": 11780,
+       "words": 1471
+     },
++    {
++      "path": "canon/MEMETIC_HARM_PROPAGANDA_HARASSMENT_CONSENT_AND_REPAIR_CONTRACT_V0_1.md",
++      "title": "Memetic Harm, Propaganda, Harassment, Consent, and Repair Contract",
++      "version": 0.1,
++      "declared_status": "canonical-draft",
++      "effective_status": "canonical-draft",
++      "scope": "harmful memes, harassment, propaganda, dehumanization, privacy, consent, moderation, counter-speech, repair and institutional responsibility",
++      "owner": "safety/design/culture/narrative/moderation",
++      "sha256": "8461af8b68abfe2d98de615c852daefe10978f3058ca01d37cec47f0461087d2",
++      "bytes": 12485,
++      "words": 1477
++    },
++    {
++      "path": "canon/MEME_ECOLOGY_HUMOR_LIVING_FOLKLORE_AND_CULTURAL_AGENCY_CONTRACT_V0_1.md",
++      "title": "Meme Ecology, Humor, Living Folklore, and Cultural Agency Contract",
++      "version": 0.1,
++      "declared_status": "canonical-draft",
++      "effective_status": "canonical-draft",
++      "scope": "memes, jokes, catchphrases, remixes, folklore, cultural mutation, social spread, ownership, provenance and historical memory",
++      "owner": "design/culture/narrative/simulation/safety",
++      "sha256": "b91aa802005f2a08b5abe062085a142e3b17b8ab0fcdcd75bafda00a46cb3a1a",
++      "bytes": 11913,
++      "words": 1521
++    },
+     {
+       "path": "canon/MENTAL_HEALTH_FAITH_GRIEF_AND_AMBIGUOUS_EXPERIENCE_CONTRACT_V0_1.md",
+       "title": "Mental Health, Faith, Grief, and Ambiguous Experience Contract",
+@@ -1661,13 +1709,25 @@
+       "path": "canon/SYSTEM_INTERACTION_AND_DEPENDENCY_MAP_V2_0.md",
+       "title": "System Interaction and Dependency Map",
+       "version": 2.0,
++      "declared_status": "superseded",
++      "effective_status": "superseded",
++      "scope": "Breaking of Firstlight, unique casts, catastrophe causality, mobile-base physics, survivor continuity, post-title travel",
++      "owner": "architecture/design/production",
++      "sha256": "406139d8f9c12538bb9e67b097a2714ee7747c6280fbcc473deb5ae82cdba50a",
++      "bytes": 5406,
++      "words": 604
++    },
++    {
++      "path": "canon/SYSTEM_INTERACTION_AND_DEPENDENCY_MAP_V2_1.md",
++      "title": "System Interaction and Dependency Map",
++      "version": 2.1,
+       "declared_status": "implementation-spec",
+       "effective_status": "implementation-spec",
+-      "scope": "Breaking of Firstlight, unique casts, catastrophe causality, mobile-base physics, survivor continuity, post-title travel",
++      "scope": "meme ecology integration across world events, observers, casts, networks, culture, IRIS, Muse, safety, history and presentation",
+       "owner": "architecture/design/production",
+-      "sha256": "909e7f18ec0d466613feab611df4ea2cbb1399efd5f396e20ecdc332aa9d4a5e",
+-      "bytes": 5360,
+-      "words": 601
++      "sha256": "97848bb438e5bd699c1e052f9207a566193e6cfcd405d1313aa56840560a6731",
++      "bytes": 5949,
++      "words": 694
+     },
+     {
+       "path": "canon/VICE_ECONOMIES_PLEASURE_CITIES_AND_NIGHTLIFE_CONTRACT_V0_1.md",
+@@ -1945,6 +2005,18 @@
+       "bytes": 9958,
+       "words": 1209
+     },
++    {
++      "path": "lore/FACTION_PROFESSION_GENERATION_AND_NONHUMAN_HUMOR_GRAMMAR_ATLAS_V0_1.md",
++      "title": "Faction, Profession, Generation, and Nonhuman Humor Grammar Atlas",
++      "version": 0.1,
++      "declared_status": "lore-canonical-draft",
++      "effective_status": "lore-canonical-draft",
++      "scope": "humor voices, faction meme grammars, professional jokes, age-cohort mutation, machine humor, alien humor, failed institutional comedy",
++      "owner": "culture/lore/narrative/AI/localization",
++      "sha256": "a9bf468a4e0c31e2d68554b2f8d19c9b2f61938666099c165a02ea08b461cab9",
++      "bytes": 14840,
++      "words": 1790
++    },
+     {
+       "path": "lore/FIRSTLIGHT_40_HOUR_CAMPAIGN_AND_ORDINARY_LIFE_ANTHOLOGY_V0_1.md",
+       "title": "Firstlight 40-Hour Campaign and Ordinary-Life Anthology",
+@@ -2173,6 +2245,18 @@
+       "bytes": 12536,
+       "words": 1574
+     },
++    {
++      "path": "lore/MEME_ARCHAEOLOGY_FOLKLORE_AND_HISTORICAL_MUTATION_ANTHOLOGY_V0_1.md",
++      "title": "Meme Archaeology, Folklore, and Historical Mutation Anthology",
++      "version": 0.1,
++      "declared_status": "lore-canonical-draft",
++      "effective_status": "lore-canonical-draft",
++      "scope": "authored meme lineages, Firstlight and Continuance jokes, faction variants, propaganda, alien misunderstandings, archaeology and deep-time folklore",
++      "owner": "lore/culture/narrative/research",
++      "sha256": "ec02164f71af5ebad7c8e6356f81e8fe7f1c41f2c53526791aace99f3ea4e188",
++      "bytes": 16811,
++      "words": 2192
++    },
+     {
+       "path": "lore/NAMING_PLURALITY_LOCAL_REGISTER_AND_LINGUISTIC_HISTORY_ATLAS_V0_1.md",
+       "title": "Naming Plurality, Local Register, and Linguistic History Atlas",
+@@ -3317,13 +3401,25 @@
+       "path": "ops/GAME_IMPLEMENTATION_ROADMAP_V2_0.md",
+       "title": "Symtropy Game Implementation Roadmap",
+       "version": 2.0,
++      "declared_status": "superseded",
++      "effective_status": "superseded",
++      "scope": "evidence-gated implementation of the two-hour Breaking of Firstlight and first mobile-base loop",
++      "owner": "production/design/engineering/research",
++      "sha256": "005a0b11518d0596d4956e62f26337f6a7ed688ab51636e19ab0f5ec77707646",
++      "bytes": 4706,
++      "words": 563
++    },
++    {
++      "path": "ops/GAME_IMPLEMENTATION_ROADMAP_V2_1.md",
++      "title": "Symtropy Game Implementation Roadmap",
++      "version": 2.1,
+       "declared_status": "implementation-spec",
+       "effective_status": "implementation-spec",
+-      "scope": "evidence-gated implementation of the two-hour Breaking of Firstlight and first mobile-base loop",
++      "scope": "evidence-gated implementation of Firstlight, Continuance and one bounded meme-ecology proof",
+       "owner": "production/design/engineering/research",
+-      "sha256": "3de288a09648682b6a4f4fbf46a3e9872e2b3187ee006f597cef3a0fefafea06",
+-      "bytes": 4670,
+-      "words": 560
++      "sha256": "9fd8e60233b621f443bf46c39ae05c722c31cb3a699cc3c3d459c95f9bc9cdd7",
++      "bytes": 3826,
++      "words": 471
+     },
+     {
+       "path": "ops/HISTORICAL_TEXTURE_WORLD_COHERENCE_BENCHMARK_V0_1.md",
+@@ -3397,6 +3493,30 @@
+       "bytes": 9135,
+       "words": 1127
+     },
++    {
++      "path": "ops/MEME_ECOLOGY_FIRSTLIGHT_CONTINUANCE_BENCHMARK_V0_1.md",
++      "title": "Meme Ecology Firstlight and Continuance Benchmark",
++      "version": 0.1,
++      "declared_status": "production",
++      "effective_status": "production",
++      "scope": "deterministic meme generation, cultural voice, spread, mutation, safety, player specificity, delayed recall and long-horizon folklore",
++      "owner": "production/research/culture/AI/safety/networking",
++      "sha256": "88384c701c33dbd17a2450b0cdcfa457449b1e200416c7a2740763fcd92f4931",
++      "bytes": 10611,
++      "words": 1377
++    },
++    {
++      "path": "ops/MEME_ECOLOGY_IMPLEMENTATION_TICKET_BACKLOG_V0_1.md",
++      "title": "Meme Ecology Implementation Ticket Backlog",
++      "version": 0.1,
++      "declared_status": "production",
++      "effective_status": "production",
++      "scope": "implementation tickets for event extraction, meme foundry, cultural grammars, mutation, media, safety, networking and benchmark evidence",
++      "owner": "production/engineering/culture/AI/research",
++      "sha256": "6d6b41ecb8ad9a0211a32249c98acc9065a1a1f8b7db6901781c7e1bc8e8979a",
++      "bytes": 6197,
++      "words": 652
++    },
+     {
+       "path": "ops/NPC_COGNITION_ABLATION_EVALUATION_AND_PLAYTEST_PROGRAM_V0_1.md",
+       "title": "NPC Cognition Ablation, Evaluation, and Playtest Program",
+@@ -3929,13 +4049,25 @@
+       "path": "ops/SYMTROPY_IMPLEMENTATION_READINESS_MATRIX_V2_0.md",
+       "title": "Symtropy Implementation Readiness Matrix",
+       "version": 2.0,
++      "declared_status": "superseded",
++      "effective_status": "superseded",
++      "scope": "evidence maturity for Breaking of Firstlight, unique casts, catastrophe state, evacuation, Continuance Crawler and opening research",
++      "owner": "production/design/engineering/research",
++      "sha256": "d5e16175c7670daac8807adaa6f3c9891c18c118c389473cd5250084209bab43",
++      "bytes": 4573,
++      "words": 521
++    },
++    {
++      "path": "ops/SYMTROPY_IMPLEMENTATION_READINESS_MATRIX_V2_1.md",
++      "title": "Symtropy Implementation Readiness Matrix",
++      "version": 2.1,
+       "declared_status": "implementation-spec",
+       "effective_status": "implementation-spec",
+-      "scope": "evidence maturity for Breaking of Firstlight, unique casts, catastrophe state, evacuation, Continuance Crawler and opening research",
++      "scope": "evidence maturity for meme ecology, cultural voice, mutation, player specificity, safety, multimodal media and folklore",
+       "owner": "production/design/engineering/research",
+-      "sha256": "4416ab32fb273f82719e8d7949ca83e4898e7101fa3cfe4e8ff308a30c852efe",
+-      "bytes": 4522,
+-      "words": 518
++      "sha256": "c066e151cadff2094de9e150fa85575238766ae9e631705bec555edb1348cfb1",
++      "bytes": 4408,
++      "words": 506
+     },
+     {
+       "path": "ops/Seedworks Tech Tree Dependency Spine.md",
+@@ -4297,6 +4429,18 @@
+       "bytes": 2615,
+       "words": 351
+     },
++    {
++      "path": "ops/V2_8_MEME_ECOLOGY_CULTURAL_MUTATION_HUMOR_AND_LIVING_FOLKLORE_CAMPAIGN.md",
++      "title": "v2.8 Meme Ecology, Cultural Mutation, Humor, and Living Folklore Campaign",
++      "version": 2.8,
++      "declared_status": "production",
++      "effective_status": "production",
++      "scope": "campaign summary, canonical decisions, deliverables, implementation order and evidence boundary",
++      "owner": "design/production/documentation/culture",
++      "sha256": "0cb805849122be341ffff348c6d7649ed0ac96fb15b512d12cecfc6decf43c9f",
++      "bytes": 3052,
++      "words": 404
++    },
+     {
+       "path": "ops/WORLDLINE_BACKUP_RESTORE_AND_UPGRADE_RUNBOOK_V0_1.md",
+       "title": "Worldline Backup, Restore, and Upgrade Runbook",
+@@ -5269,6 +5413,30 @@
+       "bytes": 11336,
+       "words": 1258
+     },
++    {
++      "path": "tech/MEMETIC_EVENT_EXTRACTION_GENOME_AND_CANDIDATE_FOUNDRY_RUNTIME_V0_1.md",
++      "title": "Memetic Event Extraction, Genome, and Candidate Foundry Runtime",
++      "version": 0.1,
++      "declared_status": "implementation-spec",
++      "effective_status": "implementation-spec",
++      "scope": "source-event detection, meme genome, candidate generation, cultural grammar selection, evaluation, deterministic replay",
++      "owner": "simulation/AI/culture/narrative/safety",
++      "sha256": "7cb578105b02df751df4f37bc582f3f94480d2d9090f71e47ee13b72674964e0",
++      "bytes": 11138,
++      "words": 1283
++    },
++    {
++      "path": "tech/MEME_MUTATION_DISTRIBUTION_SELECTION_DECAY_AND_PROVENANCE_RUNTIME_V0_1.md",
++      "title": "Meme Mutation, Distribution, Selection, Decay, and Provenance Runtime",
++      "version": 0.1,
++      "declared_status": "implementation-spec",
++      "effective_status": "implementation-spec",
++      "scope": "meme variants, network spread, cultural selection, mutation, fatigue, suppression, revival, provenance and archival state",
++      "owner": "simulation/culture/networking/narrative/AI",
++      "sha256": "fce8dd65a683151ec70b506547c93ef7bb1dbbed926e4bab3626950c5240155a",
++      "bytes": 12675,
++      "words": 1437
++    },
+     {
+       "path": "tech/METRIC_TRIM_SAIL_ANCHOR_CORRIDOR_AND_BRIDGE_RUNTIME_V0_1.md",
+       "title": "Metric Trim, Sail, Anchor, Corridor, and Bridge Runtime",
+@@ -5293,6 +5461,18 @@
+       "bytes": 9219,
+       "words": 1221
+     },
++    {
++      "path": "tech/MULTIMODAL_MEME_MEDIA_MUSE_GESTURE_ARCHITECTURE_AND_TRANSLATION_RUNTIME_V0_1.md",
++      "title": "Multimodal Meme Media, Muse, Gesture, Architecture, and Translation Runtime",
++      "version": 0.1,
++      "declared_status": "implementation-spec",
++      "effective_status": "implementation-spec",
++      "scope": "visual memes, audio motifs, Muse integration, gestures, embodied performance, architecture, objects, accessibility and cross-species translation",
++      "owner": "audio/visual/culture/AI/accessibility/localization",
++      "sha256": "2c319ab903ea45401f803ecf32628f4a92a4680e995f9c242d21e4bc6e019cb9",
++      "bytes": 11750,
++      "words": 1389
++    },
+     {
+       "path": "tech/MULTIPLAYER_EPOCH_MIGRATION_ASYNC_REGION_AND_RECONNECTION_RUNTIME_V0_1.md",
+       "title": "Multiplayer Epoch Migration, Asynchronous Region, and Reconnection Runtime",
+@@ -5485,6 +5665,18 @@
+       "bytes": 9576,
+       "words": 1016
+     },
++    {
++      "path": "tech/PLAYER_SPECIFIC_WORLDLINE_MEME_MEMORY_AND_IRIS_PRIVATE_JOKE_RUNTIME_V0_1.md",
++      "title": "Player-Specific Worldline Meme, Memory, and IRIS Private Joke Runtime",
++      "version": 0.1,
++      "declared_status": "implementation-spec",
++      "effective_status": "implementation-spec",
++      "scope": "player-specific memes, unique cast references, IRIS humor, private jokes, relationship memory, public conversion, worldline boundaries",
++      "owner": "simulation/IRIS/narrative/privacy/networking",
++      "sha256": "f52f589bf5baecdbfbf73d89e17106ac9710b82565c9332bdeb8464f3a75fb44",
++      "bytes": 10468,
++      "words": 1303
++    },
+     {
+       "path": "tech/PLEASURE_CITY_METABOLISM_LABOR_AND_24_HOUR_OPERATIONS_RUNTIME_V0_1.md",
+       "title": "Pleasure City Metabolism, Labor, and Twenty-Four-Hour Operations Runtime",
+diff --git a/ops/GAME_IMPLEMENTATION_ROADMAP_V2_0.md b/ops/GAME_IMPLEMENTATION_ROADMAP_V2_0.md
+index bea5aee..adda77c 100644
+--- a/ops/GAME_IMPLEMENTATION_ROADMAP_V2_0.md
++++ b/ops/GAME_IMPLEMENTATION_ROADMAP_V2_0.md
+@@ -1,15 +1,17 @@
+ ---
+ title: Symtropy Game Implementation Roadmap
+ version: 2.0
+-status: implementation-spec
+-scope: evidence-gated implementation of the two-hour Breaking of Firstlight and first mobile-base loop
++status: superseded
++scope: evidence-gated implementation of the two-hour Breaking of Firstlight and first
++  mobile-base loop
+ owner: production/design/engineering/research
+ supersedes:
+-  - GAME_IMPLEMENTATION_ROADMAP_V1_9.md
++- GAME_IMPLEMENTATION_ROADMAP_V1_9.md
+ related:
+-  - ../canon/CANON_REGISTRY_AND_DOCUMENT_GOVERNANCE_V2_3.md
+-  - V2_7_BREAKING_FIRSTLIGHT_IMPLEMENTATION_TICKET_BACKLOG_V0_1.md
+-  - BREAKING_OF_FIRSTLIGHT_AND_CONTINUANCE_BASE_BENCHMARK_V0_1.md
++- ../canon/CANON_REGISTRY_AND_DOCUMENT_GOVERNANCE_V2_3.md
++- V2_7_BREAKING_FIRSTLIGHT_IMPLEMENTATION_TICKET_BACKLOG_V0_1.md
++- BREAKING_OF_FIRSTLIGHT_AND_CONTINUANCE_BASE_BENCHMARK_V0_1.md
++superseded_by: GAME_IMPLEMENTATION_ROADMAP_V2_1.md
+ ---
+ 
+ # Symtropy Game Implementation Roadmap
+diff --git a/ops/GAME_IMPLEMENTATION_ROADMAP_V2_1.md b/ops/GAME_IMPLEMENTATION_ROADMAP_V2_1.md
+new file mode 100644
+index 0000000..3b205db
+--- /dev/null
++++ b/ops/GAME_IMPLEMENTATION_ROADMAP_V2_1.md
+@@ -0,0 +1,104 @@
++---
++title: Symtropy Game Implementation Roadmap
++version: 2.1
++status: implementation-spec
++scope: evidence-gated implementation of Firstlight, Continuance and one bounded meme-ecology proof
++owner: production/design/engineering/research
++supersedes:
++  - GAME_IMPLEMENTATION_ROADMAP_V2_0.md
++related:
++  - ../canon/CANON_REGISTRY_AND_DOCUMENT_GOVERNANCE_V2_4.md
++  - MEME_ECOLOGY_IMPLEMENTATION_TICKET_BACKLOG_V0_1.md
++  - MEME_ECOLOGY_FIRSTLIGHT_CONTINUANCE_BENCHMARK_V0_1.md
++---
++
++# Symtropy Game Implementation Roadmap
++
++## Strategy
++
++Meme ecology does not replace the v2.7 vertical-slice priority. It attaches to the smallest proven Firstlight and Continuance event stream only after movement, one physical interaction, unique residents and authoritative history exist.
++
++# Gate A — Preserve the v2.7 Spine
++
++Continue movement, Bent Feeder, unique cast, warning, Breaking, evacuation and crawler work.
++
++**Exit:** authoritative source events and observers exist without meme systems.
++
++# Gate B — Event and Observer Trace
++
++Implement source-event envelopes, witness knowledge, privacy scopes and debug explanations.
++
++**Exit:** the system can prove what a potential creator knew.
++
++# Gate C — Deterministic Text Foundry
++
++Implement five authored frames, three voices, creator refusal, no-artifact outcomes and hashes.
++
++**Exit:** fixed fixtures reproduce exact candidates and rejections.
++
++# Gate D — Local Culture Only
++
++Implement face-to-face, household, workplace and one physical-sign channel.
++
++**Exit:** one phrase spreads locally without appearing globally.
++
++# Gate E — Selection and Fatigue
++
++Implement adoption, rejection, limited mutation, repetition detection, dormancy and one revival.
++
++**Exit:** strong candidates can fail and weak artifacts can disappear.
++
++# Gate F — Player and IRIS Boundaries
++
++Implement one player-specific event, one private IRIS callback, noncentrality budget and privacy tests.
++
++**Exit:** private content remains private and most culture concerns the world rather than the player.
++
++# Gate G — Safety Proof
++
++Implement consent state, clinical exclusion, harassment pattern, sponsor trace, hostile-content summarization and one repair path.
++
++**Exit:** harmful conversion remains legible without overpresentation.
++
++# Gate H — Multimodal Proof
++
++Implement one sign, one Muse motif, one gesture, one object label and accessibility alternatives.
++
++**Exit:** forms are culturally and materially distinct rather than caption duplicates.
++
++# Gate I — Network and History
++
++Implement route delay, lineage, historical aggregation, fatigue, extinction and revival.
++
++**Exit:** disconnected regions diverge and reconnect without chronology errors.
++
++# Gate J — Meme Ecology Benchmark
++
++Run twelve seeds, blind voice classification, safety review, performance profiling and seven-day delayed recall.
++
++**Exit:** promotion gates pass with no critical privacy or identity errors.
++
++# Deferred
++
++- open-ended image and video generation;
++- hundreds of faction grammars;
++- galaxy-wide live feeds;
++- player monetization or virality systems;
++- broad alien media generation;
++- architectural meme construction tools;
++- large propaganda simulation;
++- commercial creator economy.
++
++# Kill Rules
++
++- Cut generated media before cutting provenance.
++- Cut artifact count before allowing repetition.
++- Use authored templates before accepting identity errors.
++- Disable player-specific generation if it feels invasive.
++- Stop expansion if players remember captions but not source events or people.
++- Keep meme ecology out of the critical path if it threatens movement, interaction or cast work.
++- Prefer no joke over a privacy leak, cultural flattening or forced quip.
++
++## Roadmap Maxim
++
++> **First build a world worth remembering. Then prove that one household can turn one remembered event into one joke that still belongs to them.**
+diff --git a/ops/QUALITY_AUDIT_2026_07_21_V2_8.json b/ops/QUALITY_AUDIT_2026_07_21_V2_8.json
+new file mode 100644
+index 0000000..9cdf26f
+--- /dev/null
++++ b/ops/QUALITY_AUDIT_2026_07_21_V2_8.json
+@@ -0,0 +1,23 @@
++{
++  "markdown_documents": 528,
++  "approximate_words": 826541,
++  "broken_internal_links": 0,
++  "active_metadata_errors": 0,
++  "duplicate_active_titles": 0,
++  "json_errors": 0,
++  "schema_validation_errors": 0,
++  "exact_reconstruction": true,
++  "version": "2.8",
++  "ordered_patches": 10,
++  "files_compared": 649,
++  "missing_files": 0,
++  "extra_files": 0,
++  "changed_files": 0,
++  "details": {
++    "broken_links": [],
++    "metadata_errors": [],
++    "duplicate_titles": {},
++    "json_errors": [],
++    "schema_errors": []
++  }
++}
+diff --git a/ops/SYMTROPY_IMPLEMENTATION_READINESS_MATRIX_V2_0.md b/ops/SYMTROPY_IMPLEMENTATION_READINESS_MATRIX_V2_0.md
+index dd8f974..2f5bb05 100644
+--- a/ops/SYMTROPY_IMPLEMENTATION_READINESS_MATRIX_V2_0.md
++++ b/ops/SYMTROPY_IMPLEMENTATION_READINESS_MATRIX_V2_0.md
+@@ -1,14 +1,16 @@
+ ---
+ title: Symtropy Implementation Readiness Matrix
+ version: 2.0
+-status: implementation-spec
+-scope: evidence maturity for Breaking of Firstlight, unique casts, catastrophe state, evacuation, Continuance Crawler and opening research
++status: superseded
++scope: evidence maturity for Breaking of Firstlight, unique casts, catastrophe state,
++  evacuation, Continuance Crawler and opening research
+ owner: production/design/engineering/research
+ supersedes:
+-  - SYMTROPY_IMPLEMENTATION_READINESS_MATRIX_V1_9.md
++- SYMTROPY_IMPLEMENTATION_READINESS_MATRIX_V1_9.md
+ related:
+-  - GAME_IMPLEMENTATION_ROADMAP_V2_0.md
+-  - BREAKING_OF_FIRSTLIGHT_AND_CONTINUANCE_BASE_BENCHMARK_V0_1.md
++- GAME_IMPLEMENTATION_ROADMAP_V2_0.md
++- BREAKING_OF_FIRSTLIGHT_AND_CONTINUANCE_BASE_BENCHMARK_V0_1.md
++superseded_by: SYMTROPY_IMPLEMENTATION_READINESS_MATRIX_V2_1.md
+ ---
+ 
+ # Symtropy Implementation Readiness Matrix
+diff --git a/ops/SYMTROPY_IMPLEMENTATION_READINESS_MATRIX_V2_1.md b/ops/SYMTROPY_IMPLEMENTATION_READINESS_MATRIX_V2_1.md
+new file mode 100644
+index 0000000..83c9215
+--- /dev/null
++++ b/ops/SYMTROPY_IMPLEMENTATION_READINESS_MATRIX_V2_1.md
+@@ -0,0 +1,105 @@
++---
++title: Symtropy Implementation Readiness Matrix
++version: 2.1
++status: implementation-spec
++scope: evidence maturity for meme ecology, cultural voice, mutation, player specificity, safety, multimodal media and folklore
++owner: production/design/engineering/research
++supersedes:
++  - SYMTROPY_IMPLEMENTATION_READINESS_MATRIX_V2_0.md
++related:
++  - GAME_IMPLEMENTATION_ROADMAP_V2_1.md
++  - MEME_ECOLOGY_FIRSTLIGHT_CONTINUANCE_BENCHMARK_V0_1.md
++---
++
++# Symtropy Implementation Readiness Matrix
++
++## Scale
++
++- **D0:** absent
++- **D1:** idea
++- **D2:** structured concept
++- **D3:** implementation-ready design
++- **I0:** no verified implementation
++- **I1:** isolated prototype
++- **I2:** integrated prototype
++- **I3:** benchmarked representative implementation
++- **I4:** production-ready
++
++# v2.8 Readiness
++
++| Capability | Design | Implementation | Required proof |
++|---|---:|---:|---|
++| Meme ecology contract | D3 | I0 | canonical review |
++| Source-event envelope | D3 | I0 | Chronicle integration |
++| Observer knowledge filter | D3 | I0 | leakage suite |
++| Meme seed extraction | D3 | I0 | deterministic fixture |
++| Meme genome | D3 | I0 | schema and replay |
++| Candidate foundry | D3 | I0 | reproducible candidates |
++| No-artifact outcome | D3 | I0 | creator refusal evidence |
++| Public-works grammar | D3 | I0 | blind voice study |
++| Continuance grammar | D3 | I0 | blind voice study |
++| Vast grammar | D3 | I0 | self-parody/propaganda distinction |
++| Clinical grammar | D3 | I0 | privacy review |
++| Civic-witness grammar | D3 | I0 | source discipline test |
++| Atlas grammar | D3 | I0 | timing-specific recognition |
++| Machine lineages | D3 | I0 | two distinct voices |
++| Youth and elder mutation | D3 | I0 | generational study |
++| Alien humor grammar | D3 | I0 | translation review |
++| Distribution graph | D3 | I0 | causal spread replay |
++| Exposure response | D3 | I0 | adoption/rejection evidence |
++| Mutation operators | D3 | I0 | lineage suite |
++| Provenance DAG | D3 | I0 | acyclicity and reconstruction |
++| Fatigue and saturation | D3 | I0 | repetition study |
++| Decay and extinction | D3 | I0 | long-horizon replay |
++| Revival | D3 | I0 | recurrence evidence |
++| Censorship and suppression | D3 | I0 | channel and trace proof |
++| Commercial capture | D3 | I0 | reach/identification separation |
++| Player-specific memes | D3 | I0 | worldline specificity study |
++| Noncentrality budget | D3 | I0 | session distribution evidence |
++| IRIS private jokes | D3 | I0 | privacy and pressure tests |
++| IRIS fork divergence | D3 | I0 | continuity replay |
++| Player-authored artifacts | D3 | I0 | publication and moderation |
++| Memetic harm model | D3 | I0 | power/context review |
++| Propaganda sponsorship | D3 | I0 | funding and amplification trace |
++| Harassment pattern | D3 | I0 | repeated-target test |
++| Consent and boundaries | D3 | I0 | state transition suite |
++| Counter-speech | D3 | I0 | response simulation |
++| Repair | D3 | I0 | persistent consequence evidence |
++| Muse motifs | D3 | I0 | deterministic audio proof |
++| Gesture memes | D3 | I0 | multi-body accessibility |
++| Object and tool memes | D3 | I0 | physical-state integration |
++| Architectural memes | D3 | I0 | labor/material integration |
++| Alien media translation | D3 | I0 | sensory safety proof |
++| Accessibility alternatives | D3 | I0 | equivalent recognition study |
++| Multiplayer authority | D3 | I0 | client agreement and host migration |
++| Light-delay culture | D3 | I0 | delayed delivery ordering |
++| Historical aggregation | D3 | I0 | 150-year replay |
++| Meme archaeology | D3 | I0 | evidence and uncertainty playtest |
++| Twelve-seed benchmark | D3 | I0 | complete evidence bundle |
++| Seven-day recall | D3 | I0 | participant study |
++
++# Promotion Order
++
++```text
++source truth
++→ observer truth
++→ deterministic genome
++→ authored voice
++→ creator refusal
++→ local spread
++→ mutation and fatigue
++→ privacy and harm
++→ multimodal proof
++→ delayed network
++→ folklore and recall
++```
++
++# Current Decision
++
++All v2.8 capabilities remain **D3 / I0**.
++
++No claim may describe Symtropy as possessing an endless meme generator until representative implementation proves grounding, voice, privacy, selection, mutation, network causality, safety and delayed recall.
++
++## Readiness Maxim
++
++> **The system is not ready when it can produce infinite jokes. It is ready when it knows why most jokes should never be made, shared, repeated or shown.**
+diff --git a/ops/V2_8_MEME_ECOLOGY_CULTURAL_MUTATION_HUMOR_AND_LIVING_FOLKLORE_CAMPAIGN.md b/ops/V2_8_MEME_ECOLOGY_CULTURAL_MUTATION_HUMOR_AND_LIVING_FOLKLORE_CAMPAIGN.md
+new file mode 100644
+index 0000000..f0eae79
+--- /dev/null
++++ b/ops/V2_8_MEME_ECOLOGY_CULTURAL_MUTATION_HUMOR_AND_LIVING_FOLKLORE_CAMPAIGN.md
+@@ -0,0 +1,66 @@
++---
++title: v2.8 Meme Ecology, Cultural Mutation, Humor, and Living Folklore Campaign
++version: 2.8
++status: production
++scope: campaign summary, canonical decisions, deliverables, implementation order and evidence boundary
++owner: design/production/documentation/culture
++related:
++  - ../canon/MEME_ECOLOGY_HUMOR_LIVING_FOLKLORE_AND_CULTURAL_AGENCY_CONTRACT_V0_1.md
++  - MEME_ECOLOGY_FIRSTLIGHT_CONTINUANCE_BENCHMARK_V0_1.md
++---
++
++# v2.8 Meme Ecology, Cultural Mutation, Humor, and Living Folklore Campaign
++
++## Campaign Question
++
++Can Symtropy generate effectively endless humor by transforming real worldline memory into situated culture rather than by emitting random jokes or engagement feed content?
++
++## Canonical Decisions
++
++1. Memes originate in events, beliefs, artifacts or prior culture.
++2. Creation, adoption, spread and virality are separate states.
++3. Humor grammar belongs to people, professions, generations, factions and species.
++4. Most candidate jokes are rejected, unmade, ignored or forgotten.
++5. Spread requires actual contact and respects delay and isolation.
++6. Mutation preserves authoritative lineage.
++7. Player-specific memes require witnesses and worldline facts.
++8. IRIS private humor remains bounded by knowledge, pressure and disclosure.
++9. Symthaea may curate culture but may not manufacture suffering for content.
++10. Harm retains power, target, consent, sponsor, platform and repair state.
++11. Memes may live in text, music, gestures, objects, tools, architecture, machines and alien media.
++12. The experience rejects an endless global feed.
++13. Cultural history may outlive the original joke and forget its origin.
++14. Firstlight and Continuance remain the first implementation substrate.
++
++## Patch Sequence
++
++1. Meme ecology and living folklore contract.
++2. Event extraction, genome and Foundry runtime.
++3. Cultural humor grammar atlas.
++4. Mutation, distribution, decay and provenance runtime.
++5. Player-specific memes and IRIS private jokes.
++6. Harm, propaganda, harassment, consent and repair contract.
++7. Multimodal, Muse, gesture, architecture and translation runtime.
++8. Meme archaeology and folklore anthology.
++9. Benchmark, schemas, fixture and 100-ticket backlog.
++10. Registry and production integration.
++
++## First Production Promise
++
++The initial proof should let a player say:
++
++- “That joke came from something that happened in my world.”
++- “It sounded like the people who made it.”
++- “Not everything became content.”
++- “IRIS remembered one private thing without becoming annoying.”
++- “The joke changed when another group used it.”
++- “I understood why one version became harmful.”
++- “A week later, I remember the event as well as the phrase.”
++
++## Evidence Boundary
++
++This campaign is documentation evidence only. No meme generation, cultural distinction, media creation, propagation, safety, recall or performance claim is implemented by these files.
++
++## Campaign Maxim
++
++> **The living-world joke is not written above history. It is one of the ways history learns to travel through people.**

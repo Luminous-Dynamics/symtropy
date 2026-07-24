@@ -1,0 +1,10 @@
+[package]
+name = "symtropy-residents"
+version = "0.1.0"
+edition = "2024"
+license = "AGPL-3.0-or-later"
+description = "Persistent residents, households, obligations, and observer-scoped knowledge."
+
+[dependencies]
+serde = { version = "1.0", features = ["derive"] }
+symtropy-game-state = { path = "../symtropy-game-state" }

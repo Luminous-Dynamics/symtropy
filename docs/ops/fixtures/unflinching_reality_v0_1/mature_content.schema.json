@@ -1,0 +1,135 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "symtropy://schemas/mature-content/v0.1",
+  "title": "Symtropy Mature Content Packet",
+  "type": "object",
+  "required": [
+    "content_id",
+    "themes",
+    "intensity",
+    "player_role",
+    "controls",
+    "aftermath_domains",
+    "privacy_scopes",
+    "hard_failures"
+  ],
+  "properties": {
+    "content_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "themes": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "minItems": 1
+    },
+    "intensity": {
+      "type": "object",
+      "required": [
+        "visual",
+        "audio",
+        "text",
+        "interactivity",
+        "surprise"
+      ],
+      "properties": {
+        "visual": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4
+        },
+        "audio": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4
+        },
+        "text": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4
+        },
+        "interactivity": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4
+        },
+        "surprise": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4
+        }
+      }
+    },
+    "player_role": {
+      "enum": [
+        "witness",
+        "helper",
+        "affected",
+        "investigator",
+        "authority",
+        "bystander",
+        "family_or_community"
+      ]
+    },
+    "controls": {
+      "type": "object",
+      "required": [
+        "warning",
+        "reduced",
+        "summary",
+        "skip_equivalent"
+      ],
+      "properties": {
+        "warning": {
+          "type": "boolean"
+        },
+        "reduced": {
+          "type": "boolean"
+        },
+        "summary": {
+          "type": "boolean"
+        },
+        "skip_equivalent": {
+          "type": "boolean"
+        }
+      }
+    },
+    "aftermath_domains": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "minItems": 2
+    },
+    "privacy_scopes": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "hard_failures": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "subject_reviews": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "localization_notes": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "cut_condition": {
+      "type": "string"
+    }
+  },
+  "additionalProperties": false
+}

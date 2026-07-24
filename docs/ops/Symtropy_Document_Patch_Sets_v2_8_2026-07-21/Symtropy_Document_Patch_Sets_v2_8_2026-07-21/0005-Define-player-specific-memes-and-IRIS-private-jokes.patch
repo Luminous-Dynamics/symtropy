@@ -1,0 +1,379 @@
+From 37731856e2f39a641999cc560e0e0e273e8f19c6 Mon Sep 17 00:00:00 2001
+From: OpenAI <noreply@openai.com>
+Date: Tue, 21 Jul 2026 07:47:23 +0000
+Subject: [PATCH 05/10] Define player-specific memes and IRIS private jokes
+
+---
+ ...MORY_AND_IRIS_PRIVATE_JOKE_RUNTIME_V0_1.md | 363 ++++++++++++++++++
+ 1 file changed, 363 insertions(+)
+ create mode 100644 tech/PLAYER_SPECIFIC_WORLDLINE_MEME_MEMORY_AND_IRIS_PRIVATE_JOKE_RUNTIME_V0_1.md
+
+diff --git a/tech/PLAYER_SPECIFIC_WORLDLINE_MEME_MEMORY_AND_IRIS_PRIVATE_JOKE_RUNTIME_V0_1.md b/tech/PLAYER_SPECIFIC_WORLDLINE_MEME_MEMORY_AND_IRIS_PRIVATE_JOKE_RUNTIME_V0_1.md
+new file mode 100644
+index 0000000..95bc612
+--- /dev/null
++++ b/tech/PLAYER_SPECIFIC_WORLDLINE_MEME_MEMORY_AND_IRIS_PRIVATE_JOKE_RUNTIME_V0_1.md
+@@ -0,0 +1,363 @@
++---
++title: Player-Specific Worldline Meme, Memory, and IRIS Private Joke Runtime
++version: 0.1
++status: implementation-spec
++scope: player-specific memes, unique cast references, IRIS humor, private jokes, relationship memory, public conversion, worldline boundaries
++owner: simulation/IRIS/narrative/privacy/networking
++related:
++  - ../canon/MEME_ECOLOGY_HUMOR_LIVING_FOLKLORE_AND_CULTURAL_AGENCY_CONTRACT_V0_1.md
++  - UNIQUE_WORLDLINE_CAST_GENERATION_IDENTITY_AND_PERSISTENCE_RUNTIME_V0_1.md
++  - FIRSTLIGHT_IRIS_COMPANION_AND_NPC_EMOTIONAL_HOOK_RUNTIME_V0_1.md
++  - CHARACTER_KNOWLEDGE_OBSERVER_ENVELOPE_AND_ANTI_METAGAMING_RUNTIME_V0_1.md
++  - SECRET_HISTORY_EASTER_EGG_AND_WORLDLINE_DISCOVERY_RUNTIME_V0_1.md
++---
++
++# Player-Specific Worldline Meme, Memory, and IRIS Private Joke Runtime
++
++## Purpose
++
++Make humor and folklore feel personal to a worldline without turning the player into the center of every culture or allowing private telemetry, cross-character knowledge, or branch information to leak into public content.
++
++> **A player-specific joke should remember what happened to this character among these people—not merely insert the account name into a template.**
++
++# 1. Sources of Player-Specific Memes
++
++Eligible sources include:
++
++- observable choices during the Breaking of Firstlight;
++- objects loaded or abandoned;
++- a crawler configuration;
++- profession practice;
++- an unusual but legitimate solution;
++- a visible mistake;
++- public speech;
++- an agreed nickname;
++- repeated habits noticed by companions;
++- a vehicle incident;
++- a relationship exchange witnessed by others;
++- a public reward or sanction;
++- an IRIS phrase heard by authorized people;
++- a player-created artifact adopted by others;
++- a famous absence or return;
++- later reinterpretation by descendants.
++
++Ineligible sources include:
++
++- platform telemetry;
++- menu behavior unknown to characters;
++- private accessibility settings;
++- another playable character’s secret knowledge;
++- branch-only events;
++- developer debug labels;
++- inferred sensitive traits not expressed in-world;
++- private romance or health details without valid disclosure.
++
++# 2. Worldline Binding
++
++Every player-specific artifact records:
++
++```text
++account scope: Chronicle only
++worldline id
++embodied character id
++source event ids
++witness and publication path
++creator id
++audience
++branch ancestry
++```
++
++The account may compare variants across worldlines in Chronicle tools, but characters cannot reference alternatives they never observed.
++
++A phrase from one branch may enter another only through an explicit trans-worldline fictional technology, authored anomaly, or noncanonical comparison mode. Ordinary save files never leak culture into one another.
++
++# 3. Unique Cast Integration
++
++Generated Firstlight residents have persistent identities. Memes must use authoritative names, relationships, pronouns, bodies, professions, and history.
++
++Examples of worldline-specific structure:
++
++```text
++source role: transit operator
++instantiated person: unique to worldline
++observed event: player preserved three chairs but omitted a filter
++creator relationship: friendly workshop rival
++audience: crawler residents
++format: cargo-bay stencil
++```
++
++The same structural event in another worldline may produce no joke because:
++
++- the relevant resident is solemn;
++- the chairs belonged to a dead household member;
++- the audience lacks trust;
++- the omitted filter caused serious harm;
++- another event dominates local attention.
++
++# 4. Shared-History Tokens
++
++The runtime stores compact relationship-bound tokens:
++
++```rust
++struct SharedHistoryToken {
++    token_id: SharedHistoryTokenId,
++    participant_ids: Vec<AgentId>,
++    source_event_ids: Vec<EventId>,
++    private_meanings: Vec<MeaningFrame>,
++    agreed_phrases: Vec<ExpressionRef>,
++    object_refs: Vec<EntityId>,
++    permitted_scopes: Vec<DisclosureScope>,
++    affect: AffectVector,
++    last_used_tick: ChronicleTick,
++    fatigue: f32,
++}
++```
++
++Tokens support:
++
++- private callbacks;
++- affectionate teasing;
++- grief-sensitive silence;
++- changed meaning after conflict;
++- relationship repair;
++- jokes surviving into old age;
++- objects becoming shorthand.
++
++A token is not automatically positive. A former joke may become painful, inappropriate, reclaimed, or forgotten.
++
++# 5. IRIS Humor Modes
++
++IRIS has no universal “sarcasm slider.” Humor emerges from:
++
++- player presentation preferences;
++- current pressure;
++- relationship history;
++- confidence;
++- privacy;
++- task criticality;
++- local social context;
++- IRIS continuity and damage state.
++
++Supported modes:
++
++## Instrumental Dryness
++
++A concise contrast in a technical summary.
++
++> “The crawler is within mass limits if we redefine ‘limit’ as a historical aspiration.”
++
++## Shared Callback
++
++A reference to a prior mutual experience known only to the player and IRIS.
++
++## Protective Deflation
++
++Reducing panic without minimizing real danger.
++
++## Literal Reframing
++
++Applying a precise category to a social absurdity.
++
++## Deliberate Silence
++
++Recognizing that a joke would be intrusive, repetitive, or unsafe.
++
++IRIS may not use humor to:
++
++- shame accessibility use;
++- pressure the player to return;
++- imply emotional dependence;
++- expose private companion information;
++- trivialize a patient, survivor, death, or consent boundary;
++- disguise uncertainty;
++- undermine a valid refusal;
++- manipulate a relationship.
++
++# 6. IRIS Forks and Joke Divergence
++
++IRIS forks may inherit a shared-history token up to the fork point.
++
++After divergence:
++
++- one fork may continue using the joke;
++- another may find it inappropriate;
++- the player may share new variants with one fork only;
++- forks may joke about their differing continuities;
++- a public meme may falsely attribute a phrase to the wrong fork.
++
++The runtime distinguishes:
++
++```text
++shared pre-fork memory
++post-fork private memory
++publicly documented expression
++later attribution claim
++```
++
++# 7. Private-to-Public Transition
++
++A private joke becomes public only through an event:
++
++- a participant repeats it publicly;
++- a recording is released;
++- someone overhears it;
++- an object displaying it becomes visible;
++- a third party independently creates a similar form;
++- a participant publishes it after consent;
++- an archive releases it under a declared policy;
++- a betrayal or leak occurs.
++
++The system records whether public spread is:
++
++- welcomed;
++- tolerated;
++- regretted;
++- contested;
++- harmful;
++- repaired;
++- impossible to reverse.
++
++# 8. The Player as Creator
++
++Players can intentionally create memes through:
++
++- captions;
++- stickers;
++- signs;
++- vehicle art;
++- sampled audio;
++- gestures or emotes;
++- songs;
++- clothing;
++- public speeches;
++- naming objects;
++- remixes of known artifacts.
++
++Player-authored content requires:
++
++- worldline binding;
++- scope selection;
++- provenance;
++- multiplayer moderation;
++- licensing or ownership state;
++- content filtering settings;
++- recipient access.
++
++NPC adoption remains simulated. A player cannot spend currency to guarantee cultural affection.
++
++# 9. Player as Subject
++
++A meme about the player may be:
++
++- admiring;
++- affectionate;
++- critical;
++- humiliating;
++- false;
++- politically sponsored;
++- commercially exploited;
++- historically misattributed.
++
++The player has options to:
++
++- ignore;
++- laugh;
++- correct;
++- remix;
++- confront;
++- request removal where institutions support it;
++- provide evidence;
++- exploit the attention;
++- refuse to become a public figure.
++
++No response guarantees disappearance.
++
++# 10. Noncentrality Budget
++
++The director tracks how much surfaced culture concerns the active player.
++
++Recommended default:
++
++- most memes concern other people, professions, institutions, objects, media, and old events;
++- some concern the crawler or household collectively;
++- a small minority concern the active player directly;
++- direct player memes rise only after public events, fame, office, performance, or deliberate authorship.
++
++Fail if the world behaves as though everyone watches the player continuously.
++
++# 11. Memory and Return
++
++After absence, IRIS may summarize:
++
++- which local jokes persisted;
++- which became stale;
++- which changed meaning;
++- which the character actually encountered;
++- which private callback remains unresolved.
++
++IRIS must not spoil:
++
++- memes spread through networks the character cannot access;
++- hidden origin history;
++- private NPC communications;
++- branch alternatives.
++
++A returning player may discover that:
++
++- their joke became a political slogan;
++- a phrase survived while their name was forgotten;
++- a disliked meme disappeared;
++- a private object became a public symbol;
++- descendants misunderstood the original event;
++- nobody remembers the incident at all.
++
++# 12. Accessibility
++
++Private-joke recognition cannot depend on one sensory channel.
++
++Provide alternatives for:
++
++- audio callbacks;
++- visual gestures;
++- color-coded signs;
++- timing-based machine humor;
++- text-heavy formats;
++- embodied imitation.
++
++Accessibility descriptions should preserve the joke’s relevant contrast rather than announcing “this is funny.”
++
++# 13. Test Cases
++
++Required tests:
++
++1. player loads unusual cargo; local joke emerges only among witnesses;
++2. same cargo event causes harm; humor grammar rejects or changes tone;
++3. private IRIS joke remains private across save, network and companion interactions;
++4. player publishes the private phrase; provenance records voluntary release;
++5. two IRIS forks diverge in use;
++6. another playable character lacks the knowledge to repeat it;
++7. branch comparison shows two variants without in-world leakage;
++8. generated resident name and pronouns remain correct across mutations;
++9. the player’s joke fails to spread;
++10. a non-player local meme dominates the session;
++11. player requests reduced humor presentation;
++12. seven-day return preserves meaningful callback without overload.
++
++# 14. Failure Conditions
++
++Fail if:
++
++- the player account becomes a universal cultural subject;
++- IRIS becomes a quip machine;
++- private telemetry enters dialogue;
++- generated people are replaced by role labels in jokes;
++- every unusual action becomes memetic;
++- direct player content crowds out local culture;
++- a joke persists after the relationship context makes it harmful without anyone noticing;
++- branch content leaks;
++- the player can purchase virality;
++- the system mistakes familiarity for consent.
++
++## Runtime Maxim
++
++> **The most powerful player-specific joke is not the one everyone in the galaxy repeats. It is the one two people remember at exactly the right moment because they were there together.**

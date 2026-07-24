@@ -1,0 +1,30 @@
+[package]
+name = "symtropy-bevy-validation-scene"
+version = "0.1.0"
+edition = "2024"
+publish = false
+license = "Apache-2.0 OR MIT"
+description = "Executable smoke scene for the permissive Symtropy Bevy distribution."
+
+[dependencies]
+# default-features = false + this curated list matches every other bevy-using
+# crate in the workspace (e.g. symtropy-auv-demo, symtropy-humanoid-demo).
+# Plain `bevy = "0.19"` pulls bevy's own `default` feature set (2d/3d/ui/audio
+# -> common_api -> bevy_animation), and bevy_animation's real 0.19.0 final
+# release isn't published on crates.io yet (only 0.19.0-rc.1/2/3) -- that
+# broke dependency resolution for the *entire* workspace the moment this
+# crate was wired into the workspace members list (2026-07-21), since
+# Cargo.lock is resolved workspace-wide. See
+# SYMTROPY_IMPROVEMENT_PLAN_2026-07-21.md.
+bevy = { version = "0.19", default-features = false, features = [
+    "bevy_asset", "bevy_core_pipeline", "bevy_render",
+    "bevy_sprite", "bevy_sprite_render",
+    "bevy_text", "bevy_ui", "bevy_ui_render",
+    "bevy_winit", "bevy_color", "bevy_state",
+    "bevy_log", "bevy_post_process", "bevy_shader",
+    "bevy_gizmos", "bevy_gizmos_render", "bevy_pbr",
+    "multi_threaded", "x11",
+    "default_font", "png",
+] }
+symtropy-bevy-scene = { path = "../../core/symtropy-bevy-scene" }
+symtropy-core = { path = "../../core/symtropy-core" }

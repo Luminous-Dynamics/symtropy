@@ -1,0 +1,18 @@
+{
+  "forbid_global_reputation_scalar": true,
+  "minimum_compact_paths": 3,
+  "minimum_households": 4,
+  "minimum_named_residents": 12,
+  "minimum_public_services": 5,
+  "minimum_worldline_branches": 3,
+  "profile_id": "player-founded-civilization-v0.1",
+  "require_non_player_campaign_resolution": true,
+  "require_office_token_expiry": true,
+  "require_private_information_gate": true,
+  "required_absence_horizons_days": [
+    30,
+    730,
+    1825,
+    7300
+  ]
+}

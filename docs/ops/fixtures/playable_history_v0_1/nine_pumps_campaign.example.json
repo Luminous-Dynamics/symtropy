@@ -1,0 +1,69 @@
+{
+  "campaign_id": "nine-pumps.water-without-owners",
+  "content_version": "0.1.0",
+  "region_id": "nine-pumps-corridor",
+  "historical_root_ids": [
+    "seven-grid-secessions",
+    "aureline-breakup-nine-pumps"
+  ],
+  "player_promise": "Keep a democratic water utility alive while drought, debt, maintenance, and legitimacy pull it apart.",
+  "pressures": [
+    {
+      "id": "drought-exposure"
+    },
+    {
+      "id": "maintenance-debt"
+    },
+    {
+      "id": "creditor-pressure"
+    }
+  ],
+  "factions": [
+    {
+      "id": "pump-crews"
+    },
+    {
+      "id": "household-assembly"
+    },
+    {
+      "id": "creditor-concession"
+    },
+    {
+      "id": "greywater-communion"
+    }
+  ],
+  "sites": [
+    {
+      "id": "pump-hall-one"
+    },
+    {
+      "id": "public-maintenance-board"
+    },
+    {
+      "id": "greywater-yard"
+    }
+  ],
+  "activities": [
+    {
+      "id": "inspect-pump-three"
+    },
+    {
+      "id": "restructure-debt"
+    },
+    {
+      "id": "maintenance-festival"
+    }
+  ],
+  "budgets": {
+    "named_agents": 8,
+    "major_sites": 3,
+    "voiced_words": 6500,
+    "peak_cpu_ms": 2.5
+  },
+  "cut_order": [
+    "cinematic-intro",
+    "rare-dialogue-variants",
+    "secondary-interiors",
+    "optional-archive-thread"
+  ]
+}

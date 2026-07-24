@@ -2,7 +2,7 @@
 
 **Purpose.** Map what a production-grade game engine needs, what Symtropy covers today, what the Luminous Dynamics ecosystem (Symthaea + Mycelix) *already* solves, what Bevy provides transitively, and what genuinely remains as a gap with a recommended community crate.
 
-**Why this exists.** The [ROADMAP](../ROADMAP.md) is phase-oriented and philosophy-first ("Bevy is the permanent foundation"). That framing hides a strategic truth: Symthaea + Mycelix already cover 8–10 components that traditional engines farm out — identity, AI, decentralized persistence, economy, attribution, telemetry. Naming that explicitly turns a licensing-split architecture into an *adoption story*.
+**Why this exists.** The [ROADMAP](../ops/ROADMAP.md) is phase-oriented and philosophy-first ("Bevy is the permanent foundation"). That framing hides a strategic truth: Symthaea + Mycelix already cover 8–10 components that traditional engines farm out — identity, AI, decentralized persistence, economy, attribution, telemetry. Naming that explicitly turns a licensing-split architecture into an *adoption story*.
 
 **Scope.** This document is a living gap checklist; it doesn't replace the ROADMAP. When gaps close, prune rows. When new components are requested, add rows.
 

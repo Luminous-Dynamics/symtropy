@@ -1,0 +1,10 @@
+[package]
+name = "symtropy-firstlight-catastrophe"
+version = "0.1.0"
+edition = "2024"
+license = "AGPL-3.0-or-later"
+description = "Deterministic Rain Curvature catastrophe kernel for Firstlight."
+
+[dependencies]
+serde = { version = "1.0", features = ["derive"] }
+symtropy-game-state = { path = "../symtropy-game-state" }

@@ -9,6 +9,9 @@ depends_on:
   - CHRONICLE_MVP_SPEC_V0_1.md
   - FIELD_DECK_OVERLAY_PRECEDENCE_RULES_V0_1.md
   - XENO_CONTACT_PRESSURE_SEMANTICS_PATCH_V0_1.md
+version: 0.1
+scope: subglacial listening-fault vertical slice, nonhuman agency, instrumentation and consequences
+owner: design/narrative/engineering
 ---
 
 # Subglacial Listening Fault Vertical Slice v0.1

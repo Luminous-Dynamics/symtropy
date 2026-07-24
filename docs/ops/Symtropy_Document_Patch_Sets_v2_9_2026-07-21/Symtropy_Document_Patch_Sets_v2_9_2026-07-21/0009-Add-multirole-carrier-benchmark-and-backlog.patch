@@ -1,0 +1,1103 @@
+From 629b44c78cdd61096d0c200550a9c103cc9afab0 Mon Sep 17 00:00:00 2001
+From: OpenAI Symtropy Documentation <symtropy-docs@example.invalid>
+Date: Tue, 21 Jul 2026 11:06:09 +0000
+Subject: [PATCH 09/10] Add multirole carrier benchmark and backlog
+
+---
+ .../multirole_carrier_benchmark.example.json  | 217 +++++++++
+ ...RIER_IMPLEMENTATION_TICKET_BACKLOG_V0_1.md | 440 ++++++++++++++++++
+ ...ERSHIP_BUILD_AND_COMMAND_BENCHMARK_V0_1.md | 264 +++++++++++
+ .../v2_9/large_carrier_benchmark.schema.json  | 139 ++++++
+ 4 files changed, 1060 insertions(+)
+ create mode 100644 fixtures/v2_9/multirole_carrier_benchmark.example.json
+ create mode 100644 ops/LARGE_CARRIER_IMPLEMENTATION_TICKET_BACKLOG_V0_1.md
+ create mode 100644 ops/LARGE_CARRIER_OWNERSHIP_BUILD_AND_COMMAND_BENCHMARK_V0_1.md
+ create mode 100644 schemas/v2_9/large_carrier_benchmark.schema.json
+
+diff --git a/fixtures/v2_9/multirole_carrier_benchmark.example.json b/fixtures/v2_9/multirole_carrier_benchmark.example.json
+new file mode 100644
+index 0000000..db4fd24
+--- /dev/null
++++ b/fixtures/v2_9/multirole_carrier_benchmark.example.json
+@@ -0,0 +1,217 @@
++{
++  "fixture_id": "v2_9_multirole_carrier_seed_001",
++  "worldline_id": "benchmark-worldline-carrier-001",
++  "seed": 29001,
++  "carriers": [
++    {
++      "profile_id": "hearth-spine-001",
++      "hull_lineage": "keel_and_spine",
++      "primary_emphasis": "habitation_migration",
++      "secondary_emphases": [
++        "repair_fabrication",
++        "care",
++        "trade"
++      ],
++      "common_core_domains": [
++        "habitation",
++        "life_support",
++        "mobility",
++        "energy_thermal",
++        "repair_fabrication",
++        "care",
++        "logistics",
++        "information",
++        "governance",
++        "culture_education",
++        "rescue_emergency",
++        "defense"
++      ],
++      "ownership_model": "cooperative"
++    },
++    {
++      "profile_id": "survey-spine-001",
++      "hull_lineage": "keel_and_spine",
++      "primary_emphasis": "survey",
++      "secondary_emphases": [
++        "planetary_interface",
++        "care",
++        "fabrication"
++      ],
++      "common_core_domains": [
++        "habitation",
++        "life_support",
++        "mobility",
++        "energy_thermal",
++        "repair_fabrication",
++        "care",
++        "logistics",
++        "information",
++        "governance",
++        "culture_education",
++        "rescue_emergency",
++        "defense"
++      ],
++      "ownership_model": "public"
++    },
++    {
++      "profile_id": "mercy-spine-001",
++      "hull_lineage": "keel_and_spine",
++      "primary_emphasis": "care_refuge",
++      "secondary_emphases": [
++        "logistics",
++        "fabrication",
++        "diplomacy"
++      ],
++      "common_core_domains": [
++        "habitation",
++        "life_support",
++        "mobility",
++        "energy_thermal",
++        "repair_fabrication",
++        "care",
++        "logistics",
++        "information",
++        "governance",
++        "culture_education",
++        "rescue_emergency",
++        "defense"
++      ],
++      "ownership_model": "mission_trust"
++    },
++    {
++      "profile_id": "salt-lantern-001",
++      "hull_lineage": "ocean_cradle",
++      "primary_emphasis": "ocean_interface",
++      "secondary_emphases": [
++        "ecology",
++        "settlement",
++        "rescue"
++      ],
++      "common_core_domains": [
++        "habitation",
++        "life_support",
++        "mobility",
++        "energy_thermal",
++        "repair_fabrication",
++        "care",
++        "logistics",
++        "information",
++        "governance",
++        "culture_education",
++        "rescue_emergency",
++        "defense"
++      ],
++      "ownership_model": "consortium"
++    },
++    {
++      "profile_id": "quiet-bastion-001",
++      "hull_lineage": "deep_hull",
++      "primary_emphasis": "security_rescue",
++      "secondary_emphases": [
++        "care",
++        "logistics",
++        "habitation"
++      ],
++      "common_core_domains": [
++        "habitation",
++        "life_support",
++        "mobility",
++        "energy_thermal",
++        "repair_fabrication",
++        "care",
++        "logistics",
++        "information",
++        "governance",
++        "culture_education",
++        "rescue_emergency",
++        "defense"
++      ],
++      "ownership_model": "public"
++    },
++    {
++      "profile_id": "orchard-exchange-001",
++      "hull_lineage": "truss_garden",
++      "primary_emphasis": "trade_culture",
++      "secondary_emphases": [
++        "education",
++        "fabrication",
++        "care"
++      ],
++      "common_core_domains": [
++        "habitation",
++        "life_support",
++        "mobility",
++        "energy_thermal",
++        "repair_fabrication",
++        "care",
++        "logistics",
++        "information",
++        "governance",
++        "culture_education",
++        "rescue_emergency",
++        "defense"
++      ],
++      "ownership_model": "cooperative"
++    },
++    {
++      "profile_id": "school-forge-001",
++      "hull_lineage": "keel_and_spine_foundry",
++      "primary_emphasis": "education_habitation",
++      "secondary_emphases": [
++        "fabrication",
++        "trade",
++        "survey"
++      ],
++      "common_core_domains": [
++        "habitation",
++        "life_support",
++        "mobility",
++        "energy_thermal",
++        "repair_fabrication",
++        "care",
++        "logistics",
++        "information",
++        "governance",
++        "culture_education",
++        "rescue_emergency",
++        "defense"
++      ],
++      "ownership_model": "public_cooperative",
++      "reversed_emphasis": true
++    }
++  ],
++  "nested_chain": [
++    "hearth-spine-001",
++    "descent-base-carrier-001",
++    "continuance-crawler-001",
++    "field-rover-001"
++  ],
++  "construction_program": {
++    "program_id": "carrier-build-proof-001",
++    "ownership_model": "cooperative",
++    "yard_type": "orbital_dock",
++    "milestones": [
++      "charter",
++      "yard_readiness",
++      "structural_assembly",
++      "systems_integration",
++      "commissioning",
++      "trials"
++    ]
++  },
++  "emergency_scenario": {
++    "events": [
++      "difficult_docking",
++      "contamination_uncertainty",
++      "radiator_loss",
++      "clinic_surge",
++      "command_disconnect",
++      "district_isolation"
++    ],
++    "run_modes": [
++      "single_player_assisted",
++      "two_player_coop",
++      "four_player_professional"
++    ]
++  }
++}
+diff --git a/ops/LARGE_CARRIER_IMPLEMENTATION_TICKET_BACKLOG_V0_1.md b/ops/LARGE_CARRIER_IMPLEMENTATION_TICKET_BACKLOG_V0_1.md
+new file mode 100644
+index 0000000..b14b8f7
+--- /dev/null
++++ b/ops/LARGE_CARRIER_IMPLEMENTATION_TICKET_BACKLOG_V0_1.md
+@@ -0,0 +1,440 @@
++---
++title: Large Carrier Implementation Ticket Backlog
++version: 0.1
++status: implementation-spec
++scope: one hundred ordered tickets for multirole carriers, nested bases, construction, ownership, command and benchmark evidence
++owner: production/engineering/design
++related:
++  - LARGE_CARRIER_OWNERSHIP_BUILD_AND_COMMAND_BENCHMARK_V0_1.md
++  - ../canon/LARGE_CARRIER_MULTIROLE_CIVILIZATION_AND_NON_SPECIALIZATION_CONTRACT_V0_1.md
++---
++
++# Large Carrier Implementation Ticket Backlog
++
++## Ordering Rule
++
++Implement authoritative identity, capacity and interfaces before presentation variety. Implement rights and command scope before multiplayer command. Prove one nested chain before expanding carrier families.
++
++# Foundation
++
++## LC-001 — Define carrier entity identifiers and worldline provenance
++
++**Exit:** Deterministic tests and an inspectable evidence artifact demonstrate the bounded behavior without overclaiming adjacent systems.
++
++## LC-002 — Implement common-core capacity domain enum
++
++**Exit:** Deterministic tests and an inspectable evidence artifact demonstrate the bounded behavior without overclaiming adjacent systems.
++
++## LC-003 — Implement hull-lineage registry
++
++**Exit:** Deterministic tests and an inspectable evidence artifact demonstrate the bounded behavior without overclaiming adjacent systems.
++
++## LC-004 — Implement mission-emphasis vector validation
++
++**Exit:** Deterministic tests and an inspectable evidence artifact demonstrate the bounded behavior without overclaiming adjacent systems.
++
++## LC-005 — Implement configurable concentration limit
++
++**Exit:** Deterministic tests and an inspectable evidence artifact demonstrate the bounded behavior without overclaiming adjacent systems.
++
++## LC-006 — Implement district graph representation
++
++**Exit:** Deterministic tests and an inspectable evidence artifact demonstrate the bounded behavior without overclaiming adjacent systems.
++
++## LC-007 — Implement pressure-zone graph
++
++**Exit:** Deterministic tests and an inspectable evidence artifact demonstrate the bounded behavior without overclaiming adjacent systems.
++
++## LC-008 — Implement power and thermal graph
++
++**Exit:** Deterministic tests and an inspectable evidence artifact demonstrate the bounded behavior without overclaiming adjacent systems.
++
++## LC-009 — Implement water, food and waste graph
++
++**Exit:** Deterministic tests and an inspectable evidence artifact demonstrate the bounded behavior without overclaiming adjacent systems.
++
++## LC-010 — Implement authoritative configuration epochs
++
++**Exit:** Deterministic tests and an inspectable evidence artifact demonstrate the bounded behavior without overclaiming adjacent systems.
++
++# Interfaces
++
++## LC-011 — Define structural docking interface classes
++
++**Exit:** Deterministic tests and an inspectable evidence artifact demonstrate the bounded behavior without overclaiming adjacent systems.
++
++## LC-012 — Define utility interface declarations
++
++**Exit:** Deterministic tests and an inspectable evidence artifact demonstrate the bounded behavior without overclaiming adjacent systems.
++
++## LC-013 — Implement compatibility evaluation
++
++**Exit:** Deterministic tests and an inspectable evidence artifact demonstrate the bounded behavior without overclaiming adjacent systems.
++
++## LC-014 — Implement soft-capture state machine
++
++**Exit:** Deterministic tests and an inspectable evidence artifact demonstrate the bounded behavior without overclaiming adjacent systems.
++
++## LC-015 — Implement hard-capture and release
++
++**Exit:** Deterministic tests and an inspectable evidence artifact demonstrate the bounded behavior without overclaiming adjacent systems.
++
++## LC-016 — Implement quarantine-isolated docking
++
++**Exit:** Deterministic tests and an inspectable evidence artifact demonstrate the bounded behavior without overclaiming adjacent systems.
++
++## LC-017 — Implement tow and tether relationships
++
++**Exit:** Deterministic tests and an inspectable evidence artifact demonstrate the bounded behavior without overclaiming adjacent systems.
++
++## LC-018 — Implement emergency separation
++
++**Exit:** Deterministic tests and an inspectable evidence artifact demonstrate the bounded behavior without overclaiming adjacent systems.
++
++## LC-019 — Implement approach corridor reservations
++
++**Exit:** Deterministic tests and an inspectable evidence artifact demonstrate the bounded behavior without overclaiming adjacent systems.
++
++## LC-020 — Add docking explainability trace
++
++**Exit:** Deterministic tests and an inspectable evidence artifact demonstrate the bounded behavior without overclaiming adjacent systems.
++
++# Nested vehicles
++
++## LC-021 — Persist carried vehicle identity
++
++**Exit:** Deterministic tests and an inspectable evidence artifact demonstrate the bounded behavior without overclaiming adjacent systems.
++
++## LC-022 — Persist residents across embarkation
++
++**Exit:** Deterministic tests and an inspectable evidence artifact demonstrate the bounded behavior without overclaiming adjacent systems.
++
++## LC-023 — Persist inventories and provenance
++
++**Exit:** Deterministic tests and an inspectable evidence artifact demonstrate the bounded behavior without overclaiming adjacent systems.
++
++## LC-024 — Update carrier mass properties from carried craft
++
++**Exit:** Deterministic tests and an inspectable evidence artifact demonstrate the bounded behavior without overclaiming adjacent systems.
++
++## LC-025 — Implement internal hangar carriage
++
++**Exit:** Deterministic tests and an inspectable evidence artifact demonstrate the bounded behavior without overclaiming adjacent systems.
++
++## LC-026 — Implement external hardpoint carriage
++
++**Exit:** Deterministic tests and an inspectable evidence artifact demonstrate the bounded behavior without overclaiming adjacent systems.
++
++## LC-027 — Implement cradle carriage
++
++**Exit:** Deterministic tests and an inspectable evidence artifact demonstrate the bounded behavior without overclaiming adjacent systems.
++
++## LC-028 — Implement packaged module carriage
++
++**Exit:** Deterministic tests and an inspectable evidence artifact demonstrate the bounded behavior without overclaiming adjacent systems.
++
++## LC-029 — Reject cyclic physical nesting
++
++**Exit:** Deterministic tests and an inspectable evidence artifact demonstrate the bounded behavior without overclaiming adjacent systems.
++
++## LC-030 — Add host-migration duplication tests
++
++**Exit:** Deterministic tests and an inspectable evidence artifact demonstrate the bounded behavior without overclaiming adjacent systems.
++
++# Variety
++
++## LC-031 — Author keel-and-spine grammar
++
++**Exit:** Deterministic tests and an inspectable evidence artifact demonstrate the bounded behavior without overclaiming adjacent systems.
++
++## LC-032 — Author ring-harbor grammar
++
++**Exit:** Deterministic tests and an inspectable evidence artifact demonstrate the bounded behavior without overclaiming adjacent systems.
++
++## LC-033 — Author archipelago grammar
++
++**Exit:** Deterministic tests and an inspectable evidence artifact demonstrate the bounded behavior without overclaiming adjacent systems.
++
++## LC-034 — Author shell-and-courtyard grammar
++
++**Exit:** Deterministic tests and an inspectable evidence artifact demonstrate the bounded behavior without overclaiming adjacent systems.
++
++## LC-035 — Author truss-garden grammar
++
++**Exit:** Deterministic tests and an inspectable evidence artifact demonstrate the bounded behavior without overclaiming adjacent systems.
++
++## LC-036 — Author deep-hull grammar
++
++**Exit:** Deterministic tests and an inspectable evidence artifact demonstrate the bounded behavior without overclaiming adjacent systems.
++
++## LC-037 — Author ocean-cradle grammar
++
++**Exit:** Deterministic tests and an inspectable evidence artifact demonstrate the bounded behavior without overclaiming adjacent systems.
++
++## LC-038 — Author grown-continuity grammar
++
++**Exit:** Deterministic tests and an inspectable evidence artifact demonstrate the bounded behavior without overclaiming adjacent systems.
++
++## LC-039 — Generate sensory identity parameters
++
++**Exit:** Deterministic tests and an inspectable evidence artifact demonstrate the bounded behavior without overclaiming adjacent systems.
++
++## LC-040 — Build blind silhouette export
++
++**Exit:** Deterministic tests and an inspectable evidence artifact demonstrate the bounded behavior without overclaiming adjacent systems.
++
++# Mission profiles
++
++## LC-041 — Author habitation and migration profile
++
++**Exit:** Deterministic tests and an inspectable evidence artifact demonstrate the bounded behavior without overclaiming adjacent systems.
++
++## LC-042 — Author survey profile
++
++**Exit:** Deterministic tests and an inspectable evidence artifact demonstrate the bounded behavior without overclaiming adjacent systems.
++
++## LC-043 — Author relief and refuge profile
++
++**Exit:** Deterministic tests and an inspectable evidence artifact demonstrate the bounded behavior without overclaiming adjacent systems.
++
++## LC-044 — Author fabrication profile
++
++**Exit:** Deterministic tests and an inspectable evidence artifact demonstrate the bounded behavior without overclaiming adjacent systems.
++
++## LC-045 — Author trade and culture profile
++
++**Exit:** Deterministic tests and an inspectable evidence artifact demonstrate the bounded behavior without overclaiming adjacent systems.
++
++## LC-046 — Author route-engineering profile
++
++**Exit:** Deterministic tests and an inspectable evidence artifact demonstrate the bounded behavior without overclaiming adjacent systems.
++
++## LC-047 — Author security and rescue profile
++
++**Exit:** Deterministic tests and an inspectable evidence artifact demonstrate the bounded behavior without overclaiming adjacent systems.
++
++## LC-048 — Author ocean-interface profile
++
++**Exit:** Deterministic tests and an inspectable evidence artifact demonstrate the bounded behavior without overclaiming adjacent systems.
++
++## LC-049 — Author hostile-world profile
++
++**Exit:** Deterministic tests and an inspectable evidence artifact demonstrate the bounded behavior without overclaiming adjacent systems.
++
++## LC-050 — Author seed-continuity profile
++
++**Exit:** Deterministic tests and an inspectable evidence artifact demonstrate the bounded behavior without overclaiming adjacent systems.
++
++# Ownership and command
++
++## LC-051 — Separate title from operation authority
++
++**Exit:** Deterministic tests and an inspectable evidence artifact demonstrate the bounded behavior without overclaiming adjacent systems.
++
++## LC-052 — Implement module ownership claims
++
++**Exit:** Deterministic tests and an inspectable evidence artifact demonstrate the bounded behavior without overclaiming adjacent systems.
++
++## LC-053 — Implement debt and lien records
++
++**Exit:** Deterministic tests and an inspectable evidence artifact demonstrate the bounded behavior without overclaiming adjacent systems.
++
++## LC-054 — Implement carrier charter state
++
++**Exit:** Deterministic tests and an inspectable evidence artifact demonstrate the bounded behavior without overclaiming adjacent systems.
++
++## LC-055 — Implement resident governance mode
++
++**Exit:** Deterministic tests and an inspectable evidence artifact demonstrate the bounded behavior without overclaiming adjacent systems.
++
++## LC-056 — Implement bounded command scopes
++
++**Exit:** Deterministic tests and an inspectable evidence artifact demonstrate the bounded behavior without overclaiming adjacent systems.
++
++## LC-057 — Implement emergency delegation
++
++**Exit:** Deterministic tests and an inspectable evidence artifact demonstrate the bounded behavior without overclaiming adjacent systems.
++
++## LC-058 — Implement succession after disconnect
++
++**Exit:** Deterministic tests and an inspectable evidence artifact demonstrate the bounded behavior without overclaiming adjacent systems.
++
++## LC-059 — Implement crew refusal for unlawful orders
++
++**Exit:** Deterministic tests and an inspectable evidence artifact demonstrate the bounded behavior without overclaiming adjacent systems.
++
++## LC-060 — Add authority explanation UI
++
++**Exit:** Deterministic tests and an inspectable evidence artifact demonstrate the bounded behavior without overclaiming adjacent systems.
++
++# Construction
++
++## LC-061 — Implement construction-program entity
++
++**Exit:** Deterministic tests and an inspectable evidence artifact demonstrate the bounded behavior without overclaiming adjacent systems.
++
++## LC-062 — Implement requirements baseline
++
++**Exit:** Deterministic tests and an inspectable evidence artifact demonstrate the bounded behavior without overclaiming adjacent systems.
++
++## LC-063 — Implement yard capability model
++
++**Exit:** Deterministic tests and an inspectable evidence artifact demonstrate the bounded behavior without overclaiming adjacent systems.
++
++## LC-064 — Implement supplier contract state
++
++**Exit:** Deterministic tests and an inspectable evidence artifact demonstrate the bounded behavior without overclaiming adjacent systems.
++
++## LC-065 — Implement skilled-labor requirements
++
++**Exit:** Deterministic tests and an inspectable evidence artifact demonstrate the bounded behavior without overclaiming adjacent systems.
++
++## LC-066 — Implement milestone scheduling
++
++**Exit:** Deterministic tests and an inspectable evidence artifact demonstrate the bounded behavior without overclaiming adjacent systems.
++
++## LC-067 — Implement quality defect records
++
++**Exit:** Deterministic tests and an inspectable evidence artifact demonstrate the bounded behavior without overclaiming adjacent systems.
++
++## LC-068 — Implement certification evidence
++
++**Exit:** Deterministic tests and an inspectable evidence artifact demonstrate the bounded behavior without overclaiming adjacent systems.
++
++## LC-069 — Implement playable commissioning trials
++
++**Exit:** Deterministic tests and an inspectable evidence artifact demonstrate the bounded behavior without overclaiming adjacent systems.
++
++## LC-070 — Implement compressed multi-year construction
++
++**Exit:** Deterministic tests and an inspectable evidence artifact demonstrate the bounded behavior without overclaiming adjacent systems.
++
++# Crew and automation
++
++## LC-071 — Implement department registry
++
++**Exit:** Deterministic tests and an inspectable evidence artifact demonstrate the bounded behavior without overclaiming adjacent systems.
++
++## LC-072 — Implement station qualification
++
++**Exit:** Deterministic tests and an inspectable evidence artifact demonstrate the bounded behavior without overclaiming adjacent systems.
++
++## LC-073 — Implement watch assignment and handover
++
++**Exit:** Deterministic tests and an inspectable evidence artifact demonstrate the bounded behavior without overclaiming adjacent systems.
++
++## LC-074 — Implement advisory automation
++
++**Exit:** Deterministic tests and an inspectable evidence artifact demonstrate the bounded behavior without overclaiming adjacent systems.
++
++## LC-075 — Implement supervised automation
++
++**Exit:** Deterministic tests and an inspectable evidence artifact demonstrate the bounded behavior without overclaiming adjacent systems.
++
++## LC-076 — Implement routine autonomy
++
++**Exit:** Deterministic tests and an inspectable evidence artifact demonstrate the bounded behavior without overclaiming adjacent systems.
++
++## LC-077 — Implement emergency autonomy rules
++
++**Exit:** Deterministic tests and an inspectable evidence artifact demonstrate the bounded behavior without overclaiming adjacent systems.
++
++## LC-078 — Implement NPC delegation planner
++
++**Exit:** Deterministic tests and an inspectable evidence artifact demonstrate the bounded behavior without overclaiming adjacent systems.
++
++## LC-079 — Implement crew fatigue and relief
++
++**Exit:** Deterministic tests and an inspectable evidence artifact demonstrate the bounded behavior without overclaiming adjacent systems.
++
++## LC-080 — Implement single-player focus selection
++
++**Exit:** Deterministic tests and an inspectable evidence artifact demonstrate the bounded behavior without overclaiming adjacent systems.
++
++# Damage and recovery
++
++## LC-081 — Implement structural damage propagation
++
++**Exit:** Deterministic tests and an inspectable evidence artifact demonstrate the bounded behavior without overclaiming adjacent systems.
++
++## LC-082 — Implement pressure breach and isolation
++
++**Exit:** Deterministic tests and an inspectable evidence artifact demonstrate the bounded behavior without overclaiming adjacent systems.
++
++## LC-083 — Implement fire and smoke graph
++
++**Exit:** Deterministic tests and an inspectable evidence artifact demonstrate the bounded behavior without overclaiming adjacent systems.
++
++## LC-084 — Implement thermal-loop degradation
++
++**Exit:** Deterministic tests and an inspectable evidence artifact demonstrate the bounded behavior without overclaiming adjacent systems.
++
++## LC-085 — Implement power rerouting
++
++**Exit:** Deterministic tests and an inspectable evidence artifact demonstrate the bounded behavior without overclaiming adjacent systems.
++
++## LC-086 — Implement contamination boundaries
++
++**Exit:** Deterministic tests and an inspectable evidence artifact demonstrate the bounded behavior without overclaiming adjacent systems.
++
++## LC-087 — Implement dock obstruction
++
++**Exit:** Deterministic tests and an inspectable evidence artifact demonstrate the bounded behavior without overclaiming adjacent systems.
++
++## LC-088 — Implement district evacuation
++
++**Exit:** Deterministic tests and an inspectable evidence artifact demonstrate the bounded behavior without overclaiming adjacent systems.
++
++## LC-089 — Implement carried-craft auxiliary support
++
++**Exit:** Deterministic tests and an inspectable evidence artifact demonstrate the bounded behavior without overclaiming adjacent systems.
++
++## LC-090 — Implement graceful mission downgrade
++
++**Exit:** Deterministic tests and an inspectable evidence artifact demonstrate the bounded behavior without overclaiming adjacent systems.
++
++# Benchmark and production
++
++## LC-091 — Create six fixed carrier profiles
++
++**Exit:** Deterministic tests and an inspectable evidence artifact demonstrate the bounded behavior without overclaiming adjacent systems.
++
++## LC-092 — Create reversed-emphasis carrier profile
++
++**Exit:** Deterministic tests and an inspectable evidence artifact demonstrate the bounded behavior without overclaiming adjacent systems.
++
++## LC-093 — Build role-profile capacity traces
++
++**Exit:** Deterministic tests and an inspectable evidence artifact demonstrate the bounded behavior without overclaiming adjacent systems.
++
++## LC-094 — Run nested deployment replay
++
++**Exit:** Deterministic tests and an inspectable evidence artifact demonstrate the bounded behavior without overclaiming adjacent systems.
++
++## LC-095 — Run four ownership-model fixtures
++
++**Exit:** Deterministic tests and an inspectable evidence artifact demonstrate the bounded behavior without overclaiming adjacent systems.
++
++## LC-096 — Run construction proof
++
++**Exit:** Deterministic tests and an inspectable evidence artifact demonstrate the bounded behavior without overclaiming adjacent systems.
++
++## LC-097 — Run single-player emergency proof
++
++**Exit:** Deterministic tests and an inspectable evidence artifact demonstrate the bounded behavior without overclaiming adjacent systems.
++
++## LC-098 — Run four-player emergency proof
++
++**Exit:** Deterministic tests and an inspectable evidence artifact demonstrate the bounded behavior without overclaiming adjacent systems.
++
++## LC-099 — Run blind variety study
++
++**Exit:** Deterministic tests and an inspectable evidence artifact demonstrate the bounded behavior without overclaiming adjacent systems.
++
++## LC-100 — Publish performance and limitations bundle
++
++**Exit:** Deterministic tests and an inspectable evidence artifact demonstrate the bounded behavior without overclaiming adjacent systems.
++
++## Backlog Maxim
++
++> **Build the common truth first, then prove that many different ships can live inside it.**
+diff --git a/ops/LARGE_CARRIER_OWNERSHIP_BUILD_AND_COMMAND_BENCHMARK_V0_1.md b/ops/LARGE_CARRIER_OWNERSHIP_BUILD_AND_COMMAND_BENCHMARK_V0_1.md
+new file mode 100644
+index 0000000..99bcccf
+--- /dev/null
++++ b/ops/LARGE_CARRIER_OWNERSHIP_BUILD_AND_COMMAND_BENCHMARK_V0_1.md
+@@ -0,0 +1,264 @@
++---
++title: Large Carrier Ownership, Build, Multirole, and Command Benchmark
++version: 0.1
++status: benchmark-spec
++scope: carrier variety, common-core capability, player access, ownership, construction, nested bases, co-op command and graceful degradation
++owner: production/research/engineering/design
++related:
++  - ../canon/LARGE_CARRIER_MULTIROLE_CIVILIZATION_AND_NON_SPECIALIZATION_CONTRACT_V0_1.md
++  - ../canon/CARRIER_ACCESS_OWNERSHIP_CHARTER_COMMAND_AND_CREW_SOVEREIGNTY_CONTRACT_V0_1.md
++  - ../tech/LARGE_CARRIER_COMMON_CORE_OPEN_INTERFACES_AND_ROLE_ENVELOPE_RUNTIME_V0_1.md
++  - ../tech/NESTED_VEHICLE_ECOLOGY_DOCKING_DEPLOYMENT_AND_BASE_CARRIER_RUNTIME_V0_1.md
++  - LARGE_CARRIER_IMPLEMENTATION_TICKET_BACKLOG_V0_1.md
++  - ../schemas/v2_9/large_carrier_benchmark.schema.json
++  - ../fixtures/v2_9/multirole_carrier_benchmark.example.json
++---
++
++# Large Carrier Ownership, Build, Multirole, and Command Benchmark
++
++## Benchmark Question
++
++Can one authoritative carrier system support recognizably different large ships, broad multirole capability, nested mobile bases, legitimate player progression and survivable damage without reducing the carrier to a single-purpose class or a personal inventory item?
++
++# 1. Test Articles
++
++Create six carrier configurations from at least four hull lineages:
++
++1. Hearth profile on a keel-and-spine hull;
++2. Survey profile on the same underlying hull generation;
++3. Relief/refuge profile on the same underlying hull generation;
++4. Ocean interface profile on an ocean-cradle hull;
++5. Security and rescue profile on a deep-hull or shell lineage;
++6. Trade/culture profile on an archipelago or ring lineage.
++
++At least one test must reverse the customary emphasis—for example, a Foundry lineage configured primarily for education and habitation.
++
++# 2. Common-Core Gate
++
++Every configuration must retain effective capacity for:
++
++- habitation;
++- life support;
++- mobility;
++- energy and thermal control;
++- repair and fabrication;
++- care;
++- logistics;
++- information;
++- governance;
++- culture and education;
++- rescue;
++- defense.
++
++A configuration fails if its primary emphasis can only be achieved by silently deleting an ordinary civic function.
++
++# 3. Variety Gate
++
++Blind reviewers should distinguish carriers using more than color or name.
++
++Evaluate:
++
++- silhouette;
++- internal topology;
++- carried-base mix;
++- sounds and motion;
++- workflow;
++- public-space character;
++- failure response;
++- cultural ownership;
++- mission profile.
++
++Target: at least 80% correct family/lineage grouping and at least 70% correct mission-emphasis grouping after names and labels are removed.
++
++# 4. Role-Profile Gate
++
++For each carrier:
++
++- primary-emphasis capacity is measurably stronger;
++- at least four secondary roles remain useful in play;
++- changing the profile alters allocation and workflow;
++- changing the profile does not spawn a disconnected ship class;
++- no single emphasis exceeds the configured concentration limit without explicit emergency or exploitative state.
++
++# 5. Nested Vehicle Gate
++
++Prove the chain:
++
++```text
++civilization carrier
++→ planetary or ocean base-carrier
++→ mobile home
++→ field vehicle
++```
++
++Verify:
++
++- identity persistence;
++- ownership separation;
++- resident persistence;
++- inventories;
++- damage;
++- mass and balance updates;
++- valid docking;
++- aborted docking;
++- deployment;
++- recovery;
++- no duplication after host migration.
++
++# 6. Access and Progression Gate
++
++Playtest four entry relationships:
++
++1. passenger or evacuee;
++2. qualified station operator;
++3. department steward or carried-base captain;
++4. command or construction-program coordinator.
++
++Target findings:
++
++- players experience meaningful carrier play in the first relationship;
++- qualification feels like mastery rather than a level lock;
++- authority scope remains understandable;
++- command creates responsibility and tradeoffs rather than total control;
++- ownership is not required to feel invested.
++
++# 7. Construction Gate
++
++Run one bounded carrier-construction program from requirement to commissioning.
++
++The proof may use compressed time and limited systems, but must include:
++
++- charter;
++- design choice;
++- yard capacity;
++- two supply chains;
++- skilled labor;
++- one quality failure;
++- one financing or political constraint;
++- one systems-integration trial;
++- resident participation;
++- acceptance with recorded defects.
++
++Fail if the dominant experience is manually delivering repeated resource stacks.
++
++# 8. Ownership and Charter Gate
++
++Test at least four ownership models:
++
++- public;
++- cooperative;
++- consortium;
++- private or household.
++
++Verify that title, debt, operational authority, command, resident rights and module ownership can differ.
++
++Fail if a title holder can treat residents or independent carried craft as inventory.
++
++# 9. Single-Player and Co-op Gate
++
++Run the same authoritative emergency scenario in:
++
++- assisted single-player;
++- two-player cooperative;
++- four-player professional operations.
++
++The scenario includes:
++
++- difficult docking;
++- contamination uncertainty;
++- radiator loss;
++- clinic surge;
++- one player or commander disconnect;
++- succession;
++- district isolation;
++- recovery.
++
++Targets:
++
++- all modes remain completable;
++- co-op provides meaningful coordination rather than mandatory seat occupancy;
++- NPC delegation remains competent but not magical;
++- player absence does not freeze the ship.
++
++# 10. Damage and Degradation Gate
++
++The carrier must survive at least three representative failures without becoming fully functional or instantly destroyed.
++
++Required outcomes:
++
++- visible loss of capability;
++- changed route or mission;
++- resource and social consequences;
++- repair plan;
++- possible use of carried craft;
++- preserved authoritative damage state.
++
++# 11. Performance Gate
++
++Representative target hardware should sustain:
++
++- one active carrier locality;
++- one active dock;
++- one deployed base-carrier;
++- named crew near players;
++- aggregated distant districts;
++- deterministic system state;
++- bounded network bandwidth.
++
++Exact budgets remain engine-dependent, but the evidence bundle must report:
++
++- CPU time by simulation layer;
++- memory by carrier graph and active entities;
++- network traffic;
++- save size;
++- loading and locality-transfer time.
++
++# 12. Human Evaluation
++
++After play, ask participants:
++
++- Did the carrier feel like a society or a vehicle level?
++- Could you identify its emphasis without believing it had only one role?
++- Did other people aboard seem to possess agency?
++- Did you understand what you could control?
++- Did construction feel social and industrial?
++- Did damage change the ship rather than merely reduce health?
++- Did the carried mobile home remain emotionally recognizable?
++
++# 13. Kill Criteria
++
++Do not promote if:
++
++- all carriers converge on one optimal build;
++- families differ mainly through paint and labels;
++- specialization deletes civic baseline functions;
++- command behaves as omnipotent ownership;
++- NPCs cannot operate without the player;
++- construction is repetitive inventory delivery;
++- docking duplicates or erases craft;
++- failure is only explosion or full recovery;
++- a single-player assistance mode violates authoritative world rules;
++- players remember the ship's label but not a place or person aboard.
++
++# 14. Evidence Bundle
++
++Required artifacts:
++
++- six carrier profiles;
++- fixed seeds;
++- schema validation;
++- module and district graphs;
++- capacity traces;
++- docking logs;
++- construction history;
++- ownership and authority ledger;
++- damage replay;
++- single/co-op comparison;
++- performance report;
++- participant protocol;
++- blind variety study;
++- known limitations.
++
++## Benchmark Maxim
++
++> **The carrier proof succeeds when six ships can share the same deep rules, perform many of the same necessary functions, and still feel as different as six cities with different histories.**
+diff --git a/schemas/v2_9/large_carrier_benchmark.schema.json b/schemas/v2_9/large_carrier_benchmark.schema.json
+new file mode 100644
+index 0000000..938ffb0
+--- /dev/null
++++ b/schemas/v2_9/large_carrier_benchmark.schema.json
+@@ -0,0 +1,139 @@
++{
++  "$schema": "https://json-schema.org/draft/2020-12/schema",
++  "$id": "https://luminous-dynamics.org/symtropy/schemas/v2_9/large_carrier_benchmark.schema.json",
++  "title": "Large Carrier Benchmark Fixture",
++  "type": "object",
++  "required": [
++    "fixture_id",
++    "worldline_id",
++    "seed",
++    "carriers",
++    "nested_chain",
++    "construction_program",
++    "emergency_scenario"
++  ],
++  "properties": {
++    "fixture_id": {
++      "type": "string"
++    },
++    "worldline_id": {
++      "type": "string"
++    },
++    "seed": {
++      "type": "integer"
++    },
++    "carriers": {
++      "type": "array",
++      "minItems": 6,
++      "items": {
++        "$ref": "#/$defs/carrier"
++      }
++    },
++    "nested_chain": {
++      "type": "array",
++      "minItems": 4,
++      "items": {
++        "type": "string"
++      }
++    },
++    "construction_program": {
++      "type": "object",
++      "required": [
++        "program_id",
++        "ownership_model",
++        "yard_type",
++        "milestones"
++      ],
++      "properties": {
++        "program_id": {
++          "type": "string"
++        },
++        "ownership_model": {
++          "type": "string"
++        },
++        "yard_type": {
++          "type": "string"
++        },
++        "milestones": {
++          "type": "array",
++          "minItems": 4,
++          "items": {
++            "type": "string"
++          }
++        }
++      },
++      "additionalProperties": true
++    },
++    "emergency_scenario": {
++      "type": "object",
++      "required": [
++        "events",
++        "run_modes"
++      ],
++      "properties": {
++        "events": {
++          "type": "array",
++          "minItems": 4,
++          "items": {
++            "type": "string"
++          }
++        },
++        "run_modes": {
++          "type": "array",
++          "minItems": 2,
++          "items": {
++            "type": "string"
++          }
++        }
++      },
++      "additionalProperties": true
++    }
++  },
++  "$defs": {
++    "carrier": {
++      "type": "object",
++      "required": [
++        "profile_id",
++        "hull_lineage",
++        "primary_emphasis",
++        "secondary_emphases",
++        "common_core_domains",
++        "ownership_model"
++      ],
++      "properties": {
++        "profile_id": {
++          "type": "string"
++        },
++        "hull_lineage": {
++          "type": "string"
++        },
++        "primary_emphasis": {
++          "type": "string"
++        },
++        "secondary_emphases": {
++          "type": "array",
++          "minItems": 2,
++          "items": {
++            "type": "string"
++          }
++        },
++        "common_core_domains": {
++          "type": "array",
++          "minItems": 12,
++          "uniqueItems": true,
++          "items": {
++            "type": "string"
++          }
++        },
++        "ownership_model": {
++          "type": "string"
++        },
++        "reversed_emphasis": {
++          "type": "boolean"
++        }
++      },
++      "additionalProperties": true
++    }
++  },
++  "additionalProperties": true
++}
+-- 
+2.47.3
+

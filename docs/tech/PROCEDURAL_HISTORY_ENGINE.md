@@ -1,3 +1,13 @@
+---
+title: Symtropy Procedural History Engine
+version: 0.1
+status: canonical-draft
+scope: generated causal history, scars, claims, and playable repair paths
+owner: design/simulation
+related:
+  - PROCEDURAL_FACTION_EVOLUTION.md
+  - REGIONAL_PLANETARY_CIVILIZATION_SIMULATION_ARCHITECTURE_V0_1.md
+---
 # PROCEDURAL_HISTORY_ENGINE.md
 
 # Symtropy Procedural History Engine

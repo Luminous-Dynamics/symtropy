@@ -1,0 +1,436 @@
+From 15b9e3f0645ba70736a09c9ae69b59d899fc1ba7 Mon Sep 17 00:00:00 2001
+From: OpenAI <noreply@openai.com>
+Date: Tue, 21 Jul 2026 07:49:02 +0000
+Subject: [PATCH 06/10] Define memetic harm propaganda and repair contract
+
+---
+ ...SSMENT_CONSENT_AND_REPAIR_CONTRACT_V0_1.md | 420 ++++++++++++++++++
+ 1 file changed, 420 insertions(+)
+ create mode 100644 canon/MEMETIC_HARM_PROPAGANDA_HARASSMENT_CONSENT_AND_REPAIR_CONTRACT_V0_1.md
+
+diff --git a/canon/MEMETIC_HARM_PROPAGANDA_HARASSMENT_CONSENT_AND_REPAIR_CONTRACT_V0_1.md b/canon/MEMETIC_HARM_PROPAGANDA_HARASSMENT_CONSENT_AND_REPAIR_CONTRACT_V0_1.md
+new file mode 100644
+index 0000000..4d86059
+--- /dev/null
++++ b/canon/MEMETIC_HARM_PROPAGANDA_HARASSMENT_CONSENT_AND_REPAIR_CONTRACT_V0_1.md
+@@ -0,0 +1,420 @@
++---
++title: Memetic Harm, Propaganda, Harassment, Consent, and Repair Contract
++version: 0.1
++status: canonical-draft
++scope: harmful memes, harassment, propaganda, dehumanization, privacy, consent, moderation, counter-speech, repair and institutional responsibility
++owner: safety/design/culture/narrative/moderation
++related:
++  - MEME_ECOLOGY_HUMOR_LIVING_FOLKLORE_AND_CULTURAL_AGENCY_CONTRACT_V0_1.md
++  - INFORMATION_ECOLOGY_RUMOR_MEDIA_AND_REPUTATION_CONTRACT_V0_1.md
++  - JUSTICE_HARM_ACCOUNTABILITY_AND_REPAIR_CONTRACT_V0_1.md
++  - NPC_COGNITIVE_RIGHTS_PRIVACY_AND_PLAYER_BOUNDARIES_CONTRACT_V0_1.md
++  - ../tech/MEME_MUTATION_DISTRIBUTION_SELECTION_DECAY_AND_PROVENANCE_RUNTIME_V0_1.md
++---
++
++# Memetic Harm, Propaganda, Harassment, Consent, and Repair Contract
++
++## Owned Question
++
++**How may Symtropy represent humor as a site of power, cruelty, resistance, propaganda, intimacy, and repair without turning abuse into entertainment, flattening all offense into one score, or hiding harmful systems behind the claim that “it was only a joke”?**
++
++## Core Thesis
++
++Memes can build solidarity and preserve life. They can also isolate people, normalize violence, spread lies, expose private information, and make institutions appear naturally popular.
++
++The game must model both possibilities with specificity.
++
++> **Humor does not cancel consequence. Harm does not erase context. Context does not erase agency.**
++
++# 1. No Universal Offense Meter
++
++Memetic harm is evaluated through interacting dimensions:
++
++```text
++speaker or sponsor power
++target power
++relationship history
++consent and boundary history
++truth relationship
++privacy
++reach and repetition
++persistence
++ability to answer
++material consequence
++historical context
++protected or stigmatized status
++```
++
++A teasing phrase between trusted coworkers is not equivalent to the same phrase broadcast by an employer during a labor dispute.
++
++A reclaimed insult is not equivalent to its use by an occupying authority.
++
++# 2. Harm Classes
++
++The simulation distinguishes:
++
++## Interpersonal Boundary Violation
++
++A joke ignores a known personal boundary, private disclosure, grief state, or consent change.
++
++## Harassment
++
++Repeated unwanted targeting that degrades access, safety, participation, reputation, employment, or ordinary life.
++
++## Humiliation Campaign
++
++Coordinated circulation intended to make a person socially unusable, fearful, or publicly reduced to one incident.
++
++## Doxxing and Private Exposure
++
++Memetic content reveals location, identity, body, health, relationship, source-chain, household, or protected information.
++
++## Defamation
++
++A false or unsupported factual claim is embedded in a memorable format and causes reputational or material consequence.
++
++## Dehumanization
++
++A group is represented as vermin, contamination, machinery, disease, cargo, or inherently dangerous matter in ways that support exclusion or violence.
++
++## Propaganda
++
++A sponsor uses memetic compression, repetition, prestige, concealment, or platform power to shape political belief or action.
++
++## Coercive “Humor”
++
++A person must laugh, participate, or accept ridicule to keep employment, housing, medical access, social belonging, or physical safety.
++
++## Cultural Exploitation
++
++A powerful actor extracts value from a community’s format, language, or grief while denying attribution, consent, participation, or benefit.
++
++# 3. Consent Is Situated
++
++Consent to one joke does not imply consent to:
++
++- public broadcast;
++- permanent archive;
++- commercial use;
++- altered target;
++- use after relationship change;
++- workplace repetition;
++- political deployment;
++- cross-cultural translation;
++- simulated reenactment;
++- generative variation.
++
++Consent state may be:
++
++```text
++explicitly welcomed
++contextually accepted
++uncertain
++withdrawn
++refused
++impossible to obtain
++historically released
++institutionally overridden and contested
++```
++
++The system must preserve disagreement when authority claims a right to publish and affected people reject it.
++
++# 4. The “Only a Joke” Defense
++
++Characters and institutions may use humor as a defense against accountability.
++
++The simulation evaluates:
++
++- whether the content made a factual claim;
++- whether the target had communicated a boundary;
++- whether repetition continued after objection;
++- whether material consequences followed;
++- whether power made refusal costly;
++- whether the speaker used plausible deniability strategically;
++- whether the joke was part of a broader pattern.
++
++No dialogue option or system rule automatically accepts “it was only a joke” as exoneration.
++
++# 5. Propaganda State
++
++Propaganda artifacts declare:
++
++```rust
++struct PropagandaCampaign {
++    campaign_id: CampaignId,
++    sponsor_ids: Vec<AgentOrInstitutionId>,
++    declared_sponsor: Option<AgentOrInstitutionId>,
++    meme_variant_ids: Vec<MemeVariantId>,
++    intended_claims: Vec<ClaimId>,
++    target_constituencies: Vec<ConstituencyId>,
++    target_actions: Vec<ActionGoal>,
++    funding_refs: Vec<AssetTransferId>,
++    distribution_channels: Vec<ChannelId>,
++    concealment_methods: Vec<ConcealmentMethod>,
++    dehumanization_flags: Vec<HarmFlag>,
++    counter_campaign_ids: Vec<CampaignId>,
++}
++```
++
++Propaganda may be:
++
++- true but manipulative;
++- partially true;
++- false;
++- satirical;
++- defensive;
++- emancipatory;
++- authoritarian;
++- commercial;
++- military;
++- public-health oriented;
++- culturally coercive.
++
++The label describes function and sponsorship, not a universal moral verdict.
++
++# 6. Platform and Institutional Responsibility
++
++Media institutions and network operators make choices about:
++
++- recommendation;
++- visibility;
++- moderation;
++- identity verification;
++- archival retention;
++- appeals;
++- monetization;
++- political advertising;
++- access for counter-speech;
++- emergency restrictions;
++- transparency.
++
++A harmful meme may spread because:
++
++- users share it;
++- an institution amplifies it;
++- a recommender favors conflict;
++- a government funds it;
++- a celebrity legitimizes it;
++- moderation is weak;
++- moderation is selectively enforced;
++- affected people lack access to reply.
++
++The game should make these infrastructures visible through specific workers, policies, budgets, and consequences.
++
++# 7. Symthaea Safety Boundaries
++
++Symthaea may simulate harmful memetic dynamics when supported by:
++
++- existing hostility;
++- a creator or sponsor with motive and access;
++- a valid target and network;
++- authored campaign permission;
++- safety settings;
++- consequence simulation;
++- alternatives for players who reduce mature content.
++
++Symthaea may not:
++
++- generate slurs from real protected groups for novelty;
++- infer player vulnerabilities from telemetry and target them;
++- expose private NPC cognition;
++- make abuse more effective because the player is bored;
++- force a companion into public humiliation;
++- create sexualized or intimate media without consent;
++- reward harassment with exclusive power;
++- make moderation workers automatically foolish or corrupt;
++- treat every conflict as a censorship debate;
++- conceal sponsorship from developer evidence.
++
++# 8. Player Safety and Control
++
++Players must be able to configure:
++
++- frequency of hostile memetic content;
++- display of slur-like fictional language;
++- direct targeting intensity;
++- sexualized humiliation;
++- image manipulation themes;
++- doxxing and privacy threats;
++- political propaganda density;
++- audio repetition;
++- public feed presentation.
++
++Alternatives must preserve causal state where possible.
++
++For example:
++
++- a harassment campaign may be summarized rather than visually repeated;
++- fictional slurs may be replaced with functional descriptions;
++- altered images may be represented as contested media objects;
++- audio chants may receive transcript and mute controls.
++
++Reduced presentation does not erase the affected NPCs’ experiences or consequences.
++
++# 9. NPC Agency Under Harassment
++
++Targets may:
++
++- ignore;
++- withdraw;
++- seek support;
++- block channels;
++- publish evidence;
++- joke back;
++- reclaim the format;
++- confront the creator;
++- change jobs or routes;
++- file claims;
++- organize collectively;
++- refuse public visibility;
++- suffer harm;
++- become more famous;
++- reject the player’s attempted rescue.
++
++No target exists merely to provide the player a heroic intervention.
++
++# 10. Counter-Speech and Reclamation
++
++Counter-speech may:
++
++- correct facts;
++- parody the sponsor;
++- expose funding;
++- shift the target;
++- reclaim language;
++- produce alternative symbols;
++- reduce fear;
++- mobilize institutions;
++- fail;
++- increase visibility of the harmful original.
++
++Reclamation is constituency-specific. Outsiders cannot automatically inherit permission to use a reclaimed form.
++
++# 11. Repair
++
++Possible repair actions include:
++
++- deletion or de-amplification;
++- correction;
++- apology;
++- compensation;
++- source attribution;
++- consent renegotiation;
++- restoration of access or employment;
++- protective policy;
++- archive annotation;
++- public evidence release;
++- community-led reinterpretation;
++- separation;
++- legal or institutional accountability;
++- refusal of reconciliation.
++
++Repair does not rewind spread or memory.
++
++A successful apology requires more than selecting the correct dialogue line. It depends on:
++
++- acknowledgment;
++- specificity;
++- cessation;
++- material repair;
++- changed practice;
++- target agency;
++- time.
++
++# 12. Children and Vulnerable People
++
++Additional protections apply when memes concern:
++
++- children;
++- patients;
++- detainees;
++- refugees;
++- people dependent on the speaker;
++- people under coercive control;
++- people with disputed identity or source-chain status;
++- people unable to access the publication channel.
++
++Their image, body, voice, private history, and distress may not become casual generative material.
++
++# 13. Machine and Alien Targets
++
++Machine and nonhuman persons receive the same core protections while retaining distinct cultural interpretation.
++
++Examples of harm:
++
++- chassis stereotyping affecting employment;
++- depicting a machine fork as counterfeit property;
++- reducing symbiotic citizens to parasites;
++- using alien body processes as disgust imagery;
++- treating translated humor failure as lack of intelligence;
++- broadcasting sensory patterns that cause distress.
++
++# 14. Historical Archives
++
++Archives preserve harmful media for evidence and scholarship under access controls.
++
++The game distinguishes:
++
++- continued public amplification;
++- evidentiary retention;
++- restricted research access;
++- target-controlled release;
++- redacted educational use;
++- destroyed or falsified archives.
++
++“Preserving history” does not require presenting harmful content to every player repeatedly.
++
++# 15. Gameplay Structures
++
++Memetic harm may produce gameplay through:
++
++- tracing sponsorship;
++- protecting communication access;
++- documenting a campaign;
++- supporting a target’s chosen response;
++- negotiating workplace policy;
++- countering false route information;
++- uncovering archive manipulation;
++- managing a crawler dispute;
++- confronting a friend who crossed a boundary;
++- resisting an authoritarian humiliation ritual;
++- deciding whether to publish a damaging but true artifact.
++
++Avoid turning every case into a hearing. Consequences may unfold through work, relationships, media, migration, elections, markets, strikes, platform changes, or silence.
++
++# 16. Failure Conditions
++
++Fail if:
++
++- harm is represented only as an “offense” stat;
++- targets automatically appreciate player intervention;
++- harmful memes are more vivid and numerous than resistance or ordinary culture;
++- the system repeats traumatic content for atmosphere;
++- dehumanizing propaganda creates only combat bonuses;
++- censorship is always evil or always effective;
++- private jokes leak through AI generation;
++- real-world slurs are procedurally recombined;
++- apologies erase consequences;
++- reclaimed language becomes universally permitted;
++- institutions face no responsibility for amplification;
++- harassment is treated as evidence that the world is lively.
++
++# 17. Promotion Evidence
++
++Required evidence includes:
++
++- provenance-aware harmful content;
++- consent state transitions;
++- private-to-public leak trace;
++- sponsor and funding trace;
++- target autonomy;
++- accessibility substitution;
++- moderation appeal;
++- successful and failed repair;
++- multiplayer safety controls;
++- no hidden telemetry targeting;
++- human review across cultures and languages.
++
++## Canonical Maxim
++
++> **A living culture may laugh at almost anything. A just simulation must still remember who could refuse, who paid the cost, who controlled the channel, and what happened after the laughter stopped.**

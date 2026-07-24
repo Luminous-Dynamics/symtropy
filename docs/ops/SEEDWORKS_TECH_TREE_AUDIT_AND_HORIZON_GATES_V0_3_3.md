@@ -14,6 +14,7 @@ extends:
   - WORLD_TIMELINE_2000_2168.md
   - SPACE_HISTORY_2000_2168.md
 recommended_path: docs/seedworks/00_canon/SEEDWORKS_TECH_TREE_AUDIT_AND_HORIZON_GATES_V0_3_3.md
+version: 0.3.3
 ---
 
 # Symtropy: Seedworks Tech Tree Audit and Horizon Gates v0.3.3

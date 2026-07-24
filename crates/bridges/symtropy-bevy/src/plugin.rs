@@ -116,11 +116,6 @@ impl<const D: usize> Plugin for SymtropyPhysicsPlugin<D> {
             );
         }
 
-        #[cfg(feature = "inspector")]
-        app.add_plugins(bevy_inspector_egui::quick::ResourceInspectorPlugin::<
-            SymtropyPhysics<{ D }>,
-        >::default());
-
         app.add_plugins(crate::animation::RoboticAnimationPlugin);
         app.add_plugins(crate::audio::RoboticAudioPlugin);
         app.add_plugins(crate::scripting::RoboticScriptingPlugin);

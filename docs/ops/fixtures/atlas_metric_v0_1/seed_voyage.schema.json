@@ -1,0 +1,24 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://symtropy.local/schemas/seed_voyage.schema.json",
+  "title": "Seed Voyage",
+  "type": "object",
+  "required": ["voyage_id", "ship_id", "worldline_id", "origin_region", "destination_region", "departure_atlas_tick", "expected_arrival_atlas_tick", "population", "households", "mission_amendment_policy", "atlas_seed_authority"],
+  "properties": {
+    "voyage_id": {"type": "string"},
+    "ship_id": {"type": "string"},
+    "worldline_id": {"type": "string"},
+    "origin_region": {"type": "string"},
+    "destination_region": {"type": "string"},
+    "departure_atlas_tick": {"type": "string", "pattern": "^[0-9]+$"},
+    "expected_arrival_atlas_tick": {"type": "string", "pattern": "^[0-9]+$"},
+    "expected_proper_seconds": {"type": "number", "minimum": 0},
+    "population": {"type": "integer", "minimum": 1},
+    "households": {"type": "integer", "minimum": 1},
+    "critical_professions": {"type": "array", "items": {"type": "string"}, "minItems": 1, "uniqueItems": true},
+    "mission_amendment_policy": {"type": "string", "minLength": 1},
+    "atlas_seed_authority": {"enum": ["technical_custody_only", "local_ratification_required", "prohibited", "unknown"]},
+    "player_travelers": {"type": "array", "items": {"type": "string"}, "uniqueItems": true}
+  },
+  "additionalProperties": false
+}

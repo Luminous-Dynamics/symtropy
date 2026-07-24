@@ -1,3 +1,11 @@
+---
+title: Lithic and Subcrust Cultures
+version: 0.1
+status: historical
+scope: early culture family draft
+owner: narrative/world
+superseded_by: SYMTROPY_LITHIC_AND_SUBCRUST_CULTURES_V0_2.md
+---
 # SYMTROPY_LITHIC_AND_SUBCRUST_CULTURES_V0_1
 
 **Project:** Symtropy  

@@ -1,3 +1,13 @@
+---
+title: Symtropy Networking Stack Decision
+version: 0.1
+status: implementation-spec
+scope: real-time networking and durable history boundaries
+owner: engineering/networking
+related:
+  - MULTIPLAYER_TRUTH_MODEL.md
+  - ../canon/SYSTEM_INTERACTION_AND_DEPENDENCY_MAP_V0_1.md
+---
 # NETWORKING_STACK_DECISION.md
 
 # Symtropy Networking Stack Decision

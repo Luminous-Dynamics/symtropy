@@ -1,0 +1,13 @@
+[package]
+name = "symtropy-hdc-core"
+version = "0.1.0"
+edition = "2024"
+license = "Apache-2.0 OR MIT"
+description = "Deterministic hyperdimensional-computing primitives and versioned encoder contracts for Symtropy research and games."
+repository = "https://github.com/luminous-dynamics/symtropy"
+keywords = ["hdc", "hyperdimensional-computing", "vector-symbolic", "simulation"]
+categories = ["science", "simulation", "data-structures"]
+readme = "README.md"
+
+[dependencies]
+serde = { version = "1.0", features = ["derive"] }

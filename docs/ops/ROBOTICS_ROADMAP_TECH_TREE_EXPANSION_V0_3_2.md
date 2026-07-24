@@ -11,6 +11,7 @@ supersedes_or_extends:
   - INFRASTRUCTURE_LOOM_TECH_NODE_SCHEMA.md
   - INFRASTRUCTURE_LOOM_UI_UX_SPEC.md
 recommended_path: docs/seedworks/00_canon/ROBOTICS_ROADMAP_TECH_TREE_EXPANSION_V0_3_2.md
+version: 0.3.2
 ---
 
 # Symtropy Robotics Roadmap + Seedworks Tech Tree Expansion v0.3.2

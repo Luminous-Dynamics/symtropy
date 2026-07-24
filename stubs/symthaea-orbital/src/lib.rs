@@ -114,16 +114,16 @@ pub mod embodiment {
         }
 
         fn apply_moral_gate(&mut self, gate: MoralGateInput) {
-            self.moral_safety = if gate.ahimsa_violated || gate.verdict == MoralGateInput::VERDICT_BLOCKED
-            {
-                Some(MotorSafetyLevel::Red)
-            } else if gate.consent_violation {
-                Some(MotorSafetyLevel::Orange)
-            } else if gate.verdict == MoralGateInput::VERDICT_CAUTION {
-                Some(MotorSafetyLevel::Yellow)
-            } else {
-                None
-            };
+            self.moral_safety =
+                if gate.ahimsa_violated || gate.verdict == MoralGateInput::VERDICT_BLOCKED {
+                    Some(MotorSafetyLevel::Red)
+                } else if gate.consent_violation {
+                    Some(MotorSafetyLevel::Orange)
+                } else if gate.verdict == MoralGateInput::VERDICT_CAUTION {
+                    Some(MotorSafetyLevel::Yellow)
+                } else {
+                    None
+                };
         }
     }
 }

@@ -12,6 +12,7 @@ companion_docs:
   - SOCIAL_SYSTEMS_AND_CHARTERS.md
   - Symtropy Architecture Design Bible.md
   - HOSTILE_FACTIONS_AND_THREAT_ECOLOGY.md
+owner: narrative/world/simulation
 ---
 
 # White Ledger Territories / Antarctica 2168

@@ -11,7 +11,9 @@
 //! bounding-sphere approximation (ND EPA is combinatorially infeasible).
 
 use nalgebra::SVector;
-use symtropy_math::Shape;
+use symtropy_math::{Point, Shape, Transform};
+
+use crate::support_map::{TransformedShape, WorldSupportMap};
 
 const MAX_EPA_ITERATIONS: usize = 32;
 const EPA_TOLERANCE: f64 = 1e-6;
@@ -25,10 +27,10 @@ pub struct EpaResult<const D: usize> {
     pub depth: f64,
 }
 
-/// Compute penetration depth and normal using EPA.
+/// Compute penetration depth and normal for translated shapes.
 ///
-/// `simplex` must contain the origin (from a successful GJK intersection test).
-/// Returns None if the simplex is degenerate.
+/// This compatibility entry point preserves the position-only API. New code
+/// should prefer [`penetration_transformed`].
 pub fn penetration<const D: usize>(
     shape_a: &dyn Shape<D>,
     pos_a: &SVector<f64, D>,
@@ -36,24 +38,47 @@ pub fn penetration<const D: usize>(
     pos_b: &SVector<f64, D>,
     simplex: &[SVector<f64, D>],
 ) -> Option<EpaResult<D>> {
+    let transform_a = Transform::from_translation(Point(*pos_a));
+    let transform_b = Transform::from_translation(Point(*pos_b));
+    penetration_transformed(shape_a, &transform_a, shape_b, &transform_b, simplex)
+}
+
+/// Compute penetration depth and normal after complete rigid transforms.
+pub fn penetration_transformed<const D: usize>(
+    shape_a: &dyn Shape<D>,
+    transform_a: &Transform<D>,
+    shape_b: &dyn Shape<D>,
+    transform_b: &Transform<D>,
+    simplex: &[SVector<f64, D>],
+) -> Option<EpaResult<D>> {
+    let map_a = TransformedShape::new(shape_a, transform_a);
+    let map_b = TransformedShape::new(shape_b, transform_b);
+    penetration_support_maps(&map_a, &map_b, simplex)
+}
+
+/// EPA over arbitrary world-space support maps.
+pub fn penetration_support_maps<const D: usize>(
+    shape_a: &dyn WorldSupportMap<D>,
+    shape_b: &dyn WorldSupportMap<D>,
+    simplex: &[SVector<f64, D>],
+) -> Option<EpaResult<D>> {
     if D == 2 {
-        epa_2d(shape_a, pos_a, shape_b, pos_b, simplex)
+        epa_2d(shape_a, shape_b, simplex)
     } else if D == 3 {
-        epa_3d(shape_a, pos_a, shape_b, pos_b, simplex)
+        epa_3d(shape_a, shape_b, simplex)
     } else {
-        epa_nd(shape_a, pos_a, shape_b, pos_b, simplex)
+        epa_nd(shape_a, shape_b, simplex)
     }
 }
 
 /// Support point on the Minkowski difference.
+#[inline]
 fn mink_support<const D: usize>(
-    a: &dyn Shape<D>,
-    pa: &SVector<f64, D>,
-    b: &dyn Shape<D>,
-    pb: &SVector<f64, D>,
+    a: &dyn WorldSupportMap<D>,
+    b: &dyn WorldSupportMap<D>,
     dir: &SVector<f64, D>,
 ) -> SVector<f64, D> {
-    (a.support(dir) + pa) - (b.support(&-dir) + pb)
+    a.support_world(dir) - b.support_world(&(-*dir))
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -69,10 +94,8 @@ struct Edge2D<const D: usize> {
 }
 
 fn epa_2d<const D: usize>(
-    shape_a: &dyn Shape<D>,
-    pos_a: &SVector<f64, D>,
-    shape_b: &dyn Shape<D>,
-    pos_b: &SVector<f64, D>,
+    shape_a: &dyn WorldSupportMap<D>,
+    shape_b: &dyn WorldSupportMap<D>,
     simplex: &[SVector<f64, D>],
 ) -> Option<EpaResult<D>> {
     // Build initial polygon from simplex (must have 2-3 points)
@@ -90,7 +113,7 @@ fn epa_2d<const D: usize>(
         let (edge_idx, closest) = find_closest_edge_2d(&polytope)?;
 
         // Get support point in the edge normal direction
-        let support = mink_support(shape_a, pos_a, shape_b, pos_b, &closest.normal);
+        let support = mink_support(shape_a, shape_b, &closest.normal);
         let new_dist = support.dot(&closest.normal);
 
         // If the new point doesn't extend the polytope significantly, we're done
@@ -197,10 +220,8 @@ struct Face3D<const D: usize> {
 }
 
 fn epa_3d<const D: usize>(
-    shape_a: &dyn Shape<D>,
-    pos_a: &SVector<f64, D>,
-    shape_b: &dyn Shape<D>,
-    pos_b: &SVector<f64, D>,
+    shape_a: &dyn WorldSupportMap<D>,
+    shape_b: &dyn WorldSupportMap<D>,
     simplex: &[SVector<f64, D>],
 ) -> Option<EpaResult<D>> {
     if simplex.len() < 4 || D < 3 {
@@ -217,9 +238,9 @@ fn epa_3d<const D: usize>(
         //       path) that bypasses GJK/EPA entirely for box-vs-box pairs.
         // See also: `tests/stacking.rs` (scoped around this bug) and
         // `SYMTROPY_IMPROVEMENT_PLAN_2026-07-10.md` P2.2.
-        let (_, ra) = shape_a.bounding_sphere();
-        let (_, rb) = shape_b.bounding_sphere();
-        let delta = pos_b - pos_a;
+        let (center_a, ra) = shape_a.bounding_sphere_world();
+        let (center_b, rb) = shape_b.bounding_sphere_world();
+        let delta = center_b - center_a;
         let dist = delta.norm();
         if dist < 1e-15 {
             let mut n = SVector::zeros();
@@ -261,7 +282,7 @@ fn epa_3d<const D: usize>(
         let closest_dist = faces[face_idx].distance;
 
         // Get support point in face normal direction
-        let support = mink_support(shape_a, pos_a, shape_b, pos_b, &closest_normal);
+        let support = mink_support(shape_a, shape_b, &closest_normal);
         let new_dist = support.dot(&closest_normal);
 
         if (new_dist - closest_dist).abs() < EPA_TOLERANCE {
@@ -478,18 +499,16 @@ fn initial_facets_nd<const D: usize>(
 
 /// ND-generic EPA implementation.
 fn epa_nd<const D: usize>(
-    shape_a: &dyn Shape<D>,
-    pos_a: &SVector<f64, D>,
-    shape_b: &dyn Shape<D>,
-    pos_b: &SVector<f64, D>,
+    shape_a: &dyn WorldSupportMap<D>,
+    shape_b: &dyn WorldSupportMap<D>,
     simplex: &[SVector<f64, D>],
 ) -> Option<EpaResult<D>> {
     if simplex.len() < D + 1 {
         // TODO(epa-box-box): Same bounding-sphere fallback as in `epa_3d`.
         // See comment there and `tests/stacking.rs` for the full context.
-        let (_, ra) = shape_a.bounding_sphere();
-        let (_, rb) = shape_b.bounding_sphere();
-        let delta = pos_b - pos_a;
+        let (center_a, ra) = shape_a.bounding_sphere_world();
+        let (center_b, rb) = shape_b.bounding_sphere_world();
+        let delta = center_b - center_a;
         let dist = delta.norm();
         if dist < 1e-15 {
             let mut n = SVector::zeros();
@@ -523,7 +542,7 @@ fn epa_nd<const D: usize>(
         let closest_dist = facets[face_idx].distance;
 
         // Support query in closest normal direction
-        let support = mink_support(shape_a, pos_a, shape_b, pos_b, &closest_normal);
+        let support = mink_support(shape_a, shape_b, &closest_normal);
         let new_dist = support.dot(&closest_normal);
 
         // Convergence check

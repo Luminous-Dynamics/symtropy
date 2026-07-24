@@ -1,6 +1,10 @@
 ---
 title: Choked Valve Court Ghost Mine Continuity Patch v0.2
-status: canonical-patch
+version: 0.2
+scope: Earth Atlas mission continuity and Ghost Mine state
+owner: world-design/narrative/simulation
+status: supporting
+patch_status: accepted
 project: Symtropy
 domain: Earth Atlas / Southern Africa / Mission Continuity / Null Industry / Chronicle
 recommended_path: docs/earth-atlas/southern-africa/CHOKED_VALVE_COURT_GHOST_MINE_CONTINUITY_PATCH_V0_2.md

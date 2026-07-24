@@ -1,0 +1,15 @@
+{
+  "profile_version": "0.1",
+  "required": {
+    "hard_failures": 0,
+    "broken_privacy_paths": 0,
+    "generated_authority_mutations": 0,
+    "skip_outcome_mismatches": 0,
+    "worldline_identity_duplications": 0,
+    "aftermath_domains_per_serious_packet_min": 2,
+    "ordinary_life_anchors_per_named_participant_min": 2,
+    "subject_review_categories_min": 5,
+    "accessibility_profiles_min": 3
+  },
+  "promotion_requires_human_review": true
+}

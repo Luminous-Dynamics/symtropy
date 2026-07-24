@@ -6,6 +6,9 @@ domain: Southern Africa / Toxic Legacy / Ecological Repair / Mission Mechanics
 recommended_path: docs/earth-atlas/southern-africa/GREEN_COVER_LIE_RESOLUTION_MECHANIC_V0_1.md
 patches:
   - SOUTHERN_AFRICA_TOXIC_LEGACY_TEXTURE_PASS_V0_1.md
+version: 0.1
+scope: ecological evidence, deceptive restoration claims, investigation and resolution mechanics
+owner: design/simulation/narrative
 ---
 
 # Green Cover Lie Resolution Mechanic v0.1

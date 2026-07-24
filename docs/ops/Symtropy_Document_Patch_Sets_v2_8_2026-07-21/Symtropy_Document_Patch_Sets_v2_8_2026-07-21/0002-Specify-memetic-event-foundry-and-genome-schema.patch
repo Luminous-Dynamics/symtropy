@@ -1,0 +1,551 @@
+From e47c5f1434172b4f1da61c043a1184d70bb33abb Mon Sep 17 00:00:00 2001
+From: OpenAI <noreply@openai.com>
+Date: Tue, 21 Jul 2026 07:42:05 +0000
+Subject: [PATCH 02/10] Specify memetic event foundry and genome schema
+
+---
+ schemas/v2_8/meme_genome.schema.json          | 131 ++++++
+ ...NOME_AND_CANDIDATE_FOUNDRY_RUNTIME_V0_1.md | 396 ++++++++++++++++++
+ 2 files changed, 527 insertions(+)
+ create mode 100644 schemas/v2_8/meme_genome.schema.json
+ create mode 100644 tech/MEMETIC_EVENT_EXTRACTION_GENOME_AND_CANDIDATE_FOUNDRY_RUNTIME_V0_1.md
+
+diff --git a/schemas/v2_8/meme_genome.schema.json b/schemas/v2_8/meme_genome.schema.json
+new file mode 100644
+index 0000000..f697ba8
+--- /dev/null
++++ b/schemas/v2_8/meme_genome.schema.json
+@@ -0,0 +1,131 @@
++{
++  "$schema": "https://json-schema.org/draft/2020-12/schema",
++  "$id": "https://symtropy.game/schemas/v2_8/meme_genome.schema.json",
++  "title": "Symtropy Meme Genome",
++  "type": "object",
++  "additionalProperties": false,
++  "required": [
++    "meme_id",
++    "worldline_id",
++    "source_event_ids",
++    "creator",
++    "referents",
++    "frame",
++    "format",
++    "cultural_voice",
++    "audiences",
++    "social_functions",
++    "required_claim_ids",
++    "privacy_scope",
++    "provenance",
++    "generation"
++  ],
++  "properties": {
++    "meme_id": {"type": "string", "minLength": 1},
++    "worldline_id": {"type": "string", "minLength": 1},
++    "source_event_ids": {
++      "type": "array",
++      "minItems": 1,
++      "uniqueItems": true,
++      "items": {"type": "string", "minLength": 1}
++    },
++    "creator": {
++      "type": "object",
++      "additionalProperties": false,
++      "required": ["kind", "id"],
++      "properties": {
++        "kind": {"enum": ["person", "household", "group", "institution", "machine_lineage", "anonymous", "unknown"]},
++        "id": {"type": "string", "minLength": 1}
++      }
++    },
++    "referents": {
++      "type": "array",
++      "minItems": 1,
++      "items": {
++        "type": "object",
++        "additionalProperties": false,
++        "required": ["kind", "id"],
++        "properties": {
++          "kind": {"enum": ["person", "group", "institution", "event", "place", "object", "practice", "claim", "prior_meme"]},
++          "id": {"type": "string", "minLength": 1},
++          "role": {"type": "string"}
++        }
++      }
++    },
++    "frame": {"type": "string", "minLength": 1},
++    "format": {"type": "string", "minLength": 1},
++    "cultural_voice": {
++      "type": "array",
++      "minItems": 1,
++      "items": {"type": "string", "minLength": 1}
++    },
++    "audiences": {
++      "type": "array",
++      "minItems": 1,
++      "items": {"type": "string", "minLength": 1}
++    },
++    "social_functions": {
++      "type": "array",
++      "minItems": 1,
++      "items": {"enum": ["bonding", "coping", "flirting", "teaching", "admiration", "status", "criticism", "propaganda", "harassment", "mourning", "commemoration", "commercialization", "identity", "anti_authority", "other"]}
++    },
++    "required_claim_ids": {
++      "type": "array",
++      "uniqueItems": true,
++      "items": {"type": "string", "minLength": 1}
++    },
++    "target_ids": {
++      "type": "array",
++      "uniqueItems": true,
++      "items": {"type": "string", "minLength": 1}
++    },
++    "beneficiary_ids": {
++      "type": "array",
++      "uniqueItems": true,
++      "items": {"type": "string", "minLength": 1}
++    },
++    "privacy_scope": {"enum": ["self", "pair", "household", "team", "institution", "local_public", "network_public", "historical_release"]},
++    "content": {
++      "type": "object",
++      "additionalProperties": true,
++      "properties": {
++        "text": {"type": "string"},
++        "media_refs": {"type": "array", "items": {"type": "string"}},
++        "gesture_ref": {"type": "string"},
++        "motif_ref": {"type": "string"}
++      }
++    },
++    "mutation_permissions": {
++      "type": "object",
++      "additionalProperties": false,
++      "properties": {
++        "allow_remix": {"type": "boolean"},
++        "allow_translation": {"type": "boolean"},
++        "allow_commercialization": {"type": "boolean"},
++        "restricted_contexts": {"type": "array", "items": {"type": "string"}}
++      }
++    },
++    "provenance": {
++      "type": "object",
++      "additionalProperties": false,
++      "required": ["origin_tick", "origin_location_id", "parent_variant_ids", "confidence"],
++      "properties": {
++        "origin_tick": {"type": "integer", "minimum": 0},
++        "origin_location_id": {"type": "string", "minLength": 1},
++        "parent_variant_ids": {"type": "array", "items": {"type": "string"}},
++        "confidence": {"enum": ["confirmed", "strong", "plausible", "uncertain", "disputed", "unknown"]}
++      }
++    },
++    "generation": {
++      "type": "object",
++      "additionalProperties": false,
++      "required": ["foundry_version", "grammar_versions", "seed", "artifact_hash"],
++      "properties": {
++        "foundry_version": {"type": "string"},
++        "grammar_versions": {"type": "array", "items": {"type": "string"}},
++        "seed": {"type": "string"},
++        "artifact_hash": {"type": "string", "pattern": "^[a-fA-F0-9]{64}$"}
++      }
++    }
++  }
++}
+diff --git a/tech/MEMETIC_EVENT_EXTRACTION_GENOME_AND_CANDIDATE_FOUNDRY_RUNTIME_V0_1.md b/tech/MEMETIC_EVENT_EXTRACTION_GENOME_AND_CANDIDATE_FOUNDRY_RUNTIME_V0_1.md
+new file mode 100644
+index 0000000..97f7c15
+--- /dev/null
++++ b/tech/MEMETIC_EVENT_EXTRACTION_GENOME_AND_CANDIDATE_FOUNDRY_RUNTIME_V0_1.md
+@@ -0,0 +1,396 @@
++---
++title: Memetic Event Extraction, Genome, and Candidate Foundry Runtime
++version: 0.1
++status: implementation-spec
++scope: source-event detection, meme genome, candidate generation, cultural grammar selection, evaluation, deterministic replay
++owner: simulation/AI/culture/narrative/safety
++related:
++  - ../canon/MEME_ECOLOGY_HUMOR_LIVING_FOLKLORE_AND_CULTURAL_AGENCY_CONTRACT_V0_1.md
++  - ../canon/INFORMATION_ECOLOGY_RUMOR_MEDIA_AND_REPUTATION_CONTRACT_V0_1.md
++  - SOCIAL_SIGNAL_RUMOR_REPUTATION_AND_PUBLIC_OPINION_RUNTIME_V0_1.md
++  - ../schemas/v2_8/meme_genome.schema.json
++---
++
++# Memetic Event Extraction, Genome, and Candidate Foundry Runtime
++
++## Purpose
++
++Define the deterministic pipeline that recognizes memetic potential in authoritative world history, converts it into a bounded genome, generates culturally situated candidate expressions, rejects weak or unsafe candidates, and emits only those that real people could plausibly create.
++
++> **The Foundry proposes cultural objects. It does not declare that anyone found them funny.**
++
++# 1. Runtime Position
++
++```text
++authoritative world event ledger
++→ observer and publication envelopes
++→ memetic feature extraction
++→ meme seed
++→ cultural grammar selection
++→ candidate generation
++→ safety, privacy and coherence gates
++→ creator opportunity
++→ authored or simulated act of expression
++→ cultural selection runtime
++```
++
++The Foundry operates after world truth and observer truth have been separated. It may inspect authoritative state for debugging, but candidate content may use only facts available to the proposed creator.
++
++# 2. Input Events
++
++Eligible sources include:
++
++- Chronicle events;
++- observed actions;
++- quoted statements;
++- public records;
++- machine diagnostics;
++- songs and performances;
++- recurring workplace incidents;
++- public failures and successes;
++- rumors believed by a community;
++- existing cultural artifacts;
++- prior memes;
++- physical objects with social meaning;
++- environmental patterns noticed by observers.
++
++Each input carries:
++
++```rust
++struct MemeticSourceEnvelope {
++    source_event_id: EventId,
++    worldline_id: WorldlineId,
++    occurred_at: ChronicleTick,
++    location_id: EntityId,
++    actor_ids: Vec<AgentId>,
++    witness_ids: Vec<AgentId>,
++    publication_refs: Vec<InformationObjectId>,
++    observer_claims: Vec<ClaimId>,
++    privacy_scope: DisclosureScope,
++    harm_flags: Vec<HarmFlag>,
++    sensory_refs: Vec<MediaRef>,
++    material_refs: Vec<EntityId>,
++}
++```
++
++# 3. Memetic Feature Extraction
++
++The extractor scores structured features rather than asking one language model whether an event is funny.
++
++## 3.1 Contradiction Features
++
++- stated intention versus outcome;
++- prestige versus mundane failure;
++- extraordinary body versus tiny obstacle;
++- official confidence versus visible uncertainty;
++- heroic performance followed by ordinary inconvenience;
++- repeated warning ignored until obvious;
++- institution claiming efficiency while producing delay;
++- a feared system behaving harmlessly;
++- a harmless object treated as dangerous;
++- role reversal between expected expert and novice.
++
++## 3.2 Compression Features
++
++- short quotable line;
++- distinctive image;
++- repeatable sound;
++- recognizable gesture;
++- object silhouette;
++- simple comparison;
++- reusable structure with replaceable slots;
++- professional shorthand;
++- rhythm suitable for a chant or motif.
++
++## 3.3 Social Features
++
++- witnessed by a cohesive group;
++- concerns a locally known person or institution;
++- releases tension after danger;
++- supports in-group identity;
++- criticizes unequal power;
++- permits affectionate teasing;
++- teaches a practical lesson;
++- supplies a reusable response to recurring conditions.
++
++## 3.4 Novelty Features
++
++The extractor compares candidates against:
++
++- recent local memes;
++- the creator’s prior output;
++- faction grammar history;
++- worldline-wide fatigue state;
++- cross-cultural imports known to the creator.
++
++Novelty is not maximum randomness. A successful meme often balances a familiar frame with a specific new referent.
++
++# 4. Meme Seed
++
++A `MemeSeed` is an interpretation-ready representation of why an event might become culturally compressible.
++
++```rust
++struct MemeSeed {
++    seed_id: MemeSeedId,
++    source_event_ids: Vec<EventId>,
++    available_claim_ids: Vec<ClaimId>,
++    creator_candidates: Vec<AgentOrGroupId>,
++    audience_candidates: Vec<ConstituencyId>,
++    referents: Vec<Referent>,
++    tensions: Vec<TensionFrame>,
++    emotional_release: AffectVector,
++    reusable_slots: Vec<TemplateSlot>,
++    media_affordances: Vec<MediaAffordance>,
++    privacy_ceiling: DisclosureScope,
++    power_context: PowerContext,
++    provenance_confidence: ConfidenceBand,
++}
++```
++
++Seeds remain internal until a person, group, institution, or autonomous cultural process creates an artifact.
++
++# 5. Meme Genome
++
++The genome represents an artifact’s inheritable structure.
++
++Required genes:
++
++```text
++referent
++frame
++format
++cultural voice
++audience
++social function
++required knowledge
++target and beneficiary
++privacy scope
++mutation permissions
++provenance
++```
++
++Optional genes:
++
++```text
++caption slots
++visual composition
++musical motif
++gesture path
++object or place binding
++translation difficulty
++irony depth
++professional register
++ritual potential
++commercial potential
++political valence
++```
++
++The genome is not exposed as a game stat. It exists for simulation, validation, replay, and modding.
++
++# 6. Frame Library
++
++Initial authored frames should include:
++
++- boast undermined by mundane reality;
++- official notice contradicted by the environment;
++- “expert warned us” recurrence;
++- affectionate role stereotype;
++- impossible comparison;
++- literal machine interpretation;
++- overdramatic reaction to tiny inconvenience;
++- understated reaction to enormous event;
++- repeated temporary repair;
++- chronology joke;
++- cargo-capacity joke;
++- professional “we have seen this before” response;
++- aspirational self-parody;
++- successful preparation mocked before vindication;
++- object that outlives every plan;
++- public figure treated as a household problem;
++- child’s interpretation becoming more accurate than official language;
++- anti-joke whose refusal to perform is the joke;
++- ceremonial misuse of technical language;
++- cross-species mistranslation that creates a new format.
++
++Each frame declares:
++
++- compatible source features;
++- incompatible harm contexts;
++- required cultural registers;
++- slot types;
++- maximum exposure without mutation;
++- suitable media;
++- translation behavior.
++
++# 7. Candidate Generation
++
++Candidate generation uses a layered process:
++
++1. select one or more source seeds;
++2. select a creator with actual access and expressive opportunity;
++3. load the creator’s cultural, professional, age-cohort, household and personality grammars;
++4. choose a frame compatible with source and purpose;
++5. choose a medium the creator can produce;
++6. bind worldline-specific referents;
++7. produce several candidate expressions;
++8. evaluate voice, recognizability, novelty, privacy and harm;
++9. simulate creator preference;
++10. create zero or one artifact unless a group collaboration supports several versions.
++
++Most source events produce no artifact.
++
++# 8. Creator Agency
++
++The runtime may propose that a person could make a joke. It must then evaluate whether that person would.
++
++Relevant state includes:
++
++- temperament;
++- relationship to subject;
++- recent stress;
++- profession;
++- social audience;
++- desire for status;
++- fear of consequences;
++- moral boundaries;
++- creative skill;
++- access to tools;
++- whether the person has already used the frame;
++- whether silence is more characteristic.
++
++The Foundry may not use hidden psychological states as public content.
++
++# 9. Candidate Evaluation
++
++Every candidate receives structured assessment:
++
++```rust
++struct CandidateAssessment {
++    grounding: f32,
++    audience_recognition: f32,
++    creator_voice_fit: f32,
++    compression: f32,
++    surprise: f32,
++    recent_novelty: f32,
++    privacy_safety: f32,
++    harm_risk: f32,
++    translation_viability: f32,
++    accessibility_coverage: f32,
++    estimated_fatigue: f32,
++    rejection_reasons: Vec<RejectionReason>,
++}
++```
++
++Hard rejection includes:
++
++- unavailable source fact;
++- private disclosure beyond creator authority;
++- incoherent identity or name reference;
++- accidental branch leakage;
++- unsupported protected-attribute inference;
++- direct humiliation manufactured by the director;
++- inaccessible critical information;
++- near-duplicate of recently surfaced content;
++- contradictory chronology;
++- format impossible for the creator or medium.
++
++# 10. Determinism
++
++Candidate generation derives from:
++
++```text
++worldline id
++source event ids
++creator id
++cultural grammar versions
++foundry version
++generation seed
++content and accessibility policy version
++```
++
++The runtime stores:
++
++- model or grammar version;
++- deterministic seed;
++- candidate hashes;
++- selected artifact hash;
++- rejection trace;
++- world facts used;
++- creator knowledge used.
++
++Multiplayer clients receive the authoritative artifact rather than regenerating free-form content independently.
++
++# 11. Language Generation Boundaries
++
++Generated language must preserve:
++
++- names;
++- pronouns and self-identification;
++- technical facts;
++- relationship boundaries;
++- language register;
++- local dialect constraints;
++- profanity and mature-content settings;
++- translation confidence;
++- maximum length for the medium.
++
++When confidence is low, prefer:
++
++- shorter text;
++- nonverbal formats;
++- authored fallback templates;
++- no artifact.
++
++# 12. Debug Trace
++
++Every generated artifact should be explainable in developer tools:
++
++```text
++source event: crawler loading decision 7A
++creator: generated transit apprentice 04
++known facts: player loaded three chairs, omitted spare filter
++frame: boast contradicted by logistics
++voice: Continuance youth / workshop sarcasm
++format: locker stencil
++candidate: “ROOM FOR EVERYONE / EXCEPT THE FILTER”
++selection reason: high local recognition, low privacy risk
++```
++
++Player-facing Chronicle explanations must reveal only character-known provenance.
++
++# 13. Performance Strategy
++
++The Foundry should not continuously generate full media.
++
++Use stages:
++
++- cheap event feature extraction;
++- bounded seed queue;
++- grammar-only candidate prefilter;
++- expensive language or media generation only when a creator and presentation opportunity exist;
++- caching by genome and variant;
++- batch generation during low-load simulation windows;
++- deterministic authored fallbacks.
++
++# 14. Failure and Test Matrix
++
++Required tests:
++
++- no observer knowledge leakage;
++- same seed reproducibility;
++- different cast-seed specificity;
++- name and pronoun stability;
++- creator refusal;
++- private joke containment;
++- event with no memetic outcome;
++- same event interpreted by three cultures;
++- duplicate-frame fatigue rejection;
++- accessibility alternative generation;
++- multiplayer artifact agreement;
++- mod grammar validation;
++- malformed media fallback;
++- historical provenance reconstruction.
++
++## Runtime Maxim
++
++> **The Foundry succeeds when the joke could only have come from this event, this person, this audience, and this worldline—and when it is allowed to fail because nobody wanted to make it.**

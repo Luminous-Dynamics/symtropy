@@ -1,0 +1,360 @@
+---
+title: Multiplayer Social Safety, Griefing, and Moderation
+version: 0.1
+status: implementation-spec
+scope: permissions, PvP consent, grief prevention, moderation, abuse recovery, anti-cheat boundaries, civic safety
+owner: multiplayer/security/community
+related:
+  - tech/MULTIPLAYER_TRUTH_MODEL.md
+  - tech/NETWORKING_STACK_DECISION.md
+  - tech/WORLD_PERSISTENCE_PROTOCOL.md
+  - canon/PLAYER_AUTHORSHIP_SANDBOX_AND_MODDING_CONTRACT_V0_1.md
+  - lore/SOCIAL_SYSTEMS_AND_CHARTERS.md
+---
+
+# Multiplayer Social Safety, Griefing, and Moderation
+
+## Owned Question
+
+**How can Symtropy support conflict, politics, theft, sabotage, property, death, and divergent worldlines without allowing harassment or irreversible abuse to masquerade as emergent gameplay?**
+
+## Core Thesis
+
+Meaningful freedom requires bounded standing, visible authority, consent, evidence, appeal, and recovery.
+
+```text
+conflict is gameplay
+coercion can be fiction
+harassment is not content
+systemic consequence is not permission for platform abuse
+```
+
+Decentralization does not remove the need for social safety. It makes the location of responsibility explicit.
+
+# 1. Safety Layers
+
+```text
+client safety controls
+session and party permissions
+site and device authority
+settlement charter
+worldline operator policy
+portable identity and trust evidence
+platform-level abuse controls
+```
+
+No single layer solves every problem.
+
+# 2. Worldline Conflict Profiles
+
+Every worldline declares one profile before join.
+
+## Cooperative
+
+No hostile player damage, theft, or unauthorized dismantling.
+
+## Consensual Conflict
+
+PvP occurs through duels, arenas, declared operations, or mutually accepted faction wars.
+
+## Frontier Conflict
+
+Broader theft, sabotage, and territorial conflict are possible within protected rights floors and recovery rules.
+
+## Competitive Scenario
+
+Match-like rules with bounded duration and reset expectations.
+
+## Private Custom
+
+Explicit operator-defined rules. The join screen must surface deviations from standard protections.
+
+A profile change affecting current players requires notice, grace period, and migration or exit options.
+
+# 3. Consent Model
+
+Consent must be scoped.
+
+```text
+combat consent
+property access
+body interaction
+source-chain handling
+recording and broadcasting
+medical intervention
+intimacy and social-space boundaries
+faction-war participation
+```
+
+Consent to one scope does not imply consent to another.
+
+# 4. Rights Floor
+
+Default protected conditions:
+
+```text
+access to a safe exit or logout path
+protection from repeated spawn killing
+protection from identity impersonation
+protection from nonconsensual sexualized interaction
+privacy for direct messages and private spaces by policy
+basic access to appeal and evidence
+no permanent captivity by inactive players
+no irreversible deletion of identity by ordinary PvP
+```
+
+Worldlines may add rights. Removing standard rights requires explicit private/custom classification and may remain prohibited at platform level.
+
+# 5. Infrastructure Permissions
+
+Objects and sites declare actions:
+
+```text
+view
+use
+configure
+repair
+dismantle
+move
+export
+authorize others
+publish logs
+```
+
+Authority sources:
+
+```text
+personal ownership
+crew role
+settlement role
+charter rule
+emergency token
+public commons
+contract
+machine stewardship
+```
+
+Public infrastructure should never rely on a single player's permanent key without recovery governance.
+
+# 6. Protected Infrastructure
+
+Essential systems may use:
+
+```text
+staged destructive actions
+multi-party approval
+cooldown
+public notification
+maintenance window
+automatic backup
+physical access requirement
+rollback checkpoint
+witness record
+```
+
+Protection should increase with blast radius.
+
+# 7. Griefing Taxonomy
+
+```text
+spawn or recovery camping
+unauthorized demolition
+resource dumping or blocking
+vehicle obstruction
+route denial without strategic context
+false emergency alerts
+source-chain theft or destruction
+log and evidence flooding
+social-space harassment
+voice or text abuse
+identity impersonation
+exploit-driven duplication or deletion
+AFK authority hostage
+mod or UI deception
+```
+
+Strategic sabotage differs from griefing when it is allowed by the declared conflict profile, has bounded targets, produces in-world exposure, and supports recovery or counterplay.
+
+# 8. Abuse Evidence
+
+Moderation evidence may include:
+
+```text
+signed authoritative events
+permission checks
+chat or voice reports under privacy policy
+client telemetry limited to relevant actions
+worldline Chronicle records
+operator logs
+player-submitted clips
+```
+
+The system should not create universal surveillance to simplify moderation.
+
+# 9. Recovery and Repair
+
+Possible recovery tools:
+
+```text
+restore from bounded checkpoint
+reverse unauthorized transaction
+return disputed item to escrow
+reconstitute identity from prior source-chain state
+repair world topology
+replace inactive authority
+compensate affected settlement
+fork or migrate from hostile governance
+```
+
+Rollback should target abuse consequences rather than erase legitimate unrelated play.
+
+# 10. Moderation Roles
+
+```text
+party host
+settlement steward
+worldline moderator
+worldline operator
+platform trust and safety
+community review panel
+```
+
+Each role must have declared powers, logs, limits, and appeal paths.
+
+Moderators should not be required to roleplay civic procedures during urgent platform abuse.
+
+# 11. Sanctions
+
+```text
+mute or communication boundary
+space-specific exclusion
+role removal
+asset freeze pending review
+restitution
+worldline ban
+federated trust warning
+platform suspension
+```
+
+Portable reputation must not become an unappealable global social-credit score. Share specific, signed, reviewable events and operator decisions with scope and expiry.
+
+# 12. Appeals
+
+An appeal includes:
+
+```text
+decision
+authority
+reason category
+relevant evidence
+scope
+duration
+review path
+```
+
+Privacy-sensitive evidence may be summarized rather than publicly exposed.
+
+# 13. Anti-Cheat Boundary
+
+The real-time authority validates:
+
+```text
+movement bounds
+combat events
+inventory transitions
+device permissions
+construction costs
+vehicle state
+```
+
+The durable layer validates signed outcomes and provenance.
+
+Anti-cheat must not require invasive host access by default. Worldline operators may declare stronger requirements for competitive profiles.
+
+# 14. Death and Recovery Abuse
+
+Rules:
+
+1. Reconstitution sites receive protected arrival volumes.
+2. Recovery objectives can reroute or invoke witnessed remote recovery after repeated camping.
+3. A recovered source core cannot be used to impersonate its owner.
+4. Permanent source-chain destruction requires explicit high-risk world rules and cannot be ordinary harassment.
+5. Teammate recovery permissions are configurable.
+6. Death penalties pause when server or authority failure prevents fair recovery.
+
+# 15. Civic Capture and AFK Governance
+
+Protections:
+
+```text
+role expiry
+succession
+quorum alternatives
+emergency caretaker authority
+automatic return of essential assets
+public audit
+fork and exit rights
+```
+
+A charismatic group may legitimately dominate politics. It may not use technical ownership to make exit impossible.
+
+# 16. Communication Safety
+
+Support:
+
+```text
+block
+mute
+proximity voice boundaries
+party-only voice
+text filters controlled by player
+reporting
+rate limits
+safe default for minors where applicable
+nonverbal communication tools
+```
+
+# 17. Privacy
+
+Collect only what is required for:
+
+```text
+real-time authority
+persistence
+security
+moderation
+player-requested diagnostics
+```
+
+Publish retention, access, and deletion policies. Advertisers do not receive private conversation or worldline communications.
+
+# 18. Testing
+
+Required adversarial tests:
+
+```text
+spawn-camp loop
+mass demolition attempt
+permission race
+identity impersonation
+inventory duplication
+inactive leader lockout
+moderator abuse
+false report campaign
+malicious mod manifest
+worldline profile bait-and-switch
+```
+
+# 19. Acceptance Evidence
+
+The system succeeds when:
+
+```text
+players understand the conflict profile before joining
+important infrastructure survives single-actor abuse
+legitimate sabotage remains possible where declared
+victims have fast boundaries and credible recovery
+moderation actions are scoped and appealable
+inactive leaders cannot permanently freeze public systems
+portable identity does not create global unreviewable punishment
+```

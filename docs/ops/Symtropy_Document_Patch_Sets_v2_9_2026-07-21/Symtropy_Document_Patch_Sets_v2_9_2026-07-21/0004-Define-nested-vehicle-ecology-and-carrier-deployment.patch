@@ -1,0 +1,388 @@
+From 1f50e4dc6e306cb25c33b1e4558e1fa0630ec9e0 Mon Sep 17 00:00:00 2001
+From: OpenAI Symtropy Documentation <symtropy-docs@example.invalid>
+Date: Tue, 21 Jul 2026 10:58:28 +0000
+Subject: [PATCH 04/10] Define nested vehicle ecology and carrier deployment
+
+---
+ ...EPLOYMENT_AND_BASE_CARRIER_RUNTIME_V0_1.md | 369 ++++++++++++++++++
+ 1 file changed, 369 insertions(+)
+ create mode 100644 tech/NESTED_VEHICLE_ECOLOGY_DOCKING_DEPLOYMENT_AND_BASE_CARRIER_RUNTIME_V0_1.md
+
+diff --git a/tech/NESTED_VEHICLE_ECOLOGY_DOCKING_DEPLOYMENT_AND_BASE_CARRIER_RUNTIME_V0_1.md b/tech/NESTED_VEHICLE_ECOLOGY_DOCKING_DEPLOYMENT_AND_BASE_CARRIER_RUNTIME_V0_1.md
+new file mode 100644
+index 0000000..9b4388e
+--- /dev/null
++++ b/tech/NESTED_VEHICLE_ECOLOGY_DOCKING_DEPLOYMENT_AND_BASE_CARRIER_RUNTIME_V0_1.md
+@@ -0,0 +1,369 @@
++---
++title: Nested Vehicle Ecology, Docking, Deployment, and Base-Carrier Runtime
++version: 0.1
++status: implementation-spec
++scope: carriers of carriers, mobile-base nesting, docks, cargo, deployment, autonomy, recovery and transmodal continuity
++owner: engineering/vehicles/spacecraft/networking
++related:
++  - ../canon/LARGE_CARRIER_MULTIROLE_CIVILIZATION_AND_NON_SPECIALIZATION_CONTRACT_V0_1.md
++  - LARGE_CARRIER_COMMON_CORE_OPEN_INTERFACES_AND_ROLE_ENVELOPE_RUNTIME_V0_1.md
++  - CONTINUANCE_CRAWLER_MODULE_MASS_POWER_CARGO_AND_DAMAGE_RUNTIME_V0_1.md
++  - ../canon/MOBILE_CONTINUANCE_BASE_HOME_VEHICLE_AND_CREW_SOVEREIGNTY_CONTRACT_V0_1.md
++  - ORBITAL_ATLAS_SPACECRAFT_OPERATIONAL_STACK_V0_1.md
++---
++
++# Nested Vehicle Ecology, Docking, Deployment, and Base-Carrier Runtime
++
++## Runtime Purpose
++
++Support a persistent hierarchy in which personal vehicles, mobile homes, surface bases, submarines, landers, tenders and medium carriers can embark aboard larger carriers without losing identity, residents, cargo, damage, ownership or agency.
++
++> **A carrier carries homes and institutions, not anonymous vehicle slots.**
++
++# 1. Nested Mobility Graph
++
++Every transportable entity may expose one or more carriage relationships.
++
++```text
++Civilization Carrier
++├── orbital base carrier
++│   ├── atmospheric lander
++│   │   ├── Continuance crawler
++│   │   │   ├── scout bikes
++│   │   │   └── field drones
++│   │   └── deployable clinic
++│   └── utility shuttles
++├── ocean interface carrier
++│   ├── flotilla homes
++│   ├── expedition submarines
++│   │   └── dive pods
++│   └── seafloor habitat modules
++└── independent convoy partners
++```
++
++The graph must remain acyclic in physical carriage state. Ownership, command and communications graphs may be more complex.
++
++# 2. Vehicle Identity Preservation
++
++Embarkation must preserve:
++
++- vehicle identity;
++- home lineage;
++- residents and guests;
++- inventories and provenance;
++- damage;
++- maintenance debt;
++- pressure and contamination state;
++- power and thermal state;
++- legal ownership and liens;
++- operational authority;
++- attached subvehicles;
++- personal and cultural modifications;
++- Chronicle history.
++
++The carried vehicle is not converted into a generic cargo record unless it is genuinely disassembled under a recorded process.
++
++# 3. Carriage Modes
++
++## 3.1 Internal hangar
++
++The craft enters a protected volume.
++
++Advantages:
++
++- environmental protection;
++- pressurized access;
++- comprehensive maintenance;
++- rapid cargo exchange.
++
++Costs:
++
++- enormous volume;
++- pressure and fire risk;
++- door mass;
++- traffic bottlenecks.
++
++## 3.2 External hardpoint
++
++The craft attaches to the exterior structure.
++
++Advantages:
++
++- efficient volume use;
++- simple release;
++- flexible shapes.
++
++Costs:
++
++- radiation and debris exposure;
++- difficult access;
++- thermal coupling challenges;
++- visible vulnerability.
++
++## 3.3 Cradle or partial enclosure
++
++The carrier supports structural loads while the carried craft remains partly exposed.
++
++Useful for crawlers, submarines, aerostats and unusual hulls.
++
++## 3.4 Containerized or folded module
++
++A mobile base transforms or disassembles into standardized transport sections.
++
++Identity continuity requires explicit mapping from assembled home to packaged components.
++
++## 3.5 Towed or tethered formation
++
++The carrier provides propulsion, route coordination or shielding without rigid docking.
++
++Useful for large independent habitats and political partners unwilling to surrender physical autonomy.
++
++## 3.6 Symbiotic carriage
++
++A living or adaptive carrier grows a cradle, carries a smaller organism internally, or forms a temporary physiological bond.
++
++Consent and biological compatibility are required.
++
++# 4. Dock Compatibility
++
++A docking attempt evaluates:
++
++- geometry;
++- relative motion;
++- structural loads;
++- pressure standard;
++- atmosphere and contamination;
++- power compatibility;
++- thermal compatibility;
++- data trust;
++- legal permission;
++- traffic authority;
++- quarantine state;
++- crew readiness;
++- emergency abort paths.
++
++Compatibility is multidimensional.
++
++A craft may be:
++
++- mechanically docked but pressure-isolated;
++- structurally carried but electrically independent;
++- socially admitted but biologically quarantined;
++- technically compatible but refused by its owner;
++- physically incompatible but transferable through tender vehicles.
++
++# 5. Docking Workflow
++
++1. Request and identify.
++2. Exchange declared mass, dimensions, hazards and authority.
++3. Assign approach corridor.
++4. Match velocity and attitude.
++5. Soft capture.
++6. Verify alignment and structure.
++7. Hard capture or cradle lock.
++8. Establish selected utility links.
++9. Complete contamination and security checks.
++10. Transfer people, cargo or operational authority as authorized.
++11. Update carrier mass properties and emergency plan.
++
++Failures must be recoverable before hard capture whenever possible.
++
++# 6. Deployment Workflow
++
++Deployment is a planned operation rather than an instant spawn.
++
++It includes:
++
++- mission authorization;
++- crew and passenger manifest;
++- cargo loading;
++- center-of-mass planning;
++- fuel and reserve assignment;
++- environmental compatibility;
++- landing, ocean or orbital site assessment;
++- communications plan;
++- recovery window;
++- alternate destination;
++- quarantine conditions;
++- ownership and return obligations.
++
++A carried base can refuse deployment if its autonomous residents, owner or safety authority has standing under the charter.
++
++# 7. Smaller Base-Carrier Roles
++
++Medium carriers bridge civilization hulls and local mobile homes.
++
++They should support many roles while emphasizing one operating environment.
++
++## Planetary descent carrier
++
++Carries crawlers, aerostats, clinics, survey craft and deployable habitats through atmospheric interface.
++
++## Ocean base carrier
++
++Carries submarines, flotilla homes, dive systems, marine labs and seafloor construction modules.
++
++## Orbital tender
++
++Carries workboats, station pods, rescue craft, cargo movers and repair habitats.
++
++## Hostile-world insertion carrier
++
++Carries burrowers, hardened shelters, walkers, laboratories, rescue equipment and evacuation craft.
++
++## Convoy transport carrier
++
++Moves independent ground or maritime homes across otherwise impassable distances while preserving their local governance.
++
++Each medium carrier still requires care, fabrication, habitation, logistics and emergency capability.
++
++# 8. Carrier-of-Carrier Constraints
++
++Nested carriage creates multiplicative complexity.
++
++The runtime must account for:
++
++- total mass and inertia;
++- stacking and load paths;
++- launch and landing loads;
++- carried propellants and hazardous materials;
++- simultaneous maintenance demand;
++- emergency evacuation depth;
++- crew trapped several nesting levels away;
++- communications through pressure and electromagnetic boundaries;
++- fire and contamination propagation;
++- dock availability during damage;
++- deployment sequencing;
++- recovery dependencies.
++
++A vehicle should not be nested indefinitely merely because a bounding box fits.
++
++# 9. Mass and Balance
++
++Every docked or carried object updates:
++
++- center of mass;
++- inertia tensor;
++- structural load distribution;
++- propulsion trim;
++- attitude-control authority;
++- radiator shadowing;
++- sensor occlusion;
++- docking-corridor availability;
++- emergency separation behavior.
++
++Unsafe loading may be physically possible but legally refused.
++
++# 10. Traffic and Harbor Life
++
++A busy carrier harbor includes:
++
++- approach queues;
++- pilots and traffic controllers;
++- tugs;
++- loaders;
++- inspectors;
++- customs and health staff;
++- repair crews;
++- families awaiting arrivals;
++- markets and contractors;
++- independent captains negotiating berth time.
++
++Vehicle arrival should be social content, not only a loading screen.
++
++# 11. Ownership and Service Relationships
++
++Carriage does not transfer ownership.
++
++Possible agreements:
++
++- paid berth;
++- public-service allocation;
++- convoy membership;
++- rescue custody;
++- temporary impound;
++- maintenance contract;
++- military requisition with process;
++- refugee protection;
++- household affiliation;
++- cooperative membership;
++- reciprocal transport treaty.
++
++The carrier may have duties toward carried homes, including power, shelter, evacuation and timely release.
++
++# 12. Emergencies
++
++## Dock fire
++
++Requires isolation, firefighting, atmosphere management and decisions about jettison.
++
++## Pressure contamination
++
++May isolate craft and residents without criminalizing them.
++
++## Failed deployment
++
++A vehicle may remain attached, collide, lose power or land outside recovery range.
++
++## Carrier evacuation
++
++Smaller bases become lifeboats, but capacity, readiness and independent launch conditions matter.
++
++## Lost return window
++
++The carrier may wait, send rescue, depart under necessity or transfer responsibility to another institution.
++
++## Captured carried craft
++
++Identity, command keys and source-chain records persist; the vehicle does not become owned merely through physical control.
++
++# 13. Time Compression and Persistence
++
++Long embarkation and transit can be compressed after planning and initial execution.
++
++Compression must retain:
++
++- wear;
++- resource consumption;
++- crew work;
++- social events;
++- maintenance findings;
++- schedule deviation;
++- emergencies selected from actual state.
++
++# 14. Multiplayer Authority
++
++- Docking state is authoritative at the locality hosting the physical interface.
++- Owners and commanders may be different players or NPC institutions.
++- Departure requires resolved physical and legal authority.
++- A disconnected player cannot freeze a carrier by occupying a berth.
++- Safe delegation and absence rules preserve character rights without blocking the whole community.
++- Host migration cannot duplicate carried craft.
++
++# 15. First Vertical Slice
++
++Prove one chain:
++
++```text
++large orbital carrier
++→ descent base-carrier
++→ Continuance crawler
++→ field rover
++```
++
++The slice should support:
++
++- embarkation;
++- persistent interiors;
++- mass update;
++- player movement across levels;
++- one deployment;
++- one aborted deployment;
++- return and maintenance;
++- independent crawler ownership;
++- carrier charter authority;
++- exact replay.
++
++## Runtime Maxim
++
++> **The smallest home remains itself even when it is carried inside a machine large enough to contain a city.**
+-- 
+2.47.3
+

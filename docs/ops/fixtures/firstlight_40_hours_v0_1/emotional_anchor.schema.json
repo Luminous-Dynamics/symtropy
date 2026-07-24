@@ -1,0 +1,56 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://symtropy.example/schemas/firstlight-emotional-anchor-0.1.json",
+  "title": "Firstlight Emotional Anchor",
+  "type": "object",
+  "required": [
+    "anchor_id",
+    "kind",
+    "subject_id",
+    "provenance",
+    "player_observed"
+  ],
+  "properties": {
+    "anchor_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "kind": {
+      "enum": [
+        "person",
+        "place",
+        "practice",
+        "object",
+        "promise",
+        "mystery"
+      ]
+    },
+    "subject_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "provenance": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "string"
+      }
+    },
+    "player_observed": {
+      "type": "boolean"
+    },
+    "character_knows": {
+      "type": "boolean"
+    },
+    "recall_prompt_eligible": {
+      "type": "boolean"
+    },
+    "private": {
+      "type": "boolean"
+    },
+    "notes": {
+      "type": "string"
+    }
+  },
+  "additionalProperties": false
+}

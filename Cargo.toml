@@ -48,10 +48,11 @@ full-stack = [
 # Enabled via `cargo build --features mycelix`. NOT verified by this
 # workspace's default `cargo check` — symtropy-sim-bridge (used in
 # plugin.rs's mycelix block) isn't wired as a dependency here yet.
-mycelix = ["fep-ai"]
+# [standalone-stripped -- symtropy_sim_bridge/mycelix_bridge_common/mycelix_core_types are unpublished, needs private mycelix-workspace] mycelix = ["fep-ai"]
 # [standalone-stripped -- referenced deps above are stripped] atlas = ["dep:sol-atlas-bevy", "dep:sol-atlas-core", "fep-ai"]
 
 [dependencies]
+naga = { version = "27", default-features = false, features = ["termcolor"] }
 bevy = { version = "0.19", default-features = false, features = [
     "bevy_asset", "bevy_core_pipeline", "bevy_render",
     "bevy_sprite", "bevy_sprite_render",
@@ -84,10 +85,10 @@ symtropy-mycelix-bridge = { path = "crates/bridges/symtropy-mycelix-bridge", opt
 # [standalone-stripped, not published, atlas feature only] sol-atlas-bevy = { path = "../sol-atlas-bevy", optional = true }
 # [standalone-stripped, not published, atlas feature only] sol-atlas-core = { path = "../sol-atlas-core", optional = true }
 
-symthaea-fep = "0.1.0"
+symthaea-fep = { version = "0.1.0", optional = true }
 
 symthaea-biometrics = { path = "stubs/symthaea-biometrics", optional = true }
-symthaea-consciousness-equation = "0.1.0"
+symthaea-consciousness-equation = { version = "0.1.0", optional = true }
 nalgebra = "0.34"
 rand = "0.8"
 hound = "3.5"
@@ -96,7 +97,7 @@ cpal = { version = "0.17", optional = true }
 bevy_egui = { version = "0.40", optional = true }
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
-symthaea-core = "0.5.1"
+symthaea-core = { version = "0.5.1", optional = true }
 bytemuck = { version = "1.18", features = ["derive"] }
 
 [workspace]
@@ -137,6 +138,10 @@ members = [
     "crates/domains/symtropy-devconsole",
     "crates/core/symtropy-math",
     "crates/core/symtropy-physics",
+    "crates/core/symtropy-core-stable",
+    "crates/core/symtropy-hdc-core",
+    "crates/domains/symtropy-hdc-physics",
+    "crates/distributions/symtropy",
     "crates/bridges/symtropy-render-bridge",
     "crates/bridges/symtropy-mycelix-bridge",
     "crates/bridges/symtropy-foundry",
@@ -150,6 +155,19 @@ members = [
     # workspace. See `symtropy/archive/orphaned-demos-2026-07/README.md` for
     # the ones that were archived instead.
     "crates/apps/symtropy-web-gallery",
+    "crates/apps/symtropy-bevy-validation-scene",
+
+    # Firstlight product spine (patches 113-122, 2026-07-21) — re-rooted from
+    # the archive's own assumed top-level workspace into this one's
+    # crates/{apps,domains}/ convention. See symtropy/crates/apps/symtropy-firstlight/README.md.
+    "crates/apps/symtropy-firstlight",
+    "crates/domains/symtropy-game-state",
+    "crates/domains/symtropy-iris",
+    "crates/domains/symtropy-persistence",
+    "crates/domains/symtropy-residents",
+    "crates/domains/symtropy-crawler-core",
+    "crates/domains/symtropy-firstlight-bent-feeder",
+    "crates/domains/symtropy-firstlight-catastrophe",
 ]
 
 [lints.clippy]

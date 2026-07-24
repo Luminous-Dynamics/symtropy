@@ -1,0 +1,31 @@
+{
+  "companion_id": "firstlight:agent:sera-vale",
+  "name": "Sera Vale",
+  "profession": "watershed and utility steward",
+  "life_anchor": {
+    "home_site": "firstlight:site:vale-courtyard",
+    "household_id": "firstlight:household:vale-courtyard",
+    "current_region": "firstlight-basin"
+  },
+  "independent_projects": [
+    "restore the eastern seasonal channel",
+    "train a second contamination sampler"
+  ],
+  "refusal_boundaries": [
+    "will not falsify contamination results",
+    "will not divert household water for industrial convenience"
+  ],
+  "relationships": [
+    {"agent_id": "firstlight:agent:tomas-reed", "summary": "respects his craft and distrusts his shortcuts"},
+    {"agent_id": "firstlight:agent:morrow-7", "summary": "treats the unit as a coworker and route witness"}
+  ],
+  "ordinary_habits": [
+    "stores cheap tea in mislabeled reagent jars",
+    "repairs irrigation toys while calling them training devices"
+  ],
+  "possible_departures": [
+    "regional watershed office",
+    "resignation after political interference",
+    "migration following wetland loss"
+  ]
+}

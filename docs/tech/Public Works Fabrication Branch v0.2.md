@@ -1,20 +1,12 @@
 ---
-
 title: Public Works Fabrication Branch v0.2
+version: 0.2
 status: canonical-draft
 milestone: seedworks-v0.2
 scope: fabrication, recipes, repair grades, tool access, robotics dependencies
 owner: design/engineering
-depends_on:
-
-* TECH_UNLOCK_TABLE_V0_1_TO_V0_3.md
-* TECH_TREE_DEPENDENCY_SPINE.md
-* DEVICE_BUS_SUBSTRATE_SYSTEMS.md
-* ROBOTICS_PLATFORM_TECH_TREE_ADDENDUM.md
-  recommended_path: docs/seedworks/00_canon/PUBLIC_WORKS_FABRICATION_BRANCH_V0_2.md
-
+recommended_path: docs/seedworks/00_canon/PUBLIC_WORKS_FABRICATION_BRANCH_V0_2.md
 ---
-
 > **Code status (2026-07-02 review):** The only matching code is a thin `fabrication_allowed: bool` gate in `symtropy-sim-bridge`'s unrelated MK0 Bootstrapper Protocol — not this doc's public infrastructure fabrication system. Design/vision document only.
 
 # Symtropy: Public Works Fabrication Branch v0.2

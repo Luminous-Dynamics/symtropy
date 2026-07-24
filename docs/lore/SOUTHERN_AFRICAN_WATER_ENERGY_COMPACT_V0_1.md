@@ -12,6 +12,7 @@ companion_docs:
   - SYMTROPY_LITHIC_AND_SUBCRUST_CULTURES_V0_1.md
   - Symtropy Architecture Design Bible.md
   - HOSTILE_FACTIONS_AND_THREAT_ECOLOGY.md
+owner: narrative/world/simulation
 ---
 
 # Southern African Water-Energy Compact

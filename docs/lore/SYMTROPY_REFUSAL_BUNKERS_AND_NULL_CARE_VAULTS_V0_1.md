@@ -11,7 +11,10 @@ related:
   - CHRONICLE_SCALE_ESCALATION_RULES_V0_1.md
   - FIELD_DECK_OVERLAY_PRECEDENCE_RULES_V0_1.md
   - ORIGIN_BIAS_FIELD_DECK_SCHEMA_V0_1.md
-  - Symtropy Design Doc: Death, Reconstitution, and Source-Chain Recovery.md
+  - Symtropy Design Doc - Death, Reconstitution, and Source-Chain Recovery.md
+version: 0.1
+scope: refusal bunker and Null-care society systems, consent, containment, Field Deck interaction
+owner: narrative/world/design
 ---
 
 # SYMTROPY_REFUSAL_BUNKERS_AND_NULL_CARE_VAULTS_V0_1

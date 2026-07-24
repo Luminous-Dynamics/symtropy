@@ -143,7 +143,7 @@ fn setup_hud(mut commands: Commands) {
     commands.spawn((
         Text::new("w_slice = 0.00\n[ / ] to move slice"),
         TextFont {
-            font_size: 18.0,
+            font_size: bevy::prelude::FontSize::Px(18.0),
             ..default()
         },
         TextColor(Color::srgba(0.85, 0.9, 1.0, 0.9)),

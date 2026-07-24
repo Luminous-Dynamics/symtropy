@@ -1,0 +1,26 @@
+{
+  "version": "0.1",
+  "profession_distinctiveness": {
+    "minimum_identified_without_label": 8,
+    "total": 12
+  },
+  "required_conservation": [
+    "currency",
+    "stakes",
+    "inventory",
+    "utilities",
+    "worker_hours"
+  ],
+  "required_privacy": [
+    "consent",
+    "health",
+    "adult_work_identity",
+    "self_exclusion"
+  ],
+  "required_absence_runs": [
+    "day2_to_day7",
+    "six_month",
+    "five_year"
+  ],
+  "hard_failures_are_blocking": true
+}

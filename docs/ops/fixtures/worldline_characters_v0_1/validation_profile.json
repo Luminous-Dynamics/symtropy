@@ -1,0 +1,14 @@
+{
+  "profile_id": "worldline-characters-v0.1",
+  "required_characters": 7,
+  "minimum_handoffs": 5,
+  "minimum_inactive_major_actions": 4,
+  "minimum_knowledge_items": 12,
+  "required_worldline_branches": 3,
+  "maximum_cross_character_knowledge_leaks": 0,
+  "maximum_cross_worldline_transfers": 0,
+  "maximum_duplicate_source_chains": 0,
+  "requires_peaceful_succession_branch": true,
+  "requires_reconstitution_claim": true,
+  "requires_delayed_recall_study": true
+}

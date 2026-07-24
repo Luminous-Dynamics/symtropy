@@ -1,0 +1,544 @@
+From 0603ec257aeb20809b16a7ad88e8ca04a5873f66 Mon Sep 17 00:00:00 2001
+From: OpenAI Symtropy Documentation <symtropy-docs@example.invalid>
+Date: Tue, 21 Jul 2026 11:03:54 +0000
+Subject: [PATCH 08/10] Define multirole carrier families and mission profiles
+
+---
+ ...ROFILES_AND_WORLD_ADAPTATION_ATLAS_V0_1.md | 525 ++++++++++++++++++
+ 1 file changed, 525 insertions(+)
+ create mode 100644 lore/MULTIROLE_CARRIER_FAMILIES_MISSION_PROFILES_AND_WORLD_ADAPTATION_ATLAS_V0_1.md
+
+diff --git a/lore/MULTIROLE_CARRIER_FAMILIES_MISSION_PROFILES_AND_WORLD_ADAPTATION_ATLAS_V0_1.md b/lore/MULTIROLE_CARRIER_FAMILIES_MISSION_PROFILES_AND_WORLD_ADAPTATION_ATLAS_V0_1.md
+new file mode 100644
+index 0000000..873ab29
+--- /dev/null
++++ b/lore/MULTIROLE_CARRIER_FAMILIES_MISSION_PROFILES_AND_WORLD_ADAPTATION_ATLAS_V0_1.md
+@@ -0,0 +1,525 @@
++---
++title: Multirole Carrier Families, Mission Profiles, and World Adaptation Atlas
++version: 0.1
++status: design-bible
++scope: player-buildable carrier families, profile variants, carried bases, world adaptations, gameplay roles and cultural identity
++owner: design/lore/spacecraft/gameplay
++related:
++  - ../canon/LARGE_CARRIER_MULTIROLE_CIVILIZATION_AND_NON_SPECIALIZATION_CONTRACT_V0_1.md
++  - LARGE_CARRIER_HULL_LINEAGES_CULTURAL_VARIETY_AND_INTERNAL_CITY_ATLAS_V0_1.md
++  - ../tech/LARGE_CARRIER_COMMON_CORE_OPEN_INTERFACES_AND_ROLE_ENVELOPE_RUNTIME_V0_1.md
++  - ../tech/NESTED_VEHICLE_ECOLOGY_DOCKING_DEPLOYMENT_AND_BASE_CARRIER_RUNTIME_V0_1.md
++  - ../SYMTROPY_SPACECRAFT_DESIGN_BIBLE_V0_1.md
++---
++
++# Multirole Carrier Families, Mission Profiles, and World Adaptation Atlas
++
++## Design Correction
++
++The named carrier concepts below are not exclusive ship classes.
++
++Each is a broad-spectrum carrier civilization with a recognizable **design lineage and customary emphasis**. Individual builds may reverse, blend or abandon that emphasis.
++
++A carrier family must remain capable of habitation, care, repair, fabrication, logistics, deployment, governance, culture, rescue and defense unless the story explicitly concerns a damaged, incomplete or exploitative vessel.
++
++# 1. Shared Family Matrix
++
++| Family | Customary emphasis | Strong secondary roles | Common carried bases |
++|---|---|---|---|
++| Hearth Convoy | habitation and migration | repair, trade, care, survey | crawlers, flotilla homes, clinics, aerostats |
++| Atlas Gate Tender | route construction | fabrication, survey, rescue, trade | anchor craft, tugs, construction carriers, labs |
++| Ocean Bastion | ocean interface | ecology, settlement, rescue, trade | submarines, flotillas, amphibious crawlers, seafloor habitats |
++| Foundry Forge | heavy fabrication | logistics, settlement, salvage, repair | mining crawlers, yards, haulers, workshops |
++| Sanctuary Mercy | care and refuge | logistics, fabrication, diplomacy, evacuation | clinics, medevac, shelters, water plants |
++| Frontier Survey | exploration | science, settlement, care, fabrication | landers, labs, aerostats, rovers, drones |
++| Bastion Escort | convoy security | rescue, logistics, repair, command | escorts, evacuation craft, clinics, barriers |
++| Carnival Exchange | trade and culture | diplomacy, fabrication, care, education | market shuttles, stages, guest habitats, workshops |
++| Night Burrow | hostile-world endurance | survey, care, fabrication, defense | burrowers, walkers, shelters, hardened labs |
++| Seed Ark | continuity and founding | ecology, education, fabrication, diplomacy | settlement carriers, archives, nurseries, mobile homes |
++
++None of these names defines a universal faction or fixed model.
++
++# 2. Hearth Convoy Carrier
++
++## Character
++
++A moving neighborhood and logistics parent for independent mobile homes.
++
++## Multirole baseline
++
++- machine shops and parts production;
++- regional clinic and quarantine;
++- survey and navigation department;
++- cargo and trade decks;
++- schools and public assembly;
++- rescue craft;
++- defensive hardening;
++- ecological and food systems.
++
++## Common variants
++
++### Public migration carrier
++
++Carries displaced households and municipal services under a public charter.
++
++### Cooperative road-to-orbit carrier
++
++Owned by vehicle crews and settlements connected through recurring routes.
++
++### Prestige house carrier
++
++Highly comfortable and politically influential, but still dependent on public docks and independent crews.
++
++### Sparse frontier carrier
++
++Fewer permanent residents, more deployment and fabrication capacity.
++
++## Gameplay
++
++- convoy formation;
++- household politics;
++- arrival at settlements;
++- refitting carried mobile homes;
++- rescue and migration;
++- trade routes;
++- preserving old vehicles inside a changing ship.
++
++# 3. Atlas Gate Tender
++
++## Character
++
++A mobile route-engineering city that builds, inspects and repairs metric infrastructure.
++
++## Multirole baseline
++
++It still supports ordinary habitation, clinics, gardens, schools, trade, rescue, defense and planetary deployment.
++
++## Variants
++
++### Anchor-laying tender
++
++Large deployment bays and deep reserves.
++
++### Corridor survey tender
++
++More sensing, science and diplomacy.
++
++### Route-repair community
++
++A long-lived traveling workforce with extensive family districts.
++
++### Independent standards carrier
++
++Maintains interoperability and certification across hostile political borders.
++
++## Gameplay
++
++- surveying candidate routes;
++- carrying construction bases;
++- negotiating passage;
++- repairing anchors;
++- rescue after corridor failure;
++- hosting rival standards delegations;
++- deciding whether route access should be public, private or restricted.
++
++# 4. Ocean Bastion Carrier
++
++## Character
++
++A spacecraft, atmospheric interface vessel and mobile maritime civilization capable of supporting surface and deep-ocean operations.
++
++## Multirole baseline
++
++- orbital and marine fabrication;
++- hospitals and pressure medicine;
++- gardens and aquaculture;
++- cargo and trade;
++- science;
++- habitat deployment;
++- search and rescue;
++- defense and storm shelter;
++- schools and maritime law.
++
++## Carried bases
++
++- expedition submarines;
++- flotilla homes;
++- seafloor habitats;
++- amphibious crawlers;
++- dive bells;
++- marine drones;
++- floating workshops.
++
++## Variants
++
++### Warm-sea settlement carrier
++
++Optimized for flotilla founding, aquaculture and trade.
++
++### Ice-ocean penetrator carrier
++
++Carries drilling, melting, subglacial and radiation systems.
++
++### Abyssal science and rescue carrier
++
++Deep-pressure capacity, care and heavy recovery.
++
++### Naval commons carrier
++
++Protects civilian shipping while operating courts, repair and relief services.
++
++## Gameplay
++
++- orbital-to-ocean deployment;
++- storms and currents;
++- submarine expeditions;
++- floating settlement politics;
++- marine ecological work;
++- naval logistics and rescue;
++- first contact with oceanic civilizations.
++
++# 5. Foundry Forge Carrier
++
++## Character
++
++A mobile industrial district capable of building infrastructure, modules and smaller vessels.
++
++## Multirole baseline
++
++Even the heaviest forge includes homes, clinics, gardens, schools, rescue systems, survey capacity, governance and cultural life.
++
++## Variants
++
++### Asteroid foundry
++
++Local metal and shielding, limited planetary interface.
++
++### Reconstruction carrier
++
++Deploys workshops and public infrastructure after disaster.
++
++### Independent shipyard carrier
++
++Builds and refits craft while moving between settlements.
++
++### Salvage coalition carrier
++
++Uses mixed standards and has unusually visible historical layers.
++
++## Gameplay
++
++- industrial supply chains;
++- yard expansion;
++- salvage ethics;
++- labor and safety;
++- building mobile bases;
++- repairing other carriers;
++- deciding what civilization should be built with finite capacity.
++
++# 6. Sanctuary Mercy Carrier
++
++## Character
++
++A humanitarian carrier whose customary allocation favors care, refuge and recovery.
++
++## Multirole baseline
++
++It also carries:
++
++- substantial fabrication;
++- water and food systems;
++- survey and assessment craft;
++- cargo logistics;
++- diplomatic quarters;
++- evacuation and planetary bases;
++- proportionate defense;
++- education and long-term settlement support.
++
++## Variants
++
++### Rapid disaster carrier
++
++More deployment, triage and logistics.
++
++### Recovery neighborhood carrier
++
++Long rehabilitation, families and education.
++
++### Quarantine and contact carrier
++
++Biological isolation, diplomacy and science.
++
++### Reconstruction trust carrier
++
++Care combined with public works and legal support.
++
++## Gameplay
++
++- disaster assessment;
++- medical and logistical triage;
++- refuge governance;
++- quarantine under uncertainty;
++- reconstruction;
++- neutral access negotiations;
++- resisting political capture of aid.
++
++# 7. Frontier Survey Carrier
++
++## Character
++
++A mobile university, expedition harbor and settlement precursor.
++
++## Multirole baseline
++
++It retains fabrication, habitation, care, cargo, governance, education, emergency shelter, defense and trade.
++
++## Variants
++
++### Planetary survey carrier
++
++More landers, atmospheric systems and ecology labs.
++
++### Deep-space observatory carrier
++
++More sensing, quiet systems and long-duration autonomy.
++
++### First-contact survey carrier
++
++Translation, quarantine, diplomacy and noninterference capability.
++
++### Community science carrier
++
++Open laboratories and strong educational districts.
++
++## Gameplay
++
++- mapping;
++- sample and evidence chains;
++- field bases;
++- discovery politics;
++- protecting fragile ecosystems;
++- choosing when exploration becomes settlement;
++- rescuing earlier expeditions.
++
++# 8. Bastion Escort Carrier
++
++## Character
++
++A fortified carrier used to protect convoys, evacuate populations and coordinate dangerous passages.
++
++## Multirole baseline
++
++Security does not replace:
++
++- care;
++- habitation;
++- repair;
++- logistics;
++- education;
++- rescue;
++- diplomacy;
++- public accountability.
++
++## Variants
++
++### Civilian convoy guardian
++
++Heavy rescue, warning and interception with restrained weapons.
++
++### Blockade runner support carrier
++
++Stealth, repair, medicine and cargo transfer.
++
++### Evacuation bastion
++
++Shelter, transport and humanitarian capacity.
++
++### Fleet command carrier
++
++Coordination and logistics with stronger combat capability and political risk.
++
++## Gameplay
++
++- escort planning;
++- sensor and information warfare;
++- rescue under fire;
++- rules of engagement;
++- evacuation;
++- repairing damaged civilian craft;
++- legitimacy after force is used.
++
++# 9. Carnival Exchange Carrier
++
++## Character
++
++A moving market, performance culture, diplomatic commons and fabrication hub.
++
++## Multirole baseline
++
++It still maintains clinics, logistics, repair, schools, gardens, rescue and defense.
++
++## Variants
++
++### Migratory market carrier
++
++Strong trade, guest docking and small-business fabrication.
++
++### Festival carrier
++
++Performance, hospitality, transport and temporary settlement deployment.
++
++### Diplomatic exchange carrier
++
++Translation, neutral meeting spaces and cultural archives.
++
++### Education and apprenticeship carrier
++
++Travels between regions carrying teachers, workshops and exhibitions.
++
++## Gameplay
++
++- markets;
++- cultural exchange;
++- performances;
++- contracts;
++- customs and smuggling;
++- guest politics;
++- festival deployment;
++- memes and folklore crossing between worlds.
++
++# 10. Night Burrow Carrier
++
++## Character
++
++A deep-hull carrier for Black Worlds and environments where exposure is repeatedly lethal.
++
++## Multirole baseline
++
++It includes care, research, fabrication, habitation, ecological support, deployment, education, rescue and governance rather than functioning only as an armored troop ship.
++
++## Variants
++
++### Radiation refuge carrier
++
++Shielded neighborhoods and continuity archives.
++
++### Cave and subsurface carrier
++
++Burrowers, geological labs and deployable shelters.
++
++### Acid-sea and toxic-atmosphere carrier
++
++Sealed ocean and atmospheric interface systems.
++
++### Horror-expedition support carrier
++
++Rescue, quarantine, redundant communications and evidence recovery.
++
++## Gameplay
++
++- hostile-world footholds;
++- limited deployment windows;
++- infrastructure under pressure;
++- co-op survival;
++- extraction and rescue;
++- crew psychology;
++- learning an alien environment rather than conquering it.
++
++# 11. Seed Ark Carrier
++
++## Character
++
++A civilization continuity vessel intended to carry people, ecologies, institutions and adaptable mobile bases across deep time.
++
++## Multirole baseline
++
++The seed mission demands broad capability by definition:
++
++- fabrication;
++- ecology;
++- medicine;
++- education;
++- governance;
++- exploration;
++- planetary interface;
++- trade and diplomacy;
++- rescue and defense;
++- archives and cultural life.
++
++## Variants
++
++### Generation ark
++
++Large lived population and long political history.
++
++### Embryonic or archive ark
++
++Smaller active population with greater stored continuity and ethical risk.
++
++### Distributed seed convoy
++
++Many ships share the mission, reducing single-point failure and increasing political complexity.
++
++### Atlas-enabled pioneer carrier
++
++Combines seed continuity with route establishment.
++
++## Gameplay
++
++- multi-generational life;
++- mission reinterpretation;
++- ecology;
++- education;
++- construction during travel;
++- arrival and settlement;
++- preserving or rejecting founder intent;
++- descendants transforming the original mobile-home lineage.
++
++# 12. Cross-Family Refit
++
++A ship can migrate between customary emphases.
++
++Examples:
++
++- a Bastion becomes a Mercy carrier after war;
++- a Forge becomes a Hearth carrier when workers bring families;
++- a Survey carrier becomes a Seed Ark after discovering a viable world;
++- an Ocean Bastion becomes a Carnival Exchange carrier among archipelagos;
++- a failed Gate Tender becomes a stationary nexus city;
++- a Night Burrow becomes a public refuge and school.
++
++Identity continuity should survive mission change.
++
++# 13. Build Variety Rules
++
++For every carrier family, author at least:
++
++- three hull-lineage combinations;
++- three ownership models;
++- four carried-base mixes;
++- three age states;
++- three cultural interior expressions;
++- two failure configurations;
++- one alien or posthuman interpretation;
++- one unexpected secondary-emphasis build.
++
++This creates variety through combinations rather than endless disconnected classes.
++
++# 14. Player Design Prompts
++
++When building or refitting, ask:
++
++- What must this carrier always be able to do?
++- What will it emphasize on this voyage?
++- What smaller homes must it carry?
++- Which worlds must it enter?
++- Who owns the docks and modules?
++- Where do ordinary residents live?
++- What happens when the primary mission fails?
++- Which capability is intentionally modest?
++- What old component must remain?
++- How will another society recognize it from far away?
++
++## Atlas Maxim
++
++> **A family gives the carrier a recognizable way of solving many problems. A mission profile decides which problems receive the most room today.**
+-- 
+2.47.3
+

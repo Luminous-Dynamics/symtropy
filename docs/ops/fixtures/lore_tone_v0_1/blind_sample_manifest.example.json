@@ -1,0 +1,19 @@
+{
+  "benchmark_id": "lore-tone-nine-pumps-example-v0.1",
+  "source_version": "1.9",
+  "seed": 1909,
+  "sampling_rule": "balanced_by_family_then_region",
+  "views": ["full", "proper_noun_masked", "rhetorical_skeleton"],
+  "families": {
+    "place": 4,
+    "corporate": 4,
+    "campaign": 4,
+    "artifact": 8,
+    "figure": 4,
+    "culture": 4,
+    "nonhuman": 4,
+    "historiography": 4
+  },
+  "review_panels": ["internal_narrative", "cross_discipline", "cold_reader"],
+  "status": "example_only"
+}
