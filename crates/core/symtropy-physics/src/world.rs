@@ -1866,20 +1866,29 @@ mod transformed_halfspace_tests {
     /// A short stack (3 boxes) must settle without exploding, at the
     /// timestep/iteration settings used by the other regression tests.
     #[test]
-    #[ignore = "known gap, not caused by the bias-depth fix: with 3 boxes \
-                stacked, the middle box simultaneously contacts a neighbor \
-                above and below; the top box picks up enough tilt to route \
-                through `contact_oriented_box_vs_box` (patch 0005) and then \
-                exhibits an unphysical upward kick followed by chaotic \
-                bouncing that never settles. `contact_box_vs_box` (the \
-                axis-aligned SAT path, unrelated to this fix) already always \
-                assigns one uniform depth to every corner, so this is not \
-                the unequal-depth mechanism fixed in `resolve_contact`. \
-                Reproduced with both a free-fall gap and an already-touching \
-                start, ruling out CCD tunneling as the sole cause. Needs its \
-                own dedicated investigation of the oriented-box-SAT contact \
-                path and/or multi-contact solving order; tracked here rather \
-                than silently dropped."]
+    #[ignore = "known gap, root-caused (not the bias-depth mechanism fixed \
+                in `resolve_contact`, and not CCD tunneling -- both ruled \
+                out): with 3 boxes stacked, the middle box picks up enough \
+                real tilt to route box-vs-box contacts through \
+                `contact_oriented_box_vs_box` (patch 0005), whose manifold \
+                comes from `manifold_gen`'s witness/perturbation sampling, \
+                not exact face clipping (the patch series' own README \
+                discloses this: 'Rotated OBB contacts currently use a \
+                stable witness-based manifold rather than full \
+                reference/incident-face clipping'). Traced via \
+                SYMTROPY_DEBUG_BOXBOX-gated tracing (removed after use): once \
+                real tilt makes the 4 corners' penetration depths spread by \
+                more than `manifold_gen::DEPTH_TOLERANCE` (0.02), shallower \
+                corners get filtered out of the manifold entirely -- points \
+                observed dropping 4 -> 3 -> 2 over ~140 frames while depth \
+                grew MONOTONICALLY the whole time (0.010 -> 0.033, never \
+                corrected). Fewer contact points means less restoring \
+                torque against tipping, which lets tilt grow further, which \
+                sheds more points -- a genuine positive feedback loop \
+                distinct from the halfspace bias-depth bug. Real fix is the \
+                reference/incident-face clipping the patch series' own \
+                README already lists as future work, not a quick patch; \
+                tracked here rather than silently dropped."]
     fn three_box_stack_settles_without_exploding() {
         let gravity = SVector::from([0.0, -9.81, 0.0]);
         let mut world = PhysicsWorld::<3>::new(gravity);
