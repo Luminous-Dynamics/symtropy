@@ -395,16 +395,14 @@ impl<const D: usize> StaticBroadphase<D> {
         self.entries.iter().filter_map(move |s| {
             let group_ok = (dyn_entry.collision_group & s.collision_mask != 0)
                 && (s.collision_group & dyn_entry.collision_mask != 0);
-            if group_ok {
-                if dyn_entry.aabb.overlaps(&s.aabb) {
-                    let (ha, hb) = (dyn_entry.handle, s.handle);
-                    let pair = if ha < hb {
-                        BroadphasePair(ha, hb)
-                    } else {
-                        BroadphasePair(hb, ha)
-                    };
-                    return Some(pair);
-                }
+            if group_ok && dyn_entry.aabb.overlaps(&s.aabb) {
+                let (ha, hb) = (dyn_entry.handle, s.handle);
+                let pair = if ha < hb {
+                    BroadphasePair(ha, hb)
+                } else {
+                    BroadphasePair(hb, ha)
+                };
+                return Some(pair);
             }
             None
         })
@@ -464,14 +462,12 @@ pub fn find_pairs_incremental<const D: usize>(
             let b = &dynamic[j];
             let group_ok = (a.collision_group & b.collision_mask != 0)
                 && (b.collision_group & a.collision_mask != 0);
-            if group_ok {
-                if a.aabb.overlaps(&b.aabb) {
-                    let (ha, hb) = (a.handle, b.handle);
-                    if ha < hb {
-                        pairs.push(BroadphasePair(ha, hb));
-                    } else {
-                        pairs.push(BroadphasePair(hb, ha));
-                    }
+            if group_ok && a.aabb.overlaps(&b.aabb) {
+                let (ha, hb) = (a.handle, b.handle);
+                if ha < hb {
+                    pairs.push(BroadphasePair(ha, hb));
+                } else {
+                    pairs.push(BroadphasePair(hb, ha));
                 }
             }
         }

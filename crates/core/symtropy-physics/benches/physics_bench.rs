@@ -4,9 +4,9 @@
 use criterion::{Criterion, black_box, criterion_group, criterion_main};
 use nalgebra::SVector;
 use symtropy_math::{Capsule, ConvexHull, HyperBox, Point, Sphere};
+use symtropy_physics::PhysicsWorld;
 use symtropy_physics::gjk;
 use symtropy_physics::raycast;
-use symtropy_physics::{BodyHandle, PhysicsWorld, RigidBody};
 
 fn bench_gjk_sphere_sphere(c: &mut Criterion) {
     let a = Sphere::<3>::unit();
@@ -59,7 +59,8 @@ fn bench_physics_step_10_bodies(c: &mut Criterion) {
                 world
             },
             |mut world| {
-                black_box(world.step(0.016));
+                world.step(0.016);
+                black_box(());
             },
             criterion::BatchSize::SmallInput,
         );
@@ -79,7 +80,8 @@ fn bench_physics_step_100_bodies(c: &mut Criterion) {
                 world
             },
             |mut world| {
-                black_box(world.step(0.016));
+                world.step(0.016);
+                black_box(());
             },
             criterion::BatchSize::SmallInput,
         );
@@ -99,7 +101,8 @@ fn bench_physics_step_2d(c: &mut Criterion) {
                 world
             },
             |mut world| {
-                black_box(world.step(0.016));
+                world.step(0.016);
+                black_box(());
             },
             criterion::BatchSize::SmallInput,
         );
@@ -208,7 +211,8 @@ fn bench_physics_step_500_bodies(c: &mut Criterion) {
                 world
             },
             |mut world| {
-                black_box(world.step(0.016));
+                world.step(0.016);
+                black_box(());
             },
             criterion::BatchSize::LargeInput,
         );

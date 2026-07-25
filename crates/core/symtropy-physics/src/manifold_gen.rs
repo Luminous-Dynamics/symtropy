@@ -369,7 +369,7 @@ fn perp_dist_sq<const D: usize>(
 mod tests {
     use super::*;
     use crate::body::BodyHandle;
-    use symtropy_math::{HyperBox, Point, Sphere, Transform};
+    use symtropy_math::{HyperBox, Sphere};
 
     fn vec3(x: f64, y: f64, z: f64) -> SVector<f64, 3> {
         SVector::from([x, y, z])

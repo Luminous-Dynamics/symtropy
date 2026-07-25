@@ -123,20 +123,20 @@ impl EmpiricalTpm {
         let num_states = self.num_states();
         let mut tpm = vec![vec![0.5f64; self.n]; num_states];
 
-        for from_idx in 0..num_states {
+        for (from_idx, row) in tpm.iter_mut().enumerate() {
             if self.totals[from_idx] == 0 {
                 continue; // Leave as uniform (0.5)
             }
 
             // For each node, compute P(node=1 | from_state)
-            for node in 0..self.n {
+            for (node, cell) in row.iter_mut().enumerate() {
                 let mut on_count = 0u64;
                 for to_idx in 0..num_states {
                     if (to_idx >> node) & 1 == 1 {
                         on_count += self.counts[from_idx][to_idx];
                     }
                 }
-                tpm[from_idx][node] = on_count as f64 / self.totals[from_idx] as f64;
+                *cell = on_count as f64 / self.totals[from_idx] as f64;
             }
         }
 
@@ -382,9 +382,7 @@ fn extract_f64(json: &str, key: &str) -> Option<f64> {
     if rest.starts_with("null") {
         return None;
     }
-    let end = rest
-        .find(|c: char| c == ',' || c == '}')
-        .unwrap_or(rest.len());
+    let end = rest.find([',', '}']).unwrap_or(rest.len());
     rest[..end].trim().parse().ok()
 }
 

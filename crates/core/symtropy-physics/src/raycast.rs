@@ -60,13 +60,12 @@ pub fn raycast<const D: usize>(
         if body.is_sensor {
             continue;
         }
-        if let Some(hit) = raycast_body(body, origin, &dir, max_distance) {
-            if closest
+        if let Some(hit) = raycast_body(body, origin, &dir, max_distance)
+            && closest
                 .as_ref()
                 .is_none_or(|current| hit.distance < current.distance)
-            {
-                closest = Some(hit);
-            }
+        {
+            closest = Some(hit);
         }
     }
 
@@ -340,7 +339,7 @@ fn ray_sphere_intersection<const D: usize>(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use symtropy_math::{Bivector, HyperBox, Point, Rotor, Sphere, Transform};
+    use symtropy_math::{Bivector, HyperBox, Point, Rotor, Transform};
 
     #[test]
     fn ray_hits_sphere() {
@@ -389,7 +388,7 @@ mod tests {
     fn ray_closest_hit() {
         let mut world = PhysicsWorld::<3>::new(SVector::zeros());
         let h1 = world.add_sphere(Point::new([5.0, 0.0, 0.0]), 1.0, 1.0);
-        let h2 = world.add_sphere(Point::new([10.0, 0.0, 0.0]), 1.0, 1.0);
+        let _h2 = world.add_sphere(Point::new([10.0, 0.0, 0.0]), 1.0, 1.0);
 
         let origin = SVector::from([0.0, 0.0, 0.0]);
         let dir = SVector::from([1.0, 0.0, 0.0]);

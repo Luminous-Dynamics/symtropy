@@ -56,6 +56,13 @@ pub struct HdcConsciousnessContext {
     /// Basis HVs for the 7 consciousness components.
     consciousness_basis: Vec<ContinuousHV>,
     /// Basis HVs for the 8 harmonies.
+    ///
+    /// NOTE (found via clippy `dead_code`, 2026-07-25): built in `new()` but
+    /// never read by `step()` or `phi_from_thought()` — the "fixes the
+    /// Phi=0 readout problem" correlation this field's construction comment
+    /// describes is not actually wired into the Phi computation. Needs a
+    /// follow-up decision: wire it in, or drop it if superseded.
+    #[allow(dead_code)]
     harmony_basis: Vec<ContinuousHV>,
 }
 
@@ -117,7 +124,10 @@ impl HdcConsciousnessContext {
     pub fn step(
         &mut self,
         inputs: &[f64; NUM_COMPONENTS],
-        harmony: &[f64; NUM_HARMONIES],
+        // NOTE: unread — see `harmony_basis`'s doc comment. Kept in the
+        // signature (not removed) since callers already pass real harmony
+        // data; wiring is the missing half, not the data.
+        _harmony: &[f64; NUM_HARMONIES],
         dt: f32,
     ) {
         // Encode scalar inputs as weighted basis HVs bundled together.
@@ -193,7 +203,10 @@ pub fn inputs_from_state(
     danger: f64,
     motor_precision: f64,
     harmony_total: f64,
-    collective_phi: f64,
+    // NOTE: unread — every other parameter here feeds one of the 7 output
+    // components; this one doesn't. Same unwired-input pattern as
+    // `HdcConsciousnessContext::harmony_basis`/`step`'s `harmony` param.
+    _collective_phi: f64,
 ) -> [f64; NUM_COMPONENTS] {
     [
         energy_frac.clamp(0.0, 1.0), // phi ← energy = integration capacity

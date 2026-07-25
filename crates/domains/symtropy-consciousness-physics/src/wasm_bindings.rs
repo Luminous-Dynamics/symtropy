@@ -202,7 +202,7 @@ impl WasmPhysicsDemo {
                 .iter()
                 .enumerate()
                 .filter(|(i, _)| *i != idx)
-                .map(|(_, d)| d.clone())
+                .map(|(_, d)| *d)
                 .collect();
 
             // Derive synchrony from resonance with neighbours

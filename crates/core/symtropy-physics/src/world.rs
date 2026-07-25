@@ -109,6 +109,22 @@ impl<const D: usize> PhysicsCallback<D> for NoOpCallback {
     fn apply_trauma(&mut self, _: &CollisionEvent<D>) {}
 }
 
+/// Signature of an injected non-convex (mesh) contact generator: `(shape_a,
+/// transform_a, shape_b, transform_b, handle_a, handle_b) -> contacts`.
+/// See [`PhysicsWorld::register_mesh_contact_transform_fn`].
+type MeshContactFn<const D: usize> = Arc<
+    dyn Fn(
+            &dyn symtropy_math::Shape<D>,
+            &Transform<D>,
+            &dyn symtropy_math::Shape<D>,
+            &Transform<D>,
+            BodyHandle,
+            BodyHandle,
+        ) -> Option<Vec<ContactManifold<D>>>
+        + Send
+        + Sync,
+>;
+
 /// The physics world manages all rigid bodies and steps the simulation.
 pub struct PhysicsWorld<const D: usize> {
     pub bodies: Vec<RigidBody<D>>,
@@ -159,26 +175,28 @@ pub struct PhysicsWorld<const D: usize> {
     /// Signature: `(shape_a, transform_a, shape_b, transform_b, handles...)`
     /// → `Option<Vec<ContactManifold<D>>>`.
     /// Returns `None` if neither shape is a mesh (fall through to GJK).
-    mesh_contact_fn: Option<
-        Arc<
-            dyn Fn(
-                    &dyn symtropy_math::Shape<D>,
-                    &Transform<D>,
-                    &dyn symtropy_math::Shape<D>,
-                    &Transform<D>,
-                    BodyHandle,
-                    BodyHandle,
-                ) -> Option<Vec<ContactManifold<D>>>
-                + Send
-                + Sync,
-        >,
-    >,
+    mesh_contact_fn: Option<MeshContactFn<D>>,
 }
 
 impl<const D: usize> Default for PhysicsWorld<D> {
     fn default() -> Self {
         Self::new(SVector::zeros())
     }
+}
+
+/// Which SAT candidate axis won for an oriented box-vs-box pair, tagged so
+/// the manifold generator knows whether to do reference/incident-face
+/// clipping (a face case) or closest-points-between-edges (an edge case).
+/// See `PhysicsWorld::contact_oriented_box_vs_box`.
+#[derive(Clone, Copy)]
+enum ObbSatAxis {
+    /// Box A's face at this axis index is the reference face.
+    FaceA(usize),
+    /// Box B's face at this axis index is the reference face.
+    FaceB(usize),
+    /// Cross product of A's edge at this axis index and B's edge at this
+    /// axis index.
+    Edge(usize, usize),
 }
 
 impl<const D: usize> PhysicsWorld<D> {
@@ -784,6 +802,10 @@ impl<const D: usize> PhysicsWorld<D> {
 
             let mut earliest: Option<ccd::CcdHit<D>> = None;
 
+            // `j` indexes two parallel collections (`self.bodies` and
+            // `pre_integration_positions`) plus is compared against `i` for
+            // self-exclusion — not expressible as a single `.iter().enumerate()`.
+            #[allow(clippy::needless_range_loop)]
             for j in 0..n {
                 if j == i || self.bodies[j].is_sensor {
                     continue;
@@ -801,10 +823,9 @@ impl<const D: usize> PhysicsWorld<D> {
                         &halfspace.normal,
                         halfspace.offset,
                         dt,
-                    ) {
-                        if earliest.as_ref().is_none_or(|e| hit.toi < e.toi) {
-                            earliest = Some(hit);
-                        }
+                    ) && earliest.as_ref().is_none_or(|e| hit.toi < e.toi)
+                    {
+                        earliest = Some(hit);
                     }
                     continue;
                 }
@@ -825,10 +846,9 @@ impl<const D: usize> PhysicsWorld<D> {
                         &vel_j,
                         sphere_j.radius,
                         dt,
-                    ) {
-                        if earliest.as_ref().is_none_or(|e| hit.toi < e.toi) {
-                            earliest = Some(hit);
-                        }
+                    ) && earliest.as_ref().is_none_or(|e| hit.toi < e.toi)
+                    {
+                        earliest = Some(hit);
                     }
                 }
             }
@@ -1361,8 +1381,23 @@ impl<const D: usize> PhysicsWorld<D> {
     ///
     /// Candidate separating axes are each box's face normals plus all pairwise
     /// edge cross products in 3D. The least-overlap axis is the exact minimum
-    /// translation direction. Contact points are then sampled through the same
-    /// transformed support-map manifold generator used by GJK/EPA contacts.
+    /// translation direction.
+    ///
+    /// Contact points come from exact reference/incident-face clipping in 3D
+    /// (`clipped_obb_manifold`) rather than the witness/perturbation sampling
+    /// used elsewhere (`manifold_gen`): that sampling approach filters out
+    /// any point whose separation isn't within `DEPTH_TOLERANCE` of the
+    /// deepest point, so as two stacked boxes pick up real tilt (e.g. a
+    /// 3-box stack settling), the shallower corners silently drop out of the
+    /// manifold exactly when more restoring torque is needed to arrest the
+    /// tilt, not less — a genuine positive-feedback instability, root-caused
+    /// and reproduced via `three_box_stack_settles_without_exploding`
+    /// (previously `#[ignore]`d). Face clipping has no such tolerance
+    /// window: it returns every geometrically real contact point the
+    /// incident face's clipped polygon actually has, each with its own exact
+    /// depth. Falls back to the sampling path only for D=2 or if clipping
+    /// unexpectedly yields no points (defensive, not expected to trigger
+    /// given a confirmed SAT overlap).
     fn contact_oriented_box_vs_box(
         box_a: &HyperBox<D>,
         transform_a: &Transform<D>,
@@ -1377,15 +1412,20 @@ impl<const D: usize> PhysicsWorld<D> {
 
         let axes_a = Self::box_world_axes(transform_a);
         let axes_b = Self::box_world_axes(transform_b);
-        let mut candidates: Vec<SVector<f64, D>> = Vec::with_capacity(if D == 3 { 15 } else { 4 });
-        candidates.extend(axes_a.iter().copied());
-        candidates.extend(axes_b.iter().copied());
+        let mut candidates: Vec<(SVector<f64, D>, ObbSatAxis)> =
+            Vec::with_capacity(if D == 3 { 15 } else { 4 });
+        for (i, axis) in axes_a.iter().enumerate() {
+            candidates.push((*axis, ObbSatAxis::FaceA(i)));
+        }
+        for (i, axis) in axes_b.iter().enumerate() {
+            candidates.push((*axis, ObbSatAxis::FaceB(i)));
+        }
         if D == 3 {
-            for axis_a in &axes_a {
-                for axis_b in &axes_b {
+            for (i, axis_a) in axes_a.iter().enumerate() {
+                for (j, axis_b) in axes_b.iter().enumerate() {
                     let cross = Self::cross_3d(axis_a, axis_b);
                     if cross.norm_squared() > 1e-20 {
-                        candidates.push(cross);
+                        candidates.push((cross, ObbSatAxis::Edge(i, j)));
                     }
                 }
             }
@@ -1393,9 +1433,10 @@ impl<const D: usize> PhysicsWorld<D> {
 
         let center_delta = transform_b.translation.0 - transform_a.translation.0;
         let mut best_axis: Option<SVector<f64, D>> = None;
+        let mut best_kind = ObbSatAxis::FaceA(0);
         let mut best_overlap = f64::INFINITY;
 
-        for candidate in candidates {
+        for (candidate, kind) in candidates {
             let length = candidate.norm();
             if length < 1e-10 {
                 continue;
@@ -1415,10 +1456,30 @@ impl<const D: usize> PhysicsWorld<D> {
             if overlap < best_overlap {
                 best_overlap = overlap;
                 best_axis = Some(axis);
+                best_kind = kind;
             }
         }
 
         let normal = best_axis?;
+
+        if D == 3
+            && let Some(manifold) = Self::clipped_obb_manifold(
+                box_a,
+                transform_a,
+                &axes_a,
+                box_b,
+                transform_b,
+                &axes_b,
+                normal,
+                best_overlap,
+                best_kind,
+                handle_a,
+                handle_b,
+            )
+        {
+            return Some(manifold);
+        }
+
         Some(manifold_gen::generate_contact_manifold_transformed(
             box_a,
             transform_a,
@@ -1429,6 +1490,336 @@ impl<const D: usize> PhysicsWorld<D> {
             handle_a,
             handle_b,
         ))
+    }
+
+    /// Dispatch to exact face-clipping (face cases) or closest-points
+    /// (edge-edge case) based on which SAT axis won. Only meaningful for
+    /// D == 3 (checked by the caller); returns `None` for any other D.
+    #[allow(clippy::too_many_arguments)]
+    fn clipped_obb_manifold(
+        box_a: &HyperBox<D>,
+        transform_a: &Transform<D>,
+        axes_a: &[SVector<f64, D>],
+        box_b: &HyperBox<D>,
+        transform_b: &Transform<D>,
+        axes_b: &[SVector<f64, D>],
+        normal: SVector<f64, D>,
+        overlap: f64,
+        kind: ObbSatAxis,
+        handle_a: BodyHandle,
+        handle_b: BodyHandle,
+    ) -> Option<ContactManifold<D>> {
+        if D != 3 {
+            return None;
+        }
+        match kind {
+            // Box A owns the reference face; its outward normal already
+            // matches `normal` (the SAT loop orients axes toward B).
+            ObbSatAxis::FaceA(face_index) => Self::face_clip_manifold(
+                box_a,
+                transform_a,
+                axes_a,
+                face_index,
+                normal,
+                box_b,
+                transform_b,
+                axes_b,
+                normal,
+                handle_a,
+                handle_b,
+            ),
+            // Box B owns the reference face here; B's own outward normal
+            // near the contact points *back* toward A, i.e. `-normal`, even
+            // though the manifold's A->B `normal` field is unchanged.
+            ObbSatAxis::FaceB(face_index) => Self::face_clip_manifold(
+                box_b,
+                transform_b,
+                axes_b,
+                face_index,
+                -normal,
+                box_a,
+                transform_a,
+                axes_a,
+                normal,
+                handle_a,
+                handle_b,
+            ),
+            ObbSatAxis::Edge(edge_a, edge_b) => Self::edge_clip_manifold(
+                box_a,
+                transform_a,
+                axes_a,
+                edge_a,
+                box_b,
+                transform_b,
+                axes_b,
+                edge_b,
+                normal,
+                overlap,
+                handle_a,
+                handle_b,
+            ),
+        }
+    }
+
+    /// Exact reference/incident-face clipping (Sutherland-Hodgman) for one
+    /// pair of parallel-ish OBB faces. `reference_outward_normal` must be a
+    /// unit vector pointing away from `reference_box`; `manifold_normal` is
+    /// the (separately tracked) A->B convention normal for the returned
+    /// manifold, which may differ in sign from the clipping normal when B is
+    /// the reference box (see `clipped_obb_manifold`).
+    #[allow(clippy::too_many_arguments)]
+    fn face_clip_manifold(
+        reference_box: &HyperBox<D>,
+        reference_transform: &Transform<D>,
+        reference_axes: &[SVector<f64, D>],
+        reference_face_index: usize,
+        reference_outward_normal: SVector<f64, D>,
+        incident_box: &HyperBox<D>,
+        incident_transform: &Transform<D>,
+        incident_axes: &[SVector<f64, D>],
+        manifold_normal: SVector<f64, D>,
+        handle_a: BodyHandle,
+        handle_b: BodyHandle,
+    ) -> Option<ContactManifold<D>> {
+        let reference_tangents: Vec<usize> =
+            (0..D).filter(|&k| k != reference_face_index).collect();
+        if reference_tangents.len() != 2 {
+            return None;
+        }
+        let (rt0, rt1) = (reference_tangents[0], reference_tangents[1]);
+
+        let reference_face_center = reference_transform.translation.0
+            + reference_outward_normal * reference_box.half_extents[reference_face_index];
+
+        // Incident face = whichever face of the incident box is most
+        // anti-parallel to the reference outward normal.
+        let mut incident_face_index = 0usize;
+        let mut incident_sign = 1.0_f64;
+        let mut best_alignment = f64::NEG_INFINITY;
+        for (k, axis) in incident_axes.iter().enumerate() {
+            let d = axis.dot(&reference_outward_normal);
+            if d.abs() > best_alignment {
+                best_alignment = d.abs();
+                incident_face_index = k;
+                incident_sign = if d >= 0.0 { -1.0 } else { 1.0 };
+            }
+        }
+        let incident_tangents: Vec<usize> = (0..D).filter(|&k| k != incident_face_index).collect();
+        if incident_tangents.len() != 2 {
+            return None;
+        }
+        let (it0, it1) = (incident_tangents[0], incident_tangents[1]);
+
+        let incident_face_center = incident_transform.translation.0
+            + incident_axes[incident_face_index]
+                * (incident_sign * incident_box.half_extents[incident_face_index]);
+        let he_it0 = incident_box.half_extents[it0];
+        let he_it1 = incident_box.half_extents[it1];
+        let mut polygon: Vec<SVector<f64, D>> = vec![
+            incident_face_center - incident_axes[it0] * he_it0 - incident_axes[it1] * he_it1,
+            incident_face_center + incident_axes[it0] * he_it0 - incident_axes[it1] * he_it1,
+            incident_face_center + incident_axes[it0] * he_it0 + incident_axes[it1] * he_it1,
+            incident_face_center - incident_axes[it0] * he_it0 + incident_axes[it1] * he_it1,
+        ];
+
+        // Clip against the 4 half-spaces bounding the reference face.
+        let he_rt0 = reference_box.half_extents[rt0];
+        let he_rt1 = reference_box.half_extents[rt1];
+        let side_planes = [
+            (
+                reference_face_center + reference_axes[rt0] * he_rt0,
+                reference_axes[rt0],
+            ),
+            (
+                reference_face_center - reference_axes[rt0] * he_rt0,
+                -reference_axes[rt0],
+            ),
+            (
+                reference_face_center + reference_axes[rt1] * he_rt1,
+                reference_axes[rt1],
+            ),
+            (
+                reference_face_center - reference_axes[rt1] * he_rt1,
+                -reference_axes[rt1],
+            ),
+        ];
+        for (plane_point, plane_normal) in side_planes {
+            polygon = Self::clip_polygon_against_halfspace(&polygon, &plane_point, &plane_normal);
+            if polygon.is_empty() {
+                return None;
+            }
+        }
+
+        // Project each surviving vertex onto the reference face plane;
+        // depth is that vertex's real penetration, not a shared/averaged
+        // value, so every corner keeps its own exact contribution.
+        let mut contacts: Vec<(SVector<f64, D>, f64)> = Vec::with_capacity(polygon.len());
+        for vertex in polygon {
+            let signed_distance = (vertex - reference_face_center).dot(&reference_outward_normal);
+            let depth = -signed_distance;
+            if depth > 0.0 {
+                let projected = vertex - reference_outward_normal * signed_distance;
+                contacts.push((projected, depth));
+            }
+        }
+        if contacts.is_empty() {
+            return None;
+        }
+
+        Self::manifold_from_contacts(handle_a, handle_b, manifold_normal, contacts)
+    }
+
+    /// Sutherland-Hodgman: clip `polygon` against one half-space, keeping
+    /// points on or behind the plane (`dot(p - plane_point, plane_normal) <=
+    /// 0`). `plane_normal` need not be unit length.
+    fn clip_polygon_against_halfspace(
+        polygon: &[SVector<f64, D>],
+        plane_point: &SVector<f64, D>,
+        plane_normal: &SVector<f64, D>,
+    ) -> Vec<SVector<f64, D>> {
+        if polygon.is_empty() {
+            return Vec::new();
+        }
+        let n = polygon.len();
+        let mut output = Vec::with_capacity(n + 1);
+        for i in 0..n {
+            let current = polygon[i];
+            let previous = polygon[(i + n - 1) % n];
+            let current_dist = (current - plane_point).dot(plane_normal);
+            let previous_dist = (previous - plane_point).dot(plane_normal);
+            let current_inside = current_dist <= 1e-9;
+            let previous_inside = previous_dist <= 1e-9;
+            if current_inside {
+                if !previous_inside {
+                    let denom = previous_dist - current_dist;
+                    if denom.abs() > 1e-12 {
+                        let t = previous_dist / denom;
+                        output.push(previous + (current - previous) * t);
+                    }
+                }
+                output.push(current);
+            } else if previous_inside {
+                let denom = previous_dist - current_dist;
+                if denom.abs() > 1e-12 {
+                    let t = previous_dist / denom;
+                    output.push(previous + (current - previous) * t);
+                }
+            }
+        }
+        output
+    }
+
+    /// Edge-edge contact: closest points between the two actual box edges
+    /// (not just their infinite axis lines) that produced the winning
+    /// cross-product SAT axis, positioned by picking each box's other two
+    /// half-extent signs to face the other box.
+    #[allow(clippy::too_many_arguments)]
+    fn edge_clip_manifold(
+        box_a: &HyperBox<D>,
+        transform_a: &Transform<D>,
+        axes_a: &[SVector<f64, D>],
+        edge_axis_a: usize,
+        box_b: &HyperBox<D>,
+        transform_b: &Transform<D>,
+        axes_b: &[SVector<f64, D>],
+        edge_axis_b: usize,
+        normal: SVector<f64, D>,
+        overlap: f64,
+        handle_a: BodyHandle,
+        handle_b: BodyHandle,
+    ) -> Option<ContactManifold<D>> {
+        let center_delta = transform_b.translation.0 - transform_a.translation.0;
+
+        let other_a: Vec<usize> = (0..D).filter(|&k| k != edge_axis_a).collect();
+        if other_a.len() != 2 {
+            return None;
+        }
+        let mut edge_a_center = transform_a.translation.0;
+        for &k in &other_a {
+            let sign = if center_delta.dot(&axes_a[k]) >= 0.0 {
+                1.0
+            } else {
+                -1.0
+            };
+            edge_a_center += axes_a[k] * (sign * box_a.half_extents[k]);
+        }
+        let half_a = box_a.half_extents[edge_axis_a];
+        let p1 = edge_a_center - axes_a[edge_axis_a] * half_a;
+        let q1 = edge_a_center + axes_a[edge_axis_a] * half_a;
+
+        let other_b: Vec<usize> = (0..D).filter(|&k| k != edge_axis_b).collect();
+        if other_b.len() != 2 {
+            return None;
+        }
+        let mut edge_b_center = transform_b.translation.0;
+        for &k in &other_b {
+            let sign = if center_delta.dot(&axes_b[k]) < 0.0 {
+                1.0
+            } else {
+                -1.0
+            };
+            edge_b_center += axes_b[k] * (sign * box_b.half_extents[k]);
+        }
+        let half_b = box_b.half_extents[edge_axis_b];
+        let p2 = edge_b_center - axes_b[edge_axis_b] * half_b;
+        let q2 = edge_b_center + axes_b[edge_axis_b] * half_b;
+
+        let (closest_a, closest_b) = Self::closest_points_segment_segment(&p1, &q1, &p2, &q2);
+        let position = (closest_a + closest_b) * 0.5;
+
+        Some(ContactManifold::single(
+            handle_a, handle_b, normal, position, overlap,
+        ))
+    }
+
+    /// Closest points between two line segments (Ericson, "Real-Time
+    /// Collision Detection", `ClosestPtSegmentSegment`).
+    fn closest_points_segment_segment(
+        p1: &SVector<f64, D>,
+        q1: &SVector<f64, D>,
+        p2: &SVector<f64, D>,
+        q2: &SVector<f64, D>,
+    ) -> (SVector<f64, D>, SVector<f64, D>) {
+        let d1 = q1 - p1;
+        let d2 = q2 - p2;
+        let r = p1 - p2;
+        let a = d1.dot(&d1);
+        let e = d2.dot(&d2);
+        let f = d2.dot(&r);
+
+        let (s, t);
+        if a <= 1e-12 && e <= 1e-12 {
+            s = 0.0;
+            t = 0.0;
+        } else if a <= 1e-12 {
+            s = 0.0;
+            t = (f / e).clamp(0.0, 1.0);
+        } else {
+            let c = d1.dot(&r);
+            if e <= 1e-12 {
+                t = 0.0;
+                s = (-c / a).clamp(0.0, 1.0);
+            } else {
+                let b = d1.dot(&d2);
+                let denom = a * e - b * b;
+                let mut s_val = if denom.abs() > 1e-12 {
+                    ((b * f - c * e) / denom).clamp(0.0, 1.0)
+                } else {
+                    0.0
+                };
+                let mut t_val = (b * s_val + f) / e;
+                if t_val < 0.0 {
+                    t_val = 0.0;
+                    s_val = (-c / a).clamp(0.0, 1.0);
+                } else if t_val > 1.0 {
+                    t_val = 1.0;
+                    s_val = ((b - c) / a).clamp(0.0, 1.0);
+                }
+                s = s_val;
+                t = t_val;
+            }
+        }
+        (p1 + d1 * s, p2 + d2 * t)
     }
 
     fn box_world_axes(transform: &Transform<D>) -> Vec<SVector<f64, D>> {
@@ -1865,30 +2256,18 @@ mod transformed_halfspace_tests {
 
     /// A short stack (3 boxes) must settle without exploding, at the
     /// timestep/iteration settings used by the other regression tests.
+    ///
+    /// Regression test for the oriented-box-SAT contact-starvation bug: once
+    /// the middle box picked up real tilt, the old witness/perturbation
+    /// manifold (`manifold_gen`) dropped corners whose depth fell more than
+    /// `DEPTH_TOLERANCE` (0.02) short of the deepest point, shedding
+    /// restoring torque exactly when more was needed -- points observed
+    /// dropping 4 -> 3 -> 2 over ~140 frames while depth grew monotonically
+    /// (0.010 -> 0.033, never corrected). Fixed by real reference/incident-
+    /// face clipping in `contact_oriented_box_vs_box`, which has no
+    /// tolerance window: every geometrically real contact point survives
+    /// with its own exact depth.
     #[test]
-    #[ignore = "known gap, root-caused (not the bias-depth mechanism fixed \
-                in `resolve_contact`, and not CCD tunneling -- both ruled \
-                out): with 3 boxes stacked, the middle box picks up enough \
-                real tilt to route box-vs-box contacts through \
-                `contact_oriented_box_vs_box` (patch 0005), whose manifold \
-                comes from `manifold_gen`'s witness/perturbation sampling, \
-                not exact face clipping (the patch series' own README \
-                discloses this: 'Rotated OBB contacts currently use a \
-                stable witness-based manifold rather than full \
-                reference/incident-face clipping'). Traced via \
-                SYMTROPY_DEBUG_BOXBOX-gated tracing (removed after use): once \
-                real tilt makes the 4 corners' penetration depths spread by \
-                more than `manifold_gen::DEPTH_TOLERANCE` (0.02), shallower \
-                corners get filtered out of the manifold entirely -- points \
-                observed dropping 4 -> 3 -> 2 over ~140 frames while depth \
-                grew MONOTONICALLY the whole time (0.010 -> 0.033, never \
-                corrected). Fewer contact points means less restoring \
-                torque against tipping, which lets tilt grow further, which \
-                sheds more points -- a genuine positive feedback loop \
-                distinct from the halfspace bias-depth bug. Real fix is the \
-                reference/incident-face clipping the patch series' own \
-                README already lists as future work, not a quick patch; \
-                tracked here rather than silently dropped."]
     fn three_box_stack_settles_without_exploding() {
         let gravity = SVector::from([0.0, -9.81, 0.0]);
         let mut world = PhysicsWorld::<3>::new(gravity);
@@ -1938,6 +2317,78 @@ mod transformed_halfspace_tests {
                 "box {i} should settle near y={expected}, got y={y}"
             );
         }
+    }
+
+    /// Stretch test beyond the 3-box regression, and a separate finding: a
+    /// taller stack (10 boxes) does NOT settle cleanly, even at 30 solver
+    /// iterations (vs. the 8 used elsewhere) -- it collapses into a
+    /// scrambled pile (y-positions randomly distributed ~0.5-2.2 instead of
+    /// the expected clean 0.5, 1.5, ..., 9.5 sequence) and stays that way
+    /// for the full 30-second run, peak speed ~13 m/s. Ruling out simple
+    /// under-convergence (more iterations didn't help; peak speed was if
+    /// anything slightly worse) points to something more structural in how
+    /// long chains of simultaneously-coupled bodies are solved -- island
+    /// composition, per-pair Gauss-Seidel ordering across a long chain, or
+    /// similar. This is a different, more general problem than the 3-box
+    /// contact-starvation bug fixed above in this file (that fix is
+    /// confirmed still necessary and sufficient for the 3-box case) and is
+    /// well outside the scope of this investigation to solve here. Left
+    /// `#[ignore]`d with the finding recorded rather than silently deleted.
+    #[test]
+    #[ignore = "separate, more general tall-stack solver-scaling problem, \
+                not the oriented-box contact-starvation bug fixed in this \
+                file -- see the doc comment above this test for what was \
+                actually tried and ruled out (more solver iterations did \
+                not help)"]
+    fn ten_box_stack_settles_without_exploding() {
+        let gravity = SVector::from([0.0, -9.81, 0.0]);
+        let mut world = PhysicsWorld::<3>::new(gravity);
+        world.solver_iterations = 8;
+        let ground = RigidBody::<3>::static_body(
+            BodyHandle(0),
+            Point::origin(),
+            Box::new(HalfSpace::<3>::new(SVector::from([0.0, 1.0, 0.0]), 0.0)),
+        );
+        world.add_body(ground);
+        let half = [0.5, 0.5, 0.5];
+        let handles: Vec<_> = (0..10)
+            .map(|i| {
+                world.add_body(RigidBody::new(
+                    BodyHandle(0),
+                    crate::body::BodyType::Dynamic,
+                    Transform::from_translation(Point::new([0.0, 0.5 + i as f64 * 0.99, 0.0])),
+                    Box::new(HyperBox::<3>::new(half)),
+                    1.0,
+                    box_inertia(1.0, half),
+                ))
+            })
+            .collect();
+        let dt = 1.0 / 60.0;
+        let mut max_speed = 0.0_f64;
+        for _ in 0..1800 {
+            world.step(dt);
+            for &h in &handles {
+                let b = world.body(h).unwrap();
+                assert!(
+                    b.position().iter().all(|v| v.is_finite()),
+                    "body {h:?} exploded: {:?}",
+                    b.position()
+                );
+                max_speed = max_speed.max(b.linear_velocity.norm());
+            }
+        }
+        for (i, &h) in handles.iter().enumerate() {
+            let y = world.body(h).unwrap().position()[1];
+            let expected = 0.5 + i as f64 * 1.0;
+            assert!(
+                (y - expected).abs() < 0.3,
+                "box {i} should settle near y={expected}, got y={y}"
+            );
+        }
+        assert!(
+            max_speed < 10.0,
+            "peak speed {max_speed} m/s during 10-box stack settle -- explosive impulse"
+        );
     }
 
     #[test]
