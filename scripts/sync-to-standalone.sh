@@ -74,6 +74,27 @@ if [ ! -f "${SYMTROPY_DIR}/Cargo.toml" ]; then
     error "Cannot find ${SYMTROPY_DIR}/Cargo.toml — run from monorepo root"
 fi
 
+# --- Snapshot committed HEAD, not the live working tree ----------------------
+#
+# This monorepo routinely runs 12+ concurrent Claude/human sessions, any of
+# which can have uncommitted edits sitting in symtropy/ at the moment this
+# script runs (mid-refactor, scratch experiments, another session's WIP).
+# Syncing straight from the live working directory means that uncommitted
+# state -- good or bad, understood or not -- gets swept into a PUBLIC push
+# with no way to tell the two apart short of manually inspecting `git status`
+# first. Found in practice 2026-07-28: a real, necessary, already-once-
+# committed fix was sitting uncommitted in the tree (silently reverted by an
+# unrelated later commit) right when this script was about to run; it
+# happened to be safe to include, but only after manual investigation.
+# Snapshotting `git archive HEAD` instead makes "what gets published"
+# strictly equal to "what's committed" -- no judgment call needed on a
+# future run, regardless of what any other session leaves lying around.
+SNAPSHOT_DIR="$(mktemp -d /tmp/symtropy-sync-snapshot.XXXXXX)"
+trap 'rm -rf "${SNAPSHOT_DIR}"' EXIT
+info "Snapshotting committed HEAD (not the live working tree) into ${SNAPSHOT_DIR}..."
+git -C "${MONOREPO_ROOT}" archive HEAD -- symtropy | tar -x -C "${SNAPSHOT_DIR}"
+SYMTROPY_DIR="${SNAPSHOT_DIR}/symtropy"
+
 info "Monorepo root: ${MONOREPO_ROOT}"
 info "Symtropy dir:  ${SYMTROPY_DIR}"
 info "Standalone:    ${STANDALONE_REPO}"
@@ -1329,7 +1350,14 @@ if $FORCE; then
 else
     printf "${YELLOW}Commit with message:${RESET} %s\n" "$COMMIT_MSG"
     printf "Proceed? [y/N] "
-    read -r confirm
+    # `read` returns non-zero on EOF (e.g. stdin redirected from /dev/null,
+    # or a wrapper script that doesn't attach a real terminal); under
+    # `set -e` that non-zero status kills the whole script right here,
+    # BEFORE the abort branch below ever runs -- so the standalone repo is
+    # left staged-but-uncommitted with no "Aborted" message and no cleanup.
+    # Found in practice 2026-07-28 running this non-interactively. Guard it
+    # so EOF is treated the same as an explicit "no".
+    read -r confirm || confirm=""
     if [[ ! "$confirm" =~ ^[Yy]$ ]]; then
         warn "Aborted — changes staged but not committed"
         git -C "${STANDALONE_REPO}" reset HEAD -- . >/dev/null 2>&1
@@ -1349,7 +1377,9 @@ if $FORCE; then
     ok "Pushed to origin/main"
 else
     printf "${YELLOW}Push to origin/main?${RESET} [y/N] "
-    read -r push_confirm
+    # See the matching comment on the commit confirmation above -- same EOF
+    # hazard, same guard.
+    read -r push_confirm || push_confirm=""
     if [[ "$push_confirm" =~ ^[Yy]$ ]]; then
         git -C "${STANDALONE_REPO}" push origin main
         ok "Pushed to origin/main"
