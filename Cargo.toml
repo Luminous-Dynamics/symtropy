@@ -173,6 +173,9 @@ members = [
 [lints.clippy]
 all = "warn"
 
+[lints.rust]
+unexpected_cfgs = { level = "allow", check-cfg = ['cfg(feature, values("atlas", "mycelix"))'] }
+
 [profile.dev]
 opt-level = 1
 
