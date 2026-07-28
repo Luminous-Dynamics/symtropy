@@ -78,10 +78,10 @@ pub fn flashlight_system(
     if let Some(mut sprite) = opt_sprite {
         sprite.color = color;
     }
-    if let Some(mat_handle) = opt_mat {
-        if let Some(mut mat) = materials.get_mut(&mat_handle.0) {
-            mat.base_color = color;
-        }
+    if let Some(mat_handle) = opt_mat
+        && let Some(mut mat) = materials.get_mut(&mat_handle.0)
+    {
+        mat.base_color = color;
     }
 }
 
@@ -141,10 +141,10 @@ pub fn extraction_system(
             if let Some(mut sprite) = opt_sprite {
                 sprite.color = color;
             }
-            if let Some(mat_handle) = opt_mat {
-                if let Some(mut mat) = materials.get_mut(&mat_handle.0) {
-                    mat.base_color = color;
-                }
+            if let Some(mat_handle) = opt_mat
+                && let Some(mut mat) = materials.get_mut(&mat_handle.0)
+            {
+                mat.base_color = color;
             }
         } else {
             core.being_extracted = false;
@@ -155,10 +155,10 @@ pub fn extraction_system(
                 if let Some(mut sprite) = opt_sprite {
                     sprite.color = color;
                 }
-                if let Some(mat_handle) = opt_mat {
-                    if let Some(mut mat) = materials.get_mut(&mat_handle.0) {
-                        mat.base_color = color;
-                    }
+                if let Some(mat_handle) = opt_mat
+                    && let Some(mut mat) = materials.get_mut(&mat_handle.0)
+                {
+                    mat.base_color = color;
                 }
             }
         }

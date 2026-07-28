@@ -30,65 +30,64 @@ pub fn tutorial_scenario_system(
                     pr4_pos = Some(tf.translation.truncate());
                 }
             }
-            if let Some(pump_ent) = tutorial.pump_entity {
-                if let Ok((_, tf, mut pump)) = water_pumps.get_mut(pump_ent) {
-                    // Ensure the pump is sabotaged initially
-                    pump.is_sabotaged = true;
-                    // If PR-4 is near the pump, move to next stage
-                    if let Some(p4_pos) = pr4_pos {
-                        if p4_pos.distance(tf.translation.truncate()) < 35.0 {
-                            tutorial.step = TutorialStep::PR4Repairing;
-                            feedback_writer.write(WorldFeedbackEvent {
-                                position: tf.translation.truncate(),
-                                message: "FIELD DECK: PR-4 REPAIR TRACE ACTIVE".to_string(),
-                                color: Color::srgb(0.9, 0.6, 0.2),
-                            });
-                        }
-                    }
+            if let Some(pump_ent) = tutorial.pump_entity
+                && let Ok((_, tf, mut pump)) = water_pumps.get_mut(pump_ent)
+            {
+                // Ensure the pump is sabotaged initially
+                pump.is_sabotaged = true;
+                // If PR-4 is near the pump, move to next stage
+                if let Some(p4_pos) = pr4_pos
+                    && p4_pos.distance(tf.translation.truncate()) < 35.0
+                {
+                    tutorial.step = TutorialStep::PR4Repairing;
+                    feedback_writer.write(WorldFeedbackEvent {
+                        position: tf.translation.truncate(),
+                        message: "FIELD DECK: PR-4 REPAIR TRACE ACTIVE".to_string(),
+                        color: Color::srgb(0.9, 0.6, 0.2),
+                    });
                 }
             }
         }
         TutorialStep::PR4Repairing => {
             // Check if pump efficiency reaches 0.7 (partial repair)
-            if let Some(pump_ent) = tutorial.pump_entity {
-                if let Ok((_, tf, pump)) = water_pumps.get(pump_ent) {
-                    if pump.efficiency >= 0.7 && !pump.is_sabotaged {
-                        tutorial.step = TutorialStep::CoopRepairing;
-                        feedback_writer.write(WorldFeedbackEvent {
-                            position: tf.translation.truncate(),
-                            message: "FIELD DECK: PUMP PARTIALLY ONLINE — CONTAMINATION REMAINS"
-                                .to_string(),
-                            color: Color::srgb(0.9, 0.6, 0.2),
-                        });
-                    }
-                }
+            if let Some(pump_ent) = tutorial.pump_entity
+                && let Ok((_, tf, pump)) = water_pumps.get(pump_ent)
+                && pump.efficiency >= 0.7
+                && !pump.is_sabotaged
+            {
+                tutorial.step = TutorialStep::CoopRepairing;
+                feedback_writer.write(WorldFeedbackEvent {
+                    position: tf.translation.truncate(),
+                    message: "FIELD DECK: PUMP PARTIALLY ONLINE — CONTAMINATION REMAINS"
+                        .to_string(),
+                    color: Color::srgb(0.9, 0.6, 0.2),
+                });
             }
         }
         TutorialStep::CoopRepairing => {
             // Wait for efficiency to reach 1.0
-            if let Some(pump_ent) = tutorial.pump_entity {
-                if let Ok((_, tf, pump)) = water_pumps.get(pump_ent) {
-                    if pump.efficiency >= 1.0 {
-                        tutorial.step = TutorialStep::LeoStressRising;
+            if let Some(pump_ent) = tutorial.pump_entity
+                && let Ok((_, tf, pump)) = water_pumps.get(pump_ent)
+                && pump.efficiency >= 1.0
+            {
+                tutorial.step = TutorialStep::LeoStressRising;
 
-                        if let Some(ref mut sm) = settlement_metrics {
-                            sm.water = 1.0;
-                        }
+                if let Some(ref mut sm) = settlement_metrics {
+                    sm.water = 1.0;
+                }
 
-                        feedback_writer.write(WorldFeedbackEvent {
-                            position: tf.translation.truncate(),
-                            message: "COOPERATIVE REPAIR COMPLETE — FLOW RESTORED".to_string(),
-                            color: Color::srgb(0.2, 0.9, 0.4),
-                        });
+                feedback_writer.write(WorldFeedbackEvent {
+                    position: tf.translation.truncate(),
+                    message: "COOPERATIVE REPAIR COMPLETE — FLOW RESTORED".to_string(),
+                    color: Color::srgb(0.2, 0.9, 0.4),
+                });
 
-                        // Force Leo's stress high to trigger the next phase
-                        for (entity, npc, _) in &npcs {
-                            if npc.name.contains("Leo") {
-                                if let Ok(mut needs) = needs_query.get_mut(entity) {
-                                    needs.allostatic_load = 0.55;
-                                }
-                            }
-                        }
+                // Force Leo's stress high to trigger the next phase
+                for (entity, npc, _) in &npcs {
+                    if npc.name.contains("Leo")
+                        && let Ok(mut needs) = needs_query.get_mut(entity)
+                    {
+                        needs.allostatic_load = 0.55;
                     }
                 }
             }

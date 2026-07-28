@@ -295,8 +295,8 @@ pub fn setup_world(
         if i % 2 != 0 {
             continue;
         }
-        let wx = (cx as f32 - cols as f32 / 2.0) * TILE_SIZE;
-        let wy = (rows as f32 / 2.0 - cy as f32) * TILE_SIZE;
+        let wx = (cx as f32 - cols / 2.0) * TILE_SIZE;
+        let wy = (rows / 2.0 - cy as f32) * TILE_SIZE;
 
         // Skip if too close to player (already have spawn well) or core
         let near_player = (wx - player_pos.x).abs() < TILE_SIZE * 3.0
@@ -543,15 +543,15 @@ pub fn leviathan_visual_system(
     }
 
     // Chase player when hunting
-    if leviathan.phase == SleepPhase::Hunting {
-        if let Ok(player_tf) = player.single() {
-            for mut tf in &mut lev_transform {
-                let dir = player_tf.translation.truncate() - tf.translation.truncate();
-                if dir.length() > 5.0 {
-                    let move_vec = dir.normalize() * 80.0 * time.delta_secs();
-                    tf.translation.x += move_vec.x;
-                    tf.translation.y += move_vec.y;
-                }
+    if leviathan.phase == SleepPhase::Hunting
+        && let Ok(player_tf) = player.single()
+    {
+        for mut tf in &mut lev_transform {
+            let dir = player_tf.translation.truncate() - tf.translation.truncate();
+            if dir.length() > 5.0 {
+                let move_vec = dir.normalize() * 80.0 * time.delta_secs();
+                tf.translation.x += move_vec.x;
+                tf.translation.y += move_vec.y;
             }
         }
     }
@@ -572,8 +572,8 @@ pub fn visual_stress_system(
     };
 
     // Background shifts from dark blue → dark red with stress/danger
-    let stress_red = (0.02f64 + load as f64 * 0.1f64 + danger as f64 * 0.15f64).min(0.3f64);
-    let base_blue = (0.04f64 - danger as f64 * 0.03f64).max(0.01f64);
+    let stress_red = (0.02f64 + load as f64 * 0.1f64 + danger * 0.15f64).min(0.3f64);
+    let base_blue = (0.04f64 - danger * 0.03f64).max(0.01f64);
     clear_color.0 = Color::srgb(stress_red as f32, 0.02f32, base_blue as f32);
 }
 

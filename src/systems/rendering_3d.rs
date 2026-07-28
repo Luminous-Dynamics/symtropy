@@ -1685,14 +1685,14 @@ pub fn machine_state_visual_system_3d(
 
             if status_bar.is_some() {
                 *visibility = Visibility::Visible;
-                if let Some(child_material) = child_material {
-                    if let Some(mut material) = materials.get_mut(&child_material.0) {
-                        *material = if junction.is_damaged {
-                            waterworks_material(WARNING_AMBER)
-                        } else {
-                            waterworks_emissive_material(REPAIR_TAG, 0.25)
-                        };
-                    }
+                if let Some(child_material) = child_material
+                    && let Some(mut material) = materials.get_mut(&child_material.0)
+                {
+                    *material = if junction.is_damaged {
+                        waterworks_material(WARNING_AMBER)
+                    } else {
+                        waterworks_emissive_material(REPAIR_TAG, 0.25)
+                    };
                 }
             }
 
@@ -1751,14 +1751,14 @@ pub fn machine_state_visual_system_3d(
 
             if status_panel.is_some() {
                 *visibility = Visibility::Visible;
-                if let Some(child_material) = child_material {
-                    if let Some(mut material) = materials.get_mut(&child_material.0) {
-                        *material = if fabricator.is_active {
-                            waterworks_emissive_material(FIELD_DECK_CYAN, 0.32)
-                        } else {
-                            waterworks_emissive_material(REPAIR_TAG, 0.2)
-                        };
-                    }
+                if let Some(child_material) = child_material
+                    && let Some(mut material) = materials.get_mut(&child_material.0)
+                {
+                    *material = if fabricator.is_active {
+                        waterworks_emissive_material(FIELD_DECK_CYAN, 0.32)
+                    } else {
+                        waterworks_emissive_material(REPAIR_TAG, 0.2)
+                    };
                 }
             }
 

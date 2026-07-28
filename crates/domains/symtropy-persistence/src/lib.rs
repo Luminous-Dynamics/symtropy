@@ -207,6 +207,24 @@ impl SaveStore {
     }
 }
 
+/// Flush directory metadata so that a create/rename inside it survives a crash.
+///
+/// **Unix only — on Windows this is deliberately a no-op**, and callers do not
+/// get the same durability guarantee there. The standard library offers no
+/// portable way to obtain a directory handle to fsync on Windows
+/// (`File::open` on a directory fails), so there is nothing to flush. NTFS
+/// metadata journaling still makes the rename itself atomic, but
+/// "durable once this returns" holds only on Unix; treat Windows as
+/// best-effort.
+///
+/// The `path` parameter is genuinely unused on non-Unix targets, hence the
+/// scoped `cfg_attr` — it keeps `-D warnings` green there without weakening
+/// `unused_variables` on Unix, where the parameter *is* used.
+///
+/// Found 2026-07-28. This had been invisible for five weeks because CI's
+/// default `fail-fast` cancelled the Windows leg before it could report; the
+/// Linux and macOS legs never see this code path.
+#[cfg_attr(not(unix), allow(unused_variables))]
 fn sync_directory(path: &Path) -> Result<(), PersistenceError> {
     #[cfg(unix)]
     {

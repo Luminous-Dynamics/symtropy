@@ -87,7 +87,7 @@ pub fn player_consciousness_system(
     let working_memory = (1.0f64 - load as f64 * 0.6f64).max(0.1f64);
     let attention = (stress.arousal as f64 * 0.3f64 + 0.5f64).min(1.0f64);
     let recurrence = (harmony.total_energy as f64 / 8.0f64).min(1.0f64);
-    let embodiment = (1.0_f64 - danger as f64 * 0.3f64).max(0.2f64);
+    let embodiment = (1.0_f64 - danger * 0.3f64).max(0.2f64);
     let knowledge = (harmony
         .activations
         .iter()

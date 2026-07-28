@@ -346,17 +346,12 @@ pub struct HarmonyComponent {
     pub activations: [f32; 8],
 }
 
-/// Epistemic tag on a scavenged item
-/// - wraps REAL mycelix-core-types::u8.
-/// E0=Unverifiable, E1=Anecdotal, E2=Observable, E3=Measurable, E4=CryptographicallyVerifiable.
-#[derive(Component, Debug, Clone, Copy, PartialEq, Eq)]
+/// Epistemic tag on a scavenged item — wraps REAL `mycelix-core-types::u8`.
+///
+/// E0=Unverifiable, E1=Anecdotal, E2=Observable, E3=Measurable,
+/// E4=CryptographicallyVerifiable.
+#[derive(Component, Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub struct EpistemicTag(pub u8);
-
-impl Default for EpistemicTag {
-    fn default() -> Self {
-        Self(0) // E0: Unverifiable
-    }
-}
 
 impl EpistemicTag {
     pub fn label(&self) -> &'static str {

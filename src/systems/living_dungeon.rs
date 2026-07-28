@@ -197,12 +197,11 @@ pub fn living_dungeon_system(
                         && tr > 0
                         && tr < grid.rows - 1
                         && !grid.cells.get(&(tc, tr)).copied().unwrap_or(true)
+                        && rng.gen_bool(0.1)
                     {
-                        if rng.gen_bool(0.1) {
-                            // 10% chance per adjacent wall
-                            grid.cells.insert((tc, tr), true);
-                            changes += 1;
-                        }
+                        // 10% chance per adjacent wall
+                        grid.cells.insert((tc, tr), true);
+                        changes += 1;
                     }
                 }
             }

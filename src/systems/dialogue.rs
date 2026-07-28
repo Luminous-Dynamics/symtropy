@@ -139,12 +139,12 @@ fn bottleneck_to_dialogue(
             ),
         };
     } else if name.contains("PR-4") {
-        if let Some(n) = needs {
-            if n.allostatic_load > crate::systems::psychology::BURNOUT_THRESHOLD {
-                return format!(
-                    "{name}: \"WARNING: Actuator thermal overload. Self-preservation protocol active.\""
-                );
-            }
+        if let Some(n) = needs
+            && n.allostatic_load > crate::systems::psychology::BURNOUT_THRESHOLD
+        {
+            return format!(
+                "{name}: \"WARNING: Actuator thermal overload. Self-preservation protocol active.\""
+            );
         }
         return match bottleneck {
             "phi" => format!(

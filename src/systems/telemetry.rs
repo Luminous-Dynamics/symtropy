@@ -256,16 +256,16 @@ pub fn hydrate_gpu_telemetry_system(
             continue;
         };
 
-        if let Some(target_machine) = drone.target_machine {
-            if let Some(&t_idx) = entity_to_index.get(&target_machine) {
-                telemetry.links.push(LinkTelemetryGpu {
-                    source_node_idx: d_idx,
-                    target_node_idx: t_idx,
-                    link_thickness: 3.5,
-                    particle_velocity: 25.0,
-                    link_color: Vec4::new(1.0, 0.2, 0.0, 0.9), // Glowing crimson warning link
-                });
-            }
+        if let Some(target_machine) = drone.target_machine
+            && let Some(&t_idx) = entity_to_index.get(&target_machine)
+        {
+            telemetry.links.push(LinkTelemetryGpu {
+                source_node_idx: d_idx,
+                target_node_idx: t_idx,
+                link_thickness: 3.5,
+                particle_velocity: 25.0,
+                link_color: Vec4::new(1.0, 0.2, 0.0, 0.9), // Glowing crimson warning link
+            });
         }
     }
 }

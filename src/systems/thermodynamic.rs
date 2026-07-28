@@ -239,20 +239,20 @@ pub fn collapse_visual_system(
             if let Some(mut sprite) = opt_sprite {
                 sprite.color = Color::srgba(0.3, 0.3, 0.3, 0.7);
             }
-            if let Some(mat_handle) = opt_mat {
-                if let Some(mut mat) = materials.get_mut(&mat_handle.0) {
-                    mat.base_color = Color::srgba(0.3, 0.3, 0.3, 0.7);
-                }
+            if let Some(mat_handle) = opt_mat
+                && let Some(mut mat) = materials.get_mut(&mat_handle.0)
+            {
+                mat.base_color = Color::srgba(0.3, 0.3, 0.3, 0.7);
             }
             commands.entity(entity).insert(EnergyCollapsed);
         } else if !is_collapsed && collapsed_marker.is_some() {
             if let Some(mut sprite) = opt_sprite {
                 sprite.color = Color::srgba(1.0, 1.0, 1.0, 1.0);
             }
-            if let Some(mat_handle) = opt_mat {
-                if let Some(mut mat) = materials.get_mut(&mat_handle.0) {
-                    mat.base_color = Color::srgba(1.0, 1.0, 1.0, 1.0);
-                }
+            if let Some(mat_handle) = opt_mat
+                && let Some(mut mat) = materials.get_mut(&mat_handle.0)
+            {
+                mat.base_color = Color::srgba(1.0, 1.0, 1.0, 1.0);
             }
             commands.entity(entity).remove::<EnergyCollapsed>();
         }

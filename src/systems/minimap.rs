@@ -12,25 +12,13 @@ use crate::resources::TileGrid;
 const EXPLORE_RADIUS: i32 = 6;
 
 /// Tracks which tiles have been explored.
-#[derive(Resource)]
+#[derive(Resource, Default)]
 pub struct ExploredTiles {
     pub explored: Vec<Vec<bool>>,
     pub width: usize,
     pub height: usize,
     pub explore_count: usize,
     pub total_walkable: usize,
-}
-
-impl Default for ExploredTiles {
-    fn default() -> Self {
-        Self {
-            explored: Vec::new(),
-            width: 0,
-            height: 0,
-            explore_count: 0,
-            total_walkable: 0,
-        }
-    }
 }
 
 /// Initialize explored tiles from the tile grid.

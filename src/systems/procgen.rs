@@ -144,10 +144,10 @@ impl BspNode {
             return Some(room.center());
         }
         // Try left child first, then right
-        if let Some(ref left) = self.left {
-            if let Some(c) = left.find_room_center() {
-                return Some(c);
-            }
+        if let Some(ref left) = self.left
+            && let Some(c) = left.find_room_center()
+        {
+            return Some(c);
         }
         if let Some(ref right) = self.right {
             return right.find_room_center();
@@ -168,12 +168,12 @@ impl BspNode {
     }
 }
 
-fn carve_corridor(tiles: &mut Vec<Vec<u8>>, from: (usize, usize), to: (usize, usize)) {
+fn carve_corridor(tiles: &mut [Vec<u8>], from: (usize, usize), to: (usize, usize)) {
     carve_corridor_width(tiles, from, to, 2);
 }
 
 fn carve_corridor_width(
-    tiles: &mut Vec<Vec<u8>>,
+    tiles: &mut [Vec<u8>],
     from: (usize, usize),
     to: (usize, usize),
     width: usize,
@@ -294,14 +294,15 @@ fn generate_dungeon_with_config(
     root.split_with_params(&mut rng, bsp_depth, min_room, min_split);
     root.carve(&mut tiles);
 
-    // Ensure border is all walls
-    for x in 0..width {
-        tiles[0][x] = 0;
-        tiles[height - 1][x] = 0;
-    }
-    for y in 0..height {
-        tiles[y][0] = 0;
-        tiles[y][width - 1] = 0;
+    // Ensure border is all walls. `tiles` is exactly height x width
+    // (`vec![vec![0u8; width]; height]` above), so filling the top and bottom
+    // rows wholesale is equivalent to the previous `for x in 0..width` loop,
+    // and iterating every row covers the previous `for y in 0..height`.
+    tiles[0].fill(0);
+    tiles[height - 1].fill(0);
+    for row in tiles.iter_mut() {
+        row[0] = 0;
+        row[width - 1] = 0;
     }
 
     // Find rooms for player and core placement
@@ -334,11 +335,23 @@ fn generate_dungeon_with_config(
         let py = rooms[0].1.clamp(1, height - 2);
         let px = rooms[0].0.clamp(1, width - 2);
         tiles[py][px] = 3;
-        // Place core somewhere walkable
-        for y in 1..height - 1 {
-            for x in 1..width - 1 {
-                if tiles[y][x] == 1 {
-                    tiles[y][x] = 2;
+        // Place core somewhere walkable.
+        //
+        // NOTE: the `break` exits only the inner loop, so this marks the first
+        // walkable tile in EVERY row, not one core overall. Preserved exactly
+        // as-is here — this rewrite is a lint fix (clippy::needless_range_loop),
+        // not a behaviour change — but the single-word comment above and the
+        // `break` together suggest one core was intended. Worth a look by
+        // whoever owns dungeon generation.
+        //
+        // `.take(n).skip(1)` yields indices 1..n, matching the original
+        // `1..height - 1` / `1..width - 1` ranges. Clippy's own suggestion here
+        // is wrong: it proposes iterating `tiles` for the INNER loop too, which
+        // would index rows where the original indexes columns within a row.
+        for row in tiles.iter_mut().take(height - 1).skip(1) {
+            for tile in row.iter_mut().take(width - 1).skip(1) {
+                if *tile == 1 {
+                    *tile = 2;
                     break;
                 }
             }

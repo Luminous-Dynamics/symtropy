@@ -287,17 +287,16 @@ pub fn npc_collapse_recovery_system(
         }
 
         // Player presses T to contribute TEND toward recovery.
-        if keyboard.just_pressed(KeyCode::KeyT) {
-            if let Ok(mut tend) = player_tend.single_mut() {
-                if tend.can_spend(1) {
-                    tend.balance -= 1;
-                    collapsed.recovery_tend_spent += 1;
-                    eprintln!(
-                        "[psychology] Recovery TEND contributed ({}/3)",
-                        collapsed.recovery_tend_spent
-                    );
-                }
-            }
+        if keyboard.just_pressed(KeyCode::KeyT)
+            && let Ok(mut tend) = player_tend.single_mut()
+            && tend.can_spend(1)
+        {
+            tend.balance -= 1;
+            collapsed.recovery_tend_spent += 1;
+            eprintln!(
+                "[psychology] Recovery TEND contributed ({}/3)",
+                collapsed.recovery_tend_spent
+            );
         }
 
         // Check if recovery threshold met.
@@ -344,10 +343,10 @@ pub fn npc_visual_state_system(
                 sprite.color = Color::srgb(0.3, 0.3, 0.3);
                 sprite.custom_size = Some(Vec2::splat(12.0));
             }
-            if let Some(mat_handle) = opt_mat {
-                if let Some(mut mat) = materials.get_mut(&mat_handle.0) {
-                    mat.base_color = Color::srgb(0.3, 0.3, 0.3);
-                }
+            if let Some(mat_handle) = opt_mat
+                && let Some(mut mat) = materials.get_mut(&mat_handle.0)
+            {
+                mat.base_color = Color::srgb(0.3, 0.3, 0.3);
             }
             transform.scale = Vec3::splat(12.0 / 16.0);
             continue;

@@ -162,6 +162,13 @@ pub struct ConsciousnessField<const D: usize> {
 }
 
 #[cfg(not(feature = "consciousness-runtime"))]
+impl<const D: usize> Default for ConsciousnessField<D> {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+#[cfg(not(feature = "consciousness-runtime"))]
 impl<const D: usize> ConsciousnessField<D> {
     pub fn new() -> Self {
         Self {
@@ -322,6 +329,13 @@ pub struct PlayerStressModel {
 }
 
 #[cfg(not(feature = "biometrics-runtime"))]
+impl Default for PlayerStressModel {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+#[cfg(not(feature = "biometrics-runtime"))]
 impl PlayerStressModel {
     pub fn new() -> Self {
         Self {
@@ -346,19 +360,10 @@ impl PlayerStressModel {
 }
 
 /// Player behavioral biometrics state.
-#[derive(Resource)]
+#[derive(Resource, Default)]
 pub struct BiometricsCtx {
     pub encoder: InputTelemetryEncoder,
     pub model: PlayerStressModel,
-}
-
-impl Default for BiometricsCtx {
-    fn default() -> Self {
-        Self {
-            encoder: InputTelemetryEncoder::new(),
-            model: PlayerStressModel::new(),
-        }
-    }
 }
 
 /// Leviathan sleep phases.

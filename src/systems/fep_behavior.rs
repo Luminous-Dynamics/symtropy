@@ -170,13 +170,11 @@ pub fn fep_behavior_system(
         );
 
         // EMERGENT CRISIS MODIFIERS:
-        if npc_phi > 0.6 {
-            if settlement.water < 0.3 {
-                // Seek the Water Pump (assumed to be at the last room center, near the end)
-                if let Some((wx, wy)) = well_data.last().map(|(p, _)| (p[0], p[1])) {
-                    let to_pump = nalgebra::SVector::from([wx - pos[0], wy - pos[1]]).normalize();
-                    direction = direction * 0.5 + to_pump * 0.5;
-                }
+        if npc_phi > 0.6 && settlement.water < 0.3 {
+            // Seek the Water Pump (assumed to be at the last room center, near the end)
+            if let Some((wx, wy)) = well_data.last().map(|(p, _)| (p[0], p[1])) {
+                let to_pump = nalgebra::SVector::from([wx - pos[0], wy - pos[1]]).normalize();
+                direction = direction * 0.5 + to_pump * 0.5;
             }
         }
 
@@ -189,7 +187,7 @@ pub fn fep_behavior_system(
                 if junction.is_damaged {
                     let j_pos = junction_tf.translation.truncate();
                     let dist = npc_pos.distance(j_pos);
-                    if closest_junction.map_or(true, |(_, d)| dist < d) {
+                    if closest_junction.is_none_or(|(_, d)| dist < d) {
                         closest_junction = Some((j_pos, dist));
                     }
                 }
@@ -209,38 +207,35 @@ pub fn fep_behavior_system(
                     .iter()
                     .find(|info| info.name.contains("Kael"))
                     .map(|info| info.pos);
-                if let Some(kael_p) = kael_pos {
-                    if npc_pos.distance(kael_p) < 100.0 {
-                        if let Some(ref mut p) = psych {
-                            p.allostatic_load =
-                                (p.allostatic_load - 0.05 * time.delta_secs()).max(0.0);
-                        }
-                    }
+                if let Some(kael_p) = kael_pos
+                    && npc_pos.distance(kael_p) < 100.0
+                    && let Some(ref mut p) = psych
+                {
+                    p.allostatic_load = (p.allostatic_load - 0.05 * time.delta_secs()).max(0.0);
                 }
             }
         }
 
         // Soren (Archivist) - Attracted to WaterPump during CoopRepairing step of the tutorial
-        if npc.name.contains("Soren") {
-            if let Some(ref tutorial) = tutorial_res {
-                if tutorial.step == TutorialStep::CoopRepairing {
-                    let mut closest_pump: Option<(Vec2, f32)> = None;
-                    for (pump_tf, _) in &water_pumps {
-                        let p_pos = pump_tf.translation.truncate();
-                        let dist = npc_pos.distance(p_pos);
-                        if closest_pump.map_or(true, |(_, d)| dist < d) {
-                            closest_pump = Some((p_pos, dist));
-                        }
-                    }
-                    if let Some((p_pos, _)) = closest_pump {
-                        let to_pump = nalgebra::SVector::from([
-                            (p_pos.x - npc_pos.x) as f64,
-                            (p_pos.y - npc_pos.y) as f64,
-                        ])
-                        .normalize();
-                        direction = direction * 0.2 + to_pump * 0.8;
-                    }
+        if npc.name.contains("Soren")
+            && let Some(ref tutorial) = tutorial_res
+            && tutorial.step == TutorialStep::CoopRepairing
+        {
+            let mut closest_pump: Option<(Vec2, f32)> = None;
+            for (pump_tf, _) in &water_pumps {
+                let p_pos = pump_tf.translation.truncate();
+                let dist = npc_pos.distance(p_pos);
+                if closest_pump.is_none_or(|(_, d)| dist < d) {
+                    closest_pump = Some((p_pos, dist));
                 }
+            }
+            if let Some((p_pos, _)) = closest_pump {
+                let to_pump = nalgebra::SVector::from([
+                    (p_pos.x - npc_pos.x) as f64,
+                    (p_pos.y - npc_pos.y) as f64,
+                ])
+                .normalize();
+                direction = direction * 0.2 + to_pump * 0.8;
             }
         }
 
@@ -250,7 +245,7 @@ pub fn fep_behavior_system(
             for info in &npc_infos {
                 if info.entity != entity && info.allostatic_load > 0.4 {
                     let dist = npc_pos.distance(info.pos);
-                    if closest_stressed.map_or(true, |(_, d)| dist < d) {
+                    if closest_stressed.is_none_or(|(_, d)| dist < d) {
                         closest_stressed = Some((info.pos, dist));
                     }
                 }
@@ -271,10 +266,8 @@ pub fn fep_behavior_system(
             for (drone_tf, _) in &drones {
                 let d_pos = drone_tf.translation.truncate();
                 let dist = npc_pos.distance(d_pos);
-                if dist <= 250.0 {
-                    if closest_drone.map_or(true, |(_, d)| dist < d) {
-                        closest_drone = Some((d_pos, dist));
-                    }
+                if dist <= 250.0 && closest_drone.is_none_or(|(_, d)| dist < d) {
+                    closest_drone = Some((d_pos, dist));
                 }
             }
             if let Some((d_pos, _)) = closest_drone {
@@ -299,7 +292,7 @@ pub fn fep_behavior_system(
                 if pump.is_sabotaged || is_under_coop_tutorial {
                     let p_pos = pump_tf.translation.truncate();
                     let dist = npc_pos.distance(p_pos);
-                    if closest_pump.map_or(true, |(_, d)| dist < d) {
+                    if closest_pump.is_none_or(|(_, d)| dist < d) {
                         closest_pump = Some((p_pos, dist));
                     }
                 }
@@ -497,66 +490,64 @@ pub fn npc_action_system(
             for (other_entity, other_npc, other_tf) in &actors {
                 if other_entity != actor_entity {
                     let other_pos = other_tf.translation.truncate();
-                    if npc_pos.distance(other_pos) < 30.0 {
-                        if let Ok(mut other_psych) = needs_query.get_mut(other_entity) {
-                            if other_psych.allostatic_load > 0.4 {
-                                let kael_pos = actors
-                                    .iter()
-                                    .find(|(_, o_npc, _)| o_npc.name.contains("Kael"))
-                                    .map(|(_, _, o_tf)| o_tf.translation.truncate());
-                                let kael_far =
-                                    kael_pos.map_or(true, |kp| other_pos.distance(kp) > 120.0);
+                    if npc_pos.distance(other_pos) < 30.0
+                        && let Ok(mut other_psych) = needs_query.get_mut(other_entity)
+                        && other_psych.allostatic_load > 0.4
+                    {
+                        let kael_pos = actors
+                            .iter()
+                            .find(|(_, o_npc, _)| o_npc.name.contains("Kael"))
+                            .map(|(_, _, o_tf)| o_tf.translation.truncate());
+                        let kael_far = kael_pos.is_none_or(|kp| other_pos.distance(kp) > 120.0);
 
-                                if kael_far && other_npc.name.contains("Leo") {
-                                    // Relapse state
-                                    other_psych.allostatic_load =
-                                        (other_psych.allostatic_load + 0.05 * dt).min(1.0);
+                        if kael_far && other_npc.name.contains("Leo") {
+                            // Relapse state
+                            other_psych.allostatic_load =
+                                (other_psych.allostatic_load + 0.05 * dt).min(1.0);
 
-                                    // Trigger relapse warning event and label slowly
-                                    if rand::random::<f32>() < 0.01 {
-                                        action_writer.write(NpcActionEvent {
-                                            actor: actor_entity,
-                                            actor_name: npc.name.clone(),
-                                            target: Some(other_entity),
-                                            target_name: other_npc.name.clone(),
-                                            action_kind: NpcActionKind::HealStress,
-                                            intensity: 0.0,
-                                            success_delta: -0.1,
-                                            settlement_metric_delta: -0.05,
-                                        });
-                                        feedback_writer.write(WorldFeedbackEvent {
-                                            position: other_pos,
-                                            message: "LEO RELAPSING (KAEL FAR)".to_string(),
-                                            color: Color::srgb(0.9, 0.2, 0.2),
-                                        });
-                                    }
-                                } else {
-                                    // Successful healing
-                                    let old_load = other_psych.allostatic_load;
-                                    other_psych.allostatic_load =
-                                        (other_psych.allostatic_load - 0.15 * dt).max(0.0);
-                                    other_psych.social_satiation =
-                                        (other_psych.social_satiation + 0.1 * dt).min(1.0);
+                            // Trigger relapse warning event and label slowly
+                            if rand::random::<f32>() < 0.01 {
+                                action_writer.write(NpcActionEvent {
+                                    actor: actor_entity,
+                                    actor_name: npc.name.clone(),
+                                    target: Some(other_entity),
+                                    target_name: other_npc.name.clone(),
+                                    action_kind: NpcActionKind::HealStress,
+                                    intensity: 0.0,
+                                    success_delta: -0.1,
+                                    settlement_metric_delta: -0.05,
+                                });
+                                feedback_writer.write(WorldFeedbackEvent {
+                                    position: other_pos,
+                                    message: "LEO RELAPSING (KAEL FAR)".to_string(),
+                                    color: Color::srgb(0.9, 0.2, 0.2),
+                                });
+                            }
+                        } else {
+                            // Successful healing
+                            let old_load = other_psych.allostatic_load;
+                            other_psych.allostatic_load =
+                                (other_psych.allostatic_load - 0.15 * dt).max(0.0);
+                            other_psych.social_satiation =
+                                (other_psych.social_satiation + 0.1 * dt).min(1.0);
 
-                                    // Emit healer success event
-                                    if old_load > 0.4 && other_psych.allostatic_load <= 0.4 {
-                                        action_writer.write(NpcActionEvent {
-                                            actor: actor_entity,
-                                            actor_name: npc.name.clone(),
-                                            target: Some(other_entity),
-                                            target_name: other_npc.name.clone(),
-                                            action_kind: NpcActionKind::HealStress,
-                                            intensity: 1.0,
-                                            success_delta: 0.15,
-                                            settlement_metric_delta: 0.1,
-                                        });
-                                        feedback_writer.write(WorldFeedbackEvent {
-                                            position: other_pos,
-                                            message: "CREW STRESS STABILIZED (-15%)".to_string(),
-                                            color: Color::srgb(0.2, 0.8, 0.9),
-                                        });
-                                    }
-                                }
+                            // Emit healer success event
+                            if old_load > 0.4 && other_psych.allostatic_load <= 0.4 {
+                                action_writer.write(NpcActionEvent {
+                                    actor: actor_entity,
+                                    actor_name: npc.name.clone(),
+                                    target: Some(other_entity),
+                                    target_name: other_npc.name.clone(),
+                                    action_kind: NpcActionKind::HealStress,
+                                    intensity: 1.0,
+                                    success_delta: 0.15,
+                                    settlement_metric_delta: 0.1,
+                                });
+                                feedback_writer.write(WorldFeedbackEvent {
+                                    position: other_pos,
+                                    message: "CREW STRESS STABILIZED (-15%)".to_string(),
+                                    color: Color::srgb(0.2, 0.8, 0.9),
+                                });
                             }
                         }
                     }
@@ -575,11 +566,11 @@ pub fn npc_action_system(
                     for (other_ent, _other_npc, other_tf) in &actors {
                         if other_ent != actor_entity {
                             let dist = other_tf.translation.truncate().distance(npc_pos);
-                            if dist < 150.0 {
-                                if let Ok(mut other_psych) = needs_query.get_mut(other_ent) {
-                                    other_psych.allostatic_load =
-                                        (other_psych.allostatic_load + 0.02 * dt).min(1.0);
-                                }
+                            if dist < 150.0
+                                && let Ok(mut other_psych) = needs_query.get_mut(other_ent)
+                            {
+                                other_psych.allostatic_load =
+                                    (other_psych.allostatic_load + 0.02 * dt).min(1.0);
                             }
                         }
                     }

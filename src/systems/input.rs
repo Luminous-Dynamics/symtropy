@@ -17,16 +17,16 @@ pub fn input_system(
     let ts = (time.elapsed_secs_f64() * 1000.0) as u64;
 
     // Mouse position → normalized coordinates
-    if let Ok(window) = windows.single() {
-        if let Some(pos) = window.cursor_position() {
-            let w = window.width().max(1.0);
-            let h = window.height().max(1.0);
-            biometrics.encoder.push_mouse(BiometricMouseSample {
-                x: pos.x / w,
-                y: pos.y / h,
-                timestamp_ms: ts,
-            });
-        }
+    if let Ok(window) = windows.single()
+        && let Some(pos) = window.cursor_position()
+    {
+        let w = window.width().max(1.0);
+        let h = window.height().max(1.0);
+        biometrics.encoder.push_mouse(BiometricMouseSample {
+            x: pos.x / w,
+            y: pos.y / h,
+            timestamp_ms: ts,
+        });
     }
 
     // Keystrokes

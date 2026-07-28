@@ -26,6 +26,12 @@ pub struct AiPlayer {
     pub decisions: u64,
 }
 
+impl Default for AiPlayer {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl AiPlayer {
     pub fn new() -> Self {
         let config = ActiveInferenceAgentConfig {
@@ -176,11 +182,14 @@ pub fn ai_player_system(
     // Build nearby agents list from NPCs
     let nearby: Vec<_> = npc_query
         .iter()
-        .filter_map(|tf| {
+        .map(|tf| {
             let npc_pos =
                 nalgebra::SVector::from([tf.translation.x as f64, tf.translation.y as f64]);
-            // Try to find harmony data (use default if not available)
-            Some((npc_pos, [0.5f64; 9]))
+            // Harmony data is not yet plumbed through from the NPC's own
+            // consciousness state; every entry uses the neutral 0.5 default.
+            // Was a `filter_map` returning unconditional `Some`, i.e. a `map`
+            // with extra ceremony — no element was ever filtered out.
+            (npc_pos, [0.5f64; 9])
         })
         .collect();
 
@@ -224,7 +233,7 @@ pub fn ai_player_system(
 
     // === SYMTHAEA'S VOICE: raw FEP telemetry, not chatbot ===
     // This is not dialogue. This is a consciousness reporting its thermodynamic state.
-    if ai.tick % 192 == 0 {
+    if ai.tick.is_multiple_of(192) {
         let state = if energy_frac <= 0.0 {
             "COLLAPSED. Motor authority zero. Awaiting epistemic offload from proximal agent."
         } else if energy_frac < 0.15 {

@@ -177,7 +177,40 @@ members = [
 ]
 
 [lints.clippy]
-all = "warn"
+# `priority = -1` is required: a lint GROUP listed alongside individual lint
+# overrides must have lower priority, or Cargo's own `lint_groups_priority`
+# lint rejects the manifest ("the order of the lints in the table is ignored
+# by Cargo"). Without it the two allows below are silently outranked by the
+# group and the build fails outright.
+all = { level = "warn", priority = -1 }
+
+# Package-scoped allows for two lints that fire on idiomatic Bevy, not on
+# defects. Added 2026-07-28 while clearing the 106 clippy errors that had been
+# blocking public CI (see SYMTROPY_EXECUTION_PLAN_2026-07-28.md).
+#
+# Every one of the 15 `too_many_arguments` hits is a Bevy ECS system
+# (`hud_system`, `psychology_tick_system`, `interaction_system_3d`, …). A Bevy
+# system takes one parameter per resource or query by design; the arity is the
+# dependency list, not an unstructured argument bag.
+#
+# Every one of the 30 `type_complexity` hits is a Bevy `Query<…>` parameter
+# carrying explicit generic filters, e.g.
+#   Query<(&Transform, &EnergyWell), (Without<Player>, With<Beacon>)>
+# The filter types ARE the correctness guarantee — Bevy uses them to prove
+# disjoint access at compile time — so "factoring parts into type definitions"
+# would hide the very thing worth reading.
+#
+# Scope is deliberate: this table applies to `symtropy-launcher` only. The
+# library crates keep the established per-site `#[allow(clippy::…)]`
+# convention (9 files: symtropy-physics/world.rs, manifold_gen.rs,
+# symtropy-terrain, symtropy-game-state, symtropy-rapier3d-bridge, …), which
+# is right for them — there an 8-argument function genuinely is a smell being
+# accepted case by case. The launcher is a pure Bevy application crate where
+# nearly every function in src/systems/ is an ECS system, so the lint is
+# systematically inapplicable rather than occasionally overridden, and 45
+# scattered attributes would bury the real ones.
+too_many_arguments = "allow"
+type_complexity = "allow"
 
 [profile.dev]
 opt-level = 1

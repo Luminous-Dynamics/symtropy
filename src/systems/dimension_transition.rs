@@ -26,9 +26,10 @@
 use bevy::prelude::*;
 
 /// Current dimension mode.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Resource)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Resource, Default)]
 pub enum DimensionMode {
     /// Top-down 2D. Camera at (0, 0, 999), looking down.
+    #[default]
     D2,
     /// Isometric 2.5D. Camera tilted ~30° from top-down.
     D2Half,
@@ -36,12 +37,6 @@ pub enum DimensionMode {
     D3,
     /// 4D cross-section. 3D view + W slider for 4th dimension.
     D4,
-}
-
-impl Default for DimensionMode {
-    fn default() -> Self {
-        Self::D2
-    }
 }
 
 impl DimensionMode {
@@ -148,17 +143,17 @@ pub fn dimension_input_system(
         None
     };
 
-    if let Some(target) = new_target {
-        if target != transition.target {
-            transition.current = transition.target;
-            transition.target = target;
-            transition.progress = 0.0;
-            eprintln!(
-                "[dimension] Transitioning: {} → {}",
-                transition.current.name(),
-                transition.target.name()
-            );
-        }
+    if let Some(target) = new_target
+        && target != transition.target
+    {
+        transition.current = transition.target;
+        transition.target = target;
+        transition.progress = 0.0;
+        eprintln!(
+            "[dimension] Transitioning: {} → {}",
+            transition.current.name(),
+            transition.target.name()
+        );
     }
 
     // W slider for 4D mode ([ and ] keys)

@@ -38,6 +38,12 @@ pub struct LocalGovernancePort {
     pub receipts: Vec<GovernanceReceipt>,
 }
 
+impl Default for LocalGovernancePort {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl LocalGovernancePort {
     pub fn new() -> Self {
         Self {
@@ -77,6 +83,12 @@ pub struct MycelixGovernancePort {
     // Shared reference or channels to bridge request/responses.
     // Flume channels from symtropy-mycelix-bridge can be mirrored here.
     pub last_receipt: Option<GovernanceReceipt>,
+}
+
+impl Default for MycelixGovernancePort {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl MycelixGovernancePort {
@@ -145,6 +157,12 @@ pub trait CognitivePort: Send + Sync {
 pub struct SimpleFepCognitivePort {
     pub last_profile: CognitiveProfile,
     pub last_obs: WorldObservation,
+}
+
+impl Default for SimpleFepCognitivePort {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl SimpleFepCognitivePort {
@@ -331,6 +349,12 @@ impl ChroniclePort for LocalChroniclePort {
 /// Layer 2 & 3: Mycelix Chronicle Port (mirrors to Mycelix Holochain conductor async)
 pub struct MycelixChroniclePort {
     pub local: LocalChroniclePort,
+}
+
+impl Default for MycelixChroniclePort {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl MycelixChroniclePort {
