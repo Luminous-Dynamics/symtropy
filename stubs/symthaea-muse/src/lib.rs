@@ -7,29 +7,19 @@
 
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
 pub enum MelodyMode {
+    #[default]
     Classic,
     Neural,
 }
 
-impl Default for MelodyMode {
-    fn default() -> Self {
-        Self::Classic
-    }
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
 pub enum OutputFormat {
     Mono16,
     MonoF32,
+    #[default]
     StereoF32,
-}
-
-impl Default for OutputFormat {
-    fn default() -> Self {
-        Self::StereoF32
-    }
 }
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
