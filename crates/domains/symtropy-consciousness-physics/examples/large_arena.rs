@@ -22,7 +22,6 @@ use symthaea_consciousness_equation::ConsciousnessInputs;
 use symtropy_consciousness_physics::convergence::{cohens_d, mann_whitney_u};
 use symtropy_consciousness_physics::fep_gradient;
 use symtropy_consciousness_physics::harmony_field::HarmonyField;
-use symtropy_consciousness_physics::spatial_hash::SpatialHash;
 use symtropy_consciousness_physics::{ConsciousnessField, ThermodynamicConstants};
 use symtropy_math::Point;
 use symtropy_physics::PhysicsWorld;
@@ -63,7 +62,7 @@ fn run_experiment(ctrl: Ctrl, seed: u64) -> (f64, f64, f64) {
             ])
         })
         .collect();
-    let mut well_remaining = vec![5000.0f64; 3];
+    let mut well_remaining = [5000.0f64; 3];
 
     let mut handles = Vec::new();
     // All agents start clustered near center
@@ -145,7 +144,7 @@ fn run_experiment(ctrl: Ctrl, seed: u64) -> (f64, f64, f64) {
             let wdata: Vec<_> = wells
                 .iter()
                 .zip(well_remaining.iter())
-                .filter(|&(ref w, &r)| r > 0.0 && (pos - *w).norm() < 200.0)
+                .filter(|&(w, &r)| r > 0.0 && (pos - w).norm() < 200.0)
                 .map(|(&p, &r)| (p, (r / 5000.0).min(1.0)))
                 .collect();
 

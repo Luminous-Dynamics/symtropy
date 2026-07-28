@@ -14,7 +14,7 @@
 
 use nalgebra::SVector;
 use symthaea_consciousness_equation::ConsciousnessInputs;
-use symtropy_consciousness_physics::convergence::{cohens_d, holm_bonferroni};
+use symtropy_consciousness_physics::convergence::cohens_d;
 use symtropy_consciousness_physics::fep_gradient;
 use symtropy_consciousness_physics::harmony_field::HarmonyField;
 use symtropy_consciousness_physics::{ConsciousnessField, ThermodynamicConstants};
@@ -39,7 +39,6 @@ const FULL_PROFILES: [[f64; 9]; 6] = [
 ];
 
 struct DimResult {
-    dim: usize,
     alive: f64,
     clustering: f64,
     cooperation: f64,
@@ -49,9 +48,8 @@ struct DimResult {
 
 fn truncate_harmony(full: &[f64; 9], active_dims: usize) -> [f64; 9] {
     let mut h = [0.0f64; 9];
-    for i in 0..active_dims.min(9) {
-        h[i] = full[i];
-    }
+    let n = active_dims.min(9);
+    h[..n].copy_from_slice(&full[..n]);
     h
 }
 
@@ -60,8 +58,8 @@ fn run_experiment(active_dims: usize, seed: u64) -> DimResult {
     let mut consciousness = ConsciousnessField::<2>::new();
     consciousness.constants = ThermodynamicConstants::research();
 
-    let wells = vec![SVector::from([30.0, 0.0]), SVector::from([-30.0, 0.0])];
-    let mut well_remaining = vec![2500.0f64; 2];
+    let wells = [SVector::from([30.0, 0.0]), SVector::from([-30.0, 0.0])];
+    let mut well_remaining = [2500.0f64; 2];
 
     let mut rng = seed;
     let mut handles = Vec::new();
@@ -287,7 +285,6 @@ fn run_experiment(active_dims: usize, seed: u64) -> DimResult {
     };
 
     DimResult {
-        dim: active_dims,
         alive,
         clustering: if clustering.is_finite() {
             clustering

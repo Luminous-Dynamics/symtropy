@@ -24,6 +24,9 @@ use mycelix_multiworld_sim::stochastic::StochasticEngine;
 
 use symtropy_sim_bridge::VETO_OVERRIDE_THRESHOLD;
 
+/// A named scenario: takes (seed, ticks), returns Ok/Err with a failure message.
+type ScenarioFn = fn(u64, u32) -> Result<(), String>;
+
 fn main() {
     let args: Vec<String> = std::env::args().collect();
     let seed = args
@@ -51,7 +54,7 @@ fn main() {
     let mut passed = 0;
     let mut failed = 0;
 
-    let scenarios: Vec<(&str, fn(u64, u32) -> Result<(), String>)> = vec![
+    let scenarios: Vec<(&str, ScenarioFn)> = vec![
         ("tier-boundaries", scenario_tier_boundaries),
         ("consciousness-weights", scenario_consciousness_weights),
         ("veto-threshold", scenario_veto_threshold),

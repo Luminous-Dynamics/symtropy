@@ -456,7 +456,7 @@ mod tests {
     fn contagion_spreads_toward_social_mean() {
         // Entity at origin with emotion=0.0, nearby high-emotion agent at (5, 0)
         let pos = nalgebra::SVector::<f64, 2>::from([0.0, 0.0]);
-        let sources = vec![(
+        let sources = [(
             nalgebra::SVector::<f64, 2>::from([5.0, 0.0]),
             0.8, // src_emotion
             0.9, // src_phi (high consciousness = strong broadcast)
@@ -485,7 +485,7 @@ mod tests {
     fn contagion_low_phi_reduces_reception() {
         // Zombie entity (phi≈0) should barely receive contagion
         let pos = nalgebra::SVector::<f64, 2>::from([0.0, 0.0]);
-        let sources = vec![(
+        let sources = [(
             nalgebra::SVector::<f64, 2>::from([3.0, 0.0]),
             1.0, // src_emotion
             0.9, // src_phi
@@ -502,7 +502,7 @@ mod tests {
     fn contagion_zero_beyond_radius() {
         // Source outside EMOTIONAL_CONTAGION_RADIUS → no transfer
         let pos = nalgebra::SVector::<f64, 2>::from([0.0, 0.0]);
-        let sources = vec![(
+        let sources = [(
             nalgebra::SVector::<f64, 2>::from([EMOTIONAL_CONTAGION_RADIUS + 5.0, 0.0]),
             1.0, // src_emotion
             1.0, // src_phi
@@ -515,14 +515,14 @@ mod tests {
     fn contagion_output_stays_in_unit_interval() {
         // Stress test: extreme inputs should not escape [0, 1]
         let pos = nalgebra::SVector::<f64, 2>::from([0.0, 0.0]);
-        let sources = vec![
+        let sources = [
             (nalgebra::SVector::<f64, 2>::from([1.0, 0.0]), 1.0, 1.0),
             (nalgebra::SVector::<f64, 2>::from([2.0, 0.0]), 1.0, 1.0),
         ];
         // Very large dt should still clamp output
         let new_val = contagion_update(&pos, 0.0, 1.0, &sources, 100.0);
         assert!(
-            new_val >= 0.0 && new_val <= 1.0,
+            (0.0..=1.0).contains(&new_val),
             "output must be in [0,1], got {new_val}"
         );
     }

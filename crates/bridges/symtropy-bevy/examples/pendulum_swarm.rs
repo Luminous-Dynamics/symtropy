@@ -215,13 +215,13 @@ fn update_phi_from_neighborhood(
                 if ni < 0 || nj < 0 || ni >= GRID as i32 || nj >= GRID as i32 {
                     continue;
                 }
-                if let Some(&h) = grid_handles.map.get(&(ni as usize, nj as usize)) {
-                    if let Some(body) = physics.world.body(h) {
-                        let v = body.linear_velocity.norm();
-                        sum_v += v;
-                        sum_v_sq += v * v;
-                        count += 1;
-                    }
+                if let Some(&h) = grid_handles.map.get(&(ni as usize, nj as usize))
+                    && let Some(body) = physics.world.body(h)
+                {
+                    let v = body.linear_velocity.norm();
+                    sum_v += v;
+                    sum_v_sq += v * v;
+                    count += 1;
                 }
             }
         }
@@ -297,15 +297,15 @@ fn shock_on_click(
             let dx = pos[0] as f32 - world_pos.x;
             let dy = pos[1] as f32 - world_pos.y;
             let d = (dx * dx + dy * dy).sqrt();
-            if d < SHOCK_RADIUS && nearest.map_or(true, |(_, nd)| d < nd) {
+            if d < SHOCK_RADIUS && nearest.is_none_or(|(_, nd)| d < nd) {
                 nearest = Some((h, d));
             }
         }
     }
-    if let Some((h, _)) = nearest {
-        if let Some(body) = physics.world.body_mut(h) {
-            body.linear_velocity[0] += SHOCK_VELOCITY;
-        }
+    if let Some((h, _)) = nearest
+        && let Some(body) = physics.world.body_mut(h)
+    {
+        body.linear_velocity[0] += SHOCK_VELOCITY;
     }
 }
 

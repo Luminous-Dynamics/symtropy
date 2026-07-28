@@ -51,13 +51,13 @@ fn run_experiment(seed: u64) -> MigrationResult {
     consciousness.constants = constants;
 
     // 4 wells at compass points, staggered capacity to force sequential migration
-    let wells = vec![
+    let wells = [
         SVector::from([40.0, 0.0]),    // depletes first (small)
         SVector::from([0.0, 60.0]),    // depletes second
         SVector::from([-60.0, -20.0]), // depletes third
         SVector::from([30.0, -70.0]),  // longest lasting
     ];
-    let mut well_remaining = vec![800.0, 1500.0, 2500.0, 4000.0f64];
+    let mut well_remaining = [800.0, 1500.0, 2500.0, 4000.0f64];
 
     let mut rng = seed;
     let mut handles = Vec::new();
@@ -87,7 +87,7 @@ fn run_experiment(seed: u64) -> MigrationResult {
         .filter_map(|&h| world.body(h).map(|b| b.position()))
         .collect();
     let start_positions = prev_positions.clone();
-    let mut migration_counts = vec![0u64; AGENTS];
+    let mut migration_counts = [0u64; AGENTS];
     let mut well_discovery = [TICKS as f64; 4]; // when first agent found each well
 
     for tick in 0..TICKS {
@@ -173,11 +173,11 @@ fn run_experiment(seed: u64) -> MigrationResult {
         for (wi, &w) in wells.iter().enumerate() {
             if well_discovery[wi] >= TICKS as f64 {
                 for &h in &handles {
-                    if let Some(b) = world.body(h) {
-                        if (b.position() - w).norm() < 35.0 {
-                            well_discovery[wi] = tick as f64;
-                            break;
-                        }
+                    if let Some(b) = world.body(h)
+                        && (b.position() - w).norm() < 35.0
+                    {
+                        well_discovery[wi] = tick as f64;
+                        break;
                     }
                 }
             }

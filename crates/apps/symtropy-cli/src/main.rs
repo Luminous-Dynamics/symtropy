@@ -381,8 +381,7 @@ fn parse_stat(stdout: &str, key: &str) -> Result<f64, String> {
             return rest
                 .trim()
                 .parse::<f64>()
-                .map_err(|e| format!("parse {key} failed: {e}"))
-                .map(|v| v);
+                .map_err(|e| format!("parse {key} failed: {e}"));
         }
     }
     Err(format!("could not find `{key}=` in phi_trace output"))

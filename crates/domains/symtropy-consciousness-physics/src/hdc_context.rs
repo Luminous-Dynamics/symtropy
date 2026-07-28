@@ -251,7 +251,7 @@ mod tests {
         }
 
         let phi = ctx.phi_from_thought(&harmony);
-        assert!(phi >= 0.0 && phi <= 1.0, "Phi should be in [0,1]: {phi}");
+        assert!((0.0..=1.0).contains(&phi), "Phi should be in [0,1]: {phi}");
     }
 
     #[test]
@@ -317,7 +317,7 @@ mod tests {
     fn inputs_from_state_clamped() {
         let inputs = inputs_from_state(0.5, 3, 0.2, 0.0, 0.8, 4.0, 0.5);
         for &v in &inputs {
-            assert!(v >= 0.0 && v <= 1.0, "Input {v} out of [0,1]");
+            assert!((0.0..=1.0).contains(&v), "Input {v} out of [0,1]");
         }
     }
 
@@ -382,7 +382,7 @@ mod tests {
 
     #[test]
     fn thought_resonance_self_is_one() {
-        let ctx = HdcConsciousnessContext::new(42);
+        let _ctx = HdcConsciousnessContext::new(42);
         // Before stepping, thought_hv is zero → similarity undefined
         // After stepping, should be self-similar
         let mut ctx2 = HdcConsciousnessContext::new(42);

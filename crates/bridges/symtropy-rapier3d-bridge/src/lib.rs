@@ -50,6 +50,11 @@ impl<C: PhysicsCallback<3>> RapierPhysicsBridge<C> {
     }
 
     /// Step the Rapier world and apply modulated forces/impulses.
+    // NOTE: mirrors Rapier's own `PhysicsPipeline::step` parameter list so this
+    // bridge can eventually forward straight into it; most params are unused
+    // placeholders (`_`-prefixed) rather than deletable, since bundling them
+    // would break that 1:1 correspondence.
+    #[allow(clippy::too_many_arguments)]
     pub fn step(
         &mut self,
         _dt: f32,
@@ -75,8 +80,7 @@ impl<C: PhysicsCallback<3>> RapierPhysicsBridge<C> {
             symtropy_force[1] = force.y as f64;
             symtropy_force[2] = force.z as f64;
 
-            self.callback
-                .modulate_force(body_handle, &mut symtropy_force);
+            symtropy_force = self.callback.modulate_force(body_handle, &symtropy_force);
 
             body.reset_forces(true);
             body.add_force(
@@ -90,8 +94,8 @@ impl<C: PhysicsCallback<3>> RapierPhysicsBridge<C> {
         }
 
         // 2. Perform the Rapier step
-        let _physics_pipeline = PhysicsPipeline::new(); // In prod, this should be persistent
-        // (Simplified step for the bridge contract)
+        // In prod, this should be persistent (simplified step for the bridge contract).
+        let _physics_pipeline = PhysicsPipeline::new();
     }
 
     pub fn post_step(

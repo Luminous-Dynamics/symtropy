@@ -21,6 +21,13 @@ const DT: f64 = 1.0 / 60.0;
 struct TickSnapshot {
     tick: u64,
     positions: Vec<[f64; 2]>,
+    // NOTE (found via clippy `dead_code`, 2026-07-26): captured per-agent
+    // but never read back out -- the replay verification below only
+    // checks `positions`/`collective_phi`, not each agent's individual Φ.
+    // Same category as hdc_cooperation.rs/self_tuning.rs's dead fields
+    // fixed earlier in this series: not proven redundant, flagged rather
+    // than deleted in case per-agent determinism checking was the intent.
+    #[allow(dead_code)]
     phis: Vec<f64>,
     collective_phi: f64,
     alive: usize,

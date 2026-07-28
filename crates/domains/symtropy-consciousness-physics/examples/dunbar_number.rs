@@ -44,8 +44,7 @@ fn run_trial(num_agents: usize, seed: u64) -> TrialResult {
     }
 
     // Place 2 energy wells (fixed positions, scale with arena)
-    let well_positions: Vec<Point<2>> =
-        vec![Point::new([r * 0.5, 0.0]), Point::new([-r * 0.5, 0.0])];
+    let well_positions: [Point<2>; 2] = [Point::new([r * 0.5, 0.0]), Point::new([-r * 0.5, 0.0])];
 
     let inputs = ConsciousnessInputs {
         phi: 0.5,

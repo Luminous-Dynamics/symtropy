@@ -134,15 +134,15 @@ mod tests {
     #[test]
     fn complementary_hunt_requires_both_types() {
         // Only drivers present — should fail
-        let agents = vec![(0, [0.9, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.0])];
+        let agents = [(0, [0.9, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.0])];
         assert!(check_complementary_hunt(&agents, 0, 2, 0.6, 0.3).is_none());
 
         // Only ambushers present — should fail
-        let agents = vec![(0, [0.1, 0.1, 0.9, 0.1, 0.1, 0.1, 0.1, 0.1, 0.0])];
+        let agents = [(0, [0.1, 0.1, 0.9, 0.1, 0.1, 0.1, 0.1, 0.1, 0.0])];
         assert!(check_complementary_hunt(&agents, 0, 2, 0.6, 0.3).is_none());
 
         // Both types present with low resonance — should succeed
-        let agents = vec![
+        let agents = [
             (0, [0.9, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.0]), // driver
             (1, [0.1, 0.1, 0.9, 0.1, 0.1, 0.1, 0.1, 0.1, 0.0]), // ambusher
         ];
@@ -156,7 +156,7 @@ mod tests {
     #[test]
     fn similar_agents_cannot_hunt() {
         // Two agents with similar profiles (high resonance) — should fail
-        let agents = vec![
+        let agents = [
             (0, [0.8, 0.3, 0.7, 0.2, 0.3, 0.2, 0.2, 0.6, 0.0]),
             (1, [0.7, 0.4, 0.8, 0.1, 0.4, 0.3, 0.3, 0.5, 0.0]),
         ];

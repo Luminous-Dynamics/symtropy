@@ -764,8 +764,10 @@ mod tests {
 
     #[test]
     fn amortized_update_schedule() {
-        let mut agent = ActiveInferenceAgent::default();
-        agent.update_interval = 50;
+        let mut agent = ActiveInferenceAgent {
+            update_interval: 50,
+            ..Default::default()
+        };
         assert!(!agent.should_update());
         for _ in 0..50 {
             agent.model.ticks_since_update += 1;

@@ -26,15 +26,17 @@ impl Default for DeploymentController {
 impl DeploymentController {
     pub fn compute(&self, state: &OrbitalState) -> OrbitalCommand {
         let mut torques = [0.0f32; NUM_ACTUATORS];
-        for i in 0..NUM_JOINTS {
+        for (i, torque) in torques.iter_mut().enumerate().take(NUM_JOINTS) {
             let err = self.target_angles[i] - state.joint_angles[i];
             let vel = state.joint_velocities[i];
             let raw = self.kp * err - self.kd * vel;
             // Normalize into [-1, 1]; simulator multiplies by config.max_joint_torques.
-            torques[i] = (raw / 8.0).clamp(-1.0, 1.0) as f32;
+            *torque = (raw / 8.0).clamp(-1.0, 1.0) as f32;
         }
         OrbitalCommand {
             joint_torques: torques,
+            translational_burn_mps: [0.0; 3],
+            desaturation_torque_nm: [0.0; 3],
         }
     }
 }

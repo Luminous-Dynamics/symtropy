@@ -437,8 +437,8 @@ mod tests {
         // Brain uses ~20W for ~10^11 synapses at ~10Hz = 10^12 ops/sec
         // 20W / 10^12 = 2×10^-11 J/op
         // Our constant: ~4.8×10^-20 J/op (much lower — Landauer-based, not metabolic)
-        assert!(ENERGY_PER_COGNITIVE_OP > 0.0);
-        assert!(ENERGY_PER_COGNITIVE_OP < 1e-15); // Not absurdly large
+        const { assert!(ENERGY_PER_COGNITIVE_OP > 0.0) };
+        const { assert!(ENERGY_PER_COGNITIVE_OP < 1e-15) }; // Not absurdly large
     }
 
     // ── smooth_temperature_penalty ────────────────────────────────────────────

@@ -258,16 +258,16 @@ mod tests {
 
     #[test]
     fn mann_whitney_identical_samples() {
-        let a = vec![1.0, 2.0, 3.0, 4.0, 5.0];
-        let b = vec![1.0, 2.0, 3.0, 4.0, 5.0];
+        let a = [1.0, 2.0, 3.0, 4.0, 5.0];
+        let b = [1.0, 2.0, 3.0, 4.0, 5.0];
         let (_, _, p) = mann_whitney_u(&a, &b);
         assert!(p > 0.5, "Identical samples should have high p-value: {p}");
     }
 
     #[test]
     fn mann_whitney_different_samples() {
-        let a = vec![1.0, 2.0, 3.0, 4.0, 5.0];
-        let b = vec![10.0, 11.0, 12.0, 13.0, 14.0];
+        let a = [1.0, 2.0, 3.0, 4.0, 5.0];
+        let b = [10.0, 11.0, 12.0, 13.0, 14.0];
         let (_, _, p) = mann_whitney_u(&a, &b);
         assert!(
             p < 0.05,
@@ -277,16 +277,16 @@ mod tests {
 
     #[test]
     fn cohens_d_large_effect() {
-        let a = vec![1.0, 2.0, 3.0, 4.0, 5.0];
-        let b = vec![10.0, 11.0, 12.0, 13.0, 14.0];
+        let a = [1.0, 2.0, 3.0, 4.0, 5.0];
+        let b = [10.0, 11.0, 12.0, 13.0, 14.0];
         let d = cohens_d(&a, &b);
         assert!(d.abs() > 0.8, "Large separation should give |d| > 0.8: {d}");
     }
 
     #[test]
     fn cohens_d_no_effect() {
-        let a = vec![5.0, 5.0, 5.0, 5.0];
-        let b = vec![5.0, 5.0, 5.0, 5.0];
+        let a = [5.0, 5.0, 5.0, 5.0];
+        let b = [5.0, 5.0, 5.0, 5.0];
         let d = cohens_d(&a, &b);
         assert!(
             (d - 0.0).abs() < 1e-10,
@@ -296,7 +296,7 @@ mod tests {
 
     #[test]
     fn holm_bonferroni_basic() {
-        let tests = vec![("A", 0.01), ("B", 0.04), ("C", 0.03)];
+        let tests = [("A", 0.01), ("B", 0.04), ("C", 0.03)];
         let results = holm_bonferroni(&tests, 0.05);
         // Sorted: A(0.01), C(0.03), B(0.04)
         // A: 0.01 × 3 = 0.03 < 0.05 → sig
@@ -309,7 +309,7 @@ mod tests {
 
     #[test]
     fn holm_bonferroni_all_significant() {
-        let tests = vec![("A", 0.001), ("B", 0.002), ("C", 0.003)];
+        let tests = [("A", 0.001), ("B", 0.002), ("C", 0.003)];
         let results = holm_bonferroni(&tests, 0.05);
         // A: 0.001×3=0.003, B: 0.002×2=0.004, C: 0.003×1=0.003
         assert!(results.iter().all(|r| r.2), "All should be significant");
@@ -317,14 +317,14 @@ mod tests {
 
     #[test]
     fn holm_bonferroni_none_significant() {
-        let tests = vec![("A", 0.5), ("B", 0.6)];
+        let tests = [("A", 0.5), ("B", 0.6)];
         let results = holm_bonferroni(&tests, 0.05);
         assert!(results.iter().all(|r| !r.2), "None should be significant");
     }
 
     #[test]
     fn holm_bonferroni_preserves_order() {
-        let tests = vec![("X", 0.04), ("Y", 0.01), ("Z", 0.03)];
+        let tests = [("X", 0.04), ("Y", 0.01), ("Z", 0.03)];
         let results = holm_bonferroni(&tests, 0.05);
         assert_eq!(results[0].0, "X");
         assert_eq!(results[1].0, "Y");

@@ -56,8 +56,8 @@ fn run_experiment(condition: NullCondition, seed: u64) -> NullResult {
     let mut consciousness = ConsciousnessField::<2>::new();
     consciousness.constants = ThermodynamicConstants::research();
 
-    let wells = vec![SVector::from([30.0, 0.0]), SVector::from([-30.0, 0.0])];
-    let mut well_remaining = vec![2500.0f64; 2];
+    let wells = [SVector::from([30.0, 0.0]), SVector::from([-30.0, 0.0])];
+    let mut well_remaining = [2500.0f64; 2];
 
     let mut rng = seed;
     let mut handles = Vec::new();

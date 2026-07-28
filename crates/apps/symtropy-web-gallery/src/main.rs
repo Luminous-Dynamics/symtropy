@@ -20,7 +20,7 @@ fn main() {
 
 fn setup_gallery(mut commands: Commands) {
     // Setup camera
-    commands.spawn(Camera2d::default());
+    commands.spawn(Camera2d);
 
     // UI: Web Gallery of 63 Consciousness Experiments
     commands

@@ -216,7 +216,7 @@ pub fn draw_phi_heatmap<const D: usize>(physics: Res<SymtropyPhysics<D>>, mut gi
         );
         let phi_norm = (phi / 0.3).clamp(0.0, 1.0) as f32;
         let color = Color::srgba(0.2 + phi_norm * 0.8, 0.5 + phi_norm * 0.5, 1.0, 0.15);
-        let aura_radius = (0.2 + phi_norm * 1.5) as f32;
+        let aura_radius = 0.2 + phi_norm * 1.5;
         if D >= 3 {
             gizmos
                 .sphere(Isometry3d::from_translation(pos), aura_radius, color)

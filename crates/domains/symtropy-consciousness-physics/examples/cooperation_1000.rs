@@ -168,7 +168,7 @@ fn run_experiment(n_agents: usize, seed: u64) -> ScaleResult {
                         let (p, h) = &adata[j];
                         let d = (p - pos).norm();
                         if d > 2.0 && d < consciousness.constants.harmony_range {
-                            Some((p.clone(), h.clone()))
+                            Some((*p, *h))
                         } else {
                             None
                         }
@@ -331,7 +331,7 @@ fn find_clusters(positions: &[(usize, SVector<f64, 2>)], range: f64) -> Vec<Vec<
         hash.insert(i, pos);
     }
 
-    for (local_i, &(_, ref pos_a)) in positions.iter().enumerate() {
+    for (local_i, (_, pos_a)) in positions.iter().enumerate() {
         for &j in &hash.query_neighbors(pos_a) {
             if j <= local_i {
                 continue;

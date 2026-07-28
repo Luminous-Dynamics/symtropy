@@ -370,10 +370,10 @@ mod proptests {
     use super::*;
     use proptest::prelude::*;
 
-    /// `to_matrix()` must always be antisymmetric (zero diagonal, M[j,i] =
-    /// -M[i,j]) for every possible bivector, not just the hand-picked
-    /// examples in the unit tests above -- this is the algebraic property
-    /// the whole rotor construction (`Rotor::from_plane_angle`) relies on.
+    // `to_matrix()` must always be antisymmetric (zero diagonal, M[j,i] =
+    // -M[i,j]) for every possible bivector, not just the hand-picked
+    // examples in the unit tests above -- this is the algebraic property
+    // the whole rotor construction (`Rotor::from_plane_angle`) relies on.
     proptest! {
         #[test]
         fn to_matrix_is_antisymmetric(

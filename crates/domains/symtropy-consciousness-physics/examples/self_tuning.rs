@@ -31,6 +31,14 @@ struct RunResult {
     cooperation_events: u64,
     avg_energy_at_end: f64,
     ticks_to_first_collapse: Option<usize>,
+    // NOTE (found via clippy `dead_code`, 2026-07-25): computed and stored
+    // per-run but never read back out -- `score_config`'s scoring formula
+    // and the results table don't use it. Same category as
+    // hdc_cooperation.rs's convergence_tick/final_jphi fields fixed
+    // earlier in this series: not proven redundant with anything else in
+    // scope, so flagged rather than deleted in case factoring Φ into the
+    // score/report was the intent.
+    #[allow(dead_code)]
     collective_phi_final: f64,
 }
 
@@ -262,10 +270,12 @@ fn main() {
     let mut best_maintenance = 0.0f64;
 
     for &maint in &maintenance_values {
-        let mut constants = ThermodynamicConstants::default();
-        constants.consciousness_maintenance_per_tick = maint;
-        constants.initial_energy = 500.0;
-        constants.max_energy = 500.0;
+        let constants = ThermodynamicConstants {
+            consciousness_maintenance_per_tick: maint,
+            initial_energy: 500.0,
+            max_energy: 500.0,
+            ..Default::default()
+        };
 
         let mut results = Vec::new();
         for run in 0..RUNS_PER_CONFIG {

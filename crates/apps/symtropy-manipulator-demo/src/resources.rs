@@ -21,7 +21,13 @@ use crate::human_obstacle::HumanObstacle;
 use crate::iso_comparison::IsoSsmController;
 
 /// Phi-gradient arm state (left side of split-screen).
+// NOTE: controller/workspace are stored but never read -- plugin.rs drives
+// the arm through its own fresh IK/admittance path each tick rather than
+// this ManipulatorController, and `workspace` (WorkspaceBoundary) is the
+// same unwired human-zones safety gap noted in human_obstacle.rs (as_zone()
+// is never actually fed into it). Real fields, not dead scaffolding.
 #[derive(Resource)]
+#[allow(dead_code)]
 pub struct PhiArmState {
     pub simulator: SimpleManipulatorSimulator,
     pub kinematics: ManipulatorKinematics,

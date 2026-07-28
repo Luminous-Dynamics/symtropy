@@ -66,9 +66,9 @@ mod tests {
         let mut agent = RoboticAgent::new(BodyHandle(0), PlatformType::Manipulator, "test-panda");
 
         let (phi, _tier, gain) = consciousness_tick(&mut agent, 0.01, 0.0, 0.2, 0.8);
-        assert!(phi >= 0.0 && phi <= 1.0, "Phi should be in [0,1]: {phi}");
+        assert!((0.0..=1.0).contains(&phi), "Phi should be in [0,1]: {phi}");
         assert!(
-            gain >= 0.0 && gain <= 1.0,
+            (0.0..=1.0).contains(&gain),
             "Gain should be in [0,1]: {gain}"
         );
     }

@@ -12,7 +12,6 @@
 
 use nalgebra::SVector;
 use symthaea_consciousness_equation::ConsciousnessInputs;
-use symtropy_consciousness_physics::fep_gradient;
 use symtropy_consciousness_physics::harmony_field::HarmonyField;
 use symtropy_consciousness_physics::{ConsciousnessField, ThermodynamicConstants};
 use symtropy_math::Point;

@@ -40,7 +40,6 @@ const HARMONY_PROFILES: [[f64; 9]; 4] = [
 ];
 
 struct DiagResult {
-    willingness: f64,
     alive: f64,
     total_maintenance: f64,     // energy spent on consciousness maintenance
     total_well_regen: f64,      // energy gained from wells
@@ -57,8 +56,8 @@ fn run_diagnostic(willingness: f64, seed: u64) -> DiagResult {
     let mut consciousness = ConsciousnessField::<2>::new();
     consciousness.constants = ThermodynamicConstants::research();
 
-    let wells = vec![SVector::from([30.0, 0.0]), SVector::from([-30.0, 0.0])];
-    let mut well_remaining = vec![2500.0f64; 2];
+    let wells = [SVector::from([30.0, 0.0]), SVector::from([-30.0, 0.0])];
+    let mut well_remaining = [2500.0f64; 2];
 
     let mut rng = seed;
     let mut handles = Vec::new();
@@ -286,7 +285,6 @@ fn run_diagnostic(willingness: f64, seed: u64) -> DiagResult {
     let total_regen = total_well_regen + total_resonance_regen + total_ambient_regen;
 
     DiagResult {
-        willingness,
         alive,
         total_maintenance,
         total_well_regen,

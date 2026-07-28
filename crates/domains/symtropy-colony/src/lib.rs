@@ -201,11 +201,11 @@ impl ColonyWorld {
             } else {
                 self.fields
                     .add(FieldLayer::HomePheromone, ant.x, ant.y, 1.5);
-                if let Some(food) = self.food_sources.get_mut(&(ant.x, ant.y)) {
-                    if *food > 0 {
-                        *food -= 1;
-                        ant.carrying_food = true;
-                    }
+                if let Some(food) = self.food_sources.get_mut(&(ant.x, ant.y))
+                    && *food > 0
+                {
+                    *food -= 1;
+                    ant.carrying_food = true;
                 }
             }
         }

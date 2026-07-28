@@ -35,7 +35,6 @@ const HARMONY_PROFILES: [[f64; 9]; 4] = [
 ];
 
 struct CoopResult {
-    dim: usize,
     alive: f64,
     energy: f64,
     clustering: f64,
@@ -47,8 +46,8 @@ fn run_2d(seed: u64) -> CoopResult {
     let mut consciousness = ConsciousnessField::<2>::new();
     consciousness.constants = ThermodynamicConstants::research();
 
-    let wells = vec![SVector::from([30.0, 0.0]), SVector::from([-30.0, 0.0])];
-    let mut well_remaining = vec![2500.0f64; 2];
+    let wells = [SVector::from([30.0, 0.0]), SVector::from([-30.0, 0.0])];
+    let mut well_remaining = [2500.0f64; 2];
 
     let mut rng = seed;
     let mut handles = Vec::new();
@@ -154,7 +153,7 @@ fn run_2d(seed: u64) -> CoopResult {
         let mr = consciousness.constants.consciousness_maintenance_per_tick;
         let ar = consciousness.constants.ambient_regen_rate;
         let wr = consciousness.constants.energy_well_regen_rate;
-        for (idx, &h) in handles.iter().enumerate() {
+        for &h in handles.iter() {
             if let Some(e) = consciousness.entities.get_mut(&h) {
                 e.energy.tick_reset();
             }
@@ -251,7 +250,6 @@ fn run_2d(seed: u64) -> CoopResult {
     };
 
     CoopResult {
-        dim: 2,
         alive,
         energy,
         clustering,
@@ -264,11 +262,11 @@ fn run_3d(seed: u64) -> CoopResult {
     let mut consciousness = ConsciousnessField::<3>::new();
     consciousness.constants = ThermodynamicConstants::research();
 
-    let wells = vec![
+    let wells = [
         SVector::from([30.0, 0.0, 0.0]),
         SVector::from([-30.0, 0.0, 0.0]),
     ];
-    let mut well_remaining = vec![2500.0f64; 2];
+    let mut well_remaining = [2500.0f64; 2];
 
     let mut rng = seed;
     let mut handles = Vec::new();
@@ -472,7 +470,6 @@ fn run_3d(seed: u64) -> CoopResult {
     };
 
     CoopResult {
-        dim: 3,
         alive,
         energy,
         clustering,

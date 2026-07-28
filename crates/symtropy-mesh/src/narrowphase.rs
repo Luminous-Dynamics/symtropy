@@ -234,35 +234,35 @@ pub fn generate_meshlet_contacts_transformed(
             let gjk_res =
                 gjk::intersects_transformed(&tri, mesh_transform, other_shape, other_transform);
 
-            if gjk_res.intersecting {
-                if let Some(epa_res) = epa::penetration_transformed(
+            if gjk_res.intersecting
+                && let Some(epa_res) = epa::penetration_transformed(
                     &tri,
                     mesh_transform,
                     other_shape,
                     other_transform,
                     &gjk_res.simplex,
-                ) {
-                    let mut points = ArrayVec::new();
-                    let tri_map = TransformedShape::new(&tri, mesh_transform);
-                    let contact_pos = (tri_map.support_world(&epa_res.normal)
-                        + other_map.support_world(&(-epa_res.normal)))
-                        * 0.5;
+                )
+            {
+                let mut points = ArrayVec::new();
+                let tri_map = TransformedShape::new(&tri, mesh_transform);
+                let contact_pos = (tri_map.support_world(&epa_res.normal)
+                    + other_map.support_world(&(-epa_res.normal)))
+                    * 0.5;
 
-                    points.push(ContactPoint {
-                        position: contact_pos,
-                        depth: epa_res.depth,
-                        lambda: 0.0,
-                        restitution_bias: 0.0,
-                    });
+                points.push(ContactPoint {
+                    position: contact_pos,
+                    depth: epa_res.depth,
+                    lambda: 0.0,
+                    restitution_bias: 0.0,
+                });
 
-                    manifolds.push(ContactManifold {
-                        body_a: mesh_handle,
-                        body_b: other_handle,
-                        normal: epa_res.normal,
-                        points,
-                        elasticity: Some(meshlet.average_elasticity as f64),
-                    });
-                }
+                manifolds.push(ContactManifold {
+                    body_a: mesh_handle,
+                    body_b: other_handle,
+                    normal: epa_res.normal,
+                    points,
+                    elasticity: Some(meshlet.average_elasticity as f64),
+                });
             }
         }
     }

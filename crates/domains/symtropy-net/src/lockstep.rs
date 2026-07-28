@@ -70,8 +70,8 @@ impl<'de, const D: usize> Deserialize<'de> for BitsVec<D> {
                 A: serde::de::SeqAccess<'de>,
             {
                 let mut out = [0u64; D];
-                for i in 0..D {
-                    out[i] = seq
+                for (i, slot) in out.iter_mut().enumerate() {
+                    *slot = seq
                         .next_element::<u64>()?
                         .ok_or_else(|| serde::de::Error::invalid_length(i, &self))?;
                 }
@@ -689,7 +689,7 @@ impl<T: Transport, const D: usize> LockstepSession<T, D> {
         self.handle_transport_events(world)?;
 
         // Don't advance if we know there are connected peers but we haven't learned their IDs yet.
-        let expected_members = (self.transport.peer_count() as usize) + 1;
+        let expected_members = self.transport.peer_count() + 1;
         if self.peers.len() < expected_members {
             // Still broadcast our tick packet (so others can learn us), but don't step.
             if self.sent_tick_packet_for_tick != Some(self.tick) {

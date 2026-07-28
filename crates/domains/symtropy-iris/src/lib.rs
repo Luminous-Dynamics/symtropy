@@ -161,10 +161,9 @@ impl IrisState {
             .values()
             .filter(|hypothesis| &hypothesis.subject_id == subject_id)
             .max_by_key(|hypothesis| hypothesis.confidence)
+            && let Some(next) = &hypothesis.recommended_observation
         {
-            if let Some(next) = &hypothesis.recommended_observation {
-                uncertainty.push(format!("Highest-value next observation: {next}"));
-            }
+            uncertainty.push(format!("Highest-value next observation: {next}"));
         }
 
         IrisAssessment {

@@ -17,7 +17,7 @@
 
 use nalgebra::SVector;
 use symthaea_consciousness_equation::ConsciousnessInputs;
-use symtropy_consciousness_physics::convergence::{cohens_d, holm_bonferroni, mann_whitney_u};
+use symtropy_consciousness_physics::convergence::{cohens_d, mann_whitney_u};
 use symtropy_consciousness_physics::fep_gradient;
 use symtropy_consciousness_physics::harmony_field::HarmonyField;
 use symtropy_consciousness_physics::{ConsciousnessField, ThermodynamicConstants};
@@ -59,12 +59,12 @@ fn run_experiment(ctrl: Ctrl, threshold: usize, seed: u64) -> CoopWellResult {
     let mut consciousness = ConsciousnessField::<2>::new();
     consciousness.constants = ThermodynamicConstants::research();
 
-    let wells = vec![
+    let wells = [
         SVector::from([35.0, 10.0]),
         SVector::from([-30.0, -15.0]),
         SVector::from([5.0, -35.0]),
     ];
-    let mut well_remaining = vec![3000.0f64; 3];
+    let mut well_remaining = [3000.0f64; 3];
     let mut rng = seed;
     let mut handles = Vec::new();
 

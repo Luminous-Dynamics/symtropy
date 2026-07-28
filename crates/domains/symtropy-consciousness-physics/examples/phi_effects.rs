@@ -17,7 +17,7 @@ use nalgebra::SVector;
 use symthaea_consciousness_equation::ConsciousnessInputs;
 use symtropy_consciousness_physics::fep_gradient;
 use symtropy_consciousness_physics::harmony_field::HarmonyField;
-use symtropy_consciousness_physics::{ConsciousnessField, SafetyTier, ThermodynamicConstants};
+use symtropy_consciousness_physics::{ConsciousnessField, ThermodynamicConstants};
 use symtropy_math::Point;
 use symtropy_physics::PhysicsWorld;
 
@@ -114,13 +114,13 @@ fn run(metric: Metric, seed: u64) -> Results {
         handles.push(h);
     }
 
-    let mut alive_ticks = vec![0u64; AGENTS];
+    let mut alive_ticks = [0u64; AGENTS];
     let mut velocity_variances = vec![Vec::new(); AGENTS];
-    let mut prev_velocities: Vec<Option<SVector<f64, 2>>> = vec![None; AGENTS];
+    let mut prev_velocities: [Option<SVector<f64, 2>>; AGENTS] = [None; AGENTS];
     let mut cluster_stable_ticks = 0u64;
     let mut total_vel_correlation = 0.0;
     let mut correlation_samples = 0u64;
-    let mut prev_nn = vec![usize::MAX; AGENTS]; // previous nearest neighbor
+    let mut prev_nn = [usize::MAX; AGENTS]; // previous nearest neighbor
 
     for tick in 0..TICKS {
         let danger = if tick >= DANGER_START_TICK { 0.8 } else { 0.0 };
@@ -184,7 +184,7 @@ fn run(metric: Metric, seed: u64) -> Results {
                 .iter()
                 .enumerate()
                 .filter(|(i, _)| *i != idx)
-                .map(|(_, d)| d.clone())
+                .map(|(_, d)| *d)
                 .collect();
             let ds = if danger > 0.1 {
                 Some(&danger_pos)

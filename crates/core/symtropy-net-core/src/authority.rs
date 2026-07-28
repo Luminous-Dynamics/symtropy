@@ -42,10 +42,10 @@ impl SpatialAuthority {
 
     /// Release authority over a body.
     pub fn release(&mut self, body: BodyHandle) {
-        if let Some(peer) = self.body_authority.remove(&body) {
-            if peer == self.local_peer {
-                self.local_bodies.remove(&body);
-            }
+        if let Some(peer) = self.body_authority.remove(&body)
+            && peer == self.local_peer
+        {
+            self.local_bodies.remove(&body);
         }
     }
 

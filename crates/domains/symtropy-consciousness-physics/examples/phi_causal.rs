@@ -111,7 +111,7 @@ fn run(metric: Metric, seed: u64) -> Result {
         }
         handles.push(h);
     }
-    let mut alive_sum = vec![0u64; AGENTS];
+    let mut alive_sum = [0u64; AGENTS];
 
     for tick in 0..TICKS {
         for (idx, &h) in handles.iter().enumerate() {
@@ -178,7 +178,7 @@ fn run(metric: Metric, seed: u64) -> Result {
                 .iter()
                 .enumerate()
                 .filter(|(i, _)| *i != idx)
-                .map(|(_, d)| d.clone())
+                .map(|(_, d)| *d)
                 .collect();
 
             let phi_val = metric.phi_for_gradient(ef, tick as u64, idx);

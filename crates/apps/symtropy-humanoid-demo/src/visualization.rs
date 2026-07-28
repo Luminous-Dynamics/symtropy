@@ -119,15 +119,31 @@ pub fn setup_scene(
     }
 }
 
+type TorsoTransformQuery<'w, 's> = Query<
+    'w,
+    's,
+    &'static mut Transform,
+    (With<TorsoVisual>, Without<HeadVisual>, Without<Extremity>),
+>;
+type HeadTransformQuery<'w, 's> = Query<
+    'w,
+    's,
+    &'static mut Transform,
+    (With<HeadVisual>, Without<TorsoVisual>, Without<Extremity>),
+>;
+type ExtremityTransformQuery<'w, 's> = Query<
+    'w,
+    's,
+    (&'static mut Transform, &'static Extremity),
+    (Without<TorsoVisual>, Without<HeadVisual>),
+>;
+
 /// Re-place torso, head, and four extremities from simulator state.
 pub fn update_humanoid_visual(
     h: Res<HumanoidResources>,
-    mut torso_q: Query<
-        &mut Transform,
-        (With<TorsoVisual>, Without<HeadVisual>, Without<Extremity>),
-    >,
-    mut head_q: Query<&mut Transform, (With<HeadVisual>, Without<TorsoVisual>, Without<Extremity>)>,
-    mut ext_q: Query<(&mut Transform, &Extremity), (Without<TorsoVisual>, Without<HeadVisual>)>,
+    mut torso_q: TorsoTransformQuery,
+    mut head_q: HeadTransformQuery,
+    mut ext_q: ExtremityTransformQuery,
 ) {
     let st = h.simulator.state();
     let [w, x, y, z] = st.root_quaternion;

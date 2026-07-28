@@ -48,8 +48,8 @@ fn run_experiment(curvature_scale: f64, seed: u64) -> CurvResult {
     let mut consciousness = ConsciousnessField::<2>::new();
     consciousness.constants = ThermodynamicConstants::research();
 
-    let wells = vec![SVector::from([30.0, 0.0]), SVector::from([-30.0, 0.0])];
-    let mut well_remaining = vec![2500.0f64; 2];
+    let wells = [SVector::from([30.0, 0.0]), SVector::from([-30.0, 0.0])];
+    let mut well_remaining = [2500.0f64; 2];
 
     let mut rng = seed;
     let mut handles = Vec::new();
@@ -166,7 +166,16 @@ fn run_experiment(curvature_scale: f64, seed: u64) -> CurvResult {
             #[cfg(feature = "consciousness-curvature")]
             if curvature_scale > 1e-6 {
                 // Compute sigma gradient from harmony field
-                let harmony_energy: f64 = near
+                //
+                // NOTE (found via clippy `unused_variables`, 2026-07-26):
+                // `harmony_energy` was computed here but never fed into
+                // `sigma_grad`/`correction` below -- a real physics
+                // calculation, apparently an abandoned intermediate step
+                // (e.g. possibly meant to scale the correction strength).
+                // Flagged with `_` rather than guessing at the intended
+                // formula, which would be a physics/design decision, not
+                // a mechanical lint fix.
+                let _harmony_energy: f64 = near
                     .iter()
                     .map(|(p, h)| {
                         let d = (p - pos).norm().max(1.0);

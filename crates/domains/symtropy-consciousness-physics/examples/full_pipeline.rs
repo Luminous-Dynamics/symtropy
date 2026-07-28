@@ -235,7 +235,7 @@ fn main() {
 
     // Sanity assertions
     assert!(
-        final_phi >= 0.0 && final_phi <= 1.0,
+        (0.0..=1.0).contains(&final_phi),
         "Φ out of range: {}",
         final_phi
     );

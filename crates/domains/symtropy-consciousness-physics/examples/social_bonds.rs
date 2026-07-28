@@ -60,8 +60,8 @@ fn run_experiment(use_bonds: bool, seed: u64) -> BondResult {
     consciousness.constants = constants;
 
     // Small wells = real scarcity
-    let wells = vec![SVector::from([30.0, 0.0]), SVector::from([-30.0, 0.0])];
-    let mut well_remaining = vec![2000.0f64; 2];
+    let wells = [SVector::from([30.0, 0.0]), SVector::from([-30.0, 0.0])];
+    let mut well_remaining = [2000.0f64; 2];
 
     let mut rng = seed;
     let mut handles = Vec::new();

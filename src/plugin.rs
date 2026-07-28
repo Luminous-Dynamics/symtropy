@@ -230,6 +230,7 @@ impl Plugin for SymtropyPlugin {
                 .init_resource::<systems::demo_director::DemoDirector>()
                 .init_resource::<sol_atlas_bevy::h3_grid::HoveredCell>()
                 .init_resource::<sol_atlas_bevy::cell_entry::CellZoomTransition>()
+                .init_resource::<systems::atlas::SolarSystemBodiesRes>()
                 .add_systems(
                     Update,
                     systems::atlas::atlas_toggle_system.run_if(in_state(GamePhase::Playing)),
@@ -246,6 +247,7 @@ impl Plugin for SymtropyPlugin {
                     Update,
                     (
                         systems::atlas::timeline_visibility_system,
+                        systems::atlas::fossil_eroi_color_system,
                         systems::atlas::temporal_4d_system,
                         systems::atlas::data_view_filter_system, // combined LOD + view filter
                     )
@@ -267,9 +269,28 @@ impl Plugin for SymtropyPlugin {
                         systems::atlas::cloud_rotation_system,
                         systems::atlas::marker_pulse_system,
                         systems::atlas::consciousness_shader_system,
-                        systems::atlas::planet_focus_system,
                         systems::atlas::overlay_toggle_system,
+                        systems::atlas::planet_holographic_focus_system,
                     )
+                        .run_if(in_state(GamePhase::GlobeView)),
+                )
+                // Camera-target writers: both of these mutate
+                // OrbitalCameraConfig's look_offset/theta/phi/distance and
+                // must land before orbital_camera_system reads them, or the
+                // frame they render is one tick stale (2026-07-26 fix --
+                // previously ungated in the tuple above, relying on
+                // declaration order rather than an enforced contract; also
+                // where celestial_body_update_system gets registered at
+                // all -- it was defined but never added to any schedule,
+                // so a focused planet's look_offset was never re-synced to
+                // its live orbital position and drifted out of frame).
+                .add_systems(
+                    Update,
+                    (
+                        systems::atlas::planet_focus_system,
+                        systems::atlas::celestial_body_update_system,
+                    )
+                        .before(sol_atlas_bevy::camera::orbital_camera_system)
                         .run_if(in_state(GamePhase::GlobeView)),
                 )
                 .add_systems(
@@ -289,6 +310,19 @@ impl Plugin for SymtropyPlugin {
                         sol_atlas_bevy::frame_capture::frame_capture_system,
                         systems::demo_director::demo_director_system,
                     )
+                        .run_if(in_state(GamePhase::GlobeView)),
+                )
+                // DataView picker (2026-07-27, Bevy-side lens-picker parity)
+                // -- kept in its own group rather than growing the 13-system
+                // tuple above, matching this file's existing convention of
+                // splitting rather than approaching the tuple arity limit.
+                .add_systems(
+                    Update,
+                    (
+                        systems::atlas::data_view_button_click_system,
+                        systems::atlas::data_view_button_highlight_system,
+                    )
+                        .chain()
                         .run_if(in_state(GamePhase::GlobeView)),
                 )
                 // H3 hex grid — Step 1 (cell indexing + hover picking +

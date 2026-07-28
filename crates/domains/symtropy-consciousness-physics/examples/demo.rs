@@ -119,7 +119,7 @@ fn run_simulation(enforce: bool, seed: u64) -> SimResult {
     }
 
     // Place energy wells
-    let wells: Vec<SVector<f64, 2>> = vec![
+    let wells: [SVector<f64, 2>; 3] = [
         SVector::from([0.0, 0.0]),
         SVector::from([15.0, 15.0]),
         SVector::from([-15.0, -15.0]),

@@ -24,13 +24,13 @@ fn monitor_simulation_load(
     entities: Query<Entity>,
     mut load: ResMut<SimulationLoad>,
 ) {
-    if let Some(fps) = diagnostics.get(&FrameTimeDiagnosticsPlugin::FPS) {
-        if let Some(value) = fps.smoothed() {
-            load.current_fps = value;
-            load.entity_count = entities.iter().count();
+    if let Some(fps) = diagnostics.get(&FrameTimeDiagnosticsPlugin::FPS)
+        && let Some(value) = fps.smoothed()
+    {
+        load.current_fps = value;
+        load.entity_count = entities.iter().count();
 
-            // Throttle if FPS drops below 30
-            load.is_overloaded = value < 30.0;
-        }
+        // Throttle if FPS drops below 30
+        load.is_overloaded = value < 30.0;
     }
 }

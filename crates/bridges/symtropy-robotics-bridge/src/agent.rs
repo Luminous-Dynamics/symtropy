@@ -65,10 +65,18 @@ impl Plugin for RoboticBrainPlugin {
     }
 }
 
+/// Other physics bodies visible to a proximity sensor (excludes sensor entities themselves).
+type ProximityOthersQuery<'w, 's> = Query<
+    'w,
+    's,
+    (&'static Transform, Entity),
+    (Without<RoboticProximitySensor>, With<PhysicsBody>),
+>;
+
 /// Updates proximity sensors by querying the physics world or Bevy transforms.
 fn update_proximity_sensors_system(
     mut sensors: Query<(&mut RoboticProximitySensor, &Transform, Entity)>,
-    others: Query<(&Transform, Entity), (Without<RoboticProximitySensor>, With<PhysicsBody>)>,
+    others: ProximityOthersQuery,
 ) {
     for (mut sensor, transform, sensor_entity) in &mut sensors {
         sensor.detections.clear();
@@ -88,18 +96,22 @@ fn update_proximity_sensors_system(
     }
 }
 
+/// Per-agent components consumed when propagating physical state into the brain's LTC input.
+type SensoryInputQuery<'w, 's> = Query<
+    'w,
+    's,
+    (
+        &'static mut CognitiveBrain,
+        &'static Transform,
+        &'static PhysicsBody,
+        Option<&'static RoboticHapticBinder>,
+        Option<&'static RoboticProximitySensor>,
+    ),
+>;
+
 /// Feeds physical state (pose, velocity, proximity) into the CognitiveBrain's LTC input.
 /// Transitions from string-based to HDC-based perception using HapticSemanticBinder.
-fn propagate_sensory_input_system(
-    mut query: Query<(
-        &mut CognitiveBrain,
-        &Transform,
-        &PhysicsBody,
-        Option<&RoboticHapticBinder>,
-        Option<&RoboticProximitySensor>,
-    )>,
-    physics: Res<BevyPhysics<3>>,
-) {
+fn propagate_sensory_input_system(mut query: SensoryInputQuery, physics: Res<BevyPhysics<3>>) {
     for (mut brain, transform, body_comp, haptic_binder, proximity) in &mut query {
         if let Some(hb) = haptic_binder {
             // Base state: [pos(3), rot(4), vel(3), ang_vel(3)] (13 dims)

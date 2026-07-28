@@ -498,7 +498,7 @@ mod tests {
     #[test]
     fn set_harmony_is_applied() {
         let mut demo = WasmPhysicsDemo::new(2);
-        let harmony = vec![0.9_f64; NUM_HARMONIES];
+        let harmony = [0.9_f64; NUM_HARMONIES];
         demo.set_harmony(0, &serde_json::to_string(&harmony).unwrap());
         let json = demo.tick(0.016);
         let v: serde_json::Value = serde_json::from_str(&json).unwrap();

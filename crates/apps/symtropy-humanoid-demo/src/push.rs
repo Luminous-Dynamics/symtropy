@@ -18,7 +18,7 @@ impl Default for PushSource {
             period: 6.5,
             duration: 0.9,
             peak_force: 220.0,
-            seed: 0x5A5A5A5A5A5A_5A5A,
+            seed: 0x5A5A_5A5A_5A5A_5A5A,
         }
     }
 }

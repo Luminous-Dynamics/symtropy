@@ -59,7 +59,7 @@ fn run_simulation(
         consciousness.tick_thermodynamics();
 
         for &h in &handles {
-            let (pos, pe, ef, ht) = if let Some(b) = world.body(h) {
+            let (_pos, pe, ef, ht) = if let Some(b) = world.body(h) {
                 let pos = b.position();
                 let e = consciousness.entities.get(&h).unwrap();
                 let near_wells: Vec<_> = wells

@@ -586,7 +586,7 @@ mod tests {
 
     #[test]
     fn consciousness_tier_boundaries_match_canonical() {
-        use mycelix_bridge_common::{CivicTier, ConsciousnessProfile};
+        use mycelix_bridge_common::CivicTier;
 
         // The canonical tier boundaries from mycelix-bridge-common
         assert_eq!(CivicTier::from_score(0.0), CivicTier::Observer);

@@ -11,7 +11,6 @@
 
 use nalgebra::SVector;
 use symthaea_consciousness_equation::ConsciousnessInputs;
-use symtropy_consciousness_physics::convergence::cohens_d;
 use symtropy_consciousness_physics::fep_gradient;
 use symtropy_consciousness_physics::harmony_field::HarmonyField;
 use symtropy_consciousness_physics::{ConsciousnessField, ThermodynamicConstants};
@@ -38,15 +37,6 @@ const HARMONY_PROFILES: [[f64; 9]; 4] = [
     [0.4, 0.3, 0.3, 0.6, 0.4, 0.6, 0.3, 0.4, 0.5],
 ];
 
-struct FactResult {
-    maint: &'static str,
-    range: &'static str,
-    regen: &'static str,
-    alive: f64,
-    clustering: f64,
-    cooperation: f64,
-}
-
 fn run_condition(maint: f64, range: f64, regen: f64, seed: u64) -> (f64, f64, f64) {
     let mut world = PhysicsWorld::<2>::new(SVector::from([0.0, 0.0]));
     let mut consciousness = ConsciousnessField::<2>::new();
@@ -57,8 +47,8 @@ fn run_condition(maint: f64, range: f64, regen: f64, seed: u64) -> (f64, f64, f6
     constants.harmony_resonance_regen_rate = regen;
     consciousness.constants = constants;
 
-    let wells = vec![SVector::from([30.0, 0.0]), SVector::from([-30.0, 0.0])];
-    let mut well_remaining = vec![2500.0f64; 2];
+    let wells = [SVector::from([30.0, 0.0]), SVector::from([-30.0, 0.0])];
+    let mut well_remaining = [2500.0f64; 2];
     let mut rng = seed;
     let mut handles = Vec::new();
 

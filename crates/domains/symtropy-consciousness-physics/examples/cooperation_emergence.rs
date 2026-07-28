@@ -27,17 +27,22 @@ const DT: f64 = 1.0 / 64.0;
 
 #[derive(Debug)]
 struct ExperimentResult {
-    name: &'static str,
     alive_at_end: usize,
     avg_clustering: f64,    // average distance to nearest neighbor
     cooperation_ticks: u64, // ticks where epistemic offloading occurred
     avg_energy_at_end: f64,
     collapses: u64,
+    // NOTE (found via clippy `dead_code`, 2026-07-26): tracked but never
+    // surfaced in the report table below, unlike the sibling `collapses`
+    // field (which IS displayed via `e_collapses`/`f_collapses`).
+    // Flagged rather than deleted, same as the other not-proven-redundant
+    // dead-field cases in this series.
+    #[allow(dead_code)]
     recoveries: u64,
     collective_phi_trend: Vec<f64>, // sampled every 100 ticks
 }
 
-fn run_experiment(name: &'static str, enforce: bool, seed: u64) -> ExperimentResult {
+fn run_experiment(_name: &'static str, enforce: bool, seed: u64) -> ExperimentResult {
     let mut world = PhysicsWorld::<2>::new(SVector::from([0.0, 0.0]));
     let mut consciousness = ConsciousnessField::<2>::new();
 
@@ -91,7 +96,7 @@ fn run_experiment(name: &'static str, enforce: bool, seed: u64) -> ExperimentRes
     let mut collapses = 0u64;
     let mut recoveries = 0u64;
     let mut phi_trend = Vec::new();
-    let mut prev_collapsed: Vec<bool> = vec![false; AGENTS];
+    let mut prev_collapsed: [bool; AGENTS] = [false; AGENTS];
 
     for tick in 0..TICKS {
         // Update consciousness
@@ -156,7 +161,7 @@ fn run_experiment(name: &'static str, enforce: bool, seed: u64) -> ExperimentRes
                     .iter()
                     .enumerate()
                     .filter(|(i, _)| *i != idx)
-                    .map(|(_, data)| data.clone())
+                    .map(|(_, data)| *data)
                     .collect();
 
                 let direction = fep_gradient::free_energy_gradient(
@@ -312,7 +317,6 @@ fn run_experiment(name: &'static str, enforce: bool, seed: u64) -> ExperimentRes
     let avg_clustering = total_nearest / AGENTS as f64;
 
     ExperimentResult {
-        name,
         alive_at_end: alive,
         avg_clustering,
         cooperation_ticks,

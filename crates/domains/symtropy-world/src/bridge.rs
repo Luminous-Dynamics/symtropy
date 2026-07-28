@@ -6,7 +6,7 @@
 use std::sync::{Arc, Mutex};
 use std::thread;
 
-use crossbeam_channel::{Receiver, Sender, TryRecvError, bounded};
+use crossbeam_channel::{Receiver, Sender, bounded};
 
 use mycelix_multiworld_sim::{
     config::PolicyConfig, factions::FactionEngine, stochastic::StochasticEngine, world::World,
@@ -88,13 +88,8 @@ impl WorldBridge {
 
     /// Poll for new snapshots from the sim thread. Call once per game frame.
     pub fn poll(&mut self) {
-        loop {
-            match self.snapshot_rx.try_recv() {
-                Ok(snapshot) => {
-                    self.previous = std::mem::replace(&mut self.current, snapshot);
-                }
-                Err(TryRecvError::Empty | TryRecvError::Disconnected) => break,
-            }
+        while let Ok(snapshot) = self.snapshot_rx.try_recv() {
+            self.previous = std::mem::replace(&mut self.current, snapshot);
         }
     }
 
@@ -173,11 +168,9 @@ fn run_sim_loop(
 
         // Process player actions
         while let Ok(action) = action_rx.try_recv() {
-            match action {
-                PlayerAction::SetPolicy { key, value } => {
-                    apply_policy(&mut _policy, &key, value);
-                }
-                _ => {} // Other actions handled game-side or logged
+            // Other actions handled game-side or logged
+            if let PlayerAction::SetPolicy { key, value } = action {
+                apply_policy(&mut _policy, &key, value);
             }
         }
 

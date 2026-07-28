@@ -24,14 +24,8 @@ impl Default for DevConsoleVisible {
 }
 
 /// Pause flag for downstream physics systems.
-#[derive(Resource, Debug, Clone, Copy)]
+#[derive(Resource, Debug, Clone, Copy, Default)]
 pub struct DevConsolePaused(pub bool);
-
-impl Default for DevConsolePaused {
-    fn default() -> Self {
-        Self(false)
-    }
-}
 
 /// Drop-in dev console plugin. See crate docs.
 #[derive(Default, Clone)]
@@ -75,8 +69,13 @@ fn scene_controls_panel(
     let Ok(ctx) = contexts.ctx_mut() else {
         return;
     };
-    egui::SidePanel::left("dev_console_scene_controls")
-        .default_width(220.0)
+    // NOTE: egui 0.34 deprecated top-level Panel::show(ctx, ..) in favor of
+    // show_inside(ui, ..), but that requires already having a Ui from an
+    // enclosing panel — not applicable to this plugin's per-frame top-level
+    // draw call. The deprecated method remains fully functional.
+    #[allow(deprecated)]
+    egui::Panel::left("dev_console_scene_controls")
+        .default_size(220.0)
         .show(ctx, |ui| {
             ui.heading("Scene");
             ui.separator();
@@ -106,8 +105,10 @@ fn phi_inspector_panel(
     let Ok(ctx) = contexts.ctx_mut() else {
         return;
     };
-    egui::SidePanel::left("dev_console_phi")
-        .default_width(220.0)
+    // NOTE: see scene_controls_panel's comment on the deprecated Panel::show.
+    #[allow(deprecated)]
+    egui::Panel::left("dev_console_phi")
+        .default_size(220.0)
         .show(ctx, |ui| {
             ui.heading("Φ Inspector");
             ui.label(format!("{} body(ies)", query.iter().count()));

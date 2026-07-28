@@ -25,8 +25,8 @@ fn run_mini_sim(seed: u64) -> SimState {
     let mut consciousness = ConsciousnessField::<2>::new();
     consciousness.constants = ThermodynamicConstants::research();
 
-    let wells = vec![SVector::from([20.0, 0.0])];
-    let mut well_remaining = vec![500.0f64];
+    let wells = [SVector::from([20.0, 0.0])];
+    let mut well_remaining = [500.0f64];
 
     let mut rng = seed;
     let mut handles = Vec::new();

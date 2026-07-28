@@ -107,10 +107,10 @@ fn evolve_ecology(
 
     for biome in blueprint.biomes {
         for rule in biome.sampling_rules {
-            if let Some(threshold) = rule.phi_threshold {
-                if observatory.avg_phi < threshold {
-                    continue;
-                }
+            if let Some(threshold) = rule.phi_threshold
+                && observatory.avg_phi < threshold
+            {
+                continue;
             }
 
             let candidates = sample_assets(&config.registry_path, &rule.role);

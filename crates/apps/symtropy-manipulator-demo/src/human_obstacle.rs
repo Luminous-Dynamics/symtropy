@@ -37,6 +37,10 @@ pub struct HumanObstacle {
     /// Arm reach radius (meters) — effective interaction zone.
     pub reach_radius: f64,
     /// Capsule half-height for torso.
+    // NOTE: real field, but this demo never actually feeds the human obstacle
+    // into WorkspaceBoundary.human_zones (see module doc comment's stated
+    // intent) -- unwired safety feature, not dead scaffolding.
+    #[allow(dead_code)]
     pub capsule_half_height: f64,
     /// Current movement phase.
     pub phase: HumanPhase,
@@ -75,6 +79,10 @@ impl HumanObstacle {
     }
 
     /// Get the human zone entry for WorkspaceBoundary: [cx, cy, cz, radius].
+    // NOTE: never actually called outside tests -- the demo doesn't feed
+    // this into WorkspaceBoundary.human_zones despite the module doc
+    // comment's stated intent. Real, unwired safety feature.
+    #[allow(dead_code)]
     pub fn as_zone(&self) -> [f64; 4] {
         [
             self.position[0],
@@ -219,6 +227,9 @@ impl HumanObstacle {
     }
 
     /// Whether the human is currently near the workspace (within 1.5m of origin).
+    // NOTE: never called outside tests -- same unwired-safety-feature gap
+    // as as_zone()/capsule_half_height above.
+    #[allow(dead_code)]
     pub fn is_near_workspace(&self) -> bool {
         let dist = (self.position[0].powi(2) + self.position[1].powi(2)).sqrt();
         dist < 1.5

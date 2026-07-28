@@ -24,7 +24,7 @@ fn main() {
     let mut consciousness = ConsciousnessField::<2>::new();
     consciousness.constants = ThermodynamicConstants::research();
 
-    let wells = vec![SVector::from([25.0, 25.0]), SVector::from([-25.0, -25.0])];
+    let wells = [SVector::from([25.0, 25.0]), SVector::from([-25.0, -25.0])];
     let mut rng = 42u64;
     let mut handles = Vec::new();
 
@@ -192,10 +192,10 @@ fn main() {
         consciousness.tick_prediction_errors();
         world.step_with_callback(DT, &mut consciousness);
         let bal = consciousness.tick_thermodynamics();
-        if let Some(j) = bal.joules_per_phi {
-            if j.is_finite() {
-                jphi_detector.push(j);
-            }
+        if let Some(j) = bal.joules_per_phi
+            && j.is_finite()
+        {
+            jphi_detector.push(j);
         }
         if consciousness.collective_phi > peak_phi {
             peak_phi = consciousness.collective_phi;

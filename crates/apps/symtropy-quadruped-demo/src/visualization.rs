@@ -40,7 +40,11 @@ const SHIN_LEN: f32 = 0.20;
 /// Hip attachment points in body frame: leg 0 = FR, 1 = FL, 2 = BR, 3 = BL.
 fn hip_origin(leg: usize) -> Vec3 {
     let fwd = if leg < 2 { HIP_FWD } else { -HIP_FWD };
-    let side = if leg % 2 == 0 { -HIP_SIDE } else { HIP_SIDE };
+    let side = if leg.is_multiple_of(2) {
+        -HIP_SIDE
+    } else {
+        HIP_SIDE
+    };
     Vec3::new(fwd, side, 0.0)
 }
 

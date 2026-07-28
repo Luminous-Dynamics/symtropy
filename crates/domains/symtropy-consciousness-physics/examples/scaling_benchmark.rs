@@ -33,13 +33,13 @@ fn run_benchmark(n_agents: usize, use_spatial_hash: bool) -> (f64, f64, usize) {
     let mut consciousness = ConsciousnessField::<2>::new();
     consciousness.constants = ThermodynamicConstants::research();
 
-    let wells = vec![
+    let wells = [
         SVector::from([50.0, 0.0]),
         SVector::from([-50.0, 0.0]),
         SVector::from([0.0, 50.0]),
         SVector::from([0.0, -50.0]),
     ];
-    let mut well_remaining = vec![10000.0f64; 4]; // large wells for benchmark stability
+    let mut well_remaining = [10000.0f64; 4]; // large wells for benchmark stability
 
     let mut rng = 42u64;
     let mut handles = Vec::new();
@@ -63,7 +63,6 @@ fn run_benchmark(n_agents: usize, use_spatial_hash: bool) -> (f64, f64, usize) {
     }
 
     let mut spatial = SpatialHash::<2>::new(consciousness.constants.harmony_range);
-    let mut coop = 0u64;
 
     let start = Instant::now();
 
@@ -147,7 +146,7 @@ fn run_benchmark(n_agents: usize, use_spatial_hash: bool) -> (f64, f64, usize) {
                         let (p, h) = &adata[j];
                         let d = (p - pos).norm();
                         if d > 2.0 && d < consciousness.constants.harmony_range {
-                            Some((p.clone(), h.clone()))
+                            Some((*p, *h))
                         } else {
                             None
                         }
@@ -244,7 +243,6 @@ fn run_benchmark(n_agents: usize, use_spatial_hash: bool) -> (f64, f64, usize) {
                         if let Some(e) = consciousness.entities.get_mut(&hb) {
                             e.energy.regenerate(rg);
                         }
-                        coop += 1;
                     }
                 }
             }
@@ -280,7 +278,6 @@ fn run_benchmark(n_agents: usize, use_spatial_hash: bool) -> (f64, f64, usize) {
                         if let Some(e) = consciousness.entities.get_mut(&hb) {
                             e.energy.regenerate(rg);
                         }
-                        coop += 1;
                     }
                 }
             }

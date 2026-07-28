@@ -59,8 +59,8 @@ fn run_experiment(maintenance: f64, seed: u64) -> PhaseResult {
     constants.consciousness_maintenance_per_tick = maintenance;
     consciousness.constants = constants;
 
-    let wells = vec![SVector::from([25.0, 0.0]), SVector::from([-25.0, 0.0])];
-    let mut well_remaining = vec![2500.0f64; 2];
+    let wells = [SVector::from([25.0, 0.0]), SVector::from([-25.0, 0.0])];
+    let mut well_remaining = [2500.0f64; 2];
 
     let mut rng = seed;
     let mut handles = Vec::new();
@@ -295,7 +295,7 @@ fn run_experiment(maintenance: f64, seed: u64) -> PhaseResult {
         clustering,
         cooperation_events: cooperation_events as f64,
         mean_temperature: mean_temp,
-        total_entropy: total_entropy,
+        total_entropy,
         helmholtz,
     }
 }

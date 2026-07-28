@@ -240,11 +240,15 @@ fn run_era(era: &Era, seed: u64) -> EraResult {
                     if dist < era.harmony_range && dist > 1.0 {
                         let influence = era.influencer_strength / (dist * dist + 1.0);
                         if let Some(e) = consciousness.entities.get_mut(&h) {
-                            for k in 0..8 {
+                            for (ha, ih) in e
+                                .harmony_activations
+                                .iter_mut()
+                                .zip(inf_harm.iter())
+                                .take(8)
+                            {
                                 // Gradually shift toward influencer's harmony
-                                e.harmony_activations[k] +=
-                                    (inf_harm[k] - e.harmony_activations[k]) * influence * 0.01;
-                                e.harmony_activations[k] = e.harmony_activations[k].clamp(0.0, 1.0);
+                                *ha += (*ih - *ha) * influence * 0.01;
+                                *ha = ha.clamp(0.0, 1.0);
                             }
                         }
                     }
@@ -319,7 +323,7 @@ fn main() {
     eprintln!("What has technology done to consciousness-cooperation?");
     eprintln!("Agents: {AGENTS}, Ticks: {TICKS}, Seeds: {SEEDS}\n");
 
-    let eras = vec![
+    let eras = [
         Era {
             name: "PRE-INTERNET",
             harmony_range: 40.0,
@@ -576,8 +580,8 @@ fn compute_polarization(
     let mut mean = [0.0f64; 9];
     for &h in handles {
         if let Some(e) = consciousness.entities.get(&h) {
-            for i in 0..8 {
-                mean[i] += e.harmony_activations[i];
+            for (mh, ha) in mean.iter_mut().zip(e.harmony_activations.iter()).take(8) {
+                *mh += ha;
             }
         }
     }

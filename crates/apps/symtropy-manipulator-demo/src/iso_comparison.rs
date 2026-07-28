@@ -50,11 +50,6 @@ impl IsoSsmController {
         let sp = self.protective_distance(robot_speed);
         if human_distance < sp { 0.0 } else { 1.0 }
     }
-
-    /// Whether the robot should be stopped given current distances.
-    pub fn should_stop(&self, human_distance: f64, robot_speed: f64) -> bool {
-        human_distance < self.protective_distance(robot_speed)
-    }
 }
 
 #[cfg(test)]

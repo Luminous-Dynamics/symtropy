@@ -41,8 +41,8 @@ fn run_with_constants(constants: ThermodynamicConstants, seed: u64) -> SensResul
     let mut consciousness = ConsciousnessField::<2>::new();
     consciousness.constants = constants;
 
-    let wells = vec![SVector::from([30.0, 0.0]), SVector::from([-30.0, 0.0])];
-    let mut well_remaining = vec![2500.0f64; 2];
+    let wells = [SVector::from([30.0, 0.0]), SVector::from([-30.0, 0.0])];
+    let mut well_remaining = [2500.0f64; 2];
     let mut rng = seed;
     let mut handles = Vec::new();
 
@@ -247,7 +247,7 @@ fn run_with_constants(constants: ThermodynamicConstants, seed: u64) -> SensResul
 }
 
 fn sweep_parameter(
-    name: &str,
+    _name: &str,
     values: &[f64],
     mutator: impl Fn(&mut ThermodynamicConstants, f64),
 ) -> Vec<(f64, Vec<SensResult>)> {

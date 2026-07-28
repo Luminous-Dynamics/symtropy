@@ -300,8 +300,8 @@ impl PhysicsFrameEncoder {
                         continue;
                     }
                     total_mass += body.mass;
-                    for axis in 0..D {
-                        weighted[axis] += body.mass * body.transform.translation.0[axis];
+                    for (w, t) in weighted.iter_mut().zip(body.transform.translation.0.iter()) {
+                        *w += body.mass * t;
                     }
                 }
                 if total_mass > 0.0 {
@@ -340,9 +340,9 @@ impl PhysicsFrameEncoder {
         bundle.add(&self.bind_scalar("friction", &self.unit, body.friction, 0.0, 1.0)?)?;
         bundle.add(&self.bind_scalar("restitution", &self.unit, body.restitution, 0.0, 1.0)?)?;
 
-        for axis in 0..D {
+        for (axis, orig) in origin.iter().enumerate() {
             let axis_name = axis.to_string();
-            let position = body.transform.translation.0[axis] - origin[axis];
+            let position = body.transform.translation.0[axis] - orig;
             bundle.add(&self.bind_scalar(
                 &format!("position.{axis_name}"),
                 &self.position,

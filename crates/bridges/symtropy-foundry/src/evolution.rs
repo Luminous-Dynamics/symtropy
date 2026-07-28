@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 use crate::fitness::EpochFitness;
-use crate::orchestrator::Blueprint;
 use bevy::prelude::*;
 use rand::Rng;
 use serde::{Deserialize, Serialize};

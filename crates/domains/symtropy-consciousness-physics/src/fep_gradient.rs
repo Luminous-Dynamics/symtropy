@@ -440,7 +440,7 @@ mod tests {
     fn low_energy_seeks_wells() {
         let pos = SVector::from([0.0, 0.0]);
         let harmony = [0.5; NUM_HARMONIES];
-        let wells = vec![
+        let wells = [
             (SVector::from([50.0, 0.0]), 1.0), // well to the right
         ];
 
@@ -458,7 +458,7 @@ mod tests {
     fn full_energy_ignores_wells() {
         let pos = SVector::from([0.0, 0.0]);
         let harmony = [0.5; NUM_HARMONIES];
-        let wells = vec![(SVector::from([50.0, 0.0]), 1.0)];
+        let wells = [(SVector::from([50.0, 0.0]), 1.0)];
 
         let dir = free_energy_gradient(&pos, 0.9, &harmony, &[], &wells, None, 0.0);
 
@@ -486,7 +486,7 @@ mod tests {
         let pos = SVector::from([0.0, 0.0]);
         let harmony = [0.8, 0.2, 0.1, 0.1, 0.1, 0.1, 0.1, 0.8, 0.0];
         let partner_harmony = [0.8, 0.2, 0.1, 0.1, 0.1, 0.1, 0.1, 0.8, 0.0]; // same = high resonance
-        let agents = vec![(SVector::from([30.0, 0.0]), partner_harmony)];
+        let agents = [(SVector::from([30.0, 0.0]), partner_harmony)];
 
         let dir = free_energy_gradient(&pos, 0.2, &harmony, &agents, &[], None, 0.0);
 
@@ -498,7 +498,7 @@ mod tests {
         let pos = SVector::from([0.0, 0.0]);
         let harmony = [0.9, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0];
         let other_harmony = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.9, 0.0]; // orthogonal
-        let agents = vec![(SVector::from([30.0, 0.0]), other_harmony)];
+        let agents = [(SVector::from([30.0, 0.0]), other_harmony)];
 
         let dir = free_energy_gradient(&pos, 0.2, &harmony, &agents, &[], None, 0.0);
 
@@ -524,7 +524,7 @@ mod tests {
     fn gradient_is_unit_or_zero() {
         let pos = SVector::from([0.0, 0.0]);
         let harmony = [0.5; NUM_HARMONIES];
-        let wells = vec![(SVector::from([50.0, 30.0]), 1.0)];
+        let wells = [(SVector::from([50.0, 30.0]), 1.0)];
 
         let dir = free_energy_gradient(&pos, 0.2, &harmony, &[], &wells, None, 0.0);
         let norm = dir.norm();

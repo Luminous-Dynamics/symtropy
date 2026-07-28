@@ -124,7 +124,7 @@ fn run(n: usize, social: bool, seed: u64) -> (f64, f64) {
                     .iter()
                     .enumerate()
                     .filter(|(i, _)| *i != idx)
-                    .map(|(_, d)| d.clone())
+                    .map(|(_, d)| *d)
                     .collect();
                 let dir =
                     fep_gradient::free_energy_gradient(&pos, ef, &harm, &nearby, &[], None, 0.0);

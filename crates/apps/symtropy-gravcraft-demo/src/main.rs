@@ -28,14 +28,22 @@ struct GridVertex {
 #[derive(Component)]
 struct Craft;
 
+// NOTE: AmplifierCone/TrailPoint are never spawned anywhere in this file --
+// the doc comment above promises visible "3 amplifier cones" and a
+// "geodesic trail", but only the underlying simulation state
+// (`amplifiers_active`, `trail: Vec<Vec3>` on GravcraftSim) is implemented;
+// no mesh entities are ever spawned using these component types. Real,
+// unfinished visual feature, not dead scaffolding to delete.
 /// Amplifier cone visual.
 #[derive(Component)]
+#[allow(dead_code)]
 struct AmplifierCone {
     index: usize,
 }
 
 /// Geodesic trail point.
 #[derive(Component)]
+#[allow(dead_code)]
 struct TrailPoint {
     age: f32,
 }

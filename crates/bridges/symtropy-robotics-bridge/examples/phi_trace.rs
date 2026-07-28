@@ -186,7 +186,7 @@ fn platform_observation(platform: PlatformType, step: usize, seed: u64) -> (Vec<
         }
         PlatformType::Humanoid => {
             // Uprightness drifts during push impulses; push bursts at low freq.
-            let push = if ((s * 0.01 + phase) as f64).sin() > 0.85 {
+            let push = if (s * 0.01 + phase).sin() > 0.85 {
                 0.9
             } else {
                 0.05

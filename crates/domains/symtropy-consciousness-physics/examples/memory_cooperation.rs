@@ -61,12 +61,12 @@ fn run_experiment(mode: Mode, seed: u64) -> MemResult {
     consciousness.constants = constants;
 
     // Wells placed far from center to reward discovery
-    let wells = vec![
+    let wells = [
         SVector::from([60.0, 20.0]),
         SVector::from([-50.0, -30.0]),
         SVector::from([10.0, -60.0]),
     ];
-    let mut well_remaining = vec![2000.0f64; 3];
+    let mut well_remaining = [2000.0f64; 3];
 
     let mut rng = seed;
     let mut handles = Vec::new();
@@ -138,7 +138,7 @@ fn run_experiment(mode: Mode, seed: u64) -> MemResult {
 
         // Memory: record energy + discover wells
         if use_memory {
-            for (idx, &h) in handles.iter().enumerate() {
+            for &h in handles.iter() {
                 let ef = consciousness
                     .entities
                     .get(&h)
@@ -151,11 +151,11 @@ fn run_experiment(mode: Mode, seed: u64) -> MemResult {
                 if let Some(b) = world.body(h) {
                     let pos = b.position();
                     for &w in &wells {
-                        if (pos - w).norm() < 35.0 {
-                            if let Some(e) = consciousness.entities.get_mut(&h) {
-                                let w2 = SVector::from([w[0], w[1]]);
-                                e.memory.discover_well(&w2);
-                            }
+                        if (pos - w).norm() < 35.0
+                            && let Some(e) = consciousness.entities.get_mut(&h)
+                        {
+                            let w2 = SVector::from([w[0], w[1]]);
+                            e.memory.discover_well(&w2);
                         }
                     }
                 }
@@ -187,7 +187,7 @@ fn run_experiment(mode: Mode, seed: u64) -> MemResult {
             let mut wdata: Vec<_> = wells
                 .iter()
                 .zip(well_remaining.iter())
-                .filter(|&(ref w, &r)| r > 0.0 && (pos - *w).norm() < 200.0)
+                .filter(|&(w, &r)| r > 0.0 && (pos - w).norm() < 200.0)
                 .map(|(&p, &r)| (p, (r / 2000.0).min(1.0)))
                 .collect();
 
@@ -476,7 +476,7 @@ fn main() {
     let (_, _, p3) = mann_whitney_u(&m_alive, &ml_alive);
     let d3 = cohens_d(&m_alive, &ml_alive);
 
-    let tests = vec![
+    let tests = [
         ("STATELESS vs MEMORY", p1),
         ("STATELESS vs MEM+LEARN", p2),
         ("MEMORY vs MEM+LEARN", p3),

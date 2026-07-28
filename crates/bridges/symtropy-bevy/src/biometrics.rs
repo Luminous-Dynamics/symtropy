@@ -127,7 +127,7 @@ pub fn biometric_to_phi_system<const D: usize>(
     let position = physics
         .world
         .body(handle)
-        .map(|b| b.transform.translation.clone())
+        .map(|b| b.transform.translation)
         .unwrap_or_else(Point::origin);
 
     physics.field.update_entity(handle, &inputs, position);
@@ -266,6 +266,6 @@ mod tests {
         let inputs = bio.history.to_consciousness_inputs();
         p.field
             .update_entity(h, &inputs, symtropy_math::Point::origin());
-        assert!(p.field.entities.get(&h).is_some());
+        assert!(p.field.entities.contains_key(&h));
     }
 }

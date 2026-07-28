@@ -1,5 +1,4 @@
 use bevy::prelude::*;
-use rapier3d::prelude::*;
 use symtropy_rapier3d_bridge::{RapierColliderSet, RapierRigidBodySet};
 use symtropy_robotics_bridge::RoboticAgentTag;
 

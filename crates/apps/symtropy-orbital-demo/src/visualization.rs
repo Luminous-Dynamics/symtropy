@@ -147,8 +147,7 @@ pub fn setup_scene(
             ));
 
             // Seven arm links, positioned/rotated each frame by update_arm_visual.
-            for i in 0..NUM_JOINTS {
-                let len = LINK_LENGTHS[i];
+            for (i, &len) in LINK_LENGTHS.iter().enumerate().take(NUM_JOINTS) {
                 let width = 0.15 - (i as f32) * 0.01;
                 parent.spawn((
                     Mesh3d(meshes.add(Cuboid::new(len, width, width))),

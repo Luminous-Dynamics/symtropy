@@ -128,7 +128,7 @@ impl SignalingClient {
                 while let Some(cmd) = cmd_rx.recv().await {
                     let json = serde_json::to_string(&cmd).unwrap();
                     if ws_tx
-                        .send(tokio_tungstenite::tungstenite::Message::Text(json.into()))
+                        .send(tokio_tungstenite::tungstenite::Message::Text(json))
                         .await
                         .is_err()
                     {

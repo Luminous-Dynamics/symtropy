@@ -53,8 +53,8 @@ fn run_experiment(use_learning: bool, seed: u64) -> LearnResult {
     constants.consciousness_maintenance_per_tick = 0.25;
     consciousness.constants = constants;
 
-    let wells = vec![SVector::from([30.0, 0.0]), SVector::from([-30.0, 0.0])];
-    let mut well_remaining = vec![2500.0f64; 2];
+    let wells = [SVector::from([30.0, 0.0]), SVector::from([-30.0, 0.0])];
+    let mut well_remaining = [2500.0f64; 2];
 
     let mut rng = seed;
     let mut handles = Vec::new();
@@ -434,7 +434,7 @@ fn main() {
     let d_clust = cohens_d(&f_clust, &l_clust);
 
     // Holm-Bonferroni correction for 3 comparisons
-    let tests = vec![
+    let tests = [
         ("survival", p_alive),
         ("cooperation", p_coop),
         ("clustering", p_clust),

@@ -61,7 +61,7 @@ fn run_experiment(condition: Condition, seed: u64) -> CommonsResult {
     let mut consciousness = ConsciousnessField::<2>::new();
     consciousness.constants = ThermodynamicConstants::research();
 
-    let wells = vec![
+    let wells = [
         SVector::from([40.0, 0.0]),
         SVector::from([-40.0, 0.0]),
         SVector::from([0.0, 40.0]),
@@ -71,7 +71,7 @@ fn run_experiment(condition: Condition, seed: u64) -> CommonsResult {
         Condition::Scarce => 1_000.0,
         Condition::Depleting => 2_000.0,
     };
-    let mut well_remaining = vec![well_capacity; 3];
+    let mut well_remaining = [well_capacity; 3];
     let cond_name = match condition {
         Condition::Abundant => "ABUNDANT",
         Condition::Scarce => "SCARCE",
@@ -185,8 +185,7 @@ fn run_experiment(condition: Condition, seed: u64) -> CommonsResult {
         // Count agents at each well
         let well_counts: Vec<usize> = wells
             .iter()
-            .enumerate()
-            .map(|(wi, &w)| {
+            .map(|&w| {
                 handles
                     .iter()
                     .filter(|&&h| {
@@ -209,7 +208,7 @@ fn run_experiment(condition: Condition, seed: u64) -> CommonsResult {
         let mr = consciousness.constants.consciousness_maintenance_per_tick;
         let ar = consciousness.constants.ambient_regen_rate;
         let wr = consciousness.constants.energy_well_regen_rate;
-        for (idx, &h) in handles.iter().enumerate() {
+        for &h in handles.iter() {
             if let Some(e) = consciousness.entities.get_mut(&h) {
                 e.energy.tick_reset();
             }

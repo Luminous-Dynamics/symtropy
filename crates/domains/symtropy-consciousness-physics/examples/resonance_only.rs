@@ -70,10 +70,7 @@ fn run_experiment(ctrl: Ctrl, seed: u64) -> ResOnlyResult {
     constants.consciousness_maintenance_per_tick = 0.15; // slightly lower maintenance
     consciousness.constants = constants;
 
-    // NO WELLS — empty well list
-    let wells: Vec<SVector<f64, 2>> = vec![];
-    let well_remaining: Vec<f64> = vec![];
-
+    // NO WELLS — this experiment removes them entirely
     let mut rng = seed;
     let mut handles = Vec::new();
 
@@ -404,7 +401,7 @@ fn main() {
     let random_alive: Vec<f64> = all[4].1.iter().map(|r| r.alive).collect();
     let stationary_alive: Vec<f64> = all[5].1.iter().map(|r| r.alive).collect();
 
-    let tests = vec![
+    let tests = [
         ("FEP vs RANDOM", {
             let (_, _, p) = mann_whitney_u(&fep_alive, &random_alive);
             p
@@ -450,7 +447,6 @@ fn main() {
     let fep_mean = fep_alive.iter().sum::<f64>() / fep_alive.len() as f64;
     let partner_mean = partner_alive.iter().sum::<f64>() / partner_alive.len() as f64;
     let random_mean = random_alive.iter().sum::<f64>() / random_alive.len() as f64;
-    let stat_mean = stationary_alive.iter().sum::<f64>() / stationary_alive.len() as f64;
 
     let social_better = (fep_mean > random_mean + 2.0) || (partner_mean > random_mean + 2.0);
 

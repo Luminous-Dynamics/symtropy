@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-use crate::orchestrator::{BlueprintConfig, OrchestratorObservatory};
+use crate::orchestrator::OrchestratorObservatory;
 use crate::profiler::SimulationLoad;
 use bevy::prelude::*;
 

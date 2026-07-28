@@ -153,7 +153,7 @@ fn step_phi_arm(
 
     // === Step 4: Update admittance stiffness from Phi ===
     phi_arm.stiffness = phi.clamp(0.1, 1.0);
-    let mut admittance = AdmittanceController {
+    let admittance = AdmittanceController {
         stiffness: phi_arm.stiffness,
     };
 
@@ -207,7 +207,7 @@ fn step_phi_arm(
     // naturally dominate the dissimilarity.
     let pe = if let Some(ref prev_hv) = phi_arm.last_perception {
         let sim = current_hv.similarity(prev_hv);
-        (1.0 - sim.max(0.0)).min(1.0) as f32
+        (1.0 - sim.max(0.0)).min(1.0)
     } else {
         0.0 // First tick: no previous perception
     };
@@ -267,12 +267,12 @@ fn step_iso_arm(
             .ik_dls(&target, &state.joint_angles, 0.1, 50, 0.01)
         {
             let mut cmd = symthaea_manipulator::ManipulatorCommand::zero();
-            for i in 0..NUM_JOINTS {
+            for (i, torque) in cmd.joint_torques.iter_mut().enumerate().take(NUM_JOINTS) {
                 let error = q_target[i] - state.joint_angles[i];
                 let vel = state.joint_velocities[i];
                 let kp = 8.0;
                 let kd = 2.0;
-                cmd.joint_torques[i] = ((kp * error - kd * vel) as f32).clamp(-1.0, 1.0);
+                *torque = ((kp * error - kd * vel) as f32).clamp(-1.0, 1.0);
             }
             cmd.gripper = iso.task.desired_gripper() as f32;
             // Apply object gravity load to ISO arm too (fair comparison)

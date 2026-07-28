@@ -27,6 +27,11 @@ impl Default for AdmittanceController {
 
 impl AdmittanceController {
     /// Update stiffness from the current Phi value.
+    // NOTE: unused in production -- plugin.rs constructs a fresh
+    // AdmittanceController with the new stiffness each tick instead of
+    // mutating an existing one. Real, tested API (see tests below), kept
+    // as the natural mutator alternative to direct construction.
+    #[allow(dead_code)]
     pub fn update_from_phi(&mut self, phi: f64) {
         self.stiffness = phi.clamp(0.1, 1.0);
     }

@@ -70,7 +70,7 @@ fn run(cond: &Condition, seed: u64) -> Result {
     let mut handles = Vec::new();
 
     // Place 2 energy wells at fixed positions
-    let well_positions = vec![SVector::from([30.0, 30.0]), SVector::from([-30.0, -30.0])];
+    let well_positions = [SVector::from([30.0, 30.0]), SVector::from([-30.0, -30.0])];
 
     for i in 0..AGENTS {
         let x = (next_rng(&mut rng) - 0.5) * 100.0;
@@ -97,9 +97,9 @@ fn run(cond: &Condition, seed: u64) -> Result {
 
     let mut coop_ticks = 0u64;
     let mut well_sharing = 0u64;
-    let mut alive_ticks: Vec<u64> = vec![0; AGENTS]; // ticks each agent was alive
+    let mut alive_ticks: [u64; AGENTS] = [0; AGENTS]; // ticks each agent was alive
 
-    for tick in 0..TICKS {
+    for _tick in 0..TICKS {
         // Consciousness update
         for &h in &handles {
             let collapsed = consciousness
@@ -139,10 +139,7 @@ fn run(cond: &Condition, seed: u64) -> Result {
                 .filter_map(|&h| {
                     let body = world.body(h)?;
                     let entity = consciousness.entities.get(&h)?;
-                    Some((
-                        world.body(h).expect("body").position(),
-                        entity.harmony_activations,
-                    ))
+                    Some((body.position(), entity.harmony_activations))
                 })
                 .collect();
 
@@ -159,7 +156,7 @@ fn run(cond: &Condition, seed: u64) -> Result {
                 }
 
                 let pos = match world.body(h) {
-                    Some(b) => world.body(h).expect("body").position(),
+                    Some(b) => b.position(),
                     None => continue,
                 };
                 let energy_frac = consciousness
@@ -177,7 +174,7 @@ fn run(cond: &Condition, seed: u64) -> Result {
                     .iter()
                     .enumerate()
                     .filter(|(i, _)| *i != idx)
-                    .map(|(_, d)| d.clone())
+                    .map(|(_, d)| *d)
                     .collect();
 
                 let dir = fep_gradient::free_energy_gradient(
@@ -215,16 +212,16 @@ fn run(cond: &Condition, seed: u64) -> Result {
             // Energy well regeneration
             for &h in &handles {
                 let pos = match world.body(h) {
-                    Some(b) => world.body(h).expect("body").position(),
+                    Some(b) => b.position(),
                     None => continue,
                 };
                 for wp in &well_positions {
-                    if (pos - wp).norm() < 40.0 {
-                        if let Some(entity) = consciousness.entities.get_mut(&h) {
-                            entity
-                                .energy
-                                .regenerate(consciousness.constants.energy_well_regen_rate);
-                        }
+                    if (pos - wp).norm() < 40.0
+                        && let Some(entity) = consciousness.entities.get_mut(&h)
+                    {
+                        entity
+                            .energy
+                            .regenerate(consciousness.constants.energy_well_regen_rate);
                     }
                 }
             }
@@ -236,7 +233,7 @@ fn run(cond: &Condition, seed: u64) -> Result {
                     .filter(|&&h| {
                         world
                             .body(h)
-                            .map(|b| (world.body(h).expect("body").position() - wp).norm() < 40.0)
+                            .map(|b| (b.position() - wp).norm() < 40.0)
                             .unwrap_or(false)
                     })
                     .count();
@@ -349,7 +346,7 @@ fn run(cond: &Condition, seed: u64) -> Result {
 }
 
 fn main() {
-    let conditions = vec![
+    let conditions = [
         Condition {
             name: "FREE        ",
             energy_costs: false,

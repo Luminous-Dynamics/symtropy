@@ -10,14 +10,9 @@ use symtropy_bevy_core::{BevyPhysics, PhysicsBody};
 use symtropy_math::{Capsule, HyperBox, Point, Shape, Sphere};
 
 /// Plugin that enables automatic processing of Foundry asset tags (`_COLLISION`, `_LOD`).
+#[derive(Default)]
 pub struct FoundryPlugin {
     pub index_path: Option<String>,
-}
-
-impl Default for FoundryPlugin {
-    fn default() -> Self {
-        Self { index_path: None }
-    }
 }
 
 impl Plugin for FoundryPlugin {
@@ -65,67 +60,72 @@ pub struct FoundryAsset {
 #[derive(Component)]
 struct FoundryProcessed;
 
+/// Newly spawned, not-yet-processed Foundry entities (`Added<Name>` catches
+/// them as soon as they enter the world, e.g. from a Scene spawn).
+type NewFoundryEntitiesQuery<'w, 's> = Query<
+    'w,
+    's,
+    (Entity, &'static Name, &'static GlobalTransform),
+    (Without<FoundryProcessed>, Added<Name>),
+>;
+
 /// System that scans for newly spawned entities with Foundry tags and wires them up.
 fn process_foundry_assets(
     mut commands: Commands,
-    // We look for Added<Name> to catch them as soon as they enter the world (e.g. from a Scene spawn)
-    new_entities: Query<
-        (Entity, &Name, &GlobalTransform),
-        (Without<FoundryProcessed>, Added<Name>),
-    >,
+    new_entities: NewFoundryEntitiesQuery,
     mut physics: Option<ResMut<BevyPhysics<3>>>,
 ) {
     for (entity, name, global_transform) in &new_entities {
         let name_str = name.as_str();
 
         // 1. Handle Collision Proxies
-        if let Some(collider_type) = parse_collider_type(name_str) {
-            if let Some(ref mut py) = physics {
-                let (scale, _rotation, _) = global_transform.to_scale_rotation_translation();
+        if let Some(collider_type) = parse_collider_type(name_str)
+            && let Some(ref mut py) = physics
+        {
+            let (scale, _rotation, _) = global_transform.to_scale_rotation_translation();
 
-                let collider: Box<dyn Shape<3>> = match collider_type {
-                    "BOX" => {
-                        let half_extents = scale * 0.5;
-                        Box::new(HyperBox::new([
-                            half_extents.x as f64,
-                            half_extents.y as f64,
-                            half_extents.z as f64,
-                        ]))
-                    }
-                    "SPHERE" => {
-                        let radius = scale.max_element() * 0.5;
-                        Box::new(Sphere::new(Point::origin(), radius as f64))
-                    }
-                    "CAPSULE" => {
-                        let radius = (scale.x.max(scale.z)) * 0.5;
-                        let half_height = scale.y * 0.5;
-                        Box::new(Capsule::new(half_height as f64, radius as f64, 1)) // Y-axis
-                    }
-                    "CONVEX" | _ => {
-                        // Fallback to sphere for now
-                        let radius = scale.max_element() * 0.5;
-                        Box::new(Sphere::new(Point::origin(), radius as f64))
-                    }
-                };
-
-                let pos = global_transform.translation();
-                let handle = py.world.add_body(symtropy_physics::RigidBody::static_body(
-                    symtropy_physics::BodyHandle(0), // Will be allocated
-                    Point::new([pos.x as f64, pos.y as f64, pos.z as f64]),
-                    collider,
-                ));
-
-                if let Some(body) = py.world.body_mut(handle) {
-                    body.collision_mask = 0xFFFF;
+            let collider: Box<dyn Shape<3>> = match collider_type {
+                "BOX" => {
+                    let half_extents = scale * 0.5;
+                    Box::new(HyperBox::new([
+                        half_extents.x as f64,
+                        half_extents.y as f64,
+                        half_extents.z as f64,
+                    ]))
                 }
+                "SPHERE" => {
+                    let radius = scale.max_element() * 0.5;
+                    Box::new(Sphere::new(Point::origin(), radius as f64))
+                }
+                "CAPSULE" => {
+                    let radius = (scale.x.max(scale.z)) * 0.5;
+                    let half_height = scale.y * 0.5;
+                    Box::new(Capsule::new(half_height as f64, radius as f64, 1)) // Y-axis
+                }
+                _ => {
+                    // Fallback to sphere for now (includes "CONVEX")
+                    let radius = scale.max_element() * 0.5;
+                    Box::new(Sphere::new(Point::origin(), radius as f64))
+                }
+            };
 
-                commands.entity(entity).insert((
-                    PhysicsBody::new(handle, scale.max_element() * 0.5),
-                    Visibility::Hidden,
-                    FoundryProcessed,
-                ));
-                continue;
+            let pos = global_transform.translation();
+            let handle = py.world.add_body(symtropy_physics::RigidBody::static_body(
+                symtropy_physics::BodyHandle(0), // Will be allocated
+                Point::new([pos.x as f64, pos.y as f64, pos.z as f64]),
+                collider,
+            ));
+
+            if let Some(body) = py.world.body_mut(handle) {
+                body.collision_mask = 0xFFFF;
             }
+
+            commands.entity(entity).insert((
+                PhysicsBody::new(handle, scale.max_element() * 0.5),
+                Visibility::Hidden,
+                FoundryProcessed,
+            ));
+            continue;
         }
 
         // 2. Handle LODs
@@ -165,9 +165,8 @@ fn parse_collider_type(name: &str) -> Option<&'static str> {
         Some("SPHERE")
     } else if name.contains("_COLLISION_CAPSULE") {
         Some("CAPSULE")
-    } else if name.contains("_COLLISION_CONVEX") {
-        Some("CONVEX")
     } else if name.contains("_COLLISION") {
+        // Covers "_COLLISION_CONVEX" too -- same result either way.
         Some("CONVEX")
     }
     // Default

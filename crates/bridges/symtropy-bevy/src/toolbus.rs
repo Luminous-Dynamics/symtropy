@@ -85,7 +85,7 @@ pub fn wastefulness_monitor_system(
                 let wastefulness = (power / (phi + 0.1)).min(10.0);
 
                 // Penalize stewardship_care based on wastefulness
-                let penalty = (wastefulness * 0.01) as f64;
+                let penalty = wastefulness * 0.01;
                 brain.profile.stewardship_care =
                     (brain.profile.stewardship_care - penalty).max(0.0);
 

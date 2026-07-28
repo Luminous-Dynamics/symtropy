@@ -18,7 +18,7 @@
 
 use nalgebra::SVector;
 use symthaea_consciousness_equation::ConsciousnessInputs;
-use symtropy_consciousness_physics::{ConsciousnessField, SafetyTier};
+use symtropy_consciousness_physics::ConsciousnessField;
 use symtropy_math::{Point, Sphere};
 use symtropy_physics::{BodyHandle, PhysicsWorld, RigidBody};
 
@@ -63,7 +63,7 @@ fn collision_occurs_and_bounces() {
 
 #[test]
 fn consciousness_modulates_impulse_via_callback() {
-    let (mut world, agent, wall) = setup_collision_scenario();
+    let (mut world, agent, _wall) = setup_collision_scenario();
     let mut consciousness = ConsciousnessField::<3>::new();
 
     // Register agent with consciousness

@@ -4,7 +4,6 @@
 
 use crate::resources::*;
 use bevy::prelude::*;
-use symthaea_manipulator::simulator::ManipulatorPhysicsSimulator;
 use symtropy_consciousness_physics::safety::SafetyTier;
 
 /// Marker for the Phi arm stats text.

@@ -186,7 +186,7 @@ fn run_dim<const D: usize>(with_drift: bool, seed: u64) -> DimResult {
                 .iter()
                 .enumerate()
                 .filter(|(i, _)| *i != idx)
-                .map(|(_, d)| d.clone())
+                .map(|(_, d)| *d)
                 .collect();
             let dir = fep_gradient::free_energy_gradient(&pos, ef, &harm, &nearby, &[], None, 0.0);
             if let Some(b) = world.body_mut(h) {
@@ -215,11 +215,9 @@ fn run_dim<const D: usize>(with_drift: bool, seed: u64) -> DimResult {
 
         // Detect leakage: visible KE changes
         let mut visible_ke = 0.0f64;
-        let mut total_ke = 0.0f64;
         for &h in &drifter_handles {
             if let Some(body) = world.body(h) {
                 let ke = body.kinetic_energy();
-                total_ke += ke;
                 if body.position()[D - 1].abs() < brane_threshold {
                     visible_ke += ke;
                 }

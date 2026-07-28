@@ -877,7 +877,7 @@ mod tests {
         let cb = NoCouplingResource;
         let mut world = PhysicsWorld::<2>::new(SVector::zeros());
         let h = world.add_sphere(Point::new([0.0, 0.0]), 1.0, 1.0);
-        let f_in = SVector::from([3.14, -2.71]);
+        let f_in = SVector::from([3.2, -2.7]);
         let f_out = <NoCouplingResource as PhysicsCallback<2>>::modulate_force(&cb, h, &f_in);
         assert_eq!(f_in, f_out);
     }

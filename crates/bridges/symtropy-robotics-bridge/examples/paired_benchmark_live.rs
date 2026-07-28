@@ -50,7 +50,7 @@ enum Policy {
 impl Policy {
     fn gain(&self, phi: f64, sprint_threshold: f64, floor: f64) -> f64 {
         match self {
-            Policy::TierGate => SafetyTier::from_phi(phi).motor_gain() as f64,
+            Policy::TierGate => SafetyTier::from_phi(phi).motor_gain(),
             Policy::SprintFloor => sprint_floor_gain(phi, sprint_threshold, floor),
         }
     }
@@ -86,7 +86,7 @@ fn platform_observation(platform: PlatformType, step: usize, seed: u64) -> (Vec<
             (vec![speed, slip, friction], danger)
         }
         PlatformType::Humanoid => {
-            let push = if ((s * 0.01 + phase) as f64).sin() > 0.85 {
+            let push = if (s * 0.01 + phase).sin() > 0.85 {
                 0.9
             } else {
                 0.05

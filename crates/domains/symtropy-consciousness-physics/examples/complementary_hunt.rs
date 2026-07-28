@@ -11,7 +11,7 @@
 
 use nalgebra::SVector;
 use symthaea_consciousness_equation::ConsciousnessInputs;
-use symtropy_consciousness_physics::convergence::{cohens_d, holm_bonferroni, mann_whitney_u};
+use symtropy_consciousness_physics::convergence::{cohens_d, mann_whitney_u};
 use symtropy_consciousness_physics::fep_gradient;
 use symtropy_consciousness_physics::harmony_field::HarmonyField;
 use symtropy_consciousness_physics::prey::{Prey, check_complementary_hunt};
@@ -59,7 +59,7 @@ fn run_experiment(ctrl: Ctrl, require_complementary: bool, seed: u64) -> (f64, f
 
     let mut handles = Vec::new();
     // First half: drivers (harmony[0] dominant)
-    for i in 0..AGENTS / 2 {
+    for _i in 0..AGENTS / 2 {
         let x = (rng_f64(&mut rng) - 0.5) * 100.0;
         let y = (rng_f64(&mut rng) - 0.5) * 100.0;
         let h = world.add_sphere(Point::new([x, y]), 1.0, 1.0);
@@ -77,7 +77,7 @@ fn run_experiment(ctrl: Ctrl, require_complementary: bool, seed: u64) -> (f64, f
         handles.push(h);
     }
     // Second half: ambushers (harmony[2] dominant)
-    for i in 0..AGENTS / 2 {
+    for _i in 0..AGENTS / 2 {
         let x = (rng_f64(&mut rng) - 0.5) * 100.0;
         let y = (rng_f64(&mut rng) - 0.5) * 100.0;
         let h = world.add_sphere(Point::new([x, y]), 1.0, 1.0);
@@ -220,11 +220,12 @@ fn run_experiment(ctrl: Ctrl, require_complementary: bool, seed: u64) -> (f64, f
                     for (ap, _ah) in &adata {
                         let delta = ap - pos;
                         let d = delta.norm();
-                        if d > 2.0 && d < consciousness.constants.harmony_range {
-                            if d < 1.0 / best_score.max(0.01) {
-                                best_score = 1.0 / d;
-                                best_dir = delta / d;
-                            }
+                        if d > 2.0
+                            && d < consciousness.constants.harmony_range
+                            && d < 1.0 / best_score.max(0.01)
+                        {
+                            best_score = 1.0 / d;
+                            best_dir = delta / d;
                         }
                     }
                     best_dir * 20.0

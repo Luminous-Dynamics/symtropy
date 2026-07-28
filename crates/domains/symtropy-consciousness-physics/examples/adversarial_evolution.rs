@@ -37,8 +37,8 @@ fn main() {
     let mut consciousness = ConsciousnessField::<2>::new();
     consciousness.constants = ThermodynamicConstants::research();
 
-    let wells = vec![SVector::from([25.0, 25.0]), SVector::from([-25.0, -25.0])];
-    let mut well_remaining = vec![10000.0f64; 2];
+    let wells = [SVector::from([25.0, 25.0]), SVector::from([-25.0, -25.0])];
+    let mut well_remaining = [10000.0f64; 2];
 
     let mut rng = 42u64;
     let mut coop_handles = Vec::new();
@@ -166,7 +166,7 @@ fn main() {
             if e.energy.is_collapsed() {
                 continue;
             }
-            let pos = world.body(h).expect("body").position();
+            let pos = b.position();
             let near: Vec<_> = adata
                 .iter()
                 .filter(|(p, _)| {
@@ -204,7 +204,7 @@ fn main() {
             .iter()
             .map(|&h| {
                 world.body(h).and_then(|b| {
-                    let pos = world.body(h).expect("body").position();
+                    let pos = b.position();
                     wells
                         .iter()
                         .enumerate()
@@ -307,9 +307,8 @@ fn main() {
                 for &di in &dead {
                     let pi = parents[0];
                     let mut child = coop_harmonies[pi];
-                    for k in 0..8 {
-                        child[k] =
-                            (child[k] + (rng_f64(&mut rng) - 0.5) * MUTATION * 2.0).clamp(0.0, 1.0);
+                    for v in child.iter_mut().take(8) {
+                        *v = (*v + (rng_f64(&mut rng) - 0.5) * MUTATION * 2.0).clamp(0.0, 1.0);
                     }
 
                     let h = coop_handles[di];
@@ -321,7 +320,7 @@ fn main() {
                         e.motor_precision = 1.0;
                     }
                     if let Some(pb) = world.body(coop_handles[pi]) {
-                        let pp = world.body(h).expect("body").position();
+                        let pp = pb.position();
                         if let Some(b) = world.body_mut(h) {
                             b.transform.translation = Point(
                                 pp + SVector::from([
@@ -339,12 +338,12 @@ fn main() {
 
             // Also revive adversaries (they don't evolve, just respawn with same profile)
             for &h in &adv_handles {
-                if let Some(e) = consciousness.entities.get_mut(&h) {
-                    if e.energy.is_collapsed() {
-                        e.energy.available = consciousness.constants.initial_energy;
-                        e.energy.collapsed = false;
-                        e.harmony_activations = adv_harmony;
-                    }
+                if let Some(e) = consciousness.entities.get_mut(&h)
+                    && e.energy.is_collapsed()
+                {
+                    e.energy.available = consciousness.constants.initial_energy;
+                    e.energy.collapsed = false;
+                    e.harmony_activations = adv_harmony;
                 }
             }
         }
@@ -372,7 +371,7 @@ fn main() {
                 .count();
             let cc_res = mean_resonance_between(&consciousness, &coop_handles, &coop_handles);
             let ca_res = mean_resonance_between(&consciousness, &coop_handles, &adv_handles);
-            let cl = avg_nn(&world, &all.iter().cloned().collect::<Vec<_>>());
+            let cl = avg_nn(&world, &all.to_vec());
             let ce = coop_handles
                 .iter()
                 .filter_map(|h| consciousness.entities.get(h).map(|e| e.energy.available))
@@ -461,8 +460,8 @@ fn harm_var(c: &ConsciousnessField<2>, handles: &[symtropy_physics::BodyHandle])
     let mut mean = [0.0f64; 9];
     for &h in handles {
         if let Some(e) = c.entities.get(&h) {
-            for i in 0..8 {
-                mean[i] += e.harmony_activations[i];
+            for (mh, ha) in mean.iter_mut().zip(e.harmony_activations.iter()).take(8) {
+                *mh += ha;
             }
         }
     }
@@ -485,11 +484,7 @@ fn harm_var(c: &ConsciousnessField<2>, handles: &[symtropy_physics::BodyHandle])
 fn avg_nn(world: &PhysicsWorld<2>, handles: &[symtropy_physics::BodyHandle]) -> f64 {
     let pos: Vec<SVector<f64, 2>> = handles
         .iter()
-        .filter_map(|&h| {
-            world
-                .body(h)
-                .map(|b| world.body(h).expect("body").position())
-        })
+        .filter_map(|&h| world.body(h).map(|b| b.position()))
         .collect();
     if pos.len() < 2 {
         return f64::MAX;

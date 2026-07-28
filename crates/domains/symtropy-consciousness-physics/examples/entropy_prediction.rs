@@ -22,6 +22,10 @@ const TICKS: usize = 8_000;
 const DT: f64 = 1.0 / 64.0;
 const NUM_SEEDS: usize = 10;
 
+/// Raw per-tick snapshot: (tick, agent_idx, energy, entropy, temperature,
+/// available_work, phi, alive).
+type RawSnapshot = (usize, usize, f64, f64, f64, f64, f64, bool);
+
 struct AgentSnapshot {
     tick: usize,
     agent: usize,
@@ -47,8 +51,8 @@ fn run_experiment(seed: u64) -> Vec<AgentSnapshot> {
     constants.ambient_regen_rate = 0.001; // Almost no ambient regen
     consciousness.constants = constants;
 
-    let wells = vec![SVector::from([30.0, 0.0])]; // Only ONE well
-    let mut well_remaining = vec![2000.0f64]; // Small capacity
+    let wells = [SVector::from([30.0, 0.0])]; // Only ONE well
+    let mut well_remaining = [2000.0f64]; // Small capacity
 
     let mut rng = seed;
     let mut handles = Vec::new();
@@ -77,8 +81,8 @@ fn run_experiment(seed: u64) -> Vec<AgentSnapshot> {
     }
 
     // First pass: run simulation and record collapse times
-    let mut collapse_tick: Vec<Option<usize>> = vec![None; AGENTS];
-    let mut snapshots_raw: Vec<(usize, usize, f64, f64, f64, f64, f64, bool)> = Vec::new();
+    let mut collapse_tick: [Option<usize>; AGENTS] = [None; AGENTS];
+    let mut snapshots_raw: Vec<RawSnapshot> = Vec::new();
 
     for tick in 0..TICKS {
         // Consciousness update
@@ -245,10 +249,11 @@ fn run_experiment(seed: u64) -> Vec<AgentSnapshot> {
 
         // Also record exact collapse ticks
         for (idx, &h) in handles.iter().enumerate() {
-            if let Some(e) = consciousness.entities.get(&h) {
-                if e.energy.is_collapsed() && collapse_tick[idx].is_none() {
-                    collapse_tick[idx] = Some(tick);
-                }
+            if let Some(e) = consciousness.entities.get(&h)
+                && e.energy.is_collapsed()
+                && collapse_tick[idx].is_none()
+            {
+                collapse_tick[idx] = Some(tick);
             }
         }
     }
@@ -295,10 +300,6 @@ fn main() {
         let snapshots = run_experiment(seed);
 
         let seed_collapsed = snapshots.iter().filter(|s| !s.alive).count();
-        let seed_doomed = snapshots
-            .iter()
-            .filter(|s| s.collapsed_within_500 && s.alive)
-            .count();
 
         for snap in &snapshots {
             println!(

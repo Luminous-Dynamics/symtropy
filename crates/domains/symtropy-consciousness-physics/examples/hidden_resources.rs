@@ -58,12 +58,12 @@ fn run_experiment(vis: Visibility, ctrl: Ctrl, seed: u64) -> (f64, f64, f64) {
     consciousness.constants = ThermodynamicConstants::research();
 
     // Wells placed at moderate distance — findable if visible, challenging if hidden
-    let wells = vec![
+    let wells = [
         SVector::from([50.0, 20.0]),
         SVector::from([-40.0, -30.0]),
         SVector::from([15.0, -45.0]),
     ];
-    let mut well_remaining = vec![2000.0f64; 3];
+    let mut well_remaining = [2000.0f64; 3];
     let mut rng = seed;
     let mut handles = Vec::new();
 
@@ -155,7 +155,7 @@ fn run_experiment(vis: Visibility, ctrl: Ctrl, seed: u64) -> (f64, f64, f64) {
                 vec![]
             };
 
-        for (idx, &h) in handles.iter().enumerate() {
+        for &h in handles.iter() {
             let Some(b) = world.body(h) else { continue };
             let Some(e) = consciousness.entities.get(&h) else {
                 continue;
@@ -169,7 +169,7 @@ fn run_experiment(vis: Visibility, ctrl: Ctrl, seed: u64) -> (f64, f64, f64) {
             let wdata: Vec<_> = wells
                 .iter()
                 .zip(well_remaining.iter())
-                .filter(|&(ref w, &r)| r > 0.0 && (pos - *w).norm() < well_perception)
+                .filter(|&(w, &r)| r > 0.0 && (pos - w).norm() < well_perception)
                 .map(|(&p, &r)| (p, (r / 2000.0).min(1.0)))
                 .collect();
 

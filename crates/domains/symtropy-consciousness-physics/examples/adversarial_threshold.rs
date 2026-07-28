@@ -42,8 +42,8 @@ fn run_experiment(adversary_fraction: f64, seed: u64) -> AdversarialResult {
     let mut consciousness = ConsciousnessField::<2>::new();
     consciousness.constants = ThermodynamicConstants::research();
 
-    let wells = vec![SVector::from([25.0, 0.0]), SVector::from([-25.0, 0.0])];
-    let mut well_remaining = vec![3000.0f64; 2];
+    let wells = [SVector::from([25.0, 0.0]), SVector::from([-25.0, 0.0])];
+    let mut well_remaining = [3000.0f64; 2];
 
     let mut rng = seed;
     let mut coop_handles = Vec::new();
@@ -325,8 +325,8 @@ fn run_experiment(adversary_fraction: f64, seed: u64) -> AdversarialResult {
     let mut mean_h = [0.0f64; 9];
     for &h in &all_handles {
         if let Some(e) = consciousness.entities.get(&h) {
-            for i in 0..8 {
-                mean_h[i] += e.harmony_activations[i];
+            for (mh, ha) in mean_h.iter_mut().zip(e.harmony_activations.iter()).take(8) {
+                *mh += ha;
             }
         }
     }

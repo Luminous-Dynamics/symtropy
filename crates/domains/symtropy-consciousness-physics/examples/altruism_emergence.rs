@@ -64,8 +64,8 @@ fn run_experiment(mode: RescueMode, seed: u64) -> AltruismResult {
     constants.consciousness_maintenance_per_tick = 0.30; // moderate-high pressure
     consciousness.constants = constants;
 
-    let wells = vec![SVector::from([30.0, 0.0]), SVector::from([-30.0, 0.0])];
-    let mut well_remaining = vec![2000.0f64; 2];
+    let wells = [SVector::from([30.0, 0.0]), SVector::from([-30.0, 0.0])];
+    let mut well_remaining = [2000.0f64; 2];
 
     let mut rng = seed;
     let mut handles = Vec::new();
@@ -91,9 +91,9 @@ fn run_experiment(mode: RescueMode, seed: u64) -> AltruismResult {
     let mut rescue_count = 0u64;
     let mut re_collapse_count = 0u64;
     let mut donor_death_count = 0u64;
-    let mut last_rescued_tick: Vec<usize> = vec![0; AGENTS]; // cooldown tracker
-    let mut was_rescued: Vec<bool> = vec![false; AGENTS];
-    let mut was_donor: Vec<bool> = vec![false; AGENTS];
+    let mut last_rescued_tick: [usize; AGENTS] = [0; AGENTS]; // cooldown tracker
+    let mut was_rescued: [bool; AGENTS] = [false; AGENTS];
+    let mut was_donor: [bool; AGENTS] = [false; AGENTS];
 
     for tick in 0..TICKS {
         for &h in &handles {
@@ -198,11 +198,10 @@ fn run_experiment(mode: RescueMode, seed: u64) -> AltruismResult {
                     .map(|e| e.harmony_activations)
                     .unwrap_or([0.0; 9]);
 
-                for j in 0..handles.len() {
+                for (j, &hj) in handles.iter().enumerate() {
                     if i == j {
                         continue;
                     }
-                    let hj = handles[j];
                     let alive = consciousness
                         .entities
                         .get(&hj)
@@ -227,10 +226,10 @@ fn run_experiment(mode: RescueMode, seed: u64) -> AltruismResult {
                         .map(|e| e.harmony_activations)
                         .unwrap_or([0.0; 9]);
                     let res = HarmonyField::<2>::resonance(&collapsed_harm, &donor_harm);
-                    if res > consciousness.constants.collapse_recovery_harmony_threshold {
-                        if best_donor.map(|(_, r)| res > r).unwrap_or(true) {
-                            best_donor = Some((j, res));
-                        }
+                    if res > consciousness.constants.collapse_recovery_harmony_threshold
+                        && best_donor.map(|(_, r)| res > r).unwrap_or(true)
+                    {
+                        best_donor = Some((j, res));
                     }
                 }
 

@@ -11,13 +11,13 @@
 
 use nalgebra::SVector;
 use symthaea_consciousness_equation::ConsciousnessInputs;
-use symtropy_consciousness_physics::{ConsciousnessField, ThermodynamicConstants};
+use symtropy_consciousness_physics::ConsciousnessField;
 use symtropy_math::Point;
 use symtropy_physics::PhysicsWorld;
 
 const SEEDS: usize = 30;
 
-fn measure_phi_at_energy_fraction(frac: f64, seed: u64) -> f64 {
+fn measure_phi_at_energy_fraction(frac: f64, _seed: u64) -> f64 {
     let mut world = PhysicsWorld::<2>::new(SVector::from([0.0, 0.0]));
     let mut consciousness = ConsciousnessField::<2>::new();
     let h = world.add_sphere(Point::new([0.0, 0.0]), 1.0, 1.0);

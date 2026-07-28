@@ -13,9 +13,9 @@
 
 use nalgebra::SVector;
 use symthaea_consciousness_equation::ConsciousnessInputs;
-use symtropy_consciousness_physics::{ConsciousnessField, ThermodynamicConstants};
+use symtropy_consciousness_physics::ConsciousnessField;
 use symtropy_math::Point;
-use symtropy_physics::{BodyHandle, PhysicsWorld, RigidBody};
+use symtropy_physics::PhysicsWorld;
 
 fn main() {
     println!("=== Symtropy Consciousness Sandbox ===\n");

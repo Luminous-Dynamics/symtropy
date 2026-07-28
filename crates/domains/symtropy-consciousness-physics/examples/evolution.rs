@@ -36,8 +36,8 @@ fn main() {
     let mut consciousness = ConsciousnessField::<2>::new();
     consciousness.constants = ThermodynamicConstants::research();
 
-    let wells = vec![SVector::from([30.0, 30.0]), SVector::from([-30.0, -30.0])];
-    let mut well_remaining = vec![8000.0f64; 2]; // Large wells for long runs
+    let wells = [SVector::from([30.0, 30.0]), SVector::from([-30.0, -30.0])];
+    let mut well_remaining = [8000.0f64; 2]; // Large wells for long runs
 
     let mut rng = 42u64;
     let mut handles = Vec::new();
@@ -128,7 +128,7 @@ fn main() {
             .map(|(&p, &r)| (p, (r / 8000.0).min(1.0)))
             .collect();
 
-        for (idx, &h) in handles.iter().enumerate() {
+        for &h in handles.iter() {
             let Some(b) = world.body(h) else { continue };
             let Some(e) = consciousness.entities.get(&h) else {
                 continue;
@@ -286,9 +286,9 @@ fn main() {
                     // Mutate parent's harmony
                     let parent_harmony = agent_harmonies[parent_idx];
                     let mut child_harmony = parent_harmony;
-                    for k in 0..8 {
-                        child_harmony[k] += (rng_f64(&mut rng) - 0.5) * MUTATION_RATE * 2.0;
-                        child_harmony[k] = child_harmony[k].clamp(0.0, 1.0);
+                    for v in child_harmony.iter_mut().take(8) {
+                        *v += (rng_f64(&mut rng) - 0.5) * MUTATION_RATE * 2.0;
+                        *v = v.clamp(0.0, 1.0);
                     }
 
                     // Respawn dead agent as offspring
@@ -409,8 +409,8 @@ fn compute_harmony_variance(
     let mut mean = [0.0f64; 9];
     for &h in handles {
         if let Some(e) = consciousness.entities.get(&h) {
-            for i in 0..8 {
-                mean[i] += e.harmony_activations[i];
+            for (mh, ha) in mean.iter_mut().zip(e.harmony_activations.iter()).take(8) {
+                *mh += ha;
             }
         }
     }

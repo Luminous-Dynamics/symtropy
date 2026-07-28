@@ -1302,6 +1302,9 @@ struct ObjectiveOverlay;
 #[derive(Component)]
 struct EndingCardOverlay;
 
+// NOTE: each param is a distinct Bevy SystemParam -- idiomatic for an ECS
+// system, not bundle-able without a custom SystemParam struct.
+#[allow(clippy::too_many_arguments)]
 fn interaction_system(
     intents: Res<IntentFrame>,
     mut runtime: ResMut<ScenarioRuntime>,
@@ -1401,41 +1404,39 @@ fn interaction_system(
             chronicle.lock_inspected_written = true;
         }
 
-        if controls_state.scan_mode == ScanMode::RepairPreview {
-            if let Some(target) = target.filter(|_| near_target) {
-                if let Some(intervention) =
-                    selected_repair_intervention(controls_state.selected_tool_slot, target.kind)
-                {
-                    let preview_key = format!("{:?}:{:?}", target.kind, intervention);
-                    if chronicle.last_preview_key.as_deref() != Some(preview_key.as_str()) {
-                        chronicle.append(
-                            "RepairPathPreviewed",
-                            repair_preview_payload(target, intervention, slice.origin),
-                        );
-                        chronicle.last_preview_key = Some(preview_key);
-                    }
-                    if intents.just_pressed(InputIntent::RepairTool) {
-                        let pending = PendingRepair {
-                            target_kind: target.kind,
-                            intervention,
-                        };
-                        if slice.pending_repair == Some(pending) {
-                            let outcome = runtime.scenario.apply_choice_and_step(intervention, 6);
-                            chronicle.append(
-                                "RepairPathCommitted",
-                                repair_commit_payload(target, intervention, slice.origin),
-                            );
-                            chronicle.append(
-                                "WaterworksOutcomeRecorded",
-                                waterworks_outcome_payload(&outcome, slice.origin),
-                            );
-                            runtime.last_outcome = Some(outcome);
-                            slice.pending_repair = None;
-                            slice.ending_card_open = true;
-                        } else {
-                            slice.pending_repair = Some(pending);
-                        }
-                    }
+        if controls_state.scan_mode == ScanMode::RepairPreview
+            && let Some(target) = target.filter(|_| near_target)
+            && let Some(intervention) =
+                selected_repair_intervention(controls_state.selected_tool_slot, target.kind)
+        {
+            let preview_key = format!("{:?}:{:?}", target.kind, intervention);
+            if chronicle.last_preview_key.as_deref() != Some(preview_key.as_str()) {
+                chronicle.append(
+                    "RepairPathPreviewed",
+                    repair_preview_payload(target, intervention, slice.origin),
+                );
+                chronicle.last_preview_key = Some(preview_key);
+            }
+            if intents.just_pressed(InputIntent::RepairTool) {
+                let pending = PendingRepair {
+                    target_kind: target.kind,
+                    intervention,
+                };
+                if slice.pending_repair == Some(pending) {
+                    let outcome = runtime.scenario.apply_choice_and_step(intervention, 6);
+                    chronicle.append(
+                        "RepairPathCommitted",
+                        repair_commit_payload(target, intervention, slice.origin),
+                    );
+                    chronicle.append(
+                        "WaterworksOutcomeRecorded",
+                        waterworks_outcome_payload(&outcome, slice.origin),
+                    );
+                    runtime.last_outcome = Some(outcome);
+                    slice.pending_repair = None;
+                    slice.ending_card_open = true;
+                } else {
+                    slice.pending_repair = Some(pending);
                 }
             }
         }

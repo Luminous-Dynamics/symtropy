@@ -612,19 +612,19 @@ mod tests {
         entities.insert(h2, e2);
 
         let state = discretize_agents(&entities, &[h0, h1, h2], 0.3);
-        assert_eq!(state.0, vec![1, 0, 1]);
+        assert_eq!(state.0, [1, 0, 1]);
     }
 
     #[test]
     fn json_serialization_format() {
-        let tpm = vec![
+        let tpm = [
             vec![0.0, 0.5],
             vec![1.0, 0.0],
             vec![0.5, 0.5],
             vec![0.0, 1.0],
         ];
-        let state = vec![1u8, 0];
-        let labels = vec!["A0".to_string(), "A1".to_string()];
+        let state = [1u8, 0];
+        let labels = ["A0".to_string(), "A1".to_string()];
 
         let json = serde_json_minimal(&tpm, &state, &labels);
         assert!(json.contains("\"tpm\":"));

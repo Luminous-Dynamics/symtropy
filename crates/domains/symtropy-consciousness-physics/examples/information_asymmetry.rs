@@ -63,12 +63,12 @@ fn run_experiment(condition: InfoCondition, seed: u64) -> InfoResult {
     consciousness.constants = constants;
 
     // Wells placed far apart to reward information
-    let wells = vec![
+    let wells = [
         SVector::from([80.0, 0.0]),
         SVector::from([-80.0, 0.0]),
         SVector::from([0.0, 80.0]),
     ];
-    let mut well_remaining = vec![2000.0f64; 3];
+    let mut well_remaining = [2000.0f64; 3];
 
     let mut rng = seed;
     let mut handles = Vec::new();
@@ -178,7 +178,7 @@ fn run_experiment(condition: InfoCondition, seed: u64) -> InfoResult {
             let wdata: Vec<_> = wells
                 .iter()
                 .zip(well_remaining.iter())
-                .filter(|&(ref w, &r)| r > 0.0 && (pos - *w).norm() < sight)
+                .filter(|&(w, &r)| r > 0.0 && (pos - w).norm() < sight)
                 .map(|(&p, &r)| (p, (r / 2000.0).min(1.0)))
                 .collect();
 

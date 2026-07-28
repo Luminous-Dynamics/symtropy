@@ -46,7 +46,17 @@ impl Condition {
 
 struct RunResult {
     converged: bool,
+    // NOTE (found via clippy `dead_code`, 2026-07-25): computed and stored
+    // per-run, but never read back out -- the aggregate summary reports
+    // `converged_count` and a `final_phi`-derived mean but not these two,
+    // unlike `hdc_cooperation.rs`'s sibling fields. Unlike the
+    // ucurve_diagnostic.rs/volitional_cooperation.rs `willingness` fields
+    // fixed earlier in this series, this data isn't available elsewhere in
+    // scope -- flagged rather than deleted, in case reporting it was the
+    // intent.
+    #[allow(dead_code)]
     convergence_tick: usize,
+    #[allow(dead_code)]
     final_jphi: f64,
     final_phi: f64,
     alive: usize,
@@ -59,7 +69,7 @@ fn run_experiment(condition: Condition, seed: u64) -> RunResult {
     let mut consciousness = ConsciousnessField::<2>::new();
     consciousness.constants = ThermodynamicConstants::research();
 
-    let well_positions = vec![SVector::from([25.0, 25.0]), SVector::from([-25.0, -25.0])];
+    let well_positions = [SVector::from([25.0, 25.0]), SVector::from([-25.0, -25.0])];
 
     // HDC contexts (one per agent for HDC condition)
     let mut hdc_contexts: Vec<Option<HdcConsciousnessContext>> = Vec::new();
@@ -122,7 +132,7 @@ fn run_experiment(condition: Condition, seed: u64) -> RunResult {
                             && world
                                 .body(oh)
                                 .map(|ob| {
-                                    (SVector::from(body.position()) - pos).norm()
+                                    (SVector::from(ob.position()) - pos).norm()
                                         < consciousness.constants.harmony_range
                                 })
                                 .unwrap_or(false)
@@ -315,11 +325,13 @@ fn run_experiment(condition: Condition, seed: u64) -> RunResult {
         let balance = consciousness.tick_thermodynamics();
 
         // 6. Track convergence
-        if let Some(jphi) = balance.joules_per_phi {
-            if jphi.is_finite() && jphi_detector.push(jphi) && !converged {
-                converged = true;
-                convergence_tick = tick;
-            }
+        if let Some(jphi) = balance.joules_per_phi
+            && jphi.is_finite()
+            && jphi_detector.push(jphi)
+            && !converged
+        {
+            converged = true;
+            convergence_tick = tick;
         }
 
         // CSV every 500 ticks

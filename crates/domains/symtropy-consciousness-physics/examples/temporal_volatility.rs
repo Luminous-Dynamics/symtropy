@@ -47,6 +47,16 @@ enum Volatility {
 enum Ctrl {
     Fep,
     WellOnly,
+    // NOTE (found via clippy `dead_code`, 2026-07-26): this variant has a
+    // full match-arm implementation in run_experiment() below, but main()
+    // never actually constructs `Ctrl::Greedy` -- the Greedy baseline
+    // condition is implemented but not exercised by any experiment run.
+    // Was previously only "constructed" via a dead `ctrls` array (removed
+    // earlier in this series, e5e3454) that was itself never iterated, so
+    // this was already unreachable before that cleanup, just not detected
+    // until the array was gone. Flagged rather than deleted since the
+    // simulation logic is real, working code, not dead scaffolding.
+    #[allow(dead_code)]
     Greedy,
 }
 
@@ -55,13 +65,13 @@ fn run_experiment(vol: Volatility, ctrl: Ctrl, use_regen: bool, seed: u64) -> (f
     let mut consciousness = ConsciousnessField::<2>::new();
     consciousness.constants = ThermodynamicConstants::research();
 
-    let mut wells = vec![
+    let mut wells = [
         SVector::from([40.0, 10.0]),
         SVector::from([-30.0, -20.0]),
         SVector::from([10.0, -40.0]),
     ];
-    let mut well_remaining = vec![1500.0f64; 3]; // moderate capacity
-    let mut well_active = vec![true; 3];
+    let mut well_remaining = [1500.0f64; 3]; // moderate capacity
+    let mut well_active = [true; 3];
     let mut rng = seed;
     let mut handles = Vec::new();
 
@@ -89,16 +99,16 @@ fn run_experiment(vol: Volatility, ctrl: Ctrl, use_regen: bool, seed: u64) -> (f
             Volatility::Stable => {} // wells always active
             Volatility::Seasonal => {
                 // Cycle: 1500 ticks on, 1500 ticks off, staggered
-                for i in 0..3 {
+                for (i, active) in well_active.iter_mut().enumerate() {
                     let phase = (tick + i * 500) % 3000;
-                    well_active[i] = phase < 1500;
+                    *active = phase < 1500;
                 }
             }
             Volatility::Random => {
                 // Each well: 50% chance of flipping every 500 ticks
                 if tick % 500 == 0 {
-                    for i in 0..3 {
-                        well_active[i] = rng_f64(&mut rng) > 0.5;
+                    for active in &mut well_active {
+                        *active = rng_f64(&mut rng) > 0.5;
                     }
                 }
             }
@@ -340,12 +350,6 @@ fn main() {
         (Volatility::Random, "RANDOM"),
         (Volatility::Migrating, "MIGRATING"),
     ];
-    let ctrls = [
-        (Ctrl::WellOnly, "WELL"),
-        (Ctrl::Fep, "FEP"),
-        (Ctrl::Greedy, "GREEDY"),
-    ];
-
     // Focus on WELL_ONLY ± REGEN across volatility levels (the key test)
     eprintln!("\n── WELL_ONLY: Does volatility make resonance necessary? ──");
     eprintln!("  Volatility    REGEN   NO_REGEN  Δ       d       Necessary?");
@@ -366,7 +370,7 @@ fn main() {
         let nr_mean = noregen_alive.iter().sum::<f64>() / SEEDS as f64;
         let delta = r_mean - nr_mean;
         let d = cohens_d(&regen_alive, &noregen_alive);
-        let (_, _, p) = mann_whitney_u(&regen_alive, &noregen_alive);
+        let (_, _, _p) = mann_whitney_u(&regen_alive, &noregen_alive);
         let necessary = delta > 2.0 && d.abs() > 0.5;
         let marker = if necessary { " ← NECESSARY" } else { "" };
         eprintln!(

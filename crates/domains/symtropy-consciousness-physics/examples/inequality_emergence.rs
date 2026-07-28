@@ -79,8 +79,8 @@ fn run_experiment(start: StartCondition, seed: u64) -> InequalityResult {
     let mut consciousness = ConsciousnessField::<2>::new();
     consciousness.constants = ThermodynamicConstants::research();
 
-    let wells = vec![SVector::from([30.0, 0.0]), SVector::from([-30.0, 0.0])];
-    let mut well_remaining = vec![3000.0f64; 2];
+    let wells = [SVector::from([30.0, 0.0]), SVector::from([-30.0, 0.0])];
+    let mut well_remaining = [3000.0f64; 2];
 
     let mut rng = seed;
     let mut handles = Vec::new();
@@ -143,7 +143,7 @@ fn run_experiment(start: StartCondition, seed: u64) -> InequalityResult {
     let initial_quartiles = quartile_assignments(&initial_energies);
 
     let mut gini_mid = 0.0;
-    let mut mid_energies = vec![0.0f64; AGENTS];
+    let mut mid_energies = [0.0f64; AGENTS];
 
     for tick in 0..TICKS {
         for &h in &handles {
@@ -452,11 +452,7 @@ fn main() {
         );
         eprintln!(
             "  {} initial conditions → {} final inequality",
-            if d.abs() < 0.3 {
-                "Different"
-            } else {
-                "Different"
-            },
+            if d.abs() < 0.3 { "Same" } else { "Different" },
             if d.abs() < 0.3 { "SAME" } else { "different" }
         );
     }

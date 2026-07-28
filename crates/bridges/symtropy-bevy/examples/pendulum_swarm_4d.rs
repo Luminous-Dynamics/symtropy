@@ -336,13 +336,12 @@ fn update_phi_from_neighborhood(
                     if let Some(&h) = grid_handles
                         .map
                         .get(&(ni as usize, nj as usize, nk as usize))
+                        && let Some(body) = physics.world.body(h)
                     {
-                        if let Some(body) = physics.world.body(h) {
-                            let v = body.linear_velocity.norm();
-                            sum_v += v;
-                            sum_v_sq += v * v;
-                            count += 1;
-                        }
+                        let v = body.linear_velocity.norm();
+                        sum_v += v;
+                        sum_v_sq += v * v;
+                        count += 1;
                     }
                 }
             }

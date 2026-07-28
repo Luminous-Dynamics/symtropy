@@ -11,7 +11,6 @@
 
 use nalgebra::SVector;
 use symthaea_consciousness_equation::ConsciousnessInputs;
-use symtropy_consciousness_physics::convergence::cohens_d;
 use symtropy_consciousness_physics::fep_gradient;
 use symtropy_consciousness_physics::harmony_field::HarmonyField;
 use symtropy_consciousness_physics::{ConsciousnessField, ThermodynamicConstants};
@@ -43,8 +42,8 @@ fn run_experiment(seed: u64) -> WealthResult {
     constants.consciousness_maintenance_per_tick = 0.25;
     consciousness.constants = constants;
 
-    let wells = vec![SVector::from([30.0, 0.0]), SVector::from([-30.0, 0.0])];
-    let mut well_remaining = vec![6000.0f64; 2];
+    let wells = [SVector::from([30.0, 0.0]), SVector::from([-30.0, 0.0])];
+    let mut well_remaining = [6000.0f64; 2];
 
     let mut rng = seed;
     let mut handles = Vec::new();
@@ -303,9 +302,9 @@ fn run_experiment(seed: u64) -> WealthResult {
 
                     let parent_harmony = agent_harmonies[parent];
                     let mut child_harmony = parent_harmony;
-                    for k in 0..8 {
-                        child_harmony[k] += (rng_f64(&mut rng) - 0.5) * MUTATION_RATE * 2.0;
-                        child_harmony[k] = child_harmony[k].clamp(0.0, 1.0);
+                    for v in child_harmony.iter_mut().take(8) {
+                        *v += (rng_f64(&mut rng) - 0.5) * MUTATION_RATE * 2.0;
+                        *v = v.clamp(0.0, 1.0);
                     }
 
                     let h = handles[di];

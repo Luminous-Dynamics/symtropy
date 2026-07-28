@@ -25,11 +25,6 @@ const DRIFTERS: usize = 4; // objects that drift along W axis
 const TICKS: usize = 3000;
 const SEEDS: usize = 10;
 
-/// Project a 4D position to 3D by dropping W.
-fn project_3d(pos: &SVector<f64, 4>) -> SVector<f64, 3> {
-    SVector::from([pos[0], pos[1], pos[2]])
-}
-
 /// Distance in 3D (ignoring W axis) — what a 3D agent perceives.
 fn distance_3d(a: &SVector<f64, 4>, b: &SVector<f64, 4>) -> f64 {
     let dx = a[0] - b[0];
@@ -103,7 +98,7 @@ fn run(with_drift: bool, seed: u64) -> Result {
     }
 
     // Spawn "energy objects" (drifters) that will slide along W axis
-    for i in 0..DRIFTERS {
+    for _i in 0..DRIFTERS {
         let x = (nr(&mut rng) - 0.5) * 60.0;
         let y = (nr(&mut rng) - 0.5) * 60.0;
         let h = world.add_sphere(Point::new([x, y, 0.0, 0.0]), 2.0, 5.0); // heavier
@@ -153,10 +148,7 @@ fn run(with_drift: bool, seed: u64) -> Result {
             .filter_map(|&h| {
                 let body = world.body(h)?;
                 let entity = consciousness.entities.get(&h)?;
-                Some((
-                    SVector::from(world.body(h).expect("body").position()),
-                    entity.harmony_activations,
-                ))
+                Some((SVector::from(body.position()), entity.harmony_activations))
             })
             .collect();
 
@@ -170,7 +162,7 @@ fn run(with_drift: bool, seed: u64) -> Result {
                 continue;
             }
             let pos = match world.body(h) {
-                Some(b) => world.body(h).expect("body").position(),
+                Some(b) => b.position(),
                 None => continue,
             };
             let ef = consciousness
@@ -219,15 +211,10 @@ fn run(with_drift: bool, seed: u64) -> Result {
         // === THE KEY MECHANIC: detect 3D-visible energy changes ===
         // Calculate total "visible" energy (objects with |w| < threshold)
         let mut current_visible_energy = 0.0f64;
-        let mut current_total_energy = 0.0f64;
         for &h in &drifter_handles {
             if let Some(body) = world.body(h) {
                 let ke = body.kinetic_energy();
-                current_total_energy += ke;
-                if visible_in_3d(
-                    &SVector::from(world.body(h).expect("body").position()),
-                    w_visibility,
-                ) {
+                if visible_in_3d(&SVector::from(body.position()), w_visibility) {
                     current_visible_energy += ke;
                 }
             }
@@ -236,7 +223,6 @@ fn run(with_drift: bool, seed: u64) -> Result {
         for &h in &agent_handles {
             if let Some(e) = consciousness.entities.get(&h) {
                 current_visible_energy += e.energy.available;
-                current_total_energy += e.energy.available;
             }
         }
 
@@ -331,7 +317,7 @@ fn run(with_drift: bool, seed: u64) -> Result {
         .filter(|&&h| {
             world
                 .body(h)
-                .map(|b| visible_in_3d(&world.body(h).expect("body").position(), w_visibility))
+                .map(|b| visible_in_3d(&b.position(), w_visibility))
                 .unwrap_or(false)
         })
         .count();

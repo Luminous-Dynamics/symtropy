@@ -505,11 +505,11 @@ mod proptests {
     use super::*;
     use proptest::prelude::*;
 
-    /// A random rotation in a random 3D plane must always be orthogonal
-    /// (R * R^T = I) -- generalizes the fixed-example `orthogonal_matrix`
-    /// unit test. This is the property `Rotor` exists to guarantee: any
-    /// break here means rigid bodies would gain or lose length under
-    /// rotation, an energy-conservation violation.
+    // A random rotation in a random 3D plane must always be orthogonal
+    // (R * R^T = I) -- generalizes the fixed-example `orthogonal_matrix`
+    // unit test. This is the property `Rotor` exists to guarantee: any
+    // break here means rigid bodies would gain or lose length under
+    // rotation, an energy-conservation violation.
     proptest! {
         #[test]
         fn random_rotation_3d_is_orthogonal(

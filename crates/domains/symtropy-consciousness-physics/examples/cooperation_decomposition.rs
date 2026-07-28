@@ -23,7 +23,7 @@
 
 use nalgebra::SVector;
 use symthaea_consciousness_equation::ConsciousnessInputs;
-use symtropy_consciousness_physics::convergence::{cohens_d, holm_bonferroni, mann_whitney_u};
+use symtropy_consciousness_physics::convergence::{cohens_d, mann_whitney_u};
 use symtropy_consciousness_physics::fep_gradient;
 use symtropy_consciousness_physics::harmony_field::HarmonyField;
 use symtropy_consciousness_physics::{ConsciousnessField, ThermodynamicConstants};
@@ -68,8 +68,8 @@ fn run_experiment(ctrl: Controller, regen: RegenMode, seed: u64) -> DecompResult
     let mut consciousness = ConsciousnessField::<2>::new();
     consciousness.constants = ThermodynamicConstants::research();
 
-    let wells = vec![SVector::from([30.0, 0.0]), SVector::from([-30.0, 0.0])];
-    let mut well_remaining = vec![2500.0f64; 2];
+    let wells = [SVector::from([30.0, 0.0]), SVector::from([-30.0, 0.0])];
+    let mut well_remaining = [2500.0f64; 2];
     let mut rng = seed;
     let mut handles = Vec::new();
     let use_regen = matches!(regen, RegenMode::WithRegen);
@@ -156,7 +156,7 @@ fn run_experiment(ctrl: Controller, regen: RegenMode, seed: u64) -> DecompResult
             .map(|(&p, &r)| (p, (r / 2500.0).min(1.0)))
             .collect();
 
-        for (idx, &h) in handles.iter().enumerate() {
+        for &h in handles.iter() {
             let Some(b) = world.body(h) else { continue };
             let Some(e) = consciousness.entities.get(&h) else {
                 continue;
@@ -350,7 +350,7 @@ fn main() {
 
     println!("condition,seed,alive,energy,cooperation,well_energy,resonance_energy");
 
-    let conditions: Vec<(Controller, RegenMode, &str)> = vec![
+    let conditions: [(Controller, RegenMode, &str); 6] = [
         (Controller::Fep, RegenMode::WithRegen, "FEP+REGEN"),
         (Controller::Fep, RegenMode::NoRegen, "FEP+NO_REGEN"),
         (Controller::WellOnly, RegenMode::WithRegen, "WELL+REGEN"),

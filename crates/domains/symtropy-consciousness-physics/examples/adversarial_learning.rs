@@ -61,8 +61,8 @@ fn run_experiment(mode: Mode, seed: u64) -> AdvLearnResult {
     constants.consciousness_maintenance_per_tick = 0.25;
     consciousness.constants = constants;
 
-    let wells = vec![SVector::from([30.0, 0.0]), SVector::from([-30.0, 0.0])];
-    let mut well_remaining = vec![3000.0f64; 2];
+    let wells = [SVector::from([30.0, 0.0]), SVector::from([-30.0, 0.0])];
+    let mut well_remaining = [3000.0f64; 2];
 
     let mut rng = seed;
     let mut coop_handles = Vec::new();
@@ -172,12 +172,12 @@ fn run_experiment(mode: Mode, seed: u64) -> AdvLearnResult {
         }
 
         // Record energy for memory
-        for (idx, &h) in coop_handles.iter().enumerate() {
+        for &h in coop_handles.iter() {
             if let Some(e) = consciousness.entities.get_mut(&h) {
                 e.memory.record_energy(e.energy.fraction_remaining());
             }
         }
-        for (idx, &h) in adv_handles.iter().enumerate() {
+        for &h in adv_handles.iter() {
             if let Some(e) = consciousness.entities.get_mut(&h) {
                 e.memory.record_energy(e.energy.fraction_remaining());
             }
@@ -415,9 +415,8 @@ fn run_experiment(mode: Mode, seed: u64) -> AdvLearnResult {
                         })
                         .unwrap();
                     let mut child_h = coop_harmonies[parent];
-                    for k in 0..8 {
-                        child_h[k] = (child_h[k] + (rng_f64(&mut rng) - 0.5) * MUTATION_RATE * 2.0)
-                            .clamp(0.0, 1.0);
+                    for v in child_h.iter_mut().take(8) {
+                        *v = (*v + (rng_f64(&mut rng) - 0.5) * MUTATION_RATE * 2.0).clamp(0.0, 1.0);
                     }
                     let h = coop_handles[di];
                     if let Some(e) = consciousness.entities.get_mut(&h) {
@@ -467,9 +466,8 @@ fn run_experiment(mode: Mode, seed: u64) -> AdvLearnResult {
                 for &di in &dead_adv {
                     let parent = alive_adv[0];
                     let mut child_h = adv_harmonies[parent];
-                    for k in 0..8 {
-                        child_h[k] = (child_h[k] + (rng_f64(&mut rng) - 0.5) * MUTATION_RATE * 2.0)
-                            .clamp(0.0, 1.0);
+                    for v in child_h.iter_mut().take(8) {
+                        *v = (*v + (rng_f64(&mut rng) - 0.5) * MUTATION_RATE * 2.0).clamp(0.0, 1.0);
                     }
                     let h = adv_handles[di];
                     if let Some(e) = consciousness.entities.get_mut(&h) {
@@ -628,7 +626,7 @@ fn main() {
     let ll_coop: Vec<f64> = all[2].1.iter().map(|r| r.coop_alive).collect();
     let lf_coop: Vec<f64> = all[1].1.iter().map(|r| r.coop_alive).collect();
 
-    let tests = vec![
+    let tests = [
         ("FF vs LF (coop learns)", {
             let (_, _, p) = mann_whitney_u(&ff_coop, &lf_coop);
             p

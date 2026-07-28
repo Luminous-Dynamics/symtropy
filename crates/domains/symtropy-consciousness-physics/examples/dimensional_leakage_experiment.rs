@@ -155,7 +155,7 @@ fn run(with_leakage: bool, seed: u64) -> Result {
                 .iter()
                 .enumerate()
                 .filter(|(i, _)| *i != idx)
-                .map(|(_, d)| d.clone())
+                .map(|(_, d)| *d)
                 .collect();
             let dir = fep_gradient::free_energy_gradient(&pos, ef, &harm, &nearby, &[], None, 0.0);
             if let Some(b) = world.body_mut(h) {

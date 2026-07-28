@@ -159,19 +159,19 @@ mod implementation {
                         }
                         SignalingEvent::Signal { from, data } => {
                             // Decode relayed game data
-                            if let SignalData::Offer { sdp } = data {
-                                if let Ok(relayed) = serde_json::from_str::<RelayedData>(&sdp) {
-                                    let channel = if relayed.channel == 0 {
-                                        Channel::Unreliable
-                                    } else {
-                                        Channel::Reliable
-                                    };
-                                    events.push(TransportEvent::Message(PeerMessage {
-                                        from,
-                                        channel,
-                                        data: relayed.payload,
-                                    }));
-                                }
+                            if let SignalData::Offer { sdp } = data
+                                && let Ok(relayed) = serde_json::from_str::<RelayedData>(&sdp)
+                            {
+                                let channel = if relayed.channel == 0 {
+                                    Channel::Unreliable
+                                } else {
+                                    Channel::Reliable
+                                };
+                                events.push(TransportEvent::Message(PeerMessage {
+                                    from,
+                                    channel,
+                                    data: relayed.payload,
+                                }));
                             }
                         }
                         SignalingEvent::Disconnected => {

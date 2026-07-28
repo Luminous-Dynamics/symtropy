@@ -73,12 +73,12 @@ fn run_experiment(topo: Topology, seed: u64) -> TopoResult {
         _ => 200.0,
     };
 
-    let mut wells = vec![
+    let mut wells = [
         SVector::from([50.0, 20.0]),
         SVector::from([-40.0, -30.0]),
         SVector::from([10.0, -50.0]),
     ];
-    let mut well_remaining = vec![2500.0f64; 3];
+    let mut well_remaining = [2500.0f64; 3];
 
     // Obstacles: repulsive zones at 4 points
     let obstacles: Vec<SVector<f64, 2>> = if matches!(topo, Topology::Obstacles) {
@@ -192,7 +192,7 @@ fn run_experiment(topo: Topology, seed: u64) -> TopoResult {
             let wdata: Vec<_> = wells
                 .iter()
                 .zip(well_remaining.iter())
-                .filter(|&(ref w, &r)| r > 0.0 && (pos - *w).norm() < well_sight)
+                .filter(|&(w, &r)| r > 0.0 && (pos - w).norm() < well_sight)
                 .map(|(&p, &r)| (p, (r / 2500.0).min(1.0)))
                 .collect();
 

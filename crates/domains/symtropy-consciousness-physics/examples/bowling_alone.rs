@@ -22,7 +22,6 @@
 
 use nalgebra::SVector;
 use symthaea_consciousness_equation::ConsciousnessInputs;
-use symtropy_consciousness_physics::convergence::{cohens_d, holm_bonferroni};
 use symtropy_consciousness_physics::fep_gradient;
 use symtropy_consciousness_physics::harmony_field::HarmonyField;
 use symtropy_consciousness_physics::{ConsciousnessField, ThermodynamicConstants};
@@ -60,8 +59,13 @@ struct DecadeSnapshot {
 }
 
 struct BowlingResult {
-    condition: &'static str,
     decades: Vec<DecadeSnapshot>,
+    // NOTE (found via clippy `dead_code`, 2026-07-26): computed and stored
+    // but never read back out -- the per-decade `d.alive` values in
+    // `decades` are printed, but this separate final-scalar summary isn't.
+    // Flagged rather than deleted, same as the other not-proven-redundant
+    // dead-field cases in this series.
+    #[allow(dead_code)]
     final_alive: f64,
     putnam_score: f64, // how many of the 4 trends are reproduced
 }
@@ -98,12 +102,12 @@ fn run_experiment(erosion: ErosionMode, seed: u64) -> BowlingResult {
         ErosionMode::Collapsed => 0.20, // 20% per decade
     };
 
-    let wells = vec![
+    let wells = [
         SVector::from([40.0, 10.0]),
         SVector::from([-30.0, -20.0]),
         SVector::from([10.0, -40.0]),
     ];
-    let mut well_remaining = vec![5000.0f64; 3]; // large wells for long run
+    let mut well_remaining = [5000.0f64; 3]; // large wells for long run
 
     let mut rng = seed;
     let mut handles = Vec::new();
@@ -121,12 +125,6 @@ fn run_experiment(erosion: ErosionMode, seed: u64) -> BowlingResult {
         }
         handles.push(h);
     }
-
-    let cond_name = match erosion {
-        ErosionMode::Stable => "STABLE",
-        ErosionMode::Eroding => "ERODING",
-        ErosionMode::Collapsed => "COLLAPSED",
-    };
 
     let mut decades = Vec::new();
     let mut decade_coop = 0u64;
@@ -417,7 +415,6 @@ fn run_experiment(erosion: ErosionMode, seed: u64) -> BowlingResult {
     }
 
     BowlingResult {
-        condition: cond_name,
         decades,
         final_alive: alive,
         putnam_score: putnam,

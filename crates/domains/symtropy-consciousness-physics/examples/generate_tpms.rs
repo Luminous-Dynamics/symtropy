@@ -28,7 +28,7 @@ fn main() {
     const DT: f64 = 1.0 / 60.0;
 
     // Sweep across different input configurations
-    let configs: Vec<(&str, f64, f64, f64)> = vec![
+    let configs: [(&str, f64, f64, f64); 10] = [
         ("low_phi", 0.1, 0.1, 0.0),
         ("med_low", 0.3, 0.3, 0.1),
         ("medium", 0.5, 0.5, 0.3),

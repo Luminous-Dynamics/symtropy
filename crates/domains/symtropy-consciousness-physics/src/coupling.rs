@@ -1025,7 +1025,7 @@ mod tests {
         );
 
         // Rebuild harmony field with known positions
-        let positions = vec![
+        let positions = [
             (h0, symtropy_math::Point::new([0.0, 0.0, 0.0])),
             (h1, symtropy_math::Point::new([5.0, 0.0, 0.0])),
         ];
@@ -1151,7 +1151,7 @@ mod tests {
             .unwrap()
             .harmony_activations[EMOTIONAL_CONTAGION_IDX] = 0.9;
 
-        let positions = vec![
+        let positions = [
             (emitter, symtropy_math::Point::new([0.0, 0.0, 0.0])),
             (receiver, symtropy_math::Point::new([5.0, 0.0, 0.0])),
         ];
@@ -1175,7 +1175,7 @@ mod tests {
         field.entities.get_mut(&h).unwrap().harmony_activations[EMOTIONAL_CONTAGION_IDX] = 0.8;
 
         // Single entity — no neighbors to spread from
-        let positions = vec![(h, symtropy_math::Point::<3>::origin())];
+        let positions = [(h, symtropy_math::Point::<3>::origin())];
         field.spread_emotional_contagion(&positions, 1.0);
 
         let emotion = field.entities.get(&h).unwrap().harmony_activations[EMOTIONAL_CONTAGION_IDX];
@@ -1207,7 +1207,7 @@ mod tests {
             .unwrap()
             .harmony_activations[EMOTIONAL_CONTAGION_IDX] = 0.9;
 
-        let positions = vec![
+        let positions = [
             (emitter, symtropy_math::Point::new([0.0, 0.0, 0.0])),
             (receiver, symtropy_math::Point::new([3.0, 0.0, 0.0])),
         ];

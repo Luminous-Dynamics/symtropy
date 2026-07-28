@@ -66,8 +66,8 @@ fn run_experiment(ctrl: Controller, seed: u64) -> ReplaceResult {
     let mut consciousness = ConsciousnessField::<2>::new();
     consciousness.constants = ThermodynamicConstants::research();
 
-    let wells = vec![SVector::from([30.0, 0.0]), SVector::from([-30.0, 0.0])];
-    let mut well_remaining = vec![2500.0f64; 2];
+    let wells = [SVector::from([30.0, 0.0]), SVector::from([-30.0, 0.0])];
+    let mut well_remaining = [2500.0f64; 2];
     let mut rng = seed;
     let mut handles = Vec::new();
 
@@ -151,7 +151,7 @@ fn run_experiment(ctrl: Controller, seed: u64) -> ReplaceResult {
             .map(|(&p, &r)| (p, (r / 2500.0).min(1.0)))
             .collect();
 
-        for (idx, &h) in handles.iter().enumerate() {
+        for &h in handles.iter() {
             let Some(b) = world.body(h) else { continue };
             let Some(e) = consciousness.entities.get(&h) else {
                 continue;

@@ -489,7 +489,7 @@ mod tests {
 
     #[test]
     fn bifurcation_point_constant_series() {
-        let series = vec![0.7, 0.7, 0.7, 0.7];
+        let series = [0.7, 0.7, 0.7, 0.7];
         let p = BifurcationPoint::from_series(1.0, &series, 0.5, 8);
         assert!((p.mean_phi - 0.7).abs() < 1e-9);
         assert!((p.var_phi).abs() < 1e-9);
@@ -499,7 +499,7 @@ mod tests {
     #[test]
     fn bifurcation_point_variance_correct() {
         // series: [0.4, 0.6] → mean=0.5, var=0.01
-        let series = vec![0.4, 0.6];
+        let series = [0.4, 0.6];
         let p = BifurcationPoint::from_series(0.5, &series, 0.0, 4);
         assert!((p.mean_phi - 0.5).abs() < 1e-9);
         assert!((p.var_phi - 0.01).abs() < 1e-9);
@@ -570,15 +570,15 @@ mod tests {
 
     #[test]
     fn jump_threshold_constant_is_positive() {
-        assert!(JUMP_THRESHOLD > 0.0);
-        assert!(JUMP_THRESHOLD < 1.0);
+        const { assert!(JUMP_THRESHOLD > 0.0) };
+        const { assert!(JUMP_THRESHOLD < 1.0) };
     }
 
     #[test]
     fn binder_cumulant_constant_series_zero() {
         // For a constant order parameter series, m² = m_mean², m⁴ = m_mean⁴
         // U₄ = 1 - m⁴ / (3m²²) = 1 - m⁴ / (3m⁴) = 2/3
-        let series = vec![0.6, 0.6, 0.6, 0.6];
+        let series = [0.6, 0.6, 0.6, 0.6];
         let p = BifurcationPoint::from_series(0.5, &series, 0.0, 8);
         // When var=0, m_series is constant. m²² = m4 = const.
         // U₄ = 1 - const^2/(3*const^2) = 2/3

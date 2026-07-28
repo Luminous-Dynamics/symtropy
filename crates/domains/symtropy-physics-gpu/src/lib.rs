@@ -148,7 +148,15 @@ impl Plugin for GpuPhysicsPlugin {
     }
 }
 
+// NOTE: count_scatter_pipeline/integrate_pipeline/social_decay_pipeline are
+// built (shaders loaded, pipelines queued) but never dispatched anywhere in
+// this file -- broadphase_readback only does a buffer-to-buffer copy of the
+// nociception grid, never a compute pass using any of these pipeline IDs.
+// This is a real, unfinished GPU-dispatch gap, not dead scaffolding to
+// delete; flagged rather than fixed since implementing the missing compute
+// pass is out of scope here.
 #[derive(Resource)]
+#[allow(dead_code)]
 struct BroadphasePipeline {
     count_scatter_pipeline: CachedComputePipelineId,
     integrate_pipeline: CachedComputePipelineId,
@@ -336,7 +344,11 @@ impl FromWorld for BroadphasePipeline {
     }
 }
 
+// NOTE: bind_group/num_bodies are stored but never read -- same unfinished
+// GPU-dispatch gap as BroadphasePipeline above (bind_group would be bound
+// in the still-missing compute pass; num_bodies would size its dispatch).
 #[derive(Resource)]
+#[allow(dead_code)]
 struct BroadphaseBuffers {
     bind_group: BindGroup,
     nociception_buffer: Buffer,

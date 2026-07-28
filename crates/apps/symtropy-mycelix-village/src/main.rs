@@ -161,14 +161,11 @@ fn response_handler_system(
     mut reader: MessageReader<MycelixResponse>,
 ) {
     for response in reader.read() {
-        match response {
-            MycelixResponse::VoteCast { .. } => {
-                state.votes_cast += 1;
-                if state.votes_cast >= 15 {
-                    state.active_proposal_id = None;
-                }
+        if let MycelixResponse::VoteCast { .. } = response {
+            state.votes_cast += 1;
+            if state.votes_cast >= 15 {
+                state.active_proposal_id = None;
             }
-            _ => {}
         }
     }
 }

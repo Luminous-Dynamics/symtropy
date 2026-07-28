@@ -80,7 +80,6 @@ fn run<const D: usize>(seed: u64) -> DimResult {
         harmony_range: 40.0,
     };
 
-    let hidden_dims = if D > 2 { D - 2 } else { 0 };
     let mut rng = seed;
     let mut agent_handles = Vec::new();
     let mut resource_handles = Vec::new();
@@ -201,7 +200,7 @@ fn run<const D: usize>(seed: u64) -> DimResult {
                 .iter()
                 .enumerate()
                 .filter(|(i, _)| *i != idx)
-                .map(|(_, d)| d.clone())
+                .map(|(_, d)| *d)
                 .collect();
             let dir = fep_gradient::free_energy_gradient(&pos, ef, &harm, &nearby, &[], None, 0.0);
             if let Some(b) = world.body_mut(h) {
@@ -414,8 +413,8 @@ fn main() {
         "dim,hidden,pred_error_mean,pred_error_max,alive,energy,visible_frac,dark_energy_frac,clustering,first_vanish"
     );
 
-    for d in [2, 3, 4] {
-        let hidden = if d > 2 { d - 2 } else { 0 };
+    for d in [2usize, 3, 4] {
+        let hidden = d.saturating_sub(2);
         let mut pe_m = Vec::new();
         let mut pe_x = Vec::new();
         let mut al = Vec::new();

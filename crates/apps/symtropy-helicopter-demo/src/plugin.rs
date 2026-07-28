@@ -137,7 +137,7 @@ fn step_helicopter(time: Res<Time>, mut heli: ResMut<HelicopterResources>) {
     let current_hv = heli.encoder.encode(&new_state);
     let pe = if let Some(ref prev) = heli.last_perception {
         let sim = current_hv.similarity(prev);
-        (1.0 - sim.max(0.0)).min(1.0) as f32
+        (1.0 - sim.max(0.0)).min(1.0)
     } else {
         0.0
     };

@@ -13,7 +13,7 @@
 
 use nalgebra::SVector;
 use symthaea_consciousness_equation::ConsciousnessInputs;
-use symtropy_consciousness_physics::convergence::{cohens_d, mann_whitney_u};
+use symtropy_consciousness_physics::convergence::cohens_d;
 use symtropy_consciousness_physics::fep_gradient;
 use symtropy_consciousness_physics::harmony_field::HarmonyField;
 use symtropy_consciousness_physics::{ConsciousnessField, ThermodynamicConstants};
@@ -46,8 +46,8 @@ fn run_experiment(ctrl: Ctrl, well_cap: f64, use_regen: bool, seed: u64) -> (f64
     let mut consciousness = ConsciousnessField::<2>::new();
     consciousness.constants = ThermodynamicConstants::research();
 
-    let wells = vec![SVector::from([30.0, 0.0]), SVector::from([-30.0, 0.0])];
-    let mut well_remaining = vec![well_cap; 2];
+    let wells = [SVector::from([30.0, 0.0]), SVector::from([-30.0, 0.0])];
+    let mut well_remaining = [well_cap; 2];
     let mut rng = seed;
     let mut handles = Vec::new();
 
@@ -118,7 +118,7 @@ fn run_experiment(ctrl: Ctrl, well_cap: f64, use_regen: bool, seed: u64) -> (f64
             .map(|(&p, &r)| (p, (r / well_cap).min(1.0)))
             .collect();
 
-        for (idx, &h) in handles.iter().enumerate() {
+        for &h in handles.iter() {
             let Some(b) = world.body(h) else { continue };
             let Some(e) = consciousness.entities.get(&h) else {
                 continue;

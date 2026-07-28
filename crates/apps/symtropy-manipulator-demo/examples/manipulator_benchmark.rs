@@ -174,17 +174,16 @@ fn run_trial_arm(policy: Policy, params: &TrialParams) -> u32 {
         let gain = policy_gain(policy, human_dist, sp);
 
         let state = sim.state();
-        if gain > 0.0 {
-            if let Some(q_target) = kinematics.ik_dls(&target, &state.joint_angles, 0.1, 30, 0.01) {
-                let mut cmd = symthaea_manipulator::ManipulatorCommand::zero();
-                for i in 0..NUM_JOINTS {
-                    let err = q_target[i] - state.joint_angles[i];
-                    let vel = state.joint_velocities[i];
-                    cmd.joint_torques[i] =
-                        (gain as f32 * (8.0 * err - 2.0 * vel) as f32).clamp(-1.0, 1.0);
-                }
-                sim.step(&cmd, DT);
+        if gain > 0.0
+            && let Some(q_target) = kinematics.ik_dls(&target, &state.joint_angles, 0.1, 30, 0.01)
+        {
+            let mut cmd = symthaea_manipulator::ManipulatorCommand::zero();
+            for (i, torque) in cmd.joint_torques.iter_mut().enumerate().take(NUM_JOINTS) {
+                let err = q_target[i] - state.joint_angles[i];
+                let vel = state.joint_velocities[i];
+                *torque = (gain as f32 * (8.0 * err - 2.0 * vel) as f32).clamp(-1.0, 1.0);
             }
+            sim.step(&cmd, DT);
         }
 
         let ee = sim.state().end_effector_position;
@@ -421,17 +420,16 @@ fn run_trial_phi(params: &TrialParams, trace: bool, thresholds: ThresholdSet) ->
 
         let state = sim.state();
         let gain = last_gain;
-        if gain > 0.0 {
-            if let Some(q_target) = kinematics.ik_dls(&target, &state.joint_angles, 0.1, 30, 0.01) {
-                let mut cmd = symthaea_manipulator::ManipulatorCommand::zero();
-                for i in 0..NUM_JOINTS {
-                    let err = q_target[i] - state.joint_angles[i];
-                    let vel = state.joint_velocities[i];
-                    cmd.joint_torques[i] =
-                        (gain as f32 * (8.0 * err - 2.0 * vel) as f32).clamp(-1.0, 1.0);
-                }
-                sim.step(&cmd, DT);
+        if gain > 0.0
+            && let Some(q_target) = kinematics.ik_dls(&target, &state.joint_angles, 0.1, 30, 0.01)
+        {
+            let mut cmd = symthaea_manipulator::ManipulatorCommand::zero();
+            for (i, torque) in cmd.joint_torques.iter_mut().enumerate().take(NUM_JOINTS) {
+                let err = q_target[i] - state.joint_angles[i];
+                let vel = state.joint_velocities[i];
+                *torque = (gain as f32 * (8.0 * err - 2.0 * vel) as f32).clamp(-1.0, 1.0);
             }
+            sim.step(&cmd, DT);
         }
 
         let ee = sim.state().end_effector_position;

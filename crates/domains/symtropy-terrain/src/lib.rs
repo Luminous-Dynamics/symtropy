@@ -112,14 +112,13 @@ pub fn process_excavation(
                 for y in 0..CHUNK_SIZE {
                     for z in 0..CHUNK_SIZE {
                         let voxel_pos = Vec3::new(x as f32, y as f32, z as f32);
-                        if voxel_pos.distance(local_p) <= event.radius {
-                            if chunk.voxels[x][y][z] != SubstrateMaterial::Air
-                                && chunk.voxels[x][y][z] != SubstrateMaterial::Bedrock
-                            {
-                                chunk.voxels[x][y][z] = SubstrateMaterial::Air;
-                                chunk.densities[x][y][z] = 0.0;
-                                modified = true;
-                            }
+                        if voxel_pos.distance(local_p) <= event.radius
+                            && chunk.voxels[x][y][z] != SubstrateMaterial::Air
+                            && chunk.voxels[x][y][z] != SubstrateMaterial::Bedrock
+                        {
+                            chunk.voxels[x][y][z] = SubstrateMaterial::Air;
+                            chunk.densities[x][y][z] = 0.0;
+                            modified = true;
                         }
                     }
                 }
@@ -254,6 +253,10 @@ fn add_voxel_mesh(
     }
 }
 
+// NOTE: each param is a distinct Bevy SystemParam (Commands/Query/ResMut) --
+// idiomatic for an ECS system, not bundle-able without a custom SystemParam
+// struct.
+#[allow(clippy::too_many_arguments)]
 pub fn handle_rebuild_tasks(
     mut commands: Commands,
     mut chunk_query: Query<&mut EarthChunk>,

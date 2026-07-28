@@ -54,7 +54,6 @@ fn main() {
     // But the effective information is much less — the equation computes a softmin bottleneck
     // Estimated effective bits per consciousness tick: ~8 inputs × ~4 effective bits = ~32 bits
     let estimated_bits_per_tick = 32.0;
-    let estimated_bits_per_sec = estimated_bits_per_tick * ticks_per_second;
 
     // Simulated J/bit
     let simulated_j_per_bit = consciousness_cost_per_tick / estimated_bits_per_tick;

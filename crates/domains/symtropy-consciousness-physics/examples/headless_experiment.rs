@@ -173,20 +173,18 @@ fn main() {
                             .get(&ha)
                             .map(|e| e.energy.is_collapsed())
                             .unwrap_or(false)
+                            && let Some(e) = consciousness.entities.get_mut(&ha)
                         {
-                            if let Some(e) = consciousness.entities.get_mut(&ha) {
-                                e.energy.regenerate(50.0);
-                            }
+                            e.energy.regenerate(50.0);
                         }
                         if consciousness
                             .entities
                             .get(&hb)
                             .map(|e| e.energy.is_collapsed())
                             .unwrap_or(false)
+                            && let Some(e) = consciousness.entities.get_mut(&hb)
                         {
-                            if let Some(e) = consciousness.entities.get_mut(&hb) {
-                                e.energy.regenerate(50.0);
-                            }
+                            e.energy.regenerate(50.0);
                         }
                     }
                 }
@@ -231,7 +229,7 @@ fn main() {
                 .unwrap_or_else(|| "N/A".to_string());
 
             println!(
-                "{},{:.4},{},{},{:.2},{:.4},{},{},{}",
+                "{},{:.4},{},{},{:.2},{:.4},{},{},{:.6}",
                 tick,
                 consciousness.collective_phi,
                 alive,
@@ -240,7 +238,7 @@ fn main() {
                 avg_pred_error,
                 cooperation_events,
                 j_per_phi,
-                format!("{:.6}", balance.conservation_error),
+                balance.conservation_error,
             );
         }
     }

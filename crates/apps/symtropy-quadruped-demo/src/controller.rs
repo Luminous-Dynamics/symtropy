@@ -38,12 +38,12 @@ impl StanceController {
     pub fn compute(&self, state: &QuadrupedState, gait: GaitType) -> QuadrupedCommand {
         let mut torques = [0.0f32; NUM_ACTUATORS];
         let gate = torque_gain_for_gait(gait);
-        for i in 0..NUM_JOINTS {
+        for (i, torque) in torques.iter_mut().enumerate().take(NUM_JOINTS) {
             let err = self.target_angles[i] - state.joint_angles[i];
             let vel = state.joint_velocities[i];
             let raw = self.kp * err - self.kd * vel;
             let t = (raw / 8.0).clamp(-1.0, 1.0) as f32;
-            torques[i] = t * gate;
+            *torque = t * gate;
         }
         QuadrupedCommand {
             joint_torques: torques,

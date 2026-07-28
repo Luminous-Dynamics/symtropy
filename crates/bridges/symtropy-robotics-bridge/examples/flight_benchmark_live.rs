@@ -60,7 +60,7 @@ enum Policy {
 impl Policy {
     fn gain(&self, phi: f64, sprint_threshold: f64, floor: f64) -> f64 {
         match self {
-            Policy::TierGate => SafetyTier::from_phi(phi).motor_gain() as f64,
+            Policy::TierGate => SafetyTier::from_phi(phi).motor_gain(),
             Policy::SprintFloor => sprint_floor_gain(phi, sprint_threshold, floor),
         }
     }

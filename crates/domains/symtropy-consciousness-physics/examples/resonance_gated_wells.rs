@@ -69,12 +69,12 @@ fn run_experiment(ctrl: Ctrl, res_threshold: f64, seed: u64) -> ResGateResult {
     let mut consciousness = ConsciousnessField::<2>::new();
     consciousness.constants = ThermodynamicConstants::research();
 
-    let wells = vec![
+    let wells = [
         SVector::from([35.0, 10.0]),
         SVector::from([-30.0, -15.0]),
         SVector::from([5.0, -35.0]),
     ];
-    let mut well_remaining = vec![3000.0f64; 3];
+    let mut well_remaining = [3000.0f64; 3];
     let mut rng = seed;
     let mut handles = Vec::new();
 
@@ -244,61 +244,56 @@ fn run_experiment(ctrl: Ctrl, res_threshold: f64, seed: u64) -> ResGateResult {
             if let Some(e_ref) = consciousness.entities.get(&h) {
                 let my_harmony = e_ref.harmony_activations;
                 let collapsed = e_ref.energy.is_collapsed();
-                drop(e_ref);
 
                 if let Some(e) = consciousness.entities.get_mut(&h) {
                     e.energy.regenerate(ar * rm);
                 }
 
-                if !collapsed {
-                    if let Some(b) = world.body(h) {
-                        let pos = b.position();
-                        for (wi, &w) in wells.iter().enumerate() {
-                            if (pos - w).norm() < 35.0 && well_remaining[wi] > 0.0 {
-                                // RESONANCE GATE: check if ANY other agent at this well
-                                // is resonant with this agent
-                                let has_resonant_partner = if res_threshold <= 0.0 {
-                                    true // no gate
-                                } else {
-                                    handles.iter().any(|&other| {
-                                        if other == h {
-                                            return false;
-                                        }
-                                        let other_at_well = world
-                                            .body(other)
-                                            .map(|ob| {
-                                                (SVector::from(ob.position()) - w).norm() < 35.0
-                                            })
-                                            .unwrap_or(false);
-                                        if !other_at_well {
-                                            return false;
-                                        }
-                                        let other_harmony = consciousness
-                                            .entities
-                                            .get(&other)
-                                            .map(|oe| oe.harmony_activations);
-                                        match other_harmony {
-                                            Some(oh) => {
-                                                HarmonyField::<2>::resonance(&my_harmony, &oh)
-                                                    >= res_threshold
-                                            }
-                                            None => false,
-                                        }
-                                    })
-                                };
-
-                                if has_resonant_partner {
-                                    if let Some(e) = consciousness.entities.get_mut(&h) {
-                                        let d = wr_rate.min(well_remaining[wi]);
-                                        e.energy.regenerate(d);
-                                        well_remaining[wi] -= d;
+                if !collapsed && let Some(b) = world.body(h) {
+                    let pos = b.position();
+                    for (wi, &w) in wells.iter().enumerate() {
+                        if (pos - w).norm() < 35.0 && well_remaining[wi] > 0.0 {
+                            // RESONANCE GATE: check if ANY other agent at this well
+                            // is resonant with this agent
+                            let has_resonant_partner = if res_threshold <= 0.0 {
+                                true // no gate
+                            } else {
+                                handles.iter().any(|&other| {
+                                    if other == h {
+                                        return false;
                                     }
-                                } else {
-                                    // At well but GATED OUT — no resonant partner present
-                                    gated_out += 1;
+                                    let other_at_well = world
+                                        .body(other)
+                                        .map(|ob| (SVector::from(ob.position()) - w).norm() < 35.0)
+                                        .unwrap_or(false);
+                                    if !other_at_well {
+                                        return false;
+                                    }
+                                    let other_harmony = consciousness
+                                        .entities
+                                        .get(&other)
+                                        .map(|oe| oe.harmony_activations);
+                                    match other_harmony {
+                                        Some(oh) => {
+                                            HarmonyField::<2>::resonance(&my_harmony, &oh)
+                                                >= res_threshold
+                                        }
+                                        None => false,
+                                    }
+                                })
+                            };
+
+                            if has_resonant_partner {
+                                if let Some(e) = consciousness.entities.get_mut(&h) {
+                                    let d = wr_rate.min(well_remaining[wi]);
+                                    e.energy.regenerate(d);
+                                    well_remaining[wi] -= d;
                                 }
-                                break;
+                            } else {
+                                // At well but GATED OUT — no resonant partner present
+                                gated_out += 1;
                             }
+                            break;
                         }
                     }
                 }

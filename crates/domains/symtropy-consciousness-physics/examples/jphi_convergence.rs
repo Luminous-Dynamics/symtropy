@@ -56,8 +56,6 @@ impl Condition {
 }
 
 struct RunResult {
-    condition: &'static str,
-    seed: u64,
     converged: bool,
     convergence_tick: usize,
     final_jphi: f64,
@@ -78,10 +76,10 @@ fn run_experiment(condition: Condition, seed: u64) -> RunResult {
         consciousness.constants.collision_energy_drain = 0.0;
     }
 
-    let well_positions = vec![SVector::from([25.0, 25.0]), SVector::from([-25.0, -25.0])];
+    let well_positions = [SVector::from([25.0, 25.0]), SVector::from([-25.0, -25.0])];
     // Well depletion: each well has finite capacity (Joules).
     // Forces migration when wells run dry, breaking equilibrium flatline.
-    let mut well_remaining = vec![3000.0f64; well_positions.len()];
+    let mut well_remaining = [3000.0f64; 2]; // matches well_positions.len()
 
     let mut rng = seed;
     let mut handles = Vec::new();
@@ -112,7 +110,6 @@ fn run_experiment(condition: Condition, seed: u64) -> RunResult {
 
     let mut jphi_detector = ConvergenceDetector::new(CONVERGENCE_WINDOW, CONVERGENCE_THRESHOLD);
     let mut phi_detector = ConvergenceDetector::new(CONVERGENCE_WINDOW, CONVERGENCE_THRESHOLD);
-    let mut cooperation_events = 0u64;
     let mut convergence_tick = MAX_TICKS;
     let mut converged = false;
 
@@ -298,7 +295,6 @@ fn run_experiment(condition: Condition, seed: u64) -> RunResult {
                         if let Some(e) = consciousness.entities.get_mut(&hb) {
                             e.energy.regenerate(regen);
                         }
-                        cooperation_events += 1;
                     }
                 }
             }
@@ -372,8 +368,6 @@ fn run_experiment(condition: Condition, seed: u64) -> RunResult {
         .count();
 
     RunResult {
-        condition: condition.name(),
-        seed,
         converged,
         convergence_tick,
         final_jphi: jphi_detector.rolling_mean(),
