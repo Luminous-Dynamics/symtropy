@@ -132,17 +132,15 @@ pub fn echo_memory_system(
         return;
     };
 
-    if !echo.memory.is_empty() {
-        if let Ok(hits) = echo.memory.query_episode(&episode, 1, false) {
-            if let Some(hit) = hits.first() {
-                if hit.similarity >= ECHO_SIMILARITY_THRESHOLD {
-                    println!(
-                        "[echo-memory] déjà vu — this moment echoes {} (similarity {:.2})",
-                        hit.episode_id, hit.similarity
-                    );
-                }
-            }
-        }
+    if !echo.memory.is_empty()
+        && let Ok(hits) = echo.memory.query_episode(&episode, 1, false)
+        && let Some(hit) = hits.first()
+        && hit.similarity >= ECHO_SIMILARITY_THRESHOLD
+    {
+        println!(
+            "[echo-memory] déjà vu — this moment echoes {} (similarity {:.2})",
+            hit.episode_id, hit.similarity
+        );
     }
 
     let _ = echo.memory.insert(episode);

@@ -270,7 +270,7 @@ impl CognitivePort for SymthaeaBrainCognitivePort {
             // Note: In Bevy this runs periodically, but here we can force it or let it run
             // via Bevy's normal cognitive plugin schedules. For a port, we can manually trigger cycle:
             // (Uses a helper to avoid double mutable borrow issues)
-            let mut temp_brain = std::mem::replace(
+            let temp_brain = std::mem::replace(
                 brain,
                 symthaea_bevy_brain::CognitiveBrain::new_with_hv_input(64, "", 16_384),
             );

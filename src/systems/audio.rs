@@ -61,7 +61,6 @@ impl AudioConfig {
                     room_size: 0.95,
                     damping: 0.2,
                     width: 1.0,
-                    ..Default::default()
                 },
                 ..Default::default()
             },
