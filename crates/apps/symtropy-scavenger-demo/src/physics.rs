@@ -1,3 +1,5 @@
+// Copyright (C) 2024-2026 Tristan Stoltz / Luminous Dynamics
+// SPDX-License-Identifier: AGPL-3.0-or-later
 use bevy::prelude::*;
 use symtropy_rapier3d_bridge::{RapierColliderSet, RapierRigidBodySet};
 use symtropy_robotics_bridge::RoboticAgentTag;

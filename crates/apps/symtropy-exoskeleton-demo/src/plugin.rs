@@ -8,6 +8,7 @@ use symthaea_exoskeleton::types::AssistanceMode;
 
 use crate::camera;
 use crate::consciousness_bridge;
+use crate::controller::ConsciousnessState;
 use crate::hud;
 use crate::resources::*;
 use crate::visualization;
@@ -85,8 +86,15 @@ fn step_exoskeleton(time: Res<Time>, mut exo: ResMut<ExoskeletonResources>) {
     let mode = AssistanceMode::from_phi(phi);
     exo.current_mode = mode;
 
-    // Controller computes assistive torques scaled by mode factors
-    let cmd = exo.controller.compute(&state, mode);
+    // Controller computes assistive torques scaled by mode factors.
+    // NOTE: ConsciousnessState (fatigue/trauma/stress) isn't wired to any
+    // real signal yet -- ExoskeletonResources doesn't track it, so this
+    // demo doesn't yet show performance degradation under exertion/injury.
+    // Real, unwired feature; using the neutral (no-degradation) default
+    // rather than inventing a derivation.
+    let cmd = exo
+        .controller
+        .compute(&state, mode, ConsciousnessState::default());
     exo.last_exo_effort = cmd.control_effort();
 
     // Step physics (simulator adds human CPG torques internally)

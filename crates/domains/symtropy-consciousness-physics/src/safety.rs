@@ -3,10 +3,49 @@
 // Commercial licensing: see COMMERCIAL_LICENSE.md at repository root
 //! Safety tier system: Φ-gated motor authority.
 //!
-//! Maps integrated information (Φ) to motor gain via an NRC-inspired 4-tier
-//! system. Higher Φ (more integrated information processing) grants more
-//! force authority. This is a formal coupling, not a philosophical claim —
-//! it could equally be called "integration-gated motor authority."
+//! Maps integrated information (Φ) to motor gain. Higher Φ (more integrated
+//! information processing) grants more force authority. This is a formal
+//! coupling, not a philosophical claim — it could equally be called
+//! "integration-gated motor authority."
+//!
+//! # Two mappings live here, and the NRC one is NOT what platforms run
+//!
+//! Read this before citing the 4-tier table below as "the safety system."
+//!
+//! - [`SafetyTier::from_phi`] + [`SafetyTier::motor_gain`] implement an
+//!   NRC-inspired 4-tier ladder with **hardcoded** cut points at Φ =
+//!   0.6 / 0.3 / 0.1. **No platform demo in this workspace uses it**
+//!   (`grep -rln '\.motor_gain()' crates/apps/` → no matches).
+//! - [`sprint_floor_gain`] is a two-level sprint/floor gate taking
+//!   platform-specific thresholds. **All six instrumented platform demos use
+//!   this instead** — AUV, humanoid, flight, vehicle, helicopter, and the CLI
+//!   calibration path.
+//!
+//! The reason is empirical, not stylistic. Measured Φ on these platforms sits
+//! in a narrow band around 0.1, so every one of them calibrates its sprint
+//! threshold there:
+//!
+//! | Demo       | `SPRINT_THRESHOLD` | `FLOOR_GAIN` |
+//! |------------|--------------------|--------------|
+//! | auv        | 0.130              | 0.3          |
+//! | humanoid   | 0.130              | 0.3          |
+//! | flight     | 0.110              | 0.3          |
+//! | vehicle    | 0.101              | 0.3          |
+//! | helicopter | 0.100              | 0.3          |
+//!
+//! Against `from_phi`'s cut points that band is entirely inside Red/Orange —
+//! its Green threshold is 5-6x above anything these platforms actually reach.
+//! Feeding real platform Φ into `from_phi` therefore pins motor gain at 0.0 or
+//! 0.3 permanently, which is why the demos route around it. Use
+//! `symtropy-cli`'s calibration output (it prints a suggested
+//! `SPRINT_THRESHOLD`) or the `MANIP_BENCH_PHI_TRACE=1` pattern in the
+//! manipulator benchmark to measure your own platform's band before choosing.
+//!
+//! `from_phi` is nonetheless still live inside this crate's own coupling field
+//! (`simple_field.rs`, `coupling.rs`), which has **not** been measured against
+//! the same yardstick. Whether the band there resembles the robotics platforms'
+//! is an open question — see `SYMTROPY_EXECUTION_PLAN_2026-07-28.md` §C2. Do
+//! not assume either way.
 
 /// Φ-gated safety tier for motor/force output.
 ///
@@ -19,6 +58,11 @@
 /// | Yellow | 0.3–0.6   | 60%        | Reduced speed/force      |
 /// | Orange | 0.1–0.3   | 30%        | Retreat to safe pose     |
 /// | Red    | ≤ 0.1     | 0%         | Emergency stop           |
+///
+/// **These cut points do not match any measured platform's Φ band** — see the
+/// module-level docs. Every platform demo in this workspace uses
+/// [`sprint_floor_gain`] with its own calibrated threshold instead. Reach for
+/// this type only after measuring your signal's actual distribution.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub enum SafetyTier {
     Green,
@@ -28,7 +72,13 @@ pub enum SafetyTier {
 }
 
 impl SafetyTier {
-    /// Determine safety tier from Φ value.
+    /// Determine safety tier from Φ value, using the hardcoded 0.6 / 0.3 / 0.1
+    /// cut points.
+    ///
+    /// **Not used by any platform demo in this workspace.** Measured platform
+    /// Φ clusters around 0.1, so this classifies every real platform as
+    /// Orange or Red permanently. See the module-level docs and prefer
+    /// [`sprint_floor_gain`] with a measured threshold.
     pub fn from_phi(phi: f64) -> Self {
         if phi > 0.6 {
             Self::Green

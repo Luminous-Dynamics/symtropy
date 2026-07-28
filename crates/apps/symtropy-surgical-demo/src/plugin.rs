@@ -3,8 +3,8 @@
 //! Main plugin.
 
 use bevy::prelude::*;
+use symthaea_core::embodiment::MotorSafetyLevel;
 use symthaea_surgical::simulator::SurgicalPhysicsSimulator;
-use symthaea_surgical::types::SurgicalSafetyLevel;
 
 use crate::camera;
 use crate::consciousness_bridge;
@@ -79,7 +79,7 @@ fn step_surgical(time: Res<Time>, mut surg: ResMut<SurgicalResources>) {
     surg.current_safety = safety;
 
     // Platform-provided Φ → level with torque gain + hard cautery interlock
-    let level = SurgicalSafetyLevel::from_phi(phi);
+    let level = MotorSafetyLevel::from_phi(phi);
     surg.current_level = level;
 
     let (cmd, decision) = surg.controller.compute(&state, level);

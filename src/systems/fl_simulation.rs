@@ -11,9 +11,7 @@
 
 use bevy::prelude::*;
 
-use symtropy_sim_bridge::{
-    FlDefense as Defense, FlDefenseConfig as DefenseConfig, FlGradient as Gradient, TrimmedMean,
-};
+use symtropy_sim_bridge::{FlGradientUpdate as GradientUpdate, fl_trimmed_mean};
 
 use crate::components::{ConsciousnessComp, CrewNpc, NoiseEmitter};
 use crate::resources::{GovernanceLog, LeviathanState, SleepPhase};
@@ -21,8 +19,9 @@ use crate::resources::{GovernanceLog, LeviathanState, SleepPhase};
 /// FL pool state — tracks the local federated learning round.
 #[derive(Resource)]
 pub struct FlPool {
-    /// Defense configuration (real `mycelix_fl::types::DefenseConfig`).
-    pub config: DefenseConfig,
+    /// Trim ratio for the real `mycelix_fl::aggregation::trimmed_mean` defense
+    /// (fraction discarded from each end of the per-dimension sorted values).
+    pub trim_ratio: f32,
     /// Last aggregation result quality [0, 1]. 1.0 = clean, 0.0 = fully poisoned.
     pub aggregation_quality: f32,
     /// Number of nodes excluded by defense this round.
@@ -45,10 +44,8 @@ pub struct FlPool {
 
 impl Default for FlPool {
     fn default() -> Self {
-        let mut config = DefenseConfig::default();
-        config.trim_ratio = 0.2; // Trim 20% from each end (robust to ~40% Byzantine)
         Self {
-            config,
+            trim_ratio: 0.2, // Trim 20% from each end (robust to ~40% Byzantine)
             aggregation_quality: 1.0,
             excluded_count: 0,
             included_count: 0,
@@ -77,8 +74,8 @@ const POISON_MAGNITUDE: f32 = 5.0;
 /// Run FL aggregation rounds using REAL `mycelix-fl` TrimmedMean defense.
 ///
 /// NPCs contribute honest gradients. When the Leviathan is Awake/Hunting,
-/// it injects poisoned gradients. The actual `TrimmedMean::aggregate()` from
-/// `mycelix-fl` runs to filter the attack.
+/// it injects poisoned gradients. The actual `mycelix_fl::aggregation::
+/// trimmed_mean()` from `mycelix-fl` runs to filter the attack.
 pub fn fl_aggregation_system(
     npcs: Query<(&CrewNpc, &ConsciousnessComp)>,
     leviathan: Res<LeviathanState>,
@@ -97,8 +94,11 @@ pub fn fl_aggregation_system(
     let dim = pool.gradient_dim;
     let round = pool.round as u64;
 
-    // Build REAL Gradient structs from NPC consciousness state
-    let mut all_gradients: Vec<Gradient> = Vec::new();
+    // Build REAL GradientUpdate structs from NPC consciousness state.
+    // batch_size/loss aren't meaningful for this synthetic demo signal (no
+    // real training happens), so they're fixed placeholders required only
+    // for GradientUpdate's metadata validity check (batch_size > 0, loss finite).
+    let mut all_gradients: Vec<GradientUpdate> = Vec::new();
     let mut honest_count = 0usize;
 
     for (npc, consciousness) in &npcs {
@@ -110,7 +110,7 @@ pub fn fl_aggregation_system(
                 base + noise
             })
             .collect();
-        all_gradients.push(Gradient::new(&npc.name, values, round));
+        all_gradients.push(GradientUpdate::new(npc.name.clone(), round, values, 1, 0.0));
         honest_count += 1;
     }
 
@@ -125,7 +125,13 @@ pub fn fl_aggregation_system(
         let values: Vec<f32> = (0..dim)
             .map(|i| POISON_MAGNITUDE * ((p as f32 * 13.0 + i as f32) * 3.14).sin())
             .collect();
-        all_gradients.push(Gradient::new(format!("leviathan_{}", p), values, round));
+        all_gradients.push(GradientUpdate::new(
+            format!("leviathan_{}", p),
+            round,
+            values,
+            1,
+            0.0,
+        ));
     }
 
     pool.total_submitted = all_gradients.len();
@@ -141,13 +147,19 @@ pub fn fl_aggregation_system(
     // =========================================================================
     // REAL MYCELIX-FL CALL — this is the actual production defense algorithm
     // =========================================================================
-    let defense = TrimmedMean;
-    let result = defense.aggregate(&all_gradients, &pool.config);
+    let result = fl_trimmed_mean(&all_gradients, pool.trim_ratio);
 
     match result {
-        Ok(agg) => {
-            pool.excluded_count = agg.excluded_nodes.len();
-            pool.included_count = agg.included_nodes.len();
+        Ok(_aggregated) => {
+            // trimmed_mean() aggregates per-dimension, so there's no single
+            // well-defined "these N whole gradients were excluded" answer
+            // (a participant can be trimmed on one dimension and kept on
+            // another) -- the function itself doesn't expose per-node
+            // telemetry. Re-derive the same trim count it computes
+            // internally (same formula, same inputs) purely for display.
+            let trim_count = (all_gradients.len() as f32 * pool.trim_ratio).floor() as usize;
+            pool.excluded_count = (2 * trim_count).min(all_gradients.len());
+            pool.included_count = all_gradients.len().saturating_sub(pool.excluded_count);
 
             if pool.bft_exceeded {
                 pool.aggregation_quality = (1.0 - poison_fraction).max(0.1);
@@ -168,7 +180,7 @@ pub fn fl_aggregation_system(
 
                 let msg = format!(
                     "FL defense held (TrimmedMean): {}/{} nodes included, {} poisoned filtered (quality={:.0}%)",
-                    agg.included_nodes.len(),
+                    pool.included_count,
                     pool.total_submitted,
                     num_poison,
                     pool.aggregation_quality * 100.0,
@@ -211,28 +223,27 @@ mod tests {
     #[test]
     fn fl_pool_default_config() {
         let pool = FlPool::default();
-        assert!((pool.config.trim_ratio - 0.2).abs() < f32::EPSILON);
+        assert!((pool.trim_ratio - 0.2).abs() < f32::EPSILON);
         assert_eq!(pool.gradient_dim, 8);
         assert!(!pool.bft_exceeded);
     }
 
     #[test]
     fn real_trimmed_mean_filters_outlier() {
-        // Directly test that mycelix-fl TrimmedMean works as expected
+        // Directly test that mycelix-fl's trimmed_mean works as expected
         let gradients = vec![
-            Gradient::new("npc_a", vec![1.0; 8], 1),
-            Gradient::new("npc_b", vec![1.0; 8], 1),
-            Gradient::new("npc_c", vec![1.0; 8], 1),
-            Gradient::new("npc_d", vec![1.0; 8], 1),
-            Gradient::new("leviathan_0", vec![100.0; 8], 1), // Poisoned
+            GradientUpdate::new("npc_a".into(), 1, vec![1.0; 8], 1, 0.0),
+            GradientUpdate::new("npc_b".into(), 1, vec![1.0; 8], 1, 0.0),
+            GradientUpdate::new("npc_c".into(), 1, vec![1.0; 8], 1, 0.0),
+            GradientUpdate::new("npc_d".into(), 1, vec![1.0; 8], 1, 0.0),
+            GradientUpdate::new("leviathan_0".into(), 1, vec![100.0; 8], 1, 0.0), // Poisoned
         ];
-        let mut config = DefenseConfig::default();
-        config.trim_ratio = 0.2; // Trim 1 from each end
+        let trim_ratio = 0.2; // Trim 1 from each end
 
-        let result = TrimmedMean.aggregate(&gradients, &config).unwrap();
+        let result = fl_trimmed_mean(&gradients, trim_ratio).unwrap();
 
         // After trimming top and bottom: remaining should average ~1.0
-        for &v in &result.gradient {
+        for &v in &result {
             assert!((v - 1.0).abs() < 0.01, "Expected ~1.0, got {}", v);
         }
     }

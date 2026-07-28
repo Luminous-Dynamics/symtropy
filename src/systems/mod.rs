@@ -13,6 +13,8 @@ pub mod consciousness_aura;
 pub mod dialogue;
 pub mod dimension_transition;
 pub mod dimensional_leakage;
+#[cfg(feature = "echo-memory")]
+pub mod echo_memory;
 pub mod engine_physics;
 #[cfg(feature = "fep-ai")]
 pub mod fep_behavior;

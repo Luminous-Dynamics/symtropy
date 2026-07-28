@@ -3,8 +3,8 @@
 //! HUD: surgical telemetry + consciousness readout with safety level.
 
 use bevy::prelude::*;
+use symthaea_core::embodiment::MotorSafetyLevel;
 use symthaea_surgical::simulator::SurgicalPhysicsSimulator;
-use symthaea_surgical::types::SurgicalSafetyLevel;
 use symtropy_consciousness_physics::safety::SafetyTier;
 
 use crate::resources::*;
@@ -92,10 +92,10 @@ pub fn update_hud(
         SafetyTier::Red => "RED    ○",
     };
     let level_name = match surg.current_level {
-        SurgicalSafetyLevel::FullControl => "FULL CONTROL  (100% torque)",
-        SurgicalSafetyLevel::Reduced => "REDUCED       (40%)",
-        SurgicalSafetyLevel::Freeze => "FREEZE        (0%)",
-        SurgicalSafetyLevel::Retract => "RETRACT       (0%, pull back)",
+        MotorSafetyLevel::Green => "FULL CONTROL  (100% torque)",
+        MotorSafetyLevel::Yellow => "REDUCED       (40%)",
+        MotorSafetyLevel::Orange => "FREEZE        (0%)",
+        MotorSafetyLevel::Red => "RETRACT       (0%, pull back)",
     };
 
     // Dual-channel interlock display: show each channel's verdict and the

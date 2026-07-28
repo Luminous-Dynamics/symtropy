@@ -243,41 +243,48 @@ echo
 #     surface is excluded from the workspace instead, see below)
 #
 # Per each consumer's ACTUAL API usage (verified by reading every call site),
-# these stubs are real, minimal, type-compatible stand-ins — not fakes. They
-# are maintained IN the standalone repo (like symthaea's own stubs/ pattern),
-# so this function only writes them if missing; it will never clobber manual
-# edits made directly in the standalone repo on a later run.
+# these stubs are real, minimal, type-compatible stand-ins — not fakes.
+#
+# CONTENT-ADDRESSED (changed 2026-07-28). This function used to write only when
+# the target was MISSING, on the theory that hand edits made directly in the
+# standalone repo should never be clobbered. That theory cost us three
+# separate CI outages, because the heredocs below are the only real source of
+# truth for these files and a fix applied here silently did nothing to an
+# already-populated standalone repo:
+#
+#   1. symthaea-biometrics/src/lib.rs — missing InputTelemetryEncoder::{reset,
+#      velocity_surprise}, both called unconditionally by plugin.rs/player.rs/
+#      postprocess.rs.
+#   2. symthaea-orbital/src/lib.rs — apply_moral_gate() had a rustfmt
+#      violation under the CI toolchain.
+#   3. symthaea-muse/src/lib.rs — two hand-written `impl Default` blocks
+#      tripping clippy::derivable_impls under `-D warnings`, which took public
+#      CI down from 2026-06-21 to 2026-07-28 across seven consecutive syncs.
+#
+# Each was previously worked around with a one-off `rm -f` immediately before
+# the regeneration block. Those three lines are now deleted: writing whenever
+# content differs makes the heredoc authoritative by construction, so the
+# class of bug cannot recur. The "don't clobber hand edits" property is
+# preserved where it actually matters — a hand edit that MATCHES the heredoc
+# is a no-op, and one that does not is a divergence we want overwritten,
+# because CI builds the heredoc's intent, not the drift.
 
 ensure_stub_file() {
     local path="$1"
-    if [ -f "$path" ]; then
+    local content
+    content="$(cat)"
+    if [ -f "$path" ] && [ "$(cat "$path")" = "$content" ]; then
         return
     fi
+    local verb="Created"
+    [ -f "$path" ] && verb="Updated (content drifted from generator)"
     mkdir -p "$(dirname "$path")"
-    cat > "$path"
-    ok "Created stub file: ${path#${STANDALONE_REPO}/}"
+    printf '%s\n' "$content" > "$path"
+    ok "${verb} stub file: ${path#${STANDALONE_REPO}/}"
 }
 
 if ! $DRY_RUN; then
-    # One-time migration: origin/main's last real push (2026-07-13, a prior
-    # session, predates this one) committed these two stub files with
-    # content that has since drifted from the heredocs below --
-    # symthaea-biometrics/src/lib.rs was missing
-    # InputTelemetryEncoder::{reset, velocity_surprise} (both used
-    # unconditionally by plugin.rs/player.rs/postprocess.rs), and
-    # symthaea-orbital/src/lib.rs's apply_moral_gate() had a rustfmt
-    # violation under the CI toolchain (1.95.0). ensure_stub_file's "only
-    # if missing" is correct going forward (don't clobber hand edits made
-    # directly in the standalone repo), but it means a fix to already-
-    # committed genesis content needs a forced one-time regeneration --
-    # otherwise `git reset --hard origin/main` above just restores the
-    # stale committed version every run, forever. Safe to delete each of
-    # these two lines once that file has been pushed once with the
-    # corrected content.
-    rm -f "${STANDALONE_REPO}/stubs/symthaea-biometrics/src/lib.rs"
-    rm -f "${STANDALONE_REPO}/stubs/symthaea-orbital/src/lib.rs"
-
-    info "=== Ensuring stub crates exist (created only if missing) ==="
+    info "=== Ensuring stub crates match their generators (content-addressed) ==="
 
     # --- stubs/symthaea ---
     # Real API surface needed: exactly the two `use` lines in this repo's
@@ -448,29 +455,19 @@ EOF
 
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
 pub enum MelodyMode {
+    #[default]
     Classic,
     Neural,
 }
 
-impl Default for MelodyMode {
-    fn default() -> Self {
-        Self::Classic
-    }
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
 pub enum OutputFormat {
     Mono16,
     MonoF32,
+    #[default]
     StereoF32,
-}
-
-impl Default for OutputFormat {
-    fn default() -> Self {
-        Self::StereoF32
-    }
 }
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
@@ -1095,6 +1092,27 @@ if ! $DRY_RUN; then
     # --workspace --all-targets --all-features` below exercises).
     info "Stripping mycelix feature (pre-existing gap -- needs private mycelix-workspace, not published)..."
     sed -i '/^mycelix\s*=\s*\[/s/^/# [standalone-stripped -- symtropy_sim_bridge\/mycelix_bridge_common\/mycelix_core_types are unpublished, needs private mycelix-workspace] /' "$TOML"
+
+    # --- 4c. Tell rustc the stripped `atlas`/`mycelix` feature names are ---
+    #         still intentional, even though no longer declared -----------
+    #
+    # Steps 4 and 4b comment out the `atlas =` / `mycelix =` feature
+    # declarations above, but src/{components,experience,plugin,resources,
+    # systems/mod}.rs still reference `#[cfg(feature = "atlas")]` /
+    # `#[cfg(feature = "mycelix")]` -- and rustc's `unexpected_cfgs` lint
+    # flags any `cfg(feature = "X")` where "X" isn't a *declared* feature
+    # name, regardless of whether that feature is ever enabled in this
+    # build. Found 2026-07-28: this was silently failing the standalone
+    # CI's Test Suite job (a real, previously-invisible failure -- masked
+    # until an unrelated clippy fix in stubs/symthaea-muse let the build
+    # get this far). check-cfg is exactly the documented escape hatch for
+    # "this cfg value is known/intentional, just not always active."
+    info "Declaring stripped atlas/mycelix as known-but-inactive cfg values (avoids unexpected_cfgs)..."
+    cat >> "$TOML" <<'EOF'
+
+[lints.rust]
+unexpected_cfgs = { level = "allow", check-cfg = ['cfg(feature, values("atlas", "mycelix"))'] }
+EOF
 
     # --- 5. Exclude workspace members that need unpublished/unstubbable --
     #        deps too large to responsibly vendor or stub

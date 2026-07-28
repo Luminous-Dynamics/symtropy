@@ -10,7 +10,7 @@ use symthaea_exoskeleton::types::{
 
 /// Represents the persistent state of the entity's physical and mental condition.
 /// These values are typically updated by the physics callback system.
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, Default)]
 pub struct ConsciousnessState {
     /// 0.0 (perfect) to 1.0 (total exhaustion). Higher means worse.
     pub fatigue: f64,
@@ -18,16 +18,6 @@ pub struct ConsciousnessState {
     pub trauma: f64,
     /// 0.0 (calm) to 1.0 (panic/stress). Higher means worse.
     pub stress: f64,
-}
-
-impl Default for ConsciousnessState {
-    fn default() -> Self {
-        ConsciousnessState {
-            fatigue: 0.0,
-            trauma: 0.0,
-            stress: 0.0,
-        }
-    }
 }
 
 pub struct AssistiveController {
@@ -72,7 +62,7 @@ impl AssistiveController {
             1.0 - (state_metrics.fatigue * 0.5 + state_metrics.trauma * 0.3).clamp(0.0, 1.0);
 
         let mut torques = [0.0f32; NUM_ACTUATORS];
-        for i in 0..NUM_JOINTS {
+        for (i, torque) in torques.iter_mut().enumerate().take(NUM_JOINTS) {
             let err = self.target_angles[i] - state.joint_angles[i];
             let vel = state.joint_velocities[i];
 
@@ -83,14 +73,18 @@ impl AssistiveController {
             // Apply performance degradation factor to the raw torque command
             let scaled_raw = raw * performance_factor;
 
-            torques[i] = (scaled_raw as f32).clamp(-1.0, 1.0) * torque_factor;
+            *torque = (scaled_raw as f32).clamp(-1.0, 1.0) * torque_factor;
         }
 
         ExoskeletonCommand {
             joint_torques: torques,
             // Stress can affect how much the system resists external forces (stiffness/damping)
-            stiffness_gain: 0.5 * stiffness_factor * (1.0 - state_metrics.stress * 0.2).max(0.5),
-            damping_gain: 0.3 * stiffness_factor * (1.0 - state_metrics.stress * 0.2).max(0.5),
+            stiffness_gain: 0.5
+                * stiffness_factor
+                * (1.0 - state_metrics.stress as f32 * 0.2).max(0.5),
+            damping_gain: 0.3
+                * stiffness_factor
+                * (1.0 - state_metrics.stress as f32 * 0.2).max(0.5),
         }
     }
 }

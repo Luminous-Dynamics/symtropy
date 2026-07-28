@@ -34,22 +34,11 @@
 
 use std::io::Write;
 
-use symtropy_consciousness_physics::safety::SafetyTier;
+use symtropy_consciousness_physics::safety::{SafetyTier, sprint_floor_gain};
 use symtropy_physics::BodyHandle;
 use symtropy_robotics_bridge::RoboticAgentTrait;
 use symtropy_robotics_bridge::agent::RoboticAgent;
 use symtropy_robotics_bridge::platform::PlatformType;
-
-/// Inlined sprint-floor mapping (see
-/// `symtropy-consciousness-physics::safety::sprint_floor_gain`).
-#[inline]
-fn sprint_floor_gain(signal: f64, sprint_threshold: f64, floor: f64) -> f64 {
-    if signal > sprint_threshold {
-        1.0
-    } else {
-        floor
-    }
-}
 
 #[derive(Debug, Clone, Copy)]
 enum Policy {

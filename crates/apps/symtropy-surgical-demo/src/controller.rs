@@ -12,8 +12,8 @@
 //! channel from the robot's own software).
 //!
 //! We therefore gate cautery on BOTH:
-//!   1. **Epistemic channel** — `SurgicalSafetyLevel::cautery_allowed()`,
-//!      which requires Φ > 0.6 (FullControl tier). This is the
+//!   1. **Epistemic channel** — `surgical_cautery_allowed()`,
+//!      which requires Φ > 0.6 (Green tier). This is the
 //!      "model-derived confidence" side.
 //!   2. **Hardware-limit channel** — a pure state-threshold check that
 //!      does NOT read Φ: distance-to-critical-structure > 5 mm AND
@@ -23,7 +23,10 @@
 //! Either channel returning `false` blocks cautery. Both channels'
 //! decisions are surfaced to the HUD so failure modes are legible.
 
-use symthaea_surgical::types::{NUM_JOINTS, SurgicalCommand, SurgicalSafetyLevel, SurgicalState};
+use symthaea_core::embodiment::MotorSafetyLevel;
+use symthaea_surgical::types::{
+    NUM_JOINTS, SurgicalCommand, SurgicalState, surgical_cautery_allowed, surgical_torque_gain,
+};
 
 /// Hard-limit thresholds for the non-Φ channel. Deliberately simple:
 /// these are the values a safety case would argue for independently of
@@ -77,15 +80,15 @@ impl CauteryProcedureController {
     pub fn compute(
         &self,
         state: &SurgicalState,
-        level: SurgicalSafetyLevel,
+        level: MotorSafetyLevel,
     ) -> (SurgicalCommand, InterlockDecision) {
         let mut torques = [0.0f32; NUM_JOINTS];
-        for i in 0..NUM_JOINTS {
+        for (i, torque) in torques.iter_mut().enumerate() {
             let err = self.target_angles[i] - state.joint_angles[i];
             let vel = state.joint_velocities[i];
             let raw = self.kp * err - self.kd * vel;
             // Normalize into [-1, 1] — simulator multiplies by max_joint_torques.
-            torques[i] = (raw / 3.0).clamp(-1.0, 1.0) as f32;
+            *torque = (raw / 3.0).clamp(-1.0, 1.0) as f32;
         }
 
         // Jaw closes slowly toward 0.6 once we're approximately in pose.
@@ -103,13 +106,13 @@ impl CauteryProcedureController {
 
         // Apply the platform's torque gain (single-channel — torque
         // scaling is not safety-critical in the same way energy delivery is).
-        let gain = level.torque_gain();
+        let gain = surgical_torque_gain(level);
         for t in &mut torques {
             *t *= gain;
         }
 
         // Channel 1: epistemic (Φ-derived).
-        let phi_channel = level.cautery_allowed();
+        let phi_channel = surgical_cautery_allowed(level);
         // Channel 2: hardware limits (Φ-independent).
         let hardware_channel = hardware_cautery_gate(state);
         // Combined: AND — either channel alone can block.
@@ -204,7 +207,7 @@ mod tests {
     // ── Full interlock decision: both channels must agree ──────────────
     //
     // We run the controller's `compute()` and inspect the `InterlockDecision`
-    // it returns. `compute()` itself takes a `SurgicalSafetyLevel` (the
+    // it returns. `compute()` itself takes a `MotorSafetyLevel` (the
     // Φ channel) plus a state (for the HW channel), so we can independently
     // drive each channel and check the combined outcome.
 
@@ -217,7 +220,7 @@ mod tests {
         s.joint_angles = ctrl.target_angles;
         s.critical_structure_distance = 20.0;
         s.tip_force = [0.0, 0.0, 0.0];
-        let (_, d) = ctrl.compute(&s, SurgicalSafetyLevel::FullControl);
+        let (_, d) = ctrl.compute(&s, MotorSafetyLevel::Green);
         assert!(d.phi_channel);
         assert!(d.hardware_channel);
         assert!(d.combined);
@@ -231,7 +234,7 @@ mod tests {
         s.joint_angles = ctrl.target_angles;
         s.critical_structure_distance = 20.0;
         s.tip_force = [0.0, 0.0, 0.0];
-        let (_, d) = ctrl.compute(&s, SurgicalSafetyLevel::Reduced);
+        let (_, d) = ctrl.compute(&s, MotorSafetyLevel::Yellow);
         assert!(!d.phi_channel);
         assert!(d.hardware_channel);
         assert!(!d.combined, "either channel's NO must block");
@@ -246,7 +249,7 @@ mod tests {
         s.joint_angles = ctrl.target_angles;
         s.critical_structure_distance = MIN_CRITICAL_STRUCTURE_MM - 0.1;
         s.tip_force = [0.0, 0.0, 0.0];
-        let (_, d) = ctrl.compute(&s, SurgicalSafetyLevel::FullControl);
+        let (_, d) = ctrl.compute(&s, MotorSafetyLevel::Green);
         assert!(d.phi_channel);
         assert!(!d.hardware_channel);
         assert!(!d.combined, "either channel's NO must block");
@@ -258,7 +261,7 @@ mod tests {
         let mut s = SurgicalState::home();
         s.critical_structure_distance = 0.5; // too close
         s.tip_force = [5.0, 0.0, 0.0]; // too hard
-        let (_, d) = ctrl.compute(&s, SurgicalSafetyLevel::Freeze);
+        let (_, d) = ctrl.compute(&s, MotorSafetyLevel::Orange);
         assert!(!d.phi_channel);
         assert!(!d.hardware_channel);
         assert!(!d.combined);
@@ -274,7 +277,7 @@ mod tests {
         s.joint_angles = ctrl.target_angles;
         s.critical_structure_distance = MIN_CRITICAL_STRUCTURE_MM - 0.1;
         s.tip_force = [0.0, 0.0, 0.0];
-        let (cmd, d) = ctrl.compute(&s, SurgicalSafetyLevel::FullControl);
+        let (cmd, d) = ctrl.compute(&s, MotorSafetyLevel::Green);
         assert!(!d.combined);
         assert_eq!(cmd.cautery, 0.0);
     }

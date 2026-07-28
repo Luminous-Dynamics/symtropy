@@ -3,11 +3,11 @@
 //! Bevy resources for the surgical demo.
 
 use bevy::prelude::*;
+use symthaea_core::embodiment::MotorSafetyLevel;
 use symthaea_core::genesis::GenesisSeed;
 use symthaea_core::hdc::ContinuousHV;
 use symthaea_surgical::encoder::SurgicalHdcEncoder;
 use symthaea_surgical::simulator::SimpleSurgicalSimulator;
-use symthaea_surgical::types::SurgicalSafetyLevel;
 use symtropy_consciousness_physics::safety::SafetyTier;
 use symtropy_physics::body::BodyHandle;
 use symtropy_robotics_bridge::agent::RoboticAgent;
@@ -24,7 +24,7 @@ pub struct SurgicalResources {
 
     pub current_phi: f64,
     pub current_safety: SafetyTier,
-    pub current_level: SurgicalSafetyLevel,
+    pub current_level: MotorSafetyLevel,
     pub last_prediction_error: f32,
     pub last_perception: Option<ContinuousHV>,
 
@@ -47,7 +47,7 @@ impl SurgicalResources {
             robot_agent,
             current_phi: 0.8,
             current_safety: SafetyTier::Green,
-            current_level: SurgicalSafetyLevel::FullControl,
+            current_level: MotorSafetyLevel::Green,
             last_prediction_error: 0.0,
             last_perception: None,
             last_effort: 0.0,

@@ -1,72 +1,99 @@
 #!/usr/bin/env bash
 # Copyright (C) 2024-2026 Tristan Stoltz / Luminous Dynamics
 # SPDX-License-Identifier: AGPL-3.0-or-later
+#
+# Workspace invariant checks.
+#
+# Rewritten 2026-07-28. The previous version asserted a hardcoded list of 14
+# expected member crates and a hardcoded `Bevy 0.18.1`. Both had rotted: the
+# workspace has 60 members, and Bevy has been on 0.19.0 since the dual-bevy
+# cleanup — so this script failed on every run and, being wired into no CI,
+# failed silently forever.
+#
+# The fix is to assert PROPERTIES that stay true as the workspace grows,
+# rather than an enumeration that must be hand-maintained:
+#
+#   1. the workspace resolves at all
+#   2. exactly one Bevy version in the lockfile, matching the root manifest
+#      (this is the invariant the old `!= "0.18.1"` check was a proxy for —
+#      the dual-bevy/dual-wgpu duplication problem)
+#   3. no absolute machine-specific path dependencies
+#   4. no `// placeholder` files (patch-integration debris — see
+#      archive/placeholder-artifacts-2026-07-28/README.md)
 
 set -euo pipefail
 
 cd "$(dirname "${BASH_SOURCE[0]}")/.."
 
-expected=(
-  symtropy-bevy-core
-  symtropy-bevy-scene
-  symtropy-cognitive-bridge
-  symtropy-core
-  symtropy-core-stable
-  symtropy-devconsole
-  symtropy-fluid
-  symtropy-holochain-relay
-  symtropy-math
-  symtropy-mesh
-  symtropy-net-core
-  symtropy-physics
-  symtropy-render-bridge
-  symtropy-soft
-)
+fail=0
+note() { echo "FAIL: $*"; fail=1; }
 
-metadata=$(cargo metadata --locked --no-deps --format-version 1)
-actual=$(
-  python3 -c '
-import json
-import sys
-
-metadata = json.load(sys.stdin)
-members = set(metadata["workspace_members"])
-names = sorted(
-    package["name"]
-    for package in metadata["packages"]
-    if package["id"] in members
-)
-print("\n".join(names))
-' <<<"$metadata"
-)
-expected_sorted=$(printf '%s\n' "${expected[@]}" | sort)
-
-if [[ "$actual" != "$expected_sorted" ]]; then
-  echo "Workspace membership drift detected."
-  diff -u <(printf '%s\n' "$expected_sorted") <(printf '%s\n' "$actual") || true
+# --- 1. Workspace resolves -------------------------------------------------
+if ! metadata=$(cargo metadata --no-deps --format-version 1 2>&1); then
+  note "cargo metadata could not resolve the workspace:"
+  printf '%s\n' "$metadata" | head -20
+  echo "Hint: a member crate with no build target produces this. Compare"
+  echo "      symthaea/scripts/check-workspace-targets.sh, same class of break."
   exit 1
 fi
+member_count=$(python3 -c '
+import json, sys
+print(len(set(json.load(sys.stdin)["workspace_members"])))
+' <<<"$metadata")
 
-if rg -n 'path\s*=\s*"/srv/luminous-dynamics' \
-  Cargo.toml launcher/Cargo.toml crates/*/Cargo.toml; then
-  echo "Absolute machine-specific Cargo paths are forbidden."
-  exit 1
-fi
-
-bevy_versions=$(
+# --- 2. Exactly one Bevy version, matching the root manifest ---------------
+declared=$(awk -F'"' '/^bevy = /{print $2; exit}' Cargo.toml)
+locked=$(
   awk '
     $0 == "name = \"bevy\"" { in_bevy = 1; next }
-    in_bevy && /^version = / {
-      gsub(/version = "|"/, "")
-      print
-      in_bevy = 0
-    }
+    in_bevy && /^version = / { gsub(/version = "|"/, ""); print; in_bevy = 0 }
   ' Cargo.lock | sort -u
 )
-if [[ "$bevy_versions" != "0.18.1" ]]; then
-  echo "Expected exactly Bevy 0.18.1 in Cargo.lock; found:"
-  printf '%s\n' "$bevy_versions"
+locked_count=$(printf '%s' "$locked" | grep -c . || true)
+if [[ "$locked_count" -ne 1 ]]; then
+  note "expected exactly one Bevy version in Cargo.lock; found ${locked_count}:"
+  printf '  %s\n' $locked
+  echo "  (dual-Bevy duplication inflates build time and splits the type graph)"
+elif [[ "$locked" != "$declared"* ]]; then
+  note "Cargo.lock has Bevy ${locked} but Cargo.toml declares \"${declared}\""
+fi
+
+# --- 3. No absolute machine-specific path deps -----------------------------
+# NOTE: the old glob was `crates/*/Cargo.toml`, which missed every crate under
+# the crates/{core,domains,bridges,apps,distributions}/ tiers — i.e. almost all
+# of them. Recurse instead.
+if rg -n --glob '!target' --glob 'Cargo.toml' 'path\s*=\s*"/srv/luminous-dynamics' . 2>/dev/null; then
+  note "absolute machine-specific Cargo paths are forbidden (see above)"
+fi
+
+# --- 4. No `// placeholder` files ------------------------------------------
+# Patch-integration debris: a file whose entire content is the literal text
+# `// placeholder`. 57 of these were found and cleared on 2026-07-28; this
+# guard exists so the class cannot silently return. Size-bounded to stay fast.
+# The `if`/`fi` (rather than `[ … ] && printf`) and the trailing `true` are
+# load-bearing under `set -euo pipefail`: a final loop iteration whose test is
+# false makes the whole pipeline exit 1, which kills the assignment — and the
+# script — silently, with no output at all.
+placeholders=$(
+  find . \( -name target -o -name .git -o -name node_modules \) -prune -o \
+       -type f -size -20c -print 2>/dev/null |
+  while IFS= read -r f; do
+    if [ "$(cat "$f" 2>/dev/null)" = "// placeholder" ]; then
+      printf '%s\n' "$f"
+    fi
+  done
+  true
+)
+if [[ -n "$placeholders" ]]; then
+  note "placeholder files found (patch-integration debris):"
+  printf '  %s\n' $placeholders
+  echo "  Recover real content from docs/ops/Symtropy_Document_Patch_Sets_v*/ if a"
+  echo "  matching 'create mode' entry exists there; otherwise delete. See"
+  echo "  archive/placeholder-artifacts-2026-07-28/README.md."
+fi
+
+if [[ "$fail" -ne 0 ]]; then
   exit 1
 fi
 
-echo "Workspace check passed (${#expected[@]} members, Bevy 0.18.1, portable paths)."
+echo "Workspace check passed (${member_count} members, Bevy ${locked}, portable paths, no placeholders)."

@@ -19,6 +19,10 @@ consciousness-runtime = [
     "dep:symthaea-consciousness-equation",
 ]
 fep-ai = ["consciousness-runtime", "dep:symthaea-fep"]
+# HDC-encoded episodic recall over the live physics state (see
+# src/systems/echo_memory.rs) — symtropy-hdc-physics had zero consumers
+# anywhere in the workspace prior to this.
+echo-memory = ["dep:symtropy-hdc-physics"]
 gpu-physics = ["dep:symtropy-physics-gpu"]
 terrain = ["dep:symtropy-terrain"]
 symthaea-stack = ["dep:symthaea", "dep:symthaea-core"]
@@ -43,6 +47,7 @@ full-stack = [
     "live-audio",
     "egui-ui",
     "physics-bridge",
+    "echo-memory",
 ]
 # Physicalized cryptography / governance systems (see systems/mod.rs).
 # Enabled via `cargo build --features mycelix`. NOT verified by this
@@ -78,6 +83,7 @@ symtropy-terrain = { path = "crates/domains/symtropy-terrain", optional = true }
 symtropy-basin = { path = "crates/domains/symtropy-basin" }
 symtropy-demo-capture = { path = "crates/apps/symtropy-demo-capture" }
 symtropy-consciousness-physics = { path = "crates/domains/symtropy-consciousness-physics", optional = true }
+symtropy-hdc-physics = { path = "crates/domains/symtropy-hdc-physics", optional = true }
 symtropy-render-bridge = { path = "crates/bridges/symtropy-render-bridge" }
 symthaea-bevy-brain = { path = "crates/bridges/symthaea-bevy-brain", optional = true }
 symtropy-symthaea-adapter = { path = "crates/bridges/symtropy-symthaea-adapter", optional = true }
@@ -173,11 +179,11 @@ members = [
 [lints.clippy]
 all = "warn"
 
-[lints.rust]
-unexpected_cfgs = { level = "allow", check-cfg = ['cfg(feature, values("atlas", "mycelix"))'] }
-
 [profile.dev]
 opt-level = 1
 
 [profile.dev.package."*"]
 opt-level = 3
+
+[lints.rust]
+unexpected_cfgs = { level = "allow", check-cfg = ['cfg(feature, values("atlas", "mycelix"))'] }

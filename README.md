@@ -100,13 +100,24 @@ Any metric (Phi, health, trust, wealth) couples to physics through 5 channels:
 
 | Channel | Direction | Mechanism |
 |---------|-----------|-----------|
-| 1. Metric -> Force | NRC 4-tier safety system gates motor authority |
+| 1. Metric -> Force | Metric-gated motor authority (see note below) |
 | 2. Metric -> Energy | Metric-dependent energy budget (higher metric = higher maintenance cost) |
 | 3. Harmony -> Impulse | Sanctuary zones dampen collision impulses |
 | 4. Harmony -> Friction | 1/r^(D-1) spatial fields modulate friction coefficients |
 | 5. Collision -> Metric | Prediction error from unexpected collisions reduces motor precision |
 
 See [FORMAL_SPECIFICATION.md](docs/tech/FORMAL_SPECIFICATION.md) for the mathematical details (written in terms of Phi).
+
+**Note on channel 1 — two mappings exist, and the NRC one is not what the demos run.**
+`symtropy-consciousness-physics` ships both an NRC-inspired 4-tier ladder
+(`SafetyTier::from_phi` + `motor_gain`, cut points at Phi = 0.6 / 0.3 / 0.1) and a two-level
+sprint/floor gate (`sprint_floor_gain`) taking platform-specific thresholds. **Every platform
+demo in this workspace uses the latter.** Measured Phi on these platforms clusters around 0.1
+— AUV and humanoid calibrate at 0.130, flight 0.110, vehicle 0.101, helicopter 0.100 — a band
+that falls entirely inside the 4-tier ladder's Red/Orange range, so feeding real platform Phi
+into `from_phi` would pin motor gain at 0.0 or 0.3 permanently. Measure your own platform's
+band (`symtropy-cli` prints a suggested threshold; see also `MANIP_BENCH_PHI_TRACE=1`) before
+choosing a mapping. Full detail in the `safety` module docs.
 
 ## Performance
 

@@ -196,6 +196,14 @@ impl Plugin for SymtropyPlugin {
                     .run_if(in_playing_or_3d),
             );
         }
+        #[cfg(feature = "echo-memory")]
+        {
+            app.init_resource::<systems::echo_memory::EchoMemoryRes>()
+                .add_systems(
+                    Update,
+                    systems::echo_memory::echo_memory_system.run_if(in_playing_or_3d),
+                );
+        }
         #[cfg(feature = "egui-ui")]
         {
             app.add_systems(
