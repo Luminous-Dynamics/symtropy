@@ -1,0 +1,25 @@
+# Pin the toolchain so CI and local development lint against the same rustc.
+#
+# Added 2026-07-28. Before this, `.github/workflows/ci.yml` used
+# `dtolnay/rust-toolchain@stable` with no pin anywhere in the repo, so CI
+# floated to whatever stable happened to be — it was on clippy 1.97.0 while
+# this project's development host was on 1.96.0.
+#
+# Two concrete problems that caused:
+#   1. A clean local `cargo clippy` could not predict CI, because the two ran
+#      different lint sets. Verified in practice: local runs came back green
+#      while CI still failed.
+#   2. A Rust release can turn CI red with zero code change, since each stable
+#      adds and tightens lints. That is indistinguishable from a real
+#      regression when you are reading a red build.
+#
+# `symthaea` already pins its toolchain; this brings symtropy in line.
+#
+# To move the pin: bump the version here, run
+# `cargo clippy --workspace --all-targets --all-features -- -D warnings`
+# locally, fix what the new release surfaces, and land both together — so the
+# upgrade is a deliberate, reviewed change rather than a surprise on an
+# unrelated PR.
+[toolchain]
+channel = "1.96.0"
+components = ["clippy", "rustfmt"]

@@ -74,6 +74,30 @@ pub struct PsychologicalNeeds {
 const COLLAPSE_THRESHOLD: f32 = 0.9;
 /// Consecutive ticks at collapse threshold before NPC collapses.
 const COLLAPSE_TICKS_REQUIRED: u32 = 3;
+
+// Invariants on the tuning constants above, enforced at COMPILE time.
+//
+// These were previously `assert!` calls inside `#[cfg(test)]` functions, which
+// clippy correctly flagged as `assertions_on_constants`: the expressions are
+// compile-time-known, so the tests could never fail at runtime and were
+// checking nothing a build could not already prove. The intent — catch a
+// future edit that breaks the relationship between these constants — is
+// legitimate, so it is preserved here in the form that actually delivers it.
+//
+// Moved to module scope (not `#[cfg(test)]`) deliberately: the invariant now
+// holds for every build, not only test builds.
+const _: () = assert!(
+    COLLAPSE_THRESHOLD > BURNOUT_THRESHOLD,
+    "collapse must require a higher load than burnout, or NPCs collapse before ever burning out"
+);
+const _: () = assert!(
+    COLLAPSE_TICKS_REQUIRED >= 2,
+    "collapse must require SUSTAINED burnout; 1 tick would make it instantaneous"
+);
+const _: () = assert!(
+    ISOLATION_THRESHOLD < 0.5,
+    "isolation is a minority-social-contact state; at >= 0.5 it would be the common case"
+);
 /// Trust decay per psychology tick (T4-D).
 const TRUST_DECAY_PER_TICK: f64 = 0.005;
 
@@ -411,12 +435,11 @@ pub fn npc_visual_state_system(
 mod tests {
     use super::*;
 
-    #[test]
-    fn collapse_threshold_consistent() {
-        assert!(COLLAPSE_THRESHOLD > BURNOUT_THRESHOLD);
-        assert!(COLLAPSE_TICKS_REQUIRED >= 2);
-    }
-
+    // `collapse_threshold_consistent` and `isolation_threshold_below_half`
+    // were removed: both only asserted relationships between `const` values,
+    // which are now enforced at compile time by the `const _: () = assert!(…)`
+    // block next to the constants themselves. That is strictly stronger — it
+    // holds for every build rather than only when the test suite runs.
     #[test]
     fn trust_decay_rate() {
         // At 3s ticks, trust decays ~0.1/minute.
@@ -430,10 +453,12 @@ mod tests {
 
     #[test]
     fn collapse_requires_sustained_burnout() {
-        let mut needs = PsychologicalNeeds::default();
         // Single tick above threshold shouldn't collapse.
-        needs.allostatic_load = 0.95;
-        needs.burnout_ticks = 1;
+        let needs = PsychologicalNeeds {
+            allostatic_load: 0.95,
+            burnout_ticks: 1,
+            ..Default::default()
+        };
         assert!(needs.burnout_ticks < COLLAPSE_TICKS_REQUIRED);
     }
 
@@ -454,10 +479,5 @@ mod tests {
         let needs = PsychologicalNeeds::default();
         assert!(needs.allostatic_load < COLLAPSE_THRESHOLD);
         assert!(needs.burnout_ticks == 0);
-    }
-
-    #[test]
-    fn isolation_threshold_below_half() {
-        assert!(ISOLATION_THRESHOLD < 0.5);
     }
 }

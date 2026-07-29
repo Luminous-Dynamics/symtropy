@@ -271,8 +271,8 @@ mod tests {
     fn harmony_colors_all_defined() {
         for i in 0..8 {
             let (warmth, sat) = harmony_color_modulation(Some(i));
-            assert!(warmth >= 0.0 && warmth <= 1.0);
-            assert!(sat >= 0.0 && sat <= 1.0);
+            assert!((0.0..=1.0).contains(&warmth));
+            assert!((0.0..=1.0).contains(&sat));
         }
         let (w, _) = harmony_color_modulation(None);
         assert!((w - 0.5).abs() < 1e-5);

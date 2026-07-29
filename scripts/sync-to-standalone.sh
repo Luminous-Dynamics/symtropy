@@ -212,10 +212,17 @@ INDIVIDUAL_FILES=(
     "justfile"
     "flake.nix"
     "flake.lock"
+    # Added 2026-07-28. Must be synced: without it the standalone's
+    # `dtolnay/rust-toolchain@stable` floats, and CI lints against a different
+    # rustc than local development does — which is exactly how CI ended up on
+    # clippy 1.97.0 while the dev host was on 1.96.0, making a clean local run
+    # unable to predict CI. See the file's own header for the full rationale.
+    "rust-toolchain.toml"
 )
-# rust-toolchain.toml, CONTRIBUTING.md, clippy.toml, deny.toml, rustfmt.toml,
-# SECURITY.md, SAFETY.md, CHANGELOG.md do not exist in symtropy/ (checked
-# 2026-07-03) — nothing to copy for those.
+# CONTRIBUTING.md, clippy.toml, deny.toml, rustfmt.toml, SECURITY.md,
+# SAFETY.md, CHANGELOG.md do not exist in symtropy/ (checked 2026-07-03) —
+# nothing to copy for those. (rust-toolchain.toml was on this list until
+# 2026-07-28, when it was created; it is now synced above.)
 
 for f in "${INDIVIDUAL_FILES[@]}"; do
     if [ -f "${SYMTROPY_DIR}/${f}" ]; then

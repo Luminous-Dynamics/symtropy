@@ -1924,8 +1924,8 @@ mod tests {
         assert_eq!(payload["site_id"], "old_waterworks");
         assert_eq!(payload["intervention"], "EcologicalReroute");
         assert!(payload["basin"]["viability"].as_f64().unwrap() > 0.0);
-        assert!(payload["testimony"].as_array().unwrap().len() > 0);
-        assert!(payload["faction_reactions"].as_array().unwrap().len() > 0);
+        assert!(!payload["testimony"].as_array().unwrap().is_empty());
+        assert!(!payload["faction_reactions"].as_array().unwrap().is_empty());
     }
 
     #[test]

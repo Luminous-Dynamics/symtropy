@@ -201,9 +201,11 @@ mod tests {
 
     #[test]
     fn effective_pitch_interpolates() {
-        let mut t = DimensionTransition::default();
-        t.target = DimensionMode::D3;
-        t.progress = 0.5;
+        let t = DimensionTransition {
+            target: DimensionMode::D3,
+            progress: 0.5,
+            ..Default::default()
+        };
         let pitch = t.effective_pitch();
         assert!(pitch > DimensionMode::D2.camera_pitch());
         assert!(pitch < DimensionMode::D3.camera_pitch());

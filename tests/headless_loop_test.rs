@@ -555,7 +555,9 @@ fn test_narrative_system_causality() {
 
     // 5. Verify Jack drone destruction event emitting
     let drone_pos = Vec3::new(300.0, 300.0, 0.0);
-    let drone_entity = app
+    // Spawned for its side effect on the world; the handle is not needed here
+    // (unlike the earlier drone test, which queries it back by entity id).
+    let _drone_entity = app
         .world_mut()
         .spawn((
             symtropy_launcher::components::NullDrone::default(),
@@ -817,7 +819,7 @@ fn test_old_waterworks_tutorial_causal_chain() {
         .unwrap()
         .allostatic_load;
     assert!(
-        stress_before >= 0.55 && stress_before < 0.8,
+        (0.55..0.8).contains(&stress_before),
         "stress_before was {}",
         stress_before
     );
