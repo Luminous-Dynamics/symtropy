@@ -103,6 +103,51 @@ impl ThermalState {
     }
 }
 
+/// Thermodynamic state attached to a physics body.
+///
+/// Thermal mass is explicit rather than borrowing rigid-body mass. That keeps
+/// the model usable for static geometry and reduced-order thermal reservoirs,
+/// where mechanical inverse mass may be zero even though the represented matter
+/// has finite thermal inertia.
+#[derive(Copy, Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct ThermalBody {
+    pub material: ThermalMaterial,
+    pub state: ThermalState,
+    /// Effective material mass participating in the lumped thermal model.
+    pub thermal_mass_kg: f64,
+}
+
+impl ThermalBody {
+    pub fn new(
+        material: ThermalMaterial,
+        state: ThermalState,
+        thermal_mass_kg: f64,
+    ) -> Result<Self, ThermalError> {
+        validate_positive_finite(thermal_mass_kg, ThermalError::InvalidMass)?;
+        Ok(Self {
+            material,
+            state,
+            thermal_mass_kg,
+        })
+    }
+
+    pub fn sensible_energy_joules(
+        self,
+        reference_temperature_kelvin: f64,
+    ) -> Result<f64, ThermalError> {
+        self.state.sensible_energy_joules(
+            reference_temperature_kelvin,
+            self.thermal_mass_kg,
+            self.material,
+        )
+    }
+
+    pub fn add_heat_joules(&mut self, energy_joules: f64) -> Result<f64, ThermalError> {
+        self.state
+            .add_heat_joules(energy_joules, self.thermal_mass_kg, self.material)
+    }
+}
+
 /// Result of a conservative pairwise heat-transfer step.
 #[derive(Copy, Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct HeatExchange {
@@ -123,6 +168,7 @@ pub enum ThermalError {
     InvalidConductance,
     InvalidTimestep,
     InvalidEnergy,
+    MissingThermalState,
 }
 
 /// Exchange sensible heat between two lumped thermal states.
@@ -183,6 +229,25 @@ pub fn conductive_exchange(
     })
 }
 
+/// Convenience wrapper for conductive exchange between body-attached thermal states.
+pub fn conductive_exchange_bodies(
+    a: &mut ThermalBody,
+    b: &mut ThermalBody,
+    conductance_w_per_k: f64,
+    dt_seconds: f64,
+) -> Result<HeatExchange, ThermalError> {
+    conductive_exchange(
+        &mut a.state,
+        a.material,
+        a.thermal_mass_kg,
+        &mut b.state,
+        b.material,
+        b.thermal_mass_kg,
+        conductance_w_per_k,
+        dt_seconds,
+    )
+}
+
 fn validate_temperature(temperature_kelvin: f64) -> Result<(), ThermalError> {
     if temperature_kelvin.is_finite() && temperature_kelvin >= ABSOLUTE_ZERO_K {
         Ok(())
@@ -225,6 +290,10 @@ mod tests {
             ThermalMaterial::new(1000.0, 1.0, 1.01),
             Err(ThermalError::InvalidEmissivity)
         );
+        assert_eq!(
+            ThermalBody::new(material(1000.0), ThermalState::new(300.0).unwrap(), 0.0),
+            Err(ThermalError::InvalidMass)
+        );
     }
 
     #[test]
@@ -255,6 +324,21 @@ mod tests {
         assert!((after - before).abs() < 1e-8);
         assert!(a.temperature_kelvin < 400.0);
         assert!(b.temperature_kelvin > 300.0);
+    }
+
+    #[test]
+    fn body_exchange_conserves_sensible_energy() {
+        let mat = material(900.0);
+        let mut a = ThermalBody::new(mat, ThermalState::new(450.0).unwrap(), 2.0).unwrap();
+        let mut b = ThermalBody::new(mat, ThermalState::new(300.0).unwrap(), 1.0).unwrap();
+        let before = a.sensible_energy_joules(0.0).unwrap()
+            + b.sensible_energy_joules(0.0).unwrap();
+
+        conductive_exchange_bodies(&mut a, &mut b, 50.0, 1.0).unwrap();
+
+        let after = a.sensible_energy_joules(0.0).unwrap()
+            + b.sensible_energy_joules(0.0).unwrap();
+        assert!((after - before).abs() < 1e-8);
     }
 
     #[test]
