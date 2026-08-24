@@ -13,6 +13,7 @@
 //! - `gjk::intersects()` — GJK intersection test for any `Shape<D>`
 //! - `contact::ContactManifold<D>` — collision contact data
 //! - `integrator` — semi-implicit Euler with bivector angular dynamics
+//! - `thermal` — conservative thermodynamic primitives and conductive exchange
 
 pub mod articulation;
 pub mod body;
@@ -30,6 +31,7 @@ pub mod manifold_gen;
 pub mod raycast;
 pub mod replay;
 pub mod support_map;
+pub mod thermal;
 pub mod world;
 
 pub use articulation::{ArticulatedChain, ChainBuilder, LinkSpec};
@@ -42,4 +44,8 @@ pub use epa::EpaResult;
 pub use integrator::nan_zeroed_count;
 pub use joints::{BallJoint, FixedJoint, HingeJoint, MotorDrive, PrismaticJoint};
 pub use replay::{ReplayTape, WorldCommand, WorldSnapshot, apply_commands};
+pub use thermal::{
+    ABSOLUTE_ZERO_K, HeatExchange, ThermalError, ThermalMaterial, ThermalState,
+    conductive_exchange,
+};
 pub use world::{NoOpCallback, PhysicsCallback, PhysicsWorld};
