@@ -30,6 +30,11 @@ pub struct InvariantSnapshot<const D: usize> {
     pub gravitational_potential_energy: f64,
     /// Kinetic plus gravitational potential energy.
     pub mechanical_energy: f64,
+    /// Modeled sensible thermal energy relative to absolute zero for every body
+    /// carrying a thermal state. This is not yet latent or chemical internal energy.
+    pub modeled_thermal_energy: f64,
+    /// Mechanical energy plus modeled sensible thermal energy.
+    pub modeled_total_energy: f64,
     /// Largest linear speed among dynamic bodies.
     pub max_linear_speed: f64,
     /// Largest bivector angular-speed norm among dynamic bodies.
@@ -57,11 +62,17 @@ impl<const D: usize> InvariantSnapshot<D> {
     pub fn drift_to(&self, later: &Self) -> InvariantDrift<D> {
         let absolute_energy_drift = later.mechanical_energy - self.mechanical_energy;
         let energy_scale = self.mechanical_energy.abs().max(1e-12);
+        let absolute_modeled_total_energy_drift =
+            later.modeled_total_energy - self.modeled_total_energy;
+        let modeled_total_energy_scale = self.modeled_total_energy.abs().max(1e-12);
         InvariantDrift {
             center_of_mass_delta: later.center_of_mass - self.center_of_mass,
             linear_momentum_delta: later.linear_momentum - self.linear_momentum,
             absolute_energy_drift,
             relative_energy_drift: absolute_energy_drift / energy_scale,
+            absolute_modeled_total_energy_drift,
+            relative_modeled_total_energy_drift: absolute_modeled_total_energy_drift
+                / modeled_total_energy_scale,
             max_rotation_orthogonality_error: later.max_rotation_orthogonality_error,
             max_rotation_determinant_error: later.max_rotation_determinant_error,
             non_finite_body_count: later.non_finite_body_count,
@@ -74,8 +85,12 @@ impl<const D: usize> InvariantSnapshot<D> {
 pub struct InvariantDrift<const D: usize> {
     pub center_of_mass_delta: SVector<f64, D>,
     pub linear_momentum_delta: SVector<f64, D>,
+    /// Existing mechanical-energy drift metric.
     pub absolute_energy_drift: f64,
     pub relative_energy_drift: f64,
+    /// Drift in the combined mechanical + modeled sensible thermal budget.
+    pub absolute_modeled_total_energy_drift: f64,
+    pub relative_modeled_total_energy_drift: f64,
     pub max_rotation_orthogonality_error: f64,
     pub max_rotation_determinant_error: f64,
     pub non_finite_body_count: usize,
@@ -102,6 +117,7 @@ impl<const D: usize> PhysicsWorld<D> {
         let mut linear_momentum = SVector::<f64, D>::zeros();
         let mut kinetic_energy = 0.0;
         let mut gravitational_potential_energy = 0.0;
+        let mut modeled_thermal_energy = 0.0;
         let mut max_linear_speed = 0.0_f64;
         let mut max_angular_speed = 0.0_f64;
         let mut max_rotation_orthogonality_error = 0.0_f64;
@@ -117,13 +133,29 @@ impl<const D: usize> PhysicsWorld<D> {
             max_rotation_determinant_error =
                 max_rotation_determinant_error.max(rotation_determinant_error);
 
+            let thermal_is_finite = body.thermal.is_none_or(|thermal| {
+                thermal.state.temperature_kelvin.is_finite()
+                    && thermal.thermal_mass_kg.is_finite()
+                    && thermal.material.specific_heat_capacity.is_finite()
+                    && thermal.material.thermal_conductivity.is_finite()
+                    && thermal.material.emissivity.is_finite()
+            });
             let finite = position.iter().all(|value| value.is_finite())
                 && body.linear_velocity.iter().all(|value| value.is_finite())
                 && body.angular_velocity.is_finite()
                 && rotation_orthogonality_error.is_finite()
-                && rotation_determinant_error.is_finite();
+                && rotation_determinant_error.is_finite()
+                && thermal_is_finite;
             if !finite {
                 non_finite_body_count += 1;
+            }
+
+            if let Some(thermal) = body.thermal {
+                // Construction validates thermal mass/material/state, and 0 K is
+                // a valid explicit reference for this current sensible-only model.
+                if let Ok(energy) = thermal.sensible_energy_joules(0.0) {
+                    modeled_thermal_energy += energy;
+                }
             }
 
             if body.body_type != BodyType::Dynamic {
@@ -145,6 +177,7 @@ impl<const D: usize> PhysicsWorld<D> {
             SVector::zeros()
         };
         let mechanical_energy = kinetic_energy + gravitational_potential_energy;
+        let modeled_total_energy = mechanical_energy + modeled_thermal_energy;
         let max_penetration_depth = self
             .contacts
             .iter()
@@ -158,6 +191,8 @@ impl<const D: usize> PhysicsWorld<D> {
             kinetic_energy,
             gravitational_potential_energy,
             mechanical_energy,
+            modeled_thermal_energy,
+            modeled_total_energy,
             max_linear_speed,
             max_angular_speed,
             max_rotation_orthogonality_error,
@@ -172,6 +207,7 @@ impl<const D: usize> PhysicsWorld<D> {
 mod tests {
     use super::*;
     use crate::body::{BodyHandle, RigidBody};
+    use crate::thermal::{ThermalBody, ThermalMaterial, ThermalState};
     use nalgebra::SVector;
     use symtropy_math::Point;
 
@@ -199,6 +235,24 @@ mod tests {
     }
 
     #[test]
+    fn snapshot_includes_modeled_thermal_energy() {
+        let mut world = PhysicsWorld::<3>::new(SVector::zeros());
+        let handle = world.add_sphere(Point::origin(), 0.5, 2.0);
+        let material = ThermalMaterial::new(500.0, 1.0, 0.5).unwrap();
+        let thermal = ThermalBody::new(
+            material,
+            ThermalState::new(300.0).unwrap(),
+            2.0,
+        )
+        .unwrap();
+        world.body_mut(handle).unwrap().set_thermal(thermal);
+
+        let snapshot = world.invariant_snapshot();
+        assert!((snapshot.modeled_thermal_energy - 300_000.0).abs() < 1e-9);
+        assert!((snapshot.modeled_total_energy - snapshot.mechanical_energy - 300_000.0).abs() < 1e-9);
+    }
+
+    #[test]
     fn drift_report_is_signed_and_normed() {
         let mut world = PhysicsWorld::<2>::new(SVector::zeros());
         let handle = world.add_sphere(Point::origin(), 0.5, 1.0);
@@ -208,6 +262,7 @@ mod tests {
         let drift = before.drift_to(&after);
         assert!((drift.linear_momentum_error_norm() - 5.0).abs() < 1e-12);
         assert!((drift.absolute_energy_drift - 12.5).abs() < 1e-12);
+        assert!((drift.absolute_modeled_total_energy_drift - 12.5).abs() < 1e-12);
     }
 
     #[test]
