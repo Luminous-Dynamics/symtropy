@@ -94,6 +94,19 @@ impl<const D: usize> MechanicalSnapshot<D> {
     }
 }
 
+fn rollback<const D: usize>(
+    snapshot_a: MechanicalSnapshot<D>,
+    body_a: &mut RigidBody<D>,
+    snapshot_b: MechanicalSnapshot<D>,
+    body_b: &mut RigidBody<D>,
+    original_ledger: &EnergyTransferLedger,
+    ledger: &mut EnergyTransferLedger,
+) {
+    snapshot_a.restore(body_a);
+    snapshot_b.restore(body_b);
+    *ledger = original_ledger.clone();
+}
+
 fn kinetic_port<const D: usize>(body: &RigidBody<D>) -> EnergyPort {
     EnergyPort::new(EnergyOwner::Body(body.handle), EnergyForm::Kinetic)
 }
@@ -142,9 +155,12 @@ pub fn apply_friction_impulse_with_heat<const D: usize>(
         return Err(DissipationError::NonFiniteImpulse);
     }
     HeatPartition::new(partition.fraction_to_a)?;
-    if body_a.thermal.is_none() || body_b.thermal.is_none() {
+    let Some(initial_thermal_a) = body_a.thermal else {
         return Err(DissipationError::MissingThermalState);
-    }
+    };
+    let Some(initial_thermal_b) = body_b.thermal else {
+        return Err(DissipationError::MissingThermalState);
+    };
 
     let snapshot_a = MechanicalSnapshot::capture(body_a);
     let snapshot_b = MechanicalSnapshot::capture(body_b);
@@ -172,29 +188,20 @@ pub fn apply_friction_impulse_with_heat<const D: usize>(
     let dissipated = loss_a + loss_b;
 
     if !dissipated.is_finite() || dissipated <= ENERGY_EPSILON_J {
-        snapshot_a.restore(body_a);
-        snapshot_b.restore(body_b);
-        *ledger = original_ledger;
+        rollback(
+            snapshot_a,
+            body_a,
+            snapshot_b,
+            body_b,
+            &original_ledger,
+            ledger,
+        );
         return Err(DissipationError::NonDissipativeImpulse);
     }
 
     let heat_a = dissipated * partition.fraction_to_a;
     let heat_b = dissipated - heat_a;
 
-    if let Err(error) = body_a.thermal.as_mut().unwrap().add_heat_joules(heat_a) {
-        snapshot_a.restore(body_a);
-        snapshot_b.restore(body_b);
-        *ledger = original_ledger;
-        return Err(error.into());
-    }
-    if let Err(error) = body_b.thermal.as_mut().unwrap().add_heat_joules(heat_b) {
-        snapshot_a.restore(body_a);
-        snapshot_b.restore(body_b);
-        *ledger = original_ledger;
-        return Err(error.into());
-    }
-
-    let mut next_ledger = ledger.clone();
     let kinetic_a = kinetic_port(body_a);
     let kinetic_b = kinetic_port(body_b);
     let thermal_a = thermal_port(body_a);
@@ -204,39 +211,79 @@ pub fn apply_friction_impulse_with_heat<const D: usize>(
     // remains on the losing side(s) is the measured dissipation budget.
     let mut residual_a = loss_a.max(0.0);
     let mut residual_b = loss_b.max(0.0);
-    if loss_a > 0.0 && loss_b < 0.0 {
-        let transfer = residual_a.min(-loss_b);
-        record_positive(&mut next_ledger, kinetic_a, kinetic_b, transfer)?;
-        residual_a -= transfer;
-    } else if loss_b > 0.0 && loss_a < 0.0 {
-        let transfer = residual_b.min(-loss_a);
-        record_positive(&mut next_ledger, kinetic_b, kinetic_a, transfer)?;
-        residual_b -= transfer;
+    let mut next_ledger = ledger.clone();
+    let ledger_result: Result<(), EnergyLedgerError> = (|| {
+        if loss_a > 0.0 && loss_b < 0.0 {
+            let transfer = residual_a.min(-loss_b);
+            record_positive(&mut next_ledger, kinetic_a, kinetic_b, transfer)?;
+            residual_a -= transfer;
+        } else if loss_b > 0.0 && loss_a < 0.0 {
+            let transfer = residual_b.min(-loss_a);
+            record_positive(&mut next_ledger, kinetic_b, kinetic_a, transfer)?;
+            residual_b -= transfer;
+        }
+
+        let residual_total = residual_a + residual_b;
+        if (residual_total - dissipated).abs() > 1e-10 * dissipated.max(1.0) {
+            return Err(EnergyLedgerError::NonFiniteAuditEnergy);
+        }
+
+        for (source, residual) in [(kinetic_a, residual_a), (kinetic_b, residual_b)] {
+            record_positive(
+                &mut next_ledger,
+                source,
+                thermal_a,
+                residual * partition.fraction_to_a,
+            )?;
+            record_positive(
+                &mut next_ledger,
+                source,
+                thermal_b,
+                residual * (1.0 - partition.fraction_to_a),
+            )?;
+        }
+        Ok(())
+    })();
+
+    if let Err(error) = ledger_result {
+        rollback(
+            snapshot_a,
+            body_a,
+            snapshot_b,
+            body_b,
+            &original_ledger,
+            ledger,
+        );
+        return Err(error.into());
     }
 
-    let residual_total = residual_a + residual_b;
-    if (residual_total - dissipated).abs() > 1e-10 * dissipated.max(1.0) {
-        snapshot_a.restore(body_a);
-        snapshot_b.restore(body_b);
-        *ledger = original_ledger;
-        return Err(DissipationError::NonDissipativeImpulse);
+    let mut next_thermal_a = initial_thermal_a;
+    let mut next_thermal_b = initial_thermal_b;
+    if let Err(error) = next_thermal_a.add_heat_joules(heat_a) {
+        rollback(
+            snapshot_a,
+            body_a,
+            snapshot_b,
+            body_b,
+            &original_ledger,
+            ledger,
+        );
+        return Err(error.into());
+    }
+    if let Err(error) = next_thermal_b.add_heat_joules(heat_b) {
+        rollback(
+            snapshot_a,
+            body_a,
+            snapshot_b,
+            body_b,
+            &original_ledger,
+            ledger,
+        );
+        return Err(error.into());
     }
 
-    for (source, residual) in [(kinetic_a, residual_a), (kinetic_b, residual_b)] {
-        record_positive(
-            &mut next_ledger,
-            source,
-            thermal_a,
-            residual * partition.fraction_to_a,
-        )?;
-        record_positive(
-            &mut next_ledger,
-            source,
-            thermal_b,
-            residual * (1.0 - partition.fraction_to_a),
-        )?;
-    }
-
+    body_a.thermal = Some(next_thermal_a);
+    body_b.thermal = Some(next_thermal_b);
     *ledger = next_ledger;
 
     Ok(FrictionHeatResult {
@@ -303,7 +350,9 @@ mod tests {
             + b.thermal_energy_joules(0.0).unwrap();
         assert!((final_energy - initial).abs() < 1e-9);
         assert_eq!(ledger.net_external_joules(), 0.0);
-        assert!((ledger.total_transferred_joules() - 0.5).abs() < 1e-12);
+        // 0.125 J is transferred A kinetic -> B kinetic; 0.25 J is converted
+        // to heat. Throughput therefore exceeds dissipation but remains auditable.
+        assert!((ledger.total_transferred_joules() - 0.375).abs() < 1e-12);
     }
 
     #[test]
