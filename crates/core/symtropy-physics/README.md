@@ -46,6 +46,7 @@ for _ in 0..100 {
 - **PhysicsCallback trait** — inject consciousness or custom force modulation into the physics step
 - **Constraints** — distance constraints (more coming)
 - **Const-generic dimensions** — `PhysicsWorld<2>`, `PhysicsWorld<3>`, `PhysicsWorld<4>`
+- **Experimental thermodynamics** — validated Kelvin/material primitives, conservative lumped conduction, optional body thermal state, and modeled thermal-energy diagnostics
 - **Zero heap** — GJK simplex uses `ArrayVec`, bivectors use `[f64; 6]`
 - **WASM compatible**
 
@@ -61,8 +62,9 @@ for _ in 0..100 {
 ## Open Research and Validation
 
 The engine exposes `PhysicsWorld::invariant_snapshot()` for quantitative
-measurement of momentum, energy, penetration, finite-state health, and
-rotation-group error. An analytical free-fall convergence study is included:
+measurement of momentum, mechanical and modeled thermal energy, penetration,
+finite-state health, and rotation-group error. An analytical free-fall
+convergence study is included:
 
 ```bash
 cargo run --release --example free_fall_validation
@@ -71,10 +73,12 @@ cargo run --release --example oriented_collision_validation
 
 The output is CSV for CI gates and external analysis. See
 [`RESEARCH_VALIDATION.md`](RESEARCH_VALIDATION.md) for the general validity
-protocol and [`ORIENTED_COLLISION_VALIDATION.md`](ORIENTED_COLLISION_VALIDATION.md)
-for the transformed-geometry contract, limitations, and external campaign. Public
-research claims should follow that protocol and explicitly distinguish proven,
-experimental, and planned capabilities.
+protocol, [`ORIENTED_COLLISION_VALIDATION.md`](ORIENTED_COLLISION_VALIDATION.md)
+for the transformed-geometry contract, and
+[`THERMODYNAMICS_VALIDATION.md`](THERMODYNAMICS_VALIDATION.md) for the thermal
+first-law/second-law contract and benchmark roadmap. Public research claims
+should follow those protocols and explicitly distinguish proven, experimental,
+and planned capabilities.
 
 ## PhysicsCallback — Custom Force Modulation
 
