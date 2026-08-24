@@ -14,6 +14,14 @@ use crate::energy::{
 };
 use crate::thermal::ThermalError;
 
+/// Stable reserved mechanism id for direct thermal exchange across the accounting
+/// boundary. The core ledger deliberately provides `Other(u16)` as a deterministic
+/// extension point; this id is owned by the thermal boundary layer.
+pub const EXTERNAL_HEAT_TRANSFER_KIND_ID: u16 = 1;
+
+pub const EXTERNAL_HEAT_TRANSFER_KIND: EnergyTransferKind =
+    EnergyTransferKind::Other(EXTERNAL_HEAT_TRANSFER_KIND_ID);
+
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub enum ExternalHeatError {
     Thermal(ThermalError),
@@ -76,12 +84,7 @@ pub fn exchange_external_heat_audited<const D: usize>(
         (body_port, external_port, -signed_joules)
     };
 
-    ledger.record(
-        source,
-        destination,
-        joules,
-        EnergyTransferKind::ExternalHeat,
-    )?;
+    ledger.record(source, destination, joules, EXTERNAL_HEAT_TRANSFER_KIND)?;
 
     body.thermal = Some(next);
     Ok(next_temperature)
@@ -124,7 +127,7 @@ mod tests {
         let entry = &ledger.entries()[0];
         assert_eq!(entry.source.owner, EnergyOwner::External(9));
         assert_eq!(entry.destination.owner, EnergyOwner::Body(BodyHandle(4)));
-        assert_eq!(entry.kind, EnergyTransferKind::ExternalHeat);
+        assert_eq!(entry.kind, EXTERNAL_HEAT_TRANSFER_KIND);
         assert_eq!(entry.joules, 2_000.0);
     }
 
