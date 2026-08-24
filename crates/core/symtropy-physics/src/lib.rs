@@ -17,6 +17,7 @@
 //! - `energy` — deterministic double-entry accounting for cross-domain energy transfers
 //! - `thermal_audit` — transactional thermal couplings and second-law diagnostics
 //! - `external_heat` — audited energy exchange across the simulation boundary
+//! - `dissipation` — measured mechanical loss converted into audited sensible heat
 
 pub mod articulation;
 pub mod body;
@@ -25,6 +26,7 @@ pub mod ccd;
 pub mod constraint;
 pub mod contact;
 pub mod diagnostics;
+pub mod dissipation;
 pub mod energy;
 pub mod epa;
 pub mod external_heat;
@@ -46,6 +48,9 @@ pub use broadphase::{Aabb, Lbvh, morton_encode, morton_prefix};
 pub use constraint::Constraint;
 pub use contact::{CollisionEvent, ContactCache, ContactManifold, SensorEvent};
 pub use diagnostics::{InvariantDrift, InvariantSnapshot};
+pub use dissipation::{
+    DissipationError, FrictionHeatResult, HeatPartition, apply_friction_impulse_with_heat,
+};
 pub use energy::{
     EnergyAudit, EnergyForm, EnergyLedgerError, EnergyOwner, EnergyPort, EnergyTransfer,
     EnergyTransferKind, EnergyTransferLedger,
