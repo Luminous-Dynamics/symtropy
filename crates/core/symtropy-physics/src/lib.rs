@@ -15,7 +15,7 @@
 //! - `integrator` — semi-implicit Euler with bivector angular dynamics
 //! - `thermal` — conservative thermodynamic primitives and conductive exchange
 //! - `energy` — deterministic double-entry accounting for cross-domain energy transfers
-//! - `thermal_audit` — transactional thermal couplings that emit energy-ledger entries
+//! - `thermal_audit` — transactional thermal couplings and second-law diagnostics
 
 pub mod articulation;
 pub mod body;
@@ -56,5 +56,8 @@ pub use thermal::{
     ABSOLUTE_ZERO_K, HeatExchange, ThermalBody, ThermalError, ThermalMaterial, ThermalState,
     conductive_exchange, conductive_exchange_bodies,
 };
-pub use thermal_audit::{AuditedThermalError, conductive_exchange_bodies_audited};
+pub use thermal_audit::{
+    AuditedThermalError, EntropyAuditError, PairEntropyAudit, constant_cp_pair_entropy_audit,
+    conductive_exchange_bodies_audited,
+};
 pub use world::{NoOpCallback, PhysicsCallback, PhysicsWorld};
