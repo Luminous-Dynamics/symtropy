@@ -44,7 +44,7 @@ for _ in 0..100 {
 - **Body sleeping** — deactivate near-stationary bodies, wake on collision
 - **Collision events** — `CollisionEvent<D>` for game logic callbacks
 - **PhysicsCallback trait** — inject consciousness or custom force modulation into the physics step
-- **Constraints** — distance constraints (more coming)
+- **Constraints and joints** — distance plus fixed, hinge, ball, and prismatic families with motor support where implemented
 - **Const-generic dimensions** — `PhysicsWorld<2>`, `PhysicsWorld<3>`, `PhysicsWorld<4>`
 - **Experimental thermodynamics** — validated Kelvin/material primitives, conservative lumped conduction, optional body thermal state, and modeled thermal-energy diagnostics
 - **Zero heap** — GJK simplex uses `ArrayVec`, bivectors use `[f64; 6]`
@@ -59,26 +59,30 @@ for _ in 0..100 {
 | GJK tesseract 4D | 231 ns |
 | Physics step (100 bodies) | 193 µs |
 
+These historical microbenchmarks are useful regression markers, not evidence of
+competitive superiority. Cross-engine claims must use matched scenarios, matched
+error tolerances, reproducible environment metadata, and the gates defined by the
+physics excellence program.
+
 ## Open Research and Validation
 
 The engine exposes `PhysicsWorld::invariant_snapshot()` for quantitative
 measurement of momentum, mechanical and modeled thermal energy, penetration,
-finite-state health, and rotation-group error. An analytical free-fall
-convergence study is included:
-
-```bash
-cargo run --release --example free_fall_validation
-cargo run --release --example oriented_collision_validation
-```
+finite-state health, and rotation-group error. Analytical validation examples are
+included for the currently modeled regimes.
 
 The output is CSV for CI gates and external analysis. See
 [`RESEARCH_VALIDATION.md`](RESEARCH_VALIDATION.md) for the general validity
 protocol, [`ORIENTED_COLLISION_VALIDATION.md`](ORIENTED_COLLISION_VALIDATION.md)
-for the transformed-geometry contract, and
+for the transformed-geometry contract,
 [`THERMODYNAMICS_VALIDATION.md`](THERMODYNAMICS_VALIDATION.md) for the thermal
-first-law/second-law contract and benchmark roadmap. Public research claims
-should follow those protocols and explicitly distinguish proven, experimental,
-and planned capabilities.
+first-law/second-law contract and benchmark roadmap, and
+[`PHYSICS_EXCELLENCE_PROGRAM.md`](PHYSICS_EXCELLENCE_PROGRAM.md) for the
+competitive capability matrix, benchmark ladder, claims policy, and execution
+order toward top-tier game and real-world simulation.
+
+Public research and competitive claims should explicitly distinguish implemented,
+validated, competitive, and leading capabilities.
 
 ## PhysicsCallback — Custom Force Modulation
 
