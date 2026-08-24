@@ -3,18 +3,16 @@
 // Commercial licensing: see COMMERCIAL_LICENSE.md at repository root
 //! Determinism helpers: record/replay command streams and bitwise snapshots.
 //!
-//! This module is intentionally minimal: it provides
-//! - a small `WorldCommand` vocabulary for driving a `PhysicsWorld`
-//! - a `ReplayTape` of per-tick frames (dt + commands)
-//! - `WorldSnapshot`/`BodySnapshot` that capture simulation state as raw `f64` bits
-//!
-//! The goal is to make it easy to build a replay harness that asserts
-//! **bitwise-equal state per tick** across record/replay passes.
+//! This module intentionally keeps the command vocabulary small. Commands that
+//! cross the modeled energy boundary require the audited executor so replay
+//! cannot silently mutate thermal state without a matching energy record.
 
 use nalgebra::SVector;
 use symtropy_math::Bivector;
 
 use crate::body::{BodyHandle, BodyType, RigidBody};
+use crate::energy::EnergyTransferLedger;
+use crate::external_heat::{ExternalHeatError, exchange_external_heat_audited};
 use crate::integrator;
 use crate::world::PhysicsWorld;
 
@@ -36,6 +34,13 @@ pub enum WorldCommand<const D: usize> {
     SetAngularVelocity {
         body: BodyHandle,
         velocity: Box<Bivector<D>>,
+    },
+    /// Signed sensible heat across the accounting boundary. Positive enters the
+    /// body, negative leaves it. This command requires `apply_commands_audited`.
+    ApplyExternalHeat {
+        body: BodyHandle,
+        signed_joules: f64,
+        external_source_id: u64,
     },
     Wake {
         body: BodyHandle,
@@ -64,46 +69,103 @@ impl<const D: usize> ReplayTape<D> {
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum ApplyCommandError {
     MissingBody(BodyHandle),
+    /// An energy-boundary command was passed to the legacy untracked executor.
+    EnergyLedgerRequired,
+    ExternalHeat(ExternalHeatError),
 }
 
-/// Apply a list of commands to a world.
+impl From<ExternalHeatError> for ApplyCommandError {
+    fn from(value: ExternalHeatError) -> Self {
+        Self::ExternalHeat(value)
+    }
+}
+
+fn apply_non_boundary_command<const D: usize>(
+    world: &mut PhysicsWorld<D>,
+    command: &WorldCommand<D>,
+) -> Result<bool, ApplyCommandError> {
+    match command {
+        WorldCommand::ApplyForce { body, force } => {
+            let Some(b) = world.body_mut(*body) else {
+                return Err(ApplyCommandError::MissingBody(*body));
+            };
+            b.apply_force(**force);
+        }
+        WorldCommand::ApplyImpulse { body, impulse } => {
+            let Some(b) = world.body_mut(*body) else {
+                return Err(ApplyCommandError::MissingBody(*body));
+            };
+            integrator::apply_impulse(b, &**impulse);
+        }
+        WorldCommand::SetLinearVelocity { body, velocity } => {
+            let Some(b) = world.body_mut(*body) else {
+                return Err(ApplyCommandError::MissingBody(*body));
+            };
+            b.linear_velocity = **velocity;
+        }
+        WorldCommand::SetAngularVelocity { body, velocity } => {
+            let Some(b) = world.body_mut(*body) else {
+                return Err(ApplyCommandError::MissingBody(*body));
+            };
+            b.angular_velocity = **velocity;
+        }
+        WorldCommand::Wake { body } => {
+            let Some(b) = world.body_mut(*body) else {
+                return Err(ApplyCommandError::MissingBody(*body));
+            };
+            b.wake();
+        }
+        WorldCommand::ApplyExternalHeat { .. } => return Ok(false),
+    }
+    Ok(true)
+}
+
+/// Apply commands that do not cross an audited energy boundary.
+///
+/// `ApplyExternalHeat` is deliberately rejected here; callers must use
+/// `apply_commands_audited` so the matching boundary transfer is recorded.
 pub fn apply_commands<const D: usize>(
     world: &mut PhysicsWorld<D>,
     commands: &[WorldCommand<D>],
 ) -> Result<(), ApplyCommandError> {
-    for cmd in commands {
-        match cmd {
-            WorldCommand::ApplyForce { body, force } => {
-                let Some(b) = world.body_mut(*body) else {
-                    return Err(ApplyCommandError::MissingBody(*body));
-                };
-                b.apply_force(**force);
-            }
-            WorldCommand::ApplyImpulse { body, impulse } => {
-                let Some(b) = world.body_mut(*body) else {
-                    return Err(ApplyCommandError::MissingBody(*body));
-                };
-                integrator::apply_impulse(b, &**impulse);
-            }
-            WorldCommand::SetLinearVelocity { body, velocity } => {
-                let Some(b) = world.body_mut(*body) else {
-                    return Err(ApplyCommandError::MissingBody(*body));
-                };
-                b.linear_velocity = **velocity;
-            }
-            WorldCommand::SetAngularVelocity { body, velocity } => {
-                let Some(b) = world.body_mut(*body) else {
-                    return Err(ApplyCommandError::MissingBody(*body));
-                };
-                b.angular_velocity = **velocity;
-            }
-            WorldCommand::Wake { body } => {
-                let Some(b) = world.body_mut(*body) else {
-                    return Err(ApplyCommandError::MissingBody(*body));
-                };
-                b.wake();
-            }
+    for command in commands {
+        if !apply_non_boundary_command(world, command)? {
+            return Err(ApplyCommandError::EnergyLedgerRequired);
         }
+    }
+    Ok(())
+}
+
+/// Apply all replay commands while recording energy-boundary interventions.
+pub fn apply_commands_audited<const D: usize>(
+    world: &mut PhysicsWorld<D>,
+    commands: &[WorldCommand<D>],
+    ledger: &mut EnergyTransferLedger,
+) -> Result<(), ApplyCommandError> {
+    for command in commands {
+        if apply_non_boundary_command(world, command)? {
+            continue;
+        }
+
+        let WorldCommand::ApplyExternalHeat {
+            body,
+            signed_joules,
+            external_source_id,
+        } = command
+        else {
+            unreachable!("only boundary command returns false");
+        };
+
+        let Some(target) = world.body_mut(*body) else {
+            return Err(ApplyCommandError::MissingBody(*body));
+        };
+        exchange_external_heat_audited(
+            *body,
+            target,
+            *signed_joules,
+            *external_source_id,
+            ledger,
+        )?;
     }
     Ok(())
 }
@@ -220,5 +282,64 @@ impl<const D: usize> WorldSnapshot<D> {
             bodies,
             collision_events,
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::thermal::{ThermalBody, ThermalMaterial, ThermalState};
+    use symtropy_math::Point;
+
+    fn thermal_world() -> (PhysicsWorld<3>, BodyHandle) {
+        let mut world = PhysicsWorld::<3>::new(SVector::zeros());
+        let handle = world.add_sphere(Point::origin(), 0.5, 1.0);
+        world.body_mut(handle).unwrap().set_thermal(
+            ThermalBody::new(
+                ThermalMaterial::new(1_000.0, 1.0, 0.5).unwrap(),
+                ThermalState::new(300.0).unwrap(),
+                1.0,
+            )
+            .unwrap(),
+        );
+        (world, handle)
+    }
+
+    #[test]
+    fn external_heat_requires_audited_executor() {
+        let (mut world, handle) = thermal_world();
+        let command = WorldCommand::ApplyExternalHeat {
+            body: handle,
+            signed_joules: 1_000.0,
+            external_source_id: 5,
+        };
+        assert_eq!(
+            apply_commands(&mut world, &[command]),
+            Err(ApplyCommandError::EnergyLedgerRequired)
+        );
+        assert_eq!(
+            world.body(handle).unwrap().thermal.unwrap().state.temperature_kelvin,
+            300.0
+        );
+    }
+
+    #[test]
+    fn audited_external_heat_is_bitwise_replayable() {
+        fn run() -> (WorldSnapshot<3>, EnergyTransferLedger) {
+            let (mut world, handle) = thermal_world();
+            let mut ledger = EnergyTransferLedger::new();
+            let command = WorldCommand::ApplyExternalHeat {
+                body: handle,
+                signed_joules: 2_000.0,
+                external_source_id: 8,
+            };
+            apply_commands_audited(&mut world, &[command], &mut ledger).unwrap();
+            (WorldSnapshot::capture(&world), ledger)
+        }
+
+        let (snapshot_a, ledger_a) = run();
+        let (snapshot_b, ledger_b) = run();
+        assert_eq!(snapshot_a, snapshot_b);
+        assert_eq!(ledger_a, ledger_b);
     }
 }
