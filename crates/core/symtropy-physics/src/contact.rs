@@ -222,6 +222,19 @@ impl<const D: usize> ContactCache<D> {
         self.entries.clear();
     }
 
+    /// Remove every cached pair that references `body`.
+    ///
+    /// Returns the number of body-pair entries removed. This is deterministic
+    /// because the cache is a `BTreeMap`, and it is intentionally idempotent so
+    /// world/body teardown can call it defensively on both current and previous
+    /// warm-start caches.
+    pub fn remove_body(&mut self, body: BodyHandle) -> usize {
+        let before = self.entries.len();
+        self.entries
+            .retain(|(body_a, body_b), _| *body_a != body && *body_b != body);
+        before - self.entries.len()
+    }
+
     /// Number of cached contact pairs.
     pub fn pair_count(&self) -> usize {
         self.entries.len()
@@ -322,5 +335,35 @@ mod tests {
 
         cache.begin_frame();
         assert_eq!(cache.pair_count(), 0);
+    }
+
+    #[test]
+    fn contact_cache_remove_body_prunes_only_referencing_pairs() {
+        let mut cache = ContactCache::<3>::new();
+        cache.store(BodyHandle(0), BodyHandle(1), SVector::zeros(), 1.0, 0.0);
+        cache.store(BodyHandle(1), BodyHandle(2), SVector::zeros(), 2.0, 0.0);
+        cache.store(BodyHandle(2), BodyHandle(3), SVector::zeros(), 3.0, 0.0);
+        assert_eq!(cache.pair_count(), 3);
+
+        assert_eq!(cache.remove_body(BodyHandle(1)), 2);
+        assert_eq!(cache.pair_count(), 1);
+        assert!(
+            cache
+                .lookup(BodyHandle(0), BodyHandle(1), &SVector::zeros())
+                .is_none()
+        );
+        assert!(
+            cache
+                .lookup(BodyHandle(1), BodyHandle(2), &SVector::zeros())
+                .is_none()
+        );
+        assert!(
+            cache
+                .lookup(BodyHandle(2), BodyHandle(3), &SVector::zeros())
+                .is_some()
+        );
+
+        assert_eq!(cache.remove_body(BodyHandle(1)), 0);
+        assert_eq!(cache.pair_count(), 1);
     }
 }
