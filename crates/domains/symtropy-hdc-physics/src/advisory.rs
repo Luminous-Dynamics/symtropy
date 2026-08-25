@@ -10,6 +10,8 @@
 //! confidence, and low novelty. This keeps HDC/CfC-style intelligence useful
 //! without allowing it to mutate authoritative physics state directly.
 
+pub mod fidelity;
+
 use serde::{Deserialize, Serialize};
 
 use crate::ExactStateDigest;
