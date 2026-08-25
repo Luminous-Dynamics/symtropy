@@ -79,6 +79,7 @@ impl BspNode {
         min_split: usize,
     ) {
         if depth == 0 || (self.w < min_split && self.h < min_split) {
+            // Leaf — carve a room
             let room_w = rng.gen_range(min_room..=self.w.saturating_sub(2).max(min_room));
             let room_h = rng.gen_range(min_room..=self.h.saturating_sub(2).max(min_room));
             let room_x = self.x + rng.gen_range(1..=self.w.saturating_sub(room_w).max(1));
@@ -120,6 +121,7 @@ impl BspNode {
                 self.x + split,
                 self.y,
                 self.w.saturating_sub(split).max(1),
+                self.h,
             ));
             left.split_with_params(rng, depth - 1, min_room, min_split);
             right.split_with_params(rng, depth - 1, min_room, min_split);
@@ -133,7 +135,7 @@ impl BspNode {
             for y in room.y..room.y + room.h {
                 for x in room.x..room.x + room.w {
                     if y < tiles.len() && x < tiles[0].len() {
-                        tiles[y][x] = 1;
+                        tiles[y][x] = 1; // floor
                     }
                 }
             }
@@ -141,6 +143,7 @@ impl BspNode {
         if let (Some(left), Some(right)) = (&self.left, &self.right) {
             left.carve(tiles, corridor_width);
             right.carve(tiles, corridor_width);
+            // Connect siblings with the configured corridor width.
             if let (Some(lc), Some(rc)) = (left.find_room_center(), right.find_room_center()) {
                 carve_corridor_width(tiles, lc, rc, corridor_width);
             }
@@ -151,6 +154,7 @@ impl BspNode {
         if let Some(ref room) = self.room {
             return Some(room.center());
         }
+        // Try left child first, then right
         if let Some(ref left) = self.left
             && let Some(c) = left.find_room_center()
         {
@@ -217,6 +221,7 @@ fn carve_corridor_width(
     }
 }
 
+/// Generate a random dungeon.
 pub fn generate_dungeon(width: usize, height: usize, seed: u64) -> Dungeon {
     generate_dungeon_with_config(
         width,
@@ -229,6 +234,9 @@ pub fn generate_dungeon(width: usize, height: usize, seed: u64) -> Dungeon {
     )
 }
 
+/// Generate a consciousness-modulated dungeon.
+///
+/// Uses PhiDungeonConfig to vary the BSP algorithm's behavior based on Φ.
 pub fn generate_dungeon_phi(
     width: usize,
     height: usize,
@@ -245,6 +253,7 @@ pub fn generate_dungeon_phi(
         config.corridor_width,
     );
 
+    // Add extra corridor connections for high-Phi (integration loops)
     if config.extra_connections > 0 {
         let mut rng = rand::rngs::StdRng::seed_from_u64(seed.wrapping_add(1000));
         let mut root = BspNode::new(0, 0, width, height);
@@ -257,6 +266,7 @@ pub fn generate_dungeon_phi(
         let mut rooms = Vec::new();
         root.collect_rooms(&mut rooms);
 
+        // Connect non-adjacent rooms to create loops (integration)
         for i in 0..config.extra_connections.min(rooms.len().saturating_sub(2)) {
             let from_idx = i;
             let to_idx = (i + 2).min(rooms.len() - 1);
@@ -284,12 +294,17 @@ fn generate_dungeon_with_config(
     corridor_width: usize,
 ) -> Dungeon {
     let mut rng = rand::rngs::StdRng::seed_from_u64(seed);
-    let mut tiles = vec![vec![0u8; width]; height];
+    let mut tiles = vec![vec![0u8; width]; height]; // all walls
 
+    // BSP split
     let mut root = BspNode::new(0, 0, width, height);
     root.split_with_params(&mut rng, bsp_depth, min_room, min_split);
     root.carve(&mut tiles, corridor_width.max(1));
 
+    // Ensure border is all walls. `tiles` is exactly height x width
+    // (`vec![vec![0u8; width]; height]` above), so filling the top and bottom
+    // rows wholesale is equivalent to the previous `for x in 0..width` loop,
+    // and iterating every row covers the previous `for y in 0..height`.
     tiles[0].fill(0);
     tiles[height - 1].fill(0);
     for row in tiles.iter_mut() {
@@ -297,10 +312,12 @@ fn generate_dungeon_with_config(
         row[width - 1] = 0;
     }
 
+    // Find rooms for player and core placement
     let mut rooms = Vec::new();
     root.collect_rooms(&mut rooms);
 
     if rooms.len() >= 2 {
+        // Player at first room, core at last (maximum BSP distance)
         let player = rooms[0];
         let core = rooms[rooms.len() - 1];
 
@@ -309,8 +326,9 @@ fn generate_dungeon_with_config(
         let cy = core.1.clamp(1, height - 2);
         let cx = core.0.clamp(1, width - 2);
 
-        tiles[py][px] = 3;
-        tiles[cy][cx] = 2;
+        tiles[py][px] = 3; // player start
+        tiles[cy][cx] = 2; // core room
+        // Mark core room area
         for dy in -1i32..=1 {
             for dx in -1i32..=1 {
                 let cy_near = (cy as i32 + dy) as usize;
@@ -325,6 +343,9 @@ fn generate_dungeon_with_config(
         let px = rooms[0].0.clamp(1, width - 2);
         tiles[py][px] = 3;
 
+        // Place exactly one core somewhere else on walkable floor. The previous
+        // unlabeled `break` exited only the inner loop and could mark one core
+        // per row in a single-room dungeon.
         'place_core: for row in tiles.iter_mut().take(height - 1).skip(1) {
             for tile in row.iter_mut().take(width - 1).skip(1) {
                 if *tile == 1 {
@@ -343,6 +364,7 @@ fn generate_dungeon_with_config(
     }
 }
 
+/// Generate and insert SiteLayout and TileGrid resources.
 pub fn generate_site_layout_system(
     mut commands: bevy::prelude::Commands,
     seed: bevy::prelude::Res<crate::resources::DungeonSeed>,
@@ -354,6 +376,7 @@ pub fn generate_site_layout_system(
 
     let phi = player_c.level;
 
+    // level_dungeon inline:
     let dungeon = {
         let config = crate::systems::phi_pcg::PhiDungeonConfig::from_phi(
             &crate::systems::phi_pcg::PhiPcgParams {
@@ -382,6 +405,7 @@ pub fn generate_site_layout_system(
         map[0].len() as i32
     };
 
+    // Build tile grid for O(1) collision lookups
     let mut tile_grid = TileGrid {
         tile_size: TILE_SIZE,
         origin_col: cols / 2,
@@ -401,6 +425,7 @@ pub fn generate_site_layout_system(
         core_pos: Vec2::ZERO,
     };
 
+    // Calculate positions and populate TileGrid
     for (row_idx, row) in map.iter().enumerate() {
         for (col_idx, &cell) in row.iter().enumerate() {
             let x = (col_idx as f32 - cols as f32 / 2.0) * TILE_SIZE;
@@ -480,6 +505,7 @@ mod tests {
         assert_eq!(dungeon.width, 30);
         assert_eq!(dungeon.height, 22);
 
+        // Has at least some floor tiles
         let floor_count: usize = dungeon
             .tiles
             .iter()
@@ -492,6 +518,7 @@ mod tests {
             floor_count
         );
 
+        // Has player start
         let has_player = dungeon
             .tiles
             .iter()
@@ -499,6 +526,7 @@ mod tests {
             .any(|&t| t == 3);
         assert!(has_player, "should have player start");
 
+        // Has core
         let has_core = dungeon
             .tiles
             .iter()
@@ -506,6 +534,7 @@ mod tests {
             .any(|&t| t == 2);
         assert!(has_core, "should have core room");
 
+        // Border is walls
         for x in 0..30 {
             assert_eq!(dungeon.tiles[0][x], 0);
             assert_eq!(dungeon.tiles[21][x], 0);
@@ -554,11 +583,13 @@ mod tests {
         let low_tiles: Vec<u8> = low.tiles.iter().flat_map(|r| r.iter().copied()).collect();
         let high_tiles: Vec<u8> = high.tiles.iter().flat_map(|r| r.iter().copied()).collect();
 
+        // High Phi and low Phi should produce DIFFERENT layouts (different params)
         assert_ne!(
             low_tiles, high_tiles,
             "different phi levels should produce different layouts"
         );
 
+        // Verify BSP depth difference is reflected in the config
         assert!(high_phi_config.bsp_depth > low_phi_config.bsp_depth);
         assert!(high_phi_config.extra_connections > low_phi_config.extra_connections);
     }
