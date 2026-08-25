@@ -141,11 +141,11 @@ impl PhysicsAdvisory {
         if self.source.is_learned_or_semantic() && self.evidence_digests.is_empty() {
             return Err(AdvisoryValidationError::MissingSemanticEvidence);
         }
-        match self.action {
-            AdvisoryAction::IncreaseSubsteps { minimum } if minimum == 0 => {
+        match &self.action {
+            AdvisoryAction::IncreaseSubsteps { minimum } if *minimum == 0 => {
                 return Err(AdvisoryValidationError::InvalidSubstepRequest);
             }
-            AdvisoryAction::DecreaseSubsteps { maximum } if maximum == 0 => {
+            AdvisoryAction::DecreaseSubsteps { maximum } if *maximum == 0 => {
                 return Err(AdvisoryValidationError::InvalidSubstepRequest);
             }
             _ => {}
@@ -217,7 +217,7 @@ impl EpistemicFirewallPolicy {
             return AdvisoryDisposition::Reject(AdvisoryRejection::InvalidProposal(error));
         }
 
-        match advisory.action {
+        match &advisory.action {
             AdvisoryAction::RequestExactFallback => {
                 return AdvisoryDisposition::EscalateExact(
                     ExactEscalationReason::AdvisorRequested,
@@ -226,7 +226,7 @@ impl EpistemicFirewallPolicy {
             AdvisoryAction::FlagAnomaly => {
                 return AdvisoryDisposition::EscalateExact(ExactEscalationReason::AnomalyFlagged);
             }
-            AdvisoryAction::IncreaseSubsteps { minimum } if minimum > self.max_substeps => {
+            AdvisoryAction::IncreaseSubsteps { minimum } if *minimum > self.max_substeps => {
                 return AdvisoryDisposition::Reject(
                     AdvisoryRejection::RequestedSubstepsTooLarge,
                 );
