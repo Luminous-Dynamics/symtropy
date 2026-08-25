@@ -20,6 +20,7 @@
 //! - `thermal_audit` — transactional thermal couplings and second-law diagnostics
 //! - `external_heat` — audited energy exchange across the simulation boundary
 //! - `dissipation` — measured mechanical loss converted into audited sensible heat
+//! - `identity` — transactional `NetId` integrity preflight for replay/network identity
 
 pub mod angular_dynamics;
 pub mod articulation;
@@ -35,6 +36,7 @@ pub mod energy_state;
 pub mod epa;
 pub mod external_heat;
 pub mod gjk;
+pub mod identity;
 pub mod integrator;
 pub mod island;
 pub mod joints;
@@ -73,6 +75,9 @@ pub use epa::EpaResult;
 pub use external_heat::{
     EXTERNAL_HEAT_TRANSFER_KIND, EXTERNAL_HEAT_TRANSFER_KIND_ID, ExternalHeatError,
     exchange_external_heat_audited,
+};
+pub use identity::{
+    NetIdMutationError, preflight_net_id_assignment, preflight_net_id_batch,
 };
 pub use integrator::nan_zeroed_count;
 pub use joints::{BallJoint, FixedJoint, HingeJoint, MotorDrive, PrismaticJoint};
