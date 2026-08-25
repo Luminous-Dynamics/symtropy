@@ -86,9 +86,12 @@ pub fn physics_sync_transforms(
             // NPC intent is written by the FEP movement system in Update.
             // Direct velocity assignment does not wake a sleeping RigidBody, so
             // honor any non-zero controller intent before the integrator skips
-            // sleeping bodies.
+            // sleeping bodies. Restrict this to bodies that are already asleep:
+            // calling wake() on every moving body would reset sleep counters each
+            // fixed tick and prevent slow bodies from ever settling to sleep.
             for body in &mut physics.world.bodies {
                 if body.is_dynamic()
+                    && body.sleeping
                     && body.linear_velocity.norm_squared() > INTENT_WAKE_EPSILON_SQ
                 {
                     body.wake();
