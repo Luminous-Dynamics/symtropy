@@ -271,8 +271,7 @@ mod tests {
         let mut a = ThermalState::new(250.0).unwrap();
         let mut b = ThermalState::new(350.0).unwrap();
 
-        let exchange =
-            conductive_exchange(&mut a, mat, 1.0, &mut b, mat, 1.0, 10.0, 1.0).unwrap();
+        let exchange = conductive_exchange(&mut a, mat, 1.0, &mut b, mat, 1.0, 10.0, 1.0).unwrap();
 
         assert!(exchange.joules_from_a_to_b < 0.0);
         assert!(a.temperature_kelvin > 250.0);
