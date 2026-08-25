@@ -10,6 +10,16 @@ pub trait Constraint<const D: usize>: Send + Sync + std::any::Any {
     /// The two bodies this constraint connects.
     fn bodies(&self) -> (BodyHandle, BodyHandle);
 
+    /// Whether this constraint references `body`.
+    ///
+    /// Kept as an object-safe default method so heterogeneous constraint
+    /// collections can prune a removed body without downcasting every joint
+    /// implementation.
+    fn references(&self, body: BodyHandle) -> bool {
+        let (body_a, body_b) = self.bodies();
+        body_a == body || body_b == body
+    }
+
     /// Cast to std::any::Any for downcasting in tests/lab.
     fn as_any(&self) -> &dyn std::any::Any;
 
@@ -139,5 +149,19 @@ mod tests {
 
         let dist = a.transform.translation.distance(&b.transform.translation);
         assert!((dist - 3.0).abs() < 0.1, "dist = {dist}, expected ~3.0");
+    }
+
+    #[test]
+    fn constraint_reference_predicate_is_symmetric_and_specific() {
+        let constraint = DistanceConstraint::<3> {
+            body_a: BodyHandle(4),
+            body_b: BodyHandle(9),
+            rest_length: 1.0,
+            stiffness: 1.0,
+        };
+
+        assert!(constraint.references(BodyHandle(4)));
+        assert!(constraint.references(BodyHandle(9)));
+        assert!(!constraint.references(BodyHandle(5)));
     }
 }
