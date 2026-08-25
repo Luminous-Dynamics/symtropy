@@ -10,15 +10,51 @@ env:
   CARGO_TERM_COLOR: always
 
 jobs:
+  preflight:
+    name: Fast Preflight (ubuntu-latest)
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v7
+
+    - name: Install System Dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y libasound2-dev libudev-dev pkg-config
+
+    - name: Read pinned Rust toolchain
+      id: rust-toolchain
+      shell: bash
+      run: |
+        channel="$(sed -n 's/^channel = "\([^"]*\)"$/\1/p' rust-toolchain.toml)"
+        if [ -z "$channel" ]; then
+          echo "rust-toolchain.toml does not declare [toolchain].channel" >&2
+          exit 1
+        fi
+        echo "channel=$channel" >> "$GITHUB_OUTPUT"
+
+    - name: Set up pinned Rust
+      uses: dtolnay/rust-toolchain@master
+      with:
+        toolchain: ${{ steps.rust-toolchain.outputs.channel }}
+        components: clippy, rustfmt
+
+    - name: Cache dependencies
+      uses: Swatinem/rust-cache@v2
+      with:
+        shared-key: preflight
+
+    - name: Run fast reproducible preflight
+      run: bash scripts/ci-preflight.sh fast
+
   test:
     name: Test Suite (${{ matrix.os }})
+    needs: preflight
     runs-on: ${{ matrix.os }}
     strategy:
-      # Legs must report independently. Under the default fail-fast, the
-      # ubuntu leg's failure cancelled windows and macos mid-run, so from
-      # 2026-06-21 to 2026-07-28 their status was simply unknown -- we could
-      # not tell whether the Windows checkout problem diagnosed on 2026-07-13
-      # was fixed, because Windows never got to finish again.
+      # Legs report independently once the cheap Linux preflight has passed.
+      # This preserves cross-platform evidence without spending three hosted
+      # runners on formatting/license/workspace-invariant failures.
       fail-fast: false
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
@@ -60,26 +96,6 @@ jobs:
 
     - name: Cache dependencies
       uses: Swatinem/rust-cache@v2
-
-    - name: Check Formatting
-      run: cargo fmt --all -- --check
-
-    # Repo-invariant guards. These scripts existed since at least June but were
-    # wired into nothing, so both of them silently failed against the tree for
-    # weeks: check-workspace.sh still asserted `Bevy 0.18.1` (the workspace has
-    # been on 0.19.0 since the dual-bevy cleanup) plus a hardcoded 14-crate
-    # member list against 60 real members, and check-licenses.sh was finding 13
-    # crates with no `license` field and a real SPDX mismatch. Both are now
-    # repaired and enforced. Linux only -- they are filesystem/manifest checks
-    # with no platform-specific behaviour, and rg/python3 are not guaranteed on
-    # the Windows and macOS runners.
-    - name: Workspace Invariants (members, single Bevy, portable paths, no placeholders)
-      if: runner.os == 'Linux'
-      run: bash scripts/check-workspace.sh
-
-    - name: License Headers (SPDX matches package license)
-      if: runner.os == 'Linux'
-      run: bash scripts/check-licenses.sh
 
     - name: Run Clippy
       run: cargo clippy --workspace --all-targets --all-features -- -D warnings
