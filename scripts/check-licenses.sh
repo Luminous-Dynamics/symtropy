@@ -8,7 +8,6 @@ import json
 import pathlib
 import subprocess
 import sys
-import tomllib
 
 metadata = json.loads(
     subprocess.check_output(
@@ -23,8 +22,7 @@ root = pathlib.Path(metadata["workspace_root"])
 for package in metadata["packages"]:
     manifest_path = pathlib.Path(package["manifest_path"])
     package_root = manifest_path.parent
-    manifest = tomllib.loads(manifest_path.read_text())
-    license_id = manifest.get("package", {}).get("license")
+    license_id = package.get("license")
 
     if not license_id:
         print(f"No license found in {manifest_path.relative_to(root)}")
