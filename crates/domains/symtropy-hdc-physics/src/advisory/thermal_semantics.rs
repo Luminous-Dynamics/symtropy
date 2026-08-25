@@ -13,10 +13,14 @@
 //! deterministic associative representation from that exact state.
 
 use serde::{Deserialize, Serialize};
-use symtropy_hdc_core::{BipolarBundle, BipolarHV, EncoderSpec, ItemMemory, LevelEncoder, StableHash64};
+use symtropy_hdc_core::{
+    BipolarBundle, BipolarHV, EncoderSpec, ItemMemory, LevelEncoder, StableHash64,
+};
 use symtropy_physics::PhysicsWorld;
 
-use crate::{EncodedPhysicsFrame, ExactStateDigest, PhysicsFrameEncoder, PhysicsHdcError};
+use crate::{
+    EncodedPhysicsFrame, ExactStateDigest, IdentityPolicy, PhysicsFrameEncoder, PhysicsHdcError,
+};
 
 /// Versioned thermodynamic semantic ranges.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -181,7 +185,12 @@ impl ThermalSemanticEncoder {
                 continue;
             };
             thermal_body_count += 1;
-            bundle.add(&self.encode_thermal_body(body.handle.0 as u64, thermal)?)?;
+            bundle.add(&self.encode_thermal_body(
+                base.config().identity_policy,
+                body.handle.0 as u64,
+                body.net_id.map(|net_id| net_id.0),
+                thermal,
+            )?)?;
         }
 
         let invariants = world.invariant_snapshot();
@@ -215,12 +224,18 @@ impl ThermalSemanticEncoder {
 
     fn encode_thermal_body(
         &self,
+        identity_policy: IdentityPolicy,
         body_handle: u64,
+        net_id: Option<u64>,
         thermal: symtropy_physics::ThermalBody,
     ) -> Result<BipolarHV, PhysicsHdcError> {
         let mut bundle = BipolarBundle::new(self.config.hdc.dimension);
         bundle.add(&self.memory.item("record-kind", "thermal-body"))?;
-        bundle.add(&self.bind_item("body-handle", "body-handle", &body_handle.to_string())?)?;
+
+        if let Some(identity) = thermal_identity(identity_policy, body_handle, net_id) {
+            bundle.add(&self.bind_item("identity", "body-identity", &identity)?)?;
+        }
+
         bundle.add(&self.bind_scalar(
             "temperature-kelvin",
             &self.temperature,
@@ -256,7 +271,9 @@ impl ThermalSemanticEncoder {
             0.0,
             1.0,
         )?)?;
-        bundle.finish(&self.memory.tie_breaker("thermal-body-record")).map_err(Into::into)
+        bundle
+            .finish(&self.memory.tie_breaker("thermal-body-record"))
+            .map_err(Into::into)
     }
 
     fn bind_item(
@@ -284,6 +301,21 @@ impl ThermalSemanticEncoder {
             .role(role)
             .bind(&encoder.encode(value, min, max)?)
             .map_err(Into::into)
+    }
+}
+
+fn thermal_identity(
+    policy: IdentityPolicy,
+    body_handle: u64,
+    net_id: Option<u64>,
+) -> Option<String> {
+    match policy {
+        IdentityPolicy::None => None,
+        IdentityPolicy::Handle => Some(format!("handle:{body_handle}")),
+        IdentityPolicy::NetIdPreferred => Some(match net_id {
+            Some(net_id) => format!("net:{net_id}"),
+            None => format!("handle:{body_handle}"),
+        }),
     }
 }
 
@@ -359,9 +391,19 @@ mod tests {
     fn v2_digest_changes_when_only_temperature_changes() {
         let mut world = PhysicsWorld::<3>::default();
         let handle = world.add_sphere(Point::origin(), 0.5, 1.0);
-        world.body_mut(handle).unwrap().set_thermal(thermal_body(300.0));
+        world
+            .body_mut(handle)
+            .unwrap()
+            .set_thermal(thermal_body(300.0));
         let before = exact_world_digest_v2(&world);
-        world.body_mut(handle).unwrap().thermal.as_mut().unwrap().state.temperature_kelvin = 301.0;
+        world
+            .body_mut(handle)
+            .unwrap()
+            .thermal
+            .as_mut()
+            .unwrap()
+            .state
+            .temperature_kelvin = 301.0;
         let after = exact_world_digest_v2(&world);
         assert_ne!(before, after);
     }
@@ -376,7 +418,10 @@ mod tests {
         let h = hot.add_sphere(Point::origin(), 0.5, 1.0);
         hot.body_mut(h).unwrap().set_thermal(thermal_body(600.0));
 
-        assert_eq!(crate::exact_world_digest(&cold), crate::exact_world_digest(&hot));
+        assert_eq!(
+            crate::exact_world_digest(&cold),
+            crate::exact_world_digest(&hot)
+        );
         assert_ne!(exact_world_digest_v2(&cold), exact_world_digest_v2(&hot));
     }
 
@@ -402,12 +447,39 @@ mod tests {
     }
 
     #[test]
+    fn identity_none_does_not_reintroduce_transient_handles() {
+        let mut base_config = crate::PhysicsEncoderConfig::default();
+        base_config.hdc.dimension = 4_096;
+        base_config.hdc.scalar_levels = 129;
+        base_config.identity_policy = IdentityPolicy::None;
+        let base = PhysicsFrameEncoder::new(base_config).unwrap();
+        let overlay = ThermalSemanticEncoder::from_base(&base).unwrap();
+
+        let mut a = PhysicsWorld::<3>::default();
+        let a_handle = a.add_sphere(Point::origin(), 0.5, 1.0);
+        a.body_mut(a_handle).unwrap().set_thermal(thermal_body(350.0));
+
+        let mut b = PhysicsWorld::<3>::default();
+        let b_handle = b.add_sphere(Point::origin(), 0.5, 1.0);
+        b.body_mut(b_handle).unwrap().set_thermal(thermal_body(350.0));
+        b.body_mut(b_handle).unwrap().handle = symtropy_physics::BodyHandle(99);
+
+        let encoded_a = overlay.encode_world(2, &a, &base).unwrap();
+        let encoded_b = overlay.encode_world(2, &b, &base).unwrap();
+        assert_eq!(encoded_a.vector, encoded_b.vector);
+        assert_ne!(encoded_a.exact_digest, encoded_b.exact_digest);
+    }
+
+    #[test]
     fn thermal_encoding_does_not_mutate_world() {
         let base = base_encoder();
         let overlay = ThermalSemanticEncoder::from_base(&base).unwrap();
         let mut world = PhysicsWorld::<3>::default();
         let handle = world.add_sphere(Point::origin(), 0.5, 1.0);
-        world.body_mut(handle).unwrap().set_thermal(thermal_body(450.0));
+        world
+            .body_mut(handle)
+            .unwrap()
+            .set_thermal(thermal_body(450.0));
         let before = exact_world_digest_v2(&world);
         let _ = overlay.encode_world(9, &world, &base).unwrap();
         let after = exact_world_digest_v2(&world);
