@@ -33,25 +33,32 @@ impl ThermalMaterial {
         thermal_conductivity: f64,
         emissivity: f64,
     ) -> Result<Self, ThermalError> {
-        if !specific_heat_capacity.is_finite() || specific_heat_capacity <= 0.0 {
-            return Err(ThermalError::InvalidSpecificHeatCapacity);
-        }
-        if !thermal_conductivity.is_finite() || thermal_conductivity < 0.0 {
-            return Err(ThermalError::InvalidThermalConductivity);
-        }
-        if !emissivity.is_finite() || !(0.0..=1.0).contains(&emissivity) {
-            return Err(ThermalError::InvalidEmissivity);
-        }
-
-        Ok(Self {
+        let material = Self {
             specific_heat_capacity,
             thermal_conductivity,
             emissivity,
-        })
+        };
+        material.validate()?;
+        Ok(material)
+    }
+
+    /// Re-validate material properties after construction or public-field mutation.
+    pub fn validate(self) -> Result<(), ThermalError> {
+        if !self.specific_heat_capacity.is_finite() || self.specific_heat_capacity <= 0.0 {
+            return Err(ThermalError::InvalidSpecificHeatCapacity);
+        }
+        if !self.thermal_conductivity.is_finite() || self.thermal_conductivity < 0.0 {
+            return Err(ThermalError::InvalidThermalConductivity);
+        }
+        if !self.emissivity.is_finite() || !(0.0..=1.0).contains(&self.emissivity) {
+            return Err(ThermalError::InvalidEmissivity);
+        }
+        Ok(())
     }
 
     /// Heat capacity `m c_p` in J/K for a body of the supplied mass.
     pub fn heat_capacity(self, mass_kg: f64) -> Result<f64, ThermalError> {
+        self.validate()?;
         validate_positive_finite(mass_kg, ThermalError::InvalidMass)?;
         Ok(mass_kg * self.specific_heat_capacity)
     }
@@ -66,8 +73,14 @@ pub struct ThermalState {
 
 impl ThermalState {
     pub fn new(temperature_kelvin: f64) -> Result<Self, ThermalError> {
-        validate_temperature(temperature_kelvin)?;
-        Ok(Self { temperature_kelvin })
+        let state = Self { temperature_kelvin };
+        state.validate()?;
+        Ok(state)
+    }
+
+    /// Re-validate state after construction or public-field mutation.
+    pub fn validate(self) -> Result<(), ThermalError> {
+        validate_temperature(self.temperature_kelvin)
     }
 
     /// Sensible thermal energy relative to `reference_temperature_kelvin`.
@@ -80,6 +93,7 @@ impl ThermalState {
         mass_kg: f64,
         material: ThermalMaterial,
     ) -> Result<f64, ThermalError> {
+        self.validate()?;
         validate_temperature(reference_temperature_kelvin)?;
         let heat_capacity = material.heat_capacity(mass_kg)?;
         Ok(heat_capacity * (self.temperature_kelvin - reference_temperature_kelvin))
@@ -92,6 +106,7 @@ impl ThermalState {
         mass_kg: f64,
         material: ThermalMaterial,
     ) -> Result<f64, ThermalError> {
+        self.validate()?;
         if !energy_joules.is_finite() {
             return Err(ThermalError::InvalidEnergy);
         }
@@ -123,18 +138,27 @@ impl ThermalBody {
         state: ThermalState,
         thermal_mass_kg: f64,
     ) -> Result<Self, ThermalError> {
-        validate_positive_finite(thermal_mass_kg, ThermalError::InvalidMass)?;
-        Ok(Self {
+        let thermal = Self {
             material,
             state,
             thermal_mass_kg,
-        })
+        };
+        thermal.validate()?;
+        Ok(thermal)
+    }
+
+    /// Re-validate the complete body-attached thermal reservoir.
+    pub fn validate(self) -> Result<(), ThermalError> {
+        self.material.validate()?;
+        self.state.validate()?;
+        validate_positive_finite(self.thermal_mass_kg, ThermalError::InvalidMass)
     }
 
     pub fn sensible_energy_joules(
         self,
         reference_temperature_kelvin: f64,
     ) -> Result<f64, ThermalError> {
+        self.validate()?;
         self.state.sensible_energy_joules(
             reference_temperature_kelvin,
             self.thermal_mass_kg,
@@ -143,6 +167,7 @@ impl ThermalBody {
     }
 
     pub fn add_heat_joules(&mut self, energy_joules: f64) -> Result<f64, ThermalError> {
+        self.validate()?;
         self.state
             .add_heat_joules(energy_joules, self.thermal_mass_kg, self.material)
     }
@@ -189,8 +214,8 @@ pub fn conductive_exchange(
     conductance_w_per_k: f64,
     dt_seconds: f64,
 ) -> Result<HeatExchange, ThermalError> {
-    validate_temperature(a.temperature_kelvin)?;
-    validate_temperature(b.temperature_kelvin)?;
+    a.validate()?;
+    b.validate()?;
     let capacity_a = material_a.heat_capacity(mass_a_kg)?;
     let capacity_b = material_b.heat_capacity(mass_b_kg)?;
 
@@ -237,6 +262,8 @@ pub fn conductive_exchange_bodies(
     conductance_w_per_k: f64,
     dt_seconds: f64,
 ) -> Result<HeatExchange, ThermalError> {
+    a.validate()?;
+    b.validate()?;
     conductive_exchange(
         &mut a.state,
         a.material,
@@ -294,6 +321,34 @@ mod tests {
         assert_eq!(
             ThermalBody::new(material(1000.0), ThermalState::new(300.0).unwrap(), 0.0),
             Err(ThermalError::InvalidMass)
+        );
+    }
+
+    #[test]
+    fn public_field_mutation_is_revalidated_before_accounting() {
+        let mut thermal = ThermalBody::new(
+            material(1000.0),
+            ThermalState::new(300.0).unwrap(),
+            1.0,
+        )
+        .unwrap();
+
+        thermal.state.temperature_kelvin = -1.0;
+        assert_eq!(thermal.validate(), Err(ThermalError::InvalidTemperature));
+        assert_eq!(
+            thermal.sensible_energy_joules(0.0),
+            Err(ThermalError::InvalidTemperature)
+        );
+
+        thermal.state.temperature_kelvin = 300.0;
+        thermal.material.emissivity = 1.5;
+        assert_eq!(thermal.validate(), Err(ThermalError::InvalidEmissivity));
+
+        thermal.material.emissivity = 0.5;
+        thermal.material.specific_heat_capacity = -10.0;
+        assert_eq!(
+            thermal.validate(),
+            Err(ThermalError::InvalidSpecificHeatCapacity)
         );
     }
 
