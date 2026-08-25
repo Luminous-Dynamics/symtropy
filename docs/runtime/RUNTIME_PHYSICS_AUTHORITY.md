@@ -24,13 +24,16 @@ Procedural generation authors the shared tile map as:
 
 `SiteLayout` is the authoritative authored map. `TileGrid` is derived state.
 The launcher previously populated the grid with `walkable = cell != 1`, which
-made walls traversable and ordinary carved floor blocked. The FixedUpdate bridge
-now detects disagreement and rebuilds the derived grid from the canonical
-contract.
+made walls traversable and ordinary carved floor blocked.
 
-This runtime repair is deliberately defensive. The source generator and 2D
-rendering path should also be normalized to the same helper once a local
-compile-backed edit of those larger files is available.
+`src/systems/procgen.rs` now owns the canonical `tile_code_is_walkable` predicate
+and uses it when constructing `TileGrid`. The FixedUpdate bridge imports the same
+predicate and still reconciles derived state from `SiteLayout` defensively, so a
+legacy/stale grid cannot silently reintroduce the old inversion.
+
+The 2D renderer still has presentation semantics to normalize separately; that
+visual cleanup is not collision authority and should not block R1 physics
+validation.
 
 ## R1: authoritative 2D fixed-step loop
 
@@ -64,6 +67,9 @@ the launcher rather than as a solver contact.
 R2 must replace this with static physics colliders (or a formally specified
 kinematic boundary adapter) so collision response, provenance, impulse, friction,
 and energy accounting all live in the physics substrate.
+
+Before R2 expands static world ownership, `PhysicsWorld` also needs explicit
+body-removal/reset and cross-domain experience teardown semantics; see #19.
 
 ## Sleeping contract
 
@@ -117,7 +123,9 @@ Exit criteria:
 - TileGrid remains navigation/query data, not collision authority,
 - player-vs-NPC and NPC-vs-NPC behavior is covered by deterministic scenarios,
 - contact events and energy accounting identify the same body handles used by
-  gameplay.
+  gameplay,
+- repeated experience enter/exit cycles are bounded by the lifecycle contract in
+  #19 rather than accumulating stale bodies.
 
 ## R3: true 3D Old Waterworks
 
@@ -156,5 +164,6 @@ registered dynamic bodies. It does **not** mean:
 - walls are already solver-owned,
 - Old Waterworks is a true 3D physics world,
 - the thermodynamic tick lifecycle is fully reconciled,
+- world/experience teardown is production-ready,
 - character-controller quality is competitive with Jolt or PhysX,
 - the runtime stack has passed CI while the root stacked gate remains queued.
