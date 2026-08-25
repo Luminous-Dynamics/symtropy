@@ -2,11 +2,11 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 //! AI Player: Symthaea plays the game.
 //!
-//! An FEP (Free Energy Principle) active inference agent controls the player
-//! instead of keyboard input. The agent observes game state, selects actions
-//! to minimize prediction error, and writes to PlayerInput.
-//!
-//! This is the first time a consciousness engine plays its own game.
+//! An FEP (Free Energy Principle) agent observes the game and computes an
+//! expected-free-energy action-selection signal. Current locomotion is still
+//! produced by the continuous free-energy gradient controller; the discrete
+//! action selection is retained as advisory telemetry until a controlled
+//! closed-loop actuation experiment is validated.
 //!
 //! Enable with: --ai-player flag
 
@@ -14,16 +14,25 @@ use bevy::prelude::*;
 use symthaea_fep::{ActiveInferenceAgent, ActiveInferenceAgentConfig, Observation};
 
 use crate::components::{CrewNpc, FusionCore, NoiseEmitter, Player};
-use crate::resources::{EnergyWell, LeviathanState, PhysicsWorldRes, PlayerInput, SleepPhase};
+use crate::resources::{
+    DungeonSeed, EnergyWell, LeviathanState, PhysicsWorldRes, PlayerInput, SleepPhase,
+};
 use symtropy_render_bridge::PhysicsBody;
 
-/// AI player state — the consciousness that plays the game.
+/// AI player state — the consciousness-inspired controller that plays the game.
 #[derive(Resource)]
 pub struct AiPlayer {
     pub agent: ActiveInferenceAgent,
     pub enabled: bool,
     pub tick: u64,
     pub decisions: u64,
+    /// Most recent expected-free-energy action selected by the FEP agent.
+    /// Advisory only until a validated action→locomotion mapping is introduced.
+    pub last_advisory_action: Option<usize>,
+    /// Expected free energy associated with `last_advisory_action`.
+    pub last_advisory_efe: Option<f64>,
+    /// Dungeon seed used to initialize the stochastic action-selection stream.
+    pub action_rng_seed: Option<u64>,
 }
 
 impl Default for AiPlayer {
@@ -37,7 +46,7 @@ impl AiPlayer {
         let config = ActiveInferenceAgentConfig {
             state_dim: 8,
             obs_dim: 8, // energy, phi, danger, nearest_npc, nearest_well, harmony, exploration, noise
-            num_actions: 5, // up, down, left, right, sprint
+            num_actions: 5, // advisory integration vocabulary; not yet directly actuated
             ..Default::default()
         };
         Self {
@@ -45,18 +54,29 @@ impl AiPlayer {
             enabled: false,
             tick: 0,
             decisions: 0,
+            last_advisory_action: None,
+            last_advisory_efe: None,
+            action_rng_seed: None,
         }
     }
 }
 
-/// AI player system: observes game state, selects actions, writes PlayerInput.
+/// AI player system: observes game state and writes continuous locomotion intent.
 ///
 /// When enabled, the human input system explicitly relinquishes `PlayerInput`
 /// ownership, so this system is the sole controller writer for the frame.
+///
+/// The discrete action returned by `ActiveInferenceAgent::select_action()` is
+/// deliberately not passed to `act()` yet. Doing that without a defined and
+/// validated action→game-control mapping would teach the TD learner that an
+/// abstract action caused whatever the independent gradient controller happened
+/// to do. Instead, the selected action and EFE are exposed as advisory telemetry
+/// for the future controlled integration experiment.
 pub fn ai_player_system(
     mut ai: ResMut<AiPlayer>,
     mut input: ResMut<PlayerInput>,
     physics: Res<PhysicsWorldRes>,
+    dungeon_seed: Res<DungeonSeed>,
     leviathan: Res<LeviathanState>,
     player_query: Query<(&Transform, &PhysicsBody), With<Player>>,
     mut noise_query: Query<&mut NoiseEmitter, With<Player>>,
@@ -67,6 +87,16 @@ pub fn ai_player_system(
     if !ai.enabled {
         return;
     }
+
+    // Make stochastic EFE action selection reproducible for a given dungeon
+    // seed. This does not alter the continuous gradient controller; it makes
+    // advisory action telemetry suitable for paired experiments/replays.
+    if ai.action_rng_seed.is_none() {
+        let seed = dungeon_seed.0 ^ 0xA17E_1F3E_9C6D_42B5;
+        ai.agent.set_rng_seed(seed);
+        ai.action_rng_seed = Some(seed);
+    }
+
     ai.tick += 1;
 
     let Ok((player_tf, player_body)) = player_query.single() else {
@@ -148,7 +178,7 @@ pub fn ai_player_system(
         })
         .unwrap_or((0.0, 0.0));
 
-    // === FEP PERCEPTION-ACTION CYCLE ===
+    // === FEP PERCEPTION + ADVISORY ACTION SELECTION ===
 
     let obs = Observation::new(
         vec![
@@ -166,10 +196,12 @@ pub fn ai_player_system(
     );
 
     let _perception = ai.agent.perceive(&obs);
-    let _action = ai.agent.select_action();
+    let action_selection = ai.agent.select_action();
+    ai.last_advisory_action = Some(action_selection.action);
+    ai.last_advisory_efe = Some(action_selection.expected_free_energy);
     ai.decisions += 1;
 
-    // === FREE ENERGY GRADIENT — same algorithm that proved 80% tighter clustering ===
+    // === FREE ENERGY GRADIENT — CURRENT AUTHORITATIVE AI LOCOMOTION POLICY ===
 
     let pos = nalgebra::SVector::from([player_pos.x as f64, player_pos.y as f64]);
 
@@ -261,11 +293,13 @@ pub fn ai_player_system(
         };
 
         eprintln!(
-            "[Symthaea] {} | E={:.0}% Phi={:.4} FE={:.2} danger={:.1} tick={}",
+            "[Symthaea] {} | E={:.0}% Phi={:.4} FE={:.2} action={:?} action_EFE={:?} danger={:.1} tick={}",
             state,
             energy_frac * 100.0,
             phi,
             free_energy,
+            ai.last_advisory_action,
+            ai.last_advisory_efe,
             danger,
             ai.tick,
         );
