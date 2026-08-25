@@ -316,3 +316,21 @@ pub fn ai_player_system(
         );
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn advisory_mode_keeps_direct_learning_enabled_and_td_disabled() {
+        let ai = AiPlayer::new();
+
+        assert!(ai.agent.config.enable_model_learning);
+        assert!(!ai.agent.config.enable_td_learning);
+        assert!(ai.agent.td_stats().is_none());
+        assert!(ai.agent.last_action.is_none());
+        assert!(ai.last_advisory_action.is_none());
+        assert!(ai.last_advisory_efe.is_none());
+        assert!(ai.action_rng_seed.is_none());
+    }
+}
