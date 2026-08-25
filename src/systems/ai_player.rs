@@ -19,6 +19,8 @@ use crate::resources::{
 };
 use symtropy_render_bridge::PhysicsBody;
 
+const ACTION_RNG_SEED_XOR: u64 = 0xA17E_1F3E_9C6D_42B5;
+
 /// AI player state — the consciousness-inspired controller that plays the game.
 #[derive(Resource)]
 pub struct AiPlayer {
@@ -31,7 +33,7 @@ pub struct AiPlayer {
     pub last_advisory_action: Option<usize>,
     /// Expected free energy associated with `last_advisory_action`.
     pub last_advisory_efe: Option<f64>,
-    /// Dungeon seed used to initialize the stochastic action-selection stream.
+    /// Dungeon-derived seed currently driving stochastic action selection.
     pub action_rng_seed: Option<u64>,
 }
 
@@ -69,6 +71,16 @@ impl AiPlayer {
     }
 }
 
+#[inline]
+fn action_rng_seed_for_dungeon(dungeon_seed: u64) -> u64 {
+    dungeon_seed ^ ACTION_RNG_SEED_XOR
+}
+
+#[inline]
+fn should_reseed_action_rng(current_seed: Option<u64>, dungeon_seed: u64) -> bool {
+    current_seed != Some(action_rng_seed_for_dungeon(dungeon_seed))
+}
+
 /// AI player system: observes game state and writes continuous locomotion intent.
 ///
 /// When enabled, the human input system explicitly relinquishes `PlayerInput`
@@ -96,11 +108,13 @@ pub fn ai_player_system(
         return;
     }
 
-    // Make stochastic EFE action selection reproducible for a given dungeon
-    // seed. This does not alter the continuous gradient controller; it makes
-    // advisory action telemetry suitable for paired experiments/replays.
-    if ai.action_rng_seed.is_none() {
-        let seed = dungeon_seed.0 ^ 0xA17E_1F3E_9C6D_42B5;
+    // Keep stochastic EFE action selection reproducible and episode-scoped.
+    // A changed dungeon seed must not silently inherit the previous episode's
+    // RNG stream even if the AiPlayer resource survived. Same-seed Replay still
+    // relies on the explicit session reset in #33 to restart this stream from
+    // its beginning rather than continuing it.
+    if should_reseed_action_rng(ai.action_rng_seed, dungeon_seed.0) {
+        let seed = action_rng_seed_for_dungeon(dungeon_seed.0);
         ai.agent.set_rng_seed(seed);
         ai.action_rng_seed = Some(seed);
     }
@@ -332,5 +346,16 @@ mod tests {
         assert!(ai.last_advisory_action.is_none());
         assert!(ai.last_advisory_efe.is_none());
         assert!(ai.action_rng_seed.is_none());
+    }
+
+    #[test]
+    fn advisory_rng_reseeds_only_when_dungeon_seed_changes() {
+        let seed_a = action_rng_seed_for_dungeon(42);
+        let seed_b = action_rng_seed_for_dungeon(43);
+
+        assert_ne!(seed_a, seed_b);
+        assert!(should_reseed_action_rng(None, 42));
+        assert!(!should_reseed_action_rng(Some(seed_a), 42));
+        assert!(should_reseed_action_rng(Some(seed_a), 43));
     }
 }
