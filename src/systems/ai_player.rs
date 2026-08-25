@@ -81,6 +81,24 @@ fn should_reseed_action_rng(current_seed: Option<u64>, dungeon_seed: u64) -> boo
     current_seed != Some(action_rng_seed_for_dungeon(dungeon_seed))
 }
 
+fn npc_direction_observation(
+    nearest_npc: Option<(Vec2, f32)>,
+    player_pos: Vec2,
+) -> (f64, f64, f64) {
+    match nearest_npc {
+        Some((npc_pos, dist)) if dist > 1.0 => {
+            let dir = (npc_pos - player_pos).normalize_or_zero();
+            (
+                dir.x as f64,
+                dir.y as f64,
+                (1.0 - dist as f64 / 500.0).clamp(0.0, 1.0),
+            )
+        }
+        Some(_) => (0.0, 0.0, 1.0),
+        None => (0.0, 0.0, 0.0),
+    }
+}
+
 /// AI player system: observes game state and writes continuous locomotion intent.
 ///
 /// When enabled, the human input system explicitly relinquishes `PlayerInput`
@@ -149,7 +167,7 @@ pub fn ai_player_system(
         SleepPhase::Hunting => 1.0,
     };
 
-    // 4-5. Direction to nearest NPC (normalized, -1 to 1 for x and y)
+    // 4-5 and 8. Direction/proximity to nearest NPC.
     let nearest_npc = npc_query
         .iter()
         .map(|tf| {
@@ -160,17 +178,8 @@ pub fn ai_player_system(
         })
         .min_by(|a, b| a.1.partial_cmp(&b.1).unwrap_or(std::cmp::Ordering::Equal));
 
-    let (npc_dir_x, npc_dir_y, npc_dist_norm) = match nearest_npc {
-        Some((npc_pos, dist)) if dist > 1.0 => {
-            let dir = (npc_pos - player_pos).normalize();
-            (
-                dir.x as f64,
-                dir.y as f64,
-                (1.0 - dist as f64 / 500.0).max(0.0),
-            )
-        }
-        _ => (0.0, 0.0, 1.0), // Already at NPC
-    };
+    let (npc_dir_x, npc_dir_y, npc_dist_norm) =
+        npc_direction_observation(nearest_npc, player_pos);
 
     // 6-7. Direction to nearest energy well
     let nearest_well = well_query
@@ -357,5 +366,26 @@ mod tests {
         assert!(should_reseed_action_rng(None, 42));
         assert!(!should_reseed_action_rng(Some(seed_a), 42));
         assert!(should_reseed_action_rng(Some(seed_a), 43));
+    }
+
+    #[test]
+    fn npc_observation_distinguishes_absence_from_proximity() {
+        assert_eq!(
+            npc_direction_observation(None, Vec2::ZERO),
+            (0.0, 0.0, 0.0),
+            "no NPC must not masquerade as maximum proximity"
+        );
+
+        assert_eq!(
+            npc_direction_observation(Some((Vec2::new(0.5, 0.0), 0.5)), Vec2::ZERO),
+            (0.0, 0.0, 1.0),
+            "an NPC within one world unit is maximum proximity"
+        );
+
+        let (x, y, proximity) =
+            npc_direction_observation(Some((Vec2::new(100.0, 0.0), 100.0)), Vec2::ZERO);
+        assert!((x - 1.0).abs() < 1.0e-12);
+        assert!(y.abs() < 1.0e-12);
+        assert!((proximity - 0.8).abs() < 1.0e-12);
     }
 }
