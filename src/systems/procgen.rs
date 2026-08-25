@@ -10,6 +10,17 @@
 
 use rand::Rng;
 
+/// Canonical authored tile semantics shared by generation and collision lookup.
+///
+/// `0` is the only blocking tile code. Floor (`1`), core room (`2`), and
+/// player start (`3`) are all traversable. Future non-zero authored codes
+/// inherit the traversable convention until the map format is explicitly
+/// versioned with richer collision semantics.
+#[inline]
+pub(crate) fn tile_code_is_walkable(cell: u8) -> bool {
+    cell != 0
+}
+
 /// Generated dungeon layout.
 pub struct Dungeon {
     pub width: usize,
@@ -110,7 +121,6 @@ impl BspNode {
                 self.x + split,
                 self.y,
                 self.w.saturating_sub(split).max(1),
-                self.h,
             ));
             left.split_with_params(rng, depth - 1, min_room, min_split);
             right.split_with_params(rng, depth - 1, min_room, min_split);
@@ -335,24 +345,15 @@ fn generate_dungeon_with_config(
         let py = rooms[0].1.clamp(1, height - 2);
         let px = rooms[0].0.clamp(1, width - 2);
         tiles[py][px] = 3;
-        // Place core somewhere walkable.
-        //
-        // NOTE: the `break` exits only the inner loop, so this marks the first
-        // walkable tile in EVERY row, not one core overall. Preserved exactly
-        // as-is here — this rewrite is a lint fix (clippy::needless_range_loop),
-        // not a behaviour change — but the single-word comment above and the
-        // `break` together suggest one core was intended. Worth a look by
-        // whoever owns dungeon generation.
-        //
-        // `.take(n).skip(1)` yields indices 1..n, matching the original
-        // `1..height - 1` / `1..width - 1` ranges. Clippy's own suggestion here
-        // is wrong: it proposes iterating `tiles` for the INNER loop too, which
-        // would index rows where the original indexes columns within a row.
-        for row in tiles.iter_mut().take(height - 1).skip(1) {
+
+        // Place exactly one core somewhere else on walkable floor. The old
+        // unlabeled `break` exited only the inner loop and could mark one core
+        // per row in a single-room dungeon.
+        'place_core: for row in tiles.iter_mut().take(height - 1).skip(1) {
             for tile in row.iter_mut().take(width - 1).skip(1) {
                 if *tile == 1 {
                     *tile = 2;
-                    break;
+                    break 'place_core;
                 }
             }
         }
@@ -433,7 +434,7 @@ pub fn generate_site_layout_system(
             let x = (col_idx as f32 - cols as f32 / 2.0) * TILE_SIZE;
             let y = (rows as f32 / 2.0 - row_idx as f32) * TILE_SIZE;
 
-            let walkable = cell != 1;
+            let walkable = tile_code_is_walkable(cell);
             if cell == 2 {
                 site_layout.core_pos = Vec2::new(x, y);
             } else if cell == 3 {
@@ -455,6 +456,14 @@ use rand::SeedableRng;
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn canonical_tile_codes_match_collision_contract() {
+        assert!(!tile_code_is_walkable(0));
+        assert!(tile_code_is_walkable(1));
+        assert!(tile_code_is_walkable(2));
+        assert!(tile_code_is_walkable(3));
+    }
 
     #[test]
     fn generates_valid_dungeon() {
@@ -496,6 +505,20 @@ mod tests {
             assert_eq!(dungeon.tiles[0][x], 0);
             assert_eq!(dungeon.tiles[21][x], 0);
         }
+    }
+
+    #[test]
+    fn single_room_fallback_places_exactly_one_core() {
+        let dungeon = generate_dungeon_with_config(16, 16, 42, 0, 5, 12, 2);
+        assert_eq!(dungeon.room_centers.len(), 1);
+
+        let core_count = dungeon
+            .tiles
+            .iter()
+            .flat_map(|row| row.iter())
+            .filter(|&&tile| tile == 2)
+            .count();
+        assert_eq!(core_count, 1, "single-room fallback must place one core");
     }
 
     #[test]
