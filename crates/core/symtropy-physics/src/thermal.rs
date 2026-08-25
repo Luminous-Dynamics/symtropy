@@ -132,6 +132,7 @@ pub enum ThermalError {
 /// transfer is exactly antisymmetric: energy removed from A is added to B.
 /// Large timesteps are capped at the pair's equilibrium transfer, which prevents
 /// a single step from crossing equilibrium and reversing the temperature order.
+#[allow(clippy::too_many_arguments)]
 pub fn conductive_exchange(
     a: &mut ThermalState,
     material_a: ThermalMaterial,
