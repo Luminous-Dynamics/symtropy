@@ -59,10 +59,32 @@ elif [[ "$locked" != "$declared"* ]]; then
 fi
 
 # --- 3. No absolute machine-specific path deps -----------------------------
-# NOTE: the old glob was `crates/*/Cargo.toml`, which missed every crate under
-# the crates/{core,domains,bridges,apps,distributions}/ tiers — i.e. almost all
-# of them. Recurse instead.
-if rg -n --glob '!target' --glob 'Cargo.toml' 'path\s*=\s*"/srv/luminous-dynamics' . 2>/dev/null; then
+# Use only the Python standard library here so this guard is identical on
+# Linux and macOS hosted runners; the previous `rg` dependency made the fast
+# preflight needlessly runner-image-specific.
+absolute_paths=$(
+  python3 - <<'PY'
+import os
+import pathlib
+import re
+
+pattern = re.compile(r'path\s*=\s*"/srv/luminous-dynamics')
+skip_dirs = {".git", "target", "node_modules"}
+
+for root, dirs, files in os.walk("."):
+    dirs[:] = [directory for directory in dirs if directory not in skip_dirs]
+    if "Cargo.toml" not in files:
+        continue
+    manifest = pathlib.Path(root) / "Cargo.toml"
+    for line_number, line in enumerate(
+        manifest.read_text(errors="replace").splitlines(), start=1
+    ):
+        if pattern.search(line):
+            print(f"{manifest}:{line_number}:{line.strip()}")
+PY
+)
+if [[ -n "$absolute_paths" ]]; then
+  printf '%s\n' "$absolute_paths"
   note "absolute machine-specific Cargo paths are forbidden (see above)"
 fi
 
