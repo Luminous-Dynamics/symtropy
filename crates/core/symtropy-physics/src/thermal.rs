@@ -236,19 +236,13 @@ mod tests {
         let mass_a = 2.0;
         let mass_b = 3.0;
 
-        let before = a
-            .sensible_energy_joules(0.0, mass_a, mat_a)
-            .unwrap()
+        let before = a.sensible_energy_joules(0.0, mass_a, mat_a).unwrap()
             + b.sensible_energy_joules(0.0, mass_b, mat_b).unwrap();
 
-        let exchange = conductive_exchange(
-            &mut a, mat_a, mass_a, &mut b, mat_b, mass_b, 25.0, 0.5,
-        )
-        .unwrap();
+        let exchange =
+            conductive_exchange(&mut a, mat_a, mass_a, &mut b, mat_b, mass_b, 25.0, 0.5).unwrap();
 
-        let after = a
-            .sensible_energy_joules(0.0, mass_a, mat_a)
-            .unwrap()
+        let after = a.sensible_energy_joules(0.0, mass_a, mat_a).unwrap()
             + b.sensible_energy_joules(0.0, mass_b, mat_b).unwrap();
 
         assert!(exchange.joules_from_a_to_b > 0.0);
@@ -263,9 +257,7 @@ mod tests {
         let mut a = ThermalState::new(500.0).unwrap();
         let mut b = ThermalState::new(300.0).unwrap();
 
-        let exchange =
-            conductive_exchange(&mut a, mat, 1.0, &mut b, mat, 1.0, 1.0e9, 1.0)
-                .unwrap();
+        let exchange = conductive_exchange(&mut a, mat, 1.0, &mut b, mat, 1.0, 1.0e9, 1.0).unwrap();
 
         assert!(exchange.equilibrium_limited);
         assert!((a.temperature_kelvin - 400.0).abs() < 1e-12);
@@ -278,8 +270,8 @@ mod tests {
         let mut a = ThermalState::new(250.0).unwrap();
         let mut b = ThermalState::new(350.0).unwrap();
 
-        let exchange = conductive_exchange(&mut a, mat, 1.0, &mut b, mat, 1.0, 10.0, 1.0)
-            .unwrap();
+        let exchange =
+            conductive_exchange(&mut a, mat, 1.0, &mut b, mat, 1.0, 10.0, 1.0).unwrap();
 
         assert!(exchange.joules_from_a_to_b < 0.0);
         assert!(a.temperature_kelvin > 250.0);
