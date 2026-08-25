@@ -13,7 +13,9 @@
 //! - `gjk::intersects()` — GJK intersection test for any `Shape<D>`
 //! - `contact::ContactManifold<D>` — collision contact data
 //! - `integrator` — semi-implicit Euler with bivector angular dynamics
+//! - `angular_dynamics` — validated 3D principal-inertia/asymmetric-top reference dynamics
 
+pub mod angular_dynamics;
 pub mod articulation;
 pub mod body;
 pub mod broadphase;
@@ -32,6 +34,12 @@ pub mod replay;
 pub mod support_map;
 pub mod world;
 
+pub use angular_dynamics::{
+    AngularDynamicsError, AngularStep3, PrincipalInertia3, angular_vector_to_bivector,
+    angular_velocity_at_offset, angular_velocity_from_world_momentum,
+    bivector_to_angular_vector, rotational_kinetic_energy, step_principal_inertia,
+    world_angular_momentum,
+};
 pub use articulation::{ArticulatedChain, ChainBuilder, LinkSpec};
 pub use body::{BodyHandle, BodyType, NetId, RigidBody};
 pub use broadphase::{Aabb, Lbvh, morton_encode, morton_prefix};
