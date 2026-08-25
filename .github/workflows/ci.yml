@@ -24,7 +24,7 @@ jobs:
         os: [ubuntu-latest, windows-latest, macos-latest]
 
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v7
 
     - name: Install System Dependencies (Linux)
       if: runner.os == 'Linux'
@@ -32,10 +32,31 @@ jobs:
         sudo apt-get update
         sudo apt-get install -y libasound2-dev libudev-dev pkg-config
 
-    - name: Set up Rust
-      uses: dtolnay/rust-toolchain@stable
+    - name: Read pinned Rust toolchain
+      id: rust-toolchain
+      shell: bash
+      run: |
+        channel="$(sed -n 's/^channel = "\([^"]*\)"$/\1/p' rust-toolchain.toml)"
+        if [ -z "$channel" ]; then
+          echo "rust-toolchain.toml does not declare [toolchain].channel" >&2
+          exit 1
+        fi
+        echo "channel=$channel" >> "$GITHUB_OUTPUT"
+
+    - name: Set up pinned Rust
+      uses: dtolnay/rust-toolchain@master
       with:
+        toolchain: ${{ steps.rust-toolchain.outputs.channel }}
         components: clippy, rustfmt
+
+    - name: Toolchain provenance
+      shell: bash
+      run: |
+        rustup show active-toolchain
+        rustc --version --verbose
+        cargo --version
+        rustfmt --version
+        cargo clippy --version
 
     - name: Cache dependencies
       uses: Swatinem/rust-cache@v2
