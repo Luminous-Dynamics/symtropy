@@ -45,8 +45,16 @@ impl AiPlayer {
     pub fn new() -> Self {
         let config = ActiveInferenceAgentConfig {
             state_dim: 8,
-            obs_dim: 8, // energy, phi, danger, nearest_npc, nearest_well, harmony, exploration, noise
+            obs_dim: 8,
             num_actions: 5, // advisory integration vocabulary; not yet directly actuated
+            // TD learning requires `last_action` to identify the action that
+            // actually caused the next transition. Symtropy's current discrete
+            // action is advisory while locomotion comes from the continuous
+            // free-energy gradient, so enabling TD here would suppress direct
+            // model learning without producing valid TD updates. Keep direct
+            // generative-model learning active until #20 closes the real loop.
+            enable_model_learning: true,
+            enable_td_learning: false,
             ..Default::default()
         };
         Self {
@@ -104,7 +112,9 @@ pub fn ai_player_system(
     };
     let player_pos = player_tf.translation.truncate();
 
-    // === BUILD OBSERVATION ===
+    // Observation schema v1:
+    // [energy, phi, danger, npc_dir_x, npc_dir_y, well_dir_x, well_dir_y,
+    //  npc_proximity]. Keep this ordering stable for reproducible experiments.
 
     // 1. Energy fraction [0, 1]
     let energy_frac = physics
@@ -125,7 +135,7 @@ pub fn ai_player_system(
         SleepPhase::Hunting => 1.0,
     };
 
-    // 4. Direction to nearest NPC (normalized, -1 to 1 for x and y)
+    // 4-5. Direction to nearest NPC (normalized, -1 to 1 for x and y)
     let nearest_npc = npc_query
         .iter()
         .map(|tf| {
@@ -148,7 +158,7 @@ pub fn ai_player_system(
         _ => (0.0, 0.0, 1.0), // Already at NPC
     };
 
-    // 5. Direction to nearest energy well
+    // 6-7. Direction to nearest energy well
     let nearest_well = well_query
         .iter()
         .filter(|(_, w)| w.is_active())
@@ -160,7 +170,7 @@ pub fn ai_player_system(
         })
         .min_by(|a, b| a.1.partial_cmp(&b.1).unwrap_or(std::cmp::Ordering::Equal));
 
-    let (_well_dir_x, _well_dir_y) = match nearest_well {
+    let (well_dir_x, well_dir_y) = match nearest_well {
         Some((well_pos, dist)) if dist > 1.0 => {
             let dir = (well_pos - player_pos).normalize();
             (dir.x as f64, dir.y as f64)
@@ -168,7 +178,8 @@ pub fn ai_player_system(
         _ => (0.0, 0.0),
     };
 
-    // 6. Direction to fusion core
+    // Fusion-core direction is currently used by the continuous gradient path
+    // below, not by observation schema v1.
     let _core_dir = core_query
         .iter()
         .next()
@@ -187,8 +198,8 @@ pub fn ai_player_system(
             danger,
             npc_dir_x,
             npc_dir_y,
-            _well_dir_x,
-            _well_dir_y,
+            well_dir_x,
+            well_dir_y,
             npc_dist_norm,
         ],
         0.8, // precision
