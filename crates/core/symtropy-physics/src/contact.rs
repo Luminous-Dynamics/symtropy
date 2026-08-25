@@ -44,6 +44,13 @@ pub struct CollisionEvent<const D: usize> {
     pub depth: f64,
 }
 
+impl<const D: usize> CollisionEvent<D> {
+    /// Whether this event references `body`.
+    pub fn references(&self, body: BodyHandle) -> bool {
+        self.body_a == body || self.body_b == body
+    }
+}
+
 /// Sensor overlap event (no collision resolution, just notification).
 #[derive(Clone, Debug)]
 pub struct SensorEvent {
@@ -51,6 +58,13 @@ pub struct SensorEvent {
     pub sensor: BodyHandle,
     /// The other body overlapping the sensor.
     pub other: BodyHandle,
+}
+
+impl SensorEvent {
+    /// Whether this sensor event references `body`.
+    pub fn references(&self, body: BodyHandle) -> bool {
+        self.sensor == body || self.other == body
+    }
 }
 
 /// Contact information from a collision between two bodies.
@@ -94,6 +108,11 @@ impl<const D: usize> ContactManifold<D> {
             points,
             elasticity: None,
         }
+    }
+
+    /// Whether this manifold references `body`.
+    pub fn references(&self, body: BodyHandle) -> bool {
+        self.body_a == body || self.body_b == body
     }
 
     /// Primary contact point (deepest penetration).
@@ -262,6 +281,37 @@ mod tests {
         );
         assert_eq!(m.points.len(), 1);
         assert!((m.depth() - 0.5).abs() < 1e-12);
+    }
+
+    #[test]
+    fn contact_records_reference_only_participating_bodies() {
+        let manifold = ContactManifold::<3>::single(
+            BodyHandle(4),
+            BodyHandle(9),
+            SVector::from([0.0, 1.0, 0.0]),
+            SVector::zeros(),
+            0.1,
+        );
+        let collision = CollisionEvent::<3> {
+            body_a: BodyHandle(4),
+            body_b: BodyHandle(9),
+            impulse: 1.0,
+            normal: SVector::from([0.0, 1.0, 0.0]),
+            depth: 0.1,
+        };
+        let sensor = SensorEvent {
+            sensor: BodyHandle(4),
+            other: BodyHandle(9),
+        };
+
+        for body in [BodyHandle(4), BodyHandle(9)] {
+            assert!(manifold.references(body));
+            assert!(collision.references(body));
+            assert!(sensor.references(body));
+        }
+        assert!(!manifold.references(BodyHandle(5)));
+        assert!(!collision.references(BodyHandle(5)));
+        assert!(!sensor.references(BodyHandle(5)));
     }
 
     #[test]
