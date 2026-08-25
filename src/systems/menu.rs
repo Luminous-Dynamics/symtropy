@@ -6,10 +6,14 @@
 //! Reads from ExperienceRegistry to build the menu dynamically.
 //! Background is a breathing mycelial network rendered via gizmos.
 
+use std::collections::HashSet;
+
 use bevy::prelude::*;
 
 use crate::experience::ExperienceRegistry;
-use crate::resources::{DungeonSeed, GamePhase};
+use crate::resources::{
+    BiometricsCtx, DungeonSeed, GamePhase, LeviathanState, PhysicsWorldRes, PlayerInput,
+};
 
 /// Marker for Nexus UI entities (despawned on transition).
 #[derive(Component)]
@@ -18,6 +22,25 @@ pub struct MenuUi;
 /// Marker for loading screen entities.
 #[derive(Component)]
 pub struct LoadingUi;
+
+/// Persistent ECS entity set captured immediately before a gameplay session is
+/// spawned.
+///
+/// Every entity created after this snapshot belongs to that gameplay session
+/// unless a future ownership API explicitly promotes it to persistent state.
+/// This gives teardown one auditable boundary that also catches entities spawned
+/// later during play (drones, effects, auras, projectiles, etc.) without asking
+/// every subsystem to remember a cleanup marker.
+#[derive(Resource, Default)]
+pub struct GameplaySessionBaseline {
+    persistent_entities: HashSet<Entity>,
+}
+
+impl GameplaySessionBaseline {
+    fn owns(&self, entity: Entity) -> bool {
+        !self.persistent_entities.contains(&entity)
+    }
+}
 
 /// Marker for the selection indicator text.
 #[derive(Component)]
@@ -36,7 +59,56 @@ pub struct NexusTransition {
 pub struct NexusFade;
 
 /// Spawn the Symtropy Nexus launcher.
-pub fn setup_menu(mut commands: Commands, registry: Res<ExperienceRegistry>) {
+///
+/// Returning to the Nexus is also the whole-session teardown boundary. The
+/// previous gameplay session is removed before new menu entities are queued,
+/// and the coupled physics/consciousness/input state is replaced atomically at
+/// the resource level. Fine-grained in-session body removal remains a separate
+/// `PhysicsWorld` API requirement tracked by #19.
+#[allow(clippy::too_many_arguments)]
+pub fn setup_menu(
+    mut commands: Commands,
+    registry: Res<ExperienceRegistry>,
+    baseline: Option<Res<GameplaySessionBaseline>>,
+    all_entities: Query<Entity>,
+    mut physics_world: ResMut<PhysicsWorldRes>,
+    mut player_input: ResMut<PlayerInput>,
+    mut leviathan: ResMut<LeviathanState>,
+    mut biometrics: ResMut<BiometricsCtx>,
+    #[cfg(feature = "fep-ai")] mut ai_player: Option<ResMut<super::ai_player::AiPlayer>>,
+) {
+    if let Some(baseline) = baseline.as_deref() {
+        let mut queued = 0usize;
+        for entity in &all_entities {
+            if baseline.owns(entity) {
+                // `try_despawn` is deliberate: despawning a parent recursively
+                // removes descendants, so a later queued command for one of
+                // those descendants must be allowed to become a no-op.
+                commands.entity(entity).try_despawn();
+                queued += 1;
+            }
+        }
+        eprintln!("[symtropy] queued teardown for {queued} gameplay-session entities");
+    }
+
+    // Whole-session replacement keeps ECS PhysicsBody handles, exact physics
+    // state, and consciousness registrations from crossing episode boundaries.
+    *physics_world = PhysicsWorldRes::default();
+    *player_input = PlayerInput::default();
+    *leviathan = LeviathanState::default();
+    biometrics.encoder.reset();
+    biometrics.model.reset();
+
+    #[cfg(feature = "fep-ai")]
+    if let Some(mut ai_player) = ai_player {
+        // Learning persistence must be an explicit experiment mode. The default
+        // runtime treats beliefs/model/RNG/advisory counters as episode state so
+        // same-seed replay can start from the same controller state.
+        let enabled = ai_player.enabled;
+        *ai_player = super::ai_player::AiPlayer::new();
+        ai_player.enabled = enabled;
+    }
+
     // Dark background
     commands.insert_resource(ClearColor(Color::srgb(0.02, 0.02, 0.04)));
 
@@ -58,7 +130,7 @@ pub fn setup_menu(mut commands: Commands, registry: Res<ExperienceRegistry>) {
             MenuUi,
         ))
         .with_children(|parent| {
-            // Inner block — left-aligned text within centered container
+            // Inner block — left-aligned text within centered block
             parent
                 .spawn(Node {
                     flex_direction: FlexDirection::Column,
@@ -328,8 +400,21 @@ pub fn cleanup_menu(mut commands: Commands, query: Query<Entity, With<MenuUi>>) 
     }
 }
 
-/// Spawn loading screen.
-pub fn setup_loading(mut commands: Commands, seed: Res<DungeonSeed>) {
+/// Spawn loading screen and capture the persistent ECS baseline for this run.
+///
+/// `setup_loading` is the first system in the chained Loading setup. The menu UI
+/// has already been removed by `OnExit(MainMenu)`, so the snapshot contains only
+/// entities that are intended to outlive a gameplay session. Everything spawned
+/// after this point is session-owned by default.
+pub fn setup_loading(
+    mut commands: Commands,
+    seed: Res<DungeonSeed>,
+    all_entities: Query<Entity>,
+) {
+    commands.insert_resource(GameplaySessionBaseline {
+        persistent_entities: all_entities.iter().collect(),
+    });
+
     commands
         .spawn((
             Node {
@@ -370,5 +455,23 @@ pub fn setup_loading(mut commands: Commands, seed: Res<DungeonSeed>) {
 pub fn cleanup_loading(mut commands: Commands, query: Query<Entity, With<LoadingUi>>) {
     for entity in &query {
         commands.entity(entity).despawn();
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn session_baseline_owns_only_entities_created_after_snapshot() {
+        let mut world = World::new();
+        let persistent = world.spawn_empty().id();
+        let baseline = GameplaySessionBaseline {
+            persistent_entities: HashSet::from([persistent]),
+        };
+        let session_entity = world.spawn_empty().id();
+
+        assert!(!baseline.owns(persistent));
+        assert!(baseline.owns(session_entity));
     }
 }
