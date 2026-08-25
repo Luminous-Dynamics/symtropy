@@ -11,16 +11,11 @@ env:
 
 jobs:
   preflight:
-    name: Fast Preflight (ubuntu-latest)
-    runs-on: ubuntu-latest
+    name: Fast Preflight (macos-latest)
+    runs-on: macos-latest
 
     steps:
     - uses: actions/checkout@v7
-
-    - name: Install System Dependencies
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y libasound2-dev libudev-dev pkg-config
 
     - name: Read pinned Rust toolchain
       id: rust-toolchain
@@ -52,7 +47,7 @@ jobs:
     needs: preflight
     runs-on: ${{ matrix.os }}
     strategy:
-      # Legs report independently once the cheap Linux preflight has passed.
+      # Legs report independently once the cheap portable preflight has passed.
       # This preserves cross-platform evidence without spending three hosted
       # runners on formatting/license/workspace-invariant failures.
       fail-fast: false
