@@ -10,6 +10,7 @@
 
 use crate::components::Player;
 use crate::resources::{GamePhase, PhysicsWorldRes, PlayerInput, SiteLayout, TileGrid};
+use crate::systems::procgen::tile_code_is_walkable;
 use bevy::prelude::*;
 use symtropy_render_bridge::PhysicsBody;
 
@@ -105,21 +106,6 @@ pub fn physics_sync_transforms(
             transform.translation.y = pos[1] as f32;
         }
     }
-}
-
-/// Canonical map contract shared with procedural generation:
-///
-/// - 0 = wall
-/// - 1 = floor
-/// - 2 = core room
-/// - 3 = player start
-///
-/// All non-zero authored cells are traversable. Unknown future non-zero cell
-/// kinds inherit that convention unless the map format is explicitly versioned
-/// with richer collision semantics.
-#[inline]
-fn tile_code_is_walkable(cell: u8) -> bool {
-    cell != 0
 }
 
 /// `TileGrid` is derived state, so repair it from `SiteLayout` whenever the
