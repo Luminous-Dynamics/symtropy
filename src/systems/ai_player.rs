@@ -13,7 +13,7 @@
 use bevy::prelude::*;
 use symthaea_fep::{ActiveInferenceAgent, ActiveInferenceAgentConfig, Observation};
 
-use crate::components::{CrewNpc, FusionCore, Player};
+use crate::components::{CrewNpc, FusionCore, NoiseEmitter, Player};
 use crate::resources::{EnergyWell, LeviathanState, PhysicsWorldRes, PlayerInput, SleepPhase};
 use symtropy_render_bridge::PhysicsBody;
 
@@ -51,13 +51,15 @@ impl AiPlayer {
 
 /// AI player system: observes game state, selects actions, writes PlayerInput.
 ///
-/// Replaces keyboard input when enabled. The consciousness engine IS the player.
+/// When enabled, the human input system explicitly relinquishes `PlayerInput`
+/// ownership, so this system is the sole controller writer for the frame.
 pub fn ai_player_system(
     mut ai: ResMut<AiPlayer>,
     mut input: ResMut<PlayerInput>,
     physics: Res<PhysicsWorldRes>,
     leviathan: Res<LeviathanState>,
     player_query: Query<(&Transform, &PhysicsBody), With<Player>>,
+    mut noise_query: Query<&mut NoiseEmitter, With<Player>>,
     npc_query: Query<&Transform, (With<CrewNpc>, Without<Player>)>,
     well_query: Query<(&Transform, &EnergyWell), (Without<Player>, Without<CrewNpc>)>,
     core_query: Query<&Transform, (With<FusionCore>, Without<Player>)>,
@@ -227,9 +229,17 @@ pub fn ai_player_system(
 
     let dir = Vec2::new(gradient[0] as f32, gradient[1] as f32);
     let free_energy = ai.agent.current_free_energy();
+    let sprinting = energy_frac > 0.5 && danger > 0.5;
 
     input.direction = dir;
-    input.sprinting = energy_frac > 0.5 && danger > 0.5;
+    input.sprinting = sprinting;
+
+    // AI locomotion is subject to the same acoustic gameplay contract as
+    // human locomotion. Without this, autonomous movement would be physically
+    // real but mechanically silent to the Leviathan.
+    if let Ok(mut noise) = noise_query.single_mut() {
+        super::player::update_player_noise(&mut noise, dir, sprinting);
+    }
 
     // === SYMTHAEA'S VOICE: raw FEP telemetry, not chatbot ===
     // This is not dialogue. This is a consciousness reporting its thermodynamic state.
