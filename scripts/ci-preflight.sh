@@ -18,6 +18,7 @@ rustc --version --verbose
 cargo --version
 rustfmt --version
 cargo clippy --version
+python3 --version
 
 echo "== format =="
 cargo fmt --all -- --check
