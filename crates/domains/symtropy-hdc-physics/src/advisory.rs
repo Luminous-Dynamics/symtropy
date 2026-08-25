@@ -11,6 +11,7 @@
 //! without allowing it to mutate authoritative physics state directly.
 
 pub mod fidelity;
+pub mod shadow;
 pub mod thermal_semantics;
 
 use serde::{Deserialize, Serialize};
