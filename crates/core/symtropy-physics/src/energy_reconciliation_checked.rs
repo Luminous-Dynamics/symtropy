@@ -19,6 +19,7 @@ use crate::energy_state::{
 pub enum EnergyReconciliationEvidenceError {
     NonFiniteTolerance,
     NonFiniteSummary,
+    InconsistentSummaryTotals,
     DuplicateReservoir(EnergyPort),
     NonFiniteReservoirEvidence(EnergyPort),
     InconsistentReservoirArithmetic(EnergyPort),
@@ -77,6 +78,8 @@ impl EnergyReconciliationEvidenceExt for EnergyReconciliationAudit {
             }
             validate_entry_finite(entry)?;
         }
+
+        validate_endpoint_summaries(self)?;
 
         for (index, change) in self.reservoir_presence_changes.iter().enumerate() {
             if self.reservoir_presence_changes[..index]
@@ -222,6 +225,86 @@ impl EnergyReconciliationEvidenceExt for EnergyReconciliationAudit {
                 .all(|entry| entry.residual_joules.is_some_and(|r| r.abs() <= tolerance_joules))
             && self.total_closure_error_joules.abs() <= tolerance_joules)
     }
+}
+
+/// Recompute endpoint totals from the represented reservoirs and prove that the
+/// stored summary totals are consistent with those entries.
+///
+/// A small forward-error bound is necessary because the original snapshots and
+/// the unioned reconciliation entries can sum the same finite reservoirs in a
+/// different deterministic order when reservoirs appear or disappear. The bound
+/// scales only with machine epsilon, entry count, and total absolute magnitude;
+/// it is not a user-controlled physics tolerance.
+fn validate_endpoint_summaries(
+    audit: &EnergyReconciliationAudit,
+) -> Result<(), EnergyReconciliationEvidenceError> {
+    let mut initial_sum = 0.0_f64;
+    let mut final_sum = 0.0_f64;
+    let mut initial_abs_sum = 0.0_f64;
+    let mut final_abs_sum = 0.0_f64;
+    let mut initial_count = 0_usize;
+    let mut final_count = 0_usize;
+
+    for entry in &audit.entries {
+        if let Some(value) = entry.initial_joules {
+            checked_summary_add(&mut initial_sum, value)?;
+            checked_summary_add(&mut initial_abs_sum, value.abs())?;
+            initial_count = initial_count.saturating_add(1);
+        }
+        if let Some(value) = entry.final_joules {
+            checked_summary_add(&mut final_sum, value)?;
+            checked_summary_add(&mut final_abs_sum, value.abs())?;
+            final_count = final_count.saturating_add(1);
+        }
+    }
+
+    if !summary_total_matches(
+        audit.initial_total_joules,
+        initial_sum,
+        initial_abs_sum,
+        initial_count,
+    )? || !summary_total_matches(
+        audit.final_total_joules,
+        final_sum,
+        final_abs_sum,
+        final_count,
+    )? {
+        return Err(EnergyReconciliationEvidenceError::InconsistentSummaryTotals);
+    }
+
+    Ok(())
+}
+
+fn checked_summary_add(
+    accumulator: &mut f64,
+    value: f64,
+) -> Result<(), EnergyReconciliationEvidenceError> {
+    let next = *accumulator + value;
+    if !next.is_finite() {
+        return Err(EnergyReconciliationEvidenceError::NonFiniteSummary);
+    }
+    *accumulator = next;
+    Ok(())
+}
+
+fn summary_total_matches(
+    stored: f64,
+    recomputed: f64,
+    absolute_sum: f64,
+    count: usize,
+) -> Result<bool, EnergyReconciliationEvidenceError> {
+    let scale = absolute_sum
+        .max(stored.abs())
+        .max(recomputed.abs())
+        .max(1.0);
+    let count_factor = 8.0 * count.max(1) as f64;
+    let tolerance = f64::EPSILON * count_factor * scale;
+    if !scale.is_finite() || !count_factor.is_finite() || !tolerance.is_finite() {
+        return Err(EnergyReconciliationEvidenceError::NonFiniteSummary);
+    }
+
+    let difference = (stored - recomputed).abs();
+    Ok(difference.is_finite() && difference <= tolerance)
 }
 
 fn validate_entry_finite(
@@ -371,6 +454,61 @@ mod tests {
             audit.validate_evidence(),
             Err(EnergyReconciliationEvidenceError::InconsistentBoundaryArithmetic)
         );
+    }
+
+    #[test]
+    fn endpoint_summary_totals_are_bound_to_reservoir_entries() {
+        let mut initial_forgery = valid_audit();
+        initial_forgery.initial_total_joules = 110.0;
+        initial_forgery.net_external_joules = -20.0;
+        initial_forgery.total_closure_error_joules = 0.0;
+        assert_eq!(
+            initial_forgery.validate_evidence(),
+            Err(EnergyReconciliationEvidenceError::InconsistentSummaryTotals)
+        );
+
+        let mut final_forgery = valid_audit();
+        final_forgery.final_total_joules = 80.0;
+        final_forgery.net_external_joules = -20.0;
+        final_forgery.total_closure_error_joules = 0.0;
+        assert_eq!(
+            final_forgery.validate_evidence(),
+            Err(EnergyReconciliationEvidenceError::InconsistentSummaryTotals)
+        );
+    }
+
+    #[test]
+    fn summary_revalidation_tolerates_only_roundoff_scale_reordering() {
+        let kinetic = EnergyPort::new(EnergyOwner::Body(BodyHandle(1)), EnergyForm::Kinetic);
+        let audit = EnergyReconciliationAudit {
+            entries: vec![
+                ReservoirReconciliation {
+                    port: thermal_port(),
+                    initial_joules: Some(1.0e16),
+                    final_joules: Some(1.0e16),
+                    measured_delta_joules: Some(0.0),
+                    ledger_delta_joules: 0.0,
+                    residual_joules: Some(0.0),
+                },
+                ReservoirReconciliation {
+                    port: kinetic,
+                    initial_joules: Some(1.0),
+                    final_joules: Some(1.0),
+                    measured_delta_joules: Some(0.0),
+                    ledger_delta_joules: 0.0,
+                    residual_joules: Some(0.0),
+                },
+            ],
+            reservoir_presence_changes: Vec::new(),
+            untracked_ledger_ports: Vec::new(),
+            // At this scale adding 1 J can round away. The summary integrity
+            // check permits only the machine-error-sized ambiguity.
+            initial_total_joules: 1.0e16,
+            final_total_joules: 1.0e16,
+            net_external_joules: 0.0,
+            total_closure_error_joules: 0.0,
+        };
+        assert_eq!(audit.validate_evidence(), Ok(()));
     }
 
     #[test]
