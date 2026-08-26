@@ -1,0 +1,1 @@
+See `ENERGY_RECONCILIATION_EVIDENCE.md` for the checked evidence contract, `RECONCILIATION_EVIDENCE_NEGATIVE_CONTROLS.md` for adversarial cases, and `RECONCILIATION_EVIDENCE_SCOPE.md` for the claim boundary.
