@@ -16,6 +16,7 @@
 //! - `thermal` — conservative thermodynamic primitives and conductive exchange
 //! - `energy` — deterministic double-entry accounting for cross-domain energy transfers
 //! - `thermal_audit` — transactional thermal couplings and second-law diagnostics
+//! - `external_heat` — audited energy exchange across the simulation boundary
 
 pub mod articulation;
 pub mod body;
@@ -26,6 +27,7 @@ pub mod contact;
 pub mod diagnostics;
 pub mod energy;
 pub mod epa;
+pub mod external_heat;
 pub mod gjk;
 pub mod integrator;
 pub mod island;
@@ -49,9 +51,14 @@ pub use energy::{
     EnergyTransferKind, EnergyTransferLedger,
 };
 pub use epa::EpaResult;
+pub use external_heat::{
+    EXTERNAL_HEAT_TRANSFER_KIND, ExternalHeatError, exchange_external_heat_audited,
+};
 pub use integrator::nan_zeroed_count;
 pub use joints::{BallJoint, FixedJoint, HingeJoint, MotorDrive, PrismaticJoint};
-pub use replay::{ReplayTape, WorldCommand, WorldSnapshot, apply_commands};
+pub use replay::{
+    ReplayTape, WorldCommand, WorldSnapshot, apply_commands, apply_commands_audited,
+};
 pub use thermal::{
     ABSOLUTE_ZERO_K, HeatExchange, ThermalBody, ThermalError, ThermalMaterial, ThermalState,
     conductive_exchange, conductive_exchange_bodies,
