@@ -10,6 +10,7 @@
 
 use std::fmt;
 
+pub mod advisory;
 pub mod memory;
 pub use memory::{EpisodeBuilder, EpisodeMemory, EpisodeMetadata, PhysicsEpisode, RetrievalHit};
 
