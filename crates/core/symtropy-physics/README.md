@@ -76,10 +76,13 @@ The output is CSV for CI gates and external analysis. See
 protocol, [`ORIENTED_COLLISION_VALIDATION.md`](ORIENTED_COLLISION_VALIDATION.md)
 for the transformed-geometry contract,
 [`THERMODYNAMICS_VALIDATION.md`](THERMODYNAMICS_VALIDATION.md) for the thermal
-first-law/second-law contract and benchmark roadmap, and
+first-law/second-law contract and benchmark roadmap,
 [`PHYSICS_EXCELLENCE_PROGRAM.md`](PHYSICS_EXCELLENCE_PROGRAM.md) for the
-competitive capability matrix, benchmark ladder, claims policy, and execution
-order toward top-tier game and real-world simulation.
+competitive capability matrix, benchmark ladder, claims policy, and long-range
+execution order, and
+[`PHYSICS_CONVERGENCE_GATE.md`](PHYSICS_CONVERGENCE_GATE.md) for the Phase-Zero
+authority/identity/lifecycle/accounting prerequisites that must be cleared before
+broad competitive benchmarking or feature expansion becomes the primary frontier.
 
 Public research and competitive claims should explicitly distinguish implemented,
 validated, competitive, and leading capabilities.

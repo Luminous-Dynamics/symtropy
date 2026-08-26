@@ -30,10 +30,12 @@ pub struct InvariantSnapshot<const D: usize> {
     pub gravitational_potential_energy: f64,
     /// Kinetic plus gravitational potential energy.
     pub mechanical_energy: f64,
-    /// Modeled sensible thermal energy relative to absolute zero for every body
-    /// carrying a thermal state. This is not yet latent or chemical internal energy.
+    /// Modeled sensible thermal energy relative to absolute zero for valid
+    /// body-attached thermal reservoirs. If `invalid_thermal_body_count > 0`,
+    /// this sum is incomplete and must not be used as a conservation total.
     pub modeled_thermal_energy: f64,
-    /// Mechanical energy plus modeled sensible thermal energy.
+    /// Mechanical energy plus the currently accounted sensible thermal energy.
+    /// This is a complete modeled total only when `invalid_thermal_body_count == 0`.
     pub modeled_total_energy: f64,
     /// Largest linear speed among dynamic bodies.
     pub max_linear_speed: f64,
@@ -47,15 +49,23 @@ pub struct InvariantSnapshot<const D: usize> {
     pub max_penetration_depth: f64,
     /// Number of bodies whose state contains a NaN or infinity.
     pub non_finite_body_count: usize,
+    /// Number of body-attached thermal reservoirs that fail physical validation.
+    pub invalid_thermal_body_count: usize,
 }
 
 impl<const D: usize> InvariantSnapshot<D> {
-    /// True when all body state was finite and every orientation satisfied the
-    /// supplied proper-rotation tolerance.
+    /// True when all body state was finite, all thermal reservoirs were physically
+    /// well formed, and every orientation satisfied the supplied proper-rotation tolerance.
     pub fn is_numerically_healthy(&self, rotation_tolerance: f64) -> bool {
         self.non_finite_body_count == 0
+            && self.invalid_thermal_body_count == 0
             && self.max_rotation_orthogonality_error <= rotation_tolerance
             && self.max_rotation_determinant_error <= rotation_tolerance
+    }
+
+    /// True when every attached thermal reservoir participated in the modeled energy total.
+    pub fn has_complete_modeled_energy_accounting(&self) -> bool {
+        self.invalid_thermal_body_count == 0
     }
 
     /// Compare this snapshot with a later snapshot.
@@ -76,6 +86,7 @@ impl<const D: usize> InvariantSnapshot<D> {
             max_rotation_orthogonality_error: later.max_rotation_orthogonality_error,
             max_rotation_determinant_error: later.max_rotation_determinant_error,
             non_finite_body_count: later.non_finite_body_count,
+            invalid_thermal_body_count: later.invalid_thermal_body_count,
         }
     }
 }
@@ -94,6 +105,7 @@ pub struct InvariantDrift<const D: usize> {
     pub max_rotation_orthogonality_error: f64,
     pub max_rotation_determinant_error: f64,
     pub non_finite_body_count: usize,
+    pub invalid_thermal_body_count: usize,
 }
 
 impl<const D: usize> InvariantDrift<D> {
@@ -123,6 +135,7 @@ impl<const D: usize> PhysicsWorld<D> {
         let mut max_rotation_orthogonality_error = 0.0_f64;
         let mut max_rotation_determinant_error = 0.0_f64;
         let mut non_finite_body_count = 0;
+        let mut invalid_thermal_body_count = 0;
 
         for body in &self.bodies {
             let position = body.transform.translation.0;
@@ -151,10 +164,9 @@ impl<const D: usize> PhysicsWorld<D> {
             }
 
             if let Some(thermal) = body.thermal {
-                // Construction validates thermal mass/material/state, and 0 K is
-                // a valid explicit reference for this current sensible-only model.
-                if let Ok(energy) = thermal.sensible_energy_joules(0.0) {
-                    modeled_thermal_energy += energy;
+                match thermal.sensible_energy_joules(0.0) {
+                    Ok(energy) => modeled_thermal_energy += energy,
+                    Err(_) => invalid_thermal_body_count += 1,
                 }
             }
 
@@ -199,6 +211,7 @@ impl<const D: usize> PhysicsWorld<D> {
             max_rotation_determinant_error,
             max_penetration_depth,
             non_finite_body_count,
+            invalid_thermal_body_count,
         }
     }
 }
@@ -248,8 +261,32 @@ mod tests {
         world.body_mut(handle).unwrap().set_thermal(thermal);
 
         let snapshot = world.invariant_snapshot();
+        assert!(snapshot.has_complete_modeled_energy_accounting());
+        assert_eq!(snapshot.invalid_thermal_body_count, 0);
         assert!((snapshot.modeled_thermal_energy - 300_000.0).abs() < 1e-9);
         assert!((snapshot.modeled_total_energy - snapshot.mechanical_energy - 300_000.0).abs() < 1e-9);
+    }
+
+    #[test]
+    fn invalid_thermal_reservoir_is_not_silently_omitted() {
+        let mut world = PhysicsWorld::<3>::new(SVector::zeros());
+        let handle = world.add_sphere(Point::origin(), 0.5, 2.0);
+        let material = ThermalMaterial::new(500.0, 1.0, 0.5).unwrap();
+        let mut thermal = ThermalBody::new(
+            material,
+            ThermalState::new(300.0).unwrap(),
+            2.0,
+        )
+        .unwrap();
+        thermal.state.temperature_kelvin = -1.0;
+        world.body_mut(handle).unwrap().set_thermal(thermal);
+
+        let snapshot = world.invariant_snapshot();
+        assert_eq!(snapshot.non_finite_body_count, 0);
+        assert_eq!(snapshot.invalid_thermal_body_count, 1);
+        assert!(!snapshot.has_complete_modeled_energy_accounting());
+        assert!(!snapshot.is_numerically_healthy(1e-12));
+        assert_eq!(snapshot.modeled_thermal_energy, 0.0);
     }
 
     #[test]
@@ -263,6 +300,7 @@ mod tests {
         assert!((drift.linear_momentum_error_norm() - 5.0).abs() < 1e-12);
         assert!((drift.absolute_energy_drift - 12.5).abs() < 1e-12);
         assert!((drift.absolute_modeled_total_energy_drift - 12.5).abs() < 1e-12);
+        assert_eq!(drift.invalid_thermal_body_count, 0);
     }
 
     #[test]
