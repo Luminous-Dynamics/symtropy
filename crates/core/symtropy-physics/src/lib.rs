@@ -15,11 +15,13 @@
 //! - `integrator` — semi-implicit Euler with bivector angular dynamics
 //! - `angular_dynamics` — validated 3D principal-inertia/asymmetric-top reference dynamics
 //! - `mass_properties_3d` — checked analytical primitive mass properties
+//! - `body_primitives_3d` — atomic 3D primitive geometry/mass-property constructors
 //! - `world_energy_3d` — canonical checked 3D kinetic-energy evidence over live world state
 
 pub mod angular_dynamics;
 pub mod articulation;
 pub mod body;
+pub mod body_primitives_3d;
 pub mod broadphase;
 pub mod ccd;
 pub mod constraint;
@@ -46,6 +48,10 @@ pub use angular_dynamics::{
 };
 pub use articulation::{ArticulatedChain, ChainBuilder, LinkSpec};
 pub use body::{BodyHandle, BodyType, NetId, RigidBody, RigidBodyEnergyError};
+pub use body_primitives_3d::{
+    PrimitiveBody3Error, dynamic_solid_capsule_3d, dynamic_solid_cuboid_3d,
+    dynamic_solid_sphere_3d,
+};
 pub use broadphase::{Aabb, Lbvh, morton_encode, morton_prefix};
 pub use constraint::Constraint;
 pub use contact::{CollisionEvent, ContactCache, ContactManifold, SensorEvent};
