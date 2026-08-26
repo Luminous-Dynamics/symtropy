@@ -4,9 +4,10 @@
 //! Explainable adaptive-fidelity policy built on top of the epistemic firewall.
 //!
 //! This module does not choose a concrete physics solver and never mutates the
-//! world. It converts exact numerical evidence plus semantic/temporal signals
-//! into a minimum fidelity floor and, optionally, a typed `PhysicsAdvisory`.
-//! Any resulting reduction must still pass `EpistemicFirewallPolicy`.
+//! world. It converts authoritative numerical/accounting evidence plus
+//! semantic/temporal signals into a minimum fidelity floor and, optionally, a
+//! typed `PhysicsAdvisory`. Any resulting reduction must still pass
+//! `EpistemicFirewallPolicy` and a downstream authoritative intervention gate.
 
 use serde::{Deserialize, Serialize};
 
@@ -16,14 +17,26 @@ use crate::ExactStateDigest;
 /// Normalized evidence available to the adaptive-fidelity controller.
 ///
 /// Values in [0, 1] are policy-normalized signals, not raw physical units.
-/// Exact physical diagnostics should be normalized by a scenario-specific,
+/// Authoritative diagnostics should be normalized by a scenario-specific,
 /// versioned adapter before entering this policy.
+///
+/// This type represents a **complete assessment input**. A caller that does not
+/// yet know one of these fields must not invent a favorable value; shadow-mode
+/// telemetry should retain that absence until a later calibration/readiness
+/// layer can establish complete evidence.
 #[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
 pub struct FidelityEvidence {
-    /// False means an exact invariant/finite-state guard has already failed.
+    /// False means an authoritative invariant/finite-state guard has failed.
     pub numerically_healthy: bool,
+    /// False means the active model's declared reservoirs were not all captured
+    /// and therefore a small numeric conservation residual is not valid evidence.
+    pub accounting_complete: bool,
+    /// False means body/reservoir/representation identity changed without a
+    /// completed authoritative lifecycle/transition contract.
+    pub lifecycle_stable: bool,
     /// Absolute conservation/reconciliation residual divided by the declared
-    /// scenario energy scale.
+    /// scenario energy scale. This value is only meaningful for reduction when
+    /// `accounting_complete` and `lifecycle_stable` are both true.
     pub conservation_residual_ratio: f64,
     /// Normalized contact/constraint error in [0, 1].
     pub constraint_error: f32,
@@ -41,7 +54,18 @@ pub struct FidelityEvidence {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum AdaptiveFidelityPolicyValidationError {
+    InvalidConservationThresholds,
+    InvalidConstraintThresholds,
+    InvalidNoveltyThresholds,
+    InvalidActivityThreshold,
+    InvalidCausalImportanceThresholds,
+    InvalidPredictedErrorThresholds,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum FidelityEvidenceError {
+    InvalidPolicy(AdaptiveFidelityPolicyValidationError),
     InvalidConservationResidual,
     InvalidConstraintError,
     InvalidActivity,
@@ -86,6 +110,8 @@ impl FidelityEvidence {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum FidelityReason {
     NumericalHealth,
+    AccountingCompleteness,
+    LifecycleStability,
     ConservationResidual,
     ConstraintError,
     PhysicalActivity,
@@ -142,6 +168,44 @@ impl Default for AdaptiveFidelityPolicy {
 }
 
 impl AdaptiveFidelityPolicy {
+    /// Validate policy thresholds after construction/deserialization/mutation.
+    ///
+    /// Threshold bands must be finite and monotonic. Otherwise comparisons can
+    /// silently collapse a risk floor or create an incoherent band ordering.
+    pub fn validate(&self) -> Result<(), AdaptiveFidelityPolicyValidationError> {
+        if !ordered_nonnegative_f64(
+            self.high_conservation_residual,
+            self.exact_conservation_residual,
+        ) {
+            return Err(AdaptiveFidelityPolicyValidationError::InvalidConservationThresholds);
+        }
+        if !ordered_unit_f32(self.high_constraint_error, self.exact_constraint_error) {
+            return Err(AdaptiveFidelityPolicyValidationError::InvalidConstraintThresholds);
+        }
+        if !ordered_unit_f32(self.high_novelty, self.exact_novelty) {
+            return Err(AdaptiveFidelityPolicyValidationError::InvalidNoveltyThresholds);
+        }
+        if !unit_f32(self.high_activity) {
+            return Err(AdaptiveFidelityPolicyValidationError::InvalidActivityThreshold);
+        }
+        if !ordered_unit_f32(
+            self.standard_causal_importance,
+            self.high_causal_importance,
+        ) {
+            return Err(AdaptiveFidelityPolicyValidationError::InvalidCausalImportanceThresholds);
+        }
+        if !self.standard_predicted_error.is_finite()
+            || !self.high_predicted_error.is_finite()
+            || !self.exact_predicted_error.is_finite()
+            || self.standard_predicted_error < 0.0
+            || self.standard_predicted_error > self.high_predicted_error
+            || self.high_predicted_error > self.exact_predicted_error
+        {
+            return Err(AdaptiveFidelityPolicyValidationError::InvalidPredictedErrorThresholds);
+        }
+        Ok(())
+    }
+
     /// Compute the minimum acceptable fidelity from independent evidence floors.
     ///
     /// The aggregation is a max-lattice, not a learned weighted sum: any exact
@@ -151,6 +215,7 @@ impl AdaptiveFidelityPolicy {
         &self,
         evidence: &FidelityEvidence,
     ) -> Result<FidelityAssessment, FidelityEvidenceError> {
+        self.validate().map_err(FidelityEvidenceError::InvalidPolicy)?;
         evidence.validate()?;
 
         let mut minimum = self.absolute_floor;
@@ -161,6 +226,22 @@ impl AdaptiveFidelityPolicy {
                 &mut minimum,
                 FidelityTier::Exact,
                 FidelityReason::NumericalHealth,
+                &mut reasons,
+            );
+        }
+        if !evidence.accounting_complete {
+            raise(
+                &mut minimum,
+                FidelityTier::Exact,
+                FidelityReason::AccountingCompleteness,
+                &mut reasons,
+            );
+        }
+        if !evidence.lifecycle_stable {
+            raise(
+                &mut minimum,
+                FidelityTier::Exact,
+                FidelityReason::LifecycleStability,
                 &mut reasons,
             );
         }
@@ -266,7 +347,7 @@ impl AdaptiveFidelityPolicy {
         Ok(FidelityAssessment { minimum, reasons })
     }
 
-    /// Convert an assessment into a typed advisory.
+    /// Convert a complete assessment into a typed advisory.
     ///
     /// Promotions may jump directly to the required floor. Demotions are
     /// deliberately limited to one tier per proposal and require a predicted
@@ -311,6 +392,18 @@ impl AdaptiveFidelityPolicy {
     }
 }
 
+fn unit_f32(value: f32) -> bool {
+    value.is_finite() && (0.0..=1.0).contains(&value)
+}
+
+fn ordered_unit_f32(lower: f32, upper: f32) -> bool {
+    unit_f32(lower) && unit_f32(upper) && lower <= upper
+}
+
+fn ordered_nonnegative_f64(lower: f64, upper: f64) -> bool {
+    lower.is_finite() && upper.is_finite() && lower >= 0.0 && lower <= upper
+}
+
 fn raise(
     current: &mut FidelityTier,
     requested: FidelityTier,
@@ -351,6 +444,8 @@ mod tests {
     fn calm() -> FidelityEvidence {
         FidelityEvidence {
             numerically_healthy: true,
+            accounting_complete: true,
+            lifecycle_stable: true,
             conservation_residual_ratio: 1.0e-12,
             constraint_error: 0.001,
             activity: 0.05,
@@ -362,7 +457,12 @@ mod tests {
     }
 
     #[test]
-    fn exact_health_failure_overrides_every_learned_signal() {
+    fn default_policy_is_valid() {
+        assert_eq!(AdaptiveFidelityPolicy::default().validate(), Ok(()));
+    }
+
+    #[test]
+    fn numerical_health_failure_overrides_every_learned_signal() {
         let mut evidence = calm();
         evidence.numerically_healthy = false;
         evidence.model_confidence = 1.0;
@@ -373,7 +473,35 @@ mod tests {
     }
 
     #[test]
-    fn novel_state_forces_exact_fidelity() {
+    fn incomplete_accounting_forces_highest_certified_even_at_zero_residual() {
+        let mut evidence = calm();
+        evidence.accounting_complete = false;
+        evidence.conservation_residual_ratio = 0.0;
+        let assessment = AdaptiveFidelityPolicy::default().assess(&evidence).unwrap();
+        assert_eq!(assessment.minimum, FidelityTier::Exact);
+        assert!(
+            assessment
+                .reasons
+                .contains(&FidelityReason::AccountingCompleteness)
+        );
+    }
+
+    #[test]
+    fn unresolved_lifecycle_forces_highest_certified_even_at_zero_residual() {
+        let mut evidence = calm();
+        evidence.lifecycle_stable = false;
+        evidence.conservation_residual_ratio = 0.0;
+        let assessment = AdaptiveFidelityPolicy::default().assess(&evidence).unwrap();
+        assert_eq!(assessment.minimum, FidelityTier::Exact);
+        assert!(
+            assessment
+                .reasons
+                .contains(&FidelityReason::LifecycleStability)
+        );
+    }
+
+    #[test]
+    fn novel_state_forces_highest_certified_fidelity() {
         let mut evidence = calm();
         evidence.novelty = 0.95;
         let assessment = AdaptiveFidelityPolicy::default().assess(&evidence).unwrap();
@@ -390,7 +518,7 @@ mod tests {
     }
 
     #[test]
-    fn calm_known_state_demotes_only_one_tier() {
+    fn calm_known_complete_state_demotes_only_one_tier() {
         let proposal = AdaptiveFidelityPolicy::default()
             .propose(
                 1,
@@ -412,6 +540,23 @@ mod tests {
             EpistemicFirewallPolicy::default().evaluate(&proposal),
             AdvisoryDisposition::Accept
         );
+    }
+
+    #[test]
+    fn incomplete_accounting_never_emits_demotion() {
+        let mut evidence = calm();
+        evidence.accounting_complete = false;
+        let proposal = AdaptiveFidelityPolicy::default()
+            .propose(
+                1,
+                10,
+                AdvisorySource::ContinuousTimeModel,
+                FidelityTier::Exact,
+                digest(),
+                evidence,
+            )
+            .unwrap();
+        assert!(proposal.is_none());
     }
 
     #[test]
@@ -451,6 +596,31 @@ mod tests {
             AdvisoryAction::PromoteFidelity {
                 minimum: FidelityTier::High
             }
+        );
+    }
+
+    #[test]
+    fn malformed_policy_thresholds_fail_closed() {
+        let mut policy = AdaptiveFidelityPolicy::default();
+        policy.high_conservation_residual = 0.1;
+        policy.exact_conservation_residual = 0.01;
+        assert_eq!(
+            policy.assess(&calm()),
+            Err(FidelityEvidenceError::InvalidPolicy(
+                AdaptiveFidelityPolicyValidationError::InvalidConservationThresholds
+            ))
+        );
+    }
+
+    #[test]
+    fn nan_policy_threshold_fails_closed() {
+        let mut policy = AdaptiveFidelityPolicy::default();
+        policy.high_novelty = f32::NAN;
+        assert_eq!(
+            policy.assess(&calm()),
+            Err(FidelityEvidenceError::InvalidPolicy(
+                AdaptiveFidelityPolicyValidationError::InvalidNoveltyThresholds
+            ))
         );
     }
 }
