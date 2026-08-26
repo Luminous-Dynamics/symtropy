@@ -14,6 +14,7 @@
 //! - `contact::ContactManifold<D>` — collision contact data
 //! - `integrator` — semi-implicit Euler with bivector angular dynamics
 //! - `angular_dynamics` — validated 3D principal-inertia/asymmetric-top reference dynamics
+//! - `mass_properties_3d` — checked analytical primitive mass properties
 //! - `world_energy_3d` — canonical checked 3D kinetic-energy evidence over live world state
 
 pub mod angular_dynamics;
@@ -30,6 +31,7 @@ pub mod integrator;
 pub mod island;
 pub mod joints;
 pub mod manifold_gen;
+pub mod mass_properties_3d;
 pub mod raycast;
 pub mod replay;
 pub mod support_map;
@@ -51,6 +53,7 @@ pub use diagnostics::{InvariantDrift, InvariantSnapshot};
 pub use epa::EpaResult;
 pub use integrator::nan_zeroed_count;
 pub use joints::{BallJoint, FixedJoint, HingeJoint, MotorDrive, PrismaticJoint};
+pub use mass_properties_3d::{MassProperties3, MassProperties3Error};
 pub use replay::{ReplayTape, WorldCommand, WorldSnapshot, apply_commands};
 pub use world::{NoOpCallback, PhysicsCallback, PhysicsWorld};
 pub use world_energy_3d::{
