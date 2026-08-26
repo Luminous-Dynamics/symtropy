@@ -10,7 +10,7 @@
 //!
 //! The overlay is non-authoritative. Temperatures, material properties and
 //! energy remain owned by `symtropy-physics`; this module only derives a
-//! deterministic associative representation from that exact state.
+//! deterministic associative representation from validated authoritative state.
 
 use serde::{Deserialize, Serialize};
 use symtropy_hdc_core::{
@@ -98,6 +98,9 @@ pub struct ThermalEncodedPhysicsFrame<const D: usize> {
     pub tick: u64,
     pub encoder_fingerprint: u64,
     /// Digest v2: every state covered by v1 plus exact thermal state.
+    ///
+    /// This is a provenance identity, not proof that the state is physically
+    /// valid and not a receipt for the lifecycle transition that produced it.
     pub exact_digest: ExactStateDigest,
     pub reference_origin: [f64; D],
     pub body_count: usize,
@@ -151,6 +154,11 @@ impl ThermalSemanticEncoder {
     }
 
     /// Encode exact physics state plus authoritative thermodynamic state.
+    ///
+    /// Semantic encoding fails closed when the source world contains non-finite
+    /// body state, an invalid thermal reservoir, incomplete modeled thermal
+    /// accounting, or a non-finite modeled energy total. Invalid state is never
+    /// silently mapped onto a benign semantic value such as zero.
     pub fn encode_world<const D: usize>(
         &self,
         tick: u64,
@@ -162,9 +170,48 @@ impl ThermalSemanticEncoder {
                 "thermal overlay and base encoder must share the same HDC spec".to_owned(),
             ));
         }
+        self.validate_source_world(world)?;
 
         let base_frame = base.encode_world(tick, world)?;
         self.combine_base_frame(world, base, base_frame)
+    }
+
+    fn validate_source_world<const D: usize>(
+        &self,
+        world: &PhysicsWorld<D>,
+    ) -> Result<(), PhysicsHdcError> {
+        for body in &world.bodies {
+            if let Some(thermal) = body.thermal {
+                thermal.validate().map_err(|error| {
+                    PhysicsHdcError::InvalidConfig(format!(
+                        "thermal semantic source body {:?} is invalid: {error:?}",
+                        body.handle
+                    ))
+                })?;
+            }
+        }
+
+        let invariants = world.invariant_snapshot();
+        if invariants.non_finite_body_count != 0 {
+            return Err(PhysicsHdcError::InvalidConfig(format!(
+                "thermal semantic source contains {} non-finite bodies",
+                invariants.non_finite_body_count
+            )));
+        }
+        if !invariants.has_complete_modeled_energy_accounting() {
+            return Err(PhysicsHdcError::InvalidConfig(format!(
+                "thermal semantic source has incomplete modeled energy accounting: {} invalid thermal reservoirs",
+                invariants.invalid_thermal_body_count
+            )));
+        }
+        if !invariants.modeled_thermal_energy.is_finite()
+            || !invariants.modeled_total_energy.is_finite()
+        {
+            return Err(PhysicsHdcError::InvalidConfig(
+                "thermal semantic source has non-finite modeled energy totals".to_owned(),
+            ));
+        }
+        Ok(())
     }
 
     fn combine_base_frame<const D: usize>(
@@ -194,6 +241,9 @@ impl ThermalSemanticEncoder {
         }
 
         let invariants = world.invariant_snapshot();
+        // `encode_world` already established completeness, but re-check the
+        // totals here so this helper never silently encodes non-finite values if
+        // its call structure changes later.
         bundle.add(&self.bind_scalar(
             "modeled-thermal-energy",
             &self.energy,
@@ -229,6 +279,12 @@ impl ThermalSemanticEncoder {
         net_id: Option<u64>,
         thermal: symtropy_physics::ThermalBody,
     ) -> Result<BipolarHV, PhysicsHdcError> {
+        thermal.validate().map_err(|error| {
+            PhysicsHdcError::InvalidConfig(format!(
+                "thermal semantic source body {body_handle} is invalid: {error:?}"
+            ))
+        })?;
+
         let mut bundle = BipolarBundle::new(self.config.hdc.dimension);
         bundle.add(&self.memory.item("record-kind", "thermal-body"))?;
 
@@ -296,7 +352,11 @@ impl ThermalSemanticEncoder {
         min: f64,
         max: f64,
     ) -> Result<BipolarHV, PhysicsHdcError> {
-        let value = if value.is_finite() { value } else { 0.0 };
+        if !value.is_finite() {
+            return Err(PhysicsHdcError::InvalidConfig(format!(
+                "thermal semantic source `{role}` must be finite"
+            )));
+        }
         self.memory
             .role(role)
             .bind(&encoder.encode(value, min, max)?)
@@ -323,8 +383,12 @@ fn thermal_identity(
 ///
 /// Version 1 already covers mechanics, contacts, events, solver parameters and
 /// collision shapes. Version 2 binds that digest to every body's optional
-/// thermal state, so a temperature/material change is an exact provenance
-/// change without redefining the established v1 contract.
+/// thermal state, so a temperature/material/presence change is an exact bitwise
+/// provenance change without redefining the established v1 contract.
+///
+/// The digest intentionally remains defined for invalid state so failures can
+/// still be identified reproducibly. It is **not** a validity certificate and
+/// does not explain the lifecycle transition between two digests.
 pub fn exact_world_digest_v2<const D: usize>(world: &PhysicsWorld<D>) -> ExactStateDigest {
     let v1 = crate::exact_world_digest(world);
     let mut low = StableHash64::with_seed(0x5448_4552_4d41_4c32);
@@ -484,5 +548,57 @@ mod tests {
         let _ = overlay.encode_world(9, &world, &base).unwrap();
         let after = exact_world_digest_v2(&world);
         assert_eq!(before, after);
+    }
+
+    #[test]
+    fn invalid_thermal_source_is_rejected_but_still_digestible_for_provenance() {
+        let base = base_encoder();
+        let overlay = ThermalSemanticEncoder::from_base(&base).unwrap();
+        let mut world = PhysicsWorld::<3>::default();
+        let handle = world.add_sphere(Point::origin(), 0.5, 1.0);
+        world
+            .body_mut(handle)
+            .unwrap()
+            .set_thermal(thermal_body(300.0));
+        world
+            .body_mut(handle)
+            .unwrap()
+            .thermal
+            .as_mut()
+            .unwrap()
+            .material
+            .specific_heat_capacity = -1.0;
+
+        let digest = exact_world_digest_v2(&world);
+        assert_eq!(digest.algorithm_version, 2);
+        assert!(matches!(
+            overlay.encode_world(1, &world, &base),
+            Err(PhysicsHdcError::InvalidConfig(_))
+        ));
+    }
+
+    #[test]
+    fn non_finite_thermal_source_is_not_coerced_to_zero() {
+        let base = base_encoder();
+        let overlay = ThermalSemanticEncoder::from_base(&base).unwrap();
+        let mut world = PhysicsWorld::<3>::default();
+        let handle = world.add_sphere(Point::origin(), 0.5, 1.0);
+        world
+            .body_mut(handle)
+            .unwrap()
+            .set_thermal(thermal_body(300.0));
+        world
+            .body_mut(handle)
+            .unwrap()
+            .thermal
+            .as_mut()
+            .unwrap()
+            .state
+            .temperature_kelvin = f64::NAN;
+
+        assert!(matches!(
+            overlay.encode_world(1, &world, &base),
+            Err(PhysicsHdcError::InvalidConfig(_))
+        ));
     }
 }
