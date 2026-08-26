@@ -258,11 +258,8 @@ fn validate_tolerance(tolerance_joules: f64) -> Result<(), EnergyReconciliationE
 mod tests {
     use super::*;
     use crate::body::BodyHandle;
-    use crate::energy::{EnergyForm, EnergyOwner, EnergyPort};
-    use crate::energy_state::{
-        EnergyReconciliationAudit, ReservoirPresenceChange, ReservoirPresenceChangeKind,
-        ReservoirReconciliation,
-    };
+    use crate::energy::EnergyForm;
+    use crate::energy_state::{EnergyReconciliationAudit, ReservoirPresenceChange};
 
     fn thermal_port() -> EnergyPort {
         EnergyPort::new(
