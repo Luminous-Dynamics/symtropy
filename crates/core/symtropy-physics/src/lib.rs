@@ -14,6 +14,7 @@
 //! - `contact::ContactManifold<D>` — collision contact data
 //! - `integrator` — semi-implicit Euler with bivector angular dynamics
 //! - `thermal` — conservative thermodynamic primitives and conductive exchange
+//! - `energy` — deterministic double-entry accounting for cross-domain energy transfers
 
 pub mod articulation;
 pub mod body;
@@ -22,6 +23,7 @@ pub mod ccd;
 pub mod constraint;
 pub mod contact;
 pub mod diagnostics;
+pub mod energy;
 pub mod epa;
 pub mod gjk;
 pub mod integrator;
@@ -40,6 +42,10 @@ pub use broadphase::{Aabb, Lbvh, morton_encode, morton_prefix};
 pub use constraint::Constraint;
 pub use contact::{CollisionEvent, ContactCache, ContactManifold, SensorEvent};
 pub use diagnostics::{InvariantDrift, InvariantSnapshot};
+pub use energy::{
+    EnergyAudit, EnergyForm, EnergyLedgerError, EnergyOwner, EnergyPort, EnergyTransfer,
+    EnergyTransferKind, EnergyTransferLedger,
+};
 pub use epa::EpaResult;
 pub use integrator::nan_zeroed_count;
 pub use joints::{BallJoint, FixedJoint, HingeJoint, MotorDrive, PrismaticJoint};
