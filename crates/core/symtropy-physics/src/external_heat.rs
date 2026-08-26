@@ -14,13 +14,8 @@ use crate::energy::{
 };
 use crate::thermal::{ThermalBody, ThermalError};
 
-/// Stable reserved mechanism id for direct thermal exchange across the accounting
-/// boundary. The core ledger deliberately provides `Other(u16)` as a deterministic
-/// extension point; this id is owned by the thermal boundary layer.
-pub const EXTERNAL_HEAT_TRANSFER_KIND_ID: u16 = 1;
-
-pub const EXTERNAL_HEAT_TRANSFER_KIND: EnergyTransferKind =
-    EnergyTransferKind::Other(EXTERNAL_HEAT_TRANSFER_KIND_ID);
+/// Typed mechanism used for prescribed sensible heat crossing the accounting boundary.
+pub const EXTERNAL_HEAT_TRANSFER_KIND: EnergyTransferKind = EnergyTransferKind::ExternalHeat;
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub enum ExternalHeatError {
@@ -151,7 +146,7 @@ mod tests {
         let entry = &ledger.entries()[0];
         assert_eq!(entry.source.owner, EnergyOwner::External(9));
         assert_eq!(entry.destination.owner, EnergyOwner::Body(BodyHandle(4)));
-        assert_eq!(entry.kind, EXTERNAL_HEAT_TRANSFER_KIND);
+        assert_eq!(entry.kind, EnergyTransferKind::ExternalHeat);
         assert_eq!(entry.joules, 2_000.0);
     }
 
@@ -171,6 +166,7 @@ mod tests {
         let entry = &ledger.entries()[0];
         assert_eq!(entry.source.owner, EnergyOwner::Body(BodyHandle(4)));
         assert_eq!(entry.destination.owner, EnergyOwner::External(3));
+        assert_eq!(entry.kind, EnergyTransferKind::ExternalHeat);
         assert_eq!(ledger.net_external_joules(), -1_000.0);
     }
 
