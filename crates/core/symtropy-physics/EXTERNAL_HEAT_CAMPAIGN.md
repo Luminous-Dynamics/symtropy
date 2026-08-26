@@ -44,7 +44,7 @@ Replay command slices are validation-atomic under the current command vocabulary
 
 - every referenced body must exist;
 - legacy execution rejects any energy-boundary command;
-- audited execution stages thermal reservoirs in deterministic `BodyHandle` order;
+- audited execution stores staged thermal reservoirs in a deterministic map keyed by `BodyHandle` while applying heat commands in their original command order;
 - repeated heat commands for one body observe prior staged heat in the same batch;
 - ledger effects are applied to a cloned journal during preflight.
 
