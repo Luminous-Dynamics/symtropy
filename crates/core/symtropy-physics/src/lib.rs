@@ -24,6 +24,7 @@ pub mod constraint;
 pub mod contact;
 pub mod diagnostics;
 pub mod energy;
+pub mod energy_checked;
 pub mod epa;
 pub mod gjk;
 pub mod integrator;
@@ -46,6 +47,7 @@ pub use energy::{
     EnergyAudit, EnergyForm, EnergyLedgerError, EnergyOwner, EnergyPort, EnergyTransfer,
     EnergyTransferKind, EnergyTransferLedger,
 };
+pub use energy_checked::{EnergyAggregateError, EnergyTransferLedgerCheckedExt};
 pub use epa::EpaResult;
 pub use integrator::nan_zeroed_count;
 pub use joints::{BallJoint, FixedJoint, HingeJoint, MotorDrive, PrismaticJoint};
