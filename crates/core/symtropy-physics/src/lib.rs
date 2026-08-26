@@ -18,6 +18,7 @@
 //! - `body_primitives_3d` — atomic 3D primitive geometry/mass-property constructors
 //! - `compound_inertia_3d` — checked full-tensor compound mass-property reference
 //! - `rotational_inertia_operator` — checked N-D inertia operator on bivector space
+//! - `rotational_inertia_frame` — checked Rotor adjoint mapping into world rotational space
 //! - `world_energy_3d` — canonical checked 3D kinetic-energy evidence over live world state
 
 pub mod angular_dynamics;
@@ -39,6 +40,7 @@ pub mod manifold_gen;
 pub mod mass_properties_3d;
 pub mod raycast;
 pub mod replay;
+pub mod rotational_inertia_frame;
 pub mod rotational_inertia_operator;
 pub mod support_map;
 pub mod world;
@@ -68,6 +70,9 @@ pub use integrator::nan_zeroed_count;
 pub use joints::{BallJoint, FixedJoint, HingeJoint, MotorDrive, PrismaticJoint};
 pub use mass_properties_3d::{MassProperties3, MassProperties3Error};
 pub use replay::{ReplayTape, WorldCommand, WorldSnapshot, apply_commands};
+pub use rotational_inertia_frame::{
+    RotationalFrameError, RotationalInertiaFrameExt, rotation_adjoint_checked,
+};
 pub use rotational_inertia_operator::{RotationalInertiaError, RotationalInertiaOperator};
 pub use world::{NoOpCallback, PhysicsCallback, PhysicsWorld};
 pub use world_energy_3d::{
