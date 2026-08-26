@@ -17,6 +17,7 @@
 //! lifecycle, and whatever solver-specific validity contract applies.
 
 pub mod fidelity;
+pub mod shadow;
 pub mod thermal_semantics;
 
 use serde::{Deserialize, Serialize};
