@@ -56,7 +56,7 @@ pub use biometrics::{
     BiometricHistory, BiometricNormParams, BiometricSample, ChannelNorm, neutral_inputs,
 };
 pub use coupling::{ConsciousnessField, EntityConsciousness};
-pub use energy::EnergyBudget;
+pub use energy::{EnergyBudget, EnergyBudgetError};
 pub use harmony_field::HarmonyField;
 pub use macro_bridge::{MacroWorldModifiers, apply_macro_modifiers};
 pub use phase_transition::{
