@@ -12,15 +12,10 @@ use crate::energy::{
     EnergyForm, EnergyLedgerError, EnergyOwner, EnergyPort, EnergyTransferKind,
     EnergyTransferLedger,
 };
-use crate::thermal::ThermalError;
+use crate::thermal::{ThermalBody, ThermalError};
 
-/// Stable reserved mechanism id for direct thermal exchange across the accounting
-/// boundary. The core ledger deliberately provides `Other(u16)` as a deterministic
-/// extension point; this id is owned by the thermal boundary layer.
-pub const EXTERNAL_HEAT_TRANSFER_KIND_ID: u16 = 1;
-
-pub const EXTERNAL_HEAT_TRANSFER_KIND: EnergyTransferKind =
-    EnergyTransferKind::Other(EXTERNAL_HEAT_TRANSFER_KIND_ID);
+/// Typed mechanism used for prescribed sensible heat crossing the accounting boundary.
+pub const EXTERNAL_HEAT_TRANSFER_KIND: EnergyTransferKind = EnergyTransferKind::ExternalHeat;
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub enum ExternalHeatError {
@@ -42,13 +37,16 @@ impl From<EnergyLedgerError> for ExternalHeatError {
     }
 }
 
-/// Apply signed heat across the accounting boundary.
+/// Apply signed heat to a standalone thermal reservoir while recording the exact
+/// boundary transfer.
 ///
-/// `signed_joules > 0` means external -> body. `signed_joules < 0` means body ->
-/// external. A zero transfer is a no-op and produces no ledger entry.
-pub fn exchange_external_heat_audited<const D: usize>(
+/// This is crate-visible so replay can stage a whole command batch without
+/// cloning a `RigidBody` and its collider. It has the same transactional contract
+/// as `exchange_external_heat_audited`: the thermal state is committed only after
+/// the corresponding ledger entry succeeds.
+pub(crate) fn exchange_external_heat_thermal_audited(
     body_handle: BodyHandle,
-    body: &mut RigidBody<D>,
+    thermal: &mut ThermalBody,
     signed_joules: f64,
     external_source_id: u64,
     ledger: &mut EnergyTransferLedger,
@@ -56,17 +54,15 @@ pub fn exchange_external_heat_audited<const D: usize>(
     if !signed_joules.is_finite() {
         return Err(ExternalHeatError::NonFiniteEnergy);
     }
+
+    // A zero transfer is quiet, but it is not a loophole around the thermal
+    // validity contract. Callers still receive an error for corrupted state.
+    thermal.validate()?;
     if signed_joules == 0.0 {
-        return body
-            .thermal
-            .map(|thermal| thermal.state.temperature_kelvin)
-            .ok_or(ExternalHeatError::MissingThermalState);
+        return Ok(thermal.state.temperature_kelvin);
     }
 
-    let current = body
-        .thermal
-        .ok_or(ExternalHeatError::MissingThermalState)?;
-    let mut next = current;
+    let mut next = *thermal;
     let next_temperature = next.add_heat_joules(signed_joules)?;
 
     let body_port = EnergyPort::new(
@@ -85,15 +81,38 @@ pub fn exchange_external_heat_audited<const D: usize>(
     };
 
     ledger.record(source, destination, joules, EXTERNAL_HEAT_TRANSFER_KIND)?;
-
-    body.thermal = Some(next);
+    *thermal = next;
     Ok(next_temperature)
+}
+
+/// Apply signed heat across the accounting boundary.
+///
+/// `signed_joules > 0` means external -> body. `signed_joules < 0` means body ->
+/// external. A valid zero transfer is a no-op and produces no ledger entry.
+pub fn exchange_external_heat_audited<const D: usize>(
+    body_handle: BodyHandle,
+    body: &mut RigidBody<D>,
+    signed_joules: f64,
+    external_source_id: u64,
+    ledger: &mut EnergyTransferLedger,
+) -> Result<f64, ExternalHeatError> {
+    let thermal = body
+        .thermal
+        .as_mut()
+        .ok_or(ExternalHeatError::MissingThermalState)?;
+    exchange_external_heat_thermal_audited(
+        body_handle,
+        thermal,
+        signed_joules,
+        external_source_id,
+        ledger,
+    )
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::thermal::{ThermalBody, ThermalMaterial, ThermalState};
+    use crate::thermal::{ThermalMaterial, ThermalState};
     use symtropy_math::Point;
 
     fn body(temp_k: f64) -> RigidBody<3> {
@@ -127,7 +146,7 @@ mod tests {
         let entry = &ledger.entries()[0];
         assert_eq!(entry.source.owner, EnergyOwner::External(9));
         assert_eq!(entry.destination.owner, EnergyOwner::Body(BodyHandle(4)));
-        assert_eq!(entry.kind, EXTERNAL_HEAT_TRANSFER_KIND);
+        assert_eq!(entry.kind, EnergyTransferKind::ExternalHeat);
         assert_eq!(entry.joules, 2_000.0);
     }
 
@@ -147,6 +166,7 @@ mod tests {
         let entry = &ledger.entries()[0];
         assert_eq!(entry.source.owner, EnergyOwner::Body(BodyHandle(4)));
         assert_eq!(entry.destination.owner, EnergyOwner::External(3));
+        assert_eq!(entry.kind, EnergyTransferKind::ExternalHeat);
         assert_eq!(ledger.net_external_joules(), -1_000.0);
     }
 
@@ -171,7 +191,7 @@ mod tests {
     }
 
     #[test]
-    fn zero_transfer_is_quiet() {
+    fn zero_transfer_is_quiet_but_still_revalidates_state() {
         let mut body = body(300.0);
         let mut ledger = EnergyTransferLedger::new();
         let next = exchange_external_heat_audited(
@@ -183,6 +203,13 @@ mod tests {
         )
         .unwrap();
         assert_eq!(next, 300.0);
+        assert!(ledger.is_empty());
+
+        body.thermal.as_mut().unwrap().material.emissivity = 1.5;
+        assert_eq!(
+            exchange_external_heat_audited(BodyHandle(4), &mut body, 0.0, 3, &mut ledger),
+            Err(ExternalHeatError::Thermal(ThermalError::InvalidEmissivity))
+        );
         assert!(ledger.is_empty());
     }
 }
