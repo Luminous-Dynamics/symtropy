@@ -16,6 +16,8 @@
 //! complete conservation/reconciliation evidence, stable reservoir/world
 //! lifecycle, and whatever solver-specific validity contract applies.
 
+pub mod fidelity;
+
 use serde::{Deserialize, Serialize};
 
 use crate::ExactStateDigest;
