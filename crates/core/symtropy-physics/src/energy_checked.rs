@@ -87,10 +87,8 @@ fn checked_add(lhs: f64, rhs: f64) -> Result<f64, EnergyAggregateError> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::energy::{
-        EnergyForm, EnergyOwner, EnergyTransferKind, EnergyTransferLedger,
-    };
-    use crate::BodyHandle;
+    use crate::body::BodyHandle;
+    use crate::energy::{EnergyForm, EnergyOwner, EnergyTransferKind};
 
     fn body_port(body: usize, form: EnergyForm) -> EnergyPort {
         EnergyPort::new(EnergyOwner::Body(BodyHandle(body)), form)
