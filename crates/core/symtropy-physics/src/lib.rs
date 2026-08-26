@@ -16,6 +16,7 @@
 //! - `thermal` — conservative thermodynamic primitives and conductive exchange
 //! - `energy` — deterministic double-entry accounting for cross-domain energy transfers
 //! - `energy_state` — measured reservoir state reconciled against the causal ledger
+//! - `energy_reconciliation_checked` — revalidation for serialized reconciliation evidence
 //! - `thermal_audit` — transactional thermal couplings and second-law diagnostics
 //! - `external_heat` — audited energy exchange across the simulation boundary
 //! - `dissipation` — measured mechanical loss converted into audited sensible heat
@@ -29,6 +30,7 @@ pub mod contact;
 pub mod diagnostics;
 pub mod dissipation;
 pub mod energy;
+pub mod energy_reconciliation_checked;
 pub mod energy_state;
 pub mod epa;
 pub mod external_heat;
@@ -56,6 +58,9 @@ pub use dissipation::{
 pub use energy::{
     EnergyAudit, EnergyForm, EnergyLedgerError, EnergyOwner, EnergyPort, EnergyTransfer,
     EnergyTransferKind, EnergyTransferLedger,
+};
+pub use energy_reconciliation_checked::{
+    EnergyReconciliationEvidenceError, EnergyReconciliationEvidenceExt,
 };
 pub use energy_state::{
     EnergyReconciliationAudit, EnergyStateAuditError, EnergyStateSnapshot, ReservoirEnergy,
