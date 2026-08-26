@@ -57,10 +57,17 @@ impl ThermalMaterial {
     }
 
     /// Heat capacity `m c_p` in J/K for a body of the supplied mass.
+    ///
+    /// Individual finite inputs are not sufficient: their product must also be
+    /// representable as a finite positive `f64`, otherwise downstream energy
+    /// accounting could report a transfer that produces no representable state
+    /// change.
     pub fn heat_capacity(self, mass_kg: f64) -> Result<f64, ThermalError> {
         self.validate()?;
         validate_positive_finite(mass_kg, ThermalError::InvalidMass)?;
-        Ok(mass_kg * self.specific_heat_capacity)
+        let heat_capacity = mass_kg * self.specific_heat_capacity;
+        validate_positive_finite(heat_capacity, ThermalError::InvalidHeatCapacity)?;
+        Ok(heat_capacity)
     }
 }
 
@@ -96,7 +103,11 @@ impl ThermalState {
         self.validate()?;
         validate_temperature(reference_temperature_kelvin)?;
         let heat_capacity = material.heat_capacity(mass_kg)?;
-        Ok(heat_capacity * (self.temperature_kelvin - reference_temperature_kelvin))
+        let energy = heat_capacity * (self.temperature_kelvin - reference_temperature_kelvin);
+        if !energy.is_finite() {
+            return Err(ThermalError::InvalidEnergy);
+        }
+        Ok(energy)
     }
 
     /// Add sensible heat to this state and return the resulting temperature.
@@ -151,7 +162,9 @@ impl ThermalBody {
     pub fn validate(self) -> Result<(), ThermalError> {
         self.material.validate()?;
         self.state.validate()?;
-        validate_positive_finite(self.thermal_mass_kg, ThermalError::InvalidMass)
+        validate_positive_finite(self.thermal_mass_kg, ThermalError::InvalidMass)?;
+        self.material.heat_capacity(self.thermal_mass_kg)?;
+        Ok(())
     }
 
     pub fn sensible_energy_joules(
@@ -182,7 +195,8 @@ pub struct HeatExchange {
     pub equilibrium_limited: bool,
 }
 
-/// Errors returned when a thermodynamic state would be physically invalid.
+/// Errors returned when a thermodynamic state or derived quantity would be
+/// physically invalid or unrepresentable in the current `f64` model.
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub enum ThermalError {
     InvalidTemperature,
@@ -190,6 +204,7 @@ pub enum ThermalError {
     InvalidThermalConductivity,
     InvalidEmissivity,
     InvalidMass,
+    InvalidHeatCapacity,
     InvalidConductance,
     InvalidTimestep,
     InvalidEnergy,
@@ -203,6 +218,9 @@ pub enum ThermalError {
 /// transfer is exactly antisymmetric: energy removed from A is added to B.
 /// Large timesteps are capped at the pair's equilibrium transfer, which prevents
 /// a single step from crossing equilibrium and reversing the temperature order.
+///
+/// The update is transactional: both next temperatures are computed and
+/// validated before either input state is mutated.
 #[allow(clippy::too_many_arguments)]
 pub fn conductive_exchange(
     a: &mut ThermalState,
@@ -235,19 +253,41 @@ pub fn conductive_exchange(
     }
 
     let requested = conductance_w_per_k * delta_t * dt_seconds;
-    let equilibrium_transfer = delta_t / (capacity_a.recip() + capacity_b.recip());
-    let equilibrium_limited = requested.abs() > equilibrium_transfer.abs();
+
+    // Stable form of C_a*C_b/(C_a+C_b): using the smaller capacity avoids
+    // overflow in the product and avoids reciprocal-sum overflow for tiny
+    // positive capacities.
+    let (smaller_capacity, larger_capacity) = if capacity_a <= capacity_b {
+        (capacity_a, capacity_b)
+    } else {
+        (capacity_b, capacity_a)
+    };
+    let effective_pair_capacity =
+        smaller_capacity / (1.0 + smaller_capacity / larger_capacity);
+    let equilibrium_transfer = delta_t * effective_pair_capacity;
+
+    // An overflowing requested Euler transfer still has a meaningful outcome
+    // when the finite equilibrium limiter is representable: clamp to it. If the
+    // selected physical transfer itself is not representable, fail without
+    // mutating either state.
+    let equilibrium_limited =
+        !requested.is_finite() || requested.abs() > equilibrium_transfer.abs();
     let transfer = if equilibrium_limited {
         equilibrium_transfer
     } else {
         requested
     };
+    if !transfer.is_finite() {
+        return Err(ThermalError::InvalidEnergy);
+    }
 
-    a.temperature_kelvin -= transfer / capacity_a;
-    b.temperature_kelvin += transfer / capacity_b;
+    let next_a = a.temperature_kelvin - transfer / capacity_a;
+    let next_b = b.temperature_kelvin + transfer / capacity_b;
+    validate_temperature(next_a)?;
+    validate_temperature(next_b)?;
 
-    debug_assert!(a.temperature_kelvin >= ABSOLUTE_ZERO_K);
-    debug_assert!(b.temperature_kelvin >= ABSOLUTE_ZERO_K);
+    a.temperature_kelvin = next_a;
+    b.temperature_kelvin = next_b;
 
     Ok(HeatExchange {
         joules_from_a_to_b: transfer,
@@ -350,6 +390,69 @@ mod tests {
             thermal.validate(),
             Err(ThermalError::InvalidSpecificHeatCapacity)
         );
+    }
+
+    #[test]
+    fn derived_heat_capacity_overflow_is_rejected() {
+        let material = ThermalMaterial::new(f64::MAX, 1.0, 0.5).unwrap();
+        assert_eq!(
+            material.heat_capacity(2.0),
+            Err(ThermalError::InvalidHeatCapacity)
+        );
+        assert_eq!(
+            ThermalBody::new(material, ThermalState::new(300.0).unwrap(), 2.0),
+            Err(ThermalError::InvalidHeatCapacity)
+        );
+    }
+
+    #[test]
+    fn sensible_energy_overflow_is_rejected() {
+        let material = ThermalMaterial::new(f64::MAX / 4.0, 1.0, 0.5).unwrap();
+        let state = ThermalState::new(10.0).unwrap();
+        assert_eq!(
+            state.sensible_energy_joules(0.0, 1.0, material),
+            Err(ThermalError::InvalidEnergy)
+        );
+    }
+
+    #[test]
+    fn failed_unrepresentable_exchange_is_transactional() {
+        let material = ThermalMaterial::new(f64::MAX / 2.0, 1.0, 0.5).unwrap();
+        let mut a = ThermalState::new(f64::MAX).unwrap();
+        let mut b = ThermalState::new(1.0).unwrap();
+        let original_a = a;
+        let original_b = b;
+
+        assert_eq!(
+            conductive_exchange(&mut a, material, 1.0, &mut b, material, 1.0, 2.0, 1.0),
+            Err(ThermalError::InvalidEnergy)
+        );
+        assert_eq!(a, original_a);
+        assert_eq!(b, original_b);
+    }
+
+    #[test]
+    fn tiny_capacities_use_stable_equilibrium_limit() {
+        let material = ThermalMaterial::new(1.0e-308, 1.0, 0.5).unwrap();
+        let mut a = ThermalState::new(400.0).unwrap();
+        let mut b = ThermalState::new(300.0).unwrap();
+
+        let exchange = conductive_exchange(
+            &mut a,
+            material,
+            1.0,
+            &mut b,
+            material,
+            1.0,
+            1.0,
+            1.0,
+        )
+        .unwrap();
+
+        assert!(exchange.equilibrium_limited);
+        assert!(exchange.joules_from_a_to_b > 0.0);
+        assert!((a.temperature_kelvin - 350.0).abs() < 1e-9);
+        assert!((b.temperature_kelvin - 350.0).abs() < 1e-9);
     }
 
     #[test]
