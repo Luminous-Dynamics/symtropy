@@ -70,7 +70,7 @@ impl EnergyBudget {
             consumed_this_tick: 0.0,
             regenerated_this_tick: 0.0,
             lifetime_consumed: 0.0,
-            collapsed: max_energy == 0.0,
+            collapsed: max_energy <= 0.0,
         };
         budget.validate()?;
         Ok(budget)
@@ -119,7 +119,7 @@ impl EnergyBudget {
         if !self.lifetime_consumed.is_finite() || self.lifetime_consumed < 0.0 {
             return Err(EnergyBudgetError::InvalidLifetimeConsumed);
         }
-        if self.collapsed != (self.available == 0.0) {
+        if self.collapsed != (self.available <= 0.0) {
             return Err(EnergyBudgetError::CollapsedStateMismatch);
         }
         Ok(())
@@ -163,7 +163,7 @@ impl EnergyBudget {
         self.consumed_this_tick = next_consumed;
         self.lifetime_consumed = next_lifetime;
         self.entropy = next_entropy;
-        self.collapsed = self.available == 0.0;
+        self.collapsed = self.available <= 0.0;
         Ok(actual)
     }
 
@@ -199,7 +199,7 @@ impl EnergyBudget {
 
         self.available = next_available.min(self.max_energy);
         self.regenerated_this_tick = next_regenerated;
-        self.collapsed = self.available == 0.0;
+        self.collapsed = self.available <= 0.0;
         Ok(actual)
     }
 
@@ -279,7 +279,7 @@ impl EnergyBudget {
     /// Checked fraction of energy remaining in `[0, 1]`.
     pub fn fraction_remaining_checked(&self) -> Result<f64, EnergyBudgetError> {
         self.validate()?;
-        if self.max_energy == 0.0 {
+        if self.max_energy <= 0.0 {
             return Ok(0.0);
         }
         let fraction = self.available / self.max_energy;
@@ -476,7 +476,7 @@ mod tests {
         budget.regenerated_this_tick = f64::MAX;
         let before = budget.clone();
         assert_eq!(
-            budget.regenerate_checked(1.0),
+            budget.regenerate_checked(f64::MAX),
             Err(EnergyBudgetError::UnrepresentableArithmetic)
         );
         assert_eq!(budget.available, before.available);
