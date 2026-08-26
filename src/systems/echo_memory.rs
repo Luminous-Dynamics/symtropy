@@ -11,10 +11,25 @@
 //! time one completes. A high-similarity hit means "this stretch of play
 //! strongly resembles an earlier one this run" — surfaced to the player as
 //! a console line ("déjà vu").
+//!
+//! Completed episodes also feed a strictly shadow-only adaptive-physics
+//! telemetry path. The shadow path records only evidence actually available at
+//! this integration point. Unknown accounting, lifecycle, conservation,
+//! constraint, novelty-calibration, and error-model evidence remains explicit
+//! and therefore cannot authorize fidelity reduction.
+
+use std::collections::VecDeque;
 
 use bevy::prelude::*;
+use symtropy_hdc_physics::advisory::FidelityTier;
+use symtropy_hdc_physics::advisory::fidelity::AdaptiveFidelityPolicy;
+use symtropy_hdc_physics::advisory::shadow::{
+    ShadowFidelityAssessment, ShadowFidelityObservation,
+};
+use symtropy_hdc_physics::advisory::thermal_semantics::exact_world_digest_v2;
 use symtropy_hdc_physics::{
-    EpisodeBuilder, EpisodeMemory, EpisodeMetadata, PhysicsEncoderConfig, PhysicsFrameEncoder,
+    EpisodeBuilder, EpisodeMemory, EpisodeMetadata, ExactStateDigest, PhysicsEncoderConfig,
+    PhysicsFrameEncoder,
 };
 
 use crate::resources::PhysicsWorldRes;
@@ -31,6 +46,29 @@ const EPISODE_LEN: usize = 60;
 const TEMPORAL_STRIDE: i64 = 101;
 /// Below this similarity, a match isn't distinctive enough to surface.
 const ECHO_SIMILARITY_THRESHOLD: f32 = 0.65;
+/// Bounded evidence history. Shadow telemetry must never become an unbounded
+/// gameplay allocation merely because a research feature is enabled.
+const SHADOW_HISTORY_CAPACITY: usize = 256;
+
+#[derive(Debug, Clone)]
+pub struct ShadowEpisodeTelemetry {
+    pub episode_id: String,
+    pub first_tick: u64,
+    pub last_tick: u64,
+    pub exact_digest: ExactStateDigest,
+    pub nearest_episode_id: Option<String>,
+    pub retrieval_similarity: Option<f32>,
+    /// Lower-level diagnostic only. This is not the stronger interval-level
+    /// `accounting_complete` evidence required by adaptive reduction policy.
+    pub modeled_energy_accounting_complete: bool,
+    pub non_finite_body_count: usize,
+    pub invalid_thermal_body_count: usize,
+    /// Present when the shadow assessment itself validated successfully.
+    pub assessment: Option<ShadowFidelityAssessment>,
+    /// Preserved rather than silently dropping the episode when policy or
+    /// telemetry validation fails.
+    pub assessment_error: Option<String>,
+}
 
 #[derive(Resource)]
 pub struct EchoMemoryRes {
@@ -41,6 +79,8 @@ pub struct EchoMemoryRes {
     sample_timer: f32,
     tick: u64,
     episode_index: u64,
+    shadow_policy: AdaptiveFidelityPolicy,
+    shadow_history: VecDeque<ShadowEpisodeTelemetry>,
 }
 
 impl Default for EchoMemoryRes {
@@ -57,7 +97,28 @@ impl Default for EchoMemoryRes {
             sample_timer: 0.0,
             tick: 0,
             episode_index: 0,
+            shadow_policy: AdaptiveFidelityPolicy::default(),
+            shadow_history: VecDeque::with_capacity(SHADOW_HISTORY_CAPACITY),
         }
+    }
+}
+
+impl EchoMemoryRes {
+    /// Latest non-intervening adaptive-physics observation, if at least one HDC
+    /// episode has completed.
+    pub fn latest_shadow_telemetry(&self) -> Option<&ShadowEpisodeTelemetry> {
+        self.shadow_history.back()
+    }
+
+    pub fn shadow_telemetry(&self) -> &VecDeque<ShadowEpisodeTelemetry> {
+        &self.shadow_history
+    }
+
+    fn push_shadow_telemetry(&mut self, record: ShadowEpisodeTelemetry) {
+        if self.shadow_history.len() == SHADOW_HISTORY_CAPACITY {
+            self.shadow_history.pop_front();
+        }
+        self.shadow_history.push_back(record);
     }
 }
 
@@ -83,8 +144,8 @@ pub fn echo_memory_system(
         Ok(frame) => frame,
         Err(e) => {
             // Encoding is deterministic on well-formed state; a failure here
-            // means a config mismatch, not a per-tick transient — log once
-            // rather than spamming every sample.
+            // means the episode cannot be admitted to normal HDC memory. This
+            // integration currently has no separate failure-only episode stream.
             if tick == 0 {
                 eprintln!("[echo-memory] frame encode failed, disabling: {e}");
             }
@@ -132,9 +193,16 @@ pub fn echo_memory_system(
         return;
     };
 
-    if !echo.memory.is_empty()
-        && let Ok(hits) = echo.memory.query_episode(&episode, 1, false)
-        && let Some(hit) = hits.first()
+    let nearest = if echo.memory.is_empty() {
+        None
+    } else {
+        echo.memory
+            .query_episode(&episode, 1, false)
+            .ok()
+            .and_then(|hits| hits.into_iter().next())
+    };
+
+    if let Some(hit) = nearest.as_ref()
         && hit.similarity >= ECHO_SIMILARITY_THRESHOLD
     {
         println!(
@@ -142,6 +210,52 @@ pub fn echo_memory_system(
             hit.episode_id, hit.similarity
         );
     }
+
+    // Shadow-only adaptive-physics evidence. We deliberately record only what
+    // is actually measured here. `has_complete_modeled_energy_accounting()` is
+    // useful raw diagnostics, but it does not prove interval-level ledger/state
+    // reconciliation and therefore MUST NOT be promoted to
+    // `accounting_complete = Some(true)` here. Likewise, this integration has no
+    // authoritative lifecycle receipt stream yet, so `lifecycle_stable` remains
+    // unknown rather than being inferred from endpoint digest equality.
+    let invariants = physics.world.invariant_snapshot();
+    let observation = ShadowFidelityObservation {
+        tick: episode.last_tick,
+        exact_digest: exact_world_digest_v2(&physics.world),
+        // `Exact` is the policy label for the highest-certified/reference path,
+        // not a claim of mathematical exactness.
+        current_fidelity: FidelityTier::Exact,
+        retrieval_similarity: nearest.as_ref().map(|hit| hit.similarity),
+        calibrated_novelty: None,
+        numerically_healthy: Some(invariants.is_numerically_healthy(1.0e-8)),
+        accounting_complete: None,
+        lifecycle_stable: None,
+        conservation_residual_ratio: None,
+        constraint_error: None,
+        activity: None,
+        causal_importance: None,
+        error_prediction: None,
+    };
+
+    let (assessment, assessment_error) = match observation.assess_known_risk(&echo.shadow_policy) {
+        Ok(assessment) => (Some(assessment), None),
+        Err(error) => (None, Some(format!("{error:?}"))),
+    };
+
+    let record = ShadowEpisodeTelemetry {
+        episode_id: episode.id.clone(),
+        first_tick: episode.first_tick,
+        last_tick: episode.last_tick,
+        exact_digest: observation.exact_digest,
+        nearest_episode_id: nearest.as_ref().map(|hit| hit.episode_id.clone()),
+        retrieval_similarity: observation.retrieval_similarity,
+        modeled_energy_accounting_complete: invariants.has_complete_modeled_energy_accounting(),
+        non_finite_body_count: invariants.non_finite_body_count,
+        invalid_thermal_body_count: invariants.invalid_thermal_body_count,
+        assessment,
+        assessment_error,
+    };
+    echo.push_shadow_telemetry(record);
 
     let _ = echo.memory.insert(episode);
 }
