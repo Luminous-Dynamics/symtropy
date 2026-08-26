@@ -10,7 +10,7 @@
 //! 4. Harmony resonance can reduce duplicated processing cost
 //! 5. Sanctuary zones emerge (handled in consciousness coupling)
 //! 6. Energy depleted = consciousness collapse
-//! 7. Energy regenerates from environment (ambient + wells)
+//! 7. Energy regenerates from environment (ambient + explicit recovery sources)
 
 use bevy::prelude::*;
 use std::collections::HashMap;
@@ -37,8 +37,9 @@ pub struct ThermodynamicHudState {
 
 /// Main enforcement system. Runs in FixedUpdate.
 ///
-/// Debits consciousness maintenance, applies ambient regeneration,
-/// checks for collapse, and handles harmony-resonance cost reduction.
+/// Debits consciousness maintenance, applies ambient regeneration to live
+/// reservoirs, checks for collapse, handles harmony-resonance cost reduction,
+/// and permits explicit finite wells to recover collapsed reservoirs.
 pub fn thermodynamic_enforcement_system(
     mut physics: ResMut<PhysicsWorldRes>,
     mut hud_state: ResMut<ThermodynamicHudState>,
@@ -92,9 +93,11 @@ pub fn thermodynamic_enforcement_system(
             );
             entity.energy.consume(maintenance);
 
-            // Rule 7: Ambient regeneration (slow, not enough alone).
+            // Rule 7a: ambient regeneration can sustain a live reservoir, but it
+            // is not an authorized resurrection mechanism. Once collapsed, an
+            // entity needs an explicit recovery source such as a finite well.
             let ambient = constants.ambient_regen_rate * regen_mult;
-            entity.energy.regenerate(ambient);
+            let _ = apply_ambient_regeneration(&mut entity.energy, ambient);
 
             // Rule 6: Check for collapse.
             if entity.energy.is_collapsed() {
@@ -103,11 +106,12 @@ pub fn thermodynamic_enforcement_system(
         }
     }
 
-    // --- Energy Wells: finite spatial regeneration sources ---
+    // --- Rule 7b: Energy Wells are explicit finite recovery sources ---
     //
     // Source depletion must equal energy actually accepted by the destination.
     // A full receiver therefore leaves the well unchanged instead of deleting
-    // the offered energy from the modeled world.
+    // the offered energy from the modeled world. Unlike ambient regeneration,
+    // wells are allowed to restore a collapsed reservoir.
     for (well_tf, mut well, mut well_sprite) in &mut wells {
         if !well.is_active() {
             well_sprite.color = Color::srgba(0.2, 0.2, 0.2, 0.15); // dim depleted wells
@@ -251,6 +255,30 @@ fn maintenance_cost_with_offload(base_cost: f64, phi: f64, offload_factor: f64) 
     // it as a pre-debit reduction and bound it to one strongest-partner effect.
     let discount = base_cost * factor * 0.5;
     (raw_cost - discount).max(0.0)
+}
+
+#[cfg(feature = "consciousness-runtime")]
+fn apply_ambient_regeneration(
+    energy: &mut symtropy_consciousness_physics::EnergyBudget,
+    requested: f64,
+) -> f64 {
+    if energy.is_collapsed() {
+        return 0.0;
+    }
+    energy.regenerate_checked(requested).unwrap_or(0.0)
+}
+
+#[cfg(not(feature = "consciousness-runtime"))]
+fn apply_ambient_regeneration(
+    energy: &mut crate::resources::ConsciousnessEnergy,
+    requested: f64,
+) -> f64 {
+    if energy.is_collapsed() {
+        return 0.0;
+    }
+    let before = energy.available;
+    energy.regenerate(requested);
+    (energy.available - before).max(0.0)
 }
 
 #[cfg(feature = "consciousness-runtime")]
@@ -447,6 +475,37 @@ mod tests {
 
     #[cfg(feature = "consciousness-runtime")]
     #[test]
+    fn full_runtime_ambient_cannot_revive_collapsed_entity() {
+        let mut energy = symtropy_consciousness_physics::EnergyBudget::new(100.0);
+        energy.consume(100.0);
+        energy.tick_reset();
+        assert!(energy.is_collapsed());
+
+        assert_eq!(apply_ambient_regeneration(&mut energy, 10.0), 0.0);
+        assert_eq!(energy.available, 0.0);
+        assert!(energy.is_collapsed());
+        assert_eq!(energy.regenerated_this_tick, 0.0);
+    }
+
+    #[cfg(feature = "consciousness-runtime")]
+    #[test]
+    fn full_runtime_well_can_recover_collapsed_entity() {
+        let mut well = EnergyWell::new(20.0, 10.0, 100.0);
+        let mut energy = symtropy_consciousness_physics::EnergyBudget::new(100.0);
+        energy.consume(100.0);
+        energy.tick_reset();
+        assert!(energy.is_collapsed());
+
+        let accepted = transfer_from_well(&mut well, &mut energy);
+        assert_eq!(accepted, 20.0);
+        assert_eq!(energy.available, 20.0);
+        assert!(!energy.is_collapsed());
+        assert_eq!(energy.regenerated_this_tick, 20.0);
+        assert_eq!(well.remaining, 80.0);
+    }
+
+    #[cfg(feature = "consciousness-runtime")]
+    #[test]
     fn full_runtime_well_transfer_conserves_source_and_destination_delta() {
         let mut well = EnergyWell::new(20.0, 10.0, 100.0);
         let mut energy = symtropy_consciousness_physics::EnergyBudget::new(100.0);
@@ -473,6 +532,37 @@ mod tests {
         assert_eq!(transfer_from_well(&mut well, &mut energy), 0.0);
         assert_eq!(well.remaining, source_before);
         assert_eq!(energy.regenerated_this_tick, 0.0);
+    }
+
+    #[cfg(not(feature = "consciousness-runtime"))]
+    #[test]
+    fn fallback_ambient_cannot_revive_collapsed_entity() {
+        let mut energy = crate::resources::ConsciousnessEnergy::new(100.0);
+        energy.consume(100.0);
+        energy.tick_reset();
+        assert!(energy.is_collapsed());
+
+        assert_eq!(apply_ambient_regeneration(&mut energy, 10.0), 0.0);
+        assert_eq!(energy.available, 0.0);
+        assert!(energy.is_collapsed());
+        assert_eq!(energy.regenerated_this_tick, 0.0);
+    }
+
+    #[cfg(not(feature = "consciousness-runtime"))]
+    #[test]
+    fn fallback_well_can_recover_collapsed_entity() {
+        let mut well = EnergyWell::new(20.0, 10.0, 100.0);
+        let mut energy = crate::resources::ConsciousnessEnergy::new(100.0);
+        energy.consume(100.0);
+        energy.tick_reset();
+        assert!(energy.is_collapsed());
+
+        let accepted = transfer_from_well(&mut well, &mut energy);
+        assert_eq!(accepted, 20.0);
+        assert_eq!(energy.available, 20.0);
+        assert!(!energy.is_collapsed());
+        assert_eq!(energy.regenerated_this_tick, 20.0);
+        assert_eq!(well.remaining, 80.0);
     }
 
     #[cfg(not(feature = "consciousness-runtime"))]
