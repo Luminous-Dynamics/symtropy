@@ -215,7 +215,7 @@ mod tests {
 
     #[test]
     fn invalid_position_or_geometry_never_returns_partial_body() {
-        assert_eq!(
+        assert!(matches!(
             dynamic_solid_sphere_3d(
                 BodyHandle(0),
                 Point::new([f64::NAN, 0.0, 0.0]),
@@ -223,13 +223,13 @@ mod tests {
                 1.0,
             ),
             Err(PrimitiveBody3Error::NonFinitePosition)
-        );
-        assert_eq!(
+        ));
+        assert!(matches!(
             dynamic_solid_cuboid_3d(BodyHandle(0), Point::origin(), [1.0, 0.0, 1.0], 1.0),
             Err(PrimitiveBody3Error::MassProperties(
                 MassProperties3Error::InvalidHalfExtent { axis: 1 }
             ))
-        );
+        ));
     }
 
     #[test]
