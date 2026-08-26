@@ -424,7 +424,7 @@ mod tests {
         let original_b = b;
 
         assert_eq!(
-            conductive_exchange(&mut a, material, 1.0, &mut b, material, 1.0, 1.0, 1.0),
+            conductive_exchange(&mut a, material, 1.0, &mut b, material, 1.0, 2.0, 1.0),
             Err(ThermalError::InvalidEnergy)
         );
         assert_eq!(a, original_a);
