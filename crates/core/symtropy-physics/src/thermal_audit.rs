@@ -35,6 +35,9 @@ impl From<EnergyLedgerError> for AuditedThermalError {
 /// Validity errors for the current constant-heat-capacity entropy diagnostic.
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub enum EntropyAuditError {
+    /// One of the supplied endpoint reservoirs is outside the thermal model's
+    /// validity or numerical representability contract.
+    InvalidThermalState(ThermalError),
     /// Classical `C ln(T2/T1)` is undefined at absolute zero.
     UndefinedAtAbsoluteZero,
     /// Material or effective thermal mass changed across the interval, so the
@@ -66,13 +69,21 @@ impl PairEntropyAudit {
 ///
 /// This diagnostic is intentionally narrow. It assumes constant specific heat,
 /// unchanged effective thermal mass, no phase change, and strictly positive
-/// absolute temperatures. Within that domain, `Delta S = C ln(T_after/T_before)`.
+/// absolute temperatures. Every endpoint is first revalidated against the core
+/// thermal model so finite-but-unphysical or unrepresentable reservoirs cannot
+/// produce second-law evidence. Within that domain,
+/// `Delta S = C ln(T_after/T_before)`.
 pub fn constant_cp_pair_entropy_audit(
     before_a: ThermalBody,
     after_a: ThermalBody,
     before_b: ThermalBody,
     after_b: ThermalBody,
 ) -> Result<PairEntropyAudit, EntropyAuditError> {
+    for body in [before_a, after_a, before_b, after_b] {
+        body.validate()
+            .map_err(EntropyAuditError::InvalidThermalState)?;
+    }
+
     if before_a.material != after_a.material
         || before_b.material != after_b.material
         || before_a.thermal_mass_kg != after_a.thermal_mass_kg
@@ -91,8 +102,14 @@ pub fn constant_cp_pair_entropy_audit(
         return Err(EntropyAuditError::UndefinedAtAbsoluteZero);
     }
 
-    let capacity_a = before_a.material.specific_heat_capacity * before_a.thermal_mass_kg;
-    let capacity_b = before_b.material.specific_heat_capacity * before_b.thermal_mass_kg;
+    let capacity_a = before_a
+        .material
+        .heat_capacity(before_a.thermal_mass_kg)
+        .map_err(EntropyAuditError::InvalidThermalState)?;
+    let capacity_b = before_b
+        .material
+        .heat_capacity(before_b.thermal_mass_kg)
+        .map_err(EntropyAuditError::InvalidThermalState)?;
     let body_a_delta_j_per_k = capacity_a
         * (after_a.state.temperature_kelvin / before_a.state.temperature_kelvin).ln();
     let body_b_delta_j_per_k = capacity_b
@@ -333,6 +350,41 @@ mod tests {
         assert_eq!(
             constant_cp_pair_entropy_audit(zero, zero, warm, warm),
             Err(EntropyAuditError::UndefinedAtAbsoluteZero)
+        );
+    }
+
+    #[test]
+    fn entropy_audit_rejects_post_construction_invalid_reservoir() {
+        let before_a = body(400.0);
+        let mut after_a = body(390.0);
+        let before_b = body(300.0);
+        let after_b = body(310.0);
+        after_a.material.emissivity = 1.5;
+
+        assert_eq!(
+            constant_cp_pair_entropy_audit(before_a, after_a, before_b, after_b),
+            Err(EntropyAuditError::InvalidThermalState(
+                ThermalError::InvalidEmissivity
+            ))
+        );
+    }
+
+    #[test]
+    fn entropy_audit_rejects_unrepresentable_heat_capacity() {
+        let mut before_a = body(400.0);
+        let mut after_a = body(390.0);
+        let before_b = body(300.0);
+        let after_b = body(310.0);
+        before_a.material.specific_heat_capacity = f64::MAX;
+        after_a.material.specific_heat_capacity = f64::MAX;
+        before_a.thermal_mass_kg = 2.0;
+        after_a.thermal_mass_kg = 2.0;
+
+        assert_eq!(
+            constant_cp_pair_entropy_audit(before_a, after_a, before_b, after_b),
+            Err(EntropyAuditError::InvalidThermalState(
+                ThermalError::InvalidHeatCapacity
+            ))
         );
     }
 }
