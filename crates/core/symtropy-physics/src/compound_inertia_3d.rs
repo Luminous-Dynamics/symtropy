@@ -50,6 +50,7 @@ pub enum CompoundInertia3Error {
     UnrepresentableTotalMass,
     UnrepresentableCenterOfMass,
     UnrepresentableTensor,
+    NonSymmetricTensor,
     NonPositiveDefiniteTensor,
     InvalidTolerance,
 }
@@ -155,13 +156,25 @@ impl CompoundMassProperties3 {
             }
         }
 
-        validate_positive_definite(&tensor)?;
-
-        Ok(Self {
+        let result = Self {
             total_mass,
             center_of_mass,
             inertia_tensor_body: tensor,
-        })
+        };
+        result.validate()?;
+        Ok(result)
+    }
+
+    /// Revalidate a compound evidence object after serialization or public-field
+    /// mutation.
+    pub fn validate(&self) -> Result<(), CompoundInertia3Error> {
+        if !self.total_mass.is_finite() || self.total_mass <= 0.0 {
+            return Err(CompoundInertia3Error::UnrepresentableTotalMass);
+        }
+        if !vector_is_finite(&self.center_of_mass) {
+            return Err(CompoundInertia3Error::UnrepresentableCenterOfMass);
+        }
+        validate_symmetric_positive_definite(&self.inertia_tensor_body)
     }
 
     /// Checked rotational kinetic energy in the compound body frame.
@@ -169,7 +182,8 @@ impl CompoundMassProperties3 {
         &self,
         omega_body: &SVector<f64, 3>,
     ) -> Result<f64, CompoundInertia3Error> {
-        if !vector_is_finite(omega_body) || !matrix_is_finite(&self.inertia_tensor_body) {
+        self.validate()?;
+        if !vector_is_finite(omega_body) {
             return Err(CompoundInertia3Error::UnrepresentableTensor);
         }
         let inertia_omega = self.inertia_tensor_body * omega_body;
@@ -192,9 +206,7 @@ impl CompoundMassProperties3 {
         if !tolerance.is_finite() || tolerance < 0.0 {
             return Err(CompoundInertia3Error::InvalidTolerance);
         }
-        if !matrix_is_finite(&self.inertia_tensor_body) {
-            return Err(CompoundInertia3Error::UnrepresentableTensor);
-        }
+        self.validate()?;
         let max_off_diagonal = [
             self.inertia_tensor_body[(0, 1)].abs(),
             self.inertia_tensor_body[(0, 2)].abs(),
@@ -273,16 +285,20 @@ fn matrix_is_finite(matrix: &SMatrix<f64, 3, 3>) -> bool {
     matrix.iter().all(|value| value.is_finite())
 }
 
-/// Sylvester's criterion on a scale-normalized symmetric matrix.
-///
-/// Scaling by a positive scalar preserves positive-definiteness while avoiding
-/// overflow in determinant/minor calculations. Extremely ill-conditioned cases
-/// that underflow a required positive minor fail closed.
-fn validate_positive_definite(
+/// Validate exact symmetry and positive definiteness using Sylvester's criterion
+/// on a scale-normalized matrix.
+fn validate_symmetric_positive_definite(
     tensor: &SMatrix<f64, 3, 3>,
 ) -> Result<(), CompoundInertia3Error> {
     if !matrix_is_finite(tensor) {
         return Err(CompoundInertia3Error::UnrepresentableTensor);
+    }
+    for row in 0..3 {
+        for col in (row + 1)..3 {
+            if tensor[(row, col)] != tensor[(col, row)] {
+                return Err(CompoundInertia3Error::NonSymmetricTensor);
+            }
+        }
     }
 
     let scale = tensor
@@ -292,7 +308,7 @@ fn validate_positive_definite(
     if !scale.is_finite() || scale <= 0.0 {
         return Err(CompoundInertia3Error::NonPositiveDefiniteTensor);
     }
-    let a = tensor / scale;
+    let a = tensor.clone() / scale;
 
     let minor1 = a[(0, 0)];
     let minor2 = a[(0, 0)] * a[(1, 1)] - a[(0, 1)] * a[(1, 0)];
@@ -464,5 +480,22 @@ mod tests {
         let diagonal_only = 0.5
             * (compound.inertia_tensor_body[(0, 0)] + compound.inertia_tensor_body[(1, 1)]);
         assert!((energy - diagonal_only).abs() > 1.0);
+    }
+
+    #[test]
+    fn mutated_tensor_must_revalidate_before_evidence_use() {
+        let sphere = MassProperties3::solid_sphere(1.0, 1.0).unwrap();
+        let mut compound = CompoundMassProperties3::compose(&[part(
+            1,
+            [0.0, 0.0, 0.0],
+            Rotor::identity(),
+            sphere,
+        )])
+        .unwrap();
+        compound.inertia_tensor_body[(0, 1)] = 1.0;
+        assert_eq!(compound.validate(), Err(CompoundInertia3Error::NonSymmetricTensor));
+        assert!(compound
+            .rotational_energy_body_checked(&SVector::from([1.0, 0.0, 0.0]))
+            .is_err());
     }
 }
