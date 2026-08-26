@@ -71,6 +71,8 @@ impl EnergyPort {
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum EnergyTransferKind {
     ConductiveHeat,
+    /// Prescribed sensible heat crossing the modeled accounting boundary.
+    ExternalHeat,
     Friction,
     InelasticCollision,
     ViscousDissipation,
