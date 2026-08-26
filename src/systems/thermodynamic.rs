@@ -78,7 +78,11 @@ pub fn thermodynamic_enforcement_system(
         }
     }
 
-    // --- Energy Wells: spatial regeneration sources ---
+    // --- Energy Wells: finite spatial regeneration sources ---
+    //
+    // Source depletion must equal energy actually accepted by the destination.
+    // A full receiver therefore leaves the well unchanged instead of deleting
+    // the offered energy from the modeled world.
     for (well_tf, mut well, mut well_sprite) in &mut wells {
         if !well.is_active() {
             well_sprite.color = Color::srgba(0.2, 0.2, 0.2, 0.15); // dim depleted wells
@@ -89,12 +93,10 @@ pub fn thermodynamic_enforcement_system(
             let dist = agent_pos
                 .truncate()
                 .distance(well_tf.translation.truncate());
-            if dist < well.radius {
-                let regen = well.regen_rate.min(well.remaining);
-                well.remaining -= regen;
-                if let Some(entity) = physics.consciousness.entities.get_mut(&handle) {
-                    entity.energy.regenerate(regen);
-                }
+            if dist < well.radius
+                && let Some(entity) = physics.consciousness.entities.get_mut(&handle)
+            {
+                transfer_from_well(&mut well, &mut entity.energy);
             }
         }
 
@@ -203,6 +205,67 @@ pub fn thermodynamic_enforcement_system(
     }
 }
 
+#[cfg(feature = "consciousness-runtime")]
+fn transfer_from_well(
+    well: &mut EnergyWell,
+    energy: &mut symtropy_consciousness_physics::EnergyBudget,
+) -> f64 {
+    let Some(offered) = finite_well_offer(well) else {
+        return 0.0;
+    };
+
+    let accepted = energy.regenerate_checked(offered).unwrap_or(0.0);
+    commit_well_debit(well, offered, accepted)
+}
+
+#[cfg(not(feature = "consciousness-runtime"))]
+fn transfer_from_well(
+    well: &mut EnergyWell,
+    energy: &mut crate::resources::ConsciousnessEnergy,
+) -> f64 {
+    let Some(offered) = finite_well_offer(well) else {
+        return 0.0;
+    };
+
+    let before = energy.available;
+    energy.regenerate(offered);
+    let accepted = energy.available - before;
+    commit_well_debit(well, offered, accepted)
+}
+
+fn finite_well_offer(well: &EnergyWell) -> Option<f64> {
+    if !well.regen_rate.is_finite()
+        || well.regen_rate <= 0.0
+        || !well.remaining.is_finite()
+        || well.remaining <= 0.0
+    {
+        return None;
+    }
+
+    let offered = well.regen_rate.min(well.remaining);
+    offered.is_finite().then_some(offered)
+}
+
+fn commit_well_debit(well: &mut EnergyWell, offered: f64, accepted: f64) -> f64 {
+    if !offered.is_finite()
+        || offered <= 0.0
+        || !accepted.is_finite()
+        || accepted <= 0.0
+        || accepted > offered
+        || accepted > well.remaining
+    {
+        return 0.0;
+    }
+
+    let next_remaining = well.remaining - accepted;
+    if !next_remaining.is_finite() || next_remaining < 0.0 {
+        return 0.0;
+    }
+
+    well.remaining = next_remaining;
+    accepted
+}
+
 fn harmony_resonance(a: &[f64; 9], b: &[f64; 9]) -> f64 {
     let dot = a.iter().zip(b).map(|(a, b)| a * b).sum::<f64>();
     let mag_a = a.iter().map(|v| v * v).sum::<f64>().sqrt();
@@ -256,5 +319,96 @@ pub fn collapse_visual_system(
             }
             commands.entity(entity).remove::<EnergyCollapsed>();
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn well_debits_only_energy_accepted_by_full_receiver_contract() {
+        let mut well = EnergyWell::new(20.0, 10.0, 100.0);
+        let remaining_before = well.remaining;
+        assert_eq!(commit_well_debit(&mut well, 20.0, 0.0), 0.0);
+        assert_eq!(well.remaining, remaining_before);
+    }
+
+    #[test]
+    fn well_debits_partial_acceptance_exactly() {
+        let mut well = EnergyWell::new(20.0, 10.0, 100.0);
+        let accepted = commit_well_debit(&mut well, 20.0, 7.5);
+        assert_eq!(accepted, 7.5);
+        assert_eq!(well.remaining, 92.5);
+    }
+
+    #[test]
+    fn invalid_or_overaccepted_well_transfer_fails_closed() {
+        for accepted in [f64::NAN, f64::INFINITY, -1.0, 21.0] {
+            let mut well = EnergyWell::new(20.0, 10.0, 100.0);
+            let before = well.remaining;
+            assert_eq!(commit_well_debit(&mut well, 20.0, accepted), 0.0);
+            assert_eq!(well.remaining, before);
+        }
+    }
+
+    #[cfg(feature = "consciousness-runtime")]
+    #[test]
+    fn full_runtime_well_transfer_conserves_source_and_destination_delta() {
+        let mut well = EnergyWell::new(20.0, 10.0, 100.0);
+        let mut energy = symtropy_consciousness_physics::EnergyBudget::new(100.0);
+        energy.consume(10.0);
+        energy.tick_reset();
+
+        let destination_before = energy.available;
+        let source_before = well.remaining;
+        let accepted = transfer_from_well(&mut well, &mut energy);
+
+        assert_eq!(accepted, 10.0);
+        assert_eq!(energy.available - destination_before, accepted);
+        assert_eq!(source_before - well.remaining, accepted);
+        assert_eq!(energy.regenerated_this_tick, accepted);
+    }
+
+    #[cfg(feature = "consciousness-runtime")]
+    #[test]
+    fn full_runtime_full_receiver_does_not_deplete_well() {
+        let mut well = EnergyWell::new(20.0, 10.0, 100.0);
+        let mut energy = symtropy_consciousness_physics::EnergyBudget::new(100.0);
+        let source_before = well.remaining;
+
+        assert_eq!(transfer_from_well(&mut well, &mut energy), 0.0);
+        assert_eq!(well.remaining, source_before);
+        assert_eq!(energy.regenerated_this_tick, 0.0);
+    }
+
+    #[cfg(not(feature = "consciousness-runtime"))]
+    #[test]
+    fn fallback_well_transfer_conserves_source_and_destination_delta() {
+        let mut well = EnergyWell::new(20.0, 10.0, 100.0);
+        let mut energy = crate::resources::ConsciousnessEnergy::new(100.0);
+        energy.consume(10.0);
+        energy.tick_reset();
+
+        let destination_before = energy.available;
+        let source_before = well.remaining;
+        let accepted = transfer_from_well(&mut well, &mut energy);
+
+        assert_eq!(accepted, 10.0);
+        assert_eq!(energy.available - destination_before, accepted);
+        assert_eq!(source_before - well.remaining, accepted);
+        assert_eq!(energy.regenerated_this_tick, accepted);
+    }
+
+    #[cfg(not(feature = "consciousness-runtime"))]
+    #[test]
+    fn fallback_full_receiver_does_not_deplete_well() {
+        let mut well = EnergyWell::new(20.0, 10.0, 100.0);
+        let mut energy = crate::resources::ConsciousnessEnergy::new(100.0);
+        let source_before = well.remaining;
+
+        assert_eq!(transfer_from_well(&mut well, &mut energy), 0.0);
+        assert_eq!(well.remaining, source_before);
+        assert_eq!(energy.regenerated_this_tick, 0.0);
     }
 }
