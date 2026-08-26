@@ -52,8 +52,7 @@ pub use energy::{
 };
 pub use epa::EpaResult;
 pub use external_heat::{
-    EXTERNAL_HEAT_TRANSFER_KIND, EXTERNAL_HEAT_TRANSFER_KIND_ID, ExternalHeatError,
-    exchange_external_heat_audited,
+    EXTERNAL_HEAT_TRANSFER_KIND, ExternalHeatError, exchange_external_heat_audited,
 };
 pub use integrator::nan_zeroed_count;
 pub use joints::{BallJoint, FixedJoint, HingeJoint, MotorDrive, PrismaticJoint};
