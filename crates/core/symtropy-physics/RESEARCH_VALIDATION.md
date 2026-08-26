@@ -7,6 +7,9 @@ reference solution, error metric, build environment, and acceptance threshold.
 
 The transformed-collision validity envelope and its remaining limitations are
 documented separately in [`ORIENTED_COLLISION_VALIDATION.md`](ORIENTED_COLLISION_VALIDATION.md).
+The thermodynamic validity envelope, first-law/second-law checks, and thermal
+benchmark roadmap are documented in
+[`THERMODYNAMICS_VALIDATION.md`](THERMODYNAMICS_VALIDATION.md).
 
 ## Current validity envelope
 
@@ -28,6 +31,9 @@ narrower than the public API surface.
   convex colliders, plus dedicated 2D/3D oriented-box SAT.
 - Exact transformed primitive ray queries for spheres, boxes, capsules, and
   half-spaces.
+- Experimental lumped sensible-heat state with constant material properties and
+  conservative pairwise conductive exchange, within the narrower validity limits
+  defined by `THERMODYNAMICS_VALIDATION.md`.
 
 ### Not yet certified
 
@@ -40,6 +46,8 @@ narrower than the public API surface.
 - General convex continuous collision detection with rotational motion.
 - Reduced-coordinate articulations and inverse dynamics.
 - Production fluid, deformable, fracture, FEM, or MPM simulation.
+- Spatial heat diffusion, convection, radiation, phase change, thermoelasticity,
+  and other coupled thermodynamic regimes beyond lumped sensible heat.
 - Cross-architecture bit-identical determinism.
 - 4D EPA penetration depth beyond the documented approximation path.
 
@@ -58,6 +66,8 @@ numerical tolerance. Examples:
 - Support points maximize the dot product for known primitives.
 - Antiparallel vector alignment maps the source vector to the target.
 - Wedge products are antisymmetric.
+- Pairwise heat exchange is energy conservative and follows hot-to-cold
+  directionality within its documented lumped model.
 
 ### Tier B — Analytical physical solution
 
@@ -74,8 +84,11 @@ Required first suite:
 6. Torque-free spherical body rotation.
 7. Rolling without slipping after rotational inertia closure.
 8. Two-body Kepler orbit after the orbital solver is isolated.
+9. Two-lump thermal equilibration and transient exchange.
+10. Constant-power lump heating.
 
-The included `free_fall_validation` example is the reference format.
+The included `free_fall_validation` example is the reference format. Thermal
+campaigns should additionally follow `THERMODYNAMICS_VALIDATION.md`.
 
 ### Tier C — Independent implementation comparison
 
@@ -88,7 +101,7 @@ Suitable references depend on the domain:
 - Jolt, Box2D, Rapier, or PhysX for game rigid bodies.
 - MuJoCo for robotics and constrained dynamics.
 - A symbolic or high-precision implementation for mathematical identities.
-- Published benchmark datasets for fluids, FEM, and deformables.
+- Published benchmark datasets for fluids, FEM, deformables, and heat transfer.
 
 ### Tier D — Reproducible campaign
 
@@ -129,6 +142,10 @@ Every archived result should record at least:
 | thread count | integer |
 | scenario hash | hash of canonical scenario input |
 
+Thermal campaigns must also record their material-property sources, temperature
+convention, boundary conditions, thermal masses or cell volumes/densities, and
+all applied heat/work terms as specified in `THERMODYNAMICS_VALIDATION.md`.
+
 ## Core metrics
 
 At minimum, report the metrics relevant to the scenario:
@@ -137,6 +154,9 @@ At minimum, report the metrics relevant to the scenario:
 - Linear momentum drift.
 - Angular momentum drift once full inertia is implemented.
 - Mechanical-energy drift.
+- Modeled sensible thermal energy and combined mechanical-plus-thermal drift for
+  scenarios carrying thermal state.
+- First-law energy residual and entropy change for thermodynamic validation cases.
 - Constraint residual and joint drift.
 - Maximum penetration depth.
 - Rotation orthogonality error `max_abs(RᵀR - I)`.
@@ -157,6 +177,9 @@ expected to converge at first order in timestep for constant acceleration.
 Failure to show convergence is more important than one attractive result at a
 single timestep.
 
+The same rule applies to thermal integration. A conservative result at one
+resolution is not sufficient if the transient solution fails to converge.
+
 ## Conservation snapshots
 
 `PhysicsWorld::invariant_snapshot()` measures:
@@ -166,6 +189,8 @@ single timestep.
 - Kinetic energy under the currently implemented inertia model.
 - Uniform-gravity potential energy.
 - Mechanical energy.
+- Modeled sensible thermal energy for bodies carrying thermal state.
+- Combined mechanical plus modeled thermal energy.
 - Maximum speeds and contact penetration.
 - Rotation-group numerical health.
 - Non-finite body state.
@@ -173,7 +198,9 @@ single timestep.
 Interpret these values according to the modeled system. Dynamic-body momentum
 is not expected to remain constant when bodies exchange impulse with static
 geometry, external fields, actuators, callbacks, or omitted environment
-reservoirs.
+reservoirs. Likewise, combined mechanical-plus-thermal energy is not expected to
+remain constant when heat/work crosses a modeled boundary. Such transfers should
+be explicit in the scenario definition.
 
 ## Research contribution checklist
 
@@ -190,6 +217,9 @@ A research-oriented pull request should answer:
 9. Are negative and pathological cases included?
 10. What remains unproven after this change?
 
+For thermodynamic work, additionally ask whether both first-law accounting and
+second-law directionality have been tested where applicable.
+
 ## Priority validation backlog
 
 The next high-value campaigns are:
@@ -202,6 +232,9 @@ The next high-value campaigns are:
 6. Cross-architecture deterministic replay matrix.
 7. Reduced-coordinate articulation comparison with MuJoCo.
 8. One completed fluid method with hydrostatic and dam-break references.
+9. Two-lump thermodynamic first-law + second-law campaign.
+10. Contact-conduction and mechanical-dissipation-to-heat campaigns after those
+    couplings are implemented.
 
 The purpose of this protocol is not to slow experimentation. It allows
 experimental work to remain ambitious while keeping published claims precise,
