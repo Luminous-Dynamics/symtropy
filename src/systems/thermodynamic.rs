@@ -73,7 +73,15 @@ pub fn thermodynamic_enforcement_system(
             // Reset per-tick counters.
             entity.energy.tick_reset();
 
-            let offload_factor = offload_factors.get(&handle).copied().unwrap_or(0.0);
+            let phi = entity.phi();
+            let phi_is_valid = phi.is_finite();
+            let offload_factor = if phi_is_valid {
+                offload_factors.get(&handle).copied().unwrap_or(0.0)
+            } else {
+                // Invalid inference evidence may never unlock a cost discount.
+                0.0
+            };
+
             if offload_factor > 0.0 {
                 // Shared predictive structure accelerates surprise recovery. Apply
                 // this once using the strongest partner rather than compounding
@@ -83,15 +91,21 @@ pub fn thermodynamic_enforcement_system(
             }
 
             // Rule 2: consciousness maintenance cost. Higher Φ costs more.
-            // Offloading reduces the duplicated base-processing portion directly;
-            // it does not generate replacement energy after the debit.
-            let phi = entity.phi();
-            let maintenance = maintenance_cost_with_offload(
+            // Invalid Φ is charged at the maximum in-range Φ cost with no
+            // offload benefit; it also drops motor authority to Red for this
+            // tick rather than turning bad evidence into free operation.
+            let Some(maintenance) = maintenance_cost_with_offload(
                 constants.consciousness_maintenance_per_tick,
                 phi,
                 offload_factor,
-            );
+            ) else {
+                entity.safety_tier = SafetyTier::Red;
+                continue;
+            };
             entity.energy.consume(maintenance);
+            if !phi_is_valid {
+                entity.safety_tier = SafetyTier::Red;
+            }
 
             // Rule 7a: ambient regeneration can sustain a live reservoir, but it
             // is not an authorized resurrection mechanism. Once collapsed, an
@@ -135,7 +149,7 @@ pub fn thermodynamic_enforcement_system(
     }
 
     // Record the operational maintenance debit in the legacy telemetry ledger.
-    // This ledger is not a complete first-law physics ledger; #40 owns
+    // This ledger is not a complete first-law physics ledger; #40/#45 own
     // convergence onto the core typed energy-transfer accounting path.
     let total_maintenance: f64 = handles
         .iter()
@@ -235,26 +249,39 @@ fn accumulate_strongest_factor(
         .or_insert(factor);
 }
 
-fn maintenance_cost_with_offload(base_cost: f64, phi: f64, offload_factor: f64) -> f64 {
-    if !base_cost.is_finite() || base_cost <= 0.0 || !phi.is_finite() {
-        return 0.0;
+/// Compute this tick's operational maintenance debit.
+///
+/// Returns `None` only when the configured base cost itself is invalid or the
+/// resulting arithmetic is unrepresentable. Non-finite Φ does not become free
+/// operation: it is conservatively treated as `Φ = 1` and receives no discount.
+fn maintenance_cost_with_offload(
+    base_cost: f64,
+    phi: f64,
+    offload_factor: f64,
+) -> Option<f64> {
+    if !base_cost.is_finite() || base_cost < 0.0 {
+        return None;
     }
 
-    let raw_cost = base_cost * (1.0 + phi.max(0.0) * 0.5);
-    if !raw_cost.is_finite() || raw_cost <= 0.0 {
-        return 0.0;
-    }
-
-    let factor = if offload_factor.is_finite() {
-        offload_factor.clamp(0.0, 1.0)
+    let (effective_phi, effective_offload) = if phi.is_finite() {
+        let factor = if offload_factor.is_finite() {
+            offload_factor.clamp(0.0, 1.0)
+        } else {
+            0.0
+        };
+        (phi.clamp(0.0, 1.0), factor)
     } else {
-        0.0
+        (1.0, 0.0)
     };
 
-    // Preserve the established single-partner refund magnitude, but implement
-    // it as a pre-debit reduction and bound it to one strongest-partner effect.
-    let discount = base_cost * factor * 0.5;
-    (raw_cost - discount).max(0.0)
+    let raw_cost = base_cost * (1.0 + effective_phi * 0.5);
+    let discount = base_cost * effective_offload * 0.5;
+    let cost = raw_cost - discount;
+    if !raw_cost.is_finite() || !discount.is_finite() || !cost.is_finite() || cost < 0.0 {
+        None
+    } else {
+        Some(cost)
+    }
 }
 
 #[cfg(feature = "consciousness-runtime")]
@@ -273,12 +300,17 @@ fn apply_ambient_regeneration(
     energy: &mut crate::resources::ConsciousnessEnergy,
     requested: f64,
 ) -> f64 {
-    if energy.is_collapsed() {
+    if energy.is_collapsed() || !requested.is_finite() || requested <= 0.0 {
         return 0.0;
     }
     let before = energy.available;
     energy.regenerate(requested);
-    (energy.available - before).max(0.0)
+    let accepted = energy.available - before;
+    if accepted.is_finite() && accepted > 0.0 {
+        accepted
+    } else {
+        0.0
+    }
 }
 
 #[cfg(feature = "consciousness-runtime")]
@@ -319,7 +351,7 @@ fn finite_well_offer(well: &EnergyWell) -> Option<f64> {
     }
 
     let offered = well.regen_rate.min(well.remaining);
-    offered.is_finite().then_some(offered)
+    (offered.is_finite() && offered > 0.0).then_some(offered)
 }
 
 fn commit_well_debit(well: &mut EnergyWell, offered: f64, accepted: f64) -> f64 {
@@ -352,9 +384,19 @@ fn harmony_resonance(a: &[f64; 9], b: &[f64; 9]) -> f64 {
         || mag_a <= 1e-10
         || mag_b <= 1e-10
     {
-        0.0
+        return 0.0;
+    }
+
+    let denominator = mag_a * mag_b;
+    if !denominator.is_finite() || denominator <= 1e-20 {
+        return 0.0;
+    }
+
+    let resonance = dot / denominator;
+    if resonance.is_finite() {
+        resonance.clamp(0.0, 1.0)
     } else {
-        (dot / (mag_a * mag_b)).clamp(0.0, 1.0)
+        0.0
     }
 }
 
@@ -411,8 +453,8 @@ mod tests {
     fn offload_reduces_maintenance_without_becoming_a_credit() {
         let base = 0.08;
         let phi = 0.8;
-        let raw = maintenance_cost_with_offload(base, phi, 0.0);
-        let offloaded = maintenance_cost_with_offload(base, phi, 1.0);
+        let raw = maintenance_cost_with_offload(base, phi, 0.0).unwrap();
+        let offloaded = maintenance_cost_with_offload(base, phi, 1.0).unwrap();
 
         assert!(offloaded < raw);
         assert!((raw - offloaded - base * 0.5).abs() < 1e-12);
@@ -420,11 +462,26 @@ mod tests {
     }
 
     #[test]
+    fn invalid_phi_cannot_create_free_maintenance_or_offload_benefit() {
+        let base = 0.08;
+        let invalid = maintenance_cost_with_offload(base, f64::NAN, 1.0).unwrap();
+        let worst_case = maintenance_cost_with_offload(base, 1.0, 0.0).unwrap();
+        assert_eq!(invalid, worst_case);
+        assert!(invalid > 0.0);
+    }
+
+    #[test]
+    fn invalid_base_cost_is_not_silently_free() {
+        assert_eq!(maintenance_cost_with_offload(f64::NAN, 0.5, 0.0), None);
+        assert_eq!(maintenance_cost_with_offload(-1.0, 0.5, 0.0), None);
+    }
+
+    #[test]
     fn offload_factor_is_bounded_to_one_strongest_partner() {
         let base = 0.08;
         let phi = 0.8;
-        let fully_offloaded = maintenance_cost_with_offload(base, phi, 1.0);
-        let overclaimed = maintenance_cost_with_offload(base, phi, 10.0);
+        let fully_offloaded = maintenance_cost_with_offload(base, phi, 1.0).unwrap();
+        let overclaimed = maintenance_cost_with_offload(base, phi, 10.0).unwrap();
         assert_eq!(overclaimed, fully_offloaded);
 
         let mut factors = HashMap::new();
@@ -441,6 +498,9 @@ mod tests {
         let b = [0.5; 9];
         a[3] = f64::NAN;
         assert_eq!(harmony_resonance(&a, &b), 0.0);
+
+        let huge = [f64::MAX; 9];
+        assert_eq!(harmony_resonance(&huge, &huge), 0.0);
 
         let mut factors = HashMap::new();
         accumulate_strongest_factor(&mut factors, BodyHandle(1), f64::NAN);
