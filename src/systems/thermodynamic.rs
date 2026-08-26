@@ -287,8 +287,6 @@ mod tests {
     fn hud_accumulates_full_finalized_tick_before_rate_rollup() {
         let mut hud = ThermodynamicHudState::default();
 
-        // A finalized tick may contain multiple physical causes upstream; the
-        // post-step system hands the HUD their already-composed totals.
         accumulate_hud_tick(&mut hud, 3.5, 1.25);
         assert_eq!(hud.ticks_accumulated, 1);
         assert!((hud.energy_consumed_accumulator - 3.5).abs() < f64::EPSILON);
@@ -300,5 +298,63 @@ mod tests {
         assert_eq!(hud.ticks_accumulated, 0);
         assert!((hud.consumed_per_sec - 224.0).abs() < 1.0e-12);
         assert!((hud.regenerated_per_sec - 80.0).abs() < 1.0e-12);
+    }
+
+    #[cfg(feature = "consciousness-runtime")]
+    #[test]
+    fn callback_collision_cost_survives_until_post_step_finalization() {
+        use nalgebra::SVector;
+        use symtropy_physics::world::PhysicsCallback;
+        use symtropy_physics::{BodyHandle, CollisionEvent};
+
+        let mut field = symtropy_consciousness_physics::ConsciousnessField::<2>::new();
+        let body_a = BodyHandle(1);
+        let body_b = BodyHandle(2);
+        field.register(body_a, 100.0, 10.0);
+        field.register(body_b, 100.0, 10.0);
+
+        // Model the pre-step contract: one reset followed by a maintenance cost.
+        for handle in [body_a, body_b] {
+            let entity = field.entities.get_mut(&handle).unwrap();
+            entity.energy.tick_reset();
+            entity.energy.consume(2.0);
+        }
+
+        let before_collision_a = field.entities[&body_a].energy.consumed_this_tick;
+        let before_collision_b = field.entities[&body_b].energy.consumed_this_tick;
+        assert!((before_collision_a - 2.0).abs() < 1.0e-12);
+        assert!((before_collision_b - 2.0).abs() < 1.0e-12);
+
+        let event = CollisionEvent {
+            body_a,
+            body_b,
+            impulse: 10.0,
+            normal: SVector::from([1.0, 0.0]),
+            depth: 0.1,
+        };
+        PhysicsCallback::on_collision(&mut field, &event);
+
+        let after_callback_a = field.entities[&body_a].energy.consumed_this_tick;
+        let after_callback_b = field.entities[&body_b].energy.consumed_this_tick;
+        assert!(after_callback_a > before_collision_a);
+        assert!(after_callback_b > before_collision_b);
+
+        // Post-step finalization may drain deferred ledger state, but it must not
+        // clear the per-tick counters before the HUD samples them.
+        let _balance = field.tick_thermodynamics();
+        assert_eq!(
+            field.entities[&body_a].energy.consumed_this_tick,
+            after_callback_a
+        );
+        assert_eq!(
+            field.entities[&body_b].energy.consumed_this_tick,
+            after_callback_b
+        );
+
+        // The next tick opening is the operation that clears them.
+        field.entities.get_mut(&body_a).unwrap().energy.tick_reset();
+        field.entities.get_mut(&body_b).unwrap().energy.tick_reset();
+        assert_eq!(field.entities[&body_a].energy.consumed_this_tick, 0.0);
+        assert_eq!(field.entities[&body_b].energy.consumed_this_tick, 0.0);
     }
 }
