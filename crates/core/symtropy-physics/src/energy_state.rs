@@ -11,10 +11,14 @@
 //!
 //! Reservoir presence is part of the evidence contract. A missing reservoir is
 //! not numerically equivalent to a represented reservoir containing `0 J`.
+//! Ledger reductions used by reconciliation are overflow-aware: individually
+//! valid finite transfers do not become valid evidence if their deterministic
+//! aggregate cannot be represented as a finite `f64`.
 
 use serde::{Deserialize, Serialize};
 
 use crate::energy::{EnergyForm, EnergyOwner, EnergyPort, EnergyTransferLedger};
+use crate::energy_checked::EnergyTransferLedgerCheckedExt;
 use crate::thermal::{ThermalError, ThermalState};
 use crate::world::PhysicsWorld;
 
@@ -50,8 +54,6 @@ impl EnergyStateSnapshot {
         world: &PhysicsWorld<D>,
         thermal_reference_temperature_kelvin: f64,
     ) -> Result<Self, EnergyStateAuditError> {
-        // Reuse the thermal-state contract even when the world has no thermal
-        // bodies so an invalid reference cannot enter evidence data.
         ThermalState::new(thermal_reference_temperature_kelvin)?;
 
         let mut bodies: Vec<_> = world.bodies.iter().collect();
@@ -156,10 +158,9 @@ impl EnergyStateSnapshot {
         for port in &ports {
             let initial = self.energy_for(*port);
             let final_energy = later.energy_for(*port);
-            let ledger_delta = ledger.net_change_for(*port);
-            if !ledger_delta.is_finite() {
-                return Err(EnergyStateAuditError::NonFiniteLedgerDelta(*port));
-            }
+            let ledger_delta = ledger
+                .net_change_for_checked(*port)
+                .map_err(|_| EnergyStateAuditError::NonFiniteLedgerDelta(*port))?;
 
             let (measured_delta, residual) = match (initial, final_energy) {
                 (Some(initial), Some(final_energy)) => {
@@ -211,9 +212,14 @@ impl EnergyStateSnapshot {
 
         let initial_total = self.total_tracked_internal_joules()?;
         let final_total = later.total_tracked_internal_joules()?;
-        let boundary = ledger
-            .audit_internal_energy(initial_total, final_total)
+        let net_external_joules = ledger
+            .net_external_joules_checked()
             .map_err(|_| EnergyStateAuditError::NonFiniteBoundaryAudit)?;
+        let observed_delta = final_total - initial_total;
+        let total_closure_error_joules = observed_delta - net_external_joules;
+        if !observed_delta.is_finite() || !total_closure_error_joules.is_finite() {
+            return Err(EnergyStateAuditError::NonFiniteBoundaryAudit);
+        }
 
         Ok(EnergyReconciliationAudit {
             entries,
@@ -221,8 +227,8 @@ impl EnergyStateSnapshot {
             untracked_ledger_ports,
             initial_total_joules: initial_total,
             final_total_joules: final_total,
-            net_external_joules: boundary.net_external_joules,
-            total_closure_error_joules: boundary.closure_error_joules,
+            net_external_joules,
+            total_closure_error_joules,
         })
     }
 }
@@ -533,5 +539,56 @@ mod tests {
             EnergyPort::new(EnergyOwner::Body(handle), EnergyForm::Chemical)
         );
         assert!(!audit.fully_reconciled(1e-12));
+    }
+
+    #[test]
+    fn reconcile_rejects_tracked_reservoir_aggregate_overflow() {
+        let (world, handle) = world();
+        let snapshot = EnergyStateSnapshot::capture(&world, 0.0).unwrap();
+        let thermal = EnergyPort::new(
+            EnergyOwner::Body(handle),
+            EnergyForm::ThermalSensible,
+        );
+        let external = EnergyPort::new(EnergyOwner::External(99), EnergyForm::Electrical);
+        let mut ledger = EnergyTransferLedger::new();
+        for _ in 0..2 {
+            ledger
+                .record(
+                    external,
+                    thermal,
+                    f64::MAX,
+                    EnergyTransferKind::ExternalWork,
+                )
+                .unwrap();
+        }
+
+        assert_eq!(
+            snapshot.reconcile(&snapshot, &ledger),
+            Err(EnergyStateAuditError::NonFiniteLedgerDelta(thermal))
+        );
+    }
+
+    #[test]
+    fn reconcile_rejects_boundary_aggregate_overflow_from_untracked_internal_port() {
+        let (world, handle) = world();
+        let snapshot = EnergyStateSnapshot::capture(&world, 0.0).unwrap();
+        let chemical = EnergyPort::new(EnergyOwner::Body(handle), EnergyForm::Chemical);
+        let external = EnergyPort::new(EnergyOwner::External(100), EnergyForm::Chemical);
+        let mut ledger = EnergyTransferLedger::new();
+        for _ in 0..2 {
+            ledger
+                .record(
+                    external,
+                    chemical,
+                    f64::MAX,
+                    EnergyTransferKind::ChemicalReaction,
+                )
+                .unwrap();
+        }
+
+        assert_eq!(
+            snapshot.reconcile(&snapshot, &ledger),
+            Err(EnergyStateAuditError::NonFiniteBoundaryAudit)
+        );
     }
 }
