@@ -15,7 +15,7 @@
 //! - `integrator` — semi-implicit Euler with bivector angular dynamics
 //! - `thermal` — conservative thermodynamic primitives and conductive exchange
 //! - `energy` — deterministic double-entry accounting for cross-domain energy transfers
-//! - `energy_state` — measured reservoir state reconciled against the transfer ledger
+//! - `energy_state` — measured reservoir state reconciled against the causal ledger
 //! - `thermal_audit` — transactional thermal couplings and second-law diagnostics
 //! - `external_heat` — audited energy exchange across the simulation boundary
 //! - `dissipation` — measured mechanical loss converted into audited sensible heat
@@ -58,13 +58,12 @@ pub use energy::{
     EnergyTransferKind, EnergyTransferLedger,
 };
 pub use energy_state::{
-    EnergyReconciliationAudit, EnergyStateAuditError, EnergyStateSnapshot,
-    ReservoirEnergy, ReservoirReconciliation,
+    EnergyReconciliationAudit, EnergyStateAuditError, EnergyStateSnapshot, ReservoirEnergy,
+    ReservoirPresenceChange, ReservoirPresenceChangeKind, ReservoirReconciliation,
 };
 pub use epa::EpaResult;
 pub use external_heat::{
-    EXTERNAL_HEAT_TRANSFER_KIND, EXTERNAL_HEAT_TRANSFER_KIND_ID, ExternalHeatError,
-    exchange_external_heat_audited,
+    EXTERNAL_HEAT_TRANSFER_KIND, ExternalHeatError, exchange_external_heat_audited,
 };
 pub use integrator::nan_zeroed_count;
 pub use joints::{BallJoint, FixedJoint, HingeJoint, MotorDrive, PrismaticJoint};

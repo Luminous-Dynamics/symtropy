@@ -7,11 +7,16 @@
 //! The contract is intentionally asymmetric: advisors may request more
 //! fidelity or an exact fallback freely, but any request that could reduce
 //! numerical fidelity must carry a calibrated error estimate, sufficient
-//! confidence, and low novelty. This keeps HDC/CfC-style intelligence useful
-//! without allowing it to mutate authoritative physics state directly.
+//! confidence, explicit low novelty, and provenance where required. This keeps
+//! HDC/CfC-style intelligence useful without allowing it to mutate authoritative
+//! physics state directly.
+//!
+//! Firewall admission is necessary but not sufficient for intervention. A
+//! downstream authoritative policy must still require healthy numerical state,
+//! complete conservation/reconciliation evidence, stable reservoir/world
+//! lifecycle, and whatever solver-specific validity contract applies.
 
 pub mod fidelity;
-pub mod thermal_semantics;
 
 use serde::{Deserialize, Serialize};
 
@@ -110,7 +115,9 @@ pub struct PhysicsAdvisory {
     ///
     /// Required for any action that can reduce fidelity.
     pub predicted_relative_error: Option<f64>,
-    /// Semantic novelty in [0, 1], where 1 means maximally unfamiliar.
+    /// Semantic/operational novelty in [0, 1], where 1 means maximally
+    /// unfamiliar. Required for any action that can reduce fidelity: unknown
+    /// novelty is not favorable evidence.
     pub novelty_score: Option<f32>,
     /// Exact source-state digests supporting the proposal. Learned/semantic
     /// proposals must retain at least one exact provenance link.
@@ -168,7 +175,7 @@ pub struct EpistemicFirewallPolicy {
     pub max_novelty_for_reduction: f32,
     /// Novelty at or above this value escalates directly to exact handling.
     pub exact_fallback_novelty: f32,
-    /// Hard policy limit for requested substeps.
+    /// Hard policy limit for requested substep values.
     pub max_substeps: u16,
 }
 
@@ -185,9 +192,21 @@ impl Default for EpistemicFirewallPolicy {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum EpistemicFirewallPolicyValidationError {
+    InvalidMaxRelativeError,
+    InvalidMinConfidence,
+    InvalidMaxNoveltyForReduction,
+    InvalidExactFallbackNovelty,
+    InvalidNoveltyThresholdOrdering,
+    InvalidMaxSubsteps,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum AdvisoryRejection {
+    InvalidPolicy(EpistemicFirewallPolicyValidationError),
     InvalidProposal(AdvisoryValidationError),
     MissingErrorBound,
+    MissingNoveltyEstimate,
     ErrorBoundTooLarge,
     ConfidenceTooLow,
     NoveltyTooHigh,
@@ -203,8 +222,8 @@ pub enum ExactEscalationReason {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum AdvisoryDisposition {
-    /// Proposal is admissible. A downstream exact policy still decides whether
-    /// and how to enact it.
+    /// Proposal is admissible. A downstream authoritative policy still decides
+    /// whether and how to enact it.
     Accept,
     /// Proposal is not admissible.
     Reject(AdvisoryRejection),
@@ -214,8 +233,47 @@ pub enum AdvisoryDisposition {
 }
 
 impl EpistemicFirewallPolicy {
+    /// Validate the policy itself. Invalid policy must fail closed rather than
+    /// relying on comparisons involving NaN or incoherent thresholds.
+    pub fn validate(&self) -> Result<(), EpistemicFirewallPolicyValidationError> {
+        if !self.max_relative_error_for_reduction.is_finite()
+            || self.max_relative_error_for_reduction < 0.0
+        {
+            return Err(EpistemicFirewallPolicyValidationError::InvalidMaxRelativeError);
+        }
+        if !self.min_confidence_for_reduction.is_finite()
+            || !(0.0..=1.0).contains(&self.min_confidence_for_reduction)
+        {
+            return Err(EpistemicFirewallPolicyValidationError::InvalidMinConfidence);
+        }
+        if !self.max_novelty_for_reduction.is_finite()
+            || !(0.0..=1.0).contains(&self.max_novelty_for_reduction)
+        {
+            return Err(
+                EpistemicFirewallPolicyValidationError::InvalidMaxNoveltyForReduction,
+            );
+        }
+        if !self.exact_fallback_novelty.is_finite()
+            || !(0.0..=1.0).contains(&self.exact_fallback_novelty)
+        {
+            return Err(EpistemicFirewallPolicyValidationError::InvalidExactFallbackNovelty);
+        }
+        if self.max_novelty_for_reduction > self.exact_fallback_novelty {
+            return Err(
+                EpistemicFirewallPolicyValidationError::InvalidNoveltyThresholdOrdering,
+            );
+        }
+        if self.max_substeps == 0 {
+            return Err(EpistemicFirewallPolicyValidationError::InvalidMaxSubsteps);
+        }
+        Ok(())
+    }
+
     /// Evaluate a proposal without mutating simulation state.
     pub fn evaluate(&self, advisory: &PhysicsAdvisory) -> AdvisoryDisposition {
+        if let Err(error) = self.validate() {
+            return AdvisoryDisposition::Reject(AdvisoryRejection::InvalidPolicy(error));
+        }
         if let Err(error) = advisory.validate() {
             return AdvisoryDisposition::Reject(AdvisoryRejection::InvalidProposal(error));
         }
@@ -230,6 +288,11 @@ impl EpistemicFirewallPolicy {
                 return AdvisoryDisposition::EscalateExact(ExactEscalationReason::AnomalyFlagged);
             }
             AdvisoryAction::IncreaseSubsteps { minimum } if *minimum > self.max_substeps => {
+                return AdvisoryDisposition::Reject(
+                    AdvisoryRejection::RequestedSubstepsTooLarge,
+                );
+            }
+            AdvisoryAction::DecreaseSubsteps { maximum } if *maximum > self.max_substeps => {
                 return AdvisoryDisposition::Reject(
                     AdvisoryRejection::RequestedSubstepsTooLarge,
                 );
@@ -256,10 +319,10 @@ impl EpistemicFirewallPolicy {
         if advisory.confidence < self.min_confidence_for_reduction {
             return AdvisoryDisposition::Reject(AdvisoryRejection::ConfidenceTooLow);
         }
-        if advisory
-            .novelty_score
-            .is_some_and(|novelty| novelty > self.max_novelty_for_reduction)
-        {
+        let Some(novelty) = advisory.novelty_score else {
+            return AdvisoryDisposition::Reject(AdvisoryRejection::MissingNoveltyEstimate);
+        };
+        if novelty > self.max_novelty_for_reduction {
             return AdvisoryDisposition::Reject(AdvisoryRejection::NoveltyTooHigh);
         }
 
@@ -293,6 +356,11 @@ mod tests {
     }
 
     #[test]
+    fn default_policy_is_valid() {
+        assert_eq!(EpistemicFirewallPolicy::default().validate(), Ok(()));
+    }
+
+    #[test]
     fn promotion_is_advisory_only_but_admissible() {
         let proposal = advisory(AdvisoryAction::PromoteFidelity {
             minimum: FidelityTier::High,
@@ -312,6 +380,18 @@ mod tests {
         assert_eq!(
             EpistemicFirewallPolicy::default().evaluate(&proposal),
             AdvisoryDisposition::Reject(AdvisoryRejection::MissingErrorBound)
+        );
+    }
+
+    #[test]
+    fn reduction_requires_explicit_novelty_estimate() {
+        let mut proposal = advisory(AdvisoryAction::DemoteFidelity {
+            maximum: FidelityTier::Coarse,
+        });
+        proposal.novelty_score = None;
+        assert_eq!(
+            EpistemicFirewallPolicy::default().evaluate(&proposal),
+            AdvisoryDisposition::Reject(AdvisoryRejection::MissingNoveltyEstimate)
         );
     }
 
@@ -355,6 +435,50 @@ mod tests {
         assert_eq!(
             EpistemicFirewallPolicy::default().evaluate(&proposal),
             AdvisoryDisposition::EscalateExact(ExactEscalationReason::AnomalyFlagged)
+        );
+    }
+
+    #[test]
+    fn invalid_nan_policy_fails_closed() {
+        let mut policy = EpistemicFirewallPolicy::default();
+        policy.max_relative_error_for_reduction = f64::NAN;
+        let proposal = advisory(AdvisoryAction::DemoteFidelity {
+            maximum: FidelityTier::Coarse,
+        });
+        assert_eq!(
+            policy.evaluate(&proposal),
+            AdvisoryDisposition::Reject(AdvisoryRejection::InvalidPolicy(
+                EpistemicFirewallPolicyValidationError::InvalidMaxRelativeError
+            ))
+        );
+    }
+
+    #[test]
+    fn inverted_novelty_thresholds_fail_closed() {
+        let mut policy = EpistemicFirewallPolicy::default();
+        policy.max_novelty_for_reduction = 0.9;
+        policy.exact_fallback_novelty = 0.8;
+        let proposal = advisory(AdvisoryAction::DemoteFidelity {
+            maximum: FidelityTier::Coarse,
+        });
+        assert_eq!(
+            policy.evaluate(&proposal),
+            AdvisoryDisposition::Reject(AdvisoryRejection::InvalidPolicy(
+                EpistemicFirewallPolicyValidationError::InvalidNoveltyThresholdOrdering
+            ))
+        );
+    }
+
+    #[test]
+    fn oversized_decrease_substep_request_is_rejected() {
+        let policy = EpistemicFirewallPolicy {
+            max_substeps: 16,
+            ..EpistemicFirewallPolicy::default()
+        };
+        let proposal = advisory(AdvisoryAction::DecreaseSubsteps { maximum: 32 });
+        assert_eq!(
+            policy.evaluate(&proposal),
+            AdvisoryDisposition::Reject(AdvisoryRejection::RequestedSubstepsTooLarge)
         );
     }
 }
