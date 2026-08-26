@@ -14,6 +14,7 @@
 //! - `contact::ContactManifold<D>` — collision contact data
 //! - `integrator` — semi-implicit Euler with bivector angular dynamics
 //! - `angular_dynamics` — validated 3D principal-inertia/asymmetric-top reference dynamics
+//! - `world_energy_3d` — canonical checked 3D kinetic-energy evidence over live world state
 
 pub mod angular_dynamics;
 pub mod articulation;
@@ -33,6 +34,7 @@ pub mod raycast;
 pub mod replay;
 pub mod support_map;
 pub mod world;
+pub mod world_energy_3d;
 
 pub use angular_dynamics::{
     AngularDynamicsError, AngularStep3, PrincipalInertia3, angular_vector_to_bivector,
@@ -51,3 +53,6 @@ pub use integrator::nan_zeroed_count;
 pub use joints::{BallJoint, FixedJoint, HingeJoint, MotorDrive, PrismaticJoint};
 pub use replay::{ReplayTape, WorldCommand, WorldSnapshot, apply_commands};
 pub use world::{NoOpCallback, PhysicsCallback, PhysicsWorld};
+pub use world_energy_3d::{
+    BodyKineticEnergy3, PhysicsWorldEnergy3dExt, WorldEnergy3dError,
+};
