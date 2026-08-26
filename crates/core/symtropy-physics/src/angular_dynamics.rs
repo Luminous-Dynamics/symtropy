@@ -5,37 +5,30 @@
 //!
 //! The production N-D integrator currently collapses principal inertia to a
 //! scalar mean. This module deliberately does **not** change that hot path yet.
-//! Instead it provides a small, auditable 3D reference implementation with
-//! diagonal body-space principal inertia and explicit world angular momentum.
+//! It provides a small, auditable 3D reference implementation with diagonal
+//! body-space principal inertia and explicit world angular momentum.
 //!
-//! Keeping the reference separate lets validation establish the convention,
-//! invariants, and expected asymmetric-top behaviour before the contact solver,
-//! impulse application, and `RigidBody` hot path are migrated.
+//! Reference evidence must fail closed. Finite inputs are not enough: derived
+//! momentum, angular velocity, energy, impulse, displacement, and orientation
+//! must also remain representable, and supplied Rotors must be proper rotations.
 //!
 //! # Bivector sign convention
 //!
 //! Symtropy's [`symtropy_math::Rotor::from_bivector`] constructs `exp(-B)`.
 //! Therefore the physical/kinematic angular-velocity vector `omega` associated
-//! with a 3D bivector is the axial vector of `-B`, not of `B`:
+//! with a 3D bivector is the axial vector of `-B`:
 //!
 //! `omega = [b12, -b02, b01]`.
 //!
-//! This convention is chosen so that a positive `e01` bivector rotates +x
-//! toward +y, matching `Rotor`. It also makes the instantaneous point velocity
-//! consistent with the orientation derivative: `v = -B r = omega x r`.
-//! Existing code that treats `B.apply_to_vector(r)` as point velocity has the
-//! opposite sign and should be migrated only after dedicated contact tests.
+//! This convention makes positive `e01` rotate +x toward +y and makes
+//! instantaneous point velocity `v = -B r = omega x r`.
 
 use nalgebra::SVector;
 use symtropy_math::{Bivector, Rotor};
 
+const ROTATION_VALIDITY_TOLERANCE: f64 = 1.0e-8;
+
 /// Principal moments of inertia about a body's local x/y/z axes.
-///
-/// This first reference requires finite, strictly positive moments. It does not
-/// enforce the triangle inequalities of a realizable mass distribution because
-/// callers may intentionally use abstract positive-definite inertia models for
-/// validation. Shape-derived constructors can enforce stronger physical rules
-/// later.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct PrincipalInertia3 {
     moments: [f64; 3],
@@ -47,8 +40,16 @@ pub enum AngularDynamicsError {
     NonFiniteAngularVelocity,
     NonFiniteAngularMomentum,
     NonFiniteTorque,
+    NonFiniteOffset,
     InvalidTimestep,
     NonFiniteRotation,
+    InvalidRotation,
+    UnrepresentablePointVelocity,
+    UnrepresentableAngularMomentum,
+    UnrepresentableAngularVelocity,
+    UnrepresentableRotationalEnergy,
+    UnrepresentableAngularImpulse,
+    UnrepresentableAngularDisplacement,
 }
 
 impl PrincipalInertia3 {
@@ -85,6 +86,11 @@ impl PrincipalInertia3 {
     }
 }
 
+#[inline]
+fn vector_is_finite(vector: &SVector<f64, 3>) -> bool {
+    vector.iter().all(|value| value.is_finite())
+}
+
 /// Convert Symtropy's 3D angular-rate bivector into the kinematic world vector
 /// whose cross-product matrix is the generator used by `Rotor`.
 #[inline]
@@ -108,12 +114,25 @@ pub fn angular_vector_to_bivector(vector: &SVector<f64, 3>) -> Bivector<3> {
 
 /// Instantaneous velocity induced at a world-space offset from the center of
 /// mass, consistent with `Rotor::from_bivector`'s orientation convention.
+///
+/// The result is checked because finite angular velocity and finite offset can
+/// still overflow their bilinear product.
 #[inline]
 pub fn angular_velocity_at_offset(
     angular_velocity: &Bivector<3>,
     offset_world: &SVector<f64, 3>,
-) -> SVector<f64, 3> {
-    -angular_velocity.apply_to_vector(offset_world)
+) -> Result<SVector<f64, 3>, AngularDynamicsError> {
+    if !angular_velocity.is_finite() {
+        return Err(AngularDynamicsError::NonFiniteAngularVelocity);
+    }
+    if !vector_is_finite(offset_world) {
+        return Err(AngularDynamicsError::NonFiniteOffset);
+    }
+    let velocity = -angular_velocity.apply_to_vector(offset_world);
+    if !vector_is_finite(&velocity) {
+        return Err(AngularDynamicsError::UnrepresentablePointVelocity);
+    }
+    Ok(velocity)
 }
 
 /// Compute world angular momentum from orientation, angular velocity, and
@@ -131,7 +150,11 @@ pub fn world_angular_momentum(
     let omega_world = bivector_to_angular_vector(angular_velocity);
     let omega_body = rotation.reverse().rotate_vector(&omega_world);
     let momentum_body = inertia.apply(&omega_body);
-    Ok(rotation.rotate_vector(&momentum_body))
+    let momentum_world = rotation.rotate_vector(&momentum_body);
+    if !vector_is_finite(&momentum_world) {
+        return Err(AngularDynamicsError::UnrepresentableAngularMomentum);
+    }
+    Ok(momentum_world)
 }
 
 /// Recover world angular velocity from conserved world angular momentum.
@@ -141,14 +164,21 @@ pub fn angular_velocity_from_world_momentum(
     inertia: PrincipalInertia3,
 ) -> Result<Bivector<3>, AngularDynamicsError> {
     validate_rotation(rotation)?;
-    if !momentum_world.iter().all(|value| value.is_finite()) {
+    if !vector_is_finite(momentum_world) {
         return Err(AngularDynamicsError::NonFiniteAngularMomentum);
     }
 
     let momentum_body = rotation.reverse().rotate_vector(momentum_world);
     let omega_body = inertia.apply_inverse(&momentum_body);
     let omega_world = rotation.rotate_vector(&omega_body);
-    Ok(angular_vector_to_bivector(&omega_world))
+    if !vector_is_finite(&omega_world) {
+        return Err(AngularDynamicsError::UnrepresentableAngularVelocity);
+    }
+    let angular_velocity = angular_vector_to_bivector(&omega_world);
+    if !angular_velocity.is_finite() {
+        return Err(AngularDynamicsError::UnrepresentableAngularVelocity);
+    }
+    Ok(angular_velocity)
 }
 
 /// Rotational kinetic energy `0.5 * omega_body^T I_body omega_body`.
@@ -164,7 +194,15 @@ pub fn rotational_kinetic_energy(
 
     let omega_world = bivector_to_angular_vector(angular_velocity);
     let omega_body = rotation.reverse().rotate_vector(&omega_world);
-    Ok(0.5 * omega_body.dot(&inertia.apply(&omega_body)))
+    let inertia_omega = inertia.apply(&omega_body);
+    if !vector_is_finite(&inertia_omega) {
+        return Err(AngularDynamicsError::UnrepresentableRotationalEnergy);
+    }
+    let energy = 0.5 * omega_body.dot(&inertia_omega);
+    if !energy.is_finite() || energy < 0.0 {
+        return Err(AngularDynamicsError::UnrepresentableRotationalEnergy);
+    }
+    Ok(energy)
 }
 
 /// Output of one reference angular-momentum step.
@@ -177,18 +215,15 @@ pub struct AngularStep3 {
 
 /// Advance a 3D body using world angular momentum as the conserved state.
 ///
-/// Torque is supplied as a conventional world-space axial vector in N*m. The
-/// update is intentionally simple and deterministic:
+/// Torque is supplied as a conventional world-space axial vector in N*m:
 ///
 /// 1. derive current world angular momentum from `(R, omega, I_body)`,
-/// 2. apply the exact angular impulse `tau * dt`,
-/// 3. derive `omega` from the updated momentum and current orientation,
+/// 2. apply the angular impulse `tau * dt`,
+/// 3. derive `omega` from updated momentum and current orientation,
 /// 4. update orientation through Symtropy's SO(3) exponential,
-/// 5. re-derive `omega` from the same world momentum at the new orientation.
+/// 5. re-derive `omega` from unchanged world momentum at the new orientation.
 ///
-/// With zero torque this keeps world angular momentum constant by construction.
-/// Rotational energy is not projected; its integration error should converge
-/// under timestep refinement and is part of the validation protocol.
+/// Every derived quantity is checked before it can become reference evidence.
 pub fn step_principal_inertia(
     rotation: &Rotor<3>,
     angular_velocity: &Bivector<3>,
@@ -200,7 +235,7 @@ pub fn step_principal_inertia(
     if !angular_velocity.is_finite() {
         return Err(AngularDynamicsError::NonFiniteAngularVelocity);
     }
-    if !torque_world.iter().all(|value| value.is_finite()) {
+    if !vector_is_finite(torque_world) {
         return Err(AngularDynamicsError::NonFiniteTorque);
     }
     if !dt_seconds.is_finite() || dt_seconds < 0.0 {
@@ -208,12 +243,26 @@ pub fn step_principal_inertia(
     }
 
     let mut momentum_world = world_angular_momentum(rotation, angular_velocity, inertia)?;
-    momentum_world += torque_world * dt_seconds;
+    let angular_impulse = torque_world * dt_seconds;
+    if !vector_is_finite(&angular_impulse) {
+        return Err(AngularDynamicsError::UnrepresentableAngularImpulse);
+    }
+    momentum_world += angular_impulse;
+    if !vector_is_finite(&momentum_world) {
+        return Err(AngularDynamicsError::UnrepresentableAngularMomentum);
+    }
 
     let omega_before_rotation =
         angular_velocity_from_world_momentum(rotation, &momentum_world, inertia)?;
-    let delta = Rotor::from_bivector(&omega_before_rotation.scale(dt_seconds));
+    let angular_displacement = omega_before_rotation.scale(dt_seconds);
+    if !angular_displacement.is_finite() {
+        return Err(AngularDynamicsError::UnrepresentableAngularDisplacement);
+    }
+
+    let delta = Rotor::from_bivector(&angular_displacement);
+    validate_rotation(&delta)?;
     let rotation_next = delta.compose(rotation);
+    validate_rotation(&rotation_next)?;
     let angular_velocity_next =
         angular_velocity_from_world_momentum(&rotation_next, &momentum_world, inertia)?;
 
@@ -225,16 +274,19 @@ pub fn step_principal_inertia(
 }
 
 fn validate_rotation(rotation: &Rotor<3>) -> Result<(), AngularDynamicsError> {
-    if rotation.to_matrix().iter().all(|value| value.is_finite()) {
-        Ok(())
-    } else {
-        Err(AngularDynamicsError::NonFiniteRotation)
+    if !rotation.to_matrix().iter().all(|value| value.is_finite()) {
+        return Err(AngularDynamicsError::NonFiniteRotation);
     }
+    if !rotation.is_proper_rotation(ROTATION_VALIDITY_TOLERANCE) {
+        return Err(AngularDynamicsError::InvalidRotation);
+    }
+    Ok(())
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use nalgebra::SMatrix;
 
     fn vec_close(a: &SVector<f64, 3>, b: &SVector<f64, 3>, tolerance: f64) -> bool {
         (a - b).norm() <= tolerance
@@ -252,7 +304,7 @@ mod tests {
 
         let x = SVector::from([1.0, 0.0, 0.0]);
         let positive_z = angular_vector_to_bivector(&SVector::from([0.0, 0.0, 1.0]));
-        let point_velocity = angular_velocity_at_offset(&positive_z, &x);
+        let point_velocity = angular_velocity_at_offset(&positive_z, &x).unwrap();
         assert!(vec_close(
             &point_velocity,
             &SVector::from([0.0, 1.0, 0.0]),
@@ -273,6 +325,81 @@ mod tests {
             PrincipalInertia3::new([1.0, f64::NAN, 2.0]),
             Err(AngularDynamicsError::InvalidPrincipalMoment { axis: 1 })
         );
+    }
+
+    #[test]
+    fn improper_rotation_is_rejected() {
+        let mut reflection = SMatrix::<f64, 3, 3>::identity();
+        reflection[(0, 0)] = -1.0;
+        let rotation = Rotor::from_matrix(reflection);
+        let inertia = PrincipalInertia3::new([1.0, 2.0, 3.0]).unwrap();
+        let omega = Bivector::<3>::zero();
+        assert!(matches!(
+            world_angular_momentum(&rotation, &omega, inertia),
+            Err(AngularDynamicsError::InvalidRotation)
+        ));
+    }
+
+    #[test]
+    fn finite_inputs_that_overflow_derived_quantities_are_rejected() {
+        let rotation = Rotor::<3>::identity();
+
+        let huge_inertia = PrincipalInertia3::new([f64::MAX, 1.0, 1.0]).unwrap();
+        let omega_two = angular_vector_to_bivector(&SVector::from([2.0, 0.0, 0.0]));
+        assert!(matches!(
+            world_angular_momentum(&rotation, &omega_two, huge_inertia),
+            Err(AngularDynamicsError::UnrepresentableAngularMomentum)
+        ));
+        assert!(matches!(
+            rotational_kinetic_energy(&rotation, &omega_two, huge_inertia),
+            Err(AngularDynamicsError::UnrepresentableRotationalEnergy)
+        ));
+
+        let tiny_inertia = PrincipalInertia3::new([f64::from_bits(1), 1.0, 1.0]).unwrap();
+        assert!(matches!(
+            angular_velocity_from_world_momentum(
+                &rotation,
+                &SVector::from([1.0, 0.0, 0.0]),
+                tiny_inertia
+            ),
+            Err(AngularDynamicsError::UnrepresentableAngularVelocity)
+        ));
+
+        let huge_omega = angular_vector_to_bivector(&SVector::from([f64::MAX, 0.0, 0.0]));
+        assert!(matches!(
+            angular_velocity_at_offset(&huge_omega, &SVector::from([0.0, 2.0, 0.0])),
+            Err(AngularDynamicsError::UnrepresentablePointVelocity)
+        ));
+    }
+
+    #[test]
+    fn unrepresentable_impulse_and_displacement_are_rejected_before_rotor_fallback() {
+        let rotation = Rotor::<3>::identity();
+        let unit_inertia = PrincipalInertia3::new([1.0, 1.0, 1.0]).unwrap();
+        let zero = Bivector::<3>::zero();
+        assert!(matches!(
+            step_principal_inertia(
+                &rotation,
+                &zero,
+                unit_inertia,
+                &SVector::from([f64::MAX, 0.0, 0.0]),
+                2.0
+            ),
+            Err(AngularDynamicsError::UnrepresentableAngularImpulse)
+        ));
+
+        let small_inertia = PrincipalInertia3::new([0.25, 1.0, 1.0]).unwrap();
+        let huge_omega = angular_vector_to_bivector(&SVector::from([f64::MAX, 0.0, 0.0]));
+        assert!(matches!(
+            step_principal_inertia(
+                &rotation,
+                &huge_omega,
+                small_inertia,
+                &SVector::zeros(),
+                2.0
+            ),
+            Err(AngularDynamicsError::UnrepresentableAngularDisplacement)
+        ));
     }
 
     #[test]
