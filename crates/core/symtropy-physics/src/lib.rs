@@ -41,7 +41,7 @@ pub use angular_dynamics::{
     world_angular_momentum,
 };
 pub use articulation::{ArticulatedChain, ChainBuilder, LinkSpec};
-pub use body::{BodyHandle, BodyType, NetId, RigidBody};
+pub use body::{BodyHandle, BodyType, NetId, RigidBody, RigidBodyEnergyError};
 pub use broadphase::{Aabb, Lbvh, morton_encode, morton_prefix};
 pub use constraint::Constraint;
 pub use contact::{CollisionEvent, ContactCache, ContactManifold, SensorEvent};
