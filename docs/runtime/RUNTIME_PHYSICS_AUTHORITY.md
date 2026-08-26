@@ -37,23 +37,56 @@ validation.
 
 ## R1: authoritative 2D fixed-step loop
 
-For `GamePhase::Playing`, every FixedUpdate performs this sequence:
+For `GamePhase::Playing`, every FixedUpdate now has four explicitly chained
+authority phases:
 
-1. Reconcile `TileGrid` with `SiteLayout`.
-2. Convert buffered `PlayerInput` into a bounded body velocity.
-3. Apply the current motor-authority gain; collapsed/Red state cannot move.
-4. Clamp the prospective player motion against the temporary tile boundary
-   adapter.
-5. Wake dynamic bodies carrying non-zero velocity intent, including FEP NPCs.
-6. Advance `PhysicsWorld<2>` exactly once using Bevy fixed time.
-7. When `consciousness-runtime` is enabled, rebuild the position-dependent
-   harmony field and use `PhysicsWorld::step_with_callback`; otherwise use the
-   pure physics `step` path.
-8. Synchronize Bevy transforms from authoritative body positions.
+1. `thermodynamic_pre_step_system`
+   - resets per-tick energy counters exactly once;
+   - applies maintenance, ambient/well regeneration, collapse/safety state, and
+     resonance/offloading needed before motor authority is evaluated.
+2. `physics_step_system`
+   - reconciles `TileGrid` with `SiteLayout`;
+   - converts buffered `PlayerInput` into bounded body velocity;
+   - applies the current motor-authority gain;
+   - clamps prospective player motion against the temporary tile boundary
+     adapter;
+   - wakes sleeping dynamic bodies carrying external velocity intent;
+   - rebuilds the harmony/callback field under `consciousness-runtime`;
+   - advances `PhysicsWorld<2>` exactly once using Bevy fixed time.
+3. `thermodynamic_post_step_system`
+   - finalizes thermodynamics exactly once after physics callbacks have recorded
+     same-tick collision/action/dissipation effects;
+   - samples HUD consumption/regeneration only from the completed tick.
+4. `physics_sync_transforms`
+   - mirrors authoritative body positions to Bevy presentation transforms;
+   - performs no control, solver, accounting, or thermodynamic mutation.
 
 The player controller preserves sub-unit input magnitude so continuous AI/FEP
 intent is not silently normalized to full speed, while keyboard diagonals are
 capped at unit magnitude.
+
+## Same-tick thermodynamic authority
+
+The ordering above is an accounting contract, not presentation polish.
+
+Under the full consciousness runtime, the `PhysicsCallback` consumes entity
+energy on collisions and records heat/dissipation during the solver step. If
+thermodynamics is finalized before that callback runs, those effects belong to a
+physically completed tick but are not present in that tick's finalization/HUD
+sample. If the old monolithic thermodynamic system is merely moved after physics,
+its `tick_reset()` would instead erase callback-side per-tick counters before
+sampling them.
+
+The split therefore enforces:
+
+`reset/pre-step -> authoritative physics + callback effects -> finalize/sample`
+
+with no reset or finalization hidden inside the physics bridge.
+
+The core world still contains a separately known dimensionally-invalid friction
+bookkeeping heuristic proportional to impulse. This lifecycle change does not
+upgrade that heuristic into physical energy. Measured world friction work remains
+a separate prerequisite before coupled mechanical-to-thermal claims are valid.
 
 ## Temporary boundary adapter
 
@@ -76,7 +109,7 @@ body-removal/reset and cross-domain experience teardown semantics; see #19.
 FEP NPC movement and the restored player controller assign desired linear
 velocity directly. `RigidBody::integrate` skips sleeping bodies, and direct field
 assignment does not itself wake them. The authority bridge therefore wakes any
-dynamic body carrying non-zero velocity intent before stepping.
+sleeping dynamic body carrying non-zero velocity intent before stepping.
 
 This should eventually become an explicit controller API on `RigidBody` /
 `PhysicsWorld` rather than a launcher-side invariant.
@@ -84,34 +117,39 @@ This should eventually become an explicit controller API on `RigidBody` /
 ## Full-runtime callback contract
 
 Under `consciousness-runtime`, the physics callback depends on current entity
-positions for harmony/friction coupling. The authority bridge rebuilds that field
-from authoritative body positions immediately before the step and then calls
-`step_with_callback`.
+positions for harmony/friction coupling. `physics_step_system` rebuilds that
+field from authoritative body positions immediately before the step and then
+calls `step_with_callback`.
 
 The default lightweight build intentionally uses pure `PhysicsWorld::step`
 because its local fallback `ConsciousnessField` is not the production
 `PhysicsCallback` implementation.
 
-## Known sequencing debt
+## Fixed-tick validation contract
 
-The existing plugin currently chains:
+Executable validation must prove more than source ordering. Before this lifecycle
+is promoted from draft:
 
-`thermodynamic_enforcement_system -> physics_sync_transforms`
+1. **Exactly-once opening/finalization** — one counter reset and one
+   `tick_thermodynamics()` finalization per fixed tick.
+2. **Same-tick collision accounting** — a deterministic collision callback cost
+   is visible in the finalized tick, not one tick later.
+3. **No reset-after-collision loss** — callback-side `consumed_this_tick` survives
+   until post-step sampling.
+4. **Composition** — maintenance, collision/action costs, ambient/well
+   regeneration, and offloading all contribute to the same completed tick rather
+   than replacing one another.
+5. **Motor-authority timing** — pre-step collapse/safety state is visible before
+   player intent becomes body velocity.
+6. **Presentation isolation** — transform sync cannot alter physics,
+   thermodynamic, or accounting state.
+7. **Deterministic replay** — identical fixed inputs produce identical per-tick
+   physics/thermodynamic traces and final digest.
+8. **Feature matrix** — validate default, `fep-ai`, and
+   `consciousness-runtime`/full-stack paths independently.
 
-The latter now contains the R1 physics step. This means collision callback
-bookkeeping occurs after the current tick's thermodynamic finalization. Energy
-state mutations and ledger writes still happen deterministically, but some
-per-tick HUD/counter accounting can be observed on the following tick or reset
-before presentation consumes it.
-
-Do not hide this by duplicating thermodynamic finalization inside the bridge.
-The correct follow-up is to split the authority bridge into explicit ordered
-systems and establish one tick lifecycle, for example:
-
-`intent -> pre-step fields -> physics step -> post-step thermodynamics -> sync`
-
-with tests proving that collision energy, maintenance, regeneration, and HUD
-counters refer to the same fixed tick.
+A source-level chain is implementation evidence, not validation evidence. These
+gates still require compiler/test execution.
 
 ## R2: solver-owned world boundaries
 
@@ -149,7 +187,8 @@ R1 is not validated merely because source exists. Before promotion:
 
 - format and Clippy must pass,
 - default and all-feature launcher builds must pass,
-- engine-physics unit tests must pass,
+- engine-physics and thermodynamic unit tests must pass,
+- the fixed-tick validation contract above must execute,
 - deterministic same-input runs must produce the same body-state digest,
 - player cardinal/diagonal/analog intent must match the speed contract,
 - Red/collapsed motor authority must produce zero commanded velocity,
@@ -159,11 +198,13 @@ R1 is not validated merely because source exists. Before promotion:
 ## Claim boundary
 
 R1 means the 2D flagship runtime advances `symtropy-physics` authoritatively for
-registered dynamic bodies. It does **not** mean:
+registered dynamic bodies and now has an explicit same-tick thermodynamic phase
+ordering in source. It does **not** mean:
 
+- that ordering has passed executable validation yet,
+- collision/friction energy values are all physically valid,
 - walls are already solver-owned,
 - Old Waterworks is a true 3D physics world,
-- the thermodynamic tick lifecycle is fully reconciled,
 - world/experience teardown is production-ready,
 - character-controller quality is competitive with Jolt or PhysX,
-- the runtime stack has passed CI while the root stacked gate remains queued.
+- the runtime stack has passed hosted CI while runner execution remains blocked.
