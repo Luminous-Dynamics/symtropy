@@ -54,16 +54,20 @@ impl Plugin for SymtropyPlugin {
             .add_plugins(symtropy_render_bridge::NdSlicingPlugin)
             .add_message::<components::NpcActionEvent>()
             .add_message::<components::WorldFeedbackEvent>()
-            // FixedUpdate: physics + thermodynamic enforcement at consistent 64Hz.
-            // physics_apply_inputs/physics_step were empty {} bodies wired in
-            // here as if they did real stepping — actual movement happens via
-            // direct kinematic Transform writes in each movement system
-            // (player_movement_system_3d etc.), not through these. Removed
-            // rather than left as misleading no-op placeholders.
-            .add_systems(FixedUpdate, (
-                systems::thermodynamic::thermodynamic_enforcement_system,
-                systems::engine_physics::physics_sync_transforms,
-            ).chain().run_if(in_playing_or_3d))
+            // FixedUpdate authority lifecycle. The order is explicit because
+            // thermodynamic counters must reset before physics callbacks and
+            // finalize only after same-tick collision activity has been recorded.
+            .add_systems(
+                FixedUpdate,
+                (
+                    systems::thermodynamic::thermodynamic_pre_step_system,
+                    systems::engine_physics::physics_step_system,
+                    systems::thermodynamic::thermodynamic_post_step_system,
+                    systems::engine_physics::physics_sync_transforms,
+                )
+                    .chain()
+                    .run_if(in_playing_or_3d),
+            )
             .add_systems(Startup, systems::telemetry::setup_telemetry_gpu_buffer)
             .add_systems(OnEnter(GamePhase::MainMenu), systems::menu::setup_menu)
             .add_systems(Update, (

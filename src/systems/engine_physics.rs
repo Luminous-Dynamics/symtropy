@@ -2,11 +2,13 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 //! Authoritative launcher bridge into `symtropy-physics`.
 //!
-//! The launcher historically spawned real physics bodies but did not advance
-//! `PhysicsWorld` in its FixedUpdate path. This module restores an intentionally
-//! narrow 2D dogfood loop while keeping the current Old Waterworks 3D mode on
-//! its explicitly documented 2D horizontal proxy until a true `PhysicsWorld<3>`
-//! migration is ready.
+//! The 2D dogfood path is intentionally split into an authoritative physics
+//! step and a presentation-only transform sync. This lets fixed-tick
+//! thermodynamic finalization observe same-tick physics callback activity before
+//! Bevy presentation state is mirrored from the world.
+//!
+//! Old Waterworks remains explicitly a 3D presentation with a 2D horizontal
+//! proxy until a true `PhysicsWorld<3>` migration is ready.
 
 use crate::components::Player;
 use crate::resources::{GamePhase, PhysicsWorldRes, PlayerInput, SiteLayout, TileGrid};
@@ -25,7 +27,6 @@ pub fn update_physics_consciousness(
     query: Query<(&PhysicsBody, &crate::components::HarmonyComponent)>,
 ) {
     for (body_comp, harmony) in query.iter() {
-        // Sync harmony activations
         if let Some(entity) = physics.consciousness.entities.get_mut(&body_comp.handle) {
             entity.harmony_activations = [
                 harmony.activations[0] as f64,
@@ -36,72 +37,82 @@ pub fn update_physics_consciousness(
                 harmony.activations[5] as f64,
                 harmony.activations[6] as f64,
                 harmony.activations[7] as f64,
-                0.0, // Index 8
+                0.0,
             ];
         }
     }
 }
 
-/// FixedUpdate authority bridge.
+/// FixedUpdate authoritative physics phase.
 ///
-/// The public name is retained for plugin compatibility, but the system now
-/// performs the complete authoritative 2D sequence when `GamePhase::Playing`:
+/// For `GamePhase::Playing` this system:
 ///
-/// 1. repair the derived `TileGrid` to the generator's canonical tile semantics,
-/// 2. consume buffered player intent into the Symtropy body,
-/// 3. wake dynamic bodies that received velocity intent (including FEP NPCs),
-/// 4. advance `PhysicsWorld<2>` exactly once at Bevy's fixed timestep,
-/// 5. copy authoritative body positions back to Bevy transforms.
+/// 1. repairs the derived `TileGrid` to canonical authored semantics,
+/// 2. consumes buffered player intent into the Symtropy body,
+/// 3. wakes sleeping dynamic bodies that received external velocity intent,
+/// 4. rebuilds callback fields when the full consciousness runtime is enabled,
+/// 5. advances `PhysicsWorld<2>` exactly once at Bevy's fixed timestep.
 ///
-/// During `Playing3D` we deliberately do **not** step the 2D proxy. The current
-/// Old Waterworks controller still owns horizontal motion directly; only the
-/// tile-grid repair and transform synchronization remain active there. A later
-/// migration must introduce an actual `PhysicsWorld<3>` rather than quietly
-/// pretending this proxy is full 3D physics.
-pub fn physics_sync_transforms(
+/// It deliberately does **not** mirror Bevy transforms. The post-physics
+/// thermodynamic phase must run first so same-tick callback activity is
+/// finalized before presentation observes the completed tick.
+///
+/// During `Playing3D`, only the defensive TileGrid reconciliation runs. The 2D
+/// horizontal proxy is not stepped here.
+pub fn physics_step_system(
     mut physics: ResMut<PhysicsWorldRes>,
     state: Res<State<GamePhase>>,
     input: Res<PlayerInput>,
     layout: Res<SiteLayout>,
     mut tile_grid: ResMut<TileGrid>,
     player_query: Query<&PhysicsBody, With<Player>>,
-    mut transform_query: Query<(&PhysicsBody, &mut Transform)>,
     fixed_time: Res<Time<bevy::time::Fixed>>,
 ) {
     ensure_canonical_tile_grid(&layout, &mut tile_grid);
 
-    if matches!(state.get(), GamePhase::Playing) {
-        let dt = fixed_time.delta().as_secs_f64();
-        if dt.is_finite() && dt > 0.0 {
-            if let Ok(player_body) = player_query.single() {
-                apply_player_intent(
-                    &mut physics,
-                    player_body.handle,
-                    &input,
-                    &tile_grid,
-                    dt,
-                );
-            }
+    if !matches!(state.get(), GamePhase::Playing) {
+        return;
+    }
 
-            // NPC intent is written by the FEP movement system in Update.
-            // Direct velocity assignment does not wake a sleeping RigidBody, so
-            // honor any non-zero controller intent before the integrator skips
-            // sleeping bodies. Restrict this to bodies that are already asleep:
-            // calling wake() on every moving body would reset sleep counters each
-            // fixed tick and prevent slow bodies from ever settling to sleep.
-            for body in &mut physics.world.bodies {
-                if body.is_dynamic()
-                    && body.sleeping
-                    && body.linear_velocity.norm_squared() > INTENT_WAKE_EPSILON_SQ
-                {
-                    body.wake();
-                }
-            }
+    let dt = fixed_time.delta().as_secs_f64();
+    if !dt.is_finite() || dt <= 0.0 {
+        return;
+    }
 
-            step_authoritative_world(&mut physics, dt);
+    if let Ok(player_body) = player_query.single() {
+        apply_player_intent(
+            &mut physics,
+            player_body.handle,
+            &input,
+            &tile_grid,
+            dt,
+        );
+    }
+
+    // NPC intent is written by the FEP movement system in Update. Direct
+    // velocity assignment does not wake a sleeping RigidBody, so honor any
+    // non-zero controller intent before the integrator skips sleeping bodies.
+    // Restrict this to already-sleeping bodies: calling wake() on every moving
+    // body would reset sleep counters each fixed tick and prevent settling.
+    for body in &mut physics.world.bodies {
+        if body.is_dynamic()
+            && body.sleeping
+            && body.linear_velocity.norm_squared() > INTENT_WAKE_EPSILON_SQ
+        {
+            body.wake();
         }
     }
 
+    step_authoritative_world(&mut physics, dt);
+}
+
+/// Presentation-only fixed-tick mirror from authoritative body state to Bevy.
+///
+/// No physics, accounting, control, or thermodynamic state is mutated here.
+pub fn physics_sync_transforms(
+    physics: Res<PhysicsWorldRes>,
+    mut transform_query: Query<(&PhysicsBody, &mut Transform)>,
+) {
     for (body_comp, mut transform) in &mut transform_query {
         if let Some(body) = physics.world.body(body_comp.handle) {
             let pos: nalgebra::SVector<f64, 2> = body.position();
@@ -113,11 +124,6 @@ pub fn physics_sync_transforms(
 
 /// `TileGrid` is derived state, so repair it from `SiteLayout` whenever the
 /// stored booleans disagree with the authoritative tile codes.
-///
-/// The old generator path populated `walkable = cell != 1`, which inverted the
-/// wall/floor meaning (`0` wall became walkable, `1` floor became blocked).
-/// Rebuilding here makes both 2D FixedUpdate and the current 3D proxy consume a
-/// canonical collision grid without mutating the authored layout.
 fn ensure_canonical_tile_grid(layout: &SiteLayout, grid: &mut TileGrid) {
     if layout.width == 0 || layout.height == 0 {
         return;
@@ -342,7 +348,6 @@ mod tests {
 
     fn test_grid() -> TileGrid {
         let mut cells = HashMap::new();
-        // 3x3 world with a walkable center and east neighbor, walls elsewhere.
         for row in 0..3 {
             for col in 0..3 {
                 cells.insert((col, row), false);
@@ -418,7 +423,6 @@ mod tests {
 
         let constrained = constrain_velocity_to_tile_grid(position, 2.0, velocity, &grid, 0.2);
 
-        // +x lands in the open east cell; +y lands in the north wall.
         assert!(constrained[0] > 0.0);
         assert_eq!(constrained[1], 0.0);
     }
