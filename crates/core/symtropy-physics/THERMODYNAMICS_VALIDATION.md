@@ -26,6 +26,10 @@ material properties:
 - Equilibrium limiting so one large explicit step cannot cross the pair's thermal
   equilibrium and reverse temperature ordering.
 - Bitwise snapshot coverage for body-attached thermal state.
+- Revalidation of material, state, and body thermal reservoirs after public-field
+  mutation.
+- Explicit diagnostic reporting of invalid attached thermal reservoirs instead of
+  silently treating them as zero energy.
 - World diagnostics for modeled sensible thermal energy and combined mechanical
   plus thermal energy.
 
@@ -36,6 +40,34 @@ The sensible-energy model is
 For the current invariant snapshot, `T_ref = 0 K` is used as a deterministic
 accounting reference. This is a modeled energy budget, not a claim that constant
 `c_p` extrapolated to absolute zero represents exact physical internal energy.
+
+## State validity and accounting completeness
+
+Construction is not permanent proof that an attached thermal reservoir remains
+valid. Thermal material/state fields are currently public, so callers can mutate a
+previously valid value into a finite but unphysical one after construction.
+
+Therefore every accounting, coupling, serialization, or validation boundary that
+relies on thermal state must distinguish three cases:
+
+1. no thermal reservoir is attached;
+2. a valid thermal reservoir is attached, including the valid special case `T = 0 K`;
+3. a thermal reservoir is attached but invalid under the current model contract.
+
+These cases are not interchangeable. In particular, an invalid reservoir must never
+be silently omitted and interpreted as zero energy, and an absent reservoir must not
+be considered bitwise-equivalent to a present reservoir at `0 K`.
+
+`ThermalMaterial::validate`, `ThermalState::validate`, and `ThermalBody::validate`
+exist to re-check state after construction. `PhysicsWorld::invariant_snapshot()`
+reports `invalid_thermal_body_count`; modeled energy accounting is complete only when
+that count is zero. If any attached reservoir is invalid, the reported modeled
+thermal/total energy may be useful for diagnosis but is **partial accounting** and
+must not be used as evidence that a first-law conservation gate passed.
+
+This is an epistemic invariant as much as a numerical one:
+
+`invalid reservoir != zero-energy reservoir != absent reservoir`.
 
 ## Not yet certified
 
@@ -64,6 +96,12 @@ merely because a temperature field exists.
 
 Every closed thermodynamic scenario should declare the energy reservoirs it
 contains and the boundary terms it permits.
+
+Before evaluating a first-law residual, the scenario must establish that modeled
+energy accounting is complete for the declared reservoirs. For body-attached
+thermal state, this requires zero invalid thermal bodies. A conservation residual
+computed from a snapshot with incomplete modeled-energy accounting is invalid as a
+pass/fail result regardless of how small the numerical residual appears.
 
 For a closed mechanical-plus-thermal system, the target budget is
 
@@ -126,13 +164,19 @@ Required unit and property tests include:
 1. Reject non-finite and sub-zero absolute temperatures.
 2. Reject zero or negative thermal mass and heat capacity.
 3. Reject negative conductance and invalid emissivity.
-4. Pair conduction conserves sensible energy.
-5. Heat-transfer sign matches temperature ordering.
-6. Equal temperatures produce zero transfer.
-7. Large timesteps stop at pair equilibrium.
-8. Body snapshots change bitwise when thermal state changes.
-9. Combined invariant accounting changes by exactly the applied external heat in
-   a source-only test.
+4. Revalidation catches invalid post-construction mutation of thermal material,
+   state, and thermal mass.
+5. Pair conduction conserves sensible energy.
+6. Heat-transfer sign matches temperature ordering.
+7. Equal temperatures produce zero transfer.
+8. Large timesteps stop at pair equilibrium.
+9. Body snapshots change bitwise when thermal state changes.
+10. Mechanically identical snapshots distinguish absent thermal state from an
+    attached valid `0 K` reservoir.
+11. Invalid attached reservoirs increment the explicit diagnostic invalid count,
+    make numerical health fail, and mark modeled energy accounting incomplete.
+12. Combined invariant accounting changes by exactly the applied external heat in
+    a source-only test once the audited external-source API exists.
 
 ### Tier B — analytical solutions
 
@@ -188,6 +232,7 @@ must additionally record:
 - heat-source and heat-sink histories
 - radiation environment where applicable
 - phase model and latent heat values where applicable
+- modeled-energy accounting completeness / invalid-reservoir count
 - energy residual per step and over the full run
 - entropy change where the scenario permits a closed-system check
 
@@ -287,6 +332,8 @@ results.
 
 Suggested starting gates for deterministic lumped tests using `f64`:
 
+- Complete modeled-energy accounting for every declared attached thermal reservoir;
+  `invalid_thermal_body_count == 0` before a first-law residual can pass.
 - Pair energy residual: `|Delta E| / max(|E0|, 1 J) <= 1e-12`.
 - Equilibrium temperature analytical error: relative error `<= 1e-12` for a
   directly limited pair step.
@@ -306,14 +353,16 @@ After the initial lumped foundation, the highest-value experiments are:
 
 1. Two-body equilibration first-law + second-law campaign.
 2. Deterministic external heat-source replay test.
-3. Contact-conduction convergence study.
-4. Mechanical collision/friction dissipation-to-heat budget closure.
-5. 1D spatial conduction campaign.
-6. Enthalpy/Stefan phase-change campaign.
-7. Thermoelastic expansion benchmark.
-8. Temperature-dependent fracture benchmark.
-9. Thermally advected fluid benchmark.
-10. Radiation benchmark.
+3. Thermal attachment/replacement/removal ownership semantics bound to the energy
+   ledger so reservoirs cannot disappear without provenance.
+4. Contact-conduction convergence study.
+5. Mechanical collision/friction dissipation-to-heat budget closure.
+6. 1D spatial conduction campaign.
+7. Enthalpy/Stefan phase-change campaign.
+8. Thermoelastic expansion benchmark.
+9. Temperature-dependent fracture benchmark.
+10. Thermally advected fluid benchmark.
+11. Radiation benchmark.
 
 A spectacular demo is useful only after these small cases show that the same
 couplings obey their declared conservation and convergence contracts.
