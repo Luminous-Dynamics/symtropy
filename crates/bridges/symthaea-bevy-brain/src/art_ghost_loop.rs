@@ -144,13 +144,30 @@ impl FourGhostRenderSet {
     }
 
     pub fn baseline(&self) -> Option<&GhostRenderObservation> {
-        self.candidates.iter().find(|candidate| {
-            matches!(candidate.kind, GhostCandidateKind::AbstentionBaseline)
-        })
+        self.candidates
+            .iter()
+            .find(|candidate| matches!(&candidate.kind, GhostCandidateKind::AbstentionBaseline))
     }
 
     pub fn candidate(&self, id: &str) -> Option<&GhostRenderObservation> {
-        self.candidates.iter().find(|candidate| candidate.candidate_id == id)
+        self.candidates
+            .iter()
+            .find(|candidate| candidate.candidate_id == id)
+    }
+
+    pub fn base_scene_hash(&self) -> Option<&str> {
+        self.baseline()
+            .map(|candidate| candidate.base_scene_hash.as_str())
+    }
+
+    pub fn proposal_branch_ids(&self) -> BTreeSet<&str> {
+        self.candidates
+            .iter()
+            .filter_map(|candidate| match &candidate.kind {
+                GhostCandidateKind::Proposal { branch_id, .. } => Some(branch_id.as_str()),
+                GhostCandidateKind::AbstentionBaseline => None,
+            })
+            .collect()
     }
 }
 
@@ -187,11 +204,9 @@ impl FourGhostVisualEvidenceSet {
         }
 
         for candidate in &renders.candidates {
-            let observation = by_id
-                .get(&candidate.candidate_id)
-                .ok_or_else(|| FourGhostError::MissingVisualObservation(
-                    candidate.candidate_id.clone(),
-                ))?;
+            let observation = by_id.get(&candidate.candidate_id).ok_or_else(|| {
+                FourGhostError::MissingVisualObservation(candidate.candidate_id.clone())
+            })?;
             if observation.capture_id != candidate.capture.receipt.request.capture_id
                 || observation.revision_id != renders.base_revision
                 || observation.frame != renders.frame
@@ -206,6 +221,7 @@ impl FourGhostVisualEvidenceSet {
         let baseline_candidate = renders.baseline().ok_or(FourGhostError::MissingBaseline)?;
         let baseline = by_id
             .get(&baseline_candidate.candidate_id)
+            .cloned()
             .ok_or(FourGhostError::MissingBaseline)?;
 
         let mut evidence = Vec::with_capacity(4);
@@ -213,10 +229,10 @@ impl FourGhostVisualEvidenceSet {
             let observation = by_id
                 .remove(&candidate.candidate_id)
                 .expect("validated visual observation coverage");
-            let consequence = match candidate.kind {
+            let consequence = match &candidate.kind {
                 GhostCandidateKind::AbstentionBaseline => None,
                 GhostCandidateKind::Proposal { .. } => {
-                    Some(VisualConsequenceVector::between(baseline, &observation))
+                    Some(VisualConsequenceVector::between(&baseline, &observation))
                 }
             };
             evidence.push(GhostVisualEvidence {
@@ -226,11 +242,49 @@ impl FourGhostVisualEvidenceSet {
             });
         }
 
-        Ok(Self {
+        let set = Self {
             base_revision: renders.base_revision.clone(),
             frame: renders.frame,
             evidence,
-        })
+        };
+        set.validate_against(renders)?;
+        Ok(set)
+    }
+
+    pub fn validate_against(&self, renders: &FourGhostRenderSet) -> Result<(), FourGhostError> {
+        renders.validate()?;
+        if self.base_revision != renders.base_revision || self.frame != renders.frame {
+            return Err(FourGhostError::VisualEvidenceSetMisalignment);
+        }
+        if self.evidence.len() != 4 {
+            return Err(FourGhostError::RequiresExactlyFourVisualObservations);
+        }
+        let mut seen = BTreeSet::new();
+        for evidence in &self.evidence {
+            if !seen.insert(evidence.candidate_id.as_str()) {
+                return Err(FourGhostError::DuplicateVisualObservation(
+                    evidence.candidate_id.clone(),
+                ));
+            }
+            let candidate = renders
+                .candidate(&evidence.candidate_id)
+                .ok_or_else(|| FourGhostError::UnknownCandidate(evidence.candidate_id.clone()))?;
+            if evidence.observation.capture_id != candidate.capture.receipt.request.capture_id
+                || evidence.observation.revision_id != renders.base_revision
+                || evidence.observation.frame != renders.frame
+                || evidence.observation.rendered_scene_hash != candidate.rendered_scene_hash()
+            {
+                return Err(FourGhostError::VisualCaptureMisalignment(
+                    evidence.candidate_id.clone(),
+                ));
+            }
+            match &candidate.kind {
+                GhostCandidateKind::AbstentionBaseline if evidence.consequence.is_none() => {}
+                GhostCandidateKind::Proposal { .. } if evidence.consequence.is_some() => {}
+                _ => return Err(FourGhostError::VisualConsequenceKindMismatch),
+            }
+        }
+        Ok(())
     }
 
     pub fn evidence_for(&self, candidate_id: &str) -> Option<&GhostVisualEvidence> {
@@ -246,8 +300,12 @@ pub enum GhostDecisionKind {
         candidate_id: String,
         proposal_id: String,
     },
-    Abstain { candidate_id: String },
-    Revise { considered_candidate_ids: Vec<String> },
+    Abstain {
+        candidate_id: String,
+    },
+    Revise {
+        considered_candidate_ids: Vec<String>,
+    },
     Inconclusive,
 }
 
@@ -287,7 +345,7 @@ impl GhostDecisionReceipt {
                 let candidate = renders
                     .candidate(candidate_id)
                     .ok_or_else(|| FourGhostError::UnknownCandidate(candidate_id.clone()))?;
-                if !matches!(candidate.kind, GhostCandidateKind::AbstentionBaseline) {
+                if !matches!(&candidate.kind, GhostCandidateKind::AbstentionBaseline) {
                     return Err(FourGhostError::DecisionAbstentionMismatch);
                 }
             }
@@ -320,6 +378,77 @@ impl GhostDecisionReceipt {
     }
 }
 
+/// Closed-loop causal receipt for the first live milestone.
+///
+/// A selected preview must reproduce the preview's *semantic* scene hash when
+/// the separately authorized real commit is applied. Non-selection outcomes
+/// must preserve the committed base hash. All preview branches must be disposed
+/// before the cycle can close.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct FourGhostCycleReceipt {
+    pub base_revision: String,
+    pub frame: StudioFrame,
+    pub decision: GhostDecisionReceipt,
+    pub committed_proposal_id: Option<String>,
+    pub postcommit_scene_hash: String,
+    pub disposed_branch_ids: Vec<String>,
+}
+
+impl FourGhostCycleReceipt {
+    pub fn validate_closed(
+        &self,
+        renders: &FourGhostRenderSet,
+        visual: &FourGhostVisualEvidenceSet,
+    ) -> Result<(), FourGhostError> {
+        renders.validate()?;
+        visual.validate_against(renders)?;
+        self.decision.validate_against(renders)?;
+        if self.base_revision != renders.base_revision || self.frame != renders.frame {
+            return Err(FourGhostError::CycleObservationMisalignment);
+        }
+        if self.postcommit_scene_hash.trim().is_empty() {
+            return Err(FourGhostError::MissingPostcommitHash);
+        }
+
+        let expected_branches = renders.proposal_branch_ids();
+        let disposed: BTreeSet<&str> = self.disposed_branch_ids.iter().map(String::as_str).collect();
+        if disposed.len() != self.disposed_branch_ids.len() || disposed != expected_branches {
+            return Err(FourGhostError::PreviewDisposalIncomplete);
+        }
+
+        match &self.decision.decision {
+            GhostDecisionKind::SelectProposal {
+                candidate_id,
+                proposal_id,
+            } => {
+                if self.committed_proposal_id.as_deref() != Some(proposal_id.as_str()) {
+                    return Err(FourGhostError::CommittedProposalMismatch);
+                }
+                let selected = renders
+                    .candidate(candidate_id)
+                    .ok_or_else(|| FourGhostError::UnknownCandidate(candidate_id.clone()))?;
+                if self.postcommit_scene_hash != selected.rendered_scene_hash() {
+                    return Err(FourGhostError::CommittedSceneDiffersFromSelectedPreview);
+                }
+            }
+            GhostDecisionKind::Abstain { .. }
+            | GhostDecisionKind::Revise { .. }
+            | GhostDecisionKind::Inconclusive => {
+                if self.committed_proposal_id.is_some() {
+                    return Err(FourGhostError::UnexpectedCommit);
+                }
+                let base_hash = renders
+                    .base_scene_hash()
+                    .ok_or(FourGhostError::MissingBaseline)?;
+                if self.postcommit_scene_hash != base_hash {
+                    return Err(FourGhostError::NonSelectionChangedCommittedScene);
+                }
+            }
+        }
+        Ok(())
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum FourGhostError {
     MissingIdentity,
@@ -338,6 +467,8 @@ pub enum FourGhostError {
     DuplicateVisualObservation(String),
     MissingVisualObservation(String),
     VisualCaptureMisalignment(String),
+    VisualEvidenceSetMisalignment,
+    VisualConsequenceKindMismatch,
     MissingBaseline,
     DecisionObservationMisalignment,
     UnknownCandidate(String),
@@ -345,6 +476,13 @@ pub enum FourGhostError {
     DecisionAbstentionMismatch,
     EmptyRevisionSet,
     DuplicateRevisionCandidate(String),
+    CycleObservationMisalignment,
+    MissingPostcommitHash,
+    PreviewDisposalIncomplete,
+    CommittedProposalMismatch,
+    CommittedSceneDiffersFromSelectedPreview,
+    UnexpectedCommit,
+    NonSelectionChangedCommittedScene,
 }
 
 impl std::fmt::Display for FourGhostError {
@@ -461,14 +599,8 @@ mod tests {
         )
     }
 
-    #[test]
-    fn proposal_ghosts_may_have_distinct_scene_hashes() {
-        renders().validate().unwrap();
-    }
-
-    #[test]
-    fn visual_consequence_is_candidate_minus_baseline() {
-        let evidence = FourGhostVisualEvidenceSet::build(
+    fn evidence() -> FourGhostVisualEvidenceSet {
+        FourGhostVisualEvidenceSet::build(
             &renders(),
             vec![
                 visual("base", "base", 0.4),
@@ -477,7 +609,17 @@ mod tests {
                 visual("c", "preview-c", 0.4),
             ],
         )
-        .unwrap();
+        .unwrap()
+    }
+
+    #[test]
+    fn proposal_ghosts_may_have_distinct_scene_hashes() {
+        renders().validate().unwrap();
+    }
+
+    #[test]
+    fn visual_consequence_is_candidate_minus_baseline() {
+        let evidence = evidence();
         let a = evidence.evidence_for("a").unwrap();
         assert!((a.consequence.as_ref().unwrap().mean_luminance_delta - 0.2).abs() < 1e-12);
     }
@@ -496,5 +638,51 @@ mod tests {
         };
         decision.validate_against(&renders()).unwrap();
         assert_eq!(decision.selected_proposal_id(), Some("p1"));
+    }
+
+    #[test]
+    fn closed_selected_cycle_requires_preview_commit_equivalence_and_disposal() {
+        let receipt = FourGhostCycleReceipt {
+            base_revision: "r1".into(),
+            frame: StudioFrame(7),
+            decision: GhostDecisionReceipt {
+                base_revision: "r1".into(),
+                frame: StudioFrame(7),
+                decision: GhostDecisionKind::SelectProposal {
+                    candidate_id: "a".into(),
+                    proposal_id: "p1".into(),
+                },
+                rationale: None,
+                evidence_refs: vec![],
+            },
+            committed_proposal_id: Some("p1".into()),
+            postcommit_scene_hash: "preview-a".into(),
+            disposed_branch_ids: vec!["b1".into(), "b2".into(), "b3".into()],
+        };
+        receipt.validate_closed(&renders(), &evidence()).unwrap();
+    }
+
+    #[test]
+    fn abstention_must_preserve_committed_base_hash() {
+        let receipt = FourGhostCycleReceipt {
+            base_revision: "r1".into(),
+            frame: StudioFrame(7),
+            decision: GhostDecisionReceipt {
+                base_revision: "r1".into(),
+                frame: StudioFrame(7),
+                decision: GhostDecisionKind::Abstain {
+                    candidate_id: "baseline".into(),
+                },
+                rationale: None,
+                evidence_refs: vec![],
+            },
+            committed_proposal_id: None,
+            postcommit_scene_hash: "changed".into(),
+            disposed_branch_ids: vec!["b1".into(), "b2".into(), "b3".into()],
+        };
+        assert_eq!(
+            receipt.validate_closed(&renders(), &evidence()),
+            Err(FourGhostError::NonSelectionChangedCommittedScene)
+        );
     }
 }
