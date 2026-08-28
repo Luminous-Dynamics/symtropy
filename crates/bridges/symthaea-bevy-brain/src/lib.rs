@@ -16,6 +16,7 @@ pub use symthaea::symthaea_core::hdc::unified_hv::ContinuousHV;
 pub mod art_capture;
 pub mod art_cinema;
 pub mod art_counterfactual;
+pub mod art_ghost_loop;
 pub mod art_observation;
 #[cfg(feature = "realtime-art-render")]
 pub mod art_offscreen;
@@ -36,6 +37,10 @@ pub use art_cinema::{
 };
 pub use art_counterfactual::{
     CounterfactualError, CounterfactualRegistry, PreviewBranch, PreviewBranchState,
+};
+pub use art_ghost_loop::{
+    FourGhostError, FourGhostRenderSet, FourGhostVisualEvidenceSet, GhostCandidateKind,
+    GhostDecisionKind, GhostDecisionReceipt, GhostRenderObservation, GhostVisualEvidence,
 };
 pub use art_observation::{
     AlignedCounterfactualObservationSet, FidelityTaggedCapture, ObservationError,
