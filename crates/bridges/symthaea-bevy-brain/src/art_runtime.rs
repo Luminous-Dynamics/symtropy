@@ -3,20 +3,23 @@
 //! Explicit Bevy plugin for the real-time artistic studio substrate.
 //!
 //! This plugin initializes deterministic studio time, bounded capture
-//! backpressure, bounded completed GPU readback, pacing evidence, and cinematic
-//! history. It does not attach mutation authority, create cameras, or alter
-//! existing `CognitiveBrain` behavior.
+//! backpressure, pacing evidence, and cinematic history. When the
+//! `realtime-art-render` feature is enabled it also bounds completed GPU
+//! readback memory. It does not attach mutation authority, create cameras, or
+//! alter existing `CognitiveBrain` behavior.
 
 use bevy::prelude::*;
 
 use crate::art_capture::{ArtCaptureOverflowPolicy, ArtCaptureQueue};
 use crate::art_cinema::CinematicHistory;
+#[cfg(feature = "realtime-art-render")]
 use crate::art_offscreen::ArtGpuReadbackQueue;
 use crate::art_timeline::{FramePacingLedger, StudioClock, StudioFrameRate};
 
 pub struct RealtimeArtStudioPlugin {
     frame_rate: StudioFrameRate,
     capture_capacity: usize,
+    #[cfg(feature = "realtime-art-render")]
     completed_readback_capacity: usize,
     capture_overflow: ArtCaptureOverflowPolicy,
     pacing_capacity: usize,
@@ -28,6 +31,7 @@ impl RealtimeArtStudioPlugin {
         Self {
             frame_rate,
             capture_capacity: 8,
+            #[cfg(feature = "realtime-art-render")]
             completed_readback_capacity: 8,
             capture_overflow: ArtCaptureOverflowPolicy::RejectNewest,
             pacing_capacity: 240,
@@ -43,6 +47,7 @@ impl RealtimeArtStudioPlugin {
         Ok(self)
     }
 
+    #[cfg(feature = "realtime-art-render")]
     pub fn with_completed_readback_capacity(
         mut self,
         capacity: usize,
@@ -89,6 +94,7 @@ impl Plugin for RealtimeArtStudioPlugin {
             ArtCaptureQueue::new(self.capture_capacity, self.capture_overflow)
                 .expect("RealtimeArtStudioPlugin validates capture capacity"),
         );
+        #[cfg(feature = "realtime-art-render")]
         app.insert_resource(
             ArtGpuReadbackQueue::new(self.completed_readback_capacity)
                 .expect("RealtimeArtStudioPlugin validates completed readback capacity"),
@@ -112,6 +118,7 @@ fn advance_studio_clock_system(mut clock: ResMut<StudioClock>) {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum StudioPluginError {
     ZeroCaptureCapacity,
+    #[cfg(feature = "realtime-art-render")]
     ZeroCompletedReadbackCapacity,
     ZeroPacingCapacity,
 }
@@ -120,6 +127,7 @@ impl std::fmt::Display for StudioPluginError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Self::ZeroCaptureCapacity => write!(f, "studio capture capacity must be non-zero"),
+            #[cfg(feature = "realtime-art-render")]
             Self::ZeroCompletedReadbackCapacity => {
                 write!(f, "completed GPU readback capacity must be non-zero")
             }
@@ -143,6 +151,7 @@ mod tests {
                 .with_auto_advance_clock(false),
         );
         assert_eq!(app.world().resource::<StudioClock>().frame(), StudioFrame(0));
+        #[cfg(feature = "realtime-art-render")]
         assert!(app.world().resource::<ArtGpuReadbackQueue>().is_empty());
     }
 
@@ -152,6 +161,7 @@ mod tests {
             RealtimeArtStudioPlugin::default().with_capture_capacity(0),
             Err(StudioPluginError::ZeroCaptureCapacity)
         ));
+        #[cfg(feature = "realtime-art-render")]
         assert!(matches!(
             RealtimeArtStudioPlugin::default().with_completed_readback_capacity(0),
             Err(StudioPluginError::ZeroCompletedReadbackCapacity)
