@@ -17,6 +17,7 @@ pub mod art_capture;
 pub mod art_cinema;
 pub mod art_counterfactual;
 pub mod art_port;
+pub mod art_runtime;
 pub mod art_scene;
 pub mod art_timeline;
 
@@ -35,6 +36,7 @@ pub use art_port::{
     ART_WORLD_SCHEMA_V1, ArtActionProposal, ArtAuthorityMode, ArtOperation, ArtParameterValue,
     ArtPerceptionFrame, ArtPort, ArtPortError, ArtPortEvent, ArtPortEventKind, ArtProposalState,
 };
+pub use art_runtime::{RealtimeArtStudioPlugin, StudioPluginError};
 pub use art_scene::{
     ArtEntityId, ArtEntitySemantics, ArtSceneError, ArtSceneRecord,
     perception_frame_from_records, stable_scene_hash,
