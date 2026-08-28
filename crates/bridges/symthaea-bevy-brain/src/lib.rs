@@ -16,6 +16,7 @@ pub use symthaea::symthaea_core::hdc::unified_hv::ContinuousHV;
 pub mod art_capture;
 pub mod art_cinema;
 pub mod art_counterfactual;
+pub mod art_observation;
 pub mod art_port;
 pub mod art_runtime;
 pub mod art_scene;
@@ -31,6 +32,10 @@ pub use art_cinema::{
 };
 pub use art_counterfactual::{
     CounterfactualError, CounterfactualRegistry, PreviewBranch, PreviewBranchState,
+};
+pub use art_observation::{
+    AlignedCounterfactualObservationSet, FidelityTaggedCapture, ObservationError,
+    RenderFidelity, RenderFidelityClass, SynchronizedViewSet, TemporalCaptureWindow,
 };
 pub use art_port::{
     ART_WORLD_SCHEMA_V1, ArtActionProposal, ArtAuthorityMode, ArtOperation, ArtParameterValue,
@@ -134,8 +139,8 @@ impl CognitiveBrain {
             let mce = &result.metadata;
             self.profile = SovereignProfile8D {
                 epistemic_integrity: service.consciousness_level() as f64,
-                thermodynamic_yield: mce.mce_softmin, // mapped to efficiency
-                network_resilience: mce.mce_weighted_sum, // mapped to redundancy
+                thermodynamic_yield: mce.mce_softmin,
+                network_resilience: mce.mce_weighted_sum,
                 economic_velocity: mce.perception_attention_sensitivity as f64,
                 civic_participation: mce.mce_social,
                 stewardship_care: mce.embodied.body_phi_modulation,
