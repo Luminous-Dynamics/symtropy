@@ -20,15 +20,9 @@ use bevy::{
 };
 use std::collections::VecDeque;
 
-use crate::art_capture::{
-    ArtCaptureError, ArtCaptureReceipt, ArtCaptureRequest, ArtRenderChannel,
-};
+use crate::art_capture::{ArtCaptureError, ArtCaptureReceipt, ArtCaptureRequest, ArtRenderChannel};
 use crate::art_timeline::StudioFrame;
 
-/// Host-side stamp captured when the dedicated render target is armed.
-///
-/// These fields are intentionally independent from the request so a host cannot
-/// manufacture alignment merely by copying request identity at receipt time.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ArtRenderStamp {
     pub revision_id: String,
@@ -59,11 +53,6 @@ impl ArtRenderStamp {
     }
 }
 
-/// Prepared, dedicated image target for exactly one artistic capture.
-///
-/// The type is intentionally not `Clone`: one request should have one target
-/// lineage. After one rendered frame, call [`PreparedArtCaptureTarget::finish_render`]
-/// to restore the camera and obtain a readback-ready target.
 #[derive(Debug)]
 pub struct PreparedArtCaptureTarget {
     request: ArtCaptureRequest,
@@ -82,7 +71,7 @@ impl PreparedArtCaptureTarget {
         format: TextureFormat,
     ) -> Result<Self, ArtOffscreenError> {
         stamp.validate_against(&request)?;
-        if request.channels != [ArtRenderChannel::Color] {
+        if request.channels.len() != 1 || request.channels[0] != ArtRenderChannel::Color {
             return Err(ArtOffscreenError::UnsupportedChannels);
         }
 
@@ -114,9 +103,6 @@ impl PreparedArtCaptureTarget {
         self.stamp.render_epoch
     }
 
-    /// Restore the camera after the host has allowed exactly one render pass to
-    /// target this image. The returned target can no longer retarget a camera;
-    /// it only permits readback.
     pub fn finish_render(self, camera: &mut Camera) -> RenderedArtCaptureTarget {
         camera.target = self.previous_target;
         RenderedArtCaptureTarget {
@@ -128,7 +114,6 @@ impl PreparedArtCaptureTarget {
     }
 }
 
-/// Dedicated render image after it has been detached from the camera.
 #[derive(Debug)]
 pub struct RenderedArtCaptureTarget {
     request: ArtCaptureRequest,
@@ -162,7 +147,6 @@ struct PendingArtReadback {
     format: TextureFormat,
 }
 
-/// Completed raw GPU bytes plus their revision/frame-bound receipt.
 #[derive(Debug)]
 pub struct ArtGpuReadback {
     pub receipt: ArtCaptureReceipt,
@@ -178,8 +162,6 @@ pub struct ArtGpuReadbackEnqueueReceipt {
     pub dropped_total: u64,
 }
 
-/// Bounded completed-readback queue. Large frame buffers must never grow without
-/// bound simply because perception is slower than rendering.
 #[derive(Resource, Debug)]
 pub struct ArtGpuReadbackQueue {
     capacity: usize,
@@ -244,11 +226,13 @@ fn complete_art_readback(
     mut completed: ResMut<ArtGpuReadbackQueue>,
     mut commands: Commands,
 ) {
-    let Ok(pending) = pending.get(event.entity) else {
+    let readback = event.event();
+    let entity = readback.entity;
+    let Ok(pending) = pending.get(entity) else {
         return;
     };
 
-    let bytes = event.data.clone();
+    let bytes = readback.data.clone();
     let digest = raw_bytes_digest(&bytes);
     let receipt = ArtCaptureReceipt {
         request: pending.request.clone(),
@@ -266,9 +250,7 @@ fn complete_art_readback(
         render_epoch: pending.stamp.render_epoch,
     });
 
-    // `Readback` repeats every frame while its entity exists. This is a one-shot
-    // artistic observation, so the entity is removed immediately after success.
-    commands.entity(event.entity).despawn();
+    commands.entity(entity).despawn();
 }
 
 fn raw_bytes_digest(bytes: &[u8]) -> String {
@@ -340,10 +322,7 @@ mod tests {
     fn stamp_must_independently_match_request() {
         let mut bad = stamp();
         bad.frame = StudioFrame(43);
-        assert_eq!(
-            bad.validate_against(&request()),
-            Err(ArtOffscreenError::FrameMismatch)
-        );
+        assert_eq!(bad.validate_against(&request()), Err(ArtOffscreenError::FrameMismatch));
     }
 
     #[test]
