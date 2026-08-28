@@ -13,6 +13,13 @@ pub use symthaea::cognitive_loop::{
 };
 pub use symthaea::symthaea_core::hdc::unified_hv::ContinuousHV;
 
+pub mod art_port;
+pub use art_port::{
+    ART_WORLD_SCHEMA_V1, ArtActionProposal, ArtAuthorityMode, ArtOperation, ArtParameterValue,
+    ArtPerceptionFrame, ArtPort, ArtPortError, ArtPortEvent, ArtPortEventKind,
+    ArtProposalState,
+};
+
 /// Thread-safe wrapper for the cognitive loop.
 #[derive(Clone)]
 pub struct BrainHandle(pub Arc<RwLock<CognitiveLoopService>>);
