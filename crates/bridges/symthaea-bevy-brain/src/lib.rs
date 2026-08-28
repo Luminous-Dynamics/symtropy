@@ -17,6 +17,7 @@ pub mod art_capture;
 pub mod art_cinema;
 pub mod art_counterfactual;
 pub mod art_observation;
+#[cfg(feature = "realtime-art-render")]
 pub mod art_offscreen;
 pub mod art_port;
 pub mod art_preview_scene;
@@ -39,6 +40,7 @@ pub use art_observation::{
     AlignedCounterfactualObservationSet, FidelityTaggedCapture, ObservationError,
     RenderFidelity, RenderFidelityClass, SynchronizedViewSet, TemporalCaptureWindow,
 };
+#[cfg(feature = "realtime-art-render")]
 pub use art_offscreen::{
     ArtGpuReadback, ArtGpuReadbackEnqueueReceipt, ArtGpuReadbackQueue, ArtOffscreenError,
     ArtRenderStamp, PreparedArtCaptureTarget, RenderedArtCaptureTarget,
@@ -142,7 +144,6 @@ impl CognitiveBrain {
 
             self.motor_output = result.output.clone();
 
-            // Extract 8D profile from MCE metadata using canonical mapping
             let mce = &result.metadata;
             self.profile = SovereignProfile8D {
                 epistemic_integrity: service.consciousness_level() as f64,
