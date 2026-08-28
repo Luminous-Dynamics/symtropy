@@ -13,16 +13,35 @@ pub use symthaea::cognitive_loop::{
 };
 pub use symthaea::symthaea_core::hdc::unified_hv::ContinuousHV;
 
+pub mod art_capture;
+pub mod art_cinema;
+pub mod art_counterfactual;
 pub mod art_port;
 pub mod art_scene;
+pub mod art_timeline;
+
+pub use art_capture::{
+    ArtCaptureEnqueueReceipt, ArtCaptureError, ArtCaptureOverflowPolicy, ArtCapturePurpose,
+    ArtCaptureQueue, ArtCaptureReceipt, ArtCaptureRequest, ArtRenderChannel,
+};
+pub use art_cinema::{
+    ArtCameraKeyframe, ArtCameraPose, ArtSequencePlan, ArtShotPlan, CinematicEvidence,
+    CinematicHistory, CinematicPlanError, ExecutedShotRecord, ShotCandidate, ShotSelectionRecord,
+};
+pub use art_counterfactual::{
+    CounterfactualError, CounterfactualRegistry, PreviewBranch, PreviewBranchState,
+};
 pub use art_port::{
     ART_WORLD_SCHEMA_V1, ArtActionProposal, ArtAuthorityMode, ArtOperation, ArtParameterValue,
-    ArtPerceptionFrame, ArtPort, ArtPortError, ArtPortEvent, ArtPortEventKind,
-    ArtProposalState,
+    ArtPerceptionFrame, ArtPort, ArtPortError, ArtPortEvent, ArtPortEventKind, ArtProposalState,
 };
 pub use art_scene::{
     ArtEntityId, ArtEntitySemantics, ArtSceneError, ArtSceneRecord,
     perception_frame_from_records, stable_scene_hash,
+};
+pub use art_timeline::{
+    FramePacingLedger, FramePacingSample, StudioClock, StudioFrame, StudioFrameRate,
+    StudioTimelineError,
 };
 
 /// Thread-safe wrapper for the cognitive loop.
