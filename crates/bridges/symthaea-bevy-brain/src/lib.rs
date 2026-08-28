@@ -24,6 +24,7 @@ pub mod art_preview_scene;
 pub mod art_runtime;
 pub mod art_scene;
 pub mod art_timeline;
+pub mod art_visual;
 
 pub use art_capture::{
     ArtCaptureEnqueueReceipt, ArtCaptureError, ArtCaptureOverflowPolicy, ArtCapturePurpose,
@@ -58,6 +59,10 @@ pub use art_scene::{
 pub use art_timeline::{
     FramePacingLedger, FramePacingSample, StudioClock, StudioFrame, StudioFrameRate,
     StudioTimelineError,
+};
+pub use art_visual::{
+    ImagePlaneFeatures, PixelLayout, VisualConsequenceVector, VisualObservation,
+    VisualPerceptionError, analyze_pixel_plane,
 };
 
 /// Thread-safe wrapper for the cognitive loop.
