@@ -45,8 +45,8 @@ pub use art_ghost_loop::{
     GhostVisualEvidence,
 };
 pub use art_ghost_session::{
-    ExpectedGhostCapture, FourGhostSession, FourGhostSessionError, FourGhostSessionPhase,
-    GhostEvidenceFailure,
+    ExpectedGhostCapture, FourGhostCandidatePlan, FourGhostPlan, FourGhostSession,
+    FourGhostSessionError, FourGhostSessionPhase, GhostEvidenceFailure,
 };
 pub use art_observation::{
     AlignedCounterfactualObservationSet, FidelityTaggedCapture, ObservationError,
