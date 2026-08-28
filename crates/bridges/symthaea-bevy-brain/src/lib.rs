@@ -17,6 +17,7 @@ pub mod art_capture;
 pub mod art_cinema;
 pub mod art_counterfactual;
 pub mod art_observation;
+pub mod art_offscreen;
 pub mod art_port;
 pub mod art_runtime;
 pub mod art_scene;
@@ -36,6 +37,10 @@ pub use art_counterfactual::{
 pub use art_observation::{
     AlignedCounterfactualObservationSet, FidelityTaggedCapture, ObservationError,
     RenderFidelity, RenderFidelityClass, SynchronizedViewSet, TemporalCaptureWindow,
+};
+pub use art_offscreen::{
+    ArtGpuReadback, ArtGpuReadbackEnqueueReceipt, ArtGpuReadbackQueue, ArtOffscreenError,
+    ArtRenderStamp, PreparedArtCaptureTarget, RenderedArtCaptureTarget,
 };
 pub use art_port::{
     ART_WORLD_SCHEMA_V1, ArtActionProposal, ArtAuthorityMode, ArtOperation, ArtParameterValue,
