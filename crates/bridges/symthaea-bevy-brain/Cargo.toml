@@ -12,10 +12,17 @@ readme = "README.md"
 [dependencies]
 bevy = { version = "0.19", default-features = false, features = [
     "bevy_log", "bevy_state",
-    "bevy_asset", "bevy_camera", "bevy_image", "bevy_render",
     "multi_threaded", "x11",
 ] }
 symthaea = { path = "../../../stubs/symthaea", default-features = false, features = ["vision-manifold", "muse", "reasoning_engine"] }
 
 [features]
 default = []
+# Keep the existing brain crate lightweight for non-art consumers. The real
+# off-screen GPU path is opt-in and enables only the Bevy subsystems it needs.
+realtime-art-render = [
+    "bevy/bevy_asset",
+    "bevy/bevy_camera",
+    "bevy/bevy_image",
+    "bevy/bevy_render",
+]
