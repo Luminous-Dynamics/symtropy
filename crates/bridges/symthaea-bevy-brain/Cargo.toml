@@ -15,6 +15,10 @@ bevy = { version = "0.19", default-features = false, features = [
     "multi_threaded", "x11",
 ] }
 symthaea = { path = "../../../stubs/symthaea", default-features = false, features = ["vision-manifold", "muse", "reasoning_engine"] }
+# Pinned host-neutral reality contract. The private integrated workspace may
+# replace this exact source with a local path, but standalone builds must never
+# float to an unqualified branch tip.
+symthaea-reality-ledger = { git = "https://github.com/Luminous-Dynamics/symthaea.git", rev = "ffa27ea1a0fa2bac69df6008adfdd2167b8e29c0", package = "symthaea-reality-ledger", optional = true }
 
 [features]
 default = []
@@ -27,3 +31,6 @@ realtime-art-render = [
     "bevy/bevy_render",
     "bevy/bevy_core_pipeline",
 ]
+# Bind committed/counterfactual Symtropy observations to the host-neutral
+# Reality Ledger without granting mutation authority.
+reality-ledger-adapter = ["dep:symthaea-reality-ledger"]
