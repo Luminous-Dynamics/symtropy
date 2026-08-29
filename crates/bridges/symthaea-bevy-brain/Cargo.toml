@@ -27,3 +27,9 @@ realtime-art-render = [
     "bevy/bevy_render",
     "bevy/bevy_core_pipeline",
 ]
+# Object-ID acquisition uses a dedicated unlit custom material and proxy render
+# layer so the evidence pass never rewrites materials on the committed scene.
+realtime-art-object-id = [
+    "realtime-art-render",
+    "bevy/bevy_pbr",
+]
