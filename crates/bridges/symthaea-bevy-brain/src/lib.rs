@@ -18,6 +18,8 @@ pub mod art_cinema;
 pub mod art_counterfactual;
 pub mod art_depth;
 pub mod art_depth_ghost;
+#[cfg(feature = "realtime-art-render")]
+pub mod art_depth_readback;
 pub mod art_eye;
 pub mod art_eye_ghost;
 pub mod art_ghost_loop;
@@ -29,6 +31,8 @@ pub mod art_port;
 pub mod art_preview_scene;
 pub mod art_runtime;
 pub mod art_scene;
+pub mod art_temporal;
+pub mod art_temporal_window;
 pub mod art_timeline;
 pub mod art_visual;
 
@@ -50,6 +54,12 @@ pub use art_depth::{
 };
 pub use art_depth_ghost::{
     FourGhostArtistDepthError, FourGhostArtistDepthEvidenceSet, GhostArtistDepthEvidence,
+};
+#[cfg(feature = "realtime-art-render")]
+pub use art_depth_readback::{
+    ArtDepthCopyTarget, ArtDepthGpuReadback, ArtDepthGpuReadbackQueue, ArtDepthReadbackError,
+    ArtDepthReadbackFailure, ArtDepthReadbackOutcome, ArtDepthReadbackPlugin,
+    BevyDepthProjection, PreparedArtDepthCapture, RenderedArtDepthCapture,
 };
 pub use art_eye::{
     ArtistEyeConfig, ArtistEyeConsequenceEvidence, ArtistEyeError, ArtistEyeLevelDelta,
@@ -87,6 +97,14 @@ pub use art_runtime::{RealtimeArtStudioPlugin, StudioPluginError};
 pub use art_scene::{
     ArtEntityId, ArtEntitySemantics, ArtSceneError, ArtSceneRecord,
     perception_frame_from_records, stable_scene_hash,
+};
+pub use art_temporal::{
+    ArtistCameraPoseSample, ArtistTemporalConfig, ArtistTemporalError, ArtistTemporalFrame,
+    ArtistTemporalTransition, CameraMotionEvidence, FocalMigrationEvidence,
+    VisibilityChangeEvidence,
+};
+pub use art_temporal_window::{
+    ArtistTemporalRhythmEvidence, ArtistTemporalWindow, ArtistTemporalWindowError,
 };
 pub use art_timeline::{
     FramePacingLedger, FramePacingSample, StudioClock, StudioFrame, StudioFrameRate,
