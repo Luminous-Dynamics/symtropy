@@ -6,19 +6,29 @@
 //! ghost into a distinct `Counterfactual` child world, and GPU capture evidence
 //! into typed world/revision/frame/state-bound observation receipts. It never
 //! grants mutation authority.
+//!
+//! Important: `stable_scene_hash` is currently the host's deterministic FNV-1a
+//! 64-bit semantic scene identifier, not BLAKE3. Typed state digests therefore
+//! label that algorithm truthfully. Cryptographic tamper evidence is supplied
+//! by Reality Ledger chaining/checkpointing and by higher-level bundle digests.
 
 use symthaea_reality_ledger::{
-    DigestAlgorithm, EvidenceSource, ObservationArtifactReceipt, ObservationPlane,
-    RealityLayer, RealityRecord, RealityRecordId, RealityRecordKind, TypedCounterfactualCommitReceipt,
+    DigestAlgorithm, EvidenceSource, ObservationArtifactReceipt, ObservationPlane, RealityLayer,
+    RealityRecord, RealityRecordId, RealityRecordKind, TypedCounterfactualCommitReceipt,
     TypedDigest, WorldDescriptor, WorldId, WorldLineageId, WorldObservationBundle, WorldOrigin,
     WorldParentRef, WorldRelation,
 };
 
 use crate::{
     art_capture::ArtRenderChannel,
-    art_ghost_loop::{FourGhostCycleReceipt, FourGhostRenderSet, GhostCandidateKind, GhostDecisionKind, GhostRenderObservation},
+    art_ghost_loop::{
+        FourGhostCycleReceipt, FourGhostRenderSet, GhostCandidateKind, GhostDecisionKind,
+        GhostRenderObservation,
+    },
     art_observation::{RenderFidelity, RenderFidelityClass},
 };
+
+pub const SYMTROPY_SCENE_STATE_DIGEST_ALGORITHM: &str = "fnv1a64";
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct SymtropyRealityBinding {
@@ -52,7 +62,9 @@ impl SymtropyRealityBinding {
             world_id: WorldId(world_id.into()),
             lineage_id: WorldLineageId(lineage_id.into()),
             layer: RealityLayer::DigitalCommitted,
-            origin: WorldOrigin::DigitalHost { host_kind: "bevy/symtropy".into() },
+            origin: WorldOrigin::DigitalHost {
+                host_kind: "bevy/symtropy".into(),
+            },
             parent: None,
             generation_depth: 0,
             creator_id: creator_id.into(),
@@ -69,6 +81,22 @@ impl SymtropyRealityBinding {
         })
     }
 
+    /// Typed identity for the current deterministic semantic scene hash.
+    ///
+    /// This deliberately reports FNV-1a64 rather than pretending the host's
+    /// semantic scene identifier is itself a cryptographic BLAKE3 digest.
+    pub fn scene_state_digest(
+        &self,
+        scene_hash: impl Into<String>,
+    ) -> Result<TypedDigest, SymtropyRealityAdapterError> {
+        TypedDigest::new(
+            self.scene_state_domain.clone(),
+            DigestAlgorithm::Other(SYMTROPY_SCENE_STATE_DIGEST_ALGORITHM.into()),
+            scene_hash.into(),
+        )
+        .map_err(|error| SymtropyRealityAdapterError::Reality(error.to_string()))
+    }
+
     pub fn candidate_world(
         &self,
         candidate: &GhostRenderObservation,
@@ -77,7 +105,10 @@ impl SymtropyRealityBinding {
             GhostCandidateKind::AbstentionBaseline => Ok(self.committed_world.clone()),
             GhostCandidateKind::Proposal { branch_id, .. } => {
                 let world = WorldDescriptor {
-                    world_id: WorldId(format!("{}::{}", self.committed_world.world_id.0, branch_id)),
+                    world_id: WorldId(format!(
+                        "{}::{}",
+                        self.committed_world.world_id.0, branch_id
+                    )),
                     lineage_id: WorldLineageId(format!(
                         "{}::{}",
                         self.committed_world.lineage_id.0, branch_id
@@ -110,7 +141,9 @@ impl SymtropyRealityBinding {
             .map_err(|error| SymtropyRealityAdapterError::FourGhost(error.to_string()))?;
         let matched = renders
             .candidate(&candidate.candidate_id)
-            .ok_or_else(|| SymtropyRealityAdapterError::UnknownCandidate(candidate.candidate_id.clone()))?;
+            .ok_or_else(|| {
+                SymtropyRealityAdapterError::UnknownCandidate(candidate.candidate_id.clone())
+            })?;
         if matched != candidate {
             return Err(SymtropyRealityAdapterError::CandidateMismatch);
         }
@@ -129,12 +162,7 @@ impl SymtropyRealityBinding {
             .artifact_digest
             .as_ref()
             .ok_or(SymtropyRealityAdapterError::MissingArtifactDigest)?;
-        let state_digest = TypedDigest::new(
-            self.scene_state_domain.clone(),
-            DigestAlgorithm::Blake3,
-            candidate.rendered_scene_hash(),
-        )
-        .map_err(|error| SymtropyRealityAdapterError::Reality(error.to_string()))?;
+        let state_digest = self.scene_state_digest(candidate.rendered_scene_hash())?;
         let artifact_digest = TypedDigest::new(
             self.artifact_digest_domain.clone(),
             self.artifact_digest_algorithm.clone(),
@@ -156,7 +184,10 @@ impl SymtropyRealityBinding {
             fidelity_id: Some(fidelity_id.clone()),
         };
         let bundle = WorldObservationBundle {
-            bundle_id: format!("reality:{}", candidate.capture.receipt.request.capture_id),
+            bundle_id: format!(
+                "reality:{}",
+                candidate.capture.receipt.request.capture_id
+            ),
             world,
             revision_id: renders.base_revision.clone(),
             frame: renders.frame.0,
@@ -186,6 +217,9 @@ impl SymtropyRealityBinding {
             .collect()
     }
 
+    /// Convert a bundle into an unchained record. Callers that maintain a live
+    /// ledger should set sequence and previous-head state from that ledger (the
+    /// `InhabitedWorldEpisode` runtime does this automatically).
     pub fn reality_record_for_bundle(
         &self,
         sequence: u64,
@@ -244,24 +278,13 @@ impl SymtropyRealityBinding {
             .candidate(candidate_id)
             .ok_or_else(|| SymtropyRealityAdapterError::UnknownCandidate(candidate_id.clone()))?;
         let source_world = self.candidate_world(selected)?;
-        let source_state_digest = TypedDigest::new(
-            self.scene_state_domain.clone(),
-            DigestAlgorithm::Blake3,
-            selected.rendered_scene_hash(),
-        )
-        .map_err(|error| SymtropyRealityAdapterError::Reality(error.to_string()))?;
-        let before = TypedDigest::new(
-            self.scene_state_domain.clone(),
-            DigestAlgorithm::Blake3,
-            renders.base_scene_hash().ok_or(SymtropyRealityAdapterError::MissingBaseline)?,
-        )
-        .map_err(|error| SymtropyRealityAdapterError::Reality(error.to_string()))?;
-        let after = TypedDigest::new(
-            self.scene_state_domain.clone(),
-            DigestAlgorithm::Blake3,
-            cycle.postcommit_scene_hash.clone(),
-        )
-        .map_err(|error| SymtropyRealityAdapterError::Reality(error.to_string()))?;
+        let source_state_digest = self.scene_state_digest(selected.rendered_scene_hash())?;
+        let before = self.scene_state_digest(
+            renders
+                .base_scene_hash()
+                .ok_or(SymtropyRealityAdapterError::MissingBaseline)?,
+        )?;
+        let after = self.scene_state_digest(cycle.postcommit_scene_hash.clone())?;
         let receipt = TypedCounterfactualCommitReceipt {
             source_world,
             target_world: self.committed_world.clone(),
@@ -337,7 +360,7 @@ mod tests {
     use super::*;
     use crate::{
         art_capture::{ArtCapturePurpose, ArtCaptureReceipt, ArtCaptureRequest},
-        art_observation::{FidelityTaggedCapture, RenderFidelityClass},
+        art_observation::FidelityTaggedCapture,
         art_timeline::StudioFrame,
     };
 
@@ -386,51 +409,98 @@ mod tests {
                     candidate_id: "base".into(),
                     kind: GhostCandidateKind::AbstentionBaseline,
                     base_scene_hash: "base-scene".into(),
-                    capture: capture("base", "base-scene", ArtCapturePurpose::CommittedObservation),
+                    capture: capture(
+                        "base",
+                        "base-scene",
+                        ArtCapturePurpose::CommittedObservation,
+                    ),
                 },
                 GhostRenderObservation {
                     candidate_id: "a".into(),
-                    kind: GhostCandidateKind::Proposal { proposal_id: "pa".into(), branch_id: "ba".into() },
+                    kind: GhostCandidateKind::Proposal {
+                        proposal_id: "pa".into(),
+                        branch_id: "ba".into(),
+                    },
                     base_scene_hash: "base-scene".into(),
-                    capture: capture("a", "scene-a", ArtCapturePurpose::CounterfactualPreview),
+                    capture: capture(
+                        "a",
+                        "scene-a",
+                        ArtCapturePurpose::CounterfactualPreview,
+                    ),
                 },
                 GhostRenderObservation {
                     candidate_id: "b".into(),
-                    kind: GhostCandidateKind::Proposal { proposal_id: "pb".into(), branch_id: "bb".into() },
+                    kind: GhostCandidateKind::Proposal {
+                        proposal_id: "pb".into(),
+                        branch_id: "bb".into(),
+                    },
                     base_scene_hash: "base-scene".into(),
-                    capture: capture("b", "scene-b", ArtCapturePurpose::CounterfactualPreview),
+                    capture: capture(
+                        "b",
+                        "scene-b",
+                        ArtCapturePurpose::CounterfactualPreview,
+                    ),
                 },
                 GhostRenderObservation {
                     candidate_id: "c".into(),
-                    kind: GhostCandidateKind::Proposal { proposal_id: "pc".into(), branch_id: "bc".into() },
+                    kind: GhostCandidateKind::Proposal {
+                        proposal_id: "pc".into(),
+                        branch_id: "bc".into(),
+                    },
                     base_scene_hash: "base-scene".into(),
-                    capture: capture("c", "scene-c", ArtCapturePurpose::CounterfactualPreview),
+                    capture: capture(
+                        "c",
+                        "scene-c",
+                        ArtCapturePurpose::CounterfactualPreview,
+                    ),
                 },
             ],
         }
     }
 
-    #[test]
-    fn four_ghosts_become_one_committed_and_three_counterfactual_worlds() {
-        let binding = SymtropyRealityBinding::new(
+    fn binding() -> SymtropyRealityBinding {
+        SymtropyRealityBinding::new(
             "studio",
             "studio-lineage",
             "symthaea",
             "symtropy",
             "symtropy.scene-state.v1",
             "symtropy.capture-artifact.v1",
-            DigestAlgorithm::Other("test-digest".into()),
+            DigestAlgorithm::Other("test-artifact-digest".into()),
         )
-        .unwrap();
-        let bundles = binding.four_ghost_observation_bundles(&renders()).unwrap();
+        .unwrap()
+    }
+
+    #[test]
+    fn state_digest_truthfully_names_fnv_scene_identity() {
+        let digest = binding().scene_state_digest("deadbeef").unwrap();
+        assert_eq!(
+            digest.algorithm,
+            DigestAlgorithm::Other(SYMTROPY_SCENE_STATE_DIGEST_ALGORITHM.into())
+        );
+    }
+
+    #[test]
+    fn four_ghosts_become_one_committed_and_three_counterfactual_worlds() {
+        let bundles = binding().four_ghost_observation_bundles(&renders()).unwrap();
         assert_eq!(bundles.len(), 4);
         assert_eq!(
-            bundles.iter().filter(|bundle| bundle.world.layer == RealityLayer::DigitalCommitted).count(),
+            bundles
+                .iter()
+                .filter(|bundle| bundle.world.layer == RealityLayer::DigitalCommitted)
+                .count(),
             1
         );
         assert_eq!(
-            bundles.iter().filter(|bundle| bundle.world.layer == RealityLayer::Counterfactual).count(),
+            bundles
+                .iter()
+                .filter(|bundle| bundle.world.layer == RealityLayer::Counterfactual)
+                .count(),
             3
         );
+        assert!(bundles.iter().all(|bundle| {
+            bundle.state_digest.algorithm
+                == DigestAlgorithm::Other(SYMTROPY_SCENE_STATE_DIGEST_ALGORITHM.into())
+        }));
     }
 }
