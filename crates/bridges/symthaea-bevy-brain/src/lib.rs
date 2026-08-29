@@ -26,6 +26,7 @@ pub mod art_ghost_loop;
 pub mod art_ghost_session;
 pub mod art_motion_attribution;
 pub mod art_object_depth;
+pub mod art_object_depth_plan;
 pub mod art_object_id;
 pub mod art_object_id_codec;
 #[cfg(feature = "realtime-art-object-id")]
@@ -96,6 +97,9 @@ pub use art_motion_attribution::{
 pub use art_object_depth::{
     ObjectDepthFusionConfig, ObjectDepthFusionError, ObjectDepthFusionFrame, ObjectDepthPixel,
     PerObjectDepthEvidence, fuse_object_id_and_linear_depth,
+};
+pub use art_object_depth_plan::{
+    ObjectDepthCapturePlan, ObjectDepthCapturePlanError,
 };
 pub use art_object_id::{
     ObjectBoundingBox, ObjectIdError, ObjectIdObservation, ObjectIdPlaneEvidence,
