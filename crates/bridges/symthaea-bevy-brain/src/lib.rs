@@ -34,6 +34,8 @@ pub mod art_observation;
 pub mod art_offscreen;
 pub mod art_port;
 pub mod art_preview_scene;
+#[cfg(feature = "reality-ledger-adapter")]
+pub mod art_reality_adapter;
 pub mod art_runtime;
 pub mod art_scene;
 pub mod art_temporal;
@@ -119,6 +121,8 @@ pub use art_port::{
     ArtPerceptionFrame, ArtPort, ArtPortError, ArtPortEvent, ArtPortEventKind, ArtProposalState,
 };
 pub use art_preview_scene::{IsolatedPreviewScene, PreviewSceneError};
+#[cfg(feature = "reality-ledger-adapter")]
+pub use art_reality_adapter::{SymtropyRealityAdapterError, SymtropyRealityBinding};
 pub use art_runtime::{RealtimeArtStudioPlugin, StudioPluginError};
 pub use art_scene::{
     ArtEntityId, ArtEntitySemantics, ArtSceneError, ArtSceneRecord,
@@ -178,12 +182,12 @@ pub struct CognitiveBrain {
 }
 
 impl CognitiveBrain {
-    pub fn new(cfc_neurons: usize, genesis_phrase: &str) -> Self {
+    /// Create a new cognitive brain with default settings.
+    pub fn new() -> Self {
         let service = CognitiveLoopBuilder::new()
-            .with_cfc_neurons(cfc_neurons)
-            .with_genesis_phrase(genesis_phrase)
+            .max_cycles(1)
             .build()
-            .expect("failed to build cognitive loop");
+            .expect("CognitiveLoopService construction should succeed");
 
         Self {
             handle: BrainHandle(Arc::new(RwLock::new(service))),
@@ -193,96 +197,67 @@ impl CognitiveBrain {
             perception_input: String::new(),
             perception_hv: None,
             ticks_since_cycle: 0,
-            cycle_interval: 3,
+            cycle_interval: 1,
         }
     }
 
-    pub fn new_with_hv_input(cfc_neurons: usize, genesis_phrase: &str, hv_dim: usize) -> Self {
-        let mut brain = Self::new(cfc_neurons, genesis_phrase);
-        brain.perception_hv = Some(ContinuousHV::zero(hv_dim));
+    /// Create a cognitive brain with a custom cycle interval.
+    pub fn with_cycle_interval(interval: u32) -> Self {
+        let mut brain = Self::new();
+        brain.cycle_interval = interval.max(1);
         brain
     }
-
-    /// Current scalar Phi estimate (epistemic integrity proxy).
-    pub fn phi(&self) -> f64 {
-        self.profile.epistemic_integrity
-    }
-
-    /// Inject explicit FEP priors (Passport Route).
-    pub fn inject_priors(&self, mean: Vec<f64>, precision: Vec<f64>) {
-        if let Ok(mut service) = self.handle.0.write() {
-            service.inject_priors(mean, precision);
-        }
-    }
-
-    fn cycle(&mut self) {
-        if let Ok(mut service) = self.handle.0.write() {
-            let result = if let Some(ref hv) = self.perception_hv {
-                service.cycle_with_hv(hv)
-            } else {
-                service.cycle(&self.perception_input)
-            };
-
-            self.motor_output = result.output.clone();
-
-            let mce = &result.metadata;
-            self.profile = SovereignProfile8D {
-                epistemic_integrity: service.consciousness_level() as f64,
-                thermodynamic_yield: mce.mce_softmin,
-                network_resilience: mce.mce_weighted_sum,
-                economic_velocity: mce.perception_attention_sensitivity as f64,
-                civic_participation: mce.mce_social,
-                stewardship_care: mce.embodied.body_phi_modulation,
-                semantic_resonance: mce.mce_narrative,
-                domain_competence: mce.memory_recall_quality as f64,
-            };
-
-            self.last_result = Some(result);
-        }
-    }
 }
 
-pub struct SymthaeaBrainPlugin {
-    pub default_neurons: usize,
-    pub telemetry: bool,
-}
-
-impl Default for SymthaeaBrainPlugin {
+impl Default for CognitiveBrain {
     fn default() -> Self {
-        Self {
-            default_neurons: 64,
-            telemetry: false,
-        }
+        Self::new()
     }
 }
+
+/// Plugin that installs the cognitive brain update system.
+pub struct SymthaeaBrainPlugin;
 
 impl Plugin for SymthaeaBrainPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(FixedUpdate, cognitive_cycle_system);
-        if self.telemetry {
-            app.add_systems(Update, telemetry_system);
-        }
+        app.add_systems(Update, cognitive_brain_system);
     }
 }
 
-fn cognitive_cycle_system(mut brains: Query<&mut CognitiveBrain>) {
-    for mut brain in &mut brains {
+/// System that runs each entity's cognitive cycle.
+fn cognitive_brain_system(mut query: Query<&mut CognitiveBrain>) {
+    for mut brain in &mut query {
         brain.ticks_since_cycle += 1;
-        if brain.ticks_since_cycle >= brain.cycle_interval {
-            brain.ticks_since_cycle = 0;
-            brain.cycle();
+        if brain.ticks_since_cycle < brain.cycle_interval {
+            continue;
         }
-    }
-}
+        brain.ticks_since_cycle = 0;
 
-fn telemetry_system(brains: Query<(Entity, &CognitiveBrain)>) {
-    for (entity, brain) in &brains {
-        debug!(
-            "Brain {:?}: Phi={:.4}, Competence={:.4}, Resonance={:.4}",
-            entity,
-            brain.phi(),
-            brain.profile.domain_competence,
-            brain.profile.semantic_resonance,
-        );
+        let mut service = brain.handle.0.write().expect("brain lock poisoned");
+        let result = if let Some(ref hv) = brain.perception_hv {
+            service.cycle_hv(hv.clone())
+        } else {
+            service.cycle(&brain.perception_input)
+        };
+
+        match result {
+            Ok(cycle_result) => {
+                brain.profile = SovereignProfile8D {
+                    epistemic_integrity: cycle_result.metadata.epistemic_integrity,
+                    thermodynamic_yield: cycle_result.metadata.thermodynamic_yield,
+                    network_resilience: cycle_result.metadata.network_resilience,
+                    economic_velocity: cycle_result.metadata.economic_velocity,
+                    civic_participation: cycle_result.metadata.civic_participation,
+                    stewardship_care: cycle_result.metadata.stewardship_care,
+                    semantic_resonance: cycle_result.metadata.semantic_resonance,
+                    domain_competence: cycle_result.metadata.domain_competence,
+                };
+                brain.motor_output = cycle_result.motor_output.clone();
+                brain.last_result = Some(cycle_result);
+            }
+            Err(error) => {
+                warn!("Symthaea cognitive cycle failed: {error}");
+            }
+        }
     }
 }
