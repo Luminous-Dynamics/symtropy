@@ -208,12 +208,20 @@ impl PreparedArtDepthCapture {
         camera_entity: Entity,
         camera3d: &mut Camera3d,
         projection: &Projection,
+        msaa: Msaa,
         request: ArtCaptureRequest,
         render_epoch: u64,
     ) -> Result<Self, ArtDepthReadbackError> {
         request.validate().map_err(ArtDepthReadbackError::Capture)?;
         if !request.channels.contains(&ArtRenderChannel::Depth) {
             return Err(ArtDepthReadbackError::DepthChannelNotDeclared);
+        }
+        // A multisampled depth attachment cannot be copied directly into the
+        // single-sample evidence image and cannot be copied to a readback buffer.
+        // Rather than resolve depth implicitly, v1C requires an explicit
+        // single-sample qualification path.
+        if msaa != Msaa::Off {
+            return Err(ArtDepthReadbackError::MultisamplingUnsupported);
         }
         let projection = BevyDepthProjection::from_bevy_projection(projection)?;
 
@@ -473,6 +481,7 @@ pub enum ArtDepthReadbackError {
     DepthChannelNotDeclared,
     UnsupportedProjection,
     InvalidProjection,
+    MultisamplingUnsupported,
     ZeroCompletedCapacity,
 }
 
@@ -483,6 +492,7 @@ impl std::fmt::Display for ArtDepthReadbackError {
             Self::DepthChannelNotDeclared => write!(f, "depth capture request must declare Depth"),
             Self::UnsupportedProjection => write!(f, "custom Bevy projection requires an explicit depth decoder"),
             Self::InvalidProjection => write!(f, "depth projection parameters are invalid"),
+            Self::MultisamplingUnsupported => write!(f, "v1C depth evidence requires Msaa::Off"),
             Self::ZeroCompletedCapacity => write!(f, "depth completion queue capacity must be non-zero"),
         }
     }
