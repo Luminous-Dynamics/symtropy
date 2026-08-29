@@ -23,8 +23,8 @@ cargo test -p symthaea-bevy-brain --features reality-ledger-adapter --lib --test
 cargo clippy -p symthaea-bevy-brain --features reality-ledger-adapter --lib --tests -- -D warnings
 ```
 
-The Cargo lock must resolve `symthaea-reality-ledger` to exact pinned commit
-`ffa27ea1a0fa2bac69df6008adfdd2167b8e29c0` unless the integrated monorepo
+The Cargo lock must resolve `symthaea-reality-ledger` to exact pinned construction
+commit `5a82e712583a18ceaf057e9431abe208ead62971` unless the integrated monorepo
 explicitly replaces that source with a byte-equivalent locally qualified tree.
 Record the resolved package source in the receipt.
 
@@ -39,6 +39,9 @@ Record the resolved package source in the receipt.
 - revision/frame/camera/fidelity remain equal to the four-ghost evidence plane;
 - typed digest domain mismatch fails materialization even when raw values match;
 - selected materialization requires external authority evidence;
+- a selected materialization must be rejected unless the cycle base revision/frame
+  and decision are aligned to the exact `FourGhostRenderSet` used to derive it;
+- Reality Ledger append integration must preserve sequence and previous-head digest;
 - adapter construction never mutates ArtPort/world state.
 
 ## Live VART-REALITY-SYMTROPY-001
