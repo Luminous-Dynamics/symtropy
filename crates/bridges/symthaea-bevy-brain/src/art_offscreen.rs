@@ -3,14 +3,14 @@
 //! Single-frame off-screen rendering and asynchronous GPU readback for art observation.
 //!
 //! The central provenance rule is that a capture gets a dedicated render target.
-//! The target is rendered for one host frame, detached from the camera, and only
-//! then queued for GPU readback. Because the image is no longer a live camera
-//! target when readback begins, later frames cannot silently overwrite the
-//! evidence bytes.
+//! In Bevy 0.19 `RenderTarget` is a required camera component rather than a
+//! field on `Camera`, so the host explicitly lends that component to this
+//! adapter for one render frame. The target is then restored before GPU
+//! readback begins, preventing later frames from silently overwriting evidence.
 
 use bevy::{
     asset::{Assets, Handle},
-    camera::{Camera, RenderTarget},
+    camera::RenderTarget,
     image::Image,
     prelude::*,
     render::{
@@ -65,7 +65,7 @@ pub struct PreparedArtCaptureTarget {
 impl PreparedArtCaptureTarget {
     pub fn arm(
         images: &mut Assets<Image>,
-        camera: &mut Camera,
+        render_target: &mut RenderTarget,
         request: ArtCaptureRequest,
         stamp: ArtRenderStamp,
         format: TextureFormat,
@@ -79,8 +79,8 @@ impl PreparedArtCaptureTarget {
         image.texture_descriptor.usage |= TextureUsages::COPY_SRC;
         let image = images.add(image);
 
-        let previous_target = camera.target.clone();
-        camera.target = image.clone().into();
+        let previous_target = render_target.clone();
+        *render_target = image.clone().into();
 
         Ok(Self {
             request,
@@ -103,8 +103,8 @@ impl PreparedArtCaptureTarget {
         self.stamp.render_epoch
     }
 
-    pub fn finish_render(self, camera: &mut Camera) -> RenderedArtCaptureTarget {
-        camera.target = self.previous_target;
+    pub fn finish_render(self, render_target: &mut RenderTarget) -> RenderedArtCaptureTarget {
+        *render_target = self.previous_target;
         RenderedArtCaptureTarget {
             request: self.request,
             stamp: self.stamp,
@@ -181,18 +181,21 @@ impl ArtGpuReadbackQueue {
         })
     }
 
+    /// Confirmatory evidence is fail-closed: a full completion queue rejects
+    /// the new result instead of silently evicting older evidence.
     pub fn push(&mut self, capture: ArtGpuReadback) -> ArtGpuReadbackEnqueueReceipt {
-        let evicted_capture = if self.completed.len() == self.capacity {
-            self.completed.pop_front();
+        if self.completed.len() == self.capacity {
             self.dropped_total = self.dropped_total.saturating_add(1);
-            true
-        } else {
-            false
-        };
+            return ArtGpuReadbackEnqueueReceipt {
+                accepted: false,
+                evicted_capture: false,
+                dropped_total: self.dropped_total,
+            };
+        }
         self.completed.push_back(capture);
         ArtGpuReadbackEnqueueReceipt {
             accepted: true,
-            evicted_capture,
+            evicted_capture: false,
             dropped_total: self.dropped_total,
         }
     }
@@ -243,7 +246,7 @@ fn complete_art_readback(
         artifact_digest: Some(digest),
     };
 
-    completed.push(ArtGpuReadback {
+    let _ = completed.push(ArtGpuReadback {
         receipt,
         format: pending.format,
         bytes,
@@ -332,7 +335,7 @@ mod tests {
     }
 
     #[test]
-    fn completed_queue_is_bounded_and_reports_eviction() {
+    fn completed_queue_rejects_instead_of_evicting() {
         let mut queue = ArtGpuReadbackQueue::new(1).unwrap();
         let make = |id: &str| ArtGpuReadback {
             receipt: ArtCaptureReceipt {
@@ -350,10 +353,11 @@ mod tests {
             bytes: vec![1, 2, 3, 4],
             render_epoch: 1,
         };
-        queue.push(make("a"));
+        assert!(queue.push(make("a")).accepted);
         let receipt = queue.push(make("b"));
-        assert!(receipt.evicted_capture);
+        assert!(!receipt.accepted);
+        assert!(!receipt.evicted_capture);
         assert_eq!(receipt.dropped_total, 1);
-        assert_eq!(queue.pop_next().unwrap().receipt.request.capture_id, "b");
+        assert_eq!(queue.pop_next().unwrap().receipt.request.capture_id, "a");
     }
 }
