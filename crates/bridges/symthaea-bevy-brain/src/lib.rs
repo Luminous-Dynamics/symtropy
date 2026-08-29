@@ -43,6 +43,8 @@ pub mod art_preview_scene;
 #[cfg(feature = "reality-ledger-adapter")]
 pub mod art_reality_adapter;
 #[cfg(feature = "reality-ledger-adapter")]
+pub mod art_reality_episode;
+#[cfg(feature = "reality-ledger-adapter")]
 pub mod art_reality_presence;
 pub mod art_runtime;
 pub mod art_scene;
@@ -147,6 +149,10 @@ pub use art_port::{
 pub use art_preview_scene::{IsolatedPreviewScene, PreviewSceneError};
 #[cfg(feature = "reality-ledger-adapter")]
 pub use art_reality_adapter::{SymtropyRealityAdapterError, SymtropyRealityBinding};
+#[cfg(feature = "reality-ledger-adapter")]
+pub use art_reality_episode::{
+    InhabitedWorldEpisode, InhabitedWorldEpisodeError, InhabitedWorldEpisodeReceipt,
+};
 #[cfg(feature = "reality-ledger-adapter")]
 pub use art_reality_presence::{
     SymtropyRealityPresenceError, close_artist_presence_session,
