@@ -10,8 +10,12 @@
 //! visibility changes from raster appearance/disappearance. Raster loss alone
 //! is not called "concealment" and raster gain alone is not called "reveal":
 //! those causal labels require separate occluder evidence.
+//!
+//! `ArtSceneRecord` stores the host-provided `Transform`. Depending on the host,
+//! that may be local to a parent hierarchy, so transform deltas here are called
+//! *semantic-transform* evidence rather than global/world motion.
 
-use std::collections::{BTreeMap, BTreeSet};
+use std::collections::BTreeSet;
 
 use bevy::prelude::{Quat, Vec3};
 
@@ -174,8 +178,11 @@ pub enum ObjectIdentityEvent {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq)]
-pub struct WorldTransformDelta {
-    pub translation_meters: f64,
+pub struct SemanticTransformDelta {
+    /// Euclidean translation distance in the coordinate/unit system carried by
+    /// the semantic scene record. This is not called world meters because the
+    /// record may contain a local transform.
+    pub translation_distance: f64,
     pub rotation_radians: f64,
     pub scale_l2_delta: f64,
 }
@@ -201,7 +208,7 @@ pub struct PersistentObjectTransition {
     pub existed_to: bool,
     pub raster_visible_from: bool,
     pub raster_visible_to: bool,
-    pub semantic_transform_delta: Option<WorldTransformDelta>,
+    pub semantic_transform_delta: Option<SemanticTransformDelta>,
     pub screen_trajectory: Option<ScreenTrajectoryEvidence>,
     pub events: Vec<ObjectIdentityEvent>,
 }
@@ -209,7 +216,7 @@ pub struct PersistentObjectTransition {
 impl PersistentObjectTransition {
     pub fn semantic_motion_observed(&self, translation_epsilon: f64, rotation_epsilon: f64) -> bool {
         self.semantic_transform_delta.is_some_and(|delta| {
-            delta.translation_meters > translation_epsilon
+            delta.translation_distance > translation_epsilon
                 || delta.rotation_radians > rotation_epsilon
                 || delta.scale_l2_delta > translation_epsilon
         })
@@ -367,7 +374,7 @@ impl ObjectIdentityTransition {
 fn transform_delta(
     from: &SemanticObjectState,
     to: &SemanticObjectState,
-) -> Result<WorldTransformDelta, ObjectTemporalError> {
+) -> Result<SemanticTransformDelta, ObjectTemporalError> {
     let a_t = Vec3::from_array(from.translation);
     let b_t = Vec3::from_array(to.translation);
     let a_q = Quat::from_array(from.rotation_xyzw);
@@ -390,8 +397,8 @@ fn transform_delta(
     let a_q = a_q.normalize();
     let b_q = b_q.normalize();
     let dot = a_q.dot(b_q).abs().clamp(0.0, 1.0);
-    Ok(WorldTransformDelta {
-        translation_meters: f64::from(a_t.distance(b_t)),
+    Ok(SemanticTransformDelta {
+        translation_distance: f64::from(a_t.distance(b_t)),
         rotation_radians: f64::from(2.0 * dot.acos()),
         scale_l2_delta: f64::from(a_s.distance(b_s)),
     })
@@ -487,7 +494,7 @@ mod tests {
         let mut b = SemanticObjectState::from(&record("a", 3.0, true));
         b.rotation_xyzw = Quat::from_rotation_y(0.5).to_array();
         let delta = transform_delta(&a, &b).unwrap();
-        assert!((delta.translation_meters - 3.0).abs() < 1e-6);
+        assert!((delta.translation_distance - 3.0).abs() < 1e-6);
         assert!((delta.rotation_radians - 0.5).abs() < 1e-5);
     }
 
