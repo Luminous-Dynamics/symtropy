@@ -95,7 +95,7 @@ pub use art_object_temporal::{
     ObjectCameraMotionEvidence, ObjectIdentityEvent, ObjectIdentityTransition,
     ObjectTemporalError, PersistentObjectFrame, PersistentObjectTransition,
     ScreenTrajectoryEvidence, SemanticObjectFrame, SemanticObjectState,
-    WorldTransformDelta,
+    SemanticTransformDelta,
 };
 pub use art_object_window::{
     ObjectTrackSummary, ObjectWindowError, PersistentObjectWindow,
