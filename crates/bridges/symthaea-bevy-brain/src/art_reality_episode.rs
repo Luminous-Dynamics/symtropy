@@ -2,10 +2,9 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 //! Provenance-preserving inhabited world episodes.
 //!
-//! This module composes the host-neutral Reality Ledger primitives with the
-//! Symtropy reality adapter. It deliberately remains authority-poor: it can
-//! establish genesis, presence, world ancestry and observation history, but it
-//! cannot mutate a scene or mint an authority receipt.
+//! This module composes Reality Ledger primitives with the Symtropy adapter.
+//! It establishes genesis, presence, world ancestry and observation history,
+//! but cannot mutate a scene or mint an authority receipt.
 
 use symthaea_reality_ledger::{
     DeterminismClass, DigestAlgorithm, EvidenceSource, ObservationPlane, RealityLayer,
@@ -24,9 +23,6 @@ use crate::{
 
 const BUNDLE_DIGEST_DOMAIN: &str = "symtropy.reality-observation-bundle.v1";
 
-/// One bounded episode of Symthaea being explicitly present in one committed
-/// Symtropy world while observations and counterfactual child worlds are
-/// provenance-tracked.
 #[derive(Debug, Clone)]
 pub struct InhabitedWorldEpisode {
     pub episode_id: String,
@@ -65,12 +61,9 @@ impl InhabitedWorldEpisode {
         }
 
         let initial_scene_hash = initial_scene_hash.into();
-        let initial_state_digest = TypedDigest::new(
-            binding.scene_state_domain.clone(),
-            DigestAlgorithm::Blake3,
-            initial_scene_hash.clone(),
-        )
-        .map_err(|error| InhabitedWorldEpisodeError::Reality(error.to_string()))?;
+        let initial_state_digest = binding
+            .scene_state_digest(initial_scene_hash.clone())
+            .map_err(|error| InhabitedWorldEpisodeError::Adapter(error.to_string()))?;
 
         let genesis = WorldGenesisManifest {
             schema_version: 1,
@@ -99,8 +92,7 @@ impl InhabitedWorldEpisode {
             action_surface_digest,
             initial_scene_hash,
             entered_frame,
-        )
-        .map_err(InhabitedWorldEpisodeError::Presence)?;
+        )?;
         if !presence
             .entry_state_digest
             .same_typed_value(&initial_state_digest)
@@ -149,7 +141,7 @@ impl InhabitedWorldEpisode {
         Ok(episode)
     }
 
-    /// Register all three proposal worlds from a validated four-ghost set.
+    /// Register the three proposal worlds from one validated four-ghost set.
     /// The abstention baseline is the already-registered committed world.
     pub fn register_four_ghost_worlds(
         &mut self,
@@ -185,7 +177,9 @@ impl InhabitedWorldEpisode {
             inserted += 1;
         }
         if inserted != 3 {
-            return Err(InhabitedWorldEpisodeError::RequiresThreeGhostWorlds(inserted));
+            return Err(InhabitedWorldEpisodeError::RequiresThreeGhostWorlds(
+                inserted,
+            ));
         }
         self.graph
             .verify()
@@ -193,9 +187,9 @@ impl InhabitedWorldEpisode {
         Ok(inserted)
     }
 
-    /// Admit one already-validated transactional observation. The observed
-    /// world must already exist in this episode's persistent world graph.
-    /// Sequence and previous-record digest are derived from the live ledger.
+    /// Admit one transactional observation. The full world descriptor must
+    /// exactly equal the descriptor already registered in this episode graph;
+    /// matching only world/lineage IDs is deliberately insufficient.
     pub fn append_observation_bundle(
         &mut self,
         bundle: &WorldObservationBundle,
@@ -204,8 +198,12 @@ impl InhabitedWorldEpisode {
             .validate()
             .map_err(|error| InhabitedWorldEpisodeError::Reality(error.to_string()))?;
         let key = WorldKey::from(&bundle.world);
-        if self.graph.get(&key).is_none() {
-            return Err(InhabitedWorldEpisodeError::ObservationWorldNotRegistered);
+        let registered = self
+            .graph
+            .get(&key)
+            .ok_or(InhabitedWorldEpisodeError::ObservationWorldNotRegistered)?;
+        if registered != &bundle.world {
+            return Err(InhabitedWorldEpisodeError::ObservationWorldDescriptorMismatch);
         }
 
         let source = match bundle.world.layer {
@@ -215,7 +213,11 @@ impl InhabitedWorldEpisode {
             RealityLayer::Counterfactual => EvidenceSource::CounterfactualSimulation {
                 engine_id: "symtropy-four-ghost".into(),
             },
-            other => return Err(InhabitedWorldEpisodeError::UnsupportedObservationLayer(other)),
+            other => {
+                return Err(InhabitedWorldEpisodeError::UnsupportedObservationLayer(
+                    other,
+                ));
+            }
         };
         let digest = digest_observation_bundle(bundle)?;
         self.append_record(
@@ -229,8 +231,6 @@ impl InhabitedWorldEpisode {
         )
     }
 
-    /// Close the explicit world-presence interval and return a compact final
-    /// receipt. This does not destroy the world or grant any authority.
     pub fn close(
         mut self,
         exit_scene_hash: impl Into<String>,
@@ -241,8 +241,7 @@ impl InhabitedWorldEpisode {
             &self.presence,
             exit_scene_hash,
             exited_frame,
-        )
-        .map_err(InhabitedWorldEpisodeError::Presence)?;
+        )?;
         let exit_digest = closed
             .exit_state_digest
             .as_ref()
@@ -324,6 +323,8 @@ pub struct InhabitedWorldEpisodeReceipt {
     pub presence: WorldPresenceSession,
 }
 
+/// Canonical cryptographic digest over the complete transactional observation.
+/// Receipt order does not matter; plane identities are sorted before hashing.
 fn digest_observation_bundle(
     bundle: &WorldObservationBundle,
 ) -> Result<TypedDigest, InhabitedWorldEpisodeError> {
@@ -418,6 +419,8 @@ pub enum InhabitedWorldEpisodeError {
     RequiresThreeGhostWorlds(usize),
     #[error("observation world is not registered in this episode world graph")]
     ObservationWorldNotRegistered,
+    #[error("observation world descriptor differs from the registered world provenance")]
+    ObservationWorldDescriptorMismatch,
     #[error("episode does not admit observations from reality layer {0:?}")]
     UnsupportedObservationLayer(RealityLayer),
     #[error("closed presence receipt unexpectedly lacks its exit state")]
@@ -427,7 +430,6 @@ pub enum InhabitedWorldEpisodeError {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use symthaea_reality_ledger::DigestAlgorithm;
 
     fn d(domain: &str) -> TypedDigest {
         TypedDigest::blake3(domain, domain.as_bytes()).unwrap()
@@ -446,9 +448,8 @@ mod tests {
         .unwrap()
     }
 
-    #[test]
-    fn opening_episode_binds_genesis_and_presence_to_same_state() {
-        let episode = InhabitedWorldEpisode::open(
+    fn episode() -> InhabitedWorldEpisode {
+        InhabitedWorldEpisode::open(
             "episode",
             binding(),
             "symthaea",
@@ -464,35 +465,27 @@ mod tests {
             "studio-frame",
             10,
         )
-        .unwrap();
+        .unwrap()
+    }
+
+    #[test]
+    fn opening_episode_binds_genesis_and_presence_to_same_typed_state() {
+        let episode = episode();
         assert!(episode
             .genesis
             .initial_state_digest
             .same_typed_value(&episode.presence.entry_state_digest));
+        assert_eq!(
+            episode.genesis.initial_state_digest.algorithm,
+            DigestAlgorithm::Other("fnv1a64".into())
+        );
         assert_eq!(episode.graph.len(), 1);
         assert_eq!(episode.ledger.len(), 2);
     }
 
     #[test]
-    fn closing_episode_records_explicit_exit() {
-        let episode = InhabitedWorldEpisode::open(
-            "episode",
-            binding(),
-            "symthaea",
-            "camera-body",
-            d("sensors.v1"),
-            d("actions.v1"),
-            d("kernel.v1"),
-            d("physics.v1"),
-            d("assets.v1"),
-            "scene-a",
-            DeterminismClass::Deterministic,
-            None,
-            "studio-frame",
-            10,
-        )
-        .unwrap();
-        let receipt = episode.close("scene-b", 20).unwrap();
+    fn closing_episode_records_explicit_exit_and_verifiable_chain() {
+        let receipt = episode().close("scene-b", 20).unwrap();
         assert!(!receipt.presence.is_open());
         assert_eq!(receipt.ledger_records, 3);
         assert!(!receipt.final_ledger_head.is_empty());
