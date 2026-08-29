@@ -38,6 +38,21 @@ pub struct SemanticObjectState {
     pub authored_visible: bool,
 }
 
+impl SemanticObjectState {
+    fn as_scene_record(&self) -> ArtSceneRecord {
+        ArtSceneRecord {
+            stable_id: self.stable_id.clone(),
+            parent_id: self.parent_id.clone(),
+            kind: self.kind.clone(),
+            material_id: self.material_id.clone(),
+            translation: self.translation,
+            rotation_xyzw: self.rotation_xyzw,
+            scale: self.scale,
+            visible: self.authored_visible,
+        }
+    }
+}
+
 impl From<&ArtSceneRecord> for SemanticObjectState {
     fn from(record: &ArtSceneRecord) -> Self {
         Self {
@@ -84,12 +99,32 @@ impl SemanticObjectFrame {
         }
         let mut objects: Vec<_> = records.iter().map(SemanticObjectState::from).collect();
         objects.sort_by(|a, b| a.stable_id.cmp(&b.stable_id));
-        Ok(Self {
+        let frame = Self {
             revision_id,
             frame,
             scene_hash: actual,
             objects,
-        })
+        };
+        frame.validate()?;
+        Ok(frame)
+    }
+
+    /// Recompute the deterministic scene hash from the retained semantic
+    /// states. This makes manually constructed or deserialized frames fail
+    /// closed instead of trusting the stored `scene_hash` string.
+    pub fn validate(&self) -> Result<(), ObjectTemporalError> {
+        if self.revision_id.trim().is_empty() || self.scene_hash.trim().is_empty() {
+            return Err(ObjectTemporalError::MissingIdentity);
+        }
+        let records: Vec<_> = self.objects.iter().map(SemanticObjectState::as_scene_record).collect();
+        let actual = stable_scene_hash(&records).map_err(ObjectTemporalError::Scene)?;
+        if actual != self.scene_hash {
+            return Err(ObjectTemporalError::SemanticSceneHashMismatch {
+                expected: self.scene_hash.clone(),
+                actual,
+            });
+        }
+        Ok(())
     }
 
     pub fn object(&self, stable_id: &str) -> Option<&SemanticObjectState> {
@@ -128,6 +163,7 @@ impl PersistentObjectFrame {
         if self.camera_stable_id.trim().is_empty() {
             return Err(ObjectTemporalError::MissingCameraIdentity);
         }
+        self.semantic.validate()?;
         if self.semantic.revision_id != self.raster.revision_id
             || self.semantic.frame != self.raster.frame
             || self.semantic.scene_hash != self.raster.rendered_scene_hash
@@ -484,6 +520,20 @@ mod tests {
         let records = vec![record("a", 0.0, true)];
         assert!(matches!(
             SemanticObjectFrame::from_records("r", StudioFrame(1), "wrong", &records),
+            Err(ObjectTemporalError::SemanticSceneHashMismatch { .. })
+        ));
+    }
+
+    #[test]
+    fn manually_forged_semantic_hash_is_rejected_on_validation() {
+        let frame = SemanticObjectFrame {
+            revision_id: "r".into(),
+            frame: StudioFrame(1),
+            scene_hash: "forged".into(),
+            objects: vec![SemanticObjectState::from(&record("a", 0.0, true))],
+        };
+        assert!(matches!(
+            frame.validate(),
             Err(ObjectTemporalError::SemanticSceneHashMismatch { .. })
         ));
     }
