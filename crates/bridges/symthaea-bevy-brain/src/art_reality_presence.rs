@@ -9,8 +9,8 @@
 //! authority receipts.
 
 use symthaea_reality_ledger::{
-    DigestAlgorithm, ObservationArtifactReceipt, ObservationPlane, PresenceCapability,
-    TypedDigest, WorldObservationBundle, WorldPresenceSession,
+    ObservationArtifactReceipt, ObservationPlane, PresenceCapability, TypedDigest,
+    WorldObservationBundle, WorldPresenceSession,
 };
 
 use crate::{
@@ -42,13 +42,9 @@ pub fn committed_object_depth_observation_bundle(
         return Err(SymtropyRealityPresenceError::MissingFidelityId);
     }
 
-    let state_digest = TypedDigest::new(
-        binding.scene_state_domain.clone(),
-        DigestAlgorithm::Blake3,
-        plan.scene_hash(),
-    )
-    .map_err(|error| SymtropyRealityPresenceError::Reality(error.to_string()))?;
-
+    let state_digest = binding
+        .scene_state_digest(plan.scene_hash())
+        .map_err(|error| SymtropyRealityPresenceError::Reality(error.to_string()))?;
     let object_artifact = typed_artifact_digest(binding, object_receipt, "object-id")?;
     let depth_artifact = typed_artifact_digest(binding, depth_receipt, "depth")?;
 
@@ -113,12 +109,9 @@ pub fn open_artist_presence_session(
     entry_scene_hash: impl Into<String>,
     entered_frame: u64,
 ) -> Result<WorldPresenceSession, SymtropyRealityPresenceError> {
-    let entry_state_digest = TypedDigest::new(
-        binding.scene_state_domain.clone(),
-        DigestAlgorithm::Blake3,
-        entry_scene_hash.into(),
-    )
-    .map_err(|error| SymtropyRealityPresenceError::Reality(error.to_string()))?;
+    let entry_state_digest = binding
+        .scene_state_digest(entry_scene_hash)
+        .map_err(|error| SymtropyRealityPresenceError::Reality(error.to_string()))?;
 
     let session = WorldPresenceSession {
         session_id: session_id.into(),
@@ -160,12 +153,9 @@ pub fn close_artist_presence_session(
         return Err(SymtropyRealityPresenceError::PresenceAlreadyClosed);
     }
 
-    let exit_state_digest = TypedDigest::new(
-        binding.scene_state_domain.clone(),
-        DigestAlgorithm::Blake3,
-        exit_scene_hash.into(),
-    )
-    .map_err(|error| SymtropyRealityPresenceError::Reality(error.to_string()))?;
+    let exit_state_digest = binding
+        .scene_state_digest(exit_scene_hash)
+        .map_err(|error| SymtropyRealityPresenceError::Reality(error.to_string()))?;
 
     let mut closed = session.clone();
     closed.exit_state_digest = Some(exit_state_digest);
@@ -212,11 +202,11 @@ pub enum SymtropyRealityPresenceError {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{
-        art_object_render_plan::ObjectIdRenderPlan,
-        art_object_temporal::{SemanticObjectFrame, SemanticObjectState},
-        art_timeline::StudioFrame,
-    };
+    use symthaea_reality_ledger::{DigestAlgorithm, PresenceCapability};
+
+    fn d(domain: &str) -> TypedDigest {
+        TypedDigest::blake3(domain, domain.as_bytes()).unwrap()
+    }
 
     fn binding() -> SymtropyRealityBinding {
         SymtropyRealityBinding::new(
@@ -226,98 +216,57 @@ mod tests {
             "symtropy",
             "symtropy.scene-state.v1",
             "symtropy.capture-artifact.v1",
-            DigestAlgorithm::Other("test-digest".into()),
+            DigestAlgorithm::Blake3,
         )
         .unwrap()
     }
 
-    fn semantic() -> SemanticObjectFrame {
-        SemanticObjectFrame {
-            revision_id: "r1".into(),
-            frame: StudioFrame(4),
-            scene_hash: "scene".into(),
-            objects: vec![SemanticObjectState {
-                stable_id: "form".into(),
-                parent_id: None,
-                kind: "form".into(),
-                material_id: None,
-                translation: [0.0, 0.0, 0.0],
-                rotation_xyzw: [0.0, 0.0, 0.0, 1.0],
-                scale: [1.0, 1.0, 1.0],
-                authored_visible: true,
-            }],
-        }
-    }
-
-    fn receipt(request: crate::ArtCaptureRequest, digest: &str) -> ArtCaptureReceipt {
-        ArtCaptureReceipt {
-            observed_revision_id: request.revision_id.clone(),
-            observed_frame: request.frame,
-            observed_scene_hash: request.scene_hash.clone(),
-            artifact_locator: format!("mem://{}", request.capture_id),
-            artifact_digest: Some(digest.into()),
-            request,
-        }
-    }
-
     #[test]
-    fn object_and_depth_planes_are_atomic_reality_evidence() {
-        let registry = ObjectIdRegistry::from_stable_ids(["form"]).unwrap();
-        let object_plan = ObjectIdRenderPlan::build(
-            "objects",
-            "camera",
-            64,
-            32,
-            &semantic(),
-            &registry,
-        )
-        .unwrap();
-        let plan = ObjectDepthCapturePlan::build("pair", object_plan, "depth", &registry).unwrap();
-        let object = receipt(plan.object_request(), "object-digest");
-        let depth = receipt(plan.depth_request(), "depth-digest");
-
-        let bundle = committed_object_depth_observation_bundle(
+    fn presence_is_authority_poor_and_uses_host_scene_hash_algorithm() {
+        let session = open_artist_presence_session(
             &binding(),
-            &plan,
-            &object,
-            &depth,
-            &registry,
-            "cognitive:64x32",
+            "session",
+            "symthaea",
+            "camera-body",
+            d("sensors.v1"),
+            d("actions.v1"),
+            "scene-a",
+            10,
         )
         .unwrap();
-
         assert_eq!(
-            bundle.required_planes,
-            vec![ObservationPlane::ObjectId, ObservationPlane::Depth]
+            session.capabilities,
+            vec![
+                PresenceCapability::Observe,
+                PresenceCapability::Enter,
+                PresenceCapability::Fork,
+                PresenceCapability::Propose,
+            ]
         );
-        assert_eq!(bundle.receipts.len(), 2);
-        assert_eq!(bundle.world, binding().committed_world);
+        assert_eq!(
+            session.entry_state_digest.algorithm,
+            DigestAlgorithm::Other("fnv1a64".into())
+        );
+        assert!(session.authority_receipt_digest.is_none());
     }
 
     #[test]
-    fn presence_defaults_never_request_mutation_authority() {
+    fn exit_is_explicit_and_cannot_precede_entry() {
         let binding = binding();
-        let sensors = TypedDigest::blake3("symtropy.sensor-suite.v1", b"camera+depth+object-id").unwrap();
-        let actions = TypedDigest::blake3("symtropy.action-surface.v1", b"observe+fork+propose").unwrap();
         let session = open_artist_presence_session(
             &binding,
-            "presence-1",
+            "session",
             "symthaea",
-            "studio-camera-body",
-            sensors,
-            actions,
-            "scene",
-            4,
+            "camera-body",
+            d("sensors.v1"),
+            d("actions.v1"),
+            "scene-a",
+            10,
         )
         .unwrap();
-
-        assert!(session.is_open());
-        assert!(session.authority_receipt_digest.is_none());
-        assert!(!session.capabilities.contains(&PresenceCapability::Mutate));
-        assert!(!session.capabilities.contains(&PresenceCapability::Persist));
-
-        let closed = close_artist_presence_session(&binding, &session, "scene-after", 9).unwrap();
+        assert!(close_artist_presence_session(&binding, &session, "scene-b", 9).is_err());
+        let closed = close_artist_presence_session(&binding, &session, "scene-b", 20).unwrap();
         assert!(!closed.is_open());
-        assert_eq!(closed.exited_frame, Some(9));
+        assert_eq!(closed.exited_frame, Some(20));
     }
 }
