@@ -4,8 +4,12 @@
 //!
 //! A window aggregates already-qualified object-identity transitions without
 //! collapsing them into an aesthetic or motion-quality score. Track summaries
-//! retain semantic existence, raster visibility, world motion and screen motion
-//! as separate evidence channels.
+//! retain semantic existence, raster visibility, semantic-transform change and
+//! screen motion as separate evidence channels.
+//!
+//! `ArtSceneRecord` currently stores the host-provided `Transform`, which may be
+//! local to a parent hierarchy. Accordingly this module does not call its
+//! cumulative transform displacement global/world motion.
 
 use std::collections::BTreeMap;
 
@@ -27,8 +31,10 @@ pub struct ObjectTrackSummary {
     pub semantic_destructions: u32,
     pub authored_visibility_enables: u32,
     pub authored_visibility_disables: u32,
-    pub cumulative_world_translation_meters: f64,
-    pub cumulative_world_rotation_radians: f64,
+    /// Sum of per-transition translation deltas in the transform space stored
+    /// by `ArtSceneRecord`; not necessarily global/world displacement.
+    pub cumulative_semantic_translation_delta: f64,
+    pub cumulative_semantic_rotation_radians: f64,
     pub cumulative_screen_path_normalized: f64,
     pub maximum_visible_fraction: f64,
 }
@@ -105,8 +111,8 @@ struct TrackAccumulator {
     semantic_destructions: u32,
     authored_visibility_enables: u32,
     authored_visibility_disables: u32,
-    cumulative_world_translation_meters: f64,
-    cumulative_world_rotation_radians: f64,
+    cumulative_semantic_translation_delta: f64,
+    cumulative_semantic_rotation_radians: f64,
     cumulative_screen_path_normalized: f64,
     maximum_visible_fraction: f64,
 }
@@ -156,8 +162,8 @@ fn summarize(
         for object in &transition.objects {
             let track = tracks.entry(object.stable_id.clone()).or_default();
             if let Some(delta) = object.semantic_transform_delta {
-                track.cumulative_world_translation_meters += delta.translation_meters;
-                track.cumulative_world_rotation_radians += delta.rotation_radians;
+                track.cumulative_semantic_translation_delta += delta.translation_meters;
+                track.cumulative_semantic_rotation_radians += delta.rotation_radians;
             }
             if let Some(screen) = object.screen_trajectory {
                 track.cumulative_screen_path_normalized += screen.centroid_distance_normalized;
@@ -198,8 +204,8 @@ fn summarize(
             semantic_destructions: value.semantic_destructions,
             authored_visibility_enables: value.authored_visibility_enables,
             authored_visibility_disables: value.authored_visibility_disables,
-            cumulative_world_translation_meters: value.cumulative_world_translation_meters,
-            cumulative_world_rotation_radians: value.cumulative_world_rotation_radians,
+            cumulative_semantic_translation_delta: value.cumulative_semantic_translation_delta,
+            cumulative_semantic_rotation_radians: value.cumulative_semantic_rotation_radians,
             cumulative_screen_path_normalized: value.cumulative_screen_path_normalized,
             maximum_visible_fraction: value.maximum_visible_fraction,
         })
@@ -216,7 +222,7 @@ fn summarize(
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum ObjectWindowError {
     RequiresAtLeastTwoFrames,
     InvalidMaxFrameGap,
