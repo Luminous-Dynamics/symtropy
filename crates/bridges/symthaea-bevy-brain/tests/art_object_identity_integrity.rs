@@ -3,28 +3,22 @@
 
 use bevy::prelude::{Quat, Vec3};
 use symthaea_bevy_brain::{
-    attribute_transition_motion, ArtistCameraPoseSample, MotionAttributionConfig,
-    ObjectBoundingBox, ObjectIdObservation, ObjectIdPlaneEvidence, ObjectIdRegistry,
-    ObjectIdentityEvent, ObjectIdentityTransition, ObjectMotionAttribution,
-    ObjectRasterEvidence, PersistentObjectFrame, SemanticObjectFrame, SemanticObjectState,
-    StudioFrame,
+    attribute_transition_motion, stable_scene_hash, ArtSceneRecord, ArtistCameraPoseSample,
+    MotionAttributionConfig, ObjectBoundingBox, ObjectIdObservation, ObjectIdPlaneEvidence,
+    ObjectIdRegistry, ObjectIdentityEvent, ObjectIdentityTransition, ObjectMotionAttribution,
+    ObjectRasterEvidence, PersistentObjectFrame, SemanticObjectFrame, StudioFrame,
 };
 
-fn semantic(frame: u64, x: f32, scene_hash: &str) -> SemanticObjectFrame {
-    SemanticObjectFrame {
-        revision_id: format!("r-{frame}"),
-        frame: StudioFrame(frame),
-        scene_hash: scene_hash.into(),
-        objects: vec![SemanticObjectState {
-            stable_id: "form".into(),
-            parent_id: None,
-            kind: "form".into(),
-            material_id: Some("clay".into()),
-            translation: [x, 0.0, 0.0],
-            rotation_xyzw: [0.0, 0.0, 0.0, 1.0],
-            scale: [1.0, 1.0, 1.0],
-            authored_visible: true,
-        }],
+fn record(x: f32) -> ArtSceneRecord {
+    ArtSceneRecord {
+        stable_id: "form".into(),
+        parent_id: None,
+        kind: "form".into(),
+        material_id: Some("clay".into()),
+        translation: [x, 0.0, 0.0],
+        rotation_xyzw: [0.0, 0.0, 0.0, 1.0],
+        scale: [1.0, 1.0, 1.0],
+        visible: true,
     }
 }
 
@@ -76,10 +70,18 @@ fn frame(
     centroid_x: Option<f64>,
     camera_x: f32,
 ) -> PersistentObjectFrame {
-    let hash = format!("scene-{frame}");
+    let records = vec![record(x)];
+    let hash = stable_scene_hash(&records).unwrap();
+    let semantic = SemanticObjectFrame::from_records(
+        format!("r-{frame}"),
+        StudioFrame(frame),
+        hash.clone(),
+        &records,
+    )
+    .unwrap();
     PersistentObjectFrame::new(
         "art-camera",
-        semantic(frame, x, &hash),
+        semantic,
         raster(frame, &hash, registry, centroid_x),
         registry,
         Some(ArtistCameraPoseSample {
