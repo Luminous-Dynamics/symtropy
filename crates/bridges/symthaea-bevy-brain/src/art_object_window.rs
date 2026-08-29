@@ -162,7 +162,7 @@ fn summarize(
         for object in &transition.objects {
             let track = tracks.entry(object.stable_id.clone()).or_default();
             if let Some(delta) = object.semantic_transform_delta {
-                track.cumulative_semantic_translation_delta += delta.translation_meters;
+                track.cumulative_semantic_translation_delta += delta.translation_distance;
                 track.cumulative_semantic_rotation_radians += delta.rotation_radians;
             }
             if let Some(screen) = object.screen_trajectory {
