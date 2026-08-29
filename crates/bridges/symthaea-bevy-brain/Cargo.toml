@@ -19,7 +19,7 @@ thiserror = "1.0"
 # Pinned host-neutral reality contract. The private integrated workspace may
 # replace this exact source with a local path, but standalone builds must never
 # float to an unqualified branch tip.
-symthaea-reality-ledger = { git = "https://github.com/Luminous-Dynamics/symthaea.git", rev = "ffa27ea1a0fa2bac69df6008adfdd2167b8e29c0", package = "symthaea-reality-ledger", optional = true }
+symthaea-reality-ledger = { git = "https://github.com/Luminous-Dynamics/symthaea.git", rev = "5a82e712583a18ceaf057e9431abe208ead62971", package = "symthaea-reality-ledger", optional = true }
 
 [features]
 default = []
