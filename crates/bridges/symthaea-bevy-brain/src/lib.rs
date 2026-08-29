@@ -26,6 +26,7 @@ pub mod art_ghost_loop;
 pub mod art_ghost_session;
 pub mod art_motion_attribution;
 pub mod art_object_id;
+pub mod art_object_render_plan;
 pub mod art_object_temporal;
 pub mod art_object_window;
 pub mod art_observation;
@@ -90,6 +91,9 @@ pub use art_motion_attribution::{
 pub use art_object_id::{
     ObjectBoundingBox, ObjectIdError, ObjectIdObservation, ObjectIdPlaneEvidence,
     ObjectIdRegistry, ObjectRasterEvidence, analyze_object_id_plane,
+};
+pub use art_object_render_plan::{
+    ObjectIdRenderAssignment, ObjectIdRenderPlan, ObjectIdRenderPlanError,
 };
 pub use art_object_temporal::{
     ObjectCameraMotionEvidence, ObjectIdentityEvent, ObjectIdentityTransition,
