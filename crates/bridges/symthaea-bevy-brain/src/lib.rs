@@ -16,6 +16,8 @@ pub use symthaea::symthaea_core::hdc::unified_hv::ContinuousHV;
 pub mod art_capture;
 pub mod art_cinema;
 pub mod art_counterfactual;
+pub mod art_depth;
+pub mod art_depth_ghost;
 pub mod art_eye;
 pub mod art_eye_ghost;
 pub mod art_ghost_loop;
@@ -40,6 +42,14 @@ pub use art_cinema::{
 };
 pub use art_counterfactual::{
     CounterfactualError, CounterfactualRegistry, PreviewBranch, PreviewBranchState,
+};
+pub use art_depth::{
+    ArtistDepthConfig, ArtistDepthConsequenceEvidence, ArtistDepthError, ArtistDepthEvidence,
+    ArtistDepthObservation, DepthCentroidEvidence, DepthDiscontinuityEvidence,
+    DepthDistributionEvidence, DepthLayerEvidence, DepthPlaneEncoding, analyze_depth_plane,
+};
+pub use art_depth_ghost::{
+    FourGhostArtistDepthError, FourGhostArtistDepthEvidenceSet, GhostArtistDepthEvidence,
 };
 pub use art_eye::{
     ArtistEyeConfig, ArtistEyeConsequenceEvidence, ArtistEyeError, ArtistEyeLevelDelta,
