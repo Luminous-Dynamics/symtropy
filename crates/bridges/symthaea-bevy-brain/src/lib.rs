@@ -25,11 +25,17 @@ pub mod art_eye_ghost;
 pub mod art_ghost_loop;
 pub mod art_ghost_session;
 pub mod art_motion_attribution;
+pub mod art_object_depth;
+pub mod art_object_depth_plan;
 pub mod art_object_id;
+pub mod art_object_id_codec;
+#[cfg(feature = "realtime-art-object-id")]
+pub mod art_object_id_gpu;
 pub mod art_object_render_plan;
 pub mod art_object_temporal;
 pub mod art_object_window;
 pub mod art_observation;
+pub mod art_occlusion;
 #[cfg(feature = "realtime-art-render")]
 pub mod art_offscreen;
 pub mod art_port;
@@ -90,13 +96,26 @@ pub use art_motion_attribution::{
     MotionAttributionConfig, MotionAttributionError, ObjectMotionAttribution,
     ObjectMotionAttributionEvidence, attribute_transition_motion,
 };
+pub use art_object_depth::{
+    ObjectDepthFusionConfig, ObjectDepthFusionError, ObjectDepthFusionFrame, ObjectDepthPixel,
+    PerObjectDepthEvidence, fuse_object_id_and_linear_depth,
+};
+pub use art_object_depth_plan::{ObjectDepthCapturePlan, ObjectDepthCapturePlanError};
 pub use art_object_id::{
     ObjectBoundingBox, ObjectIdError, ObjectIdObservation, ObjectIdPlaneEvidence,
     ObjectIdRegistry, ObjectRasterEvidence, analyze_object_id_plane,
 };
-pub use art_object_render_plan::{
-    ObjectIdRenderAssignment, ObjectIdRenderPlan, ObjectIdRenderPlanError,
+pub use art_object_id_codec::{
+    ObjectIdCodecError, decode_rgba8_plane, raster_id_to_rgba8, rgba8_to_raster_id,
 };
+#[cfg(feature = "realtime-art-object-id")]
+pub use art_object_id_gpu::{
+    OBJECT_ID_RENDER_LAYER, OBJECT_ID_SHADER_HANDLE, ObjectIdGpuError, ObjectIdGpuPlugin,
+    ObjectIdGpuReadback, ObjectIdGpuReadbackFailure, ObjectIdGpuReadbackOutcome,
+    ObjectIdGpuReadbackQueue, ObjectIdGpuSource, ObjectIdMaterial, PreparedObjectIdGpuCapture,
+    RenderedObjectIdGpuCapture,
+};
+pub use art_object_render_plan::{ObjectIdRenderAssignment, ObjectIdRenderPlan, ObjectIdRenderPlanError};
 pub use art_object_temporal::{
     ObjectCameraMotionEvidence, ObjectIdentityEvent, ObjectIdentityTransition,
     ObjectTemporalError, PersistentObjectFrame, PersistentObjectTransition,
@@ -104,12 +123,15 @@ pub use art_object_temporal::{
     SemanticTransformDelta,
 };
 pub use art_object_window::{
-    ObjectTrackSummary, ObjectWindowError, PersistentObjectWindow,
-    PersistentObjectWindowEvidence,
+    ObjectTrackSummary, ObjectWindowError, PersistentObjectWindow, PersistentObjectWindowEvidence,
 };
 pub use art_observation::{
     AlignedCounterfactualObservationSet, FidelityTaggedCapture, ObservationError,
     RenderFidelity, RenderFidelityClass, SynchronizedViewSet, TemporalCaptureWindow,
+};
+pub use art_occlusion::{
+    OccluderCandidateEvidence, OcclusionAssessment, OcclusionEvidenceError,
+    OcclusionSupportThresholds, OcclusionTransitionKind, assess_depth_takeover,
 };
 #[cfg(feature = "realtime-art-render")]
 pub use art_offscreen::{

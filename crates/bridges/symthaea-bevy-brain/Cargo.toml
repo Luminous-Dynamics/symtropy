@@ -32,6 +32,12 @@ realtime-art-render = [
     "bevy/bevy_render",
     "bevy/bevy_core_pipeline",
 ]
+# Object-ID acquisition uses a dedicated unlit custom material and proxy render
+# layer so the evidence pass never rewrites materials on the committed scene.
+realtime-art-object-id = [
+    "realtime-art-render",
+    "bevy/bevy_pbr",
+]
 # Bind committed/counterfactual Symtropy observations to the host-neutral
 # Reality Ledger without granting mutation authority.
 reality-ledger-adapter = ["dep:symthaea-reality-ledger"]
