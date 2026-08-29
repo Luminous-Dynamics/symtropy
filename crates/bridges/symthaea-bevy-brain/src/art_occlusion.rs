@@ -103,8 +103,7 @@ pub fn assess_depth_takeover(
         .object(target_stable_id)
         .ok_or_else(|| OcclusionEvidenceError::TargetMissing(target_stable_id.to_owned()))?;
 
-    let kind = qualifying_transition(target);
-    let Some(kind) = kind else {
+    let Some(kind) = qualifying_transition(target) else {
         return Ok(OcclusionAssessment::NotAQualifyingVisibilityTransition);
     };
     if !stability_preconditions(transition, target, thresholds) {
@@ -115,13 +114,25 @@ pub fn assess_depth_takeover(
         .raster_id(target_stable_id)
         .ok_or_else(|| OcclusionEvidenceError::TargetMissingFromRegistry(target_stable_id.to_owned()))?;
 
+    // Both directions use the frame in which the target is visible as the
+    // support mask and the opposite frame as the competing/occluder plane. A
+    // positive target_depth - candidate_depth therefore has the same meaning
+    // for loss and gain: the competing object was physically closer.
     let evidence = match kind {
-        OcclusionTransitionKind::VisibilityLoss => {
-            takeover_candidates(from, to, target_raster, registry, thresholds.minimum_depth_margin_meters, true)?
-        }
-        OcclusionTransitionKind::VisibilityGain => {
-            takeover_candidates(to, from, target_raster, registry, thresholds.minimum_depth_margin_meters, false)?
-        }
+        OcclusionTransitionKind::VisibilityLoss => takeover_candidates(
+            from,
+            to,
+            target_raster,
+            registry,
+            thresholds.minimum_depth_margin_meters,
+        )?,
+        OcclusionTransitionKind::VisibilityGain => takeover_candidates(
+            to,
+            from,
+            target_raster,
+            registry,
+            thresholds.minimum_depth_margin_meters,
+        )?,
     };
 
     let Some(best) = evidence.into_iter().max_by(|a, b| {
@@ -227,7 +238,6 @@ fn takeover_candidates(
     target_raster: u32,
     registry: &ObjectIdRegistry,
     minimum_depth_margin_meters: f32,
-    loss_direction: bool,
 ) -> Result<Vec<OccluderCandidateEvidence>, OcclusionEvidenceError> {
     let mut target_pixels = 0u64;
     let mut by_candidate: BTreeMap<u32, CandidateAccumulator> = BTreeMap::new();
@@ -254,14 +264,7 @@ fn takeover_candidates(
             (target_pixel.depth_meters, competing_pixel.depth_meters)
         {
             accumulator.depth_comparable_pixels = accumulator.depth_comparable_pixels.saturating_add(1);
-            let margin = if loss_direction {
-                target_depth - candidate_depth
-            } else {
-                // For a reveal, `target_visible_frame` is the new target frame
-                // and `competing_frame` is the old occluder frame. A positive
-                // margin again means the competing object had been closer.
-                target_depth - candidate_depth
-            };
+            let margin = target_depth - candidate_depth;
             if margin >= minimum_depth_margin_meters {
                 accumulator.closer_pixels = accumulator.closer_pixels.saturating_add(1);
                 accumulator.positive_margins.push(margin);
