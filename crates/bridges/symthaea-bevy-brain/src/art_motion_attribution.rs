@@ -111,7 +111,7 @@ fn attribute_object(
     config: MotionAttributionConfig,
 ) -> ObjectMotionAttributionEvidence {
     let semantic_transform_changed = object.semantic_transform_delta.is_some_and(|delta| {
-        delta.translation_meters > config.semantic_translation_epsilon
+        delta.translation_distance > config.semantic_translation_epsilon
             || delta.rotation_radians > config.semantic_rotation_epsilon
             || delta.scale_l2_delta > config.semantic_scale_epsilon
     });
