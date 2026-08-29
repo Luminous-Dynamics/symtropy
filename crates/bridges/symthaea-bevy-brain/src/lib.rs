@@ -16,6 +16,8 @@ pub use symthaea::symthaea_core::hdc::unified_hv::ContinuousHV;
 pub mod art_capture;
 pub mod art_cinema;
 pub mod art_counterfactual;
+pub mod art_eye;
+pub mod art_eye_ghost;
 pub mod art_ghost_loop;
 pub mod art_ghost_session;
 pub mod art_observation;
@@ -38,6 +40,15 @@ pub use art_cinema::{
 };
 pub use art_counterfactual::{
     CounterfactualError, CounterfactualRegistry, PreviewBranch, PreviewBranchState,
+};
+pub use art_eye::{
+    ArtistEyeConfig, ArtistEyeConsequenceEvidence, ArtistEyeError, ArtistEyeLevelDelta,
+    ArtistEyeObservation, ArtistEyePyramidLevel, ArtistEyeSpatialEvidence,
+    EdgeOrientationEvidence, FocalHierarchyEvidence, FocalRegionEvidence, SilhouetteEvidence,
+    SymmetryEvidence, ValueMassEvidence, analyze_artist_eye_pixel_plane,
+};
+pub use art_eye_ghost::{
+    FourGhostArtistEyeError, FourGhostArtistEyeEvidenceSet, GhostArtistEyeEvidence,
 };
 pub use art_ghost_loop::{
     FourGhostCycleReceipt, FourGhostError, FourGhostRenderSet, FourGhostVisualEvidenceSet,
