@@ -24,6 +24,7 @@ pub mod art_eye;
 pub mod art_eye_ghost;
 pub mod art_ghost_loop;
 pub mod art_ghost_session;
+pub mod art_motion_attribution;
 pub mod art_object_id;
 pub mod art_object_temporal;
 pub mod art_object_window;
@@ -81,6 +82,10 @@ pub use art_ghost_loop::{
 pub use art_ghost_session::{
     ExpectedGhostCapture, FourGhostCandidatePlan, FourGhostPlan, FourGhostSession,
     FourGhostSessionError, FourGhostSessionPhase, GhostEvidenceFailure,
+};
+pub use art_motion_attribution::{
+    MotionAttributionConfig, MotionAttributionError, ObjectMotionAttribution,
+    ObjectMotionAttributionEvidence, attribute_transition_motion,
 };
 pub use art_object_id::{
     ObjectBoundingBox, ObjectIdError, ObjectIdObservation, ObjectIdPlaneEvidence,
