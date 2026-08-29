@@ -24,6 +24,9 @@ pub mod art_eye;
 pub mod art_eye_ghost;
 pub mod art_ghost_loop;
 pub mod art_ghost_session;
+pub mod art_object_id;
+pub mod art_object_temporal;
+pub mod art_object_window;
 pub mod art_observation;
 #[cfg(feature = "realtime-art-render")]
 pub mod art_offscreen;
@@ -78,6 +81,20 @@ pub use art_ghost_loop::{
 pub use art_ghost_session::{
     ExpectedGhostCapture, FourGhostCandidatePlan, FourGhostPlan, FourGhostSession,
     FourGhostSessionError, FourGhostSessionPhase, GhostEvidenceFailure,
+};
+pub use art_object_id::{
+    ObjectBoundingBox, ObjectIdError, ObjectIdObservation, ObjectIdPlaneEvidence,
+    ObjectIdRegistry, ObjectRasterEvidence, analyze_object_id_plane,
+};
+pub use art_object_temporal::{
+    ObjectCameraMotionEvidence, ObjectIdentityEvent, ObjectIdentityTransition,
+    ObjectTemporalError, PersistentObjectFrame, PersistentObjectTransition,
+    ScreenTrajectoryEvidence, SemanticObjectFrame, SemanticObjectState,
+    WorldTransformDelta,
+};
+pub use art_object_window::{
+    ObjectTrackSummary, ObjectWindowError, PersistentObjectWindow,
+    PersistentObjectWindowEvidence,
 };
 pub use art_observation::{
     AlignedCounterfactualObservationSet, FidelityTaggedCapture, ObservationError,
