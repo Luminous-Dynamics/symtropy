@@ -25,4 +25,5 @@ realtime-art-render = [
     "bevy/bevy_camera",
     "bevy/bevy_image",
     "bevy/bevy_render",
+    "bevy/bevy_core_pipeline",
 ]
