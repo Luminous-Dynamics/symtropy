@@ -47,6 +47,8 @@ pub mod art_reality_episode;
 #[cfg(feature = "reality-ledger-adapter")]
 pub mod art_reality_presence;
 #[cfg(feature = "reality-ledger-adapter")]
+pub mod art_world_continuation;
+#[cfg(feature = "reality-ledger-adapter")]
 pub mod art_world_fork;
 #[cfg(feature = "reality-ledger-adapter")]
 pub mod art_world_lifecycle;
@@ -163,6 +165,10 @@ pub use art_reality_episode::{
 pub use art_reality_presence::{
     SymtropyRealityPresenceError, close_artist_presence_session,
     committed_object_depth_observation_bundle, open_artist_presence_session,
+};
+#[cfg(feature = "reality-ledger-adapter")]
+pub use art_world_continuation::{
+    SymtropyWorldContinuationError, continue_inhabited_episode_from_snapshot,
 };
 #[cfg(feature = "reality-ledger-adapter")]
 pub use art_world_fork::{
