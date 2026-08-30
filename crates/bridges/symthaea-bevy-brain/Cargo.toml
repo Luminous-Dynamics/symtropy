@@ -16,9 +16,9 @@ bevy = { version = "0.19", default-features = false, features = [
 ] }
 symthaea = { path = "../../../stubs/symthaea", default-features = false, features = ["vision-manifold", "muse", "reasoning_engine"] }
 thiserror = "1.0"
-# Pinned host-neutral reality + lifecycle contract. Standalone builds must never
-# float to an unqualified branch tip.
-symthaea-reality-ledger = { git = "https://github.com/Luminous-Dynamics/symthaea.git", rev = "21510a61db026008cee1dac435e79f28ac92e33f", package = "symthaea-reality-ledger", optional = true }
+# Pinned host-neutral reality + ordered lifecycle contract. Standalone builds
+# must never float to an unqualified branch tip.
+symthaea-reality-ledger = { git = "https://github.com/Luminous-Dynamics/symthaea.git", rev = "409b2f7d052ceb50aa0eb799afcc62d6afbd3442", package = "symthaea-reality-ledger", optional = true }
 
 [features]
 default = []
