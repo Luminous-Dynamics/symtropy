@@ -15,8 +15,9 @@ fn main() {
 #[cfg(feature = "reality-ledger-adapter")]
 fn run() -> Result<(), Box<dyn std::error::Error>> {
     use symthaea_bevy_brain::{
-        InhabitedWorldEpisode, SymtropyRealityBinding, open_lifecycle_timeline,
-        plan_ephemeral_counterfactual_fork, reopen_snapshot_presence, resume_snapshot,
+        InhabitedWorldEpisode, SymtropyRealityBinding,
+        continue_inhabited_episode_from_snapshot, open_lifecycle_timeline,
+        plan_ephemeral_counterfactual_fork, resume_snapshot,
         snapshot_closed_episode_from_bytes, suspend_snapshot,
     };
     use symthaea_reality_ledger::{DeterminismClass, DigestAlgorithm, TypedDigest};
@@ -51,6 +52,7 @@ fn run() -> Result<(), Box<dyn std::error::Error>> {
         "studio-frame",
         10,
     )?;
+    let original_genesis = episode.genesis.clone();
     let closed = episode.close("2222222222222222", 20)?;
 
     let snapshot = snapshot_closed_episode_from_bytes(
@@ -82,8 +84,10 @@ fn run() -> Result<(), Box<dyn std::error::Error>> {
         Some(21),
     )?;
 
-    let (resumed, revisit) = reopen_snapshot_presence(
-        &binding,
+    let (continued, revisit) = continue_inhabited_episode_from_snapshot(
+        "lifecycle-episode-b",
+        binding,
+        &original_genesis,
         &timeline,
         &snapshot,
         &closed.presence,
@@ -95,11 +99,16 @@ fn run() -> Result<(), Box<dyn std::error::Error>> {
         d("smoke.actions.v1"),
         21,
     )?;
-    if !resumed
-        .entry_state_digest
-        .same_typed_value(&snapshot.state_digest)
+    if continued.genesis != original_genesis
+        || !continued
+            .presence
+            .entry_state_digest
+            .same_typed_value(&snapshot.state_digest)
     {
-        return Err("revisit entry state differs from snapshot".into());
+        return Err("continued episode changed genesis or restored state".into());
+    }
+    if continued.ledger.len() != 2 || continued.ledger.verify().is_err() {
+        return Err("continued episode ledger anchor is invalid".into());
     }
 
     let fork = plan_ephemeral_counterfactual_fork(
@@ -121,6 +130,7 @@ fn run() -> Result<(), Box<dyn std::error::Error>> {
     println!("snapshot_digest={}", snapshot.digest()?.value);
     println!("lifecycle_timeline_digest={}", timeline_digest.value);
     println!("revisit_digest={}", revisit_digest.value);
+    println!("continued_ledger_head={}", continued.ledger.verify()?);
     println!("fork_child={}", fork.child_world.world_id.0);
     Ok(())
 }
