@@ -1,0 +1,104 @@
+{
+  "schema": "symtropy.vart-lifecycle-001.plan.v1",
+  "study_id": "VART-LIFECYCLE-001",
+  "status": "template",
+  "execution_authorized": false,
+  "subjective_continuity_claim_authorized": false,
+  "source": {
+    "symtropy_head": null,
+    "symtropy_tree": null,
+    "symthaea_reality_ledger_commit": null,
+    "symthaea_reality_ledger_tree": null,
+    "cargo_lock_sha256": null,
+    "flake_lock_sha256": null,
+    "rust_toolchain_sha256": null
+  },
+  "toolchain": {
+    "rustc_vV": null,
+    "cargo_Vv": null,
+    "architecture": null,
+    "nix_environment": null,
+    "rustflags": null,
+    "cargo_build_target": null
+  },
+  "host": {
+    "bevy_version": "0.19",
+    "persistence_adapter": null,
+    "persistence_schema": null,
+    "asset_manifest_digest": null,
+    "physics_profile_digest": null,
+    "timebase_id": null,
+    "gpu": null,
+    "driver": null,
+    "wgpu_backend": null
+  },
+  "world": {
+    "world_id": null,
+    "lineage_id": null,
+    "genesis_digest": null,
+    "prior_presence_session_id": null,
+    "prior_exit_frame": null,
+    "prior_exit_state_digest": null
+  },
+  "snapshot": {
+    "snapshot_id": null,
+    "snapshot_digest": null,
+    "state_digest": null,
+    "ledger_head_digest": null,
+    "artifact_digest_domain": "symtropy.world-snapshot-artifact.v1",
+    "artifact_digest_algorithm": "blake3",
+    "artifact_sha_or_blake3_value": null,
+    "previous_snapshot_digest": null
+  },
+  "lifecycle": {
+    "suspend_authority_receipt_digest": null,
+    "suspend_receipt": null,
+    "resume_authority_receipt_digest": null,
+    "resume_receipt": null,
+    "timeline_digest": null,
+    "expected_state_after_suspend": "Suspended",
+    "expected_state_after_resume": "Active"
+  },
+  "restore": {
+    "restored_artifact_digest": null,
+    "recomputed_semantic_state_digest": null,
+    "typed_state_equal_to_snapshot": null,
+    "live_pre_restore_state_reused": null
+  },
+  "revisit": {
+    "new_presence_session_id": null,
+    "agent_id": "symthaea",
+    "embodiment_id": null,
+    "entry_frame": null,
+    "entry_state_digest": null,
+    "revisit_receipt_digest": null,
+    "prior_exit_equals_snapshot_equals_entry": null
+  },
+  "negative_controls": {
+    "mutated_artifact_rejected": null,
+    "wrong_world_snapshot_rejected": null,
+    "wrong_state_domain_rejected": null,
+    "wrong_state_algorithm_rejected": null,
+    "resume_before_suspend_rejected": null,
+    "revisit_while_suspended_rejected": null,
+    "resume_after_archive_rejected": null,
+    "revisit_after_archive_rejected": null,
+    "reused_session_id_rejected": null,
+    "changed_agent_rejected": null,
+    "frame_regression_rejected": null,
+    "missing_authority_rejected": null,
+    "descriptor_spoof_rejected": null
+  },
+  "fork_exploratory": {
+    "executed": false,
+    "ephemeral_counterfactual_receipt": null,
+    "persisted_committed_receipt": null,
+    "persist_authority_receipt_digest": null
+  },
+  "closeout": {
+    "world_provenance_preserved": null,
+    "lifecycle_timeline_verified": null,
+    "counterfactual_memory_contamination_detected": null,
+    "final_interpretation": null
+  }
+}
