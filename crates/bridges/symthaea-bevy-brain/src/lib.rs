@@ -50,6 +50,8 @@ pub mod art_reality_presence;
 pub mod art_world_fork;
 #[cfg(feature = "reality-ledger-adapter")]
 pub mod art_world_lifecycle;
+#[cfg(feature = "reality-ledger-adapter")]
+pub mod art_world_snapshot;
 pub mod art_runtime;
 pub mod art_scene;
 pub mod art_temporal;
@@ -172,6 +174,11 @@ pub use art_world_lifecycle::{
     REALITY_LEDGER_HEAD_DIGEST_DOMAIN, SymtropyWorldLifecycleError, archive_snapshot,
     open_lifecycle_timeline, reopen_snapshot_presence, resume_snapshot,
     snapshot_closed_episode, suspend_snapshot,
+};
+#[cfg(feature = "reality-ledger-adapter")]
+pub use art_world_snapshot::{
+    SYMTROPY_WORLD_SNAPSHOT_ARTIFACT_DOMAIN, snapshot_closed_episode_from_bytes,
+    successor_snapshot_closed_episode_from_bytes,
 };
 pub use art_runtime::{RealtimeArtStudioPlugin, StudioPluginError};
 pub use art_scene::{
