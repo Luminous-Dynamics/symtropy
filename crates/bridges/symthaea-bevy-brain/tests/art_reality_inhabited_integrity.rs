@@ -2,13 +2,12 @@
 
 use std::collections::BTreeSet;
 
-use symthaea_bevy_brain::{
-    InhabitedWorldEpisode, PresenceCapability, SymtropyRealityBinding,
-    SYMTROPY_SCENE_STATE_DIGEST_ALGORITHM,
-};
+use symthaea_bevy_brain::{InhabitedWorldEpisode, SymtropyRealityBinding};
+use symthaea_bevy_brain::art_reality_adapter::SYMTROPY_SCENE_STATE_DIGEST_ALGORITHM;
 use symthaea_reality_ledger::{
-    DeterminismClass, DigestAlgorithm, RealityLayer, TypedDigest, WorldDescriptor, WorldId,
-    WorldKey, WorldLineageId, WorldOrigin, WorldParentRef, WorldRelation,
+    DeterminismClass, DigestAlgorithm, PresenceCapability, RealityLayer, TypedDigest,
+    WorldDescriptor, WorldId, WorldKey, WorldLineageId, WorldOrigin, WorldParentRef,
+    WorldRelation,
 };
 
 fn digest(domain: &str) -> TypedDigest {
