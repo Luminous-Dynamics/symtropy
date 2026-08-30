@@ -7,9 +7,9 @@
 //! later presence session. It never serializes the world or mints authority.
 
 use symthaea_reality_ledger::{
-    DigestAlgorithm, TypedDigest, WorldLifecycleReceipt, WorldLifecycleTimeline,
-    WorldLifecycleTransition, WorldPresenceSession, WorldRevisitReceipt,
-    WorldSnapshotManifest,
+    DigestAlgorithm, TypedDigest, WorldLifecycleReceipt, WorldLifecycleState,
+    WorldLifecycleTimeline, WorldLifecycleTransition, WorldPresenceSession,
+    WorldRevisitReceipt, WorldSnapshotManifest,
 };
 
 use crate::{
@@ -126,6 +126,7 @@ pub fn archive_snapshot(
 #[allow(clippy::too_many_arguments)]
 pub fn reopen_snapshot_presence(
     binding: &SymtropyRealityBinding,
+    timeline: &WorldLifecycleTimeline,
     snapshot: &WorldSnapshotManifest,
     prior_presence: &WorldPresenceSession,
     revisit_receipt_id: impl Into<String>,
@@ -136,6 +137,14 @@ pub fn reopen_snapshot_presence(
     action_surface_digest: TypedDigest,
     entered_frame: u64,
 ) -> Result<(WorldPresenceSession, WorldRevisitReceipt), SymtropyWorldLifecycleError> {
+    timeline
+        .verify(snapshot)
+        .map_err(|error| SymtropyWorldLifecycleError::Reality(error.to_string()))?;
+    if timeline.current_state != WorldLifecycleState::Active {
+        return Err(SymtropyWorldLifecycleError::WorldNotActiveForRevisit(
+            timeline.current_state,
+        ));
+    }
     if snapshot.world != binding.committed_world {
         return Err(SymtropyWorldLifecycleError::SnapshotWorldMismatch);
     }
@@ -205,6 +214,8 @@ pub enum SymtropyWorldLifecycleError {
     SnapshotWorldMismatch,
     #[error("restored presence entry state does not equal the snapshot state")]
     RestoredStateMismatch,
+    #[error("world lifecycle state {0:?} does not permit a revisit")]
+    WorldNotActiveForRevisit(WorldLifecycleState),
     #[error("presence adapter rejected lifecycle operation: {0}")]
     Presence(#[from] SymtropyRealityPresenceError),
     #[error("Reality Ledger lifecycle contract rejected operation: {0}")]
@@ -214,9 +225,7 @@ pub enum SymtropyWorldLifecycleError {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use symthaea_reality_ledger::{
-        DeterminismClass, WorldLifecycleState, WorldLifecycleTransition,
-    };
+    use symthaea_reality_ledger::{DeterminismClass, WorldLifecycleTransition};
 
     use crate::art_reality_episode::InhabitedWorldEpisode;
 
@@ -276,7 +285,6 @@ mod tests {
         let snapshot = snapshot_closed_episode("snap-a", &receipt, d("save-bytes.v1"), None).unwrap();
         let mut timeline = open_lifecycle_timeline(&snapshot).unwrap();
         suspend_snapshot(&mut timeline, "suspend", &snapshot, d("authority.v1"), Some(20)).unwrap();
-        assert_eq!(timeline.current_state, WorldLifecycleState::Suspended);
         resume_snapshot(
             &mut timeline,
             "resume",
@@ -286,9 +294,9 @@ mod tests {
             Some(21),
         )
         .unwrap();
-        assert_eq!(timeline.current_state, WorldLifecycleState::Active);
         let (resumed, revisit) = reopen_snapshot_presence(
             &binding(),
+            &timeline,
             &snapshot,
             &receipt.presence,
             "revisit-a",
@@ -303,6 +311,28 @@ mod tests {
         assert!(resumed.entry_state_digest.same_typed_value(&snapshot.state_digest));
         assert_eq!(revisit.prior_session_id, receipt.presence.session_id);
         timeline.verify(&snapshot).unwrap();
+    }
+
+    #[test]
+    fn suspended_world_cannot_be_reentered() {
+        let receipt = closed_receipt();
+        let snapshot = snapshot_closed_episode("snap-a", &receipt, d("save-bytes.v1"), None).unwrap();
+        let mut timeline = open_lifecycle_timeline(&snapshot).unwrap();
+        suspend_snapshot(&mut timeline, "suspend", &snapshot, d("authority.v1"), Some(20)).unwrap();
+        assert!(reopen_snapshot_presence(
+            &binding(),
+            &timeline,
+            &snapshot,
+            &receipt.presence,
+            "revisit-a",
+            "presence-b",
+            "symthaea",
+            "camera-body",
+            d("sensors.v1"),
+            d("actions.v1"),
+            21,
+        )
+        .is_err());
     }
 
     #[test]
@@ -330,7 +360,7 @@ mod tests {
     }
 
     #[test]
-    fn archived_world_cannot_resume() {
+    fn archived_world_cannot_resume_or_reenter() {
         let receipt = closed_receipt();
         let snapshot = snapshot_closed_episode("snap-a", &receipt, d("save-bytes.v1"), None).unwrap();
         let mut timeline = open_lifecycle_timeline(&snapshot).unwrap();
@@ -346,7 +376,20 @@ mod tests {
             Some(21),
         )
         .is_err());
-        assert_eq!(timeline.current_state, WorldLifecycleState::Archived);
+        assert!(reopen_snapshot_presence(
+            &binding(),
+            &timeline,
+            &snapshot,
+            &receipt.presence,
+            "revisit-a",
+            "presence-b",
+            "symthaea",
+            "camera-body",
+            d("sensors.v1"),
+            d("actions.v1"),
+            21,
+        )
+        .is_err());
     }
 
     #[test]
