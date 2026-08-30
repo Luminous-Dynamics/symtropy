@@ -46,6 +46,25 @@ presence-A exit == snapshot == presence-B entry
 
 This is **digital world-state continuity**, not a claim of subjective continuity.
 
+## Revisit is not a second genesis
+
+The world retains its original `WorldGenesisManifest`. Re-entering a restored
+world must not construct a new genesis merely because a new presence session
+begins at a later state.
+
+`continue_inhabited_episode_from_snapshot` therefore:
+
+- verifies the original genesis digest equals the snapshot genesis digest;
+- reuses the original genesis manifest;
+- opens a distinct presence session at the exact snapshot state;
+- starts a new bounded episode ledger with a continuation-anchor record whose
+  content digest is the exact snapshot digest;
+- then appends the new presence-entry record.
+
+Because the snapshot digest transitively binds the prior episode ledger head,
+the new episode receives an explicit evidence link to the previous history
+without pretending that the world's birth occurred again.
+
 ## Semantic state and persisted artifact are different evidence planes
 
 The committed Symtropy semantic scene identity remains the frozen FNV-1a64
