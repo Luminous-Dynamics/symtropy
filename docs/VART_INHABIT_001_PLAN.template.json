@@ -1,0 +1,90 @@
+{
+  "schema": "symtropy.vart-inhabit-001.plan.v1",
+  "study_id": "VART-INHABIT-001",
+  "status": "template",
+  "execution_authorized": false,
+  "active_materialization_authorized": false,
+  "source": {
+    "symtropy_head": null,
+    "symtropy_tree": null,
+    "symthaea_reality_ledger_commit": null,
+    "cargo_lock_sha256": null,
+    "flake_lock_sha256": null,
+    "rust_toolchain_sha256": null
+  },
+  "toolchain": {
+    "rustc_vV": null,
+    "cargo_Vv": null,
+    "architecture": null,
+    "nix_environment": null,
+    "rustflags": null,
+    "cargo_build_target": null
+  },
+  "render_host": {
+    "bevy_version": "0.19",
+    "gpu": null,
+    "driver": null,
+    "wgpu_backend": null,
+    "adapter_identity": null,
+    "object_id_shader_sha256": null,
+    "projection": null,
+    "near_meters": null,
+    "far_meters": null,
+    "msaa": null,
+    "width": null,
+    "height": null,
+    "fidelity_profile": null
+  },
+  "world": {
+    "world_id": null,
+    "lineage_id": null,
+    "genesis_digest": null,
+    "determinism_class": null,
+    "seed": null,
+    "timebase_id": null
+  },
+  "presence": {
+    "session_id": null,
+    "agent_id": "symthaea",
+    "embodiment_id": null,
+    "sensor_suite_digest": null,
+    "action_surface_digest": null,
+    "capabilities": ["Observe", "Enter", "Fork", "Propose"],
+    "authority_receipt_digest": null,
+    "entered_frame": null,
+    "exited_frame": null
+  },
+  "sensor_qualification": {
+    "live_depth_receipt": null,
+    "live_object_id_receipt": null,
+    "expected_queue_drops": 0,
+    "observed_queue_drops": null
+  },
+  "four_ghost": {
+    "expected_world_count": 4,
+    "expected_counterfactual_children": 3,
+    "plan_receipt": null,
+    "render_receipt": null,
+    "decision_receipt": null,
+    "closure_receipt": null
+  },
+  "object_depth": {
+    "prospective_pair_plan": null,
+    "object_id_capture_receipt": null,
+    "depth_capture_receipt": null,
+    "transactional_bundle_digest": null
+  },
+  "closeout": {
+    "final_ledger_head": null,
+    "ledger_record_count": null,
+    "world_graph_verified": null,
+    "presence_exit_verified": null,
+    "counterfactual_memories_hypothetical_only": null,
+    "committed_history_contaminated": null
+  },
+  "interpretation": {
+    "subjective_presence_claim_authorized": false,
+    "physical_grounding_claim_authorized": false,
+    "unrestricted_mutation_claim_authorized": false
+  }
+}
