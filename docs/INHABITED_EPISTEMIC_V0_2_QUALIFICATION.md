@@ -47,6 +47,10 @@ cargo check -p symthaea-bevy-brain --features reality-ledger-adapter --lib --tes
 cargo test -p symthaea-bevy-brain --features reality-ledger-adapter --lib --tests
 cargo clippy -p symthaea-bevy-brain --features reality-ledger-adapter --lib --tests -- -D warnings
 
+cargo run -p symthaea-bevy-brain \
+  --features reality-ledger-adapter \
+  --bin inhabited_epistemic_v02_lifecycle_smoke
+
 cargo check -p symthaea-bevy-brain \
   --features realtime-art-render,realtime-art-object-id,reality-ledger-adapter \
   --lib --tests
@@ -57,9 +61,6 @@ cargo clippy -p symthaea-bevy-brain \
   --features realtime-art-render,realtime-art-object-id,reality-ledger-adapter \
   --lib --tests -- -D warnings
 ```
-
-Also run the structural lifecycle smoke binary once it is present in the final
-source root.
 
 ## 4. Structural lifecycle gates
 
@@ -80,6 +81,11 @@ Mechanical PASS must demonstrate:
 - prior presence must be closed;
 - resumed presence must be a distinct open session for the same world + agent;
 - prior exit == snapshot == resumed entry state;
+- a continued inhabited episode reuses the original world genesis rather than
+  inventing a new genesis at the restored state;
+- the continued episode ledger begins with an exact snapshot continuation
+  anchor and verifies as a new append-only segment;
+- changing the original genesis while retaining the snapshot fails closed;
 - ephemeral counterfactual fork begins from exact snapshot state and remains
   authority-poor;
 - persisted committed fork is a distinct `SpawnedFrom` child and requires
