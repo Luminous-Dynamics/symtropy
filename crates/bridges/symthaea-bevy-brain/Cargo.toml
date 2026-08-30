@@ -18,7 +18,7 @@ symthaea = { path = "../../../stubs/symthaea", default-features = false, feature
 thiserror = "1.0"
 # Pinned host-neutral reality + ordered lifecycle contract. Standalone builds
 # must never float to an unqualified branch tip.
-symthaea-reality-ledger = { git = "https://github.com/Luminous-Dynamics/symthaea.git", rev = "5ca018fee7fc7bd0d48ff084608c72c06c586db1", package = "symthaea-reality-ledger", optional = true }
+symthaea-reality-ledger = { git = "https://github.com/Luminous-Dynamics/symthaea.git", rev = "9559c0d1e81e052fa4a86e91003920d8f67c77c4", package = "symthaea-reality-ledger", optional = true }
 
 [features]
 default = []
