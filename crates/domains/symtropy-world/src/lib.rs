@@ -25,6 +25,7 @@
 
 pub mod authority_view;
 pub mod bridge;
+pub mod fidelity;
 pub mod grid;
 pub mod scale;
 pub mod snapshot;
@@ -35,6 +36,10 @@ pub use authority_view::{
     EcologyCellSummary, HydrologyCellSummary, PlanetCellAuthorityView, TerrainCellSummary,
 };
 pub use bridge::WorldBridge;
+pub use fidelity::{
+    FidelityDemand, FidelityError, FidelityScheduler, FidelitySelectionPlan, RefinementReason,
+    RefinementRequest, ResolutionResult,
+};
 pub use grid::{
     BiomeKind, BodyHexGrid, BodyId, EarthH3CellRef, GridSystem, HexCellId, HydrologyState,
     PlanetCell, ProceduralBodyGrid, normalize_lon_deg,
