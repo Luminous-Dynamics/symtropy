@@ -15,7 +15,8 @@
 - explicit `RefinementRequest` with typed evidence;
 - `ResolutionResult<T>::NeedsRefinement` causal backpressure;
 - tests covering insertion-order independence, causal-over-observer priority, bounded budget behavior, stable ties, conflicting demands, and explicit backpressure;
-- canonical Adaptive Fidelity and Causal Backpressure Contract v0.3.
+- canonical Adaptive Fidelity and Causal Backpressure Contract v0.3;
+- `scripts/qualify-cuf-v0.3-stack.sh`, which refuses to claim a partial green result when the private Mycelix sibling dependency is absent.
 
 ## Deliberately not included
 
@@ -34,15 +35,15 @@ v0.3 should be treated primarily as a refinement-demand selector until domain-ap
 
 This connected authoring environment does not provide the repository Rust/Nix toolchain, so no compile/test result is asserted here.
 
-Run in the full/private monorepo environment:
+Preferred full/private-monorepo gate:
 
 ```bash
-nix develop --command cargo fmt --all -- --check
-nix develop --command cargo test -p symtropy-sim-contracts -p symtropy-world
-nix develop --command cargo clippy -p symtropy-sim-contracts -p symtropy-world --all-targets -- -D warnings
+nix develop --command bash scripts/qualify-cuf-v0.3-stack.sh
 ```
 
-Also run the normal private-workspace `symtropy-world` / Mycelix integration gates.
+The script runs formatting, `symtropy-sim-contracts` tests/clippy, manifest-scoped `symtropy-world` tests/clippy, and repository workspace/license checks. It exits before testing `symtropy-world` if the private `../mycelix-multiworld-sim` sibling is absent.
+
+Also run any additional private-workspace integration gates normally required for `symtropy-world` / Mycelix bridge changes.
 
 ## Stack rule
 
