@@ -145,6 +145,7 @@ members = [
     "crates/core/symtropy-math",
     "crates/core/symtropy-physics",
     "crates/core/symtropy-core-stable",
+    "crates/core/symtropy-sim-contracts",
     "crates/core/symtropy-hdc-core",
     "crates/domains/symtropy-hdc-physics",
     "crates/distributions/symtropy",
