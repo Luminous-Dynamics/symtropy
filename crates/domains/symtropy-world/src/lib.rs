@@ -23,12 +23,17 @@
 //! between snapshots for smooth visualization. Player actions (votes, proposals)
 //! are sent back via the reverse channel.
 
+pub mod authority_view;
 pub mod bridge;
 pub mod grid;
 pub mod scale;
 pub mod snapshot;
 pub mod time_control;
 
+pub use authority_view::{
+    AuthorityViewError, BodyCellIdentity, ClimateCellSummary, DerivedDomainView,
+    EcologyCellSummary, HydrologyCellSummary, PlanetCellAuthorityView, TerrainCellSummary,
+};
 pub use bridge::WorldBridge;
 pub use grid::{
     BiomeKind, BodyHexGrid, BodyId, EarthH3CellRef, GridSystem, HexCellId, HydrologyState,
