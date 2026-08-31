@@ -1,0 +1,13 @@
+[package]
+name = "symtropy-sim-contracts"
+version = "0.1.0"
+edition = "2024"
+license = "Apache-2.0 OR MIT"
+description = "Dependency-light causal simulation identity, time, digest, and representation transfer contracts for Symtropy."
+
+[dependencies]
+serde = { version = "1.0", features = ["derive"] }
+sha2 = "0.10"
+
+[dev-dependencies]
+serde_json = "1.0"
