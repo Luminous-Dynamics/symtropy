@@ -39,11 +39,6 @@ jobs:
         with:
           components: clippy,rustfmt
 
-      - name: Cache Rust dependencies
-        uses: Swatinem/rust-cache@v2
-        with:
-          workspaces: /tmp/symtropy-cuf-core
-
       - name: Build standalone dependency-locked core fixture
         shell: bash
         run: |
