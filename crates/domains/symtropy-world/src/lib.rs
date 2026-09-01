@@ -27,6 +27,7 @@ pub mod authority_view;
 pub mod bridge;
 pub mod fidelity;
 pub mod grid;
+pub mod residency;
 pub mod scale;
 pub mod snapshot;
 pub mod time_control;
@@ -43,6 +44,10 @@ pub use fidelity::{
 pub use grid::{
     BiomeKind, BodyHexGrid, BodyId, EarthH3CellRef, GridSystem, HexCellId, HydrologyState,
     PlanetCell, ProceduralBodyGrid, normalize_lon_deg,
+};
+pub use residency::{
+    ActiveRepresentation, RepresentationLease, RepresentationReleasePermit, ResidencyDecision,
+    ResidencyError, ResidencyGate,
 };
 pub use scale::WorldScale;
 pub use snapshot::{EconomySummary, GovernanceSummary, PlayerAction, SimSnapshot};
