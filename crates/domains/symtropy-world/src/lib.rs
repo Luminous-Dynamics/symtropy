@@ -36,6 +36,7 @@ pub mod residency;
 pub mod scale;
 pub mod snapshot;
 pub mod time_control;
+pub mod watershed_connectivity;
 
 pub use authority_view::{
     AuthorityViewError, BodyCellIdentity, ClimateCellSummary, DerivedDomainView,
@@ -76,3 +77,8 @@ pub use residency::{
 pub use scale::WorldScale;
 pub use snapshot::{EconomySummary, GovernanceSummary, PlayerAction, SimSnapshot};
 pub use time_control::TimeControl;
+pub use watershed_connectivity::{
+    WATERSHED_RELATION_DOMAIN_PREFIX, WATERSHED_TOPOLOGY_DIGEST_DOMAIN,
+    WATERSHED_TOPOLOGY_SCHEMA_VERSION, DownstreamCausalScope, WatershedConnectionEvidence,
+    WatershedConnectivityError, WatershedTopologySnapshot,
+};
