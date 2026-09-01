@@ -280,9 +280,7 @@ mod tests {
         DerivedDomainView, GridSystem, HexCellId, HydrologyCellSummary, TerrainCellSummary,
     };
     use symtropy_basin::BasinWorld;
-    use symtropy_sim_contracts::{
-        ReferenceFrameId, RepresentationId, ScopeId, SimInstant,
-    };
+    use symtropy_sim_contracts::{ReferenceFrameId, RepresentationId, SimInstant};
 
     fn identity() -> BodyCellIdentity {
         BodyCellIdentity {
