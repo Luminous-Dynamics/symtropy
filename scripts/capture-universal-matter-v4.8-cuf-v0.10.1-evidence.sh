@@ -62,6 +62,35 @@ if ! bash scripts/verify-cuf-v0.10.1-v4.8-composition.sh > "$OUT/COMPOSITION.txt
     exit 1
 fi
 
+# Count equality is not enough. Bind the exact set of paths carried by the
+# retained artifact and prove that the staged replay contains that same set.
+git apply --numstat "$PATCH" \
+    | cut -f3- \
+    | LC_ALL=C sort -u > "$OUT/PATCH_PATHS.txt"
+git diff --cached --name-only \
+    | LC_ALL=C sort -u > "$OUT/STAGED_PATHS.txt"
+
+patch_path_count="$(wc -l < "$OUT/PATCH_PATHS.txt" | tr -d ' ')"
+staged_unique_count="$(wc -l < "$OUT/STAGED_PATHS.txt" | tr -d ' ')"
+if [[ "$patch_path_count" != "$EXPECTED_STAGED_PATHS" ]]; then
+    printf 'ERROR: retained patch resolves to %s unique paths; expected %s.\n' \
+        "$patch_path_count" "$EXPECTED_STAGED_PATHS" >&2
+    rm -rf "$OUT"
+    exit 1
+fi
+if [[ "$staged_unique_count" != "$EXPECTED_STAGED_PATHS" ]]; then
+    printf 'ERROR: staged replay resolves to %s unique paths; expected %s.\n' \
+        "$staged_unique_count" "$EXPECTED_STAGED_PATHS" >&2
+    rm -rf "$OUT"
+    exit 1
+fi
+if ! cmp -s "$OUT/PATCH_PATHS.txt" "$OUT/STAGED_PATHS.txt"; then
+    printf 'ERROR: staged path set differs from the retained v4.8 artifact.\n' >&2
+    diff -u "$OUT/PATCH_PATHS.txt" "$OUT/STAGED_PATHS.txt" >&2 || true
+    rm -rf "$OUT"
+    exit 1
+fi
+
 printf '%s\n' "$base_head" > "$OUT/BASE_HEAD.txt"
 printf '%s\n' "$staged_tree" > "$OUT/STAGED_TREE.txt"
 printf '%s\n' "$actual_patch_sha" > "$OUT/UNIVERSAL_MATTER_V4_8_PATCH_SHA256.txt"
@@ -87,6 +116,8 @@ qualified_staged_tree=$staged_tree
 universal_matter_patch_sha256=$actual_patch_sha
 cuf_forcing_contract=symtropy.deterministic-forcing-evidence.digest.v1
 cuf_v4.8_composition_proof=COMPOSITION.txt
+v4.8_patch_path_set=PATCH_PATHS.txt
+qualified_staged_path_set=STAGED_PATHS.txt
 expected_v4.8_staged_paths=$EXPECTED_STAGED_PATHS
 EOF
 
@@ -121,5 +152,6 @@ printf 'Status: '
 cat "$OUT/STATUS.txt"
 printf 'Parent: %s\n' "$base_head"
 printf 'Staged tree: %s\n' "$staged_tree"
+printf 'Exact patch/staged path set: %s paths\n' "$EXPECTED_STAGED_PATHS"
 
 exit "$status"
