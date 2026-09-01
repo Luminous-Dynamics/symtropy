@@ -43,7 +43,8 @@ pub use authority_view::{
 pub use basin_ingest_receipt::{
     BASIN_ENVIRONMENT_INGEST_RECEIPT_DOMAIN, BASIN_ENVIRONMENT_INGEST_RECEIPT_SCHEMA_VERSION,
     BASIN_ENVIRONMENT_POLICY_DOMAIN_PREFIX, BasinEnvironmentalIngestError,
-    BasinEnvironmentalIngestReceipt, BasinIngestEffect,
+    BasinEnvironmentalIngestReceipt, BasinEnvironmentalObservation, BasinIngestEffect,
+    EnvironmentalObservationRole,
 };
 pub use basin_state::{
     BASIN_STATE_DIGEST_DOMAIN, BASIN_STATE_SCHEMA_VERSION, BasinCausalStateIdentity,
