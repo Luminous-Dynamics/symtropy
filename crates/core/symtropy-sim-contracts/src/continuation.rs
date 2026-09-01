@@ -19,6 +19,11 @@ use crate::{
 pub const WORLD_CONTINUATION_MANIFEST_SCHEMA_VERSION: u32 = 1;
 pub const FIXED_TIMEBASE_SCHEMA_VERSION: u32 = 1;
 
+const WORLD_CONTINUATION_MANIFEST_IDENTITY_DOMAIN: &str =
+    "symtropy.world-continuation-manifest.identity.v1";
+const FIXED_TIMEBASE_IDENTITY_DOMAIN: &str = "symtropy.fixed-timebase.identity.v1";
+const IDENTITY_DIGEST_SCHEMA_VERSION: u32 = 1;
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub enum LifecycleMode {
     Genesis,
@@ -109,6 +114,7 @@ impl FixedTimebase {
         }
         self.id.validate()?;
         self.genesis_or_epoch.validate()?;
+        self.origin_instant.validate()?;
         if self.step_nanoseconds == 0 {
             return Err(ContinuationError::ZeroTimebaseStep);
         }
@@ -143,6 +149,7 @@ impl FixedTimebase {
     /// callers must use a separately identified interpolation/quantization policy.
     pub fn instant_to_tick(&self, instant: SimInstant) -> Result<u64, ContinuationError> {
         self.validate()?;
+        instant.validate()?;
         let delta_ns = instant.nanoseconds_since(self.origin_instant);
         let step = i128::from(self.step_nanoseconds);
         if delta_ns.rem_euclid(step) != 0 {
@@ -167,9 +174,9 @@ impl FixedTimebase {
         hasher.update(self.origin_instant.nanos.to_le_bytes());
         hasher.update(self.step_nanoseconds.to_le_bytes());
         Ok(TypedDigest32::new(
-            "symtropy.fixed-timebase.identity.v1",
+            FIXED_TIMEBASE_IDENTITY_DOMAIN,
             DigestAlgorithm::Sha256,
-            1,
+            IDENTITY_DIGEST_SCHEMA_VERSION,
             hasher.finalize().into(),
         )?)
     }
@@ -198,6 +205,7 @@ impl DomainContinuationEntry {
         self.authority.validate()?;
         self.scope.validate()?;
         self.reference_frame.validate()?;
+        self.checkpoint_at.validate()?;
         self.snapshot_codec.validate()?;
         if let Some(representation) = &self.representation {
             representation.validate()?;
@@ -265,7 +273,12 @@ impl ChildManifestRef {
     pub fn validate(&self) -> Result<(), ContinuationError> {
         self.scope.validate()?;
         self.reference_frame.validate()?;
-        self.manifest_digest.validate()?;
+        validate_digest_semantics(
+            &self.manifest_digest,
+            "child_manifest.manifest_digest",
+            WORLD_CONTINUATION_MANIFEST_IDENTITY_DOMAIN,
+            IDENTITY_DIGEST_SCHEMA_VERSION,
+        )?;
         Ok(())
     }
 
@@ -345,15 +358,26 @@ impl WorldContinuationManifest {
             });
         }
         self.world_instance.validate()?;
+        self.at.validate()?;
         self.reference_frame.validate()?;
         validate_lifecycle(
             self.lifecycle_mode,
             self.continuation_sequence,
             self.parent_manifest.as_ref(),
         )?;
-        self.timebase_identity.validate()?;
+        validate_optional_digest_semantics(
+            self.parent_manifest.as_ref(),
+            "world_manifest.parent_manifest",
+            WORLD_CONTINUATION_MANIFEST_IDENTITY_DOMAIN,
+            IDENTITY_DIGEST_SCHEMA_VERSION,
+        )?;
+        validate_digest_semantics(
+            &self.timebase_identity,
+            "world_manifest.timebase_identity",
+            FIXED_TIMEBASE_IDENTITY_DOMAIN,
+            IDENTITY_DIGEST_SCHEMA_VERSION,
+        )?;
         self.inactive_time_policy.validate()?;
-        validate_optional_digest(&self.parent_manifest)?;
         validate_optional_digest(&self.forcing_context)?;
         validate_optional_digest(&self.causal_journal_head)?;
         validate_optional_digest(&self.distributed_authority_context)?;
@@ -415,9 +439,9 @@ impl WorldContinuationManifest {
         }
 
         Ok(TypedDigest32::new(
-            "symtropy.world-continuation-manifest.identity.v1",
+            WORLD_CONTINUATION_MANIFEST_IDENTITY_DOMAIN,
             DigestAlgorithm::Sha256,
-            1,
+            IDENTITY_DIGEST_SCHEMA_VERSION,
             hasher.finalize().into(),
         )?)
     }
@@ -474,6 +498,37 @@ fn validate_optional_digest(value: &Option<TypedDigest32>) -> Result<(), Continu
     Ok(())
 }
 
+fn validate_digest_semantics(
+    value: &TypedDigest32,
+    slot: &'static str,
+    expected_domain: &'static str,
+    expected_schema: u32,
+) -> Result<(), ContinuationError> {
+    value.validate()?;
+    if value.domain != expected_domain || value.schema_version != expected_schema {
+        return Err(ContinuationError::UnexpectedDigestSemantics {
+            slot,
+            expected_domain,
+            expected_schema,
+            actual_domain: value.domain.clone(),
+            actual_schema: value.schema_version,
+        });
+    }
+    Ok(())
+}
+
+fn validate_optional_digest_semantics(
+    value: Option<&TypedDigest32>,
+    slot: &'static str,
+    expected_domain: &'static str,
+    expected_schema: u32,
+) -> Result<(), ContinuationError> {
+    if let Some(value) = value {
+        validate_digest_semantics(value, slot, expected_domain, expected_schema)?;
+    }
+    Ok(())
+}
+
 fn hash_optional_digest(hasher: &mut Sha256, value: Option<&TypedDigest32>) {
     match value {
         Some(value) => {
@@ -489,6 +544,13 @@ pub enum ContinuationError {
     Contract(ContractError),
     UnsupportedTimebaseSchema { expected: u32, actual: u32 },
     UnsupportedManifestSchema { expected: u32, actual: u32 },
+    UnexpectedDigestSemantics {
+        slot: &'static str,
+        expected_domain: &'static str,
+        expected_schema: u32,
+        actual_domain: String,
+        actual_schema: u32,
+    },
     ZeroTimebaseStep,
     TimebaseOverflow,
     TickOutOfRange,
@@ -522,6 +584,16 @@ impl fmt::Display for ContinuationError {
             Self::UnsupportedManifestSchema { expected, actual } => write!(
                 formatter,
                 "unsupported world continuation manifest schema {actual}; expected {expected}"
+            ),
+            Self::UnexpectedDigestSemantics {
+                slot,
+                expected_domain,
+                expected_schema,
+                actual_domain,
+                actual_schema,
+            } => write!(
+                formatter,
+                "continuation digest slot {slot} expects {expected_domain} schema {expected_schema}, got {actual_domain} schema {actual_schema}"
             ),
             Self::ZeroTimebaseStep => formatter.write_str("fixed timebase step must be non-zero"),
             Self::TimebaseOverflow => formatter.write_str("fixed timebase conversion overflow"),
@@ -628,7 +700,7 @@ mod tests {
         ChildManifestRef {
             scope: ScopeId::parse(scope).unwrap(),
             reference_frame: ReferenceFrameId::parse("sol:earth:surface-fixed").unwrap(),
-            manifest_digest: d("symtropy.world-continuation-manifest.identity.v1", value),
+            manifest_digest: d(WORLD_CONTINUATION_MANIFEST_IDENTITY_DOMAIN, value),
         }
     }
 
@@ -803,6 +875,103 @@ mod tests {
             vec![],
         );
         assert_eq!(result.unwrap_err(), ContinuationError::InvalidLifecycleParent);
+    }
+
+    #[test]
+    fn wrong_parent_manifest_digest_semantics_are_rejected() {
+        let result = WorldContinuationManifest::new(
+            WorldInstanceId::parse("world:test").unwrap(),
+            1,
+            LifecycleMode::ContinueSameWorld,
+            Some(d("symtropy.hydrology.water-state.v1", b"not-a-manifest")),
+            SimInstant::new(20, 0).unwrap(),
+            timebase(50_000_000).digest().unwrap(),
+            ReferenceFrameId::parse("sol:earth:surface-fixed").unwrap(),
+            d("symtropy.inactive-time-policy.v1", b"paused"),
+            None,
+            None,
+            None,
+            vec![],
+            vec![],
+        );
+        assert!(matches!(
+            result,
+            Err(ContinuationError::UnexpectedDigestSemantics {
+                slot: "world_manifest.parent_manifest",
+                ..
+            })
+        ));
+    }
+
+    #[test]
+    fn wrong_child_manifest_digest_semantics_are_rejected() {
+        let child = ChildManifestRef {
+            scope: ScopeId::parse("sol:earth:region/a").unwrap(),
+            reference_frame: ReferenceFrameId::parse("sol:earth:surface-fixed").unwrap(),
+            manifest_digest: d("symtropy.ecology.state.v1", b"not-a-manifest"),
+        };
+        assert!(matches!(
+            child.validate(),
+            Err(ContinuationError::UnexpectedDigestSemantics {
+                slot: "child_manifest.manifest_digest",
+                ..
+            })
+        ));
+    }
+
+    #[test]
+    fn wrong_timebase_digest_semantics_are_rejected() {
+        let result = WorldContinuationManifest::new(
+            WorldInstanceId::parse("world:test").unwrap(),
+            0,
+            LifecycleMode::Genesis,
+            None,
+            SimInstant::new(20, 0).unwrap(),
+            d("symtropy.weather.forcing.v1", b"not-a-timebase"),
+            ReferenceFrameId::parse("sol:earth:surface-fixed").unwrap(),
+            d("symtropy.inactive-time-policy.v1", b"paused"),
+            None,
+            None,
+            None,
+            vec![],
+            vec![],
+        );
+        assert!(matches!(
+            result,
+            Err(ContinuationError::UnexpectedDigestSemantics {
+                slot: "world_manifest.timebase_identity",
+                ..
+            })
+        ));
+    }
+
+    #[test]
+    fn wrong_timebase_digest_schema_is_rejected() {
+        let mut wrong_schema = timebase(50_000_000).digest().unwrap();
+        wrong_schema.schema_version = 2;
+        let result = WorldContinuationManifest::new(
+            WorldInstanceId::parse("world:test").unwrap(),
+            0,
+            LifecycleMode::Genesis,
+            None,
+            SimInstant::new(20, 0).unwrap(),
+            wrong_schema,
+            ReferenceFrameId::parse("sol:earth:surface-fixed").unwrap(),
+            d("symtropy.inactive-time-policy.v1", b"paused"),
+            None,
+            None,
+            None,
+            vec![],
+            vec![],
+        );
+        assert!(matches!(
+            result,
+            Err(ContinuationError::UnexpectedDigestSemantics {
+                expected_schema: 1,
+                actual_schema: 2,
+                ..
+            })
+        ));
     }
 
     #[test]
