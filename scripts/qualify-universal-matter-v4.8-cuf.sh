@@ -102,17 +102,22 @@ if [[ "$cargo_lock_after" != "$cargo_lock_before" ]]; then
 ERROR: Cargo.lock changed during v4.8 qualification.
 Before: $cargo_lock_before
 After:  $cargo_lock_after
-Resolve and review the lockfile change as an explicit separate qualification
-commit, then rerun this gate from a cleanly understood state.
+Resolve and review the lockfile change as an explicit qualification change,
+then rerun this gate from a cleanly understood state.
 EOF
     exit 1
 fi
 
-# No untracked/unstaged file may be silently created by qualification. The only
-# expected source changes are the exactly 275 paths already staged by the replay.
-if [[ -n "$(git status --porcelain --untracked-files=all | grep -v '^M  ' || true)" ]]; then
-    printf 'ERROR: qualification produced unexpected unstaged/untracked changes.\n' >&2
-    git status --short >&2
+# Staged A/M entries are the intended v4.8 replay. Only unstaged tracked edits
+# or genuinely untracked files count as unexpected qualification side effects.
+if ! git diff --quiet; then
+    printf 'ERROR: qualification produced unstaged tracked changes.\n' >&2
+    git diff --stat >&2
+    exit 1
+fi
+untracked="$(git ls-files --others --exclude-standard)"
+if [[ -n "$untracked" ]]; then
+    printf 'ERROR: qualification produced untracked files:\n%s\n' "$untracked" >&2
     exit 1
 fi
 
