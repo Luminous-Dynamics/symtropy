@@ -51,6 +51,7 @@ expected_delta="$(mktemp)"
 actual_delta="$(mktemp)"
 trap 'rm -f "$expected_delta" "$actual_delta"' EXIT
 cat > "$expected_delta" <<'EOF'
+.github/workflows/cuf-core-contracts.yml
 crates/core/symtropy-sim-contracts/src/lib.rs
 crates/core/symtropy-sim-contracts/src/observation.rs
 docs/canon/DETERMINISTIC_FORCING_EVIDENCE_CONTRACT_V0_10_1.md
@@ -92,4 +93,4 @@ printf 'PASS: CUF v0.10.1 + Universal Matter v4.8 preflight composition is canon
 printf 'v4.8 preflight source: %s\n' "$V48_PREFLIGHT_SOURCE"
 printf 'forcing source:        %s\n' "$FORCING_SOURCE"
 printf 'forcing blobs:         byte-identical\n'
-printf 'integration delta:     canonical 9 paths\n'
+printf 'integration delta:     canonical 10 paths\n'
