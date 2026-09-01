@@ -3,9 +3,9 @@
 
 //! Evidence-bound directed watershed topology and causal reachability.
 //!
-//! This module propagates only causal relevance. It never propagates water,
-//! discharge, depth, salinity, sediment, or any other hydrology state. Changed
-//! downstream physical observations must still come from a Hydrology authority.
+//! This module propagates causal relevance only. It never propagates water,
+//! discharge, depth, salinity, sediment, or other hydrology state. A changed
+//! downstream physical observation must still be produced by Hydrology authority.
 
 use std::{
     collections::{BTreeMap, BTreeSet, VecDeque},
@@ -31,8 +31,7 @@ pub struct WatershedConnectionEvidence {
     pub downstream_scope: ScopeId,
     pub reference_frame: ReferenceFrameId,
     pub observed_at: SimInstant,
-    /// Hydrology-owned evidence for the existence/identity of this directed
-    /// drainage relation. It deliberately contains no world-owned flow value.
+    /// Hydrology-owned identity/evidence for this directed drainage relation.
     pub relation_digest: TypedDigest32,
 }
 
@@ -79,7 +78,7 @@ impl WatershedConnectionEvidence {
     }
 }
 
-/// One exact hydrology-authority view of a one-way drainage DAG.
+/// One exact Hydrology-authority view of a one-way drainage DAG.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct WatershedTopologySnapshot {
     pub schema_version: u32,
@@ -103,7 +102,6 @@ impl WatershedTopologySnapshot {
                 .cmp(&right.upstream_scope)
                 .then_with(|| left.downstream_scope.cmp(&right.downstream_scope))
         });
-
         let snapshot = Self {
             schema_version: WATERSHED_TOPOLOGY_SCHEMA_VERSION,
             hydrology_authority,
@@ -126,11 +124,6 @@ impl WatershedTopologySnapshot {
             return Err(WatershedConnectivityError::NoEdges);
         }
 
-        let mut previous_pair: Option<(&ScopeId, &ScopeId)> = None;
-        let mut nodes = BTreeSet::new();
-        let mut adjacency: BTreeMap<ScopeId, Vec<ScopeId>> = BTreeMap::new();
-        let mut indegree: BTreeMap<ScopeId, usize> = BTreeMap::new();
-
         for edge in &self.edges {
             edge.validate()?;
             if edge.hydrology_authority != self.hydrology_authority {
@@ -151,23 +144,26 @@ impl WatershedTopologySnapshot {
                     actual: edge.observed_at,
                 });
             }
+        }
 
-            if let Some((previous_upstream, previous_downstream)) = previous_pair {
-                let pair = (&edge.upstream_scope, &edge.downstream_scope);
-                let previous = (previous_upstream, previous_downstream);
-                if pair <= previous {
-                    return if pair == previous {
-                        Err(WatershedConnectivityError::DuplicateEdge {
-                            upstream: edge.upstream_scope.clone(),
-                            downstream: edge.downstream_scope.clone(),
-                        })
-                    } else {
-                        Err(WatershedConnectivityError::NonCanonicalEdgeOrder)
-                    };
-                }
+        for pair in self.edges.windows(2) {
+            let left = (&pair[0].upstream_scope, &pair[0].downstream_scope);
+            let right = (&pair[1].upstream_scope, &pair[1].downstream_scope);
+            if left == right {
+                return Err(WatershedConnectivityError::DuplicateEdge {
+                    upstream: pair[1].upstream_scope.clone(),
+                    downstream: pair[1].downstream_scope.clone(),
+                });
             }
-            previous_pair = Some((&edge.upstream_scope, &edge.downstream_scope));
+            if left > right {
+                return Err(WatershedConnectivityError::NonCanonicalEdgeOrder);
+            }
+        }
 
+        let mut nodes = BTreeSet::new();
+        let mut adjacency: BTreeMap<ScopeId, Vec<ScopeId>> = BTreeMap::new();
+        let mut indegree: BTreeMap<ScopeId, usize> = BTreeMap::new();
+        for edge in &self.edges {
             nodes.insert(edge.upstream_scope.clone());
             nodes.insert(edge.downstream_scope.clone());
             adjacency
@@ -177,17 +173,15 @@ impl WatershedTopologySnapshot {
             indegree.entry(edge.upstream_scope.clone()).or_insert(0);
             *indegree.entry(edge.downstream_scope.clone()).or_insert(0) += 1;
         }
-
-        for downstream in adjacency.values_mut() {
-            downstream.sort();
+        for children in adjacency.values_mut() {
+            children.sort();
         }
 
-        let mut ready: BTreeSet<_> = indegree
+        let mut ready: BTreeSet<ScopeId> = indegree
             .iter()
             .filter_map(|(scope, degree)| (*degree == 0).then_some(scope.clone()))
             .collect();
         let mut visited = 0_usize;
-
         while let Some(scope) = ready.pop_first() {
             visited += 1;
             if let Some(children) = adjacency.get(&scope) {
@@ -202,7 +196,6 @@ impl WatershedTopologySnapshot {
                 }
             }
         }
-
         if visited != nodes.len() {
             return Err(WatershedConnectivityError::CycleDetected);
         }
@@ -238,24 +231,24 @@ impl WatershedTopologySnapshot {
         .map_err(WatershedConnectivityError::Contract)
     }
 
-    /// Compute potential downstream causal relevance only.
+    /// Potential downstream causal relevance only.
     ///
-    /// Minimum hop count is graph-theoretic, not a travel-time estimate. This
-    /// result must never be interpreted as a physical hydrology transition.
+    /// `minimum_hops` is graph-theoretic. It is not travel time, distance,
+    /// attenuation, discharge, probability, or any physical transition value.
     pub fn downstream_reachability(
         &self,
         source: &ScopeId,
     ) -> Result<Vec<DownstreamCausalScope>, WatershedConnectivityError> {
         self.validate()?;
-        let mut adjacency: BTreeMap<&ScopeId, Vec<&ScopeId>> = BTreeMap::new();
+        let mut adjacency: BTreeMap<ScopeId, Vec<ScopeId>> = BTreeMap::new();
         let mut known = BTreeSet::new();
         for edge in &self.edges {
-            known.insert(&edge.upstream_scope);
-            known.insert(&edge.downstream_scope);
+            known.insert(edge.upstream_scope.clone());
+            known.insert(edge.downstream_scope.clone());
             adjacency
-                .entry(&edge.upstream_scope)
+                .entry(edge.upstream_scope.clone())
                 .or_default()
-                .push(&edge.downstream_scope);
+                .push(edge.downstream_scope.clone());
         }
         if !known.contains(source) {
             return Err(WatershedConnectivityError::UnknownSource(source.clone()));
@@ -266,21 +259,19 @@ impl WatershedTopologySnapshot {
 
         let mut queue = VecDeque::new();
         let mut minimum_hops: BTreeMap<ScopeId, u32> = BTreeMap::new();
-        queue.push_back((source, 0_u32));
-
+        queue.push_back((source.clone(), 0_u32));
         while let Some((scope, hops)) = queue.pop_front() {
-            if let Some(children) = adjacency.get(scope) {
+            if let Some(children) = adjacency.get(&scope) {
                 for child in children {
                     let child_hops = hops
                         .checked_add(1)
                         .ok_or(WatershedConnectivityError::HopOverflow)?;
-                    let should_visit = match minimum_hops.get(*child) {
-                        Some(existing) => child_hops < *existing,
-                        None => true,
-                    };
+                    let should_visit = minimum_hops
+                        .get(child)
+                        .is_none_or(|existing| child_hops < *existing);
                     if should_visit {
-                        minimum_hops.insert((*child).clone(), child_hops);
-                        queue.push_back((child, child_hops));
+                        minimum_hops.insert(child.clone(), child_hops);
+                        queue.push_back((child.clone(), child_hops));
                     }
                 }
             }
@@ -305,7 +296,7 @@ impl WatershedTopologySnapshot {
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct DownstreamCausalScope {
     pub scope: ScopeId,
-    /// Graph hops only. Not seconds, distance, discharge, attenuation, or flux.
+    /// Graph hops only; no physical hydrology quantity is encoded here.
     pub minimum_hops: u32,
 }
 
@@ -515,8 +506,6 @@ mod tests {
         let topology = topology(vec![edge("a", "b")]);
         let reach = topology.downstream_reachability(&scope("a")).unwrap();
         assert_eq!(reach[0].scope, scope("b"));
-        // The reachability result contains only scope + graph hops. No water
-        // level, flow, salinity, sediment, or travel-time value exists to infer.
         assert_eq!(reach[0].minimum_hops, 1);
     }
 
