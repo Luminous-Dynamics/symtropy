@@ -27,6 +27,7 @@ pub mod authority_view;
 pub mod bridge;
 pub mod fidelity;
 pub mod grid;
+mod observation_bridge;
 pub mod residency;
 pub mod scale;
 pub mod snapshot;
