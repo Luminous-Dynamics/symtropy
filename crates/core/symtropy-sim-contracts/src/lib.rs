@@ -10,7 +10,13 @@ use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use std::{error::Error, fmt};
 
+pub mod continuation;
 pub mod observation;
+pub use continuation::{
+    ChildManifestRef, ContinuationError, ContinuationRequirement, DomainContinuationEntry,
+    FixedTimebase, LifecycleMode, WorldContinuationManifest,
+    FIXED_TIMEBASE_SCHEMA_VERSION, WORLD_CONTINUATION_MANIFEST_SCHEMA_VERSION,
+};
 pub use observation::{DeterministicForcingEvidence, ForcingModelId, ObservationEvidence};
 
 pub const SIM_CONTRACT_SCHEMA_VERSION: u32 = 1;
@@ -32,6 +38,10 @@ macro_rules! define_id {
                 Ok(Self(value))
             }
 
+            pub fn validate(&self) -> Result<(), ContractError> {
+                validate_identity($kind, &self.0)
+            }
+
             pub fn as_str(&self) -> &str {
                 &self.0
             }
@@ -49,6 +59,9 @@ define_id!(AuthorityId, "authority");
 define_id!(ScopeId, "scope");
 define_id!(ReferenceFrameId, "reference-frame");
 define_id!(RepresentationId, "representation");
+define_id!(WorldInstanceId, "world-instance");
+define_id!(TimebaseId, "timebase");
+define_id!(SnapshotCodecId, "snapshot-codec");
 
 /// Absolute simulation coordinate used across gameplay, planetary, and
 /// geological timescales. Wall-clock time is never implied by this value.
@@ -234,6 +247,11 @@ impl RepresentationTransferReceipt {
                 actual: self.schema_version,
             });
         }
+        self.authority.validate()?;
+        self.scope.validate()?;
+        self.reference_frame.validate()?;
+        self.from_representation.validate()?;
+        self.to_representation.validate()?;
         if self.from_representation == self.to_representation {
             return Err(ContractError::SameRepresentation);
         }
@@ -367,7 +385,7 @@ impl fmt::Display for ContractError {
                 formatter,
                 "nanoseconds must be less than {NANOS_PER_SECOND}, got {value}"
             ),
-            Self::TimeOverflow => write!(formatter, "simulation instant overflow"),
+            Self::TimeOverflow => formatter.write_str("simulation instant overflow"),
             Self::UnsupportedSchema { expected, actual } => write!(
                 formatter,
                 "unsupported simulation contract schema {actual}; expected {expected}"

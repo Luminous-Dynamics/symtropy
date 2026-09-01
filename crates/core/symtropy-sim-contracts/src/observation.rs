@@ -58,6 +58,10 @@ impl ObservationEvidence {
                 actual: self.schema_version,
             });
         }
+        self.authority.validate()?;
+        self.scope.validate()?;
+        self.reference_frame.validate()?;
+        self.representation.validate()?;
         self.state_digest.validate()
     }
 
@@ -101,6 +105,10 @@ impl ForcingModelId {
         let value = value.into();
         validate_identity("forcing-model", &value)?;
         Ok(Self(value))
+    }
+
+    pub fn validate(&self) -> Result<(), ContractError> {
+        validate_identity("forcing-model", &self.0)
     }
 
     pub fn as_str(&self) -> &str {
@@ -159,6 +167,9 @@ impl DeterministicForcingEvidence {
                 actual: self.schema_version,
             });
         }
+        self.model.validate()?;
+        self.scope.validate()?;
+        self.reference_frame.validate()?;
         self.model_contract.validate()?;
         self.input_digest.validate()?;
         self.output_digest.validate()?;
@@ -242,6 +253,18 @@ mod tests {
     }
 
     #[test]
+    fn malformed_deserialized_observation_identity_is_rejected() {
+        let observation = evidence("sol:mars:jezero/sector-17", b"state");
+        let mut value = serde_json::to_value(&observation).unwrap();
+        value["scope"] = serde_json::Value::String("bad scope".to_owned());
+        let restored: ObservationEvidence = serde_json::from_value(value).unwrap();
+        assert!(matches!(
+            restored.validate(),
+            Err(ContractError::InvalidIdentity { .. })
+        ));
+    }
+
+    #[test]
     fn forcing_digest_is_stable_and_input_sensitive() {
         let a = forcing(b"seed=7;x=3;z=9;day=1", b"rain=12mm");
         let same = forcing(b"seed=7;x=3;z=9;day=1", b"rain=12mm");
@@ -269,5 +292,17 @@ mod tests {
     #[test]
     fn invalid_forcing_model_identity_is_rejected() {
         assert!(ForcingModelId::parse("weather model with spaces").is_err());
+    }
+
+    #[test]
+    fn malformed_deserialized_forcing_model_is_rejected() {
+        let forcing = forcing(b"input", b"output");
+        let mut value = serde_json::to_value(&forcing).unwrap();
+        value["model"] = serde_json::Value::String("bad model".to_owned());
+        let restored: DeterministicForcingEvidence = serde_json::from_value(value).unwrap();
+        assert!(matches!(
+            restored.validate(),
+            Err(ContractError::InvalidIdentity { .. })
+        ));
     }
 }
