@@ -1,0 +1,73 @@
+name: CUF Core Contracts
+
+on:
+  pull_request:
+    paths:
+      - "crates/core/symtropy-sim-contracts/**"
+      - "rust-toolchain.toml"
+      - ".github/workflows/cuf-core-contracts.yml"
+  push:
+    branches:
+      - "core/cuf-*"
+      - "integration/cuf-*"
+    paths:
+      - "crates/core/symtropy-sim-contracts/**"
+      - "rust-toolchain.toml"
+      - ".github/workflows/cuf-core-contracts.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: cuf-core-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  contracts:
+    name: Core contracts / Rust 1.96.0
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install pinned Rust toolchain
+        uses: dtolnay/rust-toolchain@1.96.0
+        with:
+          components: clippy,rustfmt
+
+      # The root Cargo.lock does not yet contain symtropy-sim-contracts; that
+      # workspace-lock update remains part of full/local qualification. Tier A
+      # intentionally proves only that this dependency-light crate compiles and
+      # lints in isolation under its declared semver constraints.
+      - name: Build standalone core fixture
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf /tmp/symtropy-cuf-core
+          mkdir -p /tmp/symtropy-cuf-core
+          cp -R crates/core/symtropy-sim-contracts/. /tmp/symtropy-cuf-core/
+          rm -f /tmp/symtropy-cuf-core/Cargo.lock
+
+      - name: Verify standalone manifest has no path dependencies
+        shell: bash
+        working-directory: /tmp/symtropy-cuf-core
+        run: |
+          set -euo pipefail
+          if grep -Eq 'path[[:space:]]*=' Cargo.toml; then
+            echo 'ERROR: symtropy-sim-contracts gained a path dependency; standalone CI boundary must be reviewed.' >&2
+            exit 1
+          fi
+
+      - name: Format
+        working-directory: /tmp/symtropy-cuf-core
+        run: cargo fmt --all -- --check
+
+      - name: Test
+        working-directory: /tmp/symtropy-cuf-core
+        run: cargo test --all-targets
+
+      - name: Clippy
+        working-directory: /tmp/symtropy-cuf-core
+        run: cargo clippy --all-targets -- -D warnings
