@@ -8,5 +8,8 @@ description = "Macro/micro world bridge: civilization sim ↔ real-time gameplay
 [dependencies]
 mycelix-multiworld-sim = { path = "../../../../mycelix-multiworld-sim" }
 crossbeam-channel = "0.5"
+sha2 = "0.10"
+symtropy-basin = { path = "../symtropy-basin" }
 symtropy-consciousness-physics = { version = "0.2.0", path = "../../domains/symtropy-consciousness-physics" }
+symtropy-lifesim-core = { path = "../symtropy-lifesim-core" }
 symtropy-sim-contracts = { path = "../../core/symtropy-sim-contracts" }
