@@ -6,7 +6,7 @@
 //! a wide-range simulation instant, typed digests, and receipts proving that an
 //! authority changed representation without silently changing causal truth.
 
-use serde::{Deserialize, Serialize};
+use serde::{Deserialize, Deserializer, Serialize};
 use sha2::{Digest, Sha256};
 use std::{error::Error, fmt};
 
@@ -14,7 +14,7 @@ pub mod continuation;
 pub mod observation;
 pub use continuation::{
     ChildManifestRef, ContinuationError, ContinuationRequirement, DomainContinuationEntry,
-    FixedTimebase, LifecycleMode, WorldContinuationManifest,
+    FixedTimebase, LifecycleMode, ResumeIdentityClass, WorldContinuationManifest,
     FIXED_TIMEBASE_SCHEMA_VERSION, WORLD_CONTINUATION_MANIFEST_SCHEMA_VERSION,
 };
 pub use observation::{DeterministicForcingEvidence, ForcingModelId, ObservationEvidence};
@@ -65,7 +65,7 @@ define_id!(SnapshotCodecId, "snapshot-codec");
 
 /// Absolute simulation coordinate used across gameplay, planetary, and
 /// geological timescales. Wall-clock time is never implied by this value.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize)]
 pub struct SimInstant {
     pub seconds_from_genesis: i64,
     pub nanos: u32,
@@ -78,13 +78,19 @@ impl SimInstant {
     };
 
     pub fn new(seconds_from_genesis: i64, nanos: u32) -> Result<Self, ContractError> {
-        if nanos >= NANOS_PER_SECOND {
-            return Err(ContractError::InvalidNanoseconds(nanos));
-        }
-        Ok(Self {
+        let instant = Self {
             seconds_from_genesis,
             nanos,
-        })
+        };
+        instant.validate()?;
+        Ok(instant)
+    }
+
+    pub fn validate(&self) -> Result<(), ContractError> {
+        if self.nanos >= NANOS_PER_SECOND {
+            return Err(ContractError::InvalidNanoseconds(self.nanos));
+        }
+        Ok(())
     }
 
     /// Adds a signed nanosecond delta while preserving canonical
@@ -109,6 +115,22 @@ impl SimInstant {
         seconds * i128::from(NANOS_PER_SECOND)
             + i128::from(self.nanos)
             - i128::from(earlier.nanos)
+    }
+}
+
+impl<'de> Deserialize<'de> for SimInstant {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        #[derive(Deserialize)]
+        struct SimInstantRepr {
+            seconds_from_genesis: i64,
+            nanos: u32,
+        }
+
+        let repr = SimInstantRepr::deserialize(deserializer)?;
+        Self::new(repr.seconds_from_genesis, repr.nanos).map_err(serde::de::Error::custom)
     }
 }
 
@@ -252,6 +274,7 @@ impl RepresentationTransferReceipt {
         self.reference_frame.validate()?;
         self.from_representation.validate()?;
         self.to_representation.validate()?;
+        self.at.validate()?;
         if self.from_representation == self.to_representation {
             return Err(ContractError::SameRepresentation);
         }
@@ -450,6 +473,17 @@ mod tests {
         assert_eq!(earlier.seconds_from_genesis, -1);
         assert_eq!(earlier.nanos, 999_999_900);
         assert_eq!(instant.nanoseconds_since(earlier), 200);
+    }
+
+    #[test]
+    fn sim_instant_deserialization_rejects_noncanonical_nanos() {
+        let invalid = r#"{"seconds_from_genesis":0,"nanos":1000000000}"#;
+        let result: Result<SimInstant, _> = serde_json::from_str(invalid);
+        assert!(result.is_err());
+
+        let boundary = r#"{"seconds_from_genesis":-1,"nanos":999999999}"#;
+        let restored: SimInstant = serde_json::from_str(boundary).unwrap();
+        assert_eq!(restored, SimInstant::new(-1, 999_999_999).unwrap());
     }
 
     #[test]
