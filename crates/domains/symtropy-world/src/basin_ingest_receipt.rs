@@ -24,6 +24,31 @@ pub const BASIN_ENVIRONMENT_INGEST_RECEIPT_DOMAIN: &str =
 pub const BASIN_ENVIRONMENT_POLICY_DOMAIN_PREFIX: &str = "symtropy.basin.environment-policy.";
 pub const MAX_ENVIRONMENT_OBSERVATIONS: usize = 4;
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
+pub enum EnvironmentalObservationRole {
+    Terrain,
+    Hydrology,
+    Climate,
+    Ecology,
+}
+
+impl EnvironmentalObservationRole {
+    const fn stable_code(self) -> u8 {
+        match self {
+            Self::Terrain => 0,
+            Self::Hydrology => 1,
+            Self::Climate => 2,
+            Self::Ecology => 3,
+        }
+    }
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct BasinEnvironmentalObservation {
+    pub role: EnvironmentalObservationRole,
+    pub evidence: ObservationEvidence,
+}
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum BasinIngestEffect {
     StateChanged,
@@ -38,9 +63,10 @@ pub struct BasinEnvironmentalIngestReceipt {
     pub scope: ScopeId,
     pub reference_frame: ReferenceFrameId,
     pub at: SimInstant,
-    /// Semantic source order is terrain → hydrology → climate → ecology, with
-    /// absent domains omitted.
-    pub source_observations: Vec<ObservationEvidence>,
+    /// Canonical semantic order is Terrain → Hydrology → Climate → Ecology,
+    /// with absent domains omitted. Role tags are identity-bearing so the same
+    /// evidence cannot be silently reinterpreted as a different domain input.
+    pub source_observations: Vec<BasinEnvironmentalObservation>,
     pub prior_basin_state: TypedDigest32,
     pub transformation_policy: TypedDigest32,
     pub resulting_basin_state: TypedDigest32,
@@ -57,16 +83,31 @@ impl BasinEnvironmentalIngestReceipt {
         resulting_basin_state: TypedDigest32,
         causal_parents: Vec<TypedDigest32>,
     ) -> Result<Self, BasinEnvironmentalIngestError> {
-        let source_observations = [
-            bundle.terrain.as_ref(),
-            bundle.hydrology.as_ref(),
-            bundle.climate.as_ref(),
-            bundle.ecology.as_ref(),
-        ]
-        .into_iter()
-        .flatten()
-        .cloned()
-        .collect();
+        let mut source_observations = Vec::with_capacity(bundle.observation_count());
+        if let Some(evidence) = &bundle.terrain {
+            source_observations.push(BasinEnvironmentalObservation {
+                role: EnvironmentalObservationRole::Terrain,
+                evidence: evidence.clone(),
+            });
+        }
+        if let Some(evidence) = &bundle.hydrology {
+            source_observations.push(BasinEnvironmentalObservation {
+                role: EnvironmentalObservationRole::Hydrology,
+                evidence: evidence.clone(),
+            });
+        }
+        if let Some(evidence) = &bundle.climate {
+            source_observations.push(BasinEnvironmentalObservation {
+                role: EnvironmentalObservationRole::Climate,
+                evidence: evidence.clone(),
+            });
+        }
+        if let Some(evidence) = &bundle.ecology {
+            source_observations.push(BasinEnvironmentalObservation {
+                role: EnvironmentalObservationRole::Ecology,
+                evidence: evidence.clone(),
+            });
+        }
 
         let receipt = Self {
             schema_version: BASIN_ENVIRONMENT_INGEST_RECEIPT_SCHEMA_VERSION,
@@ -133,7 +174,19 @@ impl BasinEnvironmentalIngestReceipt {
             ));
         }
 
-        for observation in &self.source_observations {
+        let mut previous_role = None;
+        for source in &self.source_observations {
+            if let Some(previous) = previous_role {
+                if source.role <= previous {
+                    return Err(BasinEnvironmentalIngestError::NonCanonicalObservationOrder {
+                        previous,
+                        actual: source.role,
+                    });
+                }
+            }
+            previous_role = Some(source.role);
+
+            let observation = &source.evidence;
             observation
                 .validate()
                 .map_err(BasinEnvironmentalIngestError::Contract)?;
@@ -184,8 +237,10 @@ impl BasinEnvironmentalIngestReceipt {
                 BasinEnvironmentalIngestError::LengthOverflow("source-observations")
             })?,
         );
-        for observation in &self.source_observations {
-            let evidence_digest = observation
+        for source in &self.source_observations {
+            hash_u8(&mut hasher, source.role.stable_code());
+            let evidence_digest = source
+                .evidence
                 .digest()
                 .map_err(BasinEnvironmentalIngestError::Contract)?;
             hash_typed_digest(&mut hasher, &evidence_digest);
@@ -236,8 +291,14 @@ fn validate_basin_state_digest(
 }
 
 fn hash_string(hasher: &mut Sha256, value: &str) {
+    // All identity/domain strings entering a valid receipt are contract-bounded
+    // well below u64::MAX, so this conversion cannot truncate in practice.
     hash_u64(hasher, value.len() as u64);
     hasher.update(value.as_bytes());
+}
+
+fn hash_u8(hasher: &mut Sha256, value: u8) {
+    hasher.update([value]);
 }
 
 fn hash_u32(hasher: &mut Sha256, value: u32) {
@@ -281,6 +342,10 @@ pub enum BasinEnvironmentalIngestError {
         maximum: usize,
         actual: usize,
     },
+    NonCanonicalObservationOrder {
+        previous: EnvironmentalObservationRole,
+        actual: EnvironmentalObservationRole,
+    },
     ScopeMismatch {
         expected: ScopeId,
         actual: ScopeId,
@@ -320,6 +385,10 @@ impl fmt::Display for BasinEnvironmentalIngestError {
                 formatter,
                 "environment ingest receipt has {actual} causal parents; maximum is {maximum}"
             ),
+            Self::NonCanonicalObservationOrder { previous, actual } => write!(
+                formatter,
+                "environment observation roles are not unique canonical order: {previous:?} then {actual:?}"
+            ),
             Self::ScopeMismatch { expected, actual } => write!(
                 formatter,
                 "environment observation scope {actual} does not match receipt scope {expected}"
@@ -356,13 +425,11 @@ impl Error for BasinEnvironmentalIngestError {}
 mod tests {
     use super::*;
     use crate::{
-        BodyCellIdentity, BodyId, DerivedDomainView, GridSystem, HexCellId,
-        HydrologyCellSummary, PlanetCellAuthorityView, TerrainCellSummary,
+        BasinCausalStateIdentity, BodyCellIdentity, BodyId, DerivedDomainView, GridSystem,
+        HexCellId, HydrologyCellSummary, PlanetCellAuthorityView, TerrainCellSummary,
     };
     use symtropy_basin::BasinWorld;
     use symtropy_sim_contracts::RepresentationId;
-
-    use crate::BasinCausalStateIdentity;
 
     fn cell() -> PlanetCellAuthorityView {
         PlanetCellAuthorityView {
@@ -479,6 +546,18 @@ mod tests {
         let a = receipt(&bundle(b"terrain-a"));
         let b = receipt(&bundle(b"terrain-b"));
         assert_ne!(a.digest().unwrap(), b.digest().unwrap());
+    }
+
+    #[test]
+    fn source_roles_are_unique_and_canonical() {
+        let mut receipt = receipt(&bundle(b"terrain-a"));
+        assert_eq!(receipt.source_observations[0].role, EnvironmentalObservationRole::Terrain);
+        assert_eq!(receipt.source_observations[1].role, EnvironmentalObservationRole::Hydrology);
+        receipt.source_observations.swap(0, 1);
+        assert!(matches!(
+            receipt.validate(),
+            Err(BasinEnvironmentalIngestError::NonCanonicalObservationOrder { .. })
+        ));
     }
 
     #[test]
