@@ -290,6 +290,18 @@ If a canonical journal head is part of Q2, use the serializer-independent v2 eve
 
 The current v1 JSON/serde chain may still be tested for its own integrity semantics, but its head must not be silently relabeled as a cross-version canonical event identity.
 
+A Q2-canonical journal verifier must prove more than self-consistent hashes. It must also fail closed when:
+
+- a causal-parent ID does not exist in the verified journal/scope;
+- a causal parent occurs after the child event;
+- causal-parent ordering violates the v2 canonical parent-set/order contract;
+- a duplicate parent is forbidden by the event schema;
+- an event or payload schema required for replay is unknown;
+- the event kind/namespace/identifier violates the canonical validated grammar;
+- a historical v1 event is interpreted as v2 without an explicit migration/bridge rule.
+
+A linear previous-hash chain is integrity evidence; it is not by itself proof that the declared causal graph is valid.
+
 ## 14. Worktree purity
 
 Qualification fails if unexpected repository mutation occurs.
