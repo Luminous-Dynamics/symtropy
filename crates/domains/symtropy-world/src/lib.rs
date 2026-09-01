@@ -24,6 +24,7 @@
 //! are sent back via the reverse channel.
 
 pub mod authority_view;
+pub mod basin_ingest_receipt;
 pub mod basin_state;
 pub mod bridge;
 pub mod environment_evidence;
@@ -38,6 +39,11 @@ pub mod time_control;
 pub use authority_view::{
     AuthorityViewError, BodyCellIdentity, ClimateCellSummary, DerivedDomainView,
     EcologyCellSummary, HydrologyCellSummary, PlanetCellAuthorityView, TerrainCellSummary,
+};
+pub use basin_ingest_receipt::{
+    BASIN_ENVIRONMENT_INGEST_RECEIPT_DOMAIN, BASIN_ENVIRONMENT_INGEST_RECEIPT_SCHEMA_VERSION,
+    BASIN_ENVIRONMENT_POLICY_DOMAIN_PREFIX, BasinEnvironmentalIngestError,
+    BasinEnvironmentalIngestReceipt, BasinIngestEffect,
 };
 pub use basin_state::{
     BASIN_STATE_DIGEST_DOMAIN, BASIN_STATE_SCHEMA_VERSION, BasinCausalStateIdentity,
