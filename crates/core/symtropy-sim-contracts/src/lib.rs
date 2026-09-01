@@ -11,12 +11,14 @@ use sha2::{Digest, Sha256};
 use std::{error::Error, fmt};
 
 pub mod continuation;
+pub mod lineage;
 pub mod observation;
 pub use continuation::{
     ChildManifestRef, ContinuationError, ContinuationRequirement, DomainContinuationEntry,
     FixedTimebase, LifecycleMode, ResumeIdentityClass, WorldContinuationManifest,
     FIXED_TIMEBASE_SCHEMA_VERSION, WORLD_CONTINUATION_MANIFEST_SCHEMA_VERSION,
 };
+pub use lineage::{validate_manifest_lineage, LineageError};
 pub use observation::{DeterministicForcingEvidence, ForcingModelId, ObservationEvidence};
 
 pub const SIM_CONTRACT_SCHEMA_VERSION: u32 = 1;
