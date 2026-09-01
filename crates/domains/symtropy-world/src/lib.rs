@@ -25,8 +25,10 @@
 
 pub mod authority_view;
 pub mod bridge;
+pub mod environment_evidence;
 pub mod fidelity;
 pub mod grid;
+mod observation_bridge;
 pub mod residency;
 pub mod scale;
 pub mod snapshot;
@@ -37,6 +39,7 @@ pub use authority_view::{
     EcologyCellSummary, HydrologyCellSummary, PlanetCellAuthorityView, TerrainCellSummary,
 };
 pub use bridge::WorldBridge;
+pub use environment_evidence::{EnvironmentalEvidenceBundle, EnvironmentalEvidenceError};
 pub use fidelity::{
     FidelityDemand, FidelityError, FidelityScheduler, FidelitySelectionPlan, RefinementReason,
     RefinementRequest, ResolutionResult,

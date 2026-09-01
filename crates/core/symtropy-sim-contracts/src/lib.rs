@@ -10,6 +10,9 @@ use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use std::{error::Error, fmt};
 
+pub mod observation;
+pub use observation::ObservationEvidence;
+
 pub const SIM_CONTRACT_SCHEMA_VERSION: u32 = 1;
 pub const NANOS_PER_SECOND: u32 = 1_000_000_000;
 pub const MAX_CAUSAL_PARENTS: usize = 64;
