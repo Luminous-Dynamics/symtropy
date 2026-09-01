@@ -53,6 +53,15 @@ if [[ -e "$OUT" ]]; then
 fi
 mkdir -p "$OUT"
 
+# Prove the committed integration composition before testing the staged v4.8
+# replay. This output becomes part of the checksum-manifested evidence capsule.
+if ! bash scripts/verify-cuf-v0.10.1-v4.8-composition.sh > "$OUT/COMPOSITION.txt" 2>&1; then
+    printf 'ERROR: CUF v0.10.1 + v4.8 integration composition verification failed.\n' >&2
+    cat "$OUT/COMPOSITION.txt" >&2
+    rm -rf "$OUT"
+    exit 1
+fi
+
 printf '%s\n' "$base_head" > "$OUT/BASE_HEAD.txt"
 printf '%s\n' "$staged_tree" > "$OUT/STAGED_TREE.txt"
 printf '%s\n' "$actual_patch_sha" > "$OUT/UNIVERSAL_MATTER_V4_8_PATCH_SHA256.txt"
@@ -77,6 +86,7 @@ integration_head=$base_head
 qualified_staged_tree=$staged_tree
 universal_matter_patch_sha256=$actual_patch_sha
 cuf_forcing_contract=symtropy.deterministic-forcing-evidence.digest.v1
+cuf_v4.8_composition_proof=COMPOSITION.txt
 expected_v4.8_staged_paths=$EXPECTED_STAGED_PATHS
 EOF
 
