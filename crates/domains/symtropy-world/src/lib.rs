@@ -30,6 +30,7 @@ pub mod bridge;
 pub mod environment_evidence;
 pub mod fidelity;
 pub mod grid;
+pub mod living_watershed;
 mod observation_bridge;
 pub mod residency;
 pub mod scale;
@@ -59,6 +60,14 @@ pub use fidelity::{
 pub use grid::{
     BiomeKind, BodyHexGrid, BodyId, EarthH3CellRef, GridSystem, HexCellId, HydrologyState,
     PlanetCell, ProceduralBodyGrid, normalize_lon_deg,
+};
+pub use living_watershed::{
+    FLOOD_MAX_SLOPE, FLOOD_MIN_FLOW_ACCUMULATION, FLOOD_SURFACE_WATER_M,
+    LIVING_WATERSHED_POLICY_DOMAIN, LIVING_WATERSHED_POLICY_SCHEMA_VERSION,
+    RIPARIAN_MAX_SALINITY, RIPARIAN_MAX_SLOPE, RIPARIAN_MAX_SURFACE_WATER_M,
+    RIPARIAN_MAX_TEMPERATURE_K, RIPARIAN_MIN_SURFACE_WATER_M, RIPARIAN_MIN_TEMPERATURE_K,
+    LivingWatershedEvaluation, LivingWatershedPolicyError, LivingWatershedPolicyV1,
+    LivingWatershedProposal, LivingWatershedReason,
 };
 pub use residency::{
     ActiveRepresentation, RepresentationLease, RepresentationReleasePermit, ResidencyDecision,
