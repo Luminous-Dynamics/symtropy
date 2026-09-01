@@ -1,0 +1,76 @@
+name: CUF Core Contracts
+
+on:
+  pull_request:
+    paths:
+      - "crates/core/symtropy-sim-contracts/**"
+      - "Cargo.lock"
+      - "rust-toolchain.toml"
+      - ".github/workflows/cuf-core-contracts.yml"
+  push:
+    branches:
+      - "core/cuf-*"
+      - "integration/cuf-*"
+    paths:
+      - "crates/core/symtropy-sim-contracts/**"
+      - "Cargo.lock"
+      - "rust-toolchain.toml"
+      - ".github/workflows/cuf-core-contracts.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: cuf-core-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  contracts:
+    name: Core contracts / Rust 1.96.0
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install pinned Rust toolchain
+        uses: dtolnay/rust-toolchain@1.96.0
+        with:
+          components: clippy,rustfmt
+
+      - name: Cache Rust dependencies
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: /tmp/symtropy-cuf-core
+
+      - name: Build standalone dependency-locked core fixture
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf /tmp/symtropy-cuf-core
+          mkdir -p /tmp/symtropy-cuf-core
+          cp -R crates/core/symtropy-sim-contracts/. /tmp/symtropy-cuf-core/
+          cp Cargo.lock /tmp/symtropy-cuf-core/Cargo.lock
+
+      - name: Verify standalone manifest has no path dependencies
+        shell: bash
+        working-directory: /tmp/symtropy-cuf-core
+        run: |
+          set -euo pipefail
+          if grep -Eq 'path[[:space:]]*=' Cargo.toml; then
+            echo 'ERROR: symtropy-sim-contracts gained a path dependency; standalone CI boundary must be reviewed.' >&2
+            exit 1
+          fi
+
+      - name: Format
+        working-directory: /tmp/symtropy-cuf-core
+        run: cargo fmt --all -- --check
+
+      - name: Test
+        working-directory: /tmp/symtropy-cuf-core
+        run: cargo test --locked --all-targets
+
+      - name: Clippy
+        working-directory: /tmp/symtropy-cuf-core
+        run: cargo clippy --locked --all-targets -- -D warnings
