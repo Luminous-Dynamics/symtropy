@@ -119,6 +119,8 @@ for expected in \
     'qualification_tooling=TOOLING_BLOBS_BEFORE.txt' \
     'v4.8_patch_path_set=PATCH_PATHS.txt' \
     'qualified_staged_path_set=STAGED_PATHS.txt' \
+    'dependency_resolution=repository_Cargo.lock_locked' \
+    'tier_a_portability=SUPPLEMENTARY_NOT_PROMOTION' \
     'qualification_level=Q0/Q1_plus_continuation_core_only' \
     'q2_status=NOT_CLAIMED'; do
     if ! grep -Fxq "$expected" "$EVIDENCE/LINEAGE.txt"; then
@@ -130,12 +132,13 @@ done
 required_tool_paths=(
     scripts/preflight-universal-matter-v4.8.sh
     scripts/apply-universal-matter-v4.8.sh
+    scripts/run-cuf-v0.11-parent-candidate-local.sh
+    scripts/resume-cuf-v0.11-parent-candidate-local.sh
     scripts/verify-cuf-v0.11-parent-candidate.sh
     scripts/verify-cuf-v0.11-qualification-tooling.sh
     scripts/qualify-cuf-v0.11-parent-candidate.sh
     scripts/capture-cuf-v0.11-parent-candidate-evidence.sh
     scripts/qualify-universal-matter-v4.8-cuf-v0.10.1.sh
-    scripts/qualify-world-continuation-core-v0.1.sh
     scripts/qualify-cuf-v0.10.1-forcing.sh
     scripts/qualify-cuf-v0.10-stack.sh
     scripts/check-workspace.sh

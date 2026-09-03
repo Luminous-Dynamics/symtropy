@@ -16,12 +16,13 @@ CANDIDATE_HEAD="$(git rev-parse HEAD^{commit})"
 TOOLING_PATHS=(
     scripts/preflight-universal-matter-v4.8.sh
     scripts/apply-universal-matter-v4.8.sh
+    scripts/run-cuf-v0.11-parent-candidate-local.sh
+    scripts/resume-cuf-v0.11-parent-candidate-local.sh
     scripts/verify-cuf-v0.11-parent-candidate.sh
     scripts/verify-cuf-v0.11-qualification-tooling.sh
     scripts/qualify-cuf-v0.11-parent-candidate.sh
     scripts/capture-cuf-v0.11-parent-candidate-evidence.sh
     scripts/qualify-universal-matter-v4.8-cuf-v0.10.1.sh
-    scripts/qualify-world-continuation-core-v0.1.sh
     scripts/qualify-cuf-v0.10.1-forcing.sh
     scripts/qualify-cuf-v0.10-stack.sh
     scripts/check-workspace.sh

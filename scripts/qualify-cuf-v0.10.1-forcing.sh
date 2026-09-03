@@ -29,14 +29,14 @@ printf 'Cargo: %s\n' "$(cargo --version)"
 
 printf '\n== Core forcing evidence ==\n'
 cargo fmt --all -- --check
-cargo test -p symtropy-sim-contracts
-cargo clippy -p symtropy-sim-contracts --all-targets -- -D warnings
+cargo test --locked -p symtropy-sim-contracts
+cargo clippy --locked -p symtropy-sim-contracts --all-targets -- -D warnings
 
 printf '\n== Explicit forcing evidence tests ==\n'
-cargo test -p symtropy-sim-contracts forcing_digest_is_stable_and_input_sensitive
-cargo test -p symtropy-sim-contracts forcing_digest_is_output_sensitive
-cargo test -p symtropy-sim-contracts forcing_round_trip_preserves_identity
-cargo test -p symtropy-sim-contracts invalid_forcing_model_identity_is_rejected
+cargo test --locked -p symtropy-sim-contracts forcing_digest_is_stable_and_input_sensitive
+cargo test --locked -p symtropy-sim-contracts forcing_digest_is_output_sensitive
+cargo test --locked -p symtropy-sim-contracts forcing_round_trip_preserves_identity
+cargo test --locked -p symtropy-sim-contracts invalid_forcing_model_identity_is_rejected
 
 printf '\n== CUF v0.10 regression stack ==\n'
 bash scripts/qualify-cuf-v0.10-stack.sh

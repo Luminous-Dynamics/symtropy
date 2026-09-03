@@ -36,19 +36,19 @@ cargo fmt --all -- --check
 cargo fmt --manifest-path "$WORLD_MANIFEST" -- --check
 
 printf '\n== Core evidence contracts ==\n'
-cargo test -p symtropy-sim-contracts
-cargo clippy -p symtropy-sim-contracts --all-targets -- -D warnings
+cargo test --locked -p symtropy-sim-contracts
+cargo clippy --locked -p symtropy-sim-contracts --all-targets -- -D warnings
 
 printf '\n== Basin + LifeSim authority surfaces ==\n'
-cargo test -p symtropy-lifesim-core -p symtropy-basin
-cargo clippy -p symtropy-lifesim-core -p symtropy-basin --all-targets -- -D warnings
+cargo test --locked -p symtropy-lifesim-core -p symtropy-basin
+cargo clippy --locked -p symtropy-lifesim-core -p symtropy-basin --all-targets -- -D warnings
 
 printf '\n== World CUF v0.2-v0.10 ==\n'
-cargo test --manifest-path "$WORLD_MANIFEST"
-cargo clippy --manifest-path "$WORLD_MANIFEST" --all-targets -- -D warnings
+cargo test --locked --manifest-path "$WORLD_MANIFEST"
+cargo clippy --locked --manifest-path "$WORLD_MANIFEST" --all-targets -- -D warnings
 
 printf '\n== Explicit Living Watershed A→B→C proof ==\n'
-cargo test --manifest-path "$WORLD_MANIFEST" --test living_watershed_upstream_downstream
+cargo test --locked --manifest-path "$WORLD_MANIFEST" --test living_watershed_upstream_downstream
 
 printf '\n== Repository invariants ==\n'
 bash scripts/check-workspace.sh
