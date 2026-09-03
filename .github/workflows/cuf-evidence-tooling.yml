@@ -1,0 +1,159 @@
+name: CUF Evidence Tooling
+
+on:
+  pull_request:
+    paths:
+      - "scripts/*cuf-v0.11*"
+      - ".github/workflows/cuf-evidence-tooling.yml"
+  push:
+    branches:
+      - "integration/cuf-*"
+    paths:
+      - "scripts/*cuf-v0.11*"
+      - ".github/workflows/cuf-evidence-tooling.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: cuf-evidence-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  evidence-tooling:
+    name: Evidence tooling / Python 3.12
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    env:
+      PYTHONDONTWRITEBYTECODE: "1"
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+          fetch-depth: 1
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
+        with:
+          python-version: "3.12"
+
+      - name: Record dependency-light toolchain
+        shell: bash
+        run: |
+          set -euo pipefail
+          printf 'runner_os=%s\n' "$RUNNER_OS"
+          printf 'runner_arch=%s\n' "$RUNNER_ARCH"
+          printf 'image_os=%s\n' "${ImageOS:-unknown}"
+          printf 'image_version=%s\n' "${ImageVersion:-unknown}"
+          python --version
+          bash --version
+          git --version
+
+      - name: Compile semantic analyzer and regression suite without bytecode output
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+
+          for name in (
+              "scripts/analyze-cuf-v0.11-cargo-lock-delta.py",
+              "scripts/test-cuf-v0.11-cargo-lock-delta.py",
+          ):
+              source = Path(name).read_text(encoding="utf-8")
+              compile(source, name, "exec")
+              print(f"syntax-pass: {name}")
+          PY
+
+      - name: Run semantic analyzer regression suite
+        shell: bash
+        run: |
+          set -euo pipefail
+          python scripts/test-cuf-v0.11-cargo-lock-delta.py
+
+      - name: Parse real Cargo.lock as a zero semantic delta
+        shell: bash
+        run: |
+          set -euo pipefail
+          tmp_dir="$(mktemp -d)"
+          trap 'rm -rf "$tmp_dir"' EXIT
+
+          analyzer=scripts/analyze-cuf-v0.11-cargo-lock-delta.py
+
+          python "$analyzer" Cargo.lock Cargo.lock --format json > "$tmp_dir/first.json"
+          python "$analyzer" Cargo.lock Cargo.lock --format json > "$tmp_dir/second.json"
+          cmp -s "$tmp_dir/first.json" "$tmp_dir/second.json"
+
+          python "$analyzer" Cargo.lock Cargo.lock --format text > "$tmp_dir/first.txt"
+          python "$analyzer" Cargo.lock Cargo.lock --format text > "$tmp_dir/second.txt"
+          cmp -s "$tmp_dir/first.txt" "$tmp_dir/second.txt"
+
+          python - "$tmp_dir/first.json" <<'PY'
+          import json
+          import pathlib
+          import sys
+
+          result = json.loads(pathlib.Path(sys.argv[1]).read_text(encoding="utf-8"))
+          assert result["schema"] == "symtropy.cuf.cargo-lock-semantic-delta.v1"
+          assert result["lockfile_version_before"] == result["lockfile_version_after"]
+          assert result["package_count_before"] == result["package_count_after"]
+          assert result["added_packages"] == []
+          assert result["removed_packages"] == []
+          assert result["name_identity_sets_changed"] == []
+          assert result["checksum_changes"] == []
+          assert result["dependency_changes"] == []
+          assert all(value == 0 for value in result["summary"].values())
+          PY
+
+          grep -Fxq 'added_packages=0' "$tmp_dir/first.txt"
+          grep -Fxq 'removed_packages=0' "$tmp_dir/first.txt"
+          grep -Fxq 'name_identity_sets_changed=0' "$tmp_dir/first.txt"
+          grep -Fxq 'checksum_changes=0' "$tmp_dir/first.txt"
+          grep -Fxq 'dependency_changes=0' "$tmp_dir/first.txt"
+
+      - name: Validate CUF v0.11 shell syntax
+        shell: bash
+        run: |
+          set -euo pipefail
+          mapfile -t scripts < <(
+            find scripts -maxdepth 1 -type f -name '*cuf-v0.11*.sh' -print | LC_ALL=C sort
+          )
+          if [[ "${#scripts[@]}" -eq 0 ]]; then
+            echo 'ERROR: no CUF v0.11 shell scripts found.' >&2
+            exit 1
+          fi
+          printf 'Checking %s CUF v0.11 shell scripts:\n' "${#scripts[@]}"
+          printf '  %s\n' "${scripts[@]}"
+          for script in "${scripts[@]}"; do
+            bash -n "$script"
+          done
+
+      - name: Require observational checkout
+        shell: bash
+        run: |
+          set -euo pipefail
+          status="$(git status --porcelain=v1 --untracked-files=all)"
+          if [[ -n "$status" ]]; then
+            echo 'ERROR: evidence-tooling CI mutated the checkout:' >&2
+            printf '%s\n' "$status" >&2
+            exit 1
+          fi
+          echo 'PASS: evidence-tooling CI left the checkout byte-clean.'
+
+      - name: Evidence-tier boundary
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat <<'EOF'
+          PASS here means only:
+            - semantic analyzer Python syntax is valid without writing bytecode;
+            - its frozen regression suite passes;
+            - the analyzer parses the repository's current Cargo.lock as a deterministic zero delta;
+            - CUF v0.11 evidence shell scripts parse under bash;
+            - the hosted checks leave the repository checkout clean.
+
+          It does NOT claim Q0, Q1, Q2, Rust compilation, Nix qualification,
+          Universal Matter replay correctness, or Cargo.lock repair approval.
+          EOF
