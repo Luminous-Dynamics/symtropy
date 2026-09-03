@@ -100,10 +100,17 @@ require_staged_shape
 cargo_lock_before="$(git hash-object Cargo.lock)"
 staged_tree_before="$(git write-tree)"
 
+printf '\n== Exact Cargo.lock precheck ==\n'
+# Q1 qualifies the exact authored/staged repository tree. Do not let Cargo
+# reconcile or rewrite dependency identity during qualification and reject it
+# only after an expensive build. If the staged tree requires lock repair this
+# fails immediately and the repair becomes an explicit post-authorship commit.
+cargo metadata --locked --no-deps --format-version 1 >/dev/null
+
 printf '\n== Universal Matter v4.8 Terrain authority ==\n'
 cargo fmt --all -- --check
-cargo test -p symtropy-terrain
-cargo clippy -p symtropy-terrain --all-targets -- -D warnings
+cargo test --locked -p symtropy-terrain
+cargo clippy --locked -p symtropy-terrain --all-targets -- -D warnings
 
 if [[ -x scripts/verify-terrain-handoff.sh ]]; then
     printf '\n== Universal Matter handoff verification ==\n'

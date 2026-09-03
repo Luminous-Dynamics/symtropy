@@ -30,8 +30,13 @@ status_before="$(git status --short)"
 printf '\n== Q0/Q1 Universal Matter v4.8 + CUF v0.10.1 ==\n'
 bash scripts/qualify-universal-matter-v4.8-cuf-v0.10.1.sh
 
-printf '\n== Finalized dependency-light world continuation core ==\n'
-bash scripts/qualify-world-continuation-core-v0.1.sh
+printf '\n== Finalized continuation golden vectors under repository Cargo.lock ==\n'
+# The full CUF regression above already runs all symtropy-sim-contracts tests
+# and clippy under --locked. Re-run the canonical continuation vectors here as
+# an explicit parent-candidate assertion. The standalone Tier A qualifier is a
+# useful portability signal, but deliberately resolves semver dependencies and
+# therefore does not participate in exact-tree Q1 promotion evidence.
+cargo test --locked -p symtropy-sim-contracts --test continuation_golden
 
 printf '\n== Candidate identity after qualification ==\n'
 bash scripts/verify-cuf-v0.11-parent-candidate.sh
@@ -79,7 +84,7 @@ fi
 git diff --check
 git diff --cached --check
 
-printf '\nPASS: CUF v0.11 parent-candidate Q0/Q1 + continuation-core gates\n'
+printf '\nPASS: CUF v0.11 parent-candidate Q0/Q1 + lock-bound continuation gates\n'
 printf 'Candidate HEAD:        %s\n' "$(git rev-parse HEAD)"
 printf 'Candidate staged tree: %s\n' "$staged_tree_after"
 printf 'Cargo.lock unchanged:  %s\n' "$cargo_lock_after"

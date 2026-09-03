@@ -12,7 +12,7 @@ import tomllib
 
 metadata = json.loads(
     subprocess.check_output(
-        ["cargo", "metadata", "--format-version", "1", "--no-deps"],
+        ["cargo", "metadata", "--locked", "--format-version", "1", "--no-deps"],
         text=True,
     )
 )

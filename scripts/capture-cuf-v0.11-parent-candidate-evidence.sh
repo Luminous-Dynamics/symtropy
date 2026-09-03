@@ -89,15 +89,17 @@ printf '%s  Cargo.lock\n' "$(sha256sum Cargo.lock | awk '{print $1}')" > "$OUT/C
 git status --short > "$OUT/GIT_STATUS_BEFORE.txt"
 git diff --cached --stat > "$OUT/STAGED_DIFF_STAT.txt"
 
+# Record the toolchain from the same Nix development environment used by the
+# qualification gates. The capture script itself stays in the host shell so we
+# avoid a nested nix-develop wrapper around qualification.
 {
-    printf 'rustc: %s\n' "$(rustc --version)"
-    printf 'cargo: %s\n' "$(cargo --version)"
-    if command -v nix >/dev/null 2>&1; then
-        printf 'nix: %s\n' "$(nix --version)"
-    else
-        printf 'nix: unavailable\n'
-    fi
+    printf 'nix: %s\n' "$(nix --version)"
     printf 'system: %s\n' "$(uname -a)"
+    nix develop --command bash -lc '
+        set -euo pipefail
+        printf "rustc: %s\n" "$(rustc --version)"
+        printf "cargo: %s\n" "$(cargo --version)"
+    '
 } > "$OUT/TOOLCHAIN.txt"
 
 cat > "$OUT/LINEAGE.txt" <<EOF
@@ -110,6 +112,8 @@ parent_composition_proof=PARENT_COMPOSITION.txt
 qualification_tooling=TOOLING_BLOBS_BEFORE.txt
 v4.8_patch_path_set=PATCH_PATHS.txt
 qualified_staged_path_set=STAGED_PATHS.txt
+dependency_resolution=repository_Cargo.lock_locked
+tier_a_portability=SUPPLEMENTARY_NOT_PROMOTION
 qualification_level=Q0/Q1_plus_continuation_core_only
 q2_status=NOT_CLAIMED
 EOF

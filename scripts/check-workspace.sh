@@ -13,7 +13,7 @@
 # The fix is to assert PROPERTIES that stay true as the workspace grows,
 # rather than an enumeration that must be hand-maintained:
 #
-#   1. the workspace resolves at all
+#   1. the workspace resolves at all under the committed Cargo.lock
 #   2. exactly one Bevy version in the lockfile, matching the root manifest
 #      (this is the invariant the old `!= "0.18.1"` check was a proxy for —
 #      the dual-bevy/dual-wgpu duplication problem)
@@ -28,12 +28,12 @@ cd "$(dirname "${BASH_SOURCE[0]}")/.."
 fail=0
 note() { echo "FAIL: $*"; fail=1; }
 
-# --- 1. Workspace resolves -------------------------------------------------
-if ! metadata=$(cargo metadata --no-deps --format-version 1 2>&1); then
-  note "cargo metadata could not resolve the workspace:"
+# --- 1. Workspace resolves without lockfile reconciliation -----------------
+if ! metadata=$(cargo metadata --locked --no-deps --format-version 1 2>&1); then
+  note "cargo metadata --locked could not resolve the workspace:"
   printf '%s\n' "$metadata" | head -20
-  echo "Hint: a member crate with no build target produces this. Compare"
-  echo "      symthaea/scripts/check-workspace-targets.sh, same class of break."
+  echo "Hint: either a workspace member is invalid or Cargo.lock does not"
+  echo "      describe this exact tree. Lock reconciliation must be explicit."
   exit 1
 fi
 member_count=$(python3 -c '
