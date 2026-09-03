@@ -96,15 +96,28 @@ jobs:
           import sys
 
           result = json.loads(pathlib.Path(sys.argv[1]).read_text(encoding="utf-8"))
-          assert result["schema"] == "symtropy.cuf.cargo-lock-semantic-delta.v1"
-          assert result["lockfile_version_before"] == result["lockfile_version_after"]
-          assert result["package_count_before"] == result["package_count_after"]
-          assert result["added_packages"] == []
-          assert result["removed_packages"] == []
-          assert result["name_identity_sets_changed"] == []
-          assert result["checksum_changes"] == []
-          assert result["dependency_changes"] == []
-          assert all(value == 0 for value in result["summary"].values())
+
+          checks = (
+              (result.get("schema") == "symtropy.cuf.cargo-lock-semantic-delta.v1", "schema mismatch"),
+              (result.get("lockfile_version_before") == result.get("lockfile_version_after"), "lockfile version changed"),
+              (result.get("package_count_before") == result.get("package_count_after"), "package count changed"),
+              (result.get("added_packages") == [], "added packages reported for zero delta"),
+              (result.get("removed_packages") == [], "removed packages reported for zero delta"),
+              (result.get("name_identity_sets_changed") == [], "identity-set changes reported for zero delta"),
+              (result.get("checksum_changes") == [], "checksum changes reported for zero delta"),
+              (result.get("dependency_changes") == [], "dependency changes reported for zero delta"),
+              (
+                  isinstance(result.get("summary"), dict)
+                  and all(value == 0 for value in result["summary"].values()),
+                  "non-zero semantic summary for zero delta",
+              ),
+          )
+          failures = [message for passed, message in checks if not passed]
+          if failures:
+              for message in failures:
+                  print(f"ERROR: {message}", file=sys.stderr)
+              raise SystemExit(1)
+          print("PASS: real Cargo.lock produced an unconditional zero semantic delta")
           PY
 
           grep -Fxq 'added_packages=0' "$tmp_dir/first.txt"
@@ -151,6 +164,7 @@ jobs:
             - semantic analyzer Python syntax is valid without writing bytecode;
             - its frozen regression suite passes;
             - the analyzer parses the repository's current Cargo.lock as a deterministic zero delta;
+            - zero-delta conditions execute unconditionally rather than through Python assert;
             - CUF v0.11 evidence shell scripts parse under bash;
             - the hosted checks leave the repository checkout clean.
 
