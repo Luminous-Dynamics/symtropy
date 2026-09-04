@@ -157,9 +157,9 @@ Therefore:
 - v2 envelope deserialization validates the portable grammar of event IDs, actor/observer IDs, parent IDs, event kinds, and payload-schema identifiers at the serde boundary;
 - historical v1 `StableId` deserialization remains unchanged.
 
-`EventEnvelopeV2<T>` remains the structural carrier for tools that need to inspect individual unverified or future-schema records. Such envelopes do not become authoritative chain state until a current semantic verifier accepts the complete chain.
+`EventEnvelopeV2<T>` remains the structural carrier for tools that need to inspect individual unverified or future-schema records. A structurally decoded envelope can preserve unknown schema data, but it is not current-semantic authority. Such envelopes become authoritative chain state only after the complete chain is accepted by the current verifier.
 
-A structurally hash-consistent unknown schema is not interpreted under current v2 semantics.
+A structurally hash-consistent unknown schema is therefore inspectable as envelope data but is not interpreted under current v2 chain semantics.
 
 ## Frozen golden vector 001
 
