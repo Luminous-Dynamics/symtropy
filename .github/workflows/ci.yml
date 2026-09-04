@@ -6,6 +6,14 @@ on:
   pull_request:
     branches: [ "main" ]
 
+# Only the newest run for one PR/ref can provide authoritative evidence for
+# that head. Superseded runs waste runner capacity and can delay the run that
+# actually qualifies the current revision. PR numbers isolate independent PRs;
+# push events fall back to their ref so main/stabilize branches remain separate.
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 env:
   CARGO_TERM_COLOR: always
 
