@@ -156,11 +156,36 @@ impl<T: CanonicalEventPayload> EventEnvelopeV2<T> {
 }
 
 /// Append-only canonical v2 causal event chain.
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+///
+/// `EventChainV2` is an authoritative verified-chain type: persisted reconstruction and serde
+/// deserialization both run the full semantic verifier before returning a value. Tools that need
+/// to inspect structurally decoded but unverified/future-schema data should work with
+/// `EventEnvelopeV2` values instead.
+#[derive(Debug, Clone, PartialEq, Serialize)]
 pub struct EventChainV2<T> {
     namespace: StableIdNamespace,
     seed: u64,
     events: Vec<EventEnvelopeV2<T>>,
+}
+
+#[derive(Deserialize)]
+struct EventChainV2Wire<T> {
+    namespace: StableIdNamespace,
+    seed: u64,
+    events: Vec<EventEnvelopeV2<T>>,
+}
+
+impl<'de, T> Deserialize<'de> for EventChainV2<T>
+where
+    T: Deserialize<'de> + CanonicalEventPayload,
+{
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        let wire = EventChainV2Wire::<T>::deserialize(deserializer)?;
+        Self::from_events(wire.namespace, wire.seed, wire.events).map_err(serde::de::Error::custom)
+    }
 }
 
 impl<T> EventChainV2<T> {
@@ -182,22 +207,24 @@ impl<T> EventChainV2<T> {
     pub fn head_digest(&self) -> Option<EventDigestV2> {
         self.events.last().map(|event| event.event_digest)
     }
+}
 
-    /// Reconstructs a persisted chain before explicit verification.
+impl<T: CanonicalEventPayload> EventChainV2<T> {
+    /// Reconstructs a persisted chain and returns it only after full semantic verification.
     pub fn from_events(
         namespace: StableIdNamespace,
         seed: u64,
         events: Vec<EventEnvelopeV2<T>>,
-    ) -> Self {
-        Self {
+    ) -> Result<Self, EventV2Error> {
+        let chain = Self {
             namespace,
             seed,
             events,
-        }
+        };
+        chain.verify()?;
+        Ok(chain)
     }
-}
 
-impl<T: CanonicalEventPayload> EventChainV2<T> {
     /// Appends a canonical event after validating causal-parent existence and current ordering.
     #[allow(clippy::too_many_arguments)]
     pub fn append(
@@ -631,6 +658,45 @@ mod tests {
             let decoded = serde_json::from_value::<EventEnvelopeV2<TestPayload>>(value);
             assert!(decoded.is_err(), "invalid {field} must fail during deserialization");
         }
+    }
+
+    #[test]
+    fn event_chain_reconstruction_is_verified_before_returning() {
+        let mut chain = EventChainV2::new(namespace(), 29);
+        chain
+            .append(
+                1,
+                kind("test.event"),
+                None,
+                None,
+                Vec::new(),
+                payload(1, "event"),
+            )
+            .expect("event appends");
+
+        let serialized = serde_json::to_value(&chain).expect("chain serializes");
+        let decoded = serde_json::from_value::<EventChainV2<TestPayload>>(serialized.clone())
+            .expect("valid chain deserializes");
+        assert_eq!(decoded, chain);
+
+        let events = chain.events().to_vec();
+        let rebuilt = EventChainV2::from_events(namespace(), 29, events.clone())
+            .expect("valid events reconstruct");
+        assert_eq!(rebuilt, chain);
+
+        let mut invalid_serialized = serialized;
+        invalid_serialized["events"][0]["event_id"] = serde_json::json!("event:wrong");
+        assert!(
+            serde_json::from_value::<EventChainV2<TestPayload>>(invalid_serialized).is_err(),
+            "serde reconstruction must reject a validly-encoded but semantically wrong event id"
+        );
+
+        let mut invalid_events = events;
+        invalid_events[0].event_id = StableId::parse("event:wrong").expect("valid stable-id grammar");
+        assert!(matches!(
+            EventChainV2::from_events(namespace(), 29, invalid_events),
+            Err(EventV2Error::EventIdMismatch { .. })
+        ));
     }
 
     #[test]
