@@ -4,13 +4,18 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT"
 
+INITIAL_HEAD="$(git rev-parse HEAD)"
+INITIAL_LOCK_BLOB="$(git hash-object Cargo.lock)"
+
 printf '=== GAME-STATE CANONICAL V2 QUALIFICATION ===\n'
 printf 'repo:   %s\n' "$ROOT"
-printf 'head:   %s\n' "$(git rev-parse HEAD)"
+printf 'head:   %s\n' "$INITIAL_HEAD"
 printf 'branch: %s\n' "$(git branch --show-current)"
+printf 'lock:   %s\n' "$INITIAL_LOCK_BLOB"
 
-if ! git diff --quiet -- Cargo.lock; then
-  echo 'FAIL: Cargo.lock is already modified before qualification' >&2
+if [[ -n "$(git status --porcelain --untracked-files=all)" ]]; then
+  echo 'FAIL: worktree must be clean before qualification' >&2
+  git status --short >&2
   exit 1
 fi
 
@@ -18,17 +23,30 @@ printf '\n=== FORMAT ===\n'
 cargo fmt -p symtropy-game-state -- --check
 
 printf '\n=== TEST ===\n'
-cargo test -p symtropy-game-state --all-targets
+cargo test --locked -p symtropy-game-state --all-targets
 
 printf '\n=== CLIPPY ===\n'
-cargo clippy -p symtropy-game-state --all-targets -- -D warnings
+cargo clippy --locked -p symtropy-game-state --all-targets -- -D warnings
 
 printf '\n=== CHECK ===\n'
-cargo check -p symtropy-game-state --all-targets
+cargo check --locked -p symtropy-game-state --all-targets
 
-if ! git diff --quiet -- Cargo.lock; then
-  echo 'FAIL: qualification mutated Cargo.lock' >&2
-  git diff -- Cargo.lock >&2
+FINAL_HEAD="$(git rev-parse HEAD)"
+FINAL_LOCK_BLOB="$(git hash-object Cargo.lock)"
+
+if [[ "$FINAL_HEAD" != "$INITIAL_HEAD" ]]; then
+  echo "FAIL: HEAD changed during qualification: $INITIAL_HEAD -> $FINAL_HEAD" >&2
+  exit 1
+fi
+
+if [[ "$FINAL_LOCK_BLOB" != "$INITIAL_LOCK_BLOB" ]]; then
+  echo "FAIL: Cargo.lock identity changed: $INITIAL_LOCK_BLOB -> $FINAL_LOCK_BLOB" >&2
+  exit 1
+fi
+
+if [[ -n "$(git status --porcelain --untracked-files=all)" ]]; then
+  echo 'FAIL: qualification dirtied the worktree' >&2
+  git status --short >&2
   exit 1
 fi
 
