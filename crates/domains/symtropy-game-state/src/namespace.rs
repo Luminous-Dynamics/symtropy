@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 //! Validated namespaces for canonical v2 deterministic identifiers.
 
-use serde::{Deserialize, Serialize};
+use serde::{Deserialize, Deserializer, Serialize};
 use sha2::{Digest, Sha256};
 use std::{error::Error, fmt};
 
@@ -16,9 +16,19 @@ const MAX_NAMESPACE_LEN: usize = MAX_STABLE_ID_LEN - DERIVED_SUFFIX_LEN;
 ///
 /// The maximum length is intentionally smaller than a complete `StableId` so that the derived
 /// `namespace:<32 hex chars>` value always satisfies the existing 96-byte StableId contract.
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize)]
 #[serde(transparent)]
 pub struct StableIdNamespace(String);
+
+impl<'de> Deserialize<'de> for StableIdNamespace {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        let value = String::deserialize(deserializer)?;
+        Self::parse(value).map_err(serde::de::Error::custom)
+    }
+}
 
 impl StableIdNamespace {
     /// Parses a namespace under the portable StableId character grammar.
@@ -28,7 +38,7 @@ impl StableIdNamespace {
         Ok(namespace)
     }
 
-    /// Re-validates a namespace after deserialization.
+    /// Re-validates a namespace at an authority boundary.
     pub fn validate(&self) -> Result<(), NamespaceError> {
         let valid = !self.0.is_empty()
             && self.0.len() <= MAX_NAMESPACE_LEN
@@ -58,8 +68,7 @@ impl StableId {
     /// Derives a canonical-v2 stable identifier from a validated namespace, seed, and ordinal.
     ///
     /// This path is additive and deliberately does not alter the historical v1 `derive` contract.
-    /// Validation is repeated here so an invalid value created through deserialization cannot
-    /// bypass the v2 portable-namespace boundary.
+    /// Validation is repeated here as defense in depth at the identity-derivation boundary.
     pub fn derive_v2(
         namespace: &StableIdNamespace,
         seed: u64,
@@ -130,12 +139,8 @@ mod tests {
     }
 
     #[test]
-    fn derive_revalidates_deserialized_namespace() {
-        let invalid: StableIdNamespace = serde_json::from_str("\"contains space\"")
-            .expect("transparent deserialization can construct raw representation");
-        assert!(matches!(
-            StableId::derive_v2(&invalid, 1, 0),
-            Err(NamespaceError::Invalid(_))
-        ));
+    fn deserialization_preserves_namespace_validation() {
+        let invalid = serde_json::from_str::<StableIdNamespace>("\"contains space\"");
+        assert!(invalid.is_err());
     }
 }
