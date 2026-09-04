@@ -69,18 +69,23 @@ pub struct EventEnvelopeV2<T> {
     /// Canonical event schema version.
     pub schema_version: u32,
     /// Deterministically derived stable occurrence identity.
+    #[serde(deserialize_with = "deserialize_stable_id")]
     pub event_id: StableId,
     /// Authoritative fixed-step simulation tick.
     pub simulation_tick: u64,
     /// Stable machine-readable event kind.
     pub kind: StableEventKind,
     /// Acting entity, when any.
+    #[serde(default, deserialize_with = "deserialize_optional_stable_id")]
     pub actor_id: Option<StableId>,
     /// Observer/instrument, when any.
+    #[serde(default, deserialize_with = "deserialize_optional_stable_id")]
     pub observer_id: Option<StableId>,
     /// Direct causal parents. V2 interprets these as a set and hashes canonical sorted order.
+    #[serde(deserialize_with = "deserialize_stable_ids")]
     pub causal_parents: Vec<StableId>,
     /// Stable domain-owned payload schema identifier.
+    #[serde(deserialize_with = "deserialize_payload_schema")]
     pub payload_schema: String,
     /// Typed semantic digest supplied by the payload-owning domain.
     pub payload_digest: PayloadDigest,
@@ -362,6 +367,44 @@ fn canonical_parents(parents: &[StableId]) -> Result<Vec<StableId>, EventV2Error
     Ok(canonical)
 }
 
+fn deserialize_stable_id<'de, D>(deserializer: D) -> Result<StableId, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    let value = String::deserialize(deserializer)?;
+    StableId::parse(value).map_err(serde::de::Error::custom)
+}
+
+fn deserialize_optional_stable_id<'de, D>(deserializer: D) -> Result<Option<StableId>, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    let value = Option::<String>::deserialize(deserializer)?;
+    value
+        .map(StableId::parse)
+        .transpose()
+        .map_err(serde::de::Error::custom)
+}
+
+fn deserialize_stable_ids<'de, D>(deserializer: D) -> Result<Vec<StableId>, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    Vec::<String>::deserialize(deserializer)?
+        .into_iter()
+        .map(|value| StableId::parse(value).map_err(serde::de::Error::custom))
+        .collect()
+}
+
+fn deserialize_payload_schema<'de, D>(deserializer: D) -> Result<String, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    let value = String::deserialize(deserializer)?;
+    validate_payload_schema(&value).map_err(serde::de::Error::custom)?;
+    Ok(value)
+}
+
 fn validate_stable_id(id: &StableId) -> Result<(), EventV2Error> {
     StableId::parse(id.as_str())
         .map(|_| ())
@@ -551,10 +594,43 @@ mod tests {
         }
     }
 
+    fn serialized_event_value() -> serde_json::Value {
+        let mut chain = EventChainV2::new(namespace(), 19);
+        chain
+            .append(
+                1,
+                kind("test.event"),
+                None,
+                None,
+                Vec::new(),
+                payload(1, "event"),
+            )
+            .expect("event appends");
+        serde_json::to_value(&chain.events()[0]).expect("event serializes")
+    }
+
     #[test]
     fn deserialization_preserves_event_kind_validation() {
         let invalid = serde_json::from_str::<StableEventKind>("\"contains space\"");
         assert!(invalid.is_err());
+    }
+
+    #[test]
+    fn v2_envelope_deserialization_rejects_invalid_semantic_identifiers() {
+        let cases = [
+            ("event_id", serde_json::json!("contains space")),
+            ("actor_id", serde_json::json!("contains space")),
+            ("observer_id", serde_json::json!("contains space")),
+            ("causal_parents", serde_json::json!(["contains space"])),
+            ("payload_schema", serde_json::json!("contains space")),
+        ];
+
+        for (field, invalid_value) in cases {
+            let mut value = serialized_event_value();
+            value[field] = invalid_value;
+            let decoded = serde_json::from_value::<EventEnvelopeV2<TestPayload>>(value);
+            assert!(decoded.is_err(), "invalid {field} must fail during deserialization");
+        }
     }
 
     #[test]
