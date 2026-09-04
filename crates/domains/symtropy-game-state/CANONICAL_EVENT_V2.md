@@ -145,6 +145,20 @@ A reconstructed `EventChainV2` verifies at least:
 8. recomputed domain-owned payload digest;
 9. recomputed canonical event digest.
 
+### Verified-chain authority boundary
+
+`EventChainV2` is an authoritative verified-chain type, not a container for "possibly verified" data.
+
+Therefore:
+
+- serde deserialization of `EventChainV2<T>` runs the full verifier before returning a chain;
+- `EventChainV2::from_events(...)` runs the full verifier before returning a chain;
+- a syntactically valid but semantically inconsistent event ID, previous link, payload digest, causal parent, tick ordering, or schema cannot yield a usable `EventChainV2` value through those reconstruction paths;
+- v2 envelope deserialization validates the portable grammar of event IDs, actor/observer IDs, parent IDs, event kinds, and payload-schema identifiers at the serde boundary;
+- historical v1 `StableId` deserialization remains unchanged.
+
+`EventEnvelopeV2<T>` remains the structural carrier for tools that need to inspect individual unverified or future-schema records. Such envelopes do not become authoritative chain state until a current semantic verifier accepts the complete chain.
+
 A structurally hash-consistent unknown schema is not interpreted under current v2 semantics.
 
 ## Frozen golden vector 001
