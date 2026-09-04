@@ -175,7 +175,7 @@ for expected in \
     'semantic_base_manifest_status=PASS' \
     "semantic_base_manifest_sha256=$recorded_base_manifest_sha256" \
     "semantic_lock_snapshot_sha256=$recorded_snapshot_hash" \
-    'semantic_delta_schema=symtropy.cuf.cargo-lock-semantic-delta.v1' \
+    'semantic_delta_schema=symtropy.cuf.cargo-lock-semantic-delta.v2' \
     "semantic_analyzer_blob=$recorded_blob" \
     "semantic_analyzer_test_blob=$recorded_test_blob" \
     'semantic_analyzer_test_status=PASS' \
@@ -230,6 +230,7 @@ printf 'Repair commit:       %s\n' "$commit_sha"
 printf 'Repair base:         %s\n' "$base_head"
 printf 'Base capsule:        PASS %s\n' "$recorded_base_manifest_sha256"
 printf 'Lock snapshot:       %s\n' "$recorded_snapshot_hash"
+printf 'Semantic schema:     symtropy.cuf.cargo-lock-semantic-delta.v2\n'
 printf 'Base verifier blob:  %s\n' "$base_verifier_blob"
 printf 'Analyzer blob:       %s\n' "$recorded_blob"
 printf 'Analyzer test blob:  %s\n' "$recorded_test_blob"

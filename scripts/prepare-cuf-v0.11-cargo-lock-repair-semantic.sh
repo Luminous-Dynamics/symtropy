@@ -222,7 +222,7 @@ cat >> "$OUT/LINEAGE.txt" <<EOF
 semantic_base_manifest_status=PASS
 semantic_base_manifest_sha256=$base_manifest_sha256
 semantic_lock_snapshot_sha256=$snapshot_lock_hash
-semantic_delta_schema=symtropy.cuf.cargo-lock-semantic-delta.v1
+semantic_delta_schema=symtropy.cuf.cargo-lock-semantic-delta.v2
 semantic_analyzer_blob=$analyzer_blob
 semantic_analyzer_test_blob=$test_blob
 semantic_analyzer_test_status=PASS
@@ -237,6 +237,7 @@ printf '\nPASS: semantic Cargo.lock delta captured\n'
 printf 'Evidence:            %s\n' "$OUT"
 printf 'Base manifest:       PASS %s\n' "$base_manifest_sha256"
 printf 'Lock snapshot:       %s\n' "$snapshot_lock_hash"
+printf 'Semantic schema:     symtropy.cuf.cargo-lock-semantic-delta.v2\n'
 printf 'Analyzer blob:       %s\n' "$analyzer_blob"
 printf 'Analyzer test blob:  %s\n' "$test_blob"
 printf 'Analyzer tests:      PASS\n'
