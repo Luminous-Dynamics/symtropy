@@ -4,7 +4,7 @@
 //!
 //! V2 is additive. The historical `EventChain<T>` JSON hash contract remains unchanged.
 
-use serde::{Deserialize, Serialize};
+use serde::{Deserialize, Deserializer, Serialize};
 use std::{collections::BTreeMap, error::Error, fmt};
 
 use crate::{
@@ -19,9 +19,19 @@ const EVENT_DIGEST_DOMAIN_V2: &[u8] = b"symtropy/game-state/event/v2";
 const MAX_SEMANTIC_ID_LEN: usize = 96;
 
 /// Validated stable event-kind identifier used by canonical v2 events.
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize)]
 #[serde(transparent)]
 pub struct StableEventKind(String);
+
+impl<'de> Deserialize<'de> for StableEventKind {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        let value = String::deserialize(deserializer)?;
+        Self::parse(value).map_err(serde::de::Error::custom)
+    }
+}
 
 impl StableEventKind {
     /// Parses a portable event kind such as `fold.rewind.applied`.
@@ -539,6 +549,12 @@ mod tests {
             value,
             display_note: display_note.to_owned(),
         }
+    }
+
+    #[test]
+    fn deserialization_preserves_event_kind_validation() {
+        let invalid = serde_json::from_str::<StableEventKind>("\"contains space\"");
+        assert!(invalid.is_err());
     }
 
     #[test]
