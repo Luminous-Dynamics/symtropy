@@ -10,6 +10,7 @@ on:
 # that head. Superseded runs waste runner capacity and can delay the run that
 # actually qualifies the current revision. PR numbers isolate independent PRs;
 # push events fall back to their ref so main/stabilize branches remain separate.
+# Keep this at workflow scope so the three OS legs are superseded as one run.
 concurrency:
   group: ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
