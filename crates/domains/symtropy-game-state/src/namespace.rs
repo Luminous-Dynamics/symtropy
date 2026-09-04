@@ -66,8 +66,8 @@ impl StableId {
         ordinal: u64,
     ) -> Result<Self, NamespaceError> {
         namespace.validate()?;
-        let namespace_len =
-            u64::try_from(namespace.as_str().len()).map_err(|_| NamespaceError::Invalid(namespace.as_str().to_owned()))?;
+        let namespace_len = u64::try_from(namespace.as_str().len())
+            .map_err(|_| NamespaceError::Invalid(namespace.as_str().to_owned()))?;
         let mut hasher = Sha256::new();
         hasher.update(b"symtropy/stable-id/v2\0");
         hasher.update(namespace_len.to_be_bytes());
