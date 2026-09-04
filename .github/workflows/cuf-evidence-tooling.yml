@@ -98,7 +98,7 @@ jobs:
           result = json.loads(pathlib.Path(sys.argv[1]).read_text(encoding="utf-8"))
 
           checks = (
-              (result.get("schema") == "symtropy.cuf.cargo-lock-semantic-delta.v1", "schema mismatch"),
+              (result.get("schema") == "symtropy.cuf.cargo-lock-semantic-delta.v2", "schema mismatch"),
               (result.get("lockfile_version_before") == result.get("lockfile_version_after"), "lockfile version changed"),
               (result.get("package_count_before") == result.get("package_count_after"), "package count changed"),
               (result.get("added_packages") == [], "added packages reported for zero delta"),
@@ -106,6 +106,8 @@ jobs:
               (result.get("name_identity_sets_changed") == [], "identity-set changes reported for zero delta"),
               (result.get("checksum_changes") == [], "checksum changes reported for zero delta"),
               (result.get("dependency_changes") == [], "dependency changes reported for zero delta"),
+              (result.get("unmodeled_top_level_changes") == [], "unmodeled top-level changes reported for zero delta"),
+              (result.get("unmodeled_package_field_changes") == [], "unmodeled package-field changes reported for zero delta"),
               (
                   isinstance(result.get("summary"), dict)
                   and all(value == 0 for value in result["summary"].values()),
@@ -125,6 +127,8 @@ jobs:
           grep -Fxq 'name_identity_sets_changed=0' "$tmp_dir/first.txt"
           grep -Fxq 'checksum_changes=0' "$tmp_dir/first.txt"
           grep -Fxq 'dependency_changes=0' "$tmp_dir/first.txt"
+          grep -Fxq 'unmodeled_top_level_changes=0' "$tmp_dir/first.txt"
+          grep -Fxq 'unmodeled_package_field_changes=0' "$tmp_dir/first.txt"
 
       - name: Validate CUF v0.11 shell syntax
         shell: bash
@@ -163,6 +167,7 @@ jobs:
           PASS here means only:
             - semantic analyzer Python syntax is valid without writing bytecode;
             - its frozen regression suite passes;
+            - the v2 analyzer reports unmodeled Cargo.lock structure instead of silently dropping it;
             - the analyzer parses the repository's current Cargo.lock as a deterministic zero delta;
             - zero-delta conditions execute unconditionally rather than through Python assert;
             - CUF v0.11 evidence shell scripts parse under bash;

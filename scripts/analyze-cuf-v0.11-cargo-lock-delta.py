@@ -3,16 +3,18 @@
 # SPDX-License-Identifier: AGPL-3.0-or-later
 """Deterministically summarize semantic differences between two Cargo.lock files.
 
-This tool is intentionally descriptive, not policy-enforcing. It reports package
-record additions/removals, name-level version/source set changes, checksum
-changes, and dependency-list changes. Stable expectations may be promoted into
-policy only after real Stage A/Stage B resolver output has been reviewed.
+The v2 schema is intentionally structurally complete: known Cargo package fields
+receive focused semantic reporting, while every other top-level/package field is
+reported explicitly rather than silently ignored. Policy remains descriptive
+until real Stage A/Stage B resolver output has been reviewed.
 """
 
 from __future__ import annotations
 
 import argparse
+import datetime as datetime_module
 import json
+import math
 import sys
 import tomllib
 from pathlib import Path
@@ -20,6 +22,9 @@ from typing import Any
 
 
 Identity = tuple[str, str, str]
+SOURCE_OMITTED = "<source-omitted>"
+KNOWN_PACKAGE_FIELDS = frozenset({"name", "version", "source", "checksum", "dependencies"})
+MODELED_TOP_LEVEL_FIELDS = frozenset({"version", "package"})
 
 
 def load_lock(path: Path) -> dict[str, Any]:
@@ -27,16 +32,41 @@ def load_lock(path: Path) -> dict[str, Any]:
         data = tomllib.load(handle)
     if not isinstance(data, dict):
         raise ValueError(f"{path}: Cargo.lock root is not a TOML table")
+    if "version" in data:
+        version = data["version"]
+        if type(version) is not int or version <= 0:
+            raise ValueError(f"{path}: Cargo.lock version must be a positive integer")
     packages = data.get("package", [])
     if not isinstance(packages, list):
         raise ValueError(f"{path}: package is not an array of tables")
     return data
 
 
+def canonical_value(value: Any) -> Any:
+    """Convert arbitrary TOML values into deterministic JSON-safe values."""
+    if isinstance(value, dict):
+        return {key: canonical_value(value[key]) for key in sorted(value)}
+    if isinstance(value, list):
+        return [canonical_value(item) for item in value]
+    if isinstance(value, (datetime_module.datetime, datetime_module.date, datetime_module.time)):
+        return {"__toml_type__": type(value).__name__, "value": value.isoformat()}
+    if isinstance(value, float):
+        if math.isnan(value):
+            return {"__toml_type__": "float", "value": "nan"}
+        if math.isinf(value):
+            return {"__toml_type__": "float", "value": "inf" if value > 0 else "-inf"}
+        return value
+    if isinstance(value, (str, int, bool)) or value is None:
+        return value
+    raise ValueError(f"unsupported TOML value type: {type(value).__name__}")
+
+
 def normalized_source(package: dict[str, Any]) -> str:
     source = package.get("source")
     if source is None:
-        return "<workspace>"
+        # Cargo omits source for path/local packages. Source omission alone does
+        # not prove workspace membership, so keep the evidence label neutral.
+        return SOURCE_OMITTED
     if not isinstance(source, str):
         raise ValueError("package source is not a string")
     return source
@@ -66,6 +96,14 @@ def normalized_checksum(package: dict[str, Any]) -> str | None:
     return checksum
 
 
+def extra_package_fields(package: dict[str, Any]) -> dict[str, Any]:
+    return {
+        key: canonical_value(package[key])
+        for key in sorted(package)
+        if key not in KNOWN_PACKAGE_FIELDS
+    }
+
+
 def package_map(data: dict[str, Any]) -> dict[Identity, dict[str, Any]]:
     result: dict[Identity, dict[str, Any]] = {}
     for package in data.get("package", []):
@@ -85,6 +123,7 @@ def identity_record(key: Identity, package: dict[str, Any]) -> dict[str, Any]:
         "source": key[2],
         "checksum": normalized_checksum(package),
         "dependencies": normalized_dependencies(package),
+        "extra_fields": extra_package_fields(package),
     }
 
 
@@ -96,6 +135,20 @@ def name_identity_sets(packages: dict[Identity, dict[str, Any]]) -> dict[str, li
         name: [[version, source] for version, source in sorted(values)]
         for name, values in sorted(by_name.items())
     }
+
+
+def unmodeled_top_level(data: dict[str, Any]) -> dict[str, Any]:
+    return {
+        key: canonical_value(data[key])
+        for key in sorted(data)
+        if key not in MODELED_TOP_LEVEL_FIELDS
+    }
+
+
+def presence_record(values: dict[str, Any], key: str) -> dict[str, Any]:
+    if key not in values:
+        return {"present": False}
+    return {"present": True, "value": values[key]}
 
 
 def analyze(before: dict[str, Any], after: dict[str, Any]) -> dict[str, Any]:
@@ -110,6 +163,7 @@ def analyze(before: dict[str, Any], after: dict[str, Any]) -> dict[str, Any]:
 
     checksum_changes: list[dict[str, Any]] = []
     dependency_changes: list[dict[str, Any]] = []
+    unmodeled_package_field_changes: list[dict[str, Any]] = []
     for key in common_keys:
         before_package = before_packages[key]
         after_package = after_packages[key]
@@ -141,6 +195,19 @@ def analyze(before: dict[str, Any], after: dict[str, Any]) -> dict[str, Any]:
                 }
             )
 
+        before_extra = extra_package_fields(before_package)
+        after_extra = extra_package_fields(after_package)
+        if before_extra != after_extra:
+            unmodeled_package_field_changes.append(
+                {
+                    "name": key[0],
+                    "version": key[1],
+                    "source": key[2],
+                    "before": before_extra,
+                    "after": after_extra,
+                }
+            )
+
     before_by_name = name_identity_sets(before_packages)
     after_by_name = name_identity_sets(after_packages)
     name_identity_changes: list[dict[str, Any]] = []
@@ -152,8 +219,19 @@ def analyze(before: dict[str, Any], after: dict[str, Any]) -> dict[str, Any]:
                 {"name": name, "before": before_set, "after": after_set}
             )
 
+    before_top = unmodeled_top_level(before)
+    after_top = unmodeled_top_level(after)
+    unmodeled_top_level_changes: list[dict[str, Any]] = []
+    for field in sorted(set(before_top) | set(after_top)):
+        before_value = presence_record(before_top, field)
+        after_value = presence_record(after_top, field)
+        if before_value != after_value:
+            unmodeled_top_level_changes.append(
+                {"field": field, "before": before_value, "after": after_value}
+            )
+
     result = {
-        "schema": "symtropy.cuf.cargo-lock-semantic-delta.v1",
+        "schema": "symtropy.cuf.cargo-lock-semantic-delta.v2",
         "lockfile_version_before": before.get("version"),
         "lockfile_version_after": after.get("version"),
         "package_count_before": len(before_packages),
@@ -163,15 +241,26 @@ def analyze(before: dict[str, Any], after: dict[str, Any]) -> dict[str, Any]:
         "name_identity_sets_changed": name_identity_changes,
         "checksum_changes": checksum_changes,
         "dependency_changes": dependency_changes,
+        "unmodeled_top_level_changes": unmodeled_top_level_changes,
+        "unmodeled_package_field_changes": unmodeled_package_field_changes,
     }
     result["summary"] = {
+        "lockfile_version_changed": int(
+            result["lockfile_version_before"] != result["lockfile_version_after"]
+        ),
         "added_packages": len(result["added_packages"]),
         "removed_packages": len(result["removed_packages"]),
         "name_identity_sets_changed": len(name_identity_changes),
         "checksum_changes": len(checksum_changes),
         "dependency_changes": len(dependency_changes),
+        "unmodeled_top_level_changes": len(unmodeled_top_level_changes),
+        "unmodeled_package_field_changes": len(unmodeled_package_field_changes),
     }
     return result
+
+
+def compact_json(value: Any) -> str:
+    return json.dumps(value, separators=(",", ":"), sort_keys=True, allow_nan=False)
 
 
 def emit_text(result: dict[str, Any]) -> str:
@@ -180,47 +269,72 @@ def emit_text(result: dict[str, Any]) -> str:
         f"schema={result['schema']}",
         f"lockfile_version={result['lockfile_version_before']}->{result['lockfile_version_after']}",
         f"package_count={result['package_count_before']}->{result['package_count_after']}",
+        f"lockfile_version_changed={summary['lockfile_version_changed']}",
         f"added_packages={summary['added_packages']}",
         f"removed_packages={summary['removed_packages']}",
         f"name_identity_sets_changed={summary['name_identity_sets_changed']}",
         f"checksum_changes={summary['checksum_changes']}",
         f"dependency_changes={summary['dependency_changes']}",
+        f"unmodeled_top_level_changes={summary['unmodeled_top_level_changes']}",
+        f"unmodeled_package_field_changes={summary['unmodeled_package_field_changes']}",
     ]
 
     for package in result["added_packages"]:
         lines.append(
-            f"ADD\t{package['name']}\t{package['version']}\t{package['source']}"
+            "ADD\t{}\t{}\t{}\tchecksum={}\tdependencies={}\textra_fields={}".format(
+                package["name"],
+                package["version"],
+                package["source"],
+                compact_json(package["checksum"]),
+                compact_json(package["dependencies"]),
+                compact_json(package["extra_fields"]),
+            )
         )
     for package in result["removed_packages"]:
         lines.append(
-            f"REMOVE\t{package['name']}\t{package['version']}\t{package['source']}"
+            "REMOVE\t{}\t{}\t{}\tchecksum={}\tdependencies={}\textra_fields={}".format(
+                package["name"],
+                package["version"],
+                package["source"],
+                compact_json(package["checksum"]),
+                compact_json(package["dependencies"]),
+                compact_json(package["extra_fields"]),
+            )
         )
     for change in result["name_identity_sets_changed"]:
         lines.append(
             "IDENTITY_SET\t{}\t{}\t{}".format(
-                change["name"],
-                json.dumps(change["before"], separators=(",", ":"), sort_keys=True),
-                json.dumps(change["after"], separators=(",", ":"), sort_keys=True),
+                change["name"], compact_json(change["before"]), compact_json(change["after"])
             )
         )
     for change in result["checksum_changes"]:
         lines.append(
-            "CHECKSUM\t{}\t{}\t{}\t{}\t{}".format(
+            "CHECKSUM\t{}\t{}\t{}\tbefore={}\tafter={}".format(
                 change["name"],
                 change["version"],
                 change["source"],
-                change["before"],
-                change["after"],
+                compact_json(change["before"]),
+                compact_json(change["after"]),
             )
         )
     for change in result["dependency_changes"]:
         lines.append(
             "DEPENDENCIES\t{}\t{}\t{}\tadded={}\tremoved={}".format(
-                change["name"],
-                change["version"],
-                change["source"],
-                json.dumps(change["added"], separators=(",", ":")),
-                json.dumps(change["removed"], separators=(",", ":")),
+                change["name"], change["version"], change["source"],
+                compact_json(change["added"]), compact_json(change["removed"]),
+            )
+        )
+    for change in result["unmodeled_top_level_changes"]:
+        lines.append(
+            "TOP_LEVEL\t{}\t{}\t{}".format(
+                change["field"], compact_json(change["before"]), compact_json(change["after"])
+            )
+        )
+    for change in result["unmodeled_package_field_changes"]:
+        lines.append(
+            "PACKAGE_FIELDS\t{}\t{}\t{}\t{}\t{}".format(
+                change["name"], change["version"], change["source"],
+                compact_json(change["before"]), compact_json(change["after"]),
             )
         )
     return "\n".join(lines) + "\n"
@@ -235,15 +349,15 @@ def main() -> int:
 
     try:
         result = analyze(load_lock(args.before), load_lock(args.after))
-    except (OSError, tomllib.TOMLDecodeError, ValueError) as error:
+        if args.format == "json":
+            output = json.dumps(result, indent=2, sort_keys=True, allow_nan=False) + "\n"
+        else:
+            output = emit_text(result)
+    except (OSError, tomllib.TOMLDecodeError, ValueError, TypeError) as error:
         print(f"ERROR: {error}", file=sys.stderr)
         return 1
 
-    if args.format == "json":
-        json.dump(result, sys.stdout, indent=2, sort_keys=True)
-        sys.stdout.write("\n")
-    else:
-        sys.stdout.write(emit_text(result))
+    sys.stdout.write(output)
     return 0
 
 
