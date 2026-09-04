@@ -2,6 +2,20 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 //! Deterministic identifiers, simulation time, causal events, and hash chains.
 
+pub mod canonical;
+pub mod event_v2;
+pub mod namespace;
+
+pub use canonical::{
+    CanonicalDigest, CanonicalError, CanonicalEventPayload, CanonicalWriter, EventDigestV2,
+    PayloadDigest,
+};
+pub use event_v2::{
+    CANONICAL_EVENT_SCHEMA_VERSION_V2, EventChainV2, EventEnvelopeV2, EventV2Error,
+    StableEventKind,
+};
+pub use namespace::{NamespaceError, StableIdNamespace};
+
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use std::{error::Error, fmt};
@@ -449,5 +463,47 @@ mod tests {
             chain.verify(),
             Err(StateError::EventHashMismatch { .. })
         ));
+    }
+
+    #[test]
+    fn v1_identity_fixture_remains_byte_for_byte_stable() {
+        let mut chain = EventChain::new("firstlight", 99);
+        let first = chain
+            .append(
+                1,
+                "observation",
+                None,
+                None,
+                Vec::new(),
+                TestPayload { value: 5 },
+            )
+            .expect("append first event");
+        let second = chain
+            .append(
+                2,
+                "repair",
+                None,
+                None,
+                Vec::new(),
+                TestPayload { value: 8 },
+            )
+            .expect("append second event");
+
+        assert_eq!(
+            first.as_str(),
+            "firstlight:cff9ae668c60133e813c3cac57fe427c"
+        );
+        assert_eq!(
+            second.as_str(),
+            "firstlight:6b17f7e3683a6fe1a510f7a7cbdc8600"
+        );
+        assert_eq!(
+            chain.events()[0].event_hash,
+            "f56c500e2c4884e4a7dc43cebdf037c836c37cdcc6c52c719b185d07bd20a03f"
+        );
+        assert_eq!(
+            chain.events()[1].event_hash,
+            "a87d9e06d4c2455ea485010ff63403143fcf6799ac358c1115c3c1a1c4e6a4c7"
+        );
     }
 }
