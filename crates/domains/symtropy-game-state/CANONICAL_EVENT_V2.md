@@ -177,6 +177,44 @@ event_digest =
 
 The expected vector was independently derived from this byte contract rather than copied from the Rust implementation's runtime output.
 
+## Frozen golden vector 002 — non-genesis
+
+Vector 002 starts from vector 001 as the exact first event in the same chain, then appends a second event. It exists to exercise all of the canonical option/link fields that vector 001 leaves empty.
+
+Input for the second event:
+
+```text
+namespace       = fold.event
+seed            = 91
+ordinal         = 1
+simulation_tick = 8
+kind            = fold.rewind.applied
+actor           = Some(actor:player)
+observer        = Some(observer:alice)
+parents         = [fold.event:51dcf21565f1ac6e2f0d3c63c36b5f87]
+payload_schema  = test.payload.v1
+payload value   = u32 9
+payload domain  = symtropy/test-payload/v1
+previous        = 7c52f0ef452a98cf2d32523d16da2abf1e411d226ece106c0c757d1e89cf4fb2
+```
+
+Expected:
+
+```text
+event_id = fold.event:00fb94311f6bf3be801601321504d560
+
+payload_digest =
+1d2b7ec51b918b7e3c7b4953f5a2796b2dc58c1e091b0a501896a819957cbd63
+
+previous_digest =
+7c52f0ef452a98cf2d32523d16da2abf1e411d226ece106c0c757d1e89cf4fb2
+
+event_digest =
+bdb881578c4db99b954d4bbb1907adeaede631f9b8b49db3396c81c08dcc74a7
+```
+
+Vector 002 was independently derived from the same frozen byte grammar. Together, vectors 001 and 002 cover genesis/non-genesis linkage, both option states for actor/observer/previous digest, and a non-empty causal-parent set.
+
 ## Compatibility boundary
 
 V1 and v2 make deliberately different claims:
