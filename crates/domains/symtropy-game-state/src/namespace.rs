@@ -58,17 +58,25 @@ impl StableId {
     /// Derives a canonical-v2 stable identifier from a validated namespace, seed, and ordinal.
     ///
     /// This path is additive and deliberately does not alter the historical v1 `derive` contract.
-    pub fn derive_v2(namespace: &StableIdNamespace, seed: u64, ordinal: u64) -> Self {
+    /// Validation is repeated here so an invalid value created through deserialization cannot
+    /// bypass the v2 portable-namespace boundary.
+    pub fn derive_v2(
+        namespace: &StableIdNamespace,
+        seed: u64,
+        ordinal: u64,
+    ) -> Result<Self, NamespaceError> {
+        namespace.validate()?;
+        let namespace_len =
+            u64::try_from(namespace.as_str().len()).map_err(|_| NamespaceError::Invalid(namespace.as_str().to_owned()))?;
         let mut hasher = Sha256::new();
         hasher.update(b"symtropy/stable-id/v2\0");
-        hasher.update((namespace.as_str().len() as u64).to_be_bytes());
+        hasher.update(namespace_len.to_be_bytes());
         hasher.update(namespace.as_str().as_bytes());
         hasher.update(seed.to_be_bytes());
         hasher.update(ordinal.to_be_bytes());
         let digest = hasher.finalize();
         let id = format!("{}:{}", namespace.as_str(), hex(&digest[..16]));
-        // StableIdNamespace length/grammar guarantees this derived form is portable.
-        Self(id)
+        Ok(Self(id))
     }
 }
 
@@ -105,9 +113,9 @@ mod tests {
 
     #[test]
     fn v2_derived_ids_are_portable_and_reproducible() {
-        let namespace = StableIdNamespace::parse("fold.event").expect("valid namespace");
-        let first = StableId::derive_v2(&namespace, 41, 7);
-        let second = StableId::derive_v2(&namespace, 41, 7);
+        let namespace = StableIdNamespace::parse("resident").expect("valid namespace");
+        let first = StableId::derive_v2(&namespace, 41, 7).expect("validated derivation");
+        let second = StableId::derive_v2(&namespace, 41, 7).expect("validated derivation");
         assert_eq!(first, second);
         assert!(StableId::parse(first.as_str()).is_ok());
     }
@@ -117,6 +125,16 @@ mod tests {
         let oversized = "a".repeat(MAX_NAMESPACE_LEN + 1);
         assert!(matches!(
             StableIdNamespace::parse(oversized),
+            Err(NamespaceError::Invalid(_))
+        ));
+    }
+
+    #[test]
+    fn derive_revalidates_deserialized_namespace() {
+        let invalid: StableIdNamespace = serde_json::from_str("\"contains space\"")
+            .expect("transparent deserialization can construct raw representation");
+        assert!(matches!(
+            StableId::derive_v2(&invalid, 1, 0),
             Err(NamespaceError::Invalid(_))
         ));
     }
