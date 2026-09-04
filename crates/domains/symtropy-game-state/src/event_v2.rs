@@ -211,7 +211,7 @@ impl<T: CanonicalEventPayload> EventChainV2<T> {
         }
 
         let ordinal = u64::try_from(self.events.len()).map_err(|_| EventV2Error::EventOverflow)?;
-        let event_id = StableId::derive_v2(&self.namespace, self.seed, ordinal);
+        let event_id = StableId::derive_v2(&self.namespace, self.seed, ordinal)?;
         let parents = canonical_parents(&causal_parents)?;
         for parent in &parents {
             validate_stable_id(parent)?;
@@ -272,7 +272,7 @@ impl<T: CanonicalEventPayload> EventChainV2<T> {
             }
 
             let ordinal = u64::try_from(index).map_err(|_| EventV2Error::EventOverflow)?;
-            let expected_id = StableId::derive_v2(&self.namespace, self.seed, ordinal);
+            let expected_id = StableId::derive_v2(&self.namespace, self.seed, ordinal)?;
             if event.event_id != expected_id {
                 return Err(EventV2Error::EventIdMismatch {
                     expected: expected_id,
