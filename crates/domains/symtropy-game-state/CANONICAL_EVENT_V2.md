@@ -86,6 +86,8 @@ payload_digest
 
 so equal digest bytes under different semantic schemas remain distinguishable.
 
+Any payload field that can change authoritative interpretation, replay, or continuation semantics **must** participate in the domain-owned payload digest. Omitting such a field is a domain contract violation even if the outer event hash remains structurally valid.
+
 ## Canonical v2 event digest
 
 Domain separator:
@@ -104,7 +106,7 @@ string(kind)
 option(string(actor_id))
 option(string(observer_id))
 count(causal_parents)
-  repeated string(parent_id) in sorted canonical parent order
+  repeated string(parent_id) in ascending bytewise order of portable StableId text
 string(payload_schema)
 sha256(payload_digest)
 option(sha256(previous_event_digest))
@@ -121,6 +123,7 @@ V2 declares direct causal parents to have set semantics for event identity.
 Therefore:
 
 - parent order does not change event identity;
+- canonical parent ordering is ascending bytewise order of the validated ASCII `StableId` text;
 - duplicate parent IDs are invalid;
 - every parent must exist in the same verified chain;
 - every parent must occur strictly before the child;
@@ -214,6 +217,46 @@ bdb881578c4db99b954d4bbb1907adeaede631f9b8b49db3396c81c08dcc74a7
 ```
 
 Vector 002 was independently derived from the same frozen byte grammar. Together, vectors 001 and 002 cover genesis/non-genesis linkage, both option states for actor/observer/previous digest, and a non-empty causal-parent set.
+
+## Frozen canonical preimages
+
+The following lowercase hex strings are the exact bytes fed to SHA-256. They are frozen alongside the final digests so cross-language implementations can distinguish framing errors from hashing errors.
+
+Vector 001 stable-ID preimage, 56 bytes:
+
+```text
+73796d74726f70792f737461626c652d69642f763200000000000000000a666f6c642e6576656e74000000000000005b0000000000000000
+```
+
+Vector 001 payload preimage, 29 bytes:
+
+```text
+73796d74726f70792f746573742d7061796c6f61642f76310000000005
+```
+
+Vector 001 event preimage, 179 bytes:
+
+```text
+73796d74726f70792f67616d652d73746174652f6576656e742f76320000000002000000000000002b666f6c642e6576656e743a35316463663231353635663161633665326630643363363363333662356638370000000000000007000000000000000d666f6c642e6f6273657276656400000000000000000000000000000000000f746573742e7061796c6f61642e7631fb6f135dd2a33020e10c8af60da6b22a6e662fa02e523415c49ecc9f02778a8300
+```
+
+Vector 002 stable-ID preimage, 56 bytes:
+
+```text
+73796d74726f70792f737461626c652d69642f763200000000000000000a666f6c642e6576656e74000000000000005b0000000000000001
+```
+
+Vector 002 payload preimage, 29 bytes:
+
+```text
+73796d74726f70792f746573742d7061796c6f61642f76310000000009
+```
+
+Vector 002 event preimage, 310 bytes:
+
+```text
+73796d74726f70792f67616d652d73746174652f6576656e742f76320000000002000000000000002b666f6c642e6576656e743a303066623934333131663662663362653830313630313332313530346435363000000000000000080000000000000013666f6c642e726577696e642e6170706c69656401000000000000000c6163746f723a706c6179657201000000000000000e6f627365727665723a616c6963650000000000000001000000000000002b666f6c642e6576656e743a3531646366323135363566316163366532663064336336336333366235663837000000000000000f746573742e7061796c6f61642e76311d2b7ec51b918b7e3c7b4953f5a2796b2dc58c1e091b0a501896a819957cbd63017c52f0ef452a98cf2d32523d16da2abf1e411d226ece106c0c757d1e89cf4fb2
+```
 
 ## Compatibility boundary
 
