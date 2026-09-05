@@ -19,6 +19,14 @@ if [[ -n "$(git status --porcelain --untracked-files=all)" ]]; then
   exit 1
 fi
 
+if ! command -v python3 >/dev/null 2>&1; then
+  echo 'FAIL: python3 is required for the independent canonical-vector oracle' >&2
+  exit 1
+fi
+
+printf '\n=== INDEPENDENT CANONICAL VECTOR ORACLE ===\n'
+python3 scripts/verify-canonical-event-v2-vectors.py
+
 printf '\n=== FORMAT ===\n'
 cargo fmt -p symtropy-game-state -- --check
 
