@@ -193,9 +193,8 @@ pub enum CanonicalError {
 impl fmt::Display for CanonicalError {
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Self::InvalidDomainSeparator => formatter.write_str(
-                "canonical domain separator must be non-empty ASCII without NUL",
-            ),
+            Self::InvalidDomainSeparator => formatter
+                .write_str("canonical domain separator must be non-empty ASCII without NUL"),
             Self::LengthOverflow => formatter.write_str("canonical length exceeds u64"),
         }
     }
