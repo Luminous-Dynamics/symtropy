@@ -74,13 +74,15 @@ def canonical_event_digest(
     causal_parents: list[str],
     payload_digest: bytes,
     previous_digest: bytes | None,
+    payload_schema: str = PAYLOAD_SCHEMA,
+    schema_version: int = EVENT_SCHEMA_VERSION,
 ) -> tuple[bytes, bytes]:
     if len(set(causal_parents)) != len(causal_parents):
         raise ValueError("duplicate causal parent")
     parents = sorted(causal_parents, key=lambda value: value.encode("ascii"))
     preimage = (
         domain_prefix(DOMAIN_EVENT)
-        + u32_be(EVENT_SCHEMA_VERSION)
+        + u32_be(schema_version)
         + encode_string(event_id)
         + u64_be(simulation_tick)
         + encode_string(kind)
@@ -88,7 +90,7 @@ def canonical_event_digest(
         + encode_optional_string(observer_id)
         + u64_be(len(parents))
         + b"".join(encode_string(parent) for parent in parents)
-        + encode_string(PAYLOAD_SCHEMA)
+        + encode_string(payload_schema)
         + payload_digest
         + encode_optional_digest(previous_digest)
     )
@@ -98,6 +100,11 @@ def canonical_event_digest(
 def require_equal(label: str, actual: str | bytes, expected: str | bytes) -> None:
     if actual != expected:
         raise SystemExit(f"FAIL {label}: expected {expected!r}, got {actual!r}")
+
+
+def require_not_equal(label: str, actual: bytes, baseline: bytes) -> None:
+    if actual == baseline:
+        raise SystemExit(f"FAIL {label}: identity-bearing mutation did not change digest")
 
 
 def verify_vector_001() -> tuple[str, bytes]:
@@ -143,7 +150,7 @@ def verify_vector_001() -> tuple[str, bytes]:
     return event_id, event_digest
 
 
-def verify_vector_002(parent_id: str, previous_digest: bytes) -> None:
+def verify_vector_002(parent_id: str, previous_digest: bytes) -> tuple[str, bytes, bytes]:
     event_id, stable_preimage, _ = stable_event_id("fold.event", 91, 1)
     payload_digest, payload_preimage = test_payload_digest(9)
     event_digest, event_preimage = canonical_event_digest(
@@ -183,12 +190,70 @@ def verify_vector_002(parent_id: str, previous_digest: bytes) -> None:
         event_preimage.hex(),
         "73796d74726f70792f67616d652d73746174652f6576656e742f76320000000002000000000000002b666f6c642e6576656e743a303066623934333131663662663362653830313630313332313530346435363000000000000000080000000000000013666f6c642e726577696e642e6170706c69656401000000000000000c6163746f723a706c6179657201000000000000000e6f627365727665723a616c6963650000000000000001000000000000002b666f6c642e6576656e743a3531646366323135363566316163366532663064336336336333366235663837000000000000000f746573742e7061796c6f61642e76311d2b7ec51b918b7e3c7b4953f5a2796b2dc58c1e091b0a501896a819957cbd63017c52f0ef452a98cf2d32523d16da2abf1e411d226ece106c0c757d1e89cf4fb2",
     )
+    return event_id, payload_digest, event_digest
+
+
+def verify_metamorphic_contract(parent_id: str, previous_digest: bytes) -> None:
+    event_id, _, _ = stable_event_id("fold.event", 91, 1)
+    other_event_id, _, _ = stable_event_id("fold.event", 91, 2)
+    payload_digest, _ = test_payload_digest(9)
+    baseline_args = {
+        "event_id": event_id,
+        "simulation_tick": 8,
+        "kind": "fold.rewind.applied",
+        "actor_id": "actor:player",
+        "observer_id": "observer:alice",
+        "causal_parents": [parent_id],
+        "payload_digest": payload_digest,
+        "previous_digest": previous_digest,
+    }
+    baseline, _ = canonical_event_digest(**baseline_args)
+
+    mutations = {
+        "schema version": {"schema_version": 3},
+        "event id": {"event_id": other_event_id},
+        "simulation tick": {"simulation_tick": 9},
+        "event kind": {"kind": "fold.rewind.preview"},
+        "actor id": {"actor_id": "actor:other"},
+        "observer id": {"observer_id": "observer:bob"},
+        "causal parent membership": {"causal_parents": []},
+        "payload schema": {"payload_schema": "test.payload.v2"},
+        "payload digest": {"payload_digest": test_payload_digest(10)[0]},
+        "previous digest": {"previous_digest": b"\x11" * 32},
+    }
+    for label, override in mutations.items():
+        mutated_args = dict(baseline_args)
+        mutated_args.update(override)
+        mutated, _ = canonical_event_digest(**mutated_args)
+        require_not_equal(label, mutated, baseline)
+
+    ordered_args = dict(baseline_args)
+    ordered_args["causal_parents"] = [parent_id, other_event_id]
+    first_order, _ = canonical_event_digest(**ordered_args)
+    ordered_args["causal_parents"] = [other_event_id, parent_id]
+    second_order, _ = canonical_event_digest(**ordered_args)
+    require_equal("causal parent order invariance", first_order, second_order)
+
+    duplicate_args = dict(baseline_args)
+    duplicate_args["causal_parents"] = [parent_id, parent_id]
+    try:
+        canonical_event_digest(**duplicate_args)
+    except ValueError as error:
+        require_equal("duplicate parent error", str(error), "duplicate causal parent")
+    else:
+        raise SystemExit("FAIL duplicate causal parents were accepted")
 
 
 def main() -> None:
     parent_id, parent_digest = verify_vector_001()
-    verify_vector_002(parent_id, parent_digest)
-    print("PASS canonical-event-v2 independent Python vectors")
+    _, _, child_digest = verify_vector_002(parent_id, parent_digest)
+    require_equal(
+        "v002 returned digest",
+        child_digest.hex(),
+        "bdb881578c4db99b954d4bbb1907adeaede631f9b8b49db3396c81c08dcc74a7",
+    )
+    verify_metamorphic_contract(parent_id, parent_digest)
+    print("PASS canonical-event-v2 independent Python vectors and metamorphic contract")
 
 
 if __name__ == "__main__":
