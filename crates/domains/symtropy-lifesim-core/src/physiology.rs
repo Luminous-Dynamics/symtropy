@@ -173,14 +173,19 @@ mod tests {
     fn mutable_condition_does_not_change_metabolic_traits() {
         let traits = MetabolicTraits::default();
         let original = traits.clone();
-        let mut state = PhysiologyState::default();
-
-        state.energy = 0.1;
-        state.hydration = 0.2;
-        state.tissue_integrity = 0.4;
-        state.infection_load = 0.7;
+        let state = PhysiologyState {
+            energy: 0.1,
+            hydration: 0.2,
+            tissue_integrity: 0.4,
+            infection_load: 0.7,
+            ..PhysiologyState::default()
+        };
 
         assert_eq!(traits, original);
+        assert_eq!(state.energy, 0.1);
+        assert_eq!(state.hydration, 0.2);
+        assert_eq!(state.tissue_integrity, 0.4);
+        assert_eq!(state.infection_load, 0.7);
     }
 
     #[test]
