@@ -1,0 +1,183 @@
+name: Evidence Execution Identity Tooling
+
+on:
+  pull_request:
+    branches: ["main"]
+    paths:
+      - "scripts/build-evidence-execution-identity.py"
+      - "scripts/test-evidence-execution-identity.py"
+      - ".github/workflows/evidence-execution-identity.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: evidence-identity-tooling-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: Execution identity / Python 3.12 / ubuntu-slim
+    # This is intentionally lightweight tooling qualification, not a product/Nix
+    # execution. GitHub documents ubuntu-slim for short automation/linting jobs;
+    # keep heavyweight evidence experiments on their explicitly reviewed runner class.
+    runs-on: ubuntu-slim
+    timeout-minutes: 5
+    env:
+      PYTHONDONTWRITEBYTECODE: "1"
+      EXECUTION_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+
+    steps:
+      - name: Checkout exact tooling head
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+          fetch-depth: 1
+          ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+
+      - name: Prove exact checkout
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$EXECUTION_SHA"
+          test -z "$(git status --porcelain=v1 --untracked-files=all)"
+          test -z "$(git clean -ndx)"
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
+        with:
+          python-version: "3.12"
+
+      - name: Compile without bytecode output
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+
+          for name in (
+              "scripts/build-evidence-execution-identity.py",
+              "scripts/test-evidence-execution-identity.py",
+          ):
+              compile(Path(name).read_text(encoding="utf-8"), name, "exec")
+              print(f"syntax-pass: {name}")
+          PY
+
+      - name: Run execution identity regression suite
+        shell: bash
+        run: |
+          set -euo pipefail
+          python scripts/test-evidence-execution-identity.py
+
+      - name: Exercise live checkout-bound identity
+        shell: bash
+        run: |
+          set -euo pipefail
+          workflow='.github/workflows/evidence-execution-identity.yml'
+          output="$RUNNER_TEMP/evidence-execution-identity-self-check"
+          rm -rf "$output"
+
+          arch="$(printf '%s' "$RUNNER_ARCH" | tr '[:upper:]' '[:lower:]')"
+          python_version="$(python -c 'import platform; print(platform.python_version())')"
+          tree="$(git rev-parse HEAD^{tree})"
+          workflow_blob="$(git rev-parse "HEAD:$workflow")"
+
+          python scripts/build-evidence-execution-identity.py \
+            --repository "$GITHUB_REPOSITORY" \
+            --execution-commit "$EXECUTION_SHA" \
+            --execution-tree "$tree" \
+            --workflow-path "$workflow" \
+            --workflow-blob "$workflow_blob" \
+            --binding action.checkout=11d5960a326750d5838078e36cf38b85af677262 \
+            --binding action.setup_python=a26af69be951a213d495a4c3e4e4022e16d87065 \
+            --binding environment.runner_label=ubuntu-slim \
+            --binding environment.arch="$arch" \
+            --binding environment.isolation=unprivileged-container \
+            --binding tool.python="$python_version" \
+            --require-binding action.checkout \
+            --require-binding action.setup_python \
+            --require-binding environment.runner_label \
+            --require-binding environment.arch \
+            --require-binding environment.isolation \
+            --require-binding tool.python \
+            --assert-checkout \
+            --repository-root . \
+            --output-dir "$output"
+
+          (
+            cd "$output"
+            sha256sum -c EXECUTION_IDENTITY.sha256
+          )
+
+          python - "$output/EXECUTION_IDENTITY.json" <<'PY'
+          import json
+          import os
+          import sys
+
+          with open(sys.argv[1], encoding='utf-8') as handle:
+              payload = json.load(handle)
+
+          assert payload['identity']['execution_commit'] == os.environ['EXECUTION_SHA'].lower()
+          assert payload['bindings']['environment.runner_label'] == 'ubuntu-slim'
+          assert payload['bindings']['environment.isolation'] == 'unprivileged-container'
+          assert payload['bindings']['tool.python']
+          print('PASS: live checkout-bound execution identity is self-consistent.')
+          PY
+
+      - name: Require observational checkout
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$EXECUTION_SHA"
+          status="$(git status --porcelain=v1 --untracked-files=all)"
+          extras="$(git clean -ndx)"
+          if [[ -n "$status" || -n "$extras" ]]; then
+            echo 'ERROR: execution-identity tooling qualification left non-HEAD workspace material:' >&2
+            [[ -z "$status" ]] || printf '%s\n' "$status" >&2
+            [[ -z "$extras" ]] || printf '%s\n' "$extras" >&2
+            exit 1
+          fi
+          echo 'PASS: execution-identity tooling left only tracked HEAD material.'
+
+      - name: Claim boundary
+        shell: bash
+        run: |
+          cat <<'EOF'
+          PASS here establishes only the deterministic execution-identity helper:
+            - qualification ran on the literal requested commit using ubuntu-slim;
+            - canonical binding and required-binding ordering is stable;
+            - repository case is normalized;
+            - authority-bearing source/workflow/environment/tool/input/policy changes change identity;
+            - action/policy/source/producer/verifier bindings require immutable 40/64-hex identities;
+            - free-form semantic values are review-safe printable ASCII with no edge whitespace;
+            - obvious moving tool/environment aliases such as stable/latest/current are rejected;
+            - execution-environment contracts such as runner class/isolation can be identity-bound;
+            - declared required bindings are identity-bound and missing requirements fail closed;
+            - --assert-checkout proves commit/tree/workflow-blob coherence against live HEAD;
+            - asserted checkout contains no tracked drift, untracked files, or ignored material;
+            - checkout-bound output must remain outside the asserted product tree;
+            - the hosted self-check exercised the actual checkout and actual Python patch version;
+            - per-run observation metadata is excluded from the semantic identity namespace;
+            - ambiguous workflow paths and duplicate bindings/requirements are rejected;
+            - the final checkout still contains only tracked HEAD material.
+
+          The moving-alias guard is review hardening, not a proof that every accepted
+          descriptor is immutable. Material executable artifacts should still be bound
+          through immutable source/policy/action identities where available.
+
+          Runner class, architecture, isolation model, and material image properties
+          belong in environment.* when they can affect execution semantics. A specific
+          ephemeral runner instance or GitHub run ID remains observation metadata.
+
+          This qualification's own runner class is ubuntu-slim and therefore does not
+          claim equivalence with ubuntu-24.04 VM execution. It validates lightweight
+          deterministic Python tooling only.
+
+          Required-binding closure proves only that the caller supplied its declared
+          authority surface. Review must still establish that the declaration itself
+          is complete for the workflow/producer semantics bound by this identity.
+
+          It does not qualify any CUF Stage A execution, Cargo.lock repair,
+          Universal Matter replay, Q1, or Q2 claim.
+          EOF
