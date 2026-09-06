@@ -4,8 +4,8 @@
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use symtropy_game_state::{
-    CanonicalEventPayload, CanonicalWriter, EventChainV2, PayloadDigest, StableEventKind, StableId,
-    StableIdNamespace,
+    CanonicalEventPayload, CanonicalWriter, EventChainV2, EventV2Error, PayloadDigest,
+    StableEventKind, StableId, StableIdNamespace,
 };
 
 const V1_STABLE_ID_PREIMAGE: &str = "73796d74726f70792f737461626c652d69642f763200000000000000000a666f6c642e6576656e74000000000000005b0000000000000000";
@@ -180,4 +180,45 @@ fn canonical_event_v2_golden_vector_002_non_genesis() {
         event.event_digest.canonical().to_hex(),
         "bdb881578c4db99b954d4bbb1907adeaede631f9b8b49db3396c81c08dcc74a7"
     );
+}
+
+#[test]
+fn append_rejects_non_monotonic_tick_without_mutating_chain() {
+    let namespace = StableIdNamespace::parse("fold.event").expect("valid namespace");
+    let mut chain = EventChainV2::new(namespace, 91);
+    chain
+        .append(
+            10,
+            StableEventKind::parse("fold.observed").expect("valid event kind"),
+            None,
+            None,
+            Vec::new(),
+            GoldenPayload { value: 5 },
+        )
+        .expect("first event appends");
+
+    let head_before = chain.head_digest();
+    let len_before = chain.events().len();
+    let error = chain
+        .append(
+            9,
+            StableEventKind::parse("fold.rewind.applied").expect("valid event kind"),
+            None,
+            None,
+            Vec::new(),
+            GoldenPayload { value: 9 },
+        )
+        .expect_err("backward simulation tick must fail");
+
+    match error {
+        EventV2Error::NonMonotonicTick {
+            previous, actual, ..
+        } => {
+            assert_eq!(previous, 10);
+            assert_eq!(actual, 9);
+        }
+        other => panic!("expected NonMonotonicTick, got {other:?}"),
+    }
+    assert_eq!(chain.events().len(), len_before);
+    assert_eq!(chain.head_digest(), head_before);
 }
