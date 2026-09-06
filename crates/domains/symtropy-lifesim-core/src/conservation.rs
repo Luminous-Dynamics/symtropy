@@ -72,12 +72,18 @@ impl EcologicalLedger {
         self.pools.get(&key).copied().unwrap_or(0.0)
     }
 
-    /// Sum one conserved quantity over every internal compartment.
-    pub fn total(&self, quantity: ConservedQuantity) -> f64 {
-        self.pools
+    /// Sum one conserved quantity over every internal compartment, rejecting
+    /// any arithmetic result that would cease to be finite.
+    pub fn total(&self, quantity: ConservedQuantity) -> Result<f64, ConservationError> {
+        let mut total = 0.0;
+        for amount in self
+            .pools
             .iter()
             .filter_map(|(key, amount)| (key.quantity == quantity).then_some(*amount))
-            .sum()
+        {
+            total = checked_add("sum internal pools", quantity, total, amount)?;
+        }
+        Ok(total)
     }
 
     /// Cumulative external input recorded for one quantity.
@@ -95,17 +101,27 @@ impl EcologicalLedger {
     /// This is intentionally distinct from runtime external input. Callers
     /// constructing a baseline may seed arbitrary non-negative finite values,
     /// then clone the ledger and use [`Self::balance_since`] for subsequent
-    /// qualification.
+    /// qualification. The aggregate for the affected quantity must remain
+    /// finite as well as every individual pool.
     pub fn seed(&mut self, key: PoolKey, amount: f64) -> Result<(), ConservationError> {
         validate_amount(amount)?;
+        let total = self.total(key.quantity)?;
+        let existing = self.amount(key);
+        let without_existing = total - existing;
+        let _next_total = checked_add(
+            "seed aggregate quantity",
+            key.quantity,
+            without_existing,
+            amount,
+        )?;
         self.pools.insert(key, amount);
         Ok(())
     }
 
     /// Move one conserved quantity between internal compartments.
     ///
-    /// Failure is atomic: insufficient source quantity or invalid input leaves
-    /// the ledger unchanged.
+    /// Failure is atomic: insufficient source quantity, invalid input, or
+    /// non-finite arithmetic leaves the ledger unchanged.
     pub fn transfer(
         &mut self,
         quantity: ConservedQuantity,
@@ -130,13 +146,19 @@ impl EcologicalLedger {
             });
         }
 
-        self.pools.insert(source_key, available - amount);
         let target = self.amount(target_key);
-        self.pools.insert(target_key, target + amount);
+        let next_target = checked_add("transfer target", quantity, target, amount)?;
+        let next_source = available - amount;
+
+        self.pools.insert(source_key, next_source);
+        self.pools.insert(target_key, next_target);
         Ok(())
     }
 
     /// Add a quantity from outside the simulated accounting boundary.
+    ///
+    /// Both internal totals and cumulative boundary counters must remain finite
+    /// before any mutation is committed.
     pub fn input(
         &mut self,
         quantity: ConservedQuantity,
@@ -146,14 +168,27 @@ impl EcologicalLedger {
         validate_amount(amount)?;
         let target_key = PoolKey::new(quantity, to);
         let target = self.amount(target_key);
-        self.pools.insert(target_key, target + amount);
-        *self.external_in.entry(quantity).or_default() += amount;
+        let total = self.total(quantity)?;
+        let current_external = self.external_input(quantity);
+
+        let next_target = checked_add("external input target", quantity, target, amount)?;
+        let _next_total = checked_add("external input aggregate", quantity, total, amount)?;
+        let next_external = checked_add(
+            "external input counter",
+            quantity,
+            current_external,
+            amount,
+        )?;
+
+        self.pools.insert(target_key, next_target);
+        self.external_in.insert(quantity, next_external);
         Ok(())
     }
 
     /// Remove a quantity through an explicit system-boundary output.
     ///
-    /// Failure is atomic if the source pool is insufficient.
+    /// Failure is atomic if the source pool is insufficient or the cumulative
+    /// output counter would become non-finite.
     pub fn output(
         &mut self,
         quantity: ConservedQuantity,
@@ -172,8 +207,17 @@ impl EcologicalLedger {
             });
         }
 
-        self.pools.insert(source_key, available - amount);
-        *self.external_out.entry(quantity).or_default() += amount;
+        let current_external = self.external_output(quantity);
+        let next_external = checked_add(
+            "external output counter",
+            quantity,
+            current_external,
+            amount,
+        )?;
+        let next_source = available - amount;
+
+        self.pools.insert(source_key, next_source);
+        self.external_out.insert(quantity, next_external);
         Ok(())
     }
 
@@ -184,14 +228,26 @@ impl EcologicalLedger {
     /// `expected = baseline_total + external_inputs - external_outputs`
     ///
     /// where external deltas are measured since the baseline snapshot.
-    pub fn balance_since(&self, baseline: &Self) -> ConservationReport {
+    pub fn balance_since(&self, baseline: &Self) -> Result<ConservationReport, ConservationError> {
         let mut entries = BTreeMap::new();
         for quantity in ConservedQuantity::ALL {
-            let baseline_total = baseline.total(quantity);
+            let baseline_total = baseline.total(quantity)?;
             let input_delta = self.external_input(quantity) - baseline.external_input(quantity);
             let output_delta = self.external_output(quantity) - baseline.external_output(quantity);
-            let expected = baseline_total + input_delta - output_delta;
-            let actual = self.total(quantity);
+            let expected_before_output = checked_add(
+                "balance expected input",
+                quantity,
+                baseline_total,
+                input_delta,
+            )?;
+            let expected = checked_sub(
+                "balance expected output",
+                quantity,
+                expected_before_output,
+                output_delta,
+            )?;
+            let actual = self.total(quantity)?;
+            let residual = checked_sub("balance residual", quantity, actual, expected)?;
             entries.insert(
                 quantity,
                 ConservationBalance {
@@ -200,11 +256,11 @@ impl EcologicalLedger {
                     external_output: output_delta,
                     expected,
                     actual,
-                    residual: actual - expected,
+                    residual,
                 },
             );
         }
-        ConservationReport { entries }
+        Ok(ConservationReport { entries })
     }
 }
 
@@ -261,6 +317,10 @@ pub enum ConservationError {
         available: f64,
         requested: f64,
     },
+    NonFiniteArithmetic {
+        operation: &'static str,
+        quantity: ConservedQuantity,
+    },
 }
 
 impl fmt::Display for ConservationError {
@@ -281,6 +341,13 @@ impl fmt::Display for ConservationError {
                 formatter,
                 "insufficient {quantity:?} in {compartment:?}: available {available}, requested {requested}"
             ),
+            Self::NonFiniteArithmetic {
+                operation,
+                quantity,
+            } => write!(
+                formatter,
+                "ecological accounting produced a non-finite result during {operation} for {quantity:?}"
+            ),
         }
     }
 }
@@ -295,6 +362,40 @@ fn validate_amount(amount: f64) -> Result<(), ConservationError> {
         return Err(ConservationError::NegativeAmount(amount));
     }
     Ok(())
+}
+
+fn checked_add(
+    operation: &'static str,
+    quantity: ConservedQuantity,
+    left: f64,
+    right: f64,
+) -> Result<f64, ConservationError> {
+    let result = left + right;
+    if result.is_finite() {
+        Ok(result)
+    } else {
+        Err(ConservationError::NonFiniteArithmetic {
+            operation,
+            quantity,
+        })
+    }
+}
+
+fn checked_sub(
+    operation: &'static str,
+    quantity: ConservedQuantity,
+    left: f64,
+    right: f64,
+) -> Result<f64, ConservationError> {
+    let result = left - right;
+    if result.is_finite() {
+        Ok(result)
+    } else {
+        Err(ConservationError::NonFiniteArithmetic {
+            operation,
+            quantity,
+        })
+    }
 }
 
 #[cfg(test)]
@@ -343,7 +444,12 @@ mod tests {
             )),
             35.0
         );
-        assert!(ledger.balance_since(&baseline).within_tolerance(0.0));
+        assert!(
+            ledger
+                .balance_since(&baseline)
+                .unwrap()
+                .within_tolerance(0.0)
+        );
     }
 
     #[test]
@@ -377,6 +483,7 @@ mod tests {
 
         let balance = ledger
             .balance_since(&baseline)
+            .unwrap()
             .balance(ConservedQuantity::WaterMass);
         assert_eq!(balance.baseline, 10.0);
         assert_eq!(balance.external_input, 7.5);
@@ -430,9 +537,70 @@ mod tests {
     }
 
     #[test]
+    fn aggregate_seed_overflow_is_rejected_atomically() {
+        let mut ledger = EcologicalLedger::default();
+        ledger
+            .seed(
+                PoolKey::new(
+                    ConservedQuantity::WaterMass,
+                    EcologicalCompartment::Soil,
+                ),
+                f64::MAX,
+            )
+            .unwrap();
+        let before = ledger.clone();
+
+        let result = ledger.seed(
+            PoolKey::new(
+                ConservedQuantity::WaterMass,
+                EcologicalCompartment::WaterColumn,
+            ),
+            f64::MAX,
+        );
+
+        assert!(matches!(
+            result,
+            Err(ConservationError::NonFiniteArithmetic { .. })
+        ));
+        assert_eq!(ledger, before);
+    }
+
+    #[test]
+    fn external_counter_overflow_is_rejected_atomically() {
+        let mut ledger = EcologicalLedger::default();
+        ledger
+            .input(
+                ConservedQuantity::WaterMass,
+                EcologicalCompartment::Soil,
+                f64::MAX,
+            )
+            .unwrap();
+        ledger
+            .output(
+                ConservedQuantity::WaterMass,
+                EcologicalCompartment::Soil,
+                f64::MAX,
+            )
+            .unwrap();
+        let before = ledger.clone();
+
+        let result = ledger.input(
+            ConservedQuantity::WaterMass,
+            EcologicalCompartment::Soil,
+            f64::MAX,
+        );
+
+        assert!(matches!(
+            result,
+            Err(ConservationError::NonFiniteArithmetic { .. })
+        ));
+        assert_eq!(ledger, before);
+    }
+
+    #[test]
     fn tolerance_is_checked_for_every_quantity() {
         let ledger = seeded_biomass();
-        let report = ledger.balance_since(&ledger);
+        let report = ledger.balance_since(&ledger).unwrap();
 
         assert!(report.within_tolerance(0.0));
         assert!(!report.within_tolerance(-1.0));
