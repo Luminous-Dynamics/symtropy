@@ -1,0 +1,68 @@
+name: Living World exact qualification
+
+on:
+  pull_request:
+    branches: [ "main" ]
+
+concurrency:
+  group: living-world-exact-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  CARGO_TERM_COLOR: always
+  QUALIFIED_HEAD: 88a5d85c55481b5cc312a266c70227729e7869fe
+
+jobs:
+  qualify-lifesim-core:
+    name: Qualify exact Living World foundation head
+    runs-on: ubuntu-slim
+
+    steps:
+    - name: Check out exact Living World head
+      uses: actions/checkout@v4
+      with:
+        ref: ${{ env.QUALIFIED_HEAD }}
+        fetch-depth: 1
+
+    - name: Assert exact checkout
+      shell: bash
+      run: |
+        set -euo pipefail
+        actual="$(git rev-parse HEAD)"
+        test "$actual" = "$QUALIFIED_HEAD"
+        test -z "$(git status --porcelain)"
+
+    - name: Set up pinned Rust
+      uses: dtolnay/rust-toolchain@stable
+      with:
+        toolchain: 1.96.0
+        components: clippy, rustfmt
+
+    - name: Cache dependencies
+      uses: Swatinem/rust-cache@v2
+
+    - name: Check scoped formatting
+      shell: bash
+      run: cargo fmt --package symtropy-lifesim-core -- --check
+
+    - name: Run scoped tests
+      shell: bash
+      run: cargo test --locked -p symtropy-lifesim-core --all-targets
+
+    - name: Run scoped Clippy
+      shell: bash
+      run: cargo clippy --locked -p symtropy-lifesim-core --all-targets -- -D warnings
+
+    - name: Check scoped build
+      shell: bash
+      run: cargo check --locked -p symtropy-lifesim-core --all-targets
+
+    - name: Assert qualification was non-mutating
+      shell: bash
+      run: |
+        set -euo pipefail
+        test "$(git rev-parse HEAD)" = "$QUALIFIED_HEAD"
+        test -z "$(git status --porcelain)"
