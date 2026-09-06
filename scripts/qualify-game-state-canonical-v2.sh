@@ -24,6 +24,11 @@ if ! command -v python3 >/dev/null 2>&1; then
   exit 1
 fi
 
+QUALIFICATION_TARGET_DIR="$(mktemp -d "${TMPDIR:-/tmp}/symtropy-game-state-target.XXXXXX")"
+export CARGO_TARGET_DIR="$QUALIFICATION_TARGET_DIR"
+trap 'rm -rf "$QUALIFICATION_TARGET_DIR"' EXIT
+printf 'target: %s\n' "$CARGO_TARGET_DIR"
+
 printf '\n=== INDEPENDENT CANONICAL VECTOR ORACLE ===\n'
 python3 scripts/verify-canonical-event-v2-vectors.py
 
