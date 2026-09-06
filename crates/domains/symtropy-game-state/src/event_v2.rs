@@ -244,14 +244,14 @@ impl<T: CanonicalEventPayload> EventChainV2<T> {
         validate_optional_stable_id(observer_id.as_ref())?;
         validate_payload_schema(T::PAYLOAD_SCHEMA)?;
 
-        if let Some(previous) = self.events.last() {
-            if simulation_tick < previous.simulation_tick {
-                return Err(EventV2Error::NonMonotonicTick {
-                    event_id: previous.event_id.clone(),
-                    previous: previous.simulation_tick,
-                    actual: simulation_tick,
-                });
-            }
+        if let Some(previous) = self.events.last()
+            && simulation_tick < previous.simulation_tick
+        {
+            return Err(EventV2Error::NonMonotonicTick {
+                event_id: previous.event_id.clone(),
+                previous: previous.simulation_tick,
+                actual: simulation_tick,
+            });
         }
 
         let ordinal = u64::try_from(self.events.len()).map_err(|_| EventV2Error::EventOverflow)?;
