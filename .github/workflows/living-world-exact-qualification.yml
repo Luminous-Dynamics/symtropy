@@ -15,7 +15,7 @@ permissions:
 
 env:
   CARGO_TERM_COLOR: always
-  CARGO_TARGET_DIR: ${{ runner.temp }}/living-world-target
+  CARGO_TARGET_DIR: /tmp/living-world-target
   QUALIFIED_HEAD: 3f3d2f19387afd0bd6313e0b1b5c6bdd6a509623
 
 jobs:
