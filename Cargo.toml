@@ -152,6 +152,7 @@ members = [
     "crates/bridges/symtropy-mycelix-bridge",
     "crates/bridges/symtropy-foundry",
     "crates/domains/symtropy-terrain",
+    "crates/domains/symtropy-fabrication",
     "crates/domains/symtropy-lightyear",
     "crates/apps/symtropy-multiplayer-demo",
     "crates/symtropy-mesh",
