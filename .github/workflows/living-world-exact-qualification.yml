@@ -8,37 +8,37 @@ concurrency:
   group: living-world-exact-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
-# Temporary never-merge helper. Write authority is narrowly scoped to repairing
-# the exact lint findings surfaced by the previous immutable-head qualification.
+# Temporary never-merge helper. The implementation repair is complete; this
+# workflow is now strictly read-only and qualifies one immutable Living World
+# stack head.
 permissions:
-  contents: write
+  contents: read
 
 env:
   CARGO_TERM_COLOR: always
-  TARGET_BRANCH: living-world/lw09-derived-materialization
-  EXPECTED_TARGET_HEAD: d96a7003ad417cd0e531f44cf86df5f878e31901
+  QUALIFIED_HEAD: 3f3d2f19387afd0bd6313e0b1b5c6bdd6a509623
 
 jobs:
-  repair-and-qualify-lifesim-core:
-    name: Repair Clippy findings and qualify exact Living World head
+  qualify-lifesim-core:
+    name: Qualify exact Clippy-repaired Living World head
     if: >-
       github.event.pull_request.head.ref == 'ci/living-world-exact-qualification-88a5d85' &&
       github.event.pull_request.base.ref == 'main'
     runs-on: ubuntu-slim
 
     steps:
-    - name: Check out hard-pinned Living World branch
+    - name: Check out exact Living World head
       uses: actions/checkout@v4
       with:
-        ref: ${{ env.TARGET_BRANCH }}
+        ref: ${{ env.QUALIFIED_HEAD }}
         fetch-depth: 1
-        persist-credentials: true
+        persist-credentials: false
 
-    - name: Assert exact source head and clean checkout
+    - name: Assert exact checkout
       shell: bash
       run: |
         set -euo pipefail
-        test "$(git rev-parse HEAD)" = "$EXPECTED_TARGET_HEAD"
+        test "$(git rev-parse HEAD)" = "$QUALIFIED_HEAD"
         test -z "$(git status --porcelain)"
 
     - name: Set up pinned Rust
@@ -46,65 +46,6 @@ jobs:
       with:
         toolchain: 1.96.0
         components: clippy, rustfmt
-
-    - name: Apply exact Clippy repairs
-      shell: bash
-      run: |
-        set -euo pipefail
-        python3 - <<'PY'
-        from pathlib import Path
-
-        replacements = {
-            Path('crates/domains/symtropy-lifesim-core/src/cadence.rs'): [(
-                "            && (simulation_tick - self.phase_tick) % self.interval_ticks.get() == 0\n",
-                "            && (simulation_tick - self.phase_tick).is_multiple_of(self.interval_ticks.get())\n",
-            )],
-            Path('crates/domains/symtropy-lifesim-core/src/physiology.rs'): [(
-                "        let mut state = PhysiologyState::default();\n\n        state.energy = 0.1;\n        state.hydration = 0.2;\n        state.tissue_integrity = 0.4;\n        state.infection_load = 0.7;\n\n        assert_eq!(traits, original);\n",
-                "        let state = PhysiologyState {\n            energy: 0.1,\n            hydration: 0.2,\n            tissue_integrity: 0.4,\n            infection_load: 0.7,\n            ..PhysiologyState::default()\n        };\n\n        assert_eq!(traits, original);\n        assert_eq!(state.energy, 0.1);\n        assert_eq!(state.hydration, 0.2);\n        assert_eq!(state.tissue_integrity, 0.4);\n        assert_eq!(state.infection_load, 0.7);\n",
-            )],
-            Path('crates/domains/symtropy-lifesim-core/src/population.rs'): [(
-                "        let base_biomass = if self.count == 0 {\n            0\n        } else {\n            self.biomass_milligrams / self.count\n        };\n        let biomass_remainder = if self.count == 0 {\n            0\n        } else {\n            self.biomass_milligrams % self.count\n        };\n",
-                "        let base_biomass = self.biomass_milligrams.checked_div(self.count).unwrap_or(0);\n        let biomass_remainder = self.biomass_milligrams.checked_rem(self.count).unwrap_or(0);\n",
-            )],
-        }
-
-        for path, edits in replacements.items():
-            text = path.read_text()
-            for old, new in edits:
-                count = text.count(old)
-                if count != 1:
-                    raise SystemExit(f'{path}: expected one exact replacement, found {count}')
-                text = text.replace(old, new, 1)
-            path.write_text(text)
-        PY
-
-        cargo fmt --package symtropy-lifesim-core
-        git diff --check
-        changed="$(git diff --name-only)"
-        unexpected="$(printf '%s\n' "$changed" | grep -Ev '^crates/domains/symtropy-lifesim-core/src/(cadence|physiology|population)\.rs$' || true)"
-        test -z "$unexpected"
-        test "$(printf '%s\n' "$changed" | sed '/^$/d' | wc -l)" -eq 3
-
-    - name: Commit exact repair and remove write credentials
-      shell: bash
-      run: |
-        set -euo pipefail
-        git config user.name 'Living World Qualification Bot'
-        git config user.email 'living-world-qualification@users.noreply.github.com'
-        git add \
-          crates/domains/symtropy-lifesim-core/src/cadence.rs \
-          crates/domains/symtropy-lifesim-core/src/physiology.rs \
-          crates/domains/symtropy-lifesim-core/src/population.rs
-        git commit -m 'fix(lifesim): satisfy pinned Clippy qualification'
-        git push origin "HEAD:${TARGET_BRANCH}"
-        qualified_head="$(git rev-parse HEAD)"
-        echo "QUALIFIED_HEAD=$qualified_head" >> "$GITHUB_ENV"
-
-        git config --local --unset-all http.https://github.com/.extraheader || true
-        git checkout --detach "$qualified_head"
-        test "$(git rev-parse HEAD)" = "$qualified_head"
-        test -z "$(git status --porcelain)"
 
     - name: Cache dependencies
       uses: Swatinem/rust-cache@v2
@@ -129,6 +70,5 @@ jobs:
       shell: bash
       run: |
         set -euo pipefail
-        test -n "$QUALIFIED_HEAD"
         test "$(git rev-parse HEAD)" = "$QUALIFIED_HEAD"
         test -z "$(git status --porcelain)"
