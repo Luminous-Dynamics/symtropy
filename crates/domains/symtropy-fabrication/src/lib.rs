@@ -7,6 +7,8 @@
 
 mod identity;
 mod interface;
+mod joint;
 
 pub use identity::*;
 pub use interface::*;
+pub use joint::*;
