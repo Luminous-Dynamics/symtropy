@@ -105,9 +105,9 @@ fn validate_trait_key(trait_key: &str) -> Result<(), PhenotypeError> {
         return Err(PhenotypeError::EmptyTraitKey);
     }
     let portable = trait_key.len() <= 96
-        && trait_key.bytes().all(|byte| {
-            byte.is_ascii_alphanumeric() || matches!(byte, b'.' | b'-' | b'_' | b':')
-        });
+        && trait_key
+            .bytes()
+            .all(|byte| byte.is_ascii_alphanumeric() || matches!(byte, b'.' | b'-' | b'_' | b':'));
     if portable {
         Ok(())
     } else {
@@ -191,10 +191,7 @@ mod tests {
     #[test]
     fn invalid_keys_and_ranges_fail_closed() {
         let seed = PhenotypeSeed::new(1, 2);
-        assert!(matches!(
-            seed.unit(""),
-            Err(PhenotypeError::EmptyTraitKey)
-        ));
+        assert!(matches!(seed.unit(""), Err(PhenotypeError::EmptyTraitKey)));
         assert!(matches!(
             seed.unit("leaf aspect"),
             Err(PhenotypeError::NonPortableTraitKey(_))

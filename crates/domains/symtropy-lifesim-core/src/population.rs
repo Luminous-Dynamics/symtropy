@@ -124,10 +124,7 @@ impl<K: Ord + Clone> CountDistribution<K> {
         }
 
         debug_assert_eq!(selected_remaining, 0);
-        Ok((
-            Self::new(selected_counts)?,
-            Self::new(remainder_counts)?,
-        ))
+        Ok((Self::new(selected_counts)?, Self::new(remainder_counts)?))
     }
 
     /// Merge two marginals of the same dimension, preserving exact counts.
@@ -172,9 +169,7 @@ impl PopulationState {
         validate_distribution_total("occupancy", count, occupancy.total())?;
 
         if count == 0 && biomass_milligrams != 0 {
-            return Err(PopulationError::NonZeroBiomassForEmptyPopulation {
-                biomass_milligrams,
-            });
+            return Err(PopulationError::NonZeroBiomassForEmptyPopulation { biomass_milligrams });
         }
 
         Ok(Self {
@@ -293,9 +288,217 @@ impl PopulationState {
             self.occupancy.merge(&other.occupancy)?,
         )
     }
+
+    /// Materialize this already-reserved population partition into an ephemeral
+    /// local working set.
+    ///
+    /// The resulting member tuples are *derived representation*, not stable
+    /// biological identity. Marginals are interleaved deterministically using
+    /// `seed` to avoid sorted-bin alignment, but any cross-dimension
+    /// correlations are synthetic because the coarse source never stored a
+    /// joint distribution.
+    pub fn materialize_derived(
+        &self,
+        seed: MaterializationSeed,
+        max_individuals: usize,
+    ) -> Result<DerivedPopulation, PopulationError> {
+        self.verify()?;
+        let count = usize::try_from(self.count)
+            .map_err(|_| PopulationError::PopulationTooLargeToMaterialize { count: self.count })?;
+        if count > max_individuals {
+            return Err(PopulationError::MaterializationLimitExceeded {
+                count: self.count,
+                limit: max_individuals,
+            });
+        }
+
+        let ages = interleaved_values(&self.age, seed, 0xA6E1_5D31, count)?;
+        let conditions = interleaved_values(&self.condition, seed, 0xC04D_1710, count)?;
+        let cells = interleaved_values(&self.occupancy, seed, 0x5A71_A100, count)?;
+
+        let mut members = Vec::with_capacity(count);
+        let base_biomass = self.biomass_milligrams.checked_div(self.count).unwrap_or(0);
+        let biomass_remainder = self.biomass_milligrams.checked_rem(self.count).unwrap_or(0);
+
+        for index in 0..count {
+            let ordinal = u64::try_from(index).map_err(|_| {
+                PopulationError::PopulationTooLargeToMaterialize { count: self.count }
+            })?;
+            let biomass_milligrams = base_biomass + u64::from(ordinal < biomass_remainder);
+            members.push(DerivedPopulationMember {
+                ordinal: DerivedOrdinal(ordinal),
+                age: ages[index],
+                condition: conditions[index],
+                cell: cells[index],
+                biomass_milligrams,
+            });
+        }
+
+        Ok(DerivedPopulation { seed, members })
+    }
 }
 
-fn prefix_biomass(total_biomass: u64, total_count: u64, selected: u64) -> Result<u64, PopulationError> {
+/// Materialization context used only to choose a deterministic derived tuple
+/// arrangement. It is not an organism identifier.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub struct MaterializationSeed(pub u64);
+
+/// Ephemeral ordinal inside one materialization result.
+///
+/// This value must not be persisted or interpreted as stable organism identity.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct DerivedOrdinal(pub u64);
+
+/// One derived local working member.
+///
+/// The tuple is a deterministic projection of population marginals. Unless a
+/// future authoritative organism record says otherwise, the association among
+/// age, condition, and cell is synthetic representation rather than historical
+/// identity.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct DerivedPopulationMember {
+    pub ordinal: DerivedOrdinal,
+    pub age: PopulationAgeBand,
+    pub condition: PopulationConditionBand,
+    pub cell: PopulationCell,
+    pub biomass_milligrams: u64,
+}
+
+/// Bounded ephemeral working set derived from one reserved population slice.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct DerivedPopulation {
+    seed: MaterializationSeed,
+    members: Vec<DerivedPopulationMember>,
+}
+
+impl DerivedPopulation {
+    pub const fn seed(&self) -> MaterializationSeed {
+        self.seed
+    }
+
+    pub fn members(&self) -> &[DerivedPopulationMember] {
+        &self.members
+    }
+
+    pub fn len(&self) -> usize {
+        self.members.len()
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.members.is_empty()
+    }
+
+    /// Reduce an unchanged or locally updated working set back into canonical
+    /// coarse marginals and exact biomass.
+    ///
+    /// This intentionally preserves only the aggregate information represented
+    /// by `PopulationState`; synthetic cross-dimension tuple correlations are
+    /// discarded again during reduction.
+    pub fn reduce_to_population(&self) -> Result<PopulationState, PopulationError> {
+        let count =
+            u64::try_from(self.members.len()).map_err(|_| PopulationError::CountOverflow)?;
+        let mut biomass_milligrams = 0u64;
+        let mut ages = BTreeMap::new();
+        let mut conditions = BTreeMap::new();
+        let mut cells = BTreeMap::new();
+
+        for (index, member) in self.members.iter().enumerate() {
+            let expected = u64::try_from(index).map_err(|_| PopulationError::CountOverflow)?;
+            if member.ordinal != DerivedOrdinal(expected) {
+                return Err(PopulationError::NonCanonicalDerivedOrdinal {
+                    expected,
+                    actual: member.ordinal.0,
+                });
+            }
+            biomass_milligrams = biomass_milligrams
+                .checked_add(member.biomass_milligrams)
+                .ok_or(PopulationError::BiomassArithmeticOverflow)?;
+            increment_bin(&mut ages, member.age)?;
+            increment_bin(&mut conditions, member.condition)?;
+            increment_bin(&mut cells, member.cell)?;
+        }
+
+        PopulationState::new(
+            count,
+            biomass_milligrams,
+            CountDistribution::new(ages)?,
+            CountDistribution::new(conditions)?,
+            CountDistribution::new(cells)?,
+        )
+    }
+}
+
+fn interleaved_values<K: Ord + Copy>(
+    distribution: &CountDistribution<K>,
+    seed: MaterializationSeed,
+    salt: u64,
+    expected_len: usize,
+) -> Result<Vec<K>, PopulationError> {
+    let mut bins = distribution
+        .bins()
+        .map(|(key, count)| (*key, count))
+        .collect::<Vec<_>>();
+    if bins.is_empty() {
+        return Ok(Vec::new());
+    }
+
+    let rotation = (mix64(seed.0 ^ salt) % bins.len() as u64) as usize;
+    bins.rotate_left(rotation);
+
+    let mut values = Vec::with_capacity(expected_len);
+    while values.len() < expected_len {
+        let before = values.len();
+        for (key, remaining) in &mut bins {
+            if *remaining != 0 {
+                values.push(*key);
+                *remaining -= 1;
+            }
+        }
+        if values.len() == before {
+            return Err(PopulationError::DistributionTotalMismatch {
+                dimension: "materialization",
+                expected: expected_len as u64,
+                actual: values.len() as u64,
+            });
+        }
+    }
+
+    if values.len() != expected_len {
+        return Err(PopulationError::DistributionTotalMismatch {
+            dimension: "materialization",
+            expected: expected_len as u64,
+            actual: values.len() as u64,
+        });
+    }
+    Ok(values)
+}
+
+fn increment_bin<K: Ord + Copy>(
+    counts: &mut BTreeMap<K, u64>,
+    key: K,
+) -> Result<(), PopulationError> {
+    let next = counts
+        .get(&key)
+        .copied()
+        .unwrap_or(0)
+        .checked_add(1)
+        .ok_or(PopulationError::CountOverflow)?;
+    counts.insert(key, next);
+    Ok(())
+}
+
+fn mix64(mut value: u64) -> u64 {
+    value = value.wrapping_add(0x9e37_79b9_7f4a_7c15);
+    value = (value ^ (value >> 30)).wrapping_mul(0xbf58_476d_1ce4_e5b9);
+    value = (value ^ (value >> 27)).wrapping_mul(0x94d0_49bb_1331_11eb);
+    value ^ (value >> 31)
+}
+
+fn prefix_biomass(
+    total_biomass: u64,
+    total_count: u64,
+    selected: u64,
+) -> Result<u64, PopulationError> {
     if selected > total_count {
         return Err(PopulationError::RequestedSplitExceedsPopulation {
             requested: selected,
@@ -341,6 +544,17 @@ pub enum PopulationError {
         requested: u64,
         available: u64,
     },
+    MaterializationLimitExceeded {
+        count: u64,
+        limit: usize,
+    },
+    PopulationTooLargeToMaterialize {
+        count: u64,
+    },
+    NonCanonicalDerivedOrdinal {
+        expected: u64,
+        actual: u64,
+    },
     DistributionTotalMismatch {
         dimension: &'static str,
         expected: u64,
@@ -359,13 +573,27 @@ impl fmt::Display for PopulationError {
                 "population distributions cannot store zero-count bins"
             ),
             Self::CountOverflow => write!(formatter, "population distribution count overflow"),
-            Self::BiomassArithmeticOverflow => write!(formatter, "population biomass arithmetic overflow"),
+            Self::BiomassArithmeticOverflow => {
+                write!(formatter, "population biomass arithmetic overflow")
+            }
             Self::RequestedSplitExceedsPopulation {
                 requested,
                 available,
             } => write!(
                 formatter,
                 "cannot split {requested} organisms from population of {available}"
+            ),
+            Self::MaterializationLimitExceeded { count, limit } => write!(
+                formatter,
+                "population of {count} exceeds materialization limit {limit}"
+            ),
+            Self::PopulationTooLargeToMaterialize { count } => write!(
+                formatter,
+                "population of {count} cannot be represented by this platform's address space"
+            ),
+            Self::NonCanonicalDerivedOrdinal { expected, actual } => write!(
+                formatter,
+                "derived population ordinal {actual} is non-canonical; expected {expected}"
             ),
             Self::DistributionTotalMismatch {
                 dimension,
@@ -375,9 +603,7 @@ impl fmt::Display for PopulationError {
                 formatter,
                 "population {dimension} distribution totals {actual}, expected {expected}"
             ),
-            Self::NonZeroBiomassForEmptyPopulation {
-                biomass_milligrams,
-            } => write!(
+            Self::NonZeroBiomassForEmptyPopulation { biomass_milligrams } => write!(
                 formatter,
                 "empty population cannot retain {biomass_milligrams} mg living biomass"
             ),
@@ -398,7 +624,7 @@ mod tests {
     fn valid_population() -> PopulationState {
         PopulationState::new(
             10,
-            2_500_000,
+            2_500_003,
             distribution([
                 (PopulationAgeBand::Juvenile, 3),
                 (PopulationAgeBand::Mature, 7),
@@ -422,7 +648,7 @@ mod tests {
         assert_eq!(population.age_distribution().total(), 10);
         assert_eq!(population.condition_distribution().total(), 10);
         assert_eq!(population.occupancy_distribution().total(), 10);
-        assert_eq!(population.biomass_milligrams(), 2_500_000);
+        assert_eq!(population.biomass_milligrams(), 2_500_003);
         assert_eq!(population.verify(), Ok(()));
     }
 
@@ -471,13 +697,7 @@ mod tests {
         let empty_age = CountDistribution::new(BTreeMap::new()).unwrap();
         let empty_condition = CountDistribution::new(BTreeMap::new()).unwrap();
         let empty_occupancy = CountDistribution::new(BTreeMap::new()).unwrap();
-        let result = PopulationState::new(
-            0,
-            1,
-            empty_age,
-            empty_condition,
-            empty_occupancy,
-        );
+        let result = PopulationState::new(0, 1, empty_age, empty_condition, empty_occupancy);
         assert_eq!(
             result,
             Err(PopulationError::NonZeroBiomassForEmptyPopulation {
@@ -489,8 +709,8 @@ mod tests {
     #[test]
     fn exact_biomass_remains_canonical_while_mean_is_derived() {
         let population = valid_population();
-        assert_eq!(population.biomass_milligrams(), 2_500_000);
-        assert_eq!(population.mean_biomass_milligrams(), Some(250_000.0));
+        assert_eq!(population.biomass_milligrams(), 2_500_003);
+        assert_eq!(population.mean_biomass_milligrams(), Some(250_000.3));
     }
 
     #[test]
@@ -559,5 +779,80 @@ mod tests {
         let (all_again, none_again) = original.split_prefix(original.count()).unwrap();
         assert_eq!(all_again, original);
         assert!(none_again.is_empty());
+    }
+
+    #[test]
+    fn materialization_is_deterministic_for_same_seed() {
+        let population = valid_population();
+        let a = population
+            .materialize_derived(MaterializationSeed(41), 32)
+            .unwrap();
+        let b = population
+            .materialize_derived(MaterializationSeed(41), 32)
+            .unwrap();
+        assert_eq!(a, b);
+    }
+
+    #[test]
+    fn materialization_seed_changes_only_derived_tuple_arrangement() {
+        let population = valid_population();
+        let a = population
+            .materialize_derived(MaterializationSeed(1), 32)
+            .unwrap();
+        let b = population
+            .materialize_derived(MaterializationSeed(2), 32)
+            .unwrap();
+
+        assert_ne!(a.members(), b.members());
+        assert_eq!(a.reduce_to_population().unwrap(), population);
+        assert_eq!(b.reduce_to_population().unwrap(), population);
+    }
+
+    #[test]
+    fn materialize_reduce_round_trip_preserves_exact_coarse_truth() {
+        let population = valid_population();
+        let materialized = population
+            .materialize_derived(MaterializationSeed(77), 32)
+            .unwrap();
+
+        assert_eq!(materialized.len(), 10);
+        assert_eq!(materialized.reduce_to_population().unwrap(), population);
+        assert_eq!(
+            materialized
+                .members()
+                .iter()
+                .map(|member| member.biomass_milligrams)
+                .sum::<u64>(),
+            population.biomass_milligrams()
+        );
+    }
+
+    #[test]
+    fn materialization_limit_fails_closed_before_allocation() {
+        let population = valid_population();
+        assert_eq!(
+            population.materialize_derived(MaterializationSeed(0), 5),
+            Err(PopulationError::MaterializationLimitExceeded {
+                count: 10,
+                limit: 5,
+            })
+        );
+    }
+
+    #[test]
+    fn empty_population_materializes_and_reduces_cleanly() {
+        let empty = PopulationState::new(
+            0,
+            0,
+            CountDistribution::new(BTreeMap::new()).unwrap(),
+            CountDistribution::new(BTreeMap::new()).unwrap(),
+            CountDistribution::new(BTreeMap::new()).unwrap(),
+        )
+        .unwrap();
+        let materialized = empty
+            .materialize_derived(MaterializationSeed(123), 0)
+            .unwrap();
+        assert!(materialized.is_empty());
+        assert_eq!(materialized.reduce_to_population().unwrap(), empty);
     }
 }
