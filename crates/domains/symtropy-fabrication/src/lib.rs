@@ -5,6 +5,7 @@
 //! Physical matter remains owned by an external authority. This crate records
 //! intentional fabrication semantics against explicit revisioned evidence.
 
+mod assembly;
 mod capability;
 mod constraints;
 mod identity;
@@ -14,6 +15,7 @@ mod process;
 mod substitution;
 mod workmanship;
 
+pub use assembly::*;
 pub use capability::*;
 pub use constraints::*;
 pub use identity::*;
