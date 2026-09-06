@@ -13,11 +13,11 @@ permissions:
 
 env:
   CARGO_TERM_COLOR: always
-  QUALIFIED_HEAD: 88a5d85c55481b5cc312a266c70227729e7869fe
+  QUALIFIED_HEAD: 505fdaeaee641eccb84b30aaf8d91408ac8a6dcb
 
 jobs:
   qualify-lifesim-core:
-    name: Qualify exact Living World foundation head
+    name: Qualify exact Living World current stack head
     runs-on: ubuntu-slim
 
     steps:
