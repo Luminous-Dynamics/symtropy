@@ -1,0 +1,45 @@
+name: CRK-01 Rustfmt Helper
+
+on:
+  push:
+    branches:
+      - ci/rustfmt-crk01-helper
+
+permissions:
+  contents: write
+
+jobs:
+  format:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up pinned Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.96.0
+          components: rustfmt
+
+      - name: Apply rustfmt
+        run: cargo fmt --all
+
+      - name: Commit exact formatter output
+        shell: bash
+        run: |
+          set -euo pipefail
+          git add \
+            crates/domains/symtropy-game-state/src/canonical.rs \
+            crates/domains/symtropy-game-state/src/event_v2.rs \
+            crates/domains/symtropy-game-state/src/lib.rs \
+            crates/domains/symtropy-game-state/tests/canonical_event_v2.rs
+          if git diff --cached --quiet; then
+            echo 'No formatter changes required.'
+            exit 0
+          fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git commit -m 'style(game-state): apply pinned rustfmt output'
+          git push origin HEAD:ci/rustfmt-crk01-helper
