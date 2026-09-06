@@ -35,7 +35,8 @@ pub struct HabitatQuery {
 ///
 /// Concentration-like values are intentionally not forced into 0..=1: existing
 /// Symtropy field domains use both normalized and absolute scales. Domain
-/// adapters own unit conversion before values enter this type.
+/// adapters own unit conversion before values enter this type. Except for
+/// temperature, these quantities are nevertheless required to be non-negative.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct HabitatSample {
     pub temperature_c: f32,
@@ -70,24 +71,29 @@ impl HabitatSample {
     ///
     /// Overlays replace only fields they explicitly provide. This is safer than
     /// imposing a universal averaging rule on quantities with different units.
+    /// Invalid overlay values are rejected locally by retaining the previous
+    /// valid sample value.
     pub fn apply_override(mut self, overlay: HabitatOverride) -> Self {
-        macro_rules! replace {
+        if let Some(value) = overlay.temperature_c {
+            self.temperature_c = finite_or(self.temperature_c, value);
+        }
+
+        macro_rules! replace_non_negative {
             ($field:ident) => {
                 if let Some(value) = overlay.$field {
-                    self.$field = finite_or(self.$field, value);
+                    self.$field = non_negative_finite_or(self.$field, value);
                 }
             };
         }
 
-        replace!(temperature_c);
-        replace!(moisture);
-        replace!(nutrient);
-        replace!(toxin);
-        replace!(oxygen);
-        replace!(light);
-        replace!(biomass);
-        replace!(disease);
-        replace!(signal_noise);
+        replace_non_negative!(moisture);
+        replace_non_negative!(nutrient);
+        replace_non_negative!(toxin);
+        replace_non_negative!(oxygen);
+        replace_non_negative!(light);
+        replace_non_negative!(biomass);
+        replace_non_negative!(disease);
+        replace_non_negative!(signal_noise);
         self
     }
 }
@@ -174,6 +180,14 @@ fn finite_or(previous: f32, candidate: f32) -> f32 {
     }
 }
 
+fn non_negative_finite_or(previous: f32, candidate: f32) -> f32 {
+    if candidate.is_finite() && candidate >= 0.0 {
+        candidate
+    } else {
+        previous
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -238,6 +252,32 @@ mod tests {
 
         assert_eq!(sampled.moisture, base.moisture);
         assert_eq!(sampled.temperature_c, base.temperature_c);
+    }
+
+    #[test]
+    fn negative_concentration_like_overlay_cannot_poison_sample() {
+        let base = HabitatSample::default();
+        let sampled = base.apply_override(HabitatOverride {
+            moisture: Some(-0.5),
+            nutrient: Some(-10.0),
+            toxin: Some(-1.0),
+            oxygen: Some(-0.2),
+            light: Some(-4.0),
+            biomass: Some(-3.0),
+            disease: Some(-0.1),
+            signal_noise: Some(-0.8),
+            temperature_c: Some(-12.0),
+        });
+
+        assert_eq!(sampled.moisture, base.moisture);
+        assert_eq!(sampled.nutrient, base.nutrient);
+        assert_eq!(sampled.toxin, base.toxin);
+        assert_eq!(sampled.oxygen, base.oxygen);
+        assert_eq!(sampled.light, base.light);
+        assert_eq!(sampled.biomass, base.biomass);
+        assert_eq!(sampled.disease, base.disease);
+        assert_eq!(sampled.signal_noise, base.signal_noise);
+        assert_eq!(sampled.temperature_c, -12.0);
     }
 
     #[test]
