@@ -1,15 +1,15 @@
 name: CRK-01 Rustfmt Helper
 
 on:
-  push:
+  pull_request:
     branches:
-      - ci/rustfmt-crk01-helper
+      - hardening/game-state-canonical-v2
 
 permissions:
   contents: write
 
 concurrency:
-  group: crk01-rustfmt-helper
+  group: crk01-rustfmt-helper-${{ github.event.pull_request.number }}
   cancel-in-progress: true
 
 jobs:
@@ -19,6 +19,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
+          ref: ci/rustfmt-crk01-helper
           fetch-depth: 0
 
       - name: Set up pinned Rust
