@@ -7,6 +7,7 @@
 
 mod assembly;
 mod capability;
+mod commissioning;
 mod constraints;
 mod diagnostic;
 mod identity;
@@ -19,6 +20,7 @@ mod workmanship;
 
 pub use assembly::*;
 pub use capability::*;
+pub use commissioning::*;
 pub use constraints::*;
 pub use diagnostic::*;
 pub use identity::*;
