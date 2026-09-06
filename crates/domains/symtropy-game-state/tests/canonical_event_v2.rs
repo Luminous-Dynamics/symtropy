@@ -185,8 +185,8 @@ fn canonical_event_v2_golden_vector_002_non_genesis() {
 #[test]
 fn append_rejects_non_monotonic_tick_without_mutating_chain() {
     let namespace = StableIdNamespace::parse("fold.event").expect("valid namespace");
-    let mut chain = EventChainV2::new(namespace, 91);
-    chain
+    let mut chain = EventChainV2::new(namespace.clone(), 91);
+    let previous_event_id = chain
         .append(
             10,
             StableEventKind::parse("fold.observed").expect("valid event kind"),
@@ -210,15 +210,88 @@ fn append_rejects_non_monotonic_tick_without_mutating_chain() {
         )
         .expect_err("backward simulation tick must fail");
 
+    assert_eq!(
+        error.to_string(),
+        format!(
+            "cannot append canonical event after {previous_event_id}: tick moved backward from 10 to 9"
+        )
+    );
+    match error {
+        EventV2Error::AppendNonMonotonicTick {
+            previous_event_id: actual_previous_event_id,
+            previous,
+            actual,
+        } => {
+            assert_eq!(actual_previous_event_id, previous_event_id);
+            assert_eq!(previous, 10);
+            assert_eq!(actual, 9);
+        }
+        other => panic!("expected AppendNonMonotonicTick, got {other:?}"),
+    }
+    assert_eq!(chain.events().len(), len_before);
+    assert_eq!(chain.head_digest(), head_before);
+
+    let expected_next_id = StableId::derive_v2(&namespace, 91, 1).expect("valid next event id");
+    let next_id = chain
+        .append(
+            11,
+            StableEventKind::parse("fold.rewind.applied").expect("valid event kind"),
+            None,
+            None,
+            Vec::new(),
+            GoldenPayload { value: 9 },
+        )
+        .expect("valid append after rejection");
+    assert_eq!(
+        next_id, expected_next_id,
+        "rejected append must not reserve an ordinal"
+    );
+}
+
+#[test]
+fn reconstruction_identifies_persisted_non_monotonic_event() {
+    let namespace = StableIdNamespace::parse("fold.event").expect("valid namespace");
+    let mut chain = EventChainV2::new(namespace.clone(), 91);
+    chain
+        .append(
+            10,
+            StableEventKind::parse("fold.observed").expect("valid event kind"),
+            None,
+            None,
+            Vec::new(),
+            GoldenPayload { value: 5 },
+        )
+        .expect("first event appends");
+    let offending_event_id = chain
+        .append(
+            11,
+            StableEventKind::parse("fold.rewind.applied").expect("valid event kind"),
+            None,
+            None,
+            Vec::new(),
+            GoldenPayload { value: 9 },
+        )
+        .expect("second event appends");
+
+    let mut events = chain.events().to_vec();
+    events[1].simulation_tick = 9;
+    let error = EventChainV2::from_events(namespace, 91, events)
+        .expect_err("persisted backward tick must fail verification");
+
+    assert_eq!(
+        error.to_string(),
+        format!("canonical event {offending_event_id} moved backward from tick 10 to 9")
+    );
     match error {
         EventV2Error::NonMonotonicTick {
-            previous, actual, ..
+            event_id,
+            previous,
+            actual,
         } => {
+            assert_eq!(event_id, offending_event_id);
             assert_eq!(previous, 10);
             assert_eq!(actual, 9);
         }
         other => panic!("expected NonMonotonicTick, got {other:?}"),
     }
-    assert_eq!(chain.events().len(), len_before);
-    assert_eq!(chain.head_digest(), head_before);
 }
