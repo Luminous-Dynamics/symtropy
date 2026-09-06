@@ -4,6 +4,11 @@ on:
   pull_request:
     paths:
       - ".github/workflows/cuf-stage-a-hosted.yml"
+  push:
+    branches:
+      - "integration/cuf-v0.11-stage-a-hosted-execution"
+    paths:
+      - ".github/workflows/cuf-stage-a-hosted.yml"
   workflow_dispatch:
 
 permissions:
@@ -20,16 +25,18 @@ jobs:
     timeout-minutes: 30
     env:
       PYTHONDONTWRITEBYTECODE: "1"
+      EXECUTION_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
       CAPTURE_ROOT: ${{ runner.temp }}/cuf-v0.11-stage-a
       EVIDENCE_DIR: ${{ runner.temp }}/cuf-v0.11-stage-a/evidence
       SIDECAR_DIR: ${{ runner.temp }}/cuf-v0.11-stage-a/sidecar
 
     steps:
-      - name: Checkout exact PR head
+      - name: Checkout exact execution head
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           persist-credentials: false
           fetch-depth: 1
+          ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
 
       - name: Prepare immutable capture locations
         shell: bash
@@ -39,6 +46,8 @@ jobs:
           mkdir -p "$SIDECAR_DIR"
           git rev-parse HEAD > "$SIDECAR_DIR/WORKFLOW_HEAD.txt"
           git rev-parse HEAD^{tree} > "$SIDECAR_DIR/WORKFLOW_TREE.txt"
+          printf '%s\n' "$EXECUTION_SHA" > "$SIDECAR_DIR/EXPECTED_EXECUTION_HEAD.txt"
+          test "$(git rev-parse HEAD)" = "$EXECUTION_SHA"
           git status --porcelain=v1 --untracked-files=all > "$SIDECAR_DIR/GIT_STATUS_BEFORE_TOOLCHAIN.txt"
           test ! -s "$SIDECAR_DIR/GIT_STATUS_BEFORE_TOOLCHAIN.txt"
 
@@ -116,6 +125,7 @@ jobs:
 
           git rev-parse HEAD > "$SIDECAR_DIR/HEAD_AFTER_PRODUCER.txt"
           git rev-parse HEAD^{tree} > "$SIDECAR_DIR/TREE_AFTER_PRODUCER.txt"
+          test "$(git rev-parse HEAD)" = "$EXECUTION_SHA"
           git status --porcelain=v1 --untracked-files=all > "$SIDECAR_DIR/GIT_STATUS_AFTER_PRODUCER.txt"
           git diff -- Cargo.lock > "$SIDECAR_DIR/CARGO_LOCK_WORKTREE.diff"
           if ! git diff --quiet -- Cargo.lock; then
@@ -157,7 +167,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
-          name: cuf-v0.11-stage-a-${{ github.sha }}
+          name: cuf-v0.11-stage-a-${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
           path: ${{ runner.temp }}/cuf-v0.11-stage-a
           if-no-files-found: error
           retention-days: 14
