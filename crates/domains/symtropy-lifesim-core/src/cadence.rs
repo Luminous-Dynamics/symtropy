@@ -61,15 +61,24 @@ impl EcologicalCadence {
             });
         }
 
-        Ok(self.count_through(current_tick) - self.count_through(previous_tick))
+        let due = self.count_through(current_tick) - self.count_through(previous_tick);
+        u64::try_from(due).map_err(|_| CadenceError::StepCountOverflow {
+            previous_tick,
+            current_tick,
+        })
     }
 
     /// Number of scheduled firings in `[phase_tick, tick]`.
-    fn count_through(self, tick: u64) -> u64 {
+    ///
+    /// This count is deliberately widened to `u128`: for an interval of one
+    /// tick beginning at zero, the inclusive count through `u64::MAX` is
+    /// `2^64`, even though any `(previous, current]` catch-up interval remains
+    /// representable as `u64` steps.
+    fn count_through(self, tick: u64) -> u128 {
         if tick < self.phase_tick {
             return 0;
         }
-        (tick - self.phase_tick) / self.interval_ticks.get() + 1
+        u128::from(tick - self.phase_tick) / u128::from(self.interval_ticks.get()) + 1
     }
 }
 
@@ -77,6 +86,10 @@ impl EcologicalCadence {
 pub enum CadenceError {
     ZeroInterval,
     NonMonotonicTick {
+        previous_tick: u64,
+        current_tick: u64,
+    },
+    StepCountOverflow {
         previous_tick: u64,
         current_tick: u64,
     },
@@ -92,6 +105,13 @@ impl fmt::Display for CadenceError {
             } => write!(
                 formatter,
                 "ecological cadence cannot run backward: previous tick {previous_tick}, current tick {current_tick}"
+            ),
+            Self::StepCountOverflow {
+                previous_tick,
+                current_tick,
+            } => write!(
+                formatter,
+                "ecological cadence step count does not fit u64 for interval ({previous_tick}, {current_tick}]"
             ),
         }
     }
@@ -145,6 +165,13 @@ mod tests {
         assert_eq!(cadence.due_steps(0, 2).unwrap(), 0);
         assert_eq!(cadence.due_steps(0, 3).unwrap(), 1);
         assert_eq!(cadence.due_steps(3, 11).unwrap(), 2);
+    }
+
+    #[test]
+    fn maximum_tick_range_does_not_overflow_inclusive_counter() {
+        let cadence = EcologicalCadence::new(1, 0).unwrap();
+        assert_eq!(cadence.due_steps(0, u64::MAX).unwrap(), u64::MAX);
+        assert!(cadence.fires_at(u64::MAX));
     }
 
     #[test]
