@@ -8,9 +8,11 @@ use serde::{Deserialize, Deserializer, Serialize};
 use std::{collections::BTreeMap, error::Error, fmt};
 
 use crate::{
-    canonical::{CanonicalError, CanonicalEventPayload, CanonicalWriter, EventDigestV2, PayloadDigest},
-    namespace::{NamespaceError, StableIdNamespace},
     StableId, StateError,
+    canonical::{
+        CanonicalError, CanonicalEventPayload, CanonicalWriter, EventDigestV2, PayloadDigest,
+    },
+    namespace::{NamespaceError, StableIdNamespace},
 };
 
 /// Canonical event schema understood by this implementation.
@@ -284,7 +286,9 @@ impl<T: CanonicalEventPayload> EventChainV2<T> {
             payload_digest,
             payload,
             previous_digest,
-            event_digest: EventDigestV2::new(crate::canonical::CanonicalDigest::from_bytes([0; 32])),
+            event_digest: EventDigestV2::new(crate::canonical::CanonicalDigest::from_bytes(
+                [0; 32],
+            )),
         };
         envelope.event_digest = envelope.calculate_digest()?;
         self.events.push(envelope);
@@ -456,9 +460,9 @@ fn validate_payload_schema(value: &str) -> Result<(), EventV2Error> {
 fn valid_semantic_id(value: &str) -> bool {
     !value.is_empty()
         && value.len() <= MAX_SEMANTIC_ID_LEN
-        && value.bytes().all(|byte| {
-            byte.is_ascii_alphanumeric() || matches!(byte, b'.' | b'-' | b'_' | b':')
-        })
+        && value
+            .bytes()
+            .all(|byte| byte.is_ascii_alphanumeric() || matches!(byte, b'.' | b'-' | b'_' | b':'))
 }
 
 /// Canonical v2 event-chain validation failures.
@@ -469,9 +473,15 @@ pub enum EventV2Error {
     InvalidStableId(StateError),
     InvalidEventKind(String),
     InvalidPayloadSchema(String),
-    UnsupportedSchema { expected: u32, actual: u32 },
+    UnsupportedSchema {
+        expected: u32,
+        actual: u32,
+    },
     EventOverflow,
-    EventIdMismatch { expected: StableId, actual: StableId },
+    EventIdMismatch {
+        expected: StableId,
+        actual: StableId,
+    },
     DuplicateEventId(StableId),
     PreviousDigestMismatch {
         event_id: StableId,
@@ -484,10 +494,21 @@ pub enum EventV2Error {
         actual: u64,
     },
     DuplicateCausalParent(StableId),
-    UnknownCausalParent { event_id: StableId, parent_id: StableId },
-    FutureCausalParent { event_id: StableId, parent_id: StableId },
-    SelfCausalParent { event_id: StableId },
-    PayloadSchemaMismatch { expected: String, actual: String },
+    UnknownCausalParent {
+        event_id: StableId,
+        parent_id: StableId,
+    },
+    FutureCausalParent {
+        event_id: StableId,
+        parent_id: StableId,
+    },
+    SelfCausalParent {
+        event_id: StableId,
+    },
+    PayloadSchemaMismatch {
+        expected: String,
+        actual: String,
+    },
     PayloadDigestMismatch {
         event_id: StableId,
         expected: PayloadDigest,
@@ -518,7 +539,9 @@ impl fmt::Display for EventV2Error {
             Self::Canonical(error) => error.fmt(formatter),
             Self::Namespace(error) => error.fmt(formatter),
             Self::InvalidStableId(error) => error.fmt(formatter),
-            Self::InvalidEventKind(value) => write!(formatter, "invalid canonical event kind: {value:?}"),
+            Self::InvalidEventKind(value) => {
+                write!(formatter, "invalid canonical event kind: {value:?}")
+            }
             Self::InvalidPayloadSchema(value) => {
                 write!(formatter, "invalid canonical payload schema: {value:?}")
             }
@@ -535,7 +558,10 @@ impl fmt::Display for EventV2Error {
                 write!(formatter, "duplicate canonical event id: {event_id}")
             }
             Self::PreviousDigestMismatch { event_id, .. } => {
-                write!(formatter, "canonical event {event_id} previous digest mismatch")
+                write!(
+                    formatter,
+                    "canonical event {event_id} previous digest mismatch"
+                )
             }
             Self::NonMonotonicTick {
                 event_id,
@@ -548,26 +574,41 @@ impl fmt::Display for EventV2Error {
             Self::DuplicateCausalParent(parent) => {
                 write!(formatter, "duplicate canonical causal parent: {parent}")
             }
-            Self::UnknownCausalParent { event_id, parent_id } => write!(
+            Self::UnknownCausalParent {
+                event_id,
+                parent_id,
+            } => write!(
                 formatter,
                 "canonical event {event_id} cites unknown causal parent {parent_id}"
             ),
-            Self::FutureCausalParent { event_id, parent_id } => write!(
+            Self::FutureCausalParent {
+                event_id,
+                parent_id,
+            } => write!(
                 formatter,
                 "canonical event {event_id} cites future causal parent {parent_id}"
             ),
             Self::SelfCausalParent { event_id } => {
-                write!(formatter, "canonical event {event_id} cites itself as a causal parent")
+                write!(
+                    formatter,
+                    "canonical event {event_id} cites itself as a causal parent"
+                )
             }
             Self::PayloadSchemaMismatch { expected, actual } => write!(
                 formatter,
                 "canonical payload schema mismatch: expected {expected}, got {actual}"
             ),
             Self::PayloadDigestMismatch { event_id, .. } => {
-                write!(formatter, "canonical payload digest mismatch for event {event_id}")
+                write!(
+                    formatter,
+                    "canonical payload digest mismatch for event {event_id}"
+                )
             }
             Self::EventDigestMismatch { event_id, .. } => {
-                write!(formatter, "canonical event digest mismatch for event {event_id}")
+                write!(
+                    formatter,
+                    "canonical event digest mismatch for event {event_id}"
+                )
             }
         }
     }
@@ -600,7 +641,8 @@ mod tests {
         const PAYLOAD_SCHEMA: &'static str = "test.payload.v1";
 
         fn canonical_payload_digest(&self) -> PayloadDigest {
-            let mut writer = CanonicalWriter::new(b"symtropy/test-payload/v1").expect("valid domain");
+            let mut writer =
+                CanonicalWriter::new(b"symtropy/test-payload/v1").expect("valid domain");
             writer.write_u32(self.value);
             PayloadDigest::new(writer.finish())
         }
@@ -656,7 +698,10 @@ mod tests {
             let mut value = serialized_event_value();
             value[field] = invalid_value;
             let decoded = serde_json::from_value::<EventEnvelopeV2<TestPayload>>(value);
-            assert!(decoded.is_err(), "invalid {field} must fail during deserialization");
+            assert!(
+                decoded.is_err(),
+                "invalid {field} must fail during deserialization"
+            );
         }
     }
 
@@ -692,7 +737,8 @@ mod tests {
         );
 
         let mut invalid_events = events;
-        invalid_events[0].event_id = StableId::parse("event:wrong").expect("valid stable-id grammar");
+        invalid_events[0].event_id =
+            StableId::parse("event:wrong").expect("valid stable-id grammar");
         assert!(matches!(
             EventChainV2::from_events(namespace(), 29, invalid_events),
             Err(EventV2Error::EventIdMismatch { .. })
@@ -703,12 +749,26 @@ mod tests {
     fn serializer_only_payload_changes_do_not_change_event_identity() {
         let mut first = EventChainV2::new(namespace(), 91);
         first
-            .append(7, kind("fold.observed"), None, None, Vec::new(), payload(5, "a"))
+            .append(
+                7,
+                kind("fold.observed"),
+                None,
+                None,
+                Vec::new(),
+                payload(5, "a"),
+            )
             .expect("append first");
 
         let mut second = EventChainV2::new(namespace(), 91);
         second
-            .append(7, kind("fold.observed"), None, None, Vec::new(), payload(5, "different serde bytes"))
+            .append(
+                7,
+                kind("fold.observed"),
+                None,
+                None,
+                Vec::new(),
+                payload(5, "different serde bytes"),
+            )
             .expect("append second");
 
         assert_ne!(
@@ -763,7 +823,14 @@ mod tests {
     fn duplicate_and_unknown_parents_fail_closed() {
         let mut chain = EventChainV2::new(namespace(), 2);
         let parent = chain
-            .append(1, kind("test.parent"), None, None, Vec::new(), payload(1, "p"))
+            .append(
+                1,
+                kind("test.parent"),
+                None,
+                None,
+                Vec::new(),
+                payload(1, "p"),
+            )
             .expect("parent");
         assert!(matches!(
             chain.append(
@@ -795,15 +862,31 @@ mod tests {
     fn verifier_rejects_self_consistent_future_parent() {
         let mut chain = EventChainV2::new(namespace(), 12);
         chain
-            .append(1, kind("test.first"), None, None, Vec::new(), payload(1, "a"))
+            .append(
+                1,
+                kind("test.first"),
+                None,
+                None,
+                Vec::new(),
+                payload(1, "a"),
+            )
             .expect("first");
         chain
-            .append(2, kind("test.future"), None, None, Vec::new(), payload(2, "b"))
+            .append(
+                2,
+                kind("test.future"),
+                None,
+                None,
+                Vec::new(),
+                payload(2, "b"),
+            )
             .expect("future");
 
         let future_id = chain.events[1].event_id.clone();
         chain.events[0].causal_parents = vec![future_id];
-        chain.events[0].event_digest = chain.events[0].calculate_digest().expect("rehash test event");
+        chain.events[0].event_digest = chain.events[0]
+            .calculate_digest()
+            .expect("rehash test event");
 
         assert!(matches!(
             chain.verify(),
@@ -815,7 +898,14 @@ mod tests {
     fn unknown_schema_is_not_interpreted_as_v2() {
         let mut chain = EventChainV2::new(namespace(), 3);
         chain
-            .append(1, kind("test.event"), None, None, Vec::new(), payload(1, "a"))
+            .append(
+                1,
+                kind("test.event"),
+                None,
+                None,
+                Vec::new(),
+                payload(1, "a"),
+            )
             .expect("event");
         chain.events[0].schema_version = 99;
         assert!(matches!(
@@ -827,11 +917,25 @@ mod tests {
     #[test]
     fn payload_digest_change_changes_event_digest() {
         let mut a = EventChainV2::new(namespace(), 5);
-        a.append(1, kind("test.event"), None, None, Vec::new(), payload(1, "x"))
-            .expect("a");
+        a.append(
+            1,
+            kind("test.event"),
+            None,
+            None,
+            Vec::new(),
+            payload(1, "x"),
+        )
+        .expect("a");
         let mut b = EventChainV2::new(namespace(), 5);
-        b.append(1, kind("test.event"), None, None, Vec::new(), payload(2, "x"))
-            .expect("b");
+        b.append(
+            1,
+            kind("test.event"),
+            None,
+            None,
+            Vec::new(),
+            payload(2, "x"),
+        )
+        .expect("b");
         assert_ne!(a.head_digest(), b.head_digest());
     }
 

@@ -11,8 +11,7 @@ pub use canonical::{
     PayloadDigest,
 };
 pub use event_v2::{
-    CANONICAL_EVENT_SCHEMA_VERSION_V2, EventChainV2, EventEnvelopeV2, EventV2Error,
-    StableEventKind,
+    CANONICAL_EVENT_SCHEMA_VERSION_V2, EventChainV2, EventEnvelopeV2, EventV2Error, StableEventKind,
 };
 pub use namespace::{NamespaceError, StableIdNamespace};
 
