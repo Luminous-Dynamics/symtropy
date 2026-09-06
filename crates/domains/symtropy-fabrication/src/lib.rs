@@ -6,6 +6,7 @@
 //! intentional fabrication semantics against explicit revisioned evidence.
 
 mod capability;
+mod constraints;
 mod identity;
 mod interface;
 mod joint;
@@ -13,6 +14,7 @@ mod process;
 mod workmanship;
 
 pub use capability::*;
+pub use constraints::*;
 pub use identity::*;
 pub use interface::*;
 pub use joint::*;
