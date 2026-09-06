@@ -1,0 +1,184 @@
+name: CUF Stage A Hosted Diagnostic
+
+on:
+  push:
+    branches:
+      - "integration/cuf-v0.11-stage-a-hosted-diagnostic"
+    paths:
+      - ".github/workflows/cuf-stage-a-hosted-diagnostic.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: cuf-stage-a-hosted-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  stage-a-diagnostic:
+    name: Stage A diagnostic / Rust 1.96.0
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    env:
+      PYTHONDONTWRITEBYTECODE: "1"
+
+    steps:
+      - name: Checkout exact diagnostic head
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+          fetch-depth: 1
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
+        with:
+          python-version: "3.12"
+
+      - name: Install pinned Rust 1.96.0
+        uses: dtolnay/rust-toolchain@ebb3d1676050bfd0971c36c1e215b5751473994d
+        with:
+          toolchain: 1.96.0
+
+      - name: Record diagnostic environment
+        shell: bash
+        run: |
+          set -euo pipefail
+          printf 'head=%s\n' "$(git rev-parse HEAD)"
+          printf 'tree=%s\n' "$(git rev-parse HEAD^{tree})"
+          printf 'cargo_lock_sha256=%s\n' "$(sha256sum Cargo.lock | awk '{print $1}')"
+          rustc --version --verbose
+          cargo --version --verbose
+          python --version
+          git --version
+
+      - name: Run locked resolver and ephemeral Cargo-generated delta
+        id: stage_a
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          expected_parent=d4a0e3dfaa46b935e0fc18c846b82c8612b0b7ba
+          actual_parent="$(git rev-parse HEAD^)"
+          if [[ "$actual_parent" != "$expected_parent" ]]; then
+            echo "ERROR: diagnostic commit is not directly based on exact #124 head" >&2
+            echo "expected parent: $expected_parent" >&2
+            echo "actual parent:   $actual_parent" >&2
+            exit 1
+          fi
+
+          status="$(git status --porcelain=v1 --untracked-files=all)"
+          if [[ -n "$status" ]]; then
+            echo 'ERROR: diagnostic checkout is dirty before resolver execution:' >&2
+            printf '%s\n' "$status" >&2
+            exit 1
+          fi
+
+          tmp="$(mktemp -d)"
+          cleanup() {
+            git checkout -- Cargo.lock >/dev/null 2>&1 || true
+            rm -rf "$tmp"
+          }
+          trap cleanup EXIT
+
+          cp Cargo.lock "$tmp/Cargo.lock.before"
+          before_sha="$(sha256sum Cargo.lock | awk '{print $1}')"
+
+          set +e
+          LC_ALL=C cargo metadata --locked --no-deps --format-version 1 \
+            >"$tmp/locked.stdout" 2>"$tmp/locked.stderr"
+          locked_rc=$?
+          set -e
+
+          printf '=== LOCKED RESOLVER EXIT ===\n%s\n' "$locked_rc"
+          printf '=== LOCKED RESOLVER STDOUT ===\n'
+          cat "$tmp/locked.stdout"
+          printf '=== LOCKED RESOLVER STDERR ===\n'
+          cat "$tmp/locked.stderr"
+
+          if [[ "$locked_rc" -eq 0 ]]; then
+            classification=NOT_NEEDED_DIAGNOSTIC
+            after_sha="$(sha256sum Cargo.lock | awk '{print $1}')"
+            test "$before_sha" = "$after_sha"
+            test -z "$(git status --porcelain=v1 --untracked-files=all)"
+            echo "classification=$classification" >> "$GITHUB_OUTPUT"
+            echo "PASS: hosted locked resolver reports no parent lock repair required."
+            exit 0
+          fi
+
+          if ! grep -Eiq '(lock file|lockfile).*(needs to be updated|needs update)|needs to be updated.*--locked|--locked.*(lock file|lockfile)' "$tmp/locked.stderr"; then
+            echo 'ERROR: hosted locked resolver failed for an unclassified reason; refusing unlocked mutation.' >&2
+            exit 1
+          fi
+
+          classification=LOCK_UPDATE_REQUIRED_DIAGNOSTIC
+          echo "classification=$classification" >> "$GITHUB_OUTPUT"
+          echo 'PASS: hosted locked resolver independently reproduced a lock-update-required classification.'
+
+          set +e
+          LC_ALL=C cargo metadata --no-deps --format-version 1 \
+            >"$tmp/generated.stdout" 2>"$tmp/generated.stderr"
+          generated_rc=$?
+          set -e
+
+          printf '=== UNLOCKED GENERATION EXIT ===\n%s\n' "$generated_rc"
+          printf '=== UNLOCKED GENERATION STDOUT ===\n'
+          cat "$tmp/generated.stdout"
+          printf '=== UNLOCKED GENERATION STDERR ===\n'
+          cat "$tmp/generated.stderr"
+
+          if [[ "$generated_rc" -ne 0 ]]; then
+            echo 'ERROR: Cargo could not generate a candidate lock repair in the ephemeral runner.' >&2
+            exit 1
+          fi
+
+          mapfile -t changed < <(git status --porcelain=v1 --untracked-files=all | sed -E 's/^.. //' | LC_ALL=C sort)
+          if [[ "${#changed[@]}" -ne 1 || "${changed[0]}" != "Cargo.lock" ]]; then
+            echo 'ERROR: unlocked metadata changed paths other than exactly Cargo.lock:' >&2
+            printf '  %s\n' "${changed[@]}" >&2
+            exit 1
+          fi
+
+          cp Cargo.lock "$tmp/Cargo.lock.after"
+          after_sha="$(sha256sum Cargo.lock | awk '{print $1}')"
+          if [[ "$before_sha" = "$after_sha" ]]; then
+            echo 'ERROR: lock-update-required classification produced no Cargo.lock byte change.' >&2
+            exit 1
+          fi
+
+          analyzer=scripts/analyze-cuf-v0.11-cargo-lock-delta.py
+          python "$analyzer" "$tmp/Cargo.lock.before" "$tmp/Cargo.lock.after" --format text \
+            >"$tmp/delta.txt"
+          python "$analyzer" "$tmp/Cargo.lock.before" "$tmp/Cargo.lock.after" --format json \
+            >"$tmp/delta.json"
+
+          printf '=== CARGO.LOCK SHA-256 ===\n'
+          printf 'before=%s\nafter=%s\n' "$before_sha" "$after_sha"
+          printf '=== SEMANTIC DELTA V2 ===\n'
+          cat "$tmp/delta.txt"
+          printf '=== BYTE DIFF ===\n'
+          git diff -- Cargo.lock
+
+          git checkout -- Cargo.lock
+          test -z "$(git status --porcelain=v1 --untracked-files=all)"
+          echo 'PASS: diagnostic runner restored the committed checkout exactly.'
+
+      - name: Diagnostic claim boundary
+        shell: bash
+        env:
+          CLASSIFICATION: ${{ steps.stage_a.outputs.classification }}
+        run: |
+          set -euo pipefail
+          cat <<EOF
+          Hosted Stage A diagnostic classification: ${CLASSIFICATION:-UNSET}
+
+          PASS here means only that GitHub-hosted Ubuntu with Rust 1.96.0 executed
+          the parent resolver experiment against a branch whose direct parent is
+          exact #124 head d4a0e3dfaa46b935e0fc18c846b82c8612b0b7ba. If Cargo required
+          a lock update, the candidate Cargo.lock was generated only in the
+          ephemeral runner, analyzed with the already-qualified v2 semantic
+          analyzer, printed to logs, and then discarded.
+
+          This is diagnostic evidence only. It does NOT establish the pinned Nix
+          Stage A authority, approve a Cargo.lock repair, replay Universal Matter,
+          or claim Q0, Q1, or Q2.
+          EOF
