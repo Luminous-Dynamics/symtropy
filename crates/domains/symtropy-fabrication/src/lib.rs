@@ -6,5 +6,7 @@
 //! intentional fabrication semantics against explicit revisioned evidence.
 
 mod identity;
+mod interface;
 
 pub use identity::*;
+pub use interface::*;
