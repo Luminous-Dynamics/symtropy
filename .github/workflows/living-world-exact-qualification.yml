@@ -8,80 +8,22 @@ concurrency:
   group: living-world-exact-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
-# This is a temporary, never-merge helper workflow. Write authority is used only
-# by the guarded repair job below to apply deterministic rustfmt output to one
-# hard-pinned Living World branch before qualifying the resulting exact commit.
+# Temporary never-merge helper. The one-shot formatter repair already produced
+# the exact repaired head below; qualification is now strictly read-only.
 permissions:
-  contents: write
+  contents: read
 
 env:
   CARGO_TERM_COLOR: always
-  TARGET_BRANCH: living-world/lw09-derived-materialization
-  EXPECTED_TARGET_HEAD: 8a44c580f25e9d2595d003c2d1d9c75de4d342c1
+  QUALIFIED_HEAD: d96a7003ad417cd0e531f44cf86df5f878e31901
 
 jobs:
-  repair-rustfmt:
-    name: Repair pinned Living World rustfmt delta
+  qualify-lifesim-core:
+    name: Qualify exact repaired Living World head
     if: >-
       github.event.pull_request.head.ref == 'ci/living-world-exact-qualification-88a5d85' &&
       github.event.pull_request.base.ref == 'main'
     runs-on: ubuntu-slim
-    outputs:
-      qualified_head: ${{ steps.repair.outputs.qualified_head }}
-
-    steps:
-    - name: Check out hard-pinned Living World branch
-      uses: actions/checkout@v4
-      with:
-        ref: ${{ env.TARGET_BRANCH }}
-        fetch-depth: 1
-        persist-credentials: true
-
-    - name: Assert expected source head and clean checkout
-      shell: bash
-      run: |
-        set -euo pipefail
-        test "$(git rev-parse HEAD)" = "$EXPECTED_TARGET_HEAD"
-        test -z "$(git status --porcelain)"
-
-    - name: Set up pinned Rust formatter
-      uses: dtolnay/rust-toolchain@stable
-      with:
-        toolchain: 1.96.0
-        components: rustfmt
-
-    - name: Apply deterministic scoped rustfmt and push only that delta
-      id: repair
-      shell: bash
-      run: |
-        set -euo pipefail
-        cargo fmt --package symtropy-lifesim-core
-        git diff --check
-
-        if git diff --quiet; then
-          qualified_head="$(git rev-parse HEAD)"
-        else
-          changed="$(git diff --name-only)"
-          unexpected="$(printf '%s\n' "$changed" | grep -v '^crates/domains/symtropy-lifesim-core/src/' || true)"
-          test -z "$unexpected"
-
-          git config user.name 'Living World Qualification Bot'
-          git config user.email 'living-world-qualification@users.noreply.github.com'
-          git add crates/domains/symtropy-lifesim-core/src
-          git commit -m 'chore(lifesim): apply rustfmt to Living World stack'
-          git push origin "HEAD:${TARGET_BRANCH}"
-          qualified_head="$(git rev-parse HEAD)"
-        fi
-
-        test -z "$(git status --porcelain)"
-        echo "qualified_head=$qualified_head" >> "$GITHUB_OUTPUT"
-
-  qualify-lifesim-core:
-    name: Qualify exact repaired Living World head
-    needs: repair-rustfmt
-    runs-on: ubuntu-slim
-    env:
-      QUALIFIED_HEAD: ${{ needs.repair-rustfmt.outputs.qualified_head }}
 
     steps:
     - name: Check out exact repaired Living World head
@@ -95,7 +37,6 @@ jobs:
       shell: bash
       run: |
         set -euo pipefail
-        test -n "$QUALIFIED_HEAD"
         test "$(git rev-parse HEAD)" = "$QUALIFIED_HEAD"
         test -z "$(git status --porcelain)"
 
