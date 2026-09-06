@@ -14,6 +14,7 @@ use std::ops::Range;
 pub mod wgpu_backend;
 pub mod physiology;
 pub mod habitat;
+pub mod conservation;
 
 /// Canonical field channels shared by ant colonies, mycelium, wetlands, and biofilms.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
