@@ -10,14 +10,14 @@ use arrow_array::{Float32Array, UInt32Array};
 use std::fmt;
 use std::ops::Range;
 
+pub mod cadence;
+pub mod conservation;
+pub mod habitat;
+pub mod phenotype;
+pub mod physiology;
+pub mod population;
 #[cfg(feature = "wgpu")]
 pub mod wgpu_backend;
-pub mod physiology;
-pub mod habitat;
-pub mod conservation;
-pub mod phenotype;
-pub mod cadence;
-pub mod population;
 
 /// Canonical field channels shared by ant colonies, mycelium, wetlands, and biofilms.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]

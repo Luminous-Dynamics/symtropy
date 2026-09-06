@@ -124,10 +124,7 @@ impl<K: Ord + Clone> CountDistribution<K> {
         }
 
         debug_assert_eq!(selected_remaining, 0);
-        Ok((
-            Self::new(selected_counts)?,
-            Self::new(remainder_counts)?,
-        ))
+        Ok((Self::new(selected_counts)?, Self::new(remainder_counts)?))
     }
 
     /// Merge two marginals of the same dimension, preserving exact counts.
@@ -172,9 +169,7 @@ impl PopulationState {
         validate_distribution_total("occupancy", count, occupancy.total())?;
 
         if count == 0 && biomass_milligrams != 0 {
-            return Err(PopulationError::NonZeroBiomassForEmptyPopulation {
-                biomass_milligrams,
-            });
+            return Err(PopulationError::NonZeroBiomassForEmptyPopulation { biomass_milligrams });
         }
 
         Ok(Self {
@@ -334,10 +329,10 @@ impl PopulationState {
         };
 
         for index in 0..count {
-            let ordinal = u64::try_from(index)
-                .map_err(|_| PopulationError::PopulationTooLargeToMaterialize { count: self.count })?;
-            let biomass_milligrams = base_biomass
-                + u64::from(ordinal < biomass_remainder);
+            let ordinal = u64::try_from(index).map_err(|_| {
+                PopulationError::PopulationTooLargeToMaterialize { count: self.count }
+            })?;
+            let biomass_milligrams = base_biomass + u64::from(ordinal < biomass_remainder);
             members.push(DerivedPopulationMember {
                 ordinal: DerivedOrdinal(ordinal),
                 age: ages[index],
@@ -408,8 +403,8 @@ impl DerivedPopulation {
     /// by `PopulationState`; synthetic cross-dimension tuple correlations are
     /// discarded again during reduction.
     pub fn reduce_to_population(&self) -> Result<PopulationState, PopulationError> {
-        let count = u64::try_from(self.members.len())
-            .map_err(|_| PopulationError::CountOverflow)?;
+        let count =
+            u64::try_from(self.members.len()).map_err(|_| PopulationError::CountOverflow)?;
         let mut biomass_milligrams = 0u64;
         let mut ages = BTreeMap::new();
         let mut conditions = BTreeMap::new();
@@ -447,7 +442,10 @@ fn interleaved_values<K: Ord + Copy>(
     salt: u64,
     expected_len: usize,
 ) -> Result<Vec<K>, PopulationError> {
-    let mut bins = distribution.bins().map(|(key, count)| (*key, count)).collect::<Vec<_>>();
+    let mut bins = distribution
+        .bins()
+        .map(|(key, count)| (*key, count))
+        .collect::<Vec<_>>();
     if bins.is_empty() {
         return Ok(Vec::new());
     }
@@ -483,7 +481,10 @@ fn interleaved_values<K: Ord + Copy>(
     Ok(values)
 }
 
-fn increment_bin<K: Ord + Copy>(counts: &mut BTreeMap<K, u64>, key: K) -> Result<(), PopulationError> {
+fn increment_bin<K: Ord + Copy>(
+    counts: &mut BTreeMap<K, u64>,
+    key: K,
+) -> Result<(), PopulationError> {
     let next = counts
         .get(&key)
         .copied()
@@ -501,7 +502,11 @@ fn mix64(mut value: u64) -> u64 {
     value ^ (value >> 31)
 }
 
-fn prefix_biomass(total_biomass: u64, total_count: u64, selected: u64) -> Result<u64, PopulationError> {
+fn prefix_biomass(
+    total_biomass: u64,
+    total_count: u64,
+    selected: u64,
+) -> Result<u64, PopulationError> {
     if selected > total_count {
         return Err(PopulationError::RequestedSplitExceedsPopulation {
             requested: selected,
@@ -606,9 +611,7 @@ impl fmt::Display for PopulationError {
                 formatter,
                 "population {dimension} distribution totals {actual}, expected {expected}"
             ),
-            Self::NonZeroBiomassForEmptyPopulation {
-                biomass_milligrams,
-            } => write!(
+            Self::NonZeroBiomassForEmptyPopulation { biomass_milligrams } => write!(
                 formatter,
                 "empty population cannot retain {biomass_milligrams} mg living biomass"
             ),
@@ -702,13 +705,7 @@ mod tests {
         let empty_age = CountDistribution::new(BTreeMap::new()).unwrap();
         let empty_condition = CountDistribution::new(BTreeMap::new()).unwrap();
         let empty_occupancy = CountDistribution::new(BTreeMap::new()).unwrap();
-        let result = PopulationState::new(
-            0,
-            1,
-            empty_age,
-            empty_condition,
-            empty_occupancy,
-        );
+        let result = PopulationState::new(0, 1, empty_age, empty_condition, empty_occupancy);
         assert_eq!(
             result,
             Err(PopulationError::NonZeroBiomassForEmptyPopulation {

@@ -98,12 +98,7 @@ impl PhysiologicalStress {
     /// input. Component values remain available for explanation/telemetry.
     pub fn total(self) -> f32 {
         sanitize_unit(
-            self.thermal
-                + self.toxin
-                + self.oxygen
-                + self.hydration
-                + self.tissue
-                + self.infection,
+            self.thermal + self.toxin + self.oxygen + self.hydration + self.tissue + self.infection,
         )
     }
 }

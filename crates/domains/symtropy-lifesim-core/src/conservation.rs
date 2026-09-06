@@ -43,10 +43,7 @@ pub struct PoolKey {
 }
 
 impl PoolKey {
-    pub const fn new(
-        quantity: ConservedQuantity,
-        compartment: EcologicalCompartment,
-    ) -> Self {
+    pub const fn new(quantity: ConservedQuantity, compartment: EcologicalCompartment) -> Self {
         Self {
             quantity,
             compartment,
@@ -173,12 +170,8 @@ impl EcologicalLedger {
 
         let next_target = checked_add("external input target", quantity, target, amount)?;
         let _next_total = checked_add("external input aggregate", quantity, total, amount)?;
-        let next_external = checked_add(
-            "external input counter",
-            quantity,
-            current_external,
-            amount,
-        )?;
+        let next_external =
+            checked_add("external input counter", quantity, current_external, amount)?;
 
         self.pools.insert(target_key, next_target);
         self.external_in.insert(quantity, next_external);
@@ -330,7 +323,10 @@ impl fmt::Display for ConservationError {
                 write!(formatter, "ecological amount must be finite, got {amount}")
             }
             Self::NegativeAmount(amount) => {
-                write!(formatter, "ecological amount must be non-negative, got {amount}")
+                write!(
+                    formatter,
+                    "ecological amount must be non-negative, got {amount}"
+                )
             }
             Self::InsufficientSource {
                 quantity,
@@ -457,10 +453,7 @@ mod tests {
         let mut ledger = EcologicalLedger::default();
         ledger
             .seed(
-                PoolKey::new(
-                    ConservedQuantity::WaterMass,
-                    EcologicalCompartment::Soil,
-                ),
+                PoolKey::new(ConservedQuantity::WaterMass, EcologicalCompartment::Soil),
                 10.0,
             )
             .unwrap();
@@ -541,10 +534,7 @@ mod tests {
         let mut ledger = EcologicalLedger::default();
         ledger
             .seed(
-                PoolKey::new(
-                    ConservedQuantity::WaterMass,
-                    EcologicalCompartment::Soil,
-                ),
+                PoolKey::new(ConservedQuantity::WaterMass, EcologicalCompartment::Soil),
                 f64::MAX,
             )
             .unwrap();
