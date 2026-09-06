@@ -37,26 +37,30 @@ jobs:
 
           path = Path('crates/domains/symtropy-game-state/src/event_v2.rs')
           text = path.read_text()
-          old = '''        if let Some(previous) = self.events.last() {
-              if simulation_tick < previous.simulation_tick {
-                  return Err(EventV2Error::NonMonotonicTick {
-                      event_id: previous.event_id.clone(),
-                      previous: previous.simulation_tick,
-                      actual: simulation_tick,
-                  });
-              }
-          }
-          '''
-          new = '''        if let Some(previous) = self.events.last()
-              && simulation_tick < previous.simulation_tick
-          {
-              return Err(EventV2Error::NonMonotonicTick {
-                  event_id: previous.event_id.clone(),
-                  previous: previous.simulation_tick,
-                  actual: simulation_tick,
-              });
-          }
-          '''
+          old = "\n".join([
+              "        if let Some(previous) = self.events.last() {",
+              "            if simulation_tick < previous.simulation_tick {",
+              "                return Err(EventV2Error::NonMonotonicTick {",
+              "                    event_id: previous.event_id.clone(),",
+              "                    previous: previous.simulation_tick,",
+              "                    actual: simulation_tick,",
+              "                });",
+              "            }",
+              "        }",
+              "",
+          ])
+          new = "\n".join([
+              "        if let Some(previous) = self.events.last()",
+              "            && simulation_tick < previous.simulation_tick",
+              "        {",
+              "            return Err(EventV2Error::NonMonotonicTick {",
+              "                event_id: previous.event_id.clone(),",
+              "                previous: previous.simulation_tick,",
+              "                actual: simulation_tick,",
+              "            });",
+              "        }",
+              "",
+          ])
           count = text.count(old)
           if count != 1:
               raise SystemExit(f'expected exactly one Clippy target, found {count}')
