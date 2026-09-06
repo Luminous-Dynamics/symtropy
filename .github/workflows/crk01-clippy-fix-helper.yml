@@ -22,22 +22,21 @@ jobs:
           ref: ci/crk01-clippy-fix-6e1e
           fetch-depth: 0
 
-      - name: Assert exact source base
+      - name: Assert exact CRK merge base
         shell: bash
         run: |
           set -euo pipefail
-          git fetch origin hardening/game-state-canonical-v2
           test "$(git merge-base HEAD origin/hardening/game-state-canonical-v2)" = "6e1e9495429699ab523de7ba0eb85f4d9526c223"
 
-      - name: Apply exact Clippy repair
+      - name: Apply exact Clippy repair and regression
         shell: bash
         run: |
           set -euo pipefail
           python3 - <<'PY'
           from pathlib import Path
 
-          path = Path('crates/domains/symtropy-game-state/src/event_v2.rs')
-          text = path.read_text()
+          event_path = Path('crates/domains/symtropy-game-state/src/event_v2.rs')
+          event_text = event_path.read_text()
           old = "\n".join([
               "        if let Some(previous) = self.events.last() {",
               "            if simulation_tick < previous.simulation_tick {",
@@ -62,10 +61,73 @@ jobs:
               "        }",
               "",
           ])
-          count = text.count(old)
+          count = event_text.count(old)
           if count != 1:
               raise SystemExit(f'expected exactly one Clippy target, found {count}')
-          path.write_text(text.replace(old, new))
+          event_path.write_text(event_text.replace(old, new))
+
+          test_path = Path('crates/domains/symtropy-game-state/tests/canonical_event_v2.rs')
+          test_text = test_path.read_text()
+          old_import = "\n".join([
+              "use symtropy_game_state::{",
+              "    CanonicalEventPayload, CanonicalWriter, EventChainV2, PayloadDigest, StableEventKind, StableId,",
+              "    StableIdNamespace,",
+              "};",
+          ])
+          new_import = "\n".join([
+              "use symtropy_game_state::{",
+              "    CanonicalEventPayload, CanonicalWriter, EventChainV2, EventV2Error, PayloadDigest,",
+              "    StableEventKind, StableId, StableIdNamespace,",
+              "};",
+          ])
+          if test_text.count(old_import) != 1:
+              raise SystemExit('expected exactly one game-state import block')
+          test_text = test_text.replace(old_import, new_import)
+
+          marker = 'fn append_rejects_non_monotonic_tick_without_mutating_chain()'
+          if marker in test_text:
+              raise SystemExit('non-monotonic tick regression already exists')
+          regression = "\n".join([
+              "#[test]",
+              "fn append_rejects_non_monotonic_tick_without_mutating_chain() {",
+              "    let namespace = StableIdNamespace::parse(\"fold.event\").expect(\"valid namespace\");",
+              "    let mut chain = EventChainV2::new(namespace, 91);",
+              "    chain",
+              "        .append(",
+              "            10,",
+              "            StableEventKind::parse(\"fold.observed\").expect(\"valid event kind\"),",
+              "            None,",
+              "            None,",
+              "            Vec::new(),",
+              "            GoldenPayload { value: 5 },",
+              "        )",
+              "        .expect(\"first event appends\");",
+              "",
+              "    let head_before = chain.head_digest();",
+              "    let len_before = chain.events().len();",
+              "    let error = chain",
+              "        .append(",
+              "            9,",
+              "            StableEventKind::parse(\"fold.rewind.applied\").expect(\"valid event kind\"),",
+              "            None,",
+              "            None,",
+              "            Vec::new(),",
+              "            GoldenPayload { value: 9 },",
+              "        )",
+              "        .expect_err(\"backward simulation tick must fail\");",
+              "",
+              "    match error {",
+              "        EventV2Error::NonMonotonicTick { previous, actual, .. } => {",
+              "            assert_eq!(previous, 10);",
+              "            assert_eq!(actual, 9);",
+              "        }",
+              "        other => panic!(\"expected NonMonotonicTick, got {other:?}\"),",
+              "    }",
+              "    assert_eq!(chain.events().len(), len_before);",
+              "    assert_eq!(chain.head_digest(), head_before);",
+              "}",
+          ])
+          test_path.write_text(test_text.rstrip() + "\n\n" + regression + "\n")
           PY
 
       - name: Set up pinned Rust
@@ -88,9 +150,10 @@ jobs:
         run: |
           set -euo pipefail
           changed="$(git diff --name-only)"
-          test "$changed" = "crates/domains/symtropy-game-state/src/event_v2.rs"
+          expected=$'crates/domains/symtropy-game-state/src/event_v2.rs\ncrates/domains/symtropy-game-state/tests/canonical_event_v2.rs'
+          test "$changed" = "$expected"
           git config user.name github-actions[bot]
           git config user.email 41898282+github-actions[bot]@users.noreply.github.com
-          git add crates/domains/symtropy-game-state/src/event_v2.rs
-          git commit -m "style(game-state): satisfy pinned clippy"
+          git add crates/domains/symtropy-game-state/src/event_v2.rs crates/domains/symtropy-game-state/tests/canonical_event_v2.rs
+          git commit -m "fix(game-state): preserve monotonic tick rejection under pinned clippy"
           git push origin HEAD:ci/crk01-clippy-fix-6e1e
