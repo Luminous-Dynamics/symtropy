@@ -1,0 +1,179 @@
+name: CUF Stage A Hosted Execution
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/cuf-stage-a-hosted.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: cuf-stage-a-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  stage-a:
+    name: Stage A / Nix + Cargo lock diagnosis
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    env:
+      PYTHONDONTWRITEBYTECODE: "1"
+      CAPTURE_ROOT: ${{ runner.temp }}/cuf-v0.11-stage-a
+      EVIDENCE_DIR: ${{ runner.temp }}/cuf-v0.11-stage-a/evidence
+      SIDECAR_DIR: ${{ runner.temp }}/cuf-v0.11-stage-a/sidecar
+
+    steps:
+      - name: Checkout exact PR head
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+          fetch-depth: 1
+
+      - name: Prepare immutable capture locations
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf "$CAPTURE_ROOT"
+          mkdir -p "$SIDECAR_DIR"
+          git rev-parse HEAD > "$SIDECAR_DIR/WORKFLOW_HEAD.txt"
+          git rev-parse HEAD^{tree} > "$SIDECAR_DIR/WORKFLOW_TREE.txt"
+          git status --porcelain=v1 --untracked-files=all > "$SIDECAR_DIR/GIT_STATUS_BEFORE_TOOLCHAIN.txt"
+          test ! -s "$SIDECAR_DIR/GIT_STATUS_BEFORE_TOOLCHAIN.txt"
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
+        with:
+          python-version: "3.12"
+
+      - name: Install pinned Rust 1.96.0
+        uses: dtolnay/rust-toolchain@ebb3d1676050bfd0971c36c1e215b5751473994d # 1.96.0
+
+      - name: Install pinned Nix
+        uses: DeterminateSystems/nix-installer-action@a7ad9c4f0c65208097f4d34f3cfa1913b80cce5c
+
+      - name: Prove pre-execution toolchain and clean tree
+        shell: bash
+        run: |
+          set -euo pipefail
+          {
+            printf 'runner_os=%s\n' "$RUNNER_OS"
+            printf 'runner_arch=%s\n' "$RUNNER_ARCH"
+            printf 'image_os=%s\n' "${ImageOS:-unknown}"
+            printf 'image_version=%s\n' "${ImageVersion:-unknown}"
+            python --version
+            rustc --version
+            cargo --version
+            nix --version
+            git --version
+            bash --version | head -n 1
+          } > "$SIDECAR_DIR/HOST_TOOLCHAIN.txt" 2>&1
+
+          test "$(rustc --version | awk '{print $2}')" = "1.96.0"
+          test "$(cargo --version | awk '{print $2}')" = "1.96.0"
+
+          git status --porcelain=v1 --untracked-files=all > "$SIDECAR_DIR/GIT_STATUS_AFTER_TOOLCHAIN.txt"
+          test ! -s "$SIDECAR_DIR/GIT_STATUS_AFTER_TOOLCHAIN.txt"
+
+          nix develop --command bash -lc '
+            set -euo pipefail
+            printf "rustc=%s\n" "$(rustc --version)"
+            printf "cargo=%s\n" "$(cargo --version)"
+            printf "python3=%s\n" "$(python3 --version 2>&1)"
+          ' > "$SIDECAR_DIR/NIX_DEVELOP_TOOLCHAIN.txt" 2>&1
+
+          grep -Fq 'rustc=rustc 1.96.0 ' "$SIDECAR_DIR/NIX_DEVELOP_TOOLCHAIN.txt"
+          grep -Fq 'cargo=cargo 1.96.0 ' "$SIDECAR_DIR/NIX_DEVELOP_TOOLCHAIN.txt"
+
+          git status --porcelain=v1 --untracked-files=all > "$SIDECAR_DIR/GIT_STATUS_AFTER_NIX_READINESS.txt"
+          test ! -s "$SIDECAR_DIR/GIT_STATUS_AFTER_NIX_READINESS.txt"
+
+      - name: Execute Stage A semantic lock-repair producer
+        id: producer
+        shell: bash
+        run: |
+          set -u
+          rm -rf "$EVIDENCE_DIR"
+
+          set +e
+          bash scripts/prepare-cuf-v0.11-cargo-lock-repair-semantic.sh \
+            parent \
+            "$EVIDENCE_DIR" \
+            > "$SIDECAR_DIR/PRODUCER.stdout.log" \
+            2> "$SIDECAR_DIR/PRODUCER.stderr.log"
+          rc=$?
+          set -e
+
+          printf '%s\n' "$rc" > "$SIDECAR_DIR/PRODUCER_EXIT.txt"
+          printf 'producer_exit=%s\n' "$rc" >> "$GITHUB_OUTPUT"
+
+          if [[ -f "$EVIDENCE_DIR/STATUS.txt" ]]; then
+            cp "$EVIDENCE_DIR/STATUS.txt" "$SIDECAR_DIR/EVIDENCE_STATUS.txt"
+          else
+            printf 'MISSING\n' > "$SIDECAR_DIR/EVIDENCE_STATUS.txt"
+          fi
+
+          git rev-parse HEAD > "$SIDECAR_DIR/HEAD_AFTER_PRODUCER.txt"
+          git rev-parse HEAD^{tree} > "$SIDECAR_DIR/TREE_AFTER_PRODUCER.txt"
+          git status --porcelain=v1 --untracked-files=all > "$SIDECAR_DIR/GIT_STATUS_AFTER_PRODUCER.txt"
+          git diff -- Cargo.lock > "$SIDECAR_DIR/CARGO_LOCK_WORKTREE.diff"
+          if ! git diff --quiet -- Cargo.lock; then
+            cp Cargo.lock "$SIDECAR_DIR/Cargo.lock.generated"
+            sha256sum Cargo.lock > "$SIDECAR_DIR/CARGO_LOCK_GENERATED_SHA256.txt"
+          fi
+
+          if [[ ! -f "$EVIDENCE_DIR/MANIFEST.sha256" ]]; then
+            printf 'MISSING\n' > "$SIDECAR_DIR/EVIDENCE_MANIFEST_CHECK.txt"
+            printf 'ERROR: Stage A producer did not emit MANIFEST.sha256.\n' >&2
+            exit 1
+          fi
+          (
+            cd "$EVIDENCE_DIR"
+            sha256sum -c MANIFEST.sha256
+          ) > "$SIDECAR_DIR/EVIDENCE_MANIFEST_CHECK.txt" 2>&1 || {
+            printf 'ERROR: evidence manifest verification failed.\n' >&2
+            exit 1
+          }
+
+          status="$(cat "$SIDECAR_DIR/EVIDENCE_STATUS.txt")"
+          case "$rc:$status" in
+            0:GENERATED_UNCOMMITTED)
+              echo 'Stage A generated an uncommitted Cargo.lock repair for review.'
+              ;;
+            3:NOT_NEEDED)
+              echo 'Stage A proved the current root lock is already coherent.'
+              ;;
+            *)
+              printf 'Stage A did not reach an accepted terminal state: exit=%s status=%s\n' "$rc" "$status" >&2
+              if [[ "$rc" -eq 0 ]]; then
+                exit 1
+              fi
+              exit "$rc"
+              ;;
+          esac
+
+      - name: Upload exact Stage A capture
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: cuf-v0.11-stage-a-${{ github.sha }}
+          path: ${{ runner.temp }}/cuf-v0.11-stage-a
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Claim boundary
+        if: success()
+        shell: bash
+        run: |
+          set -euo pipefail
+          status="$(cat "$SIDECAR_DIR/EVIDENCE_STATUS.txt")"
+          cat <<EOF
+          Stage A hosted execution completed with status: $status
+
+          This establishes only the exact hosted Nix/Cargo Stage A observation
+          captured by the uploaded evidence capsule and sidecar. It does not
+          approve or commit a generated Cargo.lock repair, does not establish
+          cumulative Q1, does not replay Universal Matter v4.8, and does not
+          establish Q2.
+          EOF
