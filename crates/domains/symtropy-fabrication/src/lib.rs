@@ -8,6 +8,7 @@
 mod assembly;
 mod capability;
 mod constraints;
+mod diagnostic;
 mod identity;
 mod interface;
 mod joint;
@@ -19,6 +20,7 @@ mod workmanship;
 pub use assembly::*;
 pub use capability::*;
 pub use constraints::*;
+pub use diagnostic::*;
 pub use identity::*;
 pub use interface::*;
 pub use joint::*;
