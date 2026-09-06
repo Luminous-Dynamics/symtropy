@@ -93,6 +93,57 @@ impl<K: Ord> CountDistribution<K> {
     }
 }
 
+impl<K: Ord + Clone> CountDistribution<K> {
+    /// Deterministically split the first `selected` members of this marginal
+    /// distribution in canonical key order.
+    ///
+    /// This operation preserves only the marginal represented by this
+    /// distribution. It does not invent correlations with other dimensions.
+    pub fn split_prefix(&self, selected: u64) -> Result<(Self, Self), PopulationError> {
+        if selected > self.total {
+            return Err(PopulationError::RequestedSplitExceedsPopulation {
+                requested: selected,
+                available: self.total,
+            });
+        }
+
+        let mut selected_remaining = selected;
+        let mut selected_counts = BTreeMap::new();
+        let mut remainder_counts = BTreeMap::new();
+
+        for (key, count) in &self.counts {
+            let take = selected_remaining.min(*count);
+            let keep = *count - take;
+            if take != 0 {
+                selected_counts.insert(key.clone(), take);
+                selected_remaining -= take;
+            }
+            if keep != 0 {
+                remainder_counts.insert(key.clone(), keep);
+            }
+        }
+
+        debug_assert_eq!(selected_remaining, 0);
+        Ok((
+            Self::new(selected_counts)?,
+            Self::new(remainder_counts)?,
+        ))
+    }
+
+    /// Merge two marginals of the same dimension, preserving exact counts.
+    pub fn merge(&self, other: &Self) -> Result<Self, PopulationError> {
+        let mut counts = self.counts.clone();
+        for (key, count) in &other.counts {
+            let existing = counts.get(key).copied().unwrap_or(0);
+            let combined = existing
+                .checked_add(*count)
+                .ok_or(PopulationError::CountOverflow)?;
+            counts.insert(key.clone(), combined);
+        }
+        Self::new(counts)
+    }
+}
+
 /// Canonical aggregate population truth.
 ///
 /// `biomass_milligrams` is fixed-point integer state rather than floating point
@@ -176,6 +227,93 @@ impl PopulationState {
         }
         Ok(())
     }
+
+    /// Split this population into a deterministic selected prefix and a coarse
+    /// remainder without creating or destroying headcount or biomass.
+    ///
+    /// Each marginal distribution is split independently in canonical key
+    /// order. Because the coarse state stores marginals rather than a joint
+    /// distribution, this operation intentionally does not claim that selected
+    /// age/condition/occupancy bins belonged to the same historical organisms.
+    pub fn split_prefix(&self, selected: u64) -> Result<(Self, Self), PopulationError> {
+        if selected > self.count {
+            return Err(PopulationError::RequestedSplitExceedsPopulation {
+                requested: selected,
+                available: self.count,
+            });
+        }
+
+        let (selected_age, remainder_age) = self.age.split_prefix(selected)?;
+        let (selected_condition, remainder_condition) = self.condition.split_prefix(selected)?;
+        let (selected_occupancy, remainder_occupancy) = self.occupancy.split_prefix(selected)?;
+        let selected_biomass = prefix_biomass(self.biomass_milligrams, self.count, selected)?;
+        let remainder_biomass = self
+            .biomass_milligrams
+            .checked_sub(selected_biomass)
+            .ok_or(PopulationError::BiomassArithmeticOverflow)?;
+        let remainder_count = self.count - selected;
+
+        Ok((
+            Self::new(
+                selected,
+                selected_biomass,
+                selected_age,
+                selected_condition,
+                selected_occupancy,
+            )?,
+            Self::new(
+                remainder_count,
+                remainder_biomass,
+                remainder_age,
+                remainder_condition,
+                remainder_occupancy,
+            )?,
+        ))
+    }
+
+    /// Recombine two coarse population partitions exactly.
+    ///
+    /// This merges marginals and biomass only. It does not reconstruct joint
+    /// correlations that were not present in the source representation.
+    pub fn merge(&self, other: &Self) -> Result<Self, PopulationError> {
+        let count = self
+            .count
+            .checked_add(other.count)
+            .ok_or(PopulationError::CountOverflow)?;
+        let biomass_milligrams = self
+            .biomass_milligrams
+            .checked_add(other.biomass_milligrams)
+            .ok_or(PopulationError::BiomassArithmeticOverflow)?;
+
+        Self::new(
+            count,
+            biomass_milligrams,
+            self.age.merge(&other.age)?,
+            self.condition.merge(&other.condition)?,
+            self.occupancy.merge(&other.occupancy)?,
+        )
+    }
+}
+
+fn prefix_biomass(total_biomass: u64, total_count: u64, selected: u64) -> Result<u64, PopulationError> {
+    if selected > total_count {
+        return Err(PopulationError::RequestedSplitExceedsPopulation {
+            requested: selected,
+            available: total_count,
+        });
+    }
+    if total_count == 0 {
+        return Ok(0);
+    }
+
+    let base = total_biomass / total_count;
+    let remainder = total_biomass % total_count;
+    let base_selected = base
+        .checked_mul(selected)
+        .ok_or(PopulationError::BiomassArithmeticOverflow)?;
+    base_selected
+        .checked_add(remainder.min(selected))
+        .ok_or(PopulationError::BiomassArithmeticOverflow)
 }
 
 fn validate_distribution_total(
@@ -198,6 +336,11 @@ fn validate_distribution_total(
 pub enum PopulationError {
     ZeroCountBin,
     CountOverflow,
+    BiomassArithmeticOverflow,
+    RequestedSplitExceedsPopulation {
+        requested: u64,
+        available: u64,
+    },
     DistributionTotalMismatch {
         dimension: &'static str,
         expected: u64,
@@ -211,8 +354,19 @@ pub enum PopulationError {
 impl fmt::Display for PopulationError {
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Self::ZeroCountBin => write!(formatter, "population distributions cannot store zero-count bins"),
+            Self::ZeroCountBin => write!(
+                formatter,
+                "population distributions cannot store zero-count bins"
+            ),
             Self::CountOverflow => write!(formatter, "population distribution count overflow"),
+            Self::BiomassArithmeticOverflow => write!(formatter, "population biomass arithmetic overflow"),
+            Self::RequestedSplitExceedsPopulation {
+                requested,
+                available,
+            } => write!(
+                formatter,
+                "cannot split {requested} organisms from population of {available}"
+            ),
             Self::DistributionTotalMismatch {
                 dimension,
                 expected,
@@ -337,5 +491,73 @@ mod tests {
         let population = valid_population();
         assert_eq!(population.biomass_milligrams(), 2_500_000);
         assert_eq!(population.mean_biomass_milligrams(), Some(250_000.0));
+    }
+
+    #[test]
+    fn split_conserves_every_marginal_count_and_biomass() {
+        let original = valid_population();
+        let (selected, remainder) = original.split_prefix(4).unwrap();
+
+        assert_eq!(selected.count(), 4);
+        assert_eq!(remainder.count(), 6);
+        assert_eq!(selected.count() + remainder.count(), original.count());
+        assert_eq!(
+            selected.biomass_milligrams() + remainder.biomass_milligrams(),
+            original.biomass_milligrams()
+        );
+        assert_eq!(selected.age_distribution().total(), 4);
+        assert_eq!(selected.condition_distribution().total(), 4);
+        assert_eq!(selected.occupancy_distribution().total(), 4);
+        assert_eq!(remainder.age_distribution().total(), 6);
+        assert_eq!(remainder.condition_distribution().total(), 6);
+        assert_eq!(remainder.occupancy_distribution().total(), 6);
+    }
+
+    #[test]
+    fn split_then_merge_recovers_exact_source_marginals() {
+        let original = valid_population();
+        let (selected, remainder) = original.split_prefix(4).unwrap();
+        assert_eq!(selected.merge(&remainder).unwrap(), original);
+    }
+
+    #[test]
+    fn non_divisible_biomass_partition_is_exact_and_deterministic() {
+        let population = PopulationState::new(
+            3,
+            11,
+            distribution([(PopulationAgeBand::Mature, 3)]),
+            distribution([(PopulationConditionBand::Stable, 3)]),
+            distribution([(PopulationCell::new(0, 0, 0), 3)]),
+        )
+        .unwrap();
+
+        let (first, remainder) = population.split_prefix(1).unwrap();
+        assert_eq!(first.biomass_milligrams(), 4);
+        assert_eq!(remainder.biomass_milligrams(), 7);
+        assert_eq!(first.merge(&remainder).unwrap(), population);
+    }
+
+    #[test]
+    fn split_bounds_fail_closed() {
+        let population = valid_population();
+        assert_eq!(
+            population.split_prefix(11),
+            Err(PopulationError::RequestedSplitExceedsPopulation {
+                requested: 11,
+                available: 10,
+            })
+        );
+    }
+
+    #[test]
+    fn zero_and_full_splits_remain_valid() {
+        let original = valid_population();
+        let (none, all) = original.split_prefix(0).unwrap();
+        assert!(none.is_empty());
+        assert_eq!(all, original);
+
+        let (all_again, none_again) = original.split_prefix(original.count()).unwrap();
+        assert_eq!(all_again, original);
+        assert!(none_again.is_empty());
     }
 }
