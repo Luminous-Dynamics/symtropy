@@ -70,7 +70,7 @@ jobs:
           set -euo pipefail
           python scripts/test-evidence-execution-identity.py
 
-      - name: Exercise live checkout-bound identity
+      - name: Exercise and retain live checkout-bound identity
         shell: bash
         run: |
           set -euo pipefail
@@ -80,6 +80,9 @@ jobs:
 
           arch="$(printf '%s' "$RUNNER_ARCH" | tr '[:upper:]' '[:lower:]')"
           python_version="$(python -c 'import platform; print(platform.python_version())')"
+          git_version="$(git version | awk '{print $3}')"
+          kernel_release="$(uname -r)"
+          os_release_sha256="$(sha256sum /etc/os-release | awk '{print $1}')"
           tree="$(git rev-parse HEAD^{tree})"
           workflow_blob="$(git rev-parse "HEAD:$workflow")"
 
@@ -94,12 +97,18 @@ jobs:
             --binding environment.runner_label=ubuntu-slim \
             --binding environment.arch="$arch" \
             --binding environment.isolation=unprivileged-container \
+            --binding environment.kernel_release="$kernel_release" \
+            --binding source.os_release="$os_release_sha256" \
+            --binding tool.git="$git_version" \
             --binding tool.python="$python_version" \
             --require-binding action.checkout \
             --require-binding action.setup_python \
             --require-binding environment.runner_label \
             --require-binding environment.arch \
             --require-binding environment.isolation \
+            --require-binding environment.kernel_release \
+            --require-binding source.os_release \
+            --require-binding tool.git \
             --require-binding tool.python \
             --assert-checkout \
             --repository-root . \
@@ -110,20 +119,87 @@ jobs:
             sha256sum -c EXECUTION_IDENTITY.sha256
           )
 
-          python - "$output/EXECUTION_IDENTITY.json" <<'PY'
+          python - "$output/EXECUTION_IDENTITY.json" "$output/OBSERVATION.json" <<'PY'
+          import hashlib
           import json
           import os
+          import platform
+          import subprocess
           import sys
+          from pathlib import Path
 
-          with open(sys.argv[1], encoding='utf-8') as handle:
-              payload = json.load(handle)
+          identity_path = Path(sys.argv[1])
+          observation_path = Path(sys.argv[2])
 
-          assert payload['identity']['execution_commit'] == os.environ['EXECUTION_SHA'].lower()
-          assert payload['bindings']['environment.runner_label'] == 'ubuntu-slim'
-          assert payload['bindings']['environment.isolation'] == 'unprivileged-container'
-          assert payload['bindings']['tool.python']
-          print('PASS: live checkout-bound execution identity is self-consistent.')
+          with identity_path.open(encoding='utf-8') as handle:
+              identity = json.load(handle)
+
+          def command(*args: str) -> str:
+              return subprocess.check_output(args, text=True).strip()
+
+          os_release = Path('/etc/os-release').read_bytes()
+          identity_digest = hashlib.sha256(identity_path.read_bytes()).hexdigest()
+          observation = {
+              'schema': 'symtropy.evidence.execution-observation.v1',
+              'execution_identity_sha256': identity_digest,
+              'github': {
+                  'repository': os.environ['GITHUB_REPOSITORY'],
+                  'run_id': os.environ['GITHUB_RUN_ID'],
+                  'run_attempt': os.environ['GITHUB_RUN_ATTEMPT'],
+                  'event_name': os.environ['GITHUB_EVENT_NAME'],
+                  'workflow_ref': os.environ.get('GITHUB_WORKFLOW_REF'),
+                  'workflow_sha': os.environ.get('GITHUB_WORKFLOW_SHA'),
+              },
+              'runner': {
+                  'name': os.environ.get('RUNNER_NAME'),
+                  'os': os.environ.get('RUNNER_OS'),
+                  'arch': os.environ.get('RUNNER_ARCH'),
+                  'environment': os.environ.get('RUNNER_ENVIRONMENT'),
+                  'image_os': os.environ.get('ImageOS'),
+                  'image_version': os.environ.get('ImageVersion'),
+              },
+              'host': {
+                  'kernel_release': platform.release(),
+                  'os_release_sha256': hashlib.sha256(os_release).hexdigest(),
+              },
+              'tools': {
+                  'git': command('git', 'version'),
+                  'python': platform.python_version(),
+              },
+              'transport': {
+                  'upload_artifact_commit': 'ea165f8d65b6e75b540449e92b4886f43607fa02',
+              },
+          }
+
+          assert identity['identity']['execution_commit'] == os.environ['EXECUTION_SHA'].lower()
+          assert identity['bindings']['environment.runner_label'] == 'ubuntu-slim'
+          assert identity['bindings']['environment.isolation'] == 'unprivileged-container'
+          assert identity['bindings']['environment.kernel_release'] == observation['host']['kernel_release']
+          assert identity['bindings']['source.os_release'] == observation['host']['os_release_sha256']
+          assert identity['bindings']['tool.git'] == observation['tools']['git'].split()[-1]
+          assert identity['bindings']['tool.python'] == observation['tools']['python']
+
+          observation_path.write_text(
+              json.dumps(observation, sort_keys=True, separators=(',', ':')) + '\n',
+              encoding='utf-8',
+          )
+          print(f"PASS: live execution identity {identity_digest} is self-consistent.")
           PY
+
+          (
+            cd "$output"
+            sha256sum OBSERVATION.json > OBSERVATION.sha256
+            sha256sum -c OBSERVATION.sha256
+          )
+
+      - name: Upload retained identity observation
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: evidence-execution-identity-${{ env.EXECUTION_SHA }}
+          path: ${{ runner.temp }}/evidence-execution-identity-self-check/
+          if-no-files-found: error
+          retention-days: 30
+          compression-level: 0
 
       - name: Require observational checkout
         shell: bash
@@ -152,23 +228,24 @@ jobs:
             - action/policy/source/producer/verifier bindings require immutable 40/64-hex identities;
             - free-form semantic values are review-safe printable ASCII with no edge whitespace;
             - obvious moving tool/environment aliases such as stable/latest/current are rejected;
-            - execution-environment contracts such as runner class/isolation can be identity-bound;
+            - runner class, architecture, isolation, kernel, OS-release bytes, Git, and Python are identity-bound;
             - declared required bindings are identity-bound and missing requirements fail closed;
             - --assert-checkout proves commit/tree/workflow-blob coherence against live HEAD;
             - asserted checkout contains no tracked drift, untracked files, or ignored material;
-            - checkout-bound output must remain outside the asserted product tree;
-            - the hosted self-check exercised the actual checkout and actual Python patch version;
-            - per-run observation metadata is excluded from the semantic identity namespace;
+            - checkout-bound output remains outside the asserted product tree;
+            - the emitted identity and observation sidecar are independently checksum-verified;
+            - the exact identity/observation files are retained as a pinned upload-artifact payload;
+            - per-run observation metadata remains outside the semantic identity namespace;
             - ambiguous workflow paths and duplicate bindings/requirements are rejected;
-            - the final checkout still contains only tracked HEAD material.
+            - the final checkout still contains only tracked HEAD material after artifact upload.
+
+          The observation sidecar records transport/provider facts without turning run ID,
+          attempt, runner instance, or provider image labels into semantic authority by
+          themselves. The upload action is pinned transport, not an experiment input.
 
           The moving-alias guard is review hardening, not a proof that every accepted
           descriptor is immutable. Material executable artifacts should still be bound
           through immutable source/policy/action identities where available.
-
-          Runner class, architecture, isolation model, and material image properties
-          belong in environment.* when they can affect execution semantics. A specific
-          ephemeral runner instance or GitHub run ID remains observation metadata.
 
           This qualification's own runner class is ubuntu-slim and therefore does not
           claim equivalence with ubuntu-24.04 VM execution. It validates lightweight
