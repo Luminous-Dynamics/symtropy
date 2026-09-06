@@ -8,9 +8,8 @@ concurrency:
   group: living-world-exact-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
-# Temporary never-merge helper. The implementation repair is complete; this
-# workflow is now strictly read-only and qualifies one immutable Living World
-# stack head.
+# Temporary never-merge helper. Product code is immutable here; this workflow
+# is read-only and qualifies one exact Living World stack head.
 permissions:
   contents: read
 
@@ -39,7 +38,7 @@ jobs:
       run: |
         set -euo pipefail
         test "$(git rev-parse HEAD)" = "$QUALIFIED_HEAD"
-        test -z "$(git status --porcelain)"
+        test -z "$(git status --porcelain=v1 --untracked-files=all)"
 
     - name: Set up pinned Rust
       uses: dtolnay/rust-toolchain@stable
@@ -66,9 +65,25 @@ jobs:
       shell: bash
       run: cargo check --locked -p symtropy-lifesim-core --all-targets
 
+    - name: Diagnose qualification worktree
+      if: always()
+      shell: bash
+      run: |
+        set -euo pipefail
+        echo '=== HEAD ==='
+        git rev-parse HEAD
+        echo '=== STATUS ==='
+        git status --porcelain=v1 --untracked-files=all || true
+        echo '=== TRACKED DIFF NAMES ==='
+        git diff --name-only || true
+        echo '=== TRACKED DIFF ==='
+        git diff -- || true
+        echo '=== UNTRACKED (non-ignored) ==='
+        git ls-files --others --exclude-standard || true
+
     - name: Assert qualification was non-mutating
       shell: bash
       run: |
         set -euo pipefail
         test "$(git rev-parse HEAD)" = "$QUALIFIED_HEAD"
-        test -z "$(git status --porcelain)"
+        test -z "$(git status --porcelain=v1 --untracked-files=all)"
