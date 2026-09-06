@@ -1,0 +1,91 @@
+name: CRK-01 Clippy Fix Helper
+
+on:
+  pull_request:
+    branches:
+      - hardening/game-state-canonical-v2
+
+permissions:
+  contents: write
+
+concurrency:
+  group: crk01-clippy-fix-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  fix:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-slim
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ci/crk01-clippy-fix-6e1e
+          fetch-depth: 0
+
+      - name: Assert exact source parent
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD^1)" = "6e1e9495429699ab523de7ba0eb85f4d9526c223"
+
+      - name: Apply exact Clippy repair
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+
+          path = Path('crates/domains/symtropy-game-state/src/event_v2.rs')
+          text = path.read_text()
+          old = '''        if let Some(previous) = self.events.last() {
+              if simulation_tick < previous.simulation_tick {
+                  return Err(EventV2Error::NonMonotonicTick {
+                      event_id: previous.event_id.clone(),
+                      previous: previous.simulation_tick,
+                      actual: simulation_tick,
+                  });
+              }
+          }
+          '''
+          new = '''        if let Some(previous) = self.events.last()
+              && simulation_tick < previous.simulation_tick
+          {
+              return Err(EventV2Error::NonMonotonicTick {
+                  event_id: previous.event_id.clone(),
+                  previous: previous.simulation_tick,
+                  actual: simulation_tick,
+              });
+          }
+          '''
+          count = text.count(old)
+          if count != 1:
+              raise SystemExit(f'expected exactly one Clippy target, found {count}')
+          path.write_text(text.replace(old, new))
+          PY
+
+      - name: Set up pinned Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.96.0
+          components: clippy, rustfmt
+
+      - name: Normalize and qualify scoped crate
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo fmt -p symtropy-game-state
+          cargo test --locked -p symtropy-game-state --all-targets
+          cargo clippy --locked -p symtropy-game-state --all-targets -- -D warnings
+          cargo check --locked -p symtropy-game-state --all-targets
+
+      - name: Assert fix scope and commit
+        shell: bash
+        run: |
+          set -euo pipefail
+          changed="$(git diff --name-only)"
+          test "$changed" = "crates/domains/symtropy-game-state/src/event_v2.rs"
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add crates/domains/symtropy-game-state/src/event_v2.rs
+          git commit -m "style(game-state): satisfy pinned clippy"
+          git push origin HEAD:ci/crk01-clippy-fix-6e1e
