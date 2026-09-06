@@ -26,9 +26,6 @@ jobs:
     env:
       PYTHONDONTWRITEBYTECODE: "1"
       EXECUTION_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
-      CAPTURE_ROOT: ${{ runner.temp }}/cuf-v0.11-stage-a
-      EVIDENCE_DIR: ${{ runner.temp }}/cuf-v0.11-stage-a/evidence
-      SIDECAR_DIR: ${{ runner.temp }}/cuf-v0.11-stage-a/sidecar
 
     steps:
       - name: Checkout exact execution head
@@ -42,14 +39,26 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          rm -rf "$CAPTURE_ROOT"
-          mkdir -p "$SIDECAR_DIR"
-          git rev-parse HEAD > "$SIDECAR_DIR/WORKFLOW_HEAD.txt"
-          git rev-parse HEAD^{tree} > "$SIDECAR_DIR/WORKFLOW_TREE.txt"
-          printf '%s\n' "$EXECUTION_SHA" > "$SIDECAR_DIR/EXPECTED_EXECUTION_HEAD.txt"
+
+          capture_root="$RUNNER_TEMP/cuf-v0.11-stage-a"
+          evidence_dir="$capture_root/evidence"
+          sidecar_dir="$capture_root/sidecar"
+
+          rm -rf "$capture_root"
+          mkdir -p "$sidecar_dir"
+
+          {
+            printf 'CAPTURE_ROOT=%s\n' "$capture_root"
+            printf 'EVIDENCE_DIR=%s\n' "$evidence_dir"
+            printf 'SIDECAR_DIR=%s\n' "$sidecar_dir"
+          } >> "$GITHUB_ENV"
+
+          git rev-parse HEAD > "$sidecar_dir/WORKFLOW_HEAD.txt"
+          git rev-parse HEAD^{tree} > "$sidecar_dir/WORKFLOW_TREE.txt"
+          printf '%s\n' "$EXECUTION_SHA" > "$sidecar_dir/EXPECTED_EXECUTION_HEAD.txt"
           test "$(git rev-parse HEAD)" = "$EXECUTION_SHA"
-          git status --porcelain=v1 --untracked-files=all > "$SIDECAR_DIR/GIT_STATUS_BEFORE_TOOLCHAIN.txt"
-          test ! -s "$SIDECAR_DIR/GIT_STATUS_BEFORE_TOOLCHAIN.txt"
+          git status --porcelain=v1 --untracked-files=all > "$sidecar_dir/GIT_STATUS_BEFORE_TOOLCHAIN.txt"
+          test ! -s "$sidecar_dir/GIT_STATUS_BEFORE_TOOLCHAIN.txt"
 
       - name: Set up Python 3.12
         uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
