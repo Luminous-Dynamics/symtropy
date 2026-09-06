@@ -22,8 +22,7 @@ pub struct EcologicalCadence {
 impl EcologicalCadence {
     /// Construct a cadence with a non-zero interval and optional phase offset.
     pub fn new(interval_ticks: u64, phase_tick: u64) -> Result<Self, CadenceError> {
-        let interval_ticks =
-            NonZeroU64::new(interval_ticks).ok_or(CadenceError::ZeroInterval)?;
+        let interval_ticks = NonZeroU64::new(interval_ticks).ok_or(CadenceError::ZeroInterval)?;
         Ok(Self {
             interval_ticks,
             phase_tick,
@@ -49,11 +48,7 @@ impl EcologicalCadence {
     /// This supports deterministic catch-up when a coarse/off-screen system is
     /// advanced in larger chunks. A caller can execute the returned number of
     /// logical process steps without changing the process rate.
-    pub fn due_steps(
-        self,
-        previous_tick: u64,
-        current_tick: u64,
-    ) -> Result<u64, CadenceError> {
+    pub fn due_steps(self, previous_tick: u64, current_tick: u64) -> Result<u64, CadenceError> {
         if current_tick < previous_tick {
             return Err(CadenceError::NonMonotonicTick {
                 previous_tick,
