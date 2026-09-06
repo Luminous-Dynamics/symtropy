@@ -32,9 +32,13 @@ jobs:
         sudo apt-get update
         sudo apt-get install -y libasound2-dev libudev-dev pkg-config
 
+    # Keep CI on the same explicit toolchain as rust-toolchain.toml. The action
+    # ref remains stable, but the installed compiler/lints are pinned so an
+    # unrelated Rust release cannot turn the repository red.
     - name: Set up Rust
       uses: dtolnay/rust-toolchain@stable
       with:
+        toolchain: 1.96.0
         components: clippy, rustfmt
 
     - name: Cache dependencies
