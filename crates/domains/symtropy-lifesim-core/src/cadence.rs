@@ -40,7 +40,7 @@ impl EcologicalCadence {
     /// Return whether this process is scheduled exactly at `simulation_tick`.
     pub fn fires_at(self, simulation_tick: u64) -> bool {
         simulation_tick >= self.phase_tick
-            && (simulation_tick - self.phase_tick) % self.interval_ticks.get() == 0
+            && (simulation_tick - self.phase_tick).is_multiple_of(self.interval_ticks.get())
     }
 
     /// Count scheduled process steps in `(previous_tick, current_tick]`.
