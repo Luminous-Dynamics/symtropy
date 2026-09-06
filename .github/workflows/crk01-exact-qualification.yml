@@ -1,0 +1,38 @@
+name: CRK-01 Exact Qualification
+
+on:
+  pull_request:
+    branches:
+      - hardening/game-state-canonical-v2
+
+permissions:
+  contents: read
+
+concurrency:
+  group: crk01-exact-qualification-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  qualify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: 278cd373254d00992af903cae6780af88acf0b06
+          fetch-depth: 0
+
+      - name: Assert exact CRK-01 head
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "278cd373254d00992af903cae6780af88acf0b06"
+
+      - name: Set up pinned Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.96.0
+          components: clippy, rustfmt
+
+      - name: Run exact CRK-01 qualification
+        shell: bash
+        run: bash scripts/qualify-game-state-canonical-v2.sh
