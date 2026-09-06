@@ -22,11 +22,12 @@ jobs:
           ref: ci/crk01-clippy-fix-6e1e
           fetch-depth: 0
 
-      - name: Assert exact source parent
+      - name: Assert exact source base
         shell: bash
         run: |
           set -euo pipefail
-          test "$(git rev-parse HEAD^1)" = "6e1e9495429699ab523de7ba0eb85f4d9526c223"
+          git fetch origin hardening/game-state-canonical-v2
+          test "$(git merge-base HEAD origin/hardening/game-state-canonical-v2)" = "6e1e9495429699ab523de7ba0eb85f4d9526c223"
 
       - name: Apply exact Clippy repair
         shell: bash
