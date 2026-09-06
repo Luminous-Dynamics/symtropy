@@ -317,16 +317,8 @@ impl PopulationState {
         let cells = interleaved_values(&self.occupancy, seed, 0x5A71_A100, count)?;
 
         let mut members = Vec::with_capacity(count);
-        let base_biomass = if self.count == 0 {
-            0
-        } else {
-            self.biomass_milligrams / self.count
-        };
-        let biomass_remainder = if self.count == 0 {
-            0
-        } else {
-            self.biomass_milligrams % self.count
-        };
+        let base_biomass = self.biomass_milligrams.checked_div(self.count).unwrap_or(0);
+        let biomass_remainder = self.biomass_milligrams.checked_rem(self.count).unwrap_or(0);
 
         for index in 0..count {
             let ordinal = u64::try_from(index).map_err(|_| {
