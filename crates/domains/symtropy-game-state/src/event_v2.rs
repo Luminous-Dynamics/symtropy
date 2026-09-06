@@ -247,8 +247,8 @@ impl<T: CanonicalEventPayload> EventChainV2<T> {
         if let Some(previous) = self.events.last()
             && simulation_tick < previous.simulation_tick
         {
-            return Err(EventV2Error::NonMonotonicTick {
-                event_id: previous.event_id.clone(),
+            return Err(EventV2Error::AppendNonMonotonicTick {
+                previous_event_id: previous.event_id.clone(),
                 previous: previous.simulation_tick,
                 actual: simulation_tick,
             });
@@ -488,6 +488,11 @@ pub enum EventV2Error {
         expected: Option<EventDigestV2>,
         actual: Option<EventDigestV2>,
     },
+    AppendNonMonotonicTick {
+        previous_event_id: StableId,
+        previous: u64,
+        actual: u64,
+    },
     NonMonotonicTick {
         event_id: StableId,
         previous: u64,
@@ -563,6 +568,14 @@ impl fmt::Display for EventV2Error {
                     "canonical event {event_id} previous digest mismatch"
                 )
             }
+            Self::AppendNonMonotonicTick {
+                previous_event_id,
+                previous,
+                actual,
+            } => write!(
+                formatter,
+                "cannot append canonical event after {previous_event_id}: tick moved backward from {previous} to {actual}"
+            ),
             Self::NonMonotonicTick {
                 event_id,
                 previous,

@@ -145,6 +145,15 @@ A reconstructed `EventChainV2` verifies at least:
 8. recomputed domain-owned payload digest;
 9. recomputed canonical event digest.
 
+### Monotonic-tick diagnostic identity
+
+Append-time rejection and persisted-chain verification expose different identity facts and therefore use distinct errors:
+
+- `AppendNonMonotonicTick` identifies the **previous committed event** through `previous_event_id`; it does not fabricate or reserve an ID or ordinal for the rejected uncommitted attempt;
+- `NonMonotonicTick` identifies the **offending persisted event** through `event_id` during chain reconstruction/verification.
+
+A rejected append leaves the committed chain length and head digest unchanged, and a subsequent valid append receives the same deterministic ordinal/ID it would have received if the rejected attempt had never occurred.
+
 ### Verified-chain authority boundary
 
 `EventChainV2` is an authoritative verified-chain type, not a container for "possibly verified" data.
