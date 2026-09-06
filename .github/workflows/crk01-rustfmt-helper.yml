@@ -15,7 +15,7 @@ concurrency:
 jobs:
   format:
     if: github.actor != 'github-actions[bot]'
-    runs-on: macos-latest
+    runs-on: ubuntu-24.04-arm
     steps:
       - uses: actions/checkout@v4
         with:
