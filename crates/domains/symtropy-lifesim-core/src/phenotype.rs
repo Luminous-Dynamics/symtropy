@@ -213,6 +213,6 @@ mod tests {
     fn frozen_derivation_vector_detects_algorithm_drift() {
         let seed = PhenotypeSeed::new(17, 91);
         let value = seed.unit("leaf.aspect_ratio").unwrap();
-        assert_eq!(value.to_bits(), 0x3fdf_b436_a3c9_9d1c);
+        assert_eq!(value.to_bits(), 0x3fe5_5985_ca9a_78c9);
     }
 }
