@@ -18,14 +18,14 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ab492c1ec4eb418136271ff053957c7014ca0bdf
+          ref: c9aa4a4c354449475af6fc4833e9b4f0bbaadaf1
           fetch-depth: 0
 
       - name: Assert exact CRK-01 head
         shell: bash
         run: |
           set -euo pipefail
-          test "$(git rev-parse HEAD)" = "ab492c1ec4eb418136271ff053957c7014ca0bdf"
+          test "$(git rev-parse HEAD)" = "c9aa4a4c354449475af6fc4833e9b4f0bbaadaf1"
 
       - name: Set up pinned Rust
         uses: dtolnay/rust-toolchain@stable
