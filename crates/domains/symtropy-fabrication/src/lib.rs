@@ -10,9 +10,11 @@ mod identity;
 mod interface;
 mod joint;
 mod process;
+mod workmanship;
 
 pub use capability::*;
 pub use identity::*;
 pub use interface::*;
 pub use joint::*;
 pub use process::*;
+pub use workmanship::*;
