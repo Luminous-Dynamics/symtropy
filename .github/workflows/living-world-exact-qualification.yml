@@ -1,0 +1,90 @@
+name: Living World exact qualification
+
+on:
+  pull_request:
+    branches: [ "main" ]
+
+concurrency:
+  group: living-world-exact-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+# Temporary never-merge helper. Product code is immutable here; this workflow
+# is read-only and qualifies one exact Living World stack head.
+permissions:
+  contents: read
+
+env:
+  CARGO_TERM_COLOR: always
+  CARGO_TARGET_DIR: /tmp/living-world-target
+  QUALIFIED_HEAD: 3f3d2f19387afd0bd6313e0b1b5c6bdd6a509623
+
+jobs:
+  qualify-lifesim-core:
+    name: Qualify exact Clippy-repaired Living World head
+    if: >-
+      github.event.pull_request.head.ref == 'ci/living-world-exact-qualification-88a5d85' &&
+      github.event.pull_request.base.ref == 'main'
+    runs-on: ubuntu-slim
+
+    steps:
+    - name: Check out exact Living World head
+      uses: actions/checkout@v4
+      with:
+        ref: ${{ env.QUALIFIED_HEAD }}
+        fetch-depth: 1
+        persist-credentials: false
+
+    - name: Assert exact checkout
+      shell: bash
+      run: |
+        set -euo pipefail
+        test "$(git rev-parse HEAD)" = "$QUALIFIED_HEAD"
+        test -z "$(git status --porcelain=v1 --untracked-files=all)"
+
+    - name: Set up pinned Rust
+      uses: dtolnay/rust-toolchain@stable
+      with:
+        toolchain: 1.96.0
+        components: clippy, rustfmt
+
+    - name: Cache dependencies
+      uses: Swatinem/rust-cache@v2
+
+    - name: Check scoped formatting
+      shell: bash
+      run: cargo fmt --package symtropy-lifesim-core -- --check
+
+    - name: Run scoped tests
+      shell: bash
+      run: cargo test --locked -p symtropy-lifesim-core --all-targets
+
+    - name: Run scoped Clippy
+      shell: bash
+      run: cargo clippy --locked -p symtropy-lifesim-core --all-targets -- -D warnings
+
+    - name: Check scoped build
+      shell: bash
+      run: cargo check --locked -p symtropy-lifesim-core --all-targets
+
+    - name: Diagnose qualification worktree
+      if: always()
+      shell: bash
+      run: |
+        set -euo pipefail
+        echo '=== HEAD ==='
+        git rev-parse HEAD
+        echo '=== STATUS ==='
+        git status --porcelain=v1 --untracked-files=all || true
+        echo '=== TRACKED DIFF NAMES ==='
+        git diff --name-only || true
+        echo '=== TRACKED DIFF ==='
+        git diff -- || true
+        echo '=== UNTRACKED (non-ignored) ==='
+        git ls-files --others --exclude-standard || true
+
+    - name: Assert qualification was non-mutating
+      shell: bash
+      run: |
+        set -euo pipefail
+        test "$(git rev-parse HEAD)" = "$QUALIFIED_HEAD"
+        test -z "$(git status --porcelain=v1 --untracked-files=all)"
