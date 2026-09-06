@@ -11,6 +11,7 @@ mod identity;
 mod interface;
 mod joint;
 mod process;
+mod substitution;
 mod workmanship;
 
 pub use capability::*;
@@ -19,4 +20,5 @@ pub use identity::*;
 pub use interface::*;
 pub use joint::*;
 pub use process::*;
+pub use substitution::*;
 pub use workmanship::*;
