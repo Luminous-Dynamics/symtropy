@@ -11,8 +11,8 @@
 use serde::{Deserialize, Serialize};
 use std::{error::Error, fmt};
 use symtropy_fabrication::{
-    FabricationPlan, FabricationPlanId, PlanError, PlanStepId, ProcessEvidence,
-    ProcessExecutionId, ProcessExecutionState, ProcessSpecId, WorkpieceId,
+    CapabilityAdmissionId, FabricationPlan, FabricationPlanId, PlanError, PlanStepId,
+    ProcessEvidence, ProcessExecutionId, ProcessExecutionState, ProcessSpecId, WorkpieceId,
 };
 use symtropy_game_state::StableId;
 
@@ -64,8 +64,8 @@ pub enum SiteStepAdmissionState {
 }
 
 /// Minimal durable reference to the process evidence that closed one admitted
-/// site step. The fabrication domain remains authoritative for the full process
-/// record and conserved-matter transition.
+/// site step. Fabrication remains authoritative for the full process record and
+/// conserved-matter transition.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct SiteProcessEvidenceRef {
     pub authority_id: StableId,
@@ -92,17 +92,25 @@ impl SiteProcessEvidenceRef {
 }
 
 /// Pre-execution site admission binds one exact process execution identity to a
-/// plan step before physical work is accepted for that step. This prevents
-/// arbitrary old process evidence from another context from silently closing a
-/// construction step.
+/// plan step before physical work is accepted for that step. Capability context
+/// stores only the F5 admission identities expected to appear as F4 bootstrap
+/// evidence in the eventual process record; construction does not copy or
+/// reinterpret capability envelopes.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct SiteStepAdmission {
     pub id: SiteStepAdmissionId,
     pub step_id: PlanStepId,
     pub execution_id: ProcessExecutionId,
+    capability_admission_ids: Vec<CapabilityAdmissionId>,
     pub state: SiteStepAdmissionState,
     pub cancellation_reason_id: Option<StableId>,
     pub completion: Option<SiteProcessEvidenceRef>,
+}
+
+impl SiteStepAdmission {
+    pub fn capability_admission_ids(&self) -> &[CapabilityAdmissionId] {
+        &self.capability_admission_ids
+    }
 }
 
 /// Persistent site orchestration state. Physical and engineering state remain
@@ -163,14 +171,33 @@ impl ConstructionSite {
         Ok(ready)
     }
 
-    /// Pre-admits one exact process execution for a currently ready plan step.
-    /// The execution identity becomes the context binding used at completion.
+    /// Pre-admits a process with no capability context. This is appropriate for
+    /// plan steps whose F4 execution is also admitted with no capability tokens.
     pub fn admit_step(
         &mut self,
         plan: &FabricationPlan,
         admission_id: SiteStepAdmissionId,
         step_id: PlanStepId,
         execution_id: ProcessExecutionId,
+    ) -> Result<(), SiteError> {
+        self.admit_step_with_capabilities(
+            plan,
+            admission_id,
+            step_id,
+            execution_id,
+            Vec::new(),
+        )
+    }
+
+    /// Pre-admits one exact process execution plus the exact F5 admission
+    /// identities that must be visible in F4 process evidence at completion.
+    pub fn admit_step_with_capabilities(
+        &mut self,
+        plan: &FabricationPlan,
+        admission_id: SiteStepAdmissionId,
+        step_id: PlanStepId,
+        execution_id: ProcessExecutionId,
+        mut capability_admission_ids: Vec<CapabilityAdmissionId>,
     ) -> Result<(), SiteError> {
         self.validate_plan(plan)?;
         if self.lifecycle != ConstructionSiteLifecycle::Open {
@@ -200,7 +227,6 @@ impl ConstructionSite {
         }) {
             return Err(SiteError::StepAlreadyAdmitted(step_id));
         }
-
         if plan.step(&step_id).is_none() {
             return Err(SiteError::UnknownPlanStep(step_id));
         }
@@ -208,10 +234,18 @@ impl ConstructionSite {
             return Err(SiteError::StepNotReady(step_id));
         }
 
+        capability_admission_ids.sort();
+        for pair in capability_admission_ids.windows(2) {
+            if pair[0] == pair[1] {
+                return Err(SiteError::DuplicateCapabilityAdmission(pair[0].clone()));
+            }
+        }
+
         self.admissions.push(SiteStepAdmission {
             id: admission_id,
             step_id,
             execution_id,
+            capability_admission_ids,
             state: SiteStepAdmissionState::Open,
             cancellation_reason_id: None,
             completion: None,
@@ -244,8 +278,8 @@ impl ConstructionSite {
     }
 
     /// Accepts completion only for a process execution that was admitted for
-    /// this site/step beforehand and whose exact spec/workpiece contract matches
-    /// the immutable F10 plan step.
+    /// this site/step beforehand and whose exact spec, workpieces, and admitted
+    /// capability identities match the immutable execution context.
     pub fn record_completion(
         &mut self,
         plan: &FabricationPlan,
@@ -265,7 +299,6 @@ impl ConstructionSite {
                 self.admissions[admission_index].id.clone(),
             ));
         }
-
         if evidence.outcome != ProcessExecutionState::Completed {
             return Err(SiteError::ProcessNotCompleted(evidence.execution_id.clone()));
         }
@@ -293,7 +326,6 @@ impl ConstructionSite {
         let step = plan
             .step(&step_id)
             .ok_or_else(|| SiteError::UnknownPlanStep(step_id.clone()))?;
-
         if evidence.spec_id != step.process_spec_id
             || evidence.spec_revision != step.process_spec_revision
         {
@@ -318,6 +350,25 @@ impl ConstructionSite {
                 step_id: self.admissions[admission_index].step_id.clone(),
                 expected: expected_workpieces,
                 actual: actual_workpieces,
+            });
+        }
+
+        let expected_capabilities = self.admissions[admission_index]
+            .capability_admission_ids
+            .iter()
+            .map(|id| id.stable_id().clone())
+            .collect::<Vec<_>>();
+        let mut actual_capabilities = evidence
+            .admitted_capabilities
+            .iter()
+            .map(|capability| capability.evidence_id.clone())
+            .collect::<Vec<_>>();
+        actual_capabilities.sort();
+        if actual_capabilities != expected_capabilities {
+            return Err(SiteError::CapabilityAdmissionSetMismatch {
+                step_id: self.admissions[admission_index].step_id.clone(),
+                expected: expected_capabilities,
+                actual: actual_capabilities,
             });
         }
 
@@ -446,6 +497,7 @@ pub enum SiteError {
     SiteImmutable(ConstructionSiteLifecycle),
     DuplicateAdmissionId(SiteStepAdmissionId),
     DuplicateExecutionId(ProcessExecutionId),
+    DuplicateCapabilityAdmission(CapabilityAdmissionId),
     StepAlreadyCompleted(PlanStepId),
     StepAlreadyAdmitted(PlanStepId),
     UnknownPlanStep(PlanStepId),
@@ -471,6 +523,11 @@ pub enum SiteError {
         step_id: PlanStepId,
         expected: Vec<WorkpieceId>,
         actual: Vec<WorkpieceId>,
+    },
+    CapabilityAdmissionSetMismatch {
+        step_id: PlanStepId,
+        expected: Vec<StableId>,
+        actual: Vec<StableId>,
     },
     PlanIncomplete,
     InvalidLifecycleTransition {
@@ -503,6 +560,9 @@ impl fmt::Display for SiteError {
             Self::SiteImmutable(state) => write!(formatter, "construction site is immutable: {state:?}"),
             Self::DuplicateAdmissionId(id) => write!(formatter, "site admission {id} already exists"),
             Self::DuplicateExecutionId(id) => write!(formatter, "process execution {id} is already site-bound"),
+            Self::DuplicateCapabilityAdmission(id) => {
+                write!(formatter, "site admission repeats capability admission {id}")
+            }
             Self::StepAlreadyCompleted(id) => write!(formatter, "plan step {id} is already completed"),
             Self::StepAlreadyAdmitted(id) => write!(formatter, "plan step {id} already has an open admission"),
             Self::UnknownPlanStep(id) => write!(formatter, "plan step {id} is not part of the site plan"),
@@ -545,6 +605,14 @@ impl fmt::Display for SiteError {
                 formatter,
                 "plan step {step_id} workpieces mismatch: expected {expected:?}, got {actual:?}"
             ),
+            Self::CapabilityAdmissionSetMismatch {
+                step_id,
+                expected,
+                actual,
+            } => write!(
+                formatter,
+                "plan step {step_id} capability admissions mismatch: expected {expected:?}, got {actual:?}"
+            ),
             Self::PlanIncomplete => write!(formatter, "construction plan still has incomplete steps"),
             Self::InvalidLifecycleTransition { from, to } => {
                 write!(formatter, "invalid construction-site transition {from:?} -> {to:?}")
@@ -568,8 +636,8 @@ impl Error for SiteError {
 mod tests {
     use super::*;
     use symtropy_fabrication::{
-        FabricationPlan, MatterBinding, PlanDependency, PlanStep, ProcessExecution, ProcessKind,
-        ProcessSpec, Workpiece, WorkpieceLifecycle,
+        CapabilityAdmissionId, CapabilityEvidence, FabricationPlan, MatterBinding, PlanDependency,
+        PlanStep, ProcessExecution, ProcessKind, ProcessSpec, Workpiece, WorkpieceLifecycle,
     };
 
     fn id(value: &str) -> StableId {
@@ -641,12 +709,13 @@ mod tests {
         spec: &ProcessSpec,
         workpiece: &Workpiece,
         result_revision: u64,
+        capabilities: &[CapabilityEvidence],
     ) -> ProcessEvidence {
         let mut execution = ProcessExecution::begin(
             ProcessExecutionId::new(id(&format!("process-execution:{execution_name}"))),
             spec,
             &[workpiece],
-            &[],
+            capabilities,
         )
         .unwrap();
         execution
@@ -672,7 +741,14 @@ mod tests {
         let workpiece = workpiece("conduit");
         let plan = plan(&workpiece);
         let mut site = site(&plan);
-        let evidence = run_process("clean", "clean", &spec("clean", ProcessKind::Clean), &workpiece, 2);
+        let evidence = run_process(
+            "clean",
+            "clean",
+            &spec("clean", ProcessKind::Clean),
+            &workpiece,
+            2,
+            &[],
+        );
 
         let result = site.record_completion(&plan, &evidence);
         assert!(matches!(result, Err(SiteError::UnknownExecutionAdmission(_))));
@@ -699,7 +775,14 @@ mod tests {
             ProcessExecutionId::new(id("process-execution:clean")),
         )
         .unwrap();
-        let clean = run_process("clean", "clean", &spec("clean", ProcessKind::Clean), &workpiece, 2);
+        let clean = run_process(
+            "clean",
+            "clean",
+            &spec("clean", ProcessKind::Clean),
+            &workpiece,
+            2,
+            &[],
+        );
         site.record_completion(&plan, &clean).unwrap();
 
         assert_eq!(
@@ -729,6 +812,7 @@ mod tests {
             &spec("clean", ProcessKind::Clean),
             &other,
             2,
+            &[],
         );
         assert!(matches!(
             site.record_completion(&plan, &wrong_workpiece),
@@ -743,11 +827,63 @@ mod tests {
             vec![WorkpieceLifecycle::Available],
         )
         .unwrap();
-        let wrong_revision = run_process("clean", "clean-wrong-revision", &wrong_spec, &conduit, 2);
+        let wrong_revision = run_process(
+            "clean",
+            "clean-wrong-revision",
+            &wrong_spec,
+            &conduit,
+            2,
+            &[],
+        );
         assert!(matches!(
             site.record_completion(&plan, &wrong_revision),
             Err(SiteError::ProcessSpecMismatch { .. })
         ));
+    }
+
+    #[test]
+    fn capability_context_must_match_f4_process_admission_evidence() {
+        let workpiece = workpiece("conduit");
+        let plan = plan(&workpiece);
+        let mut site = site(&plan);
+        let expected = CapabilityAdmissionId::new(id("capability-admission:seal"));
+
+        site.admit_step_with_capabilities(
+            &plan,
+            SiteStepAdmissionId::new(id("site-admission:clean")),
+            PlanStepId::new(id("step:clean")),
+            ProcessExecutionId::new(id("process-execution:clean")),
+            vec![expected.clone()],
+        )
+        .unwrap();
+
+        let no_capability = run_process(
+            "clean",
+            "clean-no-capability",
+            &spec("clean", ProcessKind::Clean),
+            &workpiece,
+            2,
+            &[],
+        );
+        assert!(matches!(
+            site.record_completion(&plan, &no_capability),
+            Err(SiteError::CapabilityAdmissionSetMismatch { .. })
+        ));
+
+        let bootstrap = CapabilityEvidence {
+            capability_id: id("capability-need:seal"),
+            available_value: 1,
+            evidence_id: expected.stable_id().clone(),
+        };
+        let matched = run_process(
+            "clean",
+            "clean-capability",
+            &spec("clean", ProcessKind::Clean),
+            &workpiece,
+            2,
+            &[bootstrap],
+        );
+        site.record_completion(&plan, &matched).unwrap();
     }
 
     #[test]
@@ -799,6 +935,7 @@ mod tests {
                 &spec(name, kind),
                 &workpiece,
                 revision,
+                &[],
             );
             site.record_completion(&plan, &evidence).unwrap();
         }
@@ -836,7 +973,14 @@ mod tests {
         .unwrap();
         site.suspend().unwrap();
 
-        let clean = run_process("clean", "clean", &spec("clean", ProcessKind::Clean), &workpiece, 2);
+        let clean = run_process(
+            "clean",
+            "clean",
+            &spec("clean", ProcessKind::Clean),
+            &workpiece,
+            2,
+            &[],
+        );
         site.record_completion(&plan, &clean).unwrap();
         let next = site.admit_step(
             &plan,

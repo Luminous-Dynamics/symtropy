@@ -7,5 +7,7 @@
 //! commissioning, Device Bus registration, or civic authorization.
 
 mod site;
+mod work_order;
 
 pub use site::*;
+pub use work_order::*;
