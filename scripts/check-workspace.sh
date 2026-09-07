@@ -13,11 +13,11 @@
 # The fix is to assert PROPERTIES that stay true as the workspace grows,
 # rather than an enumeration that must be hand-maintained:
 #
-#   1. the workspace resolves at all
+#   1. the workspace resolves at all without changing Cargo.lock
 #   2. exactly one Bevy version in the lockfile, matching the root manifest
 #      (this is the invariant the old `!= "0.18.1"` check was a proxy for —
 #      the dual-bevy/dual-wgpu duplication problem)
-#   3. no absolute machine-specific path dependencies
+#   3. no literal absolute machine-specific path dependencies in manifests
 #   4. no `// placeholder` files (patch-integration debris — see
 #      archive/placeholder-artifacts-2026-07-28/README.md)
 
@@ -29,9 +29,11 @@ fail=0
 note() { echo "FAIL: $*"; fail=1; }
 
 # --- 1. Workspace resolves -------------------------------------------------
-if ! metadata=$(cargo metadata --no-deps --format-version 1 2>&1); then
-  note "cargo metadata could not resolve the workspace:"
-  printf '%s\n' "$metadata" | head -20
+# Keep stderr separate from stdout: Cargo may emit warnings on stderr even when
+# metadata succeeds, while stdout must remain valid JSON for the Python readers
+# below. --locked also prevents this validation command from updating Cargo.lock.
+if ! metadata=$(cargo metadata --locked --no-deps --format-version 1); then
+  note "cargo metadata could not resolve the workspace with the current Cargo.lock"
   echo "Hint: a member crate with no build target produces this. Compare"
   echo "      symthaea/scripts/check-workspace-targets.sh, same class of break."
   exit 1
@@ -58,9 +60,14 @@ elif [[ "$locked" != "$declared"* ]]; then
   note "Cargo.lock has Bevy ${locked} but Cargo.toml declares \"${declared}\""
 fi
 
-# --- 3. No absolute machine-specific path deps -----------------------------
-# Use Python stdlib rather than depending on `rg` being preinstalled on the
-# runner. Preserve the old recursive Cargo.toml scan and prune build/VCS trees.
+# --- 3. No literal absolute machine-specific path deps ---------------------
+# Inspect manifest source rather than Cargo metadata here. Cargo resolves a
+# legitimate relative path dependency to an absolute filesystem path, so the
+# resolved graph cannot tell whether the manifest itself embedded a forbidden
+# machine-specific `/srv/luminous-dynamics/...` literal.
+#
+# Use Python stdlib rather than depending on `rg` being preinstalled. Preserve
+# the old recursive Cargo.toml scan and prune build/VCS trees.
 absolute_paths=$(
   python3 - <<'PY'
 import os
@@ -106,7 +113,9 @@ placeholders=$(
 )
 if [[ -n "$placeholders" ]]; then
   note "placeholder files found (patch-integration debris):"
-  printf '  %s\n' $placeholders
+  while IFS= read -r placeholder; do
+    printf '  %s\n' "$placeholder"
+  done <<<"$placeholders"
   echo "  Recover real content from docs/ops/Symtropy_Document_Patch_Sets_v*/ if a"
   echo "  matching 'create mode' entry exists there; otherwise delete. See"
   echo "  archive/placeholder-artifacts-2026-07-28/README.md."
