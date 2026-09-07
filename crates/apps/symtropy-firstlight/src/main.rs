@@ -2,8 +2,10 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 mod patch_conduit;
+mod patch_conduit_execution;
 
 use patch_conduit::{patch_conduit_reference_facts, PatchConduitScenario};
+use patch_conduit_execution::PatchConduitExecutionProfile;
 use serde_json::json;
 use symtropy_firstlight::{canonical_service_span, run_reference_sequence};
 
@@ -50,48 +52,87 @@ fn run_demo() {
 }
 
 fn run_patch_conduit() {
-    let result = PatchConduitScenario::canonical()
-        .and_then(|scenario| {
-            let facts = patch_conduit_reference_facts()?;
-            let result = scenario.evaluate(&facts)?;
-            let verified = scenario
-                .verified_approaches(&result)?
-                .into_iter()
-                .map(|approach| {
-                    json!({
-                        "assembly": approach.subject.id.as_str(),
-                        "plan": approach.plan.id.stable_id().as_str(),
-                        "temporary_work": approach
-                            .temporary_works
-                            .iter()
-                            .map(|work| format!("{:?}", work.kind))
-                            .collect::<Vec<_>>(),
-                    })
-                })
-                .collect::<Vec<_>>();
-            let conditional = scenario
-                .conditional_approaches(&result)?
-                .into_iter()
-                .map(|approach| approach.subject.id.as_str().to_owned())
-                .collect::<Vec<_>>();
-            Ok(json!({
-                "functional_design": scenario.design.id.stable_id().as_str(),
-                "design_revision": scenario.design.revision,
-                "search_exhaustive": result.is_exhaustive(),
-                "verified": verified,
-                "conditional": conditional,
-                "rejected_combinations": result.rejected_combinations,
-            }))
-        });
-
-    match result {
-        Ok(summary) => println!(
-            "{}",
-            serde_json::to_string_pretty(&summary).expect("serialize Patch Conduit summary")
-        ),
+    let scenario = match PatchConduitScenario::canonical() {
+        Ok(scenario) => scenario,
         Err(error) => {
             eprintln!("Patch Conduit reference proof failed: {error}");
             std::process::exit(1);
         }
+    };
+    let execution = match PatchConduitExecutionProfile::compile(&scenario) {
+        Ok(execution) => execution,
+        Err(error) => {
+            eprintln!("Patch Conduit executable-contract compilation failed: {error}");
+            std::process::exit(1);
+        }
+    };
+    let facts = match patch_conduit_reference_facts() {
+        Ok(facts) => facts,
+        Err(error) => {
+            eprintln!("Patch Conduit reference evidence failed: {error}");
+            std::process::exit(1);
+        }
+    };
+    let result = match scenario.evaluate(&facts) {
+        Ok(result) => result,
+        Err(error) => {
+            eprintln!("Patch Conduit functional evaluation failed: {error}");
+            std::process::exit(1);
+        }
+    };
+    let resolved = match scenario.verified_approaches(&result) {
+        Ok(resolved) => resolved,
+        Err(error) => {
+            eprintln!("Patch Conduit verified-plan resolution failed: {error}");
+            std::process::exit(1);
+        }
+    };
+
+    let mut verified = Vec::with_capacity(resolved.len());
+    for approach in resolved {
+        let Some(executable) = execution.approach_for_subject(&approach.subject) else {
+            eprintln!(
+                "Patch Conduit executable profile is missing {}",
+                approach.subject.id
+            );
+            std::process::exit(1);
+        };
+        verified.push(json!({
+            "assembly": approach.subject.id.as_str(),
+            "plan": executable.plan.id.stable_id().as_str(),
+            "plan_revision": executable.plan.revision,
+            "process_steps": executable.plan.steps().len(),
+            "temporary_work": executable
+                .temporary_works
+                .iter()
+                .map(|work| format!("{:?}", work.kind))
+                .collect::<Vec<_>>(),
+        }));
     }
+
+    let conditional = match scenario.conditional_approaches(&result) {
+        Ok(approaches) => approaches
+            .into_iter()
+            .map(|approach| approach.subject.id.as_str().to_owned())
+            .collect::<Vec<_>>(),
+        Err(error) => {
+            eprintln!("Patch Conduit conditional-plan resolution failed: {error}");
+            std::process::exit(1);
+        }
+    };
+
+    let summary = json!({
+        "functional_design": scenario.design.id.stable_id().as_str(),
+        "design_revision": scenario.design.revision,
+        "search_exhaustive": result.is_exhaustive(),
+        "verified": verified,
+        "conditional": conditional,
+        "rejected_combinations": result.rejected_combinations,
+        "process_contracts": execution.catalog.processes().len(),
+        "capability_needs": execution.catalog.capability_needs().len(),
+    });
+    println!(
+        "{}",
+        serde_json::to_string_pretty(&summary).expect("serialize Patch Conduit summary")
+    );
 }
