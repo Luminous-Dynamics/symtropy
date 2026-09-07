@@ -11,7 +11,7 @@ import sys
 
 metadata = json.loads(
     subprocess.check_output(
-        ["cargo", "metadata", "--format-version", "1", "--no-deps"],
+        ["cargo", "metadata", "--locked", "--format-version", "1", "--no-deps"],
         text=True,
     )
 )
@@ -22,6 +22,8 @@ root = pathlib.Path(metadata["workspace_root"])
 for package in metadata["packages"]:
     manifest_path = pathlib.Path(package["manifest_path"])
     package_root = manifest_path.parent
+    # `cargo metadata` already exposes the canonical package license string;
+    # do not reparse every manifest with a Python-version-specific TOML module.
     license_id = package.get("license")
 
     if not license_id:
