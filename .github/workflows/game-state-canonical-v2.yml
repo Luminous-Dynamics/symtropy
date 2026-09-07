@@ -1,0 +1,71 @@
+name: Game State Canonical V2 Qualification
+
+on:
+  pull_request:
+    paths:
+      - 'crates/domains/symtropy-game-state/**'
+      - 'scripts/qualify-game-state-canonical-v2.sh'
+      - 'scripts/verify-canonical-event-v2-vectors.py'
+      - 'Cargo.toml'
+      - 'Cargo.lock'
+      - 'rust-toolchain.toml'
+      - '.github/workflows/game-state-canonical-v2.yml'
+  push:
+    branches: [ 'main' ]
+    paths:
+      - 'crates/domains/symtropy-game-state/**'
+      - 'scripts/qualify-game-state-canonical-v2.sh'
+      - 'scripts/verify-canonical-event-v2-vectors.py'
+      - 'Cargo.toml'
+      - 'Cargo.lock'
+      - 'rust-toolchain.toml'
+      - '.github/workflows/game-state-canonical-v2.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: game-state-canonical-v2-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  qualify:
+    name: Canonical v2 authority
+    runs-on: ubuntu-slim
+    # GitHub documents a hard 15-minute execution limit for ubuntu-slim.
+    timeout-minutes: 15
+
+    steps:
+      - name: Check out candidate
+        # Semantic authority is candidate-bound. PR qualification checks the
+        # exact PR head; general three-OS CI separately owns merge-context
+        # integration evidence. Push events qualify the pushed commit itself.
+        # actions/checkout v7.0.1, pinned to the immutable release commit.
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Set up pinned Rust
+        # dtolnay/rust-toolchain stable action implementation pinned explicitly;
+        # the installed compiler remains separately pinned by `toolchain: 1.96.0`.
+        uses: dtolnay/rust-toolchain@6bed0761d98439e5a578e2877258200ad565ba87
+        with:
+          toolchain: 1.96.0
+          components: clippy, rustfmt
+
+      - name: Record qualification provenance
+        shell: bash
+        run: |
+          set -euo pipefail
+          printf 'HEAD=%s\n' "$(git rev-parse HEAD)"
+          rustc --version --verbose
+          cargo --version
+          rustfmt --version
+          cargo clippy --version
+          python3 --version
+
+      - name: Run repository-owned canonical v2 qualification
+        shell: bash
+        run: bash scripts/qualify-game-state-canonical-v2.sh
