@@ -69,6 +69,25 @@ pub enum ProcessFamily {
     InspectTest,
 }
 
+/// Declares what deliberate separation means for matter and serviceability.
+///
+/// This is intentionally not an inverse-process table. A welded or sealed joint
+/// may require destructive or consumable-interface work to release, so callers
+/// must select the actual physical separation process rather than assuming that
+/// every join can be undone cleanly.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum SeparationSemantics {
+    /// Intended to preserve the joined workpieces for reuse, subject to the
+    /// resulting matter evidence supplied by the physical authority.
+    NonDestructive,
+    /// Intended to preserve durable workpieces while consuming or replacing an
+    /// interface material such as a gasket, sealant, or sacrificial bond.
+    ConsumableInterface,
+    /// Intentionally removes or damages material to liberate the workpiece.
+    Destructive,
+}
+
 /// Initial finite process vocabulary. This list should grow by adding physical
 /// verbs, not by adding one process per craftable object.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -94,13 +113,37 @@ pub enum ProcessKind {
     Inspect,
     PressureTest,
     ContinuityTest,
+    /// Release a clamped interface without asserting that the underlying
+    /// workpieces are undamaged; resulting matter evidence remains authoritative.
+    ReleaseClamp,
+    /// Remove a deliberately releasable fastener or fastening set.
+    Unfasten,
+    /// Separate a service connection such as an electrical/fluid termination.
+    Disconnect,
+    /// Separate a mechanical coupling designed for deliberate release.
+    Decouple,
+    /// Open a sealed interface where the seal/gasket may be consumed.
+    Unseal,
+    /// Liberate joined workpieces by intentionally cutting material.
+    CutFree,
+    /// Remove a workpiece from a surrounding fit, seat, pocket, or assembly.
+    Extract,
 }
 
 impl ProcessKind {
     pub const fn family(self) -> ProcessFamily {
         match self {
             Self::Clean | Self::Align => ProcessFamily::Prepare,
-            Self::Cut | Self::Drill | Self::Grind => ProcessFamily::Separate,
+            Self::Cut
+            | Self::Drill
+            | Self::Grind
+            | Self::ReleaseClamp
+            | Self::Unfasten
+            | Self::Disconnect
+            | Self::Decouple
+            | Self::Unseal
+            | Self::CutFree
+            | Self::Extract => ProcessFamily::Separate,
             Self::Bend | Self::Form => ProcessFamily::Shape,
             Self::Clamp | Self::Fasten | Self::Weld | Self::Seal => ProcessFamily::Join,
             Self::Coat | Self::HeatTreat => ProcessFamily::Treat,
@@ -109,6 +152,24 @@ impl ProcessKind {
             Self::Inspect | Self::PressureTest | Self::ContinuityTest => {
                 ProcessFamily::InspectTest
             }
+        }
+    }
+
+    /// Returns explicit matter/serviceability semantics for physical separation
+    /// verbs. `None` means this process is not itself a separation operation;
+    /// notably join verbs do not claim a universal inverse.
+    pub const fn separation_semantics(self) -> Option<SeparationSemantics> {
+        match self {
+            Self::ReleaseClamp
+            | Self::Unfasten
+            | Self::Disconnect
+            | Self::Decouple
+            | Self::Extract => Some(SeparationSemantics::NonDestructive),
+            Self::Unseal => Some(SeparationSemantics::ConsumableInterface),
+            Self::Cut | Self::Drill | Self::Grind | Self::CutFree => {
+                Some(SeparationSemantics::Destructive)
+            }
+            _ => None,
         }
     }
 }
@@ -624,13 +685,75 @@ mod tests {
     }
 
     #[test]
-    fn patch_conduit_workflow_composes_process_families_without_recipe_outputs() {
+    fn separation_verbs_declare_explicit_serviceability_semantics() {
+        assert_eq!(
+            ProcessKind::ReleaseClamp.separation_semantics(),
+            Some(SeparationSemantics::NonDestructive)
+        );
+        assert_eq!(
+            ProcessKind::Unfasten.separation_semantics(),
+            Some(SeparationSemantics::NonDestructive)
+        );
+        assert_eq!(
+            ProcessKind::Disconnect.separation_semantics(),
+            Some(SeparationSemantics::NonDestructive)
+        );
+        assert_eq!(
+            ProcessKind::Decouple.separation_semantics(),
+            Some(SeparationSemantics::NonDestructive)
+        );
+        assert_eq!(
+            ProcessKind::Unseal.separation_semantics(),
+            Some(SeparationSemantics::ConsumableInterface)
+        );
+        assert_eq!(
+            ProcessKind::CutFree.separation_semantics(),
+            Some(SeparationSemantics::Destructive)
+        );
+        assert_eq!(
+            ProcessKind::Extract.separation_semantics(),
+            Some(SeparationSemantics::NonDestructive)
+        );
+    }
+
+    #[test]
+    fn join_verbs_never_claim_a_universal_clean_inverse() {
+        for kind in [
+            ProcessKind::Clamp,
+            ProcessKind::Fasten,
+            ProcessKind::Weld,
+            ProcessKind::Seal,
+            ProcessKind::Splice,
+            ProcessKind::Terminate,
+        ] {
+            assert_eq!(kind.separation_semantics(), None);
+        }
+    }
+
+    #[test]
+    fn material_removing_separation_is_explicitly_destructive() {
+        for kind in [
+            ProcessKind::Cut,
+            ProcessKind::Drill,
+            ProcessKind::Grind,
+            ProcessKind::CutFree,
+        ] {
+            assert_eq!(
+                kind.separation_semantics(),
+                Some(SeparationSemantics::Destructive)
+            );
+        }
+    }
+
+    #[test]
+    fn patch_conduit_workflow_composes_join_test_and_release_without_recipe_outputs() {
         let workflow = [
             ProcessKind::Clean,
             ProcessKind::Align,
             ProcessKind::Clamp,
             ProcessKind::Seal,
             ProcessKind::PressureTest,
+            ProcessKind::ReleaseClamp,
         ];
         let families: Vec<_> = workflow.into_iter().map(ProcessKind::family).collect();
         assert_eq!(
@@ -641,6 +764,7 @@ mod tests {
                 ProcessFamily::Join,
                 ProcessFamily::Join,
                 ProcessFamily::InspectTest,
+                ProcessFamily::Separate,
             ]
         );
     }
