@@ -6,7 +6,7 @@ Normative Living World authority contract. This document strengthens the future 
 
 ## Problem
 
-A prospective candidate currently needs enough context to avoid accidental cross-population or stale realization. Scope, numeric revision, projection scheme version, and seed are necessary, but numeric revision alone is not globally self-describing.
+A prospective candidate needs enough context to avoid accidental cross-population or stale realization. Scope, numeric revision, projection scheme version, and seed are necessary, but numeric revision alone is not globally self-describing.
 
 The value `revision = 7` can mean different things if it belongs to:
 
@@ -128,17 +128,17 @@ Failure is stale/invalid realization and must not reserve count or extensive aut
 A particularly important anti-alias case is:
 
 ```text
-state A: scope = P, revision = 7
+state A: scope = P, generation = 7
      |
      v
-state B: revision = 8
+state B: generation = 8
      |
   rollback/reload
      v
-state C: scope = P, revision = 7
+state C: scope = P, generation = 7
 ```
 
-If state C is not semantically identical to state A, a candidate projected from A must not become valid against C merely because the revision integer matches again.
+If state C is not semantically identical to state A, a candidate projected from A must not become valid against C merely because the numeric generation matches again.
 
 A non-reused source-state token or canonical digest distinguishes them.
 
@@ -176,9 +176,9 @@ This contract does not require that dependency today and does not make Level-P p
 
 Minimum future executable evidence should include:
 
-1. same scope/revision but different authority kinds cannot cross-realize;
-2. same kind/revision but different source schema versions cannot cross-realize;
-3. same scope/kind/schema/revision but different source-state tokens cannot cross-realize;
+1. same scope/generation but different authority kinds cannot cross-realize;
+2. same kind/generation but different source schema versions cannot cross-realize;
+3. same scope/kind/schema/generation but different source-state tokens cannot cross-realize;
 4. rollback/reuse of a numeric generation does not revive an old candidate;
 5. changing only presentation seed changes the projection family but does not alter source authority identity;
 6. changing only projection scheme version requires an explicitly supported scheme;
