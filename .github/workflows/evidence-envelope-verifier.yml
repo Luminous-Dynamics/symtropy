@@ -5,6 +5,9 @@ on:
     paths:
       - "scripts/verify-evidence-execution-envelope.py"
       - "scripts/test-evidence-execution-envelope.py"
+      - "scripts/evidence-envelope-ingest.py"
+      - "scripts/verify-evidence-execution-envelope-hardened.py"
+      - "scripts/test-evidence-execution-envelope-hardening.py"
       - ".github/workflows/evidence-envelope-verifier.yml"
   workflow_dispatch:
 
@@ -45,7 +48,7 @@ jobs:
         with:
           python-version: "3.12"
 
-      - name: Compile verifier and tests
+      - name: Compile verifier generations and tests
         shell: bash
         run: |
           set -euo pipefail
@@ -54,16 +57,25 @@ jobs:
           for name in (
               "scripts/verify-evidence-execution-envelope.py",
               "scripts/test-evidence-execution-envelope.py",
+              "scripts/evidence-envelope-ingest.py",
+              "scripts/verify-evidence-execution-envelope-hardened.py",
+              "scripts/test-evidence-execution-envelope-hardening.py",
           ):
               compile(Path(name).read_text(encoding="utf-8"), name, "exec")
               print(f"syntax-pass: {name}")
           PY
 
-      - name: Run fail-closed verifier suite
+      - name: Run qualified core verifier suite
         shell: bash
         run: |
           set -euo pipefail
           python scripts/test-evidence-execution-envelope.py
+
+      - name: Run hostile-input hardening suite
+        shell: bash
+        run: |
+          set -euo pipefail
+          python scripts/test-evidence-execution-envelope-hardening.py
 
       - name: Require observational checkout
         shell: bash
@@ -84,20 +96,24 @@ jobs:
         shell: bash
         run: |
           cat <<'EOF'
-          PASS here establishes only the retained execution-evidence envelope verifier:
-            - exact four-file directory/ZIP envelope enforcement;
-            - duplicate/nested/extra ZIP material rejected;
-            - identity and observation checksum verification;
-            - canonical JSON and exact v1 structural-key enforcement;
-            - required-binding and binding lexical/value validation;
-            - observation -> semantic identity digest binding;
-            - repository/architecture/kernel/OS-release/Git/Python cross-binding;
-            - optional expected archive/identity/observation/commit/tree/workflow/run checks;
-            - CLI ZIP verification exercised by the regression suite;
-            - exact checkout remained HEAD-only.
+          PASS here establishes the retained execution-evidence verifier stack:
+            - the already-qualified 13-test semantic verifier core remains byte-unchanged;
+            - hostile evidence is first copied through a bounded temporary ingestion boundary;
+            - exact four-file directory/ZIP envelope enforcement remains required;
+            - duplicate/nested/extra/encrypted/non-regular ZIP material is rejected;
+            - 1 MiB/member and 4 MiB/envelope limits bound decoded material before delegation;
+            - non-standard JSON constants such as NaN/Infinity are rejected before core parsing;
+            - environment/tool moving aliases are rejected in parity with execution-identity v1;
+            - observation run ID and attempt must be ASCII decimal digits;
+            - the qualified core then performs checksum, canonical JSON, structural,
+              required-binding, cross-binding, and externally expected provenance checks;
+            - 13 core tests + 5 hardening tests pass on the exact hosted head;
+            - exact checkout remains HEAD-only.
+
+          The hardening layer does not reinterpret or weaken the qualified core. It narrows
+          hostile input into a bounded four-file temporary directory, then delegates the
+          semantic decision to the frozen verifier implementation.
 
           This does not qualify CUF Stage A, Cargo.lock repair, Universal Matter replay,
           Q1/Q2, or the truth of external provenance expectations supplied by a caller.
-          It only verifies that retained bytes satisfy the declared v1 envelope and the
-          expectations the caller explicitly provides.
           EOF
