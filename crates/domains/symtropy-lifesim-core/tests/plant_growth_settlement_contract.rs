@@ -12,9 +12,19 @@ use std::collections::BTreeMap;
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 struct GrowthRequestId(u128);
 
+/// Stable commitment to the complete intended growth action.
+///
+/// A future product API should derive this from canonical target element,
+/// operation kind, developmental program/schema, requested structural change,
+/// exact cost basis, and any other fields that distinguish one growth action
+/// from another. It is deliberately not a render/ECS identifier.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+struct GrowthIntentFingerprint(u128);
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 struct GrowthPlan {
     request_id: GrowthRequestId,
+    intent: GrowthIntentFingerprint,
     expected_revision: u64,
     cost_mg: u64,
 }
@@ -22,6 +32,7 @@ struct GrowthPlan {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 struct GrowthCommit {
     element_id: u64,
+    intent: GrowthIntentFingerprint,
     cost_mg: u64,
     committed_revision: u64,
 }
@@ -66,6 +77,7 @@ impl PlantGrowthState {
     fn prepare_growth(
         &self,
         request_id: GrowthRequestId,
+        intent: GrowthIntentFingerprint,
         cost_mg: u64,
     ) -> Result<GrowthPlan, GrowthError> {
         if cost_mg == 0 {
@@ -79,6 +91,7 @@ impl PlantGrowthState {
         }
         Ok(GrowthPlan {
             request_id,
+            intent,
             expected_revision: self.revision,
             cost_mg,
         })
@@ -86,7 +99,7 @@ impl PlantGrowthState {
 
     fn commit_growth(&mut self, plan: GrowthPlan) -> Result<GrowthCommit, GrowthError> {
         if let Some(existing) = self.committed.get(&plan.request_id).copied() {
-            if existing.cost_mg == plan.cost_mg {
+            if existing.intent == plan.intent && existing.cost_mg == plan.cost_mg {
                 return Ok(existing);
             }
             return Err(GrowthError::RequestConflict);
@@ -121,6 +134,7 @@ impl PlantGrowthState {
 
         let commit = GrowthCommit {
             element_id: self.next_element_id,
+            intent: plan.intent,
             cost_mg: plan.cost_mg,
             committed_revision: next_revision,
         };
@@ -134,12 +148,18 @@ impl PlantGrowthState {
     }
 }
 
+fn intent(value: u128) -> GrowthIntentFingerprint {
+    GrowthIntentFingerprint(value)
+}
+
 #[test]
 fn preparing_growth_is_read_only() {
     let state = PlantGrowthState::with_free_stock(1_000);
     let before = state.clone();
 
-    let plan = state.prepare_growth(GrowthRequestId(1), 125).unwrap();
+    let plan = state
+        .prepare_growth(GrowthRequestId(1), intent(101), 125)
+        .unwrap();
 
     assert_eq!(plan.expected_revision, 0);
     assert_eq!(state, before);
@@ -149,11 +169,14 @@ fn preparing_growth_is_read_only() {
 fn successful_growth_transfers_exact_stock_and_conserves_total_ownership() {
     let mut state = PlantGrowthState::with_free_stock(1_000);
     let initial_total = state.total_owned_stock().unwrap();
-    let plan = state.prepare_growth(GrowthRequestId(7), 275).unwrap();
+    let plan = state
+        .prepare_growth(GrowthRequestId(7), intent(707), 275)
+        .unwrap();
 
     let commit = state.commit_growth(plan).unwrap();
 
     assert_eq!(commit.element_id, 1);
+    assert_eq!(commit.intent, intent(707));
     assert_eq!(commit.cost_mg, 275);
     assert_eq!(commit.committed_revision, 1);
     assert_eq!(state.free_stock_mg, 725);
@@ -167,7 +190,7 @@ fn insufficient_stock_cannot_create_structure() {
     let before = state.clone();
 
     assert_eq!(
-        state.prepare_growth(GrowthRequestId(9), 41),
+        state.prepare_growth(GrowthRequestId(9), intent(909), 41),
         Err(GrowthError::InsufficientStock {
             available_mg: 40,
             required_mg: 41,
@@ -179,8 +202,12 @@ fn insufficient_stock_cannot_create_structure() {
 #[test]
 fn stale_plan_fails_with_zero_mutation() {
     let mut state = PlantGrowthState::with_free_stock(1_000);
-    let stale = state.prepare_growth(GrowthRequestId(1), 100).unwrap();
-    let winner = state.prepare_growth(GrowthRequestId(2), 200).unwrap();
+    let stale = state
+        .prepare_growth(GrowthRequestId(1), intent(11), 100)
+        .unwrap();
+    let winner = state
+        .prepare_growth(GrowthRequestId(2), intent(22), 200)
+        .unwrap();
 
     state.commit_growth(winner).unwrap();
     let before_stale_commit = state.clone();
@@ -198,7 +225,9 @@ fn stale_plan_fails_with_zero_mutation() {
 #[test]
 fn duplicate_retry_is_idempotent_and_cannot_grow_twice() {
     let mut state = PlantGrowthState::with_free_stock(500);
-    let plan = state.prepare_growth(GrowthRequestId(42), 125).unwrap();
+    let plan = state
+        .prepare_growth(GrowthRequestId(42), intent(4_242), 125)
+        .unwrap();
 
     let first = state.commit_growth(plan).unwrap();
     let after_first = state.clone();
@@ -211,14 +240,37 @@ fn duplicate_retry_is_idempotent_and_cannot_grow_twice() {
 }
 
 #[test]
-fn reused_request_identity_with_different_cost_fails_closed() {
+fn reused_request_identity_with_different_intent_fails_closed_even_at_same_cost() {
     let mut state = PlantGrowthState::with_free_stock(500);
-    let original = state.prepare_growth(GrowthRequestId(5), 100).unwrap();
+    let original = state
+        .prepare_growth(GrowthRequestId(5), intent(500), 100)
+        .unwrap();
     state.commit_growth(original).unwrap();
     let before_conflict = state.clone();
 
     let conflicting = GrowthPlan {
         request_id: GrowthRequestId(5),
+        intent: intent(501),
+        expected_revision: state.revision,
+        cost_mg: 100,
+    };
+
+    assert_eq!(state.commit_growth(conflicting), Err(GrowthError::RequestConflict));
+    assert_eq!(state, before_conflict);
+}
+
+#[test]
+fn reused_request_identity_with_different_cost_fails_closed() {
+    let mut state = PlantGrowthState::with_free_stock(500);
+    let original = state
+        .prepare_growth(GrowthRequestId(6), intent(600), 100)
+        .unwrap();
+    state.commit_growth(original).unwrap();
+    let before_conflict = state.clone();
+
+    let conflicting = GrowthPlan {
+        request_id: GrowthRequestId(6),
+        intent: intent(600),
         expected_revision: state.revision,
         cost_mg: 101,
     };
@@ -231,7 +283,7 @@ fn reused_request_identity_with_different_cost_fails_closed() {
 fn zero_cost_growth_is_rejected_as_unpaid_structure() {
     let state = PlantGrowthState::with_free_stock(500);
     assert_eq!(
-        state.prepare_growth(GrowthRequestId(3), 0),
+        state.prepare_growth(GrowthRequestId(3), intent(303), 0),
         Err(GrowthError::ZeroCost)
     );
 }
@@ -242,9 +294,14 @@ fn repeated_commits_preserve_total_stock_and_monotonic_element_ids() {
     let initial_total = state.total_owned_stock().unwrap();
     let mut ids = Vec::new();
 
-    for (request, cost) in [(1_u128, 100_u64), (2, 250), (3, 50), (4, 300)] {
+    for (request, fingerprint, cost) in [
+        (1_u128, 101_u128, 100_u64),
+        (2, 202, 250),
+        (3, 303, 50),
+        (4, 404, 300),
+    ] {
         let plan = state
-            .prepare_growth(GrowthRequestId(request), cost)
+            .prepare_growth(GrowthRequestId(request), intent(fingerprint), cost)
             .unwrap();
         ids.push(state.commit_growth(plan).unwrap().element_id);
         assert_eq!(state.total_owned_stock().unwrap(), initial_total);
