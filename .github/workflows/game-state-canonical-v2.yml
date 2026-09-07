@@ -37,9 +37,13 @@ jobs:
 
     steps:
       - name: Check out candidate
+        # Semantic authority is candidate-bound. PR qualification checks the
+        # exact PR head; general three-OS CI separately owns merge-context
+        # integration evidence. Push events qualify the pushed commit itself.
         # actions/checkout v7.0.1, pinned to the immutable release commit.
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
           fetch-depth: 0
           persist-credentials: false
 
