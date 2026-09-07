@@ -15,7 +15,6 @@ permissions:
 
 env:
   CARGO_TERM_COLOR: always
-  CARGO_TARGET_DIR: /tmp/living-world-exact-oracle-target
   AUTHORITY_SHARE_HEAD: b17e85c8b669e2692372b259e5043db714cb1d5c
   SCARCITY_HEAD: 1611be02d422a804b598fe6bf7f9e99b59fd7e10
   QUANTIZATION_HEAD: 663bd06340107f9e6c8c7ef24abc1862f3a8c29c
@@ -63,6 +62,7 @@ jobs:
       shell: bash
       run: |
         set -euo pipefail
+        export CARGO_TARGET_DIR=/tmp/living-world-authority-share-target
         cd authority-share
         test "$(git rev-parse HEAD)" = "$AUTHORITY_SHARE_HEAD"
         test -z "$(git status --porcelain=v1 --untracked-files=all)"
@@ -80,6 +80,7 @@ jobs:
       shell: bash
       run: |
         set -euo pipefail
+        export CARGO_TARGET_DIR=/tmp/living-world-scarcity-target
         cd scarcity
         test "$(git rev-parse HEAD)" = "$SCARCITY_HEAD"
         test -z "$(git status --porcelain=v1 --untracked-files=all)"
@@ -97,6 +98,7 @@ jobs:
       shell: bash
       run: |
         set -euo pipefail
+        export CARGO_TARGET_DIR=/tmp/living-world-quantization-target
         cd quantization
         test "$(git rev-parse HEAD)" = "$QUANTIZATION_HEAD"
         test -z "$(git status --porcelain=v1 --untracked-files=all)"
