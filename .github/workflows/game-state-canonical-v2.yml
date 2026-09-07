@@ -32,7 +32,8 @@ jobs:
   qualify:
     name: Canonical v2 authority
     runs-on: ubuntu-slim
-    timeout-minutes: 20
+    # GitHub documents a hard 15-minute execution limit for ubuntu-slim.
+    timeout-minutes: 15
 
     steps:
       - name: Check out candidate
