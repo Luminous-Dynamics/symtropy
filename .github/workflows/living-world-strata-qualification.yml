@@ -1,0 +1,89 @@
+name: Living World sparse strata qualification
+
+on:
+  pull_request:
+    branches: [ "main" ]
+
+concurrency:
+  group: living-world-strata-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+# Temporary never-merge exact-head qualifier.
+permissions:
+  contents: read
+
+env:
+  CARGO_TERM_COLOR: always
+  CARGO_TARGET_DIR: /tmp/living-world-strata-target
+  QUALIFIED_HEAD: 747201874466992d8a8f7994caaea8c8cb90c74a
+
+jobs:
+  qualify-strata:
+    name: Qualify exact sparse canonical strata head
+    if: >-
+      github.event.pull_request.head.ref == 'ci/living-world-strata-qualification-747201' &&
+      github.event.pull_request.base.ref == 'main'
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Check out exact product head
+      uses: actions/checkout@v4
+      with:
+        ref: ${{ env.QUALIFIED_HEAD }}
+        fetch-depth: 1
+        persist-credentials: false
+
+    - name: Assert exact clean checkout
+      shell: bash
+      run: |
+        set -euo pipefail
+        test "$(git rev-parse HEAD)" = "$QUALIFIED_HEAD"
+        test -z "$(git status --porcelain=v1 --untracked-files=all)"
+        echo "INITIAL_LOCK_BLOB=$(git hash-object Cargo.lock)" >> "$GITHUB_ENV"
+
+    - name: Set up pinned Rust
+      uses: dtolnay/rust-toolchain@stable
+      with:
+        toolchain: 1.96.0
+        components: clippy, rustfmt
+
+    - name: Check scoped formatting
+      shell: bash
+      run: cargo fmt --package symtropy-lifesim-core -- --check
+
+    - name: Run scoped tests
+      shell: bash
+      run: cargo test --locked -p symtropy-lifesim-core --all-targets
+
+    - name: Run scoped Clippy
+      shell: bash
+      run: cargo clippy --locked -p symtropy-lifesim-core --all-targets -- -D warnings
+
+    - name: Check scoped build
+      shell: bash
+      run: cargo check --locked -p symtropy-lifesim-core --all-targets
+
+    - name: Diagnose qualification worktree
+      if: always()
+      shell: bash
+      run: |
+        set -euo pipefail
+        echo '=== HEAD ==='
+        git rev-parse HEAD
+        echo '=== STATUS ==='
+        git status --porcelain=v1 --untracked-files=all || true
+        echo '=== TRACKED DIFF NAMES ==='
+        git diff --name-only || true
+        echo '=== TRACKED DIFF ==='
+        git diff -- || true
+        echo '=== UNTRACKED (non-ignored) ==='
+        git ls-files --others --exclude-standard || true
+
+    - name: Assert qualification was non-mutating
+      shell: bash
+      run: |
+        set -euo pipefail
+        test "$(git rev-parse HEAD)" = "$QUALIFIED_HEAD"
+        test "$(git hash-object Cargo.lock)" = "$INITIAL_LOCK_BLOB"
+        test -z "$(git status --porcelain=v1 --untracked-files=all)"
+        echo 'PASS: exact sparse canonical strata qualification'
