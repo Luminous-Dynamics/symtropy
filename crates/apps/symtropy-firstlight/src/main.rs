@@ -3,9 +3,11 @@
 
 mod patch_conduit;
 mod patch_conduit_execution;
+mod patch_conduit_staged_execution;
 
 use patch_conduit::{patch_conduit_reference_facts, PatchConduitScenario};
 use patch_conduit_execution::PatchConduitExecutionProfile;
+use patch_conduit_staged_execution::run_reference_bypass_execution;
 use serde_json::json;
 use symtropy_firstlight::{canonical_service_span, run_reference_sequence};
 
@@ -14,8 +16,9 @@ fn main() {
     match command.as_str() {
         "demo" => run_demo(),
         "patch-conduit" => run_patch_conduit(),
+        "patch-conduit-execute" => run_patch_conduit_execute(),
         _ => {
-            eprintln!("usage: symtropy-firstlight [demo|patch-conduit]");
+            eprintln!("usage: symtropy-firstlight [demo|patch-conduit|patch-conduit-execute]");
             std::process::exit(2);
         }
     }
@@ -135,4 +138,18 @@ fn run_patch_conduit() {
         "{}",
         serde_json::to_string_pretty(&summary).expect("serialize Patch Conduit summary")
     );
+}
+
+fn run_patch_conduit_execute() {
+    match run_reference_bypass_execution() {
+        Ok(report) => println!(
+            "{}",
+            serde_json::to_string_pretty(&report)
+                .expect("serialize Patch Conduit staged-execution report")
+        ),
+        Err(error) => {
+            eprintln!("Patch Conduit staged execution failed: {error}");
+            std::process::exit(1);
+        }
+    }
 }
