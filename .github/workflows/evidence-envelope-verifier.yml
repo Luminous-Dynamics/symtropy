@@ -1,0 +1,119 @@
+name: Evidence Envelope Verifier
+
+on:
+  pull_request:
+    paths:
+      - "scripts/verify-evidence-execution-envelope.py"
+      - "scripts/test-evidence-execution-envelope.py"
+      - "scripts/evidence-envelope-ingest.py"
+      - "scripts/verify-evidence-execution-envelope-hardened.py"
+      - "scripts/test-evidence-execution-envelope-hardening.py"
+      - ".github/workflows/evidence-envelope-verifier.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: evidence-envelope-verifier-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: Retained envelope verifier / Python 3.12 / ubuntu-slim
+    runs-on: ubuntu-slim
+    timeout-minutes: 5
+    env:
+      PYTHONDONTWRITEBYTECODE: "1"
+      EXECUTION_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+
+    steps:
+      - name: Checkout exact verifier head
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+          fetch-depth: 1
+          ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+
+      - name: Prove exact clean checkout
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$EXECUTION_SHA"
+          test -z "$(git status --porcelain=v1 --untracked-files=all)"
+          test -z "$(git clean -ndx)"
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
+        with:
+          python-version: "3.12"
+
+      - name: Compile verifier generations and tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+          for name in (
+              "scripts/verify-evidence-execution-envelope.py",
+              "scripts/test-evidence-execution-envelope.py",
+              "scripts/evidence-envelope-ingest.py",
+              "scripts/verify-evidence-execution-envelope-hardened.py",
+              "scripts/test-evidence-execution-envelope-hardening.py",
+          ):
+              compile(Path(name).read_text(encoding="utf-8"), name, "exec")
+              print(f"syntax-pass: {name}")
+          PY
+
+      - name: Run qualified core verifier suite
+        shell: bash
+        run: |
+          set -euo pipefail
+          python scripts/test-evidence-execution-envelope.py
+
+      - name: Run hostile-input hardening suite
+        shell: bash
+        run: |
+          set -euo pipefail
+          python scripts/test-evidence-execution-envelope-hardening.py
+
+      - name: Require observational checkout
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$EXECUTION_SHA"
+          status="$(git status --porcelain=v1 --untracked-files=all)"
+          extras="$(git clean -ndx)"
+          if [[ -n "$status" || -n "$extras" ]]; then
+            echo 'ERROR: envelope-verifier qualification left non-HEAD workspace material:' >&2
+            [[ -z "$status" ]] || printf '%s\n' "$status" >&2
+            [[ -z "$extras" ]] || printf '%s\n' "$extras" >&2
+            exit 1
+          fi
+          echo 'PASS: envelope-verifier qualification left only tracked HEAD material.'
+
+      - name: Claim boundary
+        shell: bash
+        run: |
+          cat <<'EOF'
+          PASS here establishes the retained execution-evidence verifier stack:
+            - the already-qualified 13-test semantic verifier core remains byte-unchanged;
+            - hostile evidence is first copied through a bounded temporary ingestion boundary;
+            - exact four-file directory/ZIP envelope enforcement remains required;
+            - duplicate/nested/extra/encrypted/non-regular ZIP material is rejected;
+            - 1 MiB/member and 4 MiB/envelope limits bound decoded material before delegation;
+            - non-standard JSON constants such as NaN/Infinity are rejected before core parsing;
+            - environment/tool moving aliases are rejected in parity with execution-identity v1;
+            - observation run ID and attempt must be ASCII decimal digits;
+            - the qualified core then performs checksum, canonical JSON, structural,
+              required-binding, cross-binding, and externally expected provenance checks;
+            - 13 core tests + 5 hardening tests pass on the exact hosted head;
+            - exact checkout remains HEAD-only.
+
+          The hardening layer does not reinterpret or weaken the qualified core. It narrows
+          hostile input into a bounded four-file temporary directory, then delegates the
+          semantic decision to the frozen verifier implementation.
+
+          This does not qualify CUF Stage A, Cargo.lock repair, Universal Matter replay,
+          Q1/Q2, or the truth of external provenance expectations supplied by a caller.
+          EOF
