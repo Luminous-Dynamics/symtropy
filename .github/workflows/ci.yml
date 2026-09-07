@@ -74,5 +74,19 @@ jobs:
     - name: Run Tests (Physics Core)
       run: cargo test -p symtropy-math -p symtropy-physics -p symtropy-consciousness-physics --lib
 
+    - name: Run Tests (Fabrication + Construction)
+      run: cargo test -p symtropy-fabrication -p symtropy-construction --lib
+
+    - name: Run Tests (Firstlight Patch Conduit)
+      run: cargo test -p symtropy-firstlight
+
+    - name: Execute Patch Conduit Headless Proof
+      run: cargo run -p symtropy-firstlight -- patch-conduit
+
+    - name: Verify Cargo.lock Is Canonical
+      run: |
+        git diff -- Cargo.lock
+        git diff --exit-code -- Cargo.lock
+
     - name: Verify Workspace Build
       run: cargo check --workspace --all-targets
