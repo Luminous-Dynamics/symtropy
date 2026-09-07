@@ -128,6 +128,8 @@ pub enum ProcessKind {
     CutFree,
     /// Remove a workpiece from a surrounding fit, seat, pocket, or assembly.
     Extract,
+    /// Join mating mechanical or fluid-service interfaces designed to couple.
+    Couple,
 }
 
 impl ProcessKind {
@@ -147,7 +149,7 @@ impl ProcessKind {
             Self::Bend | Self::Form => ProcessFamily::Shape,
             Self::Clamp | Self::Fasten | Self::Weld | Self::Seal => ProcessFamily::Join,
             Self::Coat | Self::HeatTreat => ProcessFamily::Treat,
-            Self::Splice | Self::Terminate => ProcessFamily::Connect,
+            Self::Splice | Self::Terminate | Self::Couple => ProcessFamily::Connect,
             Self::Configure | Self::Calibrate => ProcessFamily::Configure,
             Self::Inspect | Self::PressureTest | Self::ContinuityTest => {
                 ProcessFamily::InspectTest
@@ -725,6 +727,7 @@ mod tests {
             ProcessKind::Seal,
             ProcessKind::Splice,
             ProcessKind::Terminate,
+            ProcessKind::Couple,
         ] {
             assert_eq!(kind.separation_semantics(), None);
         }
@@ -743,6 +746,17 @@ mod tests {
                 Some(SeparationSemantics::Destructive)
             );
         }
+    }
+
+    #[test]
+    fn coupling_and_decoupling_are_distinct_physical_operations() {
+        assert_eq!(ProcessKind::Couple.family(), ProcessFamily::Connect);
+        assert_eq!(ProcessKind::Couple.separation_semantics(), None);
+        assert_eq!(ProcessKind::Decouple.family(), ProcessFamily::Separate);
+        assert_eq!(
+            ProcessKind::Decouple.separation_semantics(),
+            Some(SeparationSemantics::NonDestructive)
+        );
     }
 
     #[test]
