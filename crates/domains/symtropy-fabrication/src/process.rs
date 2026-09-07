@@ -203,6 +203,34 @@ impl CapabilityRequirement {
     }
 }
 
+/// Canonical structural identity of one exact process contract.
+///
+/// This intentionally uses direct structural equality instead of introducing a
+/// local hash/crypto authority. A later registry or signature layer can bind
+/// this value without changing what counts as the process's semantics.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ProcessSpecSnapshot {
+    pub id: ProcessSpecId,
+    pub revision: u64,
+    pub kind: ProcessKind,
+    required_capabilities: Vec<CapabilityRequirement>,
+    allowed_workpiece_states: Vec<WorkpieceLifecycle>,
+}
+
+impl ProcessSpecSnapshot {
+    pub fn required_capabilities(&self) -> &[CapabilityRequirement] {
+        &self.required_capabilities
+    }
+
+    pub fn allowed_workpiece_states(&self) -> &[WorkpieceLifecycle] {
+        &self.allowed_workpiece_states
+    }
+
+    pub fn admits_workpiece_state(&self, lifecycle: WorkpieceLifecycle) -> bool {
+        self.allowed_workpiece_states.contains(&lifecycle)
+    }
+}
+
 /// Declarative process contract. A process specification is reusable knowledge;
 /// it is not a one-shot execution and not a recipe output constructor.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -220,12 +248,32 @@ impl ProcessSpec {
         id: ProcessSpecId,
         revision: u64,
         kind: ProcessKind,
-        required_capabilities: Vec<CapabilityRequirement>,
-        allowed_workpiece_states: Vec<WorkpieceLifecycle>,
+        mut required_capabilities: Vec<CapabilityRequirement>,
+        mut allowed_workpiece_states: Vec<WorkpieceLifecycle>,
     ) -> Result<Self, ProcessError> {
         if allowed_workpiece_states.is_empty() {
             return Err(ProcessError::NoAllowedWorkpieceStates);
         }
+
+        required_capabilities.sort_by(|left, right| {
+            (&left.capability_id, left.minimum_value)
+                .cmp(&(&right.capability_id, right.minimum_value))
+        });
+        for pair in required_capabilities.windows(2) {
+            if pair[0].capability_id == pair[1].capability_id {
+                return Err(ProcessError::DuplicateRequiredCapability(
+                    pair[0].capability_id.clone(),
+                ));
+            }
+        }
+
+        allowed_workpiece_states.sort_by_key(|lifecycle| lifecycle_rank(*lifecycle));
+        for pair in allowed_workpiece_states.windows(2) {
+            if pair[0] == pair[1] {
+                return Err(ProcessError::DuplicateAllowedWorkpieceState(pair[0]));
+            }
+        }
+
         Ok(Self {
             id,
             revision,
@@ -233,6 +281,17 @@ impl ProcessSpec {
             required_capabilities,
             allowed_workpiece_states,
         })
+    }
+
+    /// Returns the canonical semantic contract captured by plans/executions.
+    pub fn snapshot(&self) -> ProcessSpecSnapshot {
+        ProcessSpecSnapshot {
+            id: self.id.clone(),
+            revision: self.revision,
+            kind: self.kind,
+            required_capabilities: self.required_capabilities.clone(),
+            allowed_workpiece_states: self.allowed_workpiece_states.clone(),
+        }
     }
 
     /// Evaluates every deterministic admission predicate without mutating state.
@@ -333,6 +392,8 @@ pub struct ProcessExecution {
     pub spec_id: ProcessSpecId,
     pub spec_revision: u64,
     pub kind: ProcessKind,
+    /// Canonical immutable semantics admitted at F4 begin.
+    pub spec_snapshot: ProcessSpecSnapshot,
     pub inputs: Vec<ProcessInputSnapshot>,
     pub admitted_capabilities: Vec<CapabilityEvidence>,
     pub state: ProcessExecutionState,
@@ -353,6 +414,7 @@ impl ProcessExecution {
             spec_id: spec.id.clone(),
             spec_revision: spec.revision,
             kind: spec.kind,
+            spec_snapshot: spec.snapshot(),
             inputs: workpieces
                 .iter()
                 .map(|workpiece| ProcessInputSnapshot::from(*workpiece))
@@ -401,6 +463,7 @@ impl ProcessExecution {
             spec_id: self.spec_id.clone(),
             spec_revision: self.spec_revision,
             kind: self.kind,
+            spec_snapshot: self.spec_snapshot.clone(),
             inputs: self.inputs.clone(),
             admitted_capabilities: self.admitted_capabilities.clone(),
             resulting_matter,
@@ -420,10 +483,23 @@ pub struct ProcessEvidence {
     pub spec_id: ProcessSpecId,
     pub spec_revision: u64,
     pub kind: ProcessKind,
+    /// Exact canonical F4 semantics captured before the process began.
+    pub spec_snapshot: ProcessSpecSnapshot,
     pub inputs: Vec<ProcessInputSnapshot>,
     pub admitted_capabilities: Vec<CapabilityEvidence>,
     pub resulting_matter: Vec<MatterBinding>,
     pub outcome: ProcessExecutionState,
+}
+
+fn lifecycle_rank(lifecycle: WorkpieceLifecycle) -> u8 {
+    match lifecycle {
+        WorkpieceLifecycle::Staged => 0,
+        WorkpieceLifecycle::InProcess => 1,
+        WorkpieceLifecycle::Available => 2,
+        WorkpieceLifecycle::Installed => 3,
+        WorkpieceLifecycle::Removed => 4,
+        WorkpieceLifecycle::Retired => 5,
+    }
 }
 
 fn validate_resulting_matter(bindings: &[MatterBinding]) -> Result<(), ProcessError> {
@@ -447,6 +523,8 @@ fn validate_resulting_matter(bindings: &[MatterBinding]) -> Result<(), ProcessEr
 #[derive(Debug)]
 pub enum ProcessError {
     NoAllowedWorkpieceStates,
+    DuplicateRequiredCapability(StableId),
+    DuplicateAllowedWorkpieceState(WorkpieceLifecycle),
     Preconditions(Vec<ProcessPreconditionFailure>),
     ExecutionClosed(ProcessExecutionId),
     ResultingMatterEvidenceRequired,
@@ -463,10 +541,19 @@ impl fmt::Display for ProcessError {
             Self::NoAllowedWorkpieceStates => {
                 write!(formatter, "process requires at least one allowed workpiece state")
             }
+            Self::DuplicateRequiredCapability(id) => {
+                write!(formatter, "process repeats required capability {id}")
+            }
+            Self::DuplicateAllowedWorkpieceState(lifecycle) => write!(
+                formatter,
+                "process repeats allowed workpiece lifecycle {lifecycle:?}"
+            ),
             Self::Preconditions(failures) => {
                 write!(formatter, "process preconditions failed: {failures:?}")
             }
-            Self::ExecutionClosed(id) => write!(formatter, "process execution {id} is already closed"),
+            Self::ExecutionClosed(id) => {
+                write!(formatter, "process execution {id} is already closed")
+            }
             Self::ResultingMatterEvidenceRequired => {
                 write!(formatter, "completed process requires resulting matter evidence")
             }
@@ -516,15 +603,19 @@ mod tests {
         workpiece
     }
 
+    fn requirement(name: &str, minimum_value: u64) -> CapabilityRequirement {
+        CapabilityRequirement {
+            capability_id: id(name),
+            minimum_value,
+        }
+    }
+
     fn weld_spec() -> ProcessSpec {
         ProcessSpec::new(
             ProcessSpecId::new(id("process-spec:weld")),
             4,
             ProcessKind::Weld,
-            vec![CapabilityRequirement {
-                capability_id: id("capability:weld-heat"),
-                minimum_value: 800,
-            }],
+            vec![requirement("capability:weld-heat", 800)],
             vec![WorkpieceLifecycle::Available, WorkpieceLifecycle::Installed],
         )
         .unwrap()
@@ -536,6 +627,94 @@ mod tests {
             available_value: 900,
             evidence_id: id("capability-evidence:welder"),
         }
+    }
+
+    #[test]
+    fn process_spec_snapshot_is_canonical_across_input_order() {
+        let left = ProcessSpec::new(
+            ProcessSpecId::new(id("process-spec:test")),
+            7,
+            ProcessKind::PressureTest,
+            vec![
+                requirement("capability:pressure-measurement", 5),
+                requirement("capability:pressure-source", 10),
+            ],
+            vec![WorkpieceLifecycle::Installed, WorkpieceLifecycle::Available],
+        )
+        .unwrap();
+        let right = ProcessSpec::new(
+            ProcessSpecId::new(id("process-spec:test")),
+            7,
+            ProcessKind::PressureTest,
+            vec![
+                requirement("capability:pressure-source", 10),
+                requirement("capability:pressure-measurement", 5),
+            ],
+            vec![WorkpieceLifecycle::Available, WorkpieceLifecycle::Installed],
+        )
+        .unwrap();
+
+        assert_eq!(left.snapshot(), right.snapshot());
+    }
+
+    #[test]
+    fn duplicate_capability_identity_is_rejected_even_with_different_thresholds() {
+        let result = ProcessSpec::new(
+            ProcessSpecId::new(id("process-spec:test")),
+            1,
+            ProcessKind::Weld,
+            vec![
+                requirement("capability:heat", 700),
+                requirement("capability:heat", 800),
+            ],
+            vec![WorkpieceLifecycle::Available],
+        );
+        assert!(matches!(
+            result,
+            Err(ProcessError::DuplicateRequiredCapability(capability_id))
+                if capability_id == id("capability:heat")
+        ));
+    }
+
+    #[test]
+    fn duplicate_allowed_lifecycle_is_rejected() {
+        let result = ProcessSpec::new(
+            ProcessSpecId::new(id("process-spec:test")),
+            1,
+            ProcessKind::Inspect,
+            Vec::new(),
+            vec![WorkpieceLifecycle::Installed, WorkpieceLifecycle::Installed],
+        );
+        assert!(matches!(
+            result,
+            Err(ProcessError::DuplicateAllowedWorkpieceState(
+                WorkpieceLifecycle::Installed
+            ))
+        ));
+    }
+
+    #[test]
+    fn same_id_revision_with_changed_semantics_has_distinct_snapshot() {
+        let original = ProcessSpec::new(
+            ProcessSpecId::new(id("process-spec:test")),
+            3,
+            ProcessKind::Inspect,
+            Vec::new(),
+            vec![WorkpieceLifecycle::Available],
+        )
+        .unwrap();
+        let altered = ProcessSpec::new(
+            ProcessSpecId::new(id("process-spec:test")),
+            3,
+            ProcessKind::Inspect,
+            Vec::new(),
+            vec![WorkpieceLifecycle::Available, WorkpieceLifecycle::Installed],
+        )
+        .unwrap();
+
+        assert_eq!(original.id, altered.id);
+        assert_eq!(original.revision, altered.revision);
+        assert_ne!(original.snapshot(), altered.snapshot());
     }
 
     #[test]
@@ -553,15 +732,17 @@ mod tests {
     #[test]
     fn adequate_capability_admits_execution_deterministically() {
         let workpiece = workpiece("workpiece:plate", 7);
+        let spec = weld_spec();
         let execution = ProcessExecution::begin(
             ProcessExecutionId::new(id("process-execution:weld")),
-            &weld_spec(),
+            &spec,
             &[&workpiece],
             &[welder()],
         )
         .unwrap();
         assert_eq!(execution.state, ProcessExecutionState::InProgress);
         assert_eq!(execution.spec_revision, 4);
+        assert_eq!(execution.spec_snapshot, spec.snapshot());
         assert_eq!(execution.inputs[0].matter_bindings[0].revision, 7);
         assert_eq!(execution.admitted_capabilities[0], welder());
     }
@@ -600,11 +781,12 @@ mod tests {
     }
 
     #[test]
-    fn completion_preserves_exact_before_and_after_images() {
+    fn completion_preserves_exact_before_after_and_process_semantics() {
         let workpiece = workpiece("workpiece:plate", 7);
+        let spec = weld_spec();
         let mut execution = ProcessExecution::begin(
             ProcessExecutionId::new(id("process-execution:weld")),
-            &weld_spec(),
+            &spec,
             &[&workpiece],
             &[welder()],
         )
@@ -621,8 +803,18 @@ mod tests {
         assert_eq!(evidence.kind, ProcessKind::Weld);
         assert_eq!(evidence.outcome, ProcessExecutionState::Completed);
         assert_eq!(evidence.spec_revision, 4);
+        assert_eq!(evidence.spec_snapshot, spec.snapshot());
         assert_eq!(evidence.inputs[0].matter_bindings[0].revision, 7);
         assert_eq!(evidence.resulting_matter[0].revision, 8);
+    }
+
+    #[test]
+    fn snapshot_round_trip_preserves_exact_semantics() {
+        let snapshot = weld_spec().snapshot();
+        let bytes = serde_json::to_vec(&snapshot).unwrap();
+        let restored: ProcessSpecSnapshot = serde_json::from_slice(&bytes).unwrap();
+        assert_eq!(restored, snapshot);
+        assert!(restored.admits_workpiece_state(WorkpieceLifecycle::Installed));
     }
 
     #[test]
