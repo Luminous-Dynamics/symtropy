@@ -15,7 +15,7 @@ permissions:
 env:
   CARGO_TERM_COLOR: always
   CARGO_TARGET_DIR: /tmp/living-world-projection-target
-  QUALIFIED_HEAD: e83607b953c10271ff8d9239e69576d41f990bc2
+  QUALIFIED_HEAD: 9f5df418693b65d35e42ff532260b54bc6b7c9d2
 
 jobs:
   qualify-projection:
