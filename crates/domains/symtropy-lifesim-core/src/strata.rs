@@ -5,14 +5,14 @@
 //!
 //! Independent population marginals are intentionally insufficient whenever
 //! future dynamics depend on correlations such as age × condition × location.
-//! This module provides an additive canonical representation that stores only
-//! occupied joint strata and binds exact headcount plus exact living biomass to
-//! each stratum.
+//! This module stores only occupied joint strata and binds exact headcount plus
+//! exact living biomass to each stratum.
 //!
-//! The conversion from [`StratifiedPopulationState`] to [`PopulationState`] is
-//! deliberately one-way and lossy: marginals can be derived from known joint
-//! state, but joint state cannot be reconstructed from marginals without
-//! inventing correlations that the source never retained.
+//! Marginals may be derived from known joint state, but joint state cannot be
+//! reconstructed from marginals without inventing correlations that the source
+//! never retained. For that reason this module exposes a distinct read-only
+//! [`PopulationMarginalSummary`] rather than converting lossy output back into
+//! the canonical [`crate::population::PopulationState`] authority type.
 
 use std::collections::BTreeMap;
 use std::error::Error;
@@ -20,15 +20,14 @@ use std::fmt;
 
 use crate::population::{
     CountDistribution, PopulationAgeBand, PopulationCell, PopulationConditionBand, PopulationError,
-    PopulationState,
 };
 
 /// Canonical v0 joint stratum key.
 ///
-/// These are exactly the axes already represented by today's coarse population
-/// model. Disease, genotype, development, social group, spatial-structure, and
-/// other axes can be added later only when their authority/versioning contract
-/// is explicit.
+/// These are exactly the axes already represented by today's qualified coarse
+/// population model. Disease, genotype, development, social group, spatial
+/// structure, and other axes can be added only when their authority/versioning
+/// contract is explicit.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct PopulationStratumKey {
     pub age: PopulationAgeBand,
@@ -52,8 +51,8 @@ impl PopulationStratumKey {
 
 /// Exact extensive state owned by one occupied population stratum.
 ///
-/// A canonical stratum never stores zero members. Zero-count strata are absent
-/// from the sparse map so one ecological state has one canonical encoding.
+/// Zero-count strata are absent from the sparse map so one semantic population
+/// has one canonical sparse representation.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct PopulationStratum {
     count: u64,
@@ -80,6 +79,47 @@ impl PopulationStratum {
     }
 }
 
+/// Derived non-authoritative marginal summary of stratified state.
+///
+/// This type is intentionally distinct from `PopulationState`: losing joint
+/// correlation is an information projection, not an authority-preserving state
+/// transition. A later downgrade boundary may consume a stratified state only
+/// after checking which ecological processes remain enabled.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct PopulationMarginalSummary {
+    count: u64,
+    biomass_milligrams: u64,
+    age: CountDistribution<PopulationAgeBand>,
+    condition: CountDistribution<PopulationConditionBand>,
+    occupancy: CountDistribution<PopulationCell>,
+}
+
+impl PopulationMarginalSummary {
+    pub const fn count(&self) -> u64 {
+        self.count
+    }
+
+    pub const fn biomass_milligrams(&self) -> u64 {
+        self.biomass_milligrams
+    }
+
+    pub const fn is_empty(&self) -> bool {
+        self.count == 0
+    }
+
+    pub fn age_distribution(&self) -> &CountDistribution<PopulationAgeBand> {
+        &self.age
+    }
+
+    pub fn condition_distribution(&self) -> &CountDistribution<PopulationConditionBand> {
+        &self.condition
+    }
+
+    pub fn occupancy_distribution(&self) -> &CountDistribution<PopulationCell> {
+        &self.occupancy
+    }
+}
+
 /// Sparse canonical joint population state.
 ///
 /// This type has no public mutation/reservation API. It establishes the
@@ -93,6 +133,10 @@ pub struct StratifiedPopulationState {
 }
 
 impl StratifiedPopulationState {
+    /// Frozen structural schema version for the current age × condition × cell
+    /// key plus exact count/biomass extensive state.
+    pub const SCHEMA_VERSION: u16 = 1;
+
     /// Construct and validate an exact sparse joint population state.
     pub fn new(
         strata: BTreeMap<PopulationStratumKey, PopulationStratum>,
@@ -198,22 +242,20 @@ impl StratifiedPopulationState {
         self.biomass_distribution_by(|key| key.cell)
     }
 
-    /// Derive today's marginal coarse representation.
+    /// Derive a read-only marginal summary without transferring authority.
     ///
-    /// This operation preserves total count, total biomass, and each v0
-    /// marginal exactly, but intentionally discards joint correlations. There
-    /// is no inverse constructor from [`PopulationState`] because an inverse
-    /// would have to invent covariance.
-    pub fn to_marginal_population(&self) -> Result<PopulationState, StrataError> {
+    /// Total count, total biomass, and every v0 marginal are preserved exactly.
+    /// Joint correlations are intentionally discarded. No inverse constructor
+    /// from marginal state exists because an inverse would fabricate covariance.
+    pub fn marginal_summary(&self) -> Result<PopulationMarginalSummary, StrataError> {
         self.verify()?;
-        PopulationState::new(
-            self.count,
-            self.biomass_milligrams,
-            self.age_distribution()?,
-            self.condition_distribution()?,
-            self.occupancy_distribution()?,
-        )
-        .map_err(StrataError::PopulationProjection)
+        Ok(PopulationMarginalSummary {
+            count: self.count,
+            biomass_milligrams: self.biomass_milligrams,
+            age: self.age_distribution()?,
+            condition: self.condition_distribution()?,
+            occupancy: self.occupancy_distribution()?,
+        })
     }
 
     fn count_distribution_by<K: Ord + Copy>(
@@ -229,7 +271,7 @@ impl StratifiedPopulationState {
                 .ok_or(StrataError::CountOverflow)?;
             counts.insert(marginal_key, next);
         }
-        CountDistribution::new(counts).map_err(StrataError::PopulationProjection)
+        CountDistribution::new(counts).map_err(StrataError::MarginalDistribution)
     }
 
     fn biomass_distribution_by<K: Ord + Copy>(
@@ -256,7 +298,7 @@ pub enum StrataError {
     BiomassArithmeticOverflow,
     CachedCountMismatch { expected: u64, actual: u64 },
     CachedBiomassMismatch { expected: u64, actual: u64 },
-    PopulationProjection(PopulationError),
+    MarginalDistribution(PopulationError),
 }
 
 impl fmt::Display for StrataError {
@@ -277,8 +319,8 @@ impl fmt::Display for StrataError {
                 formatter,
                 "stratified cached biomass {actual} mg does not match reconstructed biomass {expected} mg"
             ),
-            Self::PopulationProjection(error) => {
-                write!(formatter, "cannot derive marginal population: {error}")
+            Self::MarginalDistribution(error) => {
+                write!(formatter, "cannot derive stratified marginal summary: {error}")
             }
         }
     }
@@ -287,7 +329,7 @@ impl fmt::Display for StrataError {
 impl Error for StrataError {
     fn source(&self) -> Option<&(dyn Error + 'static)> {
         match self {
-            Self::PopulationProjection(error) => Some(error),
+            Self::MarginalDistribution(error) => Some(error),
             _ => None,
         }
     }
@@ -357,6 +399,7 @@ mod tests {
     fn exact_joint_state_derives_all_existing_marginals() {
         let population = correlated_a();
 
+        assert_eq!(StratifiedPopulationState::SCHEMA_VERSION, 1);
         assert_eq!(population.count(), 10);
         assert_eq!(population.biomass_milligrams(), 3_000_000);
         assert_eq!(population.age_distribution().unwrap().total(), 10);
@@ -390,10 +433,10 @@ mod tests {
         let b = correlated_b();
 
         assert_ne!(a, b);
-        assert_eq!(a.to_marginal_population().unwrap(), b.to_marginal_population().unwrap());
+        assert_eq!(a.marginal_summary().unwrap(), b.marginal_summary().unwrap());
 
         // The marginal view cannot tell whether stressed organisms are the
-        // juveniles or the mature members, nor where those pairings occur.
+        // juveniles or mature members, nor where those pairings occur.
         assert_eq!(
             a.condition_distribution().unwrap(),
             b.condition_distribution().unwrap()
@@ -421,22 +464,19 @@ mod tests {
     }
 
     #[test]
-    fn marginal_projection_preserves_exact_total_authority() {
+    fn marginal_summary_preserves_exact_totals_without_claiming_authority() {
         let stratified = correlated_a();
-        let marginal = stratified.to_marginal_population().unwrap();
+        let summary = stratified.marginal_summary().unwrap();
 
-        assert_eq!(marginal.count(), stratified.count());
+        assert_eq!(summary.count(), stratified.count());
+        assert_eq!(summary.biomass_milligrams(), stratified.biomass_milligrams());
+        assert_eq!(summary.age_distribution(), &stratified.age_distribution().unwrap());
         assert_eq!(
-            marginal.biomass_milligrams(),
-            stratified.biomass_milligrams()
-        );
-        assert_eq!(marginal.age_distribution(), &stratified.age_distribution().unwrap());
-        assert_eq!(
-            marginal.condition_distribution(),
+            summary.condition_distribution(),
             &stratified.condition_distribution().unwrap()
         );
         assert_eq!(
-            marginal.occupancy_distribution(),
+            summary.occupancy_distribution(),
             &stratified.occupancy_distribution().unwrap()
         );
     }
@@ -500,16 +540,17 @@ mod tests {
     #[test]
     fn empty_stratified_population_is_canonical() {
         let population = StratifiedPopulationState::new(BTreeMap::new()).unwrap();
-        let marginal = population.to_marginal_population().unwrap();
+        let summary = population.marginal_summary().unwrap();
 
         assert!(population.is_empty());
         assert_eq!(population.len(), 0);
         assert_eq!(population.count(), 0);
         assert_eq!(population.biomass_milligrams(), 0);
-        assert_eq!(marginal.count(), 0);
-        assert_eq!(marginal.biomass_milligrams(), 0);
-        assert!(marginal.age_distribution().is_empty());
-        assert!(marginal.condition_distribution().is_empty());
-        assert!(marginal.occupancy_distribution().is_empty());
+        assert!(summary.is_empty());
+        assert_eq!(summary.count(), 0);
+        assert_eq!(summary.biomass_milligrams(), 0);
+        assert!(summary.age_distribution().is_empty());
+        assert!(summary.condition_distribution().is_empty());
+        assert!(summary.occupancy_distribution().is_empty());
     }
 }
