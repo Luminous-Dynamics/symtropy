@@ -10,10 +10,11 @@
 //!
 //! The projection cost is bounded by the requested candidate budget rather
 //! than by source population size. Candidate attributes are selected through
-//! independent deterministic permutations of each canonical marginal, so a
-//! population near `u64::MAX` can still project a small visible cohort without
-//! expanding one record per organism.
+//! independent deterministic sparse permutation prefixes of each canonical
+//! marginal, so a population near `u64::MAX` can still project a small visible
+//! cohort without expanding one record per organism.
 
+use std::collections::BTreeMap;
 use std::error::Error;
 use std::fmt;
 
@@ -25,6 +26,7 @@ use crate::population::{
 const AGE_SALT: u64 = 0x8f8f_31a7_a8b1_5c21;
 const CONDITION_SALT: u64 = 0x2d2f_7e19_c4d0_1710;
 const OCCUPANCY_SALT: u64 = 0x713b_d90f_5a71_a100;
+const STEP_SALT: u64 = 0xd134_2543_de82_ef95;
 
 /// Version of the deterministic prospective-projection grammar.
 ///
@@ -34,7 +36,7 @@ const OCCUPANCY_SALT: u64 = 0x713b_d90f_5a71_a100;
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct ProjectionSchemeVersion(pub u16);
 
-pub const MARGINAL_AFFINE_PROJECTION_V1: ProjectionSchemeVersion = ProjectionSchemeVersion(1);
+pub const SPARSE_FISHER_YATES_PROJECTION_V1: ProjectionSchemeVersion = ProjectionSchemeVersion(1);
 
 /// Higher-layer population/region routing scope for Level-P projection.
 ///
@@ -69,7 +71,7 @@ pub struct ProjectionContext {
 }
 
 impl ProjectionContext {
-    pub const fn marginal_affine_v1(
+    pub const fn sparse_fisher_yates_v1(
         scope: ProjectionScope,
         revision: ProjectionRevision,
         seed: ProjectionSeed,
@@ -77,7 +79,7 @@ impl ProjectionContext {
         Self {
             scope,
             revision,
-            scheme: MARGINAL_AFFINE_PROJECTION_V1,
+            scheme: SPARSE_FISHER_YATES_PROJECTION_V1,
             seed,
         }
     }
@@ -206,7 +208,7 @@ pub fn project_population_bounded(
         });
     }
 
-    if context.scheme != MARGINAL_AFFINE_PROJECTION_V1 {
+    if context.scheme != SPARSE_FISHER_YATES_PROJECTION_V1 {
         return Err(ProjectionError::UnsupportedProjectionScheme(context.scheme));
     }
 
@@ -226,17 +228,19 @@ pub fn project_population_bounded(
     }
 
     let seed = context.seed;
-    let age_permutation = AffinePermutation::new(source_count, seed, AGE_SALT);
-    let condition_permutation = AffinePermutation::new(source_count, seed, CONDITION_SALT);
-    let occupancy_permutation = AffinePermutation::new(source_count, seed, OCCUPANCY_SALT);
+    let mut age_permutation = SparsePermutationPrefix::new(source_count, seed, AGE_SALT);
+    let mut condition_permutation =
+        SparsePermutationPrefix::new(source_count, seed, CONDITION_SALT);
+    let mut occupancy_permutation =
+        SparsePermutationPrefix::new(source_count, seed, OCCUPANCY_SALT);
 
     let mut candidates = Vec::with_capacity(candidate_count);
     for index in 0..candidate_count {
         let candidate_index =
             u64::try_from(index).map_err(|_| ProjectionError::CandidateIndexOverflow)?;
-        let age_ordinal = age_permutation.apply(candidate_index);
-        let condition_ordinal = condition_permutation.apply(candidate_index);
-        let occupancy_ordinal = occupancy_permutation.apply(candidate_index);
+        let age_ordinal = age_permutation.next()?;
+        let condition_ordinal = condition_permutation.next()?;
+        let occupancy_ordinal = occupancy_permutation.next()?;
 
         candidates.push(ProspectivePopulationCandidate {
             handle: ProspectiveCandidateHandle {
@@ -264,75 +268,77 @@ pub fn project_population_bounded(
     })
 }
 
-/// Bijective random-access permutation over `[0, modulus)`.
+/// First `k` values of a deterministic Fisher-Yates permutation without an
+/// `N`-element array.
 ///
-/// `multiplier` is selected deterministically to be coprime with `modulus`, so
-/// `(multiplier * x + increment) mod modulus` is a permutation for arbitrary
-/// population counts, not just powers of two. `u128` arithmetic prevents the
-/// multiplication from overflowing before reduction.
-#[derive(Debug, Clone, Copy)]
-struct AffinePermutation {
-    modulus: u64,
-    multiplier: u64,
-    increment: u64,
+/// The sparse map stores only positions displaced by the prefix shuffle, so
+/// memory is O(k) even when `domain_size` is close to `u64::MAX`. Calling
+/// `next()` repeatedly is prefix stable by construction.
+#[derive(Debug, Clone)]
+struct SparsePermutationPrefix {
+    domain_size: u64,
+    seed: ProjectionSeed,
+    salt: u64,
+    next_index: u64,
+    displaced: BTreeMap<u64, u64>,
 }
 
-impl AffinePermutation {
-    fn new(modulus: u64, seed: ProjectionSeed, salt: u64) -> Self {
-        debug_assert!(modulus != 0);
-        if modulus == 1 {
-            return Self {
-                modulus,
-                multiplier: 0,
-                increment: 0,
-            };
-        }
-
-        let multiplier = coprime_multiplier(modulus, mix64(seed.0 ^ salt));
-        let increment = mix64(seed.0.wrapping_add(salt.rotate_left(23))) % modulus;
+impl SparsePermutationPrefix {
+    fn new(domain_size: u64, seed: ProjectionSeed, salt: u64) -> Self {
+        debug_assert!(domain_size != 0);
         Self {
-            modulus,
-            multiplier,
-            increment,
+            domain_size,
+            seed,
+            salt,
+            next_index: 0,
+            displaced: BTreeMap::new(),
         }
     }
 
-    fn apply(self, ordinal: u64) -> u64 {
-        debug_assert!(ordinal < self.modulus);
-        if self.modulus == 1 {
-            return 0;
+    fn next(&mut self) -> Result<u64, ProjectionError> {
+        if self.next_index >= self.domain_size {
+            return Err(ProjectionError::PermutationExhausted {
+                source_count: self.domain_size,
+            });
         }
 
-        let value = self.multiplier as u128 * ordinal as u128 + self.increment as u128;
-        (value % self.modulus as u128) as u64
+        let index = self.next_index;
+        let remaining = self.domain_size - index;
+        let offset = bounded_random(self.seed, self.salt, index, remaining);
+        let swap_index = index + offset;
+
+        let selected = self.displaced.get(&swap_index).copied().unwrap_or(swap_index);
+        let displaced = self.displaced.get(&index).copied().unwrap_or(index);
+
+        self.displaced.remove(&index);
+        if swap_index != index {
+            self.displaced.insert(swap_index, displaced);
+        }
+
+        self.next_index += 1;
+        Ok(selected)
     }
 }
 
-fn coprime_multiplier(modulus: u64, mixed_seed: u64) -> u64 {
-    debug_assert!(modulus > 1);
-    let mut candidate = mixed_seed % modulus;
-    if candidate == 0 {
-        candidate = 1;
-    }
+/// Deterministically map a keyed 64-bit stream into `[0, bound)` without
+/// modulo bias using Lemire's multiply-high rejection method.
+fn bounded_random(seed: ProjectionSeed, salt: u64, step: u64, bound: u64) -> u64 {
+    debug_assert!(bound != 0);
+    let threshold = bound.wrapping_neg() % bound;
+    let mut attempt = 0u64;
 
     loop {
-        if gcd(candidate, modulus) == 1 {
-            return candidate;
+        let counter = step
+            .wrapping_mul(STEP_SALT)
+            .wrapping_add(attempt.rotate_left(17));
+        let random = mix64(seed.0 ^ salt ^ mix64(counter));
+        let product = random as u128 * bound as u128;
+        let low = product as u64;
+        if low >= threshold {
+            return (product >> 64) as u64;
         }
-        candidate += 1;
-        if candidate == modulus {
-            candidate = 1;
-        }
+        attempt = attempt.wrapping_add(1);
     }
-}
-
-fn gcd(mut left: u64, mut right: u64) -> u64 {
-    while right != 0 {
-        let remainder = left % right;
-        left = right;
-        right = remainder;
-    }
-    left
 }
 
 fn value_at_ordinal<K: Ord + Copy>(
@@ -370,6 +376,9 @@ pub enum ProjectionError {
     },
     UnsupportedProjectionScheme(ProjectionSchemeVersion),
     CandidateIndexOverflow,
+    PermutationExhausted {
+        source_count: u64,
+    },
     DistributionOrdinalOutOfRange {
         dimension: &'static str,
         ordinal: u64,
@@ -393,6 +402,10 @@ impl fmt::Display for ProjectionError {
             Self::CandidateIndexOverflow => {
                 write!(formatter, "prospective candidate index cannot fit in u64")
             }
+            Self::PermutationExhausted { source_count } => write!(
+                formatter,
+                "prospective permutation exhausted source population of {source_count}"
+            ),
             Self::DistributionOrdinalOutOfRange {
                 dimension,
                 ordinal,
@@ -419,7 +432,7 @@ impl Error for ProjectionError {
 
 #[cfg(test)]
 mod tests {
-    use std::collections::{BTreeMap, BTreeSet};
+    use std::collections::BTreeSet;
 
     use super::*;
 
@@ -427,7 +440,7 @@ mod tests {
     const SCOPE_B: ProjectionScope = ProjectionScope(0xB0B);
 
     fn context(scope: ProjectionScope, revision: u64, seed: u64) -> ProjectionContext {
-        ProjectionContext::marginal_affine_v1(
+        ProjectionContext::sparse_fisher_yates_v1(
             scope,
             ProjectionRevision(revision),
             ProjectionSeed(seed),
@@ -499,7 +512,7 @@ mod tests {
         assert_eq!(a, b);
         assert_eq!(population, before);
         assert_eq!(a.context(), context);
-        assert_eq!(a.context().scheme(), MARGINAL_AFFINE_PROJECTION_V1);
+        assert_eq!(a.context().scheme(), SPARSE_FISHER_YATES_PROJECTION_V1);
     }
 
     #[test]
@@ -527,7 +540,7 @@ mod tests {
         assert_eq!(handle.candidate_index(), 0);
         assert_eq!(handle.context().scope(), SCOPE_A);
         assert_eq!(handle.context().revision(), ProjectionRevision(4));
-        assert_eq!(handle.context().scheme(), MARGINAL_AFFINE_PROJECTION_V1);
+        assert_eq!(handle.context().scheme(), SPARSE_FISHER_YATES_PROJECTION_V1);
     }
 
     #[test]
@@ -563,14 +576,30 @@ mod tests {
     }
 
     #[test]
-    fn arbitrary_modulus_permutation_is_bijective() {
-        for modulus in 2..=257u64 {
-            let permutation = AffinePermutation::new(modulus, ProjectionSeed(1234), AGE_SALT);
-            let values = (0..modulus)
-                .map(|ordinal| permutation.apply(ordinal))
+    fn arbitrary_domain_sizes_yield_complete_permutations() {
+        for domain_size in 1..=257u64 {
+            let mut permutation =
+                SparsePermutationPrefix::new(domain_size, ProjectionSeed(1234), AGE_SALT);
+            let values = (0..domain_size)
+                .map(|_| permutation.next().unwrap())
                 .collect::<BTreeSet<_>>();
-            assert_eq!(values.len() as u64, modulus, "modulus={modulus}");
-            assert!(values.iter().all(|value| *value < modulus));
+            assert_eq!(values.len() as u64, domain_size, "domain={domain_size}");
+            assert!(values.iter().all(|value| *value < domain_size));
+            assert_eq!(
+                permutation.next(),
+                Err(ProjectionError::PermutationExhausted {
+                    source_count: domain_size,
+                })
+            );
+        }
+    }
+
+    #[test]
+    fn bounded_random_never_leaves_requested_range() {
+        for bound in [1, 2, 3, 7, 16, 257, u32::MAX as u64, u64::MAX] {
+            for step in 0..512 {
+                assert!(bounded_random(ProjectionSeed(7), AGE_SALT, step, bound) < bound);
+            }
         }
     }
 
