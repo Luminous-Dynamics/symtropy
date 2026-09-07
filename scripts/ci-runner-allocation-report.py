@@ -6,9 +6,13 @@ sibling jobs in a different state, so this report inspects individual jobs,
 runner assignment, age, and runner-pool labels across queued and in-progress
 workflow runs.
 
+The report paginates active workflow runs and job lists before applying an
+optional reporting limit, so old stranded jobs are not silently hidden by a
+newer first page.
+
 Examples:
   GITHUB_TOKEN=... python3 scripts/ci-runner-allocation-report.py
-  python3 scripts/ci-runner-allocation-report.py --limit 30 --stale-after-hours 24
+  python3 scripts/ci-runner-allocation-report.py --limit 50 --stale-after-hours 24
   python3 scripts/ci-runner-allocation-report.py --json
 """
 from __future__ import annotations
@@ -24,6 +28,8 @@ from dataclasses import asdict, dataclass
 
 UTC = dt.timezone.utc
 ACTIVE_WORKFLOW_STATES = ("queued", "in_progress")
+PER_PAGE = 100
+MAX_ACTIVE_RUNS = 1000
 
 
 @dataclass(frozen=True)
@@ -65,20 +71,60 @@ def parse_time(value: str | None) -> dt.datetime | None:
     return dt.datetime.fromisoformat(value.replace("Z", "+00:00")).astimezone(UTC)
 
 
-def fetch_active_runs(owner: str, name: str, token: str | None, limit: int) -> list[dict]:
+def paged_items(
+    base_url: str,
+    item_key: str,
+    token: str | None,
+    *,
+    max_items: int | None = None,
+) -> list[dict]:
+    items: list[dict] = []
+    page = 1
+    while True:
+        separator = "&" if "?" in base_url else "?"
+        url = f"{base_url}{separator}{urllib.parse.urlencode({'per_page': PER_PAGE, 'page': page})}"
+        payload = api_get(url, token)
+        batch = payload.get(item_key, [])
+        if not batch:
+            break
+        items.extend(batch)
+        if max_items is not None and len(items) >= max_items:
+            return items[:max_items]
+        if len(batch) < PER_PAGE:
+            break
+        page += 1
+    return items
+
+
+def fetch_active_runs(owner: str, name: str, token: str | None) -> list[dict]:
     by_id: dict[int, dict] = {}
     for status in ACTIVE_WORKFLOW_STATES:
-        query = urllib.parse.urlencode({"status": status, "per_page": limit, "page": 1})
-        payload = api_get(
-            f"https://api.github.com/repos/{owner}/{name}/actions/runs?{query}", token
+        query = urllib.parse.urlencode({"status": status})
+        runs = paged_items(
+            f"https://api.github.com/repos/{owner}/{name}/actions/runs?{query}",
+            "workflow_runs",
+            token,
+            max_items=MAX_ACTIVE_RUNS,
         )
-        for run in payload.get("workflow_runs", []):
+        for run in runs:
             by_id[int(run["id"])] = run
+    if len(by_id) >= MAX_ACTIVE_RUNS:
+        raise SystemExit(
+            f"active workflow population reached safety cap {MAX_ACTIVE_RUNS}; "
+            "raise MAX_ACTIVE_RUNS before treating this report as complete"
+        )
     return sorted(
         by_id.values(),
         key=lambda run: str(run.get("created_at", "")),
-        reverse=True,
-    )[:limit]
+    )
+
+
+def fetch_jobs(owner: str, name: str, run_id: int, token: str | None) -> list[dict]:
+    return paged_items(
+        f"https://api.github.com/repos/{owner}/{name}/actions/runs/{run_id}/jobs",
+        "jobs",
+        token,
+    )
 
 
 def pool_name(labels: list[str]) -> str:
@@ -100,8 +146,11 @@ def main() -> int:
     parser.add_argument(
         "--limit",
         type=int,
-        default=30,
-        help="Maximum active workflow runs to inspect (default: 30)",
+        default=0,
+        help=(
+            "Maximum oldest active workflow runs to inspect after full pagination; "
+            "0 means all active runs (default: 0)"
+        ),
     )
     parser.add_argument(
         "--stale-after-hours",
@@ -114,24 +163,22 @@ def main() -> int:
 
     if "/" not in args.repo:
         raise SystemExit("--repo must be in owner/repo form")
-    if not 1 <= args.limit <= 100:
-        raise SystemExit("--limit must be between 1 and 100")
+    if args.limit < 0:
+        raise SystemExit("--limit must be >= 0")
     if args.stale_after_hours < 0:
         raise SystemExit("--stale-after-hours must be >= 0")
 
     owner, name = args.repo.split("/", 1)
     token = os.getenv("GITHUB_TOKEN")
     now = dt.datetime.now(UTC)
-    runs = fetch_active_runs(owner, name, token, args.limit)
+    all_active_runs = fetch_active_runs(owner, name, token)
+    runs = all_active_runs[: args.limit] if args.limit else all_active_runs
 
     rows: list[JobRow] = []
     for run in runs:
         created = parse_time(run.get("created_at"))
         age_hours = ((now - created).total_seconds() / 3600.0) if created else 0.0
-        jobs = api_get(
-            f"https://api.github.com/repos/{owner}/{name}/actions/runs/{run['id']}/jobs?per_page=100",
-            token,
-        ).get("jobs", [])
+        jobs = fetch_jobs(owner, name, int(run["id"]), token)
         for job in jobs:
             runner_id = int(job.get("runner_id") or 0)
             status = str(job.get("status", ""))
@@ -191,6 +238,7 @@ def main() -> int:
     summary = {
         "repository": args.repo,
         "observed_at": now.isoformat(),
+        "active_workflows_total": len(all_active_runs),
         "active_workflows_inspected": len(runs),
         "workflow_states": list(ACTIVE_WORKFLOW_STATES),
         "jobs_inspected": len(rows),
@@ -218,8 +266,9 @@ def main() -> int:
         return 0
 
     print(
-        "repo={repository} observed_at={observed_at} active_workflows={active_workflows_inspected} "
-        "jobs={jobs_inspected} unassigned={zero_step_unassigned_jobs} stale={stale_zero_step_jobs} "
+        "repo={repository} observed_at={observed_at} active_total={active_workflows_total} "
+        "active_inspected={active_workflows_inspected} jobs={jobs_inspected} "
+        "unassigned={zero_step_unassigned_jobs} stale={stale_zero_step_jobs} "
         "partial={partially_drained_workflows}".format(**summary)
     )
     for pool, stats in summary["pools"].items():
@@ -228,7 +277,13 @@ def main() -> int:
             f"stale={stats['stale']} oldest_unassigned_h={stats['oldest_unassigned_hours']:.2f}"
         )
 
-    print("run/job".ljust(24), "age(h)".rjust(7), "runner".ljust(13), "status".ljust(11), "pool/job")
+    print(
+        "run/job".ljust(24),
+        "age(h)".rjust(7),
+        "runner".ljust(13),
+        "status".ljust(11),
+        "pool/job",
+    )
     for row in sorted(rows, key=lambda item: (-item.age_hours, item.run_id, item.job_id)):
         runner = str(row.runner_id) if row.runner_id else "-"
         marker = " STALE" if row.stale else ""
