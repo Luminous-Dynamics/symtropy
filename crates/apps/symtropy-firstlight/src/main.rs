@@ -2,10 +2,12 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 mod patch_conduit;
+mod patch_conduit_diagnostics;
 mod patch_conduit_execution;
 mod patch_conduit_staged_execution;
 
 use patch_conduit::{patch_conduit_reference_facts, PatchConduitScenario};
+use patch_conduit_diagnostics::run_reference_pressure_diagnostics;
 use patch_conduit_execution::PatchConduitExecutionProfile;
 use patch_conduit_staged_execution::run_reference_bypass_execution;
 use serde_json::json;
@@ -17,8 +19,11 @@ fn main() {
         "demo" => run_demo(),
         "patch-conduit" => run_patch_conduit(),
         "patch-conduit-execute" => run_patch_conduit_execute(),
+        "patch-conduit-diagnose" => run_patch_conduit_diagnose(),
         _ => {
-            eprintln!("usage: symtropy-firstlight [demo|patch-conduit|patch-conduit-execute]");
+            eprintln!(
+                "usage: symtropy-firstlight [demo|patch-conduit|patch-conduit-execute|patch-conduit-diagnose]"
+            );
             std::process::exit(2);
         }
     }
@@ -149,6 +154,20 @@ fn run_patch_conduit_execute() {
         ),
         Err(error) => {
             eprintln!("Patch Conduit staged execution failed: {error}");
+            std::process::exit(1);
+        }
+    }
+}
+
+fn run_patch_conduit_diagnose() {
+    match run_reference_pressure_diagnostics() {
+        Ok(report) => println!(
+            "{}",
+            serde_json::to_string_pretty(&report)
+                .expect("serialize Patch Conduit diagnostic report")
+        ),
+        Err(error) => {
+            eprintln!("Patch Conduit diagnostic proof failed: {error}");
             std::process::exit(1);
         }
     }
