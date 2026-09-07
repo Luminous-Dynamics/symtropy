@@ -44,7 +44,9 @@ jobs:
           persist-credentials: false
 
       - name: Set up pinned Rust
-        uses: dtolnay/rust-toolchain@stable
+        # dtolnay/rust-toolchain stable action implementation pinned explicitly;
+        # the installed compiler remains separately pinned by `toolchain: 1.96.0`.
+        uses: dtolnay/rust-toolchain@6bed0761d98439e5a578e2877258200ad565ba87
         with:
           toolchain: 1.96.0
           components: clippy, rustfmt
