@@ -26,6 +26,24 @@ const AGE_SALT: u64 = 0x8f8f_31a7_a8b1_5c21;
 const CONDITION_SALT: u64 = 0x2d2f_7e19_c4d0_1710;
 const OCCUPANCY_SALT: u64 = 0x713b_d90f_5a71_a100;
 
+/// Version of the deterministic prospective-projection grammar.
+///
+/// A future realization boundary must reject a handle whose scheme version is
+/// not understood rather than silently reinterpreting the same candidate index
+/// under a different projection algorithm.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct ProjectionSchemeVersion(pub u16);
+
+pub const MARGINAL_AFFINE_PROJECTION_V1: ProjectionSchemeVersion = ProjectionSchemeVersion(1);
+
+/// Higher-layer population/region routing scope for Level-P projection.
+///
+/// This is deliberately not an organism identifier. It prevents candidate
+/// handles from different populations from colliding merely because revision,
+/// seed, and local candidate index happen to match.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct ProjectionScope(pub u128);
+
 /// Canonical higher-layer revision associated with a Level-P projection.
 ///
 /// This value does not itself grant ecological authority. A later realization
@@ -41,25 +59,60 @@ pub struct ProjectionRevision(pub u64);
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct ProjectionSeed(pub u64);
 
-/// Handle for one candidate inside a revision-scoped prospective projection.
+/// Complete routing/version context for one projection family.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct ProjectionContext {
+    scope: ProjectionScope,
+    revision: ProjectionRevision,
+    scheme: ProjectionSchemeVersion,
+    seed: ProjectionSeed,
+}
+
+impl ProjectionContext {
+    pub const fn marginal_affine_v1(
+        scope: ProjectionScope,
+        revision: ProjectionRevision,
+        seed: ProjectionSeed,
+    ) -> Self {
+        Self {
+            scope,
+            revision,
+            scheme: MARGINAL_AFFINE_PROJECTION_V1,
+            seed,
+        }
+    }
+
+    pub const fn scope(self) -> ProjectionScope {
+        self.scope
+    }
+
+    pub const fn revision(self) -> ProjectionRevision {
+        self.revision
+    }
+
+    pub const fn scheme(self) -> ProjectionSchemeVersion {
+        self.scheme
+    }
+
+    pub const fn seed(self) -> ProjectionSeed {
+        self.seed
+    }
+}
+
+/// Handle for one candidate inside a scoped, revisioned projection family.
 ///
 /// The handle is suitable for a future `projection -> realize -> interaction`
 /// API. It is never a persistent organism ID and cannot authorize mutation by
 /// itself.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct ProspectiveCandidateHandle {
-    revision: ProjectionRevision,
-    seed: ProjectionSeed,
+    context: ProjectionContext,
     candidate_index: u64,
 }
 
 impl ProspectiveCandidateHandle {
-    pub const fn revision(self) -> ProjectionRevision {
-        self.revision
-    }
-
-    pub const fn seed(self) -> ProjectionSeed {
-        self.seed
+    pub const fn context(self) -> ProjectionContext {
+        self.context
     }
 
     pub const fn candidate_index(self) -> u64 {
@@ -75,28 +128,41 @@ impl ProspectiveCandidateHandle {
 /// Level-A reservation/realization boundary.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct ProspectivePopulationCandidate {
-    pub handle: ProspectiveCandidateHandle,
-    pub age: PopulationAgeBand,
-    pub condition: PopulationConditionBand,
-    pub cell: PopulationCell,
+    handle: ProspectiveCandidateHandle,
+    age: PopulationAgeBand,
+    condition: PopulationConditionBand,
+    cell: PopulationCell,
+}
+
+impl ProspectivePopulationCandidate {
+    pub const fn handle(self) -> ProspectiveCandidateHandle {
+        self.handle
+    }
+
+    pub const fn projected_age(self) -> PopulationAgeBand {
+        self.age
+    }
+
+    pub const fn projected_condition(self) -> PopulationConditionBand {
+        self.condition
+    }
+
+    pub const fn projected_cell(self) -> PopulationCell {
+        self.cell
+    }
 }
 
 /// Bounded projection of a canonical coarse population.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ProspectivePopulationProjection {
-    revision: ProjectionRevision,
-    seed: ProjectionSeed,
+    context: ProjectionContext,
     source_count: u64,
     candidates: Vec<ProspectivePopulationCandidate>,
 }
 
 impl ProspectivePopulationProjection {
-    pub const fn revision(&self) -> ProjectionRevision {
-        self.revision
-    }
-
-    pub const fn seed(&self) -> ProjectionSeed {
-        self.seed
+    pub const fn context(&self) -> ProjectionContext {
+        self.context
     }
 
     pub const fn source_count(&self) -> u64 {
@@ -123,13 +189,13 @@ impl ProspectivePopulationProjection {
 /// contains fewer members than requested, every conceptual member may be
 /// represented, but projection never allocates more than `max_candidates`.
 ///
-/// Increasing `requested` with the same population/revision/seed is prefix
-/// stable: previously returned candidates keep the same handle and tuple.
-/// Source population state is borrowed immutably and never reserved or mutated.
+/// Increasing `requested` with the same population and [`ProjectionContext`]
+/// is prefix stable: previously returned candidates keep the same handle and
+/// tuple. Source population state is borrowed immutably and never reserved or
+/// mutated.
 pub fn project_population_bounded(
     population: &PopulationState,
-    revision: ProjectionRevision,
-    seed: ProjectionSeed,
+    context: ProjectionContext,
     requested: usize,
     max_candidates: usize,
 ) -> Result<ProspectivePopulationProjection, ProjectionError> {
@@ -138,6 +204,10 @@ pub fn project_population_bounded(
             requested,
             limit: max_candidates,
         });
+    }
+
+    if context.scheme != MARGINAL_AFFINE_PROJECTION_V1 {
+        return Err(ProjectionError::UnsupportedProjectionScheme(context.scheme));
     }
 
     population.verify().map_err(ProjectionError::InvalidPopulation)?;
@@ -149,13 +219,13 @@ pub fn project_population_bounded(
 
     if candidate_count == 0 {
         return Ok(ProspectivePopulationProjection {
-            revision,
-            seed,
+            context,
             source_count,
             candidates: Vec::new(),
         });
     }
 
+    let seed = context.seed;
     let age_permutation = AffinePermutation::new(source_count, seed, AGE_SALT);
     let condition_permutation = AffinePermutation::new(source_count, seed, CONDITION_SALT);
     let occupancy_permutation = AffinePermutation::new(source_count, seed, OCCUPANCY_SALT);
@@ -170,8 +240,7 @@ pub fn project_population_bounded(
 
         candidates.push(ProspectivePopulationCandidate {
             handle: ProspectiveCandidateHandle {
-                revision,
-                seed,
+                context,
                 candidate_index,
             },
             age: value_at_ordinal(population.age_distribution(), age_ordinal, "age")?,
@@ -189,8 +258,7 @@ pub fn project_population_bounded(
     }
 
     Ok(ProspectivePopulationProjection {
-        revision,
-        seed,
+        context,
         source_count,
         candidates,
     })
@@ -300,6 +368,7 @@ pub enum ProjectionError {
         requested: usize,
         limit: usize,
     },
+    UnsupportedProjectionScheme(ProjectionSchemeVersion),
     CandidateIndexOverflow,
     DistributionOrdinalOutOfRange {
         dimension: &'static str,
@@ -315,6 +384,11 @@ impl fmt::Display for ProjectionError {
             Self::ProjectionLimitExceeded { requested, limit } => write!(
                 formatter,
                 "requested {requested} prospective candidates exceeds projection limit {limit}"
+            ),
+            Self::UnsupportedProjectionScheme(version) => write!(
+                formatter,
+                "unsupported prospective projection scheme version {}",
+                version.0
             ),
             Self::CandidateIndexOverflow => {
                 write!(formatter, "prospective candidate index cannot fit in u64")
@@ -348,6 +422,17 @@ mod tests {
     use std::collections::{BTreeMap, BTreeSet};
 
     use super::*;
+
+    const SCOPE_A: ProjectionScope = ProjectionScope(0xA11CE);
+    const SCOPE_B: ProjectionScope = ProjectionScope(0xB0B);
+
+    fn context(scope: ProjectionScope, revision: u64, seed: u64) -> ProjectionContext {
+        ProjectionContext::marginal_affine_v1(
+            scope,
+            ProjectionRevision(revision),
+            ProjectionSeed(seed),
+        )
+    }
 
     fn distribution<K: Ord>(pairs: impl IntoIterator<Item = (K, u64)>) -> CountDistribution<K> {
         CountDistribution::new(pairs.into_iter().collect()).unwrap()
@@ -407,86 +492,49 @@ mod tests {
     fn projection_is_exactly_deterministic() {
         let population = population(100);
         let before = population.clone();
-        let a = project_population_bounded(
-            &population,
-            ProjectionRevision(7),
-            ProjectionSeed(91),
-            16,
-            32,
-        )
-        .unwrap();
-        let b = project_population_bounded(
-            &population,
-            ProjectionRevision(7),
-            ProjectionSeed(91),
-            16,
-            32,
-        )
-        .unwrap();
+        let context = context(SCOPE_A, 7, 91);
+        let a = project_population_bounded(&population, context, 16, 32).unwrap();
+        let b = project_population_bounded(&population, context, 16, 32).unwrap();
 
         assert_eq!(a, b);
         assert_eq!(population, before);
+        assert_eq!(a.context(), context);
+        assert_eq!(a.context().scheme(), MARGINAL_AFFINE_PROJECTION_V1);
     }
 
     #[test]
     fn larger_projection_preserves_existing_prefix() {
         let population = population(100);
-        let small = project_population_bounded(
-            &population,
-            ProjectionRevision(3),
-            ProjectionSeed(17),
-            5,
-            16,
-        )
-        .unwrap();
-        let large = project_population_bounded(
-            &population,
-            ProjectionRevision(3),
-            ProjectionSeed(17),
-            12,
-            16,
-        )
-        .unwrap();
+        let context = context(SCOPE_A, 3, 17);
+        let small = project_population_bounded(&population, context, 5, 16).unwrap();
+        let large = project_population_bounded(&population, context, 12, 16).unwrap();
 
         assert_eq!(small.candidates(), &large.candidates()[..small.len()]);
     }
 
     #[test]
-    fn candidate_handles_are_projection_scoped_not_identity() {
+    fn candidate_handles_are_population_and_revision_scoped() {
         let population = population(20);
-        let a = project_population_bounded(
-            &population,
-            ProjectionRevision(4),
-            ProjectionSeed(10),
-            3,
-            3,
-        )
-        .unwrap();
-        let b = project_population_bounded(
-            &population,
-            ProjectionRevision(5),
-            ProjectionSeed(10),
-            3,
-            3,
-        )
-        .unwrap();
+        let a = project_population_bounded(&population, context(SCOPE_A, 4, 10), 3, 3).unwrap();
+        let different_revision =
+            project_population_bounded(&population, context(SCOPE_A, 5, 10), 3, 3).unwrap();
+        let different_scope =
+            project_population_bounded(&population, context(SCOPE_B, 4, 10), 3, 3).unwrap();
 
-        assert_ne!(a.candidates()[0].handle, b.candidates()[0].handle);
-        assert_eq!(a.candidates()[0].handle.candidate_index(), 0);
-        assert_eq!(a.candidates()[0].handle.revision(), ProjectionRevision(4));
+        let handle = a.candidates()[0].handle();
+        assert_ne!(handle, different_revision.candidates()[0].handle());
+        assert_ne!(handle, different_scope.candidates()[0].handle());
+        assert_eq!(handle.candidate_index(), 0);
+        assert_eq!(handle.context().scope(), SCOPE_A);
+        assert_eq!(handle.context().revision(), ProjectionRevision(4));
+        assert_eq!(handle.context().scheme(), MARGINAL_AFFINE_PROJECTION_V1);
     }
 
     #[test]
     fn projection_limit_fails_before_population_sized_allocation() {
         let population = population(10_000);
         assert_eq!(
-            project_population_bounded(
-                &population,
-                ProjectionRevision(1),
-                ProjectionSeed(2),
-                65,
-                64,
-            ),
+            project_population_bounded(&population, context(SCOPE_A, 1, 2), 65, 64),
             Err(ProjectionError::ProjectionLimitExceeded {
                 requested: 65,
                 limit: 64,
@@ -497,14 +545,8 @@ mod tests {
     #[test]
     fn request_is_capped_by_actual_population_count() {
         let population = population(3);
-        let projection = project_population_bounded(
-            &population,
-            ProjectionRevision(1),
-            ProjectionSeed(2),
-            10,
-            10,
-        )
-        .unwrap();
+        let projection =
+            project_population_bounded(&population, context(SCOPE_A, 1, 2), 10, 10).unwrap();
 
         assert_eq!(projection.len(), 3);
         assert_eq!(projection.source_count(), 3);
@@ -513,14 +555,8 @@ mod tests {
     #[test]
     fn empty_population_projects_no_candidates() {
         let population = population(0);
-        let projection = project_population_bounded(
-            &population,
-            ProjectionRevision(1),
-            ProjectionSeed(2),
-            10,
-            10,
-        )
-        .unwrap();
+        let projection =
+            project_population_bounded(&population, context(SCOPE_A, 1, 2), 10, 10).unwrap();
 
         assert!(projection.is_empty());
         assert_eq!(projection.source_count(), 0);
@@ -551,8 +587,7 @@ mod tests {
 
         let projection = project_population_bounded(
             &population,
-            ProjectionRevision(u64::MAX - 1),
-            ProjectionSeed(u64::MAX),
+            context(SCOPE_A, u64::MAX - 1, u64::MAX),
             32,
             32,
         )
@@ -561,31 +596,19 @@ mod tests {
         assert_eq!(projection.len(), 32);
         assert_eq!(projection.source_count(), u64::MAX);
         assert!(projection.candidates().iter().all(|candidate| {
-            candidate.age == PopulationAgeBand::Mature
-                && candidate.condition == PopulationConditionBand::Stable
-                && candidate.cell == PopulationCell::new(9, -2, 4)
+            candidate.projected_age() == PopulationAgeBand::Mature
+                && candidate.projected_condition() == PopulationConditionBand::Stable
+                && candidate.projected_cell() == PopulationCell::new(9, -2, 4)
         }));
     }
 
     #[test]
     fn independent_marginal_permutations_do_not_claim_joint_history() {
         let population = population(96);
-        let a = project_population_bounded(
-            &population,
-            ProjectionRevision(8),
-            ProjectionSeed(100),
-            24,
-            24,
-        )
-        .unwrap();
-        let b = project_population_bounded(
-            &population,
-            ProjectionRevision(8),
-            ProjectionSeed(101),
-            24,
-            24,
-        )
-        .unwrap();
+        let a =
+            project_population_bounded(&population, context(SCOPE_A, 8, 100), 24, 24).unwrap();
+        let b =
+            project_population_bounded(&population, context(SCOPE_A, 8, 101), 24, 24).unwrap();
 
         assert_ne!(a.candidates(), b.candidates());
         assert_eq!(a.source_count(), b.source_count());
