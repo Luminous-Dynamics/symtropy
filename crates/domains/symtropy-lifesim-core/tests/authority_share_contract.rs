@@ -145,3 +145,60 @@ fn frozen_prefix_share_is_independent_of_future_budget_requests() {
         cumulative_prefix(total, count, 12).unwrap()
     );
 }
+
+#[test]
+fn ecological_mutation_rebases_only_unowned_authority() {
+    let original_total = 17u64;
+    let original_count = 5u64;
+    let epoch_zero = frozen_partition(original_total, original_count);
+    assert_eq!(epoch_zero, vec![3, 3, 4, 3, 4]);
+
+    // Two ordinary reservations consume the first two slots of the frozen
+    // epoch. Their ownership is now historical canonical state.
+    let active_a = epoch_zero[0];
+    let active_b = epoch_zero[1];
+    let transferred = active_a + active_b;
+    let remainder_before_mutation = original_total - transferred;
+    let remainder_count = original_count - 2;
+    assert_eq!(remainder_before_mutation, 11);
+    assert_eq!(remainder_count, 3);
+
+    // A later ecological settlement adds biomass to the *unowned* remainder.
+    // Existing active owners must not be repriced. Only the remainder becomes
+    // the origin of a new partition epoch.
+    let ecological_input = 5u64;
+    let rebased_remainder = remainder_before_mutation + ecological_input;
+    let epoch_one = frozen_partition(rebased_remainder, remainder_count);
+    assert_eq!(epoch_one, vec![5, 5, 6]);
+
+    assert_eq!(active_a, 3);
+    assert_eq!(active_b, 3);
+    assert_eq!(epoch_one.iter().sum::<u64>(), rebased_remainder);
+    assert_eq!(
+        active_a + active_b + epoch_one.iter().sum::<u64>(),
+        original_total + ecological_input
+    );
+}
+
+#[test]
+fn reservation_without_ecological_mutation_consumes_frozen_epoch_slots() {
+    let total = 2u64;
+    let count = 4u64;
+    let epoch = frozen_partition(total, count);
+
+    // A growing active budget reveals a longer prefix of one immutable epoch;
+    // it does not repartition the remainder after each reservation.
+    assert_eq!(&epoch[..1], &[0]);
+    assert_eq!(&epoch[..2], &[0, 1]);
+    assert_eq!(&epoch[..3], &[0, 1, 0]);
+    assert_eq!(&epoch[..4], &[0, 1, 0, 1]);
+
+    for prefix_len in 0..=count {
+        let owned = epoch[..prefix_len as usize].iter().sum::<u64>();
+        assert_eq!(
+            owned,
+            cumulative_prefix(total, count, prefix_len).unwrap(),
+            "frozen epoch prefix changed at prefix_len={prefix_len}"
+        );
+    }
+}
