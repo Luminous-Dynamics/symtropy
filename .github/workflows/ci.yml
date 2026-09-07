@@ -45,6 +45,18 @@ jobs:
         toolchain: 1.96.0
         components: clippy, rustfmt
 
+    - name: Toolchain Provenance
+      run: |
+        rustup show active-toolchain
+        rustc --version --verbose
+        cargo --version
+        rustfmt --version
+        cargo clippy --version
+
+    - name: Python Provenance (Linux invariant gates)
+      if: runner.os == 'Linux'
+      run: python3 --version
+
     - name: Cache dependencies
       uses: Swatinem/rust-cache@v2
 
