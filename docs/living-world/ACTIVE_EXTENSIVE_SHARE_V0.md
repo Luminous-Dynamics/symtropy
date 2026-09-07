@@ -76,34 +76,127 @@ A slot ordinal is not a persistent organism identity. It is a generation-scoped 
 
 ## Aggregate-only v0 share allocation
 
-When no richer per-member extensive distribution is canonical, a v0 allocator may partition `B` across `N` authority slots using exact quotient/remainder arithmetic:
+When no richer per-member extensive distribution is canonical, the preferred v0 allocator is a **telescoping cumulative partition**.
+
+For canonical slot ordinal `i` with `0 <= i < N`:
 
 ```text
-q = B / N
-r = B % N
+prefix(i) = floor(B * i / N)
 
-slot_share(slot) = q or q + 1 mg
+slot_share(i) =
+    floor(B * (i + 1) / N)
+  - floor(B * i / N)
+```
+
+The products MUST be evaluated in widened integer arithmetic (`u128` is sufficient for `u64` B, N, and i) before division.
+
+This formulation is equivalent to quotient/remainder allocation but freezes the residual placement without a secondary random or ordering rule.
+
+Let:
+
+```text
+q = floor(B / N)
+r = B mod N
+```
+
+Then every slot share is exactly either:
+
+```text
+q
+```
+
+or:
+
+```text
+q + 1 mg
 ```
 
 with exactly `r` slots receiving the extra milligram.
 
-The allocator MUST freeze how those `r` slots are selected. It must not depend on:
+## Telescoping conservation theorem
 
-- projection seed;
-- render order;
-- active-budget request order;
-- nondeterministic map iteration;
-- CPU/thread timing.
+For all valid `N > 0`, `B >= 0`, and `0 <= k <= N`:
 
-A versioned deterministic residue-placement rule is required.
+```text
+sum(slot_share(i), i = 0..k-1)
+    = floor(B * k / N)
+```
 
-## Residual placement and selection bias
+Therefore for the complete partition:
 
-Assigning all `+1 mg` residuals to low numeric slot ordinals is exact but can correlate accounting residue with a representative reservation sequence that also prefers low ordinals.
+```text
+sum(slot_share(i), i = 0..N-1)
+    = floor(B * N / N)
+    = B
+```
 
-The v0 residue-placement scheme should therefore be independently keyed/versioned from projection and reservation ordering, or the qualification suite must prove that the chosen composition cannot create a meaningful systematic authority bias.
+exactly.
 
-This is an accounting concern, not a claim that one milligram changes visible phenotype.
+No accumulation loop is required to compute an individual slot share, and no remainder pool can become orphaned.
+
+## Prefix proportionality bound
+
+For every prefix length `k`:
+
+```text
+ideal_prefix = B * k / N
+actual_prefix = floor(B * k / N)
+```
+
+so:
+
+```text
+0 <= ideal_prefix - actual_prefix < 1 mg
+```
+
+This is stronger than merely saying that each individual share differs by at most one milligram.
+
+It means a prefix-stable authority reservation sequence can expand or contract its active budget without front-loading an arbitrary rounding residue. The aggregate exact authority assigned to its first `k` slots is always within strictly less than one milligram of the mathematically proportional ideal.
+
+This does **not** make the slots biological body-mass measurements. It only makes the accounting partition maximally balanced under the information available.
+
+## Slot ordering is authority semantics
+
+The cumulative rule removes a separate residual-placement lottery, but slot ordinal still matters and therefore MUST be canonical and versioned.
+
+The slot ordering must not be derived from:
+
+- renderer entity IDs;
+- frame number;
+- projection-array order;
+- wall-clock time;
+- thread/ECS iteration order;
+- nondeterministic map order.
+
+For representative Level-A refinement, the preferred relationship is:
+
+```text
+qualified representative reservation sequence
+    -> canonical stratum-local slot ordinal
+    -> cumulative exact authority share
+```
+
+so the same nested reservation order also receives the prefix proportionality guarantee above.
+
+Targeted reservation may choose non-prefix slot subsets, but every selected slot still owns its frozen exact share and total conservation remains exact.
+
+## Allocation versioning
+
+The cumulative partition itself should be frozen under an explicit allocation scheme version, for example conceptually:
+
+```text
+CUMULATIVE_EXACT_SHARE_V1
+```
+
+Changing any of the following is a semantic version change:
+
+- authority slot ordering;
+- integer unit;
+- cumulative-share formula;
+- source extensive-state interpretation;
+- handling of richer per-member extensive evidence.
+
+A stale Level-A handle bound to another allocation version must fail closed at settlement/recombination.
 
 ## No projection-derived mass
 
@@ -122,7 +215,7 @@ At realization:
 
 ```text
 Level-P candidate
-    -> validate current projection context
+    -> validate current projection context/source authority
     -> identify compatible current canonical stratum
     -> reserve one canonical authority slot
     -> compute that slot's exact extensive share under the frozen authority allocator
@@ -141,7 +234,7 @@ Multiple observers may show the same candidate proposal. The first successful ca
 
 ## Richer extensive state supersedes aggregate allocation
 
-The quotient/remainder allocator is valid only when aggregate stratum biomass is the strongest canonical extensive information available.
+The cumulative aggregate allocator is valid only when aggregate stratum biomass is the strongest canonical extensive information available.
 
 If a future representation stores richer authoritative extensive information, for example:
 
@@ -150,7 +243,7 @@ If a future representation stores richer authoritative extensive information, fo
 - measured persistent individuals;
 - exact per-member extensive state;
 
-then a process requiring those facts must use the richer representation rather than collapsing back to equal-share accounting.
+then a process requiring those facts must use the richer representation rather than collapsing back to aggregate equal-share accounting.
 
 The process-information matrix decides whether aggregate-share allocation is sufficient.
 
@@ -221,12 +314,14 @@ is an ownership transfer, not an ecological source/sink.
 
 Realization/settlement must not mutate canonical state when any of these fail:
 
+- `N == 0` for a requested slot allocation;
+- slot ordinal `i >= N`;
 - stale population/source revision;
 - wrong population scope;
-- incompatible projection scheme/context;
+- incompatible projection scheme/context/source authority;
 - selected stratum no longer has sufficient count;
 - selected authority slot already owned;
-- arithmetic overflow;
+- arithmetic overflow or invalid widened arithmetic path;
 - allocation scheme mismatch;
 - process requires richer extensive information than aggregate-share allocation provides;
 - atomic conservation settlement cannot commit.
@@ -235,20 +330,23 @@ Realization/settlement must not mutate canonical state when any of these fail:
 
 The Living World Observatory should establish at least:
 
-1. for exhaustive small `(N, B)` fixtures, slot shares sum exactly to `B`;
-2. exactly `N` slot shares are defined;
-3. every share is integer-exact and differs from `floor(B/N)` by at most one milligram for the aggregate-only v0 allocator;
-4. residue placement is deterministic and versioned;
-5. projection seed/renderer order do not alter exact authority allocation;
-6. reservation of any valid subset plus remainder conserves count and biomass exactly;
-7. reservation followed by collapse recovers exact source authority;
-8. repeated/multi-observer realization cannot duplicate the same authority ownership;
-9. stale/scope/scheme/allocation-version mismatches fail before mutation;
-10. modeled body-mass changes cannot mutate exact extensive authority;
-11. explicit growth/death fluxes change the exact share by exactly the settled amount;
-12. `u64` boundary/adversarial arithmetic remains fail-closed;
-13. richer canonical mass information prevents fallback to aggregate-only allocation when a process requires that richer information.
+1. exhaustive small `(N, B)` fixtures prove all slot shares sum exactly to `B`;
+2. exactly `N` slot shares are defined for each valid partition;
+3. each share is exactly `floor(B/N)` or `floor(B/N)+1`;
+4. for every small `k <= N`, the first `k` shares sum exactly to `floor(B*k/N)`;
+5. prefix proportionality error is always `< 1 mg`;
+6. `u128` intermediates handle adversarial `u64` boundary values without overflow;
+7. `N == 0` and `i >= N` fail before mutation;
+8. projection seed/renderer order cannot alter exact authority allocation;
+9. reservation of any valid subset plus remainder conserves count and biomass exactly;
+10. nested prefix expansion from `k` to `k+1` preserves every already-owned slot/share;
+11. reservation followed by collapse recovers exact source authority;
+12. repeated/multi-observer realization cannot duplicate the same authority ownership;
+13. stale/scope/source/scheme/allocation-version mismatches fail before mutation;
+14. modeled body-mass changes cannot mutate exact extensive authority;
+15. explicit growth/death fluxes change the exact share by exactly the settled amount;
+16. richer canonical mass information prevents fallback to aggregate-only allocation when a process requires that richer information.
 
 ## Design principle
 
-**Aggregate conservation can tell us exactly how much matter authority must move without pretending it told us the historically measured body mass of an unresolved individual.**
+**Exact aggregate conservation can be partitioned with sub-milligram proportional discrepancy across canonical authority slots, without pretending those accounting shares are historically measured individual body masses.**
