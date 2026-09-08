@@ -3,27 +3,25 @@
 
 //! Executable contract for the V1 sparse-strata population information profile.
 //!
-//! This oracle is intentionally separate from the later #266 product adapter.
-//! It freezes what duplicate-safe canonical `StratifiedPopulationState` may
-//! advertise through the sealed information-policy registry.
+//! The oracle consumes the schema-owned product adapter rather than duplicating
+//! its capability map, so semantic drift in the adapter changes the observable
+//! contract directly.
 
 use symtropy_lifesim_core::conservation::ConservedQuantity;
 use symtropy_lifesim_core::information::{
     CapabilityEvidence, EcologicalAuthorityLevel, EcologicalInformation,
     PopulationStatisticSet, ProcessInformationProfile, ProcessInformationRequirement, ProcessKey,
-    RepresentationCapabilities, RepresentationKey,
 };
 use symtropy_lifesim_core::information_registry::{
     InformationPolicyRegistry, InformationPolicyRegistryBuilder, InformationPolicyRegistryKey,
 };
 use symtropy_lifesim_core::strata::StratifiedPopulationState;
+use symtropy_lifesim_core::strata_information::{
+    register_strata_population_v1, strata_population_v1_capabilities, STRATIFIED_POPULATION_V1,
+};
 
 const REGISTRY: InformationPolicyRegistryKey =
     InformationPolicyRegistryKey::new(0x7374726174615f6361705f7265675f31, 1);
-const STRATIFIED_POPULATION_V1: RepresentationKey = RepresentationKey::new(
-    0x7374726174615f706f705f76315f7631,
-    StratifiedPopulationState::SCHEMA_VERSION as u32,
-);
 
 const PAIRWISE_PROCESS: ProcessKey = ProcessKey::new(0x2001, 1);
 const FULL_JOINT_PROCESS: ProcessKey = ProcessKey::new(0x2002, 1);
@@ -31,38 +29,6 @@ const DISEASE_PROCESS: ProcessKey = ProcessKey::new(0x2003, 1);
 const ACTIVE_PROCESS: ProcessKey = ProcessKey::new(0x2004, 1);
 const PERSISTENT_PROCESS: ProcessKey = ProcessKey::new(0x2005, 1);
 const CONSERVATION_PROCESS: ProcessKey = ProcessKey::new(0x2006, 1);
-
-fn strata_population_v1_capabilities() -> RepresentationCapabilities {
-    RepresentationCapabilities::new(
-        STRATIFIED_POPULATION_V1,
-        EcologicalAuthorityLevel::Coarse,
-        [
-            (EcologicalInformation::Headcount, CapabilityEvidence::Exact),
-            (
-                EcologicalInformation::ExactLivingBiomass,
-                CapabilityEvidence::Exact,
-            ),
-            (
-                EcologicalInformation::AgeDistribution,
-                CapabilityEvidence::Exact,
-            ),
-            (
-                EcologicalInformation::ConditionDistribution,
-                CapabilityEvidence::Exact,
-            ),
-            (
-                EcologicalInformation::OccupancyDistribution,
-                CapabilityEvidence::Exact,
-            ),
-            (
-                EcologicalInformation::JointPopulationStatistics(
-                    PopulationStatisticSet::AGE_CONDITION_OCCUPANCY,
-                ),
-                CapabilityEvidence::Exact,
-            ),
-        ],
-    )
-}
 
 fn exact_process(
     key: ProcessKey,
@@ -82,9 +48,7 @@ fn registry_with(
     processes: impl IntoIterator<Item = ProcessInformationProfile>,
 ) -> InformationPolicyRegistry {
     let mut builder = InformationPolicyRegistryBuilder::new(REGISTRY);
-    builder
-        .register_representation(strata_population_v1_capabilities())
-        .unwrap();
+    register_strata_population_v1(&mut builder).unwrap();
     for process in processes {
         builder.register_process(process).unwrap();
     }
