@@ -1,0 +1,70 @@
+name: F4 Input Matter Repair Runner
+
+on:
+  pull_request:
+    branches: [ "main" ]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: f4-input-matter-repair-runner-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  repair:
+    name: Apply checked-in repair spec
+    runs-on: macos-latest
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        ref: fabrication/f4-input-matter-integrity
+
+    - name: Set up Rust
+      uses: dtolnay/rust-toolchain@stable
+      with:
+        toolchain: 1.96.0
+        components: clippy, rustfmt
+
+    - name: Extract exact Python transformation
+      shell: bash
+      run: |
+        python - <<'PY'
+        from pathlib import Path
+        source = Path('.github/workflows/f4-input-matter-repair.yml').read_text().splitlines()
+        marker = source.index('    - name: Apply exact source transformation')
+        run_line = next(i for i in range(marker + 1, len(source)) if source[i] == '      run: |')
+        body = []
+        for line in source[run_line + 1:]:
+            if line.startswith('    - name:'):
+                break
+            if line.startswith('        '):
+                body.append(line[8:])
+            elif not line.strip():
+                body.append('')
+            else:
+                raise SystemExit(f'unexpected repair-spec indentation: {line!r}')
+        if not body:
+            raise SystemExit('repair transformation body is empty')
+        Path('/tmp/f4_input_matter_repair.py').write_text('\n'.join(body) + '\n')
+        PY
+        python /tmp/f4_input_matter_repair.py
+
+    - name: Apply canonical formatting
+      run: cargo fmt --all
+
+    - name: Run Fabrication tests
+      run: cargo test -p symtropy-fabrication --lib
+
+    - name: Run Fabrication Clippy
+      run: cargo clippy -p symtropy-fabrication --all-targets --all-features -- -D warnings
+
+    - name: Commit verified Rust source only
+      shell: bash
+      run: |
+        git config user.name "github-actions[bot]"
+        git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+        git add crates/domains/symtropy-fabrication/src/process.rs crates/domains/symtropy-fabrication/src/process_evidence.rs
+        git diff --cached --quiet && exit 0
+        git commit -m "fix(fabrication): enforce input matter admission integrity"
+        git push origin HEAD:fabrication/f4-input-matter-integrity
