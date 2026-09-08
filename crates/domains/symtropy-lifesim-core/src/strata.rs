@@ -179,9 +179,7 @@ impl StratifiedPopulationState {
         self.strata.len()
     }
 
-    pub fn strata(
-        &self,
-    ) -> impl Iterator<Item = (&PopulationStratumKey, PopulationStratum)> {
+    pub fn strata(&self) -> impl Iterator<Item = (&PopulationStratumKey, PopulationStratum)> {
         self.strata.iter().map(|(key, stratum)| (key, *stratum))
     }
 
@@ -207,9 +205,7 @@ impl StratifiedPopulationState {
         Ok(())
     }
 
-    pub fn age_distribution(
-        &self,
-    ) -> Result<CountDistribution<PopulationAgeBand>, StrataError> {
+    pub fn age_distribution(&self) -> Result<CountDistribution<PopulationAgeBand>, StrataError> {
         self.count_distribution_by(|key| key.age)
     }
 
@@ -219,9 +215,7 @@ impl StratifiedPopulationState {
         self.count_distribution_by(|key| key.condition)
     }
 
-    pub fn occupancy_distribution(
-        &self,
-    ) -> Result<CountDistribution<PopulationCell>, StrataError> {
+    pub fn occupancy_distribution(&self) -> Result<CountDistribution<PopulationCell>, StrataError> {
         self.count_distribution_by(|key| key.cell)
     }
 
@@ -305,11 +299,17 @@ impl fmt::Display for StrataError {
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::ZeroCountStratum => {
-                write!(formatter, "sparse population strata cannot store zero-count entries")
+                write!(
+                    formatter,
+                    "sparse population strata cannot store zero-count entries"
+                )
             }
             Self::CountOverflow => write!(formatter, "stratified population count overflow"),
             Self::BiomassArithmeticOverflow => {
-                write!(formatter, "stratified population biomass arithmetic overflow")
+                write!(
+                    formatter,
+                    "stratified population biomass arithmetic overflow"
+                )
             }
             Self::CachedCountMismatch { expected, actual } => write!(
                 formatter,
@@ -320,7 +320,10 @@ impl fmt::Display for StrataError {
                 "stratified cached biomass {actual} mg does not match reconstructed biomass {expected} mg"
             ),
             Self::MarginalDistribution(error) => {
-                write!(formatter, "cannot derive stratified marginal summary: {error}")
+                write!(
+                    formatter,
+                    "cannot derive stratified marginal summary: {error}"
+                )
             }
         }
     }
@@ -469,8 +472,14 @@ mod tests {
         let summary = stratified.marginal_summary().unwrap();
 
         assert_eq!(summary.count(), stratified.count());
-        assert_eq!(summary.biomass_milligrams(), stratified.biomass_milligrams());
-        assert_eq!(summary.age_distribution(), &stratified.age_distribution().unwrap());
+        assert_eq!(
+            summary.biomass_milligrams(),
+            stratified.biomass_milligrams()
+        );
+        assert_eq!(
+            summary.age_distribution(),
+            &stratified.age_distribution().unwrap()
+        );
         assert_eq!(
             summary.condition_distribution(),
             &stratified.condition_distribution().unwrap()
@@ -501,11 +510,7 @@ mod tests {
                 stratum(u64::MAX, 0),
             ),
             (
-                key(
-                    PopulationAgeBand::Elder,
-                    PopulationConditionBand::Stable,
-                    1,
-                ),
+                key(PopulationAgeBand::Elder, PopulationConditionBand::Stable, 1),
                 stratum(1, 0),
             ),
         ]));
@@ -525,11 +530,7 @@ mod tests {
                 stratum(1, u64::MAX),
             ),
             (
-                key(
-                    PopulationAgeBand::Elder,
-                    PopulationConditionBand::Stable,
-                    1,
-                ),
+                key(PopulationAgeBand::Elder, PopulationConditionBand::Stable, 1),
                 stratum(1, 1),
             ),
         ]));
