@@ -384,11 +384,8 @@ impl FieldStepRequest {
 }
 
 pub trait FieldStepper {
-    fn step(
-        &self,
-        field: &mut FieldGrid,
-        request: &FieldStepRequest,
-    ) -> Result<(), FieldStepError>;
+    fn step(&self, field: &mut FieldGrid, request: &FieldStepRequest)
+    -> Result<(), FieldStepError>;
 }
 
 #[derive(Debug, Clone, Copy, Default)]
