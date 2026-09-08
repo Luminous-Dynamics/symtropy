@@ -10,6 +10,7 @@ use arrow_array::{Float32Array, UInt32Array};
 use std::fmt;
 use std::ops::Range;
 
+pub mod applicability_policy_manifest;
 pub mod cadence;
 pub mod conservation;
 pub mod habitat;
@@ -21,6 +22,7 @@ pub mod phenotype;
 pub mod physiology;
 pub mod population;
 pub mod transition_policy_manifest;
+pub use applicability_policy_manifest::transition_applicability;
 #[cfg(feature = "wgpu")]
 pub mod wgpu_backend;
 
@@ -382,8 +384,11 @@ impl FieldStepRequest {
 }
 
 pub trait FieldStepper {
-    fn step(&self, field: &mut FieldGrid, request: &FieldStepRequest)
-    -> Result<(), FieldStepError>;
+    fn step(
+        &self,
+        field: &mut FieldGrid,
+        request: &FieldStepRequest,
+    ) -> Result<(), FieldStepError>;
 }
 
 #[derive(Debug, Clone, Copy, Default)]
