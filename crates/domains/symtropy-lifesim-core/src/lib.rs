@@ -11,6 +11,7 @@ use std::fmt;
 use std::ops::Range;
 
 pub mod cadence;
+pub mod candidate_applicability;
 pub mod conservation;
 pub mod habitat;
 pub mod information;
