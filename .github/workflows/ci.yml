@@ -15,6 +15,12 @@ env:
 
 jobs:
   test:
+    # Living World exact-head qualification helpers have their own dedicated,
+    # immutable-product workflows. Running the full 3-OS workspace matrix on
+    # those helper PRs duplicates runner demand without adding product evidence.
+    # Product/oracle PRs keep normal CI; pushes to main/stabilize also keep it
+    # because github.head_ref is empty outside pull_request events.
+    if: ${{ !startsWith(github.head_ref, 'ci/living-world-') }}
     name: Test Suite (${{ matrix.os }})
     runs-on: ${{ matrix.os }}
     strategy:
