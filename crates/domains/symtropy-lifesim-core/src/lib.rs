@@ -12,6 +12,7 @@ use std::ops::Range;
 
 pub mod cadence;
 pub mod composite_information;
+pub mod composite_policy_manifest;
 pub mod conservation;
 pub mod habitat;
 pub mod information;
