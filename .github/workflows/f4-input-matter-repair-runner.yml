@@ -27,22 +27,24 @@ jobs:
         components: clippy, rustfmt
 
     - name: Apply executable-plan test prerequisite
-      shell: python {0}
+      shell: bash
       run: |
+        python - <<'PY'
         from pathlib import Path
         path = Path('crates/domains/symtropy-fabrication/src/executable_plan.rs')
         text = path.read_text()
         old = '''            Err(ExecutablePlanError::CapabilityBindingMismatch { step_id, .. })
                 if step_id == step_id("clean")
-'''
+        '''
         new = '''            Err(ExecutablePlanError::CapabilityBindingMismatch {
                 step_id: actual_step_id,
                 ..
             }) if actual_step_id == step_id("clean")
-'''
+        '''
         if text.count(old) != 1:
             raise SystemExit(f'executable-plan shadowing anchor count={text.count(old)}')
         path.write_text(text.replace(old, new))
+        PY
 
     - name: Apply exact source transformation
       run: python .github/repair/f4_input_matter_repair.py
