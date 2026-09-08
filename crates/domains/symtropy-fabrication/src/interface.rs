@@ -116,8 +116,7 @@ impl InterfaceKind {
             } => load_transfer_profile,
             Self::Fluid { medium_class, .. } => medium_class,
             Self::Electrical {
-                conductor_profile,
-                ..
+                conductor_profile, ..
             } => conductor_profile,
             Self::Thermal {
                 contact_profile, ..

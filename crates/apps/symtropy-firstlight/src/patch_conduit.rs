@@ -14,14 +14,16 @@
 
 use serde::{Deserialize, Serialize};
 use std::{error::Error, fmt};
-use symtropy_construction::{TemporaryWorkContract, TemporaryWorkError, TemporaryWorkId, TemporaryWorkKind};
+use symtropy_construction::{
+    TemporaryWorkContract, TemporaryWorkError, TemporaryWorkId, TemporaryWorkKind,
+};
 use symtropy_fabrication::{
     ConstraintError, ConstraintPredicate, DesignRole, DesignRoleId, EngineeringEvidenceRef,
-    EngineeringFact, EngineeringFactId, EngineeringFactSet, EngineeringFactValue,
-    FabricationPlan, FabricationPlanId, FunctionalConstraint, FunctionalConstraintId,
-    FunctionalDesign, FunctionalDesignId, FunctionalSubject, FunctionalSubjectKind,
-    MeasurementInterval, ObservationState, PlanDependency, PlanError, PlanStep, PlanStepId,
-    ProcessSpecId, RoleCandidateSet, SubstitutionError, SubstitutionResult, SubstitutionSolution,
+    EngineeringFact, EngineeringFactId, EngineeringFactSet, EngineeringFactValue, FabricationPlan,
+    FabricationPlanId, FunctionalConstraint, FunctionalConstraintId, FunctionalDesign,
+    FunctionalDesignId, FunctionalSubject, FunctionalSubjectKind, MeasurementInterval,
+    ObservationState, PlanDependency, PlanError, PlanStep, PlanStepId, ProcessSpecId,
+    RoleCandidateSet, SubstitutionError, SubstitutionResult, SubstitutionSolution,
     SubstitutionSolver, WorkmanshipError, WorkpieceId,
 };
 use symtropy_game_state::StableId;
@@ -73,8 +75,13 @@ impl PatchConduitScenario {
         &self.approaches
     }
 
-    pub fn approach_for_subject(&self, subject: &FunctionalSubject) -> Option<&PatchConduitApproach> {
-        self.approaches.iter().find(|approach| &approach.subject == subject)
+    pub fn approach_for_subject(
+        &self,
+        subject: &FunctionalSubject,
+    ) -> Option<&PatchConduitApproach> {
+        self.approaches
+            .iter()
+            .find(|approach| &approach.subject == subject)
     }
 
     /// Evaluates every catalog candidate through F8. The solver receives no
@@ -92,11 +99,7 @@ impl PatchConduitScenario {
                 .map(|approach| approach.subject.clone())
                 .collect(),
         };
-        Ok(SubstitutionSolver::new(64)?.solve(
-            &self.design,
-            &[candidate_set],
-            facts,
-        )?)
+        Ok(SubstitutionSolver::new(64)?.solve(&self.design, &[candidate_set], facts)?)
     }
 
     /// Resolves only F8-verified solutions to their known installation plans.
@@ -226,7 +229,9 @@ fn functional_design() -> Result<FunctionalDesign, PatchConduitError> {
                 },
             },
             FunctionalConstraint {
-                id: FunctionalConstraintId::new(sid("constraint:patch-conduit:water-compatibility")),
+                id: FunctionalConstraintId::new(sid(
+                    "constraint:patch-conduit:water-compatibility",
+                )),
                 role_id: role_id.clone(),
                 dimension_id: sid(DIM_WATER_COMPATIBILITY),
                 predicate: ConstraintPredicate::CategoryOneOf {
@@ -253,11 +258,16 @@ fn standard_banded_approach() -> Result<PatchConduitApproach, PatchConduitError>
     let band = wp("standard-band");
     let brace = wp("field-brace-standard");
     let plan = FabricationPlan::new(
-        FabricationPlanId::new(sid("fabrication-plan:firstlight:patch-conduit:standard-banded")),
+        FabricationPlanId::new(sid(
+            "fabrication-plan:firstlight:patch-conduit:standard-banded",
+        )),
         1,
         vec![
             step("standard-clean", vec![conduit.clone(), band.clone()])?,
-            step("standard-install-brace", vec![conduit.clone(), brace.clone()])?,
+            step(
+                "standard-install-brace",
+                vec![conduit.clone(), brace.clone()],
+            )?,
             step("standard-align", vec![conduit.clone(), band.clone()])?,
             step("standard-clamp", vec![conduit.clone(), band.clone()])?,
             step("standard-seal", vec![conduit.clone(), band])?,
@@ -302,12 +312,17 @@ fn salvaged_sleeve_approach() -> Result<PatchConduitApproach, PatchConduitError>
     let sleeve = wp("salvaged-sleeve");
     let brace = wp("field-brace-salvage");
     let plan = FabricationPlan::new(
-        FabricationPlanId::new(sid("fabrication-plan:firstlight:patch-conduit:salvaged-sleeve")),
+        FabricationPlanId::new(sid(
+            "fabrication-plan:firstlight:patch-conduit:salvaged-sleeve",
+        )),
         1,
         vec![
             step("salvage-inspect", vec![sleeve.clone()])?,
             step("salvage-clean", vec![conduit.clone(), sleeve.clone()])?,
-            step("salvage-install-brace", vec![conduit.clone(), brace.clone()])?,
+            step(
+                "salvage-install-brace",
+                vec![conduit.clone(), brace.clone()],
+            )?,
             step("salvage-align", vec![conduit.clone(), sleeve.clone()])?,
             step("salvage-clamp", vec![conduit.clone(), sleeve.clone()])?,
             step("salvage-seal", vec![conduit.clone(), sleeve])?,
@@ -410,7 +425,9 @@ fn step(name: &str, workpieces: Vec<WorkpieceId>) -> Result<PlanStep, PlanError>
         1,
         workpieces,
         Vec::new(),
-        vec![sid(format!("evidence-kind:firstlight:patch-conduit:{name}"))],
+        vec![sid(format!(
+            "evidence-kind:firstlight:patch-conduit:{name}"
+        ))],
     )
 }
 
@@ -491,9 +508,7 @@ fn measurement_fact(
     upper: i64,
 ) -> Result<EngineeringFact, PatchConduitError> {
     Ok(EngineeringFact {
-        id: EngineeringFactId::new(sid(format!(
-            "fact:patch-conduit:{suffix}:{fact_suffix}"
-        ))),
+        id: EngineeringFactId::new(sid(format!("fact:patch-conduit:{suffix}:{fact_suffix}"))),
         subject,
         dimension_id: sid(dimension),
         value: EngineeringFactValue::Measurement {
@@ -566,11 +581,19 @@ impl From<SubstitutionError> for PatchConduitError {
 impl fmt::Display for PatchConduitError {
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Self::Constraint(error) => write!(formatter, "Patch Conduit constraint failed: {error}"),
-            Self::Workmanship(error) => write!(formatter, "Patch Conduit measurement failed: {error}"),
+            Self::Constraint(error) => {
+                write!(formatter, "Patch Conduit constraint failed: {error}")
+            }
+            Self::Workmanship(error) => {
+                write!(formatter, "Patch Conduit measurement failed: {error}")
+            }
             Self::Plan(error) => write!(formatter, "Patch Conduit plan failed: {error}"),
-            Self::TemporaryWork(error) => write!(formatter, "Patch Conduit temporary work failed: {error}"),
-            Self::Substitution(error) => write!(formatter, "Patch Conduit substitution failed: {error}"),
+            Self::TemporaryWork(error) => {
+                write!(formatter, "Patch Conduit temporary work failed: {error}")
+            }
+            Self::Substitution(error) => {
+                write!(formatter, "Patch Conduit substitution failed: {error}")
+            }
             Self::EvaluationDesignMismatch {
                 expected_id,
                 expected_revision,
@@ -580,8 +603,14 @@ impl fmt::Display for PatchConduitError {
                 formatter,
                 "Patch Conduit expected evaluation {expected_id}@{expected_revision}, got {actual_id}@{actual_revision}"
             ),
-            Self::MissingRepairBinding => write!(formatter, "Patch Conduit solver result has no repair-role binding"),
-            Self::UnknownApproach(id) => write!(formatter, "Patch Conduit solver returned unknown approach {id}"),
+            Self::MissingRepairBinding => write!(
+                formatter,
+                "Patch Conduit solver result has no repair-role binding"
+            ),
+            Self::UnknownApproach(id) => write!(
+                formatter,
+                "Patch Conduit solver returned unknown approach {id}"
+            ),
         }
     }
 }
@@ -615,7 +644,9 @@ mod tests {
     #[test]
     fn reference_evidence_yields_three_verified_approaches_without_rank() {
         let scenario = PatchConduitScenario::canonical().unwrap();
-        let result = scenario.evaluate(&patch_conduit_reference_facts().unwrap()).unwrap();
+        let result = scenario
+            .evaluate(&patch_conduit_reference_facts().unwrap())
+            .unwrap();
 
         assert_eq!(result.verified.len(), 3);
         assert_eq!(result.rejected_combinations, 1);
@@ -667,10 +698,14 @@ mod tests {
     #[test]
     fn plan_existence_does_not_make_degraded_hose_a_solution() {
         let scenario = PatchConduitScenario::canonical().unwrap();
-        assert!(scenario
-            .approach_for_subject(&assembly_subject(DEGRADED_SUBJECT))
-            .is_some());
-        let result = scenario.evaluate(&patch_conduit_reference_facts().unwrap()).unwrap();
+        assert!(
+            scenario
+                .approach_for_subject(&assembly_subject(DEGRADED_SUBJECT))
+                .is_some()
+        );
+        let result = scenario
+            .evaluate(&patch_conduit_reference_facts().unwrap())
+            .unwrap();
         assert!(!solution_ids(&result.verified).contains(&sid(DEGRADED_SUBJECT)));
         assert_eq!(result.rejected_combinations, 1);
     }

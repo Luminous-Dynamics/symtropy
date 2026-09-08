@@ -92,12 +92,7 @@ impl PatchConduitProcessCatalog {
             need(
                 "seal-installation",
                 "capability:seal-installation",
-                vec![axis(
-                    "axis:contact-pressure-kpa",
-                    100,
-                    3_000,
-                    Some(25),
-                )?],
+                vec![axis("axis:contact-pressure-kpa", 100, 3_000, Some(25))?],
                 &["condition:surface-clean"],
             )?,
             need(
@@ -226,10 +221,7 @@ impl PatchConduitProcessCatalog {
             .find(|candidate| &candidate.id == id)
     }
 
-    pub fn process_for_step(
-        &self,
-        step_id: &PlanStepId,
-    ) -> Option<&PatchConduitProcessContract> {
+    pub fn process_for_step(&self, step_id: &PlanStepId) -> Option<&PatchConduitProcessContract> {
         process_key_for_step(step_id).and_then(|key| self.process_by_key(key))
     }
 
@@ -312,9 +304,7 @@ pub struct PatchConduitExecutionProfile {
 }
 
 impl PatchConduitExecutionProfile {
-    pub fn compile(
-        scenario: &PatchConduitScenario,
-    ) -> Result<Self, PatchConduitExecutionError> {
+    pub fn compile(scenario: &PatchConduitScenario) -> Result<Self, PatchConduitExecutionError> {
         let catalog = PatchConduitProcessCatalog::canonical()?;
         let mut approaches = Vec::with_capacity(scenario.approaches().len());
         for source in scenario.approaches() {
@@ -345,11 +335,10 @@ fn compile_approach(
     catalog: &PatchConduitProcessCatalog,
     source: &PatchConduitApproach,
 ) -> Result<ExecutablePatchConduitApproach, PatchConduitExecutionError> {
-    let revision = source
-        .plan
-        .revision
-        .checked_add(1)
-        .ok_or_else(|| PatchConduitExecutionError::PlanRevisionOverflow(source.plan.id.clone()))?;
+    let revision =
+        source.plan.revision.checked_add(1).ok_or_else(|| {
+            PatchConduitExecutionError::PlanRevisionOverflow(source.plan.id.clone())
+        })?;
 
     let mut compiled_steps = Vec::with_capacity(source.plan.steps().len());
     for source_step in source.plan.steps() {
@@ -490,9 +479,7 @@ fn process_key_for_step(step_id: &PlanStepId) -> Option<&'static str> {
         | "step:firstlight:patch-conduit:salvage-remove-brace" => Some("brace-release"),
 
         "step:firstlight:patch-conduit:serviceable-bypass-install"
-        | "step:firstlight:patch-conduit:degraded-bypass-install" => {
-            Some("temporary-fluid-couple")
-        }
+        | "step:firstlight:patch-conduit:degraded-bypass-install" => Some("temporary-fluid-couple"),
 
         _ => None,
     }
@@ -581,7 +568,10 @@ impl fmt::Display for PatchConduitExecutionError {
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::Capability(error) => {
-                write!(formatter, "Patch Conduit capability contract failed: {error}")
+                write!(
+                    formatter,
+                    "Patch Conduit capability contract failed: {error}"
+                )
             }
             Self::Process(error) => {
                 write!(formatter, "Patch Conduit process contract failed: {error}")
@@ -592,7 +582,10 @@ impl fmt::Display for PatchConduitExecutionError {
                 "Patch Conduit temporary-work rebinding failed: {error}"
             ),
             Self::DuplicateCapabilityNeed(id) => {
-                write!(formatter, "Patch Conduit capability need {id} is duplicated")
+                write!(
+                    formatter,
+                    "Patch Conduit capability need {id} is duplicated"
+                )
             }
             Self::DuplicateProcessSpec(id) => {
                 write!(formatter, "Patch Conduit process spec {id} is duplicated")
@@ -606,7 +599,10 @@ impl fmt::Display for PatchConduitExecutionError {
                 "Patch Conduit plan step {id} has no executable process contract"
             ),
             Self::PlanRevisionOverflow(id) => {
-                write!(formatter, "Patch Conduit plan {id} cannot advance its revision")
+                write!(
+                    formatter,
+                    "Patch Conduit plan {id} cannot advance its revision"
+                )
             }
             Self::ProcessBindingMismatch {
                 step_id,
@@ -685,7 +681,10 @@ mod tests {
                 .unwrap();
             assert_eq!(executable.plan.id, source.plan.id);
             assert_eq!(executable.plan.revision, source.plan.revision + 1);
-            assert_eq!(executable.temporary_works.len(), source.temporary_works.len());
+            assert_eq!(
+                executable.temporary_works.len(),
+                source.temporary_works.len()
+            );
             for contract in &executable.temporary_works {
                 assert_eq!(contract.plan_id, executable.plan.id);
                 assert_eq!(contract.plan_revision, executable.plan.revision);
@@ -762,12 +761,16 @@ mod tests {
 
         assert_eq!(contract.spec.kind, ProcessKind::PressureTest);
         assert_eq!(contract.capability_need_ids().len(), 2);
-        assert!(contract
-            .capability_need_ids()
-            .contains(&capability_need_id("hydrostatic-pressure-source")));
-        assert!(contract
-            .capability_need_ids()
-            .contains(&capability_need_id("pressure-measurement")));
+        assert!(
+            contract
+                .capability_need_ids()
+                .contains(&capability_need_id("hydrostatic-pressure-source"))
+        );
+        assert!(
+            contract
+                .capability_need_ids()
+                .contains(&capability_need_id("pressure-measurement"))
+        );
         assert_eq!(contract.spec.required_capabilities.len(), 2);
     }
 
@@ -798,8 +801,10 @@ mod tests {
             evidence,
         )
         .unwrap();
-        let admission =
-            need.evaluate(CapabilityAdmissionId::new(sid("admission:gauge:good")), &adequate);
+        let admission = need.evaluate(
+            CapabilityAdmissionId::new(sid("admission:gauge:good")),
+            &adequate,
+        );
         assert_eq!(admission.outcome, CapabilityOutcome::Satisfied);
 
         let coarse = CapabilityEnvelope::new(

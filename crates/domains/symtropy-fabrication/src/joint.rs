@@ -11,9 +11,7 @@ use serde::{Deserialize, Serialize};
 use std::{error::Error, fmt};
 use symtropy_game_state::StableId;
 
-use crate::{
-    Interface, InterfaceCompatibility, InterfaceFamily, InterfaceId, InterfaceMismatch,
-};
+use crate::{Interface, InterfaceCompatibility, InterfaceFamily, InterfaceId, InterfaceMismatch};
 
 /// Stable identity of one fabricated connection.
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
@@ -66,7 +64,10 @@ impl JointKind {
             }
             Self::Threaded => matches!(family, Mechanical | Structural | Fluid),
             Self::Brazed => {
-                matches!(family, Mechanical | Structural | Fluid | Electrical | Thermal)
+                matches!(
+                    family,
+                    Mechanical | Structural | Fluid | Electrical | Thermal
+                )
             }
             Self::Soldered => matches!(family, Fluid | Electrical | DataControl),
             Self::Bearing => matches!(family, Mechanical),
@@ -203,10 +204,16 @@ impl fmt::Display for JointError {
                 digest.len()
             ),
             Self::IncompatibleInterfaces(reason) => {
-                write!(formatter, "cannot establish joint between incompatible interfaces: {reason:?}")
+                write!(
+                    formatter,
+                    "cannot establish joint between incompatible interfaces: {reason:?}"
+                )
             }
             Self::UnsupportedJointKind { kind, family } => {
-                write!(formatter, "joint kind {kind:?} is not meaningful for {family:?} interfaces")
+                write!(
+                    formatter,
+                    "joint kind {kind:?} is not meaningful for {family:?} interfaces"
+                )
             }
             Self::AlreadyReleased(id) => write!(formatter, "joint {id} is already released"),
         }

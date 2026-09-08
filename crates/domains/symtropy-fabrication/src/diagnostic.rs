@@ -255,7 +255,9 @@ impl DiagnosticCase {
         &self,
         evaluation: &FunctionalEvaluation,
     ) -> Result<DiagnosticAssessment, DiagnosticError> {
-        if evaluation.design_id != self.design_id || evaluation.design_revision != self.design_revision {
+        if evaluation.design_id != self.design_id
+            || evaluation.design_revision != self.design_revision
+        {
             return Err(DiagnosticError::EvaluationDesignMismatch {
                 expected_id: self.design_id.clone(),
                 expected_revision: self.design_revision,
@@ -278,7 +280,9 @@ impl DiagnosticCase {
 
         for expected in &self.design_constraints {
             if !by_constraint.contains_key(expected) {
-                return Err(DiagnosticError::MissingConstraintEvaluation(expected.clone()));
+                return Err(DiagnosticError::MissingConstraintEvaluation(
+                    expected.clone(),
+                ));
             }
         }
         if let Some(unexpected) = by_constraint
@@ -446,10 +450,16 @@ impl fmt::Display for DiagnosticError {
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::HypothesisRequired => {
-                write!(formatter, "diagnostic case requires at least one hypothesis")
+                write!(
+                    formatter,
+                    "diagnostic case requires at least one hypothesis"
+                )
             }
             Self::HypothesisCriterionRequired(id) => {
-                write!(formatter, "diagnostic hypothesis {id} requires at least one criterion")
+                write!(
+                    formatter,
+                    "diagnostic hypothesis {id} requires at least one criterion"
+                )
             }
             Self::DuplicateHypothesisCriterion {
                 hypothesis_id,
@@ -459,10 +469,16 @@ impl fmt::Display for DiagnosticError {
                 "diagnostic hypothesis {hypothesis_id} repeats constraint {constraint_id}"
             ),
             Self::ProbeTargetRequired(id) => {
-                write!(formatter, "diagnostic probe {id} requires at least one target constraint")
+                write!(
+                    formatter,
+                    "diagnostic probe {id} requires at least one target constraint"
+                )
             }
             Self::ProbeEvidenceKindRequired(id) => {
-                write!(formatter, "diagnostic probe {id} requires at least one expected evidence kind")
+                write!(
+                    formatter,
+                    "diagnostic probe {id} requires at least one expected evidence kind"
+                )
             }
             Self::DuplicateProbeTarget {
                 probe_id,
@@ -509,10 +525,16 @@ impl fmt::Display for DiagnosticError {
                 write!(formatter, "functional evaluation repeats constraint {id}")
             }
             Self::MissingConstraintEvaluation(id) => {
-                write!(formatter, "functional evaluation omits required constraint {id}")
+                write!(
+                    formatter,
+                    "functional evaluation omits required constraint {id}"
+                )
             }
             Self::UnexpectedConstraintEvaluation(id) => {
-                write!(formatter, "functional evaluation contains unexpected constraint {id}")
+                write!(
+                    formatter,
+                    "functional evaluation contains unexpected constraint {id}"
+                )
             }
         }
     }
@@ -569,10 +591,7 @@ mod tests {
         .unwrap()
     }
 
-    fn hypothesis(
-        name: &str,
-        criteria: Vec<(&str, KnownConstraintState)>,
-    ) -> DiagnosticHypothesis {
+    fn hypothesis(name: &str, criteria: Vec<(&str, KnownConstraintState)>) -> DiagnosticHypothesis {
         DiagnosticHypothesis::new(
             DiagnosticHypothesisId::new(id(&format!("hypothesis:{name}"))),
             criteria
@@ -716,7 +735,10 @@ mod tests {
                 ConstraintOutcome::Satisfied,
             ))
             .unwrap();
-        assert_eq!(assessment.hypotheses[0].outcome, HypothesisOutcome::Contradicted);
+        assert_eq!(
+            assessment.hypotheses[0].outcome,
+            HypothesisOutcome::Contradicted
+        );
         assert_eq!(assessment.hypotheses[0].matching_constraints.len(), 1);
         assert_eq!(assessment.hypotheses[0].contradicting_constraints.len(), 1);
     }
@@ -766,7 +788,10 @@ mod tests {
             "authorized",
             "commissioned",
         ] {
-            assert!(value.get(forbidden).is_none(), "unexpected field {forbidden}");
+            assert!(
+                value.get(forbidden).is_none(),
+                "unexpected field {forbidden}"
+            );
         }
     }
 
@@ -792,7 +817,10 @@ mod tests {
     fn diagnostic_case_serialization_carries_no_world_binding_or_runtime_state() {
         let value = serde_json::to_value(case()).unwrap();
         for forbidden in ["binding", "world_state", "progress", "selected_diagnosis"] {
-            assert!(value.get(forbidden).is_none(), "unexpected field {forbidden}");
+            assert!(
+                value.get(forbidden).is_none(),
+                "unexpected field {forbidden}"
+            );
         }
     }
 }

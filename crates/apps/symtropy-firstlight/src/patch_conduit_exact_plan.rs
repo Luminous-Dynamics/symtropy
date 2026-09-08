@@ -8,8 +8,7 @@
 //! every compiled plan step to one exact canonical `ProcessSpecSnapshot`.
 
 use crate::{
-    patch_conduit::PatchConduitScenario,
-    patch_conduit_execution::PatchConduitExecutionProfile,
+    patch_conduit::PatchConduitScenario, patch_conduit_execution::PatchConduitExecutionProfile,
 };
 use serde::{Deserialize, Serialize};
 use std::{error::Error, fmt};
@@ -116,13 +115,22 @@ impl From<ExecutablePlanError> for ExactPatchConduitError {
 impl fmt::Display for ExactPatchConduitError {
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Self::Profile(error) => write!(formatter, "Patch Conduit profile compilation failed: {error}"),
+            Self::Profile(error) => write!(
+                formatter,
+                "Patch Conduit profile compilation failed: {error}"
+            ),
             Self::MissingProcess(step) => {
-                write!(formatter, "Patch Conduit exact plan lacks a process for step {step}")
+                write!(
+                    formatter,
+                    "Patch Conduit exact plan lacks a process for step {step}"
+                )
             }
             Self::ExecutablePlan(error) => fmt::Display::fmt(error, formatter),
             Self::TemporaryWork(error) => {
-                write!(formatter, "Patch Conduit temporary-work validation failed: {error}")
+                write!(
+                    formatter,
+                    "Patch Conduit temporary-work validation failed: {error}"
+                )
             }
         }
     }

@@ -255,7 +255,9 @@ impl WorkOrder {
         }
         if self.lifecycle == WorkOrderLifecycle::Cancelled {
             if self.release.is_some() {
-                return Err(WorkOrderError::InconsistentCancelledRelease(self.id.clone()));
+                return Err(WorkOrderError::InconsistentCancelledRelease(
+                    self.id.clone(),
+                ));
             }
             return Ok(WorkOrderStatus::Cancelled);
         }
@@ -266,7 +268,9 @@ impl WorkOrder {
             .admissions()
             .iter()
             .find(|admission| admission.id == release.site_admission_id)
-            .ok_or_else(|| WorkOrderError::MissingSiteAdmission(release.site_admission_id.clone()))?;
+            .ok_or_else(|| {
+                WorkOrderError::MissingSiteAdmission(release.site_admission_id.clone())
+            })?;
         if admission.execution_id != release.execution_id || admission.step_id != self.step_id {
             return Err(WorkOrderError::SiteAdmissionMismatch(
                 release.site_admission_id.clone(),
@@ -440,13 +444,22 @@ impl fmt::Display for WorkOrderError {
                 write!(formatter, "capability admission {id} is not satisfied")
             }
             Self::UnexpectedCapabilityNeed(id) => {
-                write!(formatter, "capability admission covers unexpected need {id}")
+                write!(
+                    formatter,
+                    "capability admission covers unexpected need {id}"
+                )
             }
             Self::DuplicateCapabilityCoverage(id) => {
-                write!(formatter, "work order has duplicate coverage for capability need {id}")
+                write!(
+                    formatter,
+                    "work order has duplicate coverage for capability need {id}"
+                )
             }
             Self::MissingCapabilityCoverage(id) => {
-                write!(formatter, "work order lacks coverage for capability need {id}")
+                write!(
+                    formatter,
+                    "work order lacks coverage for capability need {id}"
+                )
             }
             Self::InvalidCapabilityEvidenceDigest(digest) => write!(
                 formatter,
@@ -485,9 +498,9 @@ impl Error for WorkOrderError {
 mod tests {
     use super::*;
     use symtropy_fabrication::{
-        CapabilityAxisNeed, CapabilityAxisRange, CapabilityEnvelope, CapabilityNeed,
-        MatterBinding, PlanDependency, PlanStep, ProcessExecution, ProcessKind, ProcessSpec,
-        ProcessSpecId, Workpiece, WorkpieceLifecycle,
+        CapabilityAxisNeed, CapabilityAxisRange, CapabilityEnvelope, CapabilityNeed, MatterBinding,
+        PlanDependency, PlanStep, ProcessExecution, ProcessKind, ProcessSpec, ProcessSpecId,
+        Workpiece, WorkpieceLifecycle,
     };
 
     fn id(value: &str) -> StableId {
@@ -561,9 +574,7 @@ mod tests {
             CapabilityNeedId::new(id("capability-need:seal")),
             id("capability:controlled-sealing"),
             Some(id("mode:seal:field")),
-            vec![
-                CapabilityAxisNeed::new(id("axis:clamp-force-n"), 200, 400, Some(10)).unwrap(),
-            ],
+            vec![CapabilityAxisNeed::new(id("axis:clamp-force-n"), 200, 400, Some(10)).unwrap()],
             vec![id("condition:surface-clean")],
         )
         .unwrap()
@@ -580,9 +591,7 @@ mod tests {
                 id("capability:wrong")
             },
             id("mode:seal:field"),
-            vec![
-                CapabilityAxisRange::new(id("axis:clamp-force-n"), 100, 500, 5).unwrap(),
-            ],
+            vec![CapabilityAxisRange::new(id("axis:clamp-force-n"), 100, 500, 5).unwrap()],
             vec![id("condition:surface-clean")],
             CapabilityEvidenceRef::new(
                 id("authority:tool-diagnostics"),
@@ -882,7 +891,10 @@ mod tests {
             "quality",
             "score",
         ] {
-            assert!(value.get(forbidden).is_none(), "unexpected field {forbidden}");
+            assert!(
+                value.get(forbidden).is_none(),
+                "unexpected field {forbidden}"
+            );
         }
     }
 }

@@ -309,13 +309,19 @@ impl FunctionalDesign {
             );
         }
 
-        let supporting_facts = matching.iter().map(|fact| fact.id.clone()).collect::<Vec<_>>();
+        let supporting_facts = matching
+            .iter()
+            .map(|fact| fact.id.clone())
+            .collect::<Vec<_>>();
         let individual = matching
             .iter()
             .map(|fact| evaluate_fact(&constraint.predicate, &fact.value))
             .collect::<Vec<_>>();
 
-        if individual.iter().all(|result| result.outcome == ConstraintOutcome::Satisfied) {
+        if individual
+            .iter()
+            .all(|result| result.outcome == ConstraintOutcome::Satisfied)
+        {
             return ConstraintEvaluation {
                 constraint_id: constraint.id.clone(),
                 outcome: ConstraintOutcome::Satisfied,
@@ -553,7 +559,10 @@ pub enum ConstraintError {
         constraint_id: FunctionalConstraintId,
         role_id: DesignRoleId,
     },
-    InvalidConstraintInterval { lower: i64, upper: i64 },
+    InvalidConstraintInterval {
+        lower: i64,
+        upper: i64,
+    },
     EmptyAcceptedCategories,
     DuplicateAcceptedCategory(StableId),
     UnknownCannotBeRequired,
@@ -571,9 +580,14 @@ impl fmt::Display for ConstraintError {
             Self::DuplicateFact(id) => write!(formatter, "engineering fact {id} is duplicated"),
             Self::RoleRequired => write!(formatter, "functional design requires at least one role"),
             Self::ConstraintRequired => {
-                write!(formatter, "functional design requires at least one constraint")
+                write!(
+                    formatter,
+                    "functional design requires at least one constraint"
+                )
             }
-            Self::DuplicateRole(id) => write!(formatter, "functional design role {id} is duplicated"),
+            Self::DuplicateRole(id) => {
+                write!(formatter, "functional design role {id} is duplicated")
+            }
             Self::DuplicateConstraint(id) => {
                 write!(formatter, "functional constraint {id} is duplicated")
             }
@@ -589,10 +603,16 @@ impl fmt::Display for ConstraintError {
                 "functional constraint interval is invalid: {lower}..{upper}"
             ),
             Self::EmptyAcceptedCategories => {
-                write!(formatter, "category constraint requires at least one accepted value")
+                write!(
+                    formatter,
+                    "category constraint requires at least one accepted value"
+                )
             }
             Self::DuplicateAcceptedCategory(value) => {
-                write!(formatter, "category constraint repeats accepted value {value}")
+                write!(
+                    formatter,
+                    "category constraint repeats accepted value {value}"
+                )
             }
             Self::UnknownCannotBeRequired => {
                 write!(formatter, "unknown cannot be a required predicate state")
@@ -713,12 +733,12 @@ mod tests {
 
     #[test]
     fn missing_evidence_is_unknown_not_failure() {
-        let result = design().evaluate(
-            &binding(),
-            &EngineeringFactSet::new(Vec::new()).unwrap(),
-        );
+        let result = design().evaluate(&binding(), &EngineeringFactSet::new(Vec::new()).unwrap());
         assert_eq!(result.evaluations[0].outcome, ConstraintOutcome::Unknown);
-        assert_eq!(result.evaluations[0].reason, ConstraintReason::MissingEvidence);
+        assert_eq!(
+            result.evaluations[0].reason,
+            ConstraintReason::MissingEvidence
+        );
     }
 
     #[test]
@@ -729,7 +749,10 @@ mod tests {
         )])
         .unwrap();
         let result = design().evaluate(&binding(), &facts);
-        assert_eq!(result.evaluations[0].outcome, ConstraintOutcome::Unsatisfied);
+        assert_eq!(
+            result.evaluations[0].outcome,
+            ConstraintOutcome::Unsatisfied
+        );
         assert_eq!(
             result.evaluations[0].reason,
             ConstraintReason::MeasurementOutsideLimit

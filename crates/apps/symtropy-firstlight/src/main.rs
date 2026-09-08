@@ -7,7 +7,7 @@ mod patch_conduit_exact_plan;
 mod patch_conduit_execution;
 mod patch_conduit_staged_execution;
 
-use patch_conduit::{patch_conduit_reference_facts, PatchConduitScenario};
+use patch_conduit::{PatchConduitScenario, patch_conduit_reference_facts};
 use patch_conduit_diagnostics::run_reference_pressure_diagnostics;
 use patch_conduit_exact_plan::ExactPatchConduitProfile;
 use patch_conduit_execution::PatchConduitExecutionProfile;
@@ -186,8 +186,7 @@ fn run_patch_conduit_exact_plan() {
     });
     println!(
         "{}",
-        serde_json::to_string_pretty(&summary)
-            .expect("serialize Patch Conduit exact-plan summary")
+        serde_json::to_string_pretty(&summary).expect("serialize Patch Conduit exact-plan summary")
     );
 }
 

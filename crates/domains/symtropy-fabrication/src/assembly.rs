@@ -234,15 +234,21 @@ pub enum AssemblyError {
 impl fmt::Display for AssemblyError {
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Self::WorkpieceRequired => write!(formatter, "assembly requires at least one workpiece"),
+            Self::WorkpieceRequired => {
+                write!(formatter, "assembly requires at least one workpiece")
+            }
             Self::DuplicateWorkpiece(id) => write!(formatter, "assembly repeats workpiece {id}"),
             Self::DuplicateInterface(id) => write!(formatter, "assembly repeats interface {id}"),
             Self::DuplicateJoint(id) => write!(formatter, "assembly repeats joint {id}"),
             Self::DuplicateInterfaceRecord(id) => {
                 write!(formatter, "interface registry repeats record {id}")
             }
-            Self::DuplicateJointRecord(id) => write!(formatter, "joint registry repeats record {id}"),
-            Self::MissingInterface(id) => write!(formatter, "assembly interface {id} is unavailable"),
+            Self::DuplicateJointRecord(id) => {
+                write!(formatter, "joint registry repeats record {id}")
+            }
+            Self::MissingInterface(id) => {
+                write!(formatter, "assembly interface {id} is unavailable")
+            }
             Self::MissingJoint(id) => write!(formatter, "assembly joint {id} is unavailable"),
             Self::InterfaceOwnedByExternalWorkpiece {
                 interface_id,
@@ -294,7 +300,9 @@ fn sort_unique_joints(values: &mut Vec<JointId>) -> Result<(), AssemblyError> {
     Ok(())
 }
 
-fn index_interfaces(records: &[Interface]) -> Result<BTreeMap<InterfaceId, &Interface>, AssemblyError> {
+fn index_interfaces(
+    records: &[Interface],
+) -> Result<BTreeMap<InterfaceId, &Interface>, AssemblyError> {
     let mut registry = BTreeMap::new();
     for record in records {
         if registry.insert(record.id.clone(), record).is_some() {
@@ -337,9 +345,7 @@ fn union(parents: &mut [usize], left: usize, right: usize) {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{
-        InterfaceKind, JointEvidenceRef, JointKind, MatingGeometry,
-    };
+    use crate::{InterfaceKind, JointEvidenceRef, JointKind, MatingGeometry};
 
     fn id(value: &str) -> StableId {
         StableId::parse(value).unwrap()
@@ -441,7 +447,11 @@ mod tests {
             AssemblyId::new(id("assembly:seam")),
             1,
             vec![workpiece("workpiece:sheet"), workpiece("workpiece:spare")],
-            vec![seam_left.id.clone(), seam_right.id.clone(), spare.id.clone()],
+            vec![
+                seam_left.id.clone(),
+                seam_right.id.clone(),
+                spare.id.clone(),
+            ],
             vec![seam.id.clone()],
         )
         .unwrap();

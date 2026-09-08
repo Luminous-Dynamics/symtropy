@@ -191,7 +191,10 @@ impl fmt::Display for WorkmanshipError {
                 "workmanship measurement interval is invalid: {lower}..{upper}"
             ),
             Self::ZeroMeasurementResolution => {
-                write!(formatter, "workmanship measurement resolution must be non-zero")
+                write!(
+                    formatter,
+                    "workmanship measurement resolution must be non-zero"
+                )
             }
             Self::DuplicateObservation(id) => {
                 write!(formatter, "workmanship observation {id} already exists")
@@ -266,7 +269,10 @@ mod tests {
                 })
                 .unwrap();
         }
-        assert_eq!(vector.observations_for(&id("workmanship:heat-input")).len(), 2);
+        assert_eq!(
+            vector.observations_for(&id("workmanship:heat-input")).len(),
+            2
+        );
     }
 
     #[test]
