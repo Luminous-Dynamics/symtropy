@@ -18,6 +18,7 @@ pub mod information_registry;
 pub mod phenotype;
 pub mod physiology;
 pub mod population;
+pub mod population_information;
 #[cfg(feature = "wgpu")]
 pub mod wgpu_backend;
 
