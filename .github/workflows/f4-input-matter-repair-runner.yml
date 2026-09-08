@@ -38,12 +38,11 @@ jobs:
         for line in source[run_line + 1:]:
             if line.startswith('    - name:'):
                 break
-            if line.startswith('        '):
-                body.append(line[8:])
-            elif not line.strip():
-                body.append('')
-            else:
-                raise SystemExit(f'unexpected repair-spec indentation: {line!r}')
+            # Most YAML block-scalar lines carry eight spaces. Some lines inside
+            # Python triple-quoted replacement strings intentionally begin at
+            # column zero in the checked-in repair specification. Preserve those
+            # verbatim instead of rejecting them as malformed indentation.
+            body.append(line[8:] if line.startswith('        ') else line)
         if not body:
             raise SystemExit('repair transformation body is empty')
         Path('/tmp/f4_input_matter_repair.py').write_text('\n'.join(body) + '\n')
