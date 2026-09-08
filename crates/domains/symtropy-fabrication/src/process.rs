@@ -151,9 +151,7 @@ impl ProcessKind {
             Self::Coat | Self::HeatTreat => ProcessFamily::Treat,
             Self::Splice | Self::Terminate | Self::Couple => ProcessFamily::Connect,
             Self::Configure | Self::Calibrate => ProcessFamily::Configure,
-            Self::Inspect | Self::PressureTest | Self::ContinuityTest => {
-                ProcessFamily::InspectTest
-            }
+            Self::Inspect | Self::PressureTest | Self::ContinuityTest => ProcessFamily::InspectTest,
         }
     }
 
@@ -539,7 +537,10 @@ impl fmt::Display for ProcessError {
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::NoAllowedWorkpieceStates => {
-                write!(formatter, "process requires at least one allowed workpiece state")
+                write!(
+                    formatter,
+                    "process requires at least one allowed workpiece state"
+                )
             }
             Self::DuplicateRequiredCapability(id) => {
                 write!(formatter, "process repeats required capability {id}")
@@ -555,7 +556,10 @@ impl fmt::Display for ProcessError {
                 write!(formatter, "process execution {id} is already closed")
             }
             Self::ResultingMatterEvidenceRequired => {
-                write!(formatter, "completed process requires resulting matter evidence")
+                write!(
+                    formatter,
+                    "completed process requires resulting matter evidence"
+                )
             }
             Self::DuplicateResultingMatterAllocation {
                 authority_id,

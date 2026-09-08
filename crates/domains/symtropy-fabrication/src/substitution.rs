@@ -121,7 +121,9 @@ fn normalize_candidate_sets(
             .iter()
             .any(|existing| existing.role_id == set.role_id)
         {
-            return Err(SubstitutionError::DuplicateCandidateRole(set.role_id.clone()));
+            return Err(SubstitutionError::DuplicateCandidateRole(
+                set.role_id.clone(),
+            ));
         }
         if design.role(&set.role_id).is_none() {
             return Err(SubstitutionError::UnknownRole(set.role_id.clone()));
@@ -245,7 +247,10 @@ fn visit_bindings(
 #[derive(Debug)]
 pub enum SubstitutionError {
     ZeroSearchBudget,
-    RoleCoverage { expected: usize, provided: usize },
+    RoleCoverage {
+        expected: usize,
+        provided: usize,
+    },
     DuplicateCandidateRole(DesignRoleId),
     UnknownRole(DesignRoleId),
     MissingRole(DesignRoleId),
@@ -259,19 +264,30 @@ pub enum SubstitutionError {
 impl fmt::Display for SubstitutionError {
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Self::ZeroSearchBudget => write!(formatter, "substitution search budget must be non-zero"),
+            Self::ZeroSearchBudget => {
+                write!(formatter, "substitution search budget must be non-zero")
+            }
             Self::RoleCoverage { expected, provided } => write!(
                 formatter,
                 "substitution requires exactly one candidate set per design role: expected {expected}, got {provided}"
             ),
             Self::DuplicateCandidateRole(role) => {
-                write!(formatter, "substitution repeats candidate set for role {role}")
+                write!(
+                    formatter,
+                    "substitution repeats candidate set for role {role}"
+                )
             }
             Self::UnknownRole(role) => {
-                write!(formatter, "substitution candidate set references unknown role {role}")
+                write!(
+                    formatter,
+                    "substitution candidate set references unknown role {role}"
+                )
             }
             Self::MissingRole(role) => {
-                write!(formatter, "substitution has no candidate set for role {role}")
+                write!(
+                    formatter,
+                    "substitution has no candidate set for role {role}"
+                )
             }
             Self::EmptyCandidateSet(role) => {
                 write!(formatter, "substitution role {role} has no candidates")
@@ -398,17 +414,22 @@ mod tests {
     fn candidate_input_order_does_not_change_solution_order() {
         let a = subject("assembly:a");
         let b = subject("assembly:b");
-        let facts = EngineeringFactSet::new(vec![
-            fact(a, 100, 120, "a"),
-            fact(b, 120, 140, "b"),
-        ])
-        .unwrap();
+        let facts =
+            EngineeringFactSet::new(vec![fact(a, 100, 120, "a"), fact(b, 120, 140, "b")]).unwrap();
         let solver = SubstitutionSolver::new(8).unwrap();
         let forward = solver
-            .solve(&design(), &candidates(&["assembly:a", "assembly:b"]), &facts)
+            .solve(
+                &design(),
+                &candidates(&["assembly:a", "assembly:b"]),
+                &facts,
+            )
             .unwrap();
         let reverse = solver
-            .solve(&design(), &candidates(&["assembly:b", "assembly:a"]), &facts)
+            .solve(
+                &design(),
+                &candidates(&["assembly:b", "assembly:a"]),
+                &facts,
+            )
             .unwrap();
 
         let forward_ids = forward

@@ -196,14 +196,20 @@ impl fmt::Display for ContinuityError {
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::MissingRelease(id) => {
-                write!(formatter, "process execution {id} has no staged construction release")
+                write!(
+                    formatter,
+                    "process execution {id} has no staged construction release"
+                )
             }
             Self::AmbiguousRelease(id) => write!(
                 formatter,
                 "process execution {id} matches more than one staged construction release"
             ),
             Self::MissingReservation(id) => {
-                write!(formatter, "staged release references missing reservation {id}")
+                write!(
+                    formatter,
+                    "staged release references missing reservation {id}"
+                )
             }
             Self::ReleaseReservationMismatch {
                 execution_id,
@@ -217,10 +223,9 @@ impl fmt::Display for ContinuityError {
                 formatter,
                 "staged release repeats workpiece {id} while reconstructing input continuity"
             ),
-            Self::DuplicateProcessWorkpiece(id) => write!(
-                formatter,
-                "process evidence repeats input workpiece {id}"
-            ),
+            Self::DuplicateProcessWorkpiece(id) => {
+                write!(formatter, "process evidence repeats input workpiece {id}")
+            }
             Self::InputSnapshotMismatch {
                 execution_id,
                 expected,
@@ -394,13 +399,8 @@ mod tests {
         states: Vec<WorkpieceLifecycle>,
         evidence_name: &str,
     ) -> ProcessEvidence {
-        let mut execution = ProcessExecution::begin(
-            execution_id,
-            &align_spec(states),
-            &[workpiece],
-            &[],
-        )
-        .unwrap();
+        let mut execution =
+            ProcessExecution::begin(execution_id, &align_spec(states), &[workpiece], &[]).unwrap();
         execution
             .complete(
                 id("matter:test"),
@@ -511,7 +511,10 @@ mod tests {
         record_released_process_completion(&staging, &mut site, &plan, &evidence).unwrap();
 
         assert_eq!(order.status(&site).unwrap(), WorkOrderStatus::Completed);
-        assert_eq!(site.completed_step_ids(), vec![PlanStepId::new(id("step:align"))]);
+        assert_eq!(
+            site.completed_step_ids(),
+            vec![PlanStepId::new(id("step:align"))]
+        );
     }
 
     #[test]

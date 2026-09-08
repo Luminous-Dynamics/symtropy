@@ -138,11 +138,7 @@ impl TemporaryWorkContract {
             let removal = plan
                 .step(removal_step_id)
                 .ok_or_else(|| TemporaryWorkError::UnknownStep(removal_step_id.clone()))?;
-            require_step_workpieces(
-                removal_step_id,
-                removal.workpieces(),
-                &temporary_workpieces,
-            )?;
+            require_step_workpieces(removal_step_id, removal.workpieces(), &temporary_workpieces)?;
 
             for protected in &protected_step_ids {
                 if !reaches(plan, protected, removal_step_id) {
@@ -206,7 +202,10 @@ impl TemporaryWorkContract {
         plan: &FabricationPlan,
     ) -> Result<TemporaryWorkSequencingState, TemporaryWorkError> {
         self.validate_context(site, plan)?;
-        let completed = site.completed_step_ids().into_iter().collect::<BTreeSet<_>>();
+        let completed = site
+            .completed_step_ids()
+            .into_iter()
+            .collect::<BTreeSet<_>>();
         let install_completed = completed.contains(&self.installation_step_id);
         let removal_completed = self
             .removal_step_id
@@ -412,10 +411,16 @@ impl fmt::Display for TemporaryWorkError {
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::TemporaryWorkpieceRequired(id) => {
-                write!(formatter, "temporary work {id} requires at least one workpiece")
+                write!(
+                    formatter,
+                    "temporary work {id} requires at least one workpiece"
+                )
             }
             Self::ProtectedStepRequired(id) => {
-                write!(formatter, "temporary work {id} must protect at least one plan step")
+                write!(
+                    formatter,
+                    "temporary work {id} must protect at least one plan step"
+                )
             }
             Self::DuplicateTemporaryWorkpiece(id) => {
                 write!(formatter, "temporary work repeats workpiece {id}")
@@ -423,7 +428,10 @@ impl fmt::Display for TemporaryWorkError {
             Self::DuplicateProtectedStep(id) => {
                 write!(formatter, "temporary work repeats protected step {id}")
             }
-            Self::UnknownStep(id) => write!(formatter, "temporary work references unknown plan step {id}"),
+            Self::UnknownStep(id) => write!(
+                formatter,
+                "temporary work references unknown plan step {id}"
+            ),
             Self::TemporaryWorkpieceMissingFromStep {
                 step_id,
                 workpiece_id,
@@ -684,7 +692,10 @@ mod tests {
             "technical_ready",
             "authorized",
         ] {
-            assert!(value.get(forbidden).is_none(), "unexpected field {forbidden}");
+            assert!(
+                value.get(forbidden).is_none(),
+                "unexpected field {forbidden}"
+            );
         }
     }
 }

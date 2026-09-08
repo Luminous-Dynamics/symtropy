@@ -231,7 +231,9 @@ impl CommissioningPlan {
         }
         for expected in &self.design_constraints {
             if !by_constraint.contains_key(expected) {
-                return Err(CommissioningError::MissingConstraintEvaluation(expected.clone()));
+                return Err(CommissioningError::MissingConstraintEvaluation(
+                    expected.clone(),
+                ));
             }
         }
         if let Some(unexpected) = by_constraint
@@ -461,9 +463,10 @@ pub struct CommissioningAssessment {
 impl CommissioningAssessment {
     pub fn technical_ready(&self) -> bool {
         !self.evaluations.is_empty()
-            && self.evaluations.iter().all(|evaluation| {
-                evaluation.outcome == CommissioningRequirementOutcome::Satisfied
-            })
+            && self
+                .evaluations
+                .iter()
+                .all(|evaluation| evaluation.outcome == CommissioningRequirementOutcome::Satisfied)
     }
 }
 
@@ -514,7 +517,10 @@ impl fmt::Display for CommissioningError {
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::RequirementRequired => {
-                write!(formatter, "commissioning plan requires at least one requirement")
+                write!(
+                    formatter,
+                    "commissioning plan requires at least one requirement"
+                )
             }
             Self::DuplicateRequirement(id) => {
                 write!(formatter, "commissioning plan repeats requirement {id}")
@@ -573,10 +579,16 @@ impl fmt::Display for CommissioningError {
                 write!(formatter, "functional evaluation repeats constraint {id}")
             }
             Self::MissingConstraintEvaluation(id) => {
-                write!(formatter, "functional evaluation omits required constraint {id}")
+                write!(
+                    formatter,
+                    "functional evaluation omits required constraint {id}"
+                )
             }
             Self::UnexpectedConstraintEvaluation(id) => {
-                write!(formatter, "functional evaluation contains unexpected constraint {id}")
+                write!(
+                    formatter,
+                    "functional evaluation contains unexpected constraint {id}"
+                )
             }
         }
     }
@@ -741,7 +753,10 @@ mod tests {
             "ownership",
             "operator_permission",
         ] {
-            assert!(value.get(forbidden).is_none(), "unexpected field {forbidden}");
+            assert!(
+                value.get(forbidden).is_none(),
+                "unexpected field {forbidden}"
+            );
         }
     }
 
@@ -832,11 +847,7 @@ mod tests {
     #[test]
     fn duplicate_evidence_identity_is_rejected() {
         let state = subject_state(9);
-        let item = evidence(
-            "authority:test-rig",
-            "evidence:duplicate",
-            state.clone(),
-        );
+        let item = evidence("authority:test-rig", "evidence:duplicate", state.clone());
         assert!(matches!(
             CommissioningDossier::new(
                 CommissioningPlanId::new(id("commissioning-plan:patch-conduit")),

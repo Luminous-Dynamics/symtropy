@@ -206,7 +206,9 @@ impl ConstructionStagingLedger {
     }
 
     pub fn reservation(&self, id: &StagingReservationId) -> Option<&StagingReservation> {
-        self.reservations.iter().find(|reservation| &reservation.id == id)
+        self.reservations
+            .iter()
+            .find(|reservation| &reservation.id == id)
     }
 
     pub fn release_record(&self, id: &StagingReleaseRecordId) -> Option<&StagingReleaseRecord> {
@@ -262,7 +264,9 @@ impl ConstructionStagingLedger {
         }
         if !matches!(
             workpiece.lifecycle,
-            WorkpieceLifecycle::Staged | WorkpieceLifecycle::Available | WorkpieceLifecycle::Removed
+            WorkpieceLifecycle::Staged
+                | WorkpieceLifecycle::Available
+                | WorkpieceLifecycle::Removed
         ) {
             return Err(StagingError::WorkpieceNotReservable {
                 workpiece_id: workpiece.id.clone(),
@@ -282,7 +286,8 @@ impl ConstructionStagingLedger {
             lifecycle: StagingReservationLifecycle::Held,
             release_reason_id: None,
         });
-        self.reservations.sort_by(|left, right| left.id.cmp(&right.id));
+        self.reservations
+            .sort_by(|left, right| left.id.cmp(&right.id));
         Ok(())
     }
 
@@ -399,9 +404,7 @@ impl ConstructionStagingLedger {
         if reservation.snapshot.workpiece_id != workpiece.id
             || !reservation.snapshot.matches(workpiece)
         {
-            return Err(StagingError::WorkpieceSnapshotChanged(
-                workpiece.id.clone(),
-            ));
+            return Err(StagingError::WorkpieceSnapshotChanged(workpiece.id.clone()));
         }
         validate_placement_subject(workpiece, &placement)?;
         if placement.authority_id != reservation.placement_at_reservation.authority_id
@@ -458,10 +461,7 @@ impl ConstructionStagingLedger {
     }
 }
 
-fn validate_site_plan(
-    site: &ConstructionSite,
-    plan: &FabricationPlan,
-) -> Result<(), StagingError> {
+fn validate_site_plan(site: &ConstructionSite, plan: &FabricationPlan) -> Result<(), StagingError> {
     if site.plan_id != plan.id || site.plan_revision != plan.revision {
         return Err(StagingError::PlanMismatch {
             expected_id: site.plan_id.clone(),
@@ -571,7 +571,10 @@ impl fmt::Display for StagingError {
                 "staging binds plan {expected_id}@{expected_revision}, got {actual_id}@{actual_revision}"
             ),
             Self::SiteUnavailable(state) => {
-                write!(formatter, "construction site cannot accept staging: {state:?}")
+                write!(
+                    formatter,
+                    "construction site cannot accept staging: {state:?}"
+                )
             }
             Self::DuplicateReservationId(id) => {
                 write!(formatter, "staging reservation {id} already exists")
@@ -580,11 +583,21 @@ impl fmt::Display for StagingError {
                 write!(formatter, "staging release record {id} already exists")
             }
             Self::WorkpieceAlreadyReserved(id) => {
-                write!(formatter, "workpiece {id} already has a held construction reservation")
+                write!(
+                    formatter,
+                    "workpiece {id} already has a held construction reservation"
+                )
             }
-            Self::PlanStepRequired => write!(formatter, "staging reservation requires at least one plan step"),
-            Self::DuplicatePlanStep(id) => write!(formatter, "staging reservation repeats plan step {id}"),
-            Self::UnknownPlanStep(id) => write!(formatter, "staging references unknown plan step {id}"),
+            Self::PlanStepRequired => write!(
+                formatter,
+                "staging reservation requires at least one plan step"
+            ),
+            Self::DuplicatePlanStep(id) => {
+                write!(formatter, "staging reservation repeats plan step {id}")
+            }
+            Self::UnknownPlanStep(id) => {
+                write!(formatter, "staging references unknown plan step {id}")
+            }
             Self::WorkpieceNotUsedByStep {
                 workpiece_id,
                 step_id,
@@ -608,9 +621,16 @@ impl fmt::Display for StagingError {
                 formatter,
                 "placement evidence subject {actual} does not match workpiece {expected}"
             ),
-            Self::UnknownReservation(id) => write!(formatter, "staging reservation {id} does not exist"),
-            Self::ReservationNotHeld(id) => write!(formatter, "staging reservation {id} is not held"),
-            Self::ReservationContextMismatch(id) => write!(formatter, "staging reservation {id} does not match site/plan context"),
+            Self::UnknownReservation(id) => {
+                write!(formatter, "staging reservation {id} does not exist")
+            }
+            Self::ReservationNotHeld(id) => {
+                write!(formatter, "staging reservation {id} is not held")
+            }
+            Self::ReservationContextMismatch(id) => write!(
+                formatter,
+                "staging reservation {id} does not match site/plan context"
+            ),
             Self::ReservationDoesNotCoverStep {
                 reservation_id,
                 step_id,
@@ -645,7 +665,10 @@ impl fmt::Display for StagingError {
                 "staging reservation {id} received conflicting evidence at the same placement revision"
             ),
             Self::DuplicateReleaseWorkpiece(id) => {
-                write!(formatter, "workpiece {id} is repeated in staged work release")
+                write!(
+                    formatter,
+                    "workpiece {id} is repeated in staged work release"
+                )
             }
             Self::WorkpieceCoverageMismatch {
                 step_id,
@@ -718,7 +741,10 @@ mod tests {
                     PlanStepId::new(id("step:align")),
                     ProcessSpecId::new(id("process-spec:align")),
                     1,
-                    workpieces.iter().map(|workpiece| workpiece.id.clone()).collect(),
+                    workpieces
+                        .iter()
+                        .map(|workpiece| workpiece.id.clone())
+                        .collect(),
                     Vec::new(),
                     Vec::new(),
                 )
@@ -739,11 +765,17 @@ mod tests {
     fn placement(workpiece: &Workpiece, revision: u64, location: &str) -> PlacementEvidenceRef {
         PlacementEvidenceRef::new(
             id("authority:site-logistics"),
-            id(&format!("placement:{}:{revision}", workpiece.id.stable_id().as_str())),
+            id(&format!(
+                "placement:{}:{revision}",
+                workpiece.id.stable_id().as_str()
+            )),
             workpiece.id.stable_id().clone(),
             revision,
             id(location),
-            format!("digest:placement:{}:{revision}:{location}", workpiece.id.stable_id().as_str()),
+            format!(
+                "digest:placement:{}:{revision}:{location}",
+                workpiece.id.stable_id().as_str()
+            ),
         )
         .unwrap()
     }
@@ -815,7 +847,9 @@ mod tests {
         );
         assert!(matches!(
             result,
-            Err(StagingError::SiteUnavailable(ConstructionSiteLifecycle::Abandoned))
+            Err(StagingError::SiteUnavailable(
+                ConstructionSiteLifecycle::Abandoned
+            ))
         ));
     }
 
@@ -835,7 +869,10 @@ mod tests {
             vec![PlanStepId::new(id("step:align"))],
             placement(&patch, 8, "location:site-bench"),
         );
-        assert!(matches!(result, Err(StagingError::WorkpieceAlreadyReserved(_))));
+        assert!(matches!(
+            result,
+            Err(StagingError::WorkpieceAlreadyReserved(_))
+        ));
     }
 
     #[test]
@@ -862,7 +899,10 @@ mod tests {
                 placement: placement(&changed, 8, "location:site-bench"),
             }],
         );
-        assert!(matches!(result, Err(StagingError::WorkpieceSnapshotChanged(_))));
+        assert!(matches!(
+            result,
+            Err(StagingError::WorkpieceSnapshotChanged(_))
+        ));
         assert!(!order.is_released());
         assert!(ledger.releases().is_empty());
     }
@@ -883,7 +923,10 @@ mod tests {
             &patch,
             placement(&patch, 8, "location:warehouse"),
         );
-        assert!(matches!(moved, Err(StagingError::PlacementContextChanged { .. })));
+        assert!(matches!(
+            moved,
+            Err(StagingError::PlacementContextChanged { .. })
+        ));
 
         let stale = ledger.confirm_for_step(
             &reservation,
@@ -893,7 +936,10 @@ mod tests {
             &patch,
             placement(&patch, 6, "location:site-bench"),
         );
-        assert!(matches!(stale, Err(StagingError::StalePlacementEvidence { .. })));
+        assert!(matches!(
+            stale,
+            Err(StagingError::StalePlacementEvidence { .. })
+        ));
 
         let mut conflict = placement(&patch, 7, "location:site-bench");
         conflict.digest = "digest:conflicting-same-revision".to_owned();
@@ -996,13 +1042,8 @@ mod tests {
             vec![WorkpieceLifecycle::Available],
         )
         .unwrap();
-        let mut execution = ProcessExecution::begin(
-            execution_id,
-            &spec,
-            &[&patch, &clamp],
-            &[],
-        )
-        .unwrap();
+        let mut execution =
+            ProcessExecution::begin(execution_id, &spec, &[&patch, &clamp], &[]).unwrap();
         let evidence = execution
             .complete(
                 id("matter:test"),
@@ -1041,7 +1082,10 @@ mod tests {
             "quality",
             "score",
         ] {
-            assert!(!serialized.contains(forbidden), "unexpected field {forbidden}");
+            assert!(
+                !serialized.contains(forbidden),
+                "unexpected field {forbidden}"
+            );
         }
     }
 }
