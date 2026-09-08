@@ -137,8 +137,27 @@ impl StratifiedPopulationState {
     /// key plus exact count/biomass extensive state.
     pub const SCHEMA_VERSION: u16 = 1;
 
-    /// Construct and validate an exact sparse joint population state.
-    pub fn new(
+    /// Canonical ingress from raw records.
+    ///
+    /// Persistence/network/import adapters should pass decoded records here
+    /// before collecting them into a map. Duplicate complete joint keys are
+    /// ambiguous canonical authority and fail closed even when their values are
+    /// identical.
+    pub fn from_records(
+        records: impl IntoIterator<Item = (PopulationStratumKey, PopulationStratum)>,
+    ) -> Result<Self, StrataError> {
+        let mut strata = BTreeMap::new();
+        for (key, stratum) in records {
+            if strata.insert(key, stratum).is_some() {
+                return Err(StrataError::DuplicateStratumKey(key));
+            }
+        }
+        Self::new(strata)
+    }
+
+    /// Trusted crate-internal construction after key uniqueness is already
+    /// established structurally.
+    pub(crate) fn new(
         strata: BTreeMap<PopulationStratumKey, PopulationStratum>,
     ) -> Result<Self, StrataError> {
         let mut count = 0u64;
@@ -288,6 +307,7 @@ impl StratifiedPopulationState {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum StrataError {
     ZeroCountStratum,
+    DuplicateStratumKey(PopulationStratumKey),
     CountOverflow,
     BiomassArithmeticOverflow,
     CachedCountMismatch { expected: u64, actual: u64 },
@@ -303,6 +323,9 @@ impl fmt::Display for StrataError {
                     formatter,
                     "sparse population strata cannot store zero-count entries"
                 )
+            }
+            Self::DuplicateStratumKey(key) => {
+                write!(formatter, "duplicate canonical population stratum key: {key:?}")
             }
             Self::CountOverflow => write!(formatter, "stratified population count overflow"),
             Self::BiomassArithmeticOverflow => {
@@ -355,7 +378,7 @@ mod tests {
     }
 
     fn correlated_a() -> StratifiedPopulationState {
-        StratifiedPopulationState::new(BTreeMap::from([
+        StratifiedPopulationState::from_records([
             (
                 key(
                     PopulationAgeBand::Juvenile,
@@ -372,12 +395,12 @@ mod tests {
                 ),
                 stratum(5, 2_500_000),
             ),
-        ]))
+        ])
         .unwrap()
     }
 
     fn correlated_b() -> StratifiedPopulationState {
-        StratifiedPopulationState::new(BTreeMap::from([
+        StratifiedPopulationState::from_records([
             (
                 key(
                     PopulationAgeBand::Juvenile,
@@ -394,7 +417,7 @@ mod tests {
                 ),
                 stratum(5, 2_500_000),
             ),
-        ]))
+        ])
         .unwrap()
     }
 
@@ -452,6 +475,66 @@ mod tests {
     }
 
     #[test]
+    fn unique_record_order_does_not_change_canonical_state() {
+        let first = [
+            (
+                key(
+                    PopulationAgeBand::Juvenile,
+                    PopulationConditionBand::Stressed,
+                    0,
+                ),
+                stratum(5, 500_000),
+            ),
+            (
+                key(
+                    PopulationAgeBand::Mature,
+                    PopulationConditionBand::Stable,
+                    1,
+                ),
+                stratum(5, 2_500_000),
+            ),
+        ];
+        let second = [first[1], first[0]];
+
+        assert_eq!(
+            StratifiedPopulationState::from_records(first).unwrap(),
+            StratifiedPopulationState::from_records(second).unwrap()
+        );
+    }
+
+    #[test]
+    fn duplicate_identical_record_fails_closed() {
+        let duplicate = key(
+            PopulationAgeBand::Mature,
+            PopulationConditionBand::Stable,
+            0,
+        );
+        let value = stratum(2, 200_000);
+
+        assert_eq!(
+            StratifiedPopulationState::from_records([(duplicate, value), (duplicate, value)]),
+            Err(StrataError::DuplicateStratumKey(duplicate))
+        );
+    }
+
+    #[test]
+    fn duplicate_conflicting_record_fails_closed() {
+        let duplicate = key(
+            PopulationAgeBand::Mature,
+            PopulationConditionBand::Stable,
+            0,
+        );
+
+        assert_eq!(
+            StratifiedPopulationState::from_records([
+                (duplicate, stratum(2, 200_000)),
+                (duplicate, stratum(3, 450_000)),
+            ]),
+            Err(StrataError::DuplicateStratumKey(duplicate))
+        );
+    }
+
+    #[test]
     fn exact_biomass_stays_bound_to_joint_strata() {
         let population = correlated_a();
         let by_age = population.biomass_by_age().unwrap();
@@ -500,7 +583,7 @@ mod tests {
 
     #[test]
     fn aggregate_count_overflow_fails_closed() {
-        let result = StratifiedPopulationState::new(BTreeMap::from([
+        let result = StratifiedPopulationState::from_records([
             (
                 key(
                     PopulationAgeBand::Mature,
@@ -513,14 +596,14 @@ mod tests {
                 key(PopulationAgeBand::Elder, PopulationConditionBand::Stable, 1),
                 stratum(1, 0),
             ),
-        ]));
+        ]);
 
         assert_eq!(result, Err(StrataError::CountOverflow));
     }
 
     #[test]
     fn aggregate_biomass_overflow_fails_closed() {
-        let result = StratifiedPopulationState::new(BTreeMap::from([
+        let result = StratifiedPopulationState::from_records([
             (
                 key(
                     PopulationAgeBand::Mature,
@@ -533,14 +616,14 @@ mod tests {
                 key(PopulationAgeBand::Elder, PopulationConditionBand::Stable, 1),
                 stratum(1, 1),
             ),
-        ]));
+        ]);
 
         assert_eq!(result, Err(StrataError::BiomassArithmeticOverflow));
     }
 
     #[test]
     fn empty_stratified_population_is_canonical() {
-        let population = StratifiedPopulationState::new(BTreeMap::new()).unwrap();
+        let population = StratifiedPopulationState::from_records(std::iter::empty()).unwrap();
         let summary = population.marginal_summary().unwrap();
 
         assert!(population.is_empty());
