@@ -1,0 +1,89 @@
+name: CRK-01 Exact Current Integration
+
+on:
+  pull_request:
+    branches: ["hardening/game-state-canonical-v2"]
+    paths:
+      - ".github/workflows/crk01-current-integration.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: crk01-current-integration-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+env:
+  CARGO_TERM_COLOR: always
+  EXPECTED_INTEGRATION_SHA: a2bcce75b3800260be65421b21a05b20e50b8b9c
+  EXPECTED_BASE_SHA: 3cb63c80a273a5f6f41b6eeafbc11cb97f7aaac7
+  EXPECTED_HEAD_SHA: 242e93a810e9c2a7a5f92850ebd5186b785d54eb
+  EXPECTED_TREE_SHA: 473f0b27aa9f156a18f3ac61794eb81b71c94fce
+  EXPECTED_CI_BLOB: 571ab69d25f255467493c6835082ecdf251e7b47
+
+jobs:
+  exact-integration:
+    name: Exact integration (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+
+    steps:
+      - name: Check out exact integration object
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4 observed in current CI
+        with:
+          ref: ${{ env.EXPECTED_INTEGRATION_SHA }}
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Assert integration identity
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$EXPECTED_INTEGRATION_SHA"
+          test "$(git show -s --format=%T HEAD)" = "$EXPECTED_TREE_SHA"
+          test "$(git show -s --format=%P HEAD)" = "$EXPECTED_BASE_SHA $EXPECTED_HEAD_SHA"
+          test "$(git hash-object .github/workflows/ci.yml)" = "$EXPECTED_CI_BLOB"
+          printf 'HEAD=%s\nTREE=%s\nPARENTS=%s\nCI_BLOB=%s\n' \
+            "$(git rev-parse HEAD)" \
+            "$(git show -s --format=%T HEAD)" \
+            "$(git show -s --format=%P HEAD)" \
+            "$(git hash-object .github/workflows/ci.yml)"
+
+      - name: Install System Dependencies (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libasound2-dev libudev-dev pkg-config
+
+      - name: Set up Rust
+        uses: dtolnay/rust-toolchain@6bed0761d98439e5a578e2877258200ad565ba87
+        with:
+          toolchain: 1.96.0
+          components: clippy, rustfmt
+
+      - name: Cache dependencies
+        uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6
+
+      - name: Check Formatting
+        run: cargo fmt --all -- --check
+
+      - name: Workspace Invariants (members, single Bevy, portable paths, no placeholders)
+        if: runner.os == 'Linux'
+        run: bash scripts/check-workspace.sh
+
+      - name: License Headers (SPDX matches package license)
+        if: runner.os == 'Linux'
+        run: bash scripts/check-licenses.sh
+
+      - name: Run Clippy
+        run: cargo clippy --workspace --all-targets --all-features -- -D warnings
+
+      - name: Run Tests (Physics Core)
+        run: cargo test -p symtropy-math -p symtropy-physics -p symtropy-consciousness-physics --lib
+
+      - name: Verify Workspace Build
+        run: cargo check --workspace --all-targets
