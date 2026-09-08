@@ -111,26 +111,14 @@ impl EcologicalInformation {
     ///
     /// The only V0 implication relation is set inclusion for joint population
     /// statistics. All other capabilities are explicit rather than inferred.
-    pub const fn covers(self, required: Self) -> bool {
+    pub fn covers(self, required: Self) -> bool {
         match (self, required) {
             (
                 Self::JointPopulationStatistics(available),
                 Self::JointPopulationStatistics(required),
             ) => available.contains_all(required),
-            _ => self as_discriminant_eq required,
+            _ => self == required,
         }
-    }
-}
-
-// Const-friendly equality for non-payload variants without pretending distinct
-// conservation quantities are interchangeable.
-trait EcologicalInformationEq {
-    fn same_information(self, other: Self) -> bool;
-}
-
-impl EcologicalInformationEq for EcologicalInformation {
-    fn same_information(self, other: Self) -> bool {
-        self == other
     }
 }
 
@@ -313,7 +301,7 @@ impl ProcessInformationRequirement {
 }
 
 /// Machine-readable information contract for one authoritative process.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub struct ProcessInformationProfile {
     key: ProcessKey,
     minimum_authority: EcologicalAuthorityLevel,
@@ -414,13 +402,10 @@ impl RepresentationCapabilities {
         &self,
         required: EcologicalInformation,
     ) -> impl Iterator<Item = CapabilityEvidence> + '_ {
-        self.claims.iter().flat_map(move |(available, evidence)| {
-            available
-                .covers(required)
-                .then_some(evidence.iter().copied())
-                .into_iter()
-                .flatten()
-        })
+        self.claims
+            .iter()
+            .filter(move |(available, _)| (**available).covers(required))
+            .flat_map(|(_, evidence)| evidence.iter().copied())
     }
 
     fn carries_information(&self, required: EcologicalInformation) -> bool {
@@ -467,16 +452,15 @@ impl SufficiencyReport {
 
 /// Evaluate all enabled process profiles against one representation.
 ///
-/// Profiles are sorted by stable process key before evaluation, so caller,
-/// thread, and insertion ordering cannot alter the result. Requirements within
-/// each profile are stored canonically in a `BTreeSet` and remain independent;
-/// incompatible closure policies are never silently collapsed together.
+/// Profiles and requirements are canonicalized through ordered sets, so caller,
+/// thread, and insertion ordering cannot alter the result. Distinct closure
+/// policies remain independent requirements and are never silently collapsed
+/// into one guessed compromise.
 pub fn evaluate_processes<'a>(
     profiles: impl IntoIterator<Item = &'a ProcessInformationProfile>,
     representation: &RepresentationCapabilities,
 ) -> SufficiencyReport {
-    let mut profiles = profiles.into_iter().collect::<Vec<_>>();
-    profiles.sort_by_key(|profile| profile.key);
+    let profiles = profiles.into_iter().collect::<BTreeSet<_>>();
 
     let mut failures = Vec::new();
     for profile in profiles {
