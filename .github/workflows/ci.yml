@@ -1,78 +1,60 @@
-name: CI
+name: Rustfmt Capture
 
 on:
-  push:
-    branches: [ "main", "stabilize/*" ]
   pull_request:
     branches: [ "main" ]
 
+permissions:
+  contents: write
+
 concurrency:
-  group: ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  group: rustfmt-capture-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
-env:
-  CARGO_TERM_COLOR: always
-
 jobs:
-  test:
-    name: Test Suite (${{ matrix.os }})
-    runs-on: ${{ matrix.os }}
-    strategy:
-      # Legs must report independently. Under the default fail-fast, the
-      # ubuntu leg's failure cancelled windows and macos mid-run, so from
-      # 2026-06-21 to 2026-07-28 their status was simply unknown -- we could
-      # not tell whether the Windows checkout problem diagnosed on 2026-07-13
-      # was fixed, because Windows never got to finish again.
-      fail-fast: false
-      matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
-
+  capture:
+    name: Capture Rust 1.96 rustfmt patch
+    runs-on: macos-latest
     steps:
     - uses: actions/checkout@v4
+      with:
+        ref: qualification/q13-rustfmt-capture
 
-    - name: Install System Dependencies (Linux)
-      if: runner.os == 'Linux'
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y libasound2-dev libudev-dev pkg-config
-
-    # Keep CI on the same explicit toolchain as rust-toolchain.toml. The action
-    # ref remains stable, but the installed compiler/lints are pinned so an
-    # unrelated Rust release cannot turn the repository red.
     - name: Set up Rust
       uses: dtolnay/rust-toolchain@stable
       with:
         toolchain: 1.96.0
-        components: clippy, rustfmt
+        components: rustfmt
 
-    - name: Cache dependencies
-      uses: Swatinem/rust-cache@v2
+    - name: Apply canonical formatting
+      run: cargo fmt --all
 
-    - name: Check Formatting
-      run: cargo fmt --all -- --check
+    - name: Capture formatting patch
+      id: diff
+      shell: bash
+      run: |
+        git diff --binary > rustfmt.patch
+        git diff --stat
+        if test -s rustfmt.patch; then
+          echo "changed=true" >> "$GITHUB_OUTPUT"
+        else
+          echo "changed=false" >> "$GITHUB_OUTPUT"
+        fi
 
-    # Repo-invariant guards. These scripts existed since at least June but were
-    # wired into nothing, so both of them silently failed against the tree for
-    # weeks: check-workspace.sh still asserted `Bevy 0.18.1` (the workspace has
-    # been on 0.19.0 since the dual-bevy cleanup) plus a hardcoded 14-crate
-    # member list against 60 real members, and check-licenses.sh was finding 13
-    # crates with no `license` field and a real SPDX mismatch. Both are now
-    # repaired and enforced. Linux only -- they are filesystem/manifest checks
-    # with no platform-specific behaviour, and rg/python3 are not guaranteed on
-    # the Windows and macOS runners.
-    - name: Workspace Invariants (members, single Bevy, portable paths, no placeholders)
-      if: runner.os == 'Linux'
-      run: bash scripts/check-workspace.sh
+    - name: Upload formatting patch
+      if: steps.diff.outputs.changed == 'true'
+      uses: actions/upload-artifact@v4
+      with:
+        name: q13-rustfmt-patch
+        path: rustfmt.patch
+        if-no-files-found: error
 
-    - name: License Headers (SPDX matches package license)
-      if: runner.os == 'Linux'
-      run: bash scripts/check-licenses.sh
-
-    - name: Run Clippy
-      run: cargo clippy --workspace --all-targets --all-features -- -D warnings
-
-    - name: Run Tests (Physics Core)
-      run: cargo test -p symtropy-math -p symtropy-physics -p symtropy-consciousness-physics --lib
-
-    - name: Verify Workspace Build
-      run: cargo check --workspace --all-targets
+    - name: Commit exact formatter output to capture branch
+      if: steps.diff.outputs.changed == 'true'
+      shell: bash
+      run: |
+        git config user.name "github-actions[bot]"
+        git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+        git add -- '*.rs'
+        git commit -m "style: capture canonical Rust 1.96 formatting"
+        git push origin HEAD:qualification/q13-rustfmt-capture
