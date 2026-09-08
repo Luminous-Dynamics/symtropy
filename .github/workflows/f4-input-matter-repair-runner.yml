@@ -26,6 +26,24 @@ jobs:
         toolchain: 1.96.0
         components: clippy, rustfmt
 
+    - name: Apply executable-plan test prerequisite
+      shell: python {0}
+      run: |
+        from pathlib import Path
+        path = Path('crates/domains/symtropy-fabrication/src/executable_plan.rs')
+        text = path.read_text()
+        old = '''            Err(ExecutablePlanError::CapabilityBindingMismatch { step_id, .. })
+                if step_id == step_id("clean")
+'''
+        new = '''            Err(ExecutablePlanError::CapabilityBindingMismatch {
+                step_id: actual_step_id,
+                ..
+            }) if actual_step_id == step_id("clean")
+'''
+        if text.count(old) != 1:
+            raise SystemExit(f'executable-plan shadowing anchor count={text.count(old)}')
+        path.write_text(text.replace(old, new))
+
     - name: Apply exact source transformation
       run: python .github/repair/f4_input_matter_repair.py
 
@@ -43,7 +61,7 @@ jobs:
       run: |
         git config user.name "github-actions[bot]"
         git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-        git add crates/domains/symtropy-fabrication/src/identity.rs crates/domains/symtropy-fabrication/src/process.rs crates/domains/symtropy-fabrication/src/process_evidence.rs
+        git add crates/domains/symtropy-fabrication/src/executable_plan.rs crates/domains/symtropy-fabrication/src/identity.rs crates/domains/symtropy-fabrication/src/process.rs crates/domains/symtropy-fabrication/src/process_evidence.rs
         git diff --cached --quiet && exit 0
-        git commit -m "fix(fabrication): centralize input matter integrity"
+        git commit -m "fix(fabrication): verify executable-plan tests and input matter integrity"
         git push origin HEAD:fabrication/f4-input-matter-integrity
