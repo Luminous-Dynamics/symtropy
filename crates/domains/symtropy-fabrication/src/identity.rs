@@ -63,16 +63,28 @@ impl MatterBinding {
         revision: u64,
         binding_digest: impl Into<String>,
     ) -> Result<Self, FabricationError> {
-        let binding_digest = binding_digest.into();
-        if binding_digest.is_empty() || binding_digest.len() > 256 {
-            return Err(FabricationError::InvalidMatterDigest(binding_digest));
-        }
-        Ok(Self {
+        let binding = Self {
             authority_id,
             allocation_id,
             revision,
-            binding_digest,
-        })
+            binding_digest: binding_digest.into(),
+        };
+        binding.validate_current()?;
+        Ok(binding)
+    }
+
+    /// Revalidates the current-schema binding after deserialization or public
+    /// field mutation. This does not interpret the digest; it only enforces the
+    /// same structural boundary as `MatterBinding::new`.
+    pub fn validate_current(&self) -> Result<(), MatterIntegrityError> {
+        if self.binding_digest.is_empty() || self.binding_digest.len() > 256 {
+            return Err(MatterIntegrityError::InvalidDigest {
+                authority_id: self.authority_id.clone(),
+                allocation_id: self.allocation_id.clone(),
+                digest: self.binding_digest.clone(),
+            });
+        }
+        Ok(())
     }
 }
 
@@ -116,7 +128,7 @@ impl Workpiece {
         id: WorkpieceId,
         matter_bindings: Vec<MatterBinding>,
     ) -> Result<Self, FabricationError> {
-        validate_bindings(&matter_bindings)?;
+        validate_matter_bindings(&matter_bindings)?;
         Ok(Self {
             schema_version: FABRICATION_SCHEMA_VERSION,
             id,
@@ -141,6 +153,12 @@ impl Workpiece {
         Ok(())
     }
 
+    /// Revalidates current-schema matter identity after persistence or public
+    /// mutation. Schema-version interpretation itself is deliberately separate.
+    pub fn validate_matter_integrity(&self) -> Result<(), MatterIntegrityError> {
+        validate_matter_bindings(&self.matter_bindings)
+    }
+
     /// Returns the exact binding for an authority-scoped matter allocation.
     pub fn binding(
         &self,
@@ -153,16 +171,20 @@ impl Workpiece {
     }
 }
 
-fn validate_bindings(bindings: &[MatterBinding]) -> Result<(), FabricationError> {
+/// Replays current-schema matter-binding invariants for an existing value.
+/// This is the single structural validator shared by constructors and authority
+/// boundaries; it intentionally does not decide schema migration semantics.
+pub fn validate_matter_bindings(bindings: &[MatterBinding]) -> Result<(), MatterIntegrityError> {
     if bindings.is_empty() {
-        return Err(FabricationError::MatterBindingRequired);
+        return Err(MatterIntegrityError::BindingRequired);
     }
     for (index, binding) in bindings.iter().enumerate() {
+        binding.validate_current()?;
         if bindings[..index].iter().any(|existing| {
             existing.authority_id == binding.authority_id
                 && existing.allocation_id == binding.allocation_id
         }) {
-            return Err(FabricationError::DuplicateMatterAllocation {
+            return Err(MatterIntegrityError::DuplicateAllocation {
                 authority_id: binding.authority_id.clone(),
                 allocation_id: binding.allocation_id.clone(),
             });
@@ -189,6 +211,65 @@ const fn valid_transition(from: WorkpieceLifecycle, to: WorkpieceLifecycle) -> b
             | (Removed, Available)
             | (Removed, Retired)
     )
+}
+
+/// Current-schema structural matter-integrity failure. This retains
+/// authority/allocation context so higher authority layers can explain which
+/// physical identity failed revalidation.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum MatterIntegrityError {
+    BindingRequired,
+    InvalidDigest {
+        authority_id: StableId,
+        allocation_id: StableId,
+        digest: String,
+    },
+    DuplicateAllocation {
+        authority_id: StableId,
+        allocation_id: StableId,
+    },
+}
+
+impl fmt::Display for MatterIntegrityError {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::BindingRequired => write!(formatter, "at least one matter binding is required"),
+            Self::InvalidDigest {
+                authority_id,
+                allocation_id,
+                digest,
+            } => write!(
+                formatter,
+                "matter binding {authority_id}/{allocation_id} digest must contain 1..=256 bytes, got {}",
+                digest.len()
+            ),
+            Self::DuplicateAllocation {
+                authority_id,
+                allocation_id,
+            } => write!(
+                formatter,
+                "matter allocation {authority_id}/{allocation_id} is bound more than once"
+            ),
+        }
+    }
+}
+
+impl Error for MatterIntegrityError {}
+
+impl From<MatterIntegrityError> for FabricationError {
+    fn from(error: MatterIntegrityError) -> Self {
+        match error {
+            MatterIntegrityError::BindingRequired => Self::MatterBindingRequired,
+            MatterIntegrityError::InvalidDigest { digest, .. } => Self::InvalidMatterDigest(digest),
+            MatterIntegrityError::DuplicateAllocation {
+                authority_id,
+                allocation_id,
+            } => Self::DuplicateMatterAllocation {
+                authority_id,
+                allocation_id,
+            },
+        }
+    }
 }
 
 /// Foundation errors are deterministic contract violations, not random
@@ -268,6 +349,21 @@ mod tests {
         assert!(matches!(
             result,
             Err(FabricationError::MatterBindingRequired)
+        ));
+    }
+
+    #[test]
+    fn current_schema_matter_integrity_revalidates_public_mutation() {
+        let mut workpiece = Workpiece::new(
+            WorkpieceId::new(id("workpiece:mutated")),
+            vec![binding("allocation:mutated", 1)],
+        )
+        .unwrap();
+        workpiece.matter_bindings[0].binding_digest.clear();
+
+        assert!(matches!(
+            workpiece.validate_matter_integrity(),
+            Err(MatterIntegrityError::InvalidDigest { .. })
         ));
     }
 

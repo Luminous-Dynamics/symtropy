@@ -389,8 +389,8 @@ mod tests {
         let result = ExecutableFabricationPlan::new(plan(), values);
         assert!(matches!(
             result,
-            Err(ExecutablePlanError::CapabilityBindingMismatch { step_id, .. })
-                if step_id == step_id("clean")
+            Err(ExecutablePlanError::CapabilityBindingMismatch { step_id: actual_step_id, .. })
+                if actual_step_id == step_id("clean")
         ));
     }
 

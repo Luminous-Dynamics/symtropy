@@ -14,9 +14,9 @@ use std::{error::Error, fmt};
 use symtropy_game_state::StableId;
 
 use crate::{
-    CapabilityEvidence, MatterBinding, ProcessEvidence, ProcessExecutionId, ProcessExecutionState,
-    ProcessInputSnapshot, ProcessKind, ProcessSpecId, ProcessSpecSnapshot, WorkpieceId,
-    WorkpieceLifecycle,
+    CapabilityEvidence, MatterBinding, MatterIntegrityError, ProcessEvidence, ProcessExecutionId,
+    ProcessExecutionState, ProcessInputSnapshot, ProcessKind, ProcessSpecId, ProcessSpecSnapshot,
+    WorkpieceId, WorkpieceLifecycle, validate_matter_bindings,
 };
 
 /// Durable process evidence that has passed the same semantic/integrity checks
@@ -173,14 +173,33 @@ pub fn validate_process_evidence(
             });
         }
         validate_input_matter_bindings(&input.matter_bindings)?;
+        for previous_input in &evidence.inputs[..index] {
+            for binding in &input.matter_bindings {
+                if previous_input.matter_bindings.iter().any(|existing| {
+                    existing.authority_id == binding.authority_id
+                        && existing.allocation_id == binding.allocation_id
+                }) {
+                    return Err(
+                        ProcessEvidenceValidationError::CrossInputMatterAllocationAlias {
+                            authority_id: binding.authority_id.clone(),
+                            allocation_id: binding.allocation_id.clone(),
+                            first_workpiece_id: previous_input.workpiece_id.clone(),
+                            second_workpiece_id: input.workpiece_id.clone(),
+                        },
+                    );
+                }
+            }
+        }
     }
 
     for requirement in evidence.spec_snapshot.required_capabilities() {
         if !requirement.is_satisfied_by(&evidence.admitted_capabilities) {
-            return Err(ProcessEvidenceValidationError::CapabilityRequirementNotSatisfied {
-                capability_id: requirement.capability_id.clone(),
-                minimum_value: requirement.minimum_value,
-            });
+            return Err(
+                ProcessEvidenceValidationError::CapabilityRequirementNotSatisfied {
+                    capability_id: requirement.capability_id.clone(),
+                    minimum_value: requirement.minimum_value,
+                },
+            );
         }
     }
 
@@ -236,62 +255,53 @@ fn validate_spec_snapshot(
 fn validate_input_matter_bindings(
     bindings: &[MatterBinding],
 ) -> Result<(), ProcessEvidenceValidationError> {
-    if bindings.is_empty() {
-        return Err(ProcessEvidenceValidationError::InputMatterRequired);
-    }
-    validate_matter_digests(bindings)?;
-    for (index, binding) in bindings.iter().enumerate() {
-        if bindings[..index].iter().any(|existing| {
-            existing.authority_id == binding.authority_id
-                && existing.allocation_id == binding.allocation_id
-        }) {
-            return Err(
-                ProcessEvidenceValidationError::DuplicateInputMatterAllocation {
-                    authority_id: binding.authority_id.clone(),
-                    allocation_id: binding.allocation_id.clone(),
-                },
-            );
+    validate_matter_bindings(bindings).map_err(|error| match error {
+        MatterIntegrityError::BindingRequired => {
+            ProcessEvidenceValidationError::InputMatterRequired
         }
-    }
-    Ok(())
+        MatterIntegrityError::InvalidDigest {
+            authority_id,
+            allocation_id,
+            digest,
+        } => ProcessEvidenceValidationError::InvalidMatterDigest {
+            authority_id,
+            allocation_id,
+            digest,
+        },
+        MatterIntegrityError::DuplicateAllocation {
+            authority_id,
+            allocation_id,
+        } => ProcessEvidenceValidationError::DuplicateInputMatterAllocation {
+            authority_id,
+            allocation_id,
+        },
+    })
 }
 
 fn validate_resulting_matter_bindings(
     bindings: &[MatterBinding],
 ) -> Result<(), ProcessEvidenceValidationError> {
-    if bindings.is_empty() {
-        return Err(ProcessEvidenceValidationError::ResultingMatterRequired);
-    }
-    validate_matter_digests(bindings)?;
-    for (index, binding) in bindings.iter().enumerate() {
-        if bindings[..index].iter().any(|existing| {
-            existing.authority_id == binding.authority_id
-                && existing.allocation_id == binding.allocation_id
-        }) {
-            return Err(
-                ProcessEvidenceValidationError::DuplicateResultingMatterAllocation {
-                    authority_id: binding.authority_id.clone(),
-                    allocation_id: binding.allocation_id.clone(),
-                },
-            );
+    validate_matter_bindings(bindings).map_err(|error| match error {
+        MatterIntegrityError::BindingRequired => {
+            ProcessEvidenceValidationError::ResultingMatterRequired
         }
-    }
-    Ok(())
-}
-
-fn validate_matter_digests(
-    bindings: &[MatterBinding],
-) -> Result<(), ProcessEvidenceValidationError> {
-    for binding in bindings {
-        if binding.binding_digest.is_empty() || binding.binding_digest.len() > 256 {
-            return Err(ProcessEvidenceValidationError::InvalidMatterDigest {
-                authority_id: binding.authority_id.clone(),
-                allocation_id: binding.allocation_id.clone(),
-                digest: binding.binding_digest.clone(),
-            });
-        }
-    }
-    Ok(())
+        MatterIntegrityError::InvalidDigest {
+            authority_id,
+            allocation_id,
+            digest,
+        } => ProcessEvidenceValidationError::InvalidMatterDigest {
+            authority_id,
+            allocation_id,
+            digest,
+        },
+        MatterIntegrityError::DuplicateAllocation {
+            authority_id,
+            allocation_id,
+        } => ProcessEvidenceValidationError::DuplicateResultingMatterAllocation {
+            authority_id,
+            allocation_id,
+        },
+    })
 }
 
 const fn lifecycle_rank(lifecycle: WorkpieceLifecycle) -> u8 {
@@ -347,6 +357,12 @@ pub enum ProcessEvidenceValidationError {
         authority_id: StableId,
         allocation_id: StableId,
     },
+    CrossInputMatterAllocationAlias {
+        authority_id: StableId,
+        allocation_id: StableId,
+        first_workpiece_id: WorkpieceId,
+        second_workpiece_id: WorkpieceId,
+    },
     DuplicateResultingMatterAllocation {
         authority_id: StableId,
         allocation_id: StableId,
@@ -389,16 +405,24 @@ impl fmt::Display for ProcessEvidenceValidationError {
                 "process evidence kind {legacy:?} disagrees with canonical snapshot {canonical:?}"
             ),
             Self::OutcomeNotCompleted(outcome) => {
-                write!(formatter, "process evidence outcome is not completed: {outcome:?}")
+                write!(
+                    formatter,
+                    "process evidence outcome is not completed: {outcome:?}"
+                )
             }
             Self::InvalidEvidenceDigest(digest) => write!(
                 formatter,
                 "process evidence digest must contain 1..=256 bytes, got {}",
                 digest.len()
             ),
-            Self::InputRequired => write!(formatter, "process evidence requires at least one input"),
+            Self::InputRequired => {
+                write!(formatter, "process evidence requires at least one input")
+            }
             Self::DuplicateInputWorkpiece(workpiece_id) => {
-                write!(formatter, "process evidence repeats input workpiece {workpiece_id}")
+                write!(
+                    formatter,
+                    "process evidence repeats input workpiece {workpiece_id}"
+                )
             }
             Self::InputLifecycleNotAdmitted {
                 workpiece_id,
@@ -435,6 +459,15 @@ impl fmt::Display for ProcessEvidenceValidationError {
             } => write!(
                 formatter,
                 "process evidence repeats input matter allocation {authority_id}/{allocation_id}"
+            ),
+            Self::CrossInputMatterAllocationAlias {
+                authority_id,
+                allocation_id,
+                first_workpiece_id,
+                second_workpiece_id,
+            } => write!(
+                formatter,
+                "process evidence aliases input matter allocation {authority_id}/{allocation_id} across workpieces {first_workpiece_id} and {second_workpiece_id}"
             ),
             Self::DuplicateResultingMatterAllocation {
                 authority_id,
@@ -608,10 +641,8 @@ mod tests {
     #[test]
     fn noncanonical_snapshot_lifecycle_order_is_rejected() {
         let mut value = serde_json::to_value(evidence()).unwrap();
-        value["spec_snapshot"]["allowed_workpiece_states"] = serde_json::json!([
-            "installed",
-            "available"
-        ]);
+        value["spec_snapshot"]["allowed_workpiece_states"] =
+            serde_json::json!(["installed", "available"]);
         assert!(serde_json::from_value::<ValidatedProcessEvidence>(value).is_err());
     }
 
@@ -667,10 +698,31 @@ mod tests {
     }
 
     #[test]
+    fn wire_cannot_alias_one_matter_allocation_across_distinct_inputs() {
+        let mut value = serde_json::to_value(evidence()).unwrap();
+        let mut second = value["inputs"][0].clone();
+        second["workpiece_id"] = serde_json::Value::String("workpiece:second".into());
+        value["inputs"].as_array_mut().unwrap().push(second);
+        assert!(serde_json::from_value::<ValidatedProcessEvidence>(value).is_err());
+    }
+
+    #[test]
+    fn wire_allows_same_local_allocation_id_under_distinct_authorities() {
+        let mut value = serde_json::to_value(evidence()).unwrap();
+        let mut second = value["inputs"][0].clone();
+        second["workpiece_id"] = serde_json::Value::String("workpiece:second-authority".into());
+        second["matter_bindings"][0]["authority_id"] =
+            serde_json::Value::String("matter-authority:other".into());
+        second["matter_bindings"][0]["binding_digest"] =
+            serde_json::Value::String("digest:other-authority".into());
+        value["inputs"].as_array_mut().unwrap().push(second);
+        assert!(serde_json::from_value::<ValidatedProcessEvidence>(value).is_ok());
+    }
+
+    #[test]
     fn nested_matter_constructor_invariants_are_revalidated() {
         let mut value = serde_json::to_value(evidence()).unwrap();
-        value["resulting_matter"][0]["binding_digest"] =
-            serde_json::Value::String(String::new());
+        value["resulting_matter"][0]["binding_digest"] = serde_json::Value::String(String::new());
         assert!(serde_json::from_value::<ValidatedProcessEvidence>(value).is_err());
     }
 

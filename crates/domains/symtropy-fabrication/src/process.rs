@@ -10,7 +10,7 @@ use serde::{Deserialize, Serialize};
 use std::{error::Error, fmt};
 use symtropy_game_state::StableId;
 
-use crate::{MatterBinding, Workpiece, WorkpieceId, WorkpieceLifecycle};
+use crate::{MatterBinding, MatterIntegrityError, Workpiece, WorkpieceId, WorkpieceLifecycle};
 
 /// Stable identity of one process specification.
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
@@ -318,6 +318,54 @@ impl ProcessSpec {
                     actual: workpiece.lifecycle,
                 });
             }
+            if let Err(error) = workpiece.validate_matter_integrity() {
+                failures.push(match error {
+                    MatterIntegrityError::BindingRequired => {
+                        ProcessPreconditionFailure::WorkpieceMatterRequired {
+                            workpiece_id: workpiece.id.clone(),
+                        }
+                    }
+                    MatterIntegrityError::InvalidDigest {
+                        authority_id,
+                        allocation_id,
+                        digest,
+                    } => ProcessPreconditionFailure::InvalidWorkpieceMatterDigest {
+                        workpiece_id: workpiece.id.clone(),
+                        authority_id,
+                        allocation_id,
+                        digest,
+                    },
+                    MatterIntegrityError::DuplicateAllocation {
+                        authority_id,
+                        allocation_id,
+                    } => ProcessPreconditionFailure::DuplicateWorkpieceMatterAllocation {
+                        workpiece_id: workpiece.id.clone(),
+                        authority_id,
+                        allocation_id,
+                    },
+                });
+            }
+
+            for binding in &workpiece.matter_bindings {
+                for previous_workpiece in &workpieces[..index] {
+                    if previous_workpiece.id != workpiece.id
+                        && previous_workpiece.matter_bindings.iter().any(|existing| {
+                            existing.authority_id == binding.authority_id
+                                && existing.allocation_id == binding.allocation_id
+                        })
+                    {
+                        failures.push(
+                            ProcessPreconditionFailure::CrossWorkpieceMatterAllocationAlias {
+                                authority_id: binding.authority_id.clone(),
+                                allocation_id: binding.allocation_id.clone(),
+                                first_workpiece_id: previous_workpiece.id.clone(),
+                                second_workpiece_id: workpiece.id.clone(),
+                            },
+                        );
+                        break;
+                    }
+                }
+            }
         }
 
         for requirement in &self.required_capabilities {
@@ -347,6 +395,26 @@ pub enum ProcessPreconditionFailure {
     WorkpieceState {
         workpiece_id: WorkpieceId,
         actual: WorkpieceLifecycle,
+    },
+    WorkpieceMatterRequired {
+        workpiece_id: WorkpieceId,
+    },
+    InvalidWorkpieceMatterDigest {
+        workpiece_id: WorkpieceId,
+        authority_id: StableId,
+        allocation_id: StableId,
+        digest: String,
+    },
+    DuplicateWorkpieceMatterAllocation {
+        workpiece_id: WorkpieceId,
+        authority_id: StableId,
+        allocation_id: StableId,
+    },
+    CrossWorkpieceMatterAllocationAlias {
+        authority_id: StableId,
+        allocation_id: StableId,
+        first_workpiece_id: WorkpieceId,
+        second_workpiece_id: WorkpieceId,
     },
     Capability {
         capability_id: StableId,
@@ -761,6 +829,135 @@ mod tests {
             &[welder()],
         );
         assert!(matches!(result, Err(ProcessError::Preconditions(_))));
+    }
+
+    #[test]
+    fn restored_workpiece_without_matter_is_rejected_before_execution() {
+        let mut input = workpiece("workpiece:empty-matter", 1);
+        input.matter_bindings.clear();
+        let result = ProcessExecution::begin(
+            ProcessExecutionId::new(id("process-execution:empty-matter")),
+            &weld_spec(),
+            &[&input],
+            &[welder()],
+        );
+        assert!(matches!(
+            result,
+            Err(ProcessError::Preconditions(failures))
+                if failures.iter().any(|failure| matches!(
+                    failure,
+                    ProcessPreconditionFailure::WorkpieceMatterRequired { .. }
+                ))
+        ));
+    }
+
+    #[test]
+    fn restored_invalid_input_matter_digest_is_rejected_before_execution() {
+        let mut input = workpiece("workpiece:bad-digest", 1);
+        input.matter_bindings[0].binding_digest.clear();
+        let result = ProcessExecution::begin(
+            ProcessExecutionId::new(id("process-execution:bad-digest")),
+            &weld_spec(),
+            &[&input],
+            &[welder()],
+        );
+        assert!(matches!(
+            result,
+            Err(ProcessError::Preconditions(failures))
+                if failures.iter().any(|failure| matches!(
+                    failure,
+                    ProcessPreconditionFailure::InvalidWorkpieceMatterDigest { .. }
+                ))
+        ));
+    }
+
+    #[test]
+    fn restored_duplicate_allocation_inside_one_workpiece_is_rejected() {
+        let mut input = workpiece("workpiece:duplicate-matter", 1);
+        input.matter_bindings.push(input.matter_bindings[0].clone());
+        let result = ProcessExecution::begin(
+            ProcessExecutionId::new(id("process-execution:duplicate-matter")),
+            &weld_spec(),
+            &[&input],
+            &[welder()],
+        );
+        assert!(matches!(
+            result,
+            Err(ProcessError::Preconditions(failures))
+                if failures.iter().any(|failure| matches!(
+                    failure,
+                    ProcessPreconditionFailure::DuplicateWorkpieceMatterAllocation { .. }
+                ))
+        ));
+    }
+
+    #[test]
+    fn distinct_workpieces_cannot_alias_same_authority_scoped_allocation() {
+        let first = workpiece("workpiece:alias-a", 1);
+        let mut second = workpiece("workpiece:alias-b", 1);
+        second.matter_bindings = first.matter_bindings.clone();
+        let result = ProcessExecution::begin(
+            ProcessExecutionId::new(id("process-execution:cross-alias")),
+            &weld_spec(),
+            &[&first, &second],
+            &[welder()],
+        );
+        assert!(matches!(
+            result,
+            Err(ProcessError::Preconditions(failures))
+                if failures.iter().any(|failure| matches!(
+                    failure,
+                    ProcessPreconditionFailure::CrossWorkpieceMatterAllocationAlias {
+                        first_workpiece_id,
+                        second_workpiece_id,
+                        ..
+                    } if first_workpiece_id == &first.id && second_workpiece_id == &second.id
+                ))
+        ));
+    }
+
+    #[test]
+    fn same_local_input_allocation_id_from_distinct_authorities_is_valid() {
+        let mut first = workpiece("workpiece:authority-a", 1);
+        first.matter_bindings = vec![
+            MatterBinding::new(
+                id("matter:authority-a"),
+                id("allocation:shared-input"),
+                1,
+                "digest:a:shared-input:1",
+            )
+            .unwrap(),
+        ];
+        let mut second = workpiece("workpiece:authority-b", 1);
+        second.matter_bindings = vec![
+            MatterBinding::new(
+                id("matter:authority-b"),
+                id("allocation:shared-input"),
+                1,
+                "digest:b:shared-input:1",
+            )
+            .unwrap(),
+        ];
+        let result = ProcessExecution::begin(
+            ProcessExecutionId::new(id("process-execution:multi-authority-input")),
+            &weld_spec(),
+            &[&first, &second],
+            &[welder()],
+        );
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn distinct_multi_input_allocations_are_valid() {
+        let first = workpiece("workpiece:multi-a", 1);
+        let second = workpiece("workpiece:multi-b", 1);
+        let result = ProcessExecution::begin(
+            ProcessExecutionId::new(id("process-execution:distinct-multi")),
+            &weld_spec(),
+            &[&first, &second],
+            &[welder()],
+        );
+        assert!(result.is_ok());
     }
 
     #[test]

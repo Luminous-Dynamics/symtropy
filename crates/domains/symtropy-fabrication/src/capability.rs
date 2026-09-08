@@ -252,13 +252,13 @@ impl CapabilityNeed {
             });
         }
 
-        if let Some(required_mode) = &self.required_mode_id {
-            if required_mode != &envelope.mode_id {
-                failures.push(CapabilityMismatch::Mode {
-                    required: required_mode.clone(),
-                    provided: envelope.mode_id.clone(),
-                });
-            }
+        if let Some(required_mode) = &self.required_mode_id
+            && required_mode != &envelope.mode_id
+        {
+            failures.push(CapabilityMismatch::Mode {
+                required: required_mode.clone(),
+                provided: envelope.mode_id.clone(),
+            });
         }
 
         for condition in &self.required_conditions {
@@ -283,14 +283,14 @@ impl CapabilityNeed {
                 });
             }
 
-            if let Some(max_resolution) = required.max_resolution {
-                if provided.resolution > max_resolution {
-                    failures.push(CapabilityMismatch::Resolution {
-                        axis_id: required.axis_id.clone(),
-                        maximum: max_resolution,
-                        provided: provided.resolution,
-                    });
-                }
+            if let Some(max_resolution) = required.max_resolution
+                && provided.resolution > max_resolution
+            {
+                failures.push(CapabilityMismatch::Resolution {
+                    axis_id: required.axis_id.clone(),
+                    maximum: max_resolution,
+                    provided: provided.resolution,
+                });
             }
         }
 
