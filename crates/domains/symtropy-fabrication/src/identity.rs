@@ -127,10 +127,7 @@ impl Workpiece {
 
     /// Performs a structural lifecycle transition without mutating matter
     /// bindings. Physical transformation must be committed by a matter adapter.
-    pub fn transition(
-        &mut self,
-        next: WorkpieceLifecycle,
-    ) -> Result<(), FabricationError> {
+    pub fn transition(&mut self, next: WorkpieceLifecycle) -> Result<(), FabricationError> {
         if self.lifecycle == next {
             return Ok(());
         }
@@ -214,7 +211,10 @@ impl fmt::Display for FabricationError {
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::MatterBindingRequired => {
-                write!(formatter, "a workpiece requires at least one matter binding")
+                write!(
+                    formatter,
+                    "a workpiece requires at least one matter binding"
+                )
             }
             Self::InvalidMatterDigest(digest) => write!(
                 formatter,
@@ -229,7 +229,10 @@ impl fmt::Display for FabricationError {
                 "matter allocation {authority_id}/{allocation_id} is bound more than once"
             ),
             Self::InvalidLifecycleTransition { from, to } => {
-                write!(formatter, "invalid workpiece lifecycle transition {from:?} -> {to:?}")
+                write!(
+                    formatter,
+                    "invalid workpiece lifecycle transition {from:?} -> {to:?}"
+                )
             }
         }
     }
@@ -262,14 +265,20 @@ mod tests {
     #[test]
     fn workpiece_requires_explicit_matter() {
         let result = Workpiece::new(WorkpieceId::new(id("workpiece:patch")), Vec::new());
-        assert!(matches!(result, Err(FabricationError::MatterBindingRequired)));
+        assert!(matches!(
+            result,
+            Err(FabricationError::MatterBindingRequired)
+        ));
     }
 
     #[test]
     fn one_authority_scoped_allocation_cannot_be_bound_twice() {
         let result = Workpiece::new(
             WorkpieceId::new(id("workpiece:patch")),
-            vec![binding("allocation:steel", 7), binding("allocation:steel", 7)],
+            vec![
+                binding("allocation:steel", 7),
+                binding("allocation:steel", 7),
+            ],
         );
         assert!(matches!(
             result,

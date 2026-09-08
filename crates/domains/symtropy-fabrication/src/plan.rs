@@ -217,10 +217,7 @@ impl FabricationPlan {
 
     /// Returns currently executable plan steps for an externally supplied set
     /// of completed steps. The plan itself stores no mutable progress.
-    pub fn ready_steps(
-        &self,
-        completed: &[PlanStepId],
-    ) -> Result<Vec<PlanStepId>, PlanError> {
+    pub fn ready_steps(&self, completed: &[PlanStepId]) -> Result<Vec<PlanStepId>, PlanError> {
         let mut completed_set = BTreeSet::new();
         for step_id in completed {
             if self.step(step_id).is_none() {
@@ -348,7 +345,10 @@ impl fmt::Display for PlanError {
             Self::DuplicateStepWorkpiece {
                 step_id,
                 workpiece_id,
-            } => write!(formatter, "plan step {step_id} repeats workpiece {workpiece_id}"),
+            } => write!(
+                formatter,
+                "plan step {step_id} repeats workpiece {workpiece_id}"
+            ),
             Self::DuplicateCapabilityNeed {
                 step_id,
                 capability_need_id,
@@ -370,9 +370,15 @@ impl fmt::Display for PlanError {
                 dependency.prerequisite, dependency.dependent
             ),
             Self::UnknownDependencyStep(id) => {
-                write!(formatter, "fabrication dependency references unknown step {id}")
+                write!(
+                    formatter,
+                    "fabrication dependency references unknown step {id}"
+                )
             }
-            Self::CycleDetected => write!(formatter, "fabrication plan dependency graph contains a cycle"),
+            Self::CycleDetected => write!(
+                formatter,
+                "fabrication plan dependency graph contains a cycle"
+            ),
             Self::UnknownCompletedStep(id) => {
                 write!(formatter, "completed-set references unknown plan step {id}")
             }
@@ -573,7 +579,10 @@ mod tests {
             "authorized",
             "commissioned",
         ] {
-            assert!(value.get(forbidden).is_none(), "unexpected field {forbidden}");
+            assert!(
+                value.get(forbidden).is_none(),
+                "unexpected field {forbidden}"
+            );
         }
     }
 }

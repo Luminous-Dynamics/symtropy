@@ -180,13 +180,7 @@ impl ConstructionSite {
         step_id: PlanStepId,
         execution_id: ProcessExecutionId,
     ) -> Result<(), SiteError> {
-        self.admit_step_with_capabilities(
-            plan,
-            admission_id,
-            step_id,
-            execution_id,
-            Vec::new(),
-        )
+        self.admit_step_with_capabilities(plan, admission_id, step_id, execution_id, Vec::new())
     }
 
     /// Pre-admits one exact process execution plus the exact F5 admission
@@ -250,7 +244,8 @@ impl ConstructionSite {
             cancellation_reason_id: None,
             completion: None,
         });
-        self.admissions.sort_by(|left, right| left.id.cmp(&right.id));
+        self.admissions
+            .sort_by(|left, right| left.id.cmp(&right.id));
         self.bump_revision()?;
         Ok(())
     }
@@ -300,10 +295,14 @@ impl ConstructionSite {
             ));
         }
         if evidence.outcome != ProcessExecutionState::Completed {
-            return Err(SiteError::ProcessNotCompleted(evidence.execution_id.clone()));
+            return Err(SiteError::ProcessNotCompleted(
+                evidence.execution_id.clone(),
+            ));
         }
         if evidence.digest.is_empty() || evidence.digest.len() > 256 {
-            return Err(SiteError::InvalidProcessEvidenceDigest(evidence.digest.clone()));
+            return Err(SiteError::InvalidProcessEvidenceDigest(
+                evidence.digest.clone(),
+            ));
         }
         if evidence.resulting_matter.is_empty() {
             return Err(SiteError::MissingResultingMatterEvidence(
@@ -376,7 +375,10 @@ impl ConstructionSite {
         // snapshot cannot bypass dependency ordering merely because an admission
         // object exists.
         let completed = self.completed_step_ids();
-        if !plan.ready_steps(&completed)?.contains(&self.admissions[admission_index].step_id) {
+        if !plan
+            .ready_steps(&completed)?
+            .contains(&self.admissions[admission_index].step_id)
+        {
             return Err(SiteError::StepNotReady(
                 self.admissions[admission_index].step_id.clone(),
             ));
@@ -556,21 +558,43 @@ impl fmt::Display for SiteError {
                 formatter,
                 "construction site binds plan {expected_id}@{expected_revision}, got {actual_id}@{actual_revision}"
             ),
-            Self::SiteNotOpen(state) => write!(formatter, "construction site is not open: {state:?}"),
-            Self::SiteImmutable(state) => write!(formatter, "construction site is immutable: {state:?}"),
-            Self::DuplicateAdmissionId(id) => write!(formatter, "site admission {id} already exists"),
-            Self::DuplicateExecutionId(id) => write!(formatter, "process execution {id} is already site-bound"),
-            Self::DuplicateCapabilityAdmission(id) => {
-                write!(formatter, "site admission repeats capability admission {id}")
+            Self::SiteNotOpen(state) => {
+                write!(formatter, "construction site is not open: {state:?}")
             }
-            Self::StepAlreadyCompleted(id) => write!(formatter, "plan step {id} is already completed"),
-            Self::StepAlreadyAdmitted(id) => write!(formatter, "plan step {id} already has an open admission"),
-            Self::UnknownPlanStep(id) => write!(formatter, "plan step {id} is not part of the site plan"),
+            Self::SiteImmutable(state) => {
+                write!(formatter, "construction site is immutable: {state:?}")
+            }
+            Self::DuplicateAdmissionId(id) => {
+                write!(formatter, "site admission {id} already exists")
+            }
+            Self::DuplicateExecutionId(id) => {
+                write!(formatter, "process execution {id} is already site-bound")
+            }
+            Self::DuplicateCapabilityAdmission(id) => {
+                write!(
+                    formatter,
+                    "site admission repeats capability admission {id}"
+                )
+            }
+            Self::StepAlreadyCompleted(id) => {
+                write!(formatter, "plan step {id} is already completed")
+            }
+            Self::StepAlreadyAdmitted(id) => {
+                write!(formatter, "plan step {id} already has an open admission")
+            }
+            Self::UnknownPlanStep(id) => {
+                write!(formatter, "plan step {id} is not part of the site plan")
+            }
             Self::StepNotReady(id) => write!(formatter, "plan step {id} is not currently ready"),
             Self::UnknownAdmission(id) => write!(formatter, "site admission {id} does not exist"),
-            Self::UnknownExecutionAdmission(id) => write!(formatter, "process execution {id} was never admitted for this site"),
+            Self::UnknownExecutionAdmission(id) => write!(
+                formatter,
+                "process execution {id} was never admitted for this site"
+            ),
             Self::AdmissionNotOpen(id) => write!(formatter, "site admission {id} is not open"),
-            Self::ProcessNotCompleted(id) => write!(formatter, "process execution {id} is not completed"),
+            Self::ProcessNotCompleted(id) => {
+                write!(formatter, "process execution {id} is not completed")
+            }
             Self::InvalidProcessEvidenceDigest(digest) => write!(
                 formatter,
                 "process evidence digest must contain 1..=256 bytes, got {}",
@@ -613,9 +637,14 @@ impl fmt::Display for SiteError {
                 formatter,
                 "plan step {step_id} capability admissions mismatch: expected {expected:?}, got {actual:?}"
             ),
-            Self::PlanIncomplete => write!(formatter, "construction plan still has incomplete steps"),
+            Self::PlanIncomplete => {
+                write!(formatter, "construction plan still has incomplete steps")
+            }
             Self::InvalidLifecycleTransition { from, to } => {
-                write!(formatter, "invalid construction-site transition {from:?} -> {to:?}")
+                write!(
+                    formatter,
+                    "invalid construction-site transition {from:?} -> {to:?}"
+                )
             }
             Self::RevisionOverflow => write!(formatter, "construction-site revision overflow"),
             Self::Plan(error) => error.fmt(formatter),
@@ -751,7 +780,10 @@ mod tests {
         );
 
         let result = site.record_completion(&plan, &evidence);
-        assert!(matches!(result, Err(SiteError::UnknownExecutionAdmission(_))));
+        assert!(matches!(
+            result,
+            Err(SiteError::UnknownExecutionAdmission(_))
+        ));
     }
 
     #[test]
@@ -929,14 +961,7 @@ mod tests {
                 ProcessExecutionId::new(id(&format!("process-execution:{name}"))),
             )
             .unwrap();
-            let evidence = run_process(
-                name,
-                name,
-                &spec(name, kind),
-                &workpiece,
-                revision,
-                &[],
-            );
+            let evidence = run_process(name, name, &spec(name, kind), &workpiece, revision, &[]);
             site.record_completion(&plan, &evidence).unwrap();
         }
 
@@ -954,7 +979,10 @@ mod tests {
             "authorized",
             "commissioned",
         ] {
-            assert!(value.get(forbidden).is_none(), "unexpected field {forbidden}");
+            assert!(
+                value.get(forbidden).is_none(),
+                "unexpected field {forbidden}"
+            );
         }
     }
 

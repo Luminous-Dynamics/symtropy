@@ -26,11 +26,10 @@ use crate::{
 use serde::{Deserialize, Serialize};
 use std::{error::Error, fmt};
 use symtropy_construction::{
-    record_released_process_completion, ConstructionSite, ConstructionSiteId,
-    ConstructionSiteLifecycle, ConstructionStagingLedger, ContinuityError, PlacementEvidenceRef,
-    ScheduledWorkOrder, SiteError, SiteStepAdmissionId, StagingError, StagingReleaseInput,
-    StagingReleaseRecordId, StagingReservationId, WorkActorRef, WorkOrderError, WorkOrderId,
-    WorkOrderStatus,
+    ConstructionSite, ConstructionSiteId, ConstructionSiteLifecycle, ConstructionStagingLedger,
+    ContinuityError, PlacementEvidenceRef, ScheduledWorkOrder, SiteError, SiteStepAdmissionId,
+    StagingError, StagingReleaseInput, StagingReleaseRecordId, StagingReservationId, WorkActorRef,
+    WorkOrderError, WorkOrderId, WorkOrderStatus, record_released_process_completion,
 };
 use symtropy_fabrication::{
     CapabilityAdmission, CapabilityAdmissionId, CapabilityAxisRange, CapabilityEnvelope,
@@ -75,8 +74,8 @@ pub struct ReferenceBypassExecutionReport {
 /// The function intentionally attempts pressure-test release once with only the
 /// pressure-source admission. C2 must reject it without mutating site or release
 /// state; only source + calibrated measurement coverage may pass.
-pub fn run_reference_bypass_execution(
-) -> Result<ReferenceBypassExecutionReport, ReferenceBypassExecutionError> {
+pub fn run_reference_bypass_execution()
+-> Result<ReferenceBypassExecutionReport, ReferenceBypassExecutionError> {
     let scenario = PatchConduitScenario::canonical()
         .map_err(|error| ReferenceBypassExecutionError::Scenario(error.to_string()))?;
     let profile = PatchConduitExecutionProfile::compile(&scenario)
@@ -104,7 +103,9 @@ fn execute_reference_bypass(
         return Err(invariant("bypass install is not bound to Couple"));
     }
     if pressure_contract.spec.kind != ProcessKind::PressureTest {
-        return Err(invariant("bypass verification is not bound to PressureTest"));
+        return Err(invariant(
+            "bypass verification is not bound to PressureTest",
+        ));
     }
 
     let mut site = ConstructionSite::new(
@@ -149,17 +150,15 @@ fn execute_reference_bypass(
         &mut install_order,
         &mut site,
         plan,
-        SiteStepAdmissionId::new(sid(
-            "site-admission:firstlight:patch-conduit:bypass-couple",
-        )),
+        SiteStepAdmissionId::new(sid("site-admission:firstlight:patch-conduit:bypass-couple")),
         install_execution_id.clone(),
         std::slice::from_ref(&coupling_admission),
         release_inputs(&install_reservations, &before, "couple", 2)?,
     )?;
 
-    let bootstrap = install_order
-        .bootstrap_evidence()
-        .ok_or_else(|| invariant("successful staged Couple release emitted no F4 bootstrap evidence"))?;
+    let bootstrap = install_order.bootstrap_evidence().ok_or_else(|| {
+        invariant("successful staged Couple release emitted no F4 bootstrap evidence")
+    })?;
     let before_refs = workpiece_refs(&before);
     let mut install_execution = ProcessExecution::begin(
         install_execution_id,
@@ -179,17 +178,15 @@ fn execute_reference_bypass(
         "digest:process:firstlight:patch-conduit:bypass-couple:2",
         resulting_bindings(&after_couple),
     )?;
-    let completed = record_released_process_completion(
-        &staging,
-        &mut site,
-        plan,
-        &install_evidence,
-    )?;
+    let completed =
+        record_released_process_completion(&staging, &mut site, plan, &install_evidence)?;
     if completed != install_step {
         return Err(invariant("C4/C1 completed the wrong bypass install step"));
     }
     if install_order.status(&site)? != WorkOrderStatus::Completed {
-        return Err(invariant("bypass install work order did not derive Completed from C1"));
+        return Err(invariant(
+            "bypass install work order did not derive Completed from C1",
+        ));
     }
 
     // The pre-coupling construction claims are stale now that the physical
@@ -255,12 +252,7 @@ fn execute_reference_bypass(
             "process-execution:firstlight:patch-conduit:pressure-missing-gauge",
         )),
         std::slice::from_ref(&source_admission),
-        release_inputs(
-            &pressure_reservations,
-            &after_couple,
-            "pressure-test",
-            4,
-        )?,
+        release_inputs(&pressure_reservations, &after_couple, "pressure-test", 4)?,
     );
     let missing_pressure_measurement_rejected = matches!(
         rejected,
@@ -298,12 +290,7 @@ fn execute_reference_bypass(
         )),
         pressure_execution_id.clone(),
         &[source_admission, measurement_admission],
-        release_inputs(
-            &pressure_reservations,
-            &after_couple,
-            "pressure-test",
-            4,
-        )?,
+        release_inputs(&pressure_reservations, &after_couple, "pressure-test", 4)?,
     )?;
 
     let pressure_bootstrap = pressure_order.bootstrap_evidence().ok_or_else(|| {
@@ -331,12 +318,8 @@ fn execute_reference_bypass(
         "digest:process:firstlight:patch-conduit:bypass-pressure-test:3",
         resulting_bindings(&after_couple),
     )?;
-    let completed = record_released_process_completion(
-        &staging,
-        &mut site,
-        plan,
-        &pressure_evidence,
-    )?;
+    let completed =
+        record_released_process_completion(&staging, &mut site, plan, &pressure_evidence)?;
     if completed != pressure_step {
         return Err(invariant("C4/C1 completed the wrong pressure-test step"));
     }
@@ -477,9 +460,7 @@ fn placement(
         workpiece.id.stable_id().clone(),
         subject_revision,
         sid(STAGING_LOCATION),
-        format!(
-            "digest:placement:firstlight:patch-conduit:{phase}:{index}:{subject_revision}"
-        ),
+        format!("digest:placement:firstlight:patch-conduit:{phase}:{index}:{subject_revision}"),
     )
 }
 
@@ -663,7 +644,10 @@ impl fmt::Display for ReferenceBypassExecutionError {
                 write!(formatter, "Patch Conduit execution profile failed: {error}")
             }
             Self::Invariant(message) => {
-                write!(formatter, "Patch Conduit staged-execution invariant failed: {message}")
+                write!(
+                    formatter,
+                    "Patch Conduit staged-execution invariant failed: {message}"
+                )
             }
             Self::Fabrication(error) => fmt::Display::fmt(error, formatter),
             Self::Capability(error) => fmt::Display::fmt(error, formatter),

@@ -420,14 +420,23 @@ impl fmt::Display for CapabilityError {
                 axis_id,
                 lower,
                 upper,
-            } => write!(formatter, "capability axis {axis_id} has invalid range {lower}..{upper}"),
+            } => write!(
+                formatter,
+                "capability axis {axis_id} has invalid range {lower}..{upper}"
+            ),
             Self::InvalidAxisNeed {
                 axis_id,
                 lower,
                 upper,
-            } => write!(formatter, "capability need axis {axis_id} has invalid range {lower}..{upper}"),
+            } => write!(
+                formatter,
+                "capability need axis {axis_id} has invalid range {lower}..{upper}"
+            ),
             Self::ZeroResolution(axis_id) => {
-                write!(formatter, "capability axis {axis_id} requires non-zero resolution")
+                write!(
+                    formatter,
+                    "capability axis {axis_id} requires non-zero resolution"
+                )
             }
             Self::ZeroMaximumResolution(axis_id) => write!(
                 formatter,
@@ -440,7 +449,10 @@ impl fmt::Display for CapabilityError {
                 write!(formatter, "capability need repeats axis {axis_id}")
             }
             Self::DuplicateCondition(condition) => {
-                write!(formatter, "capability envelope repeats condition {condition}")
+                write!(
+                    formatter,
+                    "capability envelope repeats condition {condition}"
+                )
             }
             Self::DuplicateRequiredCondition(condition) => {
                 write!(formatter, "capability need repeats condition {condition}")
@@ -517,7 +529,10 @@ mod tests {
                 CapabilityAxisNeed::new(id("axis:heat-input"), 780, 840, Some(5)).unwrap(),
                 CapabilityAxisNeed::new(id("axis:travel-rate"), 90, 110, Some(2)).unwrap(),
             ],
-            vec![id("condition:surface-clean"), id("condition:shielding-active")],
+            vec![
+                id("condition:surface-clean"),
+                id("condition:shielding-active"),
+            ],
         )
         .unwrap()
     }
@@ -532,7 +547,10 @@ mod tests {
                 CapabilityAxisRange::new(id("axis:heat-input"), 700, 900, 4).unwrap(),
                 CapabilityAxisRange::new(id("axis:travel-rate"), 70, 130, 1).unwrap(),
             ],
-            vec![id("condition:surface-clean"), id("condition:shielding-active")],
+            vec![
+                id("condition:surface-clean"),
+                id("condition:shielding-active"),
+            ],
             evidence(),
         )
         .unwrap()
@@ -566,14 +584,20 @@ mod tests {
     #[test]
     fn missing_operating_condition_is_explicit_not_absorbed_into_score() {
         let mut envelope = welder();
-        envelope.conditions.retain(|condition| condition != &id("condition:shielding-active"));
+        envelope
+            .conditions
+            .retain(|condition| condition != &id("condition:shielding-active"));
         let admission = welding_need().evaluate(
             CapabilityAdmissionId::new(id("capability-admission:weld:3")),
             &envelope,
         );
-        assert!(admission.failures.contains(&CapabilityMismatch::MissingCondition(
-            id("condition:shielding-active")
-        )));
+        assert!(
+            admission
+                .failures
+                .contains(&CapabilityMismatch::MissingCondition(id(
+                    "condition:shielding-active"
+                )))
+        );
     }
 
     #[test]

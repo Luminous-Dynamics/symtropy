@@ -12,9 +12,7 @@ use serde::{Deserialize, Deserializer, Serialize};
 use std::{error::Error, fmt};
 use symtropy_game_state::StableId;
 
-use crate::{
-    FabricationPlan, PlanStepId, ProcessSpecId, ProcessSpecSnapshot,
-};
+use crate::{FabricationPlan, PlanStepId, ProcessSpecId, ProcessSpecSnapshot};
 
 /// One exact F10 -> F4 semantic binding.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -174,13 +172,22 @@ impl fmt::Display for ExecutablePlanError {
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::MissingStepBinding(step_id) => {
-                write!(formatter, "executable plan lacks an exact process binding for step {step_id}")
+                write!(
+                    formatter,
+                    "executable plan lacks an exact process binding for step {step_id}"
+                )
             }
             Self::DuplicateStepBinding(step_id) => {
-                write!(formatter, "executable plan repeats process binding for step {step_id}")
+                write!(
+                    formatter,
+                    "executable plan repeats process binding for step {step_id}"
+                )
             }
             Self::UnknownStepBinding(step_id) => {
-                write!(formatter, "executable process binding references unknown step {step_id}")
+                write!(
+                    formatter,
+                    "executable process binding references unknown step {step_id}"
+                )
             }
             Self::ProcessIdentityMismatch {
                 step_id,
@@ -236,10 +243,7 @@ mod tests {
             process_id(name),
             1,
             vec![WorkpieceId::new(id(&format!("workpiece:{name}")))],
-            capability
-                .into_iter()
-                .map(capability_id)
-                .collect(),
+            capability.into_iter().map(capability_id).collect(),
             vec![id(&format!("evidence-kind:{name}"))],
         )
         .unwrap()

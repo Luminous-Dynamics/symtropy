@@ -18,15 +18,15 @@ use serde::{Deserialize, Serialize};
 use std::{error::Error, fmt};
 use symtropy_fabrication::{
     CapabilityEvidence, ConstraintError, DesignBinding, DesignRoleId, DiagnosticAssessment,
-    DiagnosticCase, DiagnosticCaseId, DiagnosticCriterion, DiagnosticError,
-    DiagnosticHypothesis, DiagnosticHypothesisId, DiagnosticProbe, DiagnosticProbeId,
-    EngineeringEvidenceRef, EngineeringFact, EngineeringFactId, EngineeringFactSet,
-    EngineeringFactValue, FabricationError, FunctionalConstraintId, FunctionalSubject,
-    FunctionalSubjectKind, HypothesisOutcome, KnownConstraintState, MatterBinding,
-    MeasurementInterval, ObservationState, PlanStepId, ProcessError, ProcessEvidence,
-    ProcessExecution, ProcessExecutionId, ProcessExecutionState, ProcessKind, RoleBinding,
-    WorkmanshipError, WorkmanshipEvidenceRef, WorkmanshipObservation, WorkmanshipObservationId,
-    WorkmanshipValue, WorkmanshipVector, Workpiece, WorkpieceId, WorkpieceLifecycle,
+    DiagnosticCase, DiagnosticCaseId, DiagnosticCriterion, DiagnosticError, DiagnosticHypothesis,
+    DiagnosticHypothesisId, DiagnosticProbe, DiagnosticProbeId, EngineeringEvidenceRef,
+    EngineeringFact, EngineeringFactId, EngineeringFactSet, EngineeringFactValue, FabricationError,
+    FunctionalConstraintId, FunctionalSubject, FunctionalSubjectKind, HypothesisOutcome,
+    KnownConstraintState, MatterBinding, MeasurementInterval, ObservationState, PlanStepId,
+    ProcessError, ProcessEvidence, ProcessExecution, ProcessExecutionId, ProcessExecutionState,
+    ProcessKind, RoleBinding, WorkmanshipError, WorkmanshipEvidenceRef, WorkmanshipObservation,
+    WorkmanshipObservationId, WorkmanshipValue, WorkmanshipVector, Workpiece, WorkpieceId,
+    WorkpieceLifecycle,
 };
 use symtropy_game_state::StableId;
 
@@ -72,8 +72,8 @@ pub struct PatchConduitDiagnosticReport {
 /// 1. known leak evidence -> coupling/seal fault supported;
 /// 2. leak localization omitted -> the same hypothesis remains unresolved and
 ///    F11 proposes an inspection probe.
-pub fn run_reference_pressure_diagnostics(
-) -> Result<PatchConduitDiagnosticReport, PatchConduitDiagnosticError> {
+pub fn run_reference_pressure_diagnostics()
+-> Result<PatchConduitDiagnosticReport, PatchConduitDiagnosticError> {
     let scenario = PatchConduitScenario::canonical()
         .map_err(|error| PatchConduitDiagnosticError::Scenario(error.to_string()))?;
     let profile = PatchConduitExecutionProfile::compile(&scenario)
@@ -104,10 +104,8 @@ pub fn run_reference_pressure_diagnostics(
     let diagnostic_case = diagnostic_case(&scenario, pressure_contract, inspect_contract)?;
     let binding = bypass_binding()?;
 
-    let known_vector = reference_pressure_observations(
-        &pressure_evidence,
-        Some(ObservationState::Present),
-    )?;
+    let known_vector =
+        reference_pressure_observations(&pressure_evidence, Some(ObservationState::Present))?;
     let known_facts = engineering_facts_from_pressure_test(
         &pressure_evidence,
         &known_vector,
@@ -258,26 +256,22 @@ fn diagnostic_case(
     inspect: &PatchConduitProcessContract,
 ) -> Result<DiagnosticCase, PatchConduitDiagnosticError> {
     DiagnosticCase::new(
-        DiagnosticCaseId::new(sid("diagnostic-case:firstlight:patch-conduit:pressure-failure")),
+        DiagnosticCaseId::new(sid(
+            "diagnostic-case:firstlight:patch-conduit:pressure-failure",
+        )),
         &scenario.design,
         vec![
             DiagnosticHypothesis::new(
                 DiagnosticHypothesisId::new(sid(HYPOTHESIS_COUPLING_LEAK)),
                 vec![
                     criterion(CONSTRAINT_CONTAINMENT, KnownConstraintState::Unsatisfied),
-                    criterion(
-                        CONSTRAINT_NO_ACTIVE_LEAK,
-                        KnownConstraintState::Unsatisfied,
-                    ),
+                    criterion(CONSTRAINT_NO_ACTIVE_LEAK, KnownConstraintState::Unsatisfied),
                 ],
             )?,
             DiagnosticHypothesis::new(
                 DiagnosticHypothesisId::new(sid(HYPOTHESIS_RESTRICTION)),
                 vec![
-                    criterion(
-                        CONSTRAINT_PRESSURE_LOSS,
-                        KnownConstraintState::Unsatisfied,
-                    ),
+                    criterion(CONSTRAINT_PRESSURE_LOSS, KnownConstraintState::Unsatisfied),
                     criterion(CONSTRAINT_NO_ACTIVE_LEAK, KnownConstraintState::Satisfied),
                 ],
             )?,
@@ -295,7 +289,9 @@ fn diagnostic_case(
                 inspect.spec.id.clone(),
                 inspect.spec.revision,
                 vec![constraint_id(CONSTRAINT_NO_ACTIVE_LEAK)],
-                vec![sid("evidence-kind:firstlight:patch-conduit:leak-localization")],
+                vec![sid(
+                    "evidence-kind:firstlight:patch-conduit:leak-localization",
+                )],
             )?,
             DiagnosticProbe::new(
                 DiagnosticProbeId::new(sid(PROBE_REPEAT_PRESSURE)),
@@ -391,12 +387,8 @@ fn reference_pressure_process_evidence(
     let execution_id = ProcessExecutionId::new(sid(
         "process-execution:firstlight:patch-conduit:diagnostic-pressure-test",
     ));
-    let mut execution = ProcessExecution::begin(
-        execution_id,
-        &contract.spec,
-        &[&workpiece],
-        &capabilities,
-    )?;
+    let mut execution =
+        ProcessExecution::begin(execution_id, &contract.spec, &[&workpiece], &capabilities)?;
     Ok(execution.complete(
         sid("matter:firstlight:reference-physical"),
         sid("process-evidence:firstlight:patch-conduit:diagnostic-pressure-test"),
@@ -559,10 +551,16 @@ impl fmt::Display for PatchConduitDiagnosticError {
                 "diagnostic evidence expected {expected:?} process, got {actual:?}"
             ),
             Self::ProcessNotCompleted => {
-                write!(formatter, "diagnostic observations require completed process evidence")
+                write!(
+                    formatter,
+                    "diagnostic observations require completed process evidence"
+                )
             }
             Self::MalformedProcessEvidence => {
-                write!(formatter, "pressure-test evidence lacks physical before/after evidence")
+                write!(
+                    formatter,
+                    "pressure-test evidence lacks physical before/after evidence"
+                )
             }
             Self::ObservationContextMismatch => write!(
                 formatter,
@@ -573,7 +571,10 @@ impl fmt::Display for PatchConduitDiagnosticError {
                 "pressure-test observation {id} uses the wrong evidence value type"
             ),
             Self::NoMappedPressureObservations => {
-                write!(formatter, "no mapped pressure-test observations were supplied")
+                write!(
+                    formatter,
+                    "no mapped pressure-test observations were supplied"
+                )
             }
             Self::InvalidMaterialFact => write!(
                 formatter,
@@ -610,26 +611,36 @@ mod tests {
         let report = run_reference_pressure_diagnostics().unwrap();
         assert!(report.pressure_process_completed);
         assert!(!report.known_failure_all_satisfied);
-        assert!(report
-            .supported_hypotheses
-            .contains(&HYPOTHESIS_COUPLING_LEAK.to_owned()));
-        assert!(report
-            .contradicted_hypotheses
-            .contains(&HYPOTHESIS_RESTRICTION.to_owned()));
-        assert!(report
-            .contradicted_hypotheses
-            .contains(&HYPOTHESIS_MATERIAL.to_owned()));
+        assert!(
+            report
+                .supported_hypotheses
+                .contains(&HYPOTHESIS_COUPLING_LEAK.to_owned())
+        );
+        assert!(
+            report
+                .contradicted_hypotheses
+                .contains(&HYPOTHESIS_RESTRICTION.to_owned())
+        );
+        assert!(
+            report
+                .contradicted_hypotheses
+                .contains(&HYPOTHESIS_MATERIAL.to_owned())
+        );
     }
 
     #[test]
     fn missing_leak_localization_keeps_fault_unresolved_and_suggests_probe() {
         let report = run_reference_pressure_diagnostics().unwrap();
-        assert!(report
-            .unresolved_without_leak_localization
-            .contains(&HYPOTHESIS_COUPLING_LEAK.to_owned()));
-        assert!(report
-            .suggested_probes_without_leak_localization
-            .contains(&PROBE_VISUAL_LEAK.to_owned()));
+        assert!(
+            report
+                .unresolved_without_leak_localization
+                .contains(&HYPOTHESIS_COUPLING_LEAK.to_owned())
+        );
+        assert!(
+            report
+                .suggested_probes_without_leak_localization
+                .contains(&PROBE_VISUAL_LEAK.to_owned())
+        );
     }
 
     #[test]
@@ -641,11 +652,8 @@ mod tests {
             .process_for_step(&plan_step(PRESSURE_STEP))
             .unwrap();
         let evidence = reference_pressure_process_evidence(pressure).unwrap();
-        let mut vector = reference_pressure_observations(
-            &evidence,
-            Some(ObservationState::Present),
-        )
-        .unwrap();
+        let mut vector =
+            reference_pressure_observations(&evidence, Some(ObservationState::Present)).unwrap();
         vector.execution_id = ProcessExecutionId::new(sid("process-execution:other"));
 
         assert!(matches!(
