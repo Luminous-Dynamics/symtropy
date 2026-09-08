@@ -8,6 +8,7 @@
 //! authorization.
 
 mod continuity;
+mod exact_orchestration;
 mod exact_site;
 mod orchestration;
 mod site;
@@ -16,6 +17,7 @@ mod temporary_works;
 mod work_order;
 
 pub use continuity::*;
+pub use exact_orchestration::*;
 pub use exact_site::*;
 pub use orchestration::*;
 pub use site::*;
