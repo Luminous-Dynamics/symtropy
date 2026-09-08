@@ -4,14 +4,15 @@
 mod patch_conduit;
 mod patch_conduit_diagnostics;
 mod patch_conduit_exact_plan;
+mod patch_conduit_exact_staged_execution;
 mod patch_conduit_execution;
 mod patch_conduit_staged_execution;
 
 use patch_conduit::{PatchConduitScenario, patch_conduit_reference_facts};
 use patch_conduit_diagnostics::run_reference_pressure_diagnostics;
 use patch_conduit_exact_plan::ExactPatchConduitProfile;
+use patch_conduit_exact_staged_execution::run_exact_reference_bypass_execution;
 use patch_conduit_execution::PatchConduitExecutionProfile;
-use patch_conduit_staged_execution::run_reference_bypass_execution;
 use serde_json::json;
 use symtropy_firstlight::{canonical_service_span, run_reference_sequence};
 
@@ -186,19 +187,20 @@ fn run_patch_conduit_exact_plan() {
     });
     println!(
         "{}",
-        serde_json::to_string_pretty(&summary).expect("serialize Patch Conduit exact-plan summary")
+        serde_json::to_string_pretty(&summary)
+            .expect("serialize Patch Conduit exact-plan summary")
     );
 }
 
 fn run_patch_conduit_execute() {
-    match run_reference_bypass_execution() {
+    match run_exact_reference_bypass_execution() {
         Ok(report) => println!(
             "{}",
             serde_json::to_string_pretty(&report)
-                .expect("serialize Patch Conduit staged-execution report")
+                .expect("serialize Patch Conduit exact staged-execution report")
         ),
         Err(error) => {
-            eprintln!("Patch Conduit staged execution failed: {error}");
+            eprintln!("Patch Conduit exact staged execution failed: {error}");
             std::process::exit(1);
         }
     }
