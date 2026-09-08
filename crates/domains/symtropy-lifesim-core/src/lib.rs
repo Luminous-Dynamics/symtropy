@@ -19,6 +19,7 @@ pub mod information_transition;
 pub mod phenotype;
 pub mod physiology;
 pub mod population;
+pub mod transition_applicability;
 #[cfg(feature = "wgpu")]
 pub mod wgpu_backend;
 
