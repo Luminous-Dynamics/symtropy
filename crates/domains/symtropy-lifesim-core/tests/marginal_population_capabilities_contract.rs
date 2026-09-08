@@ -3,57 +3,31 @@
 
 //! Executable contract for the V0 marginal PopulationState information profile.
 //!
-//! This is deliberately an oracle before the final schema-owned adapter from
-//! #265. It freezes what the current coarse representation may claim through
-//! the sealed information-policy registry and, equally importantly, what it
-//! must not claim.
+//! The oracle consumes the schema-owned product adapter rather than duplicating
+//! its capability map. Any semantic drift in the adapter therefore changes the
+//! observable contract directly.
 
 use symtropy_lifesim_core::conservation::ConservedQuantity;
 use symtropy_lifesim_core::information::{
     CapabilityEvidence, EcologicalAuthorityLevel, EcologicalInformation,
     PopulationStatisticSet, ProcessInformationProfile, ProcessInformationRequirement, ProcessKey,
-    RepresentationCapabilities, RepresentationKey,
 };
 use symtropy_lifesim_core::information_registry::{
     InformationPolicyRegistry, InformationPolicyRegistryBuilder, InformationPolicyRegistryKey,
 };
+use symtropy_lifesim_core::population_information::{
+    marginal_population_v0_capabilities, register_marginal_population_v0,
+    MARGINAL_POPULATION_V0,
+};
 
 const REGISTRY: InformationPolicyRegistryKey =
     InformationPolicyRegistryKey::new(0x6d6172675f6361705f7265675f763031, 1);
-const MARGINAL_POPULATION_V0: RepresentationKey =
-    RepresentationKey::new(0x6d617267696e616c5f706f705f763031, 1);
 
 const MARGINAL_PROCESS: ProcessKey = ProcessKey::new(0x1001, 1);
 const JOINT_PROCESS: ProcessKey = ProcessKey::new(0x1002, 1);
 const ACTIVE_PROCESS: ProcessKey = ProcessKey::new(0x1003, 1);
 const PERSISTENT_PROCESS: ProcessKey = ProcessKey::new(0x1004, 1);
 const CONSERVATION_PROCESS: ProcessKey = ProcessKey::new(0x1005, 1);
-
-fn marginal_population_v0_capabilities() -> RepresentationCapabilities {
-    RepresentationCapabilities::new(
-        MARGINAL_POPULATION_V0,
-        EcologicalAuthorityLevel::Coarse,
-        [
-            (EcologicalInformation::Headcount, CapabilityEvidence::Exact),
-            (
-                EcologicalInformation::ExactLivingBiomass,
-                CapabilityEvidence::Exact,
-            ),
-            (
-                EcologicalInformation::AgeDistribution,
-                CapabilityEvidence::Exact,
-            ),
-            (
-                EcologicalInformation::ConditionDistribution,
-                CapabilityEvidence::Exact,
-            ),
-            (
-                EcologicalInformation::OccupancyDistribution,
-                CapabilityEvidence::Exact,
-            ),
-        ],
-    )
-}
 
 fn exact_process(
     key: ProcessKey,
@@ -73,9 +47,7 @@ fn registry_with(
     processes: impl IntoIterator<Item = ProcessInformationProfile>,
 ) -> InformationPolicyRegistry {
     let mut builder = InformationPolicyRegistryBuilder::new(REGISTRY);
-    builder
-        .register_representation(marginal_population_v0_capabilities())
-        .unwrap();
+    register_marginal_population_v0(&mut builder).unwrap();
     for process in processes {
         builder.register_process(process).unwrap();
     }
