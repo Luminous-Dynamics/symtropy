@@ -1,0 +1,418 @@
+name: F4 Input Matter Repair
+
+on:
+  pull_request:
+    branches: [ "main" ]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: f4-input-matter-repair-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  repair:
+    name: Apply and verify F4 input matter integrity
+    runs-on: macos-latest
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        ref: fabrication/f4-input-matter-integrity
+
+    - name: Set up Rust
+      uses: dtolnay/rust-toolchain@stable
+      with:
+        toolchain: 1.96.0
+        components: clippy, rustfmt
+
+    - name: Apply exact source transformation
+      shell: python
+      run: |
+        from pathlib import Path
+
+        process = Path('crates/domains/symtropy-fabrication/src/process.rs')
+        text = process.read_text()
+
+        old = '''        for (index, workpiece) in workpieces.iter().enumerate() {
+            if workpieces[..index]
+                .iter()
+                .any(|existing| existing.id == workpiece.id)
+            {
+                failures.push(ProcessPreconditionFailure::DuplicateWorkpiece {
+                    workpiece_id: workpiece.id.clone(),
+                });
+            }
+            if !self.allowed_workpiece_states.contains(&workpiece.lifecycle) {
+                failures.push(ProcessPreconditionFailure::WorkpieceState {
+                    workpiece_id: workpiece.id.clone(),
+                    actual: workpiece.lifecycle,
+                });
+            }
+        }
+'''
+        new = '''        for (index, workpiece) in workpieces.iter().enumerate() {
+            if workpieces[..index]
+                .iter()
+                .any(|existing| existing.id == workpiece.id)
+            {
+                failures.push(ProcessPreconditionFailure::DuplicateWorkpiece {
+                    workpiece_id: workpiece.id.clone(),
+                });
+            }
+            if !self.allowed_workpiece_states.contains(&workpiece.lifecycle) {
+                failures.push(ProcessPreconditionFailure::WorkpieceState {
+                    workpiece_id: workpiece.id.clone(),
+                    actual: workpiece.lifecycle,
+                });
+            }
+            if workpiece.matter_bindings.is_empty() {
+                failures.push(ProcessPreconditionFailure::WorkpieceMatterRequired {
+                    workpiece_id: workpiece.id.clone(),
+                });
+            }
+
+            for (binding_index, binding) in workpiece.matter_bindings.iter().enumerate() {
+                if binding.binding_digest.is_empty() || binding.binding_digest.len() > 256 {
+                    failures.push(ProcessPreconditionFailure::InvalidWorkpieceMatterDigest {
+                        workpiece_id: workpiece.id.clone(),
+                        authority_id: binding.authority_id.clone(),
+                        allocation_id: binding.allocation_id.clone(),
+                        digest: binding.binding_digest.clone(),
+                    });
+                }
+
+                if workpiece.matter_bindings[..binding_index].iter().any(|existing| {
+                    existing.authority_id == binding.authority_id
+                        && existing.allocation_id == binding.allocation_id
+                }) {
+                    failures.push(
+                        ProcessPreconditionFailure::DuplicateWorkpieceMatterAllocation {
+                            workpiece_id: workpiece.id.clone(),
+                            authority_id: binding.authority_id.clone(),
+                            allocation_id: binding.allocation_id.clone(),
+                        },
+                    );
+                }
+
+                for previous_workpiece in &workpieces[..index] {
+                    if previous_workpiece.matter_bindings.iter().any(|existing| {
+                        existing.authority_id == binding.authority_id
+                            && existing.allocation_id == binding.allocation_id
+                    }) {
+                        failures.push(ProcessPreconditionFailure::CrossWorkpieceMatterAllocationAlias {
+                            authority_id: binding.authority_id.clone(),
+                            allocation_id: binding.allocation_id.clone(),
+                            first_workpiece_id: previous_workpiece.id.clone(),
+                            second_workpiece_id: workpiece.id.clone(),
+                        });
+                        break;
+                    }
+                }
+            }
+        }
+'''
+        if text.count(old) != 1:
+            raise SystemExit(f'process precondition anchor count={text.count(old)}')
+        text = text.replace(old, new)
+
+        old = '''    WorkpieceState {
+        workpiece_id: WorkpieceId,
+        actual: WorkpieceLifecycle,
+    },
+    Capability {
+'''
+        new = '''    WorkpieceState {
+        workpiece_id: WorkpieceId,
+        actual: WorkpieceLifecycle,
+    },
+    WorkpieceMatterRequired {
+        workpiece_id: WorkpieceId,
+    },
+    InvalidWorkpieceMatterDigest {
+        workpiece_id: WorkpieceId,
+        authority_id: StableId,
+        allocation_id: StableId,
+        digest: String,
+    },
+    DuplicateWorkpieceMatterAllocation {
+        workpiece_id: WorkpieceId,
+        authority_id: StableId,
+        allocation_id: StableId,
+    },
+    CrossWorkpieceMatterAllocationAlias {
+        authority_id: StableId,
+        allocation_id: StableId,
+        first_workpiece_id: WorkpieceId,
+        second_workpiece_id: WorkpieceId,
+    },
+    Capability {
+'''
+        if text.count(old) != 1:
+            raise SystemExit(f'precondition enum anchor count={text.count(old)}')
+        text = text.replace(old, new)
+
+        old = '''    fn duplicate_workpiece_is_rejected_before_execution() {
+        let workpiece = workpiece("workpiece:plate", 7);
+        let result = ProcessExecution::begin(
+            ProcessExecutionId::new(id("process-execution:weld")),
+            &weld_spec(),
+            &[&workpiece, &workpiece],
+            &[welder()],
+        );
+        assert!(matches!(result, Err(ProcessError::Preconditions(_))));
+    }
+
+'''
+        new = old + '''    #[test]
+    fn restored_workpiece_without_matter_is_rejected_before_execution() {
+        let mut workpiece = workpiece("workpiece:empty-matter", 1);
+        workpiece.matter_bindings.clear();
+        let result = ProcessExecution::begin(
+            ProcessExecutionId::new(id("process-execution:empty-matter")),
+            &weld_spec(),
+            &[&workpiece],
+            &[welder()],
+        );
+        assert!(matches!(
+            result,
+            Err(ProcessError::Preconditions(failures))
+                if failures.iter().any(|failure| matches!(
+                    failure,
+                    ProcessPreconditionFailure::WorkpieceMatterRequired { .. }
+                ))
+        ));
+    }
+
+    #[test]
+    fn restored_invalid_input_matter_digest_is_rejected_before_execution() {
+        let mut workpiece = workpiece("workpiece:bad-digest", 1);
+        workpiece.matter_bindings[0].binding_digest.clear();
+        let result = ProcessExecution::begin(
+            ProcessExecutionId::new(id("process-execution:bad-digest")),
+            &weld_spec(),
+            &[&workpiece],
+            &[welder()],
+        );
+        assert!(matches!(
+            result,
+            Err(ProcessError::Preconditions(failures))
+                if failures.iter().any(|failure| matches!(
+                    failure,
+                    ProcessPreconditionFailure::InvalidWorkpieceMatterDigest { .. }
+                ))
+        ));
+    }
+
+    #[test]
+    fn restored_duplicate_allocation_inside_one_workpiece_is_rejected() {
+        let mut workpiece = workpiece("workpiece:duplicate-matter", 1);
+        workpiece.matter_bindings.push(workpiece.matter_bindings[0].clone());
+        let result = ProcessExecution::begin(
+            ProcessExecutionId::new(id("process-execution:duplicate-matter")),
+            &weld_spec(),
+            &[&workpiece],
+            &[welder()],
+        );
+        assert!(matches!(
+            result,
+            Err(ProcessError::Preconditions(failures))
+                if failures.iter().any(|failure| matches!(
+                    failure,
+                    ProcessPreconditionFailure::DuplicateWorkpieceMatterAllocation { .. }
+                ))
+        ));
+    }
+
+    #[test]
+    fn distinct_workpieces_cannot_alias_same_authority_scoped_allocation() {
+        let first = workpiece("workpiece:alias-a", 1);
+        let mut second = workpiece("workpiece:alias-b", 1);
+        second.matter_bindings = first.matter_bindings.clone();
+        let result = ProcessExecution::begin(
+            ProcessExecutionId::new(id("process-execution:cross-alias")),
+            &weld_spec(),
+            &[&first, &second],
+            &[welder()],
+        );
+        assert!(matches!(
+            result,
+            Err(ProcessError::Preconditions(failures))
+                if failures.iter().any(|failure| matches!(
+                    failure,
+                    ProcessPreconditionFailure::CrossWorkpieceMatterAllocationAlias {
+                        first_workpiece_id,
+                        second_workpiece_id,
+                        ..
+                    } if first_workpiece_id == &first.id && second_workpiece_id == &second.id
+                ))
+        ));
+    }
+
+    #[test]
+    fn same_local_input_allocation_id_from_distinct_authorities_is_valid() {
+        let mut first = workpiece("workpiece:authority-a", 1);
+        first.matter_bindings = vec![MatterBinding::new(
+            id("matter:authority-a"),
+            id("allocation:shared-input"),
+            1,
+            "digest:a:shared-input:1",
+        )
+        .unwrap()];
+        let mut second = workpiece("workpiece:authority-b", 1);
+        second.matter_bindings = vec![MatterBinding::new(
+            id("matter:authority-b"),
+            id("allocation:shared-input"),
+            1,
+            "digest:b:shared-input:1",
+        )
+        .unwrap()];
+        let result = ProcessExecution::begin(
+            ProcessExecutionId::new(id("process-execution:multi-authority-input")),
+            &weld_spec(),
+            &[&first, &second],
+            &[welder()],
+        );
+        assert!(result.is_ok());
+    }
+
+'''
+        if text.count(old) != 1:
+            raise SystemExit(f'test anchor count={text.count(old)}')
+        text = text.replace(old, new)
+        process.write_text(text)
+
+        evidence = Path('crates/domains/symtropy-fabrication/src/process_evidence.rs')
+        text = evidence.read_text()
+
+        old = '''        validate_input_matter_bindings(&input.matter_bindings)?;
+    }
+
+    for requirement in evidence.spec_snapshot.required_capabilities() {
+'''
+        new = '''        validate_input_matter_bindings(&input.matter_bindings)?;
+        for previous_input in &evidence.inputs[..index] {
+            for binding in &input.matter_bindings {
+                if previous_input.matter_bindings.iter().any(|existing| {
+                    existing.authority_id == binding.authority_id
+                        && existing.allocation_id == binding.allocation_id
+                }) {
+                    return Err(ProcessEvidenceValidationError::CrossInputMatterAllocationAlias {
+                        authority_id: binding.authority_id.clone(),
+                        allocation_id: binding.allocation_id.clone(),
+                        first_workpiece_id: previous_input.workpiece_id.clone(),
+                        second_workpiece_id: input.workpiece_id.clone(),
+                    });
+                }
+            }
+        }
+    }
+
+    for requirement in evidence.spec_snapshot.required_capabilities() {
+'''
+        if text.count(old) != 1:
+            raise SystemExit(f'evidence validation anchor count={text.count(old)}')
+        text = text.replace(old, new)
+
+        old = '''    DuplicateInputMatterAllocation {
+        authority_id: StableId,
+        allocation_id: StableId,
+    },
+    DuplicateResultingMatterAllocation {
+'''
+        new = '''    DuplicateInputMatterAllocation {
+        authority_id: StableId,
+        allocation_id: StableId,
+    },
+    CrossInputMatterAllocationAlias {
+        authority_id: StableId,
+        allocation_id: StableId,
+        first_workpiece_id: WorkpieceId,
+        second_workpiece_id: WorkpieceId,
+    },
+    DuplicateResultingMatterAllocation {
+'''
+        if text.count(old) != 1:
+            raise SystemExit(f'evidence error enum anchor count={text.count(old)}')
+        text = text.replace(old, new)
+
+        old = '''            Self::DuplicateInputMatterAllocation {
+                authority_id,
+                allocation_id,
+            } => write!(
+                formatter,
+                "process evidence repeats input matter allocation {authority_id}/{allocation_id}"
+            ),
+            Self::DuplicateResultingMatterAllocation {
+'''
+        new = '''            Self::DuplicateInputMatterAllocation {
+                authority_id,
+                allocation_id,
+            } => write!(
+                formatter,
+                "process evidence repeats input matter allocation {authority_id}/{allocation_id}"
+            ),
+            Self::CrossInputMatterAllocationAlias {
+                authority_id,
+                allocation_id,
+                first_workpiece_id,
+                second_workpiece_id,
+            } => write!(
+                formatter,
+                "process evidence aliases input matter allocation {authority_id}/{allocation_id} across workpieces {first_workpiece_id} and {second_workpiece_id}"
+            ),
+            Self::DuplicateResultingMatterAllocation {
+'''
+        if text.count(old) != 1:
+            raise SystemExit(f'evidence display anchor count={text.count(old)}')
+        text = text.replace(old, new)
+
+        anchor = '''    fn nested_matter_constructor_invariants_are_revalidated() {
+'''
+        idx = text.find(anchor)
+        if idx < 0:
+            raise SystemExit('nested matter test anchor missing')
+        addition = '''    #[test]
+    fn wire_cannot_alias_one_matter_allocation_across_distinct_inputs() {
+        let mut value = serde_json::to_value(evidence()).unwrap();
+        let mut second = value["inputs"][0].clone();
+        second["workpiece_id"] = serde_json::Value::String("workpiece:second".into());
+        value["inputs"].as_array_mut().unwrap().push(second);
+        assert!(serde_json::from_value::<ValidatedProcessEvidence>(value).is_err());
+    }
+
+    #[test]
+    fn wire_allows_same_local_allocation_id_under_distinct_authorities() {
+        let mut value = serde_json::to_value(evidence()).unwrap();
+        let mut second = value["inputs"][0].clone();
+        second["workpiece_id"] = serde_json::Value::String("workpiece:second-authority".into());
+        second["matter_bindings"][0]["authority_id"] =
+            serde_json::Value::String("matter-authority:other".into());
+        second["matter_bindings"][0]["binding_digest"] =
+            serde_json::Value::String("digest:other-authority".into());
+        value["inputs"].as_array_mut().unwrap().push(second);
+        assert!(serde_json::from_value::<ValidatedProcessEvidence>(value).is_ok());
+    }
+
+'''
+        text = text[:idx] + addition + text[idx:]
+        evidence.write_text(text)
+
+    - name: Apply canonical formatting
+      run: cargo fmt --all
+
+    - name: Run Fabrication tests
+      run: cargo test -p symtropy-fabrication --lib
+
+    - name: Run Fabrication Clippy
+      run: cargo clippy -p symtropy-fabrication --all-targets --all-features -- -D warnings
+
+    - name: Commit verified source repair
+      shell: bash
+      run: |
+        git config user.name "github-actions[bot]"
+        git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+        git add crates/domains/symtropy-fabrication/src/process.rs crates/domains/symtropy-fabrication/src/process_evidence.rs
+        git diff --cached --quiet && exit 0
+        git commit -m "fix(fabrication): enforce input matter admission integrity"
+        git push origin HEAD:fabrication/f4-input-matter-integrity
