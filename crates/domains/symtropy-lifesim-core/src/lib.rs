@@ -15,6 +15,7 @@ pub mod conservation;
 pub mod habitat;
 pub mod information;
 pub mod information_registry;
+pub mod information_transition;
 pub mod phenotype;
 pub mod physiology;
 pub mod population;
