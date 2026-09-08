@@ -59,6 +59,33 @@ jobs:
     - name: Apply Rust 1.96 Clippy machine fixes
       run: cargo clippy --fix -p symtropy-fabrication --all-targets --all-features --allow-dirty --allow-staged
 
+    - name: Apply remaining Rust 1.96 ptr-arg fixes
+      shell: bash
+      run: |
+        python - <<'PY'
+        from pathlib import Path
+        replacements = {
+            'crates/domains/symtropy-fabrication/src/assembly.rs': [
+                ('fn sort_unique_workpieces(values: &mut Vec<WorkpieceId>)', 'fn sort_unique_workpieces(values: &mut [WorkpieceId])'),
+                ('fn sort_unique_interfaces(values: &mut Vec<InterfaceId>)', 'fn sort_unique_interfaces(values: &mut [InterfaceId])'),
+                ('fn sort_unique_joints(values: &mut Vec<JointId>)', 'fn sort_unique_joints(values: &mut [JointId])'),
+            ],
+            'crates/domains/symtropy-fabrication/src/plan.rs': [
+                ('values: &mut Vec<WorkpieceId>,', 'values: &mut [WorkpieceId],'),
+                ('values: &mut Vec<CapabilityNeedId>,', 'values: &mut [CapabilityNeedId],'),
+                ('values: &mut Vec<StableId>,', 'values: &mut [StableId],'),
+            ],
+        }
+        for filename, changes in replacements.items():
+            path = Path(filename)
+            text = path.read_text()
+            for old, new in changes:
+                if text.count(old) != 1:
+                    raise SystemExit(f'{filename}: anchor {old!r} count={text.count(old)}')
+                text = text.replace(old, new)
+            path.write_text(text)
+        PY
+
     - name: Re-apply canonical formatting
       run: cargo fmt --all
 
