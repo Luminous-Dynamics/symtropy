@@ -1,0 +1,163 @@
+name: F4 Input Matter Repair Runner
+
+on:
+  pull_request:
+    branches: [ "main" ]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: f4-input-matter-repair-runner-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  repair:
+    name: Apply and verify Fabrication repairs
+    runs-on: macos-latest
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        ref: fabrication/f4-input-matter-integrity
+
+    - name: Set up Rust
+      uses: dtolnay/rust-toolchain@stable
+      with:
+        toolchain: 1.96.0
+        components: clippy, rustfmt
+
+    - name: Resolve exact manifest lock delta
+      shell: bash
+      run: |
+        git config user.name "github-actions[bot]"
+        git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+        cargo check -p symtropy-fabrication --lib
+        actual=$(git diff --name-only | sort)
+        unexpected=$(printf '%s\n' "$actual" | grep -v '^Cargo.lock$' || true)
+        if test -n "$unexpected"; then
+          echo "lock resolution changed unexpected tracked paths:" >&2
+          echo "$unexpected" >&2
+          exit 1
+        fi
+        if git diff --quiet -- Cargo.lock; then
+          echo "Cargo.lock already matches the exact manifests"
+        else
+          echo "Exact Cargo.lock delta required by the current manifests:"
+          git diff -- Cargo.lock
+          git add Cargo.lock
+          git commit -m "chore(lock): sync Fabrication workspace resolution"
+        fi
+
+    - name: Apply executable-plan test prerequisite
+      shell: bash
+      run: |
+        python - <<'PY'
+        from pathlib import Path
+        path = Path('crates/domains/symtropy-fabrication/src/executable_plan.rs')
+        text = path.read_text()
+        pattern = 'Err(ExecutablePlanError::CapabilityBindingMismatch { step_id, .. })'
+        guard = 'if step_id == step_id("clean")'
+        if text.count(pattern) != 1:
+            raise SystemExit(f'executable-plan pattern count={text.count(pattern)}')
+        if text.count(guard) != 1:
+            raise SystemExit(f'executable-plan guard count={text.count(guard)}')
+        text = text.replace(
+            pattern,
+            'Err(ExecutablePlanError::CapabilityBindingMismatch { step_id: actual_step_id, .. })',
+        )
+        text = text.replace(guard, 'if actual_step_id == step_id("clean")')
+        path.write_text(text)
+        PY
+
+    - name: Apply exact input-matter transformation
+      run: python .github/repair/f4_input_matter_repair.py
+
+    - name: Apply Fabrication formatting only
+      run: cargo fmt -p symtropy-fabrication
+
+    - name: Run Fabrication tests before lint repair
+      run: cargo test --locked -p symtropy-fabrication --lib
+
+    - name: Apply Rust 1.96 Clippy machine fixes
+      run: cargo clippy --locked --fix -p symtropy-fabrication --all-targets --all-features --allow-dirty --allow-staged
+
+    - name: Apply remaining Rust 1.96 ptr-arg fixes
+      shell: bash
+      run: |
+        python - <<'PY'
+        from pathlib import Path
+        replacements = {
+            'crates/domains/symtropy-fabrication/src/assembly.rs': [
+                ('fn sort_unique_workpieces(values: &mut Vec<WorkpieceId>)', 'fn sort_unique_workpieces(values: &mut [WorkpieceId])'),
+                ('fn sort_unique_interfaces(values: &mut Vec<InterfaceId>)', 'fn sort_unique_interfaces(values: &mut [InterfaceId])'),
+                ('fn sort_unique_joints(values: &mut Vec<JointId>)', 'fn sort_unique_joints(values: &mut [JointId])'),
+            ],
+            'crates/domains/symtropy-fabrication/src/plan.rs': [
+                ('values: &mut Vec<WorkpieceId>,', 'values: &mut [WorkpieceId],'),
+                ('values: &mut Vec<CapabilityNeedId>,', 'values: &mut [CapabilityNeedId],'),
+                ('values: &mut Vec<StableId>,', 'values: &mut [StableId],'),
+            ],
+        }
+        for filename, changes in replacements.items():
+            path = Path(filename)
+            text = path.read_text()
+            for old, new in changes:
+                if text.count(old) != 1:
+                    raise SystemExit(f'{filename}: anchor {old!r} count={text.count(old)}')
+                text = text.replace(old, new)
+            path.write_text(text)
+        PY
+
+    - name: Re-apply Fabrication formatting only
+      run: cargo fmt -p symtropy-fabrication
+
+    - name: Run Fabrication tests after lint repair
+      run: cargo test --locked -p symtropy-fabrication --lib
+
+    - name: Run strict Fabrication Clippy
+      run: cargo clippy --locked -p symtropy-fabrication --all-targets --all-features -- -D warnings
+
+    - name: Prove lockfile stayed fixed during source repair
+      run: git diff --exit-code HEAD -- Cargo.lock
+
+    - name: Verify generated source scope
+      shell: bash
+      run: |
+        allowed=$(cat <<'EOF'
+        crates/domains/symtropy-fabrication/src/assembly.rs
+        crates/domains/symtropy-fabrication/src/capability.rs
+        crates/domains/symtropy-fabrication/src/commissioning.rs
+        crates/domains/symtropy-fabrication/src/executable_plan.rs
+        crates/domains/symtropy-fabrication/src/identity.rs
+        crates/domains/symtropy-fabrication/src/plan.rs
+        crates/domains/symtropy-fabrication/src/process.rs
+        crates/domains/symtropy-fabrication/src/process_evidence.rs
+        EOF
+        )
+        actual=$(git diff --name-only | sort)
+        unexpected=$(comm -13 <(printf '%s\n' "$allowed" | sort) <(printf '%s\n' "$actual"))
+        if test -n "$unexpected"; then
+          echo "unexpected generated source paths:" >&2
+          echo "$unexpected" >&2
+          exit 1
+        fi
+        printf '%s\n' "$actual"
+
+    - name: Commit verified Rust source only
+      shell: bash
+      run: |
+        git config user.name "github-actions[bot]"
+        git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+        git add \
+          crates/domains/symtropy-fabrication/src/assembly.rs \
+          crates/domains/symtropy-fabrication/src/capability.rs \
+          crates/domains/symtropy-fabrication/src/commissioning.rs \
+          crates/domains/symtropy-fabrication/src/executable_plan.rs \
+          crates/domains/symtropy-fabrication/src/identity.rs \
+          crates/domains/symtropy-fabrication/src/plan.rs \
+          crates/domains/symtropy-fabrication/src/process.rs \
+          crates/domains/symtropy-fabrication/src/process_evidence.rs
+        if ! git diff --cached --quiet; then
+          git commit -m "fix(fabrication): verify Rust 1.96 baseline and input matter integrity"
+        fi
+        git push origin HEAD:fabrication/f4-input-matter-integrity
