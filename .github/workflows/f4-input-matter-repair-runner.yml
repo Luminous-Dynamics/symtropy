@@ -50,14 +50,14 @@ jobs:
     - name: Apply exact input-matter transformation
       run: python .github/repair/f4_input_matter_repair.py
 
-    - name: Apply canonical formatting
-      run: cargo fmt --all
+    - name: Apply Fabrication formatting only
+      run: cargo fmt -p symtropy-fabrication
 
     - name: Run Fabrication tests before lint repair
-      run: cargo test -p symtropy-fabrication --lib
+      run: cargo test --locked -p symtropy-fabrication --lib
 
     - name: Apply Rust 1.96 Clippy machine fixes
-      run: cargo clippy --fix -p symtropy-fabrication --all-targets --all-features --allow-dirty --allow-staged
+      run: cargo clippy --locked --fix -p symtropy-fabrication --all-targets --all-features --allow-dirty --allow-staged
 
     - name: Apply remaining Rust 1.96 ptr-arg fixes
       shell: bash
@@ -86,14 +86,17 @@ jobs:
             path.write_text(text)
         PY
 
-    - name: Re-apply canonical formatting
-      run: cargo fmt --all
+    - name: Re-apply Fabrication formatting only
+      run: cargo fmt -p symtropy-fabrication
 
     - name: Run Fabrication tests after lint repair
-      run: cargo test -p symtropy-fabrication --lib
+      run: cargo test --locked -p symtropy-fabrication --lib
 
     - name: Run strict Fabrication Clippy
-      run: cargo clippy -p symtropy-fabrication --all-targets --all-features -- -D warnings
+      run: cargo clippy --locked -p symtropy-fabrication --all-targets --all-features -- -D warnings
+
+    - name: Prove lockfile unchanged
+      run: git diff --exit-code -- Cargo.lock
 
     - name: Verify generated source scope
       shell: bash
