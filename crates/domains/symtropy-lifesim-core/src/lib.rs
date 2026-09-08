@@ -12,6 +12,8 @@ use std::ops::Range;
 
 pub mod applicability_policy_manifest;
 pub mod cadence;
+pub mod candidate_applicability;
+pub mod candidate_evidence_obligations;
 pub mod conservation;
 pub mod habitat;
 pub mod information;
@@ -21,6 +23,7 @@ pub mod information_transition;
 pub mod phenotype;
 pub mod physiology;
 pub mod population;
+pub mod transition_candidates;
 pub mod transition_policy_manifest;
 pub use applicability_policy_manifest::transition_applicability;
 #[cfg(feature = "wgpu")]
