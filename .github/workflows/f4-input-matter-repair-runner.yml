@@ -26,6 +26,28 @@ jobs:
         toolchain: 1.96.0
         components: clippy, rustfmt
 
+    - name: Resolve exact manifest lock delta
+      shell: bash
+      run: |
+        git config user.name "github-actions[bot]"
+        git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+        cargo check -p symtropy-fabrication --lib
+        actual=$(git diff --name-only | sort)
+        unexpected=$(printf '%s\n' "$actual" | grep -v '^Cargo.lock$' || true)
+        if test -n "$unexpected"; then
+          echo "lock resolution changed unexpected tracked paths:" >&2
+          echo "$unexpected" >&2
+          exit 1
+        fi
+        if git diff --quiet -- Cargo.lock; then
+          echo "Cargo.lock already matches the exact manifests"
+        else
+          echo "Exact Cargo.lock delta required by the current manifests:"
+          git diff -- Cargo.lock
+          git add Cargo.lock
+          git commit -m "chore(lock): sync Fabrication workspace resolution"
+        fi
+
     - name: Apply executable-plan test prerequisite
       shell: bash
       run: |
@@ -95,8 +117,8 @@ jobs:
     - name: Run strict Fabrication Clippy
       run: cargo clippy --locked -p symtropy-fabrication --all-targets --all-features -- -D warnings
 
-    - name: Prove lockfile unchanged
-      run: git diff --exit-code -- Cargo.lock
+    - name: Prove lockfile stayed fixed during source repair
+      run: git diff --exit-code HEAD -- Cargo.lock
 
     - name: Verify generated source scope
       shell: bash
@@ -135,6 +157,7 @@ jobs:
           crates/domains/symtropy-fabrication/src/plan.rs \
           crates/domains/symtropy-fabrication/src/process.rs \
           crates/domains/symtropy-fabrication/src/process_evidence.rs
-        git diff --cached --quiet && exit 0
-        git commit -m "fix(fabrication): verify Rust 1.96 baseline and input matter integrity"
+        if ! git diff --cached --quiet; then
+          git commit -m "fix(fabrication): verify Rust 1.96 baseline and input matter integrity"
+        fi
         git push origin HEAD:fabrication/f4-input-matter-integrity
