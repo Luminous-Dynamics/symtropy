@@ -1,19 +1,14 @@
-name: F4 Input Matter Repair
+name: F4 Input Matter Repair Spec
 
 on:
-  pull_request:
-    branches: [ "main" ]
+  workflow_dispatch:
 
 permissions:
   contents: write
 
-concurrency:
-  group: f4-input-matter-repair-${{ github.event.pull_request.number || github.ref }}
-  cancel-in-progress: true
-
 jobs:
   repair:
-    name: Apply and verify F4 input matter integrity
+    name: Apply exact source transformation
     runs-on: macos-latest
     steps:
     - uses: actions/checkout@v4
@@ -27,23 +22,227 @@ jobs:
         components: clippy, rustfmt
 
     - name: Apply exact source transformation
-      shell: python
+      shell: python {0}
       run: |
         from pathlib import Path
 
+        def replace_once(text, old, new, label):
+            count = text.count(old)
+            if count != 1:
+                raise SystemExit(f'{label} anchor count={count}')
+            return text.replace(old, new)
+
+        identity = Path('crates/domains/symtropy-fabrication/src/identity.rs')
+        text = identity.read_text()
+
+        old = '''    ) -> Result<Self, FabricationError> {
+        let binding_digest = binding_digest.into();
+        if binding_digest.is_empty() || binding_digest.len() > 256 {
+            return Err(FabricationError::InvalidMatterDigest(binding_digest));
+        }
+        Ok(Self {
+            authority_id,
+            allocation_id,
+            revision,
+            binding_digest,
+        })
+    }
+'''
+        new = '''    ) -> Result<Self, FabricationError> {
+        let binding = Self {
+            authority_id,
+            allocation_id,
+            revision,
+            binding_digest: binding_digest.into(),
+        };
+        binding.validate_current()?;
+        Ok(binding)
+    }
+
+    /// Revalidates the current-schema binding after deserialization or public
+    /// field mutation. This does not interpret the digest; it only enforces the
+    /// same structural boundary as `MatterBinding::new`.
+    pub fn validate_current(&self) -> Result<(), MatterIntegrityError> {
+        if self.binding_digest.is_empty() || self.binding_digest.len() > 256 {
+            return Err(MatterIntegrityError::InvalidDigest {
+                authority_id: self.authority_id.clone(),
+                allocation_id: self.allocation_id.clone(),
+                digest: self.binding_digest.clone(),
+            });
+        }
+        Ok(())
+    }
+'''
+        text = replace_once(text, old, new, 'matter binding constructor')
+
+        text = replace_once(
+            text,
+            '        validate_bindings(&matter_bindings)?;\n',
+            '        validate_matter_bindings(&matter_bindings)?;\n',
+            'workpiece constructor validator',
+        )
+
+        old = '''    /// Returns the exact binding for an authority-scoped matter allocation.
+    pub fn binding(
+'''
+        new = '''    /// Revalidates current-schema matter identity after persistence or public
+    /// mutation. Schema-version interpretation itself is deliberately separate.
+    pub fn validate_matter_integrity(&self) -> Result<(), MatterIntegrityError> {
+        validate_matter_bindings(&self.matter_bindings)
+    }
+
+    /// Returns the exact binding for an authority-scoped matter allocation.
+    pub fn binding(
+'''
+        text = replace_once(text, old, new, 'workpiece validation method')
+
+        old = '''fn validate_bindings(bindings: &[MatterBinding]) -> Result<(), FabricationError> {
+    if bindings.is_empty() {
+        return Err(FabricationError::MatterBindingRequired);
+    }
+    for (index, binding) in bindings.iter().enumerate() {
+        if bindings[..index].iter().any(|existing| {
+            existing.authority_id == binding.authority_id
+                && existing.allocation_id == binding.allocation_id
+        }) {
+            return Err(FabricationError::DuplicateMatterAllocation {
+                authority_id: binding.authority_id.clone(),
+                allocation_id: binding.allocation_id.clone(),
+            });
+        }
+    }
+    Ok(())
+}
+'''
+        new = '''/// Replays current-schema matter-binding invariants for an existing value.
+/// This is the single structural validator shared by constructors and authority
+/// boundaries; it intentionally does not decide schema migration semantics.
+pub fn validate_matter_bindings(
+    bindings: &[MatterBinding],
+) -> Result<(), MatterIntegrityError> {
+    if bindings.is_empty() {
+        return Err(MatterIntegrityError::BindingRequired);
+    }
+    for (index, binding) in bindings.iter().enumerate() {
+        binding.validate_current()?;
+        if bindings[..index].iter().any(|existing| {
+            existing.authority_id == binding.authority_id
+                && existing.allocation_id == binding.allocation_id
+        }) {
+            return Err(MatterIntegrityError::DuplicateAllocation {
+                authority_id: binding.authority_id.clone(),
+                allocation_id: binding.allocation_id.clone(),
+            });
+        }
+    }
+    Ok(())
+}
+'''
+        text = replace_once(text, old, new, 'identity binding validator')
+
+        marker = '''/// Foundation errors are deterministic contract violations, not random
+/// workmanship outcomes.
+#[derive(Debug)]
+pub enum FabricationError {
+'''
+        addition = '''/// Current-schema structural matter-integrity failure. This error retains
+/// authority/allocation context so higher authority layers can explain exactly
+/// which physical identity failed revalidation.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum MatterIntegrityError {
+    BindingRequired,
+    InvalidDigest {
+        authority_id: StableId,
+        allocation_id: StableId,
+        digest: String,
+    },
+    DuplicateAllocation {
+        authority_id: StableId,
+        allocation_id: StableId,
+    },
+}
+
+impl fmt::Display for MatterIntegrityError {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::BindingRequired => write!(formatter, "at least one matter binding is required"),
+            Self::InvalidDigest {
+                authority_id,
+                allocation_id,
+                digest,
+            } => write!(
+                formatter,
+                "matter binding {authority_id}/{allocation_id} digest must contain 1..=256 bytes, got {}",
+                digest.len()
+            ),
+            Self::DuplicateAllocation {
+                authority_id,
+                allocation_id,
+            } => write!(
+                formatter,
+                "matter allocation {authority_id}/{allocation_id} is bound more than once"
+            ),
+        }
+    }
+}
+
+impl Error for MatterIntegrityError {}
+
+impl From<MatterIntegrityError> for FabricationError {
+    fn from(error: MatterIntegrityError) -> Self {
+        match error {
+            MatterIntegrityError::BindingRequired => Self::MatterBindingRequired,
+            MatterIntegrityError::InvalidDigest { digest, .. } => Self::InvalidMatterDigest(digest),
+            MatterIntegrityError::DuplicateAllocation {
+                authority_id,
+                allocation_id,
+            } => Self::DuplicateMatterAllocation {
+                authority_id,
+                allocation_id,
+            },
+        }
+    }
+}
+
+'''
+        if text.count(marker) != 1:
+            raise SystemExit(f'matter integrity error marker count={text.count(marker)}')
+        text = text.replace(marker, addition + marker)
+
+        anchor = '''    #[test]
+    fn one_authority_scoped_allocation_cannot_be_bound_twice() {
+'''
+        addition = '''    #[test]
+    fn current_schema_matter_integrity_revalidates_public_mutation() {
+        let mut workpiece = Workpiece::new(
+            WorkpieceId::new(id("workpiece:mutated")),
+            vec![binding("allocation:mutated", 1)],
+        )
+        .unwrap();
+        workpiece.matter_bindings[0].binding_digest.clear();
+
+        assert!(matches!(
+            workpiece.validate_matter_integrity(),
+            Err(MatterIntegrityError::InvalidDigest { .. })
+        ));
+    }
+
+'''
+        if text.count(anchor) != 1:
+            raise SystemExit(f'identity test marker count={text.count(anchor)}')
+        text = text.replace(anchor, addition + anchor)
+        identity.write_text(text)
+
         process = Path('crates/domains/symtropy-fabrication/src/process.rs')
         text = process.read_text()
+        text = replace_once(
+            text,
+            'use crate::{MatterBinding, Workpiece, WorkpieceId, WorkpieceLifecycle};\n',
+            'use crate::{MatterBinding, MatterIntegrityError, Workpiece, WorkpieceId, WorkpieceLifecycle};\n',
+            'process identity import',
+        )
 
-        old = '''        for (index, workpiece) in workpieces.iter().enumerate() {
-            if workpieces[..index]
-                .iter()
-                .any(|existing| existing.id == workpiece.id)
-            {
-                failures.push(ProcessPreconditionFailure::DuplicateWorkpiece {
-                    workpiece_id: workpiece.id.clone(),
-                });
-            }
-            if !self.allowed_workpiece_states.contains(&workpiece.lifecycle) {
+        old = '''            if !self.allowed_workpiece_states.contains(&workpiece.lifecycle) {
                 failures.push(ProcessPreconditionFailure::WorkpieceState {
                     workpiece_id: workpiece.id.clone(),
                     actual: workpiece.lifecycle,
@@ -51,50 +250,41 @@ jobs:
             }
         }
 '''
-        new = '''        for (index, workpiece) in workpieces.iter().enumerate() {
-            if workpieces[..index]
-                .iter()
-                .any(|existing| existing.id == workpiece.id)
-            {
-                failures.push(ProcessPreconditionFailure::DuplicateWorkpiece {
-                    workpiece_id: workpiece.id.clone(),
-                });
-            }
-            if !self.allowed_workpiece_states.contains(&workpiece.lifecycle) {
+        new = '''            if !self.allowed_workpiece_states.contains(&workpiece.lifecycle) {
                 failures.push(ProcessPreconditionFailure::WorkpieceState {
                     workpiece_id: workpiece.id.clone(),
                     actual: workpiece.lifecycle,
                 });
             }
-            if workpiece.matter_bindings.is_empty() {
-                failures.push(ProcessPreconditionFailure::WorkpieceMatterRequired {
-                    workpiece_id: workpiece.id.clone(),
+            if let Err(error) = workpiece.validate_matter_integrity() {
+                failures.push(match error {
+                    MatterIntegrityError::BindingRequired => {
+                        ProcessPreconditionFailure::WorkpieceMatterRequired {
+                            workpiece_id: workpiece.id.clone(),
+                        }
+                    }
+                    MatterIntegrityError::InvalidDigest {
+                        authority_id,
+                        allocation_id,
+                        digest,
+                    } => ProcessPreconditionFailure::InvalidWorkpieceMatterDigest {
+                        workpiece_id: workpiece.id.clone(),
+                        authority_id,
+                        allocation_id,
+                        digest,
+                    },
+                    MatterIntegrityError::DuplicateAllocation {
+                        authority_id,
+                        allocation_id,
+                    } => ProcessPreconditionFailure::DuplicateWorkpieceMatterAllocation {
+                        workpiece_id: workpiece.id.clone(),
+                        authority_id,
+                        allocation_id,
+                    },
                 });
             }
 
-            for (binding_index, binding) in workpiece.matter_bindings.iter().enumerate() {
-                if binding.binding_digest.is_empty() || binding.binding_digest.len() > 256 {
-                    failures.push(ProcessPreconditionFailure::InvalidWorkpieceMatterDigest {
-                        workpiece_id: workpiece.id.clone(),
-                        authority_id: binding.authority_id.clone(),
-                        allocation_id: binding.allocation_id.clone(),
-                        digest: binding.binding_digest.clone(),
-                    });
-                }
-
-                if workpiece.matter_bindings[..binding_index].iter().any(|existing| {
-                    existing.authority_id == binding.authority_id
-                        && existing.allocation_id == binding.allocation_id
-                }) {
-                    failures.push(
-                        ProcessPreconditionFailure::DuplicateWorkpieceMatterAllocation {
-                            workpiece_id: workpiece.id.clone(),
-                            authority_id: binding.authority_id.clone(),
-                            allocation_id: binding.allocation_id.clone(),
-                        },
-                    );
-                }
-
+            for binding in &workpiece.matter_bindings {
                 for previous_workpiece in &workpieces[..index] {
                     if previous_workpiece.matter_bindings.iter().any(|existing| {
                         existing.authority_id == binding.authority_id
@@ -112,9 +302,7 @@ jobs:
             }
         }
 '''
-        if text.count(old) != 1:
-            raise SystemExit(f'process precondition anchor count={text.count(old)}')
-        text = text.replace(old, new)
+        text = replace_once(text, old, new, 'process admission loop')
 
         old = '''    WorkpieceState {
         workpiece_id: WorkpieceId,
@@ -148,30 +336,19 @@ jobs:
     },
     Capability {
 '''
-        if text.count(old) != 1:
-            raise SystemExit(f'precondition enum anchor count={text.count(old)}')
-        text = text.replace(old, new)
+        text = replace_once(text, old, new, 'process precondition variants')
 
-        old = '''    fn duplicate_workpiece_is_rejected_before_execution() {
-        let workpiece = workpiece("workpiece:plate", 7);
-        let result = ProcessExecution::begin(
-            ProcessExecutionId::new(id("process-execution:weld")),
-            &weld_spec(),
-            &[&workpiece, &workpiece],
-            &[welder()],
-        );
-        assert!(matches!(result, Err(ProcessError::Preconditions(_))));
-    }
-
+        anchor = '''    #[test]
+    fn abort_is_valid_and_cannot_later_be_completed() {
 '''
-        new = old + '''    #[test]
+        addition = '''    #[test]
     fn restored_workpiece_without_matter_is_rejected_before_execution() {
-        let mut workpiece = workpiece("workpiece:empty-matter", 1);
-        workpiece.matter_bindings.clear();
+        let mut input = workpiece("workpiece:empty-matter", 1);
+        input.matter_bindings.clear();
         let result = ProcessExecution::begin(
             ProcessExecutionId::new(id("process-execution:empty-matter")),
             &weld_spec(),
-            &[&workpiece],
+            &[&input],
             &[welder()],
         );
         assert!(matches!(
@@ -186,12 +363,12 @@ jobs:
 
     #[test]
     fn restored_invalid_input_matter_digest_is_rejected_before_execution() {
-        let mut workpiece = workpiece("workpiece:bad-digest", 1);
-        workpiece.matter_bindings[0].binding_digest.clear();
+        let mut input = workpiece("workpiece:bad-digest", 1);
+        input.matter_bindings[0].binding_digest.clear();
         let result = ProcessExecution::begin(
             ProcessExecutionId::new(id("process-execution:bad-digest")),
             &weld_spec(),
-            &[&workpiece],
+            &[&input],
             &[welder()],
         );
         assert!(matches!(
@@ -206,12 +383,12 @@ jobs:
 
     #[test]
     fn restored_duplicate_allocation_inside_one_workpiece_is_rejected() {
-        let mut workpiece = workpiece("workpiece:duplicate-matter", 1);
-        workpiece.matter_bindings.push(workpiece.matter_bindings[0].clone());
+        let mut input = workpiece("workpiece:duplicate-matter", 1);
+        input.matter_bindings.push(input.matter_bindings[0].clone());
         let result = ProcessExecution::begin(
             ProcessExecutionId::new(id("process-execution:duplicate-matter")),
             &weld_spec(),
-            &[&workpiece],
+            &[&input],
             &[welder()],
         );
         assert!(matches!(
@@ -276,14 +453,43 @@ jobs:
         assert!(result.is_ok());
     }
 
+    #[test]
+    fn distinct_multi_input_allocations_are_valid() {
+        let first = workpiece("workpiece:multi-a", 1);
+        let second = workpiece("workpiece:multi-b", 1);
+        let result = ProcessExecution::begin(
+            ProcessExecutionId::new(id("process-execution:distinct-multi")),
+            &weld_spec(),
+            &[&first, &second],
+            &[welder()],
+        );
+        assert!(result.is_ok());
+    }
+
 '''
-        if text.count(old) != 1:
-            raise SystemExit(f'test anchor count={text.count(old)}')
-        text = text.replace(old, new)
+        if text.count(anchor) != 1:
+            raise SystemExit(f'process tests marker count={text.count(anchor)}')
+        text = text.replace(anchor, addition + anchor)
         process.write_text(text)
 
         evidence = Path('crates/domains/symtropy-fabrication/src/process_evidence.rs')
         text = evidence.read_text()
+        text = replace_once(
+            text,
+            '''use crate::{
+    CapabilityEvidence, MatterBinding, ProcessEvidence, ProcessExecutionId, ProcessExecutionState,
+    ProcessInputSnapshot, ProcessKind, ProcessSpecId, ProcessSpecSnapshot, WorkpieceId,
+    WorkpieceLifecycle,
+};
+''',
+            '''use crate::{
+    CapabilityEvidence, MatterBinding, MatterIntegrityError, ProcessEvidence, ProcessExecutionId,
+    ProcessExecutionState, ProcessInputSnapshot, ProcessKind, ProcessSpecId, ProcessSpecSnapshot,
+    WorkpieceId, WorkpieceLifecycle, validate_matter_bindings,
+};
+''',
+            'process evidence imports',
+        )
 
         old = '''        validate_input_matter_bindings(&input.matter_bindings)?;
     }
@@ -310,9 +516,118 @@ jobs:
 
     for requirement in evidence.spec_snapshot.required_capabilities() {
 '''
-        if text.count(old) != 1:
-            raise SystemExit(f'evidence validation anchor count={text.count(old)}')
-        text = text.replace(old, new)
+        text = replace_once(text, old, new, 'wire cross-input validation')
+
+        old = '''fn validate_input_matter_bindings(
+    bindings: &[MatterBinding],
+) -> Result<(), ProcessEvidenceValidationError> {
+    if bindings.is_empty() {
+        return Err(ProcessEvidenceValidationError::InputMatterRequired);
+    }
+    validate_matter_digests(bindings)?;
+    for (index, binding) in bindings.iter().enumerate() {
+        if bindings[..index].iter().any(|existing| {
+            existing.authority_id == binding.authority_id
+                && existing.allocation_id == binding.allocation_id
+        }) {
+            return Err(
+                ProcessEvidenceValidationError::DuplicateInputMatterAllocation {
+                    authority_id: binding.authority_id.clone(),
+                    allocation_id: binding.allocation_id.clone(),
+                },
+            );
+        }
+    }
+    Ok(())
+}
+
+fn validate_resulting_matter_bindings(
+    bindings: &[MatterBinding],
+) -> Result<(), ProcessEvidenceValidationError> {
+    if bindings.is_empty() {
+        return Err(ProcessEvidenceValidationError::ResultingMatterRequired);
+    }
+    validate_matter_digests(bindings)?;
+    for (index, binding) in bindings.iter().enumerate() {
+        if bindings[..index].iter().any(|existing| {
+            existing.authority_id == binding.authority_id
+                && existing.allocation_id == binding.allocation_id
+        }) {
+            return Err(
+                ProcessEvidenceValidationError::DuplicateResultingMatterAllocation {
+                    authority_id: binding.authority_id.clone(),
+                    allocation_id: binding.allocation_id.clone(),
+                },
+            );
+        }
+    }
+    Ok(())
+}
+
+fn validate_matter_digests(
+    bindings: &[MatterBinding],
+) -> Result<(), ProcessEvidenceValidationError> {
+    for binding in bindings {
+        if binding.binding_digest.is_empty() || binding.binding_digest.len() > 256 {
+            return Err(ProcessEvidenceValidationError::InvalidMatterDigest {
+                authority_id: binding.authority_id.clone(),
+                allocation_id: binding.allocation_id.clone(),
+                digest: binding.binding_digest.clone(),
+            });
+        }
+    }
+    Ok(())
+}
+'''
+        new = '''fn validate_input_matter_bindings(
+    bindings: &[MatterBinding],
+) -> Result<(), ProcessEvidenceValidationError> {
+    validate_matter_bindings(bindings).map_err(|error| match error {
+        MatterIntegrityError::BindingRequired => ProcessEvidenceValidationError::InputMatterRequired,
+        MatterIntegrityError::InvalidDigest {
+            authority_id,
+            allocation_id,
+            digest,
+        } => ProcessEvidenceValidationError::InvalidMatterDigest {
+            authority_id,
+            allocation_id,
+            digest,
+        },
+        MatterIntegrityError::DuplicateAllocation {
+            authority_id,
+            allocation_id,
+        } => ProcessEvidenceValidationError::DuplicateInputMatterAllocation {
+            authority_id,
+            allocation_id,
+        },
+    })
+}
+
+fn validate_resulting_matter_bindings(
+    bindings: &[MatterBinding],
+) -> Result<(), ProcessEvidenceValidationError> {
+    validate_matter_bindings(bindings).map_err(|error| match error {
+        MatterIntegrityError::BindingRequired => ProcessEvidenceValidationError::ResultingMatterRequired,
+        MatterIntegrityError::InvalidDigest {
+            authority_id,
+            allocation_id,
+            digest,
+        } => ProcessEvidenceValidationError::InvalidMatterDigest {
+            authority_id,
+            allocation_id,
+            digest,
+        },
+        MatterIntegrityError::DuplicateAllocation {
+            authority_id,
+            allocation_id,
+        } => ProcessEvidenceValidationError::DuplicateResultingMatterAllocation {
+            authority_id,
+            allocation_id,
+        },
+    })
+}
+'''
+        text = replace_once(text, old, new, 'wire matter validator centralization')
 
         old = '''    DuplicateInputMatterAllocation {
         authority_id: StableId,
@@ -332,9 +647,7 @@ jobs:
     },
     DuplicateResultingMatterAllocation {
 '''
-        if text.count(old) != 1:
-            raise SystemExit(f'evidence error enum anchor count={text.count(old)}')
-        text = text.replace(old, new)
+        text = replace_once(text, old, new, 'wire alias error variant')
 
         old = '''            Self::DuplicateInputMatterAllocation {
                 authority_id,
@@ -363,15 +676,11 @@ jobs:
             ),
             Self::DuplicateResultingMatterAllocation {
 '''
-        if text.count(old) != 1:
-            raise SystemExit(f'evidence display anchor count={text.count(old)}')
-        text = text.replace(old, new)
+        text = replace_once(text, old, new, 'wire alias error display')
 
-        anchor = '''    fn nested_matter_constructor_invariants_are_revalidated() {
+        anchor = '''    #[test]
+    fn nested_matter_constructor_invariants_are_revalidated() {
 '''
-        idx = text.find(anchor)
-        if idx < 0:
-            raise SystemExit('nested matter test anchor missing')
         addition = '''    #[test]
     fn wire_cannot_alias_one_matter_allocation_across_distinct_inputs() {
         let mut value = serde_json::to_value(evidence()).unwrap();
@@ -395,7 +704,9 @@ jobs:
     }
 
 '''
-        text = text[:idx] + addition + text[idx:]
+        if text.count(anchor) != 1:
+            raise SystemExit(f'wire tests marker count={text.count(anchor)}')
+        text = text.replace(anchor, addition + anchor)
         evidence.write_text(text)
 
     - name: Apply canonical formatting
@@ -407,12 +718,12 @@ jobs:
     - name: Run Fabrication Clippy
       run: cargo clippy -p symtropy-fabrication --all-targets --all-features -- -D warnings
 
-    - name: Commit verified source repair
+    - name: Commit verified Rust source only
       shell: bash
       run: |
         git config user.name "github-actions[bot]"
         git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-        git add crates/domains/symtropy-fabrication/src/process.rs crates/domains/symtropy-fabrication/src/process_evidence.rs
+        git add crates/domains/symtropy-fabrication/src/identity.rs crates/domains/symtropy-fabrication/src/process.rs crates/domains/symtropy-fabrication/src/process_evidence.rs
         git diff --cached --quiet && exit 0
-        git commit -m "fix(fabrication): enforce input matter admission integrity"
+        git commit -m "fix(fabrication): centralize input matter integrity"
         git push origin HEAD:fabrication/f4-input-matter-integrity
