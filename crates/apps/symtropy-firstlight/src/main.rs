@@ -3,11 +3,13 @@
 
 mod patch_conduit;
 mod patch_conduit_diagnostics;
+mod patch_conduit_exact_plan;
 mod patch_conduit_execution;
 mod patch_conduit_staged_execution;
 
 use patch_conduit::{patch_conduit_reference_facts, PatchConduitScenario};
 use patch_conduit_diagnostics::run_reference_pressure_diagnostics;
+use patch_conduit_exact_plan::ExactPatchConduitProfile;
 use patch_conduit_execution::PatchConduitExecutionProfile;
 use patch_conduit_staged_execution::run_reference_bypass_execution;
 use serde_json::json;
@@ -18,11 +20,12 @@ fn main() {
     match command.as_str() {
         "demo" => run_demo(),
         "patch-conduit" => run_patch_conduit(),
+        "patch-conduit-exact-plan" => run_patch_conduit_exact_plan(),
         "patch-conduit-execute" => run_patch_conduit_execute(),
         "patch-conduit-diagnose" => run_patch_conduit_diagnose(),
         _ => {
             eprintln!(
-                "usage: symtropy-firstlight [demo|patch-conduit|patch-conduit-execute|patch-conduit-diagnose]"
+                "usage: symtropy-firstlight [demo|patch-conduit|patch-conduit-exact-plan|patch-conduit-execute|patch-conduit-diagnose]"
             );
             std::process::exit(2);
         }
@@ -142,6 +145,49 @@ fn run_patch_conduit() {
     println!(
         "{}",
         serde_json::to_string_pretty(&summary).expect("serialize Patch Conduit summary")
+    );
+}
+
+fn run_patch_conduit_exact_plan() {
+    let scenario = match PatchConduitScenario::canonical() {
+        Ok(scenario) => scenario,
+        Err(error) => {
+            eprintln!("Patch Conduit exact-plan scenario failed: {error}");
+            std::process::exit(1);
+        }
+    };
+    let exact = match ExactPatchConduitProfile::compile(&scenario) {
+        Ok(exact) => exact,
+        Err(error) => {
+            eprintln!("Patch Conduit exact-plan projection failed: {error}");
+            std::process::exit(1);
+        }
+    };
+
+    let approaches = exact
+        .approaches()
+        .iter()
+        .map(|approach| {
+            json!({
+                "assembly": approach.subject.id.as_str(),
+                "plan": approach.plan.plan().id.stable_id().as_str(),
+                "plan_revision": approach.plan.plan().revision,
+                "exact_process_bindings": approach.plan.process_bindings().len(),
+                "temporary_work_contracts": approach.temporary_works.len(),
+            })
+        })
+        .collect::<Vec<_>>();
+    let summary = json!({
+        "approaches": approaches,
+        "total_exact_steps": exact.total_exact_steps(),
+        "runtime_execution_claimed": false,
+        "commissioning_claimed": false,
+        "authorization_claimed": false,
+    });
+    println!(
+        "{}",
+        serde_json::to_string_pretty(&summary)
+            .expect("serialize Patch Conduit exact-plan summary")
     );
 }
 
