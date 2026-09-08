@@ -19,6 +19,7 @@ pub mod phenotype;
 pub mod physiology;
 pub mod population;
 pub mod strata;
+pub mod strata_information;
 #[cfg(feature = "wgpu")]
 pub mod wgpu_backend;
 
