@@ -13,7 +13,7 @@ concurrency:
 
 jobs:
   repair:
-    name: Apply checked-in repair spec
+    name: Apply standalone repair transform
     runs-on: macos-latest
     steps:
     - uses: actions/checkout@v4
@@ -26,28 +26,8 @@ jobs:
         toolchain: 1.96.0
         components: clippy, rustfmt
 
-    - name: Extract exact Python transformation
-      shell: bash
-      run: |
-        python - <<'PY'
-        from pathlib import Path
-        source = Path('.github/workflows/f4-input-matter-repair.yml').read_text().splitlines()
-        marker = source.index('    - name: Apply exact source transformation')
-        run_line = next(i for i in range(marker + 1, len(source)) if source[i] == '      run: |')
-        body = []
-        for line in source[run_line + 1:]:
-            if line.startswith('    - name:'):
-                break
-            # Most YAML block-scalar lines carry eight spaces. Some lines inside
-            # Python triple-quoted replacement strings intentionally begin at
-            # column zero in the checked-in repair specification. Preserve those
-            # verbatim instead of rejecting them as malformed indentation.
-            body.append(line[8:] if line.startswith('        ') else line)
-        if not body:
-            raise SystemExit('repair transformation body is empty')
-        Path('/tmp/f4_input_matter_repair.py').write_text('\n'.join(body) + '\n')
-        PY
-        python /tmp/f4_input_matter_repair.py
+    - name: Apply exact source transformation
+      run: python .github/repair/f4_input_matter_repair.py
 
     - name: Apply canonical formatting
       run: cargo fmt --all
@@ -63,7 +43,7 @@ jobs:
       run: |
         git config user.name "github-actions[bot]"
         git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-        git add crates/domains/symtropy-fabrication/src/process.rs crates/domains/symtropy-fabrication/src/process_evidence.rs
+        git add crates/domains/symtropy-fabrication/src/identity.rs crates/domains/symtropy-fabrication/src/process.rs crates/domains/symtropy-fabrication/src/process_evidence.rs
         git diff --cached --quiet && exit 0
-        git commit -m "fix(fabrication): enforce input matter admission integrity"
+        git commit -m "fix(fabrication): centralize input matter integrity"
         git push origin HEAD:fabrication/f4-input-matter-integrity
