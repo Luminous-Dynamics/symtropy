@@ -16,6 +16,7 @@ mod interface;
 mod joint;
 mod plan;
 mod process;
+mod process_evidence;
 mod substitution;
 mod workmanship;
 
@@ -30,5 +31,6 @@ pub use interface::*;
 pub use joint::*;
 pub use plan::*;
 pub use process::*;
+pub use process_evidence::*;
 pub use substitution::*;
 pub use workmanship::*;
