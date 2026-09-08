@@ -5,9 +5,9 @@
 //!
 //! A richer representation being sufficient for a process does not imply that
 //! the current canonical state can legitimately become that representation.
-//! This module keeps those questions separate. Transition policy is sealed and
-//! registry-owned; callers may request a source/target pair, but cannot inject
-//! an ad hoc edge that manufactures forgotten exact information.
+//! Transition policy is therefore sealed and registry-owned: callers may request
+//! a source/target pair, but cannot inject an ad hoc edge that manufactures
+//! forgotten exact information.
 
 use std::collections::{BTreeMap, BTreeSet, VecDeque};
 use std::error::Error;
@@ -21,7 +21,6 @@ use crate::information_registry::{
     InformationPolicyRegistry, InformationPolicyRegistryKey, InformationRegistryError,
 };
 
-/// Identity/version of one sealed information-transition policy graph.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct InformationTransitionRegistryKey {
     id: u128,
@@ -42,7 +41,6 @@ impl InformationTransitionRegistryKey {
     }
 }
 
-/// Stable identity/version of one semantic transition edge.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct InformationTransitionKey {
     id: u128,
@@ -63,59 +61,19 @@ impl InformationTransitionKey {
     }
 }
 
-/// Stable identity/version of retained latent exact authority used by R0.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct RetainedAuthorityKey {
-    id: u128,
-    version: u32,
-}
+pub struct RetainedAuthorityKey(pub u128, pub u32);
 
-impl RetainedAuthorityKey {
-    pub const fn new(id: u128, version: u32) -> Self {
-        Self { id, version }
-    }
-}
-
-/// Stable identity/version of a deterministic lossless transform used by R1.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct LosslessTransformKey {
-    id: u128,
-    version: u32,
-}
+pub struct LosslessTransformKey(pub u128, pub u32);
 
-impl LosslessTransformKey {
-    pub const fn new(id: u128, version: u32) -> Self {
-        Self { id, version }
-    }
-}
-
-/// Stable identity/version of qualified measurement authority used by R3.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct MeasurementAuthorityKey {
-    id: u128,
-    version: u32,
-}
+pub struct MeasurementAuthorityKey(pub u128, pub u32);
 
-impl MeasurementAuthorityKey {
-    pub const fn new(id: u128, version: u32) -> Self {
-        Self { id, version }
-    }
-}
-
-/// Stable identity/version of a conditional microstate model used by R4.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct ConditionalDerivationKey {
-    id: u128,
-    version: u32,
-}
+pub struct ConditionalDerivationKey(pub u128, pub u32);
 
-impl ConditionalDerivationKey {
-    pub const fn new(id: u128, version: u32) -> Self {
-        Self { id, version }
-    }
-}
-
-/// The five provenance classes frozen by the Living World authority contract.
+/// Provenance classes for information that becomes newly available.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum PromotionProvenanceClass {
     /// R0: exact information already existed canonically and is being revealed.
@@ -124,13 +82,12 @@ pub enum PromotionProvenanceClass {
     LosslessDerivation,
     /// R2: approximate information is reconstructed under qualified closure evidence.
     QualifiedClosure,
-    /// R3: new exact information enters through qualified measurement/assimilation.
+    /// R3: exact information enters through qualified measurement/assimilation.
     MeasurementAssimilation,
     /// R4: conditional D-state fills unresolved degrees of freedom non-authoritatively.
     ConditionalMicrostate,
 }
 
-/// Provenance for one capability that appears at a transition destination.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum PromotionProvenance {
     RetainedExact { authority: RetainedAuthorityKey },
@@ -156,7 +113,7 @@ impl PromotionProvenance {
     }
 }
 
-/// One concrete capability claim at a transition destination.
+/// One concrete destination capability that requires provenance.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct TransitionCapabilityClaim {
     information: EcologicalInformation,
@@ -180,7 +137,8 @@ impl TransitionCapabilityClaim {
     }
 }
 
-/// One registered semantic representation transition.
+/// One semantic representation transition. Exact information that becomes
+/// unrecoverable must be listed in `discarded_information`.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct InformationTransitionDefinition {
     key: InformationTransitionKey,
@@ -207,7 +165,6 @@ impl InformationTransitionDefinition {
                 });
             }
         }
-
         Ok(Self {
             key,
             source,
@@ -229,9 +186,7 @@ impl InformationTransitionDefinition {
         self.destination
     }
 
-    pub fn introductions(
-        &self,
-    ) -> &BTreeMap<TransitionCapabilityClaim, PromotionProvenance> {
+    pub fn introductions(&self) -> &BTreeMap<TransitionCapabilityClaim, PromotionProvenance> {
         &self.introductions
     }
 
@@ -240,7 +195,6 @@ impl InformationTransitionDefinition {
     }
 }
 
-/// Bootstrap-only builder for one transition-policy generation.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct InformationTransitionRegistryBuilder {
     key: InformationTransitionRegistryKey,
@@ -270,8 +224,8 @@ impl InformationTransitionRegistryBuilder {
         Ok(())
     }
 
-    /// Validate every transition against one sealed information-policy registry
-    /// and seal the immutable reachability graph.
+    /// Seal the graph only after every edge is valid against one exact policy
+    /// registry generation.
     pub fn seal(
         self,
         policy: &InformationPolicyRegistry,
@@ -279,7 +233,6 @@ impl InformationTransitionRegistryBuilder {
         for transition in self.transitions.values() {
             validate_transition(policy, transition)?;
         }
-
         Ok(InformationTransitionRegistry {
             key: self.key,
             policy_registry_key: policy.key(),
@@ -288,7 +241,6 @@ impl InformationTransitionRegistryBuilder {
     }
 }
 
-/// Immutable transition graph bound to one information-policy registry generation.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct InformationTransitionRegistry {
     key: InformationTransitionRegistryKey,
@@ -311,8 +263,8 @@ impl InformationTransitionRegistry {
         self.transitions.iter()
     }
 
-    /// Find the shortest transition path. Equal-length alternatives are chosen
-    /// deterministically by transition-key ordering, never by thread or map order.
+    /// Find the shortest registered path. Equal-length alternatives are chosen
+    /// deterministically by transition-key ordering.
     pub fn plan(
         &self,
         policy: &InformationPolicyRegistry,
@@ -325,7 +277,6 @@ impl InformationTransitionRegistry {
                 actual: policy.key(),
             });
         }
-
         policy
             .resolve_representation(source)
             .map_err(InformationTransitionError::Policy)?;
@@ -334,24 +285,12 @@ impl InformationTransitionRegistry {
             .map_err(InformationTransitionError::Policy)?;
 
         if source == destination {
-            return Ok(InformationTransitionPlan {
-                transition_registry_key: self.key,
-                policy_registry_key: self.policy_registry_key,
-                source,
-                destination,
-                transitions: Vec::new(),
-                external_requirements: BTreeSet::new(),
-                closure_evidence: BTreeSet::new(),
-                conditional_derivations: BTreeSet::new(),
-            });
+            return Ok(self.build_plan(source, destination, &BTreeMap::new()));
         }
 
         let mut queue = VecDeque::from([source]);
         let mut visited = BTreeSet::from([source]);
-        let mut predecessor: BTreeMap<
-            RepresentationKey,
-            (RepresentationKey, InformationTransitionKey),
-        > = BTreeMap::new();
+        let mut predecessor = BTreeMap::new();
 
         while let Some(current) = queue.pop_front() {
             for (key, transition) in self
@@ -401,7 +340,6 @@ impl InformationTransitionRegistry {
         let mut external_requirements = BTreeSet::new();
         let mut closure_evidence = BTreeSet::new();
         let mut conditional_derivations = BTreeSet::new();
-
         for key in &reversed {
             let transition = self
                 .transitions
@@ -441,16 +379,14 @@ impl InformationTransitionRegistry {
     }
 }
 
-/// External exact-authority prerequisites that a low-level structural plan cannot
-/// authenticate by itself. Higher orchestration must resolve these before commit.
+/// External authority prerequisites that this low-level structural planner does
+/// not authenticate. Higher orchestration must resolve them before commit.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum PromotionEvidenceRequirement {
     RetainedAuthority(RetainedAuthorityKey),
     MeasurementAuthority(MeasurementAuthorityKey),
 }
 
-/// Deterministic, read-only transition plan. This proves policy reachability; it
-/// does not mutate ecology and does not authenticate opaque external authorities.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct InformationTransitionPlan {
     transition_registry_key: InformationTransitionRegistryKey,
@@ -496,9 +432,8 @@ impl InformationTransitionPlan {
         &self.conditional_derivations
     }
 
-    /// True only for a path whose newly introduced authority is losslessly
-    /// derivable from current canonical state without external retained/measurement
-    /// evidence, closure approximation, or conditional D-state.
+    /// Only R1/preservation paths qualify here. R0/R3 still require external
+    /// authority evidence; R2 is approximate; R4 is conditional D-state.
     pub fn is_self_contained_exact(&self) -> bool {
         self.external_requirements.is_empty()
             && self.closure_evidence.is_empty()
@@ -529,8 +464,10 @@ fn validate_transition(
     for (information, evidence_set) in destination.claims() {
         for evidence in evidence_set.iter().copied() {
             let claim = TransitionCapabilityClaim::new(*information, evidence);
-            let already_available = source_covers_claim(source, claim);
-            match (already_available, transition.introductions.get(&claim).copied()) {
+            match (
+                source_covers_claim(source, claim),
+                transition.introductions.get(&claim).copied(),
+            ) {
                 (true, Some(_)) => {
                     return Err(InformationTransitionError::RedundantIntroductionClaim {
                         transition: transition.key,
@@ -581,6 +518,9 @@ fn validate_transition(
     Ok(())
 }
 
+/// This relation answers whether the destination claim requires *new* authority.
+/// Exact source evidence may be deliberately downgraded into closure/measurement
+/// evidence without creating new information.
 fn source_covers_claim(
     source: &RepresentationCapabilities,
     target: TransitionCapabilityClaim,
@@ -590,8 +530,39 @@ fn source_covers_claim(
             && evidence_set
                 .iter()
                 .copied()
-                .any(|available_evidence| evidence_preserves_claim(available_evidence, target.evidence))
+                .any(|available| available_can_supply_target(available, target.evidence))
     })
+}
+
+fn available_can_supply_target(available: CapabilityEvidence, target: CapabilityEvidence) -> bool {
+    match (available, target) {
+        (CapabilityEvidence::Exact, _) => true,
+        (
+            CapabilityEvidence::QualifiedClosure(available),
+            CapabilityEvidence::QualifiedClosure(target),
+        ) => available == target,
+        (CapabilityEvidence::QualifiedClosure(_), CapabilityEvidence::MeasurementOnly) => true,
+        (CapabilityEvidence::MeasurementOnly, CapabilityEvidence::MeasurementOnly) => true,
+        _ => false,
+    }
+}
+
+/// This stricter relation answers whether source evidence survives without loss.
+/// Exact→closure is therefore a loss even though the closure can still be used.
+fn source_evidence_is_retained(
+    source: CapabilityEvidence,
+    destination: CapabilityEvidence,
+) -> bool {
+    match (source, destination) {
+        (CapabilityEvidence::Exact, CapabilityEvidence::Exact) => true,
+        (CapabilityEvidence::QualifiedClosure(_), CapabilityEvidence::Exact) => true,
+        (
+            CapabilityEvidence::QualifiedClosure(source),
+            CapabilityEvidence::QualifiedClosure(destination),
+        ) => source == destination,
+        (CapabilityEvidence::MeasurementOnly, _) => true,
+        _ => false,
+    }
 }
 
 fn destination_has_claim(
@@ -602,21 +573,6 @@ fn destination_has_claim(
         .claims()
         .get(&target.information)
         .is_some_and(|evidence| evidence.contains(&target.evidence))
-}
-
-fn evidence_preserves_claim(available: CapabilityEvidence, target: CapabilityEvidence) -> bool {
-    match (available, target) {
-        (CapabilityEvidence::Exact, CapabilityEvidence::Exact) => true,
-        (CapabilityEvidence::Exact, CapabilityEvidence::QualifiedClosure(_)) => true,
-        (CapabilityEvidence::Exact, CapabilityEvidence::MeasurementOnly) => true,
-        (
-            CapabilityEvidence::QualifiedClosure(available),
-            CapabilityEvidence::QualifiedClosure(target),
-        ) => available == target,
-        (CapabilityEvidence::QualifiedClosure(_), CapabilityEvidence::MeasurementOnly) => true,
-        (CapabilityEvidence::MeasurementOnly, CapabilityEvidence::MeasurementOnly) => true,
-        _ => false,
-    }
 }
 
 fn validate_provenance_for_claim(
@@ -662,14 +618,16 @@ fn lost_information(
         .claims()
         .iter()
         .filter_map(|(information, source_evidence)| {
-            let preserved = source_evidence.iter().copied().all(|evidence| {
-                destination.claims().iter().any(|(destination_information, destination_evidence)| {
-                    destination_information.covers(*information)
-                        && destination_evidence
-                            .iter()
-                            .copied()
-                            .any(|target| evidence_preserves_claim(evidence, target))
-                })
+            let preserved = source_evidence.iter().copied().all(|source_evidence| {
+                destination
+                    .claims()
+                    .iter()
+                    .any(|(destination_information, destination_evidence)| {
+                        destination_information.covers(*information)
+                            && destination_evidence.iter().copied().any(|destination_evidence| {
+                                source_evidence_is_retained(source_evidence, destination_evidence)
+                            })
+                    })
             });
             (!preserved).then_some(*information)
         })
@@ -816,32 +774,28 @@ mod tests {
     const POLICY: InformationPolicyRegistryKey = InformationPolicyRegistryKey::new(50, 1);
     const TRANSITIONS: InformationTransitionRegistryKey =
         InformationTransitionRegistryKey::new(60, 1);
-
     const MARGINALS: RepresentationKey = RepresentationKey::new(100, 1);
     const EXACT_STRATA: RepresentationKey = RepresentationKey::new(101, 1);
     const CLOSURE_STRATA: RepresentationKey = RepresentationKey::new(102, 1);
-    const MEASUREMENT_ONLY: RepresentationKey = RepresentationKey::new(103, 1);
+    const DERIVED: RepresentationKey = RepresentationKey::new(103, 1);
     const INTERMEDIATE: RepresentationKey = RepresentationKey::new(104, 1);
-
-    const RETAINED: RetainedAuthorityKey = RetainedAuthorityKey::new(200, 1);
-    const LOSSLESS: LosslessTransformKey = LosslessTransformKey::new(201, 1);
-    const MEASUREMENT: MeasurementAuthorityKey = MeasurementAuthorityKey::new(202, 1);
-    const CONDITIONAL: ConditionalDerivationKey = ConditionalDerivationKey::new(203, 1);
-
+    const RETAINED: RetainedAuthorityKey = RetainedAuthorityKey(200, 1);
+    const LOSSLESS: LosslessTransformKey = LosslessTransformKey(201, 1);
+    const MEASUREMENT: MeasurementAuthorityKey = MeasurementAuthorityKey(202, 1);
+    const CONDITIONAL: ConditionalDerivationKey = ConditionalDerivationKey(203, 1);
     const DIRECT: InformationTransitionKey = InformationTransitionKey::new(300, 1);
     const FIRST: InformationTransitionKey = InformationTransitionKey::new(301, 1);
     const SECOND: InformationTransitionKey = InformationTransitionKey::new(302, 1);
     const ALTERNATE_FIRST: InformationTransitionKey = InformationTransitionKey::new(399, 1);
-
     const CLOSURE_LINEAGE: EvidenceLineageToken = EvidenceLineageToken(400);
 
-    fn joint_information() -> EcologicalInformation {
+    fn joint() -> EcologicalInformation {
         EcologicalInformation::JointPopulationStatistics(
             PopulationStatisticSet::AGE.union(PopulationStatisticSet::CONDITION),
         )
     }
 
-    fn closure_evidence() -> QualifiedClosureEvidence {
+    fn closure() -> crate::information::QualifiedClosureEvidence {
         QualifiedClosureEvidence::new(
             ClosureModelVersion(1),
             ClosureDomainToken(9),
@@ -850,11 +804,21 @@ mod tests {
         )
     }
 
+    fn base_claims() -> [(EcologicalInformation, CapabilityEvidence); 2] {
+        [
+            (EcologicalInformation::AgeDistribution, CapabilityEvidence::Exact),
+            (
+                EcologicalInformation::ConditionDistribution,
+                CapabilityEvidence::Exact,
+            ),
+        ]
+    }
+
     fn policy() -> InformationPolicyRegistry {
         let mut builder = InformationPolicyRegistryBuilder::new(POLICY);
         builder
             .register_closure_evidence(RegisteredClosureEvidence::new(
-                closure_evidence(),
+                closure(),
                 ClosureEvidenceStatus::Qualified,
             ))
             .unwrap();
@@ -862,70 +826,68 @@ mod tests {
             .register_representation(RepresentationCapabilities::new(
                 MARGINALS,
                 EcologicalAuthorityLevel::Coarse,
-                [
-                    (EcologicalInformation::AgeDistribution, CapabilityEvidence::Exact),
-                    (
-                        EcologicalInformation::ConditionDistribution,
-                        CapabilityEvidence::Exact,
-                    ),
-                ],
+                base_claims(),
             ))
             .unwrap();
         builder
             .register_representation(RepresentationCapabilities::new(
                 EXACT_STRATA,
                 EcologicalAuthorityLevel::Coarse,
-                [
-                    (EcologicalInformation::AgeDistribution, CapabilityEvidence::Exact),
-                    (
-                        EcologicalInformation::ConditionDistribution,
-                        CapabilityEvidence::Exact,
-                    ),
-                    (joint_information(), CapabilityEvidence::Exact),
-                ],
+                base_claims()
+                    .into_iter()
+                    .chain([(joint(), CapabilityEvidence::Exact)]),
             ))
             .unwrap();
         builder
             .register_representation(RepresentationCapabilities::new(
                 CLOSURE_STRATA,
                 EcologicalAuthorityLevel::Coarse,
-                [
-                    (EcologicalInformation::AgeDistribution, CapabilityEvidence::Exact),
-                    (
-                        EcologicalInformation::ConditionDistribution,
-                        CapabilityEvidence::Exact,
-                    ),
-                    (
-                        joint_information(),
-                        CapabilityEvidence::QualifiedClosure(closure_evidence()),
-                    ),
-                ],
+                base_claims().into_iter().chain([(
+                    joint(),
+                    CapabilityEvidence::QualifiedClosure(closure()),
+                )]),
             ))
             .unwrap();
         builder
             .register_representation(RepresentationCapabilities::new(
-                MEASUREMENT_ONLY,
+                DERIVED,
                 EcologicalAuthorityLevel::Coarse,
-                [(joint_information(), CapabilityEvidence::MeasurementOnly)],
+                base_claims()
+                    .into_iter()
+                    .chain([(joint(), CapabilityEvidence::MeasurementOnly)]),
             ))
             .unwrap();
         builder
             .register_representation(RepresentationCapabilities::new(
                 INTERMEDIATE,
                 EcologicalAuthorityLevel::Coarse,
-                [
-                    (EcologicalInformation::AgeDistribution, CapabilityEvidence::Exact),
-                    (
-                        EcologicalInformation::ConditionDistribution,
-                        CapabilityEvidence::Exact,
-                    ),
-                ],
+                base_claims(),
             ))
             .unwrap();
         builder.seal()
     }
 
+    fn introduction_for(
+        policy: &InformationPolicyRegistry,
+        destination: RepresentationKey,
+        provenance: PromotionProvenance,
+    ) -> (TransitionCapabilityClaim, PromotionProvenance) {
+        let evidence = policy
+            .resolve_representation(destination)
+            .unwrap()
+            .capabilities()
+            .claims()
+            .get(&joint())
+            .unwrap()
+            .iter()
+            .copied()
+            .next()
+            .unwrap();
+        (TransitionCapabilityClaim::new(joint(), evidence), provenance)
+    }
+
     fn transition(
+        policy: &InformationPolicyRegistry,
         key: InformationTransitionKey,
         source: RepresentationKey,
         destination: RepresentationKey,
@@ -935,136 +897,71 @@ mod tests {
             key,
             source,
             destination,
-            [(TransitionCapabilityClaim::new(
-                joint_information(),
-                policy()
-                    .resolve_representation(destination)
-                    .unwrap()
-                    .capabilities()
-                    .claims()
-                    .get(&joint_information())
-                    .unwrap()
-                    .iter()
-                    .copied()
-                    .next()
-                    .unwrap(),
-            ), provenance)],
+            [introduction_for(policy, destination, provenance)],
             [],
         )
         .unwrap()
     }
 
     #[test]
-    fn exact_joint_information_cannot_be_created_by_closure_reconstruction() {
+    fn closure_or_conditional_state_cannot_create_exact_covariance() {
         let policy = policy();
-        let transition = transition(
-            DIRECT,
-            MARGINALS,
-            EXACT_STRATA,
+        for provenance in [
             PromotionProvenance::QualifiedClosure {
                 evidence_lineage: CLOSURE_LINEAGE,
             },
-        );
-        let mut builder = InformationTransitionRegistryBuilder::new(TRANSITIONS);
-        builder.register_transition(transition).unwrap();
-
-        assert!(matches!(
-            builder.seal(&policy),
-            Err(InformationTransitionError::InvalidProvenanceForClaim {
-                provenance: PromotionProvenanceClass::QualifiedClosure,
-                ..
-            })
-        ));
-    }
-
-    #[test]
-    fn exact_joint_information_cannot_be_created_by_conditional_microstate() {
-        let policy = policy();
-        let transition = transition(
-            DIRECT,
-            MARGINALS,
-            EXACT_STRATA,
             PromotionProvenance::ConditionalMicrostate { model: CONDITIONAL },
-        );
-        let mut builder = InformationTransitionRegistryBuilder::new(TRANSITIONS);
-        builder.register_transition(transition).unwrap();
-
-        assert!(matches!(
-            builder.seal(&policy),
-            Err(InformationTransitionError::InvalidProvenanceForClaim {
-                provenance: PromotionProvenanceClass::ConditionalMicrostate,
-                ..
-            })
-        ));
+        ] {
+            let edge = transition(&policy, DIRECT, MARGINALS, EXACT_STRATA, provenance);
+            let mut builder = InformationTransitionRegistryBuilder::new(TRANSITIONS);
+            builder.register_transition(edge).unwrap();
+            assert!(matches!(
+                builder.seal(&policy),
+                Err(InformationTransitionError::InvalidProvenanceForClaim { .. })
+            ));
+        }
     }
 
     #[test]
-    fn retained_exact_information_is_reachable_but_requires_external_authority() {
+    fn retained_lossless_and_measurement_exact_paths_keep_true_provenance() {
         let policy = policy();
-        let transition = transition(
-            DIRECT,
-            MARGINALS,
-            EXACT_STRATA,
-            PromotionProvenance::RetainedExact { authority: RETAINED },
-        );
-        let mut builder = InformationTransitionRegistryBuilder::new(TRANSITIONS);
-        builder.register_transition(transition).unwrap();
-        let registry = builder.seal(&policy).unwrap();
-        let plan = registry.plan(&policy, MARGINALS, EXACT_STRATA).unwrap();
-
-        assert_eq!(
-            plan.external_requirements(),
-            &BTreeSet::from([PromotionEvidenceRequirement::RetainedAuthority(RETAINED)])
-        );
-        assert!(!plan.is_self_contained_exact());
+        for (provenance, expected_external, self_contained) in [
+            (
+                PromotionProvenance::RetainedExact { authority: RETAINED },
+                Some(PromotionEvidenceRequirement::RetainedAuthority(RETAINED)),
+                false,
+            ),
+            (
+                PromotionProvenance::LosslessDerivation { transform: LOSSLESS },
+                None,
+                true,
+            ),
+            (
+                PromotionProvenance::MeasurementAssimilation {
+                    authority: MEASUREMENT,
+                },
+                Some(PromotionEvidenceRequirement::MeasurementAuthority(MEASUREMENT)),
+                false,
+            ),
+        ] {
+            let edge = transition(&policy, DIRECT, MARGINALS, EXACT_STRATA, provenance);
+            let mut builder = InformationTransitionRegistryBuilder::new(TRANSITIONS);
+            builder.register_transition(edge).unwrap();
+            let registry = builder.seal(&policy).unwrap();
+            let plan = registry.plan(&policy, MARGINALS, EXACT_STRATA).unwrap();
+            assert_eq!(
+                plan.external_requirements().iter().next().copied(),
+                expected_external
+            );
+            assert_eq!(plan.is_self_contained_exact(), self_contained);
+        }
     }
 
     #[test]
-    fn lossless_derivation_is_self_contained_exact_reachability() {
+    fn approximate_and_conditional_paths_never_become_exact_by_determinism() {
         let policy = policy();
-        let transition = transition(
-            DIRECT,
-            MARGINALS,
-            EXACT_STRATA,
-            PromotionProvenance::LosslessDerivation { transform: LOSSLESS },
-        );
-        let mut builder = InformationTransitionRegistryBuilder::new(TRANSITIONS);
-        builder.register_transition(transition).unwrap();
-        let registry = builder.seal(&policy).unwrap();
-        let plan = registry.plan(&policy, MARGINALS, EXACT_STRATA).unwrap();
-
-        assert!(plan.is_self_contained_exact());
-    }
-
-    #[test]
-    fn measurement_assimilation_requires_external_measurement_authority() {
-        let policy = policy();
-        let transition = transition(
-            DIRECT,
-            MARGINALS,
-            EXACT_STRATA,
-            PromotionProvenance::MeasurementAssimilation {
-                authority: MEASUREMENT,
-            },
-        );
-        let mut builder = InformationTransitionRegistryBuilder::new(TRANSITIONS);
-        builder.register_transition(transition).unwrap();
-        let registry = builder.seal(&policy).unwrap();
-        let plan = registry.plan(&policy, MARGINALS, EXACT_STRATA).unwrap();
-
-        assert_eq!(
-            plan.external_requirements(),
-            &BTreeSet::from([PromotionEvidenceRequirement::MeasurementAuthority(
-                MEASUREMENT
-            )])
-        );
-        assert!(!plan.is_self_contained_exact());
-    }
-
-    #[test]
-    fn qualified_reconstruction_remains_closure_evidence() {
-        let policy = policy();
-        let transition = transition(
+        let closure_edge = transition(
+            &policy,
             DIRECT,
             MARGINALS,
             CLOSURE_STRATA,
@@ -1072,74 +969,73 @@ mod tests {
                 evidence_lineage: CLOSURE_LINEAGE,
             },
         );
-        let mut builder = InformationTransitionRegistryBuilder::new(TRANSITIONS);
-        builder.register_transition(transition).unwrap();
-        let registry = builder.seal(&policy).unwrap();
-        let plan = registry.plan(&policy, MARGINALS, CLOSURE_STRATA).unwrap();
+        let mut closure_builder = InformationTransitionRegistryBuilder::new(TRANSITIONS);
+        closure_builder.register_transition(closure_edge).unwrap();
+        let closure_plan = closure_builder
+            .seal(&policy)
+            .unwrap()
+            .plan(&policy, MARGINALS, CLOSURE_STRATA)
+            .unwrap();
+        assert_eq!(closure_plan.closure_evidence(), &BTreeSet::from([CLOSURE_LINEAGE]));
+        assert!(!closure_plan.is_self_contained_exact());
 
-        assert_eq!(plan.closure_evidence(), &BTreeSet::from([CLOSURE_LINEAGE]));
-        assert!(!plan.is_self_contained_exact());
-    }
-
-    #[test]
-    fn conditional_microstate_can_only_land_in_measurement_only_capability() {
-        let policy = policy();
-        let transition = transition(
+        let derived_edge = transition(
+            &policy,
             DIRECT,
             MARGINALS,
-            MEASUREMENT_ONLY,
+            DERIVED,
             PromotionProvenance::ConditionalMicrostate { model: CONDITIONAL },
         );
-        let mut builder = InformationTransitionRegistryBuilder::new(TRANSITIONS);
-        builder.register_transition(transition).unwrap();
-        let registry = builder.seal(&policy).unwrap();
-        let plan = registry.plan(&policy, MARGINALS, MEASUREMENT_ONLY).unwrap();
-
+        let mut derived_builder = InformationTransitionRegistryBuilder::new(TRANSITIONS);
+        derived_builder.register_transition(derived_edge).unwrap();
+        let derived_plan = derived_builder
+            .seal(&policy)
+            .unwrap()
+            .plan(&policy, MARGINALS, DERIVED)
+            .unwrap();
         assert_eq!(
-            plan.conditional_derivations(),
+            derived_plan.conditional_derivations(),
             &BTreeSet::from([CONDITIONAL])
         );
-        assert!(!plan.is_self_contained_exact());
+        assert!(!derived_plan.is_self_contained_exact());
     }
 
     #[test]
-    fn collapse_must_declare_lost_exact_covariance() {
+    fn collapse_must_declare_exact_information_loss() {
         let policy = policy();
-        let transition = InformationTransitionDefinition::new(
+        let edge = InformationTransitionDefinition::new(
             DIRECT,
             EXACT_STRATA,
-            MARGINALS,
+            CLOSURE_STRATA,
             [],
             [],
         )
         .unwrap();
         let mut builder = InformationTransitionRegistryBuilder::new(TRANSITIONS);
-        builder.register_transition(transition).unwrap();
-
+        builder.register_transition(edge).unwrap();
         assert!(matches!(
             builder.seal(&policy),
             Err(InformationTransitionError::MissingDeclaredDiscard {
                 information,
                 ..
-            }) if information == joint_information()
+            }) if information == joint()
         ));
     }
 
     #[test]
-    fn declared_collapse_loss_does_not_make_exact_restoration_reachable() {
+    fn declared_loss_does_not_create_an_inverse_transition() {
         let policy = policy();
         let collapse = InformationTransitionDefinition::new(
             DIRECT,
             EXACT_STRATA,
             MARGINALS,
             [],
-            [joint_information()],
+            [joint()],
         )
         .unwrap();
         let mut builder = InformationTransitionRegistryBuilder::new(TRANSITIONS);
         builder.register_transition(collapse).unwrap();
         let registry = builder.seal(&policy).unwrap();
-
         assert!(matches!(
             registry.plan(&policy, MARGINALS, EXACT_STRATA),
             Err(InformationTransitionError::NoTransitionPath { .. })
@@ -1158,45 +1054,37 @@ mod tests {
         )
         .unwrap();
         let second = transition(
+            &policy,
             SECOND,
             INTERMEDIATE,
             EXACT_STRATA,
             PromotionProvenance::LosslessDerivation { transform: LOSSLESS },
         );
-        let alternate_first = InformationTransitionDefinition::new(
+        let alternate_first = transition(
+            &policy,
             ALTERNATE_FIRST,
             MARGINALS,
             CLOSURE_STRATA,
-            [(TransitionCapabilityClaim::new(
-                joint_information(),
-                CapabilityEvidence::QualifiedClosure(closure_evidence()),
-            ), PromotionProvenance::QualifiedClosure {
+            PromotionProvenance::QualifiedClosure {
                 evidence_lineage: CLOSURE_LINEAGE,
-            })],
-            [],
-        )
-        .unwrap();
+            },
+        );
         let alternate_second = InformationTransitionDefinition::new(
             InformationTransitionKey::new(400, 1),
             CLOSURE_STRATA,
             EXACT_STRATA,
-            [(TransitionCapabilityClaim::new(
-                joint_information(),
-                CapabilityEvidence::Exact,
-            ), PromotionProvenance::MeasurementAssimilation {
-                authority: MEASUREMENT,
-            })],
+            [(TransitionCapabilityClaim::new(joint(), CapabilityEvidence::Exact),
+              PromotionProvenance::MeasurementAssimilation { authority: MEASUREMENT })],
             [],
         )
         .unwrap();
 
         let mut builder = InformationTransitionRegistryBuilder::new(TRANSITIONS);
-        for transition in [alternate_second, alternate_first, second, first] {
-            builder.register_transition(transition).unwrap();
+        for edge in [alternate_second, alternate_first, second, first] {
+            builder.register_transition(edge).unwrap();
         }
         let registry = builder.seal(&policy).unwrap();
         let plan = registry.plan(&policy, MARGINALS, EXACT_STRATA).unwrap();
-
         assert_eq!(plan.transitions(), &[FIRST, SECOND]);
     }
 }
