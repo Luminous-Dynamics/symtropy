@@ -15,7 +15,7 @@ use std::collections::BTreeSet;
 use std::error::Error;
 use std::fmt;
 
-use crate::information::{RepresentationKey};
+use crate::information::RepresentationKey;
 use crate::information_registry::InformationPolicyRegistryKey;
 use crate::information_transition::{InformationTransitionKey, InformationTransitionRegistryKey};
 use crate::transition_applicability::{
