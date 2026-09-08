@@ -33,17 +33,18 @@ jobs:
         from pathlib import Path
         path = Path('crates/domains/symtropy-fabrication/src/executable_plan.rs')
         text = path.read_text()
-        old = '''            Err(ExecutablePlanError::CapabilityBindingMismatch { step_id, .. })
-                if step_id == step_id("clean")
-        '''
-        new = '''            Err(ExecutablePlanError::CapabilityBindingMismatch {
-                step_id: actual_step_id,
-                ..
-            }) if actual_step_id == step_id("clean")
-        '''
-        if text.count(old) != 1:
-            raise SystemExit(f'executable-plan shadowing anchor count={text.count(old)}')
-        path.write_text(text.replace(old, new))
+        pattern = 'Err(ExecutablePlanError::CapabilityBindingMismatch { step_id, .. })'
+        guard = 'if step_id == step_id("clean")'
+        if text.count(pattern) != 1:
+            raise SystemExit(f'executable-plan pattern count={text.count(pattern)}')
+        if text.count(guard) != 1:
+            raise SystemExit(f'executable-plan guard count={text.count(guard)}')
+        text = text.replace(
+            pattern,
+            'Err(ExecutablePlanError::CapabilityBindingMismatch { step_id: actual_step_id, .. })',
+        )
+        text = text.replace(guard, 'if actual_step_id == step_id("clean")')
+        path.write_text(text)
         PY
 
     - name: Apply exact source transformation
