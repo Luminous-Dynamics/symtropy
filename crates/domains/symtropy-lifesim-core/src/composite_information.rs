@@ -9,9 +9,12 @@
 //! one coherent authority scope/snapshot. It never infers cross-store covariance
 //! merely because the participating marginals are individually exact.
 //!
-//! A cross-store relationship such as exact age × disease covariance must itself
-//! be represented by a registry-owned authority source. Callers cannot attach an
-//! ad hoc exact relation to a context during capture.
+//! A composite context has exactly one **subject** authority source. Supporting
+//! stores may contribute information, but they cannot upgrade the subject's
+//! Presentation/Coarse/Active/Persistent authority level. A cross-store
+//! relationship such as exact age × disease covariance must itself be represented
+//! by a registry-owned supporting source; callers cannot attach ad hoc exact
+//! relations during capture.
 
 use std::collections::{btree_map::Entry, BTreeMap, BTreeSet};
 use std::error::Error;
@@ -61,6 +64,17 @@ impl CapabilitySourceKey {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct CapabilitySourceRevision(pub u64);
 
+/// Role of one authority store inside a composite process context.
+///
+/// Exactly one source is the process subject. Supporting sources can supply
+/// independent facts, relation state, conservation accounts, and similar
+/// evidence, but cannot raise the subject's ecological authority level.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub enum CapabilitySourceRole {
+    Subject,
+    Supporting,
+}
+
 /// Duplicate-safe current revision snapshot used to validate a prepared
 /// composite context before commit.
 ///
@@ -102,6 +116,7 @@ impl CurrentCapabilitySourceRevisions {
 pub struct CapabilitySourceDescriptor {
     key: CapabilitySourceKey,
     representation: RepresentationKey,
+    role: CapabilitySourceRole,
     scope: AuthorityScope,
     snapshot: AuthoritySnapshotToken,
     revision: CapabilitySourceRevision,
@@ -111,6 +126,7 @@ impl CapabilitySourceDescriptor {
     pub const fn new(
         key: CapabilitySourceKey,
         representation: RepresentationKey,
+        role: CapabilitySourceRole,
         scope: AuthorityScope,
         snapshot: AuthoritySnapshotToken,
         revision: CapabilitySourceRevision,
@@ -118,10 +134,45 @@ impl CapabilitySourceDescriptor {
         Self {
             key,
             representation,
+            role,
             scope,
             snapshot,
             revision,
         }
+    }
+
+    pub const fn subject(
+        key: CapabilitySourceKey,
+        representation: RepresentationKey,
+        scope: AuthorityScope,
+        snapshot: AuthoritySnapshotToken,
+        revision: CapabilitySourceRevision,
+    ) -> Self {
+        Self::new(
+            key,
+            representation,
+            CapabilitySourceRole::Subject,
+            scope,
+            snapshot,
+            revision,
+        )
+    }
+
+    pub const fn supporting(
+        key: CapabilitySourceKey,
+        representation: RepresentationKey,
+        scope: AuthorityScope,
+        snapshot: AuthoritySnapshotToken,
+        revision: CapabilitySourceRevision,
+    ) -> Self {
+        Self::new(
+            key,
+            representation,
+            CapabilitySourceRole::Supporting,
+            scope,
+            snapshot,
+            revision,
+        )
     }
 
     pub const fn key(self) -> CapabilitySourceKey {
@@ -130,6 +181,10 @@ impl CapabilitySourceDescriptor {
 
     pub const fn representation(self) -> RepresentationKey {
         self.representation
+    }
+
+    pub const fn role(self) -> CapabilitySourceRole {
+        self.role
     }
 
     pub const fn scope(self) -> AuthorityScope {
@@ -161,6 +216,10 @@ impl ResolvedCapabilitySource {
         self.descriptor.key
     }
 
+    pub const fn role(&self) -> CapabilitySourceRole {
+        self.descriptor.role
+    }
+
     pub const fn revision(&self) -> CapabilitySourceRevision {
         self.descriptor.revision
     }
@@ -177,6 +236,7 @@ pub struct CompositeCapabilityContext {
     registry_key: InformationPolicyRegistryKey,
     scope: AuthorityScope,
     snapshot: AuthoritySnapshotToken,
+    subject: CapabilitySourceKey,
     sources: BTreeMap<CapabilitySourceKey, ResolvedCapabilitySource>,
     combined: RepresentationCapabilities,
 }
@@ -186,8 +246,9 @@ impl CompositeCapabilityContext {
     ///
     /// This operation is read-only. It resolves representation claims from the
     /// sealed registry, canonicalizes source ordering, rejects duplicate source
-    /// identity before reading its claims, rejects mismatched scope or snapshot
-    /// identity, and rejects duplicate exact ownership claims.
+    /// identity before reading its claims, requires exactly one subject source,
+    /// rejects mismatched scope or snapshot identity, and rejects duplicate exact
+    /// ownership claims.
     ///
     /// Cross-store relationships are never caller-injected. If exact age ×
     /// disease covariance exists, for example, it must arrive as another
@@ -201,8 +262,9 @@ impl CompositeCapabilityContext {
         let mut seen_sources = BTreeSet::new();
         let mut scope = None;
         let mut snapshot = None;
+        let mut subject = None;
+        let mut subject_authority = None;
         let mut combined_claims = Vec::new();
-        let mut max_authority = EcologicalAuthorityLevel::Presentation;
         let mut exclusive_owners = BTreeMap::new();
 
         for descriptor in sources {
@@ -210,6 +272,16 @@ impl CompositeCapabilityContext {
                 return Err(CompositeContextError::DuplicateSource {
                     source: descriptor.key,
                 });
+            }
+
+            if descriptor.role == CapabilitySourceRole::Subject {
+                if let Some(first) = subject {
+                    return Err(CompositeContextError::MultipleSubjectSources {
+                        first,
+                        second: descriptor.key,
+                    });
+                }
+                subject = Some(descriptor.key);
             }
 
             if let Some(expected) = scope {
@@ -241,7 +313,10 @@ impl CompositeCapabilityContext {
                 .map_err(CompositeContextError::Registry)?
                 .capabilities()
                 .clone();
-            max_authority = max_authority.max(capabilities.authority_level());
+
+            if descriptor.role == CapabilitySourceRole::Subject {
+                subject_authority = Some(capabilities.authority_level());
+            }
 
             for (information, evidence_set) in capabilities.claims() {
                 if is_exclusive_authority_information(*information)
@@ -276,9 +351,12 @@ impl CompositeCapabilityContext {
 
         let scope = scope.ok_or(CompositeContextError::EmptySourceSet)?;
         let snapshot = snapshot.expect("scope and snapshot are initialized together");
+        let subject = subject.ok_or(CompositeContextError::MissingSubjectSource)?;
+        let subject_authority =
+            subject_authority.expect("subject authority is resolved with the subject source");
         let combined = RepresentationCapabilities::new(
             COMPOSITE_CONTEXT_REPRESENTATION,
-            max_authority,
+            subject_authority,
             combined_claims,
         );
 
@@ -286,6 +364,7 @@ impl CompositeCapabilityContext {
             registry_key: registry.key(),
             scope,
             snapshot,
+            subject,
             sources: resolved_sources,
             combined,
         })
@@ -303,11 +382,17 @@ impl CompositeCapabilityContext {
         self.snapshot
     }
 
+    pub const fn subject(&self) -> CapabilitySourceKey {
+        self.subject
+    }
+
     pub fn sources(&self) -> &BTreeMap<CapabilitySourceKey, ResolvedCapabilitySource> {
         &self.sources
     }
 
     /// Derived evaluation view only; this is not a new mutable authority owner.
+    /// Its authority level is exactly the subject source's authority level;
+    /// supporting sources can add information but cannot upgrade P/Coarse/A/I.
     pub fn combined_capabilities(&self) -> &RepresentationCapabilities {
         &self.combined
     }
@@ -340,6 +425,7 @@ impl CompositeCapabilityContext {
             registry_key: self.registry_key,
             scope: self.scope,
             snapshot: self.snapshot,
+            subject: self.subject,
             source_revisions: self
                 .sources
                 .iter()
@@ -380,6 +466,7 @@ pub struct CompositeSufficiencyReport {
     registry_key: InformationPolicyRegistryKey,
     scope: AuthorityScope,
     snapshot: AuthoritySnapshotToken,
+    subject: CapabilitySourceKey,
     source_revisions: BTreeMap<CapabilitySourceKey, CapabilitySourceRevision>,
     process_keys: BTreeSet<ProcessKey>,
     report: SufficiencyReport,
@@ -396,6 +483,10 @@ impl CompositeSufficiencyReport {
 
     pub const fn snapshot(&self) -> AuthoritySnapshotToken {
         self.snapshot
+    }
+
+    pub const fn subject(&self) -> CapabilitySourceKey {
+        self.subject
     }
 
     pub fn source_revisions(&self) -> &BTreeMap<CapabilitySourceKey, CapabilitySourceRevision> {
@@ -428,6 +519,11 @@ fn is_exclusive_authority_information(information: EcologicalInformation) -> boo
 pub enum CompositeContextError {
     Registry(InformationRegistryError),
     EmptySourceSet,
+    MissingSubjectSource,
+    MultipleSubjectSources {
+        first: CapabilitySourceKey,
+        second: CapabilitySourceKey,
+    },
     DuplicateSource {
         source: CapabilitySourceKey,
     },
@@ -468,6 +564,13 @@ impl fmt::Display for CompositeContextError {
         match self {
             Self::Registry(error) => write!(formatter, "information registry error: {error}"),
             Self::EmptySourceSet => write!(formatter, "composite capability context has no sources"),
+            Self::MissingSubjectSource => {
+                write!(formatter, "composite capability context has no subject source")
+            }
+            Self::MultipleSubjectSources { first, second } => write!(
+                formatter,
+                "composite capability context has multiple subject sources: {first:?} and {second:?}"
+            ),
             Self::DuplicateSource { source } => {
                 write!(formatter, "duplicate capability source {source:?}")
             }
@@ -547,15 +650,18 @@ mod tests {
     const DISEASE_SOURCE: CapabilitySourceKey = CapabilitySourceKey::new(12, 1);
     const RELATION_SOURCE: CapabilitySourceKey = CapabilitySourceKey::new(13, 1);
     const SECOND_LEDGER_SOURCE: CapabilitySourceKey = CapabilitySourceKey::new(14, 1);
+    const ACTIVE_SOURCE: CapabilitySourceKey = CapabilitySourceKey::new(15, 1);
 
     const POP_REP: RepresentationKey = RepresentationKey::new(100, 1);
     const LEDGER_REP: RepresentationKey = RepresentationKey::new(101, 1);
     const DISEASE_REP: RepresentationKey = RepresentationKey::new(102, 1);
     const RELATION_REP: RepresentationKey = RepresentationKey::new(103, 1);
     const SECOND_LEDGER_REP: RepresentationKey = RepresentationKey::new(104, 1);
+    const ACTIVE_REP: RepresentationKey = RepresentationKey::new(105, 1);
 
     const MIXED_PROCESS: ProcessKey = ProcessKey::new(200, 1);
     const JOINT_PROCESS: ProcessKey = ProcessKey::new(201, 1);
+    const ACTIVE_PROCESS: ProcessKey = ProcessKey::new(202, 1);
 
     fn age_disease() -> EcologicalInformation {
         EcologicalInformation::JointPopulationStatistics(
@@ -563,12 +669,26 @@ mod tests {
         )
     }
 
-    fn source(
+    fn subject(
         key: CapabilitySourceKey,
         representation: RepresentationKey,
         revision: u64,
     ) -> CapabilitySourceDescriptor {
-        CapabilitySourceDescriptor::new(
+        CapabilitySourceDescriptor::subject(
+            key,
+            representation,
+            SCOPE,
+            SNAPSHOT,
+            CapabilitySourceRevision(revision),
+        )
+    }
+
+    fn supporting(
+        key: CapabilitySourceKey,
+        representation: RepresentationKey,
+        revision: u64,
+    ) -> CapabilitySourceDescriptor {
+        CapabilitySourceDescriptor::supporting(
             key,
             representation,
             SCOPE,
@@ -630,6 +750,16 @@ mod tests {
                 )],
             ))
             .unwrap();
+        builder
+            .register_representation(RepresentationCapabilities::new(
+                ACTIVE_REP,
+                EcologicalAuthorityLevel::Active,
+                [(
+                    EcologicalInformation::IndividualActiveState,
+                    CapabilityEvidence::Exact,
+                )],
+            ))
+            .unwrap();
 
         builder
             .register_process(ProcessInformationProfile::new(
@@ -652,6 +782,13 @@ mod tests {
                 [ProcessInformationRequirement::exact(age_disease())],
             ))
             .unwrap();
+        builder
+            .register_process(ProcessInformationProfile::new(
+                ACTIVE_PROCESS,
+                EcologicalAuthorityLevel::Active,
+                [ProcessInformationRequirement::exact(EcologicalInformation::Headcount)],
+            ))
+            .unwrap();
         builder.seal()
     }
 
@@ -660,7 +797,10 @@ mod tests {
         let registry = registry();
         let context = CompositeCapabilityContext::capture(
             &registry,
-            [source(POP_SOURCE, POP_REP, 4), source(LEDGER_SOURCE, LEDGER_REP, 9)],
+            [
+                subject(POP_SOURCE, POP_REP, 4),
+                supporting(LEDGER_SOURCE, LEDGER_REP, 9),
+            ],
         )
         .unwrap();
 
@@ -668,6 +808,53 @@ mod tests {
             .evaluate_registered(&registry, [MIXED_PROCESS])
             .unwrap();
         assert!(report.is_sufficient(), "failures={:?}", report.report().failures());
+        assert_eq!(context.subject(), POP_SOURCE);
+    }
+
+    #[test]
+    fn context_requires_exactly_one_subject() {
+        let registry = registry();
+        assert!(matches!(
+            CompositeCapabilityContext::capture(
+                &registry,
+                [supporting(POP_SOURCE, POP_REP, 4)],
+            ),
+            Err(CompositeContextError::MissingSubjectSource)
+        ));
+        assert!(matches!(
+            CompositeCapabilityContext::capture(
+                &registry,
+                [
+                    subject(POP_SOURCE, POP_REP, 4),
+                    subject(LEDGER_SOURCE, LEDGER_REP, 9),
+                ],
+            ),
+            Err(CompositeContextError::MultipleSubjectSources { .. })
+        ));
+    }
+
+    #[test]
+    fn supporting_active_source_cannot_upgrade_coarse_subject_authority() {
+        let registry = registry();
+        let context = CompositeCapabilityContext::capture(
+            &registry,
+            [
+                subject(POP_SOURCE, POP_REP, 4),
+                supporting(ACTIVE_SOURCE, ACTIVE_REP, 2),
+            ],
+        )
+        .unwrap();
+
+        assert_eq!(
+            context.combined_capabilities().authority_level(),
+            EcologicalAuthorityLevel::Coarse
+        );
+        assert!(
+            !context
+                .evaluate_registered(&registry, [ACTIVE_PROCESS])
+                .unwrap()
+                .is_sufficient()
+        );
     }
 
     #[test]
@@ -676,7 +863,10 @@ mod tests {
         assert!(matches!(
             CompositeCapabilityContext::capture(
                 &registry,
-                [source(LEDGER_SOURCE, LEDGER_REP, 9), source(LEDGER_SOURCE, LEDGER_REP, 9)],
+                [
+                    subject(LEDGER_SOURCE, LEDGER_REP, 9),
+                    supporting(LEDGER_SOURCE, LEDGER_REP, 9),
+                ],
             ),
             Err(CompositeContextError::DuplicateSource {
                 source: LEDGER_SOURCE
@@ -687,7 +877,7 @@ mod tests {
     #[test]
     fn mismatched_snapshot_fails_before_capability_union() {
         let registry = registry();
-        let other_snapshot = CapabilitySourceDescriptor::new(
+        let other_snapshot = CapabilitySourceDescriptor::supporting(
             LEDGER_SOURCE,
             LEDGER_REP,
             SCOPE,
@@ -698,7 +888,7 @@ mod tests {
         assert!(matches!(
             CompositeCapabilityContext::capture(
                 &registry,
-                [source(POP_SOURCE, POP_REP, 4), other_snapshot],
+                [subject(POP_SOURCE, POP_REP, 4), other_snapshot],
             ),
             Err(CompositeContextError::SnapshotMismatch { .. })
         ));
@@ -707,7 +897,7 @@ mod tests {
     #[test]
     fn mismatched_scope_fails_before_capability_union() {
         let registry = registry();
-        let other_scope = CapabilitySourceDescriptor::new(
+        let other_scope = CapabilitySourceDescriptor::supporting(
             LEDGER_SOURCE,
             LEDGER_REP,
             AuthorityScope(SCOPE.0 + 1),
@@ -718,7 +908,7 @@ mod tests {
         assert!(matches!(
             CompositeCapabilityContext::capture(
                 &registry,
-                [source(POP_SOURCE, POP_REP, 4), other_scope],
+                [subject(POP_SOURCE, POP_REP, 4), other_scope],
             ),
             Err(CompositeContextError::ScopeMismatch { .. })
         ));
@@ -730,8 +920,8 @@ mod tests {
         let context = CompositeCapabilityContext::capture(
             &registry,
             [
-                source(POP_SOURCE, POP_REP, 4),
-                source(DISEASE_SOURCE, DISEASE_REP, 5),
+                subject(POP_SOURCE, POP_REP, 4),
+                supporting(DISEASE_SOURCE, DISEASE_REP, 5),
             ],
         )
         .unwrap();
@@ -750,9 +940,9 @@ mod tests {
         let context = CompositeCapabilityContext::capture(
             &registry,
             [
-                source(DISEASE_SOURCE, DISEASE_REP, 5),
-                source(RELATION_SOURCE, RELATION_REP, 7),
-                source(POP_SOURCE, POP_REP, 4),
+                supporting(DISEASE_SOURCE, DISEASE_REP, 5),
+                supporting(RELATION_SOURCE, RELATION_REP, 7),
+                subject(POP_SOURCE, POP_REP, 4),
             ],
         )
         .unwrap();
@@ -772,8 +962,8 @@ mod tests {
             CompositeCapabilityContext::capture(
                 &registry,
                 [
-                    source(LEDGER_SOURCE, LEDGER_REP, 9),
-                    source(SECOND_LEDGER_SOURCE, SECOND_LEDGER_REP, 2),
+                    subject(LEDGER_SOURCE, LEDGER_REP, 9),
+                    supporting(SECOND_LEDGER_SOURCE, SECOND_LEDGER_REP, 2),
                 ],
             ),
             Err(CompositeContextError::DuplicateExclusiveAuthority { .. })
@@ -785,12 +975,18 @@ mod tests {
         let registry = registry();
         let a = CompositeCapabilityContext::capture(
             &registry,
-            [source(POP_SOURCE, POP_REP, 4), source(LEDGER_SOURCE, LEDGER_REP, 9)],
+            [
+                subject(POP_SOURCE, POP_REP, 4),
+                supporting(LEDGER_SOURCE, LEDGER_REP, 9),
+            ],
         )
         .unwrap();
         let b = CompositeCapabilityContext::capture(
             &registry,
-            [source(LEDGER_SOURCE, LEDGER_REP, 9), source(POP_SOURCE, POP_REP, 4)],
+            [
+                supporting(LEDGER_SOURCE, LEDGER_REP, 9),
+                subject(POP_SOURCE, POP_REP, 4),
+            ],
         )
         .unwrap();
 
@@ -819,7 +1015,10 @@ mod tests {
         let registry = registry();
         let context = CompositeCapabilityContext::capture(
             &registry,
-            [source(POP_SOURCE, POP_REP, 4), source(LEDGER_SOURCE, LEDGER_REP, 9)],
+            [
+                subject(POP_SOURCE, POP_REP, 4),
+                supporting(LEDGER_SOURCE, LEDGER_REP, 9),
+            ],
         )
         .unwrap();
         let current = CurrentCapabilitySourceRevisions::from_records([
