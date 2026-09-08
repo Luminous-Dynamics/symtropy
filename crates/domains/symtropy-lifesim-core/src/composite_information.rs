@@ -61,6 +61,41 @@ impl CapabilitySourceKey {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct CapabilitySourceRevision(pub u64);
 
+/// Duplicate-safe current revision snapshot used to validate a prepared
+/// composite context before commit.
+///
+/// Persistence/network/runtime adapters should construct this from raw records
+/// before validating a plan. Duplicate source keys are ambiguous current
+/// authority and fail closed rather than being silently last-write-wins.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct CurrentCapabilitySourceRevisions {
+    revisions: BTreeMap<CapabilitySourceKey, CapabilitySourceRevision>,
+}
+
+impl CurrentCapabilitySourceRevisions {
+    pub fn from_records(
+        records: impl IntoIterator<Item = (CapabilitySourceKey, CapabilitySourceRevision)>,
+    ) -> Result<Self, CompositeContextError> {
+        let mut revisions = BTreeMap::new();
+        for (source, revision) in records {
+            if revisions.insert(source, revision).is_some() {
+                return Err(CompositeContextError::DuplicateCurrentSourceRevision { source });
+            }
+        }
+        Ok(Self { revisions })
+    }
+
+    pub fn revision(&self, source: CapabilitySourceKey) -> Option<CapabilitySourceRevision> {
+        self.revisions.get(&source).copied()
+    }
+
+    pub fn iter(
+        &self,
+    ) -> impl Iterator<Item = (&CapabilitySourceKey, &CapabilitySourceRevision)> {
+        self.revisions.iter()
+    }
+}
+
 /// Descriptor supplied to snapshot capture. The representation profile itself
 /// is resolved from the sealed registry rather than caller-supplied.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
@@ -150,8 +185,9 @@ impl CompositeCapabilityContext {
     /// Capture and validate a coherent source set.
     ///
     /// This operation is read-only. It resolves representation claims from the
-    /// sealed registry, canonicalizes source ordering, rejects mismatched scope
-    /// or snapshot identity, and rejects duplicate exact ownership claims.
+    /// sealed registry, canonicalizes source ordering, rejects duplicate source
+    /// identity before reading its claims, rejects mismatched scope or snapshot
+    /// identity, and rejects duplicate exact ownership claims.
     ///
     /// Cross-store relationships are never caller-injected. If exact age ×
     /// disease covariance exists, for example, it must arrive as another
@@ -162,6 +198,7 @@ impl CompositeCapabilityContext {
         sources: impl IntoIterator<Item = CapabilitySourceDescriptor>,
     ) -> Result<Self, CompositeContextError> {
         let mut resolved_sources = BTreeMap::new();
+        let mut seen_sources = BTreeSet::new();
         let mut scope = None;
         let mut snapshot = None;
         let mut combined_claims = Vec::new();
@@ -169,6 +206,12 @@ impl CompositeCapabilityContext {
         let mut exclusive_owners = BTreeMap::new();
 
         for descriptor in sources {
+            if !seen_sources.insert(descriptor.key) {
+                return Err(CompositeContextError::DuplicateSource {
+                    source: descriptor.key,
+                });
+            }
+
             if let Some(expected) = scope {
                 if descriptor.scope != expected {
                     return Err(CompositeContextError::ScopeMismatch {
@@ -222,19 +265,13 @@ impl CompositeCapabilityContext {
                 }
             }
 
-            match resolved_sources.entry(descriptor.key) {
-                Entry::Vacant(entry) => {
-                    entry.insert(ResolvedCapabilitySource {
-                        descriptor,
-                        capabilities,
-                    });
-                }
-                Entry::Occupied(_) => {
-                    return Err(CompositeContextError::DuplicateSource {
-                        source: descriptor.key,
-                    });
-                }
-            }
+            resolved_sources.insert(
+                descriptor.key,
+                ResolvedCapabilitySource {
+                    descriptor,
+                    capabilities,
+                },
+            );
         }
 
         let scope = scope.ok_or(CompositeContextError::EmptySourceSet)?;
@@ -317,13 +354,11 @@ impl CompositeCapabilityContext {
     /// to a different source-local revision before a prepared commit.
     pub fn validate_revisions(
         &self,
-        current: impl IntoIterator<Item = (CapabilitySourceKey, CapabilitySourceRevision)>,
+        current: &CurrentCapabilitySourceRevisions,
     ) -> Result<(), CompositeContextError> {
-        let current = current.into_iter().collect::<BTreeMap<_, _>>();
         for (key, source) in &self.sources {
             let actual = current
-                .get(key)
-                .copied()
+                .revision(*key)
                 .ok_or(CompositeContextError::MissingCurrentSource { source: *key })?;
             if actual != source.revision() {
                 return Err(CompositeContextError::StaleSourceRevision {
@@ -396,6 +431,9 @@ pub enum CompositeContextError {
     DuplicateSource {
         source: CapabilitySourceKey,
     },
+    DuplicateCurrentSourceRevision {
+        source: CapabilitySourceKey,
+    },
     ScopeMismatch {
         expected: AuthorityScope,
         actual: AuthorityScope,
@@ -432,6 +470,9 @@ impl fmt::Display for CompositeContextError {
             Self::EmptySourceSet => write!(formatter, "composite capability context has no sources"),
             Self::DuplicateSource { source } => {
                 write!(formatter, "duplicate capability source {source:?}")
+            }
+            Self::DuplicateCurrentSourceRevision { source } => {
+                write!(formatter, "duplicate current revision for capability source {source:?}")
             }
             Self::ScopeMismatch {
                 expected,
@@ -630,6 +671,20 @@ mod tests {
     }
 
     #[test]
+    fn duplicate_source_identity_fails_before_claims_are_composed() {
+        let registry = registry();
+        assert!(matches!(
+            CompositeCapabilityContext::capture(
+                &registry,
+                [source(LEDGER_SOURCE, LEDGER_REP, 9), source(LEDGER_SOURCE, LEDGER_REP, 9)],
+            ),
+            Err(CompositeContextError::DuplicateSource {
+                source: LEDGER_SOURCE
+            })
+        ));
+    }
+
+    #[test]
     fn mismatched_snapshot_fails_before_capability_union() {
         let registry = registry();
         let other_snapshot = CapabilitySourceDescriptor::new(
@@ -747,6 +802,19 @@ mod tests {
     }
 
     #[test]
+    fn duplicate_current_revision_records_fail_before_validation() {
+        assert!(matches!(
+            CurrentCapabilitySourceRevisions::from_records([
+                (POP_SOURCE, CapabilitySourceRevision(4)),
+                (POP_SOURCE, CapabilitySourceRevision(4)),
+            ]),
+            Err(CompositeContextError::DuplicateCurrentSourceRevision {
+                source: POP_SOURCE
+            })
+        ));
+    }
+
+    #[test]
     fn one_stale_source_invalidates_the_whole_prepared_context() {
         let registry = registry();
         let context = CompositeCapabilityContext::capture(
@@ -754,12 +822,14 @@ mod tests {
             [source(POP_SOURCE, POP_REP, 4), source(LEDGER_SOURCE, LEDGER_REP, 9)],
         )
         .unwrap();
+        let current = CurrentCapabilitySourceRevisions::from_records([
+            (POP_SOURCE, CapabilitySourceRevision(4)),
+            (LEDGER_SOURCE, CapabilitySourceRevision(10)),
+        ])
+        .unwrap();
 
         assert!(matches!(
-            context.validate_revisions([
-                (POP_SOURCE, CapabilitySourceRevision(4)),
-                (LEDGER_SOURCE, CapabilitySourceRevision(10)),
-            ]),
+            context.validate_revisions(&current),
             Err(CompositeContextError::StaleSourceRevision {
                 source: LEDGER_SOURCE,
                 ..
