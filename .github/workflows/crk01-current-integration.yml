@@ -43,15 +43,16 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          test "$(git rev-parse HEAD)" = "$EXPECTED_INTEGRATION_SHA"
-          test "$(git show -s --format=%T HEAD)" = "$EXPECTED_TREE_SHA"
-          test "$(git show -s --format=%P HEAD)" = "$EXPECTED_BASE_SHA $EXPECTED_HEAD_SHA"
-          test "$(git hash-object .github/workflows/ci.yml)" = "$EXPECTED_CI_BLOB"
+          actual_head="$(git rev-parse HEAD)"
+          actual_tree="$(git show -s --format=%T HEAD)"
+          actual_parents="$(git cat-file -p HEAD | sed -n 's/^parent //p' | tr '\n' ' ' | sed 's/ $//')"
+          actual_ci_blob="$(git hash-object .github/workflows/ci.yml)"
           printf 'HEAD=%s\nTREE=%s\nPARENTS=%s\nCI_BLOB=%s\n' \
-            "$(git rev-parse HEAD)" \
-            "$(git show -s --format=%T HEAD)" \
-            "$(git show -s --format=%P HEAD)" \
-            "$(git hash-object .github/workflows/ci.yml)"
+            "$actual_head" "$actual_tree" "$actual_parents" "$actual_ci_blob"
+          test "$actual_head" = "$EXPECTED_INTEGRATION_SHA"
+          test "$actual_tree" = "$EXPECTED_TREE_SHA"
+          test "$actual_parents" = "$EXPECTED_BASE_SHA $EXPECTED_HEAD_SHA"
+          test "$actual_ci_blob" = "$EXPECTED_CI_BLOB"
 
       - name: Install System Dependencies (Linux)
         if: runner.os == 'Linux'
