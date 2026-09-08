@@ -8,6 +8,10 @@
 //! when they resolve through one sealed information-policy registry and describe
 //! one coherent authority scope/snapshot. It never infers cross-store covariance
 //! merely because the participating marginals are individually exact.
+//!
+//! A cross-store relationship such as exact age × disease covariance must itself
+//! be represented by a registry-owned authority source. Callers cannot attach an
+//! ad hoc exact relation to a context during capture.
 
 use std::collections::{btree_map::Entry, BTreeMap, BTreeSet};
 use std::error::Error;
@@ -131,44 +135,6 @@ impl ResolvedCapabilitySource {
     }
 }
 
-/// Explicit exact relationship that spans two or more captured sources.
-///
-/// V0 permits exact relation evidence only. Qualified approximate cross-store
-/// relations need the typed observable/horizon evidence contract from #273 and
-/// therefore must not be smuggled in as a generic closure claim here.
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
-pub struct CrossStoreRelationCapability {
-    sources: BTreeSet<CapabilitySourceKey>,
-    information: EcologicalInformation,
-}
-
-impl CrossStoreRelationCapability {
-    pub fn new_exact(
-        sources: impl IntoIterator<Item = CapabilitySourceKey>,
-        information: EcologicalInformation,
-    ) -> Result<Self, CompositeContextError> {
-        let sources = sources.into_iter().collect::<BTreeSet<_>>();
-        if sources.len() < 2 {
-            return Err(CompositeContextError::RelationNeedsMultipleSources);
-        }
-        if !is_v0_relation_information(information) {
-            return Err(CompositeContextError::InvalidRelationInformation { information });
-        }
-        Ok(Self {
-            sources,
-            information,
-        })
-    }
-
-    pub fn sources(&self) -> &BTreeSet<CapabilitySourceKey> {
-        &self.sources
-    }
-
-    pub const fn information(&self) -> EcologicalInformation {
-        self.information
-    }
-}
-
 /// Deterministic, read-only capability context captured from mutually coherent
 /// canonical authority stores.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -177,7 +143,6 @@ pub struct CompositeCapabilityContext {
     scope: AuthorityScope,
     snapshot: AuthoritySnapshotToken,
     sources: BTreeMap<CapabilitySourceKey, ResolvedCapabilitySource>,
-    relations: BTreeSet<CrossStoreRelationCapability>,
     combined: RepresentationCapabilities,
 }
 
@@ -186,12 +151,15 @@ impl CompositeCapabilityContext {
     ///
     /// This operation is read-only. It resolves representation claims from the
     /// sealed registry, canonicalizes source ordering, rejects mismatched scope
-    /// or snapshot identity, rejects duplicate exact ownership claims, and adds
-    /// only explicitly supplied exact cross-store relationships.
+    /// or snapshot identity, and rejects duplicate exact ownership claims.
+    ///
+    /// Cross-store relationships are never caller-injected. If exact age ×
+    /// disease covariance exists, for example, it must arrive as another
+    /// registry-owned source whose representation explicitly advertises that
+    /// joint capability.
     pub fn capture(
         registry: &InformationPolicyRegistry,
         sources: impl IntoIterator<Item = CapabilitySourceDescriptor>,
-        relations: impl IntoIterator<Item = CrossStoreRelationCapability>,
     ) -> Result<Self, CompositeContextError> {
         let mut resolved_sources = BTreeMap::new();
         let mut scope = None;
@@ -271,17 +239,6 @@ impl CompositeCapabilityContext {
 
         let scope = scope.ok_or(CompositeContextError::EmptySourceSet)?;
         let snapshot = snapshot.expect("scope and snapshot are initialized together");
-        let relations = relations.into_iter().collect::<BTreeSet<_>>();
-
-        for relation in &relations {
-            for source in relation.sources() {
-                if !resolved_sources.contains_key(source) {
-                    return Err(CompositeContextError::UnknownRelationSource { source: *source });
-                }
-            }
-            combined_claims.push((relation.information(), CapabilityEvidence::Exact));
-        }
-
         let combined = RepresentationCapabilities::new(
             COMPOSITE_CONTEXT_REPRESENTATION,
             max_authority,
@@ -293,7 +250,6 @@ impl CompositeCapabilityContext {
             scope,
             snapshot,
             sources: resolved_sources,
-            relations,
             combined,
         })
     }
@@ -312,10 +268,6 @@ impl CompositeCapabilityContext {
 
     pub fn sources(&self) -> &BTreeMap<CapabilitySourceKey, ResolvedCapabilitySource> {
         &self.sources
-    }
-
-    pub fn relations(&self) -> &BTreeSet<CrossStoreRelationCapability> {
-        &self.relations
     }
 
     /// Derived evaluation view only; this is not a new mutable authority owner.
@@ -437,15 +389,6 @@ fn is_exclusive_authority_information(information: EcologicalInformation) -> boo
     )
 }
 
-fn is_v0_relation_information(information: EcologicalInformation) -> bool {
-    matches!(
-        information,
-        EcologicalInformation::JointPopulationStatistics(_)
-            | EcologicalInformation::SpatialStructure
-            | EcologicalInformation::ContactStructure
-    )
-}
-
 #[derive(Debug)]
 pub enum CompositeContextError {
     Registry(InformationRegistryError),
@@ -467,13 +410,6 @@ pub enum CompositeContextError {
         information: EcologicalInformation,
         first: CapabilitySourceKey,
         second: CapabilitySourceKey,
-    },
-    RelationNeedsMultipleSources,
-    InvalidRelationInformation {
-        information: EcologicalInformation,
-    },
-    UnknownRelationSource {
-        source: CapabilitySourceKey,
     },
     RegistryKeyMismatch {
         expected: InformationPolicyRegistryKey,
@@ -521,16 +457,6 @@ impl fmt::Display for CompositeContextError {
                 formatter,
                 "exclusive authority {information:?} is claimed by both {first:?} and {second:?}"
             ),
-            Self::RelationNeedsMultipleSources => {
-                write!(formatter, "cross-store relation requires at least two sources")
-            }
-            Self::InvalidRelationInformation { information } => write!(
-                formatter,
-                "{information:?} is not an allowed V0 cross-store relation capability"
-            ),
-            Self::UnknownRelationSource { source } => {
-                write!(formatter, "cross-store relation names unknown source {source:?}")
-            }
             Self::RegistryKeyMismatch { expected, actual } => write!(
                 formatter,
                 "registry key {actual:?} does not match captured registry {expected:?}"
@@ -578,15 +504,23 @@ mod tests {
     const POP_SOURCE: CapabilitySourceKey = CapabilitySourceKey::new(10, 1);
     const LEDGER_SOURCE: CapabilitySourceKey = CapabilitySourceKey::new(11, 1);
     const DISEASE_SOURCE: CapabilitySourceKey = CapabilitySourceKey::new(12, 1);
-    const SECOND_LEDGER_SOURCE: CapabilitySourceKey = CapabilitySourceKey::new(13, 1);
+    const RELATION_SOURCE: CapabilitySourceKey = CapabilitySourceKey::new(13, 1);
+    const SECOND_LEDGER_SOURCE: CapabilitySourceKey = CapabilitySourceKey::new(14, 1);
 
     const POP_REP: RepresentationKey = RepresentationKey::new(100, 1);
     const LEDGER_REP: RepresentationKey = RepresentationKey::new(101, 1);
     const DISEASE_REP: RepresentationKey = RepresentationKey::new(102, 1);
-    const SECOND_LEDGER_REP: RepresentationKey = RepresentationKey::new(103, 1);
+    const RELATION_REP: RepresentationKey = RepresentationKey::new(103, 1);
+    const SECOND_LEDGER_REP: RepresentationKey = RepresentationKey::new(104, 1);
 
     const MIXED_PROCESS: ProcessKey = ProcessKey::new(200, 1);
     const JOINT_PROCESS: ProcessKey = ProcessKey::new(201, 1);
+
+    fn age_disease() -> EcologicalInformation {
+        EcologicalInformation::JointPopulationStatistics(
+            PopulationStatisticSet::AGE.union(PopulationStatisticSet::DISEASE),
+        )
+    }
 
     fn source(
         key: CapabilitySourceKey,
@@ -638,6 +572,13 @@ mod tests {
             .unwrap();
         builder
             .register_representation(RepresentationCapabilities::new(
+                RELATION_REP,
+                EcologicalAuthorityLevel::Coarse,
+                [(age_disease(), CapabilityEvidence::Exact)],
+            ))
+            .unwrap();
+        builder
+            .register_representation(RepresentationCapabilities::new(
                 SECOND_LEDGER_REP,
                 EcologicalAuthorityLevel::Coarse,
                 [(
@@ -667,11 +608,7 @@ mod tests {
             .register_process(ProcessInformationProfile::new(
                 JOINT_PROCESS,
                 EcologicalAuthorityLevel::Coarse,
-                [ProcessInformationRequirement::exact(
-                    EcologicalInformation::JointPopulationStatistics(
-                        PopulationStatisticSet::AGE.union(PopulationStatisticSet::DISEASE),
-                    ),
-                )],
+                [ProcessInformationRequirement::exact(age_disease())],
             ))
             .unwrap();
         builder.seal()
@@ -683,7 +620,6 @@ mod tests {
         let context = CompositeCapabilityContext::capture(
             &registry,
             [source(POP_SOURCE, POP_REP, 4), source(LEDGER_SOURCE, LEDGER_REP, 9)],
-            [],
         )
         .unwrap();
 
@@ -708,7 +644,6 @@ mod tests {
             CompositeCapabilityContext::capture(
                 &registry,
                 [source(POP_SOURCE, POP_REP, 4), other_snapshot],
-                [],
             ),
             Err(CompositeContextError::SnapshotMismatch { .. })
         ));
@@ -729,7 +664,6 @@ mod tests {
             CompositeCapabilityContext::capture(
                 &registry,
                 [source(POP_SOURCE, POP_REP, 4), other_scope],
-                [],
             ),
             Err(CompositeContextError::ScopeMismatch { .. })
         ));
@@ -744,7 +678,6 @@ mod tests {
                 source(POP_SOURCE, POP_REP, 4),
                 source(DISEASE_SOURCE, DISEASE_REP, 5),
             ],
-            [],
         )
         .unwrap();
 
@@ -757,21 +690,15 @@ mod tests {
     }
 
     #[test]
-    fn explicit_exact_cross_store_relation_can_satisfy_joint_requirement() {
+    fn registered_relation_source_can_satisfy_joint_requirement() {
         let registry = registry();
-        let age_disease = EcologicalInformation::JointPopulationStatistics(
-            PopulationStatisticSet::AGE.union(PopulationStatisticSet::DISEASE),
-        );
-        let relation =
-            CrossStoreRelationCapability::new_exact([POP_SOURCE, DISEASE_SOURCE], age_disease)
-                .unwrap();
         let context = CompositeCapabilityContext::capture(
             &registry,
             [
                 source(DISEASE_SOURCE, DISEASE_REP, 5),
+                source(RELATION_SOURCE, RELATION_REP, 7),
                 source(POP_SOURCE, POP_REP, 4),
             ],
-            [relation],
         )
         .unwrap();
 
@@ -793,7 +720,6 @@ mod tests {
                     source(LEDGER_SOURCE, LEDGER_REP, 9),
                     source(SECOND_LEDGER_SOURCE, SECOND_LEDGER_REP, 2),
                 ],
-                [],
             ),
             Err(CompositeContextError::DuplicateExclusiveAuthority { .. })
         ));
@@ -805,13 +731,11 @@ mod tests {
         let a = CompositeCapabilityContext::capture(
             &registry,
             [source(POP_SOURCE, POP_REP, 4), source(LEDGER_SOURCE, LEDGER_REP, 9)],
-            [],
         )
         .unwrap();
         let b = CompositeCapabilityContext::capture(
             &registry,
             [source(LEDGER_SOURCE, LEDGER_REP, 9), source(POP_SOURCE, POP_REP, 4)],
-            [],
         )
         .unwrap();
 
@@ -828,7 +752,6 @@ mod tests {
         let context = CompositeCapabilityContext::capture(
             &registry,
             [source(POP_SOURCE, POP_REP, 4), source(LEDGER_SOURCE, LEDGER_REP, 9)],
-            [],
         )
         .unwrap();
 
