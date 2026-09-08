@@ -340,18 +340,23 @@ impl InformationTransitionRegistry {
         let mut external_requirements = BTreeSet::new();
         let mut closure_evidence = BTreeSet::new();
         let mut conditional_derivations = BTreeSet::new();
+        let mut discarded_information = BTreeSet::new();
         for key in &reversed {
             let transition = self
                 .transitions
                 .get(key)
                 .expect("planned transition remains registered");
+            discarded_information.extend(transition.discarded_information.iter().copied());
             for provenance in transition.introductions.values().copied() {
                 match provenance {
                     PromotionProvenance::RetainedExact { authority } => {
                         external_requirements
                             .insert(PromotionEvidenceRequirement::RetainedAuthority(authority));
                     }
-                    PromotionProvenance::LosslessDerivation { .. } => {}
+                    PromotionProvenance::LosslessDerivation { transform } => {
+                        external_requirements
+                            .insert(PromotionEvidenceRequirement::LosslessTransform(transform));
+                    }
                     PromotionProvenance::QualifiedClosure { evidence_lineage } => {
                         closure_evidence.insert(evidence_lineage);
                     }
@@ -375,15 +380,18 @@ impl InformationTransitionRegistry {
             external_requirements,
             closure_evidence,
             conditional_derivations,
+            discarded_information,
         }
     }
 }
 
-/// External authority prerequisites that this low-level structural planner does
-/// not authenticate. Higher orchestration must resolve them before commit.
+/// External authority/implementation prerequisites that this low-level structural
+/// planner does not authenticate. Higher orchestration must resolve them before
+/// canonical commit.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum PromotionEvidenceRequirement {
     RetainedAuthority(RetainedAuthorityKey),
+    LosslessTransform(LosslessTransformKey),
     MeasurementAuthority(MeasurementAuthorityKey),
 }
 
@@ -397,6 +405,7 @@ pub struct InformationTransitionPlan {
     external_requirements: BTreeSet<PromotionEvidenceRequirement>,
     closure_evidence: BTreeSet<EvidenceLineageToken>,
     conditional_derivations: BTreeSet<ConditionalDerivationKey>,
+    discarded_information: BTreeSet<EcologicalInformation>,
 }
 
 impl InformationTransitionPlan {
@@ -432,12 +441,17 @@ impl InformationTransitionPlan {
         &self.conditional_derivations
     }
 
-    /// Only R1/preservation paths qualify here. R0/R3 still require external
-    /// authority evidence; R2 is approximate; R4 is conditional D-state.
+    pub fn discarded_information(&self) -> &BTreeSet<EcologicalInformation> {
+        &self.discarded_information
+    }
+
+    /// True only when the path introduces no unresolved authority/transform
+    /// prerequisite, no closure/D-state approximation, and no information loss.
     pub fn is_self_contained_exact(&self) -> bool {
         self.external_requirements.is_empty()
             && self.closure_evidence.is_empty()
             && self.conditional_derivations.is_empty()
+            && self.discarded_information.is_empty()
     }
 }
 
@@ -795,7 +809,7 @@ mod tests {
         )
     }
 
-    fn closure() -> crate::information::QualifiedClosureEvidence {
+    fn closure() -> QualifiedClosureEvidence {
         QualifiedClosureEvidence::new(
             ClosureModelVersion(1),
             ClosureDomainToken(9),
@@ -923,25 +937,22 @@ mod tests {
     }
 
     #[test]
-    fn retained_lossless_and_measurement_exact_paths_keep_true_provenance() {
+    fn exact_paths_keep_external_provenance_requirements_explicit() {
         let policy = policy();
-        for (provenance, expected_external, self_contained) in [
+        for (provenance, expected) in [
             (
                 PromotionProvenance::RetainedExact { authority: RETAINED },
-                Some(PromotionEvidenceRequirement::RetainedAuthority(RETAINED)),
-                false,
+                PromotionEvidenceRequirement::RetainedAuthority(RETAINED),
             ),
             (
                 PromotionProvenance::LosslessDerivation { transform: LOSSLESS },
-                None,
-                true,
+                PromotionEvidenceRequirement::LosslessTransform(LOSSLESS),
             ),
             (
                 PromotionProvenance::MeasurementAssimilation {
                     authority: MEASUREMENT,
                 },
-                Some(PromotionEvidenceRequirement::MeasurementAuthority(MEASUREMENT)),
-                false,
+                PromotionEvidenceRequirement::MeasurementAuthority(MEASUREMENT),
             ),
         ] {
             let edge = transition(&policy, DIRECT, MARGINALS, EXACT_STRATA, provenance);
@@ -949,11 +960,8 @@ mod tests {
             builder.register_transition(edge).unwrap();
             let registry = builder.seal(&policy).unwrap();
             let plan = registry.plan(&policy, MARGINALS, EXACT_STRATA).unwrap();
-            assert_eq!(
-                plan.external_requirements().iter().next().copied(),
-                expected_external
-            );
-            assert_eq!(plan.is_self_contained_exact(), self_contained);
+            assert_eq!(plan.external_requirements(), &BTreeSet::from([expected]));
+            assert!(!plan.is_self_contained_exact());
         }
     }
 
@@ -1023,7 +1031,7 @@ mod tests {
     }
 
     #[test]
-    fn declared_loss_does_not_create_an_inverse_transition() {
+    fn declared_loss_is_visible_and_does_not_create_an_inverse_transition() {
         let policy = policy();
         let collapse = InformationTransitionDefinition::new(
             DIRECT,
@@ -1036,6 +1044,9 @@ mod tests {
         let mut builder = InformationTransitionRegistryBuilder::new(TRANSITIONS);
         builder.register_transition(collapse).unwrap();
         let registry = builder.seal(&policy).unwrap();
+        let collapse_plan = registry.plan(&policy, EXACT_STRATA, MARGINALS).unwrap();
+        assert_eq!(collapse_plan.discarded_information(), &BTreeSet::from([joint()]));
+        assert!(!collapse_plan.is_self_contained_exact());
         assert!(matches!(
             registry.plan(&policy, MARGINALS, EXACT_STRATA),
             Err(InformationTransitionError::NoTransitionPath { .. })
@@ -1073,8 +1084,12 @@ mod tests {
             InformationTransitionKey::new(400, 1),
             CLOSURE_STRATA,
             EXACT_STRATA,
-            [(TransitionCapabilityClaim::new(joint(), CapabilityEvidence::Exact),
-              PromotionProvenance::MeasurementAssimilation { authority: MEASUREMENT })],
+            [(
+                TransitionCapabilityClaim::new(joint(), CapabilityEvidence::Exact),
+                PromotionProvenance::MeasurementAssimilation {
+                    authority: MEASUREMENT,
+                },
+            )],
             [],
         )
         .unwrap();
