@@ -7,5 +7,6 @@
 //! authority producers live underneath it so adding another resolver does not
 //! repeatedly churn the large `lib.rs` module list.
 
+pub mod candidate_domain_resolution;
 pub mod lossless_transform;
 pub mod transition_domain;
