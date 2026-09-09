@@ -8,6 +8,7 @@ use std::{
     error::Error,
     fmt,
 };
+use symtropy_epistemics_core::{EpistemicStatement, ObservationRecord};
 use symtropy_game_state::StableId;
 
 /// Persistent person in the simulated world.
@@ -248,6 +249,35 @@ impl KnowledgeClaim {
             .is_some_and(|expiry| current_tick > expiry)
     }
 
+    /// Projects existing resident knowledge into the generic epistemics layer as
+    /// observer evidence without promoting it into belief, public assertion, or
+    /// institutional record.
+    ///
+    /// V0 reuses the legacy claim ID as both proposition and observation identity;
+    /// those IDs live in separate typed namespaces inside `EpistemicLedger`.
+    /// Privacy/disclosure remains owned by `symtropy-residents` and is not widened
+    /// by this projection.
+    pub fn as_epistemic_observation(
+        &self,
+        source_event_id: StableId,
+    ) -> (EpistemicStatement, ObservationRecord) {
+        let statement = EpistemicStatement {
+            id: self.id.clone(),
+            subject_id: self.subject_id.clone(),
+            proposition: self.proposition.clone(),
+        };
+        let observation = ObservationRecord {
+            id: self.id.clone(),
+            observer_id: self.source_id.clone(),
+            statement_id: self.id.clone(),
+            confidence: self.confidence,
+            observed_tick: self.observed_tick,
+            stale_after_tick: self.stale_after_tick,
+            source_event_id,
+        };
+        (statement, observation)
+    }
+
     /// Applies privacy, consent, household, and emergency disclosure rules.
     pub fn may_disclose(&self, context: &DisclosureContext) -> bool {
         match &self.privacy {
@@ -377,6 +407,27 @@ mod tests {
         assert_eq!(knowledge.disclose(&context).count(), 0);
         context.consented_claim_ids.insert(claim_id);
         assert_eq!(knowledge.disclose(&context).count(), 1);
+    }
+
+    #[test]
+    fn knowledge_claim_projects_only_to_observer_evidence() {
+        let claim = KnowledgeClaim {
+            id: id("claim:grid-fault"),
+            subject_id: id("fault:grid"),
+            proposition: "insulation damage is visible".into(),
+            confidence: 8_200,
+            source_id: id("sensor:camera"),
+            observed_tick: 12,
+            stale_after_tick: Some(50),
+            privacy: ClaimPrivacy::Private,
+        };
+        let (statement, observation) =
+            claim.as_epistemic_observation(id("event:grid-observation"));
+        assert_eq!(statement.id, claim.id);
+        assert_eq!(observation.statement_id, claim.id);
+        assert_eq!(observation.observer_id, id("sensor:camera"));
+        assert_eq!(observation.confidence, 8_200);
+        assert_eq!(claim.privacy, ClaimPrivacy::Private);
     }
 
     #[test]
