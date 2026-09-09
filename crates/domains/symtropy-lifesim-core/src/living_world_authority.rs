@@ -13,4 +13,5 @@ pub mod measurement_authority;
 pub mod retained_authority;
 pub mod spatiotemporal_information;
 pub mod transition_domain;
+pub mod typed_closure_process_acceptance;
 pub mod typed_closure_qualification;
