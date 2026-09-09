@@ -4,7 +4,7 @@
 
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
-use std::{error::Error, fmt};
+use std::{collections::BTreeSet, error::Error, fmt};
 
 /// Schema version emitted by the first product-state implementation.
 pub const GAME_STATE_SCHEMA_VERSION: u32 = 1;
@@ -217,6 +217,33 @@ impl<T> EventChain<T> {
             events,
         }
     }
+
+    fn validate_new_causal_parents(
+        &self,
+        event_id: &StableId,
+        causal_parents: &[StableId],
+    ) -> Result<(), StateError> {
+        let mut unique = BTreeSet::new();
+        for parent_id in causal_parents {
+            if !unique.insert(parent_id) {
+                return Err(StateError::DuplicateCausalParent {
+                    event_id: event_id.clone(),
+                    parent_id: parent_id.clone(),
+                });
+            }
+            if !self
+                .events
+                .iter()
+                .any(|event| event.event_id == *parent_id)
+            {
+                return Err(StateError::UnknownCausalParent {
+                    event_id: event_id.clone(),
+                    parent_id: parent_id.clone(),
+                });
+            }
+        }
+        Ok(())
+    }
 }
 
 impl<T: Serialize> EventChain<T> {
@@ -233,6 +260,7 @@ impl<T: Serialize> EventChain<T> {
     ) -> Result<StableId, StateError> {
         let ordinal = u64::try_from(self.events.len()).map_err(|_| StateError::EventOverflow)?;
         let event_id = StableId::derive(&self.namespace, self.seed, ordinal);
+        self.validate_new_causal_parents(&event_id, &causal_parents)?;
         let previous_hash = self.head_hash().to_owned();
         let mut envelope = EventEnvelope {
             schema_version: GAME_STATE_SCHEMA_VERSION,
@@ -251,10 +279,11 @@ impl<T: Serialize> EventChain<T> {
         Ok(event_id)
     }
 
-    /// Verifies hashes, causal order, identifiers, and monotonic simulation time.
+    /// Verifies hashes, causal ancestry, identifiers, and monotonic simulation time.
     pub fn verify(&self) -> Result<(), StateError> {
         let mut previous_hash = "GENESIS";
         let mut previous_tick = 0;
+        let mut seen_event_ids = BTreeSet::new();
         for (index, event) in self.events.iter().enumerate() {
             let ordinal = u64::try_from(index).map_err(|_| StateError::EventOverflow)?;
             let expected_id = StableId::derive(&self.namespace, self.seed, ordinal);
@@ -278,7 +307,38 @@ impl<T: Serialize> EventChain<T> {
                     actual: event.simulation_tick,
                 });
             }
+
+            let mut unique_parents = BTreeSet::new();
+            for parent_id in &event.causal_parents {
+                if !unique_parents.insert(parent_id) {
+                    return Err(StateError::DuplicateCausalParent {
+                        event_id: event.event_id.clone(),
+                        parent_id: parent_id.clone(),
+                    });
+                }
+                if seen_event_ids.contains(parent_id) {
+                    continue;
+                }
+                let appears_at_or_after_child = parent_id == &event.event_id
+                    || self
+                        .events
+                        .iter()
+                        .skip(index + 1)
+                        .any(|candidate| candidate.event_id == *parent_id);
+                if appears_at_or_after_child {
+                    return Err(StateError::CausalParentNotPrior {
+                        event_id: event.event_id.clone(),
+                        parent_id: parent_id.clone(),
+                    });
+                }
+                return Err(StateError::UnknownCausalParent {
+                    event_id: event.event_id.clone(),
+                    parent_id: parent_id.clone(),
+                });
+            }
+
             event.verify_hash()?;
+            seen_event_ids.insert(event.event_id.clone());
             previous_tick = event.simulation_tick;
             previous_hash = &event.event_hash;
         }
@@ -315,6 +375,21 @@ pub enum StateError {
         event_id: StableId,
         previous: u64,
         actual: u64,
+    },
+    /// An event declared a causal parent that does not exist in this chain.
+    UnknownCausalParent {
+        event_id: StableId,
+        parent_id: StableId,
+    },
+    /// An event declared itself or a later event as a direct causal parent.
+    CausalParentNotPrior {
+        event_id: StableId,
+        parent_id: StableId,
+    },
+    /// An event declared the same causal parent more than once.
+    DuplicateCausalParent {
+        event_id: StableId,
+        parent_id: StableId,
     },
     /// Event bytes no longer match the stored hash.
     EventHashMismatch {
@@ -356,6 +431,27 @@ impl fmt::Display for StateError {
             } => write!(
                 formatter,
                 "event {event_id} moved backward from tick {previous} to {actual}"
+            ),
+            Self::UnknownCausalParent {
+                event_id,
+                parent_id,
+            } => write!(
+                formatter,
+                "event {event_id} references unknown causal parent {parent_id}"
+            ),
+            Self::CausalParentNotPrior {
+                event_id,
+                parent_id,
+            } => write!(
+                formatter,
+                "event {event_id} references non-prior causal parent {parent_id}"
+            ),
+            Self::DuplicateCausalParent {
+                event_id,
+                parent_id,
+            } => write!(
+                formatter,
+                "event {event_id} references causal parent {parent_id} more than once"
             ),
             Self::EventHashMismatch {
                 event_id,
@@ -448,6 +544,152 @@ mod tests {
         assert!(matches!(
             chain.verify(),
             Err(StateError::EventHashMismatch { .. })
+        ));
+    }
+
+    #[test]
+    fn append_rejects_unknown_causal_parent() {
+        let mut chain = EventChain::new("history", 7);
+        let unknown = StableId::derive("history", 7, 99);
+        assert!(matches!(
+            chain.append(
+                1,
+                "effect",
+                None,
+                None,
+                vec![unknown],
+                TestPayload { value: 1 },
+            ),
+            Err(StateError::UnknownCausalParent { .. })
+        ));
+        assert!(chain.events().is_empty());
+    }
+
+    #[test]
+    fn append_rejects_duplicate_causal_parent() {
+        let mut chain = EventChain::new("history", 11);
+        let parent = chain
+            .append(
+                1,
+                "cause",
+                None,
+                None,
+                Vec::new(),
+                TestPayload { value: 1 },
+            )
+            .expect("append parent");
+        assert!(matches!(
+            chain.append(
+                2,
+                "effect",
+                None,
+                None,
+                vec![parent.clone(), parent],
+                TestPayload { value: 2 },
+            ),
+            Err(StateError::DuplicateCausalParent { .. })
+        ));
+        assert_eq!(chain.events().len(), 1);
+    }
+
+    #[test]
+    fn chain_accepts_multi_parent_ancestry() {
+        let mut chain = EventChain::new("history", 13);
+        let first = chain
+            .append(
+                1,
+                "first-cause",
+                None,
+                None,
+                Vec::new(),
+                TestPayload { value: 1 },
+            )
+            .expect("append first cause");
+        let second = chain
+            .append(
+                2,
+                "second-cause",
+                None,
+                None,
+                vec![first.clone()],
+                TestPayload { value: 2 },
+            )
+            .expect("append second cause");
+        chain
+            .append(
+                3,
+                "combined-effect",
+                None,
+                None,
+                vec![first, second],
+                TestPayload { value: 3 },
+            )
+            .expect("append combined effect");
+        chain.verify().expect("valid causal DAG verifies");
+    }
+
+    #[test]
+    fn verify_rejects_forward_causal_parent_even_with_valid_hash_chain() {
+        let mut chain = EventChain::new("history", 17);
+        chain
+            .append(
+                1,
+                "first",
+                None,
+                None,
+                Vec::new(),
+                TestPayload { value: 1 },
+            )
+            .expect("append first");
+        chain
+            .append(
+                2,
+                "second",
+                None,
+                None,
+                Vec::new(),
+                TestPayload { value: 2 },
+            )
+            .expect("append second");
+
+        let later_id = chain.events[1].event_id.clone();
+        chain.events[0].causal_parents = vec![later_id];
+        chain.events[0].event_hash = chain.events[0]
+            .calculate_hash()
+            .expect("rehash first event");
+        chain.events[1].previous_hash = chain.events[0].event_hash.clone();
+        chain.events[1].event_hash = chain.events[1]
+            .calculate_hash()
+            .expect("rehash second event");
+
+        assert!(matches!(
+            chain.verify(),
+            Err(StateError::CausalParentNotPrior { .. })
+        ));
+    }
+
+    #[test]
+    fn verify_rejects_unknown_causal_parent_even_with_valid_event_hash() {
+        let mut chain = EventChain::new("history", 19);
+        chain
+            .append(
+                1,
+                "event",
+                None,
+                None,
+                Vec::new(),
+                TestPayload { value: 1 },
+            )
+            .expect("append event");
+
+        chain.events[0].causal_parents = vec![StableId::derive("other-history", 19, 0)];
+        chain.events[0].event_hash = chain.events[0]
+            .calculate_hash()
+            .expect("rehash mutated event");
+
+        assert!(matches!(
+            chain.verify(),
+            Err(StateError::UnknownCausalParent { .. })
         ));
     }
 }
