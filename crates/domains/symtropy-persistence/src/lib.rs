@@ -2,6 +2,8 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 //! Atomic snapshots, append-only event journals, and crash-tail recovery.
 
+pub mod segmented_history;
+
 use serde::{Deserialize, Serialize, de::DeserializeOwned};
 use std::{
     error::Error,
