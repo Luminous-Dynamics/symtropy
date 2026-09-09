@@ -40,20 +40,17 @@ pub struct DiplomaticScope {
 /// Structured clause kinds. Unknown future forms can use `Custom`.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum TreatyClauseKind {
-    /// One party grants another an access/use/transit/basing/etc. right.
     AccessRight {
         grantor_id: StableId,
         grantee_id: StableId,
         scope: DiplomaticScope,
     },
-    /// One party guarantees a beneficiary or protected subject under explicit scope.
     Guarantee {
         guarantor_id: StableId,
         beneficiary_id: StableId,
         protected_subject_id: StableId,
         scope: DiplomaticScope,
     },
-    /// Material/service obligation expressed without executing economy mutation.
     PerformanceObligation {
         obligor_id: StableId,
         beneficiary_id: StableId,
@@ -64,7 +61,6 @@ pub enum TreatyClauseKind {
         unit_id: Option<StableId>,
         due_tick: Option<u64>,
     },
-    /// Explicit debt acknowledgement. Payment/settlement belongs elsewhere.
     Debt {
         debtor_id: StableId,
         creditor_id: StableId,
@@ -72,20 +68,17 @@ pub enum TreatyClauseKind {
         unit_id: StableId,
         due_tick: Option<u64>,
     },
-    /// Formal restriction imposed by one party against another.
     Sanction {
         imposer_id: StableId,
         target_party_id: StableId,
         scope: DiplomaticScope,
     },
-    /// One party asserts a claim to territory, office, asset, route, or other subject.
     Claim {
         claimant_id: StableId,
         subject_id: StableId,
         claim_namespace: String,
         basis: Vec<DiplomaticEvidenceRef>,
     },
-    /// Extensible scenario/content clause.
     Custom {
         namespace: String,
         kind: String,
@@ -93,7 +86,6 @@ pub enum TreatyClauseKind {
     },
 }
 
-/// One immutable treaty clause.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct TreatyClause {
     pub id: StableId,
@@ -112,7 +104,6 @@ impl TreatyClause {
     }
 }
 
-/// Immutable treaty text/specification. Proposal is not ratification.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct TreatySpec {
     pub id: StableId,
@@ -151,7 +142,6 @@ impl TreatySpec {
     }
 }
 
-/// Immutable party ratification/approval record.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct TreatyRatification {
     pub id: StableId,
@@ -161,7 +151,6 @@ pub struct TreatyRatification {
     pub source_event_id: StableId,
 }
 
-/// Explicit withdrawal/termination record. It does not delete treaty history.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct TreatyTermination {
     pub id: StableId,
@@ -172,8 +161,6 @@ pub struct TreatyTermination {
     pub source_event_id: StableId,
 }
 
-/// Formal diplomatic notice. A communication message id may be attached, but
-/// notice authorship does not imply simulated delivery.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct DiplomaticNotice {
     pub id: StableId,
@@ -186,8 +173,7 @@ pub struct DiplomaticNotice {
     pub source_event_id: StableId,
 }
 
-/// A party's position on whether one clause is being/was satisfied.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 pub enum ClausePosition {
     Satisfied,
     Breached,
@@ -196,7 +182,6 @@ pub enum ClausePosition {
     Unknown,
 }
 
-/// Immutable clause-performance assertion. Different parties may disagree.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ClauseAssessment {
     pub id: StableId,
@@ -209,7 +194,6 @@ pub struct ClauseAssessment {
     pub source_event_id: StableId,
 }
 
-/// Derived treaty lifecycle state. No global faction relation score exists.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum TreatyState {
     Proposed,
@@ -568,8 +552,6 @@ mod tests {
                 source_event_id: id("event:notice"),
             })
             .expect("notice");
-        // Diplomacy records the authored notice only. COMMS separately owns whether
-        // `message:sanction-warning` ever arrives.
         assert_eq!(world.notices.len(), 1);
     }
 }
