@@ -1,0 +1,11 @@
+[package]
+name = "symtropy-comms-core"
+version = "0.1.0"
+edition = "2024"
+license = "AGPL-3.0-or-later"
+description = "Delayed, topology-bound communication propagation for Symtropy civilization simulation."
+
+[dependencies]
+serde = { version = "1.0", features = ["derive"] }
+symtropy-game-state = { path = "../symtropy-game-state" }
+symtropy-transit-core = { path = "../symtropy-transit-core" }
