@@ -20,6 +20,7 @@ pub mod information;
 pub mod information_policy_manifest;
 pub mod information_registry;
 pub mod information_transition;
+pub mod living_world_authority;
 pub mod phenotype;
 pub mod physiology;
 pub mod population;
