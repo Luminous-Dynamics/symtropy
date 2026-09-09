@@ -173,6 +173,7 @@ members = [
     "crates/domains/symtropy-succession-core",
     "crates/domains/symtropy-recognition-core",
     "crates/domains/symtropy-assets-core",
+    "crates/domains/symtropy-economy-core",
     "crates/domains/symtropy-iris",
     "crates/domains/symtropy-persistence",
     "crates/domains/symtropy-residents",
