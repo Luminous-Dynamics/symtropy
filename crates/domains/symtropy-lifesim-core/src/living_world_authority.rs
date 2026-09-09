@@ -8,7 +8,16 @@
 //! repeatedly churn the large `lib.rs` module list.
 
 pub mod candidate_domain_resolution;
-pub mod closure_usage_authority;
+
+// Keep the closure-usage implementation in its existing source file while
+// allowing evidence producers that must mint its deliberately opaque anchor to
+// live as capability-scoped child modules rather than widening anchor fields or
+// exposing a public constructor.
+pub mod closure_usage_authority {
+    include!("living_world_authority/closure_usage_authority.rs");
+    pub mod shadow_validation;
+}
+
 pub mod event_guard;
 pub mod event_guard_state_authority;
 pub mod flux_reconciliation;
