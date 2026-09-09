@@ -8,6 +8,7 @@
 //! repeatedly churn the large `lib.rs` module list.
 
 pub mod candidate_domain_resolution;
+pub mod closure_usage_authority;
 pub mod event_guard;
 pub mod event_guard_state_authority;
 pub mod flux_reconciliation;
