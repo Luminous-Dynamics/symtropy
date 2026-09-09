@@ -24,6 +24,7 @@ pub mod living_world_authority;
 pub mod phenotype;
 pub mod physiology;
 pub mod population;
+pub mod population_manifest;
 pub mod transition_candidates;
 pub mod transition_policy_manifest;
 pub use applicability_policy_manifest::transition_applicability;
