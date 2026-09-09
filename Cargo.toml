@@ -89,7 +89,7 @@ symthaea-bevy-brain = { path = "crates/bridges/symthaea-bevy-brain", optional = 
 symtropy-symthaea-adapter = { path = "crates/bridges/symtropy-symthaea-adapter", optional = true }
 symtropy-mycelix-bridge = { path = "crates/bridges/symtropy-mycelix-bridge", optional = true }
 # [standalone-stripped, not published, atlas feature only] sol-atlas-bevy = { path = "../sol-atlas-bevy", optional = true }
-# [standalone-stripped, not published, atlas feature only] sol-atlas-core = { path = "../sol-atlas-core", optional = true }
+# [standalone-stripped -- referenced deps above are stripped] sol-atlas-core = { path = "../sol-atlas-core", optional = true }
 
 symthaea-fep = { version = "0.1.0", optional = true }
 
@@ -171,6 +171,7 @@ members = [
     "crates/domains/symtropy-design",
     "crates/domains/symtropy-design-requirements",
     "crates/domains/symtropy-analysis-contracts",
+    "crates/domains/symtropy-analysis-qualification",
     "crates/domains/symtropy-iris",
     "crates/domains/symtropy-persistence",
     "crates/domains/symtropy-residents",
@@ -183,7 +184,7 @@ members = [
 # `priority = -1` is required: a lint GROUP listed alongside individual lint
 # overrides must have lower priority, or Cargo's own `lint_groups_priority`
 # lint rejects the manifest ("the order of the lints in the table is ignored
-# by Cargo"). Without it the two allows below are silently outranked by the
+# by Cargo). Without it the two allows below are silently outranked by the
 # group and the build fails outright.
 all = { level = "warn", priority = -1 }
 
