@@ -1,0 +1,10 @@
+[package]
+name = "symtropy-player-org-core"
+version = "0.1.0"
+edition = "2024"
+license = "AGPL-3.0-or-later"
+description = "Explicit admission of external player-organization evidence into Symtropy civilization state."
+
+[dependencies]
+serde = { version = "1.0", features = ["derive"] }
+symtropy-game-state = { path = "../symtropy-game-state" }
