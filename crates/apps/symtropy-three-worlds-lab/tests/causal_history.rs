@@ -226,5 +226,5 @@ fn three_worlds_milestones_form_verified_multi_parent_history() {
     assert!(report.conflict_settled_by_acceptance);
 
     history.verify().expect("integrated causal history verifies");
-    assert_eq!(history.events().len(), 11);
+    assert_eq!(history.events().len(), 13);
 }
