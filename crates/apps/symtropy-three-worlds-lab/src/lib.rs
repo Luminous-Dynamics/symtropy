@@ -2,10 +2,10 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 //! LAB-14: one deterministic headless history across Aster, Vesper, and Helion.
 //!
-//! The point of this lab is not content volume. It is to prove that the
-//! civilization primitives can disagree, propagate with delay, conserve state,
-//! and compose without one subsystem silently claiming another subsystem's
-//! authority.
+//! The lab composes the civilization primitives without giving any subsystem
+//! authority it does not own. The scenario is intentionally small: the proof is
+//! that disagreement, delay, conservation, and handoff semantics survive an
+//! end-to-end history rather than that the lab contains a large amount of content.
 
 use serde::Serialize;
 use std::collections::{BTreeMap, BTreeSet};
@@ -15,8 +15,8 @@ use symtropy_civilization_core::{
     OfficeDefinition, OfficeHolderRecord,
 };
 use symtropy_civilization_scale_core::{
-    CivilizationProjection, CohortDescriptor, PopulationCohort, ProjectionOperation,
-    ProjectionRequest, ProjectionRevision, ScaleAuthorityRef,
+    CivilizationProjection, CohortDescriptor, PersistentActorProjection, PopulationCohort,
+    ProjectionOperation, ProjectionRequest, ProjectionRevision, ScaleAuthorityRef,
 };
 use symtropy_comms_core::{
     CommunicationChannel, CommunicationPayloadRef, CommunicationWorld, MessageDelivery,
@@ -28,8 +28,8 @@ use symtropy_conflict_core::{
     SettlementProposal, SettlementTerm, SettlementTermKind,
 };
 use symtropy_diplomacy_core::{
-    ClauseAssessment, ClausePosition, DiplomacyWorld, DiplomaticEvidenceRef, DiplomaticScope,
-    TreatyClause, TreatyClauseKind, TreatyRatification, TreatySpec, TreatyState,
+    ClauseAssessment, ClausePosition, DiplomacyWorld, DiplomaticEvidenceRef, TreatyClause,
+    TreatyClauseKind, TreatyRatification, TreatySpec, TreatyState,
 };
 use symtropy_economy_core::{
     EconomyWorld, GenesisBalance, InventoryNode, ResourceKey, ShipmentArrival, ShipmentDeparture,
@@ -139,9 +139,7 @@ pub fn run_three_worlds() -> LabResult<ThreeWorldsReport> {
     let lio = id("resident:lio");
     let freighter = id("asset:relief-freighter-7");
 
-    // ---------------------------------------------------------------------
-    // 1. Institution -> succession -> source-relative recognition.
-    // ---------------------------------------------------------------------
+    // Institution state is not succession truth or external recognition.
     let mut aster_institution = Institution::new(aster.clone(), "Aster Council");
     aster_institution.tags.insert("chartered-council".into());
     aster_institution
@@ -176,7 +174,6 @@ pub fn run_three_worlds() -> LabResult<ThreeWorldsReport> {
             source_event_id: id("event:grant-first-speaker-treaty-sign"),
         })
         .map_err(|e| e.to_string())?;
-
     let authority_grants_before_external_admission = aster_institution.authority_grants().count();
 
     let succession_policy_id = id("policy:aster-speaker-succession");
@@ -207,7 +204,7 @@ pub fn run_three_worlds() -> LabResult<ThreeWorldsReport> {
                 id: mina_claim_id.clone(),
                 institution_id: aster.clone(),
                 office_id: first_speaker.clone(),
-                claimant_id: mina.clone(),
+                claimant_id: mina,
                 grounds: ClaimGrounds::Policy(succession_policy_id),
                 asserted_tick: 50,
                 valid_until_tick: None,
@@ -284,9 +281,7 @@ pub fn run_three_worlds() -> LabResult<ThreeWorldsReport> {
             RecognitionPosition::Disputes,
         ]);
 
-    // ---------------------------------------------------------------------
-    // 2. Ownership != operation != simulation authority.
-    // ---------------------------------------------------------------------
+    // Ownership, operation, and later simulation authority remain independent.
     let mut assets = AssetLedger::new();
     assets
         .record_relation(AssetRelation {
@@ -317,9 +312,7 @@ pub fn run_three_worlds() -> LabResult<ThreeWorldsReport> {
         })
         .map_err(|e| e.to_string())?;
 
-    // ---------------------------------------------------------------------
-    // 3. Shared topology; messages move much faster than physical cargo.
-    // ---------------------------------------------------------------------
+    // One topology, independently attested physical and signal timing.
     let food = ResourceKey {
         resource_id: id("resource:relief-food"),
         unit_id: id("unit:crate"),
@@ -400,14 +393,13 @@ pub fn run_three_worlds() -> LabResult<ThreeWorldsReport> {
         })
         .map_err(|e| e.to_string())?;
 
-    let topology_paths = transit_plan.topology_paths().cloned().collect::<Vec<_>>();
     let mut comms = CommunicationWorld::default();
     let signal_plan_id = id("signal-plan:aster-vesper");
     comms
         .register_plan(SignalPropagationPlan {
             id: signal_plan_id.clone(),
             provider_id: id("provider:relay-lab"),
-            topology_paths,
+            topology_paths: transit_plan.topology_paths().cloned().collect(),
             channel: CommunicationChannel {
                 namespace: "laser-relay".into(),
                 method: "provider-attested".into(),
@@ -468,11 +460,9 @@ pub fn run_three_worlds() -> LabResult<ThreeWorldsReport> {
         })
         .map_err(|e| e.to_string())?;
 
-    // ---------------------------------------------------------------------
-    // 4. Treaty agreement is clause-level and later evidence can disagree.
-    // ---------------------------------------------------------------------
-    let relief_clause_id = id("clause:deliver-relief-food"),
-    mut diplomacy = DiplomacyWorld::default();
+    // Treaty agreement is clause-level; later evidence can remain contradictory.
+    let relief_clause_id = id("clause:deliver-relief-food");
+    let mut diplomacy = DiplomacyWorld::default();
     diplomacy
         .propose_treaty(TreatySpec {
             id: treaty_id.clone(),
@@ -515,19 +505,11 @@ pub fn run_three_worlds() -> LabResult<ThreeWorldsReport> {
     }
     let treaty_active = diplomacy.treaty_state(&treaty_id) == Some(TreatyState::Active);
 
-    // ---------------------------------------------------------------------
-    // 5. Distant population remains anonymous until one identity is materialized.
-    // ---------------------------------------------------------------------
-    let initial_scale_authority = ScaleAuthorityRef {
-        authority_namespace: "living-world-transition".into(),
-        authority_record_id: id("scale-authority:helion:190"),
-        source_snapshot_id: id("snapshot:helion:180"),
-        destination_snapshot_id: id("snapshot:helion:190"),
-    };
-    let cohort_id = id("cohort:helion-background-population"),
+    // A million distant people remain anonymous until one is explicitly materialized.
+    let cohort_id = id("cohort:helion-background-population");
     let mut helion_projection = CivilizationProjection::new(
         id("projection:helion"),
-        helion_loc.clone(),
+        helion_loc,
         190,
         [PopulationCohort {
             id: cohort_id.clone(),
@@ -536,12 +518,19 @@ pub fn run_three_worlds() -> LabResult<ThreeWorldsReport> {
                 dimensions: BTreeMap::from([("settlement".into(), "capital-basin".into())]),
             },
             anonymous_count: 1_000_000,
-            authority_ref: initial_scale_authority,
+            authority_ref: ScaleAuthorityRef {
+                authority_namespace: "living-world-transition".into(),
+                authority_record_id: id("scale-authority:helion:190"),
+                source_snapshot_id: id("snapshot:helion:180"),
+                destination_snapshot_id: id("snapshot:helion:190"),
+            },
         }],
-        [],
+        Vec::<PersistentActorProjection>::new(),
     )
     .map_err(|e| e.to_string())?;
-    let anonymous_population_before = helion_projection.represented_population().map_err(|e| e.to_string())?;
+    let anonymous_population_before = helion_projection
+        .represented_population()
+        .map_err(|e| e.to_string())?;
     helion_projection
         .apply(
             ProjectionRevision(0),
@@ -570,9 +559,7 @@ pub fn run_three_worlds() -> LabResult<ThreeWorldsReport> {
         .ok_or_else(|| "Lio was not materialized".to_string())?
         .canonical_since_tick;
 
-    // ---------------------------------------------------------------------
-    // 6. Cargo cannot appear early; arrival then becomes evidence, not truth for every layer.
-    // ---------------------------------------------------------------------
+    // Cargo still cannot appear at Vesper before the travel-provider floor.
     let freight_unavailable_before_arrival = economy.balance(&vesper_node, &food) == 0
         && economy
             .arrive_shipment(ShipmentArrival {
@@ -591,7 +578,6 @@ pub fn run_three_worlds() -> LabResult<ThreeWorldsReport> {
             source_event_id: id("event:relief-arrives"),
         })
         .map_err(|e| e.to_string())?;
-
     diplomacy
         .assess_clause(ClauseAssessment {
             id: id("assessment:aster-relief-satisfied"),
@@ -629,9 +615,7 @@ pub fn run_three_worlds() -> LabResult<ThreeWorldsReport> {
     let treaty_assessments_disagree = treaty_positions
         == BTreeSet::from([ClausePosition::Satisfied, ClausePosition::Disputed]);
 
-    // ---------------------------------------------------------------------
-    // 7. Simulation/shard authority moves exactly once and does not rewrite ownership.
-    // ---------------------------------------------------------------------
+    // Simulation authority moves exactly once while the asset ledger remains independent.
     let aster_shard = AuthorityEndpoint {
         id: id("authority:aster-shard"),
     };
@@ -657,12 +641,12 @@ pub fn run_three_worlds() -> LabResult<ThreeWorldsReport> {
             source_event_id: id("event:aster-shard-owns-freighter-sim"),
         })
         .map_err(|e| e.to_string())?;
-    let transfer_request_id = id("transfer:freighter-aster-vesper"),
+    let transfer_request_id = id("transfer:freighter-aster-vesper");
     transfer
         .prepare(TransferRequest {
             id: transfer_request_id.clone(),
             subject: transfer_subject.clone(),
-            source_authority: aster_shard.clone(),
+            source_authority: aster_shard,
             destination_authority: vesper_shard.clone(),
             expected_subject_revision: SubjectAuthorityRevision(0),
             source_state_ref: transfer_state.clone(),
@@ -674,7 +658,7 @@ pub fn run_three_worlds() -> LabResult<ThreeWorldsReport> {
         .accept(DestinationAcceptance {
             id: id("acceptance:freighter-vesper"),
             transfer_request_id: transfer_request_id.clone(),
-            destination_authority: vesper_shard.clone(),
+            destination_authority: vesper_shard,
             accepted_state_ref: transfer_state,
             accepted_tick: 261,
             source_event_id: id("event:vesper-accepts-freighter-state"),
@@ -711,12 +695,10 @@ pub fn run_three_worlds() -> LabResult<ThreeWorldsReport> {
     let authority_transfer_retry_idempotent = first_transfer_receipt == retry_transfer_receipt
         && first_transfer_receipt.resulting_revision == SubjectAuthorityRevision(1);
 
-    // ---------------------------------------------------------------------
-    // 8. External real-player governance may request a project; admission does not publish it.
-    // ---------------------------------------------------------------------
-    let project_id = id("project:vesper-relief-audit"),
-    provider_id = id("provider:mycelix"),
-    admission_rule_id = id("rule:mycelix-project-publication");
+    // External player governance is evidence for a bounded request, not project creation.
+    let project_id = id("project:vesper-relief-audit");
+    let provider_id = id("provider:mycelix");
+    let admission_rule_id = id("rule:mycelix-project-publication");
     let policy = AdmissionPolicy::new(
         id("policy:three-worlds-player-org"),
         1,
@@ -742,7 +724,7 @@ pub fn run_three_worlds() -> LabResult<ThreeWorldsReport> {
         [reviewer.clone()],
     )
     .map_err(|e| e.to_string())?;
-    let external_record_id = id("external:mycelix-project-proposal"),
+    let external_record_id = id("external:mycelix-project-proposal");
     player_org
         .observe_external_record(ExternalOrganizationRecord {
             id: external_record_id.clone(),
@@ -784,7 +766,7 @@ pub fn run_three_worlds() -> LabResult<ThreeWorldsReport> {
     let mut projects = ProjectLedger::new();
     let external_org_admission_does_not_publish_project = projects.project(&project_id).is_none()
         && admitted.target.effect == AdmissionEffectKind::ProjectPublication;
-    let deliverable_id = id("deliverable:relief-arrival-audit"),
+    let deliverable_id = id("deliverable:relief-arrival-audit");
     projects
         .publish_project(ProjectSpec {
             id: project_id.clone(),
@@ -797,7 +779,9 @@ pub fn run_three_worlds() -> LabResult<ThreeWorldsReport> {
                 DeliverableSpec {
                     id: deliverable_id.clone(),
                     kind: "shipment-arrival-audit".into(),
-                    description: "Provide inspectable evidence that the relief shipment reached Vesper.".into(),
+                    description:
+                        "Provide inspectable evidence that the relief shipment reached Vesper."
+                            .into(),
                     required: true,
                 },
             )]),
@@ -805,7 +789,7 @@ pub fn run_three_worlds() -> LabResult<ThreeWorldsReport> {
             source_event_id: id("event:vesper-publishes-relief-audit"),
         })
         .map_err(|e| e.to_string())?;
-    let contribution_id = id("contribution:helion-relief-audit"),
+    let contribution_id = id("contribution:helion-relief-audit");
     projects
         .submit(Contribution {
             id: contribution_id.clone(),
@@ -840,11 +824,9 @@ pub fn run_three_worlds() -> LabResult<ThreeWorldsReport> {
         .map_err(|e| e.to_string())?
         .is_complete();
 
-    // ---------------------------------------------------------------------
-    // 9. Political conflict evolves by explicit proposals/acceptance, not a war score.
-    // ---------------------------------------------------------------------
-    let conflict_id = id("conflict:aster-helion-hub-crisis"),
-    mut conflict = ConflictWorld::default();
+    // Political conflict is explicit commitments and agreements, never a global war score.
+    let conflict_id = id("conflict:aster-helion-hub-crisis");
+    let mut conflict = ConflictWorld::default();
     conflict
         .declare_conflict(ConflictSpec {
             id: conflict_id.clone(),
@@ -869,7 +851,7 @@ pub fn run_three_worlds() -> LabResult<ThreeWorldsReport> {
                     asserted_by_party_id: aster.clone(),
                     kind: ConflictAimKind::Recognition {
                         recognizer_id: helion.clone(),
-                        subject_id: mina_claim_id.clone(),
+                        subject_id: mina_claim_id,
                     },
                     asserted_tick: 300,
                     evidence: vec![ConflictEvidenceRef {
@@ -899,7 +881,8 @@ pub fn run_three_worlds() -> LabResult<ThreeWorldsReport> {
             source_event_id: id("event:declare-hub-crisis"),
         })
         .map_err(|e| e.to_string())?;
-    let ceasefire_id = id("ceasefire:hub-crisis"),
+
+    let ceasefire_id = id("ceasefire:hub-crisis");
     conflict
         .propose_ceasefire(CeasefireProposal {
             id: ceasefire_id.clone(),
@@ -932,7 +915,7 @@ pub fn run_three_worlds() -> LabResult<ThreeWorldsReport> {
     let conflict_in_ceasefire_window =
         conflict.conflict_state(&conflict_id, 330) == Some(ConflictState::Ceasefire);
 
-    let settlement_id = id("settlement:hub-crisis"),
+    let settlement_id = id("settlement:hub-crisis");
     conflict
         .propose_settlement(SettlementProposal {
             id: settlement_id.clone(),
