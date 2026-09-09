@@ -38,11 +38,7 @@ fn population(biomass_milligrams: u64) -> PopulationState {
 }
 
 fn context(seed: u64) -> ProjectionContext {
-    ProjectionContext::sparse_fisher_yates_v1(
-        SCOPE,
-        ProjectionRevision(7),
-        ProjectionSeed(seed),
-    )
+    ProjectionContext::sparse_fisher_yates_v1(SCOPE, ProjectionRevision(7), ProjectionSeed(seed))
 }
 
 #[test]
@@ -50,7 +46,10 @@ fn frozen_sparse_projection_vector_detects_unversioned_algorithm_drift() {
     let projection = project_population_bounded(&population(2_500_003), context(91), 5, 5).unwrap();
     let candidates = projection.candidates();
 
-    assert_eq!(projection.context().scheme(), SPARSE_FISHER_YATES_PROJECTION_V1);
+    assert_eq!(
+        projection.context().scheme(),
+        SPARSE_FISHER_YATES_PROJECTION_V1
+    );
     assert_eq!(candidates.len(), 5);
 
     let expected = [
@@ -116,7 +115,10 @@ fn full_level_p_projection_preserves_each_source_marginal() {
         *cells.entry(candidate.projected_cell()).or_insert(0u64) += 1;
     }
 
-    assert_eq!(CountDistribution::new(ages).unwrap(), *source.age_distribution());
+    assert_eq!(
+        CountDistribution::new(ages).unwrap(),
+        *source.age_distribution()
+    );
     assert_eq!(
         CountDistribution::new(conditions).unwrap(),
         *source.condition_distribution()
