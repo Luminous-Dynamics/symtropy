@@ -179,6 +179,7 @@ members = [
     "crates/domains/symtropy-comms-core",
     "crates/domains/symtropy-diplomacy-core",
     "crates/domains/symtropy-conflict-core",
+    "crates/domains/symtropy-civilization-scale-core",
     "crates/domains/symtropy-iris",
     "crates/domains/symtropy-persistence",
     "crates/domains/symtropy-residents",
