@@ -7,12 +7,14 @@ on:
       - "analysis/**"
     paths:
       - "crates/domains/symtropy-design/**"
+      - "crates/domains/symtropy-design-requirements/**"
       - ".github/workflows/design-qualification.yml"
       - "Cargo.toml"
       - "Cargo.lock"
   pull_request:
     paths:
       - "crates/domains/symtropy-design/**"
+      - "crates/domains/symtropy-design-requirements/**"
       - ".github/workflows/design-qualification.yml"
       - "Cargo.toml"
       - "Cargo.lock"
@@ -44,11 +46,17 @@ jobs:
       - name: Check formatting
         run: cargo fmt --all -- --check
 
-      - name: Check design crate
-        run: cargo check -p symtropy-design --all-targets
+      - name: Check design contracts
+        run: |
+          cargo check -p symtropy-design --all-targets
+          cargo check -p symtropy-design-requirements --all-targets
 
-      - name: Test design crate
-        run: cargo test -p symtropy-design
+      - name: Test design contracts
+        run: |
+          cargo test -p symtropy-design
+          cargo test -p symtropy-design-requirements
 
-      - name: Clippy design crate
-        run: cargo clippy -p symtropy-design --all-targets -- -D warnings
+      - name: Clippy design contracts
+        run: |
+          cargo clippy -p symtropy-design --all-targets -- -D warnings
+          cargo clippy -p symtropy-design-requirements --all-targets -- -D warnings
