@@ -8,3 +8,4 @@
 //! repeatedly churn the large `lib.rs` module list.
 
 pub mod lossless_transform;
+pub mod transition_domain;
