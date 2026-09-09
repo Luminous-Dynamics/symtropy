@@ -172,6 +172,7 @@ members = [
     "crates/domains/symtropy-design-requirements",
     "crates/domains/symtropy-analysis-contracts",
     "crates/domains/symtropy-analysis-qualification",
+    "crates/domains/symtropy-analysis-admission",
     "crates/domains/symtropy-iris",
     "crates/domains/symtropy-persistence",
     "crates/domains/symtropy-residents",
