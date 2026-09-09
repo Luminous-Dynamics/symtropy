@@ -9,5 +9,6 @@
 
 pub mod candidate_domain_resolution;
 pub mod lossless_transform;
+pub mod measurement_authority;
 pub mod retained_authority;
 pub mod transition_domain;
