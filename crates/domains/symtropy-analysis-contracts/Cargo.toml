@@ -1,0 +1,12 @@
+[package]
+name = "symtropy-analysis-contracts"
+version = "0.1.0"
+edition = "2024"
+license = "AGPL-3.0-or-later"
+description = "Solver-independent analysis request and evidence contracts for Symtropy."
+
+[dependencies]
+serde = { version = "1.0", features = ["derive"] }
+sha2 = "0.10"
+symtropy-design = { path = "../symtropy-design" }
+symtropy-game-state = { path = "../symtropy-game-state" }
