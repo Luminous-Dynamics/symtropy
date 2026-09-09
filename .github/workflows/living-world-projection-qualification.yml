@@ -8,36 +8,37 @@ concurrency:
   group: living-world-projection-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
-# Temporary one-shot formatter repair. This helper is never merged.
+# Temporary never-merge exact-head qualifier. Product branches are immutable
+# inputs; this workflow has no repository write authority.
 permissions:
-  contents: write
+  contents: read
 
 env:
   CARGO_TERM_COLOR: always
-  SOURCE_BRANCH: living-world/lw10-bounded-prospective-projection
-  EXPECTED_HEAD: 730af2e870ca860e3b1def4697fabacd714bb5d5
+  CARGO_TARGET_DIR: /tmp/living-world-projection-target
+  QUALIFIED_HEAD: 730af2e870ca860e3b1def4697fabacd714bb5d5
 
 jobs:
-  repair-projection-formatting:
-    name: Guarded rustfmt repair for bounded projection
+  qualify-projection:
+    name: Qualify exact bounded prospective projection head
     if: >-
       github.event.pull_request.head.ref == 'ci/living-world-projection-qualification-079a12' &&
       github.event.pull_request.base.ref == 'main'
     runs-on: ubuntu-latest
 
     steps:
-    - name: Check out exact product branch
+    - name: Check out exact product head
       uses: actions/checkout@v4
       with:
-        ref: ${{ env.SOURCE_BRANCH }}
+        ref: ${{ env.QUALIFIED_HEAD }}
         fetch-depth: 1
-        persist-credentials: true
+        persist-credentials: false
 
-    - name: Assert exact source head and clean checkout
+    - name: Assert exact clean checkout
       shell: bash
       run: |
         set -euo pipefail
-        test "$(git rev-parse HEAD)" = "$EXPECTED_HEAD"
+        test "$(git rev-parse HEAD)" = "$QUALIFIED_HEAD"
         test -z "$(git status --porcelain=v1 --untracked-files=all)"
         echo "INITIAL_LOCK_BLOB=$(git hash-object Cargo.lock)" >> "$GITHUB_ENV"
 
@@ -45,39 +46,45 @@ jobs:
       uses: dtolnay/rust-toolchain@stable
       with:
         toolchain: 1.96.0
-        components: rustfmt
+        components: clippy, rustfmt
 
-    - name: Apply scoped rustfmt
+    - name: Check scoped formatting
       shell: bash
-      run: cargo fmt --package symtropy-lifesim-core
+      run: cargo fmt --package symtropy-lifesim-core -- --check
 
-    - name: Assert formatting-only projection delta
+    - name: Run scoped tests
       shell: bash
-      run: |
-        set -euo pipefail
-        test "$(git hash-object Cargo.lock)" = "$INITIAL_LOCK_BLOB"
-        git diff --check
-        mapfile -t changed < <(git diff --name-only)
-        test "${#changed[@]}" -eq 1
-        test "${changed[0]}" = "crates/domains/symtropy-lifesim-core/src/projection.rs"
-        test -z "$(git ls-files --others --exclude-standard)"
-        git diff -- crates/domains/symtropy-lifesim-core/src/projection.rs
+      run: cargo test --locked -p symtropy-lifesim-core --all-targets
 
-    - name: Commit formatting-only repair
+    - name: Run scoped Clippy
       shell: bash
-      run: |
-        set -euo pipefail
-        git config user.name 'github-actions[bot]'
-        git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-        git add crates/domains/symtropy-lifesim-core/src/projection.rs
-        git commit -m 'style(lifesim): rustfmt bounded projection'
-        git push origin "HEAD:$SOURCE_BRANCH"
+      run: cargo clippy --locked -p symtropy-lifesim-core --all-targets -- -D warnings
 
-    - name: Assert repair commit scope
+    - name: Check scoped build
+      shell: bash
+      run: cargo check --locked -p symtropy-lifesim-core --all-targets
+
+    - name: Diagnose qualification worktree
+      if: always()
       shell: bash
       run: |
         set -euo pipefail
+        echo '=== HEAD ==='
+        git rev-parse HEAD
+        echo '=== STATUS ==='
+        git status --porcelain=v1 --untracked-files=all || true
+        echo '=== TRACKED DIFF NAMES ==='
+        git diff --name-only || true
+        echo '=== TRACKED DIFF ==='
+        git diff -- || true
+        echo '=== UNTRACKED (non-ignored) ==='
+        git ls-files --others --exclude-standard || true
+
+    - name: Assert qualification was non-mutating
+      shell: bash
+      run: |
+        set -euo pipefail
+        test "$(git rev-parse HEAD)" = "$QUALIFIED_HEAD"
         test "$(git hash-object Cargo.lock)" = "$INITIAL_LOCK_BLOB"
         test -z "$(git status --porcelain=v1 --untracked-files=all)"
-        test "$(git diff-tree --no-commit-id --name-only -r HEAD)" = "crates/domains/symtropy-lifesim-core/src/projection.rs"
-        echo "REPAIRED_HEAD=$(git rev-parse HEAD)"
+        echo 'PASS: exact bounded prospective projection qualification'
