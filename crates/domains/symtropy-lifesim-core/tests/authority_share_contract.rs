@@ -94,7 +94,10 @@ fn b2_n4_freezes_partition_epoch_counterexample() {
 #[test]
 fn u64_boundaries_use_widened_intermediates_without_overflow() {
     assert_eq!(slot_share(u64::MAX, 1, 0), Some(u64::MAX));
-    assert_eq!(cumulative_prefix(u64::MAX, u64::MAX, u64::MAX), Some(u64::MAX));
+    assert_eq!(
+        cumulative_prefix(u64::MAX, u64::MAX, u64::MAX),
+        Some(u64::MAX)
+    );
     assert_eq!(slot_share(u64::MAX, u64::MAX, 0), Some(1));
     assert_eq!(slot_share(u64::MAX, u64::MAX, u64::MAX - 1), Some(1));
 
