@@ -30,6 +30,7 @@
 //!
 //! [`mycelix-conductor-bridge`]: https://github.com/luminous-dynamics/symtropy
 
+pub mod civilization_admission;
 pub mod config;
 pub mod events;
 pub mod plugin;
@@ -37,6 +38,10 @@ pub mod resource;
 pub mod scenarios;
 pub mod systems;
 
+pub use civilization_admission::{
+    MycelixAdmissionContext, MycelixEvidenceError, MYCELIX_PROVIDER_NAMESPACE,
+    PROPOSAL_SUBMITTED_RECORD_NAMESPACE, external_record_from_response,
+};
 pub use config::MycelixConfig;
 pub use events::{MycelixRequest, MycelixResponse};
 pub use plugin::BevyMycelixPlugin;
