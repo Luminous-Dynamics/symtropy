@@ -8,7 +8,7 @@
 
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
-use std::{collections::BTreeSet, error::Error, fmt};
+use std::{error::Error, fmt};
 use symtropy_design::{ContentDigest, DesignRevisionRef};
 use symtropy_game_state::StableId;
 
