@@ -1,0 +1,10 @@
+[package]
+name = "symtropy-transit-core"
+version = "0.1.0"
+edition = "2024"
+license = "AGPL-3.0-or-later"
+description = "Provider-attested topology paths and transit plans for Symtropy civilization simulation."
+
+[dependencies]
+serde = { version = "1.0", features = ["derive"] }
+symtropy-game-state = { path = "../symtropy-game-state" }
