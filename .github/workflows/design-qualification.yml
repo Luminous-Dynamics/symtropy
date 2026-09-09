@@ -8,6 +8,7 @@ on:
     paths:
       - "crates/domains/symtropy-design/**"
       - "crates/domains/symtropy-design-requirements/**"
+      - "crates/domains/symtropy-analysis-contracts/**"
       - ".github/workflows/design-qualification.yml"
       - "Cargo.toml"
       - "Cargo.lock"
@@ -15,6 +16,7 @@ on:
     paths:
       - "crates/domains/symtropy-design/**"
       - "crates/domains/symtropy-design-requirements/**"
+      - "crates/domains/symtropy-analysis-contracts/**"
       - ".github/workflows/design-qualification.yml"
       - "Cargo.toml"
       - "Cargo.lock"
@@ -28,7 +30,7 @@ env:
 
 jobs:
   design-contracts:
-    name: Design Contracts
+    name: Design + Analysis Contracts
     runs-on: ubuntu-latest
 
     steps:
@@ -46,17 +48,20 @@ jobs:
       - name: Check formatting
         run: cargo fmt --all -- --check
 
-      - name: Check design contracts
+      - name: Check contracts
         run: |
           cargo check -p symtropy-design --all-targets
           cargo check -p symtropy-design-requirements --all-targets
+          cargo check -p symtropy-analysis-contracts --all-targets
 
-      - name: Test design contracts
+      - name: Test contracts
         run: |
           cargo test -p symtropy-design
           cargo test -p symtropy-design-requirements
+          cargo test -p symtropy-analysis-contracts
 
-      - name: Clippy design contracts
+      - name: Clippy contracts
         run: |
           cargo clippy -p symtropy-design --all-targets -- -D warnings
           cargo clippy -p symtropy-design-requirements --all-targets -- -D warnings
+          cargo clippy -p symtropy-analysis-contracts --all-targets -- -D warnings
