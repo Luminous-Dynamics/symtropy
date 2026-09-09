@@ -16,6 +16,7 @@ pub mod lossless_transform;
 pub mod measurement_authority;
 pub mod process_set_authority;
 pub mod retained_authority;
+pub mod shadow_validation;
 pub mod spatiotemporal_information;
 pub mod transition_conservation;
 pub mod transition_domain;
