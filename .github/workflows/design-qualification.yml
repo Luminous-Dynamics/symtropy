@@ -9,6 +9,7 @@ on:
       - "crates/domains/symtropy-design/**"
       - "crates/domains/symtropy-design-requirements/**"
       - "crates/domains/symtropy-analysis-contracts/**"
+      - "crates/domains/symtropy-analysis-qualification/**"
       - ".github/workflows/design-qualification.yml"
       - "Cargo.toml"
       - "Cargo.lock"
@@ -17,6 +18,7 @@ on:
       - "crates/domains/symtropy-design/**"
       - "crates/domains/symtropy-design-requirements/**"
       - "crates/domains/symtropy-analysis-contracts/**"
+      - "crates/domains/symtropy-analysis-qualification/**"
       - ".github/workflows/design-qualification.yml"
       - "Cargo.toml"
       - "Cargo.lock"
@@ -53,15 +55,18 @@ jobs:
           cargo check -p symtropy-design --all-targets
           cargo check -p symtropy-design-requirements --all-targets
           cargo check -p symtropy-analysis-contracts --all-targets
+          cargo check -p symtropy-analysis-qualification --all-targets
 
       - name: Test contracts
         run: |
           cargo test -p symtropy-design
           cargo test -p symtropy-design-requirements
           cargo test -p symtropy-analysis-contracts
+          cargo test -p symtropy-analysis-qualification
 
       - name: Clippy contracts
         run: |
           cargo clippy -p symtropy-design --all-targets -- -D warnings
           cargo clippy -p symtropy-design-requirements --all-targets -- -D warnings
           cargo clippy -p symtropy-analysis-contracts --all-targets -- -D warnings
+          cargo clippy -p symtropy-analysis-qualification --all-targets -- -D warnings
