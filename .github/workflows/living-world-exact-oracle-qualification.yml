@@ -15,7 +15,7 @@ permissions:
 
 env:
   CARGO_TERM_COLOR: always
-  AUTHORITY_SHARE_HEAD: b17e85c8b669e2692372b259e5043db714cb1d5c
+  AUTHORITY_SHARE_HEAD: 8b75025506aaff76210a5ba4c3a01a4d7cc468ee
   SCARCITY_HEAD: 1611be02d422a804b598fe6bf7f9e99b59fd7e10
   QUANTIZATION_HEAD: 663bd06340107f9e6c8c7ef24abc1862f3a8c29c
 
@@ -59,6 +59,8 @@ jobs:
         components: clippy, rustfmt
 
     - name: Qualify exact authority-share oracle
+      id: authority
+      continue-on-error: true
       shell: bash
       run: |
         set -euo pipefail
@@ -77,6 +79,8 @@ jobs:
         echo 'PASS: exact authority-share oracle'
 
     - name: Qualify exact scarcity-arbitration oracle
+      id: scarcity
+      continue-on-error: true
       shell: bash
       run: |
         set -euo pipefail
@@ -95,6 +99,8 @@ jobs:
         echo 'PASS: exact scarcity-arbitration oracle'
 
     - name: Qualify exact quantization-residual oracle
+      id: quantization
+      continue-on-error: true
       shell: bash
       run: |
         set -euo pipefail
@@ -127,3 +133,20 @@ jobs:
           echo "=== $directory UNTRACKED ==="
           git -C "$directory" ls-files --others --exclude-standard || true
         done
+
+    - name: Require all exact oracle qualifications
+      if: always()
+      shell: bash
+      env:
+        AUTHORITY_OUTCOME: ${{ steps.authority.outcome }}
+        SCARCITY_OUTCOME: ${{ steps.scarcity.outcome }}
+        QUANTIZATION_OUTCOME: ${{ steps.quantization.outcome }}
+      run: |
+        set -euo pipefail
+        echo "authority-share=$AUTHORITY_OUTCOME"
+        echo "scarcity=$SCARCITY_OUTCOME"
+        echo "quantization=$QUANTIZATION_OUTCOME"
+        test "$AUTHORITY_OUTCOME" = success
+        test "$SCARCITY_OUTCOME" = success
+        test "$QUANTIZATION_OUTCOME" = success
+        echo 'PASS: all exact Living World arithmetic oracles'
