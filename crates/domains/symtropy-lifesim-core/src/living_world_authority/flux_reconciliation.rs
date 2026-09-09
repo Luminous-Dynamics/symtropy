@@ -239,15 +239,6 @@ pub enum CanonicalSettlementSide {
     Refined,
 }
 
-impl CanonicalSettlementSide {
-    const fn as_flux_side(self) -> FluxSide {
-        match self {
-            Self::Reference => FluxSide::Reference,
-            Self::Refined => FluxSide::Refined,
-        }
-    }
-}
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct FluxReconciliationRequirement {
     quantity: ConservedQuantity,
@@ -1395,7 +1386,7 @@ mod tests {
         FluxSourceAuthorityStamp::new(REFINED_SOURCE, FluxSourceRevision(11), SNAPSHOT)
     }
 
-    fn registry(
+    fn build_registry(
         tolerance: f64,
         settlement_side: CanonicalSettlementSide,
     ) -> FluxReconciliationRegistry {
@@ -1415,7 +1406,7 @@ mod tests {
         builder.seal()
     }
 
-    fn register(registry: &FluxReconciliationRegistry) -> AuthoritativeFluxRegister {
+    fn open_register(registry: &FluxReconciliationRegistry) -> AuthoritativeFluxRegister {
         AuthoritativeFluxRegister::open(
             REGISTER,
             registry,
@@ -1464,8 +1455,8 @@ mod tests {
 
     #[test]
     fn matching_reference_and_subcycled_refined_flux_certify() {
-        let registry = registry(0.0, CanonicalSettlementSide::Refined);
-        let mut register = register(&registry);
+        let registry = build_registry(0.0, CanonicalSettlementSide::Refined);
+        let mut register = open_register(&registry);
         record(
             &mut register,
             &registry,
@@ -1506,9 +1497,9 @@ mod tests {
 
     #[test]
     fn contribution_insertion_order_does_not_change_report() {
-        let registry = registry(0.0, CanonicalSettlementSide::Refined);
-        let mut first = register(&registry);
-        let mut second = register(&registry);
+        let registry = build_registry(0.0, CanonicalSettlementSide::Refined);
+        let mut first = open_register(&registry);
+        let mut second = open_register(&registry);
 
         let reference = contribution(100, FluxSide::Reference, 0, 10, 10.0);
         let fine_a = contribution(101, FluxSide::Refined, 0, 5, 4.0);
@@ -1527,9 +1518,9 @@ mod tests {
 
     #[test]
     fn missing_or_overlapping_subcycle_coverage_fails_closed() {
-        let registry = registry(0.0, CanonicalSettlementSide::Refined);
+        let registry = build_registry(0.0, CanonicalSettlementSide::Refined);
 
-        let mut gap = register(&registry);
+        let mut gap = open_register(&registry);
         record(
             &mut gap,
             &registry,
@@ -1553,7 +1544,7 @@ mod tests {
             Err(FluxReconciliationError::FluxCoverageGap { .. })
         ));
 
-        let mut overlap = register(&registry);
+        let mut overlap = open_register(&registry);
         record(
             &mut overlap,
             &registry,
@@ -1580,7 +1571,7 @@ mod tests {
 
     #[test]
     fn source_snapshot_and_revision_are_bound_before_accumulation() {
-        let registry = registry(0.0, CanonicalSettlementSide::Refined);
+        let registry = build_registry(0.0, CanonicalSettlementSide::Refined);
         let mismatched_snapshot = FluxSourceAuthorityStamp::new(
             REFINED_SOURCE,
             FluxSourceRevision(11),
@@ -1598,7 +1589,7 @@ mod tests {
             Err(FluxReconciliationError::SnapshotMismatch { .. })
         ));
 
-        let mut register = register(&registry);
+        let mut register = open_register(&registry);
         let stale = FluxSourceAuthorityStamp::new(
             REFINED_SOURCE,
             FluxSourceRevision(10),
@@ -1625,8 +1616,8 @@ mod tests {
 
     #[test]
     fn mismatch_beyond_tolerance_is_visible_and_does_not_finalize() {
-        let registry = registry(0.1, CanonicalSettlementSide::Refined);
-        let mut register = register(&registry);
+        let registry = build_registry(0.1, CanonicalSettlementSide::Refined);
+        let mut register = open_register(&registry);
         record(
             &mut register,
             &registry,
@@ -1654,8 +1645,8 @@ mod tests {
 
     #[test]
     fn tolerated_mismatch_uses_registered_settlement_side() {
-        let registry = registry(0.5, CanonicalSettlementSide::Refined);
-        let mut register = register(&registry);
+        let registry = build_registry(0.5, CanonicalSettlementSide::Refined);
+        let mut register = open_register(&registry);
         record(
             &mut register,
             &registry,
@@ -1685,8 +1676,8 @@ mod tests {
 
     #[test]
     fn contribution_retry_is_idempotent_and_conflicting_reuse_rejects() {
-        let registry = registry(0.0, CanonicalSettlementSide::Refined);
-        let mut register = register(&registry);
+        let registry = build_registry(0.0, CanonicalSettlementSide::Refined);
+        let mut register = open_register(&registry);
         let request = FluxContributionRequest::new(
             FluxContributionRequestId(7),
             contribution(100, FluxSide::Reference, 0, 10, 10.0),
@@ -1710,8 +1701,8 @@ mod tests {
 
     #[test]
     fn finalization_retry_returns_same_certificate_and_freezes_contributions() {
-        let registry = registry(0.0, CanonicalSettlementSide::Refined);
-        let mut register = register(&registry);
+        let registry = build_registry(0.0, CanonicalSettlementSide::Refined);
+        let mut register = open_register(&registry);
         record(
             &mut register,
             &registry,
@@ -1753,9 +1744,9 @@ mod tests {
 
     #[test]
     fn changed_exact_registry_policy_stales_open_register() {
-        let registry = registry(0.0, CanonicalSettlementSide::Refined);
-        let register = register(&registry);
-        let changed = registry(1.0, CanonicalSettlementSide::Refined);
+        let registry = build_registry(0.0, CanonicalSettlementSide::Refined);
+        let register = open_register(&registry);
+        let changed = build_registry(1.0, CanonicalSettlementSide::Refined);
         assert!(matches!(
             register.evaluate(&changed),
             Err(FluxReconciliationError::RegistryAuthorityChanged)
@@ -1814,8 +1805,8 @@ mod tests {
 
     #[test]
     fn unregistered_quantity_cannot_enter_register() {
-        let registry = registry(0.0, CanonicalSettlementSide::Refined);
-        let mut register = register(&registry);
+        let registry = build_registry(0.0, CanonicalSettlementSide::Refined);
+        let mut register = open_register(&registry);
         let carbon = FluxContribution::new(
             FluxContributionKey::new(100, 1),
             FluxSide::Reference,
