@@ -16,6 +16,7 @@ pub mod habitat;
 pub mod phenotype;
 pub mod physiology;
 pub mod population;
+pub mod projection;
 #[cfg(feature = "wgpu")]
 pub mod wgpu_backend;
 
