@@ -1,0 +1,25 @@
+[package]
+name = "symtropy-three-worlds-lab"
+version = "0.1.0"
+edition = "2024"
+license = "AGPL-3.0-or-later"
+description = "Headless integrated civilization lab across Aster, Vesper, and Helion."
+publish = false
+
+[dependencies]
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+symtropy-game-state = { path = "../../domains/symtropy-game-state" }
+symtropy-civilization-core = { path = "../../domains/symtropy-civilization-core" }
+symtropy-succession-core = { path = "../../domains/symtropy-succession-core" }
+symtropy-recognition-core = { path = "../../domains/symtropy-recognition-core" }
+symtropy-assets-core = { path = "../../domains/symtropy-assets-core" }
+symtropy-economy-core = { path = "../../domains/symtropy-economy-core" }
+symtropy-projects-core = { path = "../../domains/symtropy-projects-core" }
+symtropy-transit-core = { path = "../../domains/symtropy-transit-core" }
+symtropy-comms-core = { path = "../../domains/symtropy-comms-core" }
+symtropy-diplomacy-core = { path = "../../domains/symtropy-diplomacy-core" }
+symtropy-conflict-core = { path = "../../domains/symtropy-conflict-core" }
+symtropy-civilization-scale-core = { path = "../../domains/symtropy-civilization-scale-core" }
+symtropy-transfer-core = { path = "../../domains/symtropy-transfer-core" }
+symtropy-player-org-core = { path = "../../domains/symtropy-player-org-core" }
