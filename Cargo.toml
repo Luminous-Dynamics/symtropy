@@ -125,6 +125,7 @@ exclude = [
 members = [
     ".",
     "crates/apps/symtropy-cli",
+    "crates/apps/symtropy-three-worlds-lab",
     "crates/bridges/symtropy-bevy",
     "crates/core/symtropy-bevy-core",
     "crates/core/symtropy-bevy-scene",
