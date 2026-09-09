@@ -441,7 +441,12 @@ pub struct VerificationRegistryRef {
 /// Fields are private and there is no free constructor. The only V0 production
 /// path is `admit_qualification`, which recomputes A1 and resolves every facet
 /// through the exact current sealed verification registry.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+///
+/// Deliberately **not** `Deserialize`: after persistence a consumer must replay
+/// admission from the exact request/evidence/profile/cut/policy/registry (or a
+/// future independently authenticated receipt boundary). Bytes shaped like a
+/// prior verdict do not regain authority merely by being restored.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub struct AdmittedAnalysisQualification {
     schema_version: u32,
     id: AdmissionReceiptId,
