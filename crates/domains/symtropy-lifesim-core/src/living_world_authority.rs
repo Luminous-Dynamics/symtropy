@@ -9,6 +9,7 @@
 
 pub mod candidate_domain_resolution;
 pub mod event_guard;
+pub mod event_guard_state_authority;
 pub mod lossless_transform;
 pub mod measurement_authority;
 pub mod process_set_authority;
