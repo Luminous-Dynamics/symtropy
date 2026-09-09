@@ -1,0 +1,12 @@
+[package]
+name = "symtropy-assets-core"
+version = "0.1.0"
+edition = "2024"
+license = "AGPL-3.0-or-later"
+description = "Separated ownership, operation, custody, control, beneficiary, and creditor relations for Symtropy."
+
+[dependencies]
+serde = { version = "1.0", features = ["derive"] }
+symtropy-epistemics-core = { path = "../symtropy-epistemics-core" }
+symtropy-game-state = { path = "../symtropy-game-state" }
+symtropy-residents = { path = "../symtropy-residents" }
