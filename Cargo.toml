@@ -181,7 +181,7 @@ members = [
 # `priority = -1` is required: a lint GROUP listed alongside individual lint
 # overrides must have lower priority, or Cargo's own `lint_groups_priority`
 # lint rejects the manifest ("the order of the lints in the table is ignored
-# by Cargo). Without it the two allows below are silently outranked by the
+# by Cargo"). Without it the two allows below are silently outranked by the
 # group and the build fails outright.
 all = { level = "warn", priority = -1 }
 
