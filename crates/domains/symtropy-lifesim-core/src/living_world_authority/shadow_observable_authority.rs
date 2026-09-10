@@ -638,7 +638,7 @@ impl ObservableBoundShadowValidationCertificate {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-enum ShadowObservationLane {
+pub enum ShadowObservationLane {
     Coarse,
     Reference,
 }
