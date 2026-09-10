@@ -1,4 +1,4 @@
-use crate::{AlleleId, LocusId, PROBABILITY_SCALE_PPM};
+use crate::{AlleleId, LocusId, PopulationId, PROBABILITY_SCALE_PPM};
 use std::{error::Error, fmt};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -45,6 +45,23 @@ pub enum EvolutionError {
     PopulationDestinationMismatch,
     PopulationGenerationMismatch,
     PopulationTransitionMismatch,
+    NoStructuredPopulations,
+    DuplicatePopulationIdentity { population: PopulationId },
+    UnknownStructurePopulation { population: PopulationId },
+    DuplicateMigrationEdge {
+        destination: PopulationId,
+        source: PopulationId,
+    },
+    SelfMigrationEntry { population: PopulationId },
+    NonCanonicalEmptyMigrationRow { destination: PopulationId },
+    NonCanonicalZeroMigration {
+        destination: PopulationId,
+        source: PopulationId,
+    },
+    MigrationRowExceedsProbabilityScale {
+        destination: PopulationId,
+        observed_ppm: u64,
+    },
     SamplingInvariantViolation,
     CountOverflow,
     InvalidDrawUpperBound,
@@ -139,6 +156,49 @@ impl fmt::Display for EvolutionError {
             Self::PopulationTransitionMismatch => {
                 write!(f, "population transition derivation mismatch")
             }
+            Self::NoStructuredPopulations => {
+                write!(f, "population structure must declare at least one population")
+            }
+            Self::DuplicatePopulationIdentity { population } => write!(
+                f,
+                "population structure declares duplicate population {}",
+                population.as_str()
+            ),
+            Self::UnknownStructurePopulation { population } => write!(
+                f,
+                "population structure references undeclared population {}",
+                population.as_str()
+            ),
+            Self::DuplicateMigrationEdge { destination, source } => write!(
+                f,
+                "population structure repeats migration edge {} <- {}",
+                destination.as_str(),
+                source.as_str()
+            ),
+            Self::SelfMigrationEntry { population } => write!(
+                f,
+                "population structure must not encode explicit self migration for {}",
+                population.as_str()
+            ),
+            Self::NonCanonicalEmptyMigrationRow { destination } => write!(
+                f,
+                "population structure contains noncanonical empty migration row for {}",
+                destination.as_str()
+            ),
+            Self::NonCanonicalZeroMigration { destination, source } => write!(
+                f,
+                "population structure contains noncanonical zero migration {} <- {}",
+                destination.as_str(),
+                source.as_str()
+            ),
+            Self::MigrationRowExceedsProbabilityScale {
+                destination,
+                observed_ppm,
+            } => write!(
+                f,
+                "population {} migration row totals {observed_ppm} ppm, exceeding {PROBABILITY_SCALE_PPM} ppm",
+                destination.as_str()
+            ),
             Self::SamplingInvariantViolation => write!(f, "population sampling invariant violated"),
             Self::CountOverflow => write!(f, "population/genetic count overflow"),
             Self::InvalidDrawUpperBound => write!(f, "semantic draw upper bound must be positive"),

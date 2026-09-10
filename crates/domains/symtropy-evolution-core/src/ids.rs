@@ -39,6 +39,7 @@ semantic_id!(OperatorProfileId);
 semantic_id!(EvolutionExperimentId);
 semantic_id!(PopulationTransitionId);
 semantic_id!(PopulationProcessProfileId);
+semantic_id!(PopulationStructureProfileId);
 
 #[cfg(test)]
 mod tests {
@@ -67,6 +68,7 @@ mod tests {
         assert_wire_contract!(EvolutionExperimentId, "experiment-0001");
         assert_wire_contract!(PopulationTransitionId, "generation-0-to-1");
         assert_wire_contract!(PopulationProcessProfileId, "neutral-wf-v1");
+        assert_wire_contract!(PopulationStructureProfileId, "archipelago-v1");
     }
 
     #[test]

@@ -13,6 +13,7 @@ mod ids;
 mod operators;
 mod population;
 mod population_process;
+mod population_structure;
 mod population_trajectory;
 mod reproduction;
 mod schema;
@@ -21,7 +22,8 @@ pub use error::EvolutionError;
 pub use heredity::{HereditaryState, HereditaryStateDigest};
 pub use ids::{
     AlleleId, EvolutionExperimentId, HereditarySchemaId, LocusId, OperatorProfileId,
-    PopulationId, PopulationProcessProfileId, PopulationTransitionId, ReproductionEventId,
+    PopulationId, PopulationProcessProfileId, PopulationStructureProfileId,
+    PopulationTransitionId, ReproductionEventId,
 };
 pub use operators::{
     EvolutionOperatorProfile, EvolutionOperatorProfileDigest, MutationProfile,
@@ -32,6 +34,10 @@ pub use population_process::{
     neutral_wright_fisher_step, PopulationProcessModel, PopulationProcessProfile,
     PopulationProcessProfileDigest, PopulationTransitionProvenance,
     PopulationTransitionProvenanceDigest, PopulationTransitionResult,
+};
+pub use population_structure::{
+    ParentalSourceEdge, PopulationStructureModel, PopulationStructureProfile,
+    PopulationStructureProfileDigest,
 };
 pub use population_trajectory::{
     PopulationGeneration, PopulationTrajectoryPoint, PopulationTrajectoryPointDigest,
