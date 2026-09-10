@@ -18,7 +18,6 @@ const BOTTLENECK_PRIORITY_DOMAIN: &[u8] =
 const DEMOGRAPHIC_EXECUTION_DIGEST_DOMAIN: &[u8] =
     b"symtropy:evolution:demographic-event-execution:v1\0";
 
-/// Exact V0 execution model for a marginal random-survivor bottleneck.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum DemographicEventExecutionModel {
     IndependentLocusRandomSurvivorBottleneckV1,
@@ -32,7 +31,6 @@ impl DemographicEventExecutionModel {
     }
 }
 
-/// Revalidatable receipt for one executed aggregate demographic intervention.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct DemographicEventExecutionProvenance {
     model: DemographicEventExecutionModel,
@@ -126,6 +124,14 @@ impl DemographicEventExecutionProvenance {
             source_snapshot,
             structure,
         )?;
+
+        let event_population = match event.kind() {
+            DemographicEventKind::CensusResize { population, .. } => population,
+            _ => return Err(EvolutionError::DemographicEventKindUnsupportedForExecutor),
+        };
+        if event_population != &self.population_id {
+            return Err(EvolutionError::DemographicExecutionAuthorityMismatch);
+        }
 
         if self.model != DemographicEventExecutionModel::IndependentLocusRandomSurvivorBottleneckV1
             || event.canonical_digest()? != self.event_digest
@@ -228,11 +234,6 @@ pub struct DemographicEventExecutionResult {
     pub provenance: DemographicEventExecutionProvenance,
 }
 
-/// Execute one source-bound random-survivor census bottleneck.
-///
-/// V0 accepts only an ordinal-zero history cursor and only a `CensusResize`
-/// whose target is not larger than the current census. Biological generation
-/// time is unchanged by this intervention.
 #[allow(clippy::too_many_arguments)]
 pub fn execute_census_resize_bottleneck(
     schema: &HereditarySchema,
@@ -409,7 +410,6 @@ fn derive_census_resize(
     })
 }
 
-/// Sample exact marginal allele-copy totals without replacement at each locus.
 fn downsample_population_without_replacement(
     schema: &HereditarySchema,
     source: &PopulationGeneticState,
@@ -468,8 +468,6 @@ fn downsample_population_without_replacement(
     )
 }
 
-/// Full SHA-256 survivor priority. The target census is deliberately absent so
-/// severity sweeps move a cutoff over one common opportunity ordering.
 fn survivor_priority(
     experiment_id: &EvolutionExperimentId,
     event_id: &str,
