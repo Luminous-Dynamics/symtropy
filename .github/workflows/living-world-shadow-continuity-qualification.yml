@@ -22,7 +22,6 @@ jobs:
     timeout-minutes: 15
     env:
       PRODUCT_SHA: 59cee313afae1ad184d1b8382088eac2616822c9
-      QUALIFICATION_MANIFEST: ${{ runner.temp }}/lw55-shadow-continuity-qualification.json
 
     steps:
       - name: Check out immutable product subject
@@ -109,7 +108,7 @@ jobs:
           import pathlib
           import subprocess
 
-          manifest_path = pathlib.Path(os.environ["QUALIFICATION_MANIFEST"])
+          manifest_path = pathlib.Path(os.environ["RUNNER_TEMP"]) / "lw55-shadow-continuity-qualification.json"
           product_sha = subprocess.check_output(
               ["git", "rev-parse", "HEAD"], text=True
           ).strip()
@@ -163,7 +162,7 @@ jobs:
         # actions/attest v4, pinned to the immutable v4 release commit.
         uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6
         with:
-          subject-path: ${{ env.QUALIFICATION_MANIFEST }}
+          subject-path: ${{ runner.temp }}/lw55-shadow-continuity-qualification.json
 
       - name: Verify qualification manifest attestation
         shell: bash
@@ -171,7 +170,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          gh attestation verify "$QUALIFICATION_MANIFEST" -R "$GITHUB_REPOSITORY"
+          gh attestation verify "$RUNNER_TEMP/lw55-shadow-continuity-qualification.json" -R "$GITHUB_REPOSITORY"
           printf 'LW55_SHADOW_CONTINUITY_ATTESTATION_VERIFIED=1\n'
 
       - name: Final exact-subject postflight
