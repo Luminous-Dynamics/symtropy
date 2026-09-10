@@ -24,7 +24,12 @@ fi
 actual_commit="$(git rev-parse 'HEAD^{commit}')"
 actual_tree="$(git rev-parse 'HEAD^{tree}')"
 
-mapfile -t parents < <(git cat-file -p "$actual_commit" | sed -n 's/^parent //p')
+# Bash 3-compatible: macOS runners do not guarantee mapfile/readarray.
+parent_words="$(git cat-file -p "$actual_commit" | sed -n 's/^parent //p' | tr '\n' ' ')"
+parents=()
+if [[ -n "$parent_words" ]]; then
+  read -r -a parents <<< "$parent_words"
+fi
 
 if [[ ${#parents[@]} -ne 2 ]]; then
   echo "INTEGRATION_SUBJECT_MISMATCH: checked-out commit $actual_commit has ${#parents[@]} parent(s), expected exactly 2" >&2
