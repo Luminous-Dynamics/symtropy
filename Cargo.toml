@@ -131,6 +131,7 @@ members = [
     "crates/core/symtropy-bevy-scene",
     "crates/bridges/symthaea-bevy-brain",
     "crates/bridges/symtropy-symthaea-adapter",
+    "crates/bridges/symtropy-health-protection-bridge",
     "crates/apps/symtropy-mycelix-village",
     "crates/domains/symtropy-net",
     "crates/domains/symtropy-lifesim-core",
