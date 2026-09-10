@@ -51,9 +51,10 @@ pub use demographic_extinction_execution::{
     DemographicExtinctionExecutionResult,
 };
 pub use demographic_founder_execution::{
-    execute_founder_or_recolonization_sample, DemographicFounderExecutionModel,
-    DemographicFounderExecutionProvenance, DemographicFounderExecutionProvenanceDigest,
-    DemographicFounderExecutionResult,
+    execute_founder_or_recolonization_sample,
+    execute_founder_or_recolonization_sample_after_proven_history,
+    DemographicFounderExecutionModel, DemographicFounderExecutionProvenance,
+    DemographicFounderExecutionProvenanceDigest, DemographicFounderExecutionResult,
 };
 pub use demographic_history::{
     DemographicInterventionCursor, DemographicInterventionCursorDigest,
