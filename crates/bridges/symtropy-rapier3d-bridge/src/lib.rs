@@ -143,6 +143,15 @@ impl<C: PhysicsCallback<3>> RapierPhysicsBridge<C> {
             .copied()
     }
 
+    /// Drop callback bindings whose exact generation-bearing Rapier body no
+    /// longer exists. This prevents long-running differential campaigns from
+    /// accumulating dead identity entries after body removal.
+    pub fn prune_callback_bodies(&mut self, bodies: &RigidBodySet) {
+        self.callback_body_map.retain(|(index, generation), _| {
+            bodies.contains(RigidBodyHandle::from_raw_parts(*index, *generation))
+        });
+    }
+
     /// Observations captured immediately after the latest successful step or
     /// explicit `post_step` refresh.
     pub fn last_observations(&self) -> &[RapierBodyObservation] {
@@ -176,9 +185,11 @@ impl<C: PhysicsCallback<3>> RapierPhysicsBridge<C> {
             "Rapier reference dt must be finite and non-negative"
         );
 
-        // 1. Modulate explicit user forces only when the caller has supplied an
-        // explicit cross-engine identity binding. Never reinterpret Rapier's
-        // recyclable arena index as a Symtropy body identity.
+        // 1. Remove mappings for bodies that no longer exist, then modulate
+        // explicit user forces only when the caller supplied a cross-engine
+        // identity binding. Never reinterpret Rapier's recyclable arena index
+        // as a Symtropy body identity.
+        self.prune_callback_bodies(rigid_body_set);
         for (handle, body) in rigid_body_set.iter_mut() {
             let Some(body_handle) = self.callback_body_map.get(&handle.into_raw_parts()).copied()
             else {
@@ -245,6 +256,7 @@ impl<C: PhysicsCallback<3>> RapierPhysicsBridge<C> {
         _broad_phase: &mut BroadPhase,
         _narrow_phase: &mut NarrowPhase,
     ) {
+        self.prune_callback_bodies(bodies);
         self.capture_observations(bodies);
     }
 
@@ -613,10 +625,6 @@ mod tests {
     fn rapier_handle_generation_prevents_callback_binding_alias() {
         let mut bodies = RigidBodySet::new();
         let mut colliders = ColliderSet::new();
-        let mut islands = IslandManager::new();
-        let mut impulse_joints = ImpulseJointSet::new();
-        let mut multibody_joints = MultibodyJointSet::new();
-
         let first = add_sphere_to_rapier(&mut bodies, &mut colliders, Vec3::ZERO, 0.5, 1.0);
         let callback = CountingCallback {
             force_calls: Cell::new(0),
@@ -626,22 +634,57 @@ mod tests {
         let first_symtropy = BodyHandle(7);
         bridge.bind_callback_body(first, first_symtropy);
 
+        let (index, generation) = first.into_raw_parts();
+        let different_generation = RigidBodyHandle::from_raw_parts(index, generation.wrapping_add(1));
+        assert_eq!(bridge.callback_body(first), Some(first_symtropy));
+        assert_eq!(bridge.callback_body(different_generation), None);
+    }
+
+    #[test]
+    fn stale_callback_binding_is_pruned_after_body_removal() {
+        let (
+            mut bodies,
+            mut colliders,
+            parameters,
+            mut islands,
+            mut broad_phase,
+            mut narrow_phase,
+            mut impulse_joints,
+            mut multibody_joints,
+            mut ccd,
+        ) = empty_rapier_state();
+        let handle = add_sphere_to_rapier(&mut bodies, &mut colliders, Vec3::ZERO, 0.5, 1.0);
+        let mut bridge = RapierPhysicsBridge::new(NoOpCallback);
+        bridge.bind_callback_body(handle, BodyHandle(9));
+
         bodies
             .remove(
-                first,
+                handle,
                 &mut islands,
                 &mut colliders,
                 &mut impulse_joints,
                 &mut multibody_joints,
                 true,
             )
-            .expect("first Rapier body should exist");
+            .expect("Rapier body should exist before removal");
+        assert_eq!(bridge.callback_body(handle), Some(BodyHandle(9)));
 
-        let replacement = add_sphere_to_rapier(&mut bodies, &mut colliders, Vec3::ZERO, 0.5, 1.0);
-        assert_eq!(first.into_raw_parts().0, replacement.into_raw_parts().0);
-        assert_ne!(first.into_raw_parts().1, replacement.into_raw_parts().1);
-        assert_eq!(bridge.callback_body(first), Some(first_symtropy));
-        assert_eq!(bridge.callback_body(replacement), None);
+        bridge.step(
+            1.0 / 60.0,
+            &mut bodies,
+            &mut colliders,
+            &parameters,
+            &mut islands,
+            &mut broad_phase,
+            &mut narrow_phase,
+            &mut impulse_joints,
+            &mut multibody_joints,
+            &mut ccd,
+            &(),
+            &(),
+        );
+
+        assert_eq!(bridge.callback_body(handle), None);
     }
 
     #[test]
