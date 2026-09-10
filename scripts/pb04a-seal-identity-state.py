@@ -27,7 +27,8 @@ for marker in [
     "provider_content_digest: String",
     "pub struct TopologyProfileRef",
     "fn validate_snapshot_exact_ref_consistency(",
-    "pub fn neighbors(\n        &self,\n        facet: TopologyFacet,",
+    "pub fn definite_neighbors(\n        &self,\n        facet: TopologyFacet,",
+    "pub fn candidate_neighbors(\n        &self,\n        facet: TopologyFacet,",
 ]:
     if s.count(marker) != 1:
         raise SystemExit(
@@ -103,6 +104,7 @@ hostile = HOSTILE.read_text()
 for marker in [
     "derived_topology_binds_exact_profile_content",
     "unknown_region_is_not_silently_treated_as_isolated",
+    "qualified_relation_is_candidate_but_not_definite_connectivity",
 ]:
     if hostile.count(marker) != 1:
         raise SystemExit(f"refusing PB-04a sealing: missing hostile fixture {marker!r}")

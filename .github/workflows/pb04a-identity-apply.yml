@@ -64,8 +64,8 @@ jobs:
           # Exact deterministic transformation program.
           check_blob 1d94ebb0a6819bfd1d95060920ec5b3d460194a9 scripts/pb04a-harden-content-identity.py
           check_blob e03de8d8e452af9720d24f8922081c5e00209022 scripts/pb04a-harden-global-source-consistency.py
-          check_blob 41d8fa5bcd275b1388f9be9b6992defe346094fe scripts/pb04a-harden-query-semantics.py
-          check_blob c14307a797fc96afecab1927c5f38b6b81f3c3b5 scripts/pb04a-seal-identity-state.py
+          check_blob 253cc6e94a23dd61a7b712b43862ddfb966e8872 scripts/pb04a-harden-query-semantics.py
+          check_blob 5c3232b3acc6767fcaa7feebc51e66d31285dc24 scripts/pb04a-seal-identity-state.py
 
       - name: Set up pinned Rust
         uses: dtolnay/rust-toolchain@stable
