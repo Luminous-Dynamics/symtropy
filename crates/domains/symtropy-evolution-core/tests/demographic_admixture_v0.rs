@@ -188,7 +188,7 @@ fn pulse_preserves_destination_census_source_and_unrelated_state() {
 
 #[test]
 fn full_pulse_replaces_destination_marginals_when_capacities_match() {
-    let f = fixture(10, 10, 20, 0);
+    let f = fixture(10, 10, 14, 0);
     let event = event(&f, "pulse-full", 1_000_000);
     let result = execute(&f, &event).unwrap();
     let locus = LocusId::new("focal").unwrap();
@@ -196,7 +196,7 @@ fn full_pulse_replaces_destination_marginals_when_capacities_match() {
     assert_eq!(result.provenance.realized_replacement_copies(), 20);
     assert_eq!(
         result.populations[&pop("destination")].allele_copy_counts[&locus],
-        BTreeMap::from([(allele("a"), 20)])
+        f.populations[&pop("source")].allele_copy_counts[&locus]
     );
     assert_eq!(result.populations[&pop("source")], f.populations[&pop("source")]);
 }
@@ -234,12 +234,15 @@ fn source_capacity_violation_fails_closed() {
 }
 
 #[test]
-fn increasing_fraction_with_fixed_opposite_alleles_changes_exactly_realized_k_copies() {
+fn fixed_event_identity_supports_nested_fraction_sweeps() {
     let f = fixture(10, 10, 20, 0);
     let locus = LocusId::new("focal").unwrap();
 
     for (fraction, expected_k) in [(100_000, 2_u64), (250_000, 5), (500_000, 10)] {
-        let result = execute(&f, &event(&f, &format!("pulse-{fraction}"), fraction)).unwrap();
+        // Holding the event identity fixed while varying only the parameter keeps
+        // the source/removal opportunity fields fixed; exact event authority
+        // still differs because the declared fraction is part of the event digest.
+        let result = execute(&f, &event(&f, "pulse-sweep", fraction)).unwrap();
         let destination = &result.populations[&pop("destination")];
         let a_count = destination.allele_copy_counts[&locus]
             .get(&allele("a"))
