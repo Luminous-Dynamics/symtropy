@@ -1,5 +1,7 @@
 # Demographic intervention proof bundle V0
 
+> **Historical B4A contract.** This one-step scaffold is superseded on the B4B6 stack by `DEMOGRAPHIC_PROOF_BUNDLE_V2.md`, which adds validated-prefix authority and heterogeneous multi-step replay. V0 remains here to document the fail-closed staging history; it is not the current proof-bundle execution contract.
+
 Status: B4A implemented/static authority scaffold; not executable-qualified.
 
 ## Purpose
