@@ -1,0 +1,97 @@
+name: Living World Shadow Continuity Qualification
+
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/living-world-shadow-continuity-qualification.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: living-world-shadow-continuity-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  qualify:
+    name: Exact shadow continuity subject
+    runs-on: ubuntu-slim
+    # GitHub documents a hard 15-minute execution limit for ubuntu-slim.
+    timeout-minutes: 15
+    env:
+      PRODUCT_SHA: 6a6f645536d6a4d3f5fdd4dc4e5d979f221eb13f
+
+    steps:
+      - name: Check out immutable product subject
+        # This disposable PR is only an execution surface. The semantic subject
+        # is the frozen #612 product head above, never this helper branch.
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ env.PRODUCT_SHA }}
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Verify exact subject
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$PRODUCT_SHA"
+          printf 'PRODUCT_HEAD=%s\n' "$(git rev-parse HEAD)"
+          printf 'PRODUCT_TREE=%s\n' "$(git rev-parse HEAD^{tree})"
+          printf 'LOCK_SHA256=%s\n' "$(sha256sum Cargo.lock | awk '{print $1}')"
+          test -z "$(git status --porcelain)"
+
+      - name: Set up pinned Rust
+        uses: dtolnay/rust-toolchain@6bed0761d98439e5a578e2877258200ad565ba87
+        with:
+          toolchain: 1.96.0
+          components: clippy, rustfmt
+
+      - name: Record toolchain provenance
+        shell: bash
+        run: |
+          set -euo pipefail
+          rustc --version --verbose
+          cargo --version
+          rustfmt --version
+          cargo clippy --version
+
+      - name: Rustfmt exact subject
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo fmt --all -- --check
+
+      - name: Check lifesim authority surface
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo check --locked -p symtropy-lifesim-core --all-targets
+
+      - name: Execute shadow continuity hostile fixtures
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo test --locked -p symtropy-lifesim-core --lib shadow_execution_continuity::tests -- --nocapture
+
+      - name: Execute full lifesim library tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo test --locked -p symtropy-lifesim-core --lib
+
+      - name: Strict Clippy
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo clippy --locked -p symtropy-lifesim-core --all-targets --all-features -- -D warnings
+
+      - name: Prove tracked source and lockfile remained immutable
+        shell: bash
+        run: |
+          set -euo pipefail
+          git diff --check
+          git diff --exit-code
+          test -z "$(git status --porcelain)"
+          printf 'FINAL_LOCK_SHA256=%s\n' "$(sha256sum Cargo.lock | awk '{print $1}')"
+          printf 'LW55_SHADOW_CONTINUITY_QUALIFICATION_PASS=1\n'
