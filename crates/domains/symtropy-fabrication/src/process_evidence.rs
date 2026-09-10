@@ -16,7 +16,7 @@ use symtropy_game_state::StableId;
 use crate::{
     CapabilityEvidence, MatterBinding, MatterIntegrityError, ProcessEvidence, ProcessExecutionId,
     ProcessExecutionState, ProcessInputSnapshot, ProcessKind, ProcessSpecId, ProcessSpecSnapshot,
-    WorkpieceId, WorkpieceLifecycle, validate_matter_bindings,
+    ProcessSpecSnapshotError, WorkpieceId, WorkpieceLifecycle, validate_matter_bindings,
 };
 
 /// Durable process evidence that has passed the same semantic/integrity checks
@@ -120,7 +120,10 @@ impl<'de> Deserialize<'de> for ValidatedProcessEvidence {
 pub fn validate_process_evidence(
     evidence: &ProcessEvidence,
 ) -> Result<(), ProcessEvidenceValidationError> {
-    validate_spec_snapshot(&evidence.spec_snapshot)?;
+    evidence
+        .spec_snapshot
+        .validate_canonical()
+        .map_err(map_spec_snapshot_error)?;
 
     if evidence.spec_id != evidence.spec_snapshot.id {
         return Err(ProcessEvidenceValidationError::SpecIdMismatch {
@@ -208,48 +211,24 @@ pub fn validate_process_evidence(
     Ok(())
 }
 
-fn validate_spec_snapshot(
-    snapshot: &ProcessSpecSnapshot,
-) -> Result<(), ProcessEvidenceValidationError> {
-    let requirements = snapshot.required_capabilities();
-    for (index, requirement) in requirements.iter().enumerate() {
-        if requirements[..index]
-            .iter()
-            .any(|existing| existing.capability_id == requirement.capability_id)
-        {
-            return Err(
-                ProcessEvidenceValidationError::DuplicateSnapshotRequiredCapability(
-                    requirement.capability_id.clone(),
-                ),
-            );
+fn map_spec_snapshot_error(error: ProcessSpecSnapshotError) -> ProcessEvidenceValidationError {
+    match error {
+        ProcessSpecSnapshotError::NoAllowedWorkpieceStates => {
+            ProcessEvidenceValidationError::SnapshotAllowedStateRequired
+        }
+        ProcessSpecSnapshotError::DuplicateRequiredCapability(capability_id) => {
+            ProcessEvidenceValidationError::DuplicateSnapshotRequiredCapability(capability_id)
+        }
+        ProcessSpecSnapshotError::NonCanonicalCapabilityOrder => {
+            ProcessEvidenceValidationError::SnapshotCapabilityOrder
+        }
+        ProcessSpecSnapshotError::DuplicateAllowedWorkpieceState(state) => {
+            ProcessEvidenceValidationError::DuplicateSnapshotAllowedWorkpieceState(state)
+        }
+        ProcessSpecSnapshotError::NonCanonicalLifecycleOrder => {
+            ProcessEvidenceValidationError::SnapshotLifecycleOrder
         }
     }
-    for pair in requirements.windows(2) {
-        if (&pair[0].capability_id, pair[0].minimum_value)
-            > (&pair[1].capability_id, pair[1].minimum_value)
-        {
-            return Err(ProcessEvidenceValidationError::SnapshotCapabilityOrder);
-        }
-    }
-
-    let states = snapshot.allowed_workpiece_states();
-    if states.is_empty() {
-        return Err(ProcessEvidenceValidationError::SnapshotAllowedStateRequired);
-    }
-    for (index, state) in states.iter().enumerate() {
-        if states[..index].iter().any(|existing| existing == state) {
-            return Err(
-                ProcessEvidenceValidationError::DuplicateSnapshotAllowedWorkpieceState(*state),
-            );
-        }
-    }
-    for pair in states.windows(2) {
-        if lifecycle_rank(pair[0]) > lifecycle_rank(pair[1]) {
-            return Err(ProcessEvidenceValidationError::SnapshotLifecycleOrder);
-        }
-    }
-
-    Ok(())
 }
 
 fn validate_input_matter_bindings(
@@ -302,17 +281,6 @@ fn validate_resulting_matter_bindings(
             allocation_id,
         },
     })
-}
-
-const fn lifecycle_rank(lifecycle: WorkpieceLifecycle) -> u8 {
-    match lifecycle {
-        WorkpieceLifecycle::Staged => 0,
-        WorkpieceLifecycle::InProcess => 1,
-        WorkpieceLifecycle::Available => 2,
-        WorkpieceLifecycle::Installed => 3,
-        WorkpieceLifecycle::Removed => 4,
-        WorkpieceLifecycle::Retired => 5,
-    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
