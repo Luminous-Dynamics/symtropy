@@ -101,10 +101,18 @@ pub enum EvolutionError {
         current_census: u64,
         target_census: u64,
     },
+    DemographicSampleExceedsSourceCensus {
+        source_census: u64,
+        target_census: u64,
+    },
     DemographicExecutionAuthorityMismatch,
     DemographicExecutionSourceMismatch,
     DemographicExecutionResultMismatch,
     DemographicExecutionHistoryMismatch,
+    DemographicFounderExecutionAuthorityMismatch,
+    DemographicFounderExecutionSourceMismatch,
+    DemographicFounderExecutionResultMismatch,
+    DemographicFounderExecutionHistoryMismatch,
     SamplingInvariantViolation,
     CountOverflow,
     InvalidDrawUpperBound,
@@ -354,6 +362,13 @@ impl fmt::Display for EvolutionError {
                 f,
                 "instantaneous census expansion is not a random-survivor bottleneck: current {current_census}, target {target_census}"
             ),
+            Self::DemographicSampleExceedsSourceCensus {
+                source_census,
+                target_census,
+            } => write!(
+                f,
+                "demographic without-replacement sample target {target_census} exceeds source census {source_census}"
+            ),
             Self::DemographicExecutionAuthorityMismatch => {
                 write!(f, "demographic execution authority mismatch")
             }
@@ -365,6 +380,18 @@ impl fmt::Display for EvolutionError {
             }
             Self::DemographicExecutionHistoryMismatch => {
                 write!(f, "demographic execution history cursor mismatch")
+            }
+            Self::DemographicFounderExecutionAuthorityMismatch => {
+                write!(f, "founder/recolonization execution authority mismatch")
+            }
+            Self::DemographicFounderExecutionSourceMismatch => {
+                write!(f, "founder/recolonization execution source evidence mismatch")
+            }
+            Self::DemographicFounderExecutionResultMismatch => {
+                write!(f, "founder/recolonization execution result evidence mismatch")
+            }
+            Self::DemographicFounderExecutionHistoryMismatch => {
+                write!(f, "founder/recolonization execution history cursor mismatch")
             }
             Self::SamplingInvariantViolation => write!(f, "population sampling invariant violated"),
             Self::CountOverflow => write!(f, "population/genetic count overflow"),
