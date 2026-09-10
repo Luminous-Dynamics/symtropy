@@ -43,6 +43,7 @@ semantic_id!(PopulationStructureProfileId);
 semantic_id!(DemographicEventId);
 semantic_id!(ChromosomeId);
 semantic_id!(ChromosomeMapId);
+semantic_id!(ChromosomeRecombinationProfileId);
 
 #[cfg(test)]
 mod tests {
@@ -75,6 +76,7 @@ mod tests {
         assert_wire_contract!(DemographicEventId, "founder-event-0001");
         assert_wire_contract!(ChromosomeId, "chromosome-1");
         assert_wire_contract!(ChromosomeMapId, "reference-map-v1");
+        assert_wire_contract!(ChromosomeRecombinationProfileId, "poisson-reference-v1");
     }
 
     #[test]
