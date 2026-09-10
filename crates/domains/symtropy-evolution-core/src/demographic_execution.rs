@@ -2,6 +2,9 @@ use crate::{
     canonical::{fmt_hex, put_text, put_u64},
     demographic_history::DemographicEventExecutionDigest,
     demographic_sampling::sample_marginal_without_replacement,
+    demographic_source_authority::{
+        validate_demographic_source_authority, DemographicSourceAuthority,
+    },
     AlleleId, DemographicEventDeclaration, DemographicEventDeclarationDigest,
     DemographicEventKind, DemographicInterventionCursor, DemographicInterventionCursorDigest,
     DemographicStructureTransition, DemographicStructureTransitionDigest, EvolutionError,
@@ -9,6 +12,7 @@ use crate::{
     MetapopulationSnapshotDigest, PopulationGeneration, PopulationGeneticState,
     PopulationGeneticStateDigest, PopulationId, PopulationStructureProfile,
     PopulationTrajectoryPoint, PopulationTrajectoryPointDigest,
+    ValidatedDemographicInterventionSource,
 };
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
@@ -102,12 +106,70 @@ impl DemographicEventExecutionProvenance {
         structure_transition: &DemographicStructureTransition,
         result: &DemographicEventExecutionResult,
     ) -> Result<(), EvolutionError> {
-        source_cursor.validate_root_current(
+        self.validate_with_source_authority(
+            DemographicSourceAuthority::Root,
             schema,
             structure,
             source_populations,
             source_points,
             source_snapshot,
+            source_cursor,
+            event,
+            structure_transition,
+            result,
+        )
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    pub fn validate_after_proven_predecessor(
+        &self,
+        validated_source: &ValidatedDemographicInterventionSource,
+        schema: &HereditarySchema,
+        structure: &PopulationStructureProfile,
+        source_populations: &BTreeMap<PopulationId, PopulationGeneticState>,
+        source_points: &BTreeMap<PopulationId, PopulationTrajectoryPoint>,
+        source_snapshot: &MetapopulationSnapshot,
+        source_cursor: &DemographicInterventionCursor,
+        event: &DemographicEventDeclaration,
+        structure_transition: &DemographicStructureTransition,
+        result: &DemographicEventExecutionResult,
+    ) -> Result<(), EvolutionError> {
+        self.validate_with_source_authority(
+            DemographicSourceAuthority::Proven(validated_source),
+            schema,
+            structure,
+            source_populations,
+            source_points,
+            source_snapshot,
+            source_cursor,
+            event,
+            structure_transition,
+            result,
+        )
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    fn validate_with_source_authority(
+        &self,
+        source_authority: DemographicSourceAuthority<'_>,
+        schema: &HereditarySchema,
+        structure: &PopulationStructureProfile,
+        source_populations: &BTreeMap<PopulationId, PopulationGeneticState>,
+        source_points: &BTreeMap<PopulationId, PopulationTrajectoryPoint>,
+        source_snapshot: &MetapopulationSnapshot,
+        source_cursor: &DemographicInterventionCursor,
+        event: &DemographicEventDeclaration,
+        structure_transition: &DemographicStructureTransition,
+        result: &DemographicEventExecutionResult,
+    ) -> Result<(), EvolutionError> {
+        validate_demographic_source_authority(
+            source_authority,
+            schema,
+            structure,
+            source_populations,
+            source_points,
+            source_snapshot,
+            source_cursor,
         )?;
         event.validate_current(
             schema,
@@ -246,12 +308,64 @@ pub fn execute_census_resize_bottleneck(
     event: &DemographicEventDeclaration,
     structure_transition: &DemographicStructureTransition,
 ) -> Result<DemographicEventExecutionResult, EvolutionError> {
-    source_cursor.validate_root_current(
+    execute_census_resize_with_source_authority(
+        DemographicSourceAuthority::Root,
         schema,
         structure,
         source_populations,
         source_points,
         source_snapshot,
+        source_cursor,
+        event,
+        structure_transition,
+    )
+}
+
+#[allow(clippy::too_many_arguments)]
+pub fn execute_census_resize_bottleneck_after_proven_history(
+    validated_source: &ValidatedDemographicInterventionSource,
+    schema: &HereditarySchema,
+    structure: &PopulationStructureProfile,
+    source_populations: &BTreeMap<PopulationId, PopulationGeneticState>,
+    source_points: &BTreeMap<PopulationId, PopulationTrajectoryPoint>,
+    source_snapshot: &MetapopulationSnapshot,
+    source_cursor: &DemographicInterventionCursor,
+    event: &DemographicEventDeclaration,
+    structure_transition: &DemographicStructureTransition,
+) -> Result<DemographicEventExecutionResult, EvolutionError> {
+    execute_census_resize_with_source_authority(
+        DemographicSourceAuthority::Proven(validated_source),
+        schema,
+        structure,
+        source_populations,
+        source_points,
+        source_snapshot,
+        source_cursor,
+        event,
+        structure_transition,
+    )
+}
+
+#[allow(clippy::too_many_arguments)]
+fn execute_census_resize_with_source_authority(
+    source_authority: DemographicSourceAuthority<'_>,
+    schema: &HereditarySchema,
+    structure: &PopulationStructureProfile,
+    source_populations: &BTreeMap<PopulationId, PopulationGeneticState>,
+    source_points: &BTreeMap<PopulationId, PopulationTrajectoryPoint>,
+    source_snapshot: &MetapopulationSnapshot,
+    source_cursor: &DemographicInterventionCursor,
+    event: &DemographicEventDeclaration,
+    structure_transition: &DemographicStructureTransition,
+) -> Result<DemographicEventExecutionResult, EvolutionError> {
+    validate_demographic_source_authority(
+        source_authority,
+        schema,
+        structure,
+        source_populations,
+        source_points,
+        source_snapshot,
+        source_cursor,
     )?;
     event.validate_current(
         schema,
@@ -329,7 +443,8 @@ pub fn execute_census_resize_bottleneck(
         history_cursor,
         provenance,
     };
-    result.provenance.validate_current(
+    result.provenance.validate_with_source_authority(
+        source_authority,
         schema,
         structure,
         source_populations,

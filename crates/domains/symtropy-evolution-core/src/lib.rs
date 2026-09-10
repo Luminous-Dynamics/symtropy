@@ -15,6 +15,7 @@ mod demographic_founder_execution;
 mod demographic_history;
 mod demographic_proof_bundle;
 mod demographic_sampling;
+mod demographic_source_authority;
 mod demographic_split_execution;
 mod demographic_structure_transition;
 mod error;
@@ -40,9 +41,9 @@ pub use demographic_event::{
     DemographicEventKind, DemographicEventTiming,
 };
 pub use demographic_execution::{
-    execute_census_resize_bottleneck, DemographicEventExecutionModel,
-    DemographicEventExecutionProvenance, DemographicEventExecutionProvenanceDigest,
-    DemographicEventExecutionResult,
+    execute_census_resize_bottleneck, execute_census_resize_bottleneck_after_proven_history,
+    DemographicEventExecutionModel, DemographicEventExecutionProvenance,
+    DemographicEventExecutionProvenanceDigest, DemographicEventExecutionResult,
 };
 pub use demographic_extinction_execution::{
     execute_structural_extinction, DemographicExtinctionExecutionModel,
@@ -62,6 +63,7 @@ pub use demographic_proof_bundle::{
     DemographicInterventionProofBundleDigest, DemographicInterventionProofBundleModel,
     DemographicInterventionProofStep,
 };
+pub use demographic_source_authority::ValidatedDemographicInterventionSource;
 pub use demographic_split_execution::{
     execute_conservative_population_split, DemographicSplitExecutionModel,
     DemographicSplitExecutionProvenance, DemographicSplitExecutionProvenanceDigest,
