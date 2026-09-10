@@ -89,7 +89,10 @@ impl ContinuumEvidenceSubject {
         Ok(())
     }
 
-    pub fn bind<T>(self, payload: T) -> Result<ContinuumEvidenceEnvelope<T>, ContinuumEvidenceError> {
+    pub fn bind<T>(
+        self,
+        payload: T,
+    ) -> Result<ContinuumEvidenceEnvelope<T>, ContinuumEvidenceError> {
         self.validate()?;
         Ok(ContinuumEvidenceEnvelope {
             schema_version: CONTINUUM_EVIDENCE_SCHEMA_VERSION,
@@ -141,7 +144,10 @@ impl fmt::Display for ContinuumEvidenceError {
                 "source_revision must be a canonical 40-character lowercase hex commit"
             ),
             Self::NoExecutionProfiles => {
-                write!(f, "evidence subject requires at least one execution profile")
+                write!(
+                    f,
+                    "evidence subject requires at least one execution profile"
+                )
             }
             Self::TooManyExecutionProfiles => write!(
                 f,
