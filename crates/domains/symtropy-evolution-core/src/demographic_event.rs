@@ -116,43 +116,32 @@ impl DemographicEventKind {
             }
             daughters.sort_by(|a, b| a.population_id.cmp(&b.population_id));
         }
+        self.validate_local_canonical()?;
         Ok(self)
     }
 
-    fn validate_canonical(&self, structure: &PopulationStructureProfile) -> Result<(), EvolutionError> {
+    /// Validate representation-local invariants without granting current-world
+    /// authority. This is sufficient for safe canonical hashing of restored
+    /// event-shaped data, but not for execution.
+    fn validate_local_canonical(&self) -> Result<(), EvolutionError> {
         match self {
-            Self::CensusResize {
-                population,
-                target_census,
-            } => {
-                require_present(structure, population)?;
-                require_positive(*target_census)?;
-            }
-            Self::FounderEvent {
-                source,
-                founded_population,
-                founder_census,
-            } => {
-                require_present(structure, source)?;
-                require_absent(structure, founded_population)?;
-                require_positive(*founder_census)?;
-            }
-            Self::PopulationSplit { source, daughters } => {
-                require_present(structure, source)?;
+            Self::CensusResize { target_census, .. } => require_positive(*target_census)?,
+            Self::FounderEvent { founder_census, .. }
+            | Self::Recolonization { founder_census, .. } => require_positive(*founder_census)?,
+            Self::PopulationSplit { daughters, .. } => {
                 if daughters.len() < 2 {
                     return Err(EvolutionError::DemographicSplitRequiresTwoDaughters);
                 }
                 let mut previous: Option<&PopulationId> = None;
                 for daughter in daughters {
                     require_positive(daughter.census_individuals)?;
-                    require_absent(structure, &daughter.population_id)?;
                     if let Some(prev) = previous {
-                        if prev >= &daughter.population_id {
-                            if prev == &daughter.population_id {
-                                return Err(EvolutionError::DuplicateDemographicDaughter {
-                                    population: daughter.population_id.clone(),
-                                });
-                            }
+                        if prev == &daughter.population_id {
+                            return Err(EvolutionError::DuplicateDemographicDaughter {
+                                population: daughter.population_id.clone(),
+                            });
+                        }
+                        if prev > &daughter.population_id {
                             return Err(EvolutionError::NonCanonicalDemographicDaughterOrder);
                         }
                     }
@@ -164,8 +153,6 @@ impl DemographicEventKind {
                 source,
                 source_fraction_ppm,
             } => {
-                require_present(structure, destination)?;
-                require_present(structure, source)?;
                 if destination == source {
                     return Err(EvolutionError::DemographicSelfAdmixture {
                         population: destination.clone(),
@@ -177,17 +164,46 @@ impl DemographicEventKind {
                     });
                 }
             }
-            Self::Extinction { population } => {
-                require_present(structure, population)?;
+            Self::Extinction { .. } => {}
+        }
+        Ok(())
+    }
+
+    fn validate_canonical(
+        &self,
+        structure: &PopulationStructureProfile,
+    ) -> Result<(), EvolutionError> {
+        self.validate_local_canonical()?;
+        match self {
+            Self::CensusResize { population, .. } => require_present(structure, population)?,
+            Self::FounderEvent {
+                source,
+                founded_population,
+                ..
+            } => {
+                require_present(structure, source)?;
+                require_absent(structure, founded_population)?;
             }
+            Self::PopulationSplit { source, daughters } => {
+                require_present(structure, source)?;
+                for daughter in daughters {
+                    require_absent(structure, &daughter.population_id)?;
+                }
+            }
+            Self::PulseAdmixture {
+                destination, source, ..
+            } => {
+                require_present(structure, destination)?;
+                require_present(structure, source)?;
+            }
+            Self::Extinction { population } => require_present(structure, population)?,
             Self::Recolonization {
                 source,
                 recolonized_population,
-                founder_census,
+                ..
             } => {
                 require_present(structure, source)?;
                 require_absent(structure, recolonized_population)?;
-                require_positive(*founder_census)?;
             }
         }
         Ok(())
@@ -371,6 +387,7 @@ impl DemographicEventDeclaration {
         source_snapshot: &MetapopulationSnapshot,
     ) -> Result<(), EvolutionError> {
         crate::error::validate_text("demographic_event.version", &self.version)?;
+        self.kind.validate_local_canonical()?;
         schema.validate()?;
         structure.validate()?;
         source_snapshot.validate_current(schema, structure, populations, points)?;
@@ -399,6 +416,7 @@ impl DemographicEventDeclaration {
 
     pub fn canonical_digest(&self) -> Result<DemographicEventDeclarationDigest, EvolutionError> {
         crate::error::validate_text("demographic_event.version", &self.version)?;
+        self.kind.validate_local_canonical()?;
         let mut digest = Sha256::new();
         digest.update(DEMOGRAPHIC_EVENT_DIGEST_DOMAIN);
         put_text(&mut digest, self.event_id.as_str());
@@ -643,5 +661,30 @@ mod tests {
         assert!(restored
             .validate_current(&schema, &structure, &populations, &points, &snapshot)
             .is_err());
+    }
+
+    #[test]
+    fn restored_noncanonical_split_order_cannot_be_hashed_as_canonical() {
+        let declaration = declare(DemographicEventKind::PopulationSplit {
+            source: pop("a"),
+            daughters: vec![
+                DaughterPopulation::new(pop("a-east"), 2).unwrap(),
+                DaughterPopulation::new(pop("a-west"), 2).unwrap(),
+            ],
+        })
+        .unwrap();
+        let mut value = serde_json::to_value(&declaration).unwrap();
+        let daughters = value
+            .get_mut("kind")
+            .and_then(|kind| kind.get_mut("PopulationSplit"))
+            .and_then(|split| split.get_mut("daughters"))
+            .and_then(|daughters| daughters.as_array_mut())
+            .unwrap();
+        daughters.reverse();
+        let restored: DemographicEventDeclaration = serde_json::from_value(value).unwrap();
+        assert_eq!(
+            restored.canonical_digest(),
+            Err(EvolutionError::NonCanonicalDemographicDaughterOrder)
+        );
     }
 }
