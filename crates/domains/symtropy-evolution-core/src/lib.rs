@@ -51,6 +51,31 @@ macro_rules! semantic_id {
     };
 }
 
+macro_rules! digest_display {
+    ($name:ident) => {
+        impl $name {
+            pub fn as_bytes(&self) -> &[u8; 32] {
+                &self.0
+            }
+        }
+
+        impl fmt::Debug for $name {
+            fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+                write!(f, "{}({})", stringify!($name), self)
+            }
+        }
+
+        impl fmt::Display for $name {
+            fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+                for byte in self.0 {
+                    write!(f, "{byte:02x}")?;
+                }
+                Ok(())
+            }
+        }
+    };
+}
+
 semantic_id!(HereditarySchemaId);
 semantic_id!(LocusId);
 semantic_id!(AlleleId);
@@ -349,6 +374,9 @@ pub fn derive_offspring(
             if schema.ploidy != 2 {
                 return Err(EvolutionError::ModeRequiresDiploid(schema.ploidy));
             }
+            if operators.recombination.mode != RecombinationMode::IndependentLoci {
+                return Err(EvolutionError::RecombinationModeMismatch);
+            }
 
             for locus_id in schema.loci.keys() {
                 let parent_a = parents[0]
@@ -477,11 +505,13 @@ impl PopulationGeneticState {
             }
         }
 
+        let census_individuals = u64::try_from(individuals.len())
+            .map_err(|_| EvolutionError::CountOverflow)?;
         let state = Self {
             schema_version: EVOLUTION_SCHEMA_VERSION,
             population_id,
             hereditary_schema_id: schema.id.clone(),
-            census_individuals: individuals.len() as u64,
+            census_individuals,
             allele_copy_counts: counts,
         };
         state.validate(schema)?;
@@ -540,7 +570,9 @@ impl PopulationGeneticState {
                         allele: allele.clone(),
                     });
                 }
-                total = total.checked_add(*count).ok_or(EvolutionError::CountOverflow)?;
+                total = total
+                    .checked_add(*count)
+                    .ok_or(EvolutionError::CountOverflow)?;
             }
             if total != expected_per_locus {
                 return Err(EvolutionError::PopulationCopyTotalMismatch {
@@ -622,6 +654,7 @@ pub enum EvolutionError {
     EmptyText { field: &'static str },
     UnsupportedPloidy(u8),
     ModeRequiresDiploid(u8),
+    RecombinationModeMismatch,
     NoLoci,
     DuplicateLocus,
     NoAlleles { locus: LocusId },
@@ -656,6 +689,7 @@ impl fmt::Display for EvolutionError {
             Self::ModeRequiresDiploid(ploidy) => {
                 write!(f, "biparental V0 mode requires diploid schema, observed {ploidy}")
             }
+            Self::RecombinationModeMismatch => write!(f, "reproduction/recombination mode mismatch"),
             Self::NoLoci => write!(f, "hereditary schema must contain at least one locus"),
             Self::DuplicateLocus => write!(f, "duplicate locus identity"),
             Self::NoAlleles { locus } => write!(f, "locus {} has no allowed alleles", locus.as_str()),
@@ -741,7 +775,9 @@ fn draw_below(
         if value < zone {
             return Ok(value % upper);
         }
-        attempt = attempt.checked_add(1).ok_or(EvolutionError::CountOverflow)?;
+        attempt = attempt
+            .checked_add(1)
+            .ok_or(EvolutionError::CountOverflow)?;
     }
 }
 
@@ -763,7 +799,11 @@ fn semantic_draw_u64(
     put_text(&mut digest, purpose);
     put_u64(&mut digest, attempt);
     let bytes: [u8; 32] = digest.finalize().into();
-    u64::from_le_bytes(bytes[..8].try_into().expect("SHA-256 output has 8-byte prefix"))
+    u64::from_le_bytes(
+        bytes[..8]
+            .try_into()
+            .expect("SHA-256 output has an 8-byte prefix"),
+    )
 }
 
 fn put_u32(digest: &mut Sha256, value: u32) {
@@ -777,31 +817,6 @@ fn put_u64(digest: &mut Sha256, value: u64) {
 fn put_text(digest: &mut Sha256, value: &str) {
     put_u64(digest, value.len() as u64);
     digest.update(value.as_bytes());
-}
-
-macro_rules! digest_display {
-    ($name:ident) => {
-        impl $name {
-            pub fn as_bytes(&self) -> &[u8; 32] {
-                &self.0
-            }
-        }
-
-        impl fmt::Debug for $name {
-            fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-                write!(f, "{}({})", stringify!($name), self)
-            }
-        }
-
-        impl fmt::Display for $name {
-            fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-                for byte in self.0 {
-                    write!(f, "{byte:02x}")?;
-                }
-                Ok(())
-            }
-        }
-    };
 }
 
 #[cfg(test)]
@@ -935,7 +950,8 @@ mod tests {
         )
         .expect("offspring");
 
-        assert_eq!(child_a.copies.get(&LocusId::new("pigment").unwrap()), child_ab.copies.get(&LocusId::new("pigment").unwrap()));
+        let pigment = LocusId::new("pigment").unwrap();
+        assert_eq!(child_a.copies.get(&pigment), child_ab.copies.get(&pigment));
     }
 
     #[test]
