@@ -1,0 +1,10 @@
+[package]
+name = "symtropy-evolution-core"
+version = "0.1.0"
+edition = "2024"
+license = "Apache-2.0 OR MIT"
+description = "Dependency-light deterministic heredity and population-genetics primitives for Symtropy"
+
+[dependencies]
+serde = { version = "1", features = ["derive"] }
+sha2 = "0.10"
