@@ -13,6 +13,7 @@ mod demographic_extinction_execution;
 mod demographic_founder_execution;
 mod demographic_history;
 mod demographic_sampling;
+mod demographic_split_execution;
 mod demographic_structure_transition;
 mod error;
 mod heredity;
@@ -48,6 +49,11 @@ pub use demographic_founder_execution::{
 };
 pub use demographic_history::{
     DemographicInterventionCursor, DemographicInterventionCursorDigest,
+};
+pub use demographic_split_execution::{
+    execute_conservative_population_split, DemographicSplitExecutionModel,
+    DemographicSplitExecutionProvenance, DemographicSplitExecutionProvenanceDigest,
+    DemographicSplitExecutionResult,
 };
 pub use demographic_structure_transition::{
     DemographicStructureTransition, DemographicStructureTransitionDigest,
