@@ -5,29 +5,46 @@ use crate::{
 };
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
-use std::{collections::{BTreeMap, BTreeSet}, fmt};
+use std::{
+    collections::{BTreeMap, BTreeSet},
+    fmt,
+};
 
 pub const CHROMOSOME_MAP_VERSION: u32 = 1;
-const CHROMOSOME_MAP_DIGEST_DOMAIN: &[u8] =
-    b"symtropy:evolution:chromosome-map:v1\0";
+const CHROMOSOME_MAP_DIGEST_DOMAIN: &[u8] = b"symtropy:evolution:chromosome-map:v1\0";
+
+/// Integer genetic-map position measured in micromorgans.
+///
+/// This is deliberately a distinct type so physical sequence coordinates or
+/// other distance units cannot be passed accidentally to chromosome-map APIs.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
+#[serde(transparent)]
+pub struct GeneticMapPositionMicromorgans(u64);
+
+impl GeneticMapPositionMicromorgans {
+    pub const fn new(value: u64) -> Self {
+        Self(value)
+    }
+
+    pub const fn get(self) -> u64 {
+        self.0
+    }
+}
 
 /// One hereditary-schema locus placed on a chromosome genetic map.
 ///
-/// `position_micromorgans` is an integer genetic-map coordinate. It is not a
-/// physical base-pair coordinate and V1 does not itself define a mapping from
-/// map distance to crossover probability.
+/// The position is a genetic-map coordinate. It is not a physical base-pair
+/// coordinate and V1 does not itself define a mapping from map distance to
+/// crossover probability.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ChromosomeLocus {
     pub locus_id: LocusId,
-    pub position_micromorgans: u64,
+    pub position: GeneticMapPositionMicromorgans,
 }
 
 impl ChromosomeLocus {
-    pub fn new(locus_id: LocusId, position_micromorgans: u64) -> Self {
-        Self {
-            locus_id,
-            position_micromorgans,
-        }
+    pub fn new(locus_id: LocusId, position: GeneticMapPositionMicromorgans) -> Self {
+        Self { locus_id, position }
     }
 }
 
@@ -63,16 +80,17 @@ impl ChromosomeDefinition {
                     locus: locus.locus_id.clone(),
                 });
             }
+            let position = locus.position.get();
             if let Some(previous) = previous_position {
-                if locus.position_micromorgans <= previous {
+                if position <= previous {
                     return Err(EvolutionError::NonIncreasingChromosomeMapPosition {
                         chromosome: self.id.clone(),
                         previous_micromorgans: previous,
-                        observed_micromorgans: locus.position_micromorgans,
+                        observed_micromorgans: position,
                     });
                 }
             }
-            previous_position = Some(locus.position_micromorgans);
+            previous_position = Some(position);
         }
         Ok(())
     }
@@ -188,7 +206,7 @@ impl ChromosomeMap {
             put_u64(&mut digest, chromosome.loci.len() as u64);
             for locus in &chromosome.loci {
                 put_text(&mut digest, locus.locus_id.as_str());
-                put_u64(&mut digest, locus.position_micromorgans);
+                put_u64(&mut digest, locus.position.get());
             }
         }
         Ok(ChromosomeMapDigest(digest.finalize().into()))
