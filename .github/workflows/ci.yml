@@ -36,6 +36,22 @@ jobs:
     steps:
     - uses: actions/checkout@v4
 
+    # A pull_request workflow run/job ID is provenance, not integration
+    # identity. Fail before dependency installation or semantic tests unless
+    # the provider checkout is a two-parent merge object whose ordered parents
+    # match the immutable base/head SHAs recorded by the triggering event.
+    # This would have rejected CRK-01 run #258, whose event metadata named
+    # base 3cb63c80... while the jobs actually checked out a merge into
+    # previous base 245a2023....
+    - name: Verify immutable PR integration subject
+      id: integration-subject
+      if: github.event_name == 'pull_request'
+      shell: bash
+      env:
+        EXPECTED_BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        EXPECTED_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+      run: bash scripts/verify-pr-integration-subject.sh "$EXPECTED_BASE_SHA" "$EXPECTED_HEAD_SHA"
+
     - name: Install System Dependencies (Linux)
       if: runner.os == 'Linux'
       run: |
