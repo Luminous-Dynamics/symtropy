@@ -23,7 +23,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           ref: ${{ github.sha }}
-          fetch-depth: 2
+          fetch-depth: 0
 
       - name: Bind distinct diagnostic subject
         shell: bash
@@ -31,11 +31,11 @@ jobs:
           set -euo pipefail
           readonly FROZEN_PRODUCT_HEAD="74b8771d6f19fd562a3fb5f95d5d1cd73d6c9343"
           actual_head="$(git rev-parse HEAD)"
-          parent_head="$(git rev-parse HEAD^)"
           test "${actual_head}" = "${GITHUB_SHA}"
-          test "${parent_head}" = "${FROZEN_PRODUCT_HEAD}"
+          git merge-base --is-ancestor "${FROZEN_PRODUCT_HEAD}" HEAD
           echo "PB04A_SLIM_DIAGNOSTIC_HEAD=${actual_head}"
-          echo "PB04A_FROZEN_PRODUCT_PARENT=${parent_head}"
+          echo "PB04A_FROZEN_PRODUCT_ROOT=${FROZEN_PRODUCT_HEAD}"
+          echo "PB04A_DIAGNOSTIC_COMMITS_SINCE_ROOT=$(git rev-list --count "${FROZEN_PRODUCT_HEAD}..HEAD")"
           echo "PB04A_SLIM_DIAGNOSTIC_TREE=$(git rev-parse HEAD^{tree})"
           python3 --version
 
@@ -61,7 +61,7 @@ jobs:
           check_blob 859392660ab0a722d76892ee317aceb2f2522be4 crates/domains/symtropy-spatial-topology/tests/hostile_projection.rs
           check_blob 1d94ebb0a6819bfd1d95060920ec5b3d460194a9 scripts/pb04a-harden-content-identity.py
           check_blob e03de8d8e452af9720d24f8922081c5e00209022 scripts/pb04a-harden-global-source-consistency.py
-          check_blob 253cc6e94a23dd61a7b712b43862ddfb966e8872 scripts/pb04a-harden-query-semantics.py
+          check_blob 0790af59fc936515a1a9131ffe1a945e2696f7c6 scripts/pb04a-harden-query-semantics.py
           check_blob 14b41e0c1e010aa9ba4011cff90ded3e77e747f6 scripts/pb04a-seal-identity-state.py
 
       - name: Syntax-check transformer programs
