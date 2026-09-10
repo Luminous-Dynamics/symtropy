@@ -5,12 +5,14 @@
 //!
 //! The current gameplay/runtime implementation is an early SPH scaffold:
 //! density uses an all-pairs reference loop and pressure/viscosity gradients are
-//! not yet a production solver. [`validation`] is solver-independent, while
-//! [`reference`] is a deliberately small CPU continuum solver used only to
-//! establish numerical validation rungs. Neither module should be read as a
-//! claim that Symtropy currently reproduces the 2026 singular construction or
-//! has a production Earth-water CFD backend.
+//! not yet a production solver. [`validation`] is solver-independent,
+//! [`reference`] is a deliberately small CPU continuum solver, and
+//! [`convergence`] provides analytical/error measurements for the smooth
+//! validation ladder. None of these modules should be read as a claim that
+//! Symtropy currently reproduces the 2026 singular construction or has a
+//! production Earth-water CFD backend.
 
+pub mod convergence;
 pub mod reference;
 pub mod validation;
 
