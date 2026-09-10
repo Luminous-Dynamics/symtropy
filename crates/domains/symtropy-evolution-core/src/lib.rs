@@ -8,6 +8,7 @@
 
 mod canonical;
 mod demographic_event;
+mod demographic_execution;
 mod demographic_history;
 mod demographic_structure_transition;
 mod error;
@@ -26,6 +27,11 @@ mod structured_population_process;
 pub use demographic_event::{
     DaughterPopulation, DemographicEventDeclaration, DemographicEventDeclarationDigest,
     DemographicEventKind, DemographicEventTiming,
+};
+pub use demographic_execution::{
+    execute_census_resize_bottleneck, DemographicEventExecutionModel,
+    DemographicEventExecutionProvenance, DemographicEventExecutionProvenanceDigest,
+    DemographicEventExecutionResult,
 };
 pub use demographic_history::{
     DemographicInterventionCursor, DemographicInterventionCursorDigest,
