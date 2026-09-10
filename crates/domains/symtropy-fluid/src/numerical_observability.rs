@@ -19,8 +19,7 @@ use crate::reference::{
 };
 
 pub const STABILITY_PROBE_SCHEMA_ID: &str = "continuum-stability-probe-v0.1";
-pub const PROJECTION_ITERATION_SWEEP_SCHEMA_ID: &str =
-    "continuum-projection-iteration-sweep-v0.1";
+pub const PROJECTION_ITERATION_SWEEP_SCHEMA_ID: &str = "continuum-projection-iteration-sweep-v0.1";
 pub const COMPRESSIVE_MODE_PROFILE_ID: &str = "periodic-compressive-mac-mode-v0.1";
 pub const MAX_NUMERICAL_OBSERVABILITY_POINTS: usize = 32;
 
@@ -171,8 +170,8 @@ pub fn stability_margin_from_step(
         diffusion_number_margin: config.max_diffusion_number - report.diffusion_number,
         combined_explicit_number: report.combined_explicit_number,
         combined_explicit_number_limit: MAX_COMBINED_EXPLICIT_NUMBER,
-        combined_explicit_number_margin:
-            MAX_COMBINED_EXPLICIT_NUMBER - report.combined_explicit_number,
+        combined_explicit_number_margin: MAX_COMBINED_EXPLICIT_NUMBER
+            - report.combined_explicit_number,
     };
     for (name, value) in [
         ("max_advective_cfl", sample.max_advective_cfl),
@@ -327,7 +326,8 @@ pub fn run_projection_iteration_sweep(
         } else {
             None
         };
-        let reference_residual = *first_residual.get_or_insert(projection.pressure_residual_rms_pa_per_m2);
+        let reference_residual =
+            *first_residual.get_or_insert(projection.pressure_residual_rms_pa_per_m2);
         let pressure_residual_ratio_to_first = if reference_residual > 0.0 {
             Some(finite_ratio(
                 "pressure_residual_ratio_to_first",
@@ -459,8 +459,7 @@ mod tests {
 
     #[test]
     fn mixed_timestep_probe_retains_rejection_and_admission() {
-        let report = run_passive_taylor_green_stability_probe(config(), 0.5, &[0.5, 0.05])
-            .unwrap();
+        let report = run_passive_taylor_green_stability_probe(config(), 0.5, &[0.5, 0.05]).unwrap();
         assert!(matches!(
             report.points[0].outcome,
             StabilityProbeOutcome::Rejected(_)
@@ -473,8 +472,8 @@ mod tests {
 
     #[test]
     fn projection_iteration_sweep_retains_convergence_observables() {
-        let report = run_projection_iteration_sweep(config(), 0.08, 0.001, &[1, 4, 16, 64])
-            .unwrap();
+        let report =
+            run_projection_iteration_sweep(config(), 0.08, 0.001, &[1, 4, 16, 64]).unwrap();
         assert_eq!(report.points.len(), 4);
         let first = &report.points[0];
         let last = &report.points[3];

@@ -26,8 +26,7 @@ use crate::reference::{
 };
 use crate::validation::{ContinuumValidityState, DiagnosticValueError};
 use crate::verification_ladder::{
-    LadderCaseSpec, MAX_LADDER_CASES, RefinementAxis, VerificationCaseKind,
-    VerificationLadderPoint,
+    LadderCaseSpec, MAX_LADDER_CASES, RefinementAxis, VerificationCaseKind, VerificationLadderPoint,
 };
 
 pub const FALSIFICATION_CAMPAIGN_SCHEMA_ID: &str = "continuum-falsification-campaign-v0.1";
@@ -132,20 +131,16 @@ pub fn run_passive_taylor_green_campaign(
         config.nx = spec.resolution;
         config.ny = spec.resolution;
         let minimum_resolved_length_m = config.dx().min(config.dy());
-        let outcome = match run_taylor_green_case(
-            config,
-            initial_amplitude_mps,
-            final_time_s,
-            spec.steps,
-        ) {
-            Ok(report) => VerificationCampaignOutcome::Completed(passive_point(
-                report,
-                minimum_resolved_length_m,
-            )),
-            Err(error) => VerificationCampaignOutcome::Failed(classify_passive_failure(
-                spec, error,
-            )),
-        };
+        let outcome =
+            match run_taylor_green_case(config, initial_amplitude_mps, final_time_s, spec.steps) {
+                Ok(report) => VerificationCampaignOutcome::Completed(passive_point(
+                    report,
+                    minimum_resolved_length_m,
+                )),
+                Err(error) => {
+                    VerificationCampaignOutcome::Failed(classify_passive_failure(spec, error))
+                }
+            };
         outcomes.push(outcome);
     }
 
@@ -171,20 +166,16 @@ pub fn run_manufactured_taylor_green_campaign(
         config.nx = spec.resolution;
         config.ny = spec.resolution;
         let minimum_resolved_length_m = config.dx().min(config.dy());
-        let outcome = match run_manufactured_taylor_green_case(
-            config,
-            profile,
-            final_time_s,
-            spec.steps,
-        ) {
-            Ok(report) => VerificationCampaignOutcome::Completed(manufactured_point(
-                report,
-                minimum_resolved_length_m,
-            )),
-            Err(error) => VerificationCampaignOutcome::Failed(classify_manufactured_failure(
-                spec, error,
-            )),
-        };
+        let outcome =
+            match run_manufactured_taylor_green_case(config, profile, final_time_s, spec.steps) {
+                Ok(report) => VerificationCampaignOutcome::Completed(manufactured_point(
+                    report,
+                    minimum_resolved_length_m,
+                )),
+                Err(error) => {
+                    VerificationCampaignOutcome::Failed(classify_manufactured_failure(spec, error))
+                }
+            };
         outcomes.push(outcome);
     }
 
@@ -555,14 +546,9 @@ mod tests {
                 steps: 64,
             },
         ];
-        let report = run_passive_taylor_green_campaign(
-            config(),
-            0.5,
-            0.5,
-            RefinementAxis::Temporal,
-            &cases,
-        )
-        .unwrap();
+        let report =
+            run_passive_taylor_green_campaign(config(), 0.5, 0.5, RefinementAxis::Temporal, &cases)
+                .unwrap();
 
         assert_eq!(report.failed_count, 1);
         assert_eq!(report.completed_count, 1);
@@ -597,14 +583,9 @@ mod tests {
                 steps: 128,
             },
         ];
-        let report = run_passive_taylor_green_campaign(
-            config(),
-            0.5,
-            0.5,
-            RefinementAxis::Temporal,
-            &cases,
-        )
-        .unwrap();
+        let report =
+            run_passive_taylor_green_campaign(config(), 0.5, 0.5, RefinementAxis::Temporal, &cases)
+                .unwrap();
 
         assert_eq!(report.adjacent_observed_orders.len(), 1);
         assert_eq!(report.adjacent_observed_orders[0].coarse_outcome_index, 1);

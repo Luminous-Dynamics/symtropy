@@ -154,12 +154,8 @@ fn main() -> Result<(), Box<dyn Error>> {
     let mut trace_config = base.clone();
     trace_config.nx = 16;
     trace_config.ny = 16;
-    let passive_diagnostic_trace = run_passive_taylor_green_diagnostic_trace(
-        trace_config.clone(),
-        0.08,
-        0.0005,
-        8,
-    )?;
+    let passive_diagnostic_trace =
+        run_passive_taylor_green_diagnostic_trace(trace_config.clone(), 0.08, 0.0005, 8)?;
     let manufactured_diagnostic_trace = run_manufactured_taylor_green_diagnostic_trace(
         trace_config,
         manufactured_profile,
@@ -182,12 +178,8 @@ fn main() -> Result<(), Box<dyn Error>> {
     // Project the same deterministic divergent field using only different fixed
     // Jacobi iteration counts. This measures projection convergence without
     // changing solver equations, forcing, grid, or initial state.
-    let projection_iteration_sweep = run_projection_iteration_sweep(
-        observability_config,
-        0.08,
-        0.001,
-        &[1, 4, 16, 64, 256],
-    )?;
+    let projection_iteration_sweep =
+        run_projection_iteration_sweep(observability_config, 0.08, 0.001, &[1, 4, 16, 64, 256])?;
 
     let bundle = EvidenceBundle {
         schema_id: EVIDENCE_BUNDLE_SCHEMA_ID,
