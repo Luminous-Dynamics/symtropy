@@ -4,7 +4,8 @@ use symtropy_evolution_core::{
     neutral_wright_fisher_step, AlleleId, EvolutionExperimentId, HereditarySchema,
     HereditarySchemaId, LocusDefinition, LocusId, PopulationGeneration,
     PopulationGeneticState, PopulationId, PopulationProcessModel,
-    PopulationProcessProfile, PopulationProcessProfileId, PopulationTransitionId,
+    PopulationProcessProfile, PopulationProcessProfileId, PopulationTrajectoryPoint,
+    PopulationTransitionId,
 };
 
 fn allele(id: &str) -> AlleleId {
@@ -48,12 +49,20 @@ fn reference_profile() -> PopulationProcessProfile {
 fn one_generation_frequency(replicate: u64) -> f64 {
     let schema = reference_schema();
     let source = reference_population(&schema);
+    let experiment =
+        EvolutionExperimentId::new(format!("neutral-wf-replicate-{replicate:05}")).unwrap();
+    let point = PopulationTrajectoryPoint::declare_reference_start(
+        &schema,
+        &source,
+        experiment,
+        PopulationGeneration(0),
+    )
+    .unwrap();
     let result = neutral_wright_fisher_step(
         &schema,
         &source,
-        &EvolutionExperimentId::new(format!("neutral-wf-replicate-{replicate:05}")).unwrap(),
+        &point,
         &PopulationTransitionId::new("generation-step").unwrap(),
-        PopulationGeneration(0),
         &reference_profile(),
     )
     .unwrap();

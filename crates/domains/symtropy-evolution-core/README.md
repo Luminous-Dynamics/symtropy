@@ -42,9 +42,33 @@ Independent ensemble replicates must use distinct experiment IDs. Paired counter
 
 The reference process is intentionally O(number of allele copies × loci) per generation. It exists first for correctness and analytical qualification; accelerated/coarse deep-time models must earn equivalence through the existing Living World fidelity/closure/shadow-validation machinery rather than silently replacing it.
 
+## Trajectory authority
+
+POPGEN-03B1 makes the temporal/stochastic position explicit:
+
+`population state != that population state at generation G in experiment E`.
+
+A `PopulationTrajectoryPoint` binds:
+
+- exact hereditary schema authority;
+- population identity;
+- exact aggregate population-state digest;
+- `EvolutionExperimentId`;
+- `PopulationGeneration`.
+
+Equal allele-count states may recur in different experiments or generations and therefore produce different trajectory-point identities.
+
+Ordinary neutral continuation consumes a validated source trajectory point and returns both the destination population state and a new destination point at exactly `G + 1`. Transition provenance binds the source and destination point digests as well as the state digests, process profile, transition identity, and generation interval.
+
+`PopulationTrajectoryPoint::declare_reference_start(...)` is deliberately named as an explicit free-standing/reference experiment start. It does **not** prove canonical world-history time. A future adapter to Living World / continuation authority must bind simulation time and inactive-world catch-up separately.
+
+The static chain fixture advances the same trajectory continuously for 20 generations and as `0 -> 7 -> checkpoint -> 20`; both paths must produce the same final state and trajectory point. This is the first direct bridge toward bounded deterministic inactive-world catch-up without making work-budget chunking part of biology.
+
+Trajectory points and their digests are canonical simulation identities/provenance, not cryptographic authorization tokens.
+
 ## Qualification fixtures
 
-Static fixtures now cover deterministic replay, transition revalidation, fixed-allele absorption, locus-order independence, exact copy-count conservation, stochastic experiment identity, aggregate canonicalization, and an integration-test ensemble for the one-generation Wright–Fisher mean and variance:
+Static fixtures cover deterministic replay, transition revalidation, fixed-allele absorption, locus-order independence, exact copy-count conservation, stochastic experiment identity, aggregate canonicalization, trajectory-state revalidation, generation-sensitive trajectory identity, checkpoint/chunking invariance, and an integration-test ensemble for the one-generation Wright–Fisher mean and variance:
 
 - `E[p'] = p`;
 - `Var[p'] = p(1-p)/(2N)` for the diploid reference fixture.
@@ -63,13 +87,14 @@ The crate is split into small authority-focused modules:
 - `reproduction` — deterministic offspring derivation and parentage provenance;
 - `population` — aggregate allele-copy state only;
 - `population_process` — narrow, versioned population transition models;
+- `population_trajectory` — revalidatable experiment/generation/state trajectory positions;
 - `ids`, `canonical`, and `error` — shared semantic identity, canonical encoding, and fail-closed errors.
 
 This structure is deliberate: chromosome linkage, ancestry, migration, ecology integration, speciation, and deep-time acceleration should extend narrow seams rather than grow a biological mega-module.
 
 ## Deliberate limits
 
-V0 does not yet implement chromosome linkage/crossover, quantitative genetics, dominance, epistasis, gene regulation, evo-devo, migration, ecological selection, phylogeny/speciation, ancestry compression, alternative biochemistry, or civilization.
+V0 does not yet implement chromosome linkage/crossover, quantitative genetics, dominance, epistasis, gene regulation, evo-devo, migration, ecological selection, phylogeny/speciation, ancestry compression, alternative biochemistry, world-time authority, rewind/branch DAGs, or civilization.
 
 Those arrive as independently reviewable successors. In particular, the `IndependentLoci` models are reference profiles, not claims of universal inheritance or population biology.
 
@@ -77,4 +102,4 @@ Those arrive as independently reviewable successors. In particular, the `Indepen
 
 The current stacked implementation is **implemented/static only** until an exact-head Rust toolchain run establishes rustfmt/tests/strict-Clippy/check evidence. Repository workspace registration and `Cargo.lock` changes are intentionally deferred from the structural authority tranche.
 
-See the Living World `HEREDITY_PROVENANCE_V0.md` and `BIOLOGICAL_REPRODUCTION_V0.md` contracts on the parent stack, ASTRO-00 for scientific evidence/assumption semantics, EVO-03A issue #414 for exact-authority hardening, and POPGEN-03B issue #417 for the reference-process qualification plan.
+See the Living World `HEREDITY_PROVENANCE_V0.md` and `BIOLOGICAL_REPRODUCTION_V0.md` contracts on the parent stack, ASTRO-00 for scientific evidence/assumption semantics, EVO-03A issue #414 for exact-authority hardening, POPGEN-03B issue #417 for the reference-process qualification plan, and POPGEN-03B1 issue #429 for trajectory-cursor hardening.
