@@ -1,0 +1,12 @@
+[package]
+name = "symtropy-agent-observation-bridge"
+version = "0.1.0"
+edition = "2024"
+license = "AGPL-3.0-or-later"
+description = "Bounded observable-cue projection into Symtropy resident knowledge."
+
+[dependencies]
+serde = { version = "1.0", features = ["derive"] }
+symtropy-game-state = { path = "../../domains/symtropy-game-state" }
+symtropy-protection-core = { path = "../../domains/symtropy-protection-core" }
+symtropy-residents = { path = "../../domains/symtropy-residents" }
