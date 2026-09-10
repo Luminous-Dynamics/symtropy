@@ -400,7 +400,7 @@ impl Error for PlanError {}
 
 fn sort_unique_workpieces(
     step_id: &PlanStepId,
-    values: &mut Vec<WorkpieceId>,
+    values: &mut [WorkpieceId],
 ) -> Result<(), PlanError> {
     values.sort();
     for pair in values.windows(2) {
@@ -416,7 +416,7 @@ fn sort_unique_workpieces(
 
 fn sort_unique_capability_needs(
     step_id: &PlanStepId,
-    values: &mut Vec<CapabilityNeedId>,
+    values: &mut [CapabilityNeedId],
 ) -> Result<(), PlanError> {
     values.sort();
     for pair in values.windows(2) {
@@ -432,7 +432,7 @@ fn sort_unique_capability_needs(
 
 fn sort_unique_evidence_kinds(
     step_id: &PlanStepId,
-    values: &mut Vec<StableId>,
+    values: &mut [StableId],
 ) -> Result<(), PlanError> {
     values.sort();
     for pair in values.windows(2) {

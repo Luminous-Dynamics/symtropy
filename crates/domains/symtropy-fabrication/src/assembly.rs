@@ -270,7 +270,7 @@ impl fmt::Display for AssemblyError {
 
 impl Error for AssemblyError {}
 
-fn sort_unique_workpieces(values: &mut Vec<WorkpieceId>) -> Result<(), AssemblyError> {
+fn sort_unique_workpieces(values: &mut [WorkpieceId]) -> Result<(), AssemblyError> {
     values.sort();
     for pair in values.windows(2) {
         if pair[0] == pair[1] {
@@ -280,7 +280,7 @@ fn sort_unique_workpieces(values: &mut Vec<WorkpieceId>) -> Result<(), AssemblyE
     Ok(())
 }
 
-fn sort_unique_interfaces(values: &mut Vec<InterfaceId>) -> Result<(), AssemblyError> {
+fn sort_unique_interfaces(values: &mut [InterfaceId]) -> Result<(), AssemblyError> {
     values.sort();
     for pair in values.windows(2) {
         if pair[0] == pair[1] {
@@ -290,7 +290,7 @@ fn sort_unique_interfaces(values: &mut Vec<InterfaceId>) -> Result<(), AssemblyE
     Ok(())
 }
 
-fn sort_unique_joints(values: &mut Vec<JointId>) -> Result<(), AssemblyError> {
+fn sort_unique_joints(values: &mut [JointId]) -> Result<(), AssemblyError> {
     values.sort();
     for pair in values.windows(2) {
         if pair[0] == pair[1] {

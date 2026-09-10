@@ -159,13 +159,12 @@ impl CommissioningPlan {
         for requirement in &requirements {
             if let CommissioningRequirementKind::FunctionalConstraintSatisfied { constraint_id } =
                 &requirement.kind
+                && !design_constraints.contains(constraint_id)
             {
-                if !design_constraints.contains(constraint_id) {
-                    return Err(CommissioningError::UnknownConstraintRequirement {
-                        requirement_id: requirement.id.clone(),
-                        constraint_id: constraint_id.clone(),
-                    });
-                }
+                return Err(CommissioningError::UnknownConstraintRequirement {
+                    requirement_id: requirement.id.clone(),
+                    constraint_id: constraint_id.clone(),
+                });
             }
         }
 
