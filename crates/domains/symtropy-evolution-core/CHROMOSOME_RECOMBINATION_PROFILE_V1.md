@@ -14,17 +14,19 @@ Core theorems:
 
 C1 says where modeled loci lie in genetic-map space. C2 says which alleles coexist on the same homolog. Neither authority says that a crossover occurred or defines the stochastic process that could produce one.
 
-## Reference process
+## Reference models
 
-V1 exposes one deliberately narrow model:
+V1 exposes two deliberately narrow models.
 
-`PoissonCrossoversNoInterferenceV1`.
+`NoCrossoversIndependentAssortmentV1` is the exact C3B baseline: one complete homolog may be selected independently per chromosome, with no within-chromosome crossover. It exists so chromosome segregation/provenance can be validated before a crossover point-process implementation is trusted.
 
-Under this model, gametic crossover points are assumed to form a homogeneous Poisson process in the declared genetic-map coordinate. Genetic distance in Morgans is interpreted as expected gametic crossover count over an interval.
+`PoissonCrossoversNoInterferenceV1` assumes gametic crossover points form a homogeneous Poisson process in the declared genetic-map coordinate. Genetic distance in Morgans is interpreted as expected gametic crossover count over an interval.
 
-This is an explicit **no crossover interference** reference assumption. It is not asserted to be universal biology.
+The Poisson model is an explicit **no crossover interference** reference assumption. It is not asserted to be universal biology.
 
 Pairwise recombination fraction is not stored as the primitive process parameter. Under a no-interference Poisson model, recombinant marker states arise from the parity of crossovers between markers; a pairwise map function therefore follows from the process rather than defining the full multilocus process.
+
+The model tag is part of exact profile identity. Holding profile ID, map and domains fixed while changing from zero-crossover to Poisson produces a different profile digest.
 
 ## Why process domains are separate from locus positions
 
@@ -34,7 +36,7 @@ Each `ChromosomeRecombinationDomain` therefore declares an explicit `GeneticMapI
 
 Every mapped locus on that chromosome must nevertheless lie inside the declared process interval.
 
-This avoids silently collapsing unobserved chromosome span onto marker span and gives C3B an explicit domain over which to define crossover breakpoint semantics.
+This avoids silently collapsing unobserved chromosome span onto marker span and gives C3B an explicit domain over which to define crossover breakpoint semantics. The same domain remains bound even for the zero-crossover baseline so segment provenance has explicit chromosome extent.
 
 ## Units
 
@@ -44,7 +46,7 @@ The coordinates are genetic-map coordinates, not physical base-pair positions. V
 
 ## Applicability
 
-The V1 reference recombination process is explicitly diploid-only (`schema.ploidy == 2`).
+The V1 reference recombination processes are explicitly diploid-only (`schema.ploidy == 2`).
 
 C2 phased storage may represent broader euploid states, but that does not grant a meiosis model for those states. Polyploid meiosis requires a separate future authority.
 
@@ -84,7 +86,7 @@ Serde/JSON bytes are transport, not semantic identity.
 
 A validated profile may claim only:
 
-- which explicit crossover process model is selected;
+- which explicit chromosome inheritance/crossover process model is selected;
 - that this model is applicable to the current diploid schema;
 - the exact genetic-map process domain assigned to each mapped chromosome.
 
@@ -92,7 +94,7 @@ C3A does not establish that any crossover, gamete, recombinant haplotype, ancest
 
 ## C3B execution successor
 
-C3B should consume:
+C3B should begin with `NoCrossoversIndependentAssortmentV1` and consume:
 
 - exact `HereditarySchema`;
 - exact `ChromosomeMap`;
@@ -100,11 +102,11 @@ C3B should consume:
 - exact `ChromosomeRecombinationProfile`;
 - exact reproduction/gamete semantic context.
 
-It should emit one gamete plus revalidatable chromosome-local segment provenance.
+It should select one complete source haplotype independently per chromosome and emit both a gamete plus revalidatable whole-chromosome segment provenance. This creates a qualification baseline before Poisson crossover execution is introduced.
 
 Stochastic coordinates must be chromosome-local so adding an unrelated chromosome cannot shift existing chromosome outcomes. The exact source phased-state digest must bind any local homolog slot used in provenance; canonical row index is not persistent chromosome identity.
 
-Breakpoint endpoint conventions and the exact integer realization of the Poisson process belong to C3B's versioned stochastic grammar, not C3A.
+A later C3B/C3C tranche may execute `PoissonCrossoversNoInterferenceV1`. Breakpoint endpoint conventions and the exact deterministic integer realization of the Poisson process must be separately versioned rather than relying on platform `ln`/`exp` behavior implicitly.
 
 ## Future models
 
