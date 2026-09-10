@@ -44,6 +44,7 @@ semantic_id!(DemographicEventId);
 semantic_id!(ChromosomeId);
 semantic_id!(ChromosomeMapId);
 semantic_id!(ChromosomeRecombinationProfileId);
+semantic_id!(AncestryCopyId);
 
 #[cfg(test)]
 mod tests {
@@ -77,6 +78,7 @@ mod tests {
         assert_wire_contract!(ChromosomeId, "chromosome-1");
         assert_wire_contract!(ChromosomeMapId, "reference-map-v1");
         assert_wire_contract!(ChromosomeRecombinationProfileId, "poisson-reference-v1");
+        assert_wire_contract!(AncestryCopyId, "ancestry-copy-0001");
     }
 
     #[test]
