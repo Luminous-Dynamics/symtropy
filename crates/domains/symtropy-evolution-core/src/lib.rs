@@ -8,6 +8,7 @@
 
 mod canonical;
 mod chromosome_map;
+mod chromosome_recombination;
 mod demographic_admixture_execution;
 mod demographic_event;
 mod demographic_execution;
@@ -36,6 +37,11 @@ mod structured_population_process;
 pub use chromosome_map::{
     ChromosomeDefinition, ChromosomeLocus, ChromosomeMap, ChromosomeMapDigest,
     GeneticMapPositionMicromorgans, CHROMOSOME_MAP_VERSION,
+};
+pub use chromosome_recombination::{
+    ChromosomeRecombinationDomain, ChromosomeRecombinationModel,
+    ChromosomeRecombinationProfile, ChromosomeRecombinationProfileDigest,
+    GeneticMapIntervalMicromorgans, CHROMOSOME_RECOMBINATION_PROFILE_VERSION,
 };
 pub use demographic_admixture_execution::{
     execute_census_preserving_pulse_admixture,
@@ -84,9 +90,10 @@ pub use demographic_structure_transition::{
 pub use error::EvolutionError;
 pub use heredity::{HereditaryState, HereditaryStateDigest};
 pub use ids::{
-    AlleleId, ChromosomeId, ChromosomeMapId, DemographicEventId, EvolutionExperimentId,
-    HereditarySchemaId, LocusId, OperatorProfileId, PopulationId, PopulationProcessProfileId,
-    PopulationStructureProfileId, PopulationTransitionId, ReproductionEventId,
+    AlleleId, ChromosomeId, ChromosomeMapId, ChromosomeRecombinationProfileId,
+    DemographicEventId, EvolutionExperimentId, HereditarySchemaId, LocusId, OperatorProfileId,
+    PopulationId, PopulationProcessProfileId, PopulationStructureProfileId,
+    PopulationTransitionId, ReproductionEventId,
 };
 pub use metapopulation::{
     MetapopulationSnapshot, MetapopulationSnapshotDigest, MetapopulationSnapshotEntry,
