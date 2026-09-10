@@ -29,9 +29,7 @@ pub const OPENAI_NAVIER_STOKES_FORMALIZATION_COMMIT: &str =
     "8937a8f4cbc7abaab5e9e97d1cc7f5d2319d9538";
 
 /// Domain variant associated with a theorem/reference benchmark.
-#[derive(
-    Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize,
-)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum ReferenceDomain {
     WholeSpaceR3,
@@ -62,9 +60,7 @@ pub enum ExternalReferenceStatus {
 /// These values intentionally carry no invented numeric threshold or scaling
 /// exponent. Numeric benchmark expectations belong to a later executable
 /// fixture extracted directly from the primary construction.
-#[derive(
-    Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize,
-)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum ReferenceClaimKind {
     PositiveViscosity,
@@ -76,9 +72,7 @@ pub enum ReferenceClaimKind {
 }
 
 /// One qualitative claim with an optional domain restriction.
-#[derive(
-    Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize,
-)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
 pub struct ReferenceClaim {
     pub domain: Option<ReferenceDomain>,
     pub kind: ReferenceClaimKind,
@@ -209,7 +203,10 @@ impl fmt::Display for BenchmarkManifestError {
                 write!(f, "formalization repository must not be empty")
             }
             Self::InvalidFormalizationCommit => {
-                write!(f, "formalization commit must be a full 40-character hex SHA")
+                write!(
+                    f,
+                    "formalization commit must be a full 40-character hex SHA"
+                )
             }
             Self::IncompleteFormalizationIdentity => write!(
                 f,
@@ -382,7 +379,10 @@ impl fmt::Display for ContinuumSampleError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::UnsupportedSchemaVersion(version) => {
-                write!(f, "unsupported continuum diagnostic schema version {version}")
+                write!(
+                    f,
+                    "unsupported continuum diagnostic schema version {version}"
+                )
             }
             Self::EmptyDiagnosticProfile => write!(f, "diagnostic_profile must not be empty"),
             Self::InvalidTime => write!(f, "time_s must be finite and non-negative"),
@@ -428,7 +428,10 @@ pub fn openai_2026_forced_navier_stokes_manifest() -> ExternalBenchmarkManifest 
         primary_source: "OpenAI: On the Navier-Stokes Millennium Prize Problem".to_owned(),
         formalization_repository: Some("openai/NavierStokesAndEuler".to_owned()),
         formalization_commit: Some(OPENAI_NAVIER_STOKES_FORMALIZATION_COMMIT.to_owned()),
-        domains: vec![ReferenceDomain::WholeSpaceR3, ReferenceDomain::PeriodicTorus3],
+        domains: vec![
+            ReferenceDomain::WholeSpaceR3,
+            ReferenceDomain::PeriodicTorus3,
+        ],
         status: ExternalReferenceStatus::PrimaryAndFormalArtifactsCapturedReviewPending,
         claims: vec![
             ReferenceClaim {
@@ -530,7 +533,10 @@ mod tests {
         assert!(manifest.executable_fixture_digest.is_none());
         assert_eq!(
             manifest.domains,
-            vec![ReferenceDomain::WholeSpaceR3, ReferenceDomain::PeriodicTorus3]
+            vec![
+                ReferenceDomain::WholeSpaceR3,
+                ReferenceDomain::PeriodicTorus3
+            ]
         );
     }
 
@@ -564,11 +570,17 @@ mod tests {
     fn provenance_rejects_duplicate_domain_or_claim() {
         let mut manifest = openai_2026_forced_navier_stokes_manifest();
         manifest.domains.push(ReferenceDomain::WholeSpaceR3);
-        assert_eq!(manifest.validate(), Err(BenchmarkManifestError::DuplicateDomain));
+        assert_eq!(
+            manifest.validate(),
+            Err(BenchmarkManifestError::DuplicateDomain)
+        );
 
         let mut manifest = openai_2026_forced_navier_stokes_manifest();
         manifest.claims.push(manifest.claims[0]);
-        assert_eq!(manifest.validate(), Err(BenchmarkManifestError::DuplicateClaim));
+        assert_eq!(
+            manifest.validate(),
+            Err(BenchmarkManifestError::DuplicateClaim)
+        );
     }
 
     #[test]
@@ -595,9 +607,8 @@ mod tests {
 
     #[test]
     fn unavailable_reason_is_not_collapsed_to_numeric_zero() {
-        let unavailable = NonNegativeDiagnostic::unavailable(
-            DiagnosticUnavailableReason::BackendDoesNotExpose,
-        );
+        let unavailable =
+            NonNegativeDiagnostic::unavailable(DiagnosticUnavailableReason::BackendDoesNotExpose);
         let measured_zero = NonNegativeDiagnostic::measured(0.0).unwrap();
         assert_ne!(unavailable, measured_zero);
         assert_eq!(unavailable.measured_value(), None);
