@@ -137,7 +137,10 @@ impl<C: PhysicsCallback<3>> RapierPhysicsBridge<C> {
         physics_hooks: &dyn PhysicsHooks,
         event_handler: &dyn EventHandler,
     ) {
-        assert!(dt.is_finite() && dt >= 0.0, "Rapier reference dt must be finite and non-negative");
+        assert!(
+            dt.is_finite() && dt >= 0.0,
+            "Rapier reference dt must be finite and non-negative"
+        );
 
         // 1. Modulate explicit user forces before Rapier advances the world.
         for (handle, body) in rigid_body_set.iter_mut() {
@@ -301,10 +304,8 @@ mod tests {
             0.5,
             1.0,
         );
-        let mut bridge = RapierPhysicsBridge::with_gravity(
-            NoOpCallback,
-            Vec3::new(0.0, -9.81, 0.0),
-        );
+        let mut bridge =
+            RapierPhysicsBridge::with_gravity(NoOpCallback, Vec3::new(0.0, -9.81, 0.0));
 
         bridge.step(
             1.0 / 60.0,
@@ -352,10 +353,8 @@ mod tests {
                 0.5,
                 1.0,
             );
-            let mut bridge = RapierPhysicsBridge::with_gravity(
-                NoOpCallback,
-                Vec3::new(0.0, -9.81, 0.0),
-            );
+            let mut bridge =
+                RapierPhysicsBridge::with_gravity(NoOpCallback, Vec3::new(0.0, -9.81, 0.0));
 
             bridge.step(
                 dt,
@@ -385,11 +384,7 @@ mod tests {
     }
 
     impl PhysicsCallback<3> for CountingCallback {
-        fn modulate_force(
-            &self,
-            _body: BodyHandle,
-            force: &SVector<f64, 3>,
-        ) -> SVector<f64, 3> {
+        fn modulate_force(&self, _body: BodyHandle, force: &SVector<f64, 3>) -> SVector<f64, 3> {
             self.force_calls.set(self.force_calls.get() + 1);
             *force
         }
@@ -398,11 +393,7 @@ mod tests {
             impulse
         }
 
-        fn friction_multiplier(
-            &self,
-            _contact_point: &SVector<f64, 3>,
-            _body: BodyHandle,
-        ) -> f64 {
+        fn friction_multiplier(&self, _contact_point: &SVector<f64, 3>, _body: BodyHandle) -> f64 {
             1.0
         }
 
@@ -426,13 +417,7 @@ mod tests {
             mut ccd,
         ) = empty_rapier_state();
 
-        let handle = add_sphere_to_rapier(
-            &mut bodies,
-            &mut colliders,
-            Vec3::ZERO,
-            0.5,
-            1.0,
-        );
+        let handle = add_sphere_to_rapier(&mut bodies, &mut colliders, Vec3::ZERO, 0.5, 1.0);
         bodies[handle].add_force(vector![3.0, 0.0, 0.0], true);
 
         let callback = CountingCallback {
@@ -483,7 +468,13 @@ mod tests {
         );
 
         assert_eq!(bridge.last_observations().len(), 2);
-        assert_eq!(bridge.last_observations()[0].raw_handle, first.into_raw_parts());
-        assert_eq!(bridge.last_observations()[1].raw_handle, second.into_raw_parts());
+        assert_eq!(
+            bridge.last_observations()[0].raw_handle,
+            first.into_raw_parts()
+        );
+        assert_eq!(
+            bridge.last_observations()[1].raw_handle,
+            second.into_raw_parts()
+        );
     }
 }
