@@ -8,11 +8,13 @@
 //! module binds an executable result to the exact Symtropy source and declared
 //! numerical/case profiles that produced it.
 
+use std::collections::BTreeSet;
 use std::fmt;
 
 use serde::{Deserialize, Serialize};
 
 pub const CONTINUUM_EVIDENCE_SCHEMA_VERSION: u32 = 1;
+pub const MAX_EVIDENCE_EXECUTION_PROFILES: usize = 16;
 pub const MAX_EVIDENCE_PROFILE_BYTES: usize = 256;
 pub const MAX_EVIDENCE_CASE_PROFILE_BYTES: usize = 256;
 pub const MAX_EVIDENCE_BENCHMARK_ID_BYTES: usize = 128;
@@ -23,9 +25,11 @@ pub struct ContinuumEvidenceSubject {
     pub schema_version: u32,
     /// Exact Symtropy commit that produced the executable evidence.
     pub source_revision: String,
-    /// Numerical backend/configuration identity, including scheme assumptions.
-    pub execution_profile: String,
-    /// Comparator/manufactured/fixture identity for this particular case.
+    /// Exact numerical backend/configuration identities represented by the
+    /// payload. A temporal ladder may have one; a spatial ladder normally has
+    /// several because grid resolution is part of the solver profile.
+    pub execution_profiles: Vec<String>,
+    /// Comparator/manufactured/fixture identity for this particular campaign.
     pub case_profile: String,
     /// Optional external benchmark manifest identifier when the run is tied to
     /// a captured external reference. Smooth internal controls normally omit it.
@@ -46,11 +50,23 @@ impl ContinuumEvidenceSubject {
         if !is_full_lower_hex_commit(&self.source_revision) {
             return Err(ContinuumEvidenceError::InvalidSourceRevision);
         }
-        validate_non_empty_bounded(
-            &self.execution_profile,
-            MAX_EVIDENCE_PROFILE_BYTES,
-            ContinuumEvidenceError::InvalidExecutionProfile,
-        )?;
+        if self.execution_profiles.is_empty() {
+            return Err(ContinuumEvidenceError::NoExecutionProfiles);
+        }
+        if self.execution_profiles.len() > MAX_EVIDENCE_EXECUTION_PROFILES {
+            return Err(ContinuumEvidenceError::TooManyExecutionProfiles);
+        }
+        let mut unique_profiles = BTreeSet::new();
+        for execution_profile in &self.execution_profiles {
+            validate_non_empty_bounded(
+                execution_profile,
+                MAX_EVIDENCE_PROFILE_BYTES,
+                ContinuumEvidenceError::InvalidExecutionProfile,
+            )?;
+            if !unique_profiles.insert(execution_profile.as_str()) {
+                return Err(ContinuumEvidenceError::DuplicateExecutionProfile);
+            }
+        }
         validate_non_empty_bounded(
             &self.case_profile,
             MAX_EVIDENCE_CASE_PROFILE_BYTES,
@@ -105,7 +121,10 @@ impl<T> ContinuumEvidenceEnvelope<T> {
 pub enum ContinuumEvidenceError {
     UnsupportedSchemaVersion(u32),
     InvalidSourceRevision,
+    NoExecutionProfiles,
+    TooManyExecutionProfiles,
     InvalidExecutionProfile,
+    DuplicateExecutionProfile,
     InvalidCaseProfile,
     InvalidBenchmarkId,
     InvalidFixtureDigest,
@@ -121,10 +140,20 @@ impl fmt::Display for ContinuumEvidenceError {
                 f,
                 "source_revision must be a canonical 40-character lowercase hex commit"
             ),
+            Self::NoExecutionProfiles => {
+                write!(f, "evidence subject requires at least one execution profile")
+            }
+            Self::TooManyExecutionProfiles => write!(
+                f,
+                "evidence subject exceeds {MAX_EVIDENCE_EXECUTION_PROFILES} execution profiles"
+            ),
             Self::InvalidExecutionProfile => write!(
                 f,
-                "execution_profile must be non-empty and within the V0 evidence bound"
+                "execution profile must be non-empty and within the V0 evidence bound"
             ),
+            Self::DuplicateExecutionProfile => {
+                write!(f, "execution profiles must be unique")
+            }
             Self::InvalidCaseProfile => write!(
                 f,
                 "case_profile must be non-empty and within the V0 evidence bound"
@@ -169,7 +198,7 @@ mod tests {
         ContinuumEvidenceSubject {
             schema_version: CONTINUUM_EVIDENCE_SCHEMA_VERSION,
             source_revision: "0123456789abcdef0123456789abcdef01234567".to_owned(),
-            execution_profile: "periodic-mac2d-reference-v0.1;n=16x16".to_owned(),
+            execution_profiles: vec!["periodic-mac2d-reference-v0.1;n=16x16".to_owned()],
             case_profile: "manufactured-taylor-green-periodic-2d-v0.1".to_owned(),
             benchmark_id: None,
             fixture_digest: None,
@@ -190,6 +219,25 @@ mod tests {
         assert_eq!(
             subject.validate(),
             Err(ContinuumEvidenceError::InvalidSourceRevision)
+        );
+    }
+
+    #[test]
+    fn execution_profile_set_is_bounded_and_unique() {
+        let mut subject = subject();
+        subject
+            .execution_profiles
+            .push(subject.execution_profiles[0].clone());
+        assert_eq!(
+            subject.validate(),
+            Err(ContinuumEvidenceError::DuplicateExecutionProfile)
+        );
+
+        let mut subject = subject();
+        subject.execution_profiles.clear();
+        assert_eq!(
+            subject.validate(),
+            Err(ContinuumEvidenceError::NoExecutionProfiles)
         );
     }
 
