@@ -46,9 +46,9 @@ pub use demographic_execution::{
     DemographicEventExecutionProvenanceDigest, DemographicEventExecutionResult,
 };
 pub use demographic_extinction_execution::{
-    execute_structural_extinction, DemographicExtinctionExecutionModel,
-    DemographicExtinctionExecutionProvenance, DemographicExtinctionExecutionProvenanceDigest,
-    DemographicExtinctionExecutionResult,
+    execute_structural_extinction, execute_structural_extinction_after_proven_history,
+    DemographicExtinctionExecutionModel, DemographicExtinctionExecutionProvenance,
+    DemographicExtinctionExecutionProvenanceDigest, DemographicExtinctionExecutionResult,
 };
 pub use demographic_founder_execution::{
     execute_founder_or_recolonization_sample,
