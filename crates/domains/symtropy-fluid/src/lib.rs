@@ -3,12 +3,15 @@
 
 //! Fluid dynamics primitives for Symtropy.
 //!
-//! The current runtime implementation is an early SPH scaffold: density uses
-//! an all-pairs reference loop and pressure/viscosity gradients are not yet a
-//! production solver. [`validation`] is deliberately solver-independent and
-//! must not be read as a claim that this crate currently implements or
-//! reproduces incompressible Navier-Stokes benchmark flows.
+//! The current gameplay/runtime implementation is an early SPH scaffold:
+//! density uses an all-pairs reference loop and pressure/viscosity gradients are
+//! not yet a production solver. [`validation`] is solver-independent, while
+//! [`reference`] is a deliberately small CPU continuum solver used only to
+//! establish numerical validation rungs. Neither module should be read as a
+//! claim that Symtropy currently reproduces the 2026 singular construction or
+//! has a production Earth-water CFD backend.
 
+pub mod reference;
 pub mod validation;
 
 use nalgebra::SVector;
@@ -103,8 +106,9 @@ impl<const D: usize> FluidSimulation<D> {
 
     fn calculate_forces(&mut self, gravity: &SVector<f64, D>) {
         // Gradients/Laplacians for pressure/viscosity remain placeholders.
-        // Keep this explicit until #452/#511 replaces the scaffold with a
-        // qualified local/reference formulation.
+        // Keep this explicit until #452 replaces the gameplay scaffold with a
+        // separately qualified local formulation. The #511 reference solver is
+        // deliberately not a drop-in gameplay replacement.
         for i in 0..self.particles.len() {
             let f_press = SVector::<f64, D>::zeros();
             let f_visc = SVector::<f64, D>::zeros();
