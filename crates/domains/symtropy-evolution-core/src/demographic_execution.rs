@@ -1,6 +1,7 @@
 use crate::{
     canonical::{fmt_hex, put_text, put_u64},
     demographic_history::DemographicEventExecutionDigest,
+    demographic_sampling::sample_marginal_without_replacement,
     AlleleId, DemographicEventDeclaration, DemographicEventDeclarationDigest,
     DemographicEventKind, DemographicInterventionCursor, DemographicInterventionCursorDigest,
     DemographicStructureTransition, DemographicStructureTransitionDigest, EvolutionError,
@@ -383,13 +384,22 @@ fn derive_census_resize(
     let mut populations = source_populations.clone();
     let mut points = source_points.clone();
     if target_census < source.census_individuals {
-        let downsampled = downsample_population_without_replacement(
+        let downsampled = sample_marginal_without_replacement(
             schema,
             source,
-            event.experiment_id(),
-            event.event_id().as_str(),
-            event.generation(),
+            source.population_id.clone(),
             target_census,
+            |locus_id, allele_id, within_allele_ordinal| {
+                survivor_priority(
+                    event.experiment_id(),
+                    event.event_id().as_str(),
+                    event.generation(),
+                    &source.population_id,
+                    locus_id,
+                    allele_id,
+                    within_allele_ordinal,
+                )
+            },
         )?;
         let point = PopulationTrajectoryPoint::from_validated_state(
             schema,
@@ -408,64 +418,6 @@ fn derive_census_resize(
         points,
         snapshot,
     })
-}
-
-fn downsample_population_without_replacement(
-    schema: &HereditarySchema,
-    source: &PopulationGeneticState,
-    experiment_id: &EvolutionExperimentId,
-    event_id: &str,
-    generation: PopulationGeneration,
-    target_census: u64,
-) -> Result<PopulationGeneticState, EvolutionError> {
-    let target_copies = target_census
-        .checked_mul(u64::from(schema.ploidy))
-        .ok_or(EvolutionError::CountOverflow)?;
-    let target_len = usize::try_from(target_copies).map_err(|_| EvolutionError::CountOverflow)?;
-    let mut destination_counts = BTreeMap::new();
-
-    for locus_id in schema.loci.keys() {
-        let source_counts = source
-            .allele_copy_counts
-            .get(locus_id)
-            .ok_or_else(|| EvolutionError::MissingLocus(locus_id.clone()))?;
-        let mut candidates = Vec::new();
-        for (allele_id, count) in source_counts {
-            for within_allele_ordinal in 0..*count {
-                candidates.push((
-                    survivor_priority(
-                        experiment_id,
-                        event_id,
-                        generation,
-                        &source.population_id,
-                        locus_id,
-                        allele_id,
-                        within_allele_ordinal,
-                    ),
-                    allele_id.clone(),
-                    within_allele_ordinal,
-                ));
-            }
-        }
-        candidates.sort();
-        if target_len > candidates.len() {
-            return Err(EvolutionError::SamplingInvariantViolation);
-        }
-
-        let mut counts: BTreeMap<AlleleId, u64> = BTreeMap::new();
-        for (_, allele, _) in candidates.into_iter().take(target_len) {
-            let count = counts.entry(allele).or_insert(0);
-            *count = count.checked_add(1).ok_or(EvolutionError::CountOverflow)?;
-        }
-        destination_counts.insert(locus_id.clone(), counts);
-    }
-
-    PopulationGeneticState::from_counts(
-        source.population_id.clone(),
-        schema,
-        target_census,
-        destination_counts,
-    )
 }
 
 fn survivor_priority(
