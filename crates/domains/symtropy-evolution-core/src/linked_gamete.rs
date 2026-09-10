@@ -191,7 +191,9 @@ impl fmt::Display for ChromosomeHaplotypeDigest {
 /// `source_haplotype_slot` is meaningful only together with the exact source
 /// `PhasedHereditaryStateDigest` bound by the enclosing provenance. It is not a
 /// persistent homolog/ancestry ID. The content digest prevents the slot from
-/// being the sole description of what was inherited.
+/// being the sole description of what was inherited. When both diploid source
+/// haplotypes are identical, the executor canonicalizes this local coordinate
+/// to slot 0 rather than manufacturing an unobservable homolog distinction.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct WholeChromosomeInheritanceSegment {
     pub chromosome_id: ChromosomeId,
@@ -363,7 +365,19 @@ pub fn derive_zero_crossover_linked_gamete(
             .chromosomes
             .get(chromosome_id)
             .ok_or(EvolutionError::PhasedChromosomeSetMismatch)?;
-        let slot = semantic_haplotype_slot(event, parent_role, chromosome_id);
+        let haplotype_zero = source_chromosome
+            .haplotypes
+            .first()
+            .ok_or(EvolutionError::LinkedGameteSourceAuthorityMismatch)?;
+        let haplotype_one = source_chromosome
+            .haplotypes
+            .get(1)
+            .ok_or(EvolutionError::LinkedGameteSourceAuthorityMismatch)?;
+        let slot = if haplotype_zero == haplotype_one {
+            0
+        } else {
+            semantic_haplotype_slot(event, parent_role, chromosome_id)
+        };
         let haplotype = source_chromosome
             .haplotypes
             .get(slot)
