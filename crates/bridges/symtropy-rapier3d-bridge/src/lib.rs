@@ -645,7 +645,8 @@ mod tests {
         bridge.bind_callback_body(first, first_symtropy);
 
         let (index, generation) = first.into_raw_parts();
-        let different_generation = RigidBodyHandle::from_raw_parts(index, generation.wrapping_add(1));
+        let different_generation =
+            RigidBodyHandle::from_raw_parts(index, generation.wrapping_add(1));
         assert_eq!(bridge.callback_body(first), Some(first_symtropy));
         assert_eq!(bridge.callback_body(different_generation), None);
     }
