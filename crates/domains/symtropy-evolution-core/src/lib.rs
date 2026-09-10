@@ -32,9 +32,10 @@ mod schema;
 mod structured_population_process;
 
 pub use demographic_admixture_execution::{
-    execute_census_preserving_pulse_admixture, DemographicAdmixtureExecutionModel,
-    DemographicAdmixtureExecutionProvenance, DemographicAdmixtureExecutionProvenanceDigest,
-    DemographicAdmixtureExecutionResult,
+    execute_census_preserving_pulse_admixture,
+    execute_census_preserving_pulse_admixture_after_proven_history,
+    DemographicAdmixtureExecutionModel, DemographicAdmixtureExecutionProvenance,
+    DemographicAdmixtureExecutionProvenanceDigest, DemographicAdmixtureExecutionResult,
 };
 pub use demographic_event::{
     DaughterPopulation, DemographicEventDeclaration, DemographicEventDeclarationDigest,
