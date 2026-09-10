@@ -1,0 +1,88 @@
+name: PB-04a Identity Hardening Apply
+
+on:
+  push:
+    branches:
+      - "spatial/pb04a-faceted-topology-kernel"
+    paths:
+      - "scripts/pb04a-harden-content-identity.py"
+      - ".github/workflows/pb04a-identity-apply.yml"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: pb04a-identity-hardening
+  cancel-in-progress: true
+
+jobs:
+  apply:
+    name: Apply PB-04a content-bound identity hardening
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+
+      - name: Bind exact transformer input head
+        shell: bash
+        run: |
+          set -euo pipefail
+          actual_head="$(git rev-parse HEAD)"
+          test "${actual_head}" = "${GITHUB_SHA}"
+          echo "PB04A_IDENTITY_INPUT_HEAD=${actual_head}"
+          echo "PB04A_IDENTITY_INPUT_TREE=$(git rev-parse HEAD^{tree})"
+
+      - name: Set up pinned Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.96.0
+          components: clippy, rustfmt
+
+      - name: Apply fail-closed identity transformer
+        run: python3 scripts/pb04a-harden-content-identity.py
+
+      - name: Canonical formatting
+        run: >-
+          cargo fmt
+          --manifest-path crates/domains/symtropy-spatial-topology/Cargo.toml
+
+      - name: Prove hardened isolated crate
+        run: |
+          cargo check --manifest-path crates/domains/symtropy-spatial-topology/Cargo.toml --all-targets
+          cargo test --manifest-path crates/domains/symtropy-spatial-topology/Cargo.toml
+          cargo clippy --manifest-path crates/domains/symtropy-spatial-topology/Cargo.toml --all-targets -- -D warnings
+
+      - name: Require semantic delta
+        shell: bash
+        run: |
+          set -euo pipefail
+          git diff --exit-code --quiet && {
+            echo "identity transformer produced no semantic delta" >&2
+            exit 1
+          }
+          git status --short
+
+      - name: Commit qualified identity hardening
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "PB-04a Qualification Bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add crates/domains/symtropy-spatial-topology/Cargo.toml \
+                  crates/domains/symtropy-spatial-topology/src/lib.rs \
+                  crates/domains/symtropy-spatial-topology/tests/hostile_projection.rs
+          git diff --cached --exit-code --quiet && {
+            echo "no qualified source delta to commit" >&2
+            exit 1
+          }
+          git commit -m "fix(spatial): content-bind PB-04a topology identity"
+          qualified_head="$(git rev-parse HEAD)"
+          qualified_tree="$(git rev-parse HEAD^{tree})"
+          echo "PB04A_IDENTITY_QUALIFIED_HEAD=${qualified_head}"
+          echo "PB04A_IDENTITY_QUALIFIED_TREE=${qualified_tree}"
+
+          remote_head="$(git ls-remote origin refs/heads/spatial/pb04a-faceted-topology-kernel | cut -f1)"
+          test "${remote_head}" = "${GITHUB_SHA}"
+          git push origin HEAD:spatial/pb04a-faceted-topology-kernel
