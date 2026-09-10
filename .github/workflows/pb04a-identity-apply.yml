@@ -23,15 +23,13 @@ jobs:
   apply:
     name: Apply PB-04a identity and query hardening
     runs-on: ubuntu-24.04
-    env:
-      CARGO_TARGET_DIR: ${{ runner.temp }}/pb04a-target
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
           ref: ${{ github.sha }}
           fetch-depth: 0
 
-      - name: Bind exact transformer input head
+      - name: Bind exact transformer input head and ephemeral build path
         shell: bash
         run: |
           set -euo pipefail
@@ -39,6 +37,7 @@ jobs:
           test "${actual_head}" = "${GITHUB_SHA}"
           echo "PB04A_IDENTITY_INPUT_HEAD=${actual_head}"
           echo "PB04A_IDENTITY_INPUT_TREE=$(git rev-parse HEAD^{tree})"
+          echo "CARGO_TARGET_DIR=${RUNNER_TEMP}/pb04a-target" >> "${GITHUB_ENV}"
           test ! -e crates/domains/symtropy-spatial-topology/Cargo.lock || {
             echo "PB-04a self-apply expects the exact unlocked pre-product subject" >&2
             exit 1
