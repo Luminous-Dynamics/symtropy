@@ -1,9 +1,10 @@
-use crate::{AlleleId, LocusId, PopulationId, PROBABILITY_SCALE_PPM};
+use crate::{AlleleId, ChromosomeId, LocusId, PopulationId, PROBABILITY_SCALE_PPM};
 use std::{error::Error, fmt};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum EvolutionError {
     UnsupportedSchema(u32),
+    UnsupportedChromosomeMap(u32),
     EmptyText { field: &'static str },
     UnsupportedPloidy(u8),
     ModeRequiresDiploid(u8),
@@ -24,6 +25,20 @@ pub enum EvolutionError {
     NonCanonicalAlleleCopyOrder { locus: LocusId },
     NonCanonicalZeroAlleleCount { locus: LocusId, allele: AlleleId },
     UnknownAllele { locus: LocusId, allele: AlleleId },
+    NoChromosomes,
+    DuplicateChromosomeIdentity { chromosome: ChromosomeId },
+    EmptyChromosome { chromosome: ChromosomeId },
+    ChromosomeKeyMismatch { key: ChromosomeId, value: ChromosomeId },
+    ChromosomeMapSchemaAuthorityMismatch,
+    DuplicateChromosomeLocus { locus: LocusId },
+    UnknownChromosomeLocus { locus: LocusId },
+    MissingChromosomeLocus { locus: LocusId },
+    ChromosomeMapLocusSetMismatch,
+    NonIncreasingChromosomeMapPosition {
+        chromosome: ChromosomeId,
+        previous_micromorgans: u64,
+        observed_micromorgans: u64,
+    },
     ParentCountMismatch { expected: usize, observed: usize },
     ParentageMismatch,
     ChildDigestMismatch,
@@ -122,6 +137,9 @@ impl fmt::Display for EvolutionError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::UnsupportedSchema(version) => write!(f, "unsupported evolution schema {version}"),
+            Self::UnsupportedChromosomeMap(version) => {
+                write!(f, "unsupported chromosome-map version {version}")
+            }
             Self::EmptyText { field } => write!(f, "{field} must not be empty"),
             Self::UnsupportedPloidy(ploidy) => write!(f, "unsupported ploidy {ploidy}"),
             Self::ModeRequiresDiploid(ploidy) => {
@@ -164,6 +182,53 @@ impl fmt::Display for EvolutionError {
                 "allele {} is not allowed at locus {}",
                 allele.as_str(),
                 locus.as_str()
+            ),
+            Self::NoChromosomes => write!(f, "chromosome map must contain at least one chromosome"),
+            Self::DuplicateChromosomeIdentity { chromosome } => write!(
+                f,
+                "chromosome map repeats chromosome {}",
+                chromosome.as_str()
+            ),
+            Self::EmptyChromosome { chromosome } => write!(
+                f,
+                "chromosome {} must contain at least one locus",
+                chromosome.as_str()
+            ),
+            Self::ChromosomeKeyMismatch { key, value } => write!(
+                f,
+                "chromosome map key {} does not match embedded chromosome {}",
+                key.as_str(),
+                value.as_str()
+            ),
+            Self::ChromosomeMapSchemaAuthorityMismatch => {
+                write!(f, "chromosome map does not match exact hereditary schema authority")
+            }
+            Self::DuplicateChromosomeLocus { locus } => write!(
+                f,
+                "chromosome map repeats hereditary locus {}",
+                locus.as_str()
+            ),
+            Self::UnknownChromosomeLocus { locus } => write!(
+                f,
+                "chromosome map references unknown hereditary locus {}",
+                locus.as_str()
+            ),
+            Self::MissingChromosomeLocus { locus } => write!(
+                f,
+                "chromosome map omits hereditary locus {}",
+                locus.as_str()
+            ),
+            Self::ChromosomeMapLocusSetMismatch => {
+                write!(f, "chromosome map locus set does not exactly partition hereditary schema")
+            }
+            Self::NonIncreasingChromosomeMapPosition {
+                chromosome,
+                previous_micromorgans,
+                observed_micromorgans,
+            } => write!(
+                f,
+                "chromosome {} map positions must be strictly increasing: previous {previous_micromorgans} micromorgans, observed {observed_micromorgans}",
+                chromosome.as_str()
             ),
             Self::ParentCountMismatch { expected, observed } => {
                 write!(f, "expected {expected} parent(s), observed {observed}")
