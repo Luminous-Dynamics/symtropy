@@ -37,6 +37,8 @@ pub enum EvolutionError {
     },
     PopulationIdentityMismatch,
     PopulationExperimentMismatch,
+    PopulationTrajectoryStateMismatch,
+    PopulationTrajectoryPointMismatch,
     PopulationProcessAuthorityMismatch,
     PopulationProcessModelMismatch,
     PopulationSourceMismatch,
@@ -114,6 +116,12 @@ impl fmt::Display for EvolutionError {
             Self::PopulationIdentityMismatch => write!(f, "population identity mismatch"),
             Self::PopulationExperimentMismatch => {
                 write!(f, "population stochastic experiment identity mismatch")
+            }
+            Self::PopulationTrajectoryStateMismatch => {
+                write!(f, "population trajectory point does not match current population state")
+            }
+            Self::PopulationTrajectoryPointMismatch => {
+                write!(f, "population transition trajectory-point mismatch")
             }
             Self::PopulationProcessAuthorityMismatch => {
                 write!(f, "population process authority mismatch")
