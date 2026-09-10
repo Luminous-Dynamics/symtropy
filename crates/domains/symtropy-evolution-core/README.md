@@ -78,12 +78,26 @@ Trajectory points and their digests are canonical simulation identities/provenan
 
 ## Qualification fixtures
 
-Static fixtures cover deterministic replay, transition revalidation, fixed-allele absorption, locus-order independence, exact copy-count conservation, stochastic experiment identity, aggregate canonicalization, trajectory-state revalidation, generation-sensitive trajectory identity, checkpoint/chunking invariance, semantic-ID JSON round-trip/rejection, and an integration-test ensemble for the one-generation Wright–Fisher mean and variance:
+The neutral reference lane now has both one-step and long-run analytical fixtures.
+
+One-generation ensemble checks cover:
 
 - `E[p'] = p`;
 - `Var[p'] = p(1-p)/(2N)` for the diploid reference fixture.
 
-The deterministic ensemble also reruns replicates in reverse execution order to verify host scheduling/order does not change per-replicate outcomes.
+Long-run deterministic ensembles additionally check:
+
+- neutral martingale behavior, `E[p_t] = p_0`, after multiple generations;
+- expected heterozygosity decay, `E[H_t] = H_0 (1 - 1/(2N))^t`;
+- ultimate neutral fixation probability matching initial allele frequency;
+- absorbing allele-frequency boundaries remaining absorbing while trajectory time advances;
+- replicate execution-order invariance for both one-step and multi-generation runs.
+
+The martingale acceptance bound is derived from the analytical finite-generation Wright–Fisher variance and four standard errors for the declared ensemble. Fixation uses the analytical binomial sampling error around the neutral fixation probability. The heterozygosity fixture uses a deliberately conservative fixed band for the declared finite deterministic corpus.
+
+These are deterministic qualification corpora: experiment IDs fix the realized sample set, so host scheduling cannot change the result. They remain regression evidence for this explicit reference implementation/profile, not proof that all later evolutionary models are correct.
+
+Static fixtures also cover deterministic replay, transition revalidation, fixed-allele absorption, locus-order independence, exact copy-count conservation, stochastic experiment identity, aggregate canonicalization, trajectory-state revalidation, generation-sensitive trajectory identity, checkpoint/chunking invariance, and semantic-ID JSON round-trip/rejection.
 
 These tests are **not yet executable evidence** until an exact-head Rust toolchain run records their results.
 
@@ -114,4 +128,4 @@ The current identity grammar only enforces the pre-existing non-empty/non-whites
 
 The current stacked implementation is **implemented/static only** until an exact-head Rust toolchain run establishes rustfmt/tests/strict-Clippy/check evidence. Repository workspace registration and `Cargo.lock` changes are intentionally deferred from the structural authority tranche.
 
-See the Living World `HEREDITY_PROVENANCE_V0.md` and `BIOLOGICAL_REPRODUCTION_V0.md` contracts on the parent stack, ASTRO-00 for scientific evidence/assumption semantics, EVO-03A issue #414 for exact-authority hardening, #433 for validation-preserving semantic IDs, POPGEN-03B issue #417 for the reference-process qualification plan, and POPGEN-03B1 issue #429 for trajectory-cursor hardening.
+See the Living World `HEREDITY_PROVENANCE_V0.md` and `BIOLOGICAL_REPRODUCTION_V0.md` contracts on the parent stack, ASTRO-00 for scientific evidence/assumption semantics, EVO-03A issue #414 for exact-authority hardening, #433 for validation-preserving semantic IDs, POPGEN-03B issue #417 for the reference-process qualification plan, POPGEN-03B1 issue #429 for trajectory-cursor hardening, and POPGEN-03B3 issue #464 for long-run neutral qualification.
