@@ -200,7 +200,7 @@ fn is_full_lower_hex_commit(commit: &str) -> bool {
 mod tests {
     use super::*;
 
-    fn subject() -> ContinuumEvidenceSubject {
+    fn test_subject() -> ContinuumEvidenceSubject {
         ContinuumEvidenceSubject {
             schema_version: CONTINUUM_EVIDENCE_SCHEMA_VERSION,
             source_revision: "0123456789abcdef0123456789abcdef01234567".to_owned(),
@@ -213,14 +213,14 @@ mod tests {
 
     #[test]
     fn smooth_control_subject_binds_without_external_benchmark_metadata() {
-        let envelope = subject().bind(vec![1_u32, 2, 3]).unwrap();
+        let envelope = test_subject().bind(vec![1_u32, 2, 3]).unwrap();
         assert_eq!(envelope.validate_subject(), Ok(()));
         assert_eq!(envelope.payload, vec![1, 2, 3]);
     }
 
     #[test]
     fn source_revision_is_exact_and_fail_closed() {
-        let mut subject = subject();
+        let mut subject = test_subject();
         subject.source_revision = "0123456789ABCDEF0123456789abcdef01234567".to_owned();
         assert_eq!(
             subject.validate(),
@@ -230,7 +230,7 @@ mod tests {
 
     #[test]
     fn execution_profile_set_is_bounded_and_unique() {
-        let mut subject = subject();
+        let mut subject = test_subject();
         subject
             .execution_profiles
             .push(subject.execution_profiles[0].clone());
@@ -239,7 +239,7 @@ mod tests {
             Err(ContinuumEvidenceError::DuplicateExecutionProfile)
         );
 
-        let mut subject = subject();
+        let mut subject = test_subject();
         subject.execution_profiles.clear();
         assert_eq!(
             subject.validate(),
@@ -249,7 +249,7 @@ mod tests {
 
     #[test]
     fn empty_optional_identity_is_not_treated_as_absent() {
-        let mut subject = subject();
+        let mut subject = test_subject();
         subject.benchmark_id = Some(String::new());
         assert_eq!(
             subject.validate(),
