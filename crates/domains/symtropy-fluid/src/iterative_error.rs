@@ -290,8 +290,7 @@ mod tests {
     #[test]
     fn highest_iteration_point_is_zero_by_declared_reference_construction() {
         let report =
-            run_projection_iterative_error_sweep(config(), 0.08, 0.001, &[1, 4, 16, 64])
-                .unwrap();
+            run_projection_iterative_error_sweep(config(), 0.08, 0.001, &[1, 4, 16, 64]).unwrap();
         let reference = report.points.last().unwrap();
         assert_eq!(report.reference_pressure_iterations, 64);
         assert_eq!(reference.velocity_rms_difference_to_reference_mps, 0.0);
@@ -316,11 +315,9 @@ mod tests {
     #[test]
     fn iterative_error_sweep_is_deterministic() {
         let first =
-            run_projection_iterative_error_sweep(config(), 0.08, 0.001, &[1, 4, 16, 64])
-                .unwrap();
+            run_projection_iterative_error_sweep(config(), 0.08, 0.001, &[1, 4, 16, 64]).unwrap();
         let second =
-            run_projection_iterative_error_sweep(config(), 0.08, 0.001, &[1, 4, 16, 64])
-                .unwrap();
+            run_projection_iterative_error_sweep(config(), 0.08, 0.001, &[1, 4, 16, 64]).unwrap();
         assert_eq!(first, second);
     }
 

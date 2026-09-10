@@ -183,12 +183,8 @@ fn main() -> Result<(), Box<dyn Error>> {
     let mut trace_config = base.clone();
     trace_config.nx = 16;
     trace_config.ny = 16;
-    let passive_diagnostic_trace = run_passive_taylor_green_diagnostic_trace(
-        trace_config.clone(),
-        0.08,
-        0.0005,
-        8,
-    )?;
+    let passive_diagnostic_trace =
+        run_passive_taylor_green_diagnostic_trace(trace_config.clone(), 0.08, 0.0005, 8)?;
     let manufactured_diagnostic_trace = run_manufactured_taylor_green_diagnostic_trace(
         trace_config,
         manufactured_profile,
