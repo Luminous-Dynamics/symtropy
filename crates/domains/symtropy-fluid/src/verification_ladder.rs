@@ -472,13 +472,7 @@ mod tests {
             },
         ];
         assert_eq!(
-            run_passive_taylor_green_ladder(
-                config(),
-                0.08,
-                0.002,
-                RefinementAxis::Spatial,
-                &cases,
-            ),
+            run_passive_taylor_green_ladder(config(), 0.08, 0.002, RefinementAxis::Spatial, &cases,),
             Err(VerificationLadderError::InvalidRefinementSequence)
         );
     }
