@@ -1,7 +1,20 @@
 // Copyright (C) 2024-2026 Tristan Stoltz / Luminous Dynamics
 // SPDX-License-Identifier: Apache-2.0 OR MIT
 
-//! SPH-based fluid dynamics for Symtropy.
+//! Fluid dynamics primitives for Symtropy.
+//!
+//! The current gameplay/runtime implementation is an early SPH scaffold:
+//! density uses an all-pairs reference loop and pressure/viscosity gradients are
+//! not yet a production solver. [`validation`] is solver-independent,
+//! [`reference`] is a deliberately small CPU continuum solver, and
+//! [`convergence`] provides analytical/error measurements for the smooth
+//! validation ladder. None of these modules should be read as a claim that
+//! Symtropy currently reproduces the 2026 singular construction or has a
+//! production Earth-water CFD backend.
+
+pub mod convergence;
+pub mod reference;
+pub mod validation;
 
 use nalgebra::SVector;
 use serde::{Deserialize, Serialize};
@@ -94,15 +107,13 @@ impl<const D: usize> FluidSimulation<D> {
     }
 
     fn calculate_forces(&mut self, gravity: &SVector<f64, D>) {
-        let h = self.config.smoothing_radius;
-        // Gradients/Laplacians for pressure/viscosity (placeholders)
-
+        // Gradients/Laplacians for pressure/viscosity remain placeholders.
+        // Keep this explicit until #452 replaces the gameplay scaffold with a
+        // separately qualified local formulation. The #511 reference solver is
+        // deliberately not a drop-in gameplay replacement.
         for i in 0..self.particles.len() {
-            let mut f_press = SVector::<f64, D>::zeros();
-            let mut f_visc = SVector::<f64, D>::zeros();
-
-            // Simplified force calculation (O(N^2) for initial scaffolding)
-            // ... (real gradients would go here)
+            let f_press = SVector::<f64, D>::zeros();
+            let f_visc = SVector::<f64, D>::zeros();
 
             self.particles[i].force = f_press + f_visc + gravity * self.particles[i].density;
         }
