@@ -41,9 +41,9 @@ pub use demographic_event::{
     DemographicEventKind, DemographicEventTiming,
 };
 pub use demographic_execution::{
-    execute_census_resize_bottleneck, DemographicEventExecutionModel,
-    DemographicEventExecutionProvenance, DemographicEventExecutionProvenanceDigest,
-    DemographicEventExecutionResult,
+    execute_census_resize_bottleneck, execute_census_resize_bottleneck_after_proven_history,
+    DemographicEventExecutionModel, DemographicEventExecutionProvenance,
+    DemographicEventExecutionProvenanceDigest, DemographicEventExecutionResult,
 };
 pub use demographic_extinction_execution::{
     execute_structural_extinction, DemographicExtinctionExecutionModel,
