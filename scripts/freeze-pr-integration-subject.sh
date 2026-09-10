@@ -18,7 +18,15 @@ git cat-file -e "$base^{commit}" 2>/dev/null || {
   echo "INTEGRATION_SUBJECT_BASE_MISSING: $base" >&2
   exit 2
 }
-tree="$(git merge-tree --write-tree "$base" "$head" | sed -n '1p')"
+set +e
+merge_output="$(git merge-tree --write-tree "$base" "$head" 2>&1)"
+merge_rc=$?
+set -e
+if [[ $merge_rc -ne 0 ]]; then
+  printf 'INTEGRATION_SUBJECT_MERGE_INVALID: %s\n' "$merge_output" >&2
+  exit 2
+fi
+tree="$(printf '%s\n' "$merge_output" | sed -n '1p')"
 [[ "$tree" =~ $sha_re ]] || {
   echo "INTEGRATION_SUBJECT_MERGE_INVALID: merge-tree did not return exact tree SHA" >&2
   exit 2
