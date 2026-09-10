@@ -24,6 +24,7 @@ A chromosome map alone also does **not** grant haplotype phase or crossover auth
 
 - `ChromosomeId`
 - `ChromosomeMapId`
+- `GeneticMapPositionMicromorgans`
 - `ChromosomeLocus`
 - `ChromosomeDefinition`
 - `ChromosomeMap`
@@ -33,9 +34,9 @@ The two semantic IDs use the crate's validation-preserving Serde boundary.
 
 ## Coordinate convention
 
-`ChromosomeLocus::position_micromorgans` is a `u64` integer genetic-map coordinate.
+`ChromosomeLocus::position` has the dedicated type `GeneticMapPositionMicromorgans`, which wraps one `u64` integer genetic-map coordinate.
 
-One Morgan is a genetic map-length unit; one micromorgan is one millionth of a Morgan. Integer coordinates are used so exact semantic identity does not depend on floating-point formatting or platform behavior.
+One Morgan is a genetic map-length unit; one micromorgan is one millionth of a Morgan. Integer coordinates are used so exact semantic identity does not depend on floating-point formatting or platform behavior. The dedicated position type also prevents callers from accidentally passing a physical sequence coordinate or another distance unit directly into the chromosome-map API.
 
 These coordinates are **not** physical base-pair positions.
 
