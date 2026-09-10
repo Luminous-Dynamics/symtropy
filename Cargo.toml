@@ -168,6 +168,7 @@ members = [
     # crates/{apps,domains}/ convention. See symtropy/crates/apps/symtropy-firstlight/README.md.
     "crates/apps/symtropy-firstlight",
     "crates/domains/symtropy-game-state",
+    "crates/domains/symtropy-protection-core",
     "crates/domains/symtropy-iris",
     "crates/domains/symtropy-persistence",
     "crates/domains/symtropy-residents",
