@@ -22,11 +22,18 @@ use symtropy_game_state::StableId;
 pub const PLAYER_BUILDING_PROPOSAL_SCHEMA_VERSION: u32 = 1;
 
 /// Maximum edge/length admitted by one built-in primitive: 1,000 km.
-///
-/// Larger authored objects remain possible by composition or by an exact
-/// external geometry reference. The bound exists to keep one primitive from
-/// becoming an accidental unbounded allocation/overflow surface.
+/// Larger objects remain possible through hierarchy/composition or exact
+/// external geometry.
 pub const MAX_PRIMITIVE_EXTENT_UM: u64 = 1_000_000_000_000;
+
+/// Bounded proposal sizes. Large settlements are expected to compose many
+/// bounded intents rather than becoming one giant atomic proposal.
+pub const MAX_INTENT_ELEMENTS: usize = 65_536;
+pub const MAX_EXACT_REFS: usize = 4_096;
+pub const MAX_PLAN_OPERATIONS: usize = 262_144;
+pub const MAX_DEPENDENCIES_PER_OPERATION: usize = 256;
+pub const MAX_CONSTRAINT_FINDINGS: usize = 65_536;
+pub const MAX_FINDING_SUBJECTS: usize = 1_024;
 
 const INTENT_DIGEST_DOMAIN: &[u8] = b"symtropy.player-building.intent.v1\0";
 const PLAN_DIGEST_DOMAIN: &[u8] = b"symtropy.player-building.plan.v1\0";
@@ -35,14 +42,11 @@ const SHA256_ALGORITHM_ID: &str = "sha256";
 /// Portable digest used by exact proposal references.
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
 pub struct ProposalDigest {
-    /// Explicit algorithm identity.
     pub algorithm: StableId,
-    /// Printable digest payload.
     pub value: String,
 }
 
 impl ProposalDigest {
-    /// Creates and validates a portable digest.
     pub fn new(algorithm: StableId, value: impl Into<String>) -> Result<Self, ProposalError> {
         let digest = Self {
             algorithm,
@@ -52,7 +56,6 @@ impl ProposalDigest {
         Ok(digest)
     }
 
-    /// Revalidates a digest decoded from persistence/network input.
     pub fn validate(&self) -> Result<(), ProposalError> {
         validate_stable_id(&self.algorithm)?;
         let valid = !self.value.is_empty()
@@ -76,24 +79,19 @@ impl ProposalDigest {
 
 /// Exact content-bound reference to authority owned by another subsystem.
 ///
-/// PB-01 can bind a planning decision to exact external state without claiming
-/// to understand or own that authority. Future adapters may map concrete
-/// Design, Construction, Fabrication, terrain, inventory, permission, or other
-/// authority types into this boundary.
+/// PB-01 can bind planning to external state without claiming to understand or
+/// own that authority. The tuple `(authority_id, subject_id, revision)` is one
+/// authority identity; two different digests for that same tuple are treated
+/// as conflicting input rather than two independent facts.
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
 pub struct ExactAuthorityRef {
-    /// Owning authority/profile identity.
     pub authority_id: StableId,
-    /// Subject inside that authority.
     pub subject_id: StableId,
-    /// Authority-owned revision/generation.
     pub revision: u64,
-    /// Exact content identity at that revision.
     pub content_digest: ProposalDigest,
 }
 
 impl ExactAuthorityRef {
-    /// Creates a validated exact external reference.
     pub fn new(
         authority_id: StableId,
         subject_id: StableId,
@@ -110,7 +108,6 @@ impl ExactAuthorityRef {
         Ok(reference)
     }
 
-    /// Revalidates authority identity after decoding.
     pub fn validate(&self) -> Result<(), ProposalError> {
         validate_stable_id(&self.authority_id)?;
         validate_stable_id(&self.subject_id)?;
@@ -118,22 +115,20 @@ impl ExactAuthorityRef {
     }
 }
 
-/// Deterministic authoring pose.
+/// Deterministic authoring pose relative to the intent's exact authoring frame.
 ///
-/// Translation is expressed in integer micrometres. Rotation uses three
-/// unsigned full-turn phase values (`0 ..= u32::MAX`) in intrinsic X -> Y -> Z
-/// order. This is an authoring/replay representation, not a structural-physics
-/// claim and not a replacement for a physics engine's internal transform type.
+/// Translation is integer micrometres. Rotation is three intrinsic X -> Y -> Z
+/// phase coordinates; the `u32` domain divides one turn into 2^32 discrete
+/// phases and wraps modulo one turn. This is an authoring/replay representation,
+/// not structural-physics truth and not a replacement for a physics engine's
+/// internal transform type.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct AuthoringPose {
-    /// World/site-relative translation in micrometres.
     pub translation_um: [i64; 3],
-    /// Intrinsic X/Y/Z rotation phases, where one full `u32` range is one turn.
     pub rotation_turn32: [u32; 3],
 }
 
 impl AuthoringPose {
-    /// Identity pose.
     pub const IDENTITY: Self = Self {
         translation_um: [0, 0, 0],
         rotation_turn32: [0, 0, 0],
@@ -142,31 +137,25 @@ impl AuthoringPose {
 
 /// Geometry authored directly in the proposal layer.
 ///
-/// Exact external geometry allows PB-01 to remain useful for CAD/procedural
-/// inputs without teaching this crate to become a geometry kernel.
+/// Exact external geometry keeps PB-01 useful for CAD/procedural inputs without
+/// turning this crate into a geometry kernel.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum GeometryIntent {
-    /// Rectangular solid.
     Cuboid { size_um: [u64; 3] },
-    /// Cylindrical member/volume, axis-local along Z.
     Cylinder { radius_um: u64, length_um: u64 },
-    /// Semantically panel-like rectangular solid.
     Panel {
         width_um: u64,
         height_um: u64,
         thickness_um: u64,
     },
-    /// Semantically beam-like rectangular member.
     Beam {
         length_um: u64,
         cross_section_um: [u64; 2],
     },
-    /// Content-bound geometry produced by another authority/tool.
     ExactExternal { geometry_ref: ExactAuthorityRef },
 }
 
 impl GeometryIntent {
-    /// Validates bounded positive built-in dimensions and exact external refs.
     pub fn validate(&self) -> Result<(), ProposalError> {
         match self {
             Self::Cuboid { size_um } => {
@@ -204,24 +193,25 @@ impl GeometryIntent {
 }
 
 /// Non-authoritative requested material semantics for one authored element.
-///
-/// A material class is a requirement/selector, never proof that inventory
-/// exists or that material has been reserved. Exact specification references
-/// can bind standards, recipes, or design requirements without becoming matter.
+/// A material class is a selector/requirement, never proof of inventory or a
+/// reservation.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct MaterialIntent {
-    /// Semantic material class such as `material:timber.structural`.
     pub material_class: StableId,
     specification_refs: Vec<ExactAuthorityRef>,
 }
 
 impl MaterialIntent {
-    /// Creates a canonical material request.
     pub fn new(
         material_class: StableId,
         mut specification_refs: Vec<ExactAuthorityRef>,
     ) -> Result<Self, ProposalError> {
-        specification_refs.sort_by(compare_exact_ref);
+        validate_bounded_len(
+            "material.specification_refs",
+            specification_refs.len(),
+            MAX_EXACT_REFS,
+        )?;
+        specification_refs.sort_by(compare_exact_ref_identity);
         let material = Self {
             material_class,
             specification_refs,
@@ -230,22 +220,24 @@ impl MaterialIntent {
         Ok(material)
     }
 
-    /// Exact specification refs in canonical order.
     pub fn specification_refs(&self) -> &[ExactAuthorityRef] {
         &self.specification_refs
     }
 
     fn validate_canonical(&self) -> Result<(), ProposalError> {
         validate_stable_id(&self.material_class)?;
+        validate_bounded_len(
+            "material.specification_refs",
+            self.specification_refs.len(),
+            MAX_EXACT_REFS,
+        )?;
         validate_exact_ref_slice("material.specification_refs", &self.specification_refs)
     }
 }
 
 /// One player-authored proposed element.
-///
-/// `role_id` is descriptive authoring semantics (wall, roof, frame, hull,
-/// furnishing, etc.). It must never be interpreted as proof that the element
-/// already exists or that a room/structure has acquired a social meaning.
+/// `role_id` is descriptive authoring semantics only; it is not proof of
+/// physical existence, room semantics, commissioning, ownership, or use.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct IntentElement {
     pub element_id: StableId,
@@ -256,7 +248,6 @@ pub struct IntentElement {
 }
 
 impl IntentElement {
-    /// Creates one validated authored element.
     pub fn new(
         element_id: StableId,
         role_id: StableId,
@@ -275,12 +266,26 @@ impl IntentElement {
         Ok(element)
     }
 
-    /// Revalidates an element decoded from persistence/network input.
     pub fn validate(&self) -> Result<(), ProposalError> {
         validate_stable_id(&self.element_id)?;
         validate_stable_id(&self.role_id)?;
         self.geometry.validate()?;
         self.material.validate_canonical()
+    }
+}
+
+/// Exact reference to one immutable authored-intent revision.
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
+pub struct ConstructionIntentRef {
+    pub intent_id: StableId,
+    pub revision: u64,
+    pub content_digest: ProposalDigest,
+}
+
+impl ConstructionIntentRef {
+    pub fn validate(&self) -> Result<(), ProposalError> {
+        validate_stable_id(&self.intent_id)?;
+        self.content_digest.validate()
     }
 }
 
@@ -291,30 +296,41 @@ pub struct ConstructionIntentManifest {
     pub intent_id: StableId,
     pub revision: u64,
     pub proposer_id: StableId,
-    /// Optional site/place scope descriptor. This is not permission or title.
+    /// Optional site descriptor. This is not title, permission, or occupancy.
     pub site_id: Option<StableId>,
+    /// Exact coordinate-frame identity for every `AuthoringPose` in this intent.
+    pub authoring_frame_ref: ExactAuthorityRef,
+    parent_refs: Vec<ConstructionIntentRef>,
     elements: Vec<IntentElement>,
     source_refs: Vec<ExactAuthorityRef>,
 }
 
 impl ConstructionIntentManifest {
-    /// Creates a canonical authored-intent snapshot.
+    #[allow(clippy::too_many_arguments)]
     pub fn new(
         intent_id: StableId,
         revision: u64,
         proposer_id: StableId,
         site_id: Option<StableId>,
+        authoring_frame_ref: ExactAuthorityRef,
+        mut parent_refs: Vec<ConstructionIntentRef>,
         mut elements: Vec<IntentElement>,
         mut source_refs: Vec<ExactAuthorityRef>,
     ) -> Result<Self, ProposalError> {
+        validate_bounded_len("intent.parents", parent_refs.len(), MAX_EXACT_REFS)?;
+        validate_bounded_len("intent.elements", elements.len(), MAX_INTENT_ELEMENTS)?;
+        validate_bounded_len("intent.source_refs", source_refs.len(), MAX_EXACT_REFS)?;
+        parent_refs.sort_by(compare_intent_ref_identity);
         elements.sort_by(|left, right| left.element_id.cmp(&right.element_id));
-        source_refs.sort_by(compare_exact_ref);
+        source_refs.sort_by(compare_exact_ref_identity);
         let manifest = Self {
             schema_version: PLAYER_BUILDING_PROPOSAL_SCHEMA_VERSION,
             intent_id,
             revision,
             proposer_id,
             site_id,
+            authoring_frame_ref,
+            parent_refs,
             elements,
             source_refs,
         };
@@ -322,12 +338,14 @@ impl ConstructionIntentManifest {
         Ok(manifest)
     }
 
-    /// Authored elements in canonical identity order.
+    pub fn parent_refs(&self) -> &[ConstructionIntentRef] {
+        &self.parent_refs
+    }
+
     pub fn elements(&self) -> &[IntentElement] {
         &self.elements
     }
 
-    /// Exact upstream references that influenced this intent.
     pub fn source_refs(&self) -> &[ExactAuthorityRef] {
         &self.source_refs
     }
@@ -341,6 +359,41 @@ impl ConstructionIntentManifest {
         if let Some(site_id) = &self.site_id {
             validate_stable_id(site_id)?;
         }
+        self.authoring_frame_ref.validate()?;
+
+        validate_bounded_len("intent.parents", self.parent_refs.len(), MAX_EXACT_REFS)?;
+        for parent in &self.parent_refs {
+            parent.validate()?;
+            if parent.intent_id != self.intent_id {
+                return Err(ProposalError::ForeignIntentParent {
+                    child_intent_id: self.intent_id.clone(),
+                    parent_intent_id: parent.intent_id.clone(),
+                });
+            }
+            if parent.revision >= self.revision {
+                return Err(ProposalError::NonPriorIntentParent {
+                    intent_id: self.intent_id.clone(),
+                    parent_revision: parent.revision,
+                    child_revision: self.revision,
+                });
+            }
+        }
+        for pair in self.parent_refs.windows(2) {
+            match compare_intent_ref_identity(&pair[0], &pair[1]) {
+                Ordering::Greater => {
+                    return Err(ProposalError::NonCanonicalOrder("intent.parents"));
+                }
+                Ordering::Equal => {
+                    return Err(ProposalError::DuplicateIntentParent {
+                        intent_id: pair[0].intent_id.clone(),
+                        revision: pair[0].revision,
+                    });
+                }
+                Ordering::Less => {}
+            }
+        }
+
+        validate_bounded_len("intent.elements", self.elements.len(), MAX_INTENT_ELEMENTS)?;
         if self.elements.is_empty() {
             return Err(ProposalError::IntentElementsRequired);
         }
@@ -358,6 +411,8 @@ impl ConstructionIntentManifest {
                 Ordering::Less => {}
             }
         }
+
+        validate_bounded_len("intent.source_refs", self.source_refs.len(), MAX_EXACT_REFS)?;
         validate_exact_ref_slice("intent.source_refs", &self.source_refs)
     }
 
@@ -371,26 +426,8 @@ impl ConstructionIntentManifest {
     }
 }
 
-/// Exact reference to one immutable authored-intent revision.
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
-pub struct ConstructionIntentRef {
-    pub intent_id: StableId,
-    pub revision: u64,
-    pub content_digest: ProposalDigest,
-}
-
-impl ConstructionIntentRef {
-    /// Revalidates portable fields. This does not by itself resolve the intent.
-    pub fn validate(&self) -> Result<(), ProposalError> {
-        validate_stable_id(&self.intent_id)?;
-        self.content_digest.validate()
-    }
-}
-
 /// Sealed authored construction intent.
-///
-/// Deserialization recomputes the digest, preventing mutated intent bytes from
-/// silently retaining an earlier exact reference.
+/// Deserialization revalidates canonical form and recomputes its digest.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub struct ConstructionIntent {
     manifest: ConstructionIntentManifest,
@@ -398,7 +435,6 @@ pub struct ConstructionIntent {
 }
 
 impl ConstructionIntent {
-    /// Seals a canonical manifest into a content-bound proposal.
     pub fn seal(manifest: ConstructionIntentManifest) -> Result<Self, ProposalError> {
         let content_digest = manifest.content_digest()?;
         Ok(Self {
@@ -423,7 +459,6 @@ impl ConstructionIntent {
         }
     }
 
-    /// Recomputes and verifies exact intent identity.
     pub fn validate(&self) -> Result<(), ProposalError> {
         let actual = self.manifest.content_digest()?;
         if actual == self.content_digest {
@@ -468,14 +503,13 @@ pub struct PlanningContext {
 }
 
 impl PlanningContext {
-    /// Creates a canonical context. Empty exact input sets are permitted for
-    /// offline/sketch planning; they simply cannot imply downstream authority.
     pub fn new(
         context_id: StableId,
         revision: u64,
         mut exact_inputs: Vec<ExactAuthorityRef>,
     ) -> Result<Self, ProposalError> {
-        exact_inputs.sort_by(compare_exact_ref);
+        validate_bounded_len("planning_context.exact_inputs", exact_inputs.len(), MAX_EXACT_REFS)?;
+        exact_inputs.sort_by(compare_exact_ref_identity);
         let context = Self {
             context_id,
             revision,
@@ -491,40 +525,30 @@ impl PlanningContext {
 
     fn validate_canonical(&self) -> Result<(), ProposalError> {
         validate_stable_id(&self.context_id)?;
+        validate_bounded_len("planning_context.exact_inputs", self.exact_inputs.len(), MAX_EXACT_REFS)?;
         validate_exact_ref_slice("planning_context.exact_inputs", &self.exact_inputs)
     }
 }
 
-/// Proposal-only construction operation selected by a compiler/planner.
-///
-/// None of these variants execute physical work. PB-02 or later adapters must
-/// explicitly translate supported operations into the current exact owning
-/// Construction/Fabrication/matter authority APIs.
+/// Proposal-only operation. None of these variants execute physical work.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum ConstructionAction {
-    /// Propose realization of one authored intent element.
     RealizeElement { element_id: StableId },
-    /// Propose a physical connection between two newly authored elements.
     JoinElements {
         first_element_id: StableId,
         second_element_id: StableId,
         connection_kind: StableId,
     },
-    /// Propose modification of an already-exact external subject.
     ModifyExactSubject {
         target: ExactAuthorityRef,
         modification_kind: StableId,
         payload_ref: Option<ExactAuthorityRef>,
     },
-    /// Propose removal/dismantling work against an exact external subject.
     RemoveExactSubject {
         target: ExactAuthorityRef,
         removal_kind: StableId,
     },
-    /// Extension seam for an explicitly versioned future adapter profile.
-    ///
-    /// The payload remains exact external content. Unknown profiles stay inert
-    /// proposals; there is deliberately no generic "execute this payload" API.
+    /// Unknown profiles remain inert proposals. There is no generic execute API.
     AdapterProposal {
         profile_id: StableId,
         payload_ref: ExactAuthorityRef,
@@ -591,12 +615,16 @@ pub struct PlannedOperation {
 }
 
 impl PlannedOperation {
-    /// Creates one operation with canonical dependency order.
     pub fn new(
         operation_id: StableId,
         mut depends_on: Vec<StableId>,
         action: ConstructionAction,
     ) -> Result<Self, ProposalError> {
+        validate_bounded_len(
+            "operation.depends_on",
+            depends_on.len(),
+            MAX_DEPENDENCIES_PER_OPERATION,
+        )?;
         depends_on.sort();
         let operation = Self {
             operation_id,
@@ -613,6 +641,11 @@ impl PlannedOperation {
 
     fn validate_local(&self) -> Result<(), ProposalError> {
         validate_stable_id(&self.operation_id)?;
+        validate_bounded_len(
+            "operation.depends_on",
+            self.depends_on.len(),
+            MAX_DEPENDENCIES_PER_OPERATION,
+        )?;
         for dependency in &self.depends_on {
             validate_stable_id(dependency)?;
             if dependency == &self.operation_id {
@@ -641,25 +674,24 @@ pub struct ConstructionPlanManifest {
     pub plan_id: StableId,
     pub revision: u64,
     pub intent_ref: ConstructionIntentRef,
-    /// Snapshot of intent element identities used for referential validation.
     intent_element_ids: Vec<StableId>,
-    /// Versioned compiler/planner semantic profile.
-    pub compiler_profile_id: StableId,
+    /// Exact compiler/planner implementation/profile identity.
+    pub compiler_ref: ExactAuthorityRef,
     pub planning_context: PlanningContext,
     operations: Vec<PlannedOperation>,
 }
 
 impl ConstructionPlanManifest {
-    /// Creates and validates a canonical plan proposal.
     pub fn new(
         plan_id: StableId,
         revision: u64,
         intent: &ConstructionIntent,
-        compiler_profile_id: StableId,
+        compiler_ref: ExactAuthorityRef,
         planning_context: PlanningContext,
         mut operations: Vec<PlannedOperation>,
     ) -> Result<Self, ProposalError> {
         intent.validate()?;
+        validate_bounded_len("plan.operations", operations.len(), MAX_PLAN_OPERATIONS)?;
         operations.sort_by(|left, right| left.operation_id.cmp(&right.operation_id));
         let intent_element_ids = intent
             .manifest()
@@ -673,7 +705,7 @@ impl ConstructionPlanManifest {
             revision,
             intent_ref: intent.exact_ref(),
             intent_element_ids,
-            compiler_profile_id,
+            compiler_ref,
             planning_context,
             operations,
         };
@@ -689,8 +721,7 @@ impl ConstructionPlanManifest {
         &self.operations
     }
 
-    /// Deterministic topological operation order using operation identity as
-    /// the tie-break between simultaneously ready nodes.
+    /// Deterministic topological order with operation identity as the tie-break.
     pub fn topological_order(&self) -> Result<Vec<StableId>, ProposalError> {
         self.validate_canonical()?;
         topological_order(&self.operations)
@@ -702,12 +733,17 @@ impl ConstructionPlanManifest {
         }
         validate_stable_id(&self.plan_id)?;
         self.intent_ref.validate()?;
-        validate_stable_id(&self.compiler_profile_id)?;
+        self.compiler_ref.validate()?;
         self.planning_context.validate_canonical()?;
 
         if self.intent_element_ids.is_empty() {
             return Err(ProposalError::IntentElementsRequired);
         }
+        validate_bounded_len(
+            "plan.intent_element_ids",
+            self.intent_element_ids.len(),
+            MAX_INTENT_ELEMENTS,
+        )?;
         for element_id in &self.intent_element_ids {
             validate_stable_id(element_id)?;
         }
@@ -720,6 +756,7 @@ impl ConstructionPlanManifest {
             }
         }
 
+        validate_bounded_len("plan.operations", self.operations.len(), MAX_PLAN_OPERATIONS)?;
         for pair in self.operations.windows(2) {
             if pair[0].operation_id > pair[1].operation_id {
                 return Err(ProposalError::NonCanonicalOrder("plan.operations"));
@@ -773,14 +810,13 @@ impl ConstructionPlanManifest {
                 let second_realization = realization_by_element
                     .get(second_element_id)
                     .ok_or_else(|| ProposalError::JoinElementNotRealized(second_element_id.clone()))?;
-                let dependencies: BTreeSet<_> = operation.depends_on().iter().collect();
-                if !dependencies.contains(first_realization) {
+                if operation.depends_on().binary_search(first_realization).is_err() {
                     return Err(ProposalError::JoinMissingRealizationDependency {
                         join_operation_id: operation.operation_id.clone(),
                         realization_operation_id: first_realization.clone(),
                     });
                 }
-                if !dependencies.contains(second_realization) {
+                if operation.depends_on().binary_search(second_realization).is_err() {
                     return Err(ProposalError::JoinMissingRealizationDependency {
                         join_operation_id: operation.operation_id.clone(),
                         realization_operation_id: second_realization.clone(),
@@ -825,7 +861,6 @@ pub struct ConstructionPlan {
 }
 
 impl ConstructionPlan {
-    /// Seals one canonical plan manifest.
     pub fn seal(manifest: ConstructionPlanManifest) -> Result<Self, ProposalError> {
         let content_digest = manifest.content_digest()?;
         Ok(Self {
@@ -850,7 +885,6 @@ impl ConstructionPlan {
         }
     }
 
-    /// Recomputes and verifies exact plan identity.
     pub fn validate(&self) -> Result<(), ProposalError> {
         let actual = self.manifest.content_digest()?;
         if actual == self.content_digest {
@@ -864,10 +898,8 @@ impl ConstructionPlan {
         }
     }
 
-    /// Resolves the plan against the exact authored intent it claims to use.
-    ///
-    /// This must be repeated by future authority-crossing adapters rather than
-    /// trusting a stored plan reference in isolation.
+    /// Re-resolves the stored plan against the exact authored intent it names.
+    /// Future authority-crossing adapters must repeat this check.
     pub fn validate_against_intent(
         &self,
         intent: &ConstructionIntent,
@@ -911,14 +943,10 @@ impl<'de> Deserialize<'de> for ConstructionPlan {
     }
 }
 
-/// Constraint finding severity without a scalar quality/confidence score.
+/// Constraint severity without a scalar quality/confidence score.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
 pub enum ConstraintSeverity {
-    /// The named rule/authority reports a condition that must fail closed at
-    /// the relevant future adapter boundary.
     HardFailure,
-    /// Physically/gameplay-relevant concern that can be shown without turning
-    /// PB-01 into the owner of the underlying truth.
     Advisory,
 }
 
@@ -928,12 +956,8 @@ pub struct ConstraintFinding {
     pub finding_id: StableId,
     pub rule_id: StableId,
     pub severity: ConstraintSeverity,
-    /// Stable subjects involved in the finding, sorted/deduplicated.
     subjects: Vec<StableId>,
-    /// Localization/presentation key; free-form prose is deliberately absent
-    /// from exact semantics.
     pub message_key: StableId,
-    /// Exact evidence/authority inputs when available.
     evidence_refs: Vec<ExactAuthorityRef>,
 }
 
@@ -946,9 +970,11 @@ impl ConstraintFinding {
         message_key: StableId,
         mut evidence_refs: Vec<ExactAuthorityRef>,
     ) -> Result<Self, ProposalError> {
+        validate_bounded_len("constraint.subjects", subjects.len(), MAX_FINDING_SUBJECTS)?;
+        validate_bounded_len("constraint.evidence_refs", evidence_refs.len(), MAX_EXACT_REFS)?;
         subjects.sort();
         subjects.dedup();
-        evidence_refs.sort_by(compare_exact_ref);
+        evidence_refs.sort_by(compare_exact_ref_identity);
         let finding = Self {
             finding_id,
             rule_id,
@@ -973,6 +999,7 @@ impl ConstraintFinding {
         validate_stable_id(&self.finding_id)?;
         validate_stable_id(&self.rule_id)?;
         validate_stable_id(&self.message_key)?;
+        validate_bounded_len("constraint.subjects", self.subjects.len(), MAX_FINDING_SUBJECTS)?;
         for subject in &self.subjects {
             validate_stable_id(subject)?;
         }
@@ -981,16 +1008,18 @@ impl ConstraintFinding {
                 return Err(ProposalError::NonCanonicalOrder("constraint.subjects"));
             }
         }
+        validate_bounded_len("constraint.evidence_refs", self.evidence_refs.len(), MAX_EXACT_REFS)?;
         validate_exact_ref_slice("constraint.evidence_refs", &self.evidence_refs)
     }
 }
 
 /// Non-authoritative constraint report bound to one exact plan proposal.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+/// A future execution adapter must independently decide which evaluator/rule
+/// authorities it accepts; `HardFailure` is not self-authenticating authority.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub struct ConstraintReport {
     pub plan_ref: ConstructionPlanRef,
     pub report_profile_id: StableId,
-    /// Optional exact evaluator/policy context; absence stays explicit.
     pub evaluator_ref: Option<ExactAuthorityRef>,
     findings: Vec<ConstraintFinding>,
 }
@@ -1002,6 +1031,7 @@ impl ConstraintReport {
         evaluator_ref: Option<ExactAuthorityRef>,
         mut findings: Vec<ConstraintFinding>,
     ) -> Result<Self, ProposalError> {
+        validate_bounded_len("constraint.findings", findings.len(), MAX_CONSTRAINT_FINDINGS)?;
         findings.sort_by(|left, right| left.finding_id.cmp(&right.finding_id));
         let report = Self {
             plan_ref,
@@ -1017,8 +1047,7 @@ impl ConstraintReport {
         &self.findings
     }
 
-    /// Reports whether any named rule produced a hard failure. This is not an
-    /// execution-authority or safety predicate.
+    /// This reports only report content; it is not an execution/safety predicate.
     pub fn has_hard_failures(&self) -> bool {
         self.findings
             .iter()
@@ -1031,6 +1060,7 @@ impl ConstraintReport {
         if let Some(evaluator_ref) = &self.evaluator_ref {
             evaluator_ref.validate()?;
         }
+        validate_bounded_len("constraint.findings", self.findings.len(), MAX_CONSTRAINT_FINDINGS)?;
         for finding in &self.findings {
             finding.validate_canonical()?;
         }
@@ -1048,14 +1078,39 @@ impl ConstraintReport {
     }
 }
 
-/// Whether an authored element has a realization operation in this plan.
+#[derive(Deserialize)]
+struct ConstraintReportWire {
+    plan_ref: ConstructionPlanRef,
+    report_profile_id: StableId,
+    evaluator_ref: Option<ExactAuthorityRef>,
+    findings: Vec<ConstraintFinding>,
+}
+
+impl<'de> Deserialize<'de> for ConstraintReport {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        let wire = ConstraintReportWire::deserialize(deserializer)?;
+        let report = Self {
+            plan_ref: wire.plan_ref,
+            report_profile_id: wire.report_profile_id,
+            evaluator_ref: wire.evaluator_ref,
+            findings: wire.findings,
+        };
+        report
+            .validate_canonical()
+            .map_err(serde::de::Error::custom)?;
+        Ok(report)
+    }
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum ProjectionDisposition {
     Planned,
     Unscheduled,
 }
 
-/// Read-only projected authored geometry.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ProjectedElement {
     pub element_id: StableId,
@@ -1065,10 +1120,12 @@ pub struct ProjectedElement {
     pub disposition: ProjectionDisposition,
 }
 
-/// Non-authoritative visualization/interaction projection.
+/// Read-only visualization/interaction projection.
 ///
-/// There are intentionally no mutation or execution methods here.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+/// It is intentionally Serialize-only: persisted/networked projection bytes do
+/// not re-enter as canonical state. Consumers regenerate it from exact intent +
+/// plan instead.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub struct BuildProjection {
     pub intent_ref: ConstructionIntentRef,
     pub plan_ref: ConstructionPlanRef,
@@ -1076,8 +1133,6 @@ pub struct BuildProjection {
 }
 
 impl BuildProjection {
-    /// Builds a deterministic projection only after resolving the plan against
-    /// the exact intent it names.
     pub fn from_intent_and_plan(
         intent: &ConstructionIntent,
         plan: &ConstructionPlan,
@@ -1192,6 +1247,18 @@ fn validate_extent(field: &'static str, value: u64) -> Result<(), ProposalError>
     }
 }
 
+fn validate_bounded_len(
+    field: &'static str,
+    actual: usize,
+    max: usize,
+) -> Result<(), ProposalError> {
+    if actual <= max {
+        Ok(())
+    } else {
+        Err(ProposalError::TooManyItems { field, max, actual })
+    }
+}
+
 fn validate_exact_ref_slice(
     field: &'static str,
     refs: &[ExactAuthorityRef],
@@ -1200,28 +1267,35 @@ fn validate_exact_ref_slice(
         reference.validate()?;
     }
     for pair in refs.windows(2) {
-        match compare_exact_ref(&pair[0], &pair[1]) {
+        match compare_exact_ref_identity(&pair[0], &pair[1]) {
             Ordering::Greater => return Err(ProposalError::NonCanonicalOrder(field)),
-            Ordering::Equal => return Err(ProposalError::DuplicateExactReference(field)),
+            Ordering::Equal => {
+                return Err(ProposalError::DuplicateExactAuthorityIdentity {
+                    field,
+                    authority_id: pair[0].authority_id.clone(),
+                    subject_id: pair[0].subject_id.clone(),
+                    revision: pair[0].revision,
+                });
+            }
             Ordering::Less => {}
         }
     }
     Ok(())
 }
 
-fn compare_exact_ref(left: &ExactAuthorityRef, right: &ExactAuthorityRef) -> Ordering {
-    (
-        &left.authority_id,
-        &left.subject_id,
-        left.revision,
-        &left.content_digest,
-    )
-        .cmp(&(
-            &right.authority_id,
-            &right.subject_id,
-            right.revision,
-            &right.content_digest,
-        ))
+fn compare_exact_ref_identity(left: &ExactAuthorityRef, right: &ExactAuthorityRef) -> Ordering {
+    (&left.authority_id, &left.subject_id, left.revision).cmp(&(
+        &right.authority_id,
+        &right.subject_id,
+        right.revision,
+    ))
+}
+
+fn compare_intent_ref_identity(
+    left: &ConstructionIntentRef,
+    right: &ConstructionIntentRef,
+) -> Ordering {
+    (&left.intent_id, left.revision).cmp(&(&right.intent_id, right.revision))
 }
 
 fn validate_stable_id(id: &StableId) -> Result<(), ProposalError> {
@@ -1240,7 +1314,6 @@ fn hex(bytes: &[u8]) -> String {
     output
 }
 
-/// Fail-closed structural errors for the proposal layer.
 #[derive(Debug)]
 pub enum ProposalError {
     UnsupportedSchema(u32),
@@ -1250,9 +1323,32 @@ pub enum ProposalError {
         field: &'static str,
         value: u64,
     },
+    TooManyItems {
+        field: &'static str,
+        max: usize,
+        actual: usize,
+    },
     IntentElementsRequired,
     DuplicateElement(StableId),
-    DuplicateExactReference(&'static str),
+    DuplicateIntentParent {
+        intent_id: StableId,
+        revision: u64,
+    },
+    ForeignIntentParent {
+        child_intent_id: StableId,
+        parent_intent_id: StableId,
+    },
+    NonPriorIntentParent {
+        intent_id: StableId,
+        parent_revision: u64,
+        child_revision: u64,
+    },
+    DuplicateExactAuthorityIdentity {
+        field: &'static str,
+        authority_id: StableId,
+        subject_id: StableId,
+        revision: u64,
+    },
     NonCanonicalOrder(&'static str),
     DuplicateOperation(StableId),
     SelfDependency(StableId),
@@ -1300,13 +1396,41 @@ impl fmt::Display for ProposalError {
                 formatter,
                 "invalid primitive extent {field}={value} um; expected 1..={MAX_PRIMITIVE_EXTENT_UM}"
             ),
+            Self::TooManyItems { field, max, actual } => {
+                write!(formatter, "{field} contains {actual} items; maximum is {max}")
+            }
             Self::IntentElementsRequired => {
                 write!(formatter, "construction intent requires at least one authored element")
             }
             Self::DuplicateElement(id) => write!(formatter, "duplicate intent element {id}"),
-            Self::DuplicateExactReference(field) => {
-                write!(formatter, "duplicate exact reference in {field}")
-            }
+            Self::DuplicateIntentParent { intent_id, revision } => write!(
+                formatter,
+                "duplicate construction-intent parent {intent_id} revision {revision}"
+            ),
+            Self::ForeignIntentParent {
+                child_intent_id,
+                parent_intent_id,
+            } => write!(
+                formatter,
+                "construction intent {child_intent_id} cannot use foreign intent {parent_intent_id} as revision ancestry"
+            ),
+            Self::NonPriorIntentParent {
+                intent_id,
+                parent_revision,
+                child_revision,
+            } => write!(
+                formatter,
+                "construction intent {intent_id} parent revision {parent_revision} is not prior to child revision {child_revision}"
+            ),
+            Self::DuplicateExactAuthorityIdentity {
+                field,
+                authority_id,
+                subject_id,
+                revision,
+            } => write!(
+                formatter,
+                "duplicate/conflicting exact authority identity in {field}: {authority_id}/{subject_id}@{revision}"
+            ),
             Self::NonCanonicalOrder(field) => write!(formatter, "{field} is not canonically ordered"),
             Self::DuplicateOperation(id) => write!(formatter, "duplicate planned operation {id}"),
             Self::SelfDependency(id) => write!(formatter, "operation {id} depends on itself"),
@@ -1389,6 +1513,14 @@ mod tests {
         ExactAuthorityRef::new(id(authority), id(subject), revision, digest(value)).unwrap()
     }
 
+    fn frame() -> ExactAuthorityRef {
+        exact("authority:frame", "frame:firstlight-local", 1, "frame-a")
+    }
+
+    fn compiler() -> ExactAuthorityRef {
+        exact("authority:planner", "planner:pb01.v1", 1, "compiler-a")
+    }
+
     fn material() -> MaterialIntent {
         MaterialIntent::new(id("material:timber.structural"), Vec::new()).unwrap()
     }
@@ -1417,6 +1549,8 @@ mod tests {
                 1,
                 id("actor:player"),
                 Some(id("site:firstlight")),
+                frame(),
+                Vec::new(),
                 elements,
                 vec![exact("authority:terrain", "cell:42", 7, "terrain-a")],
             )
@@ -1446,7 +1580,7 @@ mod tests {
                 id("build-plan:shelter"),
                 1,
                 intent,
-                id("planner:pb01.v1"),
+                compiler(),
                 context,
                 operations,
             )
@@ -1470,6 +1604,78 @@ mod tests {
         let left = intent_with(vec![element("element:a", 0)]);
         let right = intent_with(vec![element("element:a", 1)]);
         assert_ne!(left.exact_ref(), right.exact_ref());
+    }
+
+    #[test]
+    fn coordinate_frame_change_changes_exact_intent_identity() {
+        let left = intent_with(vec![element("element:a", 0)]);
+        let right = ConstructionIntent::seal(
+            ConstructionIntentManifest::new(
+                id("build-intent:shelter"),
+                1,
+                id("actor:player"),
+                Some(id("site:firstlight")),
+                exact("authority:frame", "frame:firstlight-local", 1, "frame-b"),
+                Vec::new(),
+                vec![element("element:a", 0)],
+                vec![exact("authority:terrain", "cell:42", 7, "terrain-a")],
+            )
+            .unwrap(),
+        )
+        .unwrap();
+        assert_ne!(left.exact_ref(), right.exact_ref());
+    }
+
+    #[test]
+    fn intent_parent_must_be_same_identity_and_prior_revision() {
+        let parent = ConstructionIntentRef {
+            intent_id: id("build-intent:shelter"),
+            revision: 1,
+            content_digest: digest("parent-a"),
+        };
+        let child = ConstructionIntentManifest::new(
+            id("build-intent:shelter"),
+            2,
+            id("actor:player"),
+            Some(id("site:firstlight")),
+            frame(),
+            vec![parent],
+            vec![element("element:a", 0)],
+            Vec::new(),
+        );
+        assert!(child.is_ok());
+
+        let foreign = ConstructionIntentManifest::new(
+            id("build-intent:shelter"),
+            2,
+            id("actor:player"),
+            None,
+            frame(),
+            vec![ConstructionIntentRef {
+                intent_id: id("build-intent:other"),
+                revision: 1,
+                content_digest: digest("parent-b"),
+            }],
+            vec![element("element:a", 0)],
+            Vec::new(),
+        );
+        assert!(matches!(foreign, Err(ProposalError::ForeignIntentParent { .. })));
+    }
+
+    #[test]
+    fn conflicting_same_revision_authority_refs_fail_closed() {
+        let result = PlanningContext::new(
+            id("context:one"),
+            1,
+            vec![
+                exact("authority:terrain", "cell:42", 7, "terrain-a"),
+                exact("authority:terrain", "cell:42", 7, "terrain-b"),
+            ],
+        );
+        assert!(matches!(
+            result,
+            Err(ProposalError::DuplicateExactAuthorityIdentity { .. })
+        ));
     }
 
     #[test]
@@ -1537,7 +1743,7 @@ mod tests {
             id("build-plan:shelter"),
             1,
             &intent,
-            id("planner:pb01.v1"),
+            compiler(),
             PlanningContext::new(id("context:one"), 1, Vec::new()).unwrap(),
             vec![operation],
         );
@@ -1567,7 +1773,7 @@ mod tests {
             id("build-plan:shelter"),
             1,
             &intent,
-            id("planner:pb01.v1"),
+            compiler(),
             PlanningContext::new(id("context:one"), 1, Vec::new()).unwrap(),
             vec![a, b],
         );
@@ -1593,7 +1799,7 @@ mod tests {
             id("build-plan:shelter"),
             1,
             &intent,
-            id("planner:pb01.v1"),
+            compiler(),
             PlanningContext::new(id("context:one"), 1, Vec::new()).unwrap(),
             vec![a, b, join],
         );
@@ -1622,12 +1828,40 @@ mod tests {
             PlanningContext::new(
                 id("context:one"),
                 1,
-                vec![exact("authority:terrain", "cell:42", 7, "terrain-b")],
+                vec![exact("authority:terrain", "cell:42", 8, "terrain-b")],
             )
             .unwrap(),
             vec![operation],
         );
         assert_ne!(left.exact_ref(), right.exact_ref());
+    }
+
+    #[test]
+    fn compiler_identity_changes_plan_identity_even_if_output_matches() {
+        let intent = intent_with(vec![element("element:a", 0)]);
+        let context = PlanningContext::new(id("context:one"), 1, Vec::new()).unwrap();
+        let manifest_a = ConstructionPlanManifest::new(
+            id("build-plan:shelter"),
+            1,
+            &intent,
+            compiler(),
+            context.clone(),
+            vec![realize("op:a", "element:a")],
+        )
+        .unwrap();
+        let manifest_b = ConstructionPlanManifest::new(
+            id("build-plan:shelter"),
+            1,
+            &intent,
+            exact("authority:planner", "planner:pb01.v1", 2, "compiler-b"),
+            context,
+            vec![realize("op:a", "element:a")],
+        )
+        .unwrap();
+        assert_ne!(
+            ConstructionPlan::seal(manifest_a).unwrap().exact_ref(),
+            ConstructionPlan::seal(manifest_b).unwrap().exact_ref()
+        );
     }
 
     #[test]
@@ -1728,9 +1962,22 @@ mod tests {
             vec![realize("op:a", "element:a")],
         );
         let mut wire = serde_json::to_value(&plan).unwrap();
-        wire["manifest"]["compiler_profile_id"] =
-            serde_json::Value::String("planner:other.v1".into());
+        wire["manifest"]["compiler_ref"]["content_digest"]["value"] =
+            serde_json::Value::String("compiler-tampered".into());
         let result = serde_json::from_value::<ConstructionPlan>(wire);
         assert!(result.is_err());
+    }
+
+    #[test]
+    fn build_projection_cannot_be_deserialized_as_canonical_state() {
+        let intent = intent_with(vec![element("element:a", 0)]);
+        let plan = plan_with(
+            &intent,
+            PlanningContext::new(id("context:one"), 1, Vec::new()).unwrap(),
+            vec![realize("op:a", "element:a")],
+        );
+        let projection = BuildProjection::from_intent_and_plan(&intent, &plan).unwrap();
+        let encoded = serde_json::to_string(&projection).unwrap();
+        assert!(encoded.contains("element:a"));
     }
 }
