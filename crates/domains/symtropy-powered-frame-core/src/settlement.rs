@@ -48,6 +48,26 @@ pub struct ConsumptionReceipt {
     pub remaining_after: f64,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum ConsumptionDisposition {
+    /// This call committed a new spend. A downstream side effect may execute once.
+    New,
+    /// This was an identical retry. The downstream side effect must not execute again.
+    Replay,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct ConsumptionResult {
+    pub disposition: ConsumptionDisposition,
+    pub receipt: ConsumptionReceipt,
+}
+
+impl ConsumptionResult {
+    pub fn is_new(&self) -> bool {
+        self.disposition == ConsumptionDisposition::New
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct ResourceSettlement {
     pub epoch: ResourceEpoch,
@@ -81,15 +101,16 @@ impl ResourceSettlement {
 
     /// Spend part of one subsystem grant exactly once per consumption identity.
     ///
-    /// Repeating the same `consumption_id`, subsystem, and amount is idempotent and
-    /// returns the original receipt without spending again. Reusing an identity for a
-    /// different request fails closed.
+    /// Repeating the same `consumption_id`, subsystem, and amount is idempotent: it
+    /// returns the original receipt with `Replay` disposition and does not spend again.
+    /// Downstream state transitions must execute only for `New`. Reusing an identity
+    /// for different semantics fails closed.
     pub fn consume(
         &mut self,
         consumption_id: impl Into<String>,
         subsystem: PoweredSubsystem,
         amount: f64,
-    ) -> Result<ConsumptionReceipt, SettlementError> {
+    ) -> Result<ConsumptionResult, SettlementError> {
         let consumption_id = consumption_id.into();
         if consumption_id.trim().is_empty() {
             return Err(SettlementError::EmptyConsumptionId);
@@ -100,7 +121,10 @@ impl ResourceSettlement {
 
         if let Some(existing) = self.consumptions.get(&consumption_id) {
             if existing.subsystem == subsystem && existing.amount == amount {
-                return Ok(existing.clone());
+                return Ok(ConsumptionResult {
+                    disposition: ConsumptionDisposition::Replay,
+                    receipt: existing.clone(),
+                });
             }
             return Err(SettlementError::ConsumptionIdCollision(consumption_id));
         }
@@ -129,7 +153,10 @@ impl ResourceSettlement {
             remaining_after,
         };
         self.consumptions.insert(consumption_id, receipt.clone());
-        Ok(receipt)
+        Ok(ConsumptionResult {
+            disposition: ConsumptionDisposition::New,
+            receipt,
+        })
     }
 
     pub fn total_remaining(&self) -> f64 {
@@ -206,16 +233,18 @@ mod tests {
     }
 
     #[test]
-    fn identical_retry_is_idempotent() {
+    fn identical_retry_is_explicitly_marked_replay() {
         let mut settlement = settlement();
         let first = settlement
             .consume("field-recharge:42", PoweredSubsystem::Protection, 1.0)
             .unwrap();
+        assert_eq!(first.disposition, ConsumptionDisposition::New);
         let after_first = settlement.remaining(PoweredSubsystem::Protection);
         let retry = settlement
             .consume("field-recharge:42", PoweredSubsystem::Protection, 1.0)
             .unwrap();
-        assert_eq!(first, retry);
+        assert_eq!(retry.disposition, ConsumptionDisposition::Replay);
+        assert_eq!(first.receipt, retry.receipt);
         assert_eq!(settlement.remaining(PoweredSubsystem::Protection), after_first);
     }
 
