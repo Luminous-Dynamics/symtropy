@@ -36,6 +36,36 @@ jobs:
           test "${actual_head}" = "${GITHUB_SHA}"
           echo "PB04A_IDENTITY_INPUT_HEAD=${actual_head}"
           echo "PB04A_IDENTITY_INPUT_TREE=$(git rev-parse HEAD^{tree})"
+          python3 --version
+
+      - name: Verify exact transformation capsule
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          check_blob() {
+            expected="$1"
+            path="$2"
+            actual="$(git hash-object "$path")"
+            if [[ "${actual}" != "${expected}" ]]; then
+              echo "PB-04a hardening capsule drift: ${path}" >&2
+              echo "expected ${expected}" >&2
+              echo "actual   ${actual}" >&2
+              exit 1
+            fi
+            echo "PB04A_CAPSULE_BLOB ${path} ${actual}"
+          }
+
+          # Exact untransformed product inputs.
+          check_blob 01ac9cfb159fe5c87b41e386a2b70c6edb6f6ae9 crates/domains/symtropy-spatial-topology/src/lib.rs
+          check_blob 66d2d48ef30208bf1389983a5e3dd5708d5eab3f crates/domains/symtropy-spatial-topology/Cargo.toml
+          check_blob 859392660ab0a722d76892ee317aceb2f2522be4 crates/domains/symtropy-spatial-topology/tests/hostile_projection.rs
+
+          # Exact deterministic transformation program.
+          check_blob 1d94ebb0a6819bfd1d95060920ec5b3d460194a9 scripts/pb04a-harden-content-identity.py
+          check_blob e03de8d8e452af9720d24f8922081c5e00209022 scripts/pb04a-harden-global-source-consistency.py
+          check_blob 41d8fa5bcd275b1388f9be9b6992defe346094fe scripts/pb04a-harden-query-semantics.py
+          check_blob c14307a797fc96afecab1927c5f38b6b81f3c3b5 scripts/pb04a-seal-identity-state.py
 
       - name: Set up pinned Rust
         uses: dtolnay/rust-toolchain@stable
@@ -45,6 +75,7 @@ jobs:
 
       - name: Apply fail-closed hardening transformers
         run: |
+          set -euo pipefail
           python3 scripts/pb04a-harden-content-identity.py
           python3 scripts/pb04a-harden-global-source-consistency.py
           python3 scripts/pb04a-harden-query-semantics.py
@@ -57,6 +88,7 @@ jobs:
 
       - name: Prove hardened isolated crate
         run: |
+          set -euo pipefail
           cargo check --manifest-path crates/domains/symtropy-spatial-topology/Cargo.toml --all-targets
           cargo test --manifest-path crates/domains/symtropy-spatial-topology/Cargo.toml
           cargo clippy --manifest-path crates/domains/symtropy-spatial-topology/Cargo.toml --all-targets -- -D warnings
