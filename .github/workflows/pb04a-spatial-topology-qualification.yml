@@ -23,8 +23,9 @@ jobs:
   qualify:
     name: Qualify PB-04a exact locked execution subject
     runs-on: ubuntu-24.04
+    env:
+      CARGO_TARGET_DIR: ${{ runner.temp }}/pb04a-target
     steps:
-      # actions/checkout v4 resolved and frozen at review time.
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
           fetch-depth: 0
@@ -36,7 +37,6 @@ jobs:
           set -euo pipefail
           actual_head="$(git rev-parse HEAD)"
           actual_tree="$(git rev-parse HEAD^{tree})"
-
           if [[ "${GITHUB_EVENT_NAME}" == "push" ]]; then
             test "${actual_head}" = "${GITHUB_SHA}"
             echo "PB04A_PRODUCT_HEAD=${actual_head}"
@@ -75,10 +75,10 @@ jobs:
           echo "PB04A_RUNNER_ARCH=${RUNNER_ARCH}"
           echo "PB04A_IMAGE_OS=${ImageOS:-unknown}"
           echo "PB04A_IMAGE_VERSION=${ImageVersion:-unknown}"
+          echo "PB04A_CARGO_TARGET_DIR=${CARGO_TARGET_DIR}"
           uname -a
           git --version
 
-      # dtolnay/rust-toolchain stable branch resolved and frozen at review time.
       - name: Set up pinned Rust
         uses: dtolnay/rust-toolchain@6bed0761d98439e5a578e2877258200ad565ba87
         with:
@@ -98,9 +98,8 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          manifest="crates/domains/symtropy-spatial-topology/Cargo.toml"
-          cargo metadata --manifest-path "${manifest}" --locked --format-version 1 > /tmp/pb04a-cargo-metadata.json
-          echo "PB04A_LOCKED_METADATA_SHA256=$(sha256sum /tmp/pb04a-cargo-metadata.json | awk '{print $1}')"
+          cargo metadata --manifest-path crates/domains/symtropy-spatial-topology/Cargo.toml --locked --format-version 1 > "${RUNNER_TEMP}/pb04a-cargo-metadata.json"
+          echo "PB04A_LOCKED_METADATA_SHA256=$(sha256sum "${RUNNER_TEMP}/pb04a-cargo-metadata.json" | awk '{print $1}')"
 
       - name: Canonical formatting
         shell: bash
@@ -130,6 +129,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          test ! -e crates/domains/symtropy-spatial-topology/target
           git diff --exit-code
           status="$(git status --porcelain --untracked-files=all)"
           if [[ -n "${status}" ]]; then
