@@ -16,11 +16,27 @@ Captured on 2026-09-10:
 - release/title: *Finite Time Blowup for Navier–Stokes* / OpenAI's accompanying Millennium-problem publication, released 2026-09-08;
 - public formalization repository: `openai/NavierStokesAndEuler`;
 - exact captured formalization commit: `8937a8f4cbc7abaab5e9e97d1cc7f5d2319d9538`;
+- formalization metadata at that revision reports `sorry_count: 0` for the named main results and describes its review status as **self-assessed**;
 - represented theorem domains in the public formal artifact: whole-space `R^3` and periodic three-torus;
+- both captured Navier–Stokes comparator adapters use zero initial velocity and smooth forcing for arbitrary positive viscosity;
 - external status: primary/formal artifacts captured; independent review/community/Clay promotion not assumed by Symtropy;
 - executable Symtropy fixture: **not available in V0.1**.
 
 The manifest in `symtropy_fluid::validation::openai_2026_forced_navier_stokes_manifest()` is the machine-readable form of this capture.
+
+## Provenance hardening rules
+
+V0.1 deliberately fails closed on malformed provenance rather than treating metadata as friendly prose.
+
+- dates are calendar-validated `YYYY-MM-DD` values, and `captured_on` may not predate `released_on`;
+- benchmark identifiers, titles, source names, formalization repository names, fixture digests, domain lists, claim lists, and diagnostic-profile identifiers have explicit semantic size/count bounds;
+- duplicate domains and duplicate qualitative claims reject;
+- a domain-specific claim may reference only a domain actually declared by the manifest;
+- a captured formalization repository requires an exact canonical 40-character lowercase hexadecimal commit and an explicit formalization review-status value;
+- formalization review status cannot exist without the corresponding formalization artifact identity;
+- an executable fixture digest cannot exist while `executable_profile = false`, and an executable profile cannot exist without a non-empty digest.
+
+These are **post-deserialization semantic bounds**, not a hostile-network ingress guarantee. Any untrusted transport still needs an outer encoded-byte limit or a bounded decoder before constructing these values.
 
 ## Current implementation boundary
 
@@ -88,6 +104,8 @@ V0.1 sets `executable_profile = false` deliberately.
 - immutable fixture identity.
 
 No field may be reconstructed from a visualization or guessed from a secondary summary.
+
+The current public Lean proof is theorem evidence, not an executable CFD generator. Its selected physical candidate passes through noncomputable/existence machinery, so numerical extraction remains a separate research task even though the theorem statements are formally represented.
 
 ## Continuum validity is not singularity detection
 
