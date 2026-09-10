@@ -19,7 +19,7 @@ jobs:
     # GitHub documents a hard 15-minute execution limit for ubuntu-slim.
     timeout-minutes: 15
     env:
-      PRODUCT_SHA: 6a6f645536d6a4d3f5fdd4dc4e5d979f221eb13f
+      PRODUCT_SHA: 59cee313afae1ad184d1b8382088eac2616822c9
 
     steps:
       - name: Check out immutable product subject
