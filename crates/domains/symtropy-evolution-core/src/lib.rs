@@ -21,6 +21,7 @@ mod demographic_source_authority;
 mod demographic_split_execution;
 mod demographic_structure_transition;
 mod error;
+mod haldane;
 mod heredity;
 mod ids;
 mod linked_gamete;
@@ -90,6 +91,10 @@ pub use demographic_structure_transition::{
     DemographicStructureTransition, DemographicStructureTransitionDigest,
 };
 pub use error::EvolutionError;
+pub use haldane::{
+    haldane_odd_parity_probability_ppm, HALDANE_MAX_ODD_PARITY_PPM,
+    HALDANE_PARITY_ORACLE_VERSION, HALDANE_SATURATION_DISTANCE_MICROMORGANS,
+};
 pub use heredity::{HereditaryState, HereditaryStateDigest};
 pub use ids::{
     AlleleId, ChromosomeId, ChromosomeMapId, ChromosomeRecombinationProfileId,
