@@ -76,9 +76,14 @@ impl fmt::Display for TaylorGreenErrorKind {
             Self::Step(source) => write!(f, "Taylor-Green step failed: {source}"),
             Self::Diagnostic(source) => write!(f, "Taylor-Green diagnostic failed: {source}"),
             Self::MissingMeasuredEnergy => {
-                write!(f, "Taylor-Green comparator requires measured kinetic energy")
+                write!(
+                    f,
+                    "Taylor-Green comparator requires measured kinetic energy"
+                )
             }
-            Self::NonFiniteComparison => write!(f, "Taylor-Green comparison produced non-finite data"),
+            Self::NonFiniteComparison => {
+                write!(f, "Taylor-Green comparison produced non-finite data")
+            }
         }
     }
 }
@@ -197,8 +202,8 @@ pub fn run_taylor_green_case(
         let report = state.step(dt_s)?;
         maximum_observed_advective_cfl =
             maximum_observed_advective_cfl.max(report.max_advective_cfl);
-        maximum_observed_divergence_rms_per_s = maximum_observed_divergence_rms_per_s
-            .max(report.projection.divergence_rms_after_per_s);
+        maximum_observed_divergence_rms_per_s =
+            maximum_observed_divergence_rms_per_s.max(report.projection.divergence_rms_after_per_s);
         maximum_observed_pressure_residual_rms_pa_per_m2 =
             maximum_observed_pressure_residual_rms_pa_per_m2
                 .max(report.projection.pressure_residual_rms_pa_per_m2);
@@ -223,11 +228,7 @@ pub fn run_taylor_green_case(
 /// Calculate an observed convergence order from two positive finite errors and
 /// a resolution ratio greater than one. This is a measurement helper only; it
 /// does not decide whether the order is acceptable.
-pub fn observed_order(
-    coarse_error: f64,
-    fine_error: f64,
-    refinement_ratio: f64,
-) -> Option<f64> {
+pub fn observed_order(coarse_error: f64, fine_error: f64, refinement_ratio: f64) -> Option<f64> {
     if !coarse_error.is_finite()
         || !fine_error.is_finite()
         || !refinement_ratio.is_finite()
@@ -348,9 +349,11 @@ mod tests {
         assert!(report.final_error.kinetic_energy_relative_error.is_finite());
         assert!(report.maximum_observed_advective_cfl.is_finite());
         assert!(report.maximum_observed_divergence_rms_per_s.is_finite());
-        assert!(report
-            .maximum_observed_pressure_residual_rms_pa_per_m2
-            .is_finite());
+        assert!(
+            report
+                .maximum_observed_pressure_residual_rms_pa_per_m2
+                .is_finite()
+        );
     }
 
     #[test]
