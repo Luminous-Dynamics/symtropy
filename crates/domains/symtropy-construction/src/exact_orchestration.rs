@@ -143,9 +143,7 @@ fn unique_exact_release_for_execution<'a>(
     match matching.as_slice() {
         [] => Err(ExactContinuityError::MissingRelease(execution_id.clone())),
         [release] => Ok(*release),
-        _ => Err(ExactContinuityError::AmbiguousRelease(
-            execution_id.clone(),
-        )),
+        _ => Err(ExactContinuityError::AmbiguousRelease(execution_id.clone())),
     }
 }
 
@@ -181,11 +179,9 @@ fn exact_release_inputs(
     let mut expected = Vec::with_capacity(release.staged_workpieces().len());
 
     for staged in release.staged_workpieces() {
-        let reservation = staging
-            .reservation(&staged.reservation_id)
-            .ok_or_else(|| {
-                ExactContinuityError::MissingReservation(staged.reservation_id.clone())
-            })?;
+        let reservation = staging.reservation(&staged.reservation_id).ok_or_else(|| {
+            ExactContinuityError::MissingReservation(staged.reservation_id.clone())
+        })?;
         validate_release_reservation(site, release, reservation, staged.workpiece_id.clone())?;
         validate_release_placement(reservation, staged)?;
 
@@ -288,10 +284,7 @@ fn exact_process_inputs(
             matter_bindings,
         });
     }
-    canonicalize_inputs(
-        &mut actual,
-        ExactContinuityError::DuplicateProcessWorkpiece,
-    )?;
+    canonicalize_inputs(&mut actual, ExactContinuityError::DuplicateProcessWorkpiece)?;
     Ok(actual)
 }
 
@@ -395,14 +388,20 @@ impl fmt::Display for ExactContinuityError {
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::MissingRelease(id) => {
-                write!(formatter, "process execution {id} has no exact staged release")
+                write!(
+                    formatter,
+                    "process execution {id} has no exact staged release"
+                )
             }
             Self::AmbiguousRelease(id) => write!(
                 formatter,
                 "process execution {id} matches more than one exact staged release"
             ),
             Self::MissingSiteAdmission(id) => {
-                write!(formatter, "staged release references missing site admission {id}")
+                write!(
+                    formatter,
+                    "staged release references missing site admission {id}"
+                )
             }
             Self::ReleaseAdmissionMismatch {
                 site_admission_id,
@@ -415,7 +414,10 @@ impl fmt::Display for ExactContinuityError {
                 "staged release admission {site_admission_id} disagrees with exact C1 context: step {release_step_id}/{admission_step_id}, execution {release_execution_id}/{admission_execution_id}"
             ),
             Self::MissingReservation(id) => {
-                write!(formatter, "staged release references missing reservation {id}")
+                write!(
+                    formatter,
+                    "staged release references missing reservation {id}"
+                )
             }
             Self::ReservationContextMismatch(id) => write!(
                 formatter,
@@ -445,7 +447,10 @@ impl fmt::Display for ExactContinuityError {
                 "staging reservation {id} placement authority/location changed"
             ),
             Self::StalePlacementEvidence(id) => {
-                write!(formatter, "staging reservation {id} uses stale placement evidence")
+                write!(
+                    formatter,
+                    "staging reservation {id} uses stale placement evidence"
+                )
             }
             Self::ConflictingPlacementEvidence(id) => write!(
                 formatter,
@@ -455,7 +460,10 @@ impl fmt::Display for ExactContinuityError {
                 write!(formatter, "exact staged release repeats workpiece {id}")
             }
             Self::DuplicateProcessWorkpiece(id) => {
-                write!(formatter, "validated process evidence repeats workpiece {id}")
+                write!(
+                    formatter,
+                    "validated process evidence repeats workpiece {id}"
+                )
             }
             Self::DuplicateMatterAllocation {
                 authority_id,
@@ -723,9 +731,11 @@ mod tests {
             crate::ConstructionSiteId::new(id("construction-site:other")),
             exact_plan(&released, &other_process),
         );
-        let result =
-            record_exact_released_process_completion(&staging, &mut other_site, &evidence);
-        assert!(matches!(result, Err(ExactContinuityError::MissingRelease(_))));
+        let result = record_exact_released_process_completion(&staging, &mut other_site, &evidence);
+        assert!(matches!(
+            result,
+            Err(ExactContinuityError::MissingRelease(_))
+        ));
 
         // The original exact site remains the only authority matching the release.
         assert!(record_exact_released_process_completion(&staging, &mut site, &evidence).is_ok());
