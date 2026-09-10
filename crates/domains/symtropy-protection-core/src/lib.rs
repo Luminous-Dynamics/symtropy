@@ -8,6 +8,8 @@
 //! pressure suits, vehicle hulls, environmental barriers, and fictional fields may
 //! all implement the same semantics without becoming special cases in health logic.
 
+pub mod active_field;
+
 use serde::{Deserialize, Serialize};
 use std::{collections::BTreeMap, error::Error, fmt};
 
