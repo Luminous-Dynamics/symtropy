@@ -4,8 +4,9 @@
 """Fourth fail-closed PB-04a hardening pass: seal identity-bearing state.
 
 Run after the three prior PB-04a transforms. Canonically hashed objects must not
-leave identity-bearing fields publicly mutable, and read-only projection does
-not need to clone the entire boundary merely to assert the Rust type system.
+leave identity-bearing fields publicly mutable, including nested region and
+interface identities/endpoints. Read-only projection also does not need to clone
+the entire boundary merely to assert the Rust type system.
 """
 
 from pathlib import Path
@@ -34,6 +35,34 @@ for marker in [
         raise SystemExit(
             f"refusing PB-04a sealing: expected one prior-pass marker {marker!r}"
         )
+
+s = replace_once(
+    s,
+    "pub struct SpatialRegionSnapshot {\n    pub id: SpatialRegionId,\n    source_refs: Vec<ExactSourceRef>,\n}",
+    "pub struct SpatialRegionSnapshot {\n    id: SpatialRegionId,\n    source_refs: Vec<ExactSourceRef>,\n}",
+    "seal region identity",
+)
+
+s = replace_once(
+    s,
+    "    pub fn source_refs(&self) -> &[ExactSourceRef] {\n        &self.source_refs\n    }\n\n    fn validate_canonical(&self)",
+    "    pub fn id(&self) -> &SpatialRegionId {\n        &self.id\n    }\n\n    pub fn source_refs(&self) -> &[ExactSourceRef] {\n        &self.source_refs\n    }\n\n    fn validate_canonical(&self)",
+    "region identity accessor",
+)
+
+s = replace_once(
+    s,
+    "pub struct BoundaryInterfaceSnapshot {\n    pub id: BoundaryInterfaceId,\n    pub first_region: SpatialRegionId,\n    pub second_region: SpatialRegionId,\n    facet_states: Vec<InterfaceFacetState>,",
+    "pub struct BoundaryInterfaceSnapshot {\n    id: BoundaryInterfaceId,\n    first_region: SpatialRegionId,\n    second_region: SpatialRegionId,\n    facet_states: Vec<InterfaceFacetState>,",
+    "seal interface identity and endpoints",
+)
+
+s = replace_once(
+    s,
+    "    pub fn facet_states(&self) -> &[InterfaceFacetState] {\n        &self.facet_states\n    }",
+    "    pub fn id(&self) -> &BoundaryInterfaceId {\n        &self.id\n    }\n\n    pub fn first_region(&self) -> &SpatialRegionId {\n        &self.first_region\n    }\n\n    pub fn second_region(&self) -> &SpatialRegionId {\n        &self.second_region\n    }\n\n    pub fn facet_states(&self) -> &[InterfaceFacetState] {\n        &self.facet_states\n    }",
+    "interface immutable accessors",
+)
 
 s = replace_once(
     s,
@@ -122,8 +151,8 @@ hostile += r'''
 fn sealed_identity_accessors_preserve_exact_snapshot_subject() {
     let interface = BoundaryInterfaceSnapshot::new(
         BoundaryInterfaceId::new(id("interface:sealed-subject")).unwrap(),
-        region("region:a"),
         region("region:b"),
+        region("region:a"),
         vec![InterfaceFacetState::new(
             TopologyFacet::Occupancy,
             FacetRelation::Disconnected,
@@ -132,6 +161,10 @@ fn sealed_identity_accessors_preserve_exact_snapshot_subject() {
         vec![],
     )
     .unwrap();
+    assert_eq!(interface.id().0.as_str(), "interface:sealed-subject");
+    assert_eq!(interface.first_region(), &region("region:a"));
+    assert_eq!(interface.second_region(), &region("region:b"));
+
     let boundary = boundary(interface);
     let exact = boundary.exact_ref();
 
@@ -139,8 +172,9 @@ fn sealed_identity_accessors_preserve_exact_snapshot_subject() {
     assert_eq!(boundary.revision(), exact.revision);
     assert_eq!(boundary.content_digest(), exact.content_digest);
     assert_eq!(boundary.schema_version(), 1);
+    assert_eq!(boundary.regions()[0].id(), &region("region:a"));
 }
 '''
 HOSTILE.write_text(hostile)
 
-print("PB-04a identity-bearing state sealed and redundant boundary clone removed")
+print("PB-04a nested and aggregate identity-bearing state sealed; redundant boundary clone removed")
