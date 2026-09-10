@@ -18,6 +18,7 @@ const BOTTLENECK_PRIORITY_DOMAIN: &[u8] =
 const DEMOGRAPHIC_EXECUTION_DIGEST_DOMAIN: &[u8] =
     b"symtropy:evolution:demographic-event-execution:v1\0";
 
+/// Exact V0 execution model for a marginal random-survivor bottleneck.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum DemographicEventExecutionModel {
     IndependentLocusRandomSurvivorBottleneckV1,
@@ -31,6 +32,7 @@ impl DemographicEventExecutionModel {
     }
 }
 
+/// Revalidatable receipt for one executed aggregate demographic intervention.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct DemographicEventExecutionProvenance {
     model: DemographicEventExecutionModel,
@@ -164,6 +166,7 @@ impl DemographicEventExecutionProvenance {
         {
             return Err(EvolutionError::DemographicExecutionResultMismatch);
         }
+
         let result_state = result
             .populations
             .get(&self.population_id)
@@ -225,6 +228,11 @@ pub struct DemographicEventExecutionResult {
     pub provenance: DemographicEventExecutionProvenance,
 }
 
+/// Execute one source-bound random-survivor census bottleneck.
+///
+/// V0 accepts only an ordinal-zero history cursor and only a `CensusResize`
+/// whose target is not larger than the current census. Biological generation
+/// time is unchanged by this intervention.
 #[allow(clippy::too_many_arguments)]
 pub fn execute_census_resize_bottleneck(
     schema: &HereditarySchema,
@@ -401,6 +409,7 @@ fn derive_census_resize(
     })
 }
 
+/// Sample exact marginal allele-copy totals without replacement at each locus.
 fn downsample_population_without_replacement(
     schema: &HereditarySchema,
     source: &PopulationGeneticState,
@@ -412,6 +421,7 @@ fn downsample_population_without_replacement(
     let target_copies = target_census
         .checked_mul(u64::from(schema.ploidy))
         .ok_or(EvolutionError::CountOverflow)?;
+    let target_len = usize::try_from(target_copies).map_err(|_| EvolutionError::CountOverflow)?;
     let mut destination_counts = BTreeMap::new();
 
     for locus_id in schema.loci.keys() {
@@ -438,10 +448,10 @@ fn downsample_population_without_replacement(
             }
         }
         candidates.sort();
-        let target_len = usize::try_from(target_copies).map_err(|_| EvolutionError::CountOverflow)?;
         if target_len > candidates.len() {
             return Err(EvolutionError::SamplingInvariantViolation);
         }
+
         let mut counts: BTreeMap<AlleleId, u64> = BTreeMap::new();
         for (_, allele, _) in candidates.into_iter().take(target_len) {
             let count = counts.entry(allele).or_insert(0);
@@ -458,6 +468,8 @@ fn downsample_population_without_replacement(
     )
 }
 
+/// Full SHA-256 survivor priority. The target census is deliberately absent so
+/// severity sweeps move a cutoff over one common opportunity ordering.
 fn survivor_priority(
     experiment_id: &EvolutionExperimentId,
     event_id: &str,
@@ -466,7 +478,7 @@ fn survivor_priority(
     locus_id: &LocusId,
     allele_id: &AlleleId,
     within_allele_ordinal: u64,
-) -> u64 {
+) -> [u8; 32] {
     let mut digest = Sha256::new();
     digest.update(BOTTLENECK_PRIORITY_DOMAIN);
     put_text(&mut digest, experiment_id.as_str());
@@ -476,6 +488,5 @@ fn survivor_priority(
     put_text(&mut digest, locus_id.as_str());
     put_text(&mut digest, allele_id.as_str());
     put_u64(&mut digest, within_allele_ordinal);
-    let bytes: [u8; 32] = digest.finalize().into();
-    u64::from_le_bytes(bytes[..8].try_into().expect("SHA-256 has 8-byte prefix"))
+    digest.finalize().into()
 }
