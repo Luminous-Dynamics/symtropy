@@ -23,9 +23,7 @@ use crate::population_manifest::PopulationStateManifest;
 use super::retained_authority::{
     RetainedAuthorityRecord, RetainedContentManifest, RetainedStoreRevision,
 };
-use super::shadow_execution_lineage::{
-    ShadowReferenceRunId, ShadowReferenceRunRevision,
-};
+use super::shadow_execution_lineage::{ShadowReferenceRunId, ShadowReferenceRunRevision};
 use super::shadow_observable_authority::{
     ShadowObservationContentManifest, ShadowObservationSourceIdentity,
 };
@@ -340,7 +338,10 @@ impl ShadowLaneContinuityTranscript {
     }
 
     fn first_predecessor(&self) -> Option<&ShadowContinuityStateIdentity> {
-        self.segments.values().next().map(ShadowExecutionSegment::predecessor)
+        self.segments
+            .values()
+            .next()
+            .map(ShadowExecutionSegment::predecessor)
     }
 }
 
@@ -493,11 +494,11 @@ fn validate_transcript_against_expected(
     }
 
     for segment in transcript.segments() {
-        let expected = expected_observations
-            .get(&segment.to_tick())
-            .ok_or(ShadowExecutionContinuityError::MissingExpectedObservation {
+        let expected = expected_observations.get(&segment.to_tick()).ok_or(
+            ShadowExecutionContinuityError::MissingExpectedObservation {
                 tick: segment.to_tick(),
-            })?;
+            },
+        )?;
         if segment.successor() != expected {
             return Err(ShadowExecutionContinuityError::ObservationStateMismatch {
                 tick: segment.to_tick(),
@@ -568,26 +569,21 @@ impl fmt::Display for ShadowExecutionContinuityError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::EmptySegmentManifest => write!(f, "shadow execution segment manifest is empty"),
-            Self::TickOverflow { tick } => write!(
-                f,
-                "shadow continuity tick overflow after {}",
-                tick.0
-            ),
+            Self::TickOverflow { tick } => {
+                write!(f, "shadow continuity tick overflow after {}", tick.0)
+            }
             Self::SegmentNotOneCanonicalTick { from, to } => write!(
                 f,
                 "shadow continuity segment must span exactly one canonical tick: {} -> {}",
-                from.0,
-                to.0
+                from.0, to.0
             ),
             Self::WindowTooLargeForTranscript { duration_ticks } => write!(
                 f,
                 "shadow continuity window of {duration_ticks} ticks cannot be represented on this platform"
             ),
-            Self::DuplicateSegmentId { id } => write!(
-                f,
-                "shadow continuity segment id {} is duplicated",
-                id.0
-            ),
+            Self::DuplicateSegmentId { id } => {
+                write!(f, "shadow continuity segment id {} is duplicated", id.0)
+            }
             Self::DuplicateSegmentEndTick { tick } => write!(
                 f,
                 "multiple shadow continuity segments end at tick {}",
@@ -603,8 +599,7 @@ impl fmt::Display for ShadowExecutionContinuityError {
             } => write!(
                 f,
                 "shadow continuity expected next segment from tick {}, got {}",
-                expected_from.0,
-                actual_from.0
+                expected_from.0, actual_from.0
             ),
             Self::StateChainBroken { tick } => write!(
                 f,
@@ -614,8 +609,7 @@ impl fmt::Display for ShadowExecutionContinuityError {
             Self::TranscriptDoesNotReachWindowEnd { expected, actual } => write!(
                 f,
                 "shadow continuity transcript ended at tick {}, expected {}",
-                actual.0,
-                expected.0
+                actual.0, expected.0
             ),
             Self::RunIdentityMismatch => write!(f, "shadow continuity run identity changed"),
             Self::EvidenceIdentityMismatch => {
@@ -629,9 +623,10 @@ impl fmt::Display for ShadowExecutionContinuityError {
                 actual.start_exclusive().0,
                 actual.end_inclusive().0
             ),
-            Self::StartStateMismatch => {
-                write!(f, "shadow continuity transcript does not begin from authenticated T0 state")
-            }
+            Self::StartStateMismatch => write!(
+                f,
+                "shadow continuity transcript does not begin from authenticated T0 state"
+            ),
             Self::ObservationCoverageMismatch {
                 transcript,
                 observations,
@@ -649,13 +644,17 @@ impl fmt::Display for ShadowExecutionContinuityError {
                 "shadow continuity successor differs from exact observed state at tick {}",
                 tick.0
             ),
-            Self::LaneEvidenceMismatch => {
-                write!(f, "coarse/reference continuity transcripts bind different Q2 evidence")
+            Self::LaneEvidenceMismatch => write!(
+                f,
+                "coarse/reference continuity transcripts bind different Q2 evidence"
+            ),
+            Self::LaneWindowMismatch => write!(
+                f,
+                "coarse/reference continuity transcripts bind different windows"
+            ),
+            Self::CertificateStale => {
+                write!(f, "paired shadow continuity certificate is stale")
             }
-            Self::LaneWindowMismatch => {
-                write!(f, "coarse/reference continuity transcripts bind different windows")
-            }
-            Self::CertificateStale => write!(f, "paired shadow continuity certificate is stale"),
         }
     }
 }
@@ -665,8 +664,6 @@ impl Error for ShadowExecutionContinuityError {}
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::information::RepresentationKey;
-    use crate::shadow_test_support::test_population_manifest_for_authority;
 
     fn window() -> ShadowValidationWindow {
         ShadowValidationWindow::new(CanonicalTick(10), CanonicalTick(13)).unwrap()
@@ -683,6 +680,8 @@ mod tests {
         ShadowContinuityStateIdentity::from_observation_source(&source)
     }
 
+    /// Structural tests deliberately construct this private identity directly.
+    /// Production coarse T0 identities can only enter through `from_coarse_subject`.
     fn coarse_start(content: u8) -> ShadowContinuityStateIdentity {
         ShadowContinuityStateIdentity {
             representation: RepresentationKey::new(7, 1),
@@ -691,8 +690,8 @@ mod tests {
             revision: ShadowContinuityStateRevision::Canonical(
                 TransitionDomainSourceRevision(10),
             ),
-            content: ShadowContinuityContentIdentity::CoarsePopulation(
-                test_population_manifest_for_authority(content),
+            content: ShadowContinuityContentIdentity::Observation(
+                ShadowObservationContentManifest::new(vec![content]).unwrap(),
             ),
         }
     }
@@ -870,7 +869,10 @@ mod tests {
             &coarse_start(99),
             &expected_observations(),
         );
-        assert_eq!(result, Err(ShadowExecutionContinuityError::StartStateMismatch));
+        assert_eq!(
+            result,
+            Err(ShadowExecutionContinuityError::StartStateMismatch)
+        );
     }
 
     #[test]
@@ -911,6 +913,9 @@ mod tests {
             &coarse_start(1),
             &expected_observations(),
         );
-        assert_eq!(result, Err(ShadowExecutionContinuityError::RunIdentityMismatch));
+        assert_eq!(
+            result,
+            Err(ShadowExecutionContinuityError::RunIdentityMismatch)
+        );
     }
 }
