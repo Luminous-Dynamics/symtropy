@@ -141,10 +141,12 @@ pub struct LocalScalarSample {
     pub value: f64,
 }
 
-/// Select the strongest spatially credible local sample without depending on query order.
+/// Select the strongest distance-attenuated local sample without depending on query order.
 ///
-/// Confidence falls linearly with distance. Ties in confidence are resolved by the
-/// larger bounded value, making the result independent of source iteration order.
+/// Confidence falls linearly with distance. Candidates are ranked by bounded
+/// `value × confidence`, then confidence, then value. The tuple ordering makes ties
+/// deterministic and prevents a nearby zero-valued sample from masking a slightly
+/// farther strong signal.
 pub fn strongest_local_sample(
     observer: Vec2,
     samples: &[LocalScalarSample],
@@ -154,20 +156,23 @@ pub fn strongest_local_sample(
         return None;
     }
 
-    let mut best: Option<(u16, u16)> = None;
+    let mut best: Option<(u16, u16, u16)> = None;
     for sample in samples {
         let distance = observer.distance(sample.position);
         if !distance.is_finite() || distance > range {
             continue;
         }
-        let confidence = 1.0 - f64::from(distance / range);
-        let candidate = (quantize_unit(confidence), quantize_unit(sample.value));
+        let confidence_bps = quantize_unit(1.0 - f64::from(distance / range));
+        let value_bps = quantize_unit(sample.value);
+        let signal_bps = ((u32::from(value_bps) * u32::from(confidence_bps))
+            / u32::from(FULL_SCALE_BPS)) as u16;
+        let candidate = (signal_bps, confidence_bps, value_bps);
         if best.is_none_or(|current| candidate > current) {
             best = Some(candidate);
         }
     }
 
-    best.map(|(confidence_bps, value_bps)| {
+    best.map(|(_, confidence_bps, value_bps)| {
         (unit_from_bps(value_bps), unit_from_bps(confidence_bps))
     })
 }
@@ -241,6 +246,22 @@ mod tests {
             strongest_local_sample(observer, &samples, 20.0),
             strongest_local_sample(observer, &reversed, 20.0)
         );
+    }
+
+    #[test]
+    fn nearby_silent_sample_does_not_mask_farther_strong_signal() {
+        let samples = [
+            LocalScalarSample {
+                position: Vec2::ZERO,
+                value: 0.0,
+            },
+            LocalScalarSample {
+                position: Vec2::new(5.0, 0.0),
+                value: 1.0,
+            },
+        ];
+        let cue = local_noise_risk_cue(Vec2::ZERO, &samples, 20.0);
+        assert!(cue > 0.7);
     }
 
     #[test]
