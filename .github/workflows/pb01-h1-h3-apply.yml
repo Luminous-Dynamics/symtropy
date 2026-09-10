@@ -23,14 +23,16 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: building/pb01-proposal-ir-v0.1
+          ref: ${{ github.sha }}
           fetch-depth: 0
 
-      - name: Bind transformer input head
+      - name: Bind exact transformer input head
         shell: bash
         run: |
           set -euo pipefail
-          echo "PB01_H1_H3_INPUT_HEAD=$(git rev-parse HEAD)"
+          actual_head="$(git rev-parse HEAD)"
+          test "${actual_head}" = "${GITHUB_SHA}"
+          echo "PB01_H1_H3_INPUT_HEAD=${actual_head}"
           echo "PB01_H1_H3_INPUT_TREE=$(git rev-parse HEAD^{tree})"
 
       - name: Set up pinned Rust
@@ -82,4 +84,7 @@ jobs:
           qualified_tree="$(git rev-parse HEAD^{tree})"
           echo "PB01_H1_H3_QUALIFIED_HEAD=${qualified_head}"
           echo "PB01_H1_H3_QUALIFIED_TREE=${qualified_tree}"
+
+          remote_head="$(git ls-remote origin refs/heads/building/pb01-proposal-ir-v0.1 | cut -f1)"
+          test "${remote_head}" = "${GITHUB_SHA}"
           git push origin HEAD:building/pb01-proposal-ir-v0.1
