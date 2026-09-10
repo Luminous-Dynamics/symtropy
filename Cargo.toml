@@ -64,7 +64,7 @@ bevy = { version = "0.19", default-features = false, features = [
     "bevy_text", "bevy_ui", "bevy_ui_render",
     "bevy_winit", "bevy_color", "bevy_state",
     "bevy_log", "bevy_post_process", "bevy_shader",
-    "bevy_gizmos", "bevy_gizmos_render",
+    "bevy_gizmos", "bevy_gizmos_render", "bevy_pbr",
     "multi_threaded", "x11", # Explicitly include X11, exclude Wayland
     "default_font", "png",
 ] }
@@ -89,7 +89,7 @@ symthaea-bevy-brain = { path = "crates/bridges/symthaea-bevy-brain", optional = 
 symtropy-symthaea-adapter = { path = "crates/bridges/symtropy-symthaea-adapter", optional = true }
 symtropy-mycelix-bridge = { path = "crates/bridges/symtropy-mycelix-bridge", optional = true }
 # [standalone-stripped, not published, atlas feature only] sol-atlas-bevy = { path = "../sol-atlas-bevy", optional = true }
-# [standalone-stripped, not published, atlas feature only] sol-atlas-core = { path = "../sol-atlas-core", optional = true }
+# [standalone-stripped -- referenced deps above are stripped] sol-atlas-core = { path = "../sol-atlas-core", optional = true }
 
 symthaea-fep = { version = "0.1.0", optional = true }
 
@@ -169,6 +169,7 @@ members = [
     "crates/apps/symtropy-firstlight",
     "crates/domains/symtropy-game-state",
     "crates/domains/symtropy-protection-core",
+    "crates/domains/symtropy-powered-frame-core",
     "crates/domains/symtropy-iris",
     "crates/domains/symtropy-persistence",
     "crates/domains/symtropy-residents",
