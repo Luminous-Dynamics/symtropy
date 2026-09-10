@@ -63,6 +63,9 @@ impl DemographicSplitExecutionProvenance {
         &self.daughter_state_digests
     }
 
+    /// Stable content identity. Restored evidence may have mismatched daughter
+    /// key sets, so state and point maps are encoded independently and never
+    /// indexed with `expect`. Current authority is established by revalidation.
     pub fn canonical_digest(&self) -> DemographicSplitExecutionProvenanceDigest {
         let mut digest = Sha256::new();
         digest.update(SPLIT_EXECUTION_DIGEST_DOMAIN);
@@ -79,14 +82,15 @@ impl DemographicSplitExecutionProvenance {
         put_text(&mut digest, self.source_population_id.as_str());
         digest.update(self.source_state_digest.as_bytes());
         digest.update(self.source_point_digest.as_bytes());
+
         put_u64(&mut digest, self.daughter_state_digests.len() as u64);
         for (population_id, state_digest) in &self.daughter_state_digests {
             put_text(&mut digest, population_id.as_str());
             digest.update(state_digest.as_bytes());
-            let point_digest = self
-                .daughter_point_digests
-                .get(population_id)
-                .expect("validated split provenance uses identical daughter key sets");
+        }
+        put_u64(&mut digest, self.daughter_point_digests.len() as u64);
+        for (population_id, point_digest) in &self.daughter_point_digests {
+            put_text(&mut digest, population_id.as_str());
             digest.update(point_digest.as_bytes());
         }
         DemographicSplitExecutionProvenanceDigest(digest.finalize().into())
