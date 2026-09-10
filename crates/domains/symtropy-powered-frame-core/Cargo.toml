@@ -1,0 +1,9 @@
+[package]
+name = "symtropy-powered-frame-core"
+version = "0.1.0"
+edition = "2024"
+license = "AGPL-3.0-or-later"
+description = "Deterministic subsystem resource arbitration for Symtropy powered frames."
+
+[dependencies]
+serde = { version = "1.0", features = ["derive"] }
