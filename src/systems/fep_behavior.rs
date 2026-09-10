@@ -3,25 +3,32 @@
 //! FEP-driven NPC behavior: free energy gradient minimization.
 
 use bevy::prelude::*;
+use std::collections::HashMap;
 use symthaea_fep::Observation;
 
 use crate::components::{
     CrewNpc, MoveTarget, NoiseEmitter, NpcActionEvent, NpcActionKind, NullDrone, Player,
     PowerJunction, WaterPump, WorldFeedbackEvent,
 };
-use crate::resources::{
-    EnergyWell, LeviathanState, PhysicsWorldRes, SettlementMetrics, SleepPhase, TutorialScenarioRes,
-    TutorialStep,
+use crate::resources::{EnergyWell, PhysicsWorldRes, TutorialScenarioRes, TutorialStep};
+use crate::systems::fep_perception::{
+    LocalScalarSample, PerceivedWorldFrame, local_noise_risk_cue, strongest_local_sample,
 };
 use symtropy_render_bridge::PhysicsBody;
 
 const FEP_OBSERVATION_DIM: usize = 6;
+/// Abstract game-space range for direct local equipment/noise sensing.
+const LOCAL_PERCEPTION_RANGE: f32 = 300.0;
+/// Danger is refreshed every behavior pass, but retains a tiny horizon for future
+/// sensor adapters that may update less frequently.
+const DANGER_MEMORY_GENERATIONS: u64 = 2;
+/// Infrastructure estimates may remain useful longer than a transient noise cue.
+const INFRASTRUCTURE_MEMORY_GENERATIONS: u64 = 180;
 
 /// Preserve the existing six-dimensional FEP model while making every slot explicit.
 ///
-/// `self_allostatic_load` is legitimate NPC self-state. The danger/water/power
-/// inputs are still legacy authoritative-world projections and are intentionally
-/// isolated here as the next epistemic-migration targets.
+/// Self-state may enter directly. External danger/water/power values are supplied by
+/// the observer-local perception adapter rather than authoritative global resources.
 fn fep_observation_values(
     energy_fraction: f64,
     self_allostatic_load: f64,
@@ -52,48 +59,24 @@ pub fn fep_behavior_system(
             &PhysicsBody,
             Option<&mut crate::systems::psychology::PsychologicalNeeds>,
         ),
-        Without<Player>,
+        (With<CrewNpc>, Without<Player>),
     >,
     player_query: Query<(&Transform, &PhysicsBody), With<Player>>,
     other_npcs: Query<(&Transform, &PhysicsBody), (With<CrewNpc>, Without<Player>)>,
     wells: Query<(&Transform, &EnergyWell)>,
-    leviathan: Res<LeviathanState>,
     physics: Res<PhysicsWorldRes>,
-    settlement: Res<SettlementMetrics>,
-    core_query: Query<
-        &Transform,
-        (
-            With<crate::components::FusionCore>,
-            Without<Player>,
-            Without<CrewNpc>,
-        ),
-    >,
     power_junctions: Query<(&Transform, &PowerJunction)>,
     water_pumps: Query<(&Transform, &WaterPump)>,
     drones: Query<(&Transform, &NullDrone)>,
+    other_noise_sources: Query<(&Transform, &NoiseEmitter), Without<CrewNpc>>,
     time: Res<Time>,
     tutorial_res: Option<Res<TutorialScenarioRes>>,
+    mut perceived_world: Local<HashMap<Entity, PerceivedWorldFrame>>,
 ) {
     let Some((player_tf, player_body)) = player_query.iter().next() else {
         return;
     };
     let player_pos = player_tf.translation.truncate();
-
-    let danger = match leviathan.phase {
-        SleepPhase::Dormant => 0.0f64,
-        SleepPhase::Stirring => 0.3,
-        SleepPhase::Awake => 0.7,
-        SleepPhase::Hunting => 1.0,
-    };
-
-    let danger_source: Option<nalgebra::SVector<f64, 2>> = if danger > 0.1 {
-        core_query
-            .iter()
-            .next()
-            .map(|tf| nalgebra::SVector::from([tf.translation.x as f64, tf.translation.y as f64]))
-    } else {
-        None
-    };
 
     let well_data: Vec<(nalgebra::SVector<f64, 2>, f64)> = wells
         .iter()
@@ -123,20 +106,58 @@ pub fn fep_behavior_system(
         }
     }
 
-    // Pre-gather all NPC basic info to avoid query/borrow conflicts
+    // Pre-gather NPC state before mutable iteration to avoid query/borrow conflicts.
+    // Noise is an observer-facing local cue; allostatic load remains private self-state
+    // except for the separate authored medic behavior that predates this FEP migration.
     struct NpcInfo {
         entity: Entity,
         name: String,
         pos: Vec2,
         allostatic_load: f32,
+        noise_level: f32,
     }
     let npc_infos: Vec<NpcInfo> = npcs
         .iter()
-        .map(|(entity, npc, tf, _, _, _, psych)| NpcInfo {
+        .map(|(entity, npc, tf, _, noise, _, psych)| NpcInfo {
             entity,
             name: npc.name.clone(),
             pos: tf.translation.truncate(),
             allostatic_load: psych.as_ref().map_or(0.0, |p| p.allostatic_load),
+            noise_level: noise.level,
+        })
+        .collect();
+
+    let mut noise_samples: Vec<LocalScalarSample> = other_noise_sources
+        .iter()
+        .map(|(tf, noise)| LocalScalarSample {
+            position: tf.translation.truncate(),
+            value: f64::from(noise.level.clamp(0.0, 1.0)),
+        })
+        .collect();
+    noise_samples.extend(npc_infos.iter().map(|info| LocalScalarSample {
+        position: info.pos,
+        value: f64::from(info.noise_level.clamp(0.0, 1.0)),
+    }));
+
+    // These are world-facing samples, not settlement aggregates. The local adapter
+    // only lets an NPC update its estimate when a machine is within sensing range.
+    // Hidden causes such as `is_sabotaged` are deliberately not projected here.
+    let power_samples: Vec<LocalScalarSample> = power_junctions
+        .iter()
+        .map(|(tf, junction)| LocalScalarSample {
+            position: tf.translation.truncate(),
+            value: f64::from(junction.output.clamp(0.0, 1.0)),
+        })
+        .collect();
+    let water_samples: Vec<LocalScalarSample> = water_pumps
+        .iter()
+        .map(|(tf, pump)| LocalScalarSample {
+            position: tf.translation.truncate(),
+            value: if pump.is_running {
+                f64::from(pump.efficiency.clamp(0.0, 1.0))
+            } else {
+                0.0
+            },
         })
         .collect();
 
@@ -158,10 +179,36 @@ pub fn fep_behavior_system(
             })
             .unwrap_or((1.0, [0.5; 9], 0.0, 0.5));
 
-        // Preserve six FEP channels, but never feed one person's private biometrics
-        // directly into another person's cognition. Slot 2 is now the NPC's own
-        // bounded allostatic load. Remaining legacy world-state slots are explicit
-        // migration targets for observer-scoped epistemic inputs.
+        let frame = perceived_world.entry(entity).or_default();
+        frame.advance();
+
+        // Danger is local risk-cue strength, not a copy of hidden Leviathan phase.
+        // The cue includes the NPC's own emitted noise and nearby observable emitters.
+        frame.observe_danger(
+            local_noise_risk_cue(npc_pos, &noise_samples, LOCAL_PERCEPTION_RANGE),
+            1.0,
+            DANGER_MEMORY_GENERATIONS,
+        );
+        if let Some((value, confidence)) =
+            strongest_local_sample(npc_pos, &water_samples, LOCAL_PERCEPTION_RANGE)
+        {
+            frame.observe_water(value, confidence, INFRASTRUCTURE_MEMORY_GENERATIONS);
+        }
+        if let Some((value, confidence)) =
+            strongest_local_sample(npc_pos, &power_samples, LOCAL_PERCEPTION_RANGE)
+        {
+            frame.observe_power(value, confidence, INFRASTRUCTURE_MEMORY_GENERATIONS);
+        }
+
+        let perceived_danger = frame.danger_signal();
+        let perceived_water = frame.water_estimate();
+        let perceived_power = frame.power_estimate();
+
+        // There is no physical Leviathan entity/location in this slice. The previous
+        // implementation incorrectly used the Fusion Core's position as a threat
+        // source. Preserve uncertainty rather than inventing a location.
+        let danger_source: Option<nalgebra::SVector<f64, 2>> = None;
+
         let self_allostatic_load = psych
             .as_ref()
             .map_or(0.0, |p| p.allostatic_load)
@@ -169,10 +216,10 @@ pub fn fep_behavior_system(
         let values = fep_observation_values(
             energy_frac,
             self_allostatic_load,
-            danger,
+            perceived_danger,
             npc.caution as f64,
-            settlement.water as f64,
-            settlement.power as f64,
+            perceived_water,
+            perceived_power,
         );
         let obs = Observation::new(values.to_vec(), 0.8, "game");
         let _perception = npc.fep.perceive(&obs);
@@ -194,11 +241,13 @@ pub fn fep_behavior_system(
             &nearby,
             &well_data,
             danger_source.as_ref(),
-            danger,
+            perceived_danger,
         );
 
         // EMERGENT CRISIS MODIFIERS:
-        if npc_phi > 0.6 && settlement.water < 0.3 {
+        // This now reacts to the NPC's local water estimate rather than perfect
+        // settlement-wide water truth.
+        if npc_phi > 0.6 && perceived_water < 0.3 {
             // Seek the Water Pump (assumed to be at the last room center, near the end)
             if let Some((wx, wy)) = well_data.last().map(|(p, _)| (p[0], p[1])) {
                 let to_pump = nalgebra::SVector::from([wx - pos[0], wy - pos[1]]).normalize();
@@ -339,7 +388,7 @@ pub fn fep_behavior_system(
         let load = psych.as_ref().map(|p| p.allostatic_load).unwrap_or(0.0);
         let engagement = psych.as_ref().map(|p| p.engagement).unwrap_or(1.0);
 
-        let effective_engagement = if danger > 0.5 {
+        let effective_engagement = if perceived_danger > 0.5 {
             engagement.max(0.5)
         } else {
             engagement
@@ -348,7 +397,7 @@ pub fn fep_behavior_system(
         if dir_vec.length_squared() > 0.01 && effective_engagement > 0.15 {
             let speed = if energy_frac < 0.2 {
                 90.0
-            } else if danger > 0.5 {
+            } else if perceived_danger > 0.5 {
                 100.0
             } else {
                 50.0
@@ -365,7 +414,7 @@ pub fn fep_behavior_system(
         }
 
         let load_caution_boost = if load > 0.6 { 0.02 } else { 0.0 };
-        if danger > 0.5 {
+        if perceived_danger > 0.5 {
             npc.caution = (npc.caution + 0.05 + load_caution_boost).min(1.0);
         } else {
             npc.caution = (npc.caution - 0.02).max(0.0);
@@ -373,7 +422,6 @@ pub fn fep_behavior_system(
     }
 }
 
-/// System applying repairs, healing, and drone neutralization when adjacent to targets.
 /// System applying repairs, healing, and drone neutralization when adjacent to targets.
 pub fn npc_action_system(
     actors: Query<(Entity, &CrewNpc, &Transform)>,
@@ -396,7 +444,7 @@ pub fn npc_action_system(
         if npc.name.contains("Kael") {
             for (j_tf, mut junction) in &mut power_junctions {
                 if junction.is_damaged {
-                    let j_pos = junction_tf.translation.truncate();
+                    let j_pos = j_tf.translation.truncate();
                     if npc_pos.distance(j_pos) < 30.0 {
                         let is_pr4_adjacent = actors.iter().any(|(_, other_npc, other_tf)| {
                             other_npc.name.contains("PR-4")
@@ -690,5 +738,13 @@ mod tests {
     fn second_fep_slot_is_explicit_self_state() {
         let values = fep_observation_values(0.8, 0.65, 0.2, 0.4, 0.5, 0.6);
         assert_eq!(values[1], 0.65);
+    }
+
+    #[test]
+    fn external_fep_slots_accept_perceived_values_without_global_state_types() {
+        let values = fep_observation_values(0.8, 0.2, 0.7, 0.4, 0.25, 0.9);
+        assert_eq!(values[2], 0.7);
+        assert_eq!(values[4], 0.25);
+        assert_eq!(values[5], 0.9);
     }
 }

@@ -18,6 +18,8 @@ pub mod echo_memory;
 pub mod engine_physics;
 #[cfg(feature = "fep-ai")]
 pub mod fep_behavior;
+#[cfg(feature = "fep-ai")]
+pub mod fep_perception;
 pub mod four_d_rendering;
 pub mod harmonies;
 pub mod input;
