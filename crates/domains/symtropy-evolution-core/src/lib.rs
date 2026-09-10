@@ -10,6 +10,7 @@ mod canonical;
 mod error;
 mod heredity;
 mod ids;
+mod metapopulation;
 mod operators;
 mod population;
 mod population_process;
@@ -24,6 +25,9 @@ pub use ids::{
     AlleleId, EvolutionExperimentId, HereditarySchemaId, LocusId, OperatorProfileId,
     PopulationId, PopulationProcessProfileId, PopulationStructureProfileId,
     PopulationTransitionId, ReproductionEventId,
+};
+pub use metapopulation::{
+    MetapopulationSnapshot, MetapopulationSnapshotDigest, MetapopulationSnapshotEntry,
 };
 pub use operators::{
     EvolutionOperatorProfile, EvolutionOperatorProfileDigest, MutationProfile,

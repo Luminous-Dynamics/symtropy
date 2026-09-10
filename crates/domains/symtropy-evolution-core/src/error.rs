@@ -62,6 +62,17 @@ pub enum EvolutionError {
         destination: PopulationId,
         observed_ppm: u64,
     },
+    MetapopulationSetMismatch,
+    MetapopulationStateKeyMismatch {
+        key: PopulationId,
+        observed: PopulationId,
+    },
+    MetapopulationPointKeyMismatch {
+        key: PopulationId,
+        observed: PopulationId,
+    },
+    MetapopulationStructureAuthorityMismatch,
+    MetapopulationSnapshotMismatch,
     SamplingInvariantViolation,
     CountOverflow,
     InvalidDrawUpperBound,
@@ -199,6 +210,27 @@ impl fmt::Display for EvolutionError {
                 "population {} migration row totals {observed_ppm} ppm, exceeding {PROBABILITY_SCALE_PPM} ppm",
                 destination.as_str()
             ),
+            Self::MetapopulationSetMismatch => {
+                write!(f, "metapopulation source set does not match structure authority")
+            }
+            Self::MetapopulationStateKeyMismatch { key, observed } => write!(
+                f,
+                "metapopulation state key {} does not match embedded population {}",
+                key.as_str(),
+                observed.as_str()
+            ),
+            Self::MetapopulationPointKeyMismatch { key, observed } => write!(
+                f,
+                "metapopulation trajectory key {} does not match point population {}",
+                key.as_str(),
+                observed.as_str()
+            ),
+            Self::MetapopulationStructureAuthorityMismatch => {
+                write!(f, "metapopulation snapshot structure authority mismatch")
+            }
+            Self::MetapopulationSnapshotMismatch => {
+                write!(f, "metapopulation snapshot no longer matches current source state")
+            }
             Self::SamplingInvariantViolation => write!(f, "population sampling invariant violated"),
             Self::CountOverflow => write!(f, "population/genetic count overflow"),
             Self::InvalidDrawUpperBound => write!(f, "semantic draw upper bound must be positive"),
