@@ -210,11 +210,11 @@ impl ExactConstructionSite {
             });
         }
 
-        let completed_step = self.site.record_completion(
-            self.executable_plan.plan(),
-            evidence.as_process_evidence(),
-        )?;
-        let exact_ref = ExactSiteProcessEvidenceRef::from_validated(completed_step.clone(), evidence);
+        let completed_step = self
+            .site
+            .record_completion(self.executable_plan.plan(), evidence.as_process_evidence())?;
+        let exact_ref =
+            ExactSiteProcessEvidenceRef::from_validated(completed_step.clone(), evidence);
         self.exact_completions.push(exact_ref);
         self.exact_completions
             .sort_by(|left, right| left.step_id.cmp(&right.step_id));
@@ -335,21 +335,24 @@ impl ExactConstructionSite {
 
             match admission.state {
                 SiteStepAdmissionState::Open => {
-                    if admission.completion.is_some() || admission.cancellation_reason_id.is_some() {
+                    if admission.completion.is_some() || admission.cancellation_reason_id.is_some()
+                    {
                         return Err(ExactSiteError::InconsistentAdmissionState(
                             admission.id.clone(),
                         ));
                     }
                 }
                 SiteStepAdmissionState::Cancelled => {
-                    if admission.completion.is_some() || admission.cancellation_reason_id.is_none() {
+                    if admission.completion.is_some() || admission.cancellation_reason_id.is_none()
+                    {
                         return Err(ExactSiteError::InconsistentAdmissionState(
                             admission.id.clone(),
                         ));
                     }
                 }
                 SiteStepAdmissionState::Completed => {
-                    if admission.completion.is_none() || admission.cancellation_reason_id.is_some() {
+                    if admission.completion.is_none() || admission.cancellation_reason_id.is_some()
+                    {
                         return Err(ExactSiteError::InconsistentAdmissionState(
                             admission.id.clone(),
                         ));
@@ -572,7 +575,10 @@ impl fmt::Display for ExactSiteError {
                 "step {step_id} exact process semantics mismatch: expected {expected:?}, got {actual:?}"
             ),
             Self::InvalidSiteRevision => {
-                write!(formatter, "exact construction site revision must be non-zero")
+                write!(
+                    formatter,
+                    "exact construction site revision must be non-zero"
+                )
             }
             Self::LegacyPlanIdentityMismatch {
                 site_id,
@@ -586,21 +592,30 @@ impl fmt::Display for ExactSiteError {
             Self::DuplicateAdmissionId(id) => write!(formatter, "site repeats admission {id}"),
             Self::DuplicateExecutionId(id) => write!(formatter, "site repeats execution {id}"),
             Self::UnknownAdmissionStep(step) => {
-                write!(formatter, "site admission references unknown exact-plan step {step}")
+                write!(
+                    formatter,
+                    "site admission references unknown exact-plan step {step}"
+                )
             }
             Self::NonCanonicalCapabilityAdmissions(id) => write!(
                 formatter,
                 "site admission {id} capability admissions are not canonical and unique"
             ),
             Self::InconsistentAdmissionState(id) => {
-                write!(formatter, "site admission {id} has inconsistent terminal fields")
+                write!(
+                    formatter,
+                    "site admission {id} has inconsistent terminal fields"
+                )
             }
             Self::DuplicateCompletedStep(step) => {
                 write!(formatter, "site repeats completed step {step}")
             }
             Self::DuplicateOpenStep(step) => write!(formatter, "site repeats open step {step}"),
             Self::NonCanonicalExactCompletions => {
-                write!(formatter, "exact site completions are not canonical and unique")
+                write!(
+                    formatter,
+                    "exact site completions are not canonical and unique"
+                )
             }
             Self::InvalidEvidenceDigest(digest) => write!(
                 formatter,

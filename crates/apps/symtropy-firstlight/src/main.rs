@@ -187,8 +187,7 @@ fn run_patch_conduit_exact_plan() {
     });
     println!(
         "{}",
-        serde_json::to_string_pretty(&summary)
-            .expect("serialize Patch Conduit exact-plan summary")
+        serde_json::to_string_pretty(&summary).expect("serialize Patch Conduit exact-plan summary")
     );
 }
 

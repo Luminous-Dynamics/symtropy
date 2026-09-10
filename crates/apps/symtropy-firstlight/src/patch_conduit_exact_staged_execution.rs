@@ -29,16 +29,17 @@ use crate::{
 use serde::{Deserialize, Serialize};
 use std::{error::Error, fmt};
 use symtropy_construction::{
-    ConstructionSiteId, ConstructionSiteLifecycle, ConstructionStagingLedger, ExactConstructionSite,
-    ExactContinuityError, ExactSiteError, PlacementEvidenceRef, SiteStepAdmissionId, StagingError,
-    StagingReleaseInput, StagingReleaseRecordId, StagingReservationId, WorkActorRef, WorkOrderError,
-    WorkOrderId, WorkOrderStatus, exact_work_order_status, issue_exact_work_order,
-    record_exact_released_process_completion, release_exact_work_order, reserve_exact_workpiece,
+    ConstructionSiteId, ConstructionSiteLifecycle, ConstructionStagingLedger,
+    ExactConstructionSite, ExactContinuityError, ExactSiteError, PlacementEvidenceRef,
+    SiteStepAdmissionId, StagingError, StagingReleaseInput, StagingReleaseRecordId,
+    StagingReservationId, WorkActorRef, WorkOrderError, WorkOrderId, WorkOrderStatus,
+    exact_work_order_status, issue_exact_work_order, record_exact_released_process_completion,
+    release_exact_work_order, reserve_exact_workpiece,
 };
 use symtropy_fabrication::{
     CapabilityAdmission, CapabilityAdmissionId, CapabilityAxisRange, CapabilityEnvelope,
     CapabilityError, CapabilityEvidenceRef, CapabilityNeed, FabricationError, MatterBinding,
-    PlanStepId, ProcessError, ProcessExecution, ProcessExecutionId, ProcessEvidenceValidationError,
+    PlanStepId, ProcessError, ProcessEvidenceValidationError, ProcessExecution, ProcessExecutionId,
     ProcessKind, ValidatedProcessEvidence, Workpiece, WorkpieceLifecycle,
 };
 use symtropy_game_state::StableId;
@@ -132,14 +133,8 @@ fn execute_exact_reference_bypass(
 
     // Phase 1: stage the exact pre-coupling matter snapshot.
     let before = reference_workpieces(1)?;
-    let install_reservations = reserve_for_step(
-        &mut staging,
-        &site,
-        &install_step,
-        &before,
-        "couple",
-        1,
-    )?;
+    let install_reservations =
+        reserve_for_step(&mut staging, &site, &install_step, &before, "couple", 1)?;
 
     let coupling_admission = admission_for_capability(
         catalog,
@@ -193,7 +188,9 @@ fn execute_exact_reference_bypass(
     let completed =
         record_exact_released_process_completion(&staging, &mut site, &install_evidence)?;
     if completed != install_step {
-        return Err(invariant("exact C4/C1 completed the wrong bypass install step"));
+        return Err(invariant(
+            "exact C4/C1 completed the wrong bypass install step",
+        ));
     }
     if exact_work_order_status(&install_order, &site)? != WorkOrderStatus::Completed {
         return Err(invariant(

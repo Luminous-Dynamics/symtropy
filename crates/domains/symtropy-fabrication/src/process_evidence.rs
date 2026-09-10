@@ -177,10 +177,12 @@ pub fn validate_process_evidence(
 
     for requirement in evidence.spec_snapshot.required_capabilities() {
         if !requirement.is_satisfied_by(&evidence.admitted_capabilities) {
-            return Err(ProcessEvidenceValidationError::CapabilityRequirementNotSatisfied {
-                capability_id: requirement.capability_id.clone(),
-                minimum_value: requirement.minimum_value,
-            });
+            return Err(
+                ProcessEvidenceValidationError::CapabilityRequirementNotSatisfied {
+                    capability_id: requirement.capability_id.clone(),
+                    minimum_value: requirement.minimum_value,
+                },
+            );
         }
     }
 
@@ -389,16 +391,24 @@ impl fmt::Display for ProcessEvidenceValidationError {
                 "process evidence kind {legacy:?} disagrees with canonical snapshot {canonical:?}"
             ),
             Self::OutcomeNotCompleted(outcome) => {
-                write!(formatter, "process evidence outcome is not completed: {outcome:?}")
+                write!(
+                    formatter,
+                    "process evidence outcome is not completed: {outcome:?}"
+                )
             }
             Self::InvalidEvidenceDigest(digest) => write!(
                 formatter,
                 "process evidence digest must contain 1..=256 bytes, got {}",
                 digest.len()
             ),
-            Self::InputRequired => write!(formatter, "process evidence requires at least one input"),
+            Self::InputRequired => {
+                write!(formatter, "process evidence requires at least one input")
+            }
             Self::DuplicateInputWorkpiece(workpiece_id) => {
-                write!(formatter, "process evidence repeats input workpiece {workpiece_id}")
+                write!(
+                    formatter,
+                    "process evidence repeats input workpiece {workpiece_id}"
+                )
             }
             Self::InputLifecycleNotAdmitted {
                 workpiece_id,
@@ -608,10 +618,8 @@ mod tests {
     #[test]
     fn noncanonical_snapshot_lifecycle_order_is_rejected() {
         let mut value = serde_json::to_value(evidence()).unwrap();
-        value["spec_snapshot"]["allowed_workpiece_states"] = serde_json::json!([
-            "installed",
-            "available"
-        ]);
+        value["spec_snapshot"]["allowed_workpiece_states"] =
+            serde_json::json!(["installed", "available"]);
         assert!(serde_json::from_value::<ValidatedProcessEvidence>(value).is_err());
     }
 
@@ -669,8 +677,7 @@ mod tests {
     #[test]
     fn nested_matter_constructor_invariants_are_revalidated() {
         let mut value = serde_json::to_value(evidence()).unwrap();
-        value["resulting_matter"][0]["binding_digest"] =
-            serde_json::Value::String(String::new());
+        value["resulting_matter"][0]["binding_digest"] = serde_json::Value::String(String::new());
         assert!(serde_json::from_value::<ValidatedProcessEvidence>(value).is_err());
     }
 
