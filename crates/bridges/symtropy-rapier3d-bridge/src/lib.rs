@@ -515,6 +515,13 @@ mod tests {
         assert_invalid_dt_rejected(-1.0 / 60.0);
     }
 
+    #[test]
+    #[should_panic(expected = "Rapier reference gravity must be finite")]
+    fn non_finite_gravity_is_rejected() {
+        let mut bridge = RapierPhysicsBridge::new(NoOpCallback);
+        bridge.set_gravity(Vec3::new(0.0, f32::INFINITY, 0.0));
+    }
+
     struct CountingCallback {
         force_calls: Cell<usize>,
         last_body: Cell<Option<BodyHandle>>,
