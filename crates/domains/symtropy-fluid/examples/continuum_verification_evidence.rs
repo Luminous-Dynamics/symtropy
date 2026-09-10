@@ -30,8 +30,11 @@ use symtropy_fluid::verification_ladder::{
     run_manufactured_taylor_green_ladder, run_passive_taylor_green_ladder,
     run_unforced_energy_trace,
 };
+use symtropy_fluid::verification_regime::{
+    RefinementMetric, RefinementTrendReport, summarize_refinement_trend,
+};
 
-const EVIDENCE_BUNDLE_SCHEMA_ID: &str = "continuum-verification-evidence-bundle-v0.5";
+const EVIDENCE_BUNDLE_SCHEMA_ID: &str = "continuum-verification-evidence-bundle-v0.6";
 
 #[derive(Debug, Serialize)]
 struct EvidenceBundle {
@@ -41,6 +44,10 @@ struct EvidenceBundle {
     passive_temporal: ContinuumEvidenceEnvelope<VerificationLadderReport>,
     manufactured_spatial: ContinuumEvidenceEnvelope<VerificationLadderReport>,
     manufactured_temporal: ContinuumEvidenceEnvelope<VerificationLadderReport>,
+    manufactured_spatial_velocity_trend: ContinuumEvidenceEnvelope<RefinementTrendReport>,
+    manufactured_temporal_velocity_trend: ContinuumEvidenceEnvelope<RefinementTrendReport>,
+    manufactured_spatial_energy_trend: ContinuumEvidenceEnvelope<RefinementTrendReport>,
+    manufactured_temporal_energy_trend: ContinuumEvidenceEnvelope<RefinementTrendReport>,
     unforced_energy: ContinuumEvidenceEnvelope<EnergyTraceReport>,
     passive_stability_campaign: ContinuumEvidenceEnvelope<VerificationCampaignReport>,
     passive_diagnostic_trace: ContinuumEvidenceEnvelope<ContinuumDiagnosticTraceReport>,
@@ -146,6 +153,21 @@ fn main() -> Result<(), Box<dyn Error>> {
         ],
     )?;
 
+    // These are descriptive trend summaries of each exact manufactured fixture.
+    // They retain non-monotone behavior and do not assign an asymptotic verdict.
+    let manufactured_spatial_velocity_trend =
+        summarize_refinement_trend(&manufactured_spatial, RefinementMetric::VelocityRmsError)?;
+    let manufactured_temporal_velocity_trend =
+        summarize_refinement_trend(&manufactured_temporal, RefinementMetric::VelocityRmsError)?;
+    let manufactured_spatial_energy_trend = summarize_refinement_trend(
+        &manufactured_spatial,
+        RefinementMetric::KineticEnergyRelativeError,
+    )?;
+    let manufactured_temporal_energy_trend = summarize_refinement_trend(
+        &manufactured_temporal,
+        RefinementMetric::KineticEnergyRelativeError,
+    )?;
+
     let mut energy_config = base.clone();
     energy_config.nx = 24;
     energy_config.ny = 24;
@@ -223,6 +245,12 @@ fn main() -> Result<(), Box<dyn Error>> {
         &[1, 4, 16, 64, 256],
     )?;
 
+    // Derived trend reports are bound to the exact numerical profiles they
+    // summarize. Cross-fixture iterative/discretization ratios are deliberately
+    // absent: matching units do not make different executable problems comparable.
+    let manufactured_spatial_profiles = ladder_profiles(&manufactured_spatial);
+    let manufactured_temporal_profiles = ladder_profiles(&manufactured_temporal);
+
     let bundle = EvidenceBundle {
         schema_id: EVIDENCE_BUNDLE_SCHEMA_ID,
         source_revision: source_revision.clone(),
@@ -245,6 +273,30 @@ fn main() -> Result<(), Box<dyn Error>> {
             &source_revision,
             "manufactured-taylor-green-temporal-v0.1",
             manufactured_temporal,
+        )?,
+        manufactured_spatial_velocity_trend: bind_report(
+            &source_revision,
+            "manufactured-spatial-velocity-refinement-trend-v0.1",
+            manufactured_spatial_profiles.clone(),
+            manufactured_spatial_velocity_trend,
+        )?,
+        manufactured_temporal_velocity_trend: bind_report(
+            &source_revision,
+            "manufactured-temporal-velocity-refinement-trend-v0.1",
+            manufactured_temporal_profiles.clone(),
+            manufactured_temporal_velocity_trend,
+        )?,
+        manufactured_spatial_energy_trend: bind_report(
+            &source_revision,
+            "manufactured-spatial-energy-refinement-trend-v0.1",
+            manufactured_spatial_profiles,
+            manufactured_spatial_energy_trend,
+        )?,
+        manufactured_temporal_energy_trend: bind_report(
+            &source_revision,
+            "manufactured-temporal-energy-refinement-trend-v0.1",
+            manufactured_temporal_profiles,
+            manufactured_temporal_energy_trend,
         )?,
         unforced_energy: bind_energy(
             &source_revision,
@@ -294,14 +346,8 @@ fn bind_ladder(
     case_profile: &str,
     report: VerificationLadderReport,
 ) -> Result<ContinuumEvidenceEnvelope<VerificationLadderReport>, Box<dyn Error>> {
-    let execution_profiles = report
-        .points
-        .iter()
-        .map(|point| point.solver_profile.clone())
-        .collect::<BTreeSet<_>>()
-        .into_iter()
-        .collect();
-    Ok(subject(source_revision, case_profile, execution_profiles).bind(report)?)
+    let execution_profiles = ladder_profiles(&report);
+    bind_report(source_revision, case_profile, execution_profiles, report)
 }
 
 fn bind_energy(
@@ -310,7 +356,7 @@ fn bind_energy(
     report: EnergyTraceReport,
 ) -> Result<ContinuumEvidenceEnvelope<EnergyTraceReport>, Box<dyn Error>> {
     let execution_profiles = vec![report.solver_profile.clone()];
-    Ok(subject(source_revision, case_profile, execution_profiles).bind(report)?)
+    bind_report(source_revision, case_profile, execution_profiles, report)
 }
 
 fn bind_campaign(
@@ -331,7 +377,7 @@ fn bind_campaign(
         .collect::<BTreeSet<_>>()
         .into_iter()
         .collect();
-    Ok(subject(source_revision, case_profile, execution_profiles).bind(report)?)
+    bind_report(source_revision, case_profile, execution_profiles, report)
 }
 
 fn bind_trace(
@@ -340,7 +386,7 @@ fn bind_trace(
     report: ContinuumDiagnosticTraceReport,
 ) -> Result<ContinuumEvidenceEnvelope<ContinuumDiagnosticTraceReport>, Box<dyn Error>> {
     let execution_profiles = vec![report.solver_profile.clone()];
-    Ok(subject(source_revision, case_profile, execution_profiles).bind(report)?)
+    bind_report(source_revision, case_profile, execution_profiles, report)
 }
 
 fn bind_stability_probe(
@@ -349,7 +395,7 @@ fn bind_stability_probe(
     report: StabilityProbeReport,
 ) -> Result<ContinuumEvidenceEnvelope<StabilityProbeReport>, Box<dyn Error>> {
     let execution_profiles = vec![report.solver_profile.clone()];
-    Ok(subject(source_revision, case_profile, execution_profiles).bind(report)?)
+    bind_report(source_revision, case_profile, execution_profiles, report)
 }
 
 fn bind_projection_sweep(
@@ -364,7 +410,7 @@ fn bind_projection_sweep(
         .collect::<BTreeSet<_>>()
         .into_iter()
         .collect();
-    Ok(subject(source_revision, case_profile, execution_profiles).bind(report)?)
+    bind_report(source_revision, case_profile, execution_profiles, report)
 }
 
 fn bind_iterative_error_sweep(
@@ -379,7 +425,26 @@ fn bind_iterative_error_sweep(
         .collect::<BTreeSet<_>>()
         .into_iter()
         .collect();
+    bind_report(source_revision, case_profile, execution_profiles, report)
+}
+
+fn bind_report<T>(
+    source_revision: &str,
+    case_profile: &str,
+    execution_profiles: Vec<String>,
+    report: T,
+) -> Result<ContinuumEvidenceEnvelope<T>, Box<dyn Error>> {
     Ok(subject(source_revision, case_profile, execution_profiles).bind(report)?)
+}
+
+fn ladder_profiles(report: &VerificationLadderReport) -> Vec<String> {
+    report
+        .points
+        .iter()
+        .map(|point| point.solver_profile.clone())
+        .collect::<BTreeSet<_>>()
+        .into_iter()
+        .collect()
 }
 
 fn subject(
