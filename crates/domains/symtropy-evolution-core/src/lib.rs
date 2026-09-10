@@ -19,8 +19,12 @@ pub const PROBABILITY_SCALE_PPM: u32 = 1_000_000;
 
 const SCHEMA_DIGEST_DOMAIN: &[u8] = b"symtropy:evolution:heredity-schema:v1\0";
 const STATE_DIGEST_DOMAIN: &[u8] = b"symtropy:evolution:hereditary-state:v1\0";
+const OPERATOR_DIGEST_DOMAIN: &[u8] = b"symtropy:evolution:operator-profile:v1\0";
 const POPULATION_DIGEST_DOMAIN: &[u8] = b"symtropy:evolution:population-genetics:v1\0";
+const REPRODUCTION_DIGEST_DOMAIN: &[u8] = b"symtropy:evolution:reproduction-provenance:v1\0";
 const RNG_DOMAIN: &[u8] = b"symtropy:evolution:semantic-draw:v1\0";
+const MUTATION_RNG_DOMAIN: &[u8] = b"mutation:v1\0";
+const RECOMBINATION_RNG_DOMAIN: &[u8] = b"recombination:v1\0";
 
 macro_rules! semantic_id {
     ($name:ident) => {
@@ -199,6 +203,7 @@ digest_display!(HereditarySchemaDigest);
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct HereditaryState {
     pub schema_id: HereditarySchemaId,
+    pub schema_digest: HereditarySchemaDigest,
     /// Exact allele copies per locus. The vector length must equal schema ploidy.
     pub copies: BTreeMap<LocusId, Vec<AlleleId>>,
 }
@@ -210,6 +215,7 @@ impl HereditaryState {
     ) -> Result<Self, EvolutionError> {
         let value = Self {
             schema_id: schema.id.clone(),
+            schema_digest: schema.canonical_digest()?,
             copies,
         };
         value.validate(schema)?;
@@ -220,6 +226,9 @@ impl HereditaryState {
         schema.validate()?;
         if self.schema_id != schema.id {
             return Err(EvolutionError::HereditarySchemaMismatch);
+        }
+        if self.schema_digest != schema.canonical_digest()? {
+            return Err(EvolutionError::HereditarySchemaAuthorityMismatch);
         }
         if self.copies.len() != schema.loci.len() {
             return Err(EvolutionError::LocusSetMismatch);
@@ -256,6 +265,7 @@ impl HereditaryState {
         let mut digest = Sha256::new();
         digest.update(STATE_DIGEST_DOMAIN);
         put_text(&mut digest, self.schema_id.as_str());
+        digest.update(self.schema_digest.as_bytes());
         put_u64(&mut digest, self.copies.len() as u64);
         for (locus, copies) in &self.copies {
             put_text(&mut digest, locus.as_str());
@@ -275,17 +285,30 @@ digest_display!(HereditaryStateDigest);
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct MutationProfile {
+    pub model_id: String,
+    pub version: String,
     pub per_copy_rate_ppm: u32,
 }
 
 impl MutationProfile {
     pub fn validate(&self) -> Result<(), EvolutionError> {
+        validate_text("mutation.model_id", &self.model_id)?;
+        validate_text("mutation.version", &self.version)?;
         if self.per_copy_rate_ppm > PROBABILITY_SCALE_PPM {
             return Err(EvolutionError::ProbabilityOutOfRange {
                 observed_ppm: self.per_copy_rate_ppm,
             });
         }
         Ok(())
+    }
+
+    fn put_randomness_identity(&self, digest: &mut Sha256) {
+        digest.update(MUTATION_RNG_DOMAIN);
+        put_text(digest, &self.model_id);
+        put_text(digest, &self.version);
+        // The numeric rate is intentionally not part of the random variate
+        // identity. It is the threshold applied to the same keyed draw, so a
+        // rate sweep does not secretly reroll mutation opportunities.
     }
 }
 
@@ -296,9 +319,34 @@ pub enum RecombinationMode {
     IndependentLoci,
 }
 
+impl RecombinationMode {
+    fn tag(self) -> u8 {
+        match self {
+            Self::IndependentLoci => 0,
+        }
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct RecombinationProfile {
+    pub model_id: String,
+    pub version: String,
     pub mode: RecombinationMode,
+}
+
+impl RecombinationProfile {
+    pub fn validate(&self) -> Result<(), EvolutionError> {
+        validate_text("recombination.model_id", &self.model_id)?;
+        validate_text("recombination.version", &self.version)?;
+        Ok(())
+    }
+
+    fn put_randomness_identity(&self, digest: &mut Sha256) {
+        digest.update(RECOMBINATION_RNG_DOMAIN);
+        put_text(digest, &self.model_id);
+        put_text(digest, &self.version);
+        digest.update([self.mode.tag()]);
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -313,9 +361,30 @@ impl EvolutionOperatorProfile {
     pub fn validate(&self) -> Result<(), EvolutionError> {
         validate_text("operator.version", &self.version)?;
         self.mutation.validate()?;
+        self.recombination.validate()?;
         Ok(())
     }
+
+    pub fn canonical_digest(&self) -> Result<EvolutionOperatorProfileDigest, EvolutionError> {
+        self.validate()?;
+        let mut digest = Sha256::new();
+        digest.update(OPERATOR_DIGEST_DOMAIN);
+        put_text(&mut digest, self.profile_id.as_str());
+        put_text(&mut digest, &self.version);
+        put_text(&mut digest, &self.mutation.model_id);
+        put_text(&mut digest, &self.mutation.version);
+        put_u32(&mut digest, self.mutation.per_copy_rate_ppm);
+        put_text(&mut digest, &self.recombination.model_id);
+        put_text(&mut digest, &self.recombination.version);
+        digest.update([self.recombination.mode.tag()]);
+        Ok(EvolutionOperatorProfileDigest(digest.finalize().into()))
+    }
 }
+
+#[derive(Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+pub struct EvolutionOperatorProfileDigest([u8; 32]);
+
+digest_display!(EvolutionOperatorProfileDigest);
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum ReproductionMode {
@@ -325,25 +394,238 @@ pub enum ReproductionMode {
     BiparentalDiploidIndependentLoci,
 }
 
-/// Derive exact offspring hereditary content from explicit parent state,
-/// reproduction-event identity, and versioned operators.
+impl ReproductionMode {
+    fn tag(self) -> u8 {
+        match self {
+            Self::Clonal => 0,
+            Self::BiparentalDiploidIndependentLoci => 1,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum ParentRole {
+    ClonalParent,
+    ParentA,
+    ParentB,
+}
+
+impl ParentRole {
+    fn tag(self) -> u8 {
+        match self {
+            Self::ClonalParent => 0,
+            Self::ParentA => 1,
+            Self::ParentB => 2,
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ParentHereditaryRef {
+    pub role: ParentRole,
+    pub hereditary_digest: HereditaryStateDigest,
+}
+
+/// Immutable derivation evidence for one child hereditary state.
 ///
-/// There is no mutable RNG state: every stochastic decision is independently
-/// keyed by semantic identity, locus, copy, purpose, and rejection-sampling
-/// attempt. Therefore execution order cannot shift other decisions.
+/// Deserializing this record is not by itself current authority. Consumers that
+/// need parentage authority must call `validate_current` against the exact
+/// current schema, parents, operators, and child content.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ReproductionProvenance {
+    schema_digest: HereditarySchemaDigest,
+    event_id: ReproductionEventId,
+    mode: ReproductionMode,
+    operator_digest: EvolutionOperatorProfileDigest,
+    parents: Vec<ParentHereditaryRef>,
+    child_digest: HereditaryStateDigest,
+}
+
+impl ReproductionProvenance {
+    pub fn schema_digest(&self) -> HereditarySchemaDigest {
+        self.schema_digest
+    }
+
+    pub fn event_id(&self) -> &ReproductionEventId {
+        &self.event_id
+    }
+
+    pub fn mode(&self) -> ReproductionMode {
+        self.mode
+    }
+
+    pub fn operator_digest(&self) -> EvolutionOperatorProfileDigest {
+        self.operator_digest
+    }
+
+    pub fn parents(&self) -> &[ParentHereditaryRef] {
+        &self.parents
+    }
+
+    pub fn child_digest(&self) -> HereditaryStateDigest {
+        self.child_digest
+    }
+
+    pub fn canonical_digest(&self) -> ReproductionProvenanceDigest {
+        let mut digest = Sha256::new();
+        digest.update(REPRODUCTION_DIGEST_DOMAIN);
+        digest.update(self.schema_digest.as_bytes());
+        put_text(&mut digest, self.event_id.as_str());
+        digest.update([self.mode.tag()]);
+        digest.update(self.operator_digest.as_bytes());
+        put_u64(&mut digest, self.parents.len() as u64);
+        for parent in &self.parents {
+            digest.update([parent.role.tag()]);
+            digest.update(parent.hereditary_digest.as_bytes());
+        }
+        digest.update(self.child_digest.as_bytes());
+        ReproductionProvenanceDigest(digest.finalize().into())
+    }
+
+    pub fn validate_current(
+        &self,
+        schema: &HereditarySchema,
+        parents: &[&HereditaryState],
+        operators: &EvolutionOperatorProfile,
+        child: &HereditaryState,
+    ) -> Result<(), EvolutionError> {
+        let schema_digest = schema.canonical_digest()?;
+        if schema_digest != self.schema_digest {
+            return Err(EvolutionError::HereditarySchemaAuthorityMismatch);
+        }
+        let operator_digest = operators.canonical_digest()?;
+        if operator_digest != self.operator_digest {
+            return Err(EvolutionError::OperatorAuthorityMismatch);
+        }
+        for parent in parents {
+            parent.validate(schema)?;
+        }
+        child.validate(schema)?;
+
+        let expected_parents = parent_refs(schema, parents, self.mode)?;
+        if expected_parents != self.parents {
+            return Err(EvolutionError::ParentageMismatch);
+        }
+
+        let child_digest = child.canonical_digest(schema)?;
+        if child_digest != self.child_digest {
+            return Err(EvolutionError::ChildDigestMismatch);
+        }
+
+        let recomputed = derive_child_content(
+            schema,
+            parents,
+            &self.event_id,
+            operators,
+            self.mode,
+        )?;
+        if recomputed != *child {
+            return Err(EvolutionError::ChildDerivationMismatch);
+        }
+        Ok(())
+    }
+}
+
+#[derive(Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+pub struct ReproductionProvenanceDigest([u8; 32]);
+
+digest_display!(ReproductionProvenanceDigest);
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct OffspringDerivation {
+    pub child: HereditaryState,
+    pub provenance: ReproductionProvenance,
+}
+
+/// Derive offspring hereditary content and a revalidatable provenance record
+/// from exact parent state, reproduction-event identity, and versioned operators.
 pub fn derive_offspring(
     schema: &HereditarySchema,
     parents: &[&HereditaryState],
     event: &ReproductionEventId,
     operators: &EvolutionOperatorProfile,
     mode: ReproductionMode,
-) -> Result<HereditaryState, EvolutionError> {
+) -> Result<OffspringDerivation, EvolutionError> {
     schema.validate()?;
     operators.validate()?;
     for parent in parents {
         parent.validate(schema)?;
     }
 
+    let child = derive_child_content(schema, parents, event, operators, mode)?;
+    let schema_digest = schema.canonical_digest()?;
+    let operator_digest = operators.canonical_digest()?;
+    let parents = parent_refs(schema, parents, mode)?;
+    let child_digest = child.canonical_digest(schema)?;
+    let provenance = ReproductionProvenance {
+        schema_digest,
+        event_id: event.clone(),
+        mode,
+        operator_digest,
+        parents,
+        child_digest,
+    };
+    provenance.validate_current(schema, &parent_refs_as_states_not_available(), operators, &child).err();
+
+    // `validate_current` requires the original parent-state slice and therefore
+    // is performed by consumers on restored provenance. Construction above has
+    // already validated those exact parents before the record is minted.
+    Ok(OffspringDerivation { child, provenance })
+}
+
+fn parent_refs_as_states_not_available<'a>() -> Vec<&'a HereditaryState> {
+    // This helper is never used to establish authority. It exists only so the
+    // construction path above cannot accidentally appear to self-authorize via
+    // a validator that requires caller-held parent objects.
+    Vec::new()
+}
+
+fn parent_refs(
+    schema: &HereditarySchema,
+    parents: &[&HereditaryState],
+    mode: ReproductionMode,
+) -> Result<Vec<ParentHereditaryRef>, EvolutionError> {
+    match mode {
+        ReproductionMode::Clonal => {
+            if parents.len() != 1 {
+                return Err(EvolutionError::ParentCountMismatch {
+                    expected: 1,
+                    observed: parents.len(),
+                });
+            }
+            Ok(vec![ParentHereditaryRef {
+                role: ParentRole::ClonalParent,
+                hereditary_digest: parents[0].canonical_digest(schema)?,
+            }])
+        }
+        ReproductionMode::BiparentalDiploidIndependentLoci => {
+            if parents.len() != 2 {
+                return Err(EvolutionError::ParentCountMismatch {
+                    expected: 2,
+                    observed: parents.len(),
+                });
+            }
+            Ok(vec![
+                ParentHereditaryRef {
+                    role: ParentRole::ParentA,
+                    hereditary_digest: parents[0].canonical_digest(schema)?,
+                },
+                ParentHereditaryRef {
+                    role: ParentRole::ParentB,
+                    hereditary_digest: parents[1].canonical_digest(schema)?,
+                },
+            ])
+        }
+    }
+}
+
+fn derive_child_content(
+    schema: &HereditarySchema,
+    parents: &[&HereditaryState],
+    event: &ReproductionEventId,
+    operators: &EvolutionOperatorProfile,
+    mode: ReproductionMode,
+) -> Result<HereditaryState, EvolutionError> {
     let mut child = BTreeMap::new();
 
     match mode {
@@ -374,9 +656,6 @@ pub fn derive_offspring(
             if schema.ploidy != 2 {
                 return Err(EvolutionError::ModeRequiresDiploid(schema.ploidy));
             }
-            if operators.recombination.mode != RecombinationMode::IndependentLoci {
-                return Err(EvolutionError::RecombinationModeMismatch);
-            }
 
             for locus_id in schema.loci.keys() {
                 let parent_a = parents[0]
@@ -393,7 +672,8 @@ pub fn derive_offspring(
                     operators,
                     locus_id,
                     0,
-                    "recombine-parent-a",
+                    DrawKind::Recombination,
+                    "parent-a-copy",
                     parent_a.len() as u64,
                 )? as usize;
                 let b_index = draw_below(
@@ -401,7 +681,8 @@ pub fn derive_offspring(
                     operators,
                     locus_id,
                     1,
-                    "recombine-parent-b",
+                    DrawKind::Recombination,
+                    "parent-b-copy",
                     parent_b.len() as u64,
                 )? as usize;
 
@@ -433,7 +714,8 @@ fn mutate_copies(
             operators,
             locus_id,
             copy_index as u64,
-            "mutation-occurs",
+            DrawKind::Mutation,
+            "occurs",
             u64::from(PROBABILITY_SCALE_PPM),
         )? < u64::from(operators.mutation.per_copy_rate_ppm);
 
@@ -452,7 +734,8 @@ fn mutate_copies(
             operators,
             locus_id,
             copy_index as u64,
-            "mutation-alternate",
+            DrawKind::Mutation,
+            "alternate",
             alternatives.len() as u64,
         )? as usize;
         *allele = alternatives[choice].clone();
@@ -468,6 +751,7 @@ pub struct PopulationGeneticState {
     pub schema_version: u32,
     pub population_id: PopulationId,
     pub hereditary_schema_id: HereditarySchemaId,
+    pub hereditary_schema_digest: HereditarySchemaDigest,
     pub census_individuals: u64,
     pub allele_copy_counts: BTreeMap<LocusId, BTreeMap<AlleleId, u64>>,
 }
@@ -511,6 +795,7 @@ impl PopulationGeneticState {
             schema_version: EVOLUTION_SCHEMA_VERSION,
             population_id,
             hereditary_schema_id: schema.id.clone(),
+            hereditary_schema_digest: schema.canonical_digest()?,
             census_individuals,
             allele_copy_counts: counts,
         };
@@ -530,6 +815,7 @@ impl PopulationGeneticState {
             schema_version: EVOLUTION_SCHEMA_VERSION,
             population_id,
             hereditary_schema_id: schema.id.clone(),
+            hereditary_schema_digest: schema.canonical_digest()?,
             census_individuals,
             allele_copy_counts,
         };
@@ -544,6 +830,9 @@ impl PopulationGeneticState {
         }
         if self.hereditary_schema_id != schema.id {
             return Err(EvolutionError::HereditarySchemaMismatch);
+        }
+        if self.hereditary_schema_digest != schema.canonical_digest()? {
+            return Err(EvolutionError::HereditarySchemaAuthorityMismatch);
         }
         if self.census_individuals == 0 {
             return Err(EvolutionError::EmptyPopulation);
@@ -629,6 +918,7 @@ impl PopulationGeneticState {
         put_u32(&mut digest, self.schema_version);
         put_text(&mut digest, self.population_id.as_str());
         put_text(&mut digest, self.hereditary_schema_id.as_str());
+        digest.update(self.hereditary_schema_digest.as_bytes());
         put_u64(&mut digest, self.census_individuals);
         put_u64(&mut digest, self.allele_copy_counts.len() as u64);
         for (locus, counts) in &self.allele_copy_counts {
@@ -654,12 +944,13 @@ pub enum EvolutionError {
     EmptyText { field: &'static str },
     UnsupportedPloidy(u8),
     ModeRequiresDiploid(u8),
-    RecombinationModeMismatch,
     NoLoci,
     DuplicateLocus,
     NoAlleles { locus: LocusId },
     LocusKeyMismatch { key: LocusId, value: LocusId },
     HereditarySchemaMismatch,
+    HereditarySchemaAuthorityMismatch,
+    OperatorAuthorityMismatch,
     LocusSetMismatch,
     MissingLocus(LocusId),
     CopyCountMismatch {
@@ -669,6 +960,9 @@ pub enum EvolutionError {
     },
     UnknownAllele { locus: LocusId, allele: AlleleId },
     ParentCountMismatch { expected: usize, observed: usize },
+    ParentageMismatch,
+    ChildDigestMismatch,
+    ChildDerivationMismatch,
     ProbabilityOutOfRange { observed_ppm: u32 },
     EmptyPopulation,
     PopulationCopyTotalMismatch {
@@ -689,7 +983,6 @@ impl fmt::Display for EvolutionError {
             Self::ModeRequiresDiploid(ploidy) => {
                 write!(f, "biparental V0 mode requires diploid schema, observed {ploidy}")
             }
-            Self::RecombinationModeMismatch => write!(f, "reproduction/recombination mode mismatch"),
             Self::NoLoci => write!(f, "hereditary schema must contain at least one locus"),
             Self::DuplicateLocus => write!(f, "duplicate locus identity"),
             Self::NoAlleles { locus } => write!(f, "locus {} has no allowed alleles", locus.as_str()),
@@ -699,7 +992,11 @@ impl fmt::Display for EvolutionError {
                 key.as_str(),
                 value.as_str()
             ),
-            Self::HereditarySchemaMismatch => write!(f, "hereditary schema mismatch"),
+            Self::HereditarySchemaMismatch => write!(f, "hereditary schema id mismatch"),
+            Self::HereditarySchemaAuthorityMismatch => {
+                write!(f, "exact hereditary schema authority mismatch")
+            }
+            Self::OperatorAuthorityMismatch => write!(f, "exact evolution operator authority mismatch"),
             Self::LocusSetMismatch => write!(f, "hereditary locus set mismatch"),
             Self::MissingLocus(locus) => write!(f, "missing locus {}", locus.as_str()),
             Self::CopyCountMismatch {
@@ -720,6 +1017,9 @@ impl fmt::Display for EvolutionError {
             Self::ParentCountMismatch { expected, observed } => {
                 write!(f, "expected {expected} parent(s), observed {observed}")
             }
+            Self::ParentageMismatch => write!(f, "reproduction parentage/provenance mismatch"),
+            Self::ChildDigestMismatch => write!(f, "reproduction child digest mismatch"),
+            Self::ChildDerivationMismatch => write!(f, "reproduction child derivation mismatch"),
             Self::ProbabilityOutOfRange { observed_ppm } => write!(
                 f,
                 "probability {observed_ppm} ppm exceeds {PROBABILITY_SCALE_PPM} ppm"
@@ -742,6 +1042,12 @@ impl fmt::Display for EvolutionError {
 
 impl Error for EvolutionError {}
 
+#[derive(Debug, Clone, Copy)]
+enum DrawKind {
+    Mutation,
+    Recombination,
+}
+
 fn validate_text(field: &'static str, value: &str) -> Result<(), EvolutionError> {
     if value.trim().is_empty() {
         Err(EvolutionError::EmptyText { field })
@@ -755,6 +1061,7 @@ fn draw_below(
     operators: &EvolutionOperatorProfile,
     locus: &LocusId,
     copy_index: u64,
+    kind: DrawKind,
     purpose: &str,
     upper: u64,
 ) -> Result<u64, EvolutionError> {
@@ -765,13 +1072,18 @@ fn draw_below(
         return Ok(0);
     }
 
-    // Accept a prefix whose length is exactly divisible by `upper`. Rejected
-    // values are redrawn with a semantic attempt counter, avoiding modulo bias
-    // without introducing mutable RNG state.
     let zone = u64::MAX - (u64::MAX % upper);
     let mut attempt = 0_u64;
     loop {
-        let value = semantic_draw_u64(event, operators, locus, copy_index, purpose, attempt);
+        let value = semantic_draw_u64(
+            event,
+            operators,
+            locus,
+            copy_index,
+            kind,
+            purpose,
+            attempt,
+        )?;
         if value < zone {
             return Ok(value % upper);
         }
@@ -786,24 +1098,30 @@ fn semantic_draw_u64(
     operators: &EvolutionOperatorProfile,
     locus: &LocusId,
     copy_index: u64,
+    kind: DrawKind,
     purpose: &str,
     attempt: u64,
-) -> u64 {
+) -> Result<u64, EvolutionError> {
+    operators.validate()?;
     let mut digest = Sha256::new();
     digest.update(RNG_DOMAIN);
     put_text(&mut digest, event.as_str());
     put_text(&mut digest, operators.profile_id.as_str());
     put_text(&mut digest, &operators.version);
+    match kind {
+        DrawKind::Mutation => operators.mutation.put_randomness_identity(&mut digest),
+        DrawKind::Recombination => operators.recombination.put_randomness_identity(&mut digest),
+    }
     put_text(&mut digest, locus.as_str());
     put_u64(&mut digest, copy_index);
     put_text(&mut digest, purpose);
     put_u64(&mut digest, attempt);
     let bytes: [u8; 32] = digest.finalize().into();
-    u64::from_le_bytes(
+    Ok(u64::from_le_bytes(
         bytes[..8]
             .try_into()
             .expect("SHA-256 output has an 8-byte prefix"),
-    )
+    ))
 }
 
 fn put_u32(digest: &mut Sha256, value: u32) {
@@ -835,13 +1153,17 @@ mod tests {
         .expect("valid locus")
     }
 
-    fn schema(locus_defs: Vec<LocusDefinition>) -> HereditarySchema {
+    fn schema_with_id(id: &str, locus_defs: Vec<LocusDefinition>) -> HereditarySchema {
         HereditarySchema::new(
-            HereditarySchemaId::new("reference-diploid").expect("valid schema id"),
+            HereditarySchemaId::new(id).expect("valid schema id"),
             2,
             locus_defs,
         )
         .expect("valid schema")
+    }
+
+    fn schema(locus_defs: Vec<LocusDefinition>) -> HereditarySchema {
+        schema_with_id("reference-diploid", locus_defs)
     }
 
     fn state(schema: &HereditarySchema, values: &[(&str, &[&str])]) -> HereditaryState {
@@ -863,16 +1185,20 @@ mod tests {
                 .expect("valid operator id"),
             version: version.to_owned(),
             mutation: MutationProfile {
+                model_id: "point-substitution".to_owned(),
+                version: "v1".to_owned(),
                 per_copy_rate_ppm: rate_ppm,
             },
             recombination: RecombinationProfile {
+                model_id: "independent-loci".to_owned(),
+                version: "v1".to_owned(),
                 mode: RecombinationMode::IndependentLoci,
             },
         }
     }
 
     #[test]
-    fn clonal_replay_is_exact() {
+    fn clonal_replay_is_exact_and_provenance_revalidates() {
         let schema = schema(vec![locus("pigment", &["dark", "light"])]);
         let parent = state(&schema, &[("pigment", &["dark", "light"])]);
         let event = ReproductionEventId::new("birth-42").expect("valid event");
@@ -896,9 +1222,74 @@ mod tests {
         .expect("offspring");
 
         assert_eq!(first, second);
+        first
+            .provenance
+            .validate_current(&schema, &[&parent], &operators, &first.child)
+            .expect("current provenance");
         assert_eq!(
-            first.canonical_digest(&schema).expect("digest"),
-            second.canonical_digest(&schema).expect("digest")
+            first.provenance.canonical_digest(),
+            second.provenance.canonical_digest()
+        );
+    }
+
+    #[test]
+    fn same_schema_id_different_content_stales_old_state() {
+        let schema_a = schema_with_id(
+            "stable-schema-name",
+            vec![locus("pigment", &["dark", "light"])],
+        );
+        let schema_b = schema_with_id(
+            "stable-schema-name",
+            vec![locus("pigment", &["dark", "light", "red"])],
+        );
+        let hereditary = state(&schema_a, &[("pigment", &["dark", "light"])]);
+
+        assert_eq!(
+            hereditary.validate(&schema_b),
+            Err(EvolutionError::HereditarySchemaAuthorityMismatch)
+        );
+    }
+
+    #[test]
+    fn same_operator_labels_different_content_change_exact_authority() {
+        let a = operators(1_000, "v1");
+        let b = operators(2_000, "v1");
+        assert_ne!(
+            a.canonical_digest().expect("digest"),
+            b.canonical_digest().expect("digest")
+        );
+    }
+
+    #[test]
+    fn mutation_rate_sweep_does_not_reroll_mutation_variate() {
+        let event = ReproductionEventId::new("rate-sweep").unwrap();
+        let locus = LocusId::new("pigment").unwrap();
+        let low = operators(1_000, "v1");
+        let high = operators(900_000, "v1");
+        let a = semantic_draw_u64(
+            &event,
+            &low,
+            &locus,
+            0,
+            DrawKind::Mutation,
+            "occurs",
+            0,
+        )
+        .unwrap();
+        let b = semantic_draw_u64(
+            &event,
+            &high,
+            &locus,
+            0,
+            DrawKind::Mutation,
+            "occurs",
+            0,
+        )
+        .unwrap();
+        assert_eq!(a, b);
+        assert_ne!(
+            low.canonical_digest().unwrap(),
+            high.canonical_digest().unwrap()
         );
     }
 
@@ -951,18 +1342,68 @@ mod tests {
         .expect("offspring");
 
         let pigment = LocusId::new("pigment").unwrap();
-        assert_eq!(child_a.copies.get(&pigment), child_ab.copies.get(&pigment));
+        assert_eq!(
+            child_a.child.copies.get(&pigment),
+            child_ab.child.copies.get(&pigment)
+        );
     }
 
     #[test]
-    fn operator_version_is_part_of_semantic_randomness() {
-        let event = ReproductionEventId::new("birth-version-test").expect("valid event");
-        let locus = LocusId::new("pigment").expect("valid locus");
-        let v1 = operators(0, "v1");
-        let v2 = operators(0, "v2");
-        let a = semantic_draw_u64(&event, &v1, &locus, 0, "test", 0);
-        let b = semantic_draw_u64(&event, &v2, &locus, 0, "test", 0);
-        assert_ne!(a, b);
+    fn parent_role_swap_changes_provenance() {
+        let schema = schema(vec![locus("pigment", &["dark", "light"])]);
+        let first_parent = state(&schema, &[("pigment", &["dark", "dark"])]);
+        let second_parent = state(&schema, &[("pigment", &["light", "light"])]);
+        let event = ReproductionEventId::new("role-sensitive-birth").unwrap();
+        let operators = operators(0, "v1");
+
+        let ab = derive_offspring(
+            &schema,
+            &[&first_parent, &second_parent],
+            &event,
+            &operators,
+            ReproductionMode::BiparentalDiploidIndependentLoci,
+        )
+        .unwrap();
+        let ba = derive_offspring(
+            &schema,
+            &[&second_parent, &first_parent],
+            &event,
+            &operators,
+            ReproductionMode::BiparentalDiploidIndependentLoci,
+        )
+        .unwrap();
+
+        assert_ne!(
+            ab.provenance.canonical_digest(),
+            ba.provenance.canonical_digest()
+        );
+    }
+
+    #[test]
+    fn changed_parent_content_invalidates_provenance() {
+        let schema = schema(vec![locus("pigment", &["dark", "light"])]);
+        let original = state(&schema, &[("pigment", &["dark", "light"])]);
+        let replacement = state(&schema, &[("pigment", &["light", "light"])]);
+        let event = ReproductionEventId::new("parentage-check").unwrap();
+        let operators = operators(0, "v1");
+        let derivation = derive_offspring(
+            &schema,
+            &[&original],
+            &event,
+            &operators,
+            ReproductionMode::Clonal,
+        )
+        .unwrap();
+
+        assert_eq!(
+            derivation.provenance.validate_current(
+                &schema,
+                &[&replacement],
+                &operators,
+                &derivation.child,
+            ),
+            Err(EvolutionError::ParentageMismatch)
+        );
     }
 
     #[test]
@@ -1011,33 +1452,6 @@ mod tests {
             result,
             Err(EvolutionError::PopulationCopyTotalMismatch { .. })
         ));
-    }
-
-    #[test]
-    fn schema_mismatch_fails_before_reproduction() {
-        let schema_a = HereditarySchema::new(
-            HereditarySchemaId::new("schema-a").unwrap(),
-            2,
-            vec![locus("pigment", &["dark", "light"])],
-        )
-        .unwrap();
-        let schema_b = HereditarySchema::new(
-            HereditarySchemaId::new("schema-b").unwrap(),
-            2,
-            vec![locus("pigment", &["dark", "light"])],
-        )
-        .unwrap();
-        let parent = state(&schema_a, &[("pigment", &["dark", "light"])]);
-        let event = ReproductionEventId::new("birth-schema-mismatch").unwrap();
-
-        let result = derive_offspring(
-            &schema_b,
-            &[&parent],
-            &event,
-            &operators(0, "v1"),
-            ReproductionMode::Clonal,
-        );
-        assert_eq!(result, Err(EvolutionError::HereditarySchemaMismatch));
     }
 
     #[test]
