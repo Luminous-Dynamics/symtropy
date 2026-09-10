@@ -21,12 +21,14 @@ concurrency:
 
 jobs:
   qualify:
-    name: Qualify PB-04a exact execution subject
-    runs-on: ubuntu-latest
+    name: Qualify PB-04a exact locked execution subject
+    runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
+      # actions/checkout v4 resolved and frozen at review time.
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
           fetch-depth: 0
+          persist-credentials: false
 
       - name: Bind executed Git subject
         shell: bash
@@ -51,27 +53,54 @@ jobs:
             echo "PB04A_INTEGRATION_TREE=${actual_tree}"
           fi
 
-      - name: Set up pinned Rust
-        uses: dtolnay/rust-toolchain@stable
-        with:
-          toolchain: 1.96.0
-          components: clippy, rustfmt
-
-      - name: Bind dependency-resolution discipline
+      - name: Require committed nested dependency lock
         shell: bash
         run: |
           set -euo pipefail
           lock="crates/domains/symtropy-spatial-topology/Cargo.lock"
-          if [[ -f "${lock}" ]]; then
-            test -s "${lock}"
-            echo "PB04A_LOCK_STATE=frozen-product"
-            echo "PB04A_LOCK_BLOB=$(git hash-object "${lock}")"
-            echo "PB04A_LOCK_SHA256=$(sha256sum "${lock}" | awk '{print $1}')"
-            echo "PB04A_CARGO_LOCK_FLAG=--locked" >> "${GITHUB_ENV}"
-          else
-            echo "PB04A_LOCK_STATE=absent-preproduct-input"
-            echo "PB04A_CARGO_LOCK_FLAG=" >> "${GITHUB_ENV}"
-          fi
+          test -s "${lock}" || {
+            echo "PB-04a qualification refuses an unlocked/pre-product subject" >&2
+            exit 1
+          }
+          git ls-files --error-unmatch "${lock}" >/dev/null
+          echo "PB04A_LOCK_STATE=frozen-product"
+          echo "PB04A_LOCK_BLOB=$(git hash-object "${lock}")"
+          echo "PB04A_LOCK_SHA256=$(sha256sum "${lock}" | awk '{print $1}')"
+
+      - name: Record hosted execution environment
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "PB04A_RUNNER_OS=${RUNNER_OS}"
+          echo "PB04A_RUNNER_ARCH=${RUNNER_ARCH}"
+          echo "PB04A_IMAGE_OS=${ImageOS:-unknown}"
+          echo "PB04A_IMAGE_VERSION=${ImageVersion:-unknown}"
+          uname -a
+          git --version
+
+      # dtolnay/rust-toolchain stable branch resolved and frozen at review time.
+      - name: Set up pinned Rust
+        uses: dtolnay/rust-toolchain@6bed0761d98439e5a578e2877258200ad565ba87
+        with:
+          toolchain: 1.96.0
+          components: clippy, rustfmt
+
+      - name: Bind exact Rust toolchain
+        shell: bash
+        run: |
+          set -euo pipefail
+          rustc -Vv
+          cargo -Vv
+          rustfmt --version
+          cargo clippy --version
+
+      - name: Verify locked dependency graph
+        shell: bash
+        run: |
+          set -euo pipefail
+          manifest="crates/domains/symtropy-spatial-topology/Cargo.toml"
+          cargo metadata --manifest-path "${manifest}" --locked --format-version 1 > /tmp/pb04a-cargo-metadata.json
+          echo "PB04A_LOCKED_METADATA_SHA256=$(sha256sum /tmp/pb04a-cargo-metadata.json | awk '{print $1}')"
 
       - name: Canonical formatting
         shell: bash
@@ -83,23 +112,28 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          cargo check --manifest-path crates/domains/symtropy-spatial-topology/Cargo.toml ${PB04A_CARGO_LOCK_FLAG} --all-targets
+          cargo check --manifest-path crates/domains/symtropy-spatial-topology/Cargo.toml --locked --all-targets
 
       - name: Test
         shell: bash
         run: |
           set -euo pipefail
-          cargo test --manifest-path crates/domains/symtropy-spatial-topology/Cargo.toml ${PB04A_CARGO_LOCK_FLAG}
+          cargo test --manifest-path crates/domains/symtropy-spatial-topology/Cargo.toml --locked
 
       - name: Strict Clippy
         shell: bash
         run: |
           set -euo pipefail
-          cargo clippy --manifest-path crates/domains/symtropy-spatial-topology/Cargo.toml ${PB04A_CARGO_LOCK_FLAG} --all-targets -- -D warnings
+          cargo clippy --manifest-path crates/domains/symtropy-spatial-topology/Cargo.toml --locked --all-targets -- -D warnings
 
-      - name: Prove source tree unchanged
+      - name: Prove checkout unchanged
         shell: bash
         run: |
           set -euo pipefail
           git diff --exit-code
-          test -z "$(git status --porcelain --untracked-files=no)"
+          status="$(git status --porcelain --untracked-files=all)"
+          if [[ -n "${status}" ]]; then
+            echo "PB-04a qualification mutated the checkout:" >&2
+            printf '%s\n' "${status}" >&2
+            exit 1
+          fi
