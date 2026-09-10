@@ -9,6 +9,9 @@ use serde::Serialize;
 use symtropy_fluid::evidence::{
     CONTINUUM_EVIDENCE_SCHEMA_VERSION, ContinuumEvidenceEnvelope, ContinuumEvidenceSubject,
 };
+use symtropy_fluid::falsification::{
+    VerificationCampaignReport, run_passive_taylor_green_campaign,
+};
 use symtropy_fluid::manufactured::ManufacturedTaylorGreenProfile;
 use symtropy_fluid::reference::PeriodicMacConfig;
 use symtropy_fluid::verification_ladder::{
@@ -17,7 +20,7 @@ use symtropy_fluid::verification_ladder::{
     run_unforced_energy_trace,
 };
 
-const EVIDENCE_BUNDLE_SCHEMA_ID: &str = "continuum-verification-evidence-bundle-v0.1";
+const EVIDENCE_BUNDLE_SCHEMA_ID: &str = "continuum-verification-evidence-bundle-v0.2";
 
 #[derive(Debug, Serialize)]
 struct EvidenceBundle {
@@ -27,6 +30,7 @@ struct EvidenceBundle {
     passive_temporal: ContinuumEvidenceEnvelope<VerificationLadderReport>,
     manufactured_temporal: ContinuumEvidenceEnvelope<VerificationLadderReport>,
     unforced_energy: ContinuumEvidenceEnvelope<EnergyTraceReport>,
+    passive_stability_campaign: ContinuumEvidenceEnvelope<VerificationCampaignReport>,
 }
 
 fn main() -> Result<(), Box<dyn Error>> {
@@ -101,10 +105,36 @@ fn main() -> Result<(), Box<dyn Error>> {
         ],
     )?;
 
-    let mut energy_config = base;
+    let mut energy_config = base.clone();
     energy_config.nx = 24;
     energy_config.ny = 24;
     let unforced_energy = run_unforced_energy_trace(energy_config, 0.08, 0.00025, 16)?;
+
+    // A deliberately mixed temporal campaign: the first large-dt case is
+    // expected to violate the declared CFL envelope, while the refined cases
+    // should be admissible. The failure is retained as evidence rather than
+    // aborting or being confused with mathematical singular behavior.
+    let stability_cases = [
+        LadderCaseSpec {
+            resolution: 12,
+            steps: 1,
+        },
+        LadderCaseSpec {
+            resolution: 12,
+            steps: 64,
+        },
+        LadderCaseSpec {
+            resolution: 12,
+            steps: 128,
+        },
+    ];
+    let passive_stability_campaign = run_passive_taylor_green_campaign(
+        base.clone(),
+        0.5,
+        0.5,
+        RefinementAxis::Temporal,
+        &stability_cases,
+    )?;
 
     let bundle = EvidenceBundle {
         schema_id: EVIDENCE_BUNDLE_SCHEMA_ID,
@@ -128,6 +158,13 @@ fn main() -> Result<(), Box<dyn Error>> {
             &source_revision,
             "passive-taylor-green-energy-trace-v0.1",
             unforced_energy,
+        )?,
+        passive_stability_campaign: bind_campaign(
+            &source_revision,
+            "passive-taylor-green-stability-campaign-v0.1",
+            &base,
+            &stability_cases,
+            passive_stability_campaign,
         )?,
     };
 
@@ -156,6 +193,27 @@ fn bind_energy(
     report: EnergyTraceReport,
 ) -> Result<ContinuumEvidenceEnvelope<EnergyTraceReport>, Box<dyn Error>> {
     let execution_profiles = vec![report.solver_profile.clone()];
+    Ok(subject(source_revision, case_profile, execution_profiles).bind(report)?)
+}
+
+fn bind_campaign(
+    source_revision: &str,
+    case_profile: &str,
+    base_config: &PeriodicMacConfig,
+    cases: &[LadderCaseSpec],
+    report: VerificationCampaignReport,
+) -> Result<ContinuumEvidenceEnvelope<VerificationCampaignReport>, Box<dyn Error>> {
+    let execution_profiles = cases
+        .iter()
+        .map(|case| {
+            let mut config = base_config.clone();
+            config.nx = case.resolution;
+            config.ny = case.resolution;
+            config.profile_identity()
+        })
+        .collect::<BTreeSet<_>>()
+        .into_iter()
+        .collect();
     Ok(subject(source_revision, case_profile, execution_profiles).bind(report)?)
 }
 
