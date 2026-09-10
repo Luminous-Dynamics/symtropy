@@ -9,9 +9,14 @@
 //! a qualified Symthaea power budget without making this crate authoritative for it.
 
 pub mod experience;
+pub mod settlement;
 
 use serde::{Deserialize, Serialize};
-use std::{collections::{BTreeMap, BTreeSet}, error::Error, fmt};
+use std::{
+    collections::{BTreeMap, BTreeSet},
+    error::Error,
+    fmt,
+};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 pub enum PoweredSubsystem {
@@ -297,7 +302,11 @@ mod tests {
     use super::*;
 
     fn request(subsystem: PoweredSubsystem, requested: f64, minimum: f64) -> ResourceRequest {
-        ResourceRequest { subsystem, requested, minimum }
+        ResourceRequest {
+            subsystem,
+            requested,
+            minimum,
+        }
     }
 
     #[test]
@@ -327,8 +336,20 @@ mod tests {
                 ],
             )
             .unwrap();
-        assert_eq!(receipt.grant(PoweredSubsystem::LifeSupport).unwrap().granted, 3.0);
-        assert_eq!(receipt.grant(PoweredSubsystem::Protection).unwrap().granted, 0.0);
+        assert_eq!(
+            receipt
+                .grant(PoweredSubsystem::LifeSupport)
+                .unwrap()
+                .granted,
+            3.0
+        );
+        assert_eq!(
+            receipt
+                .grant(PoweredSubsystem::Protection)
+                .unwrap()
+                .granted,
+            0.0
+        );
         assert!(receipt.unmet_minimum_total() > 0.0);
     }
 
@@ -344,7 +365,10 @@ mod tests {
             )
             .unwrap();
         assert!(
-            receipt.grant(PoweredSubsystem::Protection).unwrap().granted
+            receipt
+                .grant(PoweredSubsystem::Protection)
+                .unwrap()
+                .granted
                 > receipt.grant(PoweredSubsystem::Mobility).unwrap().granted
         );
     }
@@ -362,8 +386,14 @@ mod tests {
             )
             .unwrap();
         let mobility = receipt.grant(PoweredSubsystem::Mobility).unwrap().granted;
-        let protection = receipt.grant(PoweredSubsystem::Protection).unwrap().granted;
-        let comms = receipt.grant(PoweredSubsystem::Communications).unwrap().granted;
+        let protection = receipt
+            .grant(PoweredSubsystem::Protection)
+            .unwrap()
+            .granted;
+        let comms = receipt
+            .grant(PoweredSubsystem::Communications)
+            .unwrap()
+            .granted;
         assert!(mobility > comms);
         assert!(comms > protection);
     }
@@ -378,7 +408,9 @@ mod tests {
                     request(PoweredSubsystem::Sensors, 3.0, 1.0),
                 ],
             ),
-            Err(ArbitrationError::DuplicateSubsystem(PoweredSubsystem::Sensors))
+            Err(ArbitrationError::DuplicateSubsystem(
+                PoweredSubsystem::Sensors
+            ))
         ));
     }
 
