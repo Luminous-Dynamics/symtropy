@@ -7,6 +7,7 @@ on:
     paths:
       - "crates/domains/symtropy-player-building/**"
       - "crates/domains/symtropy-game-state/**"
+      - "docs/PLAYER_BUILDING_PB01*"
       - "Cargo.toml"
       - "Cargo.lock"
       - ".github/workflows/player-building-qualification.yml"
@@ -14,6 +15,7 @@ on:
     paths:
       - "crates/domains/symtropy-player-building/**"
       - "crates/domains/symtropy-game-state/**"
+      - "docs/PLAYER_BUILDING_PB01*"
       - "Cargo.toml"
       - "Cargo.lock"
       - ".github/workflows/player-building-qualification.yml"
