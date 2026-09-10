@@ -8,6 +8,8 @@
 //! and returns an auditable allocation receipt. The same semantics can later consume
 //! a qualified Symthaea power budget without making this crate authoritative for it.
 
+pub mod experience;
+
 use serde::{Deserialize, Serialize};
 use std::{collections::{BTreeMap, BTreeSet}, error::Error, fmt};
 
