@@ -212,13 +212,17 @@ impl KnowledgeBase {
     }
 
     /// Returns claims that may be disclosed in the supplied context.
+    ///
+    /// The knowledge-base owner may always inspect their own remembered claims. This
+    /// owner rule is evaluated here because `KnowledgeClaim` deliberately does not
+    /// carry a duplicate owner identity; its `source_id` is provenance, not ownership.
     pub fn disclose<'a>(
         &'a self,
         context: &'a DisclosureContext,
     ) -> impl Iterator<Item = &'a KnowledgeClaim> {
-        self.claims
-            .values()
-            .filter(move |claim| claim.may_disclose(context))
+        self.claims.values().filter(move |claim| {
+            context.requester_id == self.owner_id || claim.may_disclose(context)
+        })
     }
 }
 
@@ -250,7 +254,12 @@ impl KnowledgeClaim {
             .is_some_and(|expiry| current_tick > expiry)
     }
 
-    /// Applies privacy, consent, household, and emergency disclosure rules.
+    /// Applies claim-local privacy, consent, household, and emergency disclosure rules.
+    ///
+    /// Knowledge-base ownership is intentionally handled by `KnowledgeBase::disclose`:
+    /// `source_id` is evidence provenance and must not be confused with the owner of a
+    /// memory. For a `Private` claim, this method recognizes the original source; the
+    /// owning observer is recognized by the enclosing knowledge base.
     pub fn may_disclose(&self, context: &DisclosureContext) -> bool {
         match &self.privacy {
             ClaimPrivacy::Public => true,
@@ -275,7 +284,8 @@ pub enum ClaimPrivacy {
     ConsentRequired,
     /// Disclosed only when a declared life-safety emergency makes it necessary.
     LifeSafetyRestricted,
-    /// Retained by the source unless they are the requester.
+    /// No third-party disclosure: the owning knowledge base and original claim source
+    /// may access the claim, but unrelated requesters may not.
     Private,
 }
 
@@ -330,6 +340,15 @@ mod tests {
         StableId::parse(value).expect("test identifier is valid")
     }
 
+    fn disclosure_context(requester: &str) -> DisclosureContext {
+        DisclosureContext {
+            requester_id: id(requester),
+            requester_household_id: None,
+            consented_claim_ids: BTreeSet::new(),
+            life_safety_emergency: false,
+        }
+    }
+
     #[test]
     fn urgent_need_drives_independent_action() {
         let resident = Resident {
@@ -370,15 +389,74 @@ mod tests {
             stale_after_tick: None,
             privacy: ClaimPrivacy::ConsentRequired,
         });
-        let mut context = DisclosureContext {
-            requester_id: id("resident:technician"),
-            requester_household_id: None,
-            consented_claim_ids: BTreeSet::new(),
-            life_safety_emergency: false,
-        };
+        let mut context = disclosure_context("resident:technician");
         assert_eq!(knowledge.disclose(&context).count(), 0);
         context.consented_claim_ids.insert(claim_id);
         assert_eq!(knowledge.disclose(&context).count(), 1);
+    }
+
+    #[test]
+    fn private_sensor_claim_is_visible_to_knowledge_owner() {
+        let claim_id = id("claim:private-observation");
+        let mut knowledge = KnowledgeBase::new(id("resident:observer"));
+        knowledge.remember(KnowledgeClaim {
+            id: claim_id,
+            subject_id: id("frame:target"),
+            proposition: "observed equipment emission".into(),
+            confidence: 8_000,
+            source_id: id("sensor:observer-vision"),
+            observed_tick: 10,
+            stale_after_tick: Some(20),
+            privacy: ClaimPrivacy::Private,
+        });
+
+        assert_eq!(
+            knowledge
+                .disclose(&disclosure_context("resident:observer"))
+                .count(),
+            1
+        );
+        assert_eq!(
+            knowledge
+                .disclose(&disclosure_context("resident:unrelated"))
+                .count(),
+            0
+        );
+    }
+
+    #[test]
+    fn private_claim_source_and_owner_are_distinct_authorities() {
+        let claim_id = id("claim:source-owner-distinction");
+        let mut knowledge = KnowledgeBase::new(id("resident:observer"));
+        knowledge.remember(KnowledgeClaim {
+            id: claim_id,
+            subject_id: id("frame:target"),
+            proposition: "sensor witnessed a bounded cue".into(),
+            confidence: 7_500,
+            source_id: id("sensor:observer-vision"),
+            observed_tick: 10,
+            stale_after_tick: None,
+            privacy: ClaimPrivacy::Private,
+        });
+
+        assert_eq!(
+            knowledge
+                .disclose(&disclosure_context("resident:observer"))
+                .count(),
+            1
+        );
+        assert_eq!(
+            knowledge
+                .disclose(&disclosure_context("sensor:observer-vision"))
+                .count(),
+            1
+        );
+        assert_eq!(
+            knowledge
+                .disclose(&disclosure_context("resident:other"))
+                .count(),
+            0
+        );
     }
 
     #[test]
