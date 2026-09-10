@@ -22,6 +22,7 @@ pub enum EvolutionError {
         observed: usize,
     },
     NonCanonicalAlleleCopyOrder { locus: LocusId },
+    NonCanonicalZeroAlleleCount { locus: LocusId, allele: AlleleId },
     UnknownAllele { locus: LocusId, allele: AlleleId },
     ParentCountMismatch { expected: usize, observed: usize },
     ParentageMismatch,
@@ -81,6 +82,12 @@ impl fmt::Display for EvolutionError {
                 f,
                 "locus {} allele copies are not in canonical unphased order",
                 locus.as_str()
+            ),
+            Self::NonCanonicalZeroAlleleCount { locus, allele } => write!(
+                f,
+                "locus {} contains noncanonical zero count for allele {}",
+                locus.as_str(),
+                allele.as_str()
             ),
             Self::UnknownAllele { locus, allele } => write!(
                 f,
