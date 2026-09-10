@@ -1,5 +1,5 @@
 use crate::{
-    canonical::{put_text, put_u64},
+    canonical::{fmt_hex, put_text, put_u64},
     demographic_history::DemographicEventExecutionDigest,
     AlleleId, DemographicEventDeclaration, DemographicEventDeclarationDigest,
     DemographicEventKind, DemographicInterventionCursor, DemographicInterventionCursorDigest,
@@ -11,20 +11,15 @@ use crate::{
 };
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
-use std::collections::BTreeMap;
+use std::{collections::BTreeMap, fmt};
 
 const BOTTLENECK_PRIORITY_DOMAIN: &[u8] =
     b"symtropy:evolution:demographic-random-survivor-priority:v1\0";
 const DEMOGRAPHIC_EXECUTION_DIGEST_DOMAIN: &[u8] =
     b"symtropy:evolution:demographic-event-execution:v1\0";
 
-/// Exact V0 execution semantics for demographic events.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum DemographicEventExecutionModel {
-    /// Independent-locus, allele-copy sampling without replacement.
-    ///
-    /// This is a marginal random-survivor bottleneck reference model. It does
-    /// not identify whole organisms, genotypes, haplotypes, or pedigrees.
     IndependentLocusRandomSurvivorBottleneckV1,
 }
 
@@ -36,7 +31,6 @@ impl DemographicEventExecutionModel {
     }
 }
 
-/// Revalidatable receipt for one executed aggregate demographic event.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct DemographicEventExecutionProvenance {
     model: DemographicEventExecutionModel,
@@ -75,7 +69,7 @@ impl DemographicEventExecutionProvenance {
         &self.population_id
     }
 
-    pub fn canonical_digest(&self) -> DemographicEventExecutionDigest {
+    pub fn canonical_digest(&self) -> DemographicEventExecutionProvenanceDigest {
         let mut digest = Sha256::new();
         digest.update(DEMOGRAPHIC_EXECUTION_DIGEST_DOMAIN);
         digest.update([self.model.tag()]);
@@ -91,7 +85,7 @@ impl DemographicEventExecutionProvenance {
         digest.update(self.result_state_digest.as_bytes());
         digest.update(self.source_point_digest.as_bytes());
         digest.update(self.result_point_digest.as_bytes());
-        DemographicEventExecutionDigest::from_bytes(digest.finalize().into())
+        DemographicEventExecutionProvenanceDigest(digest.finalize().into())
     }
 
     #[allow(clippy::too_many_arguments)]
@@ -184,11 +178,12 @@ impl DemographicEventExecutionProvenance {
             return Err(EvolutionError::DemographicExecutionResultMismatch);
         }
 
+        let execution_digest = self.canonical_digest();
         let expected_cursor = DemographicInterventionCursor::advance_after_validated_execution(
             source_cursor,
             self.event_digest,
             self.structure_transition_digest,
-            self.canonical_digest(),
+            DemographicEventExecutionDigest(execution_digest.0),
             &result.snapshot,
         )?;
         if expected_cursor != result.history_cursor {
@@ -198,7 +193,29 @@ impl DemographicEventExecutionProvenance {
     }
 }
 
-/// Result of one demographic bottleneck intervention at generation G.
+#[derive(Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+pub struct DemographicEventExecutionProvenanceDigest(pub(crate) [u8; 32]);
+
+impl DemographicEventExecutionProvenanceDigest {
+    pub fn as_bytes(&self) -> &[u8; 32] {
+        &self.0
+    }
+}
+
+impl fmt::Debug for DemographicEventExecutionProvenanceDigest {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "DemographicEventExecutionProvenanceDigest(")?;
+        fmt_hex(&self.0, f)?;
+        write!(f, ")")
+    }
+}
+
+impl fmt::Display for DemographicEventExecutionProvenanceDigest {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        fmt_hex(&self.0, f)
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct DemographicEventExecutionResult {
     pub populations: BTreeMap<PopulationId, PopulationGeneticState>,
@@ -208,11 +225,6 @@ pub struct DemographicEventExecutionResult {
     pub provenance: DemographicEventExecutionProvenance,
 }
 
-/// Execute one source-bound random-survivor census bottleneck.
-///
-/// V0 accepts only a root demographic cursor and only `CensusResize` events
-/// whose target census is not larger than the source census. It does not advance
-/// biological generation time.
 #[allow(clippy::too_many_arguments)]
 pub fn execute_census_resize_bottleneck(
     schema: &HereditarySchema,
@@ -292,11 +304,12 @@ pub fn execute_census_resize_bottleneck(
         source_point_digest: source_point.canonical_digest(),
         result_point_digest: result_point.canonical_digest(),
     };
+    let execution_digest = provenance.canonical_digest();
     let history_cursor = DemographicInterventionCursor::advance_after_validated_execution(
         source_cursor,
         provenance.event_digest,
         provenance.structure_transition_digest,
-        provenance.canonical_digest(),
+        DemographicEventExecutionDigest(execution_digest.0),
         &derived.snapshot,
     )?;
     let result = DemographicEventExecutionResult {
@@ -388,7 +401,6 @@ fn derive_census_resize(
     })
 }
 
-/// Sample a marginal survivor population without replacement at each locus.
 fn downsample_population_without_replacement(
     schema: &HereditarySchema,
     source: &PopulationGeneticState,
