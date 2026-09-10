@@ -142,13 +142,19 @@ impl fmt::Display for ManufacturedTaylorGreenError {
             Self::InvalidFinalTime => write!(f, "final_time_s must be finite and > 0"),
             Self::InvalidStepCount => write!(f, "manufactured case requires at least one step"),
             Self::NonFiniteManufacturedValue => {
-                write!(f, "manufactured solution/forcing produced a non-finite value")
+                write!(
+                    f,
+                    "manufactured solution/forcing produced a non-finite value"
+                )
             }
             Self::State(source) => write!(f, "invalid manufactured state: {source}"),
             Self::Step(source) => write!(f, "manufactured step failed: {source}"),
             Self::Diagnostic(source) => write!(f, "manufactured diagnostic failed: {source}"),
             Self::MissingMeasuredEnergy => {
-                write!(f, "manufactured comparator requires measured kinetic energy")
+                write!(
+                    f,
+                    "manufactured comparator requires measured kinetic energy"
+                )
             }
         }
     }
@@ -262,8 +268,8 @@ pub fn run_manufactured_taylor_green_case(
         })?;
         maximum_observed_advective_cfl =
             maximum_observed_advective_cfl.max(report.max_advective_cfl);
-        maximum_observed_divergence_rms_per_s = maximum_observed_divergence_rms_per_s
-            .max(report.projection.divergence_rms_after_per_s);
+        maximum_observed_divergence_rms_per_s =
+            maximum_observed_divergence_rms_per_s.max(report.projection.divergence_rms_after_per_s);
         maximum_observed_pressure_residual_rms_pa_per_m2 =
             maximum_observed_pressure_residual_rms_pa_per_m2
                 .max(report.projection.pressure_residual_rms_pa_per_m2);
@@ -408,9 +414,11 @@ mod tests {
         assert!(report.final_error.kinetic_energy_relative_error.is_finite());
         assert!(report.maximum_observed_advective_cfl.is_finite());
         assert!(report.maximum_observed_divergence_rms_per_s.is_finite());
-        assert!(report
-            .maximum_observed_pressure_residual_rms_pa_per_m2
-            .is_finite());
+        assert!(
+            report
+                .maximum_observed_pressure_residual_rms_pa_per_m2
+                .is_finite()
+        );
     }
 
     #[test]
