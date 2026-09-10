@@ -22,8 +22,7 @@ use symtropy_spatial_topology::{
 };
 
 pub const DECOMPOSITION_SCHEMA_VERSION: u32 = 1;
-pub const QUALIFIED_PB04A_PRODUCT_HEAD: &str =
-    "1d500c62d93082e49f7a889656a1c92c552977e4";
+pub const QUALIFIED_PB04A_PRODUCT_HEAD: &str = "1d500c62d93082e49f7a889656a1c92c552977e4";
 pub const MAX_DIMENSION: u32 = 64;
 pub const MAX_CELLS: usize = 4_096;
 pub const MAX_PARTITION_FACTS: usize = 8_192;
@@ -123,10 +122,22 @@ impl CanonicalPlane {
             .expect("normal checked")
             < 0
         {
-            result.a = result.a.checked_neg().ok_or(DecompositionError::ArithmeticOverflow)?;
-            result.b = result.b.checked_neg().ok_or(DecompositionError::ArithmeticOverflow)?;
-            result.c = result.c.checked_neg().ok_or(DecompositionError::ArithmeticOverflow)?;
-            result.d = result.d.checked_neg().ok_or(DecompositionError::ArithmeticOverflow)?;
+            result.a = result
+                .a
+                .checked_neg()
+                .ok_or(DecompositionError::ArithmeticOverflow)?;
+            result.b = result
+                .b
+                .checked_neg()
+                .ok_or(DecompositionError::ArithmeticOverflow)?;
+            result.c = result
+                .c
+                .checked_neg()
+                .ok_or(DecompositionError::ArithmeticOverflow)?;
+            result.d = result
+                .d
+                .checked_neg()
+                .ok_or(DecompositionError::ArithmeticOverflow)?;
         }
         Ok(result)
     }
@@ -225,13 +236,7 @@ impl DecompositionProfile {
             return Err(DecompositionError::InvalidQuantum(quantum_um));
         }
         budget.validate()?;
-        let digest = profile_digest(
-            &profile_id,
-            revision,
-            &backend_id,
-            quantum_um,
-            budget,
-        );
+        let digest = profile_digest(&profile_id, revision, &backend_id, quantum_um, budget);
         Ok(Self {
             profile_id,
             revision,
@@ -322,9 +327,7 @@ impl AnalysisDomain {
     }
 
     fn contains(&self, cell: CellCoord) -> bool {
-        cell.x < self.dimensions[0]
-            && cell.y < self.dimensions[1]
-            && cell.z < self.dimensions[2]
+        cell.x < self.dimensions[0] && cell.y < self.dimensions[1] && cell.z < self.dimensions[2]
     }
 
     fn source_ref(&self) -> Result<ExactSourceRef, DecompositionError> {
@@ -516,7 +519,11 @@ impl GeometricDecompositionSnapshot {
 
         let cuts = normalize_cuts(domain, cuts)?;
         let common = canonical_refs(
-            vec![geometry.0.clone(), profile.source_ref()?, domain.source_ref()?],
+            vec![
+                geometry.0.clone(),
+                profile.source_ref()?,
+                domain.source_ref()?,
+            ],
             "decomposition.common_sources",
         )?;
 
@@ -542,14 +549,7 @@ impl GeometricDecompositionSnapshot {
             } else {
                 let position = fragments.len();
                 fragments.push(FreeSpaceFragment {
-                    id: fragment_id(
-                        &geometry,
-                        profile,
-                        domain,
-                        cell,
-                        FragmentSide::Whole,
-                        None,
-                    )?,
+                    id: fragment_id(&geometry, profile, domain, cell, FragmentSide::Whole, None)?,
                     cell,
                     side: FragmentSide::Whole,
                     sources: common.clone(),
@@ -560,7 +560,10 @@ impl GeometricDecompositionSnapshot {
         }
 
         let mut seen = BTreeSet::new();
-        if fragments.iter().any(|fragment| !seen.insert(fragment.id.clone())) {
+        if fragments
+            .iter()
+            .any(|fragment| !seen.insert(fragment.id.clone()))
+        {
             return Err(DecompositionError::IdentityCollision("fragment"));
         }
 
@@ -856,13 +859,13 @@ fn emit_cross_face(
 ) -> Result<(), DecompositionError> {
     let left = cuts.get(&cell);
     let right = cuts.get(&other);
-    if let (Some(left), Some(right)) = (left, right) {
-        if left.plane != right.plane {
-            return Err(DecompositionError::AdjacentDifferentCutPlanesUnsupported {
-                first: cell,
-                second: other,
-            });
-        }
+    if let (Some(left), Some(right)) = (left, right)
+        && left.plane != right.plane
+    {
+        return Err(DecompositionError::AdjacentDifferentCutPlanesUnsupported {
+            first: cell,
+            second: other,
+        });
     }
     let face = face_corners(cell, axis, profile, domain)?;
     for left_side in sides(left) {
@@ -886,7 +889,11 @@ fn emit_cross_face(
             let first = get_fragment(fragments, index, cell, left_side)?;
             let second = get_fragment(fragments, index, other, right_side)?;
             let sources = canonical_refs(
-                vec![geometry.0.clone(), profile.source_ref()?, domain.source_ref()?],
+                vec![
+                    geometry.0.clone(),
+                    profile.source_ref()?,
+                    domain.source_ref()?,
+                ],
                 "open_face.sources",
             )?;
             push_interface_with_sources(
@@ -921,7 +928,11 @@ fn push_interface(
     barriers: Vec<ExactSourceRef>,
     separators: Vec<ExactSourceRef>,
 ) -> Result<(), DecompositionError> {
-    let mut sources = vec![geometry.0.clone(), profile.source_ref()?, domain.source_ref()?];
+    let mut sources = vec![
+        geometry.0.clone(),
+        profile.source_ref()?,
+        domain.source_ref()?,
+    ];
     sources.extend(barriers.clone());
     sources.extend(separators.clone());
     push_interface_with_sources(
@@ -1151,9 +1162,8 @@ fn face_corners(
 
 fn cells(domain: &AnalysisDomain) -> impl Iterator<Item = CellCoord> + '_ {
     (0..domain.dimensions[2]).flat_map(move |z| {
-        (0..domain.dimensions[1]).flat_map(move |y| {
-            (0..domain.dimensions[0]).map(move |x| CellCoord::new(x, y, z))
-        })
+        (0..domain.dimensions[1])
+            .flat_map(move |y| (0..domain.dimensions[0]).map(move |x| CellCoord::new(x, y, z)))
     })
 }
 
@@ -1297,12 +1307,7 @@ fn profile_digest(
     hex(&hash.finalize())
 }
 
-fn domain_digest(
-    id: &StableId,
-    revision: u64,
-    origin: Point3i,
-    dimensions: [u32; 3],
-) -> String {
+fn domain_digest(id: &StableId, revision: u64, origin: Point3i, dimensions: [u32; 3]) -> String {
     let mut hash = Sha256::new();
     hash.update(DOMAIN_DOMAIN);
     hash_text(&mut hash, id.as_str());
@@ -1721,9 +1726,13 @@ mod tests {
 
     #[test]
     fn analysis_limit_is_not_emitted_as_physical_boundary() {
-        let snapshot =
-            GeometricDecompositionSnapshot::derive(geometry(), &profile(10), &domain([1, 1, 1]), Vec::new())
-                .unwrap();
+        let snapshot = GeometricDecompositionSnapshot::derive(
+            geometry(),
+            &profile(10),
+            &domain([1, 1, 1]),
+            Vec::new(),
+        )
+        .unwrap();
         assert_eq!(snapshot.fragments().len(), 1);
         assert!(snapshot.fragments()[0].touches_analysis_boundary());
         assert!(snapshot.interfaces().is_empty());
