@@ -7,6 +7,7 @@
 //! and civilization remain external authorities.
 
 mod canonical;
+mod demographic_event;
 mod error;
 mod heredity;
 mod ids;
@@ -20,11 +21,15 @@ mod reproduction;
 mod schema;
 mod structured_population_process;
 
+pub use demographic_event::{
+    DaughterPopulation, DemographicEventDeclaration, DemographicEventDeclarationDigest,
+    DemographicEventKind, DemographicEventTiming,
+};
 pub use error::EvolutionError;
 pub use heredity::{HereditaryState, HereditaryStateDigest};
 pub use ids::{
-    AlleleId, EvolutionExperimentId, HereditarySchemaId, LocusId, OperatorProfileId,
-    PopulationId, PopulationProcessProfileId, PopulationStructureProfileId,
+    AlleleId, DemographicEventId, EvolutionExperimentId, HereditarySchemaId, LocusId,
+    OperatorProfileId, PopulationId, PopulationProcessProfileId, PopulationStructureProfileId,
     PopulationTransitionId, ReproductionEventId,
 };
 pub use metapopulation::{
