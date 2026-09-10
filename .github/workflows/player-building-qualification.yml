@@ -1,0 +1,70 @@
+name: Player Building Qualification
+
+on:
+  push:
+    branches:
+      - "building/**"
+    paths:
+      - "crates/domains/symtropy-player-building/**"
+      - "crates/domains/symtropy-game-state/**"
+      - "Cargo.toml"
+      - "Cargo.lock"
+      - ".github/workflows/player-building-qualification.yml"
+  pull_request:
+    paths:
+      - "crates/domains/symtropy-player-building/**"
+      - "crates/domains/symtropy-game-state/**"
+      - "Cargo.toml"
+      - "Cargo.lock"
+      - ".github/workflows/player-building-qualification.yml"
+
+concurrency:
+  group: player-building-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  pb01:
+    name: PB-01 proposal IR
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up pinned Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.96.0
+          components: clippy, rustfmt
+
+      - name: Verify exact checked-out head on push
+        if: github.event_name == 'push'
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "${GITHUB_SHA}"
+          echo "PB01_HEAD=$(git rev-parse HEAD)"
+          echo "PB01_TREE=$(git rev-parse HEAD^{tree})"
+
+      - name: Check formatting
+        run: cargo fmt -p symtropy-player-building -- --check
+
+      - name: Check PB-01
+        run: cargo check -p symtropy-player-building --all-targets
+
+      - name: Test PB-01
+        run: cargo test -p symtropy-player-building
+
+      - name: Strict Clippy PB-01
+        run: cargo clippy -p symtropy-player-building --all-targets -- -D warnings
+
+      - name: Confirm source tree unchanged
+        shell: bash
+        run: |
+          set -euo pipefail
+          git diff --exit-code -- . ':!Cargo.lock'
+          test -z "$(git status --porcelain --untracked-files=all | grep -v '^?? Cargo.lock$' || true)"
+
+# PB-01 intentionally does not claim Cargo.lock reproducibility yet. The parent
+# mainline does not contain the active Fabrication/Construction promotion stack,
+# and this structural tranche adds one path package while that integration base
+# is moving. A later lock/integration tranche must freeze exact resolution before
+# PB-02 crosses into physical authority.
