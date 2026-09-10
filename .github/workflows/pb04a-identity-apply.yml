@@ -7,6 +7,7 @@ on:
     paths:
       - "scripts/pb04a-harden-content-identity.py"
       - "scripts/pb04a-harden-global-source-consistency.py"
+      - "scripts/pb04a-harden-query-semantics.py"
       - ".github/workflows/pb04a-identity-apply.yml"
 
 permissions:
@@ -18,7 +19,7 @@ concurrency:
 
 jobs:
   apply:
-    name: Apply PB-04a content and source identity hardening
+    name: Apply PB-04a identity and query hardening
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -41,10 +42,11 @@ jobs:
           toolchain: 1.96.0
           components: clippy, rustfmt
 
-      - name: Apply fail-closed identity transformers
+      - name: Apply fail-closed hardening transformers
         run: |
           python3 scripts/pb04a-harden-content-identity.py
           python3 scripts/pb04a-harden-global-source-consistency.py
+          python3 scripts/pb04a-harden-query-semantics.py
 
       - name: Canonical formatting
         run: >-
@@ -62,12 +64,12 @@ jobs:
         run: |
           set -euo pipefail
           git diff --exit-code --quiet && {
-            echo "identity transformers produced no semantic delta" >&2
+            echo "hardening transformers produced no semantic delta" >&2
             exit 1
           }
           git status --short
 
-      - name: Commit qualified identity hardening
+      - name: Commit qualified PB-04a hardening
         shell: bash
         run: |
           set -euo pipefail
@@ -80,11 +82,11 @@ jobs:
             echo "no qualified source delta to commit" >&2
             exit 1
           }
-          git commit -m "fix(spatial): content-bind PB-04a topology identity"
+          git commit -m "fix(spatial): harden PB-04a topology authority semantics"
           qualified_head="$(git rev-parse HEAD)"
           qualified_tree="$(git rev-parse HEAD^{tree})"
-          echo "PB04A_IDENTITY_QUALIFIED_HEAD=${qualified_head}"
-          echo "PB04A_IDENTITY_QUALIFIED_TREE=${qualified_tree}"
+          echo "PB04A_HARDENED_HEAD=${qualified_head}"
+          echo "PB04A_HARDENED_TREE=${qualified_tree}"
 
           remote_head="$(git ls-remote origin refs/heads/spatial/pb04a-faceted-topology-kernel | cut -f1)"
           test "${remote_head}" = "${GITHUB_SHA}"
