@@ -1,0 +1,71 @@
+name: Rust 1.96 Product Format Runner
+
+on:
+  pull_request:
+    branches: [ "main" ]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: rust196-product-format-runner-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  format:
+    name: Canonicalize Patch Conduit product crates
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: fabrication/rust196-product-format
+
+      - name: Set up Rust 1.96
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.96.0
+          components: rustfmt
+
+      - name: Apply canonical formatting to affected product crates
+        run: |
+          cargo fmt -p symtropy-fabrication
+          cargo fmt -p symtropy-construction
+          cargo fmt -p symtropy-firstlight
+
+      - name: Verify targeted crates are now format-clean
+        run: |
+          cargo fmt -p symtropy-fabrication -- --check
+          cargo fmt -p symtropy-construction -- --check
+          cargo fmt -p symtropy-firstlight -- --check
+
+      - name: Verify formatter changed source only inside the targeted crates
+        shell: bash
+        run: |
+          actual=$(git diff --name-only | sort)
+          if test -z "$actual"; then
+            echo "No formatter delta required."
+            exit 0
+          fi
+          unexpected=$(printf '%s\n' "$actual" | grep -Ev '^(crates/domains/symtropy-fabrication/src/.*\.rs|crates/domains/symtropy-construction/src/.*\.rs|crates/apps/symtropy-firstlight/src/.*\.rs)$' || true)
+          if test -n "$unexpected"; then
+            echo "rustfmt changed paths outside the allowed product source trees:" >&2
+            echo "$unexpected" >&2
+            exit 1
+          fi
+          printf '%s\n' "$actual"
+
+      - name: Commit exact formatter output to product branch
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          if git diff --quiet; then
+            echo "Product branch already has canonical Rust 1.96 formatting."
+            exit 0
+          fi
+          git add \
+            crates/domains/symtropy-fabrication/src \
+            crates/domains/symtropy-construction/src \
+            crates/apps/symtropy-firstlight/src
+          git commit -m "style(product): apply canonical Rust 1.96 formatting"
+          git push origin HEAD:fabrication/rust196-product-format
