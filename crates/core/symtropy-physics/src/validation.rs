@@ -32,9 +32,7 @@ pub const PHYSICS_SCENARIO_SCHEMA_VERSION: u32 = 1;
 pub const PHYSICS_TRACE_SCHEMA_VERSION: u32 = 1;
 
 /// Stable, engine-neutral body identity within one validation scenario.
-#[derive(
-    Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize,
-)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
 pub struct ValidationBodyId(pub u64);
 
 /// Body authority represented by the v0.1 validation schema.
@@ -208,9 +206,11 @@ impl fmt::Display for ScenarioValidationError {
             Self::InvalidStaticMass(id) => {
                 write!(f, "static body {} must declare mass_kg = 0", id.0)
             }
-            Self::StaticBodyHasVelocity(id) => {
-                write!(f, "static body {} must start with zero linear velocity", id.0)
-            }
+            Self::StaticBodyHasVelocity(id) => write!(
+                f,
+                "static body {} must start with zero linear velocity",
+                id.0
+            ),
             Self::InvalidDynamicMass(id) => {
                 write!(f, "dynamic body {} must have finite positive mass", id.0)
             }
@@ -220,9 +220,11 @@ impl fmt::Display for ScenarioValidationError {
             Self::InvalidRestitution(id) => {
                 write!(f, "body {} restitution must be finite and in [0, 1]", id.0)
             }
-            Self::InvalidShape(id) => {
-                write!(f, "body {} has invalid or non-finite shape dimensions", id.0)
-            }
+            Self::InvalidShape(id) => write!(
+                f,
+                "body {} has invalid or non-finite shape dimensions",
+                id.0
+            ),
         }
     }
 }
@@ -294,22 +296,64 @@ pub struct DifferentialMetrics3d {
 }
 
 /// Structural mismatch that makes two traces unsafe to compare numerically.
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq)]
 pub enum TraceComparisonError {
+    UnsupportedTraceSchemaVersion {
+        left: u32,
+        right: u32,
+        supported: u32,
+    },
     ScenarioMismatch,
     SampleCountMismatch,
-    SampleStepMismatch { left: u64, right: u64 },
-    BodySetMismatch { step: u64 },
+    SampleStepMismatch {
+        left: u64,
+        right: u64,
+    },
+    NonFiniteSampleTime {
+        step: u64,
+    },
+    SampleTimeMismatch {
+        step: u64,
+        left: f64,
+        right: f64,
+    },
+    DuplicateBodyObservation {
+        step: u64,
+        body_id: ValidationBodyId,
+    },
+    BodySetMismatch {
+        step: u64,
+    },
 }
 
 impl fmt::Display for TraceComparisonError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
+            Self::UnsupportedTraceSchemaVersion {
+                left,
+                right,
+                supported,
+            } => write!(
+                f,
+                "unsupported trace schema version: left={left}, right={right}, supported={supported}"
+            ),
             Self::ScenarioMismatch => write!(f, "trace scenario_id values differ"),
             Self::SampleCountMismatch => write!(f, "trace sample counts differ"),
             Self::SampleStepMismatch { left, right } => {
                 write!(f, "trace sample steps differ: left={left}, right={right}")
             }
+            Self::NonFiniteSampleTime { step } => {
+                write!(f, "trace sample time is non-finite at step {step}")
+            }
+            Self::SampleTimeMismatch { step, left, right } => write!(
+                f,
+                "trace sample times differ at step {step}: left={left}, right={right}"
+            ),
+            Self::DuplicateBodyObservation { step, body_id } => write!(
+                f,
+                "duplicate body observation {} at step {step}",
+                body_id.0
+            ),
             Self::BodySetMismatch { step } => {
                 write!(f, "trace body identity sets differ at step {step}")
             }
@@ -319,7 +363,7 @@ impl fmt::Display for TraceComparisonError {
 
 impl std::error::Error for TraceComparisonError {}
 
-/// Compare two traces strictly by scenario, sample step, and stable body ID.
+/// Compare two traces strictly by schema, scenario, sample grid, and stable body ID.
 ///
 /// Non-finite observations are counted and excluded from numeric maxima/RMS so
 /// the report itself stays finite; their presence is an explicit hard signal
@@ -328,6 +372,15 @@ pub fn compare_traces_3d(
     left: &PhysicsTrace3d,
     right: &PhysicsTrace3d,
 ) -> Result<DifferentialMetrics3d, TraceComparisonError> {
+    if left.schema_version != PHYSICS_TRACE_SCHEMA_VERSION
+        || right.schema_version != PHYSICS_TRACE_SCHEMA_VERSION
+    {
+        return Err(TraceComparisonError::UnsupportedTraceSchemaVersion {
+            left: left.schema_version,
+            right: right.schema_version,
+            supported: PHYSICS_TRACE_SCHEMA_VERSION,
+        });
+    }
     if left.scenario_id != right.scenario_id {
         return Err(TraceComparisonError::ScenarioMismatch);
     }
@@ -360,18 +413,21 @@ pub fn compare_traces_3d(
                 right: right_sample.step,
             });
         }
+        if !left_sample.time_s.is_finite() || !right_sample.time_s.is_finite() {
+            return Err(TraceComparisonError::NonFiniteSampleTime {
+                step: left_sample.step,
+            });
+        }
+        if left_sample.time_s != right_sample.time_s {
+            return Err(TraceComparisonError::SampleTimeMismatch {
+                step: left_sample.step,
+                left: left_sample.time_s,
+                right: right_sample.time_s,
+            });
+        }
 
-        let left_bodies: BTreeMap<_, _> = left_sample
-            .bodies
-            .iter()
-            .map(|body| (body.body_id, body))
-            .collect();
-        let right_bodies: BTreeMap<_, _> = right_sample
-            .bodies
-            .iter()
-            .map(|body| (body.body_id, body))
-            .collect();
-
+        let left_bodies = body_map(left_sample)?;
+        let right_bodies = body_map(right_sample)?;
         if left_bodies.keys().copied().collect::<Vec<_>>()
             != right_bodies.keys().copied().collect::<Vec<_>>()
         {
@@ -418,8 +474,7 @@ pub fn compare_traces_3d(
     if finite_pairs > 0 {
         let denominator = finite_pairs as f64;
         metrics.rms_position_error_m = (position_error_sq_sum / denominator).sqrt();
-        metrics.rms_linear_velocity_error_mps =
-            (velocity_error_sq_sum / denominator).sqrt();
+        metrics.rms_linear_velocity_error_mps = (velocity_error_sq_sum / denominator).sqrt();
     }
 
     Ok(metrics)
@@ -462,12 +517,25 @@ pub fn run_native_scenario_3d(
     })
 }
 
+fn body_map(
+    sample: &PhysicsSample3d,
+) -> Result<BTreeMap<ValidationBodyId, &BodyObservation3d>, TraceComparisonError> {
+    let mut map = BTreeMap::new();
+    for body in &sample.bodies {
+        if map.insert(body.body_id, body).is_some() {
+            return Err(TraceComparisonError::DuplicateBodyObservation {
+                step: sample.step,
+                body_id: body.body_id,
+            });
+        }
+    }
+    Ok(map)
+}
+
 fn build_native_body(spec: &ScenarioBody3d) -> RigidBody<3> {
     let position = Point::<3>::new(spec.position_m);
     let collider: Box<dyn Shape<3>> = match spec.shape {
-        ScenarioShape3d::Sphere { radius_m } => {
-            Box::new(Sphere::new(Point::origin(), radius_m))
-        }
+        ScenarioShape3d::Sphere { radius_m } => Box::new(Sphere::new(Point::origin(), radius_m)),
         ScenarioShape3d::Cuboid { half_extents_m } => Box::new(HyperBox::new(half_extents_m)),
     };
 
@@ -518,10 +586,15 @@ fn capture_native_sample(world: &PhysicsWorld<3>, step: u64, time_s: f64) -> Phy
             let net_id = body
                 .net_id
                 .expect("validation runner assigns every body a stable NetId");
+            let position = body.position();
             BodyObservation3d {
                 body_id: ValidationBodyId(net_id.0),
-                position_m: body.position().into(),
-                linear_velocity_mps: body.linear_velocity.into(),
+                position_m: [position[0], position[1], position[2]],
+                linear_velocity_mps: [
+                    body.linear_velocity[0],
+                    body.linear_velocity[1],
+                    body.linear_velocity[2],
+                ],
                 sleeping: body.sleeping,
             }
         })
@@ -583,13 +656,37 @@ mod tests {
         }
     }
 
+    fn one_sample_trace() -> PhysicsTrace3d {
+        PhysicsTrace3d {
+            schema_version: PHYSICS_TRACE_SCHEMA_VERSION,
+            scenario_id: "identity".to_owned(),
+            backend: PhysicsBackendDescriptor {
+                engine: "test".to_owned(),
+                engine_version: "1".to_owned(),
+                profile: "default".to_owned(),
+            },
+            samples: vec![PhysicsSample3d {
+                step: 0,
+                time_s: 0.0,
+                bodies: vec![BodyObservation3d {
+                    body_id: ValidationBodyId(1),
+                    position_m: [1.0, 0.0, 0.0],
+                    linear_velocity_mps: [0.0, 0.0, 0.0],
+                    sleeping: false,
+                }],
+            }],
+        }
+    }
+
     #[test]
     fn validation_rejects_duplicate_body_ids() {
         let mut scenario = free_fall_scenario();
         scenario.bodies.push(dynamic_sphere(7, 12.0));
         assert_eq!(
             scenario.validate(),
-            Err(ScenarioValidationError::DuplicateBodyId(ValidationBodyId(7)))
+            Err(ScenarioValidationError::DuplicateBodyId(ValidationBodyId(
+                7
+            )))
         );
     }
 
@@ -649,16 +746,14 @@ mod tests {
         }];
 
         let trace = run_native_scenario_3d(&scenario).unwrap();
-        assert_eq!(trace.final_sample().unwrap().bodies[0].position_m, [0.0, 3.0, 0.0]);
+        assert_eq!(
+            trace.final_sample().unwrap().bodies[0].position_m,
+            [0.0, 3.0, 0.0]
+        );
     }
 
     #[test]
     fn trace_comparison_matches_by_body_id_not_vector_order() {
-        let backend = PhysicsBackendDescriptor {
-            engine: "test".to_owned(),
-            engine_version: "1".to_owned(),
-            profile: "default".to_owned(),
-        };
         let body_a = BodyObservation3d {
             body_id: ValidationBodyId(1),
             position_m: [1.0, 0.0, 0.0],
@@ -670,6 +765,11 @@ mod tests {
             position_m: [2.0, 0.0, 0.0],
             linear_velocity_mps: [0.0, 0.0, 0.0],
             sleeping: true,
+        };
+        let backend = PhysicsBackendDescriptor {
+            engine: "test".to_owned(),
+            engine_version: "1".to_owned(),
+            profile: "default".to_owned(),
         };
         let left = PhysicsTrace3d {
             schema_version: PHYSICS_TRACE_SCHEMA_VERSION,
@@ -699,29 +799,57 @@ mod tests {
     }
 
     #[test]
-    fn non_finite_observation_is_explicit_instead_of_poisoning_metrics() {
-        let backend = PhysicsBackendDescriptor {
-            engine: "test".to_owned(),
-            engine_version: "1".to_owned(),
-            profile: "default".to_owned(),
-        };
-        let left = PhysicsTrace3d {
-            schema_version: PHYSICS_TRACE_SCHEMA_VERSION,
-            scenario_id: "nan".to_owned(),
-            backend: backend.clone(),
-            samples: vec![PhysicsSample3d {
-                step: 1,
-                time_s: 1.0,
-                bodies: vec![BodyObservation3d {
-                    body_id: ValidationBodyId(1),
-                    position_m: [f64::NAN, 0.0, 0.0],
-                    linear_velocity_mps: [0.0, 0.0, 0.0],
-                    sleeping: false,
-                }],
-            }],
-        };
+    fn trace_comparison_rejects_unknown_schema_version() {
+        let left = one_sample_trace();
         let mut right = left.clone();
-        right.backend = backend;
+        right.schema_version = PHYSICS_TRACE_SCHEMA_VERSION + 1;
+        assert_eq!(
+            compare_traces_3d(&left, &right),
+            Err(TraceComparisonError::UnsupportedTraceSchemaVersion {
+                left: PHYSICS_TRACE_SCHEMA_VERSION,
+                right: PHYSICS_TRACE_SCHEMA_VERSION + 1,
+                supported: PHYSICS_TRACE_SCHEMA_VERSION,
+            })
+        );
+    }
+
+    #[test]
+    fn trace_comparison_rejects_mismatched_sample_time() {
+        let left = one_sample_trace();
+        let mut right = left.clone();
+        right.samples[0].time_s = 0.5;
+        assert_eq!(
+            compare_traces_3d(&left, &right),
+            Err(TraceComparisonError::SampleTimeMismatch {
+                step: 0,
+                left: 0.0,
+                right: 0.5,
+            })
+        );
+    }
+
+    #[test]
+    fn trace_comparison_rejects_duplicate_body_observations() {
+        let left = one_sample_trace();
+        let mut right = left.clone();
+        right.samples[0].bodies.push(right.samples[0].bodies[0].clone());
+        assert_eq!(
+            compare_traces_3d(&left, &right),
+            Err(TraceComparisonError::DuplicateBodyObservation {
+                step: 0,
+                body_id: ValidationBodyId(1),
+            })
+        );
+    }
+
+    #[test]
+    fn non_finite_observation_is_explicit_instead_of_poisoning_metrics() {
+        let mut left = one_sample_trace();
+        left.scenario_id = "nan".to_owned();
+        left.samples[0].step = 1;
+        left.samples[0].time_s = 1.0;
+        left.samples[0].bodies[0].position_m = [f64::NAN, 0.0, 0.0];
+        let mut right = left.clone();
         right.samples[0].bodies[0].position_m = [0.0, 0.0, 0.0];
 
         let metrics = compare_traces_3d(&left, &right).unwrap();
