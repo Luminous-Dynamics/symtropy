@@ -64,6 +64,7 @@ pub enum EvolutionError {
     },
     LinkedGameteRecombinationModelMismatch,
     LinkedGameteRequiresSexualParentRole,
+    LinkedGameteEventContextMismatch,
     LinkedGameteSourceAuthorityMismatch,
     LinkedGameteResultMismatch,
     LinkedGameteDerivationMismatch,
@@ -322,6 +323,9 @@ impl fmt::Display for EvolutionError {
                 f,
                 "linked diploid gamete executor requires ParentA or ParentB role"
             ),
+            Self::LinkedGameteEventContextMismatch => {
+                write!(f, "linked gamete reproduction event/parent-role context mismatch")
+            }
             Self::LinkedGameteSourceAuthorityMismatch => {
                 write!(f, "linked gamete source authority mismatch")
             }
