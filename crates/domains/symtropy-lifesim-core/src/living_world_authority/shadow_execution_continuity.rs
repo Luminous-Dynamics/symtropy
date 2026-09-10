@@ -11,12 +11,12 @@
 //!
 //! Observation cadence and execution continuity are deliberately independent.
 //! A terminal-state Q2 metric may observe only T1 while this transcript still
-//! proves structural state continuity for every intervening canonical tick. Any
-//! tick that *is* observed must match the exact #406/#563/#567 source identity.
+//! carries an executor-state identity for every intervening canonical tick. Any
+//! tick that *is* observed must use the exact #406/#563/#567 observation identity.
 //!
-//! This remains structural evidence. A caller can submit segment manifests, so
-//! #568 must still executable-qualify the runner/profile that emits them before
-//! this evidence is eligible for closure-anchor renewal.
+//! This remains structural evidence. Executor-state and segment manifests are
+//! evidence-shaped inputs, so #568 must still executable-qualify the runner/profile
+//! that emits them before this evidence is eligible for closure-anchor renewal.
 
 use std::collections::{BTreeMap, BTreeSet};
 use std::error::Error;
@@ -64,6 +64,26 @@ impl ShadowExecutionSegmentManifest {
     }
 }
 
+/// Exact executor-owned content identity for a state that was not necessarily
+/// observed by #406. The byte grammar remains runner-profile authority and must
+/// be executable-qualified by #568 before anchor-grade use.
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct ShadowExecutionStateContentManifest(Vec<u8>);
+
+impl ShadowExecutionStateContentManifest {
+    pub fn new(bytes: impl Into<Vec<u8>>) -> Result<Self, ShadowExecutionContinuityError> {
+        let bytes = bytes.into();
+        if bytes.is_empty() {
+            return Err(ShadowExecutionContinuityError::EmptyExecutionStateManifest);
+        }
+        Ok(Self(bytes))
+    }
+
+    pub fn as_bytes(&self) -> &[u8] {
+        &self.0
+    }
+}
+
 /// Revision grammar for exact continuity states.
 ///
 /// Retained-store revisions and canonical representation-state revisions are
@@ -74,14 +94,16 @@ pub enum ShadowContinuityStateRevision {
     Retained(RetainedStoreRevision),
 }
 
-/// Exact content authority already owned by an upstream state identity.
+/// Content identity class for one continuity state.
 ///
-/// No new digest is derived here. Keeping the content classes distinct prevents
-/// byte equality across unrelated encodings from becoming state identity.
+/// The variants remain distinct even when their underlying byte encodings happen
+/// to match. In particular, an executor-state manifest cannot impersonate an
+/// observed #406 state merely by reusing the same bytes.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ShadowContinuityContentIdentity {
     CoarsePopulation(PopulationStateManifest),
     RetainedExact(RetainedContentManifest),
+    ExecutionState(ShadowExecutionStateContentManifest),
     Observation(ShadowObservationContentManifest),
 }
 
@@ -116,6 +138,27 @@ impl ShadowContinuityStateIdentity {
             content: ShadowContinuityContentIdentity::RetainedExact(
                 record.content_manifest().clone(),
             ),
+        }
+    }
+
+    /// Record an executor state at an unobserved (or not-yet-observed) tick.
+    ///
+    /// This is evidence-shaped construction, not scientific authority. #568 must
+    /// qualify the exact runner/profile and content-manifest grammar before a
+    /// transcript containing this identity can contribute to anchor renewal.
+    pub fn from_execution_state(
+        representation: RepresentationKey,
+        scope: TransitionDomainAuthorityScope,
+        snapshot: TransitionDomainSnapshotId,
+        source_revision: TransitionDomainSourceRevision,
+        content_manifest: ShadowExecutionStateContentManifest,
+    ) -> Self {
+        Self {
+            representation,
+            scope,
+            snapshot,
+            revision: ShadowContinuityStateRevision::Canonical(source_revision),
+            content: ShadowContinuityContentIdentity::ExecutionState(content_manifest),
         }
     }
 
@@ -507,6 +550,7 @@ fn validate_transcript_against_expected(
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ShadowExecutionContinuityError {
     EmptySegmentManifest,
+    EmptyExecutionStateManifest,
     TickOverflow {
         tick: CanonicalTick,
     },
@@ -560,6 +604,9 @@ impl fmt::Display for ShadowExecutionContinuityError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::EmptySegmentManifest => write!(f, "shadow execution segment manifest is empty"),
+            Self::EmptyExecutionStateManifest => {
+                write!(f, "shadow execution state content manifest is empty")
+            }
             Self::TickOverflow { tick } => {
                 write!(f, "shadow continuity tick overflow after {}", tick.0)
             }
@@ -653,7 +700,7 @@ mod tests {
         ShadowValidationWindow::new(CanonicalTick(10), CanonicalTick(13)).unwrap()
     }
 
-    fn state(revision: u64, content: u8) -> ShadowContinuityStateIdentity {
+    fn observed_state(revision: u64, content: u8) -> ShadowContinuityStateIdentity {
         let source = ShadowObservationSourceIdentity::new(
             RepresentationKey::new(7, 1),
             TransitionDomainAuthorityScope::new(11, 1),
@@ -662,6 +709,16 @@ mod tests {
             ShadowObservationContentManifest::new(vec![content]).unwrap(),
         );
         ShadowContinuityStateIdentity::from_observation_source(&source)
+    }
+
+    fn execution_state(revision: u64, content: u8) -> ShadowContinuityStateIdentity {
+        ShadowContinuityStateIdentity::from_execution_state(
+            RepresentationKey::new(7, 1),
+            TransitionDomainAuthorityScope::new(11, 1),
+            TransitionDomainSnapshotId(13),
+            TransitionDomainSourceRevision(revision),
+            ShadowExecutionStateContentManifest::new(vec![content]).unwrap(),
+        )
     }
 
     /// Structural tests can construct the private identity directly. Production
@@ -674,8 +731,8 @@ mod tests {
             revision: ShadowContinuityStateRevision::Canonical(
                 TransitionDomainSourceRevision(10),
             ),
-            content: ShadowContinuityContentIdentity::Observation(
-                ShadowObservationContentManifest::new(vec![content]).unwrap(),
+            content: ShadowContinuityContentIdentity::ExecutionState(
+                ShadowExecutionStateContentManifest::new(vec![content]).unwrap(),
             ),
         }
     }
@@ -697,11 +754,12 @@ mod tests {
         .unwrap()
     }
 
-    fn valid_transcript() -> ShadowLaneContinuityTranscript {
+    fn transcript_with_states(
+        s1: ShadowContinuityStateIdentity,
+        s2: ShadowContinuityStateIdentity,
+        s3: ShadowContinuityStateIdentity,
+    ) -> ShadowLaneContinuityTranscript {
         let s0 = start(1);
-        let s1 = state(11, 2);
-        let s2 = state(12, 3);
-        let s3 = state(13, 4);
         ShadowLaneContinuityTranscript::new(
             ShadowContinuityRunIdentity::Coarse {
                 id: ShadowCoarseRunId(1),
@@ -719,11 +777,19 @@ mod tests {
         .unwrap()
     }
 
+    fn fully_observed_transcript() -> ShadowLaneContinuityTranscript {
+        transcript_with_states(
+            observed_state(11, 2),
+            observed_state(12, 3),
+            observed_state(13, 4),
+        )
+    }
+
     fn expected_all() -> BTreeMap<CanonicalTick, ShadowContinuityStateIdentity> {
         BTreeMap::from([
-            (CanonicalTick(11), state(11, 2)),
-            (CanonicalTick(12), state(12, 3)),
-            (CanonicalTick(13), state(13, 4)),
+            (CanonicalTick(11), observed_state(11, 2)),
+            (CanonicalTick(12), observed_state(12, 3)),
+            (CanonicalTick(13), observed_state(13, 4)),
         ])
     }
 
@@ -748,7 +814,7 @@ mod tests {
 
     #[test]
     fn valid_one_tick_chain_covers_complete_window() {
-        let transcript = valid_transcript();
+        let transcript = fully_observed_transcript();
         assert_eq!(transcript.len(), 3);
         assert_eq!(
             transcript.segments().last().unwrap().to_tick(),
@@ -758,11 +824,23 @@ mod tests {
     }
 
     #[test]
-    fn terminal_observation_does_not_weaken_per_tick_continuity() {
-        let transcript = valid_transcript();
-        let terminal_only = BTreeMap::from([(CanonicalTick(13), state(13, 4))]);
+    fn terminal_observation_keeps_unobserved_ticks_as_execution_states() {
+        let transcript = transcript_with_states(
+            execution_state(11, 2),
+            execution_state(12, 3),
+            observed_state(13, 4),
+        );
+        let terminal_only = BTreeMap::from([(CanonicalTick(13), observed_state(13, 4))]);
         assert_eq!(validate(&transcript, &start(1), &terminal_only), Ok(()));
-        assert_eq!(transcript.len(), 3);
+        assert!(matches!(
+            transcript.segments().next().unwrap().successor().content(),
+            ShadowContinuityContentIdentity::ExecutionState(_)
+        ));
+    }
+
+    #[test]
+    fn execution_state_cannot_impersonate_observation_by_reusing_bytes() {
+        assert_ne!(execution_state(11, 2), observed_state(11, 2));
     }
 
     #[test]
@@ -772,7 +850,7 @@ mod tests {
             CanonicalTick(10),
             CanonicalTick(12),
             start(1),
-            state(12, 3),
+            observed_state(12, 3),
             ShadowExecutionSegmentManifest::new(vec![1]).unwrap(),
         );
         assert!(matches!(
@@ -784,9 +862,9 @@ mod tests {
     #[test]
     fn duplicate_segment_identity_rejects() {
         let s0 = start(1);
-        let s1 = state(11, 2);
-        let s2 = state(12, 3);
-        let s3 = state(13, 4);
+        let s1 = observed_state(11, 2);
+        let s2 = observed_state(12, 3);
+        let s3 = observed_state(13, 4);
         let result = ShadowLaneContinuityTranscript::new(
             ShadowContinuityRunIdentity::Coarse {
                 id: ShadowCoarseRunId(1),
@@ -810,10 +888,10 @@ mod tests {
     #[test]
     fn restart_or_splice_with_different_boundary_state_rejects() {
         let s0 = start(1);
-        let s1 = state(11, 2);
-        let s2 = state(12, 3);
-        let substituted_s1 = state(11, 99);
-        let s3 = state(13, 4);
+        let s1 = observed_state(11, 2);
+        let s2 = observed_state(12, 3);
+        let substituted_s1 = observed_state(11, 99);
+        let s3 = observed_state(13, 4);
         let result = ShadowLaneContinuityTranscript::new(
             ShadowContinuityRunIdentity::Coarse {
                 id: ShadowCoarseRunId(1),
@@ -838,14 +916,15 @@ mod tests {
 
     #[test]
     fn same_revision_with_different_content_is_not_same_state() {
-        assert_ne!(state(11, 2), state(11, 99));
+        assert_ne!(observed_state(11, 2), observed_state(11, 99));
+        assert_ne!(execution_state(11, 2), execution_state(11, 99));
     }
 
     #[test]
     fn observed_state_must_match_transcript_successor_exactly() {
-        let transcript = valid_transcript();
+        let transcript = fully_observed_transcript();
         let mut observations = expected_all();
-        observations.insert(CanonicalTick(12), state(12, 99));
+        observations.insert(CanonicalTick(12), observed_state(12, 99));
         assert!(matches!(
             validate(&transcript, &start(1), &observations),
             Err(ShadowExecutionContinuityError::ObservationStateMismatch {
@@ -856,7 +935,7 @@ mod tests {
 
     #[test]
     fn wrong_authenticated_start_rejects() {
-        let transcript = valid_transcript();
+        let transcript = fully_observed_transcript();
         assert_eq!(
             validate(&transcript, &start(99), &expected_all()),
             Err(ShadowExecutionContinuityError::StartStateMismatch)
@@ -865,8 +944,8 @@ mod tests {
 
     #[test]
     fn observation_outside_transcript_rejects() {
-        let transcript = valid_transcript();
-        let observations = BTreeMap::from([(CanonicalTick(14), state(14, 5))]);
+        let transcript = fully_observed_transcript();
+        let observations = BTreeMap::from([(CanonicalTick(14), observed_state(14, 5))]);
         assert_eq!(
             validate(&transcript, &start(1), &observations),
             Err(
@@ -879,7 +958,7 @@ mod tests {
 
     #[test]
     fn wrong_run_identity_rejects() {
-        let transcript = valid_transcript();
+        let transcript = fully_observed_transcript();
         let result = validate_transcript_against_expected(
             &transcript,
             ShadowContinuityRunIdentity::Coarse {
