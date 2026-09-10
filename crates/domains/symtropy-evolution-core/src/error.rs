@@ -5,6 +5,7 @@ use std::{error::Error, fmt};
 pub enum EvolutionError {
     UnsupportedSchema(u32),
     UnsupportedChromosomeMap(u32),
+    UnsupportedPhasedHereditaryState(u32),
     EmptyText { field: &'static str },
     UnsupportedPloidy(u8),
     ModeRequiresDiploid(u8),
@@ -39,6 +40,20 @@ pub enum EvolutionError {
         previous_micromorgans: u64,
         observed_micromorgans: u64,
     },
+    PhasedChromosomeMapAuthorityMismatch,
+    PhasedChromosomeSetMismatch,
+    PhasedChromosomeKeyMismatch { key: ChromosomeId, value: ChromosomeId },
+    PhasedHaplotypeCountMismatch {
+        chromosome: ChromosomeId,
+        expected: u8,
+        observed: usize,
+    },
+    PhasedHaplotypeLocusCountMismatch {
+        chromosome: ChromosomeId,
+        expected: usize,
+        observed: usize,
+    },
+    NonCanonicalHaplotypeOrder { chromosome: ChromosomeId },
     ParentCountMismatch { expected: usize, observed: usize },
     ParentageMismatch,
     ChildDigestMismatch,
@@ -140,6 +155,9 @@ impl fmt::Display for EvolutionError {
             Self::UnsupportedChromosomeMap(version) => {
                 write!(f, "unsupported chromosome-map version {version}")
             }
+            Self::UnsupportedPhasedHereditaryState(version) => {
+                write!(f, "unsupported phased hereditary-state version {version}")
+            }
             Self::EmptyText { field } => write!(f, "{field} must not be empty"),
             Self::UnsupportedPloidy(ploidy) => write!(f, "unsupported ploidy {ploidy}"),
             Self::ModeRequiresDiploid(ploidy) => {
@@ -228,6 +246,41 @@ impl fmt::Display for EvolutionError {
             } => write!(
                 f,
                 "chromosome {} map positions must be strictly increasing: previous {previous_micromorgans} micromorgans, observed {observed_micromorgans}",
+                chromosome.as_str()
+            ),
+            Self::PhasedChromosomeMapAuthorityMismatch => {
+                write!(f, "phased hereditary state does not match exact chromosome-map authority")
+            }
+            Self::PhasedChromosomeSetMismatch => {
+                write!(f, "phased hereditary chromosome set does not match chromosome map")
+            }
+            Self::PhasedChromosomeKeyMismatch { key, value } => write!(
+                f,
+                "phased chromosome key {} does not match embedded chromosome {}",
+                key.as_str(),
+                value.as_str()
+            ),
+            Self::PhasedHaplotypeCountMismatch {
+                chromosome,
+                expected,
+                observed,
+            } => write!(
+                f,
+                "chromosome {} expected {expected} haplotypes from schema ploidy, observed {observed}",
+                chromosome.as_str()
+            ),
+            Self::PhasedHaplotypeLocusCountMismatch {
+                chromosome,
+                expected,
+                observed,
+            } => write!(
+                f,
+                "chromosome {} haplotype expected {expected} mapped loci, observed {observed}",
+                chromosome.as_str()
+            ),
+            Self::NonCanonicalHaplotypeOrder { chromosome } => write!(
+                f,
+                "chromosome {} haplotypes are not in canonical unlabeled-homolog order",
                 chromosome.as_str()
             ),
             Self::ParentCountMismatch { expected, observed } => {
