@@ -11,13 +11,15 @@
 //! [`convergence`] provides analytical/error measurements,
 //! [`manufactured`] adds a time-dependent manufactured solution,
 //! [`verification_ladder`] preserves strict machine-readable spatial/temporal
-//! refinement and energy evidence, and [`falsification`] preserves expected
-//! numerical failures as typed campaign evidence rather than erasing the run.
+//! refinement and energy evidence, [`falsification`] preserves expected
+//! numerical failures as typed campaign evidence rather than erasing the run,
+//! and [`diagnostic_trace`] retains stepwise diagnostics and error evolution.
 //! None of these modules should be read as a claim that Symtropy currently
 //! reproduces the 2026 singular construction or has a production Earth-water
 //! CFD backend.
 
 pub mod convergence;
+pub mod diagnostic_trace;
 pub mod evidence;
 pub mod falsification;
 pub mod manufactured;

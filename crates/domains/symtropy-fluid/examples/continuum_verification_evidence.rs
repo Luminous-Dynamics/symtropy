@@ -6,6 +6,10 @@ use std::env;
 use std::error::Error;
 
 use serde::Serialize;
+use symtropy_fluid::diagnostic_trace::{
+    ContinuumDiagnosticTraceReport, run_manufactured_taylor_green_diagnostic_trace,
+    run_passive_taylor_green_diagnostic_trace,
+};
 use symtropy_fluid::evidence::{
     CONTINUUM_EVIDENCE_SCHEMA_VERSION, ContinuumEvidenceEnvelope, ContinuumEvidenceSubject,
 };
@@ -20,7 +24,7 @@ use symtropy_fluid::verification_ladder::{
     run_unforced_energy_trace,
 };
 
-const EVIDENCE_BUNDLE_SCHEMA_ID: &str = "continuum-verification-evidence-bundle-v0.2";
+const EVIDENCE_BUNDLE_SCHEMA_ID: &str = "continuum-verification-evidence-bundle-v0.3";
 
 #[derive(Debug, Serialize)]
 struct EvidenceBundle {
@@ -31,6 +35,8 @@ struct EvidenceBundle {
     manufactured_temporal: ContinuumEvidenceEnvelope<VerificationLadderReport>,
     unforced_energy: ContinuumEvidenceEnvelope<EnergyTraceReport>,
     passive_stability_campaign: ContinuumEvidenceEnvelope<VerificationCampaignReport>,
+    passive_diagnostic_trace: ContinuumEvidenceEnvelope<ContinuumDiagnosticTraceReport>,
+    manufactured_diagnostic_trace: ContinuumEvidenceEnvelope<ContinuumDiagnosticTraceReport>,
 }
 
 fn main() -> Result<(), Box<dyn Error>> {
@@ -136,6 +142,25 @@ fn main() -> Result<(), Box<dyn Error>> {
         &stability_cases,
     )?;
 
+    // Small admitted traces retain within-case evolution rather than only the
+    // final ladder point. They intentionally use the same transparent CPU
+    // reference profile and are still measurement-only evidence.
+    let mut trace_config = base.clone();
+    trace_config.nx = 16;
+    trace_config.ny = 16;
+    let passive_diagnostic_trace = run_passive_taylor_green_diagnostic_trace(
+        trace_config.clone(),
+        0.08,
+        0.0005,
+        8,
+    )?;
+    let manufactured_diagnostic_trace = run_manufactured_taylor_green_diagnostic_trace(
+        trace_config,
+        manufactured_profile,
+        0.0005,
+        8,
+    )?;
+
     let bundle = EvidenceBundle {
         schema_id: EVIDENCE_BUNDLE_SCHEMA_ID,
         source_revision: source_revision.clone(),
@@ -165,6 +190,16 @@ fn main() -> Result<(), Box<dyn Error>> {
             &base,
             &stability_cases,
             passive_stability_campaign,
+        )?,
+        passive_diagnostic_trace: bind_trace(
+            &source_revision,
+            "passive-taylor-green-diagnostic-trace-v0.1",
+            passive_diagnostic_trace,
+        )?,
+        manufactured_diagnostic_trace: bind_trace(
+            &source_revision,
+            "manufactured-taylor-green-diagnostic-trace-v0.1",
+            manufactured_diagnostic_trace,
         )?,
     };
 
@@ -214,6 +249,15 @@ fn bind_campaign(
         .collect::<BTreeSet<_>>()
         .into_iter()
         .collect();
+    Ok(subject(source_revision, case_profile, execution_profiles).bind(report)?)
+}
+
+fn bind_trace(
+    source_revision: &str,
+    case_profile: &str,
+    report: ContinuumDiagnosticTraceReport,
+) -> Result<ContinuumEvidenceEnvelope<ContinuumDiagnosticTraceReport>, Box<dyn Error>> {
+    let execution_profiles = vec![report.solver_profile.clone()];
     Ok(subject(source_revision, case_profile, execution_profiles).bind(report)?)
 }
 
