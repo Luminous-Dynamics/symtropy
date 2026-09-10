@@ -1,0 +1,122 @@
+name: PB-04a Slim Rust Diagnostic
+
+on:
+  push:
+    branches:
+      - "ci/pb04a-capsule-slim-diagnostic"
+    paths:
+      - ".github/workflows/pb04a-slim-rust-diagnostic.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pb04a-slim-rust-diagnostic
+  cancel-in-progress: false
+
+jobs:
+  diagnose:
+    name: Diagnose transformed PB-04a on slim Rust
+    runs-on: ubuntu-slim
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+
+      - name: Bind diagnostic lineage and exact capsule
+        shell: bash
+        run: |
+          set -euo pipefail
+          readonly ROOT="74b8771d6f19fd562a3fb5f95d5d1cd73d6c9343"
+          test "$(git rev-parse HEAD)" = "${GITHUB_SHA}"
+          git merge-base --is-ancestor "${ROOT}" HEAD
+
+          check_blob() {
+            expected="$1"
+            path="$2"
+            actual="$(git hash-object "$path")"
+            test "${actual}" = "${expected}" || {
+              echo "diagnostic capsule drift: ${path}" >&2
+              echo "expected ${expected}" >&2
+              echo "actual   ${actual}" >&2
+              exit 1
+            }
+            echo "PB04A_SLIM_RUST_INPUT_BLOB ${path} ${actual}"
+          }
+
+          check_blob 01ac9cfb159fe5c87b41e386a2b70c6edb6f6ae9 crates/domains/symtropy-spatial-topology/src/lib.rs
+          check_blob 66d2d48ef30208bf1389983a5e3dd5708d5eab3f crates/domains/symtropy-spatial-topology/Cargo.toml
+          check_blob 859392660ab0a722d76892ee317aceb2f2522be4 crates/domains/symtropy-spatial-topology/tests/hostile_projection.rs
+          check_blob 1d94ebb0a6819bfd1d95060920ec5b3d460194a9 scripts/pb04a-harden-content-identity.py
+          check_blob e03de8d8e452af9720d24f8922081c5e00209022 scripts/pb04a-harden-global-source-consistency.py
+          check_blob 0790af59fc936515a1a9131ffe1a945e2696f7c6 scripts/pb04a-harden-query-semantics.py
+          check_blob 14b41e0c1e010aa9ba4011cff90ded3e77e747f6 scripts/pb04a-seal-identity-state.py
+
+          echo "PB04A_SLIM_RUST_DIAGNOSTIC_HEAD=${GITHUB_SHA}"
+          echo "PB04A_FROZEN_PRODUCT_ROOT=${ROOT}"
+
+      - name: Apply diagnostic-proven capsule
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 scripts/pb04a-harden-content-identity.py
+          python3 scripts/pb04a-harden-global-source-consistency.py
+          python3 scripts/pb04a-harden-query-semantics.py
+          python3 scripts/pb04a-seal-identity-state.py
+
+      - name: Require exact pre-format transform fingerprints
+        shell: bash
+        run: |
+          set -euo pipefail
+          check_blob() {
+            expected="$1"
+            path="$2"
+            actual="$(git hash-object "$path")"
+            test "${actual}" = "${expected}" || exit 1
+            echo "PB04A_SLIM_RUST_TRANSFORMED_BLOB ${path} ${actual}"
+          }
+          check_blob 22e4b9ed397b7fd94d5918d0dc26868710794d17 crates/domains/symtropy-spatial-topology/Cargo.toml
+          check_blob e6148c6e575e21d7d543531deaf5ac5e0d36488b crates/domains/symtropy-spatial-topology/src/lib.rs
+          check_blob cdf6dda210433706381030073002b20123ae4a5d crates/domains/symtropy-spatial-topology/tests/hostile_projection.rs
+          patch_sha="$(git diff --binary --full-index --no-ext-diff -- \
+            crates/domains/symtropy-spatial-topology/Cargo.toml \
+            crates/domains/symtropy-spatial-topology/src/lib.rs \
+            crates/domains/symtropy-spatial-topology/tests/hostile_projection.rs \
+            | sha256sum | awk '{print $1}')"
+          test "${patch_sha}" = "4506212661bf870aaa1b09b0ff152df2a86946ac563e9d1d13ca9bcef27c21ef"
+          echo "PB04A_SLIM_RUST_PATCH_SHA256=${patch_sha}"
+
+      - name: Set up pinned Rust 1.96
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.96.0
+          components: clippy, rustfmt
+
+      - name: Format transformed source
+        run: cargo fmt --manifest-path crates/domains/symtropy-spatial-topology/Cargo.toml
+
+      - name: Check transformed isolated crate
+        run: cargo check --manifest-path crates/domains/symtropy-spatial-topology/Cargo.toml --all-targets
+
+      - name: Test transformed isolated crate
+        run: cargo test --manifest-path crates/domains/symtropy-spatial-topology/Cargo.toml
+
+      - name: Strict Clippy transformed isolated crate
+        run: cargo clippy --manifest-path crates/domains/symtropy-spatial-topology/Cargo.toml --all-targets -- -D warnings
+
+      - name: Record formatted diagnostic fingerprints and evidence boundary
+        shell: bash
+        run: |
+          set -euo pipefail
+          git diff --check
+          for path in \
+            crates/domains/symtropy-spatial-topology/Cargo.toml \
+            crates/domains/symtropy-spatial-topology/src/lib.rs \
+            crates/domains/symtropy-spatial-topology/tests/hostile_projection.rs; do
+            echo "PB04A_SLIM_RUST_FORMATTED_BLOB $(git hash-object "$path") ${path}"
+          done
+          echo "PB04A_SLIM_RUST_DIAGNOSTIC_PASS=1"
+          echo "This is diagnostic evidence on ubuntu-slim only."
+          echo "It does not substitute for the authoritative ubuntu-latest self-apply/product qualification lanes."
