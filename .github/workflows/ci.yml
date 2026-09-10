@@ -80,5 +80,11 @@ jobs:
     - name: Run Tests (Physics Core)
       run: cargo test -p symtropy-math -p symtropy-physics -p symtropy-consciousness-physics --lib
 
+    # The Rapier bridge is an independent physics reference lane. Workspace
+    # clippy/check compile its unit tests but do not execute them, so keep the
+    # functional step/readback regressions explicit in the normal 3-OS matrix.
+    - name: Run Tests (Rapier Reference Bridge)
+      run: cargo test -p symtropy-rapier3d-bridge --lib
+
     - name: Verify Workspace Build
       run: cargo check --workspace --all-targets
