@@ -36,7 +36,8 @@ pub use population_process::{
     PopulationTransitionProvenanceDigest, PopulationTransitionResult,
 };
 pub use population_structure::{
-    PopulationStructureModel, PopulationStructureProfile, PopulationStructureProfileDigest,
+    ParentalSourceEdge, PopulationStructureModel, PopulationStructureProfile,
+    PopulationStructureProfileDigest,
 };
 pub use population_trajectory::{
     PopulationGeneration, PopulationTrajectoryPoint, PopulationTrajectoryPointDigest,
