@@ -41,7 +41,8 @@ jobs:
           echo "DIAGNOSTIC_PRODUCT_HEAD=$(git -C product rev-parse HEAD)"
           echo "DIAGNOSTIC_PRODUCT_TREE=$(git -C product rev-parse HEAD^{tree})"
           echo "DIAGNOSTIC_TOOL_HEAD=$(git -C runner-tools rev-parse HEAD)"
-          echo "DIAGNOSTIC_TRANSFORM_BLOB=$(git -C runner-tools hash-object .github/repair/exact_capability_need_binding.py)"
+          echo "DIAGNOSTIC_NEED_TRANSFORM_BLOB=$(git -C runner-tools hash-object .github/repair/exact_capability_need_binding.py)"
+          echo "DIAGNOSTIC_BINARY_BRIDGE_BLOB=$(git -C runner-tools hash-object .github/repair/exact_capability_binary_bridge.py)"
           echo "RUNNER_OS=${RUNNER_OS}"
           echo "RUNNER_ARCH=${RUNNER_ARCH}"
           echo "IMAGE_OS=${ImageOS:-unknown}"
@@ -72,12 +73,13 @@ jobs:
           cargo clippy --locked -p symtropy-fabrication --all-targets --all-features -- -D warnings
           test -z "$(git status --porcelain --untracked-files=all)"
 
-      - name: Apply exact F5 need-binding transform
+      - name: Apply exact F5 need-binding transforms
         shell: bash
         run: |
           set -euo pipefail
           cd product
           python3 ../runner-tools/.github/repair/exact_capability_need_binding.py
+          python3 ../runner-tools/.github/repair/exact_capability_binary_bridge.py
           cargo fmt -p symtropy-fabrication -p symtropy-firstlight
 
       - name: Prove diagnostic diff scope
@@ -103,6 +105,8 @@ jobs:
           grep -q 'struct CapabilityNeedSnapshot' crates/domains/symtropy-fabrication/src/capability.rs
           grep -q 'new_with_capability_needs' crates/domains/symtropy-fabrication/src/executable_plan.rs
           grep -q 'MissingCapabilityNeedBinding' crates/domains/symtropy-fabrication/src/executable_plan.rs
+          grep -q 'NonBinaryF5BootstrapRequirement' crates/domains/symtropy-fabrication/src/executable_plan.rs
+          grep -q 'f5_backed_process_requirement_must_remain_binary_at_f4_bridge' crates/domains/symtropy-fabrication/src/executable_plan.rs
           grep -q 'real_patch_conduit_exact_plan_binds_every_f5_need_semantically' crates/apps/symtropy-firstlight/src/patch_conduit_exact_plan.rs
 
       - name: Test transformed Fabrication semantics
