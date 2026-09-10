@@ -1,0 +1,20 @@
+name: Promotion semantic oracle pilot v0.11r2
+
+on:
+  pull_request:
+    branches:
+      - exp/promotion-oracle-base-v0.11r2
+
+permissions:
+  contents: read
+  id-token: write
+  attestations: write
+
+jobs:
+  trusted-semantic-oracle:
+    name: Trusted target-base semantic oracle
+    uses: Luminous-Dynamics/symtropy/.github/workflows/promotion-oracle-execution-trusted-v011.yml@cb1c0109f4daefdb59df067cc97a1ef4af0b87c6
+    permissions:
+      contents: read
+      id-token: write
+      attestations: write
