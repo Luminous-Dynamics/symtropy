@@ -96,6 +96,15 @@ pub enum EvolutionError {
     DemographicHistoryCursorShapeMismatch,
     DemographicHistoryCursorNotRoot,
     DemographicHistoryCursorMismatch,
+    DemographicEventKindUnsupportedForExecutor,
+    DemographicExpansionUnsupported {
+        current_census: u64,
+        target_census: u64,
+    },
+    DemographicExecutionAuthorityMismatch,
+    DemographicExecutionSourceMismatch,
+    DemographicExecutionResultMismatch,
+    DemographicExecutionHistoryMismatch,
     SamplingInvariantViolation,
     CountOverflow,
     InvalidDrawUpperBound,
@@ -334,6 +343,28 @@ impl fmt::Display for EvolutionError {
             }
             Self::DemographicHistoryCursorMismatch => {
                 write!(f, "demographic history cursor does not match the exact current snapshot trajectory")
+            }
+            Self::DemographicEventKindUnsupportedForExecutor => {
+                write!(f, "demographic event kind is unsupported by this reference executor")
+            }
+            Self::DemographicExpansionUnsupported {
+                current_census,
+                target_census,
+            } => write!(
+                f,
+                "instantaneous census expansion is not a random-survivor bottleneck: current {current_census}, target {target_census}"
+            ),
+            Self::DemographicExecutionAuthorityMismatch => {
+                write!(f, "demographic execution authority mismatch")
+            }
+            Self::DemographicExecutionSourceMismatch => {
+                write!(f, "demographic execution source evidence mismatch")
+            }
+            Self::DemographicExecutionResultMismatch => {
+                write!(f, "demographic execution result evidence mismatch")
+            }
+            Self::DemographicExecutionHistoryMismatch => {
+                write!(f, "demographic execution history cursor mismatch")
             }
             Self::SamplingInvariantViolation => write!(f, "population sampling invariant violated"),
             Self::CountOverflow => write!(f, "population/genetic count overflow"),
