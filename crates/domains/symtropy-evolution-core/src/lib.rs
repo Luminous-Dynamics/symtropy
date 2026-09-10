@@ -13,6 +13,7 @@ mod ids;
 mod operators;
 mod population;
 mod population_process;
+mod population_trajectory;
 mod reproduction;
 mod schema;
 
@@ -28,9 +29,12 @@ pub use operators::{
 };
 pub use population::{PopulationGeneticState, PopulationGeneticStateDigest};
 pub use population_process::{
-    neutral_wright_fisher_step, PopulationGeneration, PopulationProcessModel,
-    PopulationProcessProfile, PopulationProcessProfileDigest, PopulationTransitionProvenance,
+    neutral_wright_fisher_step, PopulationProcessModel, PopulationProcessProfile,
+    PopulationProcessProfileDigest, PopulationTransitionProvenance,
     PopulationTransitionProvenanceDigest, PopulationTransitionResult,
+};
+pub use population_trajectory::{
+    PopulationGeneration, PopulationTrajectoryPoint, PopulationTrajectoryPointDigest,
 };
 pub use reproduction::{
     derive_offspring, OffspringDerivation, ParentHereditaryRef, ParentRole,
