@@ -16,6 +16,9 @@ use symtropy_fluid::evidence::{
 use symtropy_fluid::falsification::{
     VerificationCampaignReport, run_passive_taylor_green_campaign,
 };
+use symtropy_fluid::iterative_error::{
+    IterativeErrorSweepReport, run_projection_iterative_error_sweep,
+};
 use symtropy_fluid::manufactured::ManufacturedTaylorGreenProfile;
 use symtropy_fluid::numerical_observability::{
     ProjectionIterationSweepReport, StabilityProbeReport, run_passive_taylor_green_stability_probe,
@@ -28,7 +31,7 @@ use symtropy_fluid::verification_ladder::{
     run_unforced_energy_trace,
 };
 
-const EVIDENCE_BUNDLE_SCHEMA_ID: &str = "continuum-verification-evidence-bundle-v0.4";
+const EVIDENCE_BUNDLE_SCHEMA_ID: &str = "continuum-verification-evidence-bundle-v0.5";
 
 #[derive(Debug, Serialize)]
 struct EvidenceBundle {
@@ -36,6 +39,7 @@ struct EvidenceBundle {
     source_revision: String,
     passive_spatial: ContinuumEvidenceEnvelope<VerificationLadderReport>,
     passive_temporal: ContinuumEvidenceEnvelope<VerificationLadderReport>,
+    manufactured_spatial: ContinuumEvidenceEnvelope<VerificationLadderReport>,
     manufactured_temporal: ContinuumEvidenceEnvelope<VerificationLadderReport>,
     unforced_energy: ContinuumEvidenceEnvelope<EnergyTraceReport>,
     passive_stability_campaign: ContinuumEvidenceEnvelope<VerificationCampaignReport>,
@@ -43,6 +47,7 @@ struct EvidenceBundle {
     manufactured_diagnostic_trace: ContinuumEvidenceEnvelope<ContinuumDiagnosticTraceReport>,
     passive_stability_probe: ContinuumEvidenceEnvelope<StabilityProbeReport>,
     projection_iteration_sweep: ContinuumEvidenceEnvelope<ProjectionIterationSweepReport>,
+    projection_iterative_error_sweep: ContinuumEvidenceEnvelope<IterativeErrorSweepReport>,
 }
 
 fn main() -> Result<(), Box<dyn Error>> {
@@ -96,6 +101,30 @@ fn main() -> Result<(), Box<dyn Error>> {
         modulation_fraction: 0.2,
         angular_frequency_rad_s: 1.5,
     };
+
+    // Hold final time and step count constant across this ladder so the measured
+    // change is spatial refinement rather than a hidden mixture of dx and dt.
+    let manufactured_spatial = run_manufactured_taylor_green_ladder(
+        base.clone(),
+        manufactured_profile,
+        0.004,
+        RefinementAxis::Spatial,
+        &[
+            LadderCaseSpec {
+                resolution: 8,
+                steps: 64,
+            },
+            LadderCaseSpec {
+                resolution: 16,
+                steps: 64,
+            },
+            LadderCaseSpec {
+                resolution: 32,
+                steps: 64,
+            },
+        ],
+    )?;
+
     let manufactured_temporal = run_manufactured_taylor_green_ladder(
         base.clone(),
         manufactured_profile,
@@ -154,8 +183,12 @@ fn main() -> Result<(), Box<dyn Error>> {
     let mut trace_config = base.clone();
     trace_config.nx = 16;
     trace_config.ny = 16;
-    let passive_diagnostic_trace =
-        run_passive_taylor_green_diagnostic_trace(trace_config.clone(), 0.08, 0.0005, 8)?;
+    let passive_diagnostic_trace = run_passive_taylor_green_diagnostic_trace(
+        trace_config.clone(),
+        0.08,
+        0.0005,
+        8,
+    )?;
     let manufactured_diagnostic_trace = run_manufactured_taylor_green_diagnostic_trace(
         trace_config,
         manufactured_profile,
@@ -176,10 +209,23 @@ fn main() -> Result<(), Box<dyn Error>> {
     )?;
 
     // Project the same deterministic divergent field using only different fixed
-    // Jacobi iteration counts. This measures projection convergence without
-    // changing solver equations, forcing, grid, or initial state.
-    let projection_iteration_sweep =
-        run_projection_iteration_sweep(observability_config, 0.08, 0.001, &[1, 4, 16, 64, 256])?;
+    // Jacobi iteration counts. This records residual/divergence convergence.
+    let projection_iteration_sweep = run_projection_iteration_sweep(
+        observability_config.clone(),
+        0.08,
+        0.001,
+        &[1, 4, 16, 64, 256],
+    )?;
+
+    // Repeat that controlled sweep while retaining the projected face velocities.
+    // Differences are measured against the highest-iteration result in the same
+    // sweep, which is a numerical reference and explicitly not continuum truth.
+    let projection_iterative_error_sweep = run_projection_iterative_error_sweep(
+        observability_config,
+        0.08,
+        0.001,
+        &[1, 4, 16, 64, 256],
+    )?;
 
     let bundle = EvidenceBundle {
         schema_id: EVIDENCE_BUNDLE_SCHEMA_ID,
@@ -193,6 +239,11 @@ fn main() -> Result<(), Box<dyn Error>> {
             &source_revision,
             "passive-taylor-green-temporal-v0.1",
             passive_temporal,
+        )?,
+        manufactured_spatial: bind_ladder(
+            &source_revision,
+            "manufactured-taylor-green-spatial-v0.1",
+            manufactured_spatial,
         )?,
         manufactured_temporal: bind_ladder(
             &source_revision,
@@ -230,6 +281,11 @@ fn main() -> Result<(), Box<dyn Error>> {
             &source_revision,
             "periodic-compressive-projection-iteration-sweep-v0.1",
             projection_iteration_sweep,
+        )?,
+        projection_iterative_error_sweep: bind_iterative_error_sweep(
+            &source_revision,
+            "periodic-compressive-projection-iterative-error-v0.1",
+            projection_iterative_error_sweep,
         )?,
     };
 
@@ -305,6 +361,21 @@ fn bind_projection_sweep(
     case_profile: &str,
     report: ProjectionIterationSweepReport,
 ) -> Result<ContinuumEvidenceEnvelope<ProjectionIterationSweepReport>, Box<dyn Error>> {
+    let execution_profiles = report
+        .points
+        .iter()
+        .map(|point| point.solver_profile.clone())
+        .collect::<BTreeSet<_>>()
+        .into_iter()
+        .collect();
+    Ok(subject(source_revision, case_profile, execution_profiles).bind(report)?)
+}
+
+fn bind_iterative_error_sweep(
+    source_revision: &str,
+    case_profile: &str,
+    report: IterativeErrorSweepReport,
+) -> Result<ContinuumEvidenceEnvelope<IterativeErrorSweepReport>, Box<dyn Error>> {
     let execution_profiles = report
         .points
         .iter()

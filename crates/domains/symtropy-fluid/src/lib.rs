@@ -13,9 +13,10 @@
 //! [`verification_ladder`] preserves strict machine-readable spatial/temporal
 //! refinement and energy evidence, [`falsification`] preserves expected
 //! numerical failures as typed campaign evidence rather than erasing the run,
-//! [`diagnostic_trace`] retains stepwise diagnostics and error evolution, and
+//! [`diagnostic_trace`] retains stepwise diagnostics and error evolution,
 //! [`numerical_observability`] measures signed stability margins plus controlled
-//! pressure-projection iteration convergence without changing solver numerics.
+//! pressure-projection residual convergence, and [`iterative_error`] measures
+//! projected solution change in velocity units as the iteration budget grows.
 //! None of these modules should be read as a claim that Symtropy currently
 //! reproduces the 2026 singular construction or has a production Earth-water
 //! CFD backend.
@@ -24,6 +25,7 @@ pub mod convergence;
 pub mod diagnostic_trace;
 pub mod evidence;
 pub mod falsification;
+pub mod iterative_error;
 pub mod manufactured;
 pub mod numerical_observability;
 pub mod reference;
