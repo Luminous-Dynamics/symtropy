@@ -25,11 +25,11 @@ This crate implements runtime beneath the Living World heredity/reproduction con
 
 ## Wire-safe semantic identity
 
-Semantic IDs are not plain trusted strings. `HereditarySchemaId`, `LocusId`, `AlleleId`, `PopulationId`, `ReproductionEventId`, `OperatorProfileId`, `EvolutionExperimentId`, `PopulationTransitionId`, and `PopulationProcessProfileId` all share one constructor-enforced identity grammar.
+Semantic IDs are not plain trusted strings. `HereditarySchemaId`, `LocusId`, `AlleleId`, `PopulationId`, `ReproductionEventId`, `OperatorProfileId`, `EvolutionExperimentId`, `PopulationTransitionId`, `PopulationProcessProfileId`, and `PopulationStructureProfileId` all share one constructor-enforced identity grammar.
 
 V0 preserves the existing wire representation (a Serde newtype encoded as a string) but implements custom deserialization that routes restored text through `new(...)`. This closes the gap where derived `Deserialize` could construct whitespace-only IDs without invoking validation.
 
-The rule is centralized in the semantic-ID macro so future containing structures do not need a second ad-hoc identity check. Later identity-grammar changes should remain centralized and versioned rather than being scattered across population, reproduction, persistence, trajectory, or process-profile code.
+The rule is centralized in the semantic-ID macro so future containing structures do not need a second ad-hoc identity check. Later identity-grammar changes should remain centralized and versioned rather than being scattered across population, reproduction, persistence, trajectory, process-profile, or demography code.
 
 ## Neutral population reference process
 
@@ -76,6 +76,31 @@ The static chain fixture advances the same trajectory continuously for 20 genera
 
 Trajectory points and their digests are canonical simulation identities/provenance, not cryptographic authorization tokens.
 
+## Structured-population authority
+
+DEMOG-04A1 adds the demographic contract that a later structured Wright-Fisher process can consume. It deliberately adds **no migration runtime yet**.
+
+The central boundary is:
+
+`aggregate parental gene-pool migration != exact organism migration`.
+
+At the current population fidelity, Symtropy has marginal allele-copy counts. The structure authority can therefore describe how much of a destination population's next-generation parental gene pool comes from each other population, but it cannot establish which exact organisms moved, their genotypes, haplotypes, kin relationships, sex-biased dispersal, or individual ancestry.
+
+`PopulationStructureProfile` binds:
+
+- a wire-safe semantic profile ID and explicit version;
+- a typed `PopulationStructureModel` describing matrix interpretation;
+- an exact canonical declared population set;
+- off-diagonal parental-source probabilities in integer ppm;
+- an implicit self/stay probability equal to one minus the destination row's off-diagonal sum;
+- a domain-separated canonical digest independent of declaration/insertion order.
+
+`ParentalSourceEdge` names `destination` and `source` explicitly rather than relying on ambiguous `(from, to, rate)` tuples. Its meaning is always: a next-generation allele copy in `destination` chooses its parental gene pool from `source` with `rate_ppm` probability.
+
+The validated constructor rejects duplicate population declarations and duplicate edges before ordered collections can erase that input history. It canonicalizes zero-rate input edges away. Raw/restored profiles containing zero-rate entries or empty migration rows fail validation, so one demographic model has one canonical representation. Self entries are forbidden because stay probability is implicit, and each off-diagonal row must total at most 1,000,000 ppm.
+
+All future structured transition code must validate the complete profile before using convenience accessors or selecting a zero-migration fast path. A zero-migration runtime successor should delegate to the existing neutral reference process so the zero-migration theorem is exact/pathwise rather than merely distributional.
+
 ## Qualification fixtures
 
 The neutral reference lane now has both one-step and long-run analytical fixtures.
@@ -93,11 +118,11 @@ Long-run deterministic ensembles additionally check:
 - absorbing allele-frequency boundaries remaining absorbing while trajectory time advances;
 - replicate execution-order invariance for both one-step and multi-generation runs.
 
-The martingale acceptance bound is derived from the analytical finite-generation Wright–Fisher variance and four standard errors for the declared ensemble. Fixation uses the analytical binomial sampling error around the neutral fixation probability. The heterozygosity fixture uses a deliberately conservative fixed band for the declared finite deterministic corpus.
+The martingale acceptance bound is derived from the analytical finite-generation Wright-Fisher variance and four standard errors for the declared ensemble. Fixation uses the analytical binomial sampling error around the neutral fixation probability. The heterozygosity fixture uses a deliberately conservative fixed band for the declared finite deterministic corpus.
 
 These are deterministic qualification corpora: experiment IDs fix the realized sample set, so host scheduling cannot change the result. They remain regression evidence for this explicit reference implementation/profile, not proof that all later evolutionary models are correct.
 
-Static fixtures also cover deterministic replay, transition revalidation, fixed-allele absorption, locus-order independence, exact copy-count conservation, stochastic experiment identity, aggregate canonicalization, trajectory-state revalidation, generation-sensitive trajectory identity, checkpoint/chunking invariance, and semantic-ID JSON round-trip/rejection.
+Static fixtures also cover deterministic replay, transition revalidation, fixed-allele absorption, locus-order independence, exact copy-count conservation, stochastic experiment identity, aggregate canonicalization, trajectory-state revalidation, generation-sensitive trajectory identity, checkpoint/chunking invariance, semantic-ID JSON round-trip/rejection, structure-profile insertion-order invariance, migration-rate authority sensitivity, zero-edge canonicalization, duplicate-input rejection, row-sum bounds, and implicit-stay arithmetic.
 
 These tests are **not yet executable evidence** until an exact-head Rust toolchain run records their results.
 
@@ -111,16 +136,19 @@ The crate is split into small authority-focused modules:
 - `reproduction` — deterministic offspring derivation and parentage provenance;
 - `population` — aggregate allele-copy state only;
 - `population_process` — narrow, versioned population transition models;
+- `population_structure` — canonical metapopulation/parental-gene-pool structure authority;
 - `population_trajectory` — revalidatable experiment/generation/state trajectory positions;
 - `ids`, `canonical`, and `error` — shared semantic identity, canonical encoding, and fail-closed errors.
 
-This structure is deliberate: chromosome linkage, ancestry, migration, ecology integration, speciation, and deep-time acceleration should extend narrow seams rather than grow a biological mega-module.
+This structure is deliberate: chromosome linkage, ancestry, structured transition execution, ecological selection, speciation, and deep-time acceleration should extend narrow seams rather than grow a biological mega-module.
 
 ## Deliberate limits
 
-V0 does not yet implement chromosome linkage/crossover, quantitative genetics, dominance, epistasis, gene regulation, evo-devo, migration, ecological selection, phylogeny/speciation, ancestry compression, alternative biochemistry, world-time authority, rewind/branch DAGs, or civilization.
+V0 does not yet implement chromosome linkage/crossover, quantitative genetics, dominance, epistasis, gene regulation, evo-devo, structured migration execution, organism migration, ecological selection, phylogeny/speciation, ancestry compression, alternative biochemistry, world-time authority, rewind/branch DAGs, or civilization.
 
-Those arrive as independently reviewable successors. In particular, the `IndependentLoci` models are reference profiles, not claims of universal inheritance or population biology.
+Those arrive as independently reviewable successors. In particular, the `IndependentLoci` models are reference profiles, not claims of universal inheritance or population biology, and `PopulationStructureProfile` is a demographic authority rather than evidence that any literal organism moved.
+
+Population split/merge, pulse admixture, extinction/recolonization, and variable census should become explicit demographic-event authorities rather than being overloaded into the continuous parental-source matrix.
 
 The current identity grammar only enforces the pre-existing non-empty/non-whitespace invariant. It does not yet impose Unicode normalization, case folding, global namespace policy, cryptographic authenticity, or a repository-wide ID standard.
 
@@ -128,4 +156,4 @@ The current identity grammar only enforces the pre-existing non-empty/non-whites
 
 The current stacked implementation is **implemented/static only** until an exact-head Rust toolchain run establishes rustfmt/tests/strict-Clippy/check evidence. Repository workspace registration and `Cargo.lock` changes are intentionally deferred from the structural authority tranche.
 
-See the Living World `HEREDITY_PROVENANCE_V0.md` and `BIOLOGICAL_REPRODUCTION_V0.md` contracts on the parent stack, ASTRO-00 for scientific evidence/assumption semantics, EVO-03A issue #414 for exact-authority hardening, #433 for validation-preserving semantic IDs, POPGEN-03B issue #417 for the reference-process qualification plan, POPGEN-03B1 issue #429 for trajectory-cursor hardening, and POPGEN-03B3 issue #464 for long-run neutral qualification.
+See the Living World `HEREDITY_PROVENANCE_V0.md` and `BIOLOGICAL_REPRODUCTION_V0.md` contracts on the parent stack, ASTRO-00 for scientific evidence/assumption semantics, EVO-03A issue #414 for exact-authority hardening, #433 for validation-preserving semantic IDs, POPGEN-03B issue #417 for the reference-process qualification plan, POPGEN-03B1 issue #429 for trajectory-cursor hardening, POPGEN-03B3 issue #464 for long-run neutral qualification, and DEMOG-04A issue #484 for structured-population evolution.
