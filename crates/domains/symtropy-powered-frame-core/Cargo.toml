@@ -7,3 +7,8 @@ description = "Deterministic subsystem resource arbitration for Symtropy powered
 
 [dependencies]
 serde = { version = "1.0", features = ["derive"] }
+
+[dev-dependencies]
+symtropy-game-state = { path = "../symtropy-game-state" }
+symtropy-protection-core = { path = "../symtropy-protection-core" }
+symtropy-residents = { path = "../symtropy-residents" }
