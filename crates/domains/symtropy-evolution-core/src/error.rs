@@ -53,6 +53,7 @@ pub enum EvolutionError {
         source: PopulationId,
     },
     SelfMigrationEntry { population: PopulationId },
+    NonCanonicalEmptyMigrationRow { destination: PopulationId },
     NonCanonicalZeroMigration {
         destination: PopulationId,
         source: PopulationId,
@@ -178,6 +179,11 @@ impl fmt::Display for EvolutionError {
                 f,
                 "population structure must not encode explicit self migration for {}",
                 population.as_str()
+            ),
+            Self::NonCanonicalEmptyMigrationRow { destination } => write!(
+                f,
+                "population structure contains noncanonical empty migration row for {}",
+                destination.as_str()
             ),
             Self::NonCanonicalZeroMigration { destination, source } => write!(
                 f,
