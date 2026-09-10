@@ -257,18 +257,24 @@ impl LinkedGameteDerivationProvenance {
         LinkedGameteDerivationProvenanceDigest(digest.finalize().into())
     }
 
-    /// Revalidate restored derivation evidence by deterministically re-executing
-    /// the exact zero-crossover gamete derivation from current authorities.
+    /// Revalidate restored derivation evidence against exact external event
+    /// context and by deterministic re-execution from current authorities.
     pub fn validate_current(
         &self,
         schema: &HereditarySchema,
         chromosome_map: &ChromosomeMap,
         source: &PhasedHereditaryState,
         profile: &ChromosomeRecombinationProfile,
+        event: &ReproductionEventId,
+        parent_role: ParentRole,
         gamete: &LinkedGamete,
     ) -> Result<(), EvolutionError> {
         if self.derivation_version != LINKED_GAMETE_DERIVATION_VERSION {
             return Err(EvolutionError::LinkedGameteDerivationMismatch);
+        }
+        validate_sexual_parent_role(parent_role)?;
+        if &self.event_id != event || self.parent_role != parent_role {
+            return Err(EvolutionError::LinkedGameteEventContextMismatch);
         }
         if schema.canonical_digest()? != self.schema_digest
             || chromosome_map.canonical_digest(schema)? != self.chromosome_map_digest
@@ -287,8 +293,8 @@ impl LinkedGameteDerivationProvenance {
             chromosome_map,
             source,
             profile,
-            &self.event_id,
-            self.parent_role,
+            event,
+            parent_role,
         )?;
         if derived.gamete != *gamete || derived.provenance.segments != self.segments {
             return Err(EvolutionError::LinkedGameteDerivationMismatch);
