@@ -17,7 +17,9 @@ use crate::manufactured::{
     ManufacturedTaylorGreenError, ManufacturedTaylorGreenProfile,
     run_manufactured_taylor_green_case,
 };
-use crate::reference::{PeriodicMac2d, PeriodicMacConfig, ReferenceDiagnosticError, ReferenceStepError};
+use crate::reference::{
+    PeriodicMac2d, PeriodicMacConfig, ReferenceDiagnosticError, ReferenceStepError,
+};
 
 pub const VERIFICATION_LADDER_SCHEMA_ID: &str = "continuum-verification-ladder-v0.1";
 pub const ENERGY_TRACE_SCHEMA_ID: &str = "continuum-energy-trace-v0.1";
@@ -121,9 +123,13 @@ impl fmt::Display for VerificationLadderError {
                 f,
                 "energy trace requires finite positive dt and a bounded positive step count"
             ),
-            Self::MissingMeasuredEnergy => write!(f, "energy trace requires measured kinetic energy"),
+            Self::MissingMeasuredEnergy => {
+                write!(f, "energy trace requires measured kinetic energy")
+            }
             Self::Passive(source) => write!(f, "passive Taylor-Green case failed: {source}"),
-            Self::Manufactured(source) => write!(f, "manufactured Taylor-Green case failed: {source}"),
+            Self::Manufactured(source) => {
+                write!(f, "manufactured Taylor-Green case failed: {source}")
+            }
             Self::Diagnostic(source) => write!(f, "energy diagnostic failed: {source}"),
             Self::Step(source) => write!(f, "energy trace step failed: {source}"),
         }
@@ -171,12 +177,8 @@ pub fn run_passive_taylor_green_ladder(
         config.nx = case.resolution;
         config.ny = case.resolution;
         let minimum_resolved_length_m = config.dx().min(config.dy());
-        let report = run_taylor_green_case(
-            config,
-            initial_amplitude_mps,
-            final_time_s,
-            case.steps,
-        )?;
+        let report =
+            run_taylor_green_case(config, initial_amplitude_mps, final_time_s, case.steps)?;
         points.push(VerificationLadderPoint {
             solver_profile: report.solver_profile,
             manufactured_profile: None,
@@ -254,11 +256,7 @@ pub fn run_unforced_energy_trace(
     dt_s: f64,
     steps: usize,
 ) -> Result<EnergyTraceReport, VerificationLadderError> {
-    if !dt_s.is_finite()
-        || dt_s <= 0.0
-        || steps == 0
-        || steps > MAX_ENERGY_TRACE_STEPS
-    {
+    if !dt_s.is_finite() || dt_s <= 0.0 || steps == 0 || steps > MAX_ENERGY_TRACE_STEPS {
         return Err(VerificationLadderError::InvalidEnergyTrace);
     }
 
@@ -272,7 +270,9 @@ pub fn run_unforced_energy_trace(
     for _ in 0..steps {
         state.step(dt_s)?;
         let energy = measured_energy(&state)?;
-        let previous = *energies_j.last().ok_or(VerificationLadderError::MissingMeasuredEnergy)?;
+        let previous = *energies_j
+            .last()
+            .ok_or(VerificationLadderError::MissingMeasuredEnergy)?;
         maximum_step_energy_increase_j = maximum_step_energy_increase_j.max(energy - previous);
         energies_j.push(energy);
     }
@@ -431,10 +431,12 @@ mod tests {
         assert_eq!(report.schema_id, VERIFICATION_LADDER_SCHEMA_ID);
         assert_eq!(report.points.len(), 3);
         assert_eq!(report.adjacent_observed_orders.len(), 2);
-        assert!(report
-            .adjacent_observed_orders
-            .iter()
-            .all(|pair| pair.refinement_ratio > 1.0));
+        assert!(
+            report
+                .adjacent_observed_orders
+                .iter()
+                .all(|pair| pair.refinement_ratio > 1.0)
+        );
     }
 
     #[test]
@@ -449,14 +451,9 @@ mod tests {
                 steps: 12,
             },
         ];
-        let report = run_passive_taylor_green_ladder(
-            config(),
-            0.08,
-            0.002,
-            RefinementAxis::Spatial,
-            &cases,
-        )
-        .unwrap();
+        let report =
+            run_passive_taylor_green_ladder(config(), 0.08, 0.002, RefinementAxis::Spatial, &cases)
+                .unwrap();
         assert_eq!(report.points[0].resolution, 8);
         assert_eq!(report.points[1].resolution, 12);
         assert!(report.adjacent_observed_orders[0].refinement_ratio > 1.0);
