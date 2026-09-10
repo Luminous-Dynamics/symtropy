@@ -10,9 +10,7 @@ use crate::components::{
     CrewNpc, MoveTarget, NoiseEmitter, NpcActionEvent, NpcActionKind, NullDrone, Player,
     PowerJunction, WaterPump, WorldFeedbackEvent,
 };
-use crate::resources::{
-    EnergyWell, PhysicsWorldRes, TutorialScenarioRes, TutorialStep,
-};
+use crate::resources::{EnergyWell, PhysicsWorldRes, TutorialScenarioRes, TutorialStep};
 use crate::systems::fep_perception::{
     LocalScalarSample, PerceivedWorldFrame, local_noise_risk_cue, strongest_local_sample,
 };
@@ -61,7 +59,7 @@ pub fn fep_behavior_system(
             &PhysicsBody,
             Option<&mut crate::systems::psychology::PsychologicalNeeds>,
         ),
-        Without<Player>,
+        (With<CrewNpc>, Without<Player>),
     >,
     player_query: Query<(&Transform, &PhysicsBody), With<Player>>,
     other_npcs: Query<(&Transform, &PhysicsBody), (With<CrewNpc>, Without<Player>)>,
