@@ -14,10 +14,10 @@ use std::fmt;
 use bevy::prelude::Vec3;
 use rapier3d::prelude::*;
 use symtropy_physics::validation::{
-    BodyObservation3d, PhysicsBackendDescriptor, PhysicsSample3d, PhysicsScenario3d,
-    PhysicsTrace3d, ScenarioBody3d, ScenarioBodyType, ScenarioShape3d, ScenarioValidationError,
-    ValidationBodyId, PHYSICS_SCENARIO_SCHEMA_VERSION, PHYSICS_TRACE_SCHEMA_VERSION,
-    compare_traces_3d, run_native_scenario_3d,
+    BodyObservation3d, PHYSICS_SCENARIO_SCHEMA_VERSION, PHYSICS_TRACE_SCHEMA_VERSION,
+    PhysicsBackendDescriptor, PhysicsSample3d, PhysicsScenario3d, PhysicsTrace3d, ScenarioBody3d,
+    ScenarioBodyType, ScenarioShape3d, ScenarioValidationError, ValidationBodyId, compare_traces_3d,
+    run_native_scenario_3d,
 };
 use symtropy_physics::world::NoOpCallback;
 use symtropy_rapier3d_bridge::RapierPhysicsBridge;
@@ -35,9 +35,10 @@ impl fmt::Display for RapierValidationError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::Scenario(error) => write!(f, "invalid common scenario: {error}"),
-            Self::OutsideReferenceRange(field) => {
-                write!(f, "{field} cannot be represented by the Rapier f32 reference lane")
-            }
+            Self::OutsideReferenceRange(field) => write!(
+                f,
+                "{field} cannot be represented by the Rapier f32 reference lane"
+            ),
             Self::MissingBodyIdentity { index, generation } => write!(
                 f,
                 "Rapier observation ({index}, {generation}) has no validation body identity"
@@ -178,23 +179,18 @@ fn capture_direct_sample(
     let mut observations = Vec::with_capacity(bodies.len());
     for (handle, body) in bodies.iter() {
         let raw_handle = handle.into_raw_parts();
-        let body_id = body_ids
-            .get(&raw_handle)
-            .copied()
-            .ok_or(RapierValidationError::MissingBodyIdentity {
+        let body_id = body_ids.get(&raw_handle).copied().ok_or(
+            RapierValidationError::MissingBodyIdentity {
                 index: raw_handle.0,
                 generation: raw_handle.1,
-            })?;
+            },
+        )?;
         let position = body.translation();
         let velocity = body.linvel();
         observations.push(BodyObservation3d {
             body_id,
             position_m: [position.x as f64, position.y as f64, position.z as f64],
-            linear_velocity_mps: [
-                velocity.x as f64,
-                velocity.y as f64,
-                velocity.z as f64,
-            ],
+            linear_velocity_mps: [velocity.x as f64, velocity.y as f64, velocity.z as f64],
             sleeping: body.is_sleeping(),
         });
     }
