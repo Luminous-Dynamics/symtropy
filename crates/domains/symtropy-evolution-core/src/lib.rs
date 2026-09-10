@@ -34,7 +34,7 @@ mod structured_population_process;
 
 pub use chromosome_map::{
     ChromosomeDefinition, ChromosomeLocus, ChromosomeMap, ChromosomeMapDigest,
-    CHROMOSOME_MAP_VERSION,
+    GeneticMapPositionMicromorgans, CHROMOSOME_MAP_VERSION,
 };
 pub use demographic_admixture_execution::{
     execute_census_preserving_pulse_admixture,
