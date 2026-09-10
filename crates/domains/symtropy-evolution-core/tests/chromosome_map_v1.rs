@@ -1,8 +1,8 @@
 use std::collections::BTreeMap;
 use symtropy_evolution_core::{
     AlleleId, ChromosomeDefinition, ChromosomeId, ChromosomeLocus, ChromosomeMap,
-    ChromosomeMapId, EvolutionError, HereditarySchema, HereditarySchemaId, LocusDefinition,
-    LocusId,
+    ChromosomeMapId, EvolutionError, GeneticMapPositionMicromorgans, HereditarySchema,
+    HereditarySchemaId, LocusDefinition, LocusId,
 };
 
 fn allele(id: &str) -> AlleleId {
@@ -15,6 +15,14 @@ fn locus(id: &str) -> LocusId {
 
 fn chromosome(id: &str) -> ChromosomeId {
     ChromosomeId::new(id).unwrap()
+}
+
+fn position(value: u64) -> GeneticMapPositionMicromorgans {
+    GeneticMapPositionMicromorgans::new(value)
+}
+
+fn mapped_locus(id: &str, value: u64) -> ChromosomeLocus {
+    ChromosomeLocus::new(locus(id), position(value))
 }
 
 fn schema() -> HereditarySchema {
@@ -40,7 +48,7 @@ fn chr(id: &str, entries: &[(&str, u64)]) -> ChromosomeDefinition {
         chromosome(id),
         entries
             .iter()
-            .map(|(locus_id, position)| ChromosomeLocus::new(locus(locus_id), *position))
+            .map(|(locus_id, map_position)| mapped_locus(locus_id, *map_position))
             .collect(),
     )
     .unwrap()
@@ -56,6 +64,15 @@ fn reference_map(schema: &HereditarySchema) -> ChromosomeMap {
         ],
     )
     .unwrap()
+}
+
+#[test]
+fn genetic_map_position_is_explicit_and_round_trips() {
+    let map_position = position(125_000);
+    assert_eq!(map_position.get(), 125_000);
+    let encoded = serde_json::to_string(&map_position).unwrap();
+    let restored: GeneticMapPositionMicromorgans = serde_json::from_str(&encoded).unwrap();
+    assert_eq!(restored, map_position);
 }
 
 #[test]
@@ -205,20 +222,14 @@ fn chromosome_positions_must_be_strictly_increasing() {
     assert!(matches!(
         ChromosomeDefinition::new(
             chromosome("chr-a"),
-            vec![
-                ChromosomeLocus::new(locus("a"), 10),
-                ChromosomeLocus::new(locus("b"), 10),
-            ],
+            vec![mapped_locus("a", 10), mapped_locus("b", 10)],
         ),
         Err(EvolutionError::NonIncreasingChromosomeMapPosition { .. })
     ));
     assert!(matches!(
         ChromosomeDefinition::new(
             chromosome("chr-a"),
-            vec![
-                ChromosomeLocus::new(locus("a"), 20),
-                ChromosomeLocus::new(locus("b"), 10),
-            ],
+            vec![mapped_locus("a", 20), mapped_locus("b", 10)],
         ),
         Err(EvolutionError::NonIncreasingChromosomeMapPosition { .. })
     ));
@@ -258,10 +269,7 @@ fn raw_restored_noncanonical_locus_order_cannot_regain_authority() {
         chromosome("chr-a"),
         ChromosomeDefinition {
             id: chromosome("chr-a"),
-            loci: vec![
-                ChromosomeLocus::new(locus("a"), 125_000),
-                ChromosomeLocus::new(locus("b"), 0),
-            ],
+            loci: vec![mapped_locus("a", 125_000), mapped_locus("b", 0)],
         },
     );
     let raw = ChromosomeMap {
@@ -318,7 +326,8 @@ fn raw_map_with_empty_chromosome_is_rejected_after_restore() {
         schema_digest: valid.schema_digest,
         chromosomes,
     };
-    let restored: ChromosomeMap = serde_json::from_str(&serde_json::to_string(&raw).unwrap()).unwrap();
+    let restored: ChromosomeMap =
+        serde_json::from_str(&serde_json::to_string(&raw).unwrap()).unwrap();
     assert!(matches!(
         restored.validate(&schema),
         Err(EvolutionError::EmptyChromosome { .. })
