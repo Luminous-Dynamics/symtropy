@@ -88,6 +88,11 @@ pub enum EvolutionError {
     DemographicEventTimingMismatch,
     DemographicStructureAuthorityMismatch,
     DemographicSourceSnapshotMismatch,
+    DemographicStructureTransitionEventMismatch,
+    DemographicSuccessorStructureMismatch,
+    DemographicMembershipPreservingStructureChanged,
+    DemographicCannotProduceEmptyMetapopulation,
+    DemographicSuccessorSetMismatch,
     SamplingInvariantViolation,
     CountOverflow,
     InvalidDrawUpperBound,
@@ -300,6 +305,24 @@ impl fmt::Display for EvolutionError {
             Self::DemographicSourceSnapshotMismatch => {
                 write!(f, "demographic event source snapshot mismatch")
             }
+            Self::DemographicStructureTransitionEventMismatch => {
+                write!(f, "demographic structure transition event authority mismatch")
+            }
+            Self::DemographicSuccessorStructureMismatch => {
+                write!(f, "demographic structure transition successor authority mismatch")
+            }
+            Self::DemographicMembershipPreservingStructureChanged => write!(
+                f,
+                "membership-preserving demographic event cannot change population structure authority"
+            ),
+            Self::DemographicCannotProduceEmptyMetapopulation => write!(
+                f,
+                "demographic event cannot produce an empty aggregate metapopulation in V0"
+            ),
+            Self::DemographicSuccessorSetMismatch => write!(
+                f,
+                "successor population set does not match demographic event semantics"
+            ),
             Self::SamplingInvariantViolation => write!(f, "population sampling invariant violated"),
             Self::CountOverflow => write!(f, "population/genetic count overflow"),
             Self::InvalidDrawUpperBound => write!(f, "semantic draw upper bound must be positive"),
