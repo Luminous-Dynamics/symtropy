@@ -186,53 +186,186 @@ impl fmt::Display for EvolutionError {
             Self::PopulationProcessAuthorityMismatch => {
                 write!(f, "population process authority mismatch")
             }
-            Self::PopulationProcessModelMismatch => write!(f, "population process model mismatch"),
+            Self::PopulationProcessModelMismatch => {
+                write!(f, "population process model mismatch")
+            }
             Self::PopulationSourceMismatch => write!(f, "population transition source mismatch"),
-            Self::PopulationDestinationMismatch => write!(f, "population transition destination mismatch"),
-            Self::PopulationGenerationMismatch => write!(f, "population transition generation mismatch"),
-            Self::PopulationTransitionMismatch => write!(f, "population transition derivation mismatch"),
-            Self::NoStructuredPopulations => write!(f, "population structure must declare at least one population"),
-            Self::DuplicatePopulationIdentity { population } => write!(f, "population structure declares duplicate population {}", population.as_str()),
-            Self::UnknownStructurePopulation { population } => write!(f, "population structure references undeclared population {}", population.as_str()),
-            Self::DuplicateMigrationEdge { destination, source } => write!(f, "population structure repeats migration edge {} <- {}", destination.as_str(), source.as_str()),
-            Self::SelfMigrationEntry { population } => write!(f, "population structure must not encode explicit self migration for {}", population.as_str()),
-            Self::NonCanonicalEmptyMigrationRow { destination } => write!(f, "population structure contains noncanonical empty migration row for {}", destination.as_str()),
-            Self::NonCanonicalZeroMigration { destination, source } => write!(f, "population structure contains noncanonical zero migration {} <- {}", destination.as_str(), source.as_str()),
-            Self::MigrationRowExceedsProbabilityScale { destination, observed_ppm } => write!(f, "population {} migration row totals {observed_ppm} ppm, exceeding {PROBABILITY_SCALE_PPM} ppm", destination.as_str()),
-            Self::MetapopulationSetMismatch => write!(f, "metapopulation source set does not match structure authority"),
-            Self::MetapopulationStateKeyMismatch { key, observed } => write!(f, "metapopulation state key {} does not match embedded population {}", key.as_str(), observed.as_str()),
-            Self::MetapopulationPointKeyMismatch { key, observed } => write!(f, "metapopulation trajectory key {} does not match point population {}", key.as_str(), observed.as_str()),
-            Self::MetapopulationStructureAuthorityMismatch => write!(f, "metapopulation snapshot structure authority mismatch"),
-            Self::MetapopulationSnapshotMismatch => write!(f, "metapopulation snapshot no longer matches current source state"),
-            Self::StructuredPopulationStructureAuthorityMismatch => write!(f, "structured population transition structure authority mismatch"),
-            Self::StructuredPopulationSourceSnapshotMismatch => write!(f, "structured population transition source snapshot mismatch"),
-            Self::StructuredPopulationDestinationMismatch => write!(f, "structured population transition destination evidence mismatch"),
-            Self::StructuredPopulationTransitionMismatch => write!(f, "structured population transition derivation mismatch"),
-            Self::DemographicCensusMustBePositive => write!(f, "demographic census must be positive at aggregate population fidelity"),
-            Self::UnknownDemographicPopulation { population } => write!(f, "demographic event references undeclared population {}", population.as_str()),
-            Self::DemographicPopulationAlreadyExists { population } => write!(f, "demographic event requires new population identity, but {} already exists", population.as_str()),
-            Self::DuplicateDemographicDaughter { population } => write!(f, "population split repeats daughter population {}", population.as_str()),
-            Self::DemographicSplitRequiresTwoDaughters => write!(f, "population split requires at least two daughter populations"),
-            Self::NonCanonicalDemographicDaughterOrder => write!(f, "population split daughters are not in canonical population-id order"),
-            Self::DemographicSelfAdmixture { population } => write!(f, "pulse admixture cannot use the same source and destination population {}", population.as_str()),
-            Self::DemographicAdmixtureFractionOutOfRange { observed_ppm } => write!(f, "pulse-admixture source fraction must be in 1..={PROBABILITY_SCALE_PPM} ppm, observed {observed_ppm}"),
-            Self::DemographicEventTimingMismatch => write!(f, "demographic event timing convention mismatch"),
-            Self::DemographicStructureAuthorityMismatch => write!(f, "demographic event structure authority mismatch"),
-            Self::DemographicSourceSnapshotMismatch => write!(f, "demographic event source snapshot mismatch"),
-            Self::DemographicStructureTransitionEventMismatch => write!(f, "demographic structure transition event authority mismatch"),
-            Self::DemographicSuccessorStructureMismatch => write!(f, "demographic structure transition successor authority mismatch"),
-            Self::DemographicMembershipPreservingStructureChanged => write!(f, "membership-preserving demographic event cannot change population structure authority"),
-            Self::DemographicCannotProduceEmptyMetapopulation => write!(f, "demographic event cannot produce an empty aggregate metapopulation in V0"),
-            Self::DemographicSuccessorSetMismatch => write!(f, "successor population set does not match demographic event semantics"),
-            Self::DemographicHistoryCursorShapeMismatch => write!(f, "demographic history cursor has a noncanonical link shape"),
-            Self::DemographicHistoryCursorNotRoot => write!(f, "non-root demographic history cursor requires execution revalidation"),
-            Self::DemographicHistoryCursorMismatch => write!(f, "demographic history cursor does not match the exact current snapshot trajectory"),
-            Self::DemographicEventKindUnsupportedForExecutor => write!(f, "demographic event kind is unsupported by this reference executor"),
-            Self::DemographicExpansionUnsupported { current_census, target_census } => write!(f, "instantaneous census expansion is not a random-survivor bottleneck: current {current_census}, target {target_census}"),
-            Self::DemographicExecutionAuthorityMismatch => write!(f, "demographic execution authority mismatch"),
-            Self::DemographicExecutionSourceMismatch => write!(f, "demographic execution source evidence mismatch"),
-            Self::DemographicExecutionResultMismatch => write!(f, "demographic execution result evidence mismatch"),
-            Self::DemographicExecutionHistoryMismatch => write!(f, "demographic execution history cursor mismatch"),
+            Self::PopulationDestinationMismatch => {
+                write!(f, "population transition destination mismatch")
+            }
+            Self::PopulationGenerationMismatch => {
+                write!(f, "population transition generation mismatch")
+            }
+            Self::PopulationTransitionMismatch => {
+                write!(f, "population transition derivation mismatch")
+            }
+            Self::NoStructuredPopulations => {
+                write!(f, "population structure must declare at least one population")
+            }
+            Self::DuplicatePopulationIdentity { population } => write!(
+                f,
+                "population structure declares duplicate population {}",
+                population.as_str()
+            ),
+            Self::UnknownStructurePopulation { population } => write!(
+                f,
+                "population structure references undeclared population {}",
+                population.as_str()
+            ),
+            Self::DuplicateMigrationEdge { destination, source } => write!(
+                f,
+                "population structure repeats migration edge {} <- {}",
+                destination.as_str(),
+                source.as_str()
+            ),
+            Self::SelfMigrationEntry { population } => write!(
+                f,
+                "population structure must not encode explicit self migration for {}",
+                population.as_str()
+            ),
+            Self::NonCanonicalEmptyMigrationRow { destination } => write!(
+                f,
+                "population structure contains noncanonical empty migration row for {}",
+                destination.as_str()
+            ),
+            Self::NonCanonicalZeroMigration { destination, source } => write!(
+                f,
+                "population structure contains noncanonical zero migration {} <- {}",
+                destination.as_str(),
+                source.as_str()
+            ),
+            Self::MigrationRowExceedsProbabilityScale {
+                destination,
+                observed_ppm,
+            } => write!(
+                f,
+                "population {} migration row totals {observed_ppm} ppm, exceeding {PROBABILITY_SCALE_PPM} ppm",
+                destination.as_str()
+            ),
+            Self::MetapopulationSetMismatch => {
+                write!(f, "metapopulation source set does not match structure authority")
+            }
+            Self::MetapopulationStateKeyMismatch { key, observed } => write!(
+                f,
+                "metapopulation state key {} does not match embedded population {}",
+                key.as_str(),
+                observed.as_str()
+            ),
+            Self::MetapopulationPointKeyMismatch { key, observed } => write!(
+                f,
+                "metapopulation trajectory key {} does not match point population {}",
+                key.as_str(),
+                observed.as_str()
+            ),
+            Self::MetapopulationStructureAuthorityMismatch => {
+                write!(f, "metapopulation snapshot structure authority mismatch")
+            }
+            Self::MetapopulationSnapshotMismatch => {
+                write!(f, "metapopulation snapshot no longer matches current source state")
+            }
+            Self::StructuredPopulationStructureAuthorityMismatch => {
+                write!(f, "structured population transition structure authority mismatch")
+            }
+            Self::StructuredPopulationSourceSnapshotMismatch => {
+                write!(f, "structured population transition source snapshot mismatch")
+            }
+            Self::StructuredPopulationDestinationMismatch => {
+                write!(f, "structured population transition destination evidence mismatch")
+            }
+            Self::StructuredPopulationTransitionMismatch => {
+                write!(f, "structured population transition derivation mismatch")
+            }
+            Self::DemographicCensusMustBePositive => {
+                write!(f, "demographic census must be positive at aggregate population fidelity")
+            }
+            Self::UnknownDemographicPopulation { population } => write!(
+                f,
+                "demographic event references undeclared population {}",
+                population.as_str()
+            ),
+            Self::DemographicPopulationAlreadyExists { population } => write!(
+                f,
+                "demographic event requires new population identity, but {} already exists",
+                population.as_str()
+            ),
+            Self::DuplicateDemographicDaughter { population } => write!(
+                f,
+                "population split repeats daughter population {}",
+                population.as_str()
+            ),
+            Self::DemographicSplitRequiresTwoDaughters => {
+                write!(f, "population split requires at least two daughter populations")
+            }
+            Self::NonCanonicalDemographicDaughterOrder => {
+                write!(f, "population split daughters are not in canonical population-id order")
+            }
+            Self::DemographicSelfAdmixture { population } => write!(
+                f,
+                "pulse admixture cannot use the same source and destination population {}",
+                population.as_str()
+            ),
+            Self::DemographicAdmixtureFractionOutOfRange { observed_ppm } => write!(
+                f,
+                "pulse-admixture source fraction must be in 1..={PROBABILITY_SCALE_PPM} ppm, observed {observed_ppm}"
+            ),
+            Self::DemographicEventTimingMismatch => {
+                write!(f, "demographic event timing convention mismatch")
+            }
+            Self::DemographicStructureAuthorityMismatch => {
+                write!(f, "demographic event structure authority mismatch")
+            }
+            Self::DemographicSourceSnapshotMismatch => {
+                write!(f, "demographic event source snapshot mismatch")
+            }
+            Self::DemographicStructureTransitionEventMismatch => {
+                write!(f, "demographic structure transition event authority mismatch")
+            }
+            Self::DemographicSuccessorStructureMismatch => {
+                write!(f, "demographic structure transition successor authority mismatch")
+            }
+            Self::DemographicMembershipPreservingStructureChanged => write!(
+                f,
+                "membership-preserving demographic event cannot change population structure authority"
+            ),
+            Self::DemographicCannotProduceEmptyMetapopulation => write!(
+                f,
+                "demographic event cannot produce an empty aggregate metapopulation in V0"
+            ),
+            Self::DemographicSuccessorSetMismatch => write!(
+                f,
+                "successor population set does not match demographic event semantics"
+            ),
+            Self::DemographicHistoryCursorShapeMismatch => {
+                write!(f, "demographic history cursor has a noncanonical link shape")
+            }
+            Self::DemographicHistoryCursorNotRoot => {
+                write!(f, "non-root demographic history cursor requires execution revalidation")
+            }
+            Self::DemographicHistoryCursorMismatch => {
+                write!(f, "demographic history cursor does not match the exact current snapshot trajectory")
+            }
+            Self::DemographicEventKindUnsupportedForExecutor => {
+                write!(f, "demographic event kind is unsupported by this reference executor")
+            }
+            Self::DemographicExpansionUnsupported {
+                current_census,
+                target_census,
+            } => write!(
+                f,
+                "instantaneous census expansion is not a random-survivor bottleneck: current {current_census}, target {target_census}"
+            ),
+            Self::DemographicExecutionAuthorityMismatch => {
+                write!(f, "demographic execution authority mismatch")
+            }
+            Self::DemographicExecutionSourceMismatch => {
+                write!(f, "demographic execution source evidence mismatch")
+            }
+            Self::DemographicExecutionResultMismatch => {
+                write!(f, "demographic execution result evidence mismatch")
+            }
+            Self::DemographicExecutionHistoryMismatch => {
+                write!(f, "demographic execution history cursor mismatch")
+            }
             Self::SamplingInvariantViolation => write!(f, "population sampling invariant violated"),
             Self::CountOverflow => write!(f, "population/genetic count overflow"),
             Self::InvalidDrawUpperBound => write!(f, "semantic draw upper bound must be positive"),
