@@ -73,6 +73,10 @@ pub enum EvolutionError {
     },
     MetapopulationStructureAuthorityMismatch,
     MetapopulationSnapshotMismatch,
+    StructuredPopulationStructureAuthorityMismatch,
+    StructuredPopulationSourceSnapshotMismatch,
+    StructuredPopulationDestinationMismatch,
+    StructuredPopulationTransitionMismatch,
     SamplingInvariantViolation,
     CountOverflow,
     InvalidDrawUpperBound,
@@ -230,6 +234,18 @@ impl fmt::Display for EvolutionError {
             }
             Self::MetapopulationSnapshotMismatch => {
                 write!(f, "metapopulation snapshot no longer matches current source state")
+            }
+            Self::StructuredPopulationStructureAuthorityMismatch => {
+                write!(f, "structured population transition structure authority mismatch")
+            }
+            Self::StructuredPopulationSourceSnapshotMismatch => {
+                write!(f, "structured population transition source snapshot mismatch")
+            }
+            Self::StructuredPopulationDestinationMismatch => {
+                write!(f, "structured population transition destination evidence mismatch")
+            }
+            Self::StructuredPopulationTransitionMismatch => {
+                write!(f, "structured population transition derivation mismatch")
             }
             Self::SamplingInvariantViolation => write!(f, "population sampling invariant violated"),
             Self::CountOverflow => write!(f, "population/genetic count overflow"),
