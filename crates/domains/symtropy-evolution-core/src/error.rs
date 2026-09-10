@@ -21,6 +21,7 @@ pub enum EvolutionError {
         expected: u8,
         observed: usize,
     },
+    NonCanonicalAlleleCopyOrder { locus: LocusId },
     UnknownAllele { locus: LocusId, allele: AlleleId },
     ParentCountMismatch { expected: usize, observed: usize },
     ParentageMismatch,
@@ -65,6 +66,11 @@ impl fmt::Display for EvolutionError {
             Self::CopyCountMismatch { locus, expected, observed } => write!(
                 f,
                 "locus {} expected {expected} copies, observed {observed}",
+                locus.as_str()
+            ),
+            Self::NonCanonicalAlleleCopyOrder { locus } => write!(
+                f,
+                "locus {} allele copies are not in canonical unphased order",
                 locus.as_str()
             ),
             Self::UnknownAllele { locus, allele } => write!(
