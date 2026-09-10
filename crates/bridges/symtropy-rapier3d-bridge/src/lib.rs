@@ -4,11 +4,13 @@
 //! Bridge between Rapier3D and Symtropy's state-coupling framework.
 //!
 //! Rapier is a differential/reference backend here, not a source of canonical
-//! Symtropy physical truth. The bridge keeps forcing, timestep, and post-step
-//! observations explicit so later validation code can compare independent
-//! implementations without silently changing gameplay authority.
+//! Symtropy physical truth. The bridge keeps forcing, timestep, identity mapping,
+//! and post-step observations explicit so later validation code can compare
+//! independent implementations without silently changing gameplay authority.
 
 pub mod manipulator;
+
+use std::collections::BTreeMap;
 
 use ::nalgebra::SVector;
 use rapier3d::prelude::*;
@@ -47,8 +49,7 @@ pub struct RapierMultibodyJointSet(pub MultibodyJointSet);
 /// Dependency-light post-step state used by differential validation.
 ///
 /// The raw Rapier handle keeps both arena index and generation so measurement
-/// identity is not accidentally weakened to the index-only `BodyHandle` view
-/// required by the legacy Symtropy callback boundary.
+/// identity is not accidentally weakened to an index-only view.
 #[derive(Clone, Debug, PartialEq)]
 pub struct RapierBodyObservation {
     pub raw_handle: (u32, u32),
@@ -63,10 +64,16 @@ pub struct RapierBodyObservation {
 /// `PhysicsPipeline` is persistent because Rapier uses it as reusable scratch
 /// storage. Gravity defaults to zero so this adapter never invents an Earth
 /// boundary condition; reference scenarios must opt into gravity explicitly.
+///
+/// The consciousness callback's `BodyHandle` identity is mapped explicitly from
+/// a full Rapier `(index, generation)` handle. Unmapped bodies are intentionally
+/// not sent through the callback: arena indices are not valid cross-engine
+/// identities and can be reused after removal.
 pub struct RapierPhysicsBridge<C: PhysicsCallback<3>> {
     callback: C,
     physics_pipeline: PhysicsPipeline,
     gravity: Vec3,
+    callback_body_map: BTreeMap<(u32, u32), BodyHandle>,
     last_observations: Vec<RapierBodyObservation>,
     step_count: u64,
 }
@@ -77,6 +84,7 @@ impl<C: PhysicsCallback<3>> RapierPhysicsBridge<C> {
             callback,
             physics_pipeline: PhysicsPipeline::new(),
             gravity: Vec3::ZERO,
+            callback_body_map: BTreeMap::new(),
             last_observations: Vec::new(),
             step_count: 0,
         }
@@ -107,6 +115,32 @@ impl<C: PhysicsCallback<3>> RapierPhysicsBridge<C> {
 
     pub fn step_count(&self) -> u64 {
         self.step_count
+    }
+
+    /// Bind one full Rapier handle to the Symtropy body identity expected by
+    /// `PhysicsCallback`.
+    ///
+    /// A reused Rapier arena index with a new generation does not inherit the
+    /// previous binding because the complete raw handle is the map key.
+    pub fn bind_callback_body(
+        &mut self,
+        rapier_handle: RigidBodyHandle,
+        symtropy_handle: BodyHandle,
+    ) -> Option<BodyHandle> {
+        self.callback_body_map
+            .insert(rapier_handle.into_raw_parts(), symtropy_handle)
+    }
+
+    /// Remove a callback identity binding for a Rapier body.
+    pub fn unbind_callback_body(&mut self, rapier_handle: RigidBodyHandle) -> Option<BodyHandle> {
+        self.callback_body_map.remove(&rapier_handle.into_raw_parts())
+    }
+
+    /// Resolve the callback identity bound to a Rapier body.
+    pub fn callback_body(&self, rapier_handle: RigidBodyHandle) -> Option<BodyHandle> {
+        self.callback_body_map
+            .get(&rapier_handle.into_raw_parts())
+            .copied()
     }
 
     /// Observations captured immediately after the latest successful step or
@@ -142,11 +176,16 @@ impl<C: PhysicsCallback<3>> RapierPhysicsBridge<C> {
             "Rapier reference dt must be finite and non-negative"
         );
 
-        // 1. Modulate explicit user forces before Rapier advances the world.
+        // 1. Modulate explicit user forces only when the caller has supplied an
+        // explicit cross-engine identity binding. Never reinterpret Rapier's
+        // recyclable arena index as a Symtropy body identity.
         for (handle, body) in rigid_body_set.iter_mut() {
-            let body_handle = BodyHandle(handle.into_raw_parts().0 as usize);
-            let force = body.user_force();
+            let Some(body_handle) = self.callback_body_map.get(&handle.into_raw_parts()).copied()
+            else {
+                continue;
+            };
 
+            let force = body.user_force();
             let mut symtropy_force = SVector::<f64, 3>::from_element(0.0);
             symtropy_force[0] = force.x as f64;
             symtropy_force[1] = force.y as f64;
@@ -456,11 +495,13 @@ mod tests {
 
     struct CountingCallback {
         force_calls: Cell<usize>,
+        last_body: Cell<Option<BodyHandle>>,
     }
 
     impl PhysicsCallback<3> for CountingCallback {
-        fn modulate_force(&self, _body: BodyHandle, force: &SVector<f64, 3>) -> SVector<f64, 3> {
+        fn modulate_force(&self, body: BodyHandle, force: &SVector<f64, 3>) -> SVector<f64, 3> {
             self.force_calls.set(self.force_calls.get() + 1);
+            self.last_body.set(Some(body));
             *force
         }
 
@@ -479,7 +520,7 @@ mod tests {
     }
 
     #[test]
-    fn force_modulation_runs_once_per_body_before_the_step() {
+    fn unmapped_rapier_body_does_not_fabricate_callback_identity() {
         let (
             mut bodies,
             mut colliders,
@@ -494,9 +535,9 @@ mod tests {
 
         let handle = add_sphere_to_rapier(&mut bodies, &mut colliders, Vec3::ZERO, 0.5, 1.0);
         bodies[handle].add_force(vector![3.0, 0.0, 0.0], true);
-
         let callback = CountingCallback {
             force_calls: Cell::new(0),
+            last_body: Cell::new(None),
         };
         let mut bridge = RapierPhysicsBridge::new(callback);
 
@@ -515,8 +556,57 @@ mod tests {
             &(),
         );
 
-        assert_eq!(bridge.callback.force_calls.get(), 1);
+        assert_eq!(bridge.callback.force_calls.get(), 0);
+        assert_eq!(bridge.callback.last_body.get(), None);
         assert!(bodies[handle].linvel().x > 0.0);
+    }
+
+    #[test]
+    fn force_modulation_uses_explicit_body_mapping_once_before_the_step() {
+        let (
+            mut bodies,
+            mut colliders,
+            parameters,
+            mut islands,
+            mut broad_phase,
+            mut narrow_phase,
+            mut impulse_joints,
+            mut multibody_joints,
+            mut ccd,
+        ) = empty_rapier_state();
+
+        let handle = add_sphere_to_rapier(&mut bodies, &mut colliders, Vec3::ZERO, 0.5, 1.0);
+        bodies[handle].add_force(vector![3.0, 0.0, 0.0], true);
+
+        let callback = CountingCallback {
+            force_calls: Cell::new(0),
+            last_body: Cell::new(None),
+        };
+        let mut bridge = RapierPhysicsBridge::new(callback);
+        let expected_body = BodyHandle(42);
+        assert_eq!(bridge.bind_callback_body(handle, expected_body), None);
+        assert_eq!(bridge.callback_body(handle), Some(expected_body));
+
+        bridge.step(
+            1.0 / 60.0,
+            &mut bodies,
+            &mut colliders,
+            &parameters,
+            &mut islands,
+            &mut broad_phase,
+            &mut narrow_phase,
+            &mut impulse_joints,
+            &mut multibody_joints,
+            &mut ccd,
+            &(),
+            &(),
+        );
+
+        assert_eq!(bridge.callback.force_calls.get(), 1);
+        assert_eq!(bridge.callback.last_body.get(), Some(expected_body));
+        assert!(bodies[handle].linvel().x > 0.0);
+        assert_eq!(bridge.unbind_callback_body(handle), Some(expected_body));
+        assert_eq!(bridge.callback_body(handle), None);
     }
 
     #[test]
