@@ -1,0 +1,66 @@
+name: Exact Fabrication Lock Resolution Runner
+
+on:
+  pull_request:
+    branches: [ "main" ]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: exact-fabrication-lock-runner-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  resolve:
+    name: Regenerate exact Fabrication workspace lock
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: fabrication/exact-lock-resolution
+
+      - name: Set up Rust 1.96
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.96.0
+
+      - name: Resolve exact manifest graph
+        shell: bash
+        run: |
+          test -z "$(git status --porcelain)"
+          cargo check -p symtropy-fabrication --lib
+          actual=$(git diff --name-only | sort)
+          unexpected=$(printf '%s\n' "$actual" | grep -v '^Cargo.lock$' || true)
+          if test -n "$unexpected"; then
+            echo "dependency resolution changed unexpected tracked paths:" >&2
+            echo "$unexpected" >&2
+            exit 1
+          fi
+          if git diff --quiet -- Cargo.lock; then
+            echo "Cargo.lock already matches the exact manifests."
+          else
+            echo "Exact generated Cargo.lock delta:"
+            git diff -- Cargo.lock
+          fi
+
+      - name: Commit generated lockfile only
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          if ! git diff --quiet -- Cargo.lock; then
+            git add Cargo.lock
+            git commit -m "chore(lock): sync Fabrication workspace resolution"
+          fi
+
+      - name: Prove exact lock supports Fabrication check
+        run: cargo check --locked -p symtropy-fabrication --lib
+
+      - name: Prove source tree stayed untouched
+        shell: bash
+        run: |
+          test -z "$(git status --porcelain)"
+
+      - name: Push exact generated lock head
+        run: git push origin HEAD:fabrication/exact-lock-resolution
