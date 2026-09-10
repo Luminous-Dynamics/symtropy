@@ -1,0 +1,324 @@
+name: Trusted semantic oracle executor v0.11r2
+
+on:
+  workflow_call:
+
+jobs:
+  game-state-oracle:
+    name: Trusted target-base game-state oracle
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      id-token: write
+      attestations: write
+
+    steps:
+      - name: Validate exact provider and signer identity
+        shell: bash
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          REPOSITORY: ${{ github.repository }}
+          HEAD_REPOSITORY: ${{ github.event.pull_request.head.repo.full_name }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          WORKFLOW_REPOSITORY: ${{ job.workflow_repository }}
+          WORKFLOW_SHA: ${{ job.workflow_sha }}
+          WORKFLOW_REF: ${{ job.workflow_ref }}
+          RUNNER_CLASS: ${{ runner.environment }}
+        run: |
+          set -euo pipefail
+          test "$EVENT_NAME" = "pull_request" || {
+            echo "DENY: pilot accepts pull_request context only" >&2
+            exit 2
+          }
+          test "$REPOSITORY" = "Luminous-Dynamics/symtropy" || {
+            echo "DENY: unexpected caller repository" >&2
+            exit 2
+          }
+          test "$HEAD_REPOSITORY" = "$REPOSITORY" || {
+            echo "DENY: fork pull requests are outside this pilot" >&2
+            exit 2
+          }
+          test "$RUNNER_CLASS" = "github-hosted" || {
+            echo "DENY: pilot requires GitHub-hosted runner" >&2
+            exit 2
+          }
+          test -n "$BASE_SHA" && test -n "$HEAD_SHA" && test "$BASE_SHA" != "$HEAD_SHA" || {
+            echo "DENY: missing or degenerate immutable PR subject" >&2
+            exit 2
+          }
+          test "$WORKFLOW_REPOSITORY" = "$REPOSITORY" || {
+            echo "DENY: trusted workflow must come from Symtropy target authority" >&2
+            exit 2
+          }
+          case "$WORKFLOW_REF" in
+            "$WORKFLOW_REPOSITORY/.github/workflows/promotion-oracle-execution-trusted-v011.yml@"*) ;;
+            *)
+              echo "DENY: unexpected reusable workflow identity" >&2
+              exit 2
+              ;;
+          esac
+          echo "trusted_workflow_sha=$WORKFLOW_SHA"
+
+      - name: Checkout exact target-base harness
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          ref: ${{ github.event.pull_request.base.sha }}
+          fetch-depth: 1
+          path: harness
+          persist-credentials: false
+
+      - name: Checkout exact candidate SUT
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 1
+          path: candidate
+          persist-credentials: false
+
+      - name: Verify exact checkout identities
+        shell: bash
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          set -euo pipefail
+          test "$(git -C harness rev-parse HEAD)" = "$BASE_SHA"
+          test "$(git -C candidate rev-parse HEAD)" = "$HEAD_SHA"
+          test -z "$(git -C harness status --porcelain=v1 --untracked-files=all)"
+          test -z "$(git -C candidate status --porcelain=v1 --untracked-files=all)"
+
+      - name: Establish target-base authority inputs and candidate shadow
+        id: identity
+        shell: bash
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          set -euo pipefail
+          ORACLE='crates/domains/symtropy-game-state/tests/promotion_oracle.rs'
+          MANIFEST='crates/domains/symtropy-game-state/Cargo.toml'
+          SOURCE='crates/domains/symtropy-game-state/src/lib.rs'
+          LOCK='Cargo.lock'
+          TOOLCHAIN='rust-toolchain.toml'
+
+          for path in "$ORACLE" "$MANIFEST" "$SOURCE" "$LOCK" "$TOOLCHAIN"; do
+            test -f "harness/$path" || {
+              echo "DENY: target-base authority input missing: $path" >&2
+              exit 2
+            }
+          done
+          test -f "candidate/$SOURCE" || {
+            echo "DENY: candidate SUT source missing" >&2
+            exit 2
+          }
+          test -f "candidate/$ORACLE" || {
+            echo "DENY: adversarial candidate oracle copy missing" >&2
+            exit 2
+          }
+
+          base_oracle_sha256=$(sha256sum "harness/$ORACLE" | awk '{print $1}')
+          candidate_oracle_sha256=$(sha256sum "candidate/$ORACLE" | awk '{print $1}')
+          test "$base_oracle_sha256" != "$candidate_oracle_sha256" || {
+            echo "DENY: pilot requires candidate oracle bytes to differ from target-base authority" >&2
+            exit 2
+          }
+
+          for spec in \
+            "oracle:$ORACLE" \
+            "manifest:$MANIFEST" \
+            "lock:$LOCK" \
+            "toolchain:$TOOLCHAIN"; do
+            name=${spec%%:*}
+            path=${spec#*:}
+            blob=$(git -C harness rev-parse "$BASE_SHA:$path")
+            raw=$(sha256sum "harness/$path" | awk '{print $1}')
+            echo "${name}_blob=$blob" >> "$GITHUB_OUTPUT"
+            echo "${name}_sha256=$raw" >> "$GITHUB_OUTPUT"
+          done
+
+          source_blob=$(git -C candidate rev-parse "$HEAD_SHA:$SOURCE")
+          source_sha256=$(sha256sum "candidate/$SOURCE" | awk '{print $1}')
+          echo "source_blob=$source_blob" >> "$GITHUB_OUTPUT"
+          echo "source_sha256=$source_sha256" >> "$GITHUB_OUTPUT"
+          echo "candidate_oracle_sha256=$candidate_oracle_sha256" >> "$GITHUB_OUTPUT"
+
+      - name: Inject only candidate source into target-base harness
+        shell: bash
+        run: |
+          set -euo pipefail
+          cp candidate/crates/domains/symtropy-game-state/src/lib.rs \
+             harness/crates/domains/symtropy-game-state/src/lib.rs
+          test "$(sha256sum harness/crates/domains/symtropy-game-state/src/lib.rs | awk '{print $1}')" = \
+               "${{ steps.identity.outputs.source_sha256 }}"
+          test "$(sha256sum harness/crates/domains/symtropy-game-state/tests/promotion_oracle.rs | awk '{print $1}')" = \
+               "${{ steps.identity.outputs.oracle_sha256 }}"
+
+      - name: Install exact Rust toolchain
+        uses: dtolnay/rust-toolchain@6bed0761d98439e5a578e2877258200ad565ba87
+        with:
+          toolchain: 1.96.0
+
+      - name: Compile exact authority oracle binary
+        shell: bash
+        working-directory: harness
+        env:
+          CARGO_HOME: ${{ runner.temp }}/luminous-oracle-cargo-home
+          CARGO_TERM_COLOR: always
+          RUSTFLAGS: ''
+          CARGO_ENCODED_RUSTFLAGS: ''
+          RUSTC_WRAPPER: ''
+          RUSTC_WORKSPACE_WRAPPER: ''
+        run: |
+          set -euo pipefail
+          cargo test --locked -p symtropy-game-state --test promotion_oracle \
+            --no-run --message-format=json > "$RUNNER_TEMP/oracle-build.json"
+          python3 - "$RUNNER_TEMP/oracle-build.json" "$RUNNER_TEMP/oracle-test-binary" <<'PY'
+          import json
+          import pathlib
+          import sys
+
+          log = pathlib.Path(sys.argv[1])
+          out = pathlib.Path(sys.argv[2])
+          binaries = []
+          for line in log.read_text(encoding="utf-8").splitlines():
+              try:
+                  item = json.loads(line)
+              except json.JSONDecodeError:
+                  continue
+              if item.get("reason") != "compiler-artifact":
+                  continue
+              target = item.get("target") or {}
+              if target.get("name") != "promotion_oracle" or "test" not in (target.get("kind") or []):
+                  continue
+              executable = item.get("executable")
+              if executable:
+                  binaries.append(executable)
+          if len(binaries) != 1:
+              raise SystemExit(f"DENY: expected one promotion_oracle test binary, got {binaries!r}")
+          out.write_text(binaries[0] + "\n", encoding="utf-8")
+          PY
+          test -x "$(cat "$RUNNER_TEMP/oracle-test-binary")"
+
+      - name: Execute exact immutable semantic oracle
+        id: oracle
+        shell: bash
+        working-directory: harness
+        run: |
+          set +e
+          "$(cat "$RUNNER_TEMP/oracle-test-binary")" --nocapture
+          rc=$?
+          set -e
+          echo "exit_code=$rc" >> "$GITHUB_OUTPUT"
+          if [ "$rc" -eq 0 ]; then
+            echo "decision=PASS" >> "$GITHUB_OUTPUT"
+          else
+            echo "decision=FAIL" >> "$GITHUB_OUTPUT"
+          fi
+          exit 0
+
+      - name: Re-verify authority inputs after semantic execution
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(sha256sum harness/crates/domains/symtropy-game-state/tests/promotion_oracle.rs | awk '{print $1}')" = "${{ steps.identity.outputs.oracle_sha256 }}"
+          test "$(sha256sum harness/crates/domains/symtropy-game-state/Cargo.toml | awk '{print $1}')" = "${{ steps.identity.outputs.manifest_sha256 }}"
+          test "$(sha256sum harness/Cargo.lock | awk '{print $1}')" = "${{ steps.identity.outputs.lock_sha256 }}"
+          test "$(sha256sum harness/rust-toolchain.toml | awk '{print $1}')" = "${{ steps.identity.outputs.toolchain_sha256 }}"
+          test "$(sha256sum harness/crates/domains/symtropy-game-state/src/lib.rs | awk '{print $1}')" = "${{ steps.identity.outputs.source_sha256 }}"
+
+      - name: Build canonical PASS or FAIL evidence subject
+        shell: bash
+        env:
+          REPOSITORY: ${{ github.repository }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          WORKFLOW_SHA: ${{ job.workflow_sha }}
+          ORACLE_DECISION: ${{ steps.oracle.outputs.decision }}
+          ORACLE_EXIT_CODE: ${{ steps.oracle.outputs.exit_code }}
+          ORACLE_BLOB: ${{ steps.identity.outputs.oracle_blob }}
+          ORACLE_SHA256: ${{ steps.identity.outputs.oracle_sha256 }}
+          CANDIDATE_ORACLE_SHA256: ${{ steps.identity.outputs.candidate_oracle_sha256 }}
+          SOURCE_BLOB: ${{ steps.identity.outputs.source_blob }}
+          SOURCE_SHA256: ${{ steps.identity.outputs.source_sha256 }}
+          MANIFEST_BLOB: ${{ steps.identity.outputs.manifest_blob }}
+          MANIFEST_SHA256: ${{ steps.identity.outputs.manifest_sha256 }}
+          LOCK_BLOB: ${{ steps.identity.outputs.lock_blob }}
+          LOCK_SHA256: ${{ steps.identity.outputs.lock_sha256 }}
+          TOOLCHAIN_BLOB: ${{ steps.identity.outputs.toolchain_blob }}
+          TOOLCHAIN_SHA256: ${{ steps.identity.outputs.toolchain_sha256 }}
+        run: |
+          set -euo pipefail
+          rustc -Vv > "$RUNNER_TEMP/rustc-vv.txt"
+          python3 - "$RUNNER_TEMP/promotion-oracle-pilot-result.json" <<'PY'
+          import json
+          import os
+          import pathlib
+          import sys
+
+          def ident(blob, digest):
+              return {"git_blob_sha": blob, "raw_sha256": digest}
+
+          payload = {
+              "schema_version": 1,
+              "kind": "promotion-semantic-oracle-execution-pilot",
+              "repository": os.environ["REPOSITORY"],
+              "decision": os.environ["ORACLE_DECISION"],
+              "oracle_exit_code": int(os.environ["ORACLE_EXIT_CODE"]),
+              "base_sha": os.environ["BASE_SHA"],
+              "head_sha": os.environ["HEAD_SHA"],
+              "trusted_workflow_sha": os.environ["WORKFLOW_SHA"],
+              "command_id": "symtropy-game-state-promotion-oracle-v1",
+              "system_under_test": {
+                  "path": "crates/domains/symtropy-game-state/src/lib.rs",
+                  **ident(os.environ["SOURCE_BLOB"], os.environ["SOURCE_SHA256"]),
+              },
+              "authority_oracle": {
+                  "path": "crates/domains/symtropy-game-state/tests/promotion_oracle.rs",
+                  **ident(os.environ["ORACLE_BLOB"], os.environ["ORACLE_SHA256"]),
+              },
+              "trusted_build_inputs": {
+                  "manifest": ident(os.environ["MANIFEST_BLOB"], os.environ["MANIFEST_SHA256"]),
+                  "lockfile": ident(os.environ["LOCK_BLOB"], os.environ["LOCK_SHA256"]),
+                  "toolchain": ident(os.environ["TOOLCHAIN_BLOB"], os.environ["TOOLCHAIN_SHA256"]),
+              },
+              "candidate_shadow": {
+                  "oracle_raw_sha256": os.environ["CANDIDATE_ORACLE_SHA256"],
+                  "differs_from_authority": os.environ["CANDIDATE_ORACLE_SHA256"] != os.environ["ORACLE_SHA256"],
+              },
+          }
+          pathlib.Path(sys.argv[1]).write_bytes(
+              json.dumps(payload, sort_keys=True, separators=(",", ":"), ensure_ascii=False).encode("utf-8") + b"\n"
+          )
+          PY
+          cat "$RUNNER_TEMP/promotion-oracle-pilot-result.json"
+
+      - name: Attest exact PASS or FAIL evidence subject
+        uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4
+        with:
+          subject-path: ${{ runner.temp }}/promotion-oracle-pilot-result.json
+
+      - name: Preserve exact pilot evidence bytes
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: luminous-oracle-pilot-${{ github.event.pull_request.number }}-${{ github.event.pull_request.head.sha }}
+          path: |
+            ${{ runner.temp }}/promotion-oracle-pilot-result.json
+            ${{ runner.temp }}/rustc-vv.txt
+            ${{ runner.temp }}/oracle-build.json
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Enforce semantic oracle verdict
+        shell: bash
+        env:
+          ORACLE_DECISION: ${{ steps.oracle.outputs.decision }}
+          ORACLE_EXIT_CODE: ${{ steps.oracle.outputs.exit_code }}
+        run: |
+          set -euo pipefail
+          test "$ORACLE_DECISION" = "PASS" && test "$ORACLE_EXIT_CODE" -eq 0 || {
+            echo "EXPECTED ORACLE DENIAL: target-base semantic oracle did not pass" >&2
+            exit 1
+          }
