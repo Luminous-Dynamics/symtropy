@@ -57,6 +57,12 @@ jobs:
     - name: Check Formatting
       run: cargo fmt --all -- --check
 
+    # Evidence must be reproducible from the committed dependency graph. Run
+    # this before Clippy/tests can update Cargo.lock in the runner workspace.
+    - name: Verify Locked Dependency Graph
+      if: runner.os == 'Linux'
+      run: cargo metadata --locked --format-version 1 --no-deps > /dev/null
+
     # Repo-invariant guards. These scripts existed since at least June but were
     # wired into nothing, so both of them silently failed against the tree for
     # weeks: check-workspace.sh still asserted `Bevy 0.18.1` (the workspace has
@@ -93,7 +99,7 @@ jobs:
       if: runner.os == 'Linux'
       env:
         SYMTROPY_EVIDENCE_SOURCE_REVISION: ${{ github.event.pull_request.head.sha || github.sha }}
-      run: cargo run -p symtropy-fluid --example continuum_verification_evidence --quiet > continuum-verification-evidence.json
+      run: cargo run --locked -p symtropy-fluid --example continuum_verification_evidence --quiet > continuum-verification-evidence.json
 
     - name: Upload Fluid Verification Evidence
       if: runner.os == 'Linux'
