@@ -9,6 +9,7 @@
 mod canonical;
 mod chromosome_map;
 mod chromosome_recombination;
+mod chromosome_stochastic;
 mod demographic_admixture_execution;
 mod demographic_event;
 mod demographic_execution;
@@ -26,6 +27,7 @@ mod heredity;
 mod ids;
 mod linked_gamete;
 mod linked_offspring;
+mod marker_recombination;
 mod metapopulation;
 mod operators;
 mod phased_heredity;
@@ -112,6 +114,12 @@ pub use linked_offspring::{
     assemble_diploid_linked_offspring, DiploidLinkedOffspringDerivation,
     DiploidLinkedOffspringProvenance, DiploidLinkedOffspringProvenanceDigest,
     LinkedGameteContributionEvidence, DIPLOID_LINKED_OFFSPRING_DERIVATION_VERSION,
+};
+pub use marker_recombination::{
+    derive_marker_marginal_poisson_linked_gamete, AdjacentMarkerParityEvidence,
+    CrossoverParity, MarkerMarginalChromosomeEvidence, MarkerMarginalGameteDerivation,
+    MarkerMarginalGameteDerivationProvenance, MarkerMarginalGameteDerivationProvenanceDigest,
+    MARKER_MARGINAL_GAMETE_DERIVATION_VERSION,
 };
 pub use metapopulation::{
     MetapopulationSnapshot, MetapopulationSnapshotDigest, MetapopulationSnapshotEntry,
