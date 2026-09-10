@@ -1,6 +1,9 @@
 use crate::{
     canonical::{fmt_hex, put_text, put_u64},
     demographic_history::DemographicEventExecutionDigest,
+    demographic_source_authority::{
+        validate_demographic_source_authority, DemographicSourceAuthority,
+    },
     AlleleId, DemographicEventDeclaration, DemographicEventDeclarationDigest,
     DemographicEventKind, DemographicInterventionCursor, DemographicInterventionCursorDigest,
     DemographicStructureTransition, DemographicStructureTransitionDigest, EvolutionError,
@@ -8,6 +11,7 @@ use crate::{
     MetapopulationSnapshotDigest, PopulationGeneration, PopulationGeneticState,
     PopulationGeneticStateDigest, PopulationId, PopulationStructureProfile,
     PopulationStructureProfileDigest, PopulationTrajectoryPoint, PopulationTrajectoryPointDigest,
+    ValidatedDemographicInterventionSource,
 };
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
@@ -110,12 +114,74 @@ impl DemographicSplitExecutionProvenance {
         structure_transition: &DemographicStructureTransition,
         result: &DemographicSplitExecutionResult,
     ) -> Result<(), EvolutionError> {
-        source_cursor.validate_root_current(
+        self.validate_with_source_authority(
+            DemographicSourceAuthority::Root,
+            schema,
+            source_structure,
+            successor_structure,
+            source_populations,
+            source_points,
+            source_snapshot,
+            source_cursor,
+            event,
+            structure_transition,
+            result,
+        )
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    pub fn validate_after_proven_predecessor(
+        &self,
+        validated_source: &ValidatedDemographicInterventionSource,
+        schema: &HereditarySchema,
+        source_structure: &PopulationStructureProfile,
+        successor_structure: &PopulationStructureProfile,
+        source_populations: &BTreeMap<PopulationId, PopulationGeneticState>,
+        source_points: &BTreeMap<PopulationId, PopulationTrajectoryPoint>,
+        source_snapshot: &MetapopulationSnapshot,
+        source_cursor: &DemographicInterventionCursor,
+        event: &DemographicEventDeclaration,
+        structure_transition: &DemographicStructureTransition,
+        result: &DemographicSplitExecutionResult,
+    ) -> Result<(), EvolutionError> {
+        self.validate_with_source_authority(
+            DemographicSourceAuthority::Proven(validated_source),
+            schema,
+            source_structure,
+            successor_structure,
+            source_populations,
+            source_points,
+            source_snapshot,
+            source_cursor,
+            event,
+            structure_transition,
+            result,
+        )
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    fn validate_with_source_authority(
+        &self,
+        source_authority: DemographicSourceAuthority<'_>,
+        schema: &HereditarySchema,
+        source_structure: &PopulationStructureProfile,
+        successor_structure: &PopulationStructureProfile,
+        source_populations: &BTreeMap<PopulationId, PopulationGeneticState>,
+        source_points: &BTreeMap<PopulationId, PopulationTrajectoryPoint>,
+        source_snapshot: &MetapopulationSnapshot,
+        source_cursor: &DemographicInterventionCursor,
+        event: &DemographicEventDeclaration,
+        structure_transition: &DemographicStructureTransition,
+        result: &DemographicSplitExecutionResult,
+    ) -> Result<(), EvolutionError> {
+        validate_demographic_source_authority(
+            source_authority,
             schema,
             source_structure,
             source_populations,
             source_points,
             source_snapshot,
+            source_cursor,
         )?;
         event.validate_current(
             schema,
@@ -261,12 +327,68 @@ pub fn execute_conservative_population_split(
     event: &DemographicEventDeclaration,
     structure_transition: &DemographicStructureTransition,
 ) -> Result<DemographicSplitExecutionResult, EvolutionError> {
-    source_cursor.validate_root_current(
+    execute_split_with_source_authority(
+        DemographicSourceAuthority::Root,
+        schema,
+        source_structure,
+        successor_structure,
+        source_populations,
+        source_points,
+        source_snapshot,
+        source_cursor,
+        event,
+        structure_transition,
+    )
+}
+
+#[allow(clippy::too_many_arguments)]
+pub fn execute_conservative_population_split_after_proven_history(
+    validated_source: &ValidatedDemographicInterventionSource,
+    schema: &HereditarySchema,
+    source_structure: &PopulationStructureProfile,
+    successor_structure: &PopulationStructureProfile,
+    source_populations: &BTreeMap<PopulationId, PopulationGeneticState>,
+    source_points: &BTreeMap<PopulationId, PopulationTrajectoryPoint>,
+    source_snapshot: &MetapopulationSnapshot,
+    source_cursor: &DemographicInterventionCursor,
+    event: &DemographicEventDeclaration,
+    structure_transition: &DemographicStructureTransition,
+) -> Result<DemographicSplitExecutionResult, EvolutionError> {
+    execute_split_with_source_authority(
+        DemographicSourceAuthority::Proven(validated_source),
+        schema,
+        source_structure,
+        successor_structure,
+        source_populations,
+        source_points,
+        source_snapshot,
+        source_cursor,
+        event,
+        structure_transition,
+    )
+}
+
+#[allow(clippy::too_many_arguments)]
+fn execute_split_with_source_authority(
+    source_authority: DemographicSourceAuthority<'_>,
+    schema: &HereditarySchema,
+    source_structure: &PopulationStructureProfile,
+    successor_structure: &PopulationStructureProfile,
+    source_populations: &BTreeMap<PopulationId, PopulationGeneticState>,
+    source_points: &BTreeMap<PopulationId, PopulationTrajectoryPoint>,
+    source_snapshot: &MetapopulationSnapshot,
+    source_cursor: &DemographicInterventionCursor,
+    event: &DemographicEventDeclaration,
+    structure_transition: &DemographicStructureTransition,
+) -> Result<DemographicSplitExecutionResult, EvolutionError> {
+    validate_demographic_source_authority(
+        source_authority,
         schema,
         source_structure,
         source_populations,
         source_points,
         source_snapshot,
+        source_cursor,
     )?;
     event.validate_current(
         schema,
@@ -357,7 +479,8 @@ pub fn execute_conservative_population_split(
         history_cursor,
         provenance,
     };
-    result.provenance.validate_current(
+    result.provenance.validate_with_source_authority(
+        source_authority,
         schema,
         source_structure,
         successor_structure,

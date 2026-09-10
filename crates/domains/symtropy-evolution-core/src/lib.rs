@@ -66,9 +66,10 @@ pub use demographic_proof_bundle::{
 };
 pub use demographic_source_authority::ValidatedDemographicInterventionSource;
 pub use demographic_split_execution::{
-    execute_conservative_population_split, DemographicSplitExecutionModel,
-    DemographicSplitExecutionProvenance, DemographicSplitExecutionProvenanceDigest,
-    DemographicSplitExecutionResult,
+    execute_conservative_population_split,
+    execute_conservative_population_split_after_proven_history,
+    DemographicSplitExecutionModel, DemographicSplitExecutionProvenance,
+    DemographicSplitExecutionProvenanceDigest, DemographicSplitExecutionResult,
 };
 pub use demographic_structure_transition::{
     DemographicStructureTransition, DemographicStructureTransitionDigest,
