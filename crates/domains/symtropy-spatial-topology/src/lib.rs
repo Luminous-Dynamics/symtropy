@@ -125,26 +125,41 @@ pub enum TopologyFacet {
     WeatherExposure,
 }
 
-/// Topological relation only. `QualifiedClass` is an opaque class/profile
-/// identity supplied by an owning projection; it is not a numerical
-/// permeability, conductance, attenuation, or solver result.
+/// What the exact boundary snapshot says for one facet.
+///
+/// `Unspecified` is deliberately distinct from `Disconnected`. Missing evidence
+/// must never become an assertion that a pressure boundary seals, a wall is
+/// opaque, or a path is blocked. Consumers may treat `Unspecified` as
+/// fail-closed for their own operation, but they must retain that epistemic
+/// distinction.
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum FacetRelation {
+    Unspecified,
     Disconnected,
     Connected,
+    /// Opaque relation class supplied by an owning boundary/physics projection.
+    /// This is not a numerical permeability, dB attenuation, conductance, etc.
     QualifiedClass { class_id: StableId },
 }
 
 impl FacetRelation {
     fn validate(&self) -> Result<(), TopologyError> {
         match self {
-            Self::Disconnected | Self::Connected => Ok(()),
+            Self::Unspecified | Self::Disconnected | Self::Connected => Ok(()),
             Self::QualifiedClass { class_id } => validate_id(class_id),
         }
     }
 
     pub const fn participates_in_graph(&self) -> bool {
-        !matches!(self, Self::Disconnected)
+        matches!(self, Self::Connected | Self::QualifiedClass { .. })
+    }
+
+    pub const fn is_known_disconnected(&self) -> bool {
+        matches!(self, Self::Disconnected)
+    }
+
+    pub const fn is_unspecified(&self) -> bool {
+        matches!(self, Self::Unspecified)
     }
 }
 
@@ -156,6 +171,9 @@ pub struct InterfaceFacetState {
 
 impl InterfaceFacetState {
     pub fn new(facet: TopologyFacet, relation: FacetRelation) -> Result<Self, TopologyError> {
+        if relation.is_unspecified() {
+            return Err(TopologyError::ExplicitUnspecifiedFacet(facet));
+        }
         relation.validate()?;
         Ok(Self { facet, relation })
     }
@@ -212,14 +230,13 @@ impl BoundaryInterfaceSnapshot {
         &self.source_refs
     }
 
-    /// Missing facets are conservatively disconnected; a consumer never gets
-    /// implicit transport merely because another facet is connected.
+    /// Missing facet data is `Unspecified`, never silently `Disconnected`.
     pub fn relation(&self, facet: TopologyFacet) -> FacetRelation {
         self.facet_states
             .binary_search_by_key(&facet, |state| state.facet)
             .ok()
             .map(|index| self.facet_states[index].relation.clone())
-            .unwrap_or(FacetRelation::Disconnected)
+            .unwrap_or(FacetRelation::Unspecified)
     }
 
     fn validate_canonical(&self) -> Result<(), TopologyError> {
@@ -235,6 +252,9 @@ impl BoundaryInterfaceSnapshot {
             MAX_FACETS_PER_INTERFACE,
         )?;
         for state in &self.facet_states {
+            if state.relation.is_unspecified() {
+                return Err(TopologyError::ExplicitUnspecifiedFacet(state.facet));
+            }
             state.relation.validate()?;
         }
         for pair in self.facet_states.windows(2) {
@@ -391,7 +411,7 @@ impl BoundarySnapshotRef {
 }
 
 /// Deterministic facet-selection profile. Geometric decomposition itself is
-/// intentionally outside PB-04a and will require its own exact profile later.
+/// outside PB-04a and requires its own exact profile in a later tranche.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct TopologyProfile {
     pub profile_id: StableId,
@@ -436,32 +456,54 @@ impl TopologyProfile {
     }
 }
 
+/// One interface's state in one facet projection, retaining source provenance.
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
-pub struct TopologyEdge {
+pub struct TopologyInterfaceRelation {
     pub interface_id: BoundaryInterfaceId,
     pub first_region: SpatialRegionId,
     pub second_region: SpatialRegionId,
     pub relation: FacetRelation,
+    source_refs: Vec<ExactSourceRef>,
+}
+
+impl TopologyInterfaceRelation {
+    pub fn source_refs(&self) -> &[ExactSourceRef] {
+        &self.source_refs
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct FacetGraph {
     pub facet: TopologyFacet,
-    edges: Vec<TopologyEdge>,
+    interfaces: Vec<TopologyInterfaceRelation>,
 }
 
 impl FacetGraph {
-    pub fn edges(&self) -> &[TopologyEdge] {
-        &self.edges
+    /// Includes connected, disconnected, and unspecified interfaces so a
+    /// consumer can distinguish a known barrier from missing facet evidence.
+    pub fn interfaces(&self) -> &[TopologyInterfaceRelation] {
+        &self.interfaces
     }
 
+    pub fn relation(&self, interface_id: &BoundaryInterfaceId) -> Option<&FacetRelation> {
+        self.interfaces
+            .binary_search_by(|value| value.interface_id.cmp(interface_id))
+            .ok()
+            .map(|index| &self.interfaces[index].relation)
+    }
+
+    /// Returns only neighbors for relations known to participate in this facet.
+    /// `Unspecified` and known `Disconnected` interfaces never create a path.
     pub fn neighbors(&self, region: &SpatialRegionId) -> Vec<SpatialRegionId> {
         let mut result = BTreeSet::new();
-        for edge in &self.edges {
-            if &edge.first_region == region {
-                result.insert(edge.second_region.clone());
-            } else if &edge.second_region == region {
-                result.insert(edge.first_region.clone());
+        for interface in &self.interfaces {
+            if !interface.relation.participates_in_graph() {
+                continue;
+            }
+            if &interface.first_region == region {
+                result.insert(interface.second_region.clone());
+            } else if &interface.second_region == region {
+                result.insert(interface.first_region.clone());
             }
         }
         result.into_iter().collect()
@@ -495,20 +537,19 @@ impl TopologySnapshot {
 
         let mut graphs = Vec::with_capacity(profile.facets().len());
         for &facet in profile.facets() {
-            let mut edges = Vec::new();
-            for interface in boundary.interfaces() {
-                let relation = interface.relation(facet);
-                if relation.participates_in_graph() {
-                    edges.push(TopologyEdge {
-                        interface_id: interface.id.clone(),
-                        first_region: interface.first_region.clone(),
-                        second_region: interface.second_region.clone(),
-                        relation,
-                    });
-                }
-            }
-            edges.sort();
-            graphs.push(FacetGraph { facet, edges });
+            let mut interfaces = boundary
+                .interfaces()
+                .iter()
+                .map(|interface| TopologyInterfaceRelation {
+                    interface_id: interface.id.clone(),
+                    first_region: interface.first_region.clone(),
+                    second_region: interface.second_region.clone(),
+                    relation: interface.relation(facet),
+                    source_refs: interface.source_refs().to_vec(),
+                })
+                .collect::<Vec<_>>();
+            interfaces.sort_by(|left, right| left.interface_id.cmp(&right.interface_id));
+            graphs.push(FacetGraph { facet, interfaces });
         }
 
         debug_assert_eq!(&before, boundary);
@@ -550,6 +591,7 @@ pub enum TopologyError {
     UnsupportedSchema(u32),
     RegionsRequired,
     ProfileFacetsRequired,
+    ExplicitUnspecifiedFacet(TopologyFacet),
     DuplicateRegion(SpatialRegionId),
     DuplicateInterface(BoundaryInterfaceId),
     DuplicateFacet {
@@ -589,6 +631,10 @@ impl fmt::Display for TopologyError {
             }
             Self::RegionsRequired => write!(formatter, "boundary snapshot requires at least one region"),
             Self::ProfileFacetsRequired => write!(formatter, "topology profile requires at least one facet"),
+            Self::ExplicitUnspecifiedFacet(facet) => write!(
+                formatter,
+                "facet {facet:?} cannot be explicitly stored as unspecified; omit it instead"
+            ),
             Self::DuplicateRegion(id) => write!(formatter, "duplicate spatial region {}", id.0),
             Self::DuplicateInterface(id) => write!(formatter, "duplicate boundary interface {}", id.0),
             Self::DuplicateFacet { interface_id, facet } => write!(
@@ -786,6 +832,27 @@ mod tests {
     }
 
     #[test]
+    fn missing_facet_is_unknown_not_a_false_blocking_claim() {
+        let interface = BoundaryInterfaceSnapshot::new(
+            interface_id("interface:unknown-pressure"),
+            region("region:inside"),
+            region("region:outside"),
+            facets(&[(TopologyFacet::Visibility, FacetRelation::Connected)]),
+            vec![source("boundary:unknown-pressure", 1, "digest")],
+        )
+        .unwrap();
+        assert_eq!(interface.relation(TopologyFacet::AirPressure), FacetRelation::Unspecified);
+
+        let topology = TopologySnapshot::derive(&snapshot(vec![interface]), &full_profile()).unwrap();
+        let graph = topology.graph(TopologyFacet::AirPressure).unwrap();
+        let relation = graph
+            .relation(&interface_id("interface:unknown-pressure"))
+            .unwrap();
+        assert!(relation.is_unspecified());
+        assert!(graph.neighbors(&region("region:inside")).is_empty());
+    }
+
+    #[test]
     fn closed_door_blocks_bodies_without_claiming_perfect_air_or_sound_isolation() {
         let door = BoundaryInterfaceSnapshot::new(
             interface_id("interface:door"),
@@ -802,9 +869,20 @@ mod tests {
         .unwrap();
         let topology = TopologySnapshot::derive(&snapshot(vec![door]), &full_profile()).unwrap();
 
-        assert!(topology.graph(TopologyFacet::Occupancy).unwrap().edges().is_empty());
-        assert_eq!(topology.graph(TopologyFacet::Acoustic).unwrap().edges().len(), 1);
-        assert_eq!(topology.graph(TopologyFacet::AirPressure).unwrap().edges().len(), 1);
+        let occupancy = topology.graph(TopologyFacet::Occupancy).unwrap();
+        assert!(occupancy.neighbors(&region("region:inside")).is_empty());
+        assert!(occupancy
+            .relation(&interface_id("interface:door"))
+            .unwrap()
+            .is_known_disconnected());
+        assert_eq!(
+            topology.graph(TopologyFacet::Acoustic).unwrap().neighbors(&region("region:inside")),
+            vec![region("region:outside")]
+        );
+        assert_eq!(
+            topology.graph(TopologyFacet::AirPressure).unwrap().neighbors(&region("region:inside")),
+            vec![region("region:outside")]
+        );
     }
 
     #[test]
@@ -824,9 +902,15 @@ mod tests {
         .unwrap();
         let topology = TopologySnapshot::derive(&snapshot(vec![window]), &full_profile()).unwrap();
 
-        assert!(topology.graph(TopologyFacet::Occupancy).unwrap().edges().is_empty());
-        assert_eq!(topology.graph(TopologyFacet::Visibility).unwrap().edges().len(), 1);
-        assert_eq!(topology.graph(TopologyFacet::Thermal).unwrap().edges().len(), 1);
+        assert!(topology.graph(TopologyFacet::Occupancy).unwrap().neighbors(&region("region:inside")).is_empty());
+        assert_eq!(
+            topology.graph(TopologyFacet::Visibility).unwrap().neighbors(&region("region:inside")),
+            vec![region("region:outside")]
+        );
+        assert_eq!(
+            topology.graph(TopologyFacet::Thermal).unwrap().neighbors(&region("region:inside")),
+            vec![region("region:outside")]
+        );
     }
 
     #[test]
@@ -845,8 +929,27 @@ mod tests {
         .unwrap();
         let topology = TopologySnapshot::derive(&snapshot(vec![vent]), &full_profile()).unwrap();
 
-        assert!(topology.graph(TopologyFacet::Occupancy).unwrap().edges().is_empty());
-        assert_eq!(topology.graph(TopologyFacet::AirPressure).unwrap().edges().len(), 1);
+        assert!(topology.graph(TopologyFacet::Occupancy).unwrap().neighbors(&region("region:inside")).is_empty());
+        assert_eq!(
+            topology.graph(TopologyFacet::AirPressure).unwrap().neighbors(&region("region:inside")),
+            vec![region("region:outside")]
+        );
+    }
+
+    #[test]
+    fn projection_retains_interface_source_provenance() {
+        let door_ref = source("device:door", 3, "closed");
+        let door = BoundaryInterfaceSnapshot::new(
+            interface_id("interface:door"),
+            region("region:inside"),
+            region("region:outside"),
+            facets(&[(TopologyFacet::Occupancy, FacetRelation::Disconnected)]),
+            vec![door_ref.clone()],
+        )
+        .unwrap();
+        let topology = TopologySnapshot::derive(&snapshot(vec![door]), &full_profile()).unwrap();
+        let occupancy = topology.graph(TopologyFacet::Occupancy).unwrap();
+        assert_eq!(occupancy.interfaces()[0].source_refs(), &[door_ref]);
     }
 
     #[test]
@@ -877,8 +980,6 @@ mod tests {
         let closed_topology = TopologySnapshot::derive(&snapshot(vec![closed]), &full_profile()).unwrap();
         let open_topology = TopologySnapshot::derive(&snapshot(vec![opened]), &full_profile()).unwrap();
         assert_ne!(closed_topology, open_topology);
-        assert!(closed_topology.graph(TopologyFacet::Occupancy).unwrap().edges().is_empty());
-        assert_eq!(open_topology.graph(TopologyFacet::Occupancy).unwrap().edges().len(), 1);
     }
 
     #[test]
