@@ -77,6 +77,17 @@ pub enum EvolutionError {
     StructuredPopulationSourceSnapshotMismatch,
     StructuredPopulationDestinationMismatch,
     StructuredPopulationTransitionMismatch,
+    DemographicCensusMustBePositive,
+    UnknownDemographicPopulation { population: PopulationId },
+    DemographicPopulationAlreadyExists { population: PopulationId },
+    DuplicateDemographicDaughter { population: PopulationId },
+    DemographicSplitRequiresTwoDaughters,
+    NonCanonicalDemographicDaughterOrder,
+    DemographicSelfAdmixture { population: PopulationId },
+    DemographicAdmixtureFractionOutOfRange { observed_ppm: u32 },
+    DemographicEventTimingMismatch,
+    DemographicStructureAuthorityMismatch,
+    DemographicSourceSnapshotMismatch,
     SamplingInvariantViolation,
     CountOverflow,
     InvalidDrawUpperBound,
@@ -246,6 +257,48 @@ impl fmt::Display for EvolutionError {
             }
             Self::StructuredPopulationTransitionMismatch => {
                 write!(f, "structured population transition derivation mismatch")
+            }
+            Self::DemographicCensusMustBePositive => {
+                write!(f, "demographic census must be positive at aggregate population fidelity")
+            }
+            Self::UnknownDemographicPopulation { population } => write!(
+                f,
+                "demographic event references undeclared population {}",
+                population.as_str()
+            ),
+            Self::DemographicPopulationAlreadyExists { population } => write!(
+                f,
+                "demographic event requires new population identity, but {} already exists",
+                population.as_str()
+            ),
+            Self::DuplicateDemographicDaughter { population } => write!(
+                f,
+                "population split repeats daughter population {}",
+                population.as_str()
+            ),
+            Self::DemographicSplitRequiresTwoDaughters => {
+                write!(f, "population split requires at least two daughter populations")
+            }
+            Self::NonCanonicalDemographicDaughterOrder => {
+                write!(f, "population split daughters are not in canonical population-id order")
+            }
+            Self::DemographicSelfAdmixture { population } => write!(
+                f,
+                "pulse admixture cannot use the same source and destination population {}",
+                population.as_str()
+            ),
+            Self::DemographicAdmixtureFractionOutOfRange { observed_ppm } => write!(
+                f,
+                "pulse-admixture source fraction must be in 1..={PROBABILITY_SCALE_PPM} ppm, observed {observed_ppm}"
+            ),
+            Self::DemographicEventTimingMismatch => {
+                write!(f, "demographic event timing convention mismatch")
+            }
+            Self::DemographicStructureAuthorityMismatch => {
+                write!(f, "demographic event structure authority mismatch")
+            }
+            Self::DemographicSourceSnapshotMismatch => {
+                write!(f, "demographic event source snapshot mismatch")
             }
             Self::SamplingInvariantViolation => write!(f, "population sampling invariant violated"),
             Self::CountOverflow => write!(f, "population/genetic count overflow"),
