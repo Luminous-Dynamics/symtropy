@@ -9,6 +9,7 @@
 mod canonical;
 mod demographic_event;
 mod demographic_execution;
+mod demographic_extinction_execution;
 mod demographic_founder_execution;
 mod demographic_history;
 mod demographic_sampling;
@@ -34,6 +35,11 @@ pub use demographic_execution::{
     execute_census_resize_bottleneck, DemographicEventExecutionModel,
     DemographicEventExecutionProvenance, DemographicEventExecutionProvenanceDigest,
     DemographicEventExecutionResult,
+};
+pub use demographic_extinction_execution::{
+    execute_structural_extinction, DemographicExtinctionExecutionModel,
+    DemographicExtinctionExecutionProvenance, DemographicExtinctionExecutionProvenanceDigest,
+    DemographicExtinctionExecutionResult,
 };
 pub use demographic_founder_execution::{
     execute_founder_or_recolonization_sample, DemographicFounderExecutionModel,
