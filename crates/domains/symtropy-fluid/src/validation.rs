@@ -142,11 +142,7 @@ impl ExternalBenchmarkManifest {
             ));
         }
 
-        validate_non_empty_bounded(
-            "benchmark_id",
-            &self.benchmark_id,
-            MAX_BENCHMARK_ID_BYTES,
-        )?;
+        validate_non_empty_bounded("benchmark_id", &self.benchmark_id, MAX_BENCHMARK_ID_BYTES)?;
         validate_non_empty_bounded("title", &self.title, MAX_BENCHMARK_TITLE_BYTES)?;
         validate_non_empty_bounded(
             "primary_source",
@@ -154,10 +150,10 @@ impl ExternalBenchmarkManifest {
             MAX_PRIMARY_SOURCE_BYTES,
         )?;
 
-        let released = parse_iso_date(&self.released_on)
-            .ok_or(BenchmarkManifestError::InvalidReleaseDate)?;
-        let captured = parse_iso_date(&self.captured_on)
-            .ok_or(BenchmarkManifestError::InvalidCaptureDate)?;
+        let released =
+            parse_iso_date(&self.released_on).ok_or(BenchmarkManifestError::InvalidReleaseDate)?;
+        let captured =
+            parse_iso_date(&self.captured_on).ok_or(BenchmarkManifestError::InvalidCaptureDate)?;
         if captured < released {
             return Err(BenchmarkManifestError::CapturePredatesRelease);
         }
@@ -288,10 +284,16 @@ impl fmt::Display for BenchmarkManifestError {
                 "formalization commit must be a canonical 40-character lowercase hex SHA"
             ),
             Self::MissingFormalizationReviewStatus => {
-                write!(f, "formalization artifact requires an explicit review status")
+                write!(
+                    f,
+                    "formalization artifact requires an explicit review status"
+                )
             }
             Self::FormalizationReviewWithoutArtifact => {
-                write!(f, "formalization review status requires a formalization artifact")
+                write!(
+                    f,
+                    "formalization review status requires a formalization artifact"
+                )
             }
             Self::IncompleteFormalizationIdentity => write!(
                 f,
@@ -706,8 +708,7 @@ mod tests {
             Err(BenchmarkManifestError::InvalidFormalizationCommit)
         );
 
-        manifest.formalization_commit =
-            Some("8937A8F4CBC7ABAAB5E9E97D1CC7F5D2319D9538".to_owned());
+        manifest.formalization_commit = Some("8937A8F4CBC7ABAAB5E9E97D1CC7F5D2319D9538".to_owned());
         assert_eq!(
             manifest.validate(),
             Err(BenchmarkManifestError::InvalidFormalizationCommit)
