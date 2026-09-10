@@ -8,6 +8,7 @@
 //! geometry, door/device state, navigation, atmosphere, acoustics, heat,
 //! visibility, weather, privacy, place identity, or physical mutation.
 
+use sha2::{Digest, Sha256};
 use std::{collections::BTreeSet, error::Error, fmt};
 use symtropy_game_state::StableId;
 
@@ -17,6 +18,13 @@ pub const MAX_INTERFACES: usize = 262_144;
 pub const MAX_SOURCE_REFS: usize = 4_096;
 pub const MAX_FACETS_PER_INTERFACE: usize = 32;
 pub const MAX_DIGEST_BYTES: usize = 256;
+/// Aggregate exact-source refs admitted by one boundary snapshot. Large worlds
+/// compose bounded snapshots rather than allowing nested per-region/interface
+/// limits to multiply into an unbounded validation allocation.
+pub const MAX_BOUNDARY_EXACT_REFS: usize = 262_144;
+
+const BOUNDARY_DIGEST_DOMAIN: &[u8] = b"symtropy.spatial-topology.boundary.v1\0";
+const PROFILE_DIGEST_DOMAIN: &[u8] = b"symtropy.spatial-topology.profile.v1\0";
 
 /// Exact content-bearing reference to a fact owned by another authority.
 ///
@@ -87,7 +95,7 @@ impl BoundaryInterfaceId {
 /// Region identity is projection identity, not social/place identity.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct SpatialRegionSnapshot {
-    pub id: SpatialRegionId,
+    id: SpatialRegionId,
     source_refs: Vec<ExactSourceRef>,
 }
 
@@ -103,13 +111,21 @@ impl SpatialRegionSnapshot {
         Ok(Self { id, source_refs })
     }
 
+    pub fn id(&self) -> &SpatialRegionId {
+        &self.id
+    }
+
     pub fn source_refs(&self) -> &[ExactSourceRef] {
         &self.source_refs
     }
 
     fn validate_canonical(&self) -> Result<(), TopologyError> {
         self.id.validate()?;
-        validate_len("region.source_refs", self.source_refs.len(), MAX_SOURCE_REFS)?;
+        validate_len(
+            "region.source_refs",
+            self.source_refs.len(),
+            MAX_SOURCE_REFS,
+        )?;
         validate_exact_refs("region.source_refs", &self.source_refs)
     }
 }
@@ -139,7 +155,9 @@ pub enum FacetRelation {
     Connected,
     /// Opaque relation class supplied by an owning boundary/physics projection.
     /// This is not a numerical permeability, dB attenuation, conductance, etc.
-    QualifiedClass { class_id: StableId },
+    QualifiedClass {
+        class_id: StableId,
+    },
 }
 
 impl FacetRelation {
@@ -150,7 +168,17 @@ impl FacetRelation {
         }
     }
 
-    pub const fn participates_in_graph(&self) -> bool {
+    /// True only for unconditional connectivity asserted by the owning projection.
+    pub const fn is_definitely_connected(&self) -> bool {
+        matches!(self, Self::Connected)
+    }
+
+    /// True when connectivity semantics require interpretation of an opaque class.
+    pub const fn is_qualified(&self) -> bool {
+        matches!(self, Self::QualifiedClass { .. })
+    }
+
+    const fn participates_in_candidate_graph(&self) -> bool {
         matches!(self, Self::Connected | Self::QualifiedClass { .. })
     }
 
@@ -185,9 +213,9 @@ impl InterfaceFacetState {
 /// which body, air, sound, light, heat, and weather semantics are guessed.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct BoundaryInterfaceSnapshot {
-    pub id: BoundaryInterfaceId,
-    pub first_region: SpatialRegionId,
-    pub second_region: SpatialRegionId,
+    id: BoundaryInterfaceId,
+    first_region: SpatialRegionId,
+    second_region: SpatialRegionId,
     facet_states: Vec<InterfaceFacetState>,
     source_refs: Vec<ExactSourceRef>,
 }
@@ -195,14 +223,17 @@ pub struct BoundaryInterfaceSnapshot {
 impl BoundaryInterfaceSnapshot {
     pub fn new(
         id: BoundaryInterfaceId,
-        first_region: SpatialRegionId,
-        second_region: SpatialRegionId,
+        mut first_region: SpatialRegionId,
+        mut second_region: SpatialRegionId,
         mut facet_states: Vec<InterfaceFacetState>,
         mut source_refs: Vec<ExactSourceRef>,
     ) -> Result<Self, TopologyError> {
         id.validate()?;
         first_region.validate()?;
         second_region.validate()?;
+        if second_region < first_region {
+            std::mem::swap(&mut first_region, &mut second_region);
+        }
         validate_len(
             "interface.facet_states",
             facet_states.len(),
@@ -220,6 +251,18 @@ impl BoundaryInterfaceSnapshot {
         };
         value.validate_canonical()?;
         Ok(value)
+    }
+
+    pub fn id(&self) -> &BoundaryInterfaceId {
+        &self.id
+    }
+
+    pub fn first_region(&self) -> &SpatialRegionId {
+        &self.first_region
+    }
+
+    pub fn second_region(&self) -> &SpatialRegionId {
+        &self.second_region
     }
 
     pub fn facet_states(&self) -> &[InterfaceFacetState] {
@@ -268,7 +311,11 @@ impl BoundaryInterfaceSnapshot {
                 });
             }
         }
-        validate_len("interface.source_refs", self.source_refs.len(), MAX_SOURCE_REFS)?;
+        validate_len(
+            "interface.source_refs",
+            self.source_refs.len(),
+            MAX_SOURCE_REFS,
+        )?;
         validate_exact_refs("interface.source_refs", &self.source_refs)
     }
 }
@@ -276,12 +323,13 @@ impl BoundaryInterfaceSnapshot {
 /// Exact read-only input snapshot from a geometric/boundary provider.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct BoundarySnapshot {
-    pub schema_version: u32,
-    pub snapshot_id: StableId,
-    pub revision: u64,
-    pub content_digest: String,
-    pub frame_ref: ExactSourceRef,
-    pub environment_ref: ExactSourceRef,
+    schema_version: u32,
+    snapshot_id: StableId,
+    revision: u64,
+    provider_content_digest: String,
+    content_digest: String,
+    frame_ref: ExactSourceRef,
+    environment_ref: ExactSourceRef,
     regions: Vec<SpatialRegionSnapshot>,
     interfaces: Vec<BoundaryInterfaceSnapshot>,
     source_refs: Vec<ExactSourceRef>,
@@ -292,7 +340,7 @@ impl BoundarySnapshot {
     pub fn new(
         snapshot_id: StableId,
         revision: u64,
-        content_digest: impl Into<String>,
+        provider_content_digest: impl Into<String>,
         frame_ref: ExactSourceRef,
         environment_ref: ExactSourceRef,
         mut regions: Vec<SpatialRegionSnapshot>,
@@ -305,19 +353,51 @@ impl BoundarySnapshot {
         regions.sort_by(|left, right| left.id.cmp(&right.id));
         interfaces.sort_by(|left, right| left.id.cmp(&right.id));
         source_refs.sort();
-        let value = Self {
+        let provider_content_digest = provider_content_digest.into();
+        validate_digest(&provider_content_digest)?;
+        let mut value = Self {
             schema_version: SPATIAL_TOPOLOGY_SCHEMA_VERSION,
             snapshot_id,
             revision,
-            content_digest: content_digest.into(),
+            provider_content_digest,
+            content_digest: String::new(),
             frame_ref,
             environment_ref,
             regions,
             interfaces,
             source_refs,
         };
+        value.content_digest = boundary_content_digest(&value);
         value.validate_canonical()?;
         Ok(value)
+    }
+
+    pub const fn schema_version(&self) -> u32 {
+        self.schema_version
+    }
+
+    pub fn snapshot_id(&self) -> &StableId {
+        &self.snapshot_id
+    }
+
+    pub const fn revision(&self) -> u64 {
+        self.revision
+    }
+
+    pub fn provider_content_digest(&self) -> &str {
+        &self.provider_content_digest
+    }
+
+    pub fn content_digest(&self) -> &str {
+        &self.content_digest
+    }
+
+    pub fn frame_ref(&self) -> &ExactSourceRef {
+        &self.frame_ref
+    }
+
+    pub fn environment_ref(&self) -> &ExactSourceRef {
+        &self.environment_ref
     }
 
     pub fn regions(&self) -> &[SpatialRegionSnapshot] {
@@ -345,6 +425,7 @@ impl BoundarySnapshot {
             return Err(TopologyError::UnsupportedSchema(self.schema_version));
         }
         validate_id(&self.snapshot_id)?;
+        validate_digest(&self.provider_content_digest)?;
         validate_digest(&self.content_digest)?;
         self.frame_ref.validate()?;
         self.environment_ref.validate()?;
@@ -353,7 +434,11 @@ impl BoundarySnapshot {
             return Err(TopologyError::RegionsRequired);
         }
         validate_len("boundary.interfaces", self.interfaces.len(), MAX_INTERFACES)?;
-        validate_len("boundary.source_refs", self.source_refs.len(), MAX_SOURCE_REFS)?;
+        validate_len(
+            "boundary.source_refs",
+            self.source_refs.len(),
+            MAX_SOURCE_REFS,
+        )?;
         validate_exact_refs("boundary.source_refs", &self.source_refs)?;
 
         for region in &self.regions {
@@ -368,7 +453,11 @@ impl BoundarySnapshot {
             }
         }
 
-        let region_ids: BTreeSet<_> = self.regions.iter().map(|region| region.id.clone()).collect();
+        let region_ids: BTreeSet<_> = self
+            .regions
+            .iter()
+            .map(|region| region.id.clone())
+            .collect();
         for interface in &self.interfaces {
             interface.validate_canonical()?;
             if !region_ids.contains(&interface.first_region) {
@@ -392,6 +481,14 @@ impl BoundarySnapshot {
                 return Err(TopologyError::DuplicateInterface(pair[0].id.clone()));
             }
         }
+        validate_snapshot_exact_ref_consistency(self)?;
+
+        let expected_digest = boundary_content_digest(self);
+        if self.content_digest != expected_digest {
+            return Err(TopologyError::DigestMismatch {
+                subject: "boundary snapshot",
+            });
+        }
         Ok(())
     }
 }
@@ -414,8 +511,9 @@ impl BoundarySnapshotRef {
 /// outside PB-04a and requires its own exact profile in a later tranche.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct TopologyProfile {
-    pub profile_id: StableId,
-    pub revision: u64,
+    profile_id: StableId,
+    revision: u64,
+    content_digest: String,
     facets: Vec<TopologyFacet>,
 }
 
@@ -431,19 +529,42 @@ impl TopologyProfile {
         if facets.is_empty() {
             return Err(TopologyError::ProfileFacetsRequired);
         }
+        let content_digest = profile_content_digest(&profile_id, revision, &facets);
         Ok(Self {
             profile_id,
             revision,
+            content_digest,
             facets,
         })
+    }
+
+    pub fn profile_id(&self) -> &StableId {
+        &self.profile_id
+    }
+
+    pub const fn revision(&self) -> u64 {
+        self.revision
+    }
+
+    pub fn content_digest(&self) -> &str {
+        &self.content_digest
     }
 
     pub fn facets(&self) -> &[TopologyFacet] {
         &self.facets
     }
 
+    pub fn exact_ref(&self) -> TopologyProfileRef {
+        TopologyProfileRef {
+            profile_id: self.profile_id.clone(),
+            revision: self.revision,
+            content_digest: self.content_digest.clone(),
+        }
+    }
+
     fn validate_canonical(&self) -> Result<(), TopologyError> {
         validate_id(&self.profile_id)?;
+        validate_digest(&self.content_digest)?;
         if self.facets.is_empty() {
             return Err(TopologyError::ProfileFacetsRequired);
         }
@@ -452,7 +573,28 @@ impl TopologyProfile {
                 return Err(TopologyError::NonCanonicalOrder("topology_profile.facets"));
             }
         }
+        if self.content_digest
+            != profile_content_digest(&self.profile_id, self.revision, &self.facets)
+        {
+            return Err(TopologyError::DigestMismatch {
+                subject: "topology profile",
+            });
+        }
         Ok(())
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct TopologyProfileRef {
+    pub profile_id: StableId,
+    pub revision: u64,
+    pub content_digest: String,
+}
+
+impl TopologyProfileRef {
+    pub fn validate(&self) -> Result<(), TopologyError> {
+        validate_id(&self.profile_id)?;
+        validate_digest(&self.content_digest)
     }
 }
 
@@ -494,10 +636,10 @@ impl FacetGraph {
 
     /// Returns only neighbors for relations known to participate in this facet.
     /// `Unspecified` and known `Disconnected` interfaces never create a path.
-    pub fn neighbors(&self, region: &SpatialRegionId) -> Vec<SpatialRegionId> {
+    fn neighbors(&self, region: &SpatialRegionId) -> Vec<SpatialRegionId> {
         let mut result = BTreeSet::new();
         for interface in &self.interfaces {
-            if !interface.relation.participates_in_graph() {
+            if !interface.relation.participates_in_candidate_graph() {
                 continue;
             }
             if &interface.first_region == region {
@@ -513,10 +655,9 @@ impl FacetGraph {
 /// Deterministic, read-only facet projection over one exact boundary snapshot.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct TopologySnapshot {
-    pub schema_version: u32,
-    pub boundary_ref: BoundarySnapshotRef,
-    pub profile_id: StableId,
-    pub profile_revision: u64,
+    schema_version: u32,
+    boundary_ref: BoundarySnapshotRef,
+    profile_ref: TopologyProfileRef,
     region_ids: Vec<SpatialRegionId>,
     graphs: Vec<FacetGraph>,
 }
@@ -528,7 +669,6 @@ impl TopologySnapshot {
     ) -> Result<Self, TopologyError> {
         boundary.validate_canonical()?;
         profile.validate_canonical()?;
-        let before = boundary.clone();
         let region_ids = boundary
             .regions()
             .iter()
@@ -552,15 +692,25 @@ impl TopologySnapshot {
             graphs.push(FacetGraph { facet, interfaces });
         }
 
-        debug_assert_eq!(&before, boundary);
         Ok(Self {
             schema_version: SPATIAL_TOPOLOGY_SCHEMA_VERSION,
             boundary_ref: boundary.exact_ref(),
-            profile_id: profile.profile_id.clone(),
-            profile_revision: profile.revision,
+            profile_ref: profile.exact_ref(),
             region_ids,
             graphs,
         })
+    }
+
+    pub const fn schema_version(&self) -> u32 {
+        self.schema_version
+    }
+
+    pub fn boundary_ref(&self) -> &BoundarySnapshotRef {
+        &self.boundary_ref
+    }
+
+    pub fn profile_ref(&self) -> &TopologyProfileRef {
+        &self.profile_ref
     }
 
     pub fn region_ids(&self) -> &[SpatialRegionId] {
@@ -577,6 +727,54 @@ impl TopologySnapshot {
             .ok()
             .map(|index| &self.graphs[index])
     }
+
+    /// Checked universal adjacency query. Only an unqualified `Connected`
+    /// relation is a definite edge. Opaque `QualifiedClass` relations require
+    /// explicit downstream interpretation and therefore do not appear here.
+    pub fn definite_neighbors(
+        &self,
+        facet: TopologyFacet,
+        region: &SpatialRegionId,
+    ) -> Result<Vec<SpatialRegionId>, TopologyError> {
+        let graph = self.checked_graph(facet, region)?;
+        let mut result = BTreeSet::new();
+        for interface in graph.interfaces() {
+            if !interface.relation.is_definitely_connected() {
+                continue;
+            }
+            if &interface.first_region == region {
+                result.insert(interface.second_region.clone());
+            } else if &interface.second_region == region {
+                result.insert(interface.first_region.clone());
+            }
+        }
+        Ok(result.into_iter().collect())
+    }
+
+    /// Checked candidate adjacency query. Includes `QualifiedClass` relations
+    /// only as candidate edges; callers must inspect the relation/class and
+    /// apply their owning capability, policy, or solver semantics before using
+    /// such an edge as traversable/connected truth.
+    pub fn candidate_neighbors(
+        &self,
+        facet: TopologyFacet,
+        region: &SpatialRegionId,
+    ) -> Result<Vec<SpatialRegionId>, TopologyError> {
+        let graph = self.checked_graph(facet, region)?;
+        Ok(graph.neighbors(region))
+    }
+
+    fn checked_graph(
+        &self,
+        facet: TopologyFacet,
+        region: &SpatialRegionId,
+    ) -> Result<&FacetGraph, TopologyError> {
+        if self.region_ids.binary_search(region).is_err() {
+            return Err(TopologyError::UnknownProjectedRegion(region.clone()));
+        }
+        self.graph(facet)
+            .ok_or(TopologyError::FacetNotProjected(facet))
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -589,8 +787,13 @@ pub enum TopologyError {
         maximum: usize,
     },
     UnsupportedSchema(u32),
+    DigestMismatch {
+        subject: &'static str,
+    },
     RegionsRequired,
     ProfileFacetsRequired,
+    FacetNotProjected(TopologyFacet),
+    UnknownProjectedRegion(SpatialRegionId),
     ExplicitUnspecifiedFacet(TopologyFacet),
     DuplicateRegion(SpatialRegionId),
     DuplicateInterface(BoundaryInterfaceId),
@@ -621,42 +824,87 @@ pub enum TopologyError {
 impl fmt::Display for TopologyError {
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Self::InvalidStableId(value) => write!(formatter, "invalid stable identifier {value:?}"),
+            Self::InvalidStableId(value) => {
+                write!(formatter, "invalid stable identifier {value:?}")
+            }
             Self::InvalidDigest => write!(formatter, "invalid exact-source digest"),
-            Self::BoundExceeded { field, actual, maximum } => {
-                write!(formatter, "{field} has {actual} entries, maximum is {maximum}")
+            Self::BoundExceeded {
+                field,
+                actual,
+                maximum,
+            } => {
+                write!(
+                    formatter,
+                    "{field} has {actual} entries, maximum is {maximum}"
+                )
             }
             Self::UnsupportedSchema(version) => {
                 write!(formatter, "unsupported spatial topology schema {version}")
             }
-            Self::RegionsRequired => write!(formatter, "boundary snapshot requires at least one region"),
-            Self::ProfileFacetsRequired => write!(formatter, "topology profile requires at least one facet"),
+            Self::DigestMismatch { subject } => {
+                write!(formatter, "{subject} canonical content digest mismatch")
+            }
+            Self::RegionsRequired => {
+                write!(formatter, "boundary snapshot requires at least one region")
+            }
+            Self::ProfileFacetsRequired => {
+                write!(formatter, "topology profile requires at least one facet")
+            }
+            Self::FacetNotProjected(facet) => {
+                write!(
+                    formatter,
+                    "topology facet {facet:?} was not projected by this profile"
+                )
+            }
+            Self::UnknownProjectedRegion(region) => {
+                write!(formatter, "unknown projected spatial region {}", region.0)
+            }
             Self::ExplicitUnspecifiedFacet(facet) => write!(
                 formatter,
                 "facet {facet:?} cannot be explicitly stored as unspecified; omit it instead"
             ),
             Self::DuplicateRegion(id) => write!(formatter, "duplicate spatial region {}", id.0),
-            Self::DuplicateInterface(id) => write!(formatter, "duplicate boundary interface {}", id.0),
-            Self::DuplicateFacet { interface_id, facet } => write!(
+            Self::DuplicateInterface(id) => {
+                write!(formatter, "duplicate boundary interface {}", id.0)
+            }
+            Self::DuplicateFacet {
+                interface_id,
+                facet,
+            } => write!(
                 formatter,
                 "boundary interface {} repeats facet {facet:?}",
                 interface_id.0
             ),
-            Self::DuplicateExactRef { field, authority_id, subject_id, revision } => write!(
+            Self::DuplicateExactRef {
+                field,
+                authority_id,
+                subject_id,
+                revision,
+            } => write!(
                 formatter,
                 "{field} repeats exact ref {authority_id}/{subject_id}@{revision}"
             ),
-            Self::ConflictingExactRef { field, authority_id, subject_id, revision } => write!(
+            Self::ConflictingExactRef {
+                field,
+                authority_id,
+                subject_id,
+                revision,
+            } => write!(
                 formatter,
                 "{field} contains competing digests for {authority_id}/{subject_id}@{revision}"
             ),
-            Self::NonCanonicalOrder(field) => write!(formatter, "{field} is not canonically ordered"),
+            Self::NonCanonicalOrder(field) => {
+                write!(formatter, "{field} is not canonically ordered")
+            }
             Self::SelfInterface(id) => write!(
                 formatter,
                 "boundary interface {} connects a region to itself",
                 id.0
             ),
-            Self::UnknownRegion { interface_id, region_id } => write!(
+            Self::UnknownRegion {
+                interface_id,
+                region_id,
+            } => write!(
                 formatter,
                 "boundary interface {} references unknown region {}",
                 interface_id.0, region_id.0
@@ -666,6 +914,196 @@ impl fmt::Display for TopologyError {
 }
 
 impl Error for TopologyError {}
+
+fn validate_snapshot_exact_ref_consistency(
+    snapshot: &BoundarySnapshot,
+) -> Result<(), TopologyError> {
+    let field = "boundary.all_exact_refs";
+    let mut total = 2usize;
+
+    let mut add = |count: usize| -> Result<(), TopologyError> {
+        total = total
+            .checked_add(count)
+            .ok_or(TopologyError::BoundExceeded {
+                field,
+                actual: usize::MAX,
+                maximum: MAX_BOUNDARY_EXACT_REFS,
+            })?;
+        if total > MAX_BOUNDARY_EXACT_REFS {
+            return Err(TopologyError::BoundExceeded {
+                field,
+                actual: total,
+                maximum: MAX_BOUNDARY_EXACT_REFS,
+            });
+        }
+        Ok(())
+    };
+
+    add(snapshot.source_refs.len())?;
+    for region in &snapshot.regions {
+        add(region.source_refs.len())?;
+    }
+    for interface in &snapshot.interfaces {
+        add(interface.source_refs.len())?;
+    }
+
+    let mut refs = Vec::with_capacity(total);
+    refs.push(&snapshot.frame_ref);
+    refs.push(&snapshot.environment_ref);
+    refs.extend(snapshot.source_refs.iter());
+    for region in &snapshot.regions {
+        refs.extend(region.source_refs.iter());
+    }
+    for interface in &snapshot.interfaces {
+        refs.extend(interface.source_refs.iter());
+    }
+
+    refs.sort_by(|left, right| {
+        (
+            &left.authority_id,
+            &left.subject_id,
+            left.revision,
+            &left.digest,
+        )
+            .cmp(&(
+                &right.authority_id,
+                &right.subject_id,
+                right.revision,
+                &right.digest,
+            ))
+    });
+
+    for pair in refs.windows(2) {
+        let left = pair[0];
+        let right = pair[1];
+        let same_identity = left.authority_id == right.authority_id
+            && left.subject_id == right.subject_id
+            && left.revision == right.revision;
+        if same_identity && left.digest != right.digest {
+            return Err(TopologyError::ConflictingExactRef {
+                field,
+                authority_id: left.authority_id.clone(),
+                subject_id: left.subject_id.clone(),
+                revision: left.revision,
+            });
+        }
+    }
+    Ok(())
+}
+
+fn boundary_content_digest(snapshot: &BoundarySnapshot) -> String {
+    let mut hasher = Sha256::new();
+    hasher.update(BOUNDARY_DIGEST_DOMAIN);
+    hash_u32(&mut hasher, snapshot.schema_version);
+    hash_id(&mut hasher, &snapshot.snapshot_id);
+    hash_u64(&mut hasher, snapshot.revision);
+    hash_text(&mut hasher, &snapshot.provider_content_digest);
+    hash_exact_source(&mut hasher, &snapshot.frame_ref);
+    hash_exact_source(&mut hasher, &snapshot.environment_ref);
+
+    hash_u64(&mut hasher, snapshot.regions.len() as u64);
+    for region in &snapshot.regions {
+        hash_id(&mut hasher, &region.id.0);
+        hash_exact_sources(&mut hasher, &region.source_refs);
+    }
+
+    hash_u64(&mut hasher, snapshot.interfaces.len() as u64);
+    for interface in &snapshot.interfaces {
+        hash_id(&mut hasher, &interface.id.0);
+        hash_id(&mut hasher, &interface.first_region.0);
+        hash_id(&mut hasher, &interface.second_region.0);
+        hash_u64(&mut hasher, interface.facet_states.len() as u64);
+        for state in &interface.facet_states {
+            hash_facet(&mut hasher, state.facet);
+            hash_relation(&mut hasher, &state.relation);
+        }
+        hash_exact_sources(&mut hasher, &interface.source_refs);
+    }
+
+    hash_exact_sources(&mut hasher, &snapshot.source_refs);
+    hex_digest(&hasher.finalize())
+}
+
+fn profile_content_digest(
+    profile_id: &StableId,
+    revision: u64,
+    facets: &[TopologyFacet],
+) -> String {
+    let mut hasher = Sha256::new();
+    hasher.update(PROFILE_DIGEST_DOMAIN);
+    hash_id(&mut hasher, profile_id);
+    hash_u64(&mut hasher, revision);
+    hash_u64(&mut hasher, facets.len() as u64);
+    for &facet in facets {
+        hash_facet(&mut hasher, facet);
+    }
+    hex_digest(&hasher.finalize())
+}
+
+fn hash_exact_sources(hasher: &mut Sha256, refs: &[ExactSourceRef]) {
+    hash_u64(hasher, refs.len() as u64);
+    for reference in refs {
+        hash_exact_source(hasher, reference);
+    }
+}
+
+fn hash_exact_source(hasher: &mut Sha256, reference: &ExactSourceRef) {
+    hash_id(hasher, &reference.authority_id);
+    hash_id(hasher, &reference.subject_id);
+    hash_u64(hasher, reference.revision);
+    hash_text(hasher, &reference.digest);
+}
+
+fn hash_relation(hasher: &mut Sha256, relation: &FacetRelation) {
+    match relation {
+        FacetRelation::Unspecified => hasher.update([0]),
+        FacetRelation::Disconnected => hasher.update([1]),
+        FacetRelation::Connected => hasher.update([2]),
+        FacetRelation::QualifiedClass { class_id } => {
+            hasher.update([3]);
+            hash_id(hasher, class_id);
+        }
+    }
+}
+
+fn hash_facet(hasher: &mut Sha256, facet: TopologyFacet) {
+    let tag = match facet {
+        TopologyFacet::Occupancy => 0,
+        TopologyFacet::AirPressure => 1,
+        TopologyFacet::Acoustic => 2,
+        TopologyFacet::Visibility => 3,
+        TopologyFacet::Thermal => 4,
+        TopologyFacet::WeatherExposure => 5,
+    };
+    hasher.update([tag]);
+}
+
+fn hash_id(hasher: &mut Sha256, value: &StableId) {
+    hash_text(hasher, value.as_str());
+}
+
+fn hash_text(hasher: &mut Sha256, value: &str) {
+    hash_u64(hasher, value.len() as u64);
+    hasher.update(value.as_bytes());
+}
+
+fn hash_u32(hasher: &mut Sha256, value: u32) {
+    hasher.update(value.to_le_bytes());
+}
+
+fn hash_u64(hasher: &mut Sha256, value: u64) {
+    hasher.update(value.to_le_bytes());
+}
+
+fn hex_digest(bytes: &[u8]) -> String {
+    const HEX: &[u8; 16] = b"0123456789abcdef";
+    let mut output = String::with_capacity(bytes.len() * 2);
+    for &byte in bytes {
+        output.push(char::from(HEX[usize::from(byte >> 4)]));
+        output.push(char::from(HEX[usize::from(byte & 0x0f)]));
+    }
+    output
+}
 
 fn validate_id(id: &StableId) -> Result<(), TopologyError> {
     StableId::parse(id.as_str())
@@ -684,22 +1122,19 @@ fn validate_digest(value: &str) -> Result<(), TopologyError> {
     }
 }
 
-fn validate_len(
-    field: &'static str,
-    actual: usize,
-    maximum: usize,
-) -> Result<(), TopologyError> {
+fn validate_len(field: &'static str, actual: usize, maximum: usize) -> Result<(), TopologyError> {
     if actual > maximum {
-        Err(TopologyError::BoundExceeded { field, actual, maximum })
+        Err(TopologyError::BoundExceeded {
+            field,
+            actual,
+            maximum,
+        })
     } else {
         Ok(())
     }
 }
 
-fn validate_exact_refs(
-    field: &'static str,
-    refs: &[ExactSourceRef],
-) -> Result<(), TopologyError> {
+fn validate_exact_refs(field: &'static str, refs: &[ExactSourceRef]) -> Result<(), TopologyError> {
     for reference in refs {
         reference.validate()?;
     }
@@ -746,11 +1181,19 @@ mod tests {
     }
 
     fn source(subject: &str, revision: u64, digest: &str) -> ExactSourceRef {
-        ExactSourceRef::new(id("authority:synthetic-boundary"), id(subject), revision, digest).unwrap()
+        ExactSourceRef::new(
+            id("authority:synthetic-boundary"),
+            id(subject),
+            revision,
+            digest,
+        )
+        .unwrap()
     }
 
     fn class(value: &str) -> FacetRelation {
-        FacetRelation::QualifiedClass { class_id: id(value) }
+        FacetRelation::QualifiedClass {
+            class_id: id(value),
+        }
     }
 
     fn facets(values: &[(TopologyFacet, FacetRelation)]) -> Vec<InterfaceFacetState> {
@@ -762,8 +1205,16 @@ mod tests {
 
     fn base_regions() -> Vec<SpatialRegionSnapshot> {
         vec![
-            SpatialRegionSnapshot::new(region("region:inside"), vec![source("geom:inside", 1, "aa")]).unwrap(),
-            SpatialRegionSnapshot::new(region("region:outside"), vec![source("geom:outside", 1, "bb")]).unwrap(),
+            SpatialRegionSnapshot::new(
+                region("region:inside"),
+                vec![source("geom:inside", 1, "aa")],
+            )
+            .unwrap(),
+            SpatialRegionSnapshot::new(
+                region("region:outside"),
+                vec![source("geom:outside", 1, "bb")],
+            )
+            .unwrap(),
         ]
     }
 
@@ -841,9 +1292,13 @@ mod tests {
             vec![source("boundary:unknown-pressure", 1, "digest")],
         )
         .unwrap();
-        assert_eq!(interface.relation(TopologyFacet::AirPressure), FacetRelation::Unspecified);
+        assert_eq!(
+            interface.relation(TopologyFacet::AirPressure),
+            FacetRelation::Unspecified
+        );
 
-        let topology = TopologySnapshot::derive(&snapshot(vec![interface]), &full_profile()).unwrap();
+        let topology =
+            TopologySnapshot::derive(&snapshot(vec![interface]), &full_profile()).unwrap();
         let graph = topology.graph(TopologyFacet::AirPressure).unwrap();
         let relation = graph
             .relation(&interface_id("interface:unknown-pressure"))
@@ -860,7 +1315,10 @@ mod tests {
             region("region:outside"),
             facets(&[
                 (TopologyFacet::Occupancy, FacetRelation::Disconnected),
-                (TopologyFacet::AirPressure, class("permeability:door-leakage")),
+                (
+                    TopologyFacet::AirPressure,
+                    class("permeability:door-leakage"),
+                ),
                 (TopologyFacet::Acoustic, class("attenuation:door-closed")),
                 (TopologyFacet::Visibility, FacetRelation::Disconnected),
             ]),
@@ -871,16 +1329,24 @@ mod tests {
 
         let occupancy = topology.graph(TopologyFacet::Occupancy).unwrap();
         assert!(occupancy.neighbors(&region("region:inside")).is_empty());
-        assert!(occupancy
-            .relation(&interface_id("interface:door"))
-            .unwrap()
-            .is_known_disconnected());
+        assert!(
+            occupancy
+                .relation(&interface_id("interface:door"))
+                .unwrap()
+                .is_known_disconnected()
+        );
         assert_eq!(
-            topology.graph(TopologyFacet::Acoustic).unwrap().neighbors(&region("region:inside")),
+            topology
+                .graph(TopologyFacet::Acoustic)
+                .unwrap()
+                .neighbors(&region("region:inside")),
             vec![region("region:outside")]
         );
         assert_eq!(
-            topology.graph(TopologyFacet::AirPressure).unwrap().neighbors(&region("region:inside")),
+            topology
+                .graph(TopologyFacet::AirPressure)
+                .unwrap()
+                .neighbors(&region("region:inside")),
             vec![region("region:outside")]
         );
     }
@@ -902,13 +1368,25 @@ mod tests {
         .unwrap();
         let topology = TopologySnapshot::derive(&snapshot(vec![window]), &full_profile()).unwrap();
 
-        assert!(topology.graph(TopologyFacet::Occupancy).unwrap().neighbors(&region("region:inside")).is_empty());
+        assert!(
+            topology
+                .graph(TopologyFacet::Occupancy)
+                .unwrap()
+                .neighbors(&region("region:inside"))
+                .is_empty()
+        );
         assert_eq!(
-            topology.graph(TopologyFacet::Visibility).unwrap().neighbors(&region("region:inside")),
+            topology
+                .graph(TopologyFacet::Visibility)
+                .unwrap()
+                .neighbors(&region("region:inside")),
             vec![region("region:outside")]
         );
         assert_eq!(
-            topology.graph(TopologyFacet::Thermal).unwrap().neighbors(&region("region:inside")),
+            topology
+                .graph(TopologyFacet::Thermal)
+                .unwrap()
+                .neighbors(&region("region:inside")),
             vec![region("region:outside")]
         );
     }
@@ -929,9 +1407,18 @@ mod tests {
         .unwrap();
         let topology = TopologySnapshot::derive(&snapshot(vec![vent]), &full_profile()).unwrap();
 
-        assert!(topology.graph(TopologyFacet::Occupancy).unwrap().neighbors(&region("region:inside")).is_empty());
+        assert!(
+            topology
+                .graph(TopologyFacet::Occupancy)
+                .unwrap()
+                .neighbors(&region("region:inside"))
+                .is_empty()
+        );
         assert_eq!(
-            topology.graph(TopologyFacet::AirPressure).unwrap().neighbors(&region("region:inside")),
+            topology
+                .graph(TopologyFacet::AirPressure)
+                .unwrap()
+                .neighbors(&region("region:inside")),
             vec![region("region:outside")]
         );
     }
@@ -960,7 +1447,10 @@ mod tests {
             region("region:outside"),
             facets(&[
                 (TopologyFacet::Occupancy, FacetRelation::Disconnected),
-                (TopologyFacet::AirPressure, class("permeability:door-leakage")),
+                (
+                    TopologyFacet::AirPressure,
+                    class("permeability:door-leakage"),
+                ),
             ]),
             vec![source("device:door", 3, "closed")],
         )
@@ -977,8 +1467,10 @@ mod tests {
         )
         .unwrap();
 
-        let closed_topology = TopologySnapshot::derive(&snapshot(vec![closed]), &full_profile()).unwrap();
-        let open_topology = TopologySnapshot::derive(&snapshot(vec![opened]), &full_profile()).unwrap();
+        let closed_topology =
+            TopologySnapshot::derive(&snapshot(vec![closed]), &full_profile()).unwrap();
+        let open_topology =
+            TopologySnapshot::derive(&snapshot(vec![opened]), &full_profile()).unwrap();
         assert_ne!(closed_topology, open_topology);
     }
 
@@ -1020,7 +1512,10 @@ mod tests {
                 source("geom:wall", 9, "digest-b"),
             ],
         );
-        assert!(matches!(result, Err(TopologyError::ConflictingExactRef { .. })));
+        assert!(matches!(
+            result,
+            Err(TopologyError::ConflictingExactRef { .. })
+        ));
     }
 
     #[test]
