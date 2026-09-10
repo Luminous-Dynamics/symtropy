@@ -20,6 +20,16 @@ pub const EXTERNAL_BENCHMARK_SCHEMA_VERSION: u32 = 1;
 /// Schema version for [`ContinuumDiagnosticSample`].
 pub const CONTINUUM_DIAGNOSTIC_SCHEMA_VERSION: u32 = 1;
 
+/// Conservative semantic bounds for V0 provenance records.
+pub const MAX_BENCHMARK_ID_BYTES: usize = 128;
+pub const MAX_BENCHMARK_TITLE_BYTES: usize = 256;
+pub const MAX_PRIMARY_SOURCE_BYTES: usize = 512;
+pub const MAX_FORMALIZATION_REPOSITORY_BYTES: usize = 256;
+pub const MAX_EXECUTABLE_DIGEST_BYTES: usize = 256;
+pub const MAX_REFERENCE_DOMAINS: usize = 8;
+pub const MAX_REFERENCE_CLAIMS: usize = 32;
+pub const MAX_DIAGNOSTIC_PROFILE_BYTES: usize = 256;
+
 /// Public OpenAI formalization commit captured on 2026-09-10.
 ///
 /// The commit identifies an external theorem/formalization artifact. It is not
@@ -44,8 +54,8 @@ pub enum ReferenceDomain {
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum ExternalReferenceStatus {
-    /// Primary announcement/paper metadata and formal artifact were captured,
-    /// but independent technical/community review is still pending.
+    /// Primary source metadata and a formal artifact were captured, but
+    /// independent technical/community review is still pending.
     PrimaryAndFormalArtifactsCapturedReviewPending,
     /// A separately defined review gate has been satisfied for the declared
     /// benchmark use. V0 does not assign this state automatically.
@@ -53,6 +63,18 @@ pub enum ExternalReferenceStatus {
     /// The captured source/reference has been superseded or materially
     /// corrected and should not be silently treated as current.
     SupersededOrCorrected,
+}
+
+/// Review state reported for a captured external formalization artifact.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum FormalizationReviewStatus {
+    /// The artifact's own metadata describes its review as self-assessed.
+    SelfAssessed,
+    /// An independent environment reproduced the formal build/check.
+    IndependentlyBuildChecked,
+    /// A separately recorded technical review was completed for the declared use.
+    IndependentlyTechnicallyReviewed,
 }
 
 /// Qualitative theorem-level property captured from a primary reference.
@@ -95,6 +117,7 @@ pub struct ExternalBenchmarkManifest {
     pub primary_source: String,
     pub formalization_repository: Option<String>,
     pub formalization_commit: Option<String>,
+    pub formalization_review_status: Option<FormalizationReviewStatus>,
     pub domains: Vec<ReferenceDomain>,
     pub status: ExternalReferenceStatus,
     pub claims: Vec<ReferenceClaim>,
@@ -108,57 +131,102 @@ pub struct ExternalBenchmarkManifest {
 
 impl ExternalBenchmarkManifest {
     /// Validate V0 structural/provenance invariants.
+    ///
+    /// These are semantic bounds after deserialization, not a hostile-network
+    /// framing guarantee. Any untrusted ingress still needs an outer byte bound
+    /// or bounded decoder before constructing this type.
     pub fn validate(&self) -> Result<(), BenchmarkManifestError> {
         if self.schema_version != EXTERNAL_BENCHMARK_SCHEMA_VERSION {
             return Err(BenchmarkManifestError::UnsupportedSchemaVersion(
                 self.schema_version,
             ));
         }
-        if self.benchmark_id.trim().is_empty() {
-            return Err(BenchmarkManifestError::EmptyBenchmarkId);
+
+        validate_non_empty_bounded(
+            "benchmark_id",
+            &self.benchmark_id,
+            MAX_BENCHMARK_ID_BYTES,
+        )?;
+        validate_non_empty_bounded("title", &self.title, MAX_BENCHMARK_TITLE_BYTES)?;
+        validate_non_empty_bounded(
+            "primary_source",
+            &self.primary_source,
+            MAX_PRIMARY_SOURCE_BYTES,
+        )?;
+
+        let released = parse_iso_date(&self.released_on)
+            .ok_or(BenchmarkManifestError::InvalidReleaseDate)?;
+        let captured = parse_iso_date(&self.captured_on)
+            .ok_or(BenchmarkManifestError::InvalidCaptureDate)?;
+        if captured < released {
+            return Err(BenchmarkManifestError::CapturePredatesRelease);
         }
-        if self.title.trim().is_empty() {
-            return Err(BenchmarkManifestError::EmptyTitle);
-        }
-        if !looks_like_iso_date(&self.released_on) || !looks_like_iso_date(&self.captured_on) {
-            return Err(BenchmarkManifestError::InvalidDate);
-        }
-        if self.primary_source.trim().is_empty() {
-            return Err(BenchmarkManifestError::EmptyPrimarySource);
-        }
+
         if self.domains.is_empty() {
             return Err(BenchmarkManifestError::NoDomains);
+        }
+        if self.domains.len() > MAX_REFERENCE_DOMAINS {
+            return Err(BenchmarkManifestError::TooManyDomains);
         }
         if self.claims.is_empty() {
             return Err(BenchmarkManifestError::NoClaims);
         }
+        if self.claims.len() > MAX_REFERENCE_CLAIMS {
+            return Err(BenchmarkManifestError::TooManyClaims);
+        }
 
-        let domain_count = self.domains.iter().copied().collect::<BTreeSet<_>>().len();
-        if domain_count != self.domains.len() {
+        let domain_set = self.domains.iter().copied().collect::<BTreeSet<_>>();
+        if domain_set.len() != self.domains.len() {
             return Err(BenchmarkManifestError::DuplicateDomain);
         }
-        let claim_count = self.claims.iter().copied().collect::<BTreeSet<_>>().len();
-        if claim_count != self.claims.len() {
+        let claim_set = self.claims.iter().copied().collect::<BTreeSet<_>>();
+        if claim_set.len() != self.claims.len() {
             return Err(BenchmarkManifestError::DuplicateClaim);
         }
+        if self
+            .claims
+            .iter()
+            .filter_map(|claim| claim.domain)
+            .any(|domain| !domain_set.contains(&domain))
+        {
+            return Err(BenchmarkManifestError::ClaimDomainNotDeclared);
+        }
 
-        match (&self.formalization_repository, &self.formalization_commit) {
-            (Some(repository), Some(commit)) => {
-                if repository.trim().is_empty() {
-                    return Err(BenchmarkManifestError::InvalidFormalizationRepository);
-                }
-                if !is_full_hex_commit(commit) {
+        match (
+            &self.formalization_repository,
+            &self.formalization_commit,
+            self.formalization_review_status,
+        ) {
+            (Some(repository), Some(commit), Some(_)) => {
+                validate_non_empty_bounded(
+                    "formalization_repository",
+                    repository,
+                    MAX_FORMALIZATION_REPOSITORY_BYTES,
+                )?;
+                if !is_full_lower_hex_commit(commit) {
                     return Err(BenchmarkManifestError::InvalidFormalizationCommit);
                 }
             }
-            (None, None) => {}
+            (None, None, None) => {}
+            (Some(_), Some(_), None) => {
+                return Err(BenchmarkManifestError::MissingFormalizationReviewStatus);
+            }
+            (None, None, Some(_)) => {
+                return Err(BenchmarkManifestError::FormalizationReviewWithoutArtifact);
+            }
             _ => return Err(BenchmarkManifestError::IncompleteFormalizationIdentity),
         }
 
         match (self.executable_profile, &self.executable_fixture_digest) {
-            (true, Some(digest)) if !digest.trim().is_empty() => {}
+            (true, Some(digest)) => {
+                validate_non_empty_bounded(
+                    "executable_fixture_digest",
+                    digest,
+                    MAX_EXECUTABLE_DIGEST_BYTES,
+                )?;
+            }
             (false, None) => {}
-            (true, _) => return Err(BenchmarkManifestError::ExecutableProfileMissingDigest),
+            (true, None) => return Err(BenchmarkManifestError::ExecutableProfileMissingDigest),
             (false, Some(_)) => return Err(BenchmarkManifestError::DigestWithoutExecutableProfile),
         }
 
@@ -170,16 +238,24 @@ impl ExternalBenchmarkManifest {
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum BenchmarkManifestError {
     UnsupportedSchemaVersion(u32),
-    EmptyBenchmarkId,
-    EmptyTitle,
-    InvalidDate,
-    EmptyPrimarySource,
+    EmptyField(&'static str),
+    FieldTooLong {
+        field: &'static str,
+        max_bytes: usize,
+    },
+    InvalidReleaseDate,
+    InvalidCaptureDate,
+    CapturePredatesRelease,
     NoDomains,
+    TooManyDomains,
     NoClaims,
+    TooManyClaims,
     DuplicateDomain,
     DuplicateClaim,
-    InvalidFormalizationRepository,
+    ClaimDomainNotDeclared,
     InvalidFormalizationCommit,
+    MissingFormalizationReviewStatus,
+    FormalizationReviewWithoutArtifact,
     IncompleteFormalizationIdentity,
     ExecutableProfileMissingDigest,
     DigestWithoutExecutableProfile,
@@ -191,22 +267,31 @@ impl fmt::Display for BenchmarkManifestError {
             Self::UnsupportedSchemaVersion(version) => {
                 write!(f, "unsupported external benchmark schema version {version}")
             }
-            Self::EmptyBenchmarkId => write!(f, "benchmark_id must not be empty"),
-            Self::EmptyTitle => write!(f, "benchmark title must not be empty"),
-            Self::InvalidDate => write!(f, "released_on/captured_on must use YYYY-MM-DD"),
-            Self::EmptyPrimarySource => write!(f, "primary_source must not be empty"),
+            Self::EmptyField(field) => write!(f, "{field} must not be empty"),
+            Self::FieldTooLong { field, max_bytes } => {
+                write!(f, "{field} must not exceed {max_bytes} bytes")
+            }
+            Self::InvalidReleaseDate => write!(f, "released_on must be a real YYYY-MM-DD date"),
+            Self::InvalidCaptureDate => write!(f, "captured_on must be a real YYYY-MM-DD date"),
+            Self::CapturePredatesRelease => write!(f, "captured_on must not predate released_on"),
             Self::NoDomains => write!(f, "benchmark must declare at least one domain"),
+            Self::TooManyDomains => write!(f, "benchmark declares too many domains"),
             Self::NoClaims => write!(f, "benchmark must declare at least one qualitative claim"),
+            Self::TooManyClaims => write!(f, "benchmark declares too many qualitative claims"),
             Self::DuplicateDomain => write!(f, "benchmark domains must be unique"),
             Self::DuplicateClaim => write!(f, "benchmark qualitative claims must be unique"),
-            Self::InvalidFormalizationRepository => {
-                write!(f, "formalization repository must not be empty")
+            Self::ClaimDomainNotDeclared => {
+                write!(f, "claim domain must also appear in benchmark domains")
             }
-            Self::InvalidFormalizationCommit => {
-                write!(
-                    f,
-                    "formalization commit must be a full 40-character hex SHA"
-                )
+            Self::InvalidFormalizationCommit => write!(
+                f,
+                "formalization commit must be a canonical 40-character lowercase hex SHA"
+            ),
+            Self::MissingFormalizationReviewStatus => {
+                write!(f, "formalization artifact requires an explicit review status")
+            }
+            Self::FormalizationReviewWithoutArtifact => {
+                write!(f, "formalization review status requires a formalization artifact")
             }
             Self::IncompleteFormalizationIdentity => write!(
                 f,
@@ -234,6 +319,7 @@ pub enum DiagnosticUnavailableReason {
     NotApplicable,
     ComputationFailed,
     OutsideReferenceDomain,
+    WithheldByValidityGate,
 }
 
 /// A scalar diagnostic whose measured branch must be finite and non-negative.
@@ -335,6 +421,9 @@ impl ContinuumDiagnosticSample {
         if self.diagnostic_profile.trim().is_empty() {
             return Err(ContinuumSampleError::EmptyDiagnosticProfile);
         }
+        if self.diagnostic_profile.len() > MAX_DIAGNOSTIC_PROFILE_BYTES {
+            return Err(ContinuumSampleError::DiagnosticProfileTooLong);
+        }
         if !self.time_s.is_finite() || self.time_s < 0.0 {
             return Err(ContinuumSampleError::InvalidTime);
         }
@@ -368,6 +457,7 @@ impl ContinuumDiagnosticSample {
 pub enum ContinuumSampleError {
     UnsupportedSchemaVersion(u32),
     EmptyDiagnosticProfile,
+    DiagnosticProfileTooLong,
     InvalidTime,
     InvalidDiagnostic {
         name: &'static str,
@@ -378,13 +468,15 @@ pub enum ContinuumSampleError {
 impl fmt::Display for ContinuumSampleError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Self::UnsupportedSchemaVersion(version) => {
-                write!(
-                    f,
-                    "unsupported continuum diagnostic schema version {version}"
-                )
-            }
+            Self::UnsupportedSchemaVersion(version) => write!(
+                f,
+                "unsupported continuum diagnostic schema version {version}"
+            ),
             Self::EmptyDiagnosticProfile => write!(f, "diagnostic_profile must not be empty"),
+            Self::DiagnosticProfileTooLong => write!(
+                f,
+                "diagnostic_profile must not exceed {MAX_DIAGNOSTIC_PROFILE_BYTES} bytes"
+            ),
             Self::InvalidTime => write!(f, "time_s must be finite and non-negative"),
             Self::InvalidDiagnostic { name, source } => {
                 write!(f, "invalid diagnostic {name}: {source}")
@@ -425,9 +517,10 @@ pub fn openai_2026_forced_navier_stokes_manifest() -> ExternalBenchmarkManifest 
         title: "Finite Time Blowup for Navier-Stokes".to_owned(),
         released_on: "2026-09-08".to_owned(),
         captured_on: "2026-09-10".to_owned(),
-        primary_source: "OpenAI: On the Navier-Stokes Millennium Prize Problem".to_owned(),
+        primary_source: "OpenAI: Finite time blowup for Navier-Stokes".to_owned(),
         formalization_repository: Some("openai/NavierStokesAndEuler".to_owned()),
         formalization_commit: Some(OPENAI_NAVIER_STOKES_FORMALIZATION_COMMIT.to_owned()),
+        formalization_review_status: Some(FormalizationReviewStatus::SelfAssessed),
         domains: vec![
             ReferenceDomain::WholeSpaceR3,
             ReferenceDomain::PeriodicTorus3,
@@ -443,7 +536,7 @@ pub fn openai_2026_forced_navier_stokes_manifest() -> ExternalBenchmarkManifest 
                 kind: ReferenceClaimKind::SmoothForcing,
             },
             ReferenceClaim {
-                domain: Some(ReferenceDomain::WholeSpaceR3),
+                domain: None,
                 kind: ReferenceClaimKind::StartsFromRest,
             },
             ReferenceClaim {
@@ -464,6 +557,20 @@ pub fn openai_2026_forced_navier_stokes_manifest() -> ExternalBenchmarkManifest 
     }
 }
 
+fn validate_non_empty_bounded(
+    field: &'static str,
+    value: &str,
+    max_bytes: usize,
+) -> Result<(), BenchmarkManifestError> {
+    if value.trim().is_empty() {
+        return Err(BenchmarkManifestError::EmptyField(field));
+    }
+    if value.len() > max_bytes {
+        return Err(BenchmarkManifestError::FieldTooLong { field, max_bytes });
+    }
+    Ok(())
+}
+
 fn validate_non_negative_finite(value: f64) -> Result<(), DiagnosticValueError> {
     if !value.is_finite() {
         return Err(DiagnosticValueError::NonFinite);
@@ -474,19 +581,46 @@ fn validate_non_negative_finite(value: f64) -> Result<(), DiagnosticValueError> 
     Ok(())
 }
 
-fn is_full_hex_commit(commit: &str) -> bool {
-    commit.len() == 40 && commit.bytes().all(|byte| byte.is_ascii_hexdigit())
+fn is_full_lower_hex_commit(commit: &str) -> bool {
+    commit.len() == 40
+        && commit
+            .bytes()
+            .all(|byte| byte.is_ascii_hexdigit() && !byte.is_ascii_uppercase())
 }
 
-fn looks_like_iso_date(value: &str) -> bool {
+fn parse_iso_date(value: &str) -> Option<(u16, u8, u8)> {
     let bytes = value.as_bytes();
     if bytes.len() != 10 || bytes[4] != b'-' || bytes[7] != b'-' {
-        return false;
+        return None;
     }
-    bytes
+    if !bytes
         .iter()
         .enumerate()
         .all(|(index, byte)| index == 4 || index == 7 || byte.is_ascii_digit())
+    {
+        return None;
+    }
+
+    let year = value[0..4].parse::<u16>().ok()?;
+    let month = value[5..7].parse::<u8>().ok()?;
+    let day = value[8..10].parse::<u8>().ok()?;
+    if year == 0 || !(1..=12).contains(&month) {
+        return None;
+    }
+
+    let leap = year.is_multiple_of(4) && (!year.is_multiple_of(100) || year.is_multiple_of(400));
+    let days_in_month = match month {
+        1 | 3 | 5 | 7 | 8 | 10 | 12 => 31,
+        4 | 6 | 9 | 11 => 30,
+        2 if leap => 29,
+        2 => 28,
+        _ => return None,
+    };
+    if !(1..=days_in_month).contains(&day) {
+        return None;
+    }
+
+    Some((year, month, day))
 }
 
 #[cfg(test)]
@@ -529,6 +663,10 @@ mod tests {
             manifest.status,
             ExternalReferenceStatus::PrimaryAndFormalArtifactsCapturedReviewPending
         );
+        assert_eq!(
+            manifest.formalization_review_status,
+            Some(FormalizationReviewStatus::SelfAssessed)
+        );
         assert!(!manifest.executable_profile);
         assert!(manifest.executable_fixture_digest.is_none());
         assert_eq!(
@@ -538,6 +676,15 @@ mod tests {
                 ReferenceDomain::PeriodicTorus3
             ]
         );
+    }
+
+    #[test]
+    fn captured_manifest_records_zero_initial_velocity_for_both_domains() {
+        let manifest = openai_2026_forced_navier_stokes_manifest();
+        assert!(manifest.claims.contains(&ReferenceClaim {
+            domain: None,
+            kind: ReferenceClaimKind::StartsFromRest,
+        }));
     }
 
     #[test]
@@ -551,9 +698,16 @@ mod tests {
     }
 
     #[test]
-    fn provenance_rejects_partial_or_short_formalization_identity() {
+    fn provenance_rejects_partial_or_noncanonical_formalization_identity() {
         let mut manifest = openai_2026_forced_navier_stokes_manifest();
         manifest.formalization_commit = Some("8937a8f4".to_owned());
+        assert_eq!(
+            manifest.validate(),
+            Err(BenchmarkManifestError::InvalidFormalizationCommit)
+        );
+
+        manifest.formalization_commit =
+            Some("8937A8F4CBC7ABAAB5E9E97D1CC7F5D2319D9538".to_owned());
         assert_eq!(
             manifest.validate(),
             Err(BenchmarkManifestError::InvalidFormalizationCommit)
@@ -567,7 +721,7 @@ mod tests {
     }
 
     #[test]
-    fn provenance_rejects_duplicate_domain_or_claim() {
+    fn provenance_rejects_duplicate_or_foreign_claim_domains() {
         let mut manifest = openai_2026_forced_navier_stokes_manifest();
         manifest.domains.push(ReferenceDomain::WholeSpaceR3);
         assert_eq!(
@@ -580,6 +734,43 @@ mod tests {
         assert_eq!(
             manifest.validate(),
             Err(BenchmarkManifestError::DuplicateClaim)
+        );
+
+        let mut manifest = openai_2026_forced_navier_stokes_manifest();
+        manifest.domains = vec![ReferenceDomain::PeriodicTorus3];
+        assert_eq!(
+            manifest.validate(),
+            Err(BenchmarkManifestError::ClaimDomainNotDeclared)
+        );
+    }
+
+    #[test]
+    fn provenance_dates_are_calendar_checked_and_monotonic() {
+        let mut manifest = openai_2026_forced_navier_stokes_manifest();
+        manifest.released_on = "2026-02-30".to_owned();
+        assert_eq!(
+            manifest.validate(),
+            Err(BenchmarkManifestError::InvalidReleaseDate)
+        );
+
+        let mut manifest = openai_2026_forced_navier_stokes_manifest();
+        manifest.captured_on = "2026-09-07".to_owned();
+        assert_eq!(
+            manifest.validate(),
+            Err(BenchmarkManifestError::CapturePredatesRelease)
+        );
+    }
+
+    #[test]
+    fn semantic_string_bounds_fail_closed() {
+        let mut manifest = openai_2026_forced_navier_stokes_manifest();
+        manifest.benchmark_id = "x".repeat(MAX_BENCHMARK_ID_BYTES + 1);
+        assert_eq!(
+            manifest.validate(),
+            Err(BenchmarkManifestError::FieldTooLong {
+                field: "benchmark_id",
+                max_bytes: MAX_BENCHMARK_ID_BYTES,
+            })
         );
     }
 
@@ -618,8 +809,6 @@ mod tests {
     #[test]
     fn sample_validation_catches_deserialized_invalid_measured_values() {
         let mut sample = empty_sample();
-        // Public wire types can be constructed/deserialized without the helper;
-        // aggregate validation must therefore re-check the numeric invariant.
         sample.max_cfl = NonNegativeDiagnostic::Measured(f64::NAN);
         assert_eq!(
             sample.validate(),
