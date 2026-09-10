@@ -13,6 +13,7 @@ mod demographic_execution;
 mod demographic_extinction_execution;
 mod demographic_founder_execution;
 mod demographic_history;
+mod demographic_proof_bundle;
 mod demographic_sampling;
 mod demographic_split_execution;
 mod demographic_structure_transition;
@@ -55,6 +56,11 @@ pub use demographic_founder_execution::{
 };
 pub use demographic_history::{
     DemographicInterventionCursor, DemographicInterventionCursorDigest,
+};
+pub use demographic_proof_bundle::{
+    DemographicExecutionEvidence, DemographicInterventionProofBundle,
+    DemographicInterventionProofBundleDigest, DemographicInterventionProofBundleModel,
+    DemographicInterventionProofStep,
 };
 pub use demographic_split_execution::{
     execute_conservative_population_split, DemographicSplitExecutionModel,
