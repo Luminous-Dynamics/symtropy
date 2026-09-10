@@ -18,6 +18,7 @@ mod population_structure;
 mod population_trajectory;
 mod reproduction;
 mod schema;
+mod structured_population_process;
 
 pub use error::EvolutionError;
 pub use heredity::{HereditaryState, HereditaryStateDigest};
@@ -51,6 +52,10 @@ pub use reproduction::{
     ReproductionMode, ReproductionProvenance, ReproductionProvenanceDigest,
 };
 pub use schema::{HereditarySchema, HereditarySchemaDigest, LocusDefinition};
+pub use structured_population_process::{
+    structured_wright_fisher_step, StructuredPopulationTransitionProvenance,
+    StructuredPopulationTransitionProvenanceDigest, StructuredPopulationTransitionResult,
+};
 
 pub const EVOLUTION_SCHEMA_VERSION: u32 = 1;
 pub const PROBABILITY_SCALE_PPM: u32 = 1_000_000;
