@@ -1,0 +1,85 @@
+name: PB-01 H1 H3 Apply
+
+on:
+  push:
+    branches:
+      - "building/pb01-proposal-ir-v0.1"
+    paths:
+      - "scripts/pb01-integrate-targets-and-ancestry.py"
+      - "scripts/pb01-repair-h1-h3-transform-output.py"
+      - ".github/workflows/pb01-h1-h3-apply.yml"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: pb01-h1-h3-apply
+  cancel-in-progress: true
+
+jobs:
+  apply:
+    name: Apply H1/H3 to primary PB-01 path
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: building/pb01-proposal-ir-v0.1
+          fetch-depth: 0
+
+      - name: Bind transformer input head
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "PB01_H1_H3_INPUT_HEAD=$(git rev-parse HEAD)"
+          echo "PB01_H1_H3_INPUT_TREE=$(git rev-parse HEAD^{tree})"
+
+      - name: Set up pinned Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.96.0
+          components: clippy, rustfmt
+
+      - name: Apply fail-closed transformer
+        run: |
+          python3 scripts/pb01-integrate-targets-and-ancestry.py
+          python3 scripts/pb01-repair-h1-h3-transform-output.py
+
+      - name: Canonical formatting
+        run: cargo fmt -p symtropy-player-building
+
+      - name: Prove primary path
+        run: |
+          cargo check -p symtropy-player-building --all-targets
+          cargo test -p symtropy-player-building
+          cargo clippy -p symtropy-player-building --all-targets -- -D warnings
+
+      - name: Require semantic delta
+        shell: bash
+        run: |
+          set -euo pipefail
+          git diff --exit-code --quiet && {
+            echo "transformer produced no semantic delta" >&2
+            exit 1
+          }
+          git status --short
+
+      - name: Commit qualified H1/H3 primary-path cutover
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "PB-01 Qualification Bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add crates/domains/symtropy-player-building/src/lib.rs \
+                  crates/domains/symtropy-player-building/src/root.rs \
+                  crates/domains/symtropy-player-building/src/hardening_contract.rs \
+                  crates/domains/symtropy-player-building/tests/h1_h3_primary_path.rs
+          git diff --cached --exit-code --quiet && {
+            echo "no qualified source delta to commit" >&2
+            exit 1
+          }
+          git commit -m "feat(building): close PB-01 exact-target and fork ancestry gaps"
+          qualified_head="$(git rev-parse HEAD)"
+          qualified_tree="$(git rev-parse HEAD^{tree})"
+          echo "PB01_H1_H3_QUALIFIED_HEAD=${qualified_head}"
+          echo "PB01_H1_H3_QUALIFIED_TREE=${qualified_tree}"
+          git push origin HEAD:building/pb01-proposal-ir-v0.1
