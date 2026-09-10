@@ -19,8 +19,8 @@ mod schema;
 pub use error::EvolutionError;
 pub use heredity::{HereditaryState, HereditaryStateDigest};
 pub use ids::{
-    AlleleId, HereditarySchemaId, LocusId, OperatorProfileId, PopulationId,
-    PopulationProcessProfileId, PopulationTransitionId, ReproductionEventId,
+    AlleleId, EvolutionExperimentId, HereditarySchemaId, LocusId, OperatorProfileId,
+    PopulationId, PopulationProcessProfileId, PopulationTransitionId, ReproductionEventId,
 };
 pub use operators::{
     EvolutionOperatorProfile, EvolutionOperatorProfileDigest, MutationProfile,
