@@ -24,7 +24,7 @@ macro_rules! semantic_id {
                 D: Deserializer<'de>,
             {
                 let value = String::deserialize(deserializer)?;
-                Self::new(value).map_err(serde::de::Error::custom)
+                Self::new(value).map_err(<D::Error as serde::de::Error>::custom)
             }
         }
     };
