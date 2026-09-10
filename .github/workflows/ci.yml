@@ -86,5 +86,23 @@ jobs:
     - name: Run Tests (Fluid Validation)
       run: cargo test -p symtropy-fluid
 
+    # Linux is the canonical evidence-emission leg. Bind the payload to the PR's
+    # actual source head rather than the synthetic merge commit checked out by
+    # pull_request workflows.
+    - name: Generate Fluid Verification Evidence
+      if: runner.os == 'Linux'
+      env:
+        SYMTROPY_EVIDENCE_SOURCE_REVISION: ${{ github.event.pull_request.head.sha || github.sha }}
+      run: cargo run -p symtropy-fluid --example continuum_verification_evidence --quiet > continuum-verification-evidence.json
+
+    - name: Upload Fluid Verification Evidence
+      if: runner.os == 'Linux'
+      uses: actions/upload-artifact@v4
+      with:
+        name: continuum-verification-evidence-${{ github.run_id }}
+        path: continuum-verification-evidence.json
+        if-no-files-found: error
+        retention-days: 30
+
     - name: Verify Workspace Build
       run: cargo check --workspace --all-targets
