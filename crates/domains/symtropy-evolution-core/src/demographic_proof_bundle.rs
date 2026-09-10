@@ -8,31 +8,33 @@ use crate::{
     HereditarySchemaDigest, MetapopulationSnapshot, MetapopulationSnapshotDigest,
     PopulationGeneration, PopulationGeneticState, PopulationId, PopulationStructureProfile,
     PopulationStructureProfileDigest, PopulationTrajectoryPoint,
+    ValidatedDemographicInterventionSource,
 };
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use std::{collections::BTreeMap, fmt};
 
 const DEMOGRAPHIC_PROOF_BUNDLE_DOMAIN: &[u8] =
-    b"symtropy:evolution:demographic-intervention-proof-bundle:v1\0";
+    b"symtropy:evolution:demographic-intervention-proof-bundle:v2\0";
+const DEMOGRAPHIC_PREFIX_ROOT_DOMAIN: &[u8] =
+    b"symtropy:evolution:demographic-intervention-prefix-root:v1\0";
+const DEMOGRAPHIC_PREFIX_STEP_DOMAIN: &[u8] =
+    b"symtropy:evolution:demographic-intervention-prefix-step:v1\0";
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum DemographicInterventionProofBundleModel {
-    ExactSameGenerationReplayV1,
+    ExactSameGenerationReplayV2,
 }
 
 impl DemographicInterventionProofBundleModel {
     fn tag(self) -> u8 {
         match self {
-            Self::ExactSameGenerationReplayV1 => 0,
+            Self::ExactSameGenerationReplayV2 => 0,
         }
     }
 }
 
 /// Closed V0 adapter over the already-versioned demographic executors.
-///
-/// This is deliberately not an extensible global event framework. Each variant
-/// names one exact result/provenance authority already owned by this crate.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum DemographicExecutionEvidence {
     CensusResize(DemographicEventExecutionResult),
@@ -74,7 +76,7 @@ impl DemographicExecutionEvidence {
         )
     }
 
-    fn populations(&self) -> &BTreeMap<PopulationId, PopulationGeneticState> {
+    pub(crate) fn populations(&self) -> &BTreeMap<PopulationId, PopulationGeneticState> {
         match self {
             Self::CensusResize(result) => &result.populations,
             Self::FounderOrRecolonization(result) => &result.populations,
@@ -84,7 +86,7 @@ impl DemographicExecutionEvidence {
         }
     }
 
-    fn points(&self) -> &BTreeMap<PopulationId, PopulationTrajectoryPoint> {
+    pub(crate) fn points(&self) -> &BTreeMap<PopulationId, PopulationTrajectoryPoint> {
         match self {
             Self::CensusResize(result) => &result.points,
             Self::FounderOrRecolonization(result) => &result.points,
@@ -94,7 +96,7 @@ impl DemographicExecutionEvidence {
         }
     }
 
-    fn snapshot(&self) -> &MetapopulationSnapshot {
+    pub(crate) fn snapshot(&self) -> &MetapopulationSnapshot {
         match self {
             Self::CensusResize(result) => &result.snapshot,
             Self::FounderOrRecolonization(result) => &result.snapshot,
@@ -104,7 +106,7 @@ impl DemographicExecutionEvidence {
         }
     }
 
-    fn cursor(&self) -> &DemographicInterventionCursor {
+    pub(crate) fn cursor(&self) -> &DemographicInterventionCursor {
         match self {
             Self::CensusResize(result) => &result.history_cursor,
             Self::FounderOrRecolonization(result) => &result.history_cursor,
@@ -127,7 +129,7 @@ impl DemographicExecutionEvidence {
     }
 
     #[allow(clippy::too_many_arguments)]
-    fn validate_current(
+    fn validate_root(
         &self,
         schema: &HereditarySchema,
         source_structure: &PopulationStructureProfile,
@@ -142,7 +144,6 @@ impl DemographicExecutionEvidence {
         if !self.matches_event_kind(event) {
             return Err(EvolutionError::DemographicExecutionAuthorityMismatch);
         }
-
         match self {
             Self::CensusResize(result) => {
                 if source_structure.canonical_digest()? != successor_structure.canonical_digest()? {
@@ -214,9 +215,96 @@ impl DemographicExecutionEvidence {
             }
         }
     }
+
+    #[allow(clippy::too_many_arguments)]
+    fn validate_proven(
+        &self,
+        validated_source: &ValidatedDemographicInterventionSource,
+        schema: &HereditarySchema,
+        source_structure: &PopulationStructureProfile,
+        successor_structure: &PopulationStructureProfile,
+        source_populations: &BTreeMap<PopulationId, PopulationGeneticState>,
+        source_points: &BTreeMap<PopulationId, PopulationTrajectoryPoint>,
+        source_snapshot: &MetapopulationSnapshot,
+        source_cursor: &DemographicInterventionCursor,
+        event: &DemographicEventDeclaration,
+        structure_transition: &DemographicStructureTransition,
+    ) -> Result<(), EvolutionError> {
+        if !self.matches_event_kind(event) {
+            return Err(EvolutionError::DemographicExecutionAuthorityMismatch);
+        }
+        match self {
+            Self::CensusResize(result) => result.provenance.validate_after_proven_predecessor(
+                validated_source,
+                schema,
+                source_structure,
+                source_populations,
+                source_points,
+                source_snapshot,
+                source_cursor,
+                event,
+                structure_transition,
+                result,
+            ),
+            Self::FounderOrRecolonization(result) => {
+                result.provenance.validate_after_proven_predecessor(
+                    validated_source,
+                    schema,
+                    source_structure,
+                    successor_structure,
+                    source_populations,
+                    source_points,
+                    source_snapshot,
+                    source_cursor,
+                    event,
+                    structure_transition,
+                    result,
+                )
+            }
+            Self::Extinction(result) => result.provenance.validate_after_proven_predecessor(
+                validated_source,
+                schema,
+                source_structure,
+                successor_structure,
+                source_populations,
+                source_points,
+                source_snapshot,
+                source_cursor,
+                event,
+                structure_transition,
+                result,
+            ),
+            Self::PopulationSplit(result) => result.provenance.validate_after_proven_predecessor(
+                validated_source,
+                schema,
+                source_structure,
+                successor_structure,
+                source_populations,
+                source_points,
+                source_snapshot,
+                source_cursor,
+                event,
+                structure_transition,
+                result,
+            ),
+            Self::PulseAdmixture(result) => {
+                result.provenance.validate_after_proven_predecessor(
+                    validated_source,
+                    schema,
+                    source_structure,
+                    source_populations,
+                    source_points,
+                    source_snapshot,
+                    source_cursor,
+                    event,
+                    structure_transition,
+                    result,
+                )
+            }
+        }
+    }
 }
 
-/// One ordered step in a same-generation demographic proof transcript.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct DemographicInterventionProofStep {
     event: DemographicEventDeclaration,
@@ -226,8 +314,6 @@ pub struct DemographicInterventionProofStep {
 }
 
 impl DemographicInterventionProofStep {
-    /// Construct evidence-shaped step data. Current authority is granted only by
-    /// bundle replay against an exact root source cut.
     pub fn new(
         event: DemographicEventDeclaration,
         structure_transition: DemographicStructureTransition,
@@ -255,8 +341,6 @@ impl DemographicInterventionProofStep {
     }
 }
 
-/// Revalidatable ordered proof of demographic interventions within one biological
-/// generation.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct DemographicInterventionProofBundle {
     model: DemographicInterventionProofBundleModel,
@@ -269,6 +353,7 @@ pub struct DemographicInterventionProofBundle {
     final_structure_digest: PopulationStructureProfileDigest,
     final_snapshot_digest: MetapopulationSnapshotDigest,
     final_cursor_digest: DemographicInterventionCursorDigest,
+    final_prefix_digest: DemographicInterventionPrefixDigest,
 }
 
 impl DemographicInterventionProofBundle {
@@ -281,7 +366,6 @@ impl DemographicInterventionProofBundle {
         root_snapshot: &MetapopulationSnapshot,
         steps: Vec<DemographicInterventionProofStep>,
     ) -> Result<Self, EvolutionError> {
-        root_snapshot.validate_current(schema, root_structure, root_populations, root_points)?;
         let summary = replay_steps(
             schema,
             root_structure,
@@ -291,7 +375,7 @@ impl DemographicInterventionProofBundle {
             &steps,
         )?;
         let bundle = Self {
-            model: DemographicInterventionProofBundleModel::ExactSameGenerationReplayV1,
+            model: DemographicInterventionProofBundleModel::ExactSameGenerationReplayV2,
             schema_digest: schema.canonical_digest()?,
             root_structure_digest: root_structure.canonical_digest()?,
             root_snapshot_digest: root_snapshot.canonical_digest(),
@@ -301,6 +385,7 @@ impl DemographicInterventionProofBundle {
             final_structure_digest: summary.final_structure_digest,
             final_snapshot_digest: summary.final_snapshot_digest,
             final_cursor_digest: summary.final_cursor_digest,
+            final_prefix_digest: summary.final_prefix_digest,
         };
         bundle.validate_current(
             schema,
@@ -328,6 +413,10 @@ impl DemographicInterventionProofBundle {
         self.final_cursor_digest
     }
 
+    pub fn final_prefix_digest(&self) -> DemographicInterventionPrefixDigest {
+        self.final_prefix_digest
+    }
+
     #[allow(clippy::too_many_arguments)]
     pub fn validate_current(
         &self,
@@ -338,7 +427,7 @@ impl DemographicInterventionProofBundle {
         root_snapshot: &MetapopulationSnapshot,
     ) -> Result<(), EvolutionError> {
         root_snapshot.validate_current(schema, root_structure, root_populations, root_points)?;
-        if self.model != DemographicInterventionProofBundleModel::ExactSameGenerationReplayV1
+        if self.model != DemographicInterventionProofBundleModel::ExactSameGenerationReplayV2
             || schema.canonical_digest()? != self.schema_digest
             || root_structure.canonical_digest()? != self.root_structure_digest
             || root_snapshot.canonical_digest() != self.root_snapshot_digest
@@ -359,6 +448,7 @@ impl DemographicInterventionProofBundle {
         if summary.final_structure_digest != self.final_structure_digest
             || summary.final_snapshot_digest != self.final_snapshot_digest
             || summary.final_cursor_digest != self.final_cursor_digest
+            || summary.final_prefix_digest != self.final_prefix_digest
         {
             return Err(EvolutionError::DemographicHistoryCursorMismatch);
         }
@@ -378,20 +468,48 @@ impl DemographicInterventionProofBundle {
         put_u64(&mut digest, self.generation.0);
         put_u64(&mut digest, self.steps.len() as u64);
         for step in &self.steps {
-            digest.update([step.execution.tag()]);
-            digest.update(step.event.canonical_digest()?.as_bytes());
-            digest.update(step.structure_transition.canonical_digest().as_bytes());
-            digest.update(step.successor_structure.canonical_digest()?.as_bytes());
-            digest.update(step.execution.provenance_digest_bytes());
-            digest.update(step.execution.snapshot().canonical_digest().as_bytes());
-            digest.update(step.execution.cursor().canonical_digest()?.as_bytes());
+            encode_step_authority(&mut digest, step)?;
         }
         digest.update(self.final_structure_digest.as_bytes());
         digest.update(self.final_snapshot_digest.as_bytes());
         digest.update(self.final_cursor_digest.as_bytes());
+        digest.update(self.final_prefix_digest.as_bytes());
         Ok(DemographicInterventionProofBundleDigest(
             digest.finalize().into(),
         ))
+    }
+
+    /// Fully revalidate the persisted transcript and mint runtime-only authority
+    /// for its exact non-root final prefix.
+    #[allow(clippy::too_many_arguments)]
+    pub fn mint_validated_final_source(
+        &self,
+        schema: &HereditarySchema,
+        root_structure: &PopulationStructureProfile,
+        root_populations: &BTreeMap<PopulationId, PopulationGeneticState>,
+        root_points: &BTreeMap<PopulationId, PopulationTrajectoryPoint>,
+        root_snapshot: &MetapopulationSnapshot,
+    ) -> Result<ValidatedDemographicInterventionSource, EvolutionError> {
+        self.validate_current(
+            schema,
+            root_structure,
+            root_populations,
+            root_points,
+            root_snapshot,
+        )?;
+        let final_step = self
+            .steps
+            .last()
+            .ok_or(EvolutionError::DemographicHistoryCursorNotRoot)?;
+        ValidatedDemographicInterventionSource::from_validated_prefix_replay(
+            schema,
+            &final_step.successor_structure,
+            final_step.execution.populations(),
+            final_step.execution.points(),
+            final_step.execution.snapshot(),
+            final_step.execution.cursor(),
+            self.final_prefix_digest,
+        )
     }
 }
 
@@ -418,10 +536,35 @@ impl fmt::Display for DemographicInterventionProofBundleDigest {
     }
 }
 
+/// Semantic hash of exactly the demographic transcript prefix already validated.
+#[derive(Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+pub struct DemographicInterventionPrefixDigest([u8; 32]);
+
+impl DemographicInterventionPrefixDigest {
+    pub fn as_bytes(&self) -> &[u8; 32] {
+        &self.0
+    }
+}
+
+impl fmt::Debug for DemographicInterventionPrefixDigest {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "DemographicInterventionPrefixDigest(")?;
+        fmt_hex(&self.0, f)?;
+        write!(f, ")")
+    }
+}
+
+impl fmt::Display for DemographicInterventionPrefixDigest {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        fmt_hex(&self.0, f)
+    }
+}
+
 struct ReplaySummary {
     final_structure_digest: PopulationStructureProfileDigest,
     final_snapshot_digest: MetapopulationSnapshotDigest,
     final_cursor_digest: DemographicInterventionCursorDigest,
+    final_prefix_digest: DemographicInterventionPrefixDigest,
 }
 
 #[allow(clippy::too_many_arguments)]
@@ -447,30 +590,63 @@ fn replay_steps(
     let mut current_points = root_points;
     let mut current_snapshot = root_snapshot;
     let mut current_cursor = &root_cursor;
+    let mut current_prefix = root_prefix_digest(schema, root_structure, root_snapshot)?;
+    let mut current_token: Option<ValidatedDemographicInterventionSource> = None;
 
-    for step in steps {
+    for (index, step) in steps.iter().enumerate() {
         if step.event.experiment_id() != root_snapshot.experiment_id()
             || step.event.generation() != root_snapshot.generation()
         {
             return Err(EvolutionError::DemographicExecutionAuthorityMismatch);
         }
-        step.execution.validate_current(
-            schema,
-            current_structure,
-            &step.successor_structure,
-            current_populations,
-            current_points,
-            current_snapshot,
-            current_cursor,
-            &step.event,
-            &step.structure_transition,
-        )?;
 
+        if index == 0 {
+            step.execution.validate_root(
+                schema,
+                current_structure,
+                &step.successor_structure,
+                current_populations,
+                current_points,
+                current_snapshot,
+                current_cursor,
+                &step.event,
+                &step.structure_transition,
+            )?;
+        } else {
+            let token = current_token
+                .as_ref()
+                .ok_or(EvolutionError::DemographicHistoryCursorMismatch)?;
+            step.execution.validate_proven(
+                token,
+                schema,
+                current_structure,
+                &step.successor_structure,
+                current_populations,
+                current_points,
+                current_snapshot,
+                current_cursor,
+                &step.event,
+                &step.structure_transition,
+            )?;
+        }
+
+        current_prefix = advance_prefix_digest(current_prefix, step)?;
         current_structure = &step.successor_structure;
         current_populations = step.execution.populations();
         current_points = step.execution.points();
         current_snapshot = step.execution.snapshot();
         current_cursor = step.execution.cursor();
+        current_token = Some(
+            ValidatedDemographicInterventionSource::from_validated_prefix_replay(
+                schema,
+                current_structure,
+                current_populations,
+                current_points,
+                current_snapshot,
+                current_cursor,
+                current_prefix,
+            )?,
+        );
     }
 
     current_snapshot.validate_current(
@@ -489,5 +665,46 @@ fn replay_steps(
         final_structure_digest: current_structure.canonical_digest()?,
         final_snapshot_digest: current_snapshot.canonical_digest(),
         final_cursor_digest: current_cursor.canonical_digest()?,
+        final_prefix_digest: current_prefix,
     })
+}
+
+fn root_prefix_digest(
+    schema: &HereditarySchema,
+    root_structure: &PopulationStructureProfile,
+    root_snapshot: &MetapopulationSnapshot,
+) -> Result<DemographicInterventionPrefixDigest, EvolutionError> {
+    let mut digest = Sha256::new();
+    digest.update(DEMOGRAPHIC_PREFIX_ROOT_DOMAIN);
+    digest.update(schema.canonical_digest()?.as_bytes());
+    digest.update(root_structure.canonical_digest()?.as_bytes());
+    digest.update(root_snapshot.canonical_digest().as_bytes());
+    put_text(&mut digest, root_snapshot.experiment_id().as_str());
+    put_u64(&mut digest, root_snapshot.generation().0);
+    Ok(DemographicInterventionPrefixDigest(digest.finalize().into()))
+}
+
+fn advance_prefix_digest(
+    previous: DemographicInterventionPrefixDigest,
+    step: &DemographicInterventionProofStep,
+) -> Result<DemographicInterventionPrefixDigest, EvolutionError> {
+    let mut digest = Sha256::new();
+    digest.update(DEMOGRAPHIC_PREFIX_STEP_DOMAIN);
+    digest.update(previous.as_bytes());
+    encode_step_authority(&mut digest, step)?;
+    Ok(DemographicInterventionPrefixDigest(digest.finalize().into()))
+}
+
+fn encode_step_authority(
+    digest: &mut Sha256,
+    step: &DemographicInterventionProofStep,
+) -> Result<(), EvolutionError> {
+    digest.update([step.execution.tag()]);
+    digest.update(step.event.canonical_digest()?.as_bytes());
+    digest.update(step.structure_transition.canonical_digest().as_bytes());
+    digest.update(step.successor_structure.canonical_digest()?.as_bytes());
+    digest.update(step.execution.provenance_digest_bytes());
+    digest.update(step.execution.snapshot().canonical_digest().as_bytes());
+    digest.update(step.execution.cursor().canonical_digest()?.as_bytes());
+    Ok(())
 }
