@@ -28,21 +28,14 @@ impl GeneticMapIntervalMicromorgans {
         start: GeneticMapPositionMicromorgans,
         end: GeneticMapPositionMicromorgans,
     ) -> Result<Self, EvolutionError> {
-        if start >= end {
-            return Err(EvolutionError::InvalidGeneticMapInterval {
-                start_micromorgans: start.get(),
-                end_micromorgans: end.get(),
-            });
-        }
-        Ok(Self { start, end })
+        let value = Self { start, end };
+        value.validate()?;
+        Ok(value)
     }
 
     pub fn validate(&self) -> Result<(), EvolutionError> {
         if self.start >= self.end {
-            return Err(EvolutionError::InvalidGeneticMapInterval {
-                start_micromorgans: self.start.get(),
-                end_micromorgans: self.end.get(),
-            });
+            return Err(EvolutionError::OperatorAuthorityMismatch);
         }
         Ok(())
     }
@@ -126,7 +119,7 @@ impl ChromosomeRecombinationProfile {
             domain.validate_local()?;
             let chromosome_id = domain.chromosome_id.clone();
             if by_id.insert(chromosome_id.clone(), domain).is_some() {
-                return Err(EvolutionError::DuplicateRecombinationDomain {
+                return Err(EvolutionError::DuplicateChromosomeIdentity {
                     chromosome: chromosome_id,
                 });
             }
@@ -154,14 +147,10 @@ impl ChromosomeRecombinationProfile {
         schema.validate()?;
         chromosome_map.validate(schema)?;
         if self.profile_version != CHROMOSOME_RECOMBINATION_PROFILE_VERSION {
-            return Err(EvolutionError::UnsupportedChromosomeRecombinationProfile(
-                self.profile_version,
-            ));
+            return Err(EvolutionError::OperatorAuthorityMismatch);
         }
         if schema.ploidy != 2 {
-            return Err(EvolutionError::RecombinationProcessRequiresDiploid(
-                schema.ploidy,
-            ));
+            return Err(EvolutionError::ModeRequiresDiploid(schema.ploidy));
         }
         if self.schema_id != schema.id || self.schema_digest != schema.canonical_digest()? {
             return Err(EvolutionError::HereditarySchemaAuthorityMismatch);
@@ -169,15 +158,15 @@ impl ChromosomeRecombinationProfile {
         if self.chromosome_map_id != chromosome_map.id
             || self.chromosome_map_digest != chromosome_map.canonical_digest(schema)?
         {
-            return Err(EvolutionError::ChromosomeRecombinationMapAuthorityMismatch);
+            return Err(EvolutionError::OperatorAuthorityMismatch);
         }
         if self.domains.len() != chromosome_map.chromosomes.len() {
-            return Err(EvolutionError::ChromosomeRecombinationDomainSetMismatch);
+            return Err(EvolutionError::OperatorAuthorityMismatch);
         }
 
         for (key, domain) in &self.domains {
             if key != &domain.chromosome_id {
-                return Err(EvolutionError::ChromosomeRecombinationDomainKeyMismatch {
+                return Err(EvolutionError::ChromosomeKeyMismatch {
                     key: key.clone(),
                     value: domain.chromosome_id.clone(),
                 });
@@ -186,17 +175,13 @@ impl ChromosomeRecombinationProfile {
             let definition = chromosome_map
                 .chromosomes
                 .get(key)
-                .ok_or(EvolutionError::ChromosomeRecombinationDomainSetMismatch)?;
-            for locus in &definition.loci {
-                if !domain.interval.contains(locus.position) {
-                    return Err(EvolutionError::ChromosomeLocusOutsideRecombinationDomain {
-                        chromosome: key.clone(),
-                        locus: locus.locus_id.clone(),
-                        position_micromorgans: locus.position.get(),
-                        start_micromorgans: domain.interval.start.get(),
-                        end_micromorgans: domain.interval.end.get(),
-                    });
-                }
+                .ok_or(EvolutionError::OperatorAuthorityMismatch)?;
+            if definition
+                .loci
+                .iter()
+                .any(|locus| !domain.interval.contains(locus.position))
+            {
+                return Err(EvolutionError::OperatorAuthorityMismatch);
             }
         }
         Ok(())
