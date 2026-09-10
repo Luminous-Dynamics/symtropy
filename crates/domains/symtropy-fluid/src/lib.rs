@@ -15,8 +15,10 @@
 //! numerical failures as typed campaign evidence rather than erasing the run,
 //! [`diagnostic_trace`] retains stepwise diagnostics and error evolution,
 //! [`numerical_observability`] measures signed stability margins plus controlled
-//! pressure-projection residual convergence, and [`iterative_error`] measures
-//! projected solution change in velocity units as the iteration budget grows.
+//! pressure-projection residual convergence, [`iterative_error`] measures
+//! projected solution change in velocity units as the iteration budget grows,
+//! and [`verification_regime`] summarizes refinement trends and iterative versus
+//! discretization error without assigning a promotion verdict.
 //! None of these modules should be read as a claim that Symtropy currently
 //! reproduces the 2026 singular construction or has a production Earth-water
 //! CFD backend.
@@ -31,6 +33,7 @@ pub mod numerical_observability;
 pub mod reference;
 pub mod validation;
 pub mod verification_ladder;
+pub mod verification_regime;
 
 use nalgebra::SVector;
 use serde::{Deserialize, Serialize};
