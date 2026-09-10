@@ -31,20 +31,51 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Bind exact product subject on push
+        if: github.event_name == 'push'
+        shell: bash
+        run: |
+          set -euo pipefail
+          actual_head="$(git rev-parse HEAD)"
+          test "${actual_head}" = "${GITHUB_SHA}"
+          echo "PB01_SUBJECT_KIND=product-head" >> "${GITHUB_ENV}"
+          echo "PB01_PRODUCT_HEAD=${actual_head}" >> "${GITHUB_ENV}"
+          echo "PB01_EXECUTED_TREE=$(git rev-parse HEAD^{tree})" >> "${GITHUB_ENV}"
+          printf 'PB-01 product subject: head=%s tree=%s\n' \
+            "${actual_head}" "$(git rev-parse HEAD^{tree})"
+
+      - name: Bind exact integration subject on pull request
+        if: github.event_name == 'pull_request'
+        shell: bash
+        env:
+          REQUIRED_BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          REQUIRED_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          set -euo pipefail
+          actual_merge="$(git rev-parse HEAD)"
+          parent_line="$(git show -s --format='%P' HEAD)"
+          read -r first_parent second_parent extra_parent <<< "${parent_line}"
+
+          test -n "${first_parent:-}"
+          test -n "${second_parent:-}"
+          test -z "${extra_parent:-}"
+          test "${first_parent}" = "${REQUIRED_BASE_SHA}"
+          test "${second_parent}" = "${REQUIRED_HEAD_SHA}"
+
+          echo "PB01_SUBJECT_KIND=integration-merge" >> "${GITHUB_ENV}"
+          echo "PB01_REQUIRED_BASE=${REQUIRED_BASE_SHA}" >> "${GITHUB_ENV}"
+          echo "PB01_REQUIRED_HEAD=${REQUIRED_HEAD_SHA}" >> "${GITHUB_ENV}"
+          echo "PB01_EXECUTED_MERGE=${actual_merge}" >> "${GITHUB_ENV}"
+          echo "PB01_EXECUTED_TREE=$(git rev-parse HEAD^{tree})" >> "${GITHUB_ENV}"
+          printf 'PB-01 integration subject: base=%s head=%s merge=%s tree=%s\n' \
+            "${REQUIRED_BASE_SHA}" "${REQUIRED_HEAD_SHA}" "${actual_merge}" \
+            "$(git rev-parse HEAD^{tree})"
+
       - name: Set up pinned Rust
         uses: dtolnay/rust-toolchain@stable
         with:
           toolchain: 1.96.0
           components: clippy, rustfmt
-
-      - name: Verify exact checked-out head on push
-        if: github.event_name == 'push'
-        shell: bash
-        run: |
-          set -euo pipefail
-          test "$(git rev-parse HEAD)" = "${GITHUB_SHA}"
-          echo "PB01_HEAD=$(git rev-parse HEAD)"
-          echo "PB01_TREE=$(git rev-parse HEAD^{tree})"
 
       - name: Check formatting
         run: cargo fmt -p symtropy-player-building -- --check
@@ -65,6 +96,12 @@ jobs:
           git diff --exit-code -- . ':!Cargo.lock'
           test -z "$(git status --porcelain --untracked-files=all | grep -v '^?? Cargo.lock$' || true)"
 
+# Evidence semantics:
+# - a push run qualifies only the exact product HEAD/tree it executes;
+# - a PR run qualifies only the exact provider integration merge after proving
+#   its ordered parents are the event's exact base/head SHAs;
+# - neither result silently substitutes for the other.
+#
 # PB-01 intentionally does not claim Cargo.lock reproducibility yet. The parent
 # mainline does not contain the active Fabrication/Construction promotion stack,
 # and this structural tranche adds one path package while that integration base
