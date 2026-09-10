@@ -6,6 +6,7 @@ on:
       - "spatial/pb04a-faceted-topology-kernel"
     paths:
       - "scripts/pb04a-harden-content-identity.py"
+      - "scripts/pb04a-harden-global-source-consistency.py"
       - ".github/workflows/pb04a-identity-apply.yml"
 
 permissions:
@@ -17,7 +18,7 @@ concurrency:
 
 jobs:
   apply:
-    name: Apply PB-04a content-bound identity hardening
+    name: Apply PB-04a content and source identity hardening
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -40,8 +41,10 @@ jobs:
           toolchain: 1.96.0
           components: clippy, rustfmt
 
-      - name: Apply fail-closed identity transformer
-        run: python3 scripts/pb04a-harden-content-identity.py
+      - name: Apply fail-closed identity transformers
+        run: |
+          python3 scripts/pb04a-harden-content-identity.py
+          python3 scripts/pb04a-harden-global-source-consistency.py
 
       - name: Canonical formatting
         run: >-
@@ -59,7 +62,7 @@ jobs:
         run: |
           set -euo pipefail
           git diff --exit-code --quiet && {
-            echo "identity transformer produced no semantic delta" >&2
+            echo "identity transformers produced no semantic delta" >&2
             exit 1
           }
           git status --short
