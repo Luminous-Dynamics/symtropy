@@ -5,7 +5,10 @@ use crate::{
 };
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
-use std::{collections::{BTreeMap, BTreeSet}, fmt};
+use std::{
+    collections::{BTreeMap, BTreeSet},
+    fmt,
+};
 
 const STRUCTURE_PROFILE_DIGEST_DOMAIN: &[u8] =
     b"symtropy:evolution:population-structure-profile:v1\0";
@@ -29,6 +32,54 @@ impl PopulationStructureModel {
     }
 }
 
+/// Named input edge for one off-diagonal parental-source probability.
+///
+/// This explicit type avoids ambiguous `(from, to, rate)` tuple conventions.
+/// The semantic direction is always: a child allele copy in `destination`
+/// chooses its parental gene pool from `source` with `rate_ppm` probability.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ParentalSourceEdge {
+    destination: PopulationId,
+    source: PopulationId,
+    rate_ppm: u32,
+}
+
+impl ParentalSourceEdge {
+    pub fn new(
+        destination: PopulationId,
+        source: PopulationId,
+        rate_ppm: u32,
+    ) -> Result<Self, EvolutionError> {
+        if destination == source {
+            return Err(EvolutionError::SelfMigrationEntry {
+                population: destination,
+            });
+        }
+        if rate_ppm > PROBABILITY_SCALE_PPM {
+            return Err(EvolutionError::ProbabilityOutOfRange {
+                observed_ppm: rate_ppm,
+            });
+        }
+        Ok(Self {
+            destination,
+            source,
+            rate_ppm,
+        })
+    }
+
+    pub fn destination(&self) -> &PopulationId {
+        &self.destination
+    }
+
+    pub fn source(&self) -> &PopulationId {
+        &self.source
+    }
+
+    pub fn rate_ppm(&self) -> u32 {
+        self.rate_ppm
+    }
+}
+
 /// Canonical structured-population authority for aggregate gene-pool migration.
 ///
 /// This profile says nothing about literal migrant organisms, genotypes,
@@ -46,7 +97,7 @@ pub struct PopulationStructureProfile {
 
 impl PopulationStructureProfile {
     /// Construct a canonical migration profile from declared populations and
-    /// explicit `(destination, source, rate_ppm)` off-diagonal edges.
+    /// explicitly directed parental-source edges.
     ///
     /// Duplicate populations and duplicate edges are rejected before canonical
     /// collection. Zero-rate edges are accepted as input but canonicalized away;
@@ -56,7 +107,7 @@ impl PopulationStructureProfile {
         version: impl Into<String>,
         model: PopulationStructureModel,
         populations: impl IntoIterator<Item = PopulationId>,
-        migration_edges: impl IntoIterator<Item = (PopulationId, PopulationId, u32)>,
+        migration_edges: impl IntoIterator<Item = ParentalSourceEdge>,
     ) -> Result<Self, EvolutionError> {
         let version = version.into();
         validate_text("population_structure.version", &version)?;
@@ -77,7 +128,13 @@ impl PopulationStructureProfile {
             BTreeMap<PopulationId, u32>,
         > = BTreeMap::new();
 
-        for (destination, source, rate_ppm) in migration_edges {
+        for edge in migration_edges {
+            let ParentalSourceEdge {
+                destination,
+                source,
+                rate_ppm,
+            } = edge;
+
             if !seen_edges.insert((destination.clone(), source.clone())) {
                 return Err(EvolutionError::DuplicateMigrationEdge {
                     destination,
@@ -139,12 +196,6 @@ impl PopulationStructureProfile {
         &self.populations
     }
 
-    pub fn migration_rows(
-        &self,
-    ) -> &BTreeMap<PopulationId, BTreeMap<PopulationId, u32>> {
-        &self.parental_source_ppm
-    }
-
     pub fn is_zero_migration(&self) -> bool {
         self.parental_source_ppm.is_empty()
     }
@@ -165,12 +216,12 @@ impl PopulationStructureProfile {
                 population: destination.clone(),
             });
         }
-        let outgoing_to_other_sources = self
+        let imported_parental_fraction = self
             .parental_source_ppm
             .get(destination)
             .map(|row| row.values().map(|rate| u64::from(*rate)).sum::<u64>())
             .unwrap_or(0);
-        Ok(u32::try_from(u64::from(PROBABILITY_SCALE_PPM) - outgoing_to_other_sources)
+        Ok(u32::try_from(u64::from(PROBABILITY_SCALE_PPM) - imported_parental_fraction)
             .expect("validated migration row cannot exceed probability scale"))
     }
 
@@ -319,9 +370,13 @@ mod tests {
         PopulationId::new(id).unwrap()
     }
 
+    fn edge(destination: &PopulationId, source: &PopulationId, rate_ppm: u32) -> ParentalSourceEdge {
+        ParentalSourceEdge::new(destination.clone(), source.clone(), rate_ppm).unwrap()
+    }
+
     fn profile(
         populations: Vec<PopulationId>,
-        edges: Vec<(PopulationId, PopulationId, u32)>,
+        edges: Vec<ParentalSourceEdge>,
     ) -> Result<PopulationStructureProfile, EvolutionError> {
         PopulationStructureProfile::new(
             PopulationStructureProfileId::new("archipelago-v1").unwrap(),
@@ -340,18 +395,18 @@ mod tests {
         let first = profile(
             vec![a.clone(), b.clone(), c.clone()],
             vec![
-                (a.clone(), b.clone(), 100_000),
-                (a.clone(), c.clone(), 50_000),
-                (b.clone(), a.clone(), 25_000),
+                edge(&a, &b, 100_000),
+                edge(&a, &c, 50_000),
+                edge(&b, &a, 25_000),
             ],
         )
         .unwrap();
         let second = profile(
             vec![c.clone(), a.clone(), b.clone()],
             vec![
-                (b, a.clone(), 25_000),
-                (a.clone(), c, 50_000),
-                (a, pop("b"), 100_000),
+                edge(&b, &a, 25_000),
+                edge(&a, &c, 50_000),
+                edge(&a, &b, 100_000),
             ],
         )
         .unwrap();
@@ -366,10 +421,14 @@ mod tests {
         let b = pop("b");
         let first = profile(
             vec![a.clone(), b.clone()],
-            vec![(a.clone(), b.clone(), 100_000)],
+            vec![edge(&a, &b, 100_000)],
         )
         .unwrap();
-        let second = profile(vec![a.clone(), b.clone()], vec![(a, b, 100_001)]).unwrap();
+        let second = profile(
+            vec![a.clone(), b.clone()],
+            vec![edge(&a, &b, 100_001)],
+        )
+        .unwrap();
 
         assert_ne!(first.canonical_digest().unwrap(), second.canonical_digest().unwrap());
     }
@@ -380,7 +439,7 @@ mod tests {
         let b = pop("b");
         let with_zero = profile(
             vec![a.clone(), b.clone()],
-            vec![(a.clone(), b.clone(), 0)],
+            vec![edge(&a, &b, 0)],
         )
         .unwrap();
         let without_edge = profile(vec![a, b], vec![]).unwrap();
@@ -425,27 +484,35 @@ mod tests {
         assert!(matches!(
             profile(
                 vec![a.clone(), b.clone()],
-                vec![
-                    (a.clone(), b.clone(), 0),
-                    (a.clone(), b.clone(), 10_000),
-                ],
+                vec![edge(&a, &b, 0), edge(&a, &b, 10_000)],
             ),
             Err(EvolutionError::DuplicateMigrationEdge { .. })
         ));
     }
 
     #[test]
-    fn self_and_unknown_population_edges_fail_closed() {
+    fn edge_constructor_rejects_self_and_out_of_range_probability() {
         let a = pop("a");
         let b = pop("b");
         assert!(matches!(
-            profile(vec![a.clone(), b.clone()], vec![(a.clone(), a, 1)]),
+            ParentalSourceEdge::new(a.clone(), a, 1),
             Err(EvolutionError::SelfMigrationEntry { .. })
         ));
         assert!(matches!(
+            ParentalSourceEdge::new(b, pop("c"), PROBABILITY_SCALE_PPM + 1),
+            Err(EvolutionError::ProbabilityOutOfRange { .. })
+        ));
+    }
+
+    #[test]
+    fn unknown_population_edge_fails_closed() {
+        let a = pop("a");
+        let b = pop("b");
+        let missing = pop("missing");
+        assert!(matches!(
             profile(
-                vec![b.clone()],
-                vec![(b, PopulationId::new("missing").unwrap(), 1)],
+                vec![a.clone(), b],
+                vec![ParentalSourceEdge::new(a, missing, 1).unwrap()],
             ),
             Err(EvolutionError::UnknownStructurePopulation { .. })
         ));
@@ -459,7 +526,7 @@ mod tests {
         assert!(matches!(
             profile(
                 vec![a.clone(), b.clone(), c.clone()],
-                vec![(a.clone(), b, 600_000), (a, c, 500_001)],
+                vec![edge(&a, &b, 600_000), edge(&a, &c, 500_001)],
             ),
             Err(EvolutionError::MigrationRowExceedsProbabilityScale { .. })
         ));
@@ -472,10 +539,7 @@ mod tests {
         let c = pop("c");
         let structure = profile(
             vec![a.clone(), b.clone(), c.clone()],
-            vec![
-                (a.clone(), b.clone(), 125_000),
-                (a.clone(), c.clone(), 75_000),
-            ],
+            vec![edge(&a, &b, 125_000), edge(&a, &c, 75_000)],
         )
         .unwrap();
 
