@@ -7,6 +7,7 @@
 //! and civilization remain external authorities.
 
 mod canonical;
+mod chromosome_map;
 mod demographic_admixture_execution;
 mod demographic_event;
 mod demographic_execution;
@@ -31,6 +32,10 @@ mod reproduction;
 mod schema;
 mod structured_population_process;
 
+pub use chromosome_map::{
+    ChromosomeDefinition, ChromosomeLocus, ChromosomeMap, ChromosomeMapDigest,
+    CHROMOSOME_MAP_VERSION,
+};
 pub use demographic_admixture_execution::{
     execute_census_preserving_pulse_admixture,
     execute_census_preserving_pulse_admixture_after_proven_history,
@@ -78,9 +83,9 @@ pub use demographic_structure_transition::{
 pub use error::EvolutionError;
 pub use heredity::{HereditaryState, HereditaryStateDigest};
 pub use ids::{
-    AlleleId, DemographicEventId, EvolutionExperimentId, HereditarySchemaId, LocusId,
-    OperatorProfileId, PopulationId, PopulationProcessProfileId, PopulationStructureProfileId,
-    PopulationTransitionId, ReproductionEventId,
+    AlleleId, ChromosomeId, ChromosomeMapId, DemographicEventId, EvolutionExperimentId,
+    HereditarySchemaId, LocusId, OperatorProfileId, PopulationId, PopulationProcessProfileId,
+    PopulationStructureProfileId, PopulationTransitionId, ReproductionEventId,
 };
 pub use metapopulation::{
     MetapopulationSnapshot, MetapopulationSnapshotDigest, MetapopulationSnapshotEntry,
