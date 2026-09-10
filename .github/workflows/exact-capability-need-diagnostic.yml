@@ -1,0 +1,139 @@
+name: Diagnostic Exact Capability Need Binding
+
+on:
+  pull_request:
+    branches: [ "main" ]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: diagnostic-exact-capability-need-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  diagnostic:
+    name: Diagnostic replay of #605 transform on exact #572
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Check out exact #572 product subject
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: f323d7d2b9bdb9e923835fd24e4f499942a8fdd1
+          path: product
+          persist-credentials: false
+          fetch-depth: 0
+
+      - name: Check out exact diagnostic tools
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          path: runner-tools
+          persist-credentials: false
+          fetch-depth: 0
+
+      - name: Bind diagnostic subjects and environment
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git -C product rev-parse HEAD)" = "f323d7d2b9bdb9e923835fd24e4f499942a8fdd1"
+          test "$(git -C runner-tools rev-parse HEAD)" = "${{ github.event.pull_request.head.sha }}"
+          echo "DIAGNOSTIC_PRODUCT_HEAD=$(git -C product rev-parse HEAD)"
+          echo "DIAGNOSTIC_PRODUCT_TREE=$(git -C product rev-parse HEAD^{tree})"
+          echo "DIAGNOSTIC_TOOL_HEAD=$(git -C runner-tools rev-parse HEAD)"
+          echo "DIAGNOSTIC_TRANSFORM_BLOB=$(git -C runner-tools hash-object .github/repair/exact_capability_need_binding.py)"
+          echo "RUNNER_OS=${RUNNER_OS}"
+          echo "RUNNER_ARCH=${RUNNER_ARCH}"
+          echo "IMAGE_OS=${ImageOS:-unknown}"
+          echo "IMAGE_VERSION=${ImageVersion:-unknown}"
+          test -z "$(git -C product status --porcelain --untracked-files=all)"
+
+      - name: Set up pinned Rust 1.96
+        uses: dtolnay/rust-toolchain@6bed0761d98439e5a578e2877258200ad565ba87
+        with:
+          toolchain: 1.96.0
+          components: clippy, rustfmt
+
+      - name: Record Rust toolchain
+        shell: bash
+        run: |
+          set -euo pipefail
+          rustc -Vv
+          cargo -Vv
+          rustfmt --version
+          cargo clippy --version
+
+      - name: Re-prove exact #572 diagnostic parent
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd product
+          cargo test --locked -p symtropy-fabrication --lib
+          cargo clippy --locked -p symtropy-fabrication --all-targets --all-features -- -D warnings
+          test -z "$(git status --porcelain --untracked-files=all)"
+
+      - name: Apply exact F5 need-binding transform
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd product
+          python3 ../runner-tools/.github/repair/exact_capability_need_binding.py
+          cargo fmt -p symtropy-fabrication -p symtropy-firstlight
+
+      - name: Prove diagnostic diff scope
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd product
+          expected=$(cat <<'EOF'
+          crates/apps/symtropy-firstlight/src/patch_conduit_exact_plan.rs
+          crates/domains/symtropy-fabrication/src/capability.rs
+          crates/domains/symtropy-fabrication/src/executable_plan.rs
+          EOF
+          )
+          actual=$(git diff --name-only | sort)
+          test "$(printf '%s\n' "$actual")" = "$(printf '%s\n' "$expected" | sort)"
+          printf '%s\n' "$actual"
+
+      - name: Prove exact F5 binding symbols exist
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd product
+          grep -q 'struct CapabilityNeedSnapshot' crates/domains/symtropy-fabrication/src/capability.rs
+          grep -q 'new_with_capability_needs' crates/domains/symtropy-fabrication/src/executable_plan.rs
+          grep -q 'MissingCapabilityNeedBinding' crates/domains/symtropy-fabrication/src/executable_plan.rs
+          grep -q 'real_patch_conduit_exact_plan_binds_every_f5_need_semantically' crates/apps/symtropy-firstlight/src/patch_conduit_exact_plan.rs
+
+      - name: Test transformed Fabrication semantics
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd product
+          cargo test --locked -p symtropy-fabrication --lib
+          cargo clippy --locked -p symtropy-fabrication --all-targets --all-features -- -D warnings
+
+      - name: Compile exact downstream consumers
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd product
+          cargo check --locked -p symtropy-construction --lib
+          cargo check --locked -p symtropy-firstlight
+
+      - name: Prove manifests and lock unchanged
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd product
+          git diff --exit-code -- Cargo.lock Cargo.toml crates/domains/symtropy-fabrication/Cargo.toml crates/apps/symtropy-firstlight/Cargo.toml crates/domains/symtropy-construction/Cargo.toml
+
+      - name: Report non-authoritative diagnostic patch identity
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd product
+          git diff --binary > /tmp/exact-f5-need.patch
+          echo "DIAGNOSTIC_PATCH_SHA256=$(sha256sum /tmp/exact-f5-need.patch | awk '{print $1}')"
+          echo "DIAGNOSTIC_ONLY=true"
+          echo "This run does not qualify #605; exact qualified #321 remains the required product parent."
