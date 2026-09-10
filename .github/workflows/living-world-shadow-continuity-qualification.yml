@@ -7,6 +7,8 @@ on:
 
 permissions:
   contents: read
+  id-token: write
+  attestations: write
 
 concurrency:
   group: living-world-shadow-continuity-${{ github.event.pull_request.number || github.ref }}
@@ -20,6 +22,7 @@ jobs:
     timeout-minutes: 15
     env:
       PRODUCT_SHA: 59cee313afae1ad184d1b8382088eac2616822c9
+      QUALIFICATION_MANIFEST: ${{ runner.temp }}/lw55-shadow-continuity-qualification.json
 
     steps:
       - name: Check out immutable product subject
@@ -93,5 +96,92 @@ jobs:
           git diff --check
           git diff --exit-code
           test -z "$(git status --porcelain)"
+          printf 'FINAL_LOCK_SHA256=%s\n' "$(sha256sum Cargo.lock | awk '{print $1}')"
+
+      - name: Write exact qualification manifest
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import hashlib
+          import json
+          import os
+          import pathlib
+          import subprocess
+
+          manifest_path = pathlib.Path(os.environ["QUALIFICATION_MANIFEST"])
+          product_sha = subprocess.check_output(
+              ["git", "rev-parse", "HEAD"], text=True
+          ).strip()
+          product_tree = subprocess.check_output(
+              ["git", "rev-parse", "HEAD^{tree}"], text=True
+          ).strip()
+          lock_sha256 = hashlib.sha256(pathlib.Path("Cargo.lock").read_bytes()).hexdigest()
+
+          if product_sha != os.environ["PRODUCT_SHA"]:
+              raise SystemExit("qualification manifest product SHA drifted")
+
+          manifest = {
+              "schema": "luminous.symtropy.living-world.shadow-continuity-qualification/v0.1",
+              "contract": "lw55-shadow-continuity-structural-v0.1",
+              "repository": os.environ["GITHUB_REPOSITORY"],
+              "product_sha": product_sha,
+              "product_tree": product_tree,
+              "cargo_lock_sha256": lock_sha256,
+              "rust_toolchain": "1.96.0",
+              "crate": "symtropy-lifesim-core",
+              "qualification_scope": "structural_continuity_only",
+              "targeted_test": "shadow_execution_continuity::tests",
+              "checks": [
+                  "cargo fmt --all -- --check",
+                  "cargo check --locked -p symtropy-lifesim-core --all-targets",
+                  "cargo test --locked -p symtropy-lifesim-core --lib shadow_execution_continuity::tests -- --nocapture",
+                  "cargo test --locked -p symtropy-lifesim-core --lib",
+                  "cargo clippy --locked -p symtropy-lifesim-core --all-targets --all-features -- -D warnings",
+                  "tracked-source-and-lockfile-immutable",
+              ],
+              "run": {
+                  "id": os.environ["GITHUB_RUN_ID"],
+                  "attempt": os.environ["GITHUB_RUN_ATTEMPT"],
+                  "workflow": os.environ["GITHUB_WORKFLOW"],
+              },
+              "claims": {
+                  "structural_continuity_contract_executed": True,
+                  "runner_emission_qualified": False,
+                  "anchor_renewal_authorized": False,
+              },
+          }
+          manifest_path.write_text(
+              json.dumps(manifest, sort_keys=True, separators=(",", ":")) + "\n",
+              encoding="utf-8",
+          )
+          print(manifest_path.read_text(encoding="utf-8"), end="")
+          print("QUALIFICATION_MANIFEST_SHA256=" + hashlib.sha256(manifest_path.read_bytes()).hexdigest())
+          PY
+
+      - name: Attest qualification manifest provenance
+        # actions/attest v4, pinned to the immutable v4 release commit.
+        uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6
+        with:
+          subject-path: ${{ env.QUALIFICATION_MANIFEST }}
+
+      - name: Verify qualification manifest attestation
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          gh attestation verify "$QUALIFICATION_MANIFEST" -R "$GITHUB_REPOSITORY"
+          printf 'LW55_SHADOW_CONTINUITY_ATTESTATION_VERIFIED=1\n'
+
+      - name: Final exact-subject postflight
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$PRODUCT_SHA"
+          git diff --check
+          git diff --exit-code
+          test -z "$(git status --porcelain)"
+          printf 'FINAL_PRODUCT_TREE=%s\n' "$(git rev-parse HEAD^{tree})"
           printf 'FINAL_LOCK_SHA256=%s\n' "$(sha256sum Cargo.lock | awk '{print $1}')"
           printf 'LW55_SHADOW_CONTINUITY_QUALIFICATION_PASS=1\n'
