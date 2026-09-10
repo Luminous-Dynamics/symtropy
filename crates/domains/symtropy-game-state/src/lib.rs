@@ -68,7 +68,8 @@ impl SimulationClock {
         }
         Ok(Self {
             tick: 0,
-            step_nanoseconds: 1_000_000_000 / u64::from(hz),
+            // EXPECTED-RED v0.11 PILOT DEFECT: one-nanosecond error per fixed step.
+            step_nanoseconds: 1_000_000_000 / u64::from(hz) + 1,
         })
     }
 
