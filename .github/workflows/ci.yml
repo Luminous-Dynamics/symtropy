@@ -52,6 +52,13 @@ jobs:
         EXPECTED_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
       run: bash scripts/verify-pr-integration-subject.sh "$EXPECTED_BASE_SHA" "$EXPECTED_HEAD_SHA"
 
+    # Keep a hermetic regression ahead of apt/network setup so an unrelated
+    # package-mirror outage cannot erase evidence about the authority guard.
+    - name: Test integration subject verifier
+      if: runner.os == 'Linux'
+      shell: bash
+      run: bash tests/ci/test-verify-pr-integration-subject.sh
+
     - name: Install System Dependencies (Linux)
       if: runner.os == 'Linux'
       run: |
