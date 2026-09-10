@@ -12,7 +12,9 @@ use serde::{Deserialize, Deserializer, Serialize};
 use std::{error::Error, fmt};
 use symtropy_game_state::StableId;
 
-use crate::{FabricationPlan, PlanStepId, ProcessSpecId, ProcessSpecSnapshot};
+use crate::{
+    FabricationPlan, PlanStepId, ProcessSpecId, ProcessSpecSnapshot, ProcessSpecSnapshotError,
+};
 
 /// One exact F10 -> F4 semantic binding.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -58,6 +60,12 @@ impl ExecutableFabricationPlan {
         }
 
         for binding in &process_bindings {
+            binding.process_spec.validate_canonical().map_err(|error| {
+                ExecutablePlanError::NonCanonicalProcessSpec {
+                    step_id: binding.step_id.clone(),
+                    error,
+                }
+            })?;
             let step = plan
                 .step(&binding.step_id)
                 .ok_or_else(|| ExecutablePlanError::UnknownStepBinding(binding.step_id.clone()))?;
@@ -154,6 +162,10 @@ pub enum ExecutablePlanError {
     MissingStepBinding(PlanStepId),
     DuplicateStepBinding(PlanStepId),
     UnknownStepBinding(PlanStepId),
+    NonCanonicalProcessSpec {
+        step_id: PlanStepId,
+        error: ProcessSpecSnapshotError,
+    },
     ProcessIdentityMismatch {
         step_id: PlanStepId,
         expected_id: ProcessSpecId,
@@ -189,6 +201,10 @@ impl fmt::Display for ExecutablePlanError {
                     "executable process binding references unknown step {step_id}"
                 )
             }
+            Self::NonCanonicalProcessSpec { step_id, error } => write!(
+                formatter,
+                "executable plan step {step_id} carries a noncanonical F4 process snapshot: {error}"
+            ),
             Self::ProcessIdentityMismatch {
                 step_id,
                 expected_id,
@@ -411,6 +427,42 @@ mod tests {
         assert_eq!(left.plan().id, right.plan().id);
         assert_eq!(left.plan().revision, right.plan().revision);
         assert_ne!(left, right);
+    }
+
+    #[test]
+    fn constructor_rejects_snapshot_from_publicly_mutated_process_spec() {
+        let mut process = ProcessSpec::new(
+            process_id("clean"),
+            1,
+            ProcessKind::Clean,
+            vec![CapabilityRequirement {
+                capability_id: capability_id("clean").stable_id().clone(),
+                minimum_value: 1,
+            }],
+            vec![WorkpieceLifecycle::Available, WorkpieceLifecycle::Installed],
+        )
+        .unwrap();
+        process.allowed_workpiece_states.reverse();
+
+        let mut values = bindings();
+        values[0].process_spec = process.snapshot();
+        let result = ExecutableFabricationPlan::new(plan(), values);
+        assert!(matches!(
+            result,
+            Err(ExecutablePlanError::NonCanonicalProcessSpec {
+                error: ProcessSpecSnapshotError::NonCanonicalLifecycleOrder,
+                ..
+            })
+        ));
+    }
+
+    #[test]
+    fn deserialization_rejects_nested_noncanonical_process_snapshot() {
+        let executable = ExecutableFabricationPlan::new(plan(), bindings()).unwrap();
+        let mut value = serde_json::to_value(&executable).unwrap();
+        value["process_bindings"][0]["process_spec"]["allowed_workpiece_states"] =
+            serde_json::json!(["installed", "available"]);
+        assert!(serde_json::from_value::<ExecutableFabricationPlan>(value).is_err());
     }
 
     #[test]
