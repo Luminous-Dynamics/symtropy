@@ -347,6 +347,7 @@ pub fn derive_zero_crossover_linked_gamete(
     }
     validate_sexual_parent_role(parent_role)?;
 
+    let schema_digest = schema.canonical_digest()?;
     let map_digest = chromosome_map.canonical_digest(schema)?;
     let mut gamete_chromosomes = Vec::with_capacity(chromosome_map.chromosomes.len());
     let mut segments = BTreeMap::new();
@@ -371,7 +372,7 @@ pub fn derive_zero_crossover_linked_gamete(
             interval: domain.interval,
             source_haplotype_slot: slot as u8,
             source_haplotype_digest: chromosome_haplotype_digest(
-                schema,
+                schema_digest,
                 map_digest,
                 chromosome_id,
                 &haplotype,
@@ -384,7 +385,7 @@ pub fn derive_zero_crossover_linked_gamete(
     let gamete = LinkedGamete::new(schema, chromosome_map, gamete_chromosomes)?;
     let provenance = LinkedGameteDerivationProvenance {
         derivation_version: LINKED_GAMETE_DERIVATION_VERSION,
-        schema_digest: schema.canonical_digest()?,
+        schema_digest,
         chromosome_map_digest: map_digest,
         recombination_profile_digest: profile.canonical_digest(schema, chromosome_map)?,
         source_phased_state_digest: source.canonical_digest(schema, chromosome_map)?,
@@ -427,16 +428,14 @@ fn semantic_haplotype_slot(
 }
 
 fn chromosome_haplotype_digest(
-    schema: &HereditarySchema,
+    schema_digest: HereditarySchemaDigest,
     chromosome_map_digest: ChromosomeMapDigest,
     chromosome_id: &ChromosomeId,
     haplotype: &ChromosomeHaplotype,
 ) -> ChromosomeHaplotypeDigest {
     let mut digest = Sha256::new();
     digest.update(HAPLOTYPE_CONTENT_DIGEST_DOMAIN);
-    if let Ok(schema_digest) = schema.canonical_digest() {
-        digest.update(schema_digest.as_bytes());
-    }
+    digest.update(schema_digest.as_bytes());
     digest.update(chromosome_map_digest.as_bytes());
     put_text(&mut digest, chromosome_id.as_str());
     put_u64(&mut digest, haplotype.alleles.len() as u64);
