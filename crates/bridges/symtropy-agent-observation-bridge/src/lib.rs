@@ -7,11 +7,13 @@
 //! measure and provide one coarse cue. The bridge turns that cue into the existing
 //! observer-scoped `KnowledgeClaim` representation without inventing hidden facts.
 
+pub mod combat;
+
 use serde::{Deserialize, Serialize};
 use std::{error::Error, fmt};
 use symtropy_game_state::StableId;
 use symtropy_protection_core::coverage::{ApproachSector, ProtectionRegion};
-use symtropy_residents::{ClaimPrivacy, KnowledgeClaim};
+use symtropy_residents::{ClaimPrivacy, KnowledgeBase, KnowledgeClaim};
 
 pub const FULL_CONFIDENCE: u16 = 10_000;
 
@@ -139,10 +141,17 @@ impl ObservationEvidence {
     }
 }
 
+/// One bounded observation plus its canonical resident-knowledge projection.
+///
+/// Keeping the typed cue beside the claim lets immediate cognition consume a typed,
+/// non-omniscient value without parsing the claim's human-readable proposition. The
+/// `KnowledgeClaim` remains the persistence/disclosure representation.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ProjectedKnowledge {
     /// Route this claim only into this observer's knowledge base.
     pub observer_id: StableId,
+    /// The exact bounded cue that produced the claim. This contains no hidden truth.
+    pub cue: ObservableCue,
     pub claim: KnowledgeClaim,
 }
 
@@ -151,12 +160,15 @@ pub fn project_observable_cue(
     evidence: ObservationEvidence,
 ) -> Result<ProjectedKnowledge, ObservationError> {
     evidence.validate()?;
+    let subject_id = cue.subject_id().clone();
+    let proposition = cue.proposition();
     Ok(ProjectedKnowledge {
         observer_id: evidence.observer_id,
+        cue,
         claim: KnowledgeClaim {
             id: evidence.claim_id,
-            subject_id: cue.subject_id().clone(),
-            proposition: cue.proposition(),
+            subject_id,
+            proposition,
             confidence: evidence.confidence,
             source_id: evidence.source_id,
             observed_tick: evidence.observed_tick,
@@ -166,12 +178,37 @@ pub fn project_observable_cue(
     })
 }
 
+/// Commit one projected claim only to the knowledge base it was routed to.
+///
+/// This closes a subtle integration failure mode where two nearby agents could have
+/// correctly distinct observations but a caller accidentally stores both claims in one
+/// resident's memory. The bridge validates routing before delegating persistence to the
+/// existing `KnowledgeBase`.
+pub fn remember_projected(
+    knowledge: &mut KnowledgeBase,
+    projected: ProjectedKnowledge,
+) -> Result<StableId, ObservationError> {
+    if knowledge.owner_id != projected.observer_id {
+        return Err(ObservationError::ObserverRouteMismatch {
+            knowledge_owner_id: knowledge.owner_id.clone(),
+            projected_observer_id: projected.observer_id,
+        });
+    }
+    let claim_id = projected.claim.id.clone();
+    knowledge.remember(projected.claim);
+    Ok(claim_id)
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ObservationError {
     ConfidenceOutOfRange(u16),
     StaleBeforeObserved {
         observed_tick: u64,
         stale_after_tick: u64,
+    },
+    ObserverRouteMismatch {
+        knowledge_owner_id: StableId,
+        projected_observer_id: StableId,
     },
 }
 
@@ -187,6 +224,13 @@ impl fmt::Display for ObservationError {
             } => write!(
                 f,
                 "observation cannot become stale at {stale_after_tick} before it is observed at {observed_tick}"
+            ),
+            Self::ObserverRouteMismatch {
+                knowledge_owner_id,
+                projected_observer_id,
+            } => write!(
+                f,
+                "projected observation for {projected_observer_id} cannot be stored in knowledge base owned by {knowledge_owner_id}"
             ),
         }
     }
@@ -311,7 +355,7 @@ mod tests {
         )
         .unwrap();
         let mut knowledge = KnowledgeBase::new(projected.observer_id.clone());
-        knowledge.remember(projected.claim.clone());
+        remember_projected(&mut knowledge, projected.clone()).unwrap();
 
         let other = DisclosureContext {
             requester_id: id("resident:other"),
@@ -321,14 +365,48 @@ mod tests {
         };
         assert_eq!(knowledge.disclose(&other).count(), 0);
 
-        let owner = DisclosureContext {
+        let source = DisclosureContext {
             requester_id: projected.claim.source_id.clone(),
             requester_household_id: None,
             consented_claim_ids: BTreeSet::new(),
             life_safety_emergency: false,
         };
         // Current resident privacy semantics authorize the claim source for Private.
-        assert_eq!(knowledge.disclose(&owner).count(), 1);
+        assert_eq!(knowledge.disclose(&source).count(), 1);
+    }
+
+    #[test]
+    fn projected_claim_cannot_be_written_to_wrong_observer_memory() {
+        let projected = project_observable_cue(
+            ObservableCue::EquipmentEmission {
+                subject_id: id("frame:target"),
+                observed_signature: ObservationBand::Low,
+            },
+            evidence("claim:routed"),
+        )
+        .unwrap();
+        let mut wrong = KnowledgeBase::new(id("resident:different-observer"));
+        assert!(matches!(
+            remember_projected(&mut wrong, projected),
+            Err(ObservationError::ObserverRouteMismatch { .. })
+        ));
+        assert!(wrong.claim(&id("claim:routed")).is_none());
+    }
+
+    #[test]
+    fn correct_observer_memory_accepts_projected_claim() {
+        let projected = project_observable_cue(
+            ObservableCue::EquipmentEmission {
+                subject_id: id("frame:target"),
+                observed_signature: ObservationBand::Low,
+            },
+            evidence("claim:routed-ok"),
+        )
+        .unwrap();
+        let mut knowledge = KnowledgeBase::new(id("resident:observer"));
+        let claim_id = remember_projected(&mut knowledge, projected).unwrap();
+        assert_eq!(claim_id, id("claim:routed-ok"));
+        assert!(knowledge.claim(&claim_id).is_some());
     }
 
     #[test]
