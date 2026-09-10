@@ -23,16 +23,19 @@ use crate::information_policy_manifest::ManifestBoundInformationPolicyRegistry;
 use crate::population::PopulationState;
 
 use super::closure_usage_authority::ClosureUsagePolicyRegistry;
-use super::retained_authority::{RetainedAuthorityRegistry, RetainedStoreRevision};
+use super::retained_authority::{
+    RetainedAuthorityRegistry, RetainedAuthorityStamp, RetainedContentManifest,
+    RetainedStoreRevision,
+};
 use super::shadow_common_start::{RetainedShadowStartCertificate, RetainedShadowStartError};
 use super::shadow_observable_authority::{
-    ShadowObservableAuthorityRegistry, ShadowObservableAuthorityError, ShadowObservationKey,
+    ShadowObservableAuthorityRegistry, ShadowObservableAuthorityStamp, ShadowObservationKey,
     ShadowObservationRevision, ShadowObservationSourceIdentity,
 };
 use super::shadow_validation::{
     ShadowEvidenceKey, ShadowEvidenceRevision, ShadowExecutionCapsuleFingerprint,
     ShadowExecutionManifest, ShadowImplementationFingerprint, ShadowScenarioFingerprint,
-    ShadowValidationRegistry, ShadowValidationWindow,
+    ShadowValidationAuthorityStamp, ShadowValidationRegistry, ShadowValidationWindow,
 };
 use super::spatiotemporal_information::{CanonicalTick, SpatiotemporalPolicyRegistry};
 use super::typed_closure_process_acceptance::TypedClosureProcessAcceptanceRegistry;
@@ -71,6 +74,10 @@ pub enum ShadowReferenceRunnerStatus {
 }
 
 /// Qualification for one deterministic reference runner implementation.
+///
+/// As with other Living World registries, construction is bootstrap/evidence
+/// ingestion. Runtime code must consume the exact sealed registry authority owned
+/// by the canonical application rather than accepting caller substitutes.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ShadowReferenceRunnerQualification {
     runner: ShadowReferenceRunnerKey,
@@ -130,19 +137,19 @@ pub enum ShadowReferenceRunStatus {
 pub struct ShadowReferenceRetainedStartBinding {
     authority: crate::information_transition::RetainedAuthorityKey,
     retained_revision: RetainedStoreRevision,
-    retained_content: super::retained_authority::RetainedContentManifest,
+    retained_content: RetainedContentManifest,
 }
 impl ShadowReferenceRetainedStartBinding {
     pub fn new(
         authority: crate::information_transition::RetainedAuthorityKey,
         retained_revision: RetainedStoreRevision,
-        retained_content: super::retained_authority::RetainedContentManifest,
+        retained_content: RetainedContentManifest,
     ) -> Self {
         Self { authority, retained_revision, retained_content }
     }
     pub const fn authority(&self) -> crate::information_transition::RetainedAuthorityKey { self.authority }
     pub const fn retained_revision(&self) -> RetainedStoreRevision { self.retained_revision }
-    pub const fn retained_content(&self) -> &super::retained_authority::RetainedContentManifest { &self.retained_content }
+    pub const fn retained_content(&self) -> &RetainedContentManifest { &self.retained_content }
 }
 
 /// One reference sample-state identity claimed by the execution lineage.
@@ -199,15 +206,15 @@ impl ShadowReferenceRunRecord {
     ) -> Result<Self, ShadowExecutionLineageError> {
         let mut canonical = BTreeMap::new();
         for (tick, state) in observed_states {
-            if tick != state.source().source_revision_tick_hint().unwrap_or(tick) {
-                // Source revisions are not time and must not be interpreted as time.
-                // This branch is intentionally unreachable with the current source
-                // identity API; exact tick binding is instead carried by the map key
-                // and validated against the #406 observation below.
+            if tick.0 <= window.start_exclusive().0 || tick.0 > window.end_inclusive().0 {
+                return Err(ShadowExecutionLineageError::ObservedTickOutsideWindow { tick, window });
             }
             if canonical.insert(tick, state).is_some() {
                 return Err(ShadowExecutionLineageError::DuplicateObservedTick { tick });
             }
+        }
+        if status == ShadowReferenceRunStatus::Completed && canonical.is_empty() {
+            return Err(ShadowExecutionLineageError::CompletedRunHasNoObservedStates { run: id });
         }
         Ok(Self {
             id,
@@ -242,11 +249,17 @@ impl ShadowReferenceRunRecord {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ShadowReferenceExecutionAuthorityStamp {
     key: ShadowReferenceRunnerRegistryKey,
+    shadow_authority: ShadowValidationAuthorityStamp,
+    observable_authority: ShadowObservableAuthorityStamp,
+    retained_authority: RetainedAuthorityStamp,
     runners: BTreeMap<ShadowReferenceRunnerKey, ShadowReferenceRunnerQualification>,
     runs: BTreeMap<ShadowReferenceRunId, ShadowReferenceRunRecord>,
 }
 impl ShadowReferenceExecutionAuthorityStamp {
     pub const fn key(&self) -> ShadowReferenceRunnerRegistryKey { self.key }
+    pub const fn shadow_authority(&self) -> &ShadowValidationAuthorityStamp { &self.shadow_authority }
+    pub const fn observable_authority(&self) -> &ShadowObservableAuthorityStamp { &self.observable_authority }
+    pub const fn retained_authority(&self) -> &RetainedAuthorityStamp { &self.retained_authority }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -285,11 +298,56 @@ impl ShadowReferenceExecutionRegistryBuilder {
         }
     }
 
-    pub fn seal(self) -> Result<ShadowReferenceExecutionRegistry, ShadowExecutionLineageError> {
+    /// Seal the runner/run corpus against the exact evidence universe it claims
+    /// to explain. Same semantic keys under changed Q2/observable/R0 content do
+    /// not share execution authority.
+    pub fn seal(
+        self,
+        shadow: &ShadowValidationRegistry,
+        observable: &ShadowObservableAuthorityRegistry,
+        retained: &RetainedAuthorityRegistry,
+    ) -> Result<ShadowReferenceExecutionRegistry, ShadowExecutionLineageError> {
         let mut evidence_bindings = BTreeSet::new();
         for run in self.runs.values() {
-            if !self.runners.contains_key(&run.runner()) {
-                return Err(ShadowExecutionLineageError::RunWithoutQualifiedRunner { run: run.id(), runner: run.runner() });
+            let runner = self.runners.get(&run.runner())
+                .ok_or(ShadowExecutionLineageError::RunWithoutQualifiedRunner {
+                    run: run.id(), runner: run.runner(),
+                })?;
+            let evidence = shadow.evidence(run.shadow_evidence())
+                .ok_or(ShadowExecutionLineageError::UnknownShadowEvidence {
+                    evidence: run.shadow_evidence(),
+                })?;
+            if evidence.revision() != run.shadow_evidence_revision() {
+                return Err(ShadowExecutionLineageError::ShadowEvidenceRevisionMismatch {
+                    evidence: run.shadow_evidence(),
+                    expected: evidence.revision(),
+                    actual: run.shadow_evidence_revision(),
+                });
+            }
+            let profile = shadow.profile(evidence.profile())
+                .ok_or(ShadowExecutionLineageError::UnknownShadowProfile)?;
+            if runner.reference_representation() != profile.reference_representation() {
+                return Err(ShadowExecutionLineageError::RunnerRepresentationMismatch {
+                    expected: profile.reference_representation(),
+                    actual: runner.reference_representation(),
+                });
+            }
+            if runner.implementation() != profile.reference_implementation() {
+                return Err(ShadowExecutionLineageError::RunnerImplementationMismatch);
+            }
+            if runner.execution_capsule() != profile.execution_capsule() {
+                return Err(ShadowExecutionLineageError::RunnerExecutionCapsuleMismatch);
+            }
+            if run.window() != evidence.window() {
+                return Err(ShadowExecutionLineageError::WindowMismatch {
+                    expected: evidence.window(), actual: run.window(),
+                });
+            }
+            if run.scenario() != evidence.scenario() {
+                return Err(ShadowExecutionLineageError::ScenarioMismatch);
+            }
+            if run.execution_manifest() != evidence.execution_manifest() {
+                return Err(ShadowExecutionLineageError::ExecutionManifestMismatch);
             }
             let pair = (run.shadow_evidence(), run.shadow_evidence_revision());
             if !evidence_bindings.insert(pair) {
@@ -301,6 +359,9 @@ impl ShadowReferenceExecutionRegistryBuilder {
         }
         let authority = ShadowReferenceExecutionAuthorityStamp {
             key: self.key,
+            shadow_authority: shadow.authority_stamp().clone(),
+            observable_authority: observable.authority_stamp().clone(),
+            retained_authority: retained.authority_stamp().clone(),
             runners: self.runners.clone(),
             runs: self.runs.clone(),
         };
@@ -316,6 +377,24 @@ pub struct ShadowReferenceExecutionRegistry {
 }
 impl ShadowReferenceExecutionRegistry {
     pub const fn authority_stamp(&self) -> &ShadowReferenceExecutionAuthorityStamp { &self.authority }
+
+    fn validate_bound_corpora(
+        &self,
+        shadow: &ShadowValidationRegistry,
+        observable: &ShadowObservableAuthorityRegistry,
+        retained: &RetainedAuthorityRegistry,
+    ) -> Result<(), ShadowExecutionLineageError> {
+        if shadow.authority_stamp() != self.authority.shadow_authority() {
+            return Err(ShadowExecutionLineageError::ShadowAuthorityChanged);
+        }
+        if observable.authority_stamp() != self.authority.observable_authority() {
+            return Err(ShadowExecutionLineageError::ObservableAuthorityChanged);
+        }
+        if retained.authority_stamp() != self.authority.retained_authority() {
+            return Err(ShadowExecutionLineageError::RetainedAuthorityChanged);
+        }
+        Ok(())
+    }
 
     #[allow(clippy::too_many_arguments)]
     pub fn certify_retained_run(
@@ -335,6 +414,7 @@ impl ShadowReferenceExecutionRegistry {
         start_population: &PopulationState,
         current_coarse_population: &PopulationState,
     ) -> Result<ShadowReferenceExecutionCertificate, ShadowExecutionLineageError> {
+        self.validate_bound_corpora(shadow_registry, observable_registry, retained)?;
         retained_start.validate_current(
             requests,
             retained,
@@ -381,7 +461,8 @@ impl ShadowReferenceExecutionRegistry {
         }
         if runner.reference_representation() != retained_start.reference_representation() {
             return Err(ShadowExecutionLineageError::RunnerRepresentationMismatch {
-                expected: retained_start.reference_representation(), actual: runner.reference_representation(),
+                expected: retained_start.reference_representation(),
+                actual: runner.reference_representation(),
             });
         }
         if runner.implementation() != shadow.profile().reference_implementation() {
@@ -399,9 +480,11 @@ impl ShadowReferenceExecutionRegistry {
             return Err(ShadowExecutionLineageError::RetainedStartBindingMismatch);
         }
 
-        if run.observed_states().len() != bound.bindings().count() {
+        let expected_count = bound.bindings().count();
+        if run.observed_states().len() != expected_count {
             return Err(ShadowExecutionLineageError::ObservedStateCardinalityMismatch {
-                expected: bound.bindings().count(), actual: run.observed_states().len(),
+                expected: expected_count,
+                actual: run.observed_states().len(),
             });
         }
         for (tick, binding) in bound.bindings() {
@@ -490,13 +573,17 @@ impl ShadowReferenceExecutionCertificate {
 
 #[derive(Debug)]
 pub enum ShadowExecutionLineageError {
+    ObservedTickOutsideWindow { tick: CanonicalTick, window: ShadowValidationWindow },
     DuplicateObservedTick { tick: CanonicalTick },
+    CompletedRunHasNoObservedStates { run: ShadowReferenceRunId },
     ConflictingRunnerRegistration { runner: ShadowReferenceRunnerKey },
     ConflictingRunRegistration { run: ShadowReferenceRunId },
     RunWithoutQualifiedRunner { run: ShadowReferenceRunId, runner: ShadowReferenceRunnerKey },
+    UnknownShadowEvidence { evidence: ShadowEvidenceKey },
+    ShadowEvidenceRevisionMismatch { evidence: ShadowEvidenceKey, expected: ShadowEvidenceRevision, actual: ShadowEvidenceRevision },
+    UnknownShadowProfile,
     DuplicateShadowEvidenceRunBinding { evidence: ShadowEvidenceKey, revision: ShadowEvidenceRevision },
     RetainedStart(RetainedShadowStartError),
-    Observable(ShadowObservableAuthorityError),
     UnknownRun { run: ShadowReferenceRunId },
     UnknownRunner { runner: ShadowReferenceRunnerKey },
     RunNotCompleted { run: ShadowReferenceRunId, status: ShadowReferenceRunStatus },
@@ -513,6 +600,9 @@ pub enum ShadowExecutionLineageError {
     MissingObservedTick { tick: CanonicalTick },
     ObservedStateMismatch { tick: CanonicalTick },
     ObservedRepresentationMismatch { tick: CanonicalTick, expected: RepresentationKey, actual: RepresentationKey },
+    ShadowAuthorityChanged,
+    ObservableAuthorityChanged,
+    RetainedAuthorityChanged,
     ExecutionAuthorityChanged,
     CertificateStale,
 }
@@ -520,13 +610,17 @@ pub enum ShadowExecutionLineageError {
 impl fmt::Display for ShadowExecutionLineageError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
+            Self::ObservedTickOutsideWindow { tick, window } => write!(f, "shadow run state tick {} lies outside ({}, {}]", tick.0, window.start_exclusive().0, window.end_inclusive().0),
             Self::DuplicateObservedTick { tick } => write!(f, "duplicate shadow run state at tick {}", tick.0),
+            Self::CompletedRunHasNoObservedStates { run } => write!(f, "completed shadow reference run {} has no observed states", run.0),
             Self::ConflictingRunnerRegistration { runner } => write!(f, "conflicting shadow runner {}@{}", runner.id(), runner.version()),
             Self::ConflictingRunRegistration { run } => write!(f, "conflicting shadow run id {}", run.0),
             Self::RunWithoutQualifiedRunner { run, runner } => write!(f, "shadow run {} references unknown runner {}@{}", run.0, runner.id(), runner.version()),
+            Self::UnknownShadowEvidence { evidence } => write!(f, "shadow run references unknown Q2 evidence {}@{}", evidence.id(), evidence.version()),
+            Self::ShadowEvidenceRevisionMismatch { evidence, expected, actual } => write!(f, "shadow run references Q2 evidence {}@{} revision {}, current record is revision {}", evidence.id(), evidence.version(), actual.0, expected.0),
+            Self::UnknownShadowProfile => write!(f, "Q2 evidence references unknown shadow validation profile"),
             Self::DuplicateShadowEvidenceRunBinding { evidence, revision } => write!(f, "shadow evidence {}@{} revision {} is bound to multiple runs", evidence.id(), evidence.version(), revision.0),
             Self::RetainedStart(error) => write!(f, "retained common-start authority: {error}"),
-            Self::Observable(error) => write!(f, "observable authority: {error}"),
             Self::UnknownRun { run } => write!(f, "unknown shadow reference run {}", run.0),
             Self::UnknownRunner { runner } => write!(f, "unknown shadow reference runner {}@{}", runner.id(), runner.version()),
             Self::RunNotCompleted { run, status } => write!(f, "shadow reference run {} is {status:?}, not Completed", run.0),
@@ -543,6 +637,9 @@ impl fmt::Display for ShadowExecutionLineageError {
             Self::MissingObservedTick { tick } => write!(f, "run lacks reference state at required Q2 tick {}", tick.0),
             Self::ObservedStateMismatch { tick } => write!(f, "run state identity differs from #406 reference observation at tick {}", tick.0),
             Self::ObservedRepresentationMismatch { tick, expected, actual } => write!(f, "run state at tick {} uses {actual:?}, expected reference {expected:?}", tick.0),
+            Self::ShadowAuthorityChanged => write!(f, "exact Q2 shadow authority changed after execution registry sealing"),
+            Self::ObservableAuthorityChanged => write!(f, "exact observable authority changed after execution registry sealing"),
+            Self::RetainedAuthorityChanged => write!(f, "exact retained R0 authority changed after execution registry sealing"),
             Self::ExecutionAuthorityChanged => write!(f, "exact shadow execution authority changed"),
             Self::CertificateStale => write!(f, "shadow execution lineage certificate is stale"),
         }
@@ -553,17 +650,7 @@ impl Error for ShadowExecutionLineageError {
     fn source(&self) -> Option<&(dyn Error + 'static)> {
         match self {
             Self::RetainedStart(error) => Some(error),
-            Self::Observable(error) => Some(error),
             _ => None,
         }
     }
-}
-
-// Keep source revisions semantically distinct from canonical time. This private
-// trait intentionally provides no conversion and always returns None.
-trait SourceRevisionIsNotTime {
-    fn source_revision_tick_hint(&self) -> Option<CanonicalTick>;
-}
-impl SourceRevisionIsNotTime for ShadowObservationSourceIdentity {
-    fn source_revision_tick_hint(&self) -> Option<CanonicalTick> { None }
 }
