@@ -15,6 +15,7 @@ mod demographic_founder_execution;
 mod demographic_history;
 mod demographic_proof_bundle;
 mod demographic_sampling;
+mod demographic_source_authority;
 mod demographic_split_execution;
 mod demographic_structure_transition;
 mod error;
@@ -62,6 +63,7 @@ pub use demographic_proof_bundle::{
     DemographicInterventionProofBundleDigest, DemographicInterventionProofBundleModel,
     DemographicInterventionProofStep,
 };
+pub use demographic_source_authority::ValidatedDemographicInterventionSource;
 pub use demographic_split_execution::{
     execute_conservative_population_split, DemographicSplitExecutionModel,
     DemographicSplitExecutionProvenance, DemographicSplitExecutionProvenanceDigest,
