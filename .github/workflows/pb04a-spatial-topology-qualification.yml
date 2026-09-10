@@ -23,20 +23,19 @@ jobs:
   qualify:
     name: Qualify PB-04a exact locked execution subject
     runs-on: ubuntu-24.04
-    env:
-      CARGO_TARGET_DIR: ${{ runner.temp }}/pb04a-target
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
           fetch-depth: 0
           persist-credentials: false
 
-      - name: Bind executed Git subject
+      - name: Bind executed Git subject and ephemeral build path
         shell: bash
         run: |
           set -euo pipefail
           actual_head="$(git rev-parse HEAD)"
           actual_tree="$(git rev-parse HEAD^{tree})"
+          echo "CARGO_TARGET_DIR=${RUNNER_TEMP}/pb04a-target" >> "${GITHUB_ENV}"
           if [[ "${GITHUB_EVENT_NAME}" == "push" ]]; then
             test "${actual_head}" = "${GITHUB_SHA}"
             echo "PB04A_PRODUCT_HEAD=${actual_head}"
