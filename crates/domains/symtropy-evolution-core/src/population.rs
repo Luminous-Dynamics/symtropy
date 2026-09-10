@@ -71,12 +71,19 @@ impl PopulationGeneticState {
 
     /// Construct aggregate state directly from declared allele-copy counts.
     /// No exact individual genomes are reconstructed by this operation.
+    ///
+    /// Zero-count allele entries carry no population state in V0, so this
+    /// constructor removes them before validation. Raw/deserialized state that
+    /// contains zero-count entries fails validation as noncanonical.
     pub fn from_counts(
         population_id: PopulationId,
         schema: &HereditarySchema,
         census_individuals: u64,
-        allele_copy_counts: BTreeMap<LocusId, BTreeMap<AlleleId, u64>>,
+        mut allele_copy_counts: BTreeMap<LocusId, BTreeMap<AlleleId, u64>>,
     ) -> Result<Self, EvolutionError> {
+        for counts in allele_copy_counts.values_mut() {
+            counts.retain(|_, count| *count != 0);
+        }
         let state = Self {
             schema_version: EVOLUTION_SCHEMA_VERSION,
             population_id,
@@ -121,6 +128,12 @@ impl PopulationGeneticState {
             for (allele, count) in counts {
                 if !locus.allowed_alleles.contains(allele) {
                     return Err(EvolutionError::UnknownAllele {
+                        locus: locus_id.clone(),
+                        allele: allele.clone(),
+                    });
+                }
+                if *count == 0 {
+                    return Err(EvolutionError::NonCanonicalZeroAlleleCount {
                         locus: locus_id.clone(),
                         allele: allele.clone(),
                     });
@@ -300,6 +313,52 @@ mod tests {
         assert!(matches!(
             result,
             Err(EvolutionError::PopulationCopyTotalMismatch { .. })
+        ));
+    }
+
+    #[test]
+    fn constructor_canonicalizes_zero_count_alleles() {
+        let schema = schema();
+        let population = PopulationGeneticState::from_counts(
+            PopulationId::new("island-a").unwrap(),
+            &schema,
+            2,
+            BTreeMap::from([(
+                LocusId::new("pigment").unwrap(),
+                BTreeMap::from([(allele("dark"), 4), (allele("light"), 0)]),
+            )]),
+        )
+        .unwrap();
+
+        let counts = population
+            .allele_copy_counts
+            .get(&LocusId::new("pigment").unwrap())
+            .unwrap();
+        assert_eq!(counts, &BTreeMap::from([(allele("dark"), 4)]));
+    }
+
+    #[test]
+    fn raw_zero_count_entry_is_noncanonical() {
+        let schema = schema();
+        let mut population = PopulationGeneticState::from_counts(
+            PopulationId::new("island-a").unwrap(),
+            &schema,
+            2,
+            BTreeMap::from([(
+                LocusId::new("pigment").unwrap(),
+                BTreeMap::from([(allele("dark"), 4)]),
+            )]),
+        )
+        .unwrap();
+        population
+            .allele_copy_counts
+            .get_mut(&LocusId::new("pigment").unwrap())
+            .unwrap()
+            .insert(allele("light"), 0);
+
+        assert!(matches!(
+            population.validate(&schema),
+            Err(EvolutionError::NonCanonicalZeroAlleleCount { .. })
         ));
     }
 

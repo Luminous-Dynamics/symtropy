@@ -22,6 +22,7 @@ pub enum EvolutionError {
         observed: usize,
     },
     NonCanonicalAlleleCopyOrder { locus: LocusId },
+    NonCanonicalZeroAlleleCount { locus: LocusId, allele: AlleleId },
     UnknownAllele { locus: LocusId, allele: AlleleId },
     ParentCountMismatch { expected: usize, observed: usize },
     ParentageMismatch,
@@ -34,6 +35,15 @@ pub enum EvolutionError {
         expected: u64,
         observed: u64,
     },
+    PopulationIdentityMismatch,
+    PopulationExperimentMismatch,
+    PopulationProcessAuthorityMismatch,
+    PopulationProcessModelMismatch,
+    PopulationSourceMismatch,
+    PopulationDestinationMismatch,
+    PopulationGenerationMismatch,
+    PopulationTransitionMismatch,
+    SamplingInvariantViolation,
     CountOverflow,
     InvalidDrawUpperBound,
 }
@@ -73,6 +83,12 @@ impl fmt::Display for EvolutionError {
                 "locus {} allele copies are not in canonical unphased order",
                 locus.as_str()
             ),
+            Self::NonCanonicalZeroAlleleCount { locus, allele } => write!(
+                f,
+                "locus {} contains noncanonical zero count for allele {}",
+                locus.as_str(),
+                allele.as_str()
+            ),
             Self::UnknownAllele { locus, allele } => write!(
                 f,
                 "allele {} is not allowed at locus {}",
@@ -95,6 +111,27 @@ impl fmt::Display for EvolutionError {
                 "locus {} expected {expected} allele copies, observed {observed}",
                 locus.as_str()
             ),
+            Self::PopulationIdentityMismatch => write!(f, "population identity mismatch"),
+            Self::PopulationExperimentMismatch => {
+                write!(f, "population stochastic experiment identity mismatch")
+            }
+            Self::PopulationProcessAuthorityMismatch => {
+                write!(f, "population process authority mismatch")
+            }
+            Self::PopulationProcessModelMismatch => {
+                write!(f, "population process model mismatch")
+            }
+            Self::PopulationSourceMismatch => write!(f, "population transition source mismatch"),
+            Self::PopulationDestinationMismatch => {
+                write!(f, "population transition destination mismatch")
+            }
+            Self::PopulationGenerationMismatch => {
+                write!(f, "population transition generation mismatch")
+            }
+            Self::PopulationTransitionMismatch => {
+                write!(f, "population transition derivation mismatch")
+            }
+            Self::SamplingInvariantViolation => write!(f, "population sampling invariant violated"),
             Self::CountOverflow => write!(f, "population/genetic count overflow"),
             Self::InvalidDrawUpperBound => write!(f, "semantic draw upper bound must be positive"),
         }
