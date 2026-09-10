@@ -23,6 +23,7 @@ mod demographic_structure_transition;
 mod error;
 mod heredity;
 mod ids;
+mod linked_gamete;
 mod metapopulation;
 mod operators;
 mod phased_heredity;
@@ -94,6 +95,12 @@ pub use ids::{
     DemographicEventId, EvolutionExperimentId, HereditarySchemaId, LocusId, OperatorProfileId,
     PopulationId, PopulationProcessProfileId, PopulationStructureProfileId,
     PopulationTransitionId, ReproductionEventId,
+};
+pub use linked_gamete::{
+    derive_zero_crossover_linked_gamete, ChromosomeHaplotypeDigest, LinkedGamete,
+    LinkedGameteDerivation, LinkedGameteDerivationProvenance,
+    LinkedGameteDerivationProvenanceDigest, LinkedGameteDigest,
+    WholeChromosomeInheritanceSegment, LINKED_GAMETE_DERIVATION_VERSION, LINKED_GAMETE_VERSION,
 };
 pub use metapopulation::{
     MetapopulationSnapshot, MetapopulationSnapshotDigest, MetapopulationSnapshotEntry,
