@@ -35,6 +35,7 @@ pub enum EvolutionError {
         observed: u64,
     },
     PopulationIdentityMismatch,
+    PopulationExperimentMismatch,
     PopulationProcessAuthorityMismatch,
     PopulationProcessModelMismatch,
     PopulationSourceMismatch,
@@ -104,16 +105,25 @@ impl fmt::Display for EvolutionError {
                 locus.as_str()
             ),
             Self::PopulationIdentityMismatch => write!(f, "population identity mismatch"),
-            Self::PopulationProcessAuthorityMismatch => {
-                write!(f, "exact population-process authority mismatch")
+            Self::PopulationExperimentMismatch => {
+                write!(f, "population stochastic experiment identity mismatch")
             }
-            Self::PopulationProcessModelMismatch => write!(f, "population-process model mismatch"),
+            Self::PopulationProcessAuthorityMismatch => {
+                write!(f, "population process authority mismatch")
+            }
+            Self::PopulationProcessModelMismatch => {
+                write!(f, "population process model mismatch")
+            }
             Self::PopulationSourceMismatch => write!(f, "population transition source mismatch"),
             Self::PopulationDestinationMismatch => {
                 write!(f, "population transition destination mismatch")
             }
-            Self::PopulationGenerationMismatch => write!(f, "population generation mismatch"),
-            Self::PopulationTransitionMismatch => write!(f, "population transition derivation mismatch"),
+            Self::PopulationGenerationMismatch => {
+                write!(f, "population transition generation mismatch")
+            }
+            Self::PopulationTransitionMismatch => {
+                write!(f, "population transition derivation mismatch")
+            }
             Self::SamplingInvariantViolation => write!(f, "population sampling invariant violated"),
             Self::CountOverflow => write!(f, "population/genetic count overflow"),
             Self::InvalidDrawUpperBound => write!(f, "semantic draw upper bound must be positive"),
