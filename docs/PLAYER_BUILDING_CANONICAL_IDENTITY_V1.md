@@ -2,11 +2,27 @@
 
 Status: **normative candidate for #439 H2; no runtime PASS claim**.
 
-This document freezes the serializer-independent byte grammar that PB-01 intent
-and plan identity should use. It is deliberately separate from JSON/wire
-serialization. A Rust implementation, migration tool, multiplayer peer, or CAD
-adapter that sees the same semantic PB-01 value must be able to reproduce the
-same bytes without depending on Serde representation choices.
+This document freezes the serializer-independent byte grammar that hardened
+PB-01 intent and plan identity should use. It is deliberately separate from
+JSON/wire serialization. A Rust implementation, migration tool, multiplayer
+peer, or CAD adapter that sees the same semantic PB-01 value must be able to
+reproduce the same bytes without depending on Serde representation choices.
+
+## Compatibility decision
+
+The hardened proposal model is **proposal schema version 2**. Canonical identity
+is independently named **canonical identity profile v1**.
+
+That split is intentional:
+
+- pre-hardening experimental PB-01 values used schema 1 and JSON-derived SHA-256;
+- H1 adds exact `target_refs` to the wire/semantic manifest;
+- H2 replaces JSON-derived digest preimages with the canonical byte grammar here;
+- hardened exact intent/plan references carry `schema_version`, so a bare exact
+  reference is self-describing enough to distinguish the schema generation that
+  defines its identity rules.
+
+Do not silently reinterpret schema-1 hashes as schema-2/canonical-v1 hashes.
 
 ## Design rules
 
@@ -22,8 +38,9 @@ same bytes without depending on Serde representation choices.
 7. No field may be omitted because its current value looks redundant.
 8. Wire JSON object ordering, whitespace, field naming, pretty printing and
    Serde version are irrelevant to identity.
-9. Changing this grammar requires a new identity domain/profile. Never silently
-   reinterpret v1 bytes.
+9. Changing this grammar requires a new identity domain/profile. Changing the
+   semantic/wire shape requires a new proposal schema version. Neither may be
+   silently reinterpreted.
 10. Length conversion overflow fails closed before hashing.
 
 ## Primitive encodings
@@ -46,7 +63,8 @@ stable_id(algorithm)
 text(value)
 ```
 
-`ExactAuthorityRef`:
+`ExactAuthorityRef` remains an external-authority reference and therefore does
+not inherit the PB proposal schema number:
 
 ```text
 stable_id(authority_id)
@@ -58,17 +76,29 @@ ProposalDigest(content_digest)
 `ConstructionIntentRef`:
 
 ```text
+u32(schema_version)
 stable_id(intent_id)
 u64(revision)
 ProposalDigest(content_digest)
 ```
 
+`ConstructionPlanRef` uses the same self-describing pattern:
+
+```text
+u32(schema_version)
+stable_id(plan_id)
+u64(revision)
+ProposalDigest(content_digest)
+```
+
 The digest is part of exact ancestry identity. Two same-intent/same-revision
-parents with different digests are distinct explicit forks.
+parents with different digests are distinct explicit forks. Schema is also part
+of the reference: cross-schema ancestry must be an explicit migration operation,
+not an ordinary parent edge.
 
 ## Authoring pose
 
-PB-01 v1 uses **authored parameter identity**.
+Canonical identity profile v1 uses **authored parameter identity**.
 
 ```text
 i64(translation_um[0])
@@ -130,7 +160,7 @@ symtropy.player-building.intent.canonical.v1\0
 Then:
 
 ```text
-u32(schema_version)
+u32(schema_version = 2)
 stable_id(intent_id)
 u64(revision)
 stable_id(proposer_id)
@@ -206,7 +236,7 @@ symtropy.player-building.plan.canonical.v1\0
 Then:
 
 ```text
-u32(schema_version)
+u32(schema_version = 2)
 stable_id(plan_id)
 u64(revision)
 ConstructionIntentRef(intent_ref)
@@ -226,7 +256,7 @@ both snapshots against the exact supplied intent before later authority crossing
 Semantic value:
 
 ```text
-schema_version = 1
+schema_version = 2
 intent_id = "intent:golden"
 revision = 1
 proposer_id = "actor:golden"
@@ -251,13 +281,13 @@ Canonical preimage length: **358 bytes**.
 Canonical preimage hex:
 
 ```text
-73796d74726f70792e706c617965722d6275696c64696e672e696e74656e742e63616e6f6e6963616c2e763100010000000d000000696e74656e743a676f6c64656e01000000000000000c0000006163746f723a676f6c64656e000f000000617574686f726974793a6672616d650c0000006672616d653a676f6c64656e0300000000000000060000007368613235360c0000006672616d652d646967657374000000000100000009000000656c656d656e743a6109000000726f6c653a6265616d0100000000000000feffffffffffffff030000000000000004000000050000000600000003e8030000000000000a0000000000000014000000000000000f0000006d6174657269616c3a74696d62657200000000000000000100000011000000617574686f726974793a7465727261696e0b00000063656c6c3a676f6c64656e0700000000000000060000007368613235360e0000007465727261696e2d646967657374
+73796d74726f70792e706c617965722d6275696c64696e672e696e74656e742e63616e6f6e6963616c2e763100020000000d000000696e74656e743a676f6c64656e01000000000000000c0000006163746f723a676f6c64656e000f000000617574686f726974793a6672616d650c0000006672616d653a676f6c64656e0300000000000000060000007368613235360c0000006672616d652d646967657374000000000100000009000000656c656d656e743a6109000000726f6c653a6265616d0100000000000000feffffffffffffff030000000000000004000000050000000600000003e8030000000000000a0000000000000014000000000000000f0000006d6174657269616c3a74696d62657200000000000000000100000011000000617574686f726974793a7465727261696e0b00000063656c6c3a676f6c64656e0700000000000000060000007368613235360e0000007465727261696e2d646967657374
 ```
 
 SHA-256:
 
 ```text
-d3c50c998e8b6576e6204c6e737d6c32a5b3fb66bf6744f2b9ce496cb8d02f43
+e9c44bc64dd0a41c51924d5cb62e31de98ee9e64ebdbed86b68c6e37a61014ef
 ```
 
 ## External golden vector B — repair-only intent
@@ -265,7 +295,7 @@ d3c50c998e8b6576e6204c6e737d6c32a5b3fb66bf6744f2b9ce496cb8d02f43
 Semantic value:
 
 ```text
-schema_version = 1
+schema_version = 2
 intent_id = "intent:repair"
 revision = 1
 proposer_id = "actor:golden"
@@ -282,26 +312,26 @@ Canonical preimage length: **252 bytes**.
 Canonical preimage hex:
 
 ```text
-73796d74726f70792e706c617965722d6275696c64696e672e696e74656e742e63616e6f6e6963616c2e763100010000000d000000696e74656e743a72657061697201000000000000000c0000006163746f723a676f6c64656e000f000000617574686f726974793a6672616d650c0000006672616d653a676f6c64656e0300000000000000060000007368613235360c0000006672616d652d64696765737400000000000000000100000016000000617574686f726974793a636f6e737472756374696f6e110000007374727563747572653a7368656c7465720700000000000000060000007368613235360700000073746174652d6100000000
+73796d74726f70792e706c617965722d6275696c64696e672e696e74656e742e63616e6f6e6963616c2e763100020000000d000000696e74656e743a72657061697201000000000000000c0000006163746f723a676f6c64656e000f000000617574686f726974793a6672616d650c0000006672616d653a676f6c64656e0300000000000000060000007368613235360c0000006672616d652d64696765737400000000000000000100000016000000617574686f726974793a636f6e737472756374696f6e110000007374727563747572653a7368656c7465720700000000000000060000007368613235360700000073746174652d6100000000
 ```
 
 SHA-256:
 
 ```text
-bbe384cb2a8260d4c6e97b1b7984ec240585cff943d3aafb5f75463f7f0ad3d1
+cb57b7458bd85461f2017e9d9419c29b3efcd925282c47768977b96ca0cbf8d7
 ```
 
 ## External golden vector C — one-step plan
 
-This vector references golden intent A by its exact SHA-256 above.
+This vector references golden intent A by its exact schema-2 SHA-256 above.
 
 Semantic value:
 
 ```text
-schema_version = 1
+schema_version = 2
 plan_id = "plan:golden"
 revision = 1
-intent_ref = intent:golden @ 1 / sha256:d3c50c998e8b6576e6204c6e737d6c32a5b3fb66bf6744f2b9ce496cb8d02f43
+intent_ref = schema 2 / intent:golden @ 1 / sha256:e9c44bc64dd0a41c51924d5cb62e31de98ee9e64ebdbed86b68c6e37a61014ef
 intent_element_ids = ["element:a"]
 intent_target_refs = []
 compiler_ref = authority:planner / planner:golden @ 2 / sha256:"compiler-digest"
@@ -313,18 +343,18 @@ operations = [
 ]
 ```
 
-Canonical preimage length: **408 bytes**.
+Canonical preimage length: **412 bytes**.
 
 Canonical preimage hex:
 
 ```text
-73796d74726f70792e706c617965722d6275696c64696e672e706c616e2e63616e6f6e6963616c2e763100010000000b000000706c616e3a676f6c64656e01000000000000000d000000696e74656e743a676f6c64656e01000000000000000600000073686132353640000000643363353063393938653862363537366536323034633665373337643663333261356233666236366266363734346632623963653439366362386430326634330100000009000000656c656d656e743a610000000011000000617574686f726974793a706c616e6e65720e000000706c616e6e65723a676f6c64656e0200000000000000060000007368613235360f000000636f6d70696c65722d6469676573740e000000636f6e746578743a676f6c64656e04000000000000000100000011000000617574686f726974793a7465727261696e0b00000063656c6c3a676f6c64656e0700000000000000060000007368613235360e0000007465727261696e2d646967657374010000000a0000006f703a7265616c697a65000000000009000000656c656d656e743a61
+73796d74726f70792e706c617965722d6275696c64696e672e706c616e2e63616e6f6e6963616c2e763100020000000b000000706c616e3a676f6c64656e0100000000000000020000000d000000696e74656e743a676f6c64656e01000000000000000600000073686132353640000000653963343462633634646430613431633531393234643563623632653331646539386565396536346562646265643836623638633665333761363130313465660100000009000000656c656d656e743a610000000011000000617574686f726974793a706c616e6e65720e000000706c616e6e65723a676f6c64656e0200000000000000060000007368613235360f000000636f6d70696c65722d6469676573740e000000636f6e746578743a676f6c64656e04000000000000000100000011000000617574686f726974793a7465727261696e0b00000063656c6c3a676f6c64656e0700000000000000060000007368613235360e0000007465727261696e2d646967657374010000000a0000006f703a7265616c697a65000000000009000000656c656d656e743a61
 ```
 
 SHA-256:
 
 ```text
-33b11f78d373eaff244d3813402e7c26aef14904380c08570e05fc4a0627f3fb
+28f7b0c0913ac190c67486def4a76cac877d40a9d0eea190dd712ac0e3c04d04
 ```
 
 ## Required implementation tests
@@ -332,11 +362,14 @@ SHA-256:
 The primary H2 cutover must at minimum prove:
 
 - all three external vectors above byte-for-byte and digest-for-digest;
+- exact refs carry schema 2 and reject unsupported/cross-schema use unless an
+  explicit migration path is invoked;
 - caller insertion order cannot change preimage or digest;
 - one-micrometre pose drift changes intent bytes/digest;
 - authoring-frame drift changes intent bytes/digest;
 - target-set drift changes intent bytes/digest;
-- concurrent parent digest drift changes intent bytes/digest while same-revision forks remain legal ancestry;
+- concurrent parent digest drift changes intent bytes/digest while same-revision
+  forks remain legal ancestry;
 - compiler-ref drift changes plan bytes/digest;
 - planning-context drift changes plan bytes/digest;
 - action variant changes the explicit tag/preimage;
@@ -347,9 +380,10 @@ The primary H2 cutover must at minimum prove:
 ## Migration rule
 
 Existing pre-H2 PB-01 hashes derived from `serde_json::to_vec` are experimental
-branch identities only. Do **not** silently reinterpret them as canonical-v1.
-If any such artifacts need preservation, label their identity profile explicitly
-and migrate/recompile them into canonical-v1 as a new exact revision.
+**schema-1 identities**. They are not canonical-v1. If preservation is needed,
+a migration reader may recognize schema 1, verify its legacy experimental hash,
+and emit a new schema-2 revision/reference. Runtime authority crossing must not
+accept schema 1 after the hardened PB-01 cutover.
 
 ## Authority statement
 
