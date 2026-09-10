@@ -610,6 +610,41 @@ mod tests {
     }
 
     #[test]
+    fn rapier_handle_generation_prevents_callback_binding_alias() {
+        let mut bodies = RigidBodySet::new();
+        let mut colliders = ColliderSet::new();
+        let mut islands = IslandManager::new();
+        let mut impulse_joints = ImpulseJointSet::new();
+        let mut multibody_joints = MultibodyJointSet::new();
+
+        let first = add_sphere_to_rapier(&mut bodies, &mut colliders, Vec3::ZERO, 0.5, 1.0);
+        let callback = CountingCallback {
+            force_calls: Cell::new(0),
+            last_body: Cell::new(None),
+        };
+        let mut bridge = RapierPhysicsBridge::new(callback);
+        let first_symtropy = BodyHandle(7);
+        bridge.bind_callback_body(first, first_symtropy);
+
+        bodies
+            .remove(
+                first,
+                &mut islands,
+                &mut colliders,
+                &mut impulse_joints,
+                &mut multibody_joints,
+                true,
+            )
+            .expect("first Rapier body should exist");
+
+        let replacement = add_sphere_to_rapier(&mut bodies, &mut colliders, Vec3::ZERO, 0.5, 1.0);
+        assert_eq!(first.into_raw_parts().0, replacement.into_raw_parts().0);
+        assert_ne!(first.into_raw_parts().1, replacement.into_raw_parts().1);
+        assert_eq!(bridge.callback_body(first), Some(first_symtropy));
+        assert_eq!(bridge.callback_body(replacement), None);
+    }
+
+    #[test]
     fn post_step_observations_are_sorted_by_full_rapier_handle() {
         let mut bodies = RigidBodySet::new();
         let mut colliders = ColliderSet::new();
