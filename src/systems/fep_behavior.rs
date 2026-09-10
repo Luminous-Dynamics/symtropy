@@ -10,10 +10,35 @@ use crate::components::{
     PowerJunction, WaterPump, WorldFeedbackEvent,
 };
 use crate::resources::{
-    BiometricsCtx, EnergyWell, LeviathanState, PhysicsWorldRes, SettlementMetrics, SleepPhase,
-    TutorialScenarioRes, TutorialStep,
+    EnergyWell, LeviathanState, PhysicsWorldRes, SettlementMetrics, SleepPhase, TutorialScenarioRes,
+    TutorialStep,
 };
 use symtropy_render_bridge::PhysicsBody;
+
+const FEP_OBSERVATION_DIM: usize = 6;
+
+/// Preserve the existing six-dimensional FEP model while making every slot explicit.
+///
+/// `self_allostatic_load` is legitimate NPC self-state. The danger/water/power
+/// inputs are still legacy authoritative-world projections and are intentionally
+/// isolated here as the next epistemic-migration targets.
+fn fep_observation_values(
+    energy_fraction: f64,
+    self_allostatic_load: f64,
+    perceived_danger: f64,
+    caution: f64,
+    perceived_water: f64,
+    perceived_power: f64,
+) -> [f64; FEP_OBSERVATION_DIM] {
+    [
+        energy_fraction.clamp(0.0, 1.0),
+        self_allostatic_load.clamp(0.0, 1.0),
+        perceived_danger.clamp(0.0, 1.0),
+        caution.clamp(0.0, 1.0),
+        perceived_water.clamp(0.0, 1.0),
+        perceived_power.clamp(0.0, 1.0),
+    ]
+}
 
 /// Run the FEP perception-action cycle for each crew NPC.
 pub fn fep_behavior_system(
@@ -32,7 +57,6 @@ pub fn fep_behavior_system(
     player_query: Query<(&Transform, &PhysicsBody), With<Player>>,
     other_npcs: Query<(&Transform, &PhysicsBody), (With<CrewNpc>, Without<Player>)>,
     wells: Query<(&Transform, &EnergyWell)>,
-    biometrics: Res<BiometricsCtx>,
     leviathan: Res<LeviathanState>,
     physics: Res<PhysicsWorldRes>,
     settlement: Res<SettlementMetrics>,
@@ -134,19 +158,23 @@ pub fn fep_behavior_system(
             })
             .unwrap_or((1.0, [0.5; 9], 0.0, 0.5));
 
-        // FEP perception with Settlement Metrics
-        let obs = Observation::new(
-            vec![
-                energy_frac,
-                biometrics.encoder.compute_stress_vector().arousal as f64,
-                danger,
-                npc.caution as f64,
-                settlement.water as f64,
-                settlement.power as f64,
-            ],
-            0.8,
-            "game",
+        // Preserve six FEP channels, but never feed one person's private biometrics
+        // directly into another person's cognition. Slot 2 is now the NPC's own
+        // bounded allostatic load. Remaining legacy world-state slots are explicit
+        // migration targets for observer-scoped epistemic inputs.
+        let self_allostatic_load = psych
+            .as_ref()
+            .map_or(0.0, |p| p.allostatic_load)
+            .clamp(0.0, 1.0) as f64;
+        let values = fep_observation_values(
+            energy_frac,
+            self_allostatic_load,
+            danger,
+            npc.caution as f64,
+            settlement.water as f64,
+            settlement.power as f64,
         );
+        let obs = Observation::new(values.to_vec(), 0.8, "game");
         let _perception = npc.fep.perceive(&obs);
 
         let nearby: Vec<_> = all_agents
@@ -368,7 +396,7 @@ pub fn npc_action_system(
         if npc.name.contains("Kael") {
             for (j_tf, mut junction) in &mut power_junctions {
                 if junction.is_damaged {
-                    let j_pos = j_tf.translation.truncate();
+                    let j_pos = junction_tf.translation.truncate();
                     if npc_pos.distance(j_pos) < 30.0 {
                         let is_pr4_adjacent = actors.iter().any(|(_, other_npc, other_tf)| {
                             other_npc.name.contains("PR-4")
@@ -644,5 +672,23 @@ pub fn npc_movement_system(
                 body.linear_velocity = nalgebra::SVector::from([0.0, 0.0]);
             }
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn fep_observation_frame_remains_six_dimensional_and_bounded() {
+        let values = fep_observation_values(1.2, -0.1, 0.5, 0.4, 0.3, 2.0);
+        assert_eq!(values.len(), FEP_OBSERVATION_DIM);
+        assert_eq!(values, [1.0, 0.0, 0.5, 0.4, 0.3, 1.0]);
+    }
+
+    #[test]
+    fn second_fep_slot_is_explicit_self_state() {
+        let values = fep_observation_values(0.8, 0.65, 0.2, 0.4, 0.5, 0.6);
+        assert_eq!(values[1], 0.65);
     }
 }
