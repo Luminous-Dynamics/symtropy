@@ -16,9 +16,10 @@
 //! [`diagnostic_trace`] retains stepwise diagnostics and error evolution,
 //! [`numerical_observability`] measures signed stability margins plus controlled
 //! pressure-projection residual convergence, [`iterative_error`] measures
-//! projected solution change in velocity units as the iteration budget grows,
-//! and [`verification_regime`] summarizes refinement trends and iterative versus
-//! discretization error without assigning a promotion verdict.
+//! projection-only solution change on a controlled compressive fixture,
+//! [`verification_regime`] summarizes within-fixture refinement trends without a
+//! promotion verdict, and [`manufactured_iterative`] measures pressure-iteration
+//! sensitivity on the exact manufactured Taylor-Green trajectory itself.
 //! None of these modules should be read as a claim that Symtropy currently
 //! reproduces the 2026 singular construction or has a production Earth-water
 //! CFD backend.
@@ -29,6 +30,7 @@ pub mod evidence;
 pub mod falsification;
 pub mod iterative_error;
 pub mod manufactured;
+pub mod manufactured_iterative;
 pub mod numerical_observability;
 pub mod reference;
 pub mod validation;
