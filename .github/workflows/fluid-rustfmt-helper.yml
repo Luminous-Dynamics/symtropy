@@ -1,0 +1,42 @@
+name: Fluid Rustfmt Helper
+
+on:
+  push:
+    branches:
+      - ci/fluid-rustfmt-617-v0.1
+
+permissions:
+  contents: write
+
+jobs:
+  format:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ci/fluid-rustfmt-617-v0.1
+
+      - name: Set up Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.96.0
+          components: rustfmt
+
+      - name: Canonical rustfmt
+        run: cargo fmt --all
+
+      - name: Show formatter delta
+        run: git diff --check && git diff
+
+      - name: Commit canonical formatter output on helper branch
+        shell: bash
+        run: |
+          if git diff --quiet; then
+            echo "Already rustfmt-clean"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add --all
+          git commit -m "chore(fluid): canonicalize Rust 1.96 formatting"
+          git push origin HEAD:ci/fluid-rustfmt-617-v0.1
