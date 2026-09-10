@@ -38,6 +38,8 @@ pub struct Condition {
     pub severity: u16,
     pub onset_tick: u64,
     pub source_event_id: Option<StableId>,
+    pub last_revision_tick: u64,
+    pub last_revision_event_id: Option<StableId>,
     pub capability_effects: BTreeMap<CapabilityKind, u16>,
 }
 
@@ -54,25 +56,17 @@ impl Condition {
         if kind.trim().is_empty() {
             return Err(HealthError::EmptyConditionKind);
         }
-        if severity > FULL_CAPABILITY {
-            return Err(HealthError::ScoreOutOfRange {
-                field: "severity",
-                value: severity,
-            });
-        }
+        validate_score("severity", severity)?;
         for effect in capability_effects.values().copied() {
-            if effect > FULL_CAPABILITY {
-                return Err(HealthError::ScoreOutOfRange {
-                    field: "capability_effect",
-                    value: effect,
-                });
-            }
+            validate_score("capability_effect", effect)?;
         }
         Ok(Self {
             id,
             kind,
             severity,
             onset_tick,
+            last_revision_tick: onset_tick,
+            last_revision_event_id: source_event_id.clone(),
             source_event_id,
             capability_effects,
         })
@@ -101,15 +95,33 @@ impl ConditionSet {
         self.conditions.values()
     }
 
-    /// Explicitly improve one condition by a bounded amount.
+    /// Revise one persistent condition with explicit causal provenance.
     ///
-    /// Recovery changes condition severity only; capability is always re-derived.
-    pub fn recover(&mut self, id: &StableId, amount: u16) -> Result<u16, HealthError> {
+    /// This method does not decide *why* severity changed. Treatment, recovery,
+    /// deterioration, surgery, rest, or environmental exposure are owned by higher
+    /// layers; they must provide the causal event and monotonic simulation tick.
+    pub fn revise_severity(
+        &mut self,
+        id: &StableId,
+        new_severity: u16,
+        revision_tick: u64,
+        revision_event_id: StableId,
+    ) -> Result<u16, HealthError> {
+        validate_score("severity", new_severity)?;
         let condition = self
             .conditions
             .get_mut(id)
             .ok_or_else(|| HealthError::UnknownCondition(id.clone()))?;
-        condition.severity = condition.severity.saturating_sub(amount);
+        if revision_tick < condition.last_revision_tick {
+            return Err(HealthError::NonMonotonicRevision {
+                condition_id: id.clone(),
+                previous_tick: condition.last_revision_tick,
+                attempted_tick: revision_tick,
+            });
+        }
+        condition.severity = new_severity;
+        condition.last_revision_tick = revision_tick;
+        condition.last_revision_event_id = Some(revision_event_id);
         Ok(condition.severity)
     }
 }
@@ -122,12 +134,7 @@ pub struct CapabilityProfile {
 
 impl CapabilityProfile {
     pub fn set(&mut self, capability: CapabilityKind, score: u16) -> Result<(), HealthError> {
-        if score > FULL_CAPABILITY {
-            return Err(HealthError::ScoreOutOfRange {
-                field: "baseline_capability",
-                value: score,
-            });
-        }
+        validate_score("baseline_capability", score)?;
         self.baseline.insert(capability, score);
         Ok(())
     }
@@ -160,9 +167,8 @@ impl CapabilityProfile {
 
             // severity * max_effect / 10_000 gives the condition's current
             // impairment fraction in basis points. Round to nearest basis point.
-            let impairment_bp = (
-                u32::from(condition.severity) * u32::from(max_effect) + 5_000
-            ) / 10_000;
+            let impairment_bp =
+                (u32::from(condition.severity) * u32::from(max_effect) + 5_000) / 10_000;
             let retained_bp = 10_000u32.saturating_sub(impairment_bp.min(10_000));
             effective = (effective * retained_bp + 5_000) / 10_000;
             limiting_conditions.insert(condition.id.clone());
@@ -189,21 +195,39 @@ pub struct CapabilityAssessment {
 }
 
 impl CapabilityAssessment {
-    pub fn fraction_of_baseline_bp(&self) -> u16 {
+    /// Fraction of baseline capability in basis points; undefined if baseline is zero.
+    pub fn fraction_of_baseline_bp(&self) -> Option<u16> {
         if self.baseline == 0 {
-            return FULL_CAPABILITY;
+            return None;
         }
-        ((u32::from(self.effective) * 10_000 + u32::from(self.baseline) / 2)
-            / u32::from(self.baseline))
-            .min(10_000) as u16
+        Some(
+            ((u32::from(self.effective) * 10_000 + u32::from(self.baseline) / 2)
+                / u32::from(self.baseline))
+                .min(10_000) as u16,
+        )
     }
+}
+
+fn validate_score(field: &'static str, value: u16) -> Result<(), HealthError> {
+    if value > FULL_CAPABILITY {
+        return Err(HealthError::ScoreOutOfRange { field, value });
+    }
+    Ok(())
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum HealthError {
     EmptyConditionKind,
-    ScoreOutOfRange { field: &'static str, value: u16 },
+    ScoreOutOfRange {
+        field: &'static str,
+        value: u16,
+    },
     UnknownCondition(StableId),
+    NonMonotonicRevision {
+        condition_id: StableId,
+        previous_tick: u64,
+        attempted_tick: u64,
+    },
 }
 
 impl std::fmt::Display for HealthError {
@@ -214,6 +238,14 @@ impl std::fmt::Display for HealthError {
                 write!(f, "{field} score must be in 0..=10000, got {value}")
             }
             Self::UnknownCondition(id) => write!(f, "unknown condition {id}"),
+            Self::NonMonotonicRevision {
+                condition_id,
+                previous_tick,
+                attempted_tick,
+            } => write!(
+                f,
+                "condition {condition_id} revision tick {attempted_tick} precedes prior revision tick {previous_tick}"
+            ),
         }
     }
 }
@@ -270,18 +302,37 @@ mod tests {
     }
 
     #[test]
-    fn explicit_recovery_changes_condition_not_baseline() {
+    fn condition_revision_requires_monotonic_causal_provenance() {
         let mut profile = CapabilityProfile::default();
         profile.set(CapabilityKind::Locomotion, 10_000).unwrap();
         let mut conditions = ConditionSet::default();
         let condition_id = id("condition:leg");
         conditions.insert(leg_condition("condition:leg", 8_000));
         let before = profile.assess(CapabilityKind::Locomotion, &conditions);
-        conditions.recover(&condition_id, 4_000).unwrap();
+        conditions
+            .revise_severity(&condition_id, 4_000, 200, id("event:treatment"))
+            .unwrap();
         let after = profile.assess(CapabilityKind::Locomotion, &conditions);
         assert_eq!(profile.baseline(&CapabilityKind::Locomotion), 10_000);
         assert!(after.effective > before.effective);
-        assert_eq!(conditions.get(&condition_id).unwrap().severity, 4_000);
+        let revised = conditions.get(&condition_id).unwrap();
+        assert_eq!(revised.severity, 4_000);
+        assert_eq!(revised.last_revision_tick, 200);
+        assert_eq!(
+            revised.last_revision_event_id.as_ref(),
+            Some(&id("event:treatment"))
+        );
+        assert!(matches!(
+            conditions.revise_severity(&condition_id, 3_000, 199, id("event:stale")),
+            Err(HealthError::NonMonotonicRevision { .. })
+        ));
+    }
+
+    #[test]
+    fn zero_baseline_fraction_is_explicitly_undefined() {
+        let profile = CapabilityProfile::default();
+        let assessment = profile.assess(CapabilityKind::Locomotion, &ConditionSet::default());
+        assert_eq!(assessment.fraction_of_baseline_bp(), None);
     }
 
     #[test]
