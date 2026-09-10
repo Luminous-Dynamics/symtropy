@@ -1,7 +1,7 @@
 use crate::{
-    DemographicInterventionCursor, DemographicInterventionCursorDigest,
-    DemographicInterventionProofBundleDigest, EvolutionError, EvolutionExperimentId,
-    HereditarySchema, HereditarySchemaDigest, MetapopulationSnapshot,
+    DemographicExecutionEvidence, DemographicInterventionCursor, DemographicInterventionCursorDigest,
+    DemographicInterventionProofBundle, DemographicInterventionProofBundleDigest, EvolutionError,
+    EvolutionExperimentId, HereditarySchema, HereditarySchemaDigest, MetapopulationSnapshot,
     MetapopulationSnapshotDigest, PopulationGeneration, PopulationGeneticState, PopulationId,
     PopulationStructureProfile, PopulationStructureProfileDigest, PopulationTrajectoryPoint,
 };
@@ -105,6 +105,94 @@ impl ValidatedDemographicInterventionSource {
             return Err(EvolutionError::DemographicHistoryCursorMismatch);
         }
         Ok(())
+    }
+}
+
+impl DemographicInterventionProofBundle {
+    /// Replay/revalidate this persisted proof bundle and mint a fresh runtime-only
+    /// authority token for its exact non-root final cut.
+    ///
+    /// Empty/root bundles deliberately cannot mint a token; the ordinary root
+    /// source gate remains the authority for ordinal zero.
+    #[allow(clippy::too_many_arguments)]
+    pub fn mint_validated_final_source(
+        &self,
+        schema: &HereditarySchema,
+        root_structure: &PopulationStructureProfile,
+        root_populations: &BTreeMap<PopulationId, PopulationGeneticState>,
+        root_points: &BTreeMap<PopulationId, PopulationTrajectoryPoint>,
+        root_snapshot: &MetapopulationSnapshot,
+    ) -> Result<ValidatedDemographicInterventionSource, EvolutionError> {
+        self.validate_current(
+            schema,
+            root_structure,
+            root_populations,
+            root_points,
+            root_snapshot,
+        )?;
+        let final_step = self
+            .steps()
+            .last()
+            .ok_or(EvolutionError::DemographicHistoryCursorNotRoot)?;
+        let (populations, points, snapshot, cursor) = evidence_cut(final_step.execution());
+        let token = ValidatedDemographicInterventionSource::from_validated_bundle_replay(
+            schema,
+            final_step.successor_structure(),
+            snapshot,
+            cursor,
+            self.canonical_digest()?,
+        )?;
+        token.validate_current(
+            schema,
+            final_step.successor_structure(),
+            populations,
+            points,
+            snapshot,
+            cursor,
+        )?;
+        Ok(token)
+    }
+}
+
+fn evidence_cut(
+    evidence: &DemographicExecutionEvidence,
+) -> (
+    &BTreeMap<PopulationId, PopulationGeneticState>,
+    &BTreeMap<PopulationId, PopulationTrajectoryPoint>,
+    &MetapopulationSnapshot,
+    &DemographicInterventionCursor,
+) {
+    match evidence {
+        DemographicExecutionEvidence::CensusResize(result) => (
+            &result.populations,
+            &result.points,
+            &result.snapshot,
+            &result.history_cursor,
+        ),
+        DemographicExecutionEvidence::FounderOrRecolonization(result) => (
+            &result.populations,
+            &result.points,
+            &result.snapshot,
+            &result.history_cursor,
+        ),
+        DemographicExecutionEvidence::Extinction(result) => (
+            &result.populations,
+            &result.points,
+            &result.snapshot,
+            &result.history_cursor,
+        ),
+        DemographicExecutionEvidence::PopulationSplit(result) => (
+            &result.populations,
+            &result.points,
+            &result.snapshot,
+            &result.history_cursor,
+        ),
+        DemographicExecutionEvidence::PulseAdmixture(result) => (
+            &result.populations,
+            &result.points,
+            &result.snapshot,
+            &result.history_cursor,
+        ),
     }
 }
 
