@@ -25,7 +25,6 @@ pub struct ValidatedDemographicInterventionSource {
 }
 
 impl ValidatedDemographicInterventionSource {
-    #[allow(clippy::too_many_arguments)]
     pub(crate) fn from_validated_bundle_replay(
         schema: &HereditarySchema,
         structure: &PopulationStructureProfile,
@@ -36,6 +35,7 @@ impl ValidatedDemographicInterventionSource {
         if snapshot.experiment_id() != cursor.experiment_id()
             || snapshot.generation() != cursor.generation()
             || snapshot.canonical_digest() != cursor.current_snapshot_digest()
+            || cursor.is_root()
         {
             return Err(EvolutionError::DemographicHistoryCursorMismatch);
         }
@@ -90,7 +90,8 @@ impl ValidatedDemographicInterventionSource {
         cursor: &DemographicInterventionCursor,
     ) -> Result<(), EvolutionError> {
         snapshot.validate_current(schema, structure, populations, points)?;
-        if schema.canonical_digest()? != self.schema_digest
+        if cursor.is_root()
+            || schema.canonical_digest()? != self.schema_digest
             || structure.canonical_digest()? != self.structure_digest
             || snapshot.canonical_digest() != self.snapshot_digest
             || cursor.canonical_digest()? != self.cursor_digest
@@ -101,13 +102,14 @@ impl ValidatedDemographicInterventionSource {
             || cursor.intervention_ordinal() != self.intervention_ordinal
             || cursor.current_snapshot_digest() != self.snapshot_digest
         {
-            return Err(EvolutionError::DemographicValidatedSourceMismatch);
+            return Err(EvolutionError::DemographicHistoryCursorMismatch);
         }
         Ok(())
     }
 }
 
 /// Internal gate shared by demographic executors as they adopt B4B.
+#[derive(Clone, Copy)]
 pub(crate) enum DemographicSourceAuthority<'a> {
     Root,
     Proven(&'a ValidatedDemographicInterventionSource),
@@ -128,9 +130,6 @@ pub(crate) fn validate_demographic_source_authority(
             cursor.validate_root_current(schema, structure, populations, points, snapshot)
         }
         DemographicSourceAuthority::Proven(token) => {
-            if cursor.is_root() {
-                return Err(EvolutionError::DemographicValidatedSourceMustBeNonRoot);
-            }
             token.validate_current(schema, structure, populations, points, snapshot, cursor)
         }
     }
