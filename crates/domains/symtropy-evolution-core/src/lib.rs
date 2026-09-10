@@ -26,7 +26,9 @@ mod haldane;
 mod heredity;
 mod ids;
 mod linked_gamete;
+mod linked_gamete_evidence;
 mod linked_offspring;
+mod linked_offspring_v2;
 mod marker_recombination;
 mod metapopulation;
 mod operators;
@@ -110,10 +112,19 @@ pub use linked_gamete::{
     LinkedGameteDerivationProvenanceDigest, LinkedGameteDigest,
     WholeChromosomeInheritanceSegment, LINKED_GAMETE_DERIVATION_VERSION, LINKED_GAMETE_VERSION,
 };
+pub use linked_gamete_evidence::{
+    LinkedGameteDerivationEvidence, LinkedGameteDerivationEvidenceDigest,
+    LINKED_GAMETE_DERIVATION_EVIDENCE_VERSION,
+};
 pub use linked_offspring::{
     assemble_diploid_linked_offspring, DiploidLinkedOffspringDerivation,
     DiploidLinkedOffspringProvenance, DiploidLinkedOffspringProvenanceDigest,
     LinkedGameteContributionEvidence, DIPLOID_LINKED_OFFSPRING_DERIVATION_VERSION,
+};
+pub use linked_offspring_v2::{
+    assemble_diploid_linked_offspring_from_evidence, DiploidLinkedOffspringDerivationV2,
+    DiploidLinkedOffspringProvenanceV2, DiploidLinkedOffspringProvenanceV2Digest,
+    LinkedGameteContributionEvidenceV2, DIPLOID_LINKED_OFFSPRING_DERIVATION_V2_VERSION,
 };
 pub use marker_recombination::{
     derive_marker_marginal_poisson_linked_gamete, AdjacentMarkerParityEvidence,
