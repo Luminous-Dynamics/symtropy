@@ -36,3 +36,5 @@ semantic_id!(AlleleId);
 semantic_id!(PopulationId);
 semantic_id!(ReproductionEventId);
 semantic_id!(OperatorProfileId);
+semantic_id!(PopulationTransitionId);
+semantic_id!(PopulationProcessProfileId);
