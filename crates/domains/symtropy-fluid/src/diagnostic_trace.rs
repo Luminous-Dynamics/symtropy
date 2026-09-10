@@ -83,15 +83,17 @@ pub struct DiagnosticTraceStep {
     pub forcing_divergence_rms_per_s2: Option<f64>,
 }
 
+/// Extrema preserve diagnostic availability. `None` means no measured value was
+/// available in the trace; it is never silently rewritten to numeric zero.
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct DiagnosticTraceExtrema {
-    pub maximum_resolved_speed_mps: f64,
-    pub maximum_vorticity_per_s: f64,
-    pub maximum_strain_rate_per_s: f64,
-    pub maximum_pressure_gradient_pa_per_m: f64,
-    pub maximum_divergence_rms_per_s: f64,
-    pub maximum_cfl: f64,
-    pub maximum_pressure_residual_rms_pa_per_m2: f64,
+    pub maximum_resolved_speed_mps: Option<f64>,
+    pub maximum_vorticity_per_s: Option<f64>,
+    pub maximum_strain_rate_per_s: Option<f64>,
+    pub maximum_pressure_gradient_pa_per_m: Option<f64>,
+    pub maximum_divergence_rms_per_s: Option<f64>,
+    pub maximum_cfl: Option<f64>,
+    pub maximum_pressure_residual_rms_pa_per_m2: Option<f64>,
     pub maximum_non_finite_state_count: u64,
     pub maximum_resolved_energy_decay_w: f64,
     pub maximum_resolved_energy_gain_w: f64,
@@ -133,7 +135,9 @@ impl fmt::Display for DiagnosticTraceError {
             ),
             Self::State(source) => write!(f, "diagnostic trace state failed: {source}"),
             Self::Step(source) => write!(f, "diagnostic trace step failed: {source}"),
-            Self::Diagnostic(source) => write!(f, "diagnostic trace measurement failed: {source}"),
+            Self::Diagnostic(source) => {
+                write!(f, "diagnostic trace measurement failed: {source}")
+            }
             Self::PassiveComparator(source) => {
                 write!(f, "diagnostic trace analytical comparison failed: {source}")
             }
@@ -184,7 +188,7 @@ pub fn run_passive_taylor_green_diagnostic_trace(
     let initial_analytical_error = compare_taylor_green(&state, initial_amplitude_mps)
         .map_err(DiagnosticTraceError::PassiveComparator)?
         .into();
-    let mut extrema = DiagnosticTraceExtrema::from_initial(&initial_diagnostics)?;
+    let mut extrema = DiagnosticTraceExtrema::from_initial(&initial_diagnostics);
     let mut previous_energy_j = measured_energy(&initial_diagnostics)?;
     let mut trace_steps = Vec::with_capacity(steps);
 
@@ -212,7 +216,7 @@ pub fn run_passive_taylor_green_diagnostic_trace(
             resolved_energy_decay_w,
             forcing_divergence_rms_per_s2: None,
         };
-        extrema.observe(&record)?;
+        extrema.observe(&record);
         previous_energy_j = current_energy_j;
         trace_steps.push(record);
     }
@@ -249,17 +253,14 @@ pub fn run_manufactured_taylor_green_diagnostic_trace(
     let mut state = PeriodicMac2d::taylor_green(config, initial_amplitude)?;
     let initial_diagnostics = state.diagnostics()?;
     let initial_analytical_error = compare_manufactured_state(&state, profile)?;
-    let mut extrema = DiagnosticTraceExtrema::from_initial(&initial_diagnostics)?;
+    let mut extrema = DiagnosticTraceExtrema::from_initial(&initial_diagnostics);
     let mut previous_energy_j = measured_energy(&initial_diagnostics)?;
     let mut trace_steps = Vec::with_capacity(steps);
 
     for step_index in 0..steps {
         let forcing_time_s = state.time_s();
-        let forcing_divergence_rms_per_s2 = forcing_divergence_rms(
-            &forcing_config,
-            profile,
-            forcing_time_s,
-        )?;
+        let forcing_divergence_rms_per_s2 =
+            forcing_divergence_rms(&forcing_config, profile, forcing_time_s)?;
         let step = state.step_with_acceleration(dt_s, |position, time| {
             manufactured_acceleration_mps2(&forcing_config, profile, position, time)
                 .unwrap_or([f64::NAN, f64::NAN])
@@ -284,7 +285,7 @@ pub fn run_manufactured_taylor_green_diagnostic_trace(
             resolved_energy_decay_w,
             forcing_divergence_rms_per_s2: Some(forcing_divergence_rms_per_s2),
         };
-        extrema.observe(&record)?;
+        extrema.observe(&record);
         previous_energy_j = current_energy_j;
         trace_steps.push(record);
     }
@@ -361,7 +362,10 @@ fn compare_manufactured_state(
     let actual_energy = measured_energy(&state.diagnostics()?)?;
     let exact_energy = measured_energy(&exact.diagnostics()?)?;
     let kinetic_energy_relative_error = (actual_energy - exact_energy).abs() / exact_energy;
-    ensure_finite("manufactured_velocity_rms_error_mps", velocity_rms_error_mps)?;
+    ensure_finite(
+        "manufactured_velocity_rms_error_mps",
+        velocity_rms_error_mps,
+    )?;
     ensure_finite("manufactured_velocity_max_error_mps", maximum_error)?;
     ensure_finite(
         "manufactured_kinetic_energy_relative_error",
@@ -430,10 +434,6 @@ fn measured_energy(sample: &ContinuumDiagnosticSample) -> Result<f64, Diagnostic
         .ok_or(DiagnosticTraceError::MissingMeasuredEnergy)
 }
 
-fn measured_or_zero(value: Option<f64>) -> f64 {
-    value.unwrap_or(0.0)
-}
-
 fn ensure_finite(name: &'static str, value: f64) -> Result<(), DiagnosticTraceError> {
     if value.is_finite() {
         Ok(())
@@ -442,127 +442,78 @@ fn ensure_finite(name: &'static str, value: f64) -> Result<(), DiagnosticTraceEr
     }
 }
 
+fn update_max(current: &mut Option<f64>, observed: Option<f64>) {
+    let Some(observed) = observed else {
+        return;
+    };
+    *current = Some(match *current {
+        Some(existing) => existing.max(observed),
+        None => observed,
+    });
+}
+
 impl DiagnosticTraceExtrema {
-    fn from_initial(sample: &ContinuumDiagnosticSample) -> Result<Self, DiagnosticTraceError> {
-        let maximum_resolved_speed_mps = measured_or_zero(sample.max_resolved_speed_mps.measured_value());
-        let maximum_vorticity_per_s = measured_or_zero(sample.max_vorticity_per_s.measured_value());
-        let maximum_strain_rate_per_s = measured_or_zero(sample.max_strain_rate_per_s.measured_value());
-        let maximum_pressure_gradient_pa_per_m =
-            measured_or_zero(sample.max_pressure_gradient_pa_per_m.measured_value());
-        let maximum_divergence_rms_per_s =
-            measured_or_zero(sample.divergence_rms_per_s.measured_value());
-        let maximum_cfl = measured_or_zero(sample.max_cfl.measured_value());
-        let maximum_pressure_residual_rms_pa_per_m2 =
-            measured_or_zero(sample.solver_residual.measured_value());
-
-        for (name, value) in [
-            ("maximum_resolved_speed_mps", maximum_resolved_speed_mps),
-            ("maximum_vorticity_per_s", maximum_vorticity_per_s),
-            ("maximum_strain_rate_per_s", maximum_strain_rate_per_s),
-            (
-                "maximum_pressure_gradient_pa_per_m",
-                maximum_pressure_gradient_pa_per_m,
-            ),
-            (
-                "maximum_divergence_rms_per_s",
-                maximum_divergence_rms_per_s,
-            ),
-            ("maximum_cfl", maximum_cfl),
-            (
-                "maximum_pressure_residual_rms_pa_per_m2",
-                maximum_pressure_residual_rms_pa_per_m2,
-            ),
-        ] {
-            ensure_finite(name, value)?;
-        }
-
-        Ok(Self {
-            maximum_resolved_speed_mps,
-            maximum_vorticity_per_s,
-            maximum_strain_rate_per_s,
-            maximum_pressure_gradient_pa_per_m,
-            maximum_divergence_rms_per_s,
-            maximum_cfl,
-            maximum_pressure_residual_rms_pa_per_m2,
-            maximum_non_finite_state_count: sample.non_finite_state_count,
+    fn from_initial(sample: &ContinuumDiagnosticSample) -> Self {
+        let mut extrema = Self {
+            maximum_resolved_speed_mps: None,
+            maximum_vorticity_per_s: None,
+            maximum_strain_rate_per_s: None,
+            maximum_pressure_gradient_pa_per_m: None,
+            maximum_divergence_rms_per_s: None,
+            maximum_cfl: None,
+            maximum_pressure_residual_rms_pa_per_m2: None,
+            maximum_non_finite_state_count: 0,
             maximum_resolved_energy_decay_w: 0.0,
             maximum_resolved_energy_gain_w: 0.0,
             maximum_forcing_divergence_rms_per_s2: None,
-        })
+        };
+        extrema.observe_sample(sample);
+        extrema
     }
 
-    fn observe(&mut self, step: &DiagnosticTraceStep) -> Result<(), DiagnosticTraceError> {
-        self.maximum_resolved_speed_mps = self.maximum_resolved_speed_mps.max(measured_or_zero(
-            step.diagnostics.max_resolved_speed_mps.measured_value(),
-        ));
-        self.maximum_vorticity_per_s = self.maximum_vorticity_per_s.max(measured_or_zero(
-            step.diagnostics.max_vorticity_per_s.measured_value(),
-        ));
-        self.maximum_strain_rate_per_s = self.maximum_strain_rate_per_s.max(measured_or_zero(
-            step.diagnostics.max_strain_rate_per_s.measured_value(),
-        ));
-        self.maximum_pressure_gradient_pa_per_m = self.maximum_pressure_gradient_pa_per_m.max(
-            measured_or_zero(
-                step.diagnostics
-                    .max_pressure_gradient_pa_per_m
-                    .measured_value(),
-            ),
+    fn observe_sample(&mut self, sample: &ContinuumDiagnosticSample) {
+        update_max(
+            &mut self.maximum_resolved_speed_mps,
+            sample.max_resolved_speed_mps.measured_value(),
         );
-        self.maximum_divergence_rms_per_s = self.maximum_divergence_rms_per_s.max(
-            measured_or_zero(step.diagnostics.divergence_rms_per_s.measured_value()),
+        update_max(
+            &mut self.maximum_vorticity_per_s,
+            sample.max_vorticity_per_s.measured_value(),
         );
-        self.maximum_cfl = self
-            .maximum_cfl
-            .max(measured_or_zero(step.diagnostics.max_cfl.measured_value()));
-        self.maximum_pressure_residual_rms_pa_per_m2 = self
-            .maximum_pressure_residual_rms_pa_per_m2
-            .max(measured_or_zero(step.diagnostics.solver_residual.measured_value()));
+        update_max(
+            &mut self.maximum_strain_rate_per_s,
+            sample.max_strain_rate_per_s.measured_value(),
+        );
+        update_max(
+            &mut self.maximum_pressure_gradient_pa_per_m,
+            sample.max_pressure_gradient_pa_per_m.measured_value(),
+        );
+        update_max(
+            &mut self.maximum_divergence_rms_per_s,
+            sample.divergence_rms_per_s.measured_value(),
+        );
+        update_max(&mut self.maximum_cfl, sample.max_cfl.measured_value());
+        update_max(
+            &mut self.maximum_pressure_residual_rms_pa_per_m2,
+            sample.solver_residual.measured_value(),
+        );
         self.maximum_non_finite_state_count = self
             .maximum_non_finite_state_count
-            .max(step.diagnostics.non_finite_state_count);
+            .max(sample.non_finite_state_count);
+    }
+
+    fn observe(&mut self, step: &DiagnosticTraceStep) {
+        self.observe_sample(&step.diagnostics);
         self.maximum_resolved_energy_decay_w = self
             .maximum_resolved_energy_decay_w
             .max(step.resolved_energy_decay_w.max(0.0));
         self.maximum_resolved_energy_gain_w = self
             .maximum_resolved_energy_gain_w
             .max((-step.resolved_energy_decay_w).max(0.0));
-        if let Some(value) = step.forcing_divergence_rms_per_s2 {
-            self.maximum_forcing_divergence_rms_per_s2 = Some(
-                self.maximum_forcing_divergence_rms_per_s2
-                    .unwrap_or(0.0)
-                    .max(value),
-            );
-        }
-
-        for (name, value) in [
-            ("maximum_resolved_speed_mps", self.maximum_resolved_speed_mps),
-            ("maximum_vorticity_per_s", self.maximum_vorticity_per_s),
-            ("maximum_strain_rate_per_s", self.maximum_strain_rate_per_s),
-            (
-                "maximum_pressure_gradient_pa_per_m",
-                self.maximum_pressure_gradient_pa_per_m,
-            ),
-            (
-                "maximum_divergence_rms_per_s",
-                self.maximum_divergence_rms_per_s,
-            ),
-            ("maximum_cfl", self.maximum_cfl),
-            (
-                "maximum_pressure_residual_rms_pa_per_m2",
-                self.maximum_pressure_residual_rms_pa_per_m2,
-            ),
-            (
-                "maximum_resolved_energy_decay_w",
-                self.maximum_resolved_energy_decay_w,
-            ),
-            (
-                "maximum_resolved_energy_gain_w",
-                self.maximum_resolved_energy_gain_w,
-            ),
-        ] {
-            ensure_finite(name, value)?;
-        }
-        Ok(())
+        update_max(
+            &mut self.maximum_forcing_divergence_rms_per_s2,
+            step.forcing_divergence_rms_per_s2,
+        );
     }
 }
 
@@ -587,19 +538,32 @@ mod tests {
 
     #[test]
     fn passive_trace_retains_stepwise_diagnostics_and_analytical_error() {
-        let report = run_passive_taylor_green_diagnostic_trace(config(), 0.08, 0.0005, 4)
-            .unwrap();
+        let report =
+            run_passive_taylor_green_diagnostic_trace(config(), 0.08, 0.0005, 4).unwrap();
         assert_eq!(report.steps.len(), 4);
         assert!(report.initial_analytical_error.velocity_rms_error_mps < 1.0e-14);
-        assert!(report.extrema.maximum_resolved_speed_mps > 0.0);
-        assert!(report.extrema.maximum_vorticity_per_s > 0.0);
-        assert!(report.extrema.maximum_strain_rate_per_s > 0.0);
+        assert!(report.extrema.maximum_resolved_speed_mps.unwrap() > 0.0);
+        assert!(report.extrema.maximum_vorticity_per_s.unwrap() > 0.0);
+        assert!(report.extrema.maximum_strain_rate_per_s.unwrap() > 0.0);
         assert_eq!(report.extrema.maximum_non_finite_state_count, 0);
         assert!(report.steps.iter().all(|step| {
             step.projection.pressure_iterations_executed == 400
                 && step.analytical_error.velocity_rms_error_mps.is_finite()
                 && step.resolved_energy_decay_w.is_finite()
         }));
+    }
+
+    #[test]
+    fn unavailable_initial_step_metrics_remain_unavailable_not_zero() {
+        let report =
+            run_passive_taylor_green_diagnostic_trace(config(), 0.08, 0.0005, 1).unwrap();
+        assert!(report.initial_diagnostics.max_cfl.measured_value().is_none());
+        assert!(report.initial_diagnostics.solver_residual.measured_value().is_none());
+        assert!(report.extrema.maximum_cfl.is_some());
+        assert!(report
+            .extrema
+            .maximum_pressure_residual_rms_pa_per_m2
+            .is_some());
     }
 
     #[test]
@@ -632,10 +596,10 @@ mod tests {
 
     #[test]
     fn trace_replays_deterministically() {
-        let a = run_passive_taylor_green_diagnostic_trace(config(), 0.08, 0.0005, 3)
-            .unwrap();
-        let b = run_passive_taylor_green_diagnostic_trace(config(), 0.08, 0.0005, 3)
-            .unwrap();
+        let a =
+            run_passive_taylor_green_diagnostic_trace(config(), 0.08, 0.0005, 3).unwrap();
+        let b =
+            run_passive_taylor_green_diagnostic_trace(config(), 0.08, 0.0005, 3).unwrap();
         assert_eq!(a, b);
     }
 
