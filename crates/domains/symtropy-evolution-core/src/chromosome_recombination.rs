@@ -12,11 +12,6 @@ pub const CHROMOSOME_RECOMBINATION_PROFILE_VERSION: u32 = 1;
 const RECOMBINATION_PROFILE_DIGEST_DOMAIN: &[u8] =
     b"symtropy:evolution:chromosome-recombination-profile:v1\0";
 
-/// Genetic-map process extent for one chromosome.
-///
-/// The interval is a coordinate extent, not a physical sequence span. C3A
-/// permits mapped loci at either endpoint; the future C3B executor must define
-/// exact breakpoint endpoint semantics in its own versioned stochastic grammar.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct GeneticMapIntervalMicromorgans {
     pub start: GeneticMapPositionMicromorgans,
@@ -40,8 +35,6 @@ impl GeneticMapIntervalMicromorgans {
         Ok(())
     }
 
-    /// Return the validated process length. Raw/restored invalid interval-shaped
-    /// data never gains an arithmetic underflow/panic path before revalidation.
     pub fn length_micromorgans(&self) -> Result<u64, EvolutionError> {
         self.validate()?;
         Ok(self.end.get() - self.start.get())
@@ -75,12 +68,14 @@ impl ChromosomeRecombinationDomain {
     }
 }
 
-/// Explicit crossover process assumed by the first linked-inheritance reference lane.
+/// Explicit chromosome inheritance/crossover process authority.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum ChromosomeRecombinationModel {
+    /// Select one complete homolog independently per chromosome and permit no
+    /// within-chromosome crossover. This is the exact C3B baseline model.
+    NoCrossoversIndependentAssortmentV1,
     /// Gametic crossovers form a homogeneous Poisson point process in genetic-map
-    /// distance. This is an explicit no-crossover-interference reference model,
-    /// not a universal biological claim.
+    /// distance. Explicitly assumes no crossover interference.
     PoissonCrossoversNoInterferenceV1,
 }
 
@@ -88,14 +83,11 @@ impl ChromosomeRecombinationModel {
     fn tag(self) -> u8 {
         match self {
             Self::PoissonCrossoversNoInterferenceV1 => 0,
+            Self::NoCrossoversIndependentAssortmentV1 => 1,
         }
     }
 }
 
-/// Exact process/applicability authority for future chromosome crossover execution.
-///
-/// C3A grants no authority that any crossover occurred. It only declares which
-/// crossover process C3B may later execute over which chromosome intervals.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ChromosomeRecombinationProfile {
     pub profile_version: u32,
