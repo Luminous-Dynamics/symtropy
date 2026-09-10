@@ -1,0 +1,88 @@
+name: PB-04a Spatial Topology Qualification
+
+on:
+  push:
+    branches:
+      - "spatial/pb04a-faceted-topology-kernel"
+    paths:
+      - "crates/domains/symtropy-spatial-topology/**"
+      - ".github/workflows/pb04a-spatial-topology-qualification.yml"
+  pull_request:
+    paths:
+      - "crates/domains/symtropy-spatial-topology/**"
+      - ".github/workflows/pb04a-spatial-topology-qualification.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pb04a-spatial-topology-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  qualify:
+    name: Qualify PB-04a exact execution subject
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Bind executed Git subject
+        shell: bash
+        run: |
+          set -euo pipefail
+          actual_head="$(git rev-parse HEAD)"
+          actual_tree="$(git rev-parse HEAD^{tree})"
+
+          if [[ "${GITHUB_EVENT_NAME}" == "push" ]]; then
+            test "${actual_head}" = "${GITHUB_SHA}"
+            echo "PB04A_PRODUCT_HEAD=${actual_head}"
+            echo "PB04A_PRODUCT_TREE=${actual_tree}"
+          else
+            mapfile -t parents < <(git rev-list --parents -n 1 HEAD)
+            read -r -a tuple <<< "${parents[0]}"
+            test "${#tuple[@]}" -eq 3
+            test "${tuple[1]}" = "${{ github.event.pull_request.base.sha }}"
+            test "${tuple[2]}" = "${{ github.event.pull_request.head.sha }}"
+            echo "PB04A_INTEGRATION_BASE=${tuple[1]}"
+            echo "PB04A_INTEGRATION_HEAD=${tuple[2]}"
+            echo "PB04A_INTEGRATION_MERGE=${actual_head}"
+            echo "PB04A_INTEGRATION_TREE=${actual_tree}"
+          fi
+
+      - name: Set up pinned Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.96.0
+          components: clippy, rustfmt
+
+      - name: Canonical formatting
+        run: >-
+          cargo fmt
+          --manifest-path crates/domains/symtropy-spatial-topology/Cargo.toml
+          -- --check
+
+      - name: Check
+        run: >-
+          cargo check
+          --manifest-path crates/domains/symtropy-spatial-topology/Cargo.toml
+          --all-targets
+
+      - name: Test
+        run: >-
+          cargo test
+          --manifest-path crates/domains/symtropy-spatial-topology/Cargo.toml
+
+      - name: Strict Clippy
+        run: >-
+          cargo clippy
+          --manifest-path crates/domains/symtropy-spatial-topology/Cargo.toml
+          --all-targets -- -D warnings
+
+      - name: Prove source tree unchanged
+        shell: bash
+        run: |
+          set -euo pipefail
+          git diff --exit-code
+          test -z "$(git status --porcelain --untracked-files=no)"
