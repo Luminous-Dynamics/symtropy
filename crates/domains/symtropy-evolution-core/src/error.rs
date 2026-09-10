@@ -6,6 +6,7 @@ pub enum EvolutionError {
     UnsupportedSchema(u32),
     UnsupportedChromosomeMap(u32),
     UnsupportedPhasedHereditaryState(u32),
+    UnsupportedLinkedGamete(u32),
     EmptyText { field: &'static str },
     UnsupportedPloidy(u8),
     ModeRequiresDiploid(u8),
@@ -54,6 +55,19 @@ pub enum EvolutionError {
         observed: usize,
     },
     NonCanonicalHaplotypeOrder { chromosome: ChromosomeId },
+    LinkedGameteChromosomeMapAuthorityMismatch,
+    LinkedGameteChromosomeSetMismatch,
+    LinkedGameteHaplotypeLocusCountMismatch {
+        chromosome: ChromosomeId,
+        expected: usize,
+        observed: usize,
+    },
+    LinkedGameteRecombinationModelMismatch,
+    LinkedGameteRequiresSexualParentRole,
+    LinkedGameteEventContextMismatch,
+    LinkedGameteSourceAuthorityMismatch,
+    LinkedGameteResultMismatch,
+    LinkedGameteDerivationMismatch,
     ParentCountMismatch { expected: usize, observed: usize },
     ParentageMismatch,
     ChildDigestMismatch,
@@ -157,6 +171,9 @@ impl fmt::Display for EvolutionError {
             }
             Self::UnsupportedPhasedHereditaryState(version) => {
                 write!(f, "unsupported phased hereditary-state version {version}")
+            }
+            Self::UnsupportedLinkedGamete(version) => {
+                write!(f, "unsupported linked-gamete version {version}")
             }
             Self::EmptyText { field } => write!(f, "{field} must not be empty"),
             Self::UnsupportedPloidy(ploidy) => write!(f, "unsupported ploidy {ploidy}"),
@@ -283,6 +300,41 @@ impl fmt::Display for EvolutionError {
                 "chromosome {} haplotypes are not in canonical unlabeled-homolog order",
                 chromosome.as_str()
             ),
+            Self::LinkedGameteChromosomeMapAuthorityMismatch => {
+                write!(f, "linked gamete does not match exact chromosome-map authority")
+            }
+            Self::LinkedGameteChromosomeSetMismatch => {
+                write!(f, "linked gamete chromosome set does not match chromosome map")
+            }
+            Self::LinkedGameteHaplotypeLocusCountMismatch {
+                chromosome,
+                expected,
+                observed,
+            } => write!(
+                f,
+                "linked gamete chromosome {} expected {expected} mapped loci, observed {observed}",
+                chromosome.as_str()
+            ),
+            Self::LinkedGameteRecombinationModelMismatch => write!(
+                f,
+                "linked gamete executor requires no-crossovers independent-assortment V1"
+            ),
+            Self::LinkedGameteRequiresSexualParentRole => write!(
+                f,
+                "linked diploid gamete executor requires ParentA or ParentB role"
+            ),
+            Self::LinkedGameteEventContextMismatch => {
+                write!(f, "linked gamete reproduction event/parent-role context mismatch")
+            }
+            Self::LinkedGameteSourceAuthorityMismatch => {
+                write!(f, "linked gamete source authority mismatch")
+            }
+            Self::LinkedGameteResultMismatch => {
+                write!(f, "linked gamete result digest/content mismatch")
+            }
+            Self::LinkedGameteDerivationMismatch => {
+                write!(f, "linked gamete derivation provenance mismatch")
+            }
             Self::ParentCountMismatch { expected, observed } => {
                 write!(f, "expected {expected} parent(s), observed {observed}")
             }
