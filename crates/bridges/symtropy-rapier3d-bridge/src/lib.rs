@@ -7,6 +7,10 @@
 //! Symtropy physical truth. The bridge keeps forcing, timestep, identity mapping,
 //! and post-step observations explicit so later validation code can compare
 //! independent implementations without silently changing gameplay authority.
+//!
+//! This module's tests qualify only the adapter mechanics they execute. They do
+//! not establish native-vs-Rapier agreement, physical accuracy, or a production
+//! gameplay backend. Those claims require the shared scenario/evidence corpus.
 
 pub mod manipulator;
 
