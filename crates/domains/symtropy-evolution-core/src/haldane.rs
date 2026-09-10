@@ -51,14 +51,16 @@ pub fn haldane_odd_parity_probability_ppm(distance_micromorgans: u64) -> u32 {
     }
 
     // exp(-y) = sum_n (-y)^n / n!, evaluated through a fixed recurrence.
-    // y <= 1/8, so term magnitudes monotonically decrease and the unsigned
-    // alternating accumulation stays positive.
+    // y <= 1/8, so term magnitudes monotonically decrease. Saturating subtraction
+    // makes this private numerical path total even if that invariant is ever
+    // accidentally violated by a future refactor; it does not change valid V1
+    // results under the frozen reduction contract.
     let mut exp_neg_q48 = Q48_ONE;
     let mut term_q48 = Q48_ONE;
     for n in 1..=EXP_NEG_TAYLOR_TERMS {
         term_q48 = round_half_up_u128(term_q48 * y_q48, Q48_ONE * n);
         if n % 2 == 1 {
-            exp_neg_q48 -= term_q48;
+            exp_neg_q48 = exp_neg_q48.saturating_sub(term_q48);
         } else {
             exp_neg_q48 += term_q48;
         }
