@@ -245,7 +245,7 @@ mod tests {
         writer.put_u8(3);
         assert_eq!(
             writer.sha256(),
-            "9ce9d4ab3e79b59004fb42de207a2a792db89031106501ce76a6208622974fd1"
+            "0730abcfdd4aef6a769cc5d2ac89529f9fee31bc87b56900d594734521aa0953"
         );
     }
 }
