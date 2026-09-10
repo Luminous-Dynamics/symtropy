@@ -1,5 +1,5 @@
 use crate::{
-    canonical::{fmt_hex, put_text, put_u64},
+    canonical::{put_text, put_u64},
     demographic_history::DemographicEventExecutionDigest,
     AlleleId, DemographicEventDeclaration, DemographicEventDeclarationDigest,
     DemographicEventKind, DemographicInterventionCursor, DemographicInterventionCursorDigest,
@@ -11,7 +11,7 @@ use crate::{
 };
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
-use std::{collections::BTreeMap, fmt};
+use std::collections::BTreeMap;
 
 const BOTTLENECK_PRIORITY_DOMAIN: &[u8] =
     b"symtropy:evolution:demographic-random-survivor-priority:v1\0";
@@ -91,7 +91,7 @@ impl DemographicEventExecutionProvenance {
         digest.update(self.result_state_digest.as_bytes());
         digest.update(self.source_point_digest.as_bytes());
         digest.update(self.result_point_digest.as_bytes());
-        DemographicEventExecutionDigest(digest.finalize().into())
+        DemographicEventExecutionDigest::from_bytes(digest.finalize().into())
     }
 
     #[allow(clippy::too_many_arguments)]
@@ -132,10 +132,7 @@ impl DemographicEventExecutionProvenance {
         )?;
 
         if self.model != DemographicEventExecutionModel::IndependentLocusRandomSurvivorBottleneckV1
-        {
-            return Err(EvolutionError::DemographicExecutionAuthorityMismatch);
-        }
-        if event.canonical_digest()? != self.event_digest
+            || event.canonical_digest()? != self.event_digest
             || structure_transition.canonical_digest() != self.structure_transition_digest
             || source_snapshot.canonical_digest() != self.source_snapshot_digest
             || source_cursor.canonical_digest()? != self.source_cursor_digest
@@ -161,17 +158,16 @@ impl DemographicEventExecutionProvenance {
 
         let derived = derive_census_resize(
             schema,
+            structure,
             source_populations,
             source_points,
             event,
         )?;
         if derived.populations != result.populations
             || derived.points != result.points
-            || derived.snapshot.canonical_digest() != result.snapshot.canonical_digest()
+            || derived.snapshot != result.snapshot
+            || result.snapshot.canonical_digest() != self.result_snapshot_digest
         {
-            return Err(EvolutionError::DemographicExecutionResultMismatch);
-        }
-        if result.snapshot.canonical_digest() != self.result_snapshot_digest {
             return Err(EvolutionError::DemographicExecutionResultMismatch);
         }
         let result_state = result
@@ -265,7 +261,13 @@ pub fn execute_census_resize_bottleneck(
         .get(&population_id)
         .ok_or(EvolutionError::MetapopulationSetMismatch)?;
 
-    let derived = derive_census_resize(schema, source_populations, source_points, event)?;
+    let derived = derive_census_resize(
+        schema,
+        structure,
+        source_populations,
+        source_points,
+        event,
+    )?;
     let result_state = derived
         .populations
         .get(&population_id)
@@ -326,6 +328,7 @@ struct DerivedPostEvent {
 
 fn derive_census_resize(
     schema: &HereditarySchema,
+    structure: &PopulationStructureProfile,
     source_populations: &BTreeMap<PopulationId, PopulationGeneticState>,
     source_points: &BTreeMap<PopulationId, PopulationTrajectoryPoint>,
     event: &DemographicEventDeclaration,
@@ -376,18 +379,12 @@ fn derive_census_resize(
         points.insert(population_id.clone(), point);
     }
 
-    // CensusResize is membership/structure preserving in V0. The source
-    // snapshot's structure authority is therefore still the correct structure.
-    // The caller already validated the exact structure transition before this
-    // helper is reached, so capture under that same current structure happens in
-    // the outer executor.
-    //
-    // `MetapopulationSnapshot::capture_reference` needs the structure object;
-    // this helper intentionally cannot fabricate one, so a temporary snapshot is
-    // assembled by the outer wrapper after state derivation.
-    Err(EvolutionError::DemographicExecutionNeedsStructureCapture {
+    let snapshot =
+        MetapopulationSnapshot::capture_reference(schema, structure, &populations, &points)?;
+    Ok(DerivedPostEvent {
         populations,
         points,
+        snapshot,
     })
 }
 
@@ -413,19 +410,22 @@ fn downsample_population_without_replacement(
         let mut candidates = Vec::new();
         for (allele_id, count) in source_counts {
             for within_allele_ordinal in 0..*count {
-                let priority = survivor_priority(
-                    experiment_id,
-                    event_id,
-                    generation,
-                    &source.population_id,
-                    locus_id,
-                    allele_id,
+                candidates.push((
+                    survivor_priority(
+                        experiment_id,
+                        event_id,
+                        generation,
+                        &source.population_id,
+                        locus_id,
+                        allele_id,
+                        within_allele_ordinal,
+                    ),
+                    allele_id.clone(),
                     within_allele_ordinal,
-                );
-                candidates.push((priority, allele_id.clone(), within_allele_ordinal));
+                ));
             }
         }
-        candidates.sort_by(|a, b| a.cmp(b));
+        candidates.sort();
         let target_len = usize::try_from(target_copies).map_err(|_| EvolutionError::CountOverflow)?;
         if target_len > candidates.len() {
             return Err(EvolutionError::SamplingInvariantViolation);
