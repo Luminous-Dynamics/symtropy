@@ -8,6 +8,7 @@
 
 mod canonical;
 mod demographic_event;
+mod demographic_history;
 mod demographic_structure_transition;
 mod error;
 mod heredity;
@@ -25,6 +26,9 @@ mod structured_population_process;
 pub use demographic_event::{
     DaughterPopulation, DemographicEventDeclaration, DemographicEventDeclarationDigest,
     DemographicEventKind, DemographicEventTiming,
+};
+pub use demographic_history::{
+    DemographicInterventionCursor, DemographicInterventionCursorDigest,
 };
 pub use demographic_structure_transition::{
     DemographicStructureTransition, DemographicStructureTransitionDigest,

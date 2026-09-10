@@ -93,6 +93,9 @@ pub enum EvolutionError {
     DemographicMembershipPreservingStructureChanged,
     DemographicCannotProduceEmptyMetapopulation,
     DemographicSuccessorSetMismatch,
+    DemographicHistoryCursorShapeMismatch,
+    DemographicHistoryCursorNotRoot,
+    DemographicHistoryCursorMismatch,
     SamplingInvariantViolation,
     CountOverflow,
     InvalidDrawUpperBound,
@@ -323,6 +326,15 @@ impl fmt::Display for EvolutionError {
                 f,
                 "successor population set does not match demographic event semantics"
             ),
+            Self::DemographicHistoryCursorShapeMismatch => {
+                write!(f, "demographic history cursor has a noncanonical link shape")
+            }
+            Self::DemographicHistoryCursorNotRoot => {
+                write!(f, "non-root demographic history cursor requires execution revalidation")
+            }
+            Self::DemographicHistoryCursorMismatch => {
+                write!(f, "demographic history cursor does not match the exact current snapshot trajectory")
+            }
             Self::SamplingInvariantViolation => write!(f, "population sampling invariant violated"),
             Self::CountOverflow => write!(f, "population/genetic count overflow"),
             Self::InvalidDrawUpperBound => write!(f, "semantic draw upper bound must be positive"),
