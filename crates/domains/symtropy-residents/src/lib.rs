@@ -2,6 +2,8 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 //! Persistent residents, households, obligations, custody, and scoped knowledge.
 
+pub mod condition;
+
 use serde::{Deserialize, Serialize};
 use std::{
     collections::{BTreeMap, BTreeSet},
