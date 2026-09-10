@@ -158,10 +158,10 @@ impl DemographicInterventionCursor {
             self.execution_digest.is_some(),
         ];
         if self.intervention_ordinal == 0 {
-            if links_present.into_iter().any(|present| present) {
+            if links_present.iter().any(|present| *present) {
                 return Err(EvolutionError::DemographicHistoryCursorShapeMismatch);
             }
-        } else if links_present.into_iter().any(|present| !present) {
+        } else if links_present.iter().any(|present| !*present) {
             return Err(EvolutionError::DemographicHistoryCursorShapeMismatch);
         }
         Ok(())
@@ -222,24 +222,24 @@ impl fmt::Display for DemographicInterventionCursorDigest {
 mod tests {
     use super::*;
     use crate::{
-        AlleleId, HereditarySchemaId, LocusDefinition, LocusId, PopulationStructureModel,
-        PopulationStructureProfileId,
+        AlleleId, DemographicEventDeclaration, DemographicEventId, DemographicEventKind,
+        DemographicStructureTransition, HereditarySchemaId, LocusDefinition, LocusId,
+        PopulationStructureModel, PopulationStructureProfileId,
     };
 
     fn allele(id: &str) -> AlleleId {
         AlleleId::new(id).unwrap()
     }
 
-    fn fixture(
-        experiment: &str,
-        generation: u64,
-    ) -> (
-        HereditarySchema,
-        PopulationStructureProfile,
-        BTreeMap<PopulationId, PopulationGeneticState>,
-        BTreeMap<PopulationId, PopulationTrajectoryPoint>,
-        MetapopulationSnapshot,
-    ) {
+    struct Fixture {
+        schema: HereditarySchema,
+        structure: PopulationStructureProfile,
+        populations: BTreeMap<PopulationId, PopulationGeneticState>,
+        points: BTreeMap<PopulationId, PopulationTrajectoryPoint>,
+        snapshot: MetapopulationSnapshot,
+    }
+
+    fn fixture(experiment: &str, generation: u64) -> Fixture {
         let schema = HereditarySchema::new(
             HereditarySchemaId::new("history-cursor-v0").unwrap(),
             2,
@@ -281,77 +281,93 @@ mod tests {
         let snapshot =
             MetapopulationSnapshot::capture_reference(&schema, &structure, &populations, &points)
                 .unwrap();
-        (schema, structure, populations, points, snapshot)
+        Fixture {
+            schema,
+            structure,
+            populations,
+            points,
+            snapshot,
+        }
+    }
+
+    fn root(f: &Fixture) -> DemographicInterventionCursor {
+        DemographicInterventionCursor::declare_reference_root(
+            &f.schema,
+            &f.structure,
+            &f.populations,
+            &f.points,
+            &f.snapshot,
+        )
+        .unwrap()
+    }
+
+    fn event_authorities(
+        f: &Fixture,
+        event_id: &str,
+    ) -> (DemographicEventDeclarationDigest, DemographicStructureTransitionDigest) {
+        let event = DemographicEventDeclaration::declare_current(
+            DemographicEventId::new(event_id).unwrap(),
+            "v1",
+            DemographicEventKind::CensusResize {
+                population: PopulationId::new("a").unwrap(),
+                target_census: 4,
+            },
+            &f.schema,
+            &f.structure,
+            &f.populations,
+            &f.points,
+            &f.snapshot,
+        )
+        .unwrap();
+        let transition = DemographicStructureTransition::declare_current(
+            &event,
+            &f.schema,
+            &f.structure,
+            &f.populations,
+            &f.points,
+            &f.snapshot,
+            &f.structure,
+        )
+        .unwrap();
+        (event.canonical_digest().unwrap(), transition.canonical_digest())
     }
 
     #[test]
     fn root_binds_exact_snapshot_experiment_and_generation() {
-        let (schema, structure, populations, points, snapshot) = fixture("exp-a", 9);
-        let root = DemographicInterventionCursor::declare_reference_root(
-            &schema,
-            &structure,
-            &populations,
-            &points,
-            &snapshot,
-        )
-        .unwrap();
+        let f = fixture("exp-a", 9);
+        let root = root(&f);
         assert!(root.is_root());
         assert_eq!(root.intervention_ordinal(), 0);
-        root.validate_root_current(&schema, &structure, &populations, &points, &snapshot)
-            .unwrap();
+        root.validate_root_current(
+            &f.schema,
+            &f.structure,
+            &f.populations,
+            &f.points,
+            &f.snapshot,
+        )
+        .unwrap();
     }
 
     #[test]
     fn roots_at_different_trajectory_coordinates_have_different_identity() {
-        let (schema_a, structure_a, populations_a, points_a, snapshot_a) = fixture("exp-a", 9);
-        let root_a = DemographicInterventionCursor::declare_reference_root(
-            &schema_a,
-            &structure_a,
-            &populations_a,
-            &points_a,
-            &snapshot_a,
-        )
-        .unwrap();
-        let (schema_b, structure_b, populations_b, points_b, snapshot_b) = fixture("exp-b", 9);
-        let root_b = DemographicInterventionCursor::declare_reference_root(
-            &schema_b,
-            &structure_b,
-            &populations_b,
-            &points_b,
-            &snapshot_b,
-        )
-        .unwrap();
-        assert_ne!(root_a.canonical_digest().unwrap(), root_b.canonical_digest().unwrap());
-
-        let (schema_c, structure_c, populations_c, points_c, snapshot_c) = fixture("exp-a", 10);
-        let root_c = DemographicInterventionCursor::declare_reference_root(
-            &schema_c,
-            &structure_c,
-            &populations_c,
-            &points_c,
-            &snapshot_c,
-        )
-        .unwrap();
-        assert_ne!(root_a.canonical_digest().unwrap(), root_c.canonical_digest().unwrap());
+        let a = fixture("exp-a", 9);
+        let b = fixture("exp-b", 9);
+        let c = fixture("exp-a", 10);
+        assert_ne!(root(&a).canonical_digest().unwrap(), root(&b).canonical_digest().unwrap());
+        assert_ne!(root(&a).canonical_digest().unwrap(), root(&c).canonical_digest().unwrap());
     }
 
     #[test]
     fn internal_successor_changes_history_even_if_snapshot_is_unchanged() {
-        let (schema, structure, populations, points, snapshot) = fixture("exp-a", 9);
-        let root = DemographicInterventionCursor::declare_reference_root(
-            &schema,
-            &structure,
-            &populations,
-            &points,
-            &snapshot,
-        )
-        .unwrap();
+        let f = fixture("exp-a", 9);
+        let root = root(&f);
+        let (event, structure) = event_authorities(&f, "event-a");
         let successor = DemographicInterventionCursor::advance_after_validated_execution(
             &root,
-            DemographicEventDeclarationDigest([1; 32]),
-            DemographicStructureTransitionDigest([2; 32]),
+            event,
+            structure,
             DemographicEventExecutionDigest([3; 32]),
-            &snapshot,
+            &f.snapshot,
         )
         .unwrap();
         assert_eq!(successor.current_snapshot_digest(), root.current_snapshot_digest());
@@ -361,46 +377,42 @@ mod tests {
 
     #[test]
     fn event_order_changes_history_identity_even_when_final_snapshot_is_equal() {
-        let (schema, structure, populations, points, snapshot) = fixture("exp-a", 9);
-        let root = DemographicInterventionCursor::declare_reference_root(
-            &schema,
-            &structure,
-            &populations,
-            &points,
-            &snapshot,
-        )
-        .unwrap();
+        let f = fixture("exp-a", 9);
+        let root = root(&f);
+        let (event_a, structure_a) = event_authorities(&f, "event-a");
+        let (event_b, structure_b) = event_authorities(&f, "event-b");
+
         let a_then = DemographicInterventionCursor::advance_after_validated_execution(
             &root,
-            DemographicEventDeclarationDigest([1; 32]),
-            DemographicStructureTransitionDigest([11; 32]),
+            event_a,
+            structure_a,
             DemographicEventExecutionDigest([21; 32]),
-            &snapshot,
+            &f.snapshot,
         )
         .unwrap();
         let a_then_b = DemographicInterventionCursor::advance_after_validated_execution(
             &a_then,
-            DemographicEventDeclarationDigest([2; 32]),
-            DemographicStructureTransitionDigest([12; 32]),
+            event_b,
+            structure_b,
             DemographicEventExecutionDigest([22; 32]),
-            &snapshot,
+            &f.snapshot,
         )
         .unwrap();
 
         let b_then = DemographicInterventionCursor::advance_after_validated_execution(
             &root,
-            DemographicEventDeclarationDigest([2; 32]),
-            DemographicStructureTransitionDigest([12; 32]),
+            event_b,
+            structure_b,
             DemographicEventExecutionDigest([22; 32]),
-            &snapshot,
+            &f.snapshot,
         )
         .unwrap();
         let b_then_a = DemographicInterventionCursor::advance_after_validated_execution(
             &b_then,
-            DemographicEventDeclarationDigest([1; 32]),
-            DemographicStructureTransitionDigest([11; 32]),
+            event_a,
+            structure_a,
             DemographicEventExecutionDigest([21; 32]),
-            &snapshot,
+            &f.snapshot,
         )
         .unwrap();
 
