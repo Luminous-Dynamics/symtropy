@@ -129,22 +129,22 @@ impl MarkerMarginalGameteDerivationProvenance {
         gamete: &LinkedGamete,
     ) -> Result<(), EvolutionError> {
         if self.derivation_version != MARKER_MARGINAL_GAMETE_DERIVATION_VERSION {
-            return Err(EvolutionError::MarkerMarginalGameteDerivationMismatch);
+            return Err(EvolutionError::LinkedGameteDerivationMismatch);
         }
         validate_sexual_parent_role(parent_role)?;
         if &self.event_id != event || self.parent_role != parent_role {
-            return Err(EvolutionError::MarkerMarginalGameteEventContextMismatch);
+            return Err(EvolutionError::LinkedGameteEventContextMismatch);
         }
         if schema.canonical_digest()? != self.schema_digest
             || chromosome_map.canonical_digest(schema)? != self.chromosome_map_digest
             || profile.canonical_digest(schema, chromosome_map)? != self.recombination_profile_digest
             || source.canonical_digest(schema, chromosome_map)? != self.source_phased_state_digest
         {
-            return Err(EvolutionError::MarkerMarginalGameteSourceAuthorityMismatch);
+            return Err(EvolutionError::LinkedGameteSourceAuthorityMismatch);
         }
         gamete.validate(schema, chromosome_map)?;
         if gamete.canonical_digest(schema, chromosome_map)? != self.gamete_digest {
-            return Err(EvolutionError::MarkerMarginalGameteResultMismatch);
+            return Err(EvolutionError::LinkedGameteResultMismatch);
         }
 
         let recomputed = derive_marker_marginal_poisson_linked_gamete(
@@ -156,7 +156,7 @@ impl MarkerMarginalGameteDerivationProvenance {
             parent_role,
         )?;
         if recomputed.gamete != *gamete || recomputed.provenance != *self {
-            return Err(EvolutionError::MarkerMarginalGameteDerivationMismatch);
+            return Err(EvolutionError::LinkedGameteDerivationMismatch);
         }
         Ok(())
     }
@@ -222,11 +222,11 @@ pub fn derive_marker_marginal_poisson_linked_gamete(
         let haplotype_zero = source_chromosome
             .haplotypes
             .first()
-            .ok_or(EvolutionError::MarkerMarginalGameteSourceAuthorityMismatch)?;
+            .ok_or(EvolutionError::LinkedGameteSourceAuthorityMismatch)?;
         let haplotype_one = source_chromosome
             .haplotypes
             .get(1)
-            .ok_or(EvolutionError::MarkerMarginalGameteSourceAuthorityMismatch)?;
+            .ok_or(EvolutionError::LinkedGameteSourceAuthorityMismatch)?;
         let identical_haplotypes = haplotype_zero == haplotype_one;
         let mut source_slot = if identical_haplotypes {
             0
@@ -239,7 +239,7 @@ pub fn derive_marker_marginal_poisson_linked_gamete(
             .haplotypes
             .get(source_slot)
             .and_then(|haplotype| haplotype.alleles.first())
-            .ok_or(EvolutionError::MarkerMarginalGameteSourceAuthorityMismatch)?
+            .ok_or(EvolutionError::LinkedGameteSourceAuthorityMismatch)?
             .clone();
         let mut alleles = vec![first_allele];
         let mut adjacent_intervals = Vec::with_capacity(definition.loci.len().saturating_sub(1));
@@ -277,7 +277,7 @@ pub fn derive_marker_marginal_poisson_linked_gamete(
                 .haplotypes
                 .get(source_slot)
                 .and_then(|haplotype| haplotype.alleles.get(alleles.len()))
-                .ok_or(EvolutionError::MarkerMarginalGameteSourceAuthorityMismatch)?
+                .ok_or(EvolutionError::LinkedGameteSourceAuthorityMismatch)?
                 .clone();
             alleles.push(allele);
             adjacent_intervals.push(AdjacentMarkerParityEvidence {
