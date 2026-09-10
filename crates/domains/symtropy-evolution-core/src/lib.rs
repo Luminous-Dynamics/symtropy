@@ -61,9 +61,9 @@ pub use demographic_history::{
     DemographicInterventionCursor, DemographicInterventionCursorDigest,
 };
 pub use demographic_proof_bundle::{
-    DemographicExecutionEvidence, DemographicInterventionProofBundle,
-    DemographicInterventionProofBundleDigest, DemographicInterventionProofBundleModel,
-    DemographicInterventionProofStep,
+    DemographicExecutionEvidence, DemographicInterventionPrefixDigest,
+    DemographicInterventionProofBundle, DemographicInterventionProofBundleDigest,
+    DemographicInterventionProofBundleModel, DemographicInterventionProofStep,
 };
 pub use demographic_source_authority::ValidatedDemographicInterventionSource;
 pub use demographic_split_execution::{
