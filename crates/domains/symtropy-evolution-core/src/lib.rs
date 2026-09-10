@@ -24,6 +24,7 @@ mod error;
 mod heredity;
 mod ids;
 mod linked_gamete;
+mod linked_offspring;
 mod metapopulation;
 mod operators;
 mod phased_heredity;
@@ -101,6 +102,11 @@ pub use linked_gamete::{
     LinkedGameteDerivation, LinkedGameteDerivationProvenance,
     LinkedGameteDerivationProvenanceDigest, LinkedGameteDigest,
     WholeChromosomeInheritanceSegment, LINKED_GAMETE_DERIVATION_VERSION, LINKED_GAMETE_VERSION,
+};
+pub use linked_offspring::{
+    assemble_diploid_linked_offspring, DiploidLinkedOffspringDerivation,
+    DiploidLinkedOffspringProvenance, DiploidLinkedOffspringProvenanceDigest,
+    LinkedGameteContributionEvidence, DIPLOID_LINKED_OFFSPRING_DERIVATION_VERSION,
 };
 pub use metapopulation::{
     MetapopulationSnapshot, MetapopulationSnapshotDigest, MetapopulationSnapshotEntry,
