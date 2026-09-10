@@ -102,124 +102,13 @@ impl RetainedShadowStartCertificate {
         self.reference_representation
     }
 
-    /// Recompute the complete retained-start proof against current exact inputs.
-    #[allow(clippy::too_many_arguments)]
-    pub fn validate_current(
-        &self,
-        requests: &CandidateCertificationRequestSet,
-        retained_resolution: &RetainedResolvedCandidateRequest,
-        retained: &RetainedAuthorityRegistry,
-        applicability: &ManifestBoundTransitionApplicabilityPolicy<'_>,
-        observable_registry: &ShadowObservableAuthorityRegistry,
-        shadow_registry: &ShadowValidationRegistry,
-        usage: &ClosureUsagePolicyRegistry,
-        policy: &ManifestBoundInformationPolicyRegistry<'_>,
-        closures: &TypedClosureQualificationRegistry,
-        acceptances: &TypedClosureProcessAcceptanceRegistry,
-        spatiotemporal: &SpatiotemporalPolicyRegistry,
-        source_subject: &TransitionDomainEvaluationSubject,
-        start_population: &PopulationState,
-        current_coarse_population: &PopulationState,
-    ) -> Result<(), RetainedShadowStartError> {
-        let current = Self::certify(
-            requests,
-            retained_resolution,
-            retained,
-            applicability,
-            observable_registry,
-            shadow_registry,
-            usage,
-            policy,
-            closures,
-            acceptances,
-            spatiotemporal,
-            source_subject,
-            start_population,
-            current_coarse_population,
-        )?;
-        if current != *self {
-            return Err(RetainedShadowStartError::CertificateStale);
-        }
-        Ok(())
-    }
-
-    /// Produce one R0 retained-start certificate.
+    /// Produce one R0 retained-start certificate from an already-derived #406
+    /// observable-bound Q2 certificate.
     ///
-    /// The current coarse population is the Q2 endpoint used to revalidate #406;
+    /// `current_coarse_population` is the Q2 endpoint used to revalidate #406;
     /// `start_population` is separately bound to the exact T0 population manifest.
     #[allow(clippy::too_many_arguments)]
     pub fn certify(
-        requests: &CandidateCertificationRequestSet,
-        retained_resolution: &RetainedResolvedCandidateRequest,
-        retained: &RetainedAuthorityRegistry,
-        applicability: &ManifestBoundTransitionApplicabilityPolicy<'_>,
-        observable_registry: &ShadowObservableAuthorityRegistry,
-        shadow_registry: &ShadowValidationRegistry,
-        usage: &ClosureUsagePolicyRegistry,
-        policy: &ManifestBoundInformationPolicyRegistry<'_>,
-        closures: &TypedClosureQualificationRegistry,
-        acceptances: &TypedClosureProcessAcceptanceRegistry,
-        spatiotemporal: &SpatiotemporalPolicyRegistry,
-        source_subject: &TransitionDomainEvaluationSubject,
-        start_population: &PopulationState,
-        current_coarse_population: &PopulationState,
-    ) -> Result<Self, RetainedShadowStartError> {
-        let observable_bound_shadow = observable_registry
-            .certify_shadow_trace(
-                observable_bound_shadow_seed(
-                    observable_registry,
-                    shadow_registry,
-                    usage,
-                    policy,
-                    closures,
-                    acceptances,
-                    spatiotemporal,
-                    current_coarse_population,
-                )?,
-                observation_pairs_from_seed(
-                    observable_registry,
-                    shadow_registry,
-                    usage,
-                    policy,
-                    closures,
-                    acceptances,
-                    spatiotemporal,
-                    current_coarse_population,
-                )?,
-                shadow_registry,
-                usage,
-                policy,
-                closures,
-                acceptances,
-                spatiotemporal,
-                current_coarse_population,
-            )
-            .map_err(RetainedShadowStartError::Observable)?;
-
-        Self::certify_from_observable_bound(
-            requests,
-            retained_resolution,
-            retained,
-            applicability,
-            &observable_bound_shadow,
-            observable_registry,
-            shadow_registry,
-            usage,
-            policy,
-            closures,
-            acceptances,
-            spatiotemporal,
-            source_subject,
-            start_population,
-            current_coarse_population,
-        )
-    }
-
-    /// Preferred entry point: consume the already-derived observable-bound Q2
-    /// certificate directly, avoiding any attempt to reconstruct its observation
-    /// binding choices.
-    #[allow(clippy::too_many_arguments)]
-    pub fn certify_from_observable_bound(
         requests: &CandidateCertificationRequestSet,
         retained_resolution: &RetainedResolvedCandidateRequest,
         retained: &RetainedAuthorityRegistry,
@@ -265,8 +154,7 @@ impl RetainedShadowStartCertificate {
             .map_err(RetainedShadowStartError::SourceState)?;
 
         let shadow = observable_bound_shadow.shadow();
-        let q2_start_manifest = shadow.evidence().start_population_manifest();
-        if source_subject.population_manifest() != q2_start_manifest {
+        if source_subject.population_manifest() != shadow.evidence().start_population_manifest() {
             return Err(RetainedShadowStartError::Q2StartPopulationMismatch);
         }
 
@@ -278,39 +166,8 @@ impl RetainedShadowStartCertificate {
             });
         }
 
-        if source_subject.scope().id() == 0 && source_subject.scope().version() == 0 {
-            return Err(RetainedShadowStartError::InvalidZeroAuthorityScope);
-        }
-
         let reference_representation = shadow.profile().reference_representation();
         let information = shadow.resolved_use().information();
-
-        let candidate_index = uniquely_match_resolved_candidate(
-            requests,
-            retained_resolution,
-            source_subject.source_representation(),
-            reference_representation,
-        )?;
-        let request = requests
-            .requests()
-            .get(candidate_index)
-            .ok_or(RetainedShadowStartError::CandidateIndexOutOfRange {
-                index: candidate_index,
-                len: requests.requests().len(),
-            })?;
-
-        if request.identity().source() != coarse_representation {
-            return Err(RetainedShadowStartError::CandidateSourceMismatch {
-                expected: coarse_representation,
-                actual: request.identity().source(),
-            });
-        }
-        if request.identity().destination() != reference_representation {
-            return Err(RetainedShadowStartError::CandidateDestinationMismatch {
-                expected: reference_representation,
-                actual: request.identity().destination(),
-            });
-        }
 
         if !retained_resolution.remaining_obligations().is_empty() {
             return Err(RetainedShadowStartError::NonR0ObligationsRemain {
@@ -322,6 +179,20 @@ impl RetainedShadowStartCertificate {
                 discarded: retained_resolution.discarded_information().clone(),
             });
         }
+
+        let candidate_index = uniquely_match_resolved_candidate(
+            requests,
+            retained_resolution,
+            coarse_representation,
+            reference_representation,
+        )?;
+        let request = requests
+            .requests()
+            .get(candidate_index)
+            .ok_or(RetainedShadowStartError::CandidateIndexOutOfRange {
+                index: candidate_index,
+                len: requests.requests().len(),
+            })?;
 
         let retained_start = unique_reference_retained_start(
             retained_resolution,
@@ -342,36 +213,46 @@ impl RetainedShadowStartCertificate {
             reference_representation,
         })
     }
-}
 
-/// There is intentionally no way to derive an observable-bound certificate from
-/// registry contents alone: #406 binding choices are part of authority. These
-/// helpers always fail and keep the convenience `certify` path from becoming a
-/// hidden reconstruction route. Use `certify_from_observable_bound` instead.
-fn observable_bound_shadow_seed<'a>(
-    _observable_registry: &'a ShadowObservableAuthorityRegistry,
-    _shadow_registry: &'a ShadowValidationRegistry,
-    _usage: &'a ClosureUsagePolicyRegistry,
-    _policy: &'a ManifestBoundInformationPolicyRegistry<'a>,
-    _closures: &'a TypedClosureQualificationRegistry,
-    _acceptances: &'a TypedClosureProcessAcceptanceRegistry,
-    _spatiotemporal: &'a SpatiotemporalPolicyRegistry,
-    _current_coarse_population: &'a PopulationState,
-) -> Result<&'a super::shadow_validation::ShadowValidationCertificate, RetainedShadowStartError> {
-    Err(RetainedShadowStartError::ObservableBoundCertificateRequired)
-}
-
-fn observation_pairs_from_seed(
-    _observable_registry: &ShadowObservableAuthorityRegistry,
-    _shadow_registry: &ShadowValidationRegistry,
-    _usage: &ClosureUsagePolicyRegistry,
-    _policy: &ManifestBoundInformationPolicyRegistry<'_>,
-    _closures: &TypedClosureQualificationRegistry,
-    _acceptances: &TypedClosureProcessAcceptanceRegistry,
-    _spatiotemporal: &SpatiotemporalPolicyRegistry,
-    _current_coarse_population: &PopulationState,
-) -> Result<Vec<super::shadow_observable_authority::ShadowObservationPair>, RetainedShadowStartError> {
-    Err(RetainedShadowStartError::ObservableBoundCertificateRequired)
+    /// Recompute the complete retained-start proof against current exact inputs.
+    #[allow(clippy::too_many_arguments)]
+    pub fn validate_current(
+        &self,
+        requests: &CandidateCertificationRequestSet,
+        retained: &RetainedAuthorityRegistry,
+        applicability: &ManifestBoundTransitionApplicabilityPolicy<'_>,
+        observable_registry: &ShadowObservableAuthorityRegistry,
+        shadow_registry: &ShadowValidationRegistry,
+        usage: &ClosureUsagePolicyRegistry,
+        policy: &ManifestBoundInformationPolicyRegistry<'_>,
+        closures: &TypedClosureQualificationRegistry,
+        acceptances: &TypedClosureProcessAcceptanceRegistry,
+        spatiotemporal: &SpatiotemporalPolicyRegistry,
+        start_population: &PopulationState,
+        current_coarse_population: &PopulationState,
+    ) -> Result<(), RetainedShadowStartError> {
+        let current = Self::certify(
+            requests,
+            &self.retained_resolution,
+            retained,
+            applicability,
+            &self.observable_bound_shadow,
+            observable_registry,
+            shadow_registry,
+            usage,
+            policy,
+            closures,
+            acceptances,
+            spatiotemporal,
+            &self.source_subject,
+            start_population,
+            current_coarse_population,
+        )?;
+        if current != *self {
+            return Err(RetainedShadowStartError::CertificateStale);
+        }
+        Ok(())
+    }
 }
 
 fn uniquely_match_resolved_candidate(
@@ -467,24 +348,14 @@ pub enum RetainedShadowStartError {
     Observable(ShadowObservableAuthorityError),
     Retained(RetainedAuthorityError),
     SourceState(TransitionDomainAuthorityError),
-    ObservableBoundCertificateRequired,
     Q2StartPopulationMismatch,
     CoarseRepresentationMismatch {
         expected: RepresentationKey,
         actual: RepresentationKey,
     },
-    InvalidZeroAuthorityScope,
     CandidateIndexOutOfRange {
         index: usize,
         len: usize,
-    },
-    CandidateSourceMismatch {
-        expected: RepresentationKey,
-        actual: RepresentationKey,
-    },
-    CandidateDestinationMismatch {
-        expected: RepresentationKey,
-        actual: RepresentationKey,
     },
     NonR0ObligationsRemain {
         obligations: BTreeSet<CandidateEvidenceObligation>,
@@ -513,10 +384,6 @@ impl fmt::Display for RetainedShadowStartError {
             Self::Observable(error) => write!(f, "observable-bound Q2 authority: {error}"),
             Self::Retained(error) => write!(f, "retained R0 authority: {error}"),
             Self::SourceState(error) => write!(f, "T0 source-state authority: {error}"),
-            Self::ObservableBoundCertificateRequired => write!(
-                f,
-                "an existing observable-bound Q2 certificate is required; binding choices cannot be reconstructed from registries"
-            ),
             Self::Q2StartPopulationMismatch => write!(
                 f,
                 "T0 source population manifest differs from the exact Q2 start population manifest"
@@ -525,16 +392,37 @@ impl fmt::Display for RetainedShadowStartError {
                 f,
                 "T0 source representation {actual:?} differs from Q2 coarse representation {expected:?}"
             ),
-            Self::InvalidZeroAuthorityScope => write!(f, "zero/zero authority scope is not admitted for retained Q2 common-start proof"),
-            Self::CandidateIndexOutOfRange { index, len } => write!(f, "resolved retained candidate index {index} exceeds request set length {len}"),
-            Self::CandidateSourceMismatch { expected, actual } => write!(f, "candidate source {actual:?} differs from Q2 coarse representation {expected:?}"),
-            Self::CandidateDestinationMismatch { expected, actual } => write!(f, "candidate destination {actual:?} differs from Q2 reference representation {expected:?}"),
-            Self::NonR0ObligationsRemain { obligations } => write!(f, "retained-start V0 rejects {} unresolved non-R0 obligation(s)", obligations.len()),
-            Self::CandidateDiscardsInformation { discarded } => write!(f, "retained-start V0 rejects candidate with {} declared information discard(s)", discarded.len()),
-            Self::ResolvedCandidateNotFound => write!(f, "no canonical candidate uniquely matches the current retained resolution"),
-            Self::ResolvedCandidateAmbiguous { matches } => write!(f, "{} canonical candidates match the current retained resolution; V0 refuses ambiguity", matches.len()),
-            Self::NoReferenceRetainedStart { representation, information } => write!(f, "no retained Exact record in reference representation {representation:?} covers {information:?} at T0"),
-            Self::AmbiguousReferenceRetainedStart { representation, information } => write!(f, "multiple retained Exact records in reference representation {representation:?} cover {information:?}; V0 requires one unambiguous start"),
+            Self::CandidateIndexOutOfRange { index, len } => write!(
+                f,
+                "resolved retained candidate index {index} exceeds request set length {len}"
+            ),
+            Self::NonR0ObligationsRemain { obligations } => write!(
+                f,
+                "retained-start V0 rejects {} unresolved non-R0 obligation(s)",
+                obligations.len()
+            ),
+            Self::CandidateDiscardsInformation { discarded } => write!(
+                f,
+                "retained-start V0 rejects candidate with {} declared information discard(s)",
+                discarded.len()
+            ),
+            Self::ResolvedCandidateNotFound => write!(
+                f,
+                "no canonical candidate uniquely matches the current retained resolution"
+            ),
+            Self::ResolvedCandidateAmbiguous { matches } => write!(
+                f,
+                "{} canonical candidates match the current retained resolution; V0 refuses ambiguity",
+                matches.len()
+            ),
+            Self::NoReferenceRetainedStart { representation, information } => write!(
+                f,
+                "no retained Exact record in reference representation {representation:?} covers {information:?} at T0"
+            ),
+            Self::AmbiguousReferenceRetainedStart { representation, information } => write!(
+                f,
+                "multiple retained Exact records in reference representation {representation:?} cover {information:?}; V0 requires one unambiguous start"
+            ),
             Self::CertificateStale => write!(f, "retained shadow-start certificate is stale"),
         }
     }
@@ -551,7 +439,7 @@ impl Error for RetainedShadowStartError {
     }
 }
 
-/// Extract the semantic R0 authority keys consumed by the retained-start proof.
+/// Exact semantic R0 authority keys consumed by this retained-start proof.
 pub fn retained_start_authorities(
     certificate: &RetainedShadowStartCertificate,
 ) -> BTreeSet<RetainedAuthorityKey> {
