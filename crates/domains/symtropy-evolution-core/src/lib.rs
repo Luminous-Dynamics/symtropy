@@ -24,6 +24,7 @@ mod heredity;
 mod ids;
 mod metapopulation;
 mod operators;
+mod phased_heredity;
 mod population;
 mod population_process;
 mod population_structure;
@@ -93,6 +94,10 @@ pub use metapopulation::{
 pub use operators::{
     EvolutionOperatorProfile, EvolutionOperatorProfileDigest, MutationProfile,
     RecombinationMode, RecombinationProfile,
+};
+pub use phased_heredity::{
+    ChromosomeHaplotype, PhasedChromosomeState, PhasedHereditaryState,
+    PhasedHereditaryStateDigest, PHASED_HEREDITARY_STATE_VERSION,
 };
 pub use population::{PopulationGeneticState, PopulationGeneticStateDigest};
 pub use population_process::{
