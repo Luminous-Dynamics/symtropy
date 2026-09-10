@@ -287,8 +287,28 @@ impl PlanetAssumptionManifest {
     }
 }
 
+/// Opaque identity for one exact, validated planetary forcing/assumption manifest.
+///
+/// The inner bytes are intentionally private: runtime consumers should obtain a
+/// stamp by hashing a validated manifest and revalidate it against current input
+/// rather than manufacturing a digest-shaped token.
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
-pub struct PlanetForcingAuthorityStamp(pub [u8; 32]);
+pub struct PlanetForcingAuthorityStamp([u8; 32]);
+
+impl PlanetForcingAuthorityStamp {
+    pub fn as_bytes(&self) -> &[u8; 32] {
+        &self.0
+    }
+
+    pub fn validate_manifest(&self, manifest: &PlanetAssumptionManifest) -> Result<(), PlanetError> {
+        let current = manifest.authority_stamp()?;
+        if current == *self {
+            Ok(())
+        } else {
+            Err(PlanetError::StaleAuthorityStamp)
+        }
+    }
+}
 
 impl fmt::Debug for PlanetForcingAuthorityStamp {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -317,6 +337,7 @@ pub enum PlanetError {
         max: f64,
         observed: f64,
     },
+    StaleAuthorityStamp,
 }
 
 impl fmt::Display for PlanetError {
@@ -336,6 +357,7 @@ impl fmt::Display for PlanetError {
                 max,
                 observed,
             } => write!(f, "{field} must be in [{min}, {max}], observed {observed}"),
+            Self::StaleAuthorityStamp => write!(f, "planetary forcing authority stamp is stale"),
         }
     }
 }
@@ -497,13 +519,15 @@ mod tests {
     }
 
     #[test]
-    fn model_version_changes_authority() {
+    fn model_version_changes_authority_and_stales_old_stamp() {
         let a = reference_manifest();
+        let old_stamp = a.authority_stamp().expect("authority");
         let mut b = reference_manifest();
         b.orbit.model.version = "v2".into();
-        assert_ne!(
-            a.authority_stamp().expect("authority"),
-            b.authority_stamp().expect("authority")
+        assert_ne!(old_stamp, b.authority_stamp().expect("authority"));
+        assert_eq!(
+            old_stamp.validate_manifest(&b),
+            Err(PlanetError::StaleAuthorityStamp)
         );
     }
 
