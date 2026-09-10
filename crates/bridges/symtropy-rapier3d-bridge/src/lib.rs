@@ -137,7 +137,8 @@ impl<C: PhysicsCallback<3>> RapierPhysicsBridge<C> {
 
     /// Remove a callback identity binding for a Rapier body.
     pub fn unbind_callback_body(&mut self, rapier_handle: RigidBodyHandle) -> Option<BodyHandle> {
-        self.callback_body_map.remove(&rapier_handle.into_raw_parts())
+        self.callback_body_map
+            .remove(&rapier_handle.into_raw_parts())
     }
 
     /// Resolve the callback identity bound to a Rapier body.
@@ -195,7 +196,10 @@ impl<C: PhysicsCallback<3>> RapierPhysicsBridge<C> {
         // as a Symtropy body identity.
         self.prune_callback_bodies(rigid_body_set);
         for (handle, body) in rigid_body_set.iter_mut() {
-            let Some(body_handle) = self.callback_body_map.get(&handle.into_raw_parts()).copied()
+            let Some(body_handle) = self
+                .callback_body_map
+                .get(&handle.into_raw_parts())
+                .copied()
             else {
                 continue;
             };
