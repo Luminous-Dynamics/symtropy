@@ -7,17 +7,18 @@
 //! density uses an all-pairs reference loop and pressure/viscosity gradients are
 //! not yet a production solver. [`validation`] is solver-independent,
 //! [`reference`] is a deliberately small CPU continuum solver,
-//! [`convergence`] provides analytical/error measurements for the smooth
-//! validation ladder, and [`manufactured`] adds a time-dependent manufactured
-//! solution that exercises forcing, advection, viscosity, projection, and time
-//! integration together. None of these modules should be read as a claim that
-//! Symtropy currently reproduces the 2026 singular construction or has a
-//! production Earth-water CFD backend.
+//! [`convergence`] provides analytical/error measurements,
+//! [`manufactured`] adds a time-dependent manufactured solution, and
+//! [`verification_ladder`] preserves machine-readable spatial/temporal
+//! refinement and energy evidence. None of these modules should be read as a
+//! claim that Symtropy currently reproduces the 2026 singular construction or
+//! has a production Earth-water CFD backend.
 
 pub mod convergence;
 pub mod manufactured;
 pub mod reference;
 pub mod validation;
+pub mod verification_ladder;
 
 use nalgebra::SVector;
 use serde::{Deserialize, Serialize};
