@@ -9,6 +9,7 @@
 //! all implement the same semantics without becoming special cases in health logic.
 
 pub mod active_field;
+pub mod coverage;
 
 use serde::{Deserialize, Serialize};
 use std::{collections::BTreeMap, error::Error, fmt};
