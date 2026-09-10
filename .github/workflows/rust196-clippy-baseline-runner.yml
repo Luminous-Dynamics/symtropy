@@ -1,0 +1,114 @@
+name: Rust 1.96 Fabrication Clippy Baseline Runner
+
+on:
+  pull_request:
+    branches: [ "main" ]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: rust196-fabrication-clippy-runner-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  normalize:
+    name: Normalize and prove Fabrication lint baseline
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: fabrication/rust196-clippy-baseline
+
+      - name: Set up Rust 1.96
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.96.0
+          components: clippy, rustfmt
+
+      - name: Prove exact lock before source normalization
+        run: cargo check --locked -p symtropy-fabrication --lib
+
+      - name: Apply machine-applicable Rust 1.96 Clippy fixes
+        run: cargo clippy --locked --fix -p symtropy-fabrication --all-targets --all-features --allow-dirty --allow-staged
+
+      - name: Apply remaining ptr-arg baseline fixes
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          replacements = {
+              'crates/domains/symtropy-fabrication/src/assembly.rs': [
+                  ('fn sort_unique_workpieces(values: &mut Vec<WorkpieceId>)', 'fn sort_unique_workpieces(values: &mut [WorkpieceId])'),
+                  ('fn sort_unique_interfaces(values: &mut Vec<InterfaceId>)', 'fn sort_unique_interfaces(values: &mut [InterfaceId])'),
+                  ('fn sort_unique_joints(values: &mut Vec<JointId>)', 'fn sort_unique_joints(values: &mut [JointId])'),
+              ],
+              'crates/domains/symtropy-fabrication/src/plan.rs': [
+                  ('values: &mut Vec<WorkpieceId>,', 'values: &mut [WorkpieceId],'),
+                  ('values: &mut Vec<CapabilityNeedId>,', 'values: &mut [CapabilityNeedId],'),
+                  ('values: &mut Vec<StableId>,', 'values: &mut [StableId],'),
+              ],
+          }
+          for filename, changes in replacements.items():
+              path = Path(filename)
+              text = path.read_text()
+              for old, new in changes:
+                  count = text.count(old)
+                  if count == 1:
+                      text = text.replace(old, new)
+                  elif count == 0 and new in text:
+                      pass
+                  else:
+                      raise SystemExit(f'{filename}: anchor {old!r} count={count}')
+              path.write_text(text)
+          PY
+
+      - name: Re-apply canonical Fabrication formatting
+        run: cargo fmt -p symtropy-fabrication
+
+      - name: Verify generated source scope
+        shell: bash
+        run: |
+          actual=$(git diff --name-only | sort)
+          allowed=$(cat <<'EOF'
+          crates/domains/symtropy-fabrication/src/assembly.rs
+          crates/domains/symtropy-fabrication/src/capability.rs
+          crates/domains/symtropy-fabrication/src/commissioning.rs
+          crates/domains/symtropy-fabrication/src/plan.rs
+          EOF
+          )
+          unexpected=$(comm -13 <(printf '%s\n' "$allowed" | sort) <(printf '%s\n' "$actual"))
+          if test -n "$unexpected"; then
+            echo "Rust 1.96 normalization changed unexpected paths:" >&2
+            echo "$unexpected" >&2
+            git diff -- "$unexpected" || true
+            exit 1
+          fi
+          printf '%s\n' "$actual"
+
+      - name: Run locked Fabrication unit tests
+        run: cargo test --locked -p symtropy-fabrication --lib
+
+      - name: Run strict Rust 1.96 Fabrication Clippy
+        run: cargo clippy --locked -p symtropy-fabrication --all-targets --all-features -- -D warnings
+
+      - name: Prove lockfile stayed fixed
+        run: git diff --exit-code HEAD -- Cargo.lock
+
+      - name: Commit lint-only source normalization
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add \
+            crates/domains/symtropy-fabrication/src/assembly.rs \
+            crates/domains/symtropy-fabrication/src/capability.rs \
+            crates/domains/symtropy-fabrication/src/commissioning.rs \
+            crates/domains/symtropy-fabrication/src/plan.rs
+          if ! git diff --cached --quiet; then
+            git commit -m "chore(fabrication): normalize Rust 1.96 Clippy baseline"
+          fi
+          git diff --exit-code HEAD -- .
+
+      - name: Push exact normalized product head
+        run: git push origin HEAD:fabrication/rust196-clippy-baseline
