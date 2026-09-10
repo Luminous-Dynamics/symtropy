@@ -8,6 +8,7 @@ on:
       - "scripts/pb04a-harden-content-identity.py"
       - "scripts/pb04a-harden-global-source-consistency.py"
       - "scripts/pb04a-harden-query-semantics.py"
+      - "scripts/pb04a-seal-identity-state.py"
       - ".github/workflows/pb04a-identity-apply.yml"
 
 permissions:
@@ -47,6 +48,7 @@ jobs:
           python3 scripts/pb04a-harden-content-identity.py
           python3 scripts/pb04a-harden-global-source-consistency.py
           python3 scripts/pb04a-harden-query-semantics.py
+          python3 scripts/pb04a-seal-identity-state.py
 
       - name: Canonical formatting
         run: >-
