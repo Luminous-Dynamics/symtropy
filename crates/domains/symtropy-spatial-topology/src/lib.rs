@@ -20,9 +20,9 @@ pub const MAX_DIGEST_BYTES: usize = 256;
 
 /// Exact content-bearing reference to a fact owned by another authority.
 ///
-/// This type is intentionally local to boundary/topology projection. It does
-/// not make the referenced subject authoritative merely because the text is
-/// present here; adapters must resolve/revalidate refs against the owner.
+/// Presence here never makes the referenced subject authoritative. A real
+/// adapter must resolve/revalidate this ref against its owner before claiming
+/// the source is current.
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct ExactSourceRef {
     pub authority_id: StableId,
@@ -63,6 +63,10 @@ impl SpatialRegionId {
         validate_id(&id)?;
         Ok(Self(id))
     }
+
+    fn validate(&self) -> Result<(), TopologyError> {
+        validate_id(&self.0)
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
@@ -72,6 +76,10 @@ impl BoundaryInterfaceId {
     pub fn new(id: StableId) -> Result<Self, TopologyError> {
         validate_id(&id)?;
         Ok(Self(id))
+    }
+
+    fn validate(&self) -> Result<(), TopologyError> {
+        validate_id(&self.0)
     }
 }
 
@@ -88,6 +96,7 @@ impl SpatialRegionSnapshot {
         id: SpatialRegionId,
         mut source_refs: Vec<ExactSourceRef>,
     ) -> Result<Self, TopologyError> {
+        id.validate()?;
         validate_len("region.source_refs", source_refs.len(), MAX_SOURCE_REFS)?;
         source_refs.sort();
         validate_exact_refs("region.source_refs", &source_refs)?;
@@ -97,9 +106,15 @@ impl SpatialRegionSnapshot {
     pub fn source_refs(&self) -> &[ExactSourceRef] {
         &self.source_refs
     }
+
+    fn validate_canonical(&self) -> Result<(), TopologyError> {
+        self.id.validate()?;
+        validate_len("region.source_refs", self.source_refs.len(), MAX_SOURCE_REFS)?;
+        validate_exact_refs("region.source_refs", &self.source_refs)
+    }
 }
 
-/// Independent semantic question asked of one interface.
+/// Independent semantic question asked of one boundary interface.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum TopologyFacet {
     Occupancy,
@@ -111,8 +126,8 @@ pub enum TopologyFacet {
 }
 
 /// Topological relation only. `QualifiedClass` is an opaque class/profile
-/// identity supplied by an owning boundary/physics projection; it is not a
-/// numerical permeability, conductance, attenuation, or solver result.
+/// identity supplied by an owning projection; it is not a numerical
+/// permeability, conductance, attenuation, or solver result.
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum FacetRelation {
     Disconnected,
@@ -148,8 +163,8 @@ impl InterfaceFacetState {
 
 /// One interface between exactly two externally decomposed regions.
 ///
-/// Interface facets are independently stated. There is deliberately no global
-/// `is_open` bit from which all transport semantics are inferred.
+/// Facets are independent. There is deliberately no global `is_open` bit from
+/// which body, air, sound, light, heat, and weather semantics are guessed.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct BoundaryInterfaceSnapshot {
     pub id: BoundaryInterfaceId,
@@ -167,9 +182,9 @@ impl BoundaryInterfaceSnapshot {
         mut facet_states: Vec<InterfaceFacetState>,
         mut source_refs: Vec<ExactSourceRef>,
     ) -> Result<Self, TopologyError> {
-        if first_region == second_region {
-            return Err(TopologyError::SelfInterface(id));
-        }
+        id.validate()?;
+        first_region.validate()?;
+        second_region.validate()?;
         validate_len(
             "interface.facet_states",
             facet_states.len(),
@@ -197,6 +212,8 @@ impl BoundaryInterfaceSnapshot {
         &self.source_refs
     }
 
+    /// Missing facets are conservatively disconnected; a consumer never gets
+    /// implicit transport merely because another facet is connected.
     pub fn relation(&self, facet: TopologyFacet) -> FacetRelation {
         self.facet_states
             .binary_search_by_key(&facet, |state| state.facet)
@@ -206,6 +223,9 @@ impl BoundaryInterfaceSnapshot {
     }
 
     fn validate_canonical(&self) -> Result<(), TopologyError> {
+        self.id.validate()?;
+        self.first_region.validate()?;
+        self.second_region.validate()?;
         if self.first_region == self.second_region {
             return Err(TopologyError::SelfInterface(self.id.clone()));
         }
@@ -218,26 +238,22 @@ impl BoundaryInterfaceSnapshot {
             state.relation.validate()?;
         }
         for pair in self.facet_states.windows(2) {
-            if pair[0].facet >= pair[1].facet {
-                return if pair[0].facet == pair[1].facet {
-                    Err(TopologyError::DuplicateFacet {
-                        interface_id: self.id.clone(),
-                        facet: pair[0].facet,
-                    })
-                } else {
-                    Err(TopologyError::NonCanonicalOrder("interface.facet_states"))
-                };
+            if pair[0].facet > pair[1].facet {
+                return Err(TopologyError::NonCanonicalOrder("interface.facet_states"));
+            }
+            if pair[0].facet == pair[1].facet {
+                return Err(TopologyError::DuplicateFacet {
+                    interface_id: self.id.clone(),
+                    facet: pair[0].facet,
+                });
             }
         }
+        validate_len("interface.source_refs", self.source_refs.len(), MAX_SOURCE_REFS)?;
         validate_exact_refs("interface.source_refs", &self.source_refs)
     }
 }
 
-/// Exact read-only source snapshot from a geometric/boundary provider.
-///
-/// PB-04a does not calculate this digest or claim it is current. The provider
-/// supplies exact identity; any real adapter must re-resolve it before relying
-/// on the snapshot as current input.
+/// Exact read-only input snapshot from a geometric/boundary provider.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct BoundarySnapshot {
     pub schema_version: u32,
@@ -320,30 +336,19 @@ impl BoundarySnapshot {
         validate_len("boundary.source_refs", self.source_refs.len(), MAX_SOURCE_REFS)?;
         validate_exact_refs("boundary.source_refs", &self.source_refs)?;
 
+        for region in &self.regions {
+            region.validate_canonical()?;
+        }
         for pair in self.regions.windows(2) {
-            if pair[0].id >= pair[1].id {
-                return if pair[0].id == pair[1].id {
-                    Err(TopologyError::DuplicateRegion(pair[0].id.clone()))
-                } else {
-                    Err(TopologyError::NonCanonicalOrder("boundary.regions"))
-                };
+            if pair[0].id > pair[1].id {
+                return Err(TopologyError::NonCanonicalOrder("boundary.regions"));
+            }
+            if pair[0].id == pair[1].id {
+                return Err(TopologyError::DuplicateRegion(pair[0].id.clone()));
             }
         }
 
         let region_ids: BTreeSet<_> = self.regions.iter().map(|region| region.id.clone()).collect();
-        for region in &self.regions {
-            validate_exact_refs("region.source_refs", region.source_refs())?;
-        }
-
-        for pair in self.interfaces.windows(2) {
-            if pair[0].id >= pair[1].id {
-                return if pair[0].id == pair[1].id {
-                    Err(TopologyError::DuplicateInterface(pair[0].id.clone()))
-                } else {
-                    Err(TopologyError::NonCanonicalOrder("boundary.interfaces"))
-                };
-            }
-        }
         for interface in &self.interfaces {
             interface.validate_canonical()?;
             if !region_ids.contains(&interface.first_region) {
@@ -357,6 +362,14 @@ impl BoundarySnapshot {
                     interface_id: interface.id.clone(),
                     region_id: interface.second_region.clone(),
                 });
+            }
+        }
+        for pair in self.interfaces.windows(2) {
+            if pair[0].id > pair[1].id {
+                return Err(TopologyError::NonCanonicalOrder("boundary.interfaces"));
+            }
+            if pair[0].id == pair[1].id {
+                return Err(TopologyError::DuplicateInterface(pair[0].id.clone()));
             }
         }
         Ok(())
@@ -377,7 +390,8 @@ impl BoundarySnapshotRef {
     }
 }
 
-/// Deterministic PB-04 facet-selection/decomposition-consumer profile.
+/// Deterministic facet-selection profile. Geometric decomposition itself is
+/// intentionally outside PB-04a and will require its own exact profile later.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct TopologyProfile {
     pub profile_id: StableId,
@@ -391,12 +405,12 @@ impl TopologyProfile {
         revision: u64,
         mut facets: Vec<TopologyFacet>,
     ) -> Result<Self, TopologyError> {
+        validate_id(&profile_id)?;
         facets.sort();
         facets.dedup();
         if facets.is_empty() {
             return Err(TopologyError::ProfileFacetsRequired);
         }
-        validate_id(&profile_id)?;
         Ok(Self {
             profile_id,
             revision,
@@ -406,6 +420,19 @@ impl TopologyProfile {
 
     pub fn facets(&self) -> &[TopologyFacet] {
         &self.facets
+    }
+
+    fn validate_canonical(&self) -> Result<(), TopologyError> {
+        validate_id(&self.profile_id)?;
+        if self.facets.is_empty() {
+            return Err(TopologyError::ProfileFacetsRequired);
+        }
+        for pair in self.facets.windows(2) {
+            if pair[0] >= pair[1] {
+                return Err(TopologyError::NonCanonicalOrder("topology_profile.facets"));
+            }
+        }
+        Ok(())
     }
 }
 
@@ -458,6 +485,7 @@ impl TopologySnapshot {
         profile: &TopologyProfile,
     ) -> Result<Self, TopologyError> {
         boundary.validate_canonical()?;
+        profile.validate_canonical()?;
         let before = boundary.clone();
         let region_ids = boundary
             .regions()
@@ -483,10 +511,7 @@ impl TopologySnapshot {
             graphs.push(FacetGraph { facet, edges });
         }
 
-        // Defensive theorem: derivation is projection-only even if later
-        // refactors accidentally introduce interior mutation opportunities.
         debug_assert_eq!(&before, boundary);
-
         Ok(Self {
             schema_version: SPATIAL_TOPOLOGY_SCHEMA_VERSION,
             boundary_ref: boundary.exact_ref(),
@@ -556,57 +581,36 @@ impl fmt::Display for TopologyError {
         match self {
             Self::InvalidStableId(value) => write!(formatter, "invalid stable identifier {value:?}"),
             Self::InvalidDigest => write!(formatter, "invalid exact-source digest"),
-            Self::BoundExceeded {
-                field,
-                actual,
-                maximum,
-            } => write!(
-                formatter,
-                "{field} has {actual} entries, maximum is {maximum}"
-            ),
+            Self::BoundExceeded { field, actual, maximum } => {
+                write!(formatter, "{field} has {actual} entries, maximum is {maximum}")
+            }
             Self::UnsupportedSchema(version) => {
                 write!(formatter, "unsupported spatial topology schema {version}")
             }
             Self::RegionsRequired => write!(formatter, "boundary snapshot requires at least one region"),
             Self::ProfileFacetsRequired => write!(formatter, "topology profile requires at least one facet"),
             Self::DuplicateRegion(id) => write!(formatter, "duplicate spatial region {}", id.0),
-            Self::DuplicateInterface(id) => {
-                write!(formatter, "duplicate boundary interface {}", id.0)
-            }
-            Self::DuplicateFacet {
-                interface_id,
-                facet,
-            } => write!(
+            Self::DuplicateInterface(id) => write!(formatter, "duplicate boundary interface {}", id.0),
+            Self::DuplicateFacet { interface_id, facet } => write!(
                 formatter,
                 "boundary interface {} repeats facet {facet:?}",
                 interface_id.0
             ),
-            Self::DuplicateExactRef {
-                field,
-                authority_id,
-                subject_id,
-                revision,
-            } => write!(
+            Self::DuplicateExactRef { field, authority_id, subject_id, revision } => write!(
                 formatter,
                 "{field} repeats exact ref {authority_id}/{subject_id}@{revision}"
             ),
-            Self::ConflictingExactRef {
-                field,
-                authority_id,
-                subject_id,
-                revision,
-            } => write!(
+            Self::ConflictingExactRef { field, authority_id, subject_id, revision } => write!(
                 formatter,
                 "{field} contains competing digests for {authority_id}/{subject_id}@{revision}"
             ),
             Self::NonCanonicalOrder(field) => write!(formatter, "{field} is not canonically ordered"),
-            Self::SelfInterface(id) => {
-                write!(formatter, "boundary interface {} connects a region to itself", id.0)
-            }
-            Self::UnknownRegion {
-                interface_id,
-                region_id,
-            } => write!(
+            Self::SelfInterface(id) => write!(
+                formatter,
+                "boundary interface {} connects a region to itself",
+                id.0
+            ),
+            Self::UnknownRegion { interface_id, region_id } => write!(
                 formatter,
                 "boundary interface {} references unknown region {}",
                 interface_id.0, region_id.0
@@ -640,11 +644,7 @@ fn validate_len(
     maximum: usize,
 ) -> Result<(), TopologyError> {
     if actual > maximum {
-        Err(TopologyError::BoundExceeded {
-            field,
-            actual,
-            maximum,
-        })
+        Err(TopologyError::BoundExceeded { field, actual, maximum })
     } else {
         Ok(())
     }
@@ -752,7 +752,7 @@ mod tests {
     }
 
     #[test]
-    fn interface_and_region_insertion_order_do_not_change_projection() {
+    fn insertion_order_does_not_change_boundary_or_projection() {
         let door = BoundaryInterfaceSnapshot::new(
             interface_id("interface:door"),
             region("region:inside"),
@@ -786,7 +786,7 @@ mod tests {
     }
 
     #[test]
-    fn closed_door_can_block_bodies_without_perfect_acoustic_isolation() {
+    fn closed_door_blocks_bodies_without_claiming_perfect_air_or_sound_isolation() {
         let door = BoundaryInterfaceSnapshot::new(
             interface_id("interface:door"),
             region("region:inside"),
@@ -830,7 +830,7 @@ mod tests {
     }
 
     #[test]
-    fn vent_can_connect_air_without_body_passage() {
+    fn vent_connects_air_without_body_passage() {
         let vent = BoundaryInterfaceSnapshot::new(
             interface_id("interface:vent"),
             region("region:inside"),
@@ -882,7 +882,7 @@ mod tests {
     }
 
     #[test]
-    fn requested_profile_controls_facets_without_reinterpreting_boundary() {
+    fn facet_profile_filters_without_mutating_or_reinterpreting_boundary() {
         let window = BoundaryInterfaceSnapshot::new(
             interface_id("interface:window"),
             region("region:inside"),
@@ -924,7 +924,7 @@ mod tests {
 
     #[test]
     fn interface_must_reference_known_regions() {
-        let interface = BoundaryInterfaceSnapshot::new(
+        let orphan = BoundaryInterfaceSnapshot::new(
             interface_id("interface:orphan"),
             region("region:inside"),
             region("region:missing"),
@@ -932,27 +932,17 @@ mod tests {
             vec![],
         )
         .unwrap();
-        let result = snapshot(vec![interface]);
-        // `snapshot` unwraps, so exercise the constructor directly for this hostile fixture.
-        let direct = BoundarySnapshot::new(
+        let result = BoundarySnapshot::new(
             id("boundary:invalid"),
             1,
             "digest",
             source("frame:invalid", 1, "frame"),
             source("environment:earth-air", 1, "env"),
             base_regions(),
-            vec![BoundaryInterfaceSnapshot::new(
-                interface_id("interface:orphan-2"),
-                region("region:inside"),
-                region("region:missing"),
-                facets(&[(TopologyFacet::Occupancy, FacetRelation::Connected)]),
-                vec![],
-            )
-            .unwrap()],
+            vec![orphan],
             vec![],
         );
-        drop(result);
-        assert!(matches!(direct, Err(TopologyError::UnknownRegion { .. })));
+        assert!(matches!(result, Err(TopologyError::UnknownRegion { .. })));
     }
 
     #[test]
@@ -1000,8 +990,8 @@ mod tests {
             vec![TopologyFacet::Occupancy],
         )
         .unwrap();
-        let graph = TopologySnapshot::derive(&boundary, &profile).unwrap();
-        let occupancy = graph.graph(TopologyFacet::Occupancy).unwrap();
+        let topology = TopologySnapshot::derive(&boundary, &profile).unwrap();
+        let occupancy = topology.graph(TopologyFacet::Occupancy).unwrap();
 
         assert_eq!(occupancy.neighbors(&a), vec![b.clone(), c.clone()]);
         assert_eq!(occupancy.neighbors(&b), vec![a.clone()]);
