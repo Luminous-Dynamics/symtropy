@@ -17,6 +17,7 @@ pub mod measurement_authority;
 pub mod process_set_authority;
 pub mod retained_authority;
 pub mod shadow_common_start;
+pub mod shadow_execution_continuity;
 pub mod shadow_execution_lineage;
 pub mod shadow_observable_authority;
 pub mod shadow_paired_execution;
