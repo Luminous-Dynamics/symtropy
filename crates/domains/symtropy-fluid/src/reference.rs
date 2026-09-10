@@ -12,8 +12,8 @@
 use std::fmt;
 
 use crate::validation::{
-    CONTINUUM_DIAGNOSTIC_SCHEMA_VERSION, ContinuumDiagnosticSample,
-    DiagnosticUnavailableReason, DiagnosticValueError, NonNegativeDiagnostic,
+    CONTINUUM_DIAGNOSTIC_SCHEMA_VERSION, ContinuumDiagnosticSample, DiagnosticUnavailableReason,
+    DiagnosticValueError, NonNegativeDiagnostic,
 };
 
 /// Semantic profile for the V0.1 CPU reference solver. The scheme identifiers
@@ -207,7 +207,10 @@ impl fmt::Display for ReferenceStepError {
         match self {
             Self::InvalidDt => write!(f, "dt must be finite and > 0"),
             Self::CflLimitExceeded { observed, limit } => {
-                write!(f, "advective CFL {observed} exceeds configured limit {limit}")
+                write!(
+                    f,
+                    "advective CFL {observed} exceeds configured limit {limit}"
+                )
             }
             Self::DiffusionLimitExceeded { observed, limit } => write!(
                 f,
@@ -221,7 +224,10 @@ impl fmt::Display for ReferenceStepError {
                 write!(f, "forcing returned non-finite {component} acceleration")
             }
             Self::NonFinitePredictor { component } => {
-                write!(f, "explicit predictor produced non-finite {component} velocity")
+                write!(
+                    f,
+                    "explicit predictor produced non-finite {component} velocity"
+                )
             }
             Self::PredictorCflLimitExceeded { observed, limit } => write!(
                 f,
@@ -236,7 +242,10 @@ impl fmt::Display for ReferenceStepError {
                 "pressure projection scaling is non-finite for the supplied dt/density"
             ),
             Self::NonFiniteProjection => {
-                write!(f, "pressure projection produced non-finite state or diagnostics")
+                write!(
+                    f,
+                    "pressure projection produced non-finite state or diagnostics"
+                )
             }
         }
     }
@@ -352,7 +361,11 @@ impl PeriodicMac2d {
         if u_faces.len() != cells || v_faces.len() != cells {
             return Err(ReferenceStateError::WrongFaceCount);
         }
-        if u_faces.iter().chain(&v_faces).any(|value| !value.is_finite()) {
+        if u_faces
+            .iter()
+            .chain(&v_faces)
+            .any(|value| !value.is_finite())
+        {
             return Err(ReferenceStateError::NonFiniteFaceVelocity);
         }
         Ok(Self {
@@ -479,9 +492,8 @@ impl PeriodicMac2d {
             });
         }
 
-        let diffusion_number = self.config.kinematic_viscosity_m2_s
-            * dt_s
-            * (1.0 / dx.powi(2) + 1.0 / dy.powi(2));
+        let diffusion_number =
+            self.config.kinematic_viscosity_m2_s * dt_s * (1.0 / dx.powi(2) + 1.0 / dy.powi(2));
         if !diffusion_number.is_finite() {
             return Err(ReferenceStepError::NonFinitePredictor {
                 component: "diffusion_number",
@@ -539,8 +551,7 @@ impl PeriodicMac2d {
                 if !a[0].is_finite() {
                     return Err(ReferenceStepError::NonFiniteAcceleration { component: "x" });
                 }
-                let predicted_u =
-                    u + dt_s * (-u * du_dx - v_at_u * du_dy + nu * lap_u + a[0]);
+                let predicted_u = u + dt_s * (-u * du_dx - v_at_u * du_dy + nu * lap_u + a[0]);
                 if !predicted_u.is_finite() {
                     return Err(ReferenceStepError::NonFinitePredictor { component: "u" });
                 }
@@ -573,8 +584,7 @@ impl PeriodicMac2d {
                 if !a[1].is_finite() {
                     return Err(ReferenceStepError::NonFiniteAcceleration { component: "y" });
                 }
-                let predicted_v =
-                    v + dt_s * (-u_at_v * dv_dx - v * dv_dy + nu * lap_v + a[1]);
+                let predicted_v = v + dt_s * (-u_at_v * dv_dx - v * dv_dy + nu * lap_v + a[1]);
                 if !predicted_v.is_finite() {
                     return Err(ReferenceStepError::NonFinitePredictor { component: "v" });
                 }
@@ -584,9 +594,7 @@ impl PeriodicMac2d {
 
         let predictor_cfl = advective_cfl(&next_u, &next_v, dt_s, dx, dy);
         if !predictor_cfl.is_finite() {
-            return Err(ReferenceStepError::NonFinitePredictor {
-                component: "cfl",
-            });
+            return Err(ReferenceStepError::NonFinitePredictor { component: "cfl" });
         }
         if predictor_cfl > self.config.max_advective_cfl {
             return Err(ReferenceStepError::PredictorCflLimitExceeded {
@@ -635,9 +643,7 @@ impl PeriodicMac2d {
         let kinetic_energy = cell_u
             .iter()
             .zip(&cell_v)
-            .map(|(u, v)| {
-                0.5 * self.config.density_kg_m3 * (u * u + v * v) * cell_volume
-            })
+            .map(|(u, v)| 0.5 * self.config.density_kg_m3 * (u * u + v * v) * cell_volume)
             .sum::<f64>();
         let max_speed = cell_u
             .iter()
@@ -661,10 +667,7 @@ impl PeriodicMac2d {
             time_s: self.time_s,
             max_resolved_speed_mps: measured("max_resolved_speed_mps", max_speed)?,
             kinetic_energy_j: measured("kinetic_energy_j", kinetic_energy)?,
-            divergence_rms_per_s: measured(
-                "divergence_rms_per_s",
-                self.divergence_rms_per_s(),
-            )?,
+            divergence_rms_per_s: measured("divergence_rms_per_s", self.divergence_rms_per_s())?,
             max_vorticity_per_s: measured("max_vorticity_per_s", max_vorticity)?,
             max_strain_rate_per_s: measured("max_strain_rate_per_s", max_strain)?,
             max_pressure_gradient_pa_per_m: measured(
@@ -697,7 +700,11 @@ impl PeriodicMac2d {
         if !dt_s.is_finite() || dt_s <= 0.0 {
             return Err(ReferenceStepError::InvalidDt);
         }
-        if u_faces.iter().chain(v_faces).any(|value| !value.is_finite()) {
+        if u_faces
+            .iter()
+            .chain(v_faces)
+            .any(|value| !value.is_finite())
+        {
             return Err(ReferenceStepError::NonFiniteProjection);
         }
 
@@ -743,8 +750,7 @@ impl PeriodicMac2d {
                     let value = ((pressure_pa[self.index(east, j)]
                         + pressure_pa[self.index(west, j)])
                         * inv_dx2
-                        + (pressure_pa[self.index(i, north)]
-                            + pressure_pa[self.index(i, south)])
+                        + (pressure_pa[self.index(i, north)] + pressure_pa[self.index(i, south)])
                             * inv_dy2
                         - rhs[index])
                         / denominator;
@@ -784,13 +790,9 @@ impl PeriodicMac2d {
                 let west = previous(i, self.config.nx);
                 let index = self.index(i, j);
                 let corrected_u = u_faces[index]
-                    - dt_over_rho
-                        * (pressure_pa[index] - pressure_pa[self.index(west, j)])
-                        / dx;
+                    - dt_over_rho * (pressure_pa[index] - pressure_pa[self.index(west, j)]) / dx;
                 let corrected_v = v_faces[index]
-                    - dt_over_rho
-                        * (pressure_pa[index] - pressure_pa[self.index(i, south)])
-                        / dy;
+                    - dt_over_rho * (pressure_pa[index] - pressure_pa[self.index(i, south)]) / dy;
                 if !corrected_u.is_finite() || !corrected_v.is_finite() {
                     return Err(ReferenceStepError::NonFiniteProjection);
                 }
@@ -896,8 +898,7 @@ impl PeriodicMac2d {
                 let dv_dy = (v[self.index(i, north)] - v[self.index(i, south)]) / dy2;
                 max_vorticity = max_vorticity.max((dv_dx - du_dy).abs());
                 let shear = 0.5 * (du_dy + dv_dx);
-                let strain_frobenius =
-                    (du_dx * du_dx + dv_dy * dv_dy + 2.0 * shear * shear).sqrt();
+                let strain_frobenius = (du_dx * du_dx + dv_dy * dv_dy + 2.0 * shear * shear).sqrt();
                 max_strain = max_strain.max(strain_frobenius);
             }
         }
@@ -953,10 +954,7 @@ fn rms(values: &[f64]) -> f64 {
 }
 
 fn max_abs(values: &[f64]) -> f64 {
-    values
-        .iter()
-        .map(|value| value.abs())
-        .fold(0.0, f64::max)
+    values.iter().map(|value| value.abs()).fold(0.0, f64::max)
 }
 
 fn advective_cfl(u_faces: &[f64], v_faces: &[f64], dt_s: f64, dx: f64, dy: f64) -> f64 {
@@ -1006,7 +1004,9 @@ mod tests {
         config.density_kg_m3 = 0.0;
         assert_eq!(
             config.validate(),
-            Err(ReferenceConfigError::ExpectedPositiveFinite("density_kg_m3"))
+            Err(ReferenceConfigError::ExpectedPositiveFinite(
+                "density_kg_m3"
+            ))
         );
     }
 
@@ -1163,13 +1163,7 @@ mod tests {
         let diagnostics = state.diagnostics().unwrap();
         assert_eq!(diagnostics.validate(), Ok(()));
         assert_eq!(diagnostics.non_finite_state_count, 0);
-        assert!(
-            diagnostics
-                .max_resolved_speed_mps
-                .measured_value()
-                .unwrap()
-                > 0.0
-        );
+        assert!(diagnostics.max_resolved_speed_mps.measured_value().unwrap() > 0.0);
         assert!(diagnostics.kinetic_energy_j.measured_value().unwrap() > 0.0);
     }
 
