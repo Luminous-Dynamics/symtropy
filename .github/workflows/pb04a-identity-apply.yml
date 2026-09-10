@@ -10,6 +10,7 @@ on:
       - "scripts/pb04a-harden-query-semantics.py"
       - "scripts/pb04a-seal-identity-state.py"
       - ".github/workflows/pb04a-identity-apply.yml"
+      - ".github/workflows/pb04a-spatial-topology-qualification.yml"
 
 permissions:
   contents: write
@@ -59,7 +60,6 @@ jobs:
           check_blob 01ac9cfb159fe5c87b41e386a2b70c6edb6f6ae9 crates/domains/symtropy-spatial-topology/src/lib.rs
           check_blob 66d2d48ef30208bf1389983a5e3dd5708d5eab3f crates/domains/symtropy-spatial-topology/Cargo.toml
           check_blob 859392660ab0a722d76892ee317aceb2f2522be4 crates/domains/symtropy-spatial-topology/tests/hostile_projection.rs
-
           check_blob 1d94ebb0a6819bfd1d95060920ec5b3d460194a9 scripts/pb04a-harden-content-identity.py
           check_blob e03de8d8e452af9720d24f8922081c5e00209022 scripts/pb04a-harden-global-source-consistency.py
           check_blob 0790af59fc936515a1a9131ffe1a945e2696f7c6 scripts/pb04a-harden-query-semantics.py
@@ -109,34 +109,49 @@ jobs:
           echo "PB04A_TRANSFORM_PATCH_SHA256=${patch_sha}"
 
       - name: Canonical formatting
-        run: >-
-          cargo fmt
-          --manifest-path crates/domains/symtropy-spatial-topology/Cargo.toml
+        run: cargo fmt --manifest-path crates/domains/symtropy-spatial-topology/Cargo.toml
 
-      - name: Prove hardened isolated crate
+      - name: Freeze isolated dependency resolution
+        shell: bash
         run: |
           set -euo pipefail
-          cargo check --manifest-path crates/domains/symtropy-spatial-topology/Cargo.toml --all-targets
-          cargo test --manifest-path crates/domains/symtropy-spatial-topology/Cargo.toml
-          cargo clippy --manifest-path crates/domains/symtropy-spatial-topology/Cargo.toml --all-targets -- -D warnings
+          manifest="crates/domains/symtropy-spatial-topology/Cargo.toml"
+          lock="crates/domains/symtropy-spatial-topology/Cargo.lock"
+          cargo generate-lockfile --manifest-path "${manifest}"
+          test -s "${lock}"
+          echo "PB04A_NESTED_LOCK_BLOB=$(git hash-object "${lock}")"
+          echo "PB04A_NESTED_LOCK_SHA256=$(sha256sum "${lock}" | awk '{print $1}')"
+          cargo metadata --manifest-path "${manifest}" --locked --format-version 1 > /tmp/pb04a-cargo-metadata.json
+          echo "PB04A_LOCKED_METADATA_SHA256=$(sha256sum /tmp/pb04a-cargo-metadata.json | awk '{print $1}')"
+
+      - name: Prove hardened isolated crate under frozen resolution
+        shell: bash
+        run: |
+          set -euo pipefail
+          manifest="crates/domains/symtropy-spatial-topology/Cargo.toml"
+          cargo check --manifest-path "${manifest}" --locked --all-targets
+          cargo test --manifest-path "${manifest}" --locked
+          cargo clippy --manifest-path "${manifest}" --locked --all-targets -- -D warnings
 
       - name: Require semantic delta
         shell: bash
         run: |
           set -euo pipefail
           git diff --exit-code --quiet && {
-            echo "hardening transformers produced no semantic delta" >&2
+            echo "hardening transformers produced no tracked semantic delta" >&2
             exit 1
           }
+          test -s crates/domains/symtropy-spatial-topology/Cargo.lock
           git status --short
 
-      - name: Commit qualified PB-04a hardening
+      - name: Commit qualified PB-04a hardening and dependency lock
         shell: bash
         run: |
           set -euo pipefail
           git config user.name "PB-04a Qualification Bot"
           git config user.email "actions@users.noreply.github.com"
           git add crates/domains/symtropy-spatial-topology/Cargo.toml \
+                  crates/domains/symtropy-spatial-topology/Cargo.lock \
                   crates/domains/symtropy-spatial-topology/src/lib.rs \
                   crates/domains/symtropy-spatial-topology/tests/hostile_projection.rs
           git diff --cached --exit-code --quiet && {
@@ -148,6 +163,7 @@ jobs:
           qualified_tree="$(git rev-parse HEAD^{tree})"
           echo "PB04A_HARDENED_HEAD=${qualified_head}"
           echo "PB04A_HARDENED_TREE=${qualified_tree}"
+          echo "PB04A_HARDENED_LOCK_BLOB=$(git rev-parse HEAD:crates/domains/symtropy-spatial-topology/Cargo.lock)"
 
           remote_head="$(git ls-remote origin refs/heads/spatial/pb04a-faceted-topology-kernel | cut -f1)"
           test "${remote_head}" = "${GITHUB_SHA}"

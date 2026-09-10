@@ -57,28 +57,45 @@ jobs:
           toolchain: 1.96.0
           components: clippy, rustfmt
 
+      - name: Bind dependency-resolution discipline
+        shell: bash
+        run: |
+          set -euo pipefail
+          lock="crates/domains/symtropy-spatial-topology/Cargo.lock"
+          if [[ -f "${lock}" ]]; then
+            test -s "${lock}"
+            echo "PB04A_LOCK_STATE=frozen-product"
+            echo "PB04A_LOCK_BLOB=$(git hash-object "${lock}")"
+            echo "PB04A_LOCK_SHA256=$(sha256sum "${lock}" | awk '{print $1}')"
+            echo "PB04A_CARGO_LOCK_FLAG=--locked" >> "${GITHUB_ENV}"
+          else
+            echo "PB04A_LOCK_STATE=absent-preproduct-input"
+            echo "PB04A_CARGO_LOCK_FLAG=" >> "${GITHUB_ENV}"
+          fi
+
       - name: Canonical formatting
-        run: >-
-          cargo fmt
-          --manifest-path crates/domains/symtropy-spatial-topology/Cargo.toml
-          -- --check
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo fmt --manifest-path crates/domains/symtropy-spatial-topology/Cargo.toml -- --check
 
       - name: Check
-        run: >-
-          cargo check
-          --manifest-path crates/domains/symtropy-spatial-topology/Cargo.toml
-          --all-targets
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo check --manifest-path crates/domains/symtropy-spatial-topology/Cargo.toml ${PB04A_CARGO_LOCK_FLAG} --all-targets
 
       - name: Test
-        run: >-
-          cargo test
-          --manifest-path crates/domains/symtropy-spatial-topology/Cargo.toml
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo test --manifest-path crates/domains/symtropy-spatial-topology/Cargo.toml ${PB04A_CARGO_LOCK_FLAG}
 
       - name: Strict Clippy
-        run: >-
-          cargo clippy
-          --manifest-path crates/domains/symtropy-spatial-topology/Cargo.toml
-          --all-targets -- -D warnings
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo clippy --manifest-path crates/domains/symtropy-spatial-topology/Cargo.toml ${PB04A_CARGO_LOCK_FLAG} --all-targets -- -D warnings
 
       - name: Prove source tree unchanged
         shell: bash
