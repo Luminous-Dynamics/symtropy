@@ -284,6 +284,49 @@ mod tests {
     }
 
     #[test]
+    fn default_reference_gravity_is_zero() {
+        let mut bridge = RapierPhysicsBridge::new(NoOpCallback);
+        assert_eq!(bridge.gravity(), Vec3::ZERO);
+
+        let (
+            mut bodies,
+            mut colliders,
+            parameters,
+            mut islands,
+            mut broad_phase,
+            mut narrow_phase,
+            mut impulse_joints,
+            mut multibody_joints,
+            mut ccd,
+        ) = empty_rapier_state();
+        let handle = add_sphere_to_rapier(
+            &mut bodies,
+            &mut colliders,
+            Vec3::new(0.0, 10.0, 0.0),
+            0.5,
+            1.0,
+        );
+
+        bridge.step(
+            1.0 / 60.0,
+            &mut bodies,
+            &mut colliders,
+            &parameters,
+            &mut islands,
+            &mut broad_phase,
+            &mut narrow_phase,
+            &mut impulse_joints,
+            &mut multibody_joints,
+            &mut ccd,
+            &(),
+            &(),
+        );
+
+        assert_eq!(bodies[handle].translation().y, 10.0);
+        assert_eq!(bodies[handle].linvel().y, 0.0);
+    }
+
+    #[test]
     fn rapier_bridge_step_actually_advances_under_explicit_gravity() {
         let (
             mut bodies,
@@ -377,6 +420,38 @@ mod tests {
         let y_short = step_once(1.0 / 120.0);
         let y_long = step_once(1.0 / 30.0);
         assert!(y_long < y_short);
+    }
+
+    #[test]
+    #[should_panic(expected = "Rapier reference dt must be finite and non-negative")]
+    fn non_finite_dt_is_rejected_before_stepping() {
+        let (
+            mut bodies,
+            mut colliders,
+            parameters,
+            mut islands,
+            mut broad_phase,
+            mut narrow_phase,
+            mut impulse_joints,
+            mut multibody_joints,
+            mut ccd,
+        ) = empty_rapier_state();
+        let mut bridge = RapierPhysicsBridge::new(NoOpCallback);
+
+        bridge.step(
+            f32::NAN,
+            &mut bodies,
+            &mut colliders,
+            &parameters,
+            &mut islands,
+            &mut broad_phase,
+            &mut narrow_phase,
+            &mut impulse_joints,
+            &mut multibody_joints,
+            &mut ccd,
+            &(),
+            &(),
+        );
     }
 
     struct CountingCallback {
