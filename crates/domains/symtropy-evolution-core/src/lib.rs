@@ -7,6 +7,7 @@
 //! and civilization remain external authorities.
 
 mod canonical;
+mod demographic_admixture_execution;
 mod demographic_event;
 mod demographic_execution;
 mod demographic_extinction_execution;
@@ -28,6 +29,11 @@ mod reproduction;
 mod schema;
 mod structured_population_process;
 
+pub use demographic_admixture_execution::{
+    execute_census_preserving_pulse_admixture, DemographicAdmixtureExecutionModel,
+    DemographicAdmixtureExecutionProvenance, DemographicAdmixtureExecutionProvenanceDigest,
+    DemographicAdmixtureExecutionResult,
+};
 pub use demographic_event::{
     DaughterPopulation, DemographicEventDeclaration, DemographicEventDeclarationDigest,
     DemographicEventKind, DemographicEventTiming,
