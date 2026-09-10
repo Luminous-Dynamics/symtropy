@@ -17,6 +17,10 @@ use symtropy_fluid::falsification::{
     VerificationCampaignReport, run_passive_taylor_green_campaign,
 };
 use symtropy_fluid::manufactured::ManufacturedTaylorGreenProfile;
+use symtropy_fluid::numerical_observability::{
+    ProjectionIterationSweepReport, StabilityProbeReport, run_passive_taylor_green_stability_probe,
+    run_projection_iteration_sweep,
+};
 use symtropy_fluid::reference::PeriodicMacConfig;
 use symtropy_fluid::verification_ladder::{
     EnergyTraceReport, LadderCaseSpec, RefinementAxis, VerificationLadderReport,
@@ -24,7 +28,7 @@ use symtropy_fluid::verification_ladder::{
     run_unforced_energy_trace,
 };
 
-const EVIDENCE_BUNDLE_SCHEMA_ID: &str = "continuum-verification-evidence-bundle-v0.3";
+const EVIDENCE_BUNDLE_SCHEMA_ID: &str = "continuum-verification-evidence-bundle-v0.4";
 
 #[derive(Debug, Serialize)]
 struct EvidenceBundle {
@@ -37,6 +41,8 @@ struct EvidenceBundle {
     passive_stability_campaign: ContinuumEvidenceEnvelope<VerificationCampaignReport>,
     passive_diagnostic_trace: ContinuumEvidenceEnvelope<ContinuumDiagnosticTraceReport>,
     manufactured_diagnostic_trace: ContinuumEvidenceEnvelope<ContinuumDiagnosticTraceReport>,
+    passive_stability_probe: ContinuumEvidenceEnvelope<StabilityProbeReport>,
+    projection_iteration_sweep: ContinuumEvidenceEnvelope<ProjectionIterationSweepReport>,
 }
 
 fn main() -> Result<(), Box<dyn Error>> {
@@ -148,18 +154,32 @@ fn main() -> Result<(), Box<dyn Error>> {
     let mut trace_config = base.clone();
     trace_config.nx = 16;
     trace_config.ny = 16;
-    let passive_diagnostic_trace = run_passive_taylor_green_diagnostic_trace(
-        trace_config.clone(),
-        0.08,
-        0.0005,
-        8,
-    )?;
+    let passive_diagnostic_trace =
+        run_passive_taylor_green_diagnostic_trace(trace_config.clone(), 0.08, 0.0005, 8)?;
     let manufactured_diagnostic_trace = run_manufactured_taylor_green_diagnostic_trace(
         trace_config,
         manufactured_profile,
         0.0005,
         8,
     )?;
+
+    // Probe candidate timesteps from the exact same initial state. The first is
+    // deliberately outside the declared CFL envelope; the smaller values retain
+    // signed distance to every explicit stability boundary.
+    let mut observability_config = base.clone();
+    observability_config.nx = 12;
+    observability_config.ny = 12;
+    let passive_stability_probe = run_passive_taylor_green_stability_probe(
+        observability_config.clone(),
+        0.5,
+        &[0.5, 0.05, 0.005],
+    )?;
+
+    // Project the same deterministic divergent field using only different fixed
+    // Jacobi iteration counts. This measures projection convergence without
+    // changing solver equations, forcing, grid, or initial state.
+    let projection_iteration_sweep =
+        run_projection_iteration_sweep(observability_config, 0.08, 0.001, &[1, 4, 16, 64, 256])?;
 
     let bundle = EvidenceBundle {
         schema_id: EVIDENCE_BUNDLE_SCHEMA_ID,
@@ -200,6 +220,16 @@ fn main() -> Result<(), Box<dyn Error>> {
             &source_revision,
             "manufactured-taylor-green-diagnostic-trace-v0.1",
             manufactured_diagnostic_trace,
+        )?,
+        passive_stability_probe: bind_stability_probe(
+            &source_revision,
+            "passive-taylor-green-stability-probe-v0.1",
+            passive_stability_probe,
+        )?,
+        projection_iteration_sweep: bind_projection_sweep(
+            &source_revision,
+            "periodic-compressive-projection-iteration-sweep-v0.1",
+            projection_iteration_sweep,
         )?,
     };
 
@@ -258,6 +288,30 @@ fn bind_trace(
     report: ContinuumDiagnosticTraceReport,
 ) -> Result<ContinuumEvidenceEnvelope<ContinuumDiagnosticTraceReport>, Box<dyn Error>> {
     let execution_profiles = vec![report.solver_profile.clone()];
+    Ok(subject(source_revision, case_profile, execution_profiles).bind(report)?)
+}
+
+fn bind_stability_probe(
+    source_revision: &str,
+    case_profile: &str,
+    report: StabilityProbeReport,
+) -> Result<ContinuumEvidenceEnvelope<StabilityProbeReport>, Box<dyn Error>> {
+    let execution_profiles = vec![report.solver_profile.clone()];
+    Ok(subject(source_revision, case_profile, execution_profiles).bind(report)?)
+}
+
+fn bind_projection_sweep(
+    source_revision: &str,
+    case_profile: &str,
+    report: ProjectionIterationSweepReport,
+) -> Result<ContinuumEvidenceEnvelope<ProjectionIterationSweepReport>, Box<dyn Error>> {
+    let execution_profiles = report
+        .points
+        .iter()
+        .map(|point| point.solver_profile.clone())
+        .collect::<BTreeSet<_>>()
+        .into_iter()
+        .collect();
     Ok(subject(source_revision, case_profile, execution_profiles).bind(report)?)
 }
 

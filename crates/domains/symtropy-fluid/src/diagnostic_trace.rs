@@ -15,8 +15,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::convergence::{TaylorGreenError, TaylorGreenErrorKind, compare_taylor_green};
 use crate::manufactured::{
-    ManufacturedTaylorGreenError, ManufacturedTaylorGreenProfile,
-    manufactured_acceleration_mps2,
+    ManufacturedTaylorGreenError, ManufacturedTaylorGreenProfile, manufactured_acceleration_mps2,
 };
 use crate::reference::{
     PeriodicMac2d, PeriodicMacConfig, ReferenceDiagnosticError, ReferenceStateError,
@@ -142,7 +141,10 @@ impl fmt::Display for DiagnosticTraceError {
                 write!(f, "diagnostic trace analytical comparison failed: {source}")
             }
             Self::Manufactured(source) => {
-                write!(f, "diagnostic trace manufactured comparison failed: {source}")
+                write!(
+                    f,
+                    "diagnostic trace manufactured comparison failed: {source}"
+                )
             }
             Self::MissingMeasuredEnergy => {
                 write!(f, "diagnostic trace requires measured kinetic energy")
@@ -538,8 +540,7 @@ mod tests {
 
     #[test]
     fn passive_trace_retains_stepwise_diagnostics_and_analytical_error() {
-        let report =
-            run_passive_taylor_green_diagnostic_trace(config(), 0.08, 0.0005, 4).unwrap();
+        let report = run_passive_taylor_green_diagnostic_trace(config(), 0.08, 0.0005, 4).unwrap();
         assert_eq!(report.steps.len(), 4);
         assert!(report.initial_analytical_error.velocity_rms_error_mps < 1.0e-14);
         assert!(report.extrema.maximum_resolved_speed_mps.unwrap() > 0.0);
@@ -555,15 +556,28 @@ mod tests {
 
     #[test]
     fn unavailable_initial_step_metrics_remain_unavailable_not_zero() {
-        let report =
-            run_passive_taylor_green_diagnostic_trace(config(), 0.08, 0.0005, 1).unwrap();
-        assert!(report.initial_diagnostics.max_cfl.measured_value().is_none());
-        assert!(report.initial_diagnostics.solver_residual.measured_value().is_none());
+        let report = run_passive_taylor_green_diagnostic_trace(config(), 0.08, 0.0005, 1).unwrap();
+        assert!(
+            report
+                .initial_diagnostics
+                .max_cfl
+                .measured_value()
+                .is_none()
+        );
+        assert!(
+            report
+                .initial_diagnostics
+                .solver_residual
+                .measured_value()
+                .is_none()
+        );
         assert!(report.extrema.maximum_cfl.is_some());
-        assert!(report
-            .extrema
-            .maximum_pressure_residual_rms_pa_per_m2
-            .is_some());
+        assert!(
+            report
+                .extrema
+                .maximum_pressure_residual_rms_pa_per_m2
+                .is_some()
+        );
     }
 
     #[test]
@@ -573,13 +587,8 @@ mod tests {
             modulation_fraction: 0.2,
             angular_frequency_rad_s: 1.5,
         };
-        let report = run_manufactured_taylor_green_diagnostic_trace(
-            config(),
-            profile,
-            0.0005,
-            4,
-        )
-        .unwrap();
+        let report =
+            run_manufactured_taylor_green_diagnostic_trace(config(), profile, 0.0005, 4).unwrap();
         assert_eq!(report.steps.len(), 4);
         assert!(
             report
@@ -596,10 +605,8 @@ mod tests {
 
     #[test]
     fn trace_replays_deterministically() {
-        let a =
-            run_passive_taylor_green_diagnostic_trace(config(), 0.08, 0.0005, 3).unwrap();
-        let b =
-            run_passive_taylor_green_diagnostic_trace(config(), 0.08, 0.0005, 3).unwrap();
+        let a = run_passive_taylor_green_diagnostic_trace(config(), 0.08, 0.0005, 3).unwrap();
+        let b = run_passive_taylor_green_diagnostic_trace(config(), 0.08, 0.0005, 3).unwrap();
         assert_eq!(a, b);
     }
 
