@@ -80,10 +80,11 @@ jobs:
     - name: Run Tests (Physics Core)
       run: cargo test -p symtropy-math -p symtropy-physics -p symtropy-consciousness-physics --lib
 
-    # This is execution evidence for the external reference adapter itself, not
-    # evidence that Rapier is canonical Symtropy physics or physical ground truth.
+    # This is execution evidence for the external reference adapter and the
+    # shared native-vs-Rapier differential corpus, not evidence that Rapier is
+    # canonical Symtropy physics or physical ground truth.
     - name: Run Tests (Rapier Differential Reference)
-      run: cargo test -p symtropy-rapier3d-bridge --lib
+      run: cargo test -p symtropy-rapier3d-bridge
 
     - name: Verify Workspace Build
       run: cargo check --workspace --all-targets
