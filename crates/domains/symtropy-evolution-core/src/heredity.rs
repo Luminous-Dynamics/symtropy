@@ -9,6 +9,11 @@ use std::{collections::BTreeMap, fmt};
 
 const STATE_DIGEST_DOMAIN: &[u8] = b"symtropy:evolution:hereditary-state:v1\0";
 
+/// Exact V0 hereditary content for one biological individual/propagule.
+///
+/// Allele copies at each locus are **unphased** in V0, so copy-vector order has
+/// no biological meaning and is canonicalized lexicographically. Chromosome
+/// phase/haplotype order belongs to the later explicit linkage model.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct HereditaryState {
     pub schema_id: HereditarySchemaId,
@@ -19,8 +24,11 @@ pub struct HereditaryState {
 impl HereditaryState {
     pub fn new(
         schema: &HereditarySchema,
-        copies: BTreeMap<LocusId, Vec<AlleleId>>,
+        mut copies: BTreeMap<LocusId, Vec<AlleleId>>,
     ) -> Result<Self, EvolutionError> {
+        for locus_copies in copies.values_mut() {
+            locus_copies.sort();
+        }
         let value = Self {
             schema_id: schema.id.clone(),
             schema_digest: schema.canonical_digest()?,
@@ -51,6 +59,11 @@ impl HereditaryState {
                     locus: locus_id.clone(),
                     expected: schema.ploidy,
                     observed: copies.len(),
+                });
+            }
+            if copies.windows(2).any(|window| window[0] > window[1]) {
+                return Err(EvolutionError::NonCanonicalAlleleCopyOrder {
+                    locus: locus_id.clone(),
                 });
             }
             for allele in copies {
@@ -106,5 +119,70 @@ impl fmt::Debug for HereditaryStateDigest {
 impl fmt::Display for HereditaryStateDigest {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         fmt_hex(&self.0, f)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::{AlleleId, HereditarySchemaId, LocusDefinition};
+
+    fn allele(id: &str) -> AlleleId {
+        AlleleId::new(id).unwrap()
+    }
+
+    fn schema() -> HereditarySchema {
+        HereditarySchema::new(
+            HereditarySchemaId::new("unphased-v0").unwrap(),
+            2,
+            vec![LocusDefinition::new(
+                LocusId::new("pigment").unwrap(),
+                [allele("dark"), allele("light")],
+            )
+            .unwrap()],
+        )
+        .unwrap()
+    }
+
+    #[test]
+    fn constructor_canonicalizes_unphased_copy_order() {
+        let schema = schema();
+        let a = HereditaryState::new(
+            &schema,
+            BTreeMap::from([(
+                LocusId::new("pigment").unwrap(),
+                vec![allele("light"), allele("dark")],
+            )]),
+        )
+        .unwrap();
+        let b = HereditaryState::new(
+            &schema,
+            BTreeMap::from([(
+                LocusId::new("pigment").unwrap(),
+                vec![allele("dark"), allele("light")],
+            )]),
+        )
+        .unwrap();
+
+        assert_eq!(a, b);
+        assert_eq!(a.canonical_digest(&schema).unwrap(), b.canonical_digest(&schema).unwrap());
+    }
+
+    #[test]
+    fn raw_noncanonical_copy_order_cannot_become_authority() {
+        let schema = schema();
+        let state = HereditaryState {
+            schema_id: schema.id.clone(),
+            schema_digest: schema.canonical_digest().unwrap(),
+            copies: BTreeMap::from([(
+                LocusId::new("pigment").unwrap(),
+                vec![allele("light"), allele("dark")],
+            )]),
+        };
+
+        assert!(matches!(
+            state.validate(&schema),
+            Err(EvolutionError::NonCanonicalAlleleCopyOrder { .. })
+        ));
     }
 }
