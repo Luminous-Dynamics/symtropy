@@ -40,8 +40,11 @@ impl GeneticMapIntervalMicromorgans {
         Ok(())
     }
 
-    pub fn length_micromorgans(&self) -> u64 {
-        self.end.get() - self.start.get()
+    /// Return the validated process length. Raw/restored invalid interval-shaped
+    /// data never gains an arithmetic underflow/panic path before revalidation.
+    pub fn length_micromorgans(&self) -> Result<u64, EvolutionError> {
+        self.validate()?;
+        Ok(self.end.get() - self.start.get())
     }
 
     pub fn contains(&self, position: GeneticMapPositionMicromorgans) -> bool {
