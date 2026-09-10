@@ -57,12 +57,6 @@ jobs:
     - name: Check Formatting
       run: cargo fmt --all -- --check
 
-    # Evidence must be reproducible from the committed dependency graph. Run
-    # this before Clippy/tests can update Cargo.lock in the runner workspace.
-    - name: Verify Locked Dependency Graph
-      if: runner.os == 'Linux'
-      run: cargo metadata --locked --format-version 1 --no-deps > /dev/null
-
     # Repo-invariant guards. These scripts existed since at least June but were
     # wired into nothing, so both of them silently failed against the tree for
     # weeks: check-workspace.sh still asserted `Bevy 0.18.1` (the workspace has
@@ -92,23 +86,56 @@ jobs:
     - name: Run Tests (Fluid Validation)
       run: cargo test -p symtropy-fluid
 
-    # Linux is the canonical evidence-emission leg. Bind the payload to the PR's
-    # actual source head rather than the synthetic merge commit checked out by
-    # pull_request workflows.
+    - name: Verify Workspace Build
+      run: cargo check --workspace --all-targets
+
+  # Canonical evidence is generated from the exact source head, not the
+  # synthetic pull-request merge ref used by the compatibility matrix above.
+  # This lane deliberately repeats the fluid test on that exact tree so the
+  # retained measurements and their executable test subject are identical.
+  fluid-evidence:
+    name: Fluid Evidence (exact head)
+    runs-on: ubuntu-latest
+    steps:
+    - name: Check out exact evidence subject
+      uses: actions/checkout@v4
+      with:
+        ref: ${{ github.event.pull_request.head.sha || github.sha }}
+
+    - name: Set up Rust
+      uses: dtolnay/rust-toolchain@stable
+      with:
+        toolchain: 1.96.0
+        components: rustfmt
+
+    - name: Cache dependencies
+      uses: Swatinem/rust-cache@v2
+
+    - name: Check Formatting
+      run: cargo fmt --all -- --check
+
+    # Fail before any dependency-resolving build if the committed lock does not
+    # represent this exact workspace source.
+    - name: Verify Locked Dependency Graph
+      run: cargo metadata --locked --format-version 1 --no-deps > /dev/null
+
+    - name: Execute Exact-Head Fluid Verification Tests
+      run: cargo test --locked -p symtropy-fluid
+
     - name: Generate Fluid Verification Evidence
-      if: runner.os == 'Linux'
       env:
         SYMTROPY_EVIDENCE_SOURCE_REVISION: ${{ github.event.pull_request.head.sha || github.sha }}
       run: cargo run --locked -p symtropy-fluid --example continuum_verification_evidence --quiet > continuum-verification-evidence.json
 
+    - name: Hash Fluid Verification Evidence
+      run: sha256sum continuum-verification-evidence.json > continuum-verification-evidence.json.sha256
+
     - name: Upload Fluid Verification Evidence
-      if: runner.os == 'Linux'
       uses: actions/upload-artifact@v4
       with:
         name: continuum-verification-evidence-${{ github.run_id }}
-        path: continuum-verification-evidence.json
+        path: |
+          continuum-verification-evidence.json
+          continuum-verification-evidence.json.sha256
         if-no-files-found: error
         retention-days: 30
-
-    - name: Verify Workspace Build
-      run: cargo check --workspace --all-targets
