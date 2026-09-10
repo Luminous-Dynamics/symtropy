@@ -1,0 +1,95 @@
+name: Clean Input Matter Integrity Runner
+
+on:
+  pull_request:
+    branches: [ "main" ]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: clean-input-matter-integrity-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  repair:
+    name: Apply and prove F1/F4 input matter integrity
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: fabrication/input-matter-integrity-clean
+          fetch-depth: 1
+
+      - name: Set up Rust 1.96
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.96.0
+          components: clippy, rustfmt
+
+      - name: Prove clean executable parent
+        run: |
+          cargo check --locked -p symtropy-fabrication --lib
+          cargo test --locked -p symtropy-fabrication --lib
+          cargo clippy --locked -p symtropy-fabrication --all-targets --all-features -- -D warnings
+
+      - name: Fetch exact previously exercised repair transformer
+        shell: bash
+        run: |
+          git fetch --no-tags --depth=1 origin d9a6b6b52cc0b6bbb6f2455afaf7a30cab26609a
+          git show d9a6b6b52cc0b6bbb6f2455afaf7a30cab26609a:.github/repair/f4_input_matter_repair.py > /tmp/f4_input_matter_repair.py
+          test -s /tmp/f4_input_matter_repair.py
+
+      - name: Apply exact input-matter transformation
+        run: python /tmp/f4_input_matter_repair.py
+
+      - name: Canonicalize transformed Fabrication source
+        run: cargo fmt -p symtropy-fabrication
+
+      - name: Verify semantic source scope
+        shell: bash
+        run: |
+          actual=$(git diff --name-only | sort)
+          expected=$(cat <<'EOF'
+          crates/domains/symtropy-fabrication/src/identity.rs
+          crates/domains/symtropy-fabrication/src/process.rs
+          crates/domains/symtropy-fabrication/src/process_evidence.rs
+          EOF
+          )
+          if test "$actual" != "$(printf '%s\n' "$expected" | sort)"; then
+            echo "unexpected transformed source scope:" >&2
+            printf 'actual:\n%s\nexpected:\n%s\n' "$actual" "$expected" >&2
+            exit 1
+          fi
+
+      - name: Prove transformed semantic files match exercised temporary lineage
+        run: |
+          git diff --exit-code d9a6b6b52cc0b6bbb6f2455afaf7a30cab26609a -- \
+            crates/domains/symtropy-fabrication/src/identity.rs \
+            crates/domains/symtropy-fabrication/src/process.rs \
+            crates/domains/symtropy-fabrication/src/process_evidence.rs
+
+      - name: Run locked Fabrication tests on semantic delta
+        run: cargo test --locked -p symtropy-fabrication --lib
+
+      - name: Run strict Rust 1.96 Clippy on semantic delta
+        run: cargo clippy --locked -p symtropy-fabrication --all-targets --all-features -- -D warnings
+
+      - name: Prove lock and manifests stayed fixed
+        run: |
+          git diff --exit-code HEAD -- Cargo.lock Cargo.toml crates/domains/symtropy-fabrication/Cargo.toml
+
+      - name: Commit semantic source only
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add \
+            crates/domains/symtropy-fabrication/src/identity.rs \
+            crates/domains/symtropy-fabrication/src/process.rs \
+            crates/domains/symtropy-fabrication/src/process_evidence.rs
+          git commit -m "fix(fabrication): enforce input matter integrity at authority boundaries"
+          git diff --exit-code HEAD -- .
+
+      - name: Push exact qualified semantic head
+        run: git push origin HEAD:fabrication/input-matter-integrity-clean
