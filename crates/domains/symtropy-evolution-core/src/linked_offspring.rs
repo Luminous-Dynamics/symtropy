@@ -84,10 +84,10 @@ impl DiploidLinkedOffspringProvenance {
         child: &PhasedHereditaryState,
     ) -> Result<(), EvolutionError> {
         if self.derivation_version != DIPLOID_LINKED_OFFSPRING_DERIVATION_VERSION {
-            return Err(EvolutionError::LinkedOffspringDerivationMismatch);
+            return Err(EvolutionError::ChildDerivationMismatch);
         }
         if &self.event_id != event {
-            return Err(EvolutionError::LinkedOffspringEventContextMismatch);
+            return Err(EvolutionError::LinkedGameteEventContextMismatch);
         }
         schema.validate()?;
         chromosome_map.validate(schema)?;
@@ -100,7 +100,7 @@ impl DiploidLinkedOffspringProvenance {
             || chromosome_map.canonical_digest(schema)? != self.chromosome_map_digest
             || profile.canonical_digest(schema, chromosome_map)? != self.recombination_profile_digest
         {
-            return Err(EvolutionError::LinkedOffspringAuthorityMismatch);
+            return Err(EvolutionError::OperatorAuthorityMismatch);
         }
 
         parent_a.provenance.validate_current(
@@ -137,12 +137,12 @@ impl DiploidLinkedOffspringProvenance {
             ParentRole::ParentB,
         )?;
         if self.parent_a != expected_parent_a || self.parent_b != expected_parent_b {
-            return Err(EvolutionError::LinkedOffspringContributionMismatch);
+            return Err(EvolutionError::ParentageMismatch);
         }
 
         child.validate(schema, chromosome_map)?;
         if child.canonical_digest(schema, chromosome_map)? != self.child_digest {
-            return Err(EvolutionError::LinkedOffspringResultMismatch);
+            return Err(EvolutionError::ChildDigestMismatch);
         }
 
         let recomputed = assemble_diploid_linked_offspring(
@@ -156,7 +156,7 @@ impl DiploidLinkedOffspringProvenance {
             event,
         )?;
         if recomputed.child != *child || recomputed.provenance != *self {
-            return Err(EvolutionError::LinkedOffspringDerivationMismatch);
+            return Err(EvolutionError::ChildDerivationMismatch);
         }
         Ok(())
     }
