@@ -16,8 +16,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::iterative_error::HIGHEST_ITERATION_REFERENCE_POLICY_ID;
 use crate::manufactured::{
-    ManufacturedTaylorGreenError, ManufacturedTaylorGreenProfile,
-    manufactured_acceleration_mps2,
+    ManufacturedTaylorGreenError, ManufacturedTaylorGreenProfile, manufactured_acceleration_mps2,
 };
 use crate::numerical_observability::MAX_NUMERICAL_OBSERVABILITY_POINTS;
 use crate::reference::{
@@ -85,7 +84,10 @@ impl fmt::Display for ManufacturedIterativeError {
             Self::InvalidFinalTime => write!(f, "final_time_s must be finite and > 0"),
             Self::InvalidStepCount => write!(f, "manufactured iterative sweep requires steps > 0"),
             Self::TooFewPoints => {
-                write!(f, "manufactured iterative sweep requires at least two points")
+                write!(
+                    f,
+                    "manufactured iterative sweep requires at least two points"
+                )
             }
             Self::TooManyPoints => write!(
                 f,
@@ -112,7 +114,10 @@ impl fmt::Display for ManufacturedIterativeError {
                 write!(f, "manufactured iterative diagnostic failed: {source}")
             }
             Self::MissingMeasuredEnergy => {
-                write!(f, "manufactured iterative comparison requires measured kinetic energy")
+                write!(
+                    f,
+                    "manufactured iterative comparison requires measured kinetic energy"
+                )
             }
         }
     }
@@ -174,12 +179,8 @@ pub fn run_manufactured_iterative_sensitivity_sweep(
 
     let initial_amplitude = profile.amplitude_mps(0.0)?;
     let manufactured_profile = profile.profile_identity();
-    let fixed_case_profile = fixed_case_profile(
-        &base_config,
-        &manufactured_profile,
-        final_time_s,
-        steps,
-    );
+    let fixed_case_profile =
+        fixed_case_profile(&base_config, &manufactured_profile, final_time_s, steps);
     let forcing_config = base_config.clone();
     let mut candidates = Vec::with_capacity(iteration_counts.len());
 
@@ -258,8 +259,7 @@ pub fn run_manufactured_iterative_sensitivity_sweep(
             solver_profile: candidate.solver_profile,
             actual_final_time_s: candidate.actual_final_time_s,
             maximum_observed_advective_cfl: candidate.maximum_observed_advective_cfl,
-            maximum_observed_divergence_rms_per_s: candidate
-                .maximum_observed_divergence_rms_per_s,
+            maximum_observed_divergence_rms_per_s: candidate.maximum_observed_divergence_rms_per_s,
             maximum_observed_pressure_residual_rms_pa_per_m2: candidate
                 .maximum_observed_pressure_residual_rms_pa_per_m2,
             analytical_velocity_rms_error_mps: candidate.analytical_velocity_rms_error_mps,
@@ -390,10 +390,7 @@ fn measured_energy(state: &PeriodicMac2d) -> Result<f64, ManufacturedIterativeEr
         .ok_or(ManufacturedIterativeError::MissingMeasuredEnergy)
 }
 
-fn ensure_finite(
-    name: &'static str,
-    value: f64,
-) -> Result<(), ManufacturedIterativeError> {
+fn ensure_finite(name: &'static str, value: f64) -> Result<(), ManufacturedIterativeError> {
     if !value.is_finite() {
         return Err(ManufacturedIterativeError::NonFiniteDerivedMetric(name));
     }
@@ -496,22 +493,18 @@ mod tests {
         )
         .unwrap();
         let first_time = report.points[0].actual_final_time_s;
-        assert!(report
-            .points
-            .iter()
-            .all(|point| point.actual_final_time_s.to_bits() == first_time.to_bits()));
+        assert!(
+            report
+                .points
+                .iter()
+                .all(|point| point.actual_final_time_s.to_bits() == first_time.to_bits())
+        );
     }
 
     #[test]
     fn malformed_iteration_sequence_fails_closed() {
         assert_eq!(
-            run_manufactured_iterative_sensitivity_sweep(
-                config(),
-                profile(),
-                0.004,
-                8,
-                &[16, 16],
-            ),
+            run_manufactured_iterative_sensitivity_sweep(config(), profile(), 0.004, 8, &[16, 16],),
             Err(ManufacturedIterativeError::NonIncreasingIterationCounts)
         );
     }

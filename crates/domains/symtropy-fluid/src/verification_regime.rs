@@ -14,9 +14,7 @@ use std::fmt;
 
 use serde::{Deserialize, Serialize};
 
-use crate::verification_ladder::{
-    RefinementAxis, VerificationCaseKind, VerificationLadderReport,
-};
+use crate::verification_ladder::{RefinementAxis, VerificationCaseKind, VerificationLadderReport};
 
 pub const REFINEMENT_TREND_SCHEMA_ID: &str = "continuum-refinement-trend-v0.1";
 
@@ -84,7 +82,10 @@ impl fmt::Display for VerificationRegimeError {
                 write!(f, "ladder scale must strictly decrease with refinement")
             }
             Self::NonFiniteDerivedMetric => {
-                write!(f, "verification summary produced a non-finite derived metric")
+                write!(
+                    f,
+                    "verification summary produced a non-finite derived metric"
+                )
             }
         }
     }
@@ -143,14 +144,10 @@ pub fn summarize_refinement_trend(
         }
     }
 
-    let minimum_adjacent_refinement_ratio = adjacent_refinement_ratios
-        .iter()
-        .copied()
-        .reduce(f64::min);
-    let maximum_adjacent_refinement_ratio = adjacent_refinement_ratios
-        .iter()
-        .copied()
-        .reduce(f64::max);
+    let minimum_adjacent_refinement_ratio =
+        adjacent_refinement_ratios.iter().copied().reduce(f64::min);
+    let maximum_adjacent_refinement_ratio =
+        adjacent_refinement_ratios.iter().copied().reduce(f64::max);
 
     let adjacent_orders = ladder
         .adjacent_observed_orders
@@ -280,8 +277,8 @@ mod tests {
     #[test]
     fn exact_second_order_sequence_has_second_order_global_fit() {
         let report = ladder(RefinementAxis::Spatial, &[1.0, 0.25, 0.0625]);
-        let trend = summarize_refinement_trend(&report, RefinementMetric::VelocityRmsError)
-            .unwrap();
+        let trend =
+            summarize_refinement_trend(&report, RefinementMetric::VelocityRmsError).unwrap();
         let fit = trend.log_log_fit.unwrap();
         assert!((fit.apparent_order - 2.0).abs() < 1.0e-12);
         assert!((fit.r_squared.unwrap() - 1.0).abs() < 1.0e-12);
@@ -292,8 +289,8 @@ mod tests {
     #[test]
     fn non_monotone_error_is_retained_not_reclassified() {
         let report = ladder(RefinementAxis::Spatial, &[1.0, 0.5, 0.6]);
-        let trend = summarize_refinement_trend(&report, RefinementMetric::VelocityRmsError)
-            .unwrap();
+        let trend =
+            summarize_refinement_trend(&report, RefinementMetric::VelocityRmsError).unwrap();
         assert_eq!(trend.error_decrease_count, 1);
         assert_eq!(trend.error_increase_count, 1);
     }
@@ -301,8 +298,8 @@ mod tests {
     #[test]
     fn zero_error_disables_log_fit_instead_of_fabricating_epsilon() {
         let report = ladder(RefinementAxis::Temporal, &[1.0, 0.25, 0.0]);
-        let trend = summarize_refinement_trend(&report, RefinementMetric::VelocityRmsError)
-            .unwrap();
+        let trend =
+            summarize_refinement_trend(&report, RefinementMetric::VelocityRmsError).unwrap();
         assert_eq!(trend.log_log_fit, None);
     }
 }
