@@ -334,6 +334,36 @@ mod tests {
         )
     }
 
+    fn assert_invalid_dt_rejected(dt: f32) {
+        let (
+            mut bodies,
+            mut colliders,
+            parameters,
+            mut islands,
+            mut broad_phase,
+            mut narrow_phase,
+            mut impulse_joints,
+            mut multibody_joints,
+            mut ccd,
+        ) = empty_rapier_state();
+        let mut bridge = RapierPhysicsBridge::new(NoOpCallback);
+
+        bridge.step(
+            dt,
+            &mut bodies,
+            &mut colliders,
+            &parameters,
+            &mut islands,
+            &mut broad_phase,
+            &mut narrow_phase,
+            &mut impulse_joints,
+            &mut multibody_joints,
+            &mut ccd,
+            &(),
+            &(),
+        );
+    }
+
     #[test]
     fn default_reference_gravity_is_zero() {
         let mut bridge = RapierPhysicsBridge::new(NoOpCallback);
@@ -476,33 +506,13 @@ mod tests {
     #[test]
     #[should_panic(expected = "Rapier reference dt must be finite and non-negative")]
     fn non_finite_dt_is_rejected_before_stepping() {
-        let (
-            mut bodies,
-            mut colliders,
-            parameters,
-            mut islands,
-            mut broad_phase,
-            mut narrow_phase,
-            mut impulse_joints,
-            mut multibody_joints,
-            mut ccd,
-        ) = empty_rapier_state();
-        let mut bridge = RapierPhysicsBridge::new(NoOpCallback);
+        assert_invalid_dt_rejected(f32::NAN);
+    }
 
-        bridge.step(
-            f32::NAN,
-            &mut bodies,
-            &mut colliders,
-            &parameters,
-            &mut islands,
-            &mut broad_phase,
-            &mut narrow_phase,
-            &mut impulse_joints,
-            &mut multibody_joints,
-            &mut ccd,
-            &(),
-            &(),
-        );
+    #[test]
+    #[should_panic(expected = "Rapier reference dt must be finite and non-negative")]
+    fn negative_dt_is_rejected_before_stepping() {
+        assert_invalid_dt_rejected(-1.0 / 60.0);
     }
 
     struct CountingCallback {
