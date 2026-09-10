@@ -6,6 +6,7 @@
 //! The current gameplay/runtime implementation is an early SPH scaffold:
 //! density uses an all-pairs reference loop and pressure/viscosity gradients are
 //! not yet a production solver. [`validation`] is solver-independent,
+//! [`evidence`] binds executable results to exact source/profile subjects,
 //! [`reference`] is a deliberately small CPU continuum solver,
 //! [`convergence`] provides analytical/error measurements,
 //! [`manufactured`] adds a time-dependent manufactured solution, and
@@ -15,6 +16,7 @@
 //! has a production Earth-water CFD backend.
 
 pub mod convergence;
+pub mod evidence;
 pub mod manufactured;
 pub mod reference;
 pub mod validation;
