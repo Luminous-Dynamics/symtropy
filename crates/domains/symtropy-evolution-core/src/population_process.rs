@@ -1,9 +1,10 @@
 use crate::{
     canonical::{fmt_hex, put_text, put_u64},
     error::validate_text,
-    AlleleId, EvolutionError, HereditarySchema, HereditarySchemaDigest, LocusId,
-    PopulationGeneticState, PopulationGeneticStateDigest, PopulationId,
-    PopulationProcessProfileId, PopulationTransitionId,
+    AlleleId, EvolutionError, EvolutionExperimentId, HereditarySchema,
+    HereditarySchemaDigest, LocusId, PopulationGeneticState,
+    PopulationGeneticStateDigest, PopulationId, PopulationProcessProfileId,
+    PopulationTransitionId,
 };
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
@@ -83,6 +84,11 @@ impl fmt::Display for PopulationProcessProfileDigest {
 
 /// Revalidatable evidence for one aggregate population transition.
 ///
+/// `experiment_id` identifies the stochastic realization. Two independent
+/// ensemble replicates must use distinct experiment IDs. A paired
+/// counterfactual may deliberately share one experiment ID to reuse the same
+/// exogenous random field, provided all compared model assumptions are recorded.
+///
 /// A restored receipt is data until `validate_current` succeeds against the
 /// exact current schema/source/profile/destination. It does not create
 /// individual ancestry or claim that any exact organism existed.
@@ -90,6 +96,7 @@ impl fmt::Display for PopulationProcessProfileDigest {
 pub struct PopulationTransitionProvenance {
     schema_digest: HereditarySchemaDigest,
     source_population_id: PopulationId,
+    experiment_id: EvolutionExperimentId,
     transition_id: PopulationTransitionId,
     profile_digest: PopulationProcessProfileDigest,
     generation_from: PopulationGeneration,
@@ -101,6 +108,10 @@ pub struct PopulationTransitionProvenance {
 impl PopulationTransitionProvenance {
     pub fn schema_digest(&self) -> HereditarySchemaDigest {
         self.schema_digest
+    }
+
+    pub fn experiment_id(&self) -> &EvolutionExperimentId {
+        &self.experiment_id
     }
 
     pub fn transition_id(&self) -> &PopulationTransitionId {
@@ -132,6 +143,7 @@ impl PopulationTransitionProvenance {
         digest.update(TRANSITION_DIGEST_DOMAIN);
         digest.update(self.schema_digest.as_bytes());
         put_text(&mut digest, self.source_population_id.as_str());
+        put_text(&mut digest, self.experiment_id.as_str());
         put_text(&mut digest, self.transition_id.as_str());
         digest.update(self.profile_digest.as_bytes());
         put_u64(&mut digest, self.generation_from.0);
@@ -145,6 +157,7 @@ impl PopulationTransitionProvenance {
         &self,
         schema: &HereditarySchema,
         source: &PopulationGeneticState,
+        experiment_id: &EvolutionExperimentId,
         profile: &PopulationProcessProfile,
         destination: &PopulationGeneticState,
     ) -> Result<(), EvolutionError> {
@@ -160,6 +173,9 @@ impl PopulationTransitionProvenance {
         {
             return Err(EvolutionError::PopulationIdentityMismatch);
         }
+        if experiment_id != &self.experiment_id {
+            return Err(EvolutionError::PopulationExperimentMismatch);
+        }
         if profile.canonical_digest()? != self.profile_digest {
             return Err(EvolutionError::PopulationProcessAuthorityMismatch);
         }
@@ -169,13 +185,20 @@ impl PopulationTransitionProvenance {
         if destination.canonical_digest(schema)? != self.destination_digest {
             return Err(EvolutionError::PopulationDestinationMismatch);
         }
-        if self.generation_to.0 != self.generation_from.0.checked_add(1).ok_or(EvolutionError::CountOverflow)? {
+        if self.generation_to.0
+            != self
+                .generation_from
+                .0
+                .checked_add(1)
+                .ok_or(EvolutionError::CountOverflow)?
+        {
             return Err(EvolutionError::PopulationGenerationMismatch);
         }
 
         let recomputed = derive_destination(
             schema,
             source,
+            experiment_id,
             &self.transition_id,
             self.generation_from,
             profile,
@@ -222,9 +245,14 @@ pub struct PopulationTransitionResult {
 /// same locus. The keyed draw is independent of iteration order and of other
 /// loci, so adding an unrelated locus cannot shift an existing locus's drift
 /// stream. This is intentionally not an individual/genotype simulator.
+///
+/// `experiment_id` is the explicit stochastic-realization identity. Use a new
+/// ID for an independent ensemble replicate. Reuse it only deliberately (for
+/// example, paired counterfactuals using common random numbers).
 pub fn neutral_wright_fisher_step(
     schema: &HereditarySchema,
     source: &PopulationGeneticState,
+    experiment_id: &EvolutionExperimentId,
     transition_id: &PopulationTransitionId,
     generation_from: PopulationGeneration,
     profile: &PopulationProcessProfile,
@@ -239,6 +267,7 @@ pub fn neutral_wright_fisher_step(
     let destination = derive_destination(
         schema,
         source,
+        experiment_id,
         transition_id,
         generation_from,
         profile,
@@ -246,16 +275,20 @@ pub fn neutral_wright_fisher_step(
     let provenance = PopulationTransitionProvenance {
         schema_digest: schema.canonical_digest()?,
         source_population_id: source.population_id.clone(),
+        experiment_id: experiment_id.clone(),
         transition_id: transition_id.clone(),
         profile_digest: profile.canonical_digest()?,
         generation_from,
         generation_to: PopulationGeneration(
-            generation_from.0.checked_add(1).ok_or(EvolutionError::CountOverflow)?,
+            generation_from
+                .0
+                .checked_add(1)
+                .ok_or(EvolutionError::CountOverflow)?,
         ),
         source_digest: source.canonical_digest(schema)?,
         destination_digest: destination.canonical_digest(schema)?,
     };
-    provenance.validate_current(schema, source, profile, &destination)?;
+    provenance.validate_current(schema, source, experiment_id, profile, &destination)?;
 
     Ok(PopulationTransitionResult {
         destination,
@@ -266,6 +299,7 @@ pub fn neutral_wright_fisher_step(
 fn derive_destination(
     schema: &HereditarySchema,
     source: &PopulationGeneticState,
+    experiment_id: &EvolutionExperimentId,
     transition_id: &PopulationTransitionId,
     generation_from: PopulationGeneration,
     profile: &PopulationProcessProfile,
@@ -286,6 +320,7 @@ fn derive_destination(
         for destination_copy in 0..total_copies {
             let ordinal = drift_draw_below(
                 source,
+                experiment_id,
                 transition_id,
                 generation_from,
                 profile,
@@ -314,7 +349,9 @@ fn allele_at_ordinal(
 ) -> Result<AlleleId, EvolutionError> {
     let mut lower = 0_u64;
     for (allele, count) in counts {
-        let upper = lower.checked_add(*count).ok_or(EvolutionError::CountOverflow)?;
+        let upper = lower
+            .checked_add(*count)
+            .ok_or(EvolutionError::CountOverflow)?;
         if ordinal < upper {
             return Ok(allele.clone());
         }
@@ -325,6 +362,7 @@ fn allele_at_ordinal(
 
 fn drift_draw_below(
     source: &PopulationGeneticState,
+    experiment_id: &EvolutionExperimentId,
     transition_id: &PopulationTransitionId,
     generation_from: PopulationGeneration,
     profile: &PopulationProcessProfile,
@@ -339,12 +377,15 @@ fn drift_draw_below(
         return Ok(0);
     }
 
+    // `zone` is a multiple of `upper`; accepting values in [0, zone) and
+    // retrying the tail avoids modulo bias without mutable RNG state.
     let zone = u64::MAX - (u64::MAX % upper);
     let mut attempt = 0_u64;
     loop {
         let mut digest = Sha256::new();
         digest.update(DRIFT_RNG_DOMAIN);
         put_text(&mut digest, source.population_id.as_str());
+        put_text(&mut digest, experiment_id.as_str());
         put_text(&mut digest, transition_id.as_str());
         put_u64(&mut digest, generation_from.0);
         put_text(&mut digest, profile.profile_id.as_str());
@@ -362,7 +403,9 @@ fn drift_draw_below(
         if value < zone {
             return Ok(value % upper);
         }
-        attempt = attempt.checked_add(1).ok_or(EvolutionError::CountOverflow)?;
+        attempt = attempt
+            .checked_add(1)
+            .ok_or(EvolutionError::CountOverflow)?;
     }
 }
 
@@ -393,6 +436,10 @@ mod tests {
             version: "v1".into(),
             model: PopulationProcessModel::NeutralIndependentLocusWrightFisher,
         }
+    }
+
+    fn experiment(id: &str) -> EvolutionExperimentId {
+        EvolutionExperimentId::new(id).unwrap()
     }
 
     fn population(
@@ -429,12 +476,14 @@ mod tests {
             &[("pigment", &[("dark", 6), ("light", 4)])],
             5,
         );
+        let experiment = experiment("replicate-0001");
         let transition = PopulationTransitionId::new("generation-12-to-13").unwrap();
         let profile = profile();
 
         let first = neutral_wright_fisher_step(
             &schema,
             &source,
+            &experiment,
             &transition,
             PopulationGeneration(12),
             &profile,
@@ -443,6 +492,7 @@ mod tests {
         let second = neutral_wright_fisher_step(
             &schema,
             &source,
+            &experiment,
             &transition,
             PopulationGeneration(12),
             &profile,
@@ -452,8 +502,81 @@ mod tests {
         assert_eq!(first, second);
         first
             .provenance
-            .validate_current(&schema, &source, &profile, &first.destination)
+            .validate_current(
+                &schema,
+                &source,
+                &experiment,
+                &profile,
+                &first.destination,
+            )
             .unwrap();
+    }
+
+    #[test]
+    fn experiment_identity_is_part_of_transition_authority() {
+        let schema = schema(vec![locus("pigment", &["dark", "light"])]);
+        let source = population(
+            &schema,
+            &[("pigment", &[("dark", 50), ("light", 50)])],
+            50,
+        );
+        let transition = PopulationTransitionId::new("generation-0-to-1").unwrap();
+        let profile = profile();
+        let a = neutral_wright_fisher_step(
+            &schema,
+            &source,
+            &experiment("replicate-a"),
+            &transition,
+            PopulationGeneration(0),
+            &profile,
+        )
+        .unwrap();
+        let b = neutral_wright_fisher_step(
+            &schema,
+            &source,
+            &experiment("replicate-b"),
+            &transition,
+            PopulationGeneration(0),
+            &profile,
+        )
+        .unwrap();
+
+        assert_ne!(
+            a.provenance.canonical_digest(),
+            b.provenance.canonical_digest()
+        );
+        assert_eq!(a.provenance.experiment_id().as_str(), "replicate-a");
+        assert_eq!(b.provenance.experiment_id().as_str(), "replicate-b");
+    }
+
+    #[test]
+    fn wrong_experiment_cannot_revalidate_transition() {
+        let schema = schema(vec![locus("pigment", &["dark", "light"])]);
+        let source = population(
+            &schema,
+            &[("pigment", &[("dark", 6), ("light", 4)])],
+            5,
+        );
+        let result = neutral_wright_fisher_step(
+            &schema,
+            &source,
+            &experiment("replicate-a"),
+            &PopulationTransitionId::new("generation-0-to-1").unwrap(),
+            PopulationGeneration(0),
+            &profile(),
+        )
+        .unwrap();
+
+        assert_eq!(
+            result.provenance.validate_current(
+                &schema,
+                &source,
+                &experiment("replicate-b"),
+                &profile(),
+                &result.destination,
+            ),
+            Err(EvolutionError::PopulationExperimentMismatch)
+        );
     }
 
     #[test]
@@ -463,6 +586,7 @@ mod tests {
         let result = neutral_wright_fisher_step(
             &schema,
             &source,
+            &experiment("fixed-replicate"),
             &PopulationTransitionId::new("fixed").unwrap(),
             PopulationGeneration(0),
             &profile(),
@@ -492,12 +616,14 @@ mod tests {
             ],
             5,
         );
+        let experiment = experiment("keyed-locus-replicate");
         let transition = PopulationTransitionId::new("keyed-locus-drift").unwrap();
         let profile = profile();
 
         let result_a = neutral_wright_fisher_step(
             &schema_a,
             &source_a,
+            &experiment,
             &transition,
             PopulationGeneration(4),
             &profile,
@@ -506,6 +632,7 @@ mod tests {
         let result_ab = neutral_wright_fisher_step(
             &schema_ab,
             &source_ab,
+            &experiment,
             &transition,
             PopulationGeneration(4),
             &profile,
@@ -536,6 +663,7 @@ mod tests {
         let result = neutral_wright_fisher_step(
             &schema,
             &source,
+            &experiment("copy-conservation-replicate"),
             &PopulationTransitionId::new("copy-conservation").unwrap(),
             PopulationGeneration(99),
             &profile(),
