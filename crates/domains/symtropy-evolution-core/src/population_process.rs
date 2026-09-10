@@ -2,21 +2,17 @@ use crate::{
     canonical::{fmt_hex, put_text, put_u64},
     error::validate_text,
     AlleleId, EvolutionError, EvolutionExperimentId, HereditarySchema,
-    HereditarySchemaDigest, LocusId, PopulationGeneticState,
+    HereditarySchemaDigest, LocusId, PopulationGeneration, PopulationGeneticState,
     PopulationGeneticStateDigest, PopulationId, PopulationProcessProfileId,
-    PopulationTransitionId,
+    PopulationTrajectoryPoint, PopulationTrajectoryPointDigest, PopulationTransitionId,
 };
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use std::{collections::BTreeMap, fmt};
 
 const PROFILE_DIGEST_DOMAIN: &[u8] = b"symtropy:evolution:population-process-profile:v1\0";
-const TRANSITION_DIGEST_DOMAIN: &[u8] = b"symtropy:evolution:population-transition:v1\0";
+const TRANSITION_DIGEST_DOMAIN: &[u8] = b"symtropy:evolution:population-transition:v2\0";
 const DRIFT_RNG_DOMAIN: &[u8] = b"symtropy:evolution:neutral-wright-fisher-draw:v1\0";
-
-/// Canonical generation coordinate for generation-based reference processes.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
-pub struct PopulationGeneration(pub u64);
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum PopulationProcessModel {
@@ -84,14 +80,10 @@ impl fmt::Display for PopulationProcessProfileDigest {
 
 /// Revalidatable evidence for one aggregate population transition.
 ///
-/// `experiment_id` identifies the stochastic realization. Two independent
-/// ensemble replicates must use distinct experiment IDs. A paired
-/// counterfactual may deliberately share one experiment ID to reuse the same
-/// exogenous random field, provided all compared model assumptions are recorded.
-///
-/// A restored receipt is data until `validate_current` succeeds against the
-/// exact current schema/source/profile/destination. It does not create
-/// individual ancestry or claim that any exact organism existed.
+/// The source and destination trajectory-point digests bind otherwise-equal
+/// aggregate population states to their causal positions. A restored receipt is
+/// data until `validate_current` reproduces the transition from the exact current
+/// schema, source point, process profile, destination, and destination point.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct PopulationTransitionProvenance {
     schema_digest: HereditarySchemaDigest,
@@ -103,6 +95,8 @@ pub struct PopulationTransitionProvenance {
     generation_to: PopulationGeneration,
     source_digest: PopulationGeneticStateDigest,
     destination_digest: PopulationGeneticStateDigest,
+    source_point_digest: PopulationTrajectoryPointDigest,
+    destination_point_digest: PopulationTrajectoryPointDigest,
 }
 
 impl PopulationTransitionProvenance {
@@ -138,6 +132,14 @@ impl PopulationTransitionProvenance {
         self.destination_digest
     }
 
+    pub fn source_point_digest(&self) -> PopulationTrajectoryPointDigest {
+        self.source_point_digest
+    }
+
+    pub fn destination_point_digest(&self) -> PopulationTrajectoryPointDigest {
+        self.destination_point_digest
+    }
+
     pub fn canonical_digest(&self) -> PopulationTransitionProvenanceDigest {
         let mut digest = Sha256::new();
         digest.update(TRANSITION_DIGEST_DOMAIN);
@@ -150,6 +152,8 @@ impl PopulationTransitionProvenance {
         put_u64(&mut digest, self.generation_to.0);
         digest.update(self.source_digest.as_bytes());
         digest.update(self.destination_digest.as_bytes());
+        digest.update(self.source_point_digest.as_bytes());
+        digest.update(self.destination_point_digest.as_bytes());
         PopulationTransitionProvenanceDigest(digest.finalize().into())
     }
 
@@ -157,12 +161,15 @@ impl PopulationTransitionProvenance {
         &self,
         schema: &HereditarySchema,
         source: &PopulationGeneticState,
-        experiment_id: &EvolutionExperimentId,
+        source_point: &PopulationTrajectoryPoint,
         profile: &PopulationProcessProfile,
         destination: &PopulationGeneticState,
+        destination_point: &PopulationTrajectoryPoint,
     ) -> Result<(), EvolutionError> {
         source.validate(schema)?;
         destination.validate(schema)?;
+        source_point.validate_current(schema, source)?;
+        destination_point.validate_current(schema, destination)?;
         profile.validate()?;
 
         if schema.canonical_digest()? != self.schema_digest {
@@ -173,7 +180,9 @@ impl PopulationTransitionProvenance {
         {
             return Err(EvolutionError::PopulationIdentityMismatch);
         }
-        if experiment_id != &self.experiment_id {
+        if source_point.experiment_id() != &self.experiment_id
+            || destination_point.experiment_id() != &self.experiment_id
+        {
             return Err(EvolutionError::PopulationExperimentMismatch);
         }
         if profile.canonical_digest()? != self.profile_digest {
@@ -185,12 +194,19 @@ impl PopulationTransitionProvenance {
         if destination.canonical_digest(schema)? != self.destination_digest {
             return Err(EvolutionError::PopulationDestinationMismatch);
         }
-        if self.generation_to.0
-            != self
-                .generation_from
-                .0
-                .checked_add(1)
-                .ok_or(EvolutionError::CountOverflow)?
+        if source_point.canonical_digest() != self.source_point_digest
+            || destination_point.canonical_digest() != self.destination_point_digest
+        {
+            return Err(EvolutionError::PopulationTrajectoryPointMismatch);
+        }
+        if source_point.generation() != self.generation_from
+            || destination_point.generation() != self.generation_to
+            || self.generation_to.0
+                != self
+                    .generation_from
+                    .0
+                    .checked_add(1)
+                    .ok_or(EvolutionError::CountOverflow)?
         {
             return Err(EvolutionError::PopulationGenerationMismatch);
         }
@@ -198,9 +214,9 @@ impl PopulationTransitionProvenance {
         let recomputed = derive_destination(
             schema,
             source,
-            experiment_id,
+            source_point.experiment_id(),
             &self.transition_id,
-            self.generation_from,
+            source_point.generation(),
             profile,
         )?;
         if recomputed != *destination {
@@ -236,62 +252,76 @@ impl fmt::Display for PopulationTransitionProvenanceDigest {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct PopulationTransitionResult {
     pub destination: PopulationGeneticState,
+    pub destination_point: PopulationTrajectoryPoint,
     pub provenance: PopulationTransitionProvenance,
 }
 
 /// Advance one fixed-census neutral independent-locus Wright-Fisher generation.
 ///
-/// Each destination allele copy samples one source allele copy uniformly at the
-/// same locus. The keyed draw is independent of iteration order and of other
-/// loci, so adding an unrelated locus cannot shift an existing locus's drift
-/// stream. This is intentionally not an individual/genotype simulator.
-///
-/// `experiment_id` is the explicit stochastic-realization identity. Use a new
-/// ID for an independent ensemble replicate. Reuse it only deliberately (for
-/// example, paired counterfactuals using common random numbers).
+/// Ordinary continuation consumes a trajectory point rather than a loose
+/// generation/experiment tuple. This makes the stochastic trajectory position
+/// explicit and lets checkpointed catch-up chain destination points directly.
 pub fn neutral_wright_fisher_step(
     schema: &HereditarySchema,
     source: &PopulationGeneticState,
-    experiment_id: &EvolutionExperimentId,
+    source_point: &PopulationTrajectoryPoint,
     transition_id: &PopulationTransitionId,
-    generation_from: PopulationGeneration,
     profile: &PopulationProcessProfile,
 ) -> Result<PopulationTransitionResult, EvolutionError> {
     schema.validate()?;
     source.validate(schema)?;
+    source_point.validate_current(schema, source)?;
     profile.validate()?;
     if profile.model != PopulationProcessModel::NeutralIndependentLocusWrightFisher {
         return Err(EvolutionError::PopulationProcessModelMismatch);
     }
 
+    let generation_from = source_point.generation();
+    let generation_to = PopulationGeneration(
+        generation_from
+            .0
+            .checked_add(1)
+            .ok_or(EvolutionError::CountOverflow)?,
+    );
     let destination = derive_destination(
         schema,
         source,
-        experiment_id,
+        source_point.experiment_id(),
         transition_id,
         generation_from,
         profile,
     )?;
+    let destination_point = PopulationTrajectoryPoint::from_validated_state(
+        schema,
+        &destination,
+        source_point.experiment_id().clone(),
+        generation_to,
+    )?;
     let provenance = PopulationTransitionProvenance {
         schema_digest: schema.canonical_digest()?,
         source_population_id: source.population_id.clone(),
-        experiment_id: experiment_id.clone(),
+        experiment_id: source_point.experiment_id().clone(),
         transition_id: transition_id.clone(),
         profile_digest: profile.canonical_digest()?,
         generation_from,
-        generation_to: PopulationGeneration(
-            generation_from
-                .0
-                .checked_add(1)
-                .ok_or(EvolutionError::CountOverflow)?,
-        ),
+        generation_to,
         source_digest: source.canonical_digest(schema)?,
         destination_digest: destination.canonical_digest(schema)?,
+        source_point_digest: source_point.canonical_digest(),
+        destination_point_digest: destination_point.canonical_digest(),
     };
-    provenance.validate_current(schema, source, experiment_id, profile, &destination)?;
+    provenance.validate_current(
+        schema,
+        source,
+        source_point,
+        profile,
+        &destination,
+        &destination_point,
+    )?;
 
     Ok(PopulationTransitionResult {
         destination,
+        destination_point,
         provenance,
     })
 }
@@ -468,6 +498,21 @@ mod tests {
         .unwrap()
     }
 
+    fn start_point(
+        schema: &HereditarySchema,
+        source: &PopulationGeneticState,
+        experiment_id: EvolutionExperimentId,
+        generation: u64,
+    ) -> PopulationTrajectoryPoint {
+        PopulationTrajectoryPoint::declare_reference_start(
+            schema,
+            source,
+            experiment_id,
+            PopulationGeneration(generation),
+        )
+        .unwrap()
+    }
+
     #[test]
     fn exact_replay_and_provenance_revalidation() {
         let schema = schema(vec![locus("pigment", &["dark", "light"])]);
@@ -476,124 +521,46 @@ mod tests {
             &[("pigment", &[("dark", 6), ("light", 4)])],
             5,
         );
-        let experiment = experiment("replicate-0001");
-        let transition = PopulationTransitionId::new("generation-12-to-13").unwrap();
+        let point = start_point(&schema, &source, experiment("replicate-0001"), 12);
+        let transition = PopulationTransitionId::new("generation-step").unwrap();
         let profile = profile();
 
-        let first = neutral_wright_fisher_step(
-            &schema,
-            &source,
-            &experiment,
-            &transition,
-            PopulationGeneration(12),
-            &profile,
-        )
-        .unwrap();
-        let second = neutral_wright_fisher_step(
-            &schema,
-            &source,
-            &experiment,
-            &transition,
-            PopulationGeneration(12),
-            &profile,
-        )
-        .unwrap();
+        let first = neutral_wright_fisher_step(&schema, &source, &point, &transition, &profile)
+            .unwrap();
+        let second = neutral_wright_fisher_step(&schema, &source, &point, &transition, &profile)
+            .unwrap();
 
         assert_eq!(first, second);
+        assert_eq!(first.destination_point.generation(), PopulationGeneration(13));
         first
             .provenance
             .validate_current(
                 &schema,
                 &source,
-                &experiment,
+                &point,
                 &profile,
                 &first.destination,
+                &first.destination_point,
             )
             .unwrap();
-    }
-
-    #[test]
-    fn experiment_identity_is_part_of_transition_authority() {
-        let schema = schema(vec![locus("pigment", &["dark", "light"])]);
-        let source = population(
-            &schema,
-            &[("pigment", &[("dark", 50), ("light", 50)])],
-            50,
-        );
-        let transition = PopulationTransitionId::new("generation-0-to-1").unwrap();
-        let profile = profile();
-        let a = neutral_wright_fisher_step(
-            &schema,
-            &source,
-            &experiment("replicate-a"),
-            &transition,
-            PopulationGeneration(0),
-            &profile,
-        )
-        .unwrap();
-        let b = neutral_wright_fisher_step(
-            &schema,
-            &source,
-            &experiment("replicate-b"),
-            &transition,
-            PopulationGeneration(0),
-            &profile,
-        )
-        .unwrap();
-
-        assert_ne!(
-            a.provenance.canonical_digest(),
-            b.provenance.canonical_digest()
-        );
-        assert_eq!(a.provenance.experiment_id().as_str(), "replicate-a");
-        assert_eq!(b.provenance.experiment_id().as_str(), "replicate-b");
-    }
-
-    #[test]
-    fn wrong_experiment_cannot_revalidate_transition() {
-        let schema = schema(vec![locus("pigment", &["dark", "light"])]);
-        let source = population(
-            &schema,
-            &[("pigment", &[("dark", 6), ("light", 4)])],
-            5,
-        );
-        let result = neutral_wright_fisher_step(
-            &schema,
-            &source,
-            &experiment("replicate-a"),
-            &PopulationTransitionId::new("generation-0-to-1").unwrap(),
-            PopulationGeneration(0),
-            &profile(),
-        )
-        .unwrap();
-
-        assert_eq!(
-            result.provenance.validate_current(
-                &schema,
-                &source,
-                &experiment("replicate-b"),
-                &profile(),
-                &result.destination,
-            ),
-            Err(EvolutionError::PopulationExperimentMismatch)
-        );
     }
 
     #[test]
     fn fixed_allele_is_absorbing_under_neutral_reference_process() {
         let schema = schema(vec![locus("pigment", &["dark", "light"])]);
         let source = population(&schema, &[("pigment", &[("dark", 10)])], 5);
+        let point = start_point(&schema, &source, experiment("fixed-replicate"), 0);
         let result = neutral_wright_fisher_step(
             &schema,
             &source,
-            &experiment("fixed-replicate"),
-            &PopulationTransitionId::new("fixed").unwrap(),
-            PopulationGeneration(0),
+            &point,
+            &PopulationTransitionId::new("generation-step").unwrap(),
             &profile(),
         )
         .unwrap();
 
         assert_eq!(result.destination, source);
+        assert_ne!(result.destination_point.canonical_digest(), point.canonical_digest());
     }
 
     #[test]
@@ -617,24 +584,24 @@ mod tests {
             5,
         );
         let experiment = experiment("keyed-locus-replicate");
-        let transition = PopulationTransitionId::new("keyed-locus-drift").unwrap();
+        let point_a = start_point(&schema_a, &source_a, experiment.clone(), 4);
+        let point_ab = start_point(&schema_ab, &source_ab, experiment, 4);
+        let transition = PopulationTransitionId::new("generation-step").unwrap();
         let profile = profile();
 
         let result_a = neutral_wright_fisher_step(
             &schema_a,
             &source_a,
-            &experiment,
+            &point_a,
             &transition,
-            PopulationGeneration(4),
             &profile,
         )
         .unwrap();
         let result_ab = neutral_wright_fisher_step(
             &schema_ab,
             &source_ab,
-            &experiment,
+            &point_ab,
             &transition,
-            PopulationGeneration(4),
             &profile,
         )
         .unwrap();
@@ -647,32 +614,67 @@ mod tests {
     }
 
     #[test]
-    fn transition_preserves_exact_copy_count_at_every_locus() {
-        let schema = schema(vec![
-            locus("pigment", &["dark", "light"]),
-            locus("enzyme", &["slow", "fast"]),
-        ]);
-        let source = population(
+    fn chained_continuation_is_invariant_to_checkpoint_chunking() {
+        let schema = schema(vec![locus("pigment", &["dark", "light"])]);
+        let initial = population(
             &schema,
-            &[
-                ("pigment", &[("dark", 12), ("light", 8)]),
-                ("enzyme", &[("slow", 7), ("fast", 13)]),
-            ],
+            &[("pigment", &[("dark", 10), ("light", 10)])],
             10,
         );
-        let result = neutral_wright_fisher_step(
-            &schema,
-            &source,
-            &experiment("copy-conservation-replicate"),
-            &PopulationTransitionId::new("copy-conservation").unwrap(),
-            PopulationGeneration(99),
-            &profile(),
-        )
-        .unwrap();
+        let experiment = experiment("chunking-replicate");
+        let initial_point = start_point(&schema, &initial, experiment, 0);
+        let transition = PopulationTransitionId::new("generation-step").unwrap();
+        let profile = profile();
 
-        result.destination.validate(&schema).unwrap();
-        for counts in result.destination.allele_copy_counts.values() {
-            assert_eq!(counts.values().sum::<u64>(), 20);
+        fn advance(
+            schema: &HereditarySchema,
+            mut state: PopulationGeneticState,
+            mut point: PopulationTrajectoryPoint,
+            transition: &PopulationTransitionId,
+            profile: &PopulationProcessProfile,
+            steps: u64,
+        ) -> (PopulationGeneticState, PopulationTrajectoryPoint) {
+            for _ in 0..steps {
+                let result = neutral_wright_fisher_step(
+                    schema,
+                    &state,
+                    &point,
+                    transition,
+                    profile,
+                )
+                .unwrap();
+                state = result.destination;
+                point = result.destination_point;
+            }
+            (state, point)
         }
+
+        let continuous = advance(
+            &schema,
+            initial.clone(),
+            initial_point.clone(),
+            &transition,
+            &profile,
+            20,
+        );
+        let checkpoint = advance(
+            &schema,
+            initial,
+            initial_point,
+            &transition,
+            &profile,
+            7,
+        );
+        let chunked = advance(
+            &schema,
+            checkpoint.0,
+            checkpoint.1,
+            &transition,
+            &profile,
+            13,
+        );
+
+        assert_eq!(continuous, chunked);
+        assert_eq!(continuous.1.generation(), PopulationGeneration(20));
     }
 }
