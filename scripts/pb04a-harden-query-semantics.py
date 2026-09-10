@@ -30,7 +30,7 @@ for marker in [
     "pub struct TopologyProfileRef",
     "pub profile_ref: TopologyProfileRef",
     "fn validate_snapshot_exact_ref_consistency(",
-    "MAX_BOUNDARY_EXACT_REFS",
+    "pub const MAX_BOUNDARY_EXACT_REFS: usize = 262_144;",
 ]:
     if s.count(marker) != 1:
         raise SystemExit(

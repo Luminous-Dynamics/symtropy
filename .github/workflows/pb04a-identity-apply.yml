@@ -62,7 +62,7 @@ jobs:
 
           check_blob 1d94ebb0a6819bfd1d95060920ec5b3d460194a9 scripts/pb04a-harden-content-identity.py
           check_blob e03de8d8e452af9720d24f8922081c5e00209022 scripts/pb04a-harden-global-source-consistency.py
-          check_blob 253cc6e94a23dd61a7b712b43862ddfb966e8872 scripts/pb04a-harden-query-semantics.py
+          check_blob 0790af59fc936515a1a9131ffe1a945e2696f7c6 scripts/pb04a-harden-query-semantics.py
           check_blob 14b41e0c1e010aa9ba4011cff90ded3e77e747f6 scripts/pb04a-seal-identity-state.py
 
       - name: Set up pinned Rust
@@ -78,6 +78,35 @@ jobs:
           python3 scripts/pb04a-harden-global-source-consistency.py
           python3 scripts/pb04a-harden-query-semantics.py
           python3 scripts/pb04a-seal-identity-state.py
+
+      - name: Verify exact diagnostic-proven transform output
+        shell: bash
+        run: |
+          set -euo pipefail
+          check_blob() {
+            expected="$1"
+            path="$2"
+            actual="$(git hash-object "$path")"
+            test "${actual}" = "${expected}" || {
+              echo "PB-04a transformed output drift: ${path}" >&2
+              echo "expected ${expected}" >&2
+              echo "actual   ${actual}" >&2
+              exit 1
+            }
+            echo "PB04A_TRANSFORMED_BLOB ${path} ${actual}"
+          }
+
+          check_blob 22e4b9ed397b7fd94d5918d0dc26868710794d17 crates/domains/symtropy-spatial-topology/Cargo.toml
+          check_blob e6148c6e575e21d7d543531deaf5ac5e0d36488b crates/domains/symtropy-spatial-topology/src/lib.rs
+          check_blob cdf6dda210433706381030073002b20123ae4a5d crates/domains/symtropy-spatial-topology/tests/hostile_projection.rs
+
+          patch_sha="$(git diff --binary --full-index --no-ext-diff -- \
+            crates/domains/symtropy-spatial-topology/Cargo.toml \
+            crates/domains/symtropy-spatial-topology/src/lib.rs \
+            crates/domains/symtropy-spatial-topology/tests/hostile_projection.rs \
+            | sha256sum | awk '{print $1}')"
+          test "${patch_sha}" = "4506212661bf870aaa1b09b0ff152df2a86946ac563e9d1d13ca9bcef27c21ef"
+          echo "PB04A_TRANSFORM_PATCH_SHA256=${patch_sha}"
 
       - name: Canonical formatting
         run: >-
