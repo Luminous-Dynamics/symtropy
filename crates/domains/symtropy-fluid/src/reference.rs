@@ -16,7 +16,9 @@ use crate::validation::{
     DiagnosticUnavailableReason, DiagnosticValueError, NonNegativeDiagnostic,
 };
 
-/// Semantic profile for the V0.1 CPU reference solver.
+/// Semantic profile for the V0.1 CPU reference solver. The scheme identifiers
+/// below are part of this profile's definition; changing one requires a profile
+/// version change.
 pub const PERIODIC_MAC2D_PROFILE_ID: &str = "periodic-mac2d-reference-v0.1";
 pub const ADVECTION_SCHEME_ID: &str = "donor-cell-upwind-v0.1";
 pub const DIFFUSION_SCHEME_ID: &str = "explicit-centered-laplacian-v0.1";
@@ -24,6 +26,8 @@ pub const PROJECTION_SCHEME_ID: &str = "periodic-jacobi-fixed-iterations-v0.1";
 pub const DIVERGENCE_SCHEME_ID: &str = "mac-face-flux-divergence-v0.1";
 pub const MAX_REFERENCE_CELLS: usize = 4_194_304;
 pub const MAX_PRESSURE_ITERATIONS: usize = 100_000;
+/// Sufficient monotonicity gate for the explicit donor-cell + diffusion update.
+pub const MAX_COMBINED_EXPLICIT_NUMBER: f64 = 1.0;
 
 /// Configuration of a two-dimensional periodic MAC-grid reference problem.
 #[derive(Clone, Debug, PartialEq)]
@@ -86,6 +90,12 @@ impl PeriodicMacConfig {
                 return Err(ReferenceConfigError::ExpectedPositiveFinite(name));
             }
         }
+        if self.max_advective_cfl > MAX_COMBINED_EXPLICIT_NUMBER {
+            return Err(ReferenceConfigError::AdvectiveLimitTooHigh);
+        }
+        if self.max_diffusion_number > 0.5 {
+            return Err(ReferenceConfigError::DiffusionLimitTooHigh);
+        }
         if !self.kinematic_viscosity_m2_s.is_finite() || self.kinematic_viscosity_m2_s < 0.0 {
             return Err(ReferenceConfigError::ExpectedNonNegativeFinite(
                 "kinematic_viscosity_m2_s",
@@ -105,11 +115,12 @@ impl PeriodicMacConfig {
         self.length_y_m / self.ny as f64
     }
 
-    /// Stable text identity for the numerical assumptions of this exact config.
-    /// Floating-point values are encoded by IEEE-754 bits, not display rounding.
+    /// Stable compact identity for the variable numerical assumptions of this
+    /// exact config. Scheme choices are frozen by [`PERIODIC_MAC2D_PROFILE_ID`].
+    /// Floating-point values use IEEE-754 bits, not display rounding.
     pub fn profile_identity(&self) -> String {
         format!(
-            "{PERIODIC_MAC2D_PROFILE_ID};nx={};ny={};lx={:016x};ly={:016x};depth={:016x};rho={:016x};nu={:016x};pit={};cfl={:016x};diff={:016x};adv={ADVECTION_SCHEME_ID};visc={DIFFUSION_SCHEME_ID};proj={PROJECTION_SCHEME_ID};div={DIVERGENCE_SCHEME_ID}",
+            "{PERIODIC_MAC2D_PROFILE_ID};n={}x{};L={:016x},{:016x};d={:016x};r={:016x};v={:016x};i={};c={:016x};q={:016x}",
             self.nx,
             self.ny,
             self.length_x_m.to_bits(),
@@ -130,6 +141,8 @@ pub enum ReferenceConfigError {
     GridTooLarge,
     ExpectedPositiveFinite(&'static str),
     ExpectedNonNegativeFinite(&'static str),
+    AdvectiveLimitTooHigh,
+    DiffusionLimitTooHigh,
     InvalidPressureIterations,
 }
 
@@ -142,6 +155,8 @@ impl fmt::Display for ReferenceConfigError {
             Self::ExpectedNonNegativeFinite(name) => {
                 write!(f, "{name} must be finite and >= 0")
             }
+            Self::AdvectiveLimitTooHigh => write!(f, "max_advective_cfl must be <= 1"),
+            Self::DiffusionLimitTooHigh => write!(f, "max_diffusion_number must be <= 0.5"),
             Self::InvalidPressureIterations => write!(
                 f,
                 "pressure_iterations must be between 1 and {MAX_PRESSURE_ITERATIONS}"
@@ -166,6 +181,9 @@ pub struct ReferenceStepReport {
     pub dt_s: f64,
     pub max_advective_cfl: f64,
     pub diffusion_number: f64,
+    /// `max_advective_cfl + 2 * diffusion_number`, the sufficient donor-cell
+    /// monotonicity quantity enforced by this V0 profile.
+    pub combined_explicit_number: f64,
     pub projection: ProjectionReport,
     pub non_finite_state_count: u64,
 }
@@ -175,6 +193,7 @@ pub enum ReferenceStepError {
     InvalidDt,
     CflLimitExceeded { observed: f64, limit: f64 },
     DiffusionLimitExceeded { observed: f64, limit: f64 },
+    CombinedExplicitLimitExceeded { observed: f64 },
     NonFiniteAcceleration { component: &'static str },
 }
 
@@ -188,6 +207,10 @@ impl fmt::Display for ReferenceStepError {
             Self::DiffusionLimitExceeded { observed, limit } => write!(
                 f,
                 "explicit diffusion number {observed} exceeds configured limit {limit}"
+            ),
+            Self::CombinedExplicitLimitExceeded { observed } => write!(
+                f,
+                "combined explicit number {observed} exceeds monotonicity limit {MAX_COMBINED_EXPLICIT_NUMBER}"
             ),
             Self::NonFiniteAcceleration { component } => {
                 write!(f, "forcing returned non-finite {component} acceleration")
@@ -311,11 +334,13 @@ impl PeriodicMac2d {
         })
     }
 
-    /// Standard square-periodic Taylor-Green velocity sampled on the MAC faces.
+    /// A Taylor-Green-like periodic mode sampled directly on MAC faces.
     ///
-    /// On a square domain with equal grid spacing this sampling makes the
-    /// discrete MAC divergence cancel to roundoff. Rectangular grids retain the
-    /// analytic field but should not claim exact discrete cancellation.
+    /// The y-velocity amplitude uses the ratio of the two discrete centered
+    /// derivative symbols. This makes the initializer divergence-free under the
+    /// exact MAC divergence operator used by this profile, including rectangular
+    /// grids/domains, while approaching the analytic `kx/ky` ratio with grid
+    /// refinement.
     pub fn taylor_green(
         config: PeriodicMacConfig,
         amplitude_mps: f64,
@@ -330,6 +355,9 @@ impl PeriodicMac2d {
         let dy = config.dy();
         let kx = std::f64::consts::TAU / config.length_x_m;
         let ky = std::f64::consts::TAU / config.length_y_m;
+        let discrete_kx = 2.0 * (0.5 * kx * dx).sin() / dx;
+        let discrete_ky = 2.0 * (0.5 * ky * dy).sin() / dy;
+        let v_amplitude = amplitude_mps * discrete_kx / discrete_ky;
 
         for j in 0..config.ny {
             for i in 0..config.nx {
@@ -339,7 +367,7 @@ impl PeriodicMac2d {
                 let xv = (i as f64 + 0.5) * dx;
                 let yv = j as f64 * dy;
                 u_faces[index] = amplitude_mps * (kx * xu).sin() * (ky * yu).cos();
-                v_faces[index] = -amplitude_mps * (kx * xv).cos() * (ky * yv).sin();
+                v_faces[index] = -v_amplitude * (kx * xv).cos() * (ky * yv).sin();
             }
         }
 
@@ -454,14 +482,15 @@ impl PeriodicMac2d {
     ///
     /// `acceleration(position_m, time_s)` returns body acceleration in m/s^2 at
     /// the queried face position. It is intentionally not called a generic
-    /// "force" to avoid a hidden density convention.
+    /// "force" to avoid a hidden density convention. The callback is `Fn`
+    /// rather than `FnMut` so evaluation order cannot change forcing state.
     pub fn step_with_acceleration<F>(
         &mut self,
         dt_s: f64,
-        mut acceleration: F,
+        acceleration: F,
     ) -> Result<ReferenceStepReport, ReferenceStepError>
     where
-        F: FnMut([f64; 2], f64) -> [f64; 2],
+        F: Fn([f64; 2], f64) -> [f64; 2],
     {
         if !dt_s.is_finite() || dt_s <= 0.0 {
             return Err(ReferenceStepError::InvalidDt);
@@ -486,6 +515,12 @@ impl PeriodicMac2d {
             return Err(ReferenceStepError::DiffusionLimitExceeded {
                 observed: diffusion_number,
                 limit: self.config.max_diffusion_number,
+            });
+        }
+        let combined_explicit_number = max_advective_cfl + 2.0 * diffusion_number;
+        if combined_explicit_number > MAX_COMBINED_EXPLICIT_NUMBER {
+            return Err(ReferenceStepError::CombinedExplicitLimitExceeded {
+                observed: combined_explicit_number,
             });
         }
 
@@ -528,7 +563,8 @@ impl PeriodicMac2d {
                 if !a[0].is_finite() {
                     return Err(ReferenceStepError::NonFiniteAcceleration { component: "x" });
                 }
-                next_u[index] = u + dt_s * (-u * du_dx - v_at_u * du_dy + nu * lap_u + a[0]);
+                next_u[index] =
+                    u + dt_s * (-u * du_dx - v_at_u * du_dy + nu * lap_u + a[0]);
 
                 let v = self.v_faces[index];
                 let u_at_v = 0.25
@@ -557,7 +593,8 @@ impl PeriodicMac2d {
                 if !a[1].is_finite() {
                     return Err(ReferenceStepError::NonFiniteAcceleration { component: "y" });
                 }
-                next_v[index] = v + dt_s * (-u_at_v * dv_dx - v * dv_dy + nu * lap_v + a[1]);
+                next_v[index] =
+                    v + dt_s * (-u_at_v * dv_dx - v * dv_dy + nu * lap_v + a[1]);
             }
         }
 
@@ -572,6 +609,7 @@ impl PeriodicMac2d {
             dt_s,
             max_advective_cfl,
             diffusion_number,
+            combined_explicit_number,
             projection,
             non_finite_state_count: self.non_finite_state_count(),
         };
@@ -581,11 +619,13 @@ impl PeriodicMac2d {
 
     pub fn diagnostics(&self) -> Result<ContinuumDiagnosticSample, ReferenceDiagnosticError> {
         let (cell_u, cell_v) = self.cell_centered_velocity();
-        let cell_area_volume = self.config.dx() * self.config.dy() * self.config.slab_depth_m;
+        let cell_volume = self.config.dx() * self.config.dy() * self.config.slab_depth_m;
         let kinetic_energy = cell_u
             .iter()
             .zip(&cell_v)
-            .map(|(u, v)| 0.5 * self.config.density_kg_m3 * (u * u + v * v) * cell_area_volume)
+            .map(|(u, v)| {
+                0.5 * self.config.density_kg_m3 * (u * u + v * v) * cell_volume
+            })
             .sum::<f64>();
         let max_speed = cell_u
             .iter()
@@ -594,7 +634,10 @@ impl PeriodicMac2d {
             .fold(0.0, f64::max);
         let (max_vorticity, max_strain) = self.vorticity_and_strain_max(&cell_u, &cell_v);
         let max_pressure_gradient = self.max_pressure_gradient_pa_per_m();
-        let last_cfl = self.last_step.as_ref().map(|report| report.max_advective_cfl);
+        let last_cfl = self
+            .last_step
+            .as_ref()
+            .map(|report| report.max_advective_cfl);
         let last_residual = self
             .last_step
             .as_ref()
@@ -606,7 +649,10 @@ impl PeriodicMac2d {
             time_s: self.time_s,
             max_resolved_speed_mps: measured("max_resolved_speed_mps", max_speed)?,
             kinetic_energy_j: measured("kinetic_energy_j", kinetic_energy)?,
-            divergence_rms_per_s: measured("divergence_rms_per_s", self.divergence_rms_per_s())?,
+            divergence_rms_per_s: measured(
+                "divergence_rms_per_s",
+                self.divergence_rms_per_s(),
+            )?,
             max_vorticity_per_s: measured("max_vorticity_per_s", max_vorticity)?,
             max_strain_rate_per_s: measured("max_strain_rate_per_s", max_strain)?,
             max_pressure_gradient_pa_per_m: measured(
@@ -643,8 +689,9 @@ impl PeriodicMac2d {
             for i in 0..self.config.nx {
                 let east = next(i, self.config.nx);
                 let index = self.index(i, j);
-                divergence[index] = (self.u_faces[self.index(east, j)] - self.u_faces[index]) / dx
-                    + (self.v_faces[self.index(i, north)] - self.v_faces[index]) / dy;
+                divergence[index] =
+                    (self.u_faces[self.index(east, j)] - self.u_faces[index]) / dx
+                        + (self.v_faces[self.index(i, north)] - self.v_faces[index]) / dy;
             }
         }
         divergence
@@ -708,7 +755,8 @@ impl PeriodicMac2d {
                 let dv_dy = (v[self.index(i, north)] - v[self.index(i, south)]) / dy2;
                 max_vorticity = max_vorticity.max((dv_dx - du_dy).abs());
                 let shear = 0.5 * (du_dy + dv_dx);
-                let strain_frobenius = (du_dx * du_dx + dv_dy * dv_dy + 2.0 * shear * shear).sqrt();
+                let strain_frobenius =
+                    (du_dx * du_dx + dv_dy * dv_dy + 2.0 * shear * shear).sqrt();
                 max_strain = max_strain.max(strain_frobenius);
             }
         }
@@ -764,7 +812,10 @@ fn rms(values: &[f64]) -> f64 {
 }
 
 fn max_abs(values: &[f64]) -> f64 {
-    values.iter().map(|value| value.abs()).fold(0.0, f64::max)
+    values
+        .iter()
+        .map(|value| value.abs())
+        .fold(0.0, f64::max)
 }
 
 fn measured(
@@ -843,14 +894,29 @@ mod tests {
         state
             .step_with_acceleration(0.01, |_, _| [1.0, -2.0])
             .unwrap();
-        assert!(state.u_faces().iter().all(|value| (*value - 0.01).abs() < 1.0e-15));
-        assert!(state.v_faces().iter().all(|value| (*value + 0.02).abs() < 1.0e-15));
+        assert!(
+            state
+                .u_faces()
+                .iter()
+                .all(|value| (*value - 0.01).abs() < 1.0e-15)
+        );
+        assert!(
+            state
+                .v_faces()
+                .iter()
+                .all(|value| (*value + 0.02).abs() < 1.0e-15)
+        );
         assert!(state.divergence_rms_per_s() < 1.0e-14);
     }
 
     #[test]
-    fn square_grid_taylor_green_is_discretely_divergence_free() {
-        let state = PeriodicMac2d::taylor_green(test_config(), 1.0).unwrap();
+    fn taylor_green_is_discretely_divergence_free() {
+        let mut config = test_config();
+        config.nx = 20;
+        config.ny = 12;
+        config.length_x_m = 7.0;
+        config.length_y_m = 5.0;
+        let state = PeriodicMac2d::taylor_green(config, 1.0).unwrap();
         assert!(state.divergence_rms_per_s() < 1.0e-13);
     }
 
@@ -892,13 +958,21 @@ mod tests {
         let diagnostics = state.diagnostics().unwrap();
         assert_eq!(diagnostics.validate(), Ok(()));
         assert_eq!(diagnostics.non_finite_state_count, 0);
-        assert!(diagnostics.max_resolved_speed_mps.measured_value().unwrap() > 0.0);
+        assert!(
+            diagnostics
+                .max_resolved_speed_mps
+                .measured_value()
+                .unwrap()
+                > 0.0
+        );
         assert!(diagnostics.kinetic_energy_j.measured_value().unwrap() > 0.0);
     }
 
     #[test]
-    fn profile_identity_changes_when_numerical_semantics_change() {
+    fn profile_identity_is_bounded_and_changes_with_numerical_semantics() {
         let a = test_config();
+        assert!(a.profile_identity().len() <= crate::validation::MAX_DIAGNOSTIC_PROFILE_BYTES);
+
         let mut b = a.clone();
         b.pressure_iterations += 1;
         assert_ne!(a.profile_identity(), b.profile_identity());
