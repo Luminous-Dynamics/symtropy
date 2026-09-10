@@ -173,7 +173,7 @@ fn zero_crossover_gamete_uses_one_whole_source_haplotype_per_chromosome() {
         let selected = &source.chromosomes[chromosome_id].haplotypes
             [usize::from(segment.source_haplotype_slot)];
         assert_eq!(&derived.gamete.chromosomes[chromosome_id], selected);
-        assert_eq!(segment.chromosome_id, *chromosome_id);
+        assert_eq!(&segment.chromosome_id, chromosome_id);
         assert_eq!(segment.interval, profile.domains[chromosome_id].interval);
     }
 
@@ -229,6 +229,52 @@ fn parent_role_is_part_of_the_semantic_draw_context() {
         );
     }
     assert_ne!(parent_a.gamete, parent_b.gamete);
+}
+
+#[test]
+fn identical_source_haplotypes_do_not_create_fake_homolog_identity() {
+    let schema = schema();
+    let map = chromosome_map(&schema);
+    let profile = zero_profile(&schema, &map);
+    let mut identical_source = source(&schema, &map);
+    identical_source.chromosomes.insert(
+        chromosome("chr-a"),
+        PhasedChromosomeState::new(
+            chromosome("chr-a"),
+            vec![hap(&["a0", "b0"]), hap(&["a0", "b0"])],
+        ),
+    );
+    identical_source.validate(&schema, &map).unwrap();
+
+    let parent_a = derive(
+        &schema,
+        &map,
+        &identical_source,
+        &profile,
+        "gamete-0001",
+        ParentRole::ParentA,
+    );
+    let parent_b = derive(
+        &schema,
+        &map,
+        &identical_source,
+        &profile,
+        "gamete-0001",
+        ParentRole::ParentB,
+    );
+
+    assert_eq!(
+        parent_a.provenance.segments()[&chromosome("chr-a")].source_haplotype_slot,
+        0
+    );
+    assert_eq!(
+        parent_b.provenance.segments()[&chromosome("chr-a")].source_haplotype_slot,
+        0
+    );
+    assert_eq!(
+        parent_a.gamete.chromosomes[&chromosome("chr-a")],
+        parent_b.gamete.chromosomes[&chromosome("chr-a")]
+    );
 }
 
 #[test]
