@@ -1,0 +1,126 @@
+name: Canonical Process Spec Wire Runner
+
+on:
+  pull_request:
+    branches: [ "main" ]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: canonical-process-spec-wire-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  qualify:
+    name: Apply and prove canonical F4 process contracts
+    runs-on: macos-latest
+    steps:
+      - name: Check out exact product branch
+        uses: actions/checkout@v4
+        with:
+          ref: fabrication/canonical-process-spec-wire
+          path: product
+
+      - name: Check out qualifier tools
+        uses: actions/checkout@v4
+        with:
+          ref: fabrication/canonical-process-spec-runner
+          path: runner-tools
+          persist-credentials: false
+
+      - name: Set up Rust 1.96
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.96.0
+          components: clippy, rustfmt
+
+      - name: Prove exact qualified parent
+        shell: bash
+        run: |
+          cd product
+          test "$(git rev-parse HEAD)" = "b712e14276b2e642fb1cab8f5f76e60cab07efd3"
+          test -z "$(git status --porcelain)"
+          cargo check --locked -p symtropy-fabrication --lib
+          cargo test --locked -p symtropy-fabrication --lib
+          cargo clippy --locked -p symtropy-fabrication --all-targets --all-features -- -D warnings
+
+      - name: Apply canonical F4 process-contract transformation
+        shell: bash
+        run: |
+          cd product
+          python ../runner-tools/.github/repair/canonical_process_spec_wire.py
+
+      - name: Canonicalize changed Fabrication source
+        shell: bash
+        run: |
+          cd product
+          cargo fmt -p symtropy-fabrication
+
+      - name: Verify exact semantic source scope
+        shell: bash
+        run: |
+          cd product
+          expected=$(cat <<'EOF'
+          crates/domains/symtropy-fabrication/src/executable_plan.rs
+          crates/domains/symtropy-fabrication/src/process.rs
+          crates/domains/symtropy-fabrication/src/process_evidence.rs
+          EOF
+          )
+          actual=$(git diff --name-only | sort)
+          test "$(printf '%s\n' "$actual")" = "$(printf '%s\n' "$expected" | sort)"
+          printf '%s\n' "$actual"
+
+      - name: Prove canonicality ownership moved to F4
+        shell: bash
+        run: |
+          cd product
+          test "$(grep -c 'pub fn validate_canonical(&self) -> Result<(), ProcessSpecSnapshotError>' crates/domains/symtropy-fabrication/src/process.rs)" -eq 2
+          ! grep -q '^fn validate_spec_snapshot' crates/domains/symtropy-fabrication/src/process_evidence.rs
+          ! grep -q '^const fn lifecycle_rank' crates/domains/symtropy-fabrication/src/process_evidence.rs
+          grep -q 'ProcessSpecSnapshotWire' crates/domains/symtropy-fabrication/src/process.rs
+          grep -q 'ProcessSpecWire' crates/domains/symtropy-fabrication/src/process.rs
+          grep -q 'NonCanonicalProcessSpec' crates/domains/symtropy-fabrication/src/executable_plan.rs
+
+      - name: Run locked Fabrication unit tests
+        shell: bash
+        run: |
+          cd product
+          cargo test --locked -p symtropy-fabrication --lib
+
+      - name: Run strict Rust 1.96 Fabrication Clippy
+        shell: bash
+        run: |
+          cd product
+          cargo clippy --locked -p symtropy-fabrication --all-targets --all-features -- -D warnings
+
+      - name: Check exact Construction consumer still compiles
+        shell: bash
+        run: |
+          cd product
+          cargo check --locked -p symtropy-construction --lib
+
+      - name: Prove lock and manifests stayed fixed
+        shell: bash
+        run: |
+          cd product
+          git diff --exit-code -- Cargo.lock Cargo.toml crates/domains/symtropy-fabrication/Cargo.toml crates/domains/symtropy-construction/Cargo.toml
+
+      - name: Commit semantic source only
+        shell: bash
+        run: |
+          cd product
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add \
+            crates/domains/symtropy-fabrication/src/process.rs \
+            crates/domains/symtropy-fabrication/src/process_evidence.rs \
+            crates/domains/symtropy-fabrication/src/executable_plan.rs
+          test -z "$(git diff --name-only)"
+          git commit -m "fix(fabrication): canonicalize F4 process authority across wire boundaries"
+
+      - name: Push exact qualified product head
+        shell: bash
+        run: |
+          cd product
+          git push origin HEAD:fabrication/canonical-process-spec-wire
