@@ -34,6 +34,7 @@ mod heredity;
 mod ids;
 mod linked_gamete;
 mod linked_gamete_evidence;
+mod linked_mutation;
 mod linked_offspring;
 mod linked_offspring_v2;
 mod marker_recombination;
@@ -171,6 +172,11 @@ pub use linked_gamete::{
 pub use linked_gamete_evidence::{
     LinkedGameteDerivationEvidence, LinkedGameteDerivationEvidenceDigest,
     LINKED_GAMETE_DERIVATION_EVIDENCE_VERSION,
+};
+pub use linked_mutation::{
+    execute_linked_mutations, LinkedMutationError, LinkedMutationExecution,
+    LinkedMutationExecutionDigest, LinkedMutationOpportunity, LinkedMutationOpportunityDigest,
+    LinkedMutationOutcome, NoMutationReason, LINKED_MUTATION_EXECUTION_VERSION,
 };
 pub use linked_offspring::{
     assemble_diploid_linked_offspring, DiploidLinkedOffspringDerivation,
