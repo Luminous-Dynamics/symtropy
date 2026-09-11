@@ -8,7 +8,7 @@ MUT-05B turns the mutation model from context-only authority into deterministic 
 
 `mutation opportunity != mutation origin != mutation realization != consequence != selection`.
 
-V1 executes every modeled-locus opportunity on every newly materialized persistent descendant chromosome copy, records both mutation and no-mutation outcomes, and constructs the resulting canonical phased child state.
+V1 executes every modeled-locus opportunity on every newly materialized persistent descendant chromosome copy, records both mutation and no-mutation outcomes, and constructs both the resulting canonical phased child state and its post-mutation ancestry sidecar.
 
 ## Compatibility boundary
 
@@ -65,10 +65,27 @@ Mutation executes before child homolog rows are canonicalized:
 `-> copy-specific mutation opportunities`
 `-> role-associated mutated haplotypes`
 `-> canonical PhasedHereditaryState`
+`-> post-mutation PhasedAncestryState`
 
 This is essential. The implementation never asks a sorted child row which parent it came from.
 
 If ParentA and ParentB contributed equal haplotypes before mutation, the ancestry layer correctly represents their copy identities as an equal-content class. A copy-specific mutation may create distinguishable post-mutation content, but that new evidence does not retroactively assign biological meaning to the old canonical row positions.
+
+## Ancestry continuity after mutation
+
+The unmutated descendant ancestry sidecar is content-classed against the unmutated child digest, so it cannot simply be reused after a mutation changes haplotype content.
+
+MUT-05B therefore reclassifies the **same persistent descendant copy IDs** against the post-mutation haplotypes and emits a new `PhasedAncestryState` bound to the mutated child.
+
+For each chromosome:
+
+- equal post-mutation haplotypes share one ancestry content class containing both persistent copy IDs;
+- distinct post-mutation haplotypes receive separate classes in the same lexicographic order used by `PhasedChromosomeState`;
+- no new ancestry-copy identity is minted merely because mutation changed content.
+
+This preserves lineage identity while allowing mutation to split or merge content-equivalence classes. The resulting mutated child plus mutated ancestry sidecar can therefore serve as authoritative parent input for a later generation.
+
+The ancestry graph itself does not need new inheritance edges for the substitution: the child's source ancestry remains the same. Mutation origin/realization records the state change on that existing descendant copy.
 
 ## Mutation origin integration
 
@@ -93,7 +110,8 @@ Therefore:
 - reproduction event;
 - exact unmutated child digest;
 - canonical opportunity stream;
-- exact mutated child digest and state.
+- exact mutated child digest and state;
+- exact post-mutation ancestry-sidecar digest and state.
 
 The opportunity sequence is generated canonically by chromosome-map order, then ParentA before ParentB, then mapped-locus order.
 
@@ -103,7 +121,7 @@ Deserialization alone grants no biological authority.
 
 `LinkedMutationExecution::validate_current(...)` must replay from the exact current schema, map, operator profile, linked gametes, parent ancestry, descendant ancestry, and graph. Exact structural equality with the restored execution is required.
 
-Operator drift, gamete drift, ancestry drift, event drift, graph-local history drift, opportunity tampering, or mutated-state tampering must therefore fail closed.
+Operator drift, gamete drift, ancestry drift, event drift, graph-local history drift, opportunity tampering, mutated-state tampering, or post-mutation ancestry tampering must therefore fail closed.
 
 ## Explicit non-claims
 
@@ -123,15 +141,17 @@ Those belong to later authorities.
 
 Source-level fixtures should establish at minimum:
 
-- zero rate records every opportunity as `RateMiss` and preserves the unmutated child;
+- zero rate records every opportunity as `RateMiss`, preserves the unmutated child, and preserves an equivalent ancestry sidecar;
 - maximum rate substitutes every multi-allelic opportunity;
 - a monomorphic locus records `NoAlternativeAllele` even at maximum rate;
 - every substitution carries a valid MUT-05A origin with the exact unmutated ancestral allele;
+- post-mutation ancestry validates against the mutated child and preserves the exact persistent descendant copy set;
 - ParentA and ParentB opportunities remain copy-distinct even for equal pre-mutation haplotypes;
+- mutation can split/merge ancestry content classes without minting new copy identity;
 - canonical child row sorting does not become mutation identity;
 - replay/Serde are exact;
 - operator-rate drift fails replay;
-- opportunity or mutated-state tampering fails replay;
+- opportunity, mutated-state, or mutated-ancestry tampering fails replay;
 - execution contains no fitness/selection fields.
 
 These are source assertions until the exact branch head executes in a captured qualification environment.
