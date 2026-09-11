@@ -147,9 +147,9 @@ impl ContinuumProblemRevisionEnvelope {
             ),
         ] {
             if envelope != policy {
-                return Err(ContinuumProblemRevisionEnvelopeError::PolicyIdentityMismatch {
-                    field,
-                });
+                return Err(
+                    ContinuumProblemRevisionEnvelopeError::PolicyIdentityMismatch { field },
+                );
             }
         }
         Ok(())
@@ -180,7 +180,10 @@ impl fmt::Display for ContinuumProblemRevisionEnvelopeError {
                 write!(f, "{field} must not exceed {max_bytes} bytes")
             }
             Self::PolicyIdentityMismatch { field } => {
-                write!(f, "problem revision envelope does not match policy input field {field}")
+                write!(
+                    f,
+                    "problem revision envelope does not match policy input field {field}"
+                )
             }
         }
     }
@@ -226,7 +229,7 @@ fn validate_id(
 mod tests {
     use super::*;
     use crate::refinement_policy_contract::{
-        EvidenceFreshness, RefinementAuthorityState, REFINEMENT_POLICY_CONTRACT_SCHEMA_ID,
+        EvidenceFreshness, REFINEMENT_POLICY_CONTRACT_SCHEMA_ID, RefinementAuthorityState,
     };
     use crate::validation::ContinuumValidityState;
 
@@ -345,7 +348,9 @@ mod tests {
 
     #[test]
     fn serialization_contains_no_renderer_or_backend_selection_fields() {
-        let json = serde_json::to_string(&envelope()).unwrap().to_ascii_lowercase();
+        let json = serde_json::to_string(&envelope())
+            .unwrap()
+            .to_ascii_lowercase();
         for forbidden in ["camera", "fps", "gpu_load", "cpu_load", "backend_id"] {
             assert!(!json.contains(forbidden));
         }
