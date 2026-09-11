@@ -1,0 +1,30 @@
+name: Fluid Rustfmt Helper
+
+on:
+  push:
+    branches: [ "ci/fluid-rustfmt-update-defect-v0.1" ]
+
+jobs:
+  format:
+    runs-on: macos-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.96.0
+          components: rustfmt
+      - name: Canonical rustfmt
+        run: cargo fmt --all
+      - name: Show formatter delta
+        run: git diff -- crates/domains/symtropy-fluid/src/manufactured_update_defect.rs crates/domains/symtropy-fluid/examples/manufactured_update_defect_evidence.rs crates/domains/symtropy-fluid/src/lib.rs
+      - name: Commit canonical formatter output on helper branch
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add crates/domains/symtropy-fluid/src/manufactured_update_defect.rs crates/domains/symtropy-fluid/examples/manufactured_update_defect_evidence.rs crates/domains/symtropy-fluid/src/lib.rs
+          git diff --cached --quiet && exit 0
+          git commit -m 'chore(fluid): canonicalize Rust 1.96 formatting'
+          git push
