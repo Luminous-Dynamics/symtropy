@@ -32,6 +32,7 @@ mod gamete_ancestry;
 mod haldane;
 mod heredity;
 mod ids;
+mod linked_census_projection;
 mod linked_gamete;
 mod linked_gamete_evidence;
 mod linked_mutation;
@@ -164,6 +165,10 @@ pub use ids::{
     HereditarySchemaId, LocusId, OperatorProfileId, PopulationId,
     PopulationProcessProfileId, PopulationStructureProfileId, PopulationTransitionId,
     ReproductionEventId,
+};
+pub use linked_census_projection::{
+    project_declared_linked_census, LinkedCensusProjection, LinkedCensusProjectionDigest,
+    LinkedCensusProjectionError, LINKED_CENSUS_PROJECTION_VERSION,
 };
 pub use linked_gamete::{
     derive_zero_crossover_linked_gamete, ChromosomeHaplotypeDigest, LinkedGamete,
