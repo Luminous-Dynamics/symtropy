@@ -21,7 +21,8 @@ use crate::validation::{
 use crate::vorticity_concentration_scale::{
     VORTICITY_CONCENTRATION_SCALE_OPERATOR_ID, VORTICITY_CONCENTRATION_SCALE_SCHEMA_ID,
     VorticityConcentrationScaleError, VorticityConcentrationScaleReport,
-    VorticityConcentrationScaleValue, measure_vorticity_concentration_scale,
+    VorticityConcentrationScaleUnavailableReason, VorticityConcentrationScaleValue,
+    measure_vorticity_concentration_scale,
 };
 
 pub const CONCENTRATION_DIAGNOSTIC_HYDRATION_SCHEMA_ID: &str =
@@ -44,17 +45,18 @@ pub struct ConcentrationDiagnosticHydration {
 impl ConcentrationDiagnosticHydration {
     /// Validate the serialized relationship between the generic sample and the
     /// estimator evidence without requiring the original solver state.
+    ///
+    /// In addition to cross-linking the sample/profile/value, this deliberately
+    /// revalidates the retained estimator metadata. A serialized receipt must
+    /// not be able to smuggle non-finite geometry/derived metrics or mutually
+    /// inconsistent scale fields past the stronger invariants that held when
+    /// the report was originally measured.
     pub fn validate(&self) -> Result<(), ConcentrationDiagnosticHydrationError> {
         if self.schema_id != CONCENTRATION_DIAGNOSTIC_HYDRATION_SCHEMA_ID {
             return Err(ConcentrationDiagnosticHydrationError::UnsupportedSchemaId);
         }
         self.diagnostic_sample.validate()?;
-
-        if self.concentration_report.schema_id != VORTICITY_CONCENTRATION_SCALE_SCHEMA_ID
-            || self.concentration_report.operator_id != VORTICITY_CONCENTRATION_SCALE_OPERATOR_ID
-        {
-            return Err(ConcentrationDiagnosticHydrationError::EstimatorIdentityMismatch);
-        }
+        validate_concentration_report(&self.concentration_report)?;
 
         let expected_diagnostic_profile = format!(
             "{};concentration_scale_operator={VORTICITY_CONCENTRATION_SCALE_OPERATOR_ID}",
@@ -98,6 +100,7 @@ pub enum ConcentrationDiagnosticHydrationError {
     Sample(ContinuumSampleError),
     UnsupportedSchemaId,
     EstimatorIdentityMismatch,
+    EstimatorMetadataInvalid(&'static str),
     DiagnosticProfileMismatch,
     TimeMismatch,
     ConcentrationMismatch,
@@ -119,6 +122,9 @@ impl fmt::Display for ConcentrationDiagnosticHydrationError {
                 f,
                 "concentration report schema/operator identity does not match the hydration contract"
             ),
+            Self::EstimatorMetadataInvalid(field) => {
+                write!(f, "retained concentration report metadata is invalid: {field}")
+            }
             Self::DiagnosticProfileMismatch => write!(
                 f,
                 "solver and concentration estimator diagnostic profile identities do not compose exactly"
@@ -198,11 +204,177 @@ pub fn hydrate_vorticity_concentration_diagnostic(
     Ok(hydration)
 }
 
+fn validate_concentration_report(
+    report: &VorticityConcentrationScaleReport,
+) -> Result<(), ConcentrationDiagnosticHydrationError> {
+    if report.schema_id != VORTICITY_CONCENTRATION_SCALE_SCHEMA_ID
+        || report.operator_id != VORTICITY_CONCENTRATION_SCALE_OPERATOR_ID
+    {
+        return Err(ConcentrationDiagnosticHydrationError::EstimatorIdentityMismatch);
+    }
+    if report.solver_profile.trim().is_empty() || report.diagnostic_profile.trim().is_empty() {
+        return Err(ConcentrationDiagnosticHydrationError::EstimatorMetadataInvalid(
+            "profile_identity",
+        ));
+    }
+    if !report.time_s.is_finite() || report.time_s < 0.0 {
+        return Err(ConcentrationDiagnosticHydrationError::EstimatorMetadataInvalid(
+            "time_s",
+        ));
+    }
+    if report.nx == 0 || report.ny == 0 {
+        return Err(ConcentrationDiagnosticHydrationError::EstimatorMetadataInvalid(
+            "grid_shape",
+        ));
+    }
+
+    for (name, value) in [
+        ("dx_m", report.dx_m),
+        ("dy_m", report.dy_m),
+        ("minimum_grid_spacing_m", report.minimum_grid_spacing_m),
+        ("maximum_grid_spacing_m", report.maximum_grid_spacing_m),
+        (
+            "minimum_axis_nyquist_wavenumber_per_m",
+            report.minimum_axis_nyquist_wavenumber_per_m,
+        ),
+    ] {
+        if !value.is_finite() || value <= 0.0 {
+            return Err(ConcentrationDiagnosticHydrationError::EstimatorMetadataInvalid(
+                name,
+            ));
+        }
+    }
+    for (name, value) in [
+        ("rms_vorticity_per_s", report.rms_vorticity_per_s),
+        (
+            "rms_vorticity_gradient_per_m_s",
+            report.rms_vorticity_gradient_per_m_s,
+        ),
+        (
+            "mean_vorticity_squared_per_s2",
+            report.mean_vorticity_squared_per_s2,
+        ),
+        (
+            "mean_vorticity_gradient_squared_per_m2_s2",
+            report.mean_vorticity_gradient_squared_per_m2_s2,
+        ),
+        (
+            "maximum_absolute_vorticity_per_s",
+            report.maximum_absolute_vorticity_per_s,
+        ),
+    ] {
+        if !value.is_finite() || value < 0.0 {
+            return Err(ConcentrationDiagnosticHydrationError::EstimatorMetadataInvalid(
+                name,
+            ));
+        }
+    }
+
+    if report.minimum_grid_spacing_m.to_bits() != report.dx_m.min(report.dy_m).to_bits() {
+        return Err(ConcentrationDiagnosticHydrationError::EstimatorMetadataInvalid(
+            "minimum_grid_spacing_m",
+        ));
+    }
+    if report.maximum_grid_spacing_m.to_bits() != report.dx_m.max(report.dy_m).to_bits() {
+        return Err(ConcentrationDiagnosticHydrationError::EstimatorMetadataInvalid(
+            "maximum_grid_spacing_m",
+        ));
+    }
+    let expected_nyquist =
+        (std::f64::consts::PI / report.dx_m).min(std::f64::consts::PI / report.dy_m);
+    if report.minimum_axis_nyquist_wavenumber_per_m.to_bits() != expected_nyquist.to_bits() {
+        return Err(ConcentrationDiagnosticHydrationError::EstimatorMetadataInvalid(
+            "minimum_axis_nyquist_wavenumber_per_m",
+        ));
+    }
+
+    if report.rms_vorticity_per_s.to_bits()
+        != report.mean_vorticity_squared_per_s2.sqrt().to_bits()
+    {
+        return Err(ConcentrationDiagnosticHydrationError::EstimatorMetadataInvalid(
+            "rms_vorticity_per_s",
+        ));
+    }
+    if report.rms_vorticity_gradient_per_m_s.to_bits()
+        != report
+            .mean_vorticity_gradient_squared_per_m2_s2
+            .sqrt()
+            .to_bits()
+    {
+        return Err(ConcentrationDiagnosticHydrationError::EstimatorMetadataInvalid(
+            "rms_vorticity_gradient_per_m_s",
+        ));
+    }
+
+    match report.scale {
+        VorticityConcentrationScaleValue::Measured {
+            length_m,
+            cells_per_length,
+            inverse_length_wavenumber_proxy_per_m,
+            inverse_length_to_minimum_axis_nyquist_ratio,
+        } => {
+            for (name, value) in [
+                ("length_m", length_m),
+                ("cells_per_length", cells_per_length),
+                (
+                    "inverse_length_wavenumber_proxy_per_m",
+                    inverse_length_wavenumber_proxy_per_m,
+                ),
+                (
+                    "inverse_length_to_minimum_axis_nyquist_ratio",
+                    inverse_length_to_minimum_axis_nyquist_ratio,
+                ),
+            ] {
+                if !value.is_finite() || value <= 0.0 {
+                    return Err(ConcentrationDiagnosticHydrationError::EstimatorMetadataInvalid(
+                        name,
+                    ));
+                }
+            }
+            if report.rms_vorticity_per_s == 0.0
+                || report.rms_vorticity_gradient_per_m_s == 0.0
+            {
+                return Err(ConcentrationDiagnosticHydrationError::EstimatorMetadataInvalid(
+                    "measured_scale_zero_source",
+                ));
+            }
+            let expected_length =
+                report.rms_vorticity_per_s / report.rms_vorticity_gradient_per_m_s;
+            let expected_cells = expected_length / report.maximum_grid_spacing_m;
+            let expected_inverse = 1.0 / expected_length;
+            let expected_ratio = expected_inverse / report.minimum_axis_nyquist_wavenumber_per_m;
+            if length_m.to_bits() != expected_length.to_bits()
+                || cells_per_length.to_bits() != expected_cells.to_bits()
+                || inverse_length_wavenumber_proxy_per_m.to_bits() != expected_inverse.to_bits()
+                || inverse_length_to_minimum_axis_nyquist_ratio.to_bits()
+                    != expected_ratio.to_bits()
+            {
+                return Err(ConcentrationDiagnosticHydrationError::EstimatorMetadataInvalid(
+                    "measured_scale_relationship",
+                ));
+            }
+        }
+        VorticityConcentrationScaleValue::Unavailable(reason) => match reason {
+            VorticityConcentrationScaleUnavailableReason::ZeroVorticity
+                if report.rms_vorticity_per_s == 0.0 => {}
+            VorticityConcentrationScaleUnavailableReason::ZeroVorticityGradient
+                if report.rms_vorticity_per_s > 0.0
+                    && report.rms_vorticity_gradient_per_m_s == 0.0 => {}
+            _ => {
+                return Err(ConcentrationDiagnosticHydrationError::EstimatorMetadataInvalid(
+                    "unavailable_scale_reason",
+                ));
+            }
+        },
+    }
+
+    Ok(())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
     use crate::reference::PeriodicMacConfig;
-    use crate::vorticity_concentration_scale::VorticityConcentrationScaleUnavailableReason;
 
     #[test]
     fn measured_hydration_changes_only_profile_and_concentration_field() {
@@ -274,6 +446,43 @@ mod tests {
         assert_eq!(
             wrong_value.validate().unwrap_err(),
             ConcentrationDiagnosticHydrationError::ConcentrationMismatch
+        );
+    }
+
+    #[test]
+    fn retained_report_rejects_non_finite_and_inconsistent_metadata() {
+        let state = PeriodicMac2d::taylor_green(PeriodicMacConfig::default(), 1.0).unwrap();
+        let hydrated = hydrate_vorticity_concentration_diagnostic(&state).unwrap();
+
+        let mut non_finite = hydrated.clone();
+        non_finite.concentration_report.dx_m = f64::NAN;
+        assert_eq!(
+            non_finite.validate().unwrap_err(),
+            ConcentrationDiagnosticHydrationError::EstimatorMetadataInvalid("dx_m")
+        );
+
+        let mut wrong_spacing = hydrated.clone();
+        wrong_spacing.concentration_report.minimum_grid_spacing_m *= 2.0;
+        assert_eq!(
+            wrong_spacing.validate().unwrap_err(),
+            ConcentrationDiagnosticHydrationError::EstimatorMetadataInvalid(
+                "minimum_grid_spacing_m"
+            )
+        );
+
+        let mut wrong_scale = hydrated;
+        if let VorticityConcentrationScaleValue::Measured {
+            ref mut cells_per_length,
+            ..
+        } = wrong_scale.concentration_report.scale
+        {
+            *cells_per_length *= 2.0;
+        }
+        assert_eq!(
+            wrong_scale.validate().unwrap_err(),
+            ConcentrationDiagnosticHydrationError::EstimatorMetadataInvalid(
+                "measured_scale_relationship"
+            )
         );
     }
 }
