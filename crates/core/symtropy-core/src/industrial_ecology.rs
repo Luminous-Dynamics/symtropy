@@ -135,17 +135,20 @@ impl IndustrialEcology {
         Self::build(dependencies, capabilities, None)
     }
 
-    /// Construct an ecology where every positive local production/recycling flow
-    /// is gated by explicit prerequisite dependencies.
+    /// Construct an ecology where every initially positive local production/recycling
+    /// flow is gated by explicit prerequisite dependencies.
     ///
     /// A prerequisite shortage observed in tick N suppresses the dependent flow in
-    /// tick N+1. This is simulation behavior only; qualification/bootstrap evidence
-    /// remains owned by higher-level design/evidence systems.
+    /// tick N+1. Later capacity loss may set a modeled flow to zero without deleting
+    /// its prerequisite relationship; enabling a previously unmodeled positive flow
+    /// still fails closed. Qualification/bootstrap evidence remains owned by
+    /// higher-level design/evidence systems.
     pub fn new_with_flow_prerequisites(
         dependencies: impl IntoIterator<Item = IndustrialDependencyState>,
         capabilities: Vec<IndustrialCapability>,
         flow_prerequisites: Vec<IndustrialFlowPrerequisite>,
     ) -> Result<Self, IndustrialEcologyError> {
+        let dependencies: Vec<_> = dependencies.into_iter().collect();
         let mut map = BTreeMap::new();
         for flow in flow_prerequisites {
             flow.validate()?;
@@ -156,6 +159,11 @@ impl IndustrialEcology {
                     flow_kind: key.1,
                 });
             }
+        }
+        let expected = positive_flow_keys(&dependencies);
+        let actual: BTreeSet<_> = map.keys().cloned().collect();
+        if expected != actual {
+            return Err(IndustrialEcologyError::FlowPrerequisiteCoverageMismatch);
         }
         Self::build(dependencies, capabilities, Some(map))
     }
@@ -253,36 +261,18 @@ impl IndustrialEcology {
             if flow_prerequisites.len() > MAX_MODEL_ITEMS {
                 return Err(IndustrialEcologyError::ModelTooLarge);
             }
-            let mut expected = BTreeSet::new();
-            for dependency in self.dependencies.values() {
-                if dependency.local_production_units_per_tick > 0 {
-                    expected.insert((dependency.dependency_id.clone(), IndustrialFlowKind::Production));
-                }
-                if dependency.recycling_units_per_tick > 0 {
-                    expected.insert((dependency.dependency_id.clone(), IndustrialFlowKind::Recycling));
-                }
-            }
-            let actual: BTreeSet<_> = flow_prerequisites.keys().cloned().collect();
-            if expected != actual {
+            let current_positive = positive_flow_keys(self.dependencies.values());
+            let modeled: BTreeSet<_> = flow_prerequisites.keys().cloned().collect();
+            if !current_positive.is_subset(&modeled) {
                 return Err(IndustrialEcologyError::FlowPrerequisiteCoverageMismatch);
             }
-            for ((dependency_id, flow_kind), flow) in flow_prerequisites {
+            for ((dependency_id, _flow_kind), flow) in flow_prerequisites {
                 flow.validate()?;
-                let dependency = self.dependencies.get(dependency_id).ok_or_else(|| {
+                self.dependencies.get(dependency_id).ok_or_else(|| {
                     IndustrialEcologyError::UnknownDependency {
                         dependency_id: dependency_id.clone(),
                     }
                 })?;
-                let positive = match flow_kind {
-                    IndustrialFlowKind::Production => dependency.local_production_units_per_tick > 0,
-                    IndustrialFlowKind::Recycling => dependency.recycling_units_per_tick > 0,
-                };
-                if !positive {
-                    return Err(IndustrialEcologyError::FlowPrerequisiteForAbsentFlow {
-                        dependency_id: dependency_id.clone(),
-                        flow_kind: *flow_kind,
-                    });
-                }
                 for prerequisite in &flow.prerequisite_dependency_ids {
                     if !self.dependencies.contains_key(prerequisite) {
                         return Err(IndustrialEcologyError::UnknownFlowPrerequisite {
@@ -322,18 +312,16 @@ impl IndustrialEcology {
         }
         candidate.validate()?;
 
-        if let Some(flow_prerequisites) = &self.flow_prerequisites {
-            let old = self.dependencies.insert(dependency_id.clone(), candidate.clone());
+        if self.flow_prerequisites.is_some() {
+            let old = self.dependencies.insert(dependency_id.clone(), candidate);
             let validation = self.validate();
-            match validation {
-                Ok(()) => return Ok(()),
-                Err(error) => {
-                    if let Some(previous) = old {
-                        self.dependencies.insert(dependency_id, previous);
-                    }
-                    return Err(error);
+            if let Err(error) = validation {
+                if let Some(previous) = old {
+                    self.dependencies.insert(dependency_id, previous);
                 }
+                return Err(error);
             }
+            return Ok(());
         }
         self.dependencies.insert(dependency_id, candidate);
         Ok(())
@@ -481,6 +469,22 @@ impl IndustrialEcology {
     }
 }
 
+fn positive_flow_keys(
+    dependencies: impl IntoIterator<Item = impl std::borrow::Borrow<IndustrialDependencyState>>,
+) -> BTreeSet<(String, IndustrialFlowKind)> {
+    let mut flows = BTreeSet::new();
+    for dependency in dependencies {
+        let dependency = dependency.borrow();
+        if dependency.local_production_units_per_tick > 0 {
+            flows.insert((dependency.dependency_id.clone(), IndustrialFlowKind::Production));
+        }
+        if dependency.recycling_units_per_tick > 0 {
+            flows.insert((dependency.dependency_id.clone(), IndustrialFlowKind::Recycling));
+        }
+    }
+    flows
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum IndustrialShock {
     SetLocalProduction {
@@ -557,10 +561,6 @@ pub enum IndustrialEcologyError {
         flow_kind: IndustrialFlowKind,
     },
     DuplicateFlowPrerequisite {
-        dependency_id: String,
-        flow_kind: IndustrialFlowKind,
-    },
-    FlowPrerequisiteForAbsentFlow {
         dependency_id: String,
         flow_kind: IndustrialFlowKind,
     },
@@ -825,7 +825,7 @@ mod tests {
     }
 
     #[test]
-    fn flow_prerequisite_constructor_requires_complete_positive_flow_coverage() {
+    fn flow_prerequisite_constructor_requires_exact_initial_positive_flow_coverage() {
         let dependency = dep("widgets", IndustrialGovernance::Ordinary, 10, 10, 0, 0);
         let result = IndustrialEcology::new_with_flow_prerequisites(
             [dependency],
@@ -837,5 +837,78 @@ mod tests {
             Vec::new(),
         );
         assert_eq!(result, Err(IndustrialEcologyError::FlowPrerequisiteCoverageMismatch));
+    }
+
+    #[test]
+    fn capacity_can_drop_to_zero_without_erasing_the_prerequisite_relationship() {
+        let dependencies = vec![
+            dep("metrology", IndustrialGovernance::Ordinary, 1, 0, 0, 5),
+            dep("widgets", IndustrialGovernance::Ordinary, 10, 10, 0, 20),
+        ];
+        let capabilities = vec![IndustrialCapability {
+            capability_id: "widget-service".into(),
+            essential: true,
+            dependency_ids: BTreeSet::from(["widgets".into()]),
+        }];
+        let flow = IndustrialFlowPrerequisite {
+            dependency_id: "widgets".into(),
+            flow_kind: IndustrialFlowKind::Production,
+            prerequisite_dependency_ids: BTreeSet::from(["metrology".into()]),
+        };
+        let mut sim = IndustrialEcology::new_with_flow_prerequisites(
+            dependencies,
+            capabilities,
+            vec![flow],
+        )
+        .unwrap();
+        assert_eq!(
+            sim.apply_shock(IndustrialShock::SetLocalProduction {
+                dependency_id: "widgets".into(),
+                units_per_tick: 0,
+            }),
+            Ok(())
+        );
+        assert!(sim.validate().is_ok());
+        assert_eq!(
+            sim.apply_shock(IndustrialShock::SetLocalProduction {
+                dependency_id: "widgets".into(),
+                units_per_tick: 10,
+            }),
+            Ok(())
+        );
+        assert!(sim.validate().is_ok());
+    }
+
+    #[test]
+    fn previously_unmodeled_flow_cannot_be_enabled_under_prerequisite_mode() {
+        let dependencies = vec![
+            dep("metrology", IndustrialGovernance::Ordinary, 1, 0, 0, 5),
+            dep("widgets", IndustrialGovernance::Ordinary, 10, 10, 0, 20),
+        ];
+        let capabilities = vec![IndustrialCapability {
+            capability_id: "widget-service".into(),
+            essential: true,
+            dependency_ids: BTreeSet::from(["widgets".into()]),
+        }];
+        let flow = IndustrialFlowPrerequisite {
+            dependency_id: "widgets".into(),
+            flow_kind: IndustrialFlowKind::Production,
+            prerequisite_dependency_ids: BTreeSet::from(["metrology".into()]),
+        };
+        let mut sim = IndustrialEcology::new_with_flow_prerequisites(
+            dependencies,
+            capabilities,
+            vec![flow],
+        )
+        .unwrap();
+        let before = sim.clone();
+        assert_eq!(
+            sim.apply_shock(IndustrialShock::SetRecycling {
+                dependency_id: "widgets".into(),
+                units_per_tick: 1,
+            }),
+            Err(IndustrialEcologyError::FlowPrerequisiteCoverageMismatch)
+        );
+        assert_eq!(sim, before);
     }
 }
