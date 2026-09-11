@@ -8,6 +8,7 @@ on:
       - ".github/workflows/terrain-exact-geometry-authority-self-apply.yml"
       - "scripts/terrain-integrate-exact-geometry-authority.py"
       - "crates/domains/symtropy-terrain/src/geometry_authority.rs"
+      - "crates/domains/symtropy-terrain/tests/geometry_authority_golden.rs"
 
 permissions:
   contents: write
@@ -33,20 +34,26 @@ jobs:
           base=3cb63c80a273a5f6f41b6eeafbc11cb97f7aaac7
           kernel_head=3de897b333a61de5ab26a92dc69d7aed87cd312e
           transform_head=f1b33cc601dd9b6486fdc301f31a61d659dfd21f
+          workflow_v1_head=e759e4a2e97f522839619cc203050d19cacdc279
+          golden_head=edc1986a5c27d0e00550f2369a11e0029f5e2b09
           test "$(git rev-parse HEAD)" = "${GITHUB_SHA}"
-          test "$(git rev-parse HEAD^)" = "${transform_head}"
-          test "$(git rev-parse HEAD^^)" = "${kernel_head}"
-          test "$(git rev-parse HEAD^^^)" = "${base}"
+          test "$(git rev-parse HEAD^)" = "${golden_head}"
+          test "$(git rev-parse HEAD^^)" = "${workflow_v1_head}"
+          test "$(git rev-parse HEAD^^^)" = "${transform_head}"
+          test "$(git rev-parse HEAD^^^^)" = "${kernel_head}"
+          test "$(git rev-parse HEAD^^^^^)" = "${base}"
           test "$(git rev-parse ${base}^{tree})" = "fbdfb6e0543fa3bce1ef73d655bf5efdc46c3739"
           test "$(git rev-parse HEAD:crates/domains/symtropy-terrain/Cargo.toml)" = "6b3dd8cc5ede90833caecd6568757c42ecc97509"
           test "$(git rev-parse HEAD:crates/domains/symtropy-terrain/src/lib.rs)" = "bbf60ddd18fbe3a5933afda0b1d068df5540bd46"
           test "$(git rev-parse HEAD:crates/domains/symtropy-terrain/src/geometry_authority.rs)" = "9a6ec7076b54d7da9525e31dd8aa2258174ab5ea"
+          test "$(git rev-parse HEAD:crates/domains/symtropy-terrain/tests/geometry_authority_golden.rs)" = "3ce0c63c9a73c86f9943bc85b115bc7d69ee9dca"
           test "$(git rev-parse HEAD:scripts/terrain-integrate-exact-geometry-authority.py)" = "81348cea2294e46df3354a549d5642953b3af5ca"
 
           actual_source_delta="$(git diff --name-only ${base}..HEAD | sort -u)"
           expected_source_delta="$(printf '%s\n' \
             .github/workflows/terrain-exact-geometry-authority-self-apply.yml \
             crates/domains/symtropy-terrain/src/geometry_authority.rs \
+            crates/domains/symtropy-terrain/tests/geometry_authority_golden.rs \
             scripts/terrain-integrate-exact-geometry-authority.py | sort)"
           test "${actual_source_delta}" = "${expected_source_delta}"
 
@@ -98,6 +105,7 @@ jobs:
           test "$(git hash-object Cargo.lock)" = "${TERRAIN_GEOMETRY_LOCK_BEFORE}"
           echo "TERRAIN_GEOMETRY_LIB_BLOB=$(git hash-object crates/domains/symtropy-terrain/src/lib.rs)"
           echo "TERRAIN_GEOMETRY_KERNEL_BLOB=$(git hash-object crates/domains/symtropy-terrain/src/geometry_authority.rs)"
+          echo "TERRAIN_GEOMETRY_GOLDEN_BLOB=$(git hash-object crates/domains/symtropy-terrain/tests/geometry_authority_golden.rs)"
 
       - name: Verify locked dependency graph
         shell: bash
@@ -117,7 +125,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          cargo test -p symtropy-terrain --locked --lib
+          cargo test -p symtropy-terrain --locked --all-targets
 
       - name: Strict Terrain Clippy
         shell: bash
@@ -136,8 +144,9 @@ jobs:
           actual="$({ git diff --name-only; git ls-files --others --exclude-standard; } | sort -u)"
           lib="crates/domains/symtropy-terrain/src/lib.rs"
           kernel="crates/domains/symtropy-terrain/src/geometry_authority.rs"
+          golden="crates/domains/symtropy-terrain/tests/geometry_authority_golden.rs"
           printf '%s\n' "${actual}" | grep -Fx "${lib}" >/dev/null
-          unexpected="$(printf '%s\n' "${actual}" | grep -Fvx -e "${lib}" -e "${kernel}" || true)"
+          unexpected="$(printf '%s\n' "${actual}" | grep -Fvx -e "${lib}" -e "${kernel}" -e "${golden}" || true)"
           test -z "${unexpected}" || {
             echo "Terrain geometry qualification generated unexpected paths:" >&2
             printf '%s\n' "${unexpected}" >&2
@@ -152,7 +161,8 @@ jobs:
           git config user.email "actions@users.noreply.github.com"
           git add \
             crates/domains/symtropy-terrain/src/lib.rs \
-            crates/domains/symtropy-terrain/src/geometry_authority.rs
+            crates/domains/symtropy-terrain/src/geometry_authority.rs \
+            crates/domains/symtropy-terrain/tests/geometry_authority_golden.rs
           git diff --cached --check
           git diff --cached --exit-code --quiet && {
             echo "no Terrain geometry authority product delta" >&2
@@ -165,6 +175,7 @@ jobs:
           echo "TERRAIN_GEOMETRY_PRODUCT_PARENT=$(git rev-parse HEAD^)"
           echo "TERRAIN_GEOMETRY_PRODUCT_LIB_BLOB=$(git rev-parse HEAD:crates/domains/symtropy-terrain/src/lib.rs)"
           echo "TERRAIN_GEOMETRY_PRODUCT_KERNEL_BLOB=$(git rev-parse HEAD:crates/domains/symtropy-terrain/src/geometry_authority.rs)"
+          echo "TERRAIN_GEOMETRY_PRODUCT_GOLDEN_BLOB=$(git rev-parse HEAD:crates/domains/symtropy-terrain/tests/geometry_authority_golden.rs)"
           echo "TERRAIN_GEOMETRY_PRODUCT_LOCK_BLOB=$(git rev-parse HEAD:Cargo.lock)"
 
           remote_head="$(git ls-remote origin refs/heads/terrain/exact-geometry-authority-v0.1 | cut -f1)"
