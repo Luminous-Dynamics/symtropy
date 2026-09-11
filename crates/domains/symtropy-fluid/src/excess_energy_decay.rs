@@ -196,8 +196,8 @@ pub fn run_passive_taylor_green_excess_energy_decay(
             maximum_observed_diffusion_number.max(step.diffusion_number);
         maximum_observed_combined_explicit_number =
             maximum_observed_combined_explicit_number.max(step.combined_explicit_number);
-        maximum_observed_divergence_rms_per_s = maximum_observed_divergence_rms_per_s
-            .max(step.projection.divergence_rms_after_per_s);
+        maximum_observed_divergence_rms_per_s =
+            maximum_observed_divergence_rms_per_s.max(step.projection.divergence_rms_after_per_s);
         maximum_observed_pressure_residual_rms_pa_per_m2 =
             maximum_observed_pressure_residual_rms_pa_per_m2
                 .max(step.projection.pressure_residual_rms_pa_per_m2);
@@ -214,13 +214,11 @@ pub fn run_passive_taylor_green_excess_energy_decay(
 
         let numerical_to_exact_energy_ratio = measured_energy_j / exact_discrete_energy_j;
         let observed_step_energy_loss_j = previous_measured_energy_j - measured_energy_j;
-        let exact_step_viscous_energy_loss_j =
-            previous_exact_energy_j - exact_discrete_energy_j;
+        let exact_step_viscous_energy_loss_j = previous_exact_energy_j - exact_discrete_energy_j;
         let step_excess_resolved_energy_loss_j =
             observed_step_energy_loss_j - exact_step_viscous_energy_loss_j;
         let observed_cumulative_energy_loss_j = initial_energy_j - measured_energy_j;
-        let exact_cumulative_viscous_energy_loss_j =
-            initial_energy_j - exact_discrete_energy_j;
+        let exact_cumulative_viscous_energy_loss_j = initial_energy_j - exact_discrete_energy_j;
         let cumulative_excess_resolved_energy_loss_j =
             observed_cumulative_energy_loss_j - exact_cumulative_viscous_energy_loss_j;
         let cumulative_excess_loss_fraction_of_initial =
@@ -378,8 +376,8 @@ mod tests {
 
     #[test]
     fn initial_point_has_zero_excess_by_construction() {
-        let report = run_passive_taylor_green_excess_energy_decay(config(), 0.08, 0.00025, 4)
-            .unwrap();
+        let report =
+            run_passive_taylor_green_excess_energy_decay(config(), 0.08, 0.00025, 4).unwrap();
         let initial = &report.points[0];
         assert_eq!(initial.step_index, 0);
         assert_eq!(initial.measured_energy_j, initial.exact_discrete_energy_j);
@@ -392,20 +390,18 @@ mod tests {
     fn exact_discrete_energy_uses_squared_velocity_decay() {
         let cfg = config();
         let report =
-            run_passive_taylor_green_excess_energy_decay(cfg.clone(), 0.08, 0.00025, 4)
-                .unwrap();
+            run_passive_taylor_green_excess_energy_decay(cfg.clone(), 0.08, 0.00025, 4).unwrap();
         let point = report.points.last().unwrap();
         let k = std::f64::consts::TAU / cfg.length_x_m;
-        let expected_ratio =
-            (-4.0 * cfg.kinematic_viscosity_m2_s * k * k * point.time_s).exp();
+        let expected_ratio = (-4.0 * cfg.kinematic_viscosity_m2_s * k * k * point.time_s).exp();
         let observed_ratio = point.exact_discrete_energy_j / report.initial_energy_j;
         assert!((observed_ratio - expected_ratio).abs() < 1.0e-14);
     }
 
     #[test]
     fn cumulative_excess_matches_exact_minus_measured_energy() {
-        let report = run_passive_taylor_green_excess_energy_decay(config(), 0.08, 0.00025, 8)
-            .unwrap();
+        let report =
+            run_passive_taylor_green_excess_energy_decay(config(), 0.08, 0.00025, 8).unwrap();
         for point in &report.points {
             let expected = point.exact_discrete_energy_j - point.measured_energy_j;
             assert!((point.cumulative_excess_resolved_energy_loss_j - expected).abs() < 1.0e-14);
@@ -414,8 +410,8 @@ mod tests {
 
     #[test]
     fn numerical_context_is_retained_from_the_same_run() {
-        let report = run_passive_taylor_green_excess_energy_decay(config(), 0.08, 0.00025, 8)
-            .unwrap();
+        let report =
+            run_passive_taylor_green_excess_energy_decay(config(), 0.08, 0.00025, 8).unwrap();
         assert!(report.maximum_observed_advective_cfl.is_finite());
         assert!(report.maximum_observed_diffusion_number.is_finite());
         assert!(report.maximum_observed_combined_explicit_number.is_finite());
@@ -430,10 +426,8 @@ mod tests {
 
     #[test]
     fn report_is_replay_deterministic() {
-        let a = run_passive_taylor_green_excess_energy_decay(config(), 0.08, 0.00025, 8)
-            .unwrap();
-        let b = run_passive_taylor_green_excess_energy_decay(config(), 0.08, 0.00025, 8)
-            .unwrap();
+        let a = run_passive_taylor_green_excess_energy_decay(config(), 0.08, 0.00025, 8).unwrap();
+        let b = run_passive_taylor_green_excess_energy_decay(config(), 0.08, 0.00025, 8).unwrap();
         assert_eq!(a, b);
     }
 
@@ -462,12 +456,7 @@ mod tests {
         let mut negative_viscosity = config();
         negative_viscosity.kinematic_viscosity_m2_s = -0.01;
         assert_eq!(
-            run_passive_taylor_green_excess_energy_decay(
-                negative_viscosity,
-                0.08,
-                0.00025,
-                4,
-            ),
+            run_passive_taylor_green_excess_energy_decay(negative_viscosity, 0.08, 0.00025, 4,),
             Err(ExcessEnergyDecayError::Config(
                 ReferenceConfigError::ExpectedNonNegativeFinite("kinematic_viscosity_m2_s")
             ))
