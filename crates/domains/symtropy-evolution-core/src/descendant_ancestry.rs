@@ -28,10 +28,6 @@ const DESCENDANT_ANCESTRY_MATERIALIZATION_DIGEST_DOMAIN: &[u8] =
 const DESCENDANT_ANCESTRY_PROVENANCE_DIGEST_DOMAIN: &[u8] =
     b"symtropy:evolution:descendant-ancestry-provenance:v1\0";
 
-/// One newly materialized persistent ancestry-copy identity in the child.
-///
-/// `parent_role` identifies the contribution process that created this child
-/// chromosome copy. It does not label a canonical C2 child haplotype row.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct DescendantChromosomeCopy {
     pub chromosome_id: ChromosomeId,
@@ -39,10 +35,6 @@ pub struct DescendantChromosomeCopy {
     pub child_copy_id: AncestryCopyId,
 }
 
-/// Exact ancestry transmission at one modeled hereditary locus.
-///
-/// The edge links a parental persistent ancestry copy to the newly materialized
-/// child ancestry copy. It makes no claim about unmodeled sequence between loci.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ModeledAncestryInheritanceEdge {
     pub chromosome_id: ChromosomeId,
@@ -52,7 +44,6 @@ pub struct ModeledAncestryInheritanceEdge {
     pub child_copy_id: AncestryCopyId,
 }
 
-/// Process-independent result of one validated descendant-copy materialization.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct DescendantAncestryMaterialization {
     pub state_version: u32,
@@ -66,6 +57,117 @@ pub struct DescendantAncestryMaterialization {
 }
 
 impl DescendantAncestryMaterialization {
+    pub fn validate_current(
+        &self,
+        schema: &HereditarySchema,
+        chromosome_map: &ChromosomeMap,
+        offspring: &DiploidLinkedOffspringDerivationV2,
+        child_ancestry: &PhasedAncestryState,
+        event: &ReproductionEventId,
+    ) -> Result<(), DescendantAncestryError> {
+        offspring.child.validate(schema, chromosome_map)?;
+        child_ancestry.validate_current(schema, chromosome_map, &offspring.child)?;
+        if self.state_version != DESCENDANT_ANCESTRY_MATERIALIZATION_VERSION {
+            return Err(DescendantAncestryError::UnsupportedMaterializationVersion(
+                self.state_version,
+            ));
+        }
+        if &self.reproduction_event_id != event {
+            return Err(DescendantAncestryError::EventContextMismatch);
+        }
+        if self.schema_digest != schema.canonical_digest()?
+            || self.chromosome_map_digest != chromosome_map.canonical_digest(schema)?
+            || self.child_phased_state_digest
+                != offspring.child.canonical_digest(schema, chromosome_map)?
+            || self.child_ancestry_state_digest
+                != child_ancestry.canonical_digest(schema, chromosome_map, &offspring.child)?
+        {
+            return Err(DescendantAncestryError::CurrentAuthorityMismatch);
+        }
+
+        let expected_copy_count = chromosome_map
+            .chromosomes
+            .len()
+            .checked_mul(2)
+            .ok_or(DescendantAncestryError::StructureMismatch)?;
+        let expected_edge_count = chromosome_map
+            .chromosomes
+            .values()
+            .try_fold(0_usize, |total, definition| {
+                definition
+                    .loci
+                    .len()
+                    .checked_mul(2)
+                    .and_then(|count| total.checked_add(count))
+                    .ok_or(DescendantAncestryError::StructureMismatch)
+            })?;
+        if self.descendant_copies.len() != expected_copy_count
+            || self.edges.len() != expected_edge_count
+        {
+            return Err(DescendantAncestryError::StructureMismatch);
+        }
+
+        let mut copy_cursor = 0_usize;
+        let mut edge_cursor = 0_usize;
+        let mut descendant_ids = BTreeSet::new();
+        for (chromosome_id, definition) in &chromosome_map.chromosomes {
+            let copy_a = self
+                .descendant_copies
+                .get(copy_cursor)
+                .ok_or(DescendantAncestryError::StructureMismatch)?;
+            let copy_b = self
+                .descendant_copies
+                .get(copy_cursor + 1)
+                .ok_or(DescendantAncestryError::StructureMismatch)?;
+            copy_cursor += 2;
+            if copy_a.chromosome_id != *chromosome_id
+                || copy_b.chromosome_id != *chromosome_id
+                || copy_a.parent_role != ParentRole::ParentA
+                || copy_b.parent_role != ParentRole::ParentB
+                || copy_a.child_copy_id == copy_b.child_copy_id
+            {
+                return Err(DescendantAncestryError::StructureMismatch);
+            }
+            if !descendant_ids.insert(copy_a.child_copy_id.clone())
+                || !descendant_ids.insert(copy_b.child_copy_id.clone())
+            {
+                return Err(DescendantAncestryError::DescendantIdentityCollision);
+            }
+
+            for (role, child_copy_id) in [
+                (ParentRole::ParentA, &copy_a.child_copy_id),
+                (ParentRole::ParentB, &copy_b.child_copy_id),
+            ] {
+                for mapped_locus in &definition.loci {
+                    let edge = self
+                        .edges
+                        .get(edge_cursor)
+                        .ok_or(DescendantAncestryError::StructureMismatch)?;
+                    edge_cursor += 1;
+                    if edge.chromosome_id != *chromosome_id
+                        || edge.locus_id != mapped_locus.locus_id
+                        || edge.parent_role != role
+                        || &edge.child_copy_id != child_copy_id
+                        || edge.source_copy_id == edge.child_copy_id
+                    {
+                        return Err(DescendantAncestryError::StructureMismatch);
+                    }
+                }
+            }
+        }
+
+        let sidecar_ids: BTreeSet<_> = child_ancestry
+            .chromosomes
+            .values()
+            .flat_map(|chromosome| chromosome.classes.iter())
+            .flat_map(|class| class.copy_ids.iter().cloned())
+            .collect();
+        if sidecar_ids != descendant_ids {
+            return Err(DescendantAncestryError::StructureMismatch);
+        }
+        Ok(())
+    }
+
     pub fn canonical_digest(&self) -> DescendantAncestryMaterializationDigest {
         let mut digest = Sha256::new();
         digest.update(DESCENDANT_ANCESTRY_MATERIALIZATION_DIGEST_DOMAIN);
@@ -143,6 +245,107 @@ impl DescendantAncestryDerivationProvenance {
         digest.update(self.parent_b_gamete_ancestry_digest.as_bytes());
         digest.update(self.materialization_digest.as_bytes());
         DescendantAncestryDerivationProvenanceDigest(digest.finalize().into())
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    pub fn validate_current(
+        &self,
+        schema: &HereditarySchema,
+        chromosome_map: &ChromosomeMap,
+        parent_a_source: &crate::PhasedHereditaryState,
+        parent_a_source_ancestry: &PhasedAncestryState,
+        parent_a_profile: &ChromosomeRecombinationProfile,
+        parent_a_gamete: &LinkedGameteDerivationEvidence,
+        parent_a_gamete_ancestry: &GameteAncestryDerivation,
+        parent_b_source: &crate::PhasedHereditaryState,
+        parent_b_source_ancestry: &PhasedAncestryState,
+        parent_b_profile: &ChromosomeRecombinationProfile,
+        parent_b_gamete: &LinkedGameteDerivationEvidence,
+        parent_b_gamete_ancestry: &GameteAncestryDerivation,
+        offspring: &DiploidLinkedOffspringDerivationV2,
+        event: &ReproductionEventId,
+        child_ancestry: &PhasedAncestryState,
+        materialization: &DescendantAncestryMaterialization,
+    ) -> Result<(), DescendantAncestryError> {
+        if self.derivation_version != DESCENDANT_ANCESTRY_DERIVATION_VERSION {
+            return Err(DescendantAncestryError::UnsupportedDerivationVersion(
+                self.derivation_version,
+            ));
+        }
+        offspring.provenance.validate_current(
+            schema,
+            chromosome_map,
+            parent_a_source,
+            parent_a_profile,
+            parent_a_gamete,
+            parent_b_source,
+            parent_b_profile,
+            parent_b_gamete,
+            event,
+            &offspring.child,
+        )?;
+        parent_a_gamete_ancestry.provenance.validate_current(
+            schema,
+            chromosome_map,
+            parent_a_source,
+            parent_a_source_ancestry,
+            parent_a_profile,
+            parent_a_gamete,
+            event,
+            ParentRole::ParentA,
+            &parent_a_gamete_ancestry.ancestry,
+        )?;
+        parent_b_gamete_ancestry.provenance.validate_current(
+            schema,
+            chromosome_map,
+            parent_b_source,
+            parent_b_source_ancestry,
+            parent_b_profile,
+            parent_b_gamete,
+            event,
+            ParentRole::ParentB,
+            &parent_b_gamete_ancestry.ancestry,
+        )?;
+        materialization.validate_current(
+            schema,
+            chromosome_map,
+            offspring,
+            child_ancestry,
+            event,
+        )?;
+        if self.offspring_provenance_digest != offspring.provenance.canonical_digest()
+            || self.parent_a_gamete_ancestry_digest
+                != parent_a_gamete_ancestry.provenance.canonical_digest()
+            || self.parent_b_gamete_ancestry_digest
+                != parent_b_gamete_ancestry.provenance.canonical_digest()
+            || self.materialization_digest != materialization.canonical_digest()
+        {
+            return Err(DescendantAncestryError::CurrentAuthorityMismatch);
+        }
+
+        let recomputed = derive_descendant_ancestry(
+            schema,
+            chromosome_map,
+            parent_a_source,
+            parent_a_source_ancestry,
+            parent_a_profile,
+            parent_a_gamete,
+            parent_a_gamete_ancestry,
+            parent_b_source,
+            parent_b_source_ancestry,
+            parent_b_profile,
+            parent_b_gamete,
+            parent_b_gamete_ancestry,
+            offspring,
+            event,
+        )?;
+        if recomputed.child_ancestry != *child_ancestry
+            || recomputed.materialization != *materialization
+            || recomputed.provenance != *self
+        {
+            return Err(DescendantAncestryError::DerivationMismatch);
+        }
+        Ok(())
     }
 }
 
@@ -348,6 +551,13 @@ pub fn derive_descendant_ancestry(
         descendant_copies,
         edges,
     };
+    materialization.validate_current(
+        schema,
+        chromosome_map,
+        offspring,
+        &child_ancestry,
+        event,
+    )?;
     let provenance = DescendantAncestryDerivationProvenance {
         derivation_version: DESCENDANT_ANCESTRY_DERIVATION_VERSION,
         offspring_provenance_digest: offspring.provenance.canonical_digest(),
@@ -409,7 +619,8 @@ fn derived_child_copy_id(
     let bytes: [u8; 32] = digest.finalize().into();
     let mut text = String::from("derived-v1:");
     for byte in bytes {
-        write!(&mut text, "{byte:02x}").map_err(|_| DescendantAncestryError::IdentityEncoding)?;
+        write!(&mut text, "{byte:02x}")
+            .map_err(|_| DescendantAncestryError::IdentityEncoding)?;
     }
     AncestryCopyId::new(text).map_err(DescendantAncestryError::Evolution)
 }
@@ -419,9 +630,15 @@ pub enum DescendantAncestryError {
     Evolution(EvolutionError),
     Ancestry(AncestryAuthorityError),
     IdentityEncoding,
+    UnsupportedMaterializationVersion(u32),
+    UnsupportedDerivationVersion(u32),
+    CurrentAuthorityMismatch,
+    EventContextMismatch,
+    StructureMismatch,
     ChromosomeSetMismatch,
     LocusSequenceMismatch { chromosome: ChromosomeId },
     DescendantIdentityCollision,
+    DerivationMismatch,
 }
 
 impl From<EvolutionError> for DescendantAncestryError {
@@ -441,8 +658,27 @@ impl fmt::Display for DescendantAncestryError {
         match self {
             Self::Evolution(error) => write!(f, "evolution authority error: {error}"),
             Self::Ancestry(error) => write!(f, "ancestry authority error: {error}"),
-            Self::IdentityEncoding => write!(f, "failed to encode deterministic descendant ancestry identity"),
-            Self::ChromosomeSetMismatch => write!(f, "descendant ancestry chromosome set mismatch"),
+            Self::IdentityEncoding => {
+                write!(f, "failed to encode deterministic descendant ancestry identity")
+            }
+            Self::UnsupportedMaterializationVersion(version) => {
+                write!(f, "unsupported descendant ancestry materialization version {version}")
+            }
+            Self::UnsupportedDerivationVersion(version) => {
+                write!(f, "unsupported descendant ancestry derivation version {version}")
+            }
+            Self::CurrentAuthorityMismatch => {
+                write!(f, "descendant ancestry does not match exact current authority")
+            }
+            Self::EventContextMismatch => {
+                write!(f, "descendant ancestry reproduction-event context mismatch")
+            }
+            Self::StructureMismatch => {
+                write!(f, "descendant ancestry copy/edge structure is not canonical")
+            }
+            Self::ChromosomeSetMismatch => {
+                write!(f, "descendant ancestry chromosome set mismatch")
+            }
             Self::LocusSequenceMismatch { chromosome } => write!(
                 f,
                 "descendant ancestry locus sequence mismatch on chromosome {}",
@@ -452,6 +688,9 @@ impl fmt::Display for DescendantAncestryError {
                 f,
                 "derived descendant ancestry-copy identity collides with another child or parental source identity"
             ),
+            Self::DerivationMismatch => {
+                write!(f, "descendant ancestry deterministic replay mismatch")
+            }
         }
     }
 }
