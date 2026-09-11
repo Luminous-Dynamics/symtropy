@@ -53,14 +53,18 @@ fn main() -> Result<(), Box<dyn Error>> {
     )?;
 
     if report.reference_pressure_iterations != NUMERICAL_REFERENCE_PRESSURE_ITERATIONS {
-        return Err("manufactured iterative numerical reference drifted from 800 iterations".into());
+        return Err(
+            "manufactured iterative numerical reference drifted from 800 iterations".into(),
+        );
     }
     if !report
         .points
         .iter()
         .any(|point| point.pressure_iterations == MATCHED_PRESSURE_ITERATIONS)
     {
-        return Err("manufactured iterative sweep no longer contains the 400-iteration match".into());
+        return Err(
+            "manufactured iterative sweep no longer contains the 400-iteration match".into(),
+        );
     }
 
     let execution_profiles = report
