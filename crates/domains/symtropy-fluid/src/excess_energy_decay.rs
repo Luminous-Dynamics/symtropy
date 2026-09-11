@@ -258,6 +258,11 @@ pub fn run_passive_taylor_green_excess_energy_decay(
     let final_point = points
         .last()
         .expect("validated excess-energy trace always contains the initial point");
+    let final_cumulative_excess_resolved_energy_loss_j =
+        final_point.cumulative_excess_resolved_energy_loss_j;
+    let final_cumulative_excess_loss_fraction_of_initial =
+        final_point.cumulative_excess_loss_fraction_of_initial;
+
     Ok(ExcessEnergyDecayReport {
         schema_id: EXCESS_ENERGY_DECAY_SCHEMA_ID.to_owned(),
         comparator_id: TAYLOR_GREEN_COMPARATOR_ID.to_owned(),
@@ -267,14 +272,12 @@ pub fn run_passive_taylor_green_excess_energy_decay(
         steps,
         exact_energy_decay_rate_per_s,
         initial_energy_j,
+        points,
         maximum_positive_step_excess_loss_j,
         minimum_step_excess_loss_j,
         maximum_absolute_cumulative_excess_loss_fraction,
-        final_cumulative_excess_resolved_energy_loss_j: final_point
-            .cumulative_excess_resolved_energy_loss_j,
-        final_cumulative_excess_loss_fraction_of_initial: final_point
-            .cumulative_excess_loss_fraction_of_initial,
-        points,
+        final_cumulative_excess_resolved_energy_loss_j,
+        final_cumulative_excess_loss_fraction_of_initial,
     })
 }
 
