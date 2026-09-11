@@ -176,6 +176,17 @@ jobs:
     - name: Hash Smooth Scale Separation Evidence
       run: sha256sum smooth-scale-separation-evidence.json > smooth-scale-separation-evidence.json.sha256
 
+    # Vorticity-gradient concentration scale is retained independently from the
+    # analytical smooth-mode control. It remains measurement-only until its
+    # calibration and failure behavior justify any later refinement policy.
+    - name: Generate Vorticity Concentration Scale Evidence
+      env:
+        SYMTROPY_EVIDENCE_SOURCE_REVISION: ${{ github.event.pull_request.head.sha || github.sha }}
+      run: cargo run --locked -p symtropy-fluid --example vorticity_concentration_scale_evidence --quiet > vorticity-concentration-scale-evidence.json
+
+    - name: Hash Vorticity Concentration Scale Evidence
+      run: sha256sum vorticity-concentration-scale-evidence.json > vorticity-concentration-scale-evidence.json.sha256
+
     - name: Upload Fluid Verification Evidence
       uses: actions/upload-artifact@v4
       with:
@@ -191,5 +202,7 @@ jobs:
           manufactured-update-defect-evidence.json.sha256
           smooth-scale-separation-evidence.json
           smooth-scale-separation-evidence.json.sha256
+          vorticity-concentration-scale-evidence.json
+          vorticity-concentration-scale-evidence.json.sha256
         if-no-files-found: error
         retention-days: 30
