@@ -7,6 +7,7 @@ on:
     paths:
       - ".github/workflows/pb04c-incremental-self-apply.yml"
       - "scripts/pb04c-add-incremental-recompute.py"
+      - "scripts/pb04c-repair-large-outcome.py"
       - "crates/domains/symtropy-spatial-decomposition/tests/incremental_equivalence.rs"
 
 permissions:
@@ -26,17 +27,21 @@ jobs:
           ref: ${{ github.sha }}
           fetch-depth: 0
 
-      - name: Bind exact PB-04c theorem lineage and qualified schema3 base
+      - name: Bind exact repaired PB-04c lineage and qualified schema3 base
         shell: bash
         run: |
           set -euo pipefail
           base=6e08a053cbdf8ef35c2a9b14e439705a3b844be2
           test_head=efffe9cd8bd9089a1c53bb53c99f4687f105d7b1
           transform_head=ed3a795799e324bda4626b2c80514813cd5b8ba8
+          workflow_head=e1cb6e8effc0b9fda2b0e31a4ce38472fad2ebb0
+          repair_head=f79e35997c32e10239e6ff51f480b97068a55905
           test "$(git rev-parse HEAD)" = "${GITHUB_SHA}"
-          test "$(git rev-parse HEAD^)" = "${transform_head}"
-          test "$(git rev-parse HEAD^^)" = "${test_head}"
-          test "$(git rev-parse HEAD^^^)" = "${base}"
+          test "$(git rev-parse HEAD^)" = "${repair_head}"
+          test "$(git rev-parse HEAD^^)" = "${workflow_head}"
+          test "$(git rev-parse HEAD^^^)" = "${transform_head}"
+          test "$(git rev-parse HEAD^^^^)" = "${test_head}"
+          test "$(git rev-parse HEAD^^^^^)" = "${base}"
           test "$(git rev-parse ${base}^{tree})" = "4477c58dd76f61e1f0eac2ffbfe3115cd35f1015"
 
           check_blob() {
@@ -58,12 +63,14 @@ jobs:
           check_blob b01ecedb068db1db370c6f7e9d6c991b590c3d95 crates/domains/symtropy-spatial-decomposition/tests/complete_local_coverage.rs
           check_blob 1bccd6c80e848cff8bd91e445a32a0e56326c337 crates/domains/symtropy-spatial-decomposition/tests/incremental_equivalence.rs
           check_blob 947caa8f38476581cf991aa13e0e879bee2efdd9 scripts/pb04c-add-incremental-recompute.py
+          check_blob 4cebb2ab3ec5c266fca272f7a2693c110bb993c7 scripts/pb04c-repair-large-outcome.py
 
           actual_source_delta="$(git diff --name-only ${base}..HEAD | sort -u)"
           expected_source_delta="$(printf '%s\n' \
             .github/workflows/pb04c-incremental-self-apply.yml \
             crates/domains/symtropy-spatial-decomposition/tests/incremental_equivalence.rs \
-            scripts/pb04c-add-incremental-recompute.py | sort)"
+            scripts/pb04c-add-incremental-recompute.py \
+            scripts/pb04c-repair-large-outcome.py | sort)"
           test "${actual_source_delta}" = "${expected_source_delta}"
 
           echo "PB04C_INPUT_HEAD=${GITHUB_SHA}"
@@ -97,11 +104,12 @@ jobs:
           rustfmt --version
           cargo clippy --version
 
-      - name: Apply exact PB-04c transform and canonical formatting
+      - name: Apply exact PB-04c transform, boxing repair, and canonical formatting
         shell: bash
         run: |
           set -euo pipefail
           python3 scripts/pb04c-add-incremental-recompute.py
+          python3 scripts/pb04c-repair-large-outcome.py
           cargo fmt --manifest-path crates/domains/symtropy-spatial-decomposition/Cargo.toml
           echo "PB04C_TRANSFORMED_LIB_BLOB=$(git hash-object crates/domains/symtropy-spatial-decomposition/src/lib.rs)"
           echo "PB04C_FORMATTED_TEST_BLOB=$(git hash-object crates/domains/symtropy-spatial-decomposition/tests/incremental_equivalence.rs)"
