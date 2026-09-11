@@ -4,6 +4,7 @@ on:
   pull_request:
     paths:
       - '.github/workflows/living-world-shadow-continuity-qualification.yml'
+      - '.github/scripts/lw55_shadow_continuity_repair.py'
 
 permissions:
   contents: write
@@ -25,14 +26,23 @@ jobs:
       VALIDATION_FILE: crates/domains/symtropy-lifesim-core/src/living_world_authority/shadow_validation.rs
 
     steps:
+      - name: Preserve repair script from helper subject
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          path: helper
+          persist-credentials: false
+
       - name: Check out exact product branch
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           ref: ${{ env.PRODUCT_BRANCH }}
+          path: product
           fetch-depth: 0
           persist-credentials: true
 
       - name: Fail closed on source drift
+        working-directory: product
         shell: bash
         run: |
           set -euo pipefail
@@ -41,293 +51,12 @@ jobs:
           printf 'PREIMAGE_HEAD=%s\n' "$(git rev-parse HEAD)"
           printf 'PREIMAGE_TREE=%s\n' "$(git rev-parse HEAD^{tree})"
 
-      - name: Apply guarded sampling-invariance and admission-bound transform
+      - name: Apply guarded transform
+        working-directory: product
         shell: bash
         run: |
           set -euo pipefail
-          python3 - <<'PY'
-          from pathlib import Path
-
-          continuity = Path("crates/domains/symtropy-lifesim-core/src/living_world_authority/shadow_execution_continuity.rs")
-          observable = Path("crates/domains/symtropy-lifesim-core/src/living_world_authority/shadow_observable_authority.rs")
-          validation = Path("crates/domains/symtropy-lifesim-core/src/living_world_authority/shadow_validation.rs")
-
-          def replace_once(text: str, old: str, new: str, label: str) -> str:
-              count = text.count(old)
-              if count != 1:
-                  raise SystemExit(f"{label}: expected one predecessor, found {count}")
-              return text.replace(old, new, 1)
-
-          o = observable.read_text()
-          o = replace_once(
-              o,
-              "opaque_bytes!(ShadowObservationContentManifest, EmptyObservationContentManifest);",
-              "opaque_bytes!(ShadowSourceStateContentManifest, EmptyObservationContentManifest);\n\n/// Backward-compatible spelling retained for #406 observation APIs. The manifest\n/// identifies the exact producer-owned source representation state, not the scalar\n/// observation value. New execution-continuity code should prefer the canonical\n/// `ShadowSourceStateContentManifest` name.\npub type ShadowObservationContentManifest = ShadowSourceStateContentManifest;",
-              "source-state manifest rename",
-          )
-          observable.write_text(o)
-
-          v = validation.read_text()
-          v = replace_once(
-              v,
-              "const MAX_SHADOW_SAMPLES: usize = 1_000_000;",
-              "pub(super) const MAX_SHADOW_SAMPLES: usize = 1_000_000;",
-              "shadow sample bound visibility",
-          )
-          validation.write_text(v)
-
-          c = continuity.read_text()
-          c = replace_once(
-              c,
-              "//! Observation cadence and execution continuity are deliberately independent.\n//! A terminal-state Q2 metric may observe only T1 while this transcript still\n//! carries an executor-state identity for every intervening canonical tick. Any\n//! tick that *is* observed must use the exact #406/#563/#567 observation identity.\n//!\n//! This remains structural evidence. Executor-state and segment manifests are\n//! evidence-shaped inputs, so #568 must still executable-qualify the runner/profile\n//! that emits them before this evidence is eligible for closure-anchor renewal.",
-              "//! Observation cadence and execution continuity are deliberately independent.\n//! A terminal-state Q2 metric may observe only T1 while this transcript still\n//! carries the same producer-owned source-state identity for every intervening\n//! canonical tick. Observation extraction binds to that same state identity; it\n//! never changes the execution chain merely because a metric sampled the tick.\n//!\n//! This remains structural evidence. Source-state and segment manifests are\n//! evidence-shaped inputs, so #568 must still executable-qualify the runner/profile\n//! that emits them before this evidence is eligible for closure-anchor renewal.",
-              "module sampling doctrine",
-          )
-          c = replace_once(
-              c,
-              "use super::shadow_observable_authority::{\n    ShadowObservationContentManifest, ShadowObservationSourceIdentity,\n};",
-              "use super::shadow_observable_authority::{\n    ShadowObservationContentManifest, ShadowObservationSourceIdentity,\n    ShadowSourceStateContentManifest,\n};",
-              "source-state import",
-          )
-          c = replace_once(
-              c,
-              "use super::shadow_validation::{\n    ShadowEvidenceKey, ShadowEvidenceRevision, ShadowValidationWindow,\n};",
-              "use super::shadow_validation::{\n    ShadowEvidenceKey, ShadowEvidenceRevision, ShadowValidationWindow, MAX_SHADOW_SAMPLES,\n};",
-              "shared shadow bound import",
-          )
-          old_manifest = '''/// Exact executor-owned content identity for a state that was not necessarily
-/// observed by #406. The byte grammar remains runner-profile authority and must
-/// be executable-qualified by #568 before anchor-grade use.
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct ShadowExecutionStateContentManifest(Vec<u8>);
-
-impl ShadowExecutionStateContentManifest {
-    pub fn new(bytes: impl Into<Vec<u8>>) -> Result<Self, ShadowExecutionContinuityError> {
-        let bytes = bytes.into();
-        if bytes.is_empty() {
-            return Err(ShadowExecutionContinuityError::EmptyExecutionStateManifest);
-        }
-        Ok(Self(bytes))
-    }
-
-    pub fn as_bytes(&self) -> &[u8] {
-        &self.0
-    }
-}
-'''
-          new_manifest = '''/// Semantic spelling for the producer-owned source-state manifest used by runner
-/// continuity code. #406 historically names the same exact state identity through
-/// `ShadowObservationContentManifest`; the aliases are intentionally one Rust type
-/// so observation cadence cannot change execution-state identity.
-pub type ShadowExecutionStateContentManifest = ShadowSourceStateContentManifest;
-'''
-          c = replace_once(c, old_manifest, new_manifest, "execution manifest unification")
-          old_content = '''/// Content identity class for one continuity state.
-///
-/// The variants remain distinct even when their underlying byte encodings happen
-/// to match. In particular, an executor-state manifest cannot impersonate an
-/// observed #406 state merely by reusing the same bytes.
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub enum ShadowContinuityContentIdentity {
-    CoarsePopulation(PopulationStateManifest),
-    RetainedExact(RetainedContentManifest),
-    ExecutionState(ShadowExecutionStateContentManifest),
-    Observation(ShadowObservationContentManifest),
-}
-'''
-          new_content = '''/// Content identity class for one continuity state.
-///
-/// Post-start executor state and #406 observation-source state deliberately share
-/// `SourceState`: extracting an observable must not rewrite the execution history.
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub enum ShadowContinuityContentIdentity {
-    CoarsePopulation(PopulationStateManifest),
-    RetainedExact(RetainedContentManifest),
-    SourceState(ShadowSourceStateContentManifest),
-}
-'''
-          c = replace_once(c, old_content, new_content, "sampling-invariant content grammar")
-          c = replace_once(
-              c,
-              "content: ShadowContinuityContentIdentity::ExecutionState(content_manifest),",
-              "content: ShadowContinuityContentIdentity::SourceState(content_manifest),",
-              "execution source normalization",
-          )
-          c = replace_once(
-              c,
-              "content: ShadowContinuityContentIdentity::Observation(\n                source.content_manifest().clone(),\n            ),",
-              "content: ShadowContinuityContentIdentity::SourceState(\n                source.content_manifest().clone(),\n            ),",
-              "observation source normalization",
-          )
-          old_admission = '''        let expected_len = usize::try_from(window.duration_ticks()).map_err(|_| {
-            ShadowExecutionContinuityError::WindowTooLargeForTranscript {
-                duration_ticks: window.duration_ticks(),
-            }
-        })?;
-        let mut canonical = BTreeMap::new();
-        let mut segment_ids = BTreeSet::new();
-
-        for segment in segments {
-            if !segment_ids.insert(segment.id()) {
-'''
-          new_admission = '''        let duration_ticks = window.duration_ticks();
-        if duration_ticks > MAX_SHADOW_SAMPLES as u64 {
-            return Err(
-                ShadowExecutionContinuityError::ValidationWindowExceedsContinuityLimit {
-                    maximum: MAX_SHADOW_SAMPLES,
-                    actual: duration_ticks,
-                },
-            );
-        }
-        let expected_len = usize::try_from(duration_ticks).map_err(|_| {
-            ShadowExecutionContinuityError::WindowTooLargeForTranscript { duration_ticks }
-        })?;
-        let mut canonical = BTreeMap::new();
-        let mut segment_ids = BTreeSet::new();
-
-        for segment in segments {
-            if canonical.len() >= expected_len {
-                return Err(ShadowExecutionContinuityError::TranscriptHasExtraSegments {
-                    expected: expected_len,
-                });
-            }
-            if !segment_ids.insert(segment.id()) {
-'''
-          c = replace_once(c, old_admission, new_admission, "bounded transcript ingress")
-          c = replace_once(
-              c,
-              "    EmptySegmentManifest,\n    EmptyExecutionStateManifest,\n    TickOverflow {",
-              "    EmptySegmentManifest,\n    TickOverflow {",
-              "remove duplicate manifest error",
-          )
-          c = replace_once(
-              c,
-              "    WindowTooLargeForTranscript {\n        duration_ticks: u64,\n    },\n    DuplicateSegmentId {",
-              "    WindowTooLargeForTranscript {\n        duration_ticks: u64,\n    },\n    ValidationWindowExceedsContinuityLimit {\n        maximum: usize,\n        actual: u64,\n    },\n    TranscriptHasExtraSegments {\n        expected: usize,\n    },\n    DuplicateSegmentId {",
-              "bounded ingress errors",
-          )
-          c = replace_once(
-              c,
-              '''            Self::EmptySegmentManifest => write!(f, "shadow execution segment manifest is empty"),
-            Self::EmptyExecutionStateManifest => {
-                write!(f, "shadow execution state content manifest is empty")
-            }
-            Self::TickOverflow { tick } => {''',
-              '''            Self::EmptySegmentManifest => write!(f, "shadow execution segment manifest is empty"),
-            Self::TickOverflow { tick } => {''',
-              "remove duplicate manifest display",
-          )
-          c = replace_once(
-              c,
-              '''            Self::WindowTooLargeForTranscript { duration_ticks } => write!(
-                f,
-                "shadow continuity window of {duration_ticks} ticks cannot be represented on this platform"
-            ),
-            Self::DuplicateSegmentId { id } => {''',
-              '''            Self::WindowTooLargeForTranscript { duration_ticks } => write!(
-                f,
-                "shadow continuity window of {duration_ticks} ticks cannot be represented on this platform"
-            ),
-            Self::ValidationWindowExceedsContinuityLimit { maximum, actual } => write!(
-                f,
-                "shadow continuity window has {actual} ticks; maximum is {maximum}"
-            ),
-            Self::TranscriptHasExtraSegments { expected } => write!(
-                f,
-                "shadow continuity transcript contains more than the expected {expected} segments"
-            ),
-            Self::DuplicateSegmentId { id } => {''',
-              "bounded ingress display",
-          )
-          c = replace_once(
-              c,
-              "            ShadowExecutionStateContentManifest::new(vec![content]).unwrap(),",
-              "            ShadowSourceStateContentManifest::new(vec![content]).unwrap(),",
-              "test execution source manifest",
-          )
-          c = replace_once(
-              c,
-              '''            content: ShadowContinuityContentIdentity::ExecutionState(
-                ShadowExecutionStateContentManifest::new(vec![content]).unwrap(),
-            ),''',
-              '''            content: ShadowContinuityContentIdentity::SourceState(
-                ShadowSourceStateContentManifest::new(vec![content]).unwrap(),
-            ),''',
-              "test start source state",
-          )
-          old_terminal = '''    #[test]
-    fn terminal_observation_keeps_unobserved_ticks_as_execution_states() {
-        let transcript = transcript_with_states(
-            execution_state(11, 2),
-            execution_state(12, 3),
-            observed_state(13, 4),
-        );
-        let terminal_only = BTreeMap::from([(CanonicalTick(13), observed_state(13, 4))]);
-        assert_eq!(validate(&transcript, &start(1), &terminal_only), Ok(()));
-        assert!(matches!(
-            transcript.segments().next().unwrap().successor().content(),
-            ShadowContinuityContentIdentity::ExecutionState(_)
-        ));
-    }
-
-    #[test]
-    fn execution_state_cannot_impersonate_observation_by_reusing_bytes() {
-        assert_ne!(execution_state(11, 2), observed_state(11, 2));
-    }
-'''
-          new_terminal = '''    #[test]
-    fn observation_cadence_does_not_change_execution_transcript() {
-        let every_tick = fully_observed_transcript();
-        let terminal_only_transcript = transcript_with_states(
-            execution_state(11, 2),
-            execution_state(12, 3),
-            observed_state(13, 4),
-        );
-        let terminal_only = BTreeMap::from([(CanonicalTick(13), observed_state(13, 4))]);
-
-        assert_eq!(terminal_only_transcript, every_tick);
-        assert_eq!(
-            validate(&terminal_only_transcript, &start(1), &terminal_only),
-            Ok(())
-        );
-    }
-
-    #[test]
-    fn observation_source_normalizes_to_same_execution_state_identity() {
-        assert_eq!(execution_state(11, 2), observed_state(11, 2));
-    }
-
-    #[test]
-    fn oversized_continuity_window_rejects_before_collection() {
-        let oversized = ShadowValidationWindow::new(
-            CanonicalTick(0),
-            CanonicalTick(MAX_SHADOW_SAMPLES as u64 + 1),
-        )
-        .unwrap();
-        let result = ShadowLaneContinuityTranscript::new(
-            ShadowContinuityRunIdentity::Coarse {
-                id: ShadowCoarseRunId(1),
-                revision: ShadowCoarseRunRevision(1),
-            },
-            ShadowEvidenceKey::new(2, 1),
-            ShadowEvidenceRevision(1),
-            oversized,
-            std::iter::empty(),
-        );
-        assert_eq!(
-            result,
-            Err(
-                ShadowExecutionContinuityError::ValidationWindowExceedsContinuityLimit {
-                    maximum: MAX_SHADOW_SAMPLES,
-                    actual: MAX_SHADOW_SAMPLES as u64 + 1,
-                }
-            )
-        );
-    }
-'''
-          c = replace_once(c, old_terminal, new_terminal, "sampling-invariance regressions")
-          continuity.write_text(c)
-          PY
+          python3 ../helper/.github/scripts/lw55_shadow_continuity_repair.py
 
       - name: Set up pinned Rust
         uses: dtolnay/rust-toolchain@6bed0761d98439e5a578e2877258200ad565ba87
@@ -335,7 +64,8 @@ pub enum ShadowContinuityContentIdentity {
           toolchain: 1.96.0
           components: clippy, rustfmt
 
-      - name: Format transformed source
+      - name: Format and constrain semantic diff
+        working-directory: product
         shell: bash
         run: |
           set -euo pipefail
@@ -349,40 +79,37 @@ pub enum ShadowContinuityContentIdentity {
           diff -u "$RUNNER_TEMP/expected.txt" "$RUNNER_TEMP/changed.txt"
 
       - name: Compile exact transformed authority surface
+        working-directory: product
         shell: bash
-        run: |
-          set -euo pipefail
-          cargo check --locked -p symtropy-lifesim-core --all-targets
+        run: cargo check --locked -p symtropy-lifesim-core --all-targets
 
       - name: Execute continuity hostile fixtures
+        working-directory: product
         shell: bash
-        run: |
-          set -euo pipefail
-          cargo test --locked -p symtropy-lifesim-core --lib shadow_execution_continuity::tests -- --nocapture
+        run: cargo test --locked -p symtropy-lifesim-core --lib shadow_execution_continuity::tests -- --nocapture
 
       - name: Execute full lifesim library tests
+        working-directory: product
         shell: bash
-        run: |
-          set -euo pipefail
-          cargo test --locked -p symtropy-lifesim-core --lib
+        run: cargo test --locked -p symtropy-lifesim-core --lib
 
       - name: Strict Clippy
+        working-directory: product
         shell: bash
-        run: |
-          set -euo pipefail
-          cargo clippy --locked -p symtropy-lifesim-core --all-targets --all-features -- -D warnings
+        run: cargo clippy --locked -p symtropy-lifesim-core --all-targets --all-features -- -D warnings
 
       - name: Commit qualified repair only after all gates pass
+        working-directory: product
         shell: bash
         run: |
           set -euo pipefail
           test "$(git rev-parse HEAD)" = "$EXPECTED_PRODUCT_SHA"
           git diff --check
-          test -z "$(git status --porcelain | grep -v '^ M ' || true)"
           git config user.name 'Luminous Qualification Bot'
           git config user.email 'qualification-bot@users.noreply.github.com'
           git add "$CONTINUITY_FILE" "$OBSERVABLE_FILE" "$VALIDATION_FILE"
           git diff --cached --check
+          test -z "$(git status --porcelain | grep -v '^M  ' || true)"
           git commit -m 'fix(lifesim): make shadow continuity sampling-invariant'
           printf 'QUALIFIED_REPAIR_HEAD=%s\n' "$(git rev-parse HEAD)"
           printf 'QUALIFIED_REPAIR_TREE=%s\n' "$(git rev-parse HEAD^{tree})"
