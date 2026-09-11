@@ -26,8 +26,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::validation::ContinuumValidityState;
 
-pub const REFINEMENT_POLICY_CONTRACT_SCHEMA_ID: &str =
-    "continuum-refinement-policy-contract-v0.1";
+pub const REFINEMENT_POLICY_CONTRACT_SCHEMA_ID: &str = "continuum-refinement-policy-contract-v0.1";
 pub const MAX_POLICY_ID_BYTES: usize = 128;
 pub const MAX_PROFILE_ID_BYTES: usize = 256;
 pub const MAX_REASON_BYTES: usize = 512;
@@ -233,22 +232,38 @@ impl fmt::Display for RefinementPolicyContractError {
                 write!(f, "every missing observable must also be required")
             }
             Self::TooManyProfileCandidates => write!(f, "too many semantic profile candidates"),
-            Self::DuplicateProfileCandidate => write!(f, "semantic profile candidates must be unique"),
+            Self::DuplicateProfileCandidate => {
+                write!(f, "semantic profile candidates must be unique")
+            }
             Self::CurrentProfileRepeatedAsCandidate => {
-                write!(f, "current semantic profile must not be repeated as a candidate")
+                write!(
+                    f,
+                    "current semantic profile must not be repeated as a candidate"
+                )
             }
             Self::EmptyCandidateCapabilities => {
-                write!(f, "semantic profile candidate must declare at least one capability")
+                write!(
+                    f,
+                    "semantic profile candidate must declare at least one capability"
+                )
             }
             Self::DuplicateCandidateCapability => {
                 write!(f, "semantic profile candidate capabilities must be unique")
             }
             Self::EmptyEvidenceRevision => write!(f, "evidence revision must not be empty"),
             Self::EmptyStaleReason => write!(f, "stale evidence requires a non-empty reason"),
-            Self::TooManyRequestedInformation => write!(f, "too many requested-information entries"),
-            Self::DuplicateRequestedInformation => write!(f, "requested-information entries must be unique"),
-            Self::EmptyAlternativeCandidates => write!(f, "alternative-profile outcome requires candidates"),
-            Self::DuplicateAlternativeCandidate => write!(f, "alternative-profile candidates must be unique"),
+            Self::TooManyRequestedInformation => {
+                write!(f, "too many requested-information entries")
+            }
+            Self::DuplicateRequestedInformation => {
+                write!(f, "requested-information entries must be unique")
+            }
+            Self::EmptyAlternativeCandidates => {
+                write!(f, "alternative-profile outcome requires candidates")
+            }
+            Self::DuplicateAlternativeCandidate => {
+                write!(f, "alternative-profile candidates must be unique")
+            }
             Self::EmptyReasonDetail => write!(f, "outcome reason detail must not be empty"),
             Self::OutcomeReasonTooLong => write!(f, "outcome reason detail is too long"),
         }
@@ -262,7 +277,11 @@ impl ContinuumRefinementPolicyInput {
         if self.schema_id != REFINEMENT_POLICY_CONTRACT_SCHEMA_ID {
             return Err(RefinementPolicyContractError::WrongSchemaId);
         }
-        validate_id("policy_contract_id", &self.policy_contract_id, MAX_POLICY_ID_BYTES)?;
+        validate_id(
+            "policy_contract_id",
+            &self.policy_contract_id,
+            MAX_POLICY_ID_BYTES,
+        )?;
         validate_id(
             "current_semantic_profile_id",
             &self.current_semantic_profile_id,
@@ -279,17 +298,17 @@ impl ContinuumRefinementPolicyInput {
             MAX_PROFILE_ID_BYTES,
         )?;
 
-        validate_observable_set(
-            &self.required_observables,
-            MAX_REQUIRED_OBSERVABLES,
-            true,
-        )?;
+        validate_observable_set(&self.required_observables, MAX_REQUIRED_OBSERVABLES, true)?;
         validate_observable_set(
             &self.missing_required_observables,
             MAX_REQUIRED_OBSERVABLES,
             false,
         )?;
-        let required = self.required_observables.iter().copied().collect::<BTreeSet<_>>();
+        let required = self
+            .required_observables
+            .iter()
+            .copied()
+            .collect::<BTreeSet<_>>();
         if self
             .missing_required_observables
             .iter()
@@ -319,7 +338,12 @@ impl ContinuumRefinementPolicyInput {
             if candidate.capabilities.is_empty() {
                 return Err(RefinementPolicyContractError::EmptyCandidateCapabilities);
             }
-            if candidate.capabilities.iter().copied().collect::<BTreeSet<_>>().len()
+            if candidate
+                .capabilities
+                .iter()
+                .copied()
+                .collect::<BTreeSet<_>>()
+                .len()
                 != candidate.capabilities.len()
             {
                 return Err(RefinementPolicyContractError::DuplicateCandidateCapability);
@@ -341,7 +365,11 @@ impl ContinuumRefinementPolicyOutcome {
                 if requested_information.len() > MAX_REQUESTED_INFORMATION {
                     return Err(RefinementPolicyContractError::TooManyRequestedInformation);
                 }
-                if requested_information.iter().copied().collect::<BTreeSet<_>>().len()
+                if requested_information
+                    .iter()
+                    .copied()
+                    .collect::<BTreeSet<_>>()
+                    .len()
                     != requested_information.len()
                 {
                     return Err(RefinementPolicyContractError::DuplicateRequestedInformation);
@@ -486,8 +514,18 @@ mod tests {
         let input = sample_input();
         input.validate().unwrap();
         let json = serde_json::to_string(&input).unwrap().to_ascii_lowercase();
-        for forbidden in ["camera", "fps", "frame_rate", "gpu_load", "cpu_load", "backend_id"] {
-            assert!(!json.contains(forbidden), "forbidden semantic selector leaked: {forbidden}");
+        for forbidden in [
+            "camera",
+            "fps",
+            "frame_rate",
+            "gpu_load",
+            "cpu_load",
+            "backend_id",
+        ] {
+            assert!(
+                !json.contains(forbidden),
+                "forbidden semantic selector leaked: {forbidden}"
+            );
         }
     }
 
@@ -514,7 +552,9 @@ mod tests {
         );
 
         let mut input = sample_input();
-        input.available_semantic_profiles.push(input.available_semantic_profiles[0].clone());
+        input
+            .available_semantic_profiles
+            .push(input.available_semantic_profiles[0].clone());
         assert_eq!(
             input.validate(),
             Err(RefinementPolicyContractError::DuplicateProfileCandidate)
@@ -550,8 +590,9 @@ mod tests {
         let outcome = ContinuumRefinementPolicyOutcome::RefinementRequired {
             reason: RefinementReason {
                 kind: RefinementReasonKind::SpatialUnderResolution,
-                detail: "concentration-scale separation is insufficient for the requested observable"
-                    .to_owned(),
+                detail:
+                    "concentration-scale separation is insufficient for the requested observable"
+                        .to_owned(),
             },
             requested_information: vec![
                 RequestedRefinementInformation::FinerSpatialResolution,
