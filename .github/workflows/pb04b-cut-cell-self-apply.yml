@@ -1,0 +1,193 @@
+name: PB-04b Cut Cell Self Apply
+
+on:
+  push:
+    branches:
+      - "spatial/pb04b-cut-cell-decomposition-v0.1"
+    paths:
+      - "crates/domains/symtropy-spatial-decomposition/**"
+      - "scripts/pb04b-fix-clippy-collapsible-if.py"
+      - "scripts/pb04b-localize-spatial-identity.py"
+      - ".github/workflows/pb04b-cut-cell-self-apply.yml"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: pb04b-cut-cell-self-apply
+  cancel-in-progress: true
+
+jobs:
+  qualify-and-freeze:
+    name: Qualify and freeze PB-04b cut-cell product
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+
+      - name: Bind exact PB-04b locality publication repair
+        shell: bash
+        run: |
+          set -euo pipefail
+          source_head="$(git rev-parse HEAD)"
+          test "${source_head}" = "${GITHUB_SHA}"
+          test "$(git rev-parse HEAD^)" = "163fb179c4f461396938e25818c80fb70ceb9a93"
+          test "$(git rev-parse 163fb179c4f461396938e25818c80fb70ceb9a93^{tree})" = "f73b3211e0c5587cc4f7a179fddbe0d4e357d781"
+          git merge-base --is-ancestor ed338b7abff069b91baca711c6b58ea063050a22 HEAD
+          git merge-base --is-ancestor d04c6c1da2aee2c53c169c96dd1eea3dbbce0787 HEAD
+          git merge-base --is-ancestor 1d500c62d93082e49f7a889656a1c92c552977e4 HEAD
+
+          check_blob() {
+            expected="$1"
+            path="$2"
+            actual="$(git rev-parse "HEAD:${path}")"
+            test "${actual}" = "${expected}" || {
+              echo "PB-04b locality publication capsule drift: ${path}" >&2
+              echo "expected ${expected}" >&2
+              echo "actual   ${actual}" >&2
+              exit 1
+            }
+          }
+
+          check_blob f465ef97074a973eb3bf742a918609f7a06bccc4 crates/domains/symtropy-spatial-topology/Cargo.lock
+          check_blob 22e4b9ed397b7fd94d5918d0dc26868710794d17 crates/domains/symtropy-spatial-topology/Cargo.toml
+          check_blob d0553da04de45f5df6e372b24a5a2fdc4d894b66 crates/domains/symtropy-spatial-topology/src/lib.rs
+          check_blob 79abd90a6aa2c0b6623f75a279a66ff309094926 crates/domains/symtropy-spatial-topology/tests/hostile_projection.rs
+          check_blob 614fa7d2e293809faaef10649cf3beb02475c259 crates/domains/symtropy-spatial-decomposition/Cargo.toml
+          check_blob 676fd6a7eb31a2ec00b09c9496b42c568e791556 crates/domains/symtropy-spatial-decomposition/Cargo.lock
+          check_blob 840f3efc28057c71e60977cf88aab43712899210 crates/domains/symtropy-spatial-decomposition/src/lib.rs
+          check_blob f9361c3fad891659228c0d41563afe582000e0cb scripts/pb04b-fix-clippy-collapsible-if.py
+          check_blob d26743f0e5f28abb7e2b2f0a7fe1f827f8217fb3 scripts/pb04b-localize-spatial-identity.py
+          check_blob a5af6bbcc2ced06e216801d79acf8deaf6607d3b crates/domains/symtropy-spatial-decomposition/tests/local_identity.rs
+
+          actual_source_delta="$(git diff --name-only 163fb179c4f461396938e25818c80fb70ceb9a93..HEAD | sort -u)"
+          test "${actual_source_delta}" = ".github/workflows/pb04b-cut-cell-self-apply.yml" || {
+            echo "PB-04b publication repair changed unexpected source paths" >&2
+            printf '%s\n' "${actual_source_delta}" >&2
+            exit 1
+          }
+
+          echo "PB04B_PUBLICATION_REPAIR_HEAD=${source_head}"
+          echo "PB04B_PUBLICATION_REPAIR_TREE=$(git rev-parse HEAD^{tree})"
+          echo "PB04B_LOCALITY_THEOREM=ed338b7abff069b91baca711c6b58ea063050a22"
+          echo "PB04B_INTERMEDIATE_PRODUCT=d04c6c1da2aee2c53c169c96dd1eea3dbbce0787"
+          echo "PB04B_QUALIFIED_PB04A_HEAD=1d500c62d93082e49f7a889656a1c92c552977e4"
+          echo "CARGO_TARGET_DIR=${RUNNER_TEMP}/pb04b-locality-target" >> "${GITHUB_ENV}"
+
+      - name: Record hosted execution environment
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "PB04B_RUNNER_OS=${RUNNER_OS}"
+          echo "PB04B_RUNNER_ARCH=${RUNNER_ARCH}"
+          echo "PB04B_IMAGE_OS=${ImageOS:-unknown}"
+          echo "PB04B_IMAGE_VERSION=${ImageVersion:-unknown}"
+          echo "PB04B_CARGO_TARGET_DIR=${CARGO_TARGET_DIR}"
+          uname -a
+          git --version
+
+      - name: Set up pinned Rust
+        uses: dtolnay/rust-toolchain@6bed0761d98439e5a578e2877258200ad565ba87
+        with:
+          toolchain: 1.96.0
+          components: clippy, rustfmt
+
+      - name: Bind exact Rust toolchain
+        shell: bash
+        run: |
+          set -euo pipefail
+          rustc -Vv
+          cargo -Vv
+          rustfmt --version
+          cargo clippy --version
+
+      - name: Apply exact local-identity transform and canonical formatting
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 scripts/pb04b-localize-spatial-identity.py
+          cargo fmt --manifest-path crates/domains/symtropy-spatial-decomposition/Cargo.toml
+          echo "PB04B_LOCALIZED_LIB_BLOB=$(git hash-object crates/domains/symtropy-spatial-decomposition/src/lib.rs)"
+          echo "PB04B_FORMATTED_LOCALITY_TEST_BLOB=$(git hash-object crates/domains/symtropy-spatial-decomposition/tests/local_identity.rs)"
+          test "$(git hash-object crates/domains/symtropy-spatial-decomposition/Cargo.lock)" = "676fd6a7eb31a2ec00b09c9496b42c568e791556"
+
+      - name: Verify locked dependency graph
+        shell: bash
+        run: |
+          set -euo pipefail
+          manifest="crates/domains/symtropy-spatial-decomposition/Cargo.toml"
+          cargo metadata --manifest-path "${manifest}" --locked --format-version 1 > "${RUNNER_TEMP}/pb04b-locality-metadata.json"
+          echo "PB04B_LOCKED_METADATA_SHA256=$(sha256sum "${RUNNER_TEMP}/pb04b-locality-metadata.json" | awk '{print $1}')"
+
+      - name: Check
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo check --manifest-path crates/domains/symtropy-spatial-decomposition/Cargo.toml --locked --all-targets
+
+      - name: Test locality theorem
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo test --manifest-path crates/domains/symtropy-spatial-decomposition/Cargo.toml --locked
+
+      - name: Strict Clippy
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo clippy --manifest-path crates/domains/symtropy-spatial-decomposition/Cargo.toml --locked --all-targets -- -D warnings
+
+      - name: Require exact generated locality delta
+        shell: bash
+        run: |
+          set -euo pipefail
+          git diff --check
+          test ! -e crates/domains/symtropy-spatial-decomposition/target
+          test "$(git hash-object crates/domains/symtropy-spatial-decomposition/Cargo.lock)" = "676fd6a7eb31a2ec00b09c9496b42c568e791556"
+
+          expected="$(printf '%s\n' \
+            crates/domains/symtropy-spatial-decomposition/src/lib.rs \
+            crates/domains/symtropy-spatial-decomposition/tests/local_identity.rs | sort)"
+          actual="$({
+            git diff --name-only
+            git ls-files --others --exclude-standard
+          } | sort -u)"
+          if [[ "${actual}" != "${expected}" ]]; then
+            echo "PB-04b locality qualification produced an unexpected product path set" >&2
+            echo "expected:" >&2
+            printf '%s\n' "${expected}" >&2
+            echo "actual:" >&2
+            printf '%s\n' "${actual}" >&2
+            exit 1
+          fi
+
+      - name: Publish localized PB-04b product
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "PB-04b Qualification Bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add \
+            crates/domains/symtropy-spatial-decomposition/src/lib.rs \
+            crates/domains/symtropy-spatial-decomposition/tests/local_identity.rs
+          git diff --cached --check
+          git diff --cached --exit-code --quiet && {
+            echo "no localized PB-04b product delta" >&2
+            exit 1
+          }
+          git commit -m "fix(spatial): localize PB-04b spatial identities"
+
+          product_head="$(git rev-parse HEAD)"
+          product_tree="$(git rev-parse HEAD^{tree})"
+          echo "PB04B_LOCALIZED_PRODUCT_HEAD=${product_head}"
+          echo "PB04B_LOCALIZED_PRODUCT_TREE=${product_tree}"
+          echo "PB04B_LOCALIZED_PRODUCT_PARENT=$(git rev-parse HEAD^)"
+          echo "PB04B_LOCALIZED_PRODUCT_LIB_BLOB=$(git rev-parse HEAD:crates/domains/symtropy-spatial-decomposition/src/lib.rs)"
+          echo "PB04B_LOCALIZED_PRODUCT_TEST_BLOB=$(git rev-parse HEAD:crates/domains/symtropy-spatial-decomposition/tests/local_identity.rs)"
+          echo "PB04B_LOCALIZED_PRODUCT_LOCK_BLOB=$(git rev-parse HEAD:crates/domains/symtropy-spatial-decomposition/Cargo.lock)"
+
+          remote_head="$(git ls-remote origin refs/heads/spatial/pb04b-cut-cell-decomposition-v0.1 | cut -f1)"
+          test "${remote_head}" = "${GITHUB_SHA}"
+          git push origin HEAD:spatial/pb04b-cut-cell-decomposition-v0.1
