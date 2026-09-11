@@ -36,6 +36,10 @@ replace_exact(
     "            hash_plane(&mut hash, cut.plane);",
 )
 replace_exact(
+    "fn push_interface_with_sources(\n    output: &mut Vec<GeometricInterface>,\n    geometry: &RealizedGeometrySnapshotRef,",
+    "fn push_interface_with_sources(\n    output: &mut Vec<GeometricInterface>,\n    _geometry: &RealizedGeometrySnapshotRef,",
+)
+replace_exact(
     "    let id = interface_id(\n        geometry,\n        profile,\n        domain,\n        &kind,\n        &first,\n        &second,\n        &barriers,\n        &separators,\n    )?;",
     "    let id = interface_id(profile, domain, &kind, &first, &second)?;",
 )

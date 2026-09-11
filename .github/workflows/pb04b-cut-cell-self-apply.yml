@@ -27,23 +27,23 @@ jobs:
           ref: ${{ github.sha }}
           fetch-depth: 0
 
-      - name: Bind exact PB-04b locality source and PB-04a dependency
+      - name: Bind exact PB-04b locality repair and PB-04a dependency
         shell: bash
         run: |
           set -euo pipefail
           source_head="$(git rev-parse HEAD)"
           test "${source_head}" = "${GITHUB_SHA}"
-          test "$(git rev-parse HEAD^)" = "d04c6c1da2aee2c53c169c96dd1eea3dbbce0787"
-          test "$(git rev-parse d04c6c1da2aee2c53c169c96dd1eea3dbbce0787^{tree})" = "11ff4c396bfd2ec0b3fe2845cf25893c4421bb87"
+          test "$(git rev-parse HEAD^)" = "ed338b7abff069b91baca711c6b58ea063050a22"
+          test "$(git rev-parse ed338b7abff069b91baca711c6b58ea063050a22^{tree})" = "a591fce1c04a7a1f979b5303638c84398968aa7d"
+          git merge-base --is-ancestor d04c6c1da2aee2c53c169c96dd1eea3dbbce0787 HEAD
           git merge-base --is-ancestor 1d500c62d93082e49f7a889656a1c92c552977e4 HEAD
-          test "$(git rev-parse 1d500c62d93082e49f7a889656a1c92c552977e4^{tree})" = "17cde7c1991c5485ea84b3186eab375c064b61d4"
 
           check_blob() {
             expected="$1"
             path="$2"
             actual="$(git rev-parse "HEAD:${path}")"
             test "${actual}" = "${expected}" || {
-              echo "PB-04b locality source/dependency capsule drift: ${path}" >&2
+              echo "PB-04b locality repair capsule drift: ${path}" >&2
               echo "expected ${expected}" >&2
               echo "actual   ${actual}" >&2
               exit 1
@@ -58,16 +58,15 @@ jobs:
           check_blob 676fd6a7eb31a2ec00b09c9496b42c568e791556 crates/domains/symtropy-spatial-decomposition/Cargo.lock
           check_blob 840f3efc28057c71e60977cf88aab43712899210 crates/domains/symtropy-spatial-decomposition/src/lib.rs
           check_blob f9361c3fad891659228c0d41563afe582000e0cb scripts/pb04b-fix-clippy-collapsible-if.py
-          check_blob 890058d9d5a3ec984bb5f2b40087ef503a2ed172 scripts/pb04b-localize-spatial-identity.py
+          check_blob d26743f0e5f28abb7e2b2f0a7fe1f827f8217fb3 scripts/pb04b-localize-spatial-identity.py
           check_blob a5af6bbcc2ced06e216801d79acf8deaf6607d3b crates/domains/symtropy-spatial-decomposition/tests/local_identity.rs
 
           expected_source_delta="$(printf '%s\n' \
             .github/workflows/pb04b-cut-cell-self-apply.yml \
-            crates/domains/symtropy-spatial-decomposition/tests/local_identity.rs \
             scripts/pb04b-localize-spatial-identity.py | sort)"
-          actual_source_delta="$(git diff --name-only d04c6c1da2aee2c53c169c96dd1eea3dbbce0787..HEAD | sort -u)"
+          actual_source_delta="$(git diff --name-only ed338b7abff069b91baca711c6b58ea063050a22..HEAD | sort -u)"
           if [[ "${actual_source_delta}" != "${expected_source_delta}" ]]; then
-            echo "PB-04b locality source commit changed unexpected paths" >&2
+            echo "PB-04b locality repair commit changed unexpected paths" >&2
             echo "expected:" >&2
             printf '%s\n' "${expected_source_delta}" >&2
             echo "actual:" >&2
@@ -75,8 +74,9 @@ jobs:
             exit 1
           fi
 
-          echo "PB04B_LOCALITY_SOURCE_HEAD=${source_head}"
-          echo "PB04B_LOCALITY_SOURCE_TREE=$(git rev-parse HEAD^{tree})"
+          echo "PB04B_LOCALITY_REPAIR_HEAD=${source_head}"
+          echo "PB04B_LOCALITY_REPAIR_TREE=$(git rev-parse HEAD^{tree})"
+          echo "PB04B_LOCALITY_THEOREM=ed338b7abff069b91baca711c6b58ea063050a22"
           echo "PB04B_INTERMEDIATE_PRODUCT=d04c6c1da2aee2c53c169c96dd1eea3dbbce0787"
           echo "PB04B_QUALIFIED_PB04A_HEAD=1d500c62d93082e49f7a889656a1c92c552977e4"
           echo "CARGO_TARGET_DIR=${RUNNER_TEMP}/pb04b-locality-target" >> "${GITHUB_ENV}"
