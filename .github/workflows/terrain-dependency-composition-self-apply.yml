@@ -1,0 +1,212 @@
+name: Terrain Dependency Composition Self Apply
+
+on:
+  push:
+    branches:
+      - "terrain/dependency-composition-v0.1"
+    paths:
+      - ".github/workflows/terrain-dependency-composition-self-apply.yml"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: terrain-dependency-composition-self-apply
+  cancel-in-progress: false
+
+jobs:
+  qualify-and-freeze:
+    name: Isolate and qualify Terrain dependency composition
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+
+      - name: Bind exact provider lineage and dependency preimage
+        shell: bash
+        run: |
+          set -euo pipefail
+          provider_base=7aa1190fe8390187f1765479978f2ad04e36e974
+          workflow=.github/workflows/terrain-dependency-composition-self-apply.yml
+          cargo_blob=274720e256ba9067fad3d06f71e1b18590b046bd
+          lock_blob=db602c9707ecd6143ef36c0243c051544a027141
+
+          test "$(git rev-parse HEAD)" = "${GITHUB_SHA}"
+          test "$(git rev-parse HEAD^)" = "${provider_base}"
+          test "$(git rev-parse HEAD:Cargo.toml)" = "${cargo_blob}"
+          test "$(git rev-parse HEAD:Cargo.lock)" = "${lock_blob}"
+
+          actual_delta="$(git diff --name-only "${provider_base}"..HEAD | sort -u)"
+          test "${actual_delta}" = "${workflow}"
+
+          expected='naga = { version = "27", default-features = false, features = ["termcolor"] }'
+          test "$(grep -Fxc "${expected}" Cargo.toml)" -eq 1
+
+          echo "TERRAIN_DEPS_INPUT_HEAD=${GITHUB_SHA}"
+          echo "TERRAIN_DEPS_INPUT_TREE=$(git rev-parse HEAD^{tree})"
+          echo "TERRAIN_DEPS_PROVIDER_BASE=${provider_base}"
+          echo "TERRAIN_DEPS_CARGO_BLOB=${cargo_blob}"
+          echo "TERRAIN_DEPS_LOCK_BLOB=${lock_blob}" >> "${GITHUB_ENV}"
+          echo "CARGO_TARGET_DIR=${RUNNER_TEMP}/terrain-deps-target" >> "${GITHUB_ENV}"
+
+      - name: Record hosted execution environment
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "TERRAIN_DEPS_RUNNER_OS=${RUNNER_OS}"
+          echo "TERRAIN_DEPS_RUNNER_ARCH=${RUNNER_ARCH}"
+          echo "TERRAIN_DEPS_IMAGE_OS=${ImageOS:-unknown}"
+          echo "TERRAIN_DEPS_IMAGE_VERSION=${ImageVersion:-unknown}"
+          uname -a
+          git --version
+
+      - name: Install Linux system dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install -y libasound2-dev libudev-dev pkg-config
+
+      - name: Set up pinned Rust
+        uses: dtolnay/rust-toolchain@6bed0761d98439e5a578e2877258200ad565ba87
+        with:
+          toolchain: 1.96.0
+          components: clippy, rustfmt
+
+      - name: Bind exact Rust toolchain
+        shell: bash
+        run: |
+          set -euo pipefail
+          rustc -Vv
+          cargo -Vv
+          cargo clippy --version
+
+      - name: Remove only direct root Naga termcolor activation
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+
+          path = Path("Cargo.toml")
+          text = path.read_text()
+          old = 'naga = { version = "27", default-features = false, features = ["termcolor"] }'
+          new = 'naga = { version = "27", default-features = false }'
+          if text.count(old) != 1:
+              raise SystemExit(f"expected exactly one Naga termcolor preimage, found {text.count(old)}")
+          if new in text:
+              raise SystemExit("target Naga declaration already exists before transform")
+          path.write_text(text.replace(old, new, 1))
+          PY
+
+          git diff --check -- Cargo.toml
+          test "$(git diff --name-only)" = "Cargo.toml"
+          test "$(git hash-object Cargo.lock)" = "${TERRAIN_DEPS_LOCK_BLOB}"
+          test "$(grep -Fxc 'naga = { version = "27", default-features = false }' Cargo.toml)" -eq 1
+          ! grep -F 'naga = { version = "27", default-features = false, features = ["termcolor"] }' Cargo.toml
+
+      - name: Freeze candidate product commit before qualification
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "Terrain Dependency Qualification Bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add Cargo.toml
+          git diff --cached --check
+          test "$(git diff --cached --name-only)" = "Cargo.toml"
+          git commit -m "build(deps): remove direct Naga termcolor activation"
+
+          product_head="$(git rev-parse HEAD)"
+          product_tree="$(git rev-parse HEAD^{tree})"
+          product_cargo_blob="$(git rev-parse HEAD:Cargo.toml)"
+          test "$(git rev-parse HEAD^)" = "${GITHUB_SHA}"
+          test "$(git rev-parse HEAD:Cargo.lock)" = "${TERRAIN_DEPS_LOCK_BLOB}"
+          test "$(git diff --name-only "${GITHUB_SHA}"..HEAD)" = "Cargo.toml"
+
+          echo "TERRAIN_DEPS_PRODUCT_HEAD=${product_head}" >> "${GITHUB_ENV}"
+          echo "TERRAIN_DEPS_PRODUCT_TREE=${product_tree}" >> "${GITHUB_ENV}"
+          echo "TERRAIN_DEPS_PRODUCT_CARGO_BLOB=${product_cargo_blob}" >> "${GITHUB_ENV}"
+          echo "TERRAIN_DEPS_PRODUCT_HEAD=${product_head}"
+          echo "TERRAIN_DEPS_PRODUCT_TREE=${product_tree}"
+          echo "TERRAIN_DEPS_PRODUCT_CARGO_BLOB=${product_cargo_blob}"
+
+      - name: Verify locked dependency metadata
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo metadata --locked --format-version 1 > "${RUNNER_TEMP}/terrain-deps-metadata.json"
+          echo "TERRAIN_DEPS_METADATA_SHA256=$(sha256sum "${RUNNER_TEMP}/terrain-deps-metadata.json" | awk '{print $1}')"
+          test "$(git rev-parse HEAD:Cargo.lock)" = "${TERRAIN_DEPS_LOCK_BLOB}"
+          test "$(git hash-object Cargo.lock)" = "${TERRAIN_DEPS_LOCK_BLOB}"
+
+      - name: Audit provider and workspace feature composition
+        shell: bash
+        run: |
+          set -euo pipefail
+          provider_tree="${RUNNER_TEMP}/terrain-provider-features.txt"
+          workspace_tree="${RUNNER_TEMP}/terrain-workspace-features.txt"
+
+          cargo tree --locked -p symtropy-terrain -e features > "${provider_tree}"
+          cargo tree --locked --workspace -e features > "${workspace_tree}"
+
+          echo "TERRAIN_DEPS_PROVIDER_TREE_SHA256=$(sha256sum "${provider_tree}" | awk '{print $1}')"
+          echo "TERRAIN_DEPS_WORKSPACE_TREE_SHA256=$(sha256sum "${workspace_tree}" | awk '{print $1}')"
+
+          if grep -F 'termcolor' "${provider_tree}"; then
+            echo "FAIL: termcolor remains in the symtropy-terrain dependency closure" >&2
+            echo "Relevant provider feature lines:" >&2
+            grep -n -C 4 -F 'termcolor' "${provider_tree}" >&2 || true
+            exit 1
+          fi
+          echo "PASS: no termcolor activation appears in the symtropy-terrain dependency closure"
+
+          if grep -F 'termcolor' "${workspace_tree}" > "${RUNNER_TEMP}/terrain-workspace-termcolor.txt"; then
+            echo "DIAGNOSTIC: termcolor remains elsewhere in the workspace; this is not provider authority."
+            cat "${RUNNER_TEMP}/terrain-workspace-termcolor.txt"
+          else
+            echo "DIAGNOSTIC: no termcolor activation appears anywhere in the workspace feature tree"
+          fi
+
+      - name: Check Terrain exact provider closure
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo check -p symtropy-terrain --locked --all-targets
+
+      - name: Test Terrain exact provider closure
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo test -p symtropy-terrain --locked --all-targets
+
+      - name: Strict Terrain Clippy
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo clippy -p symtropy-terrain --locked --all-targets -- -D warnings
+
+      - name: Exact product postflight
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "${TERRAIN_DEPS_PRODUCT_HEAD}"
+          test "$(git rev-parse HEAD^{tree})" = "${TERRAIN_DEPS_PRODUCT_TREE}"
+          test "$(git rev-parse HEAD:Cargo.toml)" = "${TERRAIN_DEPS_PRODUCT_CARGO_BLOB}"
+          test "$(git rev-parse HEAD:Cargo.lock)" = "${TERRAIN_DEPS_LOCK_BLOB}"
+          test -z "$(git status --porcelain)"
+          test ! -e crates/domains/symtropy-terrain/target
+          echo "QUALIFIED_TERRAIN_DEPS_HEAD=${TERRAIN_DEPS_PRODUCT_HEAD}"
+          echo "QUALIFIED_TERRAIN_DEPS_TREE=${TERRAIN_DEPS_PRODUCT_TREE}"
+          echo "QUALIFIED_TERRAIN_DEPS_CARGO_BLOB=${TERRAIN_DEPS_PRODUCT_CARGO_BLOB}"
+          echo "QUALIFIED_TERRAIN_DEPS_LOCK_BLOB=${TERRAIN_DEPS_LOCK_BLOB}"
+
+      - name: Publish exact qualified dependency product
+        shell: bash
+        run: |
+          set -euo pipefail
+          remote_head="$(git ls-remote origin refs/heads/terrain/dependency-composition-v0.1 | cut -f1)"
+          test "${remote_head}" = "${GITHUB_SHA}"
+          test "$(git rev-parse HEAD)" = "${TERRAIN_DEPS_PRODUCT_HEAD}"
+          git push origin HEAD:terrain/dependency-composition-v0.1
