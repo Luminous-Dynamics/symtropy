@@ -3,9 +3,9 @@
 
 use symtropy_game_state::StableId;
 use symtropy_spatial_decomposition::{
-    AnalysisDomain, CanonicalPlane, CellCoord, DecompositionProfile,
-    GeometricDecompositionSnapshot, GeometricInterfaceKind, LocalPartitionCut, Point3i,
-    RealizedGeometrySnapshotRef, WorkBudget,
+    AnalysisDomain, CanonicalPlane, CellCoord, CellPartitionObservation, DecompositionProfile,
+    GeometricDecompositionSnapshot, GeometricInterfaceKind, LocalPartitionCensus,
+    LocalPartitionCut, Point3i, RealizedGeometrySnapshotRef, WorkBudget,
 };
 use symtropy_spatial_topology::ExactSourceRef;
 
@@ -107,13 +107,41 @@ fn doorway_cut(barriers: Vec<ExactSourceRef>) -> LocalPartitionCut {
     .expect("test cut")
 }
 
+fn coverage(cell: CellCoord) -> ExactSourceRef {
+    exact(
+        "symtropy.test.coverage",
+        &format!("cell-{}-{}-{}", cell.x, cell.y, cell.z),
+        1,
+        &format!("coverage-{}-{}-{}-v1", cell.x, cell.y, cell.z),
+    )
+}
+
 fn derive_in_domain(
     geometry: RealizedGeometrySnapshotRef,
     profile: &DecompositionProfile,
     domain: &AnalysisDomain,
     cut: LocalPartitionCut,
 ) -> GeometricDecompositionSnapshot {
-    GeometricDecompositionSnapshot::derive(geometry, profile, domain, vec![cut])
+    let dimensions = domain.dimensions();
+    let mut observations = Vec::new();
+    for z in 0..dimensions[2] {
+        for y in 0..dimensions[1] {
+            for x in 0..dimensions[0] {
+                let cell = CellCoord::new(x, y, z);
+                let cuts = if cell == cut.cell {
+                    vec![cut.clone()]
+                } else {
+                    Vec::new()
+                };
+                observations.push(
+                    CellPartitionObservation::new(cell, coverage(cell), cuts)
+                        .expect("coverage observation"),
+                );
+            }
+        }
+    }
+    let census = LocalPartitionCensus::new(geometry, domain, observations).expect("census");
+    GeometricDecompositionSnapshot::derive_from_census(profile, domain, census)
         .expect("test decomposition")
 }
 
@@ -173,13 +201,13 @@ fn local_partition_id(snapshot: &GeometricDecompositionSnapshot) -> String {
 }
 
 #[test]
-fn successor_uses_schema_v2() {
+fn successor_uses_schema_v3() {
     let snapshot = derive(
-        geometry(1, "schema2-geometry"),
+        geometry(1, "schema3-geometry"),
         &profile(1),
-        doorway_cut(vec![barrier(1, "schema2-door")]),
+        doorway_cut(vec![barrier(1, "schema3-door")]),
     );
-    assert_eq!(snapshot.schema_version(), 2);
+    assert_eq!(snapshot.schema_version(), 3);
 }
 
 #[test]

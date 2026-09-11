@@ -28,8 +28,7 @@ fn geometry(revision: u64, digest: &str) -> RealizedGeometrySnapshotRef {
 }
 
 fn profile() -> DecompositionProfile {
-    DecompositionProfile::reference_v1(sid("pb04b1.coverage.profile"), 1, 10)
-        .expect("profile")
+    DecompositionProfile::reference_v1(sid("pb04b1.coverage.profile"), 1, 10).expect("profile")
 }
 
 fn domain(dimensions: [u32; 3]) -> AnalysisDomain {
@@ -62,12 +61,7 @@ fn cut(cell: CellCoord, barriers: Vec<ExactSourceRef>) -> LocalPartitionCut {
         cell,
         CanonicalPlane::new(1, 0, 0, -5).expect("plane"),
         barriers,
-        vec![exact(
-            "symtropy.test.separator",
-            "doorway",
-            1,
-            "doorway-v1",
-        )],
+        vec![exact("symtropy.test.separator", "doorway", 1, "doorway-v1")],
     )
     .expect("cut")
 }
@@ -83,12 +77,7 @@ fn observed_cut(cell: CellCoord, coverage_digest: &str) -> CellPartitionObservat
         coverage(cell, 1, coverage_digest),
         vec![cut(
             cell,
-            vec![exact(
-                "symtropy.test.barrier",
-                "wall",
-                1,
-                "wall-v1",
-            )],
+            vec![exact("symtropy.test.barrier", "wall", 1, "wall-v1")],
         )],
     )
     .expect("cut observation")
@@ -136,7 +125,10 @@ fn schema3_sparse_derive_is_fail_closed() {
         &domain,
         Vec::new(),
     );
-    assert!(matches!(result, Err(DecompositionError::CompleteCensusRequired)));
+    assert!(matches!(
+        result,
+        Err(DecompositionError::CompleteCensusRequired)
+    ));
 }
 
 #[test]
@@ -149,7 +141,11 @@ fn missing_cell_observation_fails_closed() {
     );
     assert!(matches!(
         result,
-        Err(DecompositionError::MissingCellObservation(CellCoord { x: 1, y: 0, z: 0 }))
+        Err(DecompositionError::MissingCellObservation(CellCoord {
+            x: 1,
+            y: 0,
+            z: 0
+        }))
     ));
 }
 
@@ -178,7 +174,11 @@ fn observation_outside_domain_fails_closed() {
     );
     assert!(matches!(
         result,
-        Err(DecompositionError::CellOutsideDomain(CellCoord { x: 1, y: 0, z: 0 }))
+        Err(DecompositionError::CellOutsideDomain(CellCoord {
+            x: 1,
+            y: 0,
+            z: 0
+        }))
     ));
 }
 
@@ -207,13 +207,20 @@ fn complete_diagonal_cut_keeps_two_fragments_and_partition() {
     let observation = CellPartitionObservation::new(
         cell,
         coverage(cell, 1, "coverage-cut"),
-        vec![LocalPartitionCut::new(
-            cell,
-            CanonicalPlane::new(1, -1, 0, 0).expect("diagonal"),
-            vec![exact("symtropy.test.barrier", "diagonal-wall", 1, "diag-v1")],
-            Vec::new(),
-        )
-        .expect("diagonal cut")],
+        vec![
+            LocalPartitionCut::new(
+                cell,
+                CanonicalPlane::new(1, -1, 0, 0).expect("diagonal"),
+                vec![exact(
+                    "symtropy.test.barrier",
+                    "diagonal-wall",
+                    1,
+                    "diag-v1",
+                )],
+                Vec::new(),
+            )
+            .expect("diagonal cut"),
+        ],
     )
     .expect("observation");
     let snapshot = derive(
@@ -232,8 +239,8 @@ fn complete_diagonal_cut_keeps_two_fragments_and_partition() {
 #[test]
 fn shuffled_census_order_is_exactly_equivalent() {
     let domain = domain([2, 1, 1]);
-    let left = clear(CellCoord::new(0, 0, 0), "coverage-left");
-    let right = observed_cut(CellCoord::new(1, 0, 0), "coverage-right");
+    let left = observed_cut(CellCoord::new(0, 0, 0), "coverage-left");
+    let right = clear(CellCoord::new(1, 0, 0), "coverage-right");
     let first = derive(
         &profile(),
         &domain,
@@ -246,11 +253,7 @@ fn shuffled_census_order_is_exactly_equivalent() {
     let second = derive(
         &profile(),
         &domain,
-        census(
-            geometry(1, "geometry-v1"),
-            &domain,
-            vec![right, left],
-        ),
+        census(geometry(1, "geometry-v1"), &domain, vec![right, left]),
     );
     assert_eq!(first, second);
     assert_eq!(first.content_digest(), second.content_digest());
@@ -271,7 +274,10 @@ fn conflicting_coverage_identity_digest_fails_closed() {
                 .expect("right"),
         ],
     );
-    assert!(matches!(result, Err(DecompositionError::ConflictingExactRef { .. })));
+    assert!(matches!(
+        result,
+        Err(DecompositionError::ConflictingExactRef { .. })
+    ));
 }
 
 #[test]
@@ -321,20 +327,17 @@ fn changed_coverage_changes_provenance_and_snapshot_not_local_ids() {
         census(
             geometry(1, "geometry-v1"),
             &domain,
-            vec![CellPartitionObservation::new(
-                cell,
-                coverage(cell, 2, "coverage-after"),
-                vec![cut(
+            vec![
+                CellPartitionObservation::new(
                     cell,
-                    vec![exact(
-                        "symtropy.test.barrier",
-                        "wall",
-                        1,
-                        "wall-v1",
+                    coverage(cell, 2, "coverage-after"),
+                    vec![cut(
+                        cell,
+                        vec![exact("symtropy.test.barrier", "wall", 1, "wall-v1")],
                     )],
-                )],
-            )
-            .expect("changed coverage")],
+                )
+                .expect("changed coverage"),
+            ],
         ),
     );
     assert_eq!(fragment_ids(&first), fragment_ids(&second));
