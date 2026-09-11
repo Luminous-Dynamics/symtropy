@@ -6,7 +6,7 @@
 //! workpiece identities. They do not instantiate outputs, store execution
 //! progress, predict success, or confer engineering/civil authority.
 
-use serde::{Deserialize, Serialize};
+use serde::{Deserialize, Deserializer, Serialize};
 use std::{
     collections::{BTreeMap, BTreeSet},
     error::Error,
@@ -61,7 +61,7 @@ impl fmt::Display for PlanStepId {
 /// One intended process application. Capability needs point to F5 rich
 /// envelopes; evidence kinds state what should be captured, not whether the
 /// resulting work will pass an engineering constraint.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub struct PlanStep {
     pub id: PlanStepId,
     pub process_spec_id: ProcessSpecId,
@@ -69,6 +69,34 @@ pub struct PlanStep {
     workpieces: Vec<WorkpieceId>,
     capability_needs: Vec<CapabilityNeedId>,
     expected_evidence_kinds: Vec<StableId>,
+}
+
+#[derive(Deserialize)]
+struct PlanStepWire {
+    id: PlanStepId,
+    process_spec_id: ProcessSpecId,
+    process_spec_revision: u64,
+    workpieces: Vec<WorkpieceId>,
+    capability_needs: Vec<CapabilityNeedId>,
+    expected_evidence_kinds: Vec<StableId>,
+}
+
+impl<'de> Deserialize<'de> for PlanStep {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        let wire = PlanStepWire::deserialize(deserializer)?;
+        Self::new(
+            wire.id,
+            wire.process_spec_id,
+            wire.process_spec_revision,
+            wire.workpieces,
+            wire.capability_needs,
+            wire.expected_evidence_kinds,
+        )
+        .map_err(serde::de::Error::custom)
+    }
 }
 
 impl PlanStep {
@@ -111,10 +139,26 @@ impl PlanStep {
 
 /// Directed prerequisite edge. `prerequisite` must finish before `dependent`
 /// may begin in a concrete execution state.
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize)]
 pub struct PlanDependency {
     pub prerequisite: PlanStepId,
     pub dependent: PlanStepId,
+}
+
+#[derive(Deserialize)]
+struct PlanDependencyWire {
+    prerequisite: PlanStepId,
+    dependent: PlanStepId,
+}
+
+impl<'de> Deserialize<'de> for PlanDependency {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        let wire = PlanDependencyWire::deserialize(deserializer)?;
+        Self::new(wire.prerequisite, wire.dependent).map_err(serde::de::Error::custom)
+    }
 }
 
 impl PlanDependency {
@@ -127,16 +171,44 @@ impl PlanDependency {
             dependent,
         })
     }
+
+    /// Replays the primitive dependency theorem for a publicly mutable value
+    /// before it is admitted into a plan graph.
+    pub fn validate_current(&self) -> Result<(), PlanError> {
+        if self.prerequisite == self.dependent {
+            return Err(PlanError::SelfDependency(self.prerequisite.clone()));
+        }
+        Ok(())
+    }
 }
 
 /// Immutable reusable plan definition. Runtime progress belongs to a later
 /// execution layer and must not mutate this design knowledge.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub struct FabricationPlan {
     pub id: FabricationPlanId,
     pub revision: u64,
     steps: Vec<PlanStep>,
     dependencies: Vec<PlanDependency>,
+}
+
+#[derive(Deserialize)]
+struct FabricationPlanWire {
+    id: FabricationPlanId,
+    revision: u64,
+    steps: Vec<PlanStep>,
+    dependencies: Vec<PlanDependency>,
+}
+
+impl<'de> Deserialize<'de> for FabricationPlan {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        let wire = FabricationPlanWire::deserialize(deserializer)?;
+        Self::new(wire.id, wire.revision, wire.steps, wire.dependencies)
+            .map_err(serde::de::Error::custom)
+    }
 }
 
 impl FabricationPlan {
@@ -157,6 +229,9 @@ impl FabricationPlan {
             }
         }
 
+        for dependency in &dependencies {
+            dependency.validate_current()?;
+        }
         dependencies.sort();
         for pair in dependencies.windows(2) {
             if pair[0] == pair[1] {
@@ -563,6 +638,221 @@ mod tests {
             invalid,
             Err(PlanError::InvalidCompletionOrder { .. })
         ));
+    }
+
+    #[test]
+    fn plan_step_wire_normalizes_set_like_order() {
+        let step = PlanStep::new(
+            PlanStepId::new(id("step:wire-order")),
+            ProcessSpecId::new(id("process-spec:wire-order")),
+            4,
+            vec![
+                WorkpieceId::new(id("workpiece:a")),
+                WorkpieceId::new(id("workpiece:b")),
+            ],
+            vec![
+                CapabilityNeedId::new(id("capability-need:a")),
+                CapabilityNeedId::new(id("capability-need:b")),
+            ],
+            vec![id("evidence-kind:a"), id("evidence-kind:b")],
+        )
+        .unwrap();
+        let mut value = serde_json::to_value(&step).unwrap();
+        value["workpieces"].as_array_mut().unwrap().reverse();
+        value["capability_needs"].as_array_mut().unwrap().reverse();
+        value["expected_evidence_kinds"]
+            .as_array_mut()
+            .unwrap()
+            .reverse();
+
+        let restored: PlanStep = serde_json::from_value(value).unwrap();
+        assert_eq!(restored, step);
+    }
+
+    #[test]
+    fn plan_step_wire_rejects_duplicate_or_missing_set_members() {
+        let step = PlanStep::new(
+            PlanStepId::new(id("step:wire-invalid")),
+            ProcessSpecId::new(id("process-spec:wire-invalid")),
+            1,
+            vec![WorkpieceId::new(id("workpiece:a"))],
+            vec![CapabilityNeedId::new(id("capability-need:a"))],
+            vec![id("evidence-kind:a")],
+        )
+        .unwrap();
+
+        let mut duplicate_workpiece = serde_json::to_value(&step).unwrap();
+        let duplicate = duplicate_workpiece["workpieces"][0].clone();
+        duplicate_workpiece["workpieces"]
+            .as_array_mut()
+            .unwrap()
+            .push(duplicate);
+        assert!(serde_json::from_value::<PlanStep>(duplicate_workpiece).is_err());
+
+        let mut duplicate_capability = serde_json::to_value(&step).unwrap();
+        let duplicate = duplicate_capability["capability_needs"][0].clone();
+        duplicate_capability["capability_needs"]
+            .as_array_mut()
+            .unwrap()
+            .push(duplicate);
+        assert!(serde_json::from_value::<PlanStep>(duplicate_capability).is_err());
+
+        let mut duplicate_evidence = serde_json::to_value(&step).unwrap();
+        let duplicate = duplicate_evidence["expected_evidence_kinds"][0].clone();
+        duplicate_evidence["expected_evidence_kinds"]
+            .as_array_mut()
+            .unwrap()
+            .push(duplicate);
+        assert!(serde_json::from_value::<PlanStep>(duplicate_evidence).is_err());
+
+        let mut empty_workpieces = serde_json::to_value(&step).unwrap();
+        empty_workpieces["workpieces"] = serde_json::Value::Array(Vec::new());
+        assert!(serde_json::from_value::<PlanStep>(empty_workpieces).is_err());
+    }
+
+    #[test]
+    fn plan_step_canonical_round_trip_succeeds() {
+        let original = step("round-trip", "workpiece:round-trip");
+        let encoded = serde_json::to_vec(&original).unwrap();
+        let restored: PlanStep = serde_json::from_slice(&encoded).unwrap();
+        assert_eq!(restored, original);
+    }
+
+    #[test]
+    fn dependency_wire_and_public_mutation_reject_self_edges() {
+        let original = dependency("clean", "inspect");
+        let mut value = serde_json::to_value(&original).unwrap();
+        value["dependent"] = value["prerequisite"].clone();
+        assert!(serde_json::from_value::<PlanDependency>(value).is_err());
+
+        let mut mutated = original;
+        mutated.dependent = mutated.prerequisite.clone();
+        let result = FabricationPlan::new(
+            FabricationPlanId::new(id("fabrication-plan:mutated-dependency")),
+            1,
+            vec![step("clean", "workpiece:clean")],
+            vec![mutated],
+        );
+        assert!(matches!(result, Err(PlanError::SelfDependency(_))));
+    }
+
+    #[test]
+    fn plan_wire_normalizes_valid_step_and_dependency_order() {
+        let original = patch_plan(
+            vec![
+                step("clean", "workpiece:clean"),
+                step("seal", "workpiece:seal"),
+                step("inspect", "workpiece:inspect"),
+            ],
+            vec![dependency("clean", "seal"), dependency("seal", "inspect")],
+        );
+        let expected_order = original.topological_order();
+        let mut value = serde_json::to_value(&original).unwrap();
+        value["steps"].as_array_mut().unwrap().reverse();
+        value["dependencies"].as_array_mut().unwrap().reverse();
+
+        let restored: FabricationPlan = serde_json::from_value(value).unwrap();
+        assert_eq!(restored, original);
+        assert_eq!(restored.topological_order(), expected_order);
+    }
+
+    #[test]
+    fn plan_wire_rejects_duplicate_step_and_dependency() {
+        let original = patch_plan(
+            vec![
+                step("clean", "workpiece:clean"),
+                step("inspect", "workpiece:inspect"),
+            ],
+            vec![dependency("clean", "inspect")],
+        );
+
+        let mut duplicate_step = serde_json::to_value(&original).unwrap();
+        let duplicate = duplicate_step["steps"][0].clone();
+        duplicate_step["steps"]
+            .as_array_mut()
+            .unwrap()
+            .push(duplicate);
+        assert!(serde_json::from_value::<FabricationPlan>(duplicate_step).is_err());
+
+        let mut duplicate_dependency = serde_json::to_value(&original).unwrap();
+        let duplicate = duplicate_dependency["dependencies"][0].clone();
+        duplicate_dependency["dependencies"]
+            .as_array_mut()
+            .unwrap()
+            .push(duplicate);
+        assert!(serde_json::from_value::<FabricationPlan>(duplicate_dependency).is_err());
+    }
+
+    #[test]
+    fn plan_wire_rejects_unknown_dependency_endpoints() {
+        let original = patch_plan(
+            vec![
+                step("clean", "workpiece:clean"),
+                step("inspect", "workpiece:inspect"),
+            ],
+            vec![dependency("clean", "inspect")],
+        );
+
+        let mut unknown_prerequisite = serde_json::to_value(&original).unwrap();
+        unknown_prerequisite["dependencies"][0]["prerequisite"] =
+            serde_json::Value::String("step:missing-prerequisite".into());
+        assert!(serde_json::from_value::<FabricationPlan>(unknown_prerequisite).is_err());
+
+        let mut unknown_dependent = serde_json::to_value(&original).unwrap();
+        unknown_dependent["dependencies"][0]["dependent"] =
+            serde_json::Value::String("step:missing-dependent".into());
+        assert!(serde_json::from_value::<FabricationPlan>(unknown_dependent).is_err());
+    }
+
+    #[test]
+    fn plan_wire_rejects_simple_and_multi_node_cycles() {
+        let simple = patch_plan(
+            vec![step("a", "workpiece:a"), step("b", "workpiece:b")],
+            vec![dependency("a", "b")],
+        );
+        let mut simple_value = serde_json::to_value(&simple).unwrap();
+        simple_value["dependencies"]
+            .as_array_mut()
+            .unwrap()
+            .push(serde_json::json!({
+                "prerequisite": "step:b",
+                "dependent": "step:a"
+            }));
+        assert!(serde_json::from_value::<FabricationPlan>(simple_value).is_err());
+
+        let multi = patch_plan(
+            vec![
+                step("a", "workpiece:a"),
+                step("b", "workpiece:b"),
+                step("c", "workpiece:c"),
+            ],
+            vec![dependency("a", "b"), dependency("b", "c")],
+        );
+        let mut multi_value = serde_json::to_value(&multi).unwrap();
+        multi_value["dependencies"]
+            .as_array_mut()
+            .unwrap()
+            .push(serde_json::json!({
+                "prerequisite": "step:c",
+                "dependent": "step:a"
+            }));
+        assert!(serde_json::from_value::<FabricationPlan>(multi_value).is_err());
+    }
+
+    #[test]
+    fn fabrication_plan_canonical_round_trip_succeeds() {
+        let original = patch_plan(
+            vec![
+                step("clean", "workpiece:clean"),
+                step("inspect", "workpiece:inspect"),
+            ],
+            vec![dependency("clean", "inspect")],
+        );
+        let expected_order = original.topological_order();
+        let encoded = serde_json::to_vec(&original).unwrap();
+        let restored: FabricationPlan = serde_json::from_slice(&encoded).unwrap();
+        assert_eq!(restored, original);
+        assert_eq!(restored.topological_order(), expected_order);
     }
 
     #[test]

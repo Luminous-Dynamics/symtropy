@@ -466,6 +466,29 @@ mod tests {
     }
 
     #[test]
+    fn deserialization_rejects_nested_cyclic_f10_plan() {
+        let executable = ExecutableFabricationPlan::new(plan(), bindings()).unwrap();
+        let mut value = serde_json::to_value(&executable).unwrap();
+        value["plan"]["dependencies"]
+            .as_array_mut()
+            .unwrap()
+            .push(serde_json::json!({
+                "prerequisite": "step:inspect",
+                "dependent": "step:clean"
+            }));
+        assert!(serde_json::from_value::<ExecutableFabricationPlan>(value).is_err());
+    }
+
+    #[test]
+    fn deserialization_rejects_nested_f10_unknown_dependency_step() {
+        let executable = ExecutableFabricationPlan::new(plan(), bindings()).unwrap();
+        let mut value = serde_json::to_value(&executable).unwrap();
+        value["plan"]["dependencies"][0]["prerequisite"] =
+            serde_json::Value::String("step:unknown".into());
+        assert!(serde_json::from_value::<ExecutableFabricationPlan>(value).is_err());
+    }
+
+    #[test]
     fn deserialization_revalidates_executable_plan_contract() {
         let executable = ExecutableFabricationPlan::new(plan(), bindings()).unwrap();
         let mut value = serde_json::to_value(&executable).unwrap();
