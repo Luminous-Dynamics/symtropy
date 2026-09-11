@@ -7,6 +7,7 @@ on:
     paths:
       - ".github/workflows/pb04b1-complete-local-coverage-self-apply.yml"
       - "scripts/pb04b1-complete-local-coverage.py"
+      - "scripts/pb04b1-repair-schema3-transform.py"
       - "crates/domains/symtropy-spatial-decomposition/tests/complete_local_coverage.rs"
 
 permissions:
@@ -26,13 +27,17 @@ jobs:
           ref: ${{ github.sha }}
           fetch-depth: 0
 
-      - name: Bind exact theorem source and qualified schema2 base
+      - name: Bind exact theorem and repair lineage to qualified schema2 base
         shell: bash
         run: |
           set -euo pipefail
           base=7c5b0d7edc22b01980c5d3324325612566348313
+          theorem=d6efe6bf6b11b501ba64563f12bd7a0e764a2cda
+          repair=c492982285bd8f8b69e4447c5474369a7e2c79ee
           test "$(git rev-parse HEAD)" = "${GITHUB_SHA}"
-          test "$(git rev-parse HEAD^)" = "${base}"
+          test "$(git rev-parse HEAD^)" = "${repair}"
+          test "$(git rev-parse HEAD^^)" = "${theorem}"
+          test "$(git rev-parse HEAD^^^)" = "${base}"
           test "$(git rev-parse ${base}^{tree})" = "c80f3bd871a8cc3f16af7c52f990922e5f9c4a9b"
 
           check_blob() {
@@ -53,12 +58,14 @@ jobs:
           check_blob 7622be3716a564a1a0abce183601a82f899798a0 crates/domains/symtropy-spatial-decomposition/tests/local_identity.rs
           check_blob 8aa8efc59dc3b7267b29b0c8f8675e23b4a15498 crates/domains/symtropy-spatial-decomposition/tests/complete_local_coverage.rs
           check_blob e9ed2fda9e3fefb5a029b0dcaad482dae180d85c scripts/pb04b1-complete-local-coverage.py
+          check_blob 08f1e2cc5cf2e77198a71648cbe03714294d1a3e scripts/pb04b1-repair-schema3-transform.py
 
           actual_source_delta="$(git diff --name-only ${base}..HEAD | sort -u)"
           expected_source_delta="$(printf '%s\n' \
             .github/workflows/pb04b1-complete-local-coverage-self-apply.yml \
             crates/domains/symtropy-spatial-decomposition/tests/complete_local_coverage.rs \
-            scripts/pb04b1-complete-local-coverage.py | sort)"
+            scripts/pb04b1-complete-local-coverage.py \
+            scripts/pb04b1-repair-schema3-transform.py | sort)"
           if [[ "${actual_source_delta}" != "${expected_source_delta}" ]]; then
             echo "PB-04b1 theorem lineage changed unexpected paths" >&2
             echo "expected:" >&2
@@ -99,11 +106,12 @@ jobs:
           rustfmt --version
           cargo clippy --version
 
-      - name: Apply exact schema3 coverage transform and canonical formatting
+      - name: Apply exact schema3 coverage transform and deterministic repair
         shell: bash
         run: |
           set -euo pipefail
           python3 scripts/pb04b1-complete-local-coverage.py
+          python3 scripts/pb04b1-repair-schema3-transform.py
           cargo fmt --manifest-path crates/domains/symtropy-spatial-decomposition/Cargo.toml
           echo "PB04B1_TRANSFORMED_LIB_BLOB=$(git hash-object crates/domains/symtropy-spatial-decomposition/src/lib.rs)"
           echo "PB04B1_FORMATTED_LOCALITY_TEST_BLOB=$(git hash-object crates/domains/symtropy-spatial-decomposition/tests/local_identity.rs)"
