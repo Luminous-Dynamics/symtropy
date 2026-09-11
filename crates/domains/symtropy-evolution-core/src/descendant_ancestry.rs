@@ -5,7 +5,7 @@ use crate::{
     ChromosomeMap, ChromosomeMapDigest, ChromosomeRecombinationProfile,
     DiploidLinkedOffspringDerivationV2, DiploidLinkedOffspringProvenanceV2Digest,
     EvolutionError, GameteAncestryDerivation, GameteAncestryDerivationProvenanceDigest,
-    HaplotypeAncestryClass, HereditarySchema, HereditarySchemaDigest,
+    GameteAncestryError, HaplotypeAncestryClass, HereditarySchema, HereditarySchemaDigest,
     LinkedGameteDerivationEvidence, LocusId, ParentRole, PhasedAncestryState,
     PhasedAncestryStateDigest, PhasedHereditaryStateDigest, ReproductionEventId,
 };
@@ -629,6 +629,7 @@ fn derived_child_copy_id(
 pub enum DescendantAncestryError {
     Evolution(EvolutionError),
     Ancestry(AncestryAuthorityError),
+    GameteAncestry(GameteAncestryError),
     IdentityEncoding,
     UnsupportedMaterializationVersion(u32),
     UnsupportedDerivationVersion(u32),
@@ -653,11 +654,20 @@ impl From<AncestryAuthorityError> for DescendantAncestryError {
     }
 }
 
+impl From<GameteAncestryError> for DescendantAncestryError {
+    fn from(value: GameteAncestryError) -> Self {
+        Self::GameteAncestry(value)
+    }
+}
+
 impl fmt::Display for DescendantAncestryError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::Evolution(error) => write!(f, "evolution authority error: {error}"),
             Self::Ancestry(error) => write!(f, "ancestry authority error: {error}"),
+            Self::GameteAncestry(error) => {
+                write!(f, "gamete ancestry authority error: {error}")
+            }
             Self::IdentityEncoding => {
                 write!(f, "failed to encode deterministic descendant ancestry identity")
             }
@@ -700,6 +710,7 @@ impl Error for DescendantAncestryError {
         match self {
             Self::Evolution(error) => Some(error),
             Self::Ancestry(error) => Some(error),
+            Self::GameteAncestry(error) => Some(error),
             _ => None,
         }
     }
