@@ -148,9 +148,7 @@ impl ContinuumValidityEvidenceLineage {
         self.entries.last()
     }
 
-    pub fn unresolved_entries(
-        &self,
-    ) -> impl Iterator<Item = &ContinuumValidityEvidenceEntry> {
+    pub fn unresolved_entries(&self) -> impl Iterator<Item = &ContinuumValidityEvidenceEntry> {
         self.entries
             .iter()
             .filter(|entry| entry.validity != ContinuumValidityState::Resolved)
@@ -185,9 +183,7 @@ impl ContinuumValidityEvidenceLineage {
                 _ => {
                     let expected = &self.entries[index - 1].evidence_id;
                     if entry.predecessor_evidence_id.as_deref() != Some(expected.as_str()) {
-                        return Err(
-                            ContinuumValidityEvidenceLineageError::PredecessorMismatch,
-                        );
+                        return Err(ContinuumValidityEvidenceLineageError::PredecessorMismatch);
                     }
                 }
             }
@@ -216,7 +212,9 @@ pub enum ContinuumValidityEvidenceLineageError {
 impl fmt::Display for ContinuumValidityEvidenceLineageError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Self::WrongSchemaId => write!(f, "unsupported continuum validity evidence lineage schema"),
+            Self::WrongSchemaId => {
+                write!(f, "unsupported continuum validity evidence lineage schema")
+            }
             Self::EmptyField(field) => write!(f, "{field} must not be empty"),
             Self::FieldTooLong { field, max_bytes } => {
                 write!(f, "{field} must not exceed {max_bytes} bytes")
@@ -229,7 +227,10 @@ impl fmt::Display for ContinuumValidityEvidenceLineageError {
                 "first validity evidence entry must have sequence zero and no predecessor"
             ),
             Self::NonCanonicalSequence => {
-                write!(f, "validity evidence sequence is not canonical and contiguous")
+                write!(
+                    f,
+                    "validity evidence sequence is not canonical and contiguous"
+                )
             }
             Self::DuplicateEvidenceId => write!(f, "validity evidence IDs must be unique"),
             Self::PredecessorMismatch => write!(
@@ -260,7 +261,11 @@ fn validate_id(
 mod tests {
     use super::*;
 
-    fn entry(id: &str, profile: &str, validity: ContinuumValidityState) -> ContinuumValidityEvidenceEntry {
+    fn entry(
+        id: &str,
+        profile: &str,
+        validity: ContinuumValidityState,
+    ) -> ContinuumValidityEvidenceEntry {
         ContinuumValidityEvidenceEntry {
             sequence: 0,
             evidence_id: id.to_owned(),
@@ -300,7 +305,10 @@ mod tests {
             lineage.entries[0].validity,
             ContinuumValidityState::UnderResolved
         );
-        assert_eq!(lineage.latest().unwrap().validity, ContinuumValidityState::Resolved);
+        assert_eq!(
+            lineage.latest().unwrap().validity,
+            ContinuumValidityState::Resolved
+        );
         assert_eq!(lineage.unresolved_entries().count(), 1);
         lineage.validate().unwrap();
     }
@@ -332,10 +340,12 @@ mod tests {
             .unwrap();
 
         assert_eq!(lineage.entries.len(), 3);
-        assert!(lineage
-            .entries
-            .iter()
-            .any(|entry| entry.validity == ContinuumValidityState::CflViolation));
+        assert!(
+            lineage
+                .entries
+                .iter()
+                .any(|entry| entry.validity == ContinuumValidityState::CflViolation)
+        );
         assert_eq!(lineage.unresolved_entries().count(), 1);
     }
 
