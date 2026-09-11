@@ -15,7 +15,7 @@ concurrency:
 jobs:
   format:
     name: Exact rustfmt oracle
-    runs-on: ubuntu-slim
+    runs-on: ubuntu-latest
     timeout-minutes: 15
     env:
       PRODUCT_SHA: 59cee313afae1ad184d1b8382088eac2616822c9
