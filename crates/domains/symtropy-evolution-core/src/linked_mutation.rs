@@ -2,13 +2,14 @@ use crate::{
     assemble_diploid_linked_offspring_from_evidence,
     canonical::{fmt_hex, put_text, put_u32, put_u64},
     chromosome_stochastic::parent_role_tag,
-    declare_at_birth_mutation_origin, AlleleId, AncestryCopyId, AncestryGraphError,
-    ChromosomeId, ChromosomeMap, ChromosomeMapDigest, ChromosomeRecombinationProfile,
-    DescendantAncestryDerivation, DescendantAncestryDerivationProvenanceDigest,
-    DescendantAncestryError, EvolutionError, EvolutionOperatorProfile,
-    EvolutionOperatorProfileDigest, GameteAncestryDerivation, HereditarySchema,
-    HereditarySchemaDigest, LinkedGameteDerivationEvidence, LocusId, ModeledAncestryGraph,
-    MutationOrigin, MutationOriginError, ParentRole, PhasedAncestryState,
+    declare_at_birth_mutation_origin, AlleleId, AncestryAuthorityError, AncestryCopyId,
+    AncestryGraphError, ChromosomeAncestryState, ChromosomeId, ChromosomeMap,
+    ChromosomeMapDigest, ChromosomeRecombinationProfile, DescendantAncestryDerivation,
+    DescendantAncestryDerivationProvenanceDigest, DescendantAncestryError, EvolutionError,
+    EvolutionOperatorProfile, EvolutionOperatorProfileDigest, GameteAncestryDerivation,
+    HaplotypeAncestryClass, HereditarySchema, HereditarySchemaDigest,
+    LinkedGameteDerivationEvidence, LocusId, ModeledAncestryGraph, MutationOrigin,
+    MutationOriginError, ParentRole, PhasedAncestryState, PhasedAncestryStateDigest,
     PhasedChromosomeState, PhasedHereditaryState, PhasedHereditaryStateDigest,
     ReproductionEventId, PROBABILITY_SCALE_PPM,
 };
@@ -95,9 +96,7 @@ impl LinkedMutationOpportunity {
 pub struct LinkedMutationOpportunityDigest([u8; 32]);
 
 impl LinkedMutationOpportunityDigest {
-    pub fn as_bytes(&self) -> &[u8; 32] {
-        &self.0
-    }
+    pub fn as_bytes(&self) -> &[u8; 32] { &self.0 }
 }
 
 impl fmt::Debug for LinkedMutationOpportunityDigest {
@@ -109,16 +108,14 @@ impl fmt::Debug for LinkedMutationOpportunityDigest {
 }
 
 impl fmt::Display for LinkedMutationOpportunityDigest {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        fmt_hex(&self.0, f)
-    }
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result { fmt_hex(&self.0, f) }
 }
 
 /// Exact stochastic mutation execution for one linked diploid descendant.
 ///
 /// V1 contains no phenotype, fitness, or selection authority. It binds the
-/// unmutated descendant ancestry, the exact operator profile, every mutation
-/// opportunity (including no-ops), and the resulting canonical phased child.
+/// unmutated descendant ancestry, exact operator profile, every mutation
+/// opportunity, and both the resulting phased child and ancestry sidecar.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct LinkedMutationExecution {
     execution_version: u32,
@@ -129,21 +126,18 @@ pub struct LinkedMutationExecution {
     reproduction_event_id: ReproductionEventId,
     unmutated_child_digest: PhasedHereditaryStateDigest,
     mutated_child_digest: PhasedHereditaryStateDigest,
+    mutated_child_ancestry_digest: PhasedAncestryStateDigest,
     pub opportunities: Vec<LinkedMutationOpportunity>,
     pub mutated_child: PhasedHereditaryState,
+    pub mutated_child_ancestry: PhasedAncestryState,
 }
 
 impl LinkedMutationExecution {
-    pub fn reproduction_event_id(&self) -> &ReproductionEventId {
-        &self.reproduction_event_id
-    }
-
-    pub fn unmutated_child_digest(&self) -> PhasedHereditaryStateDigest {
-        self.unmutated_child_digest
-    }
-
-    pub fn mutated_child_digest(&self) -> PhasedHereditaryStateDigest {
-        self.mutated_child_digest
+    pub fn reproduction_event_id(&self) -> &ReproductionEventId { &self.reproduction_event_id }
+    pub fn unmutated_child_digest(&self) -> PhasedHereditaryStateDigest { self.unmutated_child_digest }
+    pub fn mutated_child_digest(&self) -> PhasedHereditaryStateDigest { self.mutated_child_digest }
+    pub fn mutated_child_ancestry_digest(&self) -> PhasedAncestryStateDigest {
+        self.mutated_child_ancestry_digest
     }
 
     pub fn canonical_digest(&self) -> LinkedMutationExecutionDigest {
@@ -157,6 +151,7 @@ impl LinkedMutationExecution {
         put_text(&mut digest, self.reproduction_event_id.as_str());
         digest.update(self.unmutated_child_digest.as_bytes());
         digest.update(self.mutated_child_digest.as_bytes());
+        digest.update(self.mutated_child_ancestry_digest.as_bytes());
         put_u64(&mut digest, self.opportunities.len() as u64);
         for opportunity in &self.opportunities {
             digest.update(opportunity.canonical_digest().as_bytes());
@@ -164,8 +159,6 @@ impl LinkedMutationExecution {
         LinkedMutationExecutionDigest(digest.finalize().into())
     }
 
-    /// Restore-time authority is earned only by exact deterministic replay from
-    /// current linked-gamete, ancestry, graph, and operator authorities.
     #[allow(clippy::too_many_arguments)]
     pub fn validate_current(
         &self,
@@ -186,9 +179,7 @@ impl LinkedMutationExecution {
         graph: &ModeledAncestryGraph,
     ) -> Result<(), LinkedMutationError> {
         if self.execution_version != LINKED_MUTATION_EXECUTION_VERSION {
-            return Err(LinkedMutationError::UnsupportedVersion(
-                self.execution_version,
-            ));
+            return Err(LinkedMutationError::UnsupportedVersion(self.execution_version));
         }
         let replayed = execute_linked_mutations(
             schema,
@@ -218,9 +209,7 @@ impl LinkedMutationExecution {
 pub struct LinkedMutationExecutionDigest([u8; 32]);
 
 impl LinkedMutationExecutionDigest {
-    pub fn as_bytes(&self) -> &[u8; 32] {
-        &self.0
-    }
+    pub fn as_bytes(&self) -> &[u8; 32] { &self.0 }
 }
 
 impl fmt::Debug for LinkedMutationExecutionDigest {
@@ -232,9 +221,7 @@ impl fmt::Debug for LinkedMutationExecutionDigest {
 }
 
 impl fmt::Display for LinkedMutationExecutionDigest {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        fmt_hex(&self.0, f)
-    }
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result { fmt_hex(&self.0, f) }
 }
 
 #[allow(clippy::too_many_arguments)]
@@ -293,6 +280,7 @@ pub fn execute_linked_mutations(
 
     let mut opportunities = Vec::new();
     let mut mutated_chromosomes = Vec::with_capacity(chromosome_map.chromosomes.len());
+    let mut mutated_ancestry_chromosomes = Vec::with_capacity(chromosome_map.chromosomes.len());
 
     for (chromosome_id, definition) in &chromosome_map.chromosomes {
         let mut from_a = parent_a_gamete
@@ -312,9 +300,7 @@ pub fn execute_linked_mutations(
             .materialization
             .descendant_copies
             .iter()
-            .find(|copy| {
-                copy.chromosome_id == *chromosome_id && copy.parent_role == ParentRole::ParentA
-            })
+            .find(|copy| copy.chromosome_id == *chromosome_id && copy.parent_role == ParentRole::ParentA)
             .ok_or_else(|| LinkedMutationError::DescendantCopyMissing {
                 chromosome: chromosome_id.clone(),
                 role: ParentRole::ParentA,
@@ -323,63 +309,53 @@ pub fn execute_linked_mutations(
             .materialization
             .descendant_copies
             .iter()
-            .find(|copy| {
-                copy.chromosome_id == *chromosome_id && copy.parent_role == ParentRole::ParentB
-            })
+            .find(|copy| copy.chromosome_id == *chromosome_id && copy.parent_role == ParentRole::ParentB)
             .ok_or_else(|| LinkedMutationError::DescendantCopyMissing {
                 chromosome: chromosome_id.clone(),
                 role: ParentRole::ParentB,
             })?;
 
         execute_copy_opportunities(
-            schema,
-            chromosome_map,
-            operators,
-            parent_a_source,
-            parent_a_source_ancestry,
-            parent_a_profile,
-            parent_a_gamete,
-            parent_a_gamete_ancestry,
-            parent_b_source,
-            parent_b_source_ancestry,
-            parent_b_profile,
-            parent_b_gamete,
-            parent_b_gamete_ancestry,
-            descendant,
-            graph,
-            event,
-            chromosome_id,
-            definition,
-            copy_a.child_copy_id.clone(),
-            ParentRole::ParentA,
-            &mut from_a.alleles,
-            &mut opportunities,
+            schema, chromosome_map, operators,
+            parent_a_source, parent_a_source_ancestry, parent_a_profile,
+            parent_a_gamete, parent_a_gamete_ancestry,
+            parent_b_source, parent_b_source_ancestry, parent_b_profile,
+            parent_b_gamete, parent_b_gamete_ancestry,
+            descendant, graph, event, chromosome_id, definition,
+            copy_a.child_copy_id.clone(), ParentRole::ParentA,
+            &mut from_a.alleles, &mut opportunities,
         )?;
         execute_copy_opportunities(
-            schema,
-            chromosome_map,
-            operators,
-            parent_a_source,
-            parent_a_source_ancestry,
-            parent_a_profile,
-            parent_a_gamete,
-            parent_a_gamete_ancestry,
-            parent_b_source,
-            parent_b_source_ancestry,
-            parent_b_profile,
-            parent_b_gamete,
-            parent_b_gamete_ancestry,
-            descendant,
-            graph,
-            event,
-            chromosome_id,
-            definition,
-            copy_b.child_copy_id.clone(),
-            ParentRole::ParentB,
-            &mut from_b.alleles,
-            &mut opportunities,
+            schema, chromosome_map, operators,
+            parent_a_source, parent_a_source_ancestry, parent_a_profile,
+            parent_a_gamete, parent_a_gamete_ancestry,
+            parent_b_source, parent_b_source_ancestry, parent_b_profile,
+            parent_b_gamete, parent_b_gamete_ancestry,
+            descendant, graph, event, chromosome_id, definition,
+            copy_b.child_copy_id.clone(), ParentRole::ParentB,
+            &mut from_b.alleles, &mut opportunities,
         )?;
 
+        let classes = if from_a == from_b {
+            vec![HaplotypeAncestryClass::new(
+                0,
+                vec![copy_a.child_copy_id.clone(), copy_b.child_copy_id.clone()],
+            )?]
+        } else if from_a < from_b {
+            vec![
+                HaplotypeAncestryClass::new(0, vec![copy_a.child_copy_id.clone()])?,
+                HaplotypeAncestryClass::new(1, vec![copy_b.child_copy_id.clone()])?,
+            ]
+        } else {
+            vec![
+                HaplotypeAncestryClass::new(0, vec![copy_b.child_copy_id.clone()])?,
+                HaplotypeAncestryClass::new(1, vec![copy_a.child_copy_id.clone()])?,
+            ]
+        };
+        mutated_ancestry_chromosomes.push(ChromosomeAncestryState::new(
+            chromosome_id.clone(),
+            classes,
+        )?);
         mutated_chromosomes.push(PhasedChromosomeState::new(
             chromosome_id.clone(),
             vec![from_a, from_b],
@@ -387,7 +363,20 @@ pub fn execute_linked_mutations(
     }
 
     let mutated_child = PhasedHereditaryState::new(schema, chromosome_map, mutated_chromosomes)?;
-    let value = LinkedMutationExecution {
+    let mutated_child_ancestry = PhasedAncestryState::new(
+        schema,
+        chromosome_map,
+        &mutated_child,
+        mutated_ancestry_chromosomes,
+    )?;
+    let mutated_child_digest = mutated_child.canonical_digest(schema, chromosome_map)?;
+    let mutated_child_ancestry_digest = mutated_child_ancestry.canonical_digest(
+        schema,
+        chromosome_map,
+        &mutated_child,
+    )?;
+
+    Ok(LinkedMutationExecution {
         execution_version: LINKED_MUTATION_EXECUTION_VERSION,
         schema_digest: schema.canonical_digest()?,
         chromosome_map_digest: chromosome_map.canonical_digest(schema)?,
@@ -395,11 +384,12 @@ pub fn execute_linked_mutations(
         descendant_provenance_digest: descendant.provenance.canonical_digest(),
         reproduction_event_id: event.clone(),
         unmutated_child_digest: unmutated.child.canonical_digest(schema, chromosome_map)?,
-        mutated_child_digest: mutated_child.canonical_digest(schema, chromosome_map)?,
+        mutated_child_digest,
+        mutated_child_ancestry_digest,
         opportunities,
         mutated_child,
-    };
-    Ok(value)
+        mutated_child_ancestry,
+    })
 }
 
 #[allow(clippy::too_many_arguments)]
@@ -496,24 +486,12 @@ fn execute_copy_opportunities(
         )?;
         let derived_allele = alternatives[alternate_draw_index as usize].clone();
         let origin = declare_at_birth_mutation_origin(
-            schema,
-            chromosome_map,
-            operators,
-            parent_a_source,
-            parent_a_source_ancestry,
-            parent_a_profile,
-            parent_a_gamete,
-            parent_a_gamete_ancestry,
-            parent_b_source,
-            parent_b_source_ancestry,
-            parent_b_profile,
-            parent_b_gamete,
-            parent_b_gamete_ancestry,
-            descendant,
-            graph,
-            &ancestry_copy_id,
-            &mapped_locus.locus_id,
-            &derived_allele,
+            schema, chromosome_map, operators,
+            parent_a_source, parent_a_source_ancestry, parent_a_profile,
+            parent_a_gamete, parent_a_gamete_ancestry,
+            parent_b_source, parent_b_source_ancestry, parent_b_profile,
+            parent_b_gamete, parent_b_gamete_ancestry,
+            descendant, graph, &ancestry_copy_id, &mapped_locus.locus_id, &derived_allele,
         )?;
         alleles[locus_index] = derived_allele;
         opportunities.push(LinkedMutationOpportunity {
@@ -552,20 +530,12 @@ fn linked_draw_below(
     let mut attempt = 0_u64;
     loop {
         let value = linked_semantic_draw_u64(
-            event,
-            operators,
-            ancestry_copy_id,
-            chromosome_id,
-            locus_id,
-            purpose,
-            attempt,
+            event, operators, ancestry_copy_id, chromosome_id, locus_id, purpose, attempt,
         )?;
         if value < zone {
             return Ok(value % upper);
         }
-        attempt = attempt
-            .checked_add(1)
-            .ok_or(EvolutionError::CountOverflow)?;
+        attempt = attempt.checked_add(1).ok_or(EvolutionError::CountOverflow)?;
     }
 }
 
@@ -592,57 +562,46 @@ fn linked_semantic_draw_u64(
     put_u64(&mut digest, attempt);
     let bytes: [u8; 32] = digest.finalize().into();
     Ok(u64::from_le_bytes(
-        bytes[..8]
-            .try_into()
-            .expect("SHA-256 output has an 8-byte prefix"),
+        bytes[..8].try_into().expect("SHA-256 output has an 8-byte prefix"),
     ))
 }
 
 #[derive(Debug)]
 pub enum LinkedMutationError {
     Evolution(EvolutionError),
+    Ancestry(AncestryAuthorityError),
     Descendant(DescendantAncestryError),
     Graph(AncestryGraphError),
     Origin(MutationOriginError),
     UnsupportedVersion(u32),
     InvalidDrawUpperBound,
     ChromosomeMissing(ChromosomeId),
-    DescendantCopyMissing {
-        chromosome: ChromosomeId,
-        role: ParentRole,
-    },
+    DescendantCopyMissing { chromosome: ChromosomeId, role: ParentRole },
     LocusSequenceMismatch { chromosome: ChromosomeId },
     ReplayMismatch,
 }
 
 impl From<EvolutionError> for LinkedMutationError {
-    fn from(value: EvolutionError) -> Self {
-        Self::Evolution(value)
-    }
+    fn from(value: EvolutionError) -> Self { Self::Evolution(value) }
 }
-
+impl From<AncestryAuthorityError> for LinkedMutationError {
+    fn from(value: AncestryAuthorityError) -> Self { Self::Ancestry(value) }
+}
 impl From<DescendantAncestryError> for LinkedMutationError {
-    fn from(value: DescendantAncestryError) -> Self {
-        Self::Descendant(value)
-    }
+    fn from(value: DescendantAncestryError) -> Self { Self::Descendant(value) }
 }
-
 impl From<AncestryGraphError> for LinkedMutationError {
-    fn from(value: AncestryGraphError) -> Self {
-        Self::Graph(value)
-    }
+    fn from(value: AncestryGraphError) -> Self { Self::Graph(value) }
 }
-
 impl From<MutationOriginError> for LinkedMutationError {
-    fn from(value: MutationOriginError) -> Self {
-        Self::Origin(value)
-    }
+    fn from(value: MutationOriginError) -> Self { Self::Origin(value) }
 }
 
 impl fmt::Display for LinkedMutationError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::Evolution(error) => write!(f, "evolution authority error: {error}"),
+            Self::Ancestry(error) => write!(f, "ancestry authority error: {error}"),
             Self::Descendant(error) => write!(f, "descendant ancestry authority error: {error}"),
             Self::Graph(error) => write!(f, "ancestry graph authority error: {error}"),
             Self::Origin(error) => write!(f, "mutation-origin authority error: {error}"),
