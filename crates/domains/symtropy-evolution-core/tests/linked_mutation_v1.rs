@@ -9,28 +9,16 @@ use symtropy_evolution_core::{
     DescendantAncestryDerivation, EvolutionOperatorProfile, GeneticMapIntervalMicromorgans,
     GeneticMapPositionMicromorgans, HaplotypeAncestryClass, HereditarySchema,
     HereditarySchemaId, LinkedGameteDerivationEvidence, LinkedMutationExecution,
-    LinkedMutationOutcome, LocusDefinition, ModeledAncestryGraph, MutationProfile,
+    LinkedMutationOutcome, LocusDefinition, LocusId, ModeledAncestryGraph, MutationProfile,
     NoMutationReason, OperatorProfileId, ParentRole, PhasedAncestryState,
-    PhasedChromosomeState, PhasedHereditaryState, RecombinationMode,
-    RecombinationProfile, ReproductionEventId, PROBABILITY_SCALE_PPM,
+    PhasedChromosomeState, PhasedHereditaryState, RecombinationMode, RecombinationProfile,
+    ReproductionEventId, PROBABILITY_SCALE_PPM,
 };
 
-fn allele(id: &str) -> AlleleId {
-    AlleleId::new(id).unwrap()
-}
-
-fn locus(id: &str) -> symtropy_evolution_core::LocusId {
-    symtropy_evolution_core::LocusId::new(id).unwrap()
-}
-
-fn chromosome() -> ChromosomeId {
-    ChromosomeId::new("chr-a").unwrap()
-}
-
-fn ancestry(id: &str) -> AncestryCopyId {
-    AncestryCopyId::new(id).unwrap()
-}
-
+fn allele(id: &str) -> AlleleId { AlleleId::new(id).unwrap() }
+fn locus(id: &str) -> LocusId { LocusId::new(id).unwrap() }
+fn chromosome() -> ChromosomeId { ChromosomeId::new("chr-a").unwrap() }
+fn ancestry(id: &str) -> AncestryCopyId { AncestryCopyId::new(id).unwrap() }
 fn pos(value: u64) -> GeneticMapPositionMicromorgans {
     GeneticMapPositionMicromorgans::new(value)
 }
@@ -40,16 +28,11 @@ fn schema() -> HereditarySchema {
         HereditarySchemaId::new("mut-05b-schema").unwrap(),
         2,
         [
-            LocusDefinition::new(
-                locus("a"),
-                [allele("a0"), allele("a1"), allele("a2")],
-            )
-            .unwrap(),
+            LocusDefinition::new(locus("a"), [allele("a0"), allele("a1"), allele("a2")]).unwrap(),
             LocusDefinition::new(locus("b"), [allele("b0"), allele("b1")]).unwrap(),
             LocusDefinition::new(locus("c"), [allele("c0")]).unwrap(),
         ],
-    )
-    .unwrap()
+    ).unwrap()
 }
 
 fn map(schema: &HereditarySchema) -> ChromosomeMap {
@@ -63,18 +46,11 @@ fn map(schema: &HereditarySchema) -> ChromosomeMap {
                 ChromosomeLocus::new(locus("b"), pos(7_000_001)),
                 ChromosomeLocus::new(locus("c"), pos(14_000_001)),
             ],
-        )
-        .unwrap()],
-    )
-    .unwrap()
+        ).unwrap()],
+    ).unwrap()
 }
 
-fn source(
-    schema: &HereditarySchema,
-    map: &ChromosomeMap,
-    first: &[&str],
-    second: &[&str],
-) -> PhasedHereditaryState {
+fn source(schema: &HereditarySchema, map: &ChromosomeMap, first: &[&str], second: &[&str]) -> PhasedHereditaryState {
     PhasedHereditaryState::new(
         schema,
         map,
@@ -85,38 +61,31 @@ fn source(
                 ChromosomeHaplotype::new(second.iter().map(|id| allele(id)).collect()),
             ],
         )],
-    )
-    .unwrap()
+    ).unwrap()
 }
 
 fn ancestry_state(
     schema: &HereditarySchema,
     map: &ChromosomeMap,
-    source: &PhasedHereditaryState,
+    state: &PhasedHereditaryState,
     first: &str,
     second: &str,
 ) -> PhasedAncestryState {
     PhasedAncestryState::new(
         schema,
         map,
-        source,
+        state,
         [ChromosomeAncestryState::new(
             chromosome(),
             vec![
                 HaplotypeAncestryClass::new(0, vec![ancestry(first)]).unwrap(),
                 HaplotypeAncestryClass::new(1, vec![ancestry(second)]).unwrap(),
             ],
-        )
-        .unwrap()],
-    )
-    .unwrap()
+        ).unwrap()],
+    ).unwrap()
 }
 
-fn recombination_profile(
-    schema: &HereditarySchema,
-    map: &ChromosomeMap,
-    id: &str,
-) -> ChromosomeRecombinationProfile {
+fn recombination_profile(schema: &HereditarySchema, map: &ChromosomeMap, id: &str) -> ChromosomeRecombinationProfile {
     ChromosomeRecombinationProfile::new(
         ChromosomeRecombinationProfileId::new(id).unwrap(),
         schema,
@@ -125,24 +94,22 @@ fn recombination_profile(
         [ChromosomeRecombinationDomain::new(
             chromosome(),
             GeneticMapIntervalMicromorgans::new(pos(0), pos(14_000_002)).unwrap(),
-        )
-        .unwrap()],
-    )
-    .unwrap()
+        ).unwrap()],
+    ).unwrap()
 }
 
 fn operators(rate_ppm: u32) -> EvolutionOperatorProfile {
     EvolutionOperatorProfile {
         profile_id: OperatorProfileId::new("mut-05b-operators").unwrap(),
-        version: "1".to_owned(),
+        version: "1".into(),
         mutation: MutationProfile {
-            model_id: "modeled-locus-substitution".to_owned(),
-            version: "1".to_owned(),
+            model_id: "modeled-locus-substitution".into(),
+            version: "1".into(),
             per_copy_rate_ppm: rate_ppm,
         },
         recombination: RecombinationProfile {
-            model_id: "linked-chromosome-context".to_owned(),
-            version: "1".to_owned(),
+            model_id: "linked-chromosome-context".into(),
+            version: "1".into(),
             mode: RecombinationMode::IndependentLoci,
         },
     }
@@ -169,96 +136,33 @@ fn fixture(event_name: &str) -> Fixture {
     let schema = schema();
     let map = map(&schema);
     let event = ReproductionEventId::new(event_name).unwrap();
-    let source_a = source(
-        &schema,
-        &map,
-        &["a0", "b0", "c0"],
-        &["a1", "b1", "c0"],
-    );
-    let source_b = source(
-        &schema,
-        &map,
-        &["a1", "b0", "c0"],
-        &["a0", "b1", "c0"],
-    );
+    let source_a = source(&schema, &map, &["a0", "b0", "c0"], &["a1", "b1", "c0"]);
+    let source_b = source(&schema, &map, &["a1", "b0", "c0"], &["a0", "b1", "c0"]);
     let ancestry_a = ancestry_state(&schema, &map, &source_a, "a-root-0", "a-root-1");
     let ancestry_b = ancestry_state(&schema, &map, &source_b, "b-root-0", "b-root-1");
     let profile_a = recombination_profile(&schema, &map, "mut-05b-parent-a");
     let profile_b = recombination_profile(&schema, &map, "mut-05b-parent-b");
-
     let gamete_a = LinkedGameteDerivationEvidence::ZeroCrossover(
-        derive_zero_crossover_linked_gamete(
-            &schema,
-            &map,
-            &source_a,
-            &profile_a,
-            &event,
-            ParentRole::ParentA,
-        )
-        .unwrap(),
+        derive_zero_crossover_linked_gamete(&schema, &map, &source_a, &profile_a, &event, ParentRole::ParentA).unwrap(),
     );
     let gamete_b = LinkedGameteDerivationEvidence::ZeroCrossover(
-        derive_zero_crossover_linked_gamete(
-            &schema,
-            &map,
-            &source_b,
-            &profile_b,
-            &event,
-            ParentRole::ParentB,
-        )
-        .unwrap(),
+        derive_zero_crossover_linked_gamete(&schema, &map, &source_b, &profile_b, &event, ParentRole::ParentB).unwrap(),
     );
     let gamete_ancestry_a = derive_modeled_gamete_ancestry(
-        &schema,
-        &map,
-        &source_a,
-        &ancestry_a,
-        &profile_a,
-        &gamete_a,
-        &event,
-        ParentRole::ParentA,
-    )
-    .unwrap();
+        &schema, &map, &source_a, &ancestry_a, &profile_a, &gamete_a, &event, ParentRole::ParentA,
+    ).unwrap();
     let gamete_ancestry_b = derive_modeled_gamete_ancestry(
-        &schema,
-        &map,
-        &source_b,
-        &ancestry_b,
-        &profile_b,
-        &gamete_b,
-        &event,
-        ParentRole::ParentB,
-    )
-    .unwrap();
+        &schema, &map, &source_b, &ancestry_b, &profile_b, &gamete_b, &event, ParentRole::ParentB,
+    ).unwrap();
     let offspring = assemble_diploid_linked_offspring_from_evidence(
-        &schema,
-        &map,
-        &source_a,
-        &profile_a,
-        &gamete_a,
-        &source_b,
-        &profile_b,
-        &gamete_b,
-        &event,
-    )
-    .unwrap();
+        &schema, &map, &source_a, &profile_a, &gamete_a, &source_b, &profile_b, &gamete_b, &event,
+    ).unwrap();
     let descendant = derive_descendant_ancestry(
-        &schema,
-        &map,
-        &source_a,
-        &ancestry_a,
-        &profile_a,
-        &gamete_a,
-        &gamete_ancestry_a,
-        &source_b,
-        &ancestry_b,
-        &profile_b,
-        &gamete_b,
-        &gamete_ancestry_b,
-        &offspring,
-        &event,
-    )
-    .unwrap();
+        &schema, &map,
+        &source_a, &ancestry_a, &profile_a, &gamete_a, &gamete_ancestry_a,
+        &source_b, &ancestry_b, &profile_b, &gamete_b, &gamete_ancestry_b,
+        &offspring, &event,
+    ).unwrap();
     let roots = ModeledAncestryGraph::new_roots(
         &schema,
         &map,
@@ -268,153 +172,81 @@ fn fixture(event_name: &str) -> Fixture {
             AncestryGraphNode::root(ancestry("b-root-0"), chromosome(), AncestryGeneration::new(0)),
             AncestryGraphNode::root(ancestry("b-root-1"), chromosome(), AncestryGeneration::new(0)),
         ],
-    )
-    .unwrap();
+    ).unwrap();
     let graph = append_descendant_ancestry_to_graph(
-        &roots,
-        &schema,
-        &map,
-        &source_a,
-        &ancestry_a,
-        &profile_a,
-        &gamete_a,
-        &gamete_ancestry_a,
-        &source_b,
-        &ancestry_b,
-        &profile_b,
-        &gamete_b,
-        &gamete_ancestry_b,
-        &descendant,
-        AncestryGeneration::new(1),
-    )
-    .unwrap()
-    .graph;
+        &roots, &schema, &map,
+        &source_a, &ancestry_a, &profile_a, &gamete_a, &gamete_ancestry_a,
+        &source_b, &ancestry_b, &profile_b, &gamete_b, &gamete_ancestry_b,
+        &descendant, AncestryGeneration::new(1),
+    ).unwrap().graph;
 
     Fixture {
-        schema,
-        map,
-        source_a,
-        source_b,
-        ancestry_a,
-        ancestry_b,
-        profile_a,
-        profile_b,
-        gamete_a,
-        gamete_b,
-        gamete_ancestry_a,
-        gamete_ancestry_b,
-        descendant,
-        graph,
+        schema, map, source_a, source_b, ancestry_a, ancestry_b, profile_a, profile_b,
+        gamete_a, gamete_b, gamete_ancestry_a, gamete_ancestry_b, descendant, graph,
     }
 }
 
-fn execute(f: &Fixture, operator_authority: &EvolutionOperatorProfile) -> LinkedMutationExecution {
+fn execute(f: &Fixture, operators: &EvolutionOperatorProfile) -> LinkedMutationExecution {
     execute_linked_mutations(
-        &f.schema,
-        &f.map,
-        operator_authority,
-        &f.source_a,
-        &f.ancestry_a,
-        &f.profile_a,
-        &f.gamete_a,
-        &f.gamete_ancestry_a,
-        &f.source_b,
-        &f.ancestry_b,
-        &f.profile_b,
-        &f.gamete_b,
-        &f.gamete_ancestry_b,
-        &f.descendant,
-        &f.graph,
-    )
-    .unwrap()
+        &f.schema, &f.map, operators,
+        &f.source_a, &f.ancestry_a, &f.profile_a, &f.gamete_a, &f.gamete_ancestry_a,
+        &f.source_b, &f.ancestry_b, &f.profile_b, &f.gamete_b, &f.gamete_ancestry_b,
+        &f.descendant, &f.graph,
+    ).unwrap()
 }
 
 fn validate(
     execution: &LinkedMutationExecution,
     f: &Fixture,
-    operator_authority: &EvolutionOperatorProfile,
+    operators: &EvolutionOperatorProfile,
 ) -> Result<(), symtropy_evolution_core::LinkedMutationError> {
     execution.validate_current(
-        &f.schema,
-        &f.map,
-        operator_authority,
-        &f.source_a,
-        &f.ancestry_a,
-        &f.profile_a,
-        &f.gamete_a,
-        &f.gamete_ancestry_a,
-        &f.source_b,
-        &f.ancestry_b,
-        &f.profile_b,
-        &f.gamete_b,
-        &f.gamete_ancestry_b,
-        &f.descendant,
-        &f.graph,
+        &f.schema, &f.map, operators,
+        &f.source_a, &f.ancestry_a, &f.profile_a, &f.gamete_a, &f.gamete_ancestry_a,
+        &f.source_b, &f.ancestry_b, &f.profile_b, &f.gamete_b, &f.gamete_ancestry_b,
+        &f.descendant, &f.graph,
     )
 }
 
 #[test]
 fn zero_rate_records_complete_rate_miss_census_and_preserves_child() {
     let f = fixture("mut-05b-zero-rate");
-    let operator_authority = operators(0);
-    let execution = execute(&f, &operator_authority);
+    let authority = operators(0);
+    let execution = execute(&f, &authority);
     assert_eq!(execution.opportunities.len(), 6);
     assert!(execution.opportunities.iter().all(|opportunity| matches!(
-        opportunity.outcome,
-        LinkedMutationOutcome::NoMutation {
-            reason: NoMutationReason::RateMiss
-        }
+        &opportunity.outcome,
+        LinkedMutationOutcome::NoMutation { reason: NoMutationReason::RateMiss }
     )));
 
     let unmutated = assemble_diploid_linked_offspring_from_evidence(
-        &f.schema,
-        &f.map,
-        &f.source_a,
-        &f.profile_a,
-        &f.gamete_a,
-        &f.source_b,
-        &f.profile_b,
-        &f.gamete_b,
+        &f.schema, &f.map, &f.source_a, &f.profile_a, &f.gamete_a,
+        &f.source_b, &f.profile_b, &f.gamete_b,
         &f.descendant.materialization.reproduction_event_id,
-    )
-    .unwrap();
+    ).unwrap();
     assert_eq!(execution.mutated_child, unmutated.child);
-    assert_eq!(
-        execution.mutated_child_digest(),
-        execution.unmutated_child_digest()
-    );
-    validate(&execution, &f, &operator_authority).unwrap();
+    assert_eq!(execution.mutated_child_digest(), execution.unmutated_child_digest());
+    validate(&execution, &f, &authority).unwrap();
 }
 
 #[test]
 fn maximum_rate_substitutes_polymorphic_loci_and_records_monomorphic_noop() {
     let f = fixture("mut-05b-max-rate");
-    let operator_authority = operators(PROBABILITY_SCALE_PPM);
-    let execution = execute(&f, &operator_authority);
+    let authority = operators(PROBABILITY_SCALE_PPM);
+    let execution = execute(&f, &authority);
     assert_eq!(execution.opportunities.len(), 6);
 
-    let substitutions: Vec<_> = execution
-        .opportunities
-        .iter()
-        .filter_map(|opportunity| match &opportunity.outcome {
+    let substitutions: Vec<_> = execution.opportunities.iter().filter_map(|opportunity| {
+        match &opportunity.outcome {
             LinkedMutationOutcome::Substitution { origin, .. } => Some((opportunity, origin)),
             _ => None,
-        })
-        .collect();
+        }
+    }).collect();
     assert_eq!(substitutions.len(), 4);
-    assert_eq!(
-        execution
-            .opportunities
-            .iter()
-            .filter(|opportunity| matches!(
-                opportunity.outcome,
-                LinkedMutationOutcome::NoMutation {
-                    reason: NoMutationReason::NoAlternativeAllele
-                }
-            ))
-            .count(),
-        2
-    );
+    assert_eq!(execution.opportunities.iter().filter(|opportunity| matches!(
+        &opportunity.outcome,
+        LinkedMutationOutcome::NoMutation { reason: NoMutationReason::NoAlternativeAllele }
+    )).count(), 2);
 
     for (opportunity, origin) in substitutions {
         assert_eq!(origin.ancestry_copy_id(), &opportunity.ancestry_copy_id);
@@ -423,37 +255,24 @@ fn maximum_rate_substitutes_polymorphic_loci_and_records_monomorphic_noop() {
         assert_eq!(origin.parent_role(), opportunity.parent_role);
         assert_eq!(origin.ancestral_allele(), &opportunity.ancestral_allele);
         assert_ne!(origin.derived_allele(), origin.ancestral_allele());
-        assert!(f.schema.loci[&opportunity.locus_id]
-            .allowed_alleles
-            .contains(origin.derived_allele()));
+        assert!(f.schema.loci[&opportunity.locus_id].allowed_alleles.contains(origin.derived_allele()));
     }
-    assert_ne!(
-        execution.mutated_child_digest(),
-        execution.unmutated_child_digest()
-    );
-    validate(&execution, &f, &operator_authority).unwrap();
+    assert_ne!(execution.mutated_child_digest(), execution.unmutated_child_digest());
+    validate(&execution, &f, &authority).unwrap();
 }
 
 #[test]
 fn persistent_copy_identity_not_canonical_row_position_addresses_mutation() {
     let f = fixture("mut-05b-copy-identity");
     let execution = execute(&f, &operators(PROBABILITY_SCALE_PPM));
-    let parent_a = execution
-        .opportunities
-        .iter()
-        .find(|opportunity| {
-            opportunity.parent_role == ParentRole::ParentA && opportunity.locus_id == locus("a")
-        })
-        .unwrap();
-    let parent_b = execution
-        .opportunities
-        .iter()
-        .find(|opportunity| {
-            opportunity.parent_role == ParentRole::ParentB && opportunity.locus_id == locus("a")
-        })
-        .unwrap();
+    let parent_a = execution.opportunities.iter().find(|opportunity| {
+        opportunity.parent_role == ParentRole::ParentA && opportunity.locus_id == locus("a")
+    }).unwrap();
+    let parent_b = execution.opportunities.iter().find(|opportunity| {
+        opportunity.parent_role == ParentRole::ParentB && opportunity.locus_id == locus("a")
+    }).unwrap();
 
-    assert_ne!(parent_a.ancestry_copy_id, parent_b.ancestry_copy_id);
+    assert_ne!(&parent_a.ancestry_copy_id, &parent_b.ancestry_copy_id);
     assert_ne!(parent_a.canonical_digest(), parent_b.canonical_digest());
     assert_eq!(parent_a.parent_role, ParentRole::ParentA);
     assert_eq!(parent_b.parent_role, ParentRole::ParentB);
@@ -462,19 +281,19 @@ fn persistent_copy_identity_not_canonical_row_position_addresses_mutation() {
 #[test]
 fn restored_execution_fails_closed_on_operator_or_opportunity_drift() {
     let f = fixture("mut-05b-replay");
-    let operator_authority = operators(450_000);
-    let execution = execute(&f, &operator_authority);
+    let authority = operators(450_000);
+    let execution = execute(&f, &authority);
     let digest = execution.canonical_digest();
     let encoded = serde_json::to_vec(&execution).unwrap();
     let restored: LinkedMutationExecution = serde_json::from_slice(&encoded).unwrap();
     assert_eq!(restored, execution);
     assert_eq!(restored.canonical_digest(), digest);
-    validate(&restored, &f, &operator_authority).unwrap();
+    validate(&restored, &f, &authority).unwrap();
 
     assert!(validate(&restored, &f, &operators(450_001)).is_err());
 
     let mut tampered = restored.clone();
     tampered.opportunities[0].occurrence_draw_ppm =
         tampered.opportunities[0].occurrence_draw_ppm.wrapping_add(1);
-    assert!(validate(&tampered, &f, &operator_authority).is_err());
+    assert!(validate(&tampered, &f, &authority).is_err());
 }
