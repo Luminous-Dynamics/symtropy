@@ -3,13 +3,17 @@
 
 //! One-step discrete update defect for the manufactured Taylor-Green control.
 //!
-//! This module starts from the exact manufactured MAC state at `t = 0`, applies
-//! one real reference-solver update using the exact manufactured forcing, and
-//! compares the numerical result with the exact manufactured state at the
-//! solver's actual end time. Dividing the face-velocity defect by `dt` yields a
-//! local discrete-update residual in m/s^2. It measures the combined defect of
-//! advection, viscosity, forcing, projection, and time integration for this
-//! exact solver profile; it is not a continuum-theorem residual or pass policy.
+//! This module starts from an exact manufactured MAC state at an explicit
+//! manufactured phase, applies one real reference-solver update using the exact
+//! manufactured forcing, and compares the numerical result with the exact
+//! manufactured state at the corresponding physical end time. The reference
+//! solver's internal clock remains local elapsed time; the manufactured phase is
+//! supplied as a deterministic offset to the forcing/comparator.
+//!
+//! Dividing the face-velocity defect by `dt` yields a local discrete-update
+//! residual in m/s^2. It measures the combined defect of advection, viscosity,
+//! forcing, projection, and time integration for this exact solver profile; it
+//! is not a continuum-theorem residual or pass policy.
 
 use std::fmt;
 
@@ -34,7 +38,11 @@ pub struct ManufacturedUpdateDefectReport {
     pub nx: usize,
     pub ny: usize,
     pub dt_s: f64,
-    pub final_time_s: f64,
+    /// Local elapsed solver time after the single update. This should equal
+    /// `dt_s`; it is retained separately from the physical manufactured phase.
+    pub solver_elapsed_time_s: f64,
+    pub manufactured_start_time_s: f64,
+    pub manufactured_end_time_s: f64,
     pub velocity_rms_defect_mps: f64,
     pub velocity_max_defect_mps: f64,
     pub update_residual_rms_mps2: f64,
@@ -52,6 +60,7 @@ pub struct ManufacturedUpdateDefectReport {
 #[derive(Clone, Debug, PartialEq)]
 pub enum ManufacturedUpdateDefectError {
     NonCanonicalDomain,
+    InvalidStartTime,
     InvalidTimeStep,
     MissingMeasuredEnergy,
     NonFiniteDerivedMetric(&'static str),
@@ -69,6 +78,9 @@ impl fmt::Display for ManufacturedUpdateDefectError {
                 f,
                 "manufactured update-defect V0.1 requires a square periodic domain"
             ),
+            Self::InvalidStartTime => {
+                write!(f, "manufactured_start_time_s must be finite and >= 0")
+            }
             Self::InvalidTimeStep => write!(f, "dt_s must be finite and > 0"),
             Self::MissingMeasuredEnergy => write!(
                 f,
@@ -118,9 +130,23 @@ impl From<ReferenceDiagnosticError> for ManufacturedUpdateDefectError {
     }
 }
 
+/// Convenience wrapper for the canonical phase-zero one-step defect.
 pub fn measure_manufactured_one_step_update_defect(
     config: PeriodicMacConfig,
     profile: ManufacturedTaylorGreenProfile,
+    dt_s: f64,
+) -> Result<ManufacturedUpdateDefectReport, ManufacturedUpdateDefectError> {
+    measure_manufactured_one_step_update_defect_at_phase(config, profile, 0.0, dt_s)
+}
+
+/// Measure the one-step update defect beginning at an explicit manufactured
+/// physical phase while leaving the reference solver's internal time origin at
+/// zero. The forcing callback and exact end-state comparator both receive the
+/// same phase offset, so no hidden state-time mutation is required.
+pub fn measure_manufactured_one_step_update_defect_at_phase(
+    config: PeriodicMacConfig,
+    profile: ManufacturedTaylorGreenProfile,
+    manufactured_start_time_s: f64,
     dt_s: f64,
 ) -> Result<ManufacturedUpdateDefectReport, ManufacturedUpdateDefectError> {
     config.validate()?;
@@ -128,6 +154,9 @@ pub fn measure_manufactured_one_step_update_defect(
         return Err(ManufacturedUpdateDefectError::NonCanonicalDomain);
     }
     profile.validate()?;
+    if !manufactured_start_time_s.is_finite() || manufactured_start_time_s < 0.0 {
+        return Err(ManufacturedUpdateDefectError::InvalidStartTime);
+    }
     if !dt_s.is_finite() || dt_s <= 0.0 {
         return Err(ManufacturedUpdateDefectError::InvalidTimeStep);
     }
@@ -138,15 +167,27 @@ pub fn measure_manufactured_one_step_update_defect(
     let ny = config.ny;
     let exact_config = config.clone();
     let forcing_config = config.clone();
-    let initial_amplitude_mps = profile.amplitude_mps(0.0)?;
+    let initial_amplitude_mps = profile.amplitude_mps(manufactured_start_time_s)?;
     let mut numerical = PeriodicMac2d::taylor_green(config, initial_amplitude_mps)?;
 
-    let step = numerical.step_with_acceleration(dt_s, |position, time| {
-        manufactured_acceleration_mps2(&forcing_config, profile, position, time)
-            .unwrap_or([f64::NAN, f64::NAN])
+    let step = numerical.step_with_acceleration(dt_s, |position, local_time_s| {
+        let manufactured_time_s = manufactured_start_time_s + local_time_s;
+        manufactured_acceleration_mps2(
+            &forcing_config,
+            profile,
+            position,
+            manufactured_time_s,
+        )
+        .unwrap_or([f64::NAN, f64::NAN])
     })?;
-    let final_time_s = numerical.time_s();
-    let exact_amplitude_mps = profile.amplitude_mps(final_time_s)?;
+    let solver_elapsed_time_s = numerical.time_s();
+    let manufactured_end_time_s = manufactured_start_time_s + solver_elapsed_time_s;
+    if !manufactured_end_time_s.is_finite() {
+        return Err(ManufacturedUpdateDefectError::NonFiniteDerivedMetric(
+            "manufactured_end_time_s",
+        ));
+    }
+    let exact_amplitude_mps = profile.amplitude_mps(manufactured_end_time_s)?;
     let exact = PeriodicMac2d::taylor_green(exact_config, exact_amplitude_mps)?;
 
     let mut squared_velocity_defect = 0.0_f64;
@@ -177,7 +218,9 @@ pub fn measure_manufactured_one_step_update_defect(
     let kinetic_energy_relative_error = (numerical_energy_j - exact_energy_j).abs() / exact_energy_j;
 
     for (name, value) in [
-        ("final_time_s", final_time_s),
+        ("solver_elapsed_time_s", solver_elapsed_time_s),
+        ("manufactured_start_time_s", manufactured_start_time_s),
+        ("manufactured_end_time_s", manufactured_end_time_s),
         ("velocity_rms_defect_mps", velocity_rms_defect_mps),
         ("velocity_max_defect_mps", velocity_max_defect_mps),
         ("update_residual_rms_mps2", update_residual_rms_mps2),
@@ -209,7 +252,9 @@ pub fn measure_manufactured_one_step_update_defect(
         nx,
         ny,
         dt_s,
-        final_time_s,
+        solver_elapsed_time_s,
+        manufactured_start_time_s,
+        manufactured_end_time_s,
         velocity_rms_defect_mps,
         velocity_max_defect_mps,
         update_residual_rms_mps2,
@@ -271,13 +316,15 @@ mod tests {
     }
 
     #[test]
-    fn one_step_defect_is_finite_and_retains_same_step_context() {
+    fn phase_zero_wrapper_is_finite_and_retains_same_step_context() {
         let dt_s = 0.00025;
         let report = measure_manufactured_one_step_update_defect(config(), profile(), dt_s).unwrap();
         assert_eq!(report.schema_id, MANUFACTURED_UPDATE_DEFECT_SCHEMA_ID);
         assert_eq!(report.nx, 16);
         assert_eq!(report.ny, 16);
-        assert!((report.final_time_s - dt_s).abs() < 1.0e-15);
+        assert_eq!(report.manufactured_start_time_s, 0.0);
+        assert!((report.solver_elapsed_time_s - dt_s).abs() < 1.0e-15);
+        assert!((report.manufactured_end_time_s - dt_s).abs() < 1.0e-15);
         assert!(report.velocity_rms_defect_mps.is_finite());
         assert!(report.velocity_max_defect_mps.is_finite());
         assert!(report.update_residual_rms_mps2.is_finite());
@@ -289,6 +336,26 @@ mod tests {
         assert!(report.divergence_rms_before_per_s.is_finite());
         assert!(report.divergence_rms_after_per_s.is_finite());
         assert!(report.pressure_residual_rms_pa_per_m2.is_finite());
+        assert_eq!(report.non_finite_state_count, 0);
+    }
+
+    #[test]
+    fn arbitrary_phase_offsets_forcing_and_exact_comparator_together() {
+        let p = profile();
+        let period_s = std::f64::consts::TAU / p.angular_frequency_rad_s;
+        let start_time_s = 0.25 * period_s;
+        let dt_s = 0.00025;
+        let report = measure_manufactured_one_step_update_defect_at_phase(
+            config(),
+            p,
+            start_time_s,
+            dt_s,
+        )
+        .unwrap();
+        assert!((report.manufactured_start_time_s - start_time_s).abs() < 1.0e-15);
+        assert!((report.solver_elapsed_time_s - dt_s).abs() < 1.0e-15);
+        assert!((report.manufactured_end_time_s - (start_time_s + dt_s)).abs() < 1.0e-15);
+        assert!(report.update_residual_rms_mps2.is_finite());
         assert_eq!(report.non_finite_state_count, 0);
     }
 
@@ -307,14 +374,37 @@ mod tests {
     }
 
     #[test]
-    fn one_step_defect_is_replay_deterministic() {
-        let a = measure_manufactured_one_step_update_defect(config(), profile(), 0.00025).unwrap();
-        let b = measure_manufactured_one_step_update_defect(config(), profile(), 0.00025).unwrap();
+    fn arbitrary_phase_defect_is_replay_deterministic() {
+        let p = profile();
+        let start_time_s = 0.37;
+        let a = measure_manufactured_one_step_update_defect_at_phase(
+            config(),
+            p,
+            start_time_s,
+            0.00025,
+        )
+        .unwrap();
+        let b = measure_manufactured_one_step_update_defect_at_phase(
+            config(),
+            p,
+            start_time_s,
+            0.00025,
+        )
+        .unwrap();
         assert_eq!(a, b);
     }
 
     #[test]
     fn invalid_requests_fail_closed() {
+        assert_eq!(
+            measure_manufactured_one_step_update_defect_at_phase(
+                config(),
+                profile(),
+                -0.1,
+                0.00025,
+            ),
+            Err(ManufacturedUpdateDefectError::InvalidStartTime)
+        );
         assert_eq!(
             measure_manufactured_one_step_update_defect(config(), profile(), 0.0),
             Err(ManufacturedUpdateDefectError::InvalidTimeStep)
