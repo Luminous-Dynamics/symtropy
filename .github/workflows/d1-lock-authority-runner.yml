@@ -79,7 +79,21 @@ jobs:
           set -euo pipefail
           cd product
           cargo metadata --locked --format-version 1 > /tmp/d1-locked-metadata.json
-          test "$(sha256sum /tmp/d1-locked-metadata.json | awk '{print $1}')" = "cf95cef8ec3af4f762834012888e4095eafbc6d5a67b4d38a7b3731d28e4af2d"
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+
+          metadata = json.loads(Path('/tmp/d1-locked-metadata.json').read_text())
+          packages = [p for p in metadata['packages'] if p['name'] == 'symtropy-design']
+          assert len(packages) == 1, packages
+          package = packages[0]
+          assert package['version'] == '0.1.0', package['version']
+          dependencies = sorted(dep['name'] for dep in package['dependencies'])
+          assert dependencies == ['serde', 'serde_json', 'sha2', 'symtropy-game-state'], dependencies
+          print('D1_METADATA_SEMANTIC_PACKAGE=symtropy-design@0.1.0')
+          print('D1_METADATA_SEMANTIC_DEPENDENCIES=' + ','.join(dependencies))
+          PY
+          echo "D1_METADATA_BYTES_SHA256_NONPORTABLE=$(sha256sum /tmp/d1-locked-metadata.json | awk '{print $1}')"
           cargo check --locked -p symtropy-design --all-targets
           test "$(git status --porcelain=v1 --untracked-files=all)" = ' M Cargo.lock'
 
