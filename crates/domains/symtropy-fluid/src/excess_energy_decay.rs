@@ -17,8 +17,8 @@ use serde::{Deserialize, Serialize};
 
 use crate::convergence::TAYLOR_GREEN_COMPARATOR_ID;
 use crate::reference::{
-    PeriodicMac2d, PeriodicMacConfig, ReferenceDiagnosticError, ReferenceStateError,
-    ReferenceStepError,
+    PeriodicMac2d, PeriodicMacConfig, ReferenceConfigError, ReferenceDiagnosticError,
+    ReferenceStateError, ReferenceStepError,
 };
 
 pub const EXCESS_ENERGY_DECAY_SCHEMA_ID: &str =
@@ -61,6 +61,12 @@ pub struct ExcessEnergyDecayReport {
     pub maximum_absolute_cumulative_excess_loss_fraction: f64,
     pub final_cumulative_excess_resolved_energy_loss_j: f64,
     pub final_cumulative_excess_loss_fraction_of_initial: f64,
+    pub maximum_observed_advective_cfl: f64,
+    pub maximum_observed_diffusion_number: f64,
+    pub maximum_observed_combined_explicit_number: f64,
+    pub maximum_observed_divergence_rms_per_s: f64,
+    pub maximum_observed_pressure_residual_rms_pa_per_m2: f64,
+    pub maximum_observed_non_finite_state_count: u64,
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -72,6 +78,7 @@ pub enum ExcessEnergyDecayError {
     MissingMeasuredEnergy,
     InvalidExactEnergy,
     NonFiniteDerivedMetric(&'static str),
+    Config(ReferenceConfigError),
     State(ReferenceStateError),
     Step(ReferenceStepError),
     Diagnostic(ReferenceDiagnosticError),
@@ -98,6 +105,7 @@ impl fmt::Display for ExcessEnergyDecayError {
             Self::NonFiniteDerivedMetric(name) => {
                 write!(f, "derived excess-energy metric {name} is non-finite")
             }
+            Self::Config(source) => write!(f, "invalid reference configuration: {source}"),
             Self::State(source) => write!(f, "Taylor-Green state failed: {source}"),
             Self::Step(source) => write!(f, "Taylor-Green step failed: {source}"),
             Self::Diagnostic(source) => write!(f, "energy diagnostic failed: {source}"),
@@ -106,6 +114,12 @@ impl fmt::Display for ExcessEnergyDecayError {
 }
 
 impl std::error::Error for ExcessEnergyDecayError {}
+
+impl From<ReferenceConfigError> for ExcessEnergyDecayError {
+    fn from(value: ReferenceConfigError) -> Self {
+        Self::Config(value)
+    }
+}
 
 impl From<ReferenceStateError> for ExcessEnergyDecayError {
     fn from(value: ReferenceStateError) -> Self {
@@ -168,9 +182,28 @@ pub fn run_passive_taylor_green_excess_energy_decay(
     let mut maximum_positive_step_excess_loss_j = 0.0_f64;
     let mut minimum_step_excess_loss_j = 0.0_f64;
     let mut maximum_absolute_cumulative_excess_loss_fraction = 0.0_f64;
+    let mut maximum_observed_advective_cfl = 0.0_f64;
+    let mut maximum_observed_diffusion_number = 0.0_f64;
+    let mut maximum_observed_combined_explicit_number = 0.0_f64;
+    let mut maximum_observed_divergence_rms_per_s = state.divergence_rms_per_s();
+    let mut maximum_observed_pressure_residual_rms_pa_per_m2 = 0.0_f64;
+    let mut maximum_observed_non_finite_state_count = 0_u64;
 
     for step_index in 1..=steps {
-        state.step(dt_s)?;
+        let step = state.step(dt_s)?;
+        maximum_observed_advective_cfl = maximum_observed_advective_cfl.max(step.max_advective_cfl);
+        maximum_observed_diffusion_number =
+            maximum_observed_diffusion_number.max(step.diffusion_number);
+        maximum_observed_combined_explicit_number =
+            maximum_observed_combined_explicit_number.max(step.combined_explicit_number);
+        maximum_observed_divergence_rms_per_s = maximum_observed_divergence_rms_per_s
+            .max(step.projection.divergence_rms_after_per_s);
+        maximum_observed_pressure_residual_rms_pa_per_m2 =
+            maximum_observed_pressure_residual_rms_pa_per_m2
+                .max(step.projection.pressure_residual_rms_pa_per_m2);
+        maximum_observed_non_finite_state_count =
+            maximum_observed_non_finite_state_count.max(step.non_finite_state_count);
+
         let time_s = state.time_s();
         let measured_energy_j = measured_energy(&state)?;
         let exact_discrete_energy_j =
@@ -278,6 +311,12 @@ pub fn run_passive_taylor_green_excess_energy_decay(
         maximum_absolute_cumulative_excess_loss_fraction,
         final_cumulative_excess_resolved_energy_loss_j,
         final_cumulative_excess_loss_fraction_of_initial,
+        maximum_observed_advective_cfl,
+        maximum_observed_diffusion_number,
+        maximum_observed_combined_explicit_number,
+        maximum_observed_divergence_rms_per_s,
+        maximum_observed_pressure_residual_rms_pa_per_m2,
+        maximum_observed_non_finite_state_count,
     })
 }
 
@@ -287,6 +326,7 @@ fn validate_request(
     dt_s: f64,
     steps: usize,
 ) -> Result<(), ExcessEnergyDecayError> {
+    config.validate()?;
     if config.nx != config.ny || config.length_x_m.to_bits() != config.length_y_m.to_bits() {
         return Err(ExcessEnergyDecayError::NonCanonicalDomain);
     }
@@ -373,6 +413,22 @@ mod tests {
     }
 
     #[test]
+    fn numerical_context_is_retained_from_the_same_run() {
+        let report = run_passive_taylor_green_excess_energy_decay(config(), 0.08, 0.00025, 8)
+            .unwrap();
+        assert!(report.maximum_observed_advective_cfl.is_finite());
+        assert!(report.maximum_observed_diffusion_number.is_finite());
+        assert!(report.maximum_observed_combined_explicit_number.is_finite());
+        assert!(report.maximum_observed_divergence_rms_per_s.is_finite());
+        assert!(
+            report
+                .maximum_observed_pressure_residual_rms_pa_per_m2
+                .is_finite()
+        );
+        assert_eq!(report.maximum_observed_non_finite_state_count, 0);
+    }
+
+    #[test]
     fn report_is_replay_deterministic() {
         let a = run_passive_taylor_green_excess_energy_decay(config(), 0.08, 0.00025, 8)
             .unwrap();
@@ -401,6 +457,20 @@ mod tests {
         assert_eq!(
             run_passive_taylor_green_excess_energy_decay(rectangular, 0.08, 0.00025, 4),
             Err(ExcessEnergyDecayError::NonCanonicalDomain)
+        );
+
+        let mut negative_viscosity = config();
+        negative_viscosity.kinematic_viscosity_m2_s = -0.01;
+        assert_eq!(
+            run_passive_taylor_green_excess_energy_decay(
+                negative_viscosity,
+                0.08,
+                0.00025,
+                4,
+            ),
+            Err(ExcessEnergyDecayError::Config(
+                ReferenceConfigError::ExpectedNonNegativeFinite("kinematic_viscosity_m2_s")
+            ))
         );
     }
 }
