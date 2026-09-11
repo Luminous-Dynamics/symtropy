@@ -39,6 +39,7 @@ mod linked_offspring;
 mod linked_offspring_v2;
 mod marker_recombination;
 mod metapopulation;
+mod mutation_fate;
 mod mutation_lineage;
 mod mutation_origin;
 mod operators;
@@ -197,6 +198,12 @@ pub use marker_recombination::{
 };
 pub use metapopulation::{
     MetapopulationSnapshot, MetapopulationSnapshotDigest, MetapopulationSnapshotEntry,
+};
+pub use mutation_fate::{
+    observe_mutation_fates, MutationFateAlleleCount, MutationFateAlleleOriginCount,
+    MutationFateError, MutationFateLocusObservation, MutationFateObservation,
+    MutationFateObservationDigest, MutationFateOriginCount, MutationFateSourceMultiplicity,
+    MutationFateSubject, MUTATION_FATE_OBSERVATION_VERSION,
 };
 pub use mutation_lineage::{
     derive_descendant_mutation_lineage, initialize_root_mutation_lineage,
