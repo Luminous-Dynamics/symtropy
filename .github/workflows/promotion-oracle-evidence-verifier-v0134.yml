@@ -1,0 +1,203 @@
+name: Trusted oracle evidence verifier v0.13.4
+
+on:
+  workflow_call:
+
+permissions:
+  contents: read
+  actions: read
+  id-token: write
+  attestations: write
+
+jobs:
+  verify-r3-pair:
+    name: Verify r3 semantic-oracle pair
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+
+    steps:
+      - name: Validate verifier authority identity
+        shell: bash
+        env:
+          REPOSITORY: ${{ github.repository }}
+          WORKFLOW_REPOSITORY: ${{ job.workflow_repository }}
+          WORKFLOW_SHA: ${{ job.workflow_sha }}
+          WORKFLOW_REF: ${{ job.workflow_ref }}
+          RUNNER_CLASS: ${{ runner.environment }}
+        run: |
+          set -euo pipefail
+          test "$REPOSITORY" = "Luminous-Dynamics/symtropy"
+          test "$WORKFLOW_REPOSITORY" = "$REPOSITORY"
+          test "$RUNNER_CLASS" = "github-hosted"
+          case "$WORKFLOW_REF" in
+            "$WORKFLOW_REPOSITORY/.github/workflows/promotion-oracle-evidence-verifier-v0134.yml@"*) ;;
+            *) echo "DENY: unexpected verifier workflow identity" >&2; exit 2 ;;
+          esac
+          echo "verifier_authority_sha=$WORKFLOW_SHA"
+
+      - name: Checkout exact verifier authority
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          ref: ${{ job.workflow_sha }}
+          fetch-depth: 1
+          path: verifier
+          persist-credentials: false
+
+      - name: Verify frozen verifier checkout
+        shell: bash
+        env:
+          WORKFLOW_SHA: ${{ job.workflow_sha }}
+        run: |
+          set -euo pipefail
+          test "$(git -C verifier rev-parse HEAD)" = "$WORKFLOW_SHA"
+          test -z "$(git -C verifier status --porcelain=v1 --untracked-files=all)"
+          test -f verifier/tools/promotion/luminous-promotion-oracle-pilot-evidence-v0134.py
+          echo "verifier_script_blob=$(git -C verifier rev-parse "$WORKFLOW_SHA:tools/promotion/luminous-promotion-oracle-pilot-evidence-v0134.py")"
+          python3 verifier/tools/promotion/luminous-promotion-oracle-pilot-evidence-v0134.py --version
+
+      - name: Download exact r3 evidence artifacts
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          mkdir -p evidence/control evidence/attack
+          gh api repos/Luminous-Dynamics/symtropy/actions/artifacts/10266448157/zip > evidence/control.zip
+          gh api repos/Luminous-Dynamics/symtropy/actions/artifacts/10267107675/zip > evidence/attack.zip
+          echo 'b9b8b304d4c49b25f2bfdbf4aa9a143053a6127ab1fb3f0c689650c5f6dd5609  evidence/control.zip' | sha256sum -c -
+          echo '292618952e3c7e51fb075a740a304163458116ff29bd954921322f31f7cf1ae2  evidence/attack.zip' | sha256sum -c -
+          unzip -q evidence/control.zip -d evidence/control
+          unzip -q evidence/attack.zip -d evidence/attack
+          test -f evidence/control/promotion-oracle-pilot-result.json
+          test -f evidence/attack/promotion-oracle-pilot-result.json
+          echo '41285d18ae49a6f968ec7f3b5f8e0bb822f59b2064f6b0f3548b5e2d58b22f86  evidence/control/promotion-oracle-pilot-result.json' | sha256sum -c -
+          echo '74c8208784dca944833fd4cf11995c2a3321a4504e90dc1196f930c543eb1ff5  evidence/attack/promotion-oracle-pilot-result.json' | sha256sum -c -
+
+      - name: Independently verify control attestation and provider state
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          python3 verifier/tools/promotion/luminous-promotion-oracle-pilot-evidence-v0134.py \
+            --pilot-result evidence/control/promotion-oracle-pilot-result.json \
+            --output evidence/control-receipt.json
+
+      - name: Independently verify expected-red attestation and provider state
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          python3 verifier/tools/promotion/luminous-promotion-oracle-pilot-evidence-v0134.py \
+            --pilot-result evidence/attack/promotion-oracle-pilot-result.json \
+            --output evidence/attack-receipt.json
+
+      - name: Evaluate exact paired oracle theorem
+        shell: bash
+        env:
+          VERIFIER_AUTHORITY_SHA: ${{ job.workflow_sha }}
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import hashlib
+          import json
+          import os
+          import pathlib
+
+          base = '81d8eff80111cc7383e31de9fc90963c3cc5af38'
+          workflow = 'Luminous-Dynamics/symtropy/.github/workflows/promotion-oracle-execution-trusted-v011.yml'
+          control_head = '2f4040e49a7736804acf1cbd5ab7cd39e73882b8'
+          attack_head = '80d8933e276b73a718fb6e89251fc9217dab9ef8'
+
+          def load(path):
+              return json.loads(pathlib.Path(path).read_text(encoding='utf-8'))
+
+          control = load('evidence/control-receipt.json')
+          attack = load('evidence/attack-receipt.json')
+          co = control['classifier_observation']
+          ao = attack['classifier_observation']
+
+          assert control['adapter_version'] == '0.13.4'
+          assert attack['adapter_version'] == '0.13.4'
+          assert control['semantic_result'] == 'PASS'
+          assert attack['semantic_result'] == 'FAIL'
+          for observation in (co, ao):
+              assert observation['provider'] == 'github-actions'
+              assert observation['repository'] == 'Luminous-Dynamics/symtropy'
+              assert observation['base_sha'] == base
+              assert observation['workflow_path'] == workflow
+              assert observation['workflow_sha'] == base
+              assert observation['run_attempt'] == 1
+              assert observation['attestation_verified'] is True
+              assert observation['exact_subject_verified'] is True
+              assert observation['subject_current'] is True
+              assert observation['job_materialized'] is True
+              assert observation['steps_materialized'] is True
+          assert co['head_sha'] == control_head
+          assert ao['head_sha'] == attack_head
+          assert co['head_sha'] != ao['head_sha']
+          assert co['run_id'] == 34606880094
+          assert ao['run_id'] == 34606899775
+          assert co['job_id'] == 103287366876
+          assert ao['job_id'] == 103287432357
+          assert co['provider_conclusion'] == 'success'
+          assert ao['provider_conclusion'] == 'failure'
+
+          pair = {
+              'schema_version': 1,
+              'kind': 'promotion-oracle-paired-verification',
+              'decision': 'QUALIFIED',
+              'repository': 'Luminous-Dynamics/symtropy',
+              'semantic_authority_sha': base,
+              'verifier_authority_sha': os.environ['VERIFIER_AUTHORITY_SHA'],
+              'control': {
+                  'head_sha': control_head,
+                  'run_id': 34606880094,
+                  'run_attempt': 1,
+                  'receipt_digest': control['verification_digest'],
+                  'semantic_result': 'PASS',
+              },
+              'attack': {
+                  'head_sha': attack_head,
+                  'run_id': 34606899775,
+                  'run_attempt': 1,
+                  'receipt_digest': attack['verification_digest'],
+                  'semantic_result': 'FAIL',
+              },
+          }
+          encoded = json.dumps(pair, sort_keys=True, separators=(',', ':'), ensure_ascii=False).encode() + b'\n'
+          pair['pair_digest'] = hashlib.sha256(encoded).hexdigest()
+          pathlib.Path('evidence/pair-receipt.json').write_bytes(
+              json.dumps(pair, sort_keys=True, separators=(',', ':'), ensure_ascii=False).encode() + b'\n'
+          )
+          print(json.dumps(pair, indent=2, sort_keys=True))
+          PY
+
+      - name: Attest exact paired verification receipt
+        uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4
+        with:
+          subject-path: evidence/pair-receipt.json
+
+      - name: Preserve verification receipts
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: luminous-oracle-r3-independent-verification
+          path: |
+            evidence/control-receipt.json
+            evidence/attack-receipt.json
+            evidence/pair-receipt.json
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Enforce paired theorem
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json
+          import pathlib
+          receipt = json.loads(pathlib.Path('evidence/pair-receipt.json').read_text(encoding='utf-8'))
+          assert receipt['decision'] == 'QUALIFIED'
+          print('ORACLE_PAIR_QUALIFIED')
+          PY
