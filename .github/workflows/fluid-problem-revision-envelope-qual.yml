@@ -1,0 +1,52 @@
+name: Fluid Problem Revision Envelope Qualification
+
+on:
+  push:
+    branches:
+      - ci/fluid-problem-revision-envelope-qual-v0.1
+
+permissions:
+  contents: write
+
+jobs:
+  qualify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Set up Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.96.0
+          components: clippy, rustfmt
+      - name: Canonical Rustfmt
+        run: cargo fmt --all
+      - name: Verify allowed formatter delta
+        shell: bash
+        run: |
+          set -euo pipefail
+          unexpected="$(git diff --name-only | grep -v -E '^(crates/domains/symtropy-fluid/src/problem_revision_envelope.rs|crates/domains/symtropy-fluid/src/lib.rs)$' || true)"
+          if [ -n "$unexpected" ]; then
+            echo "Unexpected formatter changes:"
+            echo "$unexpected"
+            exit 1
+          fi
+          git diff --check
+      - name: Strict fluid Clippy
+        run: cargo clippy -p symtropy-fluid --all-targets --all-features -- -D warnings
+      - name: Fluid tests
+        run: cargo test -p symtropy-fluid --all-features
+      - name: Commit canonical product formatting
+        shell: bash
+        run: |
+          set -euo pipefail
+          if git diff --quiet; then
+            echo "Already canonical"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add crates/domains/symtropy-fluid/src/problem_revision_envelope.rs crates/domains/symtropy-fluid/src/lib.rs
+          git commit -m "chore(fluid): canonicalize problem revision envelope formatting"
+          git push
