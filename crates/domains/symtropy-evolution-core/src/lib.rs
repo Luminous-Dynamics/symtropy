@@ -9,6 +9,7 @@
 mod ancestry_graph;
 mod ancestry_pruning;
 mod ancestry_simplification;
+mod ancestry_simplified_forward;
 mod ancestry_state;
 mod canonical;
 mod chromosome_map;
@@ -65,6 +66,15 @@ pub use ancestry_simplification::{
     AncestrySimplificationResult, SimplifiedAncestryEdge, SimplifiedAncestryGraph,
     SimplifiedAncestryGraphDigest, ANCESTRY_SIMPLIFICATION_DERIVATION_VERSION,
     SIMPLIFIED_ANCESTRY_GRAPH_VERSION,
+};
+pub use ancestry_simplified_forward::{
+    append_descendant_ancestry_to_simplified_graph, resimplify_simplified_ancestry,
+    SimplifiedAncestryAppendProvenance, SimplifiedAncestryAppendProvenanceDigest,
+    SimplifiedAncestryAppendResult, SimplifiedAncestryForwardError,
+    SimplifiedAncestryResimplificationProvenance,
+    SimplifiedAncestryResimplificationProvenanceDigest,
+    SimplifiedAncestryResimplificationResult, SIMPLIFIED_ANCESTRY_APPEND_VERSION,
+    SIMPLIFIED_ANCESTRY_RESIMPLIFICATION_VERSION,
 };
 pub use ancestry_state::{
     AncestryAuthorityError, ChromosomeAncestryState, HaplotypeAncestryClass,
