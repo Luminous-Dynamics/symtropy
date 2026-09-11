@@ -7,6 +7,7 @@
 //! and civilization remain external authorities.
 
 mod ancestry_graph;
+mod ancestry_pruning;
 mod ancestry_state;
 mod canonical;
 mod chromosome_map;
@@ -50,6 +51,12 @@ pub use ancestry_graph::{
     AncestryGraphAppendProvenanceDigest, AncestryGraphAppendResult, AncestryGraphEdge,
     AncestryGraphError, AncestryGraphNode, ModeledAncestryGraph, ModeledAncestryGraphDigest,
     ANCESTRY_GRAPH_APPEND_VERSION, MODELED_ANCESTRY_GRAPH_VERSION,
+};
+pub use ancestry_pruning::{
+    prune_ancestry_reachability, AncestryPruningError, AncestryReachabilityPruningProvenance,
+    AncestryReachabilityPruningProvenanceDigest, AncestryReachabilityPruningResult,
+    AncestryRetentionSet, AncestryRetentionSetDigest, ANCESTRY_REACHABILITY_PRUNING_VERSION,
+    ANCESTRY_RETENTION_SET_VERSION,
 };
 pub use ancestry_state::{
     AncestryAuthorityError, ChromosomeAncestryState, HaplotypeAncestryClass,
