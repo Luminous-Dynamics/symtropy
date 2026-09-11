@@ -9,9 +9,11 @@
 //!
 //! is the square root of the ratio of mean-squared vorticity to mean-squared
 //! vorticity gradient. In 2-D turbulence this enstrophy/palinstrophy ratio is a
-//! characteristic small-scale length. This module reports the observable and
-//! its grid separation; it does not decide whether a simulation is resolved and
-//! does not grant refinement/promotion authority.
+//! characteristic small-scale length. Vorticity is evaluated on the natural MAC
+//! dual grid with staggered first differences, and its gradient uses periodic
+//! forward differences. This avoids the Nyquist checkerboard null of a centered
+//! first derivative. The module reports measurements only; it does not decide
+//! whether a simulation is resolved and grants no refinement/promotion authority.
 
 use std::fmt;
 
@@ -27,9 +29,9 @@ pub enum VorticityConcentrationScaleUnavailableReason {
     /// The sampled state has exactly zero RMS vorticity, so there is no
     /// vorticity structure from which to infer a vorticity length.
     ZeroVorticity,
-    /// Vorticity is present but its centered periodic gradient is exactly zero.
-    /// The ratio would be infinite; preserve that as a typed unavailable state
-    /// instead of serializing infinity or inventing a finite sentinel.
+    /// Vorticity is present but the chosen periodic difference operator reports
+    /// an exactly zero vorticity gradient. Preserve this as typed unavailable
+    /// evidence rather than serializing infinity or inventing a finite sentinel.
     ZeroVorticityGradient,
 }
 
@@ -74,12 +76,10 @@ pub enum VorticityConcentrationScaleError {
 impl fmt::Display for VorticityConcentrationScaleError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Self::NonFiniteDerivedMetric(name) => {
-                write!(
-                    f,
-                    "derived vorticity concentration-scale metric {name} is non-finite"
-                )
-            }
+            Self::NonFiniteDerivedMetric(name) => write!(
+                f,
+                "derived vorticity concentration-scale metric {name} is non-finite"
+            ),
             Self::Config(source) => write!(f, "invalid reference configuration: {source}"),
         }
     }
@@ -108,35 +108,23 @@ pub fn measure_vorticity_concentration_scale(
     let minimum_axis_nyquist_wavenumber_per_m =
         (std::f64::consts::PI / dx_m).min(std::f64::consts::PI / dy_m);
 
+    // Natural dual-grid MAC curl at corner (i*dx, j*dy):
+    // omega = d(v)/dx - d(u)/dy. These staggered first differences remain
+    // sensitive to an alternating/Nyquist face mode, unlike a centered first
+    // derivative of an already interpolated cell-centered velocity field.
     let cells = nx * ny;
-    let mut cell_u = vec![0.0_f64; cells];
-    let mut cell_v = vec![0.0_f64; cells];
-    for j in 0..ny {
-        let north = next(j, ny);
-        for i in 0..nx {
-            let east = next(i, nx);
-            let cell_index = index(i, j, nx);
-            cell_u[cell_index] = 0.5
-                * (state.u_faces()[cell_index] + state.u_faces()[index(east, j, nx)]);
-            cell_v[cell_index] = 0.5
-                * (state.v_faces()[cell_index] + state.v_faces()[index(i, north, nx)]);
-        }
-    }
-
     let mut vorticity = vec![0.0_f64; cells];
     let mut maximum_absolute_vorticity_per_s = 0.0_f64;
     let mut vorticity_squared_sum = 0.0_f64;
     for j in 0..ny {
         let south = previous(j, ny);
-        let north = next(j, ny);
         for i in 0..nx {
             let west = previous(i, nx);
-            let east = next(i, nx);
             let cell_index = index(i, j, nx);
             let dv_dx =
-                (cell_v[index(east, j, nx)] - cell_v[index(west, j, nx)]) / (2.0 * dx_m);
+                (state.v_faces()[cell_index] - state.v_faces()[index(west, j, nx)]) / dx_m;
             let du_dy =
-                (cell_u[index(i, north, nx)] - cell_u[index(i, south, nx)]) / (2.0 * dy_m);
+                (state.u_faces()[cell_index] - state.u_faces()[index(i, south, nx)]) / dy_m;
             let omega = dv_dx - du_dy;
             ensure_finite("vorticity_per_s", omega)?;
             vorticity[cell_index] = omega;
@@ -145,19 +133,18 @@ pub fn measure_vorticity_concentration_scale(
         }
     }
 
+    // Forward differences of dual-grid vorticity also remain sensitive at the
+    // Nyquist mode: |D+ exp(ikx)| = 2|sin(k dx / 2)| / dx.
     let mut vorticity_gradient_squared_sum = 0.0_f64;
     for j in 0..ny {
-        let south = previous(j, ny);
         let north = next(j, ny);
         for i in 0..nx {
-            let west = previous(i, nx);
             let east = next(i, nx);
+            let cell_index = index(i, j, nx);
             let d_omega_dx =
-                (vorticity[index(east, j, nx)] - vorticity[index(west, j, nx)])
-                    / (2.0 * dx_m);
+                (vorticity[index(east, j, nx)] - vorticity[cell_index]) / dx_m;
             let d_omega_dy =
-                (vorticity[index(i, north, nx)] - vorticity[index(i, south, nx)])
-                    / (2.0 * dy_m);
+                (vorticity[index(i, north, nx)] - vorticity[cell_index]) / dy_m;
             ensure_finite("vorticity_gradient_x_per_m_s", d_omega_dx)?;
             ensure_finite("vorticity_gradient_y_per_m_s", d_omega_dy)?;
             vorticity_gradient_squared_sum +=
@@ -313,7 +300,7 @@ mod tests {
             let cfg = config(n);
             let dx = cfg.dx();
             let k = std::f64::consts::TAU / cfg.length_x_m;
-            let discrete_k = (k * dx).sin() / dx;
+            let discrete_k = 2.0 * (0.5 * k * dx).sin() / dx;
             let expected = 1.0 / (2.0_f64.sqrt() * discrete_k.abs());
             let state = PeriodicMac2d::taylor_green(cfg, 0.08).unwrap();
             let report = measure_vorticity_concentration_scale(&state).unwrap();
@@ -367,6 +354,35 @@ mod tests {
                 VorticityConcentrationScaleUnavailableReason::ZeroVorticity
             )
         );
+    }
+
+    #[test]
+    fn nyquist_checkerboard_is_not_a_zero_gradient_blind_spot() {
+        let cfg = config(16);
+        let dx = cfg.dx();
+        let cells = cfg.nx * cfg.ny;
+        let u_faces = vec![0.0; cells];
+        let mut v_faces = vec![0.0; cells];
+        for j in 0..cfg.ny {
+            for i in 0..cfg.nx {
+                v_faces[j * cfg.nx + i] = if i % 2 == 0 { 0.08 } else { -0.08 };
+            }
+        }
+        let state = PeriodicMac2d::from_faces(cfg, u_faces, v_faces).unwrap();
+        let report = measure_vorticity_concentration_scale(&state).unwrap();
+        match report.scale {
+            VorticityConcentrationScaleValue::Measured {
+                length_m,
+                cells_per_length,
+                ..
+            } => {
+                assert!((length_m - 0.5 * dx).abs() < 1.0e-13);
+                assert!((cells_per_length - 0.5).abs() < 1.0e-13);
+            }
+            VorticityConcentrationScaleValue::Unavailable(reason) => {
+                panic!("checkerboard mode was hidden as unavailable: {reason:?}")
+            }
+        }
     }
 
     #[test]
