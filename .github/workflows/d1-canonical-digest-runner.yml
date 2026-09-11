@@ -16,7 +16,7 @@ jobs:
     name: Apply and prove explicit D1 digest protocol
     runs-on: ubuntu-24.04
     env:
-      CARGO_TARGET_DIR: ${{ runner.temp }}/d1-canonical-target
+      CARGO_TARGET_DIR: /tmp/symtropy-d1-canonical-target
     steps:
       - name: Check out exact D1 product branch
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
