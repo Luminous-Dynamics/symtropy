@@ -21,9 +21,11 @@
 //! promotion verdict, [`manufactured_iterative`] measures pressure-iteration
 //! sensitivity on the exact manufactured Taylor-Green trajectory itself,
 //! [`excess_energy_decay`] measures resolved kinetic-energy loss relative to the
-//! exact passive Taylor-Green viscous decay in the same discrete quadrature, and
+//! exact passive Taylor-Green viscous decay in the same discrete quadrature,
 //! [`manufactured_update_defect`] measures the one-step discrete operator defect
-//! against the exact forced manufactured trajectory.
+//! against the exact forced manufactured trajectory, and
+//! [`smooth_scale_separation`] records analytical grid/mode separation for the
+//! smooth Taylor-Green control without inventing a dynamic concentration scale.
 //! None of these modules should be read as a claim that Symtropy currently
 //! reproduces the 2026 singular construction or has a production Earth-water
 //! CFD backend.
@@ -39,6 +41,7 @@ pub mod manufactured_iterative;
 pub mod manufactured_update_defect;
 pub mod numerical_observability;
 pub mod reference;
+pub mod smooth_scale_separation;
 pub mod validation;
 pub mod verification_ladder;
 pub mod verification_regime;
