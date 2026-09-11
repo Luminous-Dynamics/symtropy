@@ -11,10 +11,11 @@ use crate::{
     patch_conduit::PatchConduitScenario, patch_conduit_execution::PatchConduitExecutionProfile,
 };
 use serde::{Deserialize, Serialize};
-use std::{error::Error, fmt};
+use std::{collections::BTreeSet, error::Error, fmt};
 use symtropy_construction::TemporaryWorkContract;
 use symtropy_fabrication::{
-    ExactPlanProcessBinding, ExecutableFabricationPlan, ExecutablePlanError, FunctionalSubject,
+    CapabilityError, CapabilityNeedId, ExactPlanProcessBinding, ExecutableFabricationPlan,
+    ExecutablePlanError, FunctionalSubject,
 };
 
 /// One real Patch Conduit approach with an exact immutable executable-plan
@@ -59,7 +60,30 @@ impl ExactPatchConduitProfile {
                 ));
             }
 
-            let exact_plan = ExecutableFabricationPlan::new(source.plan.clone(), bindings)?;
+            let capability_need_ids = source
+                .plan
+                .steps()
+                .iter()
+                .flat_map(|step| step.capability_needs().iter().cloned())
+                .collect::<BTreeSet<_>>();
+            let mut capability_needs = Vec::with_capacity(capability_need_ids.len());
+            for need_id in capability_need_ids {
+                let need = compiled.catalog.capability_need(&need_id).ok_or_else(|| {
+                    ExactPatchConduitError::MissingCapabilityNeed(need_id.clone())
+                })?;
+                capability_needs.push(need.snapshot().map_err(|error| {
+                    ExactPatchConduitError::CapabilityNeedSnapshot {
+                        need_id: need_id.clone(),
+                        error,
+                    }
+                })?);
+            }
+
+            let exact_plan = ExecutableFabricationPlan::new_with_capability_needs(
+                source.plan.clone(),
+                bindings,
+                capability_needs,
+            )?;
             for temporary_work in &source.temporary_works {
                 temporary_work
                     .validate_plan(exact_plan.plan())
@@ -102,6 +126,11 @@ impl ExactPatchConduitProfile {
 pub enum ExactPatchConduitError {
     Profile(String),
     MissingProcess(symtropy_fabrication::PlanStepId),
+    MissingCapabilityNeed(CapabilityNeedId),
+    CapabilityNeedSnapshot {
+        need_id: CapabilityNeedId,
+        error: CapabilityError,
+    },
     ExecutablePlan(ExecutablePlanError),
     TemporaryWork(String),
 }
@@ -125,6 +154,14 @@ impl fmt::Display for ExactPatchConduitError {
                     "Patch Conduit exact plan lacks a process for step {step}"
                 )
             }
+            Self::MissingCapabilityNeed(need_id) => write!(
+                formatter,
+                "Patch Conduit exact plan lacks catalog semantics for capability need {need_id}"
+            ),
+            Self::CapabilityNeedSnapshot { need_id, error } => write!(
+                formatter,
+                "Patch Conduit capability need {need_id} could not become exact executable semantics: {error}"
+            ),
             Self::ExecutablePlan(error) => fmt::Display::fmt(error, formatter),
             Self::TemporaryWork(error) => {
                 write!(
@@ -139,8 +176,12 @@ impl fmt::Display for ExactPatchConduitError {
 impl Error for ExactPatchConduitError {
     fn source(&self) -> Option<&(dyn Error + 'static)> {
         match self {
+            Self::CapabilityNeedSnapshot { error, .. } => Some(error),
             Self::ExecutablePlan(error) => Some(error),
-            Self::Profile(_) | Self::MissingProcess(_) | Self::TemporaryWork(_) => None,
+            Self::Profile(_)
+            | Self::MissingProcess(_)
+            | Self::MissingCapabilityNeed(_)
+            | Self::TemporaryWork(_) => None,
         }
     }
 }
@@ -185,6 +226,27 @@ mod tests {
                     approach.plan.process_spec(&step.id),
                     Some(&expected.spec.snapshot())
                 );
+            }
+        }
+    }
+
+    #[test]
+    fn real_patch_conduit_exact_plan_binds_every_f5_need_semantically() {
+        let scenario = PatchConduitScenario::canonical().unwrap();
+        let compiled = PatchConduitExecutionProfile::compile(&scenario).unwrap();
+        let exact = ExactPatchConduitProfile::from_compiled(&compiled).unwrap();
+
+        for approach in exact.approaches() {
+            for step in approach.plan.plan().steps() {
+                for need_id in step.capability_needs() {
+                    let expected = compiled
+                        .catalog
+                        .capability_need(need_id)
+                        .unwrap()
+                        .snapshot()
+                        .unwrap();
+                    assert_eq!(approach.plan.capability_need(need_id), Some(&expected));
+                }
             }
         }
     }

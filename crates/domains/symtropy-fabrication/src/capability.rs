@@ -8,7 +8,7 @@
 //! envelope into the F4 bootstrap token, but the envelope remains the richer
 //! authority record.
 
-use serde::{Deserialize, Serialize};
+use serde::{Deserialize, Deserializer, Serialize};
 use std::{error::Error, fmt};
 use symtropy_game_state::StableId;
 
@@ -158,6 +158,22 @@ impl CapabilityAxisNeed {
             max_resolution,
         })
     }
+
+    /// Replays the primitive range/resolution theorem for a value that may have
+    /// been publicly mutated before it reaches a consequential boundary.
+    pub fn validate_current(&self) -> Result<(), CapabilityError> {
+        if self.lower > self.upper {
+            return Err(CapabilityError::InvalidAxisNeed {
+                axis_id: self.axis_id.clone(),
+                lower: self.lower,
+                upper: self.upper,
+            });
+        }
+        if self.max_resolution == Some(0) {
+            return Err(CapabilityError::ZeroMaximumResolution(self.axis_id.clone()));
+        }
+        Ok(())
+    }
 }
 
 /// Current operating envelope of a concrete tool, machine, operator, fixture,
@@ -205,7 +221,7 @@ impl CapabilityEnvelope {
 
 /// Reusable process need. It describes a feasible operating region rather than
 /// assigning a single difficulty or level.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub struct CapabilityNeed {
     pub id: CapabilityNeedId,
     pub capability_id: StableId,
@@ -214,19 +230,52 @@ pub struct CapabilityNeed {
     pub required_conditions: Vec<StableId>,
 }
 
+#[derive(Deserialize)]
+struct CapabilityNeedWire {
+    id: CapabilityNeedId,
+    capability_id: StableId,
+    required_mode_id: Option<StableId>,
+    axes: Vec<CapabilityAxisNeed>,
+    required_conditions: Vec<StableId>,
+}
+
+impl<'de> Deserialize<'de> for CapabilityNeed {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        let wire = CapabilityNeedWire::deserialize(deserializer)?;
+        Self::new(
+            wire.id,
+            wire.capability_id,
+            wire.required_mode_id,
+            wire.axes,
+            wire.required_conditions,
+        )
+        .map_err(serde::de::Error::custom)
+    }
+}
+
 impl CapabilityNeed {
     pub fn new(
         id: CapabilityNeedId,
         capability_id: StableId,
         required_mode_id: Option<StableId>,
-        axes: Vec<CapabilityAxisNeed>,
-        required_conditions: Vec<StableId>,
+        mut axes: Vec<CapabilityAxisNeed>,
+        mut required_conditions: Vec<StableId>,
     ) -> Result<Self, CapabilityError> {
+        for axis in &axes {
+            axis.validate_current()?;
+        }
+        axes.sort_by(|left, right| left.axis_id.cmp(&right.axis_id));
         reject_duplicate_axis_needs(&axes)?;
+
+        required_conditions.sort();
         reject_duplicate_ids(
             &required_conditions,
             CapabilityError::DuplicateRequiredCondition,
         )?;
+
         Ok(Self {
             id,
             capability_id,
@@ -234,6 +283,20 @@ impl CapabilityNeed {
             axes,
             required_conditions,
         })
+    }
+
+    /// Captures exact canonical requirement semantics for an executable plan.
+    /// Reusable knowledge may normalize benign ordering here; malformed public
+    /// mutation still fails closed.
+    pub fn snapshot(&self) -> Result<CapabilityNeedSnapshot, CapabilityError> {
+        let canonical = Self::new(
+            self.id.clone(),
+            self.capability_id.clone(),
+            self.required_mode_id.clone(),
+            self.axes.clone(),
+            self.required_conditions.clone(),
+        )?;
+        Ok(CapabilityNeedSnapshot::from_canonical(canonical))
     }
 
     /// Evaluates containment and categorical predicates without inventing a
@@ -321,6 +384,125 @@ impl CapabilityNeed {
     }
 }
 
+pub const CAPABILITY_NEED_SNAPSHOT_SCHEMA_VERSION: u32 = 1;
+
+/// Exact canonical F5 requirement semantics captured by executable authority.
+///
+/// Unlike reusable [`CapabilityNeed`] knowledge, this historical/executable
+/// value never silently normalizes wire representation. It is immutable outside
+/// F5 and rejects noncanonical ordering on restore.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct CapabilityNeedSnapshot {
+    schema_version: u32,
+    id: CapabilityNeedId,
+    capability_id: StableId,
+    required_mode_id: Option<StableId>,
+    axes: Vec<CapabilityAxisNeed>,
+    required_conditions: Vec<StableId>,
+}
+
+#[derive(Deserialize)]
+struct CapabilityNeedSnapshotWire {
+    schema_version: u32,
+    id: CapabilityNeedId,
+    capability_id: StableId,
+    required_mode_id: Option<StableId>,
+    axes: Vec<CapabilityAxisNeed>,
+    required_conditions: Vec<StableId>,
+}
+
+impl<'de> Deserialize<'de> for CapabilityNeedSnapshot {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        let wire = CapabilityNeedSnapshotWire::deserialize(deserializer)?;
+        let value = Self {
+            schema_version: wire.schema_version,
+            id: wire.id,
+            capability_id: wire.capability_id,
+            required_mode_id: wire.required_mode_id,
+            axes: wire.axes,
+            required_conditions: wire.required_conditions,
+        };
+        value
+            .validate_canonical()
+            .map_err(serde::de::Error::custom)?;
+        Ok(value)
+    }
+}
+
+impl CapabilityNeedSnapshot {
+    fn from_canonical(need: CapabilityNeed) -> Self {
+        Self {
+            schema_version: CAPABILITY_NEED_SNAPSHOT_SCHEMA_VERSION,
+            id: need.id,
+            capability_id: need.capability_id,
+            required_mode_id: need.required_mode_id,
+            axes: need.axes,
+            required_conditions: need.required_conditions,
+        }
+    }
+
+    pub const fn schema_version(&self) -> u32 {
+        self.schema_version
+    }
+
+    pub fn id(&self) -> &CapabilityNeedId {
+        &self.id
+    }
+
+    pub fn capability_id(&self) -> &StableId {
+        &self.capability_id
+    }
+
+    pub fn required_mode_id(&self) -> Option<&StableId> {
+        self.required_mode_id.as_ref()
+    }
+
+    pub fn axes(&self) -> &[CapabilityAxisNeed] {
+        &self.axes
+    }
+
+    pub fn required_conditions(&self) -> &[StableId] {
+        &self.required_conditions
+    }
+
+    pub fn validate_canonical(&self) -> Result<(), CapabilityError> {
+        if self.schema_version != CAPABILITY_NEED_SNAPSHOT_SCHEMA_VERSION {
+            return Err(CapabilityError::UnsupportedNeedSnapshotSchemaVersion(
+                self.schema_version,
+            ));
+        }
+        for axis in &self.axes {
+            axis.validate_current()?;
+        }
+        for pair in self.axes.windows(2) {
+            match pair[0].axis_id.cmp(&pair[1].axis_id) {
+                std::cmp::Ordering::Less => {}
+                std::cmp::Ordering::Equal => {
+                    return Err(CapabilityError::DuplicateAxisNeed(pair[0].axis_id.clone()));
+                }
+                std::cmp::Ordering::Greater => {
+                    return Err(CapabilityError::NonCanonicalNeedAxisOrder);
+                }
+            }
+        }
+        for pair in self.required_conditions.windows(2) {
+            match pair[0].cmp(&pair[1]) {
+                std::cmp::Ordering::Less => {}
+                std::cmp::Ordering::Equal => {
+                    return Err(CapabilityError::DuplicateRequiredCondition(pair[0].clone()));
+                }
+                std::cmp::Ordering::Greater => {
+                    return Err(CapabilityError::NonCanonicalRequiredConditionOrder);
+                }
+            }
+        }
+        Ok(())
+    }
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum CapabilityOutcome {
@@ -389,6 +571,7 @@ pub enum CapabilityMismatch {
 #[derive(Debug)]
 pub enum CapabilityError {
     InvalidEvidenceDigest(String),
+    UnsupportedNeedSnapshotSchemaVersion(u32),
     InvalidAxisRange {
         axis_id: StableId,
         lower: i64,
@@ -403,8 +586,10 @@ pub enum CapabilityError {
     ZeroMaximumResolution(StableId),
     DuplicateAxis(StableId),
     DuplicateAxisNeed(StableId),
+    NonCanonicalNeedAxisOrder,
     DuplicateCondition(StableId),
     DuplicateRequiredCondition(StableId),
+    NonCanonicalRequiredConditionOrder,
     UnsatisfiedAdmission(CapabilityAdmissionId),
 }
 
@@ -415,6 +600,10 @@ impl fmt::Display for CapabilityError {
                 formatter,
                 "capability evidence digest must contain 1..=256 bytes, got {}",
                 digest.len()
+            ),
+            Self::UnsupportedNeedSnapshotSchemaVersion(version) => write!(
+                formatter,
+                "unsupported exact capability-need snapshot schema version {version}"
             ),
             Self::InvalidAxisRange {
                 axis_id,
@@ -448,6 +637,10 @@ impl fmt::Display for CapabilityError {
             Self::DuplicateAxisNeed(axis_id) => {
                 write!(formatter, "capability need repeats axis {axis_id}")
             }
+            Self::NonCanonicalNeedAxisOrder => write!(
+                formatter,
+                "exact capability-need snapshot axes are not in canonical axis-id order"
+            ),
             Self::DuplicateCondition(condition) => {
                 write!(
                     formatter,
@@ -457,6 +650,10 @@ impl fmt::Display for CapabilityError {
             Self::DuplicateRequiredCondition(condition) => {
                 write!(formatter, "capability need repeats condition {condition}")
             }
+            Self::NonCanonicalRequiredConditionOrder => write!(
+                formatter,
+                "exact capability-need snapshot conditions are not in canonical stable-id order"
+            ),
             Self::UnsatisfiedAdmission(id) => {
                 write!(formatter, "capability admission {id} is not satisfied")
             }
@@ -612,6 +809,83 @@ mod tests {
         assert_eq!(requirement.minimum_value, 1);
         assert_eq!(token.available_value, 1);
         assert!(requirement.is_satisfied_by(&[token]));
+    }
+
+    #[test]
+    fn reusable_need_wire_normalizes_set_like_order() {
+        let expected = welding_need();
+        let mut value = serde_json::to_value(&expected).unwrap();
+        value["axes"].as_array_mut().unwrap().reverse();
+        value["required_conditions"]
+            .as_array_mut()
+            .unwrap()
+            .reverse();
+
+        let restored: CapabilityNeed = serde_json::from_value(value).unwrap();
+        assert_eq!(restored, expected);
+    }
+
+    #[test]
+    fn exact_need_snapshot_binds_schema_version_and_rejects_unknown_wire_version() {
+        let snapshot = welding_need().snapshot().unwrap();
+        assert_eq!(
+            snapshot.schema_version(),
+            CAPABILITY_NEED_SNAPSHOT_SCHEMA_VERSION
+        );
+
+        let mut value = serde_json::to_value(&snapshot).unwrap();
+        value["schema_version"] = 2.into();
+        let restored = serde_json::from_value::<CapabilityNeedSnapshot>(value);
+        assert!(matches!(
+            restored.unwrap_err().to_string().as_str(),
+            message if message.contains("unsupported exact capability-need snapshot schema version 2")
+        ));
+    }
+
+    #[test]
+    fn exact_need_snapshot_rejects_noncanonical_wire_order() {
+        let snapshot = welding_need().snapshot().unwrap();
+        let mut axis_order = serde_json::to_value(&snapshot).unwrap();
+        axis_order["axes"].as_array_mut().unwrap().reverse();
+        assert!(serde_json::from_value::<CapabilityNeedSnapshot>(axis_order).is_err());
+
+        let mut condition_order = serde_json::to_value(&snapshot).unwrap();
+        condition_order["required_conditions"]
+            .as_array_mut()
+            .unwrap()
+            .reverse();
+        assert!(serde_json::from_value::<CapabilityNeedSnapshot>(condition_order).is_err());
+    }
+
+    #[test]
+    fn exact_need_snapshot_revalidates_publicly_mutated_axis_semantics() {
+        let mut need = welding_need();
+        need.axes[0].max_resolution = Some(0);
+        assert!(matches!(
+            need.snapshot(),
+            Err(CapabilityError::ZeroMaximumResolution(_))
+        ));
+    }
+
+    #[test]
+    fn same_need_id_with_changed_rich_semantics_has_distinct_snapshot() {
+        let original = welding_need().snapshot().unwrap();
+        let mut altered = welding_need();
+        altered
+            .required_conditions
+            .retain(|condition| condition != &id("condition:shielding-active"));
+        let altered = altered.snapshot().unwrap();
+
+        assert_eq!(original.id(), altered.id());
+        assert_ne!(original, altered);
+    }
+
+    #[test]
+    fn exact_need_snapshot_round_trip_preserves_canonical_semantics() {
+        let snapshot = welding_need().snapshot().unwrap();
+        let encoded = serde_json::to_vec(&snapshot).unwrap();
+        let restored: CapabilityNeedSnapshot = serde_json::from_slice(&encoded).unwrap();
+        assert_eq!(restored, snapshot);
     }
 
     #[test]
