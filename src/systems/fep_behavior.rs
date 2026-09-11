@@ -12,13 +12,16 @@ use crate::components::{
 };
 use crate::resources::{EnergyWell, PhysicsWorldRes, TutorialScenarioRes, TutorialStep};
 use crate::systems::fep_perception::{
-    LocalScalarSample, PerceivedWorldFrame, local_noise_risk_cue, strongest_local_sample,
+    LocalScalarSample, LocalTargetSample, PerceivedWorldFrame, local_noise_risk_cue,
+    presented_distress_cue, strongest_local_sample, strongest_local_target,
 };
 use symtropy_render_bridge::PhysicsBody;
 
 const FEP_OBSERVATION_DIM: usize = 6;
-/// Abstract game-space range for direct local equipment/noise sensing.
+/// Abstract game-space range for direct local equipment/noise/social sensing.
 const LOCAL_PERCEPTION_RANGE: f32 = 300.0;
+/// Jack's authored close-threat awareness remains intentionally tighter than general sensing.
+const LOCAL_DRONE_ATTENTION_RANGE: f32 = 250.0;
 /// Danger is refreshed every behavior pass, but retains a tiny horizon for future
 /// sensor adapters that may update less frequently.
 const DANGER_MEMORY_GENERATIONS: u64 = 2;
@@ -45,6 +48,24 @@ fn fep_observation_values(
         perceived_water.clamp(0.0, 1.0),
         perceived_power.clamp(0.0, 1.0),
     ]
+}
+
+fn blend_toward_local_target(
+    direction: nalgebra::SVector<f64, 2>,
+    npc_pos: Vec2,
+    target_pos: Vec2,
+    existing_weight: f64,
+    target_weight: f64,
+) -> nalgebra::SVector<f64, 2> {
+    let delta = nalgebra::SVector::from([
+        (target_pos.x - npc_pos.x) as f64,
+        (target_pos.y - npc_pos.y) as f64,
+    ]);
+    let norm = delta.norm();
+    if !norm.is_finite() || norm <= 2.0 {
+        return direction;
+    }
+    direction * existing_weight + (delta / norm) * target_weight
 }
 
 /// Run the FEP perception-action cycle for each crew NPC.
@@ -78,6 +99,8 @@ pub fn fep_behavior_system(
     };
     let player_pos = player_tf.translation.truncate();
 
+    // These inputs remain owned by the consciousness-physics provider. They are not
+    // target-memory records and FEP-05 deliberately does not reinterpret them as such.
     let well_data: Vec<(nalgebra::SVector<f64, 2>, f64)> = wells
         .iter()
         .filter(|(_, w)| w.is_active())
@@ -106,14 +129,14 @@ pub fn fep_behavior_system(
         }
     }
 
-    // Pre-gather NPC state before mutable iteration to avoid query/borrow conflicts.
-    // Noise is an observer-facing local cue; allostatic load remains private self-state
-    // except for the separate authored medic behavior that predates this FEP migration.
+    // Pre-gather observer-facing NPC presentation before mutable iteration. Exact
+    // allostatic state remains self/private state; other agents receive only the coarse
+    // outward distress tier defined by the perception adapter.
     struct NpcInfo {
         entity: Entity,
         name: String,
         pos: Vec2,
-        allostatic_load: f32,
+        distress_cue: f64,
         noise_level: f32,
     }
     let npc_infos: Vec<NpcInfo> = npcs
@@ -122,7 +145,9 @@ pub fn fep_behavior_system(
             entity,
             name: npc.name.clone(),
             pos: tf.translation.truncate(),
-            allostatic_load: psych.as_ref().map_or(0.0, |p| p.allostatic_load),
+            distress_cue: presented_distress_cue(
+                psych.as_ref().map_or(0.0, |p| p.allostatic_load),
+            ),
             noise_level: noise.level,
         })
         .collect();
@@ -139,9 +164,9 @@ pub fn fep_behavior_system(
         value: f64::from(info.noise_level.clamp(0.0, 1.0)),
     }));
 
-    // These are world-facing samples, not settlement aggregates. The local adapter
-    // only lets an NPC update its estimate when a machine is within sensing range.
-    // Hidden causes such as `is_sabotaged` are deliberately not projected here.
+    // World-facing scalar samples update estimates only when machines are locally
+    // observable. Hidden explanatory causes such as `WaterPump::is_sabotaged` are not
+    // projected into these channels.
     let power_samples: Vec<LocalScalarSample> = power_junctions
         .iter()
         .map(|(tf, junction)| LocalScalarSample {
@@ -158,6 +183,43 @@ pub fn fep_behavior_system(
             } else {
                 0.0
             },
+        })
+        .collect();
+
+    // Actionable infrastructure presentation is separate from scalar world estimates.
+    // Local attention receives visible/operational degradation, never the hidden reason.
+    let junction_targets: Vec<LocalTargetSample> = power_junctions
+        .iter()
+        .filter_map(|(tf, junction)| {
+            if !junction.is_damaged {
+                return None;
+            }
+            Some(LocalTargetSample {
+                position: tf.translation.truncate(),
+                salience: f64::from((1.0 - junction.output.clamp(0.0, 1.0)).max(0.5)),
+            })
+        })
+        .collect();
+    let water_targets: Vec<LocalTargetSample> = water_pumps
+        .iter()
+        .filter_map(|(tf, pump)| {
+            let visible_output = if pump.is_running {
+                pump.efficiency.clamp(0.0, 1.0)
+            } else {
+                0.0
+            };
+            let degradation = (1.0 - visible_output).clamp(0.0, 1.0);
+            (degradation > 0.0).then_some(LocalTargetSample {
+                position: tf.translation.truncate(),
+                salience: f64::from(degradation),
+            })
+        })
+        .collect();
+    let drone_targets: Vec<LocalTargetSample> = drones
+        .iter()
+        .map(|(tf, _)| LocalTargetSample {
+            position: tf.translation.truncate(),
+            salience: 1.0,
         })
         .collect();
 
@@ -224,6 +286,9 @@ pub fn fep_behavior_system(
         let obs = Observation::new(values.to_vec(), 0.8, "game");
         let _perception = npc.fep.perceive(&obs);
 
+        // This collection remains an input to the consciousness-physics field equation,
+        // not a list of agents that the NPC is asserted to know about. FEP-05 therefore
+        // leaves provider-owned field semantics unchanged while constraining authored goals.
         let nearby: Vec<_> = all_agents
             .iter()
             .filter(|(agent_pos, _)| {
@@ -244,41 +309,31 @@ pub fn fep_behavior_system(
             perceived_danger,
         );
 
-        // EMERGENT CRISIS MODIFIERS:
-        // This now reacts to the NPC's local water estimate rather than perfect
-        // settlement-wide water truth.
-        if npc_phi > 0.6 && perceived_water < 0.3 {
-            // Seek the Water Pump (assumed to be at the last room center, near the end)
-            if let Some((wx, wy)) = well_data.last().map(|(p, _)| (p[0], p[1])) {
-                let to_pump = nalgebra::SVector::from([wx - pos[0], wy - pos[1]]).normalize();
-                direction = direction * 0.5 + to_pump * 0.5;
-            }
+        // EMERGENT CRISIS MODIFIER: low perceived water may pull the agent only toward
+        // a locally observed degraded water asset. A global well or arbitrary room index
+        // is no longer treated as a known water-pump location.
+        if npc_phi > 0.6
+            && perceived_water < 0.3
+            && let Some(observed) =
+                strongest_local_target(npc_pos, &water_targets, LOCAL_PERCEPTION_RANGE)
+        {
+            direction = blend_toward_local_target(direction, npc_pos, observed.position, 0.5, 0.5);
         }
 
         // ARCHETYPE-SPECIFIC ACTIVE INFERENCE ACTIONS & GOALS
 
-        // 1. Kael (Engineer) & Leo (Young Tech)
+        // 1. Kael (Engineer) & Leo (Young Tech): respond only to locally presented
+        // damaged-junction cues rather than scanning all infrastructure in the world.
         if npc.name.contains("Kael") || npc.name.contains("Leo") {
-            let mut closest_junction: Option<(Vec2, f32)> = None;
-            for (junction_tf, junction) in &power_junctions {
-                if junction.is_damaged {
-                    let j_pos = junction_tf.translation.truncate();
-                    let dist = npc_pos.distance(j_pos);
-                    if closest_junction.is_none_or(|(_, d)| dist < d) {
-                        closest_junction = Some((j_pos, dist));
-                    }
-                }
-            }
-            if let Some((j_pos, _)) = closest_junction {
-                let to_junction = nalgebra::SVector::from([
-                    (j_pos.x - npc_pos.x) as f64,
-                    (j_pos.y - npc_pos.y) as f64,
-                ])
-                .normalize();
-                direction = direction * 0.4 + to_junction * 0.6;
+            if let Some(observed) =
+                strongest_local_target(npc_pos, &junction_targets, LOCAL_PERCEPTION_RANGE)
+            {
+                direction =
+                    blend_toward_local_target(direction, npc_pos, observed.position, 0.4, 0.6);
             }
 
-            // If Leo is close to Kael, scale down Leo's anxiety/stress over time
+            // Nearby Kael presence is directly observable at this distance; no hidden
+            // psychological state of Kael is read here.
             if npc.name.contains("Leo") {
                 let kael_pos = npc_infos
                     .iter()
@@ -293,95 +348,54 @@ pub fn fep_behavior_system(
             }
         }
 
-        // Soren (Archivist) - Attracted to WaterPump during CoopRepairing step of the tutorial
+        // Soren's tutorial step is treated as an explicit authored assignment, but it
+        // no longer grants world-wide pump coordinates: movement still requires a local
+        // degraded-pump presentation.
         if npc.name.contains("Soren")
             && let Some(ref tutorial) = tutorial_res
             && tutorial.step == TutorialStep::CoopRepairing
+            && let Some(observed) =
+                strongest_local_target(npc_pos, &water_targets, LOCAL_PERCEPTION_RANGE)
         {
-            let mut closest_pump: Option<(Vec2, f32)> = None;
-            for (pump_tf, _) in &water_pumps {
-                let p_pos = pump_tf.translation.truncate();
-                let dist = npc_pos.distance(p_pos);
-                if closest_pump.is_none_or(|(_, d)| dist < d) {
-                    closest_pump = Some((p_pos, dist));
-                }
-            }
-            if let Some((p_pos, _)) = closest_pump {
-                let to_pump = nalgebra::SVector::from([
-                    (p_pos.x - npc_pos.x) as f64,
-                    (p_pos.y - npc_pos.y) as f64,
-                ])
-                .normalize();
-                direction = direction * 0.2 + to_pump * 0.8;
-            }
+            direction = blend_toward_local_target(direction, npc_pos, observed.position, 0.2, 0.8);
         }
 
-        // 2. Mira (Medic)
+        // 2. Mira (Medic): exact allostatic load remains private to each resident.
+        // Target selection uses only a coarse outward distress presentation and locality.
         if npc.name.contains("Mira") {
-            let mut closest_stressed: Option<(Vec2, f32)> = None;
-            for info in &npc_infos {
-                if info.entity != entity && info.allostatic_load > 0.4 {
-                    let dist = npc_pos.distance(info.pos);
-                    if closest_stressed.is_none_or(|(_, d)| dist < d) {
-                        closest_stressed = Some((info.pos, dist));
-                    }
-                }
-            }
-            if let Some((c_pos, _)) = closest_stressed {
-                let to_crew = nalgebra::SVector::from([
-                    (c_pos.x - npc_pos.x) as f64,
-                    (c_pos.y - npc_pos.y) as f64,
-                ])
-                .normalize();
-                direction = direction * 0.3 + to_crew * 0.7;
+            let distress_targets: Vec<LocalTargetSample> = npc_infos
+                .iter()
+                .filter(|info| info.entity != entity && info.distress_cue > 0.0)
+                .map(|info| LocalTargetSample {
+                    position: info.pos,
+                    salience: info.distress_cue,
+                })
+                .collect();
+            if let Some(observed) =
+                strongest_local_target(npc_pos, &distress_targets, LOCAL_PERCEPTION_RANGE)
+            {
+                direction =
+                    blend_toward_local_target(direction, npc_pos, observed.position, 0.3, 0.7);
             }
         }
 
-        // 3. Jack (Convoy Lead)
-        if npc.name.contains("Jack") {
-            let mut closest_drone: Option<(Vec2, f32)> = None;
-            for (drone_tf, _) in &drones {
-                let d_pos = drone_tf.translation.truncate();
-                let dist = npc_pos.distance(d_pos);
-                if dist <= 250.0 && closest_drone.is_none_or(|(_, d)| dist < d) {
-                    closest_drone = Some((d_pos, dist));
-                }
-            }
-            if let Some((d_pos, _)) = closest_drone {
-                let to_drone = nalgebra::SVector::from([
-                    (d_pos.x - npc_pos.x) as f64,
-                    (d_pos.y - npc_pos.y) as f64,
-                ])
-                .normalize();
-                direction = direction * 0.2 + to_drone * 0.8;
-            }
+        // 3. Jack (Convoy Lead): drone presence is locally observable. Deterministic
+        // attention selection replaces query-order-dependent nearest-target scans.
+        if npc.name.contains("Jack")
+            && let Some(observed) =
+                strongest_local_target(npc_pos, &drone_targets, LOCAL_DRONE_ATTENTION_RANGE)
+        {
+            direction = blend_toward_local_target(direction, npc_pos, observed.position, 0.2, 0.8);
         }
 
-        // 4. PR-4 (Robot)
-        if npc.name.contains("PR-4") {
-            let mut closest_pump: Option<(Vec2, f32)> = None;
-            for (pump_tf, pump) in &water_pumps {
-                let is_under_coop_tutorial = if let Some(ref tutorial) = tutorial_res {
-                    tutorial.step == TutorialStep::CoopRepairing && pump.efficiency < 1.0
-                } else {
-                    false
-                };
-                if pump.is_sabotaged || is_under_coop_tutorial {
-                    let p_pos = pump_tf.translation.truncate();
-                    let dist = npc_pos.distance(p_pos);
-                    if closest_pump.is_none_or(|(_, d)| dist < d) {
-                        closest_pump = Some((p_pos, dist));
-                    }
-                }
-            }
-            if let Some((p_pos, _)) = closest_pump {
-                let to_pump = nalgebra::SVector::from([
-                    (p_pos.x - npc_pos.x) as f64,
-                    (p_pos.y - npc_pos.y) as f64,
-                ])
-                .normalize();
-                direction = direction * 0.4 + to_pump * 0.6;
-            }
+        // 4. PR-4 (Robot): target visible operational degradation only. The hidden
+        // `is_sabotaged` cause remains available to close diagnostic/repair mechanics,
+        // but no longer grants world-wide target knowledge.
+        if npc.name.contains("PR-4")
+            && let Some(observed) =
+                strongest_local_target(npc_pos, &water_targets, LOCAL_PERCEPTION_RANGE)
+        {
+            direction = blend_toward_local_target(direction, npc_pos, observed.position, 0.4, 0.6);
         }
 
         let dir_vec = Vec2::new(direction[0] as f32, direction[1] as f32);
@@ -746,5 +760,14 @@ mod tests {
         assert_eq!(values[2], 0.7);
         assert_eq!(values[4], 0.25);
         assert_eq!(values[5], 0.9);
+    }
+
+    #[test]
+    fn local_target_blend_refuses_zero_distance_false_precision() {
+        let direction = nalgebra::SVector::from([0.25, -0.25]);
+        assert_eq!(
+            blend_toward_local_target(direction, Vec2::ZERO, Vec2::ZERO, 0.4, 0.6),
+            direction
+        );
     }
 }
