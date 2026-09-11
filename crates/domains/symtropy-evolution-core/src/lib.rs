@@ -6,6 +6,7 @@
 //! morphology, rendering, persistent organism identity, speciation, cognition,
 //! and civilization remain external authorities.
 
+mod aggregate_resolution_loss;
 mod ancestry_graph;
 mod ancestry_pruning;
 mod ancestry_simplification;
@@ -53,6 +54,12 @@ mod reproduction;
 mod schema;
 mod structured_population_process;
 
+pub use aggregate_resolution_loss::{
+    continue_projected_census_alleles_only, AggregateResolutionLossCertificate,
+    AggregateResolutionLossCertificateDigest, AggregateResolutionLossError,
+    AggregateResolutionLossProfile, AlleleOnlyAggregateContinuation,
+    AlleleOnlyAggregateContinuationDigest, AGGREGATE_RESOLUTION_LOSS_VERSION,
+};
 pub use ancestry_graph::{
     append_descendant_ancestry_to_graph, AncestryGeneration, AncestryGraphAppendProvenance,
     AncestryGraphAppendProvenanceDigest, AncestryGraphAppendResult, AncestryGraphEdge,
