@@ -27,14 +27,15 @@ jobs:
           ref: ${{ github.sha }}
           fetch-depth: 0
 
-      - name: Bind exact PB-04b locality repair and PB-04a dependency
+      - name: Bind exact PB-04b locality publication repair
         shell: bash
         run: |
           set -euo pipefail
           source_head="$(git rev-parse HEAD)"
           test "${source_head}" = "${GITHUB_SHA}"
-          test "$(git rev-parse HEAD^)" = "ed338b7abff069b91baca711c6b58ea063050a22"
-          test "$(git rev-parse ed338b7abff069b91baca711c6b58ea063050a22^{tree})" = "a591fce1c04a7a1f979b5303638c84398968aa7d"
+          test "$(git rev-parse HEAD^)" = "163fb179c4f461396938e25818c80fb70ceb9a93"
+          test "$(git rev-parse 163fb179c4f461396938e25818c80fb70ceb9a93^{tree})" = "f73b3211e0c5587cc4f7a179fddbe0d4e357d781"
+          git merge-base --is-ancestor ed338b7abff069b91baca711c6b58ea063050a22 HEAD
           git merge-base --is-ancestor d04c6c1da2aee2c53c169c96dd1eea3dbbce0787 HEAD
           git merge-base --is-ancestor 1d500c62d93082e49f7a889656a1c92c552977e4 HEAD
 
@@ -43,7 +44,7 @@ jobs:
             path="$2"
             actual="$(git rev-parse "HEAD:${path}")"
             test "${actual}" = "${expected}" || {
-              echo "PB-04b locality repair capsule drift: ${path}" >&2
+              echo "PB-04b locality publication capsule drift: ${path}" >&2
               echo "expected ${expected}" >&2
               echo "actual   ${actual}" >&2
               exit 1
@@ -61,21 +62,15 @@ jobs:
           check_blob d26743f0e5f28abb7e2b2f0a7fe1f827f8217fb3 scripts/pb04b-localize-spatial-identity.py
           check_blob a5af6bbcc2ced06e216801d79acf8deaf6607d3b crates/domains/symtropy-spatial-decomposition/tests/local_identity.rs
 
-          expected_source_delta="$(printf '%s\n' \
-            .github/workflows/pb04b-cut-cell-self-apply.yml \
-            scripts/pb04b-localize-spatial-identity.py | sort)"
-          actual_source_delta="$(git diff --name-only ed338b7abff069b91baca711c6b58ea063050a22..HEAD | sort -u)"
-          if [[ "${actual_source_delta}" != "${expected_source_delta}" ]]; then
-            echo "PB-04b locality repair commit changed unexpected paths" >&2
-            echo "expected:" >&2
-            printf '%s\n' "${expected_source_delta}" >&2
-            echo "actual:" >&2
+          actual_source_delta="$(git diff --name-only 163fb179c4f461396938e25818c80fb70ceb9a93..HEAD | sort -u)"
+          test "${actual_source_delta}" = ".github/workflows/pb04b-cut-cell-self-apply.yml" || {
+            echo "PB-04b publication repair changed unexpected source paths" >&2
             printf '%s\n' "${actual_source_delta}" >&2
             exit 1
-          fi
+          }
 
-          echo "PB04B_LOCALITY_REPAIR_HEAD=${source_head}"
-          echo "PB04B_LOCALITY_REPAIR_TREE=$(git rev-parse HEAD^{tree})"
+          echo "PB04B_PUBLICATION_REPAIR_HEAD=${source_head}"
+          echo "PB04B_PUBLICATION_REPAIR_TREE=$(git rev-parse HEAD^{tree})"
           echo "PB04B_LOCALITY_THEOREM=ed338b7abff069b91baca711c6b58ea063050a22"
           echo "PB04B_INTERMEDIATE_PRODUCT=d04c6c1da2aee2c53c169c96dd1eea3dbbce0787"
           echo "PB04B_QUALIFIED_PB04A_HEAD=1d500c62d93082e49f7a889656a1c92c552977e4"
@@ -108,13 +103,14 @@ jobs:
           rustfmt --version
           cargo clippy --version
 
-      - name: Apply exact local-identity transform
+      - name: Apply exact local-identity transform and canonical formatting
         shell: bash
         run: |
           set -euo pipefail
           python3 scripts/pb04b-localize-spatial-identity.py
           cargo fmt --manifest-path crates/domains/symtropy-spatial-decomposition/Cargo.toml
           echo "PB04B_LOCALIZED_LIB_BLOB=$(git hash-object crates/domains/symtropy-spatial-decomposition/src/lib.rs)"
+          echo "PB04B_FORMATTED_LOCALITY_TEST_BLOB=$(git hash-object crates/domains/symtropy-spatial-decomposition/tests/local_identity.rs)"
           test "$(git hash-object crates/domains/symtropy-spatial-decomposition/Cargo.lock)" = "676fd6a7eb31a2ec00b09c9496b42c568e791556"
 
       - name: Verify locked dependency graph
@@ -151,14 +147,17 @@ jobs:
           test ! -e crates/domains/symtropy-spatial-decomposition/target
           test "$(git hash-object crates/domains/symtropy-spatial-decomposition/Cargo.lock)" = "676fd6a7eb31a2ec00b09c9496b42c568e791556"
 
-          expected="crates/domains/symtropy-spatial-decomposition/src/lib.rs"
+          expected="$(printf '%s\n' \
+            crates/domains/symtropy-spatial-decomposition/src/lib.rs \
+            crates/domains/symtropy-spatial-decomposition/tests/local_identity.rs | sort)"
           actual="$({
             git diff --name-only
             git ls-files --others --exclude-standard
           } | sort -u)"
           if [[ "${actual}" != "${expected}" ]]; then
             echo "PB-04b locality qualification produced an unexpected product path set" >&2
-            echo "expected: ${expected}" >&2
+            echo "expected:" >&2
+            printf '%s\n' "${expected}" >&2
             echo "actual:" >&2
             printf '%s\n' "${actual}" >&2
             exit 1
@@ -170,7 +169,9 @@ jobs:
           set -euo pipefail
           git config user.name "PB-04b Qualification Bot"
           git config user.email "actions@users.noreply.github.com"
-          git add crates/domains/symtropy-spatial-decomposition/src/lib.rs
+          git add \
+            crates/domains/symtropy-spatial-decomposition/src/lib.rs \
+            crates/domains/symtropy-spatial-decomposition/tests/local_identity.rs
           git diff --cached --check
           git diff --cached --exit-code --quiet && {
             echo "no localized PB-04b product delta" >&2
@@ -184,6 +185,7 @@ jobs:
           echo "PB04B_LOCALIZED_PRODUCT_TREE=${product_tree}"
           echo "PB04B_LOCALIZED_PRODUCT_PARENT=$(git rev-parse HEAD^)"
           echo "PB04B_LOCALIZED_PRODUCT_LIB_BLOB=$(git rev-parse HEAD:crates/domains/symtropy-spatial-decomposition/src/lib.rs)"
+          echo "PB04B_LOCALIZED_PRODUCT_TEST_BLOB=$(git rev-parse HEAD:crates/domains/symtropy-spatial-decomposition/tests/local_identity.rs)"
           echo "PB04B_LOCALIZED_PRODUCT_LOCK_BLOB=$(git rev-parse HEAD:crates/domains/symtropy-spatial-decomposition/Cargo.lock)"
 
           remote_head="$(git ls-remote origin refs/heads/spatial/pb04b-cut-cell-decomposition-v0.1 | cut -f1)"
