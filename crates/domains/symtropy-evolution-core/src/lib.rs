@@ -23,6 +23,7 @@ mod demographic_source_authority;
 mod demographic_split_execution;
 mod demographic_structure_transition;
 mod error;
+mod gamete_ancestry;
 mod haldane;
 mod heredity;
 mod ids;
@@ -100,6 +101,13 @@ pub use demographic_structure_transition::{
     DemographicStructureTransition, DemographicStructureTransitionDigest,
 };
 pub use error::EvolutionError;
+pub use gamete_ancestry::{
+    derive_modeled_gamete_ancestry, ChromosomeGameteAncestry, GameteAncestryDerivation,
+    GameteAncestryDerivationProvenance, GameteAncestryDerivationProvenanceDigest,
+    GameteAncestryError, ModeledGameteAncestry, ModeledGameteAncestryDigest,
+    ModeledLocusAncestry, GAMETE_ANCESTRY_DERIVATION_VERSION,
+    MODELED_GAMETE_ANCESTRY_VERSION,
+};
 pub use haldane::{
     haldane_odd_parity_probability_ppm, HALDANE_MAX_ODD_PARITY_PPM,
     HALDANE_PARITY_ORACLE_VERSION, HALDANE_SATURATION_DISTANCE_MICROMORGANS,
