@@ -41,7 +41,11 @@ fn schema() -> HereditarySchema {
         HereditarySchemaId::new("mut-05a-schema").unwrap(),
         2,
         [
-            LocusDefinition::new(locus("a"), [allele("a0"), allele("a1")]).unwrap(),
+            LocusDefinition::new(
+                locus("a"),
+                [allele("a0"), allele("a1"), allele("a2")],
+            )
+            .unwrap(),
             LocusDefinition::new(locus("b"), [allele("b0"), allele("b1")]).unwrap(),
         ],
     )
@@ -297,19 +301,24 @@ fn append(graph: &ModeledAncestryGraph, fixture: &Fixture, generation: u64) -> M
     .graph
 }
 
-fn parent_a_copy(fixture: &Fixture) -> &AncestryCopyId {
+fn copy_for_role(fixture: &Fixture, role: ParentRole) -> &AncestryCopyId {
     &fixture
         .descendant
         .materialization
         .descendant_copies
         .iter()
-        .find(|copy| copy.parent_role == ParentRole::ParentA)
+        .find(|copy| copy.parent_role == role)
         .unwrap()
         .child_copy_id
 }
 
-fn parent_a_ancestral_a(fixture: &Fixture) -> AlleleId {
-    fixture.gamete_a.gamete().chromosomes[&chromosome()].alleles[0].clone()
+fn ancestral_a(fixture: &Fixture, role: ParentRole) -> AlleleId {
+    let gamete = match role {
+        ParentRole::ParentA => &fixture.gamete_a,
+        ParentRole::ParentB => &fixture.gamete_b,
+        ParentRole::ClonalParent => panic!("linked fixture has no clonal contribution"),
+    };
+    gamete.gamete().chromosomes[&chromosome()].alleles[0].clone()
 }
 
 fn different_a(ancestral: &AlleleId) -> AlleleId {
@@ -380,13 +389,13 @@ fn mutation_origin_replays_by_parent_contribution_and_survives_unrelated_graph_g
     let first = make_fixture("mut-05a-birth-1");
     let graph = append(&root_graph(&first), &first, 1);
     let operator_authority = operators(125);
-    let ancestral = parent_a_ancestral_a(&first);
+    let ancestral = ancestral_a(&first, ParentRole::ParentA);
     let derived = different_a(&ancestral);
     let origin = declare(
         &first,
         &graph,
         &operator_authority,
-        parent_a_copy(&first),
+        copy_for_role(&first, ParentRole::ParentA),
         &locus("a"),
         &derived,
     )
@@ -434,18 +443,123 @@ fn mutation_origin_replays_by_parent_contribution_and_survives_unrelated_graph_g
 }
 
 #[test]
+fn parent_contribution_and_copy_identity_are_part_of_mutation_identity() {
+    let fixture = make_fixture("mut-05a-two-copy-identity");
+    let graph = append(&root_graph(&fixture), &fixture, 1);
+    let operator_authority = operators(125);
+    let shared_derived = allele("a2");
+
+    let origin_a = declare(
+        &fixture,
+        &graph,
+        &operator_authority,
+        copy_for_role(&fixture, ParentRole::ParentA),
+        &locus("a"),
+        &shared_derived,
+    )
+    .unwrap();
+    let origin_b = declare(
+        &fixture,
+        &graph,
+        &operator_authority,
+        copy_for_role(&fixture, ParentRole::ParentB),
+        &locus("a"),
+        &shared_derived,
+    )
+    .unwrap();
+
+    assert_eq!(origin_a.parent_role(), ParentRole::ParentA);
+    assert_eq!(origin_b.parent_role(), ParentRole::ParentB);
+    assert_eq!(origin_a.derived_allele(), origin_b.derived_allele());
+    assert_ne!(origin_a.ancestry_copy_id(), origin_b.ancestry_copy_id());
+    assert_ne!(origin_a.canonical_digest(), origin_b.canonical_digest());
+    validate(&origin_a, &fixture, &graph, &operator_authority).unwrap();
+    validate(&origin_b, &fixture, &graph, &operator_authority).unwrap();
+
+    // A restored receipt cannot relabel its parent contribution.
+    let mut tampered = serde_json::to_value(&origin_a).unwrap();
+    tampered["parent_role"] = serde_json::Value::String("ParentB".to_owned());
+    let relabeled: MutationOrigin = serde_json::from_value(tampered).unwrap();
+    assert!(matches!(
+        validate(&relabeled, &fixture, &graph, &operator_authority),
+        Err(MutationOriginError::ReplayMismatch)
+    ));
+}
+
+#[test]
+fn restore_rejects_generation_birth_event_and_gamete_authority_drift() {
+    let fixture = make_fixture("mut-05a-replay-drift");
+    let graph = append(&root_graph(&fixture), &fixture, 1);
+    let operator_authority = operators(125);
+    let ancestral = ancestral_a(&fixture, ParentRole::ParentA);
+    let origin = declare(
+        &fixture,
+        &graph,
+        &operator_authority,
+        copy_for_role(&fixture, ParentRole::ParentA),
+        &locus("a"),
+        &different_a(&ancestral),
+    )
+    .unwrap();
+
+    let mut generation_drift = graph.clone();
+    generation_drift
+        .nodes
+        .get_mut(origin.ancestry_copy_id())
+        .unwrap()
+        .generation = AncestryGeneration::new(2);
+    assert!(matches!(
+        validate(&origin, &fixture, &generation_drift, &operator_authority),
+        Err(MutationOriginError::ReplayMismatch)
+    ));
+
+    let mut event_drift = graph.clone();
+    event_drift
+        .nodes
+        .get_mut(origin.ancestry_copy_id())
+        .unwrap()
+        .birth_event = Some(ReproductionEventId::new("mut-05a-wrong-birth").unwrap());
+    assert!(matches!(
+        validate(&origin, &fixture, &event_drift, &operator_authority),
+        Err(MutationOriginError::BirthEventMismatch)
+    ));
+
+    // Substituting ParentB's derivation evidence where ParentA's exact linked
+    // gamete is required must fail before an old origin can be re-earned.
+    assert!(origin
+        .validate_current(
+            &fixture.schema,
+            &fixture.map,
+            &operator_authority,
+            &fixture.source_a,
+            &fixture.ancestry_a,
+            &fixture.profile_a,
+            &fixture.gamete_b,
+            &fixture.gamete_ancestry_a,
+            &fixture.source_b,
+            &fixture.ancestry_b,
+            &fixture.profile_b,
+            &fixture.gamete_b,
+            &fixture.gamete_ancestry_b,
+            &fixture.descendant,
+            &graph,
+        )
+        .is_err());
+}
+
+#[test]
 fn mutation_origin_fails_closed_for_invalid_local_claims() {
     let fixture = make_fixture("mut-05a-negative-birth");
     let graph = append(&root_graph(&fixture), &fixture, 1);
     let operator_authority = operators(125);
-    let ancestral = parent_a_ancestral_a(&fixture);
+    let ancestral = ancestral_a(&fixture, ParentRole::ParentA);
 
     assert!(matches!(
         declare(
             &fixture,
             &graph,
             &operator_authority,
-            parent_a_copy(&fixture),
+            copy_for_role(&fixture, ParentRole::ParentA),
             &locus("a"),
             &ancestral,
         ),
@@ -457,7 +571,7 @@ fn mutation_origin_fails_closed_for_invalid_local_claims() {
             &fixture,
             &graph,
             &operator_authority,
-            parent_a_copy(&fixture),
+            copy_for_role(&fixture, ParentRole::ParentA),
             &locus("not-modeled"),
             &allele("a1"),
         ),
@@ -469,7 +583,7 @@ fn mutation_origin_fails_closed_for_invalid_local_claims() {
             &fixture,
             &graph,
             &operator_authority,
-            parent_a_copy(&fixture),
+            copy_for_role(&fixture, ParentRole::ParentA),
             &locus("a"),
             &allele("a-unknown"),
         ),
