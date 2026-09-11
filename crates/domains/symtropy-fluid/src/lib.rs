@@ -29,9 +29,12 @@
 //! vorticity/enstrophy-palinstrophy gradient length without assigning refinement
 //! or promotion authority, [`concentration_scale_drift`] records same-run
 //! concentration-scale drift together with excess resolved-energy loss and
-//! numerical-health context for the passive Taylor-Green control, and
+//! numerical-health context for the passive Taylor-Green control,
 //! [`refinement_policy_contract`] defines a non-authoritative typed boundary for
-//! future semantic refinement decisions without embedding renderer/backend load.
+//! future semantic refinement decisions without embedding renderer/backend load,
+//! and [`refinement_policy_preflight`] mechanically binds that contract to an
+//! exact diagnostic sample and exposes independent freshness/observable/authority
+//! gates without interpreting physical validity.
 //! None of these modules should be read as a claim that Symtropy currently
 //! reproduces the 2026 singular construction or has a production Earth-water
 //! CFD backend.
@@ -49,6 +52,7 @@ pub mod manufactured_update_defect;
 pub mod numerical_observability;
 pub mod reference;
 pub mod refinement_policy_contract;
+pub mod refinement_policy_preflight;
 pub mod smooth_scale_separation;
 pub mod validation;
 pub mod verification_ladder;
