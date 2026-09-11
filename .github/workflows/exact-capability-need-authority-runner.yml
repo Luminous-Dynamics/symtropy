@@ -41,6 +41,7 @@ jobs:
           test "$(git -C runner-tools rev-parse HEAD)" = "${{ github.event.pull_request.head.sha }}"
           test "$(git -C runner-tools hash-object .github/repair/exact_capability_need_binding.py)" = "ac7deeab879084c142074a3109af445b492de037"
           test "$(git -C runner-tools hash-object .github/repair/exact_capability_binary_bridge.py)" = "43e079ce7c10c6b7bbe0e00c05b855ccba0f0ed5"
+          test "$(git -C runner-tools hash-object .github/repair/exact_capability_need_schema.py)" = "1437466d5899f24a316447791e01a9537f3febd4"
           test -z "$(git -C product status --porcelain=v1 --untracked-files=all)"
           test -z "$(git -C runner-tools status --porcelain=v1 --untracked-files=all)"
           echo "F5_PARENT_HEAD=$(git -C product rev-parse HEAD)"
@@ -48,6 +49,7 @@ jobs:
           echo "F5_QUALIFIER_HEAD=$(git -C runner-tools rev-parse HEAD)"
           echo "F5_NEED_TRANSFORM_BLOB=ac7deeab879084c142074a3109af445b492de037"
           echo "F5_BINARY_BRIDGE_BLOB=43e079ce7c10c6b7bbe0e00c05b855ccba0f0ed5"
+          echo "F5_SCHEMA_TRANSFORM_BLOB=1437466d5899f24a316447791e01a9537f3febd4"
           echo "F5_CARGO_TARGET_DIR=${CARGO_TARGET_DIR}"
 
       - name: Record hosted execution environment
@@ -106,6 +108,7 @@ jobs:
           cd product
           python3 ../runner-tools/.github/repair/exact_capability_need_binding.py
           python3 ../runner-tools/.github/repair/exact_capability_binary_bridge.py
+          python3 ../runner-tools/.github/repair/exact_capability_need_schema.py
           cargo fmt -p symtropy-fabrication -p symtropy-firstlight
 
       - name: Prove exact semantic source scope
@@ -128,6 +131,9 @@ jobs:
         run: |
           set -euo pipefail
           cd product
+          grep -q 'CAPABILITY_NEED_SNAPSHOT_SCHEMA_VERSION' crates/domains/symtropy-fabrication/src/capability.rs
+          grep -q 'UnsupportedNeedSnapshotSchemaVersion' crates/domains/symtropy-fabrication/src/capability.rs
+          grep -q 'exact_need_snapshot_binds_schema_version_and_rejects_unknown_wire_version' crates/domains/symtropy-fabrication/src/capability.rs
           grep -q 'struct CapabilityNeedSnapshot' crates/domains/symtropy-fabrication/src/capability.rs
           grep -q 'new_with_capability_needs' crates/domains/symtropy-fabrication/src/executable_plan.rs
           grep -q 'MissingCapabilityNeedBinding' crates/domains/symtropy-fabrication/src/executable_plan.rs
