@@ -21,10 +21,8 @@ use symtropy_fluid::evidence::{
 };
 use symtropy_fluid::reference::PeriodicMacConfig;
 
-const DOCUMENT_SCHEMA_ID: &str =
-    "passive-concentration-scale-drift-evidence-document-v0.1";
-const CASE_PROFILE_ID: &str =
-    "passive-taylor-green-same-run-scale-energy-drift-refinement-v0.1";
+const DOCUMENT_SCHEMA_ID: &str = "passive-concentration-scale-drift-evidence-document-v0.1";
+const CASE_PROFILE_ID: &str = "passive-taylor-green-same-run-scale-energy-drift-refinement-v0.1";
 const INITIAL_AMPLITUDE_MPS: f64 = 0.08;
 const TARGET_TIME_S: f64 = 0.004;
 

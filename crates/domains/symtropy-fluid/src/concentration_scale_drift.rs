@@ -124,13 +124,18 @@ impl fmt::Display for PassiveConcentrationScaleDriftError {
                 "vorticity concentration scale unavailable for passive control: {reason:?}"
             ),
             Self::NonFiniteDerivedMetric(name) => {
-                write!(f, "passive concentration-scale drift metric {name} is non-finite")
+                write!(
+                    f,
+                    "passive concentration-scale drift metric {name} is non-finite"
+                )
             }
             Self::Config(source) => write!(f, "invalid reference configuration: {source}"),
             Self::State(source) => write!(f, "invalid reference state: {source}"),
             Self::Step(source) => write!(f, "reference step failed: {source}"),
             Self::Diagnostic(source) => write!(f, "reference diagnostic failed: {source}"),
-            Self::Concentration(source) => write!(f, "concentration-scale measurement failed: {source}"),
+            Self::Concentration(source) => {
+                write!(f, "concentration-scale measurement failed: {source}")
+            }
         }
     }
 }
@@ -210,8 +215,9 @@ pub fn run_passive_taylor_green_concentration_scale_drift(
         initial_point.relative_concentration_scale_drift.min(0.0);
     let mut maximum_absolute_relative_concentration_scale_drift =
         initial_point.relative_concentration_scale_drift.abs();
-    let mut maximum_absolute_cumulative_excess_loss_fraction =
-        initial_point.cumulative_excess_loss_fraction_of_initial.abs();
+    let mut maximum_absolute_cumulative_excess_loss_fraction = initial_point
+        .cumulative_excess_loss_fraction_of_initial
+        .abs();
     let mut maximum_observed_advective_cfl = 0.0_f64;
     let mut maximum_observed_diffusion_number = 0.0_f64;
     let mut maximum_observed_combined_explicit_number = 0.0_f64;
@@ -253,13 +259,14 @@ pub fn run_passive_taylor_green_concentration_scale_drift(
             ensure_finite(name, value)?;
         }
 
-        maximum_observed_advective_cfl = maximum_observed_advective_cfl.max(context.max_advective_cfl);
+        maximum_observed_advective_cfl =
+            maximum_observed_advective_cfl.max(context.max_advective_cfl);
         maximum_observed_diffusion_number =
             maximum_observed_diffusion_number.max(context.diffusion_number);
         maximum_observed_combined_explicit_number =
             maximum_observed_combined_explicit_number.max(context.combined_explicit_number);
-        maximum_observed_divergence_rms_per_s = maximum_observed_divergence_rms_per_s
-            .max(context.divergence_rms_after_per_s);
+        maximum_observed_divergence_rms_per_s =
+            maximum_observed_divergence_rms_per_s.max(context.divergence_rms_after_per_s);
         maximum_observed_pressure_residual_rms_pa_per_m2 =
             maximum_observed_pressure_residual_rms_pa_per_m2
                 .max(context.pressure_residual_rms_pa_per_m2);
@@ -305,8 +312,7 @@ pub fn run_passive_taylor_green_concentration_scale_drift(
     let final_point = points
         .last()
         .expect("validated passive scale-drift trace always contains an initial point");
-    let final_relative_concentration_scale_drift =
-        final_point.relative_concentration_scale_drift;
+    let final_relative_concentration_scale_drift = final_point.relative_concentration_scale_drift;
     let final_cumulative_excess_loss_fraction_of_initial =
         final_point.cumulative_excess_loss_fraction_of_initial;
 
@@ -450,9 +456,7 @@ fn measured_scale(
     }
 }
 
-fn measured_energy(
-    state: &PeriodicMac2d,
-) -> Result<f64, PassiveConcentrationScaleDriftError> {
+fn measured_energy(state: &PeriodicMac2d) -> Result<f64, PassiveConcentrationScaleDriftError> {
     state
         .diagnostics()?
         .kinetic_energy_j
@@ -465,7 +469,9 @@ fn ensure_finite(
     value: f64,
 ) -> Result<(), PassiveConcentrationScaleDriftError> {
     if !value.is_finite() {
-        return Err(PassiveConcentrationScaleDriftError::NonFiniteDerivedMetric(name));
+        return Err(PassiveConcentrationScaleDriftError::NonFiniteDerivedMetric(
+            name,
+        ));
     }
     Ok(())
 }
@@ -491,21 +497,15 @@ mod tests {
 
     #[test]
     fn initial_state_has_zero_energy_excess_and_exact_scale() {
-        let report = run_passive_taylor_green_concentration_scale_drift(
-            config(),
-            0.08,
-            0.00025,
-            4,
-        )
-        .unwrap();
+        let report =
+            run_passive_taylor_green_concentration_scale_drift(config(), 0.08, 0.00025, 4).unwrap();
         let initial = &report.points[0];
         assert_eq!(initial.step_index, 0);
         assert_eq!(initial.cumulative_excess_resolved_energy_loss_j, 0.0);
         assert_eq!(initial.cumulative_excess_loss_fraction_of_initial, 0.0);
         assert!(initial.step_context.is_none());
         assert!(
-            (initial.measured_concentration_scale_m
-                - report.exact_discrete_concentration_scale_m)
+            (initial.measured_concentration_scale_m - report.exact_discrete_concentration_scale_m)
                 .abs()
                 < 1.0e-12
         );
@@ -513,13 +513,8 @@ mod tests {
 
     #[test]
     fn energy_excess_matches_exact_minus_measured() {
-        let report = run_passive_taylor_green_concentration_scale_drift(
-            config(),
-            0.08,
-            0.00025,
-            8,
-        )
-        .unwrap();
+        let report =
+            run_passive_taylor_green_concentration_scale_drift(config(), 0.08, 0.00025, 8).unwrap();
         for point in &report.points {
             let expected = point.exact_discrete_energy_j - point.measured_energy_j;
             assert!((point.cumulative_excess_resolved_energy_loss_j - expected).abs() < 1.0e-14);
@@ -528,36 +523,27 @@ mod tests {
 
     #[test]
     fn post_initial_points_retain_same_step_numerical_context() {
-        let report = run_passive_taylor_green_concentration_scale_drift(
-            config(),
-            0.08,
-            0.00025,
-            4,
-        )
-        .unwrap();
-        assert!(report.points[1..].iter().all(|point| point.step_context.is_some()));
-        assert!(report
-            .points
-            .iter()
-            .all(|point| point.relative_concentration_scale_drift.is_finite()));
+        let report =
+            run_passive_taylor_green_concentration_scale_drift(config(), 0.08, 0.00025, 4).unwrap();
+        assert!(
+            report.points[1..]
+                .iter()
+                .all(|point| point.step_context.is_some())
+        );
+        assert!(
+            report
+                .points
+                .iter()
+                .all(|point| point.relative_concentration_scale_drift.is_finite())
+        );
     }
 
     #[test]
     fn report_is_replay_deterministic() {
-        let a = run_passive_taylor_green_concentration_scale_drift(
-            config(),
-            0.08,
-            0.00025,
-            8,
-        )
-        .unwrap();
-        let b = run_passive_taylor_green_concentration_scale_drift(
-            config(),
-            0.08,
-            0.00025,
-            8,
-        )
-        .unwrap();
+        let a =
+            run_passive_taylor_green_concentration_scale_drift(config(), 0.08, 0.00025, 8).unwrap();
+        let b =
+            run_passive_taylor_green_concentration_scale_drift(config(), 0.08, 0.00025, 8).unwrap();
         assert_eq!(a, b);
     }
 
