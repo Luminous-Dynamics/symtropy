@@ -107,9 +107,10 @@ pub struct ContinuumProcessErrorRequirements {
     pub schema_id: String,
     pub process_requirement_profile_id: String,
     pub process_requirement_revision_id: String,
-    /// Canonical sorted requirement set. V0 keys uniqueness by metric ID; a
-    /// metric's semantics/unit/evidence profile may not be redefined twice in
-    /// one process revision.
+    /// Canonical non-empty sorted requirement set. V0 keys uniqueness by metric
+    /// ID; a metric's semantics/unit/evidence profile may not be redefined twice
+    /// in one process revision. A process with no numerical error requirements
+    /// must use a different typed policy path rather than a vacuous set here.
     pub requirements: Vec<ProcessErrorRequirement>,
 }
 
@@ -128,6 +129,9 @@ impl ContinuumProcessErrorRequirements {
             &self.process_requirement_revision_id,
             MAX_REVISION_ID_BYTES,
         )?;
+        if self.requirements.is_empty() {
+            return Err(ProcessErrorRequirementsError::NoRequirements);
+        }
         if self.requirements.len() > MAX_ERROR_REQUIREMENTS {
             return Err(ProcessErrorRequirementsError::TooManyRequirements);
         }
@@ -181,6 +185,7 @@ pub enum ProcessErrorRequirementsError {
         field: &'static str,
         max_bytes: usize,
     },
+    NoRequirements,
     TooManyRequirements,
     NonCanonicalRequirementOrder,
     NonFiniteTolerance,
@@ -200,6 +205,7 @@ impl fmt::Display for ProcessErrorRequirementsError {
             Self::FieldTooLong { field, max_bytes } => {
                 write!(f, "{field} must not exceed {max_bytes} bytes")
             }
+            Self::NoRequirements => write!(f, "process error requirements must not be empty"),
             Self::TooManyRequirements => write!(f, "too many process error requirements"),
             Self::NonCanonicalRequirementOrder => write!(
                 f,
@@ -301,6 +307,16 @@ mod tests {
         let requirements = requirements();
         requirements.validate().unwrap();
         requirements.bind_problem_revision(&envelope()).unwrap();
+    }
+
+    #[test]
+    fn empty_requirement_set_fails_closed() {
+        let mut empty = requirements();
+        empty.requirements.clear();
+        assert_eq!(
+            empty.validate().unwrap_err(),
+            ProcessErrorRequirementsError::NoRequirements
+        );
     }
 
     #[test]
