@@ -71,7 +71,10 @@ impl fmt::Display for SmoothScaleSeparationError {
                 "smooth-control scale separation V0.1 requires a square periodic Taylor-Green domain"
             ),
             Self::NonFiniteDerivedMetric(name) => {
-                write!(f, "derived smooth-control scale metric {name} is non-finite")
+                write!(
+                    f,
+                    "derived smooth-control scale metric {name} is non-finite"
+                )
             }
             Self::Config(source) => write!(f, "invalid reference configuration: {source}"),
         }
@@ -108,10 +111,8 @@ pub fn measure_taylor_green_smooth_scale_separation(
     let cells_per_wavelength_y = fundamental_wavelength_y_m / dy_m;
     let cells_per_reciprocal_mode_scale_x = reciprocal_mode_scale_x_m / dx_m;
     let cells_per_reciprocal_mode_scale_y = reciprocal_mode_scale_y_m / dy_m;
-    let mode_to_nyquist_ratio_x =
-        fundamental_wavenumber_x_per_m / nyquist_wavenumber_x_per_m;
-    let mode_to_nyquist_ratio_y =
-        fundamental_wavenumber_y_per_m / nyquist_wavenumber_y_per_m;
+    let mode_to_nyquist_ratio_x = fundamental_wavenumber_x_per_m / nyquist_wavenumber_x_per_m;
+    let mode_to_nyquist_ratio_y = fundamental_wavenumber_y_per_m / nyquist_wavenumber_y_per_m;
     let maximum_mode_to_nyquist_ratio = mode_to_nyquist_ratio_x.max(mode_to_nyquist_ratio_y);
     let minimum_cells_per_wavelength = cells_per_wavelength_x.min(cells_per_wavelength_y);
     let minimum_cells_per_reciprocal_mode_scale =
@@ -228,9 +229,7 @@ mod tests {
         let expected = cfg.length_x_m / std::f64::consts::TAU;
         assert!((report.reciprocal_mode_scale_x_m - expected).abs() < 1.0e-14);
         assert!(
-            (report.cells_per_reciprocal_mode_scale_x
-                - 24.0 / std::f64::consts::TAU)
-                .abs()
+            (report.cells_per_reciprocal_mode_scale_x - 24.0 / std::f64::consts::TAU).abs()
                 < 1.0e-14
         );
     }
