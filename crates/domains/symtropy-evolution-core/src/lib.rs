@@ -6,6 +6,7 @@
 //! morphology, rendering, persistent organism identity, speciation, cognition,
 //! and civilization remain external authorities.
 
+mod ancestry_state;
 mod canonical;
 mod chromosome_map;
 mod chromosome_recombination;
@@ -41,6 +42,10 @@ mod reproduction;
 mod schema;
 mod structured_population_process;
 
+pub use ancestry_state::{
+    AncestryAuthorityError, ChromosomeAncestryState, HaplotypeAncestryClass,
+    PhasedAncestryState, PhasedAncestryStateDigest, PHASED_ANCESTRY_STATE_VERSION,
+};
 pub use chromosome_map::{
     ChromosomeDefinition, ChromosomeLocus, ChromosomeMap, ChromosomeMapDigest,
     GeneticMapPositionMicromorgans, CHROMOSOME_MAP_VERSION,
@@ -101,10 +106,11 @@ pub use haldane::{
 };
 pub use heredity::{HereditaryState, HereditaryStateDigest};
 pub use ids::{
-    AlleleId, ChromosomeId, ChromosomeMapId, ChromosomeRecombinationProfileId,
-    DemographicEventId, EvolutionExperimentId, HereditarySchemaId, LocusId, OperatorProfileId,
-    PopulationId, PopulationProcessProfileId, PopulationStructureProfileId,
-    PopulationTransitionId, ReproductionEventId,
+    AlleleId, AncestryCopyId, ChromosomeId, ChromosomeMapId,
+    ChromosomeRecombinationProfileId, DemographicEventId, EvolutionExperimentId,
+    HereditarySchemaId, LocusId, OperatorProfileId, PopulationId,
+    PopulationProcessProfileId, PopulationStructureProfileId, PopulationTransitionId,
+    ReproductionEventId,
 };
 pub use linked_gamete::{
     derive_zero_crossover_linked_gamete, ChromosomeHaplotypeDigest, LinkedGamete,
