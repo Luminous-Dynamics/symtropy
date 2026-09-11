@@ -3,11 +3,11 @@
 
 //! Exact-head calibration evidence for the vorticity-gradient concentration scale.
 //!
-//! The Taylor-Green fixture has an exact discrete centered-difference scale, so
-//! the estimator can be checked against the operator it actually uses. This
-//! campaign also retains amplitude-invariance probes and a zero-vorticity null
-//! control. It freezes measurements only; no refinement threshold or promotion
-//! verdict is assigned.
+//! The Taylor-Green fixture has an exact discrete MAC/forward-difference scale,
+//! so the estimator can be checked against the operator it actually uses. This
+//! campaign also retains amplitude-invariance probes, a zero-vorticity null
+//! control, and an alternating-face grid-scale stress control. It freezes
+//! measurements only; no refinement threshold or promotion verdict is assigned.
 
 use std::collections::BTreeSet;
 use std::env;
@@ -19,14 +19,15 @@ use symtropy_fluid::evidence::{
 };
 use symtropy_fluid::reference::{PeriodicMac2d, PeriodicMacConfig};
 use symtropy_fluid::vorticity_concentration_scale::{
-    VorticityConcentrationScaleReport, VorticityConcentrationScaleValue,
-    measure_vorticity_concentration_scale,
+    VorticityConcentrationScaleReport, VorticityConcentrationScaleUnavailableReason,
+    VorticityConcentrationScaleValue, measure_vorticity_concentration_scale,
 };
 
 const DOCUMENT_SCHEMA_ID: &str = "vorticity-concentration-scale-evidence-document-v0.1";
 const CASE_PROFILE_ID: &str = "taylor-green-vorticity-gradient-scale-calibration-v0.1";
 const REFERENCE_AMPLITUDE_MPS: f64 = 0.08;
 const AMPLITUDE_PROBE_RESOLUTION: usize = 24;
+const CHECKERBOARD_RESOLUTION: usize = 16;
 
 #[derive(Debug, Serialize)]
 struct TaylorGreenScaleCalibrationPoint {
@@ -41,10 +42,20 @@ struct TaylorGreenScaleCalibrationPoint {
 }
 
 #[derive(Debug, Serialize)]
+struct GridScaleStressControl {
+    resolution: usize,
+    expected_exact_discrete_length_m: f64,
+    measured_length_m: f64,
+    relative_error_to_exact_discrete: f64,
+    report: VorticityConcentrationScaleReport,
+}
+
+#[derive(Debug, Serialize)]
 struct VorticityConcentrationScaleCampaign {
     resolution_points: Vec<TaylorGreenScaleCalibrationPoint>,
     amplitude_invariance_points: Vec<TaylorGreenScaleCalibrationPoint>,
     uniform_flow_null_control: VorticityConcentrationScaleReport,
+    alternating_face_grid_scale_control: GridScaleStressControl,
 }
 
 #[derive(Debug, Serialize)]
@@ -70,20 +81,30 @@ fn main() -> Result<(), Box<dyn Error>> {
     let uniform_state =
         PeriodicMac2d::uniform(case_config(AMPLITUDE_PROBE_RESOLUTION), 0.08, -0.03)?;
     let uniform_flow_null_control = measure_vorticity_concentration_scale(&uniform_state)?;
-    if !matches!(
-        uniform_flow_null_control.scale,
-        VorticityConcentrationScaleValue::Unavailable(_)
-    ) {
-        return Err("uniform-flow null control unexpectedly produced a measured scale".into());
+    if uniform_flow_null_control.scale
+        != VorticityConcentrationScaleValue::Unavailable(
+            VorticityConcentrationScaleUnavailableReason::ZeroVorticity,
+        )
+    {
+        return Err(std::io::Error::other(
+            "uniform-flow null control did not produce typed ZeroVorticity evidence",
+        )
+        .into());
     }
+
+    let alternating_face_grid_scale_control = checkerboard_control()?;
 
     let execution_profiles = resolution_points
         .iter()
         .chain(&amplitude_invariance_points)
         .map(|point| point.report.solver_profile.clone())
-        .chain(std::iter::once(
+        .chain([
             uniform_flow_null_control.solver_profile.clone(),
-        ))
+            alternating_face_grid_scale_control
+                .report
+                .solver_profile
+                .clone(),
+        ])
         .collect::<BTreeSet<_>>()
         .into_iter()
         .collect();
@@ -92,6 +113,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         resolution_points,
         amplitude_invariance_points,
         uniform_flow_null_control,
+        alternating_face_grid_scale_control,
     };
     let subject = ContinuumEvidenceSubject {
         schema_version: CONTINUUM_EVIDENCE_SCHEMA_VERSION,
@@ -119,42 +141,34 @@ fn calibration_point(
     let config = case_config(resolution);
     let dx_m = config.dx();
     let k_per_m = std::f64::consts::TAU / config.length_x_m;
-    let discrete_k_per_m = (k_per_m * dx_m).sin() / dx_m;
+    let discrete_k_per_m = 2.0 * (0.5 * k_per_m * dx_m).sin() / dx_m;
     let expected_exact_discrete_length_m =
         1.0 / (2.0_f64.sqrt() * discrete_k_per_m.abs());
     let expected_continuum_length_m = 1.0 / (2.0_f64.sqrt() * k_per_m);
 
     let state = PeriodicMac2d::taylor_green(config, amplitude_mps)?;
     let report = measure_vorticity_concentration_scale(&state)?;
-    let measured_length_m = match report.scale {
-        VorticityConcentrationScaleValue::Measured { length_m, .. } => length_m,
-        VorticityConcentrationScaleValue::Unavailable(reason) => {
-            return Err(format!("Taylor-Green calibration scale unavailable: {reason:?}").into());
-        }
-    };
+    let measured_length_m = measured_length(&report, "Taylor-Green calibration")?;
     let relative_error_to_exact_discrete =
         (measured_length_m - expected_exact_discrete_length_m).abs()
             / expected_exact_discrete_length_m;
     let relative_deviation_from_continuum =
         (measured_length_m - expected_continuum_length_m).abs() / expected_continuum_length_m;
 
-    for (name, value) in [
-        ("expected_exact_discrete_length_m", expected_exact_discrete_length_m),
-        ("expected_continuum_length_m", expected_continuum_length_m),
-        ("measured_length_m", measured_length_m),
-        (
-            "relative_error_to_exact_discrete",
-            relative_error_to_exact_discrete,
-        ),
-        (
-            "relative_deviation_from_continuum",
-            relative_deviation_from_continuum,
-        ),
-    ] {
-        if !value.is_finite() || value < 0.0 {
-            return Err(format!("non-finite/negative calibration metric {name}").into());
-        }
-    }
+    validate_nonnegative_finite(
+        "expected_exact_discrete_length_m",
+        expected_exact_discrete_length_m,
+    )?;
+    validate_nonnegative_finite("expected_continuum_length_m", expected_continuum_length_m)?;
+    validate_nonnegative_finite("measured_length_m", measured_length_m)?;
+    validate_nonnegative_finite(
+        "relative_error_to_exact_discrete",
+        relative_error_to_exact_discrete,
+    )?;
+    validate_nonnegative_finite(
+        "relative_deviation_from_continuum",
+        relative_deviation_from_continuum,
+    )?;
 
     Ok(TaylorGreenScaleCalibrationPoint {
         resolution,
@@ -166,6 +180,66 @@ fn calibration_point(
         relative_deviation_from_continuum,
         report,
     })
+}
+
+fn checkerboard_control() -> Result<GridScaleStressControl, Box<dyn Error>> {
+    let config = case_config(CHECKERBOARD_RESOLUTION);
+    let dx_m = config.dx();
+    let cells = config.nx * config.ny;
+    let u_faces = vec![0.0; cells];
+    let mut v_faces = vec![0.0; cells];
+    for j in 0..config.ny {
+        for i in 0..config.nx {
+            v_faces[j * config.nx + i] = if i % 2 == 0 { 0.08 } else { -0.08 };
+        }
+    }
+    let state = PeriodicMac2d::from_faces(config, u_faces, v_faces)?;
+    let report = measure_vorticity_concentration_scale(&state)?;
+    let measured_length_m = measured_length(&report, "alternating-face grid-scale control")?;
+    let expected_exact_discrete_length_m = 0.5 * dx_m;
+    let relative_error_to_exact_discrete =
+        (measured_length_m - expected_exact_discrete_length_m).abs()
+            / expected_exact_discrete_length_m;
+    validate_nonnegative_finite(
+        "checkerboard_expected_exact_discrete_length_m",
+        expected_exact_discrete_length_m,
+    )?;
+    validate_nonnegative_finite("checkerboard_measured_length_m", measured_length_m)?;
+    validate_nonnegative_finite(
+        "checkerboard_relative_error_to_exact_discrete",
+        relative_error_to_exact_discrete,
+    )?;
+
+    Ok(GridScaleStressControl {
+        resolution: CHECKERBOARD_RESOLUTION,
+        expected_exact_discrete_length_m,
+        measured_length_m,
+        relative_error_to_exact_discrete,
+        report,
+    })
+}
+
+fn measured_length(
+    report: &VorticityConcentrationScaleReport,
+    context: &'static str,
+) -> Result<f64, Box<dyn Error>> {
+    match report.scale {
+        VorticityConcentrationScaleValue::Measured { length_m, .. } => Ok(length_m),
+        VorticityConcentrationScaleValue::Unavailable(reason) => Err(std::io::Error::other(
+            format!("{context} concentration scale unavailable: {reason:?}"),
+        )
+        .into()),
+    }
+}
+
+fn validate_nonnegative_finite(name: &'static str, value: f64) -> Result<(), Box<dyn Error>> {
+    if !value.is_finite() || value < 0.0 {
+        return Err(std::io::Error::other(format!(
+            "non-finite/negative calibration metric {name}"
+        ))
+        .into());
+    }
+    Ok(())
 }
 
 fn case_config(resolution: usize) -> PeriodicMacConfig {
