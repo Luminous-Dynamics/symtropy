@@ -98,8 +98,8 @@ fn ancestry_state(
         [ChromosomeAncestryState::new(
             chromosome(),
             vec![
-                HaplotypeAncestryClass::new(0, [ancestry(first)]).unwrap(),
-                HaplotypeAncestryClass::new(1, [ancestry(second)]).unwrap(),
+                HaplotypeAncestryClass::new(0, vec![ancestry(first)]).unwrap(),
+                HaplotypeAncestryClass::new(1, vec![ancestry(second)]).unwrap(),
             ],
         )
         .unwrap()],
