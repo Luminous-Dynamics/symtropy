@@ -160,7 +160,7 @@ impl IndustrialEcology {
                 });
             }
         }
-        let expected = positive_flow_keys(&dependencies);
+        let expected = positive_flow_keys(dependencies.iter());
         let actual: BTreeSet<_> = map.keys().cloned().collect();
         if expected != actual {
             return Err(IndustrialEcologyError::FlowPrerequisiteCoverageMismatch);
@@ -469,12 +469,11 @@ impl IndustrialEcology {
     }
 }
 
-fn positive_flow_keys(
-    dependencies: impl IntoIterator<Item = impl std::borrow::Borrow<IndustrialDependencyState>>,
+fn positive_flow_keys<'a>(
+    dependencies: impl IntoIterator<Item = &'a IndustrialDependencyState>,
 ) -> BTreeSet<(String, IndustrialFlowKind)> {
     let mut flows = BTreeSet::new();
     for dependency in dependencies {
-        let dependency = dependency.borrow();
         if dependency.local_production_units_per_tick > 0 {
             flows.insert((dependency.dependency_id.clone(), IndustrialFlowKind::Production));
         }
