@@ -26,13 +26,14 @@ jobs:
           ref: ${{ github.sha }}
           fetch-depth: 0
 
-      - name: Bind exact schema2 theorem source and qualified PB-04b v0.1 base
+      - name: Bind exact schema2 publication repair and qualified PB-04b v0.1 base
         shell: bash
         run: |
           set -euo pipefail
           test "$(git rev-parse HEAD)" = "${GITHUB_SHA}"
-          test "$(git rev-parse HEAD^)" = "4d88fcab078aaa5703bb427f6d03f63ddd8c41aa"
-          test "$(git rev-parse HEAD^^)" = "72fda03521621c0d781d28237de1e88aa513e1f8"
+          test "$(git rev-parse HEAD^)" = "c2c806a5d269522a4cdb7126e437dac8989981e8"
+          test "$(git rev-parse HEAD^^)" = "4d88fcab078aaa5703bb427f6d03f63ddd8c41aa"
+          git merge-base --is-ancestor 72fda03521621c0d781d28237de1e88aa513e1f8 HEAD
           test "$(git rev-parse 72fda03521621c0d781d28237de1e88aa513e1f8^{tree})" = "e7c9a2dfe87eca7d03980a90791b703cc79548a2"
 
           check_blob() {
@@ -40,7 +41,7 @@ jobs:
             path="$2"
             actual="$(git rev-parse "HEAD:${path}")"
             test "${actual}" = "${expected}" || {
-              echo "PB-04b schema2 locus/context source drift: ${path}" >&2
+              echo "PB-04b schema2 publication capsule drift: ${path}" >&2
               echo "expected ${expected}" >&2
               echo "actual   ${actual}" >&2
               exit 1
@@ -53,22 +54,27 @@ jobs:
           check_blob 3fc46b0af0dfcf671ae1fa97aac60bb98357e198 crates/domains/symtropy-spatial-decomposition/tests/local_identity.rs
           check_blob 9a3f59609f59404bfe5d38886b30d98061a03b14 scripts/pb04b-stabilize-locus-context.py
 
+          actual_child_delta="$(git diff --name-only c2c806a5d269522a4cdb7126e437dac8989981e8..HEAD | sort -u)"
+          test "${actual_child_delta}" = ".github/workflows/pb04b-locus-context-self-apply.yml" || {
+            echo "publication repair changed unexpected source paths" >&2
+            printf '%s\n' "${actual_child_delta}" >&2
+            exit 1
+          }
+
           actual_source_delta="$(git diff --name-only 72fda03521621c0d781d28237de1e88aa513e1f8..HEAD | sort -u)"
           expected_source_delta="$(printf '%s\n' \
             .github/workflows/pb04b-locus-context-self-apply.yml \
             crates/domains/symtropy-spatial-decomposition/tests/local_identity.rs \
             scripts/pb04b-stabilize-locus-context.py | sort)"
-          if [[ "${actual_source_delta}" != "${expected_source_delta}" ]]; then
-            echo "PB-04b schema2 theorem lineage changed unexpected paths" >&2
-            echo "expected:" >&2
-            printf '%s\n' "${expected_source_delta}" >&2
-            echo "actual:" >&2
+          test "${actual_source_delta}" = "${expected_source_delta}" || {
+            echo "PB-04b schema2 source lineage changed unexpected paths" >&2
             printf '%s\n' "${actual_source_delta}" >&2
             exit 1
-          fi
+          }
 
-          echo "PB04B_SCHEMA2_INPUT_HEAD=${GITHUB_SHA}"
-          echo "PB04B_SCHEMA2_INPUT_TREE=$(git rev-parse HEAD^{tree})"
+          echo "PB04B_SCHEMA2_PUBLICATION_HEAD=${GITHUB_SHA}"
+          echo "PB04B_SCHEMA2_PUBLICATION_TREE=$(git rev-parse HEAD^{tree})"
+          echo "PB04B_SCHEMA2_THEOREM_HEAD=c2c806a5d269522a4cdb7126e437dac8989981e8"
           echo "PB04B_QUALIFIED_V01_HEAD=72fda03521621c0d781d28237de1e88aa513e1f8"
           echo "CARGO_TARGET_DIR=${RUNNER_TEMP}/pb04b-locus-context-target" >> "${GITHUB_ENV}"
 
@@ -99,14 +105,19 @@ jobs:
           rustfmt --version
           cargo clippy --version
 
-      - name: Apply exact schema2 locus/context transform and canonical formatting
+      - name: Apply exact schema2 transform and bind canonical outputs
         shell: bash
         run: |
           set -euo pipefail
           python3 scripts/pb04b-stabilize-locus-context.py
           cargo fmt --manifest-path crates/domains/symtropy-spatial-decomposition/Cargo.toml
-          echo "PB04B_TRANSFORMED_LIB_BLOB=$(git hash-object crates/domains/symtropy-spatial-decomposition/src/lib.rs)"
-          echo "PB04B_FORMATTED_TEST_BLOB=$(git hash-object crates/domains/symtropy-spatial-decomposition/tests/local_identity.rs)"
+
+          lib_blob="$(git hash-object crates/domains/symtropy-spatial-decomposition/src/lib.rs)"
+          test_blob="$(git hash-object crates/domains/symtropy-spatial-decomposition/tests/local_identity.rs)"
+          echo "PB04B_TRANSFORMED_LIB_BLOB=${lib_blob}"
+          echo "PB04B_FORMATTED_TEST_BLOB=${test_blob}"
+          test "${lib_blob}" = "396f79b17950990778702f1e473caba98b6b1c3d"
+          test "${test_blob}" = "7622be3716a564a1a0abce183601a82f899798a0"
           test "$(git hash-object crates/domains/symtropy-spatial-decomposition/Cargo.lock)" = "676fd6a7eb31a2ec00b09c9496b42c568e791556"
 
       - name: Verify locked dependency graph
@@ -115,7 +126,9 @@ jobs:
           set -euo pipefail
           manifest="crates/domains/symtropy-spatial-decomposition/Cargo.toml"
           cargo metadata --manifest-path "${manifest}" --locked --format-version 1 > "${RUNNER_TEMP}/pb04b-locus-context-metadata.json"
-          echo "PB04B_LOCKED_METADATA_SHA256=$(sha256sum "${RUNNER_TEMP}/pb04b-locus-context-metadata.json" | awk '{print $1}')"
+          metadata_sha="$(sha256sum "${RUNNER_TEMP}/pb04b-locus-context-metadata.json" | awk '{print $1}')"
+          echo "PB04B_LOCKED_METADATA_SHA256=${metadata_sha}"
+          test "${metadata_sha}" = "08d024b4bce707cc1a3c379408854923c8967cb9a02baa9d7562d65360fecd6a"
 
       - name: Check
         shell: bash
@@ -142,15 +155,20 @@ jobs:
           git diff --check
           test ! -e crates/domains/symtropy-spatial-decomposition/target
           test "$(git hash-object crates/domains/symtropy-spatial-decomposition/Cargo.lock)" = "676fd6a7eb31a2ec00b09c9496b42c568e791556"
+          test "$(git hash-object crates/domains/symtropy-spatial-decomposition/src/lib.rs)" = "396f79b17950990778702f1e473caba98b6b1c3d"
+          test "$(git hash-object crates/domains/symtropy-spatial-decomposition/tests/local_identity.rs)" = "7622be3716a564a1a0abce183601a82f899798a0"
 
           actual="$({
             git diff --name-only
             git ls-files --others --exclude-standard
           } | sort -u)"
-          expected="crates/domains/symtropy-spatial-decomposition/src/lib.rs"
+          expected="$(printf '%s\n' \
+            crates/domains/symtropy-spatial-decomposition/src/lib.rs \
+            crates/domains/symtropy-spatial-decomposition/tests/local_identity.rs | sort)"
           if [[ "${actual}" != "${expected}" ]]; then
-            echo "PB-04b schema2 locus/context qualification produced unexpected product paths" >&2
-            echo "expected: ${expected}" >&2
+            echo "PB-04b schema2 qualification produced unexpected product paths" >&2
+            echo "expected:" >&2
+            printf '%s\n' "${expected}" >&2
             echo "actual:" >&2
             printf '%s\n' "${actual}" >&2
             exit 1
@@ -162,10 +180,12 @@ jobs:
           set -euo pipefail
           git config user.name "PB-04b Qualification Bot"
           git config user.email "actions@users.noreply.github.com"
-          git add crates/domains/symtropy-spatial-decomposition/src/lib.rs
+          git add \
+            crates/domains/symtropy-spatial-decomposition/src/lib.rs \
+            crates/domains/symtropy-spatial-decomposition/tests/local_identity.rs
           git diff --cached --check
           git diff --cached --exit-code --quiet && {
-            echo "no PB-04b schema2 locus/context product delta" >&2
+            echo "no PB-04b schema2 product delta" >&2
             exit 1
           }
           git commit -m "fix(spatial): stabilize PB-04b physical locus identities v2"
