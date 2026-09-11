@@ -165,6 +165,17 @@ jobs:
     - name: Hash Manufactured Update Defect Evidence
       run: sha256sum manufactured-update-defect-evidence.json > manufactured-update-defect-evidence.json.sha256
 
+    # Smooth-control scale separation is an analytical calibration baseline for
+    # the known Taylor-Green fundamental mode. It deliberately does not infer a
+    # dynamic concentration scale or freeze a resolved/unresolved threshold.
+    - name: Generate Smooth Scale Separation Evidence
+      env:
+        SYMTROPY_EVIDENCE_SOURCE_REVISION: ${{ github.event.pull_request.head.sha || github.sha }}
+      run: cargo run --locked -p symtropy-fluid --example smooth_scale_separation_evidence --quiet > smooth-scale-separation-evidence.json
+
+    - name: Hash Smooth Scale Separation Evidence
+      run: sha256sum smooth-scale-separation-evidence.json > smooth-scale-separation-evidence.json.sha256
+
     - name: Upload Fluid Verification Evidence
       uses: actions/upload-artifact@v4
       with:
@@ -178,5 +189,7 @@ jobs:
           passive-excess-energy-decay-evidence.json.sha256
           manufactured-update-defect-evidence.json
           manufactured-update-defect-evidence.json.sha256
+          smooth-scale-separation-evidence.json
+          smooth-scale-separation-evidence.json.sha256
         if-no-files-found: error
         retention-days: 30
