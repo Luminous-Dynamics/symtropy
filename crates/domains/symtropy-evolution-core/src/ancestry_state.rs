@@ -5,7 +5,11 @@ use crate::{
 };
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
-use std::{collections::{BTreeMap, BTreeSet}, error::Error, fmt};
+use std::{
+    collections::{BTreeMap, BTreeSet},
+    error::Error,
+    fmt,
+};
 
 pub const PHASED_ANCESTRY_STATE_VERSION: u32 = 1;
 const PHASED_ANCESTRY_STATE_DIGEST_DOMAIN: &[u8] =
@@ -32,9 +36,9 @@ impl HaplotypeAncestryClass {
             return Err(AncestryAuthorityError::EmptyAncestryClass);
         }
         copy_ids.sort();
-        if copy_ids.windows(2).any(|window| window[0] == window[1]) {
+        if let Some(copy_id) = first_duplicate_copy_id(&copy_ids) {
             return Err(AncestryAuthorityError::DuplicateAncestryCopyIdentity(
-                copy_ids[0].clone(),
+                copy_id,
             ));
         }
         Ok(Self {
@@ -65,9 +69,9 @@ impl ChromosomeAncestryState {
                 return Err(AncestryAuthorityError::EmptyAncestryClass);
             }
             class.copy_ids.sort();
-            if class.copy_ids.windows(2).any(|window| window[0] == window[1]) {
+            if let Some(copy_id) = first_duplicate_copy_id(&class.copy_ids) {
                 return Err(AncestryAuthorityError::DuplicateAncestryCopyIdentity(
-                    class.copy_ids[0].clone(),
+                    copy_id,
                 ));
             }
         }
@@ -227,10 +231,61 @@ impl PhasedAncestryState {
             }
         }
 
-        if self.chromosomes.keys().any(|id| !chromosome_map.chromosomes.contains_key(id)) {
+        if self
+            .chromosomes
+            .keys()
+            .any(|id| !chromosome_map.chromosomes.contains_key(id))
+        {
             return Err(AncestryAuthorityError::ChromosomeSetMismatch);
         }
         Ok(())
+    }
+
+    /// Return the persistent ancestry-copy identities attached to the complete
+    /// haplotype-content equivalence class containing `haplotype_slot`.
+    ///
+    /// This intentionally returns a set-like slice for the whole content class,
+    /// never a single ancestry identity for the requested C2 row. If multiple
+    /// canonical rows have identical complete haplotype content, the current
+    /// genetic state cannot justify a row-to-ancestor assignment.
+    pub fn copy_ids_for_haplotype_content_at_slot<'a>(
+        &'a self,
+        schema: &HereditarySchema,
+        chromosome_map: &ChromosomeMap,
+        phased_state: &PhasedHereditaryState,
+        chromosome_id: &ChromosomeId,
+        haplotype_slot: usize,
+    ) -> Result<&'a [AncestryCopyId], AncestryAuthorityError> {
+        self.validate_current(schema, chromosome_map, phased_state)?;
+        let genetic = phased_state
+            .chromosomes
+            .get(chromosome_id)
+            .ok_or(AncestryAuthorityError::ChromosomeSetMismatch)?;
+        let target = genetic
+            .haplotypes
+            .get(haplotype_slot)
+            .ok_or_else(|| AncestryAuthorityError::HaplotypeSlotOutOfRange {
+                chromosome: chromosome_id.clone(),
+                slot: haplotype_slot,
+            })?;
+        let ancestry = self
+            .chromosomes
+            .get(chromosome_id)
+            .ok_or(AncestryAuthorityError::ChromosomeSetMismatch)?;
+        for class in &ancestry.classes {
+            let representative = genetic
+                .haplotypes
+                .get(usize::from(class.representative_haplotype_slot))
+                .ok_or_else(|| AncestryAuthorityError::ContentClassMismatch {
+                    chromosome: chromosome_id.clone(),
+                })?;
+            if representative == target {
+                return Ok(&class.copy_ids);
+            }
+        }
+        Err(AncestryAuthorityError::ContentClassMismatch {
+            chromosome: chromosome_id.clone(),
+        })
     }
 
     pub fn canonical_digest(
@@ -261,6 +316,13 @@ impl PhasedAncestryState {
         }
         Ok(PhasedAncestryStateDigest(digest.finalize().into()))
     }
+}
+
+fn first_duplicate_copy_id(copy_ids: &[AncestryCopyId]) -> Option<AncestryCopyId> {
+    copy_ids
+        .windows(2)
+        .find(|window| window[0] == window[1])
+        .map(|window| window[0].clone())
 }
 
 fn expected_content_classes(
@@ -312,12 +374,23 @@ pub enum AncestryAuthorityError {
     CurrentAuthorityMismatch,
     ChromosomeSetMismatch,
     DuplicateChromosomeIdentity(ChromosomeId),
-    ChromosomeKeyMismatch { key: ChromosomeId, value: ChromosomeId },
-    EmptyChromosomeAncestry { chromosome: ChromosomeId },
+    ChromosomeKeyMismatch {
+        key: ChromosomeId,
+        value: ChromosomeId,
+    },
+    EmptyChromosomeAncestry {
+        chromosome: ChromosomeId,
+    },
     EmptyAncestryClass,
-    DuplicateAncestryClassRepresentative { chromosome: ChromosomeId },
-    NonCanonicalClassOrder { chromosome: ChromosomeId },
-    ContentClassMismatch { chromosome: ChromosomeId },
+    DuplicateAncestryClassRepresentative {
+        chromosome: ChromosomeId,
+    },
+    NonCanonicalClassOrder {
+        chromosome: ChromosomeId,
+    },
+    ContentClassMismatch {
+        chromosome: ChromosomeId,
+    },
     ClassMultiplicityMismatch {
         chromosome: ChromosomeId,
         representative_haplotype_slot: u8,
@@ -329,6 +402,10 @@ pub enum AncestryAuthorityError {
         representative_haplotype_slot: u8,
     },
     DuplicateAncestryCopyIdentity(AncestryCopyId),
+    HaplotypeSlotOutOfRange {
+        chromosome: ChromosomeId,
+        slot: usize,
+    },
 }
 
 impl From<EvolutionError> for AncestryAuthorityError {
@@ -341,19 +418,83 @@ impl fmt::Display for AncestryAuthorityError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::Evolution(error) => write!(f, "evolution authority error: {error}"),
-            Self::UnsupportedVersion(version) => write!(f, "unsupported phased ancestry-state version {version}"),
-            Self::CurrentAuthorityMismatch => write!(f, "phased ancestry sidecar does not match exact current genetic authority"),
-            Self::ChromosomeSetMismatch => write!(f, "phased ancestry chromosome set does not match exact chromosome map"),
-            Self::DuplicateChromosomeIdentity(chromosome) => write!(f, "duplicate ancestry chromosome {}", chromosome.as_str()),
-            Self::ChromosomeKeyMismatch { key, value } => write!(f, "ancestry chromosome key {} does not match embedded chromosome {}", key.as_str(), value.as_str()),
-            Self::EmptyChromosomeAncestry { chromosome } => write!(f, "chromosome {} has no ancestry classes", chromosome.as_str()),
-            Self::EmptyAncestryClass => write!(f, "haplotype ancestry class must contain at least one persistent copy ID"),
-            Self::DuplicateAncestryClassRepresentative { chromosome } => write!(f, "chromosome {} repeats a haplotype ancestry-class representative", chromosome.as_str()),
-            Self::NonCanonicalClassOrder { chromosome } => write!(f, "chromosome {} ancestry classes are not in canonical representative-slot order", chromosome.as_str()),
-            Self::ContentClassMismatch { chromosome } => write!(f, "chromosome {} ancestry classes do not exactly match current haplotype-content equivalence classes", chromosome.as_str()),
-            Self::ClassMultiplicityMismatch { chromosome, representative_haplotype_slot, expected, observed } => write!(f, "chromosome {} ancestry class at representative slot {} expected {} copy IDs, observed {}", chromosome.as_str(), representative_haplotype_slot, expected, observed),
-            Self::NonCanonicalCopyIdOrder { chromosome, representative_haplotype_slot } => write!(f, "chromosome {} ancestry copy IDs at representative slot {} are not strictly canonical", chromosome.as_str(), representative_haplotype_slot),
-            Self::DuplicateAncestryCopyIdentity(copy_id) => write!(f, "persistent ancestry copy {} appears more than once", copy_id.as_str()),
+            Self::UnsupportedVersion(version) => {
+                write!(f, "unsupported phased ancestry-state version {version}")
+            }
+            Self::CurrentAuthorityMismatch => write!(
+                f,
+                "phased ancestry sidecar does not match exact current genetic authority"
+            ),
+            Self::ChromosomeSetMismatch => write!(
+                f,
+                "phased ancestry chromosome set does not match exact chromosome map"
+            ),
+            Self::DuplicateChromosomeIdentity(chromosome) => {
+                write!(f, "duplicate ancestry chromosome {}", chromosome.as_str())
+            }
+            Self::ChromosomeKeyMismatch { key, value } => write!(
+                f,
+                "ancestry chromosome key {} does not match embedded chromosome {}",
+                key.as_str(),
+                value.as_str()
+            ),
+            Self::EmptyChromosomeAncestry { chromosome } => write!(
+                f,
+                "chromosome {} has no ancestry classes",
+                chromosome.as_str()
+            ),
+            Self::EmptyAncestryClass => write!(
+                f,
+                "haplotype ancestry class must contain at least one persistent copy ID"
+            ),
+            Self::DuplicateAncestryClassRepresentative { chromosome } => write!(
+                f,
+                "chromosome {} repeats a haplotype ancestry-class representative",
+                chromosome.as_str()
+            ),
+            Self::NonCanonicalClassOrder { chromosome } => write!(
+                f,
+                "chromosome {} ancestry classes are not in canonical representative-slot order",
+                chromosome.as_str()
+            ),
+            Self::ContentClassMismatch { chromosome } => write!(
+                f,
+                "chromosome {} ancestry classes do not exactly match current haplotype-content equivalence classes",
+                chromosome.as_str()
+            ),
+            Self::ClassMultiplicityMismatch {
+                chromosome,
+                representative_haplotype_slot,
+                expected,
+                observed,
+            } => write!(
+                f,
+                "chromosome {} ancestry class at representative slot {} expected {} copy IDs, observed {}",
+                chromosome.as_str(),
+                representative_haplotype_slot,
+                expected,
+                observed
+            ),
+            Self::NonCanonicalCopyIdOrder {
+                chromosome,
+                representative_haplotype_slot,
+            } => write!(
+                f,
+                "chromosome {} ancestry copy IDs at representative slot {} are not strictly canonical",
+                chromosome.as_str(),
+                representative_haplotype_slot
+            ),
+            Self::DuplicateAncestryCopyIdentity(copy_id) => write!(
+                f,
+                "persistent ancestry copy {} appears more than once",
+                copy_id.as_str()
+            ),
+            Self::HaplotypeSlotOutOfRange { chromosome, slot } => write!(
+                f,
+                "chromosome {} has no phased haplotype at local slot {}",
+                chromosome.as_str(),
+                slot
+            ),
         }
     }
 }
