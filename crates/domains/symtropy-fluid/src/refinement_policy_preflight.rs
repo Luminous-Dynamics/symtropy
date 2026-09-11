@@ -17,7 +17,8 @@ use serde::{Deserialize, Serialize};
 
 use crate::refinement_policy_contract::{
     ContinuumRefinementPolicyInput, EvidenceFreshness, MAX_POLICY_ID_BYTES, MAX_PROFILE_ID_BYTES,
-    RefinementAuthorityState, RefinementPolicyContractError, RequiredContinuumObservable,
+    MAX_REASON_BYTES, MAX_REQUIRED_OBSERVABLES, RefinementAuthorityState,
+    RefinementPolicyContractError, RequiredContinuumObservable,
 };
 use crate::validation::{
     ContinuumDiagnosticSample, ContinuumSampleError, ContinuumValidityState,
@@ -65,6 +66,8 @@ pub struct ContinuumRefinementPolicyPreflightReport {
     pub current_semantic_profile_id: String,
     pub diagnostic_profile_id: String,
     pub process_requirement_profile_id: String,
+    /// Exact IEEE-754 bits from the bound diagnostic sample. This avoids
+    /// reformatting/rounding ambiguity in a retained receipt.
     pub sample_time_bits: u64,
     /// Retained for provenance only. Preflight never interprets this validity
     /// state or changes readiness because it says `Resolved`/`UnderResolved`.
@@ -109,6 +112,14 @@ impl ContinuumRefinementPolicyPreflightReport {
         )?;
         validate_freshness(&self.gates.evidence_freshness)?;
 
+        let sample_time_s = f64::from_bits(self.sample_time_bits);
+        if !sample_time_s.is_finite() || sample_time_s < 0.0 {
+            return Err(RefinementPolicyPreflightError::InvalidSampleTime);
+        }
+
+        if self.required_observables.len() > MAX_REQUIRED_OBSERVABLES {
+            return Err(RefinementPolicyPreflightError::TooManyRequiredObservables);
+        }
         if !strictly_sorted_unique(&self.required_observables) {
             return Err(RefinementPolicyPreflightError::NonCanonicalRequiredObservables);
         }
@@ -122,6 +133,9 @@ impl ContinuumRefinementPolicyPreflightReport {
             RequiredObservableGate::Missing { missing } => {
                 if missing.is_empty() {
                     return Err(RefinementPolicyPreflightError::EmptyMissingGate);
+                }
+                if missing.len() > MAX_REQUIRED_OBSERVABLES {
+                    return Err(RefinementPolicyPreflightError::TooManyRequiredObservables);
                 }
                 if !strictly_sorted_unique_by_observable(missing) {
                     return Err(RefinementPolicyPreflightError::NonCanonicalMissingObservables);
@@ -150,6 +164,8 @@ pub enum RefinementPolicyPreflightError {
     },
     EmptyEvidenceRevision,
     EmptyStaleReason,
+    InvalidSampleTime,
+    TooManyRequiredObservables,
     DiagnosticProfileMismatch,
     DeclaredMissingObservableMismatch,
     NonCanonicalRequiredObservables,
@@ -170,6 +186,10 @@ impl fmt::Display for RefinementPolicyPreflightError {
             }
             Self::EmptyEvidenceRevision => write!(f, "evidence revision must not be empty"),
             Self::EmptyStaleReason => write!(f, "stale evidence reason must not be empty"),
+            Self::InvalidSampleTime => {
+                write!(f, "sample_time_bits must decode to a finite non-negative time")
+            }
+            Self::TooManyRequiredObservables => write!(f, "too many required observables"),
             Self::DiagnosticProfileMismatch => write!(
                 f,
                 "policy diagnostic_profile_id does not exactly match the bound diagnostic sample"
@@ -277,11 +297,17 @@ fn unavailable_reason(
     observable: RequiredContinuumObservable,
 ) -> Option<DiagnosticUnavailableReason> {
     match observable {
-        RequiredContinuumObservable::MaxResolvedSpeed => diagnostic_reason(&sample.max_resolved_speed_mps),
+        RequiredContinuumObservable::MaxResolvedSpeed => {
+            diagnostic_reason(&sample.max_resolved_speed_mps)
+        }
         RequiredContinuumObservable::KineticEnergy => diagnostic_reason(&sample.kinetic_energy_j),
-        RequiredContinuumObservable::DivergenceRms => diagnostic_reason(&sample.divergence_rms_per_s),
+        RequiredContinuumObservable::DivergenceRms => {
+            diagnostic_reason(&sample.divergence_rms_per_s)
+        }
         RequiredContinuumObservable::MaxVorticity => diagnostic_reason(&sample.max_vorticity_per_s),
-        RequiredContinuumObservable::MaxStrainRate => diagnostic_reason(&sample.max_strain_rate_per_s),
+        RequiredContinuumObservable::MaxStrainRate => {
+            diagnostic_reason(&sample.max_strain_rate_per_s)
+        }
         RequiredContinuumObservable::MaxPressureGradient => {
             diagnostic_reason(&sample.max_pressure_gradient_pa_per_m)
         }
@@ -321,6 +347,12 @@ fn validate_freshness(value: &EvidenceFreshness) -> Result<(), RefinementPolicyP
             if evidence_revision.trim().is_empty() {
                 return Err(RefinementPolicyPreflightError::EmptyEvidenceRevision);
             }
+            if evidence_revision.len() > MAX_PROFILE_ID_BYTES {
+                return Err(RefinementPolicyPreflightError::FieldTooLong {
+                    field: "evidence_revision",
+                    max_bytes: MAX_PROFILE_ID_BYTES,
+                });
+            }
         }
         EvidenceFreshness::Stale {
             evidence_revision,
@@ -329,8 +361,20 @@ fn validate_freshness(value: &EvidenceFreshness) -> Result<(), RefinementPolicyP
             if evidence_revision.trim().is_empty() {
                 return Err(RefinementPolicyPreflightError::EmptyEvidenceRevision);
             }
+            if evidence_revision.len() > MAX_PROFILE_ID_BYTES {
+                return Err(RefinementPolicyPreflightError::FieldTooLong {
+                    field: "evidence_revision",
+                    max_bytes: MAX_PROFILE_ID_BYTES,
+                });
+            }
             if stale_reason.trim().is_empty() {
                 return Err(RefinementPolicyPreflightError::EmptyStaleReason);
+            }
+            if stale_reason.len() > MAX_REASON_BYTES {
+                return Err(RefinementPolicyPreflightError::FieldTooLong {
+                    field: "stale_reason",
+                    max_bytes: MAX_REASON_BYTES,
+                });
             }
         }
     }
@@ -467,6 +511,33 @@ mod tests {
         assert_eq!(
             preflight_refinement_policy_input(&input, &sample).unwrap_err(),
             RefinementPolicyPreflightError::DiagnosticProfileMismatch
+        );
+    }
+
+    #[test]
+    fn retained_report_revalidates_time_and_freshness_bounds() {
+        let (sample, input) = sample_and_input(
+            RefinementAuthorityState::QualifiedPolicyEvaluationAllowed,
+        );
+        let report = preflight_refinement_policy_input(&input, &sample).unwrap();
+
+        let mut invalid_time = report.clone();
+        invalid_time.sample_time_bits = f64::NAN.to_bits();
+        assert_eq!(
+            invalid_time.validate().unwrap_err(),
+            RefinementPolicyPreflightError::InvalidSampleTime
+        );
+
+        let mut oversized_revision = report;
+        oversized_revision.gates.evidence_freshness = EvidenceFreshness::Current {
+            evidence_revision: "x".repeat(MAX_PROFILE_ID_BYTES + 1),
+        };
+        assert_eq!(
+            oversized_revision.validate().unwrap_err(),
+            RefinementPolicyPreflightError::FieldTooLong {
+                field: "evidence_revision",
+                max_bytes: MAX_PROFILE_ID_BYTES,
+            }
         );
     }
 }
