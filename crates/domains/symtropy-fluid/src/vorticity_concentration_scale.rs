@@ -340,9 +340,11 @@ mod tests {
                 .diagnostic_profile
                 .contains(VORTICITY_CONCENTRATION_DIAGNOSTIC_PROFILE_TOKEN)
         );
-        assert!(!report
-            .diagnostic_profile
-            .contains(VORTICITY_CONCENTRATION_SCALE_OPERATOR_ID));
+        assert!(
+            !report
+                .diagnostic_profile
+                .contains(VORTICITY_CONCENTRATION_SCALE_OPERATOR_ID)
+        );
         assert!(
             report
                 .diagnostic_profile
