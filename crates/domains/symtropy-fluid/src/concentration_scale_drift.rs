@@ -201,10 +201,13 @@ pub fn run_passive_taylor_green_concentration_scale_drift(
     let initial_point = make_point(
         0,
         &state,
-        initial_energy_j,
-        initial_energy_j,
-        exact_discrete_concentration_scale_m,
-        initial_scale_m,
+        PassiveScaleDriftPointMeasurements {
+            initial_energy_j,
+            measured_energy_j: initial_energy_j,
+            exact_discrete_energy_j: initial_energy_j,
+            exact_discrete_concentration_scale_m,
+            measured_concentration_scale_m: initial_scale_m,
+        },
         initial_concentration,
         None,
     )?;
@@ -280,17 +283,22 @@ pub fn run_passive_taylor_green_concentration_scale_drift(
             return Err(PassiveConcentrationScaleDriftError::InvalidExactControl);
         }
         let concentration = measure_vorticity_concentration_scale(&state)?;
-        if concentration.diagnostic_profile != diagnostic_profile {
+        if concentration.diagnostic_profile != diagnostic_profile
+            || concentration.time_s.to_bits() != state.time_s().to_bits()
+        {
             return Err(PassiveConcentrationScaleDriftError::InvalidExactControl);
         }
         let measured_concentration_scale_m = measured_scale(&concentration)?;
         let point = make_point(
             step_index,
             &state,
-            measured_energy_j,
-            exact_discrete_energy_j,
-            exact_discrete_concentration_scale_m,
-            measured_concentration_scale_m,
+            PassiveScaleDriftPointMeasurements {
+                initial_energy_j,
+                measured_energy_j,
+                exact_discrete_energy_j,
+                exact_discrete_concentration_scale_m,
+                measured_concentration_scale_m,
+            },
             concentration,
             Some(context),
         )?;
@@ -376,27 +384,30 @@ fn exact_discrete_concentration_scale(
     Ok(scale_m)
 }
 
-fn make_point(
-    step_index: usize,
-    state: &PeriodicMac2d,
+#[derive(Clone, Copy, Debug)]
+struct PassiveScaleDriftPointMeasurements {
+    initial_energy_j: f64,
     measured_energy_j: f64,
     exact_discrete_energy_j: f64,
     exact_discrete_concentration_scale_m: f64,
     measured_concentration_scale_m: f64,
+}
+
+fn make_point(
+    step_index: usize,
+    state: &PeriodicMac2d,
+    measurements: PassiveScaleDriftPointMeasurements,
     concentration: VorticityConcentrationScaleReport,
     step_context: Option<PassiveScaleDriftStepContext>,
 ) -> Result<PassiveConcentrationScaleDriftPoint, PassiveConcentrationScaleDriftError> {
+    let PassiveScaleDriftPointMeasurements {
+        initial_energy_j,
+        measured_energy_j,
+        exact_discrete_energy_j,
+        exact_discrete_concentration_scale_m,
+        measured_concentration_scale_m,
+    } = measurements;
     let cumulative_excess_resolved_energy_loss_j = exact_discrete_energy_j - measured_energy_j;
-    let initial_energy_j = if step_index == 0 {
-        measured_energy_j
-    } else {
-        // The caller normalizes with the report's fixed initial value after this
-        // helper; use exact time-zero recovery from the current exact energy.
-        let config = state.config();
-        let k_per_m = std::f64::consts::TAU / config.length_x_m;
-        let rate = 4.0 * config.kinematic_viscosity_m2_s * k_per_m * k_per_m;
-        exact_discrete_energy_j * (rate * state.time_s()).exp()
-    };
     let cumulative_excess_loss_fraction_of_initial =
         cumulative_excess_resolved_energy_loss_j / initial_energy_j;
     let concentration_scale_drift_m =
