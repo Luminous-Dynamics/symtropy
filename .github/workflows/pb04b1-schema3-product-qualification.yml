@@ -1,0 +1,124 @@
+name: PB-04b1 Schema3 Product Qualification
+
+on:
+  push:
+    branches:
+      - "ci/pb04b1-schema3-product-qual-6e08a05"
+    paths:
+      - ".github/workflows/pb04b1-schema3-product-qualification.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  qualify-product:
+    name: Qualify immutable PB-04b1 schema3 product
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout qualification harness
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+
+      - name: Bind exact harness lineage
+        shell: bash
+        run: |
+          set -euo pipefail
+          product=6e08a053cbdf8ef35c2a9b14e439705a3b844be2
+          test "$(git rev-parse HEAD)" = "${GITHUB_SHA}"
+          test "$(git rev-parse HEAD^)" = "${product}"
+          actual="$(git diff --name-only ${product}..HEAD)"
+          expected=".github/workflows/pb04b1-schema3-product-qualification.yml"
+          test "${actual}" = "${expected}"
+
+      - name: Checkout immutable PB-04b1 schema3 product
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: 6e08a053cbdf8ef35c2a9b14e439705a3b844be2
+          fetch-depth: 0
+
+      - name: Bind exact immutable product
+        shell: bash
+        run: |
+          set -euo pipefail
+          product=6e08a053cbdf8ef35c2a9b14e439705a3b844be2
+          test "$(git rev-parse HEAD)" = "${product}"
+          test "$(git rev-parse HEAD^{tree})" = "4477c58dd76f61e1f0eac2ffbfe3115cd35f1015"
+          test "$(git rev-parse HEAD^)" = "ccb3b6e4b24fce20c47fbfd3e34af15a9e836e5d"
+          test "$(git rev-parse HEAD:crates/domains/symtropy-spatial-decomposition/Cargo.lock)" = "676fd6a7eb31a2ec00b09c9496b42c568e791556"
+          test "$(git rev-parse HEAD:crates/domains/symtropy-spatial-decomposition/Cargo.toml)" = "614fa7d2e293809faaef10649cf3beb02475c259"
+          test "$(git rev-parse HEAD:crates/domains/symtropy-spatial-decomposition/src/lib.rs)" = "27df81c6a06a1d59a04dfd951c76e27a2c5d7a18"
+          test "$(git rev-parse HEAD:crates/domains/symtropy-spatial-decomposition/tests/local_identity.rs)" = "ea93ff96e172027bce604b6438c7ba124a6d54e3"
+          test "$(git rev-parse HEAD:crates/domains/symtropy-spatial-decomposition/tests/complete_local_coverage.rs)" = "b01ecedb068db1db370c6f7e9d6c991b590c3d95"
+          echo "PB04B1_PRODUCT_HEAD=${product}"
+          echo "PB04B1_PRODUCT_TREE=$(git rev-parse HEAD^{tree})"
+          echo "CARGO_TARGET_DIR=${RUNNER_TEMP}/pb04b1-schema3-qualified-target" >> "${GITHUB_ENV}"
+
+      - name: Record hosted execution environment
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "PB04B1_RUNNER_OS=${RUNNER_OS}"
+          echo "PB04B1_RUNNER_ARCH=${RUNNER_ARCH}"
+          echo "PB04B1_IMAGE_OS=${ImageOS:-unknown}"
+          echo "PB04B1_IMAGE_VERSION=${ImageVersion:-unknown}"
+          uname -a
+          git --version
+
+      - name: Set up pinned Rust
+        uses: dtolnay/rust-toolchain@6bed0761d98439e5a578e2877258200ad565ba87
+        with:
+          toolchain: 1.96.0
+          components: clippy, rustfmt
+
+      - name: Bind exact Rust toolchain
+        shell: bash
+        run: |
+          set -euo pipefail
+          rustc -Vv
+          cargo -Vv
+          rustfmt --version
+          cargo clippy --version
+
+      - name: Verify locked dependency graph
+        shell: bash
+        run: |
+          set -euo pipefail
+          manifest="crates/domains/symtropy-spatial-decomposition/Cargo.toml"
+          cargo metadata --manifest-path "${manifest}" --locked --format-version 1 > "${RUNNER_TEMP}/pb04b1-schema3-metadata.json"
+          echo "PB04B1_LOCKED_METADATA_SHA256=$(sha256sum "${RUNNER_TEMP}/pb04b1-schema3-metadata.json" | awk '{print $1}')"
+
+      - name: Check formatting
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo fmt --manifest-path crates/domains/symtropy-spatial-decomposition/Cargo.toml -- --check
+
+      - name: Check
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo check --manifest-path crates/domains/symtropy-spatial-decomposition/Cargo.toml --locked --all-targets
+
+      - name: Test
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo test --manifest-path crates/domains/symtropy-spatial-decomposition/Cargo.toml --locked
+
+      - name: Strict Clippy
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo clippy --manifest-path crates/domains/symtropy-spatial-decomposition/Cargo.toml --locked --all-targets -- -D warnings
+
+      - name: Exact immutable-product postflight
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "6e08a053cbdf8ef35c2a9b14e439705a3b844be2"
+          test "$(git rev-parse HEAD^{tree})" = "4477c58dd76f61e1f0eac2ffbfe3115cd35f1015"
+          git diff --exit-code
+          test -z "$(git status --porcelain)"
+          test ! -e crates/domains/symtropy-spatial-decomposition/target
