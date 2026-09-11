@@ -23,6 +23,8 @@ use crate::reference::{PeriodicMac2d, ReferenceConfigError};
 
 pub const VORTICITY_CONCENTRATION_SCALE_SCHEMA_ID: &str =
     "periodic-mac-vorticity-gradient-concentration-scale-v0.1";
+pub const VORTICITY_CONCENTRATION_SCALE_OPERATOR_ID: &str =
+    "mac-dual-curl-periodic-forward-vorticity-gradient-v0.1";
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub enum VorticityConcentrationScaleUnavailableReason {
@@ -41,9 +43,13 @@ pub enum VorticityConcentrationScaleValue {
         length_m: f64,
         /// Conservative cell count based on the coarsest axis spacing.
         cells_per_length: f64,
-        effective_wavenumber_per_m: f64,
-        /// Effective wavenumber divided by the smallest axis Nyquist wavenumber.
-        effective_to_minimum_axis_nyquist_ratio: f64,
+        /// `1 / length_m`; an operator-derived RMS wavenumber proxy, not a
+        /// declaration of the literal dominant Fourier mode.
+        inverse_length_wavenumber_proxy_per_m: f64,
+        /// Proxy wavenumber divided by the smallest axis Nyquist wavenumber.
+        /// This is an operator-response ratio and need not equal one for a
+        /// checkerboard/Nyquist fixture.
+        inverse_length_to_minimum_axis_nyquist_ratio: f64,
     },
     Unavailable(VorticityConcentrationScaleUnavailableReason),
 }
@@ -51,7 +57,13 @@ pub enum VorticityConcentrationScaleValue {
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct VorticityConcentrationScaleReport {
     pub schema_id: String,
+    pub operator_id: String,
     pub solver_profile: String,
+    /// Composite identity suitable for a diagnostic sample that hydrates this
+    /// concentration scale. Changing either solver or estimator operator must
+    /// change this identity.
+    pub diagnostic_profile: String,
+    pub time_s: f64,
     pub nx: usize,
     pub ny: usize,
     pub dx_m: f64,
@@ -93,12 +105,22 @@ impl From<ReferenceConfigError> for VorticityConcentrationScaleError {
     }
 }
 
+pub fn vorticity_concentration_diagnostic_profile(state: &PeriodicMac2d) -> String {
+    format!(
+        "{};concentration_scale_operator={VORTICITY_CONCENTRATION_SCALE_OPERATOR_ID}",
+        state.config().profile_identity()
+    )
+}
+
 pub fn measure_vorticity_concentration_scale(
     state: &PeriodicMac2d,
 ) -> Result<VorticityConcentrationScaleReport, VorticityConcentrationScaleError> {
     let config = state.config();
     config.validate()?;
 
+    let solver_profile = config.profile_identity();
+    let diagnostic_profile = vorticity_concentration_diagnostic_profile(state);
+    let time_s = state.time_s();
     let nx = config.nx;
     let ny = config.ny;
     let dx_m = config.dx();
@@ -107,6 +129,8 @@ pub fn measure_vorticity_concentration_scale(
     let maximum_grid_spacing_m = dx_m.max(dy_m);
     let minimum_axis_nyquist_wavenumber_per_m =
         (std::f64::consts::PI / dx_m).min(std::f64::consts::PI / dy_m);
+
+    ensure_finite("time_s", time_s)?;
 
     // Natural dual-grid MAC curl at corner (i*dx, j*dy):
     // omega = d(v)/dx - d(u)/dy. These staggered first differences remain
@@ -200,16 +224,19 @@ pub fn measure_vorticity_concentration_scale(
     } else {
         let length_m = rms_vorticity_per_s / rms_vorticity_gradient_per_m_s;
         let cells_per_length = length_m / maximum_grid_spacing_m;
-        let effective_wavenumber_per_m = 1.0 / length_m;
-        let effective_to_minimum_axis_nyquist_ratio =
-            effective_wavenumber_per_m / minimum_axis_nyquist_wavenumber_per_m;
+        let inverse_length_wavenumber_proxy_per_m = 1.0 / length_m;
+        let inverse_length_to_minimum_axis_nyquist_ratio =
+            inverse_length_wavenumber_proxy_per_m / minimum_axis_nyquist_wavenumber_per_m;
         for (name, value) in [
             ("length_m", length_m),
             ("cells_per_length", cells_per_length),
-            ("effective_wavenumber_per_m", effective_wavenumber_per_m),
             (
-                "effective_to_minimum_axis_nyquist_ratio",
-                effective_to_minimum_axis_nyquist_ratio,
+                "inverse_length_wavenumber_proxy_per_m",
+                inverse_length_wavenumber_proxy_per_m,
+            ),
+            (
+                "inverse_length_to_minimum_axis_nyquist_ratio",
+                inverse_length_to_minimum_axis_nyquist_ratio,
             ),
         ] {
             if !value.is_finite() || value <= 0.0 {
@@ -219,14 +246,17 @@ pub fn measure_vorticity_concentration_scale(
         VorticityConcentrationScaleValue::Measured {
             length_m,
             cells_per_length,
-            effective_wavenumber_per_m,
-            effective_to_minimum_axis_nyquist_ratio,
+            inverse_length_wavenumber_proxy_per_m,
+            inverse_length_to_minimum_axis_nyquist_ratio,
         }
     };
 
     Ok(VorticityConcentrationScaleReport {
         schema_id: VORTICITY_CONCENTRATION_SCALE_SCHEMA_ID.to_owned(),
-        solver_profile: config.profile_identity(),
+        operator_id: VORTICITY_CONCENTRATION_SCALE_OPERATOR_ID.to_owned(),
+        solver_profile,
+        diagnostic_profile,
+        time_s,
         nx,
         ny,
         dx_m,
@@ -292,6 +322,18 @@ mod tests {
                 panic!("expected measured vorticity scale, got {reason:?}")
             }
         }
+    }
+
+    #[test]
+    fn report_binds_estimator_operator_and_time() {
+        let state = PeriodicMac2d::taylor_green(config(16), 0.08).unwrap();
+        let report = measure_vorticity_concentration_scale(&state).unwrap();
+        assert_eq!(report.operator_id, VORTICITY_CONCENTRATION_SCALE_OPERATOR_ID);
+        assert_eq!(report.time_s, 0.0);
+        assert!(report
+            .diagnostic_profile
+            .contains(VORTICITY_CONCENTRATION_SCALE_OPERATOR_ID));
+        assert!(report.diagnostic_profile.starts_with(&report.solver_profile));
     }
 
     #[test]
