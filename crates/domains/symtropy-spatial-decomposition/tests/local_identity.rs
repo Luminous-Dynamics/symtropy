@@ -48,14 +48,8 @@ fn profile_with(
     quantum_um: i64,
     budget: WorkBudget,
 ) -> DecompositionProfile {
-    DecompositionProfile::new(
-        sid(id),
-        revision,
-        sid(backend),
-        quantum_um,
-        budget,
-    )
-    .expect("test profile")
+    DecompositionProfile::new(sid(id), revision, sid(backend), quantum_um, budget)
+        .expect("test profile")
 }
 
 fn domain() -> AnalysisDomain {
@@ -76,14 +70,8 @@ fn domain_in_frame(
     origin: Point3i,
     dimensions: [u32; 3],
 ) -> AnalysisDomain {
-    AnalysisDomain::new_in_frame(
-        sid(id),
-        revision,
-        coordinate_frame,
-        origin,
-        dimensions,
-    )
-    .expect("test domain")
+    AnalysisDomain::new_in_frame(sid(id), revision, coordinate_frame, origin, dimensions)
+        .expect("test domain")
 }
 
 fn separator() -> ExactSourceRef {
@@ -357,7 +345,10 @@ fn shifted_analysis_windows_preserve_the_same_physical_locus_ids() {
         doorway_cut_at(CellCoord::new(0, 0, 0), vec![barrier(9, "same-door")]),
     );
 
-    assert_ne!(wide_snapshot.content_digest(), shifted_snapshot.content_digest());
+    assert_ne!(
+        wide_snapshot.content_digest(),
+        shifted_snapshot.content_digest()
+    );
     assert_eq!(
         fragment_ids_for_cell(&wide_snapshot, CellCoord::new(1, 0, 0)),
         fragment_ids_for_cell(&shifted_snapshot, CellCoord::new(0, 0, 0))
