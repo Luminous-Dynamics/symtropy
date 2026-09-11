@@ -33,7 +33,7 @@ pub enum VorticityConcentrationScaleUnavailableReason {
     ZeroVorticityGradient,
 }
 
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
 pub enum VorticityConcentrationScaleValue {
     Measured {
         length_m: f64,
@@ -75,7 +75,10 @@ impl fmt::Display for VorticityConcentrationScaleError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::NonFiniteDerivedMetric(name) => {
-                write!(f, "derived vorticity concentration-scale metric {name} is non-finite")
+                write!(
+                    f,
+                    "derived vorticity concentration-scale metric {name} is non-finite"
+                )
             }
             Self::Config(source) => write!(f, "invalid reference configuration: {source}"),
         }
@@ -112,11 +115,11 @@ pub fn measure_vorticity_concentration_scale(
         let north = next(j, ny);
         for i in 0..nx {
             let east = next(i, nx);
-            let index = index(i, j, nx);
-            cell_u[index] =
-                0.5 * (state.u_faces()[index] + state.u_faces()[index(east, j, nx)]);
-            cell_v[index] =
-                0.5 * (state.v_faces()[index] + state.v_faces()[index(i, north, nx)]);
+            let cell_index = index(i, j, nx);
+            cell_u[cell_index] = 0.5
+                * (state.u_faces()[cell_index] + state.u_faces()[index(east, j, nx)]);
+            cell_v[cell_index] = 0.5
+                * (state.v_faces()[cell_index] + state.v_faces()[index(i, north, nx)]);
         }
     }
 
@@ -335,13 +338,20 @@ mod tests {
         let fine = PeriodicMac2d::taylor_green(config(48), 0.08).unwrap();
         let coarse = measure_vorticity_concentration_scale(&coarse).unwrap();
         let fine = measure_vorticity_concentration_scale(&fine).unwrap();
-        assert!((measured_length(&fine) - continuum).abs() < (measured_length(&coarse) - continuum).abs());
+        assert!(
+            (measured_length(&fine) - continuum).abs()
+                < (measured_length(&coarse) - continuum).abs()
+        );
         let coarse_cells = match coarse.scale {
-            VorticityConcentrationScaleValue::Measured { cells_per_length, .. } => cells_per_length,
+            VorticityConcentrationScaleValue::Measured {
+                cells_per_length, ..
+            } => cells_per_length,
             _ => unreachable!(),
         };
         let fine_cells = match fine.scale {
-            VorticityConcentrationScaleValue::Measured { cells_per_length, .. } => cells_per_length,
+            VorticityConcentrationScaleValue::Measured {
+                cells_per_length, ..
+            } => cells_per_length,
             _ => unreachable!(),
         };
         assert!(fine_cells > coarse_cells);
