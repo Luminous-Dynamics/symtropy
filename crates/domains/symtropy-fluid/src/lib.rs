@@ -34,9 +34,11 @@
 //! future semantic refinement decisions without embedding renderer/backend load,
 //! [`problem_revision_envelope`] binds future evaluations to exact canonical
 //! state/snapshot/source/forcing/boundary/process revisions without granting
-//! refinement authority, and [`validity_evidence_lineage`] preserves append-only
+//! refinement authority, [`validity_evidence_lineage`] preserves append-only
 //! continuum validity history so later refinement cannot erase earlier
-//! under-resolution or solver-failure evidence.
+//! under-resolution or solver-failure evidence, and [`process_error_requirements`]
+//! binds process-owned numerical tolerances to exact error evidence identities
+//! without evaluating them or creating universal resolution thresholds.
 //! None of these modules should be read as a claim that Symtropy currently
 //! reproduces the 2026 singular construction or has a production Earth-water
 //! CFD backend.
@@ -53,6 +55,7 @@ pub mod manufactured_iterative;
 pub mod manufactured_update_defect;
 pub mod numerical_observability;
 pub mod problem_revision_envelope;
+pub mod process_error_requirements;
 pub mod reference;
 pub mod refinement_policy_contract;
 pub mod smooth_scale_separation;
