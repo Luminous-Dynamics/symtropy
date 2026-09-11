@@ -22,6 +22,7 @@ mod demographic_sampling;
 mod demographic_source_authority;
 mod demographic_split_execution;
 mod demographic_structure_transition;
+mod descendant_ancestry;
 mod error;
 mod gamete_ancestry;
 mod haldane;
@@ -99,6 +100,14 @@ pub use demographic_split_execution::{
 };
 pub use demographic_structure_transition::{
     DemographicStructureTransition, DemographicStructureTransitionDigest,
+};
+pub use descendant_ancestry::{
+    derive_descendant_ancestry, DescendantAncestryDerivation,
+    DescendantAncestryDerivationProvenance, DescendantAncestryDerivationProvenanceDigest,
+    DescendantAncestryError, DescendantAncestryMaterialization,
+    DescendantAncestryMaterializationDigest, DescendantChromosomeCopy,
+    ModeledAncestryInheritanceEdge, DESCENDANT_ANCESTRY_DERIVATION_VERSION,
+    DESCENDANT_ANCESTRY_MATERIALIZATION_VERSION,
 };
 pub use error::EvolutionError;
 pub use gamete_ancestry::{
