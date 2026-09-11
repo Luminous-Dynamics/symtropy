@@ -154,6 +154,17 @@ jobs:
     - name: Hash Passive Excess Energy Decay Evidence
       run: sha256sum passive-excess-energy-decay-evidence.json > passive-excess-energy-decay-evidence.json.sha256
 
+    # Manufactured one-step update defect is retained separately so spatial,
+    # temporal, and forcing-phase behavior can be inspected without turning the
+    # residual into an automatic refinement verdict.
+    - name: Generate Manufactured Update Defect Evidence
+      env:
+        SYMTROPY_EVIDENCE_SOURCE_REVISION: ${{ github.event.pull_request.head.sha || github.sha }}
+      run: cargo run --locked -p symtropy-fluid --example manufactured_update_defect_evidence --quiet > manufactured-update-defect-evidence.json
+
+    - name: Hash Manufactured Update Defect Evidence
+      run: sha256sum manufactured-update-defect-evidence.json > manufactured-update-defect-evidence.json.sha256
+
     - name: Upload Fluid Verification Evidence
       uses: actions/upload-artifact@v4
       with:
@@ -165,5 +176,7 @@ jobs:
           manufactured-iterative-evidence.json.sha256
           passive-excess-energy-decay-evidence.json
           passive-excess-energy-decay-evidence.json.sha256
+          manufactured-update-defect-evidence.json
+          manufactured-update-defect-evidence.json.sha256
         if-no-files-found: error
         retention-days: 30

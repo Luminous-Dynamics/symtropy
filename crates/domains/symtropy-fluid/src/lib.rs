@@ -19,9 +19,11 @@
 //! projection-only solution change on a controlled compressive fixture,
 //! [`verification_regime`] summarizes within-fixture refinement trends without a
 //! promotion verdict, [`manufactured_iterative`] measures pressure-iteration
-//! sensitivity on the exact manufactured Taylor-Green trajectory itself, and
+//! sensitivity on the exact manufactured Taylor-Green trajectory itself,
 //! [`excess_energy_decay`] measures resolved kinetic-energy loss relative to the
-//! exact passive Taylor-Green viscous decay in the same discrete quadrature.
+//! exact passive Taylor-Green viscous decay in the same discrete quadrature, and
+//! [`manufactured_update_defect`] measures the one-step discrete operator defect
+//! against the exact forced manufactured trajectory.
 //! None of these modules should be read as a claim that Symtropy currently
 //! reproduces the 2026 singular construction or has a production Earth-water
 //! CFD backend.
@@ -34,6 +36,7 @@ pub mod falsification;
 pub mod iterative_error;
 pub mod manufactured;
 pub mod manufactured_iterative;
+pub mod manufactured_update_defect;
 pub mod numerical_observability;
 pub mod reference;
 pub mod validation;
