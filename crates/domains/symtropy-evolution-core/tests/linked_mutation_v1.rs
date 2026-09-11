@@ -1,3 +1,5 @@
+use std::collections::BTreeSet;
+
 use symtropy_evolution_core::{
     append_descendant_ancestry_to_graph, assemble_diploid_linked_offspring_from_evidence,
     derive_descendant_ancestry, derive_modeled_gamete_ancestry,
@@ -19,9 +21,7 @@ fn allele(id: &str) -> AlleleId { AlleleId::new(id).unwrap() }
 fn locus(id: &str) -> LocusId { LocusId::new(id).unwrap() }
 fn chromosome() -> ChromosomeId { ChromosomeId::new("chr-a").unwrap() }
 fn ancestry(id: &str) -> AncestryCopyId { AncestryCopyId::new(id).unwrap() }
-fn pos(value: u64) -> GeneticMapPositionMicromorgans {
-    GeneticMapPositionMicromorgans::new(value)
-}
+fn pos(value: u64) -> GeneticMapPositionMicromorgans { GeneticMapPositionMicromorgans::new(value) }
 
 fn schema() -> HereditarySchema {
     HereditarySchema::new(
@@ -224,13 +224,17 @@ fn zero_rate_records_complete_rate_miss_census_and_preserves_child() {
         &f.source_b, &f.profile_b, &f.gamete_b,
         &f.descendant.materialization.reproduction_event_id,
     ).unwrap();
-    assert_eq!(execution.mutated_child, unmutated.child);
+    assert_eq!(&execution.mutated_child, &unmutated.child);
+    assert_eq!(&execution.mutated_child_ancestry, &f.descendant.child_ancestry);
     assert_eq!(execution.mutated_child_digest(), execution.unmutated_child_digest());
+    execution.mutated_child_ancestry.validate_current(
+        &f.schema, &f.map, &execution.mutated_child,
+    ).unwrap();
     validate(&execution, &f, &authority).unwrap();
 }
 
 #[test]
-fn maximum_rate_substitutes_polymorphic_loci_and_records_monomorphic_noop() {
+fn maximum_rate_substitutes_polymorphic_loci_and_preserves_copy_identity() {
     let f = fixture("mut-05b-max-rate");
     let authority = operators(PROBABILITY_SCALE_PPM);
     let execution = execute(&f, &authority);
@@ -258,6 +262,17 @@ fn maximum_rate_substitutes_polymorphic_loci_and_records_monomorphic_noop() {
         assert!(f.schema.loci[&opportunity.locus_id].allowed_alleles.contains(origin.derived_allele()));
     }
     assert_ne!(execution.mutated_child_digest(), execution.unmutated_child_digest());
+    execution.mutated_child_ancestry.validate_current(
+        &f.schema, &f.map, &execution.mutated_child,
+    ).unwrap();
+
+    let expected_ids: BTreeSet<_> = f.descendant.materialization.descendant_copies
+        .iter().map(|copy| copy.child_copy_id.clone()).collect();
+    let mutated_ids: BTreeSet<_> = execution.mutated_child_ancestry.chromosomes.values()
+        .flat_map(|chromosome| chromosome.classes.iter())
+        .flat_map(|class| class.copy_ids.iter().cloned())
+        .collect();
+    assert_eq!(mutated_ids, expected_ids);
     validate(&execution, &f, &authority).unwrap();
 }
 
@@ -279,7 +294,7 @@ fn persistent_copy_identity_not_canonical_row_position_addresses_mutation() {
 }
 
 #[test]
-fn restored_execution_fails_closed_on_operator_or_opportunity_drift() {
+fn restored_execution_fails_closed_on_operator_opportunity_or_ancestry_drift() {
     let f = fixture("mut-05b-replay");
     let authority = operators(450_000);
     let execution = execute(&f, &authority);
@@ -292,8 +307,13 @@ fn restored_execution_fails_closed_on_operator_or_opportunity_drift() {
 
     assert!(validate(&restored, &f, &operators(450_001)).is_err());
 
-    let mut tampered = restored.clone();
-    tampered.opportunities[0].occurrence_draw_ppm =
-        tampered.opportunities[0].occurrence_draw_ppm.wrapping_add(1);
-    assert!(validate(&tampered, &f, &authority).is_err());
+    let mut opportunity_tamper = restored.clone();
+    opportunity_tamper.opportunities[0].occurrence_draw_ppm =
+        opportunity_tamper.opportunities[0].occurrence_draw_ppm.wrapping_add(1);
+    assert!(validate(&opportunity_tamper, &f, &authority).is_err());
+
+    let mut ancestry_tamper = restored;
+    ancestry_tamper.mutated_child_ancestry.chromosomes
+        .get_mut(&chromosome()).unwrap().classes[0].copy_ids.clear();
+    assert!(validate(&ancestry_tamper, &f, &authority).is_err());
 }
