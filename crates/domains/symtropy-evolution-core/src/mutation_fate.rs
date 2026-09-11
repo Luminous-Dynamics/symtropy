@@ -352,6 +352,23 @@ fn validate_locus(locus: &MutationFateLocusObservation) -> Result<(), MutationFa
         return Err(MutationFateError::NonCanonicalAlleleOriginOrder);
     }
 
+    let mut allele_by_id = BTreeMap::new();
+    for count in &locus.allele_counts {
+        if count.count == 0 || allele_by_id.insert(count.allele_id.clone(), count.count).is_some() {
+            return Err(MutationFateError::LocusCountMismatch);
+        }
+    }
+    for count in &locus.origin_counts {
+        if count.count == 0 {
+            return Err(MutationFateError::LocusCountMismatch);
+        }
+    }
+    for count in &locus.allele_origin_counts {
+        if count.count == 0 || !allele_by_id.contains_key(&count.allele_id) {
+            return Err(MutationFateError::LocusCountMismatch);
+        }
+    }
+
     let allele_total = sum_counts(locus.allele_counts.iter().map(|count| count.count))?;
     if allele_total != locus.total_copy_count {
         return Err(MutationFateError::LocusCountMismatch);
@@ -371,10 +388,20 @@ fn validate_locus(locus: &MutationFateLocusObservation) -> Result<(), MutationFa
         origin_by_key.insert(*count.origin_digest.as_bytes(), count.count);
     }
     let mut origin_from_pairs: BTreeMap<[u8; 32], u64> = BTreeMap::new();
+    let mut attributed_by_allele: BTreeMap<AlleleId, u64> = BTreeMap::new();
     for count in &locus.allele_origin_counts {
         let key = *count.origin_digest.as_bytes();
-        let value = origin_from_pairs.entry(key).or_insert(0);
-        *value = checked_add(*value, count.count)?;
+        let origin_value = origin_from_pairs.entry(key).or_insert(0);
+        *origin_value = checked_add(*origin_value, count.count)?;
+
+        let allele_value = attributed_by_allele.entry(count.allele_id.clone()).or_insert(0);
+        *allele_value = checked_add(*allele_value, count.count)?;
+        let total_for_allele = allele_by_id
+            .get(&count.allele_id)
+            .ok_or(MutationFateError::LocusCountMismatch)?;
+        if *allele_value > *total_for_allele {
+            return Err(MutationFateError::LocusCountMismatch);
+        }
     }
     if origin_by_key != origin_from_pairs {
         return Err(MutationFateError::LocusCountMismatch);
