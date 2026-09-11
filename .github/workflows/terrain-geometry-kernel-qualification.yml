@@ -26,24 +26,38 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
 
-      - name: Bind exact kernel lineage
+      - name: Bind exact formatted kernel lineage
         shell: bash
         run: |
           set -euo pipefail
-          parent=7aa1190fe8390187f1765479978f2ad04e36e974
+          base=7aa1190fe8390187f1765479978f2ad04e36e974
           source_commit=536170e3bb039e66b76ae931cf5fec27c25a58a4
+          formatted_source_commit=1521e1694b037db758e24200e60a2a11d0f883e8
+          formatted_source_blob=8d3e1213eacdeddf693cd2d1f82670d6ed832161
+          kernel_path=crates/domains/symtropy-terrain/src/geometry_kernel.rs
+          qualifier_path=.github/workflows/terrain-geometry-kernel-qualification.yml
+
           test "$(git rev-parse HEAD)" = "${GITHUB_SHA}"
-          test "$(git rev-parse HEAD^)" = "${source_commit}"
-          test "$(git rev-parse HEAD^^)" = "${parent}"
-          test "$(git rev-parse ${source_commit}^)" = "${parent}"
-          actual="$(git diff --name-only ${parent}..HEAD | sort)"
+          test "$(git rev-parse HEAD^)" = "${formatted_source_commit}"
+          test "$(git rev-parse ${source_commit}^)" = "${base}"
+          git merge-base --is-ancestor "${source_commit}" "${formatted_source_commit}"
+          test "$(git rev-parse ${formatted_source_commit}:${kernel_path})" = "${formatted_source_blob}"
+          test "$(git rev-parse HEAD:${kernel_path})" = "${formatted_source_blob}"
+
+          harness_delta="$(git diff --name-only ${formatted_source_commit}..HEAD | sort)"
+          test "${harness_delta}" = "${qualifier_path}"
+
+          actual="$(git diff --name-only ${base}..HEAD | sort)"
           expected="$(printf '%s\n' \
+            .github/workflows/terrain-geometry-kernel-format-freeze.yml \
             .github/workflows/terrain-geometry-kernel-qualification.yml \
             crates/domains/symtropy-terrain/src/geometry_kernel.rs | sort)"
           test "${actual}" = "${expected}"
+
           echo "TERRAIN_GEOMETRY_KERNEL_HEAD=$(git rev-parse HEAD)"
           echo "TERRAIN_GEOMETRY_KERNEL_TREE=$(git rev-parse HEAD^{tree})"
-          echo "TERRAIN_GEOMETRY_KERNEL_BLOB=$(git rev-parse HEAD:crates/domains/symtropy-terrain/src/geometry_kernel.rs)"
+          echo "TERRAIN_GEOMETRY_KERNEL_BLOB=$(git rev-parse HEAD:${kernel_path})"
+          echo "TERRAIN_GEOMETRY_KERNEL_FORMATTED_SOURCE=${formatted_source_commit}"
 
       - name: Set up pinned Rust
         uses: dtolnay/rust-toolchain@6bed0761d98439e5a578e2877258200ad565ba87
@@ -107,5 +121,6 @@ jobs:
           set -euo pipefail
           test -z "$(git status --porcelain)"
           test "$(git rev-parse HEAD)" = "${GITHUB_SHA}"
+          test "$(git rev-parse HEAD:crates/domains/symtropy-terrain/src/geometry_kernel.rs)" = "8d3e1213eacdeddf693cd2d1f82670d6ed832161"
           echo "TERRAIN_GEOMETRY_KERNEL_STATUS=PASS"
           echo "claim=dependency-free exact identity/query kernel only; EarthChunk adapter/provider qualification is separate"
