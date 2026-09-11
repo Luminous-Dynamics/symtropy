@@ -17,9 +17,9 @@ pub mod industrial_ecology;
 pub mod prelude {
     pub use crate::bevy_physics::{BevyPhysicsPlugin, NoCouplingResource, PhysicsBody};
     pub use crate::industrial_ecology::{
-        DependencyShortage, IndustrialCapability, IndustrialDependencyState, IndustrialEcology,
-        IndustrialEcologyError, IndustrialGovernance, IndustrialShock, IndustrialTickReport,
-        IndustrialViabilityOutcome,
+        BlockedIndustrialFlow, DependencyShortage, IndustrialCapability, IndustrialDependencyState,
+        IndustrialEcology, IndustrialEcologyError, IndustrialFlowKind, IndustrialFlowPrerequisite,
+        IndustrialGovernance, IndustrialShock, IndustrialTickReport, IndustrialViabilityOutcome,
     };
     pub use crate::math::Point;
     pub use crate::physics::body::BodyHandle;
