@@ -15,10 +15,20 @@ env:
 
 jobs:
   test:
+    # Living World exact-head qualification helpers have their own dedicated,
+    # immutable-product workflows. Running the full 3-OS workspace matrix on
+    # those helper PRs duplicates runner demand without adding product evidence.
+    # Product/oracle PRs keep normal CI; pushes to main/stabilize also keep it
+    # because github.head_ref is empty outside pull_request events.
     if: ${{ !startsWith(github.head_ref, 'ci/living-world-') }}
     name: Test Suite (${{ matrix.os }})
     runs-on: ${{ matrix.os }}
     strategy:
+      # Legs must report independently. Under the default fail-fast, the
+      # ubuntu leg's failure cancelled windows and macos mid-run, so from
+      # 2026-06-21 to 2026-07-28 their status was simply unknown -- we could
+      # not tell whether the Windows checkout problem diagnosed on 2026-07-13
+      # was fixed, because Windows never got to finish again.
       fail-fast: false
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
@@ -32,6 +42,9 @@ jobs:
         sudo apt-get update
         sudo apt-get install -y libasound2-dev libudev-dev pkg-config
 
+    # Keep CI on the same explicit toolchain as rust-toolchain.toml. The action
+    # ref remains stable, but the installed compiler/lints are pinned so an
+    # unrelated Rust release cannot turn the repository red.
     - name: Set up Rust
       uses: dtolnay/rust-toolchain@stable
       with:
@@ -44,6 +57,15 @@ jobs:
     - name: Check Formatting
       run: cargo fmt --all -- --check
 
+    # Repo-invariant guards. These scripts existed since at least June but were
+    # wired into nothing, so both of them silently failed against the tree for
+    # weeks: check-workspace.sh still asserted `Bevy 0.18.1` (the workspace has
+    # been on 0.19.0 since the dual-bevy cleanup) plus a hardcoded 14-crate
+    # member list against 60 real members, and check-licenses.sh was finding 13
+    # crates with no `license` field and a real SPDX mismatch. Both are now
+    # repaired and enforced. Linux only -- they are filesystem/manifest checks
+    # with no platform-specific behaviour, and rg/python3 are not guaranteed on
+    # the Windows and macOS runners.
     - name: Workspace Invariants (members, single Bevy, portable paths, no placeholders)
       if: runner.os == 'Linux'
       run: bash scripts/check-workspace.sh
@@ -58,12 +80,19 @@ jobs:
     - name: Run Tests (Physics Core)
       run: cargo test -p symtropy-math -p symtropy-physics -p symtropy-consciousness-physics --lib
 
+    # Run the complete fluid package test surface, including integration tests.
+    # Passing this step qualifies executable verification code only; it does not
+    # turn the SPH scaffold or CPU reference solver into a production CFD claim.
     - name: Run Tests (Fluid Validation)
       run: cargo test -p symtropy-fluid
 
     - name: Verify Workspace Build
       run: cargo check --workspace --all-targets
 
+  # Canonical evidence is generated from the exact source head, not the
+  # synthetic pull-request merge ref used by the compatibility matrix above.
+  # This lane deliberately repeats the fluid test on that exact tree so the
+  # retained measurements and their executable test subject are identical.
   fluid-evidence:
     name: Fluid Evidence (exact head)
     runs-on: ubuntu-latest
@@ -85,6 +114,8 @@ jobs:
     - name: Check Formatting
       run: cargo fmt --all -- --check
 
+    # Fail before any dependency-resolving build if the committed lock does not
+    # represent this exact workspace source.
     - name: Verify Locked Dependency Graph
       run: cargo metadata --locked --format-version 1 --no-deps > /dev/null
 
@@ -99,6 +130,10 @@ jobs:
     - name: Hash Fluid Verification Evidence
       run: sha256sum continuum-verification-evidence.json > continuum-verification-evidence.json.sha256
 
+    # Keep same-case pressure-iteration sensitivity separate from the V0.6
+    # omnibus bundle. The 400-iteration point exactly matches the finest
+    # manufactured temporal control; 800 iterations is only a higher numerical
+    # reference, not continuum truth or an acceptance threshold.
     - name: Generate Manufactured Iterative Evidence
       env:
         SYMTROPY_EVIDENCE_SOURCE_REVISION: ${{ github.event.pull_request.head.sha || github.sha }}
@@ -107,6 +142,10 @@ jobs:
     - name: Hash Manufactured Iterative Evidence
       run: sha256sum manufactured-iterative-evidence.json > manufactured-iterative-evidence.json.sha256
 
+    # Keep false-smoothness observability independent as well. This document
+    # compares resolved kinetic-energy loss to the exact viscous Taylor-Green
+    # decay in the same discrete quadrature; it does not call the excess pure
+    # physical or numerical dissipation and freezes no acceptance threshold.
     - name: Generate Passive Excess Energy Decay Evidence
       env:
         SYMTROPY_EVIDENCE_SOURCE_REVISION: ${{ github.event.pull_request.head.sha || github.sha }}
@@ -115,6 +154,9 @@ jobs:
     - name: Hash Passive Excess Energy Decay Evidence
       run: sha256sum passive-excess-energy-decay-evidence.json > passive-excess-energy-decay-evidence.json.sha256
 
+    # Manufactured one-step update defect is retained separately so spatial,
+    # temporal, and forcing-phase behavior can be inspected without turning the
+    # residual into an automatic refinement verdict.
     - name: Generate Manufactured Update Defect Evidence
       env:
         SYMTROPY_EVIDENCE_SOURCE_REVISION: ${{ github.event.pull_request.head.sha || github.sha }}
