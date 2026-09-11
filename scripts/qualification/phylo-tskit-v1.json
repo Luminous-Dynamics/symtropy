@@ -1,0 +1,188 @@
+{
+  "fixture_version": 1,
+  "description": "Qualification-only modeled-locus ancestry cases for tskit 1.0.3.",
+  "cases": [
+    {
+      "name": "unary_chain",
+      "loci": ["a"],
+      "nodes": [
+        {"id": "root", "generation": 0},
+        {"id": "x", "generation": 1},
+        {"id": "focal", "generation": 2}
+      ],
+      "edges": [
+        {"locus": "a", "source": "root", "child": "x"},
+        {"locus": "a", "source": "x", "child": "focal"}
+      ],
+      "focal": ["focal"],
+      "protected": [],
+      "expected": {
+        "retained": ["root", "focal"],
+        "removed": ["x"],
+        "edges": [
+          {"locus": "a", "source": "root", "child": "focal"}
+        ]
+      }
+    },
+    {
+      "name": "protected_unary_anchor",
+      "loci": ["a"],
+      "nodes": [
+        {"id": "root", "generation": 0},
+        {"id": "anchor", "generation": 1},
+        {"id": "focal", "generation": 2}
+      ],
+      "edges": [
+        {"locus": "a", "source": "root", "child": "anchor"},
+        {"locus": "a", "source": "anchor", "child": "focal"}
+      ],
+      "focal": ["focal"],
+      "protected": ["anchor"],
+      "expected": {
+        "retained": ["root", "anchor", "focal"],
+        "removed": [],
+        "edges": [
+          {"locus": "a", "source": "root", "child": "anchor"},
+          {"locus": "a", "source": "anchor", "child": "focal"}
+        ]
+      }
+    },
+    {
+      "name": "two_focal_branch",
+      "loci": ["a"],
+      "nodes": [
+        {"id": "root", "generation": 0},
+        {"id": "branch", "generation": 1},
+        {"id": "left", "generation": 2},
+        {"id": "right", "generation": 2}
+      ],
+      "edges": [
+        {"locus": "a", "source": "root", "child": "branch"},
+        {"locus": "a", "source": "branch", "child": "left"},
+        {"locus": "a", "source": "branch", "child": "right"}
+      ],
+      "focal": ["left", "right"],
+      "protected": [],
+      "expected": {
+        "retained": ["root", "branch", "left", "right"],
+        "removed": [],
+        "edges": [
+          {"locus": "a", "source": "root", "child": "branch"},
+          {"locus": "a", "source": "branch", "child": "left"},
+          {"locus": "a", "source": "branch", "child": "right"}
+        ]
+      }
+    },
+    {
+      "name": "different_roots_by_locus",
+      "loci": ["a", "b"],
+      "nodes": [
+        {"id": "root-a", "generation": 0},
+        {"id": "root-b", "generation": 0},
+        {"id": "focal", "generation": 1}
+      ],
+      "edges": [
+        {"locus": "a", "source": "root-a", "child": "focal"},
+        {"locus": "b", "source": "root-b", "child": "focal"}
+      ],
+      "focal": ["focal"],
+      "protected": [],
+      "expected": {
+        "retained": ["root-a", "root-b", "focal"],
+        "removed": [],
+        "edges": [
+          {"locus": "a", "source": "root-a", "child": "focal"},
+          {"locus": "b", "source": "root-b", "child": "focal"}
+        ]
+      }
+    },
+    {
+      "name": "globally_retained_branch_bypassed_at_other_locus",
+      "loci": ["a", "b"],
+      "nodes": [
+        {"id": "root", "generation": 0},
+        {"id": "x", "generation": 1},
+        {"id": "left", "generation": 2},
+        {"id": "right", "generation": 2}
+      ],
+      "edges": [
+        {"locus": "a", "source": "root", "child": "x"},
+        {"locus": "a", "source": "x", "child": "left"},
+        {"locus": "a", "source": "x", "child": "right"},
+        {"locus": "b", "source": "root", "child": "x"},
+        {"locus": "b", "source": "x", "child": "left"},
+        {"locus": "b", "source": "root", "child": "right"}
+      ],
+      "focal": ["left", "right"],
+      "protected": [],
+      "expected": {
+        "retained": ["root", "x", "left", "right"],
+        "removed": [],
+        "edges": [
+          {"locus": "a", "source": "root", "child": "x"},
+          {"locus": "a", "source": "x", "child": "left"},
+          {"locus": "a", "source": "x", "child": "right"},
+          {"locus": "b", "source": "root", "child": "left"},
+          {"locus": "b", "source": "root", "child": "right"}
+        ]
+      }
+    },
+    {
+      "name": "unreachable_lineage_removed",
+      "loci": ["a"],
+      "nodes": [
+        {"id": "root", "generation": 0},
+        {"id": "focal", "generation": 1},
+        {"id": "dead-root", "generation": 0},
+        {"id": "dead", "generation": 1}
+      ],
+      "edges": [
+        {"locus": "a", "source": "root", "child": "focal"},
+        {"locus": "a", "source": "dead-root", "child": "dead"}
+      ],
+      "focal": ["focal"],
+      "protected": [],
+      "expected": {
+        "retained": ["root", "focal"],
+        "removed": ["dead-root", "dead"],
+        "edges": [
+          {"locus": "a", "source": "root", "child": "focal"}
+        ]
+      }
+    },
+    {
+      "name": "schedule_v1_final_canonical_graph",
+      "loci": ["a", "b"],
+      "nodes": [
+        {"id": "root-a", "generation": 0},
+        {"id": "root-b", "generation": 0},
+        {"id": "root-protected", "generation": 0},
+        {"id": "m-50", "generation": 50},
+        {"id": "left-130", "generation": 130},
+        {"id": "right-130", "generation": 130}
+      ],
+      "edges": [
+        {"locus": "a", "source": "root-a", "child": "m-50"},
+        {"locus": "a", "source": "m-50", "child": "left-130"},
+        {"locus": "a", "source": "m-50", "child": "right-130"},
+        {"locus": "b", "source": "root-b", "child": "m-50"},
+        {"locus": "b", "source": "m-50", "child": "left-130"},
+        {"locus": "b", "source": "m-50", "child": "right-130"}
+      ],
+      "focal": ["left-130", "right-130"],
+      "protected": ["root-protected"],
+      "expected": {
+        "retained": ["root-a", "root-b", "root-protected", "m-50", "left-130", "right-130"],
+        "removed": [],
+        "edges": [
+          {"locus": "a", "source": "root-a", "child": "m-50"},
+          {"locus": "a", "source": "m-50", "child": "left-130"},
+          {"locus": "a", "source": "m-50", "child": "right-130"},
+          {"locus": "b", "source": "root-b", "child": "m-50"},
+          {"locus": "b", "source": "m-50", "child": "left-130"},
+          {"locus": "b", "source": "m-50", "child": "right-130"}
+        ]
+      }
+    }
+  ]
+}
