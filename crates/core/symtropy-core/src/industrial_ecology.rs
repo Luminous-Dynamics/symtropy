@@ -13,35 +13,25 @@ use std::collections::{BTreeMap, BTreeSet};
 const MAX_MODEL_ITEMS: usize = 4096;
 const MAX_ID_LEN: usize = 256;
 
-/// Governance boundary for a simulated dependency.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum IndustrialGovernance {
-    /// Ordinary dependency whose recurring demand may be met locally.
     Ordinary,
-    /// Dependency intentionally supplied only by separately safeguarded external
-    /// infrastructure. Local production and recycling must remain zero.
+    /// Supplied only by separately safeguarded external infrastructure.
     SafeguardedExternal,
 }
 
-/// Mutable dependency state advanced by the simulator.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct IndustrialDependencyState {
-    /// Canonical dependency identifier.
     pub dependency_id: String,
-    /// Governance boundary.
     pub governance: IndustrialGovernance,
-    /// Units required during every simulation tick.
     pub demand_units_per_tick: u64,
-    /// Ordinary locally produced units available each tick.
     pub local_production_units_per_tick: u64,
-    /// Units recovered by recycling each tick.
     pub recycling_units_per_tick: u64,
     /// Qualified inventory available before the next tick.
     pub inventory_units: u64,
 }
 
 impl IndustrialDependencyState {
-    /// Validate one dependency state.
     pub fn validate(&self) -> Result<(), IndustrialEcologyError> {
         validate_id(&self.dependency_id)?;
         if self.demand_units_per_tick == 0 {
@@ -61,14 +51,10 @@ impl IndustrialDependencyState {
     }
 }
 
-/// Capability whose availability requires all named dependencies during a tick.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct IndustrialCapability {
-    /// Canonical capability identifier.
     pub capability_id: String,
-    /// Whether losing this capability ends the modeled autonomous-viability run.
     pub essential: bool,
-    /// Dependency identifiers required by the capability.
     pub dependency_ids: BTreeSet<String>,
 }
 
@@ -96,7 +82,6 @@ pub struct IndustrialEcology {
 }
 
 impl IndustrialEcology {
-    /// Construct a validated ecology at tick zero.
     pub fn new(
         dependencies: impl IntoIterator<Item = IndustrialDependencyState>,
         capabilities: Vec<IndustrialCapability>,
@@ -120,17 +105,14 @@ impl IndustrialEcology {
         Ok(ecology)
     }
 
-    /// Current simulation tick.
     pub const fn tick(&self) -> u64 {
         self.tick
     }
 
-    /// Read one dependency state by canonical identifier.
     pub fn dependency(&self, dependency_id: &str) -> Option<&IndustrialDependencyState> {
         self.dependencies.get(dependency_id)
     }
 
-    /// Validate references, identities and governance boundaries.
     pub fn validate(&self) -> Result<(), IndustrialEcologyError> {
         if self.dependencies.is_empty() {
             return Err(IndustrialEcologyError::NoDependencies);
@@ -180,8 +162,7 @@ impl IndustrialEcology {
 
     /// Apply a deterministic availability change before the next tick.
     ///
-    /// The change is validated on a copy and committed only if valid, so a
-    /// rejected shock cannot leave the ecology in a poisoned intermediate state.
+    /// Candidate state is validated before commit, so a rejected shock is atomic.
     pub fn apply_shock(&mut self, shock: IndustrialShock) -> Result<(), IndustrialEcologyError> {
         let dependency_id = shock.dependency_id().to_string();
         let mut candidate = self
@@ -208,16 +189,20 @@ impl IndustrialEcology {
         Ok(())
     }
 
-    /// Advance production, recycling, demand and capability availability by one tick.
+    /// Advance the ecology by one tick atomically.
+    ///
+    /// All dependency transitions are staged in a candidate map. Arithmetic or
+    /// validation failure leaves both inventory and the tick counter unchanged.
     pub fn step(&mut self) -> Result<IndustrialTickReport, IndustrialEcologyError> {
         self.validate()?;
         let completed_tick = self
             .tick
             .checked_add(1)
             .ok_or(IndustrialEcologyError::ArithmeticOverflow)?;
+        let mut candidate_dependencies = self.dependencies.clone();
         let mut shortages = Vec::new();
 
-        for dependency in self.dependencies.values_mut() {
+        for dependency in candidate_dependencies.values_mut() {
             let available = u128::from(dependency.inventory_units)
                 + u128::from(dependency.local_production_units_per_tick)
                 + u128::from(dependency.recycling_units_per_tick);
@@ -260,6 +245,7 @@ impl IndustrialEcology {
             .filter(|capability| capability.essential)
             .all(|capability| !unavailable.contains(capability.capability_id.as_str()));
 
+        self.dependencies = candidate_dependencies;
         self.tick = completed_tick;
         Ok(IndustrialTickReport {
             tick: completed_tick,
@@ -269,7 +255,6 @@ impl IndustrialEcology {
         })
     }
 
-    /// Run until an essential capability fails or `max_ticks` survive successfully.
     pub fn run_until_essential_failure(
         &mut self,
         max_ticks: u64,
@@ -292,28 +277,19 @@ impl IndustrialEcology {
     }
 }
 
-/// Deterministic external change applied to one dependency.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum IndustrialShock {
-    /// Replace ordinary local production capacity.
     SetLocalProduction {
-        /// Target dependency.
         dependency_id: String,
-        /// New units produced per tick.
         units_per_tick: u64,
     },
-    /// Replace recycling recovery capacity.
     SetRecycling {
-        /// Target dependency.
         dependency_id: String,
-        /// New units recovered per tick.
         units_per_tick: u64,
     },
     /// Destroy or invalidate qualified stockpile inventory.
     LoseInventory {
-        /// Target dependency.
         dependency_id: String,
-        /// Units removed, saturating at zero.
         units: u64,
     },
 }
@@ -328,70 +304,45 @@ impl IndustrialShock {
     }
 }
 
-/// Shortfall discovered during one tick.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct DependencyShortage {
-    /// Dependency that could not meet recurring demand.
     pub dependency_id: String,
-    /// Units missing during this tick.
     pub missing_units: u64,
 }
 
-/// Result of one deterministic industrial-ecology tick.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct IndustrialTickReport {
-    /// Completed tick number, starting at one.
     pub tick: u64,
-    /// Dependencies that could not meet this tick's demand.
     pub shortages: Vec<DependencyShortage>,
-    /// Capabilities made unavailable by those shortages.
     pub unavailable_capability_ids: Vec<String>,
-    /// Whether all essential capabilities remain available this tick.
     pub essential_capabilities_available: bool,
 }
 
-/// Result of a bounded regenerative-viability experiment.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct IndustrialViabilityOutcome {
     /// Complete ticks survived before the first essential failure.
     pub survived_ticks: u64,
-    /// First essential-failure report, or `None` if `max_ticks` survived.
     pub terminal_report: Option<IndustrialTickReport>,
 }
 
-/// Validation and simulation errors.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum IndustrialEcologyError {
-    /// Identifier is empty, padded, contains control characters or is too long.
     InvalidIdentifier,
-    /// Model contains no dependencies.
     NoDependencies,
-    /// Model contains no capabilities.
     NoCapabilities,
-    /// Model contains no essential capability.
     NoEssentialCapabilities,
-    /// Model exceeds bounded cardinality.
     ModelTooLarge,
-    /// Dependency has zero recurring demand.
     ZeroDemand { dependency_id: String },
-    /// Duplicate dependency identifier at construction.
     DuplicateDependency { dependency_id: String },
-    /// Map key and embedded dependency identity disagree.
     DependencyKeyMismatch { key: String, dependency_id: String },
-    /// Capability identifier is duplicated.
     DuplicateCapability { capability_id: String },
-    /// Capability declares no dependencies.
     CapabilityHasNoDependencies { capability_id: String },
-    /// Capability references an unknown dependency.
     UnknownDependencyReference {
         capability_id: String,
         dependency_id: String,
     },
-    /// A requested shock names an unknown dependency.
     UnknownDependency { dependency_id: String },
-    /// Safeguarded dependency claims ordinary local production or recycling.
     SafeguardedDependencyClaimsLocalSupply { dependency_id: String },
-    /// Integer state could not be represented exactly.
     ArithmeticOverflow,
 }
 
@@ -531,6 +482,24 @@ mod tests {
         );
         assert_eq!(sim.dependency("reactor-service"), Some(&before));
         assert!(sim.validate().is_ok());
+    }
+
+    #[test]
+    fn failed_tick_is_transactional() {
+        let mut sim = ecology(vec![
+            dep("a-first", IndustrialGovernance::Ordinary, 1, 0, 0, 5),
+            dep(
+                "z-overflow",
+                IndustrialGovernance::Ordinary,
+                1,
+                u64::MAX,
+                0,
+                u64::MAX,
+            ),
+        ]);
+        let before = sim.clone();
+        assert_eq!(sim.step(), Err(IndustrialEcologyError::ArithmeticOverflow));
+        assert_eq!(sim, before);
     }
 
     #[test]
