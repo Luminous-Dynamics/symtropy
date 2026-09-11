@@ -1,0 +1,79 @@
+name: Codespan Feature Audit
+
+on:
+  push:
+    branches:
+      - "ci/codespan-feature-audit-3cb63c8"
+    paths:
+      - ".github/workflows/codespan-feature-audit.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    name: Audit exact-main codespan/naga feature graph
+    runs-on: ubuntu-slim
+    steps:
+      - name: Checkout audit harness
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Bind audit harness lineage
+        shell: bash
+        run: |
+          set -euo pipefail
+          base=3cb63c80a273a5f6f41b6eeafbc11cb97f7aaac7
+          test "$(git rev-parse HEAD^)" = "${base}"
+          test "$(git diff --name-only ${base}..HEAD)" = ".github/workflows/codespan-feature-audit.yml"
+
+      - name: Checkout exact main
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: 3cb63c80a273a5f6f41b6eeafbc11cb97f7aaac7
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Bind exact dependency subject
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "3cb63c80a273a5f6f41b6eeafbc11cb97f7aaac7"
+          test "$(git rev-parse HEAD^{tree})" = "fbdfb6e0543fa3bce1ef73d655bf5efdc46c3739"
+          test "$(git rev-parse HEAD:Cargo.lock)" = "db602c9707ecd6143ef36c0243c051544a027141"
+          test -z "$(git status --porcelain)"
+
+      - name: Set up pinned Rust
+        uses: dtolnay/rust-toolchain@6bed0761d98439e5a578e2877258200ad565ba87
+        with:
+          toolchain: 1.96.0
+
+      - name: Resolve locked metadata
+        shell: bash
+        run: |
+          set -euo pipefail
+          rustc -Vv
+          cargo -Vv
+          cargo metadata --locked --format-version 1 > "${RUNNER_TEMP}/metadata.json"
+          echo "CODESPAN_AUDIT_METADATA_SHA256=$(sha256sum "${RUNNER_TEMP}/metadata.json" | awk '{print $1}')"
+
+      - name: Print reverse codespan feature graph
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo tree --locked -i codespan-reporting@0.12.0 -e features
+
+      - name: Print reverse naga feature graph
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo tree --locked -i naga@27.0.3 -e features
+
+      - name: Verify exact-main remained observational
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -z "$(git status --porcelain)"
+          echo "CODESPAN_FEATURE_AUDIT=PASS"
