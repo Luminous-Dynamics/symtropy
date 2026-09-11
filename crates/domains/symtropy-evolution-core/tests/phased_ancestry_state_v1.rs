@@ -89,7 +89,7 @@ fn chromosome_ancestry(classes: Vec<HaplotypeAncestryClass>) -> ChromosomeAncest
 fn distinct_haplotype_classes_are_exact_and_order_stable() {
     let schema = schema();
     let map = map(&schema);
-    let source = source(
+    let source_state = source(
         &schema,
         &map,
         &["a0", "b0", "c0"],
@@ -99,7 +99,7 @@ fn distinct_haplotype_classes_are_exact_and_order_stable() {
     let a = PhasedAncestryState::new(
         &schema,
         &map,
-        &source,
+        &source_state,
         [chromosome_ancestry(vec![
             class(1, &["copy-z"]),
             class(0, &["copy-a"]),
@@ -109,7 +109,7 @@ fn distinct_haplotype_classes_are_exact_and_order_stable() {
     let b = PhasedAncestryState::new(
         &schema,
         &map,
-        &source,
+        &source_state,
         [chromosome_ancestry(vec![
             class(0, &["copy-a"]),
             class(1, &["copy-z"]),
@@ -119,14 +119,14 @@ fn distinct_haplotype_classes_are_exact_and_order_stable() {
 
     assert_eq!(a, b);
     assert_eq!(
-        a.canonical_digest(&schema, &map, &source).unwrap(),
-        b.canonical_digest(&schema, &map, &source).unwrap()
+        a.canonical_digest(&schema, &map, &source_state).unwrap(),
+        b.canonical_digest(&schema, &map, &source_state).unwrap()
     );
     assert_eq!(
         a.copy_ids_for_haplotype_content_at_slot(
             &schema,
             &map,
-            &source,
+            &source_state,
             &chromosome("chr-a"),
             0,
         )
@@ -137,7 +137,7 @@ fn distinct_haplotype_classes_are_exact_and_order_stable() {
         a.copy_ids_for_haplotype_content_at_slot(
             &schema,
             &map,
-            &source,
+            &source_state,
             &chromosome("chr-a"),
             1,
         )
@@ -150,7 +150,7 @@ fn distinct_haplotype_classes_are_exact_and_order_stable() {
 fn identical_genetic_rows_preserve_multiple_ancestry_copies_without_row_assignment() {
     let schema = schema();
     let map = map(&schema);
-    let source = source(
+    let source_state = source(
         &schema,
         &map,
         &["a0", "b0", "c0"],
@@ -159,7 +159,7 @@ fn identical_genetic_rows_preserve_multiple_ancestry_copies_without_row_assignme
     let ancestry_state = PhasedAncestryState::new(
         &schema,
         &map,
-        &source,
+        &source_state,
         [chromosome_ancestry(vec![class(
             0,
             &["maternal-17", "paternal-42"],
@@ -171,7 +171,7 @@ fn identical_genetic_rows_preserve_multiple_ancestry_copies_without_row_assignme
         .copy_ids_for_haplotype_content_at_slot(
             &schema,
             &map,
-            &source,
+            &source_state,
             &chromosome("chr-a"),
             0,
         )
@@ -180,7 +180,7 @@ fn identical_genetic_rows_preserve_multiple_ancestry_copies_without_row_assignme
         .copy_ids_for_haplotype_content_at_slot(
             &schema,
             &map,
-            &source,
+            &source_state,
             &chromosome("chr-a"),
             1,
         )
@@ -197,7 +197,7 @@ fn identical_genetic_rows_preserve_multiple_ancestry_copies_without_row_assignme
 fn identical_genetic_rows_cannot_be_split_into_fake_row_ancestry_classes() {
     let schema = schema();
     let map = map(&schema);
-    let source = source(
+    let source_state = source(
         &schema,
         &map,
         &["a0", "b0", "c0"],
@@ -207,7 +207,7 @@ fn identical_genetic_rows_cannot_be_split_into_fake_row_ancestry_classes() {
     let result = PhasedAncestryState::new(
         &schema,
         &map,
-        &source,
+        &source_state,
         [chromosome_ancestry(vec![
             class(0, &["copy-a"]),
             class(1, &["copy-b"]),
@@ -235,7 +235,7 @@ fn content_class_multiplicity_and_global_copy_identity_fail_closed() {
         &schema,
         &map,
         &identical,
-        [chromosome_ancestry(vec![class(0, &["only-one"] )])],
+        [chromosome_ancestry(vec![class(0, &["only-one"])])],
     );
     assert!(matches!(
         too_few,
@@ -271,7 +271,7 @@ fn content_class_multiplicity_and_global_copy_identity_fail_closed() {
 fn restored_noncanonical_evidence_does_not_regain_authority() {
     let schema = schema();
     let map = map(&schema);
-    let source = source(
+    let source_state = source(
         &schema,
         &map,
         &["a0", "b0", "c0"],
@@ -280,14 +280,16 @@ fn restored_noncanonical_evidence_does_not_regain_authority() {
     let authoritative = PhasedAncestryState::new(
         &schema,
         &map,
-        &source,
+        &source_state,
         [chromosome_ancestry(vec![class(0, &["copy-a", "copy-b"])])],
     )
     .unwrap();
 
     let encoded = serde_json::to_string(&authoritative).unwrap();
     let mut restored: PhasedAncestryState = serde_json::from_str(&encoded).unwrap();
-    restored.validate_current(&schema, &map, &source).unwrap();
+    restored
+        .validate_current(&schema, &map, &source_state)
+        .unwrap();
 
     restored
         .chromosomes
@@ -297,7 +299,7 @@ fn restored_noncanonical_evidence_does_not_regain_authority() {
         .copy_ids
         .reverse();
     assert!(matches!(
-        restored.validate_current(&schema, &map, &source),
+        restored.validate_current(&schema, &map, &source_state),
         Err(AncestryAuthorityError::NonCanonicalCopyIdOrder { .. })
     ));
 }
@@ -306,7 +308,7 @@ fn restored_noncanonical_evidence_does_not_regain_authority() {
 fn exact_genetic_state_binding_rejects_stale_sidecar() {
     let schema = schema();
     let map = map(&schema);
-    let source = source(
+    let source_state = source(
         &schema,
         &map,
         &["a0", "b0", "c0"],
@@ -315,7 +317,7 @@ fn exact_genetic_state_binding_rejects_stale_sidecar() {
     let ancestry_state = PhasedAncestryState::new(
         &schema,
         &map,
-        &source,
+        &source_state,
         [chromosome_ancestry(vec![
             class(0, &["copy-a"]),
             class(1, &["copy-b"]),
@@ -339,7 +341,7 @@ fn exact_genetic_state_binding_rejects_stale_sidecar() {
 fn class_lookup_rejects_out_of_range_slots() {
     let schema = schema();
     let map = map(&schema);
-    let source = source(
+    let source_state = source(
         &schema,
         &map,
         &["a0", "b0", "c0"],
@@ -348,7 +350,7 @@ fn class_lookup_rejects_out_of_range_slots() {
     let ancestry_state = PhasedAncestryState::new(
         &schema,
         &map,
-        &source,
+        &source_state,
         [chromosome_ancestry(vec![
             class(0, &["copy-a"]),
             class(1, &["copy-b"]),
@@ -360,7 +362,7 @@ fn class_lookup_rejects_out_of_range_slots() {
         ancestry_state.copy_ids_for_haplotype_content_at_slot(
             &schema,
             &map,
-            &source,
+            &source_state,
             &chromosome("chr-a"),
             2,
         ),
