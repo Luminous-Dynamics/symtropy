@@ -1,4 +1,4 @@
-name: Living World Shadow Continuity Qualification
+name: Living World Shadow Continuity Format Oracle
 
 on:
   pull_request:
@@ -7,26 +7,22 @@ on:
 
 permissions:
   contents: read
-  id-token: write
-  attestations: write
 
 concurrency:
-  group: living-world-shadow-continuity-${{ github.event.pull_request.number || github.ref }}
+  group: living-world-shadow-continuity-format-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
 jobs:
-  qualify:
-    name: Exact shadow continuity subject
+  format:
+    name: Exact rustfmt oracle
     runs-on: ubuntu-slim
-    # GitHub documents a hard 15-minute execution limit for ubuntu-slim.
     timeout-minutes: 15
     env:
       PRODUCT_SHA: 59cee313afae1ad184d1b8382088eac2616822c9
+      TARGET_FILE: crates/domains/symtropy-lifesim-core/src/living_world_authority/shadow_execution_continuity.rs
 
     steps:
       - name: Check out immutable product subject
-        # This disposable PR is only an execution surface. The semantic subject
-        # is the frozen #612 product head above, never this helper branch.
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           ref: ${{ env.PRODUCT_SHA }}
@@ -38,149 +34,30 @@ jobs:
         run: |
           set -euo pipefail
           test "$(git rev-parse HEAD)" = "$PRODUCT_SHA"
+          test -z "$(git status --porcelain)"
           printf 'PRODUCT_HEAD=%s\n' "$(git rev-parse HEAD)"
           printf 'PRODUCT_TREE=%s\n' "$(git rev-parse HEAD^{tree})"
-          printf 'LOCK_SHA256=%s\n' "$(sha256sum Cargo.lock | awk '{print $1}')"
-          test -z "$(git status --porcelain)"
 
-      - name: Set up pinned Rust
+      - name: Set up pinned Rust formatter
         uses: dtolnay/rust-toolchain@6bed0761d98439e5a578e2877258200ad565ba87
         with:
           toolchain: 1.96.0
-          components: clippy, rustfmt
+          components: rustfmt
 
-      - name: Record toolchain provenance
+      - name: Format exact product tree
         shell: bash
         run: |
           set -euo pipefail
-          rustc --version --verbose
-          cargo --version
-          rustfmt --version
-          cargo clippy --version
-
-      - name: Rustfmt exact subject
-        shell: bash
-        run: |
-          set -euo pipefail
-          cargo fmt --all -- --check
-
-      - name: Check lifesim authority surface
-        shell: bash
-        run: |
-          set -euo pipefail
-          cargo check --locked -p symtropy-lifesim-core --all-targets
-
-      - name: Execute shadow continuity hostile fixtures
-        shell: bash
-        run: |
-          set -euo pipefail
-          cargo test --locked -p symtropy-lifesim-core --lib shadow_execution_continuity::tests -- --nocapture
-
-      - name: Execute full lifesim library tests
-        shell: bash
-        run: |
-          set -euo pipefail
-          cargo test --locked -p symtropy-lifesim-core --lib
-
-      - name: Strict Clippy
-        shell: bash
-        run: |
-          set -euo pipefail
-          cargo clippy --locked -p symtropy-lifesim-core --all-targets --all-features -- -D warnings
-
-      - name: Prove tracked source and lockfile remained immutable
-        shell: bash
-        run: |
-          set -euo pipefail
+          cargo fmt --all
+          test -n "$(git diff -- "$TARGET_FILE")"
+          cp "$TARGET_FILE" "$RUNNER_TEMP/shadow_execution_continuity.rs"
+          sha256sum "$RUNNER_TEMP/shadow_execution_continuity.rs"
           git diff --check
-          git diff --exit-code
-          test -z "$(git status --porcelain)"
-          printf 'FINAL_LOCK_SHA256=%s\n' "$(sha256sum Cargo.lock | awk '{print $1}')"
 
-      - name: Write exact qualification manifest
-        shell: bash
-        run: |
-          set -euo pipefail
-          python3 - <<'PY'
-          import hashlib
-          import json
-          import os
-          import pathlib
-          import subprocess
-
-          manifest_path = pathlib.Path(os.environ["RUNNER_TEMP"]) / "lw55-shadow-continuity-qualification.json"
-          product_sha = subprocess.check_output(
-              ["git", "rev-parse", "HEAD"], text=True
-          ).strip()
-          product_tree = subprocess.check_output(
-              ["git", "rev-parse", "HEAD^{tree}"], text=True
-          ).strip()
-          lock_sha256 = hashlib.sha256(pathlib.Path("Cargo.lock").read_bytes()).hexdigest()
-
-          if product_sha != os.environ["PRODUCT_SHA"]:
-              raise SystemExit("qualification manifest product SHA drifted")
-
-          manifest = {
-              "schema": "luminous.symtropy.living-world.shadow-continuity-qualification/v0.1",
-              "contract": "lw55-shadow-continuity-structural-v0.1",
-              "repository": os.environ["GITHUB_REPOSITORY"],
-              "product_sha": product_sha,
-              "product_tree": product_tree,
-              "cargo_lock_sha256": lock_sha256,
-              "rust_toolchain": "1.96.0",
-              "crate": "symtropy-lifesim-core",
-              "qualification_scope": "structural_continuity_only",
-              "targeted_test": "shadow_execution_continuity::tests",
-              "checks": [
-                  "cargo fmt --all -- --check",
-                  "cargo check --locked -p symtropy-lifesim-core --all-targets",
-                  "cargo test --locked -p symtropy-lifesim-core --lib shadow_execution_continuity::tests -- --nocapture",
-                  "cargo test --locked -p symtropy-lifesim-core --lib",
-                  "cargo clippy --locked -p symtropy-lifesim-core --all-targets --all-features -- -D warnings",
-                  "tracked-source-and-lockfile-immutable",
-              ],
-              "run": {
-                  "id": os.environ["GITHUB_RUN_ID"],
-                  "attempt": os.environ["GITHUB_RUN_ATTEMPT"],
-                  "workflow": os.environ["GITHUB_WORKFLOW"],
-              },
-              "claims": {
-                  "structural_continuity_contract_executed": True,
-                  "runner_emission_qualified": False,
-                  "anchor_renewal_authorized": False,
-              },
-          }
-          manifest_path.write_text(
-              json.dumps(manifest, sort_keys=True, separators=(",", ":")) + "\n",
-              encoding="utf-8",
-          )
-          print(manifest_path.read_text(encoding="utf-8"), end="")
-          print("QUALIFICATION_MANIFEST_SHA256=" + hashlib.sha256(manifest_path.read_bytes()).hexdigest())
-          PY
-
-      - name: Attest qualification manifest provenance
-        # actions/attest v4, pinned to the immutable v4 release commit.
-        uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6
+      - name: Upload exact formatted source
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
-          subject-path: ${{ runner.temp }}/lw55-shadow-continuity-qualification.json
-
-      - name: Verify qualification manifest attestation
-        shell: bash
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          set -euo pipefail
-          gh attestation verify "$RUNNER_TEMP/lw55-shadow-continuity-qualification.json" -R "$GITHUB_REPOSITORY"
-          printf 'LW55_SHADOW_CONTINUITY_ATTESTATION_VERIFIED=1\n'
-
-      - name: Final exact-subject postflight
-        shell: bash
-        run: |
-          set -euo pipefail
-          test "$(git rev-parse HEAD)" = "$PRODUCT_SHA"
-          git diff --check
-          git diff --exit-code
-          test -z "$(git status --porcelain)"
-          printf 'FINAL_PRODUCT_TREE=%s\n' "$(git rev-parse HEAD^{tree})"
-          printf 'FINAL_LOCK_SHA256=%s\n' "$(sha256sum Cargo.lock | awk '{print $1}')"
-          printf 'LW55_SHADOW_CONTINUITY_QUALIFICATION_PASS=1\n'
+          name: lw55-rustfmt-output
+          path: ${{ runner.temp }}/shadow_execution_continuity.rs
+          if-no-files-found: error
+          retention-days: 1
