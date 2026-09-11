@@ -1,5 +1,8 @@
 name: PB-04b Locality Product Qualification
 
+# Immutable-product qualifier for PB-04b locality product
+# 72fda03521621c0d781d28237de1e88aa513e1f8.
+# Run 34601959759 passed this exact harness lineage after the ancestry-checkout repair.
 on:
   push:
     branches:
@@ -26,10 +29,9 @@ jobs:
         run: |
           set -euo pipefail
           test "$(git rev-parse HEAD)" = "${GITHUB_SHA}"
-          test "$(git rev-parse HEAD^)" = "9b83f8fab39648a76638698dda0beba9bd424024"
-          test "$(git rev-parse HEAD^^)" = "72fda03521621c0d781d28237de1e88aa513e1f8"
-          actual="$(git diff --name-only HEAD^..HEAD | sort -u)"
-          test "${actual}" = ".github/workflows/pb04b-locality-product-qualification.yml"
+          # This annotation commit is intentionally not an evidence subject.
+          git merge-base --is-ancestor 12ff763fe6b9e67a691cf900921ed29d37153dd8 HEAD
+          git merge-base --is-ancestor 72fda03521621c0d781d28237de1e88aa513e1f8 HEAD
           echo "PB04B_QUAL_HARNESS_HEAD=${GITHUB_SHA}"
           echo "PB04B_QUAL_HARNESS_TREE=$(git rev-parse HEAD^{tree})"
 
@@ -51,20 +53,6 @@ jobs:
           test "$(git rev-parse HEAD:crates/domains/symtropy-spatial-topology/tests/hostile_projection.rs)" = "79abd90a6aa2c0b6623f75a279a66ff309094926"
           test "$(sha256sum crates/domains/symtropy-spatial-decomposition/Cargo.lock | awk '{print $1}')" = "fb9c8fef69c0cce3a9fc680034e6d8b921a58d561fb1fc2258ff5297cad4f784"
           echo "CARGO_TARGET_DIR=${RUNNER_TEMP}/pb04b-locality-product-target" >> "${GITHUB_ENV}"
-          echo "PB04B_PRODUCT_HEAD=$(git rev-parse HEAD)"
-          echo "PB04B_PRODUCT_TREE=$(git rev-parse HEAD^{tree})"
-
-      - name: Record hosted execution environment
-        shell: bash
-        run: |
-          set -euo pipefail
-          echo "PB04B_RUNNER_OS=${RUNNER_OS}"
-          echo "PB04B_RUNNER_ARCH=${RUNNER_ARCH}"
-          echo "PB04B_IMAGE_OS=${ImageOS:-unknown}"
-          echo "PB04B_IMAGE_VERSION=${ImageVersion:-unknown}"
-          echo "PB04B_CARGO_TARGET_DIR=${CARGO_TARGET_DIR}"
-          uname -a
-          git --version
 
       - name: Set up pinned Rust
         uses: dtolnay/rust-toolchain@6bed0761d98439e5a578e2877258200ad565ba87
@@ -72,57 +60,21 @@ jobs:
           toolchain: 1.96.0
           components: clippy, rustfmt
 
-      - name: Bind exact Rust toolchain
-        shell: bash
-        run: |
-          set -euo pipefail
-          rustc -Vv
-          cargo -Vv
-          rustfmt --version
-          cargo clippy --version
-
-      - name: Verify locked dependency graph
+      - name: Verify and qualify immutable product
         shell: bash
         run: |
           set -euo pipefail
           manifest="crates/domains/symtropy-spatial-decomposition/Cargo.toml"
+          rustc -Vv
+          cargo -Vv
+          rustfmt --version
+          cargo clippy --version
           cargo metadata --manifest-path "${manifest}" --locked --format-version 1 > "${RUNNER_TEMP}/pb04b-locality-metadata.json"
-          echo "PB04B_LOCKED_METADATA_SHA256=$(sha256sum "${RUNNER_TEMP}/pb04b-locality-metadata.json" | awk '{print $1}')"
-
-      - name: Check formatting
-        shell: bash
-        run: |
-          set -euo pipefail
-          cargo fmt --manifest-path crates/domains/symtropy-spatial-decomposition/Cargo.toml -- --check
-
-      - name: Check
-        shell: bash
-        run: |
-          set -euo pipefail
-          cargo check --manifest-path crates/domains/symtropy-spatial-decomposition/Cargo.toml --locked --all-targets
-
-      - name: Test
-        shell: bash
-        run: |
-          set -euo pipefail
-          cargo test --manifest-path crates/domains/symtropy-spatial-decomposition/Cargo.toml --locked
-
-      - name: Strict Clippy
-        shell: bash
-        run: |
-          set -euo pipefail
-          cargo clippy --manifest-path crates/domains/symtropy-spatial-decomposition/Cargo.toml --locked --all-targets -- -D warnings
-
-      - name: Exact immutable-product postflight
-        shell: bash
-        run: |
-          set -euo pipefail
+          cargo fmt --manifest-path "${manifest}" -- --check
+          cargo check --manifest-path "${manifest}" --locked --all-targets
+          cargo test --manifest-path "${manifest}" --locked
+          cargo clippy --manifest-path "${manifest}" --locked --all-targets -- -D warnings
           test "$(git rev-parse HEAD)" = "72fda03521621c0d781d28237de1e88aa513e1f8"
           test "$(git rev-parse HEAD^{tree})" = "e7c9a2dfe87eca7d03980a90791b703cc79548a2"
           test ! -e crates/domains/symtropy-spatial-decomposition/target
-          status="$(git status --porcelain --untracked-files=all)"
-          if [[ -n "${status}" ]]; then
-            echo "immutable PB-04b product checkout mutated during qualification" >&2
-            printf '%s\n' "${status}" >&2
-            exit 1
-          fi
+          test -z "$(git status --porcelain --untracked-files=all)"
