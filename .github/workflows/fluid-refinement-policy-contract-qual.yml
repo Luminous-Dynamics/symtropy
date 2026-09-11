@@ -1,0 +1,26 @@
+name: Fluid Refinement Policy Contract Qualification
+
+on:
+  push:
+    branches:
+      - ci/fluid-refinement-policy-contract-qual-v0.1
+
+permissions:
+  contents: read
+
+jobs:
+  qualify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.96.0
+          components: clippy, rustfmt
+      - name: Check formatting
+        run: cargo fmt --all -- --check
+      - name: Strict fluid Clippy
+        run: cargo clippy -p symtropy-fluid --all-targets --all-features -- -D warnings
+      - name: Fluid tests
+        run: cargo test -p symtropy-fluid --all-features
