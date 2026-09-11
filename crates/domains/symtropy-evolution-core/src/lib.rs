@@ -8,6 +8,7 @@
 
 mod ancestry_graph;
 mod ancestry_pruning;
+mod ancestry_simplification;
 mod ancestry_state;
 mod canonical;
 mod chromosome_map;
@@ -57,6 +58,13 @@ pub use ancestry_pruning::{
     AncestryReachabilityPruningProvenanceDigest, AncestryReachabilityPruningResult,
     AncestryRetentionSet, AncestryRetentionSetDigest, ANCESTRY_REACHABILITY_PRUNING_VERSION,
     ANCESTRY_RETENTION_SET_VERSION,
+};
+pub use ancestry_simplification::{
+    simplify_modeled_ancestry, AncestrySimplificationError, AncestrySimplificationProfile,
+    AncestrySimplificationProvenance, AncestrySimplificationProvenanceDigest,
+    AncestrySimplificationResult, SimplifiedAncestryEdge, SimplifiedAncestryGraph,
+    SimplifiedAncestryGraphDigest, ANCESTRY_SIMPLIFICATION_DERIVATION_VERSION,
+    SIMPLIFIED_ANCESTRY_GRAPH_VERSION,
 };
 pub use ancestry_state::{
     AncestryAuthorityError, ChromosomeAncestryState, HaplotypeAncestryClass,
