@@ -538,7 +538,7 @@ impl GeometricDecompositionSnapshot {
                 for side in [FragmentSide::Negative, FragmentSide::Positive] {
                     let position = fragments.len();
                     fragments.push(FreeSpaceFragment {
-                        id: fragment_id(&geometry, profile, domain, cell, side, Some(cut))?,
+                        id: fragment_id(profile, domain, cell, side, Some(cut))?,
                         cell,
                         side,
                         sources: sources.clone(),
@@ -549,7 +549,7 @@ impl GeometricDecompositionSnapshot {
             } else {
                 let position = fragments.len();
                 fragments.push(FreeSpaceFragment {
-                    id: fragment_id(&geometry, profile, domain, cell, FragmentSide::Whole, None)?,
+                    id: fragment_id(profile, domain, cell, FragmentSide::Whole, None)?,
                     cell,
                     side: FragmentSide::Whole,
                     sources: common.clone(),
@@ -952,7 +952,7 @@ fn push_interface(
 #[allow(clippy::too_many_arguments)]
 fn push_interface_with_sources(
     output: &mut Vec<GeometricInterface>,
-    geometry: &RealizedGeometrySnapshotRef,
+    _geometry: &RealizedGeometrySnapshotRef,
     profile: &DecompositionProfile,
     domain: &AnalysisDomain,
     kind: GeometricInterfaceKind,
@@ -972,16 +972,7 @@ fn push_interface_with_sources(
     if second < first {
         std::mem::swap(&mut first, &mut second);
     }
-    let id = interface_id(
-        geometry,
-        profile,
-        domain,
-        &kind,
-        &first,
-        &second,
-        &barriers,
-        &separators,
-    )?;
+    let id = interface_id(profile, domain, &kind, &first, &second)?;
     output.push(GeometricInterface {
         id,
         first,
@@ -1194,7 +1185,6 @@ fn cell_count(dimensions: [u32; 3]) -> Result<usize, DecompositionError> {
 }
 
 fn fragment_id(
-    geometry: &RealizedGeometrySnapshotRef,
     profile: &DecompositionProfile,
     domain: &AnalysisDomain,
     cell: CellCoord,
@@ -1203,7 +1193,6 @@ fn fragment_id(
 ) -> Result<SpatialRegionId, DecompositionError> {
     let mut hash = Sha256::new();
     hash.update(FRAGMENT_DOMAIN);
-    hash_exact(&mut hash, &geometry.0);
     hash_profile(&mut hash, &profile.exact_ref());
     hash_analysis_domain(&mut hash, &domain.exact_ref());
     hash_cell(&mut hash, cell);
@@ -1212,8 +1201,6 @@ fn fragment_id(
         Some(cut) => {
             hash.update([1]);
             hash_plane(&mut hash, cut.plane);
-            hash_refs(&mut hash, &cut.barriers);
-            hash_refs(&mut hash, &cut.separators);
         }
         None => hash.update([0]),
     }
@@ -1225,25 +1212,19 @@ fn fragment_id(
 
 #[allow(clippy::too_many_arguments)]
 fn interface_id(
-    geometry: &RealizedGeometrySnapshotRef,
     profile: &DecompositionProfile,
     domain: &AnalysisDomain,
     kind: &GeometricInterfaceKind,
     first: &SpatialRegionId,
     second: &SpatialRegionId,
-    barriers: &[ExactSourceRef],
-    separators: &[ExactSourceRef],
 ) -> Result<BoundaryInterfaceId, DecompositionError> {
     let mut hash = Sha256::new();
     hash.update(INTERFACE_DOMAIN);
-    hash_exact(&mut hash, &geometry.0);
     hash_profile(&mut hash, &profile.exact_ref());
     hash_analysis_domain(&mut hash, &domain.exact_ref());
     hash_text(&mut hash, first.0.as_str());
     hash_text(&mut hash, second.0.as_str());
     hash_kind(&mut hash, kind);
-    hash_refs(&mut hash, barriers);
-    hash_refs(&mut hash, separators);
     Ok(BoundaryInterfaceId::new(sid_digest(
         "pb04b-interface",
         &hex(&hash.finalize()),

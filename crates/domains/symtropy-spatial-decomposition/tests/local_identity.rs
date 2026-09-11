@@ -52,12 +52,7 @@ fn separator() -> ExactSourceRef {
 }
 
 fn barrier(revision: u64, digest: &str) -> ExactSourceRef {
-    exact(
-        "symtropy.test.partition",
-        "door.leaf",
-        revision,
-        digest,
-    )
+    exact("symtropy.test.partition", "door.leaf", revision, digest)
 }
 
 fn doorway_cut(barriers: Vec<ExactSourceRef>) -> LocalPartitionCut {
@@ -135,12 +130,22 @@ fn persistent_separator_keeps_doorway_locus_ids_across_closed_to_open_evidence_c
     let closed_partition = closed
         .interfaces()
         .iter()
-        .find(|interface| matches!(interface.kind(), GeometricInterfaceKind::LocalPartition { .. }))
+        .find(|interface| {
+            matches!(
+                interface.kind(),
+                GeometricInterfaceKind::LocalPartition { .. }
+            )
+        })
         .expect("closed doorway partition");
     let open_partition = open
         .interfaces()
         .iter()
-        .find(|interface| matches!(interface.kind(), GeometricInterfaceKind::LocalPartition { .. }))
+        .find(|interface| {
+            matches!(
+                interface.kind(),
+                GeometricInterfaceKind::LocalPartition { .. }
+            )
+        })
         .expect("open doorway partition");
 
     assert!(closed_partition.has_material_barrier());
