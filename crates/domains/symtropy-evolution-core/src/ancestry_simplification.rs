@@ -3,7 +3,7 @@ use crate::{
     canonical::{fmt_hex, put_text, put_u32, put_u64},
     prune_ancestry_reachability, AncestryCopyId, AncestryGraphError, AncestryGraphNode,
     AncestryPruningError, AncestryRetentionSet, ChromosomeId, ChromosomeMap,
-    ChromosomeMapDigest, HereditarySchema, HereditarySchemaDigest, LocusId,
+    ChromosomeMapDigest, EvolutionError, HereditarySchema, HereditarySchemaDigest, LocusId,
     ModeledAncestryGraph, ModeledAncestryGraphDigest,
 };
 use serde::{Deserialize, Serialize};
@@ -35,11 +35,12 @@ impl AncestrySimplificationProfile {
     }
 }
 
-/// A simplified ancestry-path edge at one exact modeled locus.
+/// A compressed ancestry-path edge at one exact modeled locus.
 ///
-/// Unlike `AncestryGraphEdge`, this does not claim direct reproduction. It says
-/// only that the retained source is the nearest retained ancestor of the child
-/// at this modeled locus under the declared simplification profile.
+/// This is deliberately not an `AncestryGraphEdge`. It does not claim direct
+/// reproduction. It means only that `source_copy_id` is the nearest retained
+/// ancestor of `child_copy_id` at this modeled locus under the declared
+/// simplification profile.
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 pub struct SimplifiedAncestryEdge {
     pub chromosome_id: ChromosomeId,
@@ -81,16 +82,20 @@ impl SimplifiedAncestryGraph {
         if self.nodes.is_empty() {
             return Err(AncestrySimplificationError::EmptyGraph);
         }
-        for id in self
+
+        for selected in self
             .retention
             .focal_copy_ids
             .iter()
             .chain(self.retention.protected_copy_ids.iter())
         {
-            if !self.nodes.contains_key(id) {
-                return Err(AncestrySimplificationError::MissingRetainedCopy(id.clone()));
+            if !self.nodes.contains_key(selected) {
+                return Err(AncestrySimplificationError::MissingRetainedCopy(
+                    selected.clone(),
+                ));
             }
         }
+
         for (key, node) in &self.nodes {
             if key != &node.copy_id {
                 return Err(AncestrySimplificationError::NodeKeyMismatch);
@@ -101,24 +106,19 @@ impl SimplifiedAncestryGraph {
                 ));
             }
         }
-        if self.edges.windows(2).any(|w| w[0] >= w[1]) {
+        if self.edges.windows(2).any(|window| window[0] >= window[1]) {
             return Err(AncestrySimplificationError::NonCanonicalEdgeOrder);
         }
 
         let mut incoming = BTreeSet::new();
+        let mut outgoing = BTreeSet::new();
         for edge in &self.edges {
-            let source = self
-                .nodes
-                .get(&edge.source_copy_id)
-                .ok_or_else(|| AncestrySimplificationError::MissingEndpoint(
-                    edge.source_copy_id.clone(),
-                ))?;
-            let child = self
-                .nodes
-                .get(&edge.child_copy_id)
-                .ok_or_else(|| AncestrySimplificationError::MissingEndpoint(
-                    edge.child_copy_id.clone(),
-                ))?;
+            let source = self.nodes.get(&edge.source_copy_id).ok_or_else(|| {
+                AncestrySimplificationError::MissingEndpoint(edge.source_copy_id.clone())
+            })?;
+            let child = self.nodes.get(&edge.child_copy_id).ok_or_else(|| {
+                AncestrySimplificationError::MissingEndpoint(edge.child_copy_id.clone())
+            })?;
             if source.chromosome_id != edge.chromosome_id
                 || child.chromosome_id != edge.chromosome_id
             {
@@ -127,10 +127,14 @@ impl SimplifiedAncestryGraph {
             let definition = chromosome_map
                 .chromosomes
                 .get(&edge.chromosome_id)
-                .ok_or_else(|| AncestrySimplificationError::UnknownChromosome(
-                    edge.chromosome_id.clone(),
-                ))?;
-            if !definition.loci.iter().any(|mapped| mapped.locus_id == edge.locus_id) {
+                .ok_or_else(|| {
+                    AncestrySimplificationError::UnknownChromosome(edge.chromosome_id.clone())
+                })?;
+            if !definition
+                .loci
+                .iter()
+                .any(|mapped| mapped.locus_id == edge.locus_id)
+            {
                 return Err(AncestrySimplificationError::UnknownLocus {
                     chromosome: edge.chromosome_id.clone(),
                     locus: edge.locus_id.clone(),
@@ -145,34 +149,57 @@ impl SimplifiedAncestryGraph {
                     locus: edge.locus_id.clone(),
                 });
             }
+            outgoing.insert((edge.source_copy_id.clone(), edge.locus_id.clone()));
         }
 
-        // Focal/protected descendants must preserve complete modeled-locus ancestry.
-        for id in self
+        // Any non-root copy that participates as an ancestor at a locus must
+        // remain connected upward at that same locus. A node may still be
+        // globally retained for another locus without participating here.
+        for (copy_id, locus_id) in &outgoing {
+            let node = &self.nodes[copy_id];
+            if node.birth_event.is_some()
+                && !incoming.contains(&(copy_id.clone(), locus_id.clone()))
+            {
+                return Err(
+                    AncestrySimplificationError::IncompleteParticipatingParentage {
+                        child: copy_id.clone(),
+                        locus: locus_id.clone(),
+                    },
+                );
+            }
+        }
+
+        // Every selected descendant must preserve ancestry at every modeled
+        // locus on its chromosome.
+        for selected in self
             .retention
             .focal_copy_ids
             .iter()
             .chain(self.retention.protected_copy_ids.iter())
         {
-            let node = &self.nodes[id];
+            let node = &self.nodes[selected];
             if node.birth_event.is_none() {
                 continue;
             }
             let definition = &chromosome_map.chromosomes[&node.chromosome_id];
             for mapped in &definition.loci {
-                if !incoming.contains(&(id.clone(), mapped.locus_id.clone())) {
+                if !incoming.contains(&(selected.clone(), mapped.locus_id.clone())) {
                     return Err(AncestrySimplificationError::IncompleteSelectedParentage {
-                        child: id.clone(),
+                        child: selected.clone(),
                         locus: mapped.locus_id.clone(),
                     });
                 }
             }
         }
 
-        for node in self.nodes.values().filter(|node| node.birth_event.is_none()) {
-            if self.edges.iter().any(|edge| edge.child_copy_id == node.copy_id) {
+        for root in self.nodes.values().filter(|node| node.birth_event.is_none()) {
+            if self
+                .edges
+                .iter()
+                .any(|edge| edge.child_copy_id == root.copy_id)
+            {
                 return Err(AncestrySimplificationError::RootHasParents(
-                    node.copy_id.clone(),
+                    root.copy_id.clone(),
                 ));
             }
         }
@@ -247,6 +274,10 @@ pub struct AncestrySimplificationProvenance {
 }
 
 impl AncestrySimplificationProvenance {
+    pub fn retained_node_ids(&self) -> &[AncestryCopyId] {
+        &self.retained_node_ids
+    }
+
     pub fn canonical_digest(&self) -> AncestrySimplificationProvenanceDigest {
         let mut digest = Sha256::new();
         digest.update(SIMPLIFICATION_PROVENANCE_DIGEST_DOMAIN);
@@ -340,15 +371,14 @@ pub fn simplify_modeled_ancestry(
         for mapped_locus in &definition.loci {
             let locus_id = &mapped_locus.locus_id;
             let mut incoming: BTreeMap<AncestryCopyId, AncestryCopyId> = BTreeMap::new();
-            let mut active_edges = Vec::new();
             for edge in &pruned_graph.edges {
                 if edge.chromosome_id == *chromosome_id && edge.locus_id == *locus_id {
                     incoming.insert(edge.child_copy_id.clone(), edge.source_copy_id.clone());
                 }
             }
 
-            // Active locus ancestry is traced from selected copies on this chromosome,
-            // not from every D2A whole-copy closure edge.
+            // D2A is whole-copy conservative. D2B1 traces only the ancestry
+            // actually reachable from selected copies at this exact locus.
             let mut work: Vec<_> = selected
                 .iter()
                 .filter(|id| {
@@ -360,6 +390,7 @@ pub fn simplify_modeled_ancestry(
                 .cloned()
                 .collect();
             let mut active_nodes = BTreeSet::new();
+            let mut active_edges = Vec::new();
             while let Some(child) = work.pop() {
                 if !active_nodes.insert(child.clone()) {
                     continue;
@@ -377,6 +408,7 @@ pub fn simplify_modeled_ancestry(
             for (source, _) in &active_edges {
                 *outdegree.entry(source.clone()).or_default() += 1;
             }
+
             let mut retained_locus = BTreeSet::new();
             for id in &active_nodes {
                 let node = &pruned_graph.nodes[id];
@@ -417,8 +449,8 @@ pub fn simplify_modeled_ancestry(
         }
     }
 
-    // Selected copies are always globally retained, even if a future schema/map
-    // configuration leaves one chromosome without modeled loci.
+    // Selection authority itself is persistent even if a future chromosome map
+    // contains a chromosome with no modeled loci.
     globally_retained.extend(selected.iter().cloned());
     let nodes = globally_retained
         .iter()
@@ -442,7 +474,8 @@ pub fn simplify_modeled_ancestry(
         edges,
     };
     graph.validate_current(schema, chromosome_map)?;
-    let result_digest = graph.canonical_digest(schema, chromosome_map)?;
+
+    let result_graph_digest = graph.canonical_digest(schema, chromosome_map)?;
     let provenance = AncestrySimplificationProvenance {
         derivation_version: ANCESTRY_SIMPLIFICATION_DERIVATION_VERSION,
         source_graph_digest: source_graph.canonical_digest(schema, chromosome_map)?,
@@ -451,12 +484,14 @@ pub fn simplify_modeled_ancestry(
         pruning_provenance_digest: pruned.provenance.canonical_digest(),
         profile,
         retained_node_ids: globally_retained.into_iter().collect(),
-        result_graph_digest: result_digest,
+        result_graph_digest,
     };
     Ok(AncestrySimplificationResult { graph, provenance })
 }
 
-fn validate_retention_local(retention: &AncestryRetentionSet) -> Result<(), AncestrySimplificationError> {
+fn validate_retention_local(
+    retention: &AncestryRetentionSet,
+) -> Result<(), AncestrySimplificationError> {
     if retention.retention_version != crate::ANCESTRY_RETENTION_SET_VERSION {
         return Err(AncestrySimplificationError::InvalidRetentionAuthority);
     }
@@ -489,7 +524,7 @@ fn put_retention(digest: &mut Sha256, retention: &AncestryRetentionSet) {
 pub enum AncestrySimplificationError {
     Graph(AncestryGraphError),
     Pruning(AncestryPruningError),
-    Evolution(crate::EvolutionError),
+    Evolution(EvolutionError),
     UnsupportedGraphVersion(u32),
     UnsupportedDerivationVersion(u32),
     CurrentAuthorityMismatch,
@@ -498,15 +533,31 @@ pub enum AncestrySimplificationError {
     MissingRetainedCopy(AncestryCopyId),
     NodeKeyMismatch,
     UnknownChromosome(ChromosomeId),
-    UnknownLocus { chromosome: ChromosomeId, locus: LocusId },
+    UnknownLocus {
+        chromosome: ChromosomeId,
+        locus: LocusId,
+    },
     NonCanonicalEdgeOrder,
     MissingEndpoint(AncestryCopyId),
     CrossChromosomeEdge,
     GenerationOrderViolation,
-    DuplicateIncomingLocus { child: AncestryCopyId, locus: LocusId },
-    IncompleteSelectedParentage { child: AncestryCopyId, locus: LocusId },
+    DuplicateIncomingLocus {
+        child: AncestryCopyId,
+        locus: LocusId,
+    },
+    IncompleteParticipatingParentage {
+        child: AncestryCopyId,
+        locus: LocusId,
+    },
+    IncompleteSelectedParentage {
+        child: AncestryCopyId,
+        locus: LocusId,
+    },
     RootHasParents(AncestryCopyId),
-    MissingActiveParent { child: AncestryCopyId, locus: LocusId },
+    MissingActiveParent {
+        child: AncestryCopyId,
+        locus: LocusId,
+    },
     ReplayMismatch,
 }
 
@@ -522,8 +573,8 @@ impl From<AncestryPruningError> for AncestrySimplificationError {
     }
 }
 
-impl From<crate::EvolutionError> for AncestrySimplificationError {
-    fn from(value: crate::EvolutionError) -> Self {
+impl From<EvolutionError> for AncestrySimplificationError {
+    fn from(value: EvolutionError) -> Self {
         Self::Evolution(value)
     }
 }
@@ -534,24 +585,83 @@ impl fmt::Display for AncestrySimplificationError {
             Self::Graph(error) => write!(f, "ancestry graph authority error: {error}"),
             Self::Pruning(error) => write!(f, "ancestry pruning authority error: {error}"),
             Self::Evolution(error) => write!(f, "evolution authority error: {error}"),
-            Self::UnsupportedGraphVersion(version) => write!(f, "unsupported simplified ancestry graph version {version}"),
-            Self::UnsupportedDerivationVersion(version) => write!(f, "unsupported ancestry simplification derivation version {version}"),
-            Self::CurrentAuthorityMismatch => write!(f, "simplified ancestry graph does not match current schema/map authority"),
+            Self::UnsupportedGraphVersion(version) => {
+                write!(f, "unsupported simplified ancestry graph version {version}")
+            }
+            Self::UnsupportedDerivationVersion(version) => write!(
+                f,
+                "unsupported ancestry simplification derivation version {version}"
+            ),
+            Self::CurrentAuthorityMismatch => write!(
+                f,
+                "simplified ancestry graph does not match current schema/map authority"
+            ),
             Self::EmptyGraph => write!(f, "simplified ancestry graph is empty"),
-            Self::InvalidRetentionAuthority => write!(f, "simplified ancestry graph carries invalid focal/protected authority"),
-            Self::MissingRetainedCopy(id) => write!(f, "retained ancestry copy {} is absent", id.as_str()),
+            Self::InvalidRetentionAuthority => write!(
+                f,
+                "simplified ancestry graph carries invalid focal/protected authority"
+            ),
+            Self::MissingRetainedCopy(id) => {
+                write!(f, "retained ancestry copy {} is absent", id.as_str())
+            }
             Self::NodeKeyMismatch => write!(f, "simplified ancestry graph node key mismatch"),
-            Self::UnknownChromosome(id) => write!(f, "unknown simplified ancestry chromosome {}", id.as_str()),
-            Self::UnknownLocus { chromosome, locus } => write!(f, "locus {} does not belong to simplified ancestry chromosome {}", locus.as_str(), chromosome.as_str()),
-            Self::NonCanonicalEdgeOrder => write!(f, "simplified ancestry edges are not in strict canonical order"),
-            Self::MissingEndpoint(id) => write!(f, "simplified ancestry edge references missing copy {}", id.as_str()),
-            Self::CrossChromosomeEdge => write!(f, "simplified ancestry edge crosses chromosomes"),
-            Self::GenerationOrderViolation => write!(f, "simplified ancestry edge violates generation order"),
-            Self::DuplicateIncomingLocus { child, locus } => write!(f, "simplified child {} has duplicate incoming ancestry at locus {}", child.as_str(), locus.as_str()),
-            Self::IncompleteSelectedParentage { child, locus } => write!(f, "selected copy {} lacks simplified ancestry at locus {}", child.as_str(), locus.as_str()),
-            Self::RootHasParents(id) => write!(f, "simplified root {} unexpectedly has incoming ancestry", id.as_str()),
-            Self::MissingActiveParent { child, locus } => write!(f, "cannot trace retained ancestry parent for {} at locus {}", child.as_str(), locus.as_str()),
-            Self::ReplayMismatch => write!(f, "ancestry simplification deterministic replay mismatch"),
+            Self::UnknownChromosome(id) => write!(
+                f,
+                "unknown simplified ancestry chromosome {}",
+                id.as_str()
+            ),
+            Self::UnknownLocus { chromosome, locus } => write!(
+                f,
+                "locus {} does not belong to simplified ancestry chromosome {}",
+                locus.as_str(),
+                chromosome.as_str()
+            ),
+            Self::NonCanonicalEdgeOrder => {
+                write!(f, "simplified ancestry edges are not in strict canonical order")
+            }
+            Self::MissingEndpoint(id) => write!(
+                f,
+                "simplified ancestry edge references missing copy {}",
+                id.as_str()
+            ),
+            Self::CrossChromosomeEdge => {
+                write!(f, "simplified ancestry edge crosses chromosomes")
+            }
+            Self::GenerationOrderViolation => {
+                write!(f, "simplified ancestry edge violates generation order")
+            }
+            Self::DuplicateIncomingLocus { child, locus } => write!(
+                f,
+                "simplified child {} has duplicate incoming ancestry at locus {}",
+                child.as_str(),
+                locus.as_str()
+            ),
+            Self::IncompleteParticipatingParentage { child, locus } => write!(
+                f,
+                "participating simplified ancestor {} is disconnected from its own ancestry at locus {}",
+                child.as_str(),
+                locus.as_str()
+            ),
+            Self::IncompleteSelectedParentage { child, locus } => write!(
+                f,
+                "selected copy {} lacks simplified ancestry at locus {}",
+                child.as_str(),
+                locus.as_str()
+            ),
+            Self::RootHasParents(id) => write!(
+                f,
+                "simplified root {} unexpectedly has incoming ancestry",
+                id.as_str()
+            ),
+            Self::MissingActiveParent { child, locus } => write!(
+                f,
+                "cannot trace retained ancestry parent for {} at locus {}",
+                child.as_str(),
+                locus.as_str()
+            ),
+            Self::ReplayMismatch => {
+                write!(f, "ancestry simplification deterministic replay mismatch")
+            }
         }
     }
 }
