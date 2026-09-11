@@ -1,0 +1,141 @@
+name: PB-04b Schema2 Product Qualification
+
+on:
+  push:
+    branches:
+      - "ci/pb04b-schema2-product-qual-7c5b0d7"
+    paths:
+      - ".github/workflows/pb04b-schema2-product-qualification.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  qualify-product:
+    name: Qualify immutable PB-04b schema2 product
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout qualification harness
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+
+      - name: Bind exact harness lineage
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "${GITHUB_SHA}"
+          test "$(git rev-parse HEAD^)" = "7c5b0d7edc22b01980c5d3324325612566348313"
+          actual="$(git diff --name-only HEAD^..HEAD | sort -u)"
+          test "${actual}" = ".github/workflows/pb04b-schema2-product-qualification.yml"
+          echo "PB04B_SCHEMA2_QUAL_HARNESS_HEAD=${GITHUB_SHA}"
+          echo "PB04B_SCHEMA2_QUAL_HARNESS_TREE=$(git rev-parse HEAD^{tree})"
+
+      - name: Checkout immutable PB-04b schema2 product
+        shell: bash
+        run: |
+          set -euo pipefail
+          git checkout --detach 7c5b0d7edc22b01980c5d3324325612566348313
+          test "$(git rev-parse HEAD)" = "7c5b0d7edc22b01980c5d3324325612566348313"
+          test "$(git rev-parse HEAD^{tree})" = "c80f3bd871a8cc3f16af7c52f990922e5f9c4a9b"
+          test "$(git rev-parse HEAD^)" = "ecbc6194b1693fdc42ff9aca75d0a37e036b3d97"
+
+          check_blob() {
+            expected="$1"
+            path="$2"
+            actual="$(git rev-parse "HEAD:${path}")"
+            test "${actual}" = "${expected}" || {
+              echo "immutable PB-04b schema2 product drift: ${path}" >&2
+              echo "expected ${expected}" >&2
+              echo "actual   ${actual}" >&2
+              exit 1
+            }
+          }
+
+          check_blob 676fd6a7eb31a2ec00b09c9496b42c568e791556 crates/domains/symtropy-spatial-decomposition/Cargo.lock
+          check_blob 614fa7d2e293809faaef10649cf3beb02475c259 crates/domains/symtropy-spatial-decomposition/Cargo.toml
+          check_blob 396f79b17950990778702f1e473caba98b6b1c3d crates/domains/symtropy-spatial-decomposition/src/lib.rs
+          check_blob 7622be3716a564a1a0abce183601a82f899798a0 crates/domains/symtropy-spatial-decomposition/tests/local_identity.rs
+          check_blob f465ef97074a973eb3bf742a918609f7a06bccc4 crates/domains/symtropy-spatial-topology/Cargo.lock
+          check_blob 22e4b9ed397b7fd94d5918d0dc26868710794d17 crates/domains/symtropy-spatial-topology/Cargo.toml
+          check_blob d0553da04de45f5df6e372b24a5a2fdc4d894b66 crates/domains/symtropy-spatial-topology/src/lib.rs
+          check_blob 79abd90a6aa2c0b6623f75a279a66ff309094926 crates/domains/symtropy-spatial-topology/tests/hostile_projection.rs
+          test "$(sha256sum crates/domains/symtropy-spatial-decomposition/Cargo.lock | awk '{print $1}')" = "fb9c8fef69c0cce3a9fc680034e6d8b921a58d561fb1fc2258ff5297cad4f784"
+
+          echo "CARGO_TARGET_DIR=${RUNNER_TEMP}/pb04b-schema2-product-target" >> "${GITHUB_ENV}"
+          echo "PB04B_SCHEMA2_PRODUCT_HEAD=$(git rev-parse HEAD)"
+          echo "PB04B_SCHEMA2_PRODUCT_TREE=$(git rev-parse HEAD^{tree})"
+
+      - name: Record hosted execution environment
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "PB04B_RUNNER_OS=${RUNNER_OS}"
+          echo "PB04B_RUNNER_ARCH=${RUNNER_ARCH}"
+          echo "PB04B_IMAGE_OS=${ImageOS:-unknown}"
+          echo "PB04B_IMAGE_VERSION=${ImageVersion:-unknown}"
+          echo "PB04B_CARGO_TARGET_DIR=${CARGO_TARGET_DIR}"
+          uname -a
+          git --version
+
+      - name: Set up pinned Rust
+        uses: dtolnay/rust-toolchain@6bed0761d98439e5a578e2877258200ad565ba87
+        with:
+          toolchain: 1.96.0
+          components: clippy, rustfmt
+
+      - name: Bind exact Rust toolchain
+        shell: bash
+        run: |
+          set -euo pipefail
+          rustc -Vv
+          cargo -Vv
+          rustfmt --version
+          cargo clippy --version
+
+      - name: Verify locked dependency graph
+        shell: bash
+        run: |
+          set -euo pipefail
+          manifest="crates/domains/symtropy-spatial-decomposition/Cargo.toml"
+          cargo metadata --manifest-path "${manifest}" --locked --format-version 1 > "${RUNNER_TEMP}/pb04b-schema2-metadata.json"
+          echo "PB04B_SCHEMA2_LOCKED_METADATA_SHA256=$(sha256sum "${RUNNER_TEMP}/pb04b-schema2-metadata.json" | awk '{print $1}')"
+
+      - name: Check formatting
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo fmt --manifest-path crates/domains/symtropy-spatial-decomposition/Cargo.toml -- --check
+
+      - name: Check
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo check --manifest-path crates/domains/symtropy-spatial-decomposition/Cargo.toml --locked --all-targets
+
+      - name: Test
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo test --manifest-path crates/domains/symtropy-spatial-decomposition/Cargo.toml --locked
+
+      - name: Strict Clippy
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo clippy --manifest-path crates/domains/symtropy-spatial-decomposition/Cargo.toml --locked --all-targets -- -D warnings
+
+      - name: Exact immutable-product postflight
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "7c5b0d7edc22b01980c5d3324325612566348313"
+          test "$(git rev-parse HEAD^{tree})" = "c80f3bd871a8cc3f16af7c52f990922e5f9c4a9b"
+          test ! -e crates/domains/symtropy-spatial-decomposition/target
+          status="$(git status --porcelain --untracked-files=all)"
+          if [[ -n "${status}" ]]; then
+            echo "immutable PB-04b schema2 checkout mutated during qualification" >&2
+            printf '%s\n' "${status}" >&2
+            exit 1
+          fi
