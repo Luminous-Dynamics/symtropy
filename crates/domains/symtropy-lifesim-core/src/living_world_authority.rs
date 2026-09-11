@@ -21,6 +21,7 @@ pub mod shadow_execution_continuity;
 pub mod shadow_execution_lineage;
 pub mod shadow_observable_authority;
 pub mod shadow_paired_execution;
+pub mod shadow_runner_qualification;
 pub mod shadow_validation;
 pub mod spatiotemporal_information;
 pub mod transition_conservation;
