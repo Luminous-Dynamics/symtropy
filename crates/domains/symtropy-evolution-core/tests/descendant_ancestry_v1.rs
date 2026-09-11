@@ -472,13 +472,19 @@ fn identical_child_haplotype_content_keeps_two_descendant_identities_in_one_clas
         chromosome_state.classes[0].copy_ids[1]
     );
 
-    let role_ids: BTreeSet<_> = derived
-        .materialization
-        .descendant_copies
-        .iter()
-        .map(|copy| (copy.parent_role, copy.child_copy_id.clone()))
-        .collect();
-    assert_eq!(role_ids.len(), 2);
+    assert_eq!(derived.materialization.descendant_copies.len(), 2);
+    assert_eq!(
+        derived.materialization.descendant_copies[0].parent_role,
+        ParentRole::ParentA
+    );
+    assert_eq!(
+        derived.materialization.descendant_copies[1].parent_role,
+        ParentRole::ParentB
+    );
+    assert_ne!(
+        derived.materialization.descendant_copies[0].child_copy_id,
+        derived.materialization.descendant_copies[1].child_copy_id
+    );
 
     let wrong_event = ReproductionEventId::new("other-child-event").unwrap();
     assert!(derived
