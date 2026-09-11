@@ -38,6 +38,7 @@ mod linked_offspring;
 mod linked_offspring_v2;
 mod marker_recombination;
 mod metapopulation;
+mod mutation_origin;
 mod operators;
 mod phased_heredity;
 mod population;
@@ -189,6 +190,10 @@ pub use marker_recombination::{
 };
 pub use metapopulation::{
     MetapopulationSnapshot, MetapopulationSnapshotDigest, MetapopulationSnapshotEntry,
+};
+pub use mutation_origin::{
+    declare_at_birth_mutation_origin, MutationOrigin, MutationOriginDigest, MutationOriginError,
+    MutationOriginTiming, MUTATION_ORIGIN_VERSION,
 };
 pub use operators::{
     EvolutionOperatorProfile, EvolutionOperatorProfileDigest, MutationProfile,
