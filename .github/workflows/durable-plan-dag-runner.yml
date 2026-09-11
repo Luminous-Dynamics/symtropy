@@ -15,8 +15,9 @@ jobs:
   qualify:
     name: Apply and prove durable F10 DAG invariants
     runs-on: macos-15
+    env:
+      CARGO_TARGET_DIR: /tmp/symtropy-f10-durable-plan-target
     steps:
-      # actions/checkout v4 resolved and frozen at review time.
       - name: Check out exact product branch
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
@@ -44,6 +45,7 @@ jobs:
           echo "F10_PARENT_TREE=$(git -C product rev-parse HEAD^{tree})"
           echo "F10_QUALIFIER_HEAD=$(git -C runner-tools rev-parse HEAD)"
           echo "F10_TRANSFORM_BLOB=$(git -C runner-tools hash-object .github/repair/durable_plan_dag.py)"
+          echo "F10_CARGO_TARGET_DIR=${CARGO_TARGET_DIR}"
 
       - name: Record hosted execution environment
         shell: bash
@@ -56,7 +58,6 @@ jobs:
           uname -a
           git --version
 
-      # dtolnay/rust-toolchain stable branch resolved and frozen at review time.
       - name: Set up pinned Rust 1.96
         uses: dtolnay/rust-toolchain@6bed0761d98439e5a578e2877258200ad565ba87
         with:
