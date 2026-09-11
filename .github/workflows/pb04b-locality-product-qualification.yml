@@ -19,14 +19,15 @@ jobs:
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
           ref: ${{ github.sha }}
-          fetch-depth: 2
+          fetch-depth: 0
 
-      - name: Bind exact harness lineage
+      - name: Bind exact repaired harness lineage
         shell: bash
         run: |
           set -euo pipefail
           test "$(git rev-parse HEAD)" = "${GITHUB_SHA}"
-          test "$(git rev-parse HEAD^)" = "72fda03521621c0d781d28237de1e88aa513e1f8"
+          test "$(git rev-parse HEAD^)" = "9b83f8fab39648a76638698dda0beba9bd424024"
+          test "$(git rev-parse HEAD^^)" = "72fda03521621c0d781d28237de1e88aa513e1f8"
           actual="$(git diff --name-only HEAD^..HEAD | sort -u)"
           test "${actual}" = ".github/workflows/pb04b-locality-product-qualification.yml"
           echo "PB04B_QUAL_HARNESS_HEAD=${GITHUB_SHA}"
