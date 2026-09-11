@@ -3,8 +3,8 @@
 
 //! Exact-head evidence generator for the manufactured one-step update defect.
 //!
-//! It retains temporal and spatial refinement samples without assigning an
-//! observed-order threshold or promotion verdict.
+//! It retains temporal refinement, spatial refinement, and forcing-phase samples
+//! without assigning an observed-order threshold or promotion verdict.
 
 use std::collections::BTreeSet;
 use std::env;
@@ -17,12 +17,15 @@ use symtropy_fluid::evidence::{
 use symtropy_fluid::manufactured::ManufacturedTaylorGreenProfile;
 use symtropy_fluid::manufactured_update_defect::{
     ManufacturedUpdateDefectReport, measure_manufactured_one_step_update_defect,
+    measure_manufactured_one_step_update_defect_at_phase,
 };
 use symtropy_fluid::reference::PeriodicMacConfig;
 
 const DOCUMENT_SCHEMA_ID: &str = "manufactured-update-defect-evidence-document-v0.1";
 const CASE_PROFILE_ID: &str = "manufactured-update-defect-refinement-campaign-v0.1";
 const SPATIAL_DT_S: f64 = 0.000125;
+const PHASE_RESOLUTION: usize = 24;
+const PHASE_DT_S: f64 = 0.000125;
 
 #[derive(Debug, Serialize)]
 struct ManufacturedUpdateDefectCampaign {
@@ -30,6 +33,9 @@ struct ManufacturedUpdateDefectCampaign {
     temporal_points: Vec<ManufacturedUpdateDefectReport>,
     spatial_fixed_dt_s: f64,
     spatial_points: Vec<ManufacturedUpdateDefectReport>,
+    phase_fixed_resolution: usize,
+    phase_fixed_dt_s: f64,
+    phase_points: Vec<ManufacturedUpdateDefectReport>,
 }
 
 #[derive(Debug, Serialize)]
@@ -70,9 +76,23 @@ fn main() -> Result<(), Box<dyn Error>> {
         })
         .collect::<Result<Vec<_>, _>>()?;
 
+    let period_s = std::f64::consts::TAU / profile.angular_frequency_rad_s;
+    let phase_points = [0.0, 0.25, 0.5, 0.75]
+        .into_iter()
+        .map(|cycle_fraction| {
+            measure_manufactured_one_step_update_defect_at_phase(
+                case_config(PHASE_RESOLUTION),
+                profile,
+                cycle_fraction * period_s,
+                PHASE_DT_S,
+            )
+        })
+        .collect::<Result<Vec<_>, _>>()?;
+
     let execution_profiles = temporal_points
         .iter()
         .chain(&spatial_points)
+        .chain(&phase_points)
         .map(|point| point.solver_profile.clone())
         .collect::<BTreeSet<_>>()
         .into_iter()
@@ -83,6 +103,9 @@ fn main() -> Result<(), Box<dyn Error>> {
         temporal_points,
         spatial_fixed_dt_s: SPATIAL_DT_S,
         spatial_points,
+        phase_fixed_resolution: PHASE_RESOLUTION,
+        phase_fixed_dt_s: PHASE_DT_S,
+        phase_points,
     };
     let subject = ContinuumEvidenceSubject {
         schema_version: CONTINUUM_EVIDENCE_SCHEMA_VERSION,
