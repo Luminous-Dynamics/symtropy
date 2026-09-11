@@ -1,0 +1,172 @@
+name: Terrain Exact Geometry Authority Self Apply
+
+on:
+  push:
+    branches:
+      - "terrain/exact-geometry-authority-v0.1"
+    paths:
+      - ".github/workflows/terrain-exact-geometry-authority-self-apply.yml"
+      - "scripts/terrain-integrate-exact-geometry-authority.py"
+      - "crates/domains/symtropy-terrain/src/geometry_authority.rs"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: terrain-exact-geometry-authority-self-apply
+  cancel-in-progress: true
+
+jobs:
+  qualify-and-freeze:
+    name: Qualify and freeze Terrain geometry authority
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+
+      - name: Bind exact theorem lineage and main Terrain preimage
+        shell: bash
+        run: |
+          set -euo pipefail
+          base=3cb63c80a273a5f6f41b6eeafbc11cb97f7aaac7
+          kernel_head=3de897b333a61de5ab26a92dc69d7aed87cd312e
+          transform_head=f1b33cc601dd9b6486fdc301f31a61d659dfd21f
+          test "$(git rev-parse HEAD)" = "${GITHUB_SHA}"
+          test "$(git rev-parse HEAD^)" = "${transform_head}"
+          test "$(git rev-parse HEAD^^)" = "${kernel_head}"
+          test "$(git rev-parse HEAD^^^)" = "${base}"
+          test "$(git rev-parse ${base}^{tree})" = "fbdfb6e0543fa3bce1ef73d655bf5efdc46c3739"
+          test "$(git rev-parse HEAD:crates/domains/symtropy-terrain/Cargo.toml)" = "6b3dd8cc5ede90833caecd6568757c42ecc97509"
+          test "$(git rev-parse HEAD:crates/domains/symtropy-terrain/src/lib.rs)" = "bbf60ddd18fbe3a5933afda0b1d068df5540bd46"
+          test "$(git rev-parse HEAD:crates/domains/symtropy-terrain/src/geometry_authority.rs)" = "9a6ec7076b54d7da9525e31dd8aa2258174ab5ea"
+          test "$(git rev-parse HEAD:scripts/terrain-integrate-exact-geometry-authority.py)" = "81348cea2294e46df3354a549d5642953b3af5ca"
+
+          actual_source_delta="$(git diff --name-only ${base}..HEAD | sort -u)"
+          expected_source_delta="$(printf '%s\n' \
+            .github/workflows/terrain-exact-geometry-authority-self-apply.yml \
+            crates/domains/symtropy-terrain/src/geometry_authority.rs \
+            scripts/terrain-integrate-exact-geometry-authority.py | sort)"
+          test "${actual_source_delta}" = "${expected_source_delta}"
+
+          echo "TERRAIN_GEOMETRY_INPUT_HEAD=${GITHUB_SHA}"
+          echo "TERRAIN_GEOMETRY_INPUT_TREE=$(git rev-parse HEAD^{tree})"
+          echo "TERRAIN_GEOMETRY_BASE=${base}"
+          echo "TERRAIN_GEOMETRY_LOCK_BEFORE=$(git hash-object Cargo.lock)" >> "${GITHUB_ENV}"
+          echo "CARGO_TARGET_DIR=${RUNNER_TEMP}/terrain-geometry-target" >> "${GITHUB_ENV}"
+
+      - name: Record hosted execution environment
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "TERRAIN_GEOMETRY_RUNNER_OS=${RUNNER_OS}"
+          echo "TERRAIN_GEOMETRY_RUNNER_ARCH=${RUNNER_ARCH}"
+          echo "TERRAIN_GEOMETRY_IMAGE_OS=${ImageOS:-unknown}"
+          echo "TERRAIN_GEOMETRY_IMAGE_VERSION=${ImageVersion:-unknown}"
+          uname -a
+          git --version
+
+      - name: Install Linux system dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install -y libasound2-dev libudev-dev pkg-config
+
+      - name: Set up pinned Rust
+        uses: dtolnay/rust-toolchain@6bed0761d98439e5a578e2877258200ad565ba87
+        with:
+          toolchain: 1.96.0
+          components: clippy, rustfmt
+
+      - name: Bind exact Rust toolchain
+        shell: bash
+        run: |
+          set -euo pipefail
+          rustc -Vv
+          cargo -Vv
+          rustfmt --version
+          cargo clippy --version
+
+      - name: Apply exact Terrain geometry integration and canonical formatting
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 scripts/terrain-integrate-exact-geometry-authority.py
+          cargo fmt --package symtropy-terrain
+          test "$(git hash-object Cargo.lock)" = "${TERRAIN_GEOMETRY_LOCK_BEFORE}"
+          echo "TERRAIN_GEOMETRY_LIB_BLOB=$(git hash-object crates/domains/symtropy-terrain/src/lib.rs)"
+          echo "TERRAIN_GEOMETRY_KERNEL_BLOB=$(git hash-object crates/domains/symtropy-terrain/src/geometry_authority.rs)"
+
+      - name: Verify locked dependency graph
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo metadata --locked --format-version 1 > "${RUNNER_TEMP}/terrain-geometry-metadata.json"
+          echo "TERRAIN_GEOMETRY_METADATA_SHA256=$(sha256sum "${RUNNER_TEMP}/terrain-geometry-metadata.json" | awk '{print $1}')"
+          test "$(git hash-object Cargo.lock)" = "${TERRAIN_GEOMETRY_LOCK_BEFORE}"
+
+      - name: Check Terrain
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo check -p symtropy-terrain --locked --all-targets
+
+      - name: Test Terrain geometry authority
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo test -p symtropy-terrain --locked --lib
+
+      - name: Strict Terrain Clippy
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo clippy -p symtropy-terrain --locked --all-targets -- -D warnings
+
+      - name: Require exact generated product delta
+        shell: bash
+        run: |
+          set -euo pipefail
+          git diff --check
+          test "$(git hash-object Cargo.lock)" = "${TERRAIN_GEOMETRY_LOCK_BEFORE}"
+          test ! -e crates/domains/symtropy-terrain/target
+
+          actual="$({ git diff --name-only; git ls-files --others --exclude-standard; } | sort -u)"
+          lib="crates/domains/symtropy-terrain/src/lib.rs"
+          kernel="crates/domains/symtropy-terrain/src/geometry_authority.rs"
+          printf '%s\n' "${actual}" | grep -Fx "${lib}" >/dev/null
+          unexpected="$(printf '%s\n' "${actual}" | grep -Fvx -e "${lib}" -e "${kernel}" || true)"
+          test -z "${unexpected}" || {
+            echo "Terrain geometry qualification generated unexpected paths:" >&2
+            printf '%s\n' "${unexpected}" >&2
+            exit 1
+          }
+
+      - name: Publish frozen Terrain geometry authority product
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "Terrain Geometry Qualification Bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add \
+            crates/domains/symtropy-terrain/src/lib.rs \
+            crates/domains/symtropy-terrain/src/geometry_authority.rs
+          git diff --cached --check
+          git diff --cached --exit-code --quiet && {
+            echo "no Terrain geometry authority product delta" >&2
+            exit 1
+          }
+          git commit -m "feat(terrain): integrate exact geometry authority"
+
+          echo "TERRAIN_GEOMETRY_PRODUCT_HEAD=$(git rev-parse HEAD)"
+          echo "TERRAIN_GEOMETRY_PRODUCT_TREE=$(git rev-parse HEAD^{tree})"
+          echo "TERRAIN_GEOMETRY_PRODUCT_PARENT=$(git rev-parse HEAD^)"
+          echo "TERRAIN_GEOMETRY_PRODUCT_LIB_BLOB=$(git rev-parse HEAD:crates/domains/symtropy-terrain/src/lib.rs)"
+          echo "TERRAIN_GEOMETRY_PRODUCT_KERNEL_BLOB=$(git rev-parse HEAD:crates/domains/symtropy-terrain/src/geometry_authority.rs)"
+          echo "TERRAIN_GEOMETRY_PRODUCT_LOCK_BLOB=$(git rev-parse HEAD:Cargo.lock)"
+
+          remote_head="$(git ls-remote origin refs/heads/terrain/exact-geometry-authority-v0.1 | cut -f1)"
+          test "${remote_head}" = "${GITHUB_SHA}"
+          git push origin HEAD:terrain/exact-geometry-authority-v0.1
