@@ -107,8 +107,8 @@ fn cut_observation(
     barriers: Vec<ExactSourceRef>,
     separators: Vec<ExactSourceRef>,
 ) -> CellPartitionObservation {
-    let cut = LocalPartitionCut::new(cell, plane_x(cell, local_x), barriers, separators)
-        .expect("cut");
+    let cut =
+        LocalPartitionCut::new(cell, plane_x(cell, local_x), barriers, separators).expect("cut");
     CellPartitionObservation::new(
         cell,
         coverage(cell, coverage_revision, coverage_digest),
@@ -153,7 +153,7 @@ fn updated(
         .advance(profile, domain, successor)
         .expect("incremental advance")
     {
-        IncrementalRecomputeOutcome::Updated(update) => update,
+        IncrementalRecomputeOutcome::Updated(update) => *update,
         IncrementalRecomputeOutcome::FullRebuildRequired(reason) => {
             panic!("unexpected full rebuild requirement: {reason:?}")
         }
@@ -178,12 +178,15 @@ fn local_partition_id(
     snapshot: &GeometricDecompositionSnapshot,
     cell: CellCoord,
 ) -> Option<String> {
-    snapshot.interfaces().iter().find_map(|interface| match interface.kind() {
-        GeometricInterfaceKind::LocalPartition { cell: candidate, .. } if *candidate == cell => {
-            Some(interface.id().0.as_str().to_owned())
-        }
-        _ => None,
-    })
+    snapshot
+        .interfaces()
+        .iter()
+        .find_map(|interface| match interface.kind() {
+            GeometricInterfaceKind::LocalPartition {
+                cell: candidate, ..
+            } if *candidate == cell => Some(interface.id().0.as_str().to_owned()),
+            _ => None,
+        })
 }
 
 #[test]
@@ -195,8 +198,8 @@ fn no_local_change_reuses_every_atom_and_matches_clean_rebuild() {
         &domain,
         clear_observations(3, 1, "coverage-v1"),
     );
-    let state = IncrementalDecompositionState::new(&profile, &domain, predecessor.clone())
-        .expect("state");
+    let state =
+        IncrementalDecompositionState::new(&profile, &domain, predecessor.clone()).expect("state");
     let successor = predecessor.clone();
     let expected = clean(&profile, &domain, &successor);
     let update = updated(&state, &profile, &domain, successor);
@@ -205,7 +208,10 @@ fn no_local_change_reuses_every_atom_and_matches_clean_rebuild() {
     assert!(update.recompute_cells().is_empty());
     assert_eq!(update.snapshot(), &expected);
     assert_eq!(update.snapshot().fragments(), state.snapshot().fragments());
-    assert_eq!(update.snapshot().interfaces(), state.snapshot().interfaces());
+    assert_eq!(
+        update.snapshot().interfaces(),
+        state.snapshot().interfaces()
+    );
 }
 
 #[test]
@@ -237,7 +243,10 @@ fn coverage_only_change_preserves_locus_ids_and_matches_clean_rebuild() {
     );
     assert_eq!(fragment_ids_for_cell(update.snapshot(), cell), before_ids);
     assert_eq!(update.snapshot(), &expected);
-    assert_ne!(update.snapshot().content_digest(), state.snapshot().content_digest());
+    assert_ne!(
+        update.snapshot().content_digest(),
+        state.snapshot().content_digest()
+    );
 }
 
 #[test]
@@ -283,7 +292,11 @@ fn cut_to_clear_transition_matches_clean_rebuild() {
         vec![barrier(cell, 1, "barrier-v1")],
         Vec::new(),
     );
-    let predecessor = census(geometry(1, "geometry-v1"), &domain, predecessor_observations);
+    let predecessor = census(
+        geometry(1, "geometry-v1"),
+        &domain,
+        predecessor_observations,
+    );
     let state = IncrementalDecompositionState::new(&profile, &domain, predecessor).expect("state");
     let successor = census(
         geometry(2, "geometry-v2"),
@@ -312,7 +325,11 @@ fn closed_to_open_barrier_change_preserves_partition_locus_and_matches_clean_reb
         vec![barrier(cell, 1, "door-closed")],
         vec![separator(cell)],
     );
-    let predecessor = census(geometry(1, "geometry-v1"), &domain, predecessor_observations);
+    let predecessor = census(
+        geometry(1, "geometry-v1"),
+        &domain,
+        predecessor_observations,
+    );
     let state = IncrementalDecompositionState::new(&profile, &domain, predecessor).expect("state");
     let before_id = local_partition_id(state.snapshot(), cell).expect("partition");
 
@@ -330,7 +347,10 @@ fn closed_to_open_barrier_change_preserves_partition_locus_and_matches_clean_reb
     let update = updated(&state, &profile, &domain, successor);
 
     assert_eq!(update.snapshot(), &expected);
-    assert_eq!(local_partition_id(update.snapshot(), cell).as_deref(), Some(before_id.as_str()));
+    assert_eq!(
+        local_partition_id(update.snapshot(), cell).as_deref(),
+        Some(before_id.as_str())
+    );
 }
 
 #[test]
@@ -347,7 +367,11 @@ fn local_plane_change_matches_clean_rebuild_and_renames_local_locus() {
         vec![barrier(cell, 1, "wall-v1")],
         Vec::new(),
     );
-    let predecessor = census(geometry(1, "geometry-v1"), &domain, predecessor_observations);
+    let predecessor = census(
+        geometry(1, "geometry-v1"),
+        &domain,
+        predecessor_observations,
+    );
     let state = IncrementalDecompositionState::new(&profile, &domain, predecessor).expect("state");
     let before = local_partition_id(state.snapshot(), cell).expect("partition");
 
@@ -481,8 +505,14 @@ fn global_geometry_revision_alone_reuses_local_atoms_but_updates_exact_snapshot(
     assert!(update.recompute_cells().is_empty());
     assert_eq!(update.snapshot(), &expected);
     assert_eq!(update.snapshot().fragments(), state.snapshot().fragments());
-    assert_eq!(update.snapshot().interfaces(), state.snapshot().interfaces());
-    assert_ne!(update.snapshot().content_digest(), state.snapshot().content_digest());
+    assert_eq!(
+        update.snapshot().interfaces(),
+        state.snapshot().interfaces()
+    );
+    assert_ne!(
+        update.snapshot().content_digest(),
+        state.snapshot().content_digest()
+    );
 }
 
 #[test]
@@ -500,12 +530,8 @@ fn mismatched_predecessor_snapshot_is_rejected() {
         clear_observations(2, 2, "coverage-v2"),
     );
     let wrong_snapshot = clean(&profile, &domain, &different);
-    let result = IncrementalDecompositionState::from_parts(
-        &profile,
-        &domain,
-        predecessor,
-        wrong_snapshot,
-    );
+    let result =
+        IncrementalDecompositionState::from_parts(&profile, &domain, predecessor, wrong_snapshot);
     assert!(matches!(
         result,
         Err(DecompositionError::PredecessorSnapshotMismatch)
@@ -529,7 +555,9 @@ fn incompatible_profile_or_domain_requires_full_rebuild() {
     );
 
     assert!(matches!(
-        state.advance(&other_profile(), &domain, successor.clone()).unwrap(),
+        state
+            .advance(&other_profile(), &domain, successor.clone())
+            .unwrap(),
         IncrementalRecomputeOutcome::FullRebuildRequired(
             IncrementalFullRebuildReason::ProfileChanged
         )
@@ -542,7 +570,9 @@ fn incompatible_profile_or_domain_requires_full_rebuild() {
         clear_observations(2, 2, "coverage-v2"),
     );
     assert!(matches!(
-        state.advance(&profile, &shifted, shifted_successor).unwrap(),
+        state
+            .advance(&profile, &shifted, shifted_successor)
+            .unwrap(),
         IncrementalRecomputeOutcome::FullRebuildRequired(
             IncrementalFullRebuildReason::DomainChanged
         )
