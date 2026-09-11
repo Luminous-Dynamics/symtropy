@@ -1,0 +1,109 @@
+name: Terrain Dependency Composition Slim Diagnostic
+
+on:
+  push:
+    branches:
+      - "ci/terrain-deps-slim-diagnostic-b6c989a"
+    paths:
+      - ".github/workflows/terrain-deps-slim-diagnostic.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  feature-graph-diagnostic:
+    name: Diagnose Terrain feature graph only
+    runs-on: ubuntu-slim
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+
+      - name: Bind exact diagnostic lineage
+        shell: bash
+        run: |
+          set -euo pipefail
+          theorem_input=b6c989a03178f41f443cd5d889c64ab9c7890409
+          workflow=.github/workflows/terrain-deps-slim-diagnostic.yml
+          cargo_blob=274720e256ba9067fad3d06f71e1b18590b046bd
+          lock_blob=db602c9707ecd6143ef36c0243c051544a027141
+
+          test "$(git rev-parse HEAD)" = "${GITHUB_SHA}"
+          test "$(git rev-parse HEAD^)" = "${theorem_input}"
+          test "$(git rev-parse HEAD:Cargo.toml)" = "${cargo_blob}"
+          test "$(git rev-parse HEAD:Cargo.lock)" = "${lock_blob}"
+          test "$(git diff --name-only "${theorem_input}"..HEAD)" = "${workflow}"
+
+          echo "DIAGNOSTIC_INPUT_HEAD=${GITHUB_SHA}"
+          echo "DIAGNOSTIC_INPUT_TREE=$(git rev-parse HEAD^{tree})"
+          echo "DIAGNOSTIC_THEOREM_INPUT=${theorem_input}"
+          echo "DIAGNOSTIC_LOCK_BLOB=${lock_blob}" >> "${GITHUB_ENV}"
+
+      - name: Set up pinned Rust
+        uses: dtolnay/rust-toolchain@6bed0761d98439e5a578e2877258200ad565ba87
+        with:
+          toolchain: 1.96.0
+
+      - name: Remove only direct root Naga termcolor activation in diagnostic worktree
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+
+          path = Path("Cargo.toml")
+          text = path.read_text()
+          old = 'naga = { version = "27", default-features = false, features = ["termcolor"] }'
+          new = 'naga = { version = "27", default-features = false }'
+          if text.count(old) != 1:
+              raise SystemExit(f"unexpected Naga preimage multiplicity: {text.count(old)}")
+          path.write_text(text.replace(old, new, 1))
+          PY
+          test "$(git diff --name-only)" = "Cargo.toml"
+          test "$(git hash-object Cargo.lock)" = "${DIAGNOSTIC_LOCK_BLOB}"
+
+      - name: Resolve exact locked feature graph
+        shell: bash
+        run: |
+          set -euo pipefail
+          metadata="${RUNNER_TEMP}/terrain-deps-metadata.json"
+          provider="${RUNNER_TEMP}/terrain-provider-features.txt"
+          workspace="${RUNNER_TEMP}/workspace-features.txt"
+
+          cargo metadata --locked --format-version 1 > "${metadata}"
+          cargo tree --locked -p symtropy-terrain -e features > "${provider}"
+          cargo tree --locked --workspace -e features > "${workspace}"
+
+          echo "DIAGNOSTIC_METADATA_SHA256=$(sha256sum "${metadata}" | awk '{print $1}')"
+          echo "DIAGNOSTIC_PROVIDER_TREE_SHA256=$(sha256sum "${provider}" | awk '{print $1}')"
+          echo "DIAGNOSTIC_WORKSPACE_TREE_SHA256=$(sha256sum "${workspace}" | awk '{print $1}')"
+
+          if grep -Fq 'termcolor' "${provider}"; then
+            echo "DIAGNOSTIC_PROVIDER_TERMCOLOR=present"
+            echo "--- provider termcolor context ---"
+            grep -n -B 24 -A 8 -F 'termcolor' "${provider}" || true
+          else
+            echo "DIAGNOSTIC_PROVIDER_TERMCOLOR=absent"
+          fi
+
+          if grep -Fq 'termcolor' "${workspace}"; then
+            echo "DIAGNOSTIC_WORKSPACE_TERMCOLOR=present"
+            echo "--- workspace termcolor lines ---"
+            grep -n -F 'termcolor' "${workspace}" || true
+          else
+            echo "DIAGNOSTIC_WORKSPACE_TERMCOLOR=absent"
+          fi
+
+          test "$(git hash-object Cargo.lock)" = "${DIAGNOSTIC_LOCK_BLOB}"
+          test "$(git diff --name-only)" = "Cargo.toml"
+
+      - name: Diagnostic postflight
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "${GITHUB_SHA}"
+          test "$(git hash-object Cargo.lock)" = "${DIAGNOSTIC_LOCK_BLOB}"
+          test "$(git diff --name-only)" = "Cargo.toml"
+          echo "DIAGNOSTIC_ONLY=true"
+          echo "This run proves feature-graph observation only; it is not Terrain product qualification."
