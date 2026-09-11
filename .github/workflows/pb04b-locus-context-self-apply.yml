@@ -26,12 +26,13 @@ jobs:
           ref: ${{ github.sha }}
           fetch-depth: 0
 
-      - name: Bind exact theorem source and qualified PB-04b v0.1 base
+      - name: Bind exact schema2 theorem source and qualified PB-04b v0.1 base
         shell: bash
         run: |
           set -euo pipefail
           test "$(git rev-parse HEAD)" = "${GITHUB_SHA}"
-          test "$(git rev-parse HEAD^)" = "72fda03521621c0d781d28237de1e88aa513e1f8"
+          test "$(git rev-parse HEAD^)" = "4d88fcab078aaa5703bb427f6d03f63ddd8c41aa"
+          test "$(git rev-parse HEAD^^)" = "72fda03521621c0d781d28237de1e88aa513e1f8"
           test "$(git rev-parse 72fda03521621c0d781d28237de1e88aa513e1f8^{tree})" = "e7c9a2dfe87eca7d03980a90791b703cc79548a2"
 
           check_blob() {
@@ -39,7 +40,7 @@ jobs:
             path="$2"
             actual="$(git rev-parse "HEAD:${path}")"
             test "${actual}" = "${expected}" || {
-              echo "PB-04b locus/context source drift: ${path}" >&2
+              echo "PB-04b schema2 locus/context source drift: ${path}" >&2
               echo "expected ${expected}" >&2
               echo "actual   ${actual}" >&2
               exit 1
@@ -49,8 +50,8 @@ jobs:
           check_blob 676fd6a7eb31a2ec00b09c9496b42c568e791556 crates/domains/symtropy-spatial-decomposition/Cargo.lock
           check_blob 614fa7d2e293809faaef10649cf3beb02475c259 crates/domains/symtropy-spatial-decomposition/Cargo.toml
           check_blob b413c7a9801913acd82475e32148c404dcd290a6 crates/domains/symtropy-spatial-decomposition/src/lib.rs
-          check_blob 9da014ce1146dda225f1d08f9ffad565e52f2e29 crates/domains/symtropy-spatial-decomposition/tests/local_identity.rs
-          check_blob cef4ef8c28c7e34a23047c4e1bf484e12527a3b6 scripts/pb04b-stabilize-locus-context.py
+          check_blob 3fc46b0af0dfcf671ae1fa97aac60bb98357e198 crates/domains/symtropy-spatial-decomposition/tests/local_identity.rs
+          check_blob 9a3f59609f59404bfe5d38886b30d98061a03b14 scripts/pb04b-stabilize-locus-context.py
 
           actual_source_delta="$(git diff --name-only 72fda03521621c0d781d28237de1e88aa513e1f8..HEAD | sort -u)"
           expected_source_delta="$(printf '%s\n' \
@@ -58,7 +59,7 @@ jobs:
             crates/domains/symtropy-spatial-decomposition/tests/local_identity.rs \
             scripts/pb04b-stabilize-locus-context.py | sort)"
           if [[ "${actual_source_delta}" != "${expected_source_delta}" ]]; then
-            echo "PB-04b locus/context theorem commit changed unexpected paths" >&2
+            echo "PB-04b schema2 theorem lineage changed unexpected paths" >&2
             echo "expected:" >&2
             printf '%s\n' "${expected_source_delta}" >&2
             echo "actual:" >&2
@@ -66,8 +67,8 @@ jobs:
             exit 1
           fi
 
-          echo "PB04B_LOCUS_CONTEXT_INPUT_HEAD=${GITHUB_SHA}"
-          echo "PB04B_LOCUS_CONTEXT_INPUT_TREE=$(git rev-parse HEAD^{tree})"
+          echo "PB04B_SCHEMA2_INPUT_HEAD=${GITHUB_SHA}"
+          echo "PB04B_SCHEMA2_INPUT_TREE=$(git rev-parse HEAD^{tree})"
           echo "PB04B_QUALIFIED_V01_HEAD=72fda03521621c0d781d28237de1e88aa513e1f8"
           echo "CARGO_TARGET_DIR=${RUNNER_TEMP}/pb04b-locus-context-target" >> "${GITHUB_ENV}"
 
@@ -98,7 +99,7 @@ jobs:
           rustfmt --version
           cargo clippy --version
 
-      - name: Apply exact locus/context transform and canonical formatting
+      - name: Apply exact schema2 locus/context transform and canonical formatting
         shell: bash
         run: |
           set -euo pipefail
@@ -122,7 +123,7 @@ jobs:
           set -euo pipefail
           cargo check --manifest-path crates/domains/symtropy-spatial-decomposition/Cargo.toml --locked --all-targets
 
-      - name: Test locus/context theorem
+      - name: Test schema2 locus/context theorem
         shell: bash
         run: |
           set -euo pipefail
@@ -148,14 +149,14 @@ jobs:
           } | sort -u)"
           expected="crates/domains/symtropy-spatial-decomposition/src/lib.rs"
           if [[ "${actual}" != "${expected}" ]]; then
-            echo "PB-04b locus/context qualification produced unexpected product paths" >&2
+            echo "PB-04b schema2 locus/context qualification produced unexpected product paths" >&2
             echo "expected: ${expected}" >&2
             echo "actual:" >&2
             printf '%s\n' "${actual}" >&2
             exit 1
           fi
 
-      - name: Publish frozen PB-04b locus/context product
+      - name: Publish frozen PB-04b schema2 locus/context product
         shell: bash
         run: |
           set -euo pipefail
@@ -164,19 +165,19 @@ jobs:
           git add crates/domains/symtropy-spatial-decomposition/src/lib.rs
           git diff --cached --check
           git diff --cached --exit-code --quiet && {
-            echo "no PB-04b locus/context product delta" >&2
+            echo "no PB-04b schema2 locus/context product delta" >&2
             exit 1
           }
-          git commit -m "fix(spatial): stabilize PB-04b physical locus identities"
+          git commit -m "fix(spatial): stabilize PB-04b physical locus identities v2"
 
           product_head="$(git rev-parse HEAD)"
           product_tree="$(git rev-parse HEAD^{tree})"
-          echo "PB04B_LOCUS_CONTEXT_PRODUCT_HEAD=${product_head}"
-          echo "PB04B_LOCUS_CONTEXT_PRODUCT_TREE=${product_tree}"
-          echo "PB04B_LOCUS_CONTEXT_PRODUCT_PARENT=$(git rev-parse HEAD^)"
-          echo "PB04B_LOCUS_CONTEXT_PRODUCT_LIB_BLOB=$(git rev-parse HEAD:crates/domains/symtropy-spatial-decomposition/src/lib.rs)"
-          echo "PB04B_LOCUS_CONTEXT_PRODUCT_TEST_BLOB=$(git rev-parse HEAD:crates/domains/symtropy-spatial-decomposition/tests/local_identity.rs)"
-          echo "PB04B_LOCUS_CONTEXT_PRODUCT_LOCK_BLOB=$(git rev-parse HEAD:crates/domains/symtropy-spatial-decomposition/Cargo.lock)"
+          echo "PB04B_SCHEMA2_PRODUCT_HEAD=${product_head}"
+          echo "PB04B_SCHEMA2_PRODUCT_TREE=${product_tree}"
+          echo "PB04B_SCHEMA2_PRODUCT_PARENT=$(git rev-parse HEAD^)"
+          echo "PB04B_SCHEMA2_PRODUCT_LIB_BLOB=$(git rev-parse HEAD:crates/domains/symtropy-spatial-decomposition/src/lib.rs)"
+          echo "PB04B_SCHEMA2_PRODUCT_TEST_BLOB=$(git rev-parse HEAD:crates/domains/symtropy-spatial-decomposition/tests/local_identity.rs)"
+          echo "PB04B_SCHEMA2_PRODUCT_LOCK_BLOB=$(git rev-parse HEAD:crates/domains/symtropy-spatial-decomposition/Cargo.lock)"
 
           remote_head="$(git ls-remote origin refs/heads/spatial/pb04b-locus-context-v0.2 | cut -f1)"
           test "${remote_head}" = "${GITHUB_SHA}"

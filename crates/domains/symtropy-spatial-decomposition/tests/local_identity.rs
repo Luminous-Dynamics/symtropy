@@ -17,6 +17,15 @@ fn exact(authority: &str, subject: &str, revision: u64, digest: &str) -> ExactSo
     ExactSourceRef::new(sid(authority), sid(subject), revision, digest).expect("test exact ref")
 }
 
+fn frame(subject: &str) -> ExactSourceRef {
+    exact(
+        "symtropy.test.coordinate-frame",
+        subject,
+        1,
+        &format!("{subject}-v1"),
+    )
+}
+
 fn geometry(revision: u64, digest: &str) -> RealizedGeometrySnapshotRef {
     RealizedGeometrySnapshotRef::new(exact(
         "symtropy.test.geometry",
@@ -53,7 +62,7 @@ fn domain() -> AnalysisDomain {
     AnalysisDomain::new_in_frame(
         sid("pb04b.locality.domain"),
         1,
-        sid("pb04b.locality.frame"),
+        frame("pb04b.locality.frame"),
         Point3i::new(0, 0, 0),
         [1, 1, 1],
     )
@@ -63,14 +72,14 @@ fn domain() -> AnalysisDomain {
 fn domain_in_frame(
     id: &str,
     revision: u64,
-    frame: &str,
+    coordinate_frame: ExactSourceRef,
     origin: Point3i,
     dimensions: [u32; 3],
 ) -> AnalysisDomain {
     AnalysisDomain::new_in_frame(
         sid(id),
         revision,
-        sid(frame),
+        coordinate_frame,
         origin,
         dimensions,
     )
@@ -173,6 +182,16 @@ fn local_partition_id(snapshot: &GeometricDecompositionSnapshot) -> String {
         .0
         .as_str()
         .to_owned()
+}
+
+#[test]
+fn successor_uses_schema_v2() {
+    let snapshot = derive(
+        geometry(1, "schema2-geometry"),
+        &profile(1),
+        doorway_cut(vec![barrier(1, "schema2-door")]),
+    );
+    assert_eq!(snapshot.schema_version(), 2);
 }
 
 #[test]
@@ -310,17 +329,18 @@ fn topology_backend_semantics_still_rename_local_loci() {
 #[test]
 fn shifted_analysis_windows_preserve_the_same_physical_locus_ids() {
     let profile = profile(1);
+    let shared_frame = frame("pb04b.shared.frame");
     let wide = domain_in_frame(
         "pb04b.window.wide",
         1,
-        "pb04b.shared.frame",
+        shared_frame.clone(),
         Point3i::new(0, 0, 0),
         [2, 1, 1],
     );
     let shifted = domain_in_frame(
         "pb04b.window.shifted",
         7,
-        "pb04b.shared.frame",
+        shared_frame,
         Point3i::new(10, 0, 0),
         [1, 1, 1],
     );
@@ -349,19 +369,19 @@ fn shifted_analysis_windows_preserve_the_same_physical_locus_ids() {
 }
 
 #[test]
-fn coordinate_frame_namespace_changes_rename_local_loci() {
+fn exact_coordinate_frame_change_renames_local_loci() {
     let profile = profile(1);
     let first_domain = domain_in_frame(
         "pb04b.frame.domain",
         1,
-        "pb04b.frame.alpha",
+        frame("pb04b.frame.alpha"),
         Point3i::new(0, 0, 0),
         [1, 1, 1],
     );
     let second_domain = domain_in_frame(
         "pb04b.frame.domain",
         1,
-        "pb04b.frame.beta",
+        frame("pb04b.frame.beta"),
         Point3i::new(0, 0, 0),
         [1, 1, 1],
     );

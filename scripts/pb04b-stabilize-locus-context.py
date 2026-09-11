@@ -14,6 +14,12 @@ def replace_once(old: str, new: str, label: str) -> None:
 
 
 replace_once(
+    "pub const DECOMPOSITION_SCHEMA_VERSION: u32 = 1;",
+    "pub const DECOMPOSITION_SCHEMA_VERSION: u32 = 2;",
+    "schema version",
+)
+
+replace_once(
     '''const PROFILE_DOMAIN: &[u8] = b"symtropy.spatial-decomposition.profile.v1\\0";
 const DOMAIN_DOMAIN: &[u8] = b"symtropy.spatial-decomposition.domain.v1\\0";
 const FRAGMENT_DOMAIN: &[u8] = b"symtropy.spatial-decomposition.fragment.v1\\0";
@@ -26,6 +32,7 @@ const FRAGMENT_DOMAIN: &[u8] = b"symtropy.spatial-decomposition.fragment.v1\\0";
 const INTERFACE_DOMAIN: &[u8] = b"symtropy.spatial-decomposition.interface.v1\\0";
 const SNAPSHOT_DOMAIN: &[u8] = b"symtropy.spatial-decomposition.snapshot.v1\\0";
 const LOCUS_SEMANTICS_DOMAIN: &[u8] = b"symtropy.spatial-decomposition.locus-semantics.v1\\0";
+const LEGACY_FRAME_DOMAIN: &[u8] = b"symtropy.spatial-decomposition.legacy-frame.v1\\0";
 const PB04A_ADAPTER_PROFILE_DOMAIN: &[u8] =
     b"symtropy.spatial-decomposition.pb04a-adapter-profile.v1\\0";
 const PB04A_BOUNDARY_SUBJECT_DOMAIN: &[u8] =
@@ -44,7 +51,7 @@ replace_once(
     '''pub struct AnalysisDomainRef {
     pub domain_id: StableId,
     pub revision: u64,
-    pub coordinate_frame_id: StableId,
+    pub coordinate_frame_ref: ExactSourceRef,
     pub content_digest: String,
 }
 ''',
@@ -63,7 +70,7 @@ replace_once(
     '''pub struct AnalysisDomain {
     domain_id: StableId,
     revision: u64,
-    coordinate_frame_id: StableId,
+    coordinate_frame_ref: ExactSourceRef,
     origin: Point3i,
     dimensions: [u32; 3],
     digest: String,
@@ -107,11 +114,11 @@ replace_once(
         origin: Point3i,
         dimensions: [u32; 3],
     ) -> Result<Self, DecompositionError> {
-        let coordinate_frame_id = domain_id.clone();
+        let coordinate_frame_ref = legacy_coordinate_frame_ref(&domain_id)?;
         Self::new_in_frame(
             domain_id,
             revision,
-            coordinate_frame_id,
+            coordinate_frame_ref,
             origin,
             dimensions,
         )
@@ -120,12 +127,12 @@ replace_once(
     pub fn new_in_frame(
         domain_id: StableId,
         revision: u64,
-        coordinate_frame_id: StableId,
+        coordinate_frame_ref: ExactSourceRef,
         origin: Point3i,
         dimensions: [u32; 3],
     ) -> Result<Self, DecompositionError> {
         validate_id(&domain_id)?;
-        validate_id(&coordinate_frame_id)?;
+        coordinate_frame_ref.validate()?;
         origin.validate()?;
         if dimensions
             .into_iter()
@@ -140,14 +147,14 @@ replace_once(
         let digest = domain_digest(
             &domain_id,
             revision,
-            &coordinate_frame_id,
+            &coordinate_frame_ref,
             origin,
             dimensions,
         );
         Ok(Self {
             domain_id,
             revision,
-            coordinate_frame_id,
+            coordinate_frame_ref,
             origin,
             dimensions,
             digest,
@@ -172,13 +179,13 @@ replace_once(
         AnalysisDomainRef {
             domain_id: self.domain_id.clone(),
             revision: self.revision,
-            coordinate_frame_id: self.coordinate_frame_id.clone(),
+            coordinate_frame_ref: self.coordinate_frame_ref.clone(),
             content_digest: self.digest.clone(),
         }
     }
 
-    pub fn coordinate_frame_id(&self) -> &StableId {
-        &self.coordinate_frame_id
+    pub fn coordinate_frame_ref(&self) -> &ExactSourceRef {
+        &self.coordinate_frame_ref
     }
 
     fn contains(&self, cell: CellCoord) -> bool {
@@ -316,7 +323,7 @@ fn interface_id(
     let mut hash = Sha256::new();
     hash.update(FRAGMENT_DOMAIN);
     hash_locus_semantics(&mut hash, profile);
-    hash_text(&mut hash, domain.coordinate_frame_id.as_str());
+    hash_exact(&mut hash, &domain.coordinate_frame_ref);
     hash_physical_cell(&mut hash, profile, domain, cell)?;
     hash_side(&mut hash, side);
     match cut {
@@ -343,7 +350,7 @@ fn interface_id(
     let mut hash = Sha256::new();
     hash.update(INTERFACE_DOMAIN);
     hash_locus_semantics(&mut hash, profile);
-    hash_text(&mut hash, domain.coordinate_frame_id.as_str());
+    hash_exact(&mut hash, &domain.coordinate_frame_ref);
     hash_text(&mut hash, first.0.as_str());
     hash_text(&mut hash, second.0.as_str());
     hash_kind_locus(&mut hash, kind, profile, domain)?;
@@ -373,10 +380,25 @@ replace_once(
 
 fn hash_kind(hash: &mut Sha256, kind: &GeometricInterfaceKind) {
 ''',
-    '''fn domain_digest(
+    '''fn legacy_coordinate_frame_ref(
+    domain_id: &StableId,
+) -> Result<ExactSourceRef, DecompositionError> {
+    let mut hash = Sha256::new();
+    hash.update(LEGACY_FRAME_DOMAIN);
+    hash_text(&mut hash, domain_id.as_str());
+    let digest = hex(&hash.finalize());
+    Ok(ExactSourceRef::new(
+        sid("symtropy.spatial-decomposition.frame")?,
+        domain_id.clone(),
+        0,
+        digest,
+    )?)
+}
+
+fn domain_digest(
     id: &StableId,
     revision: u64,
-    coordinate_frame_id: &StableId,
+    coordinate_frame_ref: &ExactSourceRef,
     origin: Point3i,
     dimensions: [u32; 3],
 ) -> String {
@@ -384,7 +406,7 @@ fn hash_kind(hash: &mut Sha256, kind: &GeometricInterfaceKind) {
     hash.update(DOMAIN_DOMAIN);
     hash_text(&mut hash, id.as_str());
     hash_u64(&mut hash, revision);
-    hash_text(&mut hash, coordinate_frame_id.as_str());
+    hash_exact(&mut hash, coordinate_frame_ref);
     for value in [origin.x, origin.y, origin.z] {
         hash_i64(&mut hash, value);
     }
@@ -490,7 +512,7 @@ replace_once(
     '''fn hash_analysis_domain(hash: &mut Sha256, value: &AnalysisDomainRef) {
     hash_text(hash, value.domain_id.as_str());
     hash_u64(hash, value.revision);
-    hash_text(hash, value.coordinate_frame_id.as_str());
+    hash_exact(hash, &value.coordinate_frame_ref);
     hash_text(hash, &value.content_digest);
 }
 ''',
@@ -498,4 +520,4 @@ replace_once(
 )
 
 path.write_text(text)
-print("PB-04b locus/context transform applied")
+print("PB-04b schema2 locus/context transform applied")
