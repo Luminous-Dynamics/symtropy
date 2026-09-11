@@ -27,9 +27,11 @@
 //! [`smooth_scale_separation`] records analytical grid/mode separation for the
 //! smooth Taylor-Green control, [`vorticity_concentration_scale`] measures a
 //! vorticity/enstrophy-palinstrophy gradient length without assigning refinement
-//! or promotion authority, and [`concentration_scale_drift`] records same-run
+//! or promotion authority, [`concentration_scale_drift`] records same-run
 //! concentration-scale drift together with excess resolved-energy loss and
-//! numerical-health context for the passive Taylor-Green control.
+//! numerical-health context for the passive Taylor-Green control, and
+//! [`refinement_policy_contract`] defines a non-authoritative typed boundary for
+//! future semantic refinement decisions without embedding renderer/backend load.
 //! None of these modules should be read as a claim that Symtropy currently
 //! reproduces the 2026 singular construction or has a production Earth-water
 //! CFD backend.
@@ -46,6 +48,7 @@ pub mod manufactured_iterative;
 pub mod manufactured_update_defect;
 pub mod numerical_observability;
 pub mod reference;
+pub mod refinement_policy_contract;
 pub mod smooth_scale_separation;
 pub mod validation;
 pub mod verification_ladder;
