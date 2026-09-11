@@ -172,13 +172,8 @@ pub fn measure_manufactured_one_step_update_defect_at_phase(
 
     let step = numerical.step_with_acceleration(dt_s, |position, local_time_s| {
         let manufactured_time_s = manufactured_start_time_s + local_time_s;
-        manufactured_acceleration_mps2(
-            &forcing_config,
-            profile,
-            position,
-            manufactured_time_s,
-        )
-        .unwrap_or([f64::NAN, f64::NAN])
+        manufactured_acceleration_mps2(&forcing_config, profile, position, manufactured_time_s)
+            .unwrap_or([f64::NAN, f64::NAN])
     })?;
     let solver_elapsed_time_s = numerical.time_s();
     let manufactured_end_time_s = manufactured_start_time_s + solver_elapsed_time_s;
@@ -215,7 +210,8 @@ pub fn measure_manufactured_one_step_update_defect_at_phase(
     let update_residual_max_mps2 = velocity_max_defect_mps / dt_s;
     let numerical_energy_j = measured_energy(&numerical)?;
     let exact_energy_j = measured_energy(&exact)?;
-    let kinetic_energy_relative_error = (numerical_energy_j - exact_energy_j).abs() / exact_energy_j;
+    let kinetic_energy_relative_error =
+        (numerical_energy_j - exact_energy_j).abs() / exact_energy_j;
 
     for (name, value) in [
         ("solver_elapsed_time_s", solver_elapsed_time_s),
@@ -225,7 +221,10 @@ pub fn measure_manufactured_one_step_update_defect_at_phase(
         ("velocity_max_defect_mps", velocity_max_defect_mps),
         ("update_residual_rms_mps2", update_residual_rms_mps2),
         ("update_residual_max_mps2", update_residual_max_mps2),
-        ("kinetic_energy_relative_error", kinetic_energy_relative_error),
+        (
+            "kinetic_energy_relative_error",
+            kinetic_energy_relative_error,
+        ),
         ("max_advective_cfl", step.max_advective_cfl),
         ("diffusion_number", step.diffusion_number),
         ("combined_explicit_number", step.combined_explicit_number),
@@ -278,10 +277,7 @@ fn measured_energy(state: &PeriodicMac2d) -> Result<f64, ManufacturedUpdateDefec
         .ok_or(ManufacturedUpdateDefectError::MissingMeasuredEnergy)
 }
 
-fn ensure_finite(
-    name: &'static str,
-    value: f64,
-) -> Result<(), ManufacturedUpdateDefectError> {
+fn ensure_finite(name: &'static str, value: f64) -> Result<(), ManufacturedUpdateDefectError> {
     if !value.is_finite() {
         return Err(ManufacturedUpdateDefectError::NonFiniteDerivedMetric(name));
     }
@@ -318,7 +314,8 @@ mod tests {
     #[test]
     fn phase_zero_wrapper_is_finite_and_retains_same_step_context() {
         let dt_s = 0.00025;
-        let report = measure_manufactured_one_step_update_defect(config(), profile(), dt_s).unwrap();
+        let report =
+            measure_manufactured_one_step_update_defect(config(), profile(), dt_s).unwrap();
         assert_eq!(report.schema_id, MANUFACTURED_UPDATE_DEFECT_SCHEMA_ID);
         assert_eq!(report.nx, 16);
         assert_eq!(report.ny, 16);
@@ -345,13 +342,9 @@ mod tests {
         let period_s = std::f64::consts::TAU / p.angular_frequency_rad_s;
         let start_time_s = 0.25 * period_s;
         let dt_s = 0.00025;
-        let report = measure_manufactured_one_step_update_defect_at_phase(
-            config(),
-            p,
-            start_time_s,
-            dt_s,
-        )
-        .unwrap();
+        let report =
+            measure_manufactured_one_step_update_defect_at_phase(config(), p, start_time_s, dt_s)
+                .unwrap();
         assert!((report.manufactured_start_time_s - start_time_s).abs() < 1.0e-15);
         assert!((report.solver_elapsed_time_s - dt_s).abs() < 1.0e-15);
         assert!((report.manufactured_end_time_s - (start_time_s + dt_s)).abs() < 1.0e-15);
@@ -362,7 +355,8 @@ mod tests {
     #[test]
     fn residual_units_are_velocity_defect_divided_by_dt() {
         let dt_s = 0.00025;
-        let report = measure_manufactured_one_step_update_defect(config(), profile(), dt_s).unwrap();
+        let report =
+            measure_manufactured_one_step_update_defect(config(), profile(), dt_s).unwrap();
         assert!(
             (report.update_residual_rms_mps2 - report.velocity_rms_defect_mps / dt_s).abs()
                 < 1.0e-15
@@ -420,11 +414,7 @@ mod tests {
         let mut negative_viscosity = config();
         negative_viscosity.kinematic_viscosity_m2_s = -0.01;
         assert_eq!(
-            measure_manufactured_one_step_update_defect(
-                negative_viscosity,
-                profile(),
-                0.00025,
-            ),
+            measure_manufactured_one_step_update_defect(negative_viscosity, profile(), 0.00025,),
             Err(ManufacturedUpdateDefectError::Config(
                 ReferenceConfigError::ExpectedNonNegativeFinite("kinematic_viscosity_m2_s")
             ))

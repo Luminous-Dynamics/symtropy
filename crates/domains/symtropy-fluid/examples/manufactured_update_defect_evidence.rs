@@ -14,9 +14,7 @@ use serde::Serialize;
 use symtropy_fluid::evidence::{
     CONTINUUM_EVIDENCE_SCHEMA_VERSION, ContinuumEvidenceEnvelope, ContinuumEvidenceSubject,
 };
-use symtropy_fluid::manufactured::{
-    ManufacturedTaylorGreenProfile, forcing_amplitude_mps2,
-};
+use symtropy_fluid::manufactured::{ManufacturedTaylorGreenProfile, forcing_amplitude_mps2};
 use symtropy_fluid::manufactured_update_defect::{
     ManufacturedUpdateDefectReport, measure_manufactured_one_step_update_defect,
     measure_manufactured_one_step_update_defect_at_phase,
