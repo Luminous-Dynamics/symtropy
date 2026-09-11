@@ -1,0 +1,70 @@
+name: Terrain Geometry Kernel Format Freeze
+
+on:
+  push:
+    branches:
+      - "terrain/geometry-kernel-v0.1"
+    paths:
+      - ".github/workflows/terrain-geometry-kernel-format-freeze.yml"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: terrain-geometry-kernel-format-freeze
+  cancel-in-progress: true
+
+jobs:
+  freeze:
+    name: Freeze rustfmt-canonical kernel source
+    runs-on: ubuntu-slim
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+
+      - name: Bind exact pre-format subject
+        shell: bash
+        run: |
+          set -euo pipefail
+          source_head=af5303473b43bc9d191771171e79a082c1cf07b6
+          test "$(git rev-parse HEAD)" = "${GITHUB_SHA}"
+          test "$(git rev-parse HEAD^)" = "${source_head}"
+          test "$(git diff --name-only ${source_head}..HEAD)" = ".github/workflows/terrain-geometry-kernel-format-freeze.yml"
+          test "$(git rev-parse ${source_head}:crates/domains/symtropy-terrain/src/geometry_kernel.rs)" = "c833ec6d782dd21a5c96dbde3063e1e257ae41a8"
+          echo "FORMAT_INPUT_HEAD=${source_head}"
+          echo "FORMAT_HARNESS_HEAD=${GITHUB_SHA}"
+
+      - name: Set up pinned Rust
+        uses: dtolnay/rust-toolchain@6bed0761d98439e5a578e2877258200ad565ba87
+        with:
+          toolchain: 1.96.0
+          components: rustfmt
+
+      - name: Canonicalize exactly one source file
+        shell: bash
+        run: |
+          set -euo pipefail
+          rustfmt --edition 2024 crates/domains/symtropy-terrain/src/geometry_kernel.rs
+          git diff --check
+          actual="$(git diff --name-only)"
+          test "${actual}" = "crates/domains/symtropy-terrain/src/geometry_kernel.rs"
+          test "$(git rev-parse HEAD:Cargo.lock)" = "db602c9707ecd6143ef36c0243c051544a027141"
+          echo "FORMATTED_KERNEL_BLOB=$(git hash-object crates/domains/symtropy-terrain/src/geometry_kernel.rs)"
+
+      - name: Publish exact formatting-only product
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "Terrain Geometry Format Bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add crates/domains/symtropy-terrain/src/geometry_kernel.rs
+          git diff --cached --check
+          git commit -m "style(terrain): canonicalize geometry kernel"
+          echo "FORMAT_PRODUCT_HEAD=$(git rev-parse HEAD)"
+          echo "FORMAT_PRODUCT_TREE=$(git rev-parse HEAD^{tree})"
+          echo "FORMAT_PRODUCT_KERNEL_BLOB=$(git rev-parse HEAD:crates/domains/symtropy-terrain/src/geometry_kernel.rs)"
+          remote_head="$(git ls-remote origin refs/heads/terrain/geometry-kernel-v0.1 | cut -f1)"
+          test "${remote_head}" = "${GITHUB_SHA}"
+          git push origin HEAD:terrain/geometry-kernel-v0.1
