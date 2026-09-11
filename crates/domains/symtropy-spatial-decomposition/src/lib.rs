@@ -21,7 +21,7 @@ use symtropy_spatial_topology::{
     SpatialRegionId, SpatialRegionSnapshot, TopologyError,
 };
 
-pub const DECOMPOSITION_SCHEMA_VERSION: u32 = 1;
+pub const DECOMPOSITION_SCHEMA_VERSION: u32 = 2;
 pub const QUALIFIED_PB04A_PRODUCT_HEAD: &str = "1d500c62d93082e49f7a889656a1c92c552977e4";
 pub const MAX_DIMENSION: u32 = 64;
 pub const MAX_CELLS: usize = 4_096;
@@ -37,6 +37,12 @@ const DOMAIN_DOMAIN: &[u8] = b"symtropy.spatial-decomposition.domain.v1\0";
 const FRAGMENT_DOMAIN: &[u8] = b"symtropy.spatial-decomposition.fragment.v1\0";
 const INTERFACE_DOMAIN: &[u8] = b"symtropy.spatial-decomposition.interface.v1\0";
 const SNAPSHOT_DOMAIN: &[u8] = b"symtropy.spatial-decomposition.snapshot.v1\0";
+const LOCUS_SEMANTICS_DOMAIN: &[u8] = b"symtropy.spatial-decomposition.locus-semantics.v1\0";
+const LEGACY_FRAME_DOMAIN: &[u8] = b"symtropy.spatial-decomposition.legacy-frame.v1\0";
+const PB04A_ADAPTER_PROFILE_DOMAIN: &[u8] =
+    b"symtropy.spatial-decomposition.pb04a-adapter-profile.v1\0";
+const PB04A_BOUNDARY_SUBJECT_DOMAIN: &[u8] =
+    b"symtropy.spatial-decomposition.pb04a-boundary-subject.v1\0";
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct Point3i {
@@ -277,6 +283,7 @@ impl DecompositionProfile {
 pub struct AnalysisDomainRef {
     pub domain_id: StableId,
     pub revision: u64,
+    pub coordinate_frame_ref: ExactSourceRef,
     pub content_digest: String,
 }
 
@@ -284,6 +291,7 @@ pub struct AnalysisDomainRef {
 pub struct AnalysisDomain {
     domain_id: StableId,
     revision: u64,
+    coordinate_frame_ref: ExactSourceRef,
     origin: Point3i,
     dimensions: [u32; 3],
     digest: String,
@@ -296,7 +304,25 @@ impl AnalysisDomain {
         origin: Point3i,
         dimensions: [u32; 3],
     ) -> Result<Self, DecompositionError> {
+        let coordinate_frame_ref = legacy_coordinate_frame_ref(&domain_id)?;
+        Self::new_in_frame(
+            domain_id,
+            revision,
+            coordinate_frame_ref,
+            origin,
+            dimensions,
+        )
+    }
+
+    pub fn new_in_frame(
+        domain_id: StableId,
+        revision: u64,
+        coordinate_frame_ref: ExactSourceRef,
+        origin: Point3i,
+        dimensions: [u32; 3],
+    ) -> Result<Self, DecompositionError> {
         validate_id(&domain_id)?;
+        coordinate_frame_ref.validate()?;
         origin.validate()?;
         if dimensions
             .into_iter()
@@ -308,10 +334,17 @@ impl AnalysisDomain {
         if cells > MAX_CELLS {
             return Err(bound("analysis_domain.cells", cells, MAX_CELLS));
         }
-        let digest = domain_digest(&domain_id, revision, origin, dimensions);
+        let digest = domain_digest(
+            &domain_id,
+            revision,
+            &coordinate_frame_ref,
+            origin,
+            dimensions,
+        );
         Ok(Self {
             domain_id,
             revision,
+            coordinate_frame_ref,
             origin,
             dimensions,
             digest,
@@ -322,8 +355,13 @@ impl AnalysisDomain {
         AnalysisDomainRef {
             domain_id: self.domain_id.clone(),
             revision: self.revision,
+            coordinate_frame_ref: self.coordinate_frame_ref.clone(),
             content_digest: self.digest.clone(),
         }
+    }
+
+    pub fn coordinate_frame_ref(&self) -> &ExactSourceRef {
+        &self.coordinate_frame_ref
     }
 
     fn contains(&self, cell: CellCoord) -> bool {
@@ -676,6 +714,8 @@ impl GeometricDecompositionSnapshot {
             })
             .collect::<Result<Vec<_>, _>>()?;
 
+        frame_ref.validate()?;
+        environment_ref.validate()?;
         let profile_source = ExactSourceRef::new(
             sid("symtropy.spatial-decomposition.profile")?,
             self.profile.profile_id.clone(),
@@ -688,9 +728,16 @@ impl GeometricDecompositionSnapshot {
             self.domain.revision,
             self.domain.content_digest.clone(),
         )?;
+        let adapter_source = pb04a_adapter_source_ref()?;
+        let subject_digest = pb04a_boundary_subject_digest(
+            &self.digest,
+            &frame_ref,
+            &environment_ref,
+            &adapter_source,
+        );
 
         Ok(BoundarySnapshot::new(
-            sid_digest("pb04b-boundary", &self.digest)?,
+            sid_digest("pb04b-boundary", &subject_digest)?,
             0,
             self.digest.clone(),
             frame_ref,
@@ -698,7 +745,12 @@ impl GeometricDecompositionSnapshot {
             regions,
             interfaces,
             canonical_refs(
-                vec![self.geometry.0.clone(), profile_source, domain_source],
+                vec![
+                    self.geometry.0.clone(),
+                    profile_source,
+                    domain_source,
+                    adapter_source,
+                ],
                 "boundary.sources",
             )?,
         )?)
@@ -1193,9 +1245,9 @@ fn fragment_id(
 ) -> Result<SpatialRegionId, DecompositionError> {
     let mut hash = Sha256::new();
     hash.update(FRAGMENT_DOMAIN);
-    hash_profile(&mut hash, &profile.exact_ref());
-    hash_analysis_domain(&mut hash, &domain.exact_ref());
-    hash_cell(&mut hash, cell);
+    hash_locus_semantics(&mut hash, profile);
+    hash_exact(&mut hash, &domain.coordinate_frame_ref);
+    hash_physical_cell(&mut hash, profile, domain, cell)?;
     hash_side(&mut hash, side);
     match cut {
         Some(cut) => {
@@ -1220,11 +1272,11 @@ fn interface_id(
 ) -> Result<BoundaryInterfaceId, DecompositionError> {
     let mut hash = Sha256::new();
     hash.update(INTERFACE_DOMAIN);
-    hash_profile(&mut hash, &profile.exact_ref());
-    hash_analysis_domain(&mut hash, &domain.exact_ref());
+    hash_locus_semantics(&mut hash, profile);
+    hash_exact(&mut hash, &domain.coordinate_frame_ref);
     hash_text(&mut hash, first.0.as_str());
     hash_text(&mut hash, second.0.as_str());
-    hash_kind(&mut hash, kind);
+    hash_kind_locus(&mut hash, kind, profile, domain)?;
     Ok(BoundaryInterfaceId::new(sid_digest(
         "pb04b-interface",
         &hex(&hash.finalize()),
@@ -1288,17 +1340,118 @@ fn profile_digest(
     hex(&hash.finalize())
 }
 
-fn domain_digest(id: &StableId, revision: u64, origin: Point3i, dimensions: [u32; 3]) -> String {
+fn legacy_coordinate_frame_ref(domain_id: &StableId) -> Result<ExactSourceRef, DecompositionError> {
+    let mut hash = Sha256::new();
+    hash.update(LEGACY_FRAME_DOMAIN);
+    hash_text(&mut hash, domain_id.as_str());
+    let digest = hex(&hash.finalize());
+    Ok(ExactSourceRef::new(
+        sid("symtropy.spatial-decomposition.frame")?,
+        domain_id.clone(),
+        0,
+        digest,
+    )?)
+}
+
+fn domain_digest(
+    id: &StableId,
+    revision: u64,
+    coordinate_frame_ref: &ExactSourceRef,
+    origin: Point3i,
+    dimensions: [u32; 3],
+) -> String {
     let mut hash = Sha256::new();
     hash.update(DOMAIN_DOMAIN);
     hash_text(&mut hash, id.as_str());
     hash_u64(&mut hash, revision);
+    hash_exact(&mut hash, coordinate_frame_ref);
     for value in [origin.x, origin.y, origin.z] {
         hash_i64(&mut hash, value);
     }
     for value in dimensions {
         hash_u32(&mut hash, value);
     }
+    hex(&hash.finalize())
+}
+
+fn hash_locus_semantics(hash: &mut Sha256, profile: &DecompositionProfile) {
+    hash.update(LOCUS_SEMANTICS_DOMAIN);
+    hash_u32(hash, DECOMPOSITION_SCHEMA_VERSION);
+    hash_text(hash, profile.backend_id.as_str());
+    hash_i64(hash, profile.quantum_um);
+}
+
+fn hash_point(hash: &mut Sha256, point: Point3i) {
+    hash_i64(hash, point.x);
+    hash_i64(hash, point.y);
+    hash_i64(hash, point.z);
+}
+
+fn hash_physical_cell(
+    hash: &mut Sha256,
+    profile: &DecompositionProfile,
+    domain: &AnalysisDomain,
+    cell: CellCoord,
+) -> Result<(), DecompositionError> {
+    let (min, max) = cell_bounds(cell, profile, domain)?;
+    hash_point(hash, min);
+    hash_point(hash, max);
+    Ok(())
+}
+
+fn hash_kind_locus(
+    hash: &mut Sha256,
+    kind: &GeometricInterfaceKind,
+    profile: &DecompositionProfile,
+    domain: &AnalysisDomain,
+) -> Result<(), DecompositionError> {
+    match kind {
+        GeometricInterfaceKind::OpenCrossFace { lower_cell, axis } => {
+            hash.update([0]);
+            hash.update([match axis {
+                FaceAxis::X => 0,
+                FaceAxis::Y => 1,
+                FaceAxis::Z => 2,
+            }]);
+            for point in face_corners(*lower_cell, *axis, profile, domain)? {
+                hash_point(hash, point);
+            }
+        }
+        GeometricInterfaceKind::LocalPartition { cell, plane } => {
+            hash.update([1]);
+            hash_physical_cell(hash, profile, domain, *cell)?;
+            hash_plane(hash, *plane);
+        }
+    }
+    Ok(())
+}
+
+fn pb04a_adapter_source_ref() -> Result<ExactSourceRef, DecompositionError> {
+    let mut hash = Sha256::new();
+    hash.update(PB04A_ADAPTER_PROFILE_DOMAIN);
+    hash_u32(&mut hash, DECOMPOSITION_SCHEMA_VERSION);
+    hash_text(&mut hash, QUALIFIED_PB04A_PRODUCT_HEAD);
+    let digest = hex(&hash.finalize());
+    Ok(ExactSourceRef::new(
+        sid("symtropy.spatial-decomposition.adapter")?,
+        sid("pb04b.to-pb04a.v2")?,
+        1,
+        digest,
+    )?)
+}
+
+fn pb04a_boundary_subject_digest(
+    decomposition_digest: &str,
+    frame_ref: &ExactSourceRef,
+    environment_ref: &ExactSourceRef,
+    adapter_ref: &ExactSourceRef,
+) -> String {
+    let mut hash = Sha256::new();
+    hash.update(PB04A_BOUNDARY_SUBJECT_DOMAIN);
+    hash_text(&mut hash, decomposition_digest);
+    hash_exact(&mut hash, frame_ref);
+    hash_exact(&mut hash, environment_ref);
+    hash_exact(&mut hash, adapter_ref);
     hex(&hash.finalize())
 }
 
@@ -1330,6 +1483,7 @@ fn hash_profile(hash: &mut Sha256, value: &DecompositionProfileRef) {
 fn hash_analysis_domain(hash: &mut Sha256, value: &AnalysisDomainRef) {
     hash_text(hash, value.domain_id.as_str());
     hash_u64(hash, value.revision);
+    hash_exact(hash, &value.coordinate_frame_ref);
     hash_text(hash, &value.content_digest);
 }
 
