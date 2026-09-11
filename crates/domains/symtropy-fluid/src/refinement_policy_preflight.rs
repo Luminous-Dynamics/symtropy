@@ -82,19 +82,24 @@ impl ContinuumRefinementPolicyPreflightReport {
     /// qualified evaluator are simultaneously satisfied. This says nothing about
     /// whether the physical state itself is resolved.
     pub fn ready_for_qualified_policy_evaluation(&self) -> bool {
-        matches!(self.gates.evidence_freshness, EvidenceFreshness::Current { .. })
-            && matches!(
-                self.gates.required_observables,
-                RequiredObservableGate::Complete
-            )
-            && self.gates.authority == RefinementAuthorityState::QualifiedPolicyEvaluationAllowed
+        matches!(
+            self.gates.evidence_freshness,
+            EvidenceFreshness::Current { .. }
+        ) && matches!(
+            self.gates.required_observables,
+            RequiredObservableGate::Complete
+        ) && self.gates.authority == RefinementAuthorityState::QualifiedPolicyEvaluationAllowed
     }
 
     pub fn validate(&self) -> Result<(), RefinementPolicyPreflightError> {
         if self.schema_id != REFINEMENT_POLICY_PREFLIGHT_SCHEMA_ID {
             return Err(RefinementPolicyPreflightError::WrongSchemaId);
         }
-        validate_id("policy_contract_id", &self.policy_contract_id, MAX_POLICY_ID_BYTES)?;
+        validate_id(
+            "policy_contract_id",
+            &self.policy_contract_id,
+            MAX_POLICY_ID_BYTES,
+        )?;
         validate_id(
             "current_semantic_profile_id",
             &self.current_semantic_profile_id,
@@ -187,7 +192,10 @@ impl fmt::Display for RefinementPolicyPreflightError {
             Self::EmptyEvidenceRevision => write!(f, "evidence revision must not be empty"),
             Self::EmptyStaleReason => write!(f, "stale evidence reason must not be empty"),
             Self::InvalidSampleTime => {
-                write!(f, "sample_time_bits must decode to a finite non-negative time")
+                write!(
+                    f,
+                    "sample_time_bits must decode to a finite non-negative time"
+                )
             }
             Self::TooManyRequiredObservables => write!(f, "too many required observables"),
             Self::DiagnosticProfileMismatch => write!(
@@ -206,7 +214,10 @@ impl fmt::Display for RefinementPolicyPreflightError {
                 write!(f, "missing-observable evidence must be sorted and unique")
             }
             Self::MissingObservableWasNotRequired => {
-                write!(f, "missing-observable evidence must refer to a required observable")
+                write!(
+                    f,
+                    "missing-observable evidence must refer to a required observable"
+                )
             }
         }
     }
@@ -430,11 +441,13 @@ mod tests {
 
     #[test]
     fn readiness_is_mechanical_and_does_not_reinterpret_under_resolved() {
-        let (sample, input) = sample_and_input(
-            RefinementAuthorityState::QualifiedPolicyEvaluationAllowed,
-        );
+        let (sample, input) =
+            sample_and_input(RefinementAuthorityState::QualifiedPolicyEvaluationAllowed);
         let report = preflight_refinement_policy_input(&input, &sample).unwrap();
-        assert_eq!(report.declared_validity, ContinuumValidityState::UnderResolved);
+        assert_eq!(
+            report.declared_validity,
+            ContinuumValidityState::UnderResolved
+        );
         assert!(report.ready_for_qualified_policy_evaluation());
         report.validate().unwrap();
     }
@@ -462,8 +475,7 @@ mod tests {
             stale_reason: "solver profile changed".to_owned(),
         };
         input.required_observables = vec![RequiredContinuumObservable::ForcingResidual];
-        input.missing_required_observables =
-            vec![RequiredContinuumObservable::ForcingResidual];
+        input.missing_required_observables = vec![RequiredContinuumObservable::ForcingResidual];
 
         let report = preflight_refinement_policy_input(&input, &sample).unwrap();
         assert!(matches!(
@@ -474,15 +486,17 @@ mod tests {
             report.gates.required_observables,
             RequiredObservableGate::Missing { .. }
         ));
-        assert_eq!(report.gates.authority, RefinementAuthorityState::MeasurementOnly);
+        assert_eq!(
+            report.gates.authority,
+            RefinementAuthorityState::MeasurementOnly
+        );
         assert!(!report.ready_for_qualified_policy_evaluation());
     }
 
     #[test]
     fn declared_missing_set_must_match_the_bound_sample() {
-        let (sample, mut input) = sample_and_input(
-            RefinementAuthorityState::QualifiedPolicyEvaluationAllowed,
-        );
+        let (sample, mut input) =
+            sample_and_input(RefinementAuthorityState::QualifiedPolicyEvaluationAllowed);
         input.required_observables = vec![RequiredContinuumObservable::ForcingResidual];
         input.missing_required_observables = vec![];
         assert_eq!(
@@ -490,12 +504,10 @@ mod tests {
             RefinementPolicyPreflightError::DeclaredMissingObservableMismatch
         );
 
-        let (sample, mut input) = sample_and_input(
-            RefinementAuthorityState::QualifiedPolicyEvaluationAllowed,
-        );
+        let (sample, mut input) =
+            sample_and_input(RefinementAuthorityState::QualifiedPolicyEvaluationAllowed);
         input.required_observables = vec![RequiredContinuumObservable::MaxResolvedSpeed];
-        input.missing_required_observables =
-            vec![RequiredContinuumObservable::MaxResolvedSpeed];
+        input.missing_required_observables = vec![RequiredContinuumObservable::MaxResolvedSpeed];
         assert_eq!(
             preflight_refinement_policy_input(&input, &sample).unwrap_err(),
             RefinementPolicyPreflightError::DeclaredMissingObservableMismatch
@@ -504,9 +516,8 @@ mod tests {
 
     #[test]
     fn diagnostic_profile_binding_fails_closed() {
-        let (sample, mut input) = sample_and_input(
-            RefinementAuthorityState::QualifiedPolicyEvaluationAllowed,
-        );
+        let (sample, mut input) =
+            sample_and_input(RefinementAuthorityState::QualifiedPolicyEvaluationAllowed);
         input.diagnostic_profile_id.push_str(";different");
         assert_eq!(
             preflight_refinement_policy_input(&input, &sample).unwrap_err(),
@@ -516,9 +527,8 @@ mod tests {
 
     #[test]
     fn retained_report_revalidates_time_and_freshness_bounds() {
-        let (sample, input) = sample_and_input(
-            RefinementAuthorityState::QualifiedPolicyEvaluationAllowed,
-        );
+        let (sample, input) =
+            sample_and_input(RefinementAuthorityState::QualifiedPolicyEvaluationAllowed);
         let report = preflight_refinement_policy_input(&input, &sample).unwrap();
 
         let mut invalid_time = report.clone();
