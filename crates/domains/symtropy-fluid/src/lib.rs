@@ -32,9 +32,11 @@
 //! numerical-health context for the passive Taylor-Green control,
 //! [`refinement_policy_contract`] defines a non-authoritative typed boundary for
 //! future semantic refinement decisions without embedding renderer/backend load,
-//! and [`problem_revision_envelope`] binds future evaluations to exact canonical
+//! [`problem_revision_envelope`] binds future evaluations to exact canonical
 //! state/snapshot/source/forcing/boundary/process revisions without granting
-//! refinement authority.
+//! refinement authority, and [`validity_evidence_lineage`] preserves append-only
+//! continuum validity history so later refinement cannot erase earlier
+//! under-resolution or solver-failure evidence.
 //! None of these modules should be read as a claim that Symtropy currently
 //! reproduces the 2026 singular construction or has a production Earth-water
 //! CFD backend.
@@ -55,6 +57,7 @@ pub mod reference;
 pub mod refinement_policy_contract;
 pub mod smooth_scale_separation;
 pub mod validation;
+pub mod validity_evidence_lineage;
 pub mod verification_ladder;
 pub mod verification_regime;
 pub mod vorticity_concentration_scale;
