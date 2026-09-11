@@ -25,6 +25,11 @@ pub const VORTICITY_CONCENTRATION_SCALE_SCHEMA_ID: &str =
     "periodic-mac-vorticity-gradient-concentration-scale-v0.1";
 pub const VORTICITY_CONCENTRATION_SCALE_OPERATOR_ID: &str =
     "mac-dual-curl-periodic-forward-vorticity-gradient-v0.1";
+/// Compact versioned token used only inside the bounded generic diagnostic-profile
+/// identity. The full operator identity remains separately retained in
+/// [`VorticityConcentrationScaleReport::operator_id`].
+pub const VORTICITY_CONCENTRATION_DIAGNOSTIC_PROFILE_TOKEN: &str =
+    "vcscale=mac-dual-curl-grad-v0.1";
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub enum VorticityConcentrationScaleUnavailableReason {
@@ -59,9 +64,10 @@ pub struct VorticityConcentrationScaleReport {
     pub schema_id: String,
     pub operator_id: String,
     pub solver_profile: String,
-    /// Composite identity suitable for a diagnostic sample that hydrates this
-    /// concentration scale. Changing either solver or estimator operator must
-    /// change this identity.
+    /// Compact composite identity suitable for a bounded generic diagnostic
+    /// sample. Changing either solver or estimator semantics must change this
+    /// identity; the full estimator identity is retained separately by
+    /// `operator_id` rather than duplicated here.
     pub diagnostic_profile: String,
     pub time_s: f64,
     pub nx: usize,
@@ -105,11 +111,12 @@ impl From<ReferenceConfigError> for VorticityConcentrationScaleError {
     }
 }
 
+fn compose_vorticity_concentration_diagnostic_profile(solver_profile: &str) -> String {
+    format!("{solver_profile};{VORTICITY_CONCENTRATION_DIAGNOSTIC_PROFILE_TOKEN}")
+}
+
 pub fn vorticity_concentration_diagnostic_profile(state: &PeriodicMac2d) -> String {
-    format!(
-        "{};concentration_scale_operator={VORTICITY_CONCENTRATION_SCALE_OPERATOR_ID}",
-        state.config().profile_identity()
-    )
+    compose_vorticity_concentration_diagnostic_profile(&state.config().profile_identity())
 }
 
 pub fn measure_vorticity_concentration_scale(
@@ -119,7 +126,7 @@ pub fn measure_vorticity_concentration_scale(
     config.validate()?;
 
     let solver_profile = config.profile_identity();
-    let diagnostic_profile = vorticity_concentration_diagnostic_profile(state);
+    let diagnostic_profile = compose_vorticity_concentration_diagnostic_profile(&solver_profile);
     let time_s = state.time_s();
     let nx = config.nx;
     let ny = config.ny;
@@ -292,7 +299,8 @@ fn next(index: usize, size: usize) -> usize {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::reference::PeriodicMacConfig;
+    use crate::reference::{MAX_PRESSURE_ITERATIONS, MAX_REFERENCE_CELLS, PeriodicMacConfig};
+    use crate::validation::MAX_DIAGNOSTIC_PROFILE_BYTES;
 
     fn config(n: usize) -> PeriodicMacConfig {
         PeriodicMacConfig {
@@ -319,7 +327,7 @@ mod tests {
     }
 
     #[test]
-    fn report_binds_estimator_operator_and_time() {
+    fn report_binds_estimator_operator_and_bounded_profile_identity() {
         let state = PeriodicMac2d::taylor_green(config(16), 0.08).unwrap();
         let report = measure_vorticity_concentration_scale(&state).unwrap();
         assert_eq!(
@@ -330,13 +338,31 @@ mod tests {
         assert!(
             report
                 .diagnostic_profile
-                .contains(VORTICITY_CONCENTRATION_SCALE_OPERATOR_ID)
+                .contains(VORTICITY_CONCENTRATION_DIAGNOSTIC_PROFILE_TOKEN)
         );
+        assert!(!report
+            .diagnostic_profile
+            .contains(VORTICITY_CONCENTRATION_SCALE_OPERATOR_ID));
         assert!(
             report
                 .diagnostic_profile
                 .starts_with(&report.solver_profile)
         );
+        assert!(report.diagnostic_profile.len() <= MAX_DIAGNOSTIC_PROFILE_BYTES);
+    }
+
+    #[test]
+    fn compact_profile_identity_fits_the_generic_bound_at_maximum_legal_shape() {
+        let cfg = PeriodicMacConfig {
+            nx: 4,
+            ny: MAX_REFERENCE_CELLS / 4,
+            pressure_iterations: MAX_PRESSURE_ITERATIONS,
+            ..PeriodicMacConfig::default()
+        };
+        cfg.validate().unwrap();
+        let profile = compose_vorticity_concentration_diagnostic_profile(&cfg.profile_identity());
+        assert!(profile.len() <= MAX_DIAGNOSTIC_PROFILE_BYTES);
+        assert!(profile.ends_with(VORTICITY_CONCENTRATION_DIAGNOSTIC_PROFILE_TOKEN));
     }
 
     #[test]
