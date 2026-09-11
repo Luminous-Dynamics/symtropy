@@ -1,0 +1,22 @@
+name: Promotion oracle independent verifier v0.13.4
+
+on:
+  pull_request:
+    branches:
+      - exp/promotion-oracle-verifier-base-v0.13r3
+
+permissions:
+  contents: read
+  actions: read
+  id-token: write
+  attestations: write
+
+jobs:
+  verify-r3-pair:
+    name: Independent r3 pair verification
+    uses: Luminous-Dynamics/symtropy/.github/workflows/promotion-oracle-evidence-verifier-v0134.yml@1e01b889d15dd58e738af23bce20569d23bbc4f8
+    permissions:
+      contents: read
+      actions: read
+      id-token: write
+      attestations: write
