@@ -18,8 +18,10 @@
 //! pressure-projection residual convergence, [`iterative_error`] measures
 //! projection-only solution change on a controlled compressive fixture,
 //! [`verification_regime`] summarizes within-fixture refinement trends without a
-//! promotion verdict, and [`manufactured_iterative`] measures pressure-iteration
-//! sensitivity on the exact manufactured Taylor-Green trajectory itself.
+//! promotion verdict, [`manufactured_iterative`] measures pressure-iteration
+//! sensitivity on the exact manufactured Taylor-Green trajectory itself, and
+//! [`excess_energy_decay`] measures resolved kinetic-energy loss relative to the
+//! exact passive Taylor-Green viscous decay in the same discrete quadrature.
 //! None of these modules should be read as a claim that Symtropy currently
 //! reproduces the 2026 singular construction or has a production Earth-water
 //! CFD backend.
@@ -27,6 +29,7 @@
 pub mod convergence;
 pub mod diagnostic_trace;
 pub mod evidence;
+pub mod excess_energy_decay;
 pub mod falsification;
 pub mod iterative_error;
 pub mod manufactured;

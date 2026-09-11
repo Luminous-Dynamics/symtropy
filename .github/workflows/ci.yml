@@ -142,6 +142,18 @@ jobs:
     - name: Hash Manufactured Iterative Evidence
       run: sha256sum manufactured-iterative-evidence.json > manufactured-iterative-evidence.json.sha256
 
+    # Keep false-smoothness observability independent as well. This document
+    # compares resolved kinetic-energy loss to the exact viscous Taylor-Green
+    # decay in the same discrete quadrature; it does not call the excess pure
+    # physical or numerical dissipation and freezes no acceptance threshold.
+    - name: Generate Passive Excess Energy Decay Evidence
+      env:
+        SYMTROPY_EVIDENCE_SOURCE_REVISION: ${{ github.event.pull_request.head.sha || github.sha }}
+      run: cargo run --locked -p symtropy-fluid --example passive_excess_energy_decay_evidence --quiet > passive-excess-energy-decay-evidence.json
+
+    - name: Hash Passive Excess Energy Decay Evidence
+      run: sha256sum passive-excess-energy-decay-evidence.json > passive-excess-energy-decay-evidence.json.sha256
+
     - name: Upload Fluid Verification Evidence
       uses: actions/upload-artifact@v4
       with:
@@ -151,5 +163,7 @@ jobs:
           continuum-verification-evidence.json.sha256
           manufactured-iterative-evidence.json
           manufactured-iterative-evidence.json.sha256
+          passive-excess-energy-decay-evidence.json
+          passive-excess-energy-decay-evidence.json.sha256
         if-no-files-found: error
         retention-days: 30
