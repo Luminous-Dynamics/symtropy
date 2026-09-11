@@ -141,6 +141,26 @@ pub struct LocalScalarSample {
     pub value: f64,
 }
 
+/// A candidate location that has already crossed an explicit presentation boundary.
+///
+/// `salience` is observer-facing evidence, not the hidden cause behind it. For example,
+/// an engineer may receive a visible low-output cue from a junction without receiving the
+/// private failure bit that produced it; a medic may receive a coarse distress presentation
+/// without receiving another resident's exact allostatic state.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct LocalTargetSample {
+    pub position: Vec2,
+    pub salience: f64,
+}
+
+/// Result of observer-local target selection.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct LocalTargetObservation {
+    pub position: Vec2,
+    pub salience: f64,
+    pub confidence: f64,
+}
+
 /// Select the strongest distance-attenuated local sample without depending on query order.
 ///
 /// Confidence falls linearly with distance. Candidates are ranked by bounded
@@ -152,20 +172,22 @@ pub fn strongest_local_sample(
     samples: &[LocalScalarSample],
     range: f32,
 ) -> Option<(f64, f64)> {
-    if !range.is_finite() || range <= 0.0 {
+    if !valid_observer_range(observer, range) {
         return None;
     }
 
     let mut best: Option<(u16, u16, u16)> = None;
     for sample in samples {
+        if !sample.position.x.is_finite() || !sample.position.y.is_finite() {
+            continue;
+        }
         let distance = observer.distance(sample.position);
         if !distance.is_finite() || distance > range {
             continue;
         }
         let confidence_bps = quantize_unit(1.0 - f64::from(distance / range));
         let value_bps = quantize_unit(sample.value);
-        let signal_bps = ((u32::from(value_bps) * u32::from(confidence_bps))
-            / u32::from(FULL_SCALE_BPS)) as u16;
+        let signal_bps = attenuated_signal_bps(value_bps, confidence_bps);
         let candidate = (signal_bps, confidence_bps, value_bps);
         if best.is_none_or(|current| candidate > current) {
             best = Some(candidate);
@@ -175,6 +197,74 @@ pub fn strongest_local_sample(
     best.map(|(_, confidence_bps, value_bps)| {
         (unit_from_bps(value_bps), unit_from_bps(confidence_bps))
     })
+}
+
+/// Select an observer-local actionable target from already-presented cues.
+///
+/// Hidden world flags must be projected into `salience` by a capability-appropriate
+/// presentation adapter before they reach this function. Candidates outside `range` are
+/// not considered. Ties are broken by coordinates, so ECS/query iteration order cannot
+/// choose a different target for an otherwise identical frame.
+pub fn strongest_local_target(
+    observer: Vec2,
+    samples: &[LocalTargetSample],
+    range: f32,
+) -> Option<LocalTargetObservation> {
+    if !valid_observer_range(observer, range) {
+        return None;
+    }
+
+    let mut best: Option<(LocalTargetObservation, (u16, u16, u16))> = None;
+    for sample in samples {
+        if !sample.position.x.is_finite() || !sample.position.y.is_finite() {
+            continue;
+        }
+        let distance = observer.distance(sample.position);
+        if !distance.is_finite() || distance > range {
+            continue;
+        }
+
+        let confidence_bps = quantize_unit(1.0 - f64::from(distance / range));
+        let salience_bps = quantize_unit(sample.salience);
+        let signal_bps = attenuated_signal_bps(salience_bps, confidence_bps);
+        if signal_bps == 0 {
+            continue;
+        }
+
+        let observation = LocalTargetObservation {
+            position: sample.position,
+            salience: unit_from_bps(salience_bps),
+            confidence: unit_from_bps(confidence_bps),
+        };
+        let rank = (signal_bps, confidence_bps, salience_bps);
+        let should_replace = best.as_ref().is_none_or(|(current, current_rank)| {
+            rank > *current_rank
+                || (rank == *current_rank
+                    && coordinate_precedes(observation.position, current.position))
+        });
+        if should_replace {
+            best = Some((observation, rank));
+        }
+    }
+
+    best.map(|(observation, _)| observation)
+}
+
+/// Project private allostatic state into a deliberately coarse outward distress cue.
+///
+/// This is a presentation boundary, not permission to disclose the underlying scalar.
+/// Multiple internal values map to the same tier so observers cannot recover exact private
+/// state from the cue. Values below the existing authored-help threshold present no cue.
+pub fn presented_distress_cue(allostatic_load: f32) -> f64 {
+    if !allostatic_load.is_finite() {
+        return 0.0;
+    }
+    match allostatic_load.clamp(0.0, 1.0) {
+        load if load < 0.4 => 0.0,
+        load if load < 0.65 => 0.33,
+        load if load < 0.8 => 0.66,
+        _ => 1.0,
+    }
 }
 
 /// Strongest locally audible/observable noise-risk cue.
@@ -190,6 +280,20 @@ pub fn local_noise_risk_cue(
         .map(|(value, confidence)| value * confidence)
         .unwrap_or(0.0)
         .clamp(0.0, 1.0)
+}
+
+fn valid_observer_range(observer: Vec2, range: f32) -> bool {
+    observer.x.is_finite() && observer.y.is_finite() && range.is_finite() && range > 0.0
+}
+
+fn attenuated_signal_bps(value_bps: u16, confidence_bps: u16) -> u16 {
+    ((u32::from(value_bps) * u32::from(confidence_bps)) / u32::from(FULL_SCALE_BPS)) as u16
+}
+
+fn coordinate_precedes(candidate: Vec2, current: Vec2) -> bool {
+    candidate.x.total_cmp(&current.x).is_lt()
+        || (candidate.x.total_cmp(&current.x).is_eq()
+            && candidate.y.total_cmp(&current.y).is_lt())
 }
 
 fn quantize_unit(value: f64) -> u16 {
@@ -282,6 +386,76 @@ mod tests {
         let near = local_noise_risk_cue(Vec2::ZERO, &samples, 20.0);
         let far = local_noise_risk_cue(Vec2::new(-10.0, 0.0), &samples, 20.0);
         assert!(near > far);
+    }
+
+    #[test]
+    fn target_selection_is_local_and_iteration_order_independent() {
+        let observer = Vec2::ZERO;
+        let samples = [
+            LocalTargetSample {
+                position: Vec2::new(80.0, 0.0),
+                salience: 1.0,
+            },
+            LocalTargetSample {
+                position: Vec2::new(10.0, 0.0),
+                salience: 0.8,
+            },
+        ];
+        let reversed = [samples[1], samples[0]];
+        assert_eq!(
+            strongest_local_target(observer, &samples, 100.0),
+            strongest_local_target(observer, &reversed, 100.0)
+        );
+        assert_eq!(
+            strongest_local_target(observer, &samples, 50.0)
+                .expect("near candidate is observable")
+                .position,
+            Vec2::new(10.0, 0.0)
+        );
+    }
+
+    #[test]
+    fn target_ties_use_coordinate_order_not_query_order() {
+        let observer = Vec2::ZERO;
+        let samples = [
+            LocalTargetSample {
+                position: Vec2::new(3.0, 4.0),
+                salience: 1.0,
+            },
+            LocalTargetSample {
+                position: Vec2::new(-3.0, 4.0),
+                salience: 1.0,
+            },
+        ];
+        let reversed = [samples[1], samples[0]];
+        let a = strongest_local_target(observer, &samples, 10.0).unwrap();
+        let b = strongest_local_target(observer, &reversed, 10.0).unwrap();
+        assert_eq!(a, b);
+        assert_eq!(a.position, Vec2::new(-3.0, 4.0));
+    }
+
+    #[test]
+    fn zero_salience_or_out_of_range_targets_are_not_actionable() {
+        let samples = [
+            LocalTargetSample {
+                position: Vec2::new(1.0, 0.0),
+                salience: 0.0,
+            },
+            LocalTargetSample {
+                position: Vec2::new(100.0, 0.0),
+                salience: 1.0,
+            },
+        ];
+        assert_eq!(strongest_local_target(Vec2::ZERO, &samples, 50.0), None);
+    }
+
+    #[test]
+    fn distress_projection_is_coarse_and_hides_exact_private_load() {
+        assert_eq!(presented_distress_cue(0.2), 0.0);
+        assert_eq!(presented_distress_cue(0.41), presented_distress_cue(0.60));
+        assert_eq!(presented_distress_cue(0.70), 0.66);
+        assert_eq!(presented_distress_cue(0.95), 1.0);
+        assert_eq!(presented_distress_cue(f32::NAN), 0.0);
     }
 
     #[test]
