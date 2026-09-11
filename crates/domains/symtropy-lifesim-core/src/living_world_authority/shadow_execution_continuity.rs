@@ -11,12 +11,14 @@
 //!
 //! Observation cadence and execution continuity are deliberately independent.
 //! A terminal-state Q2 metric may observe only T1 while this transcript still
-//! carries an executor-state identity for every intervening canonical tick. Any
-//! tick that *is* observed must use the exact #406/#563/#567 observation identity.
+//! carries the same executor-state identity for every intervening canonical tick.
+//! When a tick is observed, #406's exact source-state identity is normalized into
+//! that same continuity identity rather than creating a sampling-dependent state.
 //!
 //! This remains structural evidence. Executor-state and segment manifests are
 //! evidence-shaped inputs, so #568 must still executable-qualify the runner/profile
-//! that emits them before this evidence is eligible for closure-anchor renewal.
+//! and exact source-manifest grammar before this evidence is eligible for
+//! closure-anchor renewal.
 
 use std::collections::{BTreeMap, BTreeSet};
 use std::error::Error;
@@ -29,9 +31,9 @@ use super::retained_authority::{
     RetainedAuthorityRecord, RetainedContentManifest, RetainedStoreRevision,
 };
 use super::shadow_execution_lineage::{ShadowReferenceRunId, ShadowReferenceRunRevision};
-use super::shadow_observable_authority::{
-    ShadowObservationContentManifest, ShadowObservationSourceIdentity,
-};
+use super::shadow_observable_authority::ShadowObservationSourceIdentity;
+#[cfg(test)]
+use super::shadow_observable_authority::ShadowObservationContentManifest;
 use super::shadow_paired_execution::{
     PairedShadowExecutionCertificate, ShadowCoarseRunId, ShadowCoarseRunRevision,
 };
@@ -43,6 +45,11 @@ use super::transition_domain::{
     TransitionDomainAuthorityScope, TransitionDomainEvaluationSubject,
     TransitionDomainSnapshotId, TransitionDomainSourceRevision,
 };
+
+/// Keep continuity admission no larger than the existing Q2 scalar-trace ceiling.
+/// This local guard is defense-in-depth: a continuity transcript must not create an
+/// unbounded collection surface even if it is constructed before metric validation.
+const MAX_CONTINUITY_SEGMENTS: usize = 1_000_000;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct ShadowExecutionSegmentId(pub u128);
@@ -64,9 +71,13 @@ impl ShadowExecutionSegmentManifest {
     }
 }
 
-/// Exact executor-owned content identity for a state that was not necessarily
-/// observed by #406. The byte grammar remains runner-profile authority and must
-/// be executable-qualified by #568 before anchor-grade use.
+/// Exact executor-owned content identity for a post-start source state.
+///
+/// #406's `ShadowObservationContentManifest` also identifies the exact source
+/// representation state from which a scalar was extracted. Observation sources
+/// are normalized into this wrapper by exact bytes so sampling cadence cannot
+/// alter execution history. #568 must executable-qualify that byte grammar for the
+/// exact runner/profile before anchor-grade use.
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct ShadowExecutionStateContentManifest(Vec<u8>);
 
@@ -96,15 +107,14 @@ pub enum ShadowContinuityStateRevision {
 
 /// Content identity class for one continuity state.
 ///
-/// The variants remain distinct even when their underlying byte encodings happen
-/// to match. In particular, an executor-state manifest cannot impersonate an
-/// observed #406 state merely by reusing the same bytes.
+/// Observation is deliberately not a distinct continuity variant: observing a
+/// source state must not rewrite the execution chain. Post-start executor state
+/// and #406 observation-source state therefore converge on `ExecutionState`.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ShadowContinuityContentIdentity {
     CoarsePopulation(PopulationStateManifest),
     RetainedExact(RetainedContentManifest),
     ExecutionState(ShadowExecutionStateContentManifest),
-    Observation(ShadowObservationContentManifest),
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -141,7 +151,7 @@ impl ShadowContinuityStateIdentity {
         }
     }
 
-    /// Record an executor state at an unobserved (or not-yet-observed) tick.
+    /// Record one exact post-start executor state.
     ///
     /// This is evidence-shaped construction, not scientific authority. #568 must
     /// qualify the exact runner/profile and content-manifest grammar before a
@@ -162,14 +172,17 @@ impl ShadowContinuityStateIdentity {
         }
     }
 
+    /// Normalize #406's exact observation-source state into the canonical
+    /// continuity execution-state wrapper. The observation itself remains separate
+    /// evidence; only its source-state identity participates in the execution chain.
     pub fn from_observation_source(source: &ShadowObservationSourceIdentity) -> Self {
         Self {
             representation: source.representation(),
             scope: source.scope(),
             snapshot: source.snapshot(),
             revision: ShadowContinuityStateRevision::Canonical(source.source_revision()),
-            content: ShadowContinuityContentIdentity::Observation(
-                source.content_manifest().clone(),
+            content: ShadowContinuityContentIdentity::ExecutionState(
+                ShadowExecutionStateContentManifest(source.content_manifest().as_bytes().to_vec()),
             ),
         }
     }
@@ -290,15 +303,27 @@ impl ShadowLaneContinuityTranscript {
         window: ShadowValidationWindow,
         segments: impl IntoIterator<Item = ShadowExecutionSegment>,
     ) -> Result<Self, ShadowExecutionContinuityError> {
-        let expected_len = usize::try_from(window.duration_ticks()).map_err(|_| {
-            ShadowExecutionContinuityError::WindowTooLargeForTranscript {
-                duration_ticks: window.duration_ticks(),
-            }
+        let duration_ticks = window.duration_ticks();
+        if duration_ticks > MAX_CONTINUITY_SEGMENTS as u64 {
+            return Err(
+                ShadowExecutionContinuityError::ValidationWindowExceedsContinuityLimit {
+                    maximum: MAX_CONTINUITY_SEGMENTS,
+                    actual: duration_ticks,
+                },
+            );
+        }
+        let expected_len = usize::try_from(duration_ticks).map_err(|_| {
+            ShadowExecutionContinuityError::WindowTooLargeForTranscript { duration_ticks }
         })?;
         let mut canonical = BTreeMap::new();
         let mut segment_ids = BTreeSet::new();
 
         for segment in segments {
+            if canonical.len() >= expected_len {
+                return Err(ShadowExecutionContinuityError::TranscriptHasExtraSegments {
+                    expected: expected_len,
+                });
+            }
             if !segment_ids.insert(segment.id()) {
                 return Err(ShadowExecutionContinuityError::DuplicateSegmentId {
                     id: segment.id(),
@@ -561,6 +586,13 @@ pub enum ShadowExecutionContinuityError {
     WindowTooLargeForTranscript {
         duration_ticks: u64,
     },
+    ValidationWindowExceedsContinuityLimit {
+        maximum: usize,
+        actual: u64,
+    },
+    TranscriptHasExtraSegments {
+        expected: usize,
+    },
     DuplicateSegmentId {
         id: ShadowExecutionSegmentId,
     },
@@ -619,6 +651,14 @@ impl fmt::Display for ShadowExecutionContinuityError {
                 f,
                 "shadow continuity window of {duration_ticks} ticks cannot be represented on this platform"
             ),
+            Self::ValidationWindowExceedsContinuityLimit { maximum, actual } => write!(
+                f,
+                "shadow continuity window has {actual} ticks; maximum is {maximum}"
+            ),
+            Self::TranscriptHasExtraSegments { expected } => write!(
+                f,
+                "shadow continuity transcript contains more than the expected {expected} segments"
+            ),
             Self::DuplicateSegmentId { id } => {
                 write!(f, "shadow continuity segment id {} is duplicated", id.0)
             }
@@ -672,7 +712,7 @@ impl fmt::Display for ShadowExecutionContinuityError {
             ),
             Self::ObservationStateMismatch { tick } => write!(
                 f,
-                "shadow continuity successor differs from exact observed state at tick {}",
+                "shadow continuity successor differs from exact observed source state at tick {}",
                 tick.0
             ),
             Self::LaneEvidenceMismatch => write!(
@@ -824,23 +864,25 @@ mod tests {
     }
 
     #[test]
-    fn terminal_observation_keeps_unobserved_ticks_as_execution_states() {
-        let transcript = transcript_with_states(
+    fn observation_cadence_does_not_change_execution_transcript() {
+        let every_tick = fully_observed_transcript();
+        let terminal_only_transcript = transcript_with_states(
             execution_state(11, 2),
             execution_state(12, 3),
             observed_state(13, 4),
         );
         let terminal_only = BTreeMap::from([(CanonicalTick(13), observed_state(13, 4))]);
-        assert_eq!(validate(&transcript, &start(1), &terminal_only), Ok(()));
-        assert!(matches!(
-            transcript.segments().next().unwrap().successor().content(),
-            ShadowContinuityContentIdentity::ExecutionState(_)
-        ));
+
+        assert_eq!(terminal_only_transcript, every_tick);
+        assert_eq!(
+            validate(&terminal_only_transcript, &start(1), &terminal_only),
+            Ok(())
+        );
     }
 
     #[test]
-    fn execution_state_cannot_impersonate_observation_by_reusing_bytes() {
-        assert_ne!(execution_state(11, 2), observed_state(11, 2));
+    fn observation_source_normalizes_to_same_execution_state_identity() {
+        assert_eq!(execution_state(11, 2), observed_state(11, 2));
     }
 
     #[test]
@@ -953,6 +995,62 @@ mod tests {
                     tick: CanonicalTick(14)
                 }
             )
+        );
+    }
+
+    #[test]
+    fn oversized_continuity_window_rejects_before_collection() {
+        let oversized = ShadowValidationWindow::new(
+            CanonicalTick(0),
+            CanonicalTick(MAX_CONTINUITY_SEGMENTS as u64 + 1),
+        )
+        .unwrap();
+        let result = ShadowLaneContinuityTranscript::new(
+            ShadowContinuityRunIdentity::Coarse {
+                id: ShadowCoarseRunId(1),
+                revision: ShadowCoarseRunRevision(1),
+            },
+            ShadowEvidenceKey::new(2, 1),
+            ShadowEvidenceRevision(1),
+            oversized,
+            std::iter::empty(),
+        );
+        assert_eq!(
+            result,
+            Err(
+                ShadowExecutionContinuityError::ValidationWindowExceedsContinuityLimit {
+                    maximum: MAX_CONTINUITY_SEGMENTS,
+                    actual: MAX_CONTINUITY_SEGMENTS as u64 + 1,
+                }
+            )
+        );
+    }
+
+    #[test]
+    fn extra_segments_reject_at_expected_window_bound() {
+        let s0 = start(1);
+        let s1 = observed_state(11, 2);
+        let s2 = observed_state(12, 3);
+        let s3 = observed_state(13, 4);
+        let s4 = observed_state(14, 5);
+        let result = ShadowLaneContinuityTranscript::new(
+            ShadowContinuityRunIdentity::Coarse {
+                id: ShadowCoarseRunId(1),
+                revision: ShadowCoarseRunRevision(1),
+            },
+            ShadowEvidenceKey::new(2, 1),
+            ShadowEvidenceRevision(1),
+            window(),
+            [
+                segment(1, 10, s0, s1.clone()),
+                segment(2, 11, s1, s2.clone()),
+                segment(3, 12, s2, s3.clone()),
+                segment(4, 13, s3, s4),
+            ],
+        );
+        assert_eq!(
+            result,
+            Err(ShadowExecutionContinuityError::TranscriptHasExtraSegments { expected: 3 })
         );
     }
 
