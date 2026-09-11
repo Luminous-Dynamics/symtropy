@@ -130,6 +130,18 @@ jobs:
     - name: Hash Fluid Verification Evidence
       run: sha256sum continuum-verification-evidence.json > continuum-verification-evidence.json.sha256
 
+    # Keep same-case pressure-iteration sensitivity separate from the V0.6
+    # omnibus bundle. The 400-iteration point exactly matches the finest
+    # manufactured temporal control; 800 iterations is only a higher numerical
+    # reference, not continuum truth or an acceptance threshold.
+    - name: Generate Manufactured Iterative Evidence
+      env:
+        SYMTROPY_EVIDENCE_SOURCE_REVISION: ${{ github.event.pull_request.head.sha || github.sha }}
+      run: cargo run --locked -p symtropy-fluid --example manufactured_iterative_evidence --quiet > manufactured-iterative-evidence.json
+
+    - name: Hash Manufactured Iterative Evidence
+      run: sha256sum manufactured-iterative-evidence.json > manufactured-iterative-evidence.json.sha256
+
     - name: Upload Fluid Verification Evidence
       uses: actions/upload-artifact@v4
       with:
@@ -137,5 +149,7 @@ jobs:
         path: |
           continuum-verification-evidence.json
           continuum-verification-evidence.json.sha256
+          manufactured-iterative-evidence.json
+          manufactured-iterative-evidence.json.sha256
         if-no-files-found: error
         retention-days: 30
