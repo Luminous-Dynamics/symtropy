@@ -1,0 +1,81 @@
+name: D1 Lock Delta Diagnostic
+
+on:
+  pull_request:
+    branches: [ "main" ]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: d1-lock-diagnostic-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  diagnose:
+    name: Diagnose exact D1 Cargo.lock delta
+    runs-on: ubuntu-24.04
+    env:
+      CARGO_TARGET_DIR: /tmp/symtropy-d1-lock-diagnostic-target
+    steps:
+      - name: Check out exact unqualified D1 product head
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: 9098b501a0b61a163aed031b351228ddf2c39bcf
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Bind exact input and clean baseline
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "9098b501a0b61a163aed031b351228ddf2c39bcf"
+          test -z "$(git status --porcelain=v1 --untracked-files=all)"
+          echo "D1_LOCK_PARENT_HEAD=$(git rev-parse HEAD)"
+          echo "D1_LOCK_PARENT_TREE=$(git rev-parse HEAD^{tree})"
+          echo "D1_LOCK_BEFORE_BLOB=$(git hash-object Cargo.lock)"
+          sha256sum Cargo.lock
+
+      - name: Set up pinned Rust 1.96
+        uses: dtolnay/rust-toolchain@6bed0761d98439e5a578e2877258200ad565ba87
+        with:
+          toolchain: 1.96.0
+          components: clippy, rustfmt
+
+      - name: Regenerate only the missing workspace lock resolution
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo check -p symtropy-design --all-targets
+
+      - name: Prove exact lock-only delta
+        shell: bash
+        run: |
+          set -euo pipefail
+          changed="$(git status --porcelain=v1 --untracked-files=all)"
+          printf '%s\n' "${changed}"
+          test "${changed}" = ' M Cargo.lock'
+
+          echo "D1_LOCK_DIFF_BEGIN"
+          git diff -- Cargo.lock
+          echo "D1_LOCK_DIFF_END"
+
+          echo "D1_LOCK_AFTER_BLOB=$(git hash-object Cargo.lock)"
+          echo "D1_LOCK_AFTER_SHA256=$(sha256sum Cargo.lock | awk '{print $1}')"
+          git diff --binary -- Cargo.lock > /tmp/d1-lock.patch
+          echo "D1_LOCK_PATCH_SHA256=$(sha256sum /tmp/d1-lock.patch | awk '{print $1}')"
+
+      - name: Prove regenerated lock is self-consistent
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo metadata --locked --format-version 1 > /tmp/d1-locked-metadata.json
+          cargo check --locked -p symtropy-design --all-targets
+          echo "D1_LOCKED_METADATA_SHA256=$(sha256sum /tmp/d1-locked-metadata.json | awk '{print $1}')"
+          test "$(git status --porcelain=v1 --untracked-files=all)" = ' M Cargo.lock'
+
+      - name: Mark diagnostic-only evidence
+        shell: bash
+        run: |
+          echo "DIAGNOSTIC_ONLY=true"
+          echo "This workflow does not update the D1 product branch."
