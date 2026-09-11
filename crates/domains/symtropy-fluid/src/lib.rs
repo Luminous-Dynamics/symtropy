@@ -25,13 +25,16 @@
 //! [`manufactured_update_defect`] measures the one-step discrete operator defect
 //! against the exact forced manufactured trajectory,
 //! [`smooth_scale_separation`] records analytical grid/mode separation for the
-//! smooth Taylor-Green control, and [`vorticity_concentration_scale`] measures a
+//! smooth Taylor-Green control, [`vorticity_concentration_scale`] measures a
 //! vorticity/enstrophy-palinstrophy gradient length without assigning refinement
-//! or promotion authority.
+//! or promotion authority, and [`concentration_scale_drift`] records same-run
+//! concentration-scale drift together with excess resolved-energy loss and
+//! numerical-health context for the passive Taylor-Green control.
 //! None of these modules should be read as a claim that Symtropy currently
 //! reproduces the 2026 singular construction or has a production Earth-water
 //! CFD backend.
 
+pub mod concentration_scale_drift;
 pub mod convergence;
 pub mod diagnostic_trace;
 pub mod evidence;

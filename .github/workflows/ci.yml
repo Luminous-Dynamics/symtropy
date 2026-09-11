@@ -187,6 +187,17 @@ jobs:
     - name: Hash Vorticity Concentration Scale Evidence
       run: sha256sum vorticity-concentration-scale-evidence.json > vorticity-concentration-scale-evidence.json.sha256
 
+    # Same-run passive scale drift retains concentration-scale movement, excess
+    # resolved-energy loss, and numerical-health context from one trajectory.
+    # It is evidence for later false-smoothness reasoning, not a classification.
+    - name: Generate Passive Concentration Scale Drift Evidence
+      env:
+        SYMTROPY_EVIDENCE_SOURCE_REVISION: ${{ github.event.pull_request.head.sha || github.sha }}
+      run: cargo run --locked -p symtropy-fluid --example passive_concentration_scale_drift_evidence --quiet > passive-concentration-scale-drift-evidence.json
+
+    - name: Hash Passive Concentration Scale Drift Evidence
+      run: sha256sum passive-concentration-scale-drift-evidence.json > passive-concentration-scale-drift-evidence.json.sha256
+
     - name: Upload Fluid Verification Evidence
       uses: actions/upload-artifact@v4
       with:
@@ -204,5 +215,7 @@ jobs:
           smooth-scale-separation-evidence.json.sha256
           vorticity-concentration-scale-evidence.json
           vorticity-concentration-scale-evidence.json.sha256
+          passive-concentration-scale-drift-evidence.json
+          passive-concentration-scale-drift-evidence.json.sha256
         if-no-files-found: error
         retention-days: 30
