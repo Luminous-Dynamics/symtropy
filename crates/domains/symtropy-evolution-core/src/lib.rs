@@ -6,6 +6,7 @@
 //! morphology, rendering, persistent organism identity, speciation, cognition,
 //! and civilization remain external authorities.
 
+mod ancestry_graph;
 mod ancestry_state;
 mod canonical;
 mod chromosome_map;
@@ -44,6 +45,12 @@ mod reproduction;
 mod schema;
 mod structured_population_process;
 
+pub use ancestry_graph::{
+    append_descendant_ancestry_to_graph, AncestryGeneration, AncestryGraphAppendProvenance,
+    AncestryGraphAppendProvenanceDigest, AncestryGraphAppendResult, AncestryGraphEdge,
+    AncestryGraphError, AncestryGraphNode, ModeledAncestryGraph, ModeledAncestryGraphDigest,
+    ANCESTRY_GRAPH_APPEND_VERSION, MODELED_ANCESTRY_GRAPH_VERSION,
+};
 pub use ancestry_state::{
     AncestryAuthorityError, ChromosomeAncestryState, HaplotypeAncestryClass,
     PhasedAncestryState, PhasedAncestryStateDigest, PHASED_ANCESTRY_STATE_VERSION,
