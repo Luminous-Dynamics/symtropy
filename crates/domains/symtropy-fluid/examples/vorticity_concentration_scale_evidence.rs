@@ -164,16 +164,15 @@ fn calibration_point(
     let dx_m = config.dx();
     let k_per_m = std::f64::consts::TAU / config.length_x_m;
     let discrete_k_per_m = forward_symbol(k_per_m, dx_m);
-    let expected_exact_discrete_length_m =
-        1.0 / (2.0_f64.sqrt() * discrete_k_per_m.abs());
+    let expected_exact_discrete_length_m = 1.0 / (2.0_f64.sqrt() * discrete_k_per_m.abs());
     let expected_continuum_length_m = 1.0 / (2.0_f64.sqrt() * k_per_m);
 
     let state = PeriodicMac2d::taylor_green(config, amplitude_mps)?;
     let report = measure_vorticity_concentration_scale(&state)?;
     let measured_length_m = measured_length(&report, "Taylor-Green calibration")?;
-    let relative_error_to_exact_discrete =
-        (measured_length_m - expected_exact_discrete_length_m).abs()
-            / expected_exact_discrete_length_m;
+    let relative_error_to_exact_discrete = (measured_length_m - expected_exact_discrete_length_m)
+        .abs()
+        / expected_exact_discrete_length_m;
     let relative_deviation_from_continuum =
         (measured_length_m - expected_continuum_length_m).abs() / expected_continuum_length_m;
 
@@ -217,14 +216,11 @@ fn mixed_mode_shear_control() -> Result<MixedModeShearCalibration, Box<dyn Error
     let first_mode_discrete_wavenumber_per_m = forward_symbol(first_k_per_m, dx_m);
     let second_mode_discrete_wavenumber_per_m = forward_symbol(second_k_per_m, dx_m);
 
-    let numerator = first_mode_amplitude_mps.powi(2)
-        * first_mode_discrete_wavenumber_per_m.powi(2)
-        + second_mode_amplitude_mps.powi(2)
-            * second_mode_discrete_wavenumber_per_m.powi(2);
+    let numerator = first_mode_amplitude_mps.powi(2) * first_mode_discrete_wavenumber_per_m.powi(2)
+        + second_mode_amplitude_mps.powi(2) * second_mode_discrete_wavenumber_per_m.powi(2);
     let denominator = first_mode_amplitude_mps.powi(2)
         * first_mode_discrete_wavenumber_per_m.powi(4)
-        + second_mode_amplitude_mps.powi(2)
-            * second_mode_discrete_wavenumber_per_m.powi(4);
+        + second_mode_amplitude_mps.powi(2) * second_mode_discrete_wavenumber_per_m.powi(4);
     let expected_exact_discrete_length_m = (numerator / denominator).sqrt();
 
     let cells = config.nx * config.ny;
@@ -240,9 +236,9 @@ fn mixed_mode_shear_control() -> Result<MixedModeShearCalibration, Box<dyn Error
     let state = PeriodicMac2d::from_faces(config, u_faces, v_faces)?;
     let report = measure_vorticity_concentration_scale(&state)?;
     let measured_length_m = measured_length(&report, "mixed-mode shear control")?;
-    let relative_error_to_exact_discrete =
-        (measured_length_m - expected_exact_discrete_length_m).abs()
-            / expected_exact_discrete_length_m;
+    let relative_error_to_exact_discrete = (measured_length_m - expected_exact_discrete_length_m)
+        .abs()
+        / expected_exact_discrete_length_m;
 
     validate_nonnegative_finite(
         "mixed_mode_expected_exact_discrete_length_m",
@@ -284,9 +280,9 @@ fn checkerboard_control() -> Result<GridScaleStressControl, Box<dyn Error>> {
     let report = measure_vorticity_concentration_scale(&state)?;
     let measured_length_m = measured_length(&report, "alternating-face grid-scale control")?;
     let expected_exact_discrete_length_m = 0.5 * dx_m;
-    let relative_error_to_exact_discrete =
-        (measured_length_m - expected_exact_discrete_length_m).abs()
-            / expected_exact_discrete_length_m;
+    let relative_error_to_exact_discrete = (measured_length_m - expected_exact_discrete_length_m)
+        .abs()
+        / expected_exact_discrete_length_m;
     validate_nonnegative_finite(
         "checkerboard_expected_exact_discrete_length_m",
         expected_exact_discrete_length_m,

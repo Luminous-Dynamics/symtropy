@@ -145,10 +145,8 @@ pub fn measure_vorticity_concentration_scale(
         for i in 0..nx {
             let west = previous(i, nx);
             let cell_index = index(i, j, nx);
-            let dv_dx =
-                (state.v_faces()[cell_index] - state.v_faces()[index(west, j, nx)]) / dx_m;
-            let du_dy =
-                (state.u_faces()[cell_index] - state.u_faces()[index(i, south, nx)]) / dy_m;
+            let dv_dx = (state.v_faces()[cell_index] - state.v_faces()[index(west, j, nx)]) / dx_m;
+            let du_dy = (state.u_faces()[cell_index] - state.u_faces()[index(i, south, nx)]) / dy_m;
             let omega = dv_dx - du_dy;
             ensure_finite("vorticity_per_s", omega)?;
             vorticity[cell_index] = omega;
@@ -165,23 +163,18 @@ pub fn measure_vorticity_concentration_scale(
         for i in 0..nx {
             let east = next(i, nx);
             let cell_index = index(i, j, nx);
-            let d_omega_dx =
-                (vorticity[index(east, j, nx)] - vorticity[cell_index]) / dx_m;
-            let d_omega_dy =
-                (vorticity[index(i, north, nx)] - vorticity[cell_index]) / dy_m;
+            let d_omega_dx = (vorticity[index(east, j, nx)] - vorticity[cell_index]) / dx_m;
+            let d_omega_dy = (vorticity[index(i, north, nx)] - vorticity[cell_index]) / dy_m;
             ensure_finite("vorticity_gradient_x_per_m_s", d_omega_dx)?;
             ensure_finite("vorticity_gradient_y_per_m_s", d_omega_dy)?;
-            vorticity_gradient_squared_sum +=
-                d_omega_dx * d_omega_dx + d_omega_dy * d_omega_dy;
+            vorticity_gradient_squared_sum += d_omega_dx * d_omega_dx + d_omega_dy * d_omega_dy;
         }
     }
 
     let mean_vorticity_squared_per_s2 = vorticity_squared_sum / cells as f64;
-    let mean_vorticity_gradient_squared_per_m2_s2 =
-        vorticity_gradient_squared_sum / cells as f64;
+    let mean_vorticity_gradient_squared_per_m2_s2 = vorticity_gradient_squared_sum / cells as f64;
     let rms_vorticity_per_s = mean_vorticity_squared_per_s2.sqrt();
-    let rms_vorticity_gradient_per_m_s =
-        mean_vorticity_gradient_squared_per_m2_s2.sqrt();
+    let rms_vorticity_gradient_per_m_s = mean_vorticity_gradient_squared_per_m2_s2.sqrt();
 
     for (name, value) in [
         ("dx_m", dx_m),
@@ -240,7 +233,9 @@ pub fn measure_vorticity_concentration_scale(
             ),
         ] {
             if !value.is_finite() || value <= 0.0 {
-                return Err(VorticityConcentrationScaleError::NonFiniteDerivedMetric(name));
+                return Err(VorticityConcentrationScaleError::NonFiniteDerivedMetric(
+                    name,
+                ));
             }
         }
         VorticityConcentrationScaleValue::Measured {
@@ -273,12 +268,11 @@ pub fn measure_vorticity_concentration_scale(
     })
 }
 
-fn ensure_finite(
-    name: &'static str,
-    value: f64,
-) -> Result<(), VorticityConcentrationScaleError> {
+fn ensure_finite(name: &'static str, value: f64) -> Result<(), VorticityConcentrationScaleError> {
     if !value.is_finite() {
-        return Err(VorticityConcentrationScaleError::NonFiniteDerivedMetric(name));
+        return Err(VorticityConcentrationScaleError::NonFiniteDerivedMetric(
+            name,
+        ));
     }
     Ok(())
 }
@@ -328,12 +322,21 @@ mod tests {
     fn report_binds_estimator_operator_and_time() {
         let state = PeriodicMac2d::taylor_green(config(16), 0.08).unwrap();
         let report = measure_vorticity_concentration_scale(&state).unwrap();
-        assert_eq!(report.operator_id, VORTICITY_CONCENTRATION_SCALE_OPERATOR_ID);
+        assert_eq!(
+            report.operator_id,
+            VORTICITY_CONCENTRATION_SCALE_OPERATOR_ID
+        );
         assert_eq!(report.time_s, 0.0);
-        assert!(report
-            .diagnostic_profile
-            .contains(VORTICITY_CONCENTRATION_SCALE_OPERATOR_ID));
-        assert!(report.diagnostic_profile.starts_with(&report.solver_profile));
+        assert!(
+            report
+                .diagnostic_profile
+                .contains(VORTICITY_CONCENTRATION_SCALE_OPERATOR_ID)
+        );
+        assert!(
+            report
+                .diagnostic_profile
+                .starts_with(&report.solver_profile)
+        );
     }
 
     #[test]
