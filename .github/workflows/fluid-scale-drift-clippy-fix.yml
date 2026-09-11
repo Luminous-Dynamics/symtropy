@@ -1,0 +1,56 @@
+name: Fluid Passive Scale Drift Clippy Fix
+
+on:
+  push:
+    branches: [ "ci/fluid-fix-passive-scale-drift-clippy-v0.1" ]
+
+jobs:
+  fix-and-verify:
+    runs-on: macos-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - name: Apply narrow source fix
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          path = Path('crates/domains/symtropy-fluid/src/concentration_scale_drift.rs')
+          text = path.read_text()
+
+          old = '''    let initial_point = make_point(\n        0,\n        &state,\n        initial_energy_j,\n        initial_energy_j,\n        exact_discrete_concentration_scale_m,\n        initial_scale_m,\n        initial_concentration,\n        None,\n    )?;'''
+          new = '''    let initial_point = make_point(\n        0,\n        &state,\n        PassiveScaleDriftPointMeasurements {\n            initial_energy_j,\n            measured_energy_j: initial_energy_j,\n            exact_discrete_energy_j: initial_energy_j,\n            exact_discrete_concentration_scale_m,\n            measured_concentration_scale_m: initial_scale_m,\n        },\n        initial_concentration,\n        None,\n    )?;'''
+          assert text.count(old) == 1, 'initial make_point call changed unexpectedly'
+          text = text.replace(old, new)
+
+          old = '''        let concentration = measure_vorticity_concentration_scale(&state)?;\n        if concentration.diagnostic_profile != diagnostic_profile {\n            return Err(PassiveConcentrationScaleDriftError::InvalidExactControl);\n        }\n        let measured_concentration_scale_m = measured_scale(&concentration)?;\n        let point = make_point(\n            step_index,\n            &state,\n            measured_energy_j,\n            exact_discrete_energy_j,\n            exact_discrete_concentration_scale_m,\n            measured_concentration_scale_m,\n            concentration,\n            Some(context),\n        )?;'''
+          new = '''        let concentration = measure_vorticity_concentration_scale(&state)?;\n        if concentration.diagnostic_profile != diagnostic_profile\n            || concentration.time_s.to_bits() != state.time_s().to_bits()\n        {\n            return Err(PassiveConcentrationScaleDriftError::InvalidExactControl);\n        }\n        let measured_concentration_scale_m = measured_scale(&concentration)?;\n        let point = make_point(\n            step_index,\n            &state,\n            PassiveScaleDriftPointMeasurements {\n                initial_energy_j,\n                measured_energy_j,\n                exact_discrete_energy_j,\n                exact_discrete_concentration_scale_m,\n                measured_concentration_scale_m,\n            },\n            concentration,\n            Some(context),\n        )?;'''
+          assert text.count(old) == 1, 'post-step make_point call changed unexpectedly'
+          text = text.replace(old, new)
+
+          old = '''fn make_point(\n    step_index: usize,\n    state: &PeriodicMac2d,\n    measured_energy_j: f64,\n    exact_discrete_energy_j: f64,\n    exact_discrete_concentration_scale_m: f64,\n    measured_concentration_scale_m: f64,\n    concentration: VorticityConcentrationScaleReport,\n    step_context: Option<PassiveScaleDriftStepContext>,\n) -> Result<PassiveConcentrationScaleDriftPoint, PassiveConcentrationScaleDriftError> {\n    let cumulative_excess_resolved_energy_loss_j = exact_discrete_energy_j - measured_energy_j;\n    let initial_energy_j = if step_index == 0 {\n        measured_energy_j\n    } else {\n        // The caller normalizes with the report's fixed initial value after this\n        // helper; use exact time-zero recovery from the current exact energy.\n        let config = state.config();\n        let k_per_m = std::f64::consts::TAU / config.length_x_m;\n        let rate = 4.0 * config.kinematic_viscosity_m2_s * k_per_m * k_per_m;\n        exact_discrete_energy_j * (rate * state.time_s()).exp()\n    };\n    let cumulative_excess_loss_fraction_of_initial =\n        cumulative_excess_resolved_energy_loss_j / initial_energy_j;'''
+          new = '''#[derive(Clone, Copy, Debug)]\nstruct PassiveScaleDriftPointMeasurements {\n    initial_energy_j: f64,\n    measured_energy_j: f64,\n    exact_discrete_energy_j: f64,\n    exact_discrete_concentration_scale_m: f64,\n    measured_concentration_scale_m: f64,\n}\n\nfn make_point(\n    step_index: usize,\n    state: &PeriodicMac2d,\n    measurements: PassiveScaleDriftPointMeasurements,\n    concentration: VorticityConcentrationScaleReport,\n    step_context: Option<PassiveScaleDriftStepContext>,\n) -> Result<PassiveConcentrationScaleDriftPoint, PassiveConcentrationScaleDriftError> {\n    let PassiveScaleDriftPointMeasurements {\n        initial_energy_j,\n        measured_energy_j,\n        exact_discrete_energy_j,\n        exact_discrete_concentration_scale_m,\n        measured_concentration_scale_m,\n    } = measurements;\n    let cumulative_excess_resolved_energy_loss_j = exact_discrete_energy_j - measured_energy_j;\n    let cumulative_excess_loss_fraction_of_initial =\n        cumulative_excess_resolved_energy_loss_j / initial_energy_j;'''
+          assert text.count(old) == 1, 'make_point implementation changed unexpectedly'
+          text = text.replace(old, new)
+
+          path.write_text(text)
+          PY
+      - name: Set up Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.96.0
+          components: clippy, rustfmt
+      - name: Canonical rustfmt
+        run: cargo fmt --all
+      - name: Verify fluid Clippy
+        run: cargo clippy -p symtropy-fluid --all-targets -- -D warnings
+      - name: Show exact product delta
+        run: git diff -- crates/domains/symtropy-fluid/src/concentration_scale_drift.rs
+      - name: Commit verified source fix
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add crates/domains/symtropy-fluid/src/concentration_scale_drift.rs
+          git diff --cached --quiet && exit 1
+          git commit -m 'fix(fluid): bind passive drift point measurements'
+          git push
