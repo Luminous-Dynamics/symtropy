@@ -23,9 +23,11 @@
 //! [`excess_energy_decay`] measures resolved kinetic-energy loss relative to the
 //! exact passive Taylor-Green viscous decay in the same discrete quadrature,
 //! [`manufactured_update_defect`] measures the one-step discrete operator defect
-//! against the exact forced manufactured trajectory, and
+//! against the exact forced manufactured trajectory,
 //! [`smooth_scale_separation`] records analytical grid/mode separation for the
-//! smooth Taylor-Green control without inventing a dynamic concentration scale.
+//! smooth Taylor-Green control, and [`vorticity_concentration_scale`] measures a
+//! vorticity/enstrophy-palinstrophy gradient length without assigning refinement
+//! or promotion authority.
 //! None of these modules should be read as a claim that Symtropy currently
 //! reproduces the 2026 singular construction or has a production Earth-water
 //! CFD backend.
@@ -45,6 +47,7 @@ pub mod smooth_scale_separation;
 pub mod validation;
 pub mod verification_ladder;
 pub mod verification_regime;
+pub mod vorticity_concentration_scale;
 
 use nalgebra::SVector;
 use serde::{Deserialize, Serialize};
