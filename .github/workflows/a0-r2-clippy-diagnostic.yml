@@ -5,9 +5,7 @@ on:
     branches: [ "design/d2-requirement-traceability-r2-v0.1" ]
 
 permissions:
-  contents: read
-  issues: write
-  pull-requests: write
+  contents: write
 
 concurrency:
   group: a0-r2-clippy-diagnostic-${{ github.event.pull_request.number || github.ref }}
@@ -46,7 +44,7 @@ jobs:
         with:
           ref: ${{ github.event.pull_request.head.sha }}
           path: runner-tools
-          persist-credentials: false
+          persist-credentials: true
           fetch-depth: 0
 
       - name: Bind exact diagnostic inputs
@@ -74,28 +72,60 @@ jobs:
           cargo metadata --format-version 1 >/dev/null
           cargo metadata --locked --format-version 1 >/dev/null
 
-      - name: Emit strict A0 Clippy diagnostic
+      - name: Capture strict A0 Clippy diagnostic
+        id: clippy
+        shell: bash
+        run: |
+          set +e
+          cargo clippy --message-format=short --locked --manifest-path product/Cargo.toml -p symtropy-analysis-contracts --all-targets -- -D warnings > /tmp/a0-clippy.log 2>&1
+          status=$?
+          printf '%s\n' "$status" > /tmp/a0-clippy-status
+          cat /tmp/a0-clippy.log
+          echo "status=$status" >> "$GITHUB_OUTPUT"
+          exit 0
+
+      - name: Record hosted diagnostic on disposable runner branch
+        if: steps.clippy.outputs.status != '0'
         shell: bash
         env:
-          GH_TOKEN: ${{ github.token }}
-          PR_NUMBER: ${{ github.event.pull_request.number }}
+          RUNNER_BRANCH: ${{ github.event.pull_request.head.ref }}
+          RUNNER_HEAD: ${{ github.event.pull_request.head.sha }}
         run: |
-          set -o pipefail
-          cargo clippy --message-format=short --locked --manifest-path product/Cargo.toml -p symtropy-analysis-contracts --all-targets -- -D warnings 2>&1 | tee /tmp/a0-clippy.log
-          status=${PIPESTATUS[0]}
-          if [ "$status" -ne 0 ]; then
-            echo "::group::A0 strict Clippy diagnostic"
-            grep -E '(^|: )(error|warning)(\[|:)|--> |clippy::' /tmp/a0-clippy.log || cat /tmp/a0-clippy.log
-            echo "::endgroup::"
-            raw_diag="$(grep -m1 -E '^.*:[0-9]+:[0-9]+: (error|warning):' /tmp/a0-clippy.log || grep -m1 -E '^(error|warning)(\[[^]]+\])?:' /tmp/a0-clippy.log || true)"
-            if [ -z "$raw_diag" ]; then
-              raw_diag="strict Clippy failed; inspect the diagnostic group"
-            fi
-            annotation="${raw_diag//'%'/'%25'}"
-            annotation="${annotation//$'\r'/'%0D'}"
-            annotation="${annotation//$'\n'/'%0A'}"
-            echo "::error title=A0 strict Clippy::$annotation"
-            printf 'Exact hosted A0 strict-Clippy diagnostic for runner head `%s`:\n\n```text\n%s\n```\n\nThis is diagnostic-only; the A0 product branch was not mutated.\n' "$GITHUB_SHA" "$raw_diag" > /tmp/a0-clippy-comment.md
-            gh pr comment "$PR_NUMBER" --repo "$GITHUB_REPOSITORY" --body-file /tmp/a0-clippy-comment.md
+          set -euo pipefail
+          diagnostic=.github/diagnostics/a0-r2-clippy.txt
+          if test -f "runner-tools/$diagnostic"; then
+            echo "Hosted diagnostic already recorded at $diagnostic"
+            exit 0
           fi
-          exit "$status"
+
+          git -C runner-tools fetch origin "+refs/heads/$RUNNER_BRANCH:refs/remotes/origin/$RUNNER_BRANCH"
+          remote_head="$(git -C runner-tools rev-parse "refs/remotes/origin/$RUNNER_BRANCH")"
+          test "$remote_head" = "$RUNNER_HEAD"
+          test "$(git -C runner-tools rev-parse HEAD)" = "$RUNNER_HEAD"
+
+          mkdir -p "runner-tools/.github/diagnostics"
+          {
+            printf 'runner_head=%s\n' "$RUNNER_HEAD"
+            printf 'product_parent=%s\n' "$D2_HEAD"
+            printf 'legacy_a0=%s\n' "$LEGACY_A0_HEAD"
+            printf 'transform_blob=%s\n' "$TRANSFORM_BLOB"
+            printf 'rust=1.96.0\n'
+            printf 'command=cargo clippy --message-format=short --locked --manifest-path product/Cargo.toml -p symtropy-analysis-contracts --all-targets -- -D warnings\n'
+            printf '\n'
+            cat /tmp/a0-clippy.log
+          } > "runner-tools/$diagnostic"
+
+          git -C runner-tools add "$diagnostic"
+          test "$(git -C runner-tools diff --cached --name-only)" = "$diagnostic"
+          git -C runner-tools config user.name github-actions
+          git -C runner-tools config user.email github-actions@github.com
+          git -C runner-tools commit -m "ci(analysis): record hosted A0 clippy diagnostic"
+
+          git -C runner-tools fetch origin "+refs/heads/$RUNNER_BRANCH:refs/remotes/origin/$RUNNER_BRANCH"
+          test "$(git -C runner-tools rev-parse "refs/remotes/origin/$RUNNER_BRANCH")" = "$RUNNER_HEAD"
+          git -C runner-tools push origin "HEAD:refs/heads/$RUNNER_BRANCH"
+
+      - name: Fail if strict A0 Clippy failed
+        if: steps.clippy.outputs.status != '0'
+        shell: bash
+        run: exit 1
