@@ -56,6 +56,7 @@ mod population_trajectory;
 mod reproduction;
 mod schema;
 mod structured_population_process;
+mod validated_consequence;
 
 pub use aggregate_resolution_loss::{
     continue_projected_census_alleles_only, AggregateResolutionLossCertificate,
@@ -291,6 +292,7 @@ pub use structured_population_process::{
     structured_wright_fisher_step, StructuredPopulationTransitionProvenance,
     StructuredPopulationTransitionProvenanceDigest, StructuredPopulationTransitionResult,
 };
+pub use validated_consequence::ValidatedConsequenceLedger;
 
 pub const EVOLUTION_SCHEMA_VERSION: u32 = 1;
 pub const PROBABILITY_SCALE_PPM: u32 = 1_000_000;
