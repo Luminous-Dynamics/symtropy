@@ -46,7 +46,7 @@ fn topology_v3_spec(
         1,
         0,
         0,
-        3,
+        4,
     ));
     spec.flow_model = topology_flow_model(3, topology);
     spec
