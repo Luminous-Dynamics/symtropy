@@ -1,0 +1,172 @@
+name: Terrain ECS Lattice Geometry Provider Qualification
+
+on:
+  push:
+    branches:
+      - "terrain/ecs-lattice-geometry-provider-v0.1"
+    paths:
+      - ".github/workflows/terrain-ecs-lattice-geometry-provider-qualification.yml"
+      - "crates/domains/symtropy-terrain/src/lib.rs"
+      - "crates/domains/symtropy-terrain/src/live_geometry_provider.rs"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: terrain-ecs-lattice-geometry-provider-v0.1
+  cancel-in-progress: true
+
+jobs:
+  qualify:
+    name: Qualify ECS-bound Terrain geometry provider
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Bind exact provider lineage
+        shell: bash
+        run: |
+          set -euo pipefail
+          base=8172eb7a29997e566b88938b95e12fac0d4c9ded
+          provider_source=5b4ec430b4432aca1a2b6bbb90bdd78209ad59b7
+          integration_source=62ca0340dd7878c733efab5beb45b066aaeb77a4
+          provider=crates/domains/symtropy-terrain/src/live_geometry_provider.rs
+          lib=crates/domains/symtropy-terrain/src/lib.rs
+          kernel=crates/domains/symtropy-terrain/src/geometry_kernel.rs
+          manifest=crates/domains/symtropy-terrain/Cargo.toml
+          qualifier=.github/workflows/terrain-ecs-lattice-geometry-provider-qualification.yml
+
+          test "$(git rev-parse HEAD)" = "${GITHUB_SHA}"
+          test "$(git rev-parse HEAD^)" = "${integration_source}"
+          test "$(git rev-parse HEAD^^)" = "${provider_source}"
+          test "$(git rev-parse HEAD^^^)" = "${base}"
+
+          test "$(git rev-parse HEAD:${kernel})" = "8d3e1213eacdeddf693cd2d1f82670d6ed832161"
+          test "$(git rev-parse HEAD:${manifest})" = "187fe4020a0c0048ab36404e219a7a5698a856d1"
+          test "$(git rev-parse HEAD:Cargo.lock)" = "62c6eb098b3f6fffdea8a175a0f3afb33423b17b"
+          test "$(git rev-parse HEAD:${provider})" = "$(git rev-parse ${provider_source}:${provider})"
+          test "$(git rev-parse HEAD:${lib})" = "$(git rev-parse ${integration_source}:${lib})"
+
+          actual="$(git diff --name-only ${base}..HEAD | sort)"
+          expected="$(printf '%s\n' "${qualifier}" "${provider}" "${lib}" | sort)"
+          test "${actual}" = "${expected}"
+
+          echo "TERRAIN_LIVE_PROVIDER_HEAD=${GITHUB_SHA}"
+          echo "TERRAIN_LIVE_PROVIDER_TREE=$(git rev-parse HEAD^{tree})"
+          echo "TERRAIN_LIVE_PROVIDER_SOURCE_BLOB=$(git rev-parse HEAD:${provider})"
+          echo "TERRAIN_LIVE_PROVIDER_LIB_BLOB=$(git rev-parse HEAD:${lib})"
+          echo "TERRAIN_LIVE_PROVIDER_KERNEL_BLOB=$(git rev-parse HEAD:${kernel})"
+          echo "TERRAIN_LIVE_PROVIDER_LOCK_BLOB=$(git rev-parse HEAD:Cargo.lock)"
+          echo "CARGO_TARGET_DIR=${RUNNER_TEMP}/terrain-live-provider-target" >> "${GITHUB_ENV}"
+
+      - name: Install Linux system dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install -y libasound2-dev libudev-dev pkg-config
+
+      - name: Set up pinned Rust
+        uses: dtolnay/rust-toolchain@6bed0761d98439e5a578e2877258200ad565ba87
+        with:
+          toolchain: 1.96.0
+          components: clippy,rustfmt
+
+      - name: Bind toolchain
+        shell: bash
+        run: |
+          set -euo pipefail
+          rustc -Vv
+          cargo -Vv
+          cargo clippy --version
+          test "$(rustc --version | awk '{print $2}')" = "1.96.0"
+          test "$(cargo --version | awk '{print $2}')" = "1.96.0"
+
+      - name: Verify frozen selected dependency graph
+        shell: bash
+        run: |
+          set -euo pipefail
+          before="$(git hash-object Cargo.lock)"
+          cargo metadata --locked --format-version 1 > "${RUNNER_TEMP}/terrain-live-provider-metadata.json"
+          test "$(git hash-object Cargo.lock)" = "${before}"
+          echo "TERRAIN_LIVE_PROVIDER_METADATA_SHA256=$(sha256sum "${RUNNER_TEMP}/terrain-live-provider-metadata.json" | awk '{print $1}')"
+
+      - name: Check Terrain provider integration
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo check -p symtropy-terrain --locked --all-targets
+
+      - name: Execute live-provider theorem corpus
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo test -p symtropy-terrain --locked live_geometry_provider::tests -- --nocapture
+
+      - name: Execute complete Terrain tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo test -p symtropy-terrain --locked --all-targets
+
+      - name: Strict Terrain Clippy
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo clippy -p symtropy-terrain --locked --all-targets -- -D warnings
+
+      - name: Audit exact authority exclusions
+        shell: bash
+        run: |
+          set -euo pipefail
+          provider=crates/domains/symtropy-terrain/src/live_geometry_provider.rs
+          grep -Fq 'pub fn capture_live_terrain_geometry(' "${provider}"
+          grep -Fq 'world: &World' "${provider}"
+          grep -Fq 'entity: Entity' "${provider}"
+          grep -Fq 'MissingLatticeLocus' "${provider}"
+          grep -Fq 'DuplicateLatticeLocus' "${provider}"
+          grep -Fq 'TERRAIN_GEOMETRY_VOXEL_COUNT' "${provider}"
+          grep -Fq 'TerrainGeometrySnapshot::from_material_codes(coord, materials)' "${provider}"
+
+          ! grep -Fq 'GlobalTransform' "${provider}" || {
+            # GlobalTransform is permitted only in tests proving non-authority.
+            python3 - <<'PY'
+          from pathlib import Path
+          text = Path("crates/domains/symtropy-terrain/src/live_geometry_provider.rs").read_text()
+          production, marker, tests = text.partition("#[cfg(test)]")
+          if not marker:
+              raise SystemExit("missing provider test boundary")
+          if "GlobalTransform" in production:
+              raise SystemExit("GlobalTransform leaked into production exact provider")
+          if "GlobalTransform" not in tests:
+              raise SystemExit("missing transform non-authority regression test")
+          PY
+          }
+
+          python3 - <<'PY'
+          from pathlib import Path
+          text = Path("crates/domains/symtropy-terrain/src/live_geometry_provider.rs").read_text()
+          signature = text.split("pub fn capture_live_terrain_geometry(", 1)[1].split(") ->", 1)[0]
+          forbidden = ["EarthChunkLatticeCoord", "EarthChunkLatticeLocus", "&EarthChunk"]
+          found = [term for term in forbidden if term in signature]
+          if found:
+              raise SystemExit(f"caller-mintable authority leaked into capture signature: {found!r}")
+          print("TERRAIN_LIVE_PROVIDER_CALLER_COORDINATE_EXCLUSION=PASS")
+          PY
+
+      - name: Unchanged-subject postflight
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -z "$(git status --porcelain)"
+          test "$(git rev-parse HEAD)" = "${GITHUB_SHA}"
+          test "$(git rev-parse HEAD:crates/domains/symtropy-terrain/src/geometry_kernel.rs)" = "8d3e1213eacdeddf693cd2d1f82670d6ed832161"
+          test "$(git rev-parse HEAD:crates/domains/symtropy-terrain/Cargo.toml)" = "187fe4020a0c0048ab36404e219a7a5698a856d1"
+          test "$(git rev-parse HEAD:Cargo.lock)" = "62c6eb098b3f6fffdea8a175a0f3afb33423b17b"
+          echo "TERRAIN_LIVE_ECS_PROVIDER_STATUS=PASS"
+          echo "claim=current ECS EarthChunk + unique exact ECS lattice locus -> complete qualified TerrainGeometrySnapshot; no PB/world-frame/transform authority claim"
