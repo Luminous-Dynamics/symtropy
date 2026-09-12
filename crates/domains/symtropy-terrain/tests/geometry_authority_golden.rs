@@ -1,17 +1,40 @@
 // Copyright (C) 2026 Tristan Stoltz / Luminous Dynamics
 // SPDX-License-Identifier: Apache-2.0 OR MIT
 
-use symtropy_terrain::{
-    EarthChunk, EarthChunkLatticeCoord, SubstrateMaterial, TerrainGeometrySnapshot,
-    TerrainVoxelBox, TerrainVoxelIndex,
+//! External golden vectors for the dependency-free exact geometry kernel.
+//!
+//! The filename is retained for provenance from the earlier live-authority
+//! experiment, but this test deliberately does not resurrect the superseded
+//! caller-supplied `capture(coord, &EarthChunk)` surface. Live ECS authority is
+//! qualified separately. These vectors bind only the frozen pure-kernel byte
+//! grammar and material-code vocabulary.
+
+#[path = "../src/geometry_kernel.rs"]
+mod geometry_kernel;
+
+use geometry_kernel::{
+    EarthChunkLatticeCoord, TerrainGeometrySnapshot, TerrainMaterialCode, TerrainVoxelBox,
+    TerrainVoxelIndex, TERRAIN_GEOMETRY_CHUNK_SIZE, TERRAIN_GEOMETRY_VOXEL_COUNT,
 };
+
+fn default_materials() -> Box<[TerrainMaterialCode; TERRAIN_GEOMETRY_VOXEL_COUNT]> {
+    Box::new([TerrainMaterialCode::DOLOMITE; TERRAIN_GEOMETRY_VOXEL_COUNT])
+}
+
+fn index(x: usize, y: usize, z: usize) -> usize {
+    (x * TERRAIN_GEOMETRY_CHUNK_SIZE * TERRAIN_GEOMETRY_CHUNK_SIZE)
+        + (y * TERRAIN_GEOMETRY_CHUNK_SIZE)
+        + z
+}
 
 /// External golden derived independently from the frozen byte grammar:
 /// domain || schema_le || coord_i32_le || chunk_size_le || 4096 material tags.
 #[test]
 fn external_default_chunk_snapshot_vector() {
-    let chunk = EarthChunk::default();
-    let snapshot = TerrainGeometrySnapshot::capture(EarthChunkLatticeCoord::new(4, -2, 9), &chunk);
+    let snapshot = TerrainGeometrySnapshot::from_material_codes(
+        EarthChunkLatticeCoord::new(4, -2, 9),
+        default_materials(),
+    );
     assert_eq!(
         snapshot.digest().to_hex(),
         "50d1ec5cdf6d8f2da4cc0ce801cef6f5b62728ca7b8ffcc02fba48bda23cffef"
@@ -21,9 +44,12 @@ fn external_default_chunk_snapshot_vector() {
 /// Local identity is deliberately independent of the enclosing chunk digest.
 #[test]
 fn external_air_voxel_vector() {
-    let mut chunk = EarthChunk::default();
-    chunk.voxels[2][3][4] = SubstrateMaterial::Air;
-    let snapshot = TerrainGeometrySnapshot::capture(EarthChunkLatticeCoord::new(1, 2, 3), &chunk);
+    let mut materials = default_materials();
+    materials[index(2, 3, 4)] = TerrainMaterialCode::AIR;
+    let snapshot = TerrainGeometrySnapshot::from_material_codes(
+        EarthChunkLatticeCoord::new(1, 2, 3),
+        materials,
+    );
     let observation = snapshot
         .observe(TerrainVoxelIndex::new(2, 3, 4).expect("valid voxel"))
         .expect("observation");
@@ -36,8 +62,10 @@ fn external_air_voxel_vector() {
 /// This vector independently binds snapshot -> one-voxel complete query -> receipt.
 #[test]
 fn external_single_voxel_query_vector() {
-    let chunk = EarthChunk::default();
-    let snapshot = TerrainGeometrySnapshot::capture(EarthChunkLatticeCoord::new(1, 2, 3), &chunk);
+    let snapshot = TerrainGeometrySnapshot::from_material_codes(
+        EarthChunkLatticeCoord::new(1, 2, 3),
+        default_materials(),
+    );
     assert_eq!(
         snapshot.digest().to_hex(),
         "f7961398ef1ddf5e450aa191bc64901df06e33609b251da3f60f3948fd72dbf1"

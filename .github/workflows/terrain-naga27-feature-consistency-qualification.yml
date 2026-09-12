@@ -1,0 +1,217 @@
+name: Terrain Naga 27 Feature Consistency Qualification
+
+on:
+  push:
+    branches:
+      - "terrain/naga27-feature-consistency-v0.1"
+    paths:
+      - ".github/workflows/terrain-naga27-feature-consistency-qualification.yml"
+      - "crates/domains/symtropy-terrain/Cargo.toml"
+      - "crates/domains/symtropy-terrain/tests/geometry_authority_golden.rs"
+      - "Cargo.lock"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: terrain-naga27-feature-consistency-v0.1
+  cancel-in-progress: true
+
+jobs:
+  qualify:
+    name: Qualify Terrain Naga 27 feature consistency
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Bind exact experiment lineage
+        shell: bash
+        run: |
+          set -euo pipefail
+          base=e707113651e302f7c61c5542483104af352cb3d0
+          manifest_candidate=5410ba61daad5af56d58f2ad660456a05b176d78
+          lock_freeze=70b2ab71decb5d1a13d3841f64f1329a664781ea
+          prior_qualifier=8172eb7a29997e566b88938b95e12fac0d4c9ded
+          golden_rebind=01789ad66722b1a1dfe59d357164be6180dec89a
+          manifest=crates/domains/symtropy-terrain/Cargo.toml
+          qualifier=.github/workflows/terrain-naga27-feature-consistency-qualification.yml
+          golden=crates/domains/symtropy-terrain/tests/geometry_authority_golden.rs
+          kernel=crates/domains/symtropy-terrain/src/geometry_kernel.rs
+
+          test "$(git rev-parse HEAD)" = "${GITHUB_SHA}"
+          test "$(git rev-parse HEAD^)" = "${golden_rebind}"
+          test "$(git rev-parse HEAD^^)" = "${prior_qualifier}"
+          test "$(git rev-parse HEAD^^^)" = "${lock_freeze}"
+          test "$(git rev-parse HEAD^^^^)" = "${manifest_candidate}"
+          test "$(git rev-parse HEAD^^^^^)" = "${base}"
+
+          test "$(git rev-parse ${base}:${manifest})" = "6b3dd8cc5ede90833caecd6568757c42ecc97509"
+          test "$(git rev-parse HEAD:${manifest})" = "187fe4020a0c0048ab36404e219a7a5698a856d1"
+          test "$(git rev-parse ${base}:${kernel})" = "8d3e1213eacdeddf693cd2d1f82670d6ed832161"
+          test "$(git rev-parse HEAD:${kernel})" = "8d3e1213eacdeddf693cd2d1f82670d6ed832161"
+          test "$(git rev-parse ${lock_freeze}:Cargo.lock)" = "62c6eb098b3f6fffdea8a175a0f3afb33423b17b"
+          test "$(git rev-parse HEAD:Cargo.lock)" = "62c6eb098b3f6fffdea8a175a0f3afb33423b17b"
+          test "$(git rev-parse HEAD:${golden})" = "066affb55a203453da09505f7552f4c04442413c"
+
+          actual="$(git diff --name-only ${base}..HEAD | sort)"
+          expected="$(printf '%s\n' Cargo.lock "${manifest}" "${qualifier}" "${golden}" | sort)"
+          test "${actual}" = "${expected}"
+
+          grep -Fx 'naga = { version = "27", default-features = false, features = ["termcolor"] }' "${manifest}"
+          grep -Fq '#[path = "../src/geometry_kernel.rs"]' "${golden}"
+          ! grep -Fq 'TerrainGeometrySnapshot::capture' "${golden}"
+          echo "TERRAIN_NAGA27_INPUT_HEAD=${GITHUB_SHA}"
+          echo "TERRAIN_NAGA27_INPUT_TREE=$(git rev-parse HEAD^{tree})"
+          echo "TERRAIN_NAGA27_MANIFEST_BLOB=$(git rev-parse HEAD:${manifest})"
+          echo "TERRAIN_GEOMETRY_KERNEL_BLOB=$(git rev-parse HEAD:${kernel})"
+          echo "TERRAIN_GOLDEN_REBIND_BLOB=$(git rev-parse HEAD:${golden})"
+          echo "TERRAIN_LOCK_BLOB=$(git rev-parse HEAD:Cargo.lock)"
+          echo "TERRAIN_LOCK_FREEZE_SOURCE=fb8e0e39a04d61384a5f105a1ee64704ee785fe7"
+          echo "CARGO_TARGET_DIR=${RUNNER_TEMP}/terrain-naga27-target" >> "${GITHUB_ENV}"
+
+      - name: Install Linux system dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install -y libasound2-dev libudev-dev pkg-config
+
+      - name: Set up pinned Rust
+        uses: dtolnay/rust-toolchain@6bed0761d98439e5a578e2877258200ad565ba87
+        with:
+          toolchain: 1.96.0
+          components: clippy,rustfmt
+
+      - name: Bind toolchain
+        shell: bash
+        run: |
+          set -euo pipefail
+          rustc -Vv
+          cargo -Vv
+          rustfmt --version
+          cargo clippy --version
+          test "$(rustc --version | awk '{print $2}')" = "1.96.0"
+          test "$(cargo --version | awk '{print $2}')" = "1.96.0"
+
+      - name: Prove committed lock delta is semantic edge-only
+        shell: bash
+        run: |
+          set -euo pipefail
+          git show e707113651e302f7c61c5542483104af352cb3d0:Cargo.lock > "${RUNNER_TEMP}/Cargo.lock.base"
+          python3 - <<'PY'
+          import os
+          import tomllib
+          from pathlib import Path
+
+          root = Path(os.environ["RUNNER_TEMP"])
+          before = tomllib.loads((root / "Cargo.lock.base").read_text())
+          after = tomllib.loads(Path("Cargo.lock").read_text())
+
+          def key(pkg):
+              return (pkg["name"], pkg["version"], pkg.get("source"))
+
+          before_map = {key(pkg): pkg for pkg in before["package"]}
+          after_map = {key(pkg): pkg for pkg in after["package"]}
+          if set(before_map) != set(after_map):
+              added = sorted(set(after_map) - set(before_map), key=repr)
+              removed = sorted(set(before_map) - set(after_map), key=repr)
+              raise SystemExit(f"package identity churn: added={added!r} removed={removed!r}")
+
+          changed = [pkg_key for pkg_key in before_map if before_map[pkg_key] != after_map[pkg_key]]
+          allowed = [pkg_key for pkg_key in changed if pkg_key[0] == "symtropy-terrain"]
+          if len(changed) != 1 or changed != allowed:
+              raise SystemExit(f"unexpected lock package mutations: {changed!r}")
+
+          pkg_key = allowed[0]
+          old = dict(before_map[pkg_key])
+          new = dict(after_map[pkg_key])
+          old_deps = old.pop("dependencies", [])
+          new_deps = new.pop("dependencies", [])
+          if old != new:
+              raise SystemExit("symtropy-terrain changed outside dependency edges")
+
+          added_deps = sorted(set(new_deps) - set(old_deps))
+          removed_deps = sorted(set(old_deps) - set(new_deps))
+          if removed_deps or added_deps != ["naga 27.0.3"]:
+              raise SystemExit(
+                  f"unexpected Terrain dependency delta: added={added_deps!r} removed={removed_deps!r}"
+              )
+          if len(new_deps) != len(old_deps) + 1:
+              raise SystemExit("Terrain dependency multiplicity changed unexpectedly")
+
+          print("TERRAIN_COMMITTED_LOCK_DELTA=only symtropy-terrain -> naga 27.0.3")
+          print(f"TERRAIN_LOCK_PACKAGE_COUNT={len(after_map)}")
+          PY
+
+      - name: Verify locked package-selected writer coherence
+        shell: bash
+        run: |
+          set -euo pipefail
+          before="$(git hash-object Cargo.lock)"
+          cargo metadata --locked --format-version 1 > "${RUNNER_TEMP}/terrain-naga27-metadata.json"
+          cargo tree -p symtropy-terrain --locked -e normal,build,dev --prefix none --format '{p}|{f}' -i naga@27.0.3 | tee "${RUNNER_TEMP}/naga27-inverse.txt"
+          cargo tree -p symtropy-terrain --locked -e normal,build,dev --prefix none --format '{p}|{f}' -i codespan-reporting@0.12.0 | tee "${RUNNER_TEMP}/codespan012-inverse.txt"
+
+          python3 - <<'PY'
+          import os
+          from pathlib import Path
+
+          root = Path(os.environ["RUNNER_TEMP"])
+
+          def package_features(filename, package):
+              lines = [line.strip() for line in (root / filename).read_text().splitlines() if line.strip()]
+              matches = [line for line in lines if line.startswith(package + "|")]
+              if len(matches) != 1:
+                  raise SystemExit(f"expected one {package!r} line in {filename}: {matches!r}")
+              _, raw = matches[0].split("|", 1)
+              return {feature for feature in raw.split(",") if feature}
+
+          naga27 = package_features("naga27-inverse.txt", "naga v27.0.3")
+          codespan = package_features("codespan012-inverse.txt", "codespan-reporting v0.12.0")
+          if "termcolor" not in naga27:
+              raise SystemExit(f"Terrain-selected naga 27 lacks termcolor: {sorted(naga27)!r}")
+          if "termcolor" not in codespan:
+              raise SystemExit(f"Terrain-selected codespan 0.12 lacks termcolor: {sorted(codespan)!r}")
+          print("TERRAIN_SELECTED_WRITER_MODE_COHERENCE=PASS")
+          PY
+
+          test "$(git hash-object Cargo.lock)" = "${before}"
+          echo "TERRAIN_NAGA27_METADATA_SHA256=$(sha256sum "${RUNNER_TEMP}/terrain-naga27-metadata.json" | awk '{print $1}')"
+          echo "TERRAIN_NAGA27_INVERSE_SHA256=$(sha256sum "${RUNNER_TEMP}/naga27-inverse.txt" | awk '{print $1}')"
+          echo "TERRAIN_CODESPAN012_INVERSE_SHA256=$(sha256sum "${RUNNER_TEMP}/codespan012-inverse.txt" | awk '{print $1}')"
+
+      - name: Check Terrain exact selected graph
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo check -p symtropy-terrain --locked --all-targets
+
+      - name: Test Terrain exact selected graph
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo test -p symtropy-terrain --locked --all-targets
+
+      - name: Strict Terrain Clippy
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo clippy -p symtropy-terrain --locked --all-targets -- -D warnings
+
+      - name: Unchanged-subject postflight
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -z "$(git status --porcelain)"
+          test "$(git rev-parse HEAD)" = "${GITHUB_SHA}"
+          test "$(git rev-parse HEAD:crates/domains/symtropy-terrain/Cargo.toml)" = "187fe4020a0c0048ab36404e219a7a5698a856d1"
+          test "$(git rev-parse HEAD:crates/domains/symtropy-terrain/src/geometry_kernel.rs)" = "8d3e1213eacdeddf693cd2d1f82670d6ed832161"
+          test "$(git rev-parse HEAD:crates/domains/symtropy-terrain/tests/geometry_authority_golden.rs)" = "066affb55a203453da09505f7552f4c04442413c"
+          test "$(git rev-parse HEAD:Cargo.lock)" = "62c6eb098b3f6fffdea8a175a0f3afb33423b17b"
+          echo "TERRAIN_NAGA27_FEATURE_CONSISTENCY_STATUS=PASS"
+          echo "claim=package-scoped Naga 27 termcolor feature consistency restores the exact Terrain selected graph; stale golden vectors are rebound test-only to the already-qualified kernel; no geometry/provider semantic claim"
