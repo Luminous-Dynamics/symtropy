@@ -104,8 +104,8 @@ pub use ancestry_state::{
 pub use causal_identification::{
     CausalIdentificationCriterion, CausalIdentificationError, CausalIdentificationTier,
     CausalSelectionIdentification, CausalSelectionIdentificationDigest, CausalSelectionTarget,
-    IdentificationEvidenceRef, ValidatedCausalSelectionIdentification,
-    CAUSAL_SELECTION_IDENTIFICATION_VERSION,
+    IdentificationEvidenceQualificationRef, IdentificationEvidenceRef,
+    ValidatedCausalSelectionIdentification, CAUSAL_SELECTION_IDENTIFICATION_VERSION,
 };
 pub use chromosome_map::{
     ChromosomeDefinition, ChromosomeLocus, ChromosomeMap, ChromosomeMapDigest,
@@ -195,10 +195,10 @@ pub use ids::{
     ChromosomeRecombinationProfileId, ComparisonAuthorityId, ConsequenceObservationId,
     ConsequenceWindowId, DemographicEventId, EvidenceProtocolId, EvolutionExperimentId,
     EvolutionIndividualId, EvolutionaryContextId, ExclusionReasonId, ExposureEvidenceSourceId,
-    HereditarySchemaId, IdentificationEvidenceAuthorityId, LocusId, OperatorProfileId,
-    PhenotypeEvidenceSourceId, PopulationId, PopulationProcessProfileId, PredictorDefinitionId,
-    PopulationStructureProfileId, PopulationTransitionId, ReproductionEventId,
-    SelectionComparisonDesignId,
+    HereditarySchemaId, IdentificationEvidenceAuthorityId, IdentificationQualificationAuthorityId,
+    LocusId, OperatorProfileId, PhenotypeEvidenceSourceId, PopulationId,
+    PopulationProcessProfileId, PredictorDefinitionId, PopulationStructureProfileId,
+    PopulationTransitionId, ReproductionEventId, SelectionComparisonDesignId,
 };
 pub use linked_census_projection::{
     project_declared_linked_census, LinkedCensusProjection, LinkedCensusProjectionDigest,
