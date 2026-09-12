@@ -45,6 +45,7 @@ mod mutation_fate;
 mod mutation_lineage;
 mod mutation_origin;
 mod operators;
+mod origin_aware_population;
 mod phased_heredity;
 mod population;
 mod population_process;
@@ -231,6 +232,14 @@ pub use mutation_origin::{
 pub use operators::{
     EvolutionOperatorProfile, EvolutionOperatorProfileDigest, MutationProfile,
     RecombinationMode, RecombinationProfile,
+};
+pub use origin_aware_population::{
+    initialize_origin_aware_population_from_projection, neutral_origin_aware_population_step,
+    AggregateActiveOriginCount, AggregateAlleleProvenance, AggregateLocusProvenance,
+    OriginAwarePopulationError, OriginAwarePopulationState, OriginAwarePopulationStateDigest,
+    OriginAwarePopulationTransitionProvenance,
+    OriginAwarePopulationTransitionProvenanceDigest, OriginAwarePopulationTransitionResult,
+    ORIGIN_AWARE_POPULATION_STATE_VERSION, ORIGIN_AWARE_POPULATION_TRANSITION_VERSION,
 };
 pub use phased_heredity::{
     ChromosomeHaplotype, PhasedChromosomeState, PhasedHereditaryState,
