@@ -406,7 +406,7 @@ fn observation_replay_binds_exact_context_window_population_and_manifest() {
         .is_err());
 
     let mut raw = serde_json::to_value(&observation).unwrap();
-    raw["individual_manifest_digest"] = serde_json::json!([0; 32]);
+    raw["individual_manifest_digest"] = serde_json::to_value(vec![0_u8; 32]).unwrap();
     let restored: IndividualConsequenceObservation = serde_json::from_value(raw).unwrap();
     assert!(matches!(
         restored.validate_current(

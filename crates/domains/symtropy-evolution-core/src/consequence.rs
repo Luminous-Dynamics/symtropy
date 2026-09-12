@@ -19,11 +19,6 @@ const CONSEQUENCE_OBSERVATION_DIGEST_DOMAIN: &[u8] =
 const CONSEQUENCE_LEDGER_DIGEST_DOMAIN: &[u8] =
     b"symtropy:evolution:explicit-consequence-ledger:v1\0";
 
-/// Opaque digest supplied by an external context authority.
-///
-/// This value is semantic evidence binding only. Possession of these bytes is
-/// not cryptographic authorization and evolution-core does not claim to verify
-/// the external ecology/world authority that produced them.
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct EvolutionaryContextContentDigest([u8; 32]);
 
@@ -152,9 +147,6 @@ pub struct DescendantRecruitmentConsequence {
     pub recruited: u64,
 }
 
-/// Decomposed descriptive consequences for one individual in one declared
-/// context/window. `None` means the channel is not supplied; it does not mean
-/// an observed zero.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct IndividualConsequences {
     pub viability: Option<ViabilityConsequence>,
@@ -474,14 +466,22 @@ impl ExplicitConsequenceLedger {
         if self.observations.is_empty() {
             return Err(ConsequenceError::IncompleteCensusCoverage);
         }
-        if self.observations.windows(2).any(|window| {
-            window[0].individual_id >= window[1].individual_id
-        }) {
+        if self
+            .observations
+            .windows(2)
+            .any(|window| window[0].individual_id >= window[1].individual_id)
+        {
             return Err(ConsequenceError::NonCanonicalObservationOrder);
         }
         let mut ids = BTreeMap::new();
         for observation in &self.observations {
             observation.validate_local()?;
+            if observation.population_id != self.population_id
+                || observation.census_digest != self.census_digest
+                || observation.context_digest != self.context_digest
+            {
+                return Err(ConsequenceError::ObservationAuthorityMismatch);
+            }
             if ids
                 .insert(observation.observation_id.clone(), ())
                 .is_some()
@@ -519,11 +519,12 @@ impl fmt::Display for ExplicitConsequenceLedgerDigest {
 }
 
 fn find_subject<'a>(
-    subjects: &'a [LinkedIndividualSubject<'a>],
+    subjects: &[LinkedIndividualSubject<'a>],
     individual_id: &EvolutionIndividualId,
-) -> Option<&'a LinkedIndividualSubject<'a>> {
+) -> Option<LinkedIndividualSubject<'a>> {
     subjects
         .iter()
+        .copied()
         .find(|subject| &subject.manifest.individual_id == individual_id)
 }
 
