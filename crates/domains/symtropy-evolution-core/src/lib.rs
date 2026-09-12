@@ -56,6 +56,7 @@ mod population_trajectory;
 mod reproduction;
 mod schema;
 mod selection_analysis_frame;
+mod selection_association;
 mod selection_design;
 mod selection_evidence;
 mod structured_population_process;
@@ -302,6 +303,16 @@ pub use selection_analysis_frame::{
     PredictorSourceBinding, SelectionAnalysisFrameError, SelectionAnalysisFrameRow,
     ValidatedSelectionAnalysisFrame, EXPLICIT_SELECTION_ANALYSIS_FRAME_VERSION,
     SELECTION_ANALYSIS_FRAME_ROW_VERSION,
+};
+pub use selection_association::{
+    binary_viability_exact_reference_method_v1,
+    binary_viability_exact_reference_minimum_information_v1, execute_binary_viability_association,
+    AssociationExecutionError, AssociationInsufficiency, BinaryViabilityAssociation,
+    BinaryViabilityGroupSupport, ConsequenceAssociationEstimate,
+    ConsequenceAssociationEstimateDigest, ConsequenceAssociationStatus, ExactHypergeometricReference,
+    ExactRiskRatio, ExactSignedFraction, ExactUnsignedFraction, HypergeometricSupportPoint,
+    ValidatedConsequenceAssociation, BINARY_VIABILITY_EXACT_REFERENCE_MAX_ROWS,
+    CONSEQUENCE_ASSOCIATION_ESTIMATE_VERSION,
 };
 pub use selection_design::{
     AnalysisAuthorityRef, AnalysisContentDigest, CalibrationAuthorityRef, ChannelSupportPolicy,
