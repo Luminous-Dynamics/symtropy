@@ -1,0 +1,143 @@
+name: Evolution INDIV-06A Qualification
+
+on:
+  push:
+    branches:
+      - "ci/evolution-indiv06a-qualification-v0.1"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: evolution-indiv06a-qualification-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  CARGO_TERM_COLOR: always
+  PRODUCT_HEAD: 91a2cd35bff8c30783e29ce4e9ae1a5782860765
+
+jobs:
+  qualify:
+    name: Frozen INDIV-06A / Rust 1.96
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout exact frozen product head
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ env.PRODUCT_HEAD }}
+          fetch-depth: 1
+
+      - name: Assert executed product subject
+        id: subject
+        shell: bash
+        run: |
+          set -euo pipefail
+          actual="$(git rev-parse HEAD)"
+          echo "expected_product_head=${PRODUCT_HEAD}"
+          echo "actual_product_head=${actual}"
+          test "${actual}" = "${PRODUCT_HEAD}"
+
+      - name: Set up pinned Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.96.0
+          components: clippy, rustfmt
+
+      - name: Isolate dependency-light evolution crate
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf "${RUNNER_TEMP}/symtropy-evolution-core"
+          cp -R crates/domains/symtropy-evolution-core "${RUNNER_TEMP}/symtropy-evolution-core"
+          printf 'source_product_head=%s\n' "${PRODUCT_HEAD}" > "${RUNNER_TEMP}/symtropy-evolution-core/QUALIFICATION_SUBJECT"
+
+      - name: Check formatting
+        id: fmt
+        working-directory: ${{ runner.temp }}/symtropy-evolution-core
+        run: cargo fmt --all -- --check
+
+      - name: Check all targets
+        id: check
+        working-directory: ${{ runner.temp }}/symtropy-evolution-core
+        run: cargo check --all-targets
+
+      - name: Run linked individual census corpus
+        id: indiv
+        working-directory: ${{ runner.temp }}/symtropy-evolution-core
+        run: cargo test --test linked_individual_census_v1
+
+      - name: Run all tests
+        id: test_all
+        working-directory: ${{ runner.temp }}/symtropy-evolution-core
+        run: cargo test --all-targets
+
+      - name: Run strict Clippy
+        id: clippy
+        working-directory: ${{ runner.temp }}/symtropy-evolution-core
+        run: cargo clippy --all-targets -- -D warnings
+
+      - name: Emit qualification receipt
+        if: always()
+        shell: bash
+        env:
+          HELPER_HEAD: ${{ github.sha }}
+          RUN_ID: ${{ github.run_id }}
+          RUN_ATTEMPT: ${{ github.run_attempt }}
+          FMT_OUTCOME: ${{ steps.fmt.outcome }}
+          CHECK_OUTCOME: ${{ steps.check.outcome }}
+          INDIV_OUTCOME: ${{ steps.indiv.outcome }}
+          TEST_ALL_OUTCOME: ${{ steps.test_all.outcome }}
+          CLIPPY_OUTCOME: ${{ steps.clippy.outcome }}
+        run: |
+          set -euo pipefail
+          receipt="${RUNNER_TEMP}/indiv06a-evidence-v01.json"
+          export RECEIPT_PATH="${receipt}"
+          python3 - <<'PY'
+          import json, os, subprocess
+          outcomes = {
+              "fmt": os.environ.get("FMT_OUTCOME", "unknown"),
+              "check": os.environ.get("CHECK_OUTCOME", "unknown"),
+              "linked_individual_census_v1": os.environ.get("INDIV_OUTCOME", "unknown"),
+              "test_all": os.environ.get("TEST_ALL_OUTCOME", "unknown"),
+              "clippy": os.environ.get("CLIPPY_OUTCOME", "unknown"),
+          }
+          def version(command):
+              try:
+                  return subprocess.check_output(command, text=True, stderr=subprocess.STDOUT).strip()
+              except Exception:
+                  return "unavailable"
+          receipt = {
+              "receipt_version": 1,
+              "qualification": "INDIV-06A-linked-individual-census",
+              "product_head": os.environ["PRODUCT_HEAD"],
+              "helper_head": os.environ["HELPER_HEAD"],
+              "workflow_run_id": int(os.environ["RUN_ID"]),
+              "workflow_run_attempt": int(os.environ["RUN_ATTEMPT"]),
+              "scope": "crates/domains/symtropy-evolution-core",
+              "declared_rust_toolchain": "1.96.0",
+              "rustc_version": version(["rustc", "--version"]),
+              "cargo_version": version(["cargo", "--version"]),
+              "step_outcomes": outcomes,
+              "overall": "pass" if all(v == "success" for v in outcomes.values()) else "fail",
+              "claim_boundary": "isolated evolution-core INDIV-06A compile/lint/tests only; no phenotype, ecology, fitness, selection, or production promotion authority",
+          }
+          with open(os.environ["RECEIPT_PATH"], "w", encoding="utf-8") as handle:
+              json.dump(receipt, handle, sort_keys=True, indent=2)
+              handle.write("\n")
+          print(json.dumps(receipt, sort_keys=True))
+          PY
+          sha256sum "${receipt}" > "${receipt}.sha256"
+          cat "${receipt}"
+          cat "${receipt}.sha256"
+
+      - name: Upload qualification receipt
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: indiv06a-evidence-v01-${{ env.PRODUCT_HEAD }}
+          path: |
+            ${{ runner.temp }}/indiv06a-evidence-v01.json
+            ${{ runner.temp }}/indiv06a-evidence-v01.json.sha256
+          if-no-files-found: error
+          retention-days: 90
