@@ -12,6 +12,7 @@ mod ancestry_simplification;
 mod ancestry_simplified_forward;
 mod ancestry_state;
 mod canonical;
+mod causal_effect;
 mod causal_identification;
 mod chromosome_map;
 mod chromosome_recombination;
@@ -100,6 +101,11 @@ pub use ancestry_simplified_forward::{
 pub use ancestry_state::{
     AncestryAuthorityError, ChromosomeAncestryState, HaplotypeAncestryClass,
     PhasedAncestryState, PhasedAncestryStateDigest, PHASED_ANCESTRY_STATE_VERSION,
+};
+pub use causal_effect::{
+    causal_viability_risk_effect_method_v1, execute_causal_viability_risk_effect,
+    CausalEffectError, CausalViabilityRiskEffect, CausalViabilityRiskEffectDigest,
+    ValidatedCausalSelectionEffect, CAUSAL_VIABILITY_RISK_EFFECT_VERSION,
 };
 pub use causal_identification::{
     CausalIdentificationCriterion, CausalIdentificationError, CausalIdentificationTier,
@@ -191,7 +197,7 @@ pub use haldane::{
 pub use heredity::{HereditaryState, HereditaryStateDigest};
 pub use ids::{
     AlleleId, AnalysisMethodId, AncestryCopyId, CalibrationAuthorityId,
-    CausalSelectionIdentificationId, ChromosomeId, ChromosomeMapId,
+    CausalSelectionEffectId, CausalSelectionIdentificationId, ChromosomeId, ChromosomeMapId,
     ChromosomeRecombinationProfileId, ComparisonAuthorityId, ConsequenceObservationId,
     ConsequenceWindowId, DemographicEventId, EvidenceProtocolId, EvolutionExperimentId,
     EvolutionIndividualId, EvolutionaryContextId, ExclusionReasonId, ExposureEvidenceSourceId,

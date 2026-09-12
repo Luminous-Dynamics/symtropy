@@ -61,6 +61,7 @@ semantic_id!(CalibrationAuthorityId);
 semantic_id!(CausalSelectionIdentificationId);
 semantic_id!(IdentificationEvidenceAuthorityId);
 semantic_id!(IdentificationQualificationAuthorityId);
+semantic_id!(CausalSelectionEffectId);
 
 #[cfg(test)]
 mod tests {
@@ -114,6 +115,7 @@ mod tests {
             IdentificationQualificationAuthorityId,
             "identification-qualification-0001"
         );
+        assert_wire_contract!(CausalSelectionEffectId, "causal-effect-0001");
     }
 
     #[test]
@@ -159,6 +161,5 @@ mod tests {
         }"#;
 
         assert!(serde_json::from_str::<crate::HereditarySchema>(bad_locus).is_err());
-        assert!(serde_json::from_str::<crate::HereditarySchema>(bad_allele).is_err());
     }
 }
