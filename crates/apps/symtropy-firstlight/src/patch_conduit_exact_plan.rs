@@ -344,7 +344,9 @@ mod tests {
             assert_eq!(approach.plan.content_digest().to_hex(), digest);
 
             let exact_ref = approach.plan.content_ref();
-            exact_ref.validate_against(&approach.plan).unwrap();
+            let validated = exact_ref.rebind(&approach.plan).unwrap();
+            assert_eq!(validated.reference(), &exact_ref);
+            assert_eq!(validated.plan(), &approach.plan);
         }
     }
 }
