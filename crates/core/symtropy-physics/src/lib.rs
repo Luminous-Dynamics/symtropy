@@ -13,6 +13,14 @@
 //! - `gjk::intersects()` — GJK intersection test for any `Shape<D>`
 //! - `contact::ContactManifold<D>` — collision contact data
 //! - `integrator` — semi-implicit Euler with bivector angular dynamics
+//! - `thermal` — conservative thermodynamic primitives and conductive exchange
+//! - `energy` — deterministic double-entry accounting for cross-domain energy transfers
+//! - `energy_checked` — overflow-aware deterministic ledger reductions
+//! - `energy_state` — measured reservoir state reconciled against the causal ledger
+//! - `energy_reconciliation_checked` — revalidation for serialized reconciliation evidence
+//! - `thermal_audit` — transactional thermal couplings and second-law diagnostics
+//! - `external_heat` — audited energy exchange across the simulation boundary
+//! - `dissipation` — measured mechanical loss converted into audited sensible heat
 
 pub mod articulation;
 pub mod body;
@@ -21,7 +29,13 @@ pub mod ccd;
 pub mod constraint;
 pub mod contact;
 pub mod diagnostics;
+pub mod dissipation;
+pub mod energy;
+pub mod energy_checked;
+pub mod energy_reconciliation_checked;
+pub mod energy_state;
 pub mod epa;
+pub mod external_heat;
 pub mod gjk;
 pub mod integrator;
 pub mod island;
@@ -30,6 +44,8 @@ pub mod manifold_gen;
 pub mod raycast;
 pub mod replay;
 pub mod support_map;
+pub mod thermal;
+pub mod thermal_audit;
 pub mod world;
 
 pub use articulation::{ArticulatedChain, ChainBuilder, LinkSpec};
@@ -38,8 +54,36 @@ pub use broadphase::{Aabb, Lbvh, morton_encode, morton_prefix};
 pub use constraint::Constraint;
 pub use contact::{CollisionEvent, ContactCache, ContactManifold, SensorEvent};
 pub use diagnostics::{InvariantDrift, InvariantSnapshot};
+pub use dissipation::{
+    DissipationError, FrictionHeatResult, HeatPartition, apply_friction_impulse_with_heat,
+};
+pub use energy::{
+    EnergyAudit, EnergyForm, EnergyLedgerError, EnergyOwner, EnergyPort, EnergyTransfer,
+    EnergyTransferKind, EnergyTransferLedger,
+};
+pub use energy_checked::{EnergyAggregateError, EnergyTransferLedgerCheckedExt};
+pub use energy_reconciliation_checked::{
+    EnergyReconciliationEvidenceError, EnergyReconciliationEvidenceExt,
+};
+pub use energy_state::{
+    EnergyReconciliationAudit, EnergyStateAuditError, EnergyStateSnapshot, ReservoirEnergy,
+    ReservoirPresenceChange, ReservoirPresenceChangeKind, ReservoirReconciliation,
+};
 pub use epa::EpaResult;
+pub use external_heat::{
+    EXTERNAL_HEAT_TRANSFER_KIND, ExternalHeatError, exchange_external_heat_audited,
+};
 pub use integrator::nan_zeroed_count;
 pub use joints::{BallJoint, FixedJoint, HingeJoint, MotorDrive, PrismaticJoint};
-pub use replay::{ReplayTape, WorldCommand, WorldSnapshot, apply_commands};
+pub use replay::{
+    ReplayTape, WorldCommand, WorldSnapshot, apply_commands, apply_commands_audited,
+};
+pub use thermal::{
+    ABSOLUTE_ZERO_K, HeatExchange, ThermalBody, ThermalError, ThermalMaterial, ThermalState,
+    conductive_exchange, conductive_exchange_bodies,
+};
+pub use thermal_audit::{
+    AuditedThermalError, EntropyAuditError, PairEntropyAudit, constant_cp_pair_entropy_audit,
+    conductive_exchange_bodies_audited,
+};
 pub use world::{NoOpCallback, PhysicsCallback, PhysicsWorld};
