@@ -31,3 +31,6 @@ pub mod transition_conservation;
 pub mod transition_domain;
 pub mod typed_closure_process_acceptance;
 pub mod typed_closure_qualification;
+
+#[cfg(test)]
+mod shadow_runner_subject_binding_hostile_tests;
