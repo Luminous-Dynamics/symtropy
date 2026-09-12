@@ -55,6 +55,7 @@ mod population_structure;
 mod population_trajectory;
 mod reproduction;
 mod schema;
+mod selection_design;
 mod selection_evidence;
 mod structured_population_process;
 mod validated_consequence;
@@ -180,12 +181,14 @@ pub use haldane::{
 };
 pub use heredity::{HereditaryState, HereditaryStateDigest};
 pub use ids::{
-    AlleleId, AncestryCopyId, ChromosomeId, ChromosomeMapId,
-    ChromosomeRecombinationProfileId, ConsequenceObservationId, ConsequenceWindowId,
-    DemographicEventId, EvidenceProtocolId, EvolutionExperimentId, EvolutionIndividualId,
-    EvolutionaryContextId, ExposureEvidenceSourceId, HereditarySchemaId, LocusId,
-    OperatorProfileId, PhenotypeEvidenceSourceId, PopulationId, PopulationProcessProfileId,
+    AlleleId, AnalysisMethodId, AncestryCopyId, CalibrationAuthorityId, ChromosomeId,
+    ChromosomeMapId, ChromosomeRecombinationProfileId, ComparisonAuthorityId,
+    ConsequenceObservationId, ConsequenceWindowId, DemographicEventId, EvidenceProtocolId,
+    EvolutionExperimentId, EvolutionIndividualId, EvolutionaryContextId, ExclusionReasonId,
+    ExposureEvidenceSourceId, HereditarySchemaId, LocusId, OperatorProfileId,
+    PhenotypeEvidenceSourceId, PopulationId, PopulationProcessProfileId, PredictorDefinitionId,
     PopulationStructureProfileId, PopulationTransitionId, ReproductionEventId,
+    SelectionComparisonDesignId,
 };
 pub use linked_census_projection::{
     project_declared_linked_census, LinkedCensusProjection, LinkedCensusProjectionDigest,
@@ -290,6 +293,14 @@ pub use reproduction::{
     ReproductionMode, ReproductionProvenance, ReproductionProvenanceDigest,
 };
 pub use schema::{HereditarySchema, HereditarySchemaDigest, LocusDefinition};
+pub use selection_design::{
+    AnalysisAuthorityRef, AnalysisContentDigest, CalibrationAuthorityRef, ChannelSupportPolicy,
+    ComparisonAuthorityRef, CompetingRiskPolicy, ConfoundingPolicy, DeathBeforeEndpointPolicy,
+    ExclusionDeclaration, InsufficientSupportPolicy, PredictorDefinitionRef, PredictorSourceKind,
+    ProtocolComparabilityPolicy, SelectionComparisonDesign, SelectionComparisonDesignDigest,
+    SelectionDesignClass, SelectionDesignError, SelectionEstimand, UncertaintyPlan,
+    ValidatedSelectionComparisonDesign, SELECTION_COMPARISON_DESIGN_VERSION,
+};
 pub use selection_evidence::{
     EvidenceContentDigest, EvidenceProtocolContentDigest, ExplicitSelectionEvidenceLedger,
     ExplicitSelectionEvidenceLedgerDigest, ExposureEvidenceRef, ExposureEvidenceStatus,
