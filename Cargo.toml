@@ -169,6 +169,7 @@ members = [
     "crates/apps/symtropy-firstlight",
     "crates/domains/symtropy-game-state",
     "crates/domains/symtropy-design",
+    "crates/domains/symtropy-design-requirements",
     "crates/domains/symtropy-iris",
     "crates/domains/symtropy-persistence",
     "crates/domains/symtropy-residents",
