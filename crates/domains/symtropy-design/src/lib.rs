@@ -395,9 +395,9 @@ fn compare_semantic_identity(
 }
 
 fn validate_stable_id(id: &StableId) -> Result<(), DesignError> {
-    StableId::parse(id.as_str()).map(|_| ()).map_err(|_| {
-        DesignError::InvalidStableId(id.as_str().to_string())
-    })
+    StableId::parse(id.as_str())
+        .map(|_| ())
+        .map_err(|_| DesignError::InvalidStableId(id.as_str().to_string()))
 }
 
 fn hex(bytes: &[u8]) -> String {
@@ -478,16 +478,16 @@ impl fmt::Display for DesignError {
                 "duplicate semantic identity {kind_id}/{subject_id} revision {revision}"
             ),
             Self::NonCanonicalOrder(field) => {
-                write!(formatter, "design manifest field {field} is not canonically ordered")
+                write!(
+                    formatter,
+                    "design manifest field {field} is not canonically ordered"
+                )
             }
             Self::Serialization(error) => write!(formatter, "design serialization failed: {error}"),
             Self::DigestMismatch { expected, actual } => write!(
                 formatter,
                 "design digest mismatch: expected {}:{}, actual {}:{}",
-                expected.algorithm,
-                expected.value,
-                actual.algorithm,
-                actual.value
+                expected.algorithm, expected.value, actual.algorithm, actual.value
             ),
         }
     }
@@ -515,12 +515,7 @@ mod tests {
     }
 
     fn artifact(name: &str, role: &str, content: &str) -> DesignArtifactRef {
-        DesignArtifactRef::new(
-            DesignArtifactId::new(id(name)),
-            id(role),
-            digest(content),
-        )
-        .unwrap()
+        DesignArtifactRef::new(DesignArtifactId::new(id(name)), id(role), digest(content)).unwrap()
     }
 
     fn semantic(kind: &str, subject: &str, revision: u64, content: &str) -> DesignSemanticRef {
@@ -593,11 +588,7 @@ mod tests {
             DesignId::new(id("design:bracket")),
             1,
             Vec::new(),
-            vec![artifact(
-                "artifact:a",
-                "design-artifact:geometry",
-                "aaaa",
-            )],
+            vec![artifact("artifact:a", "design-artifact:geometry", "aaaa")],
             vec![
                 semantic("design-semantic:requirements", "requirements:a", 1, "aaaa"),
                 semantic("design-semantic:requirements", "requirements:a", 1, "bbbb"),
@@ -611,21 +602,13 @@ mod tests {
 
     #[test]
     fn same_design_parent_must_be_strictly_prior_revision() {
-        let parent = DesignRevisionRef::new(
-            DesignId::new(id("design:bracket")),
-            2,
-            digest("aaaa"),
-        )
-        .unwrap();
+        let parent =
+            DesignRevisionRef::new(DesignId::new(id("design:bracket")), 2, digest("aaaa")).unwrap();
         let result = DesignRevisionManifest::new(
             DesignId::new(id("design:bracket")),
             2,
             vec![parent],
-            vec![artifact(
-                "artifact:a",
-                "design-artifact:geometry",
-                "aaaa",
-            )],
+            vec![artifact("artifact:a", "design-artifact:geometry", "aaaa")],
             Vec::new(),
         );
         assert!(matches!(result, Err(DesignError::NonPriorParent { .. })));
