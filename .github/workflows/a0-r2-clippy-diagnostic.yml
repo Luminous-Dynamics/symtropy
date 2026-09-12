@@ -15,7 +15,7 @@ env:
   PRODUCT_BRANCH: analysis/a0-analysis-evidence-contracts-r2-v0.1
   D2_HEAD: 366dd29ae74b4aed411517497c5ce7799f2dc79c
   LEGACY_A0_HEAD: a80aa06d9b3f9ef0031d69b326d387ec2383cc13
-  TRANSFORM_BLOB: 2ce1df21822064b53c02a7a1b4ebf2d7e2774c57
+  TRANSFORM_BLOB: 950271888463689cbddc519dac3bc589da61c5bb
   CARGO_TARGET_DIR: /tmp/symtropy-a0-r2-clippy-diagnostic-target
 
 jobs:
@@ -55,6 +55,44 @@ jobs:
           test "$(git -C legacy-a0 rev-parse HEAD)" = "$LEGACY_A0_HEAD"
           test "$(git -C runner-tools hash-object .github/repair/a0_rederive_analysis_r2.py)" = "$TRANSFORM_BLOB"
           test -z "$(git -C product status --porcelain=v1 --untracked-files=all)"
+
+      - name: Synchronize authority workflow transform pin
+        shell: bash
+        env:
+          RUNNER_BRANCH: ${{ github.event.pull_request.head.ref }}
+          RUNNER_HEAD: ${{ github.event.pull_request.head.sha }}
+        run: |
+          set -euo pipefail
+          authority=.github/workflows/a0-r2-rederivation-authority-v2.yml
+          if grep -qx "  TRANSFORM_BLOB: $TRANSFORM_BLOB" "runner-tools/$authority"; then
+            echo "Authority workflow already binds repaired transform"
+            exit 0
+          fi
+
+          git -C runner-tools fetch origin "+refs/heads/$RUNNER_BRANCH:refs/remotes/origin/$RUNNER_BRANCH"
+          test "$(git -C runner-tools rev-parse "refs/remotes/origin/$RUNNER_BRANCH")" = "$RUNNER_HEAD"
+          test "$(git -C runner-tools rev-parse HEAD)" = "$RUNNER_HEAD"
+
+          python3 - <<'PY'
+          from pathlib import Path
+          path = Path('runner-tools/.github/workflows/a0-r2-rederivation-authority-v2.yml')
+          text = path.read_text()
+          old = '  TRANSFORM_BLOB: 2ce1df21822064b53c02a7a1b4ebf2d7e2774c57\n'
+          new = '  TRANSFORM_BLOB: 950271888463689cbddc519dac3bc589da61c5bb\n'
+          if text.count(old) != 1:
+              raise SystemExit(f'expected exactly one old transform pin, found {text.count(old)}')
+          path.write_text(text.replace(old, new, 1))
+          PY
+
+          git -C runner-tools add "$authority"
+          test "$(git -C runner-tools diff --cached --name-only)" = "$authority"
+          git -C runner-tools config user.name github-actions
+          git -C runner-tools config user.email github-actions@github.com
+          git -C runner-tools commit -m "ci(analysis): bind repaired A0 transform in authority lane"
+
+          git -C runner-tools fetch origin "+refs/heads/$RUNNER_BRANCH:refs/remotes/origin/$RUNNER_BRANCH"
+          test "$(git -C runner-tools rev-parse "refs/remotes/origin/$RUNNER_BRANCH")" = "$RUNNER_HEAD"
+          git -C runner-tools push origin "HEAD:refs/heads/$RUNNER_BRANCH"
 
       - name: Set up pinned Rust 1.96
         uses: dtolnay/rust-toolchain@6bed0761d98439e5a578e2877258200ad565ba87
