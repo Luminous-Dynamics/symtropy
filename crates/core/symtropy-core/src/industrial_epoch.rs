@@ -85,6 +85,8 @@ pub struct IndustrialEpochState {
     evidence_binding: String,
     dependency_ids: Vec<String>,
     ecology: IndustrialEcology,
+    /// Last completed-tick observation of this exact state. A successful shock
+    /// invalidates it because the state changed without advancing/completing a tick.
     last_report: Option<IndustrialTickReport>,
 }
 
@@ -114,7 +116,11 @@ impl IndustrialEpochState {
     }
 
     pub fn apply_shock(&mut self, shock: IndustrialShock) -> Result<(), IndustrialEcologyError> {
-        self.ecology.apply_shock(shock)
+        self.ecology.apply_shock(shock)?;
+        // The ecology state changed after the last completed tick. Keeping that
+        // report would make a later handoff receipt describe stale pre-shock state.
+        self.last_report = None;
+        Ok(())
     }
 
     pub fn step(&mut self) -> Result<IndustrialTickReport, IndustrialEcologyError> {
@@ -188,6 +194,11 @@ pub struct IndustrialEpochHandoffReceipt {
     pub source_epoch_id: String,
     pub source_epoch_evidence_binding: String,
     pub source_final_tick: u64,
+    /// Tick described by `source_final_shortage_ids` and
+    /// `source_final_unavailable_capability_ids`. `None` means the source changed
+    /// after its last completed-tick observation (or never completed a tick), so
+    /// those diagnostic lists intentionally carry no current-state claim.
+    pub source_final_observation_tick: Option<u64>,
     pub successor_epoch_id: String,
     pub successor_epoch_evidence_binding: String,
     pub source_inventory_dispositions: Vec<IndustrialSourceInventoryDisposition>,
@@ -368,10 +379,12 @@ fn prepare_handoff(
     });
 
     let source_final_tick = source.ecology.tick();
+    let source_final_observation_tick = source.last_report.as_ref().map(|report| report.tick);
     let (source_final_shortage_ids, source_final_unavailable_capability_ids) = source
         .last_report
         .as_ref()
         .map(|report| {
+            debug_assert_eq!(report.tick, source_final_tick);
             (
                 report
                     .shortages
@@ -392,6 +405,7 @@ fn prepare_handoff(
         source_epoch_id: source.epoch_id.clone(),
         source_epoch_evidence_binding: source.evidence_binding.clone(),
         source_final_tick,
+        source_final_observation_tick,
         successor_epoch_id,
         successor_epoch_evidence_binding,
         source_inventory_dispositions: plan.source_inventory_dispositions,
@@ -637,10 +651,39 @@ mod tests {
         );
         assert_eq!(successor.dependency("spares-v2").unwrap().inventory_units, 84);
         assert_eq!(receipt.source_final_tick, 1);
+        assert_eq!(receipt.source_final_observation_tick, Some(1));
         assert_eq!(receipt.resulting_inventory[2].transferred_units, 79);
         assert_eq!(receipt.resulting_inventory[2].external_units, 5);
         assert_eq!(receipt.resulting_inventory[2].resulting_units, 84);
         assert!(successor.step().is_ok());
+    }
+
+    #[test]
+    fn shock_invalidates_cached_observation_and_receipt_does_not_claim_stale_status() {
+        let mut source = IndustrialEpochState::from_spec(source_spec()).unwrap();
+        assert_eq!(source.step().unwrap().tick, 1);
+        assert_eq!(source.last_report().unwrap().tick, 1);
+
+        source
+            .apply_shock(IndustrialShock::LoseInventory {
+                dependency_id: "spares-v1".into(),
+                units: 10,
+            })
+            .unwrap();
+        assert!(source.last_report().is_none());
+        assert_eq!(source.tick(), 1);
+        assert_eq!(source.dependency("spares-v1").unwrap().inventory_units, 89);
+
+        let mut adjusted = plan();
+        adjusted.source_inventory_dispositions[0].transferred_units = 19;
+        adjusted.source_inventory_dispositions[1].transferred_units = 6;
+        adjusted.source_inventory_dispositions[2].transferred_units = 69;
+
+        let (_, receipt) = source.handoff_to(successor_spec(), adjusted).unwrap();
+        assert_eq!(receipt.source_final_tick, 1);
+        assert_eq!(receipt.source_final_observation_tick, None);
+        assert!(receipt.source_final_shortage_ids.is_empty());
+        assert!(receipt.source_final_unavailable_capability_ids.is_empty());
     }
 
     #[test]
