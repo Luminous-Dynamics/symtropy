@@ -15,6 +15,7 @@ mod canonical;
 mod chromosome_map;
 mod chromosome_recombination;
 mod chromosome_stochastic;
+mod consequence;
 mod demographic_admixture_execution;
 mod demographic_event;
 mod demographic_execution;
@@ -103,6 +104,14 @@ pub use chromosome_recombination::{
     ChromosomeRecombinationProfile, ChromosomeRecombinationProfileDigest,
     GeneticMapIntervalMicromorgans, CHROMOSOME_RECOMBINATION_PROFILE_VERSION,
 };
+pub use consequence::{
+    ConsequenceError, DescendantProductionConsequence, DescendantRecruitmentConsequence,
+    EvolutionaryContextContentDigest, EvolutionaryContextRef, EvolutionaryContextRefDigest,
+    ExplicitConsequenceLedger, ExplicitConsequenceLedgerDigest, IndividualConsequenceObservation,
+    IndividualConsequenceObservationDigest, IndividualConsequences, ReproductiveEventConsequence,
+    ViabilityConsequence, EVOLUTIONARY_CONTEXT_REF_VERSION,
+    EXPLICIT_CONSEQUENCE_LEDGER_VERSION, INDIVIDUAL_CONSEQUENCE_OBSERVATION_VERSION,
+};
 pub use demographic_admixture_execution::{
     execute_census_preserving_pulse_admixture,
     execute_census_preserving_pulse_admixture_after_proven_history,
@@ -170,10 +179,10 @@ pub use haldane::{
 pub use heredity::{HereditaryState, HereditaryStateDigest};
 pub use ids::{
     AlleleId, AncestryCopyId, ChromosomeId, ChromosomeMapId,
-    ChromosomeRecombinationProfileId, DemographicEventId, EvolutionExperimentId,
-    EvolutionIndividualId, HereditarySchemaId, LocusId, OperatorProfileId, PopulationId,
-    PopulationProcessProfileId, PopulationStructureProfileId, PopulationTransitionId,
-    ReproductionEventId,
+    ChromosomeRecombinationProfileId, ConsequenceObservationId, ConsequenceWindowId,
+    DemographicEventId, EvolutionExperimentId, EvolutionIndividualId, EvolutionaryContextId,
+    HereditarySchemaId, LocusId, OperatorProfileId, PopulationId, PopulationProcessProfileId,
+    PopulationStructureProfileId, PopulationTransitionId, ReproductionEventId,
 };
 pub use linked_census_projection::{
     project_declared_linked_census, LinkedCensusProjection, LinkedCensusProjectionDigest,
