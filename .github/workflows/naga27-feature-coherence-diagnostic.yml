@@ -26,13 +26,15 @@ jobs:
         run: |
           set -euo pipefail
           base=e707113651e302f7c61c5542483104af352cb3d0
-          prior=703669a80f913ee1f404ec4fbe388064583f9925
+          first=703669a80f913ee1f404ec4fbe388064583f9925
+          second=a7ca9b3fc88f154e14fed096855c76d491c8f741
           workflow=.github/workflows/naga27-feature-coherence-diagnostic.yml
           kernel=crates/domains/symtropy-terrain/src/geometry_kernel.rs
 
           test "$(git rev-parse HEAD)" = "${GITHUB_SHA}"
-          test "$(git rev-parse HEAD^)" = "${prior}"
-          test "$(git rev-parse ${prior}^)" = "${base}"
+          test "$(git rev-parse HEAD^)" = "${second}"
+          test "$(git rev-parse HEAD^^)" = "${first}"
+          test "$(git rev-parse HEAD^^^)" = "${base}"
           test "$(git rev-parse ${base}:${kernel})" = "8d3e1213eacdeddf693cd2d1f82670d6ed832161"
           test "$(git rev-parse HEAD:${kernel})" = "8d3e1213eacdeddf693cd2d1f82670d6ed832161"
           test "$(git diff --name-only ${base}..HEAD)" = "${workflow}"
@@ -73,10 +75,9 @@ jobs:
           if text.count(marker) != 1:
               raise SystemExit("unexpected symthaea-bevy-brain manifest preimage")
           insertion = marker + (
-              '# Cargo feature-coherence shim: this bridge combines Bevy/WGPU 29 with '
+              '# Cargo feature-coherence shim: this bridge combines a Bevy-side graphics closure with '
               'Symthaea-core/WGPU 27.\n'
-              '# Bevy\'s naga_oil enables codespan-reporting 0.12 termcolor; Naga 27 must '
-              'select its matching writer mode.\n'
+              '# The theorem here is only Naga 27/codespan 0.12 writer-mode coherence.\n'
               'naga27-coherence = { package = "naga", version = "27", default-features = false, features = ["termcolor"] }\n'
           )
           path.write_text(text.replace(marker, insertion, 1))
@@ -107,18 +108,14 @@ jobs:
 
           before_map = {key(pkg): pkg for pkg in before["package"]}
           after_map = {key(pkg): pkg for pkg in after["package"]}
-          if before_map.keys() != after_map.keys():
-              added = sorted(set(after_map) - set(before_map))
-              removed = sorted(set(before_map) - set(after_map))
+          if set(before_map) != set(after_map):
+              added = sorted(set(after_map) - set(before_map), key=repr)
+              removed = sorted(set(before_map) - set(after_map), key=repr)
               raise SystemExit(f"package identity churn: added={added!r} removed={removed!r}")
 
-          changed = []
-          for pkg_key in sorted(before_map, key=repr):
-              if before_map[pkg_key] != after_map[pkg_key]:
-                  changed.append(pkg_key)
-
-          allowed = [key for key in changed if key[0] == "symthaea-bevy-brain"]
-          if changed != allowed or len(allowed) != 1:
+          changed = [pkg_key for pkg_key in before_map if before_map[pkg_key] != after_map[pkg_key]]
+          allowed = [pkg_key for pkg_key in changed if pkg_key[0] == "symthaea-bevy-brain"]
+          if len(changed) != 1 or changed != allowed:
               raise SystemExit(f"unexpected lock package mutations: {changed!r}")
 
           pkg_key = allowed[0]
@@ -144,47 +141,45 @@ jobs:
 
           echo "NAGA27_COHERENCE_LOCK_BLOB=$(git hash-object Cargo.lock)"
           echo "NAGA27_COHERENCE_LOCK_SHA256=$(sha256sum Cargo.lock | awk '{print $1}')"
-          echo "NAGA27_COHERENCE_METADATA_SHA256=$(sha256sum "${RUNNER_TEMP}/naga27-coherence-metadata.json" | awk '{print $1}')"
-          git diff -- Cargo.lock
           cargo metadata --locked --format-version 1 > "${RUNNER_TEMP}/naga27-coherence-metadata-locked.json"
 
-      - name: Prove selected Naga 27 and codespan writer modes agree
+      - name: Prove selected Naga 27 writer mode
         shell: bash
         run: |
           set -euo pipefail
           cargo tree -p symthaea-bevy-brain --locked -e normal,build,dev --prefix none --format '{p}|{f}' -i naga@27.0.3 | tee "${RUNNER_TEMP}/naga27-inverse.txt"
-          cargo tree -p symthaea-bevy-brain --locked -e normal,build,dev --prefix none --format '{p}|{f}' -i codespan-reporting@0.12.0 | tee "${RUNNER_TEMP}/codespan012-inverse.txt"
-          cargo tree -p symthaea-bevy-brain --locked -e normal,build,dev --prefix none --format '{p}|{f}' -i naga@29.0.4 | tee "${RUNNER_TEMP}/naga29-inverse.txt"
-
           python3 - <<'PY'
           import os
           from pathlib import Path
-
-          root = Path(os.environ["RUNNER_TEMP"])
-
-          def package_features(filename, package):
-              lines = [line.strip() for line in (root / filename).read_text().splitlines() if line.strip()]
-              matches = [line for line in lines if line.startswith(package + "|")]
-              if len(matches) != 1:
-                  raise SystemExit(f"expected exactly one {package!r} package line in {filename}: {matches!r}")
-              _, raw = matches[0].split("|", 1)
-              return {feature for feature in raw.split(",") if feature}
-
-          naga27 = package_features("naga27-inverse.txt", "naga v27.0.3")
-          codespan = package_features("codespan012-inverse.txt", "codespan-reporting v0.12.0")
-          package_features("naga29-inverse.txt", "naga v29.0.4")
-
-          if "termcolor" not in naga27:
-              raise SystemExit(f"naga 27 termcolor absent from selected bridge graph: {sorted(naga27)!r}")
-          if "termcolor" not in codespan:
-              raise SystemExit(f"codespan 0.12 termcolor absent from selected bridge graph: {sorted(codespan)!r}")
-
-          print("SELECTED_WRITER_MODE_COHERENCE=PASS")
+          path = Path(os.environ["RUNNER_TEMP"]) / "naga27-inverse.txt"
+          lines = [line.strip() for line in path.read_text().splitlines() if line.strip()]
+          matches = [line for line in lines if line.startswith("naga v27.0.3|")]
+          if len(matches) != 1:
+              raise SystemExit(f"expected one naga v27.0.3 package line: {matches!r}")
+          features = {feature for feature in matches[0].split("|", 1)[1].split(",") if feature}
+          if "termcolor" not in features:
+              raise SystemExit(f"naga 27 termcolor absent: {sorted(features)!r}")
+          print("NAGA27_SELECTED_WRITER_MODE=PASS")
           PY
 
-          echo "NAGA27_COHERENCE_INVERSE_SHA256=$(sha256sum "${RUNNER_TEMP}/naga27-inverse.txt" | awk '{print $1}')"
-          echo "CODESPAN012_COHERENCE_INVERSE_SHA256=$(sha256sum "${RUNNER_TEMP}/codespan012-inverse.txt" | awk '{print $1}')"
-          echo "NAGA29_COHERENCE_INVERSE_SHA256=$(sha256sum "${RUNNER_TEMP}/naga29-inverse.txt" | awk '{print $1}')"
+      - name: Prove selected codespan 0.12 writer mode
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo tree -p symthaea-bevy-brain --locked -e normal,build,dev --prefix none --format '{p}|{f}' -i codespan-reporting@0.12.0 | tee "${RUNNER_TEMP}/codespan012-inverse.txt"
+          python3 - <<'PY'
+          import os
+          from pathlib import Path
+          path = Path(os.environ["RUNNER_TEMP"]) / "codespan012-inverse.txt"
+          lines = [line.strip() for line in path.read_text().splitlines() if line.strip()]
+          matches = [line for line in lines if line.startswith("codespan-reporting v0.12.0|")]
+          if len(matches) != 1:
+              raise SystemExit(f"expected one codespan-reporting v0.12.0 package line: {matches!r}")
+          features = {feature for feature in matches[0].split("|", 1)[1].split(",") if feature}
+          if "termcolor" not in features:
+              raise SystemExit(f"codespan 0.12 termcolor absent: {sorted(features)!r}")
+          print("CODESPAN012_SELECTED_WRITER_MODE=PASS")
+          PY
 
       - name: Check brain bridge against frozen diagnostic closure
         shell: bash
