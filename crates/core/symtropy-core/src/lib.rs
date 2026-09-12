@@ -14,6 +14,7 @@ pub use symtropy_physics as physics;
 
 pub mod industrial_ecology;
 pub mod industrial_watch;
+pub mod industrial_watch_trace;
 
 pub mod prelude {
     pub use crate::bevy_physics::{BevyPhysicsPlugin, NoCouplingResource, PhysicsBody};
@@ -25,6 +26,10 @@ pub mod prelude {
     pub use crate::industrial_watch::{
         IndustrialCapabilityWatch, IndustrialCapabilityWatchError, IndustrialCapabilityWatchReport,
         assess_industrial_capability_watches,
+    };
+    pub use crate::industrial_watch_trace::{
+        IndustrialCapabilityWatchTrace, IndustrialCapabilityWatchTraceError,
+        IndustrialCapabilityWatchTransition, record_industrial_capability_watch_reports,
     };
     pub use crate::math::Point;
     pub use crate::physics::body::BodyHandle;
