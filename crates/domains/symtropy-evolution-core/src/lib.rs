@@ -55,6 +55,7 @@ mod population_structure;
 mod population_trajectory;
 mod reproduction;
 mod schema;
+mod selection_evidence;
 mod structured_population_process;
 mod validated_consequence;
 
@@ -181,8 +182,9 @@ pub use heredity::{HereditaryState, HereditaryStateDigest};
 pub use ids::{
     AlleleId, AncestryCopyId, ChromosomeId, ChromosomeMapId,
     ChromosomeRecombinationProfileId, ConsequenceObservationId, ConsequenceWindowId,
-    DemographicEventId, EvolutionExperimentId, EvolutionIndividualId, EvolutionaryContextId,
-    HereditarySchemaId, LocusId, OperatorProfileId, PopulationId, PopulationProcessProfileId,
+    DemographicEventId, EvidenceProtocolId, EvolutionExperimentId, EvolutionIndividualId,
+    EvolutionaryContextId, ExposureEvidenceSourceId, HereditarySchemaId, LocusId,
+    OperatorProfileId, PhenotypeEvidenceSourceId, PopulationId, PopulationProcessProfileId,
     PopulationStructureProfileId, PopulationTransitionId, ReproductionEventId,
 };
 pub use linked_census_projection::{
@@ -288,6 +290,15 @@ pub use reproduction::{
     ReproductionMode, ReproductionProvenance, ReproductionProvenanceDigest,
 };
 pub use schema::{HereditarySchema, HereditarySchemaDigest, LocusDefinition};
+pub use selection_evidence::{
+    EvidenceContentDigest, EvidenceProtocolContentDigest, ExplicitSelectionEvidenceLedger,
+    ExplicitSelectionEvidenceLedgerDigest, ExposureEvidenceRef, ExposureEvidenceStatus,
+    IndividualSelectionEvidenceInput, ObservationSupportDigest, PhenotypeEvidenceRef,
+    PhenotypeEvidenceStatus, SelectionEvidenceError, SelectionEvidenceRecord,
+    ValidatedSelectionEvidenceLedger, EXPLICIT_SELECTION_EVIDENCE_LEDGER_VERSION,
+    EXPOSURE_EVIDENCE_REF_VERSION, PHENOTYPE_EVIDENCE_REF_VERSION,
+    SELECTION_EVIDENCE_RECORD_VERSION,
+};
 pub use structured_population_process::{
     structured_wright_fisher_step, StructuredPopulationTransitionProvenance,
     StructuredPopulationTransitionProvenanceDigest, StructuredPopulationTransitionResult,
