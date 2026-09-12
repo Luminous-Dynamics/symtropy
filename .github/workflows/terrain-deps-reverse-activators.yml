@@ -1,0 +1,118 @@
+name: Terrain Dependency Reverse Activator Diagnostic
+
+on:
+  push:
+    branches:
+      - "ci/terrain-deps-reverse-activators-b6c989a"
+    paths:
+      - ".github/workflows/terrain-deps-reverse-activators.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  diagnose:
+    name: Diagnose exact Terrain reverse feature activators
+    runs-on: ubuntu-slim
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+
+      - name: Bind exact failed theorem lineage
+        shell: bash
+        run: |
+          set -euo pipefail
+          failed_theorem=b6c989a03178f41f443cd5d889c64ab9c7890409
+          workflow=.github/workflows/terrain-deps-reverse-activators.yml
+          cargo_blob=274720e256ba9067fad3d06f71e1b18590b046bd
+          lock_blob=db602c9707ecd6143ef36c0243c051544a027141
+
+          test "$(git rev-parse HEAD)" = "${GITHUB_SHA}"
+          test "$(git rev-parse HEAD^)" = "${failed_theorem}"
+          test "$(git rev-parse HEAD:Cargo.toml)" = "${cargo_blob}"
+          test "$(git rev-parse HEAD:Cargo.lock)" = "${lock_blob}"
+          test "$(git diff --name-only "${failed_theorem}"..HEAD)" = "${workflow}"
+
+          echo "DIAG_HEAD=${GITHUB_SHA}"
+          echo "DIAG_TREE=$(git rev-parse HEAD^{tree})"
+          echo "DIAG_FAILED_THEOREM=${failed_theorem}"
+          echo "DIAG_LOCK_BLOB=${lock_blob}" >> "${GITHUB_ENV}"
+          echo "CARGO_TERM_COLOR=never" >> "${GITHUB_ENV}"
+
+      - name: Set up pinned Rust
+        uses: dtolnay/rust-toolchain@6bed0761d98439e5a578e2877258200ad565ba87
+        with:
+          toolchain: 1.96.0
+
+      - name: Remove only direct root Naga-27 termcolor activation
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+
+          path = Path("Cargo.toml")
+          text = path.read_text()
+          old = 'naga = { version = "27", default-features = false, features = ["termcolor"] }'
+          new = 'naga = { version = "27", default-features = false }'
+          if text.count(old) != 1:
+              raise SystemExit(f"unexpected Naga-27 preimage multiplicity: {text.count(old)}")
+          if new in text:
+              raise SystemExit("target Naga-27 declaration already exists")
+          path.write_text(text.replace(old, new, 1))
+          PY
+
+          test "$(git diff --name-only)" = "Cargo.toml"
+          test "$(git hash-object Cargo.lock)" = "${DIAG_LOCK_BLOB}"
+
+      - name: Capture exact provider graph and reverse activators
+        shell: bash
+        run: |
+          set -euo pipefail
+          out="${RUNNER_TEMP}/terrain-reverse"
+          mkdir -p "${out}"
+
+          cargo metadata --locked --format-version 1 > "${out}/metadata.json"
+          cargo tree --locked -p symtropy-terrain -e features > "${out}/provider.txt"
+
+          echo "DIAG_METADATA_SHA256=$(sha256sum "${out}/metadata.json" | awk '{print $1}')"
+          echo "DIAG_PROVIDER_SHA256=$(sha256sum "${out}/provider.txt" | awk '{print $1}')"
+          echo "DIAG_PROVIDER_TERMCOLOR_LINES_BEGIN"
+          grep -n -F 'termcolor' "${out}/provider.txt" || true
+          echo "DIAG_PROVIDER_TERMCOLOR_LINES_END"
+
+          for spec in \
+            'naga@27.0.3' \
+            'naga@29.0.4' \
+            'codespan-reporting@0.12.0' \
+            'codespan-reporting@0.13.1' \
+            'termcolor@1.4.1'
+          do
+            safe="$(printf '%s' "${spec}" | tr '@.' '___')"
+            file="${out}/inverse-${safe}.txt"
+            echo "DIAG_INVERSE_BEGIN=${spec}"
+            if cargo tree --locked -p symtropy-terrain -e features -i "${spec}" > "${file}" 2>&1; then
+              echo "DIAG_INVERSE_STATUS=${spec}:success"
+            else
+              status=$?
+              echo "DIAG_INVERSE_STATUS=${spec}:exit-${status}"
+            fi
+            cat "${file}"
+            echo "DIAG_INVERSE_SHA256=${spec}:$(sha256sum "${file}" | awk '{print $1}')"
+            echo "DIAG_INVERSE_END=${spec}"
+          done
+
+          test "$(git hash-object Cargo.lock)" = "${DIAG_LOCK_BLOB}"
+          test "$(git diff --name-only)" = "Cargo.toml"
+
+      - name: Diagnostic-only postflight
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "${GITHUB_SHA}"
+          test "$(git hash-object Cargo.lock)" = "${DIAG_LOCK_BLOB}"
+          test "$(git diff --name-only)" = "Cargo.toml"
+          echo "DIAGNOSTIC_ONLY=true"
+          echo "No product commit or qualification is produced by this workflow."
