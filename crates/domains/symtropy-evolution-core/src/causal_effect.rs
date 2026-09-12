@@ -317,7 +317,7 @@ fn support_from_frame(
             }
             _ => return Err(CausalEffectError::UnsupportedFramePredictor),
         };
-        let died = match row.outcome {
+        let died = match &row.outcome {
             MaterializedOutcome::ViabilityObserved(crate::ViabilityConsequence::SurvivedWindow) => {
                 false
             }
