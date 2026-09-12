@@ -124,9 +124,10 @@ impl IndustrialEpochState {
         self.ecology.apply_shock(shock)
     }
 
-    pub fn step(&mut self) -> Result<&IndustrialTickReport, IndustrialEcologyError> {
-        self.last_report = Some(self.ecology.step()?);
-        Ok(self.last_report.as_ref().expect("report was just stored"))
+    pub fn step(&mut self) -> Result<IndustrialTickReport, IndustrialEcologyError> {
+        let report = self.ecology.step()?;
+        self.last_report = Some(report.clone());
+        Ok(report)
     }
 
     /// Consume this epoch and create a separately validated successor epoch.
@@ -150,10 +151,10 @@ impl IndustrialEpochState {
             return Err(IndustrialEpochHandoffError::SourceInventoryCoverageMismatch);
         }
 
-        let mut successor_by_id: BTreeMap<&str, &IndustrialDependencyState> = successor_spec
+        let successor_governance: BTreeMap<String, _> = successor_spec
             .dependencies
             .iter()
-            .map(|dependency| (dependency.dependency_id.as_str(), dependency))
+            .map(|dependency| (dependency.dependency_id.clone(), dependency.governance))
             .collect();
         let mut transferred_successor_ids = BTreeSet::new();
         let mut transferred_units_by_successor: BTreeMap<String, u64> = BTreeMap::new();
@@ -184,12 +185,12 @@ impl IndustrialEpochState {
                             source_dependency_id: disposition.source_dependency_id.clone(),
                         });
                     }
-                    let successor = successor_by_id.get(successor_id.as_str()).ok_or_else(|| {
-                        IndustrialEpochHandoffError::UnknownSuccessorDependency {
+                    let successor_governance = successor_governance
+                        .get(successor_id.as_str())
+                        .ok_or_else(|| IndustrialEpochHandoffError::UnknownSuccessorDependency {
                             dependency_id: successor_id.clone(),
-                        }
-                    })?;
-                    if source.governance != successor.governance {
+                        })?;
+                    if source.governance != *successor_governance {
                         return Err(IndustrialEpochHandoffError::GovernanceBoundaryChanged {
                             source_dependency_id: disposition.source_dependency_id.clone(),
                             successor_dependency_id: successor_id.clone(),
@@ -215,7 +216,7 @@ impl IndustrialEpochState {
 
         let mut external_by_successor: BTreeMap<String, u64> = BTreeMap::new();
         for admission in &plan.external_inventory_admissions {
-            if !successor_by_id.contains_key(admission.successor_dependency_id.as_str()) {
+            if !successor_governance.contains_key(admission.successor_dependency_id.as_str()) {
                 return Err(IndustrialEpochHandoffError::UnknownSuccessorDependency {
                     dependency_id: admission.successor_dependency_id.clone(),
                 });
@@ -501,9 +502,13 @@ fn validate_binding(value: &str) -> Result<(), IndustrialEpochHandoffError> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::industrial_ecology::{IndustrialGovernance, IndustrialFlowKind};
+    use crate::industrial_ecology::{IndustrialFlowKind, IndustrialGovernance};
 
-    fn dependency(id: &str, governance: IndustrialGovernance, inventory: u64) -> IndustrialDependencyState {
+    fn dependency(
+        id: &str,
+        governance: IndustrialGovernance,
+        inventory: u64,
+    ) -> IndustrialDependencyState {
         IndustrialDependencyState {
             dependency_id: id.into(),
             governance,
@@ -528,7 +533,11 @@ mod tests {
             evidence_binding: "epoch:manta-v1".into(),
             dependencies: vec![
                 dependency("metrology-v1", IndustrialGovernance::Ordinary, 30),
-                dependency("reactor-service", IndustrialGovernance::SafeguardedExternal, 7),
+                dependency(
+                    "reactor-service",
+                    IndustrialGovernance::SafeguardedExternal,
+                    7,
+                ),
                 dependency("spares-v1", IndustrialGovernance::Ordinary, 100),
             ],
             capabilities: vec![capability("operation-v1", "spares-v1")],
@@ -542,7 +551,11 @@ mod tests {
             evidence_binding: "epoch:manta-v2".into(),
             dependencies: vec![
                 dependency("metrology-v2", IndustrialGovernance::Ordinary, 0),
-                dependency("reactor-service-v2", IndustrialGovernance::SafeguardedExternal, 0),
+                dependency(
+                    "reactor-service-v2",
+                    IndustrialGovernance::SafeguardedExternal,
+                    0,
+                ),
                 dependency("spares-v2", IndustrialGovernance::Ordinary, 0),
             ],
             capabilities: vec![capability("operation-v2", "spares-v2")],
@@ -598,17 +611,30 @@ mod tests {
         adjusted.source_inventory_dispositions[1].transferred_units = 6;
         adjusted.source_inventory_dispositions[2].transferred_units = 79;
 
-        let (successor, receipt) = source.handoff_to(successor_spec(), adjusted).unwrap();
+        let (mut successor, receipt) = source.handoff_to(successor_spec(), adjusted).unwrap();
         assert_eq!(successor.epoch_id(), "manta-v2");
         assert_eq!(successor.tick(), 0);
-        assert_eq!(successor.dependency("metrology-v2").unwrap().inventory_units, 19);
-        assert_eq!(successor.dependency("reactor-service-v2").unwrap().inventory_units, 6);
+        assert_eq!(
+            successor.dependency("metrology-v2").unwrap().inventory_units,
+            19
+        );
+        assert_eq!(
+            successor
+                .dependency("reactor-service-v2")
+                .unwrap()
+                .inventory_units,
+            6
+        );
         assert_eq!(successor.dependency("spares-v2").unwrap().inventory_units, 84);
         assert_eq!(receipt.source_final_tick, 1);
-        assert_eq!(receipt.resulting_inventory[2].successor_dependency_id, "spares-v2");
+        assert_eq!(
+            receipt.resulting_inventory[2].successor_dependency_id,
+            "spares-v2"
+        );
         assert_eq!(receipt.resulting_inventory[2].transferred_units, 79);
         assert_eq!(receipt.resulting_inventory[2].external_units, 5);
         assert_eq!(receipt.resulting_inventory[2].resulting_units, 84);
+        assert!(successor.step().is_ok());
     }
 
     #[test]
@@ -698,7 +724,7 @@ mod tests {
                 prerequisite_dependency_ids: BTreeSet::from(["metrology-v2".into()]),
             },
         ]);
-        let (successor, _) = source.handoff_to(successor, plan()).unwrap();
+        let (mut successor, _) = source.handoff_to(successor, plan()).unwrap();
         assert_eq!(successor.epoch_id(), "manta-v2");
         assert!(successor.step().is_ok());
     }
