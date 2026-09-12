@@ -12,6 +12,7 @@ mod ancestry_simplification;
 mod ancestry_simplified_forward;
 mod ancestry_state;
 mod canonical;
+mod causal_identification;
 mod chromosome_map;
 mod chromosome_recombination;
 mod chromosome_stochastic;
@@ -100,6 +101,12 @@ pub use ancestry_state::{
     AncestryAuthorityError, ChromosomeAncestryState, HaplotypeAncestryClass,
     PhasedAncestryState, PhasedAncestryStateDigest, PHASED_ANCESTRY_STATE_VERSION,
 };
+pub use causal_identification::{
+    CausalIdentificationCriterion, CausalIdentificationError, CausalIdentificationTier,
+    CausalSelectionIdentification, CausalSelectionIdentificationDigest, CausalSelectionTarget,
+    IdentificationEvidenceQualificationRef, IdentificationEvidenceRef,
+    ValidatedCausalSelectionIdentification, CAUSAL_SELECTION_IDENTIFICATION_VERSION,
+};
 pub use chromosome_map::{
     ChromosomeDefinition, ChromosomeLocus, ChromosomeMap, ChromosomeMapDigest,
     GeneticMapPositionMicromorgans, CHROMOSOME_MAP_VERSION,
@@ -183,14 +190,15 @@ pub use haldane::{
 };
 pub use heredity::{HereditaryState, HereditaryStateDigest};
 pub use ids::{
-    AlleleId, AnalysisMethodId, AncestryCopyId, CalibrationAuthorityId, ChromosomeId,
-    ChromosomeMapId, ChromosomeRecombinationProfileId, ComparisonAuthorityId,
-    ConsequenceObservationId, ConsequenceWindowId, DemographicEventId, EvidenceProtocolId,
-    EvolutionExperimentId, EvolutionIndividualId, EvolutionaryContextId, ExclusionReasonId,
-    ExposureEvidenceSourceId, HereditarySchemaId, LocusId, OperatorProfileId,
-    PhenotypeEvidenceSourceId, PopulationId, PopulationProcessProfileId, PredictorDefinitionId,
-    PopulationStructureProfileId, PopulationTransitionId, ReproductionEventId,
-    SelectionComparisonDesignId,
+    AlleleId, AnalysisMethodId, AncestryCopyId, CalibrationAuthorityId,
+    CausalSelectionIdentificationId, ChromosomeId, ChromosomeMapId,
+    ChromosomeRecombinationProfileId, ComparisonAuthorityId, ConsequenceObservationId,
+    ConsequenceWindowId, DemographicEventId, EvidenceProtocolId, EvolutionExperimentId,
+    EvolutionIndividualId, EvolutionaryContextId, ExclusionReasonId, ExposureEvidenceSourceId,
+    HereditarySchemaId, IdentificationEvidenceAuthorityId, IdentificationQualificationAuthorityId,
+    LocusId, OperatorProfileId, PhenotypeEvidenceSourceId, PopulationId,
+    PopulationProcessProfileId, PredictorDefinitionId, PopulationStructureProfileId,
+    PopulationTransitionId, ReproductionEventId, SelectionComparisonDesignId,
 };
 pub use linked_census_projection::{
     project_declared_linked_census, LinkedCensusProjection, LinkedCensusProjectionDigest,
