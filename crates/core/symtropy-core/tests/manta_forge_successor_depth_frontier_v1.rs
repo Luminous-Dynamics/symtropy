@@ -191,9 +191,16 @@ fn simulate_successor_horizon(case: &FrontierCase) -> Option<u64> {
                 )
                 .unwrap();
             assert_eq!(receipt.source_final_observation_tick, Some(expected_tick));
-            let outcome = successor.run_until_essential_failure(16).unwrap();
-            assert!(outcome.terminal_report.is_some());
-            return Some(outcome.survived_ticks);
+
+            let mut survived_ticks = 0u64;
+            for _ in 0..16 {
+                let report = successor.step().unwrap();
+                if !report.essential_capabilities_available {
+                    return Some(survived_ticks);
+                }
+                survived_ticks += 1;
+            }
+            panic!("successor lineage did not reach its finite frontier within 16 ticks");
         }
     }
     None
