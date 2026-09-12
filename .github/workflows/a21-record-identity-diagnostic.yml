@@ -7,6 +7,10 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: a21-record-diagnostic-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 env:
   PRODUCT_BRANCH: analysis/a2-verification-record-identity-v0.1
   PARENT_HEAD: 8b9cc08fa48bf7ebfc007ed28fd1ab348f28e211
@@ -118,7 +122,15 @@ jobs:
           cargo fmt -p symtropy-analysis-admission -- --check
           cargo check --locked -p symtropy-analysis-admission --all-targets
           cargo test --locked -p symtropy-analysis-admission
-          cargo test --locked -p symtropy-analysis-admission standalone_verification_record_digest_is_frozen_and_content_bound -- --exact --nocapture
+          cargo test --locked -p symtropy-analysis-admission tests::standalone_verification_record_digest_is_frozen_and_content_bound -- --exact --nocapture | tee /tmp/a21-record-golden.log
+          python3 - <<'PY'
+          import re
+          from pathlib import Path
+          text = Path('/tmp/a21-record-golden.log').read_text()
+          values = re.findall(r'A21_RECORD_GOLDEN=([0-9a-f]{64})', text)
+          assert len(values) == 1, values
+          print(f'A21_RECORD_GOLDEN={values[0]}')
+          PY
           cargo clippy --locked -p symtropy-analysis-admission --all-targets -- -D warnings
 
       - name: Re-prove parent layers and refuse collateral mutation
