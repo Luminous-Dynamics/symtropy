@@ -93,6 +93,18 @@ fn presented_pump_degradation(is_running: bool, efficiency: f32) -> f64 {
     presented_output_degradation(visible_output)
 }
 
+/// True only for a finite upward crossing of a finite threshold.
+///
+/// This gives authored events a deterministic transition gate rather than a per-frame
+/// random chance. Already-above states and non-finite values fail closed.
+fn crossed_upward_threshold(previous: f32, current: f32, threshold: f32) -> bool {
+    previous.is_finite()
+        && current.is_finite()
+        && threshold.is_finite()
+        && previous < threshold
+        && current >= threshold
+}
+
 /// Run the FEP perception-action cycle for each crew NPC.
 pub fn fep_behavior_system(
     mut npcs: Query<
@@ -619,9 +631,11 @@ pub fn npc_action_system(
 
                             // Emit once on the meaningful state transition instead of using
                             // ambient RNG, which made event history frame-rate/randomness dependent.
-                            if old_load < LEO_RELAPSE_ALERT_THRESHOLD
-                                && other_psych.allostatic_load >= LEO_RELAPSE_ALERT_THRESHOLD
-                            {
+                            if crossed_upward_threshold(
+                                old_load,
+                                other_psych.allostatic_load,
+                                LEO_RELAPSE_ALERT_THRESHOLD,
+                            ) {
                                 action_writer.write(NpcActionEvent {
                                     actor: actor_entity,
                                     actor_name: npc.name.clone(),
@@ -806,8 +820,12 @@ mod tests {
     }
 
     #[test]
-    fn relapse_alert_threshold_is_a_state_boundary() {
-        assert!(0.79 < LEO_RELAPSE_ALERT_THRESHOLD);
-        assert!(0.8 >= LEO_RELAPSE_ALERT_THRESHOLD);
+    fn upward_threshold_crossing_is_single_transition_and_fails_closed() {
+        assert!(crossed_upward_threshold(0.79, 0.8, 0.8));
+        assert!(!crossed_upward_threshold(0.8, 0.81, 0.8));
+        assert!(!crossed_upward_threshold(0.79, 0.79, 0.8));
+        assert!(!crossed_upward_threshold(f32::NAN, 0.9, 0.8));
+        assert!(!crossed_upward_threshold(0.7, f32::NAN, 0.8));
+        assert!(!crossed_upward_threshold(0.7, 0.9, f32::NAN));
     }
 }
