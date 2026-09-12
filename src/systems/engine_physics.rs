@@ -1,6 +1,6 @@
 // Copyright (C) 2024-2026 Tristan Stoltz / Luminous Dynamics
 // SPDX-License-Identifier: AGPL-3.0-or-later
-use crate::resources::PhysicsWorldRes;
+use crate::resources::{GamePhase, PhysicsWorldRes};
 use bevy::prelude::*;
 use symtropy_render_bridge::PhysicsBody;
 
@@ -32,6 +32,14 @@ pub fn step_physics_world(physics: &mut PhysicsWorldRes, dt: f64) -> bool {
     true
 }
 
+/// Only the 2D `Playing` slice currently grants this adapter authority to integrate
+/// `PhysicsWorld`. `Playing3D` owns movement kinematically in `rendering_3d` and still
+/// shares physics-body handles for representation, so stepping it here would silently
+/// introduce a second movement/collision authority.
+fn phase_uses_authoritative_2d_step(phase: GamePhase) -> bool {
+    phase == GamePhase::Playing
+}
+
 pub fn update_physics_consciousness(
     mut physics: ResMut<PhysicsWorldRes>,
     query: Query<(&PhysicsBody, &crate::components::HarmonyComponent)>,
@@ -54,18 +62,23 @@ pub fn update_physics_consciousness(
     }
 }
 
-/// Advance authoritative physics once, then export body positions to Bevy transforms.
+/// Advance authoritative 2D physics when that phase owns integration, then export body
+/// positions to Bevy transforms.
 ///
 /// This function keeps the historical `physics_sync_transforms` name because it is already
-/// registered in the launcher's `FixedUpdate` chain. The important authority contract is
-/// now explicit: a transform is published only *after* the corresponding physics step.
-/// Generic `Time` resolves to Bevy's fixed clock when this system runs in `FixedUpdate`.
+/// registered in the launcher's `FixedUpdate` chain for both 2D and 3D modes. In 2D, a
+/// transform is published only after the corresponding physics step. In 3D, the existing
+/// kinematic controller remains authoritative and this function only mirrors its shared
+/// physics-body representation back to the visual transform.
 pub fn physics_sync_transforms(
     mut physics: ResMut<PhysicsWorldRes>,
     time: Res<Time>,
+    phase: Res<State<GamePhase>>,
     mut query: Query<(&PhysicsBody, &mut Transform)>,
 ) {
-    if !step_physics_world(&mut physics, f64::from(time.delta_secs())) {
+    if phase_uses_authoritative_2d_step(*phase.get())
+        && !step_physics_world(&mut physics, f64::from(time.delta_secs()))
+    {
         return;
     }
 
@@ -111,5 +124,13 @@ mod tests {
             .expect("body survives step")
             .position()[0];
         assert!(x > 0.0, "authoritative physics step must integrate velocity");
+    }
+
+    #[test]
+    fn only_2d_playing_phase_owns_world_integration_here() {
+        assert!(phase_uses_authoritative_2d_step(GamePhase::Playing));
+        assert!(!phase_uses_authoritative_2d_step(GamePhase::Playing3D));
+        assert!(!phase_uses_authoritative_2d_step(GamePhase::Loading));
+        assert!(!phase_uses_authoritative_2d_step(GamePhase::MainMenu));
     }
 }
