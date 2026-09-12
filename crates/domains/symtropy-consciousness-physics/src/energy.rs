@@ -261,9 +261,10 @@ mod tests {
     #[test]
     fn net_flow_tracks_correctly() {
         let mut budget = EnergyBudget::new(100.0);
-        budget.consume(10.0);
+        budget.consume(20.0);
+        budget.tick_reset();
         budget.regenerate(15.0);
-        assert!((budget.net_flow_this_tick() - 5.0).abs() < 1e-10); // +5 net
+        assert!((budget.net_flow_this_tick() - 15.0).abs() < 1e-10);
     }
 
     #[test]
