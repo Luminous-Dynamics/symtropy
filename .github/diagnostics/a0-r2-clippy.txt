@@ -1,0 +1,37 @@
+runner_head=46fdbb55bcc7400f22e9e4369f5ebb435b2e666b
+product_parent=366dd29ae74b4aed411517497c5ce7799f2dc79c
+legacy_a0=a80aa06d9b3f9ef0031d69b326d387ec2383cc13
+transform_blob=2ce1df21822064b53c02a7a1b4ebf2d7e2774c57
+rust=1.96.0
+command=cargo clippy --message-format=short --locked --manifest-path product/Cargo.toml -p symtropy-analysis-contracts --all-targets -- -D warnings
+
+[1m[92m   Compiling[0m version_check v0.9.5
+[1m[92m   Compiling[0m proc-macro2 v1.0.106
+[1m[92m    Checking[0m typenum v1.20.1
+[1m[92m   Compiling[0m unicode-ident v1.0.24
+[1m[92m   Compiling[0m quote v1.0.45
+[1m[92m   Compiling[0m serde_core v1.0.228
+[1m[92m   Compiling[0m zmij v1.0.21
+[1m[92m   Compiling[0m generic-array v0.14.7
+[1m[92m    Checking[0m crypto-common v0.1.7
+[1m[92m    Checking[0m block-buffer v0.10.4
+[1m[92m   Compiling[0m syn v2.0.118
+[1m[92m   Compiling[0m serde_json v1.0.150
+[1m[92m   Compiling[0m serde v1.0.228
+[1m[92m    Checking[0m digest v0.10.7
+[1m[92m    Checking[0m cpufeatures v0.2.17
+[1m[92m    Checking[0m itoa v1.0.18
+[1m[92m    Checking[0m memchr v2.8.2
+[1m[92m    Checking[0m cfg-if v1.0.4
+[1m[92m    Checking[0m sha2 v0.10.9
+[1m[92m   Compiling[0m serde_derive v1.0.228
+[1m[92m    Checking[0m symtropy-game-state v0.1.0 (/home/runner/work/symtropy/symtropy/product/crates/domains/symtropy-game-state)
+[1m[92m    Checking[0m symtropy-design v0.1.0 (/home/runner/work/symtropy/symtropy/product/crates/domains/symtropy-design)
+[1m[92m    Checking[0m symtropy-analysis-contracts v0.1.0 (/home/runner/work/symtropy/symtropy/product/crates/domains/symtropy-analysis-contracts)
+crates/domains/symtropy-analysis-contracts/src/lib.rs:675:9: [1m[91merror[0m: this `if` statement can be collapsed
+crates/domains/symtropy-analysis-contracts/src/lib.rs:693:9: [1m[91merror[0m: this `if` statement can be collapsed
+crates/domains/symtropy-analysis-contracts/src/lib.rs:716:9: [1m[91merror[0m: this `if` statement can be collapsed
+crates/domains/symtropy-analysis-contracts/src/lib.rs:735:9: [1m[91merror[0m: this `if` statement can be collapsed
+[1m[91merror[0m: could not compile `symtropy-analysis-contracts` (lib) due to 4 previous errors
+[1m[33mwarning[0m: build failed, waiting for other jobs to finish...
+[1m[91merror[0m: could not compile `symtropy-analysis-contracts` (lib test) due to 4 previous errors
