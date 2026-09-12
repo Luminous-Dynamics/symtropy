@@ -217,7 +217,7 @@ jobs:
         run: |
           set -euo pipefail
           cd product
-          cargo fmt -p symtropy-design -- -p symtropy-design-requirements --check
+          cargo fmt -p symtropy-design -p symtropy-design-requirements -- --check
           cargo check --locked -p symtropy-design --all-targets
           cargo check --locked -p symtropy-design-requirements --all-targets
           cargo test --locked -p symtropy-design
