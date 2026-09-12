@@ -70,4 +70,4 @@ pub use proc_gen::{
 pub use safety::SafetyTier;
 pub use sanctuary::SanctuaryZone;
 pub use simple_field::{SimpleCoupledField, SimpleEntity};
-pub use thermodynamics::{ThermodynamicConstants, ThermodynamicLedger};
+pub use thermodynamics::{LegacyLedgerRecordError, ThermodynamicConstants, ThermodynamicLedger};
