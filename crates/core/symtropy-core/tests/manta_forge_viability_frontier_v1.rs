@@ -415,8 +415,12 @@ fn explicit_frontier_fixture_matches_all_dynamic_cases() {
             handoff_window, case.expected_handoff_window,
             "handoff-window mismatch for {case:?}"
         );
-        role_successes += usize::from(role_window.is_some());
-        handoff_successes += usize::from(handoff_window.is_some());
+        if role_window.is_some() {
+            role_successes += 1;
+        }
+        if handoff_window.is_some() {
+            handoff_successes += 1;
+        }
     }
 
     assert_eq!(role_successes, 25);
