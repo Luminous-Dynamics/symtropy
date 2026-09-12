@@ -52,6 +52,12 @@ semantic_id!(ConsequenceObservationId);
 semantic_id!(PhenotypeEvidenceSourceId);
 semantic_id!(ExposureEvidenceSourceId);
 semantic_id!(EvidenceProtocolId);
+semantic_id!(SelectionComparisonDesignId);
+semantic_id!(PredictorDefinitionId);
+semantic_id!(ExclusionReasonId);
+semantic_id!(AnalysisMethodId);
+semantic_id!(ComparisonAuthorityId);
+semantic_id!(CalibrationAuthorityId);
 
 #[cfg(test)]
 mod tests {
@@ -92,7 +98,13 @@ mod tests {
         assert_wire_contract!(ConsequenceObservationId, "consequence-0001");
         assert_wire_contract!(PhenotypeEvidenceSourceId, "phenotype-source-0001");
         assert_wire_contract!(ExposureEvidenceSourceId, "exposure-source-0001");
-        assert_wire_contract!(EvidenceProtocolId, "protocol-0001");
+        assert_wire_contract!(EvidenceProtocolId, "evidence-protocol-0001");
+        assert_wire_contract!(SelectionComparisonDesignId, "selection-design-0001");
+        assert_wire_contract!(PredictorDefinitionId, "predictor-0001");
+        assert_wire_contract!(ExclusionReasonId, "exclusion-reason-0001");
+        assert_wire_contract!(AnalysisMethodId, "analysis-method-0001");
+        assert_wire_contract!(ComparisonAuthorityId, "comparison-authority-0001");
+        assert_wire_contract!(CalibrationAuthorityId, "calibration-authority-0001");
     }
 
     #[test]
