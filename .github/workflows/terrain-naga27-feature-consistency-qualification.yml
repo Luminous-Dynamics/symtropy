@@ -1,0 +1,121 @@
+name: Terrain Naga 27 Feature Consistency Qualification
+
+on:
+  push:
+    branches:
+      - "terrain/naga27-feature-consistency-v0.1"
+    paths:
+      - ".github/workflows/terrain-naga27-feature-consistency-qualification.yml"
+      - "crates/domains/symtropy-terrain/Cargo.toml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: terrain-naga27-feature-consistency-v0.1
+  cancel-in-progress: true
+
+jobs:
+  qualify:
+    name: Qualify Terrain Naga 27 feature consistency
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Bind exact experiment lineage
+        shell: bash
+        run: |
+          set -euo pipefail
+          base=e707113651e302f7c61c5542483104af352cb3d0
+          manifest=crates/domains/symtropy-terrain/Cargo.toml
+          qualifier=.github/workflows/terrain-naga27-feature-consistency-qualification.yml
+          kernel=crates/domains/symtropy-terrain/src/geometry_kernel.rs
+
+          test "$(git rev-parse HEAD)" = "${GITHUB_SHA}"
+          test "$(git rev-parse HEAD^)" = "${base}"
+          test "$(git rev-parse ${base}:${manifest})" = "6b3dd8cc5ede90833caecd6568757c42ecc97509"
+          test "$(git rev-parse HEAD:${manifest})" = "187fe4020a0c0048ab36404e219a7a5698a856d1"
+          test "$(git rev-parse ${base}:${kernel})" = "8d3e1213eacdeddf693cd2d1f82670d6ed832161"
+          test "$(git rev-parse HEAD:${kernel})" = "8d3e1213eacdeddf693cd2d1f82670d6ed832161"
+          test "$(git rev-parse HEAD:Cargo.lock)" = "$(git rev-parse ${base}:Cargo.lock)"
+
+          actual="$(git diff --name-only ${base}..HEAD | sort)"
+          expected="$(printf '%s\n' "${manifest}" "${qualifier}" | sort)"
+          test "${actual}" = "${expected}"
+
+          grep -Fx 'naga = { version = "27", default-features = false, features = ["termcolor"] }' "${manifest}"
+          echo "TERRAIN_NAGA27_INPUT_HEAD=${GITHUB_SHA}"
+          echo "TERRAIN_NAGA27_INPUT_TREE=$(git rev-parse HEAD^{tree})"
+          echo "TERRAIN_NAGA27_MANIFEST_BLOB=$(git rev-parse HEAD:${manifest})"
+          echo "TERRAIN_GEOMETRY_KERNEL_BLOB=$(git rev-parse HEAD:${kernel})"
+          echo "TERRAIN_LOCK_BLOB=$(git rev-parse HEAD:Cargo.lock)"
+          echo "CARGO_TARGET_DIR=${RUNNER_TEMP}/terrain-naga27-target" >> "${GITHUB_ENV}"
+
+      - name: Install Linux system dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install -y libasound2-dev libudev-dev pkg-config
+
+      - name: Set up pinned Rust
+        uses: dtolnay/rust-toolchain@6bed0761d98439e5a578e2877258200ad565ba87
+        with:
+          toolchain: 1.96.0
+          components: clippy, rustfmt
+
+      - name: Bind toolchain
+        shell: bash
+        run: |
+          set -euo pipefail
+          rustc -Vv
+          cargo -Vv
+          rustfmt --version
+          cargo clippy --version
+
+      - name: Verify locked graph and record inverse activators
+        shell: bash
+        run: |
+          set -euo pipefail
+          before="$(git hash-object Cargo.lock)"
+          cargo metadata --locked --format-version 1 > "${RUNNER_TEMP}/terrain-naga27-metadata.json"
+          cargo tree -p symtropy-terrain --locked -e features -i naga@27.0.3 | tee "${RUNNER_TEMP}/naga27-inverse.txt"
+          cargo tree -p symtropy-terrain --locked -e features -i codespan-reporting@0.12.0 | tee "${RUNNER_TEMP}/codespan012-inverse.txt"
+          test "$(git hash-object Cargo.lock)" = "${before}"
+          echo "TERRAIN_NAGA27_METADATA_SHA256=$(sha256sum "${RUNNER_TEMP}/terrain-naga27-metadata.json" | awk '{print $1}')"
+          echo "TERRAIN_NAGA27_INVERSE_SHA256=$(sha256sum "${RUNNER_TEMP}/naga27-inverse.txt" | awk '{print $1}')"
+          echo "TERRAIN_CODESPAN012_INVERSE_SHA256=$(sha256sum "${RUNNER_TEMP}/codespan012-inverse.txt" | awk '{print $1}')"
+
+      - name: Check Terrain exact selected graph
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo check -p symtropy-terrain --locked --all-targets
+
+      - name: Test Terrain exact selected graph
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo test -p symtropy-terrain --locked --all-targets
+
+      - name: Strict Terrain Clippy
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo clippy -p symtropy-terrain --locked --all-targets -- -D warnings
+
+      - name: Unchanged-subject postflight
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -z "$(git status --porcelain)"
+          test "$(git rev-parse HEAD)" = "${GITHUB_SHA}"
+          test "$(git rev-parse HEAD:crates/domains/symtropy-terrain/Cargo.toml)" = "187fe4020a0c0048ab36404e219a7a5698a856d1"
+          test "$(git rev-parse HEAD:crates/domains/symtropy-terrain/src/geometry_kernel.rs)" = "8d3e1213eacdeddf693cd2d1f82670d6ed832161"
+          test "$(git rev-parse HEAD:Cargo.lock)" = "$(git rev-parse e707113651e302f7c61c5542483104af352cb3d0:Cargo.lock)"
+          echo "TERRAIN_NAGA27_FEATURE_CONSISTENCY_STATUS=PASS"
+          echo "claim=package-scoped Naga 27 termcolor feature consistency restores the exact Terrain selected graph; no geometry/provider semantic claim"
