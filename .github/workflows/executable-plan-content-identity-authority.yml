@@ -1,0 +1,239 @@
+name: Executable Plan Content Identity Authority
+
+on:
+  pull_request:
+    branches: [ "main" ]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: executable-plan-content-identity-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  qualify:
+    name: Apply and prove exact executable-plan content identity
+    runs-on: ubuntu-24.04
+    env:
+      CARGO_TARGET_DIR: /tmp/symtropy-executable-plan-content-identity-target
+    steps:
+      - name: Check out exact product parent
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: fabrication/executable-plan-content-identity
+          path: product
+          fetch-depth: 0
+
+      - name: Check out exact authority tools
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          path: runner-tools
+          persist-credentials: false
+          fetch-depth: 0
+
+      - name: Bind exact qualification subjects
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git -C product rev-parse HEAD)" = "a3a2bc5e07c69996ee9542048d41c4c84bdb25ef"
+          test "$(git -C product rev-parse HEAD^{tree})" = "e8e198ce04c4b4ad790e05ee3a01b0d59139461f"
+          test "$(git -C runner-tools rev-parse HEAD)" = "${{ github.event.pull_request.head.sha }}"
+          test "$(git -C runner-tools hash-object .github/repair/executable_plan_content_identity.py)" = "309a09d307e79d2daa1904827607352615087b1a"
+          test -z "$(git -C product status --porcelain=v1 --untracked-files=all)"
+          test -z "$(git -C runner-tools status --porcelain=v1 --untracked-files=all)"
+          echo "IDENTITY_PARENT_HEAD=$(git -C product rev-parse HEAD)"
+          echo "IDENTITY_PARENT_TREE=$(git -C product rev-parse HEAD^{tree})"
+          echo "IDENTITY_QUALIFIER_HEAD=$(git -C runner-tools rev-parse HEAD)"
+          echo "IDENTITY_TRANSFORM_BLOB=309a09d307e79d2daa1904827607352615087b1a"
+
+      - name: Record hosted execution environment
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "RUNNER_OS=${RUNNER_OS}"
+          echo "RUNNER_ARCH=${RUNNER_ARCH}"
+          echo "IMAGE_OS=${ImageOS:-unknown}"
+          echo "IMAGE_VERSION=${ImageVersion:-unknown}"
+          uname -a
+          git --version
+
+      - name: Set up pinned Rust 1.96
+        uses: dtolnay/rust-toolchain@6bed0761d98439e5a578e2877258200ad565ba87
+        with:
+          toolchain: 1.96.0
+          components: clippy, rustfmt
+
+      - name: Bind exact Rust toolchain
+        shell: bash
+        run: |
+          set -euo pipefail
+          rustc -Vv
+          cargo -Vv
+          rustfmt --version
+          cargo clippy --version
+
+      - name: Re-prove exact qualified #605 parent
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd product
+          cargo check --locked -p symtropy-fabrication --lib
+          cargo test --locked -p symtropy-fabrication --lib
+          cargo clippy --locked -p symtropy-fabrication --all-targets --all-features -- -D warnings
+          cargo check --locked -p symtropy-construction --lib
+          cargo check --locked -p symtropy-firstlight
+          test -z "$(git status --porcelain=v1 --untracked-files=all)"
+
+      - name: Bind parent dependency graph
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd product
+          test -s Cargo.lock
+          cp Cargo.lock /tmp/executable-plan-content-identity-Cargo.lock.before
+          echo "IDENTITY_PARENT_LOCK_BLOB=$(git hash-object Cargo.lock)"
+          echo "IDENTITY_PARENT_LOCK_SHA256=$(sha256sum Cargo.lock | awk '{print $1}')"
+          cargo metadata --locked --format-version 1 > /tmp/executable-plan-parent-metadata.json
+          echo "IDENTITY_PARENT_METADATA_SHA256=$(sha256sum /tmp/executable-plan-parent-metadata.json | awk '{print $1}')"
+          test -z "$(git status --porcelain=v1 --untracked-files=all)"
+
+      - name: Apply exact content-identity transform
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd product
+          python3 ../runner-tools/.github/repair/executable_plan_content_identity.py
+          cargo fmt -p symtropy-fabrication
+
+      - name: Resolve only the new direct SHA-256 dependency edge
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd product
+          cargo check -p symtropy-fabrication --lib
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+
+          before = Path('/tmp/executable-plan-content-identity-Cargo.lock.before').read_text()
+          after = Path('Cargo.lock').read_text()
+          pattern = re.compile(r'(?ms)^\[\[package\]\]\nname = "symtropy-fabrication"\n.*?(?=^\[\[package\]\]\n|\Z)')
+          before_match = pattern.search(before)
+          after_match = pattern.search(after)
+          assert before_match is not None, 'missing parent symtropy-fabrication lock stanza'
+          assert after_match is not None, 'missing transformed symtropy-fabrication lock stanza'
+          before_stanza = before_match.group(0)
+          after_stanza = after_match.group(0)
+          before_rest = before[:before_match.start()] + before[before_match.end():]
+          after_rest = after[:after_match.start()] + after[after_match.end():]
+          assert before_rest == after_rest, 'lock resolution changed outside symtropy-fabrication package stanza'
+          assert re.search(r'(?m)^ "sha2",$', before_stanza) is None, 'parent already directly depends on sha2'
+          stripped, count = re.subn(r'(?m)^ "sha2",\n', '', after_stanza)
+          assert count == 1, 'transformed lock must add exactly one sha2 dependency line'
+          assert stripped == before_stanza, 'symtropy-fabrication lock stanza changed beyond direct sha2 edge'
+          PY
+          cargo metadata --locked --format-version 1 > /tmp/executable-plan-transformed-metadata.json
+          echo "IDENTITY_LOCK_BLOB=$(git hash-object Cargo.lock)"
+          echo "IDENTITY_LOCK_SHA256=$(sha256sum Cargo.lock | awk '{print $1}')"
+          echo "IDENTITY_METADATA_SHA256=$(sha256sum /tmp/executable-plan-transformed-metadata.json | awk '{print $1}')"
+
+      - name: Prove exact semantic source scope
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd product
+          expected=$(cat <<'EOF'
+          Cargo.lock
+          crates/domains/symtropy-fabrication/Cargo.toml
+          crates/domains/symtropy-fabrication/src/executable_plan_identity.rs
+          crates/domains/symtropy-fabrication/src/lib.rs
+          EOF
+          )
+          actual=$(git status --porcelain=v1 --untracked-files=all | sed 's/^...//' | sort)
+          test "$(printf '%s\n' "$actual")" = "$(printf '%s\n' "$expected" | sort)"
+          printf '%s\n' "$actual"
+
+      - name: Prove v1 authority shape
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd product
+          file=crates/domains/symtropy-fabrication/src/executable_plan_identity.rs
+          grep -q 'EXECUTABLE_PLAN_DIGEST_SCHEMA_VERSION: u32 = 1' "$file"
+          grep -q 'symtropy:executable-fabrication-plan' "$file"
+          grep -q 'ExecutablePlanDigestAlgorithm::Sha256' "$file"
+          grep -q 'fn process_kind_tag' "$file"
+          grep -q 'fn workpiece_lifecycle_tag' "$file"
+          grep -q 'same_need_identity_with_changed_f5_semantics_changes_digest' "$file"
+          grep -q 'provider_state_is_outside_plan_digest' "$file"
+          grep -q 'compact_ref_rejects_same_lineage_changed_exact_content' "$file"
+          grep -q 'c1a830a601fa472b3c112282454de040bb2c148c8fcf5e90d11de81ba1822413' "$file"
+          ! grep -q 'serde_json::to_vec.*content_digest' "$file"
+
+      - name: Run locked transformed Fabrication tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd product
+          cargo test --locked -p symtropy-fabrication --lib
+
+      - name: Run frozen golden digest vector explicitly
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd product
+          cargo test --locked -p symtropy-fabrication golden_v1_digest_freezes_cross_layer_preimage -- --exact
+
+      - name: Run strict transformed Fabrication Clippy
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd product
+          cargo clippy --locked -p symtropy-fabrication --all-targets --all-features -- -D warnings
+
+      - name: Check exact downstream consumers
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd product
+          cargo check --locked -p symtropy-construction --lib
+          cargo check --locked -p symtropy-firstlight
+
+      - name: Commit exact #611 semantic subject only
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd product
+          expected=$(cat <<'EOF'
+          Cargo.lock
+          crates/domains/symtropy-fabrication/Cargo.toml
+          crates/domains/symtropy-fabrication/src/executable_plan_identity.rs
+          crates/domains/symtropy-fabrication/src/lib.rs
+          EOF
+          )
+          actual=$(git status --porcelain=v1 --untracked-files=all | sed 's/^...//' | sort)
+          test "$(printf '%s\n' "$actual")" = "$(printf '%s\n' "$expected" | sort)"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add Cargo.lock \
+            crates/domains/symtropy-fabrication/Cargo.toml \
+            crates/domains/symtropy-fabrication/src/lib.rs \
+            crates/domains/symtropy-fabrication/src/executable_plan_identity.rs
+          staged=$(git diff --cached --name-only | sort)
+          test "$(printf '%s\n' "$staged")" = "$(printf '%s\n' "$expected" | sort)"
+          test -z "$(git diff --name-only)"
+          git commit -m "feat(fabrication): add executable-plan content identity"
+          test -z "$(git status --porcelain=v1 --untracked-files=all)"
+          echo "IDENTITY_PRODUCT_HEAD=$(git rev-parse HEAD)"
+          echo "IDENTITY_PRODUCT_TREE=$(git rev-parse HEAD^{tree})"
+
+      - name: Refuse product-branch race and push exact qualified head
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd product
+          remote_head="$(git ls-remote origin refs/heads/fabrication/executable-plan-content-identity | awk '{print $1}')"
+          test "${remote_head}" = "a3a2bc5e07c69996ee9542048d41c4c84bdb25ef"
+          git push origin HEAD:fabrication/executable-plan-content-identity
