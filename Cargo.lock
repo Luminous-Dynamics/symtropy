@@ -8915,6 +8915,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "symtropy-analysis-qualification"
+version = "0.1.0"
+dependencies = [
+ "serde",
+ "sha2",
+ "symtropy-analysis-contracts",
+ "symtropy-design",
+ "symtropy-game-state",
+]
+
+[[package]]
 name = "symtropy-basin"
 version = "0.1.0"
 dependencies = [
