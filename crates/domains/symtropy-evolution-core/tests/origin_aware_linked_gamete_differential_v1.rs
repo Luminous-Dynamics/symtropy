@@ -510,7 +510,8 @@ fn explicit_linked_gamete_pairs_match_origin_aware_two_copy_neutral_null() {
         );
         assert!(origins.contains(&first));
         assert!(origins.contains(&second));
-        let explicit_first_count = u64::from(first == origins[0]) + u64::from(second == origins[0]);
+        let explicit_first_count = if first == origins[0] { 1_u64 } else { 0_u64 }
+            + if second == origins[0] { 1_u64 } else { 0_u64 };
         explicit_histogram[explicit_first_count as usize] += 1;
 
         let result = neutral_origin_aware_population_step(
