@@ -34,6 +34,10 @@ pub mod typed_closure_process_acceptance;
 pub mod typed_closure_qualification;
 
 #[cfg(test)]
+mod q2_authority_test_support;
+#[cfg(test)]
+mod shadow_current_executable_continuity_hostile_tests;
+#[cfg(test)]
 mod shadow_runner_authority_test_support;
 #[cfg(test)]
 mod shadow_runner_subject_binding_hostile_tests;
