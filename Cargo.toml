@@ -170,6 +170,7 @@ members = [
     "crates/domains/symtropy-game-state",
     "crates/domains/symtropy-design",
     "crates/domains/symtropy-design-requirements",
+    "crates/domains/symtropy-analysis-contracts",
     "crates/domains/symtropy-iris",
     "crates/domains/symtropy-persistence",
     "crates/domains/symtropy-residents",
