@@ -1,23 +1,242 @@
-name: D1 Canonical Digest Authority (held for format prerequisite)
+name: D1 Canonical Digest Authority
 
 on:
   pull_request:
     branches: [ "main" ]
 
 permissions:
-  contents: read
+  contents: write
 
 concurrency:
   group: d1-canonical-digest-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
+env:
+  CARGO_TARGET_DIR: /tmp/symtropy-d1-canonical-digest-target
+  PRODUCT_BRANCH: design/d1-content-bound-design-revisions-v0.1
+  PRODUCT_PARENT: 5b23969d1b4a261cbdb4a3e24d623c22e683b45e
+  PRODUCT_PARENT_TREE: ba2a856330ab5661c53af4d6f667869e1cb32d23
+  PRODUCT_PREDECESSOR: 36797e6a09833da202d97a27a8aa2dc9ecc66e90
+  PRODUCT_LOCK_BLOB: 9722cc9a91cd8c1ba3194be110798e96d3d3f45b
+  PRODUCT_SOURCE_BLOB: 792a632fb0101dbae1aa2865b8a5f2ce38df7bad
+  ANCHOR_ADAPTER_BLOB: e162e3c3a944645d9684b15f9d4f3d404de22ec6
+  DIGEST_TRANSFORM_BLOB: cf593765b3cb6b6ac4dd01295d1395d11c3141f5
+
 jobs:
-  hold:
-    name: Refuse semantic promotion until exact D1 format prerequisite is qualified
+  qualify-and-promote:
+    name: Apply and prove exact D1 canonical digest protocol
     runs-on: ubuntu-24.04
     steps:
-      - run: |
-          echo 'D1 canonical digest promotion is intentionally held.'
-          echo 'Exact lock-fixed parent 36797e6a... has Rust 1.96 rustfmt drift in symtropy-design/src/lib.rs.'
-          echo 'Formatting must be promoted and qualified independently before semantic identity changes.'
-          echo 'This workflow performs no checkout, transform, commit, or push.'
+      - name: Check out exact formatted D1 product
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ env.PRODUCT_BRANCH }}
+          path: product
+          fetch-depth: 0
+
+      - name: Check out exact authority tools
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          path: runner-tools
+          persist-credentials: false
+          fetch-depth: 0
+
+      - name: Bind exact qualification subjects
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git -C product rev-parse HEAD)" = "$PRODUCT_PARENT"
+          test "$(git -C product rev-parse HEAD^{tree})" = "$PRODUCT_PARENT_TREE"
+          test "$(git -C product rev-parse HEAD^)" = "$PRODUCT_PREDECESSOR"
+          test "$(git -C product hash-object Cargo.lock)" = "$PRODUCT_LOCK_BLOB"
+          test "$(git -C product hash-object crates/domains/symtropy-design/src/lib.rs)" = "$PRODUCT_SOURCE_BLOB"
+          test "$(git -C runner-tools rev-parse HEAD)" = "${{ github.event.pull_request.head.sha }}"
+          test "$(git -C runner-tools hash-object .github/repair/d1_rust196_anchor_adapter.py)" = "$ANCHOR_ADAPTER_BLOB"
+          test "$(git -C runner-tools hash-object .github/repair/d1_canonical_design_digest.py)" = "$DIGEST_TRANSFORM_BLOB"
+          test -z "$(git -C product status --porcelain=v1 --untracked-files=all)"
+          test -z "$(git -C runner-tools status --porcelain=v1 --untracked-files=all)"
+          echo "D1_DIGEST_PARENT_HEAD=$(git -C product rev-parse HEAD)"
+          echo "D1_DIGEST_PARENT_TREE=$(git -C product rev-parse HEAD^{tree})"
+          echo "D1_DIGEST_ADAPTER_BLOB=$ANCHOR_ADAPTER_BLOB"
+          echo "D1_DIGEST_TRANSFORM_BLOB=$DIGEST_TRANSFORM_BLOB"
+
+      - name: Record hosted execution environment
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "RUNNER_OS=${RUNNER_OS}"
+          echo "RUNNER_ARCH=${RUNNER_ARCH}"
+          echo "IMAGE_OS=${ImageOS:-unknown}"
+          echo "IMAGE_VERSION=${ImageVersion:-unknown}"
+          uname -a
+          git --version
+
+      - name: Set up pinned Rust 1.96
+        uses: dtolnay/rust-toolchain@6bed0761d98439e5a578e2877258200ad565ba87
+        with:
+          toolchain: 1.96.0
+          components: clippy, rustfmt
+
+      - name: Bind exact Rust toolchain
+        shell: bash
+        run: |
+          set -euo pipefail
+          rustc -Vv
+          cargo -Vv
+          rustfmt --version
+          cargo clippy --version
+
+      - name: Re-prove exact formatted D1 parent
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd product
+          cargo metadata --locked --format-version 1 > /tmp/d1-parent-metadata.json
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          metadata = json.loads(Path('/tmp/d1-parent-metadata.json').read_text())
+          packages = [p for p in metadata['packages'] if p['name'] == 'symtropy-design']
+          assert len(packages) == 1, packages
+          package = packages[0]
+          assert package['version'] == '0.1.0', package['version']
+          dependencies = sorted(dep['name'] for dep in package['dependencies'])
+          assert dependencies == ['serde', 'serde_json', 'sha2', 'symtropy-game-state'], dependencies
+          print('D1_PARENT_PACKAGE=symtropy-design@0.1.0')
+          print('D1_PARENT_DEPENDENCIES=' + ','.join(dependencies))
+          PY
+          cargo fmt -p symtropy-design -- --check
+          cargo check --locked -p symtropy-design --all-targets
+          cargo test --locked -p symtropy-design
+          cargo clippy --locked -p symtropy-design --all-targets -- -D warnings
+          test -z "$(git status --porcelain=v1 --untracked-files=all)"
+
+      - name: Freeze parent dependency and source bytes
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd product
+          cp Cargo.lock /tmp/d1-digest-Cargo.lock.before
+          cp Cargo.toml /tmp/d1-digest-root-Cargo.toml.before
+          cp crates/domains/symtropy-design/Cargo.toml /tmp/d1-digest-crate-Cargo.toml.before
+          cp crates/domains/symtropy-design/src/lib.rs /tmp/d1-digest-lib.rs.before
+          test "$(git hash-object crates/domains/symtropy-design/src/lib.rs)" = "$PRODUCT_SOURCE_BLOB"
+
+      - name: Prove text-anchor adapter is formatting-only and reversible
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd product
+          python3 ../runner-tools/.github/repair/d1_rust196_anchor_adapter.py
+          test "$(git status --porcelain=v1 --untracked-files=all)" = ' M crates/domains/symtropy-design/src/lib.rs'
+          cargo fmt -p symtropy-design
+          cmp crates/domains/symtropy-design/src/lib.rs /tmp/d1-digest-lib.rs.before
+          test "$(git hash-object crates/domains/symtropy-design/src/lib.rs)" = "$PRODUCT_SOURCE_BLOB"
+          test -z "$(git status --porcelain=v1 --untracked-files=all)"
+
+      - name: Apply exact adapter plus frozen canonical-digest transform
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd product
+          python3 ../runner-tools/.github/repair/d1_rust196_anchor_adapter.py
+          python3 ../runner-tools/.github/repair/d1_canonical_design_digest.py
+          cargo fmt -p symtropy-design
+
+      - name: Prove exact semantic source scope
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd product
+          test "$(git status --porcelain=v1 --untracked-files=all)" = ' M crates/domains/symtropy-design/src/lib.rs'
+          cmp Cargo.lock /tmp/d1-digest-Cargo.lock.before
+          cmp Cargo.toml /tmp/d1-digest-root-Cargo.toml.before
+          cmp crates/domains/symtropy-design/Cargo.toml /tmp/d1-digest-crate-Cargo.toml.before
+          git diff --check
+          git diff -- crates/domains/symtropy-design/src/lib.rs
+
+      - name: Prove canonical identity authority shape
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd product
+          file=crates/domains/symtropy-design/src/lib.rs
+          grep -q 'DESIGN_REVISION_SCHEMA_VERSION: u32 = 1' "$file"
+          grep -q 'symtropy.design.revision.v1\\0' "$file"
+          grep -q 'fn canonical_preimage' "$file"
+          grep -q 'fn encode_digest' "$file"
+          grep -q 'fn encode_len' "$file"
+          grep -q 'UnsupportedSchemaVersion' "$file"
+          grep -q 'canonical_digest_protocol_has_frozen_golden_vector' "$file"
+          grep -q 'schema_version_is_digest_semantics_and_wire_tampering_fails_closed' "$file"
+          grep -q '3754b633817fd02c8d731793a8f5b76debd8e3c0791f01f77782c1f216ff4045' "$file"
+          ! grep -q 'serde_json::to_vec(self)' "$file"
+
+      - name: Prove canonical golden executes exactly once
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd product
+          output="$(cargo test --locked -p symtropy-design canonical_digest_protocol_has_frozen_golden_vector 2>&1)"
+          printf '%s\n' "$output"
+          printf '%s\n' "$output" | grep -Eq 'test .*canonical_digest_protocol_has_frozen_golden_vector .* ok'
+          printf '%s\n' "$output" | grep -Eq 'test result: ok\. 1 passed; 0 failed;'
+
+      - name: Prove schema tamper regression executes exactly once
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd product
+          output="$(cargo test --locked -p symtropy-design schema_version_is_digest_semantics_and_wire_tampering_fails_closed 2>&1)"
+          printf '%s\n' "$output"
+          printf '%s\n' "$output" | grep -Eq 'test .*schema_version_is_digest_semantics_and_wire_tampering_fails_closed .* ok'
+          printf '%s\n' "$output" | grep -Eq 'test result: ok\. 1 passed; 0 failed;'
+
+      - name: Run full locked transformed Design qualification
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd product
+          cargo fmt -p symtropy-design -- --check
+          cargo check --locked -p symtropy-design --all-targets
+          cargo test --locked -p symtropy-design
+          cargo clippy --locked -p symtropy-design --all-targets -- -D warnings
+
+      - name: Prove dependency surfaces remained fixed
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd product
+          cmp Cargo.lock /tmp/d1-digest-Cargo.lock.before
+          cmp Cargo.toml /tmp/d1-digest-root-Cargo.toml.before
+          cmp crates/domains/symtropy-design/Cargo.toml /tmp/d1-digest-crate-Cargo.toml.before
+          test "$(git status --porcelain=v1 --untracked-files=all)" = ' M crates/domains/symtropy-design/src/lib.rs'
+
+      - name: Commit exact D1 semantic subject only
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd product
+          test "$(git rev-parse HEAD)" = "$PRODUCT_PARENT"
+          git config user.name "luminous-qualification-bot"
+          git config user.email "qualification@luminous.invalid"
+          git add crates/domains/symtropy-design/src/lib.rs
+          test "$(git diff --cached --name-only)" = 'crates/domains/symtropy-design/src/lib.rs'
+          test -z "$(git diff --name-only)"
+          git commit -m "feat(design): freeze canonical revision digest protocol"
+          test "$(git rev-parse HEAD^)" = "$PRODUCT_PARENT"
+          test "$(git diff-tree --no-commit-id --name-only -r HEAD)" = 'crates/domains/symtropy-design/src/lib.rs'
+          echo "D1_DIGEST_QUALIFIED_HEAD=$(git rev-parse HEAD)"
+          echo "D1_DIGEST_QUALIFIED_TREE=$(git rev-parse HEAD^{tree})"
+
+      - name: Refuse branch race and push exact qualified D1 head
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd product
+          remote_head="$(git ls-remote origin "refs/heads/${PRODUCT_BRANCH}" | awk '{print $1}')"
+          test "$remote_head" = "$PRODUCT_PARENT"
+          git push origin "HEAD:${PRODUCT_BRANCH}"
+          test "$(git ls-remote origin "refs/heads/${PRODUCT_BRANCH}" | cut -f1)" = "$(git rev-parse HEAD)"
+          echo "D1_DIGEST_PROMOTED_HEAD=$(git rev-parse HEAD)"
