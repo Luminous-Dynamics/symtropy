@@ -6,6 +6,8 @@ on:
 
 permissions:
   contents: read
+  issues: write
+  pull-requests: write
 
 concurrency:
   group: a0-r2-clippy-diagnostic-${{ github.event.pull_request.number || github.ref }}
@@ -74,6 +76,9 @@ jobs:
 
       - name: Emit strict A0 Clippy diagnostic
         shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
         run: |
           set -o pipefail
           cargo clippy --message-format=short --locked --manifest-path product/Cargo.toml -p symtropy-analysis-contracts --all-targets -- -D warnings 2>&1 | tee /tmp/a0-clippy.log
@@ -82,13 +87,15 @@ jobs:
             echo "::group::A0 strict Clippy diagnostic"
             grep -E '(^|: )(error|warning)(\[|:)|--> |clippy::' /tmp/a0-clippy.log || cat /tmp/a0-clippy.log
             echo "::endgroup::"
-            diag="$(grep -m1 -E '^.*:[0-9]+:[0-9]+: (error|warning):' /tmp/a0-clippy.log || grep -m1 -E '^(error|warning)(\[[^]]+\])?:' /tmp/a0-clippy.log || true)"
-            if [ -z "$diag" ]; then
-              diag="strict Clippy failed; inspect the diagnostic group"
+            raw_diag="$(grep -m1 -E '^.*:[0-9]+:[0-9]+: (error|warning):' /tmp/a0-clippy.log || grep -m1 -E '^(error|warning)(\[[^]]+\])?:' /tmp/a0-clippy.log || true)"
+            if [ -z "$raw_diag" ]; then
+              raw_diag="strict Clippy failed; inspect the diagnostic group"
             fi
-            diag="${diag//'%'/'%25'}"
-            diag="${diag//$'\r'/'%0D'}"
-            diag="${diag//$'\n'/'%0A'}"
-            echo "::error title=A0 strict Clippy::$diag"
+            annotation="${raw_diag//'%'/'%25'}"
+            annotation="${annotation//$'\r'/'%0D'}"
+            annotation="${annotation//$'\n'/'%0A'}"
+            echo "::error title=A0 strict Clippy::$annotation"
+            printf 'Exact hosted A0 strict-Clippy diagnostic for runner head `%s`:\n\n```text\n%s\n```\n\nThis is diagnostic-only; the A0 product branch was not mutated.\n' "$GITHUB_SHA" "$raw_diag" > /tmp/a0-clippy-comment.md
+            gh pr comment "$PR_NUMBER" --repo "$GITHUB_REPOSITORY" --body-file /tmp/a0-clippy-comment.md
           fi
           exit "$status"
