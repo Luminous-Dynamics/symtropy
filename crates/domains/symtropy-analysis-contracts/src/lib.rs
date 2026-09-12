@@ -12,6 +12,8 @@ use std::{error::Error, fmt};
 use symtropy_design::{ContentDigest, DesignRevisionRef};
 use symtropy_game_state::StableId;
 
+mod persistence;
+
 pub const ANALYSIS_REQUEST_SCHEMA_VERSION: u32 = 1;
 pub const ANALYSIS_EVIDENCE_SCHEMA_VERSION: u32 = 1;
 const REQUEST_DIGEST_DOMAIN: &[u8] = b"symtropy.analysis.request.v1\0";
@@ -49,7 +51,7 @@ stable_id_type!(AnalysisProfileId);
 stable_id_type!(AnalysisObservationId);
 
 /// Exact immutable reference to semantics owned by an external authority.
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize)]
 pub struct ExactSemanticRef {
     pub authority_id: StableId,
     pub subject_id: StableId,
@@ -85,7 +87,7 @@ impl ExactSemanticRef {
 
 /// Exact artifact used or produced by analysis. Storage location is not part
 /// of artifact identity.
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize)]
 pub struct AnalysisArtifactRef {
     pub id: AnalysisArtifactId,
     pub role_id: StableId,
@@ -117,7 +119,7 @@ impl AnalysisArtifactRef {
 }
 
 /// One observable requested by an analysis consumer.
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize)]
 pub struct ObservableRequest {
     pub observable_id: StableId,
     pub dimension_id: StableId,
@@ -151,7 +153,7 @@ impl ObservableRequest {
 
 /// Exact analysis profile. Profile contents define the discipline/model family,
 /// numerical policy and other semantics; the request binds its exact digest.
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize)]
 pub struct AnalysisProfileRef {
     pub id: AnalysisProfileId,
     pub revision: u64,
@@ -182,7 +184,7 @@ impl AnalysisProfileRef {
 }
 
 /// Immutable solver-independent request for analysis of one exact design.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub struct AnalysisRequest {
     schema_version: u32,
     id: AnalysisRequestId,
@@ -289,7 +291,7 @@ impl AnalysisRequest {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize)]
 pub struct AnalysisRequestRef {
     pub id: AnalysisRequestId,
     pub content_digest: ContentDigest,
@@ -305,7 +307,7 @@ impl AnalysisRequestRef {
 }
 
 /// Exact identity of the program that produced an analysis execution.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub struct SolverIdentity {
     pub provider_id: StableId,
     pub implementation_id: StableId,
@@ -381,7 +383,7 @@ pub enum ObservationState {
 
 /// Analysis value. Integer intervals preserve uncertainty/resolution without
 /// importing floating-point NaN/Infinity semantics into authority records.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 #[serde(tag = "value_kind", rename_all = "snake_case")]
 pub enum AnalysisValue {
     Measurement {
@@ -422,7 +424,7 @@ impl AnalysisValue {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub struct AnalysisObservation {
     pub id: AnalysisObservationId,
     pub class: ObservationClass,
@@ -465,7 +467,18 @@ impl AnalysisObservation {
 }
 
 /// Immutable execution evidence for one exact request.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+///
+/// Raw/restored evidence deliberately has no affirmative result-qualification API.
+/// Consumers must replay it against the exact request and retain the validated
+/// wrapper before asking whether requested results may enter downstream qualification.
+///
+/// ```compile_fail
+/// use symtropy_analysis_contracts::AnalysisEvidence;
+/// fn raw_evidence_cannot_authorize(evidence: &AnalysisEvidence) {
+///     let _ = evidence.may_enter_result_qualification();
+/// }
+/// ```
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub struct AnalysisEvidence {
     schema_version: u32,
     id: AnalysisEvidenceId,
@@ -539,14 +552,25 @@ impl AnalysisEvidence {
         self.numerical_disposition
     }
 
-    /// Structural eligibility only: downstream model/applicability/evidence
-    /// qualification is still required before any engineering fact exists.
-    pub fn may_enter_result_qualification(&self) -> bool {
+    fn result_disposition_eligible(&self) -> bool {
         self.run_disposition == RunDisposition::Completed
             && matches!(
                 self.numerical_disposition,
                 NumericalDisposition::Converged | NumericalDisposition::NotApplicable
             )
+    }
+
+    /// Replay every request-dependent invariant and return the only A0 type
+    /// allowed to expose affirmative downstream result-qualification eligibility.
+    pub fn rebind<'a>(
+        &'a self,
+        request: &'a AnalysisRequest,
+    ) -> Result<ValidatedAnalysisEvidence<'a>, AnalysisError> {
+        self.validate_against(request)?;
+        Ok(ValidatedAnalysisEvidence {
+            evidence: self,
+            request,
+        })
     }
 
     pub fn exact_ref(
@@ -567,21 +591,14 @@ impl AnalysisEvidence {
         sha256_digest(&self.canonical_preimage()?)
     }
 
-    pub fn validate_against(&self, request: &AnalysisRequest) -> Result<(), AnalysisError> {
+    fn validate_structure(&self) -> Result<(), AnalysisError> {
         if self.schema_version != ANALYSIS_EVIDENCE_SCHEMA_VERSION {
             return Err(AnalysisError::UnsupportedEvidenceSchema(
                 self.schema_version,
             ));
         }
         validate_stable_id(self.id.stable_id())?;
-        request.validate()?;
         self.request.validate()?;
-        if self.request != request.exact_ref()? {
-            return Err(AnalysisError::RequestIdentityMismatch);
-        }
-        if self.subject != *request.subject() {
-            return Err(AnalysisError::DesignSubjectMismatch);
-        }
         self.subject.validate().map_err(AnalysisError::Design)?;
         self.solver.validate()?;
         self.environment.validate()?;
@@ -596,17 +613,32 @@ impl AnalysisEvidence {
             return Err(AnalysisError::ConvergenceOnIncompleteRun);
         }
 
-        let result_eligible = self.may_enter_result_qualification();
+        let result_eligible = self.result_disposition_eligible();
         for observation in &self.observations {
             observation.validate()?;
+            if observation.class == ObservationClass::RequestedResult && !result_eligible {
+                return Err(AnalysisError::AffirmativeResultFromUnqualifiedRun {
+                    observation_id: observation.id.clone(),
+                    run_disposition: self.run_disposition,
+                    numerical_disposition: self.numerical_disposition,
+                });
+            }
+        }
+        Ok(())
+    }
+
+    pub fn validate_against(&self, request: &AnalysisRequest) -> Result<(), AnalysisError> {
+        self.validate_structure()?;
+        request.validate()?;
+        if self.request != request.exact_ref()? {
+            return Err(AnalysisError::RequestIdentityMismatch);
+        }
+        if self.subject != *request.subject() {
+            return Err(AnalysisError::DesignSubjectMismatch);
+        }
+
+        for observation in &self.observations {
             if observation.class == ObservationClass::RequestedResult {
-                if !result_eligible {
-                    return Err(AnalysisError::AffirmativeResultFromUnqualifiedRun {
-                        observation_id: observation.id.clone(),
-                        run_disposition: self.run_disposition,
-                        numerical_disposition: self.numerical_disposition,
-                    });
-                }
                 let Some(expected) = request
                     .requested_observables()
                     .iter()
@@ -662,10 +694,54 @@ impl AnalysisEvidence {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
+/// Request-replayed A0 execution evidence.
+///
+/// This wrapper deliberately does not implement `Serialize` or `Deserialize`.
+/// Persistence restores raw `AnalysisEvidence`; downstream affirmative eligibility
+/// must be reacquired by calling `AnalysisEvidence::rebind` with the exact request.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct ValidatedAnalysisEvidence<'a> {
+    evidence: &'a AnalysisEvidence,
+    request: &'a AnalysisRequest,
+}
+
+impl<'a> ValidatedAnalysisEvidence<'a> {
+    pub const fn evidence(&self) -> &'a AnalysisEvidence {
+        self.evidence
+    }
+
+    pub const fn request(&self) -> &'a AnalysisRequest {
+        self.request
+    }
+
+    /// Structural eligibility only. Model qualification, applicability,
+    /// replication, engineering truth, safety and commissioning remain external.
+    pub fn may_enter_result_qualification(&self) -> bool {
+        self.evidence.result_disposition_eligible()
+    }
+
+    pub fn exact_ref(&self) -> Result<AnalysisEvidenceRef, AnalysisError> {
+        self.evidence.exact_ref(self.request)
+    }
+
+    pub fn content_digest(&self) -> Result<ContentDigest, AnalysisError> {
+        self.evidence.content_digest(self.request)
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize)]
 pub struct AnalysisEvidenceRef {
     pub id: AnalysisEvidenceId,
     pub content_digest: ContentDigest,
+}
+
+impl AnalysisEvidenceRef {
+    pub fn validate(&self) -> Result<(), AnalysisError> {
+        validate_stable_id(self.id.stable_id())?;
+        self.content_digest
+            .validate()
+            .map_err(AnalysisError::Design)
+    }
 }
 
 fn validate_unique_artifacts(artifacts: &[AnalysisArtifactRef]) -> Result<(), AnalysisError> {
@@ -1194,7 +1270,12 @@ mod tests {
             "solver-a",
         )
         .unwrap();
-        assert!(evidence.may_enter_result_qualification());
+        assert!(
+            evidence
+                .rebind(&request)
+                .unwrap()
+                .may_enter_result_qualification()
+        );
         assert_eq!(evidence.observations().len(), 1);
     }
 
@@ -1225,7 +1306,12 @@ mod tests {
             "solver-a",
         )
         .unwrap();
-        assert!(!evidence.may_enter_result_qualification());
+        assert!(
+            !evidence
+                .rebind(&request)
+                .unwrap()
+                .may_enter_result_qualification()
+        );
         assert_eq!(evidence.observations().len(), 1);
     }
 
