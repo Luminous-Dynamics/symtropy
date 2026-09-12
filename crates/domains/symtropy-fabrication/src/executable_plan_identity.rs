@@ -93,14 +93,37 @@ impl fmt::Display for ExecutablePlanDigest {
 
 /// Compact exact reference suitable for downstream persistence/rebind records.
 ///
-/// Deserialization restores only evidence-shaped data. Call
-/// [`Self::validate_against`] with the complete strong executable plan before a
-/// consequential boundary treats this reference as exact.
+/// Deserialization restores only evidence-shaped data. Call [`Self::rebind`]
+/// with the complete strong executable plan to obtain a validated reference
+/// before a consequential boundary treats this reference as exact.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ExecutableFabricationPlanRef {
     plan_id: FabricationPlanId,
     plan_revision: u64,
     content_digest: ExecutablePlanDigest,
+}
+
+/// Proof that one raw executable-plan reference has been rebound to the exact
+/// complete strong plan whose canonical content identity it names.
+///
+/// This type is intentionally not serializable/deserializable and its fields
+/// are private. Persistence restores only [`ExecutableFabricationPlanRef`]; a
+/// caller must perform [`ExecutableFabricationPlanRef::rebind`] again after
+/// restore before regaining this authority state.
+#[derive(Debug, Clone, Copy)]
+pub struct ValidatedExecutableFabricationPlanRef<'a> {
+    reference: &'a ExecutableFabricationPlanRef,
+    plan: &'a ExecutableFabricationPlan,
+}
+
+impl<'a> ValidatedExecutableFabricationPlanRef<'a> {
+    pub const fn reference(&self) -> &'a ExecutableFabricationPlanRef {
+        self.reference
+    }
+
+    pub const fn plan(&self) -> &'a ExecutableFabricationPlan {
+        self.plan
+    }
 }
 
 impl ExecutableFabricationPlanRef {
@@ -116,10 +139,10 @@ impl ExecutableFabricationPlanRef {
         self.content_digest
     }
 
-    pub fn validate_against(
-        &self,
-        plan: &ExecutableFabricationPlan,
-    ) -> Result<(), ExecutablePlanIdentityError> {
+    pub fn rebind<'a>(
+        &'a self,
+        plan: &'a ExecutableFabricationPlan,
+    ) -> Result<ValidatedExecutableFabricationPlanRef<'a>, ExecutablePlanIdentityError> {
         if self.plan_id != plan.plan().id || self.plan_revision != plan.plan().revision {
             return Err(ExecutablePlanIdentityError::PlanIdentityMismatch {
                 expected_id: self.plan_id.clone(),
@@ -135,7 +158,10 @@ impl ExecutableFabricationPlanRef {
                 actual,
             });
         }
-        Ok(())
+        Ok(ValidatedExecutableFabricationPlanRef {
+            reference: self,
+            plan,
+        })
     }
 }
 
@@ -772,7 +798,28 @@ mod tests {
         let encoded_ref = serde_json::to_vec(&reference).unwrap();
         let restored_ref: ExecutableFabricationPlanRef =
             serde_json::from_slice(&encoded_ref).unwrap();
-        restored_ref.validate_against(&restored).unwrap();
+        let validated = restored_ref.rebind(&restored).unwrap();
+        assert_eq!(validated.reference(), &restored_ref);
+        assert_eq!(validated.plan(), &restored);
+    }
+
+    #[test]
+    fn compact_ref_rebind_rejects_different_plan_identity_before_digest() {
+        let original = golden_executable(false);
+        let different = golden_executable_variant(
+            false,
+            "fabrication-plan:digest-other",
+            7,
+            ProcessKind::Cut,
+            "mode:cnc",
+            "workpiece:b",
+            "evidence:dimensional",
+        );
+        let reference = original.content_ref();
+        assert!(matches!(
+            reference.rebind(&different),
+            Err(ExecutablePlanIdentityError::PlanIdentityMismatch { .. })
+        ));
     }
 
     #[test]
@@ -791,7 +838,7 @@ mod tests {
         assert_eq!(reference.plan_id(), &changed.plan().id);
         assert_eq!(reference.plan_revision(), changed.plan().revision);
         assert!(matches!(
-            reference.validate_against(&changed),
+            reference.rebind(&changed),
             Err(ExecutablePlanIdentityError::ContentDigestMismatch { .. })
         ));
     }
