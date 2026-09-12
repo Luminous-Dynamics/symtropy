@@ -119,13 +119,14 @@ fn v2_capabilities() -> Vec<IndustrialCapability> {
             &["reactor-service-v2", "structural-stock-v2"],
         ),
         capability(
-            "successor-construction-v2",
+            "construction-controller-v2",
             false,
-            &[
-                "forge-tooling-v2",
-                "local-controller-v2",
-                "structural-stock-v2",
-            ],
+            &["local-controller-v2"],
+        ),
+        capability(
+            "construction-tooling-v2",
+            false,
+            &["forge-tooling-v2", "structural-stock-v2"],
         ),
         capability(
             "successor-qualification-v2",
@@ -309,7 +310,10 @@ fn evolving_lineage_loses_reproduction_before_current_platform_operation() {
         .unwrap(),
         IndustrialCapabilityWatch::new(
             "construction",
-            BTreeSet::from(["successor-construction-v2".into()]),
+            BTreeSet::from([
+                "construction-controller-v2".into(),
+                "construction-tooling-v2".into(),
+            ]),
             &known_v2_capabilities,
         )
         .unwrap(),
@@ -411,14 +415,20 @@ fn evolving_lineage_loses_reproduction_before_current_platform_operation() {
     // controller production on tick 6 even though metrology itself recovers then.
     assert!(tick6_blocked_controller);
     assert_eq!(construction.first_unavailable_tick, Some(6));
+    assert!(construction.transitions.iter().any(|transition| {
+        transition.tick == 6
+            && !transition.available
+            && transition.unavailable_required_capability_ids
+                == vec!["construction-controller-v2"]
+    }));
 
-    // Tooling becomes short on tick 7. On tick 8 that shortage blocks structural
-    // recycling; construction stays unavailable even though the controller recovers.
+    // Tooling becomes short on tick 7. The controller recovers, but the same role
+    // remains unavailable for a *different* reason, which the trace now preserves.
     assert!(construction.transitions.iter().any(|transition| {
         transition.tick == 7
             && !transition.available
             && transition.unavailable_required_capability_ids
-                == vec!["successor-construction-v2"]
+                == vec!["construction-tooling-v2"]
     }));
     assert!(tick8_blocked_recycling);
     assert_eq!(construction.first_recovery_tick(), None);
