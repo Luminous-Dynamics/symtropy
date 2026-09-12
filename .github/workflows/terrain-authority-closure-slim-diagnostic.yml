@@ -1,0 +1,162 @@
+name: Terrain authority closure slim diagnostic
+
+on:
+  push:
+    branches:
+      - ci/terrain-authority-closure-slim-diagnostic
+
+permissions:
+  contents: read
+
+jobs:
+  diagnose-authority-closure:
+    name: Diagnose Terrain authority closure on slim runner
+    runs-on: ubuntu-slim
+    timeout-minutes: 30
+    steps:
+      - name: Check out exact diagnostic subject
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          fetch-depth: 0
+
+      - name: Bind frozen qualified kernel lineage
+        shell: bash
+        run: |
+          set -euo pipefail
+          base=e707113651e302f7c61c5542483104af352cb3d0
+          test "$(git rev-parse HEAD^)" = "${base}"
+          test "$(git rev-parse ${base}:crates/domains/symtropy-terrain/src/geometry_kernel.rs)" = "8d3e1213eacdeddf693cd2d1f82670d6ed832161"
+          echo "SLIM_DIAGNOSTIC_HEAD=$(git rev-parse HEAD)"
+          echo "SLIM_DIAGNOSTIC_TREE=$(git rev-parse HEAD^{tree})"
+          echo "SLIM_DIAGNOSTIC_BASE=${base}"
+          echo "SLIM_INPUT_LOCK_BLOB=$(git hash-object Cargo.lock)"
+
+      - name: Set up pinned Rust
+        uses: dtolnay/rust-toolchain@6bed0761d98439e5a578e2877258200ad565ba87
+        with:
+          toolchain: 1.96.0
+          components: clippy,rustfmt
+
+      - name: Bind toolchain
+        shell: bash
+        run: |
+          set -euo pipefail
+          rustc -Vv
+          cargo -Vv
+          test "$(rustc --version | awk '{print $2}')" = "1.96.0"
+
+      - name: Apply runner-local boundary patch
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+
+          def replace_once(path: str, old: str, new: str) -> None:
+              p = Path(path)
+              text = p.read_text()
+              count = text.count(old)
+              if count != 1:
+                  raise SystemExit(f"{path}: expected one marker, found {count}: {old!r}")
+              p.write_text(text.replace(old, new, 1))
+
+          replace_once(
+              "crates/domains/symtropy-terrain/Cargo.toml",
+              'symtropy-physics-gpu = { path = "../../domains/symtropy-physics-gpu" }\n',
+              "",
+          )
+          replace_once(
+              "crates/domains/symtropy-terrain/src/lib.rs",
+              "use symtropy_physics_gpu::HybridFluidPlugin;\n\n",
+              "",
+          )
+          replace_once(
+              "crates/domains/symtropy-terrain/src/lib.rs",
+              "        app.add_plugins(HybridFluidPlugin)\n            .register_type::<EarthChunk>()\n",
+              "        app.register_type::<EarthChunk>()\n",
+          )
+          replace_once(
+              "crates/bridges/symtropy-rapier3d-bridge/Cargo.toml",
+              'symthaea-bevy-brain = { path = "../../bridges/symthaea-bevy-brain" }\n',
+              "",
+          )
+
+          brain = Path("crates/bridges/symthaea-bevy-brain/Cargo.toml")
+          text = brain.read_text()
+          marker = 'symthaea = { path = "../../../stubs/symthaea", default-features = false, features = ["vision-manifold", "muse", "reasoning_engine"] }\n'
+          if text.count(marker) != 1:
+              raise SystemExit("unexpected symthaea-bevy-brain manifest preimage")
+          insertion = marker + (
+              '# Cargo feature-coherence shim for mixed Bevy/WGPU 29 + Symthaea-core/WGPU 27.\n'
+              'naga27-coherence = { package = "naga", version = "27", default-features = false, features = ["termcolor"] }\n'
+          )
+          brain.write_text(text.replace(marker, insertion, 1))
+          PY
+          cargo fmt --package symtropy-terrain --package symtropy-rapier3d-bridge --package symthaea-bevy-brain
+          git diff --check
+          test "$(git hash-object crates/domains/symtropy-terrain/src/geometry_kernel.rs)" = "8d3e1213eacdeddf693cd2d1f82670d6ed832161"
+
+      - name: Refresh and freeze slim diagnostic lock
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo metadata --format-version 1 > "${RUNNER_TEMP}/slim-metadata.json"
+          echo "SLIM_LOCK_BLOB=$(git hash-object Cargo.lock)"
+          echo "SLIM_LOCK_SHA256=$(sha256sum Cargo.lock | awk '{print $1}')"
+          echo "SLIM_METADATA_SHA256=$(sha256sum "${RUNNER_TEMP}/slim-metadata.json" | awk '{print $1}')"
+          cargo metadata --locked --format-version 1 > "${RUNNER_TEMP}/slim-metadata-locked.json"
+
+      - name: Prove split dependency closures
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo tree -p symtropy-terrain --locked -e features > "${RUNNER_TEMP}/terrain-tree.txt"
+          for forbidden in 'symtropy-physics-gpu' 'symthaea-bevy-brain' 'naga v27.0.3' 'codespan-reporting v0.12.0'; do
+            if grep -Fq "${forbidden}" "${RUNNER_TEMP}/terrain-tree.txt"; then
+              echo "forbidden Terrain dependency remains: ${forbidden}" >&2
+              exit 1
+            fi
+          done
+          grep -Fq 'naga v29.0.4' "${RUNNER_TEMP}/terrain-tree.txt"
+
+          cargo tree -p symthaea-bevy-brain --locked -e features > "${RUNNER_TEMP}/brain-tree.txt"
+          grep -Fq 'naga v27.0.3' "${RUNNER_TEMP}/brain-tree.txt"
+          grep -Fq 'naga v29.0.4' "${RUNNER_TEMP}/brain-tree.txt"
+          grep -Fq 'naga feature "termcolor"' "${RUNNER_TEMP}/brain-tree.txt"
+          grep -Fq 'codespan-reporting feature "termcolor"' "${RUNNER_TEMP}/brain-tree.txt"
+
+          echo "SLIM_TERRAIN_TREE_SHA256=$(sha256sum "${RUNNER_TEMP}/terrain-tree.txt" | awk '{print $1}')"
+          echo "SLIM_BRAIN_TREE_SHA256=$(sha256sum "${RUNNER_TEMP}/brain-tree.txt" | awk '{print $1}')"
+
+      - name: Check affected crates
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo check -p symtropy-terrain -p symthaea-bevy-brain -p symtropy-rapier3d-bridge --locked --all-targets
+
+      - name: Test affected crates
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo test -p symtropy-terrain -p symthaea-bevy-brain -p symtropy-rapier3d-bridge --locked
+
+      - name: Strict Clippy on affected crates
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo clippy -p symtropy-terrain -p symthaea-bevy-brain -p symtropy-rapier3d-bridge --locked --all-targets -- -D warnings
+
+      - name: Fail closed on unexpected edits
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git hash-object crates/domains/symtropy-terrain/src/geometry_kernel.rs)" = "8d3e1213eacdeddf693cd2d1f82670d6ed832161"
+          changed="$(git diff --name-only | sort)"
+          expected="$(printf '%s\n' \
+            Cargo.lock \
+            crates/bridges/symthaea-bevy-brain/Cargo.toml \
+            crates/bridges/symtropy-rapier3d-bridge/Cargo.toml \
+            crates/domains/symtropy-terrain/Cargo.toml \
+            crates/domains/symtropy-terrain/src/lib.rs | sort)"
+          test "${changed}" = "${expected}"
+          echo "Slim diagnostic only: no product commit or push performed."
