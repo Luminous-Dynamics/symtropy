@@ -2,7 +2,8 @@ use symtropy_evolution_core::{
     CausalIdentificationCriterion, CausalIdentificationError, CausalIdentificationTier,
     CausalSelectionIdentification, CausalSelectionIdentificationId, CausalSelectionTarget,
     ComparisonAuthorityId, ComparisonAuthorityRef, IdentificationEvidenceAuthorityId,
-    IdentificationEvidenceRef, ValidatedCausalSelectionIdentification,
+    IdentificationEvidenceQualificationRef, IdentificationEvidenceRef,
+    IdentificationQualificationAuthorityId, ValidatedCausalSelectionIdentification,
 };
 
 include!("selection_association_v1.rs");
@@ -161,6 +162,17 @@ fn criterion_evidence(
                 .unwrap(),
                 1,
                 AnalysisContentDigest::new([byte_offset.wrapping_add(index as u8); 32]),
+                IdentificationEvidenceQualificationRef::new(
+                    IdentificationQualificationAuthorityId::new(format!(
+                        "causal-criterion-qualification-{index}"
+                    ))
+                    .unwrap(),
+                    1,
+                    AnalysisContentDigest::new([
+                        byte_offset.wrapping_add(index as u8).wrapping_add(64);
+                        32
+                    ]),
+                ),
                 frame.design_digest(),
                 frame.frame_digest(),
             )
@@ -324,7 +336,7 @@ fn controlled_simulation_requires_simulation_specific_identification_evidence() 
 }
 
 #[test]
-fn changed_fresh_criterion_evidence_stales_restored_identification() {
+fn changed_fresh_criterion_or_qualification_evidence_stales_restored_identification() {
     let (base, design, frame) = design_case(SelectionDesignClass::RandomizedInterventional, false);
     let validated_frame = current_frame(&base, &design, &frame, false);
     let evidence = criterion_evidence(&validated_frame, randomized_criteria(), 140);
