@@ -25,6 +25,7 @@ pub mod shadow_paired_execution;
 pub mod shadow_runner_qualification;
 pub mod shadow_runner_semantic_provenance;
 pub mod shadow_runner_subject_binding;
+pub mod shadow_runner_subject_descriptor;
 pub mod shadow_validation;
 pub mod spatiotemporal_information;
 pub mod transition_conservation;
@@ -33,4 +34,8 @@ pub mod typed_closure_process_acceptance;
 pub mod typed_closure_qualification;
 
 #[cfg(test)]
+mod shadow_runner_authority_test_support;
+#[cfg(test)]
 mod shadow_runner_subject_binding_hostile_tests;
+#[cfg(test)]
+mod shadow_runner_subject_descriptor_tests;
