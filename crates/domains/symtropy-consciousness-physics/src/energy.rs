@@ -130,15 +130,18 @@ impl EnergyBudget {
 
     /// Add energy from a regeneration source, capped at `max_energy`.
     ///
-    /// `regenerated_this_tick` records the energy that actually entered the
-    /// reservoir, not the source's requested amount. A full reservoir therefore
-    /// records zero regeneration rather than fictitious throughput. Non-finite and
-    /// non-positive requests fail closed because regeneration is an energy source,
-    /// not an alternate drain API.
+    /// Returns the amount that actually entered the reservoir. Source-backed callers
+    /// can therefore debit their finite source by the accepted transfer rather than by
+    /// an offer that the reservoir may not have had capacity to receive.
+    ///
+    /// `regenerated_this_tick` records the same accepted amount. A full reservoir
+    /// therefore returns and records zero rather than fictitious throughput.
+    /// Non-finite and non-positive requests fail closed because regeneration is an
+    /// energy source, not an alternate drain API.
     #[inline]
-    pub fn regenerate(&mut self, amount: f64) {
+    pub fn regenerate(&mut self, amount: f64) -> f64 {
         if !amount.is_finite() || amount <= 0.0 {
-            return;
+            return 0.0;
         }
 
         let room = (self.max_energy - self.available).max(0.0);
@@ -150,6 +153,7 @@ impl EnergyBudget {
         if self.collapsed && actual > 0.0 && self.available > 0.0 {
             self.collapsed = false;
         }
+        actual
     }
 
     /// Whether any energy is available.
@@ -280,44 +284,48 @@ mod tests {
     }
 
     #[test]
-    fn regenerate_adds_energy() {
+    fn regenerate_adds_energy_and_returns_actual_gain() {
         let mut budget = EnergyBudget::new(100.0);
         budget.consume(50.0);
-        budget.regenerate(20.0);
+        let accepted = budget.regenerate(20.0);
+        assert!((accepted - 20.0).abs() < 1e-10);
         assert!((budget.available - 70.0).abs() < 1e-10);
         assert!((budget.regenerated_this_tick - 20.0).abs() < 1e-10);
     }
 
     #[test]
-    fn regenerate_capped_at_max_records_only_actual_gain() {
+    fn regenerate_capped_at_max_returns_and_records_zero_gain() {
         let mut budget = EnergyBudget::new(100.0);
-        budget.regenerate(50.0); // already at max
+        let accepted = budget.regenerate(50.0); // already at max
+        assert!((accepted - 0.0).abs() < 1e-10);
         assert!((budget.available - 100.0).abs() < 1e-10);
         assert!((budget.regenerated_this_tick - 0.0).abs() < 1e-10);
     }
 
     #[test]
-    fn partial_regeneration_records_only_remaining_capacity() {
+    fn partial_regeneration_returns_and_records_only_remaining_capacity() {
         let mut budget = EnergyBudget::new(100.0);
         budget.consume(5.0);
         budget.tick_reset();
 
-        budget.regenerate(20.0);
+        let accepted = budget.regenerate(20.0);
 
+        assert!((accepted - 5.0).abs() < 1e-10);
         assert!((budget.available - 100.0).abs() < 1e-10);
         assert!((budget.regenerated_this_tick - 5.0).abs() < 1e-10);
         assert!((budget.net_flow_this_tick() - 5.0).abs() < 1e-10);
     }
 
     #[test]
-    fn regenerate_recovers_from_collapse() {
+    fn regenerate_recovers_from_collapse_and_returns_restored_energy() {
         let mut budget = EnergyBudget::new(100.0);
         budget.consume(100.0);
         assert!(budget.is_collapsed());
         budget.tick_reset();
 
-        budget.regenerate(10.0);
+        let accepted = budget.regenerate(10.0);
 
+        assert!((accepted - 10.0).abs() < 1e-10);
         assert!(!budget.is_collapsed());
         assert!(budget.has_energy());
         assert!((budget.available - 10.0).abs() < 1e-10);
@@ -331,7 +339,7 @@ mod tests {
         budget.tick_reset();
 
         for amount in [0.0, -1.0, f64::NAN, f64::INFINITY, f64::NEG_INFINITY] {
-            budget.regenerate(amount);
+            assert!((budget.regenerate(amount) - 0.0).abs() < 1e-10);
         }
 
         assert!((budget.available - 50.0).abs() < 1e-10);
@@ -352,7 +360,8 @@ mod tests {
         let mut budget = EnergyBudget::new(100.0);
         budget.consume(20.0);
         budget.tick_reset();
-        budget.regenerate(15.0);
+        let accepted = budget.regenerate(15.0);
+        assert!((accepted - 15.0).abs() < 1e-10);
         assert!((budget.net_flow_this_tick() - 15.0).abs() < 1e-10);
     }
 
@@ -360,7 +369,7 @@ mod tests {
     fn tick_reset_clears_per_tick() {
         let mut budget = EnergyBudget::new(100.0);
         budget.consume(10.0);
-        budget.regenerate(5.0);
+        let _ = budget.regenerate(5.0);
         budget.tick_reset();
         assert!((budget.consumed_this_tick - 0.0).abs() < 1e-10);
         assert!((budget.regenerated_this_tick - 0.0).abs() < 1e-10);
