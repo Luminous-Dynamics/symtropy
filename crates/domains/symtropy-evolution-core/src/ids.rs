@@ -58,6 +58,8 @@ semantic_id!(ExclusionReasonId);
 semantic_id!(AnalysisMethodId);
 semantic_id!(ComparisonAuthorityId);
 semantic_id!(CalibrationAuthorityId);
+semantic_id!(CausalSelectionIdentificationId);
+semantic_id!(IdentificationEvidenceAuthorityId);
 
 #[cfg(test)]
 mod tests {
@@ -105,6 +107,8 @@ mod tests {
         assert_wire_contract!(AnalysisMethodId, "analysis-method-0001");
         assert_wire_contract!(ComparisonAuthorityId, "comparison-authority-0001");
         assert_wire_contract!(CalibrationAuthorityId, "calibration-authority-0001");
+        assert_wire_contract!(CausalSelectionIdentificationId, "causal-identification-0001");
+        assert_wire_contract!(IdentificationEvidenceAuthorityId, "identification-evidence-0001");
     }
 
     #[test]
