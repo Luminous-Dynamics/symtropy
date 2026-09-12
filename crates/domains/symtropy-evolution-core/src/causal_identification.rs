@@ -1,8 +1,9 @@
 use crate::{
     canonical::{fmt_hex, put_text, put_u32, put_u64}, AnalysisContentDigest,
     CausalSelectionIdentificationId, ExplicitSelectionAnalysisFrameDigest,
-    IdentificationEvidenceAuthorityId, PredictorRepresentation, SelectionComparisonDesignDigest,
-    SelectionDesignClass, SelectionEstimand, ValidatedSelectionAnalysisFrame,
+    IdentificationEvidenceAuthorityId, IdentificationQualificationAuthorityId,
+    PredictorRepresentation, SelectionComparisonDesignDigest, SelectionDesignClass,
+    SelectionEstimand, ValidatedSelectionAnalysisFrame,
 };
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
@@ -79,21 +80,51 @@ impl CausalIdentificationCriterion {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct IdentificationEvidenceQualificationRef {
+    pub authority_id: IdentificationQualificationAuthorityId,
+    pub revision: u64,
+    pub content_digest: AnalysisContentDigest,
+}
+
+impl IdentificationEvidenceQualificationRef {
+    pub fn new(
+        authority_id: IdentificationQualificationAuthorityId,
+        revision: u64,
+        content_digest: AnalysisContentDigest,
+    ) -> Self {
+        Self {
+            authority_id,
+            revision,
+            content_digest,
+        }
+    }
+
+    fn update_digest(&self, digest: &mut Sha256) {
+        put_text(digest, self.authority_id.as_str());
+        put_u64(digest, self.revision);
+        digest.update(self.content_digest.as_bytes());
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct IdentificationEvidenceRef {
     pub criterion: CausalIdentificationCriterion,
     pub authority_id: IdentificationEvidenceAuthorityId,
     pub revision: u64,
     pub content_digest: AnalysisContentDigest,
+    pub qualification: IdentificationEvidenceQualificationRef,
     pub subject_design_digest: SelectionComparisonDesignDigest,
     pub subject_frame_digest: ExplicitSelectionAnalysisFrameDigest,
 }
 
 impl IdentificationEvidenceRef {
+    #[allow(clippy::too_many_arguments)]
     pub fn new(
         criterion: CausalIdentificationCriterion,
         authority_id: IdentificationEvidenceAuthorityId,
         revision: u64,
         content_digest: AnalysisContentDigest,
+        qualification: IdentificationEvidenceQualificationRef,
         subject_design_digest: SelectionComparisonDesignDigest,
         subject_frame_digest: ExplicitSelectionAnalysisFrameDigest,
     ) -> Self {
@@ -102,6 +133,7 @@ impl IdentificationEvidenceRef {
             authority_id,
             revision,
             content_digest,
+            qualification,
             subject_design_digest,
             subject_frame_digest,
         }
@@ -125,6 +157,7 @@ impl IdentificationEvidenceRef {
         put_text(digest, self.authority_id.as_str());
         put_u64(digest, self.revision);
         digest.update(self.content_digest.as_bytes());
+        self.qualification.update_digest(digest);
         digest.update(self.subject_design_digest.as_bytes());
         digest.update(self.subject_frame_digest.as_bytes());
     }
