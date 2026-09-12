@@ -24,6 +24,8 @@ const LOCAL_PERCEPTION_RANGE: f32 = 300.0;
 const LOCAL_DRONE_ATTENTION_RANGE: f32 = 250.0;
 /// Close inspection/repair distance at which private diagnostic state may be consulted.
 const LOCAL_DIAGNOSTIC_RANGE: f32 = 30.0;
+/// Deterministic state-transition threshold for Leo's relapse warning event.
+const LEO_RELAPSE_ALERT_THRESHOLD: f32 = 0.8;
 /// Danger is refreshed every behavior pass, but retains a tiny horizon for future
 /// sensor adapters that may update less frequently.
 const DANGER_MEMORY_GENERATIONS: u64 = 2;
@@ -89,6 +91,18 @@ fn presented_pump_degradation(is_running: bool, efficiency: f32) -> f64 {
         0.0
     };
     presented_output_degradation(visible_output)
+}
+
+/// True only for a finite upward crossing of a finite threshold.
+///
+/// This gives authored events a deterministic transition gate rather than a per-frame
+/// random chance. Already-above states and non-finite values fail closed.
+fn crossed_upward_threshold(previous: f32, current: f32, threshold: f32) -> bool {
+    previous.is_finite()
+        && current.is_finite()
+        && threshold.is_finite()
+        && previous < threshold
+        && current >= threshold
 }
 
 /// Run the FEP perception-action cycle for each crew NPC.
@@ -610,12 +624,18 @@ pub fn npc_action_system(
                         let kael_far = kael_pos.is_none_or(|kp| other_pos.distance(kp) > 120.0);
 
                         if kael_far && other_npc.name.contains("Leo") {
-                            // Relapse state
+                            // Relapse state.
+                            let old_load = other_psych.allostatic_load;
                             other_psych.allostatic_load =
                                 (other_psych.allostatic_load + 0.05 * dt).min(1.0);
 
-                            // Trigger relapse warning event and label slowly
-                            if rand::random::<f32>() < 0.01 {
+                            // Emit once on the meaningful state transition instead of using
+                            // ambient RNG, which made event history frame-rate/randomness dependent.
+                            if crossed_upward_threshold(
+                                old_load,
+                                other_psych.allostatic_load,
+                                LEO_RELAPSE_ALERT_THRESHOLD,
+                            ) {
                                 action_writer.write(NpcActionEvent {
                                     actor: actor_entity,
                                     actor_name: npc.name.clone(),
@@ -797,5 +817,15 @@ mod tests {
         assert_eq!(presented_pump_degradation(true, 1.0), 0.0);
         assert_eq!(presented_pump_degradation(false, 1.0), 1.0);
         assert_eq!(presented_pump_degradation(true, f32::NAN), 0.0);
+    }
+
+    #[test]
+    fn upward_threshold_crossing_is_single_transition_and_fails_closed() {
+        assert!(crossed_upward_threshold(0.79, 0.8, 0.8));
+        assert!(!crossed_upward_threshold(0.8, 0.81, 0.8));
+        assert!(!crossed_upward_threshold(0.79, 0.79, 0.8));
+        assert!(!crossed_upward_threshold(f32::NAN, 0.9, 0.8));
+        assert!(!crossed_upward_threshold(0.7, f32::NAN, 0.8));
+        assert!(!crossed_upward_threshold(0.7, 0.9, f32::NAN));
     }
 }
