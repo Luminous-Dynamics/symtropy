@@ -208,7 +208,7 @@ impl EnergyBudget {
             return 0.0;
         }
 
-        let actual = amount.min(self.available);
+        let mut actual = amount.min(self.available);
         if !actual.is_finite() || actual <= 0.0 {
             return 0.0;
         }
@@ -217,7 +217,12 @@ impl EnergyBudget {
         if !new_available.is_finite() || new_available < 0.0 {
             return 0.0;
         }
+
+        // Do not silently discard sub-threshold residual energy. If the requested
+        // consumption would leave only an unusable residue, consume and account for
+        // that residue in the same transaction so reservoir loss == recorded loss.
         if new_available <= ENERGY_EPSILON {
+            actual = self.available;
             new_available = 0.0;
         }
 
@@ -494,11 +499,13 @@ mod tests {
     }
 
     #[test]
-    fn tiny_residual_energy_collapses_to_zero_consistently() {
+    fn tiny_residual_collapse_is_fully_accounted() {
         let mut budget = EnergyBudget::new(1.0);
         let consumed = budget.consume(1.0 - ENERGY_EPSILON / 2.0);
-        assert!(consumed > 0.0);
+        assert!((consumed - 1.0).abs() < 1e-12);
         assert_eq!(budget.available, 0.0);
+        assert!((budget.consumed_this_tick - 1.0).abs() < 1e-12);
+        assert!((budget.lifetime_consumed - 1.0).abs() < 1e-12);
         assert!(budget.collapsed);
         assert!(budget.is_valid());
     }
