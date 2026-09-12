@@ -6,6 +6,8 @@ use nalgebra::SVector;
 use serde::{Deserialize, Serialize};
 use symtropy_math::{Bivector, Point, Shape, Transform};
 
+use crate::thermal::{ThermalBody, ThermalError};
+
 /// Unique identifier for a body handle.
 #[derive(Copy, Clone, Debug, Hash, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 pub struct BodyHandle(pub usize);
@@ -47,6 +49,9 @@ pub struct RigidBody<const D: usize> {
     pub is_sensor: bool,
     pub collision_group: u32,
     pub collision_mask: u32,
+    /// Optional lumped thermodynamic state. Thermal mass is stored separately
+    /// from rigid-body mass so static geometry can still have finite thermal inertia.
+    pub thermal: Option<ThermalBody>,
 }
 
 impl<const D: usize> RigidBody<D> {
@@ -85,6 +90,7 @@ impl<const D: usize> RigidBody<D> {
             is_sensor: false,
             collision_group: 0x0001,
             collision_mask: 0xFFFF,
+            thermal: None,
         }
     }
 
@@ -178,6 +184,36 @@ impl<const D: usize> RigidBody<D> {
 
     pub fn position(&self) -> SVector<f64, D> {
         self.transform.translation.0
+    }
+
+    /// Attach or replace this body's lumped thermodynamic state.
+    pub fn set_thermal(&mut self, thermal: ThermalBody) {
+        self.thermal = Some(thermal);
+    }
+
+    /// Remove thermodynamic state from this body.
+    pub fn clear_thermal(&mut self) {
+        self.thermal = None;
+    }
+
+    /// Add sensible heat to this body's thermal state.
+    pub fn add_heat_joules(&mut self, energy_joules: f64) -> Result<f64, ThermalError> {
+        let thermal = self
+            .thermal
+            .as_mut()
+            .ok_or(ThermalError::MissingThermalState)?;
+        thermal.add_heat_joules(energy_joules)
+    }
+
+    /// Modeled sensible thermal energy relative to an explicit reference temperature.
+    pub fn thermal_energy_joules(
+        &self,
+        reference_temperature_kelvin: f64,
+    ) -> Result<f64, ThermalError> {
+        let thermal = self
+            .thermal
+            .ok_or(ThermalError::MissingThermalState)?;
+        thermal.sensible_energy_joules(reference_temperature_kelvin)
     }
 
     pub fn kinetic_energy(&self) -> f64 {
