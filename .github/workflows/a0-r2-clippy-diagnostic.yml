@@ -82,5 +82,13 @@ jobs:
             echo "::group::A0 strict Clippy diagnostic"
             grep -E '(^|: )(error|warning)(\[|:)|--> |clippy::' /tmp/a0-clippy.log || cat /tmp/a0-clippy.log
             echo "::endgroup::"
+            diag="$(grep -m1 -E '^.*:[0-9]+:[0-9]+: (error|warning):' /tmp/a0-clippy.log || grep -m1 -E '^(error|warning)(\[[^]]+\])?:' /tmp/a0-clippy.log || true)"
+            if [ -z "$diag" ]; then
+              diag="strict Clippy failed; inspect the diagnostic group"
+            fi
+            diag="${diag//'%'/'%25'}"
+            diag="${diag//$'\r'/'%0D'}"
+            diag="${diag//$'\n'/'%0A'}"
+            echo "::error title=A0 strict Clippy::$diag"
           fi
           exit "$status"
