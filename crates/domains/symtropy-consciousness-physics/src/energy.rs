@@ -1,5 +1,5 @@
 // Copyright (C) 2024-2026 Tristan Stoltz / Luminous Dynamics
-// SPDX-License-Identifier: AGPL-3.0-or-later
+// SPDX-License-Identifier: Apache-2.0 OR MIT
 // Commercial licensing: see COMMERCIAL_LICENSE.md at repository root
 //! Persistent energy reservoir for consciousness-coupled entities.
 //!
@@ -10,7 +10,7 @@
 //! When energy reaches zero, the entity collapses — Φ drops to 0,
 //! motor output halts, and recovery requires another agent's help.
 
-/// Persistent energy reservoir for a consciousness-coupled entity.
+/// Persistent energy reservoir for consciousness-coupled entities.
 ///
 /// Tracks internal energy (U), temperature (T), and entropy (S)
 /// for 2nd Law compliance. Available work = Helmholtz free energy F = U - TS.
@@ -28,7 +28,7 @@ pub struct EnergyBudget {
     pub heat_capacity: f64,
     /// Total energy consumed this tick (reset each tick for telemetry).
     pub consumed_this_tick: f64,
-    /// Total energy regenerated this tick (reset each tick for telemetry).
+    /// Total energy actually regenerated this tick (reset each tick for telemetry).
     pub regenerated_this_tick: f64,
     /// Cumulative energy spent across all ticks.
     pub lifetime_consumed: f64,
@@ -99,14 +99,26 @@ impl EnergyBudget {
         (self.available - self.temperature * self.entropy).max(0.0)
     }
 
-    /// Add energy (from regeneration sources). Capped at max_energy.
+    /// Add energy from a regeneration source, capped at `max_energy`.
+    ///
+    /// `regenerated_this_tick` records the energy that actually entered the
+    /// reservoir, not the source's requested amount. A full reservoir therefore
+    /// records zero regeneration rather than fictitious throughput. Non-finite and
+    /// non-positive requests fail closed because regeneration is an energy source,
+    /// not an alternate drain API.
     #[inline]
     pub fn regenerate(&mut self, amount: f64) {
-        self.available = (self.available + amount).min(self.max_energy);
-        self.regenerated_this_tick += amount;
+        if !amount.is_finite() || amount <= 0.0 {
+            return;
+        }
 
-        // Recover from collapse if energy is restored
-        if self.collapsed && self.available > 0.0 {
+        let room = (self.max_energy - self.available).max(0.0);
+        let actual = amount.min(room);
+        self.available += actual;
+        self.regenerated_this_tick += actual;
+
+        // Recover from collapse only when energy actually enters the reservoir.
+        if self.collapsed && actual > 0.0 && self.available > 0.0 {
             self.collapsed = false;
         }
     }
@@ -184,13 +196,28 @@ mod tests {
         budget.consume(50.0);
         budget.regenerate(20.0);
         assert!((budget.available - 70.0).abs() < 1e-10);
+        assert!((budget.regenerated_this_tick - 20.0).abs() < 1e-10);
     }
 
     #[test]
-    fn regenerate_capped_at_max() {
+    fn regenerate_capped_at_max_records_only_actual_gain() {
         let mut budget = EnergyBudget::new(100.0);
         budget.regenerate(50.0); // already at max
         assert!((budget.available - 100.0).abs() < 1e-10);
+        assert!((budget.regenerated_this_tick - 0.0).abs() < 1e-10);
+    }
+
+    #[test]
+    fn partial_regeneration_records_only_remaining_capacity() {
+        let mut budget = EnergyBudget::new(100.0);
+        budget.consume(5.0);
+        budget.tick_reset();
+
+        budget.regenerate(20.0);
+
+        assert!((budget.available - 100.0).abs() < 1e-10);
+        assert!((budget.regenerated_this_tick - 5.0).abs() < 1e-10);
+        assert!((budget.net_flow_this_tick() - 5.0).abs() < 1e-10);
     }
 
     #[test]
@@ -198,10 +225,28 @@ mod tests {
         let mut budget = EnergyBudget::new(100.0);
         budget.consume(100.0);
         assert!(budget.is_collapsed());
+        budget.tick_reset();
 
         budget.regenerate(10.0);
+
         assert!(!budget.is_collapsed());
         assert!(budget.has_energy());
+        assert!((budget.available - 10.0).abs() < 1e-10);
+        assert!((budget.regenerated_this_tick - 10.0).abs() < 1e-10);
+    }
+
+    #[test]
+    fn regenerate_rejects_non_positive_and_non_finite_requests() {
+        let mut budget = EnergyBudget::new(100.0);
+        budget.consume(50.0);
+        budget.tick_reset();
+
+        for amount in [0.0, -1.0, f64::NAN, f64::INFINITY, f64::NEG_INFINITY] {
+            budget.regenerate(amount);
+        }
+
+        assert!((budget.available - 50.0).abs() < 1e-10);
+        assert!((budget.regenerated_this_tick - 0.0).abs() < 1e-10);
     }
 
     #[test]
