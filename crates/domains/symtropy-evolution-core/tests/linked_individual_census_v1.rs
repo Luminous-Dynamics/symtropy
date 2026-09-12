@@ -29,6 +29,10 @@ fn individual_id(id: &str) -> EvolutionIndividualId {
     EvolutionIndividualId::new(id).unwrap()
 }
 
+fn population(id: &str) -> PopulationId {
+    PopulationId::new(id).unwrap()
+}
+
 fn schema() -> HereditarySchema {
     HereditarySchema::new(
         HereditarySchemaId::new("individual-schema-v1").unwrap(),
@@ -196,20 +200,21 @@ fn malformed_restored_individual_id_fails_before_manifest_authority() {
 fn census_is_order_invariant_and_revalidatable_after_serde_restore() {
     let schema = schema();
     let map = chromosome_map(&schema);
+    let population_id = population("population-a");
     let first = root_individual(&schema, &map, "individual-a", "a-copy-0", "a-copy-1");
     let second = root_individual(&schema, &map, "individual-b", "b-copy-0", "b-copy-1");
     let first_subject = subject(&schema, &map, &first);
     let second_subject = subject(&schema, &map, &second);
 
     let forward = ExplicitLinkedPopulationCensus::capture(
-        PopulationId::new("population-a").unwrap(),
+        population_id.clone(),
         &schema,
         &map,
         &[first_subject, second_subject],
     )
     .unwrap();
     let reverse = ExplicitLinkedPopulationCensus::capture(
-        PopulationId::new("population-a").unwrap(),
+        population_id.clone(),
         &schema,
         &map,
         &[second_subject, first_subject],
@@ -223,8 +228,42 @@ fn census_is_order_invariant_and_revalidatable_after_serde_restore() {
     let encoded = serde_json::to_vec(&forward).unwrap();
     let restored: ExplicitLinkedPopulationCensus = serde_json::from_slice(&encoded).unwrap();
     restored
-        .validate_current(&schema, &map, &[second_subject, first_subject])
+        .validate_current(
+            &population_id,
+            &schema,
+            &map,
+            &[second_subject, first_subject],
+        )
         .unwrap();
+}
+
+#[test]
+fn restored_population_relabel_fails_current_context_validation() {
+    let schema = schema();
+    let map = chromosome_map(&schema);
+    let expected_population = population("population-a");
+    let individual = root_individual(&schema, &map, "individual-a", "copy-0", "copy-1");
+    let individual_subject = subject(&schema, &map, &individual);
+    let census = ExplicitLinkedPopulationCensus::capture(
+        expected_population.clone(),
+        &schema,
+        &map,
+        &[individual_subject],
+    )
+    .unwrap();
+
+    let mut raw = serde_json::to_value(&census).unwrap();
+    raw["population_id"] = serde_json::Value::String("population-b".into());
+    let restored: ExplicitLinkedPopulationCensus = serde_json::from_value(raw).unwrap();
+    assert!(matches!(
+        restored.validate_current(
+            &expected_population,
+            &schema,
+            &map,
+            &[individual_subject],
+        ),
+        Err(LinkedIndividualError::PopulationContextMismatch)
+    ));
 }
 
 #[test]
@@ -247,7 +286,7 @@ fn duplicate_individual_identity_fails_even_when_current_states_are_distinct() {
     let second_subject = subject(&schema, &map, &second);
     assert!(matches!(
         ExplicitLinkedPopulationCensus::capture(
-            PopulationId::new("population-a").unwrap(),
+            population("population-a"),
             &schema,
             &map,
             &[first_subject, second_subject],
@@ -279,7 +318,7 @@ fn distinct_individuals_cannot_double_own_one_persistent_ancestry_copy() {
     let second_subject = subject(&schema, &map, &second);
     assert!(matches!(
         ExplicitLinkedPopulationCensus::capture(
-            PopulationId::new("population-a").unwrap(),
+            population("population-a"),
             &schema,
             &map,
             &[first_subject, second_subject],
@@ -292,6 +331,7 @@ fn distinct_individuals_cannot_double_own_one_persistent_ancestry_copy() {
 fn changed_member_set_stales_a_restored_census() {
     let schema = schema();
     let map = chromosome_map(&schema);
+    let population_id = population("population-a");
     let first = root_individual(&schema, &map, "individual-a", "a-copy-0", "a-copy-1");
     let second = root_individual(&schema, &map, "individual-b", "b-copy-0", "b-copy-1");
     let replacement = root_individual(&schema, &map, "individual-c", "c-copy-0", "c-copy-1");
@@ -300,14 +340,19 @@ fn changed_member_set_stales_a_restored_census() {
     let replacement_subject = subject(&schema, &map, &replacement);
 
     let census = ExplicitLinkedPopulationCensus::capture(
-        PopulationId::new("population-a").unwrap(),
+        population_id.clone(),
         &schema,
         &map,
         &[first_subject, second_subject],
     )
     .unwrap();
     assert!(matches!(
-        census.validate_current(&schema, &map, &[first_subject, replacement_subject]),
+        census.validate_current(
+            &population_id,
+            &schema,
+            &map,
+            &[first_subject, replacement_subject],
+        ),
         Err(LinkedIndividualError::CensusMemberMismatch)
     ));
 }
@@ -320,14 +365,14 @@ fn population_identity_changes_census_identity_without_changing_members() {
     let individual_subject = subject(&schema, &map, &individual);
 
     let first = ExplicitLinkedPopulationCensus::capture(
-        PopulationId::new("population-a").unwrap(),
+        population("population-a"),
         &schema,
         &map,
         &[individual_subject],
     )
     .unwrap();
     let second = ExplicitLinkedPopulationCensus::capture(
-        PopulationId::new("population-b").unwrap(),
+        population("population-b"),
         &schema,
         &map,
         &[individual_subject],
@@ -341,18 +386,19 @@ fn population_identity_changes_census_identity_without_changing_members() {
 fn mutation_fate_conversion_preserves_exact_explicit_copy_counts() {
     let schema = schema();
     let map = chromosome_map(&schema);
+    let population_id = population("population-a");
     let first = root_individual(&schema, &map, "individual-a", "a-copy-0", "a-copy-1");
     let second = root_individual(&schema, &map, "individual-b", "b-copy-0", "b-copy-1");
     let subjects = [subject(&schema, &map, &first), subject(&schema, &map, &second)];
     let census = ExplicitLinkedPopulationCensus::capture(
-        PopulationId::new("population-a").unwrap(),
+        population_id.clone(),
         &schema,
         &map,
         &subjects,
     )
     .unwrap();
     let fate_subjects = census
-        .mutation_fate_subjects(&schema, &map, &subjects)
+        .mutation_fate_subjects(&population_id, &schema, &map, &subjects)
         .unwrap();
     let observation = observe_mutation_fates(&schema, &map, &fate_subjects).unwrap();
 
@@ -370,20 +416,21 @@ fn mutation_fate_conversion_preserves_exact_explicit_copy_counts() {
 fn aggregate_population_cannot_reconstruct_explicit_individual_membership() {
     let schema = schema();
     let map = chromosome_map(&schema);
+    let population_id = population("population-a");
     let first = root_individual(&schema, &map, "individual-a", "a-copy-0", "a-copy-1");
     let second = root_individual(&schema, &map, "individual-b", "b-copy-0", "b-copy-1");
     let first_subjects = [subject(&schema, &map, &first)];
     let second_subjects = [subject(&schema, &map, &second)];
 
     let first_census = ExplicitLinkedPopulationCensus::capture(
-        PopulationId::new("population-a").unwrap(),
+        population_id.clone(),
         &schema,
         &map,
         &first_subjects,
     )
     .unwrap();
     let second_census = ExplicitLinkedPopulationCensus::capture(
-        PopulationId::new("population-a").unwrap(),
+        population_id.clone(),
         &schema,
         &map,
         &second_subjects,
@@ -391,20 +438,20 @@ fn aggregate_population_cannot_reconstruct_explicit_individual_membership() {
     .unwrap();
 
     let first_fate = first_census
-        .mutation_fate_subjects(&schema, &map, &first_subjects)
+        .mutation_fate_subjects(&population_id, &schema, &map, &first_subjects)
         .unwrap();
     let second_fate = second_census
-        .mutation_fate_subjects(&schema, &map, &second_subjects)
+        .mutation_fate_subjects(&population_id, &schema, &map, &second_subjects)
         .unwrap();
     let first_projection = project_declared_linked_census(
-        PopulationId::new("population-a").unwrap(),
+        population_id.clone(),
         &schema,
         &map,
         &first_fate,
     )
     .unwrap();
     let second_projection = project_declared_linked_census(
-        PopulationId::new("population-a").unwrap(),
+        population_id,
         &schema,
         &map,
         &second_fate,
