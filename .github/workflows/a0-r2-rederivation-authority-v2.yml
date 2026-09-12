@@ -178,20 +178,32 @@ jobs:
       - name: Format gate A0
         run: cargo fmt --manifest-path product/Cargo.toml -p symtropy-analysis-contracts -- --check
 
-      - name: Run full locked qualification
+      - name: Check gate D1
+        run: cargo check --locked --manifest-path product/Cargo.toml -p symtropy-design --all-targets
+      - name: Check gate D2
+        run: cargo check --locked --manifest-path product/Cargo.toml -p symtropy-design-requirements --all-targets
+      - name: Check gate A0
+        run: cargo check --locked --manifest-path product/Cargo.toml -p symtropy-analysis-contracts --all-targets
+
+      - name: Test gate D1
+        run: cargo test --locked --manifest-path product/Cargo.toml -p symtropy-design
+      - name: Test gate D2
+        run: cargo test --locked --manifest-path product/Cargo.toml -p symtropy-design-requirements
+      - name: Test gate A0
+        run: cargo test --locked --manifest-path product/Cargo.toml -p symtropy-analysis-contracts
+
+      - name: Clippy gate D1
+        run: cargo clippy --locked --manifest-path product/Cargo.toml -p symtropy-design --all-targets -- -D warnings
+      - name: Clippy gate D2
+        run: cargo clippy --locked --manifest-path product/Cargo.toml -p symtropy-design-requirements --all-targets -- -D warnings
+      - name: Clippy gate A0
+        run: cargo clippy --locked --manifest-path product/Cargo.toml -p symtropy-analysis-contracts --all-targets -- -D warnings
+
+      - name: Re-prove frozen parent surfaces after qualification
         shell: bash
         run: |
           set -euo pipefail
           cd product
-          cargo check --locked -p symtropy-design --all-targets
-          cargo check --locked -p symtropy-design-requirements --all-targets
-          cargo check --locked -p symtropy-analysis-contracts --all-targets
-          cargo test --locked -p symtropy-design
-          cargo test --locked -p symtropy-design-requirements
-          cargo test --locked -p symtropy-analysis-contracts
-          cargo clippy --locked -p symtropy-design --all-targets -- -D warnings
-          cargo clippy --locked -p symtropy-design-requirements --all-targets -- -D warnings
-          cargo clippy --locked -p symtropy-analysis-contracts --all-targets -- -D warnings
           cmp crates/domains/symtropy-design/Cargo.toml /tmp/a0-r2-v2-d1-manifest.before
           cmp crates/domains/symtropy-design/src/lib.rs /tmp/a0-r2-v2-d1-source.before
           cmp crates/domains/symtropy-design-requirements/Cargo.toml /tmp/a0-r2-v2-d2-manifest.before
