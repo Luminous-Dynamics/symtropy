@@ -67,13 +67,13 @@ use super::shadow_execution_lineage::{
     ShadowReferenceRunnerRegistryKey, ShadowReferenceRunnerStatus,
 };
 use super::shadow_observable_authority::{
-    ObservableBoundShadowValidationCertificate, ShadowObservableAuthorityRegistry,
-    ShadowObservableAuthorityRegistryBuilder, ShadowObservableExecutionCapsuleFingerprint,
-    ShadowObservableExtractorKey, ShadowObservableExtractorQualification,
-    ShadowObservableImplementationFingerprint, ShadowObservableQualificationProfileKey,
-    ShadowObservableQualificationStatus, ShadowObservableRegistryKey,
-    ShadowObservationContentManifest, ShadowObservationKey, ShadowObservationPair,
-    ShadowObservationRecord, ShadowObservationRevision, ShadowObservationSourceIdentity,
+    ShadowObservableAuthorityRegistry, ShadowObservableAuthorityRegistryBuilder,
+    ShadowObservableExecutionCapsuleFingerprint, ShadowObservableExtractorKey,
+    ShadowObservableExtractorQualification, ShadowObservableImplementationFingerprint,
+    ShadowObservableQualificationProfileKey, ShadowObservableQualificationStatus,
+    ShadowObservableRegistryKey, ShadowObservationContentManifest, ShadowObservationKey,
+    ShadowObservationPair, ShadowObservationRecord, ShadowObservationRevision,
+    ShadowObservationSourceIdentity,
 };
 use super::shadow_paired_execution::{
     PairedShadowExecutionCertificate, PairedShadowExecutionRegistry,
@@ -385,7 +385,10 @@ fn shadow_profile() -> ShadowValidationProfile {
     )
 }
 
-fn shadow_evidence(start: &PopulationState, current: &PopulationState) -> ShadowValidationEvidenceRecord {
+fn shadow_evidence(
+    start: &PopulationState,
+    current: &PopulationState,
+) -> ShadowValidationEvidenceRecord {
     ShadowValidationEvidenceRecord::completed(
         Q2_EVIDENCE,
         Q2_REVISION,
@@ -414,6 +417,7 @@ fn shadow_evidence(start: &PopulationState, current: &PopulationState) -> Shadow
     .unwrap()
 }
 
+#[allow(clippy::too_many_arguments)]
 fn shadow_registry(
     key: ShadowValidationRegistryKey,
     profile: &ShadowValidationProfile,
@@ -842,11 +846,14 @@ impl Q2AuthorityFixture {
                 retained_record.revision(),
                 retained_record.content_manifest().clone(),
             ),
-            [(T1, ShadowReferenceRunObservedState::new(
-                reference_observation.observation().key(),
-                reference_observation.observation().revision(),
-                reference_observation.observation().source().clone(),
-            ))],
+            [(
+                T1,
+                ShadowReferenceRunObservedState::new(
+                    reference_observation.observation().key(),
+                    reference_observation.observation().revision(),
+                    reference_observation.observation().source().clone(),
+                ),
+            )],
             EvidenceLineageToken(9_222),
             ShadowReferenceRunStatus::Completed,
         )
@@ -894,11 +901,14 @@ impl Q2AuthorityFixture {
             shadow_evidence.scenario().clone(),
             shadow_evidence.execution_manifest().clone(),
             source_subject,
-            [(T1, ShadowCoarseRunObservedState::new(
-                coarse_observation.observation().key(),
-                coarse_observation.observation().revision(),
-                coarse_observation.observation().source().clone(),
-            ))],
+            [(
+                T1,
+                ShadowCoarseRunObservedState::new(
+                    coarse_observation.observation().key(),
+                    coarse_observation.observation().revision(),
+                    coarse_observation.observation().source().clone(),
+                ),
+            )],
             EvidenceLineageToken(9_224),
             ShadowCoarseRunStatus::Completed,
         )
@@ -1057,6 +1067,96 @@ impl Q2AuthorityFixture {
         )
     }
 
+    pub(crate) fn certify_with_replacement_paired_authority(
+        &self,
+    ) -> Result<CurrentExecutableShadowContinuityCertificate, CurrentExecutableShadowContinuityError>
+    {
+        let replacement = self.replacement_paired_registry();
+        self.certify_current_with(
+            &replacement,
+            &self.reference_registry,
+            &self.retained,
+            &self.shadow,
+            &self.qualification_registry,
+            &self.semantic_registry,
+        )
+    }
+
+    pub(crate) fn certify_with_replacement_reference_authority(
+        &self,
+    ) -> Result<CurrentExecutableShadowContinuityCertificate, CurrentExecutableShadowContinuityError>
+    {
+        let replacement = self.replacement_reference_registry();
+        self.certify_current_with(
+            &self.paired_registry,
+            &replacement,
+            &self.retained,
+            &self.shadow,
+            &self.qualification_registry,
+            &self.semantic_registry,
+        )
+    }
+
+    pub(crate) fn certify_with_replacement_retained_authority(
+        &self,
+    ) -> Result<CurrentExecutableShadowContinuityCertificate, CurrentExecutableShadowContinuityError>
+    {
+        let replacement = self.replacement_retained_registry();
+        self.certify_current_with(
+            &self.paired_registry,
+            &self.reference_registry,
+            &replacement,
+            &self.shadow,
+            &self.qualification_registry,
+            &self.semantic_registry,
+        )
+    }
+
+    pub(crate) fn certify_with_replacement_shadow_authority(
+        &self,
+    ) -> Result<CurrentExecutableShadowContinuityCertificate, CurrentExecutableShadowContinuityError>
+    {
+        let replacement = self.replacement_shadow_registry();
+        self.certify_current_with(
+            &self.paired_registry,
+            &self.reference_registry,
+            &self.retained,
+            &replacement,
+            &self.qualification_registry,
+            &self.semantic_registry,
+        )
+    }
+
+    pub(crate) fn certify_with_replacement_qualification_authority(
+        &self,
+    ) -> Result<CurrentExecutableShadowContinuityCertificate, CurrentExecutableShadowContinuityError>
+    {
+        let replacement = self.replacement_qualification_registry();
+        self.certify_current_with(
+            &self.paired_registry,
+            &self.reference_registry,
+            &self.retained,
+            &self.shadow,
+            &replacement,
+            &self.semantic_registry,
+        )
+    }
+
+    pub(crate) fn certify_with_replacement_semantic_authority(
+        &self,
+    ) -> Result<CurrentExecutableShadowContinuityCertificate, CurrentExecutableShadowContinuityError>
+    {
+        let replacement = self.replacement_semantic_registry();
+        self.certify_current_with(
+            &self.paired_registry,
+            &self.reference_registry,
+            &self.retained,
+            &self.shadow,
+            &self.qualification_registry,
+            &replacement,
+        )
+    }
+
     pub(crate) fn certify_current_with(
         &self,
         paired_registry: &PairedShadowExecutionRegistry,
@@ -1100,7 +1200,7 @@ impl Q2AuthorityFixture {
         )
     }
 
-    pub(crate) fn replacement_paired_registry(&self) -> PairedShadowExecutionRegistry {
+    fn replacement_paired_registry(&self) -> PairedShadowExecutionRegistry {
         let mut builder = PairedShadowExecutionRegistryBuilder::new(
             ShadowCoarseRunnerRegistryKey::new(9_325, 1),
         );
@@ -1116,7 +1216,7 @@ impl Q2AuthorityFixture {
             .unwrap()
     }
 
-    pub(crate) fn replacement_reference_registry(&self) -> ShadowReferenceExecutionRegistry {
+    fn replacement_reference_registry(&self) -> ShadowReferenceExecutionRegistry {
         let mut builder = ShadowReferenceExecutionRegistryBuilder::new(
             ShadowReferenceRunnerRegistryKey::new(9_323, 1),
         );
@@ -1129,7 +1229,7 @@ impl Q2AuthorityFixture {
             .unwrap()
     }
 
-    pub(crate) fn replacement_retained_registry(&self) -> RetainedAuthorityRegistry {
+    fn replacement_retained_registry(&self) -> RetainedAuthorityRegistry {
         let bound_policy = ManifestBoundInformationPolicyRegistry::new(&self.information_policy);
         retained_registry(
             RetainedAuthorityRegistryKey::new(9_321, 1),
@@ -1138,7 +1238,7 @@ impl Q2AuthorityFixture {
         )
     }
 
-    pub(crate) fn replacement_shadow_registry(&self) -> ShadowValidationRegistry {
+    fn replacement_shadow_registry(&self) -> ShadowValidationRegistry {
         let bound_policy = ManifestBoundInformationPolicyRegistry::new(&self.information_policy);
         shadow_registry(
             ShadowValidationRegistryKey::new(9_320, 1),
@@ -1152,7 +1252,7 @@ impl Q2AuthorityFixture {
         )
     }
 
-    pub(crate) fn replacement_qualification_registry(&self) -> ShadowRunnerQualificationRegistry {
+    fn replacement_qualification_registry(&self) -> ShadowRunnerQualificationRegistry {
         qualification_registry(
             ShadowRunnerQualificationRegistryKey::new(9_328, 1),
             &self.reference_receipt,
@@ -1160,7 +1260,7 @@ impl Q2AuthorityFixture {
         )
     }
 
-    pub(crate) fn replacement_semantic_registry(&self) -> ShadowRunnerSemanticRegistry {
+    fn replacement_semantic_registry(&self) -> ShadowRunnerSemanticRegistry {
         semantic_registry(
             ShadowRunnerSemanticRegistryKey::new(9_329, 1),
             &self.reference_receipt,
