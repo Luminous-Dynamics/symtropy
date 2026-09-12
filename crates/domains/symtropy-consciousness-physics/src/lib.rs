@@ -48,6 +48,7 @@ pub mod safety;
 pub mod sanctuary;
 pub mod simple_field;
 pub mod spatial_hash;
+pub mod thermal_authority;
 pub mod thermodynamics;
 #[cfg(feature = "wasm")]
 pub mod wasm_bindings;
@@ -70,4 +71,8 @@ pub use proc_gen::{
 pub use safety::SafetyTier;
 pub use sanctuary::SanctuaryZone;
 pub use simple_field::{SimpleCoupledField, SimpleEntity};
+pub use thermal_authority::{
+    LEGACY_THERMAL_SHADOW_TOLERANCE_K, LegacyThermalShadowStatus, ThermalAuthorityError,
+    ThermalAuthorityReceipt, update_entity_with_core_thermal_authority,
+};
 pub use thermodynamics::{LegacyLedgerRecordError, ThermodynamicConstants, ThermodynamicLedger};
