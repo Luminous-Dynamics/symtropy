@@ -46,6 +46,9 @@ semantic_id!(ChromosomeMapId);
 semantic_id!(ChromosomeRecombinationProfileId);
 semantic_id!(AncestryCopyId);
 semantic_id!(EvolutionIndividualId);
+semantic_id!(EvolutionaryContextId);
+semantic_id!(ConsequenceWindowId);
+semantic_id!(ConsequenceObservationId);
 
 #[cfg(test)]
 mod tests {
@@ -81,6 +84,9 @@ mod tests {
         assert_wire_contract!(ChromosomeRecombinationProfileId, "poisson-reference-v1");
         assert_wire_contract!(AncestryCopyId, "ancestry-copy-0001");
         assert_wire_contract!(EvolutionIndividualId, "individual-0001");
+        assert_wire_contract!(EvolutionaryContextId, "context-0001");
+        assert_wire_contract!(ConsequenceWindowId, "window-0001");
+        assert_wire_contract!(ConsequenceObservationId, "consequence-0001");
     }
 
     #[test]
