@@ -1,5 +1,6 @@
 // Copyright (C) 2024-2026 Tristan Stoltz / Luminous Dynamics
 // SPDX-License-Identifier: AGPL-3.0-or-later
+use crate::components::{CrewNpc, Player};
 use crate::resources::{GamePhase, PhysicsWorldRes};
 use bevy::prelude::*;
 use symtropy_physics::BodyHandle;
@@ -394,23 +395,42 @@ pub fn update_physics_consciousness(
     }
 }
 
-/// Advance authoritative 2D physics when that phase owns integration, then export body
-/// positions to Bevy transforms.
+/// Advance authoritative 2D physics when that phase owns integration, close the
+/// thermodynamic transaction, then export body positions to Bevy transforms.
 ///
 /// This function keeps the historical `physics_sync_transforms` name because it is already
-/// registered in the launcher's `FixedUpdate` chain for both 2D and 3D modes. In 2D, a
-/// transform is published only after the corresponding physics step. In 3D, the existing
-/// kinematic controller remains authoritative and this function only mirrors its shared
-/// physics-body representation back to the visual transform.
+/// registered immediately after `thermodynamic_enforcement_system` in the launcher's
+/// `FixedUpdate` chain. FEP-07E uses that existing order as a compatibility bridge:
+/// begin thermodynamics → attempted physics → finalize thermodynamics → transform export.
+///
+/// In 3D, the existing kinematic controller remains authoritative and no `PhysicsWorld`
+/// step occurs here, but the thermodynamic tick is still finalized before representation
+/// mirroring so its per-tick counters are not left open across fixed ticks.
 pub fn physics_sync_transforms(
     mut physics: ResMut<PhysicsWorldRes>,
     time: Res<Time>,
     phase: Res<State<GamePhase>>,
+    mut hud_state: ResMut<crate::systems::thermodynamic::ThermodynamicHudState>,
+    agent_query: Query<&PhysicsBody, Or<(With<Player>, With<CrewNpc>)>>,
     mut query: Query<(&PhysicsBody, &mut Transform)>,
 ) {
-    if phase_uses_authoritative_2d_step(*phase.get())
-        && !step_physics_world(&mut physics, f64::from(time.delta_secs()))
-    {
+    let step_succeeded = if phase_uses_authoritative_2d_step(*phase.get()) {
+        step_physics_world(&mut physics, f64::from(time.delta_secs()))
+    } else {
+        true
+    };
+
+    let handles: Vec<_> = agent_query.iter().map(|body| body.handle).collect();
+    crate::systems::thermodynamic::finalize_thermodynamic_tick(
+        &mut physics,
+        &mut hud_state,
+        &handles,
+    );
+
+    // A rejected/invalid physics step still closes the thermodynamic transaction so
+    // pre-step debits are not silently erased by the next tick's counter reset. It does
+    // not publish transforms as if a physical step had succeeded.
+    if !step_succeeded {
         return;
     }
 
