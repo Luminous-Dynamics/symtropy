@@ -58,11 +58,15 @@ impl EnergyBudget {
         self.regenerated_this_tick = 0.0;
     }
 
-    /// Try to consume energy. Returns the amount actually consumed
-    /// (may be less than requested if budget is exhausted).
+    /// Try to consume finite positive energy. Returns the amount actually consumed
+    /// (may be less than requested if the budget is exhausted).
+    ///
+    /// Non-finite and non-positive requests fail closed. In particular, a negative
+    /// "consumption" request must never become an energy source by subtracting a
+    /// negative amount from the reservoir.
     #[inline]
     pub fn consume(&mut self, amount: f64) -> f64 {
-        if self.collapsed {
+        if self.collapsed || !amount.is_finite() || amount <= 0.0 {
             return 0.0;
         }
         let actual = amount.min(self.available);
@@ -176,6 +180,20 @@ mod tests {
         let consumed = budget.consume(50.0); // only 20 left
         assert!((consumed - 20.0).abs() < 1e-10);
         assert!(budget.is_collapsed());
+    }
+
+    #[test]
+    fn consume_rejects_non_positive_and_non_finite_requests() {
+        let mut budget = EnergyBudget::new(100.0);
+
+        for amount in [0.0, -1.0, f64::NAN, f64::INFINITY, f64::NEG_INFINITY] {
+            assert!((budget.consume(amount) - 0.0).abs() < 1e-10);
+        }
+
+        assert!((budget.available - 100.0).abs() < 1e-10);
+        assert!((budget.consumed_this_tick - 0.0).abs() < 1e-10);
+        assert!((budget.lifetime_consumed - 0.0).abs() < 1e-10);
+        assert!(!budget.is_collapsed());
     }
 
     #[test]
