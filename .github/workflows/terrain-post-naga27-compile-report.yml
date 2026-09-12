@@ -1,0 +1,144 @@
+name: Terrain post-Naga compile report
+
+on:
+  push:
+    branches:
+      - ci/terrain-post-naga27-compile-report-v0.1
+    paths:
+      - .github/workflows/terrain-post-naga27-compile-report.yml
+
+permissions:
+  contents: write
+
+concurrency:
+  group: terrain-post-naga27-compile-report-v0.1
+  cancel-in-progress: false
+
+jobs:
+  diagnose:
+    name: Split Terrain compile target families
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      - name: Check out exact diagnostic subject
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+          persist-credentials: true
+
+      - name: Bind exact #769 product head
+        shell: bash
+        run: |
+          set -euo pipefail
+          product=8172eb7a29997e566b88938b95e12fac0d4c9ded
+          workflow=.github/workflows/terrain-post-naga27-compile-report.yml
+          test "$(git rev-parse HEAD)" = "${GITHUB_SHA}"
+          test "$(git rev-parse HEAD^)" = "${product}"
+          test "$(git diff --name-only ${product}..HEAD)" = "${workflow}"
+          test "$(git rev-parse HEAD:Cargo.lock)" = "62c6eb098b3f6fffdea8a175a0f3afb33423b17b"
+          test "$(git rev-parse HEAD:crates/domains/symtropy-terrain/Cargo.toml)" = "187fe4020a0c0048ab36404e219a7a5698a856d1"
+          test "$(git rev-parse HEAD:crates/domains/symtropy-terrain/src/geometry_kernel.rs)" = "8d3e1213eacdeddf693cd2d1f82670d6ed832161"
+          echo "CARGO_TARGET_DIR=${RUNNER_TEMP}/terrain-compile-report-target" >> "${GITHUB_ENV}"
+
+      - name: Install Linux system dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install -y libasound2-dev libudev-dev pkg-config
+
+      - name: Set up pinned Rust
+        uses: dtolnay/rust-toolchain@6bed0761d98439e5a578e2877258200ad565ba87
+        with:
+          toolchain: 1.96.0
+          components: clippy,rustfmt
+
+      - name: Bind toolchain
+        shell: bash
+        run: |
+          set -euo pipefail
+          rustc -Vv
+          cargo -Vv
+          test "$(rustc --version | awk '{print $2}')" = "1.96.0"
+          test "$(cargo --version | awk '{print $2}')" = "1.96.0"
+
+      - name: Execute split compile diagnostics
+        shell: bash
+        run: |
+          set -euo pipefail
+          report="${RUNNER_TEMP}/terrain-post-naga27-compile-report.md"
+          printf '# Terrain post-Naga compile report\n\n' > "${report}"
+          printf -- '- Product head: `8172eb7a29997e566b88938b95e12fac0d4c9ded`\n' >> "${report}"
+          printf -- '- Cargo.lock blob: `62c6eb098b3f6fffdea8a175a0f3afb33423b17b`\n' >> "${report}"
+          printf -- '- Rust/Cargo: `1.96.0`\n\n' >> "${report}"
+
+          overall=0
+          for spec in \
+            'lib|--lib' \
+            'tests|--tests' \
+            'examples|--examples' \
+            'benches|--benches'; do
+            label="${spec%%|*}"
+            args="${spec#*|}"
+            log="${RUNNER_TEMP}/terrain-${label}.log"
+            set +e
+            cargo check -p symtropy-terrain --locked ${args} >"${log}" 2>&1
+            rc=$?
+            set -e
+            printf '## %s\n\nExit code: `%s`\n\n' "${label}" "${rc}" >> "${report}"
+            if [ "${rc}" -ne 0 ]; then
+              overall=1
+              printf '```text\n' >> "${report}"
+              python3 - "${log}" >> "${report}" <<'PY'
+          import re
+          import sys
+          from pathlib import Path
+
+          lines = Path(sys.argv[1]).read_text(errors="replace").splitlines()
+          starts = [i for i, line in enumerate(lines) if re.match(r"^(error(\[E[0-9]+\])?:|error:)", line)]
+          selected = []
+          if starts:
+              start = max(0, starts[0] - 4)
+              end = min(len(lines), starts[0] + 36)
+              selected.extend(lines[start:end])
+              if len(starts) > 1:
+                  start2 = max(0, starts[1] - 2)
+                  end2 = min(len(lines), starts[1] + 20)
+                  selected.extend(["", "--- second compiler error ---", ""])
+                  selected.extend(lines[start2:end2])
+          else:
+              selected = lines[-60:]
+
+          text = "\n".join(selected)
+          text = re.sub(r"/home/runner/work/[^/]+/[^/]+/", "<repo>/", text)
+          text = re.sub(r"/home/runner/\.cargo/registry/src/[^/]+/", "<registry>/", text)
+          print(text[:12000])
+          PY
+              printf '\n```\n\n' >> "${report}"
+            fi
+          done
+
+          cp "${report}" TERRAIN_POST_NAGA27_COMPILE_REPORT.md
+          echo "TERRAIN_COMPILE_REPORT_OVERALL=${overall}" >> "${GITHUB_ENV}"
+          cat TERRAIN_POST_NAGA27_COMPILE_REPORT.md
+
+      - name: Publish immutable diagnostic report
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git diff --name-only)" = ""
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add TERRAIN_POST_NAGA27_COMPILE_REPORT.md
+          test "$(git diff --cached --name-only)" = "TERRAIN_POST_NAGA27_COMPILE_REPORT.md"
+          git commit -m "docs(terrain): record post-Naga compile counterexample"
+          git push origin "HEAD:${GITHUB_REF_NAME}"
+          echo "TERRAIN_COMPILE_REPORT_COMMIT=$(git rev-parse HEAD)"
+          echo "TERRAIN_COMPILE_REPORT_BLOB=$(git rev-parse HEAD:TERRAIN_POST_NAGA27_COMPILE_REPORT.md)"
+
+      - name: Preserve fail-closed result
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "${TERRAIN_COMPILE_REPORT_OVERALL}" = "0"
