@@ -7,6 +7,7 @@ on:
     paths:
       - ".github/workflows/terrain-naga27-feature-consistency-qualification.yml"
       - "crates/domains/symtropy-terrain/Cargo.toml"
+      - "crates/domains/symtropy-terrain/tests/geometry_authority_golden.rs"
       - "Cargo.lock"
 
 permissions:
@@ -35,14 +36,19 @@ jobs:
           base=e707113651e302f7c61c5542483104af352cb3d0
           manifest_candidate=5410ba61daad5af56d58f2ad660456a05b176d78
           lock_freeze=70b2ab71decb5d1a13d3841f64f1329a664781ea
+          prior_qualifier=8172eb7a29997e566b88938b95e12fac0d4c9ded
+          golden_rebind=01789ad66722b1a1dfe59d357164be6180dec89a
           manifest=crates/domains/symtropy-terrain/Cargo.toml
           qualifier=.github/workflows/terrain-naga27-feature-consistency-qualification.yml
+          golden=crates/domains/symtropy-terrain/tests/geometry_authority_golden.rs
           kernel=crates/domains/symtropy-terrain/src/geometry_kernel.rs
 
           test "$(git rev-parse HEAD)" = "${GITHUB_SHA}"
-          test "$(git rev-parse HEAD^)" = "${lock_freeze}"
-          test "$(git rev-parse HEAD^^)" = "${manifest_candidate}"
-          test "$(git rev-parse HEAD^^^)" = "${base}"
+          test "$(git rev-parse HEAD^)" = "${golden_rebind}"
+          test "$(git rev-parse HEAD^^)" = "${prior_qualifier}"
+          test "$(git rev-parse HEAD^^^)" = "${lock_freeze}"
+          test "$(git rev-parse HEAD^^^^)" = "${manifest_candidate}"
+          test "$(git rev-parse HEAD^^^^^)" = "${base}"
 
           test "$(git rev-parse ${base}:${manifest})" = "6b3dd8cc5ede90833caecd6568757c42ecc97509"
           test "$(git rev-parse HEAD:${manifest})" = "187fe4020a0c0048ab36404e219a7a5698a856d1"
@@ -50,16 +56,20 @@ jobs:
           test "$(git rev-parse HEAD:${kernel})" = "8d3e1213eacdeddf693cd2d1f82670d6ed832161"
           test "$(git rev-parse ${lock_freeze}:Cargo.lock)" = "62c6eb098b3f6fffdea8a175a0f3afb33423b17b"
           test "$(git rev-parse HEAD:Cargo.lock)" = "62c6eb098b3f6fffdea8a175a0f3afb33423b17b"
+          test "$(git rev-parse HEAD:${golden})" = "066affb55a203453da09505f7552f4c04442413c"
 
           actual="$(git diff --name-only ${base}..HEAD | sort)"
-          expected="$(printf '%s\n' Cargo.lock "${manifest}" "${qualifier}" | sort)"
+          expected="$(printf '%s\n' Cargo.lock "${manifest}" "${qualifier}" "${golden}" | sort)"
           test "${actual}" = "${expected}"
 
           grep -Fx 'naga = { version = "27", default-features = false, features = ["termcolor"] }' "${manifest}"
+          grep -Fq '#[path = "../src/geometry_kernel.rs"]' "${golden}"
+          ! grep -Fq 'TerrainGeometrySnapshot::capture' "${golden}"
           echo "TERRAIN_NAGA27_INPUT_HEAD=${GITHUB_SHA}"
           echo "TERRAIN_NAGA27_INPUT_TREE=$(git rev-parse HEAD^{tree})"
           echo "TERRAIN_NAGA27_MANIFEST_BLOB=$(git rev-parse HEAD:${manifest})"
           echo "TERRAIN_GEOMETRY_KERNEL_BLOB=$(git rev-parse HEAD:${kernel})"
+          echo "TERRAIN_GOLDEN_REBIND_BLOB=$(git rev-parse HEAD:${golden})"
           echo "TERRAIN_LOCK_BLOB=$(git rev-parse HEAD:Cargo.lock)"
           echo "TERRAIN_LOCK_FREEZE_SOURCE=fb8e0e39a04d61384a5f105a1ee64704ee785fe7"
           echo "CARGO_TARGET_DIR=${RUNNER_TEMP}/terrain-naga27-target" >> "${GITHUB_ENV}"
@@ -201,6 +211,7 @@ jobs:
           test "$(git rev-parse HEAD)" = "${GITHUB_SHA}"
           test "$(git rev-parse HEAD:crates/domains/symtropy-terrain/Cargo.toml)" = "187fe4020a0c0048ab36404e219a7a5698a856d1"
           test "$(git rev-parse HEAD:crates/domains/symtropy-terrain/src/geometry_kernel.rs)" = "8d3e1213eacdeddf693cd2d1f82670d6ed832161"
+          test "$(git rev-parse HEAD:crates/domains/symtropy-terrain/tests/geometry_authority_golden.rs)" = "066affb55a203453da09505f7552f4c04442413c"
           test "$(git rev-parse HEAD:Cargo.lock)" = "62c6eb098b3f6fffdea8a175a0f3afb33423b17b"
           echo "TERRAIN_NAGA27_FEATURE_CONSISTENCY_STATUS=PASS"
-          echo "claim=package-scoped Naga 27 termcolor feature consistency restores the exact Terrain selected graph; no geometry/provider semantic claim"
+          echo "claim=package-scoped Naga 27 termcolor feature consistency restores the exact Terrain selected graph; stale golden vectors are rebound test-only to the already-qualified kernel; no geometry/provider semantic claim"
