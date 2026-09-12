@@ -1,0 +1,242 @@
+name: Evolution POPGEN-05E3 Evidence v0.2
+
+on:
+  push:
+    branches:
+      - "ci/evolution-popgen05e3-evidence-v0.2"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: evolution-popgen05e3-evidence-v02-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  CARGO_TERM_COLOR: always
+  PRODUCT_HEAD: 06c5a2a662cfb4185300deb8b50dbb5ab740ef0c
+
+jobs:
+  qualify:
+    name: Frozen POPGEN-05E3 evidence / Rust 1.96
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout exact frozen product head
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ env.PRODUCT_HEAD }}
+          fetch-depth: 1
+
+      - name: Assert executed product subject
+        id: subject
+        continue-on-error: true
+        shell: bash
+        run: |
+          set -euo pipefail
+          actual="$(git rev-parse HEAD)"
+          echo "expected_product_head=${PRODUCT_HEAD}"
+          echo "actual_product_head=${actual}"
+          test "${actual}" = "${PRODUCT_HEAD}"
+
+      - name: Set up pinned Rust
+        id: rust
+        if: steps.subject.outcome == 'success'
+        continue-on-error: true
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.96.0
+          components: clippy, rustfmt
+
+      - name: Isolate dependency-light evolution crate
+        id: isolate
+        if: steps.subject.outcome == 'success' && steps.rust.outcome == 'success'
+        continue-on-error: true
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf "${RUNNER_TEMP}/symtropy-evolution-core"
+          cp -R crates/domains/symtropy-evolution-core "${RUNNER_TEMP}/symtropy-evolution-core"
+          printf 'source_product_head=%s\n' "${PRODUCT_HEAD}" > "${RUNNER_TEMP}/symtropy-evolution-core/QUALIFICATION_SUBJECT"
+
+      - name: Check formatting
+        id: fmt
+        if: steps.subject.outcome == 'success' && steps.rust.outcome == 'success' && steps.isolate.outcome == 'success'
+        continue-on-error: true
+        working-directory: ${{ runner.temp }}/symtropy-evolution-core
+        run: cargo fmt --all -- --check
+
+      - name: Check all targets
+        id: check
+        if: steps.subject.outcome == 'success' && steps.rust.outcome == 'success' && steps.isolate.outcome == 'success'
+        continue-on-error: true
+        working-directory: ${{ runner.temp }}/symtropy-evolution-core
+        run: cargo check --all-targets
+
+      - name: Run analytical null oracle
+        id: oracle_e1
+        if: steps.subject.outcome == 'success' && steps.rust.outcome == 'success' && steps.isolate.outcome == 'success'
+        continue-on-error: true
+        working-directory: ${{ runner.temp }}/symtropy-evolution-core
+        run: cargo test --test origin_aware_neutral_analytical_null_v1
+
+      - name: Run independent reference sampler oracle
+        id: oracle_e2
+        if: steps.subject.outcome == 'success' && steps.rust.outcome == 'success' && steps.isolate.outcome == 'success'
+        continue-on-error: true
+        working-directory: ${{ runner.temp }}/symtropy-evolution-core
+        run: cargo test --test origin_aware_reference_sampler_v1
+
+      - name: Run explicit linked differential oracle
+        id: oracle_e3
+        if: steps.subject.outcome == 'success' && steps.rust.outcome == 'success' && steps.isolate.outcome == 'success'
+        continue-on-error: true
+        working-directory: ${{ runner.temp }}/symtropy-evolution-core
+        run: cargo test --test origin_aware_linked_differential_v1
+
+      - name: Run all tests
+        id: test_all
+        if: steps.subject.outcome == 'success' && steps.rust.outcome == 'success' && steps.isolate.outcome == 'success'
+        continue-on-error: true
+        working-directory: ${{ runner.temp }}/symtropy-evolution-core
+        run: cargo test --all-targets
+
+      - name: Run strict Clippy
+        id: clippy
+        if: steps.subject.outcome == 'success' && steps.rust.outcome == 'success' && steps.isolate.outcome == 'success'
+        continue-on-error: true
+        working-directory: ${{ runner.temp }}/symtropy-evolution-core
+        run: cargo clippy --all-targets -- -D warnings
+
+      - name: Emit machine-readable qualification receipt
+        id: receipt
+        if: always()
+        shell: bash
+        env:
+          HELPER_HEAD: ${{ github.sha }}
+          RUN_ID: ${{ github.run_id }}
+          RUN_ATTEMPT: ${{ github.run_attempt }}
+          SUBJECT_OUTCOME: ${{ steps.subject.outcome }}
+          RUST_OUTCOME: ${{ steps.rust.outcome }}
+          ISOLATE_OUTCOME: ${{ steps.isolate.outcome }}
+          FMT_OUTCOME: ${{ steps.fmt.outcome }}
+          CHECK_OUTCOME: ${{ steps.check.outcome }}
+          ORACLE_E1_OUTCOME: ${{ steps.oracle_e1.outcome }}
+          ORACLE_E2_OUTCOME: ${{ steps.oracle_e2.outcome }}
+          ORACLE_E3_OUTCOME: ${{ steps.oracle_e3.outcome }}
+          TEST_ALL_OUTCOME: ${{ steps.test_all.outcome }}
+          CLIPPY_OUTCOME: ${{ steps.clippy.outcome }}
+        run: |
+          set -euo pipefail
+          receipt="${RUNNER_TEMP}/popgen05e3-evidence-v02.json"
+          export RECEIPT_PATH="${receipt}"
+          python3 - <<'PY'
+          import json, os, subprocess
+
+          env_to_key = {
+              "SUBJECT_OUTCOME": "subject",
+              "RUST_OUTCOME": "rust",
+              "ISOLATE_OUTCOME": "isolate",
+              "FMT_OUTCOME": "fmt",
+              "CHECK_OUTCOME": "check",
+              "ORACLE_E1_OUTCOME": "oracle_e1_analytical",
+              "ORACLE_E2_OUTCOME": "oracle_e2_reference_sampler",
+              "ORACLE_E3_OUTCOME": "oracle_e3_linked_differential",
+              "TEST_ALL_OUTCOME": "test_all",
+              "CLIPPY_OUTCOME": "clippy",
+          }
+          outcomes = {key: os.environ.get(env_name, "unknown") for env_name, key in env_to_key.items()}
+          required = list(env_to_key.values())
+          overall = "pass" if all(outcomes.get(key) == "success" for key in required) else "fail"
+
+          def version(command):
+              try:
+                  return subprocess.check_output(command, text=True, stderr=subprocess.STDOUT).strip()
+              except Exception:
+                  return "unavailable"
+
+          receipt = {
+              "receipt_version": 2,
+              "qualification": "POPGEN-05E3-neutral-origin-fate",
+              "product_head": os.environ["PRODUCT_HEAD"],
+              "helper_head": os.environ["HELPER_HEAD"],
+              "workflow_run_id": int(os.environ["RUN_ID"]),
+              "workflow_run_attempt": int(os.environ["RUN_ATTEMPT"]),
+              "scope": "crates/domains/symtropy-evolution-core",
+              "declared_rust_toolchain": "1.96.0",
+              "rustc_version": version(["rustc", "--version"]),
+              "cargo_version": version(["cargo", "--version"]),
+              "oracles": [
+                  "ORIGIN_AWARE_NEUTRAL_ANALYTICAL_NULL_V1",
+                  "ORIGIN_AWARE_REFERENCE_SAMPLER_V1",
+                  "ORIGIN_AWARE_LINKED_DIFFERENTIAL_V1",
+              ],
+              "frozen_gates": {
+                  "e1_binary_replicates": 8192,
+                  "e1_asymmetric_replicates": 12288,
+                  "e1_multinomial_replicates": 8192,
+                  "e1_histogram_abs_tolerance": 0.03,
+                  "e1_moment_abs_tolerance": 0.08,
+                  "e2_replicates_per_sampler": 16384,
+                  "e2_total_variation_max": 0.05,
+                  "e2_event_probability_abs_tolerance": 0.04,
+                  "e3_explicit_replicates": 1024,
+                  "e3_aggregate_replicates": 4096,
+                  "e3_binomial_abs_tolerance": 0.06,
+                  "e3_matched_total_variation_max": 0.08,
+                  "e3_structured_offspring": 128,
+                  "e3_structured_total_variation_min": 0.35,
+                  "e3_fixed_parent_search_window_per_origin": 512,
+              },
+              "step_outcomes": outcomes,
+              "overall": overall,
+              "claim_boundary": "isolated evolution-core compile/lint/tests and frozen neutral-origin qualification only; no selection, ecology, empirical calibration, arbitrary pedigree equivalence, or production promotion authority",
+          }
+          with open(os.environ["RECEIPT_PATH"], "w", encoding="utf-8") as handle:
+              json.dump(receipt, handle, sort_keys=True, indent=2)
+              handle.write("\n")
+          print(json.dumps(receipt, sort_keys=True))
+          PY
+          sha256sum "${receipt}" > "${receipt}.sha256"
+          cat "${receipt}"
+          cat "${receipt}.sha256"
+
+      - name: Upload qualification receipt
+        if: always() && steps.receipt.outcome == 'success'
+        uses: actions/upload-artifact@v4
+        with:
+          name: popgen05e3-evidence-v02-${{ env.PRODUCT_HEAD }}
+          path: |
+            ${{ runner.temp }}/popgen05e3-evidence-v02.json
+            ${{ runner.temp }}/popgen05e3-evidence-v02.json.sha256
+          if-no-files-found: error
+          retention-days: 90
+
+      - name: Enforce qualification result
+        if: always()
+        shell: bash
+        env:
+          SUBJECT_OUTCOME: ${{ steps.subject.outcome }}
+          RUST_OUTCOME: ${{ steps.rust.outcome }}
+          ISOLATE_OUTCOME: ${{ steps.isolate.outcome }}
+          FMT_OUTCOME: ${{ steps.fmt.outcome }}
+          CHECK_OUTCOME: ${{ steps.check.outcome }}
+          ORACLE_E1_OUTCOME: ${{ steps.oracle_e1.outcome }}
+          ORACLE_E2_OUTCOME: ${{ steps.oracle_e2.outcome }}
+          ORACLE_E3_OUTCOME: ${{ steps.oracle_e3.outcome }}
+          TEST_ALL_OUTCOME: ${{ steps.test_all.outcome }}
+          CLIPPY_OUTCOME: ${{ steps.clippy.outcome }}
+          RECEIPT_OUTCOME: ${{ steps.receipt.outcome }}
+        run: |
+          set -euo pipefail
+          test "${SUBJECT_OUTCOME}" = success
+          test "${RUST_OUTCOME}" = success
+          test "${ISOLATE_OUTCOME}" = success
+          test "${FMT_OUTCOME}" = success
+          test "${CHECK_OUTCOME}" = success
+          test "${ORACLE_E1_OUTCOME}" = success
+          test "${ORACLE_E2_OUTCOME}" = success
+          test "${ORACLE_E3_OUTCOME}" = success
+          test "${TEST_ALL_OUTCOME}" = success
+          test "${CLIPPY_OUTCOME}" = success
+          test "${RECEIPT_OUTCOME}" = success
