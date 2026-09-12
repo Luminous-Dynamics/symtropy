@@ -45,9 +45,9 @@ jobs:
           for sha in "$LW55_SHA" "$LW56_SHA" "$LW57_SHA"; do
             git cat-file -e "${sha}^{commit}"
           done
-          test "$LW55_SHA" = "$(git rev-parse living-world/lw55-shadow-continuity-sampling-invariant)"
-          test "$LW56_SHA" = "$(git rev-parse living-world/lw56-executable-runner-qualification)"
-          test "$LW57_SHA" = "$(git rev-parse living-world/lw57-verifier-bound-runner-semantics)"
+          test "$LW55_SHA" = "$(git rev-parse origin/living-world/lw55-shadow-continuity-sampling-invariant)"
+          test "$LW56_SHA" = "$(git rev-parse origin/living-world/lw56-executable-runner-qualification)"
+          test "$LW57_SHA" = "$(git rev-parse origin/living-world/lw57-verifier-bound-runner-semantics)"
           test -z "$(git status --porcelain)"
 
       - name: Set up pinned Rust
@@ -63,12 +63,10 @@ jobs:
           rustc --version --verbose
           cargo --version
           mkdir -p "$RUNNER_TEMP/living-world-qualification"
-          echo "TARGET_DIR=$RUNNER_TEMP/living-world-target" >> "$GITHUB_ENV"
+          echo "CARGO_TARGET_DIR=$RUNNER_TEMP/living-world-target" >> "$GITHUB_ENV"
 
       - name: Qualify exact LW55 sampling-invariant continuity head
         shell: bash
-        env:
-          CARGO_TARGET_DIR: ${{ env.TARGET_DIR }}
         run: |
           set -euo pipefail
           git checkout --detach "$LW55_SHA"
@@ -90,8 +88,6 @@ jobs:
 
       - name: Qualify exact LW56 executable-qualification authority head
         shell: bash
-        env:
-          CARGO_TARGET_DIR: ${{ env.TARGET_DIR }}
         run: |
           set -euo pipefail
           git checkout --detach "$LW56_SHA"
@@ -113,8 +109,6 @@ jobs:
 
       - name: Qualify exact LW57 verifier-bound semantic authority head
         shell: bash
-        env:
-          CARGO_TARGET_DIR: ${{ env.TARGET_DIR }}
         run: |
           set -euo pipefail
           git checkout --detach "$LW57_SHA"
