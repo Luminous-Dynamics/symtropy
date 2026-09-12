@@ -32,43 +32,47 @@ fn dependency(
     }
 }
 
-fn capability(id: &str, essential: bool, dependencies: &[&str]) -> IndustrialCapability {
+fn capability(
+    id: impl Into<String>,
+    essential: bool,
+    dependencies: impl IntoIterator<Item = String>,
+) -> IndustrialCapability {
     IndustrialCapability {
         capability_id: id.into(),
         essential,
-        dependency_ids: dependencies.iter().map(|id| (*id).to_owned()).collect(),
+        dependency_ids: dependencies.into_iter().collect(),
     }
 }
 
 fn capabilities(generation: &str) -> Vec<IndustrialCapability> {
     vec![
         capability(
-            &format!("operation-{generation}"),
+            format!("operation-{generation}"),
             true,
-            &[
-                &format!("reactor-service-{generation}"),
-                &format!("structural-stock-{generation}"),
+            vec![
+                format!("reactor-service-{generation}"),
+                format!("structural-stock-{generation}"),
             ],
         ),
         capability(
-            &format!("construction-controller-{generation}"),
+            format!("construction-controller-{generation}"),
             false,
-            &[&format!("local-controller-{generation}")],
+            vec![format!("local-controller-{generation}")],
         ),
         capability(
-            &format!("construction-tooling-{generation}"),
+            format!("construction-tooling-{generation}"),
             false,
-            &[
-                &format!("forge-tooling-{generation}"),
-                &format!("structural-stock-{generation}"),
+            vec![
+                format!("forge-tooling-{generation}"),
+                format!("structural-stock-{generation}"),
             ],
         ),
         capability(
-            &format!("successor-qualification-{generation}"),
+            format!("successor-qualification-{generation}"),
             false,
-            &[
-                &format!("metrology-{generation}"),
-                &format!("reactor-service-{generation}"),
+            vec![
+                format!("metrology-{generation}"),
+                format!("reactor-service-{generation}"),
             ],
         ),
     ]
