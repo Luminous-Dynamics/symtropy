@@ -55,6 +55,7 @@ mod population_structure;
 mod population_trajectory;
 mod reproduction;
 mod schema;
+mod selection_analysis_frame;
 mod selection_design;
 mod selection_evidence;
 mod structured_population_process;
@@ -293,6 +294,15 @@ pub use reproduction::{
     ReproductionMode, ReproductionProvenance, ReproductionProvenanceDigest,
 };
 pub use schema::{HereditarySchema, HereditarySchemaDigest, LocusDefinition};
+pub use selection_analysis_frame::{
+    BinaryComparisonGroup, EvidenceWindowBinding, ExplicitSelectionAnalysisFrame,
+    ExplicitSelectionAnalysisFrameDigest, MaterializedOutcome, MaterializedPredictorValue,
+    PredictorCalibrationProvenance, PredictorDefinitionBindingDigest, PredictorMaterialization,
+    PredictorMaterializationInput, PredictorMaterializationStatus, PredictorRepresentation,
+    PredictorSourceBinding, SelectionAnalysisFrameError, SelectionAnalysisFrameRow,
+    ValidatedSelectionAnalysisFrame, EXPLICIT_SELECTION_ANALYSIS_FRAME_VERSION,
+    SELECTION_ANALYSIS_FRAME_ROW_VERSION,
+};
 pub use selection_design::{
     AnalysisAuthorityRef, AnalysisContentDigest, CalibrationAuthorityRef, ChannelSupportPolicy,
     ComparisonAuthorityRef, CompetingRiskPolicy, ConfoundingPolicy, DeathBeforeEndpointPolicy,
