@@ -8,13 +8,16 @@
 //! and Rapier handles, dirty/rebuild flags, and asynchronous rebuild cadence are
 //! deliberately outside the exact geometry identity.
 
-use bevy::{ecs::world::World, prelude::{Component, Entity, Reflect}};
+use bevy::{
+    ecs::world::World,
+    prelude::{Component, Entity},
+};
 use std::{error::Error, fmt};
 
 use super::{CHUNK_SIZE, EarthChunk, SubstrateMaterial};
 use crate::geometry_kernel::{
-    EarthChunkLatticeCoord, TerrainGeometrySnapshot, TerrainMaterialCode,
-    TERRAIN_GEOMETRY_CHUNK_SIZE, TERRAIN_GEOMETRY_VOXEL_COUNT,
+    EarthChunkLatticeCoord, TERRAIN_GEOMETRY_CHUNK_SIZE, TERRAIN_GEOMETRY_VOXEL_COUNT,
+    TerrainGeometrySnapshot, TerrainMaterialCode,
 };
 
 /// Exact integer Terrain-lattice locus owned by an ECS entity.
@@ -23,8 +26,12 @@ use crate::geometry_kernel::{
 /// rendering, rebuilding, or re-colliding a chunk cannot silently rewrite its
 /// exact geometry identity. World construction may assign or replace this
 /// component explicitly; read-side capture never accepts a caller coordinate.
-#[derive(Component, Reflect, Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
-#[reflect(Component)]
+///
+/// It intentionally does not implement Bevy `Reflect` and is not registered as
+/// a reflected component. Generic scene/inspector mutation must not silently
+/// become a spatial-authority write path. A future persistence/import boundary
+/// must assign loci explicitly and qualify that mapping separately.
+#[derive(Component, Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct EarthChunkLatticeLocus {
     x: i32,
     y: i32,
@@ -171,7 +178,9 @@ pub fn capture_live_terrain_geometry(
         });
     }
 
-    Ok(TerrainGeometrySnapshot::from_material_codes(coord, materials))
+    Ok(TerrainGeometrySnapshot::from_material_codes(
+        coord, materials,
+    ))
 }
 
 fn stable_material_code(material: SubstrateMaterial) -> TerrainMaterialCode {
@@ -209,7 +218,10 @@ mod tests {
         let receipt = snapshot
             .query(TerrainVoxelBox::full_chunk())
             .expect("full chunk query must succeed");
-        assert_eq!(receipt.observations().len(), TERRAIN_GEOMETRY_VOXEL_COUNT);
+        assert_eq!(
+            receipt.observations().len(),
+            TERRAIN_GEOMETRY_VOXEL_COUNT
+        );
         receipt.validate().expect("complete receipt must validate");
     }
 
@@ -281,9 +293,14 @@ mod tests {
     fn duplicate_locus_fails_closed_even_if_conflict_has_no_chunk() {
         let mut world = World::new();
         let requested = world
-            .spawn((EarthChunk::default(), EarthChunkLatticeLocus::new(-3, 7, 11)))
+            .spawn((
+                EarthChunk::default(),
+                EarthChunkLatticeLocus::new(-3, 7, 11),
+            ))
             .id();
-        let conflicting = world.spawn(EarthChunkLatticeLocus::new(-3, 7, 11)).id();
+        let conflicting = world
+            .spawn(EarthChunkLatticeLocus::new(-3, 7, 11))
+            .id();
 
         assert_eq!(
             capture_live_terrain_geometry(&world, requested),
@@ -299,16 +316,22 @@ mod tests {
     fn same_materials_at_different_ecs_loci_have_different_identity() {
         let mut world = World::new();
         let first = world
-            .spawn((EarthChunk::default(), EarthChunkLatticeLocus::new(0, 0, 0)))
+            .spawn((
+                EarthChunk::default(),
+                EarthChunkLatticeLocus::new(0, 0, 0),
+            ))
             .id();
         let second = world
-            .spawn((EarthChunk::default(), EarthChunkLatticeLocus::new(0, 0, 1)))
+            .spawn((
+                EarthChunk::default(),
+                EarthChunkLatticeLocus::new(0, 0, 1),
+            ))
             .id();
 
-        let first = capture_live_terrain_geometry(&world, first)
-            .expect("first capture must succeed");
-        let second = capture_live_terrain_geometry(&world, second)
-            .expect("second capture must succeed");
+        let first =
+            capture_live_terrain_geometry(&world, first).expect("first capture must succeed");
+        let second =
+            capture_live_terrain_geometry(&world, second).expect("second capture must succeed");
         assert_ne!(first.digest(), second.digest());
     }
 }
