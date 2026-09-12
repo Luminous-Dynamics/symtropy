@@ -226,6 +226,38 @@ mod tests {
     }
 
     #[test]
+    fn projects_every_live_material_to_the_frozen_kernel_vocabulary() {
+        let mut world = World::new();
+        let mut chunk = EarthChunk::default();
+        let cases = [
+            (SubstrateMaterial::Air, TerrainMaterialCode::AIR),
+            (SubstrateMaterial::Bedrock, TerrainMaterialCode::BEDROCK),
+            (SubstrateMaterial::Dolomite, TerrainMaterialCode::DOLOMITE),
+            (
+                SubstrateMaterial::PyriteTailing,
+                TerrainMaterialCode::PYRITE_TAILING,
+            ),
+            (SubstrateMaterial::Quartzite, TerrainMaterialCode::QUARTZITE),
+        ];
+
+        for (z, (live, _)) in cases.iter().copied().enumerate() {
+            chunk.voxels[0][0][z] = live;
+        }
+
+        let entity = world
+            .spawn((chunk, EarthChunkLatticeLocus::new(-8, 13, 21)))
+            .id();
+        let snapshot = capture_live_terrain_geometry(&world, entity).expect("capture must succeed");
+
+        for (z, (_, expected)) in cases.iter().copied().enumerate() {
+            let observation = snapshot
+                .observe(TerrainVoxelIndex::new(0, 0, z).expect("bounded test index"))
+                .expect("observation must succeed");
+            assert_eq!(observation.material(), expected);
+        }
+    }
+
+    #[test]
     fn recapture_tracks_voxel_change_but_ignores_runtime_state() {
         let mut world = World::new();
         let entity = world
