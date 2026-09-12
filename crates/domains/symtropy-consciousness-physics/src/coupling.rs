@@ -483,7 +483,8 @@ impl<const D: usize> ConsciousnessField<D> {
         for (handle, pos) in positions {
             let effect = leakage.total_effect_at(pos);
             if !effect.is_finite() {
-                self.ledger.rejected_event_count = self.ledger.rejected_event_count.saturating_add(1);
+                self.ledger.rejected_event_count =
+                    self.ledger.rejected_event_count.saturating_add(1);
                 continue;
             }
             if let Some(entity) = self.entities.get_mut(handle) {
@@ -576,7 +577,11 @@ impl<const D: usize> PhysicsCallback<D> for ConsciousnessField<D> {
 
     fn on_collision(&mut self, event: &symtropy_physics::CollisionEvent<D>) {
         let drain_rate = self.constants.collision_energy_drain;
-        if !event.impulse.is_finite() || event.impulse < 0.0 || !drain_rate.is_finite() || drain_rate < 0.0 {
+        if !event.impulse.is_finite()
+            || event.impulse < 0.0
+            || !drain_rate.is_finite()
+            || drain_rate < 0.0
+        {
             for handle in [event.body_a, event.body_b] {
                 if let Some(entity) = self.entities.get_mut(&handle) {
                     entity.on_collision(f64::NAN);
@@ -633,12 +638,10 @@ impl<const D: usize> PhysicsCallback<D> for ConsciousnessField<D> {
     }
 
     fn record_dissipation(&mut self, energy: f64) {
-        // The current world solver's dissipation callback is not yet guaranteed
-        // to be measured physical energy (some paths use impulse-based proxies).
-        // Keep it in legacy telemetry only and do not mutate physical temperature.
-        let entropy_multiplier = 1.0 + (D as f64 - 3.0).max(0.0) * 0.05;
-        let scaled_dissipation = energy * entropy_multiplier;
-        self.ledger.record_dissipation(scaled_dissipation);
+        // This callback remains compatibility telemetry only. Preserve the
+        // upstream amount exactly; D-dependent physical loss belongs in an
+        // explicitly modeled and reconciled physical mechanism.
+        self.ledger.record_dissipation(energy);
     }
 
     fn record_work(&mut self, body: BodyHandle, work_joules: f64) {
@@ -647,7 +650,8 @@ impl<const D: usize> PhysicsCallback<D> for ConsciousnessField<D> {
                 entity.safety_tier = SafetyTier::Red;
                 entity.motor_precision = 0.0;
             }
-            self.ledger.rejected_event_count = self.ledger.rejected_event_count.saturating_add(1);
+            self.ledger.rejected_event_count =
+                self.ledger.rejected_event_count.saturating_add(1);
             return;
         }
 
@@ -694,7 +698,11 @@ mod tests {
         }
     }
 
-    fn collision<const D: usize>(a: BodyHandle, b: BodyHandle, impulse: f64) -> symtropy_physics::CollisionEvent<D> {
+    fn collision<const D: usize>(
+        a: BodyHandle,
+        b: BodyHandle,
+        impulse: f64,
+    ) -> symtropy_physics::CollisionEvent<D> {
         symtropy_physics::CollisionEvent {
             body_a: a,
             body_b: b,
@@ -899,7 +907,11 @@ mod tests {
         field.entities.get_mut(&h1).unwrap().harmony_activations =
             [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0];
         field.update_entity(h0, &test_inputs(0.8), symtropy_math::Point::origin());
-        field.update_entity(h1, &test_inputs(0.8), symtropy_math::Point::new([5.0, 0.0, 0.0]));
+        field.update_entity(
+            h1,
+            &test_inputs(0.8),
+            symtropy_math::Point::new([5.0, 0.0, 0.0]),
+        );
         let positions = [
             (h0, symtropy_math::Point::new([0.0, 0.0, 0.0])),
             (h1, symtropy_math::Point::new([5.0, 0.0, 0.0])),
@@ -979,7 +991,19 @@ mod tests {
         let before = field.entities.get(&h).unwrap().energy.temperature;
         PhysicsCallback::<3>::record_dissipation(&mut field, 10.0);
         assert_eq!(field.entities.get(&h).unwrap().energy.temperature, before);
-        assert!(field.ledger.energy_out > 0.0);
+        assert_eq!(field.ledger.energy_out, 10.0);
+    }
+
+    #[test]
+    fn solver_dissipation_telemetry_is_dimension_invariant() {
+        let mut d3 = ConsciousnessField::<3>::new();
+        let mut d5 = ConsciousnessField::<5>::new();
+
+        PhysicsCallback::<3>::record_dissipation(&mut d3, 10.0);
+        PhysicsCallback::<5>::record_dissipation(&mut d5, 10.0);
+
+        assert_eq!(d3.ledger.energy_out, 10.0);
+        assert_eq!(d5.ledger.energy_out, 10.0);
     }
 
     #[test]
@@ -998,17 +1022,25 @@ mod tests {
         let receiver = BodyHandle(1);
         field.register(emitter, 100.0, 10.0);
         field.register(receiver, 100.0, 10.0);
-        field.entities.get_mut(&emitter).unwrap().harmony_activations[EMOTIONAL_CONTAGION_IDX] = 0.9;
-        field.entities.get_mut(&receiver).unwrap().harmony_activations[EMOTIONAL_CONTAGION_IDX] = 0.0;
+        field.entities.get_mut(&emitter).unwrap().harmony_activations
+            [EMOTIONAL_CONTAGION_IDX] = 0.9;
+        field.entities.get_mut(&receiver).unwrap().harmony_activations
+            [EMOTIONAL_CONTAGION_IDX] = 0.0;
         field.update_entity(emitter, &test_inputs(0.9), symtropy_math::Point::origin());
-        field.update_entity(receiver, &test_inputs(0.8), symtropy_math::Point::new([5.0, 0.0, 0.0]));
-        field.entities.get_mut(&emitter).unwrap().harmony_activations[EMOTIONAL_CONTAGION_IDX] = 0.9;
+        field.update_entity(
+            receiver,
+            &test_inputs(0.8),
+            symtropy_math::Point::new([5.0, 0.0, 0.0]),
+        );
+        field.entities.get_mut(&emitter).unwrap().harmony_activations
+            [EMOTIONAL_CONTAGION_IDX] = 0.9;
         let positions = [
             (emitter, symtropy_math::Point::new([0.0, 0.0, 0.0])),
             (receiver, symtropy_math::Point::new([5.0, 0.0, 0.0])),
         ];
         field.spread_emotional_contagion(&positions, 1.0);
-        let receiver_emotion = field.entities.get(&receiver).unwrap().harmony_activations[EMOTIONAL_CONTAGION_IDX];
+        let receiver_emotion =
+            field.entities.get(&receiver).unwrap().harmony_activations[EMOTIONAL_CONTAGION_IDX];
         assert!(receiver_emotion > 0.0);
     }
 
@@ -1034,7 +1066,8 @@ mod tests {
         field.register(emitter, 100.0, 10.0);
         field.register(receiver, 100.0, 10.0);
         field.entities.get_mut(&receiver).unwrap().harmony_activations[3] = 0.7;
-        field.entities.get_mut(&emitter).unwrap().harmony_activations[EMOTIONAL_CONTAGION_IDX] = 0.9;
+        field.entities.get_mut(&emitter).unwrap().harmony_activations
+            [EMOTIONAL_CONTAGION_IDX] = 0.9;
         let positions = [
             (emitter, symtropy_math::Point::new([0.0, 0.0, 0.0])),
             (receiver, symtropy_math::Point::new([3.0, 0.0, 0.0])),
