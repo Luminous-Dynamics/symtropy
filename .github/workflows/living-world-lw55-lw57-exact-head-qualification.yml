@@ -1,4 +1,4 @@
-name: Living World LW55-LW57 Exact-Head Qualification
+name: Living World LW55-LW58 Exact-Head Qualification
 
 on:
   push:
@@ -11,20 +11,21 @@ permissions:
   attestations: write
 
 concurrency:
-  group: living-world-lw55-lw57-exact-head-qualification-v0.1
+  group: living-world-lw55-lw58-exact-head-qualification-v0.1
   cancel-in-progress: true
 
 env:
   LW55_SHA: 51f0a62f768ca3aa02edd367abf9265e5b13d9dc
   LW56_SHA: 743656343acedbf6a2c101eea6204ccc10c5dd15
   LW57_SHA: c1555fac8458eafb458e8469ff84e246067790b3
+  LW58_SHA: 5351c2ba922d2858d708402d02492b67f446ac39
   CARGO_TERM_COLOR: always
 
 jobs:
   qualify:
-    name: Exact LW55 -> LW57 authority stack
+    name: Exact LW55 -> LW58 authority stack
     runs-on: ubuntu-latest
-    timeout-minutes: 60
+    timeout-minutes: 75
 
     steps:
       - name: Check out exact LW55 product subject
@@ -41,13 +42,15 @@ jobs:
           git fetch --no-tags origin \
             "living-world/lw55-shadow-continuity-sampling-invariant" \
             "living-world/lw56-executable-runner-qualification" \
-            "living-world/lw57-verifier-bound-runner-semantics"
-          for sha in "$LW55_SHA" "$LW56_SHA" "$LW57_SHA"; do
+            "living-world/lw57-verifier-bound-runner-semantics" \
+            "living-world/lw58-current-executable-continuity"
+          for sha in "$LW55_SHA" "$LW56_SHA" "$LW57_SHA" "$LW58_SHA"; do
             git cat-file -e "${sha}^{commit}"
           done
           test "$LW55_SHA" = "$(git rev-parse origin/living-world/lw55-shadow-continuity-sampling-invariant)"
           test "$LW56_SHA" = "$(git rev-parse origin/living-world/lw56-executable-runner-qualification)"
           test "$LW57_SHA" = "$(git rev-parse origin/living-world/lw57-verifier-bound-runner-semantics)"
+          test "$LW58_SHA" = "$(git rev-parse origin/living-world/lw58-current-executable-continuity)"
           test -z "$(git status --porcelain)"
 
       - name: Set up pinned Rust
@@ -128,12 +131,32 @@ jobs:
           {"schema":"living-world-exact-head-qualification-v1","layer":"LW57","product_sha":"$LW57_SHA","product_tree":"$HEAD_TREE","cargo_lock_sha256":"$LOCK_SHA256","rust":"1.96.0","crate":"symtropy-lifesim-core","gates":["rustfmt-check","cargo-check-locked-all-targets","targeted-hostile-tests","full-lib-tests","strict-clippy-all-targets-all-features"],"verifier_bound_semantic_resolver_executed":true,"external_semantic_evidence_verified":false,"production_runner_emission_qualified":false,"anchor_renewal_authorized":false}
           EOF
 
+      - name: Qualify exact LW58 current executable-continuity head
+        shell: bash
+        run: |
+          set -euo pipefail
+          git checkout --detach "$LW58_SHA"
+          test "$(git rev-parse HEAD)" = "$LW58_SHA"
+          test -z "$(git status --porcelain)"
+          HEAD_TREE="$(git rev-parse HEAD^{tree})"
+          LOCK_SHA256="$(sha256sum Cargo.lock | awk '{print $1}')"
+
+          cargo fmt --all -- --check
+          cargo check --locked -p symtropy-lifesim-core --all-targets
+          cargo test --locked -p symtropy-lifesim-core --lib
+          cargo clippy --locked -p symtropy-lifesim-core --all-targets --all-features -- -D warnings
+          test -z "$(git status --porcelain)"
+
+          cat > "$RUNNER_TEMP/living-world-qualification/lw58.json" <<EOF
+          {"schema":"living-world-exact-head-qualification-v1","layer":"LW58","product_sha":"$LW58_SHA","product_tree":"$HEAD_TREE","cargo_lock_sha256":"$LOCK_SHA256","rust":"1.96.0","crate":"symtropy-lifesim-core","gates":["rustfmt-check","cargo-check-locked-all-targets","full-lib-tests","strict-clippy-all-targets-all-features"],"current_executable_continuity_composition_compiled":true,"dedicated_lw58_hostile_fixture_executed":false,"anchor_renewal_authorized":false}
+          EOF
+
       - name: Freeze manifest digests
         shell: bash
         run: |
           set -euo pipefail
           cd "$RUNNER_TEMP/living-world-qualification"
-          sha256sum lw55.json lw56.json lw57.json | tee SHA256SUMS
+          sha256sum lw55.json lw56.json lw57.json lw58.json | tee SHA256SUMS
 
       - name: Attest exact qualification manifests
         uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6
@@ -144,6 +167,6 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          for manifest in "$RUNNER_TEMP"/living-world-qualification/lw5{5,6,7}.json; do
+          for manifest in "$RUNNER_TEMP"/living-world-qualification/lw5{5,6,7,8}.json; do
             gh attestation verify "$manifest" --repo "$GITHUB_REPOSITORY"
           done
