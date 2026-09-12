@@ -9,11 +9,12 @@
 //! whole contract rather than trusting plan ID/revision alone.
 
 use serde::{Deserialize, Deserializer, Serialize};
-use std::{error::Error, fmt};
+use std::{collections::BTreeSet, error::Error, fmt};
 use symtropy_game_state::StableId;
 
 use crate::{
-    FabricationPlan, PlanStepId, ProcessSpecId, ProcessSpecSnapshot, ProcessSpecSnapshotError,
+    CapabilityError, CapabilityNeedId, CapabilityNeedSnapshot, FabricationPlan, PlanStepId,
+    ProcessSpecId, ProcessSpecSnapshot, ProcessSpecSnapshotError,
 };
 
 /// One exact F10 -> F4 semantic binding.
@@ -43,12 +44,24 @@ impl ExactPlanProcessBinding {
 pub struct ExecutableFabricationPlan {
     plan: FabricationPlan,
     process_bindings: Vec<ExactPlanProcessBinding>,
+    capability_needs: Vec<CapabilityNeedSnapshot>,
 }
 
 impl ExecutableFabricationPlan {
+    /// Convenience constructor for executable plans that require no F5
+    /// capability needs. Capability-bearing plans fail closed here and must use
+    /// [`Self::new_with_capability_needs`].
     pub fn new(
         plan: FabricationPlan,
+        process_bindings: Vec<ExactPlanProcessBinding>,
+    ) -> Result<Self, ExecutablePlanError> {
+        Self::new_with_capability_needs(plan, process_bindings, Vec::new())
+    }
+
+    pub fn new_with_capability_needs(
+        plan: FabricationPlan,
         mut process_bindings: Vec<ExactPlanProcessBinding>,
+        mut capability_needs: Vec<CapabilityNeedSnapshot>,
     ) -> Result<Self, ExecutablePlanError> {
         process_bindings.sort_by(|left, right| left.step_id.cmp(&right.step_id));
         for pair in process_bindings.windows(2) {
@@ -104,6 +117,21 @@ impl ExecutableFabricationPlan {
                     actual: actual_capabilities,
                 });
             }
+
+            // F5 deliberately projects a rich satisfied admission into the F4
+            // compatibility token `available_value = 1`. Once F10 and F4 agree
+            // that these capability IDs are F5 need identities, any other F4
+            // threshold would create a second scalar capability semantics that
+            // the rich F5 theorem can never prove.
+            for requirement in binding.process_spec.required_capabilities() {
+                if requirement.minimum_value != 1 {
+                    return Err(ExecutablePlanError::NonBinaryF5BootstrapRequirement {
+                        step_id: binding.step_id.clone(),
+                        need_id: CapabilityNeedId::new(requirement.capability_id.clone()),
+                        minimum_value: requirement.minimum_value,
+                    });
+                }
+            }
         }
 
         for step in plan.steps() {
@@ -115,9 +143,50 @@ impl ExecutableFabricationPlan {
             }
         }
 
+        capability_needs.sort_by(|left, right| left.id().cmp(right.id()));
+        for need in &capability_needs {
+            need.validate_canonical().map_err(|error| {
+                ExecutablePlanError::NonCanonicalCapabilityNeed {
+                    need_id: need.id().clone(),
+                    error,
+                }
+            })?;
+        }
+        for pair in capability_needs.windows(2) {
+            if pair[0].id() == pair[1].id() {
+                return Err(ExecutablePlanError::DuplicateCapabilityNeedBinding(
+                    pair[0].id().clone(),
+                ));
+            }
+        }
+
+        let expected_capability_needs = plan
+            .steps()
+            .iter()
+            .flat_map(|step| step.capability_needs().iter().cloned())
+            .collect::<BTreeSet<_>>();
+        for need_id in &expected_capability_needs {
+            if capability_needs
+                .binary_search_by(|need| need.id().cmp(need_id))
+                .is_err()
+            {
+                return Err(ExecutablePlanError::MissingCapabilityNeedBinding(
+                    need_id.clone(),
+                ));
+            }
+        }
+        for need in &capability_needs {
+            if !expected_capability_needs.contains(need.id()) {
+                return Err(ExecutablePlanError::UnexpectedCapabilityNeedBinding(
+                    need.id().clone(),
+                ));
+            }
+        }
+
         Ok(Self {
             plan,
             process_bindings,
+            capability_needs,
         })
     }
 
@@ -127,6 +196,17 @@ impl ExecutableFabricationPlan {
 
     pub fn process_bindings(&self) -> &[ExactPlanProcessBinding] {
         &self.process_bindings
+    }
+
+    pub fn capability_needs(&self) -> &[CapabilityNeedSnapshot] {
+        &self.capability_needs
+    }
+
+    pub fn capability_need(&self, id: &CapabilityNeedId) -> Option<&CapabilityNeedSnapshot> {
+        self.capability_needs
+            .binary_search_by(|need| need.id().cmp(id))
+            .ok()
+            .map(|index| &self.capability_needs[index])
     }
 
     pub fn binding(&self, step_id: &PlanStepId) -> Option<&ExactPlanProcessBinding> {
@@ -145,6 +225,7 @@ impl ExecutableFabricationPlan {
 struct ExecutableFabricationPlanWire {
     plan: FabricationPlan,
     process_bindings: Vec<ExactPlanProcessBinding>,
+    capability_needs: Vec<CapabilityNeedSnapshot>,
 }
 
 impl<'de> Deserialize<'de> for ExecutableFabricationPlan {
@@ -153,7 +234,8 @@ impl<'de> Deserialize<'de> for ExecutableFabricationPlan {
         D: Deserializer<'de>,
     {
         let wire = ExecutableFabricationPlanWire::deserialize(deserializer)?;
-        Self::new(wire.plan, wire.process_bindings).map_err(serde::de::Error::custom)
+        Self::new_with_capability_needs(wire.plan, wire.process_bindings, wire.capability_needs)
+            .map_err(serde::de::Error::custom)
     }
 }
 
@@ -177,6 +259,18 @@ pub enum ExecutablePlanError {
         step_id: PlanStepId,
         expected: Vec<StableId>,
         actual: Vec<StableId>,
+    },
+    NonBinaryF5BootstrapRequirement {
+        step_id: PlanStepId,
+        need_id: CapabilityNeedId,
+        minimum_value: u64,
+    },
+    MissingCapabilityNeedBinding(CapabilityNeedId),
+    DuplicateCapabilityNeedBinding(CapabilityNeedId),
+    UnexpectedCapabilityNeedBinding(CapabilityNeedId),
+    NonCanonicalCapabilityNeed {
+        need_id: CapabilityNeedId,
+        error: CapabilityError,
     },
 }
 
@@ -223,18 +317,51 @@ impl fmt::Display for ExecutablePlanError {
                 formatter,
                 "plan step {step_id} capability bindings differ from exact F4 bootstrap requirements: expected {expected:?}, got {actual:?}"
             ),
+            Self::NonBinaryF5BootstrapRequirement {
+                step_id,
+                need_id,
+                minimum_value,
+            } => write!(
+                formatter,
+                "plan step {step_id} maps F5 need {need_id} to non-binary F4 threshold {minimum_value}; exact F5 bootstrap requires 1"
+            ),
+            Self::MissingCapabilityNeedBinding(need_id) => write!(
+                formatter,
+                "executable plan lacks exact F5 semantics for required capability need {need_id}"
+            ),
+            Self::DuplicateCapabilityNeedBinding(need_id) => write!(
+                formatter,
+                "executable plan repeats exact F5 semantics for capability need {need_id}"
+            ),
+            Self::UnexpectedCapabilityNeedBinding(need_id) => write!(
+                formatter,
+                "executable plan carries unreferenced exact F5 capability need {need_id}"
+            ),
+            Self::NonCanonicalCapabilityNeed { need_id, error } => write!(
+                formatter,
+                "executable plan capability need {need_id} is not canonical: {error}"
+            ),
         }
     }
 }
 
-impl Error for ExecutablePlanError {}
+impl Error for ExecutablePlanError {
+    fn source(&self) -> Option<&(dyn Error + 'static)> {
+        match self {
+            Self::NonCanonicalProcessSpec { error, .. } => Some(error),
+            Self::NonCanonicalCapabilityNeed { error, .. } => Some(error),
+            _ => None,
+        }
+    }
+}
 
 #[cfg(test)]
 mod tests {
     use super::*;
     use crate::{
-        CapabilityNeedId, CapabilityRequirement, FabricationPlanId, PlanDependency, PlanStep,
-        ProcessKind, ProcessSpec, WorkpieceId, WorkpieceLifecycle,
+        CapabilityNeed, CapabilityNeedId, CapabilityNeedSnapshot, CapabilityRequirement,
+        FabricationPlanId, PlanDependency, PlanStep, ProcessKind, ProcessSpec, WorkpieceId,
+        WorkpieceLifecycle,
     };
 
     fn id(value: &str) -> StableId {
@@ -321,11 +448,36 @@ mod tests {
         ]
     }
 
+    fn capability_needs() -> Vec<CapabilityNeedSnapshot> {
+        vec![
+            CapabilityNeed::new(
+                capability_id("clean"),
+                id("capability:clean"),
+                None,
+                Vec::new(),
+                vec![id("condition:a"), id("condition:b")],
+            )
+            .unwrap()
+            .snapshot()
+            .unwrap(),
+        ]
+    }
+
+    fn executable_with(
+        process_bindings: Vec<ExactPlanProcessBinding>,
+    ) -> Result<ExecutableFabricationPlan, ExecutablePlanError> {
+        ExecutableFabricationPlan::new_with_capability_needs(
+            plan(),
+            process_bindings,
+            capability_needs(),
+        )
+    }
+
     #[test]
     fn every_plan_step_requires_one_exact_process_binding() {
         let mut incomplete = bindings();
         incomplete.pop();
-        let result = ExecutableFabricationPlan::new(plan(), incomplete);
+        let result = executable_with(incomplete);
         assert!(matches!(
             result,
             Err(ExecutablePlanError::MissingStepBinding(step))
@@ -337,7 +489,7 @@ mod tests {
     fn duplicate_exact_binding_is_rejected() {
         let mut duplicated = bindings();
         duplicated.push(duplicated[0].clone());
-        let result = ExecutableFabricationPlan::new(plan(), duplicated);
+        let result = executable_with(duplicated);
         assert!(matches!(
             result,
             Err(ExecutablePlanError::DuplicateStepBinding(step))
@@ -357,7 +509,7 @@ mod tests {
                 vec![WorkpieceLifecycle::Available],
             ),
         ));
-        let result = ExecutableFabricationPlan::new(plan(), values);
+        let result = executable_with(values);
         assert!(matches!(
             result,
             Err(ExecutablePlanError::UnknownStepBinding(step))
@@ -381,7 +533,7 @@ mod tests {
         .unwrap()
         .snapshot();
 
-        let result = ExecutableFabricationPlan::new(plan(), values);
+        let result = executable_with(values);
         assert!(matches!(
             result,
             Err(ExecutablePlanError::ProcessIdentityMismatch {
@@ -402,7 +554,7 @@ mod tests {
             vec![WorkpieceLifecycle::Available],
         );
 
-        let result = ExecutableFabricationPlan::new(plan(), values);
+        let result = executable_with(values);
         assert!(matches!(
             result,
             Err(ExecutablePlanError::CapabilityBindingMismatch {
@@ -414,7 +566,7 @@ mod tests {
 
     #[test]
     fn same_plan_id_revision_with_changed_process_semantics_is_structurally_distinct() {
-        let left = ExecutableFabricationPlan::new(plan(), bindings()).unwrap();
+        let left = executable_with(bindings()).unwrap();
         let mut altered = bindings();
         altered[1].process_spec = spec(
             "inspect",
@@ -422,11 +574,137 @@ mod tests {
             None,
             vec![WorkpieceLifecycle::Available, WorkpieceLifecycle::Installed],
         );
-        let right = ExecutableFabricationPlan::new(plan(), altered).unwrap();
+        let right = executable_with(altered).unwrap();
 
         assert_eq!(left.plan().id, right.plan().id);
         assert_eq!(left.plan().revision, right.plan().revision);
         assert_ne!(left, right);
+    }
+
+    #[test]
+    fn f5_backed_process_requirement_must_remain_binary_at_f4_bridge() {
+        let mut process_bindings = bindings();
+        process_bindings[0].process_spec = ProcessSpec::new(
+            process_id("clean"),
+            1,
+            ProcessKind::Clean,
+            vec![CapabilityRequirement {
+                capability_id: capability_id("clean").stable_id().clone(),
+                minimum_value: 2,
+            }],
+            vec![WorkpieceLifecycle::Available],
+        )
+        .unwrap()
+        .snapshot();
+
+        let result = ExecutableFabricationPlan::new_with_capability_needs(
+            plan(),
+            process_bindings,
+            capability_needs(),
+        );
+        assert!(matches!(
+            result,
+            Err(ExecutablePlanError::NonBinaryF5BootstrapRequirement {
+                need_id,
+                minimum_value: 2,
+                ..
+            }) if need_id == capability_id("clean")
+        ));
+    }
+
+    #[test]
+    fn capability_bearing_plan_requires_exact_f5_need_binding() {
+        let result = ExecutableFabricationPlan::new(plan(), bindings());
+        assert!(matches!(
+            result,
+            Err(ExecutablePlanError::MissingCapabilityNeedBinding(need_id))
+                if need_id == capability_id("clean")
+        ));
+    }
+
+    #[test]
+    fn exact_f5_need_bindings_reject_duplicates_and_extras() {
+        let mut duplicated = capability_needs();
+        duplicated.push(duplicated[0].clone());
+        assert!(matches!(
+            ExecutableFabricationPlan::new_with_capability_needs(
+                plan(),
+                bindings(),
+                duplicated,
+            ),
+            Err(ExecutablePlanError::DuplicateCapabilityNeedBinding(need_id))
+                if need_id == capability_id("clean")
+        ));
+
+        let mut extra = capability_needs();
+        extra.push(
+            CapabilityNeed::new(
+                capability_id("extra"),
+                id("capability:extra"),
+                None,
+                Vec::new(),
+                Vec::new(),
+            )
+            .unwrap()
+            .snapshot()
+            .unwrap(),
+        );
+        assert!(matches!(
+            ExecutableFabricationPlan::new_with_capability_needs(plan(), bindings(), extra),
+            Err(ExecutablePlanError::UnexpectedCapabilityNeedBinding(need_id))
+                if need_id == capability_id("extra")
+        ));
+    }
+
+    #[test]
+    fn same_plan_id_revision_with_changed_f5_semantics_is_structurally_distinct() {
+        let left = executable_with(bindings()).unwrap();
+        let altered_need = CapabilityNeed::new(
+            capability_id("clean"),
+            id("capability:clean"),
+            Some(id("mode:changed")),
+            Vec::new(),
+            vec![id("condition:a"), id("condition:b")],
+        )
+        .unwrap()
+        .snapshot()
+        .unwrap();
+        let right = ExecutableFabricationPlan::new_with_capability_needs(
+            plan(),
+            bindings(),
+            vec![altered_need],
+        )
+        .unwrap();
+
+        assert_eq!(left.plan().id, right.plan().id);
+        assert_eq!(left.plan().revision, right.plan().revision);
+        assert_ne!(left, right);
+    }
+
+    #[test]
+    fn exact_f5_need_wire_rejects_noncanonical_historical_order() {
+        let executable = executable_with(bindings()).unwrap();
+        let mut value = serde_json::to_value(&executable).unwrap();
+        value["capability_needs"][0]["required_conditions"]
+            .as_array_mut()
+            .unwrap()
+            .reverse();
+        assert!(serde_json::from_value::<ExecutableFabricationPlan>(value).is_err());
+    }
+
+    #[test]
+    fn exact_f5_need_binding_round_trip_is_queryable_by_need_id() {
+        let executable = executable_with(bindings()).unwrap();
+        let encoded = serde_json::to_vec(&executable).unwrap();
+        let restored: ExecutableFabricationPlan = serde_json::from_slice(&encoded).unwrap();
+        let need = restored.capability_need(&capability_id("clean")).unwrap();
+
+        assert_eq!(restored, executable);
+        assert_eq!(need.capability_id(), &id("capability:clean"));
+        assert_eq!(
+            need.required_conditions(),
+            &[id("condition:a"), id("condition:b")]
+        );
     }
 
     #[test]
@@ -446,7 +724,7 @@ mod tests {
 
         let mut values = bindings();
         values[0].process_spec = process.snapshot();
-        let result = ExecutableFabricationPlan::new(plan(), values);
+        let result = executable_with(values);
         assert!(matches!(
             result,
             Err(ExecutablePlanError::NonCanonicalProcessSpec {
@@ -458,7 +736,7 @@ mod tests {
 
     #[test]
     fn deserialization_rejects_nested_noncanonical_process_snapshot() {
-        let executable = ExecutableFabricationPlan::new(plan(), bindings()).unwrap();
+        let executable = executable_with(bindings()).unwrap();
         let mut value = serde_json::to_value(&executable).unwrap();
         value["process_bindings"][0]["process_spec"]["allowed_workpiece_states"] =
             serde_json::json!(["installed", "available"]);
@@ -467,7 +745,7 @@ mod tests {
 
     #[test]
     fn deserialization_rejects_nested_cyclic_f10_plan() {
-        let executable = ExecutableFabricationPlan::new(plan(), bindings()).unwrap();
+        let executable = executable_with(bindings()).unwrap();
         let mut value = serde_json::to_value(&executable).unwrap();
         value["plan"]["dependencies"]
             .as_array_mut()
@@ -481,7 +759,7 @@ mod tests {
 
     #[test]
     fn deserialization_rejects_nested_f10_unknown_dependency_step() {
-        let executable = ExecutableFabricationPlan::new(plan(), bindings()).unwrap();
+        let executable = executable_with(bindings()).unwrap();
         let mut value = serde_json::to_value(&executable).unwrap();
         value["plan"]["dependencies"][0]["prerequisite"] =
             serde_json::Value::String("step:unknown".into());
@@ -490,7 +768,7 @@ mod tests {
 
     #[test]
     fn deserialization_revalidates_executable_plan_contract() {
-        let executable = ExecutableFabricationPlan::new(plan(), bindings()).unwrap();
+        let executable = executable_with(bindings()).unwrap();
         let mut value = serde_json::to_value(&executable).unwrap();
         value["process_bindings"][0]["process_spec"]["revision"] = 99.into();
 
@@ -500,7 +778,7 @@ mod tests {
 
     #[test]
     fn valid_contract_round_trips_and_resolves_exact_process_by_step() {
-        let executable = ExecutableFabricationPlan::new(plan(), bindings()).unwrap();
+        let executable = executable_with(bindings()).unwrap();
         let encoded = serde_json::to_vec(&executable).unwrap();
         let restored: ExecutableFabricationPlan = serde_json::from_slice(&encoded).unwrap();
 
@@ -513,7 +791,7 @@ mod tests {
 
     #[test]
     fn executable_contract_contains_no_runtime_or_authority_claims() {
-        let executable = ExecutableFabricationPlan::new(plan(), bindings()).unwrap();
+        let executable = executable_with(bindings()).unwrap();
         let json = serde_json::to_string(&executable).unwrap();
         for forbidden in [
             "\"progress\"",
