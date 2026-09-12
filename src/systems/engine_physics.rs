@@ -111,13 +111,13 @@ fn actuator_work_components(
 }
 
 /// Return the largest [0, 1] scale that keeps positive actuator work within the
-/// currently available energy budget. Negative-work braking is intentionally free of
+/// currently extractable work budget. Negative-work braking is intentionally free of
 /// *positive* motor-energy demand here; its removed kinetic energy is recorded as heat.
 fn energy_limited_delta_scale(
     velocity_before: &nalgebra::SVector<f64, 2>,
     delta_velocity: &nalgebra::SVector<f64, 2>,
     mass: f64,
-    available_energy: f64,
+    available_work: f64,
 ) -> f64 {
     let delta_speed = delta_velocity.norm();
     if delta_speed <= MOTOR_EPSILON {
@@ -126,13 +126,13 @@ fn energy_limited_delta_scale(
 
     let (full_positive_work, _) =
         actuator_work_components(velocity_before, delta_velocity, mass);
-    if full_positive_work <= available_energy + MOTOR_EPSILON {
+    if full_positive_work <= available_work + MOTOR_EPSILON {
         return 1.0;
     }
 
     let axis = delta_velocity / delta_speed;
     let speed_before = velocity_before.dot(&axis);
-    let energy = available_energy.max(0.0);
+    let energy = available_work.max(0.0);
 
     let scale = if speed_before >= 0.0 {
         let reachable_parallel_speed =
@@ -149,11 +149,44 @@ fn energy_limited_delta_scale(
     scale.clamp(0.0, 1.0)
 }
 
-fn motor_authority_and_energy(
+/// Read the current motor gain and the amount of work this actuator may extract.
+///
+/// The reservoir is a hard authority boundary independent of the cached safety tier:
+/// stale Green/Yellow state cannot authorize self-propulsion after energy reaches zero.
+/// Under the full consciousness runtime, the mechanical work budget is Helmholtz free
+/// energy (`U - T*S`) via `EnergyBudget::available_work()`. The standalone launcher
+/// stub has no thermal/entropy state, so its documented fallback is finite raw reservoir
+/// energy.
+fn motor_authority_and_work_budget(
     physics: &PhysicsWorldRes,
     handle: BodyHandle,
 ) -> Option<(f64, f64)> {
     let entity = physics.consciousness.entities.get(&handle)?;
+    let reservoir_energy = entity.energy.available;
+
+    if !reservoir_energy.is_finite() || reservoir_energy < 0.0 {
+        return Some((f64::NAN, f64::NAN));
+    }
+    if entity.energy.is_collapsed() || reservoir_energy <= MOTOR_EPSILON {
+        return Some((0.0, 0.0));
+    }
+
+    #[cfg(feature = "consciousness-runtime")]
+    let work_budget = {
+        if !entity.energy.temperature.is_finite()
+            || entity.energy.temperature <= 0.0
+            || !entity.energy.entropy.is_finite()
+            || entity.energy.entropy < 0.0
+            || !entity.energy.heat_capacity.is_finite()
+            || entity.energy.heat_capacity <= 0.0
+        {
+            return Some((f64::NAN, f64::NAN));
+        }
+        entity.energy.available_work()
+    };
+
+    #[cfg(not(feature = "consciousness-runtime"))]
+    let work_budget = reservoir_energy;
 
     #[cfg(feature = "consciousness-runtime")]
     let gain = entity.effective_motor_gain();
@@ -165,14 +198,10 @@ fn motor_authority_and_energy(
             crate::resources::SafetyTier::Yellow => 0.6,
             crate::resources::SafetyTier::Red => 0.0,
         };
-        if entity.energy.is_collapsed() {
-            0.0
-        } else {
-            tier_gain * entity.motor_precision
-        }
+        tier_gain * entity.motor_precision
     };
 
-    Some((gain, entity.energy.available))
+    Some((gain, work_budget))
 }
 
 fn charge_positive_motor_work(physics: &mut PhysicsWorldRes, handle: BodyHandle, work_joules: f64) {
@@ -218,15 +247,15 @@ fn record_braking_dissipation(
 ///
 /// 1. requested speed/acceleration are finite and hard-bounded;
 /// 2. the body's registered motor authority scales both target speed and acceleration;
-/// 3. positive mechanical work is limited by the entity's current energy budget;
+/// 3. positive mechanical work is limited by the entity's current extractable-work budget;
 /// 4. braking energy is dissipated rather than magically regenerated;
 /// 5. the resulting bounded velocity correction is applied to the physics body;
 /// 6. collision impulses and other external velocity changes remain distinct from this
 ///    command and are never inferred as locomotion work.
 ///
-/// A zero motor gain returns [`PlanarMotorOutcome::NoAuthority`] without damping or
-/// cancelling existing velocity. That matters: a collapsed/Red entity cannot propel
-/// itself, but an external collision is still allowed to move it.
+/// A zero motor gain or exhausted reservoir returns [`PlanarMotorOutcome::NoAuthority`]
+/// without damping or cancelling existing velocity. That matters: a collapsed/Red entity
+/// cannot propel itself, but an external collision is still allowed to move it.
 pub fn apply_planar_motor_target(
     physics: &mut PhysicsWorldRes,
     handle: BodyHandle,
@@ -251,10 +280,10 @@ pub fn apply_planar_motor_target(
         (body.linear_velocity, body.mass)
     };
 
-    let Some((motor_gain, available_energy)) = motor_authority_and_energy(physics, handle) else {
+    let Some((motor_gain, work_budget)) = motor_authority_and_work_budget(physics, handle) else {
         return PlanarMotorOutcome::MissingMotorState;
     };
-    if !motor_gain.is_finite() || !available_energy.is_finite() || available_energy < 0.0 {
+    if !motor_gain.is_finite() || !work_budget.is_finite() || work_budget < 0.0 {
         return PlanarMotorOutcome::InvalidMotorState;
     }
 
@@ -278,7 +307,7 @@ pub fn apply_planar_motor_target(
         &velocity_before,
         &bounded_delta_velocity,
         mass,
-        available_energy,
+        work_budget,
     );
     let applied_delta_velocity = bounded_delta_velocity * energy_scale;
 
@@ -594,6 +623,106 @@ mod tests {
         );
         assert_eq!(outcome, PlanarMotorOutcome::NoAuthority);
         assert!((physics.world.body(handle).unwrap().linear_velocity[0] - 3.0).abs() < 1e-9);
+    }
+
+    #[test]
+    fn zero_reservoir_blocks_stale_cached_motor_authority_without_damping() {
+        let (mut physics, handle) = registered_body(100.0);
+        physics.world.body_mut(handle).unwrap().linear_velocity =
+            nalgebra::SVector::from([3.0, 0.0]);
+        let entity = physics.consciousness.entities.get_mut(&handle).unwrap();
+        entity.energy.available = 0.0;
+        entity.safety_tier = crate::resources::SafetyTier::Green;
+
+        let outcome = apply_planar_motor_target(
+            &mut physics,
+            handle,
+            nalgebra::SVector::from([10.0, 0.0]),
+            generous_limits(),
+            1.0,
+        );
+
+        assert_eq!(outcome, PlanarMotorOutcome::NoAuthority);
+        assert!((physics.world.body(handle).unwrap().linear_velocity[0] - 3.0).abs() < 1e-9);
+    }
+
+    #[cfg(feature = "consciousness-runtime")]
+    #[test]
+    fn collapsed_reservoir_blocks_green_cached_tier_even_with_positive_internal_energy() {
+        let (mut physics, handle) = registered_body(100.0);
+        physics.world.body_mut(handle).unwrap().linear_velocity =
+            nalgebra::SVector::from([2.0, 0.0]);
+        let entity = physics.consciousness.entities.get_mut(&handle).unwrap();
+        entity.energy.collapsed = true;
+        entity.safety_tier = crate::resources::SafetyTier::Green;
+
+        let outcome = apply_planar_motor_target(
+            &mut physics,
+            handle,
+            nalgebra::SVector::from([10.0, 0.0]),
+            generous_limits(),
+            1.0,
+        );
+
+        assert_eq!(outcome, PlanarMotorOutcome::NoAuthority);
+        assert!((physics.world.body(handle).unwrap().linear_velocity[0] - 2.0).abs() < 1e-9);
+    }
+
+    #[cfg(feature = "consciousness-runtime")]
+    #[test]
+    fn helmholtz_available_work_caps_positive_motor_work() {
+        let (mut physics, handle) = registered_body(100.0);
+        {
+            let entity = physics.consciousness.entities.get_mut(&handle).unwrap();
+            entity.energy.temperature = 310.0;
+            entity.energy.entropy = (100.0 - 0.5) / 310.0;
+            entity.energy.heat_capacity = 100.0;
+            assert!((entity.energy.available_work() - 0.5).abs() < 1e-9);
+        }
+
+        let outcome = apply_planar_motor_target(
+            &mut physics,
+            handle,
+            nalgebra::SVector::from([10.0, 0.0]),
+            generous_limits(),
+            1.0,
+        );
+        let PlanarMotorOutcome::Applied {
+            positive_work_joules,
+            ..
+        } = outcome
+        else {
+            panic!("expected extractable-work-limited request, got {outcome:?}");
+        };
+
+        assert!((positive_work_joules - 0.5).abs() < 1e-9);
+        assert!((physics.world.body(handle).unwrap().linear_velocity[0] - 1.0).abs() < 1e-9);
+    }
+
+    #[cfg(feature = "consciousness-runtime")]
+    #[test]
+    fn non_finite_thermal_state_fails_closed_before_motor_mutation() {
+        let (mut physics, handle) = registered_body(100.0);
+        physics.world.body_mut(handle).unwrap().linear_velocity =
+            nalgebra::SVector::from([2.0, 0.0]);
+        physics
+            .consciousness
+            .entities
+            .get_mut(&handle)
+            .unwrap()
+            .energy
+            .temperature = f64::NAN;
+
+        let outcome = apply_planar_motor_target(
+            &mut physics,
+            handle,
+            nalgebra::SVector::from([10.0, 0.0]),
+            generous_limits(),
+            1.0,
+        );
+
+        assert_eq!(outcome, PlanarMotorOutcome::InvalidMotorState);
+        assert!((physics.world.body(handle).unwrap().linear_velocity[0] - 2.0).abs() < 1e-9);
     }
 
     #[test]
