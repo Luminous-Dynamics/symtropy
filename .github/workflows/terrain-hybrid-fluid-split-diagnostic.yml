@@ -1,0 +1,165 @@
+name: Terrain Hybrid Fluid Split Diagnostic
+
+on:
+  push:
+    branches:
+      - "ci/terrain-hybrid-fluid-split-e707113"
+    paths:
+      - ".github/workflows/terrain-hybrid-fluid-split-diagnostic.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  diagnose:
+    name: Prove lean Terrain closure without hybrid-fluid runtime
+    runs-on: ubuntu-slim
+    steps:
+      - name: Checkout diagnostic harness
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Bind diagnostic lineage
+        shell: bash
+        run: |
+          set -euo pipefail
+          subject=e707113651e302f7c61c5542483104af352cb3d0
+          test "$(git rev-parse HEAD^)" = "${subject}"
+          test "$(git diff --name-only ${subject}..HEAD)" = ".github/workflows/terrain-hybrid-fluid-split-diagnostic.yml"
+          echo "TERRAIN_SPLIT_HARNESS_HEAD=$(git rev-parse HEAD)"
+          echo "TERRAIN_SPLIT_HARNESS_TREE=$(git rev-parse HEAD^{tree})"
+
+      - name: Checkout exact qualified-kernel subject
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: e707113651e302f7c61c5542483104af352cb3d0
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Bind exact subject and preimage
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "e707113651e302f7c61c5542483104af352cb3d0"
+          test "$(git rev-parse HEAD:crates/domains/symtropy-terrain/Cargo.toml)" = "6b3dd8cc5ede90833caecd6568757c42ecc97509"
+          test "$(git rev-parse HEAD:crates/domains/symtropy-terrain/src/lib.rs)" = "bbf60ddd18fbe3a5933afda0b1d068df5540bd46"
+          test "$(git rev-parse HEAD:crates/domains/symtropy-terrain/src/geometry_kernel.rs)" = "8d3e1213eacdeddf693cd2d1f82670d6ed832161"
+          test -z "$(git status --porcelain)"
+          echo "TERRAIN_SPLIT_LOCK_BEFORE=$(git hash-object Cargo.lock)" >> "${GITHUB_ENV}"
+          echo "CARGO_TARGET_DIR=${RUNNER_TEMP}/terrain-split-target" >> "${GITHUB_ENV}"
+
+      - name: Set up pinned Rust
+        uses: dtolnay/rust-toolchain@6bed0761d98439e5a578e2877258200ad565ba87
+        with:
+          toolchain: 1.96.0
+          components: clippy,rustfmt
+
+      - name: Bind toolchain
+        shell: bash
+        run: |
+          set -euo pipefail
+          rustc -Vv
+          cargo -Vv
+          rustfmt --version
+          cargo clippy --version
+
+      - name: Apply runner-local capability split
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+
+          manifest_path = Path("crates/domains/symtropy-terrain/Cargo.toml")
+          manifest = manifest_path.read_text()
+          dependency = 'symtropy-physics-gpu = { path = "../../domains/symtropy-physics-gpu" }'
+          if manifest.count(dependency) != 1:
+              raise SystemExit("unexpected symtropy-physics-gpu dependency preimage")
+          if "[features]" in manifest:
+              raise SystemExit("unexpected existing Terrain feature table")
+          manifest = manifest.replace(
+              "[dependencies]\n",
+              '[features]\ndefault = ["hybrid-fluid"]\nhybrid-fluid = ["dep:symtropy-physics-gpu"]\n\n[dependencies]\n',
+              1,
+          )
+          manifest = manifest.replace(
+              dependency,
+              'symtropy-physics-gpu = { path = "../../domains/symtropy-physics-gpu", optional = true }',
+              1,
+          )
+          manifest_path.write_text(manifest)
+
+          lib_path = Path("crates/domains/symtropy-terrain/src/lib.rs")
+          lib = lib_path.read_text()
+          import_old = "use symtropy_physics_gpu::HybridFluidPlugin;"
+          import_new = '#[cfg(feature = "hybrid-fluid")]\nuse symtropy_physics_gpu::HybridFluidPlugin;'
+          if lib.count(import_old) != 1:
+              raise SystemExit("unexpected HybridFluidPlugin import preimage")
+          lib = lib.replace(import_old, import_new, 1)
+          build_old = "        app.add_plugins(HybridFluidPlugin)\n            .register_type::<EarthChunk>()"
+          build_new = '        #[cfg(feature = "hybrid-fluid")]\n        app.add_plugins(HybridFluidPlugin);\n        app.register_type::<EarthChunk>()'
+          if lib.count(build_old) != 1:
+              raise SystemExit("unexpected Terrain plugin build preimage")
+          lib = lib.replace(build_old, build_new, 1)
+          lib_path.write_text(lib)
+          PY
+          cargo fmt --package symtropy-terrain
+          test "$(git hash-object Cargo.lock)" = "${TERRAIN_SPLIT_LOCK_BEFORE}"
+          actual="$(git diff --name-only | sort)"
+          expected="$(printf '%s\n' crates/domains/symtropy-terrain/Cargo.toml crates/domains/symtropy-terrain/src/lib.rs | sort)"
+          test "${actual}" = "${expected}"
+          echo "TERRAIN_SPLIT_MANIFEST_BLOB=$(git hash-object crates/domains/symtropy-terrain/Cargo.toml)"
+          echo "TERRAIN_SPLIT_LIB_BLOB=$(git hash-object crates/domains/symtropy-terrain/src/lib.rs)"
+          echo "TERRAIN_SPLIT_KERNEL_BLOB=$(git hash-object crates/domains/symtropy-terrain/src/geometry_kernel.rs)"
+
+      - name: Prove default behavior remains wired
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo tree --locked -p symtropy-terrain -e features > "${RUNNER_TEMP}/terrain-default-tree.txt"
+          grep -F "symtropy-physics-gpu" "${RUNNER_TEMP}/terrain-default-tree.txt"
+          echo "TERRAIN_DEFAULT_TREE_SHA256=$(sha256sum "${RUNNER_TEMP}/terrain-default-tree.txt" | awk '{print $1}')"
+
+      - name: Prove lean authority closure excludes GPU and AI runtime
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo tree --locked -p symtropy-terrain --no-default-features -e features > "${RUNNER_TEMP}/terrain-lean-tree.txt"
+          if grep -E 'symtropy-physics-gpu|symthaea|naga v27\.|wgpu v27\.' "${RUNNER_TEMP}/terrain-lean-tree.txt"; then
+            echo "lean Terrain closure still contains forbidden runtime dependency" >&2
+            exit 1
+          fi
+          grep -F "symtropy-terrain v0.1.0" "${RUNNER_TEMP}/terrain-lean-tree.txt"
+          echo "TERRAIN_LEAN_TREE_SHA256=$(sha256sum "${RUNNER_TEMP}/terrain-lean-tree.txt" | awk '{print $1}')"
+
+      - name: Check lean Terrain
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo check -p symtropy-terrain --locked --no-default-features --all-targets
+
+      - name: Test lean Terrain
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo test -p symtropy-terrain --locked --no-default-features
+
+      - name: Strict Clippy lean Terrain
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo clippy -p symtropy-terrain --locked --no-default-features --all-targets -- -D warnings
+
+      - name: Prove observational-only subject and frozen kernel
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "e707113651e302f7c61c5542483104af352cb3d0"
+          test "$(git hash-object Cargo.lock)" = "${TERRAIN_SPLIT_LOCK_BEFORE}"
+          test "$(git hash-object crates/domains/symtropy-terrain/src/geometry_kernel.rs)" = "8d3e1213eacdeddf693cd2d1f82670d6ed832161"
+          actual="$(git diff --name-only | sort)"
+          expected="$(printf '%s\n' crates/domains/symtropy-terrain/Cargo.toml crates/domains/symtropy-terrain/src/lib.rs | sort)"
+          test "${actual}" = "${expected}"
+          echo "TERRAIN_HYBRID_FLUID_SPLIT_DIAGNOSTIC=PASS"
