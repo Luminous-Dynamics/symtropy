@@ -22,6 +22,8 @@ const FEP_OBSERVATION_DIM: usize = 6;
 const LOCAL_PERCEPTION_RANGE: f32 = 300.0;
 /// Jack's authored close-threat awareness remains intentionally tighter than general sensing.
 const LOCAL_DRONE_ATTENTION_RANGE: f32 = 250.0;
+/// Close inspection/repair distance at which private diagnostic state may be consulted.
+const LOCAL_DIAGNOSTIC_RANGE: f32 = 30.0;
 /// Danger is refreshed every behavior pass, but retains a tiny horizon for future
 /// sensor adapters that may update less frequently.
 const DANGER_MEMORY_GENERATIONS: u64 = 2;
@@ -66,6 +68,27 @@ fn blend_toward_local_target(
         return direction;
     }
     direction * existing_weight + (delta / norm) * target_weight
+}
+
+/// Convert an observer-facing output scalar into degradation salience.
+///
+/// Hidden failure causes are intentionally absent from this API. A fully performing
+/// machine presents no degradation cue even if some undisclosed internal flag exists.
+fn presented_output_degradation(output: f32) -> f64 {
+    if !output.is_finite() {
+        return 0.0;
+    }
+    f64::from((1.0 - output.clamp(0.0, 1.0)).clamp(0.0, 1.0))
+}
+
+/// Convert observable pump operation into degradation salience without exposing cause.
+fn presented_pump_degradation(is_running: bool, efficiency: f32) -> f64 {
+    let visible_output = if is_running {
+        efficiency.clamp(0.0, 1.0)
+    } else {
+        0.0
+    };
+    presented_output_degradation(visible_output)
 }
 
 /// Run the FEP perception-action cycle for each crew NPC.
@@ -187,31 +210,24 @@ pub fn fep_behavior_system(
         .collect();
 
     // Actionable infrastructure presentation is separate from scalar world estimates.
-    // Local attention receives visible/operational degradation, never the hidden reason.
+    // Local attention receives visible/operational degradation, never hidden failure flags.
     let junction_targets: Vec<LocalTargetSample> = power_junctions
         .iter()
         .filter_map(|(tf, junction)| {
-            if !junction.is_damaged {
-                return None;
-            }
-            Some(LocalTargetSample {
+            let degradation = presented_output_degradation(junction.output);
+            (degradation > 0.0).then_some(LocalTargetSample {
                 position: tf.translation.truncate(),
-                salience: f64::from((1.0 - junction.output.clamp(0.0, 1.0)).max(0.5)),
+                salience: degradation,
             })
         })
         .collect();
     let water_targets: Vec<LocalTargetSample> = water_pumps
         .iter()
         .filter_map(|(tf, pump)| {
-            let visible_output = if pump.is_running {
-                pump.efficiency.clamp(0.0, 1.0)
-            } else {
-                0.0
-            };
-            let degradation = (1.0 - visible_output).clamp(0.0, 1.0);
+            let degradation = presented_pump_degradation(pump.is_running, pump.efficiency);
             (degradation > 0.0).then_some(LocalTargetSample {
                 position: tf.translation.truncate(),
-                salience: f64::from(degradation),
+                salience: degradation,
             })
         })
         .collect();
@@ -323,7 +339,7 @@ pub fn fep_behavior_system(
         // ARCHETYPE-SPECIFIC ACTIVE INFERENCE ACTIONS & GOALS
 
         // 1. Kael (Engineer) & Leo (Young Tech): respond only to locally presented
-        // damaged-junction cues rather than scanning all infrastructure in the world.
+        // junction degradation rather than scanning hidden failure flags in the world.
         if npc.name.contains("Kael") || npc.name.contains("Leo") {
             if let Some(observed) =
                 strongest_local_target(npc_pos, &junction_targets, LOCAL_PERCEPTION_RANGE)
@@ -389,8 +405,7 @@ pub fn fep_behavior_system(
         }
 
         // 4. PR-4 (Robot): target visible operational degradation only. The hidden
-        // `is_sabotaged` cause remains available to close diagnostic/repair mechanics,
-        // but no longer grants world-wide target knowledge.
+        // `is_sabotaged` cause remains available only after entering local diagnostic range.
         if npc.name.contains("PR-4")
             && let Some(observed) =
                 strongest_local_target(npc_pos, &water_targets, LOCAL_PERCEPTION_RANGE)
@@ -509,66 +524,70 @@ pub fn npc_action_system(
             }
         }
 
-        // 2. PR-4 (Robot) repairs WaterPump
+        // 2. PR-4 (Robot) repairs WaterPump. Hidden sabotage state is diagnostic
+        // information and may be consulted only after the actor is physically local.
         if npc.name.contains("PR-4") {
             for (p_tf, mut pump) in &mut water_pumps {
+                let p_pos = p_tf.translation.truncate();
+                if npc_pos.distance(p_pos) >= LOCAL_DIAGNOSTIC_RANGE {
+                    continue;
+                }
+
                 let is_under_coop_tutorial = if let Some(ref tutorial) = tutorial_res {
                     tutorial.step == TutorialStep::CoopRepairing && pump.efficiency < 1.0
                 } else {
                     false
                 };
 
+                // This is the explicit close-diagnostic boundary. `is_sabotaged` may affect
+                // repair execution here, but never remote attention or navigation.
                 if pump.is_sabotaged || is_under_coop_tutorial {
-                    let p_pos = p_tf.translation.truncate();
-                    if npc_pos.distance(p_pos) < 30.0 {
-                        let is_assistant_adjacent =
-                            actors.iter().any(|(_, other_npc, other_tf)| {
-                                (other_npc.name.contains("Nadia")
-                                    || other_npc.name.contains("Soren"))
-                                    && other_tf.translation.truncate().distance(p_pos) < 30.0
-                            });
+                    let is_assistant_adjacent = actors.iter().any(|(_, other_npc, other_tf)| {
+                        (other_npc.name.contains("Nadia") || other_npc.name.contains("Soren"))
+                            && other_tf.translation.truncate().distance(p_pos)
+                                < LOCAL_DIAGNOSTIC_RANGE
+                    });
 
-                        if is_assistant_adjacent {
-                            pump.is_sabotaged = false;
-                            pump.efficiency = 1.0;
-                            pump.is_running = true;
+                    if is_assistant_adjacent {
+                        pump.is_sabotaged = false;
+                        pump.efficiency = 1.0;
+                        pump.is_running = true;
+                        action_writer.write(NpcActionEvent {
+                            actor: actor_entity,
+                            actor_name: npc.name.clone(),
+                            target: None,
+                            target_name: "Water Pump".to_string(),
+                            action_kind: NpcActionKind::RepairPump,
+                            intensity: 1.0,
+                            success_delta: 1.0,
+                            settlement_metric_delta: 0.2,
+                        });
+                        feedback_writer.write(WorldFeedbackEvent {
+                            position: p_pos,
+                            message: "WATER PUMP PURIFIED (100%)".to_string(),
+                            color: Color::srgb(0.2, 0.9, 0.4),
+                        });
+                    } else if pump.efficiency < 0.7 {
+                        let old_eff = pump.efficiency;
+                        pump.efficiency = (pump.efficiency + 0.3 * dt).min(0.7);
+                        pump.is_running = true;
+                        if old_eff < 0.7 && pump.efficiency >= 0.7 {
+                            pump.is_sabotaged = false; // Online but partial
                             action_writer.write(NpcActionEvent {
                                 actor: actor_entity,
                                 actor_name: npc.name.clone(),
                                 target: None,
                                 target_name: "Water Pump".to_string(),
                                 action_kind: NpcActionKind::RepairPump,
-                                intensity: 1.0,
-                                success_delta: 1.0,
-                                settlement_metric_delta: 0.2,
+                                intensity: 0.5,
+                                success_delta: 0.7,
+                                settlement_metric_delta: 0.1,
                             });
                             feedback_writer.write(WorldFeedbackEvent {
                                 position: p_pos,
-                                message: "WATER PUMP PURIFIED (100%)".to_string(),
-                                color: Color::srgb(0.2, 0.9, 0.4),
+                                message: "WATER PUMP ONLINE (CONTAMINATED)".to_string(),
+                                color: Color::srgb(0.9, 0.6, 0.2),
                             });
-                        } else if pump.efficiency < 0.7 {
-                            let old_eff = pump.efficiency;
-                            pump.efficiency = (pump.efficiency + 0.3 * dt).min(0.7);
-                            pump.is_running = true;
-                            if old_eff < 0.7 && pump.efficiency >= 0.7 {
-                                pump.is_sabotaged = false; // Online but partial
-                                action_writer.write(NpcActionEvent {
-                                    actor: actor_entity,
-                                    actor_name: npc.name.clone(),
-                                    target: None,
-                                    target_name: "Water Pump".to_string(),
-                                    action_kind: NpcActionKind::RepairPump,
-                                    intensity: 0.5,
-                                    success_delta: 0.7,
-                                    settlement_metric_delta: 0.1,
-                                });
-                                feedback_writer.write(WorldFeedbackEvent {
-                                    position: p_pos,
-                                    message: "WATER PUMP ONLINE (CONTAMINATED)".to_string(),
-                                    color: Color::srgb(0.9, 0.6, 0.2),
-                                });
-                            }
                         }
                     }
                 }
@@ -769,5 +788,14 @@ mod tests {
             blend_toward_local_target(direction, Vec2::ZERO, Vec2::ZERO, 0.4, 0.6),
             direction
         );
+    }
+
+    #[test]
+    fn presentation_helpers_depend_only_on_observable_machine_output() {
+        assert_eq!(presented_output_degradation(1.0), 0.0);
+        assert_eq!(presented_output_degradation(0.25), 0.75);
+        assert_eq!(presented_pump_degradation(true, 1.0), 0.0);
+        assert_eq!(presented_pump_degradation(false, 1.0), 1.0);
+        assert_eq!(presented_pump_degradation(true, f32::NAN), 0.0);
     }
 }
