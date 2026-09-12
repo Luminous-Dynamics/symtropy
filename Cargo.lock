@@ -9040,6 +9040,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "symtropy-design"
+version = "0.1.0"
+dependencies = [
+ "serde",
+ "serde_json",
+ "sha2",
+ "symtropy-game-state",
+]
+
+[[package]]
 name = "symtropy-devconsole"
 version = "0.1.1"
 dependencies = [
