@@ -17,11 +17,6 @@ const LINKED_INDIVIDUAL_MANIFEST_DIGEST_DOMAIN: &[u8] =
 const EXPLICIT_LINKED_POPULATION_CENSUS_DIGEST_DOMAIN: &[u8] =
     b"symtropy:evolution:explicit-linked-population-census:v1\0";
 
-/// Persistent identity manifest for one exact current linked individual.
-///
-/// Identity is deliberately orthogonal to genome content. The manifest owns no
-/// duplicate hereditary/ancestry/history bytes; it binds the exact current
-/// authorities by digest and must revalidate against them before use.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct LinkedIndividualManifest {
     manifest_version: u32,
@@ -146,7 +141,6 @@ impl fmt::Display for LinkedIndividualManifestDigest {
     }
 }
 
-/// Borrowed exact current individual used to revalidate a manifest/census.
 #[derive(Debug, Clone, Copy)]
 pub struct LinkedIndividualSubject<'a> {
     pub manifest: &'a LinkedIndividualManifest,
@@ -195,11 +189,6 @@ pub struct ExplicitLinkedPopulationMember {
     pub manifest_digest: LinkedIndividualManifestDigest,
 }
 
-/// Declared unique-member census of exact linked individuals.
-///
-/// V1 does not discover ecological membership. It records the caller-declared
-/// explicit census after validating every exact individual and enforcing unique
-/// individual identity and unique ownership of every persistent ancestry copy.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ExplicitLinkedPopulationCensus {
     census_version: u32,
@@ -232,6 +221,7 @@ impl ExplicitLinkedPopulationCensus {
 
     pub fn validate_current(
         &self,
+        expected_population_id: &PopulationId,
         schema: &HereditarySchema,
         chromosome_map: &ChromosomeMap,
         subjects: &[LinkedIndividualSubject<'_>],
@@ -239,6 +229,9 @@ impl ExplicitLinkedPopulationCensus {
         self.validate_local()?;
         schema.validate()?;
         chromosome_map.validate(schema)?;
+        if &self.population_id != expected_population_id {
+            return Err(LinkedIndividualError::PopulationContextMismatch);
+        }
         if self.schema_digest != schema.canonical_digest()?
             || self.chromosome_map_digest != chromosome_map.canonical_digest(schema)?
         {
@@ -257,11 +250,12 @@ impl ExplicitLinkedPopulationCensus {
 
     pub fn mutation_fate_subjects<'a>(
         &self,
+        expected_population_id: &PopulationId,
         schema: &HereditarySchema,
         chromosome_map: &ChromosomeMap,
         subjects: &'a [LinkedIndividualSubject<'a>],
     ) -> Result<Vec<MutationFateSubject<'a>>, LinkedIndividualError> {
-        self.validate_current(schema, chromosome_map, subjects)?;
+        self.validate_current(expected_population_id, schema, chromosome_map, subjects)?;
         subjects
             .iter()
             .map(LinkedIndividualSubject::as_mutation_fate_subject)
@@ -383,6 +377,7 @@ pub enum LinkedIndividualError {
     UnsupportedManifestVersion(u32),
     UnsupportedCensusVersion(u32),
     ManifestAuthorityMismatch,
+    PopulationContextMismatch,
     CensusAuthorityMismatch,
     CensusMemberMismatch,
     EmptyCensus,
@@ -409,6 +404,7 @@ impl fmt::Display for LinkedIndividualError {
                 write!(f, "unsupported explicit linked census version {version}")
             }
             Self::ManifestAuthorityMismatch => write!(f, "linked-individual manifest authority mismatch"),
+            Self::PopulationContextMismatch => write!(f, "explicit linked census population context mismatch"),
             Self::CensusAuthorityMismatch => write!(f, "explicit linked census authority mismatch"),
             Self::CensusMemberMismatch => write!(f, "explicit linked census member set mismatch"),
             Self::EmptyCensus => write!(f, "explicit linked census may not be empty"),
