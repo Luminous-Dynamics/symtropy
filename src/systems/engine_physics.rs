@@ -32,14 +32,6 @@ pub fn step_physics_world(physics: &mut PhysicsWorldRes, dt: f64) -> bool {
     true
 }
 
-/// Bevy fixed-schedule adapter for [`step_physics_world`].
-///
-/// Generic `Time` resolves to Bevy's fixed clock while this system runs in
-/// `FixedUpdate`, so the physics integration consumes the schedule's fixed delta.
-pub fn physics_step_system(mut physics: ResMut<PhysicsWorldRes>, time: Res<Time>) {
-    let _ = step_physics_world(&mut physics, f64::from(time.delta_secs()));
-}
-
 pub fn update_physics_consciousness(
     mut physics: ResMut<PhysicsWorldRes>,
     query: Query<(&PhysicsBody, &crate::components::HarmonyComponent)>,
@@ -62,14 +54,21 @@ pub fn update_physics_consciousness(
     }
 }
 
-/// Sync authoritative physics body positions back to Bevy transforms.
+/// Advance authoritative physics once, then export body positions to Bevy transforms.
 ///
-/// This is a presentation/export boundary. Schedule it after the world step; doing
-/// it before integration would publish the previous physics state for another tick.
+/// This function keeps the historical `physics_sync_transforms` name because it is already
+/// registered in the launcher's `FixedUpdate` chain. The important authority contract is
+/// now explicit: a transform is published only *after* the corresponding physics step.
+/// Generic `Time` resolves to Bevy's fixed clock when this system runs in `FixedUpdate`.
 pub fn physics_sync_transforms(
-    physics: Res<PhysicsWorldRes>,
+    mut physics: ResMut<PhysicsWorldRes>,
+    time: Res<Time>,
     mut query: Query<(&PhysicsBody, &mut Transform)>,
 ) {
+    if !step_physics_world(&mut physics, f64::from(time.delta_secs())) {
+        return;
+    }
+
     for (body_comp, mut transform) in &mut query {
         if let Some(body) = physics.world.body(body_comp.handle) {
             let pos: nalgebra::SVector<f64, 2> = body.position();
