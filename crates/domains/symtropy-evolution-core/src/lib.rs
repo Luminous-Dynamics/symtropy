@@ -46,6 +46,7 @@ mod mutation_lineage;
 mod mutation_origin;
 mod operators;
 mod origin_aware_population;
+mod origin_aware_trajectory;
 mod phased_heredity;
 mod population;
 mod population_process;
@@ -240,6 +241,14 @@ pub use origin_aware_population::{
     OriginAwarePopulationTransitionProvenance,
     OriginAwarePopulationTransitionProvenanceDigest, OriginAwarePopulationTransitionResult,
     ORIGIN_AWARE_POPULATION_STATE_VERSION, ORIGIN_AWARE_POPULATION_TRANSITION_VERSION,
+};
+pub use origin_aware_trajectory::{
+    continue_origin_aware_trajectory, derive_origin_fate_delta, ModeledBaselineFateDelta,
+    MutationOriginFateDelta, OriginAwarePopulationTrajectoryPoint,
+    OriginAwarePopulationTrajectoryPointDigest, OriginAwareTrajectoryError,
+    OriginAwareTrajectoryTransition, OriginAwareTrajectoryTransitionDigest, OriginFateDelta,
+    OriginFateDeltaDigest, ORIGIN_AWARE_TRAJECTORY_POINT_VERSION,
+    ORIGIN_AWARE_TRAJECTORY_TRANSITION_VERSION, ORIGIN_FATE_DELTA_VERSION,
 };
 pub use phased_heredity::{
     ChromosomeHaplotype, PhasedChromosomeState, PhasedHereditaryState,
