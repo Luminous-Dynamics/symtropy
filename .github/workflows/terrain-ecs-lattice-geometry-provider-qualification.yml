@@ -32,25 +32,32 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          base=8172eb7a29997e566b88938b95e12fac0d4c9ded
-          provider_source=5b4ec430b4432aca1a2b6bbb90bdd78209ad59b7
-          integration_source=62ca0340dd7878c733efab5beb45b066aaeb77a4
+          base=ec3567dfeeb055561dfc3b4509afe9996394f89d
+          pre_restack_provider=5ee5565811a60434430fe62ba9947068977251e3
+          restack=47e80d61247f6b49c05d5d14bd5159c06a6a3f96
+          provider_subject=36c928840cd59547d4b1aecc29d6ca2b997ba73f
           provider=crates/domains/symtropy-terrain/src/live_geometry_provider.rs
           lib=crates/domains/symtropy-terrain/src/lib.rs
           kernel=crates/domains/symtropy-terrain/src/geometry_kernel.rs
           manifest=crates/domains/symtropy-terrain/Cargo.toml
+          golden=crates/domains/symtropy-terrain/tests/geometry_authority_golden.rs
+          dependency_qualifier=.github/workflows/terrain-naga27-feature-consistency-qualification.yml
           qualifier=.github/workflows/terrain-ecs-lattice-geometry-provider-qualification.yml
 
           test "$(git rev-parse HEAD)" = "${GITHUB_SHA}"
-          test "$(git rev-parse HEAD^)" = "${integration_source}"
-          test "$(git rev-parse HEAD^^)" = "${provider_source}"
-          test "$(git rev-parse HEAD^^^)" = "${base}"
+          test "$(git rev-parse HEAD^)" = "${provider_subject}"
+          test "$(git rev-parse ${provider_subject}^)" = "${restack}"
+          test "$(git rev-parse ${restack}^1)" = "${pre_restack_provider}"
+          test "$(git rev-parse ${restack}^2)" = "${base}"
+          git merge-base --is-ancestor "${base}" HEAD
 
           test "$(git rev-parse HEAD:${kernel})" = "8d3e1213eacdeddf693cd2d1f82670d6ed832161"
           test "$(git rev-parse HEAD:${manifest})" = "187fe4020a0c0048ab36404e219a7a5698a856d1"
           test "$(git rev-parse HEAD:Cargo.lock)" = "62c6eb098b3f6fffdea8a175a0f3afb33423b17b"
-          test "$(git rev-parse HEAD:${provider})" = "$(git rev-parse ${provider_source}:${provider})"
-          test "$(git rev-parse HEAD:${lib})" = "$(git rev-parse ${integration_source}:${lib})"
+          test "$(git rev-parse HEAD:${golden})" = "066affb55a203453da09505f7552f4c04442413c"
+          test "$(git rev-parse HEAD:${dependency_qualifier})" = "5f88086955f5d349078c72260ad33d1287891cfe"
+          test "$(git rev-parse HEAD:${provider})" = "4f0f2b60ca49263207e2b36300b3d04a94ebc366"
+          test "$(git rev-parse HEAD:${lib})" = "05a94dda8fa4fe51ba55e328b113c80ae648ae49"
 
           actual="$(git diff --name-only ${base}..HEAD | sort)"
           expected="$(printf '%s\n' "${qualifier}" "${provider}" "${lib}" | sort)"
@@ -58,6 +65,7 @@ jobs:
 
           echo "TERRAIN_LIVE_PROVIDER_HEAD=${GITHUB_SHA}"
           echo "TERRAIN_LIVE_PROVIDER_TREE=$(git rev-parse HEAD^{tree})"
+          echo "TERRAIN_LIVE_PROVIDER_BASE=${base}"
           echo "TERRAIN_LIVE_PROVIDER_SOURCE_BLOB=$(git rev-parse HEAD:${provider})"
           echo "TERRAIN_LIVE_PROVIDER_LIB_BLOB=$(git rev-parse HEAD:${lib})"
           echo "TERRAIN_LIVE_PROVIDER_KERNEL_BLOB=$(git rev-parse HEAD:${kernel})"
@@ -83,9 +91,18 @@ jobs:
           set -euo pipefail
           rustc -Vv
           cargo -Vv
+          rustfmt --version
           cargo clippy --version
           test "$(rustc --version | awk '{print $2}')" = "1.96.0"
           test "$(cargo --version | awk '{print $2}')" = "1.96.0"
+
+      - name: Check exact provider formatting
+        shell: bash
+        run: |
+          set -euo pipefail
+          rustfmt --edition 2024 --check \
+            crates/domains/symtropy-terrain/src/live_geometry_provider.rs \
+            crates/domains/symtropy-terrain/src/lib.rs
 
       - name: Verify frozen selected dependency graph
         shell: bash
@@ -125,38 +142,57 @@ jobs:
         run: |
           set -euo pipefail
           provider=crates/domains/symtropy-terrain/src/live_geometry_provider.rs
+          lib=crates/domains/symtropy-terrain/src/lib.rs
+
           grep -Fq 'pub fn capture_live_terrain_geometry(' "${provider}"
           grep -Fq 'world: &World' "${provider}"
           grep -Fq 'entity: Entity' "${provider}"
           grep -Fq 'MissingLatticeLocus' "${provider}"
           grep -Fq 'DuplicateLatticeLocus' "${provider}"
           grep -Fq 'TERRAIN_GEOMETRY_VOXEL_COUNT' "${provider}"
-          grep -Fq 'TerrainGeometrySnapshot::from_material_codes(coord, materials)' "${provider}"
-
-          ! grep -Fq 'GlobalTransform' "${provider}" || {
-            # GlobalTransform is permitted only in tests proving non-authority.
-            python3 - <<'PY'
-          from pathlib import Path
-          text = Path("crates/domains/symtropy-terrain/src/live_geometry_provider.rs").read_text()
-          production, marker, tests = text.partition("#[cfg(test)]")
-          if not marker:
-              raise SystemExit("missing provider test boundary")
-          if "GlobalTransform" in production:
-              raise SystemExit("GlobalTransform leaked into production exact provider")
-          if "GlobalTransform" not in tests:
-              raise SystemExit("missing transform non-authority regression test")
-          PY
-          }
+          grep -Fq 'TerrainGeometrySnapshot::from_material_codes' "${provider}"
+          grep -Fq 'projects_every_live_material_to_the_frozen_kernel_vocabulary' "${provider}"
 
           python3 - <<'PY'
           from pathlib import Path
-          text = Path("crates/domains/symtropy-terrain/src/live_geometry_provider.rs").read_text()
-          signature = text.split("pub fn capture_live_terrain_geometry(", 1)[1].split(") ->", 1)[0]
-          forbidden = ["EarthChunkLatticeCoord", "EarthChunkLatticeLocus", "&EarthChunk"]
-          found = [term for term in forbidden if term in signature]
-          if found:
-              raise SystemExit(f"caller-mintable authority leaked into capture signature: {found!r}")
+
+          provider = Path("crates/domains/symtropy-terrain/src/live_geometry_provider.rs").read_text()
+          lib = Path("crates/domains/symtropy-terrain/src/lib.rs").read_text()
+          production, marker, tests = provider.partition("#[cfg(test)]")
+          if not marker:
+              raise SystemExit("missing provider test boundary")
+
+          signature = production.split("pub fn capture_live_terrain_geometry(", 1)[1].split(") ->", 1)[0]
+          forbidden_signature = ["EarthChunkLatticeCoord", "EarthChunkLatticeLocus", "&EarthChunk", "GlobalTransform"]
+          leaked = [term for term in forbidden_signature if term in signature]
+          if leaked:
+              raise SystemExit(f"caller-mintable authority leaked into capture signature: {leaked!r}")
+
+          executable_transform_patterns = [
+              "get::<GlobalTransform>",
+              "get_mut::<GlobalTransform>",
+              "&GlobalTransform",
+              "GlobalTransform::",
+          ]
+          leaked = [term for term in executable_transform_patterns if term in production]
+          if leaked:
+              raise SystemExit(f"GlobalTransform leaked into production exact provider: {leaked!r}")
+          if "GlobalTransform" not in tests:
+              raise SystemExit("missing transform non-authority regression test")
+
+          if "Reflect" in production:
+              raise SystemExit("exact lattice locus must not be Bevy-reflectable")
+          if ".register_type::<EarthChunkLatticeLocus>()'" in lib:
+              raise SystemExit("exact lattice locus must not be inspector-registered")
+          if ".register_type::<EarthChunkLatticeLocus>()" in lib:
+              raise SystemExit("exact lattice locus must not be inspector-registered")
+
+          if "pub struct EarthChunkLatticeLocus {\n    pub " in production:
+              raise SystemExit("lattice-locus coordinate fields must remain private")
+
           print("TERRAIN_LIVE_PROVIDER_CALLER_COORDINATE_EXCLUSION=PASS")
+          print("TERRAIN_LIVE_PROVIDER_TRANSFORM_EXCLUSION=PASS")
+          print("TERRAIN_LIVE_PROVIDER_REFLECTION_EXCLUSION=PASS")
           PY
 
       - name: Unchanged-subject postflight
@@ -168,5 +204,8 @@ jobs:
           test "$(git rev-parse HEAD:crates/domains/symtropy-terrain/src/geometry_kernel.rs)" = "8d3e1213eacdeddf693cd2d1f82670d6ed832161"
           test "$(git rev-parse HEAD:crates/domains/symtropy-terrain/Cargo.toml)" = "187fe4020a0c0048ab36404e219a7a5698a856d1"
           test "$(git rev-parse HEAD:Cargo.lock)" = "62c6eb098b3f6fffdea8a175a0f3afb33423b17b"
+          test "$(git rev-parse HEAD:crates/domains/symtropy-terrain/tests/geometry_authority_golden.rs)" = "066affb55a203453da09505f7552f4c04442413c"
+          test "$(git rev-parse HEAD:crates/domains/symtropy-terrain/src/live_geometry_provider.rs)" = "4f0f2b60ca49263207e2b36300b3d04a94ebc366"
+          test "$(git rev-parse HEAD:crates/domains/symtropy-terrain/src/lib.rs)" = "05a94dda8fa4fe51ba55e328b113c80ae648ae49"
           echo "TERRAIN_LIVE_ECS_PROVIDER_STATUS=PASS"
-          echo "claim=current ECS EarthChunk + unique exact ECS lattice locus -> complete qualified TerrainGeometrySnapshot; no PB/world-frame/transform authority claim"
+          echo "claim=current ECS EarthChunk + unique explicit non-reflective ECS lattice locus -> complete 4096-cell frozen-vocabulary projection -> qualified TerrainGeometrySnapshot; no PB/world-frame/transform/persistence authority claim"
