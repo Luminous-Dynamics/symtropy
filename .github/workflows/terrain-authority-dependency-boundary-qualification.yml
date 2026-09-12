@@ -1,0 +1,162 @@
+name: Terrain authority dependency boundary qualification
+
+on:
+  push:
+    branches:
+      - terrain/authority-dependency-boundary-v0.1
+    paths:
+      - Cargo.lock
+      - crates/bridges/symthaea-bevy-brain/Cargo.toml
+      - crates/bridges/symtropy-rapier3d-bridge/Cargo.toml
+      - crates/domains/symtropy-terrain/Cargo.toml
+      - crates/domains/symtropy-terrain/src/lib.rs
+
+permissions:
+  contents: read
+
+jobs:
+  qualify-product:
+    name: Qualify frozen Terrain authority dependency product
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      - name: Check out exact product subject
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          fetch-depth: 0
+
+      - name: Bind exact product lineage
+        shell: bash
+        run: |
+          set -euo pipefail
+          base=e707113651e302f7c61c5542483104af352cb3d0
+          test "$(git rev-parse HEAD)" = "${GITHUB_SHA}"
+          preproduct="$(git rev-parse HEAD^)"
+          test "$(git rev-parse "${preproduct}^")" = "${base}"
+          test "$(git log -1 --format=%s HEAD)" = "refactor(terrain): harden authority dependency boundary"
+          test "$(git rev-parse "${preproduct}:scripts/terrain-harden-authority-dependency-boundary.py")" = "0b2db043413cc53c1bcffd1aa8372c9caefe18cd"
+
+          preproduct_changed="$(git diff --name-only "${base}".."${preproduct}" | sort)"
+          expected_preproduct="$(printf '%s\n' \
+            .github/workflows/terrain-authority-dependency-boundary-qualification.yml \
+            .github/workflows/terrain-authority-dependency-boundary-self-apply.yml \
+            scripts/terrain-harden-authority-dependency-boundary.py | sort)"
+          test "${preproduct_changed}" = "${expected_preproduct}"
+
+          product_changed="$(git diff --name-only "${preproduct}"..HEAD | sort)"
+          expected_product="$(printf '%s\n' \
+            Cargo.lock \
+            crates/bridges/symthaea-bevy-brain/Cargo.toml \
+            crates/bridges/symtropy-rapier3d-bridge/Cargo.toml \
+            crates/domains/symtropy-terrain/Cargo.toml \
+            crates/domains/symtropy-terrain/src/lib.rs | sort)"
+          test "${product_changed}" = "${expected_product}"
+
+          test "$(git rev-parse HEAD:crates/domains/symtropy-terrain/src/geometry_kernel.rs)" = "8d3e1213eacdeddf693cd2d1f82670d6ed832161"
+          echo "TERRAIN_BOUNDARY_QUAL_HEAD=${GITHUB_SHA}"
+          echo "TERRAIN_BOUNDARY_QUAL_TREE=$(git rev-parse HEAD^{tree})"
+          echo "TERRAIN_BOUNDARY_QUAL_PREPRODUCT=${preproduct}"
+          echo "TERRAIN_BOUNDARY_QUAL_LOCK_BLOB=$(git hash-object Cargo.lock)"
+          echo "TERRAIN_BOUNDARY_QUAL_LOCK_SHA256=$(sha256sum Cargo.lock | awk '{print $1}')"
+
+      - name: Install Linux system dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install -y \
+            libasound2-dev libudev-dev pkg-config \
+            libx11-dev libxcursor-dev libxi-dev libxrandr-dev libxkbcommon-dev
+
+      - name: Set up pinned Rust
+        uses: dtolnay/rust-toolchain@6bed0761d98439e5a578e2877258200ad565ba87
+        with:
+          toolchain: 1.96.0
+          components: clippy,rustfmt
+
+      - name: Bind toolchain
+        shell: bash
+        run: |
+          set -euo pipefail
+          rustc -Vv
+          cargo -Vv
+          rustfmt --version
+          cargo clippy --version
+          test "$(rustc --version | awk '{print $2}')" = "1.96.0"
+
+      - name: Verify canonical formatting
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo fmt --check --package symtropy-terrain --package symtropy-rapier3d-bridge --package symthaea-bevy-brain
+
+      - name: Bind locked dependency resolution
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo metadata --locked --format-version 1 > "${RUNNER_TEMP}/terrain-boundary-product-metadata.json"
+          echo "TERRAIN_BOUNDARY_QUAL_METADATA_SHA256=$(sha256sum "${RUNNER_TEMP}/terrain-boundary-product-metadata.json" | awk '{print $1}')"
+
+      - name: Re-prove authority dependency closures
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo tree -p symtropy-terrain --locked -e features > "${RUNNER_TEMP}/terrain-tree.txt"
+          for forbidden in 'symtropy-physics-gpu' 'symthaea-bevy-brain' 'naga v27.0.3' 'codespan-reporting v0.12.0'; do
+            if grep -Fq "${forbidden}" "${RUNNER_TEMP}/terrain-tree.txt"; then
+              echo "forbidden Terrain dependency remains: ${forbidden}" >&2
+              exit 1
+            fi
+          done
+          grep -Fq 'naga v29.0.4' "${RUNNER_TEMP}/terrain-tree.txt"
+
+          cargo tree -p symthaea-bevy-brain --locked -e features > "${RUNNER_TEMP}/brain-tree.txt"
+          grep -Fq 'naga v27.0.3' "${RUNNER_TEMP}/brain-tree.txt"
+          grep -Fq 'naga v29.0.4' "${RUNNER_TEMP}/brain-tree.txt"
+          grep -Fq 'naga feature "termcolor"' "${RUNNER_TEMP}/brain-tree.txt"
+          grep -Fq 'codespan-reporting feature "termcolor"' "${RUNNER_TEMP}/brain-tree.txt"
+
+          echo "TERRAIN_BOUNDARY_QUAL_TERRAIN_TREE_SHA256=$(sha256sum "${RUNNER_TEMP}/terrain-tree.txt" | awk '{print $1}')"
+          echo "TERRAIN_BOUNDARY_QUAL_BRAIN_TREE_SHA256=$(sha256sum "${RUNNER_TEMP}/brain-tree.txt" | awk '{print $1}')"
+
+      - name: Check affected compilation surfaces
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo check \
+            -p symtropy-terrain \
+            -p symthaea-bevy-brain \
+            -p symtropy-rapier3d-bridge \
+            -p symtropy-physics-gpu \
+            --locked --all-targets
+
+      - name: Test modified product crates
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo test \
+            -p symtropy-terrain \
+            -p symthaea-bevy-brain \
+            -p symtropy-rapier3d-bridge \
+            --locked
+
+      - name: Strict Clippy on modified crates
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo clippy \
+            -p symtropy-terrain \
+            -p symthaea-bevy-brain \
+            -p symtropy-rapier3d-bridge \
+            --locked --all-targets -- -D warnings
+
+      - name: Exact-source postflight
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "${GITHUB_SHA}"
+          test "$(git hash-object crates/domains/symtropy-terrain/src/geometry_kernel.rs)" = "8d3e1213eacdeddf693cd2d1f82670d6ed832161"
+          test -z "$(git status --porcelain)"
+          echo "TERRAIN_BOUNDARY_QUAL_POST_HEAD=$(git rev-parse HEAD)"
+          echo "TERRAIN_BOUNDARY_QUAL_POST_TREE=$(git rev-parse HEAD^{tree})"
+          echo "TERRAIN_BOUNDARY_QUAL_POST_LOCK_BLOB=$(git hash-object Cargo.lock)"
