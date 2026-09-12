@@ -1,0 +1,122 @@
+name: Naga 27 feature-coherence diagnostic
+
+on:
+  push:
+    branches:
+      - ci/naga27-feature-coherence-diagnostic
+
+permissions:
+  contents: read
+
+jobs:
+  prove-brain-bridge-feature-coherence:
+    name: Prove Naga 27 feature coherence at brain bridge
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - name: Check out exact diagnostic subject
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          fetch-depth: 0
+
+      - name: Bind frozen kernel lineage
+        shell: bash
+        run: |
+          set -euo pipefail
+          base=e707113651e302f7c61c5542483104af352cb3d0
+          test "$(git rev-parse HEAD^)" = "${base}"
+          test "$(git rev-parse ${base}:crates/domains/symtropy-terrain/src/geometry_kernel.rs)" = "8d3e1213eacdeddf693cd2d1f82670d6ed832161"
+          echo "NAGA27_COHERENCE_DIAGNOSTIC_HEAD=$(git rev-parse HEAD)"
+          echo "NAGA27_COHERENCE_DIAGNOSTIC_TREE=$(git rev-parse HEAD^{tree})"
+          echo "NAGA27_COHERENCE_BASE=${base}"
+          echo "NAGA27_COHERENCE_INPUT_LOCK_BLOB=$(git hash-object Cargo.lock)"
+
+      - name: Set up pinned Rust
+        uses: dtolnay/rust-toolchain@6bed0761d98439e5a578e2877258200ad565ba87
+        with:
+          toolchain: 1.96.0
+          components: clippy,rustfmt
+
+      - name: Bind toolchain
+        shell: bash
+        run: |
+          set -euo pipefail
+          rustc -Vv
+          cargo -Vv
+          test "$(rustc --version | awk '{print $2}')" = "1.96.0"
+
+      - name: Apply runner-local feature-coherence shim
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+
+          path = Path("crates/bridges/symthaea-bevy-brain/Cargo.toml")
+          text = path.read_text()
+          marker = 'symthaea = { path = "../../../stubs/symthaea", default-features = false, features = ["vision-manifold", "muse", "reasoning_engine"] }\n'
+          if text.count(marker) != 1:
+              raise SystemExit("unexpected symthaea-bevy-brain manifest preimage")
+          insertion = marker + (
+              '# Cargo feature-coherence shim: this bridge combines Bevy/WGPU 29 with '\
+              'Symthaea-core/WGPU 27.\n'
+              '# Bevy\'s naga_oil enables codespan-reporting 0.12 termcolor; Naga 27 must '\
+              'select its matching writer mode.\n'
+              'naga27-coherence = { package = "naga", version = "27", default-features = false, features = ["termcolor"] }\n'
+          )
+          path.write_text(text.replace(marker, insertion, 1))
+          PY
+          git diff --check
+          git diff -- crates/bridges/symthaea-bevy-brain/Cargo.toml
+          test "$(git hash-object crates/domains/symtropy-terrain/src/geometry_kernel.rs)" = "8d3e1213eacdeddf693cd2d1f82670d6ed832161"
+
+      - name: Refresh and freeze diagnostic lock
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo metadata --format-version 1 > "${RUNNER_TEMP}/naga27-coherence-metadata.json"
+          echo "NAGA27_COHERENCE_LOCK_BLOB=$(git hash-object Cargo.lock)"
+          echo "NAGA27_COHERENCE_LOCK_SHA256=$(sha256sum Cargo.lock | awk '{print $1}')"
+          echo "NAGA27_COHERENCE_METADATA_SHA256=$(sha256sum "${RUNNER_TEMP}/naga27-coherence-metadata.json" | awk '{print $1}')"
+          git diff -- Cargo.lock
+          cargo metadata --locked --format-version 1 > "${RUNNER_TEMP}/naga27-coherence-metadata-locked.json"
+
+      - name: Prove Naga 27 and codespan 0.12 writer modes agree
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo tree -p symthaea-bevy-brain --locked -e features > "${RUNNER_TEMP}/brain-feature-tree.txt"
+          cat "${RUNNER_TEMP}/brain-feature-tree.txt"
+          grep -Fq 'naga feature "termcolor"' "${RUNNER_TEMP}/brain-feature-tree.txt"
+          grep -Fq 'codespan-reporting feature "termcolor"' "${RUNNER_TEMP}/brain-feature-tree.txt"
+          grep -Fq 'naga v27.0.3' "${RUNNER_TEMP}/brain-feature-tree.txt"
+          grep -Fq 'naga v29.0.4' "${RUNNER_TEMP}/brain-feature-tree.txt"
+          echo "NAGA27_COHERENCE_FEATURE_TREE_SHA256=$(sha256sum "${RUNNER_TEMP}/brain-feature-tree.txt" | awk '{print $1}')"
+
+      - name: Check brain bridge against frozen diagnostic closure
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo check -p symthaea-bevy-brain --locked --all-targets
+
+      - name: Test brain bridge against frozen diagnostic closure
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo test -p symthaea-bevy-brain --locked
+
+      - name: Strict brain-bridge Clippy
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo clippy -p symthaea-bevy-brain --locked --all-targets -- -D warnings
+
+      - name: Fail closed on unexpected product edits
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git hash-object crates/domains/symtropy-terrain/src/geometry_kernel.rs)" = "8d3e1213eacdeddf693cd2d1f82670d6ed832161"
+          changed="$(git diff --name-only | sort)"
+          expected="$(printf '%s\n' Cargo.lock crates/bridges/symthaea-bevy-brain/Cargo.toml | sort)"
+          test "${changed}" = "${expected}"
+          echo "Diagnostic only: no product commit or push performed."
