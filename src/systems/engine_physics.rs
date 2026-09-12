@@ -401,7 +401,7 @@ pub fn update_physics_consciousness(
 /// This function keeps the historical `physics_sync_transforms` name because it is already
 /// registered immediately after `thermodynamic_enforcement_system` in the launcher's
 /// `FixedUpdate` chain. FEP-07E uses that existing order as a compatibility bridge:
-/// begin thermodynamics → physics → finalize thermodynamics → transform export.
+/// begin thermodynamics → attempted physics → finalize thermodynamics → transform export.
 ///
 /// In 3D, the existing kinematic controller remains authoritative and no `PhysicsWorld`
 /// step occurs here, but the thermodynamic tick is still finalized before representation
@@ -414,11 +414,11 @@ pub fn physics_sync_transforms(
     agent_query: Query<&PhysicsBody, Or<(With<Player>, With<CrewNpc>)>>,
     mut query: Query<(&PhysicsBody, &mut Transform)>,
 ) {
-    if phase_uses_authoritative_2d_step(*phase.get())
-        && !step_physics_world(&mut physics, f64::from(time.delta_secs()))
-    {
-        return;
-    }
+    let step_succeeded = if phase_uses_authoritative_2d_step(*phase.get()) {
+        step_physics_world(&mut physics, f64::from(time.delta_secs()))
+    } else {
+        true
+    };
 
     let handles: Vec<_> = agent_query.iter().map(|body| body.handle).collect();
     crate::systems::thermodynamic::finalize_thermodynamic_tick(
@@ -426,6 +426,13 @@ pub fn physics_sync_transforms(
         &mut hud_state,
         &handles,
     );
+
+    // A rejected/invalid physics step still closes the thermodynamic transaction so
+    // pre-step debits are not silently erased by the next tick's counter reset. It does
+    // not publish transforms as if a physical step had succeeded.
+    if !step_succeeded {
+        return;
+    }
 
     for (body_comp, mut transform) in &mut query {
         if let Some(body) = physics.world.body(body_comp.handle) {
