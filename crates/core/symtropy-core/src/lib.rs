@@ -25,9 +25,9 @@ pub mod prelude {
         IndustrialGovernance, IndustrialShock, IndustrialTickReport, IndustrialViabilityOutcome,
     };
     pub use crate::industrial_epoch::{
-        IndustrialEpochFlowModel, IndustrialEpochHandoffError, IndustrialEpochHandoffPlan,
-        IndustrialEpochHandoffReceipt, IndustrialEpochInventoryResult, IndustrialEpochSpec,
-        IndustrialEpochState, IndustrialExternalInventoryAdmission,
+        IndustrialEpochFlowModel, IndustrialEpochHandoffError, IndustrialEpochHandoffFailure,
+        IndustrialEpochHandoffPlan, IndustrialEpochHandoffReceipt, IndustrialEpochInventoryResult,
+        IndustrialEpochSpec, IndustrialEpochState, IndustrialExternalInventoryAdmission,
         IndustrialSourceInventoryDisposition,
     };
     pub use crate::industrial_watch::{
