@@ -263,9 +263,6 @@ pub fn thermodynamic_enforcement_system(
 
     // --- Per-entity operational costs ---
     for &handle in &handles {
-        let phi_is_valid;
-        let maintenance_valid;
-
         {
             let Some(entity) = physics.consciousness.entities.get_mut(&handle) else {
                 continue;
@@ -275,7 +272,7 @@ pub fn thermodynamic_enforcement_system(
             entity.energy.tick_reset();
 
             let phi = entity.phi();
-            phi_is_valid = phi.is_finite();
+            let phi_is_valid = phi.is_finite();
             let offload_factor = if phi_is_valid {
                 offload_factors.get(&handle).copied().unwrap_or(0.0)
             } else {
@@ -307,20 +304,13 @@ pub fn thermodynamic_enforcement_system(
                 offload_factor,
             ) else {
                 entity.safety_tier = SafetyTier::Red;
-                maintenance_valid = false;
                 continue;
             };
 
             let _ = entity.energy.consume(maintenance);
-            maintenance_valid = true;
-
             if !phi_is_valid {
                 entity.safety_tier = SafetyTier::Red;
             }
-        }
-
-        if !maintenance_valid {
-            continue;
         }
 
         // Rule 7a: ambient support may sustain/refill a live reservoir, but cannot
