@@ -1,0 +1,77 @@
+name: Evolution POPGEN-05E1 Qualification
+
+on:
+  push:
+    branches:
+      - "ci/evolution-popgen05e1-qualification-v0.1"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: evolution-popgen05e1-qualification-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  CARGO_TERM_COLOR: always
+  PRODUCT_HEAD: 555e5361b6f14fbba5c63c198bdc957bbccb8172
+
+jobs:
+  qualify:
+    name: Frozen POPGEN-05E1 / Rust 1.96
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout exact frozen product head
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ env.PRODUCT_HEAD }}
+          fetch-depth: 1
+
+      - name: Assert executed product subject
+        shell: bash
+        run: |
+          set -euo pipefail
+          actual="$(git rev-parse HEAD)"
+          echo "expected_product_head=${PRODUCT_HEAD}"
+          echo "actual_product_head=${actual}"
+          test "${actual}" = "${PRODUCT_HEAD}"
+
+      - name: Set up pinned Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.96.0
+          components: clippy, rustfmt
+
+      - name: Isolate dependency-light evolution crate
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf "${RUNNER_TEMP}/symtropy-evolution-core"
+          cp -R crates/domains/symtropy-evolution-core "${RUNNER_TEMP}/symtropy-evolution-core"
+          printf 'source_product_head=%s\n' "${PRODUCT_HEAD}" > "${RUNNER_TEMP}/symtropy-evolution-core/QUALIFICATION_SUBJECT"
+
+      - name: Check formatting
+        working-directory: ${{ runner.temp }}/symtropy-evolution-core
+        run: cargo fmt --all -- --check
+
+      - name: Check all targets
+        working-directory: ${{ runner.temp }}/symtropy-evolution-core
+        run: cargo check --all-targets
+
+      - name: Run all tests
+        working-directory: ${{ runner.temp }}/symtropy-evolution-core
+        run: cargo test --all-targets
+
+      - name: Run strict Clippy
+        working-directory: ${{ runner.temp }}/symtropy-evolution-core
+        run: cargo clippy --all-targets -- -D warnings
+
+      - name: Emit qualification subject
+        if: always()
+        shell: bash
+        run: |
+          echo "qualification_subject=${PRODUCT_HEAD}"
+          echo "toolchain=rustc 1.96.0"
+          echo "scope=crates/domains/symtropy-evolution-core"
+          echo "oracle=ORIGIN_AWARE_NEUTRAL_ANALYTICAL_NULL_V1"
