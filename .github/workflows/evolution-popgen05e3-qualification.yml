@@ -10,7 +10,7 @@ permissions:
 
 concurrency:
   group: evolution-popgen05e3-qualification-${{ github.ref }}
-  cancel-in-progress: false
+  cancel-in-progress: true
 
 env:
   CARGO_TERM_COLOR: always
