@@ -291,6 +291,12 @@ impl ConsequenceAssociationEstimate {
         {
             return Err(AssociationExecutionError::DenominatorInvariant);
         }
+        if self.estimand_denominator > BINARY_VIABILITY_EXACT_REFERENCE_MAX_ROWS {
+            return Err(AssociationExecutionError::ExactReferencePopulationTooLarge {
+                rows: self.estimand_denominator,
+                max_rows: BINARY_VIABILITY_EXACT_REFERENCE_MAX_ROWS,
+            });
+        }
         if let ConsequenceAssociationStatus::Estimated(association) = &self.status {
             validate_estimated_association(association, self.estimand_denominator)?;
         }
@@ -408,11 +414,11 @@ pub fn execute_binary_viability_association(
         match group {
             BinaryComparisonGroup::Reference => {
                 reference_total += 1;
-                reference_died += if died { 1 } else { 0 };
+                reference_died += u64::from(died);
             }
             BinaryComparisonGroup::Comparison => {
                 comparison_total += 1;
-                comparison_died += if died { 1 } else { 0 };
+                comparison_died += u64::from(died);
             }
         }
     }
@@ -434,19 +440,11 @@ pub fn execute_binary_viability_association(
         died_during_window: comparison_died,
         survived_window: comparison_total - comparison_died,
     };
-    let risk_difference = exact_risk_difference(reference, comparison)?;
-    let risk_ratio = exact_risk_ratio(reference, comparison)?;
-    let exact_reference = exact_hypergeometric_reference(reference, comparison)?;
+    let association = derive_association(reference, comparison)?;
 
     let estimate = base_estimate(
         frame,
-        ConsequenceAssociationStatus::Estimated(BinaryViabilityAssociation {
-            reference,
-            comparison,
-            comparison_minus_reference_risk_difference: risk_difference,
-            comparison_over_reference_risk_ratio: risk_ratio,
-            exact_reference,
-        }),
+        ConsequenceAssociationStatus::Estimated(association),
     );
     estimate.validate_local()?;
     Ok(estimate)
@@ -474,6 +472,9 @@ fn validate_plan(
     {
         return Err(AssociationExecutionError::UnsupportedUncertaintyConfiguration);
     }
+    if uncertainty.insufficient_support == InsufficientSupportPolicy::DescriptiveOnlyFallback {
+        return Err(AssociationExecutionError::UnsupportedInsufficientSupportPolicy);
+    }
     Ok(())
 }
 
@@ -485,14 +486,16 @@ fn handle_insufficient(
         InsufficientSupportPolicy::FailClosed => {
             Err(AssociationExecutionError::InsufficientSupport(reason))
         }
-        InsufficientSupportPolicy::ReportInsufficientSupport
-        | InsufficientSupportPolicy::DescriptiveOnlyFallback => {
+        InsufficientSupportPolicy::ReportInsufficientSupport => {
             let estimate = base_estimate(
                 frame,
                 ConsequenceAssociationStatus::InsufficientSupport(reason),
             );
             estimate.validate_local()?;
             Ok(estimate)
+        }
+        InsufficientSupportPolicy::DescriptiveOnlyFallback => {
+            Err(AssociationExecutionError::UnsupportedInsufficientSupportPolicy)
         }
     }
 }
@@ -512,6 +515,19 @@ fn base_estimate(
         minimum_information: binary_viability_exact_reference_minimum_information_v1(),
         status,
     }
+}
+
+fn derive_association(
+    reference: BinaryViabilityGroupSupport,
+    comparison: BinaryViabilityGroupSupport,
+) -> Result<BinaryViabilityAssociation, AssociationExecutionError> {
+    Ok(BinaryViabilityAssociation {
+        reference,
+        comparison,
+        comparison_minus_reference_risk_difference: exact_risk_difference(reference, comparison)?,
+        comparison_over_reference_risk_ratio: exact_risk_ratio(reference, comparison)?,
+        exact_reference: exact_hypergeometric_reference(reference, comparison)?,
+    })
 }
 
 fn exact_risk_difference(
@@ -575,7 +591,9 @@ fn exact_hypergeometric_reference(
         .checked_add(comparison.died_during_window)
         .ok_or(AssociationExecutionError::ArithmeticOverflow)?;
     let comparison_size = comparison.total;
-    let survivors = total - deaths;
+    let survivors = total
+        .checked_sub(deaths)
+        .ok_or(AssociationExecutionError::ArithmeticInvariant)?;
     let min_comparison_deaths = comparison_size.saturating_sub(survivors);
     let max_comparison_deaths = comparison_size.min(deaths);
     let total_weight = choose_u64(total, comparison_size)?;
@@ -585,8 +603,7 @@ fn exact_hypergeometric_reference(
     for comparison_deaths in min_comparison_deaths..=max_comparison_deaths {
         let death_choices = choose_u64(deaths, comparison_deaths)?;
         let survivor_choices = choose_u64(survivors, comparison_size - comparison_deaths)?;
-        let weight_u128 = u128::from(death_choices) * u128::from(survivor_choices);
-        let weight = u64::try_from(weight_u128)
+        let weight = u64::try_from(u128::from(death_choices) * u128::from(survivor_choices))
             .map_err(|_| AssociationExecutionError::ArithmeticOverflow)?;
         if comparison_deaths == comparison.died_during_window {
             observed_weight = Some(weight);
@@ -643,17 +660,36 @@ fn validate_estimated_association(
     if association.reference.total == 0 || association.comparison.total == 0 {
         return Err(AssociationExecutionError::DenominatorInvariant);
     }
-    if association.reference.died_during_window + association.reference.survived_window
-        != association.reference.total
-        || association.comparison.died_during_window + association.comparison.survived_window
-            != association.comparison.total
-        || association.reference.total + association.comparison.total != estimand_denominator
+
+    let reference_total = association
+        .reference
+        .died_during_window
+        .checked_add(association.reference.survived_window)
+        .ok_or(AssociationExecutionError::ArithmeticOverflow)?;
+    let comparison_total = association
+        .comparison
+        .died_during_window
+        .checked_add(association.comparison.survived_window)
+        .ok_or(AssociationExecutionError::ArithmeticOverflow)?;
+    let combined_total = association
+        .reference
+        .total
+        .checked_add(association.comparison.total)
+        .ok_or(AssociationExecutionError::ArithmeticOverflow)?;
+
+    if reference_total != association.reference.total
+        || comparison_total != association.comparison.total
+        || combined_total != estimand_denominator
     {
         return Err(AssociationExecutionError::DenominatorInvariant);
     }
-    if association.exact_reference.support.is_empty()
-        || association.exact_reference.total_weight == 0
-        || association.exact_reference.observed_weight == 0
+
+    let expected = derive_association(association.reference, association.comparison)?;
+    if association.comparison_minus_reference_risk_difference
+        != expected.comparison_minus_reference_risk_difference
+        || association.comparison_over_reference_risk_ratio
+            != expected.comparison_over_reference_risk_ratio
+        || association.exact_reference != expected.exact_reference
     {
         return Err(AssociationExecutionError::ArithmeticInvariant);
     }
@@ -706,6 +742,7 @@ pub enum AssociationExecutionError {
     UnsupportedOutcomeValue,
     MethodAuthorityMismatch,
     UnsupportedUncertaintyConfiguration,
+    UnsupportedInsufficientSupportPolicy,
     ExactReferencePopulationTooLarge { rows: u64, max_rows: u64 },
     InsufficientSupport(AssociationInsufficiency),
     ArithmeticOverflow,
@@ -740,6 +777,10 @@ impl fmt::Display for AssociationExecutionError {
             Self::UnsupportedUncertaintyConfiguration => write!(
                 f,
                 "SEL-07B2 V1 exact reference method does not accept replicate, seed, or multiplicity configuration"
+            ),
+            Self::UnsupportedInsufficientSupportPolicy => write!(
+                f,
+                "SEL-07B2 V1 supports only fail-closed or explicit insufficient-support reporting"
             ),
             Self::ExactReferencePopulationTooLarge { rows, max_rows } => write!(
                 f,
