@@ -49,6 +49,9 @@ semantic_id!(EvolutionIndividualId);
 semantic_id!(EvolutionaryContextId);
 semantic_id!(ConsequenceWindowId);
 semantic_id!(ConsequenceObservationId);
+semantic_id!(PhenotypeEvidenceSourceId);
+semantic_id!(ExposureEvidenceSourceId);
+semantic_id!(EvidenceProtocolId);
 
 #[cfg(test)]
 mod tests {
@@ -87,6 +90,9 @@ mod tests {
         assert_wire_contract!(EvolutionaryContextId, "context-0001");
         assert_wire_contract!(ConsequenceWindowId, "window-0001");
         assert_wire_contract!(ConsequenceObservationId, "consequence-0001");
+        assert_wire_contract!(PhenotypeEvidenceSourceId, "phenotype-source-0001");
+        assert_wire_contract!(ExposureEvidenceSourceId, "exposure-source-0001");
+        assert_wire_contract!(EvidenceProtocolId, "protocol-0001");
     }
 
     #[test]
