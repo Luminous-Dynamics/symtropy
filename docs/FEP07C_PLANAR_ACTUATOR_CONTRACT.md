@@ -32,14 +32,17 @@ It then:
 1. rejects non-finite/invalid requests;
 2. requires a dynamic finite positive-mass body;
 3. requires registered consciousness/energy motor state;
-4. clamps requested speed;
-5. scales both target speed and acceleration authority by the entity's current effective motor gain;
-6. limits the per-step velocity correction by acceleration;
-7. limits positive motor work to the energy available before motion is applied;
-8. separates positive work from negative-work braking even when a reversal crosses zero velocity inside one step;
-9. debits positive motor work exactly once;
-10. dissipates braking work rather than granting regenerative credit;
-11. applies only the bounded velocity correction to the authoritative body.
+4. validates the reservoir before trusting cached motor authority;
+5. returns zero self-propelled authority for collapsed/effectively empty reservoirs without damping existing momentum;
+6. computes the currently extractable mechanical-work budget;
+7. clamps requested speed;
+8. scales both target speed and acceleration authority by the entity's current effective motor gain;
+9. limits the per-step velocity correction by acceleration;
+10. limits positive motor work to the extractable-work budget before motion is applied;
+11. separates positive work from negative-work braking even when a reversal crosses zero velocity inside one step;
+12. debits positive motor work exactly once;
+13. dissipates braking work rather than granting regenerative credit;
+14. applies only the bounded velocity correction to the authoritative body.
 
 This is a velocity-target **actuator**, not a direct velocity setter: the target may take many fixed ticks to reach.
 
@@ -70,17 +73,39 @@ Positive work consumes entity energy. Negative work is treated as dissipative br
 
 This avoids a reversal becoming a free acceleration because braking and propulsion cancelled numerically.
 
-## Energy-limited motion theorem
+## Extractable-work theorem
 
-The actuator computes the maximum velocity correction whose **positive** work fits the entity's energy available before the correction is applied.
+Raw internal energy is not automatically equivalent to mechanically extractable work.
 
-Therefore a nearly exhausted entity cannot receive a full motor impulse and only afterward discover that its energy account could not pay for it.
+Under `consciousness-runtime`, the owning `EnergyBudget` already defines Helmholtz free energy through:
 
-Braking-to-zero may still proceed without positive work. Acceleration beyond zero is energy-limited separately.
+`available_work = max(U - T*S, 0)`
+
+and documents that quantity as the maximum extractable work at constant temperature.
+
+The actuator therefore caps **positive motor work by `available_work()`**, not by raw `energy.available`.
+
+A body can consequently retain positive internal energy while having less—or zero—currently extractable mechanical work because of its temperature/entropy state.
+
+The standalone/default launcher stub does not model temperature or entropy. Its explicit v0 fallback treats finite raw reservoir energy as the work budget. That is a simplified simulation fallback, not a claim that it implements the full Helmholtz model.
+
+Braking-to-zero may still proceed without positive work. Acceleration beyond zero is work-limited separately.
+
+## Reservoir-before-cache theorem
+
+`EntityConsciousness::effective_motor_gain()` is cached safety-tier gain multiplied by motor precision. It does not itself read the energy reservoir at call time.
+
+Therefore the actuator validates reservoir state **before** it trusts that cached gain.
+
+A collapsed or effectively empty reservoir returns no self-propelled authority even if a stale cached tier still says Green or Yellow.
+
+Invalid/non-finite reservoir or thermal state fails closed as an invalid motor state rather than mutating physical velocity.
+
+This is a defense-in-depth authority boundary. The schedule should still update collapse/tier state correctly; the actuator must not depend on that timing for basic safety.
 
 ## Zero authority theorem
 
-A zero effective motor gain performs no velocity mutation at all.
+A zero effective motor gain or exhausted reservoir performs no velocity mutation at all.
 
 In particular, the actuator does **not** set velocity to zero when an entity is Red/collapsed. This preserves the distinction between:
 
@@ -91,11 +116,11 @@ A motor-disabled body may therefore continue moving because of a collision or an
 
 ## Existing motor-gain semantics are inherited, not validated here
 
-Under `consciousness-runtime`, v0.1 consumes the existing `EntityConsciousness::effective_motor_gain()` result. Standalone builds mirror the current stub tier/precision semantics.
+Under `consciousness-runtime`, v0.1 consumes the existing `EntityConsciousness::effective_motor_gain()` result only after the direct reservoir gate succeeds. Standalone builds mirror the current stub tier/precision semantics.
 
 The consciousness-physics `SafetyTier` module itself explicitly documents that its hard-coded Phi cut points are not calibrated to the measured bands of the robotics platform demos. This tranche does **not** upgrade those thresholds into a real-world safety claim or certification.
 
-FEP-07C proves only that launcher locomotion cannot bypass whatever motor-authority value the owning domain currently supplies.
+FEP-07C proves only that launcher locomotion cannot bypass the owning domain's current motor-authority value or the reservoir/work boundary.
 
 A later calibration tranche should decide whether this game slice continues using the four-tier mapping, uses a slice-specific calibrated mapping, or consumes a different bounded control-authority provider.
 
@@ -145,10 +170,13 @@ The implementation includes tests intended to establish, once executed:
 - non-finite commands fail without mutating velocity;
 - speed/acceleration requests are bounded;
 - positive motor work is charged;
-- available energy limits acceleration before motion is applied;
+- extractable work limits acceleration before motion is applied;
 - braking dissipates kinetic energy without regenerative credit;
 - reversal cannot cancel paid acceleration against prior braking;
 - Red motor authority does not erase externally induced velocity;
+- a zero reservoir defeats stale cached Green authority without erasing external momentum;
+- a collapsed full-runtime reservoir defeats contradictory cached Green authority;
+- non-finite thermal state fails closed;
 - reduced motor precision reduces motor authority.
 
 ## Required qualification
@@ -162,6 +190,8 @@ Before merge readiness, execute on the exact PR head:
 - Clippy on the same relevant feature surfaces;
 - a fixed-step scenario showing actuator request → authoritative body velocity → world integration → transform export;
 - a low-energy scenario proving movement is capped before energy exhaustion;
+- a high-entropy/low-free-energy scenario proving positive work is limited by Helmholtz `available_work()` rather than raw internal energy;
+- a stale cached-tier scenario proving zero/collapsed reservoir state blocks self-propulsion immediately;
 - a collision/external-velocity scenario proving zero motor authority does not erase momentum;
 - a two-render-cadence replay with frozen seed/input tape/fixed-step count.
 
