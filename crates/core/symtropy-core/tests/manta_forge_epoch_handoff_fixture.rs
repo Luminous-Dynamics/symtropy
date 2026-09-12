@@ -1,4 +1,4 @@
-use std::collections::{BTreeMap, BTreeSet};
+use std::collections::BTreeMap;
 use symtropy_core::industrial_ecology::{
     IndustrialCapability, IndustrialDependencyState, IndustrialGovernance,
 };
