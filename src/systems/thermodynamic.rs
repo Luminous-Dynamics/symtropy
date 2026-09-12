@@ -68,6 +68,38 @@ fn regenerate_entity_accepted(
     }
 }
 
+/// Transfer energy from one finite source into a registered recipient reservoir.
+///
+/// The source is debited only by the amount the recipient actually accepted. Invalid
+/// source state, invalid offer limits, missing recipients and full recipients are no-ops.
+/// This helper is intentionally independent of `EnergyWell` so other finite stores can
+/// reuse the same source-conservation theorem later.
+fn transfer_from_finite_source(
+    physics: &mut PhysicsWorldRes,
+    handle: BodyHandle,
+    source_remaining: &mut f64,
+    max_offer: f64,
+) -> f64 {
+    if !source_remaining.is_finite()
+        || *source_remaining <= 0.0
+        || !max_offer.is_finite()
+        || max_offer <= 0.0
+    {
+        return 0.0;
+    }
+
+    let offered = max_offer.min(*source_remaining);
+    let accepted = regenerate_entity_accepted(physics, handle, offered);
+    if !accepted.is_finite() || accepted <= 0.0 {
+        return 0.0;
+    }
+
+    // Defense in depth: the bounded recipient must never accept more than the offer.
+    let accepted = accepted.min(offered);
+    *source_remaining = (*source_remaining - accepted).max(0.0);
+    accepted
+}
+
 /// Main enforcement system. Runs in FixedUpdate.
 ///
 /// Debits consciousness maintenance, applies ambient regeneration,
@@ -127,14 +159,13 @@ pub fn thermodynamic_enforcement_system(
                 .truncate()
                 .distance(well_tf.translation.truncate());
             if dist < well.radius {
-                let offered = well.regen_rate.min(well.remaining);
-                let accepted = regenerate_entity_accepted(&mut physics, handle, offered);
-
-                // Source-backed transfer theorem: the well loses exactly what the
-                // reservoir accepted, never the larger offer it could not receive.
-                if accepted > 0.0 {
-                    well.remaining = (well.remaining - accepted).max(0.0);
-                }
+                let regen_rate = well.regen_rate;
+                let _accepted = transfer_from_finite_source(
+                    &mut physics,
+                    handle,
+                    &mut well.remaining,
+                    regen_rate,
+                );
             }
         }
 
@@ -317,6 +348,22 @@ mod tests {
         (physics, handle)
     }
 
+    fn add_registered_entity_with_headroom(
+        physics: &mut PhysicsWorldRes,
+        headroom: f64,
+    ) -> BodyHandle {
+        let handle = physics
+            .world
+            .add_sphere(symtropy_math::Point::origin(), 1.0, 1.0);
+        physics.consciousness.register(handle, 100.0, 10.0);
+        if headroom > 0.0 {
+            let entity = physics.consciousness.entities.get_mut(&handle).unwrap();
+            let _ = entity.energy.consume(headroom.min(100.0));
+            entity.energy.tick_reset();
+        }
+        handle
+    }
+
     #[test]
     fn accepted_regeneration_is_zero_for_full_reservoir() {
         let (mut physics, handle) = registered_entity_with_headroom(0.0);
@@ -338,5 +385,83 @@ mod tests {
     fn accepted_regeneration_is_zero_for_missing_entity() {
         let mut physics = PhysicsWorldRes::default();
         assert!((regenerate_entity_accepted(&mut physics, BodyHandle(999_999), 10.0) - 0.0).abs() < 1e-10);
+    }
+
+    #[test]
+    fn finite_source_is_not_debited_when_recipient_is_full() {
+        let (mut physics, handle) = registered_entity_with_headroom(0.0);
+        let mut source = 10.0;
+        let accepted = transfer_from_finite_source(&mut physics, handle, &mut source, 10.0);
+        assert!((accepted - 0.0).abs() < 1e-10);
+        assert!((source - 10.0).abs() < 1e-10);
+    }
+
+    #[test]
+    fn finite_source_loses_exactly_recipient_gain() {
+        let (mut physics, handle) = registered_entity_with_headroom(3.0);
+        let mut source = 10.0;
+        let source_before = source;
+        let recipient_before = physics
+            .consciousness
+            .entities
+            .get(&handle)
+            .unwrap()
+            .energy
+            .available;
+
+        let accepted = transfer_from_finite_source(&mut physics, handle, &mut source, 10.0);
+        let recipient_after = physics
+            .consciousness
+            .entities
+            .get(&handle)
+            .unwrap()
+            .energy
+            .available;
+
+        assert!((accepted - 3.0).abs() < 1e-10);
+        assert!((source_before - source - accepted).abs() < 1e-10);
+        assert!((recipient_after - recipient_before - accepted).abs() < 1e-10);
+    }
+
+    #[test]
+    fn finite_source_conserves_across_multiple_recipients() {
+        let mut physics = PhysicsWorldRes::default();
+        let first = add_registered_entity_with_headroom(&mut physics, 3.0);
+        let second = add_registered_entity_with_headroom(&mut physics, 4.0);
+        let mut source = 10.0;
+        let source_before = source;
+
+        let accepted_first = transfer_from_finite_source(&mut physics, first, &mut source, 10.0);
+        let accepted_second = transfer_from_finite_source(&mut physics, second, &mut source, 10.0);
+        let total_accepted = accepted_first + accepted_second;
+
+        assert!((accepted_first - 3.0).abs() < 1e-10);
+        assert!((accepted_second - 4.0).abs() < 1e-10);
+        assert!((total_accepted - 7.0).abs() < 1e-10);
+        assert!((source_before - source - total_accepted).abs() < 1e-10);
+        assert!((source - 3.0).abs() < 1e-10);
+    }
+
+    #[test]
+    fn finite_source_rejects_invalid_offer_or_source_state() {
+        let (mut physics, handle) = registered_entity_with_headroom(10.0);
+
+        for offer in [0.0, -1.0, f64::NAN, f64::INFINITY, f64::NEG_INFINITY] {
+            let mut source = 10.0;
+            let accepted = transfer_from_finite_source(&mut physics, handle, &mut source, offer);
+            assert!((accepted - 0.0).abs() < 1e-10);
+            assert!((source - 10.0).abs() < 1e-10);
+        }
+
+        for bad_source in [0.0, -1.0, f64::NAN, f64::INFINITY, f64::NEG_INFINITY] {
+            let mut source = bad_source;
+            let accepted = transfer_from_finite_source(&mut physics, handle, &mut source, 10.0);
+            assert!((accepted - 0.0).abs() < 1e-10);
+            if bad_source.is_nan() {
+                assert!(source.is_nan());
+            } else {
+                assert_eq!(source, bad_source);
+            }
+        }
     }
 }
