@@ -1,0 +1,158 @@
+name: Terrain dead-coupling diagnostic
+
+on:
+  push:
+    branches:
+      - ci/terrain-prune-dead-couplings-diagnostic
+
+permissions:
+  contents: read
+
+jobs:
+  prove-pruned-terrain-closure:
+    name: Prove pruned Terrain dependency closure
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - name: Check out exact diagnostic subject
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          fetch-depth: 0
+
+      - name: Bind frozen kernel lineage
+        shell: bash
+        run: |
+          set -euo pipefail
+          base=e707113651e302f7c61c5542483104af352cb3d0
+          test "$(git rev-parse HEAD^)" = "${base}"
+          test "$(git rev-parse ${base}:crates/domains/symtropy-terrain/src/geometry_kernel.rs)" = "8d3e1213eacdeddf693cd2d1f82670d6ed832161"
+          echo "TERRAIN_PRUNE_DIAGNOSTIC_HEAD=$(git rev-parse HEAD)"
+          echo "TERRAIN_PRUNE_DIAGNOSTIC_TREE=$(git rev-parse HEAD^{tree})"
+          echo "TERRAIN_PRUNE_BASE=${base}"
+          echo "TERRAIN_PRUNE_INPUT_LOCK_BLOB=$(git hash-object Cargo.lock)"
+
+      - name: Install Linux system dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install -y libasound2-dev libudev-dev pkg-config
+
+      - name: Set up pinned Rust
+        uses: dtolnay/rust-toolchain@6bed0761d98439e5a578e2877258200ad565ba87
+        with:
+          toolchain: 1.96.0
+          components: clippy,rustfmt
+
+      - name: Bind toolchain
+        shell: bash
+        run: |
+          set -euo pipefail
+          rustc -Vv
+          cargo -Vv
+          rustfmt --version
+          cargo clippy --version
+          test "$(rustc --version | awk '{print $2}')" = "1.96.0"
+
+      - name: Apply runner-local dependency pruning
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+
+          def replace_once(path: str, old: str, new: str) -> None:
+              p = Path(path)
+              text = p.read_text()
+              count = text.count(old)
+              if count != 1:
+                  raise SystemExit(f"{path}: expected exactly one marker, found {count}: {old!r}")
+              p.write_text(text.replace(old, new, 1))
+
+          replace_once(
+              "crates/domains/symtropy-terrain/Cargo.toml",
+              'symtropy-physics-gpu = { path = "../../domains/symtropy-physics-gpu" }\n',
+              "",
+          )
+          replace_once(
+              "crates/domains/symtropy-terrain/src/lib.rs",
+              "use symtropy_physics_gpu::HybridFluidPlugin;\n\n",
+              "",
+          )
+          replace_once(
+              "crates/domains/symtropy-terrain/src/lib.rs",
+              "        app.add_plugins(HybridFluidPlugin)\n            .register_type::<EarthChunk>()\n",
+              "        app.register_type::<EarthChunk>()\n",
+          )
+          replace_once(
+              "crates/bridges/symtropy-rapier3d-bridge/Cargo.toml",
+              'symthaea-bevy-brain = { path = "../../bridges/symthaea-bevy-brain" }\n',
+              "",
+          )
+          PY
+          cargo fmt --package symtropy-terrain --package symtropy-rapier3d-bridge
+          test "$(git hash-object crates/domains/symtropy-terrain/src/geometry_kernel.rs)" = "8d3e1213eacdeddf693cd2d1f82670d6ed832161"
+          git diff --check
+          git diff -- crates/domains/symtropy-terrain/Cargo.toml crates/domains/symtropy-terrain/src/lib.rs crates/bridges/symtropy-rapier3d-bridge/Cargo.toml
+
+      - name: Refresh and freeze diagnostic lock
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo metadata --format-version 1 > "${RUNNER_TEMP}/terrain-prune-metadata.json"
+          echo "TERRAIN_PRUNE_LOCK_BLOB=$(git hash-object Cargo.lock)"
+          echo "TERRAIN_PRUNE_LOCK_SHA256=$(sha256sum Cargo.lock | awk '{print $1}')"
+          echo "TERRAIN_PRUNE_METADATA_SHA256=$(sha256sum "${RUNNER_TEMP}/terrain-prune-metadata.json" | awk '{print $1}')"
+          git diff -- Cargo.lock
+          cargo metadata --locked --format-version 1 > "${RUNNER_TEMP}/terrain-prune-metadata-locked.json"
+
+      - name: Prove heavy authority leakage is absent
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo tree -p symtropy-terrain --locked -e features > "${RUNNER_TEMP}/terrain-prune-tree.txt"
+          cat "${RUNNER_TEMP}/terrain-prune-tree.txt"
+          for forbidden in \
+            'symtropy-physics-gpu' \
+            'symthaea-bevy-brain' \
+            'naga v27.0.3' \
+            'codespan-reporting v0.12.0'; do
+            if grep -Fq "${forbidden}" "${RUNNER_TEMP}/terrain-prune-tree.txt"; then
+              echo "forbidden dependency remains in Terrain closure: ${forbidden}" >&2
+              exit 1
+            fi
+          done
+          grep -Fq 'naga v29.0.4' "${RUNNER_TEMP}/terrain-prune-tree.txt"
+          echo "TERRAIN_PRUNE_FEATURE_TREE_SHA256=$(sha256sum "${RUNNER_TEMP}/terrain-prune-tree.txt" | awk '{print $1}')"
+
+      - name: Check Terrain against frozen diagnostic closure
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo check -p symtropy-terrain --locked --all-targets
+
+      - name: Test Terrain against frozen diagnostic closure
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo test -p symtropy-terrain --locked
+
+      - name: Strict Terrain Clippy
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo clippy -p symtropy-terrain --locked --all-targets -- -D warnings
+
+      - name: Fail closed on unexpected product edits
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git hash-object crates/domains/symtropy-terrain/src/geometry_kernel.rs)" = "8d3e1213eacdeddf693cd2d1f82670d6ed832161"
+          changed="$(git diff --name-only | sort)"
+          expected="$(printf '%s\n' \
+            Cargo.lock \
+            crates/bridges/symtropy-rapier3d-bridge/Cargo.toml \
+            crates/domains/symtropy-terrain/Cargo.toml \
+            crates/domains/symtropy-terrain/src/lib.rs | sort)"
+          test "${changed}" = "${expected}"
+          echo "Diagnostic only: no product commit or push performed."
