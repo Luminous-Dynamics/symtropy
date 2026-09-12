@@ -3,8 +3,7 @@
 //! Deterministic heredity and population-genetics primitives for Symtropy.
 //!
 //! This crate owns hereditary/population semantics only. Ecology, fitness truth,
-//! morphology, rendering, persistent organism identity, speciation, cognition,
-//! and civilization remain external authorities.
+//! morphology, rendering, speciation, cognition, and civilization remain external authorities.
 
 mod aggregate_resolution_loss;
 mod ancestry_graph;
@@ -36,6 +35,7 @@ mod ids;
 mod linked_census_projection;
 mod linked_gamete;
 mod linked_gamete_evidence;
+mod linked_individual;
 mod linked_mutation;
 mod linked_offspring;
 mod linked_offspring_v2;
@@ -171,7 +171,7 @@ pub use heredity::{HereditaryState, HereditaryStateDigest};
 pub use ids::{
     AlleleId, AncestryCopyId, ChromosomeId, ChromosomeMapId,
     ChromosomeRecombinationProfileId, DemographicEventId, EvolutionExperimentId,
-    HereditarySchemaId, LocusId, OperatorProfileId, PopulationId,
+    EvolutionIndividualId, HereditarySchemaId, LocusId, OperatorProfileId, PopulationId,
     PopulationProcessProfileId, PopulationStructureProfileId, PopulationTransitionId,
     ReproductionEventId,
 };
@@ -188,6 +188,12 @@ pub use linked_gamete::{
 pub use linked_gamete_evidence::{
     LinkedGameteDerivationEvidence, LinkedGameteDerivationEvidenceDigest,
     LINKED_GAMETE_DERIVATION_EVIDENCE_VERSION,
+};
+pub use linked_individual::{
+    ExplicitLinkedPopulationCensus, ExplicitLinkedPopulationCensusDigest,
+    ExplicitLinkedPopulationMember, LinkedIndividualError, LinkedIndividualManifest,
+    LinkedIndividualManifestDigest, LinkedIndividualSubject,
+    EXPLICIT_LINKED_POPULATION_CENSUS_VERSION, LINKED_INDIVIDUAL_MANIFEST_VERSION,
 };
 pub use linked_mutation::{
     execute_linked_mutations, LinkedMutationError, LinkedMutationExecution,
