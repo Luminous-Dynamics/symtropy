@@ -1,0 +1,253 @@
+name: A1 R2 Replay-Bound Qualification Authority
+
+on:
+  pull_request:
+    branches: [ "analysis/a0-replay-valid-evidence-v0.1" ]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: a1-r2-rederive-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+env:
+  PRODUCT_BRANCH: analysis/a1-faceted-qualification-r2-v0.1
+  PARENT_HEAD: 927c74ab8562d597d906be241f5ec0559b04f7c3
+  PARENT_TREE: 9a29f544d9dc6c5e99264b6519554b9445df7e18
+  PARENT_ROOT_MANIFEST_BLOB: fbbf871e1ab88d844c257216f03c095f993b58d4
+  PARENT_LOCK_BLOB: 41efc0996bb8f71495f3bb2ec5739b7e32195c58
+  A0_MANIFEST_BLOB: f7bb582f7f3388e68f182ba0f0c27f99cd847c46
+  A0_SOURCE_BLOB: 30bc62c3762414b60fac0bcff21af49cb7ec062b
+  A0_PERSISTENCE_BLOB: f596a7539ea245a043149eaa5c32f7d9ba258f33
+  D1_SOURCE_BLOB: 8736aa8fe654529a81a6aadaef9dbc9d3f559916
+  D2_SOURCE_BLOB: 99e0782276f305a7b0e4c431b2b4ce14420695a9
+  LEGACY_A1_HEAD: e5f1ff4a21f1ee472cf2f14d76699dd8b9b16f26
+  LEGACY_A1_MANIFEST_BLOB: 7988c2b950e3d842f247b3239b69da0232525532
+  LEGACY_A1_SOURCE_BLOB: f041971ff435129487f6ce798cc8f22374e6f11d
+  TRANSFORM_BLOB: e607c48145252a06aa41b3417ec44434277e7eec
+  A0_REQUEST_GOLDEN: 3b0ce5c820d1dd550b164c7691ba9804ecc1f4a672d8615fa7f732e372829037
+  A0_EVIDENCE_GOLDEN: 501e1ec4aabe3ebcbc49b0db12ae9a0963415df32dfa040e05e45ae3cf514dc5
+  A1_PROFILE_GOLDEN: e09131561217af2c85f6ed4665df938d9389909ace1c2413de48f7bab93bf618
+  A1_CUT_GOLDEN: ab4ad7408f6e03d203ff7ccc660816df4214baad798f9bb01ab7d24125cba03d
+  CARGO_TARGET_DIR: /tmp/symtropy-a1-r2-target
+
+jobs:
+  qualify-and-promote:
+    name: Rederive A1 on replay-valid A0 and promote exact product
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Check out frozen product branch
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ env.PRODUCT_BRANCH }}
+          path: product
+          fetch-depth: 0
+
+      - name: Check out exact legacy A1 source
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ env.LEGACY_A1_HEAD }}
+          path: legacy-a1
+          persist-credentials: false
+          fetch-depth: 0
+
+      - name: Check out exact runner tools
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          path: runner-tools
+          persist-credentials: false
+          fetch-depth: 0
+
+      - name: Bind exact parent, legacy semantics and transform
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git -C product rev-parse HEAD)" = "$PARENT_HEAD"
+          test "$(git -C product rev-parse HEAD^{tree})" = "$PARENT_TREE"
+          test "$(git -C product hash-object Cargo.toml)" = "$PARENT_ROOT_MANIFEST_BLOB"
+          test "$(git -C product hash-object Cargo.lock)" = "$PARENT_LOCK_BLOB"
+          test "$(git -C product hash-object crates/domains/symtropy-design/src/lib.rs)" = "$D1_SOURCE_BLOB"
+          test "$(git -C product hash-object crates/domains/symtropy-design-requirements/src/lib.rs)" = "$D2_SOURCE_BLOB"
+          test "$(git -C product hash-object crates/domains/symtropy-analysis-contracts/Cargo.toml)" = "$A0_MANIFEST_BLOB"
+          test "$(git -C product hash-object crates/domains/symtropy-analysis-contracts/src/lib.rs)" = "$A0_SOURCE_BLOB"
+          test "$(git -C product hash-object crates/domains/symtropy-analysis-contracts/src/persistence.rs)" = "$A0_PERSISTENCE_BLOB"
+          test "$(git -C legacy-a1 rev-parse HEAD)" = "$LEGACY_A1_HEAD"
+          test "$(git -C legacy-a1 hash-object crates/domains/symtropy-analysis-qualification/Cargo.toml)" = "$LEGACY_A1_MANIFEST_BLOB"
+          test "$(git -C legacy-a1 hash-object crates/domains/symtropy-analysis-qualification/src/lib.rs)" = "$LEGACY_A1_SOURCE_BLOB"
+          test "$(git -C runner-tools hash-object .github/repair/a1_rederive_qualification_r2.py)" = "$TRANSFORM_BLOB"
+          test -z "$(git -C product status --porcelain=v1 --untracked-files=all)"
+
+      - name: Set up pinned Rust 1.96
+        uses: dtolnay/rust-toolchain@6bed0761d98439e5a578e2877258200ad565ba87
+        with:
+          toolchain: 1.96.0
+          components: clippy, rustfmt
+
+      - name: Re-prove exact replay-valid A0 parent
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd product
+          cargo metadata --locked --format-version 1 >/tmp/a1-r2-parent-metadata.json
+          cargo fmt -p symtropy-analysis-contracts -- --check
+          cargo check --locked -p symtropy-analysis-contracts --all-targets
+          cargo test --locked -p symtropy-analysis-contracts
+          cargo test --locked -p symtropy-analysis-contracts --doc
+          cargo test --locked -p symtropy-analysis-contracts tests::canonical_analysis_request_digest_has_frozen_golden_vector -- --exact
+          cargo test --locked -p symtropy-analysis-contracts tests::canonical_analysis_evidence_digest_has_frozen_golden_vector -- --exact
+          cargo clippy --locked -p symtropy-analysis-contracts --all-targets -- -D warnings
+          test -z "$(git status --porcelain=v1 --untracked-files=all)"
+
+      - name: Freeze parent authority surfaces
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd product
+          cp Cargo.toml /tmp/a1-r2-root.before
+          cp Cargo.lock /tmp/a1-r2-lock.before
+          cp crates/domains/symtropy-design/src/lib.rs /tmp/a1-r2-d1.before
+          cp crates/domains/symtropy-design-requirements/src/lib.rs /tmp/a1-r2-d2.before
+          cp crates/domains/symtropy-analysis-contracts/Cargo.toml /tmp/a1-r2-a0-manifest.before
+          cp crates/domains/symtropy-analysis-contracts/src/lib.rs /tmp/a1-r2-a0-source.before
+          cp crates/domains/symtropy-analysis-contracts/src/persistence.rs /tmp/a1-r2-a0-persistence.before
+
+      - name: Apply exact A1 semantic rederivation
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd product
+          python3 ../runner-tools/.github/repair/a1_rederive_qualification_r2.py ../legacy-a1
+          cargo fmt -p symtropy-analysis-qualification
+          cmp crates/domains/symtropy-design/src/lib.rs /tmp/a1-r2-d1.before
+          cmp crates/domains/symtropy-design-requirements/src/lib.rs /tmp/a1-r2-d2.before
+          cmp crates/domains/symtropy-analysis-contracts/Cargo.toml /tmp/a1-r2-a0-manifest.before
+          cmp crates/domains/symtropy-analysis-contracts/src/lib.rs /tmp/a1-r2-a0-source.before
+          cmp crates/domains/symtropy-analysis-contracts/src/persistence.rs /tmp/a1-r2-a0-persistence.before
+          grep -q 'ValidatedAnalysisEvidence' crates/domains/symtropy-analysis-qualification/src/lib.rs
+          grep -q "$A1_PROFILE_GOLDEN" crates/domains/symtropy-analysis-qualification/src/lib.rs
+          grep -q "$A1_CUT_GOLDEN" crates/domains/symtropy-analysis-qualification/src/lib.rs
+
+      - name: Resolve and prove bounded lock delta
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd product
+          cargo metadata --format-version 1 >/tmp/a1-r2-metadata.json
+          python3 - <<'PY'
+          import json, tomllib
+          from pathlib import Path
+          before = tomllib.loads(Path('/tmp/a1-r2-lock.before').read_text())
+          after = tomllib.loads(Path('Cargo.lock').read_text())
+          assert {k:v for k,v in before.items() if k!='package'} == {k:v for k,v in after.items() if k!='package'}
+          canon = lambda p: json.dumps(p, sort_keys=True, separators=(',', ':'))
+          old = {canon(p) for p in before['package']}
+          new = {canon(p) for p in after['package']}
+          assert not (old-new), sorted(old-new)
+          added = new-old
+          assert len(added) == 1, sorted(added)
+          package = json.loads(next(iter(added)))
+          assert package['name'] == 'symtropy-analysis-qualification' and package['version'] == '0.1.0', package
+          assert 'source' not in package and 'checksum' not in package, package
+          assert sorted(package.get('dependencies', [])) == [
+              'serde', 'sha2', 'symtropy-analysis-contracts', 'symtropy-design', 'symtropy-game-state'
+          ], package
+          PY
+          cargo metadata --locked --format-version 1 >/tmp/a1-r2-locked-metadata.json
+
+      - name: Prove exact four-file product surface
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd product
+          python3 - <<'PY'
+          import subprocess
+          expected={
+              ' M Cargo.lock',
+              ' M Cargo.toml',
+              '?? crates/domains/symtropy-analysis-qualification/Cargo.toml',
+              '?? crates/domains/symtropy-analysis-qualification/src/lib.rs',
+          }
+          actual=set(subprocess.check_output(['git','status','--porcelain=v1','--untracked-files=all'],text=True).splitlines())
+          assert actual == expected, (sorted(actual), sorted(expected))
+          PY
+          git diff --check -- Cargo.toml Cargo.lock
+
+      - name: Execute all frozen protocol identities
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd product
+          cargo test --locked -p symtropy-analysis-contracts tests::canonical_analysis_request_digest_has_frozen_golden_vector -- --exact
+          cargo test --locked -p symtropy-analysis-contracts tests::canonical_analysis_evidence_digest_has_frozen_golden_vector -- --exact
+          cargo test --locked -p symtropy-analysis-qualification tests::canonical_qualification_profile_digest_has_frozen_golden_vector -- --exact
+          cargo test --locked -p symtropy-analysis-qualification tests::canonical_qualification_cut_digest_has_frozen_golden_vector -- --exact
+
+      - name: Format gate A1
+        run: cargo fmt --manifest-path product/Cargo.toml -p symtropy-analysis-qualification -- --check
+
+      - name: Check gate A1
+        run: cargo check --locked --manifest-path product/Cargo.toml -p symtropy-analysis-qualification --all-targets
+
+      - name: Test gate A1
+        run: cargo test --locked --manifest-path product/Cargo.toml -p symtropy-analysis-qualification
+
+      - name: Compile-fail raw A0 authority gate
+        run: cargo test --locked --manifest-path product/Cargo.toml -p symtropy-analysis-qualification --doc
+
+      - name: Strict Clippy gate A1
+        run: cargo clippy --locked --manifest-path product/Cargo.toml -p symtropy-analysis-qualification --all-targets -- -D warnings
+
+      - name: Re-prove replay-valid A0 after A1 qualification
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd product
+          cargo check --locked -p symtropy-analysis-contracts --all-targets
+          cargo test --locked -p symtropy-analysis-contracts
+          cargo test --locked -p symtropy-analysis-contracts --doc
+          cargo clippy --locked -p symtropy-analysis-contracts --all-targets -- -D warnings
+          cmp crates/domains/symtropy-design/src/lib.rs /tmp/a1-r2-d1.before
+          cmp crates/domains/symtropy-design-requirements/src/lib.rs /tmp/a1-r2-d2.before
+          cmp crates/domains/symtropy-analysis-contracts/Cargo.toml /tmp/a1-r2-a0-manifest.before
+          cmp crates/domains/symtropy-analysis-contracts/src/lib.rs /tmp/a1-r2-a0-source.before
+          cmp crates/domains/symtropy-analysis-contracts/src/persistence.rs /tmp/a1-r2-a0-persistence.before
+
+      - name: Commit exact qualified A1 product only
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd product
+          git config user.name luminous-qualification-bot
+          git config user.email qualification@luminous.invalid
+          git add Cargo.lock Cargo.toml crates/domains/symtropy-analysis-qualification/Cargo.toml crates/domains/symtropy-analysis-qualification/src/lib.rs
+          python3 - <<'PY'
+          import subprocess
+          expected=[
+              'Cargo.lock',
+              'Cargo.toml',
+              'crates/domains/symtropy-analysis-qualification/Cargo.toml',
+              'crates/domains/symtropy-analysis-qualification/src/lib.rs',
+          ]
+          actual=subprocess.check_output(['git','diff','--cached','--name-only'],text=True).splitlines()
+          assert actual == expected, (actual, expected)
+          PY
+          test -z "$(git diff --name-only)"
+          git commit -m "feat(analysis): bind qualification to replay-valid evidence"
+          test "$(git rev-parse HEAD^)" = "$PARENT_HEAD"
+          test -z "$(git status --porcelain=v1 --untracked-files=all)"
+          echo "A1_R2_QUALIFIED_HEAD=$(git rev-parse HEAD)"
+          echo "A1_R2_QUALIFIED_TREE=$(git rev-parse HEAD^{tree})"
+
+      - name: Refuse branch race and push exact qualified A1 head
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd product
+          remote_head="$(git ls-remote origin "refs/heads/${PRODUCT_BRANCH}" | awk '{print $1}')"
+          test "$remote_head" = "$PARENT_HEAD"
+          git push origin "HEAD:${PRODUCT_BRANCH}"
+          pushed="$(git ls-remote origin "refs/heads/${PRODUCT_BRANCH}" | cut -f1)"
+          test "$pushed" = "$(git rev-parse HEAD)"
+          echo "A1_R2_PROMOTED_HEAD=$pushed"
