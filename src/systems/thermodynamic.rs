@@ -3,16 +3,21 @@
 // Commercial licensing: see COMMERCIAL_LICENSE.md at repository root
 //! Thermodynamic enforcement system.
 //!
-//! Runs at 64Hz in FixedUpdate. Enforces the 7 thermodynamic rules:
-//! 1. Moving costs energy
-//! 2. Consciousness costs energy
+//! Runs at 64Hz in FixedUpdate. Enforces the operational/capability rules:
+//! 1. Moving costs operational energy
+//! 2. Consciousness maintenance costs operational energy
 //! 3. Collision spikes prediction error (handled in PhysicsCallback)
-//! 4. Harmony resonance transfers energy
+//! 4. Harmony resonance can reduce duplicated processing cost
 //! 5. Sanctuary zones emerge (handled in consciousness coupling)
 //! 6. Energy depleted = consciousness collapse
-//! 7. Energy regenerates from environment (ambient + wells)
+//! 7. Operational energy regenerates from allowed sources
+//!
+//! This module's `EnergyBudget` path is operational/capability authority, not the
+//! core physical first-law ledger. Physical energy remains owned by the core
+//! `symtropy-physics` energy/thermal/reconciliation stack (#40/#45/#829).
 
 use bevy::prelude::*;
+use std::collections::HashMap;
 use symtropy_physics::BodyHandle;
 
 use crate::components::{CrewNpc, Player};
@@ -23,7 +28,7 @@ use symtropy_render_bridge::PhysicsBody;
 #[derive(Component)]
 pub struct EnergyCollapsed;
 
-/// Thermodynamic HUD state — accumulates per-tick data for display.
+/// Thermodynamic HUD state — accumulates per-tick operational data for display.
 #[derive(Resource, Default)]
 pub struct ThermodynamicHudState {
     pub energy_consumed_accumulator: f64,
@@ -37,10 +42,10 @@ pub struct ThermodynamicHudState {
 /// Offer regeneration to one registered entity and return the amount actually accepted.
 ///
 /// Under `consciousness-runtime`, `EnergyBudget::regenerate` is the authoritative bounded
-/// transfer primitive and returns the accepted joules directly. The standalone launcher
-/// stub predates that API and returns unit, so this one compatibility bridge derives the
-/// accepted amount from its already-bounded before/after state. Source-backed systems use
-/// this helper rather than duplicating that inference at each call site.
+/// operational transfer primitive and returns the accepted amount directly. The standalone
+/// launcher stub predates that API and returns unit, so this compatibility bridge derives
+/// the accepted amount from its already-bounded before/after state. Source-backed systems
+/// use this helper rather than duplicating that inference at each call site.
 fn regenerate_entity_accepted(
     physics: &mut PhysicsWorldRes,
     handle: BodyHandle,
@@ -68,12 +73,35 @@ fn regenerate_entity_accepted(
     }
 }
 
+/// Apply ambient operational support only to a live reservoir.
+///
+/// Ambient support is not an authorized collapse-recovery source. A collapsed
+/// entity needs an explicit recovery source such as a finite energy well.
+fn regenerate_live_entity_accepted(
+    physics: &mut PhysicsWorldRes,
+    handle: BodyHandle,
+    amount: f64,
+) -> f64 {
+    if !amount.is_finite() || amount <= 0.0 {
+        return 0.0;
+    }
+
+    let Some(entity) = physics.consciousness.entities.get(&handle) else {
+        return 0.0;
+    };
+    if entity.energy.is_collapsed() {
+        return 0.0;
+    }
+
+    regenerate_entity_accepted(physics, handle, amount)
+}
+
 /// Transfer energy from one finite source into a registered recipient reservoir.
 ///
 /// The source is debited only by the amount the recipient actually accepted. Invalid
 /// source state, invalid offer limits, missing recipients and full recipients are no-ops.
-/// This helper is intentionally independent of `EnergyWell` so other finite stores can
-/// reuse the same source-conservation theorem later.
+/// Unlike ambient support, an explicit finite source is allowed to recover a collapsed
+/// operational reservoir.
 fn transfer_from_finite_source(
     physics: &mut PhysicsWorldRes,
     handle: BodyHandle,
@@ -100,100 +128,19 @@ fn transfer_from_finite_source(
     accepted
 }
 
-/// Main enforcement system. Runs in FixedUpdate.
+/// Compute one bounded epistemic-offloading factor per entity.
 ///
-/// Debits consciousness maintenance, applies ambient regeneration,
-/// checks for collapse, and handles harmony resonance energy transfer.
-pub fn thermodynamic_enforcement_system(
-    mut physics: ResMut<PhysicsWorldRes>,
-    mut hud_state: ResMut<ThermodynamicHudState>,
-    entities_query: Query<(&PhysicsBody, &Transform), Or<(With<Player>, With<CrewNpc>)>>,
-    mut wells: Query<(&Transform, &mut EnergyWell, &mut Sprite), Without<Player>>,
-) {
-    let constants = physics.consciousness.constants.clone();
-
-    // Collect handles and positions for iteration
-    let agent_data: Vec<_> = entities_query
-        .iter()
-        .map(|(pb, tf)| (pb.handle, tf.translation))
-        .collect();
-    let handles: Vec<_> = agent_data.iter().map(|(h, _)| *h).collect();
-
-    // Pre-compute values that don't need mutable access
-    let regen_mult = physics.consciousness.resource_regeneration_multiplier();
-
-    // --- Per-entity costs ---
-    for &handle in &handles {
-        if let Some(entity) = physics.consciousness.entities.get_mut(&handle) {
-            // Reset per-tick counters
-            entity.energy.tick_reset();
-
-            // Rule 2: Consciousness maintenance cost
-            // Higher Φ costs more: base * (1.0 + phi * 0.5)
-            let phi = entity.phi();
-            let maintenance = constants.consciousness_maintenance_per_tick * (1.0 + phi * 0.5);
-            let _ = entity.energy.consume(maintenance);
-
-            // Rule 7: Ambient regeneration (slow, not enough alone).
-            // Ambient regeneration is not modeled as a finite source in this slice, so
-            // there is no source reservoir to debit by the accepted amount here.
-            let ambient = constants.ambient_regen_rate * regen_mult;
-            let _ = entity.energy.regenerate(ambient);
-
-            // Rule 6: Check for collapse
-            if entity.energy.is_collapsed() {
-                entity.safety_tier = SafetyTier::Red;
-            }
-        }
+/// The strongest in-range resonant partner wins. Multiple partners cannot compound
+/// into an accidental operational-energy source.
+fn epistemic_offload_factors(
+    physics: &PhysicsWorldRes,
+    handles: &[BodyHandle],
+    range: f64,
+) -> HashMap<BodyHandle, f64> {
+    let mut factors = HashMap::new();
+    if !range.is_finite() || range <= 0.0 {
+        return factors;
     }
-
-    // --- Energy Wells: finite source-backed regeneration ---
-    for (well_tf, mut well, mut well_sprite) in &mut wells {
-        if !well.is_active() {
-            well_sprite.color = Color::srgba(0.2, 0.2, 0.2, 0.15); // dim depleted wells
-            continue;
-        }
-
-        for &(handle, agent_pos) in &agent_data {
-            let dist = agent_pos
-                .truncate()
-                .distance(well_tf.translation.truncate());
-            if dist < well.radius {
-                let regen_rate = well.regen_rate;
-                let _accepted = transfer_from_finite_source(
-                    &mut physics,
-                    handle,
-                    &mut well.remaining,
-                    regen_rate,
-                );
-            }
-        }
-
-        // Visual: pulse alpha based on remaining capacity
-        let frac = well.fraction_remaining() as f32;
-        well_sprite.color = Color::srgba(0.1, 0.8 * frac, 0.6 * frac, 0.2 + 0.3 * frac);
-    }
-
-    // Record total maintenance as dissipation
-    let total_maintenance: f64 = handles
-        .iter()
-        .filter_map(|h| physics.consciousness.entities.get(h))
-        .map(|e| e.energy.consumed_this_tick)
-        .sum();
-    physics
-        .consciousness
-        .ledger
-        .record_dissipation(total_maintenance);
-
-    // --- Rule 4: Epistemic offloading (resonance REDUCES COSTS, not generates energy) ---
-    // Thermodynamically honest: cooperation doesn't create energy.
-    // It reduces the prediction error processing cost for nearby agents.
-    // When agents resonate, they share internal models via harmony alignment.
-    // This means each agent burns fewer Joules on surprise processing.
-    //
-    // Implementation: resonant agents get their prediction error decayed FASTER
-    // and their consciousness maintenance cost REDUCED (not energy added).
-    let range = constants.harmony_range;
 
     for i in 0..handles.len() {
         for j in (i + 1)..handles.len() {
@@ -218,41 +165,208 @@ pub fn thermodynamic_enforcement_system(
             };
 
             let dist = pos_a.distance(&pos_b);
-            if dist > range {
+            if !dist.is_finite() || dist > range {
                 continue;
             }
 
             let resonance = harmony_resonance(&harmonies_a, &harmonies_b);
-            if resonance > 0.5 {
-                let offload_factor = (resonance - 0.5) * 2.0; // [0, 1]
-
-                // Epistemic offloading: accelerate prediction error decay
-                // (shared models = faster learning = less energy burned on surprise)
-                if let Some(entity) = physics.consciousness.entities.get_mut(&ha) {
-                    entity.prediction_error *= 1.0 - offload_factor * 0.1; // 10% faster decay per tick
-                    entity.motor_precision = 1.0 / (1.0 + entity.prediction_error);
-                    // Refund some of the maintenance cost (predictability reduces processing)
-                    let _ = entity.energy.regenerate(
-                        constants.consciousness_maintenance_per_tick * offload_factor * 0.5,
-                    );
-                }
-                if let Some(entity) = physics.consciousness.entities.get_mut(&hb) {
-                    entity.prediction_error *= 1.0 - offload_factor * 0.1;
-                    entity.motor_precision = 1.0 / (1.0 + entity.prediction_error);
-                    let _ = entity.energy.regenerate(
-                        constants.consciousness_maintenance_per_tick * offload_factor * 0.5,
-                    );
-                }
-
-                // Collapse recovery: epistemic offloading can't revive a dead agent
-                // but mechanical synergy (being physically carried to an energy well) could.
-                // For now: collapsed agents need wells, not friends.
-                // This is thermodynamically honest — you can't think someone back to life.
+            if resonance <= 0.5 {
+                continue;
             }
+
+            let factor = ((resonance - 0.5) * 2.0).clamp(0.0, 1.0);
+            accumulate_strongest_factor(&mut factors, ha, factor);
+            accumulate_strongest_factor(&mut factors, hb, factor);
         }
     }
 
-    // --- Finalize thermodynamics ---
+    factors
+}
+
+fn accumulate_strongest_factor(
+    factors: &mut HashMap<BodyHandle, f64>,
+    handle: BodyHandle,
+    factor: f64,
+) {
+    if !factor.is_finite() || factor <= 0.0 {
+        return;
+    }
+
+    let factor = factor.clamp(0.0, 1.0);
+    factors
+        .entry(handle)
+        .and_modify(|current| *current = current.max(factor))
+        .or_insert(factor);
+}
+
+/// Compute this tick's operational maintenance debit.
+///
+/// Epistemic offloading reduces duplicated work before debit; it is never a
+/// regeneration credit. Non-finite Phi receives no discount and is conservatively
+/// costed as the maximum normal in-range Phi (`Phi = 1`). Invalid base configuration
+/// or unrepresentable arithmetic returns `None` so authority can fail closed.
+fn maintenance_cost_with_offload(
+    base_cost: f64,
+    phi: f64,
+    offload_factor: f64,
+) -> Option<f64> {
+    if !base_cost.is_finite() || base_cost < 0.0 {
+        return None;
+    }
+
+    let (effective_phi, effective_offload) = if phi.is_finite() {
+        let factor = if offload_factor.is_finite() {
+            offload_factor.clamp(0.0, 1.0)
+        } else {
+            0.0
+        };
+        (phi.clamp(0.0, 1.0), factor)
+    } else {
+        (1.0, 0.0)
+    };
+
+    let raw_cost = base_cost * (1.0 + effective_phi * 0.5);
+    let discount = base_cost * effective_offload * 0.5;
+    let cost = raw_cost - discount;
+
+    if !raw_cost.is_finite() || !discount.is_finite() || !cost.is_finite() || cost < 0.0 {
+        None
+    } else {
+        Some(cost)
+    }
+}
+
+/// Main enforcement system. Runs in FixedUpdate.
+///
+/// Debits operational consciousness maintenance, applies ambient support only to live
+/// reservoirs, checks collapse, handles bounded epistemic-offloading cost reduction,
+/// and permits explicit finite wells to recover collapsed reservoirs.
+pub fn thermodynamic_enforcement_system(
+    mut physics: ResMut<PhysicsWorldRes>,
+    mut hud_state: ResMut<ThermodynamicHudState>,
+    entities_query: Query<(&PhysicsBody, &Transform), Or<(With<Player>, With<CrewNpc>)>>,
+    mut wells: Query<(&Transform, &mut EnergyWell, &mut Sprite), Without<Player>>,
+) {
+    let constants = physics.consciousness.constants.clone();
+
+    // Collect handles and positions for iteration.
+    let agent_data: Vec<_> = entities_query
+        .iter()
+        .map(|(pb, tf)| (pb.handle, tf.translation))
+        .collect();
+    let handles: Vec<_> = agent_data.iter().map(|(h, _)| *h).collect();
+
+    // Pre-compute immutable policy evidence before mutating per-entity reservoirs.
+    let regen_mult = physics.consciousness.resource_regeneration_multiplier();
+    let offload_factors =
+        epistemic_offload_factors(&physics, &handles, constants.harmony_range);
+
+    // --- Per-entity operational costs ---
+    for &handle in &handles {
+        {
+            let Some(entity) = physics.consciousness.entities.get_mut(&handle) else {
+                continue;
+            };
+
+            // Reset per-tick operational counters.
+            entity.energy.tick_reset();
+
+            let phi = entity.phi();
+            let phi_is_valid = phi.is_finite();
+            let offload_factor = if phi_is_valid {
+                offload_factors.get(&handle).copied().unwrap_or(0.0)
+            } else {
+                // Invalid inference evidence may never unlock a favorable discount.
+                0.0
+            };
+
+            if offload_factor > 0.0 {
+                // Shared predictive structure accelerates surprise recovery once per tick,
+                // using only the strongest bounded partner effect.
+                if entity.prediction_error.is_finite() {
+                    entity.prediction_error *= 1.0 - offload_factor * 0.1;
+                    if entity.prediction_error.is_finite() {
+                        entity.motor_precision = 1.0 / (1.0 + entity.prediction_error);
+                    } else {
+                        entity.motor_precision = 0.0;
+                        entity.safety_tier = SafetyTier::Red;
+                    }
+                } else {
+                    entity.motor_precision = 0.0;
+                    entity.safety_tier = SafetyTier::Red;
+                }
+            }
+
+            // Rule 2: maintenance is reduced before debit. No synthetic refund occurs.
+            let Some(maintenance) = maintenance_cost_with_offload(
+                constants.consciousness_maintenance_per_tick,
+                phi,
+                offload_factor,
+            ) else {
+                entity.safety_tier = SafetyTier::Red;
+                continue;
+            };
+
+            let _ = entity.energy.consume(maintenance);
+            if !phi_is_valid {
+                entity.safety_tier = SafetyTier::Red;
+            }
+        }
+
+        // Rule 7a: ambient support may sustain/refill a live reservoir, but cannot
+        // resurrect collapse. It remains an operational policy, not physical heat.
+        let ambient = constants.ambient_regen_rate * regen_mult;
+        let _ = regenerate_live_entity_accepted(&mut physics, handle, ambient);
+
+        // Rule 6: collapse always removes motor authority for this tick.
+        if let Some(entity) = physics.consciousness.entities.get_mut(&handle)
+            && entity.energy.is_collapsed()
+        {
+            entity.safety_tier = SafetyTier::Red;
+        }
+    }
+
+    // --- Rule 7b: Energy Wells are explicit finite recovery sources ---
+    for (well_tf, mut well, mut well_sprite) in &mut wells {
+        if !well.is_active() {
+            well_sprite.color = Color::srgba(0.2, 0.2, 0.2, 0.15);
+            continue;
+        }
+
+        for &(handle, agent_pos) in &agent_data {
+            let dist = agent_pos
+                .truncate()
+                .distance(well_tf.translation.truncate());
+            if dist.is_finite() && dist < well.radius {
+                let regen_rate = well.regen_rate;
+                let _accepted = transfer_from_finite_source(
+                    &mut physics,
+                    handle,
+                    &mut well.remaining,
+                    regen_rate,
+                );
+            }
+        }
+
+        // Presentation only.
+        let frac = well.fraction_remaining() as f32;
+        well_sprite.color = Color::srgba(0.1, 0.8 * frac, 0.6 * frac, 0.2 + 0.3 * frac);
+    }
+
+    // Legacy operational telemetry only. This is not physical first-law evidence;
+    // #45/#51/#829 converge physical accounting onto the core typed ledger.
+    let total_maintenance: f64 = handles
+        .iter()
+        .filter_map(|h| physics.consciousness.entities.get(h))
+        .map(|e| e.energy.consumed_this_tick)
+        .sum();
+    physics
+        .consciousness
+        .ledger
+        .record_dissipation(total_maintenance);
+
+    // Existing monolithic finalize remains for source compatibility in this tranche.
+    // #783/#824 separately own same-tick split and exactly-once transaction identity.
     let _balance = physics.consciousness.tick_thermodynamics();
 
     // --- Update HUD state ---
@@ -263,7 +377,8 @@ pub fn thermodynamic_enforcement_system(
             hud_state.energy_regenerated_accumulator += entity.energy.regenerated_this_tick;
         }
     }
-    // Update per-second rates every 16 ticks (~0.25 seconds at 64Hz)
+
+    // Update per-second rates every 16 ticks (~0.25 seconds at 64Hz).
     if hud_state.ticks_accumulated >= 16 {
         let seconds = hud_state.ticks_accumulated as f64 / 64.0;
         hud_state.consumed_per_sec = hud_state.energy_consumed_accumulator / seconds;
@@ -278,10 +393,26 @@ fn harmony_resonance(a: &[f64; 9], b: &[f64; 9]) -> f64 {
     let dot = a.iter().zip(b).map(|(a, b)| a * b).sum::<f64>();
     let mag_a = a.iter().map(|v| v * v).sum::<f64>().sqrt();
     let mag_b = b.iter().map(|v| v * v).sum::<f64>().sqrt();
-    if mag_a <= 1e-10 || mag_b <= 1e-10 {
-        0.0
+
+    if !dot.is_finite()
+        || !mag_a.is_finite()
+        || !mag_b.is_finite()
+        || mag_a <= 1e-10
+        || mag_b <= 1e-10
+    {
+        return 0.0;
+    }
+
+    let denominator = mag_a * mag_b;
+    if !denominator.is_finite() || denominator <= 1e-20 {
+        return 0.0;
+    }
+
+    let resonance = dot / denominator;
+    if resonance.is_finite() {
+        resonance.clamp(0.0, 1.0)
     } else {
-        (dot / (mag_a * mag_b)).clamp(0.0, 1.0)
+        0.0
     }
 }
 
@@ -365,6 +496,58 @@ mod tests {
     }
 
     #[test]
+    fn offload_reduces_maintenance_without_becoming_a_credit() {
+        let base = 0.08;
+        let phi = 0.8;
+        let raw = maintenance_cost_with_offload(base, phi, 0.0).unwrap();
+        let offloaded = maintenance_cost_with_offload(base, phi, 1.0).unwrap();
+
+        assert!(offloaded < raw);
+        assert!((raw - offloaded - base * 0.5).abs() < 1e-12);
+        assert!(offloaded >= 0.0);
+    }
+
+    #[test]
+    fn invalid_phi_cannot_create_free_maintenance_or_offload_benefit() {
+        let base = 0.08;
+        let invalid = maintenance_cost_with_offload(base, f64::NAN, 1.0).unwrap();
+        let worst_case = maintenance_cost_with_offload(base, 1.0, 0.0).unwrap();
+        assert_eq!(invalid, worst_case);
+        assert!(invalid > 0.0);
+    }
+
+    #[test]
+    fn invalid_base_cost_is_not_silently_free() {
+        assert_eq!(maintenance_cost_with_offload(f64::NAN, 0.5, 0.0), None);
+        assert_eq!(maintenance_cost_with_offload(-1.0, 0.5, 0.0), None);
+        assert_eq!(maintenance_cost_with_offload(f64::INFINITY, 0.5, 0.0), None);
+    }
+
+    #[test]
+    fn offload_factor_is_bounded_to_one_strongest_partner() {
+        let mut factors = HashMap::new();
+        let handle = BodyHandle(1);
+        accumulate_strongest_factor(&mut factors, handle, 0.4);
+        accumulate_strongest_factor(&mut factors, handle, 0.8);
+        accumulate_strongest_factor(&mut factors, handle, 10.0);
+        assert_eq!(factors.get(&handle).copied(), Some(1.0));
+
+        accumulate_strongest_factor(&mut factors, BodyHandle(2), f64::NAN);
+        assert!(!factors.contains_key(&BodyHandle(2)));
+    }
+
+    #[test]
+    fn invalid_harmony_evidence_cannot_create_resonance() {
+        let good = [1.0; 9];
+        let mut bad = good;
+        bad[3] = f64::NAN;
+        assert_eq!(harmony_resonance(&bad, &good), 0.0);
+
+        let huge = [f64::MAX; 9];
+        assert_eq!(harmony_resonance(&huge, &huge), 0.0);
+    }
+
+    #[test]
     fn accepted_regeneration_is_zero_for_full_reservoir() {
         let (mut physics, handle) = registered_entity_with_headroom(0.0);
         let accepted = regenerate_entity_accepted(&mut physics, handle, 10.0);
@@ -384,7 +567,38 @@ mod tests {
     #[test]
     fn accepted_regeneration_is_zero_for_missing_entity() {
         let mut physics = PhysicsWorldRes::default();
-        assert!((regenerate_entity_accepted(&mut physics, BodyHandle(999_999), 10.0) - 0.0).abs() < 1e-10);
+        assert!(
+            (regenerate_entity_accepted(&mut physics, BodyHandle(999_999), 10.0) - 0.0).abs()
+                < 1e-10
+        );
+    }
+
+    #[test]
+    fn ambient_cannot_revive_collapsed_entity() {
+        let (mut physics, handle) = registered_entity_with_headroom(100.0);
+        let entity = physics.consciousness.entities.get(&handle).unwrap();
+        assert!(entity.energy.is_collapsed());
+
+        let accepted = regenerate_live_entity_accepted(&mut physics, handle, 10.0);
+        assert_eq!(accepted, 0.0);
+        let entity = physics.consciousness.entities.get(&handle).unwrap();
+        assert_eq!(entity.energy.available, 0.0);
+        assert!(entity.energy.is_collapsed());
+        assert_eq!(entity.energy.regenerated_this_tick, 0.0);
+    }
+
+    #[test]
+    fn explicit_finite_source_can_recover_collapsed_entity() {
+        let (mut physics, handle) = registered_entity_with_headroom(100.0);
+        let mut source = 20.0;
+        let accepted = transfer_from_finite_source(&mut physics, handle, &mut source, 10.0);
+
+        assert_eq!(accepted, 10.0);
+        assert_eq!(source, 10.0);
+        let entity = physics.consciousness.entities.get(&handle).unwrap();
+        assert_eq!(entity.energy.available, 10.0);
+        assert!(!entity.energy.is_collapsed());
+        assert_eq!(entity.energy.regenerated_this_tick, 10.0);
     }
 
     #[test]
