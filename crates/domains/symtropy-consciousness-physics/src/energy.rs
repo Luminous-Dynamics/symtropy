@@ -87,14 +87,39 @@ impl EnergyBudget {
         actual
     }
 
-    /// Absorb heat from dissipation (damping, friction, collision).
+    /// Absorb finite positive heat from dissipation (damping, friction, collision).
     /// Increases temperature and entropy per 2nd Law.
+    ///
+    /// Invalid source energy or invalid existing thermal state fails closed rather
+    /// than poisoning the persistent reservoir with NaN/Inf. The constructor/state
+    /// invariant itself is intentionally a separate concern from this input boundary.
     pub fn dissipate_heat(&mut self, energy: f64) {
-        if energy <= 0.0 || self.heat_capacity <= 0.0 {
+        if !energy.is_finite()
+            || energy <= 0.0
+            || !self.heat_capacity.is_finite()
+            || self.heat_capacity <= 0.0
+            || !self.temperature.is_finite()
+            || self.temperature <= 0.0
+            || !self.entropy.is_finite()
+        {
             return;
         }
-        self.temperature += energy / self.heat_capacity;
-        self.entropy += energy / self.temperature;
+
+        let temperature_delta = energy / self.heat_capacity;
+        if !temperature_delta.is_finite() {
+            return;
+        }
+        let new_temperature = self.temperature + temperature_delta;
+        if !new_temperature.is_finite() || new_temperature <= 0.0 {
+            return;
+        }
+        let entropy_delta = energy / new_temperature;
+        if !entropy_delta.is_finite() || entropy_delta < 0.0 {
+            return;
+        }
+
+        self.temperature = new_temperature;
+        self.entropy += entropy_delta;
     }
 
     /// Helmholtz free energy: maximum extractable work at constant T.
@@ -206,6 +231,52 @@ mod tests {
         // Collapsed entity cannot consume
         let consumed = budget.consume(10.0);
         assert!((consumed - 0.0).abs() < 1e-10);
+    }
+
+    #[test]
+    fn dissipate_heat_increases_finite_temperature_and_entropy() {
+        let mut budget = EnergyBudget::new(100.0);
+        let temperature_before = budget.temperature;
+        let entropy_before = budget.entropy;
+
+        budget.dissipate_heat(50.0);
+
+        assert!(budget.temperature.is_finite());
+        assert!(budget.entropy.is_finite());
+        assert!(budget.temperature > temperature_before);
+        assert!(budget.entropy > entropy_before);
+    }
+
+    #[test]
+    fn dissipate_heat_rejects_invalid_energy_without_poisoning_state() {
+        for energy in [0.0, -1.0, f64::NAN, f64::INFINITY, f64::NEG_INFINITY] {
+            let mut budget = EnergyBudget::new(100.0);
+            let temperature_before = budget.temperature;
+            let entropy_before = budget.entropy;
+
+            budget.dissipate_heat(energy);
+
+            assert_eq!(budget.temperature, temperature_before);
+            assert_eq!(budget.entropy, entropy_before);
+        }
+    }
+
+    #[test]
+    fn dissipate_heat_rejects_invalid_thermal_state_without_further_mutation() {
+        let mut bad_capacity = EnergyBudget::new(100.0);
+        bad_capacity.heat_capacity = f64::NAN;
+        let temperature_before = bad_capacity.temperature;
+        let entropy_before = bad_capacity.entropy;
+        bad_capacity.dissipate_heat(10.0);
+        assert_eq!(bad_capacity.temperature, temperature_before);
+        assert_eq!(bad_capacity.entropy, entropy_before);
+
+        let mut bad_temperature = EnergyBudget::new(100.0);
+        bad_temperature.temperature = f64::NAN;
+        let entropy_before = bad_temperature.entropy;
+        bad_temperature.dissipate_heat(10.0);
+        assert!(bad_temperature.temperature.is_nan());
+        assert_eq!(bad_temperature.entropy, entropy_before);
     }
 
     #[test]
