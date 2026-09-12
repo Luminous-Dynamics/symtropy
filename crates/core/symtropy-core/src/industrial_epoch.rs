@@ -19,20 +19,15 @@ const MAX_ID_LEN: usize = 256;
 const MAX_BINDING_LEN: usize = 1024;
 const MAX_ITEMS: usize = 4096;
 
-/// Whether an epoch uses legacy ungated local flows or prerequisite-gated flows.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum IndustrialEpochFlowModel {
-    /// Preserve the original `IndustrialEcology::new(...)` behavior.
     LegacyUngated,
-    /// Require exact prerequisite coverage for every initially positive local flow.
     PrerequisiteGated(Vec<IndustrialFlowPrerequisite>),
 }
 
-/// Immutable construction specification for one industrial epoch.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct IndustrialEpochSpec {
     pub epoch_id: String,
-    /// Opaque identity/version binding for this exact epoch specification.
     pub evidence_binding: String,
     pub dependencies: Vec<IndustrialDependencyState>,
     pub capabilities: Vec<IndustrialCapability>,
@@ -79,12 +74,11 @@ impl IndustrialEpochSpec {
     }
 }
 
-/// Linear simulation state for one exact industrial epoch.
+/// Linear state for one exact industrial epoch.
 ///
-/// Deliberately not `Clone`: `handoff_to(...)` consumes the source epoch so one
-/// lineage execution cannot accidentally spend the same inventory twice. A caller
-/// may still intentionally construct independent what-if branches from distinct
-/// epoch specifications; those branches must carry distinct evidence identities.
+/// Deliberately not `Clone`. A successful handoff consumes this state. If a
+/// handoff is rejected, [`IndustrialEpochHandoffFailure`] returns the unchanged
+/// source state to the caller so correction/retry remains transactional.
 #[derive(Debug, PartialEq, Eq)]
 pub struct IndustrialEpochState {
     epoch_id: String,
@@ -95,7 +89,6 @@ pub struct IndustrialEpochState {
 }
 
 impl IndustrialEpochState {
-    /// Construct a root/current epoch. Initial inventory is allowed here.
     pub fn from_spec(spec: IndustrialEpochSpec) -> Result<Self, IndustrialEpochHandoffError> {
         spec.build()
     }
@@ -131,200 +124,41 @@ impl IndustrialEpochState {
     }
 
     /// Consume this epoch and create a separately validated successor epoch.
+    ///
+    /// Success consumes the predecessor. Failure returns the untouched predecessor
+    /// in the error value, so a rejected handoff cannot partially destroy lineage
+    /// state or silently spend inventory.
     pub fn handoff_to(
         self,
         successor_spec: IndustrialEpochSpec,
         plan: IndustrialEpochHandoffPlan,
-    ) -> Result<(IndustrialEpochState, IndustrialEpochHandoffReceipt), IndustrialEpochHandoffError>
+    ) -> Result<(IndustrialEpochState, IndustrialEpochHandoffReceipt), IndustrialEpochHandoffFailure>
     {
-        validate_handoff_identity(&self, &successor_spec, &plan)?;
-        validate_successor_zero_inventory(&successor_spec)?;
-        validate_plan_shape(&plan)?;
-
-        let source_ids: BTreeSet<&str> = self.dependency_ids.iter().map(String::as_str).collect();
-        let disposition_ids: BTreeSet<&str> = plan
-            .source_inventory_dispositions
-            .iter()
-            .map(|disposition| disposition.source_dependency_id.as_str())
-            .collect();
-        if source_ids != disposition_ids {
-            return Err(IndustrialEpochHandoffError::SourceInventoryCoverageMismatch);
+        match prepare_handoff(&self, successor_spec, plan) {
+            Ok(result) => Ok(result),
+            Err(error) => Err(IndustrialEpochHandoffFailure {
+                source: self,
+                error,
+            }),
         }
-
-        let successor_governance: BTreeMap<String, _> = successor_spec
-            .dependencies
-            .iter()
-            .map(|dependency| (dependency.dependency_id.clone(), dependency.governance))
-            .collect();
-        let mut transferred_successor_ids = BTreeSet::new();
-        let mut transferred_units_by_successor: BTreeMap<String, u64> = BTreeMap::new();
-
-        for disposition in &plan.source_inventory_dispositions {
-            let source = self
-                .ecology
-                .dependency(&disposition.source_dependency_id)
-                .ok_or_else(|| IndustrialEpochHandoffError::UnknownSourceDependency {
-                    dependency_id: disposition.source_dependency_id.clone(),
-                })?;
-            let accounted = disposition
-                .transferred_units
-                .checked_add(disposition.retired_units)
-                .ok_or(IndustrialEpochHandoffError::ArithmeticOverflow)?;
-            if accounted != source.inventory_units {
-                return Err(IndustrialEpochHandoffError::SourceInventoryNotConserved {
-                    dependency_id: disposition.source_dependency_id.clone(),
-                    available_units: source.inventory_units,
-                    accounted_units: accounted,
-                });
-            }
-
-            match &disposition.successor_dependency_id {
-                Some(successor_id) => {
-                    if disposition.transferred_units == 0 {
-                        return Err(IndustrialEpochHandoffError::ZeroTransferNamesSuccessor {
-                            source_dependency_id: disposition.source_dependency_id.clone(),
-                        });
-                    }
-                    let successor_governance = successor_governance
-                        .get(successor_id.as_str())
-                        .ok_or_else(|| IndustrialEpochHandoffError::UnknownSuccessorDependency {
-                            dependency_id: successor_id.clone(),
-                        })?;
-                    if source.governance != *successor_governance {
-                        return Err(IndustrialEpochHandoffError::GovernanceBoundaryChanged {
-                            source_dependency_id: disposition.source_dependency_id.clone(),
-                            successor_dependency_id: successor_id.clone(),
-                        });
-                    }
-                    if !transferred_successor_ids.insert(successor_id.clone()) {
-                        return Err(IndustrialEpochHandoffError::MultipleSourcesForSuccessor {
-                            successor_dependency_id: successor_id.clone(),
-                        });
-                    }
-                    transferred_units_by_successor
-                        .insert(successor_id.clone(), disposition.transferred_units);
-                }
-                None => {
-                    if disposition.transferred_units != 0 {
-                        return Err(IndustrialEpochHandoffError::TransferMissingSuccessor {
-                            source_dependency_id: disposition.source_dependency_id.clone(),
-                        });
-                    }
-                }
-            }
-        }
-
-        let mut external_by_successor: BTreeMap<String, u64> = BTreeMap::new();
-        for admission in &plan.external_inventory_admissions {
-            if !successor_governance.contains_key(admission.successor_dependency_id.as_str()) {
-                return Err(IndustrialEpochHandoffError::UnknownSuccessorDependency {
-                    dependency_id: admission.successor_dependency_id.clone(),
-                });
-            }
-            if admission.units == 0 {
-                return Err(IndustrialEpochHandoffError::ZeroExternalInventory {
-                    successor_dependency_id: admission.successor_dependency_id.clone(),
-                });
-            }
-            validate_binding(&admission.evidence_binding)?;
-            if external_by_successor
-                .insert(admission.successor_dependency_id.clone(), admission.units)
-                .is_some()
-            {
-                return Err(IndustrialEpochHandoffError::DuplicateExternalInventoryAdmission {
-                    successor_dependency_id: admission.successor_dependency_id.clone(),
-                });
-            }
-        }
-
-        let mut successor_spec = successor_spec;
-        let mut resulting_inventory = Vec::with_capacity(successor_spec.dependencies.len());
-        for dependency in &mut successor_spec.dependencies {
-            let transferred = transferred_units_by_successor
-                .get(&dependency.dependency_id)
-                .copied()
-                .unwrap_or(0);
-            let external = external_by_successor
-                .get(&dependency.dependency_id)
-                .copied()
-                .unwrap_or(0);
-            dependency.inventory_units = transferred
-                .checked_add(external)
-                .ok_or(IndustrialEpochHandoffError::ArithmeticOverflow)?;
-            resulting_inventory.push(IndustrialEpochInventoryResult {
-                successor_dependency_id: dependency.dependency_id.clone(),
-                transferred_units: transferred,
-                external_units: external,
-                resulting_units: dependency.inventory_units,
-            });
-        }
-        resulting_inventory.sort_by(|left, right| {
-            left.successor_dependency_id
-                .cmp(&right.successor_dependency_id)
-        });
-
-        let source_final_tick = self.ecology.tick();
-        let (source_final_shortage_ids, source_final_unavailable_capability_ids) = self
-            .last_report
-            .as_ref()
-            .map(|report| {
-                (
-                    report
-                        .shortages
-                        .iter()
-                        .map(|shortage| shortage.dependency_id.clone())
-                        .collect(),
-                    report.unavailable_capability_ids.clone(),
-                )
-            })
-            .unwrap_or_else(|| (Vec::new(), Vec::new()));
-
-        let source_epoch_id = self.epoch_id;
-        let source_epoch_evidence_binding = self.evidence_binding;
-        let successor_epoch_id = successor_spec.epoch_id.clone();
-        let successor_epoch_evidence_binding = successor_spec.evidence_binding.clone();
-        let successor = successor_spec.build()?;
-
-        let receipt = IndustrialEpochHandoffReceipt {
-            handoff_id: plan.handoff_id,
-            evidence_binding: plan.evidence_binding,
-            source_epoch_id,
-            source_epoch_evidence_binding,
-            source_final_tick,
-            successor_epoch_id,
-            successor_epoch_evidence_binding,
-            source_inventory_dispositions: plan.source_inventory_dispositions,
-            external_inventory_admissions: plan.external_inventory_admissions,
-            resulting_inventory,
-            source_final_shortage_ids,
-            source_final_unavailable_capability_ids,
-        };
-        Ok((successor, receipt))
     }
 }
 
-/// Exhaustive disposition for one source dependency's qualified inventory.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct IndustrialSourceInventoryDisposition {
     pub source_dependency_id: String,
-    /// Target dependency in the successor epoch, if any inventory is transferred.
     pub successor_dependency_id: Option<String>,
     pub transferred_units: u64,
-    /// Units deliberately retired, scrapped, stranded, or otherwise not admitted
-    /// into the successor epoch. The simulator does not prescribe how that occurs.
     pub retired_units: u64,
 }
 
-/// Explicit inventory admitted from outside the predecessor epoch.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct IndustrialExternalInventoryAdmission {
     pub successor_dependency_id: String,
     pub units: u64,
-    /// Opaque evidence identity for the externally admitted inventory.
     pub evidence_binding: String,
 }
 
-/// Exact, evidence-bound transition plan between two epoch identities.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct IndustrialEpochHandoffPlan {
     pub handoff_id: String,
@@ -333,7 +167,7 @@ pub struct IndustrialEpochHandoffPlan {
     pub source_epoch_evidence_binding: String,
     pub successor_epoch_id: String,
     pub successor_epoch_evidence_binding: String,
-    /// Strictly sorted by source dependency ID, one record per source dependency.
+    /// Strictly sorted by source dependency ID, exactly one per source dependency.
     pub source_inventory_dispositions: Vec<IndustrialSourceInventoryDisposition>,
     /// Strictly sorted by successor dependency ID, duplicate-free.
     pub external_inventory_admissions: Vec<IndustrialExternalInventoryAdmission>,
@@ -347,7 +181,6 @@ pub struct IndustrialEpochInventoryResult {
     pub resulting_units: u64,
 }
 
-/// Immutable diagnostic receipt for a completed simulation-epoch transition.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct IndustrialEpochHandoffReceipt {
     pub handoff_id: String,
@@ -362,6 +195,13 @@ pub struct IndustrialEpochHandoffReceipt {
     pub resulting_inventory: Vec<IndustrialEpochInventoryResult>,
     pub source_final_shortage_ids: Vec<String>,
     pub source_final_unavailable_capability_ids: Vec<String>,
+}
+
+/// Rejected handoff plus the untouched predecessor state.
+#[derive(Debug, PartialEq, Eq)]
+pub struct IndustrialEpochHandoffFailure {
+    pub source: IndustrialEpochState,
+    pub error: IndustrialEpochHandoffError,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -394,6 +234,173 @@ pub enum IndustrialEpochHandoffError {
     ZeroExternalInventory { successor_dependency_id: String },
     DuplicateExternalInventoryAdmission { successor_dependency_id: String },
     ArithmeticOverflow,
+}
+
+fn prepare_handoff(
+    source: &IndustrialEpochState,
+    successor_spec: IndustrialEpochSpec,
+    plan: IndustrialEpochHandoffPlan,
+) -> Result<(IndustrialEpochState, IndustrialEpochHandoffReceipt), IndustrialEpochHandoffError> {
+    validate_handoff_identity(source, &successor_spec, &plan)?;
+    validate_successor_zero_inventory(&successor_spec)?;
+    validate_plan_shape(&plan)?;
+
+    let source_ids: BTreeSet<&str> = source.dependency_ids.iter().map(String::as_str).collect();
+    let disposition_ids: BTreeSet<&str> = plan
+        .source_inventory_dispositions
+        .iter()
+        .map(|disposition| disposition.source_dependency_id.as_str())
+        .collect();
+    if source_ids != disposition_ids {
+        return Err(IndustrialEpochHandoffError::SourceInventoryCoverageMismatch);
+    }
+
+    let successor_governance: BTreeMap<String, _> = successor_spec
+        .dependencies
+        .iter()
+        .map(|dependency| (dependency.dependency_id.clone(), dependency.governance))
+        .collect();
+    let mut transferred_successor_ids = BTreeSet::new();
+    let mut transferred_units_by_successor: BTreeMap<String, u64> = BTreeMap::new();
+
+    for disposition in &plan.source_inventory_dispositions {
+        let source_dependency = source
+            .ecology
+            .dependency(&disposition.source_dependency_id)
+            .ok_or_else(|| IndustrialEpochHandoffError::UnknownSourceDependency {
+                dependency_id: disposition.source_dependency_id.clone(),
+            })?;
+        let accounted = disposition
+            .transferred_units
+            .checked_add(disposition.retired_units)
+            .ok_or(IndustrialEpochHandoffError::ArithmeticOverflow)?;
+        if accounted != source_dependency.inventory_units {
+            return Err(IndustrialEpochHandoffError::SourceInventoryNotConserved {
+                dependency_id: disposition.source_dependency_id.clone(),
+                available_units: source_dependency.inventory_units,
+                accounted_units: accounted,
+            });
+        }
+
+        match &disposition.successor_dependency_id {
+            Some(successor_id) => {
+                if disposition.transferred_units == 0 {
+                    return Err(IndustrialEpochHandoffError::ZeroTransferNamesSuccessor {
+                        source_dependency_id: disposition.source_dependency_id.clone(),
+                    });
+                }
+                let successor_governance = successor_governance
+                    .get(successor_id.as_str())
+                    .ok_or_else(|| IndustrialEpochHandoffError::UnknownSuccessorDependency {
+                        dependency_id: successor_id.clone(),
+                    })?;
+                if source_dependency.governance != *successor_governance {
+                    return Err(IndustrialEpochHandoffError::GovernanceBoundaryChanged {
+                        source_dependency_id: disposition.source_dependency_id.clone(),
+                        successor_dependency_id: successor_id.clone(),
+                    });
+                }
+                if !transferred_successor_ids.insert(successor_id.clone()) {
+                    return Err(IndustrialEpochHandoffError::MultipleSourcesForSuccessor {
+                        successor_dependency_id: successor_id.clone(),
+                    });
+                }
+                transferred_units_by_successor
+                    .insert(successor_id.clone(), disposition.transferred_units);
+            }
+            None => {
+                if disposition.transferred_units != 0 {
+                    return Err(IndustrialEpochHandoffError::TransferMissingSuccessor {
+                        source_dependency_id: disposition.source_dependency_id.clone(),
+                    });
+                }
+            }
+        }
+    }
+
+    let mut external_by_successor: BTreeMap<String, u64> = BTreeMap::new();
+    for admission in &plan.external_inventory_admissions {
+        if !successor_governance.contains_key(admission.successor_dependency_id.as_str()) {
+            return Err(IndustrialEpochHandoffError::UnknownSuccessorDependency {
+                dependency_id: admission.successor_dependency_id.clone(),
+            });
+        }
+        if admission.units == 0 {
+            return Err(IndustrialEpochHandoffError::ZeroExternalInventory {
+                successor_dependency_id: admission.successor_dependency_id.clone(),
+            });
+        }
+        validate_binding(&admission.evidence_binding)?;
+        if external_by_successor
+            .insert(admission.successor_dependency_id.clone(), admission.units)
+            .is_some()
+        {
+            return Err(IndustrialEpochHandoffError::DuplicateExternalInventoryAdmission {
+                successor_dependency_id: admission.successor_dependency_id.clone(),
+            });
+        }
+    }
+
+    let mut successor_spec = successor_spec;
+    let mut resulting_inventory = Vec::with_capacity(successor_spec.dependencies.len());
+    for dependency in &mut successor_spec.dependencies {
+        let transferred = transferred_units_by_successor
+            .get(&dependency.dependency_id)
+            .copied()
+            .unwrap_or(0);
+        let external = external_by_successor
+            .get(&dependency.dependency_id)
+            .copied()
+            .unwrap_or(0);
+        dependency.inventory_units = transferred
+            .checked_add(external)
+            .ok_or(IndustrialEpochHandoffError::ArithmeticOverflow)?;
+        resulting_inventory.push(IndustrialEpochInventoryResult {
+            successor_dependency_id: dependency.dependency_id.clone(),
+            transferred_units: transferred,
+            external_units: external,
+            resulting_units: dependency.inventory_units,
+        });
+    }
+    resulting_inventory.sort_by(|left, right| {
+        left.successor_dependency_id
+            .cmp(&right.successor_dependency_id)
+    });
+
+    let source_final_tick = source.ecology.tick();
+    let (source_final_shortage_ids, source_final_unavailable_capability_ids) = source
+        .last_report
+        .as_ref()
+        .map(|report| {
+            (
+                report
+                    .shortages
+                    .iter()
+                    .map(|shortage| shortage.dependency_id.clone())
+                    .collect(),
+                report.unavailable_capability_ids.clone(),
+            )
+        })
+        .unwrap_or_else(|| (Vec::new(), Vec::new()));
+
+    let successor_epoch_id = successor_spec.epoch_id.clone();
+    let successor_epoch_evidence_binding = successor_spec.evidence_binding.clone();
+    let successor = successor_spec.build()?;
+    let receipt = IndustrialEpochHandoffReceipt {
+        handoff_id: plan.handoff_id,
+        evidence_binding: plan.evidence_binding,
+        source_epoch_id: source.epoch_id.clone(),
+        source_epoch_evidence_binding: source.evidence_binding.clone(),
+        source_final_tick,
+        successor_epoch_id,
+        successor_epoch_evidence_binding,
+        source_inventory_dispositions: plan.source_inventory_dispositions,
+        external_inventory_admissions: plan.external_inventory_admissions,
+        resulting_inventory,
+        source_final_shortage_ids,
+        source_final_unavailable_capability_ids,
+    };
+    Ok((successor, receipt))
 }
 
 fn validate_handoff_identity(
@@ -599,13 +606,19 @@ mod tests {
         }
     }
 
+    fn handoff_error(
+        source: IndustrialEpochState,
+        successor: IndustrialEpochSpec,
+        plan: IndustrialEpochHandoffPlan,
+    ) -> IndustrialEpochHandoffFailure {
+        source.handoff_to(successor, plan).unwrap_err()
+    }
+
     #[test]
     fn handoff_conserves_source_inventory_and_builds_fresh_successor() {
         let mut source = IndustrialEpochState::from_spec(source_spec()).unwrap();
-        let report = source.step().unwrap();
-        assert_eq!(report.tick, 1);
+        assert_eq!(source.step().unwrap().tick, 1);
 
-        // One unit of each source dependency was consumed by the completed tick.
         let mut adjusted = plan();
         adjusted.source_inventory_dispositions[0].transferred_units = 19;
         adjusted.source_inventory_dispositions[1].transferred_units = 6;
@@ -614,10 +627,7 @@ mod tests {
         let (mut successor, receipt) = source.handoff_to(successor_spec(), adjusted).unwrap();
         assert_eq!(successor.epoch_id(), "manta-v2");
         assert_eq!(successor.tick(), 0);
-        assert_eq!(
-            successor.dependency("metrology-v2").unwrap().inventory_units,
-            19
-        );
+        assert_eq!(successor.dependency("metrology-v2").unwrap().inventory_units, 19);
         assert_eq!(
             successor
                 .dependency("reactor-service-v2")
@@ -627,10 +637,6 @@ mod tests {
         );
         assert_eq!(successor.dependency("spares-v2").unwrap().inventory_units, 84);
         assert_eq!(receipt.source_final_tick, 1);
-        assert_eq!(
-            receipt.resulting_inventory[2].successor_dependency_id,
-            "spares-v2"
-        );
         assert_eq!(receipt.resulting_inventory[2].transferred_units, 79);
         assert_eq!(receipt.resulting_inventory[2].external_units, 5);
         assert_eq!(receipt.resulting_inventory[2].resulting_units, 84);
@@ -638,18 +644,22 @@ mod tests {
     }
 
     #[test]
-    fn every_source_inventory_unit_must_be_accounted() {
+    fn rejected_handoff_returns_untouched_source_for_retry() {
         let source = IndustrialEpochState::from_spec(source_spec()).unwrap();
         let mut invalid = plan();
         invalid.source_inventory_dispositions[2].retired_units = 19;
+        let failure = handoff_error(source, successor_spec(), invalid);
         assert!(matches!(
-            source.handoff_to(successor_spec(), invalid),
-            Err(IndustrialEpochHandoffError::SourceInventoryNotConserved {
-                dependency_id,
+            failure.error,
+            IndustrialEpochHandoffError::SourceInventoryNotConserved {
+                ref dependency_id,
                 available_units: 100,
                 accounted_units: 99,
-            }) if dependency_id == "spares-v1"
+            } if dependency_id == "spares-v1"
         ));
+        assert_eq!(failure.source.epoch_id(), "manta-v1");
+        assert_eq!(failure.source.dependency("spares-v1").unwrap().inventory_units, 100);
+        assert!(failure.source.handoff_to(successor_spec(), plan()).is_ok());
     }
 
     #[test]
@@ -657,9 +667,10 @@ mod tests {
         let source = IndustrialEpochState::from_spec(source_spec()).unwrap();
         let mut invalid = plan();
         invalid.source_inventory_dispositions.remove(1);
+        let failure = handoff_error(source, successor_spec(), invalid);
         assert_eq!(
-            source.handoff_to(successor_spec(), invalid),
-            Err(IndustrialEpochHandoffError::SourceInventoryCoverageMismatch)
+            failure.error,
+            IndustrialEpochHandoffError::SourceInventoryCoverageMismatch
         );
     }
 
@@ -669,11 +680,12 @@ mod tests {
         let mut invalid = plan();
         invalid.source_inventory_dispositions[2].successor_dependency_id =
             Some("metrology-v2".into());
+        let failure = handoff_error(source, successor_spec(), invalid);
         assert_eq!(
-            source.handoff_to(successor_spec(), invalid),
-            Err(IndustrialEpochHandoffError::MultipleSourcesForSuccessor {
+            failure.error,
+            IndustrialEpochHandoffError::MultipleSourcesForSuccessor {
                 successor_dependency_id: "metrology-v2".into(),
-            })
+            }
         );
     }
 
@@ -682,9 +694,10 @@ mod tests {
         let source = IndustrialEpochState::from_spec(source_spec()).unwrap();
         let mut successor = successor_spec();
         successor.dependencies[1].governance = IndustrialGovernance::Ordinary;
+        let failure = handoff_error(source, successor, plan());
         assert!(matches!(
-            source.handoff_to(successor, plan()),
-            Err(IndustrialEpochHandoffError::GovernanceBoundaryChanged { .. })
+            failure.error,
+            IndustrialEpochHandoffError::GovernanceBoundaryChanged { .. }
         ));
     }
 
@@ -693,11 +706,12 @@ mod tests {
         let source = IndustrialEpochState::from_spec(source_spec()).unwrap();
         let mut successor = successor_spec();
         successor.dependencies[2].inventory_units = 1;
+        let failure = handoff_error(source, successor, plan());
         assert_eq!(
-            source.handoff_to(successor, plan()),
-            Err(IndustrialEpochHandoffError::SuccessorTemplateContainsInventory {
+            failure.error,
+            IndustrialEpochHandoffError::SuccessorTemplateContainsInventory {
                 dependency_id: "spares-v2".into(),
-            })
+            }
         );
     }
 
@@ -706,10 +720,8 @@ mod tests {
         let source = IndustrialEpochState::from_spec(source_spec()).unwrap();
         let mut invalid = plan();
         invalid.external_inventory_admissions[0].evidence_binding = "opaque".into();
-        assert_eq!(
-            source.handoff_to(successor_spec(), invalid),
-            Err(IndustrialEpochHandoffError::InvalidEvidenceBinding)
-        );
+        let failure = handoff_error(source, successor_spec(), invalid);
+        assert_eq!(failure.error, IndustrialEpochHandoffError::InvalidEvidenceBinding);
     }
 
     #[test]
@@ -734,19 +746,18 @@ mod tests {
         let source = IndustrialEpochState::from_spec(source_spec()).unwrap();
         let mut invalid = plan();
         invalid.successor_epoch_evidence_binding = "epoch:other".into();
+        let failure = handoff_error(source, successor_spec(), invalid);
         assert_eq!(
-            source.handoff_to(successor_spec(), invalid),
-            Err(IndustrialEpochHandoffError::HandoffSuccessorIdentityMismatch)
+            failure.error,
+            IndustrialEpochHandoffError::HandoffSuccessorIdentityMismatch
         );
 
-        let source = IndustrialEpochState::from_spec(source_spec()).unwrap();
+        let source = failure.source;
         let mut successor = successor_spec();
         successor.epoch_id = "manta-v1".into();
         let mut same = plan();
         same.successor_epoch_id = "manta-v1".into();
-        assert_eq!(
-            source.handoff_to(successor, same),
-            Err(IndustrialEpochHandoffError::EpochIdentityNotDistinct)
-        );
+        let failure = handoff_error(source, successor, same);
+        assert_eq!(failure.error, IndustrialEpochHandoffError::EpochIdentityNotDistinct);
     }
 }
