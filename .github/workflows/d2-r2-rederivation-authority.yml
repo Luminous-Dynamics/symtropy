@@ -1,0 +1,268 @@
+name: D2 R2 Requirement Rederivation Authority
+
+on:
+  pull_request:
+    branches: [ "design/d1-content-bound-design-revisions-v0.1" ]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: d2-r2-rederive-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+env:
+  PRODUCT_BRANCH: design/d2-requirement-traceability-r2-v0.1
+  D1_HEAD: 8575db69dc76ebbe3e183ff72442b9da94b7b06c
+  D1_TREE: 3ffb96c97bd18d5f5ded129f114c485ad12cc49a
+  D1_ROOT_MANIFEST_BLOB: 909e2d0142c4d5eb0b95f655d119f73da35244b9
+  D1_LOCK_BLOB: 9722cc9a91cd8c1ba3194be110798e96d3d3f45b
+  D1_SOURCE_BLOB: 8736aa8fe654529a81a6aadaef9dbc9d3f559916
+  LEGACY_D2_HEAD: 45452813b31d6ac8a6cea8699caf755a0340ab99
+  LEGACY_D2_MANIFEST_BLOB: 27c0198bf5a0ece064a605d6b21bbf9c7700d4c3
+  LEGACY_D2_SOURCE_BLOB: 5bafcd2bced14b0b3b409708ba9ebf1a8e13f095
+  TRANSFORM_BLOB: 6f7d24f9961b61b253b8eb4f5e706bed320b9d46
+  D2_GOLDEN: 7c8287d75adf614b6364ae2adbf32932ff1ea95a51da081f975d52963e51997c
+  CARGO_TARGET_DIR: /tmp/symtropy-d2-r2-target
+
+jobs:
+  qualify-and-promote:
+    name: Rederive and prove exact D2 requirement authority
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Check out exact qualified D1 product branch
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ env.PRODUCT_BRANCH }}
+          path: product
+          fetch-depth: 0
+
+      - name: Check out exact historical D2 semantic source
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ env.LEGACY_D2_HEAD }}
+          path: legacy-d2
+          persist-credentials: false
+          fetch-depth: 0
+
+      - name: Check out exact authority tools
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          path: runner-tools
+          persist-credentials: false
+          fetch-depth: 0
+
+      - name: Bind exact D1, legacy D2, and transform subjects
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git -C product rev-parse HEAD)" = "$D1_HEAD"
+          test "$(git -C product rev-parse HEAD^{tree})" = "$D1_TREE"
+          test "$(git -C product hash-object Cargo.toml)" = "$D1_ROOT_MANIFEST_BLOB"
+          test "$(git -C product hash-object Cargo.lock)" = "$D1_LOCK_BLOB"
+          test "$(git -C product hash-object crates/domains/symtropy-design/src/lib.rs)" = "$D1_SOURCE_BLOB"
+          test "$(git -C legacy-d2 rev-parse HEAD)" = "$LEGACY_D2_HEAD"
+          test "$(git -C legacy-d2 hash-object crates/domains/symtropy-design-requirements/Cargo.toml)" = "$LEGACY_D2_MANIFEST_BLOB"
+          test "$(git -C legacy-d2 hash-object crates/domains/symtropy-design-requirements/src/lib.rs)" = "$LEGACY_D2_SOURCE_BLOB"
+          test "$(git -C runner-tools hash-object .github/repair/d2_rederive_requirements_r2.py)" = "$TRANSFORM_BLOB"
+          test "$(git -C runner-tools rev-parse HEAD)" = "${{ github.event.pull_request.head.sha }}"
+          test -z "$(git -C product status --porcelain=v1 --untracked-files=all)"
+          test -z "$(git -C legacy-d2 status --porcelain=v1 --untracked-files=all)"
+          test -z "$(git -C runner-tools status --porcelain=v1 --untracked-files=all)"
+          echo "D2_R2_PARENT_HEAD=$(git -C product rev-parse HEAD)"
+          echo "D2_R2_PARENT_TREE=$(git -C product rev-parse HEAD^{tree})"
+          echo "D2_R2_LEGACY_SOURCE=$LEGACY_D2_HEAD"
+          echo "D2_R2_TRANSFORM_BLOB=$TRANSFORM_BLOB"
+
+      - name: Set up pinned Rust 1.96
+        uses: dtolnay/rust-toolchain@6bed0761d98439e5a578e2877258200ad565ba87
+        with:
+          toolchain: 1.96.0
+          components: clippy, rustfmt
+
+      - name: Record exact hosted toolchain
+        shell: bash
+        run: |
+          set -euo pipefail
+          rustc -Vv
+          cargo -Vv
+          rustfmt --version
+          cargo clippy --version
+          git --version
+          uname -a
+
+      - name: Re-prove exact qualified D1 parent
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd product
+          cargo metadata --locked --format-version 1 > /tmp/d1-parent-metadata.json
+          cargo fmt -p symtropy-design -- --check
+          cargo check --locked -p symtropy-design --all-targets
+          cargo test --locked -p symtropy-design
+          cargo test --locked -p symtropy-design tests::canonical_digest_protocol_has_frozen_golden_vector -- --exact
+          cargo clippy --locked -p symtropy-design --all-targets -- -D warnings
+          test "$(git hash-object Cargo.toml)" = "$D1_ROOT_MANIFEST_BLOB"
+          test "$(git hash-object Cargo.lock)" = "$D1_LOCK_BLOB"
+          test "$(git hash-object crates/domains/symtropy-design/src/lib.rs)" = "$D1_SOURCE_BLOB"
+          test -z "$(git status --porcelain=v1 --untracked-files=all)"
+
+      - name: Freeze qualified parent dependency surfaces
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd product
+          cp Cargo.toml /tmp/d2-r2-root-Cargo.toml.before
+          cp Cargo.lock /tmp/d2-r2-Cargo.lock.before
+          cp crates/domains/symtropy-design/Cargo.toml /tmp/d2-r2-d1-Cargo.toml.before
+          cp crates/domains/symtropy-design/src/lib.rs /tmp/d2-r2-d1-lib.rs.before
+
+      - name: Apply exact D2 r2 semantic derivation
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd product
+          python3 ../runner-tools/.github/repair/d2_rederive_requirements_r2.py ../legacy-d2
+          cargo fmt -p symtropy-design-requirements
+          cmp crates/domains/symtropy-design/Cargo.toml /tmp/d2-r2-d1-Cargo.toml.before
+          cmp crates/domains/symtropy-design/src/lib.rs /tmp/d2-r2-d1-lib.rs.before
+          grep -q '"crates/domains/symtropy-design-requirements"' Cargo.toml
+          grep -q 'canonical_requirement_set_digest_has_frozen_golden_vector' crates/domains/symtropy-design-requirements/src/lib.rs
+          grep -q "$D2_GOLDEN" crates/domains/symtropy-design-requirements/src/lib.rs
+
+      - name: Resolve and prove bounded workspace lock delta
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd product
+          cargo metadata --format-version 1 > /tmp/d2-r2-metadata.json
+          python3 - <<'PY'
+          import json
+          import tomllib
+          from pathlib import Path
+
+          before = tomllib.loads(Path('/tmp/d2-r2-Cargo.lock.before').read_text())
+          after = tomllib.loads(Path('Cargo.lock').read_text())
+          assert {k: v for k, v in before.items() if k != 'package'} == {k: v for k, v in after.items() if k != 'package'}
+
+          def canonical(package):
+              return json.dumps(package, sort_keys=True, separators=(',', ':'))
+
+          old = {canonical(p) for p in before['package']}
+          new = {canonical(p) for p in after['package']}
+          removed = old - new
+          added = new - old
+          assert not removed, sorted(removed)
+          assert len(added) == 1, sorted(added)
+          package = json.loads(next(iter(added)))
+          assert package['name'] == 'symtropy-design-requirements', package
+          assert package['version'] == '0.1.0', package
+          assert 'source' not in package and 'checksum' not in package, package
+          assert sorted(package.get('dependencies', [])) == [
+              'serde', 'sha2', 'symtropy-design', 'symtropy-game-state'
+          ], package
+          print('D2_R2_LOCK_DELTA=one-local-workspace-package')
+          PY
+          cargo metadata --locked --format-version 1 > /tmp/d2-r2-locked-metadata.json
+
+      - name: Prove exact product change surface
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd product
+          python3 - <<'PY'
+          import subprocess
+          expected = {
+              ' M Cargo.lock',
+              ' M Cargo.toml',
+              '?? crates/domains/symtropy-design-requirements/Cargo.toml',
+              '?? crates/domains/symtropy-design-requirements/src/lib.rs',
+          }
+          actual = set(subprocess.check_output([
+              'git', 'status', '--porcelain=v1', '--untracked-files=all'
+          ], text=True).splitlines())
+          assert actual == expected, (sorted(actual), sorted(expected))
+          PY
+          git diff --check -- Cargo.toml Cargo.lock
+          cmp crates/domains/symtropy-design/Cargo.toml /tmp/d2-r2-d1-Cargo.toml.before
+          cmp crates/domains/symtropy-design/src/lib.rs /tmp/d2-r2-d1-lib.rs.before
+
+      - name: Prove D2 authority shape remains non-verdict traceability
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd product
+          file=crates/domains/symtropy-design-requirements/src/lib.rs
+          grep -q 'pub enum VerificationTarget' "$file"
+          grep -q 'EngineeringConstraint' "$file"
+          grep -q 'EvidenceKind' "$file"
+          grep -q 'AnalysisObservable' "$file"
+          grep -q 'ExternalVerificationCase' "$file"
+          grep -q 'pub fn traceability_gaps' "$file"
+          grep -q 'pub fn semantic_ref' "$file"
+          grep -q 'REQUIREMENT_SET_SCHEMA_VERSION: u32 = 1' "$file"
+          ! grep -Eq 'pub (passed|verified|safe|confidence|satisfied)[[:space:]]*:' "$file"
+
+      - name: Execute frozen D2 and D1 protocol goldens exactly
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd product
+          cargo test --locked -p symtropy-design-requirements tests::canonical_requirement_set_digest_has_frozen_golden_vector -- --exact
+          cargo test --locked -p symtropy-design tests::canonical_digest_protocol_has_frozen_golden_vector -- --exact
+
+      - name: Run full locked D1 plus D2 qualification
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd product
+          cargo fmt -p symtropy-design -p symtropy-design-requirements -- --check
+          cargo check --locked -p symtropy-design --all-targets
+          cargo check --locked -p symtropy-design-requirements --all-targets
+          cargo test --locked -p symtropy-design
+          cargo test --locked -p symtropy-design-requirements
+          cargo clippy --locked -p symtropy-design --all-targets -- -D warnings
+          cargo clippy --locked -p symtropy-design-requirements --all-targets -- -D warnings
+          cmp crates/domains/symtropy-design/Cargo.toml /tmp/d2-r2-d1-Cargo.toml.before
+          cmp crates/domains/symtropy-design/src/lib.rs /tmp/d2-r2-d1-lib.rs.before
+
+      - name: Commit exact qualified D2 r2 product only
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd product
+          git config user.name "luminous-qualification-bot"
+          git config user.email "qualification@luminous.invalid"
+          git add Cargo.lock Cargo.toml \
+            crates/domains/symtropy-design-requirements/Cargo.toml \
+            crates/domains/symtropy-design-requirements/src/lib.rs
+          python3 - <<'PY'
+          import subprocess
+          expected = [
+              'Cargo.lock',
+              'Cargo.toml',
+              'crates/domains/symtropy-design-requirements/Cargo.toml',
+              'crates/domains/symtropy-design-requirements/src/lib.rs',
+          ]
+          actual = subprocess.check_output(['git', 'diff', '--cached', '--name-only'], text=True).splitlines()
+          assert actual == expected, (actual, expected)
+          PY
+          test -z "$(git diff --name-only)"
+          git commit -m "feat(design): rederive requirement traceability on canonical D1"
+          test "$(git rev-parse HEAD^)" = "$D1_HEAD"
+          test -z "$(git status --porcelain=v1 --untracked-files=all)"
+          echo "D2_R2_QUALIFIED_HEAD=$(git rev-parse HEAD)"
+          echo "D2_R2_QUALIFIED_TREE=$(git rev-parse HEAD^{tree})"
+
+      - name: Refuse branch race and push exact qualified D2 r2 head
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd product
+          remote_head="$(git ls-remote origin "refs/heads/${PRODUCT_BRANCH}" | awk '{print $1}')"
+          test "$remote_head" = "$D1_HEAD"
+          git push origin "HEAD:${PRODUCT_BRANCH}"
+          pushed="$(git ls-remote origin "refs/heads/${PRODUCT_BRANCH}" | cut -f1)"
+          test "$pushed" = "$(git rev-parse HEAD)"
+          echo "D2_R2_PROMOTED_HEAD=$pushed"
