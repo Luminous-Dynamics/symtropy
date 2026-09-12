@@ -90,7 +90,9 @@ impl Plugin for SymtropyTerrainPlugin {
     fn build(&self, app: &mut App) {
         app.add_plugins(HybridFluidPlugin)
             .register_type::<EarthChunk>()
-            .register_type::<EarthChunkLatticeLocus>()
+            // `EarthChunkLatticeLocus` is intentionally not reflected or
+            // inspector-registered. Exact spatial authority must be assigned
+            // explicitly by a separately qualified world/bootstrap boundary.
             .add_message::<ExcavationEvent>()
             .add_message::<WeatheringEvent>()
             .add_systems(
