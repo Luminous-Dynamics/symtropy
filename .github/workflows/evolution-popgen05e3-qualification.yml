@@ -29,6 +29,8 @@ jobs:
           fetch-depth: 1
 
       - name: Assert executed product subject
+        id: subject
+        continue-on-error: true
         shell: bash
         run: |
           set -euo pipefail
@@ -38,12 +40,18 @@ jobs:
           test "${actual}" = "${PRODUCT_HEAD}"
 
       - name: Set up pinned Rust
+        id: rust
+        if: steps.subject.outcome == 'success'
+        continue-on-error: true
         uses: dtolnay/rust-toolchain@stable
         with:
           toolchain: 1.96.0
           components: clippy, rustfmt
 
       - name: Isolate dependency-light evolution crate
+        id: isolate
+        if: steps.subject.outcome == 'success'
+        continue-on-error: true
         shell: bash
         run: |
           set -euo pipefail
@@ -52,26 +60,137 @@ jobs:
           printf 'source_product_head=%s\n' "${PRODUCT_HEAD}" > "${RUNNER_TEMP}/symtropy-evolution-core/QUALIFICATION_SUBJECT"
 
       - name: Check formatting
+        id: fmt
+        if: steps.subject.outcome == 'success' && steps.rust.outcome == 'success' && steps.isolate.outcome == 'success'
+        continue-on-error: true
         working-directory: ${{ runner.temp }}/symtropy-evolution-core
         run: cargo fmt --all -- --check
 
       - name: Check all targets
+        id: check
+        if: steps.subject.outcome == 'success' && steps.rust.outcome == 'success' && steps.isolate.outcome == 'success'
+        continue-on-error: true
         working-directory: ${{ runner.temp }}/symtropy-evolution-core
         run: cargo check --all-targets
 
       - name: Run all tests
+        id: test
+        if: steps.subject.outcome == 'success' && steps.rust.outcome == 'success' && steps.isolate.outcome == 'success'
+        continue-on-error: true
         working-directory: ${{ runner.temp }}/symtropy-evolution-core
         run: cargo test --all-targets
 
       - name: Run strict Clippy
+        id: clippy
+        if: steps.subject.outcome == 'success' && steps.rust.outcome == 'success' && steps.isolate.outcome == 'success'
+        continue-on-error: true
         working-directory: ${{ runner.temp }}/symtropy-evolution-core
         run: cargo clippy --all-targets -- -D warnings
 
-      - name: Emit qualification subject
+      - name: Emit machine-readable qualification receipt
+        id: receipt
         if: always()
         shell: bash
+        env:
+          HELPER_HEAD: ${{ github.sha }}
+          RUN_ID: ${{ github.run_id }}
+          RUN_ATTEMPT: ${{ github.run_attempt }}
+          SUBJECT_OUTCOME: ${{ steps.subject.outcome }}
+          RUST_OUTCOME: ${{ steps.rust.outcome }}
+          ISOLATE_OUTCOME: ${{ steps.isolate.outcome }}
+          FMT_OUTCOME: ${{ steps.fmt.outcome }}
+          CHECK_OUTCOME: ${{ steps.check.outcome }}
+          TEST_OUTCOME: ${{ steps.test.outcome }}
+          CLIPPY_OUTCOME: ${{ steps.clippy.outcome }}
         run: |
-          echo "qualification_subject=${PRODUCT_HEAD}"
-          echo "toolchain=rustc 1.96.0"
-          echo "scope=crates/domains/symtropy-evolution-core"
-          echo "oracles=analytical-null,independent-reference-sampler,explicit-linked-gamete-differential"
+          set -euo pipefail
+          receipt="${RUNNER_TEMP}/popgen05e3-qualification-receipt.json"
+          export RECEIPT_PATH="${receipt}"
+          python3 - <<'PY'
+          import json, os, subprocess
+
+          keys = ["SUBJECT_OUTCOME", "RUST_OUTCOME", "ISOLATE_OUTCOME", "FMT_OUTCOME", "CHECK_OUTCOME", "TEST_OUTCOME", "CLIPPY_OUTCOME"]
+          outcomes = {key.lower().removesuffix("_outcome"): os.environ.get(key, "unknown") for key in keys}
+          required = ["subject", "rust", "isolate", "fmt", "check", "test", "clippy"]
+          overall = "pass" if all(outcomes.get(key) == "success" for key in required) else "fail"
+
+          def version(command):
+              try:
+                  return subprocess.check_output(command, text=True, stderr=subprocess.STDOUT).strip()
+              except Exception:
+                  return "unavailable"
+
+          receipt = {
+              "receipt_version": 1,
+              "qualification": "POPGEN-05E3",
+              "product_head": os.environ["PRODUCT_HEAD"],
+              "helper_head": os.environ["HELPER_HEAD"],
+              "workflow_run_id": int(os.environ["RUN_ID"]),
+              "workflow_run_attempt": int(os.environ["RUN_ATTEMPT"]),
+              "scope": "crates/domains/symtropy-evolution-core",
+              "declared_rust_toolchain": "1.96.0",
+              "rustc_version": version(["rustc", "--version"]),
+              "cargo_version": version(["cargo", "--version"]),
+              "oracles": [
+                  "ORIGIN_AWARE_NEUTRAL_ANALYTICAL_NULL_V1",
+                  "ORIGIN_AWARE_REFERENCE_SAMPLER_V1",
+                  "ORIGIN_AWARE_LINKED_GAMETE_DIFFERENTIAL_V1",
+              ],
+              "frozen_gates": {
+                  "analytical_binary_replicates": 8192,
+                  "analytical_asymmetric_replicates": 12288,
+                  "analytical_multinomial_replicates": 8192,
+                  "analytical_frequency_tolerance": 0.03,
+                  "analytical_moment_tolerance": 0.08,
+                  "reference_sampler_replicates": 16384,
+                  "reference_total_variation_tolerance": 0.05,
+                  "reference_event_probability_tolerance": 0.04,
+                  "linked_gamete_replicates": 4096,
+                  "linked_gamete_analytical_tolerance": 0.04,
+                  "linked_gamete_total_variation_tolerance": 0.06,
+              },
+              "step_outcomes": outcomes,
+              "overall": overall,
+              "claim_boundary": "isolated evolution-core compile/lint/tests plus frozen neutral-origin qualification oracles only; no selection, ecology, real-world calibration, or production promotion authority",
+          }
+          with open(os.environ["RECEIPT_PATH"], "w", encoding="utf-8") as handle:
+              json.dump(receipt, handle, sort_keys=True, indent=2)
+              handle.write("\n")
+          print(json.dumps(receipt, sort_keys=True))
+          PY
+          sha256sum "${receipt}" > "${receipt}.sha256"
+          cat "${receipt}.sha256"
+
+      - name: Upload qualification receipt
+        if: always() && steps.receipt.outcome == 'success'
+        uses: actions/upload-artifact@v4
+        with:
+          name: popgen05e3-qualification-receipt-${{ env.PRODUCT_HEAD }}
+          path: |
+            ${{ runner.temp }}/popgen05e3-qualification-receipt.json
+            ${{ runner.temp }}/popgen05e3-qualification-receipt.json.sha256
+          if-no-files-found: error
+          retention-days: 90
+
+      - name: Enforce qualification result
+        if: always()
+        shell: bash
+        env:
+          SUBJECT_OUTCOME: ${{ steps.subject.outcome }}
+          RUST_OUTCOME: ${{ steps.rust.outcome }}
+          ISOLATE_OUTCOME: ${{ steps.isolate.outcome }}
+          FMT_OUTCOME: ${{ steps.fmt.outcome }}
+          CHECK_OUTCOME: ${{ steps.check.outcome }}
+          TEST_OUTCOME: ${{ steps.test.outcome }}
+          CLIPPY_OUTCOME: ${{ steps.clippy.outcome }}
+          RECEIPT_OUTCOME: ${{ steps.receipt.outcome }}
+        run: |
+          set -euo pipefail
+          test "${SUBJECT_OUTCOME}" = success
+          test "${RUST_OUTCOME}" = success
+          test "${ISOLATE_OUTCOME}" = success
+          test "${FMT_OUTCOME}" = success
+          test "${CHECK_OUTCOME}" = success
+          test "${TEST_OUTCOME}" = success
+          test "${CLIPPY_OUTCOME}" = success
+          test "${RECEIPT_OUTCOME}" = success
