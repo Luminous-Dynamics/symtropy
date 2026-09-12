@@ -13,6 +13,7 @@ pub use symtropy_math as math;
 pub use symtropy_physics as physics;
 
 pub mod industrial_ecology;
+pub mod industrial_watch;
 
 pub mod prelude {
     pub use crate::bevy_physics::{BevyPhysicsPlugin, NoCouplingResource, PhysicsBody};
@@ -20,6 +21,10 @@ pub mod prelude {
         BlockedIndustrialFlow, DependencyShortage, IndustrialCapability, IndustrialDependencyState,
         IndustrialEcology, IndustrialEcologyError, IndustrialFlowKind, IndustrialFlowPrerequisite,
         IndustrialGovernance, IndustrialShock, IndustrialTickReport, IndustrialViabilityOutcome,
+    };
+    pub use crate::industrial_watch::{
+        IndustrialCapabilityWatch, IndustrialCapabilityWatchError, IndustrialCapabilityWatchReport,
+        assess_industrial_capability_watches,
     };
     pub use crate::math::Point;
     pub use crate::physics::body::BodyHandle;
