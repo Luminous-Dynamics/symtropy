@@ -163,10 +163,10 @@ pub struct LocalTargetObservation {
 
 /// Select the strongest distance-attenuated local sample without depending on query order.
 ///
-/// Confidence falls linearly with distance. Candidates are ranked by bounded
-/// `value × confidence`, then confidence, then value. The tuple ordering makes ties
-/// deterministic and prevents a nearby zero-valued sample from masking a slightly
-/// farther strong signal.
+/// Confidence falls linearly with distance. Zero-confidence boundary samples are rejected
+/// rather than refreshing memory with no information. Remaining candidates are ranked by
+/// bounded `value × confidence`, then confidence, then value. The tuple ordering prevents a
+/// nearby zero-valued sample from masking a slightly farther strong signal.
 pub fn strongest_local_sample(
     observer: Vec2,
     samples: &[LocalScalarSample],
@@ -186,6 +186,9 @@ pub fn strongest_local_sample(
             continue;
         }
         let confidence_bps = quantize_unit(1.0 - f64::from(distance / range));
+        if confidence_bps == 0 {
+            continue;
+        }
         let value_bps = quantize_unit(sample.value);
         let signal_bps = attenuated_signal_bps(value_bps, confidence_bps);
         let candidate = (signal_bps, confidence_bps, value_bps);
@@ -350,6 +353,15 @@ mod tests {
             strongest_local_sample(observer, &samples, 20.0),
             strongest_local_sample(observer, &reversed, 20.0)
         );
+    }
+
+    #[test]
+    fn zero_confidence_boundary_sample_is_not_an_observation() {
+        let samples = [LocalScalarSample {
+            position: Vec2::new(20.0, 0.0),
+            value: 1.0,
+        }];
+        assert_eq!(strongest_local_sample(Vec2::ZERO, &samples, 20.0), None);
     }
 
     #[test]
