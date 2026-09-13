@@ -73,7 +73,9 @@ mod tests {
         FrictionSolverCoordinates,
     };
 
-    use super::super::thermodynamic_authority_fault::RuntimeFrictionFaultSummary;
+    use super::super::thermodynamic_authority_fault::{
+        RuntimeFrictionFaultSummary, ThermodynamicFrictionAuthorityFaultSummary,
+    };
 
     fn coordinate_fault(value: usize) -> ThermodynamicPhysicsAuthorityFault {
         ThermodynamicPhysicsAuthorityFault::CoordinateOverflow {
@@ -87,8 +89,10 @@ mod tests {
             body_a: BodyHandle(7),
             body_b: BodyHandle(11),
             coordinates: FrictionSolverCoordinates::new(3, 5, 1),
-            reason: RuntimeFrictionFaultSummary::Promotion(
-                FrictionPromotionError::MissingThermalState,
+            reason: ThermodynamicFrictionAuthorityFaultSummary::Runtime(
+                RuntimeFrictionFaultSummary::Promotion(
+                    FrictionPromotionError::MissingThermalState,
+                ),
             ),
         }
     }
