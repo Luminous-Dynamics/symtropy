@@ -1,0 +1,81 @@
+name: guarded thermodynamic schedule patch
+
+on:
+  push:
+    branches:
+      - "physics/thermo-fixed-schedule-adapter-v0.1"
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    if: github.event.head_commit.message == 'chore(thermo): stage guarded schedule patcher'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Apply exact-preimage schedule migration
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          import subprocess
+
+          expected = {
+              "src/systems/thermodynamic.rs": "68dc7f7f85cee9c1b9700233ddaa9bc3af46131d",
+              "src/plugin.rs": "11fc8c722157d66ff94be26985019213a9ebd22b",
+          }
+
+          for path, want in expected.items():
+              got = subprocess.check_output(["git", "hash-object", path], text=True).strip()
+              if got != want:
+                  raise SystemExit(f"refusing patch: {path} blob {got} != expected {want}")
+
+          thermo = Path("src/systems/thermodynamic.rs")
+          text = thermo.read_text()
+          replacements = [
+              ("fn regenerate_live_entity_accepted(\n", "pub(crate) fn regenerate_live_entity_accepted(\n"),
+              ("fn transfer_from_finite_source(\n", "pub(crate) fn transfer_from_finite_source(\n"),
+              ("fn epistemic_offload_factors(\n", "pub(crate) fn epistemic_offload_factors(\n"),
+              ("fn maintenance_cost_with_offload(\n", "pub(crate) fn maintenance_cost_with_offload(\n"),
+          ]
+          for old, new in replacements:
+              count = text.count(old)
+              if count != 1:
+                  raise SystemExit(f"refusing patch: thermodynamic target {old!r} occurs {count} times")
+              text = text.replace(old, new, 1)
+          thermo.write_text(text)
+
+          plugin = Path("src/plugin.rs")
+          text = plugin.read_text()
+          resource_old = """            .init_resource::<systems::thermodynamic::ThermodynamicHudState>()\n"""
+          resource_new = """            .init_resource::<systems::thermodynamic::ThermodynamicHudState>()\n            .init_resource::<systems::thermodynamic_runtime::ThermodynamicTransactionRuntime>()\n            .init_resource::<systems::thermodynamic_schedule::ThermodynamicScheduleState>()\n"""
+          if text.count(resource_old) != 1:
+              raise SystemExit("refusing patch: HUD resource anchor is not unique")
+          text = text.replace(resource_old, resource_new, 1)
+
+          schedule_old = """            .add_systems(FixedUpdate, (\n                systems::thermodynamic::thermodynamic_enforcement_system,\n                systems::engine_physics::physics_sync_transforms,\n            ).chain().run_if(in_playing_or_3d))\n"""
+          schedule_new = """            .add_systems(FixedUpdate, (\n                systems::thermodynamic_schedule::transactional_thermodynamic_begin_system,\n                systems::thermodynamic_schedule::transactional_physics_finalize_system,\n            ).chain().run_if(in_playing_or_3d))\n"""
+          if text.count(schedule_old) != 1:
+              raise SystemExit("refusing patch: FixedUpdate schedule anchor is not unique")
+          text = text.replace(schedule_old, schedule_new, 1)
+          plugin.write_text(text)
+          PY
+
+          git diff --check
+          git diff -- src/systems/thermodynamic.rs src/plugin.rs
+
+      - name: Commit surgical migration and remove patcher
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/systems/thermodynamic.rs src/plugin.rs
+          git rm .github/workflows/thermo-schedule-guarded-patch.yml
+          git commit -m "fix(thermo): switch FixedUpdate to transactional schedule"
+          git push origin HEAD:physics/thermo-fixed-schedule-adapter-v0.1
