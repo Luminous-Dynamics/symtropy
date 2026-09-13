@@ -368,6 +368,19 @@ impl AnalysisDomain {
         self.dimensions
     }
 
+    /// Returns the exact fixed-point bounds occupied by one validated analysis cell.
+    ///
+    /// This is an observational wrapper around PB-04c's existing cell geometry
+    /// authority. It does not expose or mutate the domain origin, dimensions, or
+    /// decomposition profile.
+    pub fn exact_cell_bounds(
+        &self,
+        profile: &DecompositionProfile,
+        cell: CellCoord,
+    ) -> Result<(Point3i, Point3i), DecompositionError> {
+        cell_bounds(cell, profile, self)
+    }
+
     fn contains(&self, cell: CellCoord) -> bool {
         cell.x < self.dimensions[0] && cell.y < self.dimensions[1] && cell.z < self.dimensions[2]
     }
@@ -2320,6 +2333,31 @@ mod tests {
 
     fn domain(dimensions: [u32; 3]) -> AnalysisDomain {
         AnalysisDomain::new(id("pb04b-domain"), 1, Point3i::new(0, 0, 0), dimensions).unwrap()
+    }
+
+    #[test]
+    fn public_exact_cell_bounds_matches_private_helper_across_bounded_corpus() {
+        for quantum in [1_i64, 10, 999] {
+            let profile = profile(quantum);
+            let domain = AnalysisDomain::new(
+                id("pb04c1-bounds-equivalence"),
+                7,
+                Point3i::new(-3_000, 2_000, -1_000),
+                [3, 2, 2],
+            )
+            .unwrap();
+            for z in 0..2 {
+                for y in 0..2 {
+                    for x in 0..3 {
+                        let cell = CellCoord::new(x, y, z);
+                        assert_eq!(
+                            domain.exact_cell_bounds(&profile, cell),
+                            cell_bounds(cell, &profile, &domain)
+                        );
+                    }
+                }
+            }
+        }
     }
 
     fn cut(
