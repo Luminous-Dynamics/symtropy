@@ -79,6 +79,33 @@ fn financial_state() -> (FinancialBook, FinancialRegistrySnapshot) {
     (book, registry)
 }
 
+fn financial_state_with_extra_account() -> (FinancialBook, FinancialRegistrySnapshot) {
+    let currency = CurrencyDefinition {
+        currency_id: CurrencyId::new("CR").unwrap(),
+        monetary_authority_id: MonetaryAuthorityId::new("mint").unwrap(),
+        monetary_authority_actor_id: actor("treasury"),
+        minor_unit_exponent: 2,
+    };
+    let accounts = vec![
+        FinancialAccount {
+            account_id: FinancialAccountId::new("cash").unwrap(),
+            owner_id: actor("owner"),
+            currency_id: currency.currency_id.clone(),
+            class: FinancialAccountClass::Asset,
+        },
+        FinancialAccount {
+            account_id: FinancialAccountId::new("escrow-shadow").unwrap(),
+            owner_id: actor("owner"),
+            currency_id: currency.currency_id.clone(),
+            class: FinancialAccountClass::Asset,
+        },
+    ];
+    let currencies = vec![currency];
+    let book = FinancialBook::new(currencies.clone(), accounts.clone()).unwrap();
+    let registry = FinancialRegistrySnapshot::new(currencies, accounts).unwrap();
+    (book, registry)
+}
+
 fn exact_resolution<'a>(
     stock: &'a StockLedger,
     book: &'a FinancialBook,
@@ -95,6 +122,14 @@ fn exact_resolution<'a>(
         },
     )
     .unwrap()
+}
+
+fn retention(source: &str, id: &str) -> DetailRetentionRef {
+    DetailRetentionRef {
+        retention_id: DetailRetentionId::new(id).unwrap(),
+        source_snapshot_id: snapshot_id(source),
+        evidence_id: cause(&format!("{id}-evidence")),
+    }
 }
 
 #[test]
@@ -133,7 +168,32 @@ fn active_reservation_requires_retained_detail_after_demotion() {
 }
 
 #[test]
-fn retained_detail_preserves_active_reservation_binding() {
+fn no_active_reservation_allows_existing_econ03_detail_discard_policy() {
+    let stock = stock();
+    let reservations = StockReservationLedger::new();
+    let (book, registry) = financial_state();
+    let mut resolution = exact_resolution(&stock, &book, &registry);
+    resolution
+        .demote_exact(
+            snapshot_id("planet-empty-claims"),
+            EconomicResolutionTier::PlanetaryAggregate,
+            None,
+            cause("discard-unneeded-detail"),
+        )
+        .unwrap();
+
+    let binding = ReservationResolutionBinding::bind(
+        resolution.current_snapshot(),
+        &stock,
+        &reservations,
+    )
+    .unwrap();
+    assert!(binding.manifest().active().is_empty());
+    assert!(binding.retention().is_none());
+}
+
+#[test]
+fn retained_detail_preserves_active_reservation_and_economic_binding() {
     let stock = stock();
     let reservations = reservations(&stock);
     let (book, registry) = financial_state();
@@ -144,17 +204,13 @@ fn retained_detail_preserves_active_reservation_binding() {
         &reservations,
     )
     .unwrap();
-    let retention = DetailRetentionRef {
-        retention_id: DetailRetentionId::new("retain-active-0").unwrap(),
-        source_snapshot_id: snapshot_id("active-0"),
-        evidence_id: cause("retained-lot-detail"),
-    };
+    let retained = retention("active-0", "retain-active-0");
 
     resolution
         .demote_exact(
             snapshot_id("distant-0"),
             EconomicResolutionTier::DistantRegion,
-            Some(retention.clone()),
+            Some(retained.clone()),
             cause("demote-with-retention"),
         )
         .unwrap();
@@ -162,8 +218,37 @@ fn retained_detail_preserves_active_reservation_binding() {
         .rebind_unchanged(resolution.current_snapshot(), &stock, &reservations)
         .unwrap();
 
-    assert_eq!(coarse.retention(), Some(&retention));
+    assert_eq!(coarse.retention(), Some(&retained));
     assert_eq!(coarse.manifest(), exact.manifest());
+    assert_eq!(coarse.economic_manifest(), exact.economic_manifest());
+}
+
+#[test]
+fn bind_rejects_stock_state_from_a_different_economic_instant() {
+    let stock = stock();
+    let reservations = reservations(&stock);
+    let (book, registry) = financial_state();
+    let resolution = exact_resolution(&stock, &book, &registry);
+
+    let mut drifted_stock = stock.clone();
+    drifted_stock
+        .deplete(
+            lot_id("steel-a"),
+            1,
+            StockDepletionCause::Loss {
+                incident_id: cause("post-snapshot-loss"),
+            },
+        )
+        .unwrap();
+
+    assert_eq!(
+        ReservationResolutionBinding::bind(
+            resolution.current_snapshot(),
+            &drifted_stock,
+            &reservations,
+        ),
+        Err(ReservationReconciliationError::StockManifestMismatch)
+    );
 }
 
 #[test]
@@ -195,6 +280,40 @@ fn pure_resolution_rebind_rejects_reservation_mutation() {
     assert_eq!(
         binding.rebind_unchanged(resolution.current_snapshot(), &stock, &reservations),
         Err(ReservationReconciliationError::ReservationChangedDuringResolution)
+    );
+}
+
+#[test]
+fn pure_resolution_rebind_rejects_economic_manifest_mutation_with_unchanged_reservations() {
+    let stock = stock();
+    let reservations = reservations(&stock);
+    let (book, registry) = financial_state();
+    let source_resolution = exact_resolution(&stock, &book, &registry);
+    let binding = ReservationResolutionBinding::bind(
+        source_resolution.current_snapshot(),
+        &stock,
+        &reservations,
+    )
+    .unwrap();
+
+    let (drifted_book, drifted_registry) = financial_state_with_extra_account();
+    let mut drifted_resolution = exact_resolution(&stock, &drifted_book, &drifted_registry);
+    drifted_resolution
+        .demote_exact(
+            snapshot_id("distant-drifted"),
+            EconomicResolutionTier::DistantRegion,
+            Some(retention("active-0", "retain-drifted")),
+            cause("hide-financial-registry-change"),
+        )
+        .unwrap();
+
+    assert_eq!(
+        binding.rebind_unchanged(
+            drifted_resolution.current_snapshot(),
+            &stock,
+            &reservations,
+        ),
+        Err(ReservationReconciliationError::EconomicManifestChangedDuringResolution)
     );
 }
 
