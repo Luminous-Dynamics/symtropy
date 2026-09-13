@@ -24,13 +24,15 @@ use crate::geometry_kernel::{
 ///
 /// This component is intentionally distinct from `GlobalTransform`. Moving,
 /// rendering, rebuilding, or re-colliding a chunk cannot silently rewrite its
-/// exact geometry identity. World construction may assign or replace this
-/// component explicitly; read-side capture never accepts a caller coordinate.
+/// exact geometry identity. No production constructor is exposed yet: safe
+/// downstream Rust may inspect an existing locus but cannot mint or replace one
+/// through this API. Read-side capture never accepts a caller coordinate.
 ///
 /// It intentionally does not implement Bevy `Reflect` and is not registered as
 /// a reflected component. Generic scene/inspector mutation must not silently
-/// become a spatial-authority write path. A future persistence/import boundary
-/// must assign loci explicitly and qualify that mapping separately.
+/// become a spatial-authority write path. A future persistence/import/bootstrap
+/// boundary must introduce an explicit writer and qualify that mapping
+/// separately before production locus construction is enabled.
 #[derive(Component, Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct EarthChunkLatticeLocus {
     x: i32,
@@ -39,7 +41,8 @@ pub struct EarthChunkLatticeLocus {
 }
 
 impl EarthChunkLatticeLocus {
-    pub const fn new(x: i32, y: i32, z: i32) -> Self {
+    #[cfg(test)]
+    const fn new_for_test(x: i32, y: i32, z: i32) -> Self {
         Self { x, y, z }
     }
 
@@ -205,7 +208,7 @@ mod tests {
         let mut chunk = EarthChunk::default();
         chunk.voxels[2][3][4] = SubstrateMaterial::Air;
         let entity = world
-            .spawn((chunk, EarthChunkLatticeLocus::new(4, -2, 9)))
+            .spawn((chunk, EarthChunkLatticeLocus::new_for_test(4, -2, 9)))
             .id();
 
         let snapshot = capture_live_terrain_geometry(&world, entity).expect("capture must succeed");
@@ -242,7 +245,7 @@ mod tests {
         }
 
         let entity = world
-            .spawn((chunk, EarthChunkLatticeLocus::new(-8, 13, 21)))
+            .spawn((chunk, EarthChunkLatticeLocus::new_for_test(-8, 13, 21)))
             .id();
         let snapshot = capture_live_terrain_geometry(&world, entity).expect("capture must succeed");
 
@@ -261,7 +264,7 @@ mod tests {
         let entity = world
             .spawn((
                 EarthChunk::default(),
-                EarthChunkLatticeLocus::new(1, 2, 3),
+                EarthChunkLatticeLocus::new_for_test(1, 2, 3),
                 GlobalTransform::default(),
             ))
             .id();
@@ -311,7 +314,9 @@ mod tests {
     #[test]
     fn missing_chunk_fails_closed() {
         let mut world = World::new();
-        let entity = world.spawn(EarthChunkLatticeLocus::new(8, 9, 10)).id();
+        let entity = world
+            .spawn(EarthChunkLatticeLocus::new_for_test(8, 9, 10))
+            .id();
 
         assert_eq!(
             capture_live_terrain_geometry(&world, entity),
@@ -325,10 +330,12 @@ mod tests {
         let requested = world
             .spawn((
                 EarthChunk::default(),
-                EarthChunkLatticeLocus::new(-3, 7, 11),
+                EarthChunkLatticeLocus::new_for_test(-3, 7, 11),
             ))
             .id();
-        let conflicting = world.spawn(EarthChunkLatticeLocus::new(-3, 7, 11)).id();
+        let conflicting = world
+            .spawn(EarthChunkLatticeLocus::new_for_test(-3, 7, 11))
+            .id();
 
         assert_eq!(
             capture_live_terrain_geometry(&world, requested),
@@ -344,10 +351,16 @@ mod tests {
     fn same_materials_at_different_ecs_loci_have_different_identity() {
         let mut world = World::new();
         let first = world
-            .spawn((EarthChunk::default(), EarthChunkLatticeLocus::new(0, 0, 0)))
+            .spawn((
+                EarthChunk::default(),
+                EarthChunkLatticeLocus::new_for_test(0, 0, 0),
+            ))
             .id();
         let second = world
-            .spawn((EarthChunk::default(), EarthChunkLatticeLocus::new(0, 0, 1)))
+            .spawn((
+                EarthChunk::default(),
+                EarthChunkLatticeLocus::new_for_test(0, 0, 1),
+            ))
             .id();
 
         let first =
