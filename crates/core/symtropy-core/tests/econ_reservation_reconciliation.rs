@@ -106,15 +106,16 @@ fn financial_state_with_extra_account() -> (FinancialBook, FinancialRegistrySnap
     (book, registry)
 }
 
-fn exact_resolution<'a>(
+fn exact_resolution_named<'a>(
+    id: &str,
     stock: &'a StockLedger,
     book: &'a FinancialBook,
     registry: &'a FinancialRegistrySnapshot,
 ) -> EconomicResolutionLedger {
     EconomicResolutionLedger::new(
-        snapshot_id("active-0"),
+        snapshot_id(id),
         EconomicResolutionTier::ActiveSite,
-        cause("exact-detail"),
+        cause(&format!("{id}-exact-detail")),
         ExactEconomicStateRef::Financial {
             stock_ledger: stock,
             financial_book: book,
@@ -122,6 +123,14 @@ fn exact_resolution<'a>(
         },
     )
     .unwrap()
+}
+
+fn exact_resolution<'a>(
+    stock: &'a StockLedger,
+    book: &'a FinancialBook,
+    registry: &'a FinancialRegistrySnapshot,
+) -> EconomicResolutionLedger {
+    exact_resolution_named("active-0", stock, book, registry)
 }
 
 fn retention(source: &str, id: &str) -> DetailRetentionRef {
@@ -221,6 +230,7 @@ fn retained_detail_preserves_active_reservation_and_economic_binding() {
     assert_eq!(coarse.retention(), Some(&retained));
     assert_eq!(coarse.manifest(), exact.manifest());
     assert_eq!(coarse.economic_manifest(), exact.economic_manifest());
+    assert_eq!(coarse.generation(), exact.generation() + 1);
 }
 
 #[test]
@@ -252,9 +262,9 @@ fn bind_rejects_stock_state_from_a_different_economic_instant() {
 }
 
 #[test]
-fn pure_resolution_rebind_rejects_reservation_mutation() {
+fn pure_resolution_rebind_rejects_same_snapshot_replay() {
     let stock = stock();
-    let mut reservations = reservations(&stock);
+    let reservations = reservations(&stock);
     let (book, registry) = financial_state();
     let resolution = exact_resolution(&stock, &book, &registry);
     let binding = ReservationResolutionBinding::bind(
@@ -263,6 +273,56 @@ fn pure_resolution_rebind_rejects_reservation_mutation() {
         &reservations,
     )
     .unwrap();
+
+    assert_eq!(
+        binding.rebind_unchanged(resolution.current_snapshot(), &stock, &reservations),
+        Err(ReservationReconciliationError::ResolutionSnapshotIdentityReused)
+    );
+}
+
+#[test]
+fn pure_resolution_rebind_rejects_non_forward_generation() {
+    let stock = stock();
+    let reservations = reservations(&stock);
+    let (book, registry) = financial_state();
+    let source = exact_resolution_named("source-0", &stock, &book, &registry);
+    let parallel = exact_resolution_named("parallel-0", &stock, &book, &registry);
+    let binding = ReservationResolutionBinding::bind(
+        source.current_snapshot(),
+        &stock,
+        &reservations,
+    )
+    .unwrap();
+
+    assert_eq!(
+        binding.rebind_unchanged(parallel.current_snapshot(), &stock, &reservations),
+        Err(ReservationReconciliationError::ResolutionGenerationNotForward {
+            from: 0,
+            to: 0,
+        })
+    );
+}
+
+#[test]
+fn pure_resolution_rebind_rejects_reservation_mutation() {
+    let stock = stock();
+    let mut reservations = reservations(&stock);
+    let (book, registry) = financial_state();
+    let mut resolution = exact_resolution(&stock, &book, &registry);
+    let binding = ReservationResolutionBinding::bind(
+        resolution.current_snapshot(),
+        &stock,
+        &reservations,
+    )
+    .unwrap();
+    resolution
+        .demote_exact(
+            snapshot_id("distant-reservation-drift"),
+            EconomicResolutionTier::DistantRegion,
+            Some(retention("active-0", "retain-reservation-drift")),
+            cause("demote-before-reservation-drift"),
+        )
+        .unwrap();
 
     reservations
         .reserve(
@@ -393,5 +453,21 @@ fn reservation_follows_stock_partition_and_repartition_changes_placement_only() 
     assert_eq!(
         reservation_a.reconstruct_manifest().unwrap(),
         reservation_b.reconstruct_manifest().unwrap()
+    );
+
+    let economic_other_instant = EconomicPartitionSet::partition(
+        snapshot_id("other-economic-instant"),
+        manifest,
+        &plan_b,
+    )
+    .unwrap();
+    let reservation_other_instant =
+        ReservationPartitionSet::partition(&economic_other_instant, &stock, &reservations).unwrap();
+    assert_eq!(
+        reconcile_reservation_repartition(&reservation_a, &reservation_other_instant),
+        Err(ReservationReconciliationError::RepartitionSourceSnapshotMismatch {
+            before: resolution.current_snapshot().snapshot_id().clone(),
+            after: snapshot_id("other-economic-instant"),
+        })
     );
 }
