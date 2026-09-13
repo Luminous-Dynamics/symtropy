@@ -43,6 +43,7 @@ pub mod settlement_spawn;
 pub mod telemetry;
 pub mod thermodynamic;
 pub mod thermodynamic_authority_fault;
+pub mod thermodynamic_authority_poison;
 pub mod thermodynamic_cadence;
 #[cfg(test)]
 mod thermodynamic_cadence_tests;
