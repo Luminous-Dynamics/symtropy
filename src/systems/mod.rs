@@ -53,6 +53,8 @@ pub mod thermodynamic_commit;
 mod thermodynamic_commit_tests;
 pub mod thermodynamic_friction_2d;
 #[cfg(test)]
+mod thermodynamic_atomic_friction_tests;
+#[cfg(test)]
 mod thermodynamic_physical_ledger_tests;
 pub mod thermodynamic_reservation_fault;
 pub mod thermodynamic_runtime;

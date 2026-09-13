@@ -7,10 +7,6 @@
 //! owned. Solver-facing APIs mint `FrictionTransactionId.fixed_tick` from the
 //! currently open thermodynamic tick, so callers cannot relabel mechanical evidence
 //! across ticks or replace pending lifecycle/accounting state.
-//!
-//! Production integration also has a reservation-first path. A deterministic
-//! solver identity is reserved before mechanics, then consumed exactly once when
-//! the bound impulse is applied. Unresolved reservations block fixed-tick close.
 
 use std::collections::BTreeSet;
 
@@ -79,8 +75,6 @@ impl From<ThermodynamicTickError> for ThermodynamicRuntimeError {
     fn from(value: ThermodynamicTickError) -> Self { Self::Tick(value) }
 }
 
-/// Fixed-tick runtime receipt that binds lifecycle/friction evidence to the exact
-/// typed physical-transfer entries authored through the private runtime ledger.
 #[derive(Clone, Debug, PartialEq)]
 pub struct ThermodynamicRuntimeTickReceipt {
     pub tick_id: u64,
@@ -105,8 +99,20 @@ impl ThermodynamicRuntimeTickReceipt {
     }
 }
 
-/// Non-cloneable proof that the private runtime admitted one exact solver-local
-/// friction request under the currently open fixed tick.
+#[derive(Clone, Debug, PartialEq)]
+pub enum TerminalFrictionOutcome {
+    Promoted(FrictionPromotionReceipt),
+    Diagnostic(FrictionDiagnosticReason),
+}
+
+/// Receipt proving one solver-facing friction request reached a terminal
+/// lifecycle state before control returned to later solver mechanics.
+#[derive(Clone, Debug, PartialEq)]
+pub struct TerminalFrictionReceipt {
+    pub transaction_id: FrictionTransactionId,
+    pub outcome: TerminalFrictionOutcome,
+}
+
 #[derive(Debug, PartialEq)]
 pub struct RuntimeFrictionReservation<const D: usize> {
     transaction_id: FrictionTransactionId,
@@ -122,8 +128,6 @@ impl<const D: usize> RuntimeFrictionReservation<D> {
     }
 }
 
-/// Single runtime owner for fixed-tick identity, friction lifecycle, and the
-/// append-only physical energy-transfer ledger used by production promotion.
 #[derive(Resource, Debug)]
 pub struct ThermodynamicTransactionRuntime {
     authority: ThermodynamicTickAuthority,
@@ -155,13 +159,7 @@ impl ThermodynamicTransactionRuntime {
     pub fn open_tick_id(&self) -> Option<u64> { self.authority.open_tick_id() }
     pub fn friction_journal(&self) -> &FrictionTransactionJournal { &self.friction_journal }
     pub fn pending_friction_reservation_count(&self) -> usize { self.reserved_friction.len() }
-
-    /// Read-only access to the canonical append-only physical ledger.
-    /// Production mutation is available only through runtime-authorized transfer APIs.
-    pub fn physical_energy_ledger(&self) -> &EnergyTransferLedger {
-        &self.physical_ledger
-    }
-
+    pub fn physical_energy_ledger(&self) -> &EnergyTransferLedger { &self.physical_ledger }
     pub fn last_runtime_receipt(&self) -> Option<&ThermodynamicRuntimeTickReceipt> {
         self.last_runtime_receipt.as_ref()
     }
@@ -171,8 +169,6 @@ impl ThermodynamicTransactionRuntime {
         self.reserved_friction.iter().copied().collect()
     }
 
-    /// Compatibility lifecycle receipt retained for callers that have not yet
-    /// migrated to the stronger runtime receipt containing physical transfers.
     pub fn last_finalized_receipt(&self) -> Option<&ThermodynamicTickReceipt> {
         self.authority.last_finalized_receipt()
     }
@@ -192,10 +188,6 @@ impl ThermodynamicTransactionRuntime {
     ) -> Result<ThermodynamicBeginPermit, ThermodynamicRuntimeError> {
         self.require_no_pending_reservations()?;
         let tick_id = self.next_tick_id.ok_or(ThermodynamicRuntimeError::TickIdExhausted)?;
-
-        // Preserve the existing lifecycle authority's duplicate/open/finalizing
-        // errors. A stale ledger interval is only a distinct invariant when the
-        // lifecycle itself is idle and would otherwise admit a new tick.
         if self.authority.open_tick_id().is_none() && self.physical_tick_start.is_some() {
             return Err(ThermodynamicRuntimeError::PhysicalLedgerIntervalStillOpen);
         }
@@ -401,7 +393,6 @@ impl ThermodynamicTransactionRuntime {
         )?)
     }
 
-    /// Production physical promotion using the runtime-owned canonical ledger.
     pub fn promote_friction_loss_owned<const D: usize>(
         &mut self,
         body_a: &mut RigidBody<D>,
@@ -420,8 +411,82 @@ impl ThermodynamicTransactionRuntime {
         )?)
     }
 
-    /// Test-only compatibility adapter for older corpora that supply a ledger.
-    /// Production builds expose only the runtime-owned ledger promotion path.
+    /// Atomically execute one friction transaction through a terminal lifecycle
+    /// state before returning control to later solver mechanics.
+    ///
+    /// If terminalization fails, every field touched by this transaction is
+    /// restored: A/B linear and angular velocity, A/B thermal state, private
+    /// friction journal, private physical ledger, and reservation registry.
+    /// Positions and other body fields are not touched by friction mechanics.
+    pub fn execute_terminal_friction_impulse_at<const D: usize>(
+        &mut self,
+        body_a: &mut RigidBody<D>,
+        body_b: &mut RigidBody<D>,
+        contact_point: &SVector<f64, D>,
+        impulse_on_b: &SVector<f64, D>,
+        coordinates: FrictionSolverCoordinates,
+        partition: HeatPartition,
+    ) -> Result<TerminalFrictionReceipt, RuntimeFrictionError> {
+        let original_linear_a = body_a.linear_velocity;
+        let original_linear_b = body_b.linear_velocity;
+        let original_angular_a = body_a.angular_velocity;
+        let original_angular_b = body_b.angular_velocity;
+        let original_thermal_a = body_a.thermal;
+        let original_thermal_b = body_b.thermal;
+        let original_journal = self.friction_journal.clone();
+        let original_ledger = self.physical_ledger.clone();
+        let original_reserved = self.reserved_friction.clone();
+
+        let result = (|| {
+            let applied = self.apply_friction_impulse_at(
+                body_a,
+                body_b,
+                contact_point,
+                impulse_on_b,
+                coordinates,
+            )?;
+            let transaction_id = applied.transaction_id();
+
+            let outcome = if applied
+                .observation()
+                .centered_promotable_loss_candidate_joules()
+                .is_some()
+            {
+                TerminalFrictionOutcome::Promoted(self.promote_friction_loss_owned(
+                    body_a,
+                    body_b,
+                    &applied,
+                    partition,
+                )?)
+            } else {
+                TerminalFrictionOutcome::Diagnostic(self.finalize_friction_diagnostic(
+                    body_a,
+                    body_b,
+                    &applied,
+                )?)
+            };
+
+            Ok(TerminalFrictionReceipt {
+                transaction_id,
+                outcome,
+            })
+        })();
+
+        if result.is_err() {
+            body_a.linear_velocity = original_linear_a;
+            body_b.linear_velocity = original_linear_b;
+            body_a.angular_velocity = original_angular_a;
+            body_b.angular_velocity = original_angular_b;
+            body_a.thermal = original_thermal_a;
+            body_b.thermal = original_thermal_b;
+            self.friction_journal = original_journal;
+            self.physical_ledger = original_ledger;
+            self.reserved_friction = original_reserved;
+        }
+
+        result
+    }
+
     #[cfg(test)]
     pub(crate) fn promote_friction_loss<const D: usize>(
         &mut self,
@@ -478,9 +543,6 @@ impl ThermodynamicTransactionRuntime {
         Ok(self.authority.rollback_finalize(permit)?)
     }
 
-    /// Commit one tick and structurally bind the exact physical transfer segment
-    /// authored since its successful begin. The canonical ledger remains append-only;
-    /// the next tick simply opens at the current ledger length.
     pub fn commit_finalize_and_rotate(
         &mut self,
         permit: &ThermodynamicFinalizePermit,
