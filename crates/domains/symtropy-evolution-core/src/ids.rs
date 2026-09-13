@@ -62,6 +62,10 @@ semantic_id!(CausalSelectionIdentificationId);
 semantic_id!(IdentificationEvidenceAuthorityId);
 semantic_id!(IdentificationQualificationAuthorityId);
 semantic_id!(CausalSelectionEffectId);
+semantic_id!(CompleteRandomizationReferenceId);
+semantic_id!(AssignmentMaterializationAuthorityId);
+semantic_id!(AssignmentMaterializationQualificationAuthorityId);
+semantic_id!(AssignmentExchangeabilityAuthorityId);
 
 #[cfg(test)]
 mod tests {
@@ -116,6 +120,19 @@ mod tests {
             "identification-qualification-0001"
         );
         assert_wire_contract!(CausalSelectionEffectId, "causal-effect-0001");
+        assert_wire_contract!(CompleteRandomizationReferenceId, "randomization-reference-0001");
+        assert_wire_contract!(
+            AssignmentMaterializationAuthorityId,
+            "assignment-materialization-0001"
+        );
+        assert_wire_contract!(
+            AssignmentMaterializationQualificationAuthorityId,
+            "assignment-materialization-qualification-0001"
+        );
+        assert_wire_contract!(
+            AssignmentExchangeabilityAuthorityId,
+            "assignment-exchangeability-0001"
+        );
     }
 
     #[test]
