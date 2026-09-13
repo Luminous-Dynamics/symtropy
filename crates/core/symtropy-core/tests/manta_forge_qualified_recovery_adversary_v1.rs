@@ -138,12 +138,9 @@ fn nominal_h4_state_and_support_graph_are_identical_before_recovery_contract_use
 #[test]
 fn equal_h4_basis_closure_and_state_can_diverge_under_same_disturbance_by_recoverability() {
     let case = h4_case();
-    let mut recoverable = fresh_recovery_successor(&case);
-    let mut unrecoverable = fresh_recovery_successor(&case);
-    assert_eq!(recoverable, unrecoverable);
-
+    let successor_spec = recovery_successor_spec(&case);
     let contract = qualify_industrial_recovery_contract(
-        &recoverable,
+        &successor_spec,
         "recover-metrology-v4",
         "recovery:metrology-v4:qualified-v1",
         "metrology-v4",
@@ -156,6 +153,10 @@ fn equal_h4_basis_closure_and_state_can_diverge_under_same_disturbance_by_recove
         contract.qualified_units_per_tick(),
         recovery_scalar("qualified_recovery_units_per_tick")
     );
+
+    let mut recoverable = fresh_recovery_successor(&case);
+    let mut unrecoverable = fresh_recovery_successor(&case);
+    assert_eq!(recoverable, unrecoverable);
 
     let disturbance = IndustrialShock::SetLocalProduction {
         dependency_id: "metrology-v4".into(),
