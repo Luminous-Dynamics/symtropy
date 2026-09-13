@@ -1,8 +1,8 @@
 use crate::{
     canonical::{fmt_hex, put_text, put_u32, put_u64}, AnalysisAuthorityRef,
-    ReproductionEventId, ReproductionProvenanceDigest, ReproductiveContactStudyDesign,
-    ReproductiveContactStudyDesignDigest, ReproductiveOpportunityId,
-    ValidatedReproductiveContactStudyDesign,
+    EvolutionIndividualId, ReproductionEventId, ReproductionProvenanceDigest,
+    ReproductiveContactStudyDesign, ReproductiveContactStudyDesignDigest,
+    ReproductiveOpportunityId, ValidatedReproductiveContactStudyDesign,
 };
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
@@ -54,6 +54,8 @@ impl ReproductiveStageEvidence {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ObservedOffspringEvidence {
     pub event_id: ReproductionEventId,
+    pub parent_a: EvolutionIndividualId,
+    pub parent_b: EvolutionIndividualId,
     pub reproduction_provenance_digest: ReproductionProvenanceDigest,
     pub parentage_authority: AnalysisAuthorityRef,
     pub parentage_evidence: AnalysisAuthorityRef,
@@ -62,6 +64,8 @@ pub struct ObservedOffspringEvidence {
 impl ObservedOffspringEvidence {
     fn put(&self, digest: &mut Sha256) {
         put_text(digest, self.event_id.as_str());
+        put_text(digest, self.parent_a.as_str());
+        put_text(digest, self.parent_b.as_str());
         digest.update(self.reproduction_provenance_digest.as_bytes());
         put_authority(digest, &self.parentage_authority);
         put_authority(digest, &self.parentage_evidence);
@@ -722,10 +726,23 @@ fn validate_record(
         ));
     }
     validate_outcome(design, &record.opportunity_id, &record.outcome)?;
-    if let Some(parentage) = record.outcome.offspring().map(|offspring| &offspring.parentage_authority)
-    {
-        if parentage != &design.parentage_authority {
+    if let Some(offspring) = record.outcome.offspring() {
+        if offspring.parentage_authority != design.parentage_authority {
             return Err(ReproductiveContactEvidenceError::ParentageAuthorityMismatch(
+                record.opportunity_id.clone(),
+            ));
+        }
+        let declaration = design
+            .opportunities
+            .iter()
+            .find(|declaration| declaration.opportunity_id == record.opportunity_id)
+            .ok_or_else(|| {
+                ReproductiveContactEvidenceError::MissingOpportunity(record.opportunity_id.clone())
+            })?;
+        if &offspring.parent_a != declaration.parent_a_id()
+            || &offspring.parent_b != declaration.parent_b_id()
+        {
+            return Err(ReproductiveContactEvidenceError::OffspringParentIdentityMismatch(
                 record.opportunity_id.clone(),
             ));
         }
@@ -825,6 +842,7 @@ pub enum ReproductiveContactEvidenceError {
     },
     DemographyAuthorityMismatch(ReproductiveOpportunityId),
     ParentageAuthorityMismatch(ReproductiveOpportunityId),
+    OffspringParentIdentityMismatch(ReproductiveOpportunityId),
     GeneFlowAuthorityMismatch(ReproductiveOpportunityId),
     MissingDataAuthorityMismatch(ReproductiveOpportunityId),
     DesignBindingMismatch,
@@ -876,6 +894,11 @@ impl fmt::Display for ReproductiveContactEvidenceError {
             Self::ParentageAuthorityMismatch(id) => write!(
                 f,
                 "opportunity {} changes the preregistered parentage authority",
+                id.as_str()
+            ),
+            Self::OffspringParentIdentityMismatch(id) => write!(
+                f,
+                "opportunity {} binds offspring evidence to a different persistent parent pair",
                 id.as_str()
             ),
             Self::GeneFlowAuthorityMismatch(id) => write!(
