@@ -9412,6 +9412,7 @@ dependencies = [
  "bevy_mesh",
  "futures-lite",
  "image 0.25.10",
+ "naga 27.0.3",
  "nalgebra 0.34.2",
  "rapier3d",
  "symtropy-math",

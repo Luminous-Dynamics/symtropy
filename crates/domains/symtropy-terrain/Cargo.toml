@@ -16,3 +16,9 @@ image = "0.25"
 bevy = { version = "0.19", default-features = false, features = ["bevy_render", "bevy_asset", "bevy_image", "bevy_state", "bevy_log", "multi_threaded"] }
 bevy_mesh = "0.19"
 futures-lite = "2.0"
+# Cargo resolver v2 does not inherit the launcher's naga@27 feature selection
+# when qualifying this package alone. Bevy 0.19/naga_oil activates
+# codespan-reporting 0.12 termcolor in the same graph, so explicitly select
+# naga@27/termcolor here to keep Naga 27's DiagnosticBuffer representation
+# consistent with the unified codespan-reporting feature set.
+naga = { version = "27", default-features = false, features = ["termcolor"] }
