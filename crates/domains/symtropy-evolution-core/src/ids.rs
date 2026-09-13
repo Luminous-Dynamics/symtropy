@@ -64,6 +64,7 @@ semantic_id!(IdentificationQualificationAuthorityId);
 semantic_id!(CausalSelectionEffectId);
 semantic_id!(CompleteRandomizationReferenceId);
 semantic_id!(AssignmentMaterializationAuthorityId);
+semantic_id!(AssignmentMaterializationQualificationAuthorityId);
 semantic_id!(AssignmentExchangeabilityAuthorityId);
 
 #[cfg(test)]
@@ -123,6 +124,10 @@ mod tests {
         assert_wire_contract!(
             AssignmentMaterializationAuthorityId,
             "assignment-materialization-0001"
+        );
+        assert_wire_contract!(
+            AssignmentMaterializationQualificationAuthorityId,
+            "assignment-materialization-qualification-0001"
         );
         assert_wire_contract!(
             AssignmentExchangeabilityAuthorityId,
