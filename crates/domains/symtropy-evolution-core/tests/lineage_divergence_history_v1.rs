@@ -2,14 +2,14 @@ use std::collections::BTreeMap;
 use symtropy_evolution_core::{
     AlleleId, AnalysisAuthorityRef, AnalysisContentDigest, AnalysisMethodId, EvolutionError,
     EvolutionExperimentId, HereditarySchema, HereditarySchemaId, LineageDivergenceHistory,
-    LineageDivergenceHistoryDesign, LineageDivergenceHistoryError,
-    LineageDivergenceHistoryId, LineageDivergenceHistoryStatus,
-    LineageHistoryContextPolicy, LineageHistoryEvidenceProtocols, LineageHistoryGenerationInput,
-    LineageHistoryMissingPolicy, LineageHistoryEpisodeId, LineageHistoryEpisodeInput,
-    LineageHistoryEpisodeKind, LineageObservationInput, LineagePersistenceInput,
-    LocusDefinition, LocusId, ObservedLineageGenerationInput, PopulationGeneration,
-    PopulationGeneticState, PopulationId, PopulationTrajectoryPoint,
-    ValidatedLineageDivergenceHistory, ValidatedLineageDivergenceHistoryDesign,
+    LineageDivergenceHistoryDesign, LineageDivergenceHistoryError, LineageDivergenceHistoryId,
+    LineageDivergenceHistoryStatus, LineageHistoryContextPolicy, LineageHistoryEpisodeId,
+    LineageHistoryEpisodeInput, LineageHistoryEpisodeKind, LineageHistoryEvidenceProtocols,
+    LineageHistoryGenerationInput, LineageHistoryGenerationRecord, LineageHistoryMissingPolicy,
+    LineageObservationInput, LineagePersistenceInput, LocusDefinition, LocusId,
+    ObservedLineageGenerationInput, PopulationGeneration, PopulationGeneticState, PopulationId,
+    PopulationTrajectoryPoint, ValidatedLineageDivergenceHistory,
+    ValidatedLineageDivergenceHistoryDesign,
 };
 
 fn authority(label: &str, byte: u8) -> AnalysisAuthorityRef {
@@ -20,7 +20,9 @@ fn authority(label: &str, byte: u8) -> AnalysisAuthorityRef {
     )
 }
 
-fn allele(id: &str) -> AlleleId { AlleleId::new(id).unwrap() }
+fn allele(id: &str) -> AlleleId {
+    AlleleId::new(id).unwrap()
+}
 
 fn schema() -> HereditarySchema {
     HereditarySchema::new(
@@ -68,6 +70,7 @@ fn fixture() -> HistoryFixture {
     let mut b_populations = Vec::new();
     let mut a_points = Vec::new();
     let mut b_points = Vec::new();
+
     for generation in 1..=3 {
         let a = population(&schema, "lineage-a-pop", 3, 1);
         let b = population(&schema, "lineage-b-pop", 1, 3);
@@ -92,6 +95,7 @@ fn fixture() -> HistoryFixture {
         a_populations.push(a);
         b_populations.push(b);
     }
+
     HistoryFixture {
         schema,
         a_populations,
@@ -166,7 +170,11 @@ fn observed_input<'a>(
     kind: GenerationKind,
 ) -> LineageHistoryGenerationInput<'a> {
     let index = (generation - 1) as usize;
-    let context_byte = if matches!(kind, GenerationKind::ContextDrift) { 91 } else { 90 };
+    let context_byte = if matches!(kind, GenerationKind::ContextDrift) {
+        91
+    } else {
+        90
+    };
     let persistence_b = if matches!(kind, GenerationKind::NotPersistent) {
         LineagePersistenceInput::NotPersistent {
             evidence: authority("lineage-b-not-persistent", 41),
@@ -239,7 +247,7 @@ fn observed_input<'a>(
     })
 }
 
-fn clean_inputs<'a>(fixture: &'a HistoryFixture) -> Vec<LineageHistoryGenerationInput<'a>> {
+fn clean_inputs(fixture: &HistoryFixture) -> Vec<LineageHistoryGenerationInput<'_>> {
     vec![
         observed_input(fixture, 3, GenerationKind::Clean),
         observed_input(fixture, 1, GenerationKind::Clean),
@@ -265,10 +273,8 @@ fn complete_clean_history_is_persistent_and_replays_from_current_population_stat
             .generations
             .iter()
             .map(|record| match record {
-                symtropy_evolution_core::LineageHistoryGenerationRecord::Observed(record) => {
-                    record.generation.0
-                }
-                symtropy_evolution_core::LineageHistoryGenerationRecord::Unavailable { generation, .. } => generation.0,
+                LineageHistoryGenerationRecord::Observed(record) => record.generation.0,
+                LineageHistoryGenerationRecord::Unavailable { generation, .. } => generation.0,
             })
             .collect::<Vec<_>>(),
         vec![1, 2, 3]
@@ -285,7 +291,10 @@ fn complete_clean_history_is_persistent_and_replays_from_current_population_stat
         clean_inputs(&fixture),
     )
     .unwrap();
-    assert_eq!(validated.history_digest(), history.canonical_digest().unwrap());
+    assert_eq!(
+        validated.history_digest(),
+        history.canonical_digest().unwrap()
+    );
 }
 
 #[test]
@@ -305,7 +314,10 @@ fn recontact_and_gene_flow_remain_explicit_without_erasing_divergence() {
         ],
     )
     .unwrap();
-    assert_eq!(history.status, LineageDivergenceHistoryStatus::DivergenceWithRecontact);
+    assert_eq!(
+        history.status,
+        LineageDivergenceHistoryStatus::DivergenceWithRecontact
+    );
 }
 
 #[test]
@@ -326,7 +338,10 @@ fn fusion_and_loss_of_persistence_are_stronger_counterhistory_states() {
         ],
     )
     .unwrap();
-    assert_eq!(fused.status, LineageDivergenceHistoryStatus::LineageFusionObserved);
+    assert_eq!(
+        fused.status,
+        LineageDivergenceHistoryStatus::LineageFusionObserved
+    );
 
     let not_persistent = LineageDivergenceHistory::capture(
         &current,
@@ -337,7 +352,10 @@ fn fusion_and_loss_of_persistence_are_stronger_counterhistory_states() {
         ],
     )
     .unwrap();
-    assert_eq!(not_persistent.status, LineageDivergenceHistoryStatus::NotPersistent);
+    assert_eq!(
+        not_persistent.status,
+        LineageDivergenceHistoryStatus::NotPersistent
+    );
 }
 
 #[test]
@@ -360,7 +378,10 @@ fn unavailable_history_is_explicit_or_fail_closed_under_frozen_policy() {
         ],
     )
     .unwrap();
-    assert_eq!(history.status, LineageDivergenceHistoryStatus::InsufficientEvidence);
+    assert_eq!(
+        history.status,
+        LineageDivergenceHistoryStatus::InsufficientEvidence
+    );
 
     let fail_closed = design_with(
         LineageHistoryMissingPolicy::FailClosed,
@@ -423,7 +444,9 @@ fn omitted_duplicate_generation_and_context_drift_fail_closed() {
                 observed_input(&fixture, 2, GenerationKind::Clean),
             ],
         ),
-        Err(LineageDivergenceHistoryError::DuplicateGeneration(PopulationGeneration(2)))
+        Err(LineageDivergenceHistoryError::DuplicateGeneration(
+            PopulationGeneration(2)
+        ))
     ));
 
     assert!(matches!(
@@ -458,15 +481,25 @@ fn stale_population_state_cannot_replay_a_persisted_trajectory_point() {
         lineage_b_population: &fixture.b_populations[0],
         lineage_a_membership_evidence: authority("lineage-a-membership", 30),
         lineage_b_membership_evidence: authority("lineage-b-membership", 31),
-        lineage_a_persistence: LineagePersistenceInput::Persistent { evidence: authority("lineage-a-persistent", 39) },
-        lineage_b_persistence: LineagePersistenceInput::Persistent { evidence: authority("lineage-b-persistent", 40) },
+        lineage_a_persistence: LineagePersistenceInput::Persistent {
+            evidence: authority("lineage-a-persistent", 39),
+        },
+        lineage_b_persistence: LineagePersistenceInput::Persistent {
+            evidence: authority("lineage-b-persistent", 40),
+        },
         ancestry_relation_evidence: authority("ancestry-relation", 32),
         context_evidence: authority("context-observation", 90),
         population_structure_evidence: authority("structure-observation", 33),
         demographic_episode_census_evidence: authority("episode-census", 34),
-        recontact: LineageObservationInput::NoneObserved { evidence: authority("recontact-none", 51) },
-        gene_flow: LineageObservationInput::NoneObserved { evidence: authority("gene-flow-none", 53) },
-        fusion: LineageObservationInput::NoneObserved { evidence: authority("fusion-none", 55) },
+        recontact: LineageObservationInput::NoneObserved {
+            evidence: authority("recontact-none", 51),
+        },
+        gene_flow: LineageObservationInput::NoneObserved {
+            evidence: authority("gene-flow-none", 53),
+        },
+        fusion: LineageObservationInput::NoneObserved {
+            evidence: authority("fusion-none", 55),
+        },
         episodes: vec![],
     });
     assert!(matches!(
@@ -502,6 +535,25 @@ fn serialized_status_tampering_is_locally_invalid() {
     ));
 }
 
+#[test]
+fn serialized_lineage_subject_transplant_is_locally_invalid() {
+    let fixture = fixture();
+    let design = design_with(
+        LineageHistoryMissingPolicy::ReportInsufficientEvidence,
+        LineageHistoryContextPolicy::ExactAcrossInterval,
+    );
+    let current = current_design(&design);
+    let history = LineageDivergenceHistory::capture(&current, clean_inputs(&fixture)).unwrap();
+    let mut value = serde_json::to_value(history).unwrap();
+    value["generations"][0]["Observed"]["lineage_a_membership"]["lineage"] =
+        serde_json::to_value(authority("lineage-b", 21)).unwrap();
+    let changed: LineageDivergenceHistory = serde_json::from_value(value).unwrap();
+    assert!(matches!(
+        changed.canonical_digest(),
+        Err(LineageDivergenceHistoryError::LineageSubjectBindingMismatch)
+    ));
+}
+
 fn collect_keys(value: &serde_json::Value, keys: &mut Vec<String>) {
     match value {
         serde_json::Value::Object(object) => {
@@ -511,7 +563,9 @@ fn collect_keys(value: &serde_json::Value, keys: &mut Vec<String>) {
             }
         }
         serde_json::Value::Array(values) => {
-            for nested in values { collect_keys(nested, keys); }
+            for nested in values {
+                collect_keys(nested, keys);
+            }
         }
         _ => {}
     }
