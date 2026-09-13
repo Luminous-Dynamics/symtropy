@@ -318,13 +318,13 @@ impl HeritableResponseStudy {
         }
         for (offset, record) in self.records.iter().enumerate() {
             record.validate_local()?;
-            let expected = self
+            let expected_generation = self
                 .design
                 .start_generation
                 .0
                 .checked_add(offset as u64)
                 .ok_or(HeritableResponseError::ArithmeticOverflow)?;
-            if record.generation.0 != expected {
+            if record.generation.0 != expected_generation {
                 return Err(HeritableResponseError::NonCanonicalGenerationOrder);
             }
             validate_record_against_design(&self.design, record)?;
@@ -454,7 +454,7 @@ fn validate_record_against_design(
     Ok(())
 }
 
-#[derive(Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum DirectionClass {
     Expected,
     Neutral,
@@ -479,11 +479,7 @@ fn derive_status(
             return Ok(HeritableResponseStudyStatus::InsufficientEvidence);
         }
     }
-    let hereditary = frequency_direction(
-        records.first().expect("length checked"),
-        records.last().expect("length checked"),
-        design.expected_direction,
-    );
+    let hereditary = classify_hereditary_trajectory(records, design.expected_direction);
     let trait_direction = classify_trait_direction(design, &records[1..]);
     Ok(match (hereditary, trait_direction) {
         (DirectionClass::Expected, DirectionClass::Expected) => {
@@ -507,13 +503,52 @@ fn derive_status(
     })
 }
 
-fn frequency_direction(
-    first: &GenerationResponseRecord,
-    last: &GenerationResponseRecord,
+fn classify_hereditary_trajectory(
+    records: &[GenerationResponseRecord],
     expected: ExpectedHeritableResponseDirection,
 ) -> DirectionClass {
-    let left = u128::from(last.focal_class_count) * u128::from(first.census_size);
-    let right = u128::from(first.focal_class_count) * u128::from(last.census_size);
+    classify_frequency_trajectory(
+        records
+            .iter()
+            .map(|record| (record.focal_class_count, record.census_size)),
+        expected,
+    )
+}
+
+fn classify_frequency_trajectory(
+    frequencies: impl IntoIterator<Item = (u64, u64)>,
+    expected: ExpectedHeritableResponseDirection,
+) -> DirectionClass {
+    let frequencies = frequencies.into_iter().collect::<Vec<_>>();
+    let mut saw_expected = false;
+    let mut saw_opposite = false;
+    for pair in frequencies.windows(2) {
+        match pair_frequency_direction(pair[0], pair[1], expected) {
+            DirectionClass::Expected => saw_expected = true,
+            DirectionClass::Opposite => saw_opposite = true,
+            DirectionClass::Neutral => {}
+            DirectionClass::Mixed => unreachable!("one transition cannot be mixed"),
+        }
+        if saw_expected && saw_opposite {
+            return DirectionClass::Mixed;
+        }
+    }
+    if saw_expected {
+        DirectionClass::Expected
+    } else if saw_opposite {
+        DirectionClass::Opposite
+    } else {
+        DirectionClass::Neutral
+    }
+}
+
+fn pair_frequency_direction(
+    first: (u64, u64),
+    second: (u64, u64),
+    expected: ExpectedHeritableResponseDirection,
+) -> DirectionClass {
+    let left = u128::from(second.0) * u128::from(first.1);
+    let right = u128::from(first.0) * u128::from(second.1);
     let observed = left.cmp(&right);
     let expected_ordering = match expected {
         ExpectedHeritableResponseDirection::ComparisonFrequencyIncrease => Ordering::Greater,
@@ -659,3 +694,26 @@ impl fmt::Display for HeritableResponseError {
 }
 
 impl Error for HeritableResponseError {}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn favorable_endpoint_cannot_hide_internal_frequency_reversal() {
+        let class = classify_frequency_trajectory(
+            [(3, 4), (1, 4), (2, 4)],
+            ExpectedHeritableResponseDirection::ComparisonFrequencyDecrease,
+        );
+        assert_eq!(class, DirectionClass::Mixed);
+    }
+
+    #[test]
+    fn plateaus_do_not_erase_consistent_directional_response() {
+        let class = classify_frequency_trajectory(
+            [(3, 4), (3, 4), (2, 4), (2, 4), (1, 4)],
+            ExpectedHeritableResponseDirection::ComparisonFrequencyDecrease,
+        );
+        assert_eq!(class, DirectionClass::Expected);
+    }
+}
