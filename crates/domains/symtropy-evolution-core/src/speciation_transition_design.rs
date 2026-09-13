@@ -117,6 +117,8 @@ pub struct SpeciationTransitionDesign {
     pub species_model_digest: BiologicalSpeciesModelDigest,
     pub species_model_content_digest: SpeciesModelContentDigest,
     pub validity_domain_digest: SpeciesModelValidityDomainDigest,
+    pub history_start_generation: PopulationGeneration,
+    pub history_end_generation: PopulationGeneration,
     pub candidate_start_generation: PopulationGeneration,
     pub candidate_end_generation: PopulationGeneration,
     pub candidate_generation_count: u64,
@@ -201,6 +203,8 @@ impl SpeciationTransitionDesign {
             species_model_digest: species_model.model_digest(),
             species_model_content_digest: model.model_content_digest,
             validity_domain_digest: model.validity_domain.canonical_digest(),
+            history_start_generation: history.start_generation,
+            history_end_generation: history.end_generation,
             candidate_start_generation,
             candidate_end_generation,
             candidate_generation_count,
@@ -230,6 +234,8 @@ impl SpeciationTransitionDesign {
         digest.update(self.species_model_digest.as_bytes());
         digest.update(self.species_model_content_digest.as_bytes());
         digest.update(self.validity_domain_digest.as_bytes());
+        put_u64(&mut digest, self.history_start_generation.0);
+        put_u64(&mut digest, self.history_end_generation.0);
         put_u64(&mut digest, self.candidate_start_generation.0);
         put_u64(&mut digest, self.candidate_end_generation.0);
         put_u64(&mut digest, self.candidate_generation_count);
@@ -250,6 +256,9 @@ impl SpeciationTransitionDesign {
         if self.lineage_a == self.lineage_b {
             return Err(SpeciationTransitionDesignError::LineagePairMismatch);
         }
+        if self.history_start_generation.0 >= self.history_end_generation.0 {
+            return Err(SpeciationTransitionDesignError::InvalidHistoryInterval);
+        }
         let expected_count = self
             .candidate_end_generation
             .0
@@ -262,12 +271,22 @@ impl SpeciationTransitionDesign {
         if expected_count != self.candidate_generation_count {
             return Err(SpeciationTransitionDesignError::CandidateGenerationCountInvariant);
         }
+        if self.candidate_start_generation.0 <= self.history_start_generation.0
+            || self.candidate_end_generation.0 >= self.history_end_generation.0
+        {
+            return Err(SpeciationTransitionDesignError::MissingBeforeAfterCoverage);
+        }
         if self.pre_transition_generation.0.checked_add(1)
             != Some(self.candidate_start_generation.0)
             || self.candidate_end_generation.0.checked_add(1)
                 != Some(self.post_transition_generation.0)
         {
             return Err(SpeciationTransitionDesignError::BeforeAfterGenerationInvariant);
+        }
+        if self.pre_transition_generation.0 < self.history_start_generation.0
+            || self.post_transition_generation.0 > self.history_end_generation.0
+        {
+            return Err(SpeciationTransitionDesignError::BeforeAfterOutsideHistory);
         }
         if self.transition_rule_authority != historical_speciation_transition_rule_v1() {
             return Err(SpeciationTransitionDesignError::TransitionRuleMismatch);
@@ -359,11 +378,13 @@ pub enum SpeciationTransitionDesignError {
     LineagePairMismatch,
     CurrentSpeciesDesignMismatch,
     SpeciesModelMismatch,
+    InvalidHistoryInterval,
     InvalidCandidateInterval,
     ExactTransitionGenerationForbidden,
     MissingBeforeAfterCoverage,
     CandidateGenerationCountInvariant,
     BeforeAfterGenerationInvariant,
+    BeforeAfterOutsideHistory,
     TransitionRuleMismatch,
     ArithmeticOverflow,
     ReplayMismatch,
@@ -387,6 +408,7 @@ impl fmt::Display for SpeciationTransitionDesignError {
                 f,
                 "SEL-10C and SEL-10B species-model identities do not match"
             ),
+            Self::InvalidHistoryInterval => write!(f, "invalid stored SEL-10A history interval"),
             Self::InvalidCandidateInterval => write!(f, "invalid candidate transition interval"),
             Self::ExactTransitionGenerationForbidden => write!(
                 f,
@@ -403,6 +425,10 @@ impl fmt::Display for SpeciationTransitionDesignError {
             Self::BeforeAfterGenerationInvariant => write!(
                 f,
                 "stored before/after generations are not immediately adjacent to the candidate interval"
+            ),
+            Self::BeforeAfterOutsideHistory => write!(
+                f,
+                "stored before/after generations are outside the frozen SEL-10A history interval"
             ),
             Self::TransitionRuleMismatch => write!(
                 f,
