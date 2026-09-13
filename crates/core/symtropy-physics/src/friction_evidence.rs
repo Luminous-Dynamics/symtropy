@@ -115,18 +115,22 @@ impl<const D: usize> FrictionMechanicalObservation<D> {
     }
 }
 
-/// Non-cloneable binding between one applied mechanical transition and its
-/// deterministic solver transaction identity.
+/// Non-cloneable binding between one applied mechanical transition, its exact
+/// post-state, and its deterministic solver transaction identity.
 ///
 /// External callers cannot manufacture this token from an unbound observation;
 /// it is created only by [`apply_friction_impulse_measured_bound`], which applies
-/// the mechanical impulse as part of producing the evidence. This prevents the
-/// same already-applied observation from being casually relabeled with a second
-/// transaction id before physical promotion.
+/// the mechanical impulse as part of producing the evidence. Private post-state
+/// snapshots prevent a later state with coincidentally equal kinetic energy from
+/// being mistaken for the state that actually produced the observation.
 #[derive(Debug, PartialEq)]
 pub struct BoundFrictionMechanicalObservation<const D: usize> {
     transaction_id: FrictionTransactionId,
     observation: FrictionMechanicalObservation<D>,
+    post_linear_velocity_a: SVector<f64, D>,
+    post_linear_velocity_b: SVector<f64, D>,
+    post_angular_velocity_a: Bivector<D>,
+    post_angular_velocity_b: Bivector<D>,
 }
 
 impl<const D: usize> BoundFrictionMechanicalObservation<D> {
@@ -136,6 +140,24 @@ impl<const D: usize> BoundFrictionMechanicalObservation<D> {
 
     pub fn observation(&self) -> &FrictionMechanicalObservation<D> {
         &self.observation
+    }
+
+    /// Exact freshness check used by the in-crate physical promotion layer.
+    ///
+    /// Equality is intentional: this is an exactly-once solver transaction
+    /// boundary, not a fuzzy physical-state comparison. Any later mechanics,
+    /// even if they preserve scalar kinetic energy, make the token stale.
+    pub(crate) fn matches_post_state(
+        &self,
+        body_a: &RigidBody<D>,
+        body_b: &RigidBody<D>,
+    ) -> bool {
+        self.observation.body_a == body_a.handle
+            && self.observation.body_b == body_b.handle
+            && self.post_linear_velocity_a == body_a.linear_velocity
+            && self.post_linear_velocity_b == body_b.linear_velocity
+            && self.post_angular_velocity_a == body_a.angular_velocity
+            && self.post_angular_velocity_b == body_b.angular_velocity
     }
 }
 
@@ -313,7 +335,7 @@ pub fn apply_friction_impulse_measured<const D: usize>(
 }
 
 /// Apply one friction impulse and bind the resulting mechanical observation to
-/// a deterministic solver transaction identity.
+/// a deterministic solver transaction identity and exact post-mechanical state.
 ///
 /// This is the only constructor for [`BoundFrictionMechanicalObservation`].
 /// The returned token is intentionally non-cloneable and is the input expected
@@ -330,6 +352,10 @@ pub fn apply_friction_impulse_measured_bound<const D: usize>(
     Ok(BoundFrictionMechanicalObservation {
         transaction_id,
         observation,
+        post_linear_velocity_a: body_a.linear_velocity,
+        post_linear_velocity_b: body_b.linear_velocity,
+        post_angular_velocity_a: body_a.angular_velocity,
+        post_angular_velocity_b: body_b.angular_velocity,
     })
 }
 
@@ -377,7 +403,7 @@ mod tests {
     }
 
     #[test]
-    fn bound_observation_carries_immutable_solver_identity() {
+    fn bound_observation_carries_identity_and_exact_post_state() {
         let mut a = body(1, [0.0, 0.0, 0.0], 1.0);
         let mut b = body(2, [0.0, 0.0, 0.0], 0.0);
         let id = FrictionTransactionId::new(9, 2, 4, 1);
@@ -395,6 +421,13 @@ mod tests {
             bound.observation().delta,
             FrictionMechanicalDelta::DissipationCandidate { joules: 0.25 }
         );
+        assert!(bound.matches_post_state(&a, &b));
+
+        // Change direction while preserving body A's scalar kinetic energy.
+        // A KE-only freshness check could miss this; exact state binding cannot.
+        let speed = a.linear_velocity.norm();
+        a.linear_velocity = SVector::from([0.0, speed, 0.0]);
+        assert!(!bound.matches_post_state(&a, &b));
     }
 
     #[test]
