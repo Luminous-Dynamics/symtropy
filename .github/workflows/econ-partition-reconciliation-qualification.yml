@@ -14,7 +14,7 @@ concurrency:
 
 env:
   CARGO_TERM_COLOR: always
-  PRODUCT_HEAD: 6a1257fd793c30e74cddf2a001a82ca6e7d97b4e
+  PRODUCT_HEAD: 97b1be1c58577349af8586fc1a56118d7034419b
   ECON03_PARENT: 3f822df416ba409966171cb4dccc22fb1c27c6fd
 
 jobs:
@@ -38,7 +38,7 @@ jobs:
           git merge-base --is-ancestor "${ECON03_PARENT}" "${PRODUCT_HEAD}"
           count="$(git rev-list --count "${ECON03_PARENT}..${PRODUCT_HEAD}")"
           echo "econ03b_commits_above_parent=${count}"
-          test "${count}" = "3"
+          test "${count}" = "4"
 
       - name: Set up pinned Rust
         uses: dtolnay/rust-toolchain@stable
@@ -119,10 +119,12 @@ jobs:
           grep -Fq 'SharedGlobalEconomicState' "${source}"
           grep -Fq 'DuplicateAuthoritativeStock' "${source}"
           grep -Fq 'DuplicateAuthoritativeAccount' "${source}"
+          grep -Fq 'NonCanonicalPartitionStock' "${source}"
+          grep -Fq 'NonCanonicalPartitionAccounts' "${source}"
           grep -Fq 'PartitionReconciliationMismatch' "${source}"
           grep -Fq 'reconstruct(authoritative partitions + shared-global state)' "${contract}"
           grep -Fq '100 currency units globally' "${contract}"
-          grep -Fq 'copied observations are allowed' "${contract}" || true
+          grep -Fq 'duplicated observations are allowed; duplicated ownership/claims are not.' "${contract}"
 
           if grep -Eq 'pub[[:space:]]+fn[[:space:]]+set_(currency|supply|stock|account)' "${source}"; then
             echo 'forbidden generic partition authority setter found' >&2
@@ -201,7 +203,7 @@ jobs:
               "cargo_version": version(["cargo", "--version"]),
               "step_outcomes": outcomes,
               "overall": "pass" if all(v == "success" for v in outcomes.values()) else "fail",
-              "claim_boundary": "authoritative stock/account partition uniqueness plus single shared-global currency/history and exact manifest reconstruction only; no geographic partition correctness, distributed locking/consensus, cross-host atomic commit, live migration, or logistics authority",
+              "claim_boundary": "authoritative stock/account partition uniqueness plus canonical partition-local order, single shared-global currency/history and exact manifest reconstruction only; no geographic partition correctness, distributed locking/consensus, cross-host atomic commit, live migration, or logistics authority",
           }
           with open(os.environ["RECEIPT_PATH"], "w", encoding="utf-8") as handle:
               json.dump(receipt, handle, sort_keys=True, indent=2)
