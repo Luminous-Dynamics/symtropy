@@ -1,0 +1,135 @@
+name: Terrain Currentness Restack Integrity
+
+on:
+  push:
+    branches:
+      - "ci/terrain-currentness-restack-integrity-v0.1"
+    paths:
+      - ".github/workflows/terrain-currentness-restack-integrity.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    name: Audit frozen currentness restack composition
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Bind immutable restack subject
+        shell: bash
+        run: |
+          set -euo pipefail
+          subject=9481d748e8f8a196713464bdc3b3bcebf77dffda
+          pre_restack=60b73e023427f847ac3883564ddceaad777a2a01
+          final_locus=8db7fea0db9276c4922c2e812739396f14d0b56f
+          restack=78e2ab08cf0a17491da8f80a3905f5f5c260db3c
+          currentness=crates/domains/symtropy-terrain/src/geometry_currentness.rs
+          provider=crates/domains/symtropy-terrain/src/live_geometry_provider.rs
+          lib=crates/domains/symtropy-terrain/src/lib.rs
+          kernel=crates/domains/symtropy-terrain/src/geometry_kernel.rs
+          provider_qualifier=.github/workflows/terrain-ecs-lattice-geometry-provider-qualification.yml
+          locus_qualifier=.github/workflows/terrain-locus-mint-authority-qualification.yml
+          qualifier=.github/workflows/terrain-geometry-recapture-currentness-qualification.yml
+
+          test "$(git rev-parse HEAD^)" = "${subject}"
+          test "$(git rev-parse ${subject}^)" = "${restack}"
+          test "$(git rev-parse ${restack}^1)" = "${pre_restack}"
+          test "$(git rev-parse ${restack}^2)" = "${final_locus}"
+
+          test "$(git rev-parse ${subject}:${currentness})" = "2da7d9b27313ae24b45269171cf58ea6cd528de4"
+          test "$(git rev-parse ${pre_restack}:${currentness})" = "2da7d9b27313ae24b45269171cf58ea6cd528de4"
+          test "$(git rev-parse ${subject}:${provider})" = "543858ec733429ac41d39bd52eb2e39210806280"
+          test "$(git rev-parse ${pre_restack}:${provider})" = "543858ec733429ac41d39bd52eb2e39210806280"
+          test "$(git rev-parse ${subject}:${lib})" = "5f7d78067026f39b242823fcf7457fbeb2da10ed"
+          test "$(git rev-parse ${pre_restack}:${lib})" = "5f7d78067026f39b242823fcf7457fbeb2da10ed"
+          test "$(git rev-parse ${subject}:${kernel})" = "8d3e1213eacdeddf693cd2d1f82670d6ed832161"
+          test "$(git rev-parse ${subject}:${provider_qualifier})" = "b34b69a1eaf082a293998dece0356dbc4f596e23"
+          test "$(git rev-parse ${final_locus}:${provider_qualifier})" = "b34b69a1eaf082a293998dece0356dbc4f596e23"
+          test "$(git rev-parse ${subject}:${locus_qualifier})" = "dedef7a0ccd3a3d88654b66d48cc0130cda9002d"
+          test "$(git rev-parse ${final_locus}:${locus_qualifier})" = "dedef7a0ccd3a3d88654b66d48cc0130cda9002d"
+          test "$(git rev-parse ${subject}:${qualifier})" = "3b44ab7e0bb729a2690d2cd748e08061b0e3d3d0"
+
+          merge_delta="$(git diff --name-only ${pre_restack}..${restack} | sort)"
+          expected_merge_delta="$(printf '%s\n' "${provider_qualifier}" "${locus_qualifier}" | sort)"
+          test "${merge_delta}" = "${expected_merge_delta}"
+
+          old_to_subject="$(git diff --name-only ${pre_restack}..${subject} | sort)"
+          expected_evidence_delta="$(printf '%s\n' "${provider_qualifier}" "${locus_qualifier}" "${qualifier}" | sort)"
+          test "${old_to_subject}" = "${expected_evidence_delta}"
+
+          final_to_subject="$(git diff --name-only ${final_locus}..${subject} | sort)"
+          expected_product_delta="$(printf '%s\n' "${qualifier}" "${currentness}" "${provider}" "${lib}" | sort)"
+          test "${final_to_subject}" = "${expected_product_delta}"
+
+          echo "TERRAIN_CURRENTNESS_RESTACK_SUBJECT=${subject}"
+          echo "TERRAIN_CURRENTNESS_PRODUCT_BYTES=PRESERVED"
+          echo "TERRAIN_CURRENTNESS_INHERITED_PROVIDER_AND_LOCUS_QUALIFIERS=FINAL"
+
+      - name: Audit currentness theorem remains narrow
+        shell: bash
+        run: |
+          set -euo pipefail
+          git checkout --detach 9481d748e8f8a196713464bdc3b3bcebf77dffda
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+
+          source = Path("crates/domains/symtropy-terrain/src/geometry_currentness.rs").read_text()
+          provider = Path("crates/domains/symtropy-terrain/src/live_geometry_provider.rs").read_text()
+          lib = Path("crates/domains/symtropy-terrain/src/lib.rs").read_text()
+          qualifier = Path(".github/workflows/terrain-geometry-recapture-currentness-qualification.yml").read_text()
+          production = source.partition("#[cfg(test)]")[0]
+          executable = re.sub(r"//.*?$|/\*.*?\*/", "", production, flags=re.MULTILINE | re.DOTALL)
+
+          required = [
+              "pub fn verify_live_terrain_geometry_current(",
+              "let current = capture_live_terrain_geometry(world, entity)?;",
+              "expected.chunk() != current.chunk()",
+              "expected.digest() != current.digest()",
+              "Ok(current)",
+          ]
+          missing = [term for term in required if term not in production]
+          if missing:
+              raise SystemExit(f"currentness theorem missing: {missing!r}")
+
+          forbidden = [
+              "GlobalTransform", "get::<Transform>", "get_mut::<Transform>",
+              ".density", ".densities", "revision", "generation",
+              "Instant", "SystemTime", "Utc", "&mut World",
+          ]
+          leaked = [term for term in forbidden if term in executable]
+          if leaked:
+              raise SystemExit(f"currentness authority broadened: {leaked!r}")
+
+          if "pub(crate) struct EarthChunkLatticeLocus" not in provider:
+              raise SystemExit("closed locus component no longer crate-private")
+          if "pub mod live_geometry_provider;" in lib:
+              raise SystemExit("live provider module became public")
+          for term in [
+              "final_locus=8db7fea0db9276c4922c2e812739396f14d0b56f",
+              "pre_restack=60b73e023427f847ac3883564ddceaad777a2a01",
+              "restack=78e2ab08cf0a17491da8f80a3905f5f5c260db3c",
+          ]:
+              if term not in qualifier:
+                  raise SystemExit(f"final qualifier lineage binding missing: {term}")
+
+          print("TERRAIN_CURRENTNESS_NARROW_THEOREM=PASS")
+          print("TERRAIN_CURRENTNESS_CLOSED_LOCUS_INHERITED=PASS")
+          print("TERRAIN_CURRENTNESS_FINAL_LINEAGE_BINDING=PASS")
+          PY
+
+      - name: Postflight
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "9481d748e8f8a196713464bdc3b3bcebf77dffda"
+          test -z "$(git status --porcelain)"
+          echo "TERRAIN_CURRENTNESS_RESTACK_INTEGRITY=PASS"
+          echo "claim=previously executable-qualified currentness product bytes are unchanged; final #798/#884 qualifier evidence is inherited exactly; restack changes evidence ancestry only; point-of-use theorem remains narrow"
