@@ -54,6 +54,7 @@ pub mod friction_coordinates;
 pub mod friction_energy_2d;
 pub mod friction_evidence;
 pub mod friction_promotion;
+mod friction_solver_execution;
 pub mod friction_step;
 pub mod friction_transaction;
 pub mod gjk;
