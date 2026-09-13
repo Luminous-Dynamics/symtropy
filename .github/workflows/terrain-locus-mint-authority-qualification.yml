@@ -1,0 +1,232 @@
+name: Terrain Locus Mint Authority Qualification
+
+on:
+  push:
+    branches:
+      - "terrain/locus-mint-authority-v0.1"
+    paths:
+      - ".github/workflows/terrain-locus-mint-authority-qualification.yml"
+      - "crates/domains/symtropy-terrain/src/live_geometry_provider.rs"
+      - "crates/domains/symtropy-terrain/src/lib.rs"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: terrain-locus-mint-authority-v0.1
+  cancel-in-progress: true
+
+jobs:
+  qualify:
+    name: Qualify closed Terrain locus mint boundary
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Bind exact stacked lineage
+        shell: bash
+        run: |
+          set -euo pipefail
+          base=1ddf19053a263cec44edf9fbc96750cf2e8df181
+          initial_close=6cc262943c56013dceb85904fcd1933baa1d0656
+          private_component=ef82a2301e3e6fdd964adc7e0af898c5e38c48df
+          product=7ee95ade5b6bdc8041923c840ec8e5290647cdc2
+          provider=crates/domains/symtropy-terrain/src/live_geometry_provider.rs
+          lib=crates/domains/symtropy-terrain/src/lib.rs
+          kernel=crates/domains/symtropy-terrain/src/geometry_kernel.rs
+          manifest=crates/domains/symtropy-terrain/Cargo.toml
+          golden=crates/domains/symtropy-terrain/tests/geometry_authority_golden.rs
+          provider_qualifier=.github/workflows/terrain-ecs-lattice-geometry-provider-qualification.yml
+          qualifier=.github/workflows/terrain-locus-mint-authority-qualification.yml
+
+          test "$(git rev-parse HEAD)" = "${GITHUB_SHA}"
+          test "$(git rev-parse HEAD^)" = "${product}"
+          test "$(git rev-parse ${product}^)" = "${private_component}"
+          test "$(git rev-parse ${private_component}^)" = "${initial_close}"
+          test "$(git rev-parse ${initial_close}^)" = "${base}"
+          git merge-base --is-ancestor "${base}" HEAD
+
+          test "$(git rev-parse HEAD:${provider})" = "9893d8caffabd3a55c83b47f2a133eba4e982887"
+          test "$(git rev-parse HEAD:${lib})" = "0292fc52f879b868fb9052cf4a0037d5aa9e45c2"
+          test "$(git rev-parse HEAD:${kernel})" = "8d3e1213eacdeddf693cd2d1f82670d6ed832161"
+          test "$(git rev-parse HEAD:${manifest})" = "187fe4020a0c0048ab36404e219a7a5698a856d1"
+          test "$(git rev-parse HEAD:Cargo.lock)" = "62c6eb098b3f6fffdea8a175a0f3afb33423b17b"
+          test "$(git rev-parse HEAD:${golden})" = "dc631fe5bcac3ad017ca99ba2eddf761a6370016"
+          test "$(git rev-parse HEAD:${provider_qualifier})" = "c535c05011b15851b8f61993fefc946fa9b65eaa"
+
+          actual="$(git diff --name-only ${base}..HEAD | sort)"
+          expected="$(printf '%s\n' "${provider}" "${lib}" "${qualifier}" | sort)"
+          test "${actual}" = "${expected}"
+
+          echo "TERRAIN_LOCUS_MINT_HEAD=${GITHUB_SHA}"
+          echo "TERRAIN_LOCUS_MINT_TREE=$(git rev-parse HEAD^{tree})"
+          echo "TERRAIN_LOCUS_MINT_BASE=${base}"
+          echo "TERRAIN_LOCUS_MINT_PROVIDER_BLOB=$(git rev-parse HEAD:${provider})"
+          echo "TERRAIN_LOCUS_MINT_LIB_BLOB=$(git rev-parse HEAD:${lib})"
+          echo "CARGO_TARGET_DIR=${RUNNER_TEMP}/terrain-locus-mint-target" >> "${GITHUB_ENV}"
+
+      - name: Install Linux system dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install -y libasound2-dev libudev-dev pkg-config
+
+      - name: Set up pinned Rust
+        uses: dtolnay/rust-toolchain@6bed0761d98439e5a578e2877258200ad565ba87
+        with:
+          toolchain: 1.96.0
+          components: clippy,rustfmt
+
+      - name: Bind toolchain
+        shell: bash
+        run: |
+          set -euo pipefail
+          rustc -Vv
+          cargo -Vv
+          rustfmt --version
+          cargo clippy --version
+          test "$(rustc --version | awk '{print $2}')" = "1.96.0"
+          test "$(cargo --version | awk '{print $2}')" = "1.96.0"
+
+      - name: Check exact formatting
+        shell: bash
+        run: |
+          set -euo pipefail
+          rustfmt --edition 2024 --check \
+            crates/domains/symtropy-terrain/src/live_geometry_provider.rs \
+            crates/domains/symtropy-terrain/src/lib.rs
+
+      - name: Verify frozen selected dependency graph
+        shell: bash
+        run: |
+          set -euo pipefail
+          before="$(git hash-object Cargo.lock)"
+          cargo metadata --locked --format-version 1 > "${RUNNER_TEMP}/terrain-locus-mint-metadata.json"
+          test "$(git hash-object Cargo.lock)" = "${before}"
+          echo "TERRAIN_LOCUS_MINT_METADATA_SHA256=$(sha256sum "${RUNNER_TEMP}/terrain-locus-mint-metadata.json" | awk '{print $1}')"
+
+      - name: Execute Terrain regression gates
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo check -p symtropy-terrain --locked --all-targets
+          cargo test -p symtropy-terrain --locked live_geometry_provider::tests -- --nocapture
+          cargo test -p symtropy-terrain --locked --all-targets
+          cargo clippy -p symtropy-terrain --locked --all-targets -- -D warnings
+
+      - name: Audit closed production locus surface
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+
+          provider = Path("crates/domains/symtropy-terrain/src/live_geometry_provider.rs").read_text()
+          lib = Path("crates/domains/symtropy-terrain/src/lib.rs").read_text()
+
+          required = [
+              "pub(crate) struct EarthChunkLatticeLocus {",
+              "#[cfg(test)]\n    const fn new_for_test(",
+              "mod live_geometry_provider;",
+              "capture_live_terrain_geometry",
+          ]
+          missing = [term for term in required if term not in provider + "\n" + lib]
+          if missing:
+              raise SystemExit(f"missing closed-locus invariants: {missing!r}")
+
+          forbidden_provider = [
+              "pub struct EarthChunkLatticeLocus {",
+              "pub const fn new(",
+              "pub(crate) const fn new(",
+              "Clone, Copy",
+              "Reflect",
+          ]
+          leaked = [term for term in forbidden_provider if term in provider]
+          if leaked:
+              raise SystemExit(f"production locus authority leak: {leaked!r}")
+
+          if "pub mod live_geometry_provider;" in lib:
+              raise SystemExit("live provider module must remain private")
+          if "EarthChunkLatticeLocus" in lib.split("pub use live_geometry_provider", 1)[-1].split(";", 1)[0]:
+              raise SystemExit("locus component must not be publicly re-exported")
+          if ".register_type::<EarthChunkLatticeLocus>()" in lib:
+              raise SystemExit("locus component must not be reflection-registered")
+
+          print("TERRAIN_LOCUS_COMPONENT_VISIBILITY=CRATE_PRIVATE")
+          print("TERRAIN_LOCUS_PRODUCTION_CONSTRUCTOR=ABSENT")
+          print("TERRAIN_LOCUS_CLONE_COPY_SURFACE=ABSENT")
+          print("TERRAIN_LOCUS_REFLECTION_SURFACE=ABSENT")
+          PY
+
+      - name: Prove safe external consumers cannot name the locus component
+        shell: bash
+        run: |
+          set -euo pipefail
+          root_lock_before="$(git hash-object Cargo.lock)"
+          consumer="${RUNNER_TEMP}/terrain-locus-consumer"
+          mkdir -p "${consumer}/src"
+          cat > "${consumer}/Cargo.toml" <<EOF
+          [package]
+          name = "terrain-locus-consumer"
+          version = "0.0.0"
+          edition = "2024"
+
+          [dependencies]
+          symtropy-terrain = { path = "${GITHUB_WORKSPACE}/crates/domains/symtropy-terrain" }
+          EOF
+
+          cat > "${consumer}/src/main.rs" <<'RS'
+          use symtropy_terrain::{TerrainLiveGeometryError, capture_live_terrain_geometry};
+
+          fn main() {
+              let _ = capture_live_terrain_geometry;
+              let _: Option<TerrainLiveGeometryError> = None;
+          }
+          RS
+          cargo check --manifest-path "${consumer}/Cargo.toml"
+
+          run_forbidden() {
+              local name="$1"
+              local stderr="${RUNNER_TEMP}/${name}.stderr"
+              if cargo check --manifest-path "${consumer}/Cargo.toml" --locked >"${RUNNER_TEMP}/${name}.stdout" 2>"${stderr}"; then
+                  echo "forbidden external locus access compiled: ${name}" >&2
+                  exit 1
+              fi
+              grep -Fq "EarthChunkLatticeLocus" "${stderr}"
+              echo "${name}_STDERR_SHA256=$(sha256sum "${stderr}" | awk '{print $1}')"
+          }
+
+          cat > "${consumer}/src/main.rs" <<'RS'
+          use symtropy_terrain::EarthChunkLatticeLocus;
+          fn main() { let _ = core::mem::size_of::<EarthChunkLatticeLocus>(); }
+          RS
+          run_forbidden public_reexport_path
+
+          cat > "${consumer}/src/main.rs" <<'RS'
+          use symtropy_terrain::live_geometry_provider::EarthChunkLatticeLocus;
+          fn main() { let _ = core::mem::size_of::<EarthChunkLatticeLocus>(); }
+          RS
+          run_forbidden private_module_path
+
+          test "$(git hash-object Cargo.lock)" = "${root_lock_before}"
+          echo "TERRAIN_LOCUS_EXTERNAL_TYPED_ACCESS=DENIED"
+
+      - name: Unchanged-subject postflight
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -z "$(git status --porcelain)"
+          test "$(git rev-parse HEAD)" = "${GITHUB_SHA}"
+          test "$(git rev-parse HEAD:crates/domains/symtropy-terrain/src/live_geometry_provider.rs)" = "9893d8caffabd3a55c83b47f2a133eba4e982887"
+          test "$(git rev-parse HEAD:crates/domains/symtropy-terrain/src/lib.rs)" = "0292fc52f879b868fb9052cf4a0037d5aa9e45c2"
+          test "$(git rev-parse HEAD:crates/domains/symtropy-terrain/src/geometry_kernel.rs)" = "8d3e1213eacdeddf693cd2d1f82670d6ed832161"
+          test "$(git rev-parse HEAD:crates/domains/symtropy-terrain/Cargo.toml)" = "187fe4020a0c0048ab36404e219a7a5698a856d1"
+          test "$(git rev-parse HEAD:Cargo.lock)" = "62c6eb098b3f6fffdea8a175a0f3afb33423b17b"
+          echo "TERRAIN_LOCUS_MINT_AUTHORITY_STATUS=PASS"
+          echo "claim=no production locus writer exists; safe downstream Rust cannot name or mutate the crate-private ECS locus component; exact read authority remains through capture_live_terrain_geometry and TerrainGeometrySnapshot"
