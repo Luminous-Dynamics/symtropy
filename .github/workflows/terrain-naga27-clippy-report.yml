@@ -1,0 +1,75 @@
+name: Terrain Naga 27 Strict Clippy Diagnostic
+
+on:
+  push:
+    branches:
+      - "ci/terrain-naga27-clippy-report-v0.1"
+    paths:
+      - ".github/workflows/terrain-naga27-clippy-report.yml"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: terrain-naga27-clippy-report-v0.1
+  cancel-in-progress: true
+
+jobs:
+  diagnose:
+    name: Capture exact Terrain strict Clippy diagnostic
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+
+      - name: Bind frozen subject
+        shell: bash
+        run: |
+          set -euo pipefail
+          subject=ec3567dfeeb055561dfc3b4509afe9996394f89d
+          test "$(git rev-parse HEAD^)" = "${subject}"
+          test "$(git rev-parse ${subject}:crates/domains/symtropy-terrain/Cargo.toml)" = "187fe4020a0c0048ab36404e219a7a5698a856d1"
+          test "$(git rev-parse ${subject}:Cargo.lock)" = "62c6eb098b3f6fffdea8a175a0f3afb33423b17b"
+          echo "CARGO_TARGET_DIR=${RUNNER_TEMP}/terrain-naga27-clippy-target" >> "${GITHUB_ENV}"
+
+      - name: Install Linux system dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install -y libasound2-dev libudev-dev pkg-config
+
+      - name: Set up pinned Rust
+        uses: dtolnay/rust-toolchain@6bed0761d98439e5a578e2877258200ad565ba87
+        with:
+          toolchain: 1.96.0
+          components: clippy,rustfmt
+
+      - name: Capture exact strict Clippy output
+        shell: bash
+        run: |
+          set -euo pipefail
+          report=terrain-naga27-strict-clippy-report.txt
+          set +e
+          cargo clippy -p symtropy-terrain --locked --all-targets -- -D warnings >"${report}" 2>&1
+          status=$?
+          set -e
+          {
+            printf '\nDIAGNOSTIC_EXIT_CODE=%s\n' "${status}"
+            printf 'DIAGNOSTIC_SUBJECT=%s\n' "$(git rev-parse HEAD^)"
+            printf 'DIAGNOSTIC_RUSTC=%s\n' "$(rustc --version)"
+            printf 'DIAGNOSTIC_CARGO=%s\n' "$(cargo --version)"
+            printf 'DIAGNOSTIC_CLIPPY=%s\n' "$(cargo clippy --version)"
+          } >> "${report}"
+          git add "${report}"
+          git -c user.name='github-actions[bot]' -c user.email='41898282+github-actions[bot]@users.noreply.github.com' commit -m 'ci(terrain): record exact strict clippy diagnostic'
+          git push origin HEAD:ci/terrain-naga27-clippy-report-v0.1
+
+      - name: Diagnostic completion
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "TERRAIN_NAGA27_CLIPPY_DIAGNOSTIC_RECORDED=PASS"
