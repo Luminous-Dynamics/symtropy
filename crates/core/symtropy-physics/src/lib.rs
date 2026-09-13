@@ -95,7 +95,8 @@ pub use friction_evidence::{
     classify_friction_evidence_regime,
 };
 pub use friction_promotion::{
-    FrictionPromotionError, promote_measured_friction_loss_to_heat,
+    FrictionPromotionError, FrictionPromotionJournal, FrictionTransactionId,
+    promote_measured_friction_loss_to_heat,
 };
 pub use integrator::nan_zeroed_count;
 pub use joints::{BallJoint, FixedJoint, HingeJoint, MotorDrive, PrismaticJoint};
