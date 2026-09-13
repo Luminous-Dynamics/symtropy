@@ -1,0 +1,175 @@
+name: PB-04c1 Exact Cell Bounds Qualification
+
+on:
+  push:
+    branches:
+      - "ci/pb04c1-exact-cell-bounds-qual-5adc54c"
+    paths:
+      - ".github/workflows/pb04c1-exact-cell-bounds-qualification.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  qualify-product:
+    name: Qualify immutable PB-04c1 exact-cell-bounds product
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - name: Checkout qualification harness
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Bind exact harness lineage
+        shell: bash
+        run: |
+          set -euo pipefail
+          product=5adc54c6f52c7928ac0c7f3381d88c2ee2f5eba4
+          qualifier=.github/workflows/pb04c1-exact-cell-bounds-qualification.yml
+          test "$(git rev-parse HEAD)" = "${GITHUB_SHA}"
+          test "$(git rev-parse HEAD^)" = "${product}"
+          test "$(git diff --name-only ${product}..HEAD)" = "${qualifier}"
+
+      - name: Checkout immutable PB-04c1 product
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: 5adc54c6f52c7928ac0c7f3381d88c2ee2f5eba4
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Bind exact immutable product
+        shell: bash
+        run: |
+          set -euo pipefail
+          product=5adc54c6f52c7928ac0c7f3381d88c2ee2f5eba4
+          base=cd7de5262ce534a4c799dbfd58b8ee216e2002d9
+          test "$(git rev-parse HEAD)" = "${product}"
+          test "$(git rev-parse HEAD^{tree})" = "8254ff21e994dc1ec8e226d2f1caca56bf51aa8c"
+          test "$(git rev-parse HEAD^)" = "${base}"
+          test "$(git diff --name-only ${base}..HEAD | sort)" = "$(printf '%s\n' crates/domains/symtropy-spatial-decomposition/src/lib.rs crates/domains/symtropy-spatial-decomposition/tests/exact_cell_bounds.rs | sort)"
+          test "$(git rev-parse HEAD:crates/domains/symtropy-spatial-decomposition/Cargo.lock)" = "676fd6a7eb31a2ec00b09c9496b42c568e791556"
+          test "$(git rev-parse HEAD:crates/domains/symtropy-spatial-decomposition/Cargo.toml)" = "614fa7d2e293809faaef10649cf3beb02475c259"
+          test "$(git rev-parse HEAD:crates/domains/symtropy-spatial-decomposition/src/lib.rs)" = "978d4661b1c53b549625ce7cf69ab96024a49aaa"
+          test "$(git rev-parse HEAD:crates/domains/symtropy-spatial-decomposition/tests/exact_cell_bounds.rs)" = "b1062a646ddd8845b2e00348e7debbf3fbc2c809"
+          test "$(git rev-parse HEAD:crates/domains/symtropy-spatial-decomposition/tests/local_identity.rs)" = "ea93ff96e172027bce604b6438c7ba124a6d54e3"
+          test "$(git rev-parse HEAD:crates/domains/symtropy-spatial-decomposition/tests/complete_local_coverage.rs)" = "b01ecedb068db1db370c6f7e9d6c991b590c3d95"
+          test "$(git rev-parse HEAD:crates/domains/symtropy-spatial-decomposition/tests/incremental_equivalence.rs)" = "ecde252c7ed70a2a0cbef31633d05838b7066e88"
+          echo "PB04C1_PRODUCT_HEAD=${product}"
+          echo "PB04C1_PRODUCT_TREE=$(git rev-parse HEAD^{tree})"
+          echo "CARGO_TARGET_DIR=${RUNNER_TEMP}/pb04c1-qualified-target" >> "${GITHUB_ENV}"
+
+      - name: Record hosted execution environment
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "PB04C1_RUNNER_OS=${RUNNER_OS}"
+          echo "PB04C1_RUNNER_ARCH=${RUNNER_ARCH}"
+          echo "PB04C1_IMAGE_OS=${ImageOS:-unknown}"
+          echo "PB04C1_IMAGE_VERSION=${ImageVersion:-unknown}"
+          uname -a
+          git --version
+
+      - name: Set up pinned Rust
+        uses: dtolnay/rust-toolchain@6bed0761d98439e5a578e2877258200ad565ba87
+        with:
+          toolchain: 1.96.0
+          components: clippy,rustfmt
+
+      - name: Bind exact Rust toolchain
+        shell: bash
+        run: |
+          set -euo pipefail
+          rustc -Vv
+          cargo -Vv
+          rustfmt --version
+          cargo clippy --version
+          test "$(rustc --version | awk '{print $2}')" = "1.96.0"
+          test "$(cargo --version | awk '{print $2}')" = "1.96.0"
+
+      - name: Verify locked dependency graph
+        shell: bash
+        run: |
+          set -euo pipefail
+          manifest=crates/domains/symtropy-spatial-decomposition/Cargo.toml
+          cargo metadata --manifest-path "${manifest}" --locked --format-version 1 > "${RUNNER_TEMP}/pb04c1-metadata.json"
+          echo "PB04C1_LOCKED_METADATA_SHA256=$(sha256sum "${RUNNER_TEMP}/pb04c1-metadata.json" | awk '{print $1}')"
+
+      - name: Check formatting
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo fmt --manifest-path crates/domains/symtropy-spatial-decomposition/Cargo.toml -- --check
+
+      - name: Check all targets
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo check --manifest-path crates/domains/symtropy-spatial-decomposition/Cargo.toml --locked --all-targets
+
+      - name: Execute dedicated exact-cell-bounds theorem corpus
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo test --manifest-path crates/domains/symtropy-spatial-decomposition/Cargo.toml --locked exact_cell_bounds -- --nocapture
+
+      - name: Execute complete PB-04c regression suite
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo test --manifest-path crates/domains/symtropy-spatial-decomposition/Cargo.toml --locked --all-targets
+
+      - name: Enforce strict all-target Clippy
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo clippy --manifest-path crates/domains/symtropy-spatial-decomposition/Cargo.toml --locked --all-targets -- -D warnings
+
+      - name: Audit exact read-only authority surface
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+
+          source = Path("crates/domains/symtropy-spatial-decomposition/src/lib.rs").read_text()
+          manifest = Path("crates/domains/symtropy-spatial-decomposition/Cargo.toml").read_text()
+          tests = Path("crates/domains/symtropy-spatial-decomposition/tests/exact_cell_bounds.rs").read_text()
+
+          if source.count("pub fn exact_cell_bounds(") != 1:
+              raise SystemExit("expected exactly one public exact_cell_bounds wrapper")
+          match = re.search(
+              r"pub fn exact_cell_bounds\(.*?\n\s*\}\n\n\s*fn contains",
+              source,
+              flags=re.S,
+          )
+          if match is None or "cell_bounds(cell, profile, self)" not in match.group(0):
+              raise SystemExit("public exact_cell_bounds is not an exact delegation to existing PB cell geometry authority")
+          if re.search(r"pub\s+origin\s*:", source):
+              raise SystemExit("AnalysisDomain origin became public")
+          if re.search(r"pub\s+dimensions\s*:", source):
+              raise SystemExit("AnalysisDomain dimensions became public")
+          if "symtropy-terrain" in manifest or "symtropy_terrain" in source:
+              raise SystemExit("PB read surface gained Terrain dependency")
+          if "exact_cell_bounds" not in tests:
+              raise SystemExit("dedicated public-query regression corpus missing")
+
+          print("PB04C1_EXACT_CELL_BOUNDS_WRAPPER_COUNT=1")
+          print("PB04C1_PRIVATE_CELL_BOUNDS_DELEGATION=PASS")
+          print("PB04C1_DOMAIN_INTERNALS_EXPOSURE=DENIED")
+          print("PB04C1_TERRAIN_DEPENDENCY=ABSENT")
+          PY
+
+      - name: Exact immutable-product postflight
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "5adc54c6f52c7928ac0c7f3381d88c2ee2f5eba4"
+          test "$(git rev-parse HEAD^{tree})" = "8254ff21e994dc1ec8e226d2f1caca56bf51aa8c"
+          git diff --exit-code
+          test -z "$(git status --porcelain)"
+          test ! -e crates/domains/symtropy-spatial-decomposition/target
+          echo "PB04C1_EXACT_CELL_BOUNDS_QUALIFICATION=PASS"
