@@ -10,8 +10,8 @@ use symtropy_evolution_core::{
     ReproductiveContactEvidenceError, ReproductiveContactStudy, ReproductiveContactStudyDesign,
     ReproductiveContactStudyId, ReproductiveContactStudyStatus, ReproductiveObservationStage,
     ReproductiveOpportunityDeclaration, ReproductiveOpportunityEvidenceInput,
-    ReproductiveOpportunityId, ReproductiveOpportunityOutcome, ValidatedReproductiveContactStudy,
-    ValidatedReproductiveContactStudyDesign,
+    ReproductiveOpportunityId, ReproductiveOpportunityOutcome, ReproductiveStageEvidence,
+    ValidatedReproductiveContactStudy, ValidatedReproductiveContactStudyDesign,
 };
 
 fn authority(label: &str, byte: u8) -> AnalysisAuthorityRef {
@@ -145,6 +145,63 @@ fn current_design<'a>(
     .unwrap()
 }
 
+fn stage(
+    auth: &ContactAuthorities,
+    stage: ReproductiveObservationStage,
+    byte: u8,
+) -> ReproductiveStageEvidence {
+    let protocol = match stage {
+        ReproductiveObservationStage::Contact => auth.contact.clone(),
+        ReproductiveObservationStage::Pairing => auth.pairing.clone(),
+        ReproductiveObservationStage::Mating => auth.mating.clone(),
+        ReproductiveObservationStage::Conception => auth.conception.clone(),
+        ReproductiveObservationStage::OffspringViability => auth.viability.clone(),
+        ReproductiveObservationStage::OffspringFertility => auth.fertility.clone(),
+    };
+    ReproductiveStageEvidence::new(
+        protocol,
+        authority(&format!("{:?}-observation", stage), byte),
+    )
+}
+
+fn no_contact_outcome(auth: &ContactAuthorities, byte: u8) -> ReproductiveOpportunityOutcome {
+    ReproductiveOpportunityOutcome::NoContact {
+        contact: stage(auth, ReproductiveObservationStage::Contact, byte),
+    }
+}
+
+fn no_pairing_outcome(auth: &ContactAuthorities, byte: u8) -> ReproductiveOpportunityOutcome {
+    ReproductiveOpportunityOutcome::ContactNoPairing {
+        contact: stage(auth, ReproductiveObservationStage::Contact, byte),
+        pairing: stage(
+            auth,
+            ReproductiveObservationStage::Pairing,
+            byte.wrapping_add(1),
+        ),
+    }
+}
+
+fn no_conception_outcome(auth: &ContactAuthorities, byte: u8) -> ReproductiveOpportunityOutcome {
+    ReproductiveOpportunityOutcome::MatingNoConception {
+        contact: stage(auth, ReproductiveObservationStage::Contact, byte),
+        pairing: stage(
+            auth,
+            ReproductiveObservationStage::Pairing,
+            byte.wrapping_add(1),
+        ),
+        mating: stage(
+            auth,
+            ReproductiveObservationStage::Mating,
+            byte.wrapping_add(2),
+        ),
+        conception: stage(
+            auth,
+            ReproductiveObservationStage::Conception,
+            byte.wrapping_add(3),
+        ),
+    }
+}
+
 fn none_gene_flow(auth: &ContactAuthorities, byte: u8) -> RealizedGeneFlowObservation {
     RealizedGeneFlowObservation::NoneObserved {
         materialization_authority: auth.gene_flow.clone(),
@@ -220,7 +277,63 @@ fn offspring_evidence(auth: &ContactAuthorities, label: &str) -> ObservedOffspri
         event_id,
         reproduction_provenance_digest: offspring.provenance.canonical_digest(),
         parentage_authority: auth.parentage.clone(),
-        observation_evidence: authority("offspring-observation", 220),
+        parentage_evidence: authority("parentage-observation", 220),
+    }
+}
+
+fn viable_infertile_outcome(
+    auth: &ContactAuthorities,
+    offspring: ObservedOffspringEvidence,
+    byte: u8,
+) -> ReproductiveOpportunityOutcome {
+    ReproductiveOpportunityOutcome::ViableInfertileOffspring {
+        contact: stage(auth, ReproductiveObservationStage::Contact, byte),
+        pairing: stage(auth, ReproductiveObservationStage::Pairing, byte.wrapping_add(1)),
+        mating: stage(auth, ReproductiveObservationStage::Mating, byte.wrapping_add(2)),
+        conception: stage(
+            auth,
+            ReproductiveObservationStage::Conception,
+            byte.wrapping_add(3),
+        ),
+        viability: stage(
+            auth,
+            ReproductiveObservationStage::OffspringViability,
+            byte.wrapping_add(4),
+        ),
+        offspring,
+        fertility: stage(
+            auth,
+            ReproductiveObservationStage::OffspringFertility,
+            byte.wrapping_add(5),
+        ),
+    }
+}
+
+fn viable_fertile_outcome(
+    auth: &ContactAuthorities,
+    offspring: ObservedOffspringEvidence,
+    byte: u8,
+) -> ReproductiveOpportunityOutcome {
+    ReproductiveOpportunityOutcome::ViableFertileOffspring {
+        contact: stage(auth, ReproductiveObservationStage::Contact, byte),
+        pairing: stage(auth, ReproductiveObservationStage::Pairing, byte.wrapping_add(1)),
+        mating: stage(auth, ReproductiveObservationStage::Mating, byte.wrapping_add(2)),
+        conception: stage(
+            auth,
+            ReproductiveObservationStage::Conception,
+            byte.wrapping_add(3),
+        ),
+        viability: stage(
+            auth,
+            ReproductiveObservationStage::OffspringViability,
+            byte.wrapping_add(4),
+        ),
+        offspring,
+        fertility: stage(
+            auth,
+            ReproductiveObservationStage::OffspringFertility,
+            byte.wrapping_add(5),
+        ),
     }
 }
 
@@ -234,7 +347,11 @@ fn no_contact_is_distinct_from_observed_reproductive_failure() {
     ];
     let design = design_with(&auth, ctx, opportunities.clone());
     assert_eq!(
-        design.opportunities.iter().map(|o| o.opportunity_id.as_str()).collect::<Vec<_>>(),
+        design
+            .opportunities
+            .iter()
+            .map(|opportunity| opportunity.opportunity_id.as_str())
+            .collect::<Vec<_>>(),
         vec!["op-a", "op-b"]
     );
     let current = current_design(&design, &auth, ctx, opportunities);
@@ -242,18 +359,8 @@ fn no_contact_is_distinct_from_observed_reproductive_failure() {
     let no_contact = ReproductiveContactStudy::capture(
         &current,
         vec![
-            input(
-                "op-b",
-                ReproductiveOpportunityOutcome::NoContact { evidence: authority("no-contact", 81) },
-                none_gene_flow(&auth, 91),
-                &auth,
-            ),
-            input(
-                "op-a",
-                ReproductiveOpportunityOutcome::NoContact { evidence: authority("no-contact", 80) },
-                none_gene_flow(&auth, 90),
-                &auth,
-            ),
+            input("op-b", no_contact_outcome(&auth, 81), none_gene_flow(&auth, 91), &auth),
+            input("op-a", no_contact_outcome(&auth, 80), none_gene_flow(&auth, 90), &auth),
         ],
     )
     .unwrap();
@@ -262,19 +369,10 @@ fn no_contact_is_distinct_from_observed_reproductive_failure() {
     let observed_failure = ReproductiveContactStudy::capture(
         &current,
         vec![
-            input(
-                "op-a",
-                ReproductiveOpportunityOutcome::ContactNoPairing {
-                    evidence: authority("contact-no-pair", 82),
-                },
-                none_gene_flow(&auth, 92),
-                &auth,
-            ),
+            input("op-a", no_pairing_outcome(&auth, 82), none_gene_flow(&auth, 92), &auth),
             input(
                 "op-b",
-                ReproductiveOpportunityOutcome::MatingNoConception {
-                    evidence: authority("mating-no-conception", 83),
-                },
+                no_conception_outcome(&auth, 83),
                 none_gene_flow(&auth, 93),
                 &auth,
             ),
@@ -304,11 +402,8 @@ fn viable_infertile_and_fertile_hybrids_are_distinct_and_bind_real_parentage() {
         &current,
         vec![input(
             "hybrid",
-            ReproductiveOpportunityOutcome::ViableInfertileOffspring {
-                offspring: offspring.clone(),
-                fertility_evidence: authority("infertile", 100),
-            },
-            none_gene_flow(&auth, 101),
+            viable_infertile_outcome(&auth, offspring.clone(), 100),
+            none_gene_flow(&auth, 106),
             &auth,
         )],
     )
@@ -322,11 +417,8 @@ fn viable_infertile_and_fertile_hybrids_are_distinct_and_bind_real_parentage() {
         &current,
         vec![input(
             "hybrid",
-            ReproductiveOpportunityOutcome::ViableFertileOffspring {
-                offspring,
-                fertility_evidence: authority("fertile", 102),
-            },
-            none_gene_flow(&auth, 103),
+            viable_fertile_outcome(&auth, offspring, 110),
+            none_gene_flow(&auth, 116),
             &auth,
         )],
     )
@@ -346,9 +438,7 @@ fn realized_ancestry_gene_flow_overrides_direct_no_contact_observation() {
         &current,
         vec![input(
             "ancestry",
-            ReproductiveOpportunityOutcome::NoContact {
-                evidence: authority("direct-no-contact", 104),
-            },
+            no_contact_outcome(&auth, 104),
             realized_gene_flow(&auth, 105),
             &auth,
         )],
@@ -358,7 +448,7 @@ fn realized_ancestry_gene_flow_overrides_direct_no_contact_observation() {
 }
 
 #[test]
-fn omitted_opportunity_and_authority_drift_fail_closed() {
+fn omitted_opportunity_and_authority_or_protocol_drift_fail_closed() {
     let ctx = context(43);
     let auth = authorities(63);
     let opportunities = vec![
@@ -370,29 +460,44 @@ fn omitted_opportunity_and_authority_drift_fail_closed() {
     assert!(matches!(
         ReproductiveContactStudy::capture(
             &current,
-            vec![input(
-                "a",
-                ReproductiveOpportunityOutcome::NoContact { evidence: authority("no-contact", 106) },
-                none_gene_flow(&auth, 107),
-                &auth,
-            )],
+            vec![input("a", no_contact_outcome(&auth, 106), none_gene_flow(&auth, 107), &auth)],
         ),
         Err(ReproductiveContactEvidenceError::IncompleteOpportunityCoverage)
     ));
 
+    let wrong_protocol = ReproductiveOpportunityOutcome::NoContact {
+        contact: ReproductiveStageEvidence::new(
+            authority("changed-contact-protocol", 108),
+            authority("no-contact", 109),
+        ),
+    };
+    assert!(matches!(
+        ReproductiveContactStudy::capture(
+            &current,
+            vec![
+                input("a", wrong_protocol, none_gene_flow(&auth, 110), &auth),
+                input("b", no_contact_outcome(&auth, 111), none_gene_flow(&auth, 112), &auth),
+            ],
+        ),
+        Err(ReproductiveContactEvidenceError::StageProtocolMismatch {
+            stage: ReproductiveObservationStage::Contact,
+            ..
+        })
+    ));
+
     let wrong_flow = ReproductiveOpportunityEvidenceInput {
         opportunity_id: ReproductiveOpportunityId::new("a").unwrap(),
-        outcome: ReproductiveOpportunityOutcome::NoContact { evidence: authority("no-contact", 108) },
+        outcome: no_contact_outcome(&auth, 113),
         realized_gene_flow: RealizedGeneFlowObservation::NoneObserved {
-            materialization_authority: authority("changed-flow-authority", 109),
-            evidence: authority("none", 110),
+            materialization_authority: authority("changed-flow-authority", 114),
+            evidence: authority("none", 115),
         },
         demography_accounting_authority: auth.demography.clone(),
     };
     let valid_b = input(
         "b",
-        ReproductiveOpportunityOutcome::NoContact { evidence: authority("no-contact", 111) },
-        none_gene_flow(&auth, 112),
+        no_contact_outcome(&auth, 116),
+        none_gene_flow(&auth, 117),
         &auth,
     );
     assert!(matches!(
@@ -406,7 +511,7 @@ fn lineage_membership_is_preregistered_and_changes_design_identity() {
     let ctx = context(44);
     let auth = authorities(64);
     let good = opportunity(&auth, "a", 3, ctx, 76);
-    let design = design_with(&auth, ctx, vec![good.clone()]);
+    let design = design_with(&auth, ctx, vec![good]);
 
     let changed_membership = ReproductiveOpportunityDeclaration::new(
         ReproductiveOpportunityId::new("a").unwrap(),
@@ -473,12 +578,7 @@ fn restored_design_rechecks_context_membership_and_current_replay() {
     let current = current_design(&restored, &auth, ctx, opportunities.clone());
     let study = ReproductiveContactStudy::capture(
         &current,
-        vec![input(
-            "a",
-            ReproductiveOpportunityOutcome::NoContact { evidence: authority("no-contact", 113) },
-            none_gene_flow(&auth, 114),
-            &auth,
-        )],
+        vec![input("a", no_contact_outcome(&auth, 118), none_gene_flow(&auth, 119), &auth)],
     )
     .unwrap();
     let restored_study: ReproductiveContactStudy =
@@ -486,12 +586,7 @@ fn restored_design_rechecks_context_membership_and_current_replay() {
     let validated = ValidatedReproductiveContactStudy::validate_current(
         &restored_study,
         &current,
-        vec![input(
-            "a",
-            ReproductiveOpportunityOutcome::NoContact { evidence: authority("no-contact", 113) },
-            none_gene_flow(&auth, 114),
-            &auth,
-        )],
+        vec![input("a", no_contact_outcome(&auth, 118), none_gene_flow(&auth, 119), &auth)],
     )
     .unwrap();
     assert_eq!(validated.study_digest(), study.canonical_digest().unwrap());
@@ -536,11 +631,11 @@ fn unavailable_evidence_is_typed_and_serialized_status_cannot_be_forged() {
             ReproductiveOpportunityOutcome::Unavailable {
                 stage: ReproductiveObservationStage::Pairing,
                 missing_data_authority: auth.missing.clone(),
-                reason: authority("camera-failure", 115),
+                reason: authority("camera-failure", 120),
             },
             RealizedGeneFlowObservation::Unavailable {
                 missing_data_authority: auth.missing.clone(),
-                reason: authority("ancestry-not-yet-observed", 116),
+                reason: authority("ancestry-not-yet-observed", 121),
             },
             &auth,
         )],
@@ -583,12 +678,7 @@ fn contact_evidence_wire_shape_does_not_claim_isolation_or_species_status() {
     let current = current_design(&design, &auth, ctx, opportunities);
     let study = ReproductiveContactStudy::capture(
         &current,
-        vec![input(
-            "a",
-            ReproductiveOpportunityOutcome::ContactNoPairing { evidence: authority("no-pair", 117) },
-            none_gene_flow(&auth, 118),
-            &auth,
-        )],
+        vec![input("a", no_pairing_outcome(&auth, 122), none_gene_flow(&auth, 123), &auth)],
     )
     .unwrap();
     let value = serde_json::to_value(study).unwrap();
