@@ -19,6 +19,7 @@ pub mod economic_repartition;
 pub mod economic_resolution;
 pub mod encumbrance_handoff;
 pub mod financial;
+pub mod freight_load;
 pub mod industrial_ecology;
 pub mod reservation_reconciliation;
 pub mod settlement;
@@ -62,6 +63,9 @@ pub mod prelude {
         FinancialAccountClass, FinancialAccountId, FinancialBook, FinancialError,
         JournalLedgerEntry, JournalTransaction, JournalTransactionId, MonetaryAuthorityId,
         MonetaryLedgerEntry, MonetarySupplyEvent, Posting, PostingSide,
+    };
+    pub use crate::freight_load::{
+        load_full_transport_reservation, CarrierCargoBinding, FreightLoadError, FreightLoadReceipt,
     };
     pub use crate::industrial_ecology::{
         BlockedIndustrialFlow, DependencyShortage, IndustrialCapability, IndustrialDependencyState,
