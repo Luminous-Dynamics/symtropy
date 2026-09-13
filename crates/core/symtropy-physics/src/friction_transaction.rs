@@ -21,7 +21,7 @@ use crate::body::RigidBody;
 use crate::friction_evidence::{
     BoundFrictionMechanicalObservation, FrictionEvidenceError, FrictionEvidenceRegime,
     FrictionMechanicalDelta, FrictionMechanicalObservation, FrictionTransactionId,
-    apply_friction_impulse_measured_bound,
+    apply_friction_impulse_measured_bound, classify_friction_evidence_regime,
 };
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
@@ -243,6 +243,17 @@ pub fn finalize_friction_diagnostic<const D: usize>(
         return Err(FrictionDiagnosticFinalizeError::ObservationStateMismatch);
     }
 
+    let observation = applied.observation();
+    let current_regime = classify_friction_evidence_regime(
+        body_a,
+        body_b,
+        &observation.contact_point,
+    )
+    .map_err(|_| FrictionDiagnosticFinalizeError::ObservationStateMismatch)?;
+    if current_regime != observation.regime {
+        return Err(FrictionDiagnosticFinalizeError::ObservationStateMismatch);
+    }
+
     let reason = diagnostic_reason(applied)?;
     let previous = journal
         .phases
@@ -336,8 +347,36 @@ mod tests {
     }
 
     #[test]
+    fn diagnostic_finalize_rejects_changed_contact_regime() {
+        let id = FrictionTransactionId::new(14, 0, 1, 0);
+        let mut a = body(1, [-1.0, 0.0, 0.0], 1.0);
+        let mut b = body(2, [1.0, 0.0, 0.0], 0.0);
+        let mut journal = FrictionTransactionJournal::new();
+        let applied = apply_friction_impulse_once(
+            &mut a,
+            &mut b,
+            &SVector::from([0.0, 0.5, 0.0]),
+            &SVector::from([0.0, -0.1, 0.0]),
+            id,
+            &mut journal,
+        )
+        .unwrap();
+
+        // Move both centers onto the recorded contact point without changing
+        // the bound velocities. Geometry is now centered, so the old off-center
+        // classification is stale and cannot be terminalized.
+        a.transform.translation = Point::new([0.0, 0.5, 0.0]);
+        b.transform.translation = Point::new([0.0, 0.5, 0.0]);
+        assert_eq!(
+            finalize_friction_diagnostic(&a, &b, &applied, &mut journal),
+            Err(FrictionDiagnosticFinalizeError::ObservationStateMismatch)
+        );
+        assert_eq!(journal.phase(id), Some(FrictionTransactionPhase::Applied));
+    }
+
+    #[test]
     fn centered_measured_loss_cannot_escape_through_diagnostic_path() {
-        let id = FrictionTransactionId::new(14, 0, 0, 0);
+        let id = FrictionTransactionId::new(15, 0, 0, 0);
         let mut a = body(1, [0.0, 0.0, 0.0], 1.0);
         let mut b = body(2, [0.0, 0.0, 0.0], 0.0);
         let mut journal = FrictionTransactionJournal::new();
@@ -361,7 +400,7 @@ mod tests {
 
     #[test]
     fn solver_injection_terminalizes_without_becoming_heat() {
-        let id = FrictionTransactionId::new(15, 0, 0, 0);
+        let id = FrictionTransactionId::new(16, 0, 0, 0);
         let mut a = body(1, [0.0, 0.0, 0.0], 1.0);
         let mut b = body(2, [0.0, 0.0, 0.0], 0.0);
         let mut journal = FrictionTransactionJournal::new();
@@ -384,7 +423,7 @@ mod tests {
 
     #[test]
     fn failed_evidence_application_does_not_claim_transaction_identity() {
-        let id = FrictionTransactionId::new(16, 0, 0, 0);
+        let id = FrictionTransactionId::new(17, 0, 0, 0);
         let mut a = body(1, [0.0, 0.0, 0.0], 1.0);
         let mut b = body(2, [0.0, 0.0, 0.0], 0.0);
         let before_a = (a.linear_velocity, a.angular_velocity);
