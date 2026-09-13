@@ -124,6 +124,18 @@ impl ThermodynamicTransactionRuntime {
     pub fn open_tick_id(&self) -> Option<u64> { self.authority.open_tick_id() }
     pub fn friction_journal(&self) -> &FrictionTransactionJournal { &self.friction_journal }
     pub fn pending_friction_reservation_count(&self) -> usize { self.reserved_friction.len() }
+
+    /// Deterministic read-only snapshot of unresolved reservation identity.
+    ///
+    /// The private registry is a `BTreeSet`, so the returned IDs are canonically
+    /// ordered by the complete `FrictionTransactionId`. Returning a copied vector
+    /// intentionally exposes no mutation, cancellation, or reservation-forging
+    /// authority. This is an operator/recovery diagnostic surface only.
+    #[must_use]
+    pub fn pending_friction_reservation_ids(&self) -> Vec<FrictionTransactionId> {
+        self.reserved_friction.iter().copied().collect()
+    }
+
     pub fn last_finalized_receipt(&self) -> Option<&ThermodynamicTickReceipt> {
         self.authority.last_finalized_receipt()
     }
