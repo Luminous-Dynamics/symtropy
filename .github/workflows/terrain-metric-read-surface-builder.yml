@@ -1,0 +1,220 @@
+name: Terrain Metric Read Surface Builder
+
+on:
+  push:
+    branches:
+      - "ci/terrain-metric-read-surface-builder-v0.1"
+    paths:
+      - ".github/workflows/terrain-metric-read-surface-builder.yml"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: terrain-metric-read-surface-builder-v0.1
+  cancel-in-progress: true
+
+jobs:
+  build-product:
+    name: Build clean Terrain metric read-surface product
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+          persist-credentials: true
+
+      - name: Bind exact qualified metric source
+        shell: bash
+        run: |
+          set -euo pipefail
+          base=7bb937cb6b47eaff5dcd5b9bef8eb5980aed3ac6
+          metric=crates/domains/symtropy-terrain/src/terrain_metric.rs
+          lib=crates/domains/symtropy-terrain/src/lib.rs
+          test "$(git rev-parse ${base}:${metric})" = "5f6cce3dc034c0b8c0e46dc55e599bd6162841ac"
+          test "$(git rev-parse ${base}:${lib})" = "0292fc52f879b868fb9052cf4a0037d5aa9e45c2"
+          git merge-base --is-ancestor "${base}" HEAD
+
+      - name: Create clean target branch and apply read-only export patch
+        shell: bash
+        env:
+          BASE: 7bb937cb6b47eaff5dcd5b9bef8eb5980aed3ac6
+          TARGET: terrain/metric-read-surface-v0.1
+        run: |
+          set -euo pipefail
+          git checkout -B "${TARGET}" "${BASE}"
+          python3 - <<'PY'
+          from pathlib import Path
+
+          lib = Path("crates/domains/symtropy-terrain/src/lib.rs")
+          text = lib.read_text()
+          old = "pub mod geometry_kernel;\nmod live_geometry_provider;\n"
+          new = "pub mod geometry_kernel;\npub mod terrain_metric;\nmod live_geometry_provider;\n"
+          if text.count(old) != 1:
+              raise SystemExit(f"exact Terrain module anchor mismatch: {text.count(old)}")
+          lib.write_text(text.replace(old, new, 1))
+
+          test = Path("crates/domains/symtropy-terrain/tests/terrain_metric_public.rs")
+          test.parent.mkdir(parents=True, exist_ok=True)
+          test.write_text('''// Copyright (C) 2026 Tristan Stoltz / Luminous Dynamics
+// SPDX-License-Identifier: Apache-2.0 OR MIT
+
+use symtropy_terrain::terrain_metric::{
+    MAX_TERRAIN_VOXEL_EDGE_UM, TERRAIN_METRIC_CANONICAL_BYTES_LEN,
+    TERRAIN_METRIC_SCHEMA_VERSION, TerrainMetricError, TerrainMetricProfile,
+};
+
+#[test]
+fn downstream_public_path_preserves_exact_metric_semantics() {
+    let profile = TerrainMetricProfile::new(1_000_000).expect("qualified metric value");
+    assert_eq!(profile.schema_version(), TERRAIN_METRIC_SCHEMA_VERSION);
+    assert_eq!(profile.voxel_edge_um(), 1_000_000);
+    assert_eq!(profile.canonical_bytes().len(), TERRAIN_METRIC_CANONICAL_BYTES_LEN);
+    assert_eq!(
+        profile.canonical_bytes(),
+        [1, 0, 0, 0, 0x40, 0x42, 0x0f, 0, 0, 0, 0, 0]
+    );
+}
+
+#[test]
+fn downstream_public_path_preserves_fail_closed_bounds() {
+    assert_eq!(
+        TerrainMetricProfile::new(0),
+        Err(TerrainMetricError::NonPositiveVoxelEdge(0))
+    );
+    assert_eq!(
+        TerrainMetricProfile::new(MAX_TERRAIN_VOXEL_EDGE_UM + 1),
+        Err(TerrainMetricError::VoxelEdgeTooLarge {
+            actual_um: MAX_TERRAIN_VOXEL_EDGE_UM + 1,
+            maximum_um: MAX_TERRAIN_VOXEL_EDGE_UM,
+        })
+    );
+}
+
+#[test]
+fn public_export_does_not_supply_a_default_metric_value() {
+    let one = TerrainMetricProfile::new(1).unwrap();
+    let two = TerrainMetricProfile::new(2).unwrap();
+    assert_ne!(one, two);
+    assert_ne!(one.canonical_bytes(), two.canonical_bytes());
+}
+''')
+          PY
+
+      - name: Install Linux system dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install -y libasound2-dev libudev-dev pkg-config
+
+      - name: Set up pinned Rust
+        uses: dtolnay/rust-toolchain@6bed0761d98439e5a578e2877258200ad565ba87
+        with:
+          toolchain: 1.96.0
+          components: clippy,rustfmt
+
+      - name: Bind toolchain
+        shell: bash
+        run: |
+          set -euo pipefail
+          rustc -Vv
+          cargo -Vv
+          rustfmt --version
+          cargo clippy --version
+          test "$(rustc --version | awk '{print $2}')" = "1.96.0"
+          test "$(cargo --version | awk '{print $2}')" = "1.96.0"
+
+      - name: Format exact product files
+        shell: bash
+        run: |
+          set -euo pipefail
+          rustfmt --edition 2024 \
+            crates/domains/symtropy-terrain/src/lib.rs \
+            crates/domains/symtropy-terrain/tests/terrain_metric_public.rs
+          rustfmt --edition 2024 --check \
+            crates/domains/symtropy-terrain/src/lib.rs \
+            crates/domains/symtropy-terrain/tests/terrain_metric_public.rs
+
+      - name: Audit exact product delta and frozen metric implementation
+        shell: bash
+        run: |
+          set -euo pipefail
+          base=7bb937cb6b47eaff5dcd5b9bef8eb5980aed3ac6
+          metric=crates/domains/symtropy-terrain/src/terrain_metric.rs
+          lib=crates/domains/symtropy-terrain/src/lib.rs
+          public_test=crates/domains/symtropy-terrain/tests/terrain_metric_public.rs
+          actual="$({ git diff --name-only; git ls-files --others --exclude-standard; } | sed '/^$/d' | sort -u)"
+          expected="$(printf '%s\n' "${lib}" "${public_test}" | sort)"
+          test "${actual}" = "${expected}"
+          test "$(git hash-object "${metric}")" = "5f6cce3dc034c0b8c0e46dc55e599bd6162841ac"
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+          lib = Path("crates/domains/symtropy-terrain/src/lib.rs").read_text()
+          metric = Path("crates/domains/symtropy-terrain/src/terrain_metric.rs").read_text()
+          manifest = Path("crates/domains/symtropy-terrain/Cargo.toml").read_text()
+          if lib.count("pub mod terrain_metric;") != 1:
+              raise SystemExit("expected exactly one public terrain_metric module export")
+          banned = ["Default for TerrainMetricProfile", "TerrainMetricProfile::new(1_000_000)"]
+          production = lib + "\n" + metric.partition("#[cfg(test)]")[0]
+          for term in banned:
+              if term in production:
+                  raise SystemExit(f"metric export gained a default/selection surface: {term}")
+          if "symtropy-spatial-decomposition" in manifest or "symtropy_spatial_decomposition" in lib:
+              raise SystemExit("Terrain metric read surface gained PB dependency")
+          if re.search(r"(?:GlobalTransform|Transform|Vec3|Collider).*TerrainMetricProfile", production):
+              raise SystemExit("metric read surface gained runtime inference authority")
+          print("TERRAIN_METRIC_QUALIFIED_BLOB=UNCHANGED")
+          print("TERRAIN_METRIC_PUBLIC_READ_SURFACE=PASS")
+          print("TERRAIN_METRIC_SELECTION_AUTHORITY=ABSENT")
+          PY
+
+      - name: Verify locked dependency graph
+        shell: bash
+        run: |
+          set -euo pipefail
+          before="$(git hash-object Cargo.lock)"
+          cargo metadata --locked --format-version 1 > "${RUNNER_TEMP}/terrain-metric-read-surface-metadata.json"
+          test "$(git hash-object Cargo.lock)" = "${before}"
+
+      - name: Compile and execute public read-surface theorem
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo check -p symtropy-terrain --locked --all-targets
+          cargo test -p symtropy-terrain --locked --test terrain_metric_public -- --nocapture
+
+      - name: Execute complete Terrain regression suite
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo test -p symtropy-terrain --locked --all-targets
+
+      - name: Enforce strict all-target Clippy
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo clippy -p symtropy-terrain --locked --all-targets -- -D warnings
+
+      - name: Commit and publish clean product branch
+        shell: bash
+        env:
+          BASE: 7bb937cb6b47eaff5dcd5b9bef8eb5980aed3ac6
+          TARGET: terrain/metric-read-surface-v0.1
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "${BASE}"
+          test "$(git hash-object crates/domains/symtropy-terrain/src/terrain_metric.rs)" = "5f6cce3dc034c0b8c0e46dc55e599bd6162841ac"
+          git config user.name "Tristan Stoltz"
+          git config user.email "tristan.stoltz@evolvingresonantcocreationism.com"
+          git add crates/domains/symtropy-terrain/src/lib.rs crates/domains/symtropy-terrain/tests/terrain_metric_public.rs
+          git commit -m "feat(terrain): export exact metric read surface"
+          test "$(git rev-parse HEAD^)" = "${BASE}"
+          git push --force-with-lease origin "HEAD:${TARGET}"
+          echo "TERRAIN_METRIC_READ_SURFACE_PRODUCT=$(git rev-parse HEAD)"
+          echo "TERRAIN_METRIC_READ_SURFACE_TREE=$(git rev-parse HEAD^{tree})"
+          echo "TERRAIN_METRIC_READ_SURFACE_LIB_BLOB=$(git rev-parse HEAD:crates/domains/symtropy-terrain/src/lib.rs)"
+          echo "TERRAIN_METRIC_READ_SURFACE_TEST_BLOB=$(git rev-parse HEAD:crates/domains/symtropy-terrain/tests/terrain_metric_public.rs)"
