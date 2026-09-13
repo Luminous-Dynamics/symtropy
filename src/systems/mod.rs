@@ -40,6 +40,9 @@ pub mod settlement;
 pub mod settlement_spawn;
 pub mod telemetry;
 pub mod thermodynamic;
+pub mod thermodynamic_close;
+#[cfg(test)]
+mod thermodynamic_close_tests;
 pub mod thermodynamic_runtime;
 pub mod thermodynamic_transaction;
 #[cfg(test)]
