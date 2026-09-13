@@ -15,6 +15,13 @@ use symtropy_rapier3d_bridge::{
 
 use symtropy_physics_gpu::HybridFluidPlugin;
 
+pub mod geometry_kernel;
+mod live_geometry_provider;
+
+pub use live_geometry_provider::{
+    EarthChunkLatticeLocus, TerrainLiveGeometryError, capture_live_terrain_geometry,
+};
+
 pub const CHUNK_SIZE: usize = 16;
 
 /// The material properties of the subterranean earth.
@@ -83,6 +90,9 @@ impl Plugin for SymtropyTerrainPlugin {
     fn build(&self, app: &mut App) {
         app.add_plugins(HybridFluidPlugin)
             .register_type::<EarthChunk>()
+            // `EarthChunkLatticeLocus` is intentionally not reflected or
+            // inspector-registered. Exact spatial authority must be assigned
+            // explicitly by a separately qualified world/bootstrap boundary.
             .add_message::<ExcavationEvent>()
             .add_message::<WeatheringEvent>()
             .add_systems(
