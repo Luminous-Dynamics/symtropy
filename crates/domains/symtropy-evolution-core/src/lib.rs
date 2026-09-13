@@ -76,6 +76,8 @@ mod selection_association;
 mod selection_design;
 mod selection_evidence;
 mod selection_translation;
+mod speciation_transition_design;
+mod speciation_transition_evidence;
 mod species_model;
 mod structured_population_process;
 mod validated_consequence;
@@ -475,6 +477,21 @@ pub use selection_translation::{
     ViabilityLifeCycleStagePolicy, ViabilitySelectionTranslationModel,
     ViabilitySelectionTranslationModelDigest, MODEL_SPECIFIC_SELECTION_ESTIMATE_VERSION,
     VIABILITY_SELECTION_TRANSLATION_MODEL_VERSION,
+};
+pub use speciation_transition_design::{
+    historical_speciation_transition_rule_v1, SpeciationTransitionDesign,
+    SpeciationTransitionDesignDigest, SpeciationTransitionDesignError,
+    SpeciationTransitionDesignId, SpeciationTransitionEvidenceProtocols,
+    SpeciationTransitionMissingPolicy, ValidatedSpeciationTransitionDesign,
+    SPECIATION_TRANSITION_DESIGN_VERSION,
+};
+pub use speciation_transition_evidence::{
+    HistoricalCounterHistoryKind, HistoricalCounterHistoryObservation,
+    HistoricalCounterHistorySource, SpeciationTemporalCriterion,
+    SpeciationTemporalEvidenceInput, SpeciationTemporalEvidenceRecord,
+    SpeciationTransitionEvidence, SpeciationTransitionEvidenceDigest,
+    SpeciationTransitionEvidenceError, SpeciationTransitionStatus, TemporalEvidenceDisposition,
+    ValidatedSpeciationTransitionEvidence, SPECIATION_TRANSITION_EVIDENCE_VERSION,
 };
 pub use species_model::{
     strict_biological_species_model_content_digest_v1, BiologicalSpeciesModel,
