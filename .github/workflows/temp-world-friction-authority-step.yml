@@ -1,0 +1,526 @@
+name: Temporary world friction authority patch
+
+on:
+  push:
+    branches:
+      - physics/world-friction-authority-step-v0.1
+    paths:
+      - .github/workflows/temp-world-friction-authority-step.yml
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  patch-and-qualify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install pinned Rust
+        shell: bash
+        run: |
+          set -euo pipefail
+          rustup toolchain install 1.96.0 --profile minimal --component rustfmt --component clippy
+          rustup override set 1.96.0
+
+      - name: Patch exact world source and add regression
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD^)" = "b362466b695722c5edef9b86908aae1b9eee3ba3"
+          test "$(git hash-object crates/core/symtropy-physics/src/world.rs)" = "7dccf283f858c4874c96425fd7aa8aa3e176a557"
+
+          python3 - <<'PY'
+          from pathlib import Path
+
+          path = Path("crates/core/symtropy-physics/src/world.rs")
+          source = path.read_text()
+
+          def replace_once(old: str, new: str, label: str) -> None:
+              global source
+              count = source.count(old)
+              if count != 1:
+                  raise SystemExit(f"{label}: expected exactly one match, found {count}")
+              source = source.replace(old, new, 1)
+
+          replace_once(
+          '''use crate::contact::{CollisionEvent, ContactCache, ContactManifold};
+          use crate::gjk;
+          use crate::integrator;
+          use crate::manifold_gen;
+          ''',
+          '''use crate::contact::{CollisionEvent, ContactCache, ContactManifold};
+          use crate::friction_authority::FrictionImpulseAuthority;
+          use crate::friction_solver_execution::{
+              CheckedFrictionExecutor, LegacyDirectFrictionExecutor, SolverFrictionExecutor,
+          };
+          use crate::friction_step::FrictionStepError;
+          use crate::gjk;
+          use crate::integrator;
+          use crate::manifold_gen;
+          ''',
+          "imports",
+          )
+
+          replace_once(
+          '''    /// Step with consciousness-physics callback.
+              ///
+              /// The callback modulates forces, impulses, and friction based on
+              /// consciousness state, closing the consciousness-physics loop.
+              pub fn step_with_callback(&mut self, dt: f64, callback: &mut dyn PhysicsCallback<D>) {
+                  self.step_internal(dt, callback);
+              }
+
+              /// Step without consciousness coupling (pure physics).
+              pub fn step(&mut self, dt: f64) {
+                  let mut noop = NoOpCallback;
+                  self.step_internal(dt, &mut noop);
+              }
+
+              fn step_internal(&mut self, dt: f64, callback: &mut dyn PhysicsCallback<D>) {
+          ''',
+          '''    /// Step with consciousness-physics callback.
+              ///
+              /// The callback modulates forces, impulses, and friction based on
+              /// consciousness state, closing the consciousness-physics loop.
+              ///
+              /// This legacy compatibility surface retains direct friction mechanics
+              /// and the historical `record_dissipation(|J| * 0.1)` callback telemetry.
+              pub fn step_with_callback(&mut self, dt: f64, callback: &mut dyn PhysicsCallback<D>) {
+                  let mut friction_executor = LegacyDirectFrictionExecutor;
+                  match self.step_internal(dt, callback, &mut friction_executor) {
+                      Ok(()) => {}
+                      Err(never) => match never {},
+                  }
+              }
+
+              /// Step without consciousness coupling (pure physics).
+              pub fn step(&mut self, dt: f64) {
+                  let mut noop = NoOpCallback;
+                  self.step_with_callback(dt, &mut noop);
+              }
+
+              /// Step through an explicit friction authority while retaining the normal
+              /// consciousness-physics callback for force/normal-impulse modulation.
+              ///
+              /// Native solver coordinates are losslessly converted before every
+              /// authority call. An authority error is fail-stop, not a transactional
+              /// rollback of the whole physics world: integration and earlier solver
+              /// work in this step may already have occurred. Callers must therefore
+              /// reject/poison the enclosing fixed-tick consequence on `Err`.
+              ///
+              /// Unlike the legacy stepping surface, this path never emits the
+              /// dimensionally invalid `record_dissipation(|J| * 0.1)` telemetry.
+              pub fn step_with_callback_and_friction_authority<A>(
+                  &mut self,
+                  dt: f64,
+                  callback: &mut dyn PhysicsCallback<D>,
+                  authority: &mut A,
+              ) -> Result<(), FrictionStepError<A::Error>>
+              where
+                  A: FrictionImpulseAuthority<D>,
+              {
+                  let mut friction_executor = CheckedFrictionExecutor::new(authority);
+                  self.step_internal(dt, callback, &mut friction_executor)
+              }
+
+              /// Authority-aware pure-physics convenience wrapper.
+              pub fn step_with_friction_authority<A>(
+                  &mut self,
+                  dt: f64,
+                  authority: &mut A,
+              ) -> Result<(), FrictionStepError<A::Error>>
+              where
+                  A: FrictionImpulseAuthority<D>,
+              {
+                  let mut noop = NoOpCallback;
+                  self.step_with_callback_and_friction_authority(dt, &mut noop, authority)
+              }
+
+              fn step_internal<E>(
+                  &mut self,
+                  dt: f64,
+                  callback: &mut dyn PhysicsCallback<D>,
+                  friction_executor: &mut E,
+              ) -> Result<(), E::Error>
+              where
+                  E: SolverFrictionExecutor<D>,
+              {
+          ''',
+          "step entry points",
+          )
+
+          replace_once(
+          '''        // 5b. TGS Soft velocity solver: position-correction bias folded into impulse.
+                  //     Each iteration accumulates per-point lambda; write updated manifold back.
+                  for _ in 0..self.solver_iterations {
+                      for &ci in &active_contact_indices {
+                          if ci < self.contacts.len() {
+                              let contact = self.contacts[ci].clone();
+                              let updated = self.resolve_contact(contact, dt, callback);
+                              self.contacts[ci] = updated;
+                          }
+                      }
+                  }
+          ''',
+          '''        // 5b. TGS Soft velocity solver: position-correction bias folded into impulse.
+                  //     Each iteration accumulates per-point lambda; write updated manifold back.
+                  //     The nested enumeration is also the replay-stable solver-local friction
+                  //     identity: iteration -> active-contact sequence -> point sequence.
+                  for solver_iteration in 0..self.solver_iterations {
+                      for (contact_sequence, &ci) in active_contact_indices.iter().enumerate() {
+                          if ci < self.contacts.len() {
+                              let contact = self.contacts[ci].clone();
+                              let updated = self.resolve_contact(
+                                  contact,
+                                  dt,
+                                  callback,
+                                  friction_executor,
+                                  solver_iteration,
+                                  contact_sequence,
+                              )?;
+                              self.contacts[ci] = updated;
+                          }
+                      }
+                  }
+          ''',
+          "solver traversal",
+          )
+
+          replace_once(
+          '''        // 8. State Decay: Apply natural recovery/decay to all conscious entities.
+                  self.decay_state(callback, dt);
+              }
+          ''',
+          '''        // 8. State Decay: Apply natural recovery/decay to all conscious entities.
+                  self.decay_state(callback, dt);
+                  Ok(())
+              }
+          ''',
+          "step result",
+          )
+
+          replace_once(
+          '''    fn resolve_contact(
+                  &mut self,
+                  mut contact: ContactManifold<D>,
+                  dt: f64,
+                  callback: &mut dyn PhysicsCallback<D>,
+              ) -> ContactManifold<D> {
+                  let (idx_a, idx_b) = self.find_body_indices(contact.body_a, contact.body_b);
+                  let (Some(a), Some(b)) = (idx_a, idx_b) else {
+                      return contact;
+                  };
+          ''',
+          '''    fn resolve_contact<E>(
+                  &mut self,
+                  mut contact: ContactManifold<D>,
+                  dt: f64,
+                  callback: &mut dyn PhysicsCallback<D>,
+                  friction_executor: &mut E,
+                  solver_iteration: usize,
+                  contact_sequence: usize,
+              ) -> Result<ContactManifold<D>, E::Error>
+              where
+                  E: SolverFrictionExecutor<D>,
+              {
+                  let (idx_a, idx_b) = self.find_body_indices(contact.body_a, contact.body_b);
+                  let (Some(a), Some(b)) = (idx_a, idx_b) else {
+                      return Ok(contact);
+                  };
+                  if a == b {
+                      return Ok(contact);
+                  }
+          ''',
+          "resolve signature",
+          )
+
+          replace_once(
+          '''        let total_inv_mass = inv_mass_a + inv_mass_b;
+                  if total_inv_mass < 1e-15 {
+                      return contact;
+                  }
+          ''',
+          '''        let total_inv_mass = inv_mass_a + inv_mass_b;
+                  if total_inv_mass < 1e-15 {
+                      return Ok(contact);
+                  }
+          ''',
+          "resolve early return",
+          )
+
+          replace_once(
+          '''        if total_normal_impulse > 1e-15 {
+                      let total_raw_lambda: f64 = contact.points.iter().map(|p| p.lambda).sum();
+
+                      for pt in &contact.points {
+          ''',
+          '''        if total_normal_impulse > 1e-15 {
+                      let total_raw_lambda: f64 = contact.points.iter().map(|p| p.lambda).sum();
+
+                      for (point_sequence, pt) in contact.points.iter().enumerate() {
+          ''',
+          "friction point enumeration",
+          )
+
+          replace_once(
+          '''                    let j_t_desired = -v_t_mag / denom_t;
+                              let j_t = j_t_desired.clamp(-mu * point_bound, mu * point_bound);
+                              let friction_impulse = tangent * j_t;
+                              integrator::apply_impulse(&mut self.bodies[a], &(-friction_impulse));
+                              integrator::apply_impulse(&mut self.bodies[b], &friction_impulse);
+
+                              let torque_a = Bivector::from_wedge(&(-friction_impulse), &r_a);
+                              let torque_b = Bivector::from_wedge(&friction_impulse, &r_b);
+                              integrator::apply_angular_impulse(&mut self.bodies[a], &torque_a);
+                              integrator::apply_angular_impulse(&mut self.bodies[b], &torque_b);
+
+                              total_friction_dissipation += j_t.abs() * 0.1;
+          ''',
+          '''                    let j_t_desired = -v_t_mag / denom_t;
+                              let j_t = j_t_desired.clamp(-mu * point_bound, mu * point_bound);
+                              let friction_impulse = tangent * j_t;
+                              let contact_point = pt.position;
+
+                              let (body_a, body_b) = if a < b {
+                                  let (left, right) = self.bodies.split_at_mut(b);
+                                  (&mut left[a], &mut right[0])
+                              } else {
+                                  let (left, right) = self.bodies.split_at_mut(a);
+                                  (&mut right[0], &mut left[b])
+                              };
+                              friction_executor.execute(
+                                  body_a,
+                                  body_b,
+                                  &contact_point,
+                                  &friction_impulse,
+                                  solver_iteration,
+                                  contact_sequence,
+                                  point_sequence,
+                              )?;
+
+                              if friction_executor.records_legacy_dissipation_telemetry() {
+                                  total_friction_dissipation += j_t.abs() * 0.1;
+                              }
+          ''',
+          "friction authority dispatch",
+          )
+
+          replace_once(
+          '''        contact
+              }
+
+              #[inline]
+              fn allocate_handle''',
+          '''        Ok(contact)
+              }
+
+              #[inline]
+              fn allocate_handle''',
+          "resolve result",
+          )
+
+          path.write_text(source)
+
+          test_path = Path("crates/core/symtropy-physics/tests/world_friction_authority.rs")
+          if test_path.exists():
+              raise SystemExit("world friction authority regression unexpectedly already exists")
+          test_path.write_text(r'''// Copyright (C) 2024-2026 Tristan Stoltz / Luminous Dynamics
+          // SPDX-License-Identifier: Apache-2.0 OR MIT
+          // Commercial licensing: see COMMERCIAL_LICENSE.md at repository root
+
+          use std::convert::Infallible;
+
+          use nalgebra::SVector;
+          use symtropy_math::Point;
+          use symtropy_physics::{
+              BodyHandle, CollisionEvent, DirectFrictionImpulseAuthority, FrictionAuthorityFailure,
+              FrictionImpulseAuthority, FrictionSolverCoordinates, FrictionStepError, PhysicsCallback,
+              PhysicsWorld, RigidBody,
+          };
+
+          #[derive(Default)]
+          struct TrackingCallback {
+              dissipation_joules: f64,
+              collision_count: usize,
+          }
+
+          impl PhysicsCallback<2> for TrackingCallback {
+              fn modulate_force(&self, _: BodyHandle, force: &SVector<f64, 2>) -> SVector<f64, 2> {
+                  *force
+              }
+
+              fn modulate_impulse(&self, impulse: f64, _: &SVector<f64, 2>) -> f64 {
+                  impulse
+              }
+
+              fn friction_multiplier(&self, _: &SVector<f64, 2>, _: BodyHandle) -> f64 {
+                  1.0
+              }
+
+              fn on_collision(&mut self, _: &CollisionEvent<2>) {
+                  self.collision_count += 1;
+              }
+
+              fn record_dissipation(&mut self, energy: f64) {
+                  self.dissipation_joules += energy;
+              }
+
+              fn record_work(&mut self, _: BodyHandle, _: f64) {}
+
+              fn apply_trauma(&mut self, _: &CollisionEvent<2>) {}
+          }
+
+          fn friction_world() -> (PhysicsWorld<2>, BodyHandle, BodyHandle) {
+              let mut world = PhysicsWorld::<2>::new(SVector::zeros());
+              world.solver_iterations = 3;
+              let body_a = world.add_sphere(Point::new([-0.9, 0.0]), 1.0, 1.0);
+              let body_b = world.add_sphere(Point::new([0.9, 0.0]), 1.0, 1.0);
+
+              world.body_mut(body_a).unwrap().friction = 1.0;
+              world.body_mut(body_b).unwrap().friction = 1.0;
+              world.body_mut(body_a).unwrap().restitution = 0.0;
+              world.body_mut(body_b).unwrap().restitution = 0.0;
+              world.body_mut(body_a).unwrap().linear_velocity = SVector::from([1.0, 0.75]);
+              world.body_mut(body_b).unwrap().linear_velocity = SVector::from([-1.0, -0.75]);
+
+              (world, body_a, body_b)
+          }
+
+          #[derive(Default)]
+          struct RecordingDirectAuthority {
+              direct: DirectFrictionImpulseAuthority,
+              seen: Vec<(BodyHandle, BodyHandle, FrictionSolverCoordinates)>,
+          }
+
+          impl FrictionImpulseAuthority<2> for RecordingDirectAuthority {
+              type Error = Infallible;
+
+              fn execute_friction_impulse(
+                  &mut self,
+                  body_a: &mut RigidBody<2>,
+                  body_b: &mut RigidBody<2>,
+                  contact_point: &SVector<f64, 2>,
+                  impulse_on_b: &SVector<f64, 2>,
+                  coordinates: FrictionSolverCoordinates,
+              ) -> Result<(), Self::Error> {
+                  self.seen.push((body_a.handle, body_b.handle, coordinates));
+                  self.direct.execute_friction_impulse(
+                      body_a,
+                      body_b,
+                      contact_point,
+                      impulse_on_b,
+                      coordinates,
+                  )
+              }
+          }
+
+          #[test]
+          fn authority_world_path_preserves_legacy_mechanics_but_not_pseudo_energy_telemetry() {
+              let (mut legacy, legacy_a, legacy_b) = friction_world();
+              let (mut checked, checked_a, checked_b) = friction_world();
+              let mut legacy_callback = TrackingCallback::default();
+              let mut checked_callback = TrackingCallback::default();
+              let mut authority = RecordingDirectAuthority::default();
+
+              legacy.step_with_callback(1.0 / 120.0, &mut legacy_callback);
+              checked
+                  .step_with_callback_and_friction_authority(
+                      1.0 / 120.0,
+                      &mut checked_callback,
+                      &mut authority,
+                  )
+                  .unwrap();
+
+              assert!(!authority.seen.is_empty(), "expected real solver friction authority calls");
+              assert!(legacy_callback.dissipation_joules > 0.0);
+              assert_eq!(checked_callback.dissipation_joules, 0.0);
+
+              for (legacy_handle, checked_handle) in [(legacy_a, checked_a), (legacy_b, checked_b)] {
+                  let legacy_body = legacy.body(legacy_handle).unwrap();
+                  let checked_body = checked.body(checked_handle).unwrap();
+                  assert_eq!(legacy_body.linear_velocity, checked_body.linear_velocity);
+                  assert_eq!(legacy_body.angular_velocity, checked_body.angular_velocity);
+              }
+
+              let coordinates: Vec<_> = authority.seen.iter().map(|(_, _, c)| *c).collect();
+              assert!(coordinates.windows(2).all(|pair| pair[0] < pair[1]));
+              assert!(coordinates.iter().all(|c| c.contact_sequence == 0));
+              assert!(coordinates.iter().all(|c| c.point_sequence == 0));
+              assert!(coordinates.iter().all(|c| c.solver_iteration < 3));
+          }
+
+          struct RejectingAuthority {
+              calls: usize,
+          }
+
+          impl FrictionImpulseAuthority<2> for RejectingAuthority {
+              type Error = &'static str;
+
+              fn execute_friction_impulse(
+                  &mut self,
+                  _body_a: &mut RigidBody<2>,
+                  _body_b: &mut RigidBody<2>,
+                  _contact_point: &SVector<f64, 2>,
+                  _impulse_on_b: &SVector<f64, 2>,
+                  _coordinates: FrictionSolverCoordinates,
+              ) -> Result<(), Self::Error> {
+                  self.calls += 1;
+                  Err("blocked")
+              }
+          }
+
+          #[test]
+          fn authority_rejection_stops_at_first_exact_solver_coordinate_without_pseudo_energy() {
+              let (mut world, body_a, body_b) = friction_world();
+              let mut callback = TrackingCallback::default();
+              let mut authority = RejectingAuthority { calls: 0 };
+
+              let error = world
+                  .step_with_callback_and_friction_authority(
+                      1.0 / 120.0,
+                      &mut callback,
+                      &mut authority,
+                  )
+                  .unwrap_err();
+
+              assert_eq!(authority.calls, 1);
+              assert_eq!(callback.dissipation_joules, 0.0);
+              assert_eq!(callback.collision_count, 0);
+              assert_eq!(
+                  error,
+                  FrictionStepError::Authority(FrictionAuthorityFailure {
+                      body_a,
+                      body_b,
+                      coordinates: FrictionSolverCoordinates::new(0, 0, 0),
+                      error: "blocked",
+                  })
+              );
+          }
+          ''')
+
+          if source.count("step_with_callback_and_friction_authority") < 2:
+              raise SystemExit("authority-aware world API missing after patch")
+          if "integrator::apply_impulse(&mut self.bodies[a], &(-friction_impulse));" in source:
+              raise SystemExit("old direct friction mutation still present")
+          if source.count("j_t.abs() * 0.1") != 2:
+              # one in the legacy API doc and one guarded executable expression
+              raise SystemExit("unexpected pseudo-dissipation expression count")
+          PY
+
+          cargo fmt --all -- --check
+          cargo test -p symtropy-physics --test world_friction_authority --test callback_contract
+          cargo test -p symtropy-physics friction_solver_execution::
+          git diff --check
+
+          git add crates/core/symtropy-physics/src/world.rs \
+                  crates/core/symtropy-physics/tests/world_friction_authority.rs
+          test -n "$(git diff --cached --name-only)"
+          test "$(git diff --cached --name-only | wc -l)" -eq 2
+          git config user.name "symtropy-qualification-bot"
+          git config user.email "actions@users.noreply.github.com"
+          git commit -m "physics: route world friction through authority-aware solver"
+          git push origin HEAD:physics/world-friction-authority-step-v0.1
