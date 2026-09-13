@@ -1,0 +1,71 @@
+name: Terrain Consumer Census
+
+on:
+  push:
+    branches: ["ci/terrain-consumer-census-v0.1"]
+    paths: [".github/workflows/terrain-consumer-census.yml"]
+
+permissions:
+  contents: read
+
+jobs:
+  census:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Bind exact subject
+        run: |
+          set -euo pipefail
+          subject=65e4e78661deb069ad4c355705adb9e2eeaeb672
+          test "$(git rev-parse HEAD^)" = "$subject"
+          test "$(git rev-parse $subject:crates/domains/symtropy-terrain/src/live_geometry_provider.rs)" = "0cfcc40ef9f1a4dd767dd3ac7e77f253d7d847aa"
+      - uses: dtolnay/rust-toolchain@6bed0761d98439e5a578e2877258200ad565ba87
+        with:
+          toolchain: 1.96.0
+      - name: Exact Cargo consumer census
+        run: |
+          set -euo pipefail
+          cargo metadata --locked --format-version 1 > /tmp/metadata.json
+          python3 - <<'PY'
+          import json
+          m=json.load(open('/tmp/metadata.json'))
+          members=set(m['workspace_members']); packages={p['id']:p for p in m['packages']}
+          consumers=[]
+          for pid in sorted(members):
+              p=packages[pid]
+              for d in p.get('dependencies',[]):
+                  if d['name']=='symtropy-terrain':
+                      consumers.append((p['name'],p['manifest_path'],d.get('optional'),d.get('kind'),d.get('rename'),d.get('features',[])))
+          print('=== WORKSPACE DIRECT TERRAIN CONSUMERS ===')
+          for row in consumers: print(row)
+          print(f'TERRAIN_DIRECT_WORKSPACE_CONSUMER_COUNT={len(consumers)}')
+          PY
+      - name: Exact checked-in Rust authority census
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          needles=('EarthChunk','EarthChunkLatticeLocus','TerrainPlugin','symtropy_terrain')
+          rows=[]
+          for p in sorted(Path('.').rglob('*.rs')):
+              if '.git' in p.parts or 'target' in p.parts: continue
+              try: lines=p.read_text().splitlines()
+              except UnicodeDecodeError: continue
+              for n,line in enumerate(lines,1):
+                  hits=[x for x in needles if x in line]
+                  if hits: rows.append((p,n,hits,line.strip()))
+          print('=== CHECKED-IN RUST AUTHORITY REFERENCES ===')
+          for p,n,hits,line in rows: print(f'{p}:{n}: [{",".join(hits)}] {line}')
+          print(f'TERRAIN_AUTHORITY_REFERENCE_COUNT={len(rows)}')
+          PY
+      - name: Exact-subject postflight
+        run: |
+          set -euo pipefail
+          test -z "$(git status --porcelain)"
+          test "$(git rev-parse HEAD^)" = "65e4e78661deb069ad4c355705adb9e2eeaeb672"
+          echo TERRAIN_CONSUMER_CENSUS_STATUS=PASS
