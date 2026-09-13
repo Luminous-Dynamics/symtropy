@@ -77,6 +77,17 @@ impl FrictionTransactionJournal {
         self.phases.is_empty()
     }
 
+    /// True only when every recorded transaction belongs to `fixed_tick`.
+    ///
+    /// Empty journals are vacuously valid. This read-only theorem lets the outer
+    /// #824 fixed-tick authority reject cross-tick friction evidence without
+    /// exposing or making the journal's internal phase map caller-mutable.
+    pub fn matches_fixed_tick(&self, fixed_tick: u64) -> bool {
+        self.phases
+            .keys()
+            .all(|transaction_id| transaction_id.fixed_tick == fixed_tick)
+    }
+
     /// Number of transactions that have applied mechanics but have not yet
     /// reached an admissible terminal physical/diagnostic outcome.
     pub fn pending_application_count(&self) -> usize {
@@ -297,6 +308,8 @@ mod tests {
         .unwrap();
         assert_eq!(first.transaction_id(), id);
         assert_eq!(journal.phase(id), Some(FrictionTransactionPhase::Applied));
+        assert!(journal.matches_fixed_tick(12));
+        assert!(!journal.matches_fixed_tick(13));
 
         let state_a = (a.linear_velocity, a.angular_velocity);
         let state_b = (b.linear_velocity, b.angular_velocity);
@@ -315,6 +328,34 @@ mod tests {
         assert_eq!((b.linear_velocity, b.angular_velocity), state_b);
         assert_eq!(journal.pending_application_count(), 1);
         assert!(!journal.is_complete_for_finalize());
+    }
+
+    #[test]
+    fn mixed_fixed_ticks_are_visible_to_outer_authority() {
+        let mut a = body(1, [0.0, 0.0, 0.0], 1.0);
+        let mut b = body(2, [0.0, 0.0, 0.0], 0.0);
+        let mut journal = FrictionTransactionJournal::new();
+        let _first = apply_friction_impulse_once(
+            &mut a,
+            &mut b,
+            &SVector::zeros(),
+            &SVector::from([0.25, 0.0, 0.0]),
+            FrictionTransactionId::new(20, 0, 0, 0),
+            &mut journal,
+        )
+        .unwrap();
+        let _second = apply_friction_impulse_once(
+            &mut a,
+            &mut b,
+            &SVector::zeros(),
+            &SVector::from([0.1, 0.0, 0.0]),
+            FrictionTransactionId::new(21, 0, 1, 0),
+            &mut journal,
+        )
+        .unwrap();
+
+        assert!(!journal.matches_fixed_tick(20));
+        assert!(!journal.matches_fixed_tick(21));
     }
 
     #[test]
@@ -362,9 +403,6 @@ mod tests {
         )
         .unwrap();
 
-        // Move both centers onto the recorded contact point without changing
-        // the bound velocities. Geometry is now centered, so the old off-center
-        // classification is stale and cannot be terminalized.
         a.transform.translation = Point::new([0.0, 0.5, 0.0]);
         b.transform.translation = Point::new([0.0, 0.5, 0.0]);
         assert_eq!(
