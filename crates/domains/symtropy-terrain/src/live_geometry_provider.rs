@@ -218,10 +218,7 @@ mod tests {
         let receipt = snapshot
             .query(TerrainVoxelBox::full_chunk())
             .expect("full chunk query must succeed");
-        assert_eq!(
-            receipt.observations().len(),
-            TERRAIN_GEOMETRY_VOXEL_COUNT
-        );
+        assert_eq!(receipt.observations().len(), TERRAIN_GEOMETRY_VOXEL_COUNT);
         receipt.validate().expect("complete receipt must validate");
     }
 
@@ -330,9 +327,7 @@ mod tests {
                 EarthChunkLatticeLocus::new(-3, 7, 11),
             ))
             .id();
-        let conflicting = world
-            .spawn(EarthChunkLatticeLocus::new(-3, 7, 11))
-            .id();
+        let conflicting = world.spawn(EarthChunkLatticeLocus::new(-3, 7, 11)).id();
 
         assert_eq!(
             capture_live_terrain_geometry(&world, requested),
@@ -348,16 +343,10 @@ mod tests {
     fn same_materials_at_different_ecs_loci_have_different_identity() {
         let mut world = World::new();
         let first = world
-            .spawn((
-                EarthChunk::default(),
-                EarthChunkLatticeLocus::new(0, 0, 0),
-            ))
+            .spawn((EarthChunk::default(), EarthChunkLatticeLocus::new(0, 0, 0)))
             .id();
         let second = world
-            .spawn((
-                EarthChunk::default(),
-                EarthChunkLatticeLocus::new(0, 0, 1),
-            ))
+            .spawn((EarthChunk::default(), EarthChunkLatticeLocus::new(0, 0, 1)))
             .id();
 
         let first =
