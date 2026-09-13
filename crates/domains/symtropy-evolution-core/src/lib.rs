@@ -62,6 +62,8 @@ mod population_process;
 mod population_structure;
 mod population_trajectory;
 mod reproduction;
+mod reproductive_contact_design;
+mod reproductive_contact_evidence;
 mod schema;
 mod selection_analysis_frame;
 mod selection_association;
@@ -359,6 +361,21 @@ pub use population_trajectory::{
 pub use reproduction::{
     derive_offspring, OffspringDerivation, ParentHereditaryRef, ParentRole,
     ReproductionMode, ReproductionProvenance, ReproductionProvenanceDigest,
+};
+pub use reproductive_contact_design::{
+    ReproductiveContactContextPolicy, ReproductiveContactDesignError,
+    ReproductiveContactStudyDesign, ReproductiveContactStudyDesignDigest,
+    ReproductiveContactStudyId, ReproductiveOpportunityDeclaration,
+    ReproductiveOpportunityId, ValidatedReproductiveContactStudyDesign,
+    REPRODUCTIVE_CONTACT_STUDY_DESIGN_VERSION,
+};
+pub use reproductive_contact_evidence::{
+    ObservedOffspringEvidence, RealizedGeneFlowObservation,
+    ReproductiveContactEvidenceError, ReproductiveContactRecord, ReproductiveContactStudy,
+    ReproductiveContactStudyDigest, ReproductiveContactStudyStatus,
+    ReproductiveObservationStage, ReproductiveOpportunityEvidenceInput,
+    ReproductiveOpportunityOutcome, ReproductiveStageEvidence, ValidatedReproductiveContactStudy,
+    REPRODUCTIVE_CONTACT_STUDY_VERSION,
 };
 pub use schema::{HereditarySchema, HereditarySchemaDigest, LocusDefinition};
 pub use selection_analysis_frame::{
