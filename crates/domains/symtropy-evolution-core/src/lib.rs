@@ -36,6 +36,8 @@ mod error;
 mod gamete_ancestry;
 mod haldane;
 mod heredity;
+mod heritable_response_design;
+mod heritable_response_study;
 mod ids;
 mod linked_census_projection;
 mod linked_gamete;
@@ -214,6 +216,19 @@ pub use haldane::{
     HALDANE_PARITY_ORACLE_VERSION, HALDANE_SATURATION_DISTANCE_MICROMORGANS,
 };
 pub use heredity::{HereditaryState, HereditaryStateDigest};
+pub use heritable_response_design::{
+    ExpectedHeritableResponseDirection, HeritableResponseContextPolicy,
+    HeritableResponseDesignError, HeritableResponseStudyDesign,
+    HeritableResponseStudyDesignDigest, HeritableResponseStudyId,
+    ValidatedHeritableResponseStudyDesign, HERITABLE_RESPONSE_STUDY_DESIGN_VERSION,
+};
+pub use heritable_response_study::{
+    GenerationEvidenceDisposition, GenerationResponseEvidenceInput, GenerationResponseRecord,
+    GenerationResponseRecordDigest, GenerationTraitDirection, HeritableResponseError,
+    HeritableResponseStudy, HeritableResponseStudyDigest, HeritableResponseStudyStatus,
+    TransmissionEvidenceStatus, ValidatedHeritableResponseStudy,
+    GENERATION_RESPONSE_RECORD_VERSION, HERITABLE_RESPONSE_STUDY_VERSION,
+};
 pub use ids::{
     AlleleId, AnalysisMethodId, AncestryCopyId, AssignmentExchangeabilityAuthorityId,
     AssignmentMaterializationAuthorityId, AssignmentMaterializationQualificationAuthorityId,
