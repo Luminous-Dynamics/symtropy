@@ -88,8 +88,9 @@ pub use external_heat::{
     EXTERNAL_HEAT_TRANSFER_KIND, ExternalHeatError, exchange_external_heat_audited,
 };
 pub use friction_evidence::{
-    FrictionEvidenceError, FrictionEvidenceRegime, FrictionMechanicalDelta,
-    FrictionMechanicalObservation, apply_friction_impulse_measured,
+    BoundFrictionMechanicalObservation, FrictionEvidenceError, FrictionEvidenceRegime,
+    FrictionMechanicalDelta, FrictionMechanicalObservation, FrictionTransactionId,
+    apply_friction_impulse_measured, apply_friction_impulse_measured_bound,
     classify_friction_evidence_regime,
 };
 pub use integrator::nan_zeroed_count;
