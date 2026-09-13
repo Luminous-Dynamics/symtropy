@@ -13,23 +13,22 @@ use super::thermodynamic_close::{
     close_operational_thermodynamic_tick,
 };
 use super::thermodynamic_runtime::{
-    ThermodynamicRuntimeError, ThermodynamicTransactionRuntime,
+    ThermodynamicRuntimeError, ThermodynamicRuntimeTickReceipt,
+    ThermodynamicTransactionRuntime,
 };
 use super::thermodynamic_transaction::{
-    ThermodynamicConsequenceStatus, ThermodynamicFinalizePermit, ThermodynamicTickReceipt,
+    ThermodynamicConsequenceStatus, ThermodynamicFinalizePermit,
 };
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct CommittedThermodynamicTickReceipt {
-    pub transaction: ThermodynamicTickReceipt,
+    /// Fixed-tick lifecycle + exact typed physical-transfer segment.
+    pub transaction: ThermodynamicRuntimeTickReceipt,
     pub operational_close: OperationalThermodynamicCloseReceipt,
 }
 
 /// Non-cloneable continuation for a close that failed preflight after finalize
 /// identity/status/friction evidence had already been reserved.
-///
-/// Keeping the runtime in `Finalizing` prevents the same consequential tick from
-/// being reopened and relabeled with a different `ThermodynamicConsequenceStatus`.
 #[derive(Debug)]
 pub struct PreparedOperationalCloseRetry {
     permit: ThermodynamicFinalizePermit,
@@ -67,7 +66,7 @@ fn finish_prepared_close(
 ) -> Result<CommittedThermodynamicTickReceipt, ThermodynamicCommitError> {
     runtime
         .validate_prepared_finalize(&permit)
-        .expect("exclusive prepared runtime must retain its exact friction snapshot");
+        .expect("exclusive prepared runtime must retain its exact friction/physical interval");
 
     let operational_close = match close_operational_thermodynamic_tick(physics, hud, handles) {
         Ok(receipt) => receipt,
@@ -93,11 +92,11 @@ fn finish_prepared_close(
 /// Ordering is strictly:
 ///
 /// ```text
-/// reserve tick + consequence status + friction snapshot
+/// reserve tick + consequence status + friction state
 /// -> validate
 /// -> preflight + commit operational close
-/// -> commit typed fixed-tick receipt
-/// -> rotate private friction journal
+/// -> commit lifecycle + exact physical-transfer segment
+/// -> rotate private friction journal / close ledger interval
 /// ```
 ///
 /// If operational-close preflight rejects, the runtime intentionally remains in
