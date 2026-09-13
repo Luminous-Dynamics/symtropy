@@ -3,7 +3,8 @@ use crate::{
     DemographicInterventionProofBundleDigest, HereditarySchema, LineageDivergenceHistoryDesign,
     LineageDivergenceHistoryDesignDigest, LineageHistoryContextPolicy, LineageHistoryEpisodeId,
     LineageHistoryMissingPolicy, PopulationGeneration, PopulationGeneticState,
-    PopulationTrajectoryPoint, ValidatedLineageDivergenceHistoryDesign,
+    PopulationTrajectoryPoint, PopulationTrajectoryPointDigest,
+    ValidatedLineageDivergenceHistoryDesign,
 };
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
@@ -20,72 +21,26 @@ pub struct QualifiedLineageHistoryEvidence {
 
 impl QualifiedLineageHistoryEvidence {
     fn new(protocol: &AnalysisAuthorityRef, evidence: AnalysisAuthorityRef) -> Self {
-        Self {
-            protocol: protocol.clone(),
-            evidence,
-        }
+        Self { protocol: protocol.clone(), evidence }
     }
-
     fn put(&self, digest: &mut Sha256) {
         put_authority(digest, &self.protocol);
         put_authority(digest, &self.evidence);
     }
 }
 
-#[derive(Debug, Clone)]
-pub enum LineageObservationInput {
-    NoneObserved { evidence: AnalysisAuthorityRef },
-    Observed { evidence: AnalysisAuthorityRef },
-    Unavailable { reason: AnalysisAuthorityRef },
-}
-
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub enum LineageObservationState {
-    NoneObserved { evidence: QualifiedLineageHistoryEvidence },
-    Observed { evidence: QualifiedLineageHistoryEvidence },
-    Unavailable { reason: QualifiedLineageHistoryEvidence },
+pub struct LineagePointMembershipEvidence {
+    pub lineage: AnalysisAuthorityRef,
+    pub point_digest: PopulationTrajectoryPointDigest,
+    pub evidence: QualifiedLineageHistoryEvidence,
 }
 
-impl LineageObservationState {
-    fn from_input(input: LineageObservationInput, protocol: &AnalysisAuthorityRef) -> Self {
-        match input {
-            LineageObservationInput::NoneObserved { evidence } => Self::NoneObserved {
-                evidence: QualifiedLineageHistoryEvidence::new(protocol, evidence),
-            },
-            LineageObservationInput::Observed { evidence } => Self::Observed {
-                evidence: QualifiedLineageHistoryEvidence::new(protocol, evidence),
-            },
-            LineageObservationInput::Unavailable { reason } => Self::Unavailable {
-                reason: QualifiedLineageHistoryEvidence::new(protocol, reason),
-            },
-        }
-    }
-
-    fn protocol(&self) -> &AnalysisAuthorityRef {
-        match self {
-            Self::NoneObserved { evidence } | Self::Observed { evidence } => &evidence.protocol,
-            Self::Unavailable { reason } => &reason.protocol,
-        }
-    }
-
-    fn is_observed(&self) -> bool { matches!(self, Self::Observed { .. }) }
-    fn is_unavailable(&self) -> bool { matches!(self, Self::Unavailable { .. }) }
-
+impl LineagePointMembershipEvidence {
     fn put(&self, digest: &mut Sha256) {
-        match self {
-            Self::NoneObserved { evidence } => {
-                digest.update([0]);
-                evidence.put(digest);
-            }
-            Self::Observed { evidence } => {
-                digest.update([1]);
-                evidence.put(digest);
-            }
-            Self::Unavailable { reason } => {
-                digest.update([2]);
-                reason.put(digest);
-            }
-        }
+        put_authority(digest, &self.lineage);
+        digest.update(self.point_digest.as_bytes());
+        self.evidence.put(digest);
     }
 }
 
@@ -117,32 +72,130 @@ impl LineagePersistenceState {
             },
         }
     }
-
     fn protocol(&self) -> &AnalysisAuthorityRef {
         match self {
             Self::Persistent { evidence } | Self::NotPersistent { evidence } => &evidence.protocol,
             Self::Unavailable { reason } => &reason.protocol,
         }
     }
-
     fn not_persistent(&self) -> bool { matches!(self, Self::NotPersistent { .. }) }
     fn is_unavailable(&self) -> bool { matches!(self, Self::Unavailable { .. }) }
-
     fn put(&self, digest: &mut Sha256) {
         match self {
-            Self::Persistent { evidence } => {
-                digest.update([0]);
-                evidence.put(digest);
-            }
-            Self::NotPersistent { evidence } => {
-                digest.update([1]);
-                evidence.put(digest);
-            }
-            Self::Unavailable { reason } => {
-                digest.update([2]);
-                reason.put(digest);
-            }
+            Self::Persistent { evidence } => { digest.update([0]); evidence.put(digest); }
+            Self::NotPersistent { evidence } => { digest.update([1]); evidence.put(digest); }
+            Self::Unavailable { reason } => { digest.update([2]); reason.put(digest); }
         }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct LineagePersistenceObservation {
+    pub lineage: AnalysisAuthorityRef,
+    pub state: LineagePersistenceState,
+}
+
+impl LineagePersistenceObservation {
+    fn put(&self, digest: &mut Sha256) {
+        put_authority(digest, &self.lineage);
+        self.state.put(digest);
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct QualifiedLineagePairEvidence {
+    pub lineage_a: AnalysisAuthorityRef,
+    pub lineage_b: AnalysisAuthorityRef,
+    pub evidence: QualifiedLineageHistoryEvidence,
+}
+
+impl QualifiedLineagePairEvidence {
+    fn new(
+        design: &LineageDivergenceHistoryDesign,
+        protocol: &AnalysisAuthorityRef,
+        evidence: AnalysisAuthorityRef,
+    ) -> Self {
+        Self {
+            lineage_a: design.lineage_a.clone(),
+            lineage_b: design.lineage_b.clone(),
+            evidence: QualifiedLineageHistoryEvidence::new(protocol, evidence),
+        }
+    }
+    fn put(&self, digest: &mut Sha256) {
+        put_authority(digest, &self.lineage_a);
+        put_authority(digest, &self.lineage_b);
+        self.evidence.put(digest);
+    }
+}
+
+#[derive(Debug, Clone)]
+pub enum LineageObservationInput {
+    NoneObserved { evidence: AnalysisAuthorityRef },
+    Observed { evidence: AnalysisAuthorityRef },
+    Unavailable { reason: AnalysisAuthorityRef },
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub enum LineageObservationState {
+    NoneObserved { evidence: QualifiedLineageHistoryEvidence },
+    Observed { evidence: QualifiedLineageHistoryEvidence },
+    Unavailable { reason: QualifiedLineageHistoryEvidence },
+}
+
+impl LineageObservationState {
+    fn from_input(input: LineageObservationInput, protocol: &AnalysisAuthorityRef) -> Self {
+        match input {
+            LineageObservationInput::NoneObserved { evidence } => Self::NoneObserved {
+                evidence: QualifiedLineageHistoryEvidence::new(protocol, evidence),
+            },
+            LineageObservationInput::Observed { evidence } => Self::Observed {
+                evidence: QualifiedLineageHistoryEvidence::new(protocol, evidence),
+            },
+            LineageObservationInput::Unavailable { reason } => Self::Unavailable {
+                reason: QualifiedLineageHistoryEvidence::new(protocol, reason),
+            },
+        }
+    }
+    fn protocol(&self) -> &AnalysisAuthorityRef {
+        match self {
+            Self::NoneObserved { evidence } | Self::Observed { evidence } => &evidence.protocol,
+            Self::Unavailable { reason } => &reason.protocol,
+        }
+    }
+    fn is_observed(&self) -> bool { matches!(self, Self::Observed { .. }) }
+    fn is_unavailable(&self) -> bool { matches!(self, Self::Unavailable { .. }) }
+    fn put(&self, digest: &mut Sha256) {
+        match self {
+            Self::NoneObserved { evidence } => { digest.update([0]); evidence.put(digest); }
+            Self::Observed { evidence } => { digest.update([1]); evidence.put(digest); }
+            Self::Unavailable { reason } => { digest.update([2]); reason.put(digest); }
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct LineagePairObservationState {
+    pub lineage_a: AnalysisAuthorityRef,
+    pub lineage_b: AnalysisAuthorityRef,
+    pub state: LineageObservationState,
+}
+
+impl LineagePairObservationState {
+    fn new(
+        design: &LineageDivergenceHistoryDesign,
+        input: LineageObservationInput,
+        protocol: &AnalysisAuthorityRef,
+    ) -> Self {
+        Self {
+            lineage_a: design.lineage_a.clone(),
+            lineage_b: design.lineage_b.clone(),
+            state: LineageObservationState::from_input(input, protocol),
+        }
+    }
+    fn put(&self, digest: &mut Sha256) {
+        put_authority(digest, &self.lineage_a);
+        put_authority(digest, &self.lineage_b);
+        self.state.put(digest);
     }
 }
 
@@ -194,10 +247,7 @@ impl LineageHistoryEpisodeObservation {
         put_u64(digest, self.generation.0);
         digest.update([self.kind.tag()]);
         match self.proof_bundle_digest {
-            Some(bundle) => {
-                digest.update([1]);
-                digest.update(bundle.as_bytes());
-            }
+            Some(bundle) => { digest.update([1]); digest.update(bundle.as_bytes()); }
             None => digest.update([0]),
         }
         self.evidence.put(digest);
@@ -230,13 +280,10 @@ pub struct ObservedLineageGenerationInput<'a> {
 #[derive(Debug)]
 pub enum LineageHistoryGenerationInput<'a> {
     Observed(ObservedLineageGenerationInput<'a>),
-    Unavailable {
-        generation: PopulationGeneration,
-        reason: AnalysisAuthorityRef,
-    },
+    Unavailable { generation: PopulationGeneration, reason: AnalysisAuthorityRef },
 }
 
-impl<'a> LineageHistoryGenerationInput<'a> {
+impl LineageHistoryGenerationInput<'_> {
     fn generation(&self) -> PopulationGeneration {
         match self {
             Self::Observed(input) => input.generation,
@@ -250,17 +297,17 @@ pub struct ObservedLineageGenerationRecord {
     pub generation: PopulationGeneration,
     pub lineage_a_point: PopulationTrajectoryPoint,
     pub lineage_b_point: PopulationTrajectoryPoint,
-    pub lineage_a_membership: QualifiedLineageHistoryEvidence,
-    pub lineage_b_membership: QualifiedLineageHistoryEvidence,
-    pub lineage_a_persistence: LineagePersistenceState,
-    pub lineage_b_persistence: LineagePersistenceState,
-    pub ancestry_relation: QualifiedLineageHistoryEvidence,
+    pub lineage_a_membership: LineagePointMembershipEvidence,
+    pub lineage_b_membership: LineagePointMembershipEvidence,
+    pub lineage_a_persistence: LineagePersistenceObservation,
+    pub lineage_b_persistence: LineagePersistenceObservation,
+    pub ancestry_relation: QualifiedLineagePairEvidence,
     pub context: QualifiedLineageHistoryEvidence,
     pub population_structure: QualifiedLineageHistoryEvidence,
     pub demographic_episode_census: QualifiedLineageHistoryEvidence,
-    pub recontact: LineageObservationState,
-    pub gene_flow: LineageObservationState,
-    pub fusion: LineageObservationState,
+    pub recontact: LineagePairObservationState,
+    pub gene_flow: LineagePairObservationState,
+    pub fusion: LineagePairObservationState,
     pub episodes: Vec<LineageHistoryEpisodeObservation>,
 }
 
@@ -281,19 +328,14 @@ impl ObservedLineageGenerationRecord {
         self.gene_flow.put(digest);
         self.fusion.put(digest);
         put_u64(digest, self.episodes.len() as u64);
-        for episode in &self.episodes {
-            episode.put(digest);
-        }
+        for episode in &self.episodes { episode.put(digest); }
     }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum LineageHistoryGenerationRecord {
     Observed(ObservedLineageGenerationRecord),
-    Unavailable {
-        generation: PopulationGeneration,
-        reason: QualifiedLineageHistoryEvidence,
-    },
+    Unavailable { generation: PopulationGeneration, reason: QualifiedLineageHistoryEvidence },
 }
 
 impl LineageHistoryGenerationRecord {
@@ -303,13 +345,9 @@ impl LineageHistoryGenerationRecord {
             Self::Unavailable { generation, .. } => *generation,
         }
     }
-
     fn put(&self, digest: &mut Sha256) {
         match self {
-            Self::Observed(record) => {
-                digest.update([0]);
-                record.put(digest);
-            }
+            Self::Observed(record) => { digest.update([0]); record.put(digest); }
             Self::Unavailable { generation, reason } => {
                 digest.update([1]);
                 put_u64(digest, generation.0);
@@ -364,7 +402,6 @@ impl LineageDivergenceHistory {
         if by_generation.len() != design.design().generation_count as usize {
             return Err(LineageDivergenceHistoryError::IncompleteGenerationCoverage);
         }
-
         let mut generations = Vec::with_capacity(by_generation.len());
         for raw in design.design().start_generation.0..=design.design().end_generation.0 {
             let generation = PopulationGeneration(raw);
@@ -391,18 +428,14 @@ impl LineageDivergenceHistory {
     pub fn design(&self) -> &LineageDivergenceHistoryDesign { &self.design }
     pub fn design_digest(&self) -> LineageDivergenceHistoryDesignDigest { self.design_digest }
 
-    pub fn canonical_digest(
-        &self,
-    ) -> Result<LineageDivergenceHistoryDigest, LineageDivergenceHistoryError> {
+    pub fn canonical_digest(&self) -> Result<LineageDivergenceHistoryDigest, LineageDivergenceHistoryError> {
         self.validate_local()?;
         let mut digest = Sha256::new();
         digest.update(DOMAIN);
         put_u32(&mut digest, self.history_version);
         digest.update(self.design_digest.as_bytes());
         put_u64(&mut digest, self.generations.len() as u64);
-        for generation in &self.generations {
-            generation.put(&mut digest);
-        }
+        for generation in &self.generations { generation.put(&mut digest); }
         digest.update([self.status.tag()]);
         Ok(LineageDivergenceHistoryDigest(digest.finalize().into()))
     }
@@ -420,9 +453,7 @@ impl LineageDivergenceHistory {
         let mut exact_context: Option<&AnalysisAuthorityRef> = None;
         for (offset, record) in self.generations.iter().enumerate() {
             let expected = PopulationGeneration(
-                self.design
-                    .start_generation
-                    .0
+                self.design.start_generation.0
                     .checked_add(offset as u64)
                     .ok_or(LineageDivergenceHistoryError::ArithmeticOverflow)?,
             );
@@ -434,13 +465,13 @@ impl LineageDivergenceHistory {
                     if self.design.missing_policy == LineageHistoryMissingPolicy::FailClosed {
                         return Err(LineageDivergenceHistoryError::UnavailableEvidenceForbidden);
                     }
-                    if reason.protocol != self.design.completeness_authority {
+                    if &reason.protocol != &self.design.completeness_authority {
                         return Err(LineageDivergenceHistoryError::ProtocolMismatch);
                     }
                 }
                 LineageHistoryGenerationRecord::Observed(observed) => {
                     validate_observed_local(&self.design, observed)?;
-                    if matches!(self.design.context_policy, LineageHistoryContextPolicy::ExactAcrossInterval) {
+                    if matches!(&self.design.context_policy, LineageHistoryContextPolicy::ExactAcrossInterval) {
                         match exact_context {
                             None => exact_context = Some(&observed.context.evidence),
                             Some(existing) if existing == &observed.context.evidence => {}
@@ -459,19 +490,12 @@ impl LineageDivergenceHistory {
 
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct LineageDivergenceHistoryDigest([u8; 32]);
-
-impl LineageDivergenceHistoryDigest {
-    pub fn as_bytes(&self) -> &[u8; 32] { &self.0 }
-}
-
+impl LineageDivergenceHistoryDigest { pub fn as_bytes(&self) -> &[u8; 32] { &self.0 } }
 impl fmt::Debug for LineageDivergenceHistoryDigest {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "LineageDivergenceHistoryDigest(")?;
-        fmt_hex(&self.0, f)?;
-        write!(f, ")")
+        write!(f, "LineageDivergenceHistoryDigest(")?; fmt_hex(&self.0, f)?; write!(f, ")")
     }
 }
-
 impl fmt::Display for LineageDivergenceHistoryDigest {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result { fmt_hex(&self.0, f) }
 }
@@ -492,16 +516,13 @@ impl<'a> ValidatedLineageDivergenceHistory<'a> {
     ) -> Result<Self, LineageDivergenceHistoryError> {
         history.validate_local()?;
         let recomputed = LineageDivergenceHistory::capture(design, inputs)?;
-        if recomputed != *history {
-            return Err(LineageDivergenceHistoryError::ReplayMismatch);
-        }
+        if recomputed != *history { return Err(LineageDivergenceHistoryError::ReplayMismatch); }
         Ok(Self {
             history,
             history_digest: history.canonical_digest()?,
             design_digest: design.design_digest(),
         })
     }
-
     pub fn history(&self) -> &'a LineageDivergenceHistory { self.history }
     pub fn history_digest(&self) -> LineageDivergenceHistoryDigest { self.history_digest }
     pub fn design_digest(&self) -> LineageDivergenceHistoryDesignDigest { self.design_digest }
@@ -522,30 +543,21 @@ fn materialize_generation(
             })
         }
         LineageHistoryGenerationInput::Observed(input) => {
-            input
-                .lineage_a_point
-                .validate_current(input.lineage_a_schema, input.lineage_a_population)?;
-            input
-                .lineage_b_point
-                .validate_current(input.lineage_b_schema, input.lineage_b_population)?;
+            input.lineage_a_point.validate_current(input.lineage_a_schema, input.lineage_a_population)?;
+            input.lineage_b_point.validate_current(input.lineage_b_schema, input.lineage_b_population)?;
             if input.lineage_a_point.generation() != input.generation
                 || input.lineage_b_point.generation() != input.generation
             {
                 return Err(LineageDivergenceHistoryError::TrajectoryGenerationMismatch);
             }
-
             let mut episodes_by_id = BTreeMap::new();
             for episode in input.episodes {
-                if episodes_by_id
-                    .insert(episode.episode_id.clone(), episode)
-                    .is_some()
-                {
+                if episodes_by_id.insert(episode.episode_id.clone(), episode).is_some() {
                     return Err(LineageDivergenceHistoryError::DuplicateEpisodeId);
                 }
             }
-            let episodes = episodes_by_id
-                .into_values()
-                .map(|episode| LineageHistoryEpisodeObservation {
+            let episodes = episodes_by_id.into_values().map(|episode| {
+                LineageHistoryEpisodeObservation {
                     episode_id: episode.episode_id,
                     generation: input.generation,
                     kind: episode.kind,
@@ -554,37 +566,49 @@ fn materialize_generation(
                         &design.protocols.demographic_episode,
                         episode.evidence,
                     ),
-                })
-                .collect();
+                }
+            }).collect();
 
+            let lineage_a_point = input.lineage_a_point.clone();
+            let lineage_b_point = input.lineage_b_point.clone();
             let record = ObservedLineageGenerationRecord {
                 generation: input.generation,
-                lineage_a_point: input.lineage_a_point.clone(),
-                lineage_b_point: input.lineage_b_point.clone(),
-                lineage_a_membership: QualifiedLineageHistoryEvidence::new(
-                    &design.protocols.lineage_membership,
-                    input.lineage_a_membership_evidence,
-                ),
-                lineage_b_membership: QualifiedLineageHistoryEvidence::new(
-                    &design.protocols.lineage_membership,
-                    input.lineage_b_membership_evidence,
-                ),
-                lineage_a_persistence: LineagePersistenceState::from_input(
-                    input.lineage_a_persistence,
-                    &design.protocols.lineage_persistence,
-                ),
-                lineage_b_persistence: LineagePersistenceState::from_input(
-                    input.lineage_b_persistence,
-                    &design.protocols.lineage_persistence,
-                ),
-                ancestry_relation: QualifiedLineageHistoryEvidence::new(
+                lineage_a_membership: LineagePointMembershipEvidence {
+                    lineage: design.lineage_a.clone(),
+                    point_digest: lineage_a_point.canonical_digest(),
+                    evidence: QualifiedLineageHistoryEvidence::new(
+                        &design.protocols.lineage_membership,
+                        input.lineage_a_membership_evidence,
+                    ),
+                },
+                lineage_b_membership: LineagePointMembershipEvidence {
+                    lineage: design.lineage_b.clone(),
+                    point_digest: lineage_b_point.canonical_digest(),
+                    evidence: QualifiedLineageHistoryEvidence::new(
+                        &design.protocols.lineage_membership,
+                        input.lineage_b_membership_evidence,
+                    ),
+                },
+                lineage_a_persistence: LineagePersistenceObservation {
+                    lineage: design.lineage_a.clone(),
+                    state: LineagePersistenceState::from_input(
+                        input.lineage_a_persistence,
+                        &design.protocols.lineage_persistence,
+                    ),
+                },
+                lineage_b_persistence: LineagePersistenceObservation {
+                    lineage: design.lineage_b.clone(),
+                    state: LineagePersistenceState::from_input(
+                        input.lineage_b_persistence,
+                        &design.protocols.lineage_persistence,
+                    ),
+                },
+                ancestry_relation: QualifiedLineagePairEvidence::new(
+                    design,
                     &design.protocols.ancestry_relation,
                     input.ancestry_relation_evidence,
                 ),
-                context: QualifiedLineageHistoryEvidence::new(
-                    &design.protocols.context,
-                    input.context_evidence,
-                ),
+                context: QualifiedLineageHistoryEvidence::new(&design.protocols.context, input.context_evidence),
                 population_structure: QualifiedLineageHistoryEvidence::new(
                     &design.protocols.population_structure,
                     input.population_structure_evidence,
@@ -593,19 +617,12 @@ fn materialize_generation(
                     &design.protocols.demographic_episode_census,
                     input.demographic_episode_census_evidence,
                 ),
-                recontact: LineageObservationState::from_input(
-                    input.recontact,
-                    &design.protocols.recontact,
-                ),
-                gene_flow: LineageObservationState::from_input(
-                    input.gene_flow,
-                    &design.protocols.gene_flow,
-                ),
-                fusion: LineageObservationState::from_input(
-                    input.fusion,
-                    &design.protocols.lineage_fusion,
-                ),
+                recontact: LineagePairObservationState::new(design, input.recontact, &design.protocols.recontact),
+                gene_flow: LineagePairObservationState::new(design, input.gene_flow, &design.protocols.gene_flow),
+                fusion: LineagePairObservationState::new(design, input.fusion, &design.protocols.lineage_fusion),
                 episodes,
+                lineage_a_point,
+                lineage_b_point,
             };
             validate_observed_local(design, &record)?;
             Ok(LineageHistoryGenerationRecord::Observed(record))
@@ -622,29 +639,46 @@ fn validate_observed_local(
     {
         return Err(LineageDivergenceHistoryError::TrajectoryGenerationMismatch);
     }
+    if record.lineage_a_membership.lineage != design.lineage_a
+        || record.lineage_b_membership.lineage != design.lineage_b
+        || record.lineage_a_membership.point_digest != record.lineage_a_point.canonical_digest()
+        || record.lineage_b_membership.point_digest != record.lineage_b_point.canonical_digest()
+        || record.lineage_a_persistence.lineage != design.lineage_a
+        || record.lineage_b_persistence.lineage != design.lineage_b
+    {
+        return Err(LineageDivergenceHistoryError::LineageSubjectBindingMismatch);
+    }
+    if record.ancestry_relation.lineage_a != design.lineage_a
+        || record.ancestry_relation.lineage_b != design.lineage_b
+    {
+        return Err(LineageDivergenceHistoryError::LineagePairBindingMismatch);
+    }
+    for pair_state in [&record.recontact, &record.gene_flow, &record.fusion] {
+        if pair_state.lineage_a != design.lineage_a || pair_state.lineage_b != design.lineage_b {
+            return Err(LineageDivergenceHistoryError::LineagePairBindingMismatch);
+        }
+    }
     for (actual, expected) in [
-        (&record.lineage_a_membership.protocol, &design.protocols.lineage_membership),
-        (&record.lineage_b_membership.protocol, &design.protocols.lineage_membership),
-        (record.lineage_a_persistence.protocol(), &design.protocols.lineage_persistence),
-        (record.lineage_b_persistence.protocol(), &design.protocols.lineage_persistence),
-        (&record.ancestry_relation.protocol, &design.protocols.ancestry_relation),
+        (&record.lineage_a_membership.evidence.protocol, &design.protocols.lineage_membership),
+        (&record.lineage_b_membership.evidence.protocol, &design.protocols.lineage_membership),
+        (record.lineage_a_persistence.state.protocol(), &design.protocols.lineage_persistence),
+        (record.lineage_b_persistence.state.protocol(), &design.protocols.lineage_persistence),
+        (&record.ancestry_relation.evidence.protocol, &design.protocols.ancestry_relation),
         (&record.context.protocol, &design.protocols.context),
         (&record.population_structure.protocol, &design.protocols.population_structure),
         (&record.demographic_episode_census.protocol, &design.protocols.demographic_episode_census),
-        (record.recontact.protocol(), &design.protocols.recontact),
-        (record.gene_flow.protocol(), &design.protocols.gene_flow),
-        (record.fusion.protocol(), &design.protocols.lineage_fusion),
+        (record.recontact.state.protocol(), &design.protocols.recontact),
+        (record.gene_flow.state.protocol(), &design.protocols.gene_flow),
+        (record.fusion.state.protocol(), &design.protocols.lineage_fusion),
     ] {
-        if actual != expected {
-            return Err(LineageDivergenceHistoryError::ProtocolMismatch);
-        }
+        if actual != expected { return Err(LineageDivergenceHistoryError::ProtocolMismatch); }
     }
     if design.missing_policy == LineageHistoryMissingPolicy::FailClosed
-        && (record.lineage_a_persistence.is_unavailable()
-            || record.lineage_b_persistence.is_unavailable()
-            || record.recontact.is_unavailable()
-            || record.gene_flow.is_unavailable()
-            || record.fusion.is_unavailable())
+        && (record.lineage_a_persistence.state.is_unavailable()
+            || record.lineage_b_persistence.state.is_unavailable()
+            || record.recontact.state.is_unavailable()
+            || record.gene_flow.state.is_unavailable()
+            || record.fusion.state.is_unavailable())
     {
         return Err(LineageDivergenceHistoryError::UnavailableEvidenceForbidden);
     }
@@ -668,34 +702,26 @@ fn derive_status(generations: &[LineageHistoryGenerationRecord]) -> LineageDiver
     let mut not_persistent = false;
     let mut recontact = false;
     let mut fusion = false;
-
     for generation in generations {
         match generation {
             LineageHistoryGenerationRecord::Unavailable { .. } => unavailable = true,
             LineageHistoryGenerationRecord::Observed(record) => {
-                if record.fusion.is_observed() {
-                    fusion = true;
-                }
-                if record.lineage_a_persistence.not_persistent()
-                    || record.lineage_b_persistence.not_persistent()
-                {
-                    not_persistent = true;
-                }
-                if record.lineage_a_persistence.is_unavailable()
-                    || record.lineage_b_persistence.is_unavailable()
-                    || record.recontact.is_unavailable()
-                    || record.gene_flow.is_unavailable()
-                    || record.fusion.is_unavailable()
-                {
-                    unavailable = true;
-                }
-                if record.recontact.is_observed() || record.gene_flow.is_observed() {
+                if record.fusion.state.is_observed() { fusion = true; }
+                if record.lineage_a_persistence.state.not_persistent()
+                    || record.lineage_b_persistence.state.not_persistent()
+                { not_persistent = true; }
+                if record.lineage_a_persistence.state.is_unavailable()
+                    || record.lineage_b_persistence.state.is_unavailable()
+                    || record.recontact.state.is_unavailable()
+                    || record.gene_flow.state.is_unavailable()
+                    || record.fusion.state.is_unavailable()
+                { unavailable = true; }
+                if record.recontact.state.is_observed() || record.gene_flow.state.is_observed() {
                     recontact = true;
                 }
             }
         }
     }
-
     if fusion {
         LineageDivergenceHistoryStatus::LineageFusionObserved
     } else if not_persistent {
@@ -731,6 +757,8 @@ pub enum LineageDivergenceHistoryError {
     EpisodeBindingMismatch,
     ProtocolMismatch,
     ContextMismatch,
+    LineageSubjectBindingMismatch,
+    LineagePairBindingMismatch,
     UnavailableEvidenceForbidden,
     DesignBindingMismatch,
     StatusInvariant,
@@ -741,11 +769,9 @@ pub enum LineageDivergenceHistoryError {
 impl From<crate::LineageDivergenceDesignError> for LineageDivergenceHistoryError {
     fn from(value: crate::LineageDivergenceDesignError) -> Self { Self::Design(value) }
 }
-
 impl From<crate::EvolutionError> for LineageDivergenceHistoryError {
     fn from(value: crate::EvolutionError) -> Self { Self::Population(value) }
 }
-
 impl fmt::Display for LineageDivergenceHistoryError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
@@ -763,6 +789,8 @@ impl fmt::Display for LineageDivergenceHistoryError {
             Self::EpisodeBindingMismatch => write!(f, "demographic episode does not bind its generation/protocol"),
             Self::ProtocolMismatch => write!(f, "history evidence does not bind its preregistered protocol"),
             Self::ContextMismatch => write!(f, "context evidence changed under ExactAcrossInterval policy"),
+            Self::LineageSubjectBindingMismatch => write!(f, "lineage membership/persistence evidence binds the wrong lineage or trajectory point"),
+            Self::LineagePairBindingMismatch => write!(f, "pair evidence binds a different ordered lineage pair"),
             Self::UnavailableEvidenceForbidden => write!(f, "unavailable required evidence is forbidden by the frozen missing-data policy"),
             Self::DesignBindingMismatch => write!(f, "persisted history binds a different lineage-history design"),
             Self::StatusInvariant => write!(f, "persisted lineage-history status does not recompute from the complete ledger"),
@@ -771,5 +799,4 @@ impl fmt::Display for LineageDivergenceHistoryError {
         }
     }
 }
-
 impl Error for LineageDivergenceHistoryError {}
