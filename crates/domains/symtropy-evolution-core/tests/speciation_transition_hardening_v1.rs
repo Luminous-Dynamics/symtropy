@@ -1,5 +1,9 @@
 include!("speciation_transition_v1.rs");
 
+use symtropy_evolution_core::{
+    ValidatedLineageDivergenceHistory, ValidatedReproductiveIsolationEvidence,
+};
+
 fn with_transition_context<R>(
     missing_policy: SpeciationTransitionMissingPolicy,
     f: impl FnOnce(
