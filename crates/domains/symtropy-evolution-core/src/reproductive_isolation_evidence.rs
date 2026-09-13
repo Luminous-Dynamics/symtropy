@@ -1,7 +1,7 @@
 use crate::{
     canonical::{fmt_hex, put_text, put_u32, put_u64}, IsolationStudyUnitId,
     RealizedGeneFlowObservation, ReproductiveContactStudy, ReproductiveContactStudyDigest,
-    ReproductiveOpportunityOutcome, ReproductiveIsolationDesign, ReproductiveIsolationDesignDigest,
+    ReproductiveIsolationDesign, ReproductiveIsolationDesignDigest, ReproductiveOpportunityOutcome,
     ValidatedReproductiveContactStudy, ValidatedReproductiveIsolationDesign,
 };
 use serde::{Deserialize, Serialize};
@@ -158,8 +158,13 @@ impl ReproductiveIsolationEvidence {
         Ok(evidence)
     }
 
-    pub fn design(&self) -> &ReproductiveIsolationDesign { &self.design }
-    pub fn design_digest(&self) -> ReproductiveIsolationDesignDigest { self.design_digest }
+    pub fn design(&self) -> &ReproductiveIsolationDesign {
+        &self.design
+    }
+
+    pub fn design_digest(&self) -> ReproductiveIsolationDesignDigest {
+        self.design_digest
+    }
 
     pub fn canonical_digest(
         &self,
@@ -224,7 +229,9 @@ impl ReproductiveIsolationEvidence {
 pub struct ReproductiveIsolationEvidenceDigest([u8; 32]);
 
 impl ReproductiveIsolationEvidenceDigest {
-    pub fn as_bytes(&self) -> &[u8; 32] { &self.0 }
+    pub fn as_bytes(&self) -> &[u8; 32] {
+        &self.0
+    }
 }
 
 impl fmt::Debug for ReproductiveIsolationEvidenceDigest {
@@ -236,7 +243,9 @@ impl fmt::Debug for ReproductiveIsolationEvidenceDigest {
 }
 
 impl fmt::Display for ReproductiveIsolationEvidenceDigest {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result { fmt_hex(&self.0, f) }
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        fmt_hex(&self.0, f)
+    }
 }
 
 #[derive(Debug)]
@@ -265,17 +274,27 @@ impl<'a> ValidatedReproductiveIsolationEvidence<'a> {
         })
     }
 
-    pub fn evidence(&self) -> &'a ReproductiveIsolationEvidence { self.evidence }
-    pub fn evidence_digest(&self) -> ReproductiveIsolationEvidenceDigest { self.evidence_digest }
-    pub fn design_digest(&self) -> ReproductiveIsolationDesignDigest { self.design_digest }
+    pub fn evidence(&self) -> &'a ReproductiveIsolationEvidence {
+        self.evidence
+    }
+
+    pub fn evidence_digest(&self) -> ReproductiveIsolationEvidenceDigest {
+        self.evidence_digest
+    }
+
+    pub fn design_digest(&self) -> ReproductiveIsolationDesignDigest {
+        self.design_digest
+    }
 }
 
 fn derive_barrier_profile(
     studies: &[IsolationStudyRecord],
 ) -> Result<ReproductiveBarrierProfile, ReproductiveIsolationEvidenceError> {
-    let mut profile = ReproductiveBarrierProfile::default();
-    profile.study_count = u64::try_from(studies.len())
-        .map_err(|_| ReproductiveIsolationEvidenceError::ArithmeticOverflow)?;
+    let mut profile = ReproductiveBarrierProfile {
+        study_count: u64::try_from(studies.len())
+            .map_err(|_| ReproductiveIsolationEvidenceError::ArithmeticOverflow)?,
+        ..ReproductiveBarrierProfile::default()
+    };
 
     for study in studies {
         let mut study_observed_contact = false;
@@ -428,11 +447,15 @@ pub enum ReproductiveIsolationEvidenceError {
 }
 
 impl From<crate::ReproductiveIsolationDesignError> for ReproductiveIsolationEvidenceError {
-    fn from(value: crate::ReproductiveIsolationDesignError) -> Self { Self::Design(value) }
+    fn from(value: crate::ReproductiveIsolationDesignError) -> Self {
+        Self::Design(value)
+    }
 }
 
 impl From<crate::ReproductiveContactEvidenceError> for ReproductiveIsolationEvidenceError {
-    fn from(value: crate::ReproductiveContactEvidenceError) -> Self { Self::ContactEvidence(value) }
+    fn from(value: crate::ReproductiveContactEvidenceError) -> Self {
+        Self::ContactEvidence(value)
+    }
 }
 
 impl fmt::Display for ReproductiveIsolationEvidenceError {
