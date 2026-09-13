@@ -165,6 +165,8 @@ impl SpeciesConceptRelationDesign {
         protocol_authority: AnalysisAuthorityRef,
         missing_policy: RelationMissingPolicy,
     ) -> Result<Self, RelationError> {
+        validate_identity(&first)?;
+        validate_identity(&second)?;
         if first == second {
             return Err(RelationError::SameConceptEndpoint);
         }
@@ -208,6 +210,8 @@ impl SpeciesConceptRelationDesign {
         if self.design_version != SPECIES_CONCEPT_RELATION_DESIGN_VERSION {
             return Err(RelationError::UnsupportedDesignVersion(self.design_version));
         }
+        validate_identity(&self.left)?;
+        validate_identity(&self.right)?;
         if self.left >= self.right {
             return Err(RelationError::NonCanonicalEndpoints);
         }
@@ -626,6 +630,13 @@ pub fn semantic_mapping_digest_v1(
     ))
 }
 
+fn validate_identity(identity: &OpenSpeciesConceptIdentity) -> Result<(), RelationError> {
+    if identity.family_version == 0 {
+        return Err(RelationError::ZeroConceptFamilyVersion);
+    }
+    Ok(())
+}
+
 fn validate_authority_revision(
     authority: &AnalysisAuthorityRef,
     field: &'static str,
@@ -689,6 +700,7 @@ pub enum RelationError {
         value: String,
     },
     ZeroRevision(&'static str),
+    ZeroConceptFamilyVersion,
     UnsupportedDesignVersion(u32),
     UnsupportedEvidenceVersion(u32),
     SameConceptEndpoint,
@@ -709,6 +721,9 @@ impl fmt::Display for RelationError {
                 write!(f, "invalid {field} value {value:?}")
             }
             Self::ZeroRevision(field) => write!(f, "{field} must be nonzero"),
+            Self::ZeroConceptFamilyVersion => {
+                write!(f, "concept endpoint family_version must be nonzero")
+            }
             Self::UnsupportedDesignVersion(version) => {
                 write!(f, "unsupported species-concept relation design version {version}")
             }
