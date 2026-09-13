@@ -281,6 +281,7 @@ impl EconomicPartitionSet {
         let mut stock = BTreeMap::new();
         let mut accounts = BTreeMap::new();
         for partition in &self.partitions {
+            validate_partition_manifest(partition)?;
             for record in &partition.stock {
                 if stock.insert(record.key.clone(), record.clone()).is_some() {
                     return Err(PartitionError::DuplicateAuthoritativeStock {
@@ -359,6 +360,24 @@ fn validate_partition_identity_set(
         .any(|(declared_id, partition)| declared_id != &partition.partition_id)
     {
         return Err(PartitionError::PartitionIdentityMismatch);
+    }
+    Ok(())
+}
+
+fn validate_partition_manifest(partition: &EconomicPartitionManifest) -> Result<(), PartitionError> {
+    for pair in partition.stock.windows(2) {
+        if pair[0].key >= pair[1].key {
+            return Err(PartitionError::NonCanonicalPartitionStock {
+                partition_id: partition.partition_id.clone(),
+            });
+        }
+    }
+    for pair in partition.accounts.windows(2) {
+        if pair[0].account_id >= pair[1].account_id {
+            return Err(PartitionError::NonCanonicalPartitionAccounts {
+                partition_id: partition.partition_id.clone(),
+            });
+        }
     }
     Ok(())
 }
@@ -473,6 +492,8 @@ pub enum PartitionError {
     DuplicateAuthoritativeStock { key: StockConservationKey },
     DuplicateAuthoritativeAccount { account_id: FinancialAccountId },
     PartitionIdentityMismatch,
+    NonCanonicalPartitionStock { partition_id: EconomicPartitionId },
+    NonCanonicalPartitionAccounts { partition_id: EconomicPartitionId },
     SourceSnapshotMismatch {
         expected: EconomicSnapshotId,
         actual: EconomicSnapshotId,
@@ -645,6 +666,24 @@ mod tests {
         .unwrap()
     }
 
+    fn single_partition_plan(source: &EconomicConservationManifest) -> EconomicPartitionPlan {
+        let only = partition("only");
+        EconomicPartitionPlan::new(
+            vec![only.clone()],
+            source
+                .stock
+                .iter()
+                .map(|record| (record.key.clone(), only.clone()))
+                .collect(),
+            source
+                .accounts
+                .iter()
+                .map(|record| (record.account_id.clone(), only.clone()))
+                .collect(),
+        )
+        .unwrap()
+    }
+
     #[test]
     fn split_then_merge_reconstructs_exact_global_manifest() {
         let (snapshot_id, source) = source_snapshot();
@@ -656,14 +695,20 @@ mod tests {
     }
 
     #[test]
-    fn currency_supply_exists_once_in_shared_global_state() {
+    fn currency_supply_and_history_exist_once_in_shared_global_state() {
         let (snapshot_id, source) = source_snapshot();
         let set = EconomicPartitionSet::partition(snapshot_id, &source, &valid_plan(&source)).unwrap();
+
+        assert_eq!(set.shared_global().currencies(), source.currencies.as_slice());
+        assert_eq!(set.shared_global().history(), &source.history);
         assert_eq!(set.shared_global().currencies().len(), 1);
         assert_eq!(set.shared_global().currencies()[0].declared_supply, 100);
-        assert!(set.partitions().iter().all(|partition| {
-            partition.stock().iter().all(|_| true) && partition.accounts().iter().all(|_| true)
-        }));
+
+        let partitioned_stock: usize = set.partitions().iter().map(|p| p.stock().len()).sum();
+        let partitioned_accounts: usize = set.partitions().iter().map(|p| p.accounts().len()).sum();
+        assert_eq!(partitioned_stock, source.stock.len());
+        assert_eq!(partitioned_accounts, source.accounts.len());
+        assert_eq!(set.reconstruct_manifest().unwrap(), source);
     }
 
     #[test]
@@ -744,6 +789,38 @@ mod tests {
         assert!(matches!(
             set.validate_against(&snapshot_id, &source).unwrap_err(),
             PartitionError::DuplicateAuthoritativeAccount { .. }
+        ));
+    }
+
+    #[test]
+    fn noncanonical_stock_order_inside_partition_is_detected() {
+        let (snapshot_id, source) = source_snapshot();
+        let mut set = EconomicPartitionSet::partition(
+            snapshot_id.clone(),
+            &source,
+            &single_partition_plan(&source),
+        )
+        .unwrap();
+        set.partitions[0].stock.swap(0, 1);
+        assert!(matches!(
+            set.validate_against(&snapshot_id, &source).unwrap_err(),
+            PartitionError::NonCanonicalPartitionStock { .. }
+        ));
+    }
+
+    #[test]
+    fn noncanonical_account_order_inside_partition_is_detected() {
+        let (snapshot_id, source) = source_snapshot();
+        let mut set = EconomicPartitionSet::partition(
+            snapshot_id.clone(),
+            &source,
+            &single_partition_plan(&source),
+        )
+        .unwrap();
+        set.partitions[0].accounts.swap(0, 1);
+        assert!(matches!(
+            set.validate_against(&snapshot_id, &source).unwrap_err(),
+            PartitionError::NonCanonicalPartitionAccounts { .. }
         ));
     }
 
