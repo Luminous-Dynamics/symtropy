@@ -37,6 +37,7 @@ jobs:
           private_component=ef82a2301e3e6fdd964adc7e0af898c5e38c48df
           product=7ee95ade5b6bdc8041923c840ec8e5290647cdc2
           initial_qualifier=a159288c63000478ae57ec13703ba245d3f88524
+          narrowed_qualifier=dcf3d17fe63cbfc2fdb143c80661cfa1521bf383
           provider=crates/domains/symtropy-terrain/src/live_geometry_provider.rs
           lib=crates/domains/symtropy-terrain/src/lib.rs
           kernel=crates/domains/symtropy-terrain/src/geometry_kernel.rs
@@ -46,7 +47,8 @@ jobs:
           qualifier=.github/workflows/terrain-locus-mint-authority-qualification.yml
 
           test "$(git rev-parse HEAD)" = "${GITHUB_SHA}"
-          test "$(git rev-parse HEAD^)" = "${initial_qualifier}"
+          test "$(git rev-parse HEAD^)" = "${narrowed_qualifier}"
+          test "$(git rev-parse ${narrowed_qualifier}^)" = "${initial_qualifier}"
           test "$(git rev-parse ${initial_qualifier}^)" = "${product}"
           test "$(git rev-parse ${product}^)" = "${private_component}"
           test "$(git rev-parse ${private_component}^)" = "${initial_close}"
@@ -112,6 +114,44 @@ jobs:
           cargo metadata --locked --format-version 1 > "${RUNNER_TEMP}/terrain-locus-mint-metadata.json"
           test "$(git hash-object Cargo.lock)" = "${before}"
           echo "TERRAIN_LOCUS_MINT_METADATA_SHA256=$(sha256sum "${RUNNER_TEMP}/terrain-locus-mint-metadata.json" | awk '{print $1}')"
+
+      - name: Prove current workspace has no external Terrain placement writer
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+
+          metadata = json.loads(Path(os.environ["RUNNER_TEMP"]).joinpath("terrain-locus-mint-metadata.json").read_text())
+          workspace = set(metadata["workspace_members"])
+          consumers = []
+          for package in metadata["packages"]:
+              if package["id"] not in workspace or package["name"] == "symtropy-terrain":
+                  continue
+              for dep in package.get("dependencies", []):
+                  if dep.get("name") == "symtropy-terrain":
+                      consumers.append((package["name"], bool(dep.get("optional")), dep.get("kind"), dep.get("target")))
+
+          consumers.sort()
+          expected = [("symtropy-launcher", True, None, None)]
+          if consumers != expected:
+              raise SystemExit(f"unexpected direct workspace Terrain consumers: {consumers!r}")
+          print(f"TERRAIN_DIRECT_WORKSPACE_CONSUMERS={consumers!r}")
+          print("TERRAIN_DIRECT_WORKSPACE_CONSUMER_COUNT=1")
+          PY
+
+          mapfile -t external_refs < <(
+            git grep -nE 'EarthChunkLatticeLocus|SymtropyTerrainPlugin|symtropy_terrain|symtropy-terrain' -- '*.rs' \
+              ':!crates/domains/symtropy-terrain/**' || true
+          )
+          if (( ${#external_refs[@]} != 0 )); then
+            printf '%s\n' "${external_refs[@]}" >&2
+            echo "unexpected external Rust Terrain authority references" >&2
+            exit 1
+          fi
+          echo "TERRAIN_EXTERNAL_RUST_PLACEMENT_REFERENCES=0"
 
       - name: Execute Terrain regression gates
         shell: bash
@@ -241,4 +281,4 @@ jobs:
           test "$(git rev-parse HEAD:crates/domains/symtropy-terrain/Cargo.toml)" = "187fe4020a0c0048ab36404e219a7a5698a856d1"
           test "$(git rev-parse HEAD:Cargo.lock)" = "62c6eb098b3f6fffdea8a175a0f3afb33423b17b"
           echo "TERRAIN_LOCUS_MINT_AUTHORITY_STATUS=PASS"
-          echo "claim=no production locus writer exists; safe downstream Rust cannot name the crate-private ECS locus component; exact read authority remains through capture_live_terrain_geometry and TerrainGeometrySnapshot"
+          echo "claim=no production locus writer exists; exact workspace census has no external Rust placement references; safe downstream Rust cannot name the crate-private ECS locus component; exact read authority remains through capture_live_terrain_geometry and TerrainGeometrySnapshot"
