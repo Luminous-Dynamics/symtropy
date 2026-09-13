@@ -24,17 +24,19 @@ use crate::geometry_kernel::{
 ///
 /// This component is intentionally distinct from `GlobalTransform`. Moving,
 /// rendering, rebuilding, or re-colliding a chunk cannot silently rewrite its
-/// exact geometry identity. No production constructor is exposed yet: safe
-/// downstream Rust may inspect an existing locus but cannot mint or replace one
-/// through this API. Read-side capture never accepts a caller coordinate.
+/// exact geometry identity. The component itself is crate-private: downstream
+/// code cannot name, mint, copy, move, remove, replace, or mutate it through
+/// safe typed ECS APIs. Read-side consumers receive the exact lattice coordinate
+/// through the qualified `TerrainGeometrySnapshot` instead.
 ///
 /// It intentionally does not implement Bevy `Reflect` and is not registered as
 /// a reflected component. Generic scene/inspector mutation must not silently
-/// become a spatial-authority write path. A future persistence/import/bootstrap
-/// boundary must introduce an explicit writer and qualify that mapping
-/// separately before production locus construction is enabled.
-#[derive(Component, Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct EarthChunkLatticeLocus {
+/// become a spatial-authority write path. No production constructor exists yet;
+/// a future persistence/import/bootstrap boundary must introduce an explicit
+/// writer and qualify its provenance, uniqueness, and transition semantics
+/// separately before production locus assignment is enabled.
+#[derive(Component, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub(crate) struct EarthChunkLatticeLocus {
     x: i32,
     y: i32,
     z: i32,
@@ -46,19 +48,7 @@ impl EarthChunkLatticeLocus {
         Self { x, y, z }
     }
 
-    pub const fn x(self) -> i32 {
-        self.x
-    }
-
-    pub const fn y(self) -> i32 {
-        self.y
-    }
-
-    pub const fn z(self) -> i32 {
-        self.z
-    }
-
-    pub const fn coord(self) -> EarthChunkLatticeCoord {
+    const fn coord(&self) -> EarthChunkLatticeCoord {
         EarthChunkLatticeCoord::new(self.x, self.y, self.z)
     }
 }
@@ -116,10 +106,10 @@ impl Error for TerrainLiveGeometryError {}
 
 /// Capture the current exact discrete geometry of one ECS-owned Terrain chunk.
 ///
-/// Authority comes from the world at invocation: both `EarthChunk` and
-/// `EarthChunkLatticeLocus` are resolved from `entity`, and the locus must be
-/// unique among all locus-bearing entities. No transform or caller-provided
-/// coordinate participates in the snapshot identity.
+/// Authority comes from the world at invocation: both `EarthChunk` and the
+/// crate-private exact lattice locus are resolved from `entity`, and the locus
+/// must be unique among all locus-bearing entities. No transform or
+/// caller-provided coordinate participates in the snapshot identity.
 pub fn capture_live_terrain_geometry(
     world: &World,
     entity: Entity,
@@ -136,7 +126,6 @@ pub fn capture_live_terrain_geometry(
         .ok_or(TerrainLiveGeometryError::MissingEarthChunk(entity))?;
     let locus = world
         .get::<EarthChunkLatticeLocus>(entity)
-        .copied()
         .ok_or(TerrainLiveGeometryError::MissingLatticeLocus(entity))?;
     let coord = locus.coord();
 
