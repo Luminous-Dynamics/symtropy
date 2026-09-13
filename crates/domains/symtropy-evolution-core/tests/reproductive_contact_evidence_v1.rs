@@ -1,16 +1,17 @@
 use std::collections::BTreeMap;
 use symtropy_evolution_core::{
     derive_offspring, AlleleId, AnalysisAuthorityRef, AnalysisContentDigest, AnalysisMethodId,
-    ConsequenceWindowId, EvolutionIndividualId, EvolutionOperatorProfile, EvolutionaryContextContentDigest,
-    EvolutionaryContextId, EvolutionaryContextRef, HereditarySchema, HereditarySchemaId,
-    HereditaryState, LocusDefinition, LocusId, MutationProfile, ObservedOffspringEvidence,
-    OperatorProfileId, PopulationGeneration, RealizedGeneFlowObservation, RecombinationMode,
-    RecombinationProfile, ReproductionEventId, ReproductionMode, ReproductiveContactContextPolicy,
-    ReproductiveContactDesignError, ReproductiveContactEvidenceError, ReproductiveContactStudy,
-    ReproductiveContactStudyDesign, ReproductiveContactStudyId, ReproductiveContactStudyStatus,
-    ReproductiveObservationStage, ReproductiveOpportunityDeclaration,
-    ReproductiveOpportunityEvidenceInput, ReproductiveOpportunityId, ReproductiveOpportunityOutcome,
-    ValidatedReproductiveContactStudy, ValidatedReproductiveContactStudyDesign,
+    ConsequenceWindowId, EvolutionIndividualId, EvolutionOperatorProfile,
+    EvolutionaryContextContentDigest, EvolutionaryContextId, EvolutionaryContextRef,
+    HereditarySchema, HereditarySchemaId, HereditaryState, LocusDefinition, LocusId,
+    MutationProfile, ObservedOffspringEvidence, OperatorProfileId, PopulationGeneration,
+    RealizedGeneFlowObservation, RecombinationMode, RecombinationProfile, ReproductionEventId,
+    ReproductionMode, ReproductiveContactContextPolicy, ReproductiveContactDesignError,
+    ReproductiveContactEvidenceError, ReproductiveContactStudy, ReproductiveContactStudyDesign,
+    ReproductiveContactStudyId, ReproductiveContactStudyStatus, ReproductiveObservationStage,
+    ReproductiveOpportunityDeclaration, ReproductiveOpportunityEvidenceInput,
+    ReproductiveOpportunityId, ReproductiveOpportunityOutcome, ValidatedReproductiveContactStudy,
+    ValidatedReproductiveContactStudyDesign,
 };
 
 fn authority(label: &str, byte: u8) -> AnalysisAuthorityRef {
@@ -68,19 +69,25 @@ fn authorities(seed: u8) -> ContactAuthorities {
 }
 
 fn opportunity(
+    auth: &ContactAuthorities,
     id: &str,
     generation: u64,
     context_digest: symtropy_evolution_core::EvolutionaryContextRefDigest,
     zone_byte: u8,
 ) -> ReproductiveOpportunityDeclaration {
-    ReproductiveOpportunityDeclaration {
-        opportunity_id: ReproductiveOpportunityId::new(id).unwrap(),
-        generation: PopulationGeneration(generation),
-        parent_a: EvolutionIndividualId::new(format!("{id}-parent-a")).unwrap(),
-        parent_b: EvolutionIndividualId::new(format!("{id}-parent-b")).unwrap(),
+    ReproductiveOpportunityDeclaration::new(
+        ReproductiveOpportunityId::new(id).unwrap(),
+        PopulationGeneration(generation),
+        EvolutionIndividualId::new(format!("{id}-parent-a")).unwrap(),
+        auth.lineage_a.clone(),
+        authority("lineage-a-membership", zone_byte.wrapping_add(20)),
+        EvolutionIndividualId::new(format!("{id}-parent-b")).unwrap(),
+        auth.lineage_b.clone(),
+        authority("lineage-b-membership", zone_byte.wrapping_add(21)),
         context_digest,
-        contact_zone_evidence: authority("contact-zone", zone_byte),
-    }
+        authority("contact-zone", zone_byte),
+    )
+    .unwrap()
 }
 
 fn design_with(
@@ -218,19 +225,19 @@ fn offspring_evidence(auth: &ContactAuthorities, label: &str) -> ObservedOffspri
 }
 
 #[test]
-fn no_contact_is_distinct_from_no_realized_gene_flow_with_observed_opportunity() {
+fn no_contact_is_distinct_from_observed_reproductive_failure() {
     let ctx = context(40);
     let auth = authorities(60);
     let opportunities = vec![
-        opportunity("op-b", 4, ctx, 71),
-        opportunity("op-a", 3, ctx, 70),
+        opportunity(&auth, "op-b", 4, ctx, 71),
+        opportunity(&auth, "op-a", 3, ctx, 70),
     ];
     let design = design_with(&auth, ctx, opportunities.clone());
     assert_eq!(
         design.opportunities.iter().map(|o| o.opportunity_id.as_str()).collect::<Vec<_>>(),
         vec!["op-a", "op-b"]
     );
-    let current = current_design(&design, &auth, ctx, opportunities.clone());
+    let current = current_design(&design, &auth, ctx, opportunities);
 
     let no_contact = ReproductiveContactStudy::capture(
         &current,
@@ -257,13 +264,17 @@ fn no_contact_is_distinct_from_no_realized_gene_flow_with_observed_opportunity()
         vec![
             input(
                 "op-a",
-                ReproductiveOpportunityOutcome::ContactNoPairing { evidence: authority("contact-no-pair", 82) },
+                ReproductiveOpportunityOutcome::ContactNoPairing {
+                    evidence: authority("contact-no-pair", 82),
+                },
                 none_gene_flow(&auth, 92),
                 &auth,
             ),
             input(
                 "op-b",
-                ReproductiveOpportunityOutcome::MatingNoConception { evidence: authority("mating-no-conception", 83) },
+                ReproductiveOpportunityOutcome::MatingNoConception {
+                    evidence: authority("mating-no-conception", 83),
+                },
                 none_gene_flow(&auth, 93),
                 &auth,
             ),
@@ -281,10 +292,10 @@ fn no_contact_is_distinct_from_no_realized_gene_flow_with_observed_opportunity()
 }
 
 #[test]
-fn viable_infertile_and_fertile_hybrids_are_distinct_and_use_real_reproduction_provenance() {
+fn viable_infertile_and_fertile_hybrids_are_distinct_and_bind_real_parentage() {
     let ctx = context(41);
     let auth = authorities(61);
-    let opportunities = vec![opportunity("hybrid", 3, ctx, 72)];
+    let opportunities = vec![opportunity(&auth, "hybrid", 3, ctx, 72)];
     let design = design_with(&auth, ctx, opportunities.clone());
     let current = current_design(&design, &auth, ctx, opportunities);
     let offspring = offspring_evidence(&auth, "hybrid-event");
@@ -325,17 +336,19 @@ fn viable_infertile_and_fertile_hybrids_are_distinct_and_use_real_reproduction_p
 }
 
 #[test]
-fn realized_ancestry_gene_flow_is_stronger_observation_than_direct_contact_record() {
+fn realized_ancestry_gene_flow_overrides_direct_no_contact_observation() {
     let ctx = context(42);
     let auth = authorities(62);
-    let opportunities = vec![opportunity("ancestry", 3, ctx, 73)];
+    let opportunities = vec![opportunity(&auth, "ancestry", 3, ctx, 73)];
     let design = design_with(&auth, ctx, opportunities.clone());
     let current = current_design(&design, &auth, ctx, opportunities);
     let study = ReproductiveContactStudy::capture(
         &current,
         vec![input(
             "ancestry",
-            ReproductiveOpportunityOutcome::NoContact { evidence: authority("direct-no-contact", 104) },
+            ReproductiveOpportunityOutcome::NoContact {
+                evidence: authority("direct-no-contact", 104),
+            },
             realized_gene_flow(&auth, 105),
             &auth,
         )],
@@ -349,8 +362,8 @@ fn omitted_opportunity_and_authority_drift_fail_closed() {
     let ctx = context(43);
     let auth = authorities(63);
     let opportunities = vec![
-        opportunity("a", 3, ctx, 74),
-        opportunity("b", 4, ctx, 75),
+        opportunity(&auth, "a", 3, ctx, 74),
+        opportunity(&auth, "b", 4, ctx, 75),
     ];
     let design = design_with(&auth, ctx, opportunities.clone());
     let current = current_design(&design, &auth, ctx, opportunities);
@@ -389,10 +402,71 @@ fn omitted_opportunity_and_authority_drift_fail_closed() {
 }
 
 #[test]
-fn restored_design_rechecks_exact_context_and_current_replay() {
+fn lineage_membership_is_preregistered_and_changes_design_identity() {
     let ctx = context(44);
     let auth = authorities(64);
-    let opportunities = vec![opportunity("a", 3, ctx, 76)];
+    let good = opportunity(&auth, "a", 3, ctx, 76);
+    let design = design_with(&auth, ctx, vec![good.clone()]);
+
+    let changed_membership = ReproductiveOpportunityDeclaration::new(
+        ReproductiveOpportunityId::new("a").unwrap(),
+        PopulationGeneration(3),
+        EvolutionIndividualId::new("a-parent-a").unwrap(),
+        auth.lineage_a.clone(),
+        authority("lineage-a-membership-changed", 210),
+        EvolutionIndividualId::new("a-parent-b").unwrap(),
+        auth.lineage_b.clone(),
+        authority("lineage-b-membership", 97),
+        ctx,
+        authority("contact-zone", 76),
+    )
+    .unwrap();
+    let changed = design_with(&auth, ctx, vec![changed_membership]);
+    assert_ne!(design.canonical_digest().unwrap(), changed.canonical_digest().unwrap());
+
+    let wrong_lineage = ReproductiveOpportunityDeclaration::new(
+        ReproductiveOpportunityId::new("bad").unwrap(),
+        PopulationGeneration(3),
+        EvolutionIndividualId::new("bad-parent-a").unwrap(),
+        auth.lineage_b.clone(),
+        authority("wrong-membership", 211),
+        EvolutionIndividualId::new("bad-parent-b").unwrap(),
+        auth.lineage_b.clone(),
+        authority("lineage-b-membership", 212),
+        ctx,
+        authority("contact-zone", 77),
+    )
+    .unwrap();
+    assert!(matches!(
+        ReproductiveContactStudyDesign::declare(
+            ReproductiveContactStudyId::new("wrong-lineage").unwrap(),
+            auth.lineage_a.clone(),
+            auth.lineage_b.clone(),
+            PopulationGeneration(3),
+            PopulationGeneration(5),
+            ReproductiveContactContextPolicy::ExactContext { context_digest: ctx },
+            vec![wrong_lineage],
+            auth.opportunity_definition.clone(),
+            auth.contact.clone(),
+            auth.pairing.clone(),
+            auth.mating.clone(),
+            auth.conception.clone(),
+            auth.viability.clone(),
+            auth.fertility.clone(),
+            auth.parentage.clone(),
+            auth.gene_flow.clone(),
+            auth.demography.clone(),
+            auth.missing.clone(),
+        ),
+        Err(ReproductiveContactDesignError::LineageMembershipMismatch(_))
+    ));
+}
+
+#[test]
+fn restored_design_rechecks_context_membership_and_current_replay() {
+    let ctx = context(45);
+    let auth = authorities(65);
+    let opportunities = vec![opportunity(&auth, "a", 3, ctx, 77)];
     let design = design_with(&auth, ctx, opportunities.clone());
     let restored: ReproductiveContactStudyDesign =
         serde_json::from_slice(&serde_json::to_vec(&design).unwrap()).unwrap();
@@ -422,7 +496,7 @@ fn restored_design_rechecks_exact_context_and_current_replay() {
     .unwrap();
     assert_eq!(validated.study_digest(), study.canonical_digest().unwrap());
 
-    let drifted = vec![opportunity("a", 3, context(99), 76)];
+    let drifted = vec![opportunity(&auth, "a", 3, context(99), 77)];
     assert!(matches!(
         ReproductiveContactStudyDesign::declare(
             ReproductiveContactStudyId::new("drift").unwrap(),
@@ -432,9 +506,17 @@ fn restored_design_rechecks_exact_context_and_current_replay() {
             PopulationGeneration(5),
             ReproductiveContactContextPolicy::ExactContext { context_digest: ctx },
             drifted,
-            auth.opportunity_definition.clone(), auth.contact.clone(), auth.pairing.clone(),
-            auth.mating.clone(), auth.conception.clone(), auth.viability.clone(), auth.fertility.clone(),
-            auth.parentage.clone(), auth.gene_flow.clone(), auth.demography.clone(), auth.missing.clone(),
+            auth.opportunity_definition.clone(),
+            auth.contact.clone(),
+            auth.pairing.clone(),
+            auth.mating.clone(),
+            auth.conception.clone(),
+            auth.viability.clone(),
+            auth.fertility.clone(),
+            auth.parentage.clone(),
+            auth.gene_flow.clone(),
+            auth.demography.clone(),
+            auth.missing.clone(),
         ),
         Err(ReproductiveContactDesignError::UndeclaredContextDrift(_))
     ));
@@ -442,9 +524,9 @@ fn restored_design_rechecks_exact_context_and_current_replay() {
 
 #[test]
 fn unavailable_evidence_is_typed_and_serialized_status_cannot_be_forged() {
-    let ctx = context(45);
-    let auth = authorities(65);
-    let opportunities = vec![opportunity("a", 3, ctx, 77)];
+    let ctx = context(46);
+    let auth = authorities(66);
+    let opportunities = vec![opportunity(&auth, "a", 3, ctx, 78)];
     let design = design_with(&auth, ctx, opportunities.clone());
     let current = current_design(&design, &auth, ctx, opportunities);
     let study = ReproductiveContactStudy::capture(
@@ -484,7 +566,9 @@ fn collect_keys(value: &serde_json::Value, keys: &mut Vec<String>) {
             }
         }
         serde_json::Value::Array(values) => {
-            for nested in values { collect_keys(nested, keys); }
+            for nested in values {
+                collect_keys(nested, keys);
+            }
         }
         _ => {}
     }
@@ -492,9 +576,9 @@ fn collect_keys(value: &serde_json::Value, keys: &mut Vec<String>) {
 
 #[test]
 fn contact_evidence_wire_shape_does_not_claim_isolation_or_species_status() {
-    let ctx = context(46);
-    let auth = authorities(66);
-    let opportunities = vec![opportunity("a", 3, ctx, 78)];
+    let ctx = context(47);
+    let auth = authorities(67);
+    let opportunities = vec![opportunity(&auth, "a", 3, ctx, 79)];
     let design = design_with(&auth, ctx, opportunities.clone());
     let current = current_design(&design, &auth, ctx, opportunities);
     let study = ReproductiveContactStudy::capture(
@@ -511,7 +595,11 @@ fn contact_evidence_wire_shape_does_not_claim_isolation_or_species_status() {
     let mut keys = Vec::new();
     collect_keys(&value, &mut keys);
     for forbidden in [
-        "reproductive_isolation", "isolated", "species", "species_status", "speciation",
+        "reproductive_isolation",
+        "isolated",
+        "species",
+        "species_status",
+        "speciation",
     ] {
         assert!(!keys.iter().any(|key| key == forbidden));
     }
