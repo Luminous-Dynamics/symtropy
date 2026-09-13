@@ -11,8 +11,9 @@ use std::collections::BTreeMap;
 use crate::economic::StockLedger;
 use crate::economic_partition::{EconomicPartitionId, EconomicPartitionSet};
 use crate::economic_resolution::{
-    DetailRetentionRef, EconomicDetailState, EconomicResolutionSnapshot, EconomicResolutionTier,
-    EconomicSnapshotId, StockConservationKey,
+    DetailRetentionRef, EconomicConservationManifest, EconomicDetailState,
+    EconomicResolutionSnapshot, EconomicResolutionTier, EconomicSnapshotId, StockConservationKey,
+    StockConservationRecord,
 };
 use crate::stock_reservation::{
     StockReservation, StockReservationId, StockReservationLedger, StockReservationLedgerEntry,
@@ -53,17 +54,20 @@ impl ReservationConservationManifest {
     }
 }
 
-/// Reservation-side binding to one ECON-03 resolution snapshot.
+/// Reservation-side binding to one exact ECON-03 conservation snapshot.
 ///
-/// When active reservations exist, an aggregated ECON-03 snapshot is accepted only
-/// if it retains an exact-detail reference. This prevents a coarse representation
-/// from keeping aggregate stock while forgetting which exact `LotId` is encumbered.
+/// The binding carries the complete ECON-03 conservation manifest it was attached
+/// to. A pure fidelity rebind must preserve both that economic manifest and the
+/// reservation manifest. This prevents callers from attaching unchanged
+/// reservations to an unrelated economic snapshot and calling it a resolution
+/// transition.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ReservationResolutionBinding {
     economic_snapshot_id: EconomicSnapshotId,
     tier: EconomicResolutionTier,
     generation: u64,
     retention: Option<DetailRetentionRef>,
+    economic_manifest: EconomicConservationManifest,
     manifest: ReservationConservationManifest,
 }
 
@@ -74,6 +78,8 @@ impl ReservationResolutionBinding {
         reservations: &StockReservationLedger,
     ) -> Result<Self, ReservationReconciliationError> {
         let manifest = ReservationConservationManifest::capture(stock, reservations)?;
+        validate_stock_matches_snapshot(snapshot.manifest(), stock)?;
+
         let retention = match snapshot.detail() {
             EconomicDetailState::Exact { .. } => None,
             EconomicDetailState::Aggregated { retention } => {
@@ -90,13 +96,15 @@ impl ReservationResolutionBinding {
             tier: snapshot.tier(),
             generation: snapshot.generation(),
             retention,
+            economic_manifest: snapshot.manifest().clone(),
             manifest,
         })
     }
 
     /// Bind a successor ECON-03 representation of the same economic instant.
-    /// Reservation creation/release/resize is an economic mutation and therefore
-    /// cannot be hidden inside a pure resolution transition.
+    /// Reservation creation/release/resize and changes to the ECON-03 conservation
+    /// manifest are economic mutations; neither may be hidden inside fidelity
+    /// reconciliation.
     pub fn rebind_unchanged(
         &self,
         target: &EconomicResolutionSnapshot,
@@ -104,6 +112,11 @@ impl ReservationResolutionBinding {
         reservations: &StockReservationLedger,
     ) -> Result<Self, ReservationReconciliationError> {
         let candidate = Self::bind(target, stock, reservations)?;
+        if candidate.economic_manifest != self.economic_manifest {
+            return Err(
+                ReservationReconciliationError::EconomicManifestChangedDuringResolution,
+            );
+        }
         if candidate.manifest != self.manifest {
             return Err(
                 ReservationReconciliationError::ReservationChangedDuringResolution,
@@ -128,9 +141,47 @@ impl ReservationResolutionBinding {
         self.retention.as_ref()
     }
 
+    pub fn economic_manifest(&self) -> &EconomicConservationManifest {
+        &self.economic_manifest
+    }
+
     pub fn manifest(&self) -> &ReservationConservationManifest {
         &self.manifest
     }
+}
+
+/// Reconstruct the stock portion of ECON-03 directly from the exact StockLedger
+/// and require byte-for-byte semantic equality with the snapshot stock manifest.
+/// This prevents an exact reservation overlay from being bound to a snapshot whose
+/// coarse stock state came from a different economic instant.
+fn validate_stock_matches_snapshot(
+    economic_manifest: &EconomicConservationManifest,
+    stock: &StockLedger,
+) -> Result<(), ReservationReconciliationError> {
+    stock
+        .validate()
+        .map_err(|_| ReservationReconciliationError::InvalidReservationState)?;
+    let mut grouped: BTreeMap<StockConservationKey, u128> = BTreeMap::new();
+    for lot in stock.lots() {
+        let key = StockConservationKey {
+            commodity_spec_id: lot.commodity_spec_id().clone(),
+            owner_id: lot.owner_id().clone(),
+            custodian_id: lot.custodian_id().clone(),
+            location_id: lot.location_id().clone(),
+        };
+        let total = grouped.entry(key).or_default();
+        *total = total
+            .checked_add(u128::from(lot.quantity()))
+            .ok_or(ReservationReconciliationError::ArithmeticOverflow)?;
+    }
+    let exact: Vec<_> = grouped
+        .into_iter()
+        .map(|(key, quantity)| StockConservationRecord { key, quantity })
+        .collect();
+    if exact != economic_manifest.stock {
+        return Err(ReservationReconciliationError::StockManifestMismatch);
+    }
+    Ok(())
 }
 
 /// Reservation authority placed alongside one ECON-03B economic partition.
@@ -165,9 +216,10 @@ impl ReservationPartitionSet {
         stock: &StockLedger,
         reservations: &StockReservationLedger,
     ) -> Result<Self, ReservationReconciliationError> {
-        economic_partitions
+        let economic_manifest = economic_partitions
             .reconstruct_manifest()
             .map_err(|_| ReservationReconciliationError::InvalidEconomicPartitionSet)?;
+        validate_stock_matches_snapshot(&economic_manifest, stock)?;
         let source = ReservationConservationManifest::capture(stock, reservations)?;
 
         let mut stock_placement: BTreeMap<StockConservationKey, EconomicPartitionId> =
@@ -320,7 +372,10 @@ pub fn reconcile_reservation_repartition(
 pub enum ReservationReconciliationError {
     InvalidReservationState,
     InvalidEconomicPartitionSet,
+    ArithmeticOverflow,
+    StockManifestMismatch,
     ReservedLotDetailUnavailable,
+    EconomicManifestChangedDuringResolution,
     ReservationChangedDuringResolution,
     DuplicatePartitionIdentity,
     DuplicateStockPartitionAuthority,
