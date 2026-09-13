@@ -13,6 +13,7 @@ pub use symtropy_math as math;
 pub use symtropy_physics as physics;
 
 pub mod economic;
+pub mod economic_partition;
 pub mod economic_resolution;
 pub mod financial;
 pub mod industrial_ecology;
@@ -24,6 +25,10 @@ pub mod prelude {
         ActorId, AssetId, CausalId, CommoditySpecId, EconomicActor, EconomicActorKind,
         EconomicError, LocationId, LotId, StockDepletionCause, StockEvent, StockLedger,
         StockLedgerEntry, StockLot, StockOrigin,
+    };
+    pub use crate::economic_partition::{
+        EconomicPartitionId, EconomicPartitionManifest, EconomicPartitionPlan,
+        EconomicPartitionSet, PartitionError, SharedGlobalEconomicState,
     };
     pub use crate::economic_resolution::{
         AccountConservationRecord, CurrencyConservationRecord, DetailRetentionId,
