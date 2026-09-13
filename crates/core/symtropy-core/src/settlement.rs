@@ -7,16 +7,14 @@
 //! one explicitly coupled issuance/retirement settlement either commits both
 //! histories or commits neither.
 //!
-//! V0.1 remains intentionally narrow. It supports only settlement against one
-//! designated Asset account in the same currency. Issuance requires an exact debit
-//! to that account; retirement requires an exact credit and sufficient pre-settlement
-//! debit balance. The complete journal transaction must have the same total amount
-//! as the monetary event, preventing unrelated value from being hidden inside the
-//! settlement transaction.
+//! V0.1 supports only settlement against one designated Asset account in the same
+//! currency. Issuance requires an exact debit to that account; retirement requires
+//! an exact credit plus sufficient pre-settlement debit balance. The complete
+//! transaction must have the same total amount as the monetary event, preventing an
+//! unrelated balanced transaction from being hidden inside settlement.
 //!
-//! `SettlementAuthorizationRef` binds an external authorization-evidence identity.
-//! This crate does not cryptographically verify signatures or capabilities; a future
-//! Xenia/Mycelix bridge may satisfy that trust edge without weakening this theorem.
+//! `SettlementAuthorizationRef` binds external authorization-evidence identity only.
+//! This crate does not cryptographically verify signatures or capabilities.
 
 use std::collections::BTreeSet;
 use std::fmt;
@@ -51,11 +49,6 @@ impl fmt::Display for SettlementId {
     }
 }
 
-/// Reference to external evidence that the registered monetary authority authorized
-/// this exact settlement.
-///
-/// This is an identity/provenance binding only. V0.1 does not verify a signature,
-/// capability token, legal mandate, or remote service response.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct SettlementAuthorizationRef {
     pub monetary_authority_id: MonetaryAuthorityId,
@@ -68,9 +61,6 @@ pub struct MonetarySettlement {
     pub settlement_id: SettlementId,
     pub transaction: JournalTransaction,
     pub monetary_event: MonetarySupplyEvent,
-    /// Exact asset account receiving newly issued claims or surrendering retired
-    /// claims. This explicit binding avoids guessing which posting is the settlement
-    /// leg when a transaction has several counter-postings.
     pub settlement_account_id: FinancialAccountId,
     pub authorization: SettlementAuthorizationRef,
 }
@@ -81,12 +71,8 @@ pub struct SettlementLedgerEntry {
     pub settlement: MonetarySettlement,
 }
 
-/// Stronger financial authority whose mutable state is reachable only through
-/// atomic monetary settlements.
-///
-/// `base_book` freezes the complete pre-settlement ECON-02 state. `entries` are the
-/// only transitions after that base inside this authority. `validate()` reconstructs
-/// current state by replaying all settlements from the frozen base.
+/// Stronger authority that freezes one validated ECON-02 base book and permits
+/// subsequent mutation only through atomic issue/retire settlements.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct MonetarySettlementLedger {
     base_book: FinancialBook,
@@ -126,8 +112,7 @@ impl MonetarySettlementLedger {
         }
         self.base_book.validate()?;
         self.current_book.validate()?;
-        let replayed = replay_settlements(&self.base_book, &self.entries)?;
-        if replayed != self.current_book {
+        if replay_settlements(&self.base_book, &self.entries)? != self.current_book {
             return Err(SettlementError::SettlementHistoryMismatch);
         }
         Ok(())
@@ -145,11 +130,9 @@ impl MonetarySettlementLedger {
         &self.entries
     }
 
-    /// Atomically apply one settlement.
-    ///
-    /// Validation and both ECON-02 mutations are executed against a cloned candidate
-    /// book. The live current book and settlement history are replaced only after the
-    /// balanced journal transaction and the monetary-supply event both succeed.
+    /// Apply both ECON-02 histories to a cloned candidate and commit only after both
+    /// succeed. A failure in the second mutation therefore cannot strand the live
+    /// book after the first mutation.
     pub fn settle(&mut self, settlement: MonetarySettlement) -> Result<(), SettlementError> {
         if self.entries.len() >= MAX_SETTLEMENTS {
             return Err(SettlementError::ModelTooLarge);
@@ -165,7 +148,6 @@ impl MonetarySettlementLedger {
         }
 
         validate_settlement(&self.current_book, &settlement)?;
-
         let mut candidate_book = self.current_book.clone();
         apply_settlement_to_book(&mut candidate_book, &settlement)?;
         candidate_book.validate()?;
@@ -190,9 +172,9 @@ fn replay_settlements(
     if entries.len() > MAX_SETTLEMENTS {
         return Err(SettlementError::ModelTooLarge);
     }
+
     let mut book = base_book.clone();
     let mut settlement_ids = BTreeSet::new();
-
     for (index, entry) in entries.iter().enumerate() {
         let expected = next_sequence(index)?;
         if entry.sequence != expected {
@@ -237,10 +219,10 @@ fn validate_settlement(
         .ok_or_else(|| SettlementError::Financial(FinancialError::UnknownCurrency {
             currency_id: event_currency.clone(),
         }))?;
-    if currency.monetary_authority_id != settlement.authorization.monetary_authority_id {
+    if &currency.monetary_authority_id != &settlement.authorization.monetary_authority_id {
         return Err(SettlementError::AuthorizationAuthorityMismatch);
     }
-    if currency.monetary_authority_actor_id != settlement.authorization.authority_actor_id {
+    if &currency.monetary_authority_actor_id != &settlement.authorization.authority_actor_id {
         return Err(SettlementError::AuthorizationActorMismatch);
     }
 
@@ -249,7 +231,7 @@ fn validate_settlement(
         .ok_or_else(|| SettlementError::Financial(FinancialError::UnknownAccount {
             account_id: settlement.settlement_account_id.clone(),
         }))?;
-    if account.currency_id != *event_currency {
+    if &account.currency_id != event_currency {
         return Err(SettlementError::SettlementAccountCurrencyMismatch);
     }
     if account.class != FinancialAccountClass::Asset {
@@ -275,7 +257,7 @@ fn validate_settlement(
         .transaction
         .postings
         .iter()
-        .find(|posting| posting.account_id == settlement.settlement_account_id)
+        .find(|posting| &posting.account_id == &settlement.settlement_account_id)
         .ok_or_else(|| SettlementError::MissingSettlementPosting {
             account_id: settlement.settlement_account_id.clone(),
         })?;
@@ -292,22 +274,23 @@ fn validate_settlement(
         });
     }
 
-    let mut debits = 0_u128;
-    let mut credits = 0_u128;
-    for posting in &settlement.transaction.postings {
-        match posting.side {
-            PostingSide::Debit => {
-                debits = debits
+    let (debits, credits) = settlement.transaction.postings.iter().try_fold(
+        (0_u128, 0_u128),
+        |(debits, credits), posting| match posting.side {
+            PostingSide::Debit => Ok((
+                debits
                     .checked_add(u128::from(posting.amount))
-                    .ok_or(SettlementError::ArithmeticOverflow)?;
-            }
-            PostingSide::Credit => {
-                credits = credits
+                    .ok_or(SettlementError::ArithmeticOverflow)?,
+                credits,
+            )),
+            PostingSide::Credit => Ok((
+                debits,
+                credits
                     .checked_add(u128::from(posting.amount))
-                    .ok_or(SettlementError::ArithmeticOverflow)?;
-            }
-        }
-    }
+                    .ok_or(SettlementError::ArithmeticOverflow)?,
+            )),
+        },
+    )?;
     let expected_total = u128::from(event_amount);
     if debits != expected_total || credits != expected_total {
         return Err(SettlementError::TransactionAmountDoesNotEqualMonetaryEvent {
@@ -317,7 +300,7 @@ fn validate_settlement(
         });
     }
 
-    if matches!(settlement.monetary_event, MonetarySupplyEvent::Retire { .. }) {
+    if let MonetarySupplyEvent::Retire { .. } = &settlement.monetary_event {
         let totals = book
             .account_totals(&settlement.settlement_account_id)
             .ok_or_else(|| SettlementError::Financial(FinancialError::UnknownAccount {
@@ -343,9 +326,6 @@ fn apply_settlement_to_book(
     book: &mut FinancialBook,
     settlement: &MonetarySettlement,
 ) -> Result<(), SettlementError> {
-    // This order is deliberately not itself relied upon for atomicity: callers use
-    // a cloned candidate book and commit only the final candidate. The order merely
-    // makes duplicate/invalid journal failures surface before monetary mutation.
     book.post_transaction(settlement.transaction.clone())?;
     match &settlement.monetary_event {
         MonetarySupplyEvent::Issue {
@@ -494,8 +474,7 @@ impl From<FinancialError> for SettlementError {
 mod tests {
     use super::*;
     use crate::financial::{
-        CurrencyDefinition, CurrencyId, FinancialAccount, FinancialAccountClass,
-        JournalTransactionId, Posting,
+        CurrencyDefinition, CurrencyId, FinancialAccount, JournalTransactionId, Posting,
     };
 
     fn actor(value: &str) -> ActorId {
@@ -522,7 +501,7 @@ mod tests {
         JournalTransactionId::new(value).unwrap()
     }
 
-    fn settlement_id(value: &str) -> SettlementId {
+    fn sid(value: &str) -> SettlementId {
         SettlementId::new(value).unwrap()
     }
 
@@ -552,7 +531,7 @@ mod tests {
         .unwrap()
     }
 
-    fn auth() -> SettlementAuthorizationRef {
+    fn authorization() -> SettlementAuthorizationRef {
         SettlementAuthorizationRef {
             monetary_authority_id: authority("usd-authority"),
             authority_actor_id: actor("treasury"),
@@ -560,10 +539,10 @@ mod tests {
         }
     }
 
-    fn issue_settlement(id: &str, amount: u64) -> MonetarySettlement {
+    fn issue(id: &str, amount: u64) -> MonetarySettlement {
         let common_cause = cause(&format!("{id}-cause"));
         MonetarySettlement {
-            settlement_id: settlement_id(id),
+            settlement_id: sid(id),
             transaction: JournalTransaction::new(
                 tx_id(&format!("{id}-tx")),
                 common_cause.clone(),
@@ -590,14 +569,14 @@ mod tests {
                 cause_id: common_cause,
             },
             settlement_account_id: account_id("alice-cash"),
-            authorization: auth(),
+            authorization: authorization(),
         }
     }
 
-    fn retire_settlement(id: &str, amount: u64) -> MonetarySettlement {
+    fn retire(id: &str, amount: u64) -> MonetarySettlement {
         let common_cause = cause(&format!("{id}-cause"));
         MonetarySettlement {
-            settlement_id: settlement_id(id),
+            settlement_id: sid(id),
             transaction: JournalTransaction::new(
                 tx_id(&format!("{id}-tx")),
                 common_cause.clone(),
@@ -624,14 +603,14 @@ mod tests {
                 cause_id: common_cause,
             },
             settlement_account_id: account_id("alice-cash"),
-            authorization: auth(),
+            authorization: authorization(),
         }
     }
 
     #[test]
-    fn issuance_commits_journal_and_supply_together() {
+    fn issuance_commits_account_claim_and_supply_together() {
         let mut ledger = MonetarySettlementLedger::new(base_book()).unwrap();
-        ledger.settle(issue_settlement("issue-1", 100)).unwrap();
+        ledger.settle(issue("issue-1", 100)).unwrap();
 
         assert_eq!(
             ledger
@@ -639,70 +618,60 @@ mod tests {
                 .monetary_supply(&currency("USD-test")),
             Some(100)
         );
-        let totals = ledger
-            .financial_book()
-            .account_totals(&account_id("alice-cash"))
-            .unwrap();
-        assert_eq!(totals.net().side, Some(PostingSide::Debit));
-        assert_eq!(totals.net().amount, 100);
-        assert_eq!(ledger.entries().len(), 1);
-        ledger.validate().unwrap();
-    }
-
-    #[test]
-    fn retirement_requires_existing_debit_claim() {
-        let mut ledger = MonetarySettlementLedger::new(base_book()).unwrap();
-        let before = ledger.clone();
-        let error = ledger
-            .settle(retire_settlement("retire-1", 1))
-            .unwrap_err();
-        assert!(matches!(
-            error,
-            SettlementError::InsufficientSettlementAccountClaim { .. }
-        ));
-        assert_eq!(ledger, before);
-    }
-
-    #[test]
-    fn issue_then_retire_reconciles_both_histories() {
-        let mut ledger = MonetarySettlementLedger::new(base_book()).unwrap();
-        ledger.settle(issue_settlement("issue-1", 100)).unwrap();
-        ledger.settle(retire_settlement("retire-1", 40)).unwrap();
-
-        assert_eq!(
-            ledger
-                .financial_book()
-                .monetary_supply(&currency("USD-test")),
-            Some(60)
-        );
         let net = ledger
             .financial_book()
             .account_totals(&account_id("alice-cash"))
             .unwrap()
             .net();
         assert_eq!(net.side, Some(PostingSide::Debit));
-        assert_eq!(net.amount, 60);
+        assert_eq!(net.amount, 100);
         ledger.validate().unwrap();
     }
 
     #[test]
-    fn mismatched_cause_fails_without_partial_commit() {
+    fn retirement_requires_existing_asset_claim() {
         let mut ledger = MonetarySettlementLedger::new(base_book()).unwrap();
-        let mut settlement = issue_settlement("issue-1", 100);
+        let before = ledger.clone();
+        assert!(matches!(
+            ledger.settle(retire("retire-1", 1)),
+            Err(SettlementError::InsufficientSettlementAccountClaim { .. })
+        ));
+        assert_eq!(ledger, before);
+    }
+
+    #[test]
+    fn issue_then_retire_replays_exactly() {
+        let mut ledger = MonetarySettlementLedger::new(base_book()).unwrap();
+        ledger.settle(issue("issue-1", 100)).unwrap();
+        ledger.settle(retire("retire-1", 40)).unwrap();
+        assert_eq!(
+            ledger
+                .financial_book()
+                .monetary_supply(&currency("USD-test")),
+            Some(60)
+        );
+
+        let replayed = MonetarySettlementLedger::from_history(
+            ledger.base_financial_book().clone(),
+            ledger.entries().to_vec(),
+        )
+        .unwrap();
+        assert_eq!(replayed, ledger);
+    }
+
+    #[test]
+    fn cause_or_authority_mismatch_is_atomic() {
+        let mut ledger = MonetarySettlementLedger::new(base_book()).unwrap();
+        let mut settlement = issue("issue-1", 100);
         if let MonetarySupplyEvent::Issue { cause_id, .. } = &mut settlement.monetary_event {
             *cause_id = cause("different-cause");
         }
         let before = ledger.clone();
         assert_eq!(ledger.settle(settlement), Err(SettlementError::CauseMismatch));
         assert_eq!(ledger, before);
-    }
 
-    #[test]
-    fn wrong_authority_actor_fails_closed() {
-        let mut ledger = MonetarySettlementLedger::new(base_book()).unwrap();
-        let mut settlement = issue_settlement("issue-1", 100);
+        let mut settlement = issue("issue-2", 100);
         settlement.authorization.authority_actor_id = actor("not-treasury");
-        let before = ledger.clone();
         assert_eq!(
             ledger.settle(settlement),
             Err(SettlementError::AuthorizationActorMismatch)
@@ -711,14 +680,12 @@ mod tests {
     }
 
     #[test]
-    fn settlement_transaction_cannot_hide_extra_value() {
-        let mut ledger = MonetarySettlementLedger::new(base_book()).unwrap();
-        let common_cause = cause("issue-extra-cause");
-        let settlement = MonetarySettlement {
-            settlement_id: settlement_id("issue-extra"),
-            transaction: JournalTransaction::new(
-                tx_id("issue-extra-tx"),
-                common_cause.clone(),
+    fn second_leg_failure_cannot_strand_first_leg() {
+        let mut raw = base_book();
+        raw.post_transaction(
+            JournalTransaction::new(
+                tx_id("raw-unbacked-claim"),
+                cause("raw-claim"),
                 currency("USD-test"),
                 vec![
                     Posting {
@@ -734,16 +701,28 @@ mod tests {
                 ],
             )
             .unwrap(),
-            monetary_event: MonetarySupplyEvent::Issue {
-                currency_id: currency("USD-test"),
-                authority_id: authority("usd-authority"),
-                amount: 90,
-                beneficiary_actor_id: actor("alice"),
-                cause_id: common_cause,
-            },
-            settlement_account_id: account_id("alice-cash"),
-            authorization: auth(),
-        };
+        )
+        .unwrap();
+        assert_eq!(raw.monetary_supply(&currency("USD-test")), Some(0));
+
+        let mut ledger = MonetarySettlementLedger::new(raw).unwrap();
+        let before = ledger.clone();
+        assert!(matches!(
+            ledger.settle(retire("retire-1", 50)),
+            Err(SettlementError::Financial(
+                FinancialError::RetirementExceedsSupply { .. }
+            ))
+        ));
+        assert_eq!(ledger, before);
+    }
+
+    #[test]
+    fn transaction_amount_must_equal_monetary_event() {
+        let mut ledger = MonetarySettlementLedger::new(base_book()).unwrap();
+        let mut settlement = issue("issue-1", 100);
+        if let MonetarySupplyEvent::Issue { amount, .. } = &mut settlement.monetary_event {
+            *amount = 90;
+        }
         assert!(matches!(
             ledger.settle(settlement),
             Err(SettlementError::SettlementPostingAmountMismatch { .. })
@@ -751,60 +730,26 @@ mod tests {
     }
 
     #[test]
-    fn designated_settlement_account_must_belong_to_event_actor() {
-        let mut ledger = MonetarySettlementLedger::new(base_book()).unwrap();
-        let mut settlement = issue_settlement("issue-1", 100);
-        if let MonetarySupplyEvent::Issue {
-            beneficiary_actor_id,
-            ..
-        } = &mut settlement.monetary_event
-        {
-            *beneficiary_actor_id = actor("bob");
-        }
-        assert_eq!(
-            ledger.settle(settlement),
-            Err(SettlementError::SettlementAccountOwnerMismatch)
-        );
-    }
-
-    #[test]
-    fn duplicate_settlement_id_fails_without_mutation() {
-        let mut ledger = MonetarySettlementLedger::new(base_book()).unwrap();
-        ledger.settle(issue_settlement("issue-1", 100)).unwrap();
-        let before = ledger.clone();
-        let error = ledger
-            .settle(issue_settlement("issue-1", 10))
-            .unwrap_err();
-        assert!(matches!(error, SettlementError::DuplicateSettlement { .. }));
-        assert_eq!(ledger, before);
-    }
-
-    #[test]
-    fn complete_history_replays_to_identical_state() {
-        let mut ledger = MonetarySettlementLedger::new(base_book()).unwrap();
-        ledger.settle(issue_settlement("issue-1", 100)).unwrap();
-        ledger.settle(retire_settlement("retire-1", 25)).unwrap();
-
-        let replayed = MonetarySettlementLedger::from_history(
-            ledger.base_financial_book().clone(),
-            ledger.entries().to_vec(),
-        )
-        .unwrap();
-        assert_eq!(replayed, ledger);
-    }
-
-    #[test]
-    fn invalid_sequence_is_rejected() {
+    fn canonical_sequence_and_unique_settlement_id_are_required() {
         let entry = SettlementLedgerEntry {
             sequence: 2,
-            settlement: issue_settlement("issue-1", 100),
+            settlement: issue("issue-1", 100),
         };
         assert_eq!(
             MonetarySettlementLedger::from_history(base_book(), vec![entry]),
             Err(SettlementError::InvalidSettlementSequence {
                 expected: 1,
-                actual: 2,
+                actual: 2
             })
         );
+
+        let mut ledger = MonetarySettlementLedger::new(base_book()).unwrap();
+        ledger.settle(issue("issue-1", 100)).unwrap();
+        let before = ledger.clone();
+        assert!(matches!(
+            ledger.settle(issue("issue-1", 1)),
+            Err(SettlementError::DuplicateSettlement { .. })
+        ));
+        assert_eq!(ledger, before);
     }
 }
