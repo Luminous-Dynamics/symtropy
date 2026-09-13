@@ -190,6 +190,31 @@ fn fail_closed_policy_rejects_unavailable_temporal_evidence() {
 }
 
 #[test]
+fn strong_current_status_with_wholly_unavailable_temporal_evidence_is_insufficient() {
+    with_transition_context(
+        SpeciationTransitionMissingPolicy::ReportInsufficientTemporalEvidence,
+        |design, history, isolation, current, model| {
+            assert_eq!(
+                current.evidence().status,
+                CurrentSpeciesStatus::SupportedUnderModel
+            );
+            let mut inputs = supported_temporal_inputs();
+            for input in &mut inputs {
+                input.disposition = TemporalEvidenceDisposition::Unavailable;
+            }
+            let evidence = SpeciationTransitionEvidence::evaluate(
+                design, history, isolation, current, model, inputs,
+            )
+            .unwrap();
+            assert_eq!(
+                evidence.status,
+                SpeciationTransitionStatus::InsufficientTemporalEvidence
+            );
+        },
+    );
+}
+
+#[test]
 fn qualification_identity_is_evidence_identity_not_a_comment() {
     with_transition_context(
         SpeciationTransitionMissingPolicy::ReportInsufficientTemporalEvidence,
@@ -225,6 +250,98 @@ fn qualification_identity_is_evidence_identity_not_a_comment() {
             );
         },
     );
+}
+
+#[test]
+fn changing_only_qualified_species_model_identity_changes_transition_design_identity() {
+    wide_history_fixture::with_current(WideHistoryCase::Clean, |history_design, _| {
+        isolation_fixture::with_current(IsolationCase::Supported, |isolation_design, _| {
+            let first_model = model(90, 91);
+            let second_model = model(90, 93);
+            assert_eq!(first_model.model_content_digest, second_model.model_content_digest);
+
+            let first_current_model = ValidatedBiologicalSpeciesModel::validate_current(
+                &first_model,
+                first_model.validity_domain.clone(),
+                authority("species-model-qualification", 91),
+            )
+            .unwrap();
+            let second_current_model = ValidatedBiologicalSpeciesModel::validate_current(
+                &second_model,
+                second_model.validity_domain.clone(),
+                authority("species-model-qualification", 93),
+            )
+            .unwrap();
+            assert_ne!(
+                first_current_model.model_digest(),
+                second_current_model.model_digest()
+            );
+
+            let first_current_species_design = CurrentSpeciesClassificationDesign::declare(
+                CurrentSpeciesClassificationId::new("current-status-model-drift").unwrap(),
+                history_design,
+                isolation_design,
+                &first_current_model,
+                authority("target-model-applicability", 94),
+            )
+            .unwrap();
+            let second_current_species_design = CurrentSpeciesClassificationDesign::declare(
+                CurrentSpeciesClassificationId::new("current-status-model-drift").unwrap(),
+                history_design,
+                isolation_design,
+                &second_current_model,
+                authority("target-model-applicability", 94),
+            )
+            .unwrap();
+            let first_current_species =
+                ValidatedCurrentSpeciesClassificationDesign::validate_current(
+                    &first_current_species_design,
+                    history_design,
+                    isolation_design,
+                    &first_current_model,
+                    authority("target-model-applicability", 94),
+                )
+                .unwrap();
+            let second_current_species =
+                ValidatedCurrentSpeciesClassificationDesign::validate_current(
+                    &second_current_species_design,
+                    history_design,
+                    isolation_design,
+                    &second_current_model,
+                    authority("target-model-applicability", 94),
+                )
+                .unwrap();
+
+            let first_transition = SpeciationTransitionDesign::declare(
+                SpeciationTransitionDesignId::new("transition-model-drift").unwrap(),
+                history_design,
+                isolation_design,
+                &first_current_species,
+                &first_current_model,
+                PopulationGeneration(2),
+                PopulationGeneration(3),
+                transition_protocols(),
+                SpeciationTransitionMissingPolicy::ReportInsufficientTemporalEvidence,
+            )
+            .unwrap();
+            let second_transition = SpeciationTransitionDesign::declare(
+                SpeciationTransitionDesignId::new("transition-model-drift").unwrap(),
+                history_design,
+                isolation_design,
+                &second_current_species,
+                &second_current_model,
+                PopulationGeneration(2),
+                PopulationGeneration(3),
+                transition_protocols(),
+                SpeciationTransitionMissingPolicy::ReportInsufficientTemporalEvidence,
+            )
+            .unwrap();
+            assert_ne!(
+                first_transition.canonical_digest().unwrap(),
+                second_transition.canonical_digest().unwrap()
+            );
+        })
+    });
 }
 
 #[test]
