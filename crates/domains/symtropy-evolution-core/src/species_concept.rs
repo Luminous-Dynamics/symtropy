@@ -1,9 +1,9 @@
 use crate::{
     canonical::{fmt_hex, put_text, put_u32, put_u64},
     error::validate_text,
-    AnalysisAuthorityRef, BiologicalSpeciesModel, BiologicalSpeciesModelDigest, EvolutionError,
-    SpeciesModelContentDigest, SpeciesModelError, SpeciesModelValidityDomainDigest,
-    ValidatedBiologicalSpeciesModel,
+    AnalysisAuthorityRef, AnalysisContentDigest, AnalysisMethodId, BiologicalSpeciesModel,
+    BiologicalSpeciesModelDigest, EvolutionError, SpeciesModelContentDigest, SpeciesModelError,
+    SpeciesModelValidityDomainDigest, ValidatedBiologicalSpeciesModel,
 };
 use serde::{Deserialize, Deserializer, Serialize};
 use sha2::{Digest, Sha256};
@@ -14,7 +14,8 @@ pub const STRICT_BIOLOGICAL_SPECIES_CONCEPT_FAMILY_VERSION: u32 = 1;
 const AUTHORITY_DOMAIN: &[u8] = b"symtropy:evolution:species-concept-authority:v1\0";
 const CONTENT_DOMAIN: &[u8] = b"symtropy:evolution:species-concept-content:v1\0";
 const VALIDITY_DOMAIN: &[u8] = b"symtropy:evolution:species-concept-validity-domain:v1\0";
-const STRICT_BSC_ADAPTER_SPEC: &[u8] = b"strict biological species concept adapter v1: preserve exact BiologicalSpeciesModel V1 semantic content and validity/qualification identity; current species classification and historical transition interval are separate capabilities; require explicit qualified model applicability; require meaningful reproductive-isolation evidence; qualifier or validity-domain drift does not create a new concept family; no outcome fields; no universal taxonomy claim";
+const ADAPTER_RULE_DOMAIN: &[u8] = b"symtropy:evolution:species-concept-adapter-rule:v1\0";
+const STRICT_BSC_ADAPTER_SPEC: &[u8] = b"strict biological species concept adapter v1: preserve exact BiologicalSpeciesModel V1 semantic content and validity/qualification identity; current species classification and historical transition interval are separate capabilities; require explicit qualified model applicability; require meaningful reproductive-isolation evidence; qualifier or validity-domain drift does not create a new concept family; source qualification is provenance and does not imply direct endorsement of this adapter; no outcome fields; no universal taxonomy claim";
 
 macro_rules! local_id {
     ($name:ident, $field:literal) => {
@@ -50,6 +51,19 @@ local_id!(SpeciesConceptModelId, "SpeciesConceptModelId");
 
 fn strict_biological_family_id() -> SpeciesConceptFamilyId {
     SpeciesConceptFamilyId::new("strict-biological-species").expect("static family ID is valid")
+}
+
+pub fn strict_biological_species_concept_adapter_rule_v1() -> AnalysisAuthorityRef {
+    let mut digest = Sha256::new();
+    digest.update(ADAPTER_RULE_DOMAIN);
+    put_u64(&mut digest, STRICT_BSC_ADAPTER_SPEC.len() as u64);
+    digest.update(STRICT_BSC_ADAPTER_SPEC);
+    AnalysisAuthorityRef::new(
+        AnalysisMethodId::new("strict-biological-species-concept-adapter-v1")
+            .expect("static adapter method ID is valid"),
+        1,
+        AnalysisContentDigest::new(digest.finalize().into()),
+    )
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
@@ -99,7 +113,7 @@ impl SpeciesConceptDomainConstraint {
     }
 }
 
-#[derive(Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
 pub struct SpeciesConceptContentDigest([u8; 32]);
 
 impl SpeciesConceptContentDigest {
@@ -122,7 +136,7 @@ impl fmt::Display for SpeciesConceptContentDigest {
     }
 }
 
-#[derive(Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
 pub struct SpeciesConceptValidityDomainDigest([u8; 32]);
 
 impl SpeciesConceptValidityDomainDigest {
@@ -193,6 +207,8 @@ impl SpeciesConceptSourceBinding {
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct SpeciesConceptQualificationRef {
+    /// Qualification provenance inherited from the concrete source model.
+    /// This does not assert that the source qualifier directly endorsed the generic adapter.
     pub authority: AnalysisAuthorityRef,
     pub source_model_digest: BiologicalSpeciesModelDigest,
     pub concept_content_digest: SpeciesConceptContentDigest,
@@ -221,6 +237,7 @@ pub struct SpeciesConceptAuthority {
     pub domain_constraints: Vec<SpeciesConceptDomainConstraint>,
     pub source: SpeciesConceptSourceBinding,
     pub qualification: SpeciesConceptQualificationRef,
+    pub adapter_rule_authority: AnalysisAuthorityRef,
 }
 
 impl SpeciesConceptAuthority {
@@ -262,6 +279,7 @@ impl SpeciesConceptAuthority {
                 concept_content_digest,
                 validity_domain_digest,
             },
+            adapter_rule_authority: strict_biological_species_concept_adapter_rule_v1(),
         };
         authority.validate_local()?;
         Ok(authority)
@@ -276,8 +294,10 @@ impl SpeciesConceptAuthority {
         })
     }
 
+    /// Convenience inspection only. Current authority is carried by
+    /// `ValidatedSpeciesConceptAuthority`, not by this predicate on a restored value.
     pub fn supports(&self, capability: SpeciesConceptCapability) -> bool {
-        self.capabilities.binary_search(&capability).is_ok()
+        self.capabilities.contains(&capability)
     }
 
     pub fn canonical_digest(
@@ -315,6 +335,7 @@ impl SpeciesConceptAuthority {
             }
         }
         self.qualification.put(&mut digest);
+        put_authority(&mut digest, &self.adapter_rule_authority);
         Ok(SpeciesConceptAuthorityDigest(digest.finalize().into()))
     }
 
@@ -330,8 +351,7 @@ impl SpeciesConceptAuthority {
                 if model.canonical_digest()? != *model_digest {
                     return Err(SpeciesConceptError::SourceModelDigestMismatch);
                 }
-                let expected_family = strict_biological_family_id();
-                if self.family_id != expected_family
+                if self.family_id != strict_biological_family_id()
                     || self.family_version != STRICT_BIOLOGICAL_SPECIES_CONCEPT_FAMILY_VERSION
                 {
                     return Err(SpeciesConceptError::FamilyMismatch);
@@ -339,6 +359,7 @@ impl SpeciesConceptAuthority {
                 if self.model_id.as_str() != model.model_id.as_str() {
                     return Err(SpeciesConceptError::ModelIdMismatch);
                 }
+
                 let expected_capabilities = strict_biological_capabilities();
                 if self.capabilities != expected_capabilities {
                     return Err(SpeciesConceptError::CapabilitySurfaceMismatch);
@@ -351,6 +372,7 @@ impl SpeciesConceptAuthority {
                 if self.domain_constraints != expected_constraints {
                     return Err(SpeciesConceptError::DomainConstraintMismatch);
                 }
+
                 let expected_content = strict_biological_concept_content_digest(
                     model.model_content_digest,
                     &expected_capabilities,
@@ -360,18 +382,25 @@ impl SpeciesConceptAuthority {
                 if self.concept_content_digest != expected_content {
                     return Err(SpeciesConceptError::ConceptContentMismatch);
                 }
+
                 let expected_domain = strict_biological_concept_validity_domain_digest(
                     model.validity_domain.canonical_digest(),
                 );
                 if self.validity_domain_digest != expected_domain {
                     return Err(SpeciesConceptError::ValidityDomainMismatch);
                 }
+
                 if self.qualification.authority != model.qualification.authority
                     || self.qualification.source_model_digest != *model_digest
                     || self.qualification.concept_content_digest != expected_content
                     || self.qualification.validity_domain_digest != expected_domain
                 {
                     return Err(SpeciesConceptError::QualificationBindingMismatch);
+                }
+                if self.adapter_rule_authority
+                    != strict_biological_species_concept_adapter_rule_v1()
+                {
+                    return Err(SpeciesConceptError::AdapterRuleMismatch);
                 }
             }
         }
@@ -416,11 +445,15 @@ impl<'a> ValidatedSpeciesConceptAuthority<'a> {
         &self.conceptual_identity
     }
 
+    pub fn supports_capability(&self, capability: SpeciesConceptCapability) -> bool {
+        self.authority.capabilities.contains(&capability)
+    }
+
     pub fn require_capability(
         &self,
         capability: SpeciesConceptCapability,
     ) -> Result<(), SpeciesConceptError> {
-        if self.authority.supports(capability) {
+        if self.supports_capability(capability) {
             Ok(())
         } else {
             Err(SpeciesConceptError::UnsupportedCapability(capability))
@@ -513,6 +546,7 @@ pub enum SpeciesConceptError {
     ConceptContentMismatch,
     ValidityDomainMismatch,
     QualificationBindingMismatch,
+    AdapterRuleMismatch,
     UnsupportedCapability(SpeciesConceptCapability),
     ReplayMismatch,
 }
@@ -570,7 +604,11 @@ impl fmt::Display for SpeciesConceptError {
             ),
             Self::QualificationBindingMismatch => write!(
                 f,
-                "species-concept qualification binding does not match the validated source model"
+                "species-concept source-qualification provenance does not match the source model"
+            ),
+            Self::AdapterRuleMismatch => write!(
+                f,
+                "species-concept adapter rule does not match the built-in strict-BSC adapter"
             ),
             Self::UnsupportedCapability(capability) => {
                 write!(f, "species-concept authority does not support {capability:?}")
