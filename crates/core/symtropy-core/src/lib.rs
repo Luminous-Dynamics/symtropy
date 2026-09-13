@@ -19,6 +19,7 @@ pub mod economic_repartition;
 pub mod economic_resolution;
 pub mod financial;
 pub mod industrial_ecology;
+pub mod reservation_reconciliation;
 pub mod settlement;
 pub mod stock_reservation;
 
@@ -62,6 +63,11 @@ pub mod prelude {
         BlockedIndustrialFlow, DependencyShortage, IndustrialCapability, IndustrialDependencyState,
         IndustrialEcology, IndustrialEcologyError, IndustrialFlowKind, IndustrialFlowPrerequisite,
         IndustrialGovernance, IndustrialShock, IndustrialTickReport, IndustrialViabilityOutcome,
+    };
+    pub use crate::reservation_reconciliation::{
+        reconcile_reservation_repartition, ReservationConservationManifest,
+        ReservationPartitionManifest, ReservationPartitionSet, ReservationReconciliationError,
+        ReservationResolutionBinding,
     };
     pub use crate::settlement::{
         MonetarySettlement, MonetarySettlementLedger, SettlementAuthorizationRef, SettlementError,
