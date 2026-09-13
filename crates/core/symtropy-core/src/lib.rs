@@ -17,6 +17,7 @@ pub mod economic;
 pub mod economic_partition;
 pub mod economic_repartition;
 pub mod economic_resolution;
+pub mod encumbrance_handoff;
 pub mod financial;
 pub mod industrial_ecology;
 pub mod reservation_reconciliation;
@@ -52,6 +53,9 @@ pub mod prelude {
         FinancialRegistrySnapshot, MonetaryHistoryIdentity, ResolutionError,
         ResolutionLedgerEntry, ResolutionTransition, StockConservationKey,
         StockConservationRecord, StockHistoryIdentity,
+    };
+    pub use crate::encumbrance_handoff::{
+        handoff_full_reservation, EncumbranceHandoffError, EncumbranceHandoffReceipt,
     };
     pub use crate::financial::{
         AccountNetBalance, AccountTotals, CurrencyDefinition, CurrencyId, FinancialAccount,
