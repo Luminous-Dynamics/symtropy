@@ -63,6 +63,7 @@ mod selection_analysis_frame;
 mod selection_association;
 mod selection_design;
 mod selection_evidence;
+mod selection_translation;
 mod structured_population_process;
 mod validated_consequence;
 
@@ -221,11 +222,12 @@ pub use ids::{
     ChromosomeRecombinationProfileId, ComparisonAuthorityId, CompleteRandomizationReferenceId,
     ConsequenceObservationId, ConsequenceWindowId, DemographicEventId, EvidenceProtocolId,
     EvolutionExperimentId, EvolutionIndividualId, EvolutionaryContextId, ExclusionReasonId,
-    ExposureEvidenceSourceId, HereditarySchemaId, IdentificationEvidenceAuthorityId,
-    IdentificationQualificationAuthorityId, LocusId, OperatorProfileId,
-    PhenotypeEvidenceSourceId, PopulationId, PopulationProcessProfileId, PredictorDefinitionId,
-    PopulationStructureProfileId, PopulationTransitionId, ReproductionEventId,
-    SelectionComparisonDesignId,
+    ExposureEvidenceSourceId, GenerationMappingAuthorityId, HeritableClassMappingAuthorityId,
+    HereditarySchemaId, IdentificationEvidenceAuthorityId, IdentificationQualificationAuthorityId,
+    LocusId, ModelSpecificSelectionEstimateId, OperatorProfileId, PhenotypeEvidenceSourceId,
+    PopulationId, PopulationProcessProfileId, PopulationStructureProfileId, PopulationTransitionId,
+    PredictorDefinitionId, ReproductionEventId, SelectionComparisonDesignId,
+    SelectionTranslationModelId, SelectionTranslationQualificationAuthorityId,
 };
 pub use linked_census_projection::{
     project_declared_linked_census, LinkedCensusProjection, LinkedCensusProjectionDigest,
@@ -365,6 +367,19 @@ pub use selection_evidence::{
     ValidatedSelectionEvidenceLedger, EXPLICIT_SELECTION_EVIDENCE_LEDGER_VERSION,
     EXPOSURE_EVIDENCE_REF_VERSION, PHENOTYPE_EVIDENCE_REF_VERSION,
     SELECTION_EVIDENCE_RECORD_VERSION,
+};
+pub use selection_translation::{
+    translate_model_specific_viability_selection, viability_selection_model_content_digest_v1,
+    DensityDependencePolicy, ExactSelectionSignedFraction, ExactSelectionUnsignedFraction,
+    FrequencyDependencePolicy, GenerationMappingRef, HeritableClassMappingRef,
+    MigrationContributionPolicy, ModelSpecificSelectionEstimate,
+    ModelSpecificSelectionEstimateDigest, OtherFitnessComponentsPolicy, RelativeViabilityRatio,
+    RelativeViabilitySelectionQuantity, SelectionBaselineConvention, SelectionQuantityKind,
+    SelectionSignConvention, SelectionTranslationError, SelectionTranslationQualificationRef,
+    ValidatedModelSpecificSelectionEstimate, ValidatedSelectionTranslationModel,
+    ViabilityLifeCycleStagePolicy, ViabilitySelectionTranslationModel,
+    ViabilitySelectionTranslationModelDigest, MODEL_SPECIFIC_SELECTION_ESTIMATE_VERSION,
+    VIABILITY_SELECTION_TRANSLATION_MODEL_VERSION,
 };
 pub use structured_population_process::{
     structured_wright_fisher_step, StructuredPopulationTransitionProvenance,
