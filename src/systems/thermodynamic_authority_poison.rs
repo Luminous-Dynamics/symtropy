@@ -6,7 +6,14 @@
 //! normal continuation inadmissible. Re-entering an error path after poison must
 //! not overwrite that evidence or manufacture a second independent incident.
 
-use super::thermodynamic_authority_fault::ThermodynamicPhysicsAuthorityFault;
+use bevy::prelude::Resource;
+use symtropy_physics::FrictionStepError;
+
+use super::thermodynamic_authority_fault::{
+    ThermodynamicPhysicsAuthorityFault, summarize_physics_authority_fault,
+};
+use super::thermodynamic_friction_authority::ThermodynamicFrictionAuthorityError;
+use super::thermodynamic_runtime::ThermodynamicTransactionRuntime;
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub struct ThermodynamicPhysicsAuthorityPoisonRecord {
@@ -28,7 +35,7 @@ pub enum PhysicsAuthorityPoisonAdmission {
 /// There is intentionally no clear/reset method. Recovery from a poisoned fixed
 /// tick requires an explicit future recovery protocol rather than an ordinary
 /// scheduler caller mutating the evidence back to healthy.
-#[derive(Copy, Clone, Debug, Default, PartialEq, Eq)]
+#[derive(Resource, Copy, Clone, Debug, Default, PartialEq, Eq)]
 pub struct ThermodynamicPhysicsAuthorityPoisonLatch {
     first: Option<ThermodynamicPhysicsAuthorityPoisonRecord>,
 }
@@ -65,12 +72,35 @@ impl ThermodynamicPhysicsAuthorityPoisonLatch {
     }
 }
 
+/// Admit one production world friction-step fault into both lower runtime poison
+/// and the typed first-fault operator latch.
+///
+/// This is the canonical scheduler boundary for *all* `FrictionStepError`
+/// variants. In particular, native coordinate overflow is detected before a
+/// `ThermodynamicFrictionAuthority` call, so it cannot rely on the authority
+/// adapter's own error path to poison the runtime. Calling `poison_authority()`
+/// here is deliberately idempotent: authority-originated failures may already
+/// have set the lower gate, while coordinate failures have not.
+///
+/// The tick id is sampled before poison admission and the detailed error remains
+/// structurally typed through `summarize_physics_authority_fault`. Later calls may
+/// observe the already-authoritative first record but cannot replace it.
+pub(crate) fn admit_physics_authority_poison(
+    runtime: &mut ThermodynamicTransactionRuntime,
+    latch: &mut ThermodynamicPhysicsAuthorityPoisonLatch,
+    error: &FrictionStepError<ThermodynamicFrictionAuthorityError>,
+) -> PhysicsAuthorityPoisonAdmission {
+    let tick_id = runtime.open_tick_id();
+    runtime.poison_authority();
+    latch.poison_once(tick_id, summarize_physics_authority_fault(error))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
     use symtropy_physics::{
         BodyHandle, FrictionPromotionError, FrictionSolverCoordinateComponent,
-        FrictionSolverCoordinates,
+        FrictionSolverCoordinateError, FrictionSolverCoordinates,
     };
 
     use super::super::thermodynamic_authority_fault::{
@@ -156,5 +186,64 @@ mod tests {
         let latch = ThermodynamicPhysicsAuthorityPoisonLatch::default();
         assert!(!latch.is_poisoned());
         assert_eq!(latch.first_fault(), None);
+    }
+
+    #[test]
+    fn coordinate_failure_poison_admission_closes_pre_authority_gap() {
+        let mut runtime = ThermodynamicTransactionRuntime::new();
+        runtime.begin_next_tick().unwrap();
+        let mut latch = ThermodynamicPhysicsAuthorityPoisonLatch::new();
+        let oversized = (u32::MAX as usize).saturating_add(1);
+        let error = FrictionStepError::<ThermodynamicFrictionAuthorityError>::Coordinate(
+            FrictionSolverCoordinateError {
+                component: FrictionSolverCoordinateComponent::ContactSequence,
+                value: oversized,
+            },
+        );
+        let expected = ThermodynamicPhysicsAuthorityPoisonRecord {
+            tick_id: Some(0),
+            fault: ThermodynamicPhysicsAuthorityFault::CoordinateOverflow {
+                component: FrictionSolverCoordinateComponent::ContactSequence,
+                value: oversized,
+            },
+        };
+
+        assert_eq!(
+            admit_physics_authority_poison(&mut runtime, &mut latch, &error),
+            PhysicsAuthorityPoisonAdmission::First(expected)
+        );
+        assert!(runtime.is_authority_poisoned());
+        assert_eq!(latch.first_fault(), Some(expected));
+    }
+
+    #[test]
+    fn admission_is_idempotent_when_lower_runtime_was_already_poisoned() {
+        let mut runtime = ThermodynamicTransactionRuntime::new();
+        runtime.begin_next_tick().unwrap();
+        assert!(runtime.poison_authority());
+        let mut latch = ThermodynamicPhysicsAuthorityPoisonLatch::new();
+
+        let error = FrictionStepError::<ThermodynamicFrictionAuthorityError>::Coordinate(
+            FrictionSolverCoordinateError {
+                component: FrictionSolverCoordinateComponent::PointSequence,
+                value: 77,
+            },
+        );
+        let first = admit_physics_authority_poison(&mut runtime, &mut latch, &error);
+        assert!(matches!(first, PhysicsAuthorityPoisonAdmission::First(_)));
+        let original = latch.first_fault().unwrap();
+
+        let later = FrictionStepError::<ThermodynamicFrictionAuthorityError>::Coordinate(
+            FrictionSolverCoordinateError {
+                component: FrictionSolverCoordinateComponent::SolverIteration,
+                value: 88,
+            },
+        );
+        assert_eq!(
+            admit_physics_authority_poison(&mut runtime, &mut latch, &later),
+            PhysicsAuthorityPoisonAdmission::AlreadyPoisoned(original)
+        );
+        assert!(runtime.is_authority_poisoned());
+        assert_eq!(latch.first_fault(), Some(original));
     }
 }
