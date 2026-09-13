@@ -13,7 +13,7 @@ concurrency:
   cancel-in-progress: false
 
 env:
-  PRODUCT_HEAD: c3c87a0204f313f08f28524444b9ac2abb3b1bb1
+  PRODUCT_HEAD: 4137d0b2ec2e904e88b7ece559577881ff706056
   ECON04B_PARENT: c7070735e836cffa1fa7561fc4e4bd0b67b979d9
 
 jobs:
@@ -37,7 +37,7 @@ jobs:
           git merge-base --is-ancestor "${ECON04B_PARENT}" "${PRODUCT_HEAD}"
           count="$(git rev-list --count "${ECON04B_PARENT}..${PRODUCT_HEAD}")"
           echo "econ04c_commits_above_parent=${count}"
-          test "${count}" = "4"
+          test "${count}" = "7"
 
       - name: Set up pinned Rust
         uses: dtolnay/rust-toolchain@stable
@@ -125,11 +125,16 @@ jobs:
 
           grep -Fq 'pub struct ReservationConservationManifest' "${source}"
           grep -Fq 'pub struct ReservationResolutionBinding' "${source}"
+          grep -Fq 'economic_manifest: EconomicConservationManifest' "${source}"
+          grep -Fq 'validate_stock_matches_snapshot' "${source}"
+          grep -Fq 'StockManifestMismatch' "${source}"
           grep -Fq 'ReservedLotDetailUnavailable' "${source}"
+          grep -Fq 'EconomicManifestChangedDuringResolution' "${source}"
           grep -Fq 'ReservationChangedDuringResolution' "${source}"
           grep -Fq 'pub struct ReservationPartitionSet' "${source}"
           grep -Fq 'DuplicateReservationAuthority' "${source}"
           grep -Fq 'reconcile_reservation_repartition' "${source}"
+          grep -Fq 'economic_manifest_before == economic_manifest_after' "${contract}"
           grep -Fq 'reservation_manifest_before == reservation_manifest_after' "${contract}"
           grep -Fq 'No independent reservation-placement policy exists in v0.1.' "${contract}"
 
@@ -193,7 +198,7 @@ jobs:
               "cargo_version": version(["cargo", "--version"]),
               "step_outcomes": outcomes,
               "overall": "pass" if all(v == "success" for v in outcomes.values()) else "fail",
-              "claim_boundary": "exact reservation conservation across ECON-03 fidelity and partition placement only; active claims require retained lot detail at coarse resolution; no market, shipment, contract, legal lien, or distributed-consensus authority",
+              "claim_boundary": "exact reservation and ECON-03 manifest conservation across fidelity and partition placement only; active claims require retained lot detail at coarse resolution; exact stock must match the bound snapshot; no market, shipment, contract, legal lien, or distributed-consensus authority",
           }
           with open(os.environ["RECEIPT_PATH"], "w", encoding="utf-8") as handle:
               json.dump(receipt, handle, sort_keys=True, indent=2)
