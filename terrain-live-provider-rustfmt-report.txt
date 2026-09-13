@@ -1,0 +1,92 @@
+info: syncing channel updates for 1.96.0-x86_64-unknown-linux-gnu
+info: latest update on 2026-05-28 for version 1.96.0 (ac68faa20 2026-05-25)
+info: component rustfmt is up to date
+info: downloading component clippy
+Diff in /home/runner/work/symtropy/symtropy/crates/domains/symtropy-terrain/src/live_geometry_provider.rs:218:
+         let receipt = snapshot
+             .query(TerrainVoxelBox::full_chunk())
+             .expect("full chunk query must succeed");
+-        assert_eq!(
+-            receipt.observations().len(),
+-            TERRAIN_GEOMETRY_VOXEL_COUNT
+-        );
++        assert_eq!(receipt.observations().len(), TERRAIN_GEOMETRY_VOXEL_COUNT);
+         receipt.validate().expect("complete receipt must validate");
+     }
+ 
+Diff in /home/runner/work/symtropy/symtropy/crates/domains/symtropy-terrain/src/live_geometry_provider.rs:330:
+                 EarthChunkLatticeLocus::new(-3, 7, 11),
+             ))
+             .id();
+-        let conflicting = world
+-            .spawn(EarthChunkLatticeLocus::new(-3, 7, 11))
+-            .id();
++        let conflicting = world.spawn(EarthChunkLatticeLocus::new(-3, 7, 11)).id();
+ 
+         assert_eq!(
+             capture_live_terrain_geometry(&world, requested),
+Diff in /home/runner/work/symtropy/symtropy/crates/domains/symtropy-terrain/src/live_geometry_provider.rs:348:
+     fn same_materials_at_different_ecs_loci_have_different_identity() {
+         let mut world = World::new();
+         let first = world
+-            .spawn((
+-                EarthChunk::default(),
+-                EarthChunkLatticeLocus::new(0, 0, 0),
+-            ))
++            .spawn((EarthChunk::default(), EarthChunkLatticeLocus::new(0, 0, 0)))
+             .id();
+         let second = world
+-            .spawn((
+-                EarthChunk::default(),
+-                EarthChunkLatticeLocus::new(0, 0, 1),
+-            ))
++            .spawn((EarthChunk::default(), EarthChunkLatticeLocus::new(0, 0, 1)))
+             .id();
+ 
+         let first =
+Diff in /home/runner/work/symtropy/symtropy/crates/domains/symtropy-terrain/src/live_geometry_provider.rs:218:
+         let receipt = snapshot
+             .query(TerrainVoxelBox::full_chunk())
+             .expect("full chunk query must succeed");
+-        assert_eq!(
+-            receipt.observations().len(),
+-            TERRAIN_GEOMETRY_VOXEL_COUNT
+-        );
++        assert_eq!(receipt.observations().len(), TERRAIN_GEOMETRY_VOXEL_COUNT);
+         receipt.validate().expect("complete receipt must validate");
+     }
+ 
+Diff in /home/runner/work/symtropy/symtropy/crates/domains/symtropy-terrain/src/live_geometry_provider.rs:330:
+                 EarthChunkLatticeLocus::new(-3, 7, 11),
+             ))
+             .id();
+-        let conflicting = world
+-            .spawn(EarthChunkLatticeLocus::new(-3, 7, 11))
+-            .id();
++        let conflicting = world.spawn(EarthChunkLatticeLocus::new(-3, 7, 11)).id();
+ 
+         assert_eq!(
+             capture_live_terrain_geometry(&world, requested),
+Diff in /home/runner/work/symtropy/symtropy/crates/domains/symtropy-terrain/src/live_geometry_provider.rs:348:
+     fn same_materials_at_different_ecs_loci_have_different_identity() {
+         let mut world = World::new();
+         let first = world
+-            .spawn((
+-                EarthChunk::default(),
+-                EarthChunkLatticeLocus::new(0, 0, 0),
+-            ))
++            .spawn((EarthChunk::default(), EarthChunkLatticeLocus::new(0, 0, 0)))
+             .id();
+         let second = world
+-            .spawn((
+-                EarthChunk::default(),
+-                EarthChunkLatticeLocus::new(0, 0, 1),
+-            ))
++            .spawn((EarthChunk::default(), EarthChunkLatticeLocus::new(0, 0, 1)))
+             .id();
+ 
+         let first =
+
+DIAGNOSTIC_EXIT_CODE=1
+DIAGNOSTIC_SUBJECT=a41195f9c93a7868178b12f557c2f20420c71481
+DIAGNOSTIC_RUSTFMT=rustfmt 1.9.0-stable (ac68faa20c 2026-05-25)
