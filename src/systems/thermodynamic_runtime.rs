@@ -14,11 +14,12 @@ use bevy::prelude::Resource;
 use nalgebra::SVector;
 use symtropy_physics::{
     AppliedFrictionTransaction, BodyHandle, EnergyTransfer, EnergyTransferLedger,
-    FrictionApplicationError, FrictionDiagnosticFinalizeError, FrictionDiagnosticReason,
-    FrictionEvidenceError, FrictionPromotionError, FrictionPromotionReceipt,
-    FrictionSolverCoordinates, FrictionTransactionId, FrictionTransactionJournal,
-    HeatPartition, RigidBody, apply_friction_impulse_once, finalize_friction_diagnostic,
-    promote_applied_friction_loss_to_heat,
+    FrictionApplicationError, FrictionApplicationRollbackError,
+    FrictionDiagnosticFinalizeError, FrictionDiagnosticReason, FrictionEvidenceError,
+    FrictionPromotionError, FrictionPromotionReceipt, FrictionSolverCoordinates,
+    FrictionTransactionId, FrictionTransactionJournal, HeatPartition, RigidBody,
+    apply_friction_impulse_once, finalize_friction_diagnostic,
+    promote_applied_friction_loss_to_heat, rollback_applied_friction_impulse,
 };
 
 use super::thermodynamic_transaction::{
@@ -51,6 +52,13 @@ pub enum RuntimeFrictionError {
     Application(FrictionApplicationError),
     Diagnostic(FrictionDiagnosticFinalizeError),
     Promotion(FrictionPromotionError),
+    /// Terminalization rejected and the immediate exact applied-token rollback
+    /// unexpectedly refused. This is an invariant failure: the caller must not
+    /// continue the physics step as though ordinary atomic rollback succeeded.
+    Rollback {
+        terminalization: Box<RuntimeFrictionError>,
+        rollback: FrictionApplicationRollbackError,
+    },
 }
 
 impl From<FrictionApplicationError> for RuntimeFrictionError {
@@ -414,10 +422,12 @@ impl ThermodynamicTransactionRuntime {
     /// Atomically execute one friction transaction through a terminal lifecycle
     /// state before returning control to later solver mechanics.
     ///
-    /// If terminalization fails, every field touched by this transaction is
-    /// restored: A/B linear and angular velocity, A/B thermal state, private
-    /// friction journal, private physical ledger, and reservation registry.
-    /// Positions and other body fields are not touched by friction mechanics.
+    /// The lower-level application and promotion/diagnostic primitives are already
+    /// transactional for their own state. If terminalization rejects after a
+    /// successful application, this method consumes the still-unique `Applied`
+    /// token to restore exactly that mechanical transition and remove only its
+    /// journal entry. It does not clone the append-only ledger, unrelated
+    /// reservations, thermal state, or the complete friction journal.
     pub fn execute_terminal_friction_impulse_at<const D: usize>(
         &mut self,
         body_a: &mut RigidBody<D>,
@@ -427,64 +437,47 @@ impl ThermodynamicTransactionRuntime {
         coordinates: FrictionSolverCoordinates,
         partition: HeatPartition,
     ) -> Result<TerminalFrictionReceipt, RuntimeFrictionError> {
-        let original_linear_a = body_a.linear_velocity;
-        let original_linear_b = body_b.linear_velocity;
-        let original_angular_a = body_a.angular_velocity;
-        let original_angular_b = body_b.angular_velocity;
-        let original_thermal_a = body_a.thermal;
-        let original_thermal_b = body_b.thermal;
-        let original_journal = self.friction_journal.clone();
-        let original_ledger = self.physical_ledger.clone();
-        let original_reserved = self.reserved_friction.clone();
+        let applied = self.apply_friction_impulse_at(
+            body_a,
+            body_b,
+            contact_point,
+            impulse_on_b,
+            coordinates,
+        )?;
+        let transaction_id = applied.transaction_id();
 
-        let result = (|| {
-            let applied = self.apply_friction_impulse_at(
-                body_a,
-                body_b,
-                contact_point,
-                impulse_on_b,
-                coordinates,
-            )?;
-            let transaction_id = applied.transaction_id();
+        let terminalization = if applied
+            .observation()
+            .centered_promotable_loss_candidate_joules()
+            .is_some()
+        {
+            self.promote_friction_loss_owned(body_a, body_b, &applied, partition)
+                .map(TerminalFrictionOutcome::Promoted)
+        } else {
+            self.finalize_friction_diagnostic(body_a, body_b, &applied)
+                .map(TerminalFrictionOutcome::Diagnostic)
+        };
 
-            let outcome = if applied
-                .observation()
-                .centered_promotable_loss_candidate_joules()
-                .is_some()
-            {
-                TerminalFrictionOutcome::Promoted(self.promote_friction_loss_owned(
-                    body_a,
-                    body_b,
-                    &applied,
-                    partition,
-                )?)
-            } else {
-                TerminalFrictionOutcome::Diagnostic(self.finalize_friction_diagnostic(
-                    body_a,
-                    body_b,
-                    &applied,
-                )?)
-            };
-
-            Ok(TerminalFrictionReceipt {
+        match terminalization {
+            Ok(outcome) => Ok(TerminalFrictionReceipt {
                 transaction_id,
                 outcome,
-            })
-        })();
-
-        if result.is_err() {
-            body_a.linear_velocity = original_linear_a;
-            body_b.linear_velocity = original_linear_b;
-            body_a.angular_velocity = original_angular_a;
-            body_b.angular_velocity = original_angular_b;
-            body_a.thermal = original_thermal_a;
-            body_b.thermal = original_thermal_b;
-            self.friction_journal = original_journal;
-            self.physical_ledger = original_ledger;
-            self.reserved_friction = original_reserved;
+            }),
+            Err(terminalization) => {
+                match rollback_applied_friction_impulse(
+                    body_a,
+                    body_b,
+                    applied,
+                    &mut self.friction_journal,
+                ) {
+                    Ok(()) => Err(terminalization),
+                    Err(rollback) => Err(RuntimeFrictionError::Rollback {
+                        terminalization: Box::new(terminalization),
+                        rollback,
+                    }),
+                }
+            }
         }
-
-        result
     }
 
     #[cfg(test)]
