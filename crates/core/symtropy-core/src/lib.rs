@@ -14,6 +14,7 @@ pub use symtropy_physics as physics;
 
 pub mod industrial_ecology;
 pub mod industrial_epoch;
+pub mod industrial_recovery;
 pub mod industrial_watch;
 pub mod industrial_watch_trace;
 
@@ -29,6 +30,11 @@ pub mod prelude {
         IndustrialEpochHandoffPlan, IndustrialEpochHandoffReceipt, IndustrialEpochInventoryResult,
         IndustrialEpochSpec, IndustrialEpochState, IndustrialExternalInventoryAdmission,
         IndustrialSourceInventoryDisposition,
+    };
+    pub use crate::industrial_recovery::{
+        IndustrialQualifiedRecoveryContract, IndustrialRecoveryError, IndustrialRecoveryReceipt,
+        IndustrialRecoveryReserveState, execute_industrial_recovery,
+        qualify_industrial_recovery_contract,
     };
     pub use crate::industrial_watch::{
         IndustrialCapabilityWatch, IndustrialCapabilityWatchError, IndustrialCapabilityWatchReport,
