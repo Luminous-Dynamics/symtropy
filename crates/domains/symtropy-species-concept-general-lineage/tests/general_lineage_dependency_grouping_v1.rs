@@ -143,7 +143,7 @@ fn grouping_qualification_drift_changes_design_identity_and_stales_replay() {
 
         let mut value = serde_json::to_value(&design).unwrap();
         value["channels"][0]["dependency_group_qualification_authority"]["content_digest"] =
-            serde_json::json!([201; 32]);
+            serde_json::json!(vec![201u8; 32]);
         let drifted: GeneralLineageClassificationDesign = serde_json::from_value(value).unwrap();
         let drifted_digest = drifted.canonical_digest().unwrap();
         assert_ne!(original_digest, drifted_digest);
