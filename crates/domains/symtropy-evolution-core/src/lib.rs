@@ -64,6 +64,8 @@ mod population_trajectory;
 mod reproduction;
 mod reproductive_contact_design;
 mod reproductive_contact_evidence;
+mod reproductive_isolation_design;
+mod reproductive_isolation_evidence;
 mod schema;
 mod selection_analysis_frame;
 mod selection_association;
@@ -376,6 +378,18 @@ pub use reproductive_contact_evidence::{
     ReproductiveObservationStage, ReproductiveOpportunityEvidenceInput,
     ReproductiveOpportunityOutcome, ReproductiveStageEvidence, ValidatedReproductiveContactStudy,
     REPRODUCTIVE_CONTACT_STUDY_VERSION,
+};
+pub use reproductive_isolation_design::{
+    IsolationContextCompatibility, IsolationStudyDeclaration, IsolationStudyDesignInput,
+    IsolationStudyUnitId, ReproductiveIsolationDesign, ReproductiveIsolationDesignDigest,
+    ReproductiveIsolationDesignError, ReproductiveIsolationDesignId,
+    ValidatedReproductiveIsolationDesign, REPRODUCTIVE_ISOLATION_DESIGN_VERSION,
+};
+pub use reproductive_isolation_evidence::{
+    IsolationStudyEvidenceInput, IsolationStudyRecord, ReproductiveBarrierProfile,
+    ReproductiveIsolationEvidence, ReproductiveIsolationEvidenceDigest,
+    ReproductiveIsolationEvidenceError, ReproductiveIsolationStatus,
+    ValidatedReproductiveIsolationEvidence, REPRODUCTIVE_ISOLATION_EVIDENCE_VERSION,
 };
 pub use schema::{HereditarySchema, HereditarySchemaDigest, LocusDefinition};
 pub use selection_analysis_frame::{
