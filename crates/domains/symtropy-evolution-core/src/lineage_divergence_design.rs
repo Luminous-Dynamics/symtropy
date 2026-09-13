@@ -11,7 +11,7 @@ use std::{error::Error, fmt};
 pub const LINEAGE_DIVERGENCE_HISTORY_DESIGN_VERSION: u32 = 1;
 const DOMAIN: &[u8] = b"symtropy:evolution:lineage-divergence-history-design:v1\0";
 const RULE_DOMAIN: &[u8] = b"symtropy:evolution:lineage-divergence-history-rule:v1\0";
-const RULE_SPEC: &[u8] = b"lineage-divergence history v1: exact inclusive generation coverage; unavailable required generation/evidence is insufficient or fail-closed under the frozen missing-data policy; lineage fusion has precedence over recontact; same population identity without qualified fusion is not persistent divergence; recontact or realized gene flow without fusion yields divergence-with-recontact; otherwise complete distinct lineage tracks yield persistent-divergence-observed; no species or speciation claim";
+const RULE_SPEC: &[u8] = b"lineage-divergence history v1: exact inclusive generation coverage; lineage membership evidence binds exact lineage authority plus trajectory-point identity; ancestry, recontact, gene-flow, and fusion evidence bind the ordered lineage pair; qualified lineage fusion has highest classification precedence; explicit qualified loss of either lineage persistence yields not-persistent; otherwise unavailable required generation/evidence is insufficient or fail-closed under the frozen missing-data policy; recontact or realized gene flow without fusion yields divergence-with-recontact; otherwise complete qualified persistent lineage tracks yield persistent-divergence-observed; no species or speciation claim";
 
 macro_rules! local_id {
     ($name:ident, $field:literal) => {
