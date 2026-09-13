@@ -42,6 +42,8 @@ pub mod telemetry;
 pub mod thermodynamic;
 pub mod thermodynamic_runtime;
 pub mod thermodynamic_transaction;
+#[cfg(test)]
+mod thermodynamic_runtime_tests;
 pub mod tutorial_scenario;
 
 // Sol Atlas globe view — planetary coordination layer.
