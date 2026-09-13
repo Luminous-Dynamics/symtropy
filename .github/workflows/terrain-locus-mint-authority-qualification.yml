@@ -36,6 +36,7 @@ jobs:
           initial_close=6cc262943c56013dceb85904fcd1933baa1d0656
           private_component=ef82a2301e3e6fdd964adc7e0af898c5e38c48df
           product=7ee95ade5b6bdc8041923c840ec8e5290647cdc2
+          initial_qualifier=a159288c63000478ae57ec13703ba245d3f88524
           provider=crates/domains/symtropy-terrain/src/live_geometry_provider.rs
           lib=crates/domains/symtropy-terrain/src/lib.rs
           kernel=crates/domains/symtropy-terrain/src/geometry_kernel.rs
@@ -45,7 +46,8 @@ jobs:
           qualifier=.github/workflows/terrain-locus-mint-authority-qualification.yml
 
           test "$(git rev-parse HEAD)" = "${GITHUB_SHA}"
-          test "$(git rev-parse HEAD^)" = "${product}"
+          test "$(git rev-parse HEAD^)" = "${initial_qualifier}"
+          test "$(git rev-parse ${initial_qualifier}^)" = "${product}"
           test "$(git rev-parse ${product}^)" = "${private_component}"
           test "$(git rev-parse ${private_component}^)" = "${initial_close}"
           test "$(git rev-parse ${initial_close}^)" = "${base}"
@@ -126,6 +128,7 @@ jobs:
           set -euo pipefail
           python3 - <<'PY'
           from pathlib import Path
+          import re
 
           provider = Path("crates/domains/symtropy-terrain/src/live_geometry_provider.rs").read_text()
           lib = Path("crates/domains/symtropy-terrain/src/lib.rs").read_text()
@@ -144,12 +147,21 @@ jobs:
               "pub struct EarthChunkLatticeLocus {",
               "pub const fn new(",
               "pub(crate) const fn new(",
-              "Clone, Copy",
-              "Reflect",
           ]
           leaked = [term for term in forbidden_provider if term in provider]
           if leaked:
               raise SystemExit(f"production locus authority leak: {leaked!r}")
+
+          derive = re.search(
+              r"#\[derive\(([^)]*)\)\]\npub\(crate\) struct EarthChunkLatticeLocus",
+              provider,
+          )
+          if derive is None:
+              raise SystemExit("could not bind exact locus derive surface")
+          derived = {item.strip() for item in derive.group(1).split(",")}
+          leaked_derives = sorted(derived & {"Clone", "Copy", "Reflect"})
+          if leaked_derives:
+              raise SystemExit(f"locus duplication/reflection derive leak: {leaked_derives!r}")
 
           if "pub mod live_geometry_provider;" in lib:
               raise SystemExit("live provider module must remain private")
@@ -229,4 +241,4 @@ jobs:
           test "$(git rev-parse HEAD:crates/domains/symtropy-terrain/Cargo.toml)" = "187fe4020a0c0048ab36404e219a7a5698a856d1"
           test "$(git rev-parse HEAD:Cargo.lock)" = "62c6eb098b3f6fffdea8a175a0f3afb33423b17b"
           echo "TERRAIN_LOCUS_MINT_AUTHORITY_STATUS=PASS"
-          echo "claim=no production locus writer exists; safe downstream Rust cannot name or mutate the crate-private ECS locus component; exact read authority remains through capture_live_terrain_geometry and TerrainGeometrySnapshot"
+          echo "claim=no production locus writer exists; safe downstream Rust cannot name the crate-private ECS locus component; exact read authority remains through capture_live_terrain_geometry and TerrainGeometrySnapshot"
