@@ -1,12 +1,13 @@
 use crate::{
     canonical::{fmt_hex, put_text, put_u32, put_u64}, AnalysisContentDigest,
     AssignmentExchangeabilityAuthorityId, AssignmentMaterializationAuthorityId,
-    BinaryComparisonGroup, CausalIdentificationCriterion, CausalIdentificationTier,
-    CausalSelectionIdentification, CausalSelectionIdentificationDigest, CausalSelectionTarget,
-    CompleteRandomizationReferenceId, EvolutionIndividualId, ExplicitSelectionAnalysisFrameDigest,
-    IdentificationEvidenceRef, MaterializedPredictorValue, PredictorMaterializationStatus,
-    PredictorRepresentation, SelectionComparisonDesignDigest, SelectionDesignClass,
-    SelectionEstimand, ValidatedCausalSelectionIdentification, ValidatedSelectionAnalysisFrame,
+    AssignmentMaterializationQualificationAuthorityId, BinaryComparisonGroup,
+    CausalIdentificationCriterion, CausalIdentificationTier, CausalSelectionIdentification,
+    CausalSelectionIdentificationDigest, CausalSelectionTarget, CompleteRandomizationReferenceId,
+    EvolutionIndividualId, ExplicitSelectionAnalysisFrameDigest, IdentificationEvidenceRef,
+    MaterializedPredictorValue, PredictorMaterializationStatus, PredictorRepresentation,
+    SelectionComparisonDesignDigest, SelectionDesignClass, SelectionEstimand,
+    ValidatedCausalSelectionIdentification, ValidatedSelectionAnalysisFrame,
 };
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
@@ -58,10 +59,38 @@ impl AssignmentSupportPolicy {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct AssignmentMechanismMaterializationQualificationRef {
+    pub authority_id: AssignmentMaterializationQualificationAuthorityId,
+    pub revision: u64,
+    pub content_digest: AnalysisContentDigest,
+}
+
+impl AssignmentMechanismMaterializationQualificationRef {
+    pub fn new(
+        authority_id: AssignmentMaterializationQualificationAuthorityId,
+        revision: u64,
+        content_digest: AnalysisContentDigest,
+    ) -> Self {
+        Self {
+            authority_id,
+            revision,
+            content_digest,
+        }
+    }
+
+    fn update_digest(&self, digest: &mut Sha256) {
+        put_text(digest, self.authority_id.as_str());
+        put_u64(digest, self.revision);
+        digest.update(self.content_digest.as_bytes());
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct AssignmentMechanismMaterializationRef {
     pub authority_id: AssignmentMaterializationAuthorityId,
     pub revision: u64,
     pub content_digest: AnalysisContentDigest,
+    pub qualification: AssignmentMechanismMaterializationQualificationRef,
     pub subject_identification_digest: CausalSelectionIdentificationDigest,
 }
 
@@ -70,12 +99,14 @@ impl AssignmentMechanismMaterializationRef {
         authority_id: AssignmentMaterializationAuthorityId,
         revision: u64,
         content_digest: AnalysisContentDigest,
+        qualification: AssignmentMechanismMaterializationQualificationRef,
         subject_identification_digest: CausalSelectionIdentificationDigest,
     ) -> Self {
         Self {
             authority_id,
             revision,
             content_digest,
+            qualification,
             subject_identification_digest,
         }
     }
@@ -94,6 +125,7 @@ impl AssignmentMechanismMaterializationRef {
         put_text(digest, self.authority_id.as_str());
         put_u64(digest, self.revision);
         digest.update(self.content_digest.as_bytes());
+        self.qualification.update_digest(digest);
         digest.update(self.subject_identification_digest.as_bytes());
     }
 }
