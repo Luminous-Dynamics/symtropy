@@ -1,14 +1,15 @@
 use crate::{
     canonical::{fmt_hex, put_text, put_u32, put_u64}, IsolationStudyUnitId,
     RealizedGeneFlowObservation, ReproductiveContactStudy, ReproductiveContactStudyDigest,
-    ReproductiveIsolationDesign, ReproductiveIsolationDesignDigest, ReproductiveOpportunityOutcome,
+    ReproductiveOpportunityOutcome, ReproductiveIsolationDesign, ReproductiveIsolationDesignDigest,
     ValidatedReproductiveContactStudy, ValidatedReproductiveIsolationDesign,
 };
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
-use std::{collections::BTreeMap, error::Error, fmt};
+use std::{collections::{BTreeMap, BTreeSet}, error::Error, fmt};
 
 pub const REPRODUCTIVE_ISOLATION_EVIDENCE_VERSION: u32 = 1;
+pub const REPRODUCTIVE_ISOLATION_MIN_BARRIER_GENERATIONS_V1: u64 = 2;
 const DOMAIN: &[u8] = b"symtropy:evolution:reproductive-isolation-evidence:v1\0";
 
 #[derive(Debug)]
@@ -158,13 +159,8 @@ impl ReproductiveIsolationEvidence {
         Ok(evidence)
     }
 
-    pub fn design(&self) -> &ReproductiveIsolationDesign {
-        &self.design
-    }
-
-    pub fn design_digest(&self) -> ReproductiveIsolationDesignDigest {
-        self.design_digest
-    }
+    pub fn design(&self) -> &ReproductiveIsolationDesign { &self.design }
+    pub fn design_digest(&self) -> ReproductiveIsolationDesignDigest { self.design_digest }
 
     pub fn canonical_digest(
         &self,
@@ -229,9 +225,7 @@ impl ReproductiveIsolationEvidence {
 pub struct ReproductiveIsolationEvidenceDigest([u8; 32]);
 
 impl ReproductiveIsolationEvidenceDigest {
-    pub fn as_bytes(&self) -> &[u8; 32] {
-        &self.0
-    }
+    pub fn as_bytes(&self) -> &[u8; 32] { &self.0 }
 }
 
 impl fmt::Debug for ReproductiveIsolationEvidenceDigest {
@@ -243,9 +237,7 @@ impl fmt::Debug for ReproductiveIsolationEvidenceDigest {
 }
 
 impl fmt::Display for ReproductiveIsolationEvidenceDigest {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        fmt_hex(&self.0, f)
-    }
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result { fmt_hex(&self.0, f) }
 }
 
 #[derive(Debug)]
@@ -274,17 +266,9 @@ impl<'a> ValidatedReproductiveIsolationEvidence<'a> {
         })
     }
 
-    pub fn evidence(&self) -> &'a ReproductiveIsolationEvidence {
-        self.evidence
-    }
-
-    pub fn evidence_digest(&self) -> ReproductiveIsolationEvidenceDigest {
-        self.evidence_digest
-    }
-
-    pub fn design_digest(&self) -> ReproductiveIsolationDesignDigest {
-        self.design_digest
-    }
+    pub fn evidence(&self) -> &'a ReproductiveIsolationEvidence { self.evidence }
+    pub fn evidence_digest(&self) -> ReproductiveIsolationEvidenceDigest { self.evidence_digest }
+    pub fn design_digest(&self) -> ReproductiveIsolationDesignDigest { self.design_digest }
 }
 
 fn derive_barrier_profile(
@@ -298,14 +282,17 @@ fn derive_barrier_profile(
 
     for study in studies {
         let mut study_observed_contact = false;
-        let mut study_barrier = false;
+        let mut barrier_generations = BTreeSet::new();
         let mut study_disqualifying = false;
 
-        for record in &study.contact_study.records {
-            profile.total_opportunities = profile
-                .total_opportunities
-                .checked_add(1)
-                .ok_or(ReproductiveIsolationEvidenceError::ArithmeticOverflow)?;
+        for (declaration, record) in study
+            .contact_study
+            .design()
+            .opportunities
+            .iter()
+            .zip(&study.contact_study.records)
+        {
+            profile.total_opportunities = add_one(profile.total_opportunities)?;
 
             match &record.outcome {
                 ReproductiveOpportunityOutcome::NoContact { .. } => {
@@ -316,21 +303,21 @@ fn derive_barrier_profile(
                         add_one(profile.observed_contact_opportunities)?;
                     profile.pairing_barriers = add_one(profile.pairing_barriers)?;
                     study_observed_contact = true;
-                    study_barrier = true;
+                    barrier_generations.insert(declaration.generation.0);
                 }
                 ReproductiveOpportunityOutcome::PairedNoMating { .. } => {
                     profile.observed_contact_opportunities =
                         add_one(profile.observed_contact_opportunities)?;
                     profile.mating_barriers = add_one(profile.mating_barriers)?;
                     study_observed_contact = true;
-                    study_barrier = true;
+                    barrier_generations.insert(declaration.generation.0);
                 }
                 ReproductiveOpportunityOutcome::MatingNoConception { .. } => {
                     profile.observed_contact_opportunities =
                         add_one(profile.observed_contact_opportunities)?;
                     profile.conception_barriers = add_one(profile.conception_barriers)?;
                     study_observed_contact = true;
-                    study_barrier = true;
+                    barrier_generations.insert(declaration.generation.0);
                 }
                 ReproductiveOpportunityOutcome::ConceptionNoViableOffspring { .. } => {
                     profile.observed_contact_opportunities =
@@ -338,7 +325,7 @@ fn derive_barrier_profile(
                     profile.hybrid_viability_barriers =
                         add_one(profile.hybrid_viability_barriers)?;
                     study_observed_contact = true;
-                    study_barrier = true;
+                    barrier_generations.insert(declaration.generation.0);
                 }
                 ReproductiveOpportunityOutcome::ViableInfertileOffspring { .. } => {
                     profile.observed_contact_opportunities =
@@ -346,7 +333,7 @@ fn derive_barrier_profile(
                     profile.hybrid_fertility_barriers =
                         add_one(profile.hybrid_fertility_barriers)?;
                     study_observed_contact = true;
-                    study_barrier = true;
+                    barrier_generations.insert(declaration.generation.0);
                 }
                 ReproductiveOpportunityOutcome::ViableFertileOffspring { .. } => {
                     profile.observed_contact_opportunities =
@@ -389,7 +376,11 @@ fn derive_barrier_profile(
             profile.studies_with_observed_contact =
                 add_one(profile.studies_with_observed_contact)?;
         }
-        if study_barrier && !study_disqualifying {
+        let barrier_generation_count = u64::try_from(barrier_generations.len())
+            .map_err(|_| ReproductiveIsolationEvidenceError::ArithmeticOverflow)?;
+        if barrier_generation_count >= REPRODUCTIVE_ISOLATION_MIN_BARRIER_GENERATIONS_V1
+            && !study_disqualifying
+        {
             profile.barrier_supporting_studies =
                 add_one(profile.barrier_supporting_studies)?;
         }
@@ -447,15 +438,11 @@ pub enum ReproductiveIsolationEvidenceError {
 }
 
 impl From<crate::ReproductiveIsolationDesignError> for ReproductiveIsolationEvidenceError {
-    fn from(value: crate::ReproductiveIsolationDesignError) -> Self {
-        Self::Design(value)
-    }
+    fn from(value: crate::ReproductiveIsolationDesignError) -> Self { Self::Design(value) }
 }
 
 impl From<crate::ReproductiveContactEvidenceError> for ReproductiveIsolationEvidenceError {
-    fn from(value: crate::ReproductiveContactEvidenceError) -> Self {
-        Self::ContactEvidence(value)
-    }
+    fn from(value: crate::ReproductiveContactEvidenceError) -> Self { Self::ContactEvidence(value) }
 }
 
 impl fmt::Display for ReproductiveIsolationEvidenceError {
