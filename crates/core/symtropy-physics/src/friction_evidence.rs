@@ -16,6 +16,7 @@
 //! until the omitted boundary reservoir is represented explicitly.
 
 use nalgebra::SVector;
+use serde::{Deserialize, Serialize};
 use symtropy_math::Bivector;
 
 use crate::body::{BodyHandle, RigidBody};
@@ -23,6 +24,38 @@ use crate::integrator;
 
 const CENTERED_OFFSET_EPSILON_SQUARED: f64 = 1.0e-24;
 const ENERGY_EPSILON_J: f64 = 1.0e-15;
+
+/// Deterministic identity of one friction impulse within a fixed physics tick.
+///
+/// The hot world integration will ultimately source these coordinates from the
+/// #824 fixed-tick transaction boundary. Floating-point observation content is
+/// deliberately not used as identity: two numerically identical impulses in
+/// different ticks are distinct events.
+#[derive(
+    Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize,
+)]
+pub struct FrictionTransactionId {
+    pub fixed_tick: u64,
+    pub solver_iteration: u32,
+    pub contact_sequence: u32,
+    pub point_sequence: u32,
+}
+
+impl FrictionTransactionId {
+    pub const fn new(
+        fixed_tick: u64,
+        solver_iteration: u32,
+        contact_sequence: u32,
+        point_sequence: u32,
+    ) -> Self {
+        Self {
+            fixed_tick,
+            solver_iteration,
+            contact_sequence,
+            point_sequence,
+        }
+    }
+}
 
 /// Why a friction observation may or may not be eligible for physical promotion.
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
@@ -79,6 +112,30 @@ impl<const D: usize> FrictionMechanicalObservation<D> {
                 None
             }
         }
+    }
+}
+
+/// Non-cloneable binding between one applied mechanical transition and its
+/// deterministic solver transaction identity.
+///
+/// External callers cannot manufacture this token from an unbound observation;
+/// it is created only by [`apply_friction_impulse_measured_bound`], which applies
+/// the mechanical impulse as part of producing the evidence. This prevents the
+/// same already-applied observation from being casually relabeled with a second
+/// transaction id before physical promotion.
+#[derive(Debug, PartialEq)]
+pub struct BoundFrictionMechanicalObservation<const D: usize> {
+    transaction_id: FrictionTransactionId,
+    observation: FrictionMechanicalObservation<D>,
+}
+
+impl<const D: usize> BoundFrictionMechanicalObservation<D> {
+    pub const fn transaction_id(&self) -> FrictionTransactionId {
+        self.transaction_id
+    }
+
+    pub fn observation(&self) -> &FrictionMechanicalObservation<D> {
+        &self.observation
     }
 }
 
@@ -151,16 +208,7 @@ pub fn classify_friction_evidence_regime<const D: usize>(
     }
 }
 
-/// Apply one friction impulse exactly as the current world solver does and
-/// produce signed, immediate mechanical evidence.
-///
-/// This function deliberately does not write thermal state or an energy ledger.
-/// It is a measurement/staging primitive. The caller must separately decide
-/// whether the returned regime and signed delta are eligible for promotion.
-///
-/// If derived post-state or energy is non-finite/unrepresentable, both bodies'
-/// mechanical velocities are restored before returning an error.
-pub fn apply_friction_impulse_measured<const D: usize>(
+fn apply_friction_impulse_measured_inner<const D: usize>(
     body_a: &mut RigidBody<D>,
     body_b: &mut RigidBody<D>,
     contact_point: &SVector<f64, D>,
@@ -248,6 +296,43 @@ pub fn apply_friction_impulse_measured<const D: usize>(
     })
 }
 
+/// Apply one friction impulse exactly as the current world solver does and
+/// produce signed, immediate mechanical evidence without authoritative solver
+/// transaction identity.
+///
+/// This path is suitable for diagnostics and analytical reference work. Because
+/// the result is unbound, the physical promotion layer must not accept it as an
+/// exactly-once heat transaction.
+pub fn apply_friction_impulse_measured<const D: usize>(
+    body_a: &mut RigidBody<D>,
+    body_b: &mut RigidBody<D>,
+    contact_point: &SVector<f64, D>,
+    impulse_on_b: &SVector<f64, D>,
+) -> Result<FrictionMechanicalObservation<D>, FrictionEvidenceError> {
+    apply_friction_impulse_measured_inner(body_a, body_b, contact_point, impulse_on_b)
+}
+
+/// Apply one friction impulse and bind the resulting mechanical observation to
+/// a deterministic solver transaction identity.
+///
+/// This is the only constructor for [`BoundFrictionMechanicalObservation`].
+/// The returned token is intentionally non-cloneable and is the input expected
+/// by authoritative physical promotion.
+pub fn apply_friction_impulse_measured_bound<const D: usize>(
+    body_a: &mut RigidBody<D>,
+    body_b: &mut RigidBody<D>,
+    contact_point: &SVector<f64, D>,
+    impulse_on_b: &SVector<f64, D>,
+    transaction_id: FrictionTransactionId,
+) -> Result<BoundFrictionMechanicalObservation<D>, FrictionEvidenceError> {
+    let observation =
+        apply_friction_impulse_measured_inner(body_a, body_b, contact_point, impulse_on_b)?;
+    Ok(BoundFrictionMechanicalObservation {
+        transaction_id,
+        observation,
+    })
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -288,6 +373,27 @@ mod tests {
         assert_eq!(
             observation.centered_promotable_loss_candidate_joules(),
             Some(0.25)
+        );
+    }
+
+    #[test]
+    fn bound_observation_carries_immutable_solver_identity() {
+        let mut a = body(1, [0.0, 0.0, 0.0], 1.0);
+        let mut b = body(2, [0.0, 0.0, 0.0], 0.0);
+        let id = FrictionTransactionId::new(9, 2, 4, 1);
+        let bound = apply_friction_impulse_measured_bound(
+            &mut a,
+            &mut b,
+            &SVector::zeros(),
+            &SVector::from([0.5, 0.0, 0.0]),
+            id,
+        )
+        .unwrap();
+
+        assert_eq!(bound.transaction_id(), id);
+        assert_eq!(
+            bound.observation().delta,
+            FrictionMechanicalDelta::DissipationCandidate { joules: 0.25 }
         );
     }
 
