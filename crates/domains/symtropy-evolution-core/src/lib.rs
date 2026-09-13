@@ -78,6 +78,7 @@ mod selection_evidence;
 mod selection_translation;
 mod speciation_transition_design;
 mod speciation_transition_evidence;
+mod species_concept;
 mod species_model;
 mod structured_population_process;
 mod validated_consequence;
@@ -492,6 +493,14 @@ pub use speciation_transition_evidence::{
     SpeciationTransitionEvidence, SpeciationTransitionEvidenceDigest,
     SpeciationTransitionEvidenceError, SpeciationTransitionStatus, TemporalEvidenceDisposition,
     ValidatedSpeciationTransitionEvidence, SPECIATION_TRANSITION_EVIDENCE_VERSION,
+};
+pub use species_concept::{
+    SpeciesConceptAuthority, SpeciesConceptAuthorityDigest, SpeciesConceptCapability,
+    SpeciesConceptContentDigest, SpeciesConceptDomainConstraint, SpeciesConceptError,
+    SpeciesConceptEvidenceRequirement, SpeciesConceptFamilyId, SpeciesConceptIdentity,
+    SpeciesConceptModelId, SpeciesConceptQualificationRef, SpeciesConceptSourceBinding,
+    SpeciesConceptValidityDomainDigest, ValidatedSpeciesConceptAuthority,
+    SPECIES_CONCEPT_AUTHORITY_VERSION, STRICT_BIOLOGICAL_SPECIES_CONCEPT_FAMILY_VERSION,
 };
 pub use species_model::{
     strict_biological_species_model_content_digest_v1, BiologicalSpeciesModel,
