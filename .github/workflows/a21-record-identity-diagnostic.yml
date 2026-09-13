@@ -114,15 +114,38 @@ jobs:
           test "$(git status --porcelain=v1 --untracked-files=all)" = " M crates/domains/symtropy-analysis-admission/src/lib.rs"
           git diff --check -- crates/domains/symtropy-analysis-admission/src/lib.rs
 
-      - name: Execute A2.1 gates and emit candidate golden
+      - name: Check A2.1 formatting
         shell: bash
         run: |
           set -euo pipefail
           cd product
           cargo fmt -p symtropy-analysis-admission -- --check
+
+      - name: Compile A2.1 exact transformed subject
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd product
           cargo check --locked -p symtropy-analysis-admission --all-targets
+
+      - name: Run full A2.1 admission test suite
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd product
           cargo test --locked -p symtropy-analysis-admission
-          cargo test --locked -p symtropy-analysis-admission tests::standalone_verification_record_digest_is_frozen_and_content_bound -- --exact --nocapture | tee /tmp/a21-record-golden.log
+
+      - name: Execute named A2.1 golden-vector theorem
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd product
+          cargo test --locked -p symtropy-analysis-admission tests::standalone_verification_record_digest_is_frozen_and_content_bound -- --exact --nocapture 2>&1 | tee /tmp/a21-record-golden.log
+
+      - name: Require exactly one A2.1 golden sentinel
+        shell: bash
+        run: |
+          set -euo pipefail
           python3 - <<'PY'
           import re
           from pathlib import Path
@@ -131,6 +154,12 @@ jobs:
           assert len(values) == 1, values
           print(f'A21_RECORD_GOLDEN={values[0]}')
           PY
+
+      - name: Clippy A2.1 exact transformed subject
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd product
           cargo clippy --locked -p symtropy-analysis-admission --all-targets -- -D warnings
 
       - name: Re-prove parent layers and refuse collateral mutation
