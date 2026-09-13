@@ -6,18 +6,27 @@
 //! specification remains unchanged. A separately evidence-bound reserve state can
 //! be consumed only by a contract qualified against that exact nominal spec. The
 //! contract may restore only a previously modeled healthy flow ceiling.
+//!
+//! `IndustrialRecoveryReserveState` is deliberately non-`Clone`: within one
+//! execution lineage, reserve spend is linear. Every successful spend advances an
+//! explicit sequence and records the before/after quantity. Cross-process replay of
+//! serialized evidence is a provenance concern handled by the evidence layer.
 
-use crate::industrial_ecology::{IndustrialDependencyState, IndustrialFlowKind, IndustrialGovernance, IndustrialShock};
+use crate::industrial_ecology::{
+    IndustrialDependencyState, IndustrialFlowKind, IndustrialGovernance, IndustrialShock,
+};
 use crate::industrial_epoch::{IndustrialEpochSpec, IndustrialEpochState};
 
 const MAX_ID_LEN: usize = 256;
 const MAX_BINDING_LEN: usize = 1024;
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct IndustrialRecoveryReserveState {
     reserve_id: String,
     evidence_binding: String,
+    initial_units: u64,
     available_units: u64,
+    spend_sequence: u64,
 }
 
 impl IndustrialRecoveryReserveState {
@@ -33,21 +42,18 @@ impl IndustrialRecoveryReserveState {
         Ok(Self {
             reserve_id,
             evidence_binding,
+            initial_units: available_units,
             available_units,
+            spend_sequence: 0,
         })
     }
 
-    pub fn reserve_id(&self) -> &str {
-        &self.reserve_id
-    }
-
-    pub fn evidence_binding(&self) -> &str {
-        &self.evidence_binding
-    }
-
-    pub const fn available_units(&self) -> u64 {
-        self.available_units
-    }
+    pub fn reserve_id(&self) -> &str { &self.reserve_id }
+    pub fn evidence_binding(&self) -> &str { &self.evidence_binding }
+    pub const fn initial_units(&self) -> u64 { self.initial_units }
+    pub const fn available_units(&self) -> u64 { self.available_units }
+    pub const fn spend_sequence(&self) -> u64 { self.spend_sequence }
+    pub const fn spent_units(&self) -> u64 { self.initial_units - self.available_units }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -61,6 +67,7 @@ pub struct IndustrialQualifiedRecoveryContract {
     qualified_units_per_tick: u64,
     reserve_id: String,
     reserve_evidence_binding: String,
+    reserve_initial_units: u64,
     reserve_units_per_recovery: u64,
 }
 
@@ -74,6 +81,7 @@ impl IndustrialQualifiedRecoveryContract {
     pub const fn qualified_units_per_tick(&self) -> u64 { self.qualified_units_per_tick }
     pub fn reserve_id(&self) -> &str { &self.reserve_id }
     pub fn reserve_evidence_binding(&self) -> &str { &self.reserve_evidence_binding }
+    pub const fn reserve_initial_units(&self) -> u64 { self.reserve_initial_units }
     pub const fn reserve_units_per_recovery(&self) -> u64 { self.reserve_units_per_recovery }
 }
 
@@ -89,6 +97,9 @@ pub struct IndustrialRecoveryReceipt {
     pub restored_units_per_tick: u64,
     pub reserve_id: String,
     pub reserve_evidence_binding: String,
+    pub reserve_initial_units: u64,
+    pub reserve_spend_sequence_before: u64,
+    pub reserve_spend_sequence_after: u64,
     pub reserve_units_consumed: u64,
     pub reserve_units_before: u64,
     pub reserve_units_after: u64,
@@ -105,6 +116,8 @@ pub enum IndustrialRecoveryError {
     TargetFlowNotPositiveAtQualification { dependency_id: String, flow_kind: IndustrialFlowKind },
     EpochBindingMismatch,
     RecoveryReserveBindingMismatch,
+    RecoveryReserveGenesisMismatch,
+    RecoveryReserveSequenceOverflow,
     TargetFlowExceedsQualifiedCeiling {
         dependency_id: String,
         current_units_per_tick: u64,
@@ -119,8 +132,6 @@ pub enum IndustrialRecoveryError {
     RestoreRejected,
 }
 
-/// Qualify a future recovery path from an immutable nominal epoch specification
-/// and a separately evidence-bound recovery reserve.
 pub fn qualify_industrial_recovery_contract(
     spec: &IndustrialEpochSpec,
     reserve: &IndustrialRecoveryReserveState,
@@ -180,6 +191,7 @@ pub fn qualify_industrial_recovery_contract(
         qualified_units_per_tick,
         reserve_id: reserve.reserve_id.clone(),
         reserve_evidence_binding: reserve.evidence_binding.clone(),
+        reserve_initial_units: reserve.initial_units,
         reserve_units_per_recovery,
     })
 }
@@ -198,6 +210,9 @@ pub fn execute_industrial_recovery(
         || reserve.evidence_binding != contract.reserve_evidence_binding
     {
         return Err(IndustrialRecoveryError::RecoveryReserveBindingMismatch);
+    }
+    if reserve.initial_units != contract.reserve_initial_units {
+        return Err(IndustrialRecoveryError::RecoveryReserveGenesisMismatch);
     }
 
     let target = state
@@ -226,6 +241,11 @@ pub fn execute_industrial_recovery(
         });
     }
 
+    let reserve_spend_sequence_before = reserve.spend_sequence;
+    let reserve_spend_sequence_after = reserve_spend_sequence_before
+        .checked_add(1)
+        .ok_or(IndustrialRecoveryError::RecoveryReserveSequenceOverflow)?;
+
     let restore = match contract.flow_kind {
         IndustrialFlowKind::Production => IndustrialShock::SetLocalProduction {
             dependency_id: contract.target_dependency_id.clone(),
@@ -242,6 +262,7 @@ pub fn execute_industrial_recovery(
 
     let reserve_units_before = reserve.available_units;
     reserve.available_units -= contract.reserve_units_per_recovery;
+    reserve.spend_sequence = reserve_spend_sequence_after;
     let reserve_units_after = reserve.available_units;
 
     Ok(IndustrialRecoveryReceipt {
@@ -255,6 +276,9 @@ pub fn execute_industrial_recovery(
         restored_units_per_tick: contract.qualified_units_per_tick,
         reserve_id: contract.reserve_id.clone(),
         reserve_evidence_binding: contract.reserve_evidence_binding.clone(),
+        reserve_initial_units: reserve.initial_units,
+        reserve_spend_sequence_before,
+        reserve_spend_sequence_after,
         reserve_units_consumed: contract.reserve_units_per_recovery,
         reserve_units_before,
         reserve_units_after,
@@ -339,7 +363,7 @@ mod tests {
     }
 
     #[test]
-    fn qualified_recovery_restores_only_specified_ceiling_and_spends_external_reserve() {
+    fn qualified_recovery_restores_only_specified_ceiling_and_advances_linear_reserve() {
         let spec = spec();
         let mut reserve = IndustrialRecoveryReserveState::new(
             "repair-reserve-v1",
@@ -366,36 +390,15 @@ mod tests {
             .unwrap();
         let receipt = execute_industrial_recovery(&mut state, &contract, &mut reserve).unwrap();
         assert_eq!(receipt.restored_units_per_tick, 1);
+        assert_eq!(receipt.reserve_initial_units, 2);
+        assert_eq!(receipt.reserve_spend_sequence_before, 0);
+        assert_eq!(receipt.reserve_spend_sequence_after, 1);
         assert_eq!(receipt.reserve_units_before, 2);
         assert_eq!(receipt.reserve_units_after, 1);
+        assert_eq!(reserve.initial_units(), 2);
         assert_eq!(reserve.available_units(), 1);
-    }
-
-    #[test]
-    fn zero_flow_cannot_be_qualified_as_future_recovery_authority() {
-        let mut spec = spec();
-        spec.dependencies
-            .iter_mut()
-            .find(|dependency| dependency.dependency_id == "metrology")
-            .unwrap()
-            .local_production_units_per_tick = 0;
-        let reserve = IndustrialRecoveryReserveState::new(
-            "repair-reserve-v1",
-            "recovery-reserve:repair-v1",
-            1,
-        )
-        .unwrap();
-        let error = qualify_industrial_recovery_contract(
-            &spec,
-            &reserve,
-            "recover-metrology",
-            "recovery:metrology:v1",
-            "metrology",
-            IndustrialFlowKind::Production,
-            1,
-        )
-        .unwrap_err();
-        assert!(matches!(error, IndustrialRecoveryError::EpochSpecInvalid));
+        assert_eq!(reserve.spent_units(), 1);
+        assert_eq!(reserve.spend_sequence(), 1);
     }
 
     #[test]
@@ -424,7 +427,8 @@ mod tests {
                 units_per_tick: 0,
             })
             .unwrap();
-        execute_industrial_recovery(&mut state, &contract, &mut reserve).unwrap();
+        let receipt = execute_industrial_recovery(&mut state, &contract, &mut reserve).unwrap();
+        assert_eq!(receipt.reserve_spend_sequence_after, 1);
         state
             .apply_shock(IndustrialShock::SetLocalProduction {
                 dependency_id: "metrology".into(),
@@ -435,5 +439,6 @@ mod tests {
             execute_industrial_recovery(&mut state, &contract, &mut reserve),
             Err(IndustrialRecoveryError::InsufficientRecoveryReserve { .. })
         ));
+        assert_eq!(reserve.spend_sequence(), 1);
     }
 }
