@@ -1,0 +1,225 @@
+name: Terrain Geometry Authority Cleanup Qualification
+
+on:
+  push:
+    branches:
+      - "terrain/geometry-authority-cleanup-v0.1"
+    paths:
+      - ".github/workflows/terrain-geometry-authority-cleanup-qualification.yml"
+      - "crates/domains/symtropy-terrain/src/geometry_authority.rs"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: terrain-geometry-authority-cleanup-v0.1
+  cancel-in-progress: true
+
+jobs:
+  qualify:
+    name: Qualify removal of superseded Terrain geometry authority grammar
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Bind exact qualified ancestry and deletion-only product
+        shell: bash
+        run: |
+          set -euo pipefail
+          base=b5975f1fdac16ccd00864b8b67b418026bdc238f
+          product=4212886ce6a54affcb7812325b25a9f402a10db3
+          stale=crates/domains/symtropy-terrain/src/geometry_authority.rs
+          qualifier=.github/workflows/terrain-geometry-authority-cleanup-qualification.yml
+          kernel=crates/domains/symtropy-terrain/src/geometry_kernel.rs
+          provider=crates/domains/symtropy-terrain/src/live_geometry_provider.rs
+          currentness=crates/domains/symtropy-terrain/src/geometry_currentness.rs
+          query=crates/domains/symtropy-terrain/src/live_geometry_query.rs
+          lib=crates/domains/symtropy-terrain/src/lib.rs
+          manifest=crates/domains/symtropy-terrain/Cargo.toml
+          live_query_qualifier=.github/workflows/terrain-live-query-qualification.yml
+
+          test "$(git rev-parse HEAD)" = "${GITHUB_SHA}"
+          test "$(git rev-parse HEAD^)" = "${product}"
+          test "$(git rev-parse ${product}^)" = "${base}"
+          test "$(git rev-parse ${base}:${stale})" = "9a6ec7076b54d7da9525e31dd8aa2258174ab5ea"
+          ! git cat-file -e "${product}:${stale}" 2>/dev/null
+          ! git cat-file -e "HEAD:${stale}" 2>/dev/null
+          test "$(git diff --name-status ${base}..${product})" = $'D\t'"${stale}"
+          test "$(git diff --name-only ${product}..HEAD)" = "${qualifier}"
+          actual_total="$(git diff --name-only ${base}..HEAD | sort)"
+          expected_total="$(printf '%s\n' "${qualifier}" "${stale}" | sort)"
+          test "${actual_total}" = "${expected_total}"
+
+          test "$(git rev-parse HEAD:${kernel})" = "8d3e1213eacdeddf693cd2d1f82670d6ed832161"
+          test "$(git rev-parse HEAD:${provider})" = "543858ec733429ac41d39bd52eb2e39210806280"
+          test "$(git rev-parse HEAD:${currentness})" = "2da7d9b27313ae24b45269171cf58ea6cd528de4"
+          test "$(git rev-parse HEAD:${query})" = "34995e11c7d82ffa4e18b7fc12927816408e8d1d"
+          test "$(git rev-parse HEAD:${lib})" = "4489f47e8d707eac30cb1e0c682e57b061e14e03"
+          test "$(git rev-parse HEAD:${manifest})" = "187fe4020a0c0048ab36404e219a7a5698a856d1"
+          test "$(git rev-parse HEAD:Cargo.lock)" = "62c6eb098b3f6fffdea8a175a0f3afb33423b17b"
+          test "$(git rev-parse HEAD:${live_query_qualifier})" = "324c2b88db66b04b957f442cb2eb777ca7a1f984"
+          echo "CARGO_TARGET_DIR=${RUNNER_TEMP}/terrain-authority-cleanup-target" >> "${GITHUB_ENV}"
+
+      - name: Install Linux system dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install -y libasound2-dev libudev-dev pkg-config
+
+      - name: Set up pinned Rust
+        uses: dtolnay/rust-toolchain@6bed0761d98439e5a578e2877258200ad565ba87
+        with:
+          toolchain: 1.96.0
+          components: clippy,rustfmt
+
+      - name: Bind toolchain
+        shell: bash
+        run: |
+          set -euo pipefail
+          rustc -Vv
+          cargo -Vv
+          rustfmt --version
+          cargo clippy --version
+          test "$(rustc --version | awk '{print $2}')" = "1.96.0"
+          test "$(cargo --version | awk '{print $2}')" = "1.96.0"
+
+      - name: Verify frozen selected dependency graph
+        shell: bash
+        run: |
+          set -euo pipefail
+          before="$(git hash-object Cargo.lock)"
+          cargo metadata --locked --format-version 1 > "${RUNNER_TEMP}/terrain-authority-cleanup-metadata.json"
+          test "$(git hash-object Cargo.lock)" = "${before}"
+
+      - name: Compile all Terrain targets
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo check -p symtropy-terrain --locked --all-targets
+
+      - name: Re-execute canonical geometry authority theorem corpora
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo test -p symtropy-terrain --locked live_geometry_provider::tests -- --nocapture
+          cargo test -p symtropy-terrain --locked geometry_currentness::tests -- --nocapture
+          cargo test -p symtropy-terrain --locked live_geometry_query::tests -- --nocapture
+
+      - name: Execute complete Terrain regression suite
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo test -p symtropy-terrain --locked --all-targets
+
+      - name: Enforce strict all-target Clippy
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo clippy -p symtropy-terrain --locked --all-targets -- -D warnings
+
+      - name: Audit one canonical geometry grammar and one crate-owned locus authority
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+
+          src = Path("crates/domains/symtropy-terrain/src")
+          if (src / "geometry_authority.rs").exists():
+              raise SystemExit("superseded geometry_authority.rs still exists")
+
+          texts = {path.name: path.read_text() for path in sorted(src.glob("*.rs"))}
+          joined = "\n".join(texts.values())
+          lib = texts.get("lib.rs", "")
+          kernel = texts.get("geometry_kernel.rs", "")
+          provider = texts.get("live_geometry_provider.rs", "")
+          provider_prod = provider.partition("#[cfg(test)]")[0]
+
+          if "geometry_authority" in lib:
+              raise SystemExit("lib.rs still refers to superseded geometry_authority module")
+          if "TerrainGeometrySnapshot::capture(" in joined:
+              raise SystemExit("superseded caller-coordinate snapshot capture surface remains")
+
+          def_files = {ty: [] for ty in (
+              "TerrainGeometrySnapshot", "EarthChunkLatticeCoord", "EarthChunkLatticeLocus"
+          )}
+          for name, text in texts.items():
+              for ty in def_files:
+                  if re.search(rf"\bstruct\s+{ty}\b", text):
+                      def_files[ty].append(name)
+          if def_files["TerrainGeometrySnapshot"] != ["geometry_kernel.rs"]:
+              raise SystemExit(f"unexpected TerrainGeometrySnapshot definitions: {def_files['TerrainGeometrySnapshot']!r}")
+          if def_files["EarthChunkLatticeCoord"] != ["geometry_kernel.rs"]:
+              raise SystemExit(f"unexpected EarthChunkLatticeCoord definitions: {def_files['EarthChunkLatticeCoord']!r}")
+          if def_files["EarthChunkLatticeLocus"] != ["live_geometry_provider.rs"]:
+              raise SystemExit(f"unexpected EarthChunkLatticeLocus definitions: {def_files['EarthChunkLatticeLocus']!r}")
+
+          if "pub struct EarthChunkLatticeCoord" not in kernel:
+              raise SystemExit("canonical exact coordinate value type missing from geometry kernel")
+
+          locus = re.search(
+              r"#\[derive\((?P<derives>[^)]*)\)\]\s*pub\(crate\)\s+struct\s+EarthChunkLatticeLocus\b",
+              provider_prod,
+              flags=re.S,
+          )
+          if locus is None:
+              raise SystemExit("crate-owned ECS locus declaration changed unexpectedly")
+          derives = {item.strip() for item in locus.group("derives").split(",")}
+          if "Reflect" in derives:
+              raise SystemExit("locus authority gained Reflect derive")
+          locus_prefix = provider_prod[max(0, locus.start() - 256):locus.end()]
+          if "#[reflect" in locus_prefix:
+              raise SystemExit("locus authority gained reflect attribute")
+          if re.search(r"\bimpl\s+Reflect\s+for\s+EarthChunkLatticeLocus\b", joined):
+              raise SystemExit("locus authority gained explicit Reflect implementation")
+          if re.search(r"register_type\s*::\s*<\s*EarthChunkLatticeLocus\s*>", joined):
+              raise SystemExit("locus authority gained type registration path")
+          if re.search(r"pub\s+struct\s+EarthChunkLatticeLocus", provider_prod):
+              raise SystemExit("locus authority became publicly mintable")
+
+          capture_sig = re.search(
+              r"pub fn capture_live_terrain_geometry\(\s*world:\s*&World,\s*entity:\s*Entity,\s*\)\s*->",
+              provider_prod,
+              flags=re.S,
+          )
+          if capture_sig is None:
+              raise SystemExit("live capture signature changed or gained caller-coordinate inputs")
+
+          required_lib = [
+              "pub mod geometry_kernel;", "mod live_geometry_provider;",
+              "mod geometry_currentness;", "mod live_geometry_query;",
+              "query_live_terrain_geometry", "capture_live_terrain_geometry",
+          ]
+          missing = [term for term in required_lib if term not in lib]
+          if missing:
+              raise SystemExit(f"canonical authority stack not wired as expected: {missing!r}")
+
+          print("TERRAIN_SUPERSEDED_AUTHORITY_GRAMMAR=ABSENT")
+          print("TERRAIN_CANONICAL_COORD_VALUE_DEFINITION=geometry_kernel.rs")
+          print("TERRAIN_CRATE_OWNED_LOCUS_AUTHORITY_DEFINITION=live_geometry_provider.rs")
+          print("TERRAIN_LOCUS_REFLECTION_MUTATION_SURFACE=ABSENT")
+          print("TERRAIN_LIVE_CAPTURE_EXTERNAL_COORD_INPUT=DENIED")
+          print("TERRAIN_CANONICAL_GEOMETRY_AUTHORITY_STACK=PASS")
+          PY
+
+      - name: Unchanged-subject postflight
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -z "$(git status --porcelain)"
+          test "$(git rev-parse HEAD)" = "${GITHUB_SHA}"
+          test "$(git rev-parse HEAD^)" = "4212886ce6a54affcb7812325b25a9f402a10db3"
+          test "$(git rev-parse HEAD:crates/domains/symtropy-terrain/src/geometry_kernel.rs)" = "8d3e1213eacdeddf693cd2d1f82670d6ed832161"
+          test "$(git rev-parse HEAD:crates/domains/symtropy-terrain/src/live_geometry_provider.rs)" = "543858ec733429ac41d39bd52eb2e39210806280"
+          test "$(git rev-parse HEAD:crates/domains/symtropy-terrain/src/geometry_currentness.rs)" = "2da7d9b27313ae24b45269171cf58ea6cd528de4"
+          test "$(git rev-parse HEAD:crates/domains/symtropy-terrain/src/live_geometry_query.rs)" = "34995e11c7d82ffa4e18b7fc12927816408e8d1d"
+          test "$(git rev-parse HEAD:crates/domains/symtropy-terrain/src/lib.rs)" = "4489f47e8d707eac30cb1e0c682e57b061e14e03"
+          test ! -e crates/domains/symtropy-terrain/src/geometry_authority.rs
+          echo "TERRAIN_GEOMETRY_AUTHORITY_CLEANUP=PASS"
