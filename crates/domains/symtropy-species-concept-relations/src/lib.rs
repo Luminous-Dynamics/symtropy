@@ -21,7 +21,7 @@ const DESIGN_DOMAIN: &[u8] = b"symtropy:species-concept:relation-design:v1\0";
 const EVIDENCE_DOMAIN: &[u8] = b"symtropy:species-concept:relation-evidence:v1\0";
 const MAPPING_DOMAIN: &[u8] = b"symtropy:species-concept:relation-mapping:v1\0";
 const RULE_DOMAIN: &[u8] = b"symtropy:species-concept:relation-rule:v1\0";
-const RULE_SPEC: &[u8] = b"species concept semantic relation v1: exact conceptual identity endpoints; outcome-free pair/scope/protocol design precedes assessment; symmetric relations use canonical endpoint order; directional relations preserve canonical-order orientation; nested/refining/criterion relations never imply semantic independence; overlap remains dependence-visible; orthogonal-evidence-framework and competing-ontology relations are only potentially non-nested and still require downstream evidence/qualification fault-domain independence; disputed, unknown, or unavailable relations never upgrade robustness; no species status, speciation event, nomenclature, or universal taxonomy claim";
+const RULE_SPEC: &[u8] = b"species concept semantic relation v1: exact conceptual identity endpoints; outcome-free pair/scope/protocol design precedes assessment; symmetric relations use canonical endpoint order; directional relations preserve canonical-order orientation; refines is a noncanonical input alias normalized to reversed generalizes; nested/criterion relations never imply semantic independence; overlap remains dependence-visible; orthogonal-evidence-framework and competing-ontology relations are only potentially non-nested and still require downstream evidence/qualification fault-domain independence; disputed, unknown, or unavailable relations never upgrade robustness; no species status, speciation event, nomenclature, or universal taxonomy claim";
 
 macro_rules! id_type {
     ($name:ident, $field:literal) => {
@@ -271,6 +271,8 @@ impl<'a> ValidatedSpeciesConceptRelationDesign<'a> {
 pub enum SpeciesConceptRelationKind {
     EquivalentSemanticTarget,
     Generalizes,
+    /// Input alias only. `SpeciesConceptRelationAssertion::new` canonicalizes this to
+    /// reversed `Generalizes`; restored persisted `Refines` is rejected as noncanonical.
     Refines,
     OperationalCriterionWithin,
     PartiallyOverlaps,
@@ -330,6 +332,16 @@ impl SpeciesConceptRelationDirection {
             Self::RightToLeft => 2,
         }
     }
+
+    fn reversed(self) -> Result<Self, RelationError> {
+        match self {
+            Self::LeftToRight => Ok(Self::RightToLeft),
+            Self::RightToLeft => Ok(Self::LeftToRight),
+            Self::Symmetric => Err(RelationError::DirectionalRelationNeedsDirection(
+                SpeciesConceptRelationKind::Refines,
+            )),
+        }
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
@@ -350,6 +362,11 @@ impl SpeciesConceptRelationAssertion {
         kind: SpeciesConceptRelationKind,
         direction: SpeciesConceptRelationDirection,
     ) -> Result<Self, RelationError> {
+        let (kind, direction) = if kind == SpeciesConceptRelationKind::Refines {
+            (SpeciesConceptRelationKind::Generalizes, direction.reversed()?)
+        } else {
+            (kind, direction)
+        };
         let assertion = Self { kind, direction };
         assertion.validate_local()?;
         Ok(assertion)
@@ -360,6 +377,9 @@ impl SpeciesConceptRelationAssertion {
     }
 
     fn validate_local(&self) -> Result<(), RelationError> {
+        if self.kind == SpeciesConceptRelationKind::Refines {
+            return Err(RelationError::NonCanonicalRefinesAlias);
+        }
         if self.kind.requires_direction() {
             if self.direction == SpeciesConceptRelationDirection::Symmetric {
                 return Err(RelationError::DirectionalRelationNeedsDirection(self.kind));
@@ -709,6 +729,7 @@ pub enum RelationError {
     DesignReplayMismatch,
     DirectionalRelationNeedsDirection(SpeciesConceptRelationKind),
     SymmetricRelationCannotBeDirected(SpeciesConceptRelationKind),
+    NonCanonicalRefinesAlias,
     MissingRelationEvidenceFailClosed,
     DesignDigestMismatch,
     EvidenceReplayMismatch,
@@ -748,6 +769,10 @@ impl fmt::Display for RelationError {
             Self::SymmetricRelationCannotBeDirected(kind) => {
                 write!(f, "symmetric relation {kind:?} cannot carry a direction")
             }
+            Self::NonCanonicalRefinesAlias => write!(
+                f,
+                "Refines is an input alias only; persist reversed Generalizes instead"
+            ),
             Self::MissingRelationEvidenceFailClosed => {
                 write!(f, "relation evidence is missing/unknown under fail-closed policy")
             }
