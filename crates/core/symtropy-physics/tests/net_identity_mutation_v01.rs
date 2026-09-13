@@ -54,6 +54,29 @@ fn idempotent_same_binding_is_success_without_identity_churn() {
 }
 
 #[test]
+fn clean_identity_reassignment_is_forbidden_and_preserves_original_binding() {
+    let mut world = PhysicsWorld::<3>::default();
+    let handle = world.add_sphere(Point::origin(), 0.5, 1.0);
+    let original = NetId(102);
+    let replacement = NetId(103);
+
+    assign_net_id_checked(&mut world, handle, original).expect("initial bind succeeds");
+
+    assert_eq!(
+        assign_net_id_checked(&mut world, handle, replacement),
+        Err(NetIdentityMutationError::IdentityReassignmentForbidden {
+            handle,
+            current: original,
+            requested: replacement,
+        })
+    );
+
+    assert_eq!(world.body(handle).expect("body exists").net_id, Some(original));
+    assert_eq!(world.handle_for_net_id(original), Some(handle));
+    assert_eq!(world.handle_for_net_id(replacement), None);
+}
+
+#[test]
 fn stale_current_index_rejects_before_reassignment() {
     let mut world = PhysicsWorld::<3>::default();
     let handle = world.add_sphere(Point::origin(), 0.5, 1.0);
