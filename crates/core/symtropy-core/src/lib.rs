@@ -12,6 +12,7 @@ pub use symtropy_devconsole as devconsole;
 pub use symtropy_math as math;
 pub use symtropy_physics as physics;
 
+pub mod carrier_physics;
 pub mod commodity;
 pub mod economic;
 pub mod economic_partition;
@@ -28,6 +29,9 @@ pub mod stock_reservation;
 
 pub mod prelude {
     pub use crate::bevy_physics::{BevyPhysicsPlugin, NoCouplingResource, PhysicsBody};
+    pub use crate::carrier_physics::{
+        resolve_live_carrier, CarrierPhysicsError, CarrierPhysicsRef,
+    };
     pub use crate::commodity::{
         BatchId, CommodityError, CommodityGradeId, CommodityIdentityRegistry,
         CommodityLotMetadata, CommoditySpecDefinition, CommodityTrackingMode, LotTrackingIdentity,
@@ -90,6 +94,6 @@ pub mod prelude {
         StockReservationLedger, StockReservationLedgerEntry,
     };
     pub use crate::math::Point;
-    pub use crate::physics::body::BodyHandle;
+    pub use crate::physics::body::{BodyHandle, NetId};
     pub use crate::physics::world::PhysicsWorld;
 }
