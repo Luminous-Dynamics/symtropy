@@ -1,7 +1,8 @@
 use crate::{
     canonical::{fmt_hex, put_text, put_u32, put_u64}, error::validate_text,
-    AnalysisAuthorityRef, EvolutionError, ReproductiveContactContextPolicy,
-    ReproductiveContactStudyDesignDigest, ValidatedReproductiveContactStudyDesign,
+    AnalysisAuthorityRef, AnalysisContentDigest, AnalysisMethodId, EvolutionError,
+    ReproductiveContactContextPolicy, ReproductiveContactStudyDesignDigest,
+    ValidatedReproductiveContactStudyDesign,
 };
 use serde::{Deserialize, Deserializer, Serialize};
 use sha2::{Digest, Sha256};
@@ -9,6 +10,22 @@ use std::{collections::BTreeMap, error::Error, fmt};
 
 pub const REPRODUCTIVE_ISOLATION_DESIGN_VERSION: u32 = 1;
 const DOMAIN: &[u8] = b"symtropy:evolution:reproductive-isolation-design:v1\0";
+const BARRIER_RULE_DOMAIN: &[u8] =
+    b"symtropy:evolution:complete-reproductive-isolation-barrier-rule:v1\0";
+const BARRIER_RULE_SPEC: &[u8] = b"complete-barrier evidence v1: no-contact never supports isolation; observed contact terminating before pairing, mating, conception, viable offspring, or fertility may support the corresponding barrier component; viable infertile offspring supports a postzygotic fertility barrier; viable fertile offspring or realized hereditary gene flow contradicts complete isolation; viable offspring with unknown fertility or unavailable reproductive/gene-flow evidence is insufficient; support requires preregistered minimum observed-contact opportunities and minimum independent barrier-supporting studies; no species or speciation claim";
+
+pub fn complete_reproductive_isolation_barrier_rule_v1() -> AnalysisAuthorityRef {
+    let mut digest = Sha256::new();
+    digest.update(BARRIER_RULE_DOMAIN);
+    put_u64(&mut digest, BARRIER_RULE_SPEC.len() as u64);
+    digest.update(BARRIER_RULE_SPEC);
+    AnalysisAuthorityRef::new(
+        AnalysisMethodId::new("complete-reproductive-isolation-barrier-v1")
+            .expect("static isolation rule method ID is valid"),
+        1,
+        AnalysisContentDigest::new(digest.finalize().into()),
+    )
+}
 
 macro_rules! local_id {
     ($name:ident, $field:literal) => {
@@ -110,7 +127,6 @@ impl ReproductiveIsolationDesign {
         minimum_generation_count_per_study: u64,
         context_compatibility: IsolationContextCompatibility,
         independence_rule_authority: AnalysisAuthorityRef,
-        barrier_rule_authority: AnalysisAuthorityRef,
     ) -> Result<Self, ReproductiveIsolationDesignError> {
         if minimum_generation_count_per_study < 2 {
             return Err(ReproductiveIsolationDesignError::MinimumGenerationCountTooSmall);
@@ -213,7 +229,7 @@ impl ReproductiveIsolationDesign {
             minimum_generation_count_per_study,
             context_compatibility,
             independence_rule_authority,
-            barrier_rule_authority,
+            barrier_rule_authority: complete_reproductive_isolation_barrier_rule_v1(),
         };
         design.validate_local()?;
         Ok(design)
@@ -247,6 +263,9 @@ impl ReproductiveIsolationDesign {
             return Err(ReproductiveIsolationDesignError::UnsupportedVersion(
                 self.design_version,
             ));
+        }
+        if self.barrier_rule_authority != complete_reproductive_isolation_barrier_rule_v1() {
+            return Err(ReproductiveIsolationDesignError::BarrierRuleMismatch);
         }
         if self.lineage_a == self.lineage_b {
             return Err(ReproductiveIsolationDesignError::LineagePairMismatch);
@@ -354,7 +373,6 @@ impl<'a> ValidatedReproductiveIsolationDesign<'a> {
         minimum_generation_count_per_study: u64,
         context_compatibility: IsolationContextCompatibility,
         independence_rule_authority: AnalysisAuthorityRef,
-        barrier_rule_authority: AnalysisAuthorityRef,
     ) -> Result<Self, ReproductiveIsolationDesignError> {
         design.validate_local()?;
         let recomputed = ReproductiveIsolationDesign::declare(
@@ -365,7 +383,6 @@ impl<'a> ValidatedReproductiveIsolationDesign<'a> {
             minimum_generation_count_per_study,
             context_compatibility,
             independence_rule_authority,
-            barrier_rule_authority,
         )?;
         if recomputed != *design {
             return Err(ReproductiveIsolationDesignError::ReplayMismatch);
@@ -419,6 +436,7 @@ pub enum ReproductiveIsolationDesignError {
     EmptyContactOpportunityCensus,
     GenerationCountInvariant,
     NonCanonicalStudyOrder,
+    BarrierRuleMismatch,
     ReplayMismatch,
     ArithmeticOverflow,
 }
@@ -479,6 +497,10 @@ impl fmt::Display for ReproductiveIsolationDesignError {
             Self::NonCanonicalStudyOrder => {
                 write!(f, "reproductive-isolation study declarations are not canonical")
             }
+            Self::BarrierRuleMismatch => write!(
+                f,
+                "persisted isolation design does not bind the built-in V1 complete-barrier rule"
+            ),
             Self::ReplayMismatch => write!(
                 f,
                 "persisted reproductive-isolation design does not replay against current 09A designs"
