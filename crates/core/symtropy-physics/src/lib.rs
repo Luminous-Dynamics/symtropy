@@ -24,6 +24,7 @@ pub mod diagnostics;
 pub mod epa;
 pub mod gjk;
 pub mod identity_authority;
+pub mod identity_mutation;
 pub mod integrator;
 pub mod island;
 pub mod joints;
@@ -43,6 +44,9 @@ pub use epa::EpaResult;
 pub use identity_authority::{
     PhysicalAuthorityId, PhysicsAuthorityWorld, PhysicsBodySubject, PhysicsIdentityError,
     ValidatedNetBody, WorldGenerationId,
+};
+pub use identity_mutation::{
+    NetIdentityMutationError, add_bodies_deterministic_checked, assign_net_id_checked,
 };
 pub use integrator::nan_zeroed_count;
 pub use joints::{BallJoint, FixedJoint, HingeJoint, MotorDrive, PrismaticJoint};
