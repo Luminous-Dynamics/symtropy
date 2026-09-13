@@ -60,6 +60,53 @@ pub struct StockReservation {
 }
 
 impl StockReservation {
+    /// Construct a reservation event payload from one validated live stock lot.
+    ///
+    /// This proves lot/spec/owner identity at construction time. Aggregate
+    /// availability remains the responsibility of `StockReservationLedger`, so
+    /// several independently prepared reservations can still be admitted or
+    /// rejected atomically by one `transact()` call.
+    #[allow(clippy::too_many_arguments)]
+    pub fn new(
+        stock: &StockLedger,
+        reservation_id: StockReservationId,
+        lot_id: LotId,
+        quantity: u64,
+        expected_owner_id: ActorId,
+        holder_id: ActorId,
+        purpose_id: CausalId,
+        authorization_id: CausalId,
+    ) -> Result<Self, ReservationError> {
+        if quantity == 0 {
+            return Err(ReservationError::ZeroQuantity);
+        }
+        if stock.validate().is_err() {
+            return Err(ReservationError::InvalidStockLedger);
+        }
+        let lot = stock
+            .lot(&lot_id)
+            .ok_or_else(|| ReservationError::UnknownLot {
+                lot_id: lot_id.clone(),
+            })?;
+        if lot.owner_id() != &expected_owner_id {
+            return Err(ReservationError::OwnerMismatch {
+                lot_id,
+                expected: expected_owner_id,
+                actual: lot.owner_id().clone(),
+            });
+        }
+        Ok(Self {
+            reservation_id,
+            lot_id: lot.lot_id().clone(),
+            commodity_spec_id: lot.commodity_spec_id().clone(),
+            quantity,
+            authorized_owner_id: expected_owner_id,
+            holder_id,
+            purpose_id,
+            authorization_id,
+        })
+    }
+
     pub fn reservation_id(&self) -> &StockReservationId {
         &self.reservation_id
     }
@@ -258,14 +305,7 @@ impl StockReservationLedger {
         lot_id: &LotId,
     ) -> Result<u64, ReservationError> {
         self.validate_against_stock(stock)?;
-        self.active
-            .values()
-            .filter(|reservation| &reservation.lot_id == lot_id)
-            .try_fold(0_u64, |total, reservation| {
-                total
-                    .checked_add(reservation.quantity)
-                    .ok_or(ReservationError::ArithmeticOverflow)
-            })
+        self.reserved_quantity_unchecked(lot_id)
     }
 
     /// Authoritative stock available to new claims at this instant.
@@ -300,32 +340,16 @@ impl StockReservationLedger {
         purpose_id: CausalId,
         authorization_id: CausalId,
     ) -> Result<(), ReservationError> {
-        if quantity == 0 {
-            return Err(ReservationError::ZeroQuantity);
-        }
-        let lot = stock
-            .lot(&lot_id)
-            .ok_or_else(|| ReservationError::UnknownLot {
-                lot_id: lot_id.clone(),
-            })?;
-        if lot.owner_id() != &expected_owner_id {
-            return Err(ReservationError::OwnerMismatch {
-                lot_id,
-                expected: expected_owner_id,
-                actual: lot.owner_id().clone(),
-            });
-        }
-
-        let reservation = StockReservation {
+        let reservation = StockReservation::new(
+            stock,
             reservation_id,
-            lot_id: lot.lot_id().clone(),
-            commodity_spec_id: lot.commodity_spec_id().clone(),
+            lot_id,
             quantity,
-            authorized_owner_id: expected_owner_id,
+            expected_owner_id,
             holder_id,
             purpose_id,
             authorization_id,
-        };
+        )?;
         self.transact(
             stock,
             vec![StockReservationEvent::Reserve { reservation }],
@@ -368,8 +392,11 @@ impl StockReservationLedger {
         )
     }
 
-    /// Atomically apply multiple reservation transitions. Failure leaves both the
-    /// active projection and append-only history unchanged.
+    /// Atomically apply multiple reservation transitions. A transaction may repair
+    /// stock-relative invalidity (for example by fully releasing a reservation
+    /// whose owner changed), so only structural ledger validity is required before
+    /// applying events. The resulting candidate MUST validate against current stock
+    /// before either materialized state or history is committed.
     pub fn transact(
         &mut self,
         stock: &StockLedger,
@@ -378,7 +405,10 @@ impl StockReservationLedger {
         if events.is_empty() {
             return Err(ReservationError::EmptyTransaction);
         }
-        self.validate_against_stock(stock)?;
+        self.validate()?;
+        if stock.validate().is_err() {
+            return Err(ReservationError::InvalidStockLedger);
+        }
 
         let final_len = self
             .entries
@@ -617,7 +647,7 @@ pub enum ReservationError {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::economic::{LocationId, StockLot, StockOrigin};
+    use crate::economic::{LocationId, StockDepletionCause, StockLot, StockOrigin};
 
     fn actor(value: &str) -> ActorId {
         ActorId::new(value).unwrap()
@@ -639,7 +669,7 @@ mod tests {
         let mut ledger = StockLedger::new();
         ledger
             .establish(
-                StockLot::new(
+                crate::economic::StockLot::new(
                     lot_id("steel-a"),
                     CommoditySpecId::new("steel").unwrap(),
                     quantity,
@@ -798,6 +828,60 @@ mod tests {
     }
 
     #[test]
+    fn full_release_can_repair_owner_changed_reservation() {
+        let mut stock = stock(100);
+        let mut reservations = StockReservationLedger::new();
+        reserve(&mut reservations, &stock, "r1", 20, "buyer").unwrap();
+        stock
+            .transfer_ownership(
+                lot_id("steel-a"),
+                actor("owner"),
+                actor("new-owner"),
+                cause("external-title-change"),
+            )
+            .unwrap();
+
+        reservations
+            .release(
+                &stock,
+                reservation_id("r1"),
+                actor("buyer"),
+                cause("repair-stale-claim"),
+            )
+            .unwrap();
+        assert!(reservations.active_reservations().next().is_none());
+        reservations.validate_against_stock(&stock).unwrap();
+    }
+
+    #[test]
+    fn partial_release_cannot_leave_owner_changed_claim_active() {
+        let mut stock = stock(100);
+        let mut reservations = StockReservationLedger::new();
+        reserve(&mut reservations, &stock, "r1", 20, "buyer").unwrap();
+        stock
+            .transfer_ownership(
+                lot_id("steel-a"),
+                actor("owner"),
+                actor("new-owner"),
+                cause("external-title-change"),
+            )
+            .unwrap();
+        let before = reservations.clone();
+
+        assert!(matches!(
+            reservations.release_partial(
+                &stock,
+                reservation_id("r1"),
+                actor("buyer"),
+                5,
+                cause("insufficient-repair"),
+            ),
+            Err(ReservationError::AuthorizedOwnerChanged { .. })
+        ));
+        assert_eq!(reservations, before);
+    }
+
+    #[test]
     fn underlying_depletion_cannot_silently_overrun_reservation() {
         let mut stock = stock(100);
         let mut reservations = StockReservationLedger::new();
@@ -807,7 +891,7 @@ mod tests {
             .deplete(
                 lot_id("steel-a"),
                 30,
-                crate::economic::StockDepletionCause::Loss {
+                StockDepletionCause::Loss {
                     incident_id: cause("fire"),
                 },
             )
@@ -824,32 +908,80 @@ mod tests {
     }
 
     #[test]
+    fn checked_constructor_supports_atomic_multi_reserve() {
+        let stock = stock(100);
+        let r1 = StockReservation::new(
+            &stock,
+            reservation_id("r1"),
+            lot_id("steel-a"),
+            60,
+            actor("owner"),
+            actor("buyer-a"),
+            cause("r1-purpose"),
+            cause("r1-auth"),
+        )
+        .unwrap();
+        let r2 = StockReservation::new(
+            &stock,
+            reservation_id("r2"),
+            lot_id("steel-a"),
+            40,
+            actor("owner"),
+            actor("buyer-b"),
+            cause("r2-purpose"),
+            cause("r2-auth"),
+        )
+        .unwrap();
+        let mut reservations = StockReservationLedger::new();
+        reservations
+            .transact(
+                &stock,
+                vec![
+                    StockReservationEvent::Reserve { reservation: r1 },
+                    StockReservationEvent::Reserve { reservation: r2 },
+                ],
+            )
+            .unwrap();
+        assert_eq!(
+            reservations.available_quantity(&stock, &lot_id("steel-a")),
+            Ok(0)
+        );
+    }
+
+    #[test]
     fn atomic_multi_reserve_detects_combined_overbooking() {
         let stock = stock(100);
+        let r1 = StockReservation::new(
+            &stock,
+            reservation_id("r1"),
+            lot_id("steel-a"),
+            60,
+            actor("owner"),
+            actor("buyer-a"),
+            cause("r1-purpose"),
+            cause("r1-auth"),
+        )
+        .unwrap();
+        let r2 = StockReservation::new(
+            &stock,
+            reservation_id("r2"),
+            lot_id("steel-a"),
+            50,
+            actor("owner"),
+            actor("buyer-b"),
+            cause("r2-purpose"),
+            cause("r2-auth"),
+        )
+        .unwrap();
         let mut reservations = StockReservationLedger::new();
-        let lot = stock.lot(&lot_id("steel-a")).unwrap();
-        let make = |id: &str, quantity: u64| StockReservation {
-            reservation_id: reservation_id(id),
-            lot_id: lot.lot_id().clone(),
-            commodity_spec_id: lot.commodity_spec_id().clone(),
-            quantity,
-            authorized_owner_id: lot.owner_id().clone(),
-            holder_id: actor(id),
-            purpose_id: cause(&format!("{id}-purpose")),
-            authorization_id: cause(&format!("{id}-auth")),
-        };
-
         let before = reservations.clone();
+
         assert!(matches!(
             reservations.transact(
                 &stock,
                 vec![
-                    StockReservationEvent::Reserve {
-                        reservation: make("r1", 60),
-                    },
-                    StockReservationEvent::Reserve {
-                        reservation: make("r2", 50),
-                    },
+                    StockReservationEvent::Reserve { reservation: r1 },
+                    StockReservationEvent::Reserve { reservation: r2 },
                 ],
             ),
             Err(ReservationError::OverReserved { .. })
