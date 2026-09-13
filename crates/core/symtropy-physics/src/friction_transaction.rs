@@ -11,11 +11,16 @@
 //!   promotion is not currently admissible.
 //!
 //! A centered measured loss cannot be terminalized as diagnostic-only.
+//! A freshly `Applied` transaction may be rolled back to `Absent` only by
+//! consuming its unique application token while its exact post-mechanical state
+//! is still current. This is the narrow abort path used by an outer atomic
+//! authority when terminalization itself rejects.
 
 use std::collections::BTreeMap;
 
 use nalgebra::SVector;
 use serde::{Deserialize, Serialize};
+use symtropy_math::Bivector;
 
 use crate::body::RigidBody;
 use crate::friction_evidence::{
@@ -51,7 +56,8 @@ impl FrictionTransactionPhase {
 /// include it in replay/checkpoint evidence. Public APIs are read-only except for
 /// applying a new mechanical transaction and safely terminalizing an observation
 /// that is provably non-promotable. Only the in-crate physical promotion layer
-/// can advance `Applied -> Promoted`.
+/// can advance `Applied -> Promoted`. The exact rollback API can remove only a
+/// still-`Applied` entry while consuming its unique application token.
 #[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub struct FrictionTransactionJournal {
     phases: BTreeMap<FrictionTransactionId, FrictionTransactionPhase>,
@@ -145,11 +151,26 @@ pub enum FrictionDiagnosticFinalizeError {
     ObservationStateMismatch,
 }
 
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
+pub enum FrictionApplicationRollbackError {
+    UnknownTransaction,
+    AlreadyTerminal,
+    ObservationStateMismatch,
+}
+
 /// Non-cloneable proof that the canonical lifecycle journal admitted one
 /// mechanical friction application for this exact deterministic transaction.
+///
+/// The token additionally retains the exact pre-application linear/angular
+/// velocities needed by [`rollback_applied_friction_impulse`]. Those snapshots
+/// are private and cannot be caller-authored. Rollback consumes this token.
 #[derive(Debug, PartialEq)]
 pub struct AppliedFrictionTransaction<const D: usize> {
     bound: BoundFrictionMechanicalObservation<D>,
+    pre_linear_velocity_a: SVector<f64, D>,
+    pre_linear_velocity_b: SVector<f64, D>,
+    pre_angular_velocity_a: Bivector<D>,
+    pre_angular_velocity_b: Bivector<D>,
 }
 
 impl<const D: usize> AppliedFrictionTransaction<D> {
@@ -176,7 +197,8 @@ impl<const D: usize> AppliedFrictionTransaction<D> {
 /// Duplicate identity is rejected before any mechanical mutation. If evidence
 /// construction fails, the underlying bound primitive rolls the mechanical
 /// state back and the journal remains unchanged. On success the journal advances
-/// `Absent -> Applied` and returns the only token accepted by physical promotion.
+/// `Absent -> Applied` and returns the only token accepted by physical promotion
+/// or exact application rollback.
 pub fn apply_friction_impulse_once<const D: usize>(
     body_a: &mut RigidBody<D>,
     body_b: &mut RigidBody<D>,
@@ -188,6 +210,11 @@ pub fn apply_friction_impulse_once<const D: usize>(
     if journal.phase(transaction_id).is_some() {
         return Err(FrictionApplicationError::DuplicateTransaction);
     }
+
+    let pre_linear_velocity_a = body_a.linear_velocity;
+    let pre_linear_velocity_b = body_b.linear_velocity;
+    let pre_angular_velocity_a = body_a.angular_velocity;
+    let pre_angular_velocity_b = body_b.angular_velocity;
 
     let bound = apply_friction_impulse_measured_bound(
         body_a,
@@ -202,7 +229,54 @@ pub fn apply_friction_impulse_once<const D: usize>(
         .insert(transaction_id, FrictionTransactionPhase::Applied);
     debug_assert!(previous.is_none());
 
-    Ok(AppliedFrictionTransaction { bound })
+    Ok(AppliedFrictionTransaction {
+        bound,
+        pre_linear_velocity_a,
+        pre_linear_velocity_b,
+        pre_angular_velocity_a,
+        pre_angular_velocity_b,
+    })
+}
+
+/// Undo exactly one freshly applied friction transaction.
+///
+/// This is deliberately narrower than a generic journal deletion API. The unique
+/// [`AppliedFrictionTransaction`] token must still match the exact live
+/// post-mechanical A/B velocity state and the journal must still be `Applied`.
+/// Only then are the private pre-application velocity snapshots restored and that
+/// exact journal entry removed.
+///
+/// The primitive is intended for immediate outer transaction rollback after a
+/// later terminalization step rejects. It refuses stale state and refuses to erase
+/// already-terminal evidence.
+pub fn rollback_applied_friction_impulse<const D: usize>(
+    body_a: &mut RigidBody<D>,
+    body_b: &mut RigidBody<D>,
+    applied: AppliedFrictionTransaction<D>,
+    journal: &mut FrictionTransactionJournal,
+) -> Result<(), FrictionApplicationRollbackError> {
+    let id = applied.transaction_id();
+    match journal.phase(id) {
+        Some(FrictionTransactionPhase::Applied) => {}
+        Some(FrictionTransactionPhase::Promoted)
+        | Some(FrictionTransactionPhase::DiagnosticOnly(_)) => {
+            return Err(FrictionApplicationRollbackError::AlreadyTerminal);
+        }
+        None => return Err(FrictionApplicationRollbackError::UnknownTransaction),
+    }
+
+    if !applied.matches_post_state(body_a, body_b) {
+        return Err(FrictionApplicationRollbackError::ObservationStateMismatch);
+    }
+
+    body_a.linear_velocity = applied.pre_linear_velocity_a;
+    body_b.linear_velocity = applied.pre_linear_velocity_b;
+    body_a.angular_velocity = applied.pre_angular_velocity_a;
+    body_b.angular_velocity = applied.pre_angular_velocity_b;
+
+    let removed = journal.phases.remove(&id);
+    debug_assert_eq!(removed, Some(FrictionTransactionPhase::Applied));
+    Ok(())
 }
 
 fn diagnostic_reason<const D: usize>(
@@ -328,6 +402,143 @@ mod tests {
         assert_eq!((b.linear_velocity, b.angular_velocity), state_b);
         assert_eq!(journal.pending_application_count(), 1);
         assert!(!journal.is_complete_for_finalize());
+    }
+
+    #[test]
+    fn exact_applied_rollback_restores_pre_state_and_only_removes_its_entry() {
+        let prior_id = FrictionTransactionId::new(12, 0, 0, 0);
+        let rollback_id = FrictionTransactionId::new(12, 0, 1, 0);
+        let mut a = body(1, [-1.0, 0.0, 0.0], 1.0);
+        let mut b = body(2, [1.0, 0.0, 0.0], 0.0);
+        let mut journal = FrictionTransactionJournal::new();
+
+        let prior = apply_friction_impulse_once(
+            &mut a,
+            &mut b,
+            &SVector::from([0.0, 0.5, 0.0]),
+            &SVector::from([0.0, -0.1, 0.0]),
+            prior_id,
+            &mut journal,
+        )
+        .unwrap();
+        assert_eq!(
+            finalize_friction_diagnostic(&a, &b, &prior, &mut journal).unwrap(),
+            FrictionDiagnosticReason::OffCenterUnqualified
+        );
+
+        let before_a = (a.linear_velocity, a.angular_velocity);
+        let before_b = (b.linear_velocity, b.angular_velocity);
+        let applied = apply_friction_impulse_once(
+            &mut a,
+            &mut b,
+            &SVector::from([0.0, 0.5, 0.0]),
+            &SVector::from([0.0, -0.05, 0.0]),
+            rollback_id,
+            &mut journal,
+        )
+        .unwrap();
+        assert_eq!(journal.phase(rollback_id), Some(FrictionTransactionPhase::Applied));
+
+        rollback_applied_friction_impulse(&mut a, &mut b, applied, &mut journal).unwrap();
+
+        assert_eq!((a.linear_velocity, a.angular_velocity), before_a);
+        assert_eq!((b.linear_velocity, b.angular_velocity), before_b);
+        assert_eq!(journal.phase(rollback_id), None);
+        assert_eq!(
+            journal.phase(prior_id),
+            Some(FrictionTransactionPhase::DiagnosticOnly(
+                FrictionDiagnosticReason::OffCenterUnqualified
+            ))
+        );
+        assert!(journal.is_complete_for_finalize());
+    }
+
+    #[test]
+    fn rollback_refuses_stale_post_mechanical_state() {
+        let id = FrictionTransactionId::new(12, 0, 2, 0);
+        let mut a = body(1, [0.0, 0.0, 0.0], 1.0);
+        let mut b = body(2, [0.0, 0.0, 0.0], 0.0);
+        let mut journal = FrictionTransactionJournal::new();
+        let applied = apply_friction_impulse_once(
+            &mut a,
+            &mut b,
+            &SVector::zeros(),
+            &SVector::from([0.5, 0.0, 0.0]),
+            id,
+            &mut journal,
+        )
+        .unwrap();
+        a.linear_velocity[1] = 1.0;
+        let stale_a = (a.linear_velocity, a.angular_velocity);
+        let stale_b = (b.linear_velocity, b.angular_velocity);
+
+        assert_eq!(
+            rollback_applied_friction_impulse(&mut a, &mut b, applied, &mut journal),
+            Err(FrictionApplicationRollbackError::ObservationStateMismatch)
+        );
+        assert_eq!((a.linear_velocity, a.angular_velocity), stale_a);
+        assert_eq!((b.linear_velocity, b.angular_velocity), stale_b);
+        assert_eq!(journal.phase(id), Some(FrictionTransactionPhase::Applied));
+    }
+
+    #[test]
+    fn rollback_refuses_already_terminal_evidence() {
+        let id = FrictionTransactionId::new(12, 0, 3, 0);
+        let mut a = body(1, [-1.0, 0.0, 0.0], 1.0);
+        let mut b = body(2, [1.0, 0.0, 0.0], 0.0);
+        let mut journal = FrictionTransactionJournal::new();
+        let applied = apply_friction_impulse_once(
+            &mut a,
+            &mut b,
+            &SVector::from([0.0, 0.5, 0.0]),
+            &SVector::from([0.0, -0.1, 0.0]),
+            id,
+            &mut journal,
+        )
+        .unwrap();
+        finalize_friction_diagnostic(&a, &b, &applied, &mut journal).unwrap();
+        let terminal_a = (a.linear_velocity, a.angular_velocity);
+        let terminal_b = (b.linear_velocity, b.angular_velocity);
+
+        assert_eq!(
+            rollback_applied_friction_impulse(&mut a, &mut b, applied, &mut journal),
+            Err(FrictionApplicationRollbackError::AlreadyTerminal)
+        );
+        assert_eq!((a.linear_velocity, a.angular_velocity), terminal_a);
+        assert_eq!((b.linear_velocity, b.angular_velocity), terminal_b);
+        assert!(matches!(
+            journal.phase(id),
+            Some(FrictionTransactionPhase::DiagnosticOnly(_))
+        ));
+    }
+
+    #[test]
+    fn rollback_refuses_unknown_journal_identity_without_mutating_bodies() {
+        let id = FrictionTransactionId::new(12, 0, 4, 0);
+        let mut a = body(1, [0.0, 0.0, 0.0], 1.0);
+        let mut b = body(2, [0.0, 0.0, 0.0], 0.0);
+        let mut source_journal = FrictionTransactionJournal::new();
+        let applied = apply_friction_impulse_once(
+            &mut a,
+            &mut b,
+            &SVector::zeros(),
+            &SVector::from([0.5, 0.0, 0.0]),
+            id,
+            &mut source_journal,
+        )
+        .unwrap();
+        let post_a = (a.linear_velocity, a.angular_velocity);
+        let post_b = (b.linear_velocity, b.angular_velocity);
+        let mut wrong_journal = FrictionTransactionJournal::new();
+
+        assert_eq!(
+            rollback_applied_friction_impulse(&mut a, &mut b, applied, &mut wrong_journal),
+            Err(FrictionApplicationRollbackError::UnknownTransaction)
+        );
+        assert_eq!((a.linear_velocity, a.angular_velocity), post_a);
+        assert_eq!((b.linear_velocity, b.angular_velocity), post_b);
+        assert!(wrong_journal.is_empty());
+        assert_eq!(source_journal.phase(id), Some(FrictionTransactionPhase::Applied));
     }
 
     #[test]

@@ -124,10 +124,10 @@ pub use friction_step::{
     FrictionAuthorityFailure, FrictionStepError, execute_friction_impulse_at_indices,
 };
 pub use friction_transaction::{
-    AppliedFrictionTransaction, FrictionApplicationError, FrictionDiagnosticFinalizeError,
-    FrictionDiagnosticReason, FrictionTransactionJournal, FrictionTransactionPhase,
-    FrictionTransactionTransitionError, apply_friction_impulse_once,
-    finalize_friction_diagnostic,
+    AppliedFrictionTransaction, FrictionApplicationError, FrictionApplicationRollbackError,
+    FrictionDiagnosticFinalizeError, FrictionDiagnosticReason, FrictionTransactionJournal,
+    FrictionTransactionPhase, FrictionTransactionTransitionError, apply_friction_impulse_once,
+    finalize_friction_diagnostic, rollback_applied_friction_impulse,
 };
 pub use integrator::nan_zeroed_count;
 pub use joints::{BallJoint, FixedJoint, HingeJoint, MotorDrive, PrismaticJoint};
