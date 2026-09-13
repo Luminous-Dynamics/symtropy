@@ -12,8 +12,13 @@ use std::collections::BTreeSet;
 use crate::body::{BodyHandle, NetId, RigidBody};
 use crate::world::PhysicsWorld;
 
-/// Assign one `NetId` only after proving the current body/index views are
-/// mutually consistent and the requested identity is not owned elsewhere.
+/// Bind one previously-unbound body to one `NetId` only after proving the
+/// current body/index views are mutually consistent and the requested identity
+/// is not owned elsewhere.
+///
+/// Stable identity is bind-once per body incarnation: `None -> N` is allowed,
+/// `N -> N` is idempotent, and `N -> M` is rejected. Identity replacement
+/// belongs to an explicit future continuity/reincarnation authority.
 pub fn assign_net_id_checked<const D: usize>(
     world: &mut PhysicsWorld<D>,
     handle: BodyHandle,
@@ -92,6 +97,12 @@ pub fn assign_net_id_checked<const D: usize>(
                 });
             }
         }
+
+        return Err(NetIdentityMutationError::IdentityReassignmentForbidden {
+            handle,
+            current: old_id,
+            requested: net_id,
+        });
     }
 
     // All fallible identity checks happen before the legacy mutation. Under the
@@ -206,6 +217,11 @@ pub enum NetIdentityMutationError {
     CurrentIdentityIndexMismatch {
         handle: BodyHandle,
         net_id: NetId,
+    },
+    IdentityReassignmentForbidden {
+        handle: BodyHandle,
+        current: NetId,
+        requested: NetId,
     },
     LegacyInsertionRejected(String),
 }
