@@ -4,7 +4,11 @@ use crate::model::{
 };
 use serde::{Deserialize, Deserializer, Serialize};
 use sha2::{Digest, Sha256};
-use std::{collections::BTreeSet, error::Error, fmt};
+use std::{
+    collections::{BTreeMap, BTreeSet},
+    error::Error,
+    fmt,
+};
 use symtropy_evolution_core::{
     AnalysisAuthorityRef, AnalysisContentDigest, AnalysisMethodId,
     LineageDivergenceHistoryDesign, LineageDivergenceHistoryDesignDigest,
@@ -14,7 +18,10 @@ use symtropy_evolution_core::{
 pub const GENERAL_LINEAGE_CLASSIFICATION_DESIGN_VERSION: u32 = 1;
 const DESIGN_DOMAIN: &[u8] = b"symtropy:species-concept:general-lineage:classification-design:v1\0";
 const RULE_DOMAIN: &[u8] = b"symtropy:species-concept:general-lineage:classification-rule:v1\0";
+const DEPENDENCY_RULE_DOMAIN: &[u8] =
+    b"symtropy:species-concept:general-lineage:dependency-grouping-rule:v1\0";
 const RULE_SPEC: &[u8] = b"general-lineage current classification design v1: bind exact current general-lineage model plus exact SEL-10A lineage-history design before outcomes; require exactly one core longitudinal-lineage-separation channel; every channel has stable ID, kind, role, protocol, applicability authority, and evidence-dependency group; positive status requires the core channel plus at least two distinct supporting dependency groups; raw channel count is never a support threshold; reproductive isolation is optional unless explicitly preregistered as required; missing and outside-channel-domain remain distinct from contradiction; no historical transition or universal taxonomy claim";
+const DEPENDENCY_RULE_SPEC: &[u8] = b"general-lineage evidence dependency grouping v1: every channel binds one preregistered dependency-group ID and external grouping qualification authority; all channels sharing one group must share that exact qualification; one qualification authority cannot be relabeled into multiple groups; support counts distinct qualified groups rather than raw channels; qualified group separation is an evidence-dependency accounting claim, not statistical independence or cross-model fault-domain independence";
 
 macro_rules! id_type {
     ($name:ident, $field:literal) => {
@@ -47,7 +54,10 @@ macro_rules! id_type {
 
 id_type!(GeneralLineageClassificationId, "GeneralLineageClassificationId");
 id_type!(GeneralLineageEvidenceChannelId, "GeneralLineageEvidenceChannelId");
-id_type!(GeneralLineageEvidenceDependencyGroupId, "GeneralLineageEvidenceDependencyGroupId");
+id_type!(
+    GeneralLineageEvidenceDependencyGroupId,
+    "GeneralLineageEvidenceDependencyGroupId"
+);
 
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct GeneralLineageClassificationDesignDigest([u8; 32]);
@@ -139,19 +149,26 @@ pub struct GeneralLineageEvidenceChannelDeclaration {
     pub kind: GeneralLineageEvidenceChannelKind,
     pub role: GeneralLineageEvidenceChannelRole,
     pub dependency_group_id: GeneralLineageEvidenceDependencyGroupId,
+    pub dependency_group_qualification_authority: AnalysisAuthorityRef,
     pub protocol_authority: AnalysisAuthorityRef,
     pub applicability_authority: AnalysisAuthorityRef,
 }
 
 impl GeneralLineageEvidenceChannelDeclaration {
+    #[allow(clippy::too_many_arguments)]
     pub fn new(
         channel_id: GeneralLineageEvidenceChannelId,
         kind: GeneralLineageEvidenceChannelKind,
         role: GeneralLineageEvidenceChannelRole,
         dependency_group_id: GeneralLineageEvidenceDependencyGroupId,
+        dependency_group_qualification_authority: AnalysisAuthorityRef,
         protocol_authority: AnalysisAuthorityRef,
         applicability_authority: AnalysisAuthorityRef,
     ) -> Result<Self, GeneralLineageDesignError> {
+        validate_authority(
+            &dependency_group_qualification_authority,
+            "dependency_group_qualification_revision",
+        )?;
         validate_authority(&protocol_authority, "channel_protocol_revision")?;
         validate_authority(&applicability_authority, "channel_applicability_revision")?;
         Ok(Self {
@@ -159,12 +176,17 @@ impl GeneralLineageEvidenceChannelDeclaration {
             kind,
             role,
             dependency_group_id,
+            dependency_group_qualification_authority,
             protocol_authority,
             applicability_authority,
         })
     }
 
     fn validate_local(&self) -> Result<(), GeneralLineageDesignError> {
+        validate_authority(
+            &self.dependency_group_qualification_authority,
+            "dependency_group_qualification_revision",
+        )?;
         validate_authority(&self.protocol_authority, "channel_protocol_revision")?;
         validate_authority(&self.applicability_authority, "channel_applicability_revision")?;
         Ok(())
@@ -174,6 +196,7 @@ impl GeneralLineageEvidenceChannelDeclaration {
         put_text(digest, self.channel_id.as_str());
         digest.update([self.kind.tag(), self.role.tag()]);
         put_text(digest, self.dependency_group_id.as_str());
+        put_authority(digest, &self.dependency_group_qualification_authority);
         put_authority(digest, &self.protocol_authority);
         put_authority(digest, &self.applicability_authority);
     }
@@ -191,6 +214,7 @@ pub struct GeneralLineageClassificationDesign {
     pub channels: Vec<GeneralLineageEvidenceChannelDeclaration>,
     pub minimum_independent_support_groups: u32,
     pub missing_policy: GeneralLineageMissingEvidencePolicy,
+    pub dependency_grouping_rule_authority: AnalysisAuthorityRef,
     pub classification_rule_authority: AnalysisAuthorityRef,
 }
 
@@ -226,6 +250,7 @@ impl GeneralLineageClassificationDesign {
             channels,
             minimum_independent_support_groups,
             missing_policy,
+            dependency_grouping_rule_authority: general_lineage_dependency_grouping_rule_v1(),
             classification_rule_authority: general_lineage_classification_rule_v1(),
         };
         design.validate_local()?;
@@ -249,6 +274,7 @@ impl GeneralLineageClassificationDesign {
         }
         put_u32(&mut digest, self.minimum_independent_support_groups);
         digest.update([self.missing_policy.tag()]);
+        put_authority(&mut digest, &self.dependency_grouping_rule_authority);
         put_authority(&mut digest, &self.classification_rule_authority);
         Ok(GeneralLineageClassificationDesignDigest(
             digest.finalize().into(),
@@ -282,6 +308,10 @@ impl GeneralLineageClassificationDesign {
             return Err(GeneralLineageDesignError::SupportThresholdTooLow);
         }
         validate_channels(&self.channels, self.minimum_independent_support_groups)?;
+        if self.dependency_grouping_rule_authority != general_lineage_dependency_grouping_rule_v1()
+        {
+            return Err(GeneralLineageDesignError::DependencyGroupingRuleMismatch);
+        }
         if self.classification_rule_authority != general_lineage_classification_rule_v1() {
             return Err(GeneralLineageDesignError::ClassificationRuleMismatch);
         }
@@ -348,6 +378,19 @@ pub fn general_lineage_classification_rule_v1() -> AnalysisAuthorityRef {
     )
 }
 
+pub fn general_lineage_dependency_grouping_rule_v1() -> AnalysisAuthorityRef {
+    let mut digest = Sha256::new();
+    digest.update(DEPENDENCY_RULE_DOMAIN);
+    put_u64(&mut digest, DEPENDENCY_RULE_SPEC.len() as u64);
+    digest.update(DEPENDENCY_RULE_SPEC);
+    AnalysisAuthorityRef::new(
+        AnalysisMethodId::new("general-lineage-dependency-grouping-v1")
+            .expect("static dependency grouping rule ID is valid"),
+        1,
+        AnalysisContentDigest::new(digest.finalize().into()),
+    )
+}
+
 fn validate_channels(
     channels: &[GeneralLineageEvidenceChannelDeclaration],
     minimum_independent_support_groups: u32,
@@ -358,6 +401,11 @@ fn validate_channels(
     let mut previous: Option<&GeneralLineageEvidenceChannelId> = None;
     let mut core_count = 0usize;
     let mut groups = BTreeSet::new();
+    let mut group_qualifications: BTreeMap<
+        GeneralLineageEvidenceDependencyGroupId,
+        AnalysisAuthorityRef,
+    > = BTreeMap::new();
+
     for channel in channels {
         channel.validate_local()?;
         if let Some(previous) = previous {
@@ -371,6 +419,28 @@ fn validate_channels(
             }
         }
         previous = Some(&channel.channel_id);
+
+        if let Some(existing) = group_qualifications.get(&channel.dependency_group_id) {
+            if existing != &channel.dependency_group_qualification_authority {
+                return Err(GeneralLineageDesignError::DependencyGroupQualificationMismatch(
+                    channel.dependency_group_id.clone(),
+                ));
+            }
+        } else {
+            if group_qualifications.iter().any(|(group_id, authority)| {
+                group_id != &channel.dependency_group_id
+                    && authority == &channel.dependency_group_qualification_authority
+            }) {
+                return Err(
+                    GeneralLineageDesignError::DependencyQualificationReusedAcrossGroups,
+                );
+            }
+            group_qualifications.insert(
+                channel.dependency_group_id.clone(),
+                channel.dependency_group_qualification_authority.clone(),
+            );
+        }
+
         groups.insert(channel.dependency_group_id.clone());
         if channel.role == GeneralLineageEvidenceChannelRole::CoreRequired {
             core_count += 1;
@@ -458,12 +528,15 @@ pub enum GeneralLineageDesignError {
     InvalidCoreChannelKind,
     ReservedCoreChannelKind,
     CoreChannelCount(usize),
+    DependencyGroupQualificationMismatch(GeneralLineageEvidenceDependencyGroupId),
+    DependencyQualificationReusedAcrossGroups,
     InsufficientDeclaredDependencyGroups {
         declared: usize,
         required: u32,
     },
     LineageDesignDigestMismatch,
     ModelDigestMismatch,
+    DependencyGroupingRuleMismatch,
     ClassificationRuleMismatch,
     DesignReplayMismatch,
     LineageDesign(symtropy_evolution_core::LineageDivergenceDesignError),
@@ -518,6 +591,15 @@ impl fmt::Display for GeneralLineageDesignError {
                 f,
                 "general-lineage design requires exactly one core channel, found {count}"
             ),
+            Self::DependencyGroupQualificationMismatch(group) => write!(
+                f,
+                "channels in dependency group {} do not share one exact grouping qualification",
+                group.as_str()
+            ),
+            Self::DependencyQualificationReusedAcrossGroups => write!(
+                f,
+                "one dependency-group qualification authority cannot define multiple group IDs"
+            ),
             Self::InsufficientDeclaredDependencyGroups { declared, required } => write!(
                 f,
                 "only {declared} dependency groups declared but threshold requires {required}"
@@ -529,6 +611,10 @@ impl fmt::Display for GeneralLineageDesignError {
             Self::ModelDigestMismatch => write!(
                 f,
                 "embedded general-lineage model does not match its persisted digest"
+            ),
+            Self::DependencyGroupingRuleMismatch => write!(
+                f,
+                "classification design does not bind the built-in V1 dependency-grouping rule"
             ),
             Self::ClassificationRuleMismatch => write!(
                 f,
