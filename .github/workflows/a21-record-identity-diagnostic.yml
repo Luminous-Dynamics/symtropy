@@ -126,7 +126,16 @@ jobs:
         run: |
           set -euo pipefail
           cd product
-          cargo check --locked -p symtropy-analysis-admission --all-targets
+          cargo check --locked -p symtropy-analysis-admission --all-targets 2>&1 | tee /tmp/a21-compile.log
+
+      - name: Preserve A2.1 compiler diagnostic
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: a21-compile-diagnostic-${{ github.run_id }}
+          path: /tmp/a21-compile.log
+          if-no-files-found: error
+          retention-days: 7
 
       - name: Run full A2.1 admission test suite
         shell: bash
