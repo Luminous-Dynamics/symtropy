@@ -55,26 +55,86 @@ impl ReproductiveContactContextPolicy {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+struct LineageMembershipEvidence {
+    individual_id: EvolutionIndividualId,
+    lineage_authority: AnalysisAuthorityRef,
+    evidence: AnalysisAuthorityRef,
+}
+impl LineageMembershipEvidence {
+    fn put(&self, digest: &mut Sha256) {
+        put_text(digest, self.individual_id.as_str());
+        put_authority(digest, &self.lineage_authority);
+        put_authority(digest, &self.evidence);
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ReproductiveOpportunityDeclaration {
     pub opportunity_id: ReproductiveOpportunityId,
     pub generation: PopulationGeneration,
-    pub parent_a: EvolutionIndividualId,
-    pub parent_b: EvolutionIndividualId,
+    parent_a: LineageMembershipEvidence,
+    parent_b: LineageMembershipEvidence,
     pub context_digest: EvolutionaryContextRefDigest,
     pub contact_zone_evidence: AnalysisAuthorityRef,
 }
 impl ReproductiveOpportunityDeclaration {
-    fn validate(&self) -> Result<(), ReproductiveContactDesignError> {
-        if self.parent_a == self.parent_b {
+    #[allow(clippy::too_many_arguments)]
+    pub fn new(
+        opportunity_id: ReproductiveOpportunityId,
+        generation: PopulationGeneration,
+        parent_a: EvolutionIndividualId,
+        parent_a_lineage_authority: AnalysisAuthorityRef,
+        parent_a_membership_evidence: AnalysisAuthorityRef,
+        parent_b: EvolutionIndividualId,
+        parent_b_lineage_authority: AnalysisAuthorityRef,
+        parent_b_membership_evidence: AnalysisAuthorityRef,
+        context_digest: EvolutionaryContextRefDigest,
+        contact_zone_evidence: AnalysisAuthorityRef,
+    ) -> Result<Self, ReproductiveContactDesignError> {
+        let value = Self {
+            opportunity_id,
+            generation,
+            parent_a: LineageMembershipEvidence {
+                individual_id: parent_a,
+                lineage_authority: parent_a_lineage_authority,
+                evidence: parent_a_membership_evidence,
+            },
+            parent_b: LineageMembershipEvidence {
+                individual_id: parent_b,
+                lineage_authority: parent_b_lineage_authority,
+                evidence: parent_b_membership_evidence,
+            },
+            context_digest,
+            contact_zone_evidence,
+        };
+        if value.parent_a.individual_id == value.parent_b.individual_id {
             return Err(ReproductiveContactDesignError::SameIndividualPair);
+        }
+        Ok(value)
+    }
+
+    pub fn parent_a_id(&self) -> &EvolutionIndividualId { &self.parent_a.individual_id }
+    pub fn parent_b_id(&self) -> &EvolutionIndividualId { &self.parent_b.individual_id }
+
+    fn validate_against_lineages(
+        &self,
+        lineage_a: &AnalysisAuthorityRef,
+        lineage_b: &AnalysisAuthorityRef,
+    ) -> Result<(), ReproductiveContactDesignError> {
+        if self.parent_a.individual_id == self.parent_b.individual_id {
+            return Err(ReproductiveContactDesignError::SameIndividualPair);
+        }
+        if &self.parent_a.lineage_authority != lineage_a || &self.parent_b.lineage_authority != lineage_b {
+            return Err(ReproductiveContactDesignError::LineageMembershipMismatch(self.opportunity_id.clone()));
         }
         Ok(())
     }
+
     fn put(&self, digest: &mut Sha256) {
         put_text(digest, self.opportunity_id.as_str());
         put_u64(digest, self.generation.0);
-        put_text(digest, self.parent_a.as_str());
-        put_text(digest, self.parent_b.as_str());
+        self.parent_a.put(digest);
+        self.parent_b.put(digest);
         digest.update(self.context_digest.as_bytes());
         put_authority(digest, &self.contact_zone_evidence);
     }
@@ -174,7 +234,7 @@ impl ReproductiveContactStudyDesign {
             return Err(ReproductiveContactDesignError::NonCanonicalOpportunityOrder);
         }
         for opportunity in &self.opportunities {
-            opportunity.validate()?;
+            opportunity.validate_against_lineages(&self.lineage_a, &self.lineage_b)?;
             if opportunity.generation.0 < self.start_generation.0 || opportunity.generation.0 > self.end_generation.0 {
                 return Err(ReproductiveContactDesignError::OpportunityOutsideInterval(opportunity.opportunity_id.clone()));
             }
@@ -241,6 +301,7 @@ fn put_authority(d: &mut Sha256, a: &AnalysisAuthorityRef) {
 pub enum ReproductiveContactDesignError {
     UnsupportedVersion(u32), SameLineageIdentity, SameIndividualPair, InvalidGenerationInterval,
     EmptyOpportunityCensus, DuplicateOpportunity(ReproductiveOpportunityId),
+    LineageMembershipMismatch(ReproductiveOpportunityId),
     OpportunityOutsideInterval(ReproductiveOpportunityId), UndeclaredContextDrift(ReproductiveOpportunityId),
     NonCanonicalOpportunityOrder, ReplayMismatch,
 }
@@ -253,6 +314,7 @@ impl fmt::Display for ReproductiveContactDesignError {
             Self::InvalidGenerationInterval => write!(f, "reproductive-contact generation interval is invalid"),
             Self::EmptyOpportunityCensus => write!(f, "reproductive-contact design requires at least one preregistered opportunity"),
             Self::DuplicateOpportunity(id) => write!(f, "opportunity {} is declared more than once", id.as_str()),
+            Self::LineageMembershipMismatch(id) => write!(f, "opportunity {} does not bind parent A/B to the declared lineage authorities", id.as_str()),
             Self::OpportunityOutsideInterval(id) => write!(f, "opportunity {} lies outside the preregistered interval", id.as_str()),
             Self::UndeclaredContextDrift(id) => write!(f, "opportunity {} changes context under ExactContext", id.as_str()),
             Self::NonCanonicalOpportunityOrder => write!(f, "opportunity declarations are not in canonical ID order"),
