@@ -1,9 +1,10 @@
 use crate::{
     canonical::{fmt_hex, put_text, put_u32, put_u64},
     error::validate_text,
-    AnalysisAuthorityRef, EvolutionError, EvolutionaryContextRefDigest,
-    ExpectedHeritableResponseDirection, HeritableResponseStudyDesignDigest, PopulationId,
-    ValidatedHeritableResponseStudyDesign, ViabilitySelectionTranslationModelDigest,
+    viability_selection_model_content_digest_v1, AnalysisAuthorityRef, AnalysisContentDigest,
+    EvolutionError, EvolutionaryContextRefDigest, ExpectedHeritableResponseDirection,
+    HeritableResponseStudyDesignDigest, PopulationId, ValidatedHeritableResponseStudyDesign,
+    ViabilitySelectionTranslationModelDigest,
 };
 use serde::{Deserialize, Deserializer, Serialize};
 use sha2::{Digest, Sha256};
@@ -91,6 +92,7 @@ pub struct ReplicationDesignUnitInput<'a, 'b> {
 pub struct ReplicationUnitDeclaration {
     pub unit_id: ReplicationUnitId,
     pub study_design_digest: HeritableResponseStudyDesignDigest,
+    pub selection_model_digest: ViabilitySelectionTranslationModelDigest,
     pub population_id: PopulationId,
     pub selection_context_digest: EvolutionaryContextRefDigest,
     pub generation_count: u64,
@@ -101,6 +103,7 @@ impl ReplicationUnitDeclaration {
     fn update_digest(&self, digest: &mut Sha256) {
         put_text(digest, self.unit_id.as_str());
         digest.update(self.study_design_digest.as_bytes());
+        digest.update(self.selection_model_digest.as_bytes());
         put_text(digest, self.population_id.as_str());
         digest.update(self.selection_context_digest.as_bytes());
         put_u64(digest, self.generation_count);
@@ -112,12 +115,13 @@ impl ReplicationUnitDeclaration {
 pub struct AdaptationReplicationDesign {
     design_version: u32,
     pub design_id: AdaptationReplicationDesignId,
-    selection_model_digest: ViabilitySelectionTranslationModelDigest,
+    model_family_content_digest: AnalysisContentDigest,
     expected_direction: ExpectedHeritableResponseDirection,
     pub units: Vec<ReplicationUnitDeclaration>,
     pub minimum_supported_replicates: u64,
     pub minimum_generation_count: u64,
     pub context_compatibility: ReplicationContextCompatibility,
+    pub model_compatibility_authority: AnalysisAuthorityRef,
     pub independence_rule_authority: AnalysisAuthorityRef,
     pub decision_rule_authority: AnalysisAuthorityRef,
 }
@@ -130,12 +134,12 @@ impl AdaptationReplicationDesign {
         minimum_supported_replicates: u64,
         minimum_generation_count: u64,
         context_compatibility: ReplicationContextCompatibility,
+        model_compatibility_authority: AnalysisAuthorityRef,
         independence_rule_authority: AnalysisAuthorityRef,
         decision_rule_authority: AnalysisAuthorityRef,
     ) -> Result<Self, AdaptationReplicationDesignError> {
         let mut by_id = BTreeMap::new();
         let mut seen_designs = Vec::new();
-        let mut common_model = None;
         let mut common_direction = None;
         let mut first_context = None;
 
@@ -151,13 +155,6 @@ impl AdaptationReplicationDesign {
                 return Err(AdaptationReplicationDesignError::DuplicateStudyDesignDigest);
             }
             seen_designs.push(digest);
-
-            let model = b1.selection_model_digest();
-            match common_model {
-                None => common_model = Some(model),
-                Some(existing) if existing == model => {}
-                Some(_) => return Err(AdaptationReplicationDesignError::SelectionModelMismatch),
-            }
 
             let direction = b1.expected_direction;
             match common_direction {
@@ -196,6 +193,7 @@ impl AdaptationReplicationDesign {
                 ReplicationUnitDeclaration {
                     unit_id: input.unit_id,
                     study_design_digest: digest,
+                    selection_model_digest: b1.selection_model_digest(),
                     population_id: b1.population_id().clone(),
                     selection_context_digest: context,
                     generation_count,
@@ -220,14 +218,14 @@ impl AdaptationReplicationDesign {
         let design = Self {
             design_version: ADAPTATION_REPLICATION_DESIGN_VERSION,
             design_id,
-            selection_model_digest: common_model
-                .ok_or(AdaptationReplicationDesignError::InsufficientDeclaredReplications)?,
+            model_family_content_digest: viability_selection_model_content_digest_v1(),
             expected_direction: common_direction
                 .ok_or(AdaptationReplicationDesignError::InsufficientDeclaredReplications)?,
             units,
             minimum_supported_replicates,
             minimum_generation_count,
             context_compatibility,
+            model_compatibility_authority,
             independence_rule_authority,
             decision_rule_authority,
         };
@@ -235,8 +233,8 @@ impl AdaptationReplicationDesign {
         Ok(design)
     }
 
-    pub fn selection_model_digest(&self) -> ViabilitySelectionTranslationModelDigest {
-        self.selection_model_digest
+    pub fn model_family_content_digest(&self) -> AnalysisContentDigest {
+        self.model_family_content_digest
     }
 
     pub fn expected_direction(&self) -> ExpectedHeritableResponseDirection {
@@ -251,7 +249,7 @@ impl AdaptationReplicationDesign {
         digest.update(DESIGN_DOMAIN);
         put_u32(&mut digest, self.design_version);
         put_text(&mut digest, self.design_id.as_str());
-        digest.update(self.selection_model_digest.as_bytes());
+        digest.update(self.model_family_content_digest.as_bytes());
         digest.update([direction_tag(self.expected_direction)]);
         put_u64(&mut digest, self.units.len() as u64);
         for unit in &self.units {
@@ -260,6 +258,7 @@ impl AdaptationReplicationDesign {
         put_u64(&mut digest, self.minimum_supported_replicates);
         put_u64(&mut digest, self.minimum_generation_count);
         self.context_compatibility.update_digest(&mut digest);
+        update_authority_digest(&mut digest, &self.model_compatibility_authority);
         update_authority_digest(&mut digest, &self.independence_rule_authority);
         update_authority_digest(&mut digest, &self.decision_rule_authority);
         Ok(AdaptationReplicationDesignDigest(digest.finalize().into()))
@@ -270,6 +269,9 @@ impl AdaptationReplicationDesign {
             return Err(AdaptationReplicationDesignError::UnsupportedVersion(
                 self.design_version,
             ));
+        }
+        if self.model_family_content_digest != viability_selection_model_content_digest_v1() {
+            return Err(AdaptationReplicationDesignError::ModelFamilyMismatch);
         }
         if self.units.len() < 2 {
             return Err(AdaptationReplicationDesignError::InsufficientDeclaredReplications);
@@ -359,6 +361,7 @@ impl<'a> ValidatedAdaptationReplicationDesign<'a> {
         minimum_supported_replicates: u64,
         minimum_generation_count: u64,
         context_compatibility: ReplicationContextCompatibility,
+        model_compatibility_authority: AnalysisAuthorityRef,
         independence_rule_authority: AnalysisAuthorityRef,
         decision_rule_authority: AnalysisAuthorityRef,
     ) -> Result<Self, AdaptationReplicationDesignError> {
@@ -369,6 +372,7 @@ impl<'a> ValidatedAdaptationReplicationDesign<'a> {
             minimum_supported_replicates,
             minimum_generation_count,
             context_compatibility,
+            model_compatibility_authority,
             independence_rule_authority,
             decision_rule_authority,
         )?;
@@ -412,7 +416,7 @@ pub enum AdaptationReplicationDesignError {
     InsufficientDeclaredReplications,
     InvalidSupportedReplicationThreshold,
     MinimumGenerationCountTooSmall,
-    SelectionModelMismatch,
+    ModelFamilyMismatch,
     ExpectedDirectionMismatch,
     SelectionContextMismatch,
     GenerationSpanTooShort {
@@ -456,9 +460,9 @@ impl fmt::Display for AdaptationReplicationDesignError {
                 f,
                 "minimum generation count must preserve a multi-generation study"
             ),
-            Self::SelectionModelMismatch => write!(
+            Self::ModelFamilyMismatch => write!(
                 f,
-                "replication units must share the exact SEL-08A translation-model digest"
+                "replication design does not bind the built-in SEL-08A V1 model family"
             ),
             Self::ExpectedDirectionMismatch => write!(
                 f,
