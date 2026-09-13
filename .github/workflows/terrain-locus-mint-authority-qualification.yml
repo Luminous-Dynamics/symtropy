@@ -6,6 +6,7 @@ on:
       - "terrain/locus-mint-authority-v0.1"
     paths:
       - ".github/workflows/terrain-locus-mint-authority-qualification.yml"
+      - ".github/workflows/terrain-ecs-lattice-geometry-provider-qualification.yml"
       - "crates/domains/symtropy-terrain/src/live_geometry_provider.rs"
       - "crates/domains/symtropy-terrain/src/lib.rs"
 
@@ -32,7 +33,9 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          base=1ddf19053a263cec44edf9fbc96750cf2e8df181
+          final_provider=12184f21761538b1d71f033a5e229484f544d8e6
+          pre_restack=98c241aa389626eb28e3d204e6a33711c3e5b639
+          restack=2b9459634f6fd144b2fb26664456f5a102522252
           initial_close=6cc262943c56013dceb85904fcd1933baa1d0656
           private_component=ef82a2301e3e6fdd964adc7e0af898c5e38c48df
           product=7ee95ade5b6bdc8041923c840ec8e5290647cdc2
@@ -47,13 +50,16 @@ jobs:
           qualifier=.github/workflows/terrain-locus-mint-authority-qualification.yml
 
           test "$(git rev-parse HEAD)" = "${GITHUB_SHA}"
-          test "$(git rev-parse HEAD^)" = "${narrowed_qualifier}"
+          test "$(git rev-parse HEAD^)" = "${restack}"
+          test "$(git rev-parse ${restack}^1)" = "${pre_restack}"
+          test "$(git rev-parse ${restack}^2)" = "${final_provider}"
+          test "$(git rev-parse ${pre_restack}^)" = "${narrowed_qualifier}"
           test "$(git rev-parse ${narrowed_qualifier}^)" = "${initial_qualifier}"
           test "$(git rev-parse ${initial_qualifier}^)" = "${product}"
           test "$(git rev-parse ${product}^)" = "${private_component}"
           test "$(git rev-parse ${private_component}^)" = "${initial_close}"
-          test "$(git rev-parse ${initial_close}^)" = "${base}"
-          git merge-base --is-ancestor "${base}" HEAD
+          git merge-base --is-ancestor "${pre_restack}" HEAD
+          git merge-base --is-ancestor "${final_provider}" HEAD
 
           test "$(git rev-parse HEAD:${provider})" = "9893d8caffabd3a55c83b47f2a133eba4e982887"
           test "$(git rev-parse HEAD:${lib})" = "0292fc52f879b868fb9052cf4a0037d5aa9e45c2"
@@ -61,17 +67,26 @@ jobs:
           test "$(git rev-parse HEAD:${manifest})" = "187fe4020a0c0048ab36404e219a7a5698a856d1"
           test "$(git rev-parse HEAD:Cargo.lock)" = "62c6eb098b3f6fffdea8a175a0f3afb33423b17b"
           test "$(git rev-parse HEAD:${golden})" = "dc631fe5bcac3ad017ca99ba2eddf761a6370016"
-          test "$(git rev-parse HEAD:${provider_qualifier})" = "c535c05011b15851b8f61993fefc946fa9b65eaa"
+          test "$(git rev-parse HEAD:${provider_qualifier})" = "b34b69a1eaf082a293998dece0356dbc4f596e23"
 
-          actual="$(git diff --name-only ${base}..HEAD | sort)"
+          merge_delta="$(git diff --name-only ${pre_restack}..${restack})"
+          test "${merge_delta}" = "${provider_qualifier}"
+
+          qualifier_delta="$(git diff --name-only ${restack}..HEAD)"
+          test "${qualifier_delta}" = "${qualifier}"
+
+          actual="$(git diff --name-only ${final_provider}..HEAD | sort)"
           expected="$(printf '%s\n' "${provider}" "${lib}" "${qualifier}" | sort)"
           test "${actual}" = "${expected}"
 
           echo "TERRAIN_LOCUS_MINT_HEAD=${GITHUB_SHA}"
           echo "TERRAIN_LOCUS_MINT_TREE=$(git rev-parse HEAD^{tree})"
-          echo "TERRAIN_LOCUS_MINT_BASE=${base}"
+          echo "TERRAIN_LOCUS_MINT_FINAL_PROVIDER=${final_provider}"
+          echo "TERRAIN_LOCUS_MINT_PRE_RESTACK=${pre_restack}"
+          echo "TERRAIN_LOCUS_MINT_RESTACK=${restack}"
           echo "TERRAIN_LOCUS_MINT_PROVIDER_BLOB=$(git rev-parse HEAD:${provider})"
           echo "TERRAIN_LOCUS_MINT_LIB_BLOB=$(git rev-parse HEAD:${lib})"
+          echo "TERRAIN_LOCUS_MINT_PROVIDER_QUALIFIER_BLOB=$(git rev-parse HEAD:${provider_qualifier})"
           echo "CARGO_TARGET_DIR=${RUNNER_TEMP}/terrain-locus-mint-target" >> "${GITHUB_ENV}"
 
       - name: Install Linux system dependencies
@@ -280,5 +295,6 @@ jobs:
           test "$(git rev-parse HEAD:crates/domains/symtropy-terrain/src/geometry_kernel.rs)" = "8d3e1213eacdeddf693cd2d1f82670d6ed832161"
           test "$(git rev-parse HEAD:crates/domains/symtropy-terrain/Cargo.toml)" = "187fe4020a0c0048ab36404e219a7a5698a856d1"
           test "$(git rev-parse HEAD:Cargo.lock)" = "62c6eb098b3f6fffdea8a175a0f3afb33423b17b"
+          test "$(git rev-parse HEAD:.github/workflows/terrain-ecs-lattice-geometry-provider-qualification.yml)" = "b34b69a1eaf082a293998dece0356dbc4f596e23"
           echo "TERRAIN_LOCUS_MINT_AUTHORITY_STATUS=PASS"
           echo "claim=no production locus writer exists; exact workspace census has no external Rust placement references; safe downstream Rust cannot name the crate-private ECS locus component; exact read authority remains through capture_live_terrain_geometry and TerrainGeometrySnapshot"
