@@ -1,0 +1,189 @@
+name: A2.1 Verification Record Identity Diagnostic
+
+on:
+  pull_request:
+    branches: [ "analysis/a2-qualification-admission-r2-v0.1" ]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: a21-record-diagnostic-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+env:
+  PRODUCT_BRANCH: analysis/a2-verification-record-identity-v0.1
+  PARENT_HEAD: 8b9cc08fa48bf7ebfc007ed28fd1ab348f28e211
+  PARENT_TREE: d165f9a0892cb0eff7d494aa2e6be6606c5aa5dd
+  PARENT_ROOT_MANIFEST_BLOB: 49596d527a021038dd97b9e177c66d1212401ffd
+  PARENT_LOCK_BLOB: e10de8d7d0afecd2c5ebeedd37b86cc7713f7b46
+  A0_MANIFEST_BLOB: f7bb504e0ee4077eb4a3bcfc101ea835c9f7b50f
+  A0_SOURCE_BLOB: 30bc76556677556fda1063e806aa2142d080fc67
+  A0_PERSISTENCE_BLOB: f596a7539ea245a043149eaa5c32f7d9ba258f33
+  A1_MANIFEST_BLOB: 7988c2b950e3d842f247b3239b69da0232525532
+  A1_SOURCE_BLOB: c4d9e4dd691957947e81e81c946301f8021e55aa
+  A2_MANIFEST_BLOB: 534a9c2a2ef6664fb8e3a3a8668e83fa0c36e456
+  A2_SOURCE_BLOB: 9d91b0837f6674a3d43a1ec3e49ce6de503e54d3
+  TRANSFORM_BLOB: ecbc297aa6806a6c1898831c389fd33d277707a3
+  CARGO_TARGET_DIR: /tmp/symtropy-a21-record-target
+
+jobs:
+  diagnose:
+    name: Derive and execute standalone record identity
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Check out frozen product branch
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ env.PRODUCT_BRANCH }}
+          path: product
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Check out exact runner tools
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          path: runner-tools
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Bind exact A2-r2 parent and transform
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git -C product rev-parse HEAD)" = "$PARENT_HEAD"
+          test "$(git -C product rev-parse HEAD^{tree})" = "$PARENT_TREE"
+          test "$(git -C product hash-object Cargo.toml)" = "$PARENT_ROOT_MANIFEST_BLOB"
+          test "$(git -C product hash-object Cargo.lock)" = "$PARENT_LOCK_BLOB"
+          test "$(git -C product hash-object crates/domains/symtropy-analysis-contracts/Cargo.toml)" = "$A0_MANIFEST_BLOB"
+          test "$(git -C product hash-object crates/domains/symtropy-analysis-contracts/src/lib.rs)" = "$A0_SOURCE_BLOB"
+          test "$(git -C product hash-object crates/domains/symtropy-analysis-contracts/src/persistence.rs)" = "$A0_PERSISTENCE_BLOB"
+          test "$(git -C product hash-object crates/domains/symtropy-analysis-qualification/Cargo.toml)" = "$A1_MANIFEST_BLOB"
+          test "$(git -C product hash-object crates/domains/symtropy-analysis-qualification/src/lib.rs)" = "$A1_SOURCE_BLOB"
+          test "$(git -C product hash-object crates/domains/symtropy-analysis-admission/Cargo.toml)" = "$A2_MANIFEST_BLOB"
+          test "$(git -C product hash-object crates/domains/symtropy-analysis-admission/src/lib.rs)" = "$A2_SOURCE_BLOB"
+          test "$(git -C runner-tools hash-object .github/repair/a21_verification_record_identity.py)" = "$TRANSFORM_BLOB"
+          test -z "$(git -C product status --porcelain=v1 --untracked-files=all)"
+
+      - name: Set up pinned Rust 1.96
+        uses: dtolnay/rust-toolchain@6bed0761d98439e5a578e2877258200ad565ba87
+        with:
+          toolchain: 1.96.0
+          components: clippy, rustfmt
+
+      - name: Re-prove exact A0 A1 A2 parent
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd product
+          cargo metadata --locked --format-version 1 >/tmp/a21-parent-metadata.json
+          cargo fmt -p symtropy-analysis-contracts -p symtropy-analysis-qualification -p symtropy-analysis-admission -- --check
+          cargo check --locked -p symtropy-analysis-contracts -p symtropy-analysis-qualification -p symtropy-analysis-admission --all-targets
+          cargo test --locked -p symtropy-analysis-contracts
+          cargo test --locked -p symtropy-analysis-qualification
+          cargo test --locked -p symtropy-analysis-admission
+          cargo clippy --locked -p symtropy-analysis-contracts -p symtropy-analysis-qualification -p symtropy-analysis-admission --all-targets -- -D warnings
+          test -z "$(git status --porcelain=v1 --untracked-files=all)"
+
+      - name: Freeze parent authority surfaces
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd product
+          cp Cargo.toml /tmp/a21-root.before
+          cp Cargo.lock /tmp/a21-lock.before
+          cp crates/domains/symtropy-analysis-contracts/src/lib.rs /tmp/a21-a0.before
+          cp crates/domains/symtropy-analysis-contracts/src/persistence.rs /tmp/a21-a0-persistence.before
+          cp crates/domains/symtropy-analysis-qualification/src/lib.rs /tmp/a21-a1.before
+          cp crates/domains/symtropy-analysis-admission/Cargo.toml /tmp/a21-a2-manifest.before
+
+      - name: Apply exact A2.1 transform
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd product
+          python3 ../runner-tools/.github/repair/a21_verification_record_identity.py
+          cargo fmt -p symtropy-analysis-admission
+          cmp Cargo.toml /tmp/a21-root.before
+          cmp Cargo.lock /tmp/a21-lock.before
+          cmp crates/domains/symtropy-analysis-contracts/src/lib.rs /tmp/a21-a0.before
+          cmp crates/domains/symtropy-analysis-contracts/src/persistence.rs /tmp/a21-a0-persistence.before
+          cmp crates/domains/symtropy-analysis-qualification/src/lib.rs /tmp/a21-a1.before
+          cmp crates/domains/symtropy-analysis-admission/Cargo.toml /tmp/a21-a2-manifest.before
+          test "$(git status --porcelain=v1 --untracked-files=all)" = " M crates/domains/symtropy-analysis-admission/src/lib.rs"
+          git diff --check -- crates/domains/symtropy-analysis-admission/src/lib.rs
+
+      - name: Check A2.1 formatting
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd product
+          cargo fmt -p symtropy-analysis-admission -- --check
+
+      - name: Compile A2.1 exact transformed subject
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd product
+          cargo check --locked -p symtropy-analysis-admission --all-targets 2>&1 | tee /tmp/a21-compile.log
+
+      - name: Preserve A2.1 compiler diagnostic
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: a21-compile-diagnostic-${{ github.run_id }}
+          path: /tmp/a21-compile.log
+          if-no-files-found: error
+          retention-days: 7
+
+      - name: Run full A2.1 admission test suite
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd product
+          cargo test --locked -p symtropy-analysis-admission
+
+      - name: Execute named A2.1 golden-vector theorem
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd product
+          cargo test --locked -p symtropy-analysis-admission tests::standalone_verification_record_digest_is_frozen_and_content_bound -- --exact --nocapture 2>&1 | tee /tmp/a21-record-golden.log
+
+      - name: Require exactly one A2.1 golden sentinel
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import re
+          from pathlib import Path
+          text = Path('/tmp/a21-record-golden.log').read_text()
+          values = re.findall(r'A21_RECORD_GOLDEN=([0-9a-f]{64})', text)
+          assert len(values) == 1, values
+          print(f'A21_RECORD_GOLDEN={values[0]}')
+          PY
+
+      - name: Clippy A2.1 exact transformed subject
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd product
+          cargo clippy --locked -p symtropy-analysis-admission --all-targets -- -D warnings
+
+      - name: Re-prove parent layers and refuse collateral mutation
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd product
+          cargo check --locked -p symtropy-analysis-contracts -p symtropy-analysis-qualification --all-targets
+          cargo test --locked -p symtropy-analysis-contracts
+          cargo test --locked -p symtropy-analysis-qualification
+          cargo clippy --locked -p symtropy-analysis-contracts -p symtropy-analysis-qualification --all-targets -- -D warnings
+          cmp Cargo.toml /tmp/a21-root.before
+          cmp Cargo.lock /tmp/a21-lock.before
+          cmp crates/domains/symtropy-analysis-contracts/src/lib.rs /tmp/a21-a0.before
+          cmp crates/domains/symtropy-analysis-contracts/src/persistence.rs /tmp/a21-a0-persistence.before
+          cmp crates/domains/symtropy-analysis-qualification/src/lib.rs /tmp/a21-a1.before
+          cmp crates/domains/symtropy-analysis-admission/Cargo.toml /tmp/a21-a2-manifest.before
+          test "$(git status --porcelain=v1 --untracked-files=all)" = " M crates/domains/symtropy-analysis-admission/src/lib.rs"
