@@ -41,6 +41,8 @@ mod heredity;
 mod heritable_response_design;
 mod heritable_response_study;
 mod ids;
+mod lineage_divergence_design;
+mod lineage_divergence_history;
 mod linked_census_projection;
 mod linked_gamete;
 mod linked_gamete_evidence;
@@ -261,6 +263,24 @@ pub use ids::{
     PopulationId, PopulationProcessProfileId, PopulationStructureProfileId, PopulationTransitionId,
     PredictorDefinitionId, ReproductionEventId, SelectionComparisonDesignId,
     SelectionTranslationModelId, SelectionTranslationQualificationAuthorityId,
+};
+pub use lineage_divergence_design::{
+    lineage_divergence_history_rule_v1, LineageDivergenceDesignError,
+    LineageDivergenceHistoryDesign, LineageDivergenceHistoryDesignDigest,
+    LineageDivergenceHistoryId, LineageHistoryContextPolicy, LineageHistoryEpisodeId,
+    LineageHistoryEvidenceProtocols, LineageHistoryMissingPolicy,
+    ValidatedLineageDivergenceHistoryDesign, LINEAGE_DIVERGENCE_HISTORY_DESIGN_VERSION,
+};
+pub use lineage_divergence_history::{
+    LineageDivergenceHistory, LineageDivergenceHistoryDigest, LineageDivergenceHistoryError,
+    LineageDivergenceHistoryStatus, LineageHistoryEpisodeInput, LineageHistoryEpisodeKind,
+    LineageHistoryEpisodeObservation, LineageHistoryGenerationInput,
+    LineageHistoryGenerationRecord, LineageObservationInput, LineageObservationState,
+    LineagePairObservationState, LineagePersistenceInput, LineagePersistenceObservation,
+    LineagePersistenceState, LineagePointMembershipEvidence, ObservedLineageGenerationInput,
+    ObservedLineageGenerationRecord, QualifiedLineageHistoryEvidence,
+    QualifiedLineagePairEvidence, ValidatedLineageDivergenceHistory,
+    LINEAGE_DIVERGENCE_HISTORY_VERSION,
 };
 pub use linked_census_projection::{
     project_declared_linked_census, LinkedCensusProjection, LinkedCensusProjectionDigest,
