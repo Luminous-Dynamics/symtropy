@@ -72,6 +72,14 @@ impl UnionFind {
 /// Returns a list of islands, each containing indices into the world's
 /// body, contact, and constraint arrays. Islands where all bodies are
 /// sleeping are marked as `sleeping = true`.
+///
+/// Island output order is canonical: ascending smallest body-array index in
+/// each island. This is intentionally independent of the randomized iteration
+/// order of the temporary `HashMap` used for grouping. Contact and constraint
+/// indices within each island are collected by source-vector enumeration and
+/// therefore remain ascending as well. Solver code may consequently flatten
+/// the returned active islands without making replay identity depend on a hash
+/// seed or on union-find's internal root labels.
 pub fn build_islands<const D: usize>(
     bodies: &[RigidBody<D>],
     contacts: &[ContactManifold<D>],
@@ -103,7 +111,8 @@ pub fn build_islands<const D: usize>(
         }
     }
 
-    // Group bodies by their root
+    // Group bodies by their root. HashMap iteration is intentionally not an
+    // ordering authority; the completed island vector is canonicalized below.
     let mut island_map: HashMap<usize, Vec<usize>> = HashMap::new();
     for i in 0..n {
         let root = uf.find(i);
@@ -152,6 +161,18 @@ pub fn build_islands<const D: usize>(
         });
     }
 
+    // `body_indices` is populated while walking `0..n`, so the first member is
+    // the canonical minimum body-array index for that island. Sorting on that
+    // key removes the temporary HashMap's randomized iteration order from the
+    // solver traversal while avoiding any dependence on union-find root labels.
+    islands.sort_unstable_by_key(|island| {
+        island
+            .body_indices
+            .first()
+            .copied()
+            .unwrap_or(usize::MAX)
+    });
+
     islands
 }
 
@@ -186,6 +207,66 @@ mod tests {
         let (bodies, map) = make_bodies(4);
         let islands = build_islands(&bodies, &[], &[], &map);
         assert_eq!(islands.len(), 4, "4 disconnected bodies = 4 islands");
+    }
+
+    #[test]
+    fn disconnected_islands_are_canonically_ordered_by_minimum_body_index() {
+        let (bodies, map) = make_bodies(8);
+
+        // Repeat construction so the theorem does not accidentally depend on
+        // one temporary HashMap's randomized seed.
+        for _ in 0..32 {
+            let islands = build_islands(&bodies, &[], &[], &map);
+            let minima: Vec<_> = islands
+                .iter()
+                .map(|island| island.body_indices[0])
+                .collect();
+            assert_eq!(minima, (0..8).collect::<Vec<_>>());
+        }
+    }
+
+    #[test]
+    fn canonical_island_order_makes_flattened_contact_traversal_stable() {
+        let (bodies, map) = make_bodies(6);
+        let contacts = vec![
+            ContactManifold::single(
+                BodyHandle(4),
+                BodyHandle(5),
+                nalgebra::SVector::from([1.0, 0.0, 0.0]),
+                nalgebra::SVector::zeros(),
+                0.1,
+            ),
+            ContactManifold::single(
+                BodyHandle(0),
+                BodyHandle(1),
+                nalgebra::SVector::from([1.0, 0.0, 0.0]),
+                nalgebra::SVector::zeros(),
+                0.1,
+            ),
+            ContactManifold::single(
+                BodyHandle(2),
+                BodyHandle(3),
+                nalgebra::SVector::from([1.0, 0.0, 0.0]),
+                nalgebra::SVector::zeros(),
+                0.1,
+            ),
+        ];
+
+        let islands = build_islands(&bodies, &contacts, &[], &map);
+        assert_eq!(
+            islands
+                .iter()
+                .map(|island| island.body_indices[0])
+                .collect::<Vec<_>>(),
+            vec![0, 2, 4]
+        );
+        assert_eq!(
+            islands
+                .iter()
+                .flat_map(|island| island.contact_indices.iter().copied())
+                .collect::<Vec<_>>(),
+            vec![1, 2, 0]
+        );
     }
 
     #[test]
@@ -252,7 +333,6 @@ mod tests {
     #[test]
     fn constraint_connects_bodies() {
         use crate::constraint::DistanceConstraint;
-
         let (bodies, map) = make_bodies(3);
         let constraints: Vec<Box<dyn Constraint<3>>> = vec![Box::new(DistanceConstraint {
             body_a: BodyHandle(0),
