@@ -33,41 +33,55 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          base=98c241aa389626eb28e3d204e6a33711c3e5b639
-          previous_candidate=155bb2880fef400366614f6f634da011c64cc1ca
-          pre_format_qualifier=e47517df3261676a5bfc75835680307d44c6fae4
+          final_locus=8db7fea0db9276c4922c2e812739396f14d0b56f
+          pre_restack=60b73e023427f847ac3883564ddceaad777a2a01
+          restack=78e2ab08cf0a17491da8f80a3905f5f5c260db3c
           currentness=crates/domains/symtropy-terrain/src/geometry_currentness.rs
           provider=crates/domains/symtropy-terrain/src/live_geometry_provider.rs
           lib=crates/domains/symtropy-terrain/src/lib.rs
           kernel=crates/domains/symtropy-terrain/src/geometry_kernel.rs
           manifest=crates/domains/symtropy-terrain/Cargo.toml
+          provider_qualifier=.github/workflows/terrain-ecs-lattice-geometry-provider-qualification.yml
           locus_qualifier=.github/workflows/terrain-locus-mint-authority-qualification.yml
           qualifier=.github/workflows/terrain-geometry-recapture-currentness-qualification.yml
 
           test "$(git rev-parse HEAD)" = "${GITHUB_SHA}"
-          test "$(git rev-parse HEAD^)" = "${previous_candidate}"
-          test "$(git rev-parse ${previous_candidate}^)" = "${pre_format_qualifier}"
-          git merge-base --is-ancestor "${base}" HEAD
-          git merge-base --is-ancestor "${pre_format_qualifier}" HEAD
+          test "$(git rev-parse HEAD^)" = "${restack}"
+          test "$(git rev-parse ${restack}^1)" = "${pre_restack}"
+          test "$(git rev-parse ${restack}^2)" = "${final_locus}"
+          git merge-base --is-ancestor "${final_locus}" HEAD
+          git merge-base --is-ancestor "${pre_restack}" HEAD
 
           test "$(git rev-parse HEAD:${currentness})" = "2da7d9b27313ae24b45269171cf58ea6cd528de4"
+          test "$(git rev-parse ${pre_restack}:${currentness})" = "2da7d9b27313ae24b45269171cf58ea6cd528de4"
           test "$(git rev-parse HEAD:${provider})" = "543858ec733429ac41d39bd52eb2e39210806280"
+          test "$(git rev-parse ${pre_restack}:${provider})" = "543858ec733429ac41d39bd52eb2e39210806280"
           test "$(git rev-parse HEAD:${lib})" = "5f7d78067026f39b242823fcf7457fbeb2da10ed"
+          test "$(git rev-parse ${pre_restack}:${lib})" = "5f7d78067026f39b242823fcf7457fbeb2da10ed"
           test "$(git rev-parse HEAD:${kernel})" = "8d3e1213eacdeddf693cd2d1f82670d6ed832161"
           test "$(git rev-parse HEAD:${manifest})" = "187fe4020a0c0048ab36404e219a7a5698a856d1"
           test "$(git rev-parse HEAD:Cargo.lock)" = "62c6eb098b3f6fffdea8a175a0f3afb33423b17b"
-          test "$(git rev-parse HEAD:${locus_qualifier})" = "470631655c976b3aff4587b12ead996a05bc127c"
+          test "$(git rev-parse HEAD:${provider_qualifier})" = "b34b69a1eaf082a293998dece0356dbc4f596e23"
+          test "$(git rev-parse ${final_locus}:${provider_qualifier})" = "b34b69a1eaf082a293998dece0356dbc4f596e23"
+          test "$(git rev-parse HEAD:${locus_qualifier})" = "dedef7a0ccd3a3d88654b66d48cc0130cda9002d"
+          test "$(git rev-parse ${final_locus}:${locus_qualifier})" = "dedef7a0ccd3a3d88654b66d48cc0130cda9002d"
 
-          qualifier_delta="$(git diff --name-only ${previous_candidate}..HEAD)"
+          qualifier_delta="$(git diff --name-only ${restack}..HEAD)"
           test "${qualifier_delta}" = "${qualifier}"
 
-          actual="$(git diff --name-only ${base}..HEAD | sort)"
+          merge_delta="$(git diff --name-only ${pre_restack}..${restack} | sort)"
+          expected_merge_delta="$(printf '%s\n' "${provider_qualifier}" "${locus_qualifier}" | sort)"
+          test "${merge_delta}" = "${expected_merge_delta}"
+
+          actual="$(git diff --name-only ${final_locus}..HEAD | sort)"
           expected="$(printf '%s\n' "${qualifier}" "${currentness}" "${provider}" "${lib}" | sort)"
           test "${actual}" = "${expected}"
 
           echo "TERRAIN_CURRENTNESS_HEAD=${GITHUB_SHA}"
           echo "TERRAIN_CURRENTNESS_TREE=$(git rev-parse HEAD^{tree})"
-          echo "TERRAIN_CURRENTNESS_BASE=${base}"
+          echo "TERRAIN_CURRENTNESS_BASE=${final_locus}"
+          echo "TERRAIN_CURRENTNESS_PRE_RESTACK=${pre_restack}"
+          echo "TERRAIN_CURRENTNESS_RESTACK=${restack}"
           echo "TERRAIN_CURRENTNESS_SOURCE_BLOB=$(git rev-parse HEAD:${currentness})"
           echo "TERRAIN_CURRENTNESS_PROVIDER_BLOB=$(git rev-parse HEAD:${provider})"
           echo "TERRAIN_CURRENTNESS_LIB_BLOB=$(git rev-parse HEAD:${lib})"
