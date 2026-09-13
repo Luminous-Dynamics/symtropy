@@ -13,9 +13,9 @@ use nalgebra::SVector;
 use symtropy_physics::{
     AppliedFrictionTransaction, EnergyTransferLedger, FrictionApplicationError,
     FrictionDiagnosticFinalizeError, FrictionDiagnosticReason, FrictionPromotionError,
-    FrictionPromotionReceipt, FrictionSolverCoordinates, FrictionTransactionJournal,
-    HeatPartition, RigidBody, apply_friction_impulse_once, finalize_friction_diagnostic,
-    promote_applied_friction_loss_to_heat,
+    FrictionPromotionReceipt, FrictionSolverCoordinates, FrictionTransactionId,
+    FrictionTransactionJournal, HeatPartition, RigidBody, apply_friction_impulse_once,
+    finalize_friction_diagnostic, promote_applied_friction_loss_to_heat,
 };
 
 use super::thermodynamic_transaction::{
@@ -123,7 +123,7 @@ impl ThermodynamicTransactionRuntime {
     /// The caller owns only deterministic solver-local coordinates. This runtime
     /// supplies `fixed_tick` from the open thermodynamic transaction and owns the
     /// canonical friction journal. Therefore the solver cannot relabel an impulse
-    /// into another fixed tick or replace pending lifecycle state.
+    /// into another fixed tick or replace pending lifecycle state through this API.
     pub fn apply_friction_impulse_at<const D: usize>(
         &mut self,
         body_a: &mut RigidBody<D>,
@@ -133,7 +133,12 @@ impl ThermodynamicTransactionRuntime {
         coordinates: FrictionSolverCoordinates,
     ) -> Result<AppliedFrictionTransaction<D>, RuntimeFrictionError> {
         let fixed_tick = self.open_friction_tick()?;
-        let transaction_id = coordinates.bind_fixed_tick(fixed_tick);
+        let transaction_id = FrictionTransactionId::new(
+            fixed_tick,
+            coordinates.solver_iteration,
+            coordinates.contact_sequence,
+            coordinates.point_sequence,
+        );
         Ok(apply_friction_impulse_once(
             body_a,
             body_b,
