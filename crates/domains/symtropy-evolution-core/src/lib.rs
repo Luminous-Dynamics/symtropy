@@ -74,6 +74,7 @@ mod selection_association;
 mod selection_design;
 mod selection_evidence;
 mod selection_translation;
+mod species_model;
 mod structured_population_process;
 mod validated_consequence;
 
@@ -460,6 +461,16 @@ pub use selection_translation::{
     ViabilityLifeCycleStagePolicy, ViabilitySelectionTranslationModel,
     ViabilitySelectionTranslationModelDigest, MODEL_SPECIFIC_SELECTION_ESTIMATE_VERSION,
     VIABILITY_SELECTION_TRANSLATION_MODEL_VERSION,
+};
+pub use species_model::{
+    strict_biological_species_model_content_digest_v1, BiologicalSpeciesModel,
+    BiologicalSpeciesModelDigest, CurrentGeneFlowPolicy, EcologySpeciesEvidencePolicy,
+    GeographicIsolationPolicy, HistoricalRecontactPolicy, IncompleteLineageSortingPolicy,
+    LineageDivergenceModelRequirement, LineageFusionSpeciesPolicy,
+    ReproductiveIsolationModelRequirement, SpeciesModelContentDigest, SpeciesModelError,
+    SpeciesModelId, SpeciesModelMissingConflictPolicy, SpeciesModelQualificationRef,
+    SpeciesModelValidityDomainDigest, SpeciesModelValidityDomainId, SpeciesModelValidityDomainRef,
+    ValidatedBiologicalSpeciesModel, BIOLOGICAL_SPECIES_MODEL_VERSION,
 };
 pub use structured_population_process::{
     structured_wright_fisher_step, StructuredPopulationTransitionProvenance,
