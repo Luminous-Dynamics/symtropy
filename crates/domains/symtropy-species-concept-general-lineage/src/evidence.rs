@@ -11,7 +11,11 @@ use crate::model::{
 };
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
-use std::{collections::{BTreeMap, BTreeSet}, error::Error, fmt};
+use std::{
+    collections::{BTreeMap, BTreeSet},
+    error::Error,
+    fmt,
+};
 use symtropy_evolution_core::{
     AnalysisAuthorityRef, LineageDivergenceHistory, LineageDivergenceHistoryDigest,
     LineageDivergenceHistoryStatus, ReproductiveIsolationEvidence,
@@ -62,7 +66,10 @@ impl GeneralLineageModelApplicabilityEvidence {
         design: &GeneralLineageClassificationDesign,
         input: GeneralLineageModelApplicabilityInput,
     ) -> Result<Self, GeneralLineageEvidenceError> {
-        validate_authority(&input.evidence_authority, "model_applicability_evidence_revision")?;
+        validate_authority(
+            &input.evidence_authority,
+            "model_applicability_evidence_revision",
+        )?;
         validate_authority(
             &input.qualification_authority,
             "model_applicability_qualification_revision",
@@ -87,7 +94,10 @@ impl GeneralLineageModelApplicabilityEvidence {
         {
             return Err(GeneralLineageEvidenceError::ModelApplicabilityBindingMismatch);
         }
-        validate_authority(&self.evidence_authority, "model_applicability_evidence_revision")?;
+        validate_authority(
+            &self.evidence_authority,
+            "model_applicability_evidence_revision",
+        )?;
         validate_authority(
             &self.qualification_authority,
             "model_applicability_qualification_revision",
@@ -177,9 +187,7 @@ impl GeneralLineageChannelEvidenceRecord {
         put_text(digest, self.declaration.channel_id.as_str());
         digest.update([self.disposition.tag()]);
         match &self.source {
-            GeneralLineageChannelEvidenceSource::LineageHistory {
-                history_digest, ..
-            } => {
+            GeneralLineageChannelEvidenceSource::LineageHistory { history_digest, .. } => {
                 digest.update([0]);
                 digest.update(history_digest.as_bytes());
             }
@@ -250,10 +258,8 @@ impl GeneralLineageSpeciesEvidence {
             return Err(GeneralLineageEvidenceError::ModelDigestMismatch);
         }
 
-        let applicability = GeneralLineageModelApplicabilityEvidence::materialize(
-            raw,
-            applicability_input,
-        )?;
+        let applicability =
+            GeneralLineageModelApplicabilityEvidence::materialize(raw, applicability_input)?;
         if applicability.disposition == GeneralLineageModelApplicabilityDisposition::Unavailable
             && raw.missing_policy == GeneralLineageMissingEvidencePolicy::FailClosed
         {
@@ -277,13 +283,9 @@ impl GeneralLineageSpeciesEvidence {
                 }
                 continue;
             }
-            let input = by_id
-                .remove(&declaration.channel_id)
-                .ok_or_else(|| {
-                    GeneralLineageEvidenceError::MissingChannelInput(
-                        declaration.channel_id.clone(),
-                    )
-                })?;
+            let input = by_id.remove(&declaration.channel_id).ok_or_else(|| {
+                GeneralLineageEvidenceError::MissingChannelInput(declaration.channel_id.clone())
+            })?;
             channels.push(materialize_noncore_channel(raw, declaration, input)?);
         }
         if let Some((unexpected, _)) = by_id.into_iter().next() {
@@ -393,7 +395,7 @@ impl fmt::Display for GeneralLineageSpeciesEvidenceDigest {
 }
 
 #[derive(Debug)]
-#[must_use = "validated general-lineage species evidence should gate any downstream model comparison"]
+#[must_use = "validated general-lineage species evidence should gate downstream model comparison"]
 pub struct ValidatedGeneralLineageSpeciesEvidence<'a> {
     evidence: &'a GeneralLineageSpeciesEvidence,
     evidence_digest: GeneralLineageSpeciesEvidenceDigest,
@@ -443,10 +445,9 @@ fn materialize_core_history_channel(
     {
         return Err(GeneralLineageEvidenceError::InvalidCoreChannel);
     }
-    let disposition = lineage_history_disposition(history.history().status);
     Ok(GeneralLineageChannelEvidenceRecord {
         declaration: declaration.clone(),
-        disposition,
+        disposition: lineage_history_disposition(history.history().status),
         source: GeneralLineageChannelEvidenceSource::LineageHistory {
             history: history.history().clone(),
             history_digest: history.history_digest(),
@@ -478,7 +479,7 @@ fn materialize_noncore_channel(
             }
             Ok(GeneralLineageChannelEvidenceRecord {
                 declaration: declaration.clone(),
-                disposition: reproductive_isolation_disposition(isolation.status),
+                disposition: reproductive_isolation_corroborative_disposition(isolation.status),
                 source: GeneralLineageChannelEvidenceSource::ReproductiveIsolation {
                     evidence: isolation.clone(),
                     evidence_digest: evidence.evidence_digest(),
@@ -554,7 +555,9 @@ fn validate_record_local(
             {
                 return Err(GeneralLineageEvidenceError::ReproductiveIsolationLineageMismatch);
             }
-            if record.disposition != reproductive_isolation_disposition(evidence.status) {
+            if record.disposition
+                != reproductive_isolation_corroborative_disposition(evidence.status)
+            {
                 return Err(GeneralLineageEvidenceError::ChannelDispositionInvariant);
             }
         }
@@ -591,22 +594,33 @@ fn derive_status(
 ), GeneralLineageEvidenceError> {
     match applicability.disposition {
         GeneralLineageModelApplicabilityDisposition::OutsideModelValidityDomain => {
-            return Ok((Vec::new(), Vec::new(), GeneralLineageSpeciesStatus::OutsideModelValidityDomain));
+            return Ok((
+                Vec::new(),
+                Vec::new(),
+                GeneralLineageSpeciesStatus::OutsideModelValidityDomain,
+            ));
         }
         GeneralLineageModelApplicabilityDisposition::Unavailable => {
             if design.missing_policy == GeneralLineageMissingEvidencePolicy::FailClosed {
                 return Err(GeneralLineageEvidenceError::MissingEvidenceFailClosed);
             }
-            return Ok((Vec::new(), Vec::new(), GeneralLineageSpeciesStatus::InsufficientIndependentEvidence));
+            return Ok((
+                Vec::new(),
+                Vec::new(),
+                GeneralLineageSpeciesStatus::InsufficientIndependentEvidence,
+            ));
         }
         GeneralLineageModelApplicabilityDisposition::InDomain => {}
     }
 
-    if channels
-        .iter()
-        .any(|record| record.disposition == GeneralLineageChannelDisposition::ContradictsSeparation)
-    {
-        return Ok((Vec::new(), Vec::new(), GeneralLineageSpeciesStatus::ContradictedUnderGeneralLineageModel));
+    if channels.iter().any(|record| {
+        record.disposition == GeneralLineageChannelDisposition::ContradictsSeparation
+    }) {
+        return Ok((
+            Vec::new(),
+            Vec::new(),
+            GeneralLineageSpeciesStatus::ContradictedUnderGeneralLineageModel,
+        ));
     }
 
     let core = channels
@@ -622,12 +636,22 @@ fn derive_status(
             {
                 return Err(GeneralLineageEvidenceError::MissingEvidenceFailClosed);
             }
-            return Ok((Vec::new(), vec![core.declaration.dependency_group_id.clone()], GeneralLineageSpeciesStatus::InsufficientIndependentEvidence));
+            return Ok((
+                Vec::new(),
+                vec![core.declaration.dependency_group_id.clone()],
+                GeneralLineageSpeciesStatus::InsufficientIndependentEvidence,
+            ));
         }
         GeneralLineageChannelDisposition::DoesNotSupportSeparation => {
-            return Ok((Vec::new(), Vec::new(), GeneralLineageSpeciesStatus::NotSupportedUnderGeneralLineageModel));
+            return Ok((
+                Vec::new(),
+                Vec::new(),
+                GeneralLineageSpeciesStatus::NotSupportedUnderGeneralLineageModel,
+            ));
         }
-        GeneralLineageChannelDisposition::ContradictsSeparation => unreachable!("contradiction handled above"),
+        GeneralLineageChannelDisposition::ContradictsSeparation => {
+            unreachable!("contradiction handled above")
+        }
     }
 
     let mut support = BTreeSet::new();
@@ -683,22 +707,40 @@ fn derive_status(
         .collect();
 
     if required_missing {
-        return Ok((supporting, unavailable_potential, GeneralLineageSpeciesStatus::InsufficientIndependentEvidence));
+        return Ok((
+            supporting,
+            unavailable_potential,
+            GeneralLineageSpeciesStatus::InsufficientIndependentEvidence,
+        ));
     }
     if required_not_supported {
-        return Ok((supporting, unavailable_potential, GeneralLineageSpeciesStatus::NotSupportedUnderGeneralLineageModel));
+        return Ok((
+            supporting,
+            unavailable_potential,
+            GeneralLineageSpeciesStatus::NotSupportedUnderGeneralLineageModel,
+        ));
     }
     if support.len() >= design.minimum_independent_support_groups as usize {
-        return Ok((supporting, unavailable_potential, GeneralLineageSpeciesStatus::SupportedUnderGeneralLineageModel));
+        return Ok((
+            supporting,
+            unavailable_potential,
+            GeneralLineageSpeciesStatus::SupportedUnderGeneralLineageModel,
+        ));
     }
 
-    let potential_count = support
-        .union(&unavailable)
-        .count();
+    let potential_count = support.union(&unavailable).count();
     if potential_count >= design.minimum_independent_support_groups as usize {
-        Ok((supporting, unavailable_potential, GeneralLineageSpeciesStatus::InsufficientIndependentEvidence))
+        Ok((
+            supporting,
+            unavailable_potential,
+            GeneralLineageSpeciesStatus::InsufficientIndependentEvidence,
+        ))
     } else {
-        Ok((supporting, unavailable_potential, GeneralLineageSpeciesStatus::NotSupportedUnderGeneralLineageModel))
+        Ok((
+            supporting,
+            unavailable_potential,
+            GeneralLineageSpeciesStatus::NotSupportedUnderGeneralLineageModel,
+        ))
     }
 }
 
@@ -720,18 +762,18 @@ fn lineage_history_disposition(
     }
 }
 
-fn reproductive_isolation_disposition(
+/// Complete reproductive isolation is corroborative evidence under the general-lineage family,
+/// not a defining requirement. A fertile hybrid or realized gene flow can contradict the
+/// *complete-isolation* theorem without, by itself, contradicting separately evolving lineages.
+fn reproductive_isolation_corroborative_disposition(
     status: ReproductiveIsolationStatus,
 ) -> GeneralLineageChannelDisposition {
     match status {
         ReproductiveIsolationStatus::Supported => {
             GeneralLineageChannelDisposition::SupportsSeparation
         }
-        ReproductiveIsolationStatus::NotSupported => {
+        ReproductiveIsolationStatus::NotSupported | ReproductiveIsolationStatus::Contradicted => {
             GeneralLineageChannelDisposition::DoesNotSupportSeparation
-        }
-        ReproductiveIsolationStatus::Contradicted => {
-            GeneralLineageChannelDisposition::ContradictsSeparation
         }
         ReproductiveIsolationStatus::InsufficientEvidence => {
             GeneralLineageChannelDisposition::Unavailable
