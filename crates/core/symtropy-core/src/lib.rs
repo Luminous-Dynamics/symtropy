@@ -15,6 +15,7 @@ pub use symtropy_physics as physics;
 pub mod economic;
 pub mod financial;
 pub mod industrial_ecology;
+pub mod settlement;
 
 pub mod prelude {
     pub use crate::bevy_physics::{BevyPhysicsPlugin, NoCouplingResource, PhysicsBody};
@@ -33,6 +34,10 @@ pub mod prelude {
         BlockedIndustrialFlow, DependencyShortage, IndustrialCapability, IndustrialDependencyState,
         IndustrialEcology, IndustrialEcologyError, IndustrialFlowKind, IndustrialFlowPrerequisite,
         IndustrialGovernance, IndustrialShock, IndustrialTickReport, IndustrialViabilityOutcome,
+    };
+    pub use crate::settlement::{
+        MonetarySettlement, MonetarySettlementLedger, SettlementAuthorizationRef, SettlementError,
+        SettlementId, SettlementLedgerEntry,
     };
     pub use crate::math::Point;
     pub use crate::physics::body::BodyHandle;
