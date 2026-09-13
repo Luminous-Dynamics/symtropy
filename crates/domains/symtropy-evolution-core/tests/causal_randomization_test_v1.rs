@@ -1,9 +1,7 @@
 use symtropy_evolution_core::{
     execute_causal_viability_risk_effect, execute_exact_causal_randomization_test,
-    AssignmentMaterializationQualificationAuthorityId,
-    AssignmentMechanismMaterializationQualificationRef, CausalRandomizationError,
-    CausalRandomizationTestId, CausalRandomizationTestResult, CausalSelectionEffectId,
-    CausalViabilityRiskEffect, CompleteRandomizationReferenceModel, ConsequenceAssociationEstimate,
+    CausalRandomizationError, CausalRandomizationTestId, CausalRandomizationTestResult,
+    CausalSelectionEffectId, CausalViabilityRiskEffect, ConsequenceAssociationEstimate,
     ValidatedCausalRandomizationTest, ValidatedCausalSelectionEffect,
     CAUSAL_RANDOMIZATION_MAX_ASSIGNMENTS,
 };
@@ -200,9 +198,18 @@ fn causal_randomization_probability_can_equal_b2_fisher_number_without_being_b2_
     );
     assert_eq!(result.two_sided_randomization_probability.numerator, 1);
     assert_eq!(result.two_sided_randomization_probability.denominator, 3);
-    assert_eq!(result.randomization_reference_digest(), fixture.reference.canonical_digest().unwrap());
-    assert_eq!(result.causal_effect_digest(), fixture.effect.canonical_digest().unwrap());
-    assert_eq!(result.identification_digest(), fixture.identification.canonical_digest().unwrap());
+    assert_eq!(
+        result.randomization_reference_digest(),
+        fixture.reference.canonical_digest().unwrap()
+    );
+    assert_eq!(
+        result.causal_effect_digest(),
+        fixture.effect.canonical_digest().unwrap()
+    );
+    assert_eq!(
+        result.identification_digest(),
+        fixture.identification.canonical_digest().unwrap()
+    );
 }
 
 #[test]
