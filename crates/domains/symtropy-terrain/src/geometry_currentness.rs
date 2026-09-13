@@ -100,8 +100,12 @@ fn verify_current_snapshot(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::EarthChunk;
-    use crate::geometry_kernel::{TERRAIN_GEOMETRY_VOXEL_COUNT, TerrainMaterialCode};
+    use crate::{
+        EarthChunk, SubstrateMaterial,
+        geometry_kernel::{TERRAIN_GEOMETRY_VOXEL_COUNT, TerrainMaterialCode},
+        live_geometry_provider::EarthChunkLatticeLocus,
+    };
+    use bevy::prelude::GlobalTransform;
 
     fn snapshot(
         chunk: EarthChunkLatticeCoord,
@@ -162,6 +166,72 @@ mod tests {
                 current_digest,
             })
         );
+    }
+
+    #[test]
+    fn live_wrapper_returns_fresh_snapshot_and_ignores_runtime_only_state() {
+        let mut world = World::new();
+        let entity = world
+            .spawn((
+                EarthChunk::default(),
+                EarthChunkLatticeLocus::new_for_test(7, -4, 2),
+                GlobalTransform::default(),
+            ))
+            .id();
+        let expected =
+            capture_live_terrain_geometry(&world, entity).expect("initial capture must succeed");
+
+        {
+            let mut chunk = world
+                .get_mut::<EarthChunk>(entity)
+                .expect("chunk must remain present");
+            chunk.densities[0][0][0] = 0.125;
+            chunk.is_dirty = !chunk.is_dirty;
+            chunk.is_rebuilding = !chunk.is_rebuilding;
+        }
+        world
+            .entity_mut(entity)
+            .insert(GlobalTransform::from_xyz(500.25, -31.5, 99.0));
+
+        let verified = verify_live_terrain_geometry_current(&world, entity, &expected)
+            .expect("runtime-only changes must not stale exact geometry");
+        assert_eq!(verified.chunk(), expected.chunk());
+        assert_eq!(verified.digest(), expected.digest());
+    }
+
+    #[test]
+    fn live_wrapper_detects_material_mutation_as_stale() {
+        let mut world = World::new();
+        let entity = world
+            .spawn((
+                EarthChunk::default(),
+                EarthChunkLatticeLocus::new_for_test(7, -4, 2),
+            ))
+            .id();
+        let expected =
+            capture_live_terrain_geometry(&world, entity).expect("initial capture must succeed");
+
+        world
+            .get_mut::<EarthChunk>(entity)
+            .expect("chunk must remain present")
+            .voxels[0][0][0] = SubstrateMaterial::Air;
+
+        let error = verify_live_terrain_geometry_current(&world, entity, &expected)
+            .expect_err("material mutation must stale retained geometry");
+        match error {
+            TerrainGeometryCurrentnessError::Stale {
+                expected_chunk,
+                current_chunk,
+                expected_digest,
+                current_digest,
+            } => {
+                assert_eq!(expected_chunk, expected.chunk());
+                assert_eq!(current_chunk, expected.chunk());
+                assert_eq!(expected_digest, expected.digest());
+                assert_ne!(current_digest, expected.digest());
+            }
+            other => panic!("expected stale currentness error, got {other:?}"),
+        }
     }
 
     #[test]
