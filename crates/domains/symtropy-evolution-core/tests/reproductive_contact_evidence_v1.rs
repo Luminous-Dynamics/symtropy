@@ -230,7 +230,11 @@ fn input(
     }
 }
 
-fn offspring_evidence(auth: &ContactAuthorities, label: &str) -> ObservedOffspringEvidence {
+fn offspring_evidence(
+    auth: &ContactAuthorities,
+    label: &str,
+    opportunity_id: &str,
+) -> ObservedOffspringEvidence {
     let locus = LocusId::new("hybrid-locus").unwrap();
     let a = AlleleId::new("a").unwrap();
     let b = AlleleId::new("b").unwrap();
@@ -275,6 +279,8 @@ fn offspring_evidence(auth: &ContactAuthorities, label: &str) -> ObservedOffspri
     .unwrap();
     ObservedOffspringEvidence {
         event_id,
+        parent_a: EvolutionIndividualId::new(format!("{opportunity_id}-parent-a")).unwrap(),
+        parent_b: EvolutionIndividualId::new(format!("{opportunity_id}-parent-b")).unwrap(),
         reproduction_provenance_digest: offspring.provenance.canonical_digest(),
         parentage_authority: auth.parentage.clone(),
         parentage_evidence: authority("parentage-observation", 220),
@@ -396,8 +402,23 @@ fn viable_infertile_and_fertile_hybrids_are_distinct_and_bind_real_parentage() {
     let opportunities = vec![opportunity(&auth, "hybrid", 3, ctx, 72)];
     let design = design_with(&auth, ctx, opportunities.clone());
     let current = current_design(&design, &auth, ctx, opportunities);
-    let offspring = offspring_evidence(&auth, "hybrid-event");
 
+    let mut wrong_parent = offspring_evidence(&auth, "wrong-parent-event", "hybrid");
+    wrong_parent.parent_a = EvolutionIndividualId::new("some-other-parent-a").unwrap();
+    assert!(matches!(
+        ReproductiveContactStudy::capture(
+            &current,
+            vec![input(
+                "hybrid",
+                viable_fertile_outcome(&auth, wrong_parent, 90),
+                none_gene_flow(&auth, 96),
+                &auth,
+            )],
+        ),
+        Err(ReproductiveContactEvidenceError::OffspringParentIdentityMismatch(_))
+    ));
+
+    let offspring = offspring_evidence(&auth, "hybrid-event", "hybrid");
     let infertile = ReproductiveContactStudy::capture(
         &current,
         vec![input(
