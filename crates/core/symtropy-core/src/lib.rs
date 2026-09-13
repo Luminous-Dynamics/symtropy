@@ -12,10 +12,16 @@ pub use symtropy_devconsole as devconsole;
 pub use symtropy_math as math;
 pub use symtropy_physics as physics;
 
+pub mod economic;
 pub mod industrial_ecology;
 
 pub mod prelude {
     pub use crate::bevy_physics::{BevyPhysicsPlugin, NoCouplingResource, PhysicsBody};
+    pub use crate::economic::{
+        ActorId, AssetId, CausalId, CommoditySpecId, EconomicActor, EconomicActorKind,
+        EconomicError, LocationId, LotId, StockDepletionCause, StockEvent, StockLedger,
+        StockLedgerEntry, StockLot, StockOrigin,
+    };
     pub use crate::industrial_ecology::{
         BlockedIndustrialFlow, DependencyShortage, IndustrialCapability, IndustrialDependencyState,
         IndustrialEcology, IndustrialEcologyError, IndustrialFlowKind, IndustrialFlowPrerequisite,
