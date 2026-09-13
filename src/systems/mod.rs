@@ -51,6 +51,8 @@ pub mod thermodynamic_commit;
 mod thermodynamic_commit_tests;
 pub mod thermodynamic_runtime;
 pub mod thermodynamic_schedule;
+#[cfg(test)]
+mod thermodynamic_schedule_tests;
 pub mod thermodynamic_transaction;
 #[cfg(test)]
 mod thermodynamic_runtime_tests;
