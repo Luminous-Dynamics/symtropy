@@ -2,16 +2,16 @@
 // SPDX-License-Identifier: Apache-2.0 OR MIT
 //! Evidence-bound recovery of previously modeled industrial flow capacity.
 //!
-//! A recovery contract is qualified while the target flow is still present and
-//! captures that exact positive flow as its immutable recovery ceiling. Later
-//! execution may restore a degraded flow only up to that captured ceiling and
-//! consumes an explicit reserve dependency. It cannot create a flow that was not
-//! already modeled by the bound epoch. This is deterministic simulation/evidence
-//! plumbing only; it grants no repair, manufacturing, procurement or physical
-//! control authority.
+//! A recovery contract is qualified against an exact validated epoch specification
+//! while the target flow is modeled as healthy. That exact positive flow becomes
+//! the immutable recovery ceiling. Later execution may restore a degraded flow only
+//! up to that captured ceiling and consumes an explicit reserve dependency. It
+//! cannot create a flow that was not already modeled by the bound epoch.
 
-use crate::industrial_ecology::{IndustrialFlowKind, IndustrialGovernance, IndustrialShock};
-use crate::industrial_epoch::IndustrialEpochState;
+use crate::industrial_ecology::{
+    IndustrialDependencyState, IndustrialFlowKind, IndustrialGovernance, IndustrialShock,
+};
+use crate::industrial_epoch::{IndustrialEpochSpec, IndustrialEpochState};
 
 const MAX_ID_LEN: usize = 256;
 const MAX_BINDING_LEN: usize = 1024;
@@ -87,6 +87,7 @@ pub struct IndustrialRecoveryReceipt {
 pub enum IndustrialRecoveryError {
     InvalidIdentifier,
     InvalidEvidenceBinding,
+    EpochSpecInvalid,
     ZeroReserveCost,
     UnknownTargetDependency { dependency_id: String },
     UnknownReserveDependency { dependency_id: String },
@@ -110,10 +111,14 @@ pub enum IndustrialRecoveryError {
     ReserveConsumptionInvariantViolation,
 }
 
-/// Qualify a future recovery path against an exact epoch while the modeled flow
-/// is still present. The observed positive flow becomes the immutable ceiling.
+/// Qualify a future recovery path from an immutable epoch specification.
+///
+/// The complete specification is independently build-validated first. The healthy
+/// target flow encoded by that specification becomes the recovery ceiling. A later
+/// mutable state with the same exact epoch identity may use the contract only when
+/// its current flow is below, never above, that ceiling.
 pub fn qualify_industrial_recovery_contract(
-    state: &IndustrialEpochState,
+    spec: &IndustrialEpochSpec,
     recovery_id: impl Into<String>,
     evidence_binding: impl Into<String>,
     target_dependency_id: impl Into<String>,
@@ -121,6 +126,11 @@ pub fn qualify_industrial_recovery_contract(
     reserve_dependency_id: impl Into<String>,
     reserve_units_per_recovery: u64,
 ) -> Result<IndustrialQualifiedRecoveryContract, IndustrialRecoveryError> {
+    // Build a throwaway state from a clone to prove the whole epoch specification is
+    // valid without consuming the caller's canonical template.
+    IndustrialEpochState::from_spec(spec.clone())
+        .map_err(|_| IndustrialRecoveryError::EpochSpecInvalid)?;
+
     let recovery_id = recovery_id.into();
     let evidence_binding = evidence_binding.into();
     let target_dependency_id = target_dependency_id.into();
@@ -136,13 +146,17 @@ pub fn qualify_industrial_recovery_contract(
         return Err(IndustrialRecoveryError::TargetAndReserveNotDistinct);
     }
 
-    let target = state
-        .dependency(&target_dependency_id)
+    let target = spec
+        .dependencies
+        .iter()
+        .find(|dependency| dependency.dependency_id == target_dependency_id)
         .ok_or_else(|| IndustrialRecoveryError::UnknownTargetDependency {
             dependency_id: target_dependency_id.clone(),
         })?;
-    let reserve = state
-        .dependency(&reserve_dependency_id)
+    let reserve = spec
+        .dependencies
+        .iter()
+        .find(|dependency| dependency.dependency_id == reserve_dependency_id)
         .ok_or_else(|| IndustrialRecoveryError::UnknownReserveDependency {
             dependency_id: reserve_dependency_id.clone(),
         })?;
@@ -169,8 +183,8 @@ pub fn qualify_industrial_recovery_contract(
     Ok(IndustrialQualifiedRecoveryContract {
         recovery_id,
         evidence_binding,
-        epoch_id: state.epoch_id().to_string(),
-        epoch_evidence_binding: state.evidence_binding().to_string(),
+        epoch_id: spec.epoch_id.clone(),
+        epoch_evidence_binding: spec.evidence_binding.clone(),
         target_dependency_id,
         flow_kind,
         qualified_units_per_tick,
@@ -283,10 +297,7 @@ pub fn execute_industrial_recovery(
     })
 }
 
-fn flow_units(
-    dependency: &crate::industrial_ecology::IndustrialDependencyState,
-    flow_kind: IndustrialFlowKind,
-) -> u64 {
+fn flow_units(dependency: &IndustrialDependencyState, flow_kind: IndustrialFlowKind) -> u64 {
     match flow_kind {
         IndustrialFlowKind::Production => dependency.local_production_units_per_tick,
         IndustrialFlowKind::Recycling => dependency.recycling_units_per_tick,
@@ -323,10 +334,8 @@ fn validate_binding(value: &str) -> Result<(), IndustrialRecoveryError> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::industrial_ecology::{
-        IndustrialCapability, IndustrialDependencyState, IndustrialFlowPrerequisite,
-    };
-    use crate::industrial_epoch::{IndustrialEpochFlowModel, IndustrialEpochSpec};
+    use crate::industrial_ecology::{IndustrialCapability, IndustrialFlowPrerequisite};
+    use crate::industrial_epoch::IndustrialEpochFlowModel;
     use std::collections::BTreeSet;
 
     fn dependency(
@@ -345,8 +354,8 @@ mod tests {
         }
     }
 
-    fn state() -> IndustrialEpochState {
-        IndustrialEpochState::from_spec(IndustrialEpochSpec {
+    fn spec() -> IndustrialEpochSpec {
+        IndustrialEpochSpec {
             epoch_id: "recovery-epoch-v1".into(),
             evidence_binding: "epoch:recovery-v1".into(),
             dependencies: vec![
@@ -371,15 +380,14 @@ mod tests {
                     prerequisite_dependency_ids: BTreeSet::from(["metrology".into()]),
                 },
             ]),
-        })
-        .unwrap()
+        }
     }
 
     #[test]
-    fn qualified_recovery_restores_only_previously_modeled_ceiling_and_spends_reserve() {
-        let mut state = state();
+    fn qualified_recovery_restores_only_specified_ceiling_and_spends_reserve() {
+        let spec = spec();
         let contract = qualify_industrial_recovery_contract(
-            &state,
+            &spec,
             "recover-metrology",
             "recovery:metrology:v1",
             "metrology",
@@ -389,6 +397,7 @@ mod tests {
         )
         .unwrap();
         assert_eq!(contract.qualified_units_per_tick(), 1);
+        let mut state = IndustrialEpochState::from_spec(spec).unwrap();
         state
             .apply_shock(IndustrialShock::SetLocalProduction {
                 dependency_id: "metrology".into(),
@@ -405,9 +414,9 @@ mod tests {
 
     #[test]
     fn zero_flow_cannot_be_qualified_as_future_recovery_authority() {
-        let state = state();
+        let spec = spec();
         let error = qualify_industrial_recovery_contract(
-            &state,
+            &spec,
             "recover-reserve",
             "recovery:reserve:v1",
             "repair-reserve",
@@ -424,9 +433,9 @@ mod tests {
 
     #[test]
     fn insufficient_reserve_does_not_restore_target() {
-        let mut state = state();
+        let spec = spec();
         let contract = qualify_industrial_recovery_contract(
-            &state,
+            &spec,
             "recover-metrology",
             "recovery:metrology:v1",
             "metrology",
@@ -435,6 +444,7 @@ mod tests {
             4,
         )
         .unwrap();
+        let mut state = IndustrialEpochState::from_spec(spec).unwrap();
         state
             .apply_shock(IndustrialShock::SetLocalProduction {
                 dependency_id: "metrology".into(),
@@ -447,5 +457,33 @@ mod tests {
         ));
         assert_eq!(state.dependency("metrology").unwrap().local_production_units_per_tick, 0);
         assert_eq!(state.dependency("repair-reserve").unwrap().inventory_units, 3);
+    }
+
+    #[test]
+    fn contract_cannot_be_reused_against_different_epoch_evidence() {
+        let spec = spec();
+        let contract = qualify_industrial_recovery_contract(
+            &spec,
+            "recover-metrology",
+            "recovery:metrology:v1",
+            "metrology",
+            IndustrialFlowKind::Production,
+            "repair-reserve",
+            1,
+        )
+        .unwrap();
+        let mut other = spec.clone();
+        other.evidence_binding = "epoch:recovery-v1-other".into();
+        let mut state = IndustrialEpochState::from_spec(other).unwrap();
+        state
+            .apply_shock(IndustrialShock::SetLocalProduction {
+                dependency_id: "metrology".into(),
+                units_per_tick: 0,
+            })
+            .unwrap();
+        assert_eq!(
+            execute_industrial_recovery(&mut state, &contract),
+            Err(IndustrialRecoveryError::EpochBindingMismatch)
+        );
     }
 }
