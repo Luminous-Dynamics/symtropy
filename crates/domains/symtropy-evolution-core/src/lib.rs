@@ -5,6 +5,8 @@
 //! This crate owns hereditary/population semantics only. Ecology, fitness truth,
 //! morphology, rendering, speciation, cognition, and civilization remain external authorities.
 
+mod adaptation_evidence;
+mod adaptation_replication_design;
 mod aggregate_resolution_loss;
 mod ancestry_graph;
 mod ancestry_pruning;
@@ -69,6 +71,18 @@ mod selection_translation;
 mod structured_population_process;
 mod validated_consequence;
 
+pub use adaptation_evidence::{
+    AdaptationEvidence, AdaptationEvidenceDigest, AdaptationEvidenceError,
+    AdaptationEvidenceStatus, ReplicationResponseRecord, ReplicationStudyInput,
+    ValidatedAdaptationEvidence, ADAPTATION_EVIDENCE_VERSION,
+};
+pub use adaptation_replication_design::{
+    AdaptationReplicationDesign, AdaptationReplicationDesignDigest,
+    AdaptationReplicationDesignError, AdaptationReplicationDesignId,
+    ReplicationContextCompatibility, ReplicationDesignUnitInput, ReplicationUnitDeclaration,
+    ReplicationUnitId, ValidatedAdaptationReplicationDesign,
+    ADAPTATION_REPLICATION_DESIGN_VERSION,
+};
 pub use aggregate_resolution_loss::{
     continue_projected_census_alleles_only, AggregateResolutionLossCertificate,
     AggregateResolutionLossCertificateDigest, AggregateResolutionLossError,
