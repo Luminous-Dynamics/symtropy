@@ -247,6 +247,7 @@ mod tests {
         let snapshot = capture_live_terrain_geometry(&world, entity).expect("capture must succeed");
 
         for (z, (_, expected)) in cases.iter().copied().enumerate() {
+            let z = u8::try_from(z).expect("material-case index must fit in u8");
             let observation = snapshot
                 .observe(TerrainVoxelIndex::new(0, 0, z).expect("bounded test index"))
                 .expect("observation must succeed");
