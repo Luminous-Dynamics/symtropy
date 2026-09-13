@@ -111,8 +111,7 @@ mod tests {
         chunk: EarthChunkLatticeCoord,
         edit: Option<(usize, TerrainMaterialCode)>,
     ) -> TerrainGeometrySnapshot {
-        let mut materials =
-            Box::new([TerrainMaterialCode::DOLOMITE; TERRAIN_GEOMETRY_VOXEL_COUNT]);
+        let mut materials = Box::new([TerrainMaterialCode::DOLOMITE; TERRAIN_GEOMETRY_VOXEL_COUNT]);
         if let Some((index, material)) = edit {
             materials[index] = material;
         }
@@ -126,7 +125,8 @@ mod tests {
         let current = snapshot(coord, None);
         let current_digest = current.digest();
 
-        let verified = verify_current_snapshot(&expected, current).expect("exact match must verify");
+        let verified =
+            verify_current_snapshot(&expected, current).expect("exact match must verify");
         assert_eq!(verified.chunk(), coord);
         assert_eq!(verified.digest(), current_digest);
     }
