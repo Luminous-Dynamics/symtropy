@@ -23,6 +23,7 @@ pub mod contact;
 pub mod diagnostics;
 pub mod epa;
 pub mod gjk;
+pub mod identity_authority;
 pub mod integrator;
 pub mod island;
 pub mod joints;
@@ -39,6 +40,10 @@ pub use constraint::Constraint;
 pub use contact::{CollisionEvent, ContactCache, ContactManifold, SensorEvent};
 pub use diagnostics::{InvariantDrift, InvariantSnapshot};
 pub use epa::EpaResult;
+pub use identity_authority::{
+    PhysicalAuthorityId, PhysicsAuthorityWorld, PhysicsBodySubject, PhysicsIdentityError,
+    ValidatedNetBody, WorldGenerationId,
+};
 pub use integrator::nan_zeroed_count;
 pub use joints::{BallJoint, FixedJoint, HingeJoint, MotorDrive, PrismaticJoint};
 pub use replay::{ReplayTape, WorldCommand, WorldSnapshot, apply_commands};
