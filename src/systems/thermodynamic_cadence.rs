@@ -15,8 +15,8 @@ use bevy::prelude::{Fixed, Time};
 
 use super::thermodynamic::ThermodynamicHudState;
 use super::thermodynamic_commit::{
-    CommittedThermodynamicTickReceipt, ThermodynamicCommitError,
-    finalize_operational_tick_transaction,
+    CommittedThermodynamicTickReceipt, PreparedOperationalCloseRetry, ThermodynamicCommitError,
+    finalize_operational_tick_transaction, retry_operational_tick_transaction,
 };
 use super::thermodynamic_runtime::{
     ThermodynamicRuntimeError, ThermodynamicTransactionRuntime,
@@ -67,6 +67,32 @@ pub enum CadenceBoundCommitError {
     Commit(ThermodynamicCommitError),
 }
 
+/// Retry failure that preserves the only continuation token whenever cadence
+/// admission rejects before the prepared close can be retried.
+#[derive(Debug)]
+pub enum CadenceBoundRetryError {
+    Cadence {
+        error: ThermodynamicCadenceError,
+        retry: PreparedOperationalCloseRetry,
+    },
+    Commit(ThermodynamicCommitError),
+}
+
+impl CadenceBoundRetryError {
+    /// Recover a retry token when this failure still owns one.
+    ///
+    /// A cadence rejection always returns the original token. A repeated
+    /// operational-close preflight rejection returns the newly issued token from
+    /// #880. Other internal/runtime failures do not expose a retry continuation.
+    pub fn into_retry(self) -> Option<PreparedOperationalCloseRetry> {
+        match self {
+            Self::Cadence { retry, .. } => Some(retry),
+            Self::Commit(ThermodynamicCommitError::OperationalClose(retry)) => Some(retry),
+            Self::Commit(ThermodynamicCommitError::Runtime(_)) => None,
+        }
+    }
+}
+
 #[derive(Clone, Debug, PartialEq)]
 pub struct CadenceBoundThermodynamicTickReceipt {
     pub cadence: ThermodynamicCadenceReceipt,
@@ -112,6 +138,33 @@ pub fn finalize_thermodynamic_tick_at_admitted_cadence(
         consequence_status,
     )
     .map_err(CadenceBoundCommitError::Commit)?;
+
+    Ok(CadenceBoundThermodynamicTickReceipt { cadence, committed })
+}
+
+/// Retry an already-reserved close under the same admitted cadence policy.
+///
+/// The retry token binds the original tick/generation, consequence status and
+/// friction snapshot. No replacement consequence status is accepted here. If
+/// cadence is currently invalid, the exact token is returned in the error so the
+/// scheduler can retain it across frames without reopening or relabeling history.
+pub fn retry_thermodynamic_tick_at_admitted_cadence(
+    runtime: &mut ThermodynamicTransactionRuntime,
+    physics: &mut PhysicsWorldRes,
+    hud: &mut ThermodynamicHudState,
+    handles: &[BodyHandle],
+    retry: PreparedOperationalCloseRetry,
+    fixed_time: &Time<Fixed>,
+) -> Result<CadenceBoundThermodynamicTickReceipt, CadenceBoundRetryError> {
+    let cadence = match admit_thermodynamic_cadence(fixed_time) {
+        Ok(cadence) => cadence,
+        Err(error) => {
+            return Err(CadenceBoundRetryError::Cadence { error, retry });
+        }
+    };
+
+    let committed = retry_operational_tick_transaction(runtime, physics, hud, handles, retry)
+        .map_err(CadenceBoundRetryError::Commit)?;
 
     Ok(CadenceBoundThermodynamicTickReceipt { cadence, committed })
 }
