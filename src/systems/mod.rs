@@ -68,6 +68,8 @@ pub mod thermodynamic_runtime;
 mod thermodynamic_reservation_diagnostics_tests;
 #[cfg(test)]
 mod thermodynamic_reservation_tests;
+#[cfg(test)]
+mod thermodynamic_runtime_poison_tests;
 pub mod thermodynamic_schedule;
 pub mod thermodynamic_transaction;
 #[cfg(test)]

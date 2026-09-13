@@ -64,9 +64,10 @@ fn finish_prepared_close(
     handles: &[BodyHandle],
     permit: ThermodynamicFinalizePermit,
 ) -> Result<CommittedThermodynamicTickReceipt, ThermodynamicCommitError> {
-    runtime
-        .validate_prepared_finalize(&permit)
-        .expect("exclusive prepared runtime must retain its exact friction/physical interval");
+    // Revalidation can now fail with a sticky runtime-authority poison even when
+    // the finalize permit itself is otherwise fresh. Propagate that typed state;
+    // never turn fail-stop authority into a process panic.
+    runtime.validate_prepared_finalize(&permit)?;
 
     let operational_close = match close_operational_thermodynamic_tick(physics, hud, handles) {
         Ok(receipt) => receipt,
@@ -77,9 +78,10 @@ fn finish_prepared_close(
         }
     };
 
-    let transaction = runtime
-        .commit_finalize_and_rotate(&permit)
-        .expect("exclusive validated runtime cannot change between close and commit");
+    // In ordinary single-threaded composition no runtime mutation occurs between
+    // validation and commit. Still propagate any runtime invariant failure rather
+    // than asserting it away: fail-closed state is evidence, not a crash contract.
+    let transaction = runtime.commit_finalize_and_rotate(&permit)?;
 
     Ok(CommittedThermodynamicTickReceipt {
         transaction,
