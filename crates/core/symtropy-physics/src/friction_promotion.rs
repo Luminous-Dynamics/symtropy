@@ -8,6 +8,14 @@
 //! applies the solver impulse once and returns signed evidence. This module may
 //! then promote a fresh, centered closed-pair loss into authoritative thermal
 //! state + double-entry ledger entries without applying mechanics a second time.
+//!
+//! Promotion is also explicitly exactly-once. A deterministic solver transaction
+//! identity plus persisted [`FrictionPromotionJournal`] prevents the same fresh
+//! mechanical observation from heating the reservoirs twice.
+
+use std::collections::BTreeSet;
+
+use serde::{Deserialize, Serialize};
 
 use crate::body::RigidBody;
 use crate::dissipation::{FrictionHeatResult, HeatPartition};
@@ -23,6 +31,62 @@ use crate::thermal::{ThermalBody, ThermalError};
 const ENERGY_EPSILON_J: f64 = 1.0e-15;
 const RELATIVE_TOLERANCE: f64 = 1.0e-12;
 
+/// Deterministic identity of one friction impulse inside a fixed physics tick.
+///
+/// The world integration layer owns these coordinates. They deliberately bind
+/// promotion to solver order rather than to floating-point observation content:
+/// two physically identical impulses in different ticks are distinct events,
+/// while replaying the same event is rejected.
+#[derive(
+    Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize,
+)]
+pub struct FrictionTransactionId {
+    pub fixed_tick: u64,
+    pub solver_iteration: u32,
+    pub contact_sequence: u32,
+    pub point_sequence: u32,
+}
+
+impl FrictionTransactionId {
+    pub const fn new(
+        fixed_tick: u64,
+        solver_iteration: u32,
+        contact_sequence: u32,
+        point_sequence: u32,
+    ) -> Self {
+        Self {
+            fixed_tick,
+            solver_iteration,
+            contact_sequence,
+            point_sequence,
+        }
+    }
+}
+
+/// Persistable exactly-once journal for authoritative friction promotion.
+///
+/// This journal is intentionally separate from [`EnergyTransferLedger`]: the
+/// latter records energy movements, while this set records transaction identity.
+/// #824 can later bind this same identity into the fixed-tick receipt set.
+#[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+pub struct FrictionPromotionJournal {
+    committed: BTreeSet<FrictionTransactionId>,
+}
+
+impl FrictionPromotionJournal {
+    pub fn contains(&self, transaction_id: FrictionTransactionId) -> bool {
+        self.committed.contains(&transaction_id)
+    }
+
+    pub fn len(&self) -> usize {
+        self.committed.len()
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.committed.is_empty()
+    }
+}
+
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub enum FrictionPromotionError {
     SameBody,
@@ -31,6 +95,7 @@ pub enum FrictionPromotionError {
     NonDissipativeObservation,
     InvalidObservation,
     StaleMechanicalState,
+    DuplicateTransaction,
     MissingThermalState,
     InvalidHeatPartition,
     LedgerStateMismatch,
@@ -158,8 +223,9 @@ fn validate_observation<const D: usize>(
         return Err(FrictionPromotionError::InvalidObservation);
     }
 
-    // Promotion is only valid for the immediate post-mechanical state. This
-    // catches stale observations and accidental replay after later solver work.
+    // Promotion is valid only for the immediate post-mechanical state. This
+    // catches stale observations after later solver work. Exactly-once replay
+    // of an otherwise still-fresh state is handled independently by the journal.
     let current_a = body_a.kinetic_energy();
     let current_b = body_b.kinetic_energy();
     if !current_a.is_finite()
@@ -193,14 +259,21 @@ fn validate_observation<const D: usize>(
 ///
 /// This function does **not** modify linear/angular mechanical state. Thermal
 /// state and ledger changes are staged and committed together; any error leaves
-/// both thermal reservoirs and the supplied ledger unchanged.
+/// both thermal reservoirs, the supplied ledger, and the promotion journal
+/// unchanged. A previously committed `transaction_id` is rejected before any
+/// physical mutation.
 pub fn promote_measured_friction_loss_to_heat<const D: usize>(
     body_a: &mut RigidBody<D>,
     body_b: &mut RigidBody<D>,
     observation: &FrictionMechanicalObservation<D>,
     partition: HeatPartition,
+    transaction_id: FrictionTransactionId,
+    journal: &mut FrictionPromotionJournal,
     ledger: &mut EnergyTransferLedger,
 ) -> Result<FrictionHeatResult, FrictionPromotionError> {
+    if journal.contains(transaction_id) {
+        return Err(FrictionPromotionError::DuplicateTransaction);
+    }
     if !partition.fraction_to_a.is_finite()
         || !(0.0..=1.0).contains(&partition.fraction_to_a)
     {
@@ -249,9 +322,7 @@ pub fn promote_measured_friction_loss_to_heat<const D: usize>(
     }
 
     let residual_total = residual_a + residual_b;
-    if !residual_total.is_finite()
-        || !close_enough(residual_total, dissipated, dissipated)
-    {
+    if !residual_total.is_finite() || !close_enough(residual_total, dissipated, dissipated) {
         return Err(FrictionPromotionError::LedgerStateMismatch);
     }
 
@@ -295,9 +366,13 @@ pub fn promote_measured_friction_loss_to_heat<const D: usize>(
         return Err(FrictionPromotionError::LedgerStateMismatch);
     }
 
+    // No fallible operation remains after this point. Commit the thermal
+    // reservoirs and ledger, then mark the exact solver transaction consumed.
     body_a.thermal = Some(next_thermal_a);
     body_b.thermal = Some(next_thermal_b);
     *ledger = next_ledger;
+    let inserted = journal.committed.insert(transaction_id);
+    debug_assert!(inserted, "duplicate transaction checked before commit");
 
     Ok(FrictionHeatResult {
         kinetic_change_a_joules: change_a,
@@ -337,6 +412,10 @@ mod tests {
         body
     }
 
+    fn transaction(point_sequence: u32) -> FrictionTransactionId {
+        FrictionTransactionId::new(7, 2, 3, point_sequence)
+    }
+
     #[test]
     fn already_applied_promotion_matches_existing_audited_reference() {
         let contact = SVector::zeros();
@@ -352,11 +431,14 @@ mod tests {
         )
         .unwrap();
         let mut staged_ledger = EnergyTransferLedger::new();
+        let mut journal = FrictionPromotionJournal::default();
         let staged = promote_measured_friction_loss_to_heat(
             &mut staged_a,
             &mut staged_b,
             &observation,
             HeatPartition::equal(),
+            transaction(0),
+            &mut journal,
             &mut staged_ledger,
         )
         .unwrap();
@@ -382,10 +464,57 @@ mod tests {
         assert_eq!(staged_a.thermal, reference_a.thermal);
         assert_eq!(staged_b.thermal, reference_b.thermal);
         assert_eq!(staged_ledger, reference_ledger);
+        assert!(journal.contains(transaction(0)));
     }
 
     #[test]
-    fn stale_observation_cannot_be_replayed_after_more_mechanical_work() {
+    fn duplicate_transaction_cannot_heat_the_same_fresh_state_twice() {
+        let contact = SVector::zeros();
+        let impulse = SVector::from([0.5, 0.0, 0.0]);
+        let mut a = body(1, 1.0);
+        let mut b = body(2, 0.0);
+        let observation =
+            apply_friction_impulse_measured(&mut a, &mut b, &contact, &impulse).unwrap();
+        let id = transaction(0);
+        let mut journal = FrictionPromotionJournal::default();
+        let mut ledger = EnergyTransferLedger::new();
+
+        promote_measured_friction_loss_to_heat(
+            &mut a,
+            &mut b,
+            &observation,
+            HeatPartition::equal(),
+            id,
+            &mut journal,
+            &mut ledger,
+        )
+        .unwrap();
+
+        let thermal_a = a.thermal;
+        let thermal_b = b.thermal;
+        let ledger_after_first = ledger.clone();
+        let journal_after_first = journal.clone();
+
+        assert_eq!(
+            promote_measured_friction_loss_to_heat(
+                &mut a,
+                &mut b,
+                &observation,
+                HeatPartition::equal(),
+                id,
+                &mut journal,
+                &mut ledger,
+            ),
+            Err(FrictionPromotionError::DuplicateTransaction)
+        );
+        assert_eq!(a.thermal, thermal_a);
+        assert_eq!(b.thermal, thermal_b);
+        assert_eq!(ledger, ledger_after_first);
+        assert_eq!(journal, journal_after_first);
+    }
+
+    #[test]
+    fn stale_observation_cannot_be_promoted_after_more_mechanical_work() {
         let contact = SVector::zeros();
         let impulse = SVector::from([0.5, 0.0, 0.0]);
         let mut a = body(1, 1.0);
@@ -398,6 +527,7 @@ mod tests {
         let thermal_b = b.thermal;
         let mut ledger = EnergyTransferLedger::new();
         let before_ledger = ledger.clone();
+        let mut journal = FrictionPromotionJournal::default();
 
         assert_eq!(
             promote_measured_friction_loss_to_heat(
@@ -405,6 +535,8 @@ mod tests {
                 &mut b,
                 &observation,
                 HeatPartition::equal(),
+                transaction(0),
+                &mut journal,
                 &mut ledger,
             ),
             Err(FrictionPromotionError::StaleMechanicalState)
@@ -412,6 +544,7 @@ mod tests {
         assert_eq!(a.thermal, thermal_a);
         assert_eq!(b.thermal, thermal_b);
         assert_eq!(ledger, before_ledger);
+        assert!(journal.is_empty());
     }
 
     #[test]
@@ -425,6 +558,7 @@ mod tests {
         let thermal_a = a.thermal;
         let thermal_b = b.thermal;
         let mut ledger = EnergyTransferLedger::new();
+        let mut journal = FrictionPromotionJournal::default();
 
         assert_eq!(
             promote_measured_friction_loss_to_heat(
@@ -432,6 +566,8 @@ mod tests {
                 &mut b,
                 &observation,
                 HeatPartition::equal(),
+                transaction(0),
+                &mut journal,
                 &mut ledger,
             ),
             Err(FrictionPromotionError::NonDissipativeObservation)
@@ -439,6 +575,7 @@ mod tests {
         assert_eq!(a.thermal, thermal_a);
         assert_eq!(b.thermal, thermal_b);
         assert!(ledger.is_empty());
+        assert!(journal.is_empty());
     }
 
     #[test]
@@ -452,17 +589,21 @@ mod tests {
 
         let mut wrong_b = body(3, b.linear_velocity[0]);
         let mut ledger = EnergyTransferLedger::new();
+        let mut journal = FrictionPromotionJournal::default();
         assert_eq!(
             promote_measured_friction_loss_to_heat(
                 &mut a,
                 &mut wrong_b,
                 &observation,
                 HeatPartition::equal(),
+                transaction(0),
+                &mut journal,
                 &mut ledger,
             ),
             Err(FrictionPromotionError::ObservationIdentityMismatch)
         );
         assert!(ledger.is_empty());
+        assert!(journal.is_empty());
     }
 
     #[test]
@@ -481,16 +622,20 @@ mod tests {
         );
 
         let mut ledger = EnergyTransferLedger::new();
+        let mut journal = FrictionPromotionJournal::default();
         assert_eq!(
             promote_measured_friction_loss_to_heat(
                 &mut a,
                 &mut b,
                 &observation,
                 HeatPartition::equal(),
+                transaction(0),
+                &mut journal,
                 &mut ledger,
             ),
             Err(FrictionPromotionError::RequiresCenteredClosedDynamicPair)
         );
         assert!(ledger.is_empty());
+        assert!(journal.is_empty());
     }
 }
