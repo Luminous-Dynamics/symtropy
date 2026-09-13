@@ -142,7 +142,7 @@ impl ReproductiveIsolationDesign {
             }
 
             if matches!(
-                context_compatibility,
+                &context_compatibility,
                 IsolationContextCompatibility::RequireSharedContextPolicy
             ) {
                 match &shared_context_policy {
@@ -302,7 +302,7 @@ impl ReproductiveIsolationDesign {
         }
 
         if matches!(
-            self.context_compatibility,
+            &self.context_compatibility,
             IsolationContextCompatibility::RequireSharedContextPolicy
         ) {
             let first = &self.studies[0].context_policy;
