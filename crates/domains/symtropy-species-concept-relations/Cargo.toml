@@ -1,0 +1,19 @@
+[package]
+name = "symtropy-species-concept-relations"
+version = "0.1.0"
+edition = "2024"
+license = "Apache-2.0 OR MIT"
+description = "Evidence-bearing semantic relations between Symtropy species-concept model families"
+publish = false
+
+[dependencies]
+symtropy-species-concept = { path = "../symtropy-species-concept" }
+symtropy-evolution-core = { path = "../symtropy-evolution-core" }
+serde = { version = "1", features = ["derive"] }
+sha2 = "0.10"
+
+[dev-dependencies]
+serde_json = "1"
+
+[workspace]
+resolver = "2"
