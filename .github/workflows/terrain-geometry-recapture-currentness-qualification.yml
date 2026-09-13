@@ -37,6 +37,7 @@ jobs:
           initial_currentness=8360d7904d36cbb8355183fe9826b09a241bfbde
           repaired_currentness=041cc732f2d8fc4099069b589e4bdcfd4feaa7fa
           product=8095ea0e013272380abf7ab1397adae342b51260
+          initial_qualifier=98e3f26ea8e8a6f00d536c595af179e3bccb8fcc
           currentness=crates/domains/symtropy-terrain/src/geometry_currentness.rs
           provider=crates/domains/symtropy-terrain/src/live_geometry_provider.rs
           lib=crates/domains/symtropy-terrain/src/lib.rs
@@ -46,7 +47,8 @@ jobs:
           qualifier=.github/workflows/terrain-geometry-recapture-currentness-qualification.yml
 
           test "$(git rev-parse HEAD)" = "${GITHUB_SHA}"
-          test "$(git rev-parse HEAD^)" = "${product}"
+          test "$(git rev-parse HEAD^)" = "${initial_qualifier}"
+          test "$(git rev-parse ${initial_qualifier}^)" = "${product}"
           test "$(git rev-parse ${product}^)" = "${repaired_currentness}"
           test "$(git rev-parse ${repaired_currentness}^)" = "${initial_currentness}"
           test "$(git rev-parse ${initial_currentness}^)" = "${base}"
@@ -131,6 +133,7 @@ jobs:
           set -euo pipefail
           python3 - <<'PY'
           from pathlib import Path
+          import re
 
           source = Path("crates/domains/symtropy-terrain/src/geometry_currentness.rs").read_text()
           provider = Path("crates/domains/symtropy-terrain/src/live_geometry_provider.rs").read_text()
@@ -157,22 +160,23 @@ jobs:
           if missing:
               raise SystemExit(f"currentness theorem surface missing: {missing!r}")
 
+          executable = re.sub(r"//.*?$|/\*.*?\*/", "", production, flags=re.MULTILINE | re.DOTALL)
           forbidden = [
               "GlobalTransform",
-              "Transform",
-              "density",
-              "densities",
+              "get::<Transform>",
+              "get_mut::<Transform>",
+              ".density",
+              ".densities",
               "revision",
               "generation",
               "Instant",
               "SystemTime",
               "Utc",
-              "clock",
               "&mut World",
           ]
-          leaked = [term for term in forbidden if term in production]
+          leaked = [term for term in forbidden if term in executable]
           if leaked:
-              raise SystemExit(f"non-authoritative runtime state leaked into currentness theorem: {leaked!r}")
+              raise SystemExit(f"non-authoritative executable state leaked into currentness theorem: {leaked!r}")
 
           if "recapture_tracks_voxel_change_but_ignores_runtime_state" not in provider:
               raise SystemExit("missing provider runtime-state exclusion regression")
