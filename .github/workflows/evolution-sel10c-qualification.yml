@@ -1,0 +1,212 @@
+name: Evolution SEL-10C Qualification
+
+on:
+  push:
+    branches:
+      - "ci/evolution-sel10c-qualification-v0.1"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: evolution-sel10c-qualification-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  CARGO_TERM_COLOR: always
+  PRODUCT_HEAD: ed95f8fe0b76c212d9cd7503bbfe75480f9d56af
+
+jobs:
+  qualify:
+    name: Frozen SEL-10C / Rust 1.96
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout exact frozen product head
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ env.PRODUCT_HEAD }}
+          fetch-depth: 1
+
+      - name: Assert executed product subject
+        shell: bash
+        run: |
+          set -euo pipefail
+          actual="$(git rev-parse HEAD)"
+          echo "expected_product_head=${PRODUCT_HEAD}"
+          echo "actual_product_head=${actual}"
+          test "${actual}" = "${PRODUCT_HEAD}"
+
+      - name: Set up pinned Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.96.0
+          components: clippy, rustfmt
+
+      - name: Isolate dependency-light evolution crate
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf "${RUNNER_TEMP}/symtropy-evolution-core"
+          cp -R crates/domains/symtropy-evolution-core "${RUNNER_TEMP}/symtropy-evolution-core"
+          printf 'source_product_head=%s\n' "${PRODUCT_HEAD}" > "${RUNNER_TEMP}/symtropy-evolution-core/QUALIFICATION_SUBJECT"
+
+      - name: Check formatting
+        id: fmt
+        working-directory: ${{ runner.temp }}/symtropy-evolution-core
+        run: cargo fmt --all -- --check
+
+      - name: Check all targets
+        id: check
+        working-directory: ${{ runner.temp }}/symtropy-evolution-core
+        run: cargo check --all-targets
+
+      - name: Run SEL-10C current species-status corpus
+        id: sel10c
+        working-directory: ${{ runner.temp }}/symtropy-evolution-core
+        run: cargo test --test current_species_status_v1
+
+      - name: Run SEL-10C hardening corpus
+        id: sel10c_hardening
+        working-directory: ${{ runner.temp }}/symtropy-evolution-core
+        run: cargo test --test current_species_status_hardening_v1
+
+      - name: Run SEL-10B species-model corpus
+        id: sel10b
+        working-directory: ${{ runner.temp }}/symtropy-evolution-core
+        run: cargo test --test species_model_v1
+
+      - name: Run SEL-10A lineage-divergence corpus
+        id: sel10a
+        working-directory: ${{ runner.temp }}/symtropy-evolution-core
+        run: cargo test --test lineage_divergence_history_v1
+
+      - name: Run SEL-09B reproductive-isolation corpus
+        id: sel09b
+        working-directory: ${{ runner.temp }}/symtropy-evolution-core
+        run: cargo test --test reproductive_isolation_evidence_v1
+
+      - name: Run SEL-09B sustained-barrier hardening
+        id: sel09b_sustained
+        working-directory: ${{ runner.temp }}/symtropy-evolution-core
+        run: cargo test --test reproductive_isolation_sustained_v1
+
+      - name: Run SEL-09A reproductive-contact corpus
+        id: sel09a
+        working-directory: ${{ runner.temp }}/symtropy-evolution-core
+        run: cargo test --test reproductive_contact_evidence_v1
+
+      - name: Run SEL-08B2 adaptation corpus
+        id: sel08b2
+        working-directory: ${{ runner.temp }}/symtropy-evolution-core
+        run: cargo test --test adaptation_evidence_v1
+
+      - name: Run SEL-08B1 heritable-response corpus
+        id: sel08b1
+        working-directory: ${{ runner.temp }}/symtropy-evolution-core
+        run: cargo test --test heritable_response_study_v1
+
+      - name: Run SEL-08A model-specific selection corpus
+        id: sel08a
+        working-directory: ${{ runner.temp }}/symtropy-evolution-core
+        run: cargo test --test model_specific_selection_v1
+
+      - name: Run SEL-07D2 causal-randomization corpus
+        id: sel07d2
+        working-directory: ${{ runner.temp }}/symtropy-evolution-core
+        run: cargo test --test causal_randomization_test_v1
+
+      - name: Run all tests
+        id: test_all
+        working-directory: ${{ runner.temp }}/symtropy-evolution-core
+        run: cargo test --all-targets
+
+      - name: Run strict Clippy
+        id: clippy
+        working-directory: ${{ runner.temp }}/symtropy-evolution-core
+        run: cargo clippy --all-targets -- -D warnings
+
+      - name: Emit qualification receipt
+        if: always()
+        shell: bash
+        env:
+          HELPER_HEAD: ${{ github.sha }}
+          RUN_ID: ${{ github.run_id }}
+          RUN_ATTEMPT: ${{ github.run_attempt }}
+          FMT_OUTCOME: ${{ steps.fmt.outcome }}
+          CHECK_OUTCOME: ${{ steps.check.outcome }}
+          SEL10C_OUTCOME: ${{ steps.sel10c.outcome }}
+          SEL10C_HARDENING_OUTCOME: ${{ steps.sel10c_hardening.outcome }}
+          SEL10B_OUTCOME: ${{ steps.sel10b.outcome }}
+          SEL10A_OUTCOME: ${{ steps.sel10a.outcome }}
+          SEL09B_OUTCOME: ${{ steps.sel09b.outcome }}
+          SEL09B_SUSTAINED_OUTCOME: ${{ steps.sel09b_sustained.outcome }}
+          SEL09A_OUTCOME: ${{ steps.sel09a.outcome }}
+          SEL08B2_OUTCOME: ${{ steps.sel08b2.outcome }}
+          SEL08B1_OUTCOME: ${{ steps.sel08b1.outcome }}
+          SEL08A_OUTCOME: ${{ steps.sel08a.outcome }}
+          SEL07D2_OUTCOME: ${{ steps.sel07d2.outcome }}
+          TEST_ALL_OUTCOME: ${{ steps.test_all.outcome }}
+          CLIPPY_OUTCOME: ${{ steps.clippy.outcome }}
+        run: |
+          set -euo pipefail
+          receipt="${RUNNER_TEMP}/sel10c-evidence-v01.json"
+          export RECEIPT_PATH="${receipt}"
+          python3 - <<'PY'
+          import json, os, subprocess
+          outcomes = {
+              "fmt": os.environ.get("FMT_OUTCOME", "unknown"),
+              "check": os.environ.get("CHECK_OUTCOME", "unknown"),
+              "current_species_status_v1": os.environ.get("SEL10C_OUTCOME", "unknown"),
+              "current_species_status_hardening_v1": os.environ.get("SEL10C_HARDENING_OUTCOME", "unknown"),
+              "species_model_v1": os.environ.get("SEL10B_OUTCOME", "unknown"),
+              "lineage_divergence_history_v1": os.environ.get("SEL10A_OUTCOME", "unknown"),
+              "reproductive_isolation_evidence_v1": os.environ.get("SEL09B_OUTCOME", "unknown"),
+              "reproductive_isolation_sustained_v1": os.environ.get("SEL09B_SUSTAINED_OUTCOME", "unknown"),
+              "reproductive_contact_evidence_v1": os.environ.get("SEL09A_OUTCOME", "unknown"),
+              "adaptation_evidence_v1": os.environ.get("SEL08B2_OUTCOME", "unknown"),
+              "heritable_response_study_v1": os.environ.get("SEL08B1_OUTCOME", "unknown"),
+              "model_specific_selection_v1": os.environ.get("SEL08A_OUTCOME", "unknown"),
+              "causal_randomization_test_v1": os.environ.get("SEL07D2_OUTCOME", "unknown"),
+              "test_all": os.environ.get("TEST_ALL_OUTCOME", "unknown"),
+              "clippy": os.environ.get("CLIPPY_OUTCOME", "unknown"),
+          }
+          def version(command):
+              try:
+                  return subprocess.check_output(command, text=True, stderr=subprocess.STDOUT).strip()
+              except Exception:
+                  return "unavailable"
+          receipt = {
+              "receipt_version": 1,
+              "qualification": "SEL-10C-model-bound-current-species-status",
+              "product_head": os.environ["PRODUCT_HEAD"],
+              "helper_head": os.environ["HELPER_HEAD"],
+              "workflow_run_id": int(os.environ["RUN_ID"]),
+              "workflow_run_attempt": int(os.environ["RUN_ATTEMPT"]),
+              "scope": "crates/domains/symtropy-evolution-core",
+              "declared_rust_toolchain": "1.96.0",
+              "rustc_version": version(["rustc", "--version"]),
+              "cargo_version": version(["cargo", "--version"]),
+              "step_outcomes": outcomes,
+              "overall": "pass" if all(v == "success" for v in outcomes.values()) else "fail",
+              "claim_boundary": "exact SEL-10C model-bound current species-status behavior plus named prerequisite corpora only; no historical speciation-transition authority",
+          }
+          with open(os.environ["RECEIPT_PATH"], "w", encoding="utf-8") as handle:
+              json.dump(receipt, handle, sort_keys=True, indent=2)
+              handle.write("\n")
+          print(json.dumps(receipt, sort_keys=True))
+          PY
+          sha256sum "${receipt}" > "${receipt}.sha256"
+          cat "${receipt}"
+          cat "${receipt}.sha256"
+
+      - name: Upload qualification receipt
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: sel10c-evidence-v01-${{ env.PRODUCT_HEAD }}
+          path: |
+            ${{ runner.temp }}/sel10c-evidence-v01.json
+            ${{ runner.temp }}/sel10c-evidence-v01.json.sha256
+          if-no-files-found: error
+          retention-days: 90
