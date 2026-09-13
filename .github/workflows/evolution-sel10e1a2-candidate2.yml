@@ -1,0 +1,125 @@
+name: Evolution SEL-10E1A2 Candidate 2
+
+on:
+  push:
+    branches:
+      - "ci/evolution-sel10e1a2-candidate2-v0.1"
+
+permissions:
+  contents: read
+
+env:
+  PRODUCT_HEAD: 9ad8f8556d94de67e66918403ecc346e1c30f6db
+
+jobs:
+  qualify:
+    name: Hardened SEL-10E1A2 / Rust 1.96
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout exact candidate subject
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ env.PRODUCT_HEAD }}
+          fetch-depth: 1
+      - name: Assert executed subject
+        shell: bash
+        run: test "$(git rev-parse HEAD)" = "${PRODUCT_HEAD}"
+      - name: Set up pinned Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.96.0
+          components: clippy, rustfmt
+      - name: Isolate descriptor stack
+        shell: bash
+        run: |
+          set -euo pipefail
+          root="${RUNNER_TEMP}/species-stack"
+          rm -rf "${root}"
+          mkdir -p "${root}"
+          cp -R crates/domains/symtropy-evolution-core "${root}/symtropy-evolution-core"
+          cp -R crates/domains/symtropy-species-concept "${root}/symtropy-species-concept"
+      - name: Check descriptor formatting
+        id: fmt
+        working-directory: ${{ runner.temp }}/species-stack/symtropy-species-concept
+        run: cargo fmt --all -- --check
+      - name: Check descriptor all targets
+        id: check
+        working-directory: ${{ runner.temp }}/species-stack/symtropy-species-concept
+        run: cargo check --all-targets
+      - name: Run open descriptor corpus
+        id: main
+        working-directory: ${{ runner.temp }}/species-stack/symtropy-species-concept
+        run: cargo test --test open_descriptor_v1
+      - name: Run open descriptor hardening corpus
+        id: hardening
+        working-directory: ${{ runner.temp }}/species-stack/symtropy-species-concept
+        run: cargo test --test open_descriptor_hardening_v1
+      - name: Run restored-structure hardening corpus
+        id: structural
+        working-directory: ${{ runner.temp }}/species-stack/symtropy-species-concept
+        run: cargo test --test open_descriptor_structural_hardening_v1
+      - name: Run all descriptor tests
+        id: all_tests
+        working-directory: ${{ runner.temp }}/species-stack/symtropy-species-concept
+        run: cargo test --all-targets
+      - name: Run strict descriptor Clippy
+        id: clippy
+        working-directory: ${{ runner.temp }}/species-stack/symtropy-species-concept
+        run: cargo clippy --all-targets -- -D warnings
+      - name: Run frozen E1 main corpus
+        id: e1
+        working-directory: ${{ runner.temp }}/species-stack/symtropy-evolution-core
+        run: cargo test --test species_concept_authority_v1
+      - name: Run frozen E1 hardening corpus
+        id: e1_hardening
+        working-directory: ${{ runner.temp }}/species-stack/symtropy-evolution-core
+        run: cargo test --test species_concept_authority_hardening_v1
+      - name: Emit receipt
+        if: always()
+        shell: bash
+        env:
+          HELPER_HEAD: ${{ github.sha }}
+          RUN_ID: ${{ github.run_id }}
+          FMT: ${{ steps.fmt.outcome }}
+          CHECK: ${{ steps.check.outcome }}
+          MAIN: ${{ steps.main.outcome }}
+          HARDENING: ${{ steps.hardening.outcome }}
+          STRUCTURAL: ${{ steps.structural.outcome }}
+          ALL_TESTS: ${{ steps.all_tests.outcome }}
+          CLIPPY: ${{ steps.clippy.outcome }}
+          E1: ${{ steps.e1.outcome }}
+          E1_HARDENING: ${{ steps.e1_hardening.outcome }}
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json, os
+          outcomes = {k.lower(): os.environ.get(k, "unknown") for k in [
+              "FMT", "CHECK", "MAIN", "HARDENING", "STRUCTURAL", "ALL_TESTS",
+              "CLIPPY", "E1", "E1_HARDENING"
+          ]}
+          receipt = {
+              "receipt_version": 1,
+              "qualification": "SEL-10E1A2-open-descriptor-hardened-candidate",
+              "product_head": os.environ["PRODUCT_HEAD"],
+              "helper_head": os.environ["HELPER_HEAD"],
+              "workflow_run_id": int(os.environ["RUN_ID"]),
+              "step_outcomes": outcomes,
+              "overall": "pass" if all(v == "success" for v in outcomes.values()) else "fail",
+              "claim_boundary": "candidate descriptor structure/replay only; no second concept, semantic independence, robustness, or species truth",
+          }
+          path = os.path.join(os.environ["RUNNER_TEMP"], "sel10e1a2-candidate2.json")
+          with open(path, "w", encoding="utf-8") as f:
+              json.dump(receipt, f, sort_keys=True, indent=2); f.write("\n")
+          print(json.dumps(receipt, sort_keys=True))
+          PY
+          sha256sum "${RUNNER_TEMP}/sel10e1a2-candidate2.json" > "${RUNNER_TEMP}/sel10e1a2-candidate2.json.sha256"
+      - name: Upload receipt
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: sel10e1a2-candidate2-${{ env.PRODUCT_HEAD }}
+          path: |
+            ${{ runner.temp }}/sel10e1a2-candidate2.json
+            ${{ runner.temp }}/sel10e1a2-candidate2.json.sha256
+          if-no-files-found: error
+          retention-days: 30
