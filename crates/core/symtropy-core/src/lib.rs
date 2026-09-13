@@ -20,6 +20,7 @@ pub mod economic_resolution;
 pub mod financial;
 pub mod industrial_ecology;
 pub mod settlement;
+pub mod stock_reservation;
 
 pub mod prelude {
     pub use crate::bevy_physics::{BevyPhysicsPlugin, NoCouplingResource, PhysicsBody};
@@ -65,6 +66,10 @@ pub mod prelude {
     pub use crate::settlement::{
         MonetarySettlement, MonetarySettlementLedger, SettlementAuthorizationRef, SettlementError,
         SettlementId, SettlementLedgerEntry,
+    };
+    pub use crate::stock_reservation::{
+        ReservationError, StockReservation, StockReservationEvent, StockReservationId,
+        StockReservationLedger, StockReservationLedgerEntry,
     };
     pub use crate::math::Point;
     pub use crate::physics::body::BodyHandle;
