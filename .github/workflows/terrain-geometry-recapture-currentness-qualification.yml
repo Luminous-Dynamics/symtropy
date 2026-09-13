@@ -34,10 +34,8 @@ jobs:
         run: |
           set -euo pipefail
           base=98c241aa389626eb28e3d204e6a33711c3e5b639
-          initial_currentness=8360d7904d36cbb8355183fe9826b09a241bfbde
-          repaired_currentness=041cc732f2d8fc4099069b589e4bdcfd4feaa7fa
-          product=8095ea0e013272380abf7ab1397adae342b51260
-          initial_qualifier=98e3f26ea8e8a6f00d536c595af179e3bccb8fcc
+          previous_candidate=86e2f0106ee88cd7e1a441eb3277c659b6021f64
+          semantic_audit_qualifier=f0be45d2dd8fe77eeaf333ac64520a8960df6811
           currentness=crates/domains/symtropy-terrain/src/geometry_currentness.rs
           provider=crates/domains/symtropy-terrain/src/live_geometry_provider.rs
           lib=crates/domains/symtropy-terrain/src/lib.rs
@@ -47,23 +45,23 @@ jobs:
           qualifier=.github/workflows/terrain-geometry-recapture-currentness-qualification.yml
 
           test "$(git rev-parse HEAD)" = "${GITHUB_SHA}"
-          test "$(git rev-parse HEAD^)" = "${initial_qualifier}"
-          test "$(git rev-parse ${initial_qualifier}^)" = "${product}"
-          test "$(git rev-parse ${product}^)" = "${repaired_currentness}"
-          test "$(git rev-parse ${repaired_currentness}^)" = "${initial_currentness}"
-          test "$(git rev-parse ${initial_currentness}^)" = "${base}"
+          test "$(git rev-parse HEAD^)" = "${previous_candidate}"
           git merge-base --is-ancestor "${base}" HEAD
+          git merge-base --is-ancestor "${semantic_audit_qualifier}" HEAD
 
-          test "$(git rev-parse HEAD:${currentness})" = "83b6f452edfd6dc4f6327136f90191beb0d986dd"
-          test "$(git rev-parse HEAD:${provider})" = "9893d8caffabd3a55c83b47f2a133eba4e982887"
+          test "$(git rev-parse HEAD:${currentness})" = "6276f2f5fc2176be1de068896fb6557ab8cc05a4"
+          test "$(git rev-parse HEAD:${provider})" = "543858ec733429ac41d39bd52eb2e39210806280"
           test "$(git rev-parse HEAD:${lib})" = "5f7d78067026f39b242823fcf7457fbeb2da10ed"
           test "$(git rev-parse HEAD:${kernel})" = "8d3e1213eacdeddf693cd2d1f82670d6ed832161"
           test "$(git rev-parse HEAD:${manifest})" = "187fe4020a0c0048ab36404e219a7a5698a856d1"
           test "$(git rev-parse HEAD:Cargo.lock)" = "62c6eb098b3f6fffdea8a175a0f3afb33423b17b"
           test "$(git rev-parse HEAD:${locus_qualifier})" = "470631655c976b3aff4587b12ead996a05bc127c"
 
+          qualifier_delta="$(git diff --name-only ${previous_candidate}..HEAD)"
+          test "${qualifier_delta}" = "${qualifier}"
+
           actual="$(git diff --name-only ${base}..HEAD | sort)"
-          expected="$(printf '%s\n' "${qualifier}" "${currentness}" "${lib}" | sort)"
+          expected="$(printf '%s\n' "${qualifier}" "${currentness}" "${provider}" "${lib}" | sort)"
           test "${actual}" = "${expected}"
 
           echo "TERRAIN_CURRENTNESS_HEAD=${GITHUB_SHA}"
@@ -106,6 +104,7 @@ jobs:
           set -euo pipefail
           rustfmt --edition 2024 --check \
             crates/domains/symtropy-terrain/src/geometry_currentness.rs \
+            crates/domains/symtropy-terrain/src/live_geometry_provider.rs \
             crates/domains/symtropy-terrain/src/lib.rs
 
       - name: Verify frozen selected dependency graph
@@ -178,6 +177,11 @@ jobs:
           if leaked:
               raise SystemExit(f"non-authoritative executable state leaked into currentness theorem: {leaked!r}")
 
+          fixture = "#[cfg(test)]\n    pub(crate) const fn new_for_test("
+          if fixture not in provider:
+              raise SystemExit("missing cfg(test)-only crate locus fixture")
+          if provider.count("pub(crate) const fn new_for_test(") != 1:
+              raise SystemExit("unexpected locus test-fixture multiplicity")
           if "recapture_tracks_voxel_change_but_ignores_runtime_state" not in provider:
               raise SystemExit("missing provider runtime-state exclusion regression")
           if "mod geometry_currentness;" not in lib:
@@ -191,6 +195,8 @@ jobs:
               "equal_exact_observation_is_current_and_returns_fresh_value",
               "material_change_is_stale",
               "lattice_locus_change_is_stale_even_with_same_materials",
+              "live_wrapper_returns_fresh_snapshot_and_ignores_runtime_only_state",
+              "live_wrapper_detects_material_mutation_as_stale",
               "live_wrapper_fails_closed_when_chunk_has_no_authoritative_locus",
           ]
           missing_tests = [name for name in required_tests if name not in tests]
@@ -200,10 +206,12 @@ jobs:
           print("TERRAIN_CURRENTNESS_RECAPTURE=PASS")
           print("TERRAIN_CURRENTNESS_EXACT_LOCUS_AND_DIGEST=PASS")
           print("TERRAIN_CURRENTNESS_RETURNS_FRESH_SNAPSHOT=PASS")
+          print("TERRAIN_CURRENTNESS_RUNTIME_ONLY_STATE_EXCLUDED=PASS")
+          print("TERRAIN_CURRENTNESS_TEST_LOCUS_FIXTURE=CFG_TEST_ONLY")
           print("TERRAIN_CURRENTNESS_REVISION_CLOCK_TRANSFORM_AUTHORITY=ABSENT")
           PY
 
-      - name: Prove public downstream currentness surface compiles
+      - name: Prove downstream currentness surface without locus capability
         shell: bash
         run: |
           set -euo pipefail
@@ -219,6 +227,7 @@ jobs:
           [dependencies]
           symtropy-terrain = { path = "${GITHUB_WORKSPACE}/crates/domains/symtropy-terrain" }
           EOF
+
           cat > "${consumer}/src/main.rs" <<'RS'
           use symtropy_terrain::{
               TerrainGeometryCurrentnessError, verify_live_terrain_geometry_current,
@@ -230,8 +239,33 @@ jobs:
           }
           RS
           cargo check --manifest-path "${consumer}/Cargo.toml"
+
+          run_forbidden() {
+              local name="$1"
+              local stderr="${RUNNER_TEMP}/${name}.stderr"
+              if cargo check --manifest-path "${consumer}/Cargo.toml" --locked >"${RUNNER_TEMP}/${name}.stdout" 2>"${stderr}"; then
+                  echo "forbidden external locus access compiled: ${name}" >&2
+                  exit 1
+              fi
+              grep -Fq "EarthChunkLatticeLocus" "${stderr}"
+              echo "${name}_STDERR_SHA256=$(sha256sum "${stderr}" | awk '{print $1}')"
+          }
+
+          cat > "${consumer}/src/main.rs" <<'RS'
+          use symtropy_terrain::EarthChunkLatticeLocus;
+          fn main() { let _ = core::mem::size_of::<EarthChunkLatticeLocus>(); }
+          RS
+          run_forbidden public_reexport_path
+
+          cat > "${consumer}/src/main.rs" <<'RS'
+          use symtropy_terrain::live_geometry_provider::EarthChunkLatticeLocus;
+          fn main() { let _ = core::mem::size_of::<EarthChunkLatticeLocus>(); }
+          RS
+          run_forbidden private_module_path
+
           test "$(git hash-object Cargo.lock)" = "${root_lock_before}"
           echo "TERRAIN_CURRENTNESS_EXTERNAL_SURFACE=PASS"
+          echo "TERRAIN_CURRENTNESS_EXTERNAL_LOCUS_AUTHORITY=DENIED"
 
       - name: Unchanged-subject postflight
         shell: bash
@@ -239,8 +273,8 @@ jobs:
           set -euo pipefail
           test -z "$(git status --porcelain)"
           test "$(git rev-parse HEAD)" = "${GITHUB_SHA}"
-          test "$(git rev-parse HEAD:crates/domains/symtropy-terrain/src/geometry_currentness.rs)" = "83b6f452edfd6dc4f6327136f90191beb0d986dd"
-          test "$(git rev-parse HEAD:crates/domains/symtropy-terrain/src/live_geometry_provider.rs)" = "9893d8caffabd3a55c83b47f2a133eba4e982887"
+          test "$(git rev-parse HEAD:crates/domains/symtropy-terrain/src/geometry_currentness.rs)" = "6276f2f5fc2176be1de068896fb6557ab8cc05a4"
+          test "$(git rev-parse HEAD:crates/domains/symtropy-terrain/src/live_geometry_provider.rs)" = "543858ec733429ac41d39bd52eb2e39210806280"
           test "$(git rev-parse HEAD:crates/domains/symtropy-terrain/src/lib.rs)" = "5f7d78067026f39b242823fcf7457fbeb2da10ed"
           test "$(git rev-parse HEAD:crates/domains/symtropy-terrain/src/geometry_kernel.rs)" = "8d3e1213eacdeddf693cd2d1f82670d6ed832161"
           test "$(git rev-parse HEAD:crates/domains/symtropy-terrain/Cargo.toml)" = "187fe4020a0c0048ab36404e219a7a5698a856d1"
