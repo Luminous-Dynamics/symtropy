@@ -201,6 +201,31 @@ fn mechanical_state_is_finite<const D: usize>(body: &RigidBody<D>) -> bool {
         && body.inv_inertia.iter().all(|value| value.is_finite())
 }
 
+/// Apply the exact equal-and-opposite linear + lever-arm angular transition used
+/// by the current world friction solver.
+///
+/// This is crate-private on purpose: it is a shared mechanics kernel for the core
+/// solver/evidence implementation, not a public authority surface. The caller is
+/// responsible for validating the request and for any rollback/evidence protocol
+/// around the transition. Positions are not mutated here.
+pub(crate) fn apply_friction_impulse_mechanics<const D: usize>(
+    body_a: &mut RigidBody<D>,
+    body_b: &mut RigidBody<D>,
+    contact_point: &SVector<f64, D>,
+    impulse_on_b: &SVector<f64, D>,
+) {
+    let r_a = *contact_point - body_a.position();
+    let r_b = *contact_point - body_b.position();
+
+    integrator::apply_impulse(body_a, &(-*impulse_on_b));
+    integrator::apply_impulse(body_b, impulse_on_b);
+
+    let torque_a = Bivector::from_wedge(&(-*impulse_on_b), &r_a);
+    let torque_b = Bivector::from_wedge(impulse_on_b, &r_b);
+    integrator::apply_angular_impulse(body_a, &torque_a);
+    integrator::apply_angular_impulse(body_b, &torque_b);
+}
+
 /// Classify whether the contact geometry/body types are eligible for the
 /// currently bounded physical friction theorem.
 pub fn classify_friction_evidence_regime<const D: usize>(
@@ -259,16 +284,7 @@ fn apply_friction_impulse_measured_inner<const D: usize>(
     let snapshot_a = MechanicalSnapshot::capture(body_a);
     let snapshot_b = MechanicalSnapshot::capture(body_b);
 
-    let r_a = *contact_point - body_a.position();
-    let r_b = *contact_point - body_b.position();
-
-    integrator::apply_impulse(body_a, &(-*impulse_on_b));
-    integrator::apply_impulse(body_b, impulse_on_b);
-
-    let torque_a = Bivector::from_wedge(&(-*impulse_on_b), &r_a);
-    let torque_b = Bivector::from_wedge(impulse_on_b, &r_b);
-    integrator::apply_angular_impulse(body_a, &torque_a);
-    integrator::apply_angular_impulse(body_b, &torque_b);
+    apply_friction_impulse_mechanics(body_a, body_b, contact_point, impulse_on_b);
 
     if !mechanical_state_is_finite(body_a) || !mechanical_state_is_finite(body_b) {
         snapshot_a.restore(body_a);
@@ -374,6 +390,36 @@ mod tests {
         );
         body.linear_velocity[0] = velocity_x;
         body
+    }
+
+    #[test]
+    fn shared_mechanical_kernel_matches_measured_path_state() {
+        let contact = SVector::from([0.0, 0.5, 0.0]);
+        let impulse = SVector::from([0.0, -0.1, 0.0]);
+
+        let mut direct_a = body(1, [-1.0, 0.0, 0.0], 1.0);
+        let mut direct_b = body(2, [1.0, 0.0, 0.0], 0.0);
+        let mut measured_a = body(1, [-1.0, 0.0, 0.0], 1.0);
+        let mut measured_b = body(2, [1.0, 0.0, 0.0], 0.0);
+
+        apply_friction_impulse_mechanics(
+            &mut direct_a,
+            &mut direct_b,
+            &contact,
+            &impulse,
+        );
+        apply_friction_impulse_measured(
+            &mut measured_a,
+            &mut measured_b,
+            &contact,
+            &impulse,
+        )
+        .unwrap();
+
+        assert_eq!(direct_a.linear_velocity, measured_a.linear_velocity);
+        assert_eq!(direct_b.linear_velocity, measured_b.linear_velocity);
+        assert_eq!(direct_a.angular_velocity, measured_a.angular_velocity);
+        assert_eq!(direct_b.angular_velocity, measured_b.angular_velocity);
     }
 
     #[test]
