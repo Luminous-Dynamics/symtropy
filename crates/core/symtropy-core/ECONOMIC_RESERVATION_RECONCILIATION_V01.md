@@ -26,13 +26,37 @@ and S.detail == Aggregated:
 
 A coarse snapshot with active exact-lot reservations and no retained-detail reference fails closed.
 
-A pure ECON-03 resolution transition must additionally satisfy:
+A pure ECON-03 resolution transition must additionally satisfy both conservation equalities:
 
 ```text
+economic_manifest_before == economic_manifest_after
+
+and
+
 reservation_manifest_before == reservation_manifest_after
 ```
 
-Creating, releasing, resizing, reassigning, or otherwise changing a reservation is an economic mutation, not a representation/fidelity transition.
+Creating, releasing, resizing, reassigning, or otherwise changing a reservation is an economic mutation, not a representation/fidelity transition. Likewise, changing stock, accounts, currencies, monetary supply, or canonical economic history cannot be hidden inside a reservation-side fidelity rebind.
+
+`ReservationResolutionBinding` therefore carries the exact `EconomicConservationManifest` and exact `ReservationConservationManifest` it was attached to. `rebind_unchanged(...)` requires both to remain identical.
+
+## Exact-stock / snapshot binding
+
+Before accepting a reservation overlay for an ECON-03 snapshot, ECON-04C independently reconstructs the snapshot's stock conservation projection from the supplied exact `StockLedger`:
+
+```text
+exact StockLedger
+    ↓ group by
+CommoditySpecId × owner × custodian × location
+    ↓
+StockConservationRecord[]
+```
+
+That reconstructed stock vector must equal `snapshot.manifest().stock` exactly.
+
+This prevents a valid reservation ledger from being attached to a coarse stock manifest from another economic instant. Because ECON-04B separately proves each active reservation against the same exact `StockLedger`, every active reserved lot is thereby anchored to stock that is actually represented in the bound ECON-03 snapshot.
+
+ECON-04C does not independently reconstruct finance in this helper. Instead, the complete ECON-03 manifest captured at the source binding must remain byte-for-byte semantically unchanged across a pure rebind.
 
 ## Reservation conservation manifest
 
@@ -63,6 +87,8 @@ ECON-03 v0.1 already permits an aggregated snapshot to bind `DetailRetentionRef`
 
 ECON-04C requires such a reference when active reservations exist, because the exact `LotId` cannot be reconstructed uniquely from an aggregate stock conservation key.
 
+When no active reservations exist, ECON-04C does not strengthen ECON-03's existing detail-discard policy merely because the reservation reconciliation layer is present.
+
 ECON-04C does not cryptographically verify the external retained-detail archive. It inherits ECON-03's v0.1 evidence boundary.
 
 ## Partition theorem
@@ -80,6 +106,8 @@ reservation authority for that LotId
 ```
 
 No independent reservation-placement policy exists in v0.1.
+
+Before partitioning reservation authority, ECON-04C reconstructs the ECON-03B global manifest and again requires its stock projection to equal the supplied exact `StockLedger`. This prevents a reservation partition from being generated against a partition set for another economic instant.
 
 This prevents stock authority from living in region A while its authoritative encumbrance silently lives in region B.
 
@@ -112,6 +140,8 @@ A repartition may change which `EconomicPartitionId` contains an active claim be
 - purpose/authorization references;
 - canonical reservation history.
 
+ECON-03C remains authoritative for proving that the underlying economic partition sets represent the same economic instant. ECON-04C proves that reservation authority follows that already-qualified stock placement without semantic change.
+
 ## Canonicality
 
 Partition IDs are canonical and strictly ordered.
@@ -136,8 +166,10 @@ Qualification must include at least:
 - aggregated snapshot with active reservations and no retention fails closed;
 - aggregated snapshot with active reservations and retained detail is admitted;
 - no-active-reservation aggregated snapshot may discard detail under existing ECON-03 policy;
+- binding rejects an exact `StockLedger` whose reconstructed stock manifest differs from the bound ECON-03 snapshot;
 - pure resolution rebind rejects reservation mutation;
-- exact unchanged reservation manifest survives resolution rebind;
+- pure resolution rebind rejects ECON-03 economic-manifest mutation even when reservation state is unchanged;
+- exact unchanged reservation manifest and economic manifest survive resolution rebind;
 - active reservation co-partitions with its stock conservation key;
 - empty economic partitions remain represented in reservation partition topology;
 - reservation authority duplicated across partitions is rejected;
@@ -152,6 +184,7 @@ ECON-04C does NOT establish:
 
 - cryptographic integrity/availability of retained external fine detail;
 - a new ECON-03 stock aggregation algorithm;
+- an independent reconstruction of the complete financial system during `bind(...)`;
 - reservation aggregation that discards exact `LotId` identity;
 - cross-host consensus or Byzantine replication;
 - market, order, contract, escrow, settlement, or shipment semantics;
@@ -177,6 +210,8 @@ ECON-04B     exact stock reservations
       ↓
 ECON-04C     reservation fidelity + partition conservation
       ↓
+ECON-04D     atomic encumbrance handoff
+      ↓
 ECON-05      spatial logistics
 ```
 
@@ -184,4 +219,4 @@ ECON-05      spatial logistics
 
 Source review and PR mergeability are not executable qualification.
 
-A qualifying helper must freeze the exact ECON-04C product head and exact ECON-04B parent, run dedicated resolution/partition/repartition reservation corpora, regress ECON-04B and the complete prerequisite ECON stack, run formatting/check/strict-Clippy, statically audit the no-aggregation/no-hidden-stock-mutation boundary, and emit machine-readable exact-lineage evidence.
+A qualifying helper must freeze the exact ECON-04C product head and exact ECON-04B parent, run dedicated resolution/partition/repartition reservation corpora including dual-manifest drift attacks, regress ECON-04B and the complete prerequisite ECON stack, run formatting/check/strict-Clippy, statically audit the no-aggregation/no-hidden-stock-mutation boundary and dual-manifest binding, and emit machine-readable exact-lineage evidence.
