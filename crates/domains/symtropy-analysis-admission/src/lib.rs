@@ -28,10 +28,12 @@ use symtropy_game_state::StableId;
 
 pub const ADMISSION_POLICY_SCHEMA_VERSION: u32 = 1;
 pub const VERIFICATION_REGISTRY_SCHEMA_VERSION: u32 = 1;
+pub const VERIFICATION_RECORD_SCHEMA_VERSION: u32 = 1;
 pub const ADMISSION_RECEIPT_SCHEMA_VERSION: u32 = 1;
 
 const POLICY_DIGEST_DOMAIN: &[u8] = b"symtropy.analysis.admission-policy.v1\0";
 const REGISTRY_DIGEST_DOMAIN: &[u8] = b"symtropy.analysis.verification-registry.v1\0";
+const RECORD_DIGEST_DOMAIN: &[u8] = b"symtropy.analysis.verification-record.v1\0";
 const RECEIPT_DIGEST_DOMAIN: &[u8] = b"symtropy.analysis.admission-receipt.v1\0";
 const SHA256_ALGORITHM_ID: &str = "sha256";
 
@@ -283,6 +285,35 @@ impl FacetVerificationInput {
             .validate()
             .map_err(AdmissionError::Analysis)
     }
+
+    /// Return the standalone content digest of this exact verification record.
+    ///
+    /// The record body bytes are encoded by the same function used inside the
+    /// verification-registry preimage; only this standalone digest prepends its
+    /// own record domain and schema version.
+    pub fn content_digest(&self) -> Result<ContentDigest, AdmissionError> {
+        self.validate()?;
+        let mut bytes = Vec::new();
+        bytes.extend_from_slice(RECORD_DIGEST_DOMAIN);
+        bytes.extend_from_slice(&VERIFICATION_RECORD_SCHEMA_VERSION.to_le_bytes());
+        encode_verification_record(&mut bytes, self)?;
+        sha256_digest(&bytes)
+    }
+
+    /// Return the exact standalone reference used by external authentication.
+    pub fn exact_ref(&self) -> Result<VerificationRecordRef, AdmissionError> {
+        Ok(VerificationRecordRef {
+            id: self.id.clone(),
+            content_digest: self.content_digest()?,
+        })
+    }
+}
+
+/// Content-bound reference to one exact verification record.
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
+pub struct VerificationRecordRef {
+    pub id: VerificationRecordId,
+    pub content_digest: ContentDigest,
 }
 
 /// Exact sealed registry of externally verified facet assertions.
@@ -408,19 +439,7 @@ impl VerificationRegistry {
         encode_admission_policy_ref(&mut bytes, &self.policy)?;
         encode_len(&mut bytes, self.records.len())?;
         for record in &self.records {
-            encode_stable_id(&mut bytes, record.id.stable_id());
-            encode_stable_id(&mut bytes, &record.facet_id);
-            encode_digest(&mut bytes, &record.qualification_cut_digest)?;
-            encode_evidence_ref(&mut bytes, &record.subject_evidence)?;
-            encode_exact_ref(&mut bytes, &record.assessment_attestation)?;
-            encode_exact_ref(&mut bytes, &record.issuer_profile)?;
-            encode_exact_ref(&mut bytes, &record.verifier_profile)?;
-            encode_exact_ref(&mut bytes, &record.verification_receipt)?;
-            bytes.push(match record.status {
-                VerificationStatus::Verified => 0,
-                VerificationStatus::Revoked => 1,
-                VerificationStatus::Superseded => 2,
-            });
+            encode_verification_record(&mut bytes, record)?;
         }
         Ok(bytes)
     }
@@ -666,6 +685,27 @@ fn admission_receipt_digest(
         encode_exact_ref(&mut bytes, verification_receipt)?;
     }
     sha256_digest(&bytes)
+}
+
+fn encode_verification_record(
+    bytes: &mut Vec<u8>,
+    record: &FacetVerificationInput,
+) -> Result<(), AdmissionError> {
+    record.validate()?;
+    encode_stable_id(bytes, record.id.stable_id());
+    encode_stable_id(bytes, &record.facet_id);
+    encode_digest(bytes, &record.qualification_cut_digest)?;
+    encode_evidence_ref(bytes, &record.subject_evidence)?;
+    encode_exact_ref(bytes, &record.assessment_attestation)?;
+    encode_exact_ref(bytes, &record.issuer_profile)?;
+    encode_exact_ref(bytes, &record.verifier_profile)?;
+    encode_exact_ref(bytes, &record.verification_receipt)?;
+    bytes.push(match record.status {
+        VerificationStatus::Verified => 0,
+        VerificationStatus::Revoked => 1,
+        VerificationStatus::Superseded => 2,
+    });
+    Ok(())
 }
 
 fn compare_record_key(
@@ -1503,5 +1543,132 @@ mod tests {
             &registry,
         );
         assert!(result.is_err());
+    }
+
+    #[test]
+    fn standalone_verification_record_digest_is_frozen_and_content_bound() {
+        let request = request();
+        let base_evidence = evidence(&request, "solver-a", true);
+        let profile = profile();
+        let cut = cut(
+            &request,
+            &base_evidence,
+            &profile,
+            FacetDisposition::Established,
+        );
+        let policy = admission_policy(&profile);
+        let base = verification_records(
+            &request,
+            &base_evidence,
+            &profile,
+            &cut,
+            &policy,
+            VerificationStatus::Verified,
+        )
+        .remove(0);
+        let base_digest = base.content_digest().unwrap();
+        println!("A21_RECORD_GOLDEN={}", base_digest.value);
+        assert_eq!(
+            base_digest.value,
+            "99bfd0f638d56a2053968186b48b0e2c98fbeb66658ac341a1dd8b6dbc89759f"
+        );
+
+        let mut variants = Vec::new();
+        let mut changed = base.clone();
+        changed.id = VerificationRecordId::new(id("verification:changed"));
+        variants.push(changed);
+
+        let mut changed = base.clone();
+        changed.facet_id = id("facet:changed");
+        variants.push(changed);
+
+        let mut changed = base.clone();
+        changed.qualification_cut_digest = digest("different-cut");
+        variants.push(changed);
+
+        let mut changed = base.clone();
+        let different_evidence = evidence(&request, "solver-b", true);
+        changed.subject_evidence = different_evidence
+            .rebind(&request)
+            .unwrap()
+            .exact_ref()
+            .unwrap();
+        variants.push(changed);
+
+        let mut changed = base.clone();
+        changed.assessment_attestation = exact(
+            "authority:model-qualification",
+            "attestation:changed",
+            "changed-assessment",
+        );
+        variants.push(changed);
+
+        let mut changed = base.clone();
+        changed.issuer_profile = exact(
+            "authority:model-qualification",
+            "issuer-profile:changed",
+            "changed-issuer",
+        );
+        variants.push(changed);
+
+        let mut changed = base.clone();
+        changed.verifier_profile = exact(
+            "authority:xenia",
+            "verifier-profile:changed",
+            "changed-verifier",
+        );
+        variants.push(changed);
+
+        let mut changed = base.clone();
+        changed.verification_receipt =
+            exact("authority:xenia", "receipt:changed", "changed-receipt");
+        variants.push(changed);
+
+        let mut changed = base.clone();
+        changed.status = VerificationStatus::Revoked;
+        variants.push(changed);
+
+        for variant in variants {
+            assert_ne!(variant.content_digest().unwrap(), base_digest);
+        }
+        assert_eq!(base.exact_ref().unwrap().content_digest, base_digest);
+    }
+
+    #[test]
+    fn registry_embeds_the_exact_standalone_record_body_encoding() {
+        let request = request();
+        let evidence = evidence(&request, "solver-a", true);
+        let profile = profile();
+        let cut = cut(&request, &evidence, &profile, FacetDisposition::Established);
+        let policy = admission_policy(&profile);
+        let record = verification_records(
+            &request,
+            &evidence,
+            &profile,
+            &cut,
+            &policy,
+            VerificationStatus::Verified,
+        )
+        .remove(0);
+
+        let mut shared = Vec::new();
+        encode_verification_record(&mut shared, &record).unwrap();
+
+        let mut legacy = Vec::new();
+        encode_stable_id(&mut legacy, record.id.stable_id());
+        encode_stable_id(&mut legacy, &record.facet_id);
+        encode_digest(&mut legacy, &record.qualification_cut_digest).unwrap();
+        encode_evidence_ref(&mut legacy, &record.subject_evidence).unwrap();
+        encode_exact_ref(&mut legacy, &record.assessment_attestation).unwrap();
+        encode_exact_ref(&mut legacy, &record.issuer_profile).unwrap();
+        encode_exact_ref(&mut legacy, &record.verifier_profile).unwrap();
+        encode_exact_ref(&mut legacy, &record.verification_receipt).unwrap();
+        legacy.push(match record.status {
+            VerificationStatus::Verified => 0,
+            VerificationStatus::Revoked => 1,
+            VerificationStatus::Superseded => 2,
+        });
+
+        assert_eq!(shared, legacy);
     }
 }
