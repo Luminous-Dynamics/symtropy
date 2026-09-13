@@ -1,0 +1,18 @@
+[package]
+name = "symtropy-species-concept"
+version = "0.1.0"
+edition = "2024"
+license = "Apache-2.0 OR MIT"
+description = "Open model-family descriptor and semantic-relation waist for Symtropy species-concept reasoning"
+publish = false
+
+[dependencies]
+symtropy-evolution-core = { path = "../symtropy-evolution-core" }
+serde = { version = "1", features = ["derive"] }
+sha2 = "0.10"
+
+[dev-dependencies]
+serde_json = "1"
+
+[workspace]
+resolver = "2"
