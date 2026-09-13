@@ -123,5 +123,5 @@ fn injected_measurement_has_no_audited_heat_equivalent() {
     assert_eq!(error, symtropy_physics::DissipationError::NonDissipativeImpulse);
     assert_eq!(audited_a.linear_velocity, before_a);
     assert_eq!(audited_b.linear_velocity, before_b);
-    assert!(ledger.transfers().is_empty());
+    assert!(ledger.is_empty());
 }
