@@ -22,6 +22,7 @@ pub mod financial;
 pub mod freight_load;
 pub mod industrial_ecology;
 pub mod reservation_reconciliation;
+pub mod reserved_lot_isolation;
 pub mod settlement;
 pub mod stock_reservation;
 
@@ -76,6 +77,9 @@ pub mod prelude {
         reconcile_reservation_repartition, ReservationConservationManifest,
         ReservationPartitionManifest, ReservationPartitionSet, ReservationReconciliationError,
         ReservationResolutionBinding,
+    };
+    pub use crate::reserved_lot_isolation::{
+        isolate_reserved_lot, ReservedLotIsolationError, ReservedLotIsolationReceipt,
     };
     pub use crate::settlement::{
         MonetarySettlement, MonetarySettlementLedger, SettlementAuthorizationRef, SettlementError,
