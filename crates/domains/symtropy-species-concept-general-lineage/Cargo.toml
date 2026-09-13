@@ -1,0 +1,19 @@
+[package]
+name = "symtropy-species-concept-general-lineage"
+version = "0.1.0"
+edition = "2024"
+license = "Apache-2.0 OR MIT"
+description = "General-lineage species concept authority and multi-evidence current-status reasoning for Symtropy"
+publish = false
+
+[dependencies]
+symtropy-evolution-core = { path = "../symtropy-evolution-core" }
+symtropy-species-concept = { path = "../symtropy-species-concept" }
+serde = { version = "1", features = ["derive"] }
+sha2 = "0.10"
+
+[dev-dependencies]
+serde_json = "1"
+
+[workspace]
+resolver = "2"
