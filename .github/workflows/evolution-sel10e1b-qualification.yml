@@ -1,0 +1,134 @@
+name: Evolution SEL-10E1B Qualification
+
+on:
+  push:
+    branches:
+      - "ci/evolution-sel10e1b-qualification-v0.1"
+
+permissions:
+  contents: read
+
+env:
+  PRODUCT_HEAD: 6aafa8cba53cce79b01b87562b3d8b4d5518de59
+
+jobs:
+  qualify:
+    name: Frozen SEL-10E1B / Rust 1.96
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout exact frozen product subject
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ env.PRODUCT_HEAD }}
+          fetch-depth: 1
+      - name: Assert executed subject
+        shell: bash
+        run: test "$(git rev-parse HEAD)" = "${PRODUCT_HEAD}"
+      - name: Set up pinned Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.96.0
+          components: clippy, rustfmt
+      - name: Isolate species-concept stack
+        shell: bash
+        run: |
+          set -euo pipefail
+          root="${RUNNER_TEMP}/general-lineage-stack"
+          rm -rf "${root}"
+          mkdir -p "${root}"
+          cp -R crates/domains/symtropy-evolution-core "${root}/symtropy-evolution-core"
+          cp -R crates/domains/symtropy-species-concept "${root}/symtropy-species-concept"
+          cp -R crates/domains/symtropy-species-concept-general-lineage "${root}/symtropy-species-concept-general-lineage"
+      - name: Check general-lineage formatting
+        id: fmt
+        working-directory: ${{ runner.temp }}/general-lineage-stack/symtropy-species-concept-general-lineage
+        run: cargo fmt --all -- --check
+      - name: Check general-lineage all targets
+        id: check
+        working-directory: ${{ runner.temp }}/general-lineage-stack/symtropy-species-concept-general-lineage
+        run: cargo check --all-targets
+      - name: Run general-lineage main corpus
+        id: main
+        working-directory: ${{ runner.temp }}/general-lineage-stack/symtropy-species-concept-general-lineage
+        run: cargo test --test general_lineage_v1
+      - name: Run general-lineage hardening corpus
+        id: hardening
+        working-directory: ${{ runner.temp }}/general-lineage-stack/symtropy-species-concept-general-lineage
+        run: cargo test --test general_lineage_hardening_v1
+      - name: Run dependency-grouping corpus
+        id: grouping
+        working-directory: ${{ runner.temp }}/general-lineage-stack/symtropy-species-concept-general-lineage
+        run: cargo test --test general_lineage_dependency_grouping_v1
+      - name: Run native SEL-09B adapter corpus
+        id: isolation
+        working-directory: ${{ runner.temp }}/general-lineage-stack/symtropy-species-concept-general-lineage
+        run: cargo test --test general_lineage_native_isolation_v1
+      - name: Run all general-lineage targets
+        id: all_tests
+        working-directory: ${{ runner.temp }}/general-lineage-stack/symtropy-species-concept-general-lineage
+        run: cargo test --all-targets
+      - name: Run strict general-lineage Clippy
+        id: clippy
+        working-directory: ${{ runner.temp }}/general-lineage-stack/symtropy-species-concept-general-lineage
+        run: cargo clippy --all-targets -- -D warnings
+      - name: Run frozen open-descriptor corpora
+        id: descriptor
+        working-directory: ${{ runner.temp }}/general-lineage-stack/symtropy-species-concept
+        run: |
+          cargo test --test open_descriptor_v1
+          cargo test --test open_descriptor_hardening_v1
+          cargo test --test open_descriptor_structural_hardening_v1
+      - name: Run frozen E1 concept-authority corpora
+        id: e1
+        working-directory: ${{ runner.temp }}/general-lineage-stack/symtropy-evolution-core
+        run: |
+          cargo test --test species_concept_authority_v1
+          cargo test --test species_concept_authority_hardening_v1
+      - name: Emit qualification receipt
+        if: always()
+        shell: bash
+        env:
+          HELPER_HEAD: ${{ github.sha }}
+          RUN_ID: ${{ github.run_id }}
+          FMT: ${{ steps.fmt.outcome }}
+          CHECK: ${{ steps.check.outcome }}
+          MAIN: ${{ steps.main.outcome }}
+          HARDENING: ${{ steps.hardening.outcome }}
+          GROUPING: ${{ steps.grouping.outcome }}
+          ISOLATION: ${{ steps.isolation.outcome }}
+          ALL_TESTS: ${{ steps.all_tests.outcome }}
+          CLIPPY: ${{ steps.clippy.outcome }}
+          DESCRIPTOR: ${{ steps.descriptor.outcome }}
+          E1: ${{ steps.e1.outcome }}
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json, os
+          keys = ["FMT", "CHECK", "MAIN", "HARDENING", "GROUPING", "ISOLATION", "ALL_TESTS", "CLIPPY", "DESCRIPTOR", "E1"]
+          outcomes = {k.lower(): os.environ.get(k, "unknown") for k in keys}
+          receipt = {
+              "receipt_version": 1,
+              "qualification": "SEL-10E1B-general-lineage",
+              "product_head": os.environ["PRODUCT_HEAD"],
+              "helper_head": os.environ["HELPER_HEAD"],
+              "workflow_run_id": int(os.environ["RUN_ID"]),
+              "step_outcomes": outcomes,
+              "overall": "pass" if all(v == "success" for v in outcomes.values()) else "fail",
+              "claim_boundary": "current general-lineage family only; dependency-group qualification is anti-pseudoreplication, not statistical/cross-model independence; no historical speciation, nomenclature, or universal taxonomy truth",
+          }
+          path = os.path.join(os.environ["RUNNER_TEMP"], "sel10e1b-qualification.json")
+          with open(path, "w", encoding="utf-8") as f:
+              json.dump(receipt, f, sort_keys=True, indent=2); f.write("\n")
+          print(json.dumps(receipt, sort_keys=True))
+          PY
+          sha256sum "${RUNNER_TEMP}/sel10e1b-qualification.json" > "${RUNNER_TEMP}/sel10e1b-qualification.json.sha256"
+      - name: Upload qualification receipt
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: sel10e1b-qualification-${{ env.PRODUCT_HEAD }}
+          path: |
+            ${{ runner.temp }}/sel10e1b-qualification.json
+            ${{ runner.temp }}/sel10e1b-qualification.json.sha256
+          if-no-files-found: error
+          retention-days: 30
