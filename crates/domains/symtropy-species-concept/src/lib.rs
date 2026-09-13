@@ -21,7 +21,6 @@ const DESCRIPTOR_DOMAIN: &[u8] = b"symtropy:species-concept:family-descriptor:v1
 const SCHEMA_DOMAIN: &[u8] = b"symtropy:species-concept:schema:v1\0";
 const TERM_DOMAIN: &[u8] = b"symtropy:species-concept:schema-term:v1\0";
 const CAPABILITY_DOMAIN: &[u8] = b"symtropy:species-concept:capability:v1\0";
-const STRICT_SOURCE_DOMAIN: &[u8] = b"symtropy:species-concept:strict-bsc-source:v1\0";
 const RULE_DOMAIN: &[u8] = b"symtropy:species-concept:descriptor-rule:v1\0";
 const RULE_SPEC: &[u8] = b"open species-concept descriptor v1: family-neutral identity/provenance only; source authority remains family-specific; schemas use canonical open IDs and digest-bound terms; capability membership is explicit; persisted descriptor is not current scientific authority; strict-BSC projection preserves exact E1 conceptual and authority identities; no species outcome, no historical transition outcome, no cross-model robustness, no universal taxonomy claim";
 
@@ -113,9 +112,7 @@ impl OpenSpeciesConceptIdentity {
         family_version: u32,
         content_digest: OpenSpeciesConceptContentDigest,
     ) -> Result<Self, DescriptorError> {
-        if family_version == 0 {
-            return Err(DescriptorError::ZeroVersion("family_version"));
-        }
+        require_nonzero(family_version, "family_version")?;
         Ok(Self {
             family_id,
             family_version,
@@ -143,14 +140,16 @@ impl SpeciesConceptCapabilityRef {
         revision: u32,
         content_digest: SpeciesConceptCapabilityContentDigest,
     ) -> Result<Self, DescriptorError> {
-        if revision == 0 {
-            return Err(DescriptorError::ZeroVersion("capability_revision"));
-        }
+        require_nonzero(revision, "capability_revision")?;
         Ok(Self {
             capability_id,
             revision,
             content_digest,
         })
+    }
+
+    fn validate_local(&self) -> Result<(), DescriptorError> {
+        require_nonzero(self.revision, "capability_revision")
     }
 
     fn put(&self, digest: &mut Sha256) {
@@ -173,14 +172,16 @@ impl SpeciesConceptSchemaTerm {
         revision: u32,
         content_digest: SpeciesConceptSchemaTermDigest,
     ) -> Result<Self, DescriptorError> {
-        if revision == 0 {
-            return Err(DescriptorError::ZeroVersion("schema_term_revision"));
-        }
+        require_nonzero(revision, "schema_term_revision")?;
         Ok(Self {
             term_id,
             revision,
             content_digest,
         })
+    }
+
+    fn validate_local(&self) -> Result<(), DescriptorError> {
+        require_nonzero(self.revision, "schema_term_revision")
     }
 
     fn put(&self, digest: &mut Sha256) {
@@ -204,10 +205,11 @@ impl SpeciesConceptSchema {
         revision: u32,
         terms: impl IntoIterator<Item = SpeciesConceptSchemaTerm>,
     ) -> Result<Self, DescriptorError> {
-        if revision == 0 {
-            return Err(DescriptorError::ZeroVersion("schema_revision"));
-        }
+        require_nonzero(revision, "schema_revision")?;
         let mut terms: Vec<_> = terms.into_iter().collect();
+        for term in &terms {
+            term.validate_local()?;
+        }
         terms.sort();
         validate_unique_terms(&terms)?;
         let content_digest = derive_schema_digest(&schema_id, revision, &terms);
@@ -220,8 +222,9 @@ impl SpeciesConceptSchema {
     }
 
     fn validate_local(&self) -> Result<(), DescriptorError> {
-        if self.revision == 0 {
-            return Err(DescriptorError::ZeroVersion("schema_revision"));
+        require_nonzero(self.revision, "schema_revision")?;
+        for term in &self.terms {
+            term.validate_local()?;
         }
         let mut canonical = self.terms.clone();
         canonical.sort();
@@ -270,9 +273,7 @@ impl SpeciesConceptSourceAuthorityRef {
         validity_domain_digest: SpeciesConceptSourceValidityDomainDigest,
         source_adapter_rule_authority: AnalysisAuthorityRef,
     ) -> Result<Self, DescriptorError> {
-        if source_kind_version == 0 {
-            return Err(DescriptorError::ZeroVersion("source_kind_version"));
-        }
+        require_nonzero(source_kind_version, "source_kind_version")?;
         Ok(Self {
             source_kind_id,
             source_kind_version,
@@ -281,6 +282,10 @@ impl SpeciesConceptSourceAuthorityRef {
             validity_domain_digest,
             source_adapter_rule_authority,
         })
+    }
+
+    fn validate_local(&self) -> Result<(), DescriptorError> {
+        require_nonzero(self.source_kind_version, "source_kind_version")
     }
 
     fn put(&self, digest: &mut Sha256) {
@@ -317,6 +322,9 @@ impl SpeciesConceptFamilyDescriptor {
         descriptor_rule_authority: AnalysisAuthorityRef,
     ) -> Result<Self, DescriptorError> {
         let mut capabilities: Vec<_> = capabilities.into_iter().collect();
+        for capability in &capabilities {
+            capability.validate_local()?;
+        }
         capabilities.sort();
         validate_unique_capabilities(&capabilities)?;
         let descriptor = Self {
@@ -352,7 +360,6 @@ impl SpeciesConceptFamilyDescriptor {
             SpeciesConceptSourceValidityDomainDigest::new(*authority.validity_domain_digest.as_bytes()),
             authority.adapter_rule_authority.clone(),
         )?;
-
         let capabilities = authority
             .capabilities
             .iter()
@@ -396,11 +403,13 @@ impl SpeciesConceptFamilyDescriptor {
         if self.descriptor_version != SPECIES_CONCEPT_FAMILY_DESCRIPTOR_VERSION {
             return Err(DescriptorError::UnsupportedVersion(self.descriptor_version));
         }
-        if self.conceptual_identity.family_version == 0 {
-            return Err(DescriptorError::ZeroVersion("family_version"));
+        require_nonzero(self.conceptual_identity.family_version, "family_version")?;
+        self.source_authority.validate_local()?;
+        if self.capabilities.is_empty() {
+            return Err(DescriptorError::EmptyCapabilitySurface);
         }
-        if self.source_authority.source_kind_version == 0 {
-            return Err(DescriptorError::ZeroVersion("source_kind_version"));
+        for capability in &self.capabilities {
+            capability.validate_local()?;
         }
         let mut canonical_capabilities = self.capabilities.clone();
         canonical_capabilities.sort();
@@ -410,6 +419,9 @@ impl SpeciesConceptFamilyDescriptor {
         }
         self.evidence_schema.validate_local()?;
         self.domain_schema.validate_local()?;
+        if self.evidence_schema.terms.is_empty() {
+            return Err(DescriptorError::EmptyEvidenceSchema);
+        }
         if self.evidence_schema.schema_id == self.domain_schema.schema_id {
             return Err(DescriptorError::SchemaRoleCollision);
         }
@@ -603,6 +615,14 @@ fn validate_unique_capabilities(
     Ok(())
 }
 
+fn require_nonzero(value: u32, field: &'static str) -> Result<(), DescriptorError> {
+    if value == 0 {
+        Err(DescriptorError::ZeroVersion(field))
+    } else {
+        Ok(())
+    }
+}
+
 fn validate_id(field: &'static str, value: &str) -> Result<(), DescriptorError> {
     if value.is_empty()
         || value.len() > 160
@@ -651,6 +671,8 @@ pub enum DescriptorError {
     },
     ZeroVersion(&'static str),
     UnsupportedVersion(u32),
+    EmptyCapabilitySurface,
+    EmptyEvidenceSchema,
     DuplicateCapability(SpeciesConceptCapabilityId),
     DuplicateSchemaTerm(SpeciesConceptSchemaTermId),
     NonCanonicalCapabilityOrder,
@@ -670,6 +692,12 @@ impl fmt::Display for DescriptorError {
             Self::ZeroVersion(field) => write!(f, "{field} must be nonzero"),
             Self::UnsupportedVersion(version) => {
                 write!(f, "unsupported species-concept descriptor version {version}")
+            }
+            Self::EmptyCapabilitySurface => {
+                write!(f, "species-concept descriptor must expose at least one capability")
+            }
+            Self::EmptyEvidenceSchema => {
+                write!(f, "species-concept descriptor must expose a nonempty evidence schema")
             }
             Self::DuplicateCapability(id) => {
                 write!(f, "duplicate species-concept capability {}", id.as_str())
