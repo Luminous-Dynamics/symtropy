@@ -18,6 +18,8 @@ mod causal_effect;
 mod causal_identification;
 mod causal_randomization;
 mod complete_randomization;
+mod current_species_design;
+mod current_species_status;
 mod chromosome_map;
 mod chromosome_recombination;
 mod chromosome_stochastic;
@@ -154,6 +156,18 @@ pub use complete_randomization::{
     IndividualAssignmentExchangeabilityRef, RandomizationCausalEstimand, RealizedAssignmentUnit,
     ValidatedCompleteRandomizationReference, COMPLETE_RANDOMIZATION_MAX_UNITS,
     COMPLETE_RANDOMIZATION_REFERENCE_VERSION,
+};
+pub use current_species_design::{
+    strict_biological_species_classification_rule_v1, CurrentSpeciesClassificationDesign,
+    CurrentSpeciesClassificationDesignDigest, CurrentSpeciesClassificationDesignError,
+    CurrentSpeciesClassificationId, ValidatedCurrentSpeciesClassificationDesign,
+    CURRENT_SPECIES_CLASSIFICATION_DESIGN_VERSION,
+};
+pub use current_species_status::{
+    CurrentSpeciesStatus, CurrentSpeciesStatusError, CurrentSpeciesStatusEvidence,
+    CurrentSpeciesStatusEvidenceDigest, SpeciesModelApplicabilityDisposition,
+    SpeciesModelApplicabilityEvidence, SpeciesModelApplicabilityInput,
+    ValidatedCurrentSpeciesStatus, CURRENT_SPECIES_STATUS_EVIDENCE_VERSION,
 };
 pub use chromosome_map::{
     ChromosomeDefinition, ChromosomeLocus, ChromosomeMap, ChromosomeMapDigest,
