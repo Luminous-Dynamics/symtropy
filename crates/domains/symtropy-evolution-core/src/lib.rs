@@ -14,6 +14,7 @@ mod ancestry_state;
 mod canonical;
 mod causal_effect;
 mod causal_identification;
+mod causal_randomization;
 mod complete_randomization;
 mod chromosome_map;
 mod chromosome_recombination;
@@ -114,6 +115,14 @@ pub use causal_identification::{
     IdentificationEvidenceQualificationRef, IdentificationEvidenceRef,
     ValidatedCausalSelectionIdentification, CAUSAL_SELECTION_IDENTIFICATION_VERSION,
 };
+pub use causal_randomization::{
+    causal_randomization_test_method_v1, execute_exact_causal_randomization_test,
+    CausalRandomizationError, CausalRandomizationStatistic, CausalRandomizationTestDigest,
+    CausalRandomizationTestResult, CausalSharpNull, CausalTwoSidedOrdering,
+    ExactRandomizationProbability, ExactRandomizationStatistic, RandomizationStatisticMultiplicity,
+    ValidatedCausalRandomizationTest, CAUSAL_RANDOMIZATION_MAX_ASSIGNMENTS,
+    CAUSAL_RANDOMIZATION_TEST_VERSION,
+};
 pub use complete_randomization::{
     AssignmentMechanismMaterializationQualificationRef, AssignmentMechanismMaterializationRef,
     AssignmentSupportPolicy, AssignmentUnitPolicy, CompleteRandomizationError,
@@ -207,15 +216,16 @@ pub use heredity::{HereditaryState, HereditaryStateDigest};
 pub use ids::{
     AlleleId, AnalysisMethodId, AncestryCopyId, AssignmentExchangeabilityAuthorityId,
     AssignmentMaterializationAuthorityId, AssignmentMaterializationQualificationAuthorityId,
-    CalibrationAuthorityId, CausalSelectionEffectId, CausalSelectionIdentificationId,
-    ChromosomeId, ChromosomeMapId, ChromosomeRecombinationProfileId, ComparisonAuthorityId,
-    CompleteRandomizationReferenceId, ConsequenceObservationId, ConsequenceWindowId,
-    DemographicEventId, EvidenceProtocolId, EvolutionExperimentId, EvolutionIndividualId,
-    EvolutionaryContextId, ExclusionReasonId, ExposureEvidenceSourceId, HereditarySchemaId,
-    IdentificationEvidenceAuthorityId, IdentificationQualificationAuthorityId, LocusId,
-    OperatorProfileId, PhenotypeEvidenceSourceId, PopulationId, PopulationProcessProfileId,
-    PredictorDefinitionId, PopulationStructureProfileId, PopulationTransitionId,
-    ReproductionEventId, SelectionComparisonDesignId,
+    CalibrationAuthorityId, CausalRandomizationTestId, CausalSelectionEffectId,
+    CausalSelectionIdentificationId, ChromosomeId, ChromosomeMapId,
+    ChromosomeRecombinationProfileId, ComparisonAuthorityId, CompleteRandomizationReferenceId,
+    ConsequenceObservationId, ConsequenceWindowId, DemographicEventId, EvidenceProtocolId,
+    EvolutionExperimentId, EvolutionIndividualId, EvolutionaryContextId, ExclusionReasonId,
+    ExposureEvidenceSourceId, HereditarySchemaId, IdentificationEvidenceAuthorityId,
+    IdentificationQualificationAuthorityId, LocusId, OperatorProfileId,
+    PhenotypeEvidenceSourceId, PopulationId, PopulationProcessProfileId, PredictorDefinitionId,
+    PopulationStructureProfileId, PopulationTransitionId, ReproductionEventId,
+    SelectionComparisonDesignId,
 };
 pub use linked_census_projection::{
     project_declared_linked_census, LinkedCensusProjection, LinkedCensusProjectionDigest,
