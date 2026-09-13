@@ -16,6 +16,7 @@
 //! - `angular_dynamics` — validated 3D principal-inertia/asymmetric-top reference dynamics
 //! - `world_energy_3d` — canonical checked 3D kinetic-energy evidence over live world state
 //! - `friction_evidence` — signed pre/post mechanical evidence around one friction impulse
+//! - `friction_promotion` — audited heat/ledger promotion of an already-applied measured loss
 //! - `thermal` — conservative thermodynamic primitives and conductive exchange
 //! - `energy` — deterministic double-entry accounting for cross-domain energy transfers
 //! - `energy_checked` — overflow-aware deterministic ledger reductions
@@ -42,6 +43,7 @@ pub mod energy_state;
 pub mod epa;
 pub mod external_heat;
 pub mod friction_evidence;
+pub mod friction_promotion;
 pub mod gjk;
 pub mod integrator;
 pub mod island;
@@ -91,6 +93,9 @@ pub use friction_evidence::{
     FrictionEvidenceError, FrictionEvidenceRegime, FrictionMechanicalDelta,
     FrictionMechanicalObservation, apply_friction_impulse_measured,
     classify_friction_evidence_regime,
+};
+pub use friction_promotion::{
+    FrictionPromotionError, promote_measured_friction_loss_to_heat,
 };
 pub use integrator::nan_zeroed_count;
 pub use joints::{BallJoint, FixedJoint, HingeJoint, MotorDrive, PrismaticJoint};
