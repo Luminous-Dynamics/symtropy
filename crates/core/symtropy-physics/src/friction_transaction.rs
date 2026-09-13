@@ -3,14 +3,14 @@
 // Commercial licensing: see COMMERCIAL_LICENSE.md at repository root
 //! Exactly-once lifecycle authority for friction solver transactions.
 //!
-//! A deterministic friction transaction advances monotonically:
+//! A deterministic friction transaction advances monotonically from `Absent`
+//! to `Applied`, then to exactly one terminal outcome:
 //!
-//! `Absent -> Applied -> Promoted`.
+//! - `Promoted` when a centered closed-pair measured loss is committed as heat;
+//! - `DiagnosticOnly(reason)` when the observation itself proves physical heat
+//!   promotion is not currently admissible.
 //!
-//! The `Applied` transition occurs only after the mechanical impulse has been
-//! successfully applied and bound to its solver identity. Physical promotion is
-//! performed by the sibling `friction_promotion` module, which may advance only
-//! `Applied -> Promoted` after thermal + ledger reconciliation succeeds.
+//! A centered measured loss cannot be terminalized as diagnostic-only.
 
 use std::collections::BTreeMap;
 
@@ -19,22 +19,39 @@ use serde::{Deserialize, Serialize};
 
 use crate::body::RigidBody;
 use crate::friction_evidence::{
-    BoundFrictionMechanicalObservation, FrictionEvidenceError, FrictionMechanicalObservation,
-    FrictionTransactionId, apply_friction_impulse_measured_bound,
+    BoundFrictionMechanicalObservation, FrictionEvidenceError, FrictionEvidenceRegime,
+    FrictionMechanicalDelta, FrictionMechanicalObservation, FrictionTransactionId,
+    apply_friction_impulse_measured_bound,
 };
+
+#[derive(Copy, Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub enum FrictionDiagnosticReason {
+    OffCenterUnqualified,
+    ExternalBoundaryUnqualified,
+    SolverInjection,
+    Neutral,
+}
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub enum FrictionTransactionPhase {
     Applied,
     Promoted,
+    DiagnosticOnly(FrictionDiagnosticReason),
+}
+
+impl FrictionTransactionPhase {
+    pub fn is_terminal(self) -> bool {
+        !matches!(self, Self::Applied)
+    }
 }
 
 /// Canonical lifecycle journal for friction transactions within a physics run.
 ///
 /// The map is deterministic and serializable so the owning fixed-tick world can
 /// include it in replay/checkpoint evidence. Public APIs are read-only except for
-/// applying a new mechanical transaction; only the in-crate physical promotion
-/// layer can advance an `Applied` transaction to `Promoted`.
+/// applying a new mechanical transaction and safely terminalizing an observation
+/// that is provably non-promotable. Only the in-crate physical promotion layer
+/// can advance `Applied -> Promoted`.
 #[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub struct FrictionTransactionJournal {
     phases: BTreeMap<FrictionTransactionId, FrictionTransactionPhase>,
@@ -60,8 +77,8 @@ impl FrictionTransactionJournal {
         self.phases.is_empty()
     }
 
-    /// Number of mechanical transactions that have not yet completed physical
-    /// promotion. A fixed-tick physical finalize gate can require this to be 0.
+    /// Number of transactions that have applied mechanics but have not yet
+    /// reached an admissible terminal physical/diagnostic outcome.
     pub fn pending_application_count(&self) -> usize {
         self.phases
             .values()
@@ -82,8 +99,9 @@ impl FrictionTransactionJournal {
                 *phase = FrictionTransactionPhase::Promoted;
                 Ok(())
             }
-            Some(FrictionTransactionPhase::Promoted) => {
-                Err(FrictionTransactionTransitionError::AlreadyPromoted)
+            Some(FrictionTransactionPhase::Promoted)
+            | Some(FrictionTransactionPhase::DiagnosticOnly(_)) => {
+                Err(FrictionTransactionTransitionError::AlreadyTerminal)
             }
             None => Err(FrictionTransactionTransitionError::UnknownTransaction),
         }
@@ -93,7 +111,7 @@ impl FrictionTransactionJournal {
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub enum FrictionTransactionTransitionError {
     UnknownTransaction,
-    AlreadyPromoted,
+    AlreadyTerminal,
 }
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
@@ -106,6 +124,14 @@ impl From<FrictionEvidenceError> for FrictionApplicationError {
     fn from(value: FrictionEvidenceError) -> Self {
         Self::Evidence(value)
     }
+}
+
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
+pub enum FrictionDiagnosticFinalizeError {
+    UnknownTransaction,
+    AlreadyTerminal,
+    RequiresPhysicalPromotion,
+    ObservationStateMismatch,
 }
 
 /// Non-cloneable proof that the canonical lifecycle journal admitted one
@@ -168,16 +194,73 @@ pub fn apply_friction_impulse_once<const D: usize>(
     Ok(AppliedFrictionTransaction { bound })
 }
 
+fn diagnostic_reason<const D: usize>(
+    applied: &AppliedFrictionTransaction<D>,
+) -> Result<FrictionDiagnosticReason, FrictionDiagnosticFinalizeError> {
+    let observation = applied.observation();
+    match observation.regime {
+        FrictionEvidenceRegime::OffCenterUnqualified => {
+            Ok(FrictionDiagnosticReason::OffCenterUnqualified)
+        }
+        FrictionEvidenceRegime::ExternalBoundaryUnqualified => {
+            Ok(FrictionDiagnosticReason::ExternalBoundaryUnqualified)
+        }
+        FrictionEvidenceRegime::CenteredClosedDynamicPair => match observation.delta {
+            FrictionMechanicalDelta::SolverInjection { .. } => {
+                Ok(FrictionDiagnosticReason::SolverInjection)
+            }
+            FrictionMechanicalDelta::Neutral => Ok(FrictionDiagnosticReason::Neutral),
+            FrictionMechanicalDelta::DissipationCandidate { .. } => {
+                Err(FrictionDiagnosticFinalizeError::RequiresPhysicalPromotion)
+            }
+        },
+    }
+}
+
+/// Terminalize a transaction without physical heat only when its bound
+/// observation proves that heat promotion is not currently admissible.
+///
+/// This is not a caller-selected escape hatch: the reason is derived from the
+/// immutable observation. A centered measured loss is rejected and remains
+/// pending until it is physically promoted or the enclosing tick is rolled back.
+pub fn finalize_friction_diagnostic<const D: usize>(
+    body_a: &RigidBody<D>,
+    body_b: &RigidBody<D>,
+    applied: &AppliedFrictionTransaction<D>,
+    journal: &mut FrictionTransactionJournal,
+) -> Result<FrictionDiagnosticReason, FrictionDiagnosticFinalizeError> {
+    let id = applied.transaction_id();
+    match journal.phase(id) {
+        Some(FrictionTransactionPhase::Applied) => {}
+        Some(FrictionTransactionPhase::Promoted)
+        | Some(FrictionTransactionPhase::DiagnosticOnly(_)) => {
+            return Err(FrictionDiagnosticFinalizeError::AlreadyTerminal);
+        }
+        None => return Err(FrictionDiagnosticFinalizeError::UnknownTransaction),
+    }
+
+    if !applied.matches_post_state(body_a, body_b) {
+        return Err(FrictionDiagnosticFinalizeError::ObservationStateMismatch);
+    }
+
+    let reason = diagnostic_reason(applied)?;
+    let previous = journal
+        .phases
+        .insert(id, FrictionTransactionPhase::DiagnosticOnly(reason));
+    debug_assert_eq!(previous, Some(FrictionTransactionPhase::Applied));
+    Ok(reason)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
     use crate::body::BodyHandle;
     use symtropy_math::Point;
 
-    fn body(handle: usize, velocity_x: f64) -> RigidBody<3> {
+    fn body(handle: usize, position: [f64; 3], velocity_x: f64) -> RigidBody<3> {
         let mut body = RigidBody::dynamic_sphere(
             BodyHandle(handle),
-            Point::origin(),
+            Point::new(position),
             0.5,
             1.0,
         );
@@ -188,8 +271,8 @@ mod tests {
     #[test]
     fn duplicate_identity_is_rejected_before_second_mechanical_mutation() {
         let id = FrictionTransactionId::new(12, 1, 3, 0);
-        let mut a = body(1, 1.0);
-        let mut b = body(2, 0.0);
+        let mut a = body(1, [0.0, 0.0, 0.0], 1.0);
+        let mut b = body(2, [0.0, 0.0, 0.0], 0.0);
         let mut journal = FrictionTransactionJournal::new();
 
         let first = apply_friction_impulse_once(
@@ -224,10 +307,86 @@ mod tests {
     }
 
     #[test]
+    fn off_center_observation_can_terminalize_as_diagnostic() {
+        let id = FrictionTransactionId::new(13, 0, 1, 2);
+        let mut a = body(1, [-1.0, 0.0, 0.0], 1.0);
+        let mut b = body(2, [1.0, 0.0, 0.0], 0.0);
+        let mut journal = FrictionTransactionJournal::new();
+        let applied = apply_friction_impulse_once(
+            &mut a,
+            &mut b,
+            &SVector::from([0.0, 0.5, 0.0]),
+            &SVector::from([0.0, -0.1, 0.0]),
+            id,
+            &mut journal,
+        )
+        .unwrap();
+
+        assert_eq!(
+            finalize_friction_diagnostic(&a, &b, &applied, &mut journal).unwrap(),
+            FrictionDiagnosticReason::OffCenterUnqualified
+        );
+        assert_eq!(
+            journal.phase(id),
+            Some(FrictionTransactionPhase::DiagnosticOnly(
+                FrictionDiagnosticReason::OffCenterUnqualified
+            ))
+        );
+        assert!(journal.is_complete_for_finalize());
+    }
+
+    #[test]
+    fn centered_measured_loss_cannot_escape_through_diagnostic_path() {
+        let id = FrictionTransactionId::new(14, 0, 0, 0);
+        let mut a = body(1, [0.0, 0.0, 0.0], 1.0);
+        let mut b = body(2, [0.0, 0.0, 0.0], 0.0);
+        let mut journal = FrictionTransactionJournal::new();
+        let applied = apply_friction_impulse_once(
+            &mut a,
+            &mut b,
+            &SVector::zeros(),
+            &SVector::from([0.5, 0.0, 0.0]),
+            id,
+            &mut journal,
+        )
+        .unwrap();
+
+        assert_eq!(
+            finalize_friction_diagnostic(&a, &b, &applied, &mut journal),
+            Err(FrictionDiagnosticFinalizeError::RequiresPhysicalPromotion)
+        );
+        assert_eq!(journal.phase(id), Some(FrictionTransactionPhase::Applied));
+        assert!(!journal.is_complete_for_finalize());
+    }
+
+    #[test]
+    fn solver_injection_terminalizes_without_becoming_heat() {
+        let id = FrictionTransactionId::new(15, 0, 0, 0);
+        let mut a = body(1, [0.0, 0.0, 0.0], 1.0);
+        let mut b = body(2, [0.0, 0.0, 0.0], 0.0);
+        let mut journal = FrictionTransactionJournal::new();
+        let applied = apply_friction_impulse_once(
+            &mut a,
+            &mut b,
+            &SVector::zeros(),
+            &SVector::from([2.0, 0.0, 0.0]),
+            id,
+            &mut journal,
+        )
+        .unwrap();
+
+        assert_eq!(
+            finalize_friction_diagnostic(&a, &b, &applied, &mut journal).unwrap(),
+            FrictionDiagnosticReason::SolverInjection
+        );
+        assert!(journal.is_complete_for_finalize());
+    }
+
+    #[test]
     fn failed_evidence_application_does_not_claim_transaction_identity() {
-        let id = FrictionTransactionId::new(13, 0, 0, 0);
-        let mut a = body(1, 1.0);
-        let mut b = body(2, 0.0);
+        let id = FrictionTransactionId::new(16, 0, 0, 0);
+        let mut a = body(1, [0.0, 0.0, 0.0], 1.0);
+        let mut b = body(2, [0.0, 0.0, 0.0], 0.0);
         let before_a = (a.linear_velocity, a.angular_velocity);
         let before_b = (b.linear_velocity, b.angular_velocity);
         let mut journal = FrictionTransactionJournal::new();
@@ -250,22 +409,5 @@ mod tests {
         assert_eq!((b.linear_velocity, b.angular_velocity), before_b);
         assert_eq!(journal.phase(id), None);
         assert!(journal.is_complete_for_finalize());
-    }
-
-    #[test]
-    fn lifecycle_transition_is_monotonic_and_finalize_visible() {
-        let id = FrictionTransactionId::new(14, 2, 1, 4);
-        let mut journal = FrictionTransactionJournal::new();
-        journal
-            .phases
-            .insert(id, FrictionTransactionPhase::Applied);
-        assert!(!journal.is_complete_for_finalize());
-        journal.mark_promoted(id).unwrap();
-        assert_eq!(journal.phase(id), Some(FrictionTransactionPhase::Promoted));
-        assert!(journal.is_complete_for_finalize());
-        assert_eq!(
-            journal.mark_promoted(id),
-            Err(FrictionTransactionTransitionError::AlreadyPromoted)
-        );
     }
 }
