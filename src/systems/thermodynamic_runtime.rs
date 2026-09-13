@@ -3,10 +3,10 @@
 // Commercial licensing: see COMMERCIAL_LICENSE.md at repository root
 //! Runtime facade joining fixed-tick thermodynamic authority to friction transactions.
 //!
-//! The friction journal is privately owned. Solver-facing APIs mint the
-//! `FrictionTransactionId.fixed_tick` from the currently open thermodynamic tick,
-//! so callers cannot relabel mechanical evidence across ticks or erase pending
-//! journal state by replacing the journal.
+//! The friction journal and canonical physical energy-transfer ledger are privately
+//! owned. Solver-facing APIs mint `FrictionTransactionId.fixed_tick` from the
+//! currently open thermodynamic tick, so callers cannot relabel mechanical evidence
+//! across ticks or replace pending lifecycle/accounting state.
 //!
 //! Production integration also has a reservation-first path. A deterministic
 //! solver identity is reserved before mechanics, then consumed exactly once when
@@ -17,11 +17,11 @@ use std::collections::BTreeSet;
 use bevy::prelude::Resource;
 use nalgebra::SVector;
 use symtropy_physics::{
-    AppliedFrictionTransaction, BodyHandle, EnergyTransferLedger, FrictionApplicationError,
-    FrictionDiagnosticFinalizeError, FrictionDiagnosticReason, FrictionEvidenceError,
-    FrictionPromotionError, FrictionPromotionReceipt, FrictionSolverCoordinates,
-    FrictionTransactionId, FrictionTransactionJournal, HeatPartition, RigidBody,
-    apply_friction_impulse_once, finalize_friction_diagnostic,
+    AppliedFrictionTransaction, BodyHandle, EnergyTransfer, EnergyTransferLedger,
+    FrictionApplicationError, FrictionDiagnosticFinalizeError, FrictionDiagnosticReason,
+    FrictionEvidenceError, FrictionPromotionError, FrictionPromotionReceipt,
+    FrictionSolverCoordinates, FrictionTransactionId, FrictionTransactionJournal,
+    HeatPartition, RigidBody, apply_friction_impulse_once, finalize_friction_diagnostic,
     promote_applied_friction_loss_to_heat,
 };
 
@@ -71,18 +71,42 @@ impl From<FrictionPromotionError> for RuntimeFrictionError {
 pub enum ThermodynamicRuntimeError {
     TickIdExhausted,
     PendingFrictionReservations { count: usize },
+    PhysicalLedgerIntervalStillOpen,
+    MissingPhysicalLedgerInterval,
     Tick(ThermodynamicTickError),
 }
 impl From<ThermodynamicTickError> for ThermodynamicRuntimeError {
     fn from(value: ThermodynamicTickError) -> Self { Self::Tick(value) }
 }
 
+/// Fixed-tick runtime receipt that binds lifecycle/friction evidence to the exact
+/// typed physical-transfer entries authored through the private runtime ledger.
+#[derive(Clone, Debug, PartialEq)]
+pub struct ThermodynamicRuntimeTickReceipt {
+    pub tick_id: u64,
+    pub generation: u64,
+    pub consequence_status: ThermodynamicConsequenceStatus,
+    pub friction_transactions: FrictionTransactionJournal,
+    pub physical_energy_transfers: Vec<EnergyTransfer>,
+}
+
+impl ThermodynamicRuntimeTickReceipt {
+    fn from_lifecycle(
+        lifecycle: ThermodynamicTickReceipt,
+        physical_energy_transfers: Vec<EnergyTransfer>,
+    ) -> Self {
+        Self {
+            tick_id: lifecycle.tick_id,
+            generation: lifecycle.generation,
+            consequence_status: lifecycle.consequence_status,
+            friction_transactions: lifecycle.friction_transactions,
+            physical_energy_transfers,
+        }
+    }
+}
+
 /// Non-cloneable proof that the private runtime admitted one exact solver-local
 /// friction request under the currently open fixed tick.
-///
-/// The token binds body identity, contact point and impulse as well as the
-/// runtime-minted transaction ID. Applying it consumes the token; ordinary
-/// callers cannot alter any of those fields between reservation and mechanics.
 #[derive(Debug, PartialEq)]
 pub struct RuntimeFrictionReservation<const D: usize> {
     transaction_id: FrictionTransactionId,
@@ -98,12 +122,16 @@ impl<const D: usize> RuntimeFrictionReservation<D> {
     }
 }
 
-/// Single runtime owner for fixed-tick identity and per-tick friction lifecycle.
+/// Single runtime owner for fixed-tick identity, friction lifecycle, and the
+/// append-only physical energy-transfer ledger used by production promotion.
 #[derive(Resource, Debug)]
 pub struct ThermodynamicTransactionRuntime {
     authority: ThermodynamicTickAuthority,
     friction_journal: FrictionTransactionJournal,
     reserved_friction: BTreeSet<FrictionTransactionId>,
+    physical_ledger: EnergyTransferLedger,
+    physical_tick_start: Option<usize>,
+    last_runtime_receipt: Option<ThermodynamicRuntimeTickReceipt>,
     next_tick_id: Option<u64>,
 }
 
@@ -113,6 +141,9 @@ impl Default for ThermodynamicTransactionRuntime {
             authority: ThermodynamicTickAuthority::new(),
             friction_journal: FrictionTransactionJournal::new(),
             reserved_friction: BTreeSet::new(),
+            physical_ledger: EnergyTransferLedger::new(),
+            physical_tick_start: None,
+            last_runtime_receipt: None,
             next_tick_id: Some(0),
         }
     }
@@ -125,17 +156,23 @@ impl ThermodynamicTransactionRuntime {
     pub fn friction_journal(&self) -> &FrictionTransactionJournal { &self.friction_journal }
     pub fn pending_friction_reservation_count(&self) -> usize { self.reserved_friction.len() }
 
-    /// Deterministic read-only snapshot of unresolved reservation identity.
-    ///
-    /// The private registry is a `BTreeSet`, so the returned IDs are canonically
-    /// ordered by the complete `FrictionTransactionId`. Returning a copied vector
-    /// intentionally exposes no mutation, cancellation, or reservation-forging
-    /// authority. This is an operator/recovery diagnostic surface only.
+    /// Read-only access to the canonical append-only physical ledger.
+    /// Production mutation is available only through runtime-authorized transfer APIs.
+    pub fn physical_energy_ledger(&self) -> &EnergyTransferLedger {
+        &self.physical_ledger
+    }
+
+    pub fn last_runtime_receipt(&self) -> Option<&ThermodynamicRuntimeTickReceipt> {
+        self.last_runtime_receipt.as_ref()
+    }
+
     #[must_use]
     pub fn pending_friction_reservation_ids(&self) -> Vec<FrictionTransactionId> {
         self.reserved_friction.iter().copied().collect()
     }
 
+    /// Compatibility lifecycle receipt retained for callers that have not yet
+    /// migrated to the stronger runtime receipt containing physical transfers.
     pub fn last_finalized_receipt(&self) -> Option<&ThermodynamicTickReceipt> {
         self.authority.last_finalized_receipt()
     }
@@ -155,7 +192,17 @@ impl ThermodynamicTransactionRuntime {
     ) -> Result<ThermodynamicBeginPermit, ThermodynamicRuntimeError> {
         self.require_no_pending_reservations()?;
         let tick_id = self.next_tick_id.ok_or(ThermodynamicRuntimeError::TickIdExhausted)?;
-        Ok(self.authority.begin(tick_id, &self.friction_journal)?)
+
+        // Preserve the existing lifecycle authority's duplicate/open/finalizing
+        // errors. A stale ledger interval is only a distinct invariant when the
+        // lifecycle itself is idle and would otherwise admit a new tick.
+        if self.authority.open_tick_id().is_none() && self.physical_tick_start.is_some() {
+            return Err(ThermodynamicRuntimeError::PhysicalLedgerIntervalStillOpen);
+        }
+        let permit = self.authority.begin(tick_id, &self.friction_journal)?;
+        debug_assert!(self.physical_tick_start.is_none());
+        self.physical_tick_start = Some(self.physical_ledger.len());
+        Ok(permit)
     }
 
     fn open_friction_tick(&self) -> Result<u64, RuntimeFrictionError> {
@@ -204,11 +251,6 @@ impl ThermodynamicTransactionRuntime {
         Ok(open_tick_id)
     }
 
-    /// Reserve one exact friction transaction before any mechanical mutation.
-    ///
-    /// The runtime supplies `fixed_tick`; the solver supplies only local coordinates
-    /// plus the exact mechanical request. Duplicate transaction identity is rejected
-    /// here, before the caller is allowed to apply the reserved impulse.
     pub fn reserve_friction_impulse_at<const D: usize>(
         &mut self,
         body_a: BodyHandle,
@@ -259,11 +301,6 @@ impl ThermodynamicTransactionRuntime {
         })
     }
 
-    /// Release an admitted reservation before mechanics.
-    ///
-    /// Cancellation authors no physical or diagnostic evidence. It is intended for
-    /// solver paths that legitimately abandon a previously admitted request before
-    /// touching either body.
     pub fn cancel_friction_reservation<const D: usize>(
         &mut self,
         reservation: RuntimeFrictionReservation<D>,
@@ -274,11 +311,6 @@ impl ThermodynamicTransactionRuntime {
         Ok(())
     }
 
-    /// Consume one reservation and apply exactly its bound mechanical impulse.
-    ///
-    /// The reservation is removed before entering the core application primitive.
-    /// If evidence construction rejects, that primitive restores mechanical state;
-    /// therefore no stale reservation is left behind after a failed application.
     pub fn apply_reserved_friction_impulse<const D: usize>(
         &mut self,
         body_a: &mut RigidBody<D>,
@@ -313,11 +345,6 @@ impl ThermodynamicTransactionRuntime {
         )?)
     }
 
-    /// Apply one friction impulse under the currently open fixed tick.
-    ///
-    /// This compatibility composition now exercises the same reservation-first
-    /// authority intended for the production world solver: reserve identity and
-    /// exact mechanical request first, then consume that reservation once.
     pub fn apply_friction_impulse_at<const D: usize>(
         &mut self,
         body_a: &mut RigidBody<D>,
@@ -336,11 +363,6 @@ impl ThermodynamicTransactionRuntime {
         self.apply_reserved_friction_impulse(body_a, body_b, reservation)
     }
 
-    /// Compatibility adapter for pre-typed solver callers.
-    ///
-    /// New production integration should call [`Self::reserve_friction_impulse_at`]
-    /// and [`Self::apply_reserved_friction_impulse`] across the solver mutation
-    /// boundary. Fixed-tick authority remains private to this runtime.
     pub fn apply_friction_impulse<const D: usize>(
         &mut self,
         body_a: &mut RigidBody<D>,
@@ -379,7 +401,29 @@ impl ThermodynamicTransactionRuntime {
         )?)
     }
 
-    pub fn promote_friction_loss<const D: usize>(
+    /// Production physical promotion using the runtime-owned canonical ledger.
+    pub fn promote_friction_loss_owned<const D: usize>(
+        &mut self,
+        body_a: &mut RigidBody<D>,
+        body_b: &mut RigidBody<D>,
+        applied: &AppliedFrictionTransaction<D>,
+        partition: HeatPartition,
+    ) -> Result<FrictionPromotionReceipt, RuntimeFrictionError> {
+        self.require_applied_tick(applied)?;
+        Ok(promote_applied_friction_loss_to_heat(
+            body_a,
+            body_b,
+            applied,
+            partition,
+            &mut self.physical_ledger,
+            &mut self.friction_journal,
+        )?)
+    }
+
+    /// Test-only compatibility adapter for older corpora that supply a ledger.
+    /// Production builds expose only the runtime-owned ledger promotion path.
+    #[cfg(test)]
+    pub(crate) fn promote_friction_loss<const D: usize>(
         &mut self,
         body_a: &mut RigidBody<D>,
         body_b: &mut RigidBody<D>,
@@ -406,6 +450,9 @@ impl ThermodynamicTransactionRuntime {
         let tick_id = self.authority.open_tick_id().ok_or(ThermodynamicRuntimeError::Tick(
             ThermodynamicTickError::NoOpenTick,
         ))?;
+        if self.physical_tick_start.is_none() {
+            return Err(ThermodynamicRuntimeError::MissingPhysicalLedgerInterval);
+        }
         Ok(self.authority.prepare_finalize(
             tick_id,
             consequence_status,
@@ -418,6 +465,9 @@ impl ThermodynamicTransactionRuntime {
         permit: &ThermodynamicFinalizePermit,
     ) -> Result<(), ThermodynamicRuntimeError> {
         self.require_no_pending_reservations()?;
+        if self.physical_tick_start.is_none() {
+            return Err(ThermodynamicRuntimeError::MissingPhysicalLedgerInterval);
+        }
         Ok(self.authority.validate_prepared_finalize(permit, &self.friction_journal)?)
     }
 
@@ -428,17 +478,30 @@ impl ThermodynamicTransactionRuntime {
         Ok(self.authority.rollback_finalize(permit)?)
     }
 
-    /// Commit the receipt and rotate the private friction journal. `u64::MAX`
-    /// may be committed as the final tick; afterward no further begin is admitted.
+    /// Commit one tick and structurally bind the exact physical transfer segment
+    /// authored since its successful begin. The canonical ledger remains append-only;
+    /// the next tick simply opens at the current ledger length.
     pub fn commit_finalize_and_rotate(
         &mut self,
         permit: &ThermodynamicFinalizePermit,
-    ) -> Result<ThermodynamicTickReceipt, ThermodynamicRuntimeError> {
+    ) -> Result<ThermodynamicRuntimeTickReceipt, ThermodynamicRuntimeError> {
         self.require_no_pending_reservations()?;
         self.authority.validate_prepared_finalize(permit, &self.friction_journal)?;
+        let start = self
+            .physical_tick_start
+            .ok_or(ThermodynamicRuntimeError::MissingPhysicalLedgerInterval)?;
+        let physical_energy_transfers = self.physical_ledger.entries()[start..].to_vec();
+
         let committed_tick = permit.tick_id();
-        let receipt = self.authority.commit_finalize(permit, &self.friction_journal)?;
+        let lifecycle = self.authority.commit_finalize(permit, &self.friction_journal)?;
+        let receipt = ThermodynamicRuntimeTickReceipt::from_lifecycle(
+            lifecycle,
+            physical_energy_transfers,
+        );
+
         self.friction_journal = FrictionTransactionJournal::new();
+        self.physical_tick_start = None;
+        self.last_runtime_receipt = Some(receipt.clone());
         debug_assert!(self.reserved_friction.is_empty());
         self.next_tick_id = committed_tick.checked_add(1);
         Ok(receipt)
