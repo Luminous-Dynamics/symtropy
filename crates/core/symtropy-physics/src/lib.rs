@@ -18,6 +18,7 @@
 //! - `world_energy_3d` — canonical checked 3D kinetic-energy evidence over live world state
 //! - `friction_coordinates` — solver-local friction identity without fixed-tick authority
 //! - `friction_authority` — pluggable solver friction application/evidence authority
+//! - `friction_step` — checked native-index dispatch + typed authority failures
 //! - `friction_energy_2d` — checked signed 2D A/B pair-energy evidence
 //! - `friction_evidence` — signed pre/post mechanical evidence around one friction impulse
 //! - `friction_transaction` — exactly-once friction lifecycle (`Applied` to terminal outcome)
@@ -53,6 +54,7 @@ pub mod friction_coordinates;
 pub mod friction_energy_2d;
 pub mod friction_evidence;
 pub mod friction_promotion;
+pub mod friction_step;
 pub mod friction_transaction;
 pub mod gjk;
 pub mod integrator;
@@ -101,7 +103,9 @@ pub use external_heat::{
     EXTERNAL_HEAT_TRANSFER_KIND, ExternalHeatError, exchange_external_heat_audited,
 };
 pub use friction_authority::{DirectFrictionImpulseAuthority, FrictionImpulseAuthority};
-pub use friction_coordinates::FrictionSolverCoordinates;
+pub use friction_coordinates::{
+    FrictionSolverCoordinateComponent, FrictionSolverCoordinateError, FrictionSolverCoordinates,
+};
 pub use friction_energy_2d::{
     FrictionPairEnergy2dError, FrictionPairEnergy2dSnapshot, FrictionPairEnergyChange2d,
     FrictionPairEnergyDelta2d, capture_friction_pair_energy_2d_checked,
@@ -115,6 +119,9 @@ pub use friction_evidence::{
 };
 pub use friction_promotion::{
     FrictionPromotionError, FrictionPromotionReceipt, promote_applied_friction_loss_to_heat,
+};
+pub use friction_step::{
+    FrictionAuthorityFailure, FrictionStepError, execute_friction_impulse_at_indices,
 };
 pub use friction_transaction::{
     AppliedFrictionTransaction, FrictionApplicationError, FrictionDiagnosticFinalizeError,
