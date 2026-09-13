@@ -40,6 +40,7 @@ pub mod settlement;
 pub mod settlement_spawn;
 pub mod telemetry;
 pub mod thermodynamic;
+pub mod thermodynamic_transaction;
 pub mod tutorial_scenario;
 
 // Sol Atlas globe view — planetary coordination layer.
