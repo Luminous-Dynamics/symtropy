@@ -40,6 +40,18 @@ Creating, releasing, resizing, reassigning, or otherwise changing a reservation 
 
 `ReservationResolutionBinding` therefore carries the exact `EconomicConservationManifest` and exact `ReservationConservationManifest` it was attached to. `rebind_unchanged(...)` requires both to remain identical.
 
+## Resolution-lineage theorem
+
+`rebind_unchanged(...)` is forward-only. A target must represent a later ECON-03 generation and must not reuse the source snapshot identity:
+
+```text
+target.snapshot_id != source.snapshot_id
+
+target.generation > source.generation
+```
+
+This prevents a stale or parallel snapshot with identical contents from being presented as a successor fidelity transition. The reservation layer does not independently schedule ECON-03 transitions; it only rejects non-forward lineage when asked to bind one as a successor.
+
 ## Exact-stock / snapshot binding
 
 Before accepting a reservation overlay for an ECON-03 snapshot, ECON-04C independently reconstructs the snapshot's stock conservation projection from the supplied exact `StockLedger`:
@@ -121,9 +133,13 @@ Copied read-only observations may exist elsewhere, but copied authority may not 
 
 ## Repartition theorem
 
-Changing regional topology or load-balancing placement is valid only when:
+Changing regional topology or load-balancing placement is valid only when both the ECON-03 source instant and reconstructed reservation authority are unchanged:
 
 ```text
+source_snapshot_before == source_snapshot_after
+
+and
+
 reconstruct(reservations_before)
     ==
 reconstruct(reservations_after)
@@ -138,9 +154,10 @@ A repartition may change which `EconomicPartitionId` contains an active claim be
 - authorizing owner;
 - holder;
 - purpose/authorization references;
-- canonical reservation history.
+- canonical reservation history;
+- source economic snapshot identity.
 
-ECON-03C remains authoritative for proving that the underlying economic partition sets represent the same economic instant. ECON-04C proves that reservation authority follows that already-qualified stock placement without semantic change.
+ECON-03C remains authoritative for proving that the underlying economic partition sets represent the same economic manifest. ECON-04C proves that reservation authority follows that already-qualified stock placement without semantic or lineage change.
 
 ## Canonicality
 
@@ -167,16 +184,19 @@ Qualification must include at least:
 - aggregated snapshot with active reservations and retained detail is admitted;
 - no-active-reservation aggregated snapshot may discard detail under existing ECON-03 policy;
 - binding rejects an exact `StockLedger` whose reconstructed stock manifest differs from the bound ECON-03 snapshot;
+- pure resolution rebind rejects replay of the same snapshot identity;
+- pure resolution rebind rejects a non-increasing ECON-03 generation even when state is otherwise identical;
 - pure resolution rebind rejects reservation mutation;
 - pure resolution rebind rejects ECON-03 economic-manifest mutation even when reservation state is unchanged;
-- exact unchanged reservation manifest and economic manifest survive resolution rebind;
+- exact unchanged reservation manifest and economic manifest survive a forward resolution rebind;
 - active reservation co-partitions with its stock conservation key;
 - empty economic partitions remain represented in reservation partition topology;
 - reservation authority duplicated across partitions is rejected;
 - canonical ordering corruption is rejected;
 - global reconstruction equals the exact source reservation manifest;
 - repartition may change placement but preserves exact reconstructed reservation state/history;
-- missing stock partition authority fails closed.
+- repartition reconciliation rejects a different ECON-03 source snapshot even when reservation contents are identical;
+- validated ECON-03 partition completeness plus exact stock equality imply every reserved-lot stock key has one placement; the defensive missing-authority path remains fail closed.
 
 ## Explicit non-claims
 
@@ -219,4 +239,4 @@ ECON-05      spatial logistics
 
 Source review and PR mergeability are not executable qualification.
 
-A qualifying helper must freeze the exact ECON-04C product head and exact ECON-04B parent, run dedicated resolution/partition/repartition reservation corpora including dual-manifest drift attacks, regress ECON-04B and the complete prerequisite ECON stack, run formatting/check/strict-Clippy, statically audit the no-aggregation/no-hidden-stock-mutation boundary and dual-manifest binding, and emit machine-readable exact-lineage evidence.
+A qualifying helper must freeze the exact ECON-04C product head and exact ECON-04B parent, run dedicated resolution/partition/repartition reservation corpora including dual-manifest and lineage-drift attacks, regress ECON-04B and the complete prerequisite ECON stack, run formatting/check/strict-Clippy, statically audit the no-aggregation/no-hidden-stock-mutation boundary, dual-manifest binding, and forward-lineage guards, and emit machine-readable exact-lineage evidence.
