@@ -1,5 +1,6 @@
 use crate::{
-    canonical::{fmt_hex, put_text, put_u32, put_u64}, error::validate_text,
+    canonical::{fmt_hex, put_text, put_u32, put_u64},
+    error::validate_text,
     AnalysisAuthorityRef, AnalysisContentDigest, AnalysisMethodId, EvolutionError,
     PopulationGeneration,
 };
@@ -22,11 +23,16 @@ macro_rules! local_id {
                 validate_text($field, &value)?;
                 Ok(Self(value))
             }
-            pub fn as_str(&self) -> &str { &self.0 }
+
+            pub fn as_str(&self) -> &str {
+                &self.0
+            }
         }
         impl<'de> Deserialize<'de> for $name {
             fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-            where D: Deserializer<'de> {
+            where
+                D: Deserializer<'de>,
+            {
                 let value = String::deserialize(deserializer)?;
                 Self::new(value).map_err(<D::Error as serde::de::Error>::custom)
             }
@@ -192,12 +198,16 @@ impl LineageDivergenceHistoryDesign {
         digest.update([self.missing_policy.tag()]);
         put_authority(&mut digest, &self.completeness_authority);
         put_authority(&mut digest, &self.history_rule_authority);
-        Ok(LineageDivergenceHistoryDesignDigest(digest.finalize().into()))
+        Ok(LineageDivergenceHistoryDesignDigest(
+            digest.finalize().into(),
+        ))
     }
 
     fn validate_local(&self) -> Result<(), LineageDivergenceDesignError> {
         if self.design_version != LINEAGE_DIVERGENCE_HISTORY_DESIGN_VERSION {
-            return Err(LineageDivergenceDesignError::UnsupportedVersion(self.design_version));
+            return Err(LineageDivergenceDesignError::UnsupportedVersion(
+                self.design_version,
+            ));
         }
         if self.lineage_a == self.lineage_b {
             return Err(LineageDivergenceDesignError::LineageAuthoritiesMustDiffer);
@@ -222,7 +232,9 @@ impl LineageDivergenceHistoryDesign {
 pub struct LineageDivergenceHistoryDesignDigest([u8; 32]);
 
 impl LineageDivergenceHistoryDesignDigest {
-    pub fn as_bytes(&self) -> &[u8; 32] { &self.0 }
+    pub fn as_bytes(&self) -> &[u8; 32] {
+        &self.0
+    }
 }
 
 impl fmt::Debug for LineageDivergenceHistoryDesignDigest {
@@ -234,7 +246,9 @@ impl fmt::Debug for LineageDivergenceHistoryDesignDigest {
 }
 
 impl fmt::Display for LineageDivergenceHistoryDesignDigest {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result { fmt_hex(&self.0, f) }
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        fmt_hex(&self.0, f)
+    }
 }
 
 #[derive(Debug)]
@@ -278,8 +292,13 @@ impl<'a> ValidatedLineageDivergenceHistoryDesign<'a> {
         })
     }
 
-    pub fn design(&self) -> &'a LineageDivergenceHistoryDesign { self.design }
-    pub fn design_digest(&self) -> LineageDivergenceHistoryDesignDigest { self.design_digest }
+    pub fn design(&self) -> &'a LineageDivergenceHistoryDesign {
+        self.design
+    }
+
+    pub fn design_digest(&self) -> LineageDivergenceHistoryDesignDigest {
+        self.design_digest
+    }
 }
 
 fn put_authority(digest: &mut Sha256, authority: &AnalysisAuthorityRef) {
@@ -303,18 +322,33 @@ impl fmt::Display for LineageDivergenceDesignError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::UnsupportedVersion(version) => {
-                write!(f, "unsupported lineage-divergence history design version {version}")
+                write!(
+                    f,
+                    "unsupported lineage-divergence history design version {version}"
+                )
             }
             Self::LineageAuthoritiesMustDiffer => {
                 write!(f, "lineage A and lineage B authorities must be distinct")
             }
-            Self::InvalidGenerationInterval => write!(f, "invalid lineage-history generation interval"),
-            Self::GenerationIntervalTooShort => {
-                write!(f, "persistent-divergence history requires at least two generation coordinates")
+            Self::InvalidGenerationInterval => {
+                write!(f, "invalid lineage-history generation interval")
             }
-            Self::GenerationCountInvariant => write!(f, "persisted lineage-history generation count is inconsistent"),
-            Self::HistoryRuleMismatch => write!(f, "persisted design does not bind the built-in V1 lineage-history rule"),
-            Self::ReplayMismatch => write!(f, "persisted lineage-history design does not replay against current authorities"),
+            Self::GenerationIntervalTooShort => write!(
+                f,
+                "persistent-divergence history requires at least two generation coordinates"
+            ),
+            Self::GenerationCountInvariant => write!(
+                f,
+                "persisted lineage-history generation count is inconsistent"
+            ),
+            Self::HistoryRuleMismatch => write!(
+                f,
+                "persisted design does not bind the built-in V1 lineage-history rule"
+            ),
+            Self::ReplayMismatch => write!(
+                f,
+                "persisted lineage-history design does not replay against current authorities"
+            ),
         }
     }
 }
