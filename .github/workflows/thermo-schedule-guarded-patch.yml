@@ -10,7 +10,7 @@ permissions:
 
 jobs:
   patch:
-    if: "${{ github.event.head_commit.message == 'chore(thermo): stage guarded schedule patcher v4' }}"
+    if: "${{ github.event.head_commit.message == 'chore(thermo): stage guarded schedule patcher v5' }}"
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -21,103 +21,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          python3 - <<'PY'
-          from pathlib import Path
-          import subprocess
-
-          expected = {
-              "src/systems/thermodynamic.rs": "68dc7f7f85cee9c1b9700233ddaa9bc3af46131d",
-              "src/plugin.rs": "11fc8c722157d66ff94be26985019213a9ebd22b",
-              "src/systems/thermodynamic_schedule.rs": "53a1df174c3bd5b81e086297a04b38bda0c65743",
-          }
-
-          for path, want in expected.items():
-              got = subprocess.check_output(["git", "hash-object", path], text=True).strip()
-              if got != want:
-                  raise SystemExit(f"refusing patch: {path} blob {got} != expected {want}")
-
-          def replace_once(text, old, new, label):
-              count = text.count(old)
-              if count != 1:
-                  raise SystemExit(f"refusing patch: {label} occurs {count} times")
-              return text.replace(old, new, 1)
-
-          thermo = Path("src/systems/thermodynamic.rs")
-          text = thermo.read_text()
-          replacements = [
-              ("fn regenerate_live_entity_accepted(\n", "pub(crate) fn regenerate_live_entity_accepted(\n"),
-              ("fn transfer_from_finite_source(\n", "pub(crate) fn transfer_from_finite_source(\n"),
-              ("fn epistemic_offload_factors(\n", "pub(crate) fn epistemic_offload_factors(\n"),
-              ("fn maintenance_cost_with_offload(\n", "pub(crate) fn maintenance_cost_with_offload(\n"),
-          ]
-          for old, new in replacements:
-              text = replace_once(text, old, new, f"thermodynamic target {old!r}")
-          thermo.write_text(text)
-
-          schedule = Path("src/systems/thermodynamic_schedule.rs")
-          text = schedule.read_text()
-
-          text = replace_once(
-              text,
-              """pub enum ThermodynamicScheduleFaultKind {\n    BeginRejected,\n""",
-              """pub enum ThermodynamicScheduleFaultKind {\n    BeginRejected,\n    BeginCensus,\n""",
-              "schedule fault enum",
-          )
-
-          mode_anchor = '''pub struct ThermodynamicScheduleFault {\n    pub tick_id: Option<u64>,\n    pub kind: ThermodynamicScheduleFaultKind,\n}\n\n'''
-          mode_insert = '''pub struct ThermodynamicScheduleFault {\n    pub tick_id: Option<u64>,\n    pub kind: ThermodynamicScheduleFaultKind,\n}\n\n#[derive(Copy, Clone, Debug, PartialEq, Eq)]\nenum BoundConsequenceMode {\n    Dynamic2d,\n    Kinematic3d,\n}\n\nimpl BoundConsequenceMode {\n    fn from_phase(phase: GamePhase) -> Option<Self> {\n        match phase {\n            GamePhase::Playing => Some(Self::Dynamic2d),\n            GamePhase::Playing3D => Some(Self::Kinematic3d),\n            _ => None,\n        }\n    }\n}\n\n'''
-          text = replace_once(text, mode_anchor, mode_insert, "bound consequence mode")
-
-          text = replace_once(
-              text,
-              """pub struct ThermodynamicScheduleState {\n    pending: Option<PendingThermodynamicTick>,\n""",
-              """pub struct ThermodynamicScheduleState {\n    pending: Option<PendingThermodynamicTick>,\n    active_handles: Option<Vec<BodyHandle>>,\n    active_mode: Option<BoundConsequenceMode>,\n""",
-              "schedule active control-volume fields",
-          )
-          text = replace_once(
-              text,
-              """    pub fn has_pending_transaction(&self) -> bool {\n        self.pending.is_some()\n    }\n\n    pub fn last_receipt""",
-              """    pub fn has_pending_transaction(&self) -> bool {\n        self.pending.is_some()\n    }\n\n    pub fn active_handles(&self) -> Option<&[BodyHandle]> {\n        self.active_handles.as_deref()\n    }\n\n    pub fn last_receipt""",
-              "schedule active census accessor",
-          )
-          text = replace_once(
-              text,
-              """    fn commit_receipt(&mut self, receipt: CadenceBoundThermodynamicTickReceipt) {\n        self.pending = None;\n        self.last_receipt = Some(receipt);\n    }\n""",
-              """    fn commit_receipt(&mut self, receipt: CadenceBoundThermodynamicTickReceipt) {\n        self.pending = None;\n        self.active_handles = None;\n        self.active_mode = None;\n        self.last_receipt = Some(receipt);\n    }\n""",
-              "schedule receipt control-volume rotation",
-          )
-
-          begin_old = '''pub fn transactional_thermodynamic_begin_system(\n    mut runtime: ResMut<ThermodynamicTransactionRuntime>,\n    mut schedule: ResMut<ThermodynamicScheduleState>,\n    fixed_time: Res<Time<Fixed>>,\n    mut physics: ResMut<PhysicsWorldRes>,\n    entities_query: Query<(&PhysicsBody, &Transform), Or<(With<Player>, With<CrewNpc>)>>,\n    mut wells: Query<(&Transform, &mut EnergyWell, &mut Sprite), Without<Player>>,\n) {\n    // A delayed close owns the previous tick. Never reset counters underneath it.\n    if schedule.pending.is_some() || runtime.open_tick_id().is_some() {\n        return;\n    }\n\n    if let Err(error) =\n        begin_thermodynamic_tick_at_admitted_cadence(&mut runtime, &fixed_time)\n    {\n        warn!("thermodynamic fixed-tick begin rejected: {error:?}");\n        schedule.note_fault(None, ThermodynamicScheduleFaultKind::BeginRejected);\n        return;\n    }\n\n    let agent_data: Vec<_> = entities_query\n        .iter()\n        .map(|(body, transform)| (body.handle, transform.translation))\n        .collect();\n    apply_operational_begin_flows(&mut physics, &agent_data, &mut wells);\n}\n'''
-          begin_new = '''pub fn transactional_thermodynamic_begin_system(\n    mut runtime: ResMut<ThermodynamicTransactionRuntime>,\n    mut schedule: ResMut<ThermodynamicScheduleState>,\n    fixed_time: Res<Time<Fixed>>,\n    phase: Res<State<GamePhase>>,\n    mut physics: ResMut<PhysicsWorldRes>,\n    entities_query: Query<(&PhysicsBody, &Transform), Or<(With<Player>, With<CrewNpc>)>>,\n    mut wells: Query<(&Transform, &mut EnergyWell, &mut Sprite), Without<Player>>,\n) {\n    // A delayed close owns the previous tick. Never reset counters underneath it.\n    if schedule.pending.is_some() || runtime.open_tick_id().is_some() {\n        return;\n    }\n\n    let Some(bound_mode) = BoundConsequenceMode::from_phase(*phase.get()) else {\n        return;\n    };\n\n    // Freeze the control-volume census before begin. Two ECS entities may not share\n    // one operational reservoir, and every admitted body must already have an\n    // operational state. The exact canonical handle set is carried through close.\n    let mut agent_data: Vec<_> = entities_query\n        .iter()\n        .map(|(body, transform)| (body.handle, transform.translation))\n        .collect();\n    agent_data.sort_by_key(|(handle, _)| *handle);\n\n    if let Some(pair) = agent_data.windows(2).find(|pair| pair[0].0 == pair[1].0) {\n        warn!("thermodynamic begin rejected duplicate body handle: {:?}", pair[0].0);\n        schedule.note_fault(None, ThermodynamicScheduleFaultKind::BeginCensus);\n        return;\n    }\n    if let Some((handle, _)) = agent_data\n        .iter()\n        .find(|(handle, _)| !physics.consciousness.entities.contains_key(handle))\n    {\n        warn!("thermodynamic begin rejected missing operational entity: {handle:?}");\n        schedule.note_fault(None, ThermodynamicScheduleFaultKind::BeginCensus);\n        return;\n    }\n\n    if let Err(error) =\n        begin_thermodynamic_tick_at_admitted_cadence(&mut runtime, &fixed_time)\n    {\n        warn!("thermodynamic fixed-tick begin rejected: {error:?}");\n        schedule.note_fault(None, ThermodynamicScheduleFaultKind::BeginRejected);\n        return;\n    }\n\n    schedule.active_handles = Some(agent_data.iter().map(|(handle, _)| *handle).collect());\n    schedule.active_mode = Some(bound_mode);\n    apply_operational_begin_flows(&mut physics, &agent_data, &mut wells);\n}\n'''
-          text = replace_once(text, begin_old, begin_new, "transactional begin function")
-
-          consequence_old = '''fn consequence_for_phase(\n    phase: GamePhase,\n    physics: &mut PhysicsWorldRes,\n    fixed_time: &Time<Fixed>,\n) -> Option<(ThermodynamicConsequenceStatus, bool)> {\n    match phase {\n        GamePhase::Playing => {\n            let succeeded = step_physics_world(physics, fixed_time.delta().as_secs_f64());\n            Some((\n                if succeeded {\n                    ThermodynamicConsequenceStatus::Executed\n                } else {\n                    ThermodynamicConsequenceStatus::Rejected\n                },\n                succeeded,\n            ))\n        }\n        GamePhase::Playing3D => Some((\n            ThermodynamicConsequenceStatus::IntentionallyAbsent,\n            false,\n        )),\n        _ => None,\n    }\n}\n'''
-          consequence_new = '''fn consequence_for_bound_mode(\n    mode: BoundConsequenceMode,\n    physics: &mut PhysicsWorldRes,\n    fixed_time: &Time<Fixed>,\n) -> (ThermodynamicConsequenceStatus, bool) {\n    match mode {\n        BoundConsequenceMode::Dynamic2d => {\n            let succeeded = step_physics_world(physics, fixed_time.delta().as_secs_f64());\n            (\n                if succeeded {\n                    ThermodynamicConsequenceStatus::Executed\n                } else {\n                    ThermodynamicConsequenceStatus::Rejected\n                },\n                succeeded,\n            )\n        }\n        BoundConsequenceMode::Kinematic3d => (\n            ThermodynamicConsequenceStatus::IntentionallyAbsent,\n            false,\n        ),\n    }\n}\n'''
-          text = replace_once(text, consequence_old, consequence_new, "bound consequence function")
-
-          signature_old = '''    mut schedule: ResMut<ThermodynamicScheduleState>,\n    fixed_time: Res<Time<Fixed>>,\n    phase: Res<State<GamePhase>>,\n    mut physics: ResMut<PhysicsWorldRes>,\n    mut hud: ResMut<ThermodynamicHudState>,\n    agent_query: Query<&PhysicsBody, Or<(With<Player>, With<CrewNpc>)>>,\n    mut transform_query: Query<(&PhysicsBody, &mut Transform)>,\n) {\n    let handles: Vec<_> = agent_query.iter().map(|body| body.handle).collect();\n'''
-          signature_new = '''    mut schedule: ResMut<ThermodynamicScheduleState>,\n    fixed_time: Res<Time<Fixed>>,\n    mut physics: ResMut<PhysicsWorldRes>,\n    mut hud: ResMut<ThermodynamicHudState>,\n    mut transform_query: Query<(&PhysicsBody, &mut Transform)>,\n) {\n    let handles = match schedule.active_handles.clone() {\n        Some(handles) => handles,\n        None => {\n            let tick_id = runtime.open_tick_id();\n            if tick_id.is_some() || schedule.pending.is_some() {\n                error!("thermodynamic schedule lost its begin census for an active tick");\n                schedule.note_fault(tick_id, ThermodynamicScheduleFaultKind::RetryInvariant);\n                schedule.pending = Some(PendingThermodynamicTick::Poisoned);\n            }\n            return;\n        }\n    };\n    let mode = match schedule.active_mode {\n        Some(mode) => mode,\n        None => {\n            let tick_id = runtime.open_tick_id();\n            error!("thermodynamic schedule lost its bound consequence mode");\n            schedule.note_fault(tick_id, ThermodynamicScheduleFaultKind::RetryInvariant);\n            schedule.pending = Some(PendingThermodynamicTick::Poisoned);\n            return;\n        }\n    };\n'''
-          text = replace_once(text, signature_old, signature_new, "finalizer frozen control volume")
-
-          old_call_1 = '''            let Some((status, export)) =\n                consequence_for_phase(*phase.get(), &mut physics, &fixed_time)\n            else {\n                schedule.pending = Some(PendingThermodynamicTick::AwaitingConsequence);\n                return;\n            };\n'''
-          new_call_1 = '''            let (status, export) =\n                consequence_for_bound_mode(mode, &mut physics, &fixed_time);\n'''
-          if text.count(old_call_1) != 2:
-              raise SystemExit(f"refusing patch: consequence call occurs {text.count(old_call_1)} times")
-          text = text.replace(old_call_1, new_call_1)
-          schedule.write_text(text)
-
-          plugin = Path("src/plugin.rs")
-          text = plugin.read_text()
-          resource_old = """            .init_resource::<systems::thermodynamic::ThermodynamicHudState>()\n"""
-          resource_new = """            .init_resource::<systems::thermodynamic::ThermodynamicHudState>()\n            .init_resource::<systems::thermodynamic_runtime::ThermodynamicTransactionRuntime>()\n            .init_resource::<systems::thermodynamic_schedule::ThermodynamicScheduleState>()\n"""
-          text = replace_once(text, resource_old, resource_new, "HUD resource anchor")
-
-          schedule_old = """            .add_systems(FixedUpdate, (\n                systems::thermodynamic::thermodynamic_enforcement_system,\n                systems::engine_physics::physics_sync_transforms,\n            ).chain().run_if(in_playing_or_3d))\n"""
-          schedule_new = """            .add_systems(\n                FixedUpdate,\n                systems::thermodynamic_schedule::transactional_thermodynamic_begin_system\n                    .run_if(in_playing_or_3d),\n            )\n            .add_systems(\n                FixedUpdate,\n                systems::thermodynamic_schedule::transactional_physics_finalize_system\n                    .after(systems::thermodynamic_schedule::transactional_thermodynamic_begin_system),\n            )\n"""
-          text = replace_once(text, schedule_old, schedule_new, "FixedUpdate schedule anchor")
-          plugin.write_text(text)
-          PY
-
+          python3 scripts/thermo_schedule_guarded_patch.py
           git diff --check
           git diff -- src/systems/thermodynamic.rs src/systems/thermodynamic_schedule.rs src/plugin.rs
 
@@ -128,6 +32,6 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add src/systems/thermodynamic.rs src/systems/thermodynamic_schedule.rs src/plugin.rs
-          git rm .github/workflows/thermo-schedule-guarded-patch.yml
+          git rm .github/workflows/thermo-schedule-guarded-patch.yml scripts/thermo_schedule_guarded_patch.py
           git commit -m "fix(thermo): switch FixedUpdate to transactional schedule"
           git push origin HEAD:physics/thermo-fixed-schedule-adapter-v0.1
