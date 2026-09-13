@@ -17,6 +17,7 @@ use symtropy_physics_gpu::HybridFluidPlugin;
 
 pub mod geometry_kernel;
 mod live_geometry_provider;
+pub mod terrain_metric;
 
 pub use live_geometry_provider::{TerrainLiveGeometryError, capture_live_terrain_geometry};
 
