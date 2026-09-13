@@ -5,7 +5,7 @@
 //!
 //! Provides dimension-agnostic rigid body dynamics, GJK collision detection,
 //! and constraint solving. All types are `const D: usize` parameterized for
-//! stack-allocated, SIMD-friendly physics at 2D/3D/4D.
+//! stack-allocated, SIMD-friendly physics ticks with full SIMD optimization for the common 2D/3D/4D cases.
 //!
 //! # Architecture
 //! - `RigidBody<D>` — position, velocity, angular velocity (bivector), mass, collider
@@ -13,9 +13,11 @@
 //! - `gjk::intersects()` — GJK intersection test for any `Shape<D>`
 //! - `contact::ContactManifold<D>` — collision contact data
 //! - `integrator` — semi-implicit Euler with bivector angular dynamics
+//! - `body_energy_2d` — checked 2D kinetic-energy evidence under the current solver convention
 //! - `angular_dynamics` — validated 3D principal-inertia/asymmetric-top reference dynamics
 //! - `world_energy_3d` — canonical checked 3D kinetic-energy evidence over live world state
 //! - `friction_coordinates` — solver-local friction identity without fixed-tick authority
+//! - `friction_energy_2d` — checked signed 2D A/B pair-energy evidence
 //! - `friction_evidence` — signed pre/post mechanical evidence around one friction impulse
 //! - `friction_transaction` — exactly-once friction lifecycle (`Applied` to terminal outcome)
 //! - `friction_promotion` — centered measured-loss promotion into heat + ledger authority
@@ -31,6 +33,7 @@
 pub mod angular_dynamics;
 pub mod articulation;
 pub mod body;
+mod body_energy_2d;
 mod body_energy_3d;
 pub mod broadphase;
 pub mod ccd;
@@ -45,6 +48,7 @@ pub mod energy_state;
 pub mod epa;
 pub mod external_heat;
 pub mod friction_coordinates;
+pub mod friction_energy_2d;
 pub mod friction_evidence;
 pub mod friction_promotion;
 pub mod friction_transaction;
@@ -69,6 +73,7 @@ pub use angular_dynamics::{
 };
 pub use articulation::{ArticulatedChain, ChainBuilder, LinkSpec};
 pub use body::{BodyHandle, BodyType, NetId, RigidBody};
+pub use body_energy_2d::RigidBodyEnergy2dError;
 pub use body_energy_3d::RigidBodyEnergyError;
 pub use broadphase::{Aabb, Lbvh, morton_encode, morton_prefix};
 pub use constraint::Constraint;
@@ -94,6 +99,11 @@ pub use external_heat::{
     EXTERNAL_HEAT_TRANSFER_KIND, ExternalHeatError, exchange_external_heat_audited,
 };
 pub use friction_coordinates::FrictionSolverCoordinates;
+pub use friction_energy_2d::{
+    FrictionPairEnergy2dError, FrictionPairEnergy2dSnapshot, FrictionPairEnergyChange2d,
+    FrictionPairEnergyDelta2d, capture_friction_pair_energy_2d_checked,
+    classify_friction_pair_energy_change_2d_checked,
+};
 pub use friction_evidence::{
     BoundFrictionMechanicalObservation, FrictionEvidenceError, FrictionEvidenceRegime,
     FrictionMechanicalDelta, FrictionMechanicalObservation, FrictionTransactionId,
