@@ -7,6 +7,12 @@
 //! only for the centered dynamic/dynamic regime that can authorize physical heat.
 //! Off-center and external-boundary friction remains mechanics-first diagnostic
 //! evidence, so the measurement layer does not become a second physics controller.
+//!
+//! Any production authority error poisons the owning runtime before returning.
+//! That is intentionally conservative: a local friction request may fail before its
+//! own mutation while earlier mechanics from the same scheduled world consequence
+//! have already occurred. A failed production authority consequence must therefore
+//! never remain directly finalizable through the lower runtime API.
 
 use nalgebra::SVector;
 use symtropy_physics::{
@@ -78,6 +84,14 @@ impl<'a> ThermodynamicFrictionAuthority<'a> {
     pub fn equal(runtime: &'a mut ThermodynamicTransactionRuntime) -> Self {
         Self::new(runtime, HeatPartition::equal())
     }
+
+    fn fail(
+        &mut self,
+        error: ThermodynamicFrictionAuthorityError,
+    ) -> Result<(), ThermodynamicFrictionAuthorityError> {
+        self.runtime.poison_authority();
+        Err(error)
+    }
 }
 
 impl FrictionImpulseAuthority<2> for ThermodynamicFrictionAuthority<'_> {
@@ -91,29 +105,35 @@ impl FrictionImpulseAuthority<2> for ThermodynamicFrictionAuthority<'_> {
         impulse_on_b: &SVector<f64, 2>,
         coordinates: FrictionSolverCoordinates,
     ) -> Result<(), Self::Error> {
-        let regime = classify_friction_evidence_regime(body_a, body_b, contact_point)
-            .ok();
+        let regime = classify_friction_evidence_regime(body_a, body_b, contact_point).ok();
 
         // Checked solver-consistent energy is mandatory only for the regime that
         // can actually promote physical heat. Diagnostic-only geometry must not
         // gain veto authority over otherwise valid mechanics.
         let checked_before = if regime == Some(FrictionEvidenceRegime::CenteredClosedDynamicPair) {
-            Some(
-                capture_friction_pair_energy_2d_checked(body_a, body_b)
-                    .map_err(ThermodynamicFrictionAuthorityError::CheckedPre)?,
-            )
+            match capture_friction_pair_energy_2d_checked(body_a, body_b) {
+                Ok(before) => Some(before),
+                Err(error) => {
+                    return self.fail(ThermodynamicFrictionAuthorityError::CheckedPre(error));
+                }
+            }
         } else {
             None
         };
 
-        let terminal = self.runtime.execute_terminal_friction_impulse_at(
+        let terminal = match self.runtime.execute_terminal_friction_impulse_at(
             body_a,
             body_b,
             contact_point,
             impulse_on_b,
             coordinates,
             self.partition,
-        )?;
+        ) {
+            Ok(terminal) => terminal,
+            Err(error) => {
+                return self.fail(ThermodynamicFrictionAuthorityError::Runtime(error));
+            }
+        };
 
         let Some(before) = checked_before else {
             return Ok(());
@@ -125,15 +145,25 @@ impl FrictionImpulseAuthority<2> for ThermodynamicFrictionAuthority<'_> {
         if classify_friction_evidence_regime(body_a, body_b, contact_point)
             != Ok(FrictionEvidenceRegime::CenteredClosedDynamicPair)
         {
-            return Err(ThermodynamicFrictionAuthorityError::TerminalEvidenceMismatch(
+            return self.fail(ThermodynamicFrictionAuthorityError::TerminalEvidenceMismatch(
                 TerminalFrictionEvidenceMismatch::CenteredTransactionDidNotRemainCentered,
             ));
         }
 
-        let after = capture_friction_pair_energy_2d_checked(body_a, body_b)
-            .map_err(ThermodynamicFrictionAuthorityError::CheckedPost)?;
-        let checked = classify_friction_pair_energy_change_2d_checked(before, after)
-            .map_err(ThermodynamicFrictionAuthorityError::CheckedClassification)?;
+        let after = match capture_friction_pair_energy_2d_checked(body_a, body_b) {
+            Ok(after) => after,
+            Err(error) => {
+                return self.fail(ThermodynamicFrictionAuthorityError::CheckedPost(error));
+            }
+        };
+        let checked = match classify_friction_pair_energy_change_2d_checked(before, after) {
+            Ok(checked) => checked,
+            Err(error) => {
+                return self.fail(ThermodynamicFrictionAuthorityError::CheckedClassification(
+                    error,
+                ));
+            }
+        };
 
         match terminal.outcome {
             TerminalFrictionOutcome::Promoted(receipt) => {
@@ -141,7 +171,7 @@ impl FrictionImpulseAuthority<2> for ThermodynamicFrictionAuthority<'_> {
                     FrictionPairEnergyDelta2d::DissipationCandidate { joules } => joules,
                     FrictionPairEnergyDelta2d::SolverInjection { .. }
                     | FrictionPairEnergyDelta2d::Neutral => {
-                        return Err(
+                        return self.fail(
                             ThermodynamicFrictionAuthorityError::TerminalEvidenceMismatch(
                                 TerminalFrictionEvidenceMismatch::PromotedWithoutCheckedDissipation,
                             ),
@@ -158,33 +188,39 @@ impl FrictionImpulseAuthority<2> for ThermodynamicFrictionAuthority<'_> {
                     checked_dissipated,
                     checked_dissipated,
                 ) {
-                    return Err(ThermodynamicFrictionAuthorityError::TerminalEvidenceMismatch(
-                        TerminalFrictionEvidenceMismatch::PromotedDissipationMismatch,
-                    ));
+                    return self.fail(
+                        ThermodynamicFrictionAuthorityError::TerminalEvidenceMismatch(
+                            TerminalFrictionEvidenceMismatch::PromotedDissipationMismatch,
+                        ),
+                    );
                 }
                 if !close_enough(
                     receipt.heat.kinetic_change_a_joules,
                     checked_change_a,
                     checked_dissipated,
                 ) {
-                    return Err(ThermodynamicFrictionAuthorityError::TerminalEvidenceMismatch(
-                        TerminalFrictionEvidenceMismatch::PromotedBodyAChangeMismatch,
-                    ));
+                    return self.fail(
+                        ThermodynamicFrictionAuthorityError::TerminalEvidenceMismatch(
+                            TerminalFrictionEvidenceMismatch::PromotedBodyAChangeMismatch,
+                        ),
+                    );
                 }
                 if !close_enough(
                     receipt.heat.kinetic_change_b_joules,
                     checked_change_b,
                     checked_dissipated,
                 ) {
-                    return Err(ThermodynamicFrictionAuthorityError::TerminalEvidenceMismatch(
-                        TerminalFrictionEvidenceMismatch::PromotedBodyBChangeMismatch,
-                    ));
+                    return self.fail(
+                        ThermodynamicFrictionAuthorityError::TerminalEvidenceMismatch(
+                            TerminalFrictionEvidenceMismatch::PromotedBodyBChangeMismatch,
+                        ),
+                    );
                 }
             }
             TerminalFrictionOutcome::Diagnostic(reason) => match reason {
                 symtropy_physics::FrictionDiagnosticReason::SolverInjection => {
                     if !matches!(checked.delta, FrictionPairEnergyDelta2d::SolverInjection { .. }) {
-                        return Err(
+                        return self.fail(
                             ThermodynamicFrictionAuthorityError::TerminalEvidenceMismatch(
                                 TerminalFrictionEvidenceMismatch::DiagnosticSolverInjectionMismatch,
                             ),
@@ -193,7 +229,7 @@ impl FrictionImpulseAuthority<2> for ThermodynamicFrictionAuthority<'_> {
                 }
                 symtropy_physics::FrictionDiagnosticReason::Neutral => {
                     if checked.delta != FrictionPairEnergyDelta2d::Neutral {
-                        return Err(
+                        return self.fail(
                             ThermodynamicFrictionAuthorityError::TerminalEvidenceMismatch(
                                 TerminalFrictionEvidenceMismatch::DiagnosticNeutralMismatch,
                             ),
@@ -205,9 +241,11 @@ impl FrictionImpulseAuthority<2> for ThermodynamicFrictionAuthority<'_> {
                 // already have failed if the live geometry changed.
                 symtropy_physics::FrictionDiagnosticReason::OffCenterUnqualified
                 | symtropy_physics::FrictionDiagnosticReason::ExternalBoundaryUnqualified => {
-                    return Err(ThermodynamicFrictionAuthorityError::TerminalEvidenceMismatch(
-                        TerminalFrictionEvidenceMismatch::CenteredTransactionDidNotRemainCentered,
-                    ));
+                    return self.fail(
+                        ThermodynamicFrictionAuthorityError::TerminalEvidenceMismatch(
+                            TerminalFrictionEvidenceMismatch::CenteredTransactionDidNotRemainCentered,
+                        ),
+                    );
                 }
             },
         }
@@ -292,10 +330,11 @@ mod tests {
         );
         assert_eq!(runtime.physical_energy_ledger().len(), 3);
         assert_eq!(runtime.pending_friction_reservation_count(), 0);
+        assert!(!runtime.is_authority_poisoned());
     }
 
     #[test]
-    fn centered_inconsistent_mass_fails_before_mechanical_mutation_or_ledger_write() {
+    fn centered_inconsistent_mass_fails_before_mutation_and_poison_blocks_tick() {
         let mut runtime = ThermodynamicTransactionRuntime::new();
         runtime.begin_next_tick().unwrap();
         let mut a = thermal_body(1, 1.0);
@@ -327,6 +366,7 @@ mod tests {
         assert_eq!((b.linear_velocity, b.angular_velocity, b.thermal), before_b);
         assert!(runtime.friction_journal().is_empty());
         assert!(runtime.physical_energy_ledger().is_empty());
+        assert!(runtime.is_authority_poisoned());
     }
 
     #[test]
@@ -361,6 +401,7 @@ mod tests {
                 .phase(FrictionTransactionId::new(0, 1, 2, 3)),
             Some(FrictionTransactionPhase::Promoted)
         );
+        assert!(!runtime.is_authority_poisoned());
     }
 
     #[test]
@@ -401,5 +442,6 @@ mod tests {
             ))
         );
         assert!(runtime.physical_energy_ledger().is_empty());
+        assert!(!runtime.is_authority_poisoned());
     }
 }

@@ -7,6 +7,12 @@
 //! owned. Solver-facing APIs mint `FrictionTransactionId.fixed_tick` from the
 //! currently open thermodynamic tick, so callers cannot relabel mechanical evidence
 //! across ticks or replace pending lifecycle/accounting state.
+//!
+//! A sticky runtime-level authority poison is deliberately separate from ordinary
+//! pending friction. Once set, normal forward authority (new tick, new friction,
+//! prepare/validate/commit finalize) fails closed even if a caller bypasses the
+//! outer scheduler. Prepared-finalize rollback remains available only to unwind a
+//! continuation token; it never clears poison.
 
 use std::collections::BTreeSet;
 
@@ -29,6 +35,7 @@ use super::thermodynamic_transaction::{
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub enum RuntimeFrictionGateError {
+    AuthorityPoisoned,
     NoOpenTick,
     FinalizeInProgress,
     WrongFixedTick {
@@ -73,6 +80,7 @@ impl From<FrictionPromotionError> for RuntimeFrictionError {
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub enum ThermodynamicRuntimeError {
+    AuthorityPoisoned,
     TickIdExhausted,
     PendingFrictionReservations { count: usize },
     PhysicalLedgerIntervalStillOpen,
@@ -145,6 +153,7 @@ pub struct ThermodynamicTransactionRuntime {
     physical_tick_start: Option<usize>,
     last_runtime_receipt: Option<ThermodynamicRuntimeTickReceipt>,
     next_tick_id: Option<u64>,
+    authority_poisoned: bool,
 }
 
 impl Default for ThermodynamicTransactionRuntime {
@@ -157,6 +166,7 @@ impl Default for ThermodynamicTransactionRuntime {
             physical_tick_start: None,
             last_runtime_receipt: None,
             next_tick_id: Some(0),
+            authority_poisoned: false,
         }
     }
 }
@@ -168,6 +178,7 @@ impl ThermodynamicTransactionRuntime {
     pub fn friction_journal(&self) -> &FrictionTransactionJournal { &self.friction_journal }
     pub fn pending_friction_reservation_count(&self) -> usize { self.reserved_friction.len() }
     pub fn physical_energy_ledger(&self) -> &EnergyTransferLedger { &self.physical_ledger }
+    pub const fn is_authority_poisoned(&self) -> bool { self.authority_poisoned }
     pub fn last_runtime_receipt(&self) -> Option<&ThermodynamicRuntimeTickReceipt> {
         self.last_runtime_receipt.as_ref()
     }
@@ -179,6 +190,26 @@ impl ThermodynamicTransactionRuntime {
 
     pub fn last_finalized_receipt(&self) -> Option<&ThermodynamicTickReceipt> {
         self.authority.last_finalized_receipt()
+    }
+
+    /// Enter the sticky fail-stop authority state.
+    ///
+    /// This is crate-visible rather than public API because the production solver
+    /// authority owns when an unrecoverable authority failure has occurred. The
+    /// detailed first causal error remains in the outer typed scheduler poison
+    /// record; the runtime only needs the irreversible gate.
+    pub(crate) fn poison_authority(&mut self) -> bool {
+        let first = !self.authority_poisoned;
+        self.authority_poisoned = true;
+        first
+    }
+
+    fn require_not_authority_poisoned(&self) -> Result<(), ThermodynamicRuntimeError> {
+        if self.authority_poisoned {
+            Err(ThermodynamicRuntimeError::AuthorityPoisoned)
+        } else {
+            Ok(())
+        }
     }
 
     fn require_no_pending_reservations(&self) -> Result<(), ThermodynamicRuntimeError> {
@@ -194,6 +225,7 @@ impl ThermodynamicTransactionRuntime {
     pub fn begin_next_tick(
         &mut self,
     ) -> Result<ThermodynamicBeginPermit, ThermodynamicRuntimeError> {
+        self.require_not_authority_poisoned()?;
         self.require_no_pending_reservations()?;
         let tick_id = self.next_tick_id.ok_or(ThermodynamicRuntimeError::TickIdExhausted)?;
         if self.authority.open_tick_id().is_none() && self.physical_tick_start.is_some() {
@@ -206,6 +238,11 @@ impl ThermodynamicTransactionRuntime {
     }
 
     fn open_friction_tick(&self) -> Result<u64, RuntimeFrictionError> {
+        if self.authority_poisoned {
+            return Err(RuntimeFrictionError::Gate(
+                RuntimeFrictionGateError::AuthorityPoisoned,
+            ));
+        }
         if self.authority.is_finalize_in_progress() {
             return Err(RuntimeFrictionError::Gate(RuntimeFrictionGateError::FinalizeInProgress));
         }
@@ -504,6 +541,7 @@ impl ThermodynamicTransactionRuntime {
         &mut self,
         consequence_status: ThermodynamicConsequenceStatus,
     ) -> Result<ThermodynamicFinalizePermit, ThermodynamicRuntimeError> {
+        self.require_not_authority_poisoned()?;
         self.require_no_pending_reservations()?;
         let tick_id = self.authority.open_tick_id().ok_or(ThermodynamicRuntimeError::Tick(
             ThermodynamicTickError::NoOpenTick,
@@ -522,6 +560,7 @@ impl ThermodynamicTransactionRuntime {
         &self,
         permit: &ThermodynamicFinalizePermit,
     ) -> Result<(), ThermodynamicRuntimeError> {
+        self.require_not_authority_poisoned()?;
         self.require_no_pending_reservations()?;
         if self.physical_tick_start.is_none() {
             return Err(ThermodynamicRuntimeError::MissingPhysicalLedgerInterval);
@@ -529,6 +568,9 @@ impl ThermodynamicTransactionRuntime {
         Ok(self.authority.validate_prepared_finalize(permit, &self.friction_journal)?)
     }
 
+    /// Rollback of a previously prepared finalize remains available while
+    /// authority-poisoned. This only returns `Finalizing -> Open`; it does not
+    /// clear poison or re-enable any forward authority path.
     pub fn rollback_finalize(
         &mut self,
         permit: ThermodynamicFinalizePermit,
@@ -540,6 +582,7 @@ impl ThermodynamicTransactionRuntime {
         &mut self,
         permit: &ThermodynamicFinalizePermit,
     ) -> Result<ThermodynamicRuntimeTickReceipt, ThermodynamicRuntimeError> {
+        self.require_not_authority_poisoned()?;
         self.require_no_pending_reservations()?;
         self.authority.validate_prepared_finalize(permit, &self.friction_journal)?;
         let start = self
