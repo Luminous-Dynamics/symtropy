@@ -43,6 +43,9 @@ pub mod thermodynamic;
 pub mod thermodynamic_close;
 #[cfg(test)]
 mod thermodynamic_close_tests;
+pub mod thermodynamic_commit;
+#[cfg(test)]
+mod thermodynamic_commit_tests;
 pub mod thermodynamic_runtime;
 pub mod thermodynamic_transaction;
 #[cfg(test)]
