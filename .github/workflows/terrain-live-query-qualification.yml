@@ -1,0 +1,320 @@
+name: Terrain Live Query Qualification
+
+on:
+  push:
+    branches:
+      - "terrain/live-query-v0.1"
+    paths:
+      - ".github/workflows/terrain-live-query-qualification.yml"
+      - "crates/domains/symtropy-terrain/src/live_geometry_query.rs"
+      - "crates/domains/symtropy-terrain/src/lib.rs"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: terrain-live-query-v0.1
+  cancel-in-progress: true
+
+jobs:
+  qualify:
+    name: Qualify point-of-invocation Terrain live query
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Bind exact qualified ancestry and product blobs
+        shell: bash
+        run: |
+          set -euo pipefail
+          base=9481d748e8f8a196713464bdc3b3bcebf77dffda
+          product=ed6174daf0b59e52ce649979a5bd6a1039186f97
+          source=crates/domains/symtropy-terrain/src/live_geometry_query.rs
+          lib=crates/domains/symtropy-terrain/src/lib.rs
+          provider=crates/domains/symtropy-terrain/src/live_geometry_provider.rs
+          currentness=crates/domains/symtropy-terrain/src/geometry_currentness.rs
+          kernel=crates/domains/symtropy-terrain/src/geometry_kernel.rs
+          manifest=crates/domains/symtropy-terrain/Cargo.toml
+          provider_qualifier=.github/workflows/terrain-ecs-lattice-geometry-provider-qualification.yml
+          locus_qualifier=.github/workflows/terrain-locus-mint-authority-qualification.yml
+          currentness_qualifier=.github/workflows/terrain-geometry-recapture-currentness-qualification.yml
+          qualifier=.github/workflows/terrain-live-query-qualification.yml
+
+          test "$(git rev-parse HEAD)" = "${GITHUB_SHA}"
+          test "$(git rev-parse HEAD^)" = "${product}"
+          git merge-base --is-ancestor "${base}" "${product}"
+          git merge-base --is-ancestor "${product}" HEAD
+
+          test "$(git rev-parse ${product}:${source})" = "34995e11c7d82ffa4e18b7fc12927816408e8d1d"
+          test "$(git rev-parse HEAD:${source})" = "34995e11c7d82ffa4e18b7fc12927816408e8d1d"
+          test "$(git rev-parse ${product}:${lib})" = "4489f47e8d707eac30cb1e0c682e57b061e14e03"
+          test "$(git rev-parse HEAD:${lib})" = "4489f47e8d707eac30cb1e0c682e57b061e14e03"
+          test "$(git rev-parse HEAD:${provider})" = "543858ec733429ac41d39bd52eb2e39210806280"
+          test "$(git rev-parse HEAD:${currentness})" = "2da7d9b27313ae24b45269171cf58ea6cd528de4"
+          test "$(git rev-parse HEAD:${kernel})" = "8d3e1213eacdeddf693cd2d1f82670d6ed832161"
+          test "$(git rev-parse HEAD:${manifest})" = "187fe4020a0c0048ab36404e219a7a5698a856d1"
+          test "$(git rev-parse HEAD:Cargo.lock)" = "62c6eb098b3f6fffdea8a175a0f3afb33423b17b"
+          test "$(git rev-parse HEAD:${provider_qualifier})" = "b34b69a1eaf082a293998dece0356dbc4f596e23"
+          test "$(git rev-parse HEAD:${locus_qualifier})" = "dedef7a0ccd3a3d88654b66d48cc0130cda9002d"
+          test "$(git rev-parse HEAD:${currentness_qualifier})" = "3b44ab7e0bb729a2690d2cd748e08061b0e3d3d0"
+
+          product_delta="$(git diff --name-only ${base}..${product} | sort)"
+          expected_product_delta="$(printf '%s\n' "${source}" "${lib}" | sort)"
+          test "${product_delta}" = "${expected_product_delta}"
+
+          qualifier_delta="$(git diff --name-only ${product}..HEAD)"
+          test "${qualifier_delta}" = "${qualifier}"
+
+          actual="$(git diff --name-only ${base}..HEAD | sort)"
+          expected="$(printf '%s\n' "${source}" "${lib}" "${qualifier}" | sort)"
+          test "${actual}" = "${expected}"
+
+          echo "TERRAIN_LIVE_QUERY_HEAD=${GITHUB_SHA}"
+          echo "TERRAIN_LIVE_QUERY_TREE=$(git rev-parse HEAD^{tree})"
+          echo "TERRAIN_LIVE_QUERY_BASE=${base}"
+          echo "TERRAIN_LIVE_QUERY_PRODUCT=${product}"
+          echo "TERRAIN_LIVE_QUERY_SOURCE_BLOB=$(git rev-parse HEAD:${source})"
+          echo "TERRAIN_LIVE_QUERY_LIB_BLOB=$(git rev-parse HEAD:${lib})"
+          echo "TERRAIN_LIVE_QUERY_KERNEL_BLOB=$(git rev-parse HEAD:${kernel})"
+          echo "TERRAIN_LIVE_QUERY_LOCK_BLOB=$(git rev-parse HEAD:Cargo.lock)"
+          echo "CARGO_TARGET_DIR=${RUNNER_TEMP}/terrain-live-query-target" >> "${GITHUB_ENV}"
+
+      - name: Install Linux system dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install -y libasound2-dev libudev-dev pkg-config
+
+      - name: Set up pinned Rust
+        uses: dtolnay/rust-toolchain@6bed0761d98439e5a578e2877258200ad565ba87
+        with:
+          toolchain: 1.96.0
+          components: clippy,rustfmt
+
+      - name: Bind toolchain
+        shell: bash
+        run: |
+          set -euo pipefail
+          rustc -Vv
+          cargo -Vv
+          rustfmt --version
+          cargo clippy --version
+          test "$(rustc --version | awk '{print $2}')" = "1.96.0"
+          test "$(cargo --version | awk '{print $2}')" = "1.96.0"
+
+      - name: Check exact live-query formatting
+        shell: bash
+        run: |
+          set -euo pipefail
+          rustfmt --edition 2024 --check \
+            crates/domains/symtropy-terrain/src/live_geometry_query.rs \
+            crates/domains/symtropy-terrain/src/lib.rs
+
+      - name: Verify frozen selected dependency graph
+        shell: bash
+        run: |
+          set -euo pipefail
+          before="$(git hash-object Cargo.lock)"
+          cargo metadata --locked --format-version 1 > "${RUNNER_TEMP}/terrain-live-query-metadata.json"
+          test "$(git hash-object Cargo.lock)" = "${before}"
+          echo "TERRAIN_LIVE_QUERY_METADATA_SHA256=$(sha256sum "${RUNNER_TEMP}/terrain-live-query-metadata.json" | awk '{print $1}')"
+
+      - name: Compile all Terrain targets
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo check -p symtropy-terrain --locked --all-targets
+
+      - name: Execute dedicated live-query theorem corpus
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo test -p symtropy-terrain --locked live_geometry_query::tests -- --nocapture
+
+      - name: Re-execute inherited live-provider theorem corpus
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo test -p symtropy-terrain --locked live_geometry_provider::tests -- --nocapture
+
+      - name: Re-execute inherited currentness theorem corpus
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo test -p symtropy-terrain --locked geometry_currentness::tests -- --nocapture
+
+      - name: Execute complete Terrain regression suite
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo test -p symtropy-terrain --locked --all-targets
+
+      - name: Enforce strict all-target Clippy
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo clippy -p symtropy-terrain --locked --all-targets -- -D warnings
+
+      - name: Audit live-query authority and receipt theorem
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+
+          source = Path("crates/domains/symtropy-terrain/src/live_geometry_query.rs").read_text()
+          lib = Path("crates/domains/symtropy-terrain/src/lib.rs").read_text()
+          production, marker, tests = source.partition("#[cfg(test)]")
+          if not marker:
+              raise SystemExit("missing live-query test boundary")
+
+          required = [
+              "pub fn query_live_terrain_geometry(",
+              "world: &World",
+              "entity: Entity",
+              "bounds: TerrainVoxelBox",
+              "Result<TerrainGeometryQueryReceipt, TerrainLiveQueryError>",
+              "let snapshot = capture_live_terrain_geometry(world, entity)?;",
+              "Ok(snapshot.query(bounds)?)",
+              "Capture(TerrainLiveGeometryError)",
+              "Query(TerrainGeometryError)",
+          ]
+          missing = [term for term in required if term not in production]
+          if missing:
+              raise SystemExit(f"live-query composition surface missing: {missing!r}")
+
+          executable = re.sub(r"//.*?$|/\*.*?\*/", "", production, flags=re.MULTILINE | re.DOTALL)
+          forbidden = [
+              "GlobalTransform",
+              "Transform",
+              "Vec3",
+              ".density",
+              ".densities",
+              "RigidBody",
+              "Collider",
+              "Mesh",
+              "revision",
+              "generation",
+              "Instant",
+              "SystemTime",
+              "Utc",
+              "TerrainGeometrySnapshot",
+              "EarthChunkLatticeCoord",
+              "symtropy_spatial",
+              "CellCoord",
+              "AnalysisDomain",
+              "Occupancy",
+              "Facet",
+              "&mut World",
+          ]
+          leaked = [term for term in forbidden if term in executable]
+          if leaked:
+              raise SystemExit(f"non-authoritative state leaked into live-query production theorem: {leaked!r}")
+
+          if source.count("pub struct TerrainGeometryQueryReceipt"):
+              raise SystemExit("live-query tranche must not define a second receipt grammar")
+          if "mod live_geometry_query;" not in lib:
+              raise SystemExit("live-query module is not wired")
+          if "query_live_terrain_geometry" not in lib or "TerrainLiveQueryError" not in lib:
+              raise SystemExit("live-query public surface is not re-exported")
+
+          required_tests = [
+              "full_chunk_live_query_returns_complete_valid_receipt",
+              "bounded_query_preserves_kernel_canonical_order",
+              "repeated_unchanged_live_query_has_identical_receipt_identity",
+              "queried_material_mutation_changes_local_observation_and_receipt",
+              "remote_mutation_changes_enclosing_provenance_not_local_observation",
+              "density_rebuild_flags_and_global_transform_are_not_query_authority",
+              "explicit_air_is_returned_as_observation_evidence",
+              "missing_chunk_is_a_capture_error",
+              "missing_locus_is_a_capture_error",
+              "duplicate_locus_is_a_capture_error",
+              "invalid_bounds_are_a_query_error_after_successful_capture",
+          ]
+          missing_tests = [name for name in required_tests if name not in tests]
+          if missing_tests:
+              raise SystemExit(f"live-query theorem corpus missing: {missing_tests!r}")
+
+          print("TERRAIN_LIVE_QUERY_FRESH_CAPTURE_THEN_BOUNDED_QUERY=PASS")
+          print("TERRAIN_LIVE_QUERY_EXISTING_RECEIPT_GRAMMAR_REUSED=PASS")
+          print("TERRAIN_LIVE_QUERY_LOCAL_OBSERVATION_VS_ENCLOSING_PROVENANCE=PASS")
+          print("TERRAIN_LIVE_QUERY_RUNTIME_TRANSFORM_DENSITY_PB_AUTHORITY=ABSENT")
+          PY
+
+      - name: Prove downstream query surface without locus capability
+        shell: bash
+        run: |
+          set -euo pipefail
+          root_lock_before="$(git hash-object Cargo.lock)"
+          consumer="${RUNNER_TEMP}/terrain-live-query-consumer"
+          mkdir -p "${consumer}/src"
+          cat > "${consumer}/Cargo.toml" <<EOF
+          [package]
+          name = "terrain-live-query-consumer"
+          version = "0.0.0"
+          edition = "2024"
+
+          [dependencies]
+          symtropy-terrain = { path = "${GITHUB_WORKSPACE}/crates/domains/symtropy-terrain" }
+          EOF
+
+          cat > "${consumer}/src/main.rs" <<'RS'
+          use symtropy_terrain::{TerrainLiveQueryError, query_live_terrain_geometry};
+          use symtropy_terrain::geometry_kernel::{TerrainGeometryQueryReceipt, TerrainVoxelBox};
+
+          fn main() {
+              let _ = query_live_terrain_geometry;
+              let _: Option<TerrainLiveQueryError> = None;
+              let _: Option<TerrainGeometryQueryReceipt> = None;
+              let _ = TerrainVoxelBox::full_chunk();
+          }
+          RS
+          cargo check --manifest-path "${consumer}/Cargo.toml"
+
+          run_forbidden() {
+              local name="$1"
+              local stderr="${RUNNER_TEMP}/${name}.stderr"
+              if cargo check --manifest-path "${consumer}/Cargo.toml" --locked >"${RUNNER_TEMP}/${name}.stdout" 2>"${stderr}"; then
+                  echo "forbidden external locus access compiled: ${name}" >&2
+                  exit 1
+              fi
+              grep -Fq "EarthChunkLatticeLocus" "${stderr}"
+              echo "${name}_STDERR_SHA256=$(sha256sum "${stderr}" | awk '{print $1}')"
+          }
+
+          cat > "${consumer}/src/main.rs" <<'RS'
+          use symtropy_terrain::EarthChunkLatticeLocus;
+          fn main() { let _ = core::mem::size_of::<EarthChunkLatticeLocus>(); }
+          RS
+          run_forbidden public_reexport_path
+
+          cat > "${consumer}/src/main.rs" <<'RS'
+          use symtropy_terrain::live_geometry_provider::EarthChunkLatticeLocus;
+          fn main() { let _ = core::mem::size_of::<EarthChunkLatticeLocus>(); }
+          RS
+          run_forbidden private_module_path
+
+          test "$(git hash-object Cargo.lock)" = "${root_lock_before}"
+          echo "TERRAIN_LIVE_QUERY_EXTERNAL_SURFACE=PASS"
+          echo "TERRAIN_LIVE_QUERY_EXTERNAL_LOCUS_AUTHORITY=DENIED"
+
+      - name: Unchanged-subject postflight
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -z "$(git status --porcelain)"
+          test "$(git rev-parse HEAD)" = "${GITHUB_SHA}"
+          test "$(git rev-parse HEAD:crates/domains/symtropy-terrain/src/live_geometry_query.rs)" = "34995e11c7d82ffa4e18b7fc12927816408e8d1d"
+          test "$(git rev-parse HEAD:crates/domains/symtropy-terrain/src/lib.rs)" = "4489f47e8d707eac30cb1e0c682e57b061e14e03"
+          test "$(git rev-parse HEAD:crates/domains/symtropy-terrain/src/live_geometry_provider.rs)" = "543858ec733429ac41d39bd52eb2e39210806280"
+          test "$(git rev-parse HEAD:crates/domains/symtropy-terrain/src/geometry_currentness.rs)" = "2da7d9b27313ae24b45269171cf58ea6cd528de4"
+          test "$(git rev-parse HEAD:crates/domains/symtropy-terrain/src/geometry_kernel.rs)" = "8d3e1213eacdeddf693cd2d1f82670d6ed832161"
+          test "$(git rev-parse HEAD:crates/domains/symtropy-terrain/Cargo.toml)" = "187fe4020a0c0048ab36404e219a7a5698a856d1"
+          test "$(git rev-parse HEAD:Cargo.lock)" = "62c6eb098b3f6fffdea8a175a0f3afb33423b17b"

@@ -18,11 +18,13 @@ use symtropy_physics_gpu::HybridFluidPlugin;
 mod geometry_currentness;
 pub mod geometry_kernel;
 mod live_geometry_provider;
+mod live_geometry_query;
 
 pub use geometry_currentness::{
     TerrainGeometryCurrentnessError, verify_live_terrain_geometry_current,
 };
 pub use live_geometry_provider::{TerrainLiveGeometryError, capture_live_terrain_geometry};
+pub use live_geometry_query::{TerrainLiveQueryError, query_live_terrain_geometry};
 
 pub const CHUNK_SIZE: usize = 16;
 
