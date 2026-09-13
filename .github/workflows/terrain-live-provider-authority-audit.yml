@@ -1,0 +1,144 @@
+name: Terrain Live Provider Authority Audit
+
+on:
+  push:
+    branches:
+      - "ci/terrain-live-provider-authority-audit-v0.1"
+    paths:
+      - ".github/workflows/terrain-live-provider-authority-audit.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    name: Audit frozen Terrain live-provider authority surface
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Bind immutable provider subject
+        shell: bash
+        run: |
+          set -euo pipefail
+          subject=12184f21761538b1d71f033a5e229484f544d8e6
+          workflow=.github/workflows/terrain-live-provider-authority-audit.yml
+          provider=crates/domains/symtropy-terrain/src/live_geometry_provider.rs
+          lib=crates/domains/symtropy-terrain/src/lib.rs
+          kernel=crates/domains/symtropy-terrain/src/geometry_kernel.rs
+          qualifier=.github/workflows/terrain-ecs-lattice-geometry-provider-qualification.yml
+
+          test "$(git rev-parse HEAD^)" = "${subject}"
+          test "$(git diff --name-only ${subject}..HEAD)" = "${workflow}"
+          test "$(git rev-parse ${subject}:${provider})" = "fca37140372389c2f09c9446c8a91ffb9b410bad"
+          test "$(git rev-parse ${subject}:${lib})" = "05a94dda8fa4fe51ba55e328b113c80ae648ae49"
+          test "$(git rev-parse ${subject}:${kernel})" = "8d3e1213eacdeddf693cd2d1f82670d6ed832161"
+          test "$(git rev-parse ${subject}:${qualifier})" = "b34b69a1eaf082a293998dece0356dbc4f596e23"
+          test "$(git rev-parse ${subject}:Cargo.lock)" = "62c6eb098b3f6fffdea8a175a0f3afb33423b17b"
+
+          echo "TERRAIN_LIVE_PROVIDER_AUDIT_SUBJECT=${subject}"
+          echo "TERRAIN_LIVE_PROVIDER_AUDIT_SUBJECT_TREE=$(git rev-parse ${subject}^{tree})"
+
+      - name: Audit exact authority exclusions on frozen subject
+        shell: bash
+        run: |
+          set -euo pipefail
+          subject=12184f21761538b1d71f033a5e229484f544d8e6
+          tmp="${RUNNER_TEMP}/terrain-provider-audit"
+          mkdir -p "${tmp}"
+          git show "${subject}:crates/domains/symtropy-terrain/src/live_geometry_provider.rs" > "${tmp}/provider.rs"
+          git show "${subject}:crates/domains/symtropy-terrain/src/lib.rs" > "${tmp}/lib.rs"
+
+          python3 - "${tmp}/provider.rs" "${tmp}/lib.rs" <<'PY'
+          from pathlib import Path
+          import re
+          import sys
+
+          provider = Path(sys.argv[1]).read_text()
+          lib = Path(sys.argv[2]).read_text()
+          production, marker, tests = provider.partition("#[cfg(test)]")
+          if not marker:
+              raise SystemExit("missing provider test boundary")
+
+          signature = production.split("pub fn capture_live_terrain_geometry(", 1)[1].split(") ->", 1)[0]
+          forbidden_signature = [
+              "EarthChunkLatticeCoord",
+              "EarthChunkLatticeLocus",
+              "&EarthChunk",
+              "GlobalTransform",
+          ]
+          leaked = [term for term in forbidden_signature if term in signature]
+          if leaked:
+              raise SystemExit(f"caller-mintable authority leaked into capture signature: {leaked!r}")
+
+          executable_transform_patterns = [
+              "get::<GlobalTransform>",
+              "get_mut::<GlobalTransform>",
+              "&GlobalTransform",
+              "GlobalTransform::",
+          ]
+          leaked = [term for term in executable_transform_patterns if term in production]
+          if leaked:
+              raise SystemExit(f"GlobalTransform leaked into production exact provider: {leaked!r}")
+          if "GlobalTransform" not in tests:
+              raise SystemExit("missing transform non-authority regression test")
+
+          locus_derive = re.search(
+              r"#\[derive\(([^)]*)\)\]\npub struct EarthChunkLatticeLocus",
+              production,
+          )
+          if locus_derive is None:
+              raise SystemExit("could not bind exact lattice-locus derive surface")
+          derived = {item.strip() for item in locus_derive.group(1).split(",")}
+          if "Reflect" in derived:
+              raise SystemExit("exact lattice locus must not derive Bevy Reflect")
+
+          if ".register_type::<EarthChunkLatticeLocus>()" in lib:
+              raise SystemExit("exact lattice locus must not be inspector-registered")
+          if "pub struct EarthChunkLatticeLocus {\n    pub " in production:
+              raise SystemExit("lattice-locus coordinate fields must remain private")
+
+          required_materials = [
+              "SubstrateMaterial::Air => TerrainMaterialCode::AIR",
+              "SubstrateMaterial::Bedrock => TerrainMaterialCode::BEDROCK",
+              "SubstrateMaterial::Dolomite => TerrainMaterialCode::DOLOMITE",
+              "SubstrateMaterial::PyriteTailing => TerrainMaterialCode::PYRITE_TAILING",
+              "SubstrateMaterial::Quartzite => TerrainMaterialCode::QUARTZITE",
+          ]
+          missing = [term for term in required_materials if term not in production]
+          if missing:
+              raise SystemExit(f"frozen material mapping incomplete: {missing!r}")
+
+          print("TERRAIN_LIVE_PROVIDER_CALLER_COORDINATE_EXCLUSION=PASS")
+          print("TERRAIN_LIVE_PROVIDER_TRANSFORM_EXCLUSION=PASS")
+          print("TERRAIN_LIVE_PROVIDER_REFLECTION_EXCLUSION=PASS")
+          print("TERRAIN_LIVE_PROVIDER_MATERIAL_MAPPING=COMPLETE")
+          PY
+
+      - name: Bind prior executable evidence and unchanged subject
+        shell: bash
+        run: |
+          set -euo pipefail
+          subject=12184f21761538b1d71f033a5e229484f544d8e6
+          runtime_subject=1ddf19053a263cec44edf9fbc96750cf2e8df181
+          provider=crates/domains/symtropy-terrain/src/live_geometry_provider.rs
+          lib=crates/domains/symtropy-terrain/src/lib.rs
+
+          # The repaired subject changes only qualification logic. The exact
+          # provider and Terrain library proven by run 34751188006 are identical.
+          test "$(git rev-parse ${subject}:${provider})" = "$(git rev-parse ${runtime_subject}:${provider})"
+          test "$(git rev-parse ${subject}:${lib})" = "$(git rev-parse ${runtime_subject}:${lib})"
+          test "$(git rev-parse ${subject}:Cargo.lock)" = "$(git rev-parse ${runtime_subject}:Cargo.lock)"
+          test -z "$(git diff --name-only ${runtime_subject}..${subject} -- ${provider} ${lib} Cargo.lock)"
+
+          test "$(git rev-parse HEAD^)" = "${subject}"
+          test -z "$(git status --porcelain)"
+          echo "TERRAIN_LIVE_PROVIDER_INDEPENDENT_AUTHORITY_AUDIT=PASS"
+          echo "prior_runtime_evidence=run_34751188006_job_103707895545"
+          echo "prior_runtime_result=all-target-check+provider-tests+full-tests+strict-clippy-pass"
+          echo "claim=semantic authority exclusions pass on immutable subject; executable runtime product bytes are identical to the previously passing runtime subject"
