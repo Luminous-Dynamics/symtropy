@@ -37,6 +37,8 @@ jobs:
           provider_qualifier_before_format=a41195f9c93a7868178b12f557c2f20420c71481
           formatted_provider=bf231d572a4141e252efdd744976644854f4a546
           restack=ab556d0a884edf8d2db89a140cd355aff83745e4
+          rebound_qualifier=65e4e78661deb069ad4c355705adb9e2eeaeb672
+          test_domain_fix=0980d71222924b659a661f3067dcd677f6008cfb
           provider=crates/domains/symtropy-terrain/src/live_geometry_provider.rs
           lib=crates/domains/symtropy-terrain/src/lib.rs
           kernel=crates/domains/symtropy-terrain/src/geometry_kernel.rs
@@ -46,7 +48,9 @@ jobs:
           qualifier=.github/workflows/terrain-ecs-lattice-geometry-provider-qualification.yml
 
           test "$(git rev-parse HEAD)" = "${GITHUB_SHA}"
-          test "$(git rev-parse HEAD^)" = "${restack}"
+          test "$(git rev-parse HEAD^)" = "${test_domain_fix}"
+          test "$(git rev-parse ${test_domain_fix}^)" = "${rebound_qualifier}"
+          test "$(git rev-parse ${rebound_qualifier}^)" = "${restack}"
           test "$(git rev-parse ${restack}^1)" = "${formatted_provider}"
           test "$(git rev-parse ${restack}^2)" = "${base}"
           test "$(git rev-parse ${formatted_provider}^)" = "${provider_qualifier_before_format}"
@@ -59,7 +63,7 @@ jobs:
           test "$(git rev-parse HEAD:Cargo.lock)" = "62c6eb098b3f6fffdea8a175a0f3afb33423b17b"
           test "$(git rev-parse HEAD:${golden})" = "dc631fe5bcac3ad017ca99ba2eddf761a6370016"
           test "$(git rev-parse HEAD:${dependency_qualifier})" = "3761c5b2529bf0804f61b85d3f70ebbe122534e4"
-          test "$(git rev-parse HEAD:${provider})" = "0cfcc40ef9f1a4dd767dd3ac7e77f253d7d847aa"
+          test "$(git rev-parse HEAD:${provider})" = "fca37140372389c2f09c9446c8a91ffb9b410bad"
           test "$(git rev-parse HEAD:${lib})" = "05a94dda8fa4fe51ba55e328b113c80ae648ae49"
 
           formatting_delta="$(git diff --name-only ${provider_qualifier_before_format}..${formatted_provider})"
@@ -214,7 +218,7 @@ jobs:
           test "$(git rev-parse HEAD:Cargo.lock)" = "62c6eb098b3f6fffdea8a175a0f3afb33423b17b"
           test "$(git rev-parse HEAD:crates/domains/symtropy-terrain/tests/geometry_authority_golden.rs)" = "dc631fe5bcac3ad017ca99ba2eddf761a6370016"
           test "$(git rev-parse HEAD:.github/workflows/terrain-naga27-feature-consistency-qualification.yml)" = "3761c5b2529bf0804f61b85d3f70ebbe122534e4"
-          test "$(git rev-parse HEAD:crates/domains/symtropy-terrain/src/live_geometry_provider.rs)" = "0cfcc40ef9f1a4dd767dd3ac7e77f253d7d847aa"
+          test "$(git rev-parse HEAD:crates/domains/symtropy-terrain/src/live_geometry_provider.rs)" = "fca37140372389c2f09c9446c8a91ffb9b410bad"
           test "$(git rev-parse HEAD:crates/domains/symtropy-terrain/src/lib.rs)" = "05a94dda8fa4fe51ba55e328b113c80ae648ae49"
           echo "TERRAIN_LIVE_ECS_PROVIDER_STATUS=PASS"
           echo "claim=current ECS EarthChunk + unique explicit non-reflective ECS lattice locus -> complete 4096-cell frozen-vocabulary projection -> qualified TerrainGeometrySnapshot; no PB/world-frame/transform/persistence authority claim"
