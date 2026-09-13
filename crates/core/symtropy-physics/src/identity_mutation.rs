@@ -54,7 +54,7 @@ pub fn assign_net_id_checked<const D: usize>(
     }
 
     if current == Some(net_id) {
-        if target_handles.as_slice() != [handle] {
+        if target_handles.len() != 1 || target_handles[0] != handle {
             return Err(NetIdentityMutationError::CurrentBodyIdentityMismatch { handle, net_id });
         }
         if world.handle_for_net_id(net_id) != Some(handle)
@@ -70,7 +70,7 @@ pub fn assign_net_id_checked<const D: usize>(
 
     if let Some(old_id) = current {
         let old_handles = live_handles_for_net_id(world, old_id);
-        if old_handles.as_slice() != [handle] {
+        if old_handles.len() != 1 || old_handles[0] != handle {
             return Err(NetIdentityMutationError::CurrentBodyIdentityMismatch {
                 handle,
                 net_id: old_id,
