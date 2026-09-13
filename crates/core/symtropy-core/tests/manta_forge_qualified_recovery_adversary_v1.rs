@@ -12,77 +12,46 @@ fn recovery_scalar(key: &str) -> u64 {
         .unwrap()
 }
 
+fn recovery_text(key: &str) -> &str {
+    RECOVERY_FIXTURE
+        .lines()
+        .find_map(|line| line.strip_prefix(&format!("{key}=")))
+        .unwrap_or_else(|| panic!("missing recovery fixture text {key}"))
+}
+
 fn recovery_source_spec(case: &FrontierCase) -> IndustrialEpochSpec {
-    let mut spec = topology_v3_spec(case, ControllerSupportTopology::DirectReactor);
-    spec.dependencies.push(basis_dependency(
-        "repair-reserve-v3",
-        IndustrialGovernance::Ordinary,
-        1,
-        0,
-        0,
-        recovery_scalar("source_repair_reserve_inventory_units"),
-    ));
-    spec
+    // Deliberately exact #840 direct-topology source subject: recovery adds no
+    // nominal dependency and therefore cannot change H, basis or support topology.
+    topology_v3_spec(case, ControllerSupportTopology::DirectReactor)
 }
 
 fn recovery_successor_spec(case: &FrontierCase) -> IndustrialEpochSpec {
-    let mut spec = topology_descendant_spec(
-        case,
-        4,
-        ControllerSupportTopology::DirectReactor,
-    );
-    spec.dependencies.push(basis_dependency(
-        "repair-reserve-v4",
-        IndustrialGovernance::Ordinary,
-        1,
-        0,
-        0,
-        0,
-    ));
-    spec
+    // Deliberately exact #840 direct-topology descendant template.
+    topology_descendant_spec(case, 4, ControllerSupportTopology::DirectReactor)
 }
 
 fn recovery_handoff_plan(
     case: &FrontierCase,
     state: &IndustrialEpochState,
 ) -> IndustrialEpochHandoffPlan {
-    let tooling_units = state.dependency("forge-tooling-v3").unwrap().inventory_units;
-    let reactor_units = state
-        .dependency("reactor-service-v3")
-        .unwrap()
-        .inventory_units;
-    let structural_units = state
-        .dependency("structural-stock-v3")
-        .unwrap()
-        .inventory_units;
-    let controller_support_units = state
-        .dependency("controller-support-v3")
-        .unwrap()
-        .inventory_units;
-    let repair_reserve_units = state
-        .dependency("repair-reserve-v3")
-        .unwrap()
-        .inventory_units;
-
-    let mut plan = topology_handoff_plan(
+    topology_handoff_plan(
         case,
         3,
         4,
-        tooling_units,
-        reactor_units,
-        structural_units,
-        controller_support_units,
-    );
-    plan.source_inventory_dispositions
-        .push(IndustrialSourceInventoryDisposition {
-            source_dependency_id: "repair-reserve-v3".into(),
-            successor_dependency_id: Some("repair-reserve-v4".into()),
-            transferred_units: repair_reserve_units,
-            retired_units: 0,
-        });
-    plan.source_inventory_dispositions
-        .sort_by(|left, right| left.source_dependency_id.cmp(&right.source_dependency_id));
-    plan
+        state.dependency("forge-tooling-v3").unwrap().inventory_units,
+        state
+            .dependency("reactor-service-v3")
+            .unwrap()
+            .inventory_units,
+        state
+            .dependency("structural-stock-v3")
+            .unwrap()
+            .inventory_units,
+        state
+            .dependency("controller-support-v3")
+            .unwrap()
+            .inventory_units,
+    )
 }
 
 fn fresh_recovery_successor(case: &FrontierCase) -> IndustrialEpochState {
@@ -103,13 +72,6 @@ fn fresh_recovery_successor(case: &FrontierCase) -> IndustrialEpochState {
             .inventory_units,
         recovery_scalar("successor_reactor_inventory_units")
     );
-    assert_eq!(
-        source
-            .dependency("repair-reserve-v3")
-            .unwrap()
-            .inventory_units,
-        recovery_scalar("successor_repair_reserve_inventory_units")
-    );
 
     let plan = recovery_handoff_plan(case, &source);
     let (successor, receipt) = source
@@ -122,30 +84,52 @@ fn fresh_recovery_successor(case: &FrontierCase) -> IndustrialEpochState {
     successor
 }
 
+fn recovery_reserve() -> IndustrialRecoveryReserveState {
+    IndustrialRecoveryReserveState::new(
+        recovery_text("external_recovery_reserve_id"),
+        recovery_text("external_recovery_reserve_binding"),
+        recovery_scalar("external_recovery_reserve_units"),
+    )
+    .unwrap()
+}
+
 #[test]
-fn nominal_h4_state_and_support_graph_are_identical_before_recovery_contract_use() {
+fn nominal_h4_model_and_successor_state_remain_exact_without_recovery_metadata() {
     let case = h4_case();
     let source_horizon = straight_horizon(
         IndustrialEpochState::from_spec(recovery_source_spec(&case)).unwrap(),
     );
     assert_eq!(source_horizon, recovery_scalar("source_horizon_periods"));
 
+    // The recovery source/successor specs are exactly the #840 nominal subjects.
+    assert_eq!(
+        recovery_source_spec(&case),
+        topology_v3_spec(&case, ControllerSupportTopology::DirectReactor)
+    );
+    assert_eq!(
+        recovery_successor_spec(&case),
+        topology_descendant_spec(&case, 4, ControllerSupportTopology::DirectReactor)
+    );
+
     let recoverable = fresh_recovery_successor(&case);
     let unrecoverable = fresh_recovery_successor(&case);
     assert_eq!(recoverable, unrecoverable);
+    assert_eq!(recovery_reserve(), recovery_reserve());
 }
 
 #[test]
-fn equal_h4_basis_closure_and_state_can_diverge_under_same_disturbance_by_recoverability() {
+fn exact_same_nominal_successor_diverges_under_same_disturbance_only_by_recovery_authority() {
     let case = h4_case();
     let successor_spec = recovery_successor_spec(&case);
+    let mut recoverable_reserve = recovery_reserve();
+    let unrecoverable_reserve = recovery_reserve();
     let contract = qualify_industrial_recovery_contract(
         &successor_spec,
+        &recoverable_reserve,
         "recover-metrology-v4",
         "recovery:metrology-v4:qualified-v1",
-        "metrology-v4",
+        recovery_text("disturbance_target"),
         IndustrialFlowKind::Production,
-        "repair-reserve-v4",
         recovery_scalar("recovery_reserve_units_per_recovery"),
     )
     .unwrap();
@@ -157,14 +141,16 @@ fn equal_h4_basis_closure_and_state_can_diverge_under_same_disturbance_by_recove
     let mut recoverable = fresh_recovery_successor(&case);
     let mut unrecoverable = fresh_recovery_successor(&case);
     assert_eq!(recoverable, unrecoverable);
+    assert_eq!(recoverable_reserve, unrecoverable_reserve);
 
     let disturbance = IndustrialShock::SetLocalProduction {
-        dependency_id: "metrology-v4".into(),
-        units_per_tick: recovery_scalar("shock_units_per_tick"),
+        dependency_id: recovery_text("disturbance_target").into(),
+        units_per_tick: recovery_scalar("degraded_units_per_tick"),
     };
     recoverable.apply_shock(disturbance.clone()).unwrap();
     unrecoverable.apply_shock(disturbance).unwrap();
     assert_eq!(recoverable, unrecoverable);
+    assert_eq!(recoverable_reserve, unrecoverable_reserve);
 
     let unrecoverable_report = unrecoverable.step().unwrap();
     assert_eq!(
@@ -175,16 +161,27 @@ fn equal_h4_basis_closure_and_state_can_diverge_under_same_disturbance_by_recove
     assert!(unrecoverable_report
         .shortages
         .iter()
-        .any(|shortage| shortage.dependency_id == "metrology-v4"));
+        .any(|shortage| shortage.dependency_id == recovery_text("disturbance_target")));
 
-    let receipt = execute_industrial_recovery(&mut recoverable, &contract).unwrap();
+    let receipt = execute_industrial_recovery(
+        &mut recoverable,
+        &contract,
+        &mut recoverable_reserve,
+    )
+    .unwrap();
     assert_eq!(receipt.prior_units_per_tick, 0);
     assert_eq!(
         receipt.restored_units_per_tick,
         recovery_scalar("qualified_recovery_units_per_tick")
     );
-    assert_eq!(receipt.reserve_units_before, 2);
-    assert_eq!(receipt.reserve_units_after, 1);
+    assert_eq!(
+        receipt.reserve_units_before,
+        recovery_scalar("external_recovery_reserve_units")
+    );
+    assert_eq!(
+        receipt.reserve_units_after,
+        recovery_scalar("recoverable_terminal_recovery_reserve_units")
+    );
 
     for expected_tick in 1..=recovery_scalar("maturity_periods") {
         let report = recoverable.step().unwrap();
@@ -202,10 +199,13 @@ fn equal_h4_basis_closure_and_state_can_diverge_under_same_disturbance_by_recove
         recovery_scalar("recoverable_terminal_tooling_inventory_units")
     );
     assert_eq!(
-        recoverable
-            .dependency("repair-reserve-v4")
-            .unwrap()
-            .inventory_units,
-        recovery_scalar("recoverable_terminal_repair_reserve_inventory_units")
+        recoverable_reserve.available_units(),
+        recovery_scalar("recoverable_terminal_recovery_reserve_units")
+    );
+
+    // The control had the same reserve quantity but no qualified authority to use it.
+    assert_eq!(
+        unrecoverable_reserve.available_units(),
+        recovery_scalar("external_recovery_reserve_units")
     );
 }
