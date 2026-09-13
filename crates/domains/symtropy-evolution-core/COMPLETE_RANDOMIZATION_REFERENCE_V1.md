@@ -76,20 +76,33 @@ Each stored record must retain the exact C1 design/frame subject binding and the
 
 This redundancy is intentional. The full C1 identification digest remains bound, while the mechanism-critical criterion records remain directly inspectable in the D1 representation.
 
-## Assignment materialization authority
+## Assignment materialization evidence and qualification
 
-`AssignmentMechanismMaterializationRef` is a separate authority stating that the opaque C1 assignment-mechanism evidence has been materialized as this exact complete fixed-count randomization model.
+`AssignmentMechanismMaterializationRef` records an authority that materializes the opaque C1 assignment-mechanism evidence as this exact complete fixed-count randomization model.
 
 It binds:
 
-- semantic authority ID;
-- revision;
-- content digest;
+- materialization authority ID;
+- materialization revision;
+- materialization content digest;
+- a separate `AssignmentMechanismMaterializationQualificationRef`;
 - exact C1 identification digest.
 
-An authority bound to another identification cannot be reused.
+The nested qualification ref binds its own:
 
-This authority identity is an auditable trust binding. Evolution-core does not infer scientific competence or truth from the hash itself.
+- qualification authority ID;
+- qualification revision;
+- qualification content digest.
+
+This split is deliberate:
+
+`materialized interpretation exists != materialized interpretation is qualified for this causal reference law`.
+
+Changing only the materialization-qualification authority changes D1 evidence identity even when the assignment vector and support remain numerically identical.
+
+A materialization authority bound to another identification cannot be reused.
+
+These authority identities are auditable trust bindings. Evolution-core does not infer scientific competence, honesty, or truth from hashes alone.
 
 ## Individual exchangeability authority
 
@@ -145,7 +158,7 @@ A serialized representation is not current assignment-reference authority.
 
 - the current validated frame;
 - the current validated C1 identification;
-- a fresh assignment-mechanism materialization authority;
+- a fresh assignment-mechanism materialization authority plus its qualification authority;
 - a fresh individual-exchangeability authority.
 
 The replay reconstructs the entire model and requires exact equality.
@@ -195,10 +208,11 @@ For the simplest 2x2 complete-randomization case, D2's resulting probability dis
 4. reversing realized group labels changes model identity while preserving the six-vector support size;
 5. D1 materialization authority from another C1 identification fails;
 6. D1 exchangeability authority from another C1 identification fails;
-7. fresh D1 authority drift stales persisted replay;
-8. controlled-simulation C1 authority cannot mint a physical complete-randomization model;
-9. altered serialized assignment vectors fail local count invariants;
-10. wire shape contains no p-value, probability, effect estimate, selection coefficient, fitness, adaptation, or speciation claim.
+7. changing only the D1 materialization-qualification authority changes D1 evidence identity while preserving the assignment support;
+8. fresh D1 authority drift stales persisted replay;
+9. controlled-simulation C1 authority cannot mint a physical complete-randomization model;
+10. altered serialized assignment vectors fail local count invariants;
+11. wire shape contains no p-value, probability, effect estimate, selection coefficient, fitness, adaptation, or speciation claim.
 
 ## Explicit non-claims
 
