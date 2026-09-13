@@ -1,0 +1,218 @@
+name: Terrain Exact Metric Profile Qualification
+
+on:
+  push:
+    branches:
+      - "terrain/exact-metric-profile-v0.1"
+    paths:
+      - ".github/workflows/terrain-exact-metric-profile-qualification.yml"
+      - "crates/domains/symtropy-terrain/src/terrain_metric.rs"
+
+permissions:
+  contents: read
+
+jobs:
+  qualify:
+    name: Qualify exact Terrain lattice metric profile
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Bind exact product lineage
+        shell: bash
+        run: |
+          set -euo pipefail
+          base=8db7fea0db9276c4922c2e812739396f14d0b56f
+          product=7bb937cb6b47eaff5dcd5b9bef8eb5980aed3ac6
+          source=crates/domains/symtropy-terrain/src/terrain_metric.rs
+          qualifier=.github/workflows/terrain-exact-metric-profile-qualification.yml
+          kernel=crates/domains/symtropy-terrain/src/geometry_kernel.rs
+          manifest=crates/domains/symtropy-terrain/Cargo.toml
+
+          test "$(git rev-parse HEAD)" = "${GITHUB_SHA}"
+          test "$(git rev-parse HEAD^)" = "${product}"
+          test "$(git rev-parse ${product}^)" = "${base}"
+          git merge-base --is-ancestor "${base}" HEAD
+
+          test "$(git rev-parse HEAD:${source})" = "5f6cce3dc034c0b8c0e46dc55e599bd6162841ac"
+          test "$(git rev-parse HEAD:${kernel})" = "8d3e1213eacdeddf693cd2d1f82670d6ed832161"
+          test "$(git rev-parse HEAD:${manifest})" = "187fe4020a0c0048ab36404e219a7a5698a856d1"
+          test "$(git rev-parse HEAD:Cargo.lock)" = "62c6eb098b3f6fffdea8a175a0f3afb33423b17b"
+
+          product_delta="$(git diff --name-only ${base}..${product})"
+          test "${product_delta}" = "${source}"
+          qualifier_delta="$(git diff --name-only ${product}..HEAD)"
+          test "${qualifier_delta}" = "${qualifier}"
+
+          if grep -RFn --include='*.rs' 'mod terrain_metric' crates/domains/symtropy-terrain/src/lib.rs; then
+            echo "metric profile must remain unwired in this pure qualification tranche" >&2
+            exit 1
+          fi
+
+          echo "TERRAIN_METRIC_HEAD=${GITHUB_SHA}"
+          echo "TERRAIN_METRIC_PRODUCT=${product}"
+          echo "TERRAIN_METRIC_SOURCE_BLOB=$(git rev-parse HEAD:${source})"
+          echo "TERRAIN_METRIC_KERNEL_BLOB=$(git rev-parse HEAD:${kernel})"
+          echo "TERRAIN_METRIC_LOCK_BLOB=$(git rev-parse HEAD:Cargo.lock)"
+
+      - name: Set up pinned Rust
+        uses: dtolnay/rust-toolchain@6bed0761d98439e5a578e2877258200ad565ba87
+        with:
+          toolchain: 1.96.0
+          components: clippy,rustfmt
+
+      - name: Bind toolchain
+        shell: bash
+        run: |
+          set -euo pipefail
+          rustc -Vv
+          cargo -Vv
+          rustfmt --version
+          cargo clippy --version
+          test "$(rustc --version | awk '{print $2}')" = "1.96.0"
+          test "$(cargo --version | awk '{print $2}')" = "1.96.0"
+
+      - name: Check exact metric formatting
+        shell: bash
+        run: |
+          set -euo pipefail
+          rustfmt --edition 2024 --check crates/domains/symtropy-terrain/src/terrain_metric.rs
+
+      - name: Verify root dependency graph remains frozen
+        shell: bash
+        run: |
+          set -euo pipefail
+          before="$(git hash-object Cargo.lock)"
+          test "${before}" = "62c6eb098b3f6fffdea8a175a0f3afb33423b17b"
+          cargo metadata --locked --format-version 1 > "${RUNNER_TEMP}/terrain-metric-root-metadata.json"
+          test "$(git hash-object Cargo.lock)" = "${before}"
+          echo "TERRAIN_METRIC_ROOT_METADATA_SHA256=$(sha256sum "${RUNNER_TEMP}/terrain-metric-root-metadata.json" | awk '{print $1}')"
+
+      - name: Execute isolated exact metric tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          source="${GITHUB_WORKSPACE}/crates/domains/symtropy-terrain/src/terrain_metric.rs"
+          rustc --edition 2024 --test "${source}" -o "${RUNNER_TEMP}/terrain-metric-tests"
+          "${RUNNER_TEMP}/terrain-metric-tests" --nocapture
+
+      - name: Strict Clippy through zero-dependency probe crate
+        shell: bash
+        run: |
+          set -euo pipefail
+          probe="${RUNNER_TEMP}/terrain-metric-probe"
+          mkdir -p "${probe}/src"
+          cp crates/domains/symtropy-terrain/src/terrain_metric.rs "${probe}/src/terrain_metric.rs"
+          cmp crates/domains/symtropy-terrain/src/terrain_metric.rs "${probe}/src/terrain_metric.rs"
+          cat > "${probe}/Cargo.toml" <<'EOF'
+          [package]
+          name = "terrain-metric-probe"
+          version = "0.0.0"
+          edition = "2024"
+
+          [lib]
+          path = "src/lib.rs"
+          EOF
+          cat > "${probe}/src/lib.rs" <<'EOF'
+          #![forbid(unsafe_code)]
+          pub mod terrain_metric;
+          EOF
+          cargo generate-lockfile --manifest-path "${probe}/Cargo.toml" --offline
+          CARGO_TARGET_DIR="${RUNNER_TEMP}/terrain-metric-target" \
+            cargo check --manifest-path "${probe}/Cargo.toml" --locked --all-targets
+          CARGO_TARGET_DIR="${RUNNER_TEMP}/terrain-metric-target" \
+            cargo test --manifest-path "${probe}/Cargo.toml" --locked --all-targets
+          CARGO_TARGET_DIR="${RUNNER_TEMP}/terrain-metric-target" \
+            cargo clippy --manifest-path "${probe}/Cargo.toml" --locked --all-targets -- -D warnings
+
+      - name: Audit exact metric authority boundary
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+
+          path = Path("crates/domains/symtropy-terrain/src/terrain_metric.rs")
+          source = path.read_text()
+          production, marker, tests = source.partition("#[cfg(test)]")
+          if not marker:
+              raise SystemExit("metric source lacks test boundary")
+
+          executable = re.sub(r"//.*?$|/\*.*?\*/", "", production, flags=re.MULTILINE | re.DOTALL)
+
+          required = [
+              "pub const TERRAIN_METRIC_SCHEMA_VERSION: u32 = 1;",
+              "pub const MAX_TERRAIN_VOXEL_EDGE_UM: i64 = 1_000_000_000_000;",
+              "pub struct TerrainMetricProfile {",
+              "schema_version: u32,",
+              "voxel_edge_um: i64,",
+              "pub const fn new(voxel_edge_um: i64)",
+              "voxel_edge_um <= 0",
+              "voxel_edge_um > MAX_TERRAIN_VOXEL_EDGE_UM",
+              "pub const fn canonical_bytes(self)",
+              "self.schema_version.to_le_bytes()",
+              "self.voxel_edge_um.to_le_bytes()",
+          ]
+          missing = [term for term in required if term not in source]
+          if missing:
+              raise SystemExit(f"metric theorem surface missing: {missing!r}")
+
+          forbidden = [
+              "f32", "f64", "unsafe", "bevy", "World", "GlobalTransform", "Transform",
+              "Vec3", "Rapier", "Collider", "Mesh", "symtropy_spatial", "quantum_um",
+              "serde", "sha2", "blake", "Default for TerrainMetricProfile",
+          ]
+          leaked = [term for term in forbidden if term in executable]
+          if leaked:
+              raise SystemExit(f"non-metric authority leaked into production metric kernel: {leaked!r}")
+
+          derive = re.search(r"#\[derive\(([^)]*)\)\]\npub struct TerrainMetricProfile", source)
+          if derive is None:
+              raise SystemExit("could not bind metric profile derive surface")
+          derived = {item.strip() for item in derive.group(1).split(",")}
+          if "Default" in derived:
+              raise SystemExit("Terrain metric must not have a silent Default")
+
+          required_tests = [
+              "smallest_positive_metric_is_valid",
+              "zero_and_negative_edges_fail_closed",
+              "exact_operational_maximum_is_inclusive",
+              "over_bound_edge_fails_closed",
+              "changed_edge_is_a_different_exact_metric_subject",
+              "canonical_bytes_have_frozen_little_endian_grammar",
+              "canonical_bytes_round_trip_the_complete_identity_tuple",
+          ]
+          absent_tests = [name for name in required_tests if name not in tests]
+          if absent_tests:
+              raise SystemExit(f"metric corpus missing: {absent_tests!r}")
+
+          lib = Path("crates/domains/symtropy-terrain/src/lib.rs").read_text()
+          if "terrain_metric" in lib:
+              raise SystemExit("pure metric theorem unexpectedly wired into runtime Terrain lib")
+
+          print("TERRAIN_METRIC_EXACT_BY_VALUE_IDENTITY=PASS")
+          print("TERRAIN_METRIC_FLOAT_AUTHORITY=ABSENT")
+          print("TERRAIN_METRIC_RUNTIME_TRANSFORM_AUTHORITY=ABSENT")
+          print("TERRAIN_METRIC_PB_AUTHORITY=ABSENT")
+          print("TERRAIN_METRIC_SILENT_DEFAULT=ABSENT")
+          print("TERRAIN_METRIC_RUNTIME_WIRING=ABSENT")
+          PY
+
+      - name: Unchanged-subject postflight
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -z "$(git status --porcelain)"
+          test "$(git rev-parse HEAD)" = "${GITHUB_SHA}"
+          test "$(git rev-parse HEAD:crates/domains/symtropy-terrain/src/terrain_metric.rs)" = "5f6cce3dc034c0b8c0e46dc55e599bd6162841ac"
+          test "$(git rev-parse HEAD:crates/domains/symtropy-terrain/src/geometry_kernel.rs)" = "8d3e1213eacdeddf693cd2d1f82670d6ed832161"
+          test "$(git rev-parse HEAD:crates/domains/symtropy-terrain/Cargo.toml)" = "187fe4020a0c0048ab36404e219a7a5698a856d1"
+          test "$(git rev-parse HEAD:Cargo.lock)" = "62c6eb098b3f6fffdea8a175a0f3afb33423b17b"
+          echo "TERRAIN_EXACT_METRIC_PROFILE_STATUS=PASS"
+          echo "claim=v1 qualifies only an explicit exact positive voxel-edge metric value and canonical bytes; no world binding, runtime transform, renderer, collider, PB frame, placement provenance, or geometry identity claim"
