@@ -1,0 +1,131 @@
+name: Terrain Locus Restack Integrity
+
+on:
+  push:
+    branches:
+      - "ci/terrain-locus-restack-integrity-v0.1"
+    paths:
+      - ".github/workflows/terrain-locus-restack-integrity.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    name: Audit frozen locus restack composition
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Bind immutable restack subject
+        shell: bash
+        run: |
+          set -euo pipefail
+          subject=8db7fea0db9276c4922c2e812739396f14d0b56f
+          pre_restack=98c241aa389626eb28e3d204e6a33711c3e5b639
+          final_provider=12184f21761538b1d71f033a5e229484f544d8e6
+          merge=2b9459634f6fd144b2fb26664456f5a102522252
+          provider=crates/domains/symtropy-terrain/src/live_geometry_provider.rs
+          lib=crates/domains/symtropy-terrain/src/lib.rs
+          provider_qualifier=.github/workflows/terrain-ecs-lattice-geometry-provider-qualification.yml
+          locus_qualifier=.github/workflows/terrain-locus-mint-authority-qualification.yml
+
+          test "$(git rev-parse HEAD^)" = "${subject}"
+          test "$(git rev-parse ${subject}^)" = "${merge}"
+          test "$(git rev-parse ${merge}^1)" = "${pre_restack}"
+          test "$(git rev-parse ${merge}^2)" = "${final_provider}"
+
+          test "$(git rev-parse ${subject}:${provider})" = "9893d8caffabd3a55c83b47f2a133eba4e982887"
+          test "$(git rev-parse ${pre_restack}:${provider})" = "9893d8caffabd3a55c83b47f2a133eba4e982887"
+          test "$(git rev-parse ${subject}:${lib})" = "0292fc52f879b868fb9052cf4a0037d5aa9e45c2"
+          test "$(git rev-parse ${pre_restack}:${lib})" = "0292fc52f879b868fb9052cf4a0037d5aa9e45c2"
+          test "$(git rev-parse ${subject}:${provider_qualifier})" = "b34b69a1eaf082a293998dece0356dbc4f596e23"
+          test "$(git rev-parse ${final_provider}:${provider_qualifier})" = "b34b69a1eaf082a293998dece0356dbc4f596e23"
+          test "$(git rev-parse ${subject}:${locus_qualifier})" = "dedef7a07dce12ff36e3d308037d801e5ba6de98"
+
+          old_to_merge="$(git diff --name-only ${pre_restack}..${merge})"
+          test "${old_to_merge}" = "${provider_qualifier}"
+
+          final_to_subject="$(git diff --name-only ${final_provider}..${subject} | sort)"
+          expected="$(printf '%s\n' "${provider}" "${lib}" "${locus_qualifier}" | sort)"
+          test "${final_to_subject}" = "${expected}"
+
+          old_product_delta="$(git diff --name-only ${pre_restack}..${subject} | sort)"
+          expected_evidence_delta="$(printf '%s\n' "${provider_qualifier}" "${locus_qualifier}" | sort)"
+          test "${old_product_delta}" = "${expected_evidence_delta}"
+
+          echo "TERRAIN_LOCUS_RESTACK_SUBJECT=${subject}"
+          echo "TERRAIN_LOCUS_RESTACK_PRODUCT_BYTES=PRESERVED"
+          echo "TERRAIN_LOCUS_RESTACK_INHERITED_PROVIDER_QUALIFIER=FINAL"
+
+      - name: Audit closed locus theorem remains present
+        shell: bash
+        run: |
+          set -euo pipefail
+          git checkout --detach 8db7fea0db9276c4922c2e812739396f14d0b56f
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+
+          provider = Path("crates/domains/symtropy-terrain/src/live_geometry_provider.rs").read_text()
+          lib = Path("crates/domains/symtropy-terrain/src/lib.rs").read_text()
+          qualifier = Path(".github/workflows/terrain-locus-mint-authority-qualification.yml").read_text()
+
+          required_provider = [
+              "pub(crate) struct EarthChunkLatticeLocus {",
+              "#[cfg(test)]\n    const fn new_for_test(",
+              "pub fn capture_live_terrain_geometry(",
+          ]
+          missing = [term for term in required_provider if term not in provider]
+          if missing:
+              raise SystemExit(f"closed-locus source missing: {missing!r}")
+
+          for forbidden in [
+              "pub struct EarthChunkLatticeLocus {",
+              "pub const fn new(",
+              "pub(crate) const fn new(",
+          ]:
+              if forbidden in provider:
+                  raise SystemExit(f"production locus mint surface leaked: {forbidden}")
+
+          derive = re.search(r"#\[derive\(([^)]*)\)\]\npub\(crate\) struct EarthChunkLatticeLocus", provider)
+          if derive is None:
+              raise SystemExit("could not bind locus derive surface")
+          derived = {item.strip() for item in derive.group(1).split(",")}
+          leaked = sorted(derived & {"Clone", "Copy", "Reflect"})
+          if leaked:
+              raise SystemExit(f"locus authority derive leak: {leaked!r}")
+
+          if "pub mod live_geometry_provider;" in lib:
+              raise SystemExit("live provider module became public")
+          if ".register_type::<EarthChunkLatticeLocus>()" in lib:
+              raise SystemExit("locus became reflection-registered")
+
+          qualifier_terms = [
+              "final_provider=12184f21761538b1d71f033a5e229484f544d8e6",
+              "pre_restack=98c241aa389626eb28e3d204e6a33711c3e5b639",
+              "restack=2b9459634f6fd144b2fb26664456f5a102522252",
+              'test "$(git rev-parse ${restack}^2)" = "${final_provider}"',
+              'test "${merge_delta}" = "${provider_qualifier}"',
+          ]
+          absent = [term for term in qualifier_terms if term not in qualifier]
+          if absent:
+              raise SystemExit(f"restack qualifier binding missing: {absent!r}")
+
+          print("TERRAIN_LOCUS_CLOSED_SURFACE=PASS")
+          print("TERRAIN_LOCUS_RESTACK_QUALIFIER_BINDING=PASS")
+          PY
+
+      - name: Postflight
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "8db7fea0db9276c4922c2e812739396f14d0b56f"
+          test -z "$(git status --porcelain)"
+          echo "TERRAIN_LOCUS_RESTACK_INTEGRITY=PASS"
+          echo "claim=pre-restack executable-qualified locus-closure product bytes are unchanged; final #798 qualifier is inherited exactly; restack changes evidence ancestry only; closed production locus theorem remains present"
