@@ -17,6 +17,7 @@
 //! - `angular_dynamics` — validated 3D principal-inertia/asymmetric-top reference dynamics
 //! - `world_energy_3d` — canonical checked 3D kinetic-energy evidence over live world state
 //! - `friction_coordinates` — solver-local friction identity without fixed-tick authority
+//! - `friction_authority` — pluggable solver friction application/evidence authority
 //! - `friction_energy_2d` — checked signed 2D A/B pair-energy evidence
 //! - `friction_evidence` — signed pre/post mechanical evidence around one friction impulse
 //! - `friction_transaction` — exactly-once friction lifecycle (`Applied` to terminal outcome)
@@ -47,6 +48,7 @@ pub mod energy_reconciliation_checked;
 pub mod energy_state;
 pub mod epa;
 pub mod external_heat;
+pub mod friction_authority;
 pub mod friction_coordinates;
 pub mod friction_energy_2d;
 pub mod friction_evidence;
@@ -98,6 +100,7 @@ pub use epa::EpaResult;
 pub use external_heat::{
     EXTERNAL_HEAT_TRANSFER_KIND, ExternalHeatError, exchange_external_heat_audited,
 };
+pub use friction_authority::{DirectFrictionImpulseAuthority, FrictionImpulseAuthority};
 pub use friction_coordinates::FrictionSolverCoordinates;
 pub use friction_energy_2d::{
     FrictionPairEnergy2dError, FrictionPairEnergy2dSnapshot, FrictionPairEnergyChange2d,
