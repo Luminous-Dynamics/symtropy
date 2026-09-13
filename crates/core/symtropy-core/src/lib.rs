@@ -13,6 +13,7 @@ pub use symtropy_math as math;
 pub use symtropy_physics as physics;
 
 pub mod economic;
+pub mod financial;
 pub mod industrial_ecology;
 
 pub mod prelude {
@@ -21,6 +22,12 @@ pub mod prelude {
         ActorId, AssetId, CausalId, CommoditySpecId, EconomicActor, EconomicActorKind,
         EconomicError, LocationId, LotId, StockDepletionCause, StockEvent, StockLedger,
         StockLedgerEntry, StockLot, StockOrigin,
+    };
+    pub use crate::financial::{
+        AccountNetBalance, AccountTotals, CurrencyDefinition, CurrencyId, FinancialAccount,
+        FinancialAccountClass, FinancialAccountId, FinancialBook, FinancialError,
+        JournalLedgerEntry, JournalTransaction, JournalTransactionId, MonetaryAuthorityId,
+        MonetaryLedgerEntry, MonetarySupplyEvent, Posting, PostingSide,
     };
     pub use crate::industrial_ecology::{
         BlockedIndustrialFlow, DependencyShortage, IndustrialCapability, IndustrialDependencyState,
