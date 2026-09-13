@@ -15,6 +15,7 @@
 //! - `integrator` — semi-implicit Euler with bivector angular dynamics
 //! - `angular_dynamics` — validated 3D principal-inertia/asymmetric-top reference dynamics
 //! - `world_energy_3d` — canonical checked 3D kinetic-energy evidence over live world state
+//! - `friction_evidence` — signed pre/post mechanical evidence around one friction impulse
 //! - `thermal` — conservative thermodynamic primitives and conductive exchange
 //! - `energy` — deterministic double-entry accounting for cross-domain energy transfers
 //! - `energy_checked` — overflow-aware deterministic ledger reductions
@@ -40,6 +41,7 @@ pub mod energy_reconciliation_checked;
 pub mod energy_state;
 pub mod epa;
 pub mod external_heat;
+pub mod friction_evidence;
 pub mod gjk;
 pub mod integrator;
 pub mod island;
@@ -84,6 +86,11 @@ pub use energy_state::{
 pub use epa::EpaResult;
 pub use external_heat::{
     EXTERNAL_HEAT_TRANSFER_KIND, ExternalHeatError, exchange_external_heat_audited,
+};
+pub use friction_evidence::{
+    FrictionEvidenceError, FrictionEvidenceRegime, FrictionMechanicalDelta,
+    FrictionMechanicalObservation, apply_friction_impulse_measured,
+    classify_friction_evidence_regime,
 };
 pub use integrator::nan_zeroed_count;
 pub use joints::{BallJoint, FixedJoint, HingeJoint, MotorDrive, PrismaticJoint};
