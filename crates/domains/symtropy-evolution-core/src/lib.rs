@@ -374,7 +374,7 @@ pub use reproductive_contact_evidence::{
     ReproductiveContactEvidenceError, ReproductiveContactRecord, ReproductiveContactStudy,
     ReproductiveContactStudyDigest, ReproductiveContactStudyStatus,
     ReproductiveObservationStage, ReproductiveOpportunityEvidenceInput,
-    ReproductiveOpportunityOutcome, ValidatedReproductiveContactStudy,
+    ReproductiveOpportunityOutcome, ReproductiveStageEvidence, ValidatedReproductiveContactStudy,
     REPRODUCTIVE_CONTACT_STUDY_VERSION,
 };
 pub use schema::{HereditarySchema, HereditarySchemaDigest, LocusDefinition};
