@@ -46,7 +46,7 @@ jobs:
           test "$(git rev-parse ${pre_restack}:${lib})" = "0292fc52f879b868fb9052cf4a0037d5aa9e45c2"
           test "$(git rev-parse ${subject}:${provider_qualifier})" = "b34b69a1eaf082a293998dece0356dbc4f596e23"
           test "$(git rev-parse ${final_provider}:${provider_qualifier})" = "b34b69a1eaf082a293998dece0356dbc4f596e23"
-          test "$(git rev-parse ${subject}:${locus_qualifier})" = "dedef7a07dce12ff36e3d308037d801e5ba6de98"
+          test "$(git rev-parse ${subject}:${locus_qualifier})" = "dedef7a0ccd3a3d88654b66d48cc0130cda9002d"
 
           old_to_merge="$(git diff --name-only ${pre_restack}..${merge})"
           test "${old_to_merge}" = "${provider_qualifier}"
