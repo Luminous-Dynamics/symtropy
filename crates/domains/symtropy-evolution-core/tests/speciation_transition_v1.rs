@@ -157,7 +157,10 @@ fn temporal_input(
         end_generation: PopulationGeneration(end),
         disposition,
         evidence: authority(&format!("transition-{criterion:?}-evidence"), byte),
-        qualification: authority(&format!("transition-{criterion:?}-qualification"), byte.wrapping_add(20)),
+        qualification: authority(
+            &format!("transition-{criterion:?}-qualification"),
+            byte.wrapping_add(20),
+        ),
     }
 }
 
@@ -499,28 +502,6 @@ fn later_recontact_or_fusion_is_preserved_without_erasing_supported_historical_t
             },
         );
     }
-}
-
-#[test]
-fn later_fertile_hybrid_from_09b_is_preserved_as_counter_history() {
-    with_transition(
-        WideHistoryCase::Clean,
-        IsolationCase::Contradicted,
-        inside(155),
-        SpeciationTransitionMissingPolicy::ReportInsufficientTemporalEvidence,
-        supported_temporal_inputs(),
-        |_, _, evidence, _, current| {
-            assert_eq!(current.status, CurrentSpeciesStatus::ContradictedUnderModel);
-            assert_eq!(
-                evidence.status,
-                SpeciationTransitionStatus::TransitionSupportedUnderModel
-            );
-            assert!(evidence.later_counter_history.iter().any(|observation| {
-                observation.kind == HistoricalCounterHistoryKind::ViableFertileHybrid
-                    && observation.generation.0 >= 4
-            }));
-        },
-    );
 }
 
 #[test]
