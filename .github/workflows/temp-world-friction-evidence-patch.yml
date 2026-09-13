@@ -1,0 +1,182 @@
+name: Temporary world friction evidence patch
+
+on:
+  push:
+    branches:
+      - physics/world-friction-evidence-integration-v0.1
+    paths:
+      - .github/workflows/temp-world-friction-evidence-patch.yml
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: physics/world-friction-evidence-integration-v0.1
+          fetch-depth: 0
+
+      - name: Assert exact source and apply surgical patch
+        shell: bash
+        run: |
+          set -euo pipefail
+          file=crates/core/symtropy-physics/src/world.rs
+          actual="$(git hash-object "$file")"
+          test "$actual" = "7dccf283f858c4874c96425fd7aa8aa3e176a557"
+
+          python3 - <<'PY'
+          from pathlib import Path
+
+          path = Path("crates/core/symtropy-physics/src/world.rs")
+          text = path.read_text()
+
+          replacements = []
+
+          replacements.append((
+          '''    /// Called after each physics step to record energy dissipated.
+              fn record_dissipation(&mut self, energy: f64);
+          ''',
+          '''    /// Observe one signed friction-mechanical transition produced by the
+              /// contact solver. This hook is evidence/telemetry only: receiving a
+              /// measured loss does not authorize physical heat promotion.
+              fn record_friction_evidence(
+                  &mut self,
+                  _evidence: &crate::friction_evidence::FrictionMechanicalObservation<D>,
+              ) {
+              }
+
+              /// Legacy compatibility telemetry for scalar dissipation callbacks.
+              /// This value is not physical first-law authority.
+              fn record_dissipation(&mut self, energy: f64);
+          '''))
+
+          replacements.append((
+          '''        let mut total_normal_impulse = 0.0_f64;
+              let mut total_friction_dissipation = 0.0_f64;
+          ''',
+          '''        let mut total_normal_impulse = 0.0_f64;
+          '''))
+
+          replacements.append((
+          '''                    let tangent = v_t / v_t_mag;
+                              let mut mu = (self.bodies[a].friction * self.bodies[b].friction).sqrt();
+
+                              // ═══ HARMONY FIELD FRICTION MODULATION ═══
+                              mu *= callback.friction_multiplier(&pt.position, contact.body_a);
+
+                              // Lever-arm effective mass for the tangential direction,
+          ''',
+          '''                    let tangent = v_t / v_t_mag;
+                              let friction_product = self.bodies[a].friction * self.bodies[b].friction;
+                              if !friction_product.is_finite() || friction_product <= 0.0 {
+                                  continue;
+                              }
+                              let mut mu = friction_product.sqrt();
+
+                              // ═══ HARMONY FIELD FRICTION MODULATION ═══
+                              let harmony_multiplier =
+                                  callback.friction_multiplier(&pt.position, contact.body_a);
+                              if !harmony_multiplier.is_finite() || harmony_multiplier < 0.0 {
+                                  continue;
+                              }
+                              mu *= harmony_multiplier;
+                              if !mu.is_finite() || mu <= 0.0 {
+                                  continue;
+                              }
+
+                              // Lever-arm effective mass for the tangential direction,
+          '''))
+
+          replacements.append((
+          '''                let point_bound = total_normal_impulse * (pt.lambda / total_raw_lambda);
+                          if point_bound <= 1e-15 {
+                              continue;
+                          }
+          ''',
+          '''                let point_bound = total_normal_impulse * (pt.lambda / total_raw_lambda);
+                          if !point_bound.is_finite() || point_bound <= 1e-15 {
+                              continue;
+                          }
+          '''))
+
+          replacements.append((
+          '''                    let j_t_desired = -v_t_mag / denom_t;
+                              let j_t = j_t_desired.clamp(-mu * point_bound, mu * point_bound);
+                              let friction_impulse = tangent * j_t;
+                              integrator::apply_impulse(&mut self.bodies[a], &(-friction_impulse));
+                              integrator::apply_impulse(&mut self.bodies[b], &friction_impulse);
+
+                              let torque_a = Bivector::from_wedge(&(-friction_impulse), &r_a);
+                              let torque_b = Bivector::from_wedge(&friction_impulse, &r_b);
+                              integrator::apply_angular_impulse(&mut self.bodies[a], &torque_a);
+                              integrator::apply_angular_impulse(&mut self.bodies[b], &torque_b);
+
+                              total_friction_dissipation += j_t.abs() * 0.1;
+          ''',
+          '''                    let j_t_desired = -v_t_mag / denom_t;
+                              let j_t = j_t_desired.clamp(-mu * point_bound, mu * point_bound);
+                              if !j_t.is_finite() || j_t.abs() <= 1e-15 {
+                                  continue;
+                              }
+                              let friction_impulse = tangent * j_t;
+
+                              let observation = if a < b {
+                                  let (left, right) = self.bodies.split_at_mut(b);
+                                  crate::friction_evidence::apply_friction_impulse_measured(
+                                      &mut left[a],
+                                      &mut right[0],
+                                      &pt.position,
+                                      &friction_impulse,
+                                  )
+                              } else {
+                                  let (left, right) = self.bodies.split_at_mut(a);
+                                  crate::friction_evidence::apply_friction_impulse_measured(
+                                      &mut right[0],
+                                      &mut left[b],
+                                      &pt.position,
+                                      &friction_impulse,
+                                  )
+                              };
+
+                              if let Ok(observation) = observation {
+                                  callback.record_friction_evidence(&observation);
+                              }
+          '''))
+
+          replacements.append((
+          '''            // Record friction dissipation for consciousness energy budget
+                      if total_friction_dissipation > 0.0 {
+                          callback.record_dissipation(total_friction_dissipation);
+                      }
+
+          ''',
+          '''            // Friction is reported per actual solver impulse through the typed,
+                      // signed evidence hook above. Do not aggregate an impulse-derived scalar
+                      // and call it physical energy here.
+
+          '''))
+
+          for old, new in replacements:
+              count = text.count(old)
+              if count != 1:
+                  raise SystemExit(f"expected exactly one replacement target, found {count}")
+              text = text.replace(old, new, 1)
+
+          path.write_text(text)
+          PY
+
+          git diff --check -- "$file"
+          test "$(git diff --name-only)" = "$file"
+
+      - name: Commit exact patch
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "symtropy-exact-patch-bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add crates/core/symtropy-physics/src/world.rs
+          git commit -m "fix(physics): emit signed world friction evidence"
+          git push origin HEAD:physics/world-friction-evidence-integration-v0.1
