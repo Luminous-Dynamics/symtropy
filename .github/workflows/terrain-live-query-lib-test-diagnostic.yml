@@ -1,0 +1,71 @@
+name: Terrain Live Query Lib Test Diagnostic
+
+on:
+  push:
+    branches:
+      - "ci/terrain-live-query-lib-test-v0.1"
+    paths:
+      - ".github/workflows/terrain-live-query-lib-test-diagnostic.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  diagnose:
+    name: Execute live-query lib theorem only
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Bind exact frozen #919 subject
+        shell: bash
+        run: |
+          set -euo pipefail
+          subject=b5975f1fdac16ccd00864b8b67b418026bdc238f
+          source=crates/domains/symtropy-terrain/src/live_geometry_query.rs
+          lib=crates/domains/symtropy-terrain/src/lib.rs
+          test "$(git rev-parse HEAD^)" = "${subject}"
+          test "$(git rev-parse HEAD:${source})" = "34995e11c7d82ffa4e18b7fc12927816408e8d1d"
+          test "$(git rev-parse HEAD:${lib})" = "4489f47e8d707eac30cb1e0c682e57b061e14e03"
+          test "$(git diff --name-only ${subject}..HEAD)" = ".github/workflows/terrain-live-query-lib-test-diagnostic.yml"
+          echo "CARGO_TARGET_DIR=${RUNNER_TEMP}/terrain-live-query-lib-target" >> "${GITHUB_ENV}"
+
+      - name: Install Linux system dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install -y libasound2-dev libudev-dev pkg-config
+
+      - name: Set up pinned Rust
+        uses: dtolnay/rust-toolchain@6bed0761d98439e5a578e2877258200ad565ba87
+        with:
+          toolchain: 1.96.0
+
+      - name: Bind Rust version
+        shell: bash
+        run: |
+          set -euo pipefail
+          rustc -Vv
+          cargo -Vv
+          test "$(rustc --version | awk '{print $2}')" = "1.96.0"
+          test "$(cargo --version | awk '{print $2}')" = "1.96.0"
+
+      - name: Execute dedicated library theorem
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo test -p symtropy-terrain --locked --lib live_geometry_query::tests -- --nocapture
+
+      - name: Verify frozen source after execution
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -z "$(git status --porcelain)"
+          test "$(git rev-parse HEAD:crates/domains/symtropy-terrain/src/live_geometry_query.rs)" = "34995e11c7d82ffa4e18b7fc12927816408e8d1d"
+          echo "TERRAIN_LIVE_QUERY_LIB_THEOREM=PASS"
