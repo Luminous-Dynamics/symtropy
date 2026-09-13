@@ -1,10 +1,10 @@
 use crate::{
     canonical::{fmt_hex, put_text, put_u32, put_u64},
     AnalysisAuthorityRef, BiologicalSpeciesModel, BiologicalSpeciesModelDigest,
-    CurrentSpeciesStatus, CurrentSpeciesStatusEvidence, CurrentSpeciesStatusEvidenceDigest,
-    LineageDivergenceHistory, LineageDivergenceHistoryDigest, LineageHistoryEpisodeKind,
-    LineageHistoryGenerationRecord, LineageObservationState, PopulationGeneration,
-    RealizedGeneFlowObservation, ReproductiveIsolationEvidence, ReproductiveIsolationEvidenceDigest,
+    CurrentSpeciesStatusEvidence, CurrentSpeciesStatusEvidenceDigest, LineageDivergenceHistory,
+    LineageDivergenceHistoryDigest, LineageHistoryEpisodeKind, LineageHistoryGenerationRecord,
+    LineageObservationState, PopulationGeneration, RealizedGeneFlowObservation,
+    ReproductiveIsolationEvidence, ReproductiveIsolationEvidenceDigest,
     ReproductiveOpportunityOutcome, SpeciationTransitionDesign, SpeciationTransitionDesignDigest,
     SpeciationTransitionMissingPolicy, ValidatedBiologicalSpeciesModel,
     ValidatedCurrentSpeciesStatus, ValidatedLineageDivergenceHistory,
@@ -60,6 +60,7 @@ pub enum TemporalEvidenceDisposition {
     DoesNotSupport,
     Contradicts,
     Unavailable,
+    OutsideValidityDomain,
 }
 
 impl TemporalEvidenceDisposition {
@@ -69,6 +70,7 @@ impl TemporalEvidenceDisposition {
             Self::DoesNotSupport => 1,
             Self::Contradicts => 2,
             Self::Unavailable => 3,
+            Self::OutsideValidityDomain => 4,
         }
     }
 }
@@ -256,11 +258,7 @@ impl SpeciationTransitionEvidence {
             lineage_history.history(),
             reproductive_isolation.evidence(),
         );
-        let status = derive_transition_status(
-            frozen,
-            current_species_status.evidence().status,
-            &temporal_evidence,
-        );
+        let status = derive_transition_status(&temporal_evidence);
 
         let evidence = Self {
             evidence_version: SPECIATION_TRANSITION_EVIDENCE_VERSION,
@@ -373,11 +371,7 @@ impl SpeciationTransitionEvidence {
         if expected_counter != self.later_counter_history {
             return Err(SpeciationTransitionEvidenceError::CounterHistoryInvariant);
         }
-        let expected_status = derive_transition_status(
-            &self.design,
-            self.current_species_status.status,
-            &self.temporal_evidence,
-        );
+        let expected_status = derive_transition_status(&self.temporal_evidence);
         if expected_status != self.status {
             return Err(SpeciationTransitionEvidenceError::StatusInvariant);
         }
@@ -489,6 +483,7 @@ fn materialize_temporal_evidence(
                 criterion,
             ))?;
         validate_temporal_window(design, criterion, input.start_generation, input.end_generation)?;
+        validate_disposition(criterion, input.disposition)?;
         if input.disposition == TemporalEvidenceDisposition::Unavailable
             && design.missing_policy == SpeciationTransitionMissingPolicy::FailClosed
         {
@@ -538,8 +533,9 @@ fn validate_temporal_records(
             record.start_generation,
             record.end_generation,
         )?;
-        if record.protocol != *record.criterion.protocol(design)
-            || record.qualification_protocol != design.protocols.qualification
+        validate_disposition(record.criterion, record.disposition)?;
+        if &record.protocol != record.criterion.protocol(design)
+            || &record.qualification_protocol != &design.protocols.qualification
         {
             return Err(SpeciationTransitionEvidenceError::TemporalProtocolMismatch(
                 record.criterion,
@@ -576,6 +572,22 @@ fn required_criteria() -> [SpeciationTemporalCriterion; 7] {
         SpeciationTemporalCriterion::ModelApplicability,
         SpeciationTemporalCriterion::LaterCounterHistory,
     ]
+}
+
+fn validate_disposition(
+    criterion: SpeciationTemporalCriterion,
+    disposition: TemporalEvidenceDisposition,
+) -> Result<(), SpeciationTransitionEvidenceError> {
+    if disposition == TemporalEvidenceDisposition::OutsideValidityDomain
+        && criterion != SpeciationTemporalCriterion::ModelApplicability
+    {
+        return Err(
+            SpeciationTransitionEvidenceError::OutsideValidityDomainDispositionForbidden(
+                criterion,
+            ),
+        );
+    }
+    Ok(())
 }
 
 fn validate_temporal_window(
@@ -631,11 +643,19 @@ fn validate_temporal_window(
 }
 
 fn derive_transition_status(
-    _design: &SpeciationTransitionDesign,
-    current_status: CurrentSpeciesStatus,
     records: &[SpeciationTemporalEvidenceRecord],
 ) -> SpeciationTransitionStatus {
-    if current_status == CurrentSpeciesStatus::OutsideModelValidityDomain {
+    let disposition = |criterion| {
+        records
+            .iter()
+            .find(|record| record.criterion == criterion)
+            .map(|record| record.disposition)
+            .expect("validated temporal evidence contains every criterion")
+    };
+
+    if disposition(SpeciationTemporalCriterion::ModelApplicability)
+        == TemporalEvidenceDisposition::OutsideValidityDomain
+    {
         return SpeciationTransitionStatus::OutsideModelValidityDomain;
     }
     if records
@@ -651,13 +671,6 @@ fn derive_transition_status(
         return SpeciationTransitionStatus::TransitionNotSupportedUnderModel;
     }
 
-    let disposition = |criterion| {
-        records
-            .iter()
-            .find(|record| record.criterion == criterion)
-            .map(|record| record.disposition)
-            .expect("validated temporal evidence contains every criterion")
-    };
     let bracket_supported = [
         SpeciationTemporalCriterion::PreTransitionCommonSource,
         SpeciationTemporalCriterion::DivergenceTiming,
@@ -786,7 +799,12 @@ fn derive_later_counter_history(
             .then_with(|| a.source.tag().cmp(&b.source.tag()))
             .then_with(|| a.evidence.method_id.as_str().cmp(b.evidence.method_id.as_str()))
             .then_with(|| a.evidence.revision.cmp(&b.evidence.revision))
-            .then_with(|| a.evidence.content_digest.as_bytes().cmp(b.evidence.content_digest.as_bytes()))
+            .then_with(|| {
+                a.evidence
+                    .content_digest
+                    .as_bytes()
+                    .cmp(b.evidence.content_digest.as_bytes())
+            })
     });
     observations
 }
@@ -823,6 +841,7 @@ pub enum SpeciationTransitionEvidenceError {
     TemporalProtocolMismatch(SpeciationTemporalCriterion),
     TemporalSubjectBindingMismatch(SpeciationTemporalCriterion),
     UnavailableTemporalEvidenceForbidden(SpeciationTemporalCriterion),
+    OutsideValidityDomainDispositionForbidden(SpeciationTemporalCriterion),
     CounterHistoryInvariant,
     StatusInvariant,
     ReplayMismatch,
@@ -869,35 +888,89 @@ impl fmt::Display for SpeciationTransitionEvidenceError {
             Self::UnsupportedVersion(version) => {
                 write!(f, "unsupported speciation-transition evidence version {version}")
             }
-            Self::LineageHistoryDesignMismatch => {
-                write!(f, "current SEL-10A history does not match the preregistered transition design")
+            Self::LineageHistoryDesignMismatch => write!(
+                f,
+                "current SEL-10A history does not match the preregistered transition design"
+            ),
+            Self::IsolationDesignMismatch => write!(
+                f,
+                "current SEL-09B isolation evidence does not match the preregistered transition design"
+            ),
+            Self::CurrentSpeciesDesignMismatch => write!(
+                f,
+                "current SEL-10C status does not match the preregistered transition design"
+            ),
+            Self::SpeciesModelMismatch => write!(
+                f,
+                "current SEL-10B model does not match the preregistered transition design"
+            ),
+            Self::DesignBindingMismatch => {
+                write!(f, "persisted transition evidence binds a different design")
             }
-            Self::IsolationDesignMismatch => {
-                write!(f, "current SEL-09B isolation evidence does not match the preregistered transition design")
+            Self::LineageHistoryBindingMismatch => write!(
+                f,
+                "persisted SEL-10A history snapshot/digest is inconsistent"
+            ),
+            Self::IsolationBindingMismatch => write!(
+                f,
+                "persisted SEL-09B isolation snapshot/digest is inconsistent"
+            ),
+            Self::CurrentSpeciesBindingMismatch => write!(
+                f,
+                "persisted SEL-10C current-status snapshot/digest is inconsistent"
+            ),
+            Self::SpeciesModelBindingMismatch => write!(
+                f,
+                "persisted SEL-10B model snapshot/digest is inconsistent"
+            ),
+            Self::TargetLineageBindingMismatch => write!(
+                f,
+                "upstream evidence does not bind the preregistered ordered lineage pair"
+            ),
+            Self::DuplicateTemporalCriterion(criterion) => {
+                write!(f, "duplicate temporal criterion {criterion:?}")
             }
-            Self::CurrentSpeciesDesignMismatch => {
-                write!(f, "current SEL-10C status does not match the preregistered transition design")
+            Self::MissingTemporalCriterion(criterion) => {
+                write!(f, "missing temporal criterion {criterion:?}")
             }
-            Self::SpeciesModelMismatch => {
-                write!(f, "current SEL-10B model does not match the preregistered transition design")
+            Self::IncompleteTemporalCriteria => {
+                write!(f, "temporal evidence does not contain the exact seven V1 criteria")
             }
-            Self::DesignBindingMismatch => write!(f, "persisted transition evidence binds a different design"),
-            Self::LineageHistoryBindingMismatch => write!(f, "persisted SEL-10A history snapshot/digest is inconsistent"),
-            Self::IsolationBindingMismatch => write!(f, "persisted SEL-09B isolation snapshot/digest is inconsistent"),
-            Self::CurrentSpeciesBindingMismatch => write!(f, "persisted SEL-10C current-status snapshot/digest is inconsistent"),
-            Self::SpeciesModelBindingMismatch => write!(f, "persisted SEL-10B model snapshot/digest is inconsistent"),
-            Self::TargetLineageBindingMismatch => write!(f, "upstream evidence does not bind the preregistered ordered lineage pair"),
-            Self::DuplicateTemporalCriterion(criterion) => write!(f, "duplicate temporal criterion {criterion:?}"),
-            Self::MissingTemporalCriterion(criterion) => write!(f, "missing temporal criterion {criterion:?}"),
-            Self::IncompleteTemporalCriteria => write!(f, "temporal evidence does not contain the exact seven V1 criteria"),
-            Self::NonCanonicalTemporalCriterionOrder => write!(f, "temporal criteria are not in canonical V1 order"),
-            Self::TemporalWindowMismatch(criterion) => write!(f, "temporal criterion {criterion:?} binds the wrong generation window"),
-            Self::TemporalProtocolMismatch(criterion) => write!(f, "temporal criterion {criterion:?} binds the wrong evidence/qualification protocol"),
-            Self::TemporalSubjectBindingMismatch(criterion) => write!(f, "temporal criterion {criterion:?} binds a different transition/history/isolation/current-status/model subject"),
-            Self::UnavailableTemporalEvidenceForbidden(criterion) => write!(f, "temporal criterion {criterion:?} is unavailable under fail-closed policy"),
-            Self::CounterHistoryInvariant => write!(f, "persisted later counter-history does not recompute from SEL-10A/09B evidence"),
-            Self::StatusInvariant => write!(f, "persisted transition status does not recompute from qualified temporal evidence"),
-            Self::ReplayMismatch => write!(f, "persisted transition evidence does not replay against current authorities"),
+            Self::NonCanonicalTemporalCriterionOrder => {
+                write!(f, "temporal criteria are not in canonical V1 order")
+            }
+            Self::TemporalWindowMismatch(criterion) => write!(
+                f,
+                "temporal criterion {criterion:?} binds the wrong generation window"
+            ),
+            Self::TemporalProtocolMismatch(criterion) => write!(
+                f,
+                "temporal criterion {criterion:?} binds the wrong evidence/qualification protocol"
+            ),
+            Self::TemporalSubjectBindingMismatch(criterion) => write!(
+                f,
+                "temporal criterion {criterion:?} binds a different transition/history/isolation/current-status/model subject"
+            ),
+            Self::UnavailableTemporalEvidenceForbidden(criterion) => write!(
+                f,
+                "temporal criterion {criterion:?} is unavailable under fail-closed policy"
+            ),
+            Self::OutsideValidityDomainDispositionForbidden(criterion) => write!(
+                f,
+                "only the ModelApplicability criterion may use OutsideValidityDomain, not {criterion:?}"
+            ),
+            Self::CounterHistoryInvariant => write!(
+                f,
+                "persisted later counter-history does not recompute from SEL-10A/09B evidence"
+            ),
+            Self::StatusInvariant => write!(
+                f,
+                "persisted transition status does not recompute from qualified temporal evidence"
+            ),
+            Self::ReplayMismatch => write!(
+                f,
+                "persisted transition evidence does not replay against current authorities"
+            ),
         }
     }
 }
