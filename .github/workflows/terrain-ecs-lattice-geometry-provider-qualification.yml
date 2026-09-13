@@ -33,11 +33,8 @@ jobs:
         run: |
           set -euo pipefail
           base=09c028364469437c223a902290234012376d7f53
+          previous_candidate=1ddf19053a263cec44edf9fbc96750cf2e8df181
           provider_subject=36c928840cd59547d4b1aecc29d6ca2b997ba73f
-          provider_qualifier_before_format=a41195f9c93a7868178b12f557c2f20420c71481
-          formatted_provider=bf231d572a4141e252efdd744976644854f4a546
-          restack=ab556d0a884edf8d2db89a140cd355aff83745e4
-          rebound_qualifier=65e4e78661deb069ad4c355705adb9e2eeaeb672
           test_domain_fix=0980d71222924b659a661f3067dcd677f6008cfb
           provider=crates/domains/symtropy-terrain/src/live_geometry_provider.rs
           lib=crates/domains/symtropy-terrain/src/lib.rs
@@ -48,15 +45,11 @@ jobs:
           qualifier=.github/workflows/terrain-ecs-lattice-geometry-provider-qualification.yml
 
           test "$(git rev-parse HEAD)" = "${GITHUB_SHA}"
-          test "$(git rev-parse HEAD^)" = "${test_domain_fix}"
-          test "$(git rev-parse ${test_domain_fix}^)" = "${rebound_qualifier}"
-          test "$(git rev-parse ${rebound_qualifier}^)" = "${restack}"
-          test "$(git rev-parse ${restack}^1)" = "${formatted_provider}"
-          test "$(git rev-parse ${restack}^2)" = "${base}"
-          test "$(git rev-parse ${formatted_provider}^)" = "${provider_qualifier_before_format}"
-          test "$(git rev-parse ${provider_qualifier_before_format}^)" = "${provider_subject}"
+          test "$(git rev-parse HEAD^)" = "${previous_candidate}"
+          test "$(git rev-parse ${previous_candidate}:${qualifier})" = "c535c05011b15851b8f61993fefc946fa9b65eaa"
           git merge-base --is-ancestor "${base}" HEAD
           git merge-base --is-ancestor "${provider_subject}" HEAD
+          git merge-base --is-ancestor "${test_domain_fix}" HEAD
 
           test "$(git rev-parse HEAD:${kernel})" = "8d3e1213eacdeddf693cd2d1f82670d6ed832161"
           test "$(git rev-parse HEAD:${manifest})" = "187fe4020a0c0048ab36404e219a7a5698a856d1"
@@ -66,8 +59,8 @@ jobs:
           test "$(git rev-parse HEAD:${provider})" = "fca37140372389c2f09c9446c8a91ffb9b410bad"
           test "$(git rev-parse HEAD:${lib})" = "05a94dda8fa4fe51ba55e328b113c80ae648ae49"
 
-          formatting_delta="$(git diff --name-only ${provider_qualifier_before_format}..${formatted_provider})"
-          test "${formatting_delta}" = "${provider}"
+          qualifier_delta="$(git diff --name-only ${previous_candidate}..HEAD)"
+          test "${qualifier_delta}" = "${qualifier}"
 
           actual="$(git diff --name-only ${base}..HEAD | sort)"
           expected="$(printf '%s\n' "${qualifier}" "${provider}" "${lib}" | sort)"
@@ -76,6 +69,7 @@ jobs:
           echo "TERRAIN_LIVE_PROVIDER_HEAD=${GITHUB_SHA}"
           echo "TERRAIN_LIVE_PROVIDER_TREE=$(git rev-parse HEAD^{tree})"
           echo "TERRAIN_LIVE_PROVIDER_BASE=${base}"
+          echo "TERRAIN_LIVE_PROVIDER_PREVIOUS_CANDIDATE=${previous_candidate}"
           echo "TERRAIN_LIVE_PROVIDER_SOURCE_BLOB=$(git rev-parse HEAD:${provider})"
           echo "TERRAIN_LIVE_PROVIDER_LIB_BLOB=$(git rev-parse HEAD:${lib})"
           echo "TERRAIN_LIVE_PROVIDER_KERNEL_BLOB=$(git rev-parse HEAD:${kernel})"
@@ -167,6 +161,7 @@ jobs:
 
           python3 - <<'PY'
           from pathlib import Path
+          import re
 
           provider = Path("crates/domains/symtropy-terrain/src/live_geometry_provider.rs").read_text()
           lib = Path("crates/domains/symtropy-terrain/src/lib.rs").read_text()
@@ -192,13 +187,18 @@ jobs:
           if "GlobalTransform" not in tests:
               raise SystemExit("missing transform non-authority regression test")
 
-          if "Reflect" in production:
-              raise SystemExit("exact lattice locus must not be Bevy-reflectable")
-          if ".register_type::<EarthChunkLatticeLocus>()'" in lib:
-              raise SystemExit("exact lattice locus must not be inspector-registered")
+          locus_derive = re.search(
+              r"#\[derive\(([^)]*)\)\]\npub struct EarthChunkLatticeLocus",
+              production,
+          )
+          if locus_derive is None:
+              raise SystemExit("could not bind exact lattice-locus derive surface")
+          derived = {item.strip() for item in locus_derive.group(1).split(",")}
+          if "Reflect" in derived:
+              raise SystemExit("exact lattice locus must not derive Bevy Reflect")
+
           if ".register_type::<EarthChunkLatticeLocus>()" in lib:
               raise SystemExit("exact lattice locus must not be inspector-registered")
-
           if "pub struct EarthChunkLatticeLocus {\n    pub " in production:
               raise SystemExit("lattice-locus coordinate fields must remain private")
 
