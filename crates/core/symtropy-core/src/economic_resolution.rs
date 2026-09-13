@@ -2,16 +2,11 @@
 // SPDX-License-Identifier: Apache-2.0 OR MIT
 //! Economic conservation across simulation-resolution transitions.
 //!
-//! ECON-03 is deliberately a reconciliation kernel, not a world scheduler. It
-//! establishes one rule: changing simulation fidelity cannot itself create, destroy,
-//! transfer, settle, or invent economically relevant state.
-//!
-//! Demotion may discard active fine-grained simulation detail, but the conserved
-//! economic manifest remains unchanged. Promotion is fail-closed: a coarse state may
-//! become finer only when retained-detail provenance exists and a supplied exact state
-//! independently reconstructs the same conservation manifest. If detail was discarded
-//! without a retention reference, this authority refuses to synthesize replacement
-//! lots, accounts, histories, or ownership facts.
+//! ECON-03 is a reconciliation kernel, not a world scheduler. Changing simulation
+//! fidelity cannot itself create, destroy, transfer, settle, or invent economically
+//! relevant state. Demotion may aggregate active simulation detail, but promotion is
+//! fail-closed unless retained-detail provenance exists and supplied exact state
+//! independently reconstructs the same conservation manifest.
 
 use std::collections::{BTreeMap, BTreeSet};
 use std::fmt;
@@ -57,10 +52,7 @@ macro_rules! id_type {
 id_type!(EconomicSnapshotId, "economic-snapshot");
 id_type!(DetailRetentionId, "detail-retention");
 
-/// Economic simulation fidelity, ordered from finest to coarsest.
-///
-/// This enum describes representation fidelity only. It does not grant authority to
-/// mutate the represented economy.
+/// Ordered from finest to coarsest representation.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub enum EconomicResolutionTier {
     ActiveSite,
@@ -88,12 +80,12 @@ impl EconomicResolutionTier {
     }
 }
 
-/// Canonical complete static registry needed to reconstruct a `FinancialBook`.
+/// Complete static registry required to reconstruct a `FinancialBook` exactly.
 ///
-/// ECON-03 does not infer the registry from transaction history because a valid
-/// zero-balance account or zero-supply currency might never appear in a transaction.
-/// Completeness is proven by reconstructing the complete book from this registry plus
-/// the book's own histories and requiring exact `FinancialBook` equality.
+/// Completeness is not inferred from history: zero-balance accounts and zero-supply
+/// currencies are still state. The registry is accepted only when rebuilding the
+/// complete book from registry + existing histories yields exact `FinancialBook`
+/// equality.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct FinancialRegistrySnapshot {
     currencies: Vec<CurrencyDefinition>,
@@ -192,12 +184,6 @@ pub struct MonetaryHistoryIdentity {
     pub cause_id: CausalId,
 }
 
-/// Identity-bearing watermarks retained across resolution changes.
-///
-/// These are intentionally more than raw counts. Transaction, settlement, and causal
-/// identities make accidental history substitution harder to mistake for a harmless
-/// LOD transition. Exact byte-level archival identity remains delegated to the
-/// retained-detail evidence reference in v0.1.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct EconomicHistoryManifest {
     pub stock_events: Vec<StockHistoryIdentity>,
@@ -206,7 +192,7 @@ pub struct EconomicHistoryManifest {
     pub settlements: Vec<SettlementId>,
 }
 
-/// Economically relevant state that must remain identical across a pure resolution
+/// Economically relevant state that must remain identical during a pure resolution
 /// transition.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct EconomicConservationManifest {
@@ -249,7 +235,7 @@ impl EconomicConservationManifest {
         for account in &registry.accounts {
             let exact = financial_book
                 .account(&account.account_id)
-                .ok_or_else(|| ResolutionError::FinancialRegistryMismatch)?;
+                .ok_or(ResolutionError::FinancialRegistryMismatch)?;
             if exact != account {
                 return Err(ResolutionError::FinancialRegistryMismatch);
             }
@@ -318,11 +304,7 @@ impl EconomicConservationManifest {
     }
 }
 
-/// Exact economic state supplied to a resolution transition.
-///
-/// `Financial` captures ECON-00/01 + ECON-02 state. `Settled` additionally binds the
-/// complete ECON-02B settlement-ID sequence and validates the settlement ledger before
-/// reading its current financial book.
+/// Exact state supplied to the resolution authority.
 pub enum ExactEconomicStateRef<'a> {
     Financial {
         stock_ledger: &'a StockLedger,
@@ -375,21 +357,17 @@ impl ExactEconomicStateRef<'_> {
 pub struct DetailRetentionRef {
     pub retention_id: DetailRetentionId,
     pub source_snapshot_id: EconomicSnapshotId,
-    /// External evidence identifying where/how exact detail was retained.
+    /// Exact external evidence identity for retained fine detail.
     ///
-    /// V0.1 binds this identity but does not cryptographically verify the external
-    /// archive or storage service.
+    /// V0.1 binds this reference but does not cryptographically verify the external
+    /// archive or storage provider.
     pub evidence_id: CausalId,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum EconomicDetailState {
-    Exact {
-        evidence_id: CausalId,
-    },
-    Aggregated {
-        retention: Option<DetailRetentionRef>,
-    },
+    Exact { evidence_id: CausalId },
+    Aggregated { retention: Option<DetailRetentionRef> },
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -449,11 +427,7 @@ pub struct ResolutionLedgerEntry {
     pub transition: ResolutionTransition,
 }
 
-/// Append-only reconciliation history for one frozen economic instant.
-///
-/// The economic conservation manifest may never change inside this ledger. If the
-/// economy itself changes, callers must finish that economic mutation under the
-/// appropriate ECON authority and capture a new resolution ledger/snapshot.
+/// Append-only representation-reconciliation history for one frozen economic instant.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct EconomicResolutionLedger {
     base_snapshot: EconomicResolutionSnapshot,
@@ -508,11 +482,9 @@ impl EconomicResolutionLedger {
         Ok(())
     }
 
-    /// Demote an exact representation to any strictly coarser tier.
+    /// Demote exact detail to any strictly coarser tier.
     ///
-    /// `retention=None` is an explicit irreversible discard under ECON-03 v0.1:
-    /// promotion through this authority will later fail closed instead of inventing
-    /// detail.
+    /// `retention=None` explicitly discards reversibility under ECON-03 v0.1.
     pub fn demote_exact(
         &mut self,
         to_snapshot_id: EconomicSnapshotId,
@@ -520,7 +492,10 @@ impl EconomicResolutionLedger {
         retention: Option<DetailRetentionRef>,
         cause_id: CausalId,
     ) -> Result<(), ResolutionError> {
-        if !matches!(self.current_snapshot.detail, EconomicDetailState::Exact { .. }) {
+        if !matches!(
+            &self.current_snapshot.detail,
+            EconomicDetailState::Exact { .. }
+        ) {
             return Err(ResolutionError::ExactDetailRequired);
         }
         if !target_tier.is_coarser_than(self.current_snapshot.tier) {
@@ -537,7 +512,6 @@ impl EconomicResolutionLedger {
                 });
             }
         }
-
         self.commit_transition(
             to_snapshot_id,
             cause_id,
@@ -548,8 +522,7 @@ impl EconomicResolutionLedger {
         )
     }
 
-    /// Move an already-aggregated representation to a still coarser tier while
-    /// carrying the exact same retention provenance forward unchanged.
+    /// Coarsen an already aggregated representation without rebinding retained detail.
     pub fn coarsen_aggregate(
         &mut self,
         to_snapshot_id: EconomicSnapshotId,
@@ -557,7 +530,7 @@ impl EconomicResolutionLedger {
         cause_id: CausalId,
     ) -> Result<(), ResolutionError> {
         if !matches!(
-            self.current_snapshot.detail,
+            &self.current_snapshot.detail,
             EconomicDetailState::Aggregated { .. }
         ) {
             return Err(ResolutionError::AggregatedDetailRequired);
@@ -575,9 +548,8 @@ impl EconomicResolutionLedger {
         )
     }
 
-    /// Promote an aggregated representation only with the exact retained-detail
-    /// reference and a supplied exact state that independently reconstructs the same
-    /// conservation manifest.
+    /// Restore a finer representation only from the exact retained-detail reference
+    /// and only when supplied exact state reconstructs the same manifest.
     pub fn promote(
         &mut self,
         to_snapshot_id: EconomicSnapshotId,
@@ -593,7 +565,6 @@ impl EconomicResolutionLedger {
                 to: target_tier,
             });
         }
-
         let expected_retention = match &self.current_snapshot.detail {
             EconomicDetailState::Aggregated {
                 retention: Some(retention),
@@ -641,15 +612,13 @@ impl EconomicResolutionLedger {
             });
         }
 
-        let sequence = next_sequence(self.entries.len())?;
         let entry = ResolutionLedgerEntry {
-            sequence,
+            sequence: next_sequence(self.entries.len())?,
             from_snapshot_id: self.current_snapshot.snapshot_id.clone(),
             to_snapshot_id,
             cause_id,
             transition,
         };
-
         let mut candidate_entries = self.entries.clone();
         candidate_entries.push(entry);
         let candidate_snapshot = replay_resolution_history(&self.base_snapshot, &candidate_entries)?;
@@ -695,13 +664,12 @@ fn replay_resolution_history(
             .generation
             .checked_add(1)
             .ok_or(ResolutionError::ArithmeticOverflow)?;
-
         let (target_tier, next_detail) = match &entry.transition {
             ResolutionTransition::DemoteExact {
                 target_tier,
                 retention,
             } => {
-                if !matches!(current.detail, EconomicDetailState::Exact { .. }) {
+                if !matches!(&current.detail, EconomicDetailState::Exact { .. }) {
                     return Err(ResolutionError::ExactDetailRequired);
                 }
                 if !target_tier.is_coarser_than(current.tier) {
@@ -789,7 +757,6 @@ fn replay_resolution_history(
             detail: next_detail,
         };
     }
-
     Ok(current)
 }
 
@@ -861,22 +828,11 @@ pub enum ResolutionError {
     Economic(EconomicError),
     Financial(FinancialError),
     Settlement(SettlementError),
-    EmptyId {
-        kind: &'static str,
-    },
-    IdTooLong {
-        kind: &'static str,
-        max_len: usize,
-    },
-    IdHasSurroundingWhitespace {
-        kind: &'static str,
-    },
-    DuplicateRegistryCurrency {
-        currency_id: CurrencyId,
-    },
-    DuplicateRegistryAccount {
-        account_id: FinancialAccountId,
-    },
+    EmptyId { kind: &'static str },
+    IdTooLong { kind: &'static str, max_len: usize },
+    IdHasSurroundingWhitespace { kind: &'static str },
+    DuplicateRegistryCurrency { currency_id: CurrencyId },
+    DuplicateRegistryAccount { account_id: FinancialAccountId },
     FinancialRegistryMismatch,
     InvalidDemotionDirection {
         from: EconomicResolutionTier,
@@ -895,13 +851,8 @@ pub enum ResolutionError {
     },
     RestorationReferenceMismatch,
     ConservationMismatch,
-    DuplicateSnapshotId {
-        snapshot_id: EconomicSnapshotId,
-    },
-    InvalidResolutionSequence {
-        expected: u64,
-        actual: u64,
-    },
+    DuplicateSnapshotId { snapshot_id: EconomicSnapshotId },
+    InvalidResolutionSequence { expected: u64, actual: u64 },
     StaleResolutionSource {
         expected: EconomicSnapshotId,
         actual: EconomicSnapshotId,
@@ -934,10 +885,10 @@ mod tests {
     use super::*;
     use crate::economic::{LotId, StockLot};
     use crate::financial::{
-        FinancialAccountClass, JournalTransaction, MonetaryAuthorityId, Posting, PostingSide,
+        JournalTransaction, MonetaryAuthorityId, Posting, PostingSide,
     };
     use crate::settlement::{
-        MonetarySettlement, MonetarySettlementLedger, SettlementAuthorizationRef,
+        MonetarySettlement, SettlementAuthorizationRef,
     };
 
     fn actor(value: &str) -> ActorId {
@@ -950,10 +901,6 @@ mod tests {
 
     fn snapshot_id(value: &str) -> EconomicSnapshotId {
         EconomicSnapshotId::new(value).unwrap()
-    }
-
-    fn retention_id(value: &str) -> DetailRetentionId {
-        DetailRetentionId::new(value).unwrap()
     }
 
     fn currency_id(value: &str) -> CurrencyId {
@@ -1040,14 +987,14 @@ mod tests {
 
     fn retention(source: &str, id: &str) -> DetailRetentionRef {
         DetailRetentionRef {
-            retention_id: retention_id(id),
+            retention_id: DetailRetentionId::new(id).unwrap(),
             source_snapshot_id: snapshot_id(source),
             evidence_id: cause(&format!("{id}-evidence")),
         }
     }
 
     #[test]
-    fn demotion_preserves_complete_conservation_manifest() {
+    fn demotion_preserves_manifest_and_replays() {
         let stock = stock_ledger();
         let book = financial_book();
         let registry = registry();
@@ -1079,7 +1026,7 @@ mod tests {
     }
 
     #[test]
-    fn zero_balance_accounts_are_part_of_conserved_state() {
+    fn zero_balance_accounts_are_not_allowed_to_disappear() {
         let stock = stock_ledger();
         let book = financial_book();
         let complete = registry();
@@ -1094,18 +1041,20 @@ mod tests {
         )
         .unwrap();
 
-        let error = EconomicResolutionLedger::new(
-            snapshot_id("active-0"),
-            EconomicResolutionTier::ActiveSite,
-            cause("exact-active"),
-            exact_state(&stock, &book, &incomplete),
-        )
-        .unwrap_err();
-        assert_eq!(error, ResolutionError::FinancialRegistryMismatch);
+        assert_eq!(
+            EconomicResolutionLedger::new(
+                snapshot_id("active-0"),
+                EconomicResolutionTier::ActiveSite,
+                cause("exact-active"),
+                exact_state(&stock, &book, &incomplete),
+            )
+            .unwrap_err(),
+            ResolutionError::FinancialRegistryMismatch
+        );
     }
 
     #[test]
-    fn discard_without_retention_is_irreversible_under_this_authority() {
+    fn discarded_detail_cannot_be_synthesized_on_promotion() {
         let stock = stock_ledger();
         let book = financial_book();
         let registry = registry();
@@ -1125,56 +1074,23 @@ mod tests {
             )
             .unwrap();
 
-        let error = ledger
-            .promote(
-                snapshot_id("active-1"),
-                EconomicResolutionTier::ActiveSite,
-                retention("active-0", "nonexistent"),
-                cause("restored-detail"),
-                exact_state(&stock, &book, &registry),
-                cause("promote"),
-            )
-            .unwrap_err();
-        assert_eq!(error, ResolutionError::DetailUnavailable);
+        assert_eq!(
+            ledger
+                .promote(
+                    snapshot_id("active-1"),
+                    EconomicResolutionTier::ActiveSite,
+                    retention("active-0", "invented"),
+                    cause("invented-detail"),
+                    exact_state(&stock, &book, &registry),
+                    cause("promote"),
+                )
+                .unwrap_err(),
+            ResolutionError::DetailUnavailable
+        );
     }
 
     #[test]
-    fn promotion_requires_exact_retention_reference() {
-        let stock = stock_ledger();
-        let book = financial_book();
-        let registry = registry();
-        let expected = retention("active-0", "retain-active-0");
-        let mut ledger = EconomicResolutionLedger::new(
-            snapshot_id("active-0"),
-            EconomicResolutionTier::ActiveSite,
-            cause("exact-active"),
-            exact_state(&stock, &book, &registry),
-        )
-        .unwrap();
-        ledger
-            .demote_exact(
-                snapshot_id("distant-0"),
-                EconomicResolutionTier::DistantRegion,
-                Some(expected),
-                cause("demote"),
-            )
-            .unwrap();
-
-        let error = ledger
-            .promote(
-                snapshot_id("active-1"),
-                EconomicResolutionTier::ActiveSite,
-                retention("active-0", "wrong-retention"),
-                cause("restored-detail"),
-                exact_state(&stock, &book, &registry),
-                cause("promote"),
-            )
-            .unwrap_err();
-        assert_eq!(error, ResolutionError::RestorationReferenceMismatch);
-    }
-
-    #[test]
-    fn promotion_rejects_stock_drift_instead_of_hiding_it_as_lod() {
+    fn promotion_rejects_hidden_stock_mutation_atomically() {
         let stock = stock_ledger();
         let book = financial_book();
         let registry = registry();
@@ -1205,24 +1121,25 @@ mod tests {
                 },
             )
             .unwrap();
-
         let before = ledger.clone();
-        let error = ledger
-            .promote(
-                snapshot_id("active-1"),
-                EconomicResolutionTier::ActiveSite,
-                retained,
-                cause("restored-detail"),
-                exact_state(&drifted_stock, &book, &registry),
-                cause("promote"),
-            )
-            .unwrap_err();
-        assert_eq!(error, ResolutionError::ConservationMismatch);
+        assert_eq!(
+            ledger
+                .promote(
+                    snapshot_id("active-1"),
+                    EconomicResolutionTier::ActiveSite,
+                    retained,
+                    cause("restored-detail"),
+                    exact_state(&drifted_stock, &book, &registry),
+                    cause("promote"),
+                )
+                .unwrap_err(),
+            ResolutionError::ConservationMismatch
+        );
         assert_eq!(ledger, before);
     }
 
     #[test]
-    fn promotion_rejects_financial_drift() {
+    fn promotion_rejects_hidden_financial_mutation() {
         let stock = stock_ledger();
         let book = financial_book();
         let registry = registry();
@@ -1247,7 +1164,7 @@ mod tests {
         drifted_book
             .post_transaction(
                 JournalTransaction::new(
-                    crate::financial::JournalTransactionId::new("hidden-journal").unwrap(),
+                    JournalTransactionId::new("hidden-journal").unwrap(),
                     cause("hidden-financial-change"),
                     currency_id("CR"),
                     vec![
@@ -1267,21 +1184,23 @@ mod tests {
             )
             .unwrap();
 
-        let error = ledger
-            .promote(
-                snapshot_id("active-1"),
-                EconomicResolutionTier::ActiveSite,
-                retained,
-                cause("restored-detail"),
-                exact_state(&stock, &drifted_book, &registry),
-                cause("promote"),
-            )
-            .unwrap_err();
-        assert_eq!(error, ResolutionError::ConservationMismatch);
+        assert_eq!(
+            ledger
+                .promote(
+                    snapshot_id("active-1"),
+                    EconomicResolutionTier::ActiveSite,
+                    retained,
+                    cause("restored-detail"),
+                    exact_state(&stock, &drifted_book, &registry),
+                    cause("promote"),
+                )
+                .unwrap_err(),
+            ResolutionError::ConservationMismatch
+        );
     }
 
     #[test]
-    fn aggregate_coarsening_carries_retention_without_rebinding_it() {
+    fn aggregate_coarsening_carries_retention_without_rebinding() {
         let stock = stock_ledger();
         let book = financial_book();
         let registry = registry();
@@ -1308,7 +1227,6 @@ mod tests {
                 cause("coarsen-planet"),
             )
             .unwrap();
-
         assert_eq!(
             ledger.current_snapshot().detail(),
             &EconomicDetailState::Aggregated {
@@ -1326,73 +1244,20 @@ mod tests {
                 cause("promote-active"),
             )
             .unwrap();
-        assert!(matches!(
-            ledger.current_snapshot().detail(),
-            EconomicDetailState::Exact { .. }
-        ));
         ledger.validate().unwrap();
-    }
-
-    #[test]
-    fn snapshot_ids_cannot_be_reused() {
-        let stock = stock_ledger();
-        let book = financial_book();
-        let registry = registry();
-        let mut ledger = EconomicResolutionLedger::new(
-            snapshot_id("active-0"),
-            EconomicResolutionTier::ActiveSite,
-            cause("exact-active"),
-            exact_state(&stock, &book, &registry),
-        )
-        .unwrap();
-        let error = ledger
-            .demote_exact(
-                snapshot_id("active-0"),
-                EconomicResolutionTier::LocalRegion,
-                Some(retention("active-0", "retain-active-0")),
-                cause("demote"),
-            )
-            .unwrap_err();
-        assert!(matches!(error, ResolutionError::DuplicateSnapshotId { .. }));
-    }
-
-    #[test]
-    fn retention_must_bind_the_exact_source_snapshot() {
-        let stock = stock_ledger();
-        let book = financial_book();
-        let registry = registry();
-        let mut ledger = EconomicResolutionLedger::new(
-            snapshot_id("active-0"),
-            EconomicResolutionTier::ActiveSite,
-            cause("exact-active"),
-            exact_state(&stock, &book, &registry),
-        )
-        .unwrap();
-        let error = ledger
-            .demote_exact(
-                snapshot_id("local-0"),
-                EconomicResolutionTier::LocalRegion,
-                Some(retention("some-other-snapshot", "retain")),
-                cause("demote"),
-            )
-            .unwrap_err();
-        assert!(matches!(
-            error,
-            ResolutionError::RetentionSourceMismatch { .. }
-        ));
     }
 
     #[test]
     fn settled_state_binds_settlement_identity_sequence() {
         let stock = stock_ledger();
         let registry = registry();
-        let mut settlement_ledger = MonetarySettlementLedger::new(financial_book()).unwrap();
+        let mut settlements = MonetarySettlementLedger::new(financial_book()).unwrap();
         let issue_cause = cause("issue-100");
-        settlement_ledger
+        settlements
             .settle(MonetarySettlement {
                 settlement_id: SettlementId::new("settlement-1").unwrap(),
                 transaction: JournalTransaction::new(
-                    crate::financial::JournalTransactionId::new("journal-issue-1").unwrap(),
+                    JournalTransactionId::new("journal-issue-1").unwrap(),
                     issue_cause.clone(),
                     currency_id("CR"),
                     vec![
@@ -1414,7 +1279,7 @@ mod tests {
                     authority_id: authority("mint"),
                     amount: 100,
                     beneficiary_actor_id: actor("alice"),
-                    cause_id: issue_cause.clone(),
+                    cause_id: issue_cause,
                 },
                 settlement_account_id: account_id("alice-cash"),
                 authorization: SettlementAuthorizationRef {
@@ -1431,12 +1296,11 @@ mod tests {
             cause("exact-settled"),
             ExactEconomicStateRef::Settled {
                 stock_ledger: &stock,
-                settlement_ledger: &settlement_ledger,
+                settlement_ledger: &settlements,
                 registry: &registry,
             },
         )
         .unwrap();
-
         assert_eq!(
             ledger.current_snapshot().manifest().history.settlements,
             vec![SettlementId::new("settlement-1").unwrap()]
@@ -1448,7 +1312,7 @@ mod tests {
     }
 
     #[test]
-    fn corrupted_resolution_history_is_detected() {
+    fn corrupted_transition_sequence_is_detected() {
         let stock = stock_ledger();
         let book = financial_book();
         let registry = registry();
