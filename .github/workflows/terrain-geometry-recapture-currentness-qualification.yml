@@ -1,0 +1,298 @@
+name: Terrain Geometry Recapture Currentness Qualification
+
+on:
+  push:
+    branches:
+      - "terrain/geometry-recapture-currentness-v0.1"
+    paths:
+      - ".github/workflows/terrain-geometry-recapture-currentness-qualification.yml"
+      - "crates/domains/symtropy-terrain/src/geometry_currentness.rs"
+      - "crates/domains/symtropy-terrain/src/live_geometry_provider.rs"
+      - "crates/domains/symtropy-terrain/src/lib.rs"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: terrain-geometry-recapture-currentness-v0.1
+  cancel-in-progress: true
+
+jobs:
+  qualify:
+    name: Qualify point-of-use Terrain geometry currentness
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Bind exact stacked lineage
+        shell: bash
+        run: |
+          set -euo pipefail
+          final_locus=8db7fea0db9276c4922c2e812739396f14d0b56f
+          pre_restack=60b73e023427f847ac3883564ddceaad777a2a01
+          restack=78e2ab08cf0a17491da8f80a3905f5f5c260db3c
+          currentness=crates/domains/symtropy-terrain/src/geometry_currentness.rs
+          provider=crates/domains/symtropy-terrain/src/live_geometry_provider.rs
+          lib=crates/domains/symtropy-terrain/src/lib.rs
+          kernel=crates/domains/symtropy-terrain/src/geometry_kernel.rs
+          manifest=crates/domains/symtropy-terrain/Cargo.toml
+          provider_qualifier=.github/workflows/terrain-ecs-lattice-geometry-provider-qualification.yml
+          locus_qualifier=.github/workflows/terrain-locus-mint-authority-qualification.yml
+          qualifier=.github/workflows/terrain-geometry-recapture-currentness-qualification.yml
+
+          test "$(git rev-parse HEAD)" = "${GITHUB_SHA}"
+          test "$(git rev-parse HEAD^)" = "${restack}"
+          test "$(git rev-parse ${restack}^1)" = "${pre_restack}"
+          test "$(git rev-parse ${restack}^2)" = "${final_locus}"
+          git merge-base --is-ancestor "${final_locus}" HEAD
+          git merge-base --is-ancestor "${pre_restack}" HEAD
+
+          test "$(git rev-parse HEAD:${currentness})" = "2da7d9b27313ae24b45269171cf58ea6cd528de4"
+          test "$(git rev-parse ${pre_restack}:${currentness})" = "2da7d9b27313ae24b45269171cf58ea6cd528de4"
+          test "$(git rev-parse HEAD:${provider})" = "543858ec733429ac41d39bd52eb2e39210806280"
+          test "$(git rev-parse ${pre_restack}:${provider})" = "543858ec733429ac41d39bd52eb2e39210806280"
+          test "$(git rev-parse HEAD:${lib})" = "5f7d78067026f39b242823fcf7457fbeb2da10ed"
+          test "$(git rev-parse ${pre_restack}:${lib})" = "5f7d78067026f39b242823fcf7457fbeb2da10ed"
+          test "$(git rev-parse HEAD:${kernel})" = "8d3e1213eacdeddf693cd2d1f82670d6ed832161"
+          test "$(git rev-parse HEAD:${manifest})" = "187fe4020a0c0048ab36404e219a7a5698a856d1"
+          test "$(git rev-parse HEAD:Cargo.lock)" = "62c6eb098b3f6fffdea8a175a0f3afb33423b17b"
+          test "$(git rev-parse HEAD:${provider_qualifier})" = "b34b69a1eaf082a293998dece0356dbc4f596e23"
+          test "$(git rev-parse ${final_locus}:${provider_qualifier})" = "b34b69a1eaf082a293998dece0356dbc4f596e23"
+          test "$(git rev-parse HEAD:${locus_qualifier})" = "dedef7a0ccd3a3d88654b66d48cc0130cda9002d"
+          test "$(git rev-parse ${final_locus}:${locus_qualifier})" = "dedef7a0ccd3a3d88654b66d48cc0130cda9002d"
+
+          qualifier_delta="$(git diff --name-only ${restack}..HEAD)"
+          test "${qualifier_delta}" = "${qualifier}"
+
+          merge_delta="$(git diff --name-only ${pre_restack}..${restack} | sort)"
+          expected_merge_delta="$(printf '%s\n' "${provider_qualifier}" "${locus_qualifier}" | sort)"
+          test "${merge_delta}" = "${expected_merge_delta}"
+
+          actual="$(git diff --name-only ${final_locus}..HEAD | sort)"
+          expected="$(printf '%s\n' "${qualifier}" "${currentness}" "${provider}" "${lib}" | sort)"
+          test "${actual}" = "${expected}"
+
+          echo "TERRAIN_CURRENTNESS_HEAD=${GITHUB_SHA}"
+          echo "TERRAIN_CURRENTNESS_TREE=$(git rev-parse HEAD^{tree})"
+          echo "TERRAIN_CURRENTNESS_BASE=${final_locus}"
+          echo "TERRAIN_CURRENTNESS_PRE_RESTACK=${pre_restack}"
+          echo "TERRAIN_CURRENTNESS_RESTACK=${restack}"
+          echo "TERRAIN_CURRENTNESS_SOURCE_BLOB=$(git rev-parse HEAD:${currentness})"
+          echo "TERRAIN_CURRENTNESS_PROVIDER_BLOB=$(git rev-parse HEAD:${provider})"
+          echo "TERRAIN_CURRENTNESS_LIB_BLOB=$(git rev-parse HEAD:${lib})"
+          echo "TERRAIN_CURRENTNESS_KERNEL_BLOB=$(git rev-parse HEAD:${kernel})"
+          echo "TERRAIN_CURRENTNESS_LOCK_BLOB=$(git rev-parse HEAD:Cargo.lock)"
+          echo "CARGO_TARGET_DIR=${RUNNER_TEMP}/terrain-currentness-target" >> "${GITHUB_ENV}"
+
+      - name: Install Linux system dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install -y libasound2-dev libudev-dev pkg-config
+
+      - name: Set up pinned Rust
+        uses: dtolnay/rust-toolchain@6bed0761d98439e5a578e2877258200ad565ba87
+        with:
+          toolchain: 1.96.0
+          components: clippy,rustfmt
+
+      - name: Bind toolchain
+        shell: bash
+        run: |
+          set -euo pipefail
+          rustc -Vv
+          cargo -Vv
+          rustfmt --version
+          cargo clippy --version
+          test "$(rustc --version | awk '{print $2}')" = "1.96.0"
+          test "$(cargo --version | awk '{print $2}')" = "1.96.0"
+
+      - name: Check exact currentness formatting
+        shell: bash
+        run: |
+          set -euo pipefail
+          rustfmt --edition 2024 --check \
+            crates/domains/symtropy-terrain/src/geometry_currentness.rs \
+            crates/domains/symtropy-terrain/src/live_geometry_provider.rs \
+            crates/domains/symtropy-terrain/src/lib.rs
+
+      - name: Verify frozen selected dependency graph
+        shell: bash
+        run: |
+          set -euo pipefail
+          before="$(git hash-object Cargo.lock)"
+          cargo metadata --locked --format-version 1 > "${RUNNER_TEMP}/terrain-currentness-metadata.json"
+          test "$(git hash-object Cargo.lock)" = "${before}"
+          echo "TERRAIN_CURRENTNESS_METADATA_SHA256=$(sha256sum "${RUNNER_TEMP}/terrain-currentness-metadata.json" | awk '{print $1}')"
+
+      - name: Execute currentness and Terrain regression gates
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo check -p symtropy-terrain --locked --all-targets
+          cargo test -p symtropy-terrain --locked geometry_currentness::tests -- --nocapture
+          cargo test -p symtropy-terrain --locked live_geometry_provider::tests -- --nocapture
+          cargo test -p symtropy-terrain --locked --all-targets
+          cargo clippy -p symtropy-terrain --locked --all-targets -- -D warnings
+
+      - name: Audit point-of-use currentness theorem
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+
+          source = Path("crates/domains/symtropy-terrain/src/geometry_currentness.rs").read_text()
+          provider = Path("crates/domains/symtropy-terrain/src/live_geometry_provider.rs").read_text()
+          lib = Path("crates/domains/symtropy-terrain/src/lib.rs").read_text()
+          production, marker, tests = source.partition("#[cfg(test)]")
+          if not marker:
+              raise SystemExit("missing currentness test boundary")
+
+          required = [
+              "pub fn verify_live_terrain_geometry_current(",
+              "world: &World",
+              "entity: Entity",
+              "expected: &TerrainGeometrySnapshot",
+              "Result<TerrainGeometrySnapshot, TerrainGeometryCurrentnessError>",
+              "let current = capture_live_terrain_geometry(world, entity)?;",
+              "verify_current_snapshot(expected, current)",
+              "expected.chunk() != current.chunk()",
+              "expected.digest() != current.digest()",
+              "Ok(current)",
+              "Capture(TerrainLiveGeometryError)",
+              "Stale {",
+          ]
+          missing = [term for term in required if term not in production]
+          if missing:
+              raise SystemExit(f"currentness theorem surface missing: {missing!r}")
+
+          executable = re.sub(r"//.*?$|/\*.*?\*/", "", production, flags=re.MULTILINE | re.DOTALL)
+          forbidden = [
+              "GlobalTransform",
+              "get::<Transform>",
+              "get_mut::<Transform>",
+              ".density",
+              ".densities",
+              "revision",
+              "generation",
+              "Instant",
+              "SystemTime",
+              "Utc",
+              "&mut World",
+          ]
+          leaked = [term for term in forbidden if term in executable]
+          if leaked:
+              raise SystemExit(f"non-authoritative executable state leaked into currentness theorem: {leaked!r}")
+
+          fixture = "#[cfg(test)]\n    pub(crate) const fn new_for_test("
+          if fixture not in provider:
+              raise SystemExit("missing cfg(test)-only crate locus fixture")
+          if provider.count("pub(crate) const fn new_for_test(") != 1:
+              raise SystemExit("unexpected locus test-fixture multiplicity")
+          if "recapture_tracks_voxel_change_but_ignores_runtime_state" not in provider:
+              raise SystemExit("missing provider runtime-state exclusion regression")
+          if "mod geometry_currentness;" not in lib:
+              raise SystemExit("currentness implementation must remain behind explicit crate export")
+          if "verify_live_terrain_geometry_current" not in lib:
+              raise SystemExit("currentness verifier is not publicly re-exported")
+          if "TerrainGeometryCurrentnessError" not in lib:
+              raise SystemExit("currentness error is not publicly re-exported")
+
+          required_tests = [
+              "equal_exact_observation_is_current_and_returns_fresh_value",
+              "material_change_is_stale",
+              "lattice_locus_change_is_stale_even_with_same_materials",
+              "live_wrapper_returns_fresh_snapshot_and_ignores_runtime_only_state",
+              "live_wrapper_detects_material_mutation_as_stale",
+              "live_wrapper_fails_closed_when_chunk_has_no_authoritative_locus",
+          ]
+          missing_tests = [name for name in required_tests if name not in tests]
+          if missing_tests:
+              raise SystemExit(f"currentness corpus missing: {missing_tests!r}")
+
+          print("TERRAIN_CURRENTNESS_RECAPTURE=PASS")
+          print("TERRAIN_CURRENTNESS_EXACT_LOCUS_AND_DIGEST=PASS")
+          print("TERRAIN_CURRENTNESS_RETURNS_FRESH_SNAPSHOT=PASS")
+          print("TERRAIN_CURRENTNESS_RUNTIME_ONLY_STATE_EXCLUDED=PASS")
+          print("TERRAIN_CURRENTNESS_TEST_LOCUS_FIXTURE=CFG_TEST_ONLY")
+          print("TERRAIN_CURRENTNESS_REVISION_CLOCK_TRANSFORM_AUTHORITY=ABSENT")
+          PY
+
+      - name: Prove downstream currentness surface without locus capability
+        shell: bash
+        run: |
+          set -euo pipefail
+          root_lock_before="$(git hash-object Cargo.lock)"
+          consumer="${RUNNER_TEMP}/terrain-currentness-consumer"
+          mkdir -p "${consumer}/src"
+          cat > "${consumer}/Cargo.toml" <<EOF
+          [package]
+          name = "terrain-currentness-consumer"
+          version = "0.0.0"
+          edition = "2024"
+
+          [dependencies]
+          symtropy-terrain = { path = "${GITHUB_WORKSPACE}/crates/domains/symtropy-terrain" }
+          EOF
+
+          cat > "${consumer}/src/main.rs" <<'RS'
+          use symtropy_terrain::{
+              TerrainGeometryCurrentnessError, verify_live_terrain_geometry_current,
+          };
+
+          fn main() {
+              let _ = verify_live_terrain_geometry_current;
+              let _: Option<TerrainGeometryCurrentnessError> = None;
+          }
+          RS
+          cargo check --manifest-path "${consumer}/Cargo.toml"
+
+          run_forbidden() {
+              local name="$1"
+              local stderr="${RUNNER_TEMP}/${name}.stderr"
+              if cargo check --manifest-path "${consumer}/Cargo.toml" --locked >"${RUNNER_TEMP}/${name}.stdout" 2>"${stderr}"; then
+                  echo "forbidden external locus access compiled: ${name}" >&2
+                  exit 1
+              fi
+              grep -Fq "EarthChunkLatticeLocus" "${stderr}"
+              echo "${name}_STDERR_SHA256=$(sha256sum "${stderr}" | awk '{print $1}')"
+          }
+
+          cat > "${consumer}/src/main.rs" <<'RS'
+          use symtropy_terrain::EarthChunkLatticeLocus;
+          fn main() { let _ = core::mem::size_of::<EarthChunkLatticeLocus>(); }
+          RS
+          run_forbidden public_reexport_path
+
+          cat > "${consumer}/src/main.rs" <<'RS'
+          use symtropy_terrain::live_geometry_provider::EarthChunkLatticeLocus;
+          fn main() { let _ = core::mem::size_of::<EarthChunkLatticeLocus>(); }
+          RS
+          run_forbidden private_module_path
+
+          test "$(git hash-object Cargo.lock)" = "${root_lock_before}"
+          echo "TERRAIN_CURRENTNESS_EXTERNAL_SURFACE=PASS"
+          echo "TERRAIN_CURRENTNESS_EXTERNAL_LOCUS_AUTHORITY=DENIED"
+
+      - name: Unchanged-subject postflight
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -z "$(git status --porcelain)"
+          test "$(git rev-parse HEAD)" = "${GITHUB_SHA}"
+          test "$(git rev-parse HEAD:crates/domains/symtropy-terrain/src/geometry_currentness.rs)" = "2da7d9b27313ae24b45269171cf58ea6cd528de4"
+          test "$(git rev-parse HEAD:crates/domains/symtropy-terrain/src/live_geometry_provider.rs)" = "543858ec733429ac41d39bd52eb2e39210806280"
+          test "$(git rev-parse HEAD:crates/domains/symtropy-terrain/src/lib.rs)" = "5f7d78067026f39b242823fcf7457fbeb2da10ed"
+          test "$(git rev-parse HEAD:crates/domains/symtropy-terrain/src/geometry_kernel.rs)" = "8d3e1213eacdeddf693cd2d1f82670d6ed832161"
+          test "$(git rev-parse HEAD:crates/domains/symtropy-terrain/Cargo.toml)" = "187fe4020a0c0048ab36404e219a7a5698a856d1"
+          test "$(git rev-parse HEAD:Cargo.lock)" = "62c6eb098b3f6fffdea8a175a0f3afb33423b17b"
+          echo "TERRAIN_GEOMETRY_CURRENTNESS_STATUS=PASS"
+          echo "claim=point-of-use recapture proves expected exact Terrain lattice locus and geometry digest equal the freshly qualified live snapshot at this invocation; returns that fresh snapshot; no provenance-of-expected, perpetual-freshness, revision, clock, transform, PB/world-frame, or cut-cell claim"

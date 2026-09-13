@@ -44,7 +44,7 @@ pub(crate) struct EarthChunkLatticeLocus {
 
 impl EarthChunkLatticeLocus {
     #[cfg(test)]
-    const fn new_for_test(x: i32, y: i32, z: i32) -> Self {
+    pub(crate) const fn new_for_test(x: i32, y: i32, z: i32) -> Self {
         Self { x, y, z }
     }
 
