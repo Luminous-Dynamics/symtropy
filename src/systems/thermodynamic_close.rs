@@ -3,15 +3,13 @@
 // Commercial licensing: see COMMERCIAL_LICENSE.md at repository root
 //! Consequence-time close for one operational thermodynamic interval.
 //!
-//! This helper contains only the close semantics that currently live at the end
-//! of `thermodynamic_enforcement_system`: post-consequence collapse, legacy
-//! operational ledger close, and HUD sampling. Tick admission/finalize identity
-//! remains owned by `ThermodynamicTransactionRuntime`.
+//! This helper contains only post-consequence collapse, legacy operational
+//! telemetry close, and HUD sampling. Fixed-tick admission/finalize identity is
+//! owned separately by `ThermodynamicTransactionRuntime`.
 
 use symtropy_physics::BodyHandle;
 
 use crate::resources::{PhysicsWorldRes, SafetyTier};
-
 use super::thermodynamic::ThermodynamicHudState;
 
 #[derive(Clone, Debug, PartialEq)]
@@ -25,13 +23,19 @@ pub struct OperationalThermodynamicCloseReceipt {
     pub rate_window_completed: bool,
     pub consumed_per_sec_after: f64,
     pub regenerated_per_sec_after: f64,
+    /// Legacy operational telemetry tick identity only; not physical energy proof.
+    pub legacy_tick_count_before: u64,
+    pub legacy_tick_count_after: u64,
 }
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub enum OperationalThermodynamicCloseError {
     DuplicateHandle(BodyHandle),
+    MissingOperationalEntity(BodyHandle),
     InvalidHudState,
     InvalidEntityCounters(BodyHandle),
+    InvalidLegacyLedgerState,
+    LegacyTickCounterExhausted,
     UnrepresentableAccumulator,
     HudTickOverflow,
 }
@@ -56,11 +60,43 @@ fn canonicalize_handles(
     let mut canonical = handles.to_vec();
     canonical.sort_unstable();
     if let Some(duplicate) = canonical.windows(2).find(|pair| pair[0] == pair[1]) {
-        return Err(OperationalThermodynamicCloseError::DuplicateHandle(
-            duplicate[0],
-        ));
+        return Err(OperationalThermodynamicCloseError::DuplicateHandle(duplicate[0]));
     }
     Ok(canonical)
+}
+
+fn validate_legacy_ledger(
+    physics: &PhysicsWorldRes,
+) -> Result<u64, OperationalThermodynamicCloseError> {
+    let ledger = &physics.consciousness.ledger;
+    if ledger.tick_count == u64::MAX {
+        return Err(OperationalThermodynamicCloseError::LegacyTickCounterExhausted);
+    }
+    if !finite_nonnegative(ledger.energy_in)
+        || !finite_nonnegative(ledger.energy_out)
+        || !finite_nonnegative(ledger.boundary_in)
+        || !finite_nonnegative(ledger.boundary_out)
+        || !ledger.phi_energy_integral.is_finite()
+        || !finite_nonnegative(ledger.phi_change_total)
+        || !finite_nonnegative(ledger.lifetime_energy)
+        || !finite_nonnegative(ledger.lifetime_error)
+        || !finite_nonnegative(ledger.lifetime_boundary_in)
+        || !finite_nonnegative(ledger.lifetime_boundary_out)
+    {
+        return Err(OperationalThermodynamicCloseError::InvalidLegacyLedgerState);
+    }
+
+    let error = (ledger.energy_in - ledger.energy_out).abs();
+    let next_values = [
+        ledger.lifetime_energy + ledger.energy_in,
+        ledger.lifetime_error + error,
+        ledger.lifetime_boundary_in + ledger.boundary_in,
+        ledger.lifetime_boundary_out + ledger.boundary_out,
+    ];
+    if !error.is_finite() || !next_values.iter().all(|value| finite_nonnegative(*value)) {
+        return Err(OperationalThermodynamicCloseError::InvalidLegacyLedgerState);
+    }
+    Ok(ledger.tick_count)
 }
 
 fn stage_hud(
@@ -118,23 +154,26 @@ fn stage_hud(
 
 /// Close one operational interval after all consequential work for the tick.
 ///
-/// All fallible receipt/HUD validation occurs before any collapse, legacy ledger,
-/// or HUD mutation. The legacy `tick_thermodynamics()` call remains compatibility
-/// telemetry; this receipt is not a physical first-law proof.
+/// All fallible census/counter/HUD/legacy-ledger checks occur before any close
+/// mutation. The legacy balance remains compatibility telemetry, not first-law
+/// evidence.
 pub fn close_operational_thermodynamic_tick(
     physics: &mut PhysicsWorldRes,
     hud: &mut ThermodynamicHudState,
     handles: &[BodyHandle],
 ) -> Result<OperationalThermodynamicCloseReceipt, OperationalThermodynamicCloseError> {
     let canonical_handles = canonicalize_handles(handles)?;
+    let legacy_tick_count_before = validate_legacy_ledger(physics)?;
     let mut collapsed_handles = Vec::new();
     let mut sampled_consumed = 0.0;
     let mut sampled_regenerated = 0.0;
 
     for &handle in &canonical_handles {
-        let Some(entity) = physics.consciousness.entities.get(&handle) else {
-            continue;
-        };
+        let entity = physics
+            .consciousness
+            .entities
+            .get(&handle)
+            .ok_or(OperationalThermodynamicCloseError::MissingOperationalEntity(handle))?;
         let consumed = entity.energy.consumed_this_tick;
         let regenerated = entity.energy.regenerated_this_tick;
         if !finite_nonnegative(consumed) || !finite_nonnegative(regenerated) {
@@ -154,12 +193,12 @@ pub fn close_operational_thermodynamic_tick(
     let hud_ticks_before = hud.ticks_accumulated;
 
     for &handle in &collapsed_handles {
-        if let Some(entity) = physics.consciousness.entities.get_mut(&handle) {
-            entity.safety_tier = SafetyTier::Red;
-        }
+        physics.consciousness.entities.get_mut(&handle).expect("preflight proved entity").safety_tier = SafetyTier::Red;
     }
 
     let _legacy_balance = physics.consciousness.tick_thermodynamics();
+    let legacy_tick_count_after = physics.consciousness.ledger.tick_count;
+    debug_assert_eq!(legacy_tick_count_after, legacy_tick_count_before + 1);
 
     hud.energy_consumed_accumulator = staged_hud.energy_consumed_accumulator;
     hud.energy_regenerated_accumulator = staged_hud.energy_regenerated_accumulator;
@@ -177,5 +216,7 @@ pub fn close_operational_thermodynamic_tick(
         rate_window_completed: staged_hud.rate_window_completed,
         consumed_per_sec_after: staged_hud.consumed_per_sec,
         regenerated_per_sec_after: staged_hud.regenerated_per_sec,
+        legacy_tick_count_before,
+        legacy_tick_count_after,
     })
 }
