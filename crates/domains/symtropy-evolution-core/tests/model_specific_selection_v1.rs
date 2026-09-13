@@ -115,12 +115,12 @@ fn hereditary_viability_effect_translates_to_exact_relative_viability_minus_one(
     assert_eq!(estimate.comparison_survival.numerator, 0);
     assert_eq!(estimate.comparison_survival.denominator, 1);
     assert!(matches!(
-        estimate.relative_viability_ratio,
+        estimate.relative_viability_ratio.clone(),
         RelativeViabilityRatio::Finite(value)
             if value.numerator == 0 && value.denominator == 1
     ));
     assert!(matches!(
-        estimate.selection_quantity,
+        estimate.selection_quantity.clone(),
         RelativeViabilitySelectionQuantity::Finite(value)
             if value.negative && value.numerator == 1 && value.denominator == 1
     ));
