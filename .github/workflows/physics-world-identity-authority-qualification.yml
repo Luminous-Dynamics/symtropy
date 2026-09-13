@@ -110,7 +110,7 @@ jobs:
           grep -Fq 'pub struct ValidatedNetBody' "${source}"
           grep -Fq 'pub fn validate_subject' "${source}"
           grep -Fq 'exactly one live body' "${contract}"
-          grep -Fq 'does not claim persistence or historical continuity' "${source}"
+          grep -Fq 'It deliberately does not claim' "${source}"
 
           python3 - <<'PY'
           import pathlib, re, sys
