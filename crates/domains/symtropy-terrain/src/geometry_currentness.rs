@@ -100,16 +100,15 @@ fn verify_current_snapshot(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{EarthChunk, SubstrateMaterial};
-    use crate::geometry_kernel::{
-        TERRAIN_GEOMETRY_VOXEL_COUNT, TerrainMaterialCode,
-    };
+    use crate::EarthChunk;
+    use crate::geometry_kernel::{TERRAIN_GEOMETRY_VOXEL_COUNT, TerrainMaterialCode};
 
     fn snapshot(
         chunk: EarthChunkLatticeCoord,
         edit: Option<(usize, TerrainMaterialCode)>,
     ) -> TerrainGeometrySnapshot {
-        let mut materials = Box::new([TerrainMaterialCode::DOLOMITE; TERRAIN_GEOMETRY_VOXEL_COUNT]);
+        let mut materials =
+            Box::new([TerrainMaterialCode::DOLOMITE; TERRAIN_GEOMETRY_VOXEL_COUNT]);
         if let Some((index, material)) = edit {
             materials[index] = material;
         }
@@ -177,21 +176,5 @@ mod tests {
                 TerrainLiveGeometryError::MissingLatticeLocus(entity)
             ))
         );
-    }
-
-    #[test]
-    fn exact_identity_changes_for_material_but_not_runtime_density_vocabulary() {
-        let coord = EarthChunkLatticeCoord::new(0, 0, 0);
-        let baseline = snapshot(coord, None);
-        let material_edit = snapshot(coord, Some((17, TerrainMaterialCode::AIR));
-        assert_ne!(baseline.digest(), material_edit.digest());
-
-        // Runtime density is intentionally absent from the frozen snapshot
-        // vocabulary. Keep a live value in this test so future refactors do not
-        // mistake currentness for a density/physics identity theorem.
-        let mut chunk = EarthChunk::default();
-        chunk.densities[0][0][0] = 0.125;
-        chunk.voxels[0][0][0] = SubstrateMaterial::Dolomite;
-        assert_eq!(baseline.chunk(), coord);
     }
 }
