@@ -67,6 +67,11 @@ semantic_id!(AssignmentMaterializationAuthorityId);
 semantic_id!(AssignmentMaterializationQualificationAuthorityId);
 semantic_id!(AssignmentExchangeabilityAuthorityId);
 semantic_id!(CausalRandomizationTestId);
+semantic_id!(SelectionTranslationModelId);
+semantic_id!(GenerationMappingAuthorityId);
+semantic_id!(HeritableClassMappingAuthorityId);
+semantic_id!(SelectionTranslationQualificationAuthorityId);
+semantic_id!(ModelSpecificSelectionEstimateId);
 
 #[cfg(test)]
 mod tests {
@@ -135,6 +140,17 @@ mod tests {
             "assignment-exchangeability-0001"
         );
         assert_wire_contract!(CausalRandomizationTestId, "causal-randomization-test-0001");
+        assert_wire_contract!(SelectionTranslationModelId, "selection-translation-model-0001");
+        assert_wire_contract!(GenerationMappingAuthorityId, "generation-mapping-0001");
+        assert_wire_contract!(HeritableClassMappingAuthorityId, "heritable-class-mapping-0001");
+        assert_wire_contract!(
+            SelectionTranslationQualificationAuthorityId,
+            "selection-translation-qualification-0001"
+        );
+        assert_wire_contract!(
+            ModelSpecificSelectionEstimateId,
+            "model-specific-selection-estimate-0001"
+        );
     }
 
     #[test]
