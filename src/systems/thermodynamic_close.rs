@@ -23,9 +23,11 @@ pub struct OperationalThermodynamicCloseReceipt {
     pub rate_window_completed: bool,
     pub consumed_per_sec_after: f64,
     pub regenerated_per_sec_after: f64,
-    /// Legacy operational telemetry tick identity only; not physical energy proof.
-    pub legacy_tick_count_before: u64,
-    pub legacy_tick_count_after: u64,
+    /// Present only when the full consciousness-runtime legacy ledger exposes a
+    /// monotonically counted compatibility-close identity. `None` in the
+    /// standalone launcher stub is explicit absence, not an inferred zero.
+    pub legacy_tick_count_before: Option<u64>,
+    pub legacy_tick_count_after: Option<u64>,
 }
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
@@ -65,9 +67,10 @@ fn canonicalize_handles(
     Ok(canonical)
 }
 
+#[cfg(feature = "consciousness-runtime")]
 fn validate_legacy_ledger(
     physics: &PhysicsWorldRes,
-) -> Result<u64, OperationalThermodynamicCloseError> {
+) -> Result<Option<u64>, OperationalThermodynamicCloseError> {
     let ledger = &physics.consciousness.ledger;
     if ledger.tick_count == u64::MAX {
         return Err(OperationalThermodynamicCloseError::LegacyTickCounterExhausted);
@@ -96,7 +99,28 @@ fn validate_legacy_ledger(
     if !error.is_finite() || !next_values.iter().all(|value| finite_nonnegative(*value)) {
         return Err(OperationalThermodynamicCloseError::InvalidLegacyLedgerState);
     }
-    Ok(ledger.tick_count)
+    Ok(Some(ledger.tick_count))
+}
+
+#[cfg(not(feature = "consciousness-runtime"))]
+fn validate_legacy_ledger(
+    physics: &PhysicsWorldRes,
+) -> Result<Option<u64>, OperationalThermodynamicCloseError> {
+    let dissipated = physics.consciousness.ledger.dissipated;
+    if !finite_nonnegative(dissipated) {
+        return Err(OperationalThermodynamicCloseError::InvalidLegacyLedgerState);
+    }
+    Ok(None)
+}
+
+#[cfg(feature = "consciousness-runtime")]
+fn legacy_tick_count_after(physics: &PhysicsWorldRes) -> Option<u64> {
+    Some(physics.consciousness.ledger.tick_count)
+}
+
+#[cfg(not(feature = "consciousness-runtime"))]
+fn legacy_tick_count_after(_physics: &PhysicsWorldRes) -> Option<u64> {
+    None
 }
 
 fn stage_hud(
@@ -193,12 +217,21 @@ pub fn close_operational_thermodynamic_tick(
     let hud_ticks_before = hud.ticks_accumulated;
 
     for &handle in &collapsed_handles {
-        physics.consciousness.entities.get_mut(&handle).expect("preflight proved entity").safety_tier = SafetyTier::Red;
+        physics
+            .consciousness
+            .entities
+            .get_mut(&handle)
+            .expect("preflight proved entity")
+            .safety_tier = SafetyTier::Red;
     }
 
     let _legacy_balance = physics.consciousness.tick_thermodynamics();
-    let legacy_tick_count_after = physics.consciousness.ledger.tick_count;
-    debug_assert_eq!(legacy_tick_count_after, legacy_tick_count_before + 1);
+    let legacy_tick_count_after = legacy_tick_count_after(physics);
+    #[cfg(feature = "consciousness-runtime")]
+    debug_assert_eq!(
+        legacy_tick_count_after,
+        legacy_tick_count_before.and_then(|before| before.checked_add(1))
+    );
 
     hud.energy_consumed_accumulator = staged_hud.energy_consumed_accumulator;
     hud.energy_regenerated_accumulator = staged_hud.energy_regenerated_accumulator;

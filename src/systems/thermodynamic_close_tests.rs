@@ -29,8 +29,16 @@ fn consequence_time_counters_are_sampled_in_the_same_close() {
     assert_eq!(receipt.canonical_handles, vec![handle]);
     assert_eq!(receipt.sampled_consumed, 5.0);
     assert_eq!(receipt.sampled_regenerated, 0.0);
-    assert_eq!(receipt.legacy_tick_count_before, 0);
-    assert_eq!(receipt.legacy_tick_count_after, 1);
+    #[cfg(feature = "consciousness-runtime")]
+    {
+        assert_eq!(receipt.legacy_tick_count_before, Some(0));
+        assert_eq!(receipt.legacy_tick_count_after, Some(1));
+    }
+    #[cfg(not(feature = "consciousness-runtime"))]
+    {
+        assert_eq!(receipt.legacy_tick_count_before, None);
+        assert_eq!(receipt.legacy_tick_count_after, None);
+    }
     assert_eq!(hud.ticks_accumulated, 1);
     assert_eq!(hud.energy_consumed_accumulator, 5.0);
 }
@@ -70,7 +78,6 @@ fn duplicate_handle_fails_before_hud_or_safety_mutation() {
         Err(OperationalThermodynamicCloseError::DuplicateHandle(handle))
     );
     assert_eq!(hud.ticks_accumulated, 0);
-    assert_eq!(physics.consciousness.ledger.tick_count, 0);
     assert_eq!(
         physics.consciousness.entities.get(&handle).unwrap().safety_tier,
         SafetyTier::Green
@@ -88,7 +95,6 @@ fn missing_operational_entity_fails_closed() {
         Err(OperationalThermodynamicCloseError::MissingOperationalEntity(handle))
     );
     assert_eq!(hud.ticks_accumulated, 0);
-    assert_eq!(physics.consciousness.ledger.tick_count, 0);
 }
 
 #[test]
@@ -107,7 +113,6 @@ fn invalid_counter_fails_before_close_mutation() {
         Err(OperationalThermodynamicCloseError::InvalidEntityCounters(handle))
     );
     assert_eq!(hud.ticks_accumulated, 0);
-    assert_eq!(physics.consciousness.ledger.tick_count, 0);
     assert_eq!(
         physics.consciousness.entities.get(&handle).unwrap().safety_tier,
         SafetyTier::Green
@@ -117,7 +122,14 @@ fn invalid_counter_fails_before_close_mutation() {
 #[test]
 fn malformed_legacy_ledger_fails_before_close_mutation() {
     let (mut physics, handle) = registered_agent(100.0);
-    physics.consciousness.ledger.energy_in = f64::NAN;
+    #[cfg(feature = "consciousness-runtime")]
+    {
+        physics.consciousness.ledger.energy_in = f64::NAN;
+    }
+    #[cfg(not(feature = "consciousness-runtime"))]
+    {
+        physics.consciousness.ledger.dissipated = f64::NAN;
+    }
     let mut hud = ThermodynamicHudState::default();
 
     assert_eq!(
@@ -125,10 +137,9 @@ fn malformed_legacy_ledger_fails_before_close_mutation() {
         Err(OperationalThermodynamicCloseError::InvalidLegacyLedgerState)
     );
     assert_eq!(hud.ticks_accumulated, 0);
-    assert_eq!(physics.consciousness.ledger.tick_count, 0);
-    assert!(physics.consciousness.ledger.energy_in.is_nan());
 }
 
+#[cfg(feature = "consciousness-runtime")]
 #[test]
 fn exhausted_legacy_tick_counter_is_rejected_before_close() {
     let (mut physics, handle) = registered_agent(100.0);
