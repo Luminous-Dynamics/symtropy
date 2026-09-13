@@ -101,16 +101,29 @@ impl ReservationResolutionBinding {
         })
     }
 
-    /// Bind a successor ECON-03 representation of the same economic instant.
+    /// Bind a later ECON-03 representation of the same economic instant.
     /// Reservation creation/release/resize and changes to the ECON-03 conservation
     /// manifest are economic mutations; neither may be hidden inside fidelity
-    /// reconciliation.
+    /// reconciliation. Rebinding is forward-only and cannot replay the same snapshot
+    /// identity or a non-increasing ECON-03 generation.
     pub fn rebind_unchanged(
         &self,
         target: &EconomicResolutionSnapshot,
         stock: &StockLedger,
         reservations: &StockReservationLedger,
     ) -> Result<Self, ReservationReconciliationError> {
+        if target.snapshot_id() == &self.economic_snapshot_id {
+            return Err(ReservationReconciliationError::ResolutionSnapshotIdentityReused);
+        }
+        if target.generation() <= self.generation {
+            return Err(
+                ReservationReconciliationError::ResolutionGenerationNotForward {
+                    from: self.generation,
+                    to: target.generation(),
+                },
+            );
+        }
+
         let candidate = Self::bind(target, stock, reservations)?;
         if candidate.economic_manifest != self.economic_manifest {
             return Err(
@@ -357,11 +370,18 @@ impl ReservationPartitionSet {
     }
 }
 
-/// Prove a repartition changed placement only, not reservation semantics/history.
+/// Prove a repartition changed placement only, not economic-instant identity or
+/// reservation semantics/history.
 pub fn reconcile_reservation_repartition(
     before: &ReservationPartitionSet,
     after: &ReservationPartitionSet,
 ) -> Result<(), ReservationReconciliationError> {
+    if before.source_snapshot_id != after.source_snapshot_id {
+        return Err(ReservationReconciliationError::RepartitionSourceSnapshotMismatch {
+            before: before.source_snapshot_id.clone(),
+            after: after.source_snapshot_id.clone(),
+        });
+    }
     if before.reconstruct_manifest()? != after.reconstruct_manifest()? {
         return Err(ReservationReconciliationError::ReconciliationMismatch);
     }
@@ -375,6 +395,8 @@ pub enum ReservationReconciliationError {
     ArithmeticOverflow,
     StockManifestMismatch,
     ReservedLotDetailUnavailable,
+    ResolutionSnapshotIdentityReused,
+    ResolutionGenerationNotForward { from: u64, to: u64 },
     EconomicManifestChangedDuringResolution,
     ReservationChangedDuringResolution,
     DuplicatePartitionIdentity,
@@ -383,5 +405,9 @@ pub enum ReservationReconciliationError {
     NonCanonicalPartitions,
     NonCanonicalReservations,
     DuplicateReservationAuthority,
+    RepartitionSourceSnapshotMismatch {
+        before: EconomicSnapshotId,
+        after: EconomicSnapshotId,
+    },
     ReconciliationMismatch,
 }
