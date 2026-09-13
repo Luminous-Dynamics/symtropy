@@ -4,6 +4,38 @@ use crate::resources::PhysicsWorldRes;
 use bevy::prelude::*;
 use symtropy_render_bridge::PhysicsBody;
 
+/// Advance the authoritative 2D physics world by one validated simulation step.
+///
+/// This is intentionally narrower than scheduler authority: it validates only the
+/// timestep and performs exactly one world step. Fixed-tick identity, consequence
+/// status, retry behavior, and friction transaction ownership remain outside this
+/// helper.
+///
+/// With `consciousness-runtime`, the integration field remains the physics callback
+/// so existing force/impulse/friction coupling and collision feedback execute inside
+/// the same authoritative step. Standalone builds retain the ordinary physics step.
+pub fn step_physics_world(physics: &mut PhysicsWorldRes, dt: f64) -> bool {
+    if !dt.is_finite() || dt <= 0.0 {
+        return false;
+    }
+
+    #[cfg(feature = "consciousness-runtime")]
+    {
+        let PhysicsWorldRes {
+            world,
+            consciousness,
+        } = physics;
+        world.step_with_callback(dt, consciousness);
+    }
+
+    #[cfg(not(feature = "consciousness-runtime"))]
+    {
+        physics.world.step(dt);
+    }
+
+    true
+}
+
 pub fn update_physics_consciousness(
     mut physics: ResMut<PhysicsWorldRes>,
     query: Query<(&PhysicsBody, &crate::components::HarmonyComponent)>,
