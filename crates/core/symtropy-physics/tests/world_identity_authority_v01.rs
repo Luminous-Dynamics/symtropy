@@ -51,13 +51,11 @@ fn same_net_id_in_different_generation_cannot_satisfy_original_subject() {
     );
     let original_subject = PhysicsBodySubject::new(authority, original_generation, net_id);
 
-    assert_eq!(
+    assert!(matches!(
         later_world.validate_subject(original_subject),
-        Err(PhysicsIdentityError::WorldGenerationMismatch {
-            expected: original_generation,
-            actual: later_generation,
-        })
-    );
+        Err(PhysicsIdentityError::WorldGenerationMismatch { expected, actual })
+            if expected == original_generation && actual == later_generation
+    ));
 }
 
 #[test]
@@ -73,13 +71,11 @@ fn detached_authority_claim_cannot_be_applied_to_another_authority_world() {
     );
     let subject = PhysicsBodySubject::new(claimed_authority, generation, net_id);
 
-    assert_eq!(
+    assert!(matches!(
         world.validate_subject(subject),
-        Err(PhysicsIdentityError::PhysicalAuthorityMismatch {
-            expected: claimed_authority,
-            actual: actual_authority,
-        })
-    );
+        Err(PhysicsIdentityError::PhysicalAuthorityMismatch { expected, actual })
+            if expected == claimed_authority && actual == actual_authority
+    ));
 }
 
 #[test]
@@ -96,10 +92,10 @@ fn duplicate_live_net_id_fails_closed_even_if_index_points_to_one_body() {
     let world = PhysicsAuthorityWorld::new(authority, generation, raw);
     let subject = PhysicsBodySubject::new(authority, generation, net_id);
 
-    assert_eq!(
+    assert!(matches!(
         world.validate_subject(subject),
-        Err(PhysicsIdentityError::AmbiguousNetId { net_id })
-    );
+        Err(PhysicsIdentityError::AmbiguousNetId { net_id: observed }) if observed == net_id
+    ));
 }
 
 #[test]
@@ -116,13 +112,13 @@ fn direct_body_identity_mutation_that_leaves_stale_index_fails_closed() {
     let world = PhysicsAuthorityWorld::new(authority, generation, raw);
     let subject = PhysicsBodySubject::new(authority, generation, mutated_id);
 
-    assert_eq!(
+    assert!(matches!(
         world.validate_subject(subject),
         Err(PhysicsIdentityError::IdentityIndexMissing {
-            net_id: mutated_id,
-            handle,
-        })
-    );
+            net_id: observed,
+            handle: observed_handle,
+        }) if observed == mutated_id && observed_handle == handle
+    ));
 }
 
 #[test]
