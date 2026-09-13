@@ -11,13 +11,13 @@ mod evidence;
 mod model;
 
 pub use design::{
-    general_lineage_classification_rule_v1, GeneralLineageClassificationDesign,
-    GeneralLineageClassificationDesignDigest, GeneralLineageClassificationId,
-    GeneralLineageDesignError, GeneralLineageEvidenceChannelDeclaration,
-    GeneralLineageEvidenceChannelId, GeneralLineageEvidenceChannelKind,
-    GeneralLineageEvidenceChannelRole, GeneralLineageEvidenceDependencyGroupId,
-    GeneralLineageMissingEvidencePolicy, ValidatedGeneralLineageClassificationDesign,
-    GENERAL_LINEAGE_CLASSIFICATION_DESIGN_VERSION,
+    general_lineage_classification_rule_v1, general_lineage_dependency_grouping_rule_v1,
+    GeneralLineageClassificationDesign, GeneralLineageClassificationDesignDigest,
+    GeneralLineageClassificationId, GeneralLineageDesignError,
+    GeneralLineageEvidenceChannelDeclaration, GeneralLineageEvidenceChannelId,
+    GeneralLineageEvidenceChannelKind, GeneralLineageEvidenceChannelRole,
+    GeneralLineageEvidenceDependencyGroupId, GeneralLineageMissingEvidencePolicy,
+    ValidatedGeneralLineageClassificationDesign, GENERAL_LINEAGE_CLASSIFICATION_DESIGN_VERSION,
 };
 pub use evidence::{
     GeneralLineageChannelDisposition, GeneralLineageChannelEvidenceInput,
