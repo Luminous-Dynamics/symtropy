@@ -12,6 +12,7 @@ pub use symtropy_devconsole as devconsole;
 pub use symtropy_math as math;
 pub use symtropy_physics as physics;
 
+pub mod commodity;
 pub mod economic;
 pub mod economic_partition;
 pub mod economic_repartition;
@@ -22,6 +23,12 @@ pub mod settlement;
 
 pub mod prelude {
     pub use crate::bevy_physics::{BevyPhysicsPlugin, NoCouplingResource, PhysicsBody};
+    pub use crate::commodity::{
+        BatchId, CommodityError, CommodityGradeId, CommodityIdentityRegistry,
+        CommodityLotMetadata, CommoditySpecDefinition, CommodityTrackingMode, LotTrackingIdentity,
+        MaterialAuthorityId, PhysicalMaterialId, PhysicalMaterialReference, QualitySpecificationId,
+        QuantityDimensionId, QuantityUnitDefinition, QuantityUnitId,
+    };
     pub use crate::economic::{
         ActorId, AssetId, CausalId, CommoditySpecId, EconomicActor, EconomicActorKind,
         EconomicError, LocationId, LotId, StockDepletionCause, StockEvent, StockLedger,
