@@ -1,8 +1,10 @@
 use symtropy_evolution_core::{
     AssignmentExchangeabilityAuthorityId, AssignmentMaterializationAuthorityId,
-    AssignmentMechanismMaterializationRef, CompleteRandomizationError,
-    CompleteRandomizationReferenceId, CompleteRandomizationReferenceModel,
-    IndividualAssignmentExchangeabilityRef, ValidatedCompleteRandomizationReference,
+    AssignmentMaterializationQualificationAuthorityId,
+    AssignmentMechanismMaterializationQualificationRef, AssignmentMechanismMaterializationRef,
+    CompleteRandomizationError, CompleteRandomizationReferenceId,
+    CompleteRandomizationReferenceModel, IndividualAssignmentExchangeabilityRef,
+    ValidatedCompleteRandomizationReference,
 };
 
 include!("causal_identification_v1.rs");
@@ -65,6 +67,14 @@ fn d1_authorities(
             .unwrap(),
             1,
             AnalysisContentDigest::new([offset; 32]),
+            AssignmentMechanismMaterializationQualificationRef::new(
+                AssignmentMaterializationQualificationAuthorityId::new(format!(
+                    "complete-randomization-materialization-qualification-{offset}"
+                ))
+                .unwrap(),
+                1,
+                AnalysisContentDigest::new([offset.wrapping_add(32); 32]),
+            ),
             identification.identification_digest(),
         ),
         IndividualAssignmentExchangeabilityRef::new(
@@ -230,6 +240,53 @@ fn materialization_and_exchangeability_authority_are_identification_bound() {
         ),
         Err(CompleteRandomizationError::ExchangeabilitySubjectMismatch)
     ));
+}
+
+#[test]
+fn materialization_qualification_only_changes_reference_identity() {
+    let (base, design, frame, identification) = randomized_identification_case(false, 229);
+    let (validated_frame, validated_identification) = current_randomized_capabilities(
+        &base,
+        &design,
+        &frame,
+        &identification,
+        false,
+        229,
+    );
+    let (materialization_a, exchangeability) = d1_authorities(&validated_identification, 32);
+    let mut materialization_b = materialization_a.clone();
+    materialization_b.qualification = AssignmentMechanismMaterializationQualificationRef::new(
+        AssignmentMaterializationQualificationAuthorityId::new(
+            "complete-randomization-materialization-qualification-alternate",
+        )
+        .unwrap(),
+        1,
+        AnalysisContentDigest::new([231; 32]),
+    );
+
+    let reference_a = CompleteRandomizationReferenceModel::capture(
+        CompleteRandomizationReferenceId::new("qualification-only-drift").unwrap(),
+        &validated_frame,
+        &validated_identification,
+        materialization_a,
+        exchangeability.clone(),
+    )
+    .unwrap();
+    let reference_b = CompleteRandomizationReferenceModel::capture(
+        CompleteRandomizationReferenceId::new("qualification-only-drift").unwrap(),
+        &validated_frame,
+        &validated_identification,
+        materialization_b,
+        exchangeability,
+    )
+    .unwrap();
+
+    assert_eq!(reference_a.realized_assignments, reference_b.realized_assignments);
+    assert_eq!(reference_a.support_size, reference_b.support_size);
+    assert_ne!(
+        reference_a.canonical_digest().unwrap(),
+        reference_b.canonical_digest().unwrap()
+    );
 }
 
 #[test]
