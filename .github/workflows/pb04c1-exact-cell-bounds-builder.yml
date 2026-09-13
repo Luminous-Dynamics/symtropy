@@ -1,0 +1,359 @@
+name: PB-04c1 Exact Cell Bounds Builder
+
+on:
+  push:
+    branches:
+      - "ci/pb04c1-exact-cell-bounds-builder-v0.1"
+    paths:
+      - ".github/workflows/pb04c1-exact-cell-bounds-builder.yml"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: pb04c1-exact-cell-bounds-builder-v0.1
+  cancel-in-progress: true
+
+jobs:
+  build-product:
+    name: Build clean PB-04c1 exact-cell-bounds product
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+          persist-credentials: true
+
+      - name: Bind frozen PB-04c source
+        shell: bash
+        run: |
+          set -euo pipefail
+          base=cd7de5262ce534a4c799dbfd58b8ee216e2002d9
+          source=crates/domains/symtropy-spatial-decomposition/src/lib.rs
+          manifest=crates/domains/symtropy-spatial-decomposition/Cargo.toml
+          lock=crates/domains/symtropy-spatial-decomposition/Cargo.lock
+          test "$(git rev-parse HEAD^)" = "${base}"
+          test "$(git rev-parse ${base}:${source})" = "e40199968069e8b364c8e644a419205ad76b66b4"
+          test "$(git rev-parse ${base}:${manifest})" = "614fa7d2e293809faaef10649cf3beb02475c259"
+          test "$(git rev-parse ${base}:${lock})" = "676fd6a7eb31a2ec00b09c9496b42c568e791556"
+
+      - name: Create clean target branch and apply mechanical patch
+        shell: bash
+        env:
+          BASE: cd7de5262ce534a4c799dbfd58b8ee216e2002d9
+          TARGET: pb/pb04c1-exact-cell-bounds-v0.1
+        run: |
+          set -euo pipefail
+          git checkout -B "${TARGET}" "${BASE}"
+          python3 - <<'PY'
+          from pathlib import Path
+
+          source = Path("crates/domains/symtropy-spatial-decomposition/src/lib.rs")
+          text = source.read_text()
+
+          wrapper_anchor = '''    pub const fn dimensions(&self) -> [u32; 3] {
+              self.dimensions
+          }
+
+          fn contains(&self, cell: CellCoord) -> bool {
+          '''
+          wrapper_replacement = '''    pub const fn dimensions(&self) -> [u32; 3] {
+              self.dimensions
+          }
+
+          /// Returns the exact fixed-point bounds occupied by one validated analysis cell.
+          ///
+          /// This is an observational wrapper around PB-04c's existing cell geometry
+          /// authority. It does not expose or mutate the domain origin, dimensions, or
+          /// decomposition profile.
+          pub fn exact_cell_bounds(
+              &self,
+              profile: &DecompositionProfile,
+              cell: CellCoord,
+          ) -> Result<(Point3i, Point3i), DecompositionError> {
+              cell_bounds(cell, profile, self)
+          }
+
+          fn contains(&self, cell: CellCoord) -> bool {
+          '''
+          if text.count(wrapper_anchor) != 1:
+              raise SystemExit("exact AnalysisDomain insertion anchor mismatch")
+          text = text.replace(wrapper_anchor, wrapper_replacement, 1)
+
+          test_anchor = '''    fn domain(dimensions: [u32; 3]) -> AnalysisDomain {
+              AnalysisDomain::new(id("pb04b-domain"), 1, Point3i::new(0, 0, 0), dimensions).unwrap()
+          }
+
+          fn cut(
+          '''
+          test_replacement = '''    fn domain(dimensions: [u32; 3]) -> AnalysisDomain {
+              AnalysisDomain::new(id("pb04b-domain"), 1, Point3i::new(0, 0, 0), dimensions).unwrap()
+          }
+
+          #[test]
+          fn public_exact_cell_bounds_matches_private_helper_across_bounded_corpus() {
+              for quantum in [1_i64, 10, 999] {
+                  let profile = profile(quantum);
+                  let domain = AnalysisDomain::new(
+                      id("pb04c1-bounds-equivalence"),
+                      7,
+                      Point3i::new(-3_000, 2_000, -1_000),
+                      [3, 2, 2],
+                  )
+                  .unwrap();
+                  for z in 0..2 {
+                      for y in 0..2 {
+                          for x in 0..3 {
+                              let cell = CellCoord::new(x, y, z);
+                              assert_eq!(
+                                  domain.exact_cell_bounds(&profile, cell),
+                                  cell_bounds(cell, &profile, &domain)
+                              );
+                          }
+                      }
+                  }
+              }
+          }
+
+          fn cut(
+          '''
+          if text.count(test_anchor) != 1:
+              raise SystemExit("exact unit-test insertion anchor mismatch")
+          text = text.replace(test_anchor, test_replacement, 1)
+          source.write_text(text)
+
+          integration = Path("crates/domains/symtropy-spatial-decomposition/tests/exact_cell_bounds.rs")
+          integration.parent.mkdir(parents=True, exist_ok=True)
+          integration.write_text('''// Copyright (C) 2026 Tristan Stoltz / Luminous Dynamics
+          // SPDX-License-Identifier: AGPL-3.0-or-later
+
+          use symtropy_game_state::StableId;
+          use symtropy_spatial_decomposition::{
+              AnalysisDomain, CellCoord, DecompositionError, DecompositionProfile,
+              MAX_ABS_COORD_UM, Point3i,
+          };
+
+          fn id(value: &str) -> StableId {
+              StableId::parse(value).unwrap()
+          }
+
+          fn profile(quantum_um: i64) -> DecompositionProfile {
+              DecompositionProfile::reference_v1(id("pb04c1-public-profile"), 1, quantum_um).unwrap()
+          }
+
+          #[test]
+          fn public_query_returns_exact_origin_and_last_cell_bounds() {
+              let profile = profile(10);
+              let domain = AnalysisDomain::new(
+                  id("pb04c1-public-domain"),
+                  4,
+                  Point3i::new(-20, 30, -40),
+                  [2, 3, 4],
+              )
+              .unwrap();
+
+              assert_eq!(
+                  domain.exact_cell_bounds(&profile, CellCoord::new(0, 0, 0)),
+                  Ok((Point3i::new(-20, 30, -40), Point3i::new(-10, 40, -30)))
+              );
+              assert_eq!(
+                  domain.exact_cell_bounds(&profile, CellCoord::new(1, 2, 3)),
+                  Ok((Point3i::new(-10, 50, -10), Point3i::new(0, 60, 0)))
+              );
+          }
+
+          #[test]
+          fn public_query_fails_closed_outside_domain() {
+              let profile = profile(10);
+              let domain = AnalysisDomain::new(
+                  id("pb04c1-outside-domain"),
+                  1,
+                  Point3i::new(0, 0, 0),
+                  [2, 2, 2],
+              )
+              .unwrap();
+              let cell = CellCoord::new(2, 0, 0);
+              assert_eq!(
+                  domain.exact_cell_bounds(&profile, cell),
+                  Err(DecompositionError::CellOutsideDomain(cell))
+              );
+          }
+
+          #[test]
+          fn public_query_preserves_nonzero_negative_origin_exactly() {
+              let profile = profile(25);
+              let domain = AnalysisDomain::new(
+                  id("pb04c1-negative-origin"),
+                  2,
+                  Point3i::new(-1_000, 500, -250),
+                  [4, 4, 4],
+              )
+              .unwrap();
+              assert_eq!(
+                  domain.exact_cell_bounds(&profile, CellCoord::new(3, 2, 1)),
+                  Ok((
+                      Point3i::new(-925, 550, -225),
+                      Point3i::new(-900, 575, -200),
+                  ))
+              );
+          }
+
+          #[test]
+          fn public_query_uses_the_exact_selected_profile_quantum() {
+              let domain = AnalysisDomain::new(
+                  id("pb04c1-quantum-domain"),
+                  1,
+                  Point3i::new(100, 200, 300),
+                  [2, 1, 1],
+              )
+              .unwrap();
+              let cell = CellCoord::new(1, 0, 0);
+              assert_eq!(
+                  domain.exact_cell_bounds(&profile(10), cell),
+                  Ok((Point3i::new(110, 200, 300), Point3i::new(120, 210, 310)))
+              );
+              assert_eq!(
+                  domain.exact_cell_bounds(&profile(20), cell),
+                  Ok((Point3i::new(120, 200, 300), Point3i::new(140, 220, 320)))
+              );
+          }
+
+          #[test]
+          fn public_query_preserves_existing_coordinate_bound_failure() {
+              let profile = profile(1);
+              let domain = AnalysisDomain::new(
+                  id("pb04c1-bound-domain"),
+                  1,
+                  Point3i::new(MAX_ABS_COORD_UM, 0, 0),
+                  [1, 1, 1],
+              )
+              .unwrap();
+              assert_eq!(
+                  domain.exact_cell_bounds(&profile, CellCoord::new(0, 0, 0)),
+                  Err(DecompositionError::CoordinateOutOfRange(
+                      MAX_ABS_COORD_UM + 1,
+                  ))
+              );
+          }
+
+          #[test]
+          fn public_query_is_repeatable_and_side_effect_free() {
+              let profile = profile(100);
+              let domain = AnalysisDomain::new(
+                  id("pb04c1-repeat-domain"),
+                  9,
+                  Point3i::new(-500, -500, -500),
+                  [2, 2, 2],
+              )
+              .unwrap();
+              let before = domain.exact_ref();
+              let first = domain
+                  .exact_cell_bounds(&profile, CellCoord::new(1, 1, 1))
+                  .unwrap();
+              for _ in 0..32 {
+                  assert_eq!(
+                      domain
+                          .exact_cell_bounds(&profile, CellCoord::new(1, 1, 1))
+                          .unwrap(),
+                      first
+                  );
+              }
+              assert_eq!(domain.exact_ref(), before);
+          }
+          ''')
+          PY
+
+      - name: Set up pinned Rust
+        uses: dtolnay/rust-toolchain@6bed0761d98439e5a578e2877258200ad565ba87
+        with:
+          toolchain: 1.96.0
+          components: clippy,rustfmt
+
+      - name: Format exact product files
+        shell: bash
+        run: |
+          set -euo pipefail
+          rustfmt --edition 2024 \
+            crates/domains/symtropy-spatial-decomposition/src/lib.rs \
+            crates/domains/symtropy-spatial-decomposition/tests/exact_cell_bounds.rs
+          rustfmt --edition 2024 --check \
+            crates/domains/symtropy-spatial-decomposition/src/lib.rs \
+            crates/domains/symtropy-spatial-decomposition/tests/exact_cell_bounds.rs
+
+      - name: Audit product diff and authority surface
+        shell: bash
+        env:
+          BASE: cd7de5262ce534a4c799dbfd58b8ee216e2002d9
+        run: |
+          set -euo pipefail
+          actual="$(git diff --name-only "${BASE}"..HEAD; git diff --name-only)"
+          actual="$(printf '%s\n' "${actual}" | sed '/^$/d' | sort -u)"
+          expected="$(printf '%s\n' \
+            crates/domains/symtropy-spatial-decomposition/src/lib.rs \
+            crates/domains/symtropy-spatial-decomposition/tests/exact_cell_bounds.rs | sort)"
+          test "${actual}" = "${expected}"
+          test "$(git hash-object crates/domains/symtropy-spatial-decomposition/Cargo.toml)" = "614fa7d2e293809faaef10649cf3beb02475c259"
+          test "$(git hash-object crates/domains/symtropy-spatial-decomposition/Cargo.lock)" = "676fd6a7eb31a2ec00b09c9496b42c568e791556"
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+          source = Path("crates/domains/symtropy-spatial-decomposition/src/lib.rs").read_text()
+          signature = "pub fn exact_cell_bounds("
+          if source.count(signature) != 1:
+              raise SystemExit("expected exactly one public exact_cell_bounds wrapper")
+          match = re.search(
+              r"pub fn exact_cell_bounds\(.*?\n\s*\}\n\n\s*fn contains",
+              source,
+              flags=re.S,
+          )
+          if not match:
+              raise SystemExit("unable to isolate exact_cell_bounds wrapper")
+          wrapper = match.group(0)
+          required = "cell_bounds(cell, profile, self)"
+          if required not in wrapper:
+              raise SystemExit("wrapper does not delegate to existing PB cell_bounds authority")
+          forbidden = ["self.origin =", "self.dimensions =", "pub origin:", "symtropy_terrain"]
+          for term in forbidden:
+              if term in wrapper or (term == "pub origin:" and term in source):
+                  raise SystemExit(f"forbidden authority surface introduced: {term}")
+          print("PB04C1_READ_ONLY_WRAPPER_AUDIT=PASS")
+          PY
+
+      - name: Execute dedicated and complete PB-04c tests
+        working-directory: crates/domains/symtropy-spatial-decomposition
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo test --locked exact_cell_bounds -- --nocapture
+          cargo test --locked --all-targets
+
+      - name: Enforce strict all-target Clippy
+        working-directory: crates/domains/symtropy-spatial-decomposition
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo clippy --locked --all-targets -- -D warnings
+
+      - name: Commit and publish clean product branch
+        shell: bash
+        env:
+          BASE: cd7de5262ce534a4c799dbfd58b8ee216e2002d9
+          TARGET: pb/pb04c1-exact-cell-bounds-v0.1
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "${BASE}"
+          test -z "$(git diff --name-only -- crates/domains/symtropy-spatial-decomposition/Cargo.toml crates/domains/symtropy-spatial-decomposition/Cargo.lock)"
+          git config user.name "Tristan Stoltz"
+          git config user.email "tristan.stoltz@evolvingresonantcocreationism.com"
+          git add \
+            crates/domains/symtropy-spatial-decomposition/src/lib.rs \
+            crates/domains/symtropy-spatial-decomposition/tests/exact_cell_bounds.rs
+          git commit -m "feat(pb04c): expose exact cell bounds read query"
+          product="$(git rev-parse HEAD)"
+          test "$(git rev-parse HEAD^)" = "${BASE}"
+          git push origin "HEAD:refs/heads/${TARGET}"
+          echo "PB04C1_PRODUCT_HEAD=${product}"
+          echo "PB04C1_SOURCE_BLOB=$(git rev-parse HEAD:crates/domains/symtropy-spatial-decomposition/src/lib.rs)"
+          echo "PB04C1_PUBLIC_TEST_BLOB=$(git rev-parse HEAD:crates/domains/symtropy-spatial-decomposition/tests/exact_cell_bounds.rs)"
