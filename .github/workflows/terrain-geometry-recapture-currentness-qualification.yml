@@ -34,8 +34,8 @@ jobs:
         run: |
           set -euo pipefail
           base=98c241aa389626eb28e3d204e6a33711c3e5b639
-          previous_candidate=86e2f0106ee88cd7e1a441eb3277c659b6021f64
-          semantic_audit_qualifier=f0be45d2dd8fe77eeaf333ac64520a8960df6811
+          previous_candidate=155bb2880fef400366614f6f634da011c64cc1ca
+          pre_format_qualifier=e47517df3261676a5bfc75835680307d44c6fae4
           currentness=crates/domains/symtropy-terrain/src/geometry_currentness.rs
           provider=crates/domains/symtropy-terrain/src/live_geometry_provider.rs
           lib=crates/domains/symtropy-terrain/src/lib.rs
@@ -46,10 +46,11 @@ jobs:
 
           test "$(git rev-parse HEAD)" = "${GITHUB_SHA}"
           test "$(git rev-parse HEAD^)" = "${previous_candidate}"
+          test "$(git rev-parse ${previous_candidate}^)" = "${pre_format_qualifier}"
           git merge-base --is-ancestor "${base}" HEAD
-          git merge-base --is-ancestor "${semantic_audit_qualifier}" HEAD
+          git merge-base --is-ancestor "${pre_format_qualifier}" HEAD
 
-          test "$(git rev-parse HEAD:${currentness})" = "6276f2f5fc2176be1de068896fb6557ab8cc05a4"
+          test "$(git rev-parse HEAD:${currentness})" = "2da7d9b27313ae24b45269171cf58ea6cd528de4"
           test "$(git rev-parse HEAD:${provider})" = "543858ec733429ac41d39bd52eb2e39210806280"
           test "$(git rev-parse HEAD:${lib})" = "5f7d78067026f39b242823fcf7457fbeb2da10ed"
           test "$(git rev-parse HEAD:${kernel})" = "8d3e1213eacdeddf693cd2d1f82670d6ed832161"
@@ -273,7 +274,7 @@ jobs:
           set -euo pipefail
           test -z "$(git status --porcelain)"
           test "$(git rev-parse HEAD)" = "${GITHUB_SHA}"
-          test "$(git rev-parse HEAD:crates/domains/symtropy-terrain/src/geometry_currentness.rs)" = "6276f2f5fc2176be1de068896fb6557ab8cc05a4"
+          test "$(git rev-parse HEAD:crates/domains/symtropy-terrain/src/geometry_currentness.rs)" = "2da7d9b27313ae24b45269171cf58ea6cd528de4"
           test "$(git rev-parse HEAD:crates/domains/symtropy-terrain/src/live_geometry_provider.rs)" = "543858ec733429ac41d39bd52eb2e39210806280"
           test "$(git rev-parse HEAD:crates/domains/symtropy-terrain/src/lib.rs)" = "5f7d78067026f39b242823fcf7457fbeb2da10ed"
           test "$(git rev-parse HEAD:crates/domains/symtropy-terrain/src/geometry_kernel.rs)" = "8d3e1213eacdeddf693cd2d1f82670d6ed832161"
