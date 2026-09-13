@@ -147,7 +147,7 @@ impl RelationMissingPolicy {
 pub struct SpeciesConceptRelationDesign {
     design_version: u32,
     pub design_id: SpeciesConceptRelationDesignId,
-    /// Canonical lexicographic endpoint order. Outcome direction is represented separately.
+    /// Canonical lexicographic endpoint order. Relation direction is represented separately.
     pub left: OpenSpeciesConceptIdentity,
     pub right: OpenSpeciesConceptIdentity,
     pub scope: SpeciesConceptRelationScopeRef,
@@ -294,6 +294,7 @@ impl SpeciesConceptRelationKind {
         )
     }
 
+    /// This is a semantic-dependency class only. It is never an independence proof.
     pub fn dependency_class(self) -> SemanticDependencyClass {
         match self {
             Self::EquivalentSemanticTarget
@@ -371,7 +372,7 @@ impl SpeciesConceptRelationAssertion {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub enum SpeciesConceptRelationAssessmentInput {
+pub enum SpeciesConceptRelationAssessment {
     Qualified {
         assertion: SpeciesConceptRelationAssertion,
         semantic_mapping_digest: SpeciesConceptSemanticMappingDigest,
@@ -393,7 +394,7 @@ pub enum SpeciesConceptRelationAssessmentInput {
     },
 }
 
-impl SpeciesConceptRelationAssessmentInput {
+impl SpeciesConceptRelationAssessment {
     fn validate_local(&self) -> Result<(), RelationError> {
         match self {
             Self::Qualified {
@@ -480,114 +481,12 @@ impl SpeciesConceptRelationAssessmentInput {
             }
         }
     }
-}
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub enum SpeciesConceptRelationAssessment {
-    Qualified {
-        assertion: SpeciesConceptRelationAssertion,
-        semantic_mapping_digest: SpeciesConceptSemanticMappingDigest,
-        scientific_reference_authority: AnalysisAuthorityRef,
-        qualification_authority: AnalysisAuthorityRef,
-    },
-    Disputed {
-        candidate: SpeciesConceptRelationAssertion,
-        semantic_mapping_digest: SpeciesConceptSemanticMappingDigest,
-        scientific_reference_authority: AnalysisAuthorityRef,
-        qualification_authority: AnalysisAuthorityRef,
-        dispute_authority: AnalysisAuthorityRef,
-    },
-    UnknownOrUnqualified {
-        evidence_authority: AnalysisAuthorityRef,
-    },
-    Unavailable {
-        evidence_authority: AnalysisAuthorityRef,
-    },
-}
-
-impl From<SpeciesConceptRelationAssessmentInput> for SpeciesConceptRelationAssessment {
-    fn from(value: SpeciesConceptRelationAssessmentInput) -> Self {
-        match value {
-            SpeciesConceptRelationAssessmentInput::Qualified {
-                assertion,
-                semantic_mapping_digest,
-                scientific_reference_authority,
-                qualification_authority,
-            } => Self::Qualified {
-                assertion,
-                semantic_mapping_digest,
-                scientific_reference_authority,
-                qualification_authority,
-            },
-            SpeciesConceptRelationAssessmentInput::Disputed {
-                candidate,
-                semantic_mapping_digest,
-                scientific_reference_authority,
-                qualification_authority,
-                dispute_authority,
-            } => Self::Disputed {
-                candidate,
-                semantic_mapping_digest,
-                scientific_reference_authority,
-                qualification_authority,
-                dispute_authority,
-            },
-            SpeciesConceptRelationAssessmentInput::UnknownOrUnqualified { evidence_authority } => {
-                Self::UnknownOrUnqualified { evidence_authority }
-            }
-            SpeciesConceptRelationAssessmentInput::Unavailable { evidence_authority } => {
-                Self::Unavailable { evidence_authority }
-            }
-        }
-    }
-}
-
-impl SpeciesConceptRelationAssessment {
-    fn as_input(&self) -> SpeciesConceptRelationAssessmentInput {
-        match self {
-            Self::Qualified {
-                assertion,
-                semantic_mapping_digest,
-                scientific_reference_authority,
-                qualification_authority,
-            } => SpeciesConceptRelationAssessmentInput::Qualified {
-                assertion: assertion.clone(),
-                semantic_mapping_digest: *semantic_mapping_digest,
-                scientific_reference_authority: scientific_reference_authority.clone(),
-                qualification_authority: qualification_authority.clone(),
-            },
-            Self::Disputed {
-                candidate,
-                semantic_mapping_digest,
-                scientific_reference_authority,
-                qualification_authority,
-                dispute_authority,
-            } => SpeciesConceptRelationAssessmentInput::Disputed {
-                candidate: candidate.clone(),
-                semantic_mapping_digest: *semantic_mapping_digest,
-                scientific_reference_authority: scientific_reference_authority.clone(),
-                qualification_authority: qualification_authority.clone(),
-                dispute_authority: dispute_authority.clone(),
-            },
-            Self::UnknownOrUnqualified { evidence_authority } => {
-                SpeciesConceptRelationAssessmentInput::UnknownOrUnqualified {
-                    evidence_authority: evidence_authority.clone(),
-                }
-            }
-            Self::Unavailable { evidence_authority } => {
-                SpeciesConceptRelationAssessmentInput::Unavailable {
-                    evidence_authority: evidence_authority.clone(),
-                }
-            }
-        }
-    }
-
-    fn validate_local(&self) -> Result<(), RelationError> {
-        self.as_input().validate_local()
-    }
-
-    fn put(&self, digest: &mut Sha256) {
-        self.as_input().put(digest);
+    fn is_missing_or_unknown(&self) -> bool {
+        matches!(
+            self,
+            Self::UnknownOrUnqualified { .. } | Self::Unavailable { .. }
+        )
     }
 
     pub fn dependency_class_if_qualified(&self) -> Option<SemanticDependencyClass> {
@@ -609,14 +508,11 @@ pub struct SpeciesConceptRelationEvidence {
 impl SpeciesConceptRelationEvidence {
     pub fn evaluate(
         design: &ValidatedSpeciesConceptRelationDesign<'_>,
-        input: SpeciesConceptRelationAssessmentInput,
+        assessment: SpeciesConceptRelationAssessment,
     ) -> Result<Self, RelationError> {
-        input.validate_local()?;
-        if matches!(
-            input,
-            SpeciesConceptRelationAssessmentInput::UnknownOrUnqualified { .. }
-                | SpeciesConceptRelationAssessmentInput::Unavailable { .. }
-        ) && design.design().missing_policy == RelationMissingPolicy::FailClosed
+        assessment.validate_local()?;
+        if assessment.is_missing_or_unknown()
+            && design.design().missing_policy == RelationMissingPolicy::FailClosed
         {
             return Err(RelationError::MissingRelationEvidenceFailClosed);
         }
@@ -624,7 +520,7 @@ impl SpeciesConceptRelationEvidence {
             evidence_version: SPECIES_CONCEPT_RELATION_EVIDENCE_VERSION,
             design: design.design().clone(),
             design_digest: design.design_digest(),
-            assessment: input.into(),
+            assessment,
         };
         evidence.validate_local()?;
         Ok(evidence)
@@ -653,11 +549,8 @@ impl SpeciesConceptRelationEvidence {
             return Err(RelationError::DesignDigestMismatch);
         }
         self.assessment.validate_local()?;
-        if matches!(
-            self.assessment,
-            SpeciesConceptRelationAssessment::UnknownOrUnqualified { .. }
-                | SpeciesConceptRelationAssessment::Unavailable { .. }
-        ) && self.design.missing_policy == RelationMissingPolicy::FailClosed
+        if self.assessment.is_missing_or_unknown()
+            && self.design.missing_policy == RelationMissingPolicy::FailClosed
         {
             return Err(RelationError::MissingRelationEvidenceFailClosed);
         }
@@ -676,10 +569,10 @@ impl<'a> ValidatedSpeciesConceptRelationEvidence<'a> {
     pub fn validate_current(
         evidence: &'a SpeciesConceptRelationEvidence,
         design: &ValidatedSpeciesConceptRelationDesign<'_>,
-        current_input: SpeciesConceptRelationAssessmentInput,
+        current_assessment: SpeciesConceptRelationAssessment,
     ) -> Result<Self, RelationError> {
         evidence.validate_local()?;
-        let recomputed = SpeciesConceptRelationEvidence::evaluate(design, current_input)?;
+        let recomputed = SpeciesConceptRelationEvidence::evaluate(design, current_assessment)?;
         if recomputed != *evidence {
             return Err(RelationError::EvidenceReplayMismatch);
         }
