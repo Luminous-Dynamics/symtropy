@@ -11,10 +11,8 @@
 use bevy::{ecs::world::World, prelude::Entity};
 use std::{error::Error, fmt};
 
-use crate::geometry_kernel::{
-    TerrainGeometryError, TerrainGeometryQueryReceipt, TerrainVoxelBox,
-};
-use crate::live_geometry_provider::{capture_live_terrain_geometry, TerrainLiveGeometryError};
+use crate::geometry_kernel::{TerrainGeometryError, TerrainGeometryQueryReceipt, TerrainVoxelBox};
+use crate::live_geometry_provider::{TerrainLiveGeometryError, capture_live_terrain_geometry};
 
 /// Fail-closed composition errors for a point-of-invocation live query.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -106,7 +104,9 @@ mod tests {
 
         assert_eq!(receipt.chunk(), EarthChunkLatticeCoord::new(4, -2, 9));
         assert_eq!(receipt.observations().len(), TERRAIN_GEOMETRY_VOXEL_COUNT);
-        receipt.validate().expect("live query receipt must validate");
+        receipt
+            .validate()
+            .expect("live query receipt must validate");
     }
 
     #[test]
@@ -118,11 +118,8 @@ mod tests {
                 EarthChunkLatticeLocus::new_for_test(0, 0, 0),
             ))
             .id();
-        let bounds = TerrainVoxelBox::new(
-            TerrainVoxelIndex::new(1, 2, 3).unwrap(),
-            [3, 4, 5],
-        )
-        .unwrap();
+        let bounds =
+            TerrainVoxelBox::new(TerrainVoxelIndex::new(1, 2, 3).unwrap(), [3, 4, 5]).unwrap();
 
         let receipt = query_live_terrain_geometry(&world, entity, bounds).unwrap();
         let actual: Vec<_> = receipt
@@ -172,13 +169,13 @@ mod tests {
         let bounds = one_voxel_box(5, 6, 7);
 
         let before = query_live_terrain_geometry(&world, entity, bounds).unwrap();
-        world
-            .get_mut::<EarthChunk>(entity)
-            .unwrap()
-            .voxels[5][6][7] = SubstrateMaterial::Air;
+        world.get_mut::<EarthChunk>(entity).unwrap().voxels[5][6][7] = SubstrateMaterial::Air;
         let after = query_live_terrain_geometry(&world, entity, bounds).unwrap();
 
-        assert_ne!(before.observations()[0].digest(), after.observations()[0].digest());
+        assert_ne!(
+            before.observations()[0].digest(),
+            after.observations()[0].digest()
+        );
         assert_ne!(before.snapshot_digest(), after.snapshot_digest());
         assert_ne!(before.digest(), after.digest());
         assert_eq!(after.observations()[0].material(), TerrainMaterialCode::AIR);
@@ -196,10 +193,7 @@ mod tests {
         let bounds = one_voxel_box(0, 0, 0);
 
         let before = query_live_terrain_geometry(&world, entity, bounds).unwrap();
-        world
-            .get_mut::<EarthChunk>(entity)
-            .unwrap()
-            .voxels[15][15][15] = SubstrateMaterial::Air;
+        world.get_mut::<EarthChunk>(entity).unwrap().voxels[15][15][15] = SubstrateMaterial::Air;
         let after = query_live_terrain_geometry(&world, entity, bounds).unwrap();
 
         assert_eq!(before.observations(), after.observations());
@@ -245,7 +239,10 @@ mod tests {
 
         let receipt = query_live_terrain_geometry(&world, entity, one_voxel_box(3, 4, 5)).unwrap();
         assert_eq!(receipt.observations().len(), 1);
-        assert_eq!(receipt.observations()[0].material(), TerrainMaterialCode::AIR);
+        assert_eq!(
+            receipt.observations()[0].material(),
+            TerrainMaterialCode::AIR
+        );
     }
 
     #[test]
