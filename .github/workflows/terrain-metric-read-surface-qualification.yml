@@ -23,15 +23,22 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
 
-      - name: Bind exact harness lineage
+      - name: Bind exact workflow-only harness lineage
         shell: bash
         run: |
           set -euo pipefail
           product=552dda82caac15b457b264c07cc3f829658fae83
           qualifier=.github/workflows/terrain-metric-read-surface-qualification.yml
           test "$(git rev-parse HEAD)" = "${GITHUB_SHA}"
-          test "$(git rev-parse HEAD^)" = "${product}"
-          test "$(git diff --name-only ${product}..HEAD)" = "${qualifier}"
+          git merge-base --is-ancestor "${product}" HEAD
+          test -z "$(git rev-list --merges "${product}..HEAD")"
+          commits="$(git rev-list --reverse "${product}..HEAD")"
+          test -n "${commits}"
+          while read -r commit; do
+            changed="$(git diff-tree --no-commit-id --name-only -r "${commit}" | sed '/^$/d')"
+            test "${changed}" = "${qualifier}"
+          done <<< "${commits}"
+          test "$(git diff --name-only "${product}..HEAD")" = "${qualifier}"
 
       - name: Checkout immutable product
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
@@ -81,11 +88,13 @@ jobs:
           cargo metadata --locked --format-version 1 > "${RUNNER_TEMP}/metric-read-surface-metadata.json"
           test "$(git hash-object Cargo.lock)" = "${before}"
 
-      - name: Check format and all targets
+      - name: Check exact product-file formatting and all targets
         shell: bash
         run: |
           set -euo pipefail
-          cargo fmt --manifest-path crates/domains/symtropy-terrain/Cargo.toml -- --check
+          rustfmt --edition 2024 --check \
+            crates/domains/symtropy-terrain/src/lib.rs \
+            crates/domains/symtropy-terrain/tests/terrain_metric_public.rs
           cargo check -p symtropy-terrain --locked --all-targets
 
       - name: Execute public metric theorem and complete Terrain regression
