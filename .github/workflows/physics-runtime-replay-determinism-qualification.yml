@@ -1,0 +1,149 @@
+name: PHYS-REPLAY-00 Runtime Replay Determinism Qualification
+
+on:
+  push:
+    branches:
+      - "ci/physics-runtime-replay-determinism-v0.1"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: physics-runtime-replay-determinism-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  PRODUCT_HEAD: fc53c8d8a6de144a17efbaea7ec506bfc67e05fd
+  B2B1_PARENT: 1349e4357bee1149c8334748c507b8ae7357aafd
+
+jobs:
+  qualify:
+    name: Frozen PHYS-REPLAY-00 / Rust 1.96
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout exact frozen product head
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ env.PRODUCT_HEAD }}
+          fetch-depth: 0
+
+      - name: Assert exact documentation-only subject
+        id: subject
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "${PRODUCT_HEAD}"
+          git merge-base --is-ancestor "${B2B1_PARENT}" "${PRODUCT_HEAD}"
+          test "$(git rev-list --count "${B2B1_PARENT}..${PRODUCT_HEAD}")" = "1"
+          mapfile -t changed < <(git diff --name-only "${B2B1_PARENT}..${PRODUCT_HEAD}")
+          test "${#changed[@]}" = "1"
+          test "${changed[0]}" = "crates/core/symtropy-physics/PHYSICAL_RUNTIME_REPLAY_DETERMINISM_V01.md"
+
+      - name: Set up pinned Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.96.0
+          components: rustfmt
+
+      - name: Cache dependencies
+        uses: Swatinem/rust-cache@v2
+
+      - name: Freeze replay source identities
+        id: source
+        shell: bash
+        run: |
+          set -euo pipefail
+          sha256sum \
+            crates/core/symtropy-physics/src/replay.rs \
+            crates/core/symtropy-physics/tests/replay_harness.rs \
+            crates/core/symtropy-physics/PHYSICAL_RUNTIME_REPLAY_DETERMINISM_V01.md \
+            > "${RUNNER_TEMP}/phys-replay00-source-sha256.txt"
+
+      - name: Check formatting
+        id: fmt
+        run: cargo fmt --all -- --check
+
+      - name: Run exact runtime replay harness
+        id: replay
+        run: cargo test -p symtropy-physics --locked --test replay_harness
+
+      - name: Audit frozen replay claim boundary
+        id: audit
+        shell: bash
+        run: |
+          set -euo pipefail
+          replay=crates/core/symtropy-physics/src/replay.rs
+          harness=crates/core/symtropy-physics/tests/replay_harness.rs
+          contract=crates/core/symtropy-physics/PHYSICAL_RUNTIME_REPLAY_DETERMINISM_V01.md
+
+          grep -Fq 'body: BodyHandle' "${replay}"
+          grep -Fq 'pub handle: BodyHandle' "${replay}"
+          grep -Fq 'for tick in 0..192u32' "${harness}"
+          grep -Fq 'let dt = 1.0 / 64.0;' "${harness}"
+          grep -Fq 'assert_eq!(snapshot, recorded[tick], "diverged at tick {tick}");' "${harness}"
+          grep -Fq 'runtime-local' "${contract}"
+          grep -Fq 'It is not a durable cross-reconstruction subject identifier.' "${contract}"
+          grep -Fq 'persistent replay-file encoding or schema stability' "${contract}"
+          grep -Fq 'cross-generation continuity' "${contract}"
+          grep -Fq 'continuous trajectory evidence' "${contract}"
+
+      - name: Assert unchanged frozen subject
+        id: postflight
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "${PRODUCT_HEAD}"
+          git diff --exit-code -- . ':!Cargo.lock'
+          test -z "$(git status --porcelain --untracked-files=no)"
+
+      - name: Emit qualification receipt
+        if: always()
+        shell: bash
+        env:
+          HELPER_HEAD: ${{ github.sha }}
+          RUN_ID: ${{ github.run_id }}
+          RUN_ATTEMPT: ${{ github.run_attempt }}
+          SUBJECT: ${{ steps.subject.outcome }}
+          SOURCE: ${{ steps.source.outcome }}
+          FMT: ${{ steps.fmt.outcome }}
+          REPLAY: ${{ steps.replay.outcome }}
+          AUDIT: ${{ steps.audit.outcome }}
+          POSTFLIGHT: ${{ steps.postflight.outcome }}
+        run: |
+          set -euo pipefail
+          receipt="${RUNNER_TEMP}/phys-replay00-runtime-determinism-v01.json"
+          export RECEIPT_PATH="${receipt}"
+          python3 - <<'PY'
+          import json, os
+          keys = ["SUBJECT","SOURCE","FMT","REPLAY","AUDIT","POSTFLIGHT"]
+          outcomes = {k.lower(): os.environ.get(k, "unknown") for k in keys}
+          receipt = {
+              "receipt_version": 1,
+              "qualification": "PHYS-REPLAY-00-runtime-determinism-v0.1",
+              "product_head": os.environ["PRODUCT_HEAD"],
+              "b2b1_parent": os.environ["B2B1_PARENT"],
+              "helper_head": os.environ["HELPER_HEAD"],
+              "workflow_run_id": int(os.environ["RUN_ID"]),
+              "workflow_run_attempt": int(os.environ["RUN_ATTEMPT"]),
+              "step_outcomes": outcomes,
+              "overall": "pass" if all(v == "success" for v in outcomes.values()) else "fail",
+              "claim_boundary": "runtime-local bitwise replay under equivalent deterministic construction and identical BodyHandle-addressed command tape; no durable identity, cross-generation continuity, trajectory, route, arrival, or delivery claim",
+          }
+          with open(os.environ["RECEIPT_PATH"], "w", encoding="utf-8") as handle:
+              json.dump(receipt, handle, sort_keys=True, indent=2)
+              handle.write("\n")
+          PY
+          cp "${RUNNER_TEMP}/phys-replay00-source-sha256.txt" "${RUNNER_TEMP}/phys-replay00-source-sha256-evidence.txt"
+          sha256sum "${receipt}" > "${receipt}.sha256"
+
+      - name: Upload qualification receipt
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: phys-replay00-runtime-determinism-v01-${{ env.PRODUCT_HEAD }}
+          path: |
+            ${{ runner.temp }}/phys-replay00-runtime-determinism-v01.json
+            ${{ runner.temp }}/phys-replay00-runtime-determinism-v01.json.sha256
+            ${{ runner.temp }}/phys-replay00-source-sha256-evidence.txt
+          if-no-files-found: error
+          retention-days: 90
