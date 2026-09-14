@@ -711,7 +711,7 @@ fn validate_rows(
     }
     for (model, row) in design.models.iter().zip(rows) {
         row.validate_against(model)?;
-        if matches!(row.result, ModelBoundCurrentStatus::MissingCurrentCapability { .. })
+        if matches!(&row.result, ModelBoundCurrentStatus::MissingCurrentCapability { .. })
             && design.missing_model_policy == MissingModelPolicy::FailClosed
         {
             return Err(CrossModelRobustnessReportError::MissingModelFailClosed);
