@@ -23,6 +23,10 @@ fn authorized_steps_are_monotonic_and_callback_path_shares_sequence() {
     let first = authority.step_authorized(1.0 / 64.0).unwrap();
     assert_eq!(first.physical_authority_id(), authority.physical_authority_id());
     assert_eq!(first.world_generation_id(), authority.world_generation_id());
+    assert_eq!(
+        first.temporal_incarnation_id(),
+        authority.temporal_incarnation_id()
+    );
     assert_eq!(first.mutation_epoch(), 0);
     assert_eq!(first.step_index(), 1);
     assert_eq!(authority.last_authorized_step_stamp(), Some(first));
@@ -31,9 +35,62 @@ fn authorized_steps_are_monotonic_and_callback_path_shares_sequence() {
     let second = authority
         .step_authorized_with_callback(1.0 / 64.0, &mut callback)
         .unwrap();
+    assert_eq!(second.temporal_incarnation_id(), first.temporal_incarnation_id());
+    assert!(first.same_temporal_lineage(second));
     assert_eq!(second.mutation_epoch(), first.mutation_epoch());
     assert_eq!(second.step_index(), 2);
     assert_eq!(authority.last_authorized_step_stamp(), Some(second));
+}
+
+#[test]
+fn independently_constructed_wrappers_cannot_alias_full_stamps() {
+    let authority_id = PhysicalAuthorityId::new(0x710E).unwrap();
+    let generation_id = WorldGenerationId::new(70).unwrap();
+    let mut first = PhysicsAuthorityWorld::new(
+        authority_id,
+        generation_id,
+        PhysicsWorld::<3>::default(),
+    );
+    let mut second = PhysicsAuthorityWorld::new(
+        authority_id,
+        generation_id,
+        PhysicsWorld::<3>::default(),
+    );
+
+    let first_stamp = first.step_authorized(1.0 / 64.0).unwrap();
+    let second_stamp = second.step_authorized(1.0 / 64.0).unwrap();
+
+    assert_eq!(first_stamp.mutation_epoch(), second_stamp.mutation_epoch());
+    assert_eq!(first_stamp.step_index(), second_stamp.step_index());
+    assert_ne!(
+        first_stamp.temporal_incarnation_id(),
+        second_stamp.temporal_incarnation_id()
+    );
+    assert_ne!(first_stamp, second_stamp);
+    assert!(!first_stamp.same_temporal_lineage(second_stamp));
+}
+
+#[test]
+fn rewrapping_same_raw_world_mints_fresh_temporal_incarnation() {
+    let authority_id = PhysicalAuthorityId::new(0x710E).unwrap();
+    let generation_id = WorldGenerationId::new(71).unwrap();
+    let mut first = PhysicsAuthorityWorld::new(
+        authority_id,
+        generation_id,
+        PhysicsWorld::<3>::default(),
+    );
+    let first_stamp = first.step_authorized(1.0 / 64.0).unwrap();
+    let first_incarnation = first.temporal_incarnation_id();
+
+    let raw = first.into_world();
+    let mut second = PhysicsAuthorityWorld::new(authority_id, generation_id, raw);
+    let second_stamp = second.step_authorized(1.0 / 64.0).unwrap();
+
+    assert_ne!(first_incarnation, second.temporal_incarnation_id());
+    assert_eq!(first_stamp.mutation_epoch(), second_stamp.mutation_epoch());
+    assert_eq!(first_stamp.step_index(), second_stamp.step_index());
+    assert_ne!(first_stamp, second_stamp);
+    assert!(!first_stamp.same_temporal_lineage(second_stamp));
 }
 
 #[test]
@@ -67,12 +124,16 @@ fn invalid_delta_time_issues_no_new_stamp() {
 #[test]
 fn raw_world_mut_breaks_epoch_and_invalidates_last_step() {
     let mut authority = empty_authority();
+    let incarnation = authority.temporal_incarnation_id();
     let before = authority.step_authorized(1.0 / 64.0).unwrap();
 
     authority.world_mut().gravity[0] = 1.0;
+    assert_eq!(authority.temporal_incarnation_id(), incarnation);
     assert_eq!(authority.last_authorized_step_stamp(), None);
 
     let after = authority.step_authorized(1.0 / 64.0).unwrap();
+    assert_eq!(after.temporal_incarnation_id(), incarnation);
+    assert!(!before.same_temporal_lineage(after));
     assert_eq!(after.mutation_epoch(), before.mutation_epoch() + 1);
     assert_eq!(after.step_index(), 1);
 }
@@ -86,6 +147,10 @@ fn try_world_mut_has_the_same_explicit_lineage_break() {
     assert_eq!(authority.last_authorized_step_stamp(), None);
 
     let after = authority.step_authorized(1.0 / 64.0).unwrap();
+    assert_eq!(
+        after.temporal_incarnation_id(),
+        before.temporal_incarnation_id()
+    );
     assert_eq!(after.mutation_epoch(), before.mutation_epoch() + 1);
     assert_eq!(after.step_index(), 1);
 }
@@ -103,6 +168,10 @@ fn identity_change_breaks_epoch_but_idempotent_rebind_does_not() {
     assert_eq!(authority.last_authorized_step_stamp(), None);
 
     let after_bind = authority.step_authorized(1.0 / 64.0).unwrap();
+    assert_eq!(
+        after_bind.temporal_incarnation_id(),
+        before.temporal_incarnation_id()
+    );
     assert_eq!(after_bind.mutation_epoch(), before.mutation_epoch() + 1);
     assert_eq!(after_bind.step_index(), 1);
 
@@ -111,6 +180,7 @@ fn identity_change_breaks_epoch_but_idempotent_rebind_does_not() {
     assert_eq!(authority.last_authorized_step_stamp(), Some(after_bind));
 
     let after_idempotent = authority.step_authorized(1.0 / 64.0).unwrap();
+    assert!(after_bind.same_temporal_lineage(after_idempotent));
     assert_eq!(after_idempotent.mutation_epoch(), after_bind.mutation_epoch());
     assert_eq!(after_idempotent.step_index(), 2);
 }
@@ -128,6 +198,7 @@ fn rejected_identity_bind_preserves_temporal_lineage() {
     assert_eq!(authority.last_authorized_step_stamp(), Some(first));
 
     let second = authority.step_authorized(1.0 / 64.0).unwrap();
+    assert!(first.same_temporal_lineage(second));
     assert_eq!(second.mutation_epoch(), first.mutation_epoch());
     assert_eq!(second.step_index(), first.step_index() + 1);
 }
@@ -149,6 +220,10 @@ fn nonempty_deterministic_insertion_breaks_epoch() {
     assert_eq!(authority.last_authorized_step_stamp(), None);
 
     let after = authority.step_authorized(1.0 / 64.0).unwrap();
+    assert_eq!(
+        after.temporal_incarnation_id(),
+        before.temporal_incarnation_id()
+    );
     assert_eq!(after.mutation_epoch(), before.mutation_epoch() + 1);
     assert_eq!(after.step_index(), 1);
 }
@@ -178,6 +253,7 @@ fn rejected_deterministic_batch_preserves_temporal_lineage() {
     assert_eq!(authority.last_authorized_step_stamp(), Some(first));
 
     let second = authority.step_authorized(1.0 / 64.0).unwrap();
+    assert!(first.same_temporal_lineage(second));
     assert_eq!(second.mutation_epoch(), first.mutation_epoch());
     assert_eq!(second.step_index(), first.step_index() + 1);
 }
@@ -192,6 +268,7 @@ fn empty_deterministic_insertion_preserves_temporal_lineage() {
     assert_eq!(authority.last_authorized_step_stamp(), Some(first));
 
     let second = authority.step_authorized(1.0 / 64.0).unwrap();
+    assert!(first.same_temporal_lineage(second));
     assert_eq!(second.mutation_epoch(), first.mutation_epoch());
     assert_eq!(second.step_index(), 2);
 }

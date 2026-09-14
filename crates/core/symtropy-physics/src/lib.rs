@@ -15,6 +15,7 @@
 //! - `integrator` — semi-implicit Euler with bivector angular dynamics
 
 pub mod articulation;
+mod authority_incarnation;
 pub mod authority_endpoint;
 pub mod authority_observation;
 mod authority_time;
@@ -42,6 +43,7 @@ pub use authority_endpoint::{
     AuthorityEndpointBoxObservation, AuthorityEndpointBoxSpec, AuthorityEndpointObservationError,
     EndpointBoxSpecError, EndpointMembership,
 };
+pub use authority_incarnation::TemporalIncarnationId;
 pub use authority_observation::{
     AuthorityBodySnapshot, AuthorityPairObservationError, AuthorityPairSnapshot,
 };
@@ -52,8 +54,9 @@ pub use contact::{CollisionEvent, ContactCache, ContactManifold, SensorEvent};
 pub use diagnostics::{InvariantDrift, InvariantSnapshot};
 pub use epa::EpaResult;
 pub use identity_authority::{
-    AuthorityStepStamp, PhysicalAuthorityId, PhysicsAuthorityTemporalError, PhysicsAuthorityWorld,
-    PhysicsBodySubject, PhysicsIdentityError, ValidatedNetBody, WorldGenerationId,
+    AuthorityStepStamp, PhysicalAuthorityId, PhysicsAuthorityConstructionError,
+    PhysicsAuthorityTemporalError, PhysicsAuthorityWorld, PhysicsBodySubject, PhysicsIdentityError,
+    ValidatedNetBody, WorldGenerationId,
 };
 pub use identity_mutation::NetIdentityMutationError;
 pub use integrator::nan_zeroed_count;
