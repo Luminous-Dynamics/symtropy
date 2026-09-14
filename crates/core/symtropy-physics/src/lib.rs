@@ -16,6 +16,7 @@
 
 pub mod articulation;
 pub mod authority_endpoint;
+pub mod authority_namespace;
 pub mod authority_observation;
 mod authority_time;
 pub mod body;
@@ -41,6 +42,10 @@ pub use articulation::{ArticulatedChain, ChainBuilder, LinkSpec};
 pub use authority_endpoint::{
     AuthorityEndpointBoxObservation, AuthorityEndpointBoxSpec, AuthorityEndpointObservationError,
     EndpointBoxSpecError, EndpointMembership,
+};
+pub use authority_namespace::{
+    LocalAuthorityNamespaceError, LocalNamespacePhysicsAuthorityWorld,
+    LocalQualifiedPhysicalAuthority, LocalQualifiedWorldGeneration,
 };
 pub use authority_observation::{
     AuthorityBodySnapshot, AuthorityPairObservationError, AuthorityPairSnapshot,
