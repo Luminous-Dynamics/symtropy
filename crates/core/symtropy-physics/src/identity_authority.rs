@@ -9,6 +9,9 @@
 
 use serde::{Deserialize, Serialize};
 
+use crate::authority_incarnation::{
+    TemporalIncarnationAllocationError, TemporalIncarnationId, mint_temporal_incarnation,
+};
 use crate::authority_time::{AuthorityTemporalState, TemporalCounterError};
 use crate::body::{BodyHandle, NetId, RigidBody};
 use crate::identity_mutation::{
@@ -97,12 +100,14 @@ impl PhysicsBodySubject {
 /// or copy a stamp already issued by `PhysicsAuthorityWorld`, but cannot mint a
 /// detached claimed step through the public safe API.
 ///
-/// `step_index` is an ordering counter within one exact `mutation_epoch`; it is
-/// not elapsed physical time.
-#[derive(Copy, Clone, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
+/// `step_index` is an ordering counter within one exact temporal lineage; it is
+/// not elapsed physical time. Generic total ordering is intentionally absent:
+/// compare step indexes only after [`Self::same_temporal_lineage`] succeeds.
+#[derive(Copy, Clone, Debug, Hash, PartialEq, Eq)]
 pub struct AuthorityStepStamp {
     physical_authority_id: PhysicalAuthorityId,
     world_generation_id: WorldGenerationId,
+    temporal_incarnation_id: TemporalIncarnationId,
     mutation_epoch: u64,
     step_index: u64,
 }
@@ -116,12 +121,43 @@ impl AuthorityStepStamp {
         self.world_generation_id
     }
 
+    pub const fn temporal_incarnation_id(self) -> TemporalIncarnationId {
+        self.temporal_incarnation_id
+    }
+
     pub const fn mutation_epoch(self) -> u64 {
         self.mutation_epoch
     }
 
     pub const fn step_index(self) -> u64 {
         self.step_index
+    }
+
+    /// Whether two issued stamps belong to one exact live temporal mutation
+    /// lineage. Only after this returns true does comparing `step_index` carry
+    /// temporal ordering meaning.
+    pub fn same_temporal_lineage(self, other: Self) -> bool {
+        self.physical_authority_id == other.physical_authority_id
+            && self.world_generation_id == other.world_generation_id
+            && self.temporal_incarnation_id == other.temporal_incarnation_id
+            && self.mutation_epoch == other.mutation_epoch
+    }
+}
+
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
+pub enum PhysicsAuthorityConstructionError {
+    TemporalIncarnationAllocatorPoisoned,
+    TemporalIncarnationExhausted,
+}
+
+impl From<TemporalIncarnationAllocationError> for PhysicsAuthorityConstructionError {
+    fn from(value: TemporalIncarnationAllocationError) -> Self {
+        match value {
+            TemporalIncarnationAllocationError::AllocatorPoisoned => {
+                Self::TemporalIncarnationAllocatorPoisoned
+            }
+            TemporalIncarnationAllocationError::Exhausted => Self::TemporalIncarnationExhausted,
+        }
     }
 }
 
@@ -146,30 +182,50 @@ impl From<TemporalCounterError> for PhysicsAuthorityTemporalError {
     }
 }
 
-/// Physics-owned binding of one live `PhysicsWorld` to its authority lineage
-/// and runtime generation.
+/// Physics-owned binding of one live `PhysicsWorld` to its authority lineage,
+/// runtime generation, and process-local temporal incarnation.
 ///
-/// Downstream callers cannot supply a detached claimed authority ID alongside an
-/// unrelated world: the identity and world are owned by the same object.
+/// Downstream callers cannot supply a detached claimed authority or temporal
+/// incarnation alongside an unrelated world: the identities and world are owned
+/// by the same object.
 pub struct PhysicsAuthorityWorld<const D: usize> {
     physical_authority_id: PhysicalAuthorityId,
     world_generation_id: WorldGenerationId,
+    temporal_incarnation_id: TemporalIncarnationId,
     world: PhysicsWorld<D>,
     temporal: AuthorityTemporalState,
 }
 
 impl<const D: usize> PhysicsAuthorityWorld<D> {
+    /// Source-compatible constructor. Prefer [`Self::try_new`] when allocator
+    /// exhaustion/poisoning should be handled explicitly.
+    ///
+    /// This fails closed before returning a wrapper if a fresh process-local
+    /// temporal incarnation cannot be minted.
     pub fn new(
         physical_authority_id: PhysicalAuthorityId,
         world_generation_id: WorldGenerationId,
         world: PhysicsWorld<D>,
     ) -> Self {
-        Self {
+        Self::try_new(physical_authority_id, world_generation_id, world)
+            .expect("physics authority temporal-incarnation allocation unavailable")
+    }
+
+    /// Construct one new live authority wrapper with a freshly minted temporal
+    /// incarnation. Callers cannot supply or restore the incarnation value.
+    pub fn try_new(
+        physical_authority_id: PhysicalAuthorityId,
+        world_generation_id: WorldGenerationId,
+        world: PhysicsWorld<D>,
+    ) -> Result<Self, PhysicsAuthorityConstructionError> {
+        let temporal_incarnation_id = mint_temporal_incarnation()?;
+        Ok(Self {
             physical_authority_id,
             world_generation_id,
+            temporal_incarnation_id,
             world,
             temporal: AuthorityTemporalState::new(),
-        }
+        })
     }
 
     pub const fn physical_authority_id(&self) -> PhysicalAuthorityId {
@@ -178,6 +234,10 @@ impl<const D: usize> PhysicsAuthorityWorld<D> {
 
     pub const fn world_generation_id(&self) -> WorldGenerationId {
         self.world_generation_id
+    }
+
+    pub const fn temporal_incarnation_id(&self) -> TemporalIncarnationId {
+        self.temporal_incarnation_id
     }
 
     pub fn world(&self) -> &PhysicsWorld<D> {
@@ -219,7 +279,7 @@ impl<const D: usize> PhysicsAuthorityWorld<D> {
     }
 
     /// Most recent normally completed authority-owned step in the current
-    /// mutation epoch.
+    /// mutation epoch and live temporal incarnation.
     ///
     /// Returns `None` before the first authorized step, after any raw/non-step
     /// mutation boundary, and while/after an interrupted step or typed mutation
@@ -277,6 +337,7 @@ impl<const D: usize> PhysicsAuthorityWorld<D> {
         AuthorityStepStamp {
             physical_authority_id: self.physical_authority_id,
             world_generation_id: self.world_generation_id,
+            temporal_incarnation_id: self.temporal_incarnation_id,
             mutation_epoch: self.temporal.mutation_epoch(),
             step_index: self.temporal.step_index(),
         }
