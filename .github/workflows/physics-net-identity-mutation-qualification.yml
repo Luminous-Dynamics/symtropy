@@ -113,8 +113,8 @@ jobs:
           grep -Fq 'pub fn assign_net_id_checked' "${source}"
           grep -Fq 'pub fn add_bodies_deterministic_checked' "${source}"
           grep -Fq 'IdentityReassignmentForbidden' "${source}"
-          grep -Fq 'None -> N' "${contract}"
-          grep -Fq 'N -> M' "${contract}"
+          grep -Fq 'None -> NetId(N)' "${contract}"
+          grep -Fq 'NetId(N) -> M' "${contract}"
           grep -Fq 'does **not** yet seal' "${contract}"
 
           test "$(grep -Fc 'world.set_net_id(handle, net_id);' "${source}")" = "1"
