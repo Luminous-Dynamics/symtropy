@@ -1,0 +1,95 @@
+name: PB-04d1 Mapping Builder
+
+on:
+  push:
+    branches:
+      - "build/pb04d1-mapping-lock-224c1ce"
+    paths:
+      - "crates/bridges/symtropy-terrain-pb-mapping/**"
+      - ".github/workflows/pb04d1-mapping-builder.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Derive frozen lock and preflight exact mapping theorem
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - name: Checkout builder lineage
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Bind qualified composition ancestor
+        shell: bash
+        run: |
+          set -euo pipefail
+          base=224c1cef5971f0623c61c1533212a7baf485c9a0
+          git merge-base --is-ancestor "${base}" HEAD
+          test "$(git rev-parse "${base}^{tree}")" = "42dad78a271ec9822c0489f9f8a74be6f1a12168"
+
+      - name: Install Linux system dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install -y libasound2-dev libudev-dev pkg-config
+
+      - name: Set up pinned Rust
+        uses: dtolnay/rust-toolchain@6bed0761d98439e5a578e2877258200ad565ba87
+        with:
+          toolchain: 1.96.0
+          components: clippy,rustfmt
+
+      - name: Derive nested-workspace lock and canonical formatting
+        shell: bash
+        run: |
+          set -euo pipefail
+          manifest=crates/bridges/symtropy-terrain-pb-mapping/Cargo.toml
+          cargo generate-lockfile --manifest-path "${manifest}"
+          cargo fmt --manifest-path "${manifest}"
+          echo "CARGO_TARGET_DIR=${RUNNER_TEMP}/pb04d1-builder-target" >> "${GITHUB_ENV}"
+
+      - name: Verify derived locked graph
+        shell: bash
+        run: |
+          set -euo pipefail
+          manifest=crates/bridges/symtropy-terrain-pb-mapping/Cargo.toml
+          cargo metadata --manifest-path "${manifest}" --locked --format-version 1 > "${RUNNER_TEMP}/pb04d1-metadata.json"
+          echo "PB04D1_METADATA_SHA256=$(sha256sum "${RUNNER_TEMP}/pb04d1-metadata.json" | awk '{print $1}')"
+
+      - name: Check all targets
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo check --manifest-path crates/bridges/symtropy-terrain-pb-mapping/Cargo.toml --locked --all-targets
+
+      - name: Execute exact mapping theorem corpus
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo test --manifest-path crates/bridges/symtropy-terrain-pb-mapping/Cargo.toml --locked --all-targets -- --nocapture
+
+      - name: Enforce strict all-target Clippy
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo clippy --manifest-path crates/bridges/symtropy-terrain-pb-mapping/Cargo.toml --locked --all-targets -- -D warnings
+
+      - name: Emit exact derived product files
+        shell: bash
+        run: |
+          set -euo pipefail
+          root=crates/bridges/symtropy-terrain-pb-mapping
+          for file in Cargo.lock src/lib.rs tests/exact_mapping.rs; do
+            label="$(printf '%s' "${file}" | tr '/.' '__' | tr '[:lower:]' '[:upper:]')"
+            echo "PB04D1_${label}_BEGIN"
+            base64 -w0 "${root}/${file}"
+            echo
+            echo "PB04D1_${label}_END"
+            echo "PB04D1_${label}_GIT_BLOB=$(git hash-object "${root}/${file}")"
+            echo "PB04D1_${label}_SHA256=$(sha256sum "${root}/${file}" | awk '{print $1}')"
+          done
