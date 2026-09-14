@@ -38,6 +38,7 @@ pub mod qualified_endpoint;
 pub mod raycast;
 pub mod replay;
 pub mod support_map;
+pub mod timed_evidence;
 pub mod world;
 
 pub use articulation::{ArticulatedChain, ChainBuilder, LinkSpec};
@@ -74,4 +75,7 @@ pub use qualified_endpoint::{
     LocalQualifiedStampedEndpointBoxObservation, LocalQualifiedStampedEndpointObservationError,
 };
 pub use replay::{ReplayTape, WorldCommand, WorldSnapshot, apply_commands};
+pub use timed_evidence::{
+    LocalQualifiedStepExecutionReceipt, LocalReceiptedEvidencePhysicsAuthorityWorld,
+};
 pub use world::{NoOpCallback, PhysicsCallback, PhysicsWorld};
