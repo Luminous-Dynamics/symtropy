@@ -183,7 +183,7 @@ fn embedding_translation_overflow_fails_closed() {
 
     assert_eq!(
         error,
-        TerrainPbMappingError::ArithmeticOverflow("positive_embedding_min")
+        TerrainPbMappingError::ArithmeticOverflow("positive_embedding_max")
     );
 }
 
