@@ -41,7 +41,7 @@ pub const CROSS_MODEL_INDEPENDENCE_SEARCH_MAX_STEPS: u64 = 1_000_000;
 const REPORT_DOMAIN: &[u8] = b"symtropy:species-concept:current-robustness-report:v1\0";
 const SURFACE_DOMAIN: &[u8] = b"symtropy:species-concept:model-evidence-surface:v1\0";
 const RULE_DOMAIN: &[u8] = b"symtropy:species-concept:current-robustness-report-rule:v1\0";
-const RULE_SPEC: &[u8] = b"current-species cross-model robustness report v1: execute only against current E2A authority; retain exactly one row per preregistered conceptual family including explicit missing rows; no undeclared family insertion or contradictory-row deletion; preserve family-specific typed current-status semantics; outside-domain and missing evidence are not negative votes; support/contradiction robustness requires a canonical pairwise-eligible clique witness at the frozen minimum independent coverage; pairwise independence is not transitive; any resolved cross-model conclusion disagreement remains model-dependent, support plus contradiction is mixed, all-outside is explicit; no majority count, scalar taxonomy score, historical robustness, nomenclature, philosophical winner, or universal taxonomy truth";
+const RULE_SPEC: &[u8] = b"current-species cross-model robustness report v1: execute only against current E2A authority; retain exactly one row per preregistered conceptual family including explicit missing rows; no undeclared family insertion or contradictory-row deletion; preserve family-specific typed current-status semantics; outside-domain and missing evidence are not negative votes; support, contradiction, and concordant non-support each require their own canonical pairwise-eligible clique witness at the frozen minimum independent coverage; non-support is not contradiction; pairwise independence is not transitive; any resolved cross-model conclusion disagreement remains model-dependent, support plus contradiction is mixed, all-outside is explicit; no majority count, scalar taxonomy score, historical robustness, nomenclature, philosophical winner, or universal taxonomy truth";
 
 macro_rules! digest_type {
     ($name:ident) => {
@@ -93,10 +93,6 @@ impl CrossModelOutcomeDisposition {
             Self::OutsideValidityDomain => 4,
             Self::MissingCurrentCapability => 5,
         }
-    }
-
-    fn is_resolved_conclusion(self) -> bool {
-        matches!(self, Self::Supports | Self::DoesNotSupport | Self::Contradicts)
     }
 }
 
@@ -475,6 +471,7 @@ impl CrossModelPairContext {
 pub enum CrossModelCurrentSpeciesRobustnessStatus {
     RobustSupportAcrossQualifiedIndependentCoverage,
     RobustContradictionAcrossQualifiedIndependentCoverage,
+    ConcordantNonSupportAcrossQualifiedIndependentCoverage,
     ModelDependentConclusion,
     MixedSupportAndContradiction,
     InsufficientIndependentModelCoverage,
@@ -486,10 +483,11 @@ impl CrossModelCurrentSpeciesRobustnessStatus {
         match self {
             Self::RobustSupportAcrossQualifiedIndependentCoverage => 0,
             Self::RobustContradictionAcrossQualifiedIndependentCoverage => 1,
-            Self::ModelDependentConclusion => 2,
-            Self::MixedSupportAndContradiction => 3,
-            Self::InsufficientIndependentModelCoverage => 4,
-            Self::AllModelsOutsideValidityDomain => 5,
+            Self::ConcordantNonSupportAcrossQualifiedIndependentCoverage => 2,
+            Self::ModelDependentConclusion => 3,
+            Self::MixedSupportAndContradiction => 4,
+            Self::InsufficientIndependentModelCoverage => 5,
+            Self::AllModelsOutsideValidityDomain => 6,
         }
     }
 }
@@ -502,6 +500,7 @@ pub struct CrossModelCurrentSpeciesReport {
     pub rows: Vec<CrossModelOutcomeRow>,
     pub pairwise_context: Vec<CrossModelPairContext>,
     pub support_independence_witness: Vec<OpenSpeciesConceptIdentity>,
+    pub non_support_independence_witness: Vec<OpenSpeciesConceptIdentity>,
     pub contradiction_independence_witness: Vec<OpenSpeciesConceptIdentity>,
     pub status: CrossModelCurrentSpeciesRobustnessStatus,
     pub rule_authority: AnalysisAuthorityRef,
@@ -531,6 +530,11 @@ impl CrossModelCurrentSpeciesReport {
             &rows,
             CrossModelOutcomeDisposition::Supports,
         )?;
+        let non_support_independence_witness = find_independence_witness(
+            design,
+            &rows,
+            CrossModelOutcomeDisposition::DoesNotSupport,
+        )?;
         let contradiction_independence_witness = find_independence_witness(
             design,
             &rows,
@@ -539,6 +543,7 @@ impl CrossModelCurrentSpeciesReport {
         let status = derive_report_status(
             &rows,
             &support_independence_witness,
+            &non_support_independence_witness,
             &contradiction_independence_witness,
         );
         let report = Self {
@@ -548,6 +553,7 @@ impl CrossModelCurrentSpeciesReport {
             rows,
             pairwise_context,
             support_independence_witness,
+            non_support_independence_witness,
             contradiction_independence_witness,
             status,
             rule_authority: current_cross_model_report_rule_v1(),
@@ -573,6 +579,7 @@ impl CrossModelCurrentSpeciesReport {
             pair.put(&mut digest);
         }
         put_identity_vec(&mut digest, &self.support_independence_witness);
+        put_identity_vec(&mut digest, &self.non_support_independence_witness);
         put_identity_vec(&mut digest, &self.contradiction_independence_witness);
         digest.update([self.status.tag()]);
         put_authority(&mut digest, &self.rule_authority);
@@ -609,6 +616,14 @@ impl CrossModelCurrentSpeciesReport {
         if expected_support != self.support_independence_witness {
             return Err(CrossModelRobustnessReportError::SupportWitnessMismatch);
         }
+        let expected_non_support = find_independence_witness(
+            &self.design,
+            &self.rows,
+            CrossModelOutcomeDisposition::DoesNotSupport,
+        )?;
+        if expected_non_support != self.non_support_independence_witness {
+            return Err(CrossModelRobustnessReportError::NonSupportWitnessMismatch);
+        }
         let expected_contradiction = find_independence_witness(
             &self.design,
             &self.rows,
@@ -620,6 +635,7 @@ impl CrossModelCurrentSpeciesReport {
         let expected_status = derive_report_status(
             &self.rows,
             &expected_support,
+            &expected_non_support,
             &expected_contradiction,
         );
         if expected_status != self.status {
@@ -805,6 +821,7 @@ fn witness_search(
 fn derive_report_status(
     rows: &[CrossModelOutcomeRow],
     support_witness: &[OpenSpeciesConceptIdentity],
+    non_support_witness: &[OpenSpeciesConceptIdentity],
     contradiction_witness: &[OpenSpeciesConceptIdentity],
 ) -> CrossModelCurrentSpeciesRobustnessStatus {
     if !rows.is_empty()
@@ -842,6 +859,9 @@ fn derive_report_status(
     }
     if contradiction && !contradiction_witness.is_empty() {
         return CrossModelCurrentSpeciesRobustnessStatus::RobustContradictionAcrossQualifiedIndependentCoverage;
+    }
+    if does_not_support && !non_support_witness.is_empty() {
+        return CrossModelCurrentSpeciesRobustnessStatus::ConcordantNonSupportAcrossQualifiedIndependentCoverage;
     }
 
     CrossModelCurrentSpeciesRobustnessStatus::InsufficientIndependentModelCoverage
@@ -938,6 +958,7 @@ pub enum CrossModelRobustnessReportError {
     IncompletePairwiseContext,
     PairwiseContextMismatch,
     SupportWitnessMismatch,
+    NonSupportWitnessMismatch,
     ContradictionWitnessMismatch,
     IndependenceSearchLimitExceeded { maximum_steps: u64 },
     DesignDigestMismatch,
@@ -994,6 +1015,9 @@ impl fmt::Display for CrossModelRobustnessReportError {
             }
             Self::SupportWitnessMismatch => {
                 write!(f, "persisted support independence witness is not the canonical E2A-qualified witness")
+            }
+            Self::NonSupportWitnessMismatch => {
+                write!(f, "persisted non-support independence witness is not the canonical E2A-qualified witness")
             }
             Self::ContradictionWitnessMismatch => {
                 write!(f, "persisted contradiction independence witness is not the canonical E2A-qualified witness")
