@@ -103,6 +103,11 @@ impl ThermodynamicTransactionRuntime {
             .map_err(CalibratedRuntimeFrictionError::Runtime)?;
         let transaction_id = applied.transaction_id();
 
+        // A valid MechanicalUnitCalibration has a strictly positive derived
+        // energy scale, so dissipation/injection/neutral sign classification is
+        // invariant under conversion. If a positive loss becomes unrepresentable
+        // after scaling (for example exact-zero underflow), calibrated promotion
+        // rejects and the atomic rollback below restores this mechanical step.
         let terminalization = if applied
             .observation()
             .centered_promotable_loss_candidate_joules()
@@ -148,8 +153,8 @@ mod tests {
     use super::*;
     use symtropy_math::Point;
     use symtropy_physics::{
-        BodyHandle, FrictionTransactionId, FrictionTransactionPhase, ThermalBody,
-        ThermalMaterial, ThermalState,
+        BodyHandle, FrictionDiagnosticReason, FrictionTransactionId, FrictionTransactionPhase,
+        ThermalBody, ThermalMaterial, ThermalState,
     };
 
     fn thermal_body(handle: usize, velocity_x: f64) -> RigidBody<2> {
@@ -240,6 +245,70 @@ mod tests {
         assert!(runtime.friction_journal().is_empty());
         assert!(runtime.physical_energy_ledger().is_empty());
         assert_eq!(runtime.pending_friction_reservation_count(), 0);
+    }
+
+    #[test]
+    fn centered_solver_injection_remains_diagnostic_under_positive_calibration() {
+        let mut runtime = ThermodynamicTransactionRuntime::new();
+        runtime.begin_next_tick().unwrap();
+        let mut a = thermal_body(1, 0.0);
+        let mut b = thermal_body(2, 0.0);
+
+        let terminal = runtime
+            .execute_terminal_friction_impulse_at_calibrated(
+                &mut a,
+                &mut b,
+                &SVector::zeros(),
+                &SVector::from([0.5, 0.0]),
+                FrictionSolverCoordinates::new(0, 0, 0),
+                HeatPartition::equal(),
+                MechanicalUnitCalibration::new(1.0, 1.0 / 32.0, 1.0).unwrap(),
+            )
+            .unwrap();
+
+        assert_eq!(
+            terminal.outcome,
+            TerminalFrictionOutcome::Diagnostic(FrictionDiagnosticReason::SolverInjection)
+        );
+        assert!(runtime.physical_energy_ledger().is_empty());
+        assert_eq!(
+            runtime.friction_journal().phase(terminal.transaction_id),
+            Some(FrictionTransactionPhase::DiagnosticOnly(
+                FrictionDiagnosticReason::SolverInjection
+            ))
+        );
+    }
+
+    #[test]
+    fn centered_zero_impulse_remains_neutral_under_positive_calibration() {
+        let mut runtime = ThermodynamicTransactionRuntime::new();
+        runtime.begin_next_tick().unwrap();
+        let mut a = thermal_body(1, 1.0);
+        let mut b = thermal_body(2, 0.0);
+
+        let terminal = runtime
+            .execute_terminal_friction_impulse_at_calibrated(
+                &mut a,
+                &mut b,
+                &SVector::zeros(),
+                &SVector::zeros(),
+                FrictionSolverCoordinates::new(0, 0, 0),
+                HeatPartition::equal(),
+                MechanicalUnitCalibration::new(2.0, 3.0, 0.5).unwrap(),
+            )
+            .unwrap();
+
+        assert_eq!(
+            terminal.outcome,
+            TerminalFrictionOutcome::Diagnostic(FrictionDiagnosticReason::Neutral)
+        );
+        assert!(runtime.physical_energy_ledger().is_empty());
+        assert_eq!(
+            runtime.friction_journal().phase(terminal.transaction_id),
+            Some(FrictionTransactionPhase::DiagnosticOnly(
+                FrictionDiagnosticReason::Neutral
+            ))
+        );
     }
 
     #[test]
