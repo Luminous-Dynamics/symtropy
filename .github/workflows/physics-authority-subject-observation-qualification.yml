@@ -1,0 +1,200 @@
+name: PHYS-OBS-00 Authority Subject Observation Qualification
+
+on:
+  push:
+    branches:
+      - "ci/physics-authority-subject-observation-v0.1"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: physics-authority-subject-observation-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  PRODUCT_HEAD: 4567df998a4df4aa86a3ed241bebce7d104c27cc
+  PRODUCT_PARENT: fc53c8d8a6de144a17efbaea7ec506bfc67e05fd
+
+jobs:
+  qualify:
+    name: Frozen PHYS-OBS-00 / Rust 1.96
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout exact frozen product head
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ env.PRODUCT_HEAD }}
+          fetch-depth: 0
+
+      - name: Assert exact product subject
+        id: subject
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "${PRODUCT_HEAD}"
+          git merge-base --is-ancestor "${PRODUCT_PARENT}" "${PRODUCT_HEAD}"
+          test "$(git rev-list --count "${PRODUCT_PARENT}..${PRODUCT_HEAD}")" = "5"
+          mapfile -t changed < <(git diff --name-only "${PRODUCT_PARENT}..${PRODUCT_HEAD}")
+          test "${#changed[@]}" = "4"
+          expected=(
+            "crates/core/symtropy-physics/PHYSICAL_AUTHORITY_SELECTED_OBSERVATION_V01.md"
+            "crates/core/symtropy-physics/src/authority_observation.rs"
+            "crates/core/symtropy-physics/src/lib.rs"
+            "crates/core/symtropy-physics/tests/authority_observation_v01.rs"
+          )
+          for i in "${!expected[@]}"; do
+            test "${changed[$i]}" = "${expected[$i]}"
+          done
+
+      - name: Set up pinned Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.96.0
+          components: rustfmt,clippy
+
+      - name: Cache dependencies
+        uses: Swatinem/rust-cache@v2
+
+      - name: Freeze observation source identities
+        id: source
+        shell: bash
+        run: |
+          set -euo pipefail
+          sha256sum \
+            crates/core/symtropy-physics/src/authority_observation.rs \
+            crates/core/symtropy-physics/src/identity_authority.rs \
+            crates/core/symtropy-physics/src/lib.rs \
+            crates/core/symtropy-physics/tests/authority_observation_v01.rs \
+            crates/core/symtropy-physics/tests/world_identity_authority_v01.rs \
+            crates/core/symtropy-physics/tests/net_identity_mutation_v01.rs \
+            crates/core/symtropy-physics/tests/replay_harness.rs \
+            crates/core/symtropy-physics/PHYSICAL_AUTHORITY_SELECTED_OBSERVATION_V01.md \
+            > "${RUNNER_TEMP}/phys-obs00-source-sha256.txt"
+
+      - name: Check formatting
+        id: fmt
+        run: cargo fmt --all -- --check
+
+      - name: Check physics all targets
+        id: check
+        run: cargo check -p symtropy-physics --locked --all-targets
+
+      - name: Run selected-subject observation theorem
+        id: observation
+        run: cargo test -p symtropy-physics --locked --test authority_observation_v01
+
+      - name: Run authority identity regression
+        id: authority
+        run: cargo test -p symtropy-physics --locked --test world_identity_authority_v01
+
+      - name: Run mutation regression
+        id: mutation
+        run: cargo test -p symtropy-physics --locked --test net_identity_mutation_v01
+
+      - name: Run runtime replay regression
+        id: replay
+        run: cargo test -p symtropy-physics --locked --test replay_harness
+
+      - name: Run strict physics Clippy
+        id: clippy
+        run: cargo clippy -p symtropy-physics --locked --all-targets -- -D warnings
+
+      - name: Audit selected-subject claim boundary
+        id: audit
+        shell: bash
+        run: |
+          set -euo pipefail
+          source=crates/core/symtropy-physics/src/authority_observation.rs
+          tests=crates/core/symtropy-physics/tests/authority_observation_v01.rs
+          contract=crates/core/symtropy-physics/PHYSICAL_AUTHORITY_SELECTED_OBSERVATION_V01.md
+
+          grep -Fq 'pub struct AuthorityBodySnapshot' "${source}"
+          grep -Fq 'pub subject: PhysicsBodySubject' "${source}"
+          grep -Fq 'authority.validate_subject(subject)?;' "${source}"
+          if grep -Eq 'pub[[:space:]]+[A-Za-z_][A-Za-z0-9_]*:[[:space:]]*BodyHandle' "${source}"; then
+            echo 'AuthorityBodySnapshot must not expose a BodyHandle field' >&2
+            exit 1
+          fi
+
+          grep -Fq 'assert_ne!(validated_a.runtime_handle(), validated_b.runtime_handle());' "${tests}"
+          grep -Fq 'assert_eq!(snapshot_a, snapshot_b);' "${tests}"
+          grep -Fq 'WorldGenerationMismatch' "${tests}"
+          grep -Fq 'PhysicalAuthorityMismatch' "${tests}"
+          grep -Fq 'AmbiguousNetId' "${tests}"
+
+          grep -Fq 'selected-subject only' "${contract}"
+          grep -Fq 'complete `PhysicsWorld` structural integrity' "${contract}"
+          grep -Fq 'stable cross-generation identity' "${contract}"
+          grep -Fq 'continuous trajectory' "${contract}"
+          grep -Fq 'arrival' "${contract}"
+          grep -Fq 'delivery' "${contract}"
+
+      - name: Assert unchanged frozen subject
+        id: postflight
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "${PRODUCT_HEAD}"
+          git diff --exit-code -- . ':!Cargo.lock'
+          test -z "$(git status --porcelain --untracked-files=no)"
+
+      - name: Emit qualification receipt
+        if: always()
+        shell: bash
+        env:
+          HELPER_HEAD: ${{ github.sha }}
+          RUN_ID: ${{ github.run_id }}
+          RUN_ATTEMPT: ${{ github.run_attempt }}
+          SUBJECT: ${{ steps.subject.outcome }}
+          SOURCE: ${{ steps.source.outcome }}
+          FMT: ${{ steps.fmt.outcome }}
+          CHECK: ${{ steps.check.outcome }}
+          OBSERVATION: ${{ steps.observation.outcome }}
+          AUTHORITY: ${{ steps.authority.outcome }}
+          MUTATION: ${{ steps.mutation.outcome }}
+          REPLAY: ${{ steps.replay.outcome }}
+          CLIPPY: ${{ steps.clippy.outcome }}
+          AUDIT: ${{ steps.audit.outcome }}
+          POSTFLIGHT: ${{ steps.postflight.outcome }}
+        run: |
+          set -euo pipefail
+          receipt="${RUNNER_TEMP}/phys-obs00-authority-subject-observation-v01.json"
+          export RECEIPT_PATH="${receipt}"
+          python3 - <<'PY'
+          import json, os
+          keys = [
+              "SUBJECT", "SOURCE", "FMT", "CHECK", "OBSERVATION", "AUTHORITY",
+              "MUTATION", "REPLAY", "CLIPPY", "AUDIT", "POSTFLIGHT",
+          ]
+          outcomes = {k.lower(): os.environ.get(k, "unknown") for k in keys}
+          receipt = {
+              "receipt_version": 1,
+              "qualification": "PHYS-OBS-00-authority-subject-observation-v0.1",
+              "product_head": os.environ["PRODUCT_HEAD"],
+              "product_parent": os.environ["PRODUCT_PARENT"],
+              "helper_head": os.environ["HELPER_HEAD"],
+              "workflow_run_id": int(os.environ["RUN_ID"]),
+              "workflow_run_attempt": int(os.environ["RUN_ATTEMPT"]),
+              "step_outcomes": outcomes,
+              "overall": "pass" if all(v == "success" for v in outcomes.values()) else "fail",
+              "claim_boundary": "handle-free bitwise observation of one explicitly selected PhysicsBodySubject after fail-closed authority/generation/NetId validation; no complete-world integrity, cross-generation continuity, history, trajectory, route, arrival, or delivery claim",
+          }
+          with open(os.environ["RECEIPT_PATH"], "w", encoding="utf-8") as handle:
+              json.dump(receipt, handle, sort_keys=True, indent=2)
+              handle.write("\n")
+          PY
+          cp "${RUNNER_TEMP}/phys-obs00-source-sha256.txt" "${RUNNER_TEMP}/phys-obs00-source-sha256-evidence.txt"
+          sha256sum "${receipt}" > "${receipt}.sha256"
+
+      - name: Upload qualification receipt
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: phys-obs00-authority-subject-observation-v01-${{ env.PRODUCT_HEAD }}
+          path: |
+            ${{ runner.temp }}/phys-obs00-authority-subject-observation-v01.json
+            ${{ runner.temp }}/phys-obs00-authority-subject-observation-v01.json.sha256
+            ${{ runner.temp }}/phys-obs00-source-sha256-evidence.txt
+          if-no-files-found: error
+          retention-days: 90
