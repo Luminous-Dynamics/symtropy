@@ -1,0 +1,21 @@
+[package]
+name = "symtropy-species-concept-robustness"
+version = "0.1.0"
+edition = "2024"
+license = "Apache-2.0 OR MIT"
+description = "Preregistered cross-model species-concept robustness design for Symtropy"
+publish = false
+
+[dependencies]
+symtropy-evolution-core = { path = "../symtropy-evolution-core" }
+symtropy-species-concept = { path = "../symtropy-species-concept" }
+symtropy-species-concept-relations = { path = "../symtropy-species-concept-relations" }
+symtropy-species-concept-general-lineage = { path = "../symtropy-species-concept-general-lineage" }
+serde = { version = "1", features = ["derive"] }
+sha2 = "0.10"
+
+[dev-dependencies]
+serde_json = "1"
+
+[workspace]
+resolver = "2"
