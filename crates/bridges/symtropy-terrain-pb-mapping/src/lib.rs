@@ -279,7 +279,7 @@ pub fn map_terrain_voxel_to_pb_cell(
             for x in 0..dimensions[0] {
                 let cell = CellCoord::new(x, y, z);
                 let (min, max_exclusive) = domain.exact_cell_bounds(pb_profile, cell)?;
-                if ExactBox3i { min, max_exclusive } != target_box {
+                if (ExactBox3i { min, max_exclusive }) != target_box {
                     continue;
                 }
                 if let Some(first) = matched {
