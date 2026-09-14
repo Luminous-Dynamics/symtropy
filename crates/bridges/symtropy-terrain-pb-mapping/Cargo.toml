@@ -1,0 +1,18 @@
+[package]
+name = "symtropy-terrain-pb-mapping"
+version = "0.1.0"
+edition = "2024"
+license = "AGPL-3.0-or-later"
+description = "Pure exact Terrain voxel-box to PB cell-box mapping theorem for Symtropy."
+publish = false
+
+# PB-04d1 remains an isolated proof workspace. The qualified Terrain and PB
+# authority crates remain unchanged; this bridge is the only cross-domain edge.
+[workspace]
+
+[dependencies]
+symtropy-terrain = { path = "../../domains/symtropy-terrain" }
+symtropy-spatial-decomposition = { path = "../../domains/symtropy-spatial-decomposition" }
+
+[dev-dependencies]
+symtropy-game-state = { path = "../../domains/symtropy-game-state" }
