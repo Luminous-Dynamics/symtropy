@@ -6,6 +6,9 @@ license = "Apache-2.0 OR MIT"
 description = "Preregistered cross-model species-concept robustness design for Symtropy"
 publish = false
 
+[lib]
+path = "src/root.rs"
+
 [dependencies]
 symtropy-evolution-core = { path = "../symtropy-evolution-core" }
 symtropy-species-concept = { path = "../symtropy-species-concept" }
