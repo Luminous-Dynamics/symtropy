@@ -80,7 +80,31 @@ pub enum FrictionMechanicalDelta {
     Neutral,
 }
 
+#[derive(Copy, Clone, Debug, PartialEq)]
+struct MechanicalSnapshot<const D: usize> {
+    linear_velocity: SVector<f64, D>,
+    angular_velocity: Bivector<D>,
+}
+
+impl<const D: usize> MechanicalSnapshot<D> {
+    fn capture(body: &RigidBody<D>) -> Self {
+        Self {
+            linear_velocity: body.linear_velocity,
+            angular_velocity: body.angular_velocity,
+        }
+    }
+
+    fn restore(self, body: &mut RigidBody<D>) {
+        body.linear_velocity = self.linear_velocity;
+        body.angular_velocity = self.angular_velocity;
+    }
+}
+
 /// Immediate pre/post evidence around one applied friction impulse.
+///
+/// The pre-impulse velocity snapshots are private provenance. Public callers may
+/// inspect the historical scalar energy diagnostics, but cannot author a new
+/// observation that masquerades as one produced by the application primitive.
 #[derive(Clone, Debug, PartialEq)]
 pub struct FrictionMechanicalObservation<const D: usize> {
     pub body_a: BodyHandle,
@@ -97,6 +121,8 @@ pub struct FrictionMechanicalObservation<const D: usize> {
     pub pair_delta_joules: f64,
     pub delta: FrictionMechanicalDelta,
     pub regime: FrictionEvidenceRegime,
+    pre_state_a: MechanicalSnapshot<D>,
+    pre_state_b: MechanicalSnapshot<D>,
 }
 
 impl<const D: usize> FrictionMechanicalObservation<D> {
@@ -112,6 +138,22 @@ impl<const D: usize> FrictionMechanicalObservation<D> {
                 None
             }
         }
+    }
+
+    pub(crate) fn pre_linear_velocity_a(&self) -> SVector<f64, D> {
+        self.pre_state_a.linear_velocity
+    }
+
+    pub(crate) fn pre_linear_velocity_b(&self) -> SVector<f64, D> {
+        self.pre_state_b.linear_velocity
+    }
+
+    pub(crate) fn pre_angular_velocity_a(&self) -> Bivector<D> {
+        self.pre_state_a.angular_velocity
+    }
+
+    pub(crate) fn pre_angular_velocity_b(&self) -> Bivector<D> {
+        self.pre_state_b.angular_velocity
     }
 }
 
@@ -204,26 +246,6 @@ pub enum FrictionEvidenceError {
     NonFiniteMechanicalState,
     NonFiniteKineticEnergy,
     UnrepresentablePairDelta,
-}
-
-#[derive(Copy, Clone)]
-struct MechanicalSnapshot<const D: usize> {
-    linear_velocity: SVector<f64, D>,
-    angular_velocity: Bivector<D>,
-}
-
-impl<const D: usize> MechanicalSnapshot<D> {
-    fn capture(body: &RigidBody<D>) -> Self {
-        Self {
-            linear_velocity: body.linear_velocity,
-            angular_velocity: body.angular_velocity,
-        }
-    }
-
-    fn restore(self, body: &mut RigidBody<D>) {
-        body.linear_velocity = self.linear_velocity;
-        body.angular_velocity = self.angular_velocity;
-    }
 }
 
 fn mechanical_state_is_finite<const D: usize>(body: &RigidBody<D>) -> bool {
@@ -366,6 +388,8 @@ fn apply_friction_impulse_measured_inner<const D: usize>(
         pair_delta_joules: pair_delta,
         delta,
         regime,
+        pre_state_a: snapshot_a,
+        pre_state_b: snapshot_b,
     })
 }
 
@@ -507,6 +531,31 @@ mod tests {
         let speed = a.linear_velocity.norm();
         a.linear_velocity = SVector::from([0.0, speed, 0.0]);
         assert!(!bound.matches_post_state(&a, &b));
+    }
+
+    #[test]
+    fn observation_retains_private_pre_mechanical_velocity_provenance() {
+        let mut a = body(1, [0.0, 0.0, 0.0], 1.0);
+        let mut b = body(2, [0.0, 0.0, 0.0], 0.0);
+        a.angular_velocity.set(0, 1, 3.0);
+        b.angular_velocity.set(0, 1, -2.0);
+        let expected_a_linear = a.linear_velocity;
+        let expected_b_linear = b.linear_velocity;
+        let expected_a_angular = a.angular_velocity;
+        let expected_b_angular = b.angular_velocity;
+
+        let observation = apply_friction_impulse_measured(
+            &mut a,
+            &mut b,
+            &SVector::zeros(),
+            &SVector::from([0.5, 0.0, 0.0]),
+        )
+        .unwrap();
+
+        assert_eq!(observation.pre_linear_velocity_a(), expected_a_linear);
+        assert_eq!(observation.pre_linear_velocity_b(), expected_b_linear);
+        assert_eq!(observation.pre_angular_velocity_a(), expected_a_angular);
+        assert_eq!(observation.pre_angular_velocity_b(), expected_b_angular);
     }
 
     #[test]
