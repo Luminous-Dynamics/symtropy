@@ -81,6 +81,9 @@ impl MechanicalUnitCalibration {
     }
 
     /// Convert a non-negative solver mechanical-energy magnitude to Joules.
+    ///
+    /// A positive input is not permitted to underflow to exact zero: that would
+    /// silently erase a real mechanical-energy quantity at the unit boundary.
     pub fn energy_to_joules(
         self,
         solver_energy: f64,
@@ -89,13 +92,19 @@ impl MechanicalUnitCalibration {
             return Err(MechanicalUnitCalibrationError::InvalidEnergyMagnitude);
         }
         let joules = solver_energy * self.joules_per_solver_energy_unit;
-        if !joules.is_finite() || joules < 0.0 {
+        if !joules.is_finite()
+            || joules < 0.0
+            || (solver_energy > 0.0 && joules == 0.0)
+        {
             return Err(MechanicalUnitCalibrationError::UnrepresentableJoules);
         }
         Ok(joules)
     }
 
     /// Convert a signed solver energy delta to Joules while preserving sign.
+    ///
+    /// A nonzero input is not permitted to underflow to exact zero, because that
+    /// would erase both magnitude and the dissipation/injection distinction.
     pub fn signed_energy_to_joules(
         self,
         solver_energy_delta: f64,
@@ -104,7 +113,7 @@ impl MechanicalUnitCalibration {
             return Err(MechanicalUnitCalibrationError::InvalidSignedEnergy);
         }
         let joules = solver_energy_delta * self.joules_per_solver_energy_unit;
-        if !joules.is_finite() {
+        if !joules.is_finite() || (solver_energy_delta != 0.0 && joules == 0.0) {
             return Err(MechanicalUnitCalibrationError::UnrepresentableJoules);
         }
         Ok(joules)
@@ -189,6 +198,24 @@ mod tests {
         let calibration = MechanicalUnitCalibration::new(1.0e100, 1.0e100, 1.0).unwrap();
         assert_eq!(
             calibration.energy_to_joules(1.0e100),
+            Err(MechanicalUnitCalibrationError::UnrepresentableJoules)
+        );
+    }
+
+    #[test]
+    fn positive_magnitude_underflow_to_zero_is_rejected() {
+        let calibration = MechanicalUnitCalibration::new(f64::MIN_POSITIVE, 1.0, 1.0).unwrap();
+        assert_eq!(
+            calibration.energy_to_joules(f64::MIN_POSITIVE),
+            Err(MechanicalUnitCalibrationError::UnrepresentableJoules)
+        );
+    }
+
+    #[test]
+    fn signed_underflow_to_zero_is_rejected_without_erasing_sign() {
+        let calibration = MechanicalUnitCalibration::new(f64::MIN_POSITIVE, 1.0, 1.0).unwrap();
+        assert_eq!(
+            calibration.signed_energy_to_joules(-f64::MIN_POSITIVE),
             Err(MechanicalUnitCalibrationError::UnrepresentableJoules)
         );
     }
