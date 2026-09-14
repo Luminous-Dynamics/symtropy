@@ -9,11 +9,12 @@
 
 use serde::{Deserialize, Serialize};
 
+use crate::authority_time::{AuthorityTemporalState, TemporalCounterError};
 use crate::body::{BodyHandle, NetId, RigidBody};
 use crate::identity_mutation::{
     NetIdentityMutationError, add_bodies_deterministic_checked, assign_net_id_checked,
 };
-use crate::world::PhysicsWorld;
+use crate::world::{PhysicsCallback, PhysicsWorld};
 
 /// Durable identity of the physical authority/persistence lineage that owns a
 /// namespace of world generations.
@@ -89,6 +90,59 @@ impl PhysicsBodySubject {
     }
 }
 
+/// Authority-issued ordering stamp for one normally completed physics step.
+///
+/// The fields are private and there is no public constructor. A caller can hold
+/// or copy a stamp already issued by `PhysicsAuthorityWorld`, but cannot mint a
+/// detached claimed step through the public safe API.
+///
+/// `step_index` is an ordering counter within one exact `mutation_epoch`; it is
+/// not elapsed physical time.
+#[derive(Copy, Clone, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
+pub struct AuthorityStepStamp {
+    physical_authority_id: PhysicalAuthorityId,
+    world_generation_id: WorldGenerationId,
+    mutation_epoch: u64,
+    step_index: u64,
+}
+
+impl AuthorityStepStamp {
+    pub const fn physical_authority_id(self) -> PhysicalAuthorityId {
+        self.physical_authority_id
+    }
+
+    pub const fn world_generation_id(self) -> WorldGenerationId {
+        self.world_generation_id
+    }
+
+    pub const fn mutation_epoch(self) -> u64 {
+        self.mutation_epoch
+    }
+
+    pub const fn step_index(self) -> u64 {
+        self.step_index
+    }
+}
+
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
+pub enum PhysicsAuthorityTemporalError {
+    NonFiniteDeltaTime,
+    NonPositiveDeltaTime,
+    MutationEpochExhausted,
+    StepIndexExhausted,
+    InterruptedStepTainted,
+}
+
+impl From<TemporalCounterError> for PhysicsAuthorityTemporalError {
+    fn from(value: TemporalCounterError) -> Self {
+        match value {
+            TemporalCounterError::MutationEpochExhausted => Self::MutationEpochExhausted,
+            TemporalCounterError::StepIndexExhausted => Self::StepIndexExhausted,
+            TemporalCounterError::InterruptedStepTainted => Self::InterruptedStepTainted,
+        }
+    }
+}
+
 /// Physics-owned binding of one live `PhysicsWorld` to its authority lineage
 /// and runtime generation.
 ///
@@ -98,6 +152,7 @@ pub struct PhysicsAuthorityWorld<const D: usize> {
     physical_authority_id: PhysicalAuthorityId,
     world_generation_id: WorldGenerationId,
     world: PhysicsWorld<D>,
+    temporal: AuthorityTemporalState,
 }
 
 impl<const D: usize> PhysicsAuthorityWorld<D> {
@@ -110,6 +165,7 @@ impl<const D: usize> PhysicsAuthorityWorld<D> {
             physical_authority_id,
             world_generation_id,
             world,
+            temporal: AuthorityTemporalState::new(),
         }
     }
 
@@ -125,26 +181,124 @@ impl<const D: usize> PhysicsAuthorityWorld<D> {
         &self.world
     }
 
+    /// Obtain broad mutable access to the raw physics world while explicitly
+    /// breaking temporal continuity.
+    ///
+    /// The mutation epoch advances before the borrow is granted, the authorized
+    /// step index resets to zero, and any last authorized-step stamp is
+    /// invalidated. This is conservative: even if the caller ultimately makes no
+    /// change, temporal continuity is intentionally not preserved across the raw
+    /// mutation escape hatch.
+    pub fn try_world_mut(
+        &mut self,
+    ) -> Result<&mut PhysicsWorld<D>, PhysicsAuthorityTemporalError> {
+        let next_epoch = self.temporal.next_mutation_epoch()?;
+        self.temporal.commit_mutation_epoch(next_epoch);
+        Ok(&mut self.world)
+    }
+
+    /// Source-compatible raw mutable-world escape hatch.
+    ///
+    /// Prefer [`Self::try_world_mut`] when epoch-exhaustion handling matters. The
+    /// compatibility wrapper still fails closed: it panics before granting a
+    /// mutable borrow if the epoch counter is exhausted, and never wraps.
     pub fn world_mut(&mut self) -> &mut PhysicsWorld<D> {
-        &mut self.world
+        self.try_world_mut()
+            .expect("physics authority mutation epoch exhausted")
     }
 
     pub fn into_world(self) -> PhysicsWorld<D> {
         self.world
     }
 
+    /// Most recent normally completed authority-owned step in the current
+    /// mutation epoch.
+    ///
+    /// Returns `None` before the first authorized step, after any raw/non-step
+    /// mutation boundary, and while/after an interrupted step until the lineage
+    /// is explicitly reset by a mutation-epoch break.
+    pub fn last_authorized_step_stamp(&self) -> Option<AuthorityStepStamp> {
+        if !self.temporal.has_authorized_step() {
+            return None;
+        }
+        Some(self.current_step_stamp())
+    }
+
+    /// Execute exactly one authority-owned pure-physics step and issue its
+    /// ordering stamp after normal completion.
+    pub fn step_authorized(
+        &mut self,
+        dt: f64,
+    ) -> Result<AuthorityStepStamp, PhysicsAuthorityTemporalError> {
+        Self::validate_step_dt(dt)?;
+        let next_step = self.temporal.begin_step()?;
+        self.world.step(dt);
+        self.temporal.commit_step(next_step);
+        Ok(self.current_step_stamp())
+    }
+
+    /// Execute exactly one authority-owned callback-coupled physics step and
+    /// issue its ordering stamp after normal completion.
+    ///
+    /// If the underlying step or callback panics and downstream catches the
+    /// unwind, the temporal state remains tainted: no last stamp is exposed and
+    /// another authorized step is rejected until a mutation-epoch break occurs.
+    pub fn step_authorized_with_callback(
+        &mut self,
+        dt: f64,
+        callback: &mut dyn PhysicsCallback<D>,
+    ) -> Result<AuthorityStepStamp, PhysicsAuthorityTemporalError> {
+        Self::validate_step_dt(dt)?;
+        let next_step = self.temporal.begin_step()?;
+        self.world.step_with_callback(dt, callback);
+        self.temporal.commit_step(next_step);
+        Ok(self.current_step_stamp())
+    }
+
+    fn validate_step_dt(dt: f64) -> Result<(), PhysicsAuthorityTemporalError> {
+        if !dt.is_finite() {
+            return Err(PhysicsAuthorityTemporalError::NonFiniteDeltaTime);
+        }
+        if dt <= 0.0 {
+            return Err(PhysicsAuthorityTemporalError::NonPositiveDeltaTime);
+        }
+        Ok(())
+    }
+
+    fn current_step_stamp(&self) -> AuthorityStepStamp {
+        AuthorityStepStamp {
+            physical_authority_id: self.physical_authority_id,
+            world_generation_id: self.world_generation_id,
+            mutation_epoch: self.temporal.mutation_epoch(),
+            step_index: self.temporal.step_index(),
+        }
+    }
+
+    fn preflight_nonstep_mutation_epoch(&self) -> u64 {
+        self.temporal
+            .next_mutation_epoch()
+            .expect("physics authority mutation epoch exhausted")
+    }
+
     /// Bind one previously-unbound live body to a stable `NetId` within this
     /// exact physical authority and world generation.
     ///
-    /// The underlying mutation follows the checked bind-once law (`None -> N`
-    /// allowed, `N -> N` idempotent, `N -> M` rejected). On success, the caller
-    /// receives the exact authority/generation-bound subject that was created.
+    /// A binding that actually changes identity state is a non-step authority
+    /// mutation and therefore advances the mutation epoch. An already-idempotent
+    /// `N -> N` bind preserves the epoch.
     pub fn bind_net_id(
         &mut self,
         handle: BodyHandle,
         net_id: NetId,
     ) -> Result<PhysicsBodySubject, NetIdentityMutationError> {
+        let changes_identity = self.world.net_id_for_handle(handle) != Some(net_id);
+        let next_epoch = changes_identity.then(|| self.preflight_nonstep_mutation_epoch());
+
         assign_net_id_checked(&mut self.world, handle, net_id)?;
+
+        if let Some(next_epoch) = next_epoch {
+            self.temporal.commit_mutation_epoch(next_epoch);
+        }
 
         debug_assert_eq!(self.world.net_id_for_handle(handle), Some(net_id));
         debug_assert_eq!(self.world.handle_for_net_id(net_id), Some(handle));
@@ -158,14 +312,20 @@ impl<const D: usize> PhysicsAuthorityWorld<D> {
 
     /// Insert a deterministic batch under this exact authority/generation.
     ///
-    /// The complete identity set is preflighted before insertion by the checked
-    /// coordinator. Successful results pair each ephemeral runtime handle with
-    /// the stable authority/generation-bound subject for that inserted body.
+    /// A non-empty successful insertion is a non-step world mutation and
+    /// therefore advances the mutation epoch. Empty batches preserve it.
     pub fn add_bodies_deterministic(
         &mut self,
         bodies: Vec<(NetId, RigidBody<D>)>,
     ) -> Result<Vec<(BodyHandle, PhysicsBodySubject)>, NetIdentityMutationError> {
+        let mutates_world = !bodies.is_empty();
+        let next_epoch = mutates_world.then(|| self.preflight_nonstep_mutation_epoch());
         let handles = add_bodies_deterministic_checked(&mut self.world, bodies)?;
+
+        if let Some(next_epoch) = next_epoch {
+            self.temporal.commit_mutation_epoch(next_epoch);
+        }
+
         let mut bindings = Vec::with_capacity(handles.len());
 
         for handle in handles {

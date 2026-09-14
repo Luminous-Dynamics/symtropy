@@ -17,6 +17,7 @@
 pub mod articulation;
 pub mod authority_endpoint;
 pub mod authority_observation;
+mod authority_time;
 pub mod body;
 pub mod broadphase;
 pub mod ccd;
@@ -51,8 +52,8 @@ pub use contact::{CollisionEvent, ContactCache, ContactManifold, SensorEvent};
 pub use diagnostics::{InvariantDrift, InvariantSnapshot};
 pub use epa::EpaResult;
 pub use identity_authority::{
-    PhysicalAuthorityId, PhysicsAuthorityWorld, PhysicsBodySubject, PhysicsIdentityError,
-    ValidatedNetBody, WorldGenerationId,
+    AuthorityStepStamp, PhysicalAuthorityId, PhysicsAuthorityTemporalError, PhysicsAuthorityWorld,
+    PhysicsBodySubject, PhysicsIdentityError, ValidatedNetBody, WorldGenerationId,
 };
 pub use identity_mutation::NetIdentityMutationError;
 pub use integrator::nan_zeroed_count;
