@@ -62,6 +62,7 @@ mod thermodynamic_atomic_friction_tests;
 mod thermodynamic_atomic_rollback_bound_tests;
 #[cfg(test)]
 mod thermodynamic_physical_ledger_tests;
+pub(crate) mod thermodynamic_physical_admission;
 pub mod thermodynamic_reservation_fault;
 pub mod thermodynamic_runtime;
 #[cfg(test)]
