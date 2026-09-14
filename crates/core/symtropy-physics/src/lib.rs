@@ -16,6 +16,7 @@
 //! - `body_energy_2d` — checked 2D kinetic-energy evidence under the current solver convention
 //! - `angular_dynamics` — validated 3D principal-inertia/asymmetric-top reference dynamics
 //! - `world_energy_3d` — canonical checked 3D kinetic-energy evidence over live world state
+//! - `mechanical_units` — explicit checked M-L-T calibration from solver energy to SI Joules
 //! - `friction_coordinates` — solver-local friction identity without fixed-tick authority
 //! - `friction_authority` — pluggable solver friction application/evidence authority
 //! - `friction_step` — checked native-index dispatch + typed authority failures
@@ -62,6 +63,7 @@ pub mod integrator;
 pub mod island;
 pub mod joints;
 pub mod manifold_gen;
+pub mod mechanical_units;
 pub mod raycast;
 pub mod replay;
 pub mod support_map;
@@ -132,6 +134,7 @@ pub use friction_transaction::{
 };
 pub use integrator::nan_zeroed_count;
 pub use joints::{BallJoint, FixedJoint, HingeJoint, MotorDrive, PrismaticJoint};
+pub use mechanical_units::{MechanicalUnitCalibration, MechanicalUnitCalibrationError};
 pub use replay::{
     ReplayTape, WorldCommand, WorldSnapshot, apply_commands, apply_commands_audited,
 };
