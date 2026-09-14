@@ -1,0 +1,244 @@
+name: Terrain Authority Convergence Qualification
+
+on:
+  push:
+    branches:
+      - "ci/terrain-authority-convergence-qual-346852c"
+    paths:
+      - ".github/workflows/terrain-authority-convergence-qualification.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: terrain-authority-convergence-qual-346852c
+  cancel-in-progress: true
+
+jobs:
+  qualify:
+    name: Qualify exact formatted two-parent Terrain authority convergence
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - name: Checkout qualification harness
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Bind exact workflow-only qualifier lineage
+        shell: bash
+        run: |
+          set -euo pipefail
+          product=346852c0b3490df30b1b34ba96d23cb9cf47e5f3
+          qualifier=.github/workflows/terrain-authority-convergence-qualification.yml
+          test "$(git rev-parse HEAD)" = "${GITHUB_SHA}"
+          test "$(git rev-parse HEAD^)" = "${product}"
+          test "$(git diff --name-only "${product}..HEAD")" = "${qualifier}"
+          test -z "$(git rev-list --merges "${product}..HEAD")"
+
+      - name: Checkout immutable convergence product
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: 346852c0b3490df30b1b34ba96d23cb9cf47e5f3
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Bind exact parents tree blobs and composition delta
+        shell: bash
+        run: |
+          set -euo pipefail
+          product=346852c0b3490df30b1b34ba96d23cb9cf47e5f3
+          geometry_parent=4212886ce6a54affcb7812325b25a9f402a10db3
+          metric_parent=552dda82caac15b457b264c07cc3f829658fae83
+          expected_tree=ae6792a9ebad1f10533c43b768c83deaf05587dc
+          lib=crates/domains/symtropy-terrain/src/lib.rs
+          metric=crates/domains/symtropy-terrain/src/terrain_metric.rs
+          public_test=crates/domains/symtropy-terrain/tests/terrain_metric_public.rs
+          stale=crates/domains/symtropy-terrain/src/geometry_authority.rs
+
+          test "$(git rev-parse HEAD)" = "${product}"
+          test "$(git show -s --format=%P HEAD)" = "${geometry_parent} ${metric_parent}"
+          test "$(git rev-parse HEAD^{tree})" = "${expected_tree}"
+          test "$(git rev-parse HEAD:${lib})" = "ead663beacad41e99da28f9c67a6c34f126caa69"
+          test "$(git rev-parse HEAD:${metric})" = "5f6cce3dc034c0b8c0e46dc55e599bd6162841ac"
+          test "$(git rev-parse HEAD:${public_test})" = "20029889212d686d08fd92190a6945eb302d3ce5"
+          test "$(git rev-parse HEAD:crates/domains/symtropy-terrain/src/geometry_kernel.rs)" = "8d3e1213eacdeddf693cd2d1f82670d6ed832161"
+          test "$(git rev-parse HEAD:crates/domains/symtropy-terrain/src/live_geometry_provider.rs)" = "543858ec733429ac41d39bd52eb2e39210806280"
+          test "$(git rev-parse HEAD:crates/domains/symtropy-terrain/src/geometry_currentness.rs)" = "2da7d9b27313ae24b45269171cf58ea6cd528de4"
+          test "$(git rev-parse HEAD:crates/domains/symtropy-terrain/src/live_geometry_query.rs)" = "34995e11c7d82ffa4e18b7fc12927816408e8d1d"
+          test "$(git rev-parse HEAD:crates/domains/symtropy-terrain/Cargo.toml)" = "187fe4020a0c0048ab36404e219a7a5698a856d1"
+          test "$(git rev-parse HEAD:Cargo.lock)" = "62c6eb098b3f6fffdea8a175a0f3afb33423b17b"
+          ! git cat-file -e "HEAD:${stale}" 2>/dev/null
+
+          expected="$(printf '%s\n' "${lib}" "${metric}" "${public_test}" | sort)"
+          actual="$(git diff --name-only "${geometry_parent}..${product}" | sort)"
+          test "${actual}" = "${expected}"
+          test "$(git diff --numstat "${geometry_parent}..${product}" -- "${lib}")" = $'1\t0\t'"${lib}"
+          echo "CARGO_TARGET_DIR=${RUNNER_TEMP}/terrain-authority-convergence-target" >> "${GITHUB_ENV}"
+
+      - name: Install Linux system dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install -y libasound2-dev libudev-dev pkg-config
+
+      - name: Set up pinned Rust
+        uses: dtolnay/rust-toolchain@6bed0761d98439e5a578e2877258200ad565ba87
+        with:
+          toolchain: 1.96.0
+          components: clippy,rustfmt
+
+      - name: Bind toolchain and locked dependency graph
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(rustc --version | awk '{print $2}')" = "1.96.0"
+          test "$(cargo --version | awk '{print $2}')" = "1.96.0"
+          before="$(git hash-object Cargo.lock)"
+          cargo metadata --locked --format-version 1 > "${RUNNER_TEMP}/terrain-authority-convergence-metadata.json"
+          test "$(git hash-object Cargo.lock)" = "${before}"
+
+      - name: Check exact convergence-file formatting
+        shell: bash
+        run: |
+          set -euo pipefail
+          rustfmt --edition 2024 --check \
+            crates/domains/symtropy-terrain/src/lib.rs \
+            crates/domains/symtropy-terrain/src/terrain_metric.rs \
+            crates/domains/symtropy-terrain/tests/terrain_metric_public.rs
+
+      - name: Compile all Terrain targets
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo check -p symtropy-terrain --locked --all-targets
+
+      - name: Re-execute live geometry and metric theorem corpora
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo test -p symtropy-terrain --locked live_geometry_provider::tests -- --nocapture
+          cargo test -p symtropy-terrain --locked geometry_currentness::tests -- --nocapture
+          cargo test -p symtropy-terrain --locked live_geometry_query::tests -- --nocapture
+          cargo test -p symtropy-terrain --locked --test terrain_metric_public -- --nocapture
+
+      - name: Execute complete Terrain regression suite
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo test -p symtropy-terrain --locked --all-targets
+
+      - name: Enforce strict all-target Clippy
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo clippy -p symtropy-terrain --locked --all-targets -- -D warnings
+
+      - name: Audit converged authority surfaces
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+
+          root = Path("crates/domains/symtropy-terrain")
+          src = root / "src"
+          texts = {p.name: p.read_text() for p in sorted(src.glob("*.rs"))}
+          joined = "\n".join(texts.values())
+          lib = texts["lib.rs"]
+          kernel = texts["geometry_kernel.rs"]
+          provider = texts["live_geometry_provider.rs"]
+          metric = texts["terrain_metric.rs"]
+          manifest = (root / "Cargo.toml").read_text()
+
+          if (src / "geometry_authority.rs").exists():
+              raise SystemExit("superseded geometry authority reappeared")
+          if "TerrainGeometrySnapshot::capture(" in joined:
+              raise SystemExit("caller-coordinate capture surface reappeared")
+
+          expected_defs = {
+              "TerrainGeometrySnapshot": "geometry_kernel.rs",
+              "EarthChunkLatticeCoord": "geometry_kernel.rs",
+              "EarthChunkLatticeLocus": "live_geometry_provider.rs",
+          }
+          for ty, expected in expected_defs.items():
+              owners = [name for name, text in texts.items() if re.search(rf"\bstruct\s+{ty}\b", text)]
+              if owners != [expected]:
+                  raise SystemExit(f"unexpected {ty} definitions: {owners!r}")
+
+          if "pub struct EarthChunkLatticeCoord" not in kernel:
+              raise SystemExit("canonical exact coordinate type missing")
+
+          prefix = provider.partition("#[cfg(test)]")[0]
+          locus = re.search(
+              r"#\[derive\((?P<derives>[^)]*)\)\]\s*pub\(crate\)\s+struct\s+EarthChunkLatticeLocus\b",
+              prefix,
+              flags=re.S,
+          )
+          if locus is None:
+              raise SystemExit("crate-owned locus declaration changed")
+          if "Reflect" in {x.strip() for x in locus.group("derives").split(",")}:
+              raise SystemExit("locus gained Reflect derive")
+          if re.search(r"\bimpl\s+Reflect\s+for\s+EarthChunkLatticeLocus\b", joined):
+              raise SystemExit("locus gained Reflect implementation")
+          if re.search(r"register_type\s*::\s*<\s*EarthChunkLatticeLocus\s*>", joined):
+              raise SystemExit("locus gained type registration")
+          if re.search(r"pub\s+struct\s+EarthChunkLatticeLocus", prefix):
+              raise SystemExit("locus became publicly mintable")
+
+          capture = re.compile(
+              r"pub fn capture_live_terrain_geometry\(\s*world:\s*&World,\s*entity:\s*Entity,\s*\)\s*->",
+              re.S,
+          )
+          if len(capture.findall(provider)) != 1:
+              raise SystemExit("live capture signature changed or duplicated")
+
+          required = (
+              "mod geometry_currentness;",
+              "pub mod geometry_kernel;",
+              "mod live_geometry_provider;",
+              "mod live_geometry_query;",
+              "pub mod terrain_metric;",
+              "verify_live_terrain_geometry_current",
+              "capture_live_terrain_geometry",
+              "query_live_terrain_geometry",
+          )
+          if any(lib.count(term) != 1 for term in required):
+              raise SystemExit("converged Terrain wiring changed")
+
+          prod_metric = metric.partition("#[cfg(test)]")[0]
+          if "impl Default for TerrainMetricProfile" in prod_metric:
+              raise SystemExit("metric profile gained a default")
+          if re.search(r"(?:Resource|Component)\b.*TerrainMetricProfile", prod_metric, re.S):
+              raise SystemExit("metric profile gained ECS writer authority")
+          if any(x in prod_metric for x in ("GlobalTransform", "Vec3", "Collider")):
+              raise SystemExit("metric vocabulary gained runtime inference")
+          if "symtropy-spatial-decomposition" in manifest or "symtropy_spatial_decomposition" in joined:
+              raise SystemExit("Terrain convergence gained PB dependency")
+
+          print("TERRAIN_GEOMETRY_AUTHORITY_STACK=PASS")
+          print("TERRAIN_METRIC_PUBLIC_READ_SURFACE=PASS")
+          print("TERRAIN_METRIC_SELECTION_AUTHORITY=ABSENT")
+          print("TERRAIN_PB_DEPENDENCY=ABSENT")
+          print("TERRAIN_AUTHORITY_CONVERGENCE=PASS")
+          PY
+
+      - name: Exact immutable-product postflight
+        shell: bash
+        run: |
+          set -euo pipefail
+          product=346852c0b3490df30b1b34ba96d23cb9cf47e5f3
+          test -z "$(git status --porcelain)"
+          test "$(git rev-parse HEAD)" = "${product}"
+          test "$(git show -s --format=%P HEAD)" = "4212886ce6a54affcb7812325b25a9f402a10db3 552dda82caac15b457b264c07cc3f829658fae83"
+          test "$(git rev-parse HEAD^{tree})" = "ae6792a9ebad1f10533c43b768c83deaf05587dc"
+          test "$(git rev-parse HEAD:crates/domains/symtropy-terrain/src/lib.rs)" = "ead663beacad41e99da28f9c67a6c34f126caa69"
+          test "$(git rev-parse HEAD:crates/domains/symtropy-terrain/src/terrain_metric.rs)" = "5f6cce3dc034c0b8c0e46dc55e599bd6162841ac"
+          test "$(git rev-parse HEAD:crates/domains/symtropy-terrain/tests/terrain_metric_public.rs)" = "20029889212d686d08fd92190a6945eb302d3ce5"
+          test ! -e crates/domains/symtropy-terrain/src/geometry_authority.rs
+          git diff --exit-code
+          echo "TERRAIN_AUTHORITY_CONVERGENCE_EXACT_PRODUCT=PASS"
