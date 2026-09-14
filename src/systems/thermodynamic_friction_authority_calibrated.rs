@@ -34,7 +34,11 @@ fn close_enough_physical(a: f64, b: f64, scale: f64) -> bool {
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub(crate) enum CalibratedFrictionAdmissionMismatch {
-    DynamicParticipantOutsideReadiness { body: BodyHandle },
+    ParticipantDynamicCensusMismatch {
+        body: BodyHandle,
+        admitted_dynamic: bool,
+        current_dynamic: bool,
+    },
 }
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
@@ -61,11 +65,10 @@ pub(crate) enum CalibratedThermodynamicFrictionAuthorityError {
 
 /// Borrowed production friction authority for one admitted physics consequence.
 ///
-/// The readiness receipt is consumed at construction so callers cannot construct
-/// this authority from a naked calibration while bypassing the canonical dynamic
-/// thermal census. The receipt remains owned by the authority for the duration of
-/// the consequence, preventing a second caller from reusing the same value as an
-/// independent authority token.
+/// The non-cloneable readiness receipt is consumed at construction so ordinary
+/// safe callers cannot construct this authority from a naked calibration, bypass
+/// the canonical dynamic thermal census, or fan one admission out into multiple
+/// independent physical-friction authorities.
 pub(crate) struct CalibratedThermodynamicFrictionAuthority<'a> {
     runtime: &'a mut ThermodynamicTransactionRuntime,
     partition: HeatPartition,
@@ -92,20 +95,30 @@ impl<'a> CalibratedThermodynamicFrictionAuthority<'a> {
         Self::new(runtime, HeatPartition::equal(), readiness)
     }
 
-    fn require_admitted_dynamic_participant(
+    /// Require the current participant's dynamic/static classification to agree
+    /// with the exact pre-consequence dynamic census.
+    ///
+    /// This is deliberately symmetric. It rejects both a late dynamic insertion
+    /// (`false -> true`) and an admitted dynamic body that was silently converted
+    /// to static/kinematic (`true -> false`). Static/kinematic participants that
+    /// were already outside the dynamic census remain admissible for the existing
+    /// external-boundary diagnostic path.
+    fn require_admitted_participant_census(
         &self,
         body: &RigidBody<2>,
     ) -> Result<(), CalibratedFrictionAdmissionMismatch> {
-        if body.is_dynamic()
-            && self
-                .readiness
-                .dynamic_handles()
-                .binary_search(&body.handle)
-                .is_err()
-        {
+        let admitted_dynamic = self
+            .readiness
+            .dynamic_handles()
+            .binary_search(&body.handle)
+            .is_ok();
+        let current_dynamic = body.is_dynamic();
+        if admitted_dynamic != current_dynamic {
             return Err(
-                CalibratedFrictionAdmissionMismatch::DynamicParticipantOutsideReadiness {
+                CalibratedFrictionAdmissionMismatch::ParticipantDynamicCensusMismatch {
                     body: body.handle,
+                    admitted_dynamic,
+                    current_dynamic,
                 },
             );
         }
@@ -117,8 +130,8 @@ impl<'a> CalibratedThermodynamicFrictionAuthority<'a> {
         body_a: &RigidBody<2>,
         body_b: &RigidBody<2>,
     ) -> Result<(), CalibratedFrictionAdmissionMismatch> {
-        self.require_admitted_dynamic_participant(body_a)?;
-        self.require_admitted_dynamic_participant(body_b)?;
+        self.require_admitted_participant_census(body_a)?;
+        self.require_admitted_participant_census(body_b)?;
         Ok(())
     }
 
@@ -333,8 +346,8 @@ mod tests {
     use super::*;
     use symtropy_math::Point;
     use symtropy_physics::{
-        FrictionDiagnosticReason, FrictionTransactionId, FrictionTransactionPhase, PhysicsWorld,
-        ThermalBody, ThermalMaterial, ThermalState,
+        BodyType, FrictionDiagnosticReason, FrictionTransactionId, FrictionTransactionPhase,
+        PhysicsWorld, ThermalBody, ThermalMaterial, ThermalState,
     };
 
     use super::super::thermodynamic_physical_admission::admit_physical_friction_readiness;
@@ -426,7 +439,7 @@ mod tests {
     }
 
     #[test]
-    fn dynamic_participant_added_after_readiness_is_rejected_before_mechanics() {
+    fn late_dynamic_participant_is_rejected_before_mechanics() {
         let mut runtime = ThermodynamicTransactionRuntime::new();
         runtime.begin_next_tick().unwrap();
         let (mut a, _b, readiness) = admitted_pair(1.0, 0.0);
@@ -459,8 +472,10 @@ mod tests {
         assert!(matches!(
             error,
             CalibratedThermodynamicFrictionAuthorityError::Admission(
-                CalibratedFrictionAdmissionMismatch::DynamicParticipantOutsideReadiness {
-                    body: BodyHandle(99)
+                CalibratedFrictionAdmissionMismatch::ParticipantDynamicCensusMismatch {
+                    body: BodyHandle(99),
+                    admitted_dynamic: false,
+                    current_dynamic: true,
                 }
             )
         ));
@@ -469,6 +484,49 @@ mod tests {
             (late.linear_velocity, late.angular_velocity, late.thermal),
             before_late
         );
+        assert!(runtime.friction_journal().is_empty());
+        assert!(runtime.physical_energy_ledger().is_empty());
+        assert!(runtime.is_authority_poisoned());
+    }
+
+    #[test]
+    fn admitted_dynamic_body_type_drift_is_rejected_before_mechanics() {
+        let mut runtime = ThermodynamicTransactionRuntime::new();
+        runtime.begin_next_tick().unwrap();
+        let (mut a, mut b, readiness) = admitted_pair(1.0, 0.0);
+        let drifted_handle = a.handle;
+        a.body_type = BodyType::Static;
+        let before_a = (a.linear_velocity, a.angular_velocity, a.thermal);
+        let before_b = (b.linear_velocity, b.angular_velocity, b.thermal);
+
+        let error = {
+            let mut authority = CalibratedThermodynamicFrictionAuthority::equal(
+                &mut runtime,
+                readiness,
+            );
+            authority
+                .execute_friction_impulse(
+                    &mut a,
+                    &mut b,
+                    &SVector::zeros(),
+                    &SVector::from([0.5, 0.0]),
+                    FrictionSolverCoordinates::new(0, 0, 0),
+                )
+                .unwrap_err()
+        };
+
+        assert!(matches!(
+            error,
+            CalibratedThermodynamicFrictionAuthorityError::Admission(
+                CalibratedFrictionAdmissionMismatch::ParticipantDynamicCensusMismatch {
+                    body,
+                    admitted_dynamic: true,
+                    current_dynamic: false,
+                } if body == drifted_handle
+            )
+        ));
+        assert_eq!((a.linear_velocity, a.angular_velocity, a.thermal), before_a);
+        assert_eq!((b.linear_velocity, b.angular_velocity, b.thermal), before_b);
         assert!(runtime.friction_journal().is_empty());
         assert!(runtime.physical_energy_ledger().is_empty());
         assert!(runtime.is_authority_poisoned());
