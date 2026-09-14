@@ -4,8 +4,8 @@ use symtropy_evolution_core::{AnalysisAuthorityRef, AnalysisContentDigest, Analy
 use symtropy_species_concept_robustness::{
     CrossModelOutcomeAvailabilityLedger, ModelOutcomeAvailabilityDisposition,
     OutcomeAvailabilityError, OutcomeAvailabilityPolicy, OutcomeAvailabilityPolicyId,
-    OutcomeUnavailabilityInput, ValidatedCrossModelOutcomeAvailability,
-    ValidatedOutcomeAvailabilityPolicy,
+    OutcomeUnavailabilityInput, SpeciesModelDesignRecord,
+    ValidatedCrossModelOutcomeAvailability, ValidatedOutcomeAvailabilityPolicy,
 };
 
 fn availability_auth(label: &str, byte: u8) -> AnalysisAuthorityRef {
