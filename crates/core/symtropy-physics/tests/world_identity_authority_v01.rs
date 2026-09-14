@@ -34,7 +34,7 @@ fn exact_authority_generation_and_net_id_resolve_one_live_body() {
 
     assert_eq!(validated.subject(), subject);
     assert_eq!(validated.net_id(), net_id);
-    assert_eq!(validated.body().net_id, Some(net_id));
+    assert_eq!(validated.body().net_id(), Some(net_id));
     assert_eq!(validated.body().handle, validated.runtime_handle());
 }
 
@@ -95,29 +95,6 @@ fn duplicate_live_net_id_fails_closed_even_if_index_points_to_one_body() {
     assert!(matches!(
         world.validate_subject(subject),
         Err(PhysicsIdentityError::AmbiguousNetId { net_id: observed }) if observed == net_id
-    ));
-}
-
-#[test]
-fn direct_body_identity_mutation_that_leaves_stale_index_fails_closed() {
-    let indexed_id = NetId(45);
-    let mutated_id = NetId(46);
-    let authority = authority(4001);
-    let generation = generation(1);
-    let mut raw = PhysicsWorld::<3>::default();
-    let handle = raw.add_sphere(Point::origin(), 0.5, 1.0);
-    raw.set_net_id(handle, indexed_id);
-    raw.body_mut(handle).expect("body exists").net_id = Some(mutated_id);
-
-    let world = PhysicsAuthorityWorld::new(authority, generation, raw);
-    let subject = PhysicsBodySubject::new(authority, generation, mutated_id);
-
-    assert!(matches!(
-        world.validate_subject(subject),
-        Err(PhysicsIdentityError::IdentityIndexMissing {
-            net_id: observed,
-            handle: observed_handle,
-        }) if observed == mutated_id && observed_handle == handle
     ));
 }
 
