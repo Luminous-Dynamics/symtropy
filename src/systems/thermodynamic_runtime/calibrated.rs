@@ -8,11 +8,14 @@
 //! accounting state. The existing SI-assumed runtime path remains unchanged as a
 //! compatibility/reference lineage.
 
+mod stable_2d;
+
 use nalgebra::SVector;
 use symtropy_physics::{
-    AppliedFrictionTransaction, CalibratedFrictionPromotionError,
-    FrictionApplicationRollbackError, FrictionPromotionReceipt, FrictionSolverCoordinates,
-    HeatPartition, MechanicalUnitCalibration, RigidBody,
+    AppliedFrictionTransaction, AppliedFrictionTransition2dError,
+    CalibratedFrictionPromotionError, FrictionApplicationRollbackError,
+    FrictionPromotionReceipt, FrictionSolverCoordinates, HeatPartition, MechanicalUnitCalibration,
+    RigidBody, StableCalibratedFrictionPromotion2dError,
     promote_applied_friction_loss_to_heat_calibrated, rollback_applied_friction_impulse,
 };
 
@@ -26,13 +29,18 @@ use super::{
 /// The type remains publicly nameable for diagnostics, but the calibrated runtime
 /// methods that can produce it are crate-private. External callers therefore cannot
 /// bypass the readiness-bound solver authority with a naked calibration. Existing
-/// runtime failures remain distinguishable from explicit calibrated promotion
-/// failures. If terminalization rejects and exact mechanical rollback also refuses,
-/// both causes are retained.
+/// runtime failures remain distinguishable from explicit calibrated promotion failures.
+/// Stable 2D transition/promotion failures extend this same authority surface rather
+/// than creating a parallel runtime error hierarchy. If terminalization rejects and
+/// exact mechanical rollback also refuses, both causes are retained.
 #[derive(Debug)]
 pub enum CalibratedRuntimeFrictionError {
     Runtime(RuntimeFrictionError),
     Promotion(CalibratedFrictionPromotionError),
+    StableTransition(AppliedFrictionTransition2dError),
+    StablePromotion(StableCalibratedFrictionPromotion2dError),
+    CenteredStableInjectionHistoricalMismatch,
+    CenteredStableNeutralHistoricalMismatch,
     Rollback {
         terminalization: Box<CalibratedRuntimeFrictionError>,
         rollback: FrictionApplicationRollbackError,
