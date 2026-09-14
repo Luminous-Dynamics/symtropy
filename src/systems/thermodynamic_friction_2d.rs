@@ -4,28 +4,29 @@
 //! Launcher-local 2D friction execution bridge.
 //!
 //! This adapter composes the private fixed-tick reservation authority with the
-//! checked solver-consistent 2D pair-energy measurement path. It deliberately
+//! stable checked solver-consistent 2D transition-energy path. It deliberately
 //! does not decide heat promotion or diagnostic terminalization: the returned
 //! `AppliedFrictionTransaction<2>` remains the continuation authority for those
 //! later policy decisions.
 
 use nalgebra::SVector;
 use symtropy_physics::{
-    AppliedFrictionTransaction, FrictionPairEnergy2dError, FrictionPairEnergyChange2d,
-    FrictionSolverCoordinates, RigidBody, capture_friction_pair_energy_2d_checked,
-    classify_friction_pair_energy_change_2d_checked,
+    AppliedFrictionTransaction, FrictionPairTransitionEnergy2d, FrictionSolverCoordinates,
+    FrictionTransitionEnergy2dError, RigidBody,
+    capture_friction_pair_transition_basis_2d_checked,
+    classify_friction_pair_transition_2d_checked,
 };
 
 use super::thermodynamic_runtime::{RuntimeFrictionError, ThermodynamicTransactionRuntime};
 
 #[derive(Copy, Clone, Debug, PartialEq)]
 pub enum CheckedFrictionEnergy2d {
-    Qualified(FrictionPairEnergyChange2d),
-    Unavailable(FrictionPairEnergy2dError),
+    Qualified(FrictionPairTransitionEnergy2d),
+    Unavailable(FrictionTransitionEnergy2dError),
 }
 
-/// One successfully applied runtime friction transaction plus independent checked
-/// 2D mechanical-energy evidence when that measurement was available.
+/// One successfully applied runtime friction transaction plus stable checked 2D
+/// mechanical-transition evidence when that measurement was available.
 ///
 /// The applied token is intentionally non-cloneable through its core type. A
 /// caller must still terminalize it through physical promotion or the admissible
@@ -37,7 +38,11 @@ pub struct RuntimeFrictionExecution2d {
 }
 
 /// Reserve and apply one exact 2D friction impulse under the open fixed tick,
-/// while measuring solver-consistent A/B pair energy independently.
+/// while measuring solver-consistent A/B transition energy independently.
+///
+/// The transition theorem uses factored local deltas instead of subtracting large
+/// absolute kinetic-energy totals, so a small friction event is not rounded away
+/// by a much larger unchanged mechanical baseline.
 ///
 /// Checked measurement is observational: if pre-measurement is unavailable but
 /// the runtime/core mechanics are otherwise valid, the impulse still executes and
@@ -52,7 +57,7 @@ pub fn execute_runtime_friction_impulse_2d(
     impulse_on_b: &SVector<f64, 2>,
     coordinates: FrictionSolverCoordinates,
 ) -> Result<RuntimeFrictionExecution2d, RuntimeFrictionError> {
-    let before = capture_friction_pair_energy_2d_checked(body_a, body_b);
+    let before = capture_friction_pair_transition_basis_2d_checked(body_a, body_b);
 
     let reservation = runtime.reserve_friction_impulse_at(
         body_a.handle,
@@ -65,9 +70,9 @@ pub fn execute_runtime_friction_impulse_2d(
 
     let checked_energy = match before {
         Err(error) => CheckedFrictionEnergy2d::Unavailable(error),
-        Ok(before) => match capture_friction_pair_energy_2d_checked(body_a, body_b) {
+        Ok(before) => match capture_friction_pair_transition_basis_2d_checked(body_a, body_b) {
             Err(error) => CheckedFrictionEnergy2d::Unavailable(error),
-            Ok(after) => match classify_friction_pair_energy_change_2d_checked(before, after) {
+            Ok(after) => match classify_friction_pair_transition_2d_checked(before, after) {
                 Ok(change) => CheckedFrictionEnergy2d::Qualified(change),
                 Err(error) => CheckedFrictionEnergy2d::Unavailable(error),
             },
@@ -85,8 +90,8 @@ mod tests {
     use super::*;
     use symtropy_math::{Point, Sphere, Transform};
     use symtropy_physics::{
-        BodyHandle, BodyType, FrictionDiagnosticReason, FrictionPairEnergyDelta2d,
-        RigidBodyEnergy2dError,
+        BodyHandle, BodyType, FrictionDiagnosticReason, FrictionMechanicalDelta,
+        FrictionTransitionDelta2d, RigidBodyEnergy2dError,
     };
 
     fn sphere(handle: usize, velocity_x: f64) -> RigidBody<2> {
@@ -112,7 +117,7 @@ mod tests {
     }
 
     #[test]
-    fn centered_runtime_application_returns_checked_loss_and_pending_token() {
+    fn centered_runtime_application_returns_stable_checked_loss_and_pending_token() {
         let mut runtime = ThermodynamicTransactionRuntime::new();
         runtime.begin_next_tick().unwrap();
         let mut a = sphere(1, 1.0);
@@ -133,9 +138,11 @@ mod tests {
             CheckedFrictionEnergy2d::Qualified(change) => {
                 assert_eq!(
                     change.delta,
-                    FrictionPairEnergyDelta2d::DissipationCandidate { joules: 0.25 }
+                    FrictionTransitionDelta2d::DissipationCandidate { solver_energy: 0.25 }
                 );
-                assert_eq!(change.pair_delta_joules, -0.25);
+                assert_eq!(change.pair_delta_solver, -0.25);
+                assert_eq!(change.kinetic_change_a_solver, -0.375);
+                assert_eq!(change.kinetic_change_b_solver, 0.125);
             }
             CheckedFrictionEnergy2d::Unavailable(error) => {
                 panic!("checked centered evidence unexpectedly unavailable: {error:?}")
@@ -167,13 +174,66 @@ mod tests {
         assert_eq!(
             execution.checked_energy,
             CheckedFrictionEnergy2d::Unavailable(
-                FrictionPairEnergy2dError::BodyA(
+                FrictionTransitionEnergy2dError::BodyA(
                     RigidBodyEnergy2dError::InconsistentInverseMass
                 )
             )
         );
         assert_ne!(a.linear_velocity, a_before);
         assert_ne!(b.linear_velocity, b_before);
+        assert_eq!(runtime.friction_journal().pending_application_count(), 1);
+    }
+
+    #[test]
+    fn huge_rotational_baseline_cannot_hide_centered_loss_from_bridge() {
+        let mut runtime = ThermodynamicTransactionRuntime::new();
+        runtime.begin_next_tick().unwrap();
+        let mut a = RigidBody::new(
+            BodyHandle(1),
+            BodyType::Dynamic,
+            Transform::from_translation(Point::origin()),
+            Box::new(Sphere::<2>::unit()),
+            1.0,
+            SVector::from([2.0, 8.0]),
+        );
+        let mut b = RigidBody::new(
+            BodyHandle(2),
+            BodyType::Dynamic,
+            Transform::from_translation(Point::origin()),
+            Box::new(Sphere::<2>::unit()),
+            1.0,
+            SVector::from([2.0, 8.0]),
+        );
+        a.linear_velocity[0] = 1.0;
+        a.angular_velocity.set(0, 1, 100_000_000.0);
+
+        let execution = execute_runtime_friction_impulse_2d(
+            &mut runtime,
+            &mut a,
+            &mut b,
+            &SVector::zeros(),
+            &SVector::from([0.5, 0.0]),
+            FrictionSolverCoordinates::new(0, 0, 0),
+        )
+        .unwrap();
+
+        // The historical absolute-energy observation rounds this exact local
+        // transition away at this baseline. It must not become 2D amount/routing
+        // authority merely because it was the original applied-token telemetry.
+        assert_eq!(execution.applied.observation().delta, FrictionMechanicalDelta::Neutral);
+
+        match execution.checked_energy {
+            CheckedFrictionEnergy2d::Qualified(change) => {
+                assert_eq!(change.pair_delta_solver, -0.25);
+                assert_eq!(
+                    change.delta,
+                    FrictionTransitionDelta2d::DissipationCandidate { solver_energy: 0.25 }
+                );
+            }
+            CheckedFrictionEnergy2d::Unavailable(error) => {
+                panic!("stable transition unexpectedly unavailable: {error:?}")
+            }
+        }
         assert_eq!(runtime.friction_journal().pending_application_count(), 1);
     }
 
@@ -195,7 +255,7 @@ mod tests {
         .unwrap();
 
         let checked_delta = match execution.checked_energy {
-            CheckedFrictionEnergy2d::Qualified(change) => change.pair_delta_joules,
+            CheckedFrictionEnergy2d::Qualified(change) => change.pair_delta_solver,
             CheckedFrictionEnergy2d::Unavailable(error) => {
                 panic!("checked off-center evidence unexpectedly unavailable: {error:?}")
             }
