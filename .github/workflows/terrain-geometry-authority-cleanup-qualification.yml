@@ -27,7 +27,7 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
 
-      - name: Bind exact qualified ancestry and deletion-only product
+      - name: Bind exact qualified ancestry and workflow-only qualifier lineage
         shell: bash
         run: |
           set -euo pipefail
@@ -44,8 +44,15 @@ jobs:
           live_query_qualifier=.github/workflows/terrain-live-query-qualification.yml
 
           test "$(git rev-parse HEAD)" = "${GITHUB_SHA}"
-          test "$(git rev-parse HEAD^)" = "${product}"
           test "$(git rev-parse ${product}^)" = "${base}"
+          git merge-base --is-ancestor "${product}" HEAD
+          test -z "$(git rev-list --merges "${product}..HEAD")"
+          commits="$(git rev-list --reverse "${product}..HEAD")"
+          test -n "${commits}"
+          while read -r commit; do
+            changed="$(git diff-tree --no-commit-id --name-only -r "${commit}" | sed '/^$/d')"
+            test "${changed}" = "${qualifier}"
+          done <<< "${commits}"
           test "$(git rev-parse ${base}:${stale})" = "9a6ec7076b54d7da9525e31dd8aa2258174ab5ea"
           ! git cat-file -e "${product}:${stale}" 2>/dev/null
           ! git cat-file -e "HEAD:${stale}" 2>/dev/null
@@ -140,7 +147,7 @@ jobs:
           lib = texts.get("lib.rs", "")
           kernel = texts.get("geometry_kernel.rs", "")
           provider = texts.get("live_geometry_provider.rs", "")
-          provider_prod = provider.partition("#[cfg(test)]")[0]
+          provider_before_first_test_only_item = provider.partition("#[cfg(test)]")[0]
 
           if "geometry_authority" in lib:
               raise SystemExit("lib.rs still refers to superseded geometry_authority module")
@@ -166,7 +173,7 @@ jobs:
 
           locus = re.search(
               r"#\[derive\((?P<derives>[^)]*)\)\]\s*pub\(crate\)\s+struct\s+EarthChunkLatticeLocus\b",
-              provider_prod,
+              provider_before_first_test_only_item,
               flags=re.S,
           )
           if locus is None:
@@ -174,23 +181,25 @@ jobs:
           derives = {item.strip() for item in locus.group("derives").split(",")}
           if "Reflect" in derives:
               raise SystemExit("locus authority gained Reflect derive")
-          locus_prefix = provider_prod[max(0, locus.start() - 256):locus.end()]
+          locus_prefix = provider_before_first_test_only_item[max(0, locus.start() - 256):locus.end()]
           if "#[reflect" in locus_prefix:
               raise SystemExit("locus authority gained reflect attribute")
           if re.search(r"\bimpl\s+Reflect\s+for\s+EarthChunkLatticeLocus\b", joined):
               raise SystemExit("locus authority gained explicit Reflect implementation")
           if re.search(r"register_type\s*::\s*<\s*EarthChunkLatticeLocus\s*>", joined):
               raise SystemExit("locus authority gained type registration path")
-          if re.search(r"pub\s+struct\s+EarthChunkLatticeLocus", provider_prod):
+          if re.search(r"pub\s+struct\s+EarthChunkLatticeLocus", provider_before_first_test_only_item):
               raise SystemExit("locus authority became publicly mintable")
 
-          capture_sig = re.search(
+          capture_pattern = re.compile(
               r"pub fn capture_live_terrain_geometry\(\s*world:\s*&World,\s*entity:\s*Entity,\s*\)\s*->",
-              provider_prod,
               flags=re.S,
           )
-          if capture_sig is None:
-              raise SystemExit("live capture signature changed or gained caller-coordinate inputs")
+          captures = list(capture_pattern.finditer(provider))
+          if len(captures) != 1:
+              raise SystemExit(
+                  f"expected exactly one exact live capture signature; found {len(captures)}"
+              )
 
           required_lib = [
               "pub mod geometry_kernel;", "mod live_geometry_provider;",
@@ -213,9 +222,19 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          product=4212886ce6a54affcb7812325b25a9f402a10db3
+          qualifier=.github/workflows/terrain-geometry-authority-cleanup-qualification.yml
           test -z "$(git status --porcelain)"
           test "$(git rev-parse HEAD)" = "${GITHUB_SHA}"
-          test "$(git rev-parse HEAD^)" = "4212886ce6a54affcb7812325b25a9f402a10db3"
+          git merge-base --is-ancestor "${product}" HEAD
+          test -z "$(git rev-list --merges "${product}..HEAD")"
+          commits="$(git rev-list --reverse "${product}..HEAD")"
+          test -n "${commits}"
+          while read -r commit; do
+            changed="$(git diff-tree --no-commit-id --name-only -r "${commit}" | sed '/^$/d')"
+            test "${changed}" = "${qualifier}"
+          done <<< "${commits}"
+          test "$(git diff --name-only "${product}..HEAD")" = "${qualifier}"
           test "$(git rev-parse HEAD:crates/domains/symtropy-terrain/src/geometry_kernel.rs)" = "8d3e1213eacdeddf693cd2d1f82670d6ed832161"
           test "$(git rev-parse HEAD:crates/domains/symtropy-terrain/src/live_geometry_provider.rs)" = "543858ec733429ac41d39bd52eb2e39210806280"
           test "$(git rev-parse HEAD:crates/domains/symtropy-terrain/src/geometry_currentness.rs)" = "2da7d9b27313ae24b45269171cf58ea6cd528de4"
