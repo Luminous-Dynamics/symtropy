@@ -23,7 +23,8 @@
 //! - `friction_energy_2d` — checked signed 2D A/B pair-energy evidence
 //! - `friction_evidence` — signed pre/post mechanical evidence around one friction impulse
 //! - `friction_transaction` — exactly-once friction lifecycle (`Applied` to terminal outcome)
-//! - `friction_promotion` — centered measured-loss promotion into heat + ledger authority
+//! - `friction_promotion` — SI-native centered measured-loss promotion into heat + ledger authority
+//! - `friction_promotion_calibrated` — explicit solver-unit to SI promotion boundary
 //! - `thermal` — conservative thermodynamic primitives and conductive exchange
 //! - `energy` — deterministic double-entry accounting for cross-domain energy transfers
 //! - `energy_checked` — overflow-aware deterministic ledger reductions
@@ -55,6 +56,7 @@ pub mod friction_coordinates;
 pub mod friction_energy_2d;
 pub mod friction_evidence;
 pub mod friction_promotion;
+pub mod friction_promotion_calibrated;
 mod friction_solver_execution;
 pub mod friction_step;
 pub mod friction_transaction;
@@ -122,6 +124,9 @@ pub use friction_evidence::{
 };
 pub use friction_promotion::{
     FrictionPromotionError, FrictionPromotionReceipt, promote_applied_friction_loss_to_heat,
+};
+pub use friction_promotion_calibrated::{
+    CalibratedFrictionPromotionError, promote_applied_friction_loss_to_heat_calibrated,
 };
 pub use friction_step::{
     FrictionAuthorityFailure, FrictionStepError, execute_friction_impulse_at_indices,
