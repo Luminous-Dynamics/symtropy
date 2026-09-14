@@ -19,7 +19,7 @@ use nalgebra::SVector;
 use serde::{Deserialize, Serialize};
 use symtropy_math::Bivector;
 
-use crate::body::{BodyHandle, RigidBody};
+use crate::body::{BodyHandle, BodyType, RigidBody};
 use crate::integrator;
 
 const CENTERED_OFFSET_EPSILON_SQUARED: f64 = 1.0e-24;
@@ -115,22 +115,58 @@ impl<const D: usize> FrictionMechanicalObservation<D> {
     }
 }
 
+/// Exact mechanical authority state that must remain unchanged between application
+/// and terminalization of one bound friction transaction.
+///
+/// This deliberately binds only state that changes the interpretation or
+/// admissibility of the mechanical transition. Damping, friction coefficients,
+/// masks, sensors and other unrelated future-step policy are not part of this
+/// immediate applied-transition freshness theorem.
+#[derive(Copy, Clone, Debug, PartialEq)]
+struct BoundMechanicalAuthorityState<const D: usize> {
+    body_type: BodyType,
+    position: SVector<f64, D>,
+    linear_velocity: SVector<f64, D>,
+    angular_velocity: Bivector<D>,
+    mass: f64,
+    inv_mass: f64,
+    inertia: SVector<f64, D>,
+    inv_inertia: SVector<f64, D>,
+}
+
+impl<const D: usize> BoundMechanicalAuthorityState<D> {
+    fn capture(body: &RigidBody<D>) -> Self {
+        Self {
+            body_type: body.body_type,
+            position: body.position(),
+            linear_velocity: body.linear_velocity,
+            angular_velocity: body.angular_velocity,
+            mass: body.mass,
+            inv_mass: body.inv_mass,
+            inertia: body.inertia,
+            inv_inertia: body.inv_inertia,
+        }
+    }
+
+    fn matches(self, body: &RigidBody<D>) -> bool {
+        self == Self::capture(body)
+    }
+}
+
 /// Non-cloneable binding between one applied mechanical transition, its exact
 /// post-state, and its deterministic solver transaction identity.
 ///
 /// External callers cannot manufacture this token from an unbound observation;
 /// it is created only by [`apply_friction_impulse_measured_bound`], which applies
-/// the mechanical impulse as part of producing the evidence. Private post-state
-/// snapshots prevent a later state with coincidentally equal kinetic energy from
-/// being mistaken for the state that actually produced the observation.
+/// the mechanical impulse as part of producing the evidence. The private
+/// mechanical-authority snapshots prevent later velocity, body-type, position,
+/// mass or inertia changes from silently reinterpreting the same transaction.
 #[derive(Debug, PartialEq)]
 pub struct BoundFrictionMechanicalObservation<const D: usize> {
     transaction_id: FrictionTransactionId,
     observation: FrictionMechanicalObservation<D>,
-    post_linear_velocity_a: SVector<f64, D>,
-    post_linear_velocity_b: SVector<f64, D>,
-    post_angular_velocity_a: Bivector<D>,
-    post_angular_velocity_b: Bivector<D>,
+    post_state_a: BoundMechanicalAuthorityState<D>,
+    post_state_b: BoundMechanicalAuthorityState<D>,
 }
 
 impl<const D: usize> BoundFrictionMechanicalObservation<D> {
@@ -145,8 +181,9 @@ impl<const D: usize> BoundFrictionMechanicalObservation<D> {
     /// Exact freshness check used by the in-crate physical promotion layer.
     ///
     /// Equality is intentional: this is an exactly-once solver transaction
-    /// boundary, not a fuzzy physical-state comparison. Any later mechanics,
-    /// even if they preserve scalar kinetic energy, make the token stale.
+    /// boundary, not a fuzzy physical-state comparison. Any later mechanical
+    /// authority change makes the token stale, even if scalar kinetic energy or
+    /// velocity happens to remain equal.
     pub(crate) fn matches_post_state(
         &self,
         body_a: &RigidBody<D>,
@@ -154,10 +191,8 @@ impl<const D: usize> BoundFrictionMechanicalObservation<D> {
     ) -> bool {
         self.observation.body_a == body_a.handle
             && self.observation.body_b == body_b.handle
-            && self.post_linear_velocity_a == body_a.linear_velocity
-            && self.post_linear_velocity_b == body_b.linear_velocity
-            && self.post_angular_velocity_a == body_a.angular_velocity
-            && self.post_angular_velocity_b == body_b.angular_velocity
+            && self.post_state_a.matches(body_a)
+            && self.post_state_b.matches(body_b)
     }
 }
 
@@ -368,10 +403,8 @@ pub fn apply_friction_impulse_measured_bound<const D: usize>(
     Ok(BoundFrictionMechanicalObservation {
         transaction_id,
         observation,
-        post_linear_velocity_a: body_a.linear_velocity,
-        post_linear_velocity_b: body_b.linear_velocity,
-        post_angular_velocity_a: body_a.angular_velocity,
-        post_angular_velocity_b: body_b.angular_velocity,
+        post_state_a: BoundMechanicalAuthorityState::capture(body_a),
+        post_state_b: BoundMechanicalAuthorityState::capture(body_b),
     })
 }
 
@@ -473,6 +506,50 @@ mod tests {
         // A KE-only freshness check could miss this; exact state binding cannot.
         let speed = a.linear_velocity.norm();
         a.linear_velocity = SVector::from([0.0, speed, 0.0]);
+        assert!(!bound.matches_post_state(&a, &b));
+    }
+
+    #[test]
+    fn bound_observation_rejects_mechanical_parameter_reinterpretation() {
+        let mut a = body(1, [0.0, 0.0, 0.0], 1.0);
+        let mut b = body(2, [0.0, 0.0, 0.0], 0.0);
+        let bound = apply_friction_impulse_measured_bound(
+            &mut a,
+            &mut b,
+            &SVector::zeros(),
+            &SVector::from([0.5, 0.0, 0.0]),
+            FrictionTransactionId::new(9, 2, 4, 2),
+        )
+        .unwrap();
+        assert!(bound.matches_post_state(&a, &b));
+
+        // Preserve reciprocal coherence and all velocities while changing the
+        // quadratic that would interpret this exact transition.
+        a.inertia[0] *= 2.0;
+        a.inv_inertia[0] *= 0.5;
+        assert!(!bound.matches_post_state(&a, &b));
+    }
+
+    #[test]
+    fn bound_observation_rejects_body_type_or_position_drift() {
+        let mut a = body(1, [0.0, 0.0, 0.0], 1.0);
+        let mut b = body(2, [0.0, 0.0, 0.0], 0.0);
+        let bound = apply_friction_impulse_measured_bound(
+            &mut a,
+            &mut b,
+            &SVector::zeros(),
+            &SVector::from([0.5, 0.0, 0.0]),
+            FrictionTransactionId::new(9, 2, 4, 3),
+        )
+        .unwrap();
+        assert!(bound.matches_post_state(&a, &b));
+
+        a.body_type = BodyType::Kinematic;
+        assert!(!bound.matches_post_state(&a, &b));
+        a.body_type = BodyType::Dynamic;
+        assert!(bound.matches_post_state(&a, &b));
+
+        a.transform.translation.0[0] += 1.0e-9;
         assert!(!bound.matches_post_state(&a, &b));
     }
 
