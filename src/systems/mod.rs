@@ -71,6 +71,7 @@ mod thermodynamic_reservation_tests;
 #[cfg(test)]
 mod thermodynamic_runtime_poison_tests;
 pub mod thermodynamic_schedule;
+pub(crate) mod thermodynamic_thermal_admission;
 pub mod thermodynamic_transaction;
 #[cfg(test)]
 mod thermodynamic_runtime_tests;
