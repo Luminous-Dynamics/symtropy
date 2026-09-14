@@ -3,10 +3,10 @@
 // Commercial licensing: see COMMERCIAL_LICENSE.md at repository root
 //! Checked mutation coordinators for physics network identity.
 //!
-//! This module provides typed, whole-operation preflight wrappers that make the
-//! checked path explicit and fail closed before invoking legacy world mutators.
-//! Direct `RigidBody::net_id` writes are crate-controlled; the legacy world
-//! mutators remain public compatibility debt until PHYS-ID-01B2.
+//! This module owns the low-level, whole-operation preflight mechanics used by
+//! [`crate::PhysicsAuthorityWorld`]. The coordinators are crate-internal so
+//! downstream safe Rust cannot mutate stable physical identity through a raw
+//! authority-free `PhysicsWorld` helper.
 
 use std::collections::BTreeSet;
 
@@ -20,7 +20,7 @@ use crate::world::PhysicsWorld;
 /// Stable identity is bind-once per body incarnation: `None -> N` is allowed,
 /// `N -> N` is idempotent, and `N -> M` is rejected. Identity replacement
 /// belongs to an explicit future continuity/reincarnation authority.
-pub fn assign_net_id_checked<const D: usize>(
+pub(crate) fn assign_net_id_checked<const D: usize>(
     world: &mut PhysicsWorld<D>,
     handle: BodyHandle,
     net_id: NetId,
@@ -120,7 +120,7 @@ pub fn assign_net_id_checked<const D: usize>(
 /// This removes the known expected partial-insertion failure mode of the legacy
 /// `add_bodies_deterministic`: duplicate/existing IDs are rejected before its
 /// insertion loop begins.
-pub fn add_bodies_deterministic_checked<const D: usize>(
+pub(crate) fn add_bodies_deterministic_checked<const D: usize>(
     world: &mut PhysicsWorld<D>,
     bodies: Vec<(NetId, RigidBody<D>)>,
 ) -> Result<Vec<BodyHandle>, NetIdentityMutationError> {
