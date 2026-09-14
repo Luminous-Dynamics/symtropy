@@ -1,0 +1,288 @@
+name: PHYS-OBS-04B Typed Mutation Commit Qualification
+
+on:
+  push:
+    branches:
+      - "ci/physics-authority-mutation-commit-boundary-v0.1"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: physics-authority-mutation-commit-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  PRODUCT_HEAD: 1339402338492c2151897f73ad76052acad85237
+  PRODUCT_PARENT: 1b024ece9a981243db88c14b95edb16a2c84c267
+
+jobs:
+  qualify:
+    name: Frozen PHYS-OBS-04B / Rust 1.96
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout exact product head
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ env.PRODUCT_HEAD }}
+          fetch-depth: 0
+
+      - name: Assert exact one-commit product subject
+        id: subject
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "${PRODUCT_HEAD}"
+          git merge-base --is-ancestor "${PRODUCT_PARENT}" "${PRODUCT_HEAD}"
+          test "$(git rev-list --count "${PRODUCT_PARENT}..${PRODUCT_HEAD}")" = "1"
+          mapfile -t changed < <(git diff --name-only "${PRODUCT_PARENT}..${PRODUCT_HEAD}")
+          test "${#changed[@]}" = "5"
+          expected=(
+            "crates/core/symtropy-physics/PHYSICAL_AUTHORITY_MUTATION_COMMIT_BOUNDARY_V01.md"
+            "crates/core/symtropy-physics/src/authority_time.rs"
+            "crates/core/symtropy-physics/src/identity_authority.rs"
+            "crates/core/symtropy-physics/src/identity_mutation.rs"
+            "crates/core/symtropy-physics/tests/authority_temporal_sequence_v01.rs"
+          )
+          for i in "${!expected[@]}"; do
+            test "${changed[$i]}" = "${expected[$i]}"
+          done
+
+      - name: Set up pinned Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.96.0
+          components: rustfmt,clippy
+
+      - name: Cache dependencies
+        uses: Swatinem/rust-cache@v2
+
+      - name: Freeze source identities
+        id: source
+        shell: bash
+        run: |
+          set -euo pipefail
+          sha256sum \
+            crates/core/symtropy-physics/src/authority_time.rs \
+            crates/core/symtropy-physics/src/identity_authority.rs \
+            crates/core/symtropy-physics/src/identity_mutation.rs \
+            crates/core/symtropy-physics/src/world.rs \
+            crates/core/symtropy-physics/src/authority_endpoint.rs \
+            crates/core/symtropy-physics/tests/authority_temporal_sequence_v01.rs \
+            crates/core/symtropy-physics/tests/authority_endpoint_mutation_boundary_v01.rs \
+            crates/core/symtropy-physics/tests/authority_endpoint_box_v01.rs \
+            crates/core/symtropy-physics/tests/world_identity_authority_v01.rs \
+            crates/core/symtropy-physics/PHYSICAL_AUTHORITY_MUTATION_COMMIT_BOUNDARY_V01.md \
+            crates/core/symtropy-physics/PHYSICAL_AUTHORITY_TEMPORAL_SEQUENCE_V01.md \
+            > "${RUNNER_TEMP}/phys-obs04b-source-sha256.txt"
+
+      - name: Check formatting
+        id: fmt
+        run: cargo fmt --all -- --check
+
+      - name: Check physics all targets
+        id: check
+        run: cargo check -p symtropy-physics --locked --all-targets
+
+      - name: Run temporal-state unit corpus
+        id: temporal_private
+        run: cargo test -p symtropy-physics --locked --lib authority_time
+
+      - name: Run identity-mutation unit corpus
+        id: identity_mutation_private
+        run: cargo test -p symtropy-physics --locked --lib identity_mutation
+
+      - name: Run authority fault-injection unit corpus
+        id: authority_private
+        run: cargo test -p symtropy-physics --locked --lib identity_authority
+
+      - name: Run authority temporal-sequence theorem
+        id: temporal
+        run: cargo test -p symtropy-physics --locked --test authority_temporal_sequence_v01
+
+      - name: Run endpoint mutation-boundary regression
+        id: endpoint_mutation
+        run: cargo test -p symtropy-physics --locked --test authority_endpoint_mutation_boundary_v01
+
+      - name: Run endpoint-box regression
+        id: endpoint
+        run: cargo test -p symtropy-physics --locked --test authority_endpoint_box_v01
+
+      - name: Run pair-observation regression
+        id: pair
+        run: cargo test -p symtropy-physics --locked --test authority_pair_observation_v01
+
+      - name: Run selected-subject observation regression
+        id: selected
+        run: cargo test -p symtropy-physics --locked --test authority_observation_v01
+
+      - name: Run authority identity regression
+        id: identity
+        run: cargo test -p symtropy-physics --locked --test world_identity_authority_v01
+
+      - name: Run runtime replay regression
+        id: replay
+        run: cargo test -p symtropy-physics --locked --test replay_harness
+
+      - name: Run strict physics Clippy
+        id: clippy
+        run: cargo clippy -p symtropy-physics --locked --all-targets -- -D warnings
+
+      - name: Audit typed-mutation authority boundary
+        id: audit
+        shell: bash
+        run: |
+          set -euo pipefail
+          temporal=crates/core/symtropy-physics/src/authority_time.rs
+          authority=crates/core/symtropy-physics/src/identity_authority.rs
+          mutation=crates/core/symtropy-physics/src/identity_mutation.rs
+          world=crates/core/symtropy-physics/src/world.rs
+          tests=crates/core/symtropy-physics/tests/authority_temporal_sequence_v01.rs
+          contract=crates/core/symtropy-physics/PHYSICAL_AUTHORITY_MUTATION_COMMIT_BOUNDARY_V01.md
+
+          grep -Fq 'mutation_commit_tainted: bool' "${temporal}"
+          grep -Fq 'InterruptedMutationTainted' "${temporal}"
+          grep -Fq 'begin_mutation_commit' "${temporal}"
+          grep -Fq 'finish_mutation_commit' "${temporal}"
+          grep -Fq 'fn commit_prepared_nonstep_mutation' "${authority}"
+          grep -Fq 'prepare_net_id_binding(&self.world' "${authority}"
+          grep -Fq 'prepare_deterministic_insertion(&self.world' "${authority}"
+          grep -Fq 'caught_prepared_mutation_panic_taints_wrapper_until_reconstruction' "${authority}"
+          grep -Fq 'rejected_identity_bind_preserves_temporal_lineage' "${tests}"
+          grep -Fq 'rejected_deterministic_batch_preserves_temporal_lineage' "${tests}"
+
+          # Freeze the known PHYS-ID-01E / #1060 boundary rather than silently
+          # upgrading a temporal PASS into a structural-atomicity claim.
+          grep -Fq 'self.next_handle += 1;' "${world}"
+          grep -Fq 'PHYS-ID-01E / #1060' "${contract}"
+          grep -Fq 'does **not** claim allocator exhaustion safety' "${contract}"
+
+          python3 - <<'PY'
+          from pathlib import Path
+
+          temporal = Path('crates/core/symtropy-physics/src/authority_time.rs').read_text()
+          authority = Path('crates/core/symtropy-physics/src/identity_authority.rs').read_text()
+          mutation = Path('crates/core/symtropy-physics/src/identity_mutation.rs').read_text()
+
+          next_epoch = temporal[temporal.index('pub(crate) fn next_mutation_epoch'):temporal.index('pub(crate) fn commit_mutation_epoch')]
+          assert next_epoch.index('mutation_commit_tainted') < next_epoch.index('checked_add(1)')
+
+          begin_step = temporal[temporal.index('pub(crate) fn begin_step'):temporal.index('pub(crate) fn commit_step')]
+          assert begin_step.index('mutation_commit_tainted') < begin_step.index('step_tainted')
+
+          helper = authority[authority.index('fn commit_prepared_nonstep_mutation'):authority.index('/// Bind one previously-unbound')]
+          assert helper.index('begin_mutation_commit') < helper.index('commit(&mut self.world)') < helper.index('finish_mutation_commit')
+
+          bind = authority[authority.index('pub fn bind_net_id'):authority.index('/// Insert a deterministic batch')]
+          assert bind.index('prepare_net_id_binding(&self.world') < bind.index('commit_prepared_nonstep_mutation')
+
+          insert = authority[authority.index('pub fn add_bodies_deterministic'):authority.index('/// Validate one exact body subject')]
+          assert insert.index('prepare_deterministic_insertion(&self.world') < insert.index('commit_prepared_nonstep_mutation')
+
+          prepare_bind = mutation[mutation.index('pub(crate) fn prepare_net_id_binding'):mutation.index('pub(crate) fn commit_prepared_net_id_binding')]
+          assert 'world: &PhysicsWorld<D>' in prepare_bind
+          assert 'world: &mut PhysicsWorld<D>' not in prepare_bind
+
+          prepare_insert = mutation[mutation.index('pub(crate) fn prepare_deterministic_insertion'):mutation.index('pub(crate) fn commit_prepared_deterministic_insertion')]
+          assert 'world: &PhysicsWorld<D>' in prepare_insert
+          assert 'world: &mut PhysicsWorld<D>' not in prepare_insert
+          PY
+
+      - name: Assert unchanged product subject
+        id: postflight
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "${PRODUCT_HEAD}"
+          git diff --exit-code -- . ':!Cargo.lock'
+          test -z "$(git status --porcelain --untracked-files=no)"
+
+      - name: Emit qualification receipt
+        if: always()
+        shell: bash
+        env:
+          HELPER_HEAD: ${{ github.sha }}
+          RUN_ID: ${{ github.run_id }}
+          RUN_ATTEMPT: ${{ github.run_attempt }}
+          SUBJECT: ${{ steps.subject.outcome }}
+          SOURCE: ${{ steps.source.outcome }}
+          FMT: ${{ steps.fmt.outcome }}
+          CHECK: ${{ steps.check.outcome }}
+          TEMPORAL_PRIVATE: ${{ steps.temporal_private.outcome }}
+          IDENTITY_MUTATION_PRIVATE: ${{ steps.identity_mutation_private.outcome }}
+          AUTHORITY_PRIVATE: ${{ steps.authority_private.outcome }}
+          TEMPORAL: ${{ steps.temporal.outcome }}
+          ENDPOINT_MUTATION: ${{ steps.endpoint_mutation.outcome }}
+          ENDPOINT: ${{ steps.endpoint.outcome }}
+          PAIR: ${{ steps.pair.outcome }}
+          SELECTED: ${{ steps.selected.outcome }}
+          IDENTITY: ${{ steps.identity.outcome }}
+          REPLAY: ${{ steps.replay.outcome }}
+          CLIPPY: ${{ steps.clippy.outcome }}
+          AUDIT: ${{ steps.audit.outcome }}
+          POSTFLIGHT: ${{ steps.postflight.outcome }}
+        run: |
+          set -euo pipefail
+          receipt="${RUNNER_TEMP}/phys-obs04b-typed-mutation-commit-v01.json"
+          export RECEIPT_PATH="${receipt}"
+          python3 - <<'PY'
+          import json, os
+          keys = [
+              'SUBJECT', 'SOURCE', 'FMT', 'CHECK', 'TEMPORAL_PRIVATE',
+              'IDENTITY_MUTATION_PRIVATE', 'AUTHORITY_PRIVATE', 'TEMPORAL',
+              'ENDPOINT_MUTATION', 'ENDPOINT', 'PAIR', 'SELECTED', 'IDENTITY',
+              'REPLAY', 'CLIPPY', 'AUDIT', 'POSTFLIGHT',
+          ]
+          outcomes = {k.lower(): os.environ.get(k, 'unknown') for k in keys}
+          receipt = {
+              'receipt_version': 1,
+              'qualification': 'PHYS-OBS-04B-typed-mutation-commit-boundary-v0.1',
+              'product_head': os.environ['PRODUCT_HEAD'],
+              'product_parent': os.environ['PRODUCT_PARENT'],
+              'helper_head': os.environ['HELPER_HEAD'],
+              'workflow_run_id': int(os.environ['RUN_ID']),
+              'workflow_run_attempt': int(os.environ['RUN_ATTEMPT']),
+              'step_outcomes': outcomes,
+              'overall': 'pass' if all(v == 'success' for v in outcomes.values()) else 'fail',
+              'claim_boundary': 'fail-closed typed non-step mutation temporal sequencing inside one live PhysicsAuthorityWorld wrapper incarnation',
+              'typed_mutation_prepare_before_boundary': True,
+              'caught_typed_mutation_unwind_invalidates_old_stamp': True,
+              'interrupted_typed_mutation_blocks_authorized_step': True,
+              'interrupted_typed_mutation_blocks_raw_world_mutation': True,
+              'deterministic_insertion_structurally_atomic': False,
+              'handle_allocator_exhaustion_safe': False,
+              'reconstruction_safe_temporal_identity': False,
+              'complete_world_structural_integrity': False,
+              'requires_structural_insertion_successor': 'PHYS-ID-01E/#1060',
+              'requires_temporal_incarnation_successor': 'PHYS-OBS-04A/#1055',
+              'requires_structural_recovery': 'PHYS-ID-01C/#1005 + PHYS-ID-01D/#1019',
+              'nonclaims': [
+                  'rollback transaction',
+                  'elapsed simulation duration',
+                  'continuous occupancy',
+                  'dwell',
+                  'arrival',
+                  'custody',
+                  'delivery',
+                  'persistence authenticity',
+                  'settlement eligibility',
+              ],
+          }
+          with open(os.environ['RECEIPT_PATH'], 'w', encoding='utf-8') as handle:
+              json.dump(receipt, handle, sort_keys=True, indent=2)
+              handle.write('\n')
+          PY
+          cp "${RUNNER_TEMP}/phys-obs04b-source-sha256.txt" "${RUNNER_TEMP}/phys-obs04b-source-sha256-evidence.txt"
+          sha256sum "${receipt}" > "${receipt}.sha256"
+
+      - name: Upload qualification receipt
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: phys-obs04b-typed-mutation-commit-v01-${{ env.PRODUCT_HEAD }}
+          path: |
+            ${{ runner.temp }}/phys-obs04b-typed-mutation-commit-v01.json
+            ${{ runner.temp }}/phys-obs04b-typed-mutation-commit-v01.json.sha256
+            ${{ runner.temp }}/phys-obs04b-source-sha256-evidence.txt
+          if-no-files-found: error
+          retention-days: 90
