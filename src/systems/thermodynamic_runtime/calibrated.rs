@@ -23,13 +23,14 @@ use super::{
 
 /// Typed failure surface for calibrated terminal friction execution.
 ///
-/// This remains crate-private: external callers must enter calibrated physical
-/// friction through the readiness-bound solver authority rather than calling the
-/// runtime with a naked calibration. Existing runtime failures remain
-/// distinguishable from explicit calibrated promotion failures. If terminalization
-/// rejects and exact mechanical rollback also refuses, both causes are retained.
+/// The type remains publicly nameable for diagnostics, but the calibrated runtime
+/// methods that can produce it are crate-private. External callers therefore cannot
+/// bypass the readiness-bound solver authority with a naked calibration. Existing
+/// runtime failures remain distinguishable from explicit calibrated promotion
+/// failures. If terminalization rejects and exact mechanical rollback also refuses,
+/// both causes are retained.
 #[derive(Debug)]
-pub(crate) enum CalibratedRuntimeFrictionError {
+pub enum CalibratedRuntimeFrictionError {
     Runtime(RuntimeFrictionError),
     Promotion(CalibratedFrictionPromotionError),
     Rollback {
