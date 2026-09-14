@@ -17,6 +17,7 @@ use symtropy_physics_gpu::HybridFluidPlugin;
 
 mod geometry_currentness;
 pub mod geometry_kernel;
+pub mod terrain_metric;
 mod live_geometry_provider;
 mod live_geometry_query;
 
