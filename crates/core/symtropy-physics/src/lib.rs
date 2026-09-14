@@ -34,6 +34,7 @@ pub mod integrator;
 pub mod island;
 pub mod joints;
 pub mod manifold_gen;
+pub mod qualified_endpoint;
 pub mod raycast;
 pub mod replay;
 pub mod support_map;
@@ -69,5 +70,8 @@ pub use identity_authority::{
 pub use identity_mutation::NetIdentityMutationError;
 pub use integrator::nan_zeroed_count;
 pub use joints::{BallJoint, FixedJoint, HingeJoint, MotorDrive, PrismaticJoint};
+pub use qualified_endpoint::{
+    LocalQualifiedStampedEndpointBoxObservation, LocalQualifiedStampedEndpointObservationError,
+};
 pub use replay::{ReplayTape, WorldCommand, WorldSnapshot, apply_commands};
 pub use world::{NoOpCallback, PhysicsCallback, PhysicsWorld};
