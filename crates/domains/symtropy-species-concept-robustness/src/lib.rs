@@ -2,10 +2,9 @@
 // SPDX-License-Identifier: Apache-2.0 OR MIT
 //! Outcome-free preregistration for cross-model current-species robustness.
 //!
-//! This crate never inspects model-bound species outcomes. It freezes the model set,
-//! common biological subject, family-specific outcome-free classification designs,
-//! semantic-dependency evidence, and fault-domain assumptions that a later E2B result
-//! is allowed to consume.
+//! This crate never inspects model-bound species outcomes. It freezes the exact
+//! model set, common biological subject, family-specific outcome-free designs,
+//! semantic-dependency evidence, and a qualified fault-domain policy before E2B.
 
 use serde::{Deserialize, Deserializer, Serialize};
 use sha2::{Digest, Sha256};
@@ -31,9 +30,14 @@ use symtropy_species_concept_relations::{
 pub const CURRENT_CROSS_MODEL_ROBUSTNESS_DESIGN_VERSION: u32 = 1;
 const DESIGN_DOMAIN: &[u8] = b"symtropy:species-concept:current-robustness-design:v1\0";
 const RULE_DOMAIN: &[u8] = b"symtropy:species-concept:current-robustness-design-rule:v1\0";
+const PROFILE_DOMAIN: &[u8] = b"symtropy:species-concept:model-fault-domain-profile:v1\0";
 const FAULT_RULE_DOMAIN: &[u8] = b"symtropy:species-concept:model-fault-domain-rule:v1\0";
-const RULE_SPEC: &[u8] = b"cross-model current species robustness design v1: outcome-free preregistration; one entry per conceptual identity; every model exposes current-species-status; exact ordered lineage pair and exact SEL-10A history-design identity match across models; family-specific outcome-free classification surfaces remain explicit; evidence-universe authority qualifies the common biological evidence universe; complete semantic-relation and pairwise fault-domain surfaces are required; nested/criterion-dependent or overlapping relations never establish conceptual independence; potentially-non-nested remains only semantically eligible and separately requires qualified fault-domain diversity; no model outcome, majority vote, historical-transition robustness, nomenclature, or universal taxonomy claim";
-const FAULT_RULE_SPEC: &[u8] = b"model fault-domain rule v1: conceptual identity differs from authority qualification; every model profile binds qualification organization/process, evidence-source lineage, implementation/toolchain lineage, upstream evidence-authority lineage, and semantic-mapping qualification lineage; sufficiently-distinct pair qualification requires every corresponding required fault-domain ID to differ plus an external authority qualifying that exact profile pair; different IDs alone do not prove independence; one profile qualification authority cannot be relabeled across distinct conceptual models";
+const POLICY_DOMAIN: &[u8] = b"symtropy:species-concept:fault-domain-independence-policy:v1\0";
+const POLICY_RULE_DOMAIN: &[u8] = b"symtropy:species-concept:fault-domain-independence-policy-rule:v1\0";
+
+const RULE_SPEC: &[u8] = b"cross-model current species robustness design v1: outcome-free preregistration; one entry per conceptual identity; every model exposes current-species-status; exact ordered lineage pair and exact SEL-10A history-design identity match across models; family-specific outcome-free classification surfaces remain explicit; evidence-universe authority qualifies the common biological evidence universe; complete semantic-relation and pairwise fault-domain surfaces are required; nested/criterion-dependent or overlapping relations never establish conceptual independence; potentially-non-nested remains only semantically eligible and separately requires qualified fault-domain diversity under the exact preregistered policy; no model outcome, majority vote, historical-transition robustness, nomenclature, or universal taxonomy claim";
+const FAULT_RULE_SPEC: &[u8] = b"model fault-domain profile v1: conceptual identity differs from qualification identity; each model profile binds qualification organization/process, evidence-source lineage, implementation/toolchain lineage, upstream evidence-authority lineage, and semantic-mapping qualification lineage; IDs are auditable classifications rather than self-proving independence claims";
+const POLICY_RULE_SPEC: &[u8] = b"fault-domain independence policy v1: the required distinct dimensions are outcome-free, canonical, externally qualified, contain at least two dimensions, and include at least one evidence-related dimension; pairwise sufficiently-distinct status requires every policy-required dimension to differ plus an external authority qualifying the exact profile pair and policy digest; changing policy changes design lineage and invalidates stale pair assessments; different IDs alone never prove independence";
 
 macro_rules! id_type {
     ($name:ident, $field:literal) => {
@@ -83,6 +87,7 @@ macro_rules! digest_type {
 }
 
 digest_type!(ModelFaultDomainProfileDigest);
+digest_type!(FaultDomainIndependencePolicyDigest);
 digest_type!(CurrentCrossModelRobustnessDesignDigest);
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -90,8 +95,6 @@ pub struct SharedEvidenceSubject {
     pub lineage_a: AnalysisAuthorityRef,
     pub lineage_b: AnalysisAuthorityRef,
     pub lineage_history_design_digest: LineageDivergenceHistoryDesignDigest,
-    /// Qualifies that family-specific design surfaces are projections of one frozen
-    /// biological evidence universe. The reference is an auditable trust edge, not self-proof.
     pub evidence_universe_authority: AnalysisAuthorityRef,
 }
 
@@ -102,9 +105,9 @@ impl SharedEvidenceSubject {
         lineage_history_design_digest: LineageDivergenceHistoryDesignDigest,
         evidence_universe_authority: AnalysisAuthorityRef,
     ) -> Result<Self, RobustnessDesignError> {
-        if lineage_a == lineage_b { return Err(RobustnessDesignError::LineagePairMismatch); }
-        validate_authority(&evidence_universe_authority, "evidence_universe_revision")?;
-        Ok(Self { lineage_a, lineage_b, lineage_history_design_digest, evidence_universe_authority })
+        let subject = Self { lineage_a, lineage_b, lineage_history_design_digest, evidence_universe_authority };
+        subject.validate_local()?;
+        Ok(subject)
     }
     fn validate_local(&self) -> Result<(), RobustnessDesignError> {
         if self.lineage_a == self.lineage_b { return Err(RobustnessDesignError::LineagePairMismatch); }
@@ -124,9 +127,7 @@ pub enum ModelSpecificClassificationDesignRef {
         design_digest: CurrentSpeciesClassificationDesignDigest,
         reproductive_isolation_design_digest: ReproductiveIsolationDesignDigest,
     },
-    GeneralLineage {
-        design_digest: GeneralLineageClassificationDesignDigest,
-    },
+    GeneralLineage { design_digest: GeneralLineageClassificationDesignDigest },
 }
 
 impl ModelSpecificClassificationDesignRef {
@@ -142,6 +143,32 @@ impl ModelSpecificClassificationDesignRef {
                 digest.update(design_digest.as_bytes());
             }
         }
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
+pub enum FaultDomainDimension {
+    QualificationOrganization,
+    QualificationProcess,
+    EvidenceSourceLineage,
+    ImplementationToolchainLineage,
+    UpstreamEvidenceAuthorityLineage,
+    SemanticMappingQualificationLineage,
+}
+
+impl FaultDomainDimension {
+    fn tag(self) -> u8 {
+        match self {
+            Self::QualificationOrganization => 0,
+            Self::QualificationProcess => 1,
+            Self::EvidenceSourceLineage => 2,
+            Self::ImplementationToolchainLineage => 3,
+            Self::UpstreamEvidenceAuthorityLineage => 4,
+            Self::SemanticMappingQualificationLineage => 5,
+        }
+    }
+    fn is_evidence_related(self) -> bool {
+        matches!(self, Self::EvidenceSourceLineage | Self::UpstreamEvidenceAuthorityLineage)
     }
 }
 
@@ -173,24 +200,27 @@ impl ModelFaultDomainProfile {
         semantic_mapping_qualification_lineage: FaultDomainId,
         profile_qualification_authority: AnalysisAuthorityRef,
     ) -> Result<Self, RobustnessDesignError> {
-        validate_identity(&conceptual_identity)?;
-        validate_authority(&profile_qualification_authority, "fault_profile_qualification_revision")?;
-        Ok(Self {
+        let profile = Self {
             profile_id, conceptual_identity, descriptor_digest, qualification_organization,
             qualification_process, evidence_source_lineage, implementation_toolchain_lineage,
             upstream_evidence_authority_lineage, semantic_mapping_qualification_lineage,
             profile_qualification_authority,
-        })
+        };
+        profile.validate_local()?;
+        Ok(profile)
     }
 
     pub fn canonical_digest(&self) -> Result<ModelFaultDomainProfileDigest, RobustnessDesignError> {
         self.validate_local()?;
         let mut digest = Sha256::new();
-        digest.update(FAULT_RULE_DOMAIN);
+        digest.update(PROFILE_DOMAIN);
         put_text(&mut digest, self.profile_id.as_str());
         put_identity(&mut digest, &self.conceptual_identity);
         digest.update(self.descriptor_digest.as_bytes());
-        for id in self.required_domain_ids() { put_text(&mut digest, id.as_str()); }
+        for dimension in ALL_FAULT_DIMENSIONS {
+            digest.update([dimension.tag()]);
+            put_text(&mut digest, self.domain_id(dimension).as_str());
+        }
         put_authority(&mut digest, &self.profile_qualification_authority);
         Ok(ModelFaultDomainProfileDigest::new(digest.finalize().into()))
     }
@@ -200,15 +230,84 @@ impl ModelFaultDomainProfile {
         validate_authority(&self.profile_qualification_authority, "fault_profile_qualification_revision")
     }
 
-    fn required_domain_ids(&self) -> [&FaultDomainId; 6] {
-        [
-            &self.qualification_organization,
-            &self.qualification_process,
-            &self.evidence_source_lineage,
-            &self.implementation_toolchain_lineage,
-            &self.upstream_evidence_authority_lineage,
-            &self.semantic_mapping_qualification_lineage,
-        ]
+    fn domain_id(&self, dimension: FaultDomainDimension) -> &FaultDomainId {
+        match dimension {
+            FaultDomainDimension::QualificationOrganization => &self.qualification_organization,
+            FaultDomainDimension::QualificationProcess => &self.qualification_process,
+            FaultDomainDimension::EvidenceSourceLineage => &self.evidence_source_lineage,
+            FaultDomainDimension::ImplementationToolchainLineage => &self.implementation_toolchain_lineage,
+            FaultDomainDimension::UpstreamEvidenceAuthorityLineage => &self.upstream_evidence_authority_lineage,
+            FaultDomainDimension::SemanticMappingQualificationLineage => &self.semantic_mapping_qualification_lineage,
+        }
+    }
+}
+
+const ALL_FAULT_DIMENSIONS: [FaultDomainDimension; 6] = [
+    FaultDomainDimension::QualificationOrganization,
+    FaultDomainDimension::QualificationProcess,
+    FaultDomainDimension::EvidenceSourceLineage,
+    FaultDomainDimension::ImplementationToolchainLineage,
+    FaultDomainDimension::UpstreamEvidenceAuthorityLineage,
+    FaultDomainDimension::SemanticMappingQualificationLineage,
+];
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct FaultDomainIndependencePolicy {
+    pub required_distinct_dimensions: Vec<FaultDomainDimension>,
+    pub qualification_authority: AnalysisAuthorityRef,
+    pub rule_authority: AnalysisAuthorityRef,
+}
+
+impl FaultDomainIndependencePolicy {
+    pub fn declare(
+        dimensions: impl IntoIterator<Item = FaultDomainDimension>,
+        qualification_authority: AnalysisAuthorityRef,
+    ) -> Result<Self, RobustnessDesignError> {
+        let mut required_distinct_dimensions: Vec<_> = dimensions.into_iter().collect();
+        required_distinct_dimensions.sort();
+        if required_distinct_dimensions.windows(2).any(|w| w[0] == w[1]) {
+            return Err(RobustnessDesignError::DuplicateFaultDomainDimension);
+        }
+        let policy = Self {
+            required_distinct_dimensions,
+            qualification_authority,
+            rule_authority: fault_domain_independence_policy_rule_v1(),
+        };
+        policy.validate_local()?;
+        Ok(policy)
+    }
+
+    pub fn canonical_digest(&self) -> Result<FaultDomainIndependencePolicyDigest, RobustnessDesignError> {
+        self.validate_local()?;
+        let mut digest = Sha256::new();
+        digest.update(POLICY_DOMAIN);
+        put_u64(&mut digest, self.required_distinct_dimensions.len() as u64);
+        for dimension in &self.required_distinct_dimensions { digest.update([dimension.tag()]); }
+        put_authority(&mut digest, &self.qualification_authority);
+        put_authority(&mut digest, &self.rule_authority);
+        Ok(FaultDomainIndependencePolicyDigest::new(digest.finalize().into()))
+    }
+
+    fn validate_local(&self) -> Result<(), RobustnessDesignError> {
+        if self.required_distinct_dimensions.len() < 2 {
+            return Err(RobustnessDesignError::FaultPolicyTooFewDimensions);
+        }
+        if self.required_distinct_dimensions.windows(2).any(|w| w[0] >= w[1]) {
+            return Err(RobustnessDesignError::NonCanonicalFaultDomainDimensions);
+        }
+        if !self.required_distinct_dimensions.iter().copied().any(FaultDomainDimension::is_evidence_related) {
+            return Err(RobustnessDesignError::FaultPolicyMissingEvidenceDimension);
+        }
+        validate_authority(&self.qualification_authority, "fault_policy_qualification_revision")?;
+        if self.rule_authority != fault_domain_independence_policy_rule_v1() {
+            return Err(RobustnessDesignError::FaultPolicyRuleMismatch);
+        }
+        Ok(())
+    }
+
+    fn put(&self, digest: &mut Sha256) -> Result<(), RobustnessDesignError> {
+        digest.update(self.canonical_digest()?.as_bytes());
+        Ok(())
     }
 }
 
@@ -289,8 +388,7 @@ impl SpeciesModelDesignRecord {
             return Err(RobustnessDesignError::FaultProfileDigestMismatch);
         }
         if self.lineage_a == self.lineage_b { return Err(RobustnessDesignError::LineagePairMismatch); }
-        let source_kind = self.descriptor.source_authority.source_kind_id.as_str();
-        match (&self.classification_design, source_kind) {
+        match (&self.classification_design, self.descriptor.source_authority.source_kind_id.as_str()) {
             (ModelSpecificClassificationDesignRef::StrictBiological { .. }, "sel10e1-strict-bsc-authority") => {}
             (ModelSpecificClassificationDesignRef::GeneralLineage { .. }, "sel10e1b-general-lineage-model") => {}
             _ => return Err(RobustnessDesignError::ClassificationSourceKindMismatch),
@@ -372,7 +470,13 @@ pub enum PairwiseFaultDomainDisposition {
     UnknownOrUnqualified,
 }
 impl PairwiseFaultDomainDisposition {
-    fn tag(self) -> u8 { match self { Self::QualifiedSufficientlyDistinct => 0, Self::KnownDependent => 1, Self::UnknownOrUnqualified => 2 } }
+    fn tag(self) -> u8 {
+        match self {
+            Self::QualifiedSufficientlyDistinct => 0,
+            Self::KnownDependent => 1,
+            Self::UnknownOrUnqualified => 2,
+        }
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -381,17 +485,20 @@ pub struct PairwiseFaultDomainAssessment {
     pub right: OpenSpeciesConceptIdentity,
     pub left_profile_digest: ModelFaultDomainProfileDigest,
     pub right_profile_digest: ModelFaultDomainProfileDigest,
+    pub policy_digest: FaultDomainIndependencePolicyDigest,
     pub disposition: PairwiseFaultDomainDisposition,
     pub qualification_authority: AnalysisAuthorityRef,
 }
 
 impl PairwiseFaultDomainAssessment {
     pub fn new(
+        policy: &FaultDomainIndependencePolicy,
         first: &ModelFaultDomainProfile,
         second: &ModelFaultDomainProfile,
         disposition: PairwiseFaultDomainDisposition,
         qualification_authority: AnalysisAuthorityRef,
     ) -> Result<Self, RobustnessDesignError> {
+        policy.validate_local()?;
         validate_authority(&qualification_authority, "pair_fault_qualification_revision")?;
         let (left, right) = if first.conceptual_identity < second.conceptual_identity {
             (first, second)
@@ -400,16 +507,13 @@ impl PairwiseFaultDomainAssessment {
         } else {
             return Err(RobustnessDesignError::DuplicateConceptualIdentity);
         };
-        if disposition == PairwiseFaultDomainDisposition::QualifiedSufficientlyDistinct
-            && !all_required_domains_differ(left, right)
-        {
-            return Err(RobustnessDesignError::QualifiedIndependenceHasSharedFaultDomain);
-        }
+        validate_pair_disposition(policy, left, right, disposition)?;
         Ok(Self {
             left: left.conceptual_identity.clone(),
             right: right.conceptual_identity.clone(),
             left_profile_digest: left.canonical_digest()?,
             right_profile_digest: right.canonical_digest()?,
+            policy_digest: policy.canonical_digest()?,
             disposition,
             qualification_authority,
         })
@@ -417,6 +521,7 @@ impl PairwiseFaultDomainAssessment {
 
     fn validate_against_profiles(
         &self,
+        policy: &FaultDomainIndependencePolicy,
         left: &ModelFaultDomainProfile,
         right: &ModelFaultDomainProfile,
     ) -> Result<(), RobustnessDesignError> {
@@ -426,13 +531,11 @@ impl PairwiseFaultDomainAssessment {
         {
             return Err(RobustnessDesignError::FaultAssessmentProfileMismatch);
         }
-        validate_authority(&self.qualification_authority, "pair_fault_qualification_revision")?;
-        if self.disposition == PairwiseFaultDomainDisposition::QualifiedSufficientlyDistinct
-            && !all_required_domains_differ(left, right)
-        {
-            return Err(RobustnessDesignError::QualifiedIndependenceHasSharedFaultDomain);
+        if self.policy_digest != policy.canonical_digest()? {
+            return Err(RobustnessDesignError::FaultAssessmentPolicyMismatch);
         }
-        Ok(())
+        validate_authority(&self.qualification_authority, "pair_fault_qualification_revision")?;
+        validate_pair_disposition(policy, left, right, self.disposition)
     }
 
     fn put(&self, digest: &mut Sha256) {
@@ -440,6 +543,7 @@ impl PairwiseFaultDomainAssessment {
         put_identity(digest, &self.right);
         digest.update(self.left_profile_digest.as_bytes());
         digest.update(self.right_profile_digest.as_bytes());
+        digest.update(self.policy_digest.as_bytes());
         digest.update([self.disposition.tag()]);
         put_authority(digest, &self.qualification_authority);
     }
@@ -447,7 +551,9 @@ impl PairwiseFaultDomainAssessment {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum MissingModelPolicy { FailClosed, ReportInsufficientCoverage }
-impl MissingModelPolicy { fn tag(self) -> u8 { match self { Self::FailClosed => 0, Self::ReportInsufficientCoverage => 1 } } }
+impl MissingModelPolicy {
+    fn tag(self) -> u8 { match self { Self::FailClosed => 0, Self::ReportInsufficientCoverage => 1 } }
+}
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct CurrentCrossModelRobustnessDesign {
@@ -456,6 +562,8 @@ pub struct CurrentCrossModelRobustnessDesign {
     pub subject: SharedEvidenceSubject,
     pub models: Vec<SpeciesModelDesignRecord>,
     pub semantic_relations: Vec<SemanticRelationRecord>,
+    pub fault_domain_policy: FaultDomainIndependencePolicy,
+    pub fault_domain_policy_digest: FaultDomainIndependencePolicyDigest,
     pub fault_assessments: Vec<PairwiseFaultDomainAssessment>,
     pub minimum_conceptual_family_count: u32,
     pub minimum_independent_model_coverage: u32,
@@ -471,6 +579,7 @@ impl CurrentCrossModelRobustnessDesign {
         subject: SharedEvidenceSubject,
         models: impl IntoIterator<Item = SpeciesModelDesignRecord>,
         semantic_relations: impl IntoIterator<Item = SemanticRelationRecord>,
+        fault_domain_policy: FaultDomainIndependencePolicy,
         fault_assessments: impl IntoIterator<Item = PairwiseFaultDomainAssessment>,
         minimum_conceptual_family_count: u32,
         minimum_independent_model_coverage: u32,
@@ -479,18 +588,24 @@ impl CurrentCrossModelRobustnessDesign {
         if minimum_conceptual_family_count < 2 { return Err(RobustnessDesignError::ConceptualCoverageThresholdTooLow); }
         if minimum_independent_model_coverage < 2 { return Err(RobustnessDesignError::IndependentCoverageThresholdTooLow); }
         subject.validate_local()?;
+        fault_domain_policy.validate_local()?;
         let mut models: Vec<_> = models.into_iter().collect();
         models.sort_by(|a, b| a.conceptual_identity().cmp(b.conceptual_identity()));
         validate_models(&subject, &models, minimum_conceptual_family_count)?;
+        if minimum_independent_model_coverage as usize > models.len() {
+            return Err(RobustnessDesignError::IndependentCoverageThresholdExceedsModelSet);
+        }
         let mut semantic_relations: Vec<_> = semantic_relations.into_iter().collect();
         semantic_relations.sort_by(|a, b| (&a.left, &a.right).cmp(&(&b.left, &b.right)));
         validate_relations(&models, &semantic_relations)?;
         let mut fault_assessments: Vec<_> = fault_assessments.into_iter().collect();
         fault_assessments.sort_by(|a, b| (&a.left, &a.right).cmp(&(&b.left, &b.right)));
-        validate_fault_assessments(&models, &fault_assessments)?;
+        validate_fault_assessments(&models, &fault_domain_policy, &fault_assessments)?;
         let design = Self {
             design_version: CURRENT_CROSS_MODEL_ROBUSTNESS_DESIGN_VERSION,
-            design_id, subject, models, semantic_relations, fault_assessments,
+            design_id, subject, models, semantic_relations,
+            fault_domain_policy_digest: fault_domain_policy.canonical_digest()?,
+            fault_domain_policy, fault_assessments,
             minimum_conceptual_family_count, minimum_independent_model_coverage,
             missing_model_policy,
             fault_domain_rule_authority: model_fault_domain_rule_v1(),
@@ -511,6 +626,8 @@ impl CurrentCrossModelRobustnessDesign {
         for model in &self.models { model.put(&mut digest)?; }
         put_u64(&mut digest, self.semantic_relations.len() as u64);
         for relation in &self.semantic_relations { relation.put(&mut digest)?; }
+        self.fault_domain_policy.put(&mut digest)?;
+        digest.update(self.fault_domain_policy_digest.as_bytes());
         put_u64(&mut digest, self.fault_assessments.len() as u64);
         for assessment in &self.fault_assessments { assessment.put(&mut digest); }
         put_u32(&mut digest, self.minimum_conceptual_family_count);
@@ -521,13 +638,13 @@ impl CurrentCrossModelRobustnessDesign {
         Ok(CurrentCrossModelRobustnessDesignDigest::new(digest.finalize().into()))
     }
 
-    /// This is only pair eligibility for later E2B independent-coverage reasoning.
-    /// It is not itself a robustness result.
+    /// Pair eligibility only. E2B must still evaluate the complete preregistered matrix.
     pub fn pair_is_eligible_for_independent_coverage(
         &self,
         first: &OpenSpeciesConceptIdentity,
         second: &OpenSpeciesConceptIdentity,
     ) -> bool {
+        if first == second { return false; }
         let (left, right) = if first < second { (first, second) } else { (second, first) };
         let relation = self.semantic_relations.iter().find(|r| &r.left == left && &r.right == right);
         let fault = self.fault_assessments.iter().find(|a| &a.left == left && &a.right == right);
@@ -543,8 +660,15 @@ impl CurrentCrossModelRobustnessDesign {
         if self.minimum_conceptual_family_count < 2 { return Err(RobustnessDesignError::ConceptualCoverageThresholdTooLow); }
         if self.minimum_independent_model_coverage < 2 { return Err(RobustnessDesignError::IndependentCoverageThresholdTooLow); }
         validate_models(&self.subject, &self.models, self.minimum_conceptual_family_count)?;
+        if self.minimum_independent_model_coverage as usize > self.models.len() {
+            return Err(RobustnessDesignError::IndependentCoverageThresholdExceedsModelSet);
+        }
+        self.fault_domain_policy.validate_local()?;
+        if self.fault_domain_policy.canonical_digest()? != self.fault_domain_policy_digest {
+            return Err(RobustnessDesignError::FaultPolicyDigestMismatch);
+        }
         validate_relations(&self.models, &self.semantic_relations)?;
-        validate_fault_assessments(&self.models, &self.fault_assessments)?;
+        validate_fault_assessments(&self.models, &self.fault_domain_policy, &self.fault_assessments)?;
         if self.fault_domain_rule_authority != model_fault_domain_rule_v1() { return Err(RobustnessDesignError::FaultDomainRuleMismatch); }
         if self.design_rule_authority != current_cross_model_robustness_design_rule_v1() { return Err(RobustnessDesignError::DesignRuleMismatch); }
         Ok(())
@@ -565,6 +689,7 @@ impl<'a> ValidatedCurrentCrossModelRobustnessDesign<'a> {
         subject: SharedEvidenceSubject,
         models: impl IntoIterator<Item = SpeciesModelDesignRecord>,
         semantic_relations: impl IntoIterator<Item = SemanticRelationRecord>,
+        fault_domain_policy: FaultDomainIndependencePolicy,
         fault_assessments: impl IntoIterator<Item = PairwiseFaultDomainAssessment>,
         minimum_conceptual_family_count: u32,
         minimum_independent_model_coverage: u32,
@@ -572,9 +697,9 @@ impl<'a> ValidatedCurrentCrossModelRobustnessDesign<'a> {
     ) -> Result<Self, RobustnessDesignError> {
         design.validate_local()?;
         let recomputed = CurrentCrossModelRobustnessDesign::declare(
-            design.design_id.clone(), subject, models, semantic_relations, fault_assessments,
-            minimum_conceptual_family_count, minimum_independent_model_coverage,
-            missing_model_policy,
+            design.design_id.clone(), subject, models, semantic_relations, fault_domain_policy,
+            fault_assessments, minimum_conceptual_family_count,
+            minimum_independent_model_coverage, missing_model_policy,
         )?;
         if recomputed != *design { return Err(RobustnessDesignError::DesignReplayMismatch); }
         Ok(Self { design, design_digest: design.canonical_digest()? })
@@ -589,6 +714,9 @@ pub fn current_cross_model_robustness_design_rule_v1() -> AnalysisAuthorityRef {
 pub fn model_fault_domain_rule_v1() -> AnalysisAuthorityRef {
     digest_rule("species-model-fault-domain-v1", FAULT_RULE_DOMAIN, FAULT_RULE_SPEC)
 }
+pub fn fault_domain_independence_policy_rule_v1() -> AnalysisAuthorityRef {
+    digest_rule("species-model-fault-domain-independence-policy-v1", POLICY_RULE_DOMAIN, POLICY_RULE_SPEC)
+}
 
 fn validate_models(
     subject: &SharedEvidenceSubject,
@@ -599,7 +727,6 @@ fn validate_models(
         return Err(RobustnessDesignError::InsufficientConceptualFamilyCoverage);
     }
     let mut previous: Option<&OpenSpeciesConceptIdentity> = None;
-    let mut seen_profile_qualifications: Vec<(AnalysisAuthorityRef, OpenSpeciesConceptIdentity)> = Vec::new();
     for model in models {
         model.validate_local()?;
         let identity = model.conceptual_identity();
@@ -616,15 +743,6 @@ fn validate_models(
         {
             return Err(RobustnessDesignError::EvidenceSubjectMismatch);
         }
-        if seen_profile_qualifications.iter().any(|(authority, other)| {
-            authority == &model.fault_profile.profile_qualification_authority && other != identity
-        }) {
-            return Err(RobustnessDesignError::FaultProfileQualificationReusedAcrossModels);
-        }
-        seen_profile_qualifications.push((
-            model.fault_profile.profile_qualification_authority.clone(),
-            identity.clone(),
-        ));
     }
     Ok(())
 }
@@ -646,6 +764,7 @@ fn validate_relations(
 
 fn validate_fault_assessments(
     models: &[SpeciesModelDesignRecord],
+    policy: &FaultDomainIndependencePolicy,
     assessments: &[PairwiseFaultDomainAssessment],
 ) -> Result<(), RobustnessDesignError> {
     let expected = expected_pairs(models);
@@ -657,7 +776,22 @@ fn validate_fault_assessments(
         }
         let left = by_identity.get(&assessment.left).ok_or(RobustnessDesignError::FaultAssessmentProfileMismatch)?;
         let right = by_identity.get(&assessment.right).ok_or(RobustnessDesignError::FaultAssessmentProfileMismatch)?;
-        assessment.validate_against_profiles(left, right)?;
+        assessment.validate_against_profiles(policy, left, right)?;
+    }
+    Ok(())
+}
+
+fn validate_pair_disposition(
+    policy: &FaultDomainIndependencePolicy,
+    left: &ModelFaultDomainProfile,
+    right: &ModelFaultDomainProfile,
+    disposition: PairwiseFaultDomainDisposition,
+) -> Result<(), RobustnessDesignError> {
+    if disposition != PairwiseFaultDomainDisposition::QualifiedSufficientlyDistinct { return Ok(()); }
+    for dimension in &policy.required_distinct_dimensions {
+        if left.domain_id(*dimension) == right.domain_id(*dimension) {
+            return Err(RobustnessDesignError::QualifiedIndependenceSharesRequiredDimension(*dimension));
+        }
     }
     Ok(())
 }
@@ -690,10 +824,6 @@ fn validate_profile_for_descriptor(
         return Err(RobustnessDesignError::FaultProfileDescriptorMismatch);
     }
     Ok(())
-}
-
-fn all_required_domains_differ(left: &ModelFaultDomainProfile, right: &ModelFaultDomainProfile) -> bool {
-    left.required_domain_ids().iter().zip(right.required_domain_ids()).all(|(a, b)| a != b)
 }
 
 fn validate_identity(identity: &OpenSpeciesConceptIdentity) -> Result<(), RobustnessDesignError> {
@@ -734,7 +864,10 @@ fn put_authority(digest: &mut Sha256, authority: &AnalysisAuthorityRef) {
 fn put_text(digest: &mut Sha256, value: &str) { put_u64(digest, value.len() as u64); digest.update(value.as_bytes()); }
 fn put_u32(digest: &mut Sha256, value: u32) { digest.update(value.to_be_bytes()); }
 fn put_u64(digest: &mut Sha256, value: u64) { digest.update(value.to_be_bytes()); }
-fn fmt_hex(bytes: &[u8], f: &mut fmt::Formatter<'_>) -> fmt::Result { for byte in bytes { write!(f, "{byte:02x}")?; } Ok(()) }
+fn fmt_hex(bytes: &[u8], f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    for byte in bytes { write!(f, "{byte:02x}")?; }
+    Ok(())
+}
 
 #[derive(Debug)]
 pub enum RobustnessDesignError {
@@ -749,21 +882,28 @@ pub enum RobustnessDesignError {
     ClassificationSourceKindMismatch,
     FaultProfileDescriptorMismatch,
     FaultProfileDigestMismatch,
-    FaultProfileQualificationReusedAcrossModels,
     DuplicateConceptualIdentity,
     NonCanonicalModelOrder,
     ConceptualCoverageThresholdTooLow,
     IndependentCoverageThresholdTooLow,
+    IndependentCoverageThresholdExceedsModelSet,
     InsufficientConceptualFamilyCoverage,
     RelationEndpointMismatch,
     RelationDigestMismatch,
     RelationDependencyInvariant,
     NonCanonicalPair,
     IncompleteRelationCoverage,
+    FaultPolicyTooFewDimensions,
+    DuplicateFaultDomainDimension,
+    NonCanonicalFaultDomainDimensions,
+    FaultPolicyMissingEvidenceDimension,
+    FaultPolicyRuleMismatch,
+    FaultPolicyDigestMismatch,
     FaultAssessmentEndpointMismatch,
     FaultAssessmentProfileMismatch,
+    FaultAssessmentPolicyMismatch,
     IncompleteFaultAssessmentCoverage,
-    QualifiedIndependenceHasSharedFaultDomain,
+    QualifiedIndependenceSharesRequiredDimension(FaultDomainDimension),
     FaultDomainRuleMismatch,
     DesignRuleMismatch,
     DesignReplayMismatch,
@@ -792,26 +932,33 @@ impl fmt::Display for RobustnessDesignError {
             Self::ClassificationSourceKindMismatch => write!(f, "family-specific classification-design kind does not match descriptor source kind"),
             Self::FaultProfileDescriptorMismatch => write!(f, "fault-domain profile does not bind the exact model descriptor identity"),
             Self::FaultProfileDigestMismatch => write!(f, "persisted fault-domain profile does not match its digest"),
-            Self::FaultProfileQualificationReusedAcrossModels => write!(f, "one fault-profile qualification authority cannot be relabeled across distinct model identities"),
             Self::DuplicateConceptualIdentity => write!(f, "one E2A design may contain only one authority instance per conceptual identity"),
             Self::NonCanonicalModelOrder => write!(f, "model set is not canonically ordered"),
             Self::ConceptualCoverageThresholdTooLow => write!(f, "minimum conceptual family count must be at least two"),
             Self::IndependentCoverageThresholdTooLow => write!(f, "minimum independent model coverage must be at least two"),
+            Self::IndependentCoverageThresholdExceedsModelSet => write!(f, "minimum independent model coverage cannot exceed the preregistered model set"),
             Self::InsufficientConceptualFamilyCoverage => write!(f, "declared conceptual family set does not meet its preregistered minimum"),
             Self::RelationEndpointMismatch => write!(f, "semantic relation does not bind the expected model pair"),
             Self::RelationDigestMismatch => write!(f, "semantic relation snapshot does not match its digest"),
             Self::RelationDependencyInvariant => write!(f, "semantic relation dependency class does not recompute"),
             Self::NonCanonicalPair => write!(f, "model pair is not canonically ordered"),
-            Self::IncompleteRelationCoverage => write!(f, "semantic relation coverage is not complete for the preregistered model set"),
+            Self::IncompleteRelationCoverage => write!(f, "semantic relation matrix must cover every preregistered model pair exactly once"),
+            Self::FaultPolicyTooFewDimensions => write!(f, "fault-domain independence policy must require at least two distinct dimensions"),
+            Self::DuplicateFaultDomainDimension => write!(f, "fault-domain independence policy contains a duplicate dimension"),
+            Self::NonCanonicalFaultDomainDimensions => write!(f, "fault-domain independence policy dimensions are not canonically ordered"),
+            Self::FaultPolicyMissingEvidenceDimension => write!(f, "fault-domain independence policy must require at least one evidence-related dimension"),
+            Self::FaultPolicyRuleMismatch => write!(f, "fault-domain independence policy does not bind the built-in V1 rule"),
+            Self::FaultPolicyDigestMismatch => write!(f, "persisted fault-domain policy does not match its digest"),
             Self::FaultAssessmentEndpointMismatch => write!(f, "fault-domain assessment does not bind the expected model pair"),
-            Self::FaultAssessmentProfileMismatch => write!(f, "fault-domain assessment does not bind the exact current fault profiles"),
-            Self::IncompleteFaultAssessmentCoverage => write!(f, "pairwise fault-domain assessment coverage is incomplete"),
-            Self::QualifiedIndependenceHasSharedFaultDomain => write!(f, "qualified sufficiently-distinct assessment contains at least one shared required fault domain"),
-            Self::FaultDomainRuleMismatch => write!(f, "design does not bind the built-in V1 fault-domain rule"),
-            Self::DesignRuleMismatch => write!(f, "design does not bind the built-in V1 robustness-design rule"),
-            Self::DesignReplayMismatch => write!(f, "persisted robustness design does not replay from current preregistered inputs"),
+            Self::FaultAssessmentProfileMismatch => write!(f, "fault-domain assessment does not bind the current exact pair of model profiles"),
+            Self::FaultAssessmentPolicyMismatch => write!(f, "fault-domain assessment was qualified under a different independence policy"),
+            Self::IncompleteFaultAssessmentCoverage => write!(f, "fault-domain assessments must cover every preregistered model pair exactly once"),
+            Self::QualifiedIndependenceSharesRequiredDimension(dimension) => write!(f, "pair cannot be qualified sufficiently distinct because required fault dimension {dimension:?} is shared"),
+            Self::FaultDomainRuleMismatch => write!(f, "design does not bind the built-in model fault-domain rule"),
+            Self::DesignRuleMismatch => write!(f, "design does not bind the built-in E2A design rule"),
+            Self::DesignReplayMismatch => write!(f, "persisted E2A design does not replay from current preregistered inputs"),
             Self::Descriptor(error) => write!(f, "descriptor error: {error}"),
-            Self::Relation(error) => write!(f, "relation error: {error}"),
+            Self::Relation(error) => write!(f, "semantic-relation error: {error}"),
         }
     }
 }
