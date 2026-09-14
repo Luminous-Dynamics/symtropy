@@ -33,6 +33,9 @@ use super::thermodynamic_transaction::{
     ThermodynamicTickAuthority, ThermodynamicTickError, ThermodynamicTickReceipt,
 };
 
+mod calibrated;
+pub use calibrated::CalibratedRuntimeFrictionError;
+
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub enum RuntimeFrictionGateError {
     AuthorityPoisoned,
