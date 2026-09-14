@@ -45,7 +45,7 @@ pub use authority_endpoint::{
 };
 pub use authority_namespace::{
     LocalAuthorityNamespaceError, LocalNamespacePhysicsAuthorityWorld,
-    LocalQualifiedPhysicalAuthority, LocalQualifiedWorldGeneration,
+    LocalQualifiedPhysicalAuthority, LocalQualifiedValidatedNetBody, LocalQualifiedWorldGeneration,
 };
 pub use authority_observation::{
     AuthorityBodySnapshot, AuthorityPairObservationError, AuthorityPairSnapshot,
