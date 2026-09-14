@@ -4,17 +4,18 @@
 //! Launcher-local 2D friction execution bridge.
 //!
 //! This adapter composes the private fixed-tick reservation authority with the
-//! stable checked solver-consistent 2D transition-energy path. It deliberately
-//! does not decide heat promotion or diagnostic terminalization: the returned
-//! `AppliedFrictionTransaction<2>` remains the continuation authority for those
-//! later policy decisions.
+//! stable checked solver-consistent 2D transition-energy path. Stable evidence is
+//! derived from the genuine non-cloneable applied transaction plus its exact bound
+//! post-state; there is no detached caller-owned pre-snapshot in this bridge.
+//!
+//! It deliberately does not decide heat promotion or diagnostic terminalization:
+//! the returned `AppliedFrictionTransaction<2>` remains the continuation authority
+//! for those later policy decisions.
 
 use nalgebra::SVector;
 use symtropy_physics::{
-    AppliedFrictionTransaction, FrictionPairTransitionEnergy2d, FrictionSolverCoordinates,
-    FrictionTransitionEnergy2dError, RigidBody,
-    capture_friction_pair_transition_basis_2d_checked,
-    classify_friction_pair_transition_2d_checked,
+    AppliedFrictionTransaction, AppliedFrictionTransition2dError, FrictionPairTransitionEnergy2d,
+    FrictionSolverCoordinates, RigidBody, classify_applied_friction_transition_2d_checked,
 };
 
 use super::thermodynamic_runtime::{RuntimeFrictionError, ThermodynamicTransactionRuntime};
@@ -22,11 +23,11 @@ use super::thermodynamic_runtime::{RuntimeFrictionError, ThermodynamicTransactio
 #[derive(Copy, Clone, Debug, PartialEq)]
 pub enum CheckedFrictionEnergy2d {
     Qualified(FrictionPairTransitionEnergy2d),
-    Unavailable(FrictionTransitionEnergy2dError),
+    Unavailable(AppliedFrictionTransition2dError),
 }
 
-/// One successfully applied runtime friction transaction plus stable checked 2D
-/// mechanical-transition evidence when that measurement was available.
+/// One successfully applied runtime friction transaction plus token-bound stable
+/// checked 2D mechanical-transition evidence when that measurement was available.
 ///
 /// The applied token is intentionally non-cloneable through its core type. A
 /// caller must still terminalize it through physical promotion or the admissible
@@ -38,17 +39,18 @@ pub struct RuntimeFrictionExecution2d {
 }
 
 /// Reserve and apply one exact 2D friction impulse under the open fixed tick,
-/// while measuring solver-consistent A/B transition energy independently.
+/// then derive stable solver-consistent A/B transition energy from that exact
+/// applied token and its still-current bound post-state.
 ///
 /// The transition theorem uses factored local deltas instead of subtracting large
 /// absolute kinetic-energy totals, so a small friction event is not rounded away
 /// by a much larger unchanged mechanical baseline.
 ///
-/// Checked measurement is observational: if pre-measurement is unavailable but
-/// the runtime/core mechanics are otherwise valid, the impulse still executes and
-/// the result explicitly carries `CheckedFrictionEnergy2d::Unavailable`. This
-/// prevents a measurement limitation from silently becoming a second mechanics
-/// authority.
+/// Checked measurement is observational: if token-bound stable classification is
+/// unavailable but the runtime/core mechanics are otherwise valid, the impulse
+/// still executes and the result explicitly carries
+/// `CheckedFrictionEnergy2d::Unavailable`. This prevents a measurement limitation
+/// from silently becoming a second mechanics authority.
 pub fn execute_runtime_friction_impulse_2d(
     runtime: &mut ThermodynamicTransactionRuntime,
     body_a: &mut RigidBody<2>,
@@ -57,8 +59,6 @@ pub fn execute_runtime_friction_impulse_2d(
     impulse_on_b: &SVector<f64, 2>,
     coordinates: FrictionSolverCoordinates,
 ) -> Result<RuntimeFrictionExecution2d, RuntimeFrictionError> {
-    let before = capture_friction_pair_transition_basis_2d_checked(body_a, body_b);
-
     let reservation = runtime.reserve_friction_impulse_at(
         body_a.handle,
         body_b.handle,
@@ -68,15 +68,13 @@ pub fn execute_runtime_friction_impulse_2d(
     )?;
     let applied = runtime.apply_reserved_friction_impulse(body_a, body_b, reservation)?;
 
-    let checked_energy = match before {
+    let checked_energy = match classify_applied_friction_transition_2d_checked(
+        body_a,
+        body_b,
+        &applied,
+    ) {
+        Ok(change) => CheckedFrictionEnergy2d::Qualified(change),
         Err(error) => CheckedFrictionEnergy2d::Unavailable(error),
-        Ok(before) => match capture_friction_pair_transition_basis_2d_checked(body_a, body_b) {
-            Err(error) => CheckedFrictionEnergy2d::Unavailable(error),
-            Ok(after) => match classify_friction_pair_transition_2d_checked(before, after) {
-                Ok(change) => CheckedFrictionEnergy2d::Qualified(change),
-                Err(error) => CheckedFrictionEnergy2d::Unavailable(error),
-            },
-        },
     };
 
     Ok(RuntimeFrictionExecution2d {
@@ -91,7 +89,7 @@ mod tests {
     use symtropy_math::{Point, Sphere, Transform};
     use symtropy_physics::{
         BodyHandle, BodyType, FrictionDiagnosticReason, FrictionMechanicalDelta,
-        FrictionTransitionDelta2d, RigidBodyEnergy2dError,
+        FrictionTransitionDelta2d, FrictionTransitionEnergy2dError, RigidBodyEnergy2dError,
     };
 
     fn sphere(handle: usize, velocity_x: f64) -> RigidBody<2> {
@@ -117,7 +115,7 @@ mod tests {
     }
 
     #[test]
-    fn centered_runtime_application_returns_stable_checked_loss_and_pending_token() {
+    fn centered_runtime_application_returns_token_bound_stable_loss_and_pending_token() {
         let mut runtime = ThermodynamicTransactionRuntime::new();
         runtime.begin_next_tick().unwrap();
         let mut a = sphere(1, 1.0);
@@ -174,8 +172,10 @@ mod tests {
         assert_eq!(
             execution.checked_energy,
             CheckedFrictionEnergy2d::Unavailable(
-                FrictionTransitionEnergy2dError::BodyA(
-                    RigidBodyEnergy2dError::InconsistentInverseMass
+                AppliedFrictionTransition2dError::Transition(
+                    FrictionTransitionEnergy2dError::BodyA(
+                        RigidBodyEnergy2dError::InconsistentInverseMass
+                    )
                 )
             )
         );
@@ -185,7 +185,7 @@ mod tests {
     }
 
     #[test]
-    fn huge_rotational_baseline_cannot_hide_centered_loss_from_bridge() {
+    fn huge_rotational_baseline_cannot_hide_centered_loss_from_token_bound_bridge() {
         let mut runtime = ThermodynamicTransactionRuntime::new();
         runtime.begin_next_tick().unwrap();
         let mut a = RigidBody::new(
@@ -217,9 +217,8 @@ mod tests {
         )
         .unwrap();
 
-        // The historical absolute-energy observation rounds this exact local
-        // transition away at this baseline. It must not become 2D amount/routing
-        // authority merely because it was the original applied-token telemetry.
+        // Historical absolute telemetry rounds this exact local transition away.
+        // Token-bound stable evidence must preserve the transition anyway.
         assert_eq!(execution.applied.observation().delta, FrictionMechanicalDelta::Neutral);
 
         match execution.checked_energy {
@@ -238,7 +237,7 @@ mod tests {
     }
 
     #[test]
-    fn off_center_checked_delta_is_independent_of_legacy_generic_energy() {
+    fn off_center_token_bound_delta_is_independent_of_legacy_generic_energy() {
         let mut runtime = ThermodynamicTransactionRuntime::new();
         runtime.begin_next_tick().unwrap();
         let mut a = anisotropic(1, [-1.0, 0.0]);

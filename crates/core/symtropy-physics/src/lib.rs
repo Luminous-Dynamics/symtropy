@@ -22,6 +22,7 @@
 //! - `friction_step` — checked native-index dispatch + typed authority failures
 //! - `friction_energy_2d` — checked signed 2D A/B pair-energy evidence
 //! - `friction_transition_energy_2d` — stable factored 2D transition-energy evidence
+//! - `friction_applied_transition_2d` — stable 2D transition bound to an applied transaction
 //! - `friction_evidence` — signed pre/post mechanical evidence around one friction impulse
 //! - `friction_transaction` — exactly-once friction lifecycle (`Applied` to terminal outcome)
 //! - `friction_promotion` — SI-native centered measured-loss promotion into heat + ledger authority
@@ -52,6 +53,7 @@ pub mod energy_reconciliation_checked;
 pub mod energy_state;
 pub mod epa;
 pub mod external_heat;
+pub mod friction_applied_transition_2d;
 pub mod friction_authority;
 pub mod friction_coordinates;
 pub mod friction_energy_2d;
@@ -108,6 +110,9 @@ pub use energy_state::{
 pub use epa::EpaResult;
 pub use external_heat::{
     EXTERNAL_HEAT_TRANSFER_KIND, ExternalHeatError, exchange_external_heat_audited,
+};
+pub use friction_applied_transition_2d::{
+    AppliedFrictionTransition2dError, classify_applied_friction_transition_2d_checked,
 };
 pub use friction_authority::{DirectFrictionImpulseAuthority, FrictionImpulseAuthority};
 pub use friction_coordinates::{
