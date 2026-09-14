@@ -3,7 +3,7 @@ name: Terrain Geometry Authority Cleanup Qualification
 on:
   push:
     branches:
-      - "terrain/geometry-authority-cleanup-v0.1"
+      - "ci/terrain-geometry-authority-cleanup-qual-4212886"
     paths:
       - ".github/workflows/terrain-geometry-authority-cleanup-qualification.yml"
       - "crates/domains/symtropy-terrain/src/geometry_authority.rs"
@@ -12,7 +12,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: terrain-geometry-authority-cleanup-v0.1
+  group: terrain-geometry-authority-cleanup-qual-4212886
   cancel-in-progress: true
 
 jobs:
