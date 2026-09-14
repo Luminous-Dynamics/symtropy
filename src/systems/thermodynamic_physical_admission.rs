@@ -25,13 +25,18 @@ impl From<DynamicThermalAdmissionError> for PhysicalFrictionReadinessError {
     }
 }
 
-/// Proof that the current world is eligible to enter the physical friction path.
+/// Non-cloneable proof that the current world is eligible to enter the physical
+/// friction path for one consequential step.
 ///
 /// The calibration is copied into the receipt so the exact admitted unit system
 /// can be passed to the friction authority without consulting mutable global
 /// configuration after the pre-consequence gate. Dynamic body identities are
 /// canonical and sorted by `BodyHandle` by the thermal-readiness theorem.
-#[derive(Clone, Debug, PartialEq)]
+///
+/// The receipt is intentionally non-cloneable: the production solver authority
+/// consumes it, so ordinary safe code cannot fan one pre-consequence admission
+/// out into multiple independent physical-friction authorities.
+#[derive(Debug, PartialEq)]
 pub(crate) struct PhysicalFrictionReadiness {
     calibration: MechanicalUnitCalibration,
     dynamic_handles: Vec<BodyHandle>,
