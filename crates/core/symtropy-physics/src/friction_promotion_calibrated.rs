@@ -75,11 +75,19 @@ impl From<FrictionTransactionTransitionError> for CalibratedFrictionPromotionErr
     }
 }
 
+/// Relative equality around an explicitly supplied transaction scale.
+///
+/// Unlike the SI-native compatibility path, this deliberately has no `1 J`
+/// absolute floor. A small calibrated transfer must not inherit a tolerance that
+/// is enormous relative to the transfer itself. If multiplication underflows the
+/// tolerance to zero, equality becomes exact rather than silently widening.
 #[inline]
 fn close_enough(a: f64, b: f64, scale: f64) -> bool {
-    a.is_finite()
-        && b.is_finite()
-        && (a - b).abs() <= RELATIVE_TOLERANCE * scale.abs().max(1.0)
+    if !a.is_finite() || !b.is_finite() || !scale.is_finite() || scale < 0.0 {
+        return false;
+    }
+    let tolerance = RELATIVE_TOLERANCE * scale;
+    tolerance.is_finite() && (a - b).abs() <= tolerance
 }
 
 #[inline]
@@ -322,7 +330,8 @@ pub fn promote_applied_friction_loss_to_heat_calibrated<const D: usize>(
     next_thermal_b.add_heat_joules(heat_b)?;
 
     // Reconcile the staged ledger in physical Joules before committing any
-    // thermal, ledger, or lifecycle state.
+    // thermal, ledger, or lifecycle state. The tolerance scales only with this
+    // transfer; no absolute one-joule floor is admitted.
     let kinetic_residual_a = change_a_joules
         - (next_ledger.net_change_for(kinetic_a) - original_ledger.net_change_for(kinetic_a));
     let kinetic_residual_b = change_b_joules
@@ -336,8 +345,10 @@ pub fn promote_applied_friction_loss_to_heat_calibrated<const D: usize>(
         .max(kinetic_residual_b.abs())
         .max(thermal_residual_a.abs())
         .max(thermal_residual_b.abs());
+    let allowed_residual = RELATIVE_TOLERANCE * dissipated_joules;
     if !max_residual.is_finite()
-        || max_residual > RELATIVE_TOLERANCE * dissipated_joules.max(1.0)
+        || !allowed_residual.is_finite()
+        || max_residual > allowed_residual
     {
         return Err(CalibratedFrictionPromotionError::LedgerStateMismatch);
     }
@@ -470,17 +481,23 @@ mod tests {
         assert_eq!(receipt.heat.dissipated_joules, 0.25 / 1024.0);
         assert_eq!(receipt.heat.heat_to_a_joules, 0.125 / 1024.0);
         assert_eq!(receipt.heat.heat_to_b_joules, 0.125 / 1024.0);
-        assert_eq!(
-            a.thermal.unwrap().sensible_energy_joules(0.0).unwrap()
-                - initial_a.sensible_energy_joules(0.0).unwrap(),
-            receipt.heat.heat_to_a_joules
+
+        let thermal_delta_a = a.thermal.unwrap().sensible_energy_joules(0.0).unwrap()
+            - initial_a.sensible_energy_joules(0.0).unwrap();
+        let thermal_delta_b = b.thermal.unwrap().sensible_energy_joules(0.0).unwrap()
+            - initial_b.sensible_energy_joules(0.0).unwrap();
+        assert!(
+            (thermal_delta_a - receipt.heat.heat_to_a_joules).abs()
+                <= 1.0e-9 * receipt.heat.heat_to_a_joules.abs()
+        );
+        assert!(
+            (thermal_delta_b - receipt.heat.heat_to_b_joules).abs()
+                <= 1.0e-9 * receipt.heat.heat_to_b_joules.abs()
         );
         assert_eq!(
-            b.thermal.unwrap().sensible_energy_joules(0.0).unwrap()
-                - initial_b.sensible_energy_joules(0.0).unwrap(),
-            receipt.heat.heat_to_b_joules
+            journal.phase(receipt.transaction_id),
+            Some(FrictionTransactionPhase::Promoted)
         );
-        assert_eq!(journal.phase(receipt.transaction_id), Some(FrictionTransactionPhase::Promoted));
     }
 
     #[test]
