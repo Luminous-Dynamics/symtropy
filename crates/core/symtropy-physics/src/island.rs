@@ -67,19 +67,31 @@ impl UnionFind {
     }
 }
 
+#[inline]
+fn canonical_pair(a: BodyHandle, b: BodyHandle) -> (BodyHandle, BodyHandle) {
+    if a <= b { (a, b) } else { (b, a) }
+}
+
 /// Build islands from the current contact and constraint graph.
 ///
 /// Returns a list of islands, each containing indices into the world's
 /// body, contact, and constraint arrays. Islands where all bodies are
 /// sleeping are marked as `sleeping = true`.
 ///
-/// Island output order is canonical: ascending smallest body-array index in
-/// each island. This is intentionally independent of the randomized iteration
-/// order of the temporary `HashMap` used for grouping. Contact and constraint
-/// indices within each island are collected by source-vector enumeration and
-/// therefore remain ascending as well. Solver code may consequently flatten
-/// the returned active islands without making replay identity depend on a hash
-/// seed or on union-find's internal root labels.
+/// The returned solver tape is canonical by stable participant identity rather
+/// than by temporary storage layout:
+///
+/// - islands are ordered by their minimum `BodyHandle`;
+/// - contacts inside each island are ordered by canonical `(min_handle,
+///   max_handle, original_index)`;
+/// - constraints use the same canonical participant-pair ordering.
+///
+/// The original index is only a tie-breaker for multiple contacts/constraints
+/// belonging to the same participant pair; those same-pair producers are
+/// themselves deterministic vector traversals. Solver code may consequently
+/// flatten active islands without making replay identity depend on `HashMap`
+/// iteration, body-array layout, broadphase insertion order, or union-find root
+/// labels.
 pub fn build_islands<const D: usize>(
     bodies: &[RigidBody<D>],
     contacts: &[ContactManifold<D>],
@@ -122,9 +134,12 @@ pub fn build_islands<const D: usize>(
     // Build islands with contact and constraint indices
     let mut islands = Vec::new();
     for (_, body_indices) in island_map {
-        // Collect contacts that belong to this island
         let body_set: std::collections::HashSet<usize> = body_indices.iter().copied().collect();
-        let contact_indices: Vec<usize> = contacts
+
+        // Collect then canonicalize contacts by stable participant identity.
+        // Broadphase/narrowphase append order is not an authority for the solver
+        // transaction sequence.
+        let mut contact_indices: Vec<usize> = contacts
             .iter()
             .enumerate()
             .filter(|(_, c)| {
@@ -135,9 +150,15 @@ pub fn build_islands<const D: usize>(
             })
             .map(|(i, _)| i)
             .collect();
+        contact_indices.sort_unstable_by_key(|&index| {
+            let contact = &contacts[index];
+            let (lo, hi) = canonical_pair(contact.body_a, contact.body_b);
+            (lo, hi, index)
+        });
 
-        // Collect constraints that belong to this island
-        let constraint_indices: Vec<usize> = constraints
+        // Constraints are solved from the same flattened island traversal, so
+        // give them the same stable participant-pair ordering discipline.
+        let mut constraint_indices: Vec<usize> = constraints
             .iter()
             .enumerate()
             .filter(|(_, c)| {
@@ -149,6 +170,11 @@ pub fn build_islands<const D: usize>(
             })
             .map(|(i, _)| i)
             .collect();
+        constraint_indices.sort_unstable_by_key(|&index| {
+            let (a, b) = constraints[index].bodies();
+            let (lo, hi) = canonical_pair(a, b);
+            (lo, hi, index)
+        });
 
         // Check if all bodies in the island are sleeping
         let sleeping = body_indices.iter().all(|&i| bodies[i].sleeping);
@@ -161,16 +187,14 @@ pub fn build_islands<const D: usize>(
         });
     }
 
-    // `body_indices` is populated while walking `0..n`, so the first member is
-    // the canonical minimum body-array index for that island. Sorting on that
-    // key removes the temporary HashMap's randomized iteration order from the
-    // solver traversal while avoiding any dependence on union-find root labels.
+    // Canonicalize island order by stable participant identity, not by body
+    // storage position or temporary union-find root. Every island is non-empty.
     islands.sort_unstable_by_key(|island| {
         island
             .body_indices
-            .first()
-            .copied()
-            .unwrap_or(usize::MAX)
+            .iter()
+            .map(|&index| bodies[index].handle)
+            .min()
     });
 
     islands
@@ -202,6 +226,19 @@ mod tests {
         (bodies, map)
     }
 
+    fn remap_handles(
+        bodies: &mut [RigidBody<3>],
+        handles: &[usize],
+    ) -> HashMap<BodyHandle, usize> {
+        assert_eq!(bodies.len(), handles.len());
+        let mut map = HashMap::new();
+        for (index, (body, handle)) in bodies.iter_mut().zip(handles.iter().copied()).enumerate() {
+            body.handle = BodyHandle(handle);
+            map.insert(body.handle, index);
+        }
+        map
+    }
+
     #[test]
     fn no_contacts_each_body_is_own_island() {
         let (bodies, map) = make_bodies(4);
@@ -210,8 +247,9 @@ mod tests {
     }
 
     #[test]
-    fn disconnected_islands_are_canonically_ordered_by_minimum_body_index() {
-        let (bodies, map) = make_bodies(8);
+    fn disconnected_islands_are_canonically_ordered_by_minimum_body_handle() {
+        let (mut bodies, _) = make_bodies(8);
+        let map = remap_handles(&mut bodies, &[90, 10, 70, 30, 80, 20, 60, 40]);
 
         // Repeat construction so the theorem does not accidentally depend on
         // one temporary HashMap's randomized seed.
@@ -219,19 +257,80 @@ mod tests {
             let islands = build_islands(&bodies, &[], &[], &map);
             let minima: Vec<_> = islands
                 .iter()
-                .map(|island| island.body_indices[0])
+                .map(|island| {
+                    island
+                        .body_indices
+                        .iter()
+                        .map(|&index| bodies[index].handle)
+                        .min()
+                        .unwrap()
+                        .0
+                })
                 .collect();
-            assert_eq!(minima, (0..8).collect::<Vec<_>>());
+            assert_eq!(minima, vec![10, 20, 30, 40, 60, 70, 80, 90]);
         }
     }
 
     #[test]
     fn canonical_island_order_makes_flattened_contact_traversal_stable() {
-        let (bodies, map) = make_bodies(6);
+        let (mut bodies, _) = make_bodies(6);
+        let map = remap_handles(&mut bodies, &[40, 10, 30, 20, 60, 50]);
         let contacts = vec![
             ContactManifold::single(
-                BodyHandle(4),
-                BodyHandle(5),
+                BodyHandle(60),
+                BodyHandle(50),
+                nalgebra::SVector::from([1.0, 0.0, 0.0]),
+                nalgebra::SVector::zeros(),
+                0.1,
+            ),
+            ContactManifold::single(
+                BodyHandle(40),
+                BodyHandle(10),
+                nalgebra::SVector::from([1.0, 0.0, 0.0]),
+                nalgebra::SVector::zeros(),
+                0.1,
+            ),
+            ContactManifold::single(
+                BodyHandle(30),
+                BodyHandle(20),
+                nalgebra::SVector::from([1.0, 0.0, 0.0]),
+                nalgebra::SVector::zeros(),
+                0.1,
+            ),
+        ];
+
+        let islands = build_islands(&bodies, &contacts, &[], &map);
+        assert_eq!(
+            islands
+                .iter()
+                .map(|island| {
+                    island
+                        .body_indices
+                        .iter()
+                        .map(|&index| bodies[index].handle)
+                        .min()
+                        .unwrap()
+                        .0
+                })
+                .collect::<Vec<_>>(),
+            vec![10, 20, 50]
+        );
+        assert_eq!(
+            islands
+                .iter()
+                .flat_map(|island| island.contact_indices.iter().copied())
+                .collect::<Vec<_>>(),
+            vec![1, 2, 0]
+        );
+    }
+
+    #[test]
+    fn contact_order_inside_one_island_uses_participant_handles_not_source_position() {
+        let (bodies, map) = make_bodies(3);
+        let contacts = vec![
+            ContactManifold::single(
+                BodyHandle(1),
+                BodyHandle(2),
                 nalgebra::SVector::from([1.0, 0.0, 0.0]),
                 nalgebra::SVector::zeros(),
                 0.1,
@@ -243,30 +342,14 @@ mod tests {
                 nalgebra::SVector::zeros(),
                 0.1,
             ),
-            ContactManifold::single(
-                BodyHandle(2),
-                BodyHandle(3),
-                nalgebra::SVector::from([1.0, 0.0, 0.0]),
-                nalgebra::SVector::zeros(),
-                0.1,
-            ),
         ];
 
         let islands = build_islands(&bodies, &contacts, &[], &map);
-        assert_eq!(
-            islands
-                .iter()
-                .map(|island| island.body_indices[0])
-                .collect::<Vec<_>>(),
-            vec![0, 2, 4]
-        );
-        assert_eq!(
-            islands
-                .iter()
-                .flat_map(|island| island.contact_indices.iter().copied())
-                .collect::<Vec<_>>(),
-            vec![1, 2, 0]
-        );
+        let connected = islands
+            .iter()
+            .find(|island| island.body_indices.len() == 3)
+            .unwrap();
+        assert_eq!(connected.contact_indices, vec![1, 0]);
     }
 
     #[test]
