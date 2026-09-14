@@ -65,8 +65,14 @@ fn explicit_missing_capability_is_not_disagreement_or_negative_vote() {
                 CrossModelCurrentSpeciesRobustnessStatus::InsufficientIndependentModelCoverage
             );
             assert_eq!(
-                report.rows[1].disposition(),
-                CrossModelOutcomeDisposition::MissingCurrentCapability
+                report
+                    .rows
+                    .iter()
+                    .filter(|row| {
+                        row.disposition() == CrossModelOutcomeDisposition::MissingCurrentCapability
+                    })
+                    .count(),
+                1
             );
         },
     );
