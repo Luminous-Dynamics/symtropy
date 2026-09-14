@@ -1,0 +1,278 @@
+name: TEMP friction rollback capability patch
+
+on:
+  push:
+    branches:
+      - physics/friction-rollback-recoverable-capability-v0.1
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Verify exact source and patch
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD:crates/core/symtropy-physics/src/friction_transaction.rs)" = "a16243b08f9ee7545e40ed1164c679f74c1759f2"
+          test "$(git rev-parse HEAD:crates/core/symtropy-physics/src/lib.rs)" = "897fcf950d3191e2582333a643cb5ecf451eb8b1"
+          test "$(git rev-parse HEAD:src/systems/thermodynamic_runtime.rs)" = "d5b34675244cf42f70427348f0a568c443afe615"
+          test "$(git rev-parse HEAD:src/systems/thermodynamic_runtime/calibrated.rs)" = "3dc7caa32831d591e99ee8ac61fce45869166f8b"
+
+          mapfile -t rollback_files < <(git grep -l 'rollback_applied_friction_impulse' -- '*.rs' | sort)
+          expected=(
+            crates/core/symtropy-physics/src/friction_transaction.rs
+            crates/core/symtropy-physics/src/lib.rs
+            src/systems/thermodynamic_runtime.rs
+            src/systems/thermodynamic_runtime/calibrated.rs
+          )
+          test "${rollback_files[*]}" = "${expected[*]}"
+
+          python3 - <<'PY'
+          from pathlib import Path
+
+          def replace_exact(path, old, new):
+              p = Path(path)
+              text = p.read_text()
+              count = text.count(old)
+              if count != 1:
+                  raise SystemExit(f"{path}: expected exactly one replacement target, found {count}")
+              p.write_text(text.replace(old, new, 1))
+
+          tx = "crates/core/symtropy-physics/src/friction_transaction.rs"
+
+          replace_exact(tx, '''#[derive(Copy, Clone, Debug, PartialEq, Eq)]
+pub enum FrictionApplicationRollbackError {
+    UnknownTransaction,
+    AlreadyTerminal,
+    ObservationStateMismatch,
+}
+''', '''#[derive(Copy, Clone, Debug, PartialEq, Eq)]
+pub enum FrictionApplicationRollbackError {
+    UnknownTransaction,
+    AlreadyTerminal,
+    ObservationStateMismatch,
+}
+
+/// Failed rollback that preserves the unique application capability.
+///
+/// Successful rollback consumes `AppliedFrictionTransaction` and returns no token,
+/// preventing an old capability from surviving `Applied -> Absent -> Applied` for
+/// the same deterministic identity. A rejected rollback instead returns the exact
+/// token unchanged so the caller can repair stale state or select the correct
+/// journal and retry without stranding a pending transaction.
+#[derive(Debug, PartialEq)]
+pub struct FrictionApplicationRollbackFailure<const D: usize> {
+    pub error: FrictionApplicationRollbackError,
+    pub applied: AppliedFrictionTransaction<D>,
+}
+''')
+
+          old_fn = '''pub fn rollback_applied_friction_impulse<const D: usize>(
+    body_a: &mut RigidBody<D>,
+    body_b: &mut RigidBody<D>,
+    applied: AppliedFrictionTransaction<D>,
+    journal: &mut FrictionTransactionJournal,
+) -> Result<(), FrictionApplicationRollbackError> {
+    let id = applied.transaction_id();
+    match journal.phase(id) {
+        Some(FrictionTransactionPhase::Applied) => {}
+        Some(FrictionTransactionPhase::Promoted)
+        | Some(FrictionTransactionPhase::DiagnosticOnly(_)) => {
+            return Err(FrictionApplicationRollbackError::AlreadyTerminal);
+        }
+        None => return Err(FrictionApplicationRollbackError::UnknownTransaction),
+    }
+
+    if !applied.matches_post_state(body_a, body_b) {
+        return Err(FrictionApplicationRollbackError::ObservationStateMismatch);
+    }
+
+    body_a.linear_velocity = applied.pre_linear_velocity_a;
+    body_b.linear_velocity = applied.pre_linear_velocity_b;
+    body_a.angular_velocity = applied.pre_angular_velocity_a;
+    body_b.angular_velocity = applied.pre_angular_velocity_b;
+
+    let removed = journal.phases.remove(&id);
+    debug_assert_eq!(removed, Some(FrictionTransactionPhase::Applied));
+    Ok(())
+}
+'''
+          new_fn = '''pub fn rollback_applied_friction_impulse<const D: usize>(
+    body_a: &mut RigidBody<D>,
+    body_b: &mut RigidBody<D>,
+    applied: AppliedFrictionTransaction<D>,
+    journal: &mut FrictionTransactionJournal,
+) -> Result<(), FrictionApplicationRollbackFailure<D>> {
+    let id = applied.transaction_id();
+    let rejection = match journal.phase(id) {
+        Some(FrictionTransactionPhase::Applied) => None,
+        Some(FrictionTransactionPhase::Promoted)
+        | Some(FrictionTransactionPhase::DiagnosticOnly(_)) => {
+            Some(FrictionApplicationRollbackError::AlreadyTerminal)
+        }
+        None => Some(FrictionApplicationRollbackError::UnknownTransaction),
+    };
+    if let Some(error) = rejection {
+        return Err(FrictionApplicationRollbackFailure { error, applied });
+    }
+
+    if !applied.matches_post_state(body_a, body_b) {
+        return Err(FrictionApplicationRollbackFailure {
+            error: FrictionApplicationRollbackError::ObservationStateMismatch,
+            applied,
+        });
+    }
+
+    body_a.linear_velocity = applied.pre_linear_velocity_a;
+    body_b.linear_velocity = applied.pre_linear_velocity_b;
+    body_a.angular_velocity = applied.pre_angular_velocity_a;
+    body_b.angular_velocity = applied.pre_angular_velocity_b;
+
+    let removed = journal.phases.remove(&id);
+    debug_assert_eq!(removed, Some(FrictionTransactionPhase::Applied));
+    Ok(())
+}
+'''
+          replace_exact(tx, old_fn, new_fn)
+
+          replace_exact(tx, '''        assert_eq!(
+            rollback_applied_friction_impulse(&mut a, &mut b, applied, &mut journal),
+            Err(FrictionApplicationRollbackError::ObservationStateMismatch)
+        );
+        assert_eq!((a.linear_velocity, a.angular_velocity), stale_a);
+        assert_eq!((b.linear_velocity, b.angular_velocity), stale_b);
+        assert_eq!(journal.phase(id), Some(FrictionTransactionPhase::Applied));
+''', '''        let failure =
+            rollback_applied_friction_impulse(&mut a, &mut b, applied, &mut journal).unwrap_err();
+        assert_eq!(failure.error, FrictionApplicationRollbackError::ObservationStateMismatch);
+        assert_eq!((a.linear_velocity, a.angular_velocity), stale_a);
+        assert_eq!((b.linear_velocity, b.angular_velocity), stale_b);
+        assert_eq!(journal.phase(id), Some(FrictionTransactionPhase::Applied));
+
+        // Restore the exact bound post-state and prove the returned capability can
+        // complete the rollback rather than leaving the transaction stranded.
+        a.linear_velocity[1] = 0.0;
+        rollback_applied_friction_impulse(
+            &mut a,
+            &mut b,
+            failure.applied,
+            &mut journal,
+        )
+        .unwrap();
+        assert_eq!(journal.phase(id), None);
+''')
+
+          replace_exact(tx, '''        assert_eq!(
+            rollback_applied_friction_impulse(&mut a, &mut b, applied, &mut journal),
+            Err(FrictionApplicationRollbackError::AlreadyTerminal)
+        );
+''', '''        let failure =
+            rollback_applied_friction_impulse(&mut a, &mut b, applied, &mut journal).unwrap_err();
+        assert_eq!(failure.error, FrictionApplicationRollbackError::AlreadyTerminal);
+        assert_eq!(failure.applied.transaction_id(), id);
+''')
+
+          replace_exact(tx, '''        assert_eq!(
+            rollback_applied_friction_impulse(&mut a, &mut b, applied, &mut wrong_journal),
+            Err(FrictionApplicationRollbackError::UnknownTransaction)
+        );
+        assert_eq!((a.linear_velocity, a.angular_velocity), post_a);
+        assert_eq!((b.linear_velocity, b.angular_velocity), post_b);
+        assert!(wrong_journal.is_empty());
+        assert_eq!(source_journal.phase(id), Some(FrictionTransactionPhase::Applied));
+''', '''        let failure = rollback_applied_friction_impulse(
+            &mut a,
+            &mut b,
+            applied,
+            &mut wrong_journal,
+        )
+        .unwrap_err();
+        assert_eq!(failure.error, FrictionApplicationRollbackError::UnknownTransaction);
+        assert_eq!((a.linear_velocity, a.angular_velocity), post_a);
+        assert_eq!((b.linear_velocity, b.angular_velocity), post_b);
+        assert!(wrong_journal.is_empty());
+        assert_eq!(source_journal.phase(id), Some(FrictionTransactionPhase::Applied));
+
+        rollback_applied_friction_impulse(
+            &mut a,
+            &mut b,
+            failure.applied,
+            &mut source_journal,
+        )
+        .unwrap();
+        assert_eq!(source_journal.phase(id), None);
+''')
+
+          replace_exact(
+              "crates/core/symtropy-physics/src/lib.rs",
+              '''    AppliedFrictionTransaction, FrictionApplicationError, FrictionApplicationRollbackError,
+    FrictionDiagnosticFinalizeError, FrictionDiagnosticReason, FrictionTransactionJournal,
+''',
+              '''    AppliedFrictionTransaction, FrictionApplicationError, FrictionApplicationRollbackError,
+    FrictionApplicationRollbackFailure, FrictionDiagnosticFinalizeError,
+    FrictionDiagnosticReason, FrictionTransactionJournal,
+''',
+          )
+
+          replace_exact(
+              "src/systems/thermodynamic_runtime.rs",
+              '''                    Err(rollback) => Err(RuntimeFrictionError::Rollback {
+                        terminalization: Box::new(terminalization),
+                        rollback,
+                    }),
+''',
+              '''                    Err(rollback_failure) => {
+                        // Losing the returned linear capability is safe only after
+                        // entering the sticky fail-stop state. No ordinary forward
+                        // thermodynamic authority may continue with the journal
+                        // stranded in `Applied`.
+                        self.poison_authority();
+                        Err(RuntimeFrictionError::Rollback {
+                            terminalization: Box::new(terminalization),
+                            rollback: rollback_failure.error,
+                        })
+                    }
+''',
+          )
+
+          replace_exact(
+              "src/systems/thermodynamic_runtime/calibrated.rs",
+              '''                Err(rollback) => Err(CalibratedRuntimeFrictionError::Rollback {
+                    terminalization: Box::new(terminalization),
+                    rollback,
+                }),
+''',
+              '''                Err(rollback_failure) => {
+                    // As in the SI-native path, dropping a recoverable rollback
+                    // capability is admissible only after the runtime enters its
+                    // sticky fail-stop state.
+                    self.poison_authority();
+                    Err(CalibratedRuntimeFrictionError::Rollback {
+                        terminalization: Box::new(terminalization),
+                        rollback: rollback_failure.error,
+                    })
+                }
+''',
+          )
+          PY
+
+          cargo fmt --all -- --check || cargo fmt --all
+          git rm .github/workflows/temp-friction-rollback-capability-patch.yml
+          git diff --check
+          git status --short
+
+      - name: Commit exact patch
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "physics: preserve applied capability on rollback rejection"
+          git push origin HEAD:physics/friction-rollback-recoverable-capability-v0.1
