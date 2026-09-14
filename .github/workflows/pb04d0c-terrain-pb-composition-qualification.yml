@@ -1,0 +1,569 @@
+name: PB-04d0c Terrain PB Composition Qualification
+
+on:
+  push:
+    branches:
+      - "ci/pb04d0c-terrain-pb-composition-qual-224c1ce"
+    paths:
+      - ".github/workflows/pb04d0c-terrain-pb-composition-qualification.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pb04d0c-terrain-pb-composition-qual-224c1ce
+  cancel-in-progress: true
+
+jobs:
+  composition-object:
+    name: Prove exact cross-lineage composition object
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - name: Checkout qualification harness
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Bind exact one-commit workflow-only qualifier lineage
+        shell: bash
+        run: |
+          set -euo pipefail
+          product=224c1cef5971f0623c61c1533212a7baf485c9a0
+          qualifier=.github/workflows/pb04d0c-terrain-pb-composition-qualification.yml
+          test "$(git rev-parse HEAD)" = "${GITHUB_SHA}"
+          test "$(git rev-parse HEAD^)" = "${product}"
+          test "$(git diff --name-only "${product}..HEAD")" = "${qualifier}"
+          test -z "$(git rev-list --merges "${product}..HEAD")"
+
+      - name: Checkout immutable composition product
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: 224c1cef5971f0623c61c1533212a7baf485c9a0
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Bind exact parents tree roots and asymmetric provenance
+        shell: bash
+        run: |
+          set -euo pipefail
+          product=224c1cef5971f0623c61c1533212a7baf485c9a0
+          terrain_parent=346852c0b3490df30b1b34ba96d23cb9cf47e5f3
+          pb_parent=5adc54c6f52c7928ac0c7f3381d88c2ee2f5eba4
+          expected_tree=42dad78a271ec9822c0489f9f8a74be6f1a12168
+          decomposition=crates/domains/symtropy-spatial-decomposition
+          topology=crates/domains/symtropy-spatial-topology
+
+          test "$(git rev-parse HEAD)" = "${product}"
+          test "$(git show -s --format=%P HEAD)" = "${terrain_parent} ${pb_parent}"
+          test "$(git rev-parse HEAD^{tree})" = "${expected_tree}"
+
+          test "$(git rev-parse HEAD:Cargo.toml)" = "274720e256ba9067fad3d06f71e1b18590b046bd"
+          test "$(git rev-parse HEAD:Cargo.lock)" = "62c6eb098b3f6fffdea8a175a0f3afb33423b17b"
+          test "$(git rev-parse HEAD:crates/domains/symtropy-terrain)" = "4337d35ba4795d32bc59e29e421360dca4f2eb52"
+          test "$(git rev-parse HEAD:${decomposition})" = "d85aa9016f9354498caf77ee237a4fb6d006f1a8"
+          test "$(git rev-parse HEAD:${topology})" = "01a11e08fa7e4ae00681da2cdf9df2c4687d97e2"
+          test "$(git rev-parse HEAD:crates/domains/symtropy-game-state)" = "6c38d5cf93837ed4b1b123d15de5858ee107b09d"
+
+          test "$(git rev-parse HEAD:.github)" = "$(git rev-parse "${terrain_parent}:.github")"
+          test "$(git rev-parse HEAD:scripts)" = "$(git rev-parse "${terrain_parent}:scripts")"
+          test "$(git rev-parse HEAD:Cargo.toml)" = "$(git rev-parse "${terrain_parent}:Cargo.toml")"
+          test "$(git rev-parse HEAD:Cargo.lock)" = "$(git rev-parse "${terrain_parent}:Cargo.lock")"
+          test "$(git rev-parse HEAD:crates/domains/symtropy-terrain)" = "$(git rev-parse "${terrain_parent}:crates/domains/symtropy-terrain")"
+
+          expected="$(printf '%s\n' \
+            "${decomposition}/Cargo.lock" \
+            "${decomposition}/Cargo.toml" \
+            "${decomposition}/src/lib.rs" \
+            "${decomposition}/tests/complete_local_coverage.rs" \
+            "${decomposition}/tests/exact_cell_bounds.rs" \
+            "${decomposition}/tests/incremental_equivalence.rs" \
+            "${decomposition}/tests/local_identity.rs" \
+            "${topology}/Cargo.lock" \
+            "${topology}/Cargo.toml" \
+            "${topology}/README.md" \
+            "${topology}/src/lib.rs" \
+            "${topology}/tests/hostile_projection.rs" | sort)"
+          actual="$(git diff --name-only "${terrain_parent}..${product}" | sort)"
+          test "${actual}" = "${expected}"
+          test "$(printf '%s\n' "${actual}" | sed '/^$/d' | wc -l)" -eq 12
+
+      - name: Prove no cross-domain mapping semantics were introduced
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+
+          terrain = Path("crates/domains/symtropy-terrain")
+          decomp = Path("crates/domains/symtropy-spatial-decomposition")
+          topo = Path("crates/domains/symtropy-spatial-topology")
+
+          terrain_text = "\n".join(p.read_text() for p in sorted((terrain / "src").glob("*.rs")))
+          terrain_manifest = (terrain / "Cargo.toml").read_text()
+          pb_text = "\n".join([
+              (decomp / "Cargo.toml").read_text(),
+              (decomp / "src/lib.rs").read_text(),
+              (topo / "Cargo.toml").read_text(),
+              (topo / "src/lib.rs").read_text(),
+          ])
+
+          if "symtropy-spatial-decomposition" in terrain_manifest or "symtropy_spatial_decomposition" in terrain_text:
+              raise SystemExit("Terrain gained a PB dependency in the composition-only product")
+          if "symtropy-terrain" in pb_text or "symtropy_terrain" in pb_text:
+              raise SystemExit("PB proof workspaces gained a Terrain dependency in the composition-only product")
+
+          print("PB04D0C_MAPPING_IMPLEMENTATION=ABSENT")
+          print("PB04D0C_CROSS_DOMAIN_DEPENDENCY=ABSENT")
+          PY
+
+      - name: Exact immutable-product postflight
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "224c1cef5971f0623c61c1533212a7baf485c9a0"
+          test "$(git show -s --format=%P HEAD)" = "346852c0b3490df30b1b34ba96d23cb9cf47e5f3 5adc54c6f52c7928ac0c7f3381d88c2ee2f5eba4"
+          test "$(git rev-parse HEAD^{tree})" = "42dad78a271ec9822c0489f9f8a74be6f1a12168"
+          git diff --exit-code
+          test -z "$(git status --porcelain --untracked-files=all)"
+          echo "PB04D0C_COMPOSITION_OBJECT=PASS"
+
+  terrain-replay:
+    name: Replay qualified Terrain authority on composition root
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - name: Checkout qualification harness
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Bind qualifier lineage
+        shell: bash
+        run: |
+          set -euo pipefail
+          product=224c1cef5971f0623c61c1533212a7baf485c9a0
+          qualifier=.github/workflows/pb04d0c-terrain-pb-composition-qualification.yml
+          test "$(git rev-parse HEAD^)" = "${product}"
+          test "$(git diff --name-only "${product}..HEAD")" = "${qualifier}"
+
+      - name: Checkout immutable composition product
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: 224c1cef5971f0623c61c1533212a7baf485c9a0
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Bind exact Terrain inheritance
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "224c1cef5971f0623c61c1533212a7baf485c9a0"
+          test "$(git rev-parse HEAD^{tree})" = "42dad78a271ec9822c0489f9f8a74be6f1a12168"
+          test "$(git rev-parse HEAD:Cargo.lock)" = "62c6eb098b3f6fffdea8a175a0f3afb33423b17b"
+          test "$(git rev-parse HEAD:crates/domains/symtropy-terrain)" = "4337d35ba4795d32bc59e29e421360dca4f2eb52"
+          test "$(git rev-parse HEAD:crates/domains/symtropy-terrain/src/lib.rs)" = "ead663beacad41e99da28f9c67a6c34f126caa69"
+          test "$(git rev-parse HEAD:crates/domains/symtropy-terrain/src/terrain_metric.rs)" = "5f6cce3dc034c0b8c0e46dc55e599bd6162841ac"
+          test "$(git rev-parse HEAD:crates/domains/symtropy-terrain/tests/terrain_metric_public.rs)" = "20029889212d686d08fd92190a6945eb302d3ce5"
+          test "$(git rev-parse HEAD:crates/domains/symtropy-terrain/src/geometry_kernel.rs)" = "8d3e1213eacdeddf693cd2d1f82670d6ed832161"
+          test "$(git rev-parse HEAD:crates/domains/symtropy-terrain/src/live_geometry_provider.rs)" = "543858ec733429ac41d39bd52eb2e39210806280"
+          test "$(git rev-parse HEAD:crates/domains/symtropy-terrain/src/geometry_currentness.rs)" = "2da7d9b27313ae24b45269171cf58ea6cd528de4"
+          test "$(git rev-parse HEAD:crates/domains/symtropy-terrain/src/live_geometry_query.rs)" = "34995e11c7d82ffa4e18b7fc12927816408e8d1d"
+          test ! -e crates/domains/symtropy-terrain/src/geometry_authority.rs
+          echo "CARGO_TARGET_DIR=${RUNNER_TEMP}/pb04d0c-terrain-target" >> "${GITHUB_ENV}"
+
+      - name: Install Linux system dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install -y libasound2-dev libudev-dev pkg-config
+
+      - name: Set up pinned Rust
+        uses: dtolnay/rust-toolchain@6bed0761d98439e5a578e2877258200ad565ba87
+        with:
+          toolchain: 1.96.0
+          components: clippy,rustfmt
+
+      - name: Bind toolchain and locked root graph
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(rustc --version | awk '{print $2}')" = "1.96.0"
+          test "$(cargo --version | awk '{print $2}')" = "1.96.0"
+          before="$(git hash-object Cargo.lock)"
+          cargo metadata --locked --format-version 1 > "${RUNNER_TEMP}/pb04d0c-terrain-metadata.json"
+          test "$(git hash-object Cargo.lock)" = "${before}"
+
+      - name: Check exact Terrain formatting
+        shell: bash
+        run: |
+          set -euo pipefail
+          rustfmt --edition 2024 --check \
+            crates/domains/symtropy-terrain/src/lib.rs \
+            crates/domains/symtropy-terrain/src/terrain_metric.rs \
+            crates/domains/symtropy-terrain/tests/terrain_metric_public.rs
+
+      - name: Compile all Terrain targets
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo check -p symtropy-terrain --locked --all-targets
+
+      - name: Re-execute Terrain theorem corpora
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo test -p symtropy-terrain --locked live_geometry_provider::tests -- --nocapture
+          cargo test -p symtropy-terrain --locked geometry_currentness::tests -- --nocapture
+          cargo test -p symtropy-terrain --locked live_geometry_query::tests -- --nocapture
+          cargo test -p symtropy-terrain --locked --test terrain_metric_public -- --nocapture
+
+      - name: Execute complete Terrain regression
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo test -p symtropy-terrain --locked --all-targets
+
+      - name: Enforce strict Terrain Clippy
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo clippy -p symtropy-terrain --locked --all-targets -- -D warnings
+
+      - name: Audit inherited Terrain authority surfaces
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+
+          root = Path("crates/domains/symtropy-terrain")
+          src = root / "src"
+          texts = {p.name: p.read_text() for p in sorted(src.glob("*.rs"))}
+          joined = "\n".join(texts.values())
+          lib = texts["lib.rs"]
+          kernel = texts["geometry_kernel.rs"]
+          provider = texts["live_geometry_provider.rs"]
+          metric = texts["terrain_metric.rs"]
+          manifest = (root / "Cargo.toml").read_text()
+
+          if (src / "geometry_authority.rs").exists():
+              raise SystemExit("superseded geometry authority reappeared")
+          if "TerrainGeometrySnapshot::capture(" in joined:
+              raise SystemExit("caller-coordinate capture surface reappeared")
+
+          expected_defs = {
+              "TerrainGeometrySnapshot": "geometry_kernel.rs",
+              "EarthChunkLatticeCoord": "geometry_kernel.rs",
+              "EarthChunkLatticeLocus": "live_geometry_provider.rs",
+          }
+          for ty, expected in expected_defs.items():
+              owners = [name for name, text in texts.items() if re.search(rf"\bstruct\s+{ty}\b", text)]
+              if owners != [expected]:
+                  raise SystemExit(f"unexpected {ty} definitions: {owners!r}")
+
+          prefix = provider.partition("#[cfg(test)]")[0]
+          locus = re.search(
+              r"#\[derive\((?P<derives>[^)]*)\)\]\s*pub\(crate\)\s+struct\s+EarthChunkLatticeLocus\b",
+              prefix,
+              flags=re.S,
+          )
+          if locus is None:
+              raise SystemExit("crate-owned locus declaration changed")
+          if "Reflect" in {x.strip() for x in locus.group("derives").split(",")}:
+              raise SystemExit("locus gained Reflect derive")
+
+          capture = re.compile(
+              r"pub fn capture_live_terrain_geometry\(\s*world:\s*&World,\s*entity:\s*Entity,\s*\)\s*->",
+              re.S,
+          )
+          if len(capture.findall(provider)) != 1:
+              raise SystemExit("live capture signature changed or duplicated")
+
+          required = (
+              "mod geometry_currentness;",
+              "pub mod geometry_kernel;",
+              "mod live_geometry_provider;",
+              "mod live_geometry_query;",
+              "pub mod terrain_metric;",
+              "verify_live_terrain_geometry_current",
+              "capture_live_terrain_geometry",
+              "query_live_terrain_geometry",
+          )
+          if any(lib.count(term) != 1 for term in required):
+              raise SystemExit("converged Terrain wiring changed")
+
+          prod_metric = metric.partition("#[cfg(test)]")[0]
+          if "impl Default for TerrainMetricProfile" in prod_metric:
+              raise SystemExit("metric profile gained a default")
+          if re.search(r"(?:Resource|Component)\b.*TerrainMetricProfile", prod_metric, re.S):
+              raise SystemExit("metric profile gained ECS writer authority")
+          if any(x in prod_metric for x in ("GlobalTransform", "Vec3", "Collider")):
+              raise SystemExit("metric vocabulary gained runtime inference")
+          if "symtropy-spatial-decomposition" in manifest or "symtropy_spatial_decomposition" in joined:
+              raise SystemExit("Terrain gained PB dependency")
+
+          print("PB04D0C_TERRAIN_REPLAY=PASS")
+          PY
+
+      - name: Terrain immutable-product postflight
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "224c1cef5971f0623c61c1533212a7baf485c9a0"
+          test "$(git rev-parse HEAD:crates/domains/symtropy-terrain)" = "4337d35ba4795d32bc59e29e421360dca4f2eb52"
+          git diff --exit-code
+          test -z "$(git status --porcelain --untracked-files=all)"
+          test ! -e crates/domains/symtropy-terrain/target
+          echo "PB04D0C_TERRAIN_IMMUTABLE=PASS"
+
+  pb-decomposition-replay:
+    name: Replay exact PB decomposition proof workspace
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - name: Checkout qualification harness
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Bind qualifier lineage
+        shell: bash
+        run: |
+          set -euo pipefail
+          product=224c1cef5971f0623c61c1533212a7baf485c9a0
+          qualifier=.github/workflows/pb04d0c-terrain-pb-composition-qualification.yml
+          test "$(git rev-parse HEAD^)" = "${product}"
+          test "$(git diff --name-only "${product}..HEAD")" = "${qualifier}"
+
+      - name: Checkout immutable composition product
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: 224c1cef5971f0623c61c1533212a7baf485c9a0
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Bind exact decomposition workspace
+        shell: bash
+        run: |
+          set -euo pipefail
+          root=crates/domains/symtropy-spatial-decomposition
+          test "$(git rev-parse HEAD)" = "224c1cef5971f0623c61c1533212a7baf485c9a0"
+          test "$(git rev-parse HEAD^{tree})" = "42dad78a271ec9822c0489f9f8a74be6f1a12168"
+          test "$(git rev-parse HEAD:${root})" = "d85aa9016f9354498caf77ee237a4fb6d006f1a8"
+          test "$(git rev-parse HEAD:${root}/Cargo.lock)" = "676fd6a7eb31a2ec00b09c9496b42c568e791556"
+          test "$(git rev-parse HEAD:${root}/Cargo.toml)" = "614fa7d2e293809faaef10649cf3beb02475c259"
+          test "$(git rev-parse HEAD:${root}/src/lib.rs)" = "978d4661b1c53b549625ce7cf69ab96024a49aaa"
+          test "$(git rev-parse HEAD:${root}/tests/exact_cell_bounds.rs)" = "b1062a646ddd8845b2e00348e7debbf3fbc2c809"
+          test "$(git rev-parse HEAD:${root}/tests/local_identity.rs)" = "ea93ff96e172027bce604b6438c7ba124a6d54e3"
+          test "$(git rev-parse HEAD:${root}/tests/complete_local_coverage.rs)" = "b01ecedb068db1db370c6f7e9d6c991b590c3d95"
+          test "$(git rev-parse HEAD:${root}/tests/incremental_equivalence.rs)" = "ecde252c7ed70a2a0cbef31633d05838b7066e88"
+          echo "CARGO_TARGET_DIR=${RUNNER_TEMP}/pb04d0c-decomposition-target" >> "${GITHUB_ENV}"
+
+      - name: Set up pinned Rust
+        uses: dtolnay/rust-toolchain@6bed0761d98439e5a578e2877258200ad565ba87
+        with:
+          toolchain: 1.96.0
+          components: clippy,rustfmt
+
+      - name: Bind toolchain and locked decomposition graph
+        shell: bash
+        run: |
+          set -euo pipefail
+          manifest=crates/domains/symtropy-spatial-decomposition/Cargo.toml
+          test "$(rustc --version | awk '{print $2}')" = "1.96.0"
+          test "$(cargo --version | awk '{print $2}')" = "1.96.0"
+          before="$(git hash-object crates/domains/symtropy-spatial-decomposition/Cargo.lock)"
+          cargo metadata --manifest-path "${manifest}" --locked --format-version 1 > "${RUNNER_TEMP}/pb04d0c-decomposition-metadata.json"
+          test "$(git hash-object crates/domains/symtropy-spatial-decomposition/Cargo.lock)" = "${before}"
+
+      - name: Check decomposition formatting
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo fmt --manifest-path crates/domains/symtropy-spatial-decomposition/Cargo.toml -- --check
+
+      - name: Check all decomposition targets
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo check --manifest-path crates/domains/symtropy-spatial-decomposition/Cargo.toml --locked --all-targets
+
+      - name: Execute exact-cell-bounds theorem corpus
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo test --manifest-path crates/domains/symtropy-spatial-decomposition/Cargo.toml --locked exact_cell_bounds -- --nocapture
+
+      - name: Execute complete decomposition regression
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo test --manifest-path crates/domains/symtropy-spatial-decomposition/Cargo.toml --locked --all-targets
+
+      - name: Enforce strict decomposition Clippy
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo clippy --manifest-path crates/domains/symtropy-spatial-decomposition/Cargo.toml --locked --all-targets -- -D warnings
+
+      - name: Audit exact read-only PB geometry surface
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+
+          root = Path("crates/domains/symtropy-spatial-decomposition")
+          source = (root / "src/lib.rs").read_text()
+          manifest = (root / "Cargo.toml").read_text()
+          tests = (root / "tests/exact_cell_bounds.rs").read_text()
+
+          if source.count("pub fn exact_cell_bounds(") != 1:
+              raise SystemExit("expected exactly one public exact_cell_bounds wrapper")
+          match = re.search(
+              r"pub fn exact_cell_bounds\(.*?\n\s*\}\n\n\s*fn contains",
+              source,
+              flags=re.S,
+          )
+          if match is None or "cell_bounds(cell, profile, self)" not in match.group(0):
+              raise SystemExit("public exact_cell_bounds is not an exact delegation")
+          if re.search(r"pub\s+origin\s*:", source) or re.search(r"pub\s+dimensions\s*:", source):
+              raise SystemExit("AnalysisDomain internals became public")
+          if "symtropy-terrain" in manifest or "symtropy_terrain" in source:
+              raise SystemExit("PB decomposition gained Terrain dependency")
+          if "exact_cell_bounds" not in tests:
+              raise SystemExit("dedicated exact-cell-bounds theorem missing")
+
+          print("PB04D0C_DECOMPOSITION_READ_SURFACE=PASS")
+          PY
+
+      - name: Decomposition immutable-product postflight
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "224c1cef5971f0623c61c1533212a7baf485c9a0"
+          test "$(git rev-parse HEAD:crates/domains/symtropy-spatial-decomposition)" = "d85aa9016f9354498caf77ee237a4fb6d006f1a8"
+          git diff --exit-code
+          test -z "$(git status --porcelain --untracked-files=all)"
+          test ! -e crates/domains/symtropy-spatial-decomposition/target
+          echo "PB04D0C_DECOMPOSITION_IMMUTABLE=PASS"
+
+  pb-topology-replay:
+    name: Replay exact PB topology proof workspace
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - name: Checkout qualification harness
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Bind qualifier lineage
+        shell: bash
+        run: |
+          set -euo pipefail
+          product=224c1cef5971f0623c61c1533212a7baf485c9a0
+          qualifier=.github/workflows/pb04d0c-terrain-pb-composition-qualification.yml
+          test "$(git rev-parse HEAD^)" = "${product}"
+          test "$(git diff --name-only "${product}..HEAD")" = "${qualifier}"
+
+      - name: Checkout immutable composition product
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: 224c1cef5971f0623c61c1533212a7baf485c9a0
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Bind exact topology workspace
+        shell: bash
+        run: |
+          set -euo pipefail
+          root=crates/domains/symtropy-spatial-topology
+          test "$(git rev-parse HEAD)" = "224c1cef5971f0623c61c1533212a7baf485c9a0"
+          test "$(git rev-parse HEAD^{tree})" = "42dad78a271ec9822c0489f9f8a74be6f1a12168"
+          test "$(git rev-parse HEAD:${root})" = "01a11e08fa7e4ae00681da2cdf9df2c4687d97e2"
+          test "$(git rev-parse HEAD:${root}/Cargo.lock)" = "f465ef97074a973eb3bf742a918609f7a06bccc4"
+          test "$(git rev-parse HEAD:${root}/Cargo.toml)" = "22e4b9ed397b7fd94d5918d0dc26868710794d17"
+          test "$(git rev-parse HEAD:${root}/README.md)" = "eacb35f3d2fbc624b482ef2f4e098a80a3d4dc8a"
+          test "$(git rev-parse HEAD:${root}/src/lib.rs)" = "d0553da04de45f5df6e372b24a5a2fdc4d894b66"
+          test "$(git rev-parse HEAD:${root}/tests/hostile_projection.rs)" = "79abd90a6aa2c0b6623f75a279a66ff309094926"
+          echo "CARGO_TARGET_DIR=${RUNNER_TEMP}/pb04d0c-topology-target" >> "${GITHUB_ENV}"
+
+      - name: Set up pinned Rust
+        uses: dtolnay/rust-toolchain@6bed0761d98439e5a578e2877258200ad565ba87
+        with:
+          toolchain: 1.96.0
+          components: clippy,rustfmt
+
+      - name: Bind toolchain and locked topology graph
+        shell: bash
+        run: |
+          set -euo pipefail
+          manifest=crates/domains/symtropy-spatial-topology/Cargo.toml
+          test "$(rustc --version | awk '{print $2}')" = "1.96.0"
+          test "$(cargo --version | awk '{print $2}')" = "1.96.0"
+          before="$(git hash-object crates/domains/symtropy-spatial-topology/Cargo.lock)"
+          cargo metadata --manifest-path "${manifest}" --locked --format-version 1 > "${RUNNER_TEMP}/pb04d0c-topology-metadata.json"
+          test "$(git hash-object crates/domains/symtropy-spatial-topology/Cargo.lock)" = "${before}"
+
+      - name: Check topology formatting
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo fmt --manifest-path crates/domains/symtropy-spatial-topology/Cargo.toml -- --check
+
+      - name: Check all topology targets
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo check --manifest-path crates/domains/symtropy-spatial-topology/Cargo.toml --locked --all-targets
+
+      - name: Execute complete topology regression
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo test --manifest-path crates/domains/symtropy-spatial-topology/Cargo.toml --locked --all-targets
+
+      - name: Enforce strict topology Clippy
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo clippy --manifest-path crates/domains/symtropy-spatial-topology/Cargo.toml --locked --all-targets -- -D warnings
+
+      - name: Audit topology isolation
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+
+          root = Path("crates/domains/symtropy-spatial-topology")
+          manifest = (root / "Cargo.toml").read_text()
+          source = (root / "src/lib.rs").read_text()
+          if "symtropy-terrain" in manifest or "symtropy_terrain" in source:
+              raise SystemExit("PB topology gained Terrain dependency")
+          print("PB04D0C_TOPOLOGY_TERRAIN_DEPENDENCY=ABSENT")
+          PY
+
+      - name: Topology immutable-product postflight
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "224c1cef5971f0623c61c1533212a7baf485c9a0"
+          test "$(git rev-parse HEAD:crates/domains/symtropy-spatial-topology)" = "01a11e08fa7e4ae00681da2cdf9df2c4687d97e2"
+          git diff --exit-code
+          test -z "$(git status --porcelain --untracked-files=all)"
+          test ! -e crates/domains/symtropy-spatial-topology/target
+          echo "PB04D0C_TOPOLOGY_IMMUTABLE=PASS"
