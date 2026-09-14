@@ -3,8 +3,8 @@
 
 use symtropy_math::Point;
 use symtropy_physics::{
-    NetId, NoOpCallback, PhysicalAuthorityId, PhysicsAuthorityTemporalError,
-    PhysicsAuthorityWorld, PhysicsWorld, WorldGenerationId,
+    BodyHandle, NetId, NetIdentityMutationError, NoOpCallback, PhysicalAuthorityId,
+    PhysicsAuthorityTemporalError, PhysicsAuthorityWorld, PhysicsWorld, WorldGenerationId,
 };
 
 fn empty_authority() -> PhysicsAuthorityWorld<3> {
@@ -116,6 +116,23 @@ fn identity_change_breaks_epoch_but_idempotent_rebind_does_not() {
 }
 
 #[test]
+fn rejected_identity_bind_preserves_temporal_lineage() {
+    let mut authority = empty_authority();
+    let first = authority.step_authorized(1.0 / 64.0).unwrap();
+    let missing = BodyHandle(999_999);
+
+    assert_eq!(
+        authority.bind_net_id(missing, NetId(9802)),
+        Err(NetIdentityMutationError::UnknownHandle { handle: missing })
+    );
+    assert_eq!(authority.last_authorized_step_stamp(), Some(first));
+
+    let second = authority.step_authorized(1.0 / 64.0).unwrap();
+    assert_eq!(second.mutation_epoch(), first.mutation_epoch());
+    assert_eq!(second.step_index(), first.step_index() + 1);
+}
+
+#[test]
 fn nonempty_deterministic_insertion_breaks_epoch() {
     let mut authority = empty_authority();
     let before = authority.step_authorized(1.0 / 64.0).unwrap();
@@ -134,6 +151,35 @@ fn nonempty_deterministic_insertion_breaks_epoch() {
     let after = authority.step_authorized(1.0 / 64.0).unwrap();
     assert_eq!(after.mutation_epoch(), before.mutation_epoch() + 1);
     assert_eq!(after.step_index(), 1);
+}
+
+#[test]
+fn rejected_deterministic_batch_preserves_temporal_lineage() {
+    let mut authority = empty_authority();
+    let first = authority.step_authorized(1.0 / 64.0).unwrap();
+    let net_id = NetId(9902);
+    let first_body = symtropy_physics::RigidBody::<3>::dynamic_sphere(
+        BodyHandle(10),
+        Point::origin(),
+        0.5,
+        1.0,
+    );
+    let second_body = symtropy_physics::RigidBody::<3>::dynamic_sphere(
+        BodyHandle(11),
+        Point::new([1.0, 0.0, 0.0]),
+        0.5,
+        1.0,
+    );
+
+    assert_eq!(
+        authority.add_bodies_deterministic(vec![(net_id, first_body), (net_id, second_body)]),
+        Err(NetIdentityMutationError::DuplicateBatchNetId { net_id })
+    );
+    assert_eq!(authority.last_authorized_step_stamp(), Some(first));
+
+    let second = authority.step_authorized(1.0 / 64.0).unwrap();
+    assert_eq!(second.mutation_epoch(), first.mutation_epoch());
+    assert_eq!(second.step_index(), first.step_index() + 1);
 }
 
 #[test]

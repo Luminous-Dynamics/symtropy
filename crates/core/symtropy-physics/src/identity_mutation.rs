@@ -13,18 +13,27 @@ use std::collections::BTreeSet;
 use crate::body::{BodyHandle, NetId, RigidBody};
 use crate::world::PhysicsWorld;
 
-/// Bind one previously-unbound body to one `NetId` only after proving the
-/// current body/index views are mutually consistent and the requested identity
-/// is not owned elsewhere.
+/// Prepared result of validating one stable-identity bind.
+///
+/// Preparation is pure with respect to the world. A state-changing plan is
+/// committed only after the authority layer has broken the previous temporal
+/// lineage and entered its mutation-commit taint boundary.
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
+pub(crate) enum PreparedNetIdBinding {
+    NoChange,
+    Change { handle: BodyHandle, net_id: NetId },
+}
+
+/// Validate one stable-identity bind without mutating the world.
 ///
 /// Stable identity is bind-once per body incarnation: `None -> N` is allowed,
 /// `N -> N` is idempotent, and `N -> M` is rejected. Identity replacement
 /// belongs to an explicit future continuity/reincarnation authority.
-pub(crate) fn assign_net_id_checked<const D: usize>(
-    world: &mut PhysicsWorld<D>,
+pub(crate) fn prepare_net_id_binding<const D: usize>(
+    world: &PhysicsWorld<D>,
     handle: BodyHandle,
     net_id: NetId,
-) -> Result<(), NetIdentityMutationError> {
+) -> Result<PreparedNetIdBinding, NetIdentityMutationError> {
     let current = world
         .body(handle)
         .ok_or(NetIdentityMutationError::UnknownHandle { handle })?
@@ -71,7 +80,7 @@ pub(crate) fn assign_net_id_checked<const D: usize>(
                 net_id,
             });
         }
-        return Ok(());
+        return Ok(PreparedNetIdBinding::NoChange);
     }
 
     if let Some(old_id) = current {
@@ -106,24 +115,44 @@ pub(crate) fn assign_net_id_checked<const D: usize>(
         });
     }
 
-    // All fallible identity checks happen before the legacy mutation. Under the
-    // current frozen `PhysicsWorld::set_net_id` implementation, no further
-    // rejection point remains once this preflight succeeds.
-    world.set_net_id(handle, net_id);
-
-    Ok(())
+    Ok(PreparedNetIdBinding::Change { handle, net_id })
 }
 
-/// Insert a deterministic batch only after validating the *entire* requested
-/// identity set against both the batch and the existing world.
+/// Apply an already-prepared stable-identity bind.
+///
+/// No ordinary recoverable validation branch remains here. If a future change
+/// introduces one, it must move back into [`prepare_net_id_binding`] so callers
+/// can reject it before entering the authority mutation boundary.
+pub(crate) fn commit_prepared_net_id_binding<const D: usize>(
+    world: &mut PhysicsWorld<D>,
+    prepared: PreparedNetIdBinding,
+) {
+    if let PreparedNetIdBinding::Change { handle, net_id } = prepared {
+        world.set_net_id(handle, net_id);
+    }
+}
+
+/// Prepared deterministic insertion after whole-request identity preflight.
+pub(crate) struct PreparedDeterministicInsertion<const D: usize> {
+    bodies: Vec<(NetId, RigidBody<D>)>,
+}
+
+impl<const D: usize> PreparedDeterministicInsertion<D> {
+    pub(crate) fn is_empty(&self) -> bool {
+        self.bodies.is_empty()
+    }
+}
+
+/// Validate the entire requested identity set without mutating the world.
 ///
 /// This removes the known expected partial-insertion failure mode of the legacy
 /// `add_bodies_deterministic`: duplicate/existing IDs are rejected before its
-/// insertion loop begins.
-pub(crate) fn add_bodies_deterministic_checked<const D: usize>(
-    world: &mut PhysicsWorld<D>,
+/// insertion loop begins. Handle-allocation capacity and low-level structural
+/// atomicity remain PHYS-ID-01E / #1060 responsibilities.
+pub(crate) fn prepare_deterministic_insertion<const D: usize>(
+    world: &PhysicsWorld<D>,
     bodies: Vec<(NetId, RigidBody<D>)>,
-) -> Result<Vec<BodyHandle>, NetIdentityMutationError> {
+) -> Result<PreparedDeterministicInsertion<D>, NetIdentityMutationError> {
     let mut seen = BTreeSet::new();
 
     for (net_id, body) in &bodies {
@@ -158,9 +187,24 @@ pub(crate) fn add_bodies_deterministic_checked<const D: usize>(
         }
     }
 
+    Ok(PreparedDeterministicInsertion { bodies })
+}
+
+/// Apply an already-prepared deterministic insertion.
+///
+/// The legacy world insertion still owns handle allocation until #1060. Any
+/// unexpected rejection here indicates that the prepare/commit contract has
+/// been violated. Authority callers execute this function inside a mutation
+/// taint boundary, so a panic cannot preserve the old temporal lineage.
+pub(crate) fn commit_prepared_deterministic_insertion<const D: usize>(
+    world: &mut PhysicsWorld<D>,
+    prepared: PreparedDeterministicInsertion<D>,
+) -> Vec<BodyHandle> {
     world
-        .add_bodies_deterministic(bodies)
-        .map_err(NetIdentityMutationError::LegacyInsertionRejected)
+        .add_bodies_deterministic(prepared.bodies)
+        .unwrap_or_else(|error| {
+            panic!("prepared deterministic insertion unexpectedly rejected: {error}")
+        })
 }
 
 fn live_handles_for_net_id<const D: usize>(
@@ -224,6 +268,9 @@ pub enum NetIdentityMutationError {
         current: NetId,
         requested: NetId,
     },
+    /// Retained for public compatibility with the pre-PHYS-OBS-04B checked
+    /// coordinator. Prepared authority commits no longer return this variant;
+    /// an unexpected legacy rejection occurs inside the mutation taint boundary.
     LegacyInsertionRejected(String),
 }
 
@@ -237,7 +284,7 @@ mod privileged_corruption_tests {
     }
 
     #[test]
-    fn stale_body_identity_rejects_checked_reassignment_without_more_mutation() {
+    fn stale_body_identity_rejects_prepare_without_more_mutation() {
         let mut world = PhysicsWorld::<3>::default();
         let handle = world.add_sphere(Point::origin(), 0.5, 1.0);
         let indexed = NetId(110);
@@ -247,35 +294,52 @@ mod privileged_corruption_tests {
         world.set_net_id(handle, indexed);
         world.body_mut(handle).expect("body exists").net_id = Some(stale_body_id);
 
-        assert_eq!(
-            assign_net_id_checked(&mut world, handle, requested),
+        assert!(matches!(
+            prepare_net_id_binding(&world, handle, requested),
             Err(NetIdentityMutationError::CurrentIdentityIndexMissing {
-                net_id: stale_body_id,
-                handle,
-            })
+                net_id,
+                handle: observed_handle,
+            }) if net_id == stale_body_id && observed_handle == handle
+        ));
+        assert_eq!(
+            world.body(handle).expect("body exists").net_id(),
+            Some(stale_body_id)
         );
-        assert_eq!(world.body(handle).expect("body exists").net_id(), Some(stale_body_id));
         assert_eq!(world.handle_for_net_id(indexed), Some(handle));
         assert_eq!(world.handle_for_net_id(requested), None);
     }
 
     #[test]
-    fn conflicting_embedded_identity_rejects_before_batch_insertion() {
-        let mut world = PhysicsWorld::<3>::default();
+    fn conflicting_embedded_identity_rejects_prepare_before_batch_insertion() {
+        let world = PhysicsWorld::<3>::default();
         let requested = NetId(140);
         let embedded = NetId(141);
         let mut body = body_at(0.0);
         body.net_id = Some(embedded);
 
-        assert_eq!(
-            add_bodies_deterministic_checked(&mut world, vec![(requested, body)]),
+        assert!(matches!(
+            prepare_deterministic_insertion(&world, vec![(requested, body)]),
             Err(NetIdentityMutationError::BodyCarriesConflictingNetId {
-                requested,
-                embedded,
-            })
-        );
+                requested: observed_requested,
+                embedded: observed_embedded,
+            }) if observed_requested == requested && observed_embedded == embedded
+        ));
         assert_eq!(world.body_count(), 0);
         assert_eq!(world.handle_for_net_id(requested), None);
         assert_eq!(world.handle_for_net_id(embedded), None);
+    }
+
+    #[test]
+    fn prepared_identity_change_mutates_only_during_commit() {
+        let mut world = PhysicsWorld::<3>::default();
+        let handle = world.add_sphere(Point::origin(), 0.5, 1.0);
+        let net_id = NetId(150);
+
+        let prepared = prepare_net_id_binding(&world, handle, net_id).unwrap();
+        assert_eq!(world.net_id_for_handle(handle), None);
+
+        commit_prepared_net_id_binding(&mut world, prepared);
+        assert_eq!(world.net_id_for_handle(handle), Some(net_id));
+        assert_eq!(world.handle_for_net_id(net_id), Some(handle));
     }
 }
