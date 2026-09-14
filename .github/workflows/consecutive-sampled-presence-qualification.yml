@@ -1,0 +1,270 @@
+name: PHYS-OBS-06 Consecutive Sampled Presence Qualification
+
+on:
+  push:
+    branches:
+      - "ci/consecutive-sampled-presence-v0.1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: consecutive-sampled-presence-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  PRODUCT_HEAD: e7fc7d90355917be2edac29b6d0ca3d1cd655a89
+  PRODUCT_PARENT: 28383cfa1e8d3464f0b59b54bc0f0202413bf24e
+
+jobs:
+  qualify:
+    name: Frozen PHYS-OBS-06 sampled presence / Rust 1.96
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout exact product head
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ env.PRODUCT_HEAD }}
+          fetch-depth: 0
+
+      - name: Assert exact one-commit product subject
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "${PRODUCT_HEAD}"
+          git merge-base --is-ancestor "${PRODUCT_PARENT}" "${PRODUCT_HEAD}"
+          test "$(git rev-list --count "${PRODUCT_PARENT}..${PRODUCT_HEAD}")" = "1"
+          mapfile -t changed < <(git diff --name-only "${PRODUCT_PARENT}..${PRODUCT_HEAD}")
+          test "${#changed[@]}" = "4"
+          expected=(
+            "crates/core/symtropy-physics/EXACT_CONSECUTIVE_SAMPLED_ENDPOINT_PRESENCE_V01.md"
+            "crates/core/symtropy-physics/src/lib.rs"
+            "crates/core/symtropy-physics/src/sampled_presence.rs"
+            "crates/core/symtropy-physics/tests/consecutive_sampled_presence_v01.rs"
+          )
+          for i in "${!expected[@]}"; do
+            test "${changed[$i]}" = "${expected[$i]}"
+          done
+          git diff --quiet "${PRODUCT_PARENT}..${PRODUCT_HEAD}" -- \
+            crates/core/symtropy-physics/src/qualified_endpoint.rs \
+            crates/core/symtropy-physics/src/authority_endpoint.rs \
+            crates/core/symtropy-physics/src/evidence_authority.rs \
+            crates/core/symtropy-physics/src/authority_namespace.rs \
+            crates/core/symtropy-physics/src/identity_authority.rs \
+            crates/core/symtropy-physics/src/world.rs
+
+      - name: Set up pinned Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.96.0
+          components: rustfmt,clippy
+
+      - name: Cache dependencies
+        uses: Swatinem/rust-cache@v2
+
+      - name: Freeze source identities
+        shell: bash
+        run: |
+          set -euo pipefail
+          sha256sum \
+            crates/core/symtropy-physics/EXACT_CONSECUTIVE_SAMPLED_ENDPOINT_PRESENCE_V01.md \
+            crates/core/symtropy-physics/src/sampled_presence.rs \
+            crates/core/symtropy-physics/src/qualified_endpoint.rs \
+            crates/core/symtropy-physics/src/authority_endpoint.rs \
+            crates/core/symtropy-physics/src/evidence_authority.rs \
+            crates/core/symtropy-physics/src/authority_namespace.rs \
+            crates/core/symtropy-physics/src/lib.rs \
+            crates/core/symtropy-physics/tests/consecutive_sampled_presence_v01.rs \
+            crates/core/symtropy-physics/tests/qualified_stamped_endpoint_v01.rs \
+            crates/core/symtropy-physics/tests/sealed_evidence_authority_v01.rs \
+            > "${RUNNER_TEMP}/consecutive-sampled-presence-source-sha256.txt"
+
+      - name: Check formatting
+        run: cargo fmt --all -- --check
+
+      - name: Check physics all targets
+        run: cargo check -p symtropy-physics --locked --all-targets
+
+      - name: Run consecutive sampled presence theorem
+        run: cargo test -p symtropy-physics --locked --test consecutive_sampled_presence_v01
+
+      - name: Run PHYS-OBS-05 issued endpoint regression
+        run: cargo test -p symtropy-physics --locked --test qualified_stamped_endpoint_v01
+
+      - name: Run sealed evidence authority regression
+        run: cargo test -p symtropy-physics --locked --test sealed_evidence_authority_v01
+
+      - name: Run physics library tests
+        run: cargo test -p symtropy-physics --locked --lib
+
+      - name: Run strict physics Clippy
+        run: cargo clippy -p symtropy-physics --locked --all-targets -- -D warnings
+
+      - name: Audit sampled-presence claim boundary
+        shell: bash
+        run: |
+          set -euo pipefail
+          module=crates/core/symtropy-physics/src/sampled_presence.rs
+          contract=crates/core/symtropy-physics/EXACT_CONSECUTIVE_SAMPLED_ENDPOINT_PRESENCE_V01.md
+          tests=crates/core/symtropy-physics/tests/consecutive_sampled_presence_v01.rs
+
+          grep -Fq 'pub struct LocalConsecutiveSampledEndpointPresence' "${module}"
+          grep -Fq 'pub fn try_from_samples(' "${module}"
+          grep -Fq '&LocalQualifiedStampedEndpointBoxObservation<D>' "${module}"
+          grep -Fq 'current_step.checked_sub(previous_step)' "${module}"
+          grep -Fq 'EndpointMembership::Inside' "${module}"
+          grep -Fq 'TemporalIncarnationMismatch' "${module}"
+          grep -Fq 'RegionMismatch' "${module}"
+          grep -Fq 'DuplicateStep' "${module}"
+          grep -Fq 'ReversedStep' "${module}"
+          grep -Fq 'StepGap' "${module}"
+
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+
+          text = Path('crates/core/symtropy-physics/src/sampled_presence.rs').read_text()
+          contract = Path('crates/core/symtropy-physics/EXACT_CONSECUTIVE_SAMPLED_ENDPOINT_PRESENCE_V01.md').read_text()
+          tests = Path('crates/core/symtropy-physics/tests/consecutive_sampled_presence_v01.rs').read_text()
+
+          name = 'LocalConsecutiveSampledEndpointPresence'
+          derive = re.search(
+              rf'#\[derive\(([^)]*)\)\]\s*pub struct {name}',
+              text,
+              re.MULTILINE,
+          )
+          assert derive is not None
+          traits = {part.strip() for part in derive.group(1).split(',')}
+          assert {'Debug', 'PartialEq', 'Eq'} <= traits
+          assert 'Clone' not in traits
+          assert 'Copy' not in traits
+          assert 'Serialize' not in traits
+          assert 'Deserialize' not in traits
+
+          struct_start = text.index(f'pub struct {name}')
+          struct_end = text.index('\n}\n', struct_start) + 2
+          struct_block = text[struct_start:struct_end]
+          for line in struct_block.splitlines()[1:]:
+              assert not line.lstrip().startswith('pub '), line
+
+          assert 'pub fn new' not in text
+          assert 'pub const fn new' not in text
+          assert 'impl From<' not in text
+          assert 'impl TryFrom<' not in text
+          assert 'Serialize' not in text
+          assert 'Deserialize' not in text
+          assert 'unsafe ' not in text
+
+          method_start = text.index('pub fn try_from_samples(')
+          body_start = text.index('{', method_start)
+          header = text[method_start:body_start]
+          assert header.count('&LocalQualifiedStampedEndpointBoxObservation<D>') == 2
+          assert 'AuthorityEndpointBoxObservation' not in header
+          assert 'LocalQualifiedAuthorityStepStamp' not in header
+
+          method_end = text.index('\n    pub const fn previous_stamp', body_start)
+          body = text[body_start:method_end]
+          markers = [
+              'PhysicalAuthorityMismatch',
+              'WorldGenerationMismatch',
+              'TemporalIncarnationMismatch',
+              'TargetMismatch',
+              'RegionMismatch',
+              'PreviousOutside',
+              'CurrentOutside',
+              'current_step.checked_sub(previous_step)',
+          ]
+          positions = [body.index(marker) for marker in markers]
+          assert positions == sorted(positions)
+          assert 'step_index + 1' not in body
+          assert '.checked_add(' not in body
+
+          # This theorem may compare issued facts, but may not grow clock or geometry authority.
+          for forbidden in (
+              'AuthorityEndpointBoxObservation',
+              'LocalEvidencePhysicsAuthorityWorld',
+              'use symtropy_math',
+              'HyperBox',
+              '.contains_local(',
+              'Point::new(',
+              ' f64',
+              'Duration',
+              'Instant',
+          ):
+              assert forbidden not in text, forbidden
+
+          assert 'repeated_same_step_capture_is_duplicate_not_progress' in tests
+          assert 'reversed_and_skipped_steps_fail_closed' in tests
+          assert 'reseal_breaks_lineage_even_when_numeric_indexes_look_adjacent' in tests
+          assert 'different_authority_and_generation_are_not_one_sampled_lineage' in tests
+          assert 'target_and_region_mismatches_are_rejected_before_duplicate_step_semantics' in tests
+          assert 'all_outside_membership_combinations_are_rejected' in tests
+          assert 'moving_anchor_is_allowed_when_exact_anchor_relative_region_is_unchanged' in tests
+
+          assert 'does not prove continuous occupancy' in contract
+          assert 'does not prove the elapsed duration' in contract
+          assert 'No elapsed physical time' in contract
+          assert 'settlement authority' in contract
+          PY
+
+      - name: Unchanged-subject postflight
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "${PRODUCT_HEAD}"
+          sha256sum \
+            crates/core/symtropy-physics/EXACT_CONSECUTIVE_SAMPLED_ENDPOINT_PRESENCE_V01.md \
+            crates/core/symtropy-physics/src/sampled_presence.rs \
+            crates/core/symtropy-physics/src/qualified_endpoint.rs \
+            crates/core/symtropy-physics/src/authority_endpoint.rs \
+            crates/core/symtropy-physics/src/evidence_authority.rs \
+            crates/core/symtropy-physics/src/authority_namespace.rs \
+            crates/core/symtropy-physics/src/lib.rs \
+            crates/core/symtropy-physics/tests/consecutive_sampled_presence_v01.rs \
+            crates/core/symtropy-physics/tests/qualified_stamped_endpoint_v01.rs \
+            crates/core/symtropy-physics/tests/sealed_evidence_authority_v01.rs \
+            > "${RUNNER_TEMP}/consecutive-sampled-presence-source-sha256-post.txt"
+          diff -u \
+            "${RUNNER_TEMP}/consecutive-sampled-presence-source-sha256.txt" \
+            "${RUNNER_TEMP}/consecutive-sampled-presence-source-sha256-post.txt"
+
+      - name: Emit qualification receipt
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json, os
+          from pathlib import Path
+
+          receipt = {
+              'theorem': 'PHYS-OBS-06 exact consecutive sampled endpoint presence v0.1',
+              'product_head': os.environ['PRODUCT_HEAD'],
+              'product_parent': os.environ['PRODUCT_PARENT'],
+              'opaque_predecessor_tokens_only': True,
+              'same_authority_generation_incarnation_required': True,
+              'same_exact_target_region_required': True,
+              'both_endpoint_memberships_inside': True,
+              'exact_step_delta': 1,
+              'checked_nonwrapping_adjacency': True,
+              'moving_anchor_same_relative_spec_allowed': True,
+              'elapsed_time_authority': False,
+              'fixed_cadence_authority': False,
+              'continuous_occupancy_authority': False,
+              'dwell_arrival_authority': False,
+              'custody_delivery_settlement_authority': False,
+          }
+          Path('consecutive-sampled-presence-qualification-receipt.json').write_text(
+              json.dumps(receipt, indent=2, sort_keys=True) + '\n'
+          )
+          PY
+
+      - name: Upload qualification evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: consecutive-sampled-presence-${{ env.PRODUCT_HEAD }}
+          path: |
+            consecutive-sampled-presence-qualification-receipt.json
+            ${{ runner.temp }}/consecutive-sampled-presence-source-sha256.txt
+            ${{ runner.temp }}/consecutive-sampled-presence-source-sha256-post.txt
+          if-no-files-found: error
