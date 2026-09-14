@@ -25,7 +25,11 @@ pub enum BodyType {
 /// N-dimensional rigid body.
 pub struct RigidBody<const D: usize> {
     pub handle: BodyHandle,
-    pub net_id: Option<NetId>,
+    /// Stable live/network identity.
+    ///
+    /// Mutation is crate-controlled so downstream safe code cannot desynchronize
+    /// body truth from `PhysicsWorld`'s identity index. Read through [`Self::net_id`].
+    pub(crate) net_id: Option<NetId>,
     pub body_type: BodyType,
     pub transform: Transform<D>,
     pub linear_velocity: SVector<f64, D>,
@@ -86,6 +90,14 @@ impl<const D: usize> RigidBody<D> {
             collision_group: 0x0001,
             collision_mask: 0xFFFF,
         }
+    }
+
+    /// Read the body's stable live/network identity.
+    ///
+    /// This is intentionally read-only outside `symtropy-physics`; assignment must
+    /// go through physics-owned identity authority.
+    pub const fn net_id(&self) -> Option<NetId> {
+        self.net_id
     }
 
     pub fn static_body(
