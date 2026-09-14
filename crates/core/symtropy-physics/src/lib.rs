@@ -36,7 +36,9 @@ pub mod support_map;
 pub mod world;
 
 pub use articulation::{ArticulatedChain, ChainBuilder, LinkSpec};
-pub use authority_observation::AuthorityBodySnapshot;
+pub use authority_observation::{
+    AuthorityBodySnapshot, AuthorityPairObservationError, AuthorityPairSnapshot,
+};
 pub use body::{BodyHandle, BodyType, NetId, RigidBody};
 pub use broadphase::{Aabb, Lbvh, morton_encode, morton_prefix};
 pub use constraint::Constraint;

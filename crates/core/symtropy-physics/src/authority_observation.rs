@@ -10,7 +10,7 @@
 
 use crate::body::BodyType;
 use crate::identity_authority::{
-    PhysicsAuthorityWorld, PhysicsBodySubject, PhysicsIdentityError,
+    PhysicsAuthorityWorld, PhysicsBodySubject, PhysicsIdentityError, ValidatedNetBody,
 };
 
 /// Bitwise snapshot of one exact authority/generation-bound live body.
@@ -43,8 +43,11 @@ impl<const D: usize> AuthorityBodySnapshot<D> {
         subject: PhysicsBodySubject,
     ) -> Result<Self, PhysicsIdentityError> {
         let validated = authority.validate_subject(subject)?;
-        let body = validated.body();
+        Ok(Self::from_validated(&validated))
+    }
 
+    fn from_validated(validated: &ValidatedNetBody<'_, D>) -> Self {
+        let body = validated.body();
         let translation = std::array::from_fn(|i| body.transform.translation.0[i].to_bits());
         let rotation_matrix = body.transform.rotation.to_matrix();
         let rotation = std::array::from_fn(|row| {
@@ -56,7 +59,7 @@ impl<const D: usize> AuthorityBodySnapshot<D> {
             std::array::from_fn(|column| angular_matrix[(row, column)].to_bits())
         });
 
-        Ok(Self {
+        Self {
             subject: validated.subject(),
             body_type: body.body_type,
             translation,
@@ -65,6 +68,73 @@ impl<const D: usize> AuthorityBodySnapshot<D> {
             angular_velocity,
             sleeping: body.sleeping,
             sleep_counter: body.sleep_counter,
+        }
+    }
+}
+
+/// Current-state observation of two distinct authority-bound subjects under one
+/// immutable authority-world borrow.
+///
+/// This captures both handle-free body snapshots plus the exact current
+/// displacement from A to B and squared separation. It is a simultaneous
+/// current-state relation in the ordinary safe-Rust borrowing sense: no mutable
+/// access to the authority world can coexist with the borrow used for capture.
+/// It is not a trajectory, route, arrival, or historical observation.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct AuthorityPairSnapshot<const D: usize> {
+    pub body_a: AuthorityBodySnapshot<D>,
+    pub body_b: AuthorityBodySnapshot<D>,
+    pub relative_translation: [u64; D],
+    pub separation_squared: u64,
+}
+
+impl<const D: usize> AuthorityPairSnapshot<D> {
+    pub fn capture(
+        authority: &PhysicsAuthorityWorld<D>,
+        subject_a: PhysicsBodySubject,
+        subject_b: PhysicsBodySubject,
+    ) -> Result<Self, AuthorityPairObservationError> {
+        if subject_a == subject_b {
+            return Err(AuthorityPairObservationError::SameSubject { subject: subject_a });
+        }
+
+        let validated_a = authority
+            .validate_subject(subject_a)
+            .map_err(AuthorityPairObservationError::SubjectA)?;
+        let validated_b = authority
+            .validate_subject(subject_b)
+            .map_err(AuthorityPairObservationError::SubjectB)?;
+
+        let delta =
+            validated_b.body().transform.translation.0 - validated_a.body().transform.translation.0;
+        for (axis, value) in delta.iter().enumerate() {
+            if !value.is_finite() {
+                return Err(AuthorityPairObservationError::NonFiniteRelativeTranslation { axis });
+            }
+        }
+
+        let separation_squared_value = delta.norm_squared();
+        if !separation_squared_value.is_finite() {
+            return Err(AuthorityPairObservationError::NonFiniteSeparationSquared);
+        }
+
+        let relative_translation = std::array::from_fn(|i| delta[i].to_bits());
+        let separation_squared = separation_squared_value.to_bits();
+
+        Ok(Self {
+            body_a: AuthorityBodySnapshot::from_validated(&validated_a),
+            body_b: AuthorityBodySnapshot::from_validated(&validated_b),
+            relative_translation,
+            separation_squared,
         })
     }
+}
+
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
+pub enum AuthorityPairObservationError {
+    SameSubject { subject: PhysicsBodySubject },
+    SubjectA(PhysicsIdentityError),
+    SubjectB(PhysicsIdentityError),
+    NonFiniteRelativeTranslation { axis: usize },
+    NonFiniteSeparationSquared,
 }
