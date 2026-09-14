@@ -1,6 +1,7 @@
 // Copyright (C) 2024-2026 Tristan Stoltz / Luminous Dynamics
 // SPDX-License-Identifier: Apache-2.0 OR MIT
 
+use nalgebra::SVector;
 use symtropy_math::Point;
 use symtropy_physics::{
     AuthorityPairObservationError, AuthorityPairSnapshot, NetId, PhysicalAuthorityId,
@@ -111,5 +112,47 @@ fn unknown_subject_a_is_attributed_to_a() {
                 net_id: unknown_net_id,
             }
         ))
+    );
+}
+
+#[test]
+fn non_finite_relative_translation_fails_closed() {
+    let (mut world, subject_a, subject_b) = build_pair_world(false);
+    let handle_b = world
+        .validate_subject(subject_b)
+        .unwrap()
+        .runtime_handle();
+    world
+        .world_mut()
+        .body_mut(handle_b)
+        .unwrap()
+        .transform
+        .translation
+        .0[0] = f64::NAN;
+
+    assert_eq!(
+        AuthorityPairSnapshot::capture(&world, subject_a, subject_b),
+        Err(AuthorityPairObservationError::NonFiniteRelativeTranslation { axis: 0 })
+    );
+}
+
+#[test]
+fn finite_delta_with_overflowing_separation_fails_closed() {
+    let (mut world, subject_a, subject_b) = build_pair_world(false);
+    let handle_b = world
+        .validate_subject(subject_b)
+        .unwrap()
+        .runtime_handle();
+    world
+        .world_mut()
+        .body_mut(handle_b)
+        .unwrap()
+        .transform
+        .translation
+        .0 = SVector::from([f64::MAX / 2.0, 0.0, 0.0]);
+
+    assert_eq!(
+        AuthorityPairSnapshot::capture(&world, subject_a, subject_b),
+        Err(AuthorityPairObservationError::NonFiniteSeparationSquared)
     );
 }

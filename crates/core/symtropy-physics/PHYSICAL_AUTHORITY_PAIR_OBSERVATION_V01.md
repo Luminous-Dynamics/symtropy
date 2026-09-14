@@ -14,8 +14,9 @@ subject A + subject B
     -> validate A in one PhysicsAuthorityWorld
     -> validate B in the same PhysicsAuthorityWorld
     -> hold both lifetime-bound validated proofs under one immutable world borrow
+    -> derive finite current displacement B - A
+    -> reject non-finite displacement or squared-separation overflow
     -> capture both handle-free body snapshots
-    -> capture current displacement B - A and squared separation
     -> AuthorityPairSnapshot
 ```
 
@@ -42,6 +43,35 @@ position(B) - position(A)
 
 and `separation_squared` is the bitwise current squared Euclidean norm of that vector.
 
+Both derived spatial values are emitted only when finite.
+
+## Finite-geometry failure semantics
+
+Identity-valid subjects are not enough to make a spatial relation meaningful. Pair capture fails closed when:
+
+```text
+any component of position(B) - position(A) is NaN or infinite
+```
+
+or when all displacement components are finite but:
+
+```text
+norm_squared(position(B) - position(A))
+```
+
+overflows or otherwise becomes non-finite.
+
+The typed failures are:
+
+```text
+NonFiniteRelativeTranslation { axis }
+NonFiniteSeparationSquared
+```
+
+The function does not publish a NaN/∞ distance and leave downstream policy to interpret it.
+
+This does not retroactively make every field of `AuthorityBodySnapshot` finite. PHYS-OBS-00 is a raw bitwise selected-body state observation. PHYS-OBS-01 adds stricter finite semantics only for the derived spatial relation it claims.
+
 ## Coherence boundary
 
 Capture holds an immutable borrow of the same `PhysicsAuthorityWorld` while both subjects are validated and observed. In ordinary safe Rust, a mutable borrow of that authority world cannot coexist with this capture.
@@ -55,7 +85,8 @@ Before a pair snapshot is returned:
 - identical A/B subjects are rejected;
 - subject A must pass the complete existing `validate_subject` path;
 - subject B must pass the complete existing `validate_subject` path;
-- participant-specific identity failures remain attributed to A or B.
+- participant-specific identity failures remain attributed to A or B;
+- the derived spatial relation must be finite.
 
 This inherits fail-closed rejection for physical-authority mismatch, world-generation mismatch, unknown NetId, ambiguous live NetId, missing identity index, identity index mismatch, and reverse identity mismatch.
 
@@ -69,7 +100,7 @@ This is not cross-generation continuity. The subject tuple includes `WorldGenera
 
 ## Spatial interpretation
 
-This tranche establishes only exact current displacement/separation for two validated live subjects.
+This tranche establishes only exact finite current displacement/separation for two validated live subjects.
 
 A downstream system may later define an explicit predicate such as:
 
@@ -108,7 +139,9 @@ The checked-in tests must establish at least:
 2. exact displacement and squared separation;
 3. same-subject rejection;
 4. participant-B generation mismatch attributed to B;
-5. unknown participant-A NetId attributed to A.
+5. unknown participant-A NetId attributed to A;
+6. NaN/non-finite displacement rejection with exact axis attribution;
+7. finite displacement whose squared norm overflows is rejected.
 
 Future identity-integrity work should add pair regressions for newly classified structural failure modes.
 
@@ -131,6 +164,7 @@ plus static checks that:
 - `AuthorityPairSnapshot` contains no public `BodyHandle` field;
 - both subjects are validated through `validate_subject`;
 - same-subject input is rejected;
+- non-finite derived spatial values fail closed;
 - the contract contains explicit no-arrival/no-delivery/no-route claims.
 
 ## Non-claims

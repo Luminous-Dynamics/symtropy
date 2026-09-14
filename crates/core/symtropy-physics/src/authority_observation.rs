@@ -107,8 +107,19 @@ impl<const D: usize> AuthorityPairSnapshot<D> {
 
         let delta =
             validated_b.body().transform.translation.0 - validated_a.body().transform.translation.0;
+        for (axis, value) in delta.iter().enumerate() {
+            if !value.is_finite() {
+                return Err(AuthorityPairObservationError::NonFiniteRelativeTranslation { axis });
+            }
+        }
+
+        let separation_squared_value = delta.norm_squared();
+        if !separation_squared_value.is_finite() {
+            return Err(AuthorityPairObservationError::NonFiniteSeparationSquared);
+        }
+
         let relative_translation = std::array::from_fn(|i| delta[i].to_bits());
-        let separation_squared = delta.norm_squared().to_bits();
+        let separation_squared = separation_squared_value.to_bits();
 
         Ok(Self {
             body_a: AuthorityBodySnapshot::from_validated(&validated_a),
@@ -124,4 +135,6 @@ pub enum AuthorityPairObservationError {
     SameSubject { subject: PhysicsBodySubject },
     SubjectA(PhysicsIdentityError),
     SubjectB(PhysicsIdentityError),
+    NonFiniteRelativeTranslation { axis: usize },
+    NonFiniteSeparationSquared,
 }
