@@ -46,7 +46,7 @@ impl<const D: usize> AuthorityBodySnapshot<D> {
         Ok(Self::from_validated(&validated))
     }
 
-    fn from_validated(validated: &ValidatedNetBody<'_, D>) -> Self {
+    pub(crate) fn from_validated(validated: &ValidatedNetBody<'_, D>) -> Self {
         let body = validated.body();
         let translation = std::array::from_fn(|i| body.transform.translation.0[i].to_bits());
         let rotation_matrix = body.transform.rotation.to_matrix();

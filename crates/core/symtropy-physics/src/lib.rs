@@ -15,6 +15,7 @@
 //! - `integrator` — semi-implicit Euler with bivector angular dynamics
 
 pub mod articulation;
+pub mod authority_endpoint;
 pub mod authority_observation;
 pub mod body;
 pub mod broadphase;
@@ -36,6 +37,10 @@ pub mod support_map;
 pub mod world;
 
 pub use articulation::{ArticulatedChain, ChainBuilder, LinkSpec};
+pub use authority_endpoint::{
+    AuthorityEndpointBoxObservation, AuthorityEndpointBoxSpec, AuthorityEndpointObservationError,
+    EndpointBoxSpecError, EndpointMembership,
+};
 pub use authority_observation::{
     AuthorityBodySnapshot, AuthorityPairObservationError, AuthorityPairSnapshot,
 };
