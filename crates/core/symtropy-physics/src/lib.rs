@@ -26,6 +26,7 @@ pub mod constraint;
 pub mod contact;
 pub mod diagnostics;
 pub mod epa;
+pub mod evidence_authority;
 pub mod gjk;
 pub mod identity_authority;
 mod identity_mutation;
@@ -56,6 +57,11 @@ pub use constraint::Constraint;
 pub use contact::{CollisionEvent, ContactCache, ContactManifold, SensorEvent};
 pub use diagnostics::{InvariantDrift, InvariantSnapshot};
 pub use epa::EpaResult;
+pub use evidence_authority::{
+    LocalEvidenceAuthorityError, LocalEvidenceAuthoritySealFailure,
+    LocalEvidencePhysicsAuthorityWorld, LocalQualifiedAuthorityStepStamp,
+    LocalTaintedEvidenceAuthority, LocalTemporalIncarnationId,
+};
 pub use identity_authority::{
     AuthorityStepStamp, PhysicalAuthorityId, PhysicsAuthorityTemporalError, PhysicsAuthorityWorld,
     PhysicsBodySubject, PhysicsIdentityError, ValidatedNetBody, WorldGenerationId,
