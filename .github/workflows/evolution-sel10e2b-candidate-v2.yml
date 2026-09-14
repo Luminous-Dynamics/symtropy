@@ -1,0 +1,116 @@
+name: Evolution SEL-10E2B Candidate v0.2
+
+on:
+  push:
+    branches:
+      - "ci/evolution-sel10e2b-candidate-v0.2"
+
+permissions:
+  contents: read
+
+env:
+  PRODUCT_HEAD: 13fe368e84bbca21ddbf2bb590fbf07ed4e28954
+
+jobs:
+  candidate:
+    name: SEL-10E2B candidate v0.2 / Rust 1.96
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout exact candidate subject
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ env.PRODUCT_HEAD }}
+          fetch-depth: 1
+      - name: Assert executed subject
+        shell: bash
+        run: test "$(git rev-parse HEAD)" = "${PRODUCT_HEAD}"
+      - name: Set up pinned Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.96.0
+          components: clippy, rustfmt
+      - name: Isolate E2B stack
+        shell: bash
+        run: |
+          set -euo pipefail
+          root="${RUNNER_TEMP}/e2b-stack"
+          rm -rf "${root}"
+          mkdir -p "${root}"
+          cp -R crates/domains/symtropy-evolution-core "${root}/symtropy-evolution-core"
+          cp -R crates/domains/symtropy-species-concept "${root}/symtropy-species-concept"
+          cp -R crates/domains/symtropy-species-concept-relations "${root}/symtropy-species-concept-relations"
+          cp -R crates/domains/symtropy-species-concept-general-lineage "${root}/symtropy-species-concept-general-lineage"
+          cp -R crates/domains/symtropy-species-concept-robustness "${root}/symtropy-species-concept-robustness"
+      - name: Check E2B formatting
+        id: fmt
+        working-directory: ${{ runner.temp }}/e2b-stack/symtropy-species-concept-robustness
+        run: cargo fmt --all -- --check
+      - name: Check E2B all targets
+        id: check
+        working-directory: ${{ runner.temp }}/e2b-stack/symtropy-species-concept-robustness
+        run: cargo check --all-targets
+      - name: Run E2B matrix corpus
+        id: matrix
+        working-directory: ${{ runner.temp }}/e2b-stack/symtropy-species-concept-robustness
+        run: cargo test --test current_robustness_matrix_v1
+      - name: Run E2B hardening corpus
+        id: hardening
+        working-directory: ${{ runner.temp }}/e2b-stack/symtropy-species-concept-robustness
+        run: cargo test --test current_robustness_matrix_hardening_v1
+      - name: Run E2A currentness prerequisite
+        id: e2a_currentness
+        working-directory: ${{ runner.temp }}/e2b-stack/symtropy-species-concept-robustness
+        run: cargo test --test current_robustness_currentness_v1
+      - name: Run all robustness targets
+        id: all_tests
+        working-directory: ${{ runner.temp }}/e2b-stack/symtropy-species-concept-robustness
+        run: cargo test --all-targets
+      - name: Run strict Clippy
+        id: clippy
+        working-directory: ${{ runner.temp }}/e2b-stack/symtropy-species-concept-robustness
+        run: cargo clippy --all-targets -- -D warnings
+      - name: Emit candidate receipt
+        if: always()
+        shell: bash
+        env:
+          HELPER_HEAD: ${{ github.sha }}
+          RUN_ID: ${{ github.run_id }}
+          FMT: ${{ steps.fmt.outcome }}
+          CHECK: ${{ steps.check.outcome }}
+          MATRIX: ${{ steps.matrix.outcome }}
+          HARDENING: ${{ steps.hardening.outcome }}
+          E2A_CURRENTNESS: ${{ steps.e2a_currentness.outcome }}
+          ALL_TESTS: ${{ steps.all_tests.outcome }}
+          CLIPPY: ${{ steps.clippy.outcome }}
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json, os
+          keys = ["FMT", "CHECK", "MATRIX", "HARDENING", "E2A_CURRENTNESS", "ALL_TESTS", "CLIPPY"]
+          outcomes = {k.lower(): os.environ.get(k, "unknown") for k in keys}
+          receipt = {
+              "receipt_version": 1,
+              "qualification": "SEL-10E2B-candidate-v0.2",
+              "product_head": os.environ["PRODUCT_HEAD"],
+              "helper_head": os.environ["HELPER_HEAD"],
+              "workflow_run_id": int(os.environ["RUN_ID"]),
+              "step_outcomes": outcomes,
+              "overall": "pass" if all(v == "success" for v in outcomes.values()) else "fail",
+              "claim_boundary": "candidate compile/test feedback only; no product qualification; current-species robustness is model-bound and not universal taxonomy truth",
+          }
+          path = os.path.join(os.environ["RUNNER_TEMP"], "sel10e2b-candidate-v0.2.json")
+          with open(path, "w", encoding="utf-8") as f:
+              json.dump(receipt, f, sort_keys=True, indent=2); f.write("\n")
+          print(json.dumps(receipt, sort_keys=True))
+          PY
+          sha256sum "${RUNNER_TEMP}/sel10e2b-candidate-v0.2.json" > "${RUNNER_TEMP}/sel10e2b-candidate-v0.2.json.sha256"
+      - name: Upload candidate receipt
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: sel10e2b-candidate-v0.2-${{ env.PRODUCT_HEAD }}
+          path: |
+            ${{ runner.temp }}/sel10e2b-candidate-v0.2.json
+            ${{ runner.temp }}/sel10e2b-candidate-v0.2.json.sha256
+          if-no-files-found: error
+          retention-days: 30
