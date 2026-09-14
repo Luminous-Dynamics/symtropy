@@ -1,0 +1,16 @@
+[package]
+name = "symtropy-spatial-decomposition"
+version = "0.1.0"
+edition = "2024"
+license = "AGPL-3.0-or-later"
+description = "Deterministic fixed-point cut-cell geometric decomposition for Symtropy."
+publish = false
+
+# PB-04b remains an isolated proof workspace. It depends on the qualified
+# PB-04a crate without promoting either crate into the moving root workspace.
+[workspace]
+
+[dependencies]
+sha2 = "0.10"
+symtropy-game-state = { path = "../symtropy-game-state" }
+symtropy-spatial-topology = { path = "../symtropy-spatial-topology" }

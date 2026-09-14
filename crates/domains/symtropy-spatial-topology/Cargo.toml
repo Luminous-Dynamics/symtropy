@@ -1,0 +1,18 @@
+[package]
+name = "symtropy-spatial-topology"
+version = "0.1.0"
+edition = "2024"
+license = "AGPL-3.0-or-later"
+description = "Read-only faceted spatial-topology projections for Symtropy."
+publish = false
+
+# PB-04a is intentionally isolated from the root product workspace while the
+# proposal/physical authority stack is still moving. This nested proof workspace
+# keeps the synthetic kernel executable without changing root Cargo resolution.
+# Remove this stanza when a later integration tranche deliberately promotes the
+# crate into the root workspace.
+[workspace]
+
+[dependencies]
+sha2 = "0.10"
+symtropy-game-state = { path = "../symtropy-game-state" }
