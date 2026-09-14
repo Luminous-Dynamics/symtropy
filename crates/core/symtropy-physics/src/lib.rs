@@ -15,6 +15,7 @@
 //! - `integrator` — semi-implicit Euler with bivector angular dynamics
 
 pub mod articulation;
+pub mod authority_observation;
 pub mod body;
 pub mod broadphase;
 pub mod ccd;
@@ -35,6 +36,7 @@ pub mod support_map;
 pub mod world;
 
 pub use articulation::{ArticulatedChain, ChainBuilder, LinkSpec};
+pub use authority_observation::AuthorityBodySnapshot;
 pub use body::{BodyHandle, BodyType, NetId, RigidBody};
 pub use broadphase::{Aabb, Lbvh, morton_encode, morton_prefix};
 pub use constraint::Constraint;
