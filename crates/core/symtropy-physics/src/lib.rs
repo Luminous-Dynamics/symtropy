@@ -21,6 +21,7 @@
 //! - `friction_authority` — pluggable solver friction application/evidence authority
 //! - `friction_step` — checked native-index dispatch + typed authority failures
 //! - `friction_energy_2d` — checked signed 2D A/B pair-energy evidence
+//! - `friction_transition_energy_2d` — stable factored 2D transition-energy evidence
 //! - `friction_evidence` — signed pre/post mechanical evidence around one friction impulse
 //! - `friction_transaction` — exactly-once friction lifecycle (`Applied` to terminal outcome)
 //! - `friction_promotion` — SI-native centered measured-loss promotion into heat + ledger authority
@@ -60,6 +61,7 @@ pub mod friction_promotion_calibrated;
 mod friction_solver_execution;
 pub mod friction_step;
 pub mod friction_transaction;
+pub mod friction_transition_energy_2d;
 pub mod gjk;
 pub mod integrator;
 pub mod island;
@@ -136,6 +138,12 @@ pub use friction_transaction::{
     FrictionDiagnosticFinalizeError, FrictionDiagnosticReason, FrictionTransactionJournal,
     FrictionTransactionPhase, FrictionTransactionTransitionError, apply_friction_impulse_once,
     finalize_friction_diagnostic, rollback_applied_friction_impulse,
+};
+pub use friction_transition_energy_2d::{
+    FrictionBodyTransitionBasis2d, FrictionPairTransitionBasis2d,
+    FrictionPairTransitionEnergy2d, FrictionTransitionDelta2d,
+    FrictionTransitionEnergy2dError, capture_friction_pair_transition_basis_2d_checked,
+    classify_friction_pair_transition_2d_checked,
 };
 pub use integrator::nan_zeroed_count;
 pub use joints::{BallJoint, FixedJoint, HingeJoint, MotorDrive, PrismaticJoint};
