@@ -10,6 +10,9 @@
 use serde::{Deserialize, Serialize};
 
 use crate::body::{BodyHandle, NetId, RigidBody};
+use crate::identity_mutation::{
+    NetIdentityMutationError, add_bodies_deterministic_checked, assign_net_id_checked,
+};
 use crate::world::PhysicsWorld;
 
 /// Durable identity of the physical authority/persistence lineage that owns a
@@ -128,6 +131,59 @@ impl<const D: usize> PhysicsAuthorityWorld<D> {
 
     pub fn into_world(self) -> PhysicsWorld<D> {
         self.world
+    }
+
+    /// Bind one previously-unbound live body to a stable `NetId` within this
+    /// exact physical authority and world generation.
+    ///
+    /// The underlying mutation follows the checked bind-once law (`None -> N`
+    /// allowed, `N -> N` idempotent, `N -> M` rejected). On success, the caller
+    /// receives the exact authority/generation-bound subject that was created.
+    pub fn bind_net_id(
+        &mut self,
+        handle: BodyHandle,
+        net_id: NetId,
+    ) -> Result<PhysicsBodySubject, NetIdentityMutationError> {
+        assign_net_id_checked(&mut self.world, handle, net_id)?;
+
+        debug_assert_eq!(self.world.net_id_for_handle(handle), Some(net_id));
+        debug_assert_eq!(self.world.handle_for_net_id(net_id), Some(handle));
+
+        Ok(PhysicsBodySubject::new(
+            self.physical_authority_id,
+            self.world_generation_id,
+            net_id,
+        ))
+    }
+
+    /// Insert a deterministic batch under this exact authority/generation.
+    ///
+    /// The complete identity set is preflighted before insertion by the checked
+    /// coordinator. Successful results pair each ephemeral runtime handle with
+    /// the stable authority/generation-bound subject for that inserted body.
+    pub fn add_bodies_deterministic(
+        &mut self,
+        bodies: Vec<(NetId, RigidBody<D>)>,
+    ) -> Result<Vec<(BodyHandle, PhysicsBodySubject)>, NetIdentityMutationError> {
+        let handles = add_bodies_deterministic_checked(&mut self.world, bodies)?;
+        let mut bindings = Vec::with_capacity(handles.len());
+
+        for handle in handles {
+            let net_id = self
+                .world
+                .net_id_for_handle(handle)
+                .expect("checked deterministic insertion must bind every returned handle");
+            bindings.push((
+                handle,
+                PhysicsBodySubject::new(
+                    self.physical_authority_id,
+                    self.world_generation_id,
+                    net_id,
+                ),
+            ));
+        }
+
+        Ok(bindings)
     }
 
     /// Validate one exact body subject against this exact authority/generation.
@@ -278,6 +334,26 @@ mod privileged_corruption_tests {
                 net_id: observed,
                 handle: observed_handle,
             }) if observed == mutated_id && observed_handle == handle
+        ));
+    }
+
+    #[test]
+    fn duplicate_live_net_id_fails_closed_even_if_index_points_to_one_body() {
+        let net_id = NetId(44);
+        let authority = PhysicalAuthorityId::new(3001).unwrap();
+        let generation = WorldGenerationId::new(1).unwrap();
+        let mut raw = PhysicsWorld::<3>::default();
+        let first = raw.add_sphere(Point::new([0.0, 0.0, 0.0]), 0.5, 1.0);
+        let second = raw.add_sphere(Point::new([1.0, 0.0, 0.0]), 0.5, 1.0);
+        raw.set_net_id(first, net_id);
+        raw.set_net_id(second, net_id);
+
+        let world = PhysicsAuthorityWorld::new(authority, generation, raw);
+        let subject = PhysicsBodySubject::new(authority, generation, net_id);
+
+        assert!(matches!(
+            world.validate_subject(subject),
+            Err(PhysicsIdentityError::AmbiguousNetId { net_id: observed }) if observed == net_id
         ));
     }
 }
