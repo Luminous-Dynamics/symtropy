@@ -7,6 +7,10 @@
 //! new failure mode merely because a native solver index cannot fit the stable
 //! `u32` friction-coordinate grammar. The authority-aware world API, by contrast,
 //! must fail before mechanics when that conversion is not lossless.
+//!
+//! An exact zero impulse is not a friction transaction. Both executor paths
+//! return before mechanics/identity/authority in that case, so zero-friction
+//! controls do not manufacture neutral receipts or consume transaction ids.
 
 use std::convert::Infallible;
 
@@ -16,6 +20,11 @@ use crate::body::RigidBody;
 use crate::friction_authority::FrictionImpulseAuthority;
 use crate::friction_evidence::apply_friction_impulse_mechanics;
 use crate::friction_step::{FrictionStepError, execute_friction_impulse_at_indices};
+
+#[inline]
+fn is_exact_zero_impulse<const D: usize>(impulse: &SVector<f64, D>) -> bool {
+    impulse.iter().all(|value| *value == 0.0)
+}
 
 /// Internal policy used by `PhysicsWorld` while resolving one friction request.
 ///
@@ -62,6 +71,9 @@ impl<const D: usize> SolverFrictionExecutor<D> for LegacyDirectFrictionExecutor 
         _contact_sequence: usize,
         _point_sequence: usize,
     ) -> Result<(), Self::Error> {
+        if is_exact_zero_impulse(impulse_on_b) {
+            return Ok(());
+        }
         apply_friction_impulse_mechanics(body_a, body_b, contact_point, impulse_on_b);
         Ok(())
     }
@@ -98,6 +110,13 @@ where
         contact_sequence: usize,
         point_sequence: usize,
     ) -> Result<(), Self::Error> {
+        // No mechanical transition means no authority transaction and therefore
+        // no replay identity to validate. This check deliberately precedes the
+        // `usize -> u32` conversion below.
+        if is_exact_zero_impulse(impulse_on_b) {
+            return Ok(());
+        }
+
         execute_friction_impulse_at_indices(
             self.authority,
             body_a,
@@ -186,6 +205,57 @@ mod tests {
         assert_ne!(a.linear_velocity, before_a);
         assert_ne!(b.linear_velocity, before_b);
         assert!(<LegacyDirectFrictionExecutor as SolverFrictionExecutor<3>>::records_legacy_dissipation_telemetry(&executor));
+    }
+
+    #[test]
+    fn exact_zero_impulse_is_no_transaction_even_with_unrepresentable_coordinates() {
+        let mut authority = RecordingAuthority::default();
+        let mut executor = CheckedFrictionExecutor::new(&mut authority);
+        let mut a = body(1, 1.0);
+        let mut b = body(2, 0.0);
+        let before_a = (a.linear_velocity, a.angular_velocity);
+        let before_b = (b.linear_velocity, b.angular_velocity);
+
+        executor
+            .execute(
+                &mut a,
+                &mut b,
+                &SVector::zeros(),
+                &SVector::zeros(),
+                usize::MAX,
+                usize::MAX,
+                usize::MAX,
+            )
+            .unwrap();
+        drop(executor);
+
+        assert!(authority.seen.is_empty());
+        assert_eq!((a.linear_velocity, a.angular_velocity), before_a);
+        assert_eq!((b.linear_velocity, b.angular_velocity), before_b);
+    }
+
+    #[test]
+    fn legacy_exact_zero_impulse_is_mechanically_noop() {
+        let mut executor = LegacyDirectFrictionExecutor;
+        let mut a = body(1, 1.0);
+        let mut b = body(2, 0.0);
+        let before_a = (a.linear_velocity, a.angular_velocity);
+        let before_b = (b.linear_velocity, b.angular_velocity);
+
+        executor
+            .execute(
+                &mut a,
+                &mut b,
+                &SVector::zeros(),
+                &SVector::zeros(),
+                usize::MAX,
+                usize::MAX,
+                usize::MAX,
+            )
+            .unwrap();
+
+        assert_eq!((a.linear_velocity, a.angular_velocity), before_a);
+        assert_eq!((b.linear_velocity, b.angular_velocity), before_b);
     }
 
     #[test]
