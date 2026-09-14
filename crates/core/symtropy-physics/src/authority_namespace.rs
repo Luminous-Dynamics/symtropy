@@ -13,8 +13,10 @@
 
 use std::sync::atomic::{AtomicU64, Ordering};
 
+use crate::body::{BodyHandle, NetId, RigidBody};
 use crate::identity_authority::{
-    PhysicalAuthorityId, PhysicsAuthorityWorld, PhysicsIdentityError, WorldGenerationId,
+    PhysicalAuthorityId, PhysicsAuthorityWorld, PhysicsBodySubject, PhysicsIdentityError,
+    ValidatedNetBody, WorldGenerationId,
 };
 use crate::world::PhysicsWorld;
 
@@ -161,6 +163,20 @@ impl<const D: usize> LocalNamespacePhysicsAuthorityWorld<D> {
         self.generation.world_generation_id
     }
 
+    /// Validate one plain subject locator through the namespace-qualified world
+    /// and return a stronger lifetime-bound token that preserves that provenance.
+    ///
+    /// This deliberately does not accept a pre-existing generic
+    /// `ValidatedNetBody`; the stronger token can only be minted by re-running
+    /// validation through this exact qualified wrapper.
+    pub fn validate_subject(
+        &self,
+        subject: PhysicsBodySubject,
+    ) -> Result<LocalQualifiedValidatedNetBody<'_, D>, PhysicsIdentityError> {
+        let inner = self.authority_world.validate_subject(subject)?;
+        Ok(LocalQualifiedValidatedNetBody { inner })
+    }
+
     /// Explicit downward projection to the existing authority surface.
     pub const fn authority_world(&self) -> &PhysicsAuthorityWorld<D> {
         &self.authority_world
@@ -176,5 +192,38 @@ impl<const D: usize> LocalNamespacePhysicsAuthorityWorld<D> {
     /// authority object. Namespace qualification is intentionally lost.
     pub fn into_unqualified(self) -> PhysicsAuthorityWorld<D> {
         self.authority_world
+    }
+}
+
+/// Lifetime-bound proof that a plain subject locator was validated through one
+/// exact `LocalNamespacePhysicsAuthorityWorld`.
+///
+/// This token is intentionally distinct from generic `ValidatedNetBody` so
+/// downstream evidence APIs can require namespace-qualification provenance
+/// explicitly rather than infer it from matching naked A/G values.
+///
+/// Fields are private, there is no public constructor, and no serde authority is
+/// provided. The token borrows the live authority world through its inner
+/// validation token, preserving the existing mutation-exclusion lifetime.
+pub struct LocalQualifiedValidatedNetBody<'a, const D: usize> {
+    inner: ValidatedNetBody<'a, D>,
+}
+
+impl<'a, const D: usize> LocalQualifiedValidatedNetBody<'a, D> {
+    pub const fn subject(&self) -> PhysicsBodySubject {
+        self.inner.subject()
+    }
+
+    pub const fn net_id(&self) -> NetId {
+        self.inner.net_id()
+    }
+
+    /// Ephemeral runtime handle. This must not be persisted as durable identity.
+    pub const fn runtime_handle(&self) -> BodyHandle {
+        self.inner.runtime_handle()
+    }
+
+    pub fn body(&self) -> &RigidBody<D> {
+        self.inner.body()
     }
 }
