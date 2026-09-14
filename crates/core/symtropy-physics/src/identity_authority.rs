@@ -12,7 +12,8 @@ use serde::{Deserialize, Serialize};
 use crate::authority_time::{AuthorityTemporalState, TemporalCounterError};
 use crate::body::{BodyHandle, NetId, RigidBody};
 use crate::identity_mutation::{
-    NetIdentityMutationError, add_bodies_deterministic_checked, assign_net_id_checked,
+    NetIdentityMutationError, PreparedNetIdBinding, commit_prepared_deterministic_insertion,
+    commit_prepared_net_id_binding, prepare_deterministic_insertion, prepare_net_id_binding,
 };
 use crate::world::{PhysicsCallback, PhysicsWorld};
 
@@ -131,6 +132,7 @@ pub enum PhysicsAuthorityTemporalError {
     MutationEpochExhausted,
     StepIndexExhausted,
     InterruptedStepTainted,
+    InterruptedMutationTainted,
 }
 
 impl From<TemporalCounterError> for PhysicsAuthorityTemporalError {
@@ -139,6 +141,7 @@ impl From<TemporalCounterError> for PhysicsAuthorityTemporalError {
             TemporalCounterError::MutationEpochExhausted => Self::MutationEpochExhausted,
             TemporalCounterError::StepIndexExhausted => Self::StepIndexExhausted,
             TemporalCounterError::InterruptedStepTainted => Self::InterruptedStepTainted,
+            TemporalCounterError::InterruptedMutationTainted => Self::InterruptedMutationTainted,
         }
     }
 }
@@ -189,6 +192,9 @@ impl<const D: usize> PhysicsAuthorityWorld<D> {
     /// invalidated. This is conservative: even if the caller ultimately makes no
     /// change, temporal continuity is intentionally not preserved across the raw
     /// mutation escape hatch.
+    ///
+    /// After an interrupted prepared typed mutation, this fails closed rather
+    /// than using another raw epoch break as structural recovery.
     pub fn try_world_mut(
         &mut self,
     ) -> Result<&mut PhysicsWorld<D>, PhysicsAuthorityTemporalError> {
@@ -199,12 +205,13 @@ impl<const D: usize> PhysicsAuthorityWorld<D> {
 
     /// Source-compatible raw mutable-world escape hatch.
     ///
-    /// Prefer [`Self::try_world_mut`] when epoch-exhaustion handling matters. The
+    /// Prefer [`Self::try_world_mut`] when temporal failure handling matters. The
     /// compatibility wrapper still fails closed: it panics before granting a
-    /// mutable borrow if the epoch counter is exhausted, and never wraps.
+    /// mutable borrow if the epoch cannot advance or an interrupted typed
+    /// mutation has left the wrapper structurally uncertain.
     pub fn world_mut(&mut self) -> &mut PhysicsWorld<D> {
         self.try_world_mut()
-            .expect("physics authority mutation epoch exhausted")
+            .expect("physics authority mutable-world boundary unavailable")
     }
 
     pub fn into_world(self) -> PhysicsWorld<D> {
@@ -215,8 +222,8 @@ impl<const D: usize> PhysicsAuthorityWorld<D> {
     /// mutation epoch.
     ///
     /// Returns `None` before the first authorized step, after any raw/non-step
-    /// mutation boundary, and while/after an interrupted step until the lineage
-    /// is explicitly reset by a mutation-epoch break.
+    /// mutation boundary, and while/after an interrupted step or typed mutation
+    /// until the corresponding qualified recovery rule is satisfied.
     pub fn last_authorized_step_stamp(&self) -> Option<AuthorityStepStamp> {
         if !self.temporal.has_authorized_step() {
             return None;
@@ -241,8 +248,9 @@ impl<const D: usize> PhysicsAuthorityWorld<D> {
     /// issue its ordering stamp after normal completion.
     ///
     /// If the underlying step or callback panics and downstream catches the
-    /// unwind, the temporal state remains tainted: no last stamp is exposed and
-    /// another authorized step is rejected until a mutation-epoch break occurs.
+    /// unwind, the temporal state remains step-tainted: no last stamp is exposed
+    /// and another authorized step is rejected until an explicit mutation-epoch
+    /// break occurs.
     pub fn step_authorized_with_callback(
         &mut self,
         dt: f64,
@@ -277,73 +285,94 @@ impl<const D: usize> PhysicsAuthorityWorld<D> {
     fn preflight_nonstep_mutation_epoch(&self) -> u64 {
         self.temporal
             .next_mutation_epoch()
-            .expect("physics authority mutation epoch exhausted")
+            .expect("physics authority typed-mutation boundary unavailable")
+    }
+
+    /// Run one already-prepared state-changing typed mutation.
+    ///
+    /// The temporal epoch is committed and the wrapper is marked mutation-tainted
+    /// before `commit` can alter the world. The taint clears only if the entire
+    /// closure returns normally. Any caught panic therefore leaves the old stamp
+    /// invalid and blocks further stepping/raw mutation until reconstruction.
+    fn commit_prepared_nonstep_mutation<R>(
+        &mut self,
+        commit: impl FnOnce(&mut PhysicsWorld<D>) -> R,
+    ) -> R {
+        let next_epoch = self.preflight_nonstep_mutation_epoch();
+        self.temporal.begin_mutation_commit(next_epoch);
+        let result = commit(&mut self.world);
+        self.temporal.finish_mutation_commit();
+        result
     }
 
     /// Bind one previously-unbound live body to a stable `NetId` within this
     /// exact physical authority and world generation.
     ///
-    /// A binding that actually changes identity state is a non-step authority
-    /// mutation and therefore advances the mutation epoch. An already-idempotent
-    /// `N -> N` bind preserves the epoch.
+    /// All recoverable validation occurs before the mutation boundary. A binding
+    /// that actually changes identity state then advances the epoch *before* the
+    /// prepared commit executes. An already-idempotent `N -> N` bind preserves
+    /// the epoch and current stamp.
     pub fn bind_net_id(
         &mut self,
         handle: BodyHandle,
         net_id: NetId,
     ) -> Result<PhysicsBodySubject, NetIdentityMutationError> {
-        let changes_identity = self.world.net_id_for_handle(handle) != Some(net_id);
-        let next_epoch = changes_identity.then(|| self.preflight_nonstep_mutation_epoch());
-
-        assign_net_id_checked(&mut self.world, handle, net_id)?;
-
-        if let Some(next_epoch) = next_epoch {
-            self.temporal.commit_mutation_epoch(next_epoch);
-        }
-
-        debug_assert_eq!(self.world.net_id_for_handle(handle), Some(net_id));
-        debug_assert_eq!(self.world.handle_for_net_id(net_id), Some(handle));
-
-        Ok(PhysicsBodySubject::new(
+        let prepared = prepare_net_id_binding(&self.world, handle, net_id)?;
+        let subject = PhysicsBodySubject::new(
             self.physical_authority_id,
             self.world_generation_id,
             net_id,
-        ))
+        );
+
+        if prepared == PreparedNetIdBinding::NoChange {
+            return Ok(subject);
+        }
+
+        Ok(self.commit_prepared_nonstep_mutation(|world| {
+            commit_prepared_net_id_binding(world, prepared);
+            assert_eq!(world.net_id_for_handle(handle), Some(net_id));
+            assert_eq!(world.handle_for_net_id(net_id), Some(handle));
+            subject
+        }))
     }
 
     /// Insert a deterministic batch under this exact authority/generation.
     ///
-    /// A non-empty successful insertion is a non-step world mutation and
-    /// therefore advances the mutation epoch. Empty batches preserve it.
+    /// All recoverable identity validation occurs before the mutation boundary.
+    /// A non-empty prepared batch advances the mutation epoch before legacy
+    /// insertion can alter the world; empty batches remain true no-ops.
     pub fn add_bodies_deterministic(
         &mut self,
         bodies: Vec<(NetId, RigidBody<D>)>,
     ) -> Result<Vec<(BodyHandle, PhysicsBodySubject)>, NetIdentityMutationError> {
-        let mutates_world = !bodies.is_empty();
-        let next_epoch = mutates_world.then(|| self.preflight_nonstep_mutation_epoch());
-        let handles = add_bodies_deterministic_checked(&mut self.world, bodies)?;
-
-        if let Some(next_epoch) = next_epoch {
-            self.temporal.commit_mutation_epoch(next_epoch);
+        let prepared = prepare_deterministic_insertion(&self.world, bodies)?;
+        if prepared.is_empty() {
+            return Ok(Vec::new());
         }
 
-        let mut bindings = Vec::with_capacity(handles.len());
+        let physical_authority_id = self.physical_authority_id;
+        let world_generation_id = self.world_generation_id;
 
-        for handle in handles {
-            let net_id = self
-                .world
-                .net_id_for_handle(handle)
-                .expect("checked deterministic insertion must bind every returned handle");
-            bindings.push((
-                handle,
-                PhysicsBodySubject::new(
-                    self.physical_authority_id,
-                    self.world_generation_id,
-                    net_id,
-                ),
-            ));
-        }
+        Ok(self.commit_prepared_nonstep_mutation(move |world| {
+            let handles = commit_prepared_deterministic_insertion(world, prepared);
+            let mut bindings = Vec::with_capacity(handles.len());
 
-        Ok(bindings)
+            for handle in handles {
+                let net_id = world
+                    .net_id_for_handle(handle)
+                    .expect("prepared deterministic insertion must bind every returned handle");
+                bindings.push((
+                    handle,
+                    PhysicsBodySubject::new(
+                        physical_authority_id,
+                        world_generation_id,
+                        net_id,
+                    ),
+                ));
+            }
+
+            bindings
+        }))
     }
 
     /// Validate one exact body subject against this exact authority/generation.
@@ -472,6 +501,7 @@ pub enum PhysicsIdentityError {
 #[cfg(test)]
 mod privileged_corruption_tests {
     use super::*;
+    use std::panic::{AssertUnwindSafe, catch_unwind};
     use symtropy_math::Point;
 
     #[test]
@@ -514,6 +544,38 @@ mod privileged_corruption_tests {
         assert!(matches!(
             world.validate_subject(subject),
             Err(PhysicsIdentityError::AmbiguousNetId { net_id: observed }) if observed == net_id
+        ));
+    }
+
+    #[test]
+    fn caught_prepared_mutation_panic_taints_wrapper_until_reconstruction() {
+        let authority_id = PhysicalAuthorityId::new(5001).unwrap();
+        let generation_id = WorldGenerationId::new(1).unwrap();
+        let mut authority =
+            PhysicsAuthorityWorld::new(authority_id, generation_id, PhysicsWorld::<3>::default());
+        let before = authority.step_authorized(1.0 / 64.0).unwrap();
+
+        let outcome = catch_unwind(AssertUnwindSafe(|| {
+            authority.commit_prepared_nonstep_mutation(|world| {
+                world.gravity[0] = 42.0;
+                panic!("injected prepared-mutation failure");
+            });
+        }));
+
+        assert!(outcome.is_err());
+        assert_eq!(authority.world().gravity[0], 42.0);
+        assert_eq!(
+            authority.temporal.mutation_epoch(),
+            before.mutation_epoch() + 1
+        );
+        assert_eq!(authority.last_authorized_step_stamp(), None);
+        assert_eq!(
+            authority.step_authorized(1.0 / 64.0),
+            Err(PhysicsAuthorityTemporalError::InterruptedMutationTainted)
+        );
+        assert!(matches!(
+            authority.try_world_mut(),
+            Err(PhysicsAuthorityTemporalError::InterruptedMutationTainted)
         ));
     }
 }
