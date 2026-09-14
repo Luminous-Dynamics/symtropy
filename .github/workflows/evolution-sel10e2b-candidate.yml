@@ -1,0 +1,56 @@
+name: Evolution SEL-10E2B Candidate
+
+on:
+  push:
+    branches:
+      - "ci/evolution-sel10e2b-candidate-v0.1"
+
+permissions:
+  contents: read
+
+env:
+  PRODUCT_HEAD: c4090785070e4b7193e826a05f740cc77b0f57d3
+
+jobs:
+  candidate:
+    name: SEL-10E2B candidate / Rust 1.96
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout exact candidate subject
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ env.PRODUCT_HEAD }}
+          fetch-depth: 1
+      - name: Assert executed subject
+        run: test "$(git rev-parse HEAD)" = "${PRODUCT_HEAD}"
+      - name: Set up pinned Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.96.0
+          components: clippy, rustfmt
+      - name: Isolate E2B stack
+        run: |
+          set -euo pipefail
+          root="${RUNNER_TEMP}/e2b-stack"
+          rm -rf "${root}"
+          mkdir -p "${root}"
+          cp -R crates/domains/symtropy-evolution-core "${root}/symtropy-evolution-core"
+          cp -R crates/domains/symtropy-species-concept "${root}/symtropy-species-concept"
+          cp -R crates/domains/symtropy-species-concept-relations "${root}/symtropy-species-concept-relations"
+          cp -R crates/domains/symtropy-species-concept-general-lineage "${root}/symtropy-species-concept-general-lineage"
+          cp -R crates/domains/symtropy-species-concept-robustness "${root}/symtropy-species-concept-robustness"
+      - name: Check formatting
+        working-directory: ${{ runner.temp }}/e2b-stack/symtropy-species-concept-robustness
+        run: cargo fmt --all -- --check
+      - name: Check all targets
+        working-directory: ${{ runner.temp }}/e2b-stack/symtropy-species-concept-robustness
+        run: cargo check --all-targets
+      - name: Run E2B matrix corpus
+        working-directory: ${{ runner.temp }}/e2b-stack/symtropy-species-concept-robustness
+        run: cargo test --test current_robustness_matrix_v1
+      - name: Run all robustness targets
+        working-directory: ${{ runner.temp }}/e2b-stack/symtropy-species-concept-robustness
+        run: cargo test --all-targets
+      - name: Run strict Clippy
+        working-directory: ${{ runner.temp }}/e2b-stack/symtropy-species-concept-robustness
+        run: cargo clippy --all-targets -- -D warnings
