@@ -56,6 +56,7 @@ mod thermodynamic_commit_tests;
 pub mod thermodynamic_consequence_policy;
 pub mod thermodynamic_friction_2d;
 pub mod thermodynamic_friction_authority;
+pub(crate) mod thermodynamic_friction_authority_calibrated;
 #[cfg(test)]
 mod thermodynamic_atomic_friction_tests;
 #[cfg(test)]
