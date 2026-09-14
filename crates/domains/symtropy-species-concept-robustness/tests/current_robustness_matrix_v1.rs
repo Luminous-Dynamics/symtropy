@@ -16,6 +16,7 @@ mod fixture {
         #[derive(Clone, Copy)]
         pub(super) enum Case {
             Supported,
+            NotSupported,
             Contradicted,
             Outside,
         }
@@ -30,6 +31,7 @@ mod fixture {
         ) {
             let (history_case, isolation_case) = match case {
                 Case::Supported | Case::Outside => (HistoryCase::Clean, IsolationCase::Supported),
+                Case::NotSupported => (HistoryCase::Clean, IsolationCase::NotSupported),
                 Case::Contradicted => (HistoryCase::Clean, IsolationCase::Contradicted),
             };
             history_fixture::with_current(history_case, |history_design, history| {
@@ -92,7 +94,7 @@ mod fixture {
                         )
                         .unwrap();
                     let applicability = match case {
-                        Case::Supported | Case::Contradicted => {
+                        Case::Supported | Case::NotSupported | Case::Contradicted => {
                             SpeciesModelApplicabilityInput::InsideValidityDomain {
                                 evidence: authority("inside-model-domain", 100),
                             }
@@ -128,6 +130,9 @@ mod fixture {
         include!("../../symtropy-species-concept-general-lineage/tests/general_lineage_v1.rs");
 
         use super::profile_for;
+        use symtropy_evolution_core::{
+            ValidatedLineageDivergenceHistory, ValidatedLineageDivergenceHistoryDesign,
+        };
         use symtropy_species_concept_general_lineage::{
             general_lineage_family_descriptor, ValidatedGeneralLineageFamilyDescriptor,
         };
@@ -138,6 +143,7 @@ mod fixture {
         #[derive(Clone, Copy)]
         pub(super) enum Case {
             Supported,
+            NotSupported,
             Contradicted,
             Outside,
         }
@@ -199,20 +205,18 @@ mod fixture {
                 )
                 .unwrap();
                 let applicability_input = match case {
-                    Case::Supported | Case::Contradicted => applicability(
+                    Case::Supported | Case::NotSupported | Case::Contradicted => applicability(
                         GeneralLineageModelApplicabilityDisposition::InDomain,
                     ),
                     Case::Outside => applicability(
                         GeneralLineageModelApplicabilityDisposition::OutsideModelValidityDomain,
                     ),
                 };
-                let channel_inputs = || {
-                    [external(
-                        "ecology",
-                        GeneralLineageChannelDisposition::SupportsSeparation,
-                        83,
-                    )]
+                let ecological_disposition = match case {
+                    Case::NotSupported => GeneralLineageChannelDisposition::DoesNotSupportSeparation,
+                    _ => GeneralLineageChannelDisposition::SupportsSeparation,
                 };
+                let channel_inputs = || [external("ecology", ecological_disposition, 83)];
                 let evidence = GeneralLineageSpeciesEvidence::evaluate(
                     &current_design,
                     history,
@@ -233,14 +237,16 @@ mod fixture {
                 f(current_record, &current_status);
             };
             match case {
-                Case::Supported | Case::Outside => lineage_fixture::with_clean(run),
+                Case::Supported | Case::NotSupported | Case::Outside => {
+                    lineage_fixture::with_clean(run)
+                }
                 Case::Contradicted => lineage_fixture::with_fusion(run),
             }
         }
     }
 
-    use strict_outcome::Case as StrictCase;
     use general_outcome::Case as GeneralCase;
+    use strict_outcome::Case as StrictCase;
     use symtropy_species_concept_robustness::{
         CurrentCrossModelRobustnessAuthority, CurrentSemanticRelationRecord,
     };
@@ -353,11 +359,10 @@ use fixture::{GeneralOutcomeCase, StrictOutcomeCase};
 use serde_json::Value;
 use symtropy_species_concept_robustness::{
     CrossModelCurrentSpeciesReport, CrossModelCurrentSpeciesRobustnessStatus,
-    CrossModelRobustnessReportError, CurrentModelOutcomeRow,
+    CrossModelRobustnessReportError, CurrentModelOutcomeRow, PairwiseFaultDomainDisposition,
     ValidatedCrossModelCurrentSpeciesReport,
 };
 use symtropy_species_concept_relations::SpeciesConceptRelationKind;
-use symtropy_species_concept_robustness::PairwiseFaultDomainDisposition;
 
 fn collect_keys(value: &Value, keys: &mut Vec<String>) {
     match value {
@@ -426,8 +431,62 @@ fn qualified_non_nested_support_requires_and_records_exact_independence_witness(
                 CrossModelCurrentSpeciesRobustnessStatus::RobustSupportAcrossQualifiedIndependentCoverage
             );
             assert_eq!(report.support_independence_witness.len(), 2);
+            assert!(report.non_support_independence_witness.is_empty());
             assert!(report.contradiction_independence_witness.is_empty());
             assert!(report.support_independence_witness.windows(2).all(|w| w[0] < w[1]));
+        },
+    );
+}
+
+#[test]
+fn concordant_non_support_is_not_misreported_as_contradiction_or_missing_coverage() {
+    fixture::with_matrix(
+        SpeciesConceptRelationKind::OrthogonalEvidenceFramework,
+        PairwiseFaultDomainDisposition::QualifiedSufficientlyDistinct,
+        StrictOutcomeCase::NotSupported,
+        GeneralOutcomeCase::NotSupported,
+        |authority, strict_model, strict_status, general_model, general_status| {
+            let report = CrossModelCurrentSpeciesReport::evaluate(
+                authority,
+                [
+                    CurrentModelOutcomeRow::strict_biological(strict_model, strict_status)
+                        .unwrap(),
+                    CurrentModelOutcomeRow::general_lineage(general_model, general_status).unwrap(),
+                ],
+            )
+            .unwrap();
+            assert_eq!(
+                report.status,
+                CrossModelCurrentSpeciesRobustnessStatus::ConcordantNonSupportAcrossQualifiedIndependentCoverage
+            );
+            assert_eq!(report.non_support_independence_witness.len(), 2);
+            assert!(report.support_independence_witness.is_empty());
+            assert!(report.contradiction_independence_witness.is_empty());
+        },
+    );
+}
+
+#[test]
+fn support_plus_non_support_is_model_dependent_not_a_vote() {
+    fixture::with_matrix(
+        SpeciesConceptRelationKind::OrthogonalEvidenceFramework,
+        PairwiseFaultDomainDisposition::QualifiedSufficientlyDistinct,
+        StrictOutcomeCase::Supported,
+        GeneralOutcomeCase::NotSupported,
+        |authority, strict_model, strict_status, general_model, general_status| {
+            let report = CrossModelCurrentSpeciesReport::evaluate(
+                authority,
+                [
+                    CurrentModelOutcomeRow::strict_biological(strict_model, strict_status)
+                        .unwrap(),
+                    CurrentModelOutcomeRow::general_lineage(general_model, general_status).unwrap(),
+                ],
+            )
+            .unwrap();
+            assert_eq!(
+                report.status,
+                CrossModelCurrentSpeciesRobustnessStatus::ModelDependentConclusion
+            );
         },
     );
 }
