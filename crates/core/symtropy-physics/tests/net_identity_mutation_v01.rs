@@ -24,7 +24,7 @@ fn duplicate_single_assignment_fails_without_mutating_either_body() {
     let net_id = NetId(100);
 
     assign_net_id_checked(&mut world, first, net_id).expect("first assignment succeeds");
-    let before_second = world.body(second).expect("second exists").net_id;
+    let before_second = world.body(second).expect("second exists").net_id();
 
     assert_eq!(
         assign_net_id_checked(&mut world, second, net_id),
@@ -34,8 +34,8 @@ fn duplicate_single_assignment_fails_without_mutating_either_body() {
         })
     );
 
-    assert_eq!(world.body(first).expect("first exists").net_id, Some(net_id));
-    assert_eq!(world.body(second).expect("second exists").net_id, before_second);
+    assert_eq!(world.body(first).expect("first exists").net_id(), Some(net_id));
+    assert_eq!(world.body(second).expect("second exists").net_id(), before_second);
     assert_eq!(world.handle_for_net_id(net_id), Some(first));
 }
 
@@ -48,7 +48,7 @@ fn idempotent_same_binding_is_success_without_identity_churn() {
     assign_net_id_checked(&mut world, handle, net_id).expect("first assignment succeeds");
     assign_net_id_checked(&mut world, handle, net_id).expect("same binding is idempotent");
 
-    assert_eq!(world.body(handle).expect("body exists").net_id, Some(net_id));
+    assert_eq!(world.body(handle).expect("body exists").net_id(), Some(net_id));
     assert_eq!(world.handle_for_net_id(net_id), Some(handle));
     assert_eq!(world.net_id_for_handle(handle), Some(net_id));
 }
@@ -71,33 +71,9 @@ fn clean_identity_reassignment_is_forbidden_and_preserves_original_binding() {
         })
     );
 
-    assert_eq!(world.body(handle).expect("body exists").net_id, Some(original));
+    assert_eq!(world.body(handle).expect("body exists").net_id(), Some(original));
     assert_eq!(world.handle_for_net_id(original), Some(handle));
     assert_eq!(world.handle_for_net_id(replacement), None);
-}
-
-#[test]
-fn stale_current_index_rejects_before_reassignment() {
-    let mut world = PhysicsWorld::<3>::default();
-    let handle = world.add_sphere(Point::origin(), 0.5, 1.0);
-    let indexed = NetId(110);
-    let stale_body_id = NetId(111);
-    let requested = NetId(112);
-
-    world.set_net_id(handle, indexed);
-    world.body_mut(handle).expect("body exists").net_id = Some(stale_body_id);
-
-    assert_eq!(
-        assign_net_id_checked(&mut world, handle, requested),
-        Err(NetIdentityMutationError::CurrentIdentityIndexMissing {
-            net_id: stale_body_id,
-            handle,
-        })
-    );
-
-    assert_eq!(world.body(handle).expect("body exists").net_id, Some(stale_body_id));
-    assert_eq!(world.handle_for_net_id(indexed), Some(handle));
-    assert_eq!(world.handle_for_net_id(requested), None);
 }
 
 #[test]
@@ -140,27 +116,6 @@ fn batch_collision_with_existing_world_is_rejected_before_insertion() {
     assert_eq!(world.body_count(), before_count);
     assert_eq!(world.handle_for_net_id(NetId(129)), None);
     assert_eq!(world.handle_for_net_id(existing_id), Some(existing_handle));
-}
-
-#[test]
-fn conflicting_embedded_body_identity_rejects_before_insertion() {
-    let mut world = PhysicsWorld::<3>::default();
-    let requested = NetId(140);
-    let embedded = NetId(141);
-    let mut body = body_at(0.0);
-    body.net_id = Some(embedded);
-
-    assert_eq!(
-        add_bodies_deterministic_checked(&mut world, vec![(requested, body)]),
-        Err(NetIdentityMutationError::BodyCarriesConflictingNetId {
-            requested,
-            embedded,
-        })
-    );
-
-    assert_eq!(world.body_count(), 0);
-    assert_eq!(world.handle_for_net_id(requested), None);
-    assert_eq!(world.handle_for_net_id(embedded), None);
 }
 
 #[test]

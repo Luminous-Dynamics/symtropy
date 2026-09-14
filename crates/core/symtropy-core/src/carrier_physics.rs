@@ -55,8 +55,7 @@ impl CarrierPhysicsRef {
 /// Resolve a carrier reference to exactly one live physics body.
 ///
 /// Resolution is deliberately defensive. It does not trust only
-/// `PhysicsWorld::handle_for_net_id`: the current physics API permits direct
-/// mutation of `RigidBody::net_id`, and its legacy `set_net_id` method can create
+/// `PhysicsWorld::handle_for_net_id`: legacy physics APIs can still create
 /// duplicate IDs. We therefore scan body truth and require all three views to
 /// agree:
 ///
@@ -87,7 +86,7 @@ pub fn resolve_live_carrier<const D: usize>(
     let net_id = physics_ref.net_id();
     let mut unique_handle = None;
     for body in &world.bodies {
-        if body.net_id != Some(net_id) {
+        if body.net_id() != Some(net_id) {
             continue;
         }
         if unique_handle.replace(body.handle).is_some() {

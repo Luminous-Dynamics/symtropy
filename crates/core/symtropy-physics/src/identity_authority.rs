@@ -155,7 +155,7 @@ impl<const D: usize> PhysicsAuthorityWorld<D> {
         let net_id = subject.net_id;
         let mut unique_handle = None;
         for body in &self.world.bodies {
-            if body.net_id != Some(net_id) {
+            if body.net_id() != Some(net_id) {
                 continue;
             }
             if unique_handle.replace(body.handle).is_some() {
@@ -251,4 +251,33 @@ pub enum PhysicsIdentityError {
         net_id: NetId,
         handle: BodyHandle,
     },
+}
+
+#[cfg(test)]
+mod privileged_corruption_tests {
+    use super::*;
+    use symtropy_math::Point;
+
+    #[test]
+    fn direct_body_identity_corruption_leaving_stale_index_fails_closed() {
+        let indexed_id = NetId(45);
+        let mutated_id = NetId(46);
+        let authority = PhysicalAuthorityId::new(4001).unwrap();
+        let generation = WorldGenerationId::new(1).unwrap();
+        let mut raw = PhysicsWorld::<3>::default();
+        let handle = raw.add_sphere(Point::origin(), 0.5, 1.0);
+        raw.set_net_id(handle, indexed_id);
+        raw.body_mut(handle).expect("body exists").net_id = Some(mutated_id);
+
+        let world = PhysicsAuthorityWorld::new(authority, generation, raw);
+        let subject = PhysicsBodySubject::new(authority, generation, mutated_id);
+
+        assert!(matches!(
+            world.validate_subject(subject),
+            Err(PhysicsIdentityError::IdentityIndexMissing {
+                net_id: observed,
+                handle: observed_handle,
+            }) if observed == mutated_id && observed_handle == handle
+        ));
+    }
 }

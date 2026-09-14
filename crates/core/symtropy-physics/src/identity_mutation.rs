@@ -3,9 +3,10 @@
 // Commercial licensing: see COMMERCIAL_LICENSE.md at repository root
 //! Checked mutation coordinators for physics network identity.
 //!
-//! This module does not yet seal the legacy public mutation surfaces. Instead,
-//! it provides typed, whole-operation preflight wrappers that make the safe path
-//! explicit and fail closed before invoking those legacy mutators.
+//! This module provides typed, whole-operation preflight wrappers that make the
+//! checked path explicit and fail closed before invoking legacy world mutators.
+//! Direct `RigidBody::net_id` writes are crate-controlled; the legacy world
+//! mutators remain public compatibility debt until PHYS-ID-01B2.
 
 use std::collections::BTreeSet;
 
@@ -224,4 +225,57 @@ pub enum NetIdentityMutationError {
         requested: NetId,
     },
     LegacyInsertionRejected(String),
+}
+
+#[cfg(test)]
+mod privileged_corruption_tests {
+    use super::*;
+    use symtropy_math::Point;
+
+    fn body_at(x: f64) -> RigidBody<3> {
+        RigidBody::dynamic_sphere(BodyHandle(0), Point::new([x, 0.0, 0.0]), 0.5, 1.0)
+    }
+
+    #[test]
+    fn stale_body_identity_rejects_checked_reassignment_without_more_mutation() {
+        let mut world = PhysicsWorld::<3>::default();
+        let handle = world.add_sphere(Point::origin(), 0.5, 1.0);
+        let indexed = NetId(110);
+        let stale_body_id = NetId(111);
+        let requested = NetId(112);
+
+        world.set_net_id(handle, indexed);
+        world.body_mut(handle).expect("body exists").net_id = Some(stale_body_id);
+
+        assert_eq!(
+            assign_net_id_checked(&mut world, handle, requested),
+            Err(NetIdentityMutationError::CurrentIdentityIndexMissing {
+                net_id: stale_body_id,
+                handle,
+            })
+        );
+        assert_eq!(world.body(handle).expect("body exists").net_id(), Some(stale_body_id));
+        assert_eq!(world.handle_for_net_id(indexed), Some(handle));
+        assert_eq!(world.handle_for_net_id(requested), None);
+    }
+
+    #[test]
+    fn conflicting_embedded_identity_rejects_before_batch_insertion() {
+        let mut world = PhysicsWorld::<3>::default();
+        let requested = NetId(140);
+        let embedded = NetId(141);
+        let mut body = body_at(0.0);
+        body.net_id = Some(embedded);
+
+        assert_eq!(
+            add_bodies_deterministic_checked(&mut world, vec![(requested, body)]),
+            Err(NetIdentityMutationError::BodyCarriesConflictingNetId {
+                requested,
+                embedded,
+            })
+        );
+        assert_eq!(world.body_count(), 0);
+        assert_eq!(world.handle_for_net_id(requested), None);
+        assert_eq!(world.handle_for_net_id(embedded), None);
+    }
 }
