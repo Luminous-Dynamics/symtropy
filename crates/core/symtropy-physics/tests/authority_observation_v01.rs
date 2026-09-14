@@ -39,10 +39,11 @@ fn equivalent_subject_state_is_handle_independent() {
     let (world_a, subject_a) = build_authority_world(false);
     let (world_b, subject_b) = build_authority_world(true);
 
-    let validated_a = world_a.validate_subject(subject_a).unwrap();
-    let validated_b = world_b.validate_subject(subject_b).unwrap();
-    assert_ne!(validated_a.runtime_handle(), validated_b.runtime_handle());
-    drop((validated_a, validated_b));
+    {
+        let validated_a = world_a.validate_subject(subject_a).unwrap();
+        let validated_b = world_b.validate_subject(subject_b).unwrap();
+        assert_ne!(validated_a.runtime_handle(), validated_b.runtime_handle());
+    }
 
     let snapshot_a = AuthorityBodySnapshot::capture(&world_a, subject_a).unwrap();
     let snapshot_b = AuthorityBodySnapshot::capture(&world_b, subject_b).unwrap();
