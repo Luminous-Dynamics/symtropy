@@ -23,9 +23,12 @@ use super::{
 
 /// Typed failure surface for calibrated terminal friction execution.
 ///
-/// Existing runtime failures remain distinguishable from explicit calibrated
-/// promotion failures. If terminalization rejects and exact mechanical rollback
-/// also refuses, both causes are retained.
+/// The type remains publicly nameable for diagnostics, but the calibrated runtime
+/// methods that can produce it are crate-private. External callers therefore cannot
+/// bypass the readiness-bound solver authority with a naked calibration. Existing
+/// runtime failures remain distinguishable from explicit calibrated promotion
+/// failures. If terminalization rejects and exact mechanical rollback also refuses,
+/// both causes are retained.
 #[derive(Debug)]
 pub enum CalibratedRuntimeFrictionError {
     Runtime(RuntimeFrictionError),
@@ -52,7 +55,10 @@ impl ThermodynamicTransactionRuntime {
     /// Promote one already-applied friction transaction through an explicit
     /// solver-mechanical-unit -> SI Joule calibration while retaining private
     /// ownership of the canonical physical ledger and lifecycle journal.
-    pub fn promote_friction_loss_owned_calibrated<const D: usize>(
+    ///
+    /// Crate-private by design: production callers obtain this capability only
+    /// through the readiness-bound calibrated friction authority.
+    pub(crate) fn promote_friction_loss_owned_calibrated<const D: usize>(
         &mut self,
         body_a: &mut RigidBody<D>,
         body_b: &mut RigidBody<D>,
@@ -82,7 +88,10 @@ impl ThermodynamicTransactionRuntime {
     /// retain the existing runtime diagnostic theorem. Any terminalization error
     /// immediately consumes the unique applied token to restore the exact pre-step
     /// velocities and remove only this transaction's still-`Applied` journal entry.
-    pub fn execute_terminal_friction_impulse_at_calibrated<const D: usize>(
+    ///
+    /// Crate-private by design: a naked calibration is not sufficient production
+    /// authority; #1014's non-cloneable readiness receipt must be consumed first.
+    pub(crate) fn execute_terminal_friction_impulse_at_calibrated<const D: usize>(
         &mut self,
         body_a: &mut RigidBody<D>,
         body_b: &mut RigidBody<D>,
