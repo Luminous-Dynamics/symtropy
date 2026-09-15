@@ -1,0 +1,16 @@
+{
+  "profile": "PHYS-EVID-02D canonical persistent consecutive sampled presence v1",
+  "source_endpoint_fixture": "tests/fixtures/endpoint_sample_v1_vector.json",
+  "outer_domain": "consecutive-presence",
+  "payload_version": 1,
+  "previous_step_index": 1,
+  "current_step_index": 2,
+  "expected_previous_endpoint_frame_len": 374,
+  "expected_current_endpoint_frame_len": 374,
+  "expected_payload_len": 760,
+  "expected_relation_frame_len": 819,
+  "predecessor_order": "previous-then-current",
+  "membership": "Inside->Inside",
+  "same_persistent_session_required": true,
+  "same_anchor_relative_proposition_required": true
+}
