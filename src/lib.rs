@@ -3,6 +3,7 @@
 
 pub mod components;
 pub mod evidence_session;
+pub mod evidence_session_binding_codec;
 pub mod experience;
 pub mod plugin;
 pub mod ports;
