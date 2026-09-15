@@ -1,0 +1,74 @@
+name: Evolution SEL-10F1A Rustfmt Extract V0.1
+
+on:
+  push:
+    branches:
+      - "ci/evolution-sel10f1a-rustfmt-extract-v0.1"
+
+permissions:
+  contents: write
+
+env:
+  PRODUCT_HEAD: 096c2ad1ed456933b1cb1b1534a8b59853bd1958
+  PRODUCT_CRATE: crates/domains/symtropy-species-concept-general-lineage
+
+jobs:
+  rustfmt-extract:
+    name: Machine rustfmt normalization / Rust 1.96
+    runs-on: ubuntu-slim
+    steps:
+      - name: Checkout disposable formatter branch
+        uses: actions/checkout@v4
+        with:
+          ref: ci/evolution-sel10f1a-rustfmt-extract-v0.1
+          fetch-depth: 0
+      - name: Assert formatter lineage
+        shell: bash
+        run: |
+          set -euo pipefail
+          git merge-base --is-ancestor "${PRODUCT_HEAD}" HEAD
+      - name: Set up pinned Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.96.0
+          components: rustfmt
+      - name: Generate exact rustfmt normalization
+        id: fmt
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo fmt --manifest-path "${PRODUCT_CRATE}/Cargo.toml" --all
+          mapfile -t changed < <(git diff --name-only)
+          if (( ${#changed[@]} == 0 )); then
+            echo "changed=false" >> "${GITHUB_OUTPUT}"
+            echo "No rustfmt delta remains."
+            exit 0
+          fi
+          for path in "${changed[@]}"; do
+            case "${path}" in
+              ${PRODUCT_CRATE}/*.rs|${PRODUCT_CRATE}/src/*.rs|${PRODUCT_CRATE}/tests/*.rs) ;;
+              *) echo "rustfmt escaped product Rust boundary: ${path}" >&2; exit 1 ;;
+            esac
+          done
+          printf '%s\n' "${changed[@]}"
+          git diff --check
+          echo "changed=true" >> "${GITHUB_OUTPUT}"
+      - name: Commit machine-generated formatting delta
+        if: steps.fmt.outputs.changed == 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -- "${PRODUCT_CRATE}"
+          git diff --cached --name-only
+          git commit -m "chore(evolution): machine-normalize F1A rustfmt 1.96"
+          git push origin HEAD:ci/evolution-sel10f1a-rustfmt-extract-v0.1
+      - name: Emit extraction boundary
+        if: always()
+        shell: bash
+        run: |
+          echo "authority=none"
+          echo "source_product_head=${PRODUCT_HEAD}"
+          echo "purpose=machine-produced rustfmt delta only"
+          echo "This helper cannot establish compile, test, or scientific qualification."
