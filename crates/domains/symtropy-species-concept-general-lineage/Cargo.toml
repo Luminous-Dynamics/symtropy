@@ -10,10 +10,8 @@ publish = false
 symtropy-evolution-core = { path = "../symtropy-evolution-core" }
 symtropy-species-concept = { path = "../symtropy-species-concept" }
 serde = { version = "1", features = ["derive"] }
-sha2 = "0.10"
-
-[dev-dependencies]
 serde_json = "1"
+sha2 = "0.10"
 
 [workspace]
 resolver = "2"

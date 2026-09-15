@@ -8,6 +8,8 @@
 
 mod design;
 mod evidence;
+mod historical_design;
+mod historical_evidence;
 mod model;
 
 pub use design::{
@@ -27,6 +29,26 @@ pub use evidence::{
     GeneralLineageSpeciesEvidence, GeneralLineageSpeciesEvidenceDigest,
     GeneralLineageSpeciesStatus, ValidatedGeneralLineageSpeciesEvidence,
     GENERAL_LINEAGE_SPECIES_EVIDENCE_VERSION,
+};
+pub use historical_design::{
+    general_lineage_historical_evidence_design_rule_v1,
+    GeneralLineageHistoricalChannelDeclaration, GeneralLineageHistoricalDesignError,
+    GeneralLineageHistoricalEvidenceDesign, GeneralLineageHistoricalEvidenceDesignDigest,
+    GeneralLineageHistoricalEvidenceDesignId, GeneralLineageHistoricalMissingPolicy,
+    HistoricalChannelProjectionInput, ValidatedGeneralLineageHistoricalEvidenceDesign,
+    GENERAL_LINEAGE_HISTORICAL_EVIDENCE_DESIGN_VERSION,
+};
+pub use historical_evidence::{
+    ExternalHistoricalChannelEvidence, GeneralLineageHistoricalEvidenceError,
+    GeneralLineageHistoricalEvidenceLedger, GeneralLineageHistoricalEvidenceLedgerDigest,
+    HistoricalChannelDisposition, HistoricalChannelEvidenceRecord,
+    HistoricalChannelEvidenceSource, HistoricalChannelWindow,
+    HistoricalExternalChannelEvidenceInput, HistoricalExternalWindowEvidence,
+    HistoricalExternalWindowEvidenceInput, HistoricalWindowBounds,
+    NativeLineageHistoryTemporalEvidence, NativeLineageHistoryWindow,
+    NativeReproductiveIsolationOpportunityRecord, NativeReproductiveIsolationTemporalEvidence,
+    NativeReproductiveIsolationWindow, QualifiedHistoricalEvidence,
+    ValidatedGeneralLineageHistoricalEvidence, GENERAL_LINEAGE_HISTORICAL_EVIDENCE_LEDGER_VERSION,
 };
 pub use model::{
     general_lineage_descriptor_adapter_rule_v1, general_lineage_family_descriptor,
