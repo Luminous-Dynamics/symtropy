@@ -1,0 +1,231 @@
+name: PHYS-EVID-01D1H SHA-256 Dependency Hydration
+
+on:
+  push:
+    branches:
+      - ci/sha256-dependency-hydration-v0.1
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  hydrate-sha256-dependency:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      D0_SHA: bdb5781ae49dbf2e3967876d31677fc2cb4f1dff
+      SHA2_VERSION: 0.11.0
+      SHA2_CHECKSUM: 446ba717509524cb3f22f17ecc096f10f4822d76ab5c0b9822c5f9c284e825f4
+      DIRECT_REQUIREMENT: =0.11.0
+
+    steps:
+      - name: Checkout exact D0 subject
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ env.D0_SHA }}
+          fetch-depth: 0
+
+      - name: Install pinned Rust 1.96
+        uses: dtolnay/rust-toolchain@1.96.0
+
+      - name: Capture immutable pre-hydration state
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$D0_SHA"
+          test -z "$(git status --porcelain)"
+          mkdir -p hydration
+          cp Cargo.toml hydration/Cargo.toml.before
+          cp Cargo.lock hydration/Cargo.lock.before
+          sha256sum Cargo.toml | awk '{print $1}' > hydration/manifest-before.sha256
+          sha256sum Cargo.lock | awk '{print $1}' > hydration/lock-before.sha256
+          rustc --version --verbose > hydration/rustc-version.txt
+          cargo --version --verbose > hydration/cargo-version.txt
+          cargo metadata --locked --format-version 1 > hydration/metadata-before.json
+
+      - name: Cargo-generate exact SHA-256 dependency delta
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo add 'sha2@=0.11.0' --package symtropy-launcher --no-default-features
+
+          mapfile -t changed < <(git diff --name-only | sort)
+          expected=(Cargo.lock Cargo.toml)
+          mapfile -t expected_sorted < <(printf '%s\n' "${expected[@]}" | sort)
+          test "${#changed[@]}" = "2"
+          diff -u <(printf '%s\n' "${expected_sorted[@]}") <(printf '%s\n' "${changed[@]}")
+
+          python3 - <<'PY'
+          import tomllib
+          from pathlib import Path
+
+          manifest = tomllib.loads(Path('Cargo.toml').read_text())
+          dep = manifest['dependencies']['sha2']
+          assert isinstance(dep, dict), dep
+          assert dep.get('version') == '=0.11.0', dep
+          assert dep.get('default-features') is False, dep
+          assert dep.get('optional', False) is False, dep
+          assert set(dep) <= {'version', 'default-features'}, dep
+          print('exact direct dependency requirement: PASS')
+          PY
+
+      - name: Capture post-hydration metadata and prove locked build
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo metadata --locked --format-version 1 > hydration/metadata-after.json
+          cargo check -p symtropy-launcher --lib --locked
+          cargo tree -p sha2 --edges normal > hydration/sha2-tree.txt
+          cargo tree -p symtropy-launcher -e features --invert sha2 > hydration/sha2-feature-inverse.txt
+
+      - name: Prove no unrelated lock churn
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json
+          import os
+          import tomllib
+          from pathlib import Path
+
+          before_lock = tomllib.loads(Path('hydration/Cargo.lock.before').read_text())
+          after_lock = tomllib.loads(Path('Cargo.lock').read_text())
+          after_meta = json.loads(Path('hydration/metadata-after.json').read_text())
+
+          def identity(pkg):
+              return (
+                  pkg['name'],
+                  pkg['version'],
+                  pkg.get('source'),
+                  pkg.get('checksum'),
+              )
+
+          before = {identity(pkg) for pkg in before_lock['package']}
+          after = {identity(pkg) for pkg in after_lock['package']}
+          removed = sorted(before - after, key=lambda x: (x[0], x[1], str(x[2])))
+          added = sorted(after - before, key=lambda x: (x[0], x[1], str(x[2])))
+
+          # No already-resolved package identity may move or disappear.
+          assert not removed, f'pre-existing package identities changed/removed: {removed}'
+          assert added, 'expected a non-empty SHA-256 dependency closure'
+
+          sha2 = [pkg for pkg in added if pkg[0] == 'sha2']
+          assert sha2 == [(
+              'sha2',
+              os.environ['SHA2_VERSION'],
+              'registry+https://github.com/rust-lang/crates.io-index',
+              os.environ['SHA2_CHECKSUM'],
+          )], sha2
+
+          # Every newly resolved package must be a registry package in the
+          # dependency closure reachable from sha2 0.11.0.
+          packages = {pkg['id']: pkg for pkg in after_meta['packages']}
+          nodes = {node['id']: node for node in after_meta['resolve']['nodes']}
+          sha2_ids = [
+              pid for pid, pkg in packages.items()
+              if pkg['name'] == 'sha2' and pkg['version'] == os.environ['SHA2_VERSION']
+          ]
+          assert len(sha2_ids) == 1, sha2_ids
+          stack = list(sha2_ids)
+          reachable = set()
+          while stack:
+              pid = stack.pop()
+              if pid in reachable:
+                  continue
+              reachable.add(pid)
+              stack.extend(dep['pkg'] for dep in nodes[pid]['deps'])
+
+          reachable_namever = {
+              (packages[pid]['name'], packages[pid]['version']) for pid in reachable
+          }
+          for name, version, source, checksum in added:
+              assert source and source.startswith('registry+'), (name, version, source)
+              assert checksum, (name, version)
+              assert (name, version) in reachable_namever, (
+                  'new package outside sha2 closure', name, version
+              )
+
+          # The only pre-existing package dependency edge intentionally changed
+          # is the root package gaining its direct sha2 edge.
+          root = [pkg for pkg in after_lock['package'] if pkg['name'] == 'symtropy-launcher']
+          assert len(root) == 1
+          assert 'sha2' in root[0].get('dependencies', []), root[0].get('dependencies', [])
+
+          receipt = {
+              'theorem': 'PHYS-EVID-01D1H Cargo-generated SHA-256 dependency hydration capsule',
+              'd0_subject_sha': os.environ['D0_SHA'],
+              'direct_requirement': os.environ['DIRECT_REQUIREMENT'],
+              'default_features': False,
+              'sha2_version': os.environ['SHA2_VERSION'],
+              'sha2_checksum': os.environ['SHA2_CHECKSUM'],
+              'new_packages': [
+                  {
+                      'name': p[0],
+                      'version': p[1],
+                      'source': p[2],
+                      'checksum': p[3],
+                  }
+                  for p in added
+              ],
+              'changed_existing_packages': [],
+              'removed_packages': [],
+              'new_packages_reachable_from_sha2': True,
+              'cargo_check_locked_passed': True,
+              'semantic_digest_correctness_claimed': False,
+              'authentication_claimed': False,
+              'issuer_authority_claimed': False,
+              'replay_or_action_authority_claimed': False,
+          }
+          Path('hydration/package-delta.json').write_text(
+              json.dumps(receipt, indent=2, sort_keys=True) + '\n'
+          )
+          print(json.dumps(receipt, indent=2, sort_keys=True))
+          PY
+
+      - name: Freeze generated patch and hashes
+        shell: bash
+        run: |
+          set -euo pipefail
+          cp Cargo.toml hydration/Cargo.toml.after
+          cp Cargo.lock hydration/Cargo.lock.after
+          sha256sum Cargo.toml | awk '{print $1}' > hydration/manifest-after.sha256
+          sha256sum Cargo.lock | awk '{print $1}' > hydration/lock-after.sha256
+          git diff --binary -- Cargo.toml Cargo.lock > hydration/sha256-dependency-hydration.patch
+          test -s hydration/sha256-dependency-hydration.patch
+
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+
+          receipt = json.loads(Path('hydration/package-delta.json').read_text())
+          receipt.update({
+              'manifest_before_sha256': Path('hydration/manifest-before.sha256').read_text().strip(),
+              'manifest_after_sha256': Path('hydration/manifest-after.sha256').read_text().strip(),
+              'lock_before_sha256': Path('hydration/lock-before.sha256').read_text().strip(),
+              'lock_after_sha256': Path('hydration/lock-after.sha256').read_text().strip(),
+              'rustc_version': Path('hydration/rustc-version.txt').read_text().splitlines()[0],
+              'cargo_version': Path('hydration/cargo-version.txt').read_text().splitlines()[0],
+          })
+          Path('hydration/phys-evid-01d1h-receipt.json').write_text(
+              json.dumps(receipt, indent=2, sort_keys=True) + '\n'
+          )
+          PY
+
+      - name: Postflight generated-only mutation
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$D0_SHA"
+          mapfile -t changed < <(git diff --name-only | sort)
+          printf '%s\n' "${changed[@]}"
+          test "${#changed[@]}" = "2"
+          test "${changed[0]}" = "Cargo.lock"
+          test "${changed[1]}" = "Cargo.toml"
+
+      - name: Upload hydration capsule
+        uses: actions/upload-artifact@v4
+        with:
+          name: phys-evid-01d1h-sha256-dependency-hydration
+          path: hydration/
+          if-no-files-found: error
