@@ -13,4 +13,5 @@ pub mod plugin;
 pub mod ports;
 pub mod qualified_persistent_endpoint;
 pub mod resources;
+pub mod semantic_commitment_preimage;
 pub mod systems;
