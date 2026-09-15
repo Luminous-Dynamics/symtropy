@@ -40,6 +40,7 @@ pub mod replay;
 pub mod sampled_presence;
 pub mod support_map;
 pub mod timed_evidence;
+pub mod timed_sampled_presence;
 pub mod world;
 
 pub use articulation::{ArticulatedChain, ChainBuilder, LinkSpec};
@@ -81,5 +82,8 @@ pub use sampled_presence::{
 };
 pub use timed_evidence::{
     LocalQualifiedStepExecutionReceipt, LocalReceiptedEvidencePhysicsAuthorityWorld,
+};
+pub use timed_sampled_presence::{
+    LocalExactTimedSampledPresenceTransition, LocalExactTimedSampledPresenceTransitionError,
 };
 pub use world::{NoOpCallback, PhysicsCallback, PhysicsWorld};
