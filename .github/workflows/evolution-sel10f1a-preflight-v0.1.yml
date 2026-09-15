@@ -1,0 +1,114 @@
+name: Evolution SEL-10F1A Preflight V0.1
+
+on:
+  push:
+    branches:
+      - "ci/evolution-sel10f1a-preflight-v0.1"
+
+permissions:
+  contents: read
+
+env:
+  PRODUCT_HEAD: 096c2ad1ed456933b1cb1b1534a8b59853bd1958
+  PRODUCT_BASE: 6aafa8cba53cce79b01b87562b3d8b4d5518de59
+
+jobs:
+  preflight:
+    name: Non-authoritative F1A compile oracle / Rust 1.96
+    runs-on: ubuntu-slim
+    steps:
+      - name: Checkout exact product subject
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ env.PRODUCT_HEAD }}
+          fetch-depth: 0
+      - name: Assert exact subject and product boundary
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "${PRODUCT_HEAD}"
+          git merge-base --is-ancestor "${PRODUCT_BASE}" "${PRODUCT_HEAD}"
+          test "$(git rev-list --count "${PRODUCT_BASE}..${PRODUCT_HEAD}")" = "10"
+          test "$(git rev-list --count "${PRODUCT_HEAD}..${PRODUCT_BASE}")" = "0"
+          mapfile -t changed < <(git diff --name-only "${PRODUCT_BASE}..${PRODUCT_HEAD}")
+          test "${#changed[@]}" = "9"
+          for path in "${changed[@]}"; do
+            case "${path}" in
+              crates/domains/symtropy-species-concept-general-lineage/*) ;;
+              *) echo "unexpected F1A path: ${path}" >&2; exit 1 ;;
+            esac
+          done
+      - name: Set up pinned Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.96.0
+          components: rustfmt
+      - name: Isolate F1A stack
+        shell: bash
+        run: |
+          set -euo pipefail
+          root="${RUNNER_TEMP}/general-lineage-f1a-preflight"
+          rm -rf "${root}"
+          mkdir -p "${root}"
+          cp -R crates/domains/symtropy-evolution-core "${root}/symtropy-evolution-core"
+          cp -R crates/domains/symtropy-species-concept "${root}/symtropy-species-concept"
+          cp -R crates/domains/symtropy-species-concept-general-lineage "${root}/symtropy-species-concept-general-lineage"
+      - name: Rustfmt oracle
+        id: fmt
+        working-directory: ${{ runner.temp }}/general-lineage-f1a-preflight/symtropy-species-concept-general-lineage
+        run: cargo fmt --all -- --check
+      - name: All-target type oracle
+        id: check
+        working-directory: ${{ runner.temp }}/general-lineage-f1a-preflight/symtropy-species-concept-general-lineage
+        run: cargo check --all-targets
+      - name: Semantic non-collapse execution oracle
+        id: semantic
+        working-directory: ${{ runner.temp }}/general-lineage-f1a-preflight/symtropy-species-concept-general-lineage
+        run: cargo test --test general_lineage_historical_semantic_boundaries_v1
+      - name: Emit explicitly non-authoritative preflight receipt
+        if: always()
+        shell: bash
+        env:
+          HELPER_HEAD: ${{ github.sha }}
+          RUN_ID: ${{ github.run_id }}
+          FMT: ${{ steps.fmt.outcome }}
+          CHECK: ${{ steps.check.outcome }}
+          SEMANTIC: ${{ steps.semantic.outcome }}
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json, os
+          outcomes = {
+              "fmt": os.environ.get("FMT", "unknown"),
+              "check": os.environ.get("CHECK", "unknown"),
+              "semantic": os.environ.get("SEMANTIC", "unknown"),
+          }
+          receipt = {
+              "receipt_version": 1,
+              "kind": "non-authoritative-compile-oracle",
+              "product_base": os.environ["PRODUCT_BASE"],
+              "product_head": os.environ["PRODUCT_HEAD"],
+              "helper_head": os.environ["HELPER_HEAD"],
+              "workflow_run_id": int(os.environ["RUN_ID"]),
+              "step_outcomes": outcomes,
+              "overall": "pass" if all(v == "success" for v in outcomes.values()) else "fail",
+              "authority": "none",
+              "claim_boundary": "preflight only; may detect formatting, type, or semantic-test failures; cannot establish SEL-10F1A qualification or scientific PASS",
+          }
+          path = os.path.join(os.environ["RUNNER_TEMP"], "sel10f1a-preflight-v0.1.json")
+          with open(path, "w", encoding="utf-8") as f:
+              json.dump(receipt, f, sort_keys=True, indent=2)
+              f.write("\n")
+          print(json.dumps(receipt, sort_keys=True))
+          PY
+          sha256sum "${RUNNER_TEMP}/sel10f1a-preflight-v0.1.json" > "${RUNNER_TEMP}/sel10f1a-preflight-v0.1.json.sha256"
+      - name: Upload non-authoritative preflight receipt
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: sel10f1a-preflight-v0.1-${{ env.PRODUCT_HEAD }}
+          path: |
+            ${{ runner.temp }}/sel10f1a-preflight-v0.1.json
+            ${{ runner.temp }}/sel10f1a-preflight-v0.1.json.sha256
+          if-no-files-found: error
+          retention-days: 14
