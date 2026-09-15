@@ -1,0 +1,174 @@
+name: Evolution SEL-10F1A Qualification V0.3
+
+on:
+  push:
+    branches:
+      - "ci/evolution-sel10f1a-qualification-v0.3"
+
+permissions:
+  contents: read
+
+env:
+  PRODUCT_HEAD: 096c2ad1ed456933b1cb1b1534a8b59853bd1958
+  PRODUCT_BASE: 6aafa8cba53cce79b01b87562b3d8b4d5518de59
+
+jobs:
+  qualify:
+    name: Frozen SEL-10F1A V0.3 / Rust 1.96
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout exact frozen product subject
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ env.PRODUCT_HEAD }}
+          fetch-depth: 0
+      - name: Assert executed subject and frozen ancestry
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "${PRODUCT_HEAD}"
+          git merge-base --is-ancestor "${PRODUCT_BASE}" "${PRODUCT_HEAD}"
+          test "$(git rev-list --count "${PRODUCT_BASE}..${PRODUCT_HEAD}")" = "10"
+          test "$(git rev-list --count "${PRODUCT_HEAD}..${PRODUCT_BASE}")" = "0"
+      - name: Assert exact F1A changed-file boundary
+        shell: bash
+        run: |
+          set -euo pipefail
+          mapfile -t changed < <(git diff --name-only "${PRODUCT_BASE}..${PRODUCT_HEAD}")
+          test "${#changed[@]}" = "9"
+          for path in "${changed[@]}"; do
+            case "${path}" in
+              crates/domains/symtropy-species-concept-general-lineage/*) ;;
+              *) echo "unexpected F1A path: ${path}" >&2; exit 1 ;;
+            esac
+          done
+          for required in \
+            crates/domains/symtropy-species-concept-general-lineage/GENERAL_LINEAGE_HISTORICAL_EVIDENCE_V1.md \
+            crates/domains/symtropy-species-concept-general-lineage/tests/general_lineage_historical_evidence_v1.rs \
+            crates/domains/symtropy-species-concept-general-lineage/tests/general_lineage_historical_restored_state_v1.rs \
+            crates/domains/symtropy-species-concept-general-lineage/tests/general_lineage_historical_adversarial_v1.rs \
+            crates/domains/symtropy-species-concept-general-lineage/tests/general_lineage_historical_semantic_boundaries_v1.rs
+          do
+            test "$(printf '%s\n' "${changed[@]}" | grep -Fxc "${required}")" = "1"
+          done
+      - name: Set up pinned Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.96.0
+          components: clippy, rustfmt
+      - name: Isolate F1A stack
+        shell: bash
+        run: |
+          set -euo pipefail
+          root="${RUNNER_TEMP}/general-lineage-f1a-stack"
+          rm -rf "${root}"
+          mkdir -p "${root}"
+          cp -R crates/domains/symtropy-evolution-core "${root}/symtropy-evolution-core"
+          cp -R crates/domains/symtropy-species-concept "${root}/symtropy-species-concept"
+          cp -R crates/domains/symtropy-species-concept-general-lineage "${root}/symtropy-species-concept-general-lineage"
+      - name: Check F1A formatting
+        id: fmt
+        working-directory: ${{ runner.temp }}/general-lineage-f1a-stack/symtropy-species-concept-general-lineage
+        run: cargo fmt --all -- --check
+      - name: Check F1A all targets
+        id: check
+        working-directory: ${{ runner.temp }}/general-lineage-f1a-stack/symtropy-species-concept-general-lineage
+        run: cargo check --all-targets
+      - name: Run F1A historical evidence corpus
+        id: historical
+        working-directory: ${{ runner.temp }}/general-lineage-f1a-stack/symtropy-species-concept-general-lineage
+        run: cargo test --test general_lineage_historical_evidence_v1
+      - name: Run F1A restored-state adversarial corpus
+        id: restored
+        working-directory: ${{ runner.temp }}/general-lineage-f1a-stack/symtropy-species-concept-general-lineage
+        run: cargo test --test general_lineage_historical_restored_state_v1
+      - name: Run F1A preregistered adversarial corpus
+        id: adversarial
+        working-directory: ${{ runner.temp }}/general-lineage-f1a-stack/symtropy-species-concept-general-lineage
+        run: cargo test --test general_lineage_historical_adversarial_v1
+      - name: Run F1A semantic non-collapse corpus
+        id: semantic
+        working-directory: ${{ runner.temp }}/general-lineage-f1a-stack/symtropy-species-concept-general-lineage
+        run: cargo test --test general_lineage_historical_semantic_boundaries_v1
+      - name: Run frozen current general-lineage corpus
+        id: current
+        working-directory: ${{ runner.temp }}/general-lineage-f1a-stack/symtropy-species-concept-general-lineage
+        run: cargo test --test general_lineage_v1
+      - name: Run all general-lineage targets
+        id: all_tests
+        working-directory: ${{ runner.temp }}/general-lineage-f1a-stack/symtropy-species-concept-general-lineage
+        run: cargo test --all-targets
+      - name: Run strict F1A Clippy
+        id: clippy
+        working-directory: ${{ runner.temp }}/general-lineage-f1a-stack/symtropy-species-concept-general-lineage
+        run: cargo clippy --all-targets -- -D warnings
+      - name: Run frozen open-descriptor corpora
+        id: descriptor
+        working-directory: ${{ runner.temp }}/general-lineage-f1a-stack/symtropy-species-concept
+        run: |
+          cargo test --test open_descriptor_v1
+          cargo test --test open_descriptor_hardening_v1
+          cargo test --test open_descriptor_structural_hardening_v1
+      - name: Run native SEL-10A history prerequisite
+        id: sel10a
+        working-directory: ${{ runner.temp }}/general-lineage-f1a-stack/symtropy-evolution-core
+        run: cargo test --test lineage_divergence_history_v1
+      - name: Run native SEL-09B isolation prerequisite
+        id: sel09b
+        working-directory: ${{ runner.temp }}/general-lineage-f1a-stack/symtropy-evolution-core
+        run: cargo test --test reproductive_isolation_evidence_v1
+      - name: Emit qualification receipt
+        if: always()
+        shell: bash
+        env:
+          HELPER_HEAD: ${{ github.sha }}
+          RUN_ID: ${{ github.run_id }}
+          FMT: ${{ steps.fmt.outcome }}
+          CHECK: ${{ steps.check.outcome }}
+          HISTORICAL: ${{ steps.historical.outcome }}
+          RESTORED: ${{ steps.restored.outcome }}
+          ADVERSARIAL: ${{ steps.adversarial.outcome }}
+          SEMANTIC: ${{ steps.semantic.outcome }}
+          CURRENT: ${{ steps.current.outcome }}
+          ALL_TESTS: ${{ steps.all_tests.outcome }}
+          CLIPPY: ${{ steps.clippy.outcome }}
+          DESCRIPTOR: ${{ steps.descriptor.outcome }}
+          SEL10A: ${{ steps.sel10a.outcome }}
+          SEL09B: ${{ steps.sel09b.outcome }}
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json, os
+          keys = [
+              "FMT", "CHECK", "HISTORICAL", "RESTORED", "ADVERSARIAL", "SEMANTIC",
+              "CURRENT", "ALL_TESTS", "CLIPPY", "DESCRIPTOR", "SEL10A", "SEL09B"
+          ]
+          outcomes = {k.lower(): os.environ.get(k, "unknown") for k in keys}
+          receipt = {
+              "receipt_version": 3,
+              "qualification": "SEL-10F1A-general-lineage-historical-evidence-v0.3",
+              "product_base": os.environ["PRODUCT_BASE"],
+              "product_head": os.environ["PRODUCT_HEAD"],
+              "helper_head": os.environ["HELPER_HEAD"],
+              "workflow_run_id": int(os.environ["RUN_ID"]),
+              "step_outcomes": outcomes,
+              "overall": "pass" if all(v == "success" for v in outcomes.values()) else "fail",
+              "claim_boundary": "historical general-lineage evidence materialization and fresh replay only; recontact is not fusion; native reproductive-isolation contradiction is not an external transition disposition; complete evidence is not a historical-transition verdict",
+          }
+          path = os.path.join(os.environ["RUNNER_TEMP"], "sel10f1a-qualification-v0.3.json")
+          with open(path, "w", encoding="utf-8") as f:
+              json.dump(receipt, f, sort_keys=True, indent=2)
+              f.write("\n")
+          print(json.dumps(receipt, sort_keys=True))
+          PY
+          sha256sum "${RUNNER_TEMP}/sel10f1a-qualification-v0.3.json" > "${RUNNER_TEMP}/sel10f1a-qualification-v0.3.json.sha256"
+      - name: Upload qualification receipt
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: sel10f1a-qualification-v0.3-${{ env.PRODUCT_HEAD }}
+          path: |
+            ${{ runner.temp }}/sel10f1a-qualification-v0.3.json
+            ${{ runner.temp }}/sel10f1a-qualification-v0.3.json.sha256
+          if-no-files-found: error
+          retention-days: 30
