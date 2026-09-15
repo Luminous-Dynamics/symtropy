@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 pub mod components;
+pub mod evidence_session;
 pub mod experience;
 pub mod plugin;
 pub mod ports;
