@@ -8,5 +8,6 @@ pub mod evidence_session_binding_codec;
 pub mod experience;
 pub mod plugin;
 pub mod ports;
+pub mod qualified_persistent_endpoint;
 pub mod resources;
 pub mod systems;
