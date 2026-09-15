@@ -38,6 +38,7 @@ pub mod manifold_gen;
 pub mod qualified_endpoint;
 pub mod raycast;
 pub mod replay;
+pub mod sampled_presence;
 pub mod support_map;
 pub mod world;
 
@@ -82,4 +83,7 @@ pub use qualified_endpoint::{
     LocalQualifiedStampedEndpointBoxObservation, LocalQualifiedStampedEndpointObservationError,
 };
 pub use replay::{ReplayTape, WorldCommand, WorldSnapshot, apply_commands};
+pub use sampled_presence::{
+    LocalConsecutiveSampledEndpointPresence, LocalConsecutiveSampledPresenceError,
+};
 pub use world::{NoOpCallback, PhysicsCallback, PhysicsWorld};
