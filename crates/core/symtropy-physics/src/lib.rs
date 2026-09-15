@@ -27,6 +27,7 @@ pub mod contact;
 pub mod diagnostics;
 pub mod epa;
 pub mod evidence_authority;
+pub mod fixed_cadence;
 pub mod gjk;
 pub mod identity_authority;
 mod identity_mutation;
@@ -63,6 +64,10 @@ pub use evidence_authority::{
     LocalEvidenceAuthorityError, LocalEvidenceAuthoritySealFailure,
     LocalEvidencePhysicsAuthorityWorld, LocalQualifiedAuthorityStepStamp,
     LocalTaintedEvidenceAuthority, LocalTemporalIncarnationId,
+};
+pub use fixed_cadence::{
+    ExactDyadicCadence, LocalFixedCadenceError, LocalFixedCadenceEvidencePhysicsAuthorityWorld,
+    LocalFixedCadenceStepReceipt, LocalFixedSimulationCadence,
 };
 pub use identity_authority::{
     AuthorityStepStamp, PhysicalAuthorityId, PhysicsAuthorityTemporalError, PhysicsAuthorityWorld,
