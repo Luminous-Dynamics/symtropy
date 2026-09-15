@@ -27,6 +27,7 @@ pub mod contact;
 pub mod diagnostics;
 pub mod epa;
 pub mod evidence_authority;
+pub mod evidence_frame;
 pub mod gjk;
 pub mod identity_authority;
 mod identity_mutation;
@@ -61,6 +62,13 @@ pub use evidence_authority::{
     LocalEvidenceAuthorityError, LocalEvidenceAuthoritySealFailure,
     LocalEvidencePhysicsAuthorityWorld, LocalQualifiedAuthorityStepStamp,
     LocalTaintedEvidenceAuthority, LocalTemporalIncarnationId,
+};
+pub use evidence_frame::{
+    DecodedPhysicsEvidenceFrameV1, PHYSICS_EVIDENCE_FRAME_V1_MAGIC,
+    PHYSICS_EVIDENCE_FRAME_V1_MAX_KIND_DOMAIN_LEN, PHYSICS_EVIDENCE_FRAME_V1_MAX_PAYLOAD_LEN,
+    PHYSICS_EVIDENCE_FRAME_V1_VERSION, PhysicsEvidenceFrameKindV1,
+    PhysicsEvidenceFrameV1Error, decode_physics_evidence_frame_v1,
+    encode_physics_evidence_frame_v1,
 };
 pub use identity_authority::{
     AuthorityStepStamp, PhysicalAuthorityId, PhysicsAuthorityTemporalError, PhysicsAuthorityWorld,
