@@ -134,7 +134,6 @@ mod historical_isolation_fixture {
         f: impl FnOnce(&ValidatedReproductiveIsolationEvidence<'_>),
     ) {
         let ctx = context(150);
-        // Seed 20 intentionally matches SEL-10A lineage-a/lineage-b authorities.
         let auth = authorities(20);
         let a = iso_contact(&auth, ctx, "f1a-a", 10);
         let b = iso_contact(&auth, ctx, "f1a-b", 20);
@@ -188,7 +187,9 @@ fn historical_design<'a>(
     .unwrap()
 }
 
-fn projections(channels: &[GeneralLineageEvidenceChannelDeclaration]) -> Vec<HistoricalChannelProjectionInput> {
+fn projections(
+    channels: &[GeneralLineageEvidenceChannelDeclaration],
+) -> Vec<HistoricalChannelProjectionInput> {
     channels
         .iter()
         .rev()
@@ -235,7 +236,10 @@ fn external_windows(
 fn with_classification<R>(
     history_design: &symtropy_evolution_core::ValidatedLineageDivergenceHistoryDesign<'_>,
     channels: Vec<GeneralLineageEvidenceChannelDeclaration>,
-    f: impl FnOnce(&ValidatedGeneralLineageClassificationDesign<'_>, Vec<GeneralLineageEvidenceChannelDeclaration>) -> R,
+    f: impl FnOnce(
+        &ValidatedGeneralLineageClassificationDesign<'_>,
+        Vec<GeneralLineageEvidenceChannelDeclaration>,
+    ) -> R,
 ) -> R {
     let raw_model = model(GeneralLineageReproductiveModePolicy::SexualOrAsexual, 120);
     let current_model = current_model(
@@ -497,7 +501,7 @@ fn post_interval_fusion_remains_explicit_counterhistory_in_the_native_ledger() {
                 })
                 .unwrap();
             assert!(matches!(
-                generation_five.fusion.state,
+                &generation_five.fusion.state,
                 symtropy_evolution_core::LineageObservationState::Observed { .. }
             ));
         })
