@@ -1,0 +1,309 @@
+name: PHYS-EVID-01B Ordered Consecutive Claim Identity Qualification
+
+on:
+  push:
+    branches:
+      - ci/ordered-consecutive-claim-identity-v0.1
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  qualify-ordered-consecutive-claim-identity:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      SUBJECT_SHA: a20a19ea266c80bd778d7f40f66feb26e538b35d
+      CLAIM_CONVERGENCE_SHA: 7259f0e0c49e52c84d6a3a8348d34f8c872a8e65
+      RELATION_PARENT_SHA: 45833e9f30bd52e1e751822ed499b0863f191866
+      ENDPOINT_CLAIM_PARENT_SHA: b4d36558d7acf7196fd4c0f97140cd288d2c21ce
+      RELATION_CONVERGENCE_SHA: 4bccbf716758ee372bb653a4de8c586623a58232
+      C1_PARENT_SHA: 6bd55619bc4a50d15bab6cf7569bcfb8d59f246e
+      OBS06_PARENT_SHA: e7fc7d90355917be2edac29b6d0ca3d1cd655a89
+
+      CONTRACT_BLOB: a8044c8ec070b2d0087ddefcc2ad76ab15a4f86e
+      SOURCE_BLOB: 17e2eb3760d6499a69bef73096870a0d745c2cfd
+      LIB_BLOB: 6c1b992a353799f9803bab8c72847435a1d3eda1
+      VECTOR_BLOB: 409dea0c9a9b6903e2422b7b49b8ef54c0600338
+      ORACLE_BLOB: 178a38167e8f97360d6c47beee58c5206f49ceec
+
+      RELATION_CONTRACT_BLOB: e495f9d750f2e4e44f05d66337fa8d4291c32ec5
+      RELATION_SOURCE_BLOB: e0d8bb62ba92596e944d64ab499aa107f6c60e8c
+      RELATION_LIB_BLOB: ba03894687708c42463035da41d72a33e12a0d89
+      RELATION_VECTOR_BLOB: 8afba41493e3171cfd441b00110bd97cd7efc9de
+      RELATION_ORACLE_BLOB: eea7fdefdcbefaafaae5fb7e35273864dc4fed40
+
+      ENDPOINT_CLAIM_CONTRACT_BLOB: d76a6e242541975485cd75b3b5d75f43de151b45
+      ENDPOINT_CLAIM_SOURCE_BLOB: 42a3f9ed3b529240c466c65730d014341dff65ae
+      ENDPOINT_CLAIM_VECTOR_BLOB: d12f2e5c785a344e392331f6bc29e456ead2985c
+      ENDPOINT_CLAIM_ORACLE_BLOB: 8945267a6309d3602779aed8af14647f910dc9d0
+      CLAIM_CONVERGENCE_LIB_BLOB: 0e4572e7135bd3c00b10296362d6d1baac037c7a
+
+    steps:
+      - name: Checkout exact product subject
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ env.SUBJECT_SHA }}
+          fetch-depth: 0
+
+      - name: Exact semantic-child scope gate
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$SUBJECT_SHA"
+          test "$(git rev-parse HEAD^)" = "$CLAIM_CONVERGENCE_SHA"
+          test "$(git rev-list --count "$CLAIM_CONVERGENCE_SHA..$SUBJECT_SHA")" = "1"
+
+          mapfile -t changed < <(git diff --name-only "$CLAIM_CONVERGENCE_SHA" "$SUBJECT_SHA" | sort)
+          expected=(
+            docs/release/evidence/ORDERED_CONSECUTIVE_CLAIM_IDENTITY_V01.md
+            src/consecutive_claim_identity.rs
+            src/lib.rs
+            tests/fixtures/consecutive_claim_identity_v1_vector.json
+            tests/verify_consecutive_claim_identity_v1.py
+          )
+          mapfile -t expected_sorted < <(printf '%s\n' "${expected[@]}" | sort)
+          test "${#changed[@]}" = "${#expected_sorted[@]}"
+          diff -u <(printf '%s\n' "${expected_sorted[@]}") <(printf '%s\n' "${changed[@]}")
+
+      - name: Exact evidence-DAG gate
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse "$CLAIM_CONVERGENCE_SHA^1")" = "$RELATION_PARENT_SHA"
+          test "$(git rev-parse "$CLAIM_CONVERGENCE_SHA^2")" = "$ENDPOINT_CLAIM_PARENT_SHA"
+          test "$(git rev-list --parents -n 1 "$CLAIM_CONVERGENCE_SHA" | awk '{print NF}')" = "3"
+
+          test "$(git rev-parse "$RELATION_PARENT_SHA^")" = "$RELATION_CONVERGENCE_SHA"
+          test "$(git rev-list --count "$RELATION_CONVERGENCE_SHA..$RELATION_PARENT_SHA")" = "1"
+          test "$(git rev-parse "$RELATION_CONVERGENCE_SHA^1")" = "$C1_PARENT_SHA"
+          test "$(git rev-parse "$RELATION_CONVERGENCE_SHA^2")" = "$OBS06_PARENT_SHA"
+          test "$(git rev-list --parents -n 1 "$RELATION_CONVERGENCE_SHA" | awk '{print NF}')" = "3"
+
+      - name: Freeze exact product and predecessor blobs
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse "$SUBJECT_SHA:docs/release/evidence/ORDERED_CONSECUTIVE_CLAIM_IDENTITY_V01.md")" = "$CONTRACT_BLOB"
+          test "$(git rev-parse "$SUBJECT_SHA:src/consecutive_claim_identity.rs")" = "$SOURCE_BLOB"
+          test "$(git rev-parse "$SUBJECT_SHA:src/lib.rs")" = "$LIB_BLOB"
+          test "$(git rev-parse "$SUBJECT_SHA:tests/fixtures/consecutive_claim_identity_v1_vector.json")" = "$VECTOR_BLOB"
+          test "$(git rev-parse "$SUBJECT_SHA:tests/verify_consecutive_claim_identity_v1.py")" = "$ORACLE_BLOB"
+
+          test "$(git rev-parse "$RELATION_PARENT_SHA:docs/release/evidence/CANONICAL_CONSECUTIVE_SAMPLED_PRESENCE_V01.md")" = "$RELATION_CONTRACT_BLOB"
+          test "$(git rev-parse "$RELATION_PARENT_SHA:src/consecutive_presence_codec.rs")" = "$RELATION_SOURCE_BLOB"
+          test "$(git rev-parse "$RELATION_PARENT_SHA:src/lib.rs")" = "$RELATION_LIB_BLOB"
+          test "$(git rev-parse "$RELATION_PARENT_SHA:tests/fixtures/consecutive_presence_v1_vector.json")" = "$RELATION_VECTOR_BLOB"
+          test "$(git rev-parse "$RELATION_PARENT_SHA:tests/verify_consecutive_presence_v1.py")" = "$RELATION_ORACLE_BLOB"
+          test "$(git rev-parse "$SUBJECT_SHA:src/consecutive_presence_codec.rs")" = "$RELATION_SOURCE_BLOB"
+
+          test "$(git rev-parse "$ENDPOINT_CLAIM_PARENT_SHA:docs/release/evidence/CANONICAL_ENDPOINT_CLAIM_IDENTITY_V01.md")" = "$ENDPOINT_CLAIM_CONTRACT_BLOB"
+          test "$(git rev-parse "$ENDPOINT_CLAIM_PARENT_SHA:src/endpoint_claim_identity.rs")" = "$ENDPOINT_CLAIM_SOURCE_BLOB"
+          test "$(git rev-parse "$ENDPOINT_CLAIM_PARENT_SHA:tests/fixtures/endpoint_claim_identity_v1_vector.json")" = "$ENDPOINT_CLAIM_VECTOR_BLOB"
+          test "$(git rev-parse "$ENDPOINT_CLAIM_PARENT_SHA:tests/verify_endpoint_claim_identity_v1.py")" = "$ENDPOINT_CLAIM_ORACLE_BLOB"
+          test "$(git rev-parse "$SUBJECT_SHA:src/endpoint_claim_identity.rs")" = "$ENDPOINT_CLAIM_SOURCE_BLOB"
+
+          test "$(git rev-parse "$CLAIM_CONVERGENCE_SHA:src/lib.rs")" = "$CLAIM_CONVERGENCE_LIB_BLOB"
+
+      - name: Contract has only current lineage identities
+        shell: bash
+        run: |
+          set -euo pipefail
+          contract=docs/release/evidence/ORDERED_CONSECUTIVE_CLAIM_IDENTITY_V01.md
+          grep -F "$RELATION_PARENT_SHA" "$contract"
+          grep -F "$ENDPOINT_CLAIM_PARENT_SHA" "$contract"
+          grep -F "$CLAIM_CONVERGENCE_SHA" "$contract"
+          ! grep -F 'd0b86e4d1351e93c482af3b68b581f2050bb27a5' "$contract"
+          ! grep -F '8638dc6609899e943f458b6a1e1953995f0f71d3' "$contract"
+
+      - name: Independent language-neutral oracles
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 tests/verify_endpoint_sample_v1.py
+          python3 tests/verify_consecutive_presence_v1.py
+          python3 tests/verify_endpoint_claim_identity_v1.py
+          python3 tests/verify_consecutive_claim_identity_v1.py
+
+      - name: Static semantic non-laundering audit
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+
+          text = Path('src/consecutive_claim_identity.rs').read_text()
+          production = text.split('#[cfg(test)]', 1)[0]
+          derive = production.split('pub fn derive_consecutive_presence_claim_v1(', 1)[1]
+          derive = derive.split('pub fn compare_consecutive_presence_claims_v1(', 1)[0]
+
+          required = [
+              'decode_consecutive_sampled_presence_v1(frame)',
+              'derive_endpoint_sample_claim_v1(decoded.previous_frame())',
+              'derive_endpoint_sample_claim_v1(decoded.current_frame())',
+              'previous.position().as_bytes()',
+              'current.position().as_bytes()',
+              'previous.value().as_bytes()',
+              'current.value().as_bytes()',
+          ]
+          for needle in required:
+              assert needle in derive, needle
+
+          decode_i = derive.index('decode_consecutive_sampled_presence_v1(frame)')
+          prev_i = derive.index('derive_endpoint_sample_claim_v1(decoded.previous_frame())')
+          curr_i = derive.index('derive_endpoint_sample_claim_v1(decoded.current_frame())')
+          pos_i = derive.index('previous.position().as_bytes()')
+          val_i = derive.index('previous.value().as_bytes()')
+          assert decode_i < prev_i < curr_i < pos_i
+          assert curr_i < val_i
+
+          compose = production.split('fn compose_ordered_transcript(', 1)[1]
+          prev_write = compose.index('transcript.extend_from_slice(previous);')
+          curr_write = compose.index('transcript.extend_from_slice(current);')
+          assert prev_write < curr_write
+
+          # The derived layer may only invoke the two predecessor theorem APIs;
+          # it must not inspect/re-encode endpoint or relation internals itself.
+          forbidden = [
+              'decode_endpoint_sample_v1',
+              'decode_physics_evidence_frame_v1',
+              'encode_physics_evidence_frame_v1',
+              'PhysicsEvidenceFrameKindV1',
+              '.session_binding()',
+              '.step_index()',
+              '.target_net_id()',
+              '.anchor_net_id()',
+              '.membership()',
+              'center_offset_bits',
+              'half_extent_bits',
+              'target_translation_bits',
+              'anchor_translation_bits',
+              'region_center_bits',
+              'offset_from_center_bits',
+              'f64::from_bits',
+              '.sort(',
+              'sort_unstable',
+              'BTreeSet',
+              'HashSet',
+              'DefaultHasher',
+              'Sha256',
+              'Blake',
+              'sign_',
+              'verify_signature',
+              'ActionKey',
+              'compare_and_set',
+              'settlement',
+              'escrow',
+          ]
+          for needle in forbidden:
+              assert needle not in production, needle
+
+          assert 'pub fn compose_ordered_transcript' not in production
+          assert 'pub fn new(' not in production
+          assert 'pub fn from_fields' not in production
+          assert 'pub fn from_transcripts' not in production
+
+          print('PHYS-EVID-01B static semantic non-laundering audit: PASS')
+          PY
+
+      - name: Install pinned Rust 1.96
+        uses: dtolnay/rust-toolchain@1.96.0
+        with:
+          components: rustfmt, clippy
+
+      - name: Rust format and integration check
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo fmt --all -- --check
+          cargo check -p symtropy-launcher --lib --locked
+
+      - name: PHYS-EVID-01B semantic corpus
+        run: cargo test -p symtropy-launcher --lib consecutive_claim_identity::tests --locked -- --nocapture
+
+      - name: Semantic predecessor regressions
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo test -p symtropy-launcher --lib endpoint_claim_identity::tests --locked -- --nocapture
+          cargo test -p symtropy-launcher --lib consecutive_presence_codec::tests --locked -- --nocapture
+          cargo test -p symtropy-launcher --lib qualified_persistent_endpoint::tests --locked -- --nocapture
+          cargo test -p symtropy-launcher --lib endpoint_sample_codec::tests --locked -- --nocapture
+          cargo test -p symtropy-launcher --lib evidence_session_binding_codec::tests --locked -- --nocapture
+          cargo test -p symtropy-launcher --lib evidence_session::tests --locked -- --nocapture
+
+      - name: Physics predecessor regressions
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo test -p symtropy-physics --test consecutive_sampled_presence_v01 --locked -- --nocapture
+          cargo test -p symtropy-physics --test qualified_stamped_endpoint_v01 --locked -- --nocapture
+          cargo test -p symtropy-physics --test authority_endpoint_box_v01 --locked -- --nocapture
+
+      - name: Warnings-denied Clippy
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo clippy -p symtropy-launcher --lib --locked -- -D warnings
+          cargo clippy -p symtropy-physics --lib --locked -- -D warnings
+
+      - name: Immutable-source postflight
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -z "$(git status --porcelain)"
+          test "$(git rev-parse HEAD)" = "$SUBJECT_SHA"
+          test "$(git rev-parse HEAD:src/consecutive_claim_identity.rs)" = "$SOURCE_BLOB"
+          test "$(git rev-parse HEAD:tests/fixtures/consecutive_claim_identity_v1_vector.json)" = "$VECTOR_BLOB"
+          test "$(git rev-parse HEAD:tests/verify_consecutive_claim_identity_v1.py)" = "$ORACLE_BLOB"
+
+      - name: Emit qualification receipt
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json, os
+          from pathlib import Path
+
+          receipt = {
+              'theorem': 'PHYS-EVID-01B ordered canonical claim identity for consecutive sampled presence v0.1',
+              'subject_sha': os.environ['SUBJECT_SHA'],
+              'claim_convergence_sha': os.environ['CLAIM_CONVERGENCE_SHA'],
+              'ordered_claim_convergence_parents': [
+                  os.environ['RELATION_PARENT_SHA'],
+                  os.environ['ENDPOINT_CLAIM_PARENT_SHA'],
+              ],
+              'relation_convergence_sha': os.environ['RELATION_CONVERGENCE_SHA'],
+              'ordered_relation_convergence_parents': [
+                  os.environ['C1_PARENT_SHA'],
+                  os.environ['OBS06_PARENT_SHA'],
+              ],
+              'transcript_version': 1,
+              'd3_endpoint_position_len': 205,
+              'd3_endpoint_value_len': 151,
+              'd3_derived_position_len': 478,
+              'd3_derived_value_len': 367,
+              'ordered_predecessors': True,
+              'relation_admission_delegated_to_phys_evid_02d': True,
+              'endpoint_identity_delegated_to_phys_evid_01a': True,
+              'raw_frame_bytes_in_semantic_identity': False,
+              'endpoint_fields_reimplemented': False,
+              'predecessor_pass_laundering': False,
+              'authentication_claimed': False,
+              'cryptographic_commitment_claimed': False,
+              'authenticated_fork_claimed': False,
+              'trusted_replay_state_claimed': False,
+              'side_effect_authority_claimed': False,
+              'continuous_occupancy_claimed': False,
+              'settlement_claimed': False,
+          }
+          Path('phys-evid-01b-receipt.json').write_text(json.dumps(receipt, indent=2) + '\n')
+          PY
+
+      - name: Upload qualification receipt
+        uses: actions/upload-artifact@v4
+        with:
+          name: phys-evid-01b-ordered-consecutive-claim-identity-receipt
+          path: phys-evid-01b-receipt.json
+          if-no-files-found: error
