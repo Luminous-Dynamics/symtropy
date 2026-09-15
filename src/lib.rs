@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 pub mod components;
+pub mod consecutive_presence_codec;
 pub mod endpoint_sample_codec;
 pub mod evidence_session;
 pub mod evidence_session_binding_codec;
