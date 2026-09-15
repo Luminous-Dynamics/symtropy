@@ -1,0 +1,196 @@
+name: PB-04d1 Exact Byte Recovery
+
+on:
+  push:
+    branches:
+      - "ci/pb04d1-byte-recovery-041853b"
+    paths:
+      - ".github/workflows/pb04d1-byte-recovery.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  recover:
+    name: Reproduce and publish exact PB-04d1 builder bytes
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - name: Checkout recovery lineage
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Prove recovery-only provenance
+        shell: bash
+        run: |
+          set -euo pipefail
+          builder=041853b0bf106b2110ec5733ba19c3cce9be49bc
+          builder_tree=34bee8a108ee090d82dab4802eedfc431c234732
+          builder_workflow_blob=fe9b7eccce206fef81a649d4392bd75a991b03bd
+          qualified_root=224c1cef5971f0623c61c1533212a7baf485c9a0
+          qualified_root_tree=42dad78a271ec9822c0489f9f8a74be6f1a12168
+          recovery_path=.github/workflows/pb04d1-byte-recovery.yml
+
+          test "$(git rev-parse HEAD^)" = "${builder}"
+          test "$(git rev-list --count "${builder}"..HEAD)" = 1
+          test "$(git rev-parse "${builder}^{tree}")" = "${builder_tree}"
+          test "$(git rev-parse "${builder}:${recovery_path%/*}/pb04d1-mapping-builder.yml")" = "${builder_workflow_blob}"
+          test "$(git diff --name-only "${builder}" HEAD)" = "${recovery_path}"
+          git merge-base --is-ancestor "${qualified_root}" "${builder}"
+          test "$(git rev-parse "${qualified_root}^{tree}")" = "${qualified_root_tree}"
+
+      - name: Install Linux system dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install -y libasound2-dev libudev-dev pkg-config
+
+      - name: Set up pinned Rust
+        uses: dtolnay/rust-toolchain@6bed0761d98439e5a578e2877258200ad565ba87
+        with:
+          toolchain: 1.96.0
+          components: clippy,rustfmt
+
+      - name: Reproduce formatted product bytes twice
+        shell: bash
+        run: |
+          set -euo pipefail
+          builder=041853b0bf106b2110ec5733ba19c3cce9be49bc
+          root=crates/bridges/symtropy-terrain-pb-mapping
+          manifest="${root}/Cargo.toml"
+          out="${RUNNER_TEMP}/pb04d1-recovered"
+          replay="${RUNNER_TEMP}/pb04d1-replay"
+          echo "PB04D1_RECOVERY_DIR=${out}" >> "${GITHUB_ENV}"
+          echo "CARGO_TARGET_DIR=${RUNNER_TEMP}/pb04d1-recovery-target" >> "${GITHUB_ENV}"
+
+          cargo generate-lockfile --manifest-path "${manifest}"
+          cargo fmt --manifest-path "${manifest}"
+
+          while IFS= read -r line; do
+            path="${line:3}"
+            case "${path}" in
+              "${root}/Cargo.lock"|"${root}/src/lib.rs"|"${root}/tests/exact_mapping.rs") ;;
+              *) echo "unexpected recovery mutation: ${line}" >&2; exit 1 ;;
+            esac
+          done < <(git status --porcelain=v1)
+
+          mkdir -p "${out}/src" "${out}/tests"
+          cp "${root}/Cargo.toml" "${out}/Cargo.toml"
+          cp "${root}/Cargo.lock" "${out}/Cargo.lock"
+          cp "${root}/src/lib.rs" "${out}/src/lib.rs"
+          cp "${root}/tests/exact_mapping.rs" "${out}/tests/exact_mapping.rs"
+
+          git worktree add --detach "${replay}" "${builder}"
+          replay_root="${replay}/${root}"
+          cargo generate-lockfile --manifest-path "${replay_root}/Cargo.toml"
+          cargo fmt --manifest-path "${replay_root}/Cargo.toml"
+
+          for file in Cargo.toml Cargo.lock src/lib.rs tests/exact_mapping.rs; do
+            cmp --silent "${out}/${file}" "${replay_root}/${file}"
+          done
+
+      - name: Verify recovered locked graph and theorem corpus
+        shell: bash
+        run: |
+          set -euo pipefail
+          manifest=crates/bridges/symtropy-terrain-pb-mapping/Cargo.toml
+          cargo metadata --manifest-path "${manifest}" --locked --format-version 1 > "${RUNNER_TEMP}/pb04d1-recovery-metadata.json"
+          cargo check --manifest-path "${manifest}" --locked --all-targets
+          cargo test --manifest-path "${manifest}" --locked --all-targets -- --nocapture
+          cargo clippy --manifest-path "${manifest}" --locked --all-targets -- -D warnings
+          echo "PB04D1_METADATA_SHA256=$(sha256sum "${RUNNER_TEMP}/pb04d1-recovery-metadata.json" | awk '{print $1}')"
+
+      - name: Enforce pure theorem authority boundary
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+
+          path = Path("crates/bridges/symtropy-terrain-pb-mapping/src/lib.rs")
+          text = path.read_text()
+          production = text.split("#[cfg(test)]", 1)[0]
+
+          required = (
+              "pub fn map_terrain_voxel_to_pb_cell(",
+              "terrain_metric: TerrainMetricProfile",
+              "embedding: TerrainPbEmbeddingProfile",
+              "domain: &AnalysisDomain",
+              "pb_profile: &DecompositionProfile",
+              "domain.exact_cell_bounds(pb_profile, cell)?",
+          )
+          for token in required:
+              if token not in production:
+                  raise SystemExit(f"missing required pure-theorem token: {token}")
+
+          forbidden = (
+              "bevy::",
+              "GlobalTransform",
+              "Transform",
+              "World",
+              "Res<",
+              "Resource",
+              "impl Default for TerrainPbEmbeddingProfile",
+              "std::fs",
+              "std::env",
+              "OnceLock",
+              "static mut",
+          )
+          for token in forbidden:
+              if token in production:
+                  raise SystemExit(f"forbidden authority-bearing token in production theorem: {token}")
+          PY
+
+      - name: Write canonical byte-identity manifest
+        shell: bash
+        run: |
+          set -euo pipefail
+          out="${PB04D1_RECOVERY_DIR}"
+          manifest="${out}/BYTE_IDENTITY.tsv"
+          builder=041853b0bf106b2110ec5733ba19c3cce9be49bc
+          builder_tree=34bee8a108ee090d82dab4802eedfc431c234732
+          builder_workflow_blob=fe9b7eccce206fef81a649d4392bd75a991b03bd
+          qualified_root=224c1cef5971f0623c61c1533212a7baf485c9a0
+          qualified_root_tree=42dad78a271ec9822c0489f9f8a74be6f1a12168
+
+          : > "${manifest}"
+          printf 'schema\tpb04d1-byte-recovery-v1\n' >> "${manifest}"
+          printf 'builder_commit\t%s\n' "${builder}" >> "${manifest}"
+          printf 'builder_tree\t%s\n' "${builder_tree}" >> "${manifest}"
+          printf 'builder_workflow_blob\t%s\n' "${builder_workflow_blob}" >> "${manifest}"
+          printf 'qualified_composition_commit\t%s\n' "${qualified_root}" >> "${manifest}"
+          printf 'qualified_composition_tree\t%s\n' "${qualified_root_tree}" >> "${manifest}"
+          printf 'rustc\t%s\n' "$(rustc --version)" >> "${manifest}"
+          printf 'cargo\t%s\n' "$(cargo --version)" >> "${manifest}"
+
+          for file in Cargo.toml Cargo.lock src/lib.rs tests/exact_mapping.rs; do
+            bytes="$(wc -c < "${out}/${file}" | tr -d ' ')"
+            blob="$(git hash-object "${out}/${file}")"
+            sha256="$(sha256sum "${out}/${file}" | awk '{print $1}')"
+            printf 'file\t%s\t%s\t%s\t%s\n' "${file}" "${bytes}" "${blob}" "${sha256}" >> "${manifest}"
+          done
+
+          cat "${manifest}"
+          echo "PB04D1_BYTE_IDENTITY_SHA256=$(sha256sum "${manifest}" | awk '{print $1}')"
+
+      - name: Upload exact recovered bytes
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: pb04d1-recovered-bytes-041853b
+          path: ${{ env.PB04D1_RECOVERY_DIR }}
+          if-no-files-found: error
+          retention-days: 30
+          compression-level: 0
+
+      - name: Immutable builder-input postflight
+        shell: bash
+        run: |
+          set -euo pipefail
+          builder=041853b0bf106b2110ec5733ba19c3cce9be49bc
+          test "$(git rev-parse HEAD^)" = "${builder}"
+          test "$(git rev-parse "${builder}^{tree}")" = "34bee8a108ee090d82dab4802eedfc431c234732"
+          test "$(git rev-parse "${builder}:.github/workflows/pb04d1-mapping-builder.yml")" = "fe9b7eccce206fef81a649d4392bd75a991b03bd"
+          test "$(git diff --name-only "${builder}" HEAD)" = ".github/workflows/pb04d1-byte-recovery.yml"
