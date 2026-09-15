@@ -25,6 +25,7 @@ pub mod epa;
 pub mod gjk;
 pub mod integrator;
 pub mod island;
+pub mod issuer_policy;
 pub mod joints;
 pub mod manifold_gen;
 pub mod raycast;
