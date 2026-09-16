@@ -1,0 +1,42 @@
+{
+  "profile": "PHYS-EVID-01D1A independent SHA-256 semantic digest oracle v1",
+  "source_d0_subject_sha": "bdb5781ae49dbf2e3967876d31677fc2cb4f1dff",
+  "source_preimage_fixture_path": "tests/fixtures/semantic_commitment_preimage_v1_vector.json",
+  "source_preimage_fixture_git_blob_sha1": "2514cb1bc931a69ea70ebb2cf0e8a96b9fca60a0",
+  "algorithm_domain": "sha-256",
+  "record_magic_hex": "73796d74726f70792d706879736963732d73656d616e7469632d64696765737400",
+  "record_version": 1,
+  "preimage_version": 1,
+  "known_answer_tests": [
+    {
+      "message_hex": "",
+      "sha256_hex": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "message_hex": "616263",
+      "sha256_hex": "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad"
+    },
+    {
+      "message_hex": "6162636462636465636465666465666765666768666768696768696a68696a6b696a6b6c6a6b6c6d6b6c6d6e6c6d6e6f6d6e6f706e6f7071",
+      "sha256_hex": "248d6a61d20638b8e5c026930c3e6039a33ce45964ff2167f6ecedd419db06c1"
+    }
+  ],
+  "endpoint_sample": {
+    "claim_profile_domain": "endpoint-sample-v1",
+    "position_preimage_len": 285,
+    "full_claim_preimage_len": 446,
+    "position_digest_hex": "7daee5837fb2f0d1f65841fe6866df0e5fdc1023c19a380a03ba8a5db79fa6b5",
+    "full_claim_digest_hex": "843499093235446130875e93d20a67a1418626765b70d263c6eb652af6caf8b8",
+    "record_len": 132,
+    "record_hex": "73796d74726f70792d706879736963732d73656d616e7469632d646967657374007368612d323536000000000100000001656e64706f696e742d73616d706c652d7631007daee5837fb2f0d1f65841fe6866df0e5fdc1023c19a380a03ba8a5db79fa6b5843499093235446130875e93d20a67a1418626765b70d263c6eb652af6caf8b8"
+  },
+  "consecutive_presence": {
+    "claim_profile_domain": "consecutive-presence-v1",
+    "position_preimage_len": 563,
+    "full_claim_preimage_len": 940,
+    "position_digest_hex": "44fea4c73b5e99bdc2526b10e351f92fb89f64a50aceb039a56f5d8a3b3a6d2d",
+    "full_claim_digest_hex": "8a3cd5a01ed707ea420e2dd0af9278b7441ef33ac6d089cf657f8f16bcb307a8",
+    "record_len": 137,
+    "record_hex": "73796d74726f70792d706879736963732d73656d616e7469632d646967657374007368612d323536000000000100000001636f6e73656375746976652d70726573656e63652d76310044fea4c73b5e99bdc2526b10e351f92fb89f64a50aceb039a56f5d8a3b3a6d2d8a3cd5a01ed707ea420e2dd0af9278b7441ef33ac6d089cf657f8f16bcb307a8"
+  }
+}
