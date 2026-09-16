@@ -3,6 +3,7 @@
 
 pub mod components;
 pub mod experience;
+pub mod issuer_policy_membership;
 pub mod issuer_policy_trust;
 pub mod plugin;
 pub mod ports;
