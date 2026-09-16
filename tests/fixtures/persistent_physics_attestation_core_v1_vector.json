@@ -1,0 +1,42 @@
+{
+  "profile": "PHYS-EVID-03A0 independent persistent-physics attestation core oracle v1",
+  "source_d1a_subject_sha": "b729cd6edf058428eb26943a1edd592e5ce37061",
+  "source_digest_fixture_path": "tests/fixtures/semantic_digest_v1_vector.json",
+  "source_digest_fixture_git_blob_sha1": "da098d1155f6d474c03225e3374368ae9c26891a",
+  "core_magic": "symtropy-physics-attestation-core",
+  "scope_domain": "persistent-physics-evidence-v1",
+  "core_version": 1,
+  "session_context_version": 1,
+  "session_id_hex": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f",
+  "physical_authority_id_hex": "0102030405060708090a0b0c0d0e0f10",
+  "world_generation_id_hex": "1112131415161718191a1b1c1d1e1f20",
+  "temporal_incarnation_id_hex": "2122232425262728",
+  "session_profile": 1,
+  "prefix_len": 73,
+  "endpoint_sample": {
+    "digest_record_len": 132,
+    "digest_record_start": 73,
+    "digest_record_end": 205,
+    "session_context_version_start": 205,
+    "session_id_start": 209,
+    "physical_authority_id_start": 241,
+    "world_generation_id_start": 257,
+    "temporal_incarnation_id_start": 273,
+    "session_profile_start": 281,
+    "core_len": 285,
+    "core_hex": "73796d74726f70792d706879736963732d6174746573746174696f6e2d636f72650070657273697374656e742d706879736963732d65766964656e63652d763100000000010000008473796d74726f70792d706879736963732d73656d616e7469632d646967657374007368612d323536000000000100000001656e64706f696e742d73616d706c652d7631007daee5837fb2f0d1f65841fe6866df0e5fdc1023c19a380a03ba8a5db79fa6b5843499093235446130875e93d20a67a1418626765b70d263c6eb652af6caf8b800000001000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f0102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f20212223242526272800000001"
+  },
+  "consecutive_presence": {
+    "digest_record_len": 137,
+    "digest_record_start": 73,
+    "digest_record_end": 210,
+    "session_context_version_start": 210,
+    "session_id_start": 214,
+    "physical_authority_id_start": 246,
+    "world_generation_id_start": 262,
+    "temporal_incarnation_id_start": 278,
+    "session_profile_start": 286,
+    "core_len": 290,
+    "core_hex": "73796d74726f70792d706879736963732d6174746573746174696f6e2d636f72650070657273697374656e742d706879736963732d65766964656e63652d763100000000010000008973796d74726f70792d706879736963732d73656d616e7469632d646967657374007368612d323536000000000100000001636f6e73656375746976652d70726573656e63652d76310044fea4c73b5e99bdc2526b10e351f92fb89f64a50aceb039a56f5d8a3b3a6d2d8a3cd5a01ed707ea420e2dd0af9278b7441ef33ac6d089cf657f8f16bcb307a800000001000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f0102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f20212223242526272800000001"
+  }
+}
