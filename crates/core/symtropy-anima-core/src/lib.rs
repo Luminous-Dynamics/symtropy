@@ -11,6 +11,7 @@
 #![forbid(unsafe_code)]
 
 pub mod evidence;
+pub mod experience;
 pub mod id;
 pub mod quantity;
 pub mod reason;
@@ -18,6 +19,9 @@ pub mod sample;
 pub mod tick;
 
 pub use evidence::EvidenceRef;
+pub use experience::{
+    ExperienceSource, ExperienceTrace, ExperienceTraceError, ExperienceTraceParts,
+};
 pub use id::{
     ActionId, AgentId, AggregationMethodId, EmissionId, ExperienceId, IntentId, PerceptId,
     PolicyId, ProfileId,
