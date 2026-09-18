@@ -50,7 +50,10 @@ mod tests {
 
     #[test]
     fn checked_add_never_wraps() {
-        assert_eq!(Tick::new(u64::MAX).checked_add(1), Err(TickArithmeticError::Overflow));
+        assert_eq!(
+            Tick::new(u64::MAX).checked_add(1),
+            Err(TickArithmeticError::Overflow)
+        );
     }
 
     #[test]

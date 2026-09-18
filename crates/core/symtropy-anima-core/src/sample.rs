@@ -145,10 +145,8 @@ mod tests {
 
     #[test]
     fn measured_zero_is_not_missing() {
-        let measured_zero = EvidenceValue::present(
-            UnitQ::ZERO,
-            SampleProvenance::instant(Tick::new(3)),
-        );
+        let measured_zero =
+            EvidenceValue::present(UnitQ::ZERO, SampleProvenance::instant(Tick::new(3)));
         let missing = EvidenceValue::<UnitQ>::missing(MissingEvidenceReason::NotSampled);
 
         assert!(!measured_zero.is_missing());
