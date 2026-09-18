@@ -1,0 +1,18 @@
+[package]
+name = "symtropy-anima-core"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.96"
+license = "Apache-2.0 OR MIT"
+description = "Dependency-neutral canonical value types for Symtropy ANIMA embodied agents."
+repository = "https://github.com/luminous-dynamics/symtropy"
+publish = false
+
+[dependencies]
+
+# V0 is intentionally a self-contained one-package workspace. This prevents
+# accidental inheritance from Symtropy's Bevy/game workspace while the
+# dependency-neutral substrate is being qualified. Product adapters integrate
+# it deliberately after the core value semantics are frozen.
+[workspace]
+resolver = "2"
