@@ -191,10 +191,7 @@ fn propagation_can_make_the_same_emission_detectable_or_undetectable() {
     .unwrap();
 
     assert!(matches!(clear, DetectionOutcome::Detected(_)));
-    assert!(matches!(
-        occluded,
-        DetectionOutcome::BelowThreshold { .. }
-    ));
+    assert!(matches!(occluded, DetectionOutcome::BelowThreshold { .. }));
 }
 
 #[test]
@@ -224,10 +221,7 @@ fn receptor_orientation_and_physiology_are_part_of_detection_causality() {
     .unwrap();
 
     assert!(matches!(baseline, DetectionOutcome::Detected(_)));
-    assert!(matches!(
-        impaired,
-        DetectionOutcome::BelowThreshold { .. }
-    ));
+    assert!(matches!(impaired, DetectionOutcome::BelowThreshold { .. }));
 }
 
 #[test]
@@ -253,10 +247,7 @@ fn canonical_noise_can_mask_an_otherwise_detectable_signal() {
     .unwrap();
 
     assert!(matches!(quiet, DetectionOutcome::Detected(_)));
-    assert!(matches!(
-        noisy,
-        DetectionOutcome::BelowThreshold { .. }
-    ));
+    assert!(matches!(noisy, DetectionOutcome::BelowThreshold { .. }));
 }
 
 #[test]
