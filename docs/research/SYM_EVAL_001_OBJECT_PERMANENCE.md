@@ -12,7 +12,7 @@ A useful object-permanence test must distinguish at least three different behavi
 2. retaining the same hypothesis when the entity reappears;
 3. revising or retiring that hypothesis when the hidden world actually changed.
 
-A benchmark that tests only reappearance can be gamed by an `always persist` strategy. A benchmark that tests only disappearance can be gamed by an `always forget` strategy. SYM-EVAL-001 therefore uses a deterministic paired intervention.
+A benchmark that tests only reappearance can be gamed by an `always persist` strategy. A benchmark that tests only disappearance can be gamed by an `always forget` strategy. SYM-EVAL-001 therefore uses a paired hidden intervention.
 
 ## Non-interference boundary
 
@@ -33,7 +33,7 @@ Canonical simulation truth belongs to the evaluator only.
                    │                                   │
                    ▼                                   │
         SensorFrame / SensorBlob                       │
-        (NO canonical entity id)                       │
+        (sensor quantities only)                       │
                    │                                   │
                    ▼                                   │
         system under evaluation                       │
@@ -43,22 +43,37 @@ Canonical simulation truth belongs to the evaluator only.
                                post-hoc scoring only
 ```
 
-The evaluator must never feed any of the following into perception:
+The evaluated system must never receive:
 
 - canonical entity identifiers;
 - hidden branch truth;
+- scenario phase labels;
 - hidden removal events;
 - evaluator-side target associations;
+- branch-blinding nonce;
 - post-hoc hypothesis mappings;
 - future reveal state.
 
-The public sensor contract contains frame-local sensor observation IDs only. Those IDs identify sensor records, not world entities.
+`SensorFrame` therefore exposes only frame index and sensor observations. `ObjectPermanenceTrial` exposes no branch, oracle, seed, nonce, or `Debug` surface.
+
+## Domain-separated determinism and blinding
+
+The protocol takes two logically different evaluator inputs:
+
+- **scenario seed** — determines legal world/sensor content;
+- **blinding nonce** — determines whether Persist or Remove occupies public trial A versus B.
+
+The blinding nonce must remain evaluator-private until both belief transcripts are committed. It is not derived from the sensor seed and is not present in the sensor transcript.
+
+This prevents a model that knows the benchmark source, or even recovers the scenario seed from deterministic sensor records, from predicting A/B assignment before reveal.
+
+Only after both transcripts exist does `assess()` restore semantic `persist` and `remove` labels in the evaluator result.
 
 ## Paired intervention
 
-For a fixed seed, both branches share the same world setup and the same sensor-visible prefix.
+For one scenario seed, the hidden branches share the same world setup and sensor-visible prefix.
 
-| Frames | Phase | Persist branch | Remove branch |
+| Frames | Evaluator phase | Persist truth | Remove truth |
 |---|---|---|---|
 | 0–3 | visible prefix | target visible | target visible |
 | 4 | partial occlusion | target partly visible | target partly visible |
@@ -66,17 +81,15 @@ For a fixed seed, both branches share the same world setup and the same sensor-v
 | 7 | hidden intervention | remains present | removed from world |
 | 9–11 | reveal | target reappears | target remains absent |
 
-The sensor transcript is required to be identical through frame 8. Therefore no evaluated system can infer the branch from legal sensor input before the reveal.
+The phase column is evaluator documentation only; phase is not a `SensorFrame` field.
 
-A persistent distractor remains visible throughout the trial. This allows the evaluator to detect target hypotheses that silently latch onto another observation while the true target is hidden.
+The sensor transcript is required to be identical through frame 8. A persistent distractor remains visible throughout so the evaluator can detect a target hypothesis that silently latches onto another observation while the target is hidden.
 
 ## Post-hoc association
 
-The system under evaluation owns its `hypothesis_id` values.
+The system under evaluation owns its `hypothesis_id` values. The evaluator never supplies a canonical-to-hypothesis map.
 
-The evaluator does not hand it a canonical-to-hypothesis map. Instead, after the trial, the evaluator finds the target hypothesis from the system's own source-observation lineage during the visible prefix. That recovered hypothesis is then followed through the hidden and reveal phases.
-
-This preserves a one-way evidence relationship:
+After the trial, the evaluator finds the target hypothesis from the system's own source-observation lineage during the visible prefix and follows that hypothesis through the hidden and reveal periods.
 
 ```text
 sensor observation -> system hypothesis -> evaluator assessment
@@ -88,43 +101,59 @@ never:
 canonical entity -> system hypothesis
 ```
 
+## Lineage guards
+
+A belief source ID can itself be wrong or fabricated, so the scorer additionally reports:
+
+- `unknown_source_observation` when a target-hypothesis sample cites an observation that never occurred in the legal sensor transcript;
+- `cross_associated_non_target_observation` when it cites the distractor;
+- `unsupported_observation_refresh` when `last_observed_frame` advances to a frame for which the target hypothesis has no target-backed source lineage.
+
+Prediction therefore cannot make observation age younger simply by changing a timestamp.
+
 ## Metrics
 
-SYM-EVAL-001 intentionally preserves a vector of measurements rather than an aggregate score:
+SYM-EVAL-001 preserves a vector of measurements rather than one aggregate score:
 
-- `target_hypothesis` — whether a prefix hypothesis can be recovered from observation lineage;
-- `prediction_used_during_occlusion` — whether the hypothesis was explicitly prediction-supported;
-- `last_observation_not_refreshed_by_prediction` — whether prediction preserved the last-real-observation boundary;
-- `cross_associated_non_target_observation` — whether a distractor observation was attached to the target hypothesis;
-- `reacquired_same_hypothesis` — persist branch only;
-- `removed_target_resolved_by_deadline` — remove branch only;
-- `prediction_overran_lost_deadline` — remove branch only.
+- `target_hypothesis`;
+- `prediction_used_during_occlusion`;
+- `last_observation_not_refreshed_by_prediction`;
+- `unsupported_observation_refresh`;
+- `unknown_source_observation`;
+- `cross_associated_non_target_observation`;
+- `reacquired_same_hypothesis` — Persist only;
+- `removed_target_resolved_by_deadline` — Remove only;
+- `prediction_overran_lost_deadline` — Remove only.
 
-These are not yet calibrated psychological or robotics scores. They are protocol-level observables.
+These are protocol observables, not calibrated psychological or robotics scores.
 
 ## Negative controls
 
-The protocol tests itself against simple pathological strategies:
+The protocol tests itself against pathological strategies and invalid evidence:
 
 ### Always persist
 
-A hypothesis that remains `OccludedPredicted` through the remove-branch lost deadline must be exposed as stale prediction overrun and must not count as successful revision.
+A hypothesis remaining `OccludedPredicted` through the Remove lost deadline is reported as stale prediction overrun and cannot count as successful revision.
 
 ### Always forget
 
-A hypothesis that is dropped during occlusion and replaced by a new hypothesis on persist-branch reappearance must not count as identity continuity.
+Dropping the hypothesis during occlusion and creating a new one on Persist reappearance cannot count as identity continuity.
 
 ### Prediction refreshes observation age
 
-A prediction-only belief that advances `last_observed_frame` must fail the freshness measurement.
+Prediction-only advancement of `last_observed_frame` fails both the prediction freshness check and target-lineage support check.
 
 ### Distractor capture
 
-A target hypothesis that cites the persistent distractor's sensor observation must be reported as cross-association rather than silently accepted as continued target evidence.
+Attaching the distractor's sensor observation to the target hypothesis is explicitly reported.
 
-## Determinism
+### Invented observation
 
-`ObjectPermanencePair::deterministic(seed)` must reproduce the same sensor transcript for the same seed. Branch differences begin only after the shared hidden interval.
+A source observation ID absent from the legal sensor transcript is explicitly reported rather than treated as evidence.
+
+## Reproducibility
+
+`ObjectPermanencePair::blinded(scenario_seed, blinding_nonce)` reproduces the same A/B assignment and sensor transcripts for the same pair of evaluator inputs. Holding the scenario seed fixed while changing only the blinding nonce may swap A/B assignment without changing the shared sensor prefix.
 
 Future rendered variants should bind at minimum:
 
@@ -132,6 +161,7 @@ Future rendered variants should bind at minimum:
 - renderer/backend identity;
 - camera intrinsics/extrinsics and image-plane definition;
 - scenario seed;
+- a committed blinding-nonce digest before execution and nonce reveal after transcript commitment;
 - physics timestep;
 - render timestep;
 - relevant GPU/CPU determinism class;
@@ -140,7 +170,7 @@ Future rendered variants should bind at minimum:
 
 ## Relationship to Symthaea VIS-004
 
-This protocol is designed to consume the semantics established by the VIS-004 work without importing its hidden truth into cognition:
+The protocol is designed to consume VIS-004 semantics without importing simulation truth into cognition:
 
 - entity hypothesis identity;
 - competing beliefs;
@@ -149,11 +179,11 @@ This protocol is designed to consume the semantics established by the VIS-004 wo
 - last-real-observation freshness;
 - predicted occlusion state.
 
-A later bridge may translate a qualified Symthaea belief export into `BeliefTranscript`. That bridge must remain one-way from Symthaea to evaluator.
+A later adapter may translate a qualified Symthaea belief export into `BeliefTranscript`. That adapter must remain one-way from Symthaea to evaluator.
 
 ## Next tranches
 
-1. **SYM-EVAL-001A** — protocol qualification: compile/test/lint the hidden-truth boundary and negative controls.
+1. **SYM-EVAL-001A** — protocol qualification: compile/test/lint the hidden-truth and blinding boundary.
 2. **SYM-EVAL-001B** — rendered sensor adapter: replace synthetic blobs with deterministic RGB/depth capture while keeping canonical truth evaluator-private.
 3. **SYM-EVAL-001C** — Symthaea belief-export adapter: map typed VIS-004 evidence into the evaluator transcript without exposing oracle state.
 4. **SYM-EVAL-001D** — seeded experiment matrix: occluder width, motion, lighting, distractor similarity, disappearance timing, and re-entry location.
