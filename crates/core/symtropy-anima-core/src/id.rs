@@ -2,6 +2,17 @@
 //!
 //! Construction authority belongs to product adapters. The core deliberately does
 //! not prescribe UUID, hash, database, Bevy entity, or network identity schemes.
+//!
+//! Domain identity is enforced by the Rust type system rather than by convention:
+//!
+//! ```compile_fail
+//! use symtropy_anima_core::{AgentId, PerceptId};
+//!
+//! fn require_agent(_: AgentId) {}
+//!
+//! let percept = PerceptId::from_bytes([0; 32]);
+//! require_agent(percept);
+//! ```
 
 macro_rules! opaque_id {
     ($(#[$meta:meta])* $name:ident) => {

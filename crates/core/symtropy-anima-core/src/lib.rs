@@ -22,7 +22,12 @@ pub use id::{
     ActionId, AgentId, AggregationMethodId, EmissionId, ExperienceId, IntentId, PerceptId,
     PolicyId, ProfileId,
 };
-pub use quantity::{UnitQ, UnitQError};
-pub use reason::ReasonCode;
-pub use sample::{EvidenceValue, MissingEvidenceReason, SampleProvenance, SampleWindowError};
+pub use quantity::{
+    ConfidenceQ, FeasibilityQ, InformationGainQ, RiskQ, SalienceQ, StrengthQ, UnitQ, UnitQError,
+};
+pub use reason::{ReasonCode, UnknownReasonCode};
+pub use sample::{
+    EvidenceValue, MissingEvidenceReason, SampleProvenance, SampleWindowError,
+    UnknownMissingEvidenceReasonCode,
+};
 pub use tick::{Tick, TickArithmeticError};

@@ -4,6 +4,8 @@
 //! are decision-time classifications derived from provenance, the decision tick,
 //! and a profile/policy; they are not persisted here as eternal truth.
 
+use core::fmt;
+
 use crate::{AggregationMethodId, Tick, TickArithmeticError};
 
 /// Provenance for a present sample.
@@ -27,16 +29,26 @@ pub enum SampleWindowError {
 }
 
 /// Why a canonical evidence value is absent.
+///
+/// Explicit discriminants are part of the stable semantic code surface. They are
+/// not themselves a wire format; product adapters still own schema framing.
+#[repr(u8)]
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
 pub enum MissingEvidenceReason {
     /// No sample was produced for the relevant interval.
-    NotSampled,
+    NotSampled = 1,
     /// The external/source system was unavailable.
-    SourceUnavailable,
+    SourceUnavailable = 2,
     /// A produced sample failed canonical validation and was rejected.
-    RejectedInvalid,
+    RejectedInvalid = 3,
     /// The active receptor/adapter does not support this evidence channel.
-    Unsupported,
+    Unsupported = 4,
+}
+
+/// Unknown canonical missing-evidence discriminant.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct UnknownMissingEvidenceReasonCode {
+    raw: u8,
 }
 
 /// A value that is either present with exact sample provenance or explicitly absent.
@@ -91,6 +103,47 @@ impl SampleProvenance {
     }
 }
 
+impl MissingEvidenceReason {
+    #[must_use]
+    pub const fn code(self) -> u8 {
+        self as u8
+    }
+
+    /// Decodes a stable semantic missingness code and rejects unknown values.
+    pub const fn from_code(code: u8) -> Result<Self, UnknownMissingEvidenceReasonCode> {
+        match code {
+            1 => Ok(Self::NotSampled),
+            2 => Ok(Self::SourceUnavailable),
+            3 => Ok(Self::RejectedInvalid),
+            4 => Ok(Self::Unsupported),
+            raw => Err(UnknownMissingEvidenceReasonCode { raw }),
+        }
+    }
+}
+
+impl TryFrom<u8> for MissingEvidenceReason {
+    type Error = UnknownMissingEvidenceReasonCode;
+
+    fn try_from(value: u8) -> Result<Self, Self::Error> {
+        Self::from_code(value)
+    }
+}
+
+impl UnknownMissingEvidenceReasonCode {
+    #[must_use]
+    pub const fn raw(self) -> u8 {
+        self.raw
+    }
+}
+
+impl fmt::Display for UnknownMissingEvidenceReasonCode {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "unknown ANIMA missing-evidence reason code {}", self.raw)
+    }
+}
+
+impl std::error::Error for UnknownMissingEvidenceReasonCode {}
+
 impl<T> EvidenceValue<T> {
     #[must_use]
     pub fn present(value: T, provenance: SampleProvenance) -> Self {
@@ -124,6 +177,13 @@ mod tests {
     use super::*;
     use crate::UnitQ;
 
+    const ALL_MISSING_REASONS: [MissingEvidenceReason; 4] = [
+        MissingEvidenceReason::NotSampled,
+        MissingEvidenceReason::SourceUnavailable,
+        MissingEvidenceReason::RejectedInvalid,
+        MissingEvidenceReason::Unsupported,
+    ];
+
     #[test]
     fn aggregate_windows_fail_closed_when_reversed() {
         let method = AggregationMethodId::from_bytes([7; 32]);
@@ -152,5 +212,25 @@ mod tests {
         assert!(!measured_zero.is_missing());
         assert!(missing.is_missing());
         assert_ne!(measured_zero, missing);
+    }
+
+    #[test]
+    fn missing_reason_codes_round_trip_exactly() {
+        for reason in ALL_MISSING_REASONS {
+            assert_eq!(MissingEvidenceReason::from_code(reason.code()), Ok(reason));
+            assert_eq!(MissingEvidenceReason::try_from(reason.code()), Ok(reason));
+        }
+    }
+
+    #[test]
+    fn unknown_missing_reason_codes_fail_closed() {
+        assert_eq!(
+            MissingEvidenceReason::from_code(0),
+            Err(UnknownMissingEvidenceReasonCode { raw: 0 })
+        );
+        assert_eq!(
+            MissingEvidenceReason::from_code(u8::MAX),
+            Err(UnknownMissingEvidenceReasonCode { raw: u8::MAX })
+        );
     }
 }
