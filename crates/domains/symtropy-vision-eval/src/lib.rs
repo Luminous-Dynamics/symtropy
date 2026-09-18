@@ -283,7 +283,7 @@ impl ObjectPermanenceTrial {
         &self.sensor_frames
     }
 
-    pub fn assess(&self, beliefs: &BeliefTranscript) -> ObjectPermanenceMetrics {
+    fn assess(&self, beliefs: &BeliefTranscript) -> ObjectPermanenceMetrics {
         let target_hypothesis = self.find_pre_occlusion_target_hypothesis(beliefs);
         let Some(target_hypothesis) = target_hypothesis else {
             return ObjectPermanenceMetrics {
@@ -566,7 +566,10 @@ mod tests {
             .to_vec();
         for nonce in 0..64 {
             let pair = ObjectPermanencePair::blinded(scenario_seed, nonce);
-            assert_eq!(pair.trial_a().sensor_frames()[..=8], baseline_prefix);
+            assert_eq!(
+                &pair.trial_a().sensor_frames()[..=8],
+                baseline_prefix.as_slice()
+            );
             match pair.branch_a {
                 HiddenBranch::Persist => saw_persist_a = true,
                 HiddenBranch::Remove => saw_remove_a = true,
