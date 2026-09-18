@@ -115,46 +115,50 @@ pub struct PairedObjectPermanenceAssessment {
     pub remove: ObjectPermanenceMetrics,
 }
 
-/// A deterministic, branch-blinded pair of object-permanence trials.
+/// A deterministic-sensor, branch-blinded pair of object-permanence trials.
 ///
-/// The caller sees only `trial_a()` and `trial_b()`. Which public slot contains the
-/// Persist or Remove intervention is seed-dependent and remains evaluator-private.
-#[derive(Debug, Clone)]
+/// `scenario_seed` controls only legal sensor/world content. `blinding_nonce` controls
+/// which public A/B slot receives Persist versus Remove and must remain evaluator-private
+/// until the evaluated system has committed both transcripts.
 pub struct ObjectPermanencePair {
-    seed: u64,
     trial_a: ObjectPermanenceTrial,
     trial_b: ObjectPermanenceTrial,
     branch_a: HiddenBranch,
 }
 
 impl ObjectPermanencePair {
-    pub fn deterministic(seed: u64) -> Self {
-        let target = CanonicalEntityId(nonzero_mix(seed ^ 0xA11C_E001));
-        let distractor = CanonicalEntityId(nonzero_mix(seed ^ 0xD157_AC70));
-        let branch_a = if nonzero_mix(seed ^ 0xB11D_A11B) & 1 == 0 {
+    pub fn blinded(scenario_seed: u64, blinding_nonce: u64) -> Self {
+        let target = CanonicalEntityId(nonzero_mix(scenario_seed ^ 0xA11C_E001));
+        let distractor = CanonicalEntityId(nonzero_mix(scenario_seed ^ 0xD157_AC70));
+        let branch_a = if nonzero_mix(blinding_nonce ^ 0xB11D_A11B) & 1 == 0 {
             HiddenBranch::Persist
         } else {
             HiddenBranch::Remove
         };
         let branch_b = branch_a.opposite();
         Self {
-            seed,
-            trial_a: ObjectPermanenceTrial::build(seed, target, distractor, branch_a),
-            trial_b: ObjectPermanenceTrial::build(seed, target, distractor, branch_b),
+            trial_a: ObjectPermanenceTrial::build(
+                scenario_seed,
+                target,
+                distractor,
+                branch_a,
+            ),
+            trial_b: ObjectPermanenceTrial::build(
+                scenario_seed,
+                target,
+                distractor,
+                branch_b,
+            ),
             branch_a,
         }
     }
 
-    pub const fn seed(&self) -> u64 {
-        self.seed
-    }
-
-    /// Blind trial A. No branch accessor is exposed.
+    /// Blind trial A. No branch, seed, nonce, or oracle accessor is exposed.
     pub fn trial_a(&self) -> &ObjectPermanenceTrial {
         &self.trial_a
     }
 
-    /// Blind trial B. No branch accessor is exposed.
+    /// Blind trial B. No branch, seed, nonce, or oracle accessor is exposed.
     pub fn trial_b(&self) -> &ObjectPermanenceTrial {
         &self.trial_b
     }
@@ -172,8 +176,8 @@ impl ObjectPermanencePair {
                 .filter(|frame| frame.frame_index <= end))
     }
 
-    /// Assess blind A/B transcripts and restore semantic Persist/Remove labels only
-    /// inside the evaluator output.
+    /// Assess blind A/B transcripts and restore Persist/Remove labels only in the
+    /// evaluator result, after both transcripts already exist.
     pub fn assess(
         &self,
         trial_a_beliefs: &BeliefTranscript,
@@ -195,9 +199,8 @@ impl ObjectPermanencePair {
 
 /// One blind branch of the paired protocol.
 ///
-/// The private oracle and branch truth have no public accessor. The evaluated system
-/// should receive only `sensor_frames()`.
-#[derive(Debug, Clone)]
+/// The private oracle and branch truth have no public accessor or `Debug` surface.
+/// The evaluated system should receive only `sensor_frames()`.
 pub struct ObjectPermanenceTrial {
     branch: HiddenBranch,
     sensor_frames: Vec<SensorFrame>,
@@ -206,7 +209,7 @@ pub struct ObjectPermanenceTrial {
 
 impl ObjectPermanenceTrial {
     fn build(
-        seed: u64,
+        scenario_seed: u64,
         target: CanonicalEntityId,
         distractor: CanonicalEntityId,
         branch: HiddenBranch,
@@ -218,7 +221,11 @@ impl ObjectPermanenceTrial {
         for frame_index in 0..=11 {
             let mut observations = Vec::new();
 
-            let distractor_observation = SensorObservationId(observation_id(seed, frame_index, 1));
+            let distractor_observation = SensorObservationId(observation_id(
+                scenario_seed,
+                frame_index,
+                1,
+            ));
             observations.push(SensorBlob {
                 observation_id: distractor_observation,
                 x_norm: 0.18,
@@ -231,7 +238,11 @@ impl ObjectPermanenceTrial {
             let target_visible = frame_index <= 4
                 || (branch == HiddenBranch::Persist && frame_index >= 9);
             if target_visible {
-                let target_observation = SensorObservationId(observation_id(seed, frame_index, 2));
+                let target_observation = SensorObservationId(observation_id(
+                    scenario_seed,
+                    frame_index,
+                    2,
+                ));
                 let visible_fraction = if frame_index == 4 { 0.35 } else { 1.0 };
                 let x_norm = if frame_index >= 9 { 0.74 } else { 0.62 };
                 observations.push(SensorBlob {
@@ -438,7 +449,7 @@ impl HiddenBranch {
 struct CanonicalEntityId(u64);
 
 /// Private evaluator oracle. No public accessor returns this structure or its canonical ids.
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 struct HiddenOracle {
     #[allow(dead_code)]
     target: CanonicalEntityId,
@@ -470,8 +481,8 @@ impl std::fmt::Display for EvaluationError {
 
 impl std::error::Error for EvaluationError {}
 
-fn observation_id(seed: u64, frame: u64, slot: u64) -> u64 {
-    nonzero_mix(seed ^ frame.rotate_left(17) ^ slot.rotate_left(41))
+fn observation_id(scenario_seed: u64, frame: u64, slot: u64) -> u64 {
+    nonzero_mix(scenario_seed ^ frame.rotate_left(17) ^ slot.rotate_left(41))
 }
 
 fn nonzero_mix(mut value: u64) -> u64 {
@@ -538,18 +549,25 @@ mod tests {
 
     #[test]
     fn paired_scenarios_have_identical_sensor_prefix_through_hidden_intervention() {
-        let pair = ObjectPermanencePair::deterministic(7);
+        let pair = ObjectPermanencePair::blinded(7, 7001);
         assert!(pair.visible_prefix_identical());
         assert_eq!(pair.trial_a.oracle.last_identical_sensor_frame, 8);
         assert_eq!(pair.trial_b.oracle.last_identical_sensor_frame, 8);
     }
 
     #[test]
-    fn branch_order_is_blinded_by_seed() {
+    fn branch_order_is_controlled_only_by_private_blinding_nonce() {
+        let scenario_seed = 17;
         let mut saw_persist_a = false;
         let mut saw_remove_a = false;
-        for seed in 0..64 {
-            match ObjectPermanencePair::deterministic(seed).branch_a {
+        let baseline_prefix = ObjectPermanencePair::blinded(scenario_seed, 0)
+            .trial_a()
+            .sensor_frames()[..=8]
+            .to_vec();
+        for nonce in 0..64 {
+            let pair = ObjectPermanencePair::blinded(scenario_seed, nonce);
+            assert_eq!(pair.trial_a().sensor_frames()[..=8], baseline_prefix);
+            match pair.branch_a {
                 HiddenBranch::Persist => saw_persist_a = true,
                 HiddenBranch::Remove => saw_remove_a = true,
             }
@@ -558,16 +576,16 @@ mod tests {
     }
 
     #[test]
-    fn deterministic_seed_reproduces_blind_sensor_transcripts() {
-        let a = ObjectPermanencePair::deterministic(91);
-        let b = ObjectPermanencePair::deterministic(91);
+    fn identical_seed_and_nonce_reproduce_blind_sensor_transcripts() {
+        let a = ObjectPermanencePair::blinded(91, 1234);
+        let b = ObjectPermanencePair::blinded(91, 1234);
         assert_eq!(a.trial_a().sensor_frames(), b.trial_a().sensor_frames());
         assert_eq!(a.trial_b().sensor_frames(), b.trial_b().sensor_frames());
     }
 
     #[test]
     fn prediction_does_not_count_as_observation_refresh() {
-        let pair = ObjectPermanencePair::deterministic(11);
+        let pair = ObjectPermanencePair::blinded(11, 1101);
         let trial = trial_by_branch(&pair, HiddenBranch::Persist);
         let beliefs = BeliefTranscript::new(vec![
             sample(
@@ -589,7 +607,7 @@ mod tests {
 
     #[test]
     fn paired_protocol_preserves_identity_and_revises_hidden_removal_separately() {
-        let pair = ObjectPermanencePair::deterministic(19);
+        let pair = ObjectPermanencePair::blinded(19, 1901);
         let persist_trial = trial_by_branch(&pair, HiddenBranch::Persist);
         let remove_trial = trial_by_branch(&pair, HiddenBranch::Remove);
         let persist = BeliefTranscript::new(vec![
@@ -640,7 +658,7 @@ mod tests {
 
     #[test]
     fn always_persist_strategy_is_exposed_by_remove_branch() {
-        let pair = ObjectPermanencePair::deterministic(23);
+        let pair = ObjectPermanencePair::blinded(23, 2301);
         let remove = trial_by_branch(&pair, HiddenBranch::Remove);
         let beliefs = BeliefTranscript::new(vec![
             sample(
@@ -661,7 +679,7 @@ mod tests {
 
     #[test]
     fn always_drop_strategy_is_exposed_by_persist_branch() {
-        let pair = ObjectPermanencePair::deterministic(29);
+        let pair = ObjectPermanencePair::blinded(29, 2901);
         let persist = trial_by_branch(&pair, HiddenBranch::Persist);
         let beliefs = BeliefTranscript::new(vec![
             sample(
@@ -687,7 +705,7 @@ mod tests {
 
     #[test]
     fn distractor_observation_cannot_silently_refresh_target_identity() {
-        let pair = ObjectPermanencePair::deterministic(31);
+        let pair = ObjectPermanencePair::blinded(31, 3101);
         let persist = trial_by_branch(&pair, HiddenBranch::Persist);
         let distractor = persist.oracle.non_target_sensor_observations[6];
         let beliefs = BeliefTranscript::new(vec![
@@ -708,7 +726,7 @@ mod tests {
 
     #[test]
     fn invented_sensor_observation_is_reported() {
-        let pair = ObjectPermanencePair::deterministic(37);
+        let pair = ObjectPermanencePair::blinded(37, 3701);
         let persist = trial_by_branch(&pair, HiddenBranch::Persist);
         let beliefs = BeliefTranscript::new(vec![
             sample(
