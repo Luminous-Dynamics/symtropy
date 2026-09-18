@@ -1,4 +1,16 @@
 //! Deterministic bounded dimensionless quantities.
+//!
+//! Semantic score domains remain type-separated even when they share the same
+//! normalized representation:
+//!
+//! ```compile_fail
+//! use symtropy_anima_core::{ConfidenceQ, RiskQ};
+//!
+//! fn require_confidence(_: ConfidenceQ) {}
+//!
+//! let risk = RiskQ::new(500_000).unwrap();
+//! require_confidence(risk);
+//! ```
 
 use core::fmt;
 
@@ -68,6 +80,70 @@ impl fmt::Display for UnitQError {
 
 impl std::error::Error for UnitQError {}
 
+macro_rules! semantic_unit_q {
+    ($(#[$meta:meta])* $name:ident) => {
+        $(#[$meta])*
+        #[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
+        pub struct $name(UnitQ);
+
+        impl $name {
+            pub const ZERO: Self = Self(UnitQ::ZERO);
+            pub const ONE: Self = Self(UnitQ::ONE);
+
+            /// Constructs this semantic normalized value from a validated raw Q value.
+            pub const fn new(raw: u32) -> Result<Self, UnitQError> {
+                match UnitQ::new(raw) {
+                    Ok(value) => Ok(Self(value)),
+                    Err(error) => Err(error),
+                }
+            }
+
+            /// Wraps an already validated generic normalized value explicitly.
+            #[must_use]
+            pub const fn from_unit(value: UnitQ) -> Self {
+                Self(value)
+            }
+
+            /// Returns the underlying generic normalized value explicitly.
+            #[must_use]
+            pub const fn into_unit(self) -> UnitQ {
+                self.0
+            }
+
+            /// Returns the exact canonical raw Q representation.
+            #[must_use]
+            pub const fn raw(self) -> u32 {
+                self.0.raw()
+            }
+        }
+    };
+}
+
+semantic_unit_q!(
+    /// Detected or represented normalized signal strength.
+    StrengthQ
+);
+semantic_unit_q!(
+    /// Confidence/precision proxy. This is not automatically a calibrated probability.
+    ConfidenceQ
+);
+semantic_unit_q!(
+    /// Bounded risk estimate or policy score. This is not automatically a probability.
+    RiskQ
+);
+semantic_unit_q!(
+    /// Bounded affordance/action feasibility score.
+    FeasibilityQ
+);
+semantic_unit_q!(
+    /// Bounded memory/attention salience score.
+    SalienceQ
+);
+semantic_unit_q!(
+    /// Bounded expected information-gain score.
+    InformationGainQ
+);
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -102,5 +178,33 @@ mod tests {
         let raw_product = (UnitQ::SCALE as u128) * (UnitQ::SCALE as u128);
         assert_eq!(raw_product, 1_000_000_000_000);
         assert_eq!(UnitQ::ONE.mul_floor(UnitQ::ONE), UnitQ::ONE);
+    }
+
+    #[test]
+    fn semantic_wrappers_preserve_exact_q_values() {
+        let raw = 654_321;
+        let unit = UnitQ::new(raw).unwrap();
+
+        assert_eq!(StrengthQ::from_unit(unit).raw(), raw);
+        assert_eq!(ConfidenceQ::from_unit(unit).raw(), raw);
+        assert_eq!(RiskQ::from_unit(unit).raw(), raw);
+        assert_eq!(FeasibilityQ::from_unit(unit).raw(), raw);
+        assert_eq!(SalienceQ::from_unit(unit).raw(), raw);
+        assert_eq!(InformationGainQ::from_unit(unit).raw(), raw);
+    }
+
+    #[test]
+    fn semantic_wrappers_fail_closed_on_invalid_raw_values() {
+        let invalid = UnitQ::SCALE + 1;
+
+        assert_eq!(StrengthQ::new(invalid), Err(UnitQError { raw: invalid }));
+        assert_eq!(ConfidenceQ::new(invalid), Err(UnitQError { raw: invalid }));
+        assert_eq!(RiskQ::new(invalid), Err(UnitQError { raw: invalid }));
+        assert_eq!(FeasibilityQ::new(invalid), Err(UnitQError { raw: invalid }));
+        assert_eq!(SalienceQ::new(invalid), Err(UnitQError { raw: invalid }));
+        assert_eq!(
+            InformationGainQ::new(invalid),
+            Err(UnitQError { raw: invalid })
+        );
     }
 }
