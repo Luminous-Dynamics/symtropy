@@ -2,41 +2,23 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 //! Passive hidden-ground-truth evaluation protocols for visual cognition.
 //!
-//! The evaluator owns canonical simulation identity and branch truth. Sensor-facing
-//! frames intentionally contain no canonical entity identifiers, and scoring is
-//! post-hoc: belief hypotheses are associated to the hidden target only through
-//! sensor-observation lineage that the evaluated system itself reports.
+//! Canonical simulation identity and intervention truth remain evaluator-private.
+//! The system under evaluation receives only blind A/B sensor frames. Post-hoc
+//! scoring recovers the target hypothesis from the system's own sensor-observation
+//! lineage; no canonical-to-belief association is ever supplied to cognition.
 
 #![deny(unsafe_code)]
 
-/// Public scenario branch. The branch itself is evaluation metadata, not a sensor input.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum HiddenBranch {
-    /// The target remains in the world while fully occluded and later reappears.
-    Persist,
-    /// The target is removed while fully occluded and does not reappear.
-    Remove,
-}
-
-/// Coarse public trial phase. This describes the scenario schedule, not canonical identity.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum TrialPhase {
-    VisiblePrefix,
-    PartialOcclusion,
-    FullyOccluded,
-    Reveal,
-}
-
 /// Frame-local sensor observation identity.
 ///
-/// This is safe to expose: it identifies a sensor record, not a canonical simulation entity.
+/// This identifies one sensor record, not a canonical simulation entity.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct SensorObservationId(pub u64);
 
-/// A deliberately small stand-in for a future rendered/perceptual observation.
+/// A small stand-in for a future rendered/perceptual observation.
 ///
-/// It contains only sensor-facing quantities. There is no canonical entity id, world-object
-/// handle, hidden branch flag, or evaluator association field.
+/// Only sensor-facing quantities are exposed. There is no canonical entity id,
+/// hidden branch label, scenario phase, intervention marker, or oracle association.
 #[derive(Debug, Clone, PartialEq)]
 pub struct SensorBlob {
     pub observation_id: SensorObservationId,
@@ -46,11 +28,10 @@ pub struct SensorBlob {
     pub appearance: [f32; 4],
 }
 
-/// Everything the system under evaluation may receive for one synthetic frame.
+/// Everything the evaluated system may receive for one synthetic frame.
 #[derive(Debug, Clone, PartialEq)]
 pub struct SensorFrame {
     pub frame_index: u64,
-    pub phase: TrialPhase,
     pub observations: Vec<SensorBlob>,
 }
 
@@ -67,9 +48,9 @@ pub enum BeliefLifecycle {
 
 /// One exported belief sample from the evaluated system.
 ///
-/// `hypothesis_id` is owned by the evaluated system. It is never a canonical simulation id.
-/// `source_observation` is optional because prediction-only samples should not invent a current
-/// observation merely to keep a hypothesis alive.
+/// `hypothesis_id` belongs to the evaluated system. `source_observation` is optional
+/// because prediction-only samples must not invent a current observation merely to
+/// keep a hypothesis alive.
 #[derive(Debug, Clone, PartialEq)]
 pub struct BeliefSample {
     pub frame_index: u64,
@@ -90,7 +71,7 @@ impl BeliefSample {
     }
 }
 
-/// Ordered belief transcript supplied after a trial completes.
+/// Ordered belief transcript supplied only after a trial completes.
 #[derive(Debug, Clone, Default, PartialEq)]
 pub struct BeliefTranscript {
     samples: Vec<BeliefSample>,
@@ -112,20 +93,21 @@ impl BeliefTranscript {
 
 /// Scenario-level object-permanence measurements.
 ///
-/// These fields are evidence, not an overall score. A caller can preserve the complete metric
-/// vector instead of collapsing qualitatively different failure modes into one number.
+/// These remain separate evidence dimensions rather than an aggregate score.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ObjectPermanenceMetrics {
     pub target_hypothesis: Option<u64>,
     pub prediction_used_during_occlusion: bool,
     pub last_observation_not_refreshed_by_prediction: Option<bool>,
+    pub unsupported_observation_refresh: bool,
+    pub unknown_source_observation: bool,
     pub cross_associated_non_target_observation: bool,
     pub reacquired_same_hypothesis: Option<bool>,
     pub removed_target_resolved_by_deadline: Option<bool>,
     pub prediction_overran_lost_deadline: Option<bool>,
 }
 
-/// Assessment of the paired intervention.
+/// Assessment of the hidden paired intervention.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct PairedObjectPermanenceAssessment {
     pub visible_prefix_identical: bool,
@@ -133,22 +115,33 @@ pub struct PairedObjectPermanenceAssessment {
     pub remove: ObjectPermanenceMetrics,
 }
 
-/// Deterministic paired object-permanence protocol.
+/// A deterministic, branch-blinded pair of object-permanence trials.
+///
+/// The caller sees only `trial_a()` and `trial_b()`. Which public slot contains the
+/// Persist or Remove intervention is seed-dependent and remains evaluator-private.
 #[derive(Debug, Clone)]
 pub struct ObjectPermanencePair {
     seed: u64,
-    persist: ObjectPermanenceTrial,
-    remove: ObjectPermanenceTrial,
+    trial_a: ObjectPermanenceTrial,
+    trial_b: ObjectPermanenceTrial,
+    branch_a: HiddenBranch,
 }
 
 impl ObjectPermanencePair {
     pub fn deterministic(seed: u64) -> Self {
         let target = CanonicalEntityId(nonzero_mix(seed ^ 0xA11C_E001));
         let distractor = CanonicalEntityId(nonzero_mix(seed ^ 0xD157_AC70));
+        let branch_a = if nonzero_mix(seed ^ 0xB11D_A11B) & 1 == 0 {
+            HiddenBranch::Persist
+        } else {
+            HiddenBranch::Remove
+        };
+        let branch_b = branch_a.opposite();
         Self {
             seed,
-            persist: ObjectPermanenceTrial::build(seed, target, distractor, HiddenBranch::Persist),
-            remove: ObjectPermanenceTrial::build(seed, target, distractor, HiddenBranch::Remove),
+            trial_a: ObjectPermanenceTrial::build(seed, target, distractor, branch_a),
+            trial_b: ObjectPermanenceTrial::build(seed, target, distractor, branch_b),
+            branch_a,
         }
     }
 
@@ -156,44 +149,54 @@ impl ObjectPermanencePair {
         self.seed
     }
 
-    pub fn persist_trial(&self) -> &ObjectPermanenceTrial {
-        &self.persist
+    /// Blind trial A. No branch accessor is exposed.
+    pub fn trial_a(&self) -> &ObjectPermanenceTrial {
+        &self.trial_a
     }
 
-    pub fn remove_trial(&self) -> &ObjectPermanenceTrial {
-        &self.remove
+    /// Blind trial B. No branch accessor is exposed.
+    pub fn trial_b(&self) -> &ObjectPermanenceTrial {
+        &self.trial_b
     }
 
     pub fn visible_prefix_identical(&self) -> bool {
-        let end = self.persist.oracle.last_identical_sensor_frame;
-        self.persist
+        let end = self.trial_a.oracle.last_identical_sensor_frame;
+        self.trial_a
             .sensor_frames
             .iter()
             .filter(|frame| frame.frame_index <= end)
             .eq(self
-                .remove
+                .trial_b
                 .sensor_frames
                 .iter()
                 .filter(|frame| frame.frame_index <= end))
     }
 
+    /// Assess blind A/B transcripts and restore semantic Persist/Remove labels only
+    /// inside the evaluator output.
     pub fn assess(
         &self,
-        persist_beliefs: &BeliefTranscript,
-        remove_beliefs: &BeliefTranscript,
+        trial_a_beliefs: &BeliefTranscript,
+        trial_b_beliefs: &BeliefTranscript,
     ) -> PairedObjectPermanenceAssessment {
+        let a = self.trial_a.assess(trial_a_beliefs);
+        let b = self.trial_b.assess(trial_b_beliefs);
+        let (persist, remove) = match self.branch_a {
+            HiddenBranch::Persist => (a, b),
+            HiddenBranch::Remove => (b, a),
+        };
         PairedObjectPermanenceAssessment {
             visible_prefix_identical: self.visible_prefix_identical(),
-            persist: self.persist.assess(persist_beliefs),
-            remove: self.remove.assess(remove_beliefs),
+            persist,
+            remove,
         }
     }
 }
 
-/// One branch of the paired trial.
+/// One blind branch of the paired protocol.
 ///
-/// The hidden oracle is private. Consumers receive only `sensor_frames()` and later submit a
-/// belief transcript to `assess()`.
+/// The private oracle and branch truth have no public accessor. The evaluated system
+/// should receive only `sensor_frames()`.
 #[derive(Debug, Clone)]
 pub struct ObjectPermanenceTrial {
     branch: HiddenBranch,
@@ -213,12 +216,6 @@ impl ObjectPermanenceTrial {
         let mut non_target_sensor_observations = Vec::new();
 
         for frame_index in 0..=11 {
-            let phase = match frame_index {
-                0..=3 => TrialPhase::VisiblePrefix,
-                4 => TrialPhase::PartialOcclusion,
-                5..=8 => TrialPhase::FullyOccluded,
-                _ => TrialPhase::Reveal,
-            };
             let mut observations = Vec::new();
 
             let distractor_observation = SensorObservationId(observation_id(seed, frame_index, 1));
@@ -249,7 +246,6 @@ impl ObjectPermanenceTrial {
 
             sensor_frames.push(SensorFrame {
                 frame_index,
-                phase,
                 observations,
             });
         }
@@ -272,10 +268,6 @@ impl ObjectPermanenceTrial {
         }
     }
 
-    pub const fn branch(&self) -> HiddenBranch {
-        self.branch
-    }
-
     pub fn sensor_frames(&self) -> &[SensorFrame] {
         &self.sensor_frames
     }
@@ -287,6 +279,8 @@ impl ObjectPermanenceTrial {
                 target_hypothesis: None,
                 prediction_used_during_occlusion: false,
                 last_observation_not_refreshed_by_prediction: None,
+                unsupported_observation_refresh: false,
+                unknown_source_observation: false,
                 cross_associated_non_target_observation: false,
                 reacquired_same_hypothesis: (self.branch == HiddenBranch::Persist).then_some(false),
                 removed_target_resolved_by_deadline: (self.branch == HiddenBranch::Remove)
@@ -296,12 +290,16 @@ impl ObjectPermanenceTrial {
             };
         };
 
-        let hidden_samples: Vec<&BeliefSample> = beliefs
+        let target_samples: Vec<&BeliefSample> = beliefs
             .samples()
             .iter()
+            .filter(|sample| sample.hypothesis_id == target_hypothesis)
+            .collect();
+        let hidden_samples: Vec<&BeliefSample> = target_samples
+            .iter()
+            .copied()
             .filter(|sample| {
-                sample.hypothesis_id == target_hypothesis
-                    && sample.frame_index >= self.oracle.first_fully_occluded_frame
+                sample.frame_index >= self.oracle.first_fully_occluded_frame
                     && sample.frame_index <= self.oracle.last_identical_sensor_frame
             })
             .collect();
@@ -321,38 +319,61 @@ impl ObjectPermanenceTrial {
                 })
             });
 
-        let cross_associated_non_target_observation = beliefs.samples().iter().any(|sample| {
-            sample.hypothesis_id == target_hypothesis
-                && sample.source_observation.is_some_and(|observation| {
-                    self.oracle
-                        .non_target_sensor_observations
-                        .contains(&observation)
-                })
+        let all_sensor_observations: Vec<SensorObservationId> = self
+            .sensor_frames
+            .iter()
+            .flat_map(|frame| frame.observations.iter().map(|blob| blob.observation_id))
+            .collect();
+        let unknown_source_observation = target_samples.iter().any(|sample| {
+            sample
+                .source_observation
+                .is_some_and(|observation| !all_sensor_observations.contains(&observation))
         });
-
-        let reacquired_same_hypothesis = (self.branch == HiddenBranch::Persist).then(|| {
-            let reveal_target_observations = self
-                .oracle
-                .target_sensor_observations
-                .iter()
-                .filter(|(frame, _)| *frame >= self.oracle.reveal_frame)
-                .map(|(_, observation)| *observation);
-            reveal_target_observations.into_iter().any(|observation| {
-                beliefs.samples().iter().any(|sample| {
-                    sample.hypothesis_id == target_hypothesis
-                        && sample.source_observation == Some(observation)
-                        && matches!(
-                            sample.lifecycle,
-                            BeliefLifecycle::Visible | BeliefLifecycle::PartiallyOccluded
-                        )
-                })
+        let cross_associated_non_target_observation = target_samples.iter().any(|sample| {
+            sample.source_observation.is_some_and(|observation| {
+                self.oracle
+                    .non_target_sensor_observations
+                    .contains(&observation)
             })
         });
 
+        let supported_target_frames: Vec<u64> = target_samples
+            .iter()
+            .filter_map(|sample| {
+                sample.source_observation.and_then(|observation| {
+                    self.oracle
+                        .target_sensor_observations
+                        .iter()
+                        .find(|(_, candidate)| *candidate == observation)
+                        .map(|(frame, _)| *frame)
+                })
+            })
+            .collect();
+        let unsupported_observation_refresh = target_samples.iter().any(|sample| {
+            sample
+                .last_observed_frame
+                .is_some_and(|frame| !supported_target_frames.contains(&frame))
+        });
+
+        let reacquired_same_hypothesis = (self.branch == HiddenBranch::Persist).then(|| {
+            self.oracle
+                .target_sensor_observations
+                .iter()
+                .filter(|(frame, _)| *frame >= self.oracle.reveal_frame)
+                .any(|(_, observation)| {
+                    target_samples.iter().any(|sample| {
+                        sample.source_observation == Some(*observation)
+                            && matches!(
+                                sample.lifecycle,
+                                BeliefLifecycle::Visible | BeliefLifecycle::PartiallyOccluded
+                            )
+                    })
+                })
+        });
+
         let removed_target_resolved_by_deadline = (self.branch == HiddenBranch::Remove).then(|| {
-            beliefs.samples().iter().any(|sample| {
-                sample.hypothesis_id == target_hypothesis
-                    && sample.frame_index >= self.oracle.lost_deadline_frame
+            target_samples.iter().any(|sample| {
+                sample.frame_index >= self.oracle.lost_deadline_frame
                     && matches!(sample.lifecycle, BeliefLifecycle::Lost | BeliefLifecycle::Retired)
                     && sample
                         .last_observed_frame
@@ -361,9 +382,8 @@ impl ObjectPermanenceTrial {
         });
 
         let prediction_overran_lost_deadline = (self.branch == HiddenBranch::Remove).then(|| {
-            beliefs.samples().iter().any(|sample| {
-                sample.hypothesis_id == target_hypothesis
-                    && sample.frame_index >= self.oracle.lost_deadline_frame
+            target_samples.iter().any(|sample| {
+                sample.frame_index >= self.oracle.lost_deadline_frame
                     && sample.lifecycle == BeliefLifecycle::OccludedPredicted
             })
         });
@@ -372,6 +392,8 @@ impl ObjectPermanenceTrial {
             target_hypothesis: Some(target_hypothesis),
             prediction_used_during_occlusion,
             last_observation_not_refreshed_by_prediction,
+            unsupported_observation_refresh,
+            unknown_source_observation,
             cross_associated_non_target_observation,
             reacquired_same_hypothesis,
             removed_target_resolved_by_deadline,
@@ -396,10 +418,26 @@ impl ObjectPermanenceTrial {
     }
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum HiddenBranch {
+    Persist,
+    Remove,
+}
+
+impl HiddenBranch {
+    const fn opposite(self) -> Self {
+        match self {
+            Self::Persist => Self::Remove,
+            Self::Remove => Self::Persist,
+        }
+    }
+}
+
+#[allow(dead_code)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 struct CanonicalEntityId(u64);
 
-/// Private evaluator oracle. No public accessor returns this structure or either canonical id.
+/// Private evaluator oracle. No public accessor returns this structure or its canonical ids.
 #[derive(Debug, Clone)]
 struct HiddenOracle {
     #[allow(dead_code)]
@@ -449,6 +487,17 @@ fn nonzero_mix(mut value: u64) -> u64 {
 mod tests {
     use super::*;
 
+    fn trial_by_branch(
+        pair: &ObjectPermanencePair,
+        branch: HiddenBranch,
+    ) -> &ObjectPermanenceTrial {
+        if pair.trial_a.branch == branch {
+            &pair.trial_a
+        } else {
+            &pair.trial_b
+        }
+    }
+
     fn observation_for(trial: &ObjectPermanenceTrial, frame: u64) -> SensorObservationId {
         trial
             .oracle
@@ -476,29 +525,50 @@ mod tests {
         }
     }
 
+    fn beliefs_for_branch(
+        pair: &ObjectPermanencePair,
+        persist: BeliefTranscript,
+        remove: BeliefTranscript,
+    ) -> (BeliefTranscript, BeliefTranscript) {
+        match pair.branch_a {
+            HiddenBranch::Persist => (persist, remove),
+            HiddenBranch::Remove => (remove, persist),
+        }
+    }
+
     #[test]
     fn paired_scenarios_have_identical_sensor_prefix_through_hidden_intervention() {
         let pair = ObjectPermanencePair::deterministic(7);
         assert!(pair.visible_prefix_identical());
-        assert_eq!(
-            pair.persist.oracle.hidden_intervention_frame,
-            pair.remove.oracle.hidden_intervention_frame
-        );
-        assert_eq!(pair.persist.oracle.last_identical_sensor_frame, 8);
+        assert_eq!(pair.trial_a.oracle.last_identical_sensor_frame, 8);
+        assert_eq!(pair.trial_b.oracle.last_identical_sensor_frame, 8);
     }
 
     #[test]
-    fn deterministic_seed_reproduces_sensor_transcript() {
+    fn branch_order_is_blinded_by_seed() {
+        let mut saw_persist_a = false;
+        let mut saw_remove_a = false;
+        for seed in 0..64 {
+            match ObjectPermanencePair::deterministic(seed).branch_a {
+                HiddenBranch::Persist => saw_persist_a = true,
+                HiddenBranch::Remove => saw_remove_a = true,
+            }
+        }
+        assert!(saw_persist_a && saw_remove_a);
+    }
+
+    #[test]
+    fn deterministic_seed_reproduces_blind_sensor_transcripts() {
         let a = ObjectPermanencePair::deterministic(91);
         let b = ObjectPermanencePair::deterministic(91);
-        assert_eq!(a.persist.sensor_frames(), b.persist.sensor_frames());
-        assert_eq!(a.remove.sensor_frames(), b.remove.sensor_frames());
+        assert_eq!(a.trial_a().sensor_frames(), b.trial_a().sensor_frames());
+        assert_eq!(a.trial_b().sensor_frames(), b.trial_b().sensor_frames());
     }
 
     #[test]
     fn prediction_does_not_count_as_observation_refresh() {
         let pair = ObjectPermanencePair::deterministic(11);
-        let trial = pair.persist_trial();
+        let trial = trial_by_branch(&pair, HiddenBranch::Persist);
         let beliefs = BeliefTranscript::new(vec![
             sample(
                 4,
@@ -514,20 +584,21 @@ mod tests {
         assert_eq!(metrics.target_hypothesis, Some(42));
         assert!(metrics.prediction_used_during_occlusion);
         assert_eq!(metrics.last_observation_not_refreshed_by_prediction, Some(false));
+        assert!(metrics.unsupported_observation_refresh);
     }
 
     #[test]
-    fn paired_protocol_rewards_persistence_and_hidden_removal_revision_separately() {
+    fn paired_protocol_preserves_identity_and_revises_hidden_removal_separately() {
         let pair = ObjectPermanencePair::deterministic(19);
-        let persist = pair.persist_trial();
-        let remove = pair.remove_trial();
-        let persist_beliefs = BeliefTranscript::new(vec![
+        let persist_trial = trial_by_branch(&pair, HiddenBranch::Persist);
+        let remove_trial = trial_by_branch(&pair, HiddenBranch::Remove);
+        let persist = BeliefTranscript::new(vec![
             sample(
                 4,
                 100,
                 BeliefLifecycle::PartiallyOccluded,
                 4,
-                Some(observation_for(persist, 4)),
+                Some(observation_for(persist_trial, 4)),
             ),
             sample(6, 100, BeliefLifecycle::OccludedPredicted, 4, None),
             sample(8, 100, BeliefLifecycle::OccludedPredicted, 4, None),
@@ -536,39 +607,41 @@ mod tests {
                 100,
                 BeliefLifecycle::Visible,
                 9,
-                Some(observation_for(persist, 9)),
+                Some(observation_for(persist_trial, 9)),
             ),
         ])
         .unwrap();
-        let remove_beliefs = BeliefTranscript::new(vec![
+        let remove = BeliefTranscript::new(vec![
             sample(
                 4,
                 100,
                 BeliefLifecycle::PartiallyOccluded,
                 4,
-                Some(observation_for(remove, 4)),
+                Some(observation_for(remove_trial, 4)),
             ),
             sample(6, 100, BeliefLifecycle::OccludedPredicted, 4, None),
             sample(8, 100, BeliefLifecycle::OccludedPredicted, 4, None),
             sample(11, 100, BeliefLifecycle::Lost, 4, None),
         ])
         .unwrap();
-
-        let assessment = pair.assess(&persist_beliefs, &remove_beliefs);
+        let (a, b) = beliefs_for_branch(&pair, persist, remove);
+        let assessment = pair.assess(&a, &b);
         assert!(assessment.visible_prefix_identical);
         assert_eq!(assessment.persist.reacquired_same_hypothesis, Some(true));
         assert_eq!(
             assessment.persist.last_observation_not_refreshed_by_prediction,
             Some(true)
         );
+        assert!(!assessment.persist.unsupported_observation_refresh);
         assert_eq!(assessment.remove.removed_target_resolved_by_deadline, Some(true));
         assert_eq!(assessment.remove.prediction_overran_lost_deadline, Some(false));
+        assert!(!assessment.remove.unsupported_observation_refresh);
     }
 
     #[test]
     fn always_persist_strategy_is_exposed_by_remove_branch() {
         let pair = ObjectPermanencePair::deterministic(23);
-        let remove = pair.remove_trial();
+        let remove = trial_by_branch(&pair, HiddenBranch::Remove);
         let beliefs = BeliefTranscript::new(vec![
             sample(
                 4,
@@ -589,7 +662,7 @@ mod tests {
     #[test]
     fn always_drop_strategy_is_exposed_by_persist_branch() {
         let pair = ObjectPermanencePair::deterministic(29);
-        let persist = pair.persist_trial();
+        let persist = trial_by_branch(&pair, HiddenBranch::Persist);
         let beliefs = BeliefTranscript::new(vec![
             sample(
                 4,
@@ -615,7 +688,7 @@ mod tests {
     #[test]
     fn distractor_observation_cannot_silently_refresh_target_identity() {
         let pair = ObjectPermanencePair::deterministic(31);
-        let persist = pair.persist_trial();
+        let persist = trial_by_branch(&pair, HiddenBranch::Persist);
         let distractor = persist.oracle.non_target_sensor_observations[6];
         let beliefs = BeliefTranscript::new(vec![
             sample(
@@ -630,6 +703,33 @@ mod tests {
         .unwrap();
         let metrics = persist.assess(&beliefs);
         assert!(metrics.cross_associated_non_target_observation);
+        assert!(metrics.unsupported_observation_refresh);
+    }
+
+    #[test]
+    fn invented_sensor_observation_is_reported() {
+        let pair = ObjectPermanencePair::deterministic(37);
+        let persist = trial_by_branch(&pair, HiddenBranch::Persist);
+        let beliefs = BeliefTranscript::new(vec![
+            sample(
+                4,
+                17,
+                BeliefLifecycle::PartiallyOccluded,
+                4,
+                Some(observation_for(persist, 4)),
+            ),
+            sample(
+                6,
+                17,
+                BeliefLifecycle::Visible,
+                6,
+                Some(SensorObservationId(u64::MAX)),
+            ),
+        ])
+        .unwrap();
+        let metrics = persist.assess(&beliefs);
+        assert!(metrics.unknown_source_observation);
+        assert!(metrics.unsupported_observation_refresh);
     }
 
     #[test]
