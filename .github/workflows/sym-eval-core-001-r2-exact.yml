@@ -1,0 +1,113 @@
+name: SYM-EVAL-CORE-001 r2 Exact Subject
+
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/sym-eval-core-001-r2-exact.yml'
+
+permissions:
+  contents: read
+
+env:
+  PRODUCT_SHA: 0ec7eb5a7c3b4631304e801504b9ebf850cbb0e7
+  PRODUCT_TREE: 699f571df6c7647036fdfb330d647a335e393f5a
+  BASE_SHA: d56d6a6c1381dc131d493f0713b657f01c98cb80
+  EVIDENCE_BLOB: 4ea82e57804b9955aba84b7542874dd26d368d3b
+  LIB_BLOB: 4b6443859302213e8d22025994c597cd9248c121
+  DOC_BLOB: 378f2dac4222abd4ee251188e2e907babcc70aa0
+  PRODUCT_WORKFLOW_BLOB: 8ad96f526fddde0b87ed8955afa9ba0644ee62b7
+  QUALIFIER_PATH: .github/workflows/sym-eval-core-001-r2-exact.yml
+
+jobs:
+  qualify-exact-subject:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout exact qualifier head
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 3
+          persist-credentials: false
+
+      - name: Verify qualifier and immutable product identities
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          test "$(git rev-parse HEAD^)" = "$PRODUCT_SHA"
+          test "$(git rev-parse "$PRODUCT_SHA^{tree}")" = "$PRODUCT_TREE"
+          test "$(git rev-parse "$PRODUCT_SHA^")" = "$BASE_SHA"
+          test "$(git rev-list --count "$BASE_SHA..$PRODUCT_SHA")" = 1
+
+          mapfile -t qualifier_delta < <(git diff --name-only "$PRODUCT_SHA" HEAD)
+          test "${#qualifier_delta[@]}" -eq 1
+          test "${qualifier_delta[0]}" = "$QUALIFIER_PATH"
+
+          mapfile -t product_delta < <(git diff --name-only "$BASE_SHA" "$PRODUCT_SHA" | sort)
+          expected=(
+            '.github/workflows/sym-eval-core-001-evidence-chain.yml'
+            'crates/domains/symtropy-game-state/src/eval_evidence.rs'
+            'crates/domains/symtropy-game-state/src/lib.rs'
+            'docs/research/SYM_EVAL_CORE_001_EVIDENCE_CHAIN.md'
+          )
+          test "${#product_delta[@]}" -eq "${#expected[@]}"
+          for i in "${!expected[@]}"; do
+            test "${product_delta[$i]}" = "${expected[$i]}"
+          done
+
+          test "$(git rev-parse "$PRODUCT_SHA:crates/domains/symtropy-game-state/src/eval_evidence.rs")" = "$EVIDENCE_BLOB"
+          test "$(git rev-parse "$PRODUCT_SHA:crates/domains/symtropy-game-state/src/lib.rs")" = "$LIB_BLOB"
+          test "$(git rev-parse "$PRODUCT_SHA:docs/research/SYM_EVAL_CORE_001_EVIDENCE_CHAIN.md")" = "$DOC_BLOB"
+          test "$(git rev-parse "$PRODUCT_SHA:.github/workflows/sym-eval-core-001-evidence-chain.yml")" = "$PRODUCT_WORKFLOW_BLOB"
+
+          git diff --exit-code "$BASE_SHA" "$PRODUCT_SHA" -- Cargo.toml Cargo.lock crates/domains/symtropy-game-state/Cargo.toml
+
+      - name: Checkout immutable product subject
+        shell: bash
+        run: |
+          set -euo pipefail
+          git checkout --detach "$PRODUCT_SHA"
+          test "$(git rev-parse HEAD)" = "$PRODUCT_SHA"
+          test "$(git rev-parse HEAD^{tree})" = "$PRODUCT_TREE"
+
+      - name: Install pinned Rust 1.96.0
+        shell: bash
+        run: |
+          set -euo pipefail
+          rustup toolchain install 1.96.0 --profile minimal --component rustfmt,clippy
+          rustup override set 1.96.0
+          rustc --version
+          cargo --version
+          rustfmt --version
+          cargo clippy --version
+
+      - name: Format exact evidence core
+        run: cargo fmt -p symtropy-game-state -- --check
+
+      - name: Check exact evidence core
+        run: cargo check -p symtropy-game-state --all-targets --locked
+
+      - name: Test exact evidence core
+        run: cargo test -p symtropy-game-state --locked eval_evidence
+
+      - name: Strict Clippy exact evidence core
+        run: cargo clippy -p symtropy-game-state --all-targets --locked -- -D warnings
+
+      - name: Workspace membership invariant
+        run: bash scripts/check-workspace.sh
+
+      - name: License invariant
+        run: bash scripts/check-licenses.sh
+
+      - name: Immutable product postflight
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$PRODUCT_SHA"
+          test "$(git rev-parse HEAD^{tree})" = "$PRODUCT_TREE"
+          test "$(git rev-parse HEAD^)" = "$BASE_SHA"
+          test "$(git rev-parse "HEAD:crates/domains/symtropy-game-state/src/eval_evidence.rs")" = "$EVIDENCE_BLOB"
+          test "$(git rev-parse "HEAD:crates/domains/symtropy-game-state/src/lib.rs")" = "$LIB_BLOB"
+          test "$(git rev-parse "HEAD:docs/research/SYM_EVAL_CORE_001_EVIDENCE_CHAIN.md")" = "$DOC_BLOB"
+          test "$(git rev-parse "HEAD:.github/workflows/sym-eval-core-001-evidence-chain.yml")" = "$PRODUCT_WORKFLOW_BLOB"
+          test -z "$(git status --porcelain=v1)"
