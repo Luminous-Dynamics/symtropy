@@ -1,0 +1,154 @@
+name: Living World LENV negative observation v0 qualification
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - '.github/workflows/living-world-lenv-negative-observation-v0-qualification.yml'
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  qualify-negative-observation:
+    name: Qualify exact LENV negative observation reference subject
+    if: >-
+      (github.event_name == 'workflow_dispatch' &&
+       github.ref_name == 'ci/living-world-lenv-negative-observation-v0-qualification') ||
+      (github.event_name == 'pull_request' &&
+       github.event.pull_request.head.repo.full_name == github.repository &&
+       github.event.pull_request.head.ref == 'ci/living-world-lenv-negative-observation-v0-qualification')
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    env:
+      PRODUCT_SHA: 9df3a60507a035e681714b86cbb5c134c5bdc0fb
+      PARENT_SHA: 2c5de7b1d5f0f38317924ba69cd15a545694c3c6
+      PRODUCT_FILE: crates/domains/symtropy-lifesim-core/tests/negative_observation_reference.rs
+      CARGO_TARGET_DIR: /tmp/living-world-lenv-negative-observation-v0-target
+      EVIDENCE_DIR: /tmp/living-world-lenv-negative-observation-v0-evidence
+      QUALIFIER_HEAD: ${{ github.event.pull_request.head.sha || github.sha }}
+
+    steps:
+      - name: Checkout exact product subject
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ env.PRODUCT_SHA }}
+          persist-credentials: false
+          fetch-depth: 0
+
+      - name: Assert exact one-file product scope
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$PRODUCT_SHA"
+          test "$(git rev-parse HEAD^)" = "$PARENT_SHA"
+          test -z "$(git status --porcelain=v1 --untracked-files=all)"
+          test "$(git diff --name-status "$PARENT_SHA" "$PRODUCT_SHA")" = $'A\t'"$PRODUCT_FILE"
+          git hash-object Cargo.lock | tee /tmp/cargo-lock.before
+          git rev-parse HEAD^{tree} | tee /tmp/tree.before
+          sha256sum "$PRODUCT_FILE" | tee /tmp/product-file.before.sha256
+          sha256sum Cargo.lock | tee /tmp/cargo-lock.before.sha256
+
+      - name: Install pinned Rust
+        uses: dtolnay/rust-toolchain@02cb101ec7c40f2c49e1d9714d64511d8e1b74de
+        with:
+          toolchain: 1.96.0
+          components: rustfmt, clippy
+
+      - name: Verify exact Rust toolchain family
+        shell: bash
+        run: |
+          set -euo pipefail
+          rustc --version | tee /tmp/rustc-version.txt
+          cargo --version | tee /tmp/cargo-version.txt
+          grep -Eq '^rustc 1\.96\.0 ' /tmp/rustc-version.txt
+          grep -Eq '^cargo 1\.96\.0 ' /tmp/cargo-version.txt
+
+      - name: Check exact-file formatting
+        shell: bash
+        run: |
+          set -euo pipefail
+          rustfmt --edition 2024 --check "$PRODUCT_FILE" 2>&1 | tee /tmp/rustfmt.log
+
+      - name: Execute negative observation reference tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo test --locked -p symtropy-lifesim-core --test negative_observation_reference 2>&1 | tee /tmp/cargo-test.log
+
+      - name: Strict focused Clippy
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo clippy --locked -p symtropy-lifesim-core --test negative_observation_reference -- -D warnings 2>&1 | tee /tmp/cargo-clippy.log
+
+      - name: Focused locked check
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo check --locked -p symtropy-lifesim-core --test negative_observation_reference 2>&1 | tee /tmp/cargo-check.log
+
+      - name: Assert immutable exact subject
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$PRODUCT_SHA"
+          test "$(git rev-parse HEAD^{tree})" = "$(cat /tmp/tree.before)"
+          test "$(git hash-object Cargo.lock)" = "$(cat /tmp/cargo-lock.before)"
+          test "$(sha256sum "$PRODUCT_FILE")" = "$(cat /tmp/product-file.before.sha256)"
+          test "$(sha256sum Cargo.lock)" = "$(cat /tmp/cargo-lock.before.sha256)"
+          git diff --exit-code
+          git diff --cached --exit-code
+          untracked="$(git ls-files --others --exclude-standard)"
+          if [ -n "$untracked" ]; then
+            printf 'unexpected untracked files:\n%s\n' "$untracked"
+            exit 1
+          fi
+
+      - name: Record qualification evidence
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf "$EVIDENCE_DIR"
+          mkdir -p "$EVIDENCE_DIR"
+
+          for path in \
+            /tmp/rustc-version.txt \
+            /tmp/cargo-version.txt \
+            /tmp/rustfmt.log \
+            /tmp/cargo-test.log \
+            /tmp/cargo-clippy.log \
+            /tmp/cargo-check.log
+          do
+            if [ -f "$path" ]; then
+              cp "$path" "$EVIDENCE_DIR/"
+            fi
+          done
+
+          sha256sum "$PRODUCT_FILE" Cargo.lock > "$EVIDENCE_DIR/subject-files.sha256"
+          printf '%s\n' \
+            "qualifier_head=$QUALIFIER_HEAD" \
+            "workflow_merge_or_dispatch_sha=${{ github.sha }}" \
+            "product_head=$(git rev-parse HEAD)" \
+            "product_parent=$(git rev-parse HEAD^)" \
+            "product_tree=$(git rev-parse HEAD^{tree})" \
+            "product_file=$PRODUCT_FILE" \
+            "cargo_target_dir=$CARGO_TARGET_DIR" \
+            "job_status_at_evidence=${{ job.status }}" \
+            > "$EVIDENCE_DIR/status.txt"
+
+      - name: Upload qualification evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: living-world-lenv-negative-observation-v0-qualification
+          path: /tmp/living-world-lenv-negative-observation-v0-evidence/*
+          if-no-files-found: error
+          retention-days: 30
