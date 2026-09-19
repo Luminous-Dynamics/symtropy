@@ -1,0 +1,69 @@
+{
+  "schema_id": "sym-eval.producer-input-envelope.v1",
+  "profile_kind": "reference_only",
+  "implementation_parent_sha": "c582a0762e8e23eb16f7cffd674c7149e8ee6378",
+  "sensor_subject_sha": "14dd4b15bef736a5d73106036c5b92d17e83790a",
+  "domain_ascii": "sym-eval.producer-input-envelope.v1",
+  "domain_terminator_hex": "00",
+  "canonical_encoding": {
+    "byte_order": "big_endian",
+    "float_encoding": "ieee754_binary32_via_f32_to_bits",
+    "observation_order": "producer_visible_sequence_order",
+    "fields": [
+      "domain_ascii",
+      "domain_terminator_hex",
+      "frame_index_u64",
+      "observation_count_u32",
+      "for_each_observation.observation_id_u64",
+      "for_each_observation.x_norm_f32_bits",
+      "for_each_observation.y_norm_f32_bits",
+      "for_each_observation.visible_fraction_f32_bits",
+      "for_each_observation.appearance_0_f32_bits",
+      "for_each_observation.appearance_1_f32_bits",
+      "for_each_observation.appearance_2_f32_bits",
+      "for_each_observation.appearance_3_f32_bits"
+    ]
+  },
+  "reference_vector": {
+    "frame_index": 3,
+    "observation_count": 1,
+    "observation_id_hex": "0102030405060708",
+    "x_norm": 0.25,
+    "y_norm": 0.5,
+    "visible_fraction": 1.0,
+    "appearance": [0.1, 0.2, 0.3, 0.4],
+    "encoded_byte_len": 84,
+    "encoded_hex": "73796d2d6576616c2e70726f64756365722d696e7075742d656e76656c6f70652e76310000000000000000030000000101020304050607083e8000003f0000003f8000003dcccccd3e4ccccd3e99999a3ecccccd",
+    "sha256": "0d6aae10b602ced72057e028c4eb724bc0273ce7d03b9e53d496f8b019379c22"
+  },
+  "paired_prefix_theorem": {
+    "scenario_profile": "frozen_synthetic_object_permanence_v1",
+    "last_required_equal_frame": 8,
+    "first_expected_legal_divergence_frame": 9,
+    "comparison_layer": "canonical_producer_input_envelope_bytes",
+    "status": "ReferenceEqualOnFrozenSyntheticPair"
+  },
+  "known_blockers": {
+    "full_future_sequence": "LeakDetected",
+    "future_source_observation_lineage": "LeakDetected",
+    "semantic_observation_identity": "Unresolved",
+    "semantic_observation_order": "Unresolved",
+    "orchestrator_capability_isolation": "NotImplemented",
+    "streaming_evidence_order": "NotImplemented"
+  },
+  "required_successors": {
+    "causal_delivery": "SYM-EVAL-001A3 / #1282",
+    "opaque_sensor_identity": "SYM-EVAL-001A4 / #1285",
+    "streaming_evidence": "SYM-EVAL-CORE-001S / #1284",
+    "capability_isolation": "SYM-EVAL-CORE-003 / #1230",
+    "rendered_sensor_causal_shielding": "SYM-EVAL-001B / #1215"
+  },
+  "claim_boundary": {
+    "q2_reference_envelope": "Defines and probes canonical producer-visible frame bytes for the frozen synthetic profile.",
+    "online_benchmark_validity": "NotEstablished",
+    "absence_of_unknown_shortcuts": "NotEstablished",
+    "semantic_identity_opacity": "NotEstablished",
+    "rendered_sensor_validity": "NotEstablished",
+    "model_performance": "NotEvaluated"
+  }
+}
