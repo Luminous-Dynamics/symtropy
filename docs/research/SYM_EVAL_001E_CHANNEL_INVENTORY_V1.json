@@ -1,0 +1,111 @@
+{
+  "schema_id": "luminous.sym-eval-001e.channel-inventory.v1",
+  "profile_id": "sym-eval-001e-q0-q1.synthetic-scaffold.v1",
+  "evaluated_repository": "Luminous-Dynamics/symtropy",
+  "evaluated_subject_sha": "14dd4b15bef736a5d73106036c5b92d17e83790a",
+  "claim_scope": "synthetic SYM-EVAL-001A evaluator scaffold only",
+  "online_benchmark_validity": "LeakDetected",
+  "first_legal_branch_divergence_frame": 9,
+  "channels": [
+    {
+      "channel_id": "sensor.frame_index",
+      "surface": "SensorFrame.frame_index",
+      "classification": "causal_time_order_metadata",
+      "producer_visible": true,
+      "may_differ_before_legal_divergence": false,
+      "current_status": "Legal"
+    },
+    {
+      "channel_id": "sensor.observation_id",
+      "surface": "SensorBlob.observation_id",
+      "classification": "nuisance_metadata",
+      "producer_visible": true,
+      "may_differ_before_legal_divergence": false,
+      "current_status": "LegalWithLineageUse"
+    },
+    {
+      "channel_id": "sensor.position",
+      "surface": "SensorBlob.{x_norm,y_norm}",
+      "classification": "semantic_sensor_content",
+      "producer_visible": true,
+      "may_differ_before_legal_divergence": false,
+      "current_status": "Legal"
+    },
+    {
+      "channel_id": "sensor.visible_fraction",
+      "surface": "SensorBlob.visible_fraction",
+      "classification": "semantic_sensor_content",
+      "producer_visible": true,
+      "may_differ_before_legal_divergence": false,
+      "current_status": "Legal"
+    },
+    {
+      "channel_id": "sensor.appearance",
+      "surface": "SensorBlob.appearance",
+      "classification": "semantic_sensor_content",
+      "producer_visible": true,
+      "may_differ_before_legal_divergence": false,
+      "current_status": "Legal"
+    },
+    {
+      "channel_id": "trial.full_future_sequence",
+      "surface": "ObjectPermanenceTrial::sensor_frames() -> &[SensorFrame]",
+      "classification": "forbidden_oracle_metadata",
+      "producer_visible": true,
+      "may_differ_before_legal_divergence": true,
+      "current_status": "LeakDetected",
+      "reason": "The full slice contains post-divergence frame 9 while a causal producer may still be processing an earlier frame."
+    },
+    {
+      "channel_id": "trial.total_sequence_length",
+      "surface": "slice length returned by sensor_frames()",
+      "classification": "nuisance_metadata",
+      "producer_visible": true,
+      "may_differ_before_legal_divergence": false,
+      "current_status": "ImplicitlyExposed",
+      "reason": "Length is equal across the current pair, but an online profile must declare horizon visibility explicitly rather than inherit it from a collection API."
+    },
+    {
+      "channel_id": "oracle.hidden_branch",
+      "surface": "ObjectPermanenceTrial.branch",
+      "classification": "forbidden_oracle_metadata",
+      "producer_visible": false,
+      "may_differ_before_legal_divergence": true,
+      "current_status": "EvaluatorPrivate"
+    },
+    {
+      "channel_id": "oracle.blinding_nonce",
+      "surface": "ObjectPermanencePair construction input",
+      "classification": "forbidden_oracle_metadata",
+      "producer_visible": false,
+      "may_differ_before_legal_divergence": true,
+      "current_status": "EvaluatorPrivate"
+    },
+    {
+      "channel_id": "oracle.canonical_identity",
+      "surface": "CanonicalEntityId / HiddenOracle",
+      "classification": "forbidden_oracle_metadata",
+      "producer_visible": false,
+      "may_differ_before_legal_divergence": true,
+      "current_status": "EvaluatorPrivate"
+    }
+  ],
+  "required_repairs": [
+    "SYM-EVAL-001A3 must replace producer-facing full-future slice access with orchestrator-owned causal delivery.",
+    "The scorer must reject source observations whose sensor frame occurs after the belief sample frame.",
+    "Integrated online qualification must commit ProducerOutput(t) before SensorInput(t+1) is released."
+  ],
+  "q1_canaries": [
+    "branch_label_in_path",
+    "timestamp_offset",
+    "observation_id_offset",
+    "background_pixel_watermark",
+    "future_frame_peek",
+    "future_source_observation_lineage"
+  ],
+  "interpretation": {
+    "detector_pass": "The leak detector recognized the frozen canaries and the known full-future exposure.",
+    "benchmark_pass": "Not established by this profile.",
+    "model_performance": "Not evaluated by this profile."
+  }
+}
