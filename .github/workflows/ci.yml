@@ -80,5 +80,142 @@ jobs:
     - name: Run Tests (Physics Core)
       run: cargo test -p symtropy-math -p symtropy-physics -p symtropy-consciousness-physics --lib
 
+    # Run the complete fluid package test surface, including integration tests.
+    # Passing this step qualifies executable verification code only; it does not
+    # turn the SPH scaffold or CPU reference solver into a production CFD claim.
+    - name: Run Tests (Fluid Validation)
+      run: cargo test -p symtropy-fluid
+
     - name: Verify Workspace Build
       run: cargo check --workspace --all-targets
+
+  # Canonical evidence is generated from the exact source head, not the
+  # synthetic pull-request merge ref used by the compatibility matrix above.
+  # This lane deliberately repeats the fluid test on that exact tree so the
+  # retained measurements and their executable test subject are identical.
+  fluid-evidence:
+    name: Fluid Evidence (exact head)
+    runs-on: ubuntu-latest
+    steps:
+    - name: Check out exact evidence subject
+      uses: actions/checkout@v4
+      with:
+        ref: ${{ github.event.pull_request.head.sha || github.sha }}
+
+    - name: Set up Rust
+      uses: dtolnay/rust-toolchain@stable
+      with:
+        toolchain: 1.96.0
+        components: rustfmt
+
+    - name: Cache dependencies
+      uses: Swatinem/rust-cache@v2
+
+    - name: Check Formatting
+      run: cargo fmt --all -- --check
+
+    # Fail before any dependency-resolving build if the committed lock does not
+    # represent this exact workspace source.
+    - name: Verify Locked Dependency Graph
+      run: cargo metadata --locked --format-version 1 --no-deps > /dev/null
+
+    - name: Execute Exact-Head Fluid Verification Tests
+      run: cargo test --locked -p symtropy-fluid
+
+    - name: Generate Fluid Verification Evidence
+      env:
+        SYMTROPY_EVIDENCE_SOURCE_REVISION: ${{ github.event.pull_request.head.sha || github.sha }}
+      run: cargo run --locked -p symtropy-fluid --example continuum_verification_evidence --quiet > continuum-verification-evidence.json
+
+    - name: Hash Fluid Verification Evidence
+      run: sha256sum continuum-verification-evidence.json > continuum-verification-evidence.json.sha256
+
+    # Keep same-case pressure-iteration sensitivity separate from the V0.6
+    # omnibus bundle. The 400-iteration point exactly matches the finest
+    # manufactured temporal control; 800 iterations is only a higher numerical
+    # reference, not continuum truth or an acceptance threshold.
+    - name: Generate Manufactured Iterative Evidence
+      env:
+        SYMTROPY_EVIDENCE_SOURCE_REVISION: ${{ github.event.pull_request.head.sha || github.sha }}
+      run: cargo run --locked -p symtropy-fluid --example manufactured_iterative_evidence --quiet > manufactured-iterative-evidence.json
+
+    - name: Hash Manufactured Iterative Evidence
+      run: sha256sum manufactured-iterative-evidence.json > manufactured-iterative-evidence.json.sha256
+
+    # Keep false-smoothness observability independent as well. This document
+    # compares resolved kinetic-energy loss to the exact viscous Taylor-Green
+    # decay in the same discrete quadrature; it does not call the excess pure
+    # physical or numerical dissipation and freezes no acceptance threshold.
+    - name: Generate Passive Excess Energy Decay Evidence
+      env:
+        SYMTROPY_EVIDENCE_SOURCE_REVISION: ${{ github.event.pull_request.head.sha || github.sha }}
+      run: cargo run --locked -p symtropy-fluid --example passive_excess_energy_decay_evidence --quiet > passive-excess-energy-decay-evidence.json
+
+    - name: Hash Passive Excess Energy Decay Evidence
+      run: sha256sum passive-excess-energy-decay-evidence.json > passive-excess-energy-decay-evidence.json.sha256
+
+    # Manufactured one-step update defect is retained separately so spatial,
+    # temporal, and forcing-phase behavior can be inspected without turning the
+    # residual into an automatic refinement verdict.
+    - name: Generate Manufactured Update Defect Evidence
+      env:
+        SYMTROPY_EVIDENCE_SOURCE_REVISION: ${{ github.event.pull_request.head.sha || github.sha }}
+      run: cargo run --locked -p symtropy-fluid --example manufactured_update_defect_evidence --quiet > manufactured-update-defect-evidence.json
+
+    - name: Hash Manufactured Update Defect Evidence
+      run: sha256sum manufactured-update-defect-evidence.json > manufactured-update-defect-evidence.json.sha256
+
+    # Smooth-control scale separation is an analytical calibration baseline for
+    # the known Taylor-Green fundamental mode. It deliberately does not infer a
+    # dynamic concentration scale or freeze a resolved/unresolved threshold.
+    - name: Generate Smooth Scale Separation Evidence
+      env:
+        SYMTROPY_EVIDENCE_SOURCE_REVISION: ${{ github.event.pull_request.head.sha || github.sha }}
+      run: cargo run --locked -p symtropy-fluid --example smooth_scale_separation_evidence --quiet > smooth-scale-separation-evidence.json
+
+    - name: Hash Smooth Scale Separation Evidence
+      run: sha256sum smooth-scale-separation-evidence.json > smooth-scale-separation-evidence.json.sha256
+
+    # Vorticity-gradient concentration scale is retained independently from the
+    # analytical smooth-mode control. It remains measurement-only until its
+    # calibration and failure behavior justify any later refinement policy.
+    - name: Generate Vorticity Concentration Scale Evidence
+      env:
+        SYMTROPY_EVIDENCE_SOURCE_REVISION: ${{ github.event.pull_request.head.sha || github.sha }}
+      run: cargo run --locked -p symtropy-fluid --example vorticity_concentration_scale_evidence --quiet > vorticity-concentration-scale-evidence.json
+
+    - name: Hash Vorticity Concentration Scale Evidence
+      run: sha256sum vorticity-concentration-scale-evidence.json > vorticity-concentration-scale-evidence.json.sha256
+
+    # Same-run passive scale drift retains concentration-scale movement, excess
+    # resolved-energy loss, and numerical-health context from one trajectory.
+    # It is evidence for later false-smoothness reasoning, not a classification.
+    - name: Generate Passive Concentration Scale Drift Evidence
+      env:
+        SYMTROPY_EVIDENCE_SOURCE_REVISION: ${{ github.event.pull_request.head.sha || github.sha }}
+      run: cargo run --locked -p symtropy-fluid --example passive_concentration_scale_drift_evidence --quiet > passive-concentration-scale-drift-evidence.json
+
+    - name: Hash Passive Concentration Scale Drift Evidence
+      run: sha256sum passive-concentration-scale-drift-evidence.json > passive-concentration-scale-drift-evidence.json.sha256
+
+    - name: Upload Fluid Verification Evidence
+      uses: actions/upload-artifact@v4
+      with:
+        name: continuum-verification-evidence-${{ github.run_id }}
+        path: |
+          continuum-verification-evidence.json
+          continuum-verification-evidence.json.sha256
+          manufactured-iterative-evidence.json
+          manufactured-iterative-evidence.json.sha256
+          passive-excess-energy-decay-evidence.json
+          passive-excess-energy-decay-evidence.json.sha256
+          manufactured-update-defect-evidence.json
+          manufactured-update-defect-evidence.json.sha256
+          smooth-scale-separation-evidence.json
+          smooth-scale-separation-evidence.json.sha256
+          vorticity-concentration-scale-evidence.json
+          vorticity-concentration-scale-evidence.json.sha256
+          passive-concentration-scale-drift-evidence.json
+          passive-concentration-scale-drift-evidence.json.sha256
+        if-no-files-found: error
+        retention-days: 30
