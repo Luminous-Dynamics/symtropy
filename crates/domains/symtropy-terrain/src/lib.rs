@@ -19,6 +19,7 @@ mod geometry_currentness;
 pub mod geometry_kernel;
 mod live_geometry_provider;
 mod live_geometry_query;
+pub mod terrain_bootstrap;
 pub mod terrain_metric;
 
 pub use geometry_currentness::{
