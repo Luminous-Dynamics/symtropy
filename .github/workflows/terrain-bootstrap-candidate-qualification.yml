@@ -1,0 +1,246 @@
+name: Terrain Bootstrap Candidate Qualification
+
+on:
+  push:
+    branches:
+      - "ci/terrain-bootstrap-candidate-qual-c34e9dc"
+    paths:
+      - ".github/workflows/terrain-bootstrap-candidate-qualification.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: terrain-bootstrap-candidate-qual-c34e9dc
+  cancel-in-progress: true
+
+jobs:
+  qualify:
+    name: Qualify exact Terrain bootstrap candidate subject
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - name: Checkout qualification harness
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Bind exact workflow-only qualifier lineage
+        shell: bash
+        run: |
+          set -euo pipefail
+          product=c34e9dc8fdcf45e3baf4bd66a52013858f3c3a97
+          qualifier=.github/workflows/terrain-bootstrap-candidate-qualification.yml
+          test "$(git rev-parse HEAD)" = "${GITHUB_SHA}"
+          test "$(git rev-parse HEAD^)" = "${product}"
+          test "$(git diff --name-only "${product}..HEAD")" = "${qualifier}"
+          test -z "$(git rev-list --merges "${product}..HEAD")"
+
+      - name: Checkout immutable product subject
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: c34e9dc8fdcf45e3baf4bd66a52013858f3c3a97
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Bind exact parent tree blobs and product delta
+        shell: bash
+        run: |
+          set -euo pipefail
+          product=c34e9dc8fdcf45e3baf4bd66a52013858f3c3a97
+          parent=346852c0b3490df30b1b34ba96d23cb9cf47e5f3
+          expected_tree=56d2fde5ecffbf51929ae874a57d2eb951ef7a3d
+          module=crates/domains/symtropy-terrain/src/terrain_bootstrap.rs
+          lib=crates/domains/symtropy-terrain/src/lib.rs
+          public_test=crates/domains/symtropy-terrain/tests/terrain_bootstrap_public.rs
+
+          test "$(git rev-parse HEAD)" = "${product}"
+          test "$(git show -s --format=%P HEAD)" = "${parent}"
+          test "$(git rev-parse HEAD^{tree})" = "${expected_tree}"
+          test "$(git rev-parse HEAD:${module})" = "38faad86453aaab5fdf4716bae052af6ef5c07ad"
+          test "$(git rev-parse HEAD:${lib})" = "c09e2887d74895b1f076ca6493b4cb82a69dbe14"
+          test "$(git rev-parse HEAD:${public_test})" = "1e30d6195671cd42ca7d800467c621ca05c266f5"
+
+          # Freeze qualified parent surfaces consumed by this representation.
+          test "$(git rev-parse HEAD:crates/domains/symtropy-terrain/src/geometry_kernel.rs)" = "8d3e1213eacdeddf693cd2d1f82670d6ed832161"
+          test "$(git rev-parse HEAD:crates/domains/symtropy-terrain/src/live_geometry_provider.rs)" = "543858ec733429ac41d39bd52eb2e39210806280"
+          test "$(git rev-parse HEAD:crates/domains/symtropy-terrain/src/geometry_currentness.rs)" = "2da7d9b27313ae24b45269171cf58ea6cd528de4"
+          test "$(git rev-parse HEAD:crates/domains/symtropy-terrain/src/live_geometry_query.rs)" = "34995e11c7d82ffa4e18b7fc12927816408e8d1d"
+          test "$(git rev-parse HEAD:crates/domains/symtropy-terrain/src/terrain_metric.rs)" = "5f6cce3dc034c0b8c0e46dc55e599bd6162841ac"
+          test "$(git rev-parse HEAD:crates/domains/symtropy-terrain/tests/terrain_metric_public.rs)" = "20029889212d686d08fd92190a6945eb302d3ce5"
+          test "$(git rev-parse HEAD:crates/domains/symtropy-terrain/Cargo.toml)" = "187fe4020a0c0048ab36404e219a7a5698a856d1"
+          test "$(git rev-parse HEAD:Cargo.lock)" = "62c6eb098b3f6fffdea8a175a0f3afb33423b17b"
+
+          expected="$(printf '%s\n' "${module}" "${lib}" "${public_test}" | sort)"
+          actual="$(git diff --name-only "${parent}..${product}" | sort)"
+          test "${actual}" = "${expected}"
+          test "$(git diff --numstat "${parent}..${product}" -- "${lib}")" = $'1\t0\t'"${lib}"
+          test "$(git diff --numstat "${parent}..${product}" -- "${module}")" = $'462\t0\t'"${module}"
+          test "$(git diff --numstat "${parent}..${product}" -- "${public_test}")" = $'70\t0\t'"${public_test}"
+          test "$(git rev-list --count "${parent}..${product}")" = "1"
+          test -z "$(git rev-list --merges "${parent}..${product}")"
+
+          # Dependency surfaces are outside the product delta.
+          git diff --quiet "${parent}..${product}" -- Cargo.lock ':(glob)**/Cargo.toml'
+
+          echo "CARGO_TARGET_DIR=${RUNNER_TEMP}/terrain-bootstrap-candidate-target" >> "${GITHUB_ENV}"
+
+      - name: Install Linux system dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install -y libasound2-dev libudev-dev pkg-config
+
+      - name: Set up pinned Rust
+        uses: dtolnay/rust-toolchain@6bed0761d98439e5a578e2877258200ad565ba87
+        with:
+          toolchain: 1.96.0
+          components: clippy,rustfmt
+
+      - name: Bind toolchain and locked dependency graph
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(rustc --version | awk '{print $2}')" = "1.96.0"
+          test "$(cargo --version | awk '{print $2}')" = "1.96.0"
+          before="$(git hash-object Cargo.lock)"
+          cargo metadata --locked --format-version 1 > "${RUNNER_TEMP}/terrain-bootstrap-candidate-metadata.json"
+          test "$(git hash-object Cargo.lock)" = "${before}"
+
+      - name: Check exact product formatting
+        shell: bash
+        run: |
+          set -euo pipefail
+          rustfmt --edition 2024 --check \
+            crates/domains/symtropy-terrain/src/terrain_bootstrap.rs \
+            crates/domains/symtropy-terrain/src/lib.rs \
+            crates/domains/symtropy-terrain/tests/terrain_bootstrap_public.rs
+
+      - name: Compile all Terrain targets
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo check -p symtropy-terrain --locked --all-targets
+
+      - name: Execute bootstrap candidate hostile corpus
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo test -p symtropy-terrain --locked terrain_bootstrap::tests -- --nocapture
+          cargo test -p symtropy-terrain --locked --test terrain_bootstrap_public -- --nocapture
+
+      - name: Re-execute qualified parent theorem corpora
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo test -p symtropy-terrain --locked geometry_kernel::tests -- --nocapture
+          cargo test -p symtropy-terrain --locked live_geometry_provider::tests -- --nocapture
+          cargo test -p symtropy-terrain --locked geometry_currentness::tests -- --nocapture
+          cargo test -p symtropy-terrain --locked live_geometry_query::tests -- --nocapture
+          cargo test -p symtropy-terrain --locked --test terrain_metric_public -- --nocapture
+
+      - name: Execute complete Terrain regression suite
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo test -p symtropy-terrain --locked --all-targets
+
+      - name: Enforce strict all-target Clippy
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo clippy -p symtropy-terrain --locked --all-targets -- -D warnings
+
+      - name: Audit representation-only authority boundary
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+
+          root = Path("crates/domains/symtropy-terrain")
+          module = (root / "src/terrain_bootstrap.rs").read_text()
+          prod = module.partition("#[cfg(test)]")[0]
+          executable = "\n".join(
+              line for line in prod.splitlines()
+              if not line.lstrip().startswith("//")
+          )
+          lib = (root / "src/lib.rs").read_text()
+          manifest = (root / "Cargo.toml").read_text()
+
+          required = (
+              "pub struct TerrainLineageRefV1",
+              "pub struct TerrainChunkRefV1",
+              "pub struct TerrainChunkBootstrapEntryV1",
+              "pub struct TerrainBootstrapCandidateV1",
+              "pub fn canonical_bytes(&self) -> Vec<u8>",
+              "entries.sort_unstable_by",
+              "DuplicateChunkRef",
+              "DuplicateLatticeLocus",
+          )
+          for token in required:
+              if token not in prod:
+                  raise SystemExit(f"required bootstrap representation semantic missing: {token}")
+
+          # The candidate is representation only: no ECS/serde/reflection/trust
+          # promotion or hidden unsafe escape hatch may exist in executable code.
+          forbidden_patterns = (
+              r"\bbevy::",
+              r"\bEntity\b",
+              r"\bGlobalTransform\b",
+              r"\bReflect\b",
+              r"\bSerialize\b",
+              r"\bDeserialize\b",
+              r"\bserde\b",
+              r"\bEarthChunkLatticeLocus\b",
+              r"\bAuthorizedTerrainBootstrap",
+              r"\bunsafe\b",
+              r"\bWorld\s*[<,&)]",
+              r"get_mut\s*::<",
+          )
+          for pattern in forbidden_patterns:
+              if re.search(pattern, executable):
+                  raise SystemExit(f"forbidden authority/runtime surface leaked into candidate: {pattern}")
+
+          if executable.count("use crate::geometry_kernel::EarthChunkLatticeCoord;") != 1:
+              raise SystemExit("bootstrap candidate no longer has the single expected Terrain-kernel import")
+          if "pub mod terrain_bootstrap;" not in lib:
+              raise SystemExit("terrain bootstrap public module export missing")
+          if "serde" in manifest.lower():
+              raise SystemExit("Terrain crate gained serde dependency during representation tranche")
+
+          # Exact bytes, not a digest, are the primary v1 representation identity.
+          for token in ("Sha", "Digest", "Hasher", "hash_bytes", "blake", "sha2"):
+              if token in executable:
+                  raise SystemExit(f"digest/hash authority leaked into v1 candidate representation: {token}")
+
+          print("TERRAIN_BOOTSTRAP_CANDIDATE_REPRESENTATION_ONLY=PASS")
+          print("TERRAIN_BOOTSTRAP_ECS_MUTATION_AUTHORITY=ABSENT")
+          print("TERRAIN_BOOTSTRAP_TRUST_PROMOTION_AUTHORITY=ABSENT")
+          print("TERRAIN_BOOTSTRAP_SERDE_REFLECT_AUTHORITY=ABSENT")
+          print("TERRAIN_BOOTSTRAP_METRIC_AUTHORITY=ABSENT")
+          print("TERRAIN_BOOTSTRAP_WORLD_FRAME_AUTHORITY=ABSENT")
+          PY
+
+      - name: Exact immutable-product postflight
+        shell: bash
+        run: |
+          set -euo pipefail
+          product=c34e9dc8fdcf45e3baf4bd66a52013858f3c3a97
+          parent=346852c0b3490df30b1b34ba96d23cb9cf47e5f3
+          test -z "$(git status --porcelain)"
+          test "$(git rev-parse HEAD)" = "${product}"
+          test "$(git show -s --format=%P HEAD)" = "${parent}"
+          test "$(git rev-parse HEAD^{tree})" = "56d2fde5ecffbf51929ae874a57d2eb951ef7a3d"
+          test "$(git rev-parse HEAD:crates/domains/symtropy-terrain/src/terrain_bootstrap.rs)" = "38faad86453aaab5fdf4716bae052af6ef5c07ad"
+          test "$(git rev-parse HEAD:crates/domains/symtropy-terrain/src/lib.rs)" = "c09e2887d74895b1f076ca6493b4cb82a69dbe14"
+          test "$(git rev-parse HEAD:crates/domains/symtropy-terrain/tests/terrain_bootstrap_public.rs)" = "1e30d6195671cd42ca7d800467c621ca05c266f5"
+          test "$(git rev-parse HEAD:crates/domains/symtropy-terrain/src/geometry_kernel.rs)" = "8d3e1213eacdeddf693cd2d1f82670d6ed832161"
+          test "$(git rev-parse HEAD:crates/domains/symtropy-terrain/Cargo.toml)" = "187fe4020a0c0048ab36404e219a7a5698a856d1"
+          test "$(git rev-parse HEAD:Cargo.lock)" = "62c6eb098b3f6fffdea8a175a0f3afb33423b17b"
+          git diff --exit-code
+          echo "TERRAIN_BOOTSTRAP_CANDIDATE_EXACT_PRODUCT=PASS"
