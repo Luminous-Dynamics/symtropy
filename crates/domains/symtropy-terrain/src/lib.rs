@@ -15,6 +15,7 @@ use symtropy_rapier3d_bridge::{
 
 use symtropy_physics_gpu::HybridFluidPlugin;
 
+pub mod environment_observation;
 mod geometry_currentness;
 pub mod geometry_kernel;
 mod live_geometry_provider;
