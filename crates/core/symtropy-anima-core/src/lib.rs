@@ -10,6 +10,7 @@
 
 #![forbid(unsafe_code)]
 
+pub mod causal;
 pub mod evidence;
 pub mod experience;
 pub mod id;
@@ -18,9 +19,11 @@ pub mod reason;
 pub mod sample;
 pub mod tick;
 
+pub use causal::{CausalPhase, CausalStamp};
 pub use evidence::EvidenceRef;
 pub use experience::{
-    ExperienceSource, ExperienceTrace, ExperienceTraceError, ExperienceTraceParts,
+    ExperienceFormation, ExperienceProvenance, ExperienceTrace, ExperienceTraceError,
+    ExperienceTraceParts,
 };
 pub use id::{
     ActionId, AgentId, AggregationMethodId, EmissionId, ExperienceId, IntentId, PerceptId,
