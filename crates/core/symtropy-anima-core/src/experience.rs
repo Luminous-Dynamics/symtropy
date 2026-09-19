@@ -104,7 +104,11 @@ impl ExperienceFormation {
 
 impl ExperienceTrace {
     pub fn new(parts: ExperienceTraceParts) -> Result<Self, ExperienceTraceError> {
-        if !parts.provenance.observed_at().strictly_precedes(parts.recorded_at) {
+        if !parts
+            .provenance
+            .observed_at()
+            .strictly_precedes(parts.recorded_at)
+        {
             return Err(ExperienceTraceError::SourceNotBeforeRecord);
         }
 
@@ -272,10 +276,8 @@ mod tests {
         let observed = stamp(7, 2, CausalPhase::Sense);
         let recorded = stamp(7, 3, CausalPhase::Experience);
         let emission = EvidenceRef::Emission(EmissionId::from_bytes([8; 32]));
-        let bodily_as_percept = ExperienceProvenance::new(
-            EvidenceRef::BodilyOutcome(ids.action),
-            observed,
-        );
+        let bodily_as_percept =
+            ExperienceProvenance::new(EvidenceRef::BodilyOutcome(ids.action), observed);
 
         assert_eq!(
             ExperienceTrace::new(parts(
@@ -308,19 +310,13 @@ mod tests {
         ] {
             let provenance = ExperienceProvenance::new(evidence, observed);
             assert_eq!(
-                ExperienceTrace::new(parts(
-                    provenance,
-                    ExperienceFormation::Perceptual,
-                    record,
-                )),
+                ExperienceTrace::new(parts(provenance, ExperienceFormation::Perceptual, record,)),
                 Err(ExperienceTraceError::SourceNotBeforeRecord)
             );
         }
 
-        let earlier_same_tick = ExperienceProvenance::new(
-            evidence,
-            stamp(10, 3, CausalPhase::Outcome),
-        );
+        let earlier_same_tick =
+            ExperienceProvenance::new(evidence, stamp(10, 3, CausalPhase::Outcome));
         assert!(
             ExperienceTrace::new(parts(
                 earlier_same_tick,
@@ -357,12 +353,9 @@ mod tests {
             stamp(7, 2, CausalPhase::Sense),
         );
         let recorded = stamp(7, 3, CausalPhase::Experience);
-        let trace = ExperienceTrace::new(parts(
-            provenance,
-            ExperienceFormation::Perceptual,
-            recorded,
-        ))
-        .unwrap();
+        let trace =
+            ExperienceTrace::new(parts(provenance, ExperienceFormation::Perceptual, recorded))
+                .unwrap();
 
         assert_eq!(trace.id(), ids.experience);
         assert_eq!(trace.subject(), ids.subject);
