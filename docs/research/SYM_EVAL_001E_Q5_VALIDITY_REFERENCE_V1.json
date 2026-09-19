@@ -1,0 +1,57 @@
+{
+  "schema_id": "sym-eval.benchmark-validity-reference.v1",
+  "profile_kind": "test_only_reference",
+  "implementation_parent_sha": "1d639b2a0bf4856e2ae59ddf72c1799268814857",
+  "issue": "SYM-EVAL-001E-Q5 / #1301",
+  "purpose": "Freeze typed benchmark-validity admission semantics before production lower-gate receipt schemas stabilize.",
+  "canonical_domains": {
+    "profile": "sym-eval.benchmark-validity-profile.v1\\0",
+    "receipt": "sym-eval.benchmark-validity-receipt.v1\\0"
+  },
+  "reference_properties": [
+    "required gates are precommitted and canonical-sorted",
+    "duplicate gate evidence rejects",
+    "missing/queued/not-executed evidence never becomes PASS",
+    "exact subject and verifier identity may be required per gate",
+    "all compatibility bindings must match the exact benchmark population",
+    "FreshHidden challenge exposure cannot be replaced by PreviouslyRevealed",
+    "typed NotApplicable reasons must match the precommitted profile",
+    "exact deterministic leakage blocks admission even if a statistical gate passes",
+    "evidence input ordering cannot change canonical receipt bytes",
+    "blocked validity exposes performance as diagnostic-only"
+  ],
+  "compatibility_bindings": [
+    "benchmark_profile",
+    "sensor_profile",
+    "producer_profile",
+    "scorer_profile",
+    "scenario_generator",
+    "environment_class",
+    "experiment_plan",
+    "challenge_commitment",
+    "population"
+  ],
+  "admission_states": [
+    "ConfirmatoryAdmitted",
+    "BlockedInvalidBenchmark",
+    "BlockedIncompleteValidity",
+    "BlockedProfileMismatch",
+    "BlockedInfrastructure",
+    "BlockedStaleEvidence"
+  ],
+  "authority_boundary": {
+    "product_authority": "NotEstablished",
+    "lower_gate_execution": "NotInherited",
+    "q2_parent_qualification": "NotInherited",
+    "runtime_cryptographic_attestation": "NotImplemented",
+    "production_performance_report_integration": "NotImplemented",
+    "performance_claim": "NotEvaluated"
+  },
+  "required_successors": [
+    "stabilize lower gate receipt schemas",
+    "promote reference vocabulary into production module only after compatibility review",
+    "bind canonical receipt to CORE-001/CORE-004/CORE-006/CORE-008 evidence",
+    "make 001D confirmatory report path require ConfirmatoryAdmitted",
+    "qualify the exact implementation under an independent verifier"
+  ]
+}
