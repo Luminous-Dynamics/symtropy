@@ -1,0 +1,232 @@
+name: QUAL-001A2 Exact Subject
+
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/qual-001a2-exact-subject.yml'
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  PRODUCT_HEAD: '856eea6710c1a0ffbff6a5a5b6ddf924586a5cc0'
+  PRODUCT_TREE: 'e4784c1bb8a147139fd9ce049cf2f9d6f0d65dda'
+  QUALIFIED_PARENT: 'd43af527c159da8764bacd04eecb81ff5aef9d8f'
+  PYTHON_VERSION: '3.12.10'
+  A2_VALIDATOR_BLOB: '9f6c1fcd4b51435780a9efb15f36c5ec50e6f1bf'
+  A2_TEST_BLOB: '62755d2f75234522a04e9b21f571fee393ce21ba'
+
+jobs:
+  qualify:
+    name: Qualify exact QUAL-001A2 subject
+    if: >-
+      (github.event_name == 'workflow_dispatch' &&
+       github.ref_name == 'ci/qual-001a2-exact-subject') ||
+      (github.event_name == 'pull_request' &&
+       github.event.pull_request.head.repo.full_name == github.repository &&
+       github.event.pull_request.head.ref == 'ci/qual-001a2-exact-subject')
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout qualifier head
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 3
+          persist-credentials: false
+
+      - name: Bind qualifier topology
+        shell: bash
+        run: |
+          set -euo pipefail
+          qualifier_head="$(git rev-parse HEAD)"
+          qualifier_tree="$(git rev-parse HEAD^{tree})"
+          qualifier_workflow_blob="$(git rev-parse HEAD:.github/workflows/qual-001a2-exact-subject.yml)"
+
+          test "$(git rev-parse HEAD^)" = "$PRODUCT_HEAD"
+          mapfile -t changed < <(git diff --name-only "$PRODUCT_HEAD" HEAD | sort)
+          test "${#changed[@]}" -eq 1
+          test "${changed[0]}" = '.github/workflows/qual-001a2-exact-subject.yml'
+
+          {
+            echo "QUALIFIER_HEAD=$qualifier_head"
+            echo "QUALIFIER_TREE=$qualifier_tree"
+            echo "QUALIFIER_WORKFLOW_BLOB=$qualifier_workflow_blob"
+          } >> "$GITHUB_ENV"
+
+      - name: Detach to exact product subject
+        shell: bash
+        run: |
+          set -euo pipefail
+          git checkout --detach "$PRODUCT_HEAD"
+          test "$(git rev-parse HEAD)" = "$PRODUCT_HEAD"
+          test "$(git rev-parse HEAD^{tree})" = "$PRODUCT_TREE"
+          test "$(git rev-parse HEAD^)" = "$QUALIFIED_PARENT"
+          test "$(git rev-list --count "$QUALIFIED_PARENT..HEAD")" -eq 1
+
+      - name: Bind A2 additive theorem
+        shell: bash
+        run: |
+          set -euo pipefail
+          mapfile -t changed < <(git diff --name-only "$QUALIFIED_PARENT" HEAD | sort)
+          expected=(
+            'tools/qualification/tests/test_validate_manifest_v1_a2.py'
+            'tools/qualification/validate_manifest_v1_a2.py'
+          )
+          mapfile -t expected_sorted < <(printf '%s\n' "${expected[@]}" | sort)
+          test "${#changed[@]}" -eq "${#expected_sorted[@]}"
+          diff -u <(printf '%s\n' "${expected_sorted[@]}") <(printf '%s\n' "${changed[@]}")
+
+          test "$(git rev-parse HEAD:tools/qualification/validate_manifest_v1_a2.py)" = "$A2_VALIDATOR_BLOB"
+          test "$(git rev-parse HEAD:tools/qualification/tests/test_validate_manifest_v1_a2.py)" = "$A2_TEST_BLOB"
+
+          inherited=(
+            '.github/workflows/qual-001a-manifest-validator-v1.yml'
+            '.qualification/qual-001a-manifest-validator-v1.json'
+            'tools/qualification/QUALIFICATION_MANIFEST_V1.schema.json'
+            'tools/qualification/tests/test_validate_manifest_v1.py'
+            'tools/qualification/validate_manifest_v1.py'
+          )
+          for path in "${inherited[@]}"
+          do
+            test "$(git rev-parse "$QUALIFIED_PARENT:$path")" = "$(git rev-parse "HEAD:$path")"
+          done
+
+      - name: Install pinned Python
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          architecture: x64
+          check-latest: false
+
+      - name: Verify exact Python runtime
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(python --version)" = "Python $PYTHON_VERSION"
+
+      - name: Compile A1 and A2 validator sources
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+          paths = [
+              Path('tools/qualification/validate_manifest_v1.py'),
+              Path('tools/qualification/validate_manifest_v1_a2.py'),
+              Path('tools/qualification/tests/test_validate_manifest_v1_a2.py'),
+          ]
+          for path in paths:
+              compile(path.read_text(encoding='utf-8'), str(path), 'exec')
+          PY
+
+      - name: Execute inherited plus A2 theorem corpus
+        shell: bash
+        env:
+          PYTHONDONTWRITEBYTECODE: '1'
+        run: |
+          set -euo pipefail
+          python -B -m unittest discover \
+            -s tools/qualification/tests \
+            -p 'test_*.py' \
+            -v 2>&1 | tee /tmp/qual-001a2-tests.log
+          grep -F 'Ran 26 tests' /tmp/qual-001a2-tests.log
+          grep -Fx 'OK' /tmp/qual-001a2-tests.log
+
+      - name: Validate inherited bootstrap through A2 entry point
+        shell: bash
+        env:
+          PYTHONDONTWRITEBYTECODE: '1'
+        run: |
+          set -euo pipefail
+          python -B tools/qualification/validate_manifest_v1_a2.py \
+            .qualification/qual-001a-manifest-validator-v1.json \
+            2>&1 | tee /tmp/qual-001a2-bootstrap.log
+          grep -Fx 'QUALIFICATION_MANIFEST_V1_A2 PASS' /tmp/qual-001a2-bootstrap.log
+
+      - name: Audit A2 wrapper as non-executable control plane
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import ast
+          from pathlib import Path
+
+          path = Path('tools/qualification/validate_manifest_v1_a2.py')
+          tree = ast.parse(path.read_text(encoding='utf-8'), filename=str(path))
+
+          allowed_import_roots = {
+              '__future__', 'argparse', 'sys', 'pathlib', 'typing',
+              'validate_manifest_v1',
+          }
+          banned_call_names = {'eval', 'exec', '__import__'}
+          banned_attributes = {
+              'system', 'popen', 'spawn', 'run', 'call', 'check_call',
+              'check_output', 'urlopen', 'request',
+          }
+
+          for node in ast.walk(tree):
+              if isinstance(node, ast.Import):
+                  for alias in node.names:
+                      root = alias.name.split('.', 1)[0]
+                      assert root in allowed_import_roots, root
+              elif isinstance(node, ast.ImportFrom):
+                  root = (node.module or '').split('.', 1)[0]
+                  assert root in allowed_import_roots, root
+              elif isinstance(node, ast.Call):
+                  if isinstance(node.func, ast.Name):
+                      assert node.func.id not in banned_call_names, node.func.id
+                  elif isinstance(node.func, ast.Attribute):
+                      assert node.func.attr not in banned_attributes, node.func.attr
+          PY
+
+      - name: Prove immutable product checkout
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -z "$(git status --porcelain)"
+          test "$(git rev-parse HEAD)" = "$PRODUCT_HEAD"
+          test "$(git rev-parse HEAD^{tree})" = "$PRODUCT_TREE"
+
+      - name: Record A2 qualification evidence
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p qualification
+          cp /tmp/qual-001a2-tests.log qualification/
+          cp /tmp/qual-001a2-bootstrap.log qualification/
+          sha256sum \
+            tools/qualification/validate_manifest_v1_a2.py \
+            tools/qualification/tests/test_validate_manifest_v1_a2.py \
+            > qualification/a2-subject-files.sha256
+          printf '%s\n' \
+            "qualifier_head=$QUALIFIER_HEAD" \
+            "qualifier_tree=$QUALIFIER_TREE" \
+            "qualifier_workflow_blob=$QUALIFIER_WORKFLOW_BLOB" \
+            "product_head=$PRODUCT_HEAD" \
+            "product_tree=$PRODUCT_TREE" \
+            "qualified_parent=$QUALIFIED_PARENT" \
+            "python_version=$(python --version 2>&1)" \
+            "combined_validator_tests=PASS" \
+            "combined_test_count=26" \
+            "a2_bootstrap_validation=PASS" \
+            "a2_non_executable_control_plane=PASS" \
+            "immutable_product_checkout=PASS" \
+            > qualification/qual-001a2.status.txt
+
+          git diff --quiet
+          git diff --cached --quiet
+
+      - name: Upload A2 qualification evidence
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: qual-001a2-manifest-hardening-v1
+          path: qualification/*
+          if-no-files-found: error
+          retention-days: 30
