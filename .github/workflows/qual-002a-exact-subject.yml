@@ -1,0 +1,198 @@
+name: QUAL-002A Exact Subject
+
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/qual-002a-exact-subject.yml'
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  PRODUCT_SHA: f733d1d568673cfa9b265c5e9f1b1cdb64aa409f
+  PRODUCT_TREE: 66066b0a82498529c4a6021795a704286305e50e
+  PRODUCT_PARENT: d56d6a6c1381dc131d493f0713b657f01c98cb80
+  PROFILE_SHA256: 1988dbcaff6acf7a7037dc7958062a172cb477682f9bbb318fd10f3383b05d34
+  PROFILE_BYTES: '2590'
+  PYTHONDONTWRITEBYTECODE: '1'
+
+jobs:
+  qualify:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout exact product subject
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ env.PRODUCT_SHA }}
+          fetch-depth: 2
+          persist-credentials: false
+
+      - name: Set up exact Python
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1
+        with:
+          python-version: '3.12.10'
+          cache: ''
+
+      - name: Prove exact product ancestry and scope
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$PRODUCT_SHA"
+          test "$(git rev-parse HEAD^{tree})" = "$PRODUCT_TREE"
+          test "$(git rev-parse HEAD^)" = "$PRODUCT_PARENT"
+          test "$(git rev-list --count "$PRODUCT_PARENT..$PRODUCT_SHA")" = "1"
+
+          git diff --name-only "$PRODUCT_PARENT" "$PRODUCT_SHA" > /tmp/changed.txt
+          cat >/tmp/expected.txt <<'EOF'
+          tools/qualification/nix/QUAL_002_CAPSULE_POLICY_V1.schema.json
+          tools/qualification/nix/qual-002a-profile-v1.json
+          tools/qualification/nix/tests/test_validate_qual_002a.py
+          tools/qualification/nix/validate_qual_002a.py
+          EOF
+          LC_ALL=C sort -o /tmp/changed.txt /tmp/changed.txt
+          LC_ALL=C sort -o /tmp/expected.txt /tmp/expected.txt
+          diff -u /tmp/expected.txt /tmp/changed.txt
+
+      - name: Prove frozen blobs and profile bytes
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD:tools/qualification/nix/qual-002a-profile-v1.json)" = "7ffc4c50a96094288635c862e18fc8d9223527f6"
+          test "$(git rev-parse HEAD:tools/qualification/nix/QUAL_002_CAPSULE_POLICY_V1.schema.json)" = "ac34cac094620968978700ecf7eb7d7624a83663"
+          test "$(git rev-parse HEAD:tools/qualification/nix/validate_qual_002a.py)" = "689c4367e30ee5b50449997d8fd39ef88fcbbf71"
+          test "$(git rev-parse HEAD:tools/qualification/nix/tests/test_validate_qual_002a.py)" = "bbf9b13b5b65dd9328a84c2649ce672c79672dc0"
+
+          python - <<'PY'
+          from pathlib import Path
+          import hashlib
+          p = Path('tools/qualification/nix/qual-002a-profile-v1.json')
+          raw = p.read_bytes()
+          assert len(raw) == int('2590')
+          assert hashlib.sha256(raw).hexdigest() == '1988dbcaff6acf7a7037dc7958062a172cb477682f9bbb318fd10f3383b05d34'
+          PY
+
+      - name: Assert exact Python runtime
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(python -c 'import platform; print(platform.python_version())')" = "3.12.10"
+
+      - name: Compile validator without mutating source tree
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import py_compile
+          py_compile.compile(
+              'tools/qualification/nix/validate_qual_002a.py',
+              cfile='/tmp/validate_qual_002a.pyc',
+              doraise=True,
+          )
+          PY
+
+      - name: Run hostile reference corpus
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m unittest discover \
+            -s tools/qualification/nix/tests \
+            -p 'test_validate_qual_002a.py' \
+            -v
+
+      - name: Run production validator on frozen profile
+        shell: bash
+        run: |
+          set -euo pipefail
+          python tools/qualification/nix/validate_qual_002a.py \
+            tools/qualification/nix/qual-002a-profile-v1.json
+
+      - name: Independent static authority audit
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import ast
+          import json
+          from pathlib import Path
+
+          root = Path('tools/qualification/nix')
+          validator = root / 'validate_qual_002a.py'
+          profile = json.loads((root / 'qual-002a-profile-v1.json').read_text())
+          schema = json.loads((root / 'QUAL_002_CAPSULE_POLICY_V1.schema.json').read_text())
+
+          assert schema['additionalProperties'] is False
+          assert schema['properties']['schema_id']['const'] == profile['schema_id']
+          assert schema['properties']['profile_id']['const'] == profile['profile_id']
+          assert set(schema['required']) == set(profile)
+
+          tree = ast.parse(validator.read_text())
+          allowed_import_roots = {'__future__', 'hashlib', 'json', 'sys', 'pathlib', 'typing'}
+          for node in ast.walk(tree):
+              if isinstance(node, ast.Import):
+                  for alias in node.names:
+                      assert alias.name.split('.')[0] in allowed_import_roots, alias.name
+              elif isinstance(node, ast.ImportFrom):
+                  assert (node.module or '').split('.')[0] in allowed_import_roots, node.module
+              elif isinstance(node, ast.Call) and isinstance(node.func, ast.Name):
+                  assert node.func.id not in {'eval', 'exec', '__import__'}, node.func.id
+              elif isinstance(node, ast.Attribute):
+                  assert node.attr not in {
+                      'system', 'popen', 'spawn', 'fork', 'execv', 'execve',
+                      'connect', 'request', 'urlopen'
+                  }, node.attr
+          PY
+
+      - name: Immutable tracked and untracked checkout postflight
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$PRODUCT_SHA"
+          test -z "$(git status --porcelain=v1 --untracked-files=all)"
+
+      - name: Emit qualification receipt
+        if: always()
+        shell: bash
+        env:
+          QUALIFIER_HEAD: ${{ github.event.pull_request.head.sha }}
+          RUN_ID: ${{ github.run_id }}
+          JOB_STATUS: ${{ job.status }}
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/qual-002a-evidence
+          python - <<'PY'
+          import hashlib
+          import json
+          import os
+          import platform
+          from pathlib import Path
+
+          profile = Path('tools/qualification/nix/qual-002a-profile-v1.json').read_bytes()
+          receipt = {
+              'schema_id': 'luminous.qual-002a-exact-subject-receipt.v1',
+              'qualifier_head': os.environ['QUALIFIER_HEAD'],
+              'product_sha': os.environ['PRODUCT_SHA'],
+              'product_tree': os.environ['PRODUCT_TREE'],
+              'product_parent': os.environ['PRODUCT_PARENT'],
+              'profile_sha256': hashlib.sha256(profile).hexdigest(),
+              'profile_bytes': len(profile),
+              'python_version': platform.python_version(),
+              'github_run_id': os.environ['RUN_ID'],
+              'job_status_at_receipt': os.environ['JOB_STATUS'],
+          }
+          Path('/tmp/qual-002a-evidence/receipt.json').write_text(
+              json.dumps(receipt, sort_keys=True, separators=(',', ':')) + '\n'
+          )
+          PY
+
+      - name: Upload evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: qual-002a-exact-subject-evidence
+          path: /tmp/qual-002a-evidence
+          if-no-files-found: error
+          retention-days: 30
