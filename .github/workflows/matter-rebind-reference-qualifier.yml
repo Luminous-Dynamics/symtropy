@@ -102,7 +102,7 @@ jobs:
           ! grep -Eq '(^|[^A-Za-z0-9_])unsafe([^A-Za-z0-9_]|$)' "$FILE"
           ! grep -Eq 'std::(fs|net|process|env)::|SystemTime|Instant::now' "$FILE"
           ! grep -Eq 'symtropy_(terrain|construction|world)|bevy::|rapier' "$FILE"
-          ! grep -Eq 'SparseMatterStore|MatterStateDigest|MatterAuthority' "$FILE"
+          ! grep -Eq 'SparseMatterStore|MatterStateDigest|symtropy_universal_matter|use[[:space:]].*MatterAuthority' "$FILE"
 
       - name: Check exact formatting
         shell: bash
