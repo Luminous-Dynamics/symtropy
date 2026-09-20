@@ -20,6 +20,7 @@ pub mod geometry_kernel;
 mod live_geometry_provider;
 mod live_geometry_query;
 pub mod terrain_metric;
+pub mod voxel_address;
 
 pub use geometry_currentness::{
     TerrainGeometryCurrentnessError, verify_live_terrain_geometry_current,
