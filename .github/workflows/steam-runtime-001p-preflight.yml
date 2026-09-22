@@ -1,0 +1,217 @@
+name: STEAM-RUNTIME-001P dependency capsule preflight
+
+on:
+  pull_request:
+    branches:
+      - preflight/steam-runtime-001p-base
+    types: [ready_for_review]
+    paths:
+      - .github/workflows/steam-runtime-001p-preflight.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: steam-runtime-001p-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+env:
+  PRODUCT_PARENT_SHA: d56d6a6c1381dc131d493f0713b657f01c98cb80
+  PRODUCT_PARENT_TREE: fbdfb6e0543fa3bce1ef73d655bf5efdc46c3739
+  BEVY_STEAMWORKS_VERSION: 0.17.0
+  RUSTUP_TOOLCHAIN: 1.96.0
+  CARGO_TERM_COLOR: never
+
+jobs:
+  preflight:
+    name: Measure exact Steam Rust/native dependency capsule
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+
+    steps:
+      - name: Checkout literal Symtropy parent
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: d56d6a6c1381dc131d493f0713b657f01c98cb80
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Prove exact parent and clean source
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$PRODUCT_PARENT_SHA"
+          test "$(git rev-parse HEAD^{tree})" = "$PRODUCT_PARENT_TREE"
+          test -z "$(git status --porcelain=v1)"
+          sha256sum Cargo.toml Cargo.lock | tee /tmp/steam-parent-source-hashes.txt
+
+      - name: Install pinned Rust toolchain
+        uses: dtolnay/rust-toolchain@6bed0761d98439e5a578e2877258200ad565ba87
+        with:
+          toolchain: 1.96.0
+
+      - name: Prove existing workspace lock is coherent before Steam
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo metadata --manifest-path Cargo.toml --locked --format-version 1 > /tmp/symtropy-parent-metadata.json
+          test -z "$(git status --porcelain=v1)"
+          echo 'parent_locked_metadata=PASS'
+
+      - name: Build isolated scratch workspace and add only Steam wrapper dependency
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf /tmp/symtropy-steam-scratch
+          mkdir -p /tmp/symtropy-steam-scratch
+          rsync -a --exclude '.git' ./ /tmp/symtropy-steam-scratch/
+          cp Cargo.lock /tmp/steam-parent-Cargo.lock
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('/tmp/symtropy-steam-scratch/Cargo.toml')
+          s=p.read_text()
+          marker='[dependencies]\n'
+          assert marker in s
+          replacement=marker+'bevy-steamworks = "=0.17.0"\n'
+          s=s.replace(marker,replacement,1)
+          p.write_text(s)
+          PY
+          grep -Fxq 'bevy-steamworks = "=0.17.0"' /tmp/symtropy-steam-scratch/Cargo.toml
+
+      - name: Resolve scratch workspace and classify lock delta
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo metadata --manifest-path /tmp/symtropy-steam-scratch/Cargo.toml --format-version 1 > /tmp/steam-workspace-metadata.json
+          cargo fetch --manifest-path /tmp/symtropy-steam-scratch/Cargo.toml
+          cp /tmp/symtropy-steam-scratch/Cargo.lock /tmp/steam-generated-Cargo.lock
+          python3 - <<'PY' | tee /tmp/steam-lock-classification.txt
+          import tomllib
+          def load(path):
+              with open(path,'rb') as f: return tomllib.load(f)['package']
+          def key(p): return (p['name'],p['version'],p.get('source',''))
+          before={key(p):p for p in load('/tmp/steam-parent-Cargo.lock')}
+          after={key(p):p for p in load('/tmp/steam-generated-Cargo.lock')}
+          added=sorted(set(after)-set(before))
+          removed=sorted(set(before)-set(after))
+          changed=sorted(k for k in set(before)&set(after) if before[k]!=after[k])
+          print('added_packages=',added)
+          print('removed_packages=',removed)
+          print('changed_existing_packages=',changed)
+          assert any(k[0]=='bevy-steamworks' and k[1]=='0.17.0' for k in added)
+          assert removed==[], removed
+          targets={name:[k for k in after if k[0]==name] for name in ('bevy-steamworks','steamworks','steamworks-sys')}
+          for name, vals in targets.items():
+              assert len(vals)==1, (name,vals)
+              k=vals[0]
+              p=after[k]
+              print(f'{name}_key={k}')
+              print(f'{name}_checksum={p.get("checksum","")}')
+              print(f'{name}_dependencies={p.get("dependencies",[])}')
+          PY
+          echo "parent_lock_sha256=$(sha256sum /tmp/steam-parent-Cargo.lock | awk '{print $1}')" | tee /tmp/steam-lock-hashes.txt
+          echo "generated_lock_sha256=$(sha256sum /tmp/steam-generated-Cargo.lock | awk '{print $1}')" | tee -a /tmp/steam-lock-hashes.txt
+
+      - name: Extract exact package source coordinates
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY' | tee /tmp/steam-package-paths.env
+          import json
+          d=json.load(open('/tmp/steam-workspace-metadata.json'))
+          for name in ('bevy-steamworks','steamworks','steamworks-sys'):
+              ps=[p for p in d['packages'] if p['name']==name]
+              assert len(ps)==1, (name,len(ps))
+              p=ps[0]
+              key=name.upper().replace('-','_')
+              print(f'{key}_VERSION={p["version"]}')
+              print(f'{key}_SOURCE={p.get("source","")}')
+              print(f'{key}_MANIFEST={p["manifest_path"]}')
+          PY
+          cat /tmp/steam-package-paths.env
+
+      - name: Census native artifacts build scripts licenses and SDK markers
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json, os, pathlib, re, hashlib
+          d=json.load(open('/tmp/steam-workspace-metadata.json'))
+          packages={p['name']:p for p in d['packages'] if p['name'] in {'bevy-steamworks','steamworks','steamworks-sys'}}
+          out=[]
+          for name in ('bevy-steamworks','steamworks','steamworks-sys'):
+              root=pathlib.Path(packages[name]['manifest_path']).parent
+              out.append(f'PACKAGE {name} {packages[name]["version"]} ROOT {root}')
+              build=root/'build.rs'
+              if build.exists():
+                  data=build.read_bytes()
+                  out.append(f'BUILD_RS {name} sha256={hashlib.sha256(data).hexdigest()} bytes={len(data)}')
+                  text=data.decode(errors='replace')
+                  for line in text.splitlines():
+                      if any(tok in line for tok in ('rustc-link','STEAM','SDK','OUT_DIR','target_os','target_arch')):
+                          out.append(f'BUILD_MARKER {name} {line[:300]}')
+              for p in sorted(root.rglob('*')):
+                  if not p.is_file():
+                      continue
+                  rel=str(p.relative_to(root))
+                  low=rel.lower()
+                  native=any(tok in low for tok in ('steam_api','steamclient','sdkencryptedappticket','steamnetworkingsockets')) and p.stat().st_size>0
+                  licenseish=pathlib.Path(rel).name.lower().startswith(('license','copying','notice'))
+                  if native or licenseish:
+                      data=p.read_bytes()
+                      kind='NATIVE' if native else 'LICENSE'
+                      out.append(f'{kind} {name} {rel} bytes={len(data)} sha256={hashlib.sha256(data).hexdigest()}')
+              for p in (root/'README.md', root/'Cargo.toml'):
+                  if p.exists():
+                      text=p.read_text(errors='replace')
+                      for line in text.splitlines():
+                          if re.search(r'(?i)(steamworks\s+sdk|sdk\s+v?[0-9]|v1\.[0-9]{2})',line):
+                              out.append(f'VERSION_MARKER {name} {p.name} {line[:300]}')
+          pathlib.Path('/tmp/steam-native-census.txt').write_text('\n'.join(out)+'\n')
+          print('\n'.join(out))
+          PY
+
+      - name: Build standalone minimal wrapper smoke crate
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf /tmp/steam-wrapper-smoke
+          mkdir -p /tmp/steam-wrapper-smoke/src
+          cat > /tmp/steam-wrapper-smoke/Cargo.toml <<'EOF'
+          [package]
+          name = "steam-wrapper-smoke"
+          version = "0.0.0"
+          edition = "2024"
+          publish = false
+
+          [dependencies]
+          bevy-steamworks = "=0.17.0"
+          EOF
+          cat > /tmp/steam-wrapper-smoke/src/lib.rs <<'EOF'
+          #![forbid(unsafe_code)]
+          pub fn dependency_capsule_smoke() -> bool { true }
+          EOF
+          cargo check --manifest-path /tmp/steam-wrapper-smoke/Cargo.toml
+          cargo tree --manifest-path /tmp/steam-wrapper-smoke/Cargo.toml -p bevy-steamworks -e features | tee /tmp/steam-feature-tree.txt
+
+      - name: Postflight source immutability and receipt
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$PRODUCT_PARENT_SHA"
+          test "$(git rev-parse HEAD^{tree})" = "$PRODUCT_PARENT_TREE"
+          test -z "$(git status --porcelain=v1)"
+          {
+            echo "parent_sha=$PRODUCT_PARENT_SHA"
+            echo "parent_tree=$PRODUCT_PARENT_TREE"
+            echo "rustc=$(rustc --version)"
+            echo "cargo=$(cargo --version)"
+            echo "bevy_steamworks_requested=$BEVY_STEAMWORKS_VERSION"
+            cat /tmp/steam-lock-hashes.txt
+            cat /tmp/steam-lock-classification.txt
+            cat /tmp/steam-package-paths.env
+            echo 'minimal_wrapper_cargo_check=PASS'
+            echo 'product_source_immutable=PASS'
+            echo 'result=DEPENDENCY_CAPSULE_PREFLIGHT_PASS'
+          } | tee /tmp/steam-runtime-001p-receipt.txt
