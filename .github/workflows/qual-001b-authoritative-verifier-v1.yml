@@ -1,0 +1,159 @@
+name: QUAL-001B Authoritative Verifier v1
+
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/qual-001b-authoritative-verifier-v1.yml'
+      - 'tools/qualification/authoritative_verifier_v1.py'
+      - 'tools/qualification/qualification_contract_v1.py'
+      - 'tools/qualification/rust_workspace_package_profile_v1.py'
+      - 'tools/qualification/tests/test_authoritative_verifier_v1.py'
+  workflow_dispatch:
+    inputs:
+      contract_commit_sha:
+        description: Exact commit containing the frozen qualification contract
+        required: true
+        type: string
+      contract_path:
+        description: Repository-relative qualification contract path
+        required: true
+        type: string
+      contract_sha256:
+        description: SHA-256 of the exact qualification contract bytes
+        required: true
+        type: string
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event_name }}-${{ github.event.pull_request.number || inputs.contract_sha256 || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  control-plane-preflight:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Checkout verifier candidate
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+          fetch-depth: 2
+      - name: Install pinned Python
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1
+        with:
+          python-version: '3.12.10'
+          architecture: x64
+          check-latest: false
+      - name: Compile verifier-owned sources
+        run: |
+          set -euo pipefail
+          python -m py_compile \
+            tools/qualification/qualification_contract_v1.py \
+            tools/qualification/rust_workspace_package_profile_v1.py \
+            tools/qualification/authoritative_verifier_v1.py \
+            tools/qualification/tests/test_authoritative_verifier_v1.py
+      - name: Execute verifier hostile corpus
+        env:
+          PYTHONDONTWRITEBYTECODE: '1'
+        run: |
+          set -euo pipefail
+          python -B -m unittest \
+            tools.qualification.tests.test_authoritative_verifier_v1 -v \
+            2>&1 | tee /tmp/qual-001b-tests.log
+          grep -F 'Ran 21 tests' /tmp/qual-001b-tests.log
+          grep -Fx 'OK' /tmp/qual-001b-tests.log
+      - name: Candidate postflight
+        run: |
+          set -euo pipefail
+          git diff --exit-code
+          git diff --cached --exit-code
+          test -z "$(git ls-files --others --exclude-standard)"
+
+  execute-frozen-contract:
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    env:
+      VERIFIER_DIR: ${{ github.workspace }}/verifier
+      CONTRACT_DIR: ${{ github.workspace }}/contract
+      SUBJECT_DIR: ${{ github.workspace }}/subject
+      EVIDENCE_DIR: /tmp/qual-001b-evidence
+      CARGO_TARGET_DIR: /tmp/qual-001b-cargo-target
+    steps:
+      - name: Checkout exact verifier release candidate
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.sha }}
+          path: verifier
+          persist-credentials: false
+          fetch-depth: 0
+      - name: Checkout exact contract commit
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ inputs.contract_commit_sha }}
+          path: contract
+          persist-credentials: false
+          fetch-depth: 1
+      - name: Install pinned Python
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1
+        with:
+          python-version: '3.12.10'
+          architecture: x64
+          check-latest: false
+      - name: Validate contract and expose exact subject identity
+        id: contract
+        env:
+          CONTRACT_PATH: ${{ inputs.contract_path }}
+          CONTRACT_SHA256: ${{ inputs.contract_sha256 }}
+        run: |
+          set -euo pipefail
+          python "$VERIFIER_DIR/tools/qualification/qualification_contract_v1.py" \
+            --contract-root "$CONTRACT_DIR" \
+            --contract-path "$CONTRACT_PATH" \
+            --expected-sha256 "$CONTRACT_SHA256" \
+            | tee /tmp/qual-001b-contract.txt
+          subject_sha="$(sed -n 's/^subject_head_sha=//p' /tmp/qual-001b-contract.txt)"
+          test "${#subject_sha}" -eq 40
+          echo "subject_head_sha=$subject_sha" >> "$GITHUB_OUTPUT"
+      - name: Checkout exact subject
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ steps.contract.outputs.subject_head_sha }}
+          path: subject
+          persist-credentials: false
+          fetch-depth: 0
+      - name: Install pinned Rust 1.96.0
+        uses: dtolnay/rust-toolchain@02cb101ec7c40f2c49e1d9714d64511d8e1b74de
+        with:
+          toolchain: 1.96.0
+          components: rustfmt, clippy
+      - name: Execute verifier-owned theorem suite
+        env:
+          CONTRACT_PATH: ${{ inputs.contract_path }}
+          CONTRACT_SHA256: ${{ inputs.contract_sha256 }}
+          CONTRACT_COMMIT: ${{ inputs.contract_commit_sha }}
+          VERIFIER_COMMIT: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          rm -rf "$EVIDENCE_DIR" "$CARGO_TARGET_DIR"
+          mkdir -p "$EVIDENCE_DIR" "$CARGO_TARGET_DIR"
+          python "$VERIFIER_DIR/tools/qualification/authoritative_verifier_v1.py" \
+            --verifier-root "$VERIFIER_DIR" \
+            --contract-root "$CONTRACT_DIR" \
+            --subject-root "$SUBJECT_DIR" \
+            --contract-path "$CONTRACT_PATH" \
+            --expected-verifier-commit-sha "$VERIFIER_COMMIT" \
+            --expected-contract-commit-sha "$CONTRACT_COMMIT" \
+            --expected-contract-sha256 "$CONTRACT_SHA256" \
+            --evidence-dir "$EVIDENCE_DIR"
+      - name: Upload execution evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: qual-001b-execution-${{ inputs.contract_sha256 }}
+          path: /tmp/qual-001b-evidence/*
+          if-no-files-found: error
+          retention-days: 30
