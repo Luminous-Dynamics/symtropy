@@ -1,0 +1,82 @@
+name: BUILD ONLY - SCALE-CELL-001F r4 rustfmt repair
+
+on:
+  push:
+    branches:
+      - ci/build-scale-cell-001f-r4-format-only
+
+permissions:
+  contents: write
+
+jobs:
+  build-product:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout helper branch
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install pinned Rust formatter
+        uses: dtolnay/rust-toolchain@1.96.0
+        with:
+          components: rustfmt
+
+      - name: Build direct-child r4 product commit
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          PARENT='6f44c737b7b2626c34af11b473b1096684006214'
+          SOURCE='b62ed3fd4c96265518b27fffa1308763206046ce'
+          SOURCE_BLOB='61c8fb7be068f213cf6a432d071256b779184c92'
+          TARGET='scale/scale-cell-001f-async-ref-r4-6f44c73'
+          PATH_001F='crates/core/symtropy-sim-contracts/tests/scale_cell_001f_async_reference.rs'
+
+          test "$(git rev-parse "${SOURCE}^")" = "${PARENT}"
+
+          remote_target="$(git ls-remote origin "refs/heads/${TARGET}" | cut -f1)"
+          test "${remote_target}" = "${PARENT}"
+
+          git checkout --detach "${PARENT}"
+          git show "${SOURCE}:${PATH_001F}" > "${PATH_001F}"
+          test "$(git hash-object "${PATH_001F}")" = "${SOURCE_BLOB}"
+
+          rustfmt +1.96.0 --edition 2024 "${PATH_001F}"
+          rustfmt +1.96.0 --edition 2024 --check "${PATH_001F}"
+          git diff --check
+
+          test "$(git diff --name-only)" = "${PATH_001F}"
+          test -n "$(git diff -- "${PATH_001F}")"
+
+          git add "${PATH_001F}"
+          tree="$(git write-tree)"
+          test "${tree}" != '1275eaa2e99793f3a335a7624dc1c25af63e6946'
+
+          export GIT_AUTHOR_NAME='Tristan Stoltz'
+          export GIT_AUTHOR_EMAIL='tristan.stoltz@evolvingresonantcocreationism.com'
+          export GIT_COMMITTER_NAME='Tristan Stoltz'
+          export GIT_COMMITTER_EMAIL='tristan.stoltz@evolvingresonantcocreationism.com'
+
+          commit="$(printf '%s\n' 'test(sim-contracts): format SCALE-CELL-001F async reference r4' | git commit-tree "${tree}" -p "${PARENT}")"
+
+          test "$(git rev-parse "${commit}^")" = "${PARENT}"
+          test "$(git diff-tree --no-commit-id --name-only -r "${PARENT}" "${commit}")" = "${PATH_001F}"
+
+          new_blob="$(git rev-parse "${commit}:${PATH_001F}")"
+          test "${new_blob}" != "${SOURCE_BLOB}"
+
+          git push origin "${commit}:refs/heads/${TARGET}"
+
+          {
+            echo '### SCALE-CELL-001F r4 product constructed'
+            echo
+            echo "- parent: \`${PARENT}\`"
+            echo "- source r3: \`${SOURCE}\`"
+            echo "- source blob: \`${SOURCE_BLOB}\`"
+            echo "- r4 commit: \`${commit}\`"
+            echo "- r4 tree: \`${tree}\`"
+            echo "- r4 blob: \`${new_blob}\`"
+            echo "- changed path: \`${PATH_001F}\`"
+          } >> "${GITHUB_STEP_SUMMARY}"
