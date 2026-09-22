@@ -1,0 +1,144 @@
+name: WORLD-START-00A Exact Product Qualification
+
+on:
+  pull_request:
+    branches:
+      - world-start/world-start-00a-genesis-algebra-r4-d56d6a6
+
+permissions:
+  contents: read
+
+concurrency:
+  group: world-start-00a-q-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: false
+
+env:
+  PRODUCT_SHA: c5496efdad451309a40c5f9d973eb6e6a45f15e5
+  PRODUCT_TREE: 8776655d0f6e68ae36586674df328f0c1ca77329
+  PARENT_SHA: d56d6a6c1381dc131d493f0713b657f01c98cb80
+  ROOT_CARGO_BLOB: dd48dc915a30f7af7c31eae2a2cb8e9aedb39459
+  WORLD_START_CARGO_BLOB: 768a44790f40f9b606e3eba14d7beaa5d5b8d825
+  WORLD_START_LIB_BLOB: 704b781fa612e29dd622647d90a8d20ae8017dd9
+  WORLD_START_TEST_BLOB: 02b4cfd8bc525290f2eaf0a85d472483babb6c8c
+  CARGO_LOCK_BLOB: db602c9707ecd6143ef36c0243c051544a027141
+
+jobs:
+  qualify:
+    name: Exact WORLD-START-00A r4 / Rust 1.96.0
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout immutable product subject
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ env.PRODUCT_SHA }}
+          fetch-depth: 0
+
+      - name: Freeze subject manifest
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p qualification
+          cat > qualification/SUBJECT.txt <<EOF
+          qualification=world-start-00a-r4
+          product_sha=${PRODUCT_SHA}
+          product_tree=${PRODUCT_TREE}
+          parent_sha=${PARENT_SHA}
+          root_cargo_blob=${ROOT_CARGO_BLOB}
+          world_start_cargo_blob=${WORLD_START_CARGO_BLOB}
+          world_start_lib_blob=${WORLD_START_LIB_BLOB}
+          world_start_test_blob=${WORLD_START_TEST_BLOB}
+          cargo_lock_blob=${CARGO_LOCK_BLOB}
+          rust_toolchain=1.96.0
+          EOF
+
+      - name: Verify exact immutable subject
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "${PRODUCT_SHA}"
+          test "$(git rev-parse HEAD^{tree})" = "${PRODUCT_TREE}"
+          test "$(git rev-parse HEAD^)" = "${PARENT_SHA}"
+          test "$(git merge-base "${PARENT_SHA}" "${PRODUCT_SHA}")" = "${PARENT_SHA}"
+          test "$(git rev-list --count "${PARENT_SHA}..${PRODUCT_SHA}")" = "1"
+
+          test "$(git rev-parse HEAD:Cargo.toml)" = "${ROOT_CARGO_BLOB}"
+          test "$(git rev-parse HEAD:crates/domains/symtropy-world-start/Cargo.toml)" = "${WORLD_START_CARGO_BLOB}"
+          test "$(git rev-parse HEAD:crates/domains/symtropy-world-start/src/lib.rs)" = "${WORLD_START_LIB_BLOB}"
+          test "$(git rev-parse HEAD:crates/domains/symtropy-world-start/tests/genesis_contract.rs)" = "${WORLD_START_TEST_BLOB}"
+          test "$(git rev-parse HEAD:Cargo.lock)" = "${CARGO_LOCK_BLOB}"
+
+          expected="$(printf '%s\n' \
+            Cargo.toml \
+            crates/domains/symtropy-world-start/Cargo.toml \
+            crates/domains/symtropy-world-start/src/lib.rs \
+            crates/domains/symtropy-world-start/tests/genesis_contract.rs | sort)"
+          actual="$(git diff --name-only "${PARENT_SHA}" "${PRODUCT_SHA}" | sort)"
+          test "${actual}" = "${expected}"
+
+      - name: Set up Rust 1.96.0
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.96.0
+          components: clippy, rustfmt
+
+      - name: Verify exact Rust toolchain
+        shell: bash
+        run: |
+          set -euo pipefail
+          rustc --version | grep -E '^rustc 1\.96\.0 '
+          cargo --version
+
+      - name: Locked workspace metadata preflight
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo metadata --locked --no-deps --format-version 1 > /dev/null
+
+      - name: WORLD-START format
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo fmt -p symtropy-world-start -- --check
+
+      - name: WORLD-START tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo test --locked -p symtropy-world-start
+
+      - name: WORLD-START strict Clippy
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo clippy --locked -p symtropy-world-start --all-targets -- -D warnings
+
+      - name: WORLD-START check
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo check --locked -p symtropy-world-start --all-targets
+
+      - name: Immutable postflight
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "${PRODUCT_SHA}"
+          test "$(git rev-parse HEAD^{tree})" = "${PRODUCT_TREE}"
+          test "$(git rev-parse HEAD:Cargo.lock)" = "${CARGO_LOCK_BLOB}"
+          test -z "$(git status --porcelain --untracked-files=no)"
+
+      - name: Record result
+        if: always()
+        shell: bash
+        run: |
+          printf 'job_status=%s\n' '${{ job.status }}' > qualification/RESULT.txt
+
+      - name: Upload qualification subject/result
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: world-start-00a-r4-qualification-${{ github.run_id }}
+          path: qualification/
+          if-no-files-found: error
