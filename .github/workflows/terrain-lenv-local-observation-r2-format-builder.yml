@@ -1,0 +1,128 @@
+name: Terrain LENV local observation r2 format-only builder
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: terrain-lenv-local-observation-r2-format-builder
+  cancel-in-progress: false
+
+jobs:
+  build-fresh-product:
+    if: github.event.pull_request.head.ref == 'ci/terrain-lenv-local-observation-r2-format-builder'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      PARENT_SHA: 346852c0b3490df30b1b34ba96d23cb9cf47e5f3
+      FAILED_SHA: c4db958a899d6c3a34f298599c9d932f96e80329
+      FAILED_TREE: 5a4c73c8f45dbc32a2480420bd6d20352a6c92e9
+      MODULE_FILE: crates/domains/symtropy-terrain/src/environment_observation.rs
+      MODULE_BLOB: 26e92b4afc0651e7476c3bd417a0b9a36198f23a
+      LIB_FILE: crates/domains/symtropy-terrain/src/lib.rs
+      LIB_BLOB: aabe641f7b9a600a888da0f681d1338bab97fbd8
+      PRODUCT_BRANCH: terrain/lenv-local-observation-v0.1-r2
+
+    steps:
+      - name: Checkout exact qualified parent
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ env.PARENT_SHA }}
+          fetch-depth: 0
+          persist-credentials: true
+
+      - name: Install pinned Rust formatter
+        uses: dtolnay/rust-toolchain@6bed0761d98439e5a578e2877258200ad565ba87
+        with:
+          toolchain: 1.96.0
+          components: rustfmt
+
+      - name: Prove failed product lineage and exact blobs
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$PARENT_SHA"
+          test "$(git rev-parse "$FAILED_SHA^")" = "$PARENT_SHA"
+          test "$(git rev-parse "$FAILED_SHA^{tree}")" = "$FAILED_TREE"
+          test "$(git rev-list --count "$PARENT_SHA".."$FAILED_SHA")" = 1
+
+          expected="$(printf '%s\n' "$MODULE_FILE" "$LIB_FILE" | sort)"
+          actual="$(git diff --name-only "$PARENT_SHA" "$FAILED_SHA" | sort)"
+          test "$actual" = "$expected"
+
+          test "$(git rev-parse "$FAILED_SHA:$MODULE_FILE")" = "$MODULE_BLOB"
+          test "$(git rev-parse "$FAILED_SHA:$LIB_FILE")" = "$LIB_BLOB"
+          test "$(git diff --numstat "$PARENT_SHA" "$FAILED_SHA" -- "$LIB_FILE")" = $'1\t0\t'"$LIB_FILE"
+          test -z "$(git status --porcelain=v1 --untracked-files=all)"
+
+      - name: Apply only Rust 1.96 formatting to owned new module
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$(dirname "$MODULE_FILE")"
+          git show "$FAILED_SHA:$MODULE_FILE" > "$MODULE_FILE"
+          git show "$FAILED_SHA:$LIB_FILE" > "$LIB_FILE"
+
+          cp "$MODULE_FILE" /tmp/failed-environment-observation.rs
+          cp "$LIB_FILE" /tmp/failed-terrain-lib.rs
+
+          rustfmt +1.96.0 --edition 2024 "$MODULE_FILE"
+
+          # The executed r1 qualifier emitted a formatter delta only for the new
+          # module. The export file must remain byte-identical to r1.
+          cmp -s /tmp/failed-terrain-lib.rs "$LIB_FILE"
+          test "$(git hash-object "$LIB_FILE")" = "$LIB_BLOB"
+          ! cmp -s /tmp/failed-environment-observation.rs "$MODULE_FILE"
+
+          rustfmt +1.96.0 --edition 2024 --check "$MODULE_FILE"
+          rustfmt +1.96.0 --edition 2024 --check "$LIB_FILE"
+          test "$(git hash-object "$LIB_FILE")" = "$LIB_BLOB"
+
+          expected="$(printf '%s\n' "$MODULE_FILE" "$LIB_FILE" | sort)"
+          actual="$(git diff --name-only | sort)"
+          test "$actual" = "$expected"
+          test "$(git diff --numstat -- "$LIB_FILE")" = $'1\t0\t'"$LIB_FILE"
+
+          echo "failed_module_blob=$MODULE_BLOB"
+          echo "formatted_module_blob=$(git hash-object "$MODULE_FILE")"
+          echo "preserved_lib_blob=$(git hash-object "$LIB_FILE")"
+          git diff --no-index -- /tmp/failed-environment-observation.rs "$MODULE_FILE" || test $? -eq 1
+
+      - name: Construct fresh direct-child r2 product
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git switch -c "$PRODUCT_BRANCH"
+          git add -- "$MODULE_FILE" "$LIB_FILE"
+
+          expected="$(printf '%s\n' "$MODULE_FILE" "$LIB_FILE" | sort)"
+          actual="$(git diff --cached --name-only | sort)"
+          test "$actual" = "$expected"
+          test "$(git hash-object "$LIB_FILE")" = "$LIB_BLOB"
+
+          git commit -m "feat(terrain): format local LENV observation for Rust 1.96 r2"
+
+          test "$(git rev-parse HEAD^)" = "$PARENT_SHA"
+          test "$(git rev-list --count "$PARENT_SHA"..HEAD)" = 1
+          actual="$(git diff --name-only "$PARENT_SHA" HEAD | sort)"
+          test "$actual" = "$expected"
+          test "$(git rev-parse HEAD:$LIB_FILE)" = "$LIB_BLOB"
+          test -z "$(git status --porcelain=v1 --untracked-files=all)"
+
+          echo "product_head=$(git rev-parse HEAD)"
+          echo "product_tree=$(git rev-parse HEAD^{tree})"
+          echo "product_module_blob=$(git rev-parse HEAD:$MODULE_FILE)"
+          echo "product_lib_blob=$(git rev-parse HEAD:$LIB_FILE)"
+
+      - name: Publish fresh product branch once
+        shell: bash
+        run: |
+          set -euo pipefail
+          # Never force: an existing branch is a conflict, not permission to
+          # rewrite an already-published product subject.
+          git push origin "HEAD:refs/heads/$PRODUCT_BRANCH"
