@@ -1,0 +1,95 @@
+name: Runtime session lifecycle r2 format-only builder
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: runtime-session-lifecycle-r2-format-builder
+  cancel-in-progress: false
+
+jobs:
+  build-fresh-product:
+    if: github.event.pull_request.head.ref == 'ci/runtime-session-lifecycle-r2-format-builder'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      CURRENT_PARENT: d56d6a6c1381dc131d493f0713b657f01c98cb80
+      HISTORICAL_BASE: 3f8e470647b2befe40b4fcbbd90e6efb8c21fc93
+      HISTORICAL_PRODUCT: 3fd06492de95a15e06a2e2a86d90816fb7754f7c
+      MENU_FILE: src/systems/menu.rs
+      BASE_MENU_BLOB: 793c7d779e6d5bdc9b76bee68c931a8246bca419
+      SOURCE_MENU_BLOB: c3e913d20e02ceb2b39f900e42889118ca2e9fd7
+      PRODUCT_BRANCH: runtime/session-lifecycle-r2-d56d6a6
+
+    steps:
+      - name: Checkout exact current main
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ env.CURRENT_PARENT }}
+          fetch-depth: 0
+          persist-credentials: true
+
+      - name: Install exact formatter
+        uses: dtolnay/rust-toolchain@6bed0761d98439e5a578e2877258200ad565ba87
+        with:
+          toolchain: 1.96.0
+          components: rustfmt
+
+      - name: Prove base equivalence and historical source identity
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$CURRENT_PARENT"
+          test "$(git rev-parse HEAD:$MENU_FILE)" = "$BASE_MENU_BLOB"
+          git fetch --no-tags origin "$HISTORICAL_BASE" "$HISTORICAL_PRODUCT"
+          test "$(git rev-parse "$HISTORICAL_BASE:$MENU_FILE")" = "$BASE_MENU_BLOB"
+          test "$(git rev-parse "$HISTORICAL_PRODUCT^")" = "$HISTORICAL_BASE"
+          test "$(git diff --name-only "$HISTORICAL_BASE" "$HISTORICAL_PRODUCT")" = "$MENU_FILE"
+          test "$(git rev-parse "$HISTORICAL_PRODUCT:$MENU_FILE")" = "$SOURCE_MENU_BLOB"
+          test -z "$(git status --porcelain=v1 --untracked-files=all)"
+
+      - name: Derive only the Rust 1.96 formatting repair
+        shell: bash
+        run: |
+          set -euo pipefail
+          git show "$HISTORICAL_PRODUCT:$MENU_FILE" > "$MENU_FILE"
+          cp "$MENU_FILE" /tmp/session-lifecycle-r1-menu.rs
+          test "$(git hash-object "$MENU_FILE")" = "$SOURCE_MENU_BLOB"
+
+          rustfmt +1.96.0 --edition 2024 "$MENU_FILE"
+          ! cmp -s /tmp/session-lifecycle-r1-menu.rs "$MENU_FILE"
+          rustfmt +1.96.0 --edition 2024 --check "$MENU_FILE"
+
+          test "$(git diff --name-only)" = "$MENU_FILE"
+          echo "historical_source_blob=$SOURCE_MENU_BLOB"
+          echo "formatted_menu_blob=$(git hash-object "$MENU_FILE")"
+          git diff --no-index -- /tmp/session-lifecycle-r1-menu.rs "$MENU_FILE" || test $? -eq 1
+
+      - name: Construct fresh current-main direct child
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git switch -c "$PRODUCT_BRANCH"
+          git add -- "$MENU_FILE"
+          test "$(git diff --cached --name-only)" = "$MENU_FILE"
+          git commit -m "runtime: bound gameplay session lifetime across reloads r2"
+
+          test "$(git rev-parse HEAD^)" = "$CURRENT_PARENT"
+          test "$(git rev-list --count "$CURRENT_PARENT"..HEAD)" = 1
+          test "$(git diff --name-only "$CURRENT_PARENT" HEAD)" = "$MENU_FILE"
+          test -z "$(git status --porcelain=v1 --untracked-files=all)"
+          echo "product_head=$(git rev-parse HEAD)"
+          echo "product_tree=$(git rev-parse HEAD^{tree})"
+          echo "product_menu_blob=$(git rev-parse HEAD:$MENU_FILE)"
+
+      - name: Publish fresh product branch once
+        shell: bash
+        run: |
+          set -euo pipefail
+          git push origin "HEAD:refs/heads/$PRODUCT_BRANCH"
