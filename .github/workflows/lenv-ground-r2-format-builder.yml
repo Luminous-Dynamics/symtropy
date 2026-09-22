@@ -1,0 +1,91 @@
+name: LENV Ground r2 format-only builder
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: lenv-ground-r2-format-builder
+  cancel-in-progress: false
+
+jobs:
+  build-fresh-product:
+    if: github.event.pull_request.head.ref == 'ci/lenv-ground-r2-format-builder'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      PARENT_SHA: e20aadfabfbc774f3c8adff3dbcd56af63c78473
+      FAILED_SHA: 889bbc94918bcc7f82b5807a0badb265e9388474
+      FAILED_BLOB: 74cd905a46685327d406a1a8da1a09cbf1b50f61
+      PRODUCT_FILE: crates/domains/symtropy-lifesim-core/tests/ground_that_remembers_reference.rs
+      PRODUCT_BRANCH: living-world/lenv-ground-reference-v0.1-r2
+
+    steps:
+      - name: Checkout exact original parent
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ env.PARENT_SHA }}
+          fetch-depth: 0
+          persist-credentials: true
+
+      - name: Install pinned Rust formatter
+        uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: 1.96.0
+          components: rustfmt
+
+      - name: Prove failed subject lineage and exact source blob
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$PARENT_SHA"
+          test "$(git rev-parse "$FAILED_SHA^")" = "$PARENT_SHA"
+          test "$(git diff --name-status "$PARENT_SHA" "$FAILED_SHA")" = $'A\t'"$PRODUCT_FILE"
+          test "$(git rev-parse "$FAILED_SHA:$PRODUCT_FILE")" = "$FAILED_BLOB"
+          test -z "$(git status --porcelain=v1 --untracked-files=all)"
+
+      - name: Apply only the Rust 1.96 formatter transformation
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$(dirname "$PRODUCT_FILE")"
+          git show "$FAILED_SHA:$PRODUCT_FILE" > "$PRODUCT_FILE"
+          cp "$PRODUCT_FILE" /tmp/failed-ground.rs
+          rustfmt +1.96.0 --edition 2024 "$PRODUCT_FILE"
+          ! cmp -s /tmp/failed-ground.rs "$PRODUCT_FILE"
+          test "$(git diff --name-status)" = $'A\t'"$PRODUCT_FILE"
+          rustfmt +1.96.0 --edition 2024 --check "$PRODUCT_FILE"
+          echo "failed_blob=$FAILED_BLOB"
+          echo "formatted_blob=$(git hash-object "$PRODUCT_FILE")"
+          git diff --no-index -- /tmp/failed-ground.rs "$PRODUCT_FILE" || test $? -eq 1
+
+      - name: Construct fresh direct-child product
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git switch -c "$PRODUCT_BRANCH"
+          git add -- "$PRODUCT_FILE"
+          test "$(git diff --cached --name-status)" = $'A\t'"$PRODUCT_FILE"
+          git commit -m "test(living-world): format Ground reference for Rust 1.96 r2"
+
+          test "$(git rev-parse HEAD^)" = "$PARENT_SHA"
+          test "$(git rev-list --count "$PARENT_SHA"..HEAD)" = 1
+          test "$(git diff --name-status "$PARENT_SHA" HEAD)" = $'A\t'"$PRODUCT_FILE"
+          test -z "$(git status --porcelain=v1 --untracked-files=all)"
+
+          echo "product_head=$(git rev-parse HEAD)"
+          echo "product_tree=$(git rev-parse HEAD^{tree})"
+          echo "product_blob=$(git rev-parse HEAD:$PRODUCT_FILE)"
+
+      - name: Publish fresh product branch once
+        shell: bash
+        run: |
+          set -euo pipefail
+          # No force: an existing branch is an explicit conflict, not permission
+          # to rewrite an already-published product subject.
+          git push origin "HEAD:refs/heads/$PRODUCT_BRANCH"
