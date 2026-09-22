@@ -1,0 +1,133 @@
+name: PHYS-LIFECYCLE-PRIMITIVES r2 exact qualification q2
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: physics-body-lifecycle-primitives-r2-q2
+  cancel-in-progress: false
+
+jobs:
+  exact-product:
+    if: github.event.pull_request.head.ref == 'ci/physics-body-lifecycle-primitives-r2-q2'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      PARENT_SHA: d56d6a6c1381dc131d493f0713b657f01c98cb80
+      PRODUCT_SHA: 2082384c3af61f15bfb27c2eef3ca3eba4d8f526
+      PRODUCT_TREE: 8341ffabe4f12cd6a89156732eb50ecb54a1483b
+      CONTACT_FILE: crates/core/symtropy-physics/src/contact.rs
+      CONTACT_BLOB: 7e48992a9d7392c0d2293ec88c1cb4ee863e1ddb
+      CONSTRAINT_FILE: crates/core/symtropy-physics/src/constraint.rs
+      CONSTRAINT_BLOB: a4a40df3829fb4b30fb6423222e5b251e1fe9f17
+      REPORT: /tmp/physics-body-lifecycle-r2-qualification.txt
+
+    steps:
+      - name: Checkout literal immutable product
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ env.PRODUCT_SHA }}
+          fetch-depth: 2
+          persist-credentials: false
+
+      - name: Install exact Rust 1.96 qualification toolchain
+        uses: dtolnay/rust-toolchain@6bed0761d98439e5a578e2877258200ad565ba87
+        with:
+          toolchain: 1.96.0
+          components: rustfmt, clippy
+
+      - name: Execute exact focused theorem and immutable postflight
+        shell: bash
+        run: |
+          set -u -o pipefail
+          : > "$REPORT"
+          fail=0
+          subject_ok=1
+
+          note() {
+            printf '%s\n' "$*" | tee -a "$REPORT"
+          }
+
+          gate() {
+            local name="$1"
+            shift
+            note "BEGIN $name"
+            if "$@"; then
+              note "PASS $name"
+            else
+              local rc=$?
+              note "FAIL $name rc=$rc"
+              fail=1
+            fi
+          }
+
+          note "product_sha=$PRODUCT_SHA"
+          note "product_tree=$PRODUCT_TREE"
+          note "parent_sha=$PARENT_SHA"
+          note "rustc=$(rustc --version)"
+          note "cargo=$(cargo --version)"
+          note "rustfmt=$(rustfmt --version)"
+          note "clippy=$(cargo clippy --version)"
+
+          expected_paths="$(printf '%s\n' "$CONTACT_FILE" "$CONSTRAINT_FILE" | sort)"
+          actual_paths="$(git diff --name-only "$PARENT_SHA" "$PRODUCT_SHA" | sort 2>/dev/null || true)"
+
+          if test "$(git rev-parse HEAD)" = "$PRODUCT_SHA" \
+            && test "$(git rev-parse HEAD^)" = "$PARENT_SHA" \
+            && test "$(git rev-parse HEAD^{tree})" = "$PRODUCT_TREE" \
+            && test "$(git rev-list --count "$PARENT_SHA"..HEAD)" = 1 \
+            && test "$actual_paths" = "$expected_paths" \
+            && test "$(git rev-parse HEAD:$CONTACT_FILE)" = "$CONTACT_BLOB" \
+            && test "$(git rev-parse HEAD:$CONSTRAINT_FILE)" = "$CONSTRAINT_BLOB"; then
+            note "PASS exact_subject_identity"
+          else
+            note "FAIL exact_subject_identity"
+            subject_ok=0
+            fail=1
+          fi
+
+          if test "$subject_ok" -eq 1; then
+            gate exact_owned_file_format \
+              bash -lc 'rustfmt +1.96.0 --edition 2024 --check "$CONTACT_FILE" "$CONSTRAINT_FILE"'
+            gate focused_locked_tests \
+              cargo test --locked -p symtropy-physics
+            gate focused_locked_strict_clippy \
+              cargo clippy --locked -p symtropy-physics --all-targets -- -D warnings
+            gate focused_locked_check \
+              cargo check --locked -p symtropy-physics --all-targets
+          else
+            note "SKIP semantic_gates subject_identity_failed"
+          fi
+
+          if test -z "$(git status --porcelain=v1 --untracked-files=all)" \
+            && test "$(git rev-parse HEAD)" = "$PRODUCT_SHA" \
+            && test "$(git rev-parse HEAD^{tree})" = "$PRODUCT_TREE" \
+            && test "$(git rev-parse HEAD:$CONTACT_FILE)" = "$CONTACT_BLOB" \
+            && test "$(git rev-parse HEAD:$CONSTRAINT_FILE)" = "$CONSTRAINT_BLOB"; then
+            note "PASS immutable_postflight"
+          else
+            note "FAIL immutable_postflight"
+            git status --porcelain=v1 --untracked-files=all | tee -a "$REPORT" || true
+            fail=1
+          fi
+
+          if test "$fail" -eq 0; then
+            note "RESULT TheoremExecutedPass"
+          else
+            note "RESULT TheoremExecutedFail"
+          fi
+
+          exit "$fail"
+
+      - name: Retain exact result receipt
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: physics-body-lifecycle-primitives-r2-${{ env.PRODUCT_SHA }}
+          path: /tmp/physics-body-lifecycle-r2-qualification.txt
+          if-no-files-found: error
+          retention-days: 30
