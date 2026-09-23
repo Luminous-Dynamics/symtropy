@@ -1,0 +1,291 @@
+name: Physics transactional NetId + broadphase product builder q4
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: physics-netid-broadphase-production-builder-q4
+  cancel-in-progress: false
+
+jobs:
+  build-product:
+    if: github.event.pull_request.head.ref == 'ci/physics-netid-broadphase-production-builder-q4'
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      PARENT_SHA: d56d6a6c1381dc131d493f0713b657f01c98cb80
+      PARENT_TREE: fbdfb6e0543fa3bce1ef73d655bf5efdc46c3739
+      WORLD_FILE: crates/core/symtropy-physics/src/world.rs
+      WORLD_BLOB: 7dccf283f858c4874c96425fd7aa8aa3e176a557
+      LIB_FILE: crates/core/symtropy-physics/src/lib.rs
+      LIB_BLOB: 19bac3b37524474e466204d14ab89207a308840c
+      NETID_SOURCE_SHA: 6dd6ee9efa161635a85718bb5c6ad2baebebbfbb
+      IDENTITY_FILE: crates/core/symtropy-physics/src/identity.rs
+      IDENTITY_SOURCE_BLOB: b872067f9e0249b4b3cd86c444799f232f934ce1
+      NETID_TEST_FILE: crates/core/symtropy-physics/tests/net_id_invariants.rs
+      NETID_TEST_SOURCE_BLOB: 66d95024c32e5f762bc5f0bc36de7ba517656426
+      BROADPHASE_SOURCE_SHA: d6d25484262db11b3da53bcde9cdc8e965606ad9
+      BROADPHASE_TEST_FILE: crates/core/symtropy-physics/tests/static_broadphase_lifecycle.rs
+      BROADPHASE_TEST_SOURCE_BLOB: 5f80587a578d52a128233c9ee850d66f81360f81
+      PRODUCT_BRANCH: physics/netid-broadphase-transactional-r1-d56d6a6
+      CARGO_TARGET_DIR: /tmp/physics-netid-broadphase-q4-target
+
+    steps:
+      - name: Checkout exact current main parent without persistent write credential
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ env.PARENT_SHA }}
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Install pinned Rust toolchain
+        uses: dtolnay/rust-toolchain@6bed0761d98439e5a578e2877258200ad565ba87
+        with:
+          toolchain: 1.96.0
+          components: rustfmt, clippy
+
+      - name: Prove unchanged preregistered hot-core base
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$PARENT_SHA"
+          test "$(git rev-parse HEAD^{tree})" = "$PARENT_TREE"
+          test "$(git rev-parse HEAD:$WORLD_FILE)" = "$WORLD_BLOB"
+          test "$(git rev-parse HEAD:$LIB_FILE)" = "$LIB_BLOB"
+          test -z "$(git status --porcelain=v1 --untracked-files=all)"
+          test ! -e target
+          rm -rf -- "$CARGO_TARGET_DIR"
+
+      - name: Fetch and bind preregistered regression sources
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch --no-tags origin "$NETID_SOURCE_SHA" "$BROADPHASE_SOURCE_SHA"
+          test "$(git rev-parse "$NETID_SOURCE_SHA:$IDENTITY_FILE")" = "$IDENTITY_SOURCE_BLOB"
+          test "$(git rev-parse "$NETID_SOURCE_SHA:$NETID_TEST_FILE")" = "$NETID_TEST_SOURCE_BLOB"
+          test "$(git rev-parse "$BROADPHASE_SOURCE_SHA:$BROADPHASE_TEST_FILE")" = "$BROADPHASE_TEST_SOURCE_BLOB"
+          mkdir -p "$(dirname "$IDENTITY_FILE")" "$(dirname "$NETID_TEST_FILE")"
+          git show "$NETID_SOURCE_SHA:$IDENTITY_FILE" > "$IDENTITY_FILE"
+          git show "$NETID_SOURCE_SHA:$NETID_TEST_FILE" > "$NETID_TEST_FILE"
+          git show "$BROADPHASE_SOURCE_SHA:$BROADPHASE_TEST_FILE" > "$BROADPHASE_TEST_FILE"
+
+      - name: Wire transactional identity and static-broadphase invariants
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+
+          world_path = Path("crates/core/symtropy-physics/src/world.rs")
+          lib_path = Path("crates/core/symtropy-physics/src/lib.rs")
+          identity_path = Path("crates/core/symtropy-physics/src/identity.rs")
+          tests_path = Path("crates/core/symtropy-physics/tests/net_id_invariants.rs")
+
+          def replace_exact(text: str, old: str, new: str, label: str) -> str:
+              count = text.count(old)
+              if count != 1:
+                  raise SystemExit(f"{label}: expected exactly one source match, found {count}")
+              return text.replace(old, new, 1)
+
+          def replace_region(text: str, start: str, end: str, replacement: str, label: str) -> str:
+              if text.count(start) != 1:
+                  raise SystemExit(f"{label}: start anchor count={text.count(start)}")
+              if text.count(end) != 1:
+                  raise SystemExit(f"{label}: end anchor count={text.count(end)}")
+              begin = text.index(start)
+              finish = text.index(end, begin)
+              if finish <= begin:
+                  raise SystemExit(f"{label}: invalid anchor ordering")
+              return text[:begin] + replacement + text[finish:]
+
+          world = world_path.read_text()
+          world = replace_exact(
+              world,
+              "use crate::gjk;\nuse crate::integrator;",
+              "use crate::gjk;\nuse crate::identity::{IdentityMutationError, validate_batch_net_ids, validate_net_id_assignment};\nuse crate::integrator;",
+              "identity import",
+          )
+
+          batch_start = "    pub fn add_bodies_deterministic(\n"
+          batch_end = "    /// Resolve a stable `NetId` to its `BodyHandle`.\n"
+          new_batch = '''    pub fn add_bodies_deterministic(
+              &mut self,
+              mut bodies: Vec<(NetId, RigidBody<D>)>,
+          ) -> Result<Vec<BodyHandle>, IdentityMutationError> {
+              use crate::body::BodyType;
+
+              bodies.sort_by_key(|(id, _)| *id);
+              validate_batch_net_ids(
+                  bodies.iter().map(|(net_id, _)| *net_id),
+                  |net_id| self.net_id_map.get(&net_id).copied(),
+              )?;
+
+              let mut handles = Vec::with_capacity(bodies.len());
+              for (net_id, mut body) in bodies {
+                  let handle = self.allocate_handle();
+                  body.handle = handle;
+                  body.net_id = Some(net_id);
+                  if body.body_type == BodyType::Static || body.body_type == BodyType::Kinematic {
+                      self.static_tree_dirty = true;
+                  }
+                  self.net_id_map.insert(net_id, handle);
+                  let idx = self.bodies.len();
+                  self.bodies.push(body);
+                  self.handle_to_index.insert(handle, idx);
+                  handles.push(handle);
+              }
+              Ok(handles)
+          }
+
+          '''
+          world = replace_region(world, batch_start, batch_end, new_batch, "deterministic batch wiring")
+
+          set_start = "    /// Assign a stable network identifier to a body.\n"
+          set_end = "    /// Add a constraint between two bodies.\n"
+          new_set = '''    /// Assign a stable network identifier to a body transactionally.
+          ///
+          /// Rejection performs zero mutation. Reassigning the same ID to its current
+          /// owner is idempotent.
+          pub fn set_net_id(
+              &mut self,
+              handle: BodyHandle,
+              net_id: NetId,
+          ) -> Result<(), IdentityMutationError> {
+              validate_net_id_assignment(
+                  handle,
+                  self.body(handle).is_some(),
+                  net_id,
+                  self.net_id_map.get(&net_id).copied(),
+              )?;
+
+              let old_id = self.body(handle).and_then(|b| b.net_id);
+              if old_id == Some(net_id) {
+                  return Ok(());
+              }
+
+              if let Some(old) = old_id {
+                  self.net_id_map.remove(&old);
+              }
+
+              let body = self
+                  .body_mut(handle)
+                  .expect("identity preflight proved the body exists");
+              body.net_id = Some(net_id);
+              self.net_id_map.insert(net_id, handle);
+              Ok(())
+          }
+
+          '''
+          world = replace_region(world, set_start, set_end, new_set, "set_net_id wiring")
+          world_path.write_text(world)
+
+          lib = lib_path.read_text()
+          lib = replace_exact(lib, "pub mod gjk;\n", "pub mod gjk;\npub mod identity;\n", "identity module export")
+          lib = replace_exact(
+              lib,
+              "pub use epa::EpaResult;\n",
+              "pub use epa::EpaResult;\npub use identity::IdentityMutationError;\n",
+              "identity error export",
+          )
+          lib_path.write_text(lib)
+
+          identity = identity_path.read_text()
+          old_comment = "/// This helper is crate-private until the `PhysicsWorld` mutation methods are\n/// wired to the transactional identity contract.\n#[allow(dead_code)]\n"
+          if identity.count(old_comment) != 2:
+              raise SystemExit(f"identity live-helper marker count={identity.count(old_comment)}, expected 2")
+          identity = identity.replace(
+              old_comment,
+              "/// This helper is crate-private and is consumed by `PhysicsWorld` before mutation.\n",
+          )
+          if "#[allow(dead_code)]" in identity:
+              raise SystemExit("unexpected dead_code allowance remained after wiring both helpers")
+          identity_path.write_text(identity)
+
+          tests = tests_path.read_text()
+          replacements = [
+              ("    world.set_net_id(a, NetId(100));\n", "    world.set_net_id(a, NetId(100)).expect(\"first NetId assignment\");\n"),
+              ("    world.set_net_id(b, NetId(200));\n", "    world.set_net_id(b, NetId(200)).expect(\"second NetId assignment\");\n"),
+              ("    world.set_net_id(b, NetId(100));\n", "    assert!(world.set_net_id(b, NetId(100)).is_err());\n"),
+              ("    world.set_net_id(handle, NetId(42));\n    world.set_net_id(handle, NetId(42));\n", "    world.set_net_id(handle, NetId(42)).expect(\"initial NetId assignment\");\n    world.set_net_id(handle, NetId(42)).expect(\"same-owner reassignment is idempotent\");\n"),
+              ("    world.set_net_id(handle, NetId(1));\n    world.set_net_id(handle, NetId(2));\n", "    world.set_net_id(handle, NetId(1)).expect(\"initial NetId assignment\");\n    world.set_net_id(handle, NetId(2)).expect(\"free NetId reassignment\");\n"),
+          ]
+          for index, (old, new) in enumerate(replacements):
+              tests = replace_exact(tests, old, new, f"NetId test adaptation {index}")
+          tests_path.write_text(tests)
+          PY
+
+      - name: Format and freeze exact prospective product surface
+        shell: bash
+        run: |
+          set -euo pipefail
+          rustfmt +1.96.0 --edition 2024 "$WORLD_FILE" "$IDENTITY_FILE" "$NETID_TEST_FILE" "$BROADPHASE_TEST_FILE"
+          rustfmt +1.96.0 --edition 2024 --check "$WORLD_FILE" "$LIB_FILE" "$IDENTITY_FILE" "$NETID_TEST_FILE" "$BROADPHASE_TEST_FILE"
+          git add -- "$WORLD_FILE" "$LIB_FILE" "$IDENTITY_FILE" "$NETID_TEST_FILE" "$BROADPHASE_TEST_FILE"
+          expected="$(printf '%s\n' "$WORLD_FILE" "$LIB_FILE" "$IDENTITY_FILE" "$NETID_TEST_FILE" "$BROADPHASE_TEST_FILE" | sort)"
+          actual="$(git diff --cached --name-only | sort)"
+          test "$actual" = "$expected"
+          test -z "$(git diff --name-only)"
+          test ! -e target
+
+      - name: Prove no repository credential is available before subject execution
+        shell: bash
+        run: |
+          set -euo pipefail
+          ! git config --local --get-all http.https://github.com/.extraheader >/dev/null 2>&1
+          test -z "${GH_TOKEN:-}"
+          test -z "${GITHUB_TOKEN:-}"
+
+      - name: Execute focused red-to-green regressions without repository credential
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo test --locked -p symtropy-physics --test net_id_invariants
+          cargo test --locked -p symtropy-physics --test static_broadphase_lifecycle
+          cargo test --locked -p symtropy-physics
+          cargo clippy --locked -p symtropy-physics --all-targets -- -D warnings
+          cargo check --locked -p symtropy-physics --all-targets
+          test ! -e target
+          test -d "$CARGO_TARGET_DIR"
+
+      - name: Construct one current-main semantic product
+        shell: bash
+        run: |
+          set -euo pipefail
+          expected="$(printf '%s\n' "$WORLD_FILE" "$LIB_FILE" "$IDENTITY_FILE" "$NETID_TEST_FILE" "$BROADPHASE_TEST_FILE" | sort)"
+          actual="$(git diff --cached --name-only | sort)"
+          test "$actual" = "$expected"
+          test -z "$(git diff --name-only)"
+          test -z "$(git status --porcelain=v1 --untracked-files=all)"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git switch -c "$PRODUCT_BRANCH"
+          git commit -m "fix(physics): make deterministic identity mutation transactional"
+          test "$(git rev-parse HEAD^)" = "$PARENT_SHA"
+          test "$(git rev-list --count "$PARENT_SHA"..HEAD)" = 1
+          actual="$(git diff --name-only "$PARENT_SHA" HEAD | sort)"
+          test "$actual" = "$expected"
+          test -z "$(git status --porcelain=v1 --untracked-files=all)"
+          echo "product_head=$(git rev-parse HEAD)"
+          echo "product_tree=$(git rev-parse HEAD^{tree})"
+          for path in $WORLD_FILE $LIB_FILE $IDENTITY_FILE $NETID_TEST_FILE $BROADPHASE_TEST_FILE; do
+            echo "$path=$(git rev-parse HEAD:$path)"
+          done
+
+      - name: Publish immutable product branch with final-step-only credential
+        shell: bash
+        env:
+          PUSH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          test -n "$PUSH_TOKEN"
+          auth="$(printf 'x-access-token:%s' "$PUSH_TOKEN" | base64 -w0)"
+          cleanup_auth() {
+            git config --local --unset-all http.https://github.com/.extraheader >/dev/null 2>&1 || true
+          }
+          trap cleanup_auth EXIT
+          git config --local http.https://github.com/.extraheader "AUTHORIZATION: basic $auth"
+          git push origin "HEAD:refs/heads/$PRODUCT_BRANCH"
