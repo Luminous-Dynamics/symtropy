@@ -1,0 +1,196 @@
+name: Terrain LENV local observation r2 exact qualification
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: terrain-lenv-local-r2-q-${{ github.event.pull_request.number }}
+  cancel-in-progress: false
+
+jobs:
+  qualify:
+    if: github.event.pull_request.head.ref == 'ci/terrain-lenv-local-r2-qual-b34056f'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    env:
+      PRODUCT_SHA: b34056f41ecdbe97e5af23ddc17a5daab35dc039
+      PRODUCT_PARENT: 346852c0b3490df30b1b34ba96d23cb9cf47e5f3
+      PRODUCT_TREE: f22f6fdaea4d91a1cb141b9cbad2c6585dcfd2b4
+      MODULE_FILE: crates/domains/symtropy-terrain/src/environment_observation.rs
+      MODULE_BLOB: 814a425cfd7591bd841aa86f6fa0f5346f9473a8
+      LIB_FILE: crates/domains/symtropy-terrain/src/lib.rs
+      LIB_BLOB: aabe641f7b9a600a888da0f681d1338bab97fbd8
+
+    steps:
+      - name: Checkout exact immutable product
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ env.PRODUCT_SHA }}
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Bind exact parent tree blobs and product delta
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$PRODUCT_SHA"
+          test "$(git show -s --format=%P HEAD)" = "$PRODUCT_PARENT"
+          test "$(git rev-parse HEAD^{tree})" = "$PRODUCT_TREE"
+          test "$(git rev-list --count "$PRODUCT_PARENT"..HEAD)" = 1
+          test "$(git rev-parse HEAD:$MODULE_FILE)" = "$MODULE_BLOB"
+          test "$(git rev-parse HEAD:$LIB_FILE)" = "$LIB_BLOB"
+
+          test "$(git rev-parse HEAD:crates/domains/symtropy-terrain/src/geometry_kernel.rs)" = "8d3e1213eacdeddf693cd2d1f82670d6ed832161"
+          test "$(git rev-parse HEAD:crates/domains/symtropy-terrain/src/live_geometry_provider.rs)" = "543858ec733429ac41d39bd52eb2e39210806280"
+          test "$(git rev-parse HEAD:crates/domains/symtropy-terrain/src/geometry_currentness.rs)" = "2da7d9b27313ae24b45269171cf58ea6cd528de4"
+          test "$(git rev-parse HEAD:crates/domains/symtropy-terrain/src/live_geometry_query.rs)" = "34995e11c7d82ffa4e18b7fc12927816408e8d1d"
+          test "$(git rev-parse HEAD:crates/domains/symtropy-terrain/src/terrain_metric.rs)" = "5f6cce3dc034c0b8c0e46dc55e599bd6162841ac"
+          test "$(git rev-parse HEAD:crates/domains/symtropy-terrain/tests/terrain_metric_public.rs)" = "20029889212d686d08fd92190a6945eb302d3ce5"
+          test "$(git rev-parse HEAD:crates/domains/symtropy-terrain/Cargo.toml)" = "187fe4020a0c0048ab36404e219a7a5698a856d1"
+          test "$(git rev-parse HEAD:Cargo.lock)" = "62c6eb098b3f6fffdea8a175a0f3afb33423b17b"
+
+          expected="$(printf '%s\n' "$MODULE_FILE" "$LIB_FILE" | sort)"
+          actual="$(git diff --name-only "$PRODUCT_PARENT".."$PRODUCT_SHA" | sort)"
+          test "$actual" = "$expected"
+          test "$(git diff --numstat "$PRODUCT_PARENT".."$PRODUCT_SHA" -- "$LIB_FILE")" = $'1\t0\t'"$LIB_FILE"
+          test "$(git diff --numstat "$PRODUCT_PARENT".."$PRODUCT_SHA" -- "$MODULE_FILE")" = $'336\t0\t'"$MODULE_FILE"
+          test -z "$(git status --porcelain=v1 --untracked-files=all)"
+          echo "CARGO_TARGET_DIR=${RUNNER_TEMP}/terrain-lenv-local-r2-target" >> "$GITHUB_ENV"
+
+      - name: Install Linux system dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install -y libasound2-dev libudev-dev pkg-config
+
+      - name: Set up pinned Rust
+        uses: dtolnay/rust-toolchain@6bed0761d98439e5a578e2877258200ad565ba87
+        with:
+          toolchain: 1.96.0
+          components: clippy,rustfmt
+
+      - name: Bind toolchain and locked dependency graph
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(rustc --version | awk '{print $2}')" = "1.96.0"
+          test "$(cargo --version | awk '{print $2}')" = "1.96.0"
+          before="$(git hash-object Cargo.lock)"
+          cargo metadata --locked --format-version 1 > "${RUNNER_TEMP}/terrain-lenv-local-r2-metadata.json"
+          test "$(git hash-object Cargo.lock)" = "$before"
+
+      - name: Check exact product formatting
+        shell: bash
+        run: |
+          set -euo pipefail
+          rustfmt +1.96.0 --edition 2024 --check "$MODULE_FILE" "$LIB_FILE"
+
+      - name: Compile all Terrain targets
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo check -p symtropy-terrain --locked --all-targets
+
+      - name: Execute local observation hostile corpus
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo test -p symtropy-terrain --locked environment_observation::tests -- --nocapture
+
+      - name: Re-execute qualified parent theorem corpora
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo test -p symtropy-terrain --locked live_geometry_provider::tests -- --nocapture
+          cargo test -p symtropy-terrain --locked geometry_currentness::tests -- --nocapture
+          cargo test -p symtropy-terrain --locked live_geometry_query::tests -- --nocapture
+          cargo test -p symtropy-terrain --locked --test terrain_metric_public -- --nocapture
+
+      - name: Execute complete Terrain regression suite
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo test -p symtropy-terrain --locked --all-targets
+
+      - name: Enforce strict all-target Clippy
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo clippy -p symtropy-terrain --locked --all-targets -- -D warnings
+
+      - name: Audit local-only read authority surface
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+
+          root = Path("crates/domains/symtropy-terrain")
+          module = (root / "src/environment_observation.rs").read_text()
+          prod = module.partition("#[cfg(test)]")[0]
+          lib = (root / "src/lib.rs").read_text()
+          manifest = (root / "Cargo.toml").read_text()
+
+          if prod.count("pub struct TerrainLocalObservation") != 1:
+              raise SystemExit("TerrainLocalObservation definition missing or duplicated")
+          block = re.search(r"pub struct TerrainLocalObservation\s*\{(?P<body>.*?)\n\}", prod, flags=re.S)
+          if block is None:
+              raise SystemExit("TerrainLocalObservation body not found")
+          body = block.group("body")
+          for required in ("snapshot: TerrainGeometrySnapshot", "receipt: TerrainGeometryQueryReceipt"):
+              if required not in body:
+                  raise SystemExit(f"missing exact retained field: {required}")
+          if "Entity" in body:
+              raise SystemExit("Bevy Entity leaked into retained canonical observation")
+
+          for call in (
+              "capture_live_terrain_geometry(world, entity)?",
+              "verify_live_terrain_geometry_current(world, entity, expected.snapshot())?",
+              "snapshot.query(bounds)?",
+              "snapshot.query(expected.bounds())?",
+          ):
+              if call not in prod:
+                  raise SystemExit(f"qualified source composition changed: {call}")
+
+          for token in (
+              "TerrainMetricProfile", "GlobalTransform", "SubstrateMaterial", "EarthChunk",
+              "AuthorityScope", "AuthoritySnapshotToken", "CapabilitySourceRevision",
+              "get_mut::<", "world_position",
+          ):
+              if token in prod:
+                  raise SystemExit(f"forbidden authority/input leaked into production adapter: {token}")
+
+          if lib.count("pub mod environment_observation;") != 1:
+              raise SystemExit("environment observation export changed")
+          if "symtropy-lifesim-core" in manifest or "symtropy_lifesim_core" in prod:
+              raise SystemExit("adapter gained dependency on static/unqualified #299 vocabulary")
+
+          print("TERRAIN_LENV_LOCAL_READ_ONLY=PASS")
+          print("TERRAIN_LENV_ENTITY_RETAINED=NO")
+          print("TERRAIN_LENV_METRIC_AUTHORITY=ABSENT")
+          print("TERRAIN_LENV_WORLD_FRAME_AUTHORITY=ABSENT")
+          print("TERRAIN_LENV_MUTATION_AUTHORITY=ABSENT")
+          PY
+
+      - name: Exact immutable-product postflight
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$PRODUCT_SHA"
+          test "$(git show -s --format=%P HEAD)" = "$PRODUCT_PARENT"
+          test "$(git rev-parse HEAD^{tree})" = "$PRODUCT_TREE"
+          test "$(git rev-parse HEAD:$MODULE_FILE)" = "$MODULE_BLOB"
+          test "$(git rev-parse HEAD:$LIB_FILE)" = "$LIB_BLOB"
+          test "$(git rev-parse HEAD:crates/domains/symtropy-terrain/Cargo.toml)" = "187fe4020a0c0048ab36404e219a7a5698a856d1"
+          test "$(git rev-parse HEAD:Cargo.lock)" = "62c6eb098b3f6fffdea8a175a0f3afb33423b17b"
+          git diff --quiet
+          git diff --cached --quiet
+          test -z "$(git status --porcelain=v1 --untracked-files=all)"
+          echo "TERRAIN_LENV_LOCAL_OBSERVATION_R2_EXACT_PRODUCT=PASS"
