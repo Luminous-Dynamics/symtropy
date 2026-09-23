@@ -16,6 +16,7 @@ use crate::ccd;
 use crate::constraint::Constraint;
 use crate::contact::{CollisionEvent, ContactCache, ContactManifold};
 use crate::gjk;
+use crate::identity::{IdentityMutationError, validate_batch_net_ids, validate_net_id_assignment};
 use crate::integrator;
 use crate::manifold_gen;
 
@@ -328,16 +329,22 @@ impl<const D: usize> PhysicsWorld<D> {
     pub fn add_bodies_deterministic(
         &mut self,
         mut bodies: Vec<(NetId, RigidBody<D>)>,
-    ) -> Result<Vec<BodyHandle>, String> {
+    ) -> Result<Vec<BodyHandle>, IdentityMutationError> {
+        use crate::body::BodyType;
+
         bodies.sort_by_key(|(id, _)| *id);
+        validate_batch_net_ids(bodies.iter().map(|(net_id, _)| *net_id), |net_id| {
+            self.net_id_map.get(&net_id).copied()
+        })?;
+
         let mut handles = Vec::with_capacity(bodies.len());
         for (net_id, mut body) in bodies {
-            if self.net_id_map.contains_key(&net_id) {
-                return Err(format!("duplicate NetId({})", net_id.0));
-            }
             let handle = self.allocate_handle();
             body.handle = handle;
             body.net_id = Some(net_id);
+            if body.body_type == BodyType::Static || body.body_type == BodyType::Kinematic {
+                self.static_tree_dirty = true;
+            }
             self.net_id_map.insert(net_id, handle);
             let idx = self.bodies.len();
             self.bodies.push(body);
@@ -357,18 +364,37 @@ impl<const D: usize> PhysicsWorld<D> {
         self.body(handle).and_then(|b| b.net_id)
     }
 
-    /// Assign a stable network identifier to a body.
-    pub fn set_net_id(&mut self, handle: BodyHandle, net_id: NetId) {
+    /// Assign a stable network identifier to a body transactionally.
+    ///
+    /// Rejection performs zero mutation. Reassigning the same ID to its current
+    /// owner is idempotent.
+    pub fn set_net_id(
+        &mut self,
+        handle: BodyHandle,
+        net_id: NetId,
+    ) -> Result<(), IdentityMutationError> {
+        validate_net_id_assignment(
+            handle,
+            self.body(handle).is_some(),
+            net_id,
+            self.net_id_map.get(&net_id).copied(),
+        )?;
+
         let old_id = self.body(handle).and_then(|b| b.net_id);
+        if old_id == Some(net_id) {
+            return Ok(());
+        }
 
         if let Some(old) = old_id {
             self.net_id_map.remove(&old);
         }
 
-        if let Some(body) = self.body_mut(handle) {
-            body.net_id = Some(net_id);
-            self.net_id_map.insert(net_id, handle);
-        }
+        let body = self
+            .body_mut(handle)
+            .expect("identity preflight proved the body exists");
+        body.net_id = Some(net_id);
+        self.net_id_map.insert(net_id, handle);
+        Ok(())
     }
 
     /// Add a constraint between two bodies.
