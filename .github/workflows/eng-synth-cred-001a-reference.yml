@@ -1,0 +1,57 @@
+name: ENG-SYNTH-CRED-001A Reference Qualification
+
+on:
+  pull_request:
+    paths:
+      - 'docs/engineering/ENG_SYNTH_CRED_001A_ENGINEERING_DETERMINISTIC.md'
+      - 'docs/release/evidence/eng-synth-cred-001a-engineering-deterministic-reference-v1.json'
+      - 'scripts/validate_eng_synth_cred_001a.py'
+      - '.github/workflows/eng-synth-cred-001a-reference.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  qualify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout exact candidate
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+
+      - name: Verify exact qualifier lineage and source artifacts
+        shell: bash
+        run: |
+          set -euo pipefail
+          SOURCE_HEAD='5da79d24de3e48a302f8c27e984cec5336e35d62'
+          DOC_BLOB='b07a2d29a369685387c64af26cccb1359d5d7db6'
+          CORPUS_BLOB='b6a31d00f5c1d7053ae50287a788217ec1770bcc'
+
+          test "$(git rev-parse HEAD^)" = "$SOURCE_HEAD"
+          test "$(git rev-list --count "$SOURCE_HEAD"..HEAD)" = '1'
+          test "$(git merge-base "$SOURCE_HEAD" HEAD)" = "$SOURCE_HEAD"
+
+          mapfile -t changed < <(git diff --name-only "$SOURCE_HEAD"..HEAD | sort)
+          expected=(
+            '.github/workflows/eng-synth-cred-001a-reference.yml'
+            'scripts/validate_eng_synth_cred_001a.py'
+          )
+          test "${#changed[@]}" -eq 2
+          test "${changed[0]}" = "${expected[0]}"
+          test "${changed[1]}" = "${expected[1]}"
+
+          test "$(git rev-parse "$SOURCE_HEAD:docs/engineering/ENG_SYNTH_CRED_001A_ENGINEERING_DETERMINISTIC.md")" = "$DOC_BLOB"
+          test "$(git rev-parse "$SOURCE_HEAD:docs/release/evidence/eng-synth-cred-001a-engineering-deterministic-reference-v1.json")" = "$CORPUS_BLOB"
+
+      - name: Execute independent semantic oracle
+        run: python3 scripts/validate_eng_synth_cred_001a.py
+
+      - name: Clean postflight
+        shell: bash
+        run: |
+          set -euo pipefail
+          git diff --exit-code
+          test -z "$(git status --porcelain)"
