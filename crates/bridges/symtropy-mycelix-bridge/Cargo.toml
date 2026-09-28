@@ -10,7 +10,7 @@ categories = ["game-engines", "simulation"]
 
 # Architectural note: Holochain's dep graph locks serde=1.0.203 exactly;
 # Bevy 0.18 needs serde_core >=1.0.221. These cannot co-exist in one
-# Rust compilation unit. Solution: run the Holochain client as a
+# Rust compilation unit. Solution: run the Holochain client in a
 # separate process (mycelix-conductor-bridge) and talk to it via JSON
 # over stdin/stdout. This crate has zero Holochain deps.
 #
@@ -18,6 +18,8 @@ categories = ["game-engines", "simulation"]
 # but lives at top-level for cohesion with mycelix-conductor-bridge.
 
 [dependencies]
+# Bevy — minimal feature set for a headless backend plugin. No wayland/x11
+# because we don't open windows; the user's app will pull those in if needed.
 bevy = { version = "0.19", default-features = false, features = [
     "std",
     "async_executor",
@@ -25,8 +27,14 @@ bevy = { version = "0.19", default-features = false, features = [
     "bevy_state",
     "multi_threaded",
 ] }
+
+# Async/ECS bridge.
 bevy-tokio-tasks = "0.19"
+
+# Channels between Bevy main thread and tokio background task.
 flume = "0.11"
+
+# Async runtime — process, io-util for BufRead on ChildStdout.
 tokio = { version = "1", features = [
     "process",
     "io-util",
@@ -35,6 +43,7 @@ tokio = { version = "1", features = [
     "rt-multi-thread",
     "macros",
 ] }
+
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 sha2 = "0.10"
