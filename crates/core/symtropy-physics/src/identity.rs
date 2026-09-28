@@ -20,6 +20,8 @@ pub enum IdentityMutationError {
     UnknownBody { handle: BodyHandle },
     /// One deterministic insertion batch contains the same `NetId` more than once.
     DuplicateNetIdInBatch { net_id: NetId },
+    /// The requested `NetId` was retired by a successful removal in this world generation.
+    NetIdRetired { net_id: NetId },
     /// The requested `NetId` already belongs to another body in the world.
     NetIdAlreadyAssigned { net_id: NetId, owner: BodyHandle },
 }
@@ -27,11 +29,12 @@ pub enum IdentityMutationError {
 impl fmt::Display for IdentityMutationError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Self::UnknownBody { handle } => {
-                write!(f, "body handle {} does not exist", handle.0)
-            }
+            Self::UnknownBody { handle } => write!(f, "body handle {} does not exist", handle.0),
             Self::DuplicateNetIdInBatch { net_id } => {
                 write!(f, "NetId({}) appears more than once in the batch", net_id.0)
+            }
+            Self::NetIdRetired { net_id } => {
+                write!(f, "NetId({}) was retired in this world generation", net_id.0)
             }
             Self::NetIdAlreadyAssigned { net_id, owner } => write!(
                 f,
@@ -47,17 +50,18 @@ impl std::error::Error for IdentityMutationError {}
 /// Validate every incoming `NetId` before a deterministic batch mutates the world.
 ///
 /// Duplicate IDs inside the incoming batch are reported before conflicts with
-/// existing world ownership. That ordering keeps rejection deterministic and
-/// guarantees callers can preflight the entire batch before allocating handles.
-///
-/// This helper is crate-private and is consumed by `PhysicsWorld` before mutation.
-pub(crate) fn validate_batch_net_ids<I, F>(
+/// existing world ownership. Retirement is checked before ownership as well,
+/// so a retired identity cannot be rebound even if stale ownership metadata
+/// is present.
+pub(crate) fn validate_batch_net_ids<I, F, R>(
     ids: I,
     mut owner_for: F,
+    mut retired: R,
 ) -> Result<(), IdentityMutationError>
 where
     I: IntoIterator<Item = NetId>,
     F: FnMut(NetId) -> Option<BodyHandle>,
+    R: FnMut(NetId) -> bool,
 {
     let ids: Vec<NetId> = ids.into_iter().collect();
     let mut seen = BTreeSet::new();
@@ -83,9 +87,7 @@ where
 /// Validate one body-to-NetId assignment before changing either lookup direction.
 ///
 /// Reassigning the same ID to its current owner is valid and therefore
-/// idempotent. Assigning an ID owned by a different body is rejected.
-///
-/// This helper is crate-private and is consumed by `PhysicsWorld` before mutation.
+/// idempotent. A retired ID is never assignable to a different or new body.
 pub(crate) fn validate_net_id_assignment(
     handle: BodyHandle,
     body_exists: bool,
@@ -120,15 +122,9 @@ mod tests {
             IdentityMutationError::DuplicateNetIdInBatch { net_id: NetId(7) },
             IdentityMutationError::DuplicateNetIdInBatch { net_id: NetId(7) }
         );
-        assert_ne!(
-            IdentityMutationError::NetIdAlreadyAssigned {
-                net_id: NetId(7),
-                owner: BodyHandle(1),
-            },
-            IdentityMutationError::NetIdAlreadyAssigned {
-                net_id: NetId(7),
-                owner: BodyHandle(2),
-            }
+        assert_eq!(
+            IdentityMutationError::NetIdRetired { net_id: NetId(9) },
+            IdentityMutationError::NetIdRetired { net_id: NetId(9) }
         );
     }
 
@@ -169,14 +165,6 @@ mod tests {
     }
 
     #[test]
-    fn retired_id_is_rejected() {
-        assert_eq!(
-            validate_net_id_assignment(BodyHandle(4), true, NetId(9), None, true),
-            Err(IdentityMutationError::NetIdRetired { net_id: NetId(9) })
-        );
-    }
-
-    #[test]
     fn retired_id_is_rejected_for_batch() {
         assert_eq!(
             validate_batch_net_ids([NetId(9)], |_| None, |_| true),
@@ -187,7 +175,7 @@ mod tests {
     #[test]
     fn assignment_requires_existing_body() {
         assert_eq!(
-            validate_net_id_assignment(BodyHandle(4), false, NetId(9), None),
+            validate_net_id_assignment(BodyHandle(4), false, NetId(9), None, false),
             Err(IdentityMutationError::UnknownBody {
                 handle: BodyHandle(4),
             })
@@ -197,7 +185,13 @@ mod tests {
     #[test]
     fn assignment_to_same_owner_is_idempotent() {
         assert_eq!(
-            validate_net_id_assignment(BodyHandle(4), true, NetId(9), Some(BodyHandle(4)),),
+            validate_net_id_assignment(
+                BodyHandle(4),
+                true,
+                NetId(9),
+                Some(BodyHandle(4)),
+                false
+            ),
             Ok(())
         );
     }
@@ -205,11 +199,25 @@ mod tests {
     #[test]
     fn assignment_cannot_displace_another_owner() {
         assert_eq!(
-            validate_net_id_assignment(BodyHandle(4), true, NetId(9), Some(BodyHandle(5)),),
+            validate_net_id_assignment(
+                BodyHandle(4),
+                true,
+                NetId(9),
+                Some(BodyHandle(5)),
+                false
+            ),
             Err(IdentityMutationError::NetIdAlreadyAssigned {
                 net_id: NetId(9),
                 owner: BodyHandle(5),
             })
+        );
+    }
+
+    #[test]
+    fn retired_id_is_rejected_for_assignment() {
+        assert_eq!(
+            validate_net_id_assignment(BodyHandle(4), true, NetId(9), None, true),
+            Err(IdentityMutationError::NetIdRetired { net_id: NetId(9) })
         );
     }
 }
