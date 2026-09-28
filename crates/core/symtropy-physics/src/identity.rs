@@ -169,6 +169,22 @@ mod tests {
     }
 
     #[test]
+    fn retired_id_is_rejected() {
+        assert_eq!(
+            validate_net_id_assignment(BodyHandle(4), true, NetId(9), None, true),
+            Err(IdentityMutationError::NetIdRetired { net_id: NetId(9) })
+        );
+    }
+
+    #[test]
+    fn retired_id_is_rejected_for_batch() {
+        assert_eq!(
+            validate_batch_net_ids([NetId(9)], |_| None, |_| true),
+            Err(IdentityMutationError::NetIdRetired { net_id: NetId(9) })
+        );
+    }
+
+    #[test]
     fn assignment_requires_existing_body() {
         assert_eq!(
             validate_net_id_assignment(BodyHandle(4), false, NetId(9), None),
