@@ -83,3 +83,38 @@ fn deterministic_dynamic_batch_uses_existing_static_cache() {
         "dynamic deterministic insertion must continue using the existing static cache"
     );
 }
+
+
+#[test]
+fn clear_scene_removes_stale_static_broadphase_entries() {
+    let mut world = PhysicsWorld::<3>::default();
+
+    let static_handle = world.add_body(RigidBody::static_body(
+        BodyHandle(usize::MAX),
+        Point::origin(),
+        Box::new(Sphere::<3>::unit()),
+    ));
+    world.step(1.0 / 60.0);
+
+    // The static cache is now populated and clean. Clearing the scene must
+    // remove that cached collider rather than merely clearing authoritative
+    // body storage.
+    world.clear_scene().expect("valid world clears successfully");
+
+    // Reusing the same numeric handle is impossible because next_handle is
+    // monotonic, so this contact can only come from the newly-created bodies.
+    let dynamic_handle = world.add_sphere(Point::new([1.5, 0.0, 0.0]), 1.0, 1.0);
+    world.step(1.0 / 60.0);
+
+    assert!(
+        !world
+            .contacts
+            .iter()
+            .any(|contact| contact.body_a == dynamic_handle || contact.body_b == dynamic_handle),
+        "clear_scene must not leave a stale static collider participating in later steps"
+    );
+    assert!(
+        world.body(static_handle).is_none(),
+        "the pre-clear static body must not survive scene teardown"
+    );
+}
