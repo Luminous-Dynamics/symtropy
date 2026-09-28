@@ -218,6 +218,7 @@ impl PhysicsBodyRef {
 /// Fail-closed errors for resolving a lineage-qualified body reference.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum PhysicsBodyRefResolutionError {
+    BodyNotFound { handle: BodyHandle },
     WorldGenerationMismatch {
         expected: WorldGenerationId,
         actual: WorldGenerationId,
@@ -366,9 +367,7 @@ impl<const D: usize> PhysicsWorld<D> {
     ) -> Result<PhysicsBodyRef, PhysicsBodyRefResolutionError> {
         let body = self
             .body(handle)
-            .ok_or(PhysicsBodyRefResolutionError::NetIdNotLive {
-                net_id: NetId(u64::MAX),
-            })?;
+            .ok_or(PhysicsBodyRefResolutionError::BodyNotFound { handle })?;
         let net_id = body
             .net_id
             .ok_or(PhysicsBodyRefResolutionError::BodyHasNoNetId { handle })?;
