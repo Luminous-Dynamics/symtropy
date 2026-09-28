@@ -16,7 +16,7 @@ use crate::ccd;
 use crate::constraint::Constraint;
 use crate::contact::{CollisionEvent, ContactCache, ContactManifold};
 use crate::gjk;
-use crate::identity::{IdentityMutationError, validate_batch_net_ids, validate_net_id_assignment};
+use crate::identity::{IdentityMutationError, WorldGenerationId, validate_batch_net_ids, validate_net_id_assignment};
 use crate::integrator;
 use crate::manifold_gen;
 
@@ -157,6 +157,8 @@ pub struct PhysicsWorld<const D: usize> {
     /// Constraint compliance (softness). 0.0 = rigid (default). Higher values
     /// make contacts softer (spring-like). Applied as `α = compliance / dt²`.
     pub compliance: f64,
+    /// Authoritative world lineage used to scope NetId retirement.
+    world_generation: WorldGenerationId,
     /// NetId → BodyHandle mapping for cross-machine replay determinism.
     net_id_map: BTreeMap<NetId, BodyHandle>,
     /// NetIds retired by successful body removal in this world generation.
@@ -188,6 +190,28 @@ impl<const D: usize> Default for PhysicsWorld<D> {
     fn default() -> Self {
         Self::new(SVector::zeros())
     }
+}
+
+/// Diagnostic report emitted after clearing the current scene.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct SceneClearReport {
+    pub bodies_removed: usize,
+    pub constraints_removed: usize,
+    pub contacts_removed: usize,
+    pub collision_events_removed: usize,
+    pub sensor_events_removed: usize,
+    pub contact_cache_pairs_removed: usize,
+    pub prev_cache_pairs_removed: usize,
+    pub net_ids_removed: usize,
+    pub next_handle_before: usize,
+    pub next_handle_after: usize,
+}
+
+/// Fail-closed errors for scene clearing.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum SceneClearError {
+    HandleIndexMismatch { handle: BodyHandle },
+    NetIdOwnershipMismatch { net_id: NetId, expected: BodyHandle, actual: Option<BodyHandle> },
 }
 
 /// Diagnostic report emitted after a successful body removal.
@@ -232,8 +256,18 @@ enum ObbSatAxis {
 }
 
 impl<const D: usize> PhysicsWorld<D> {
-    /// Create an empty physics world.
+    /// Create an empty physics world with a fresh generation identity.
     pub fn new(gravity: SVector<f64, D>) -> Self {
+        Self::new_with_generation(gravity, WorldGenerationId::fresh())
+    }
+
+    /// Create an empty physics world with an explicit generation identity.
+    /// This is the deterministic construction boundary for replay/import
+    /// systems. clear_scene never changes the generation.
+    pub fn new_with_generation(
+        gravity: SVector<f64, D>,
+        world_generation: WorldGenerationId,
+    ) -> Self {
         Self {
             bodies: Vec::new(),
             constraints: Vec::new(),
@@ -249,6 +283,7 @@ impl<const D: usize> PhysicsWorld<D> {
             compliance: 0.0,
             sleep_threshold: 0.5,
             sleep_ticks: 60, // ~1 second at 64Hz
+            world_generation,
             net_id_map: BTreeMap::new(),
             retired_net_ids: std::collections::BTreeSet::new(),
             handle_to_index: HashMap::new(),
@@ -257,6 +292,84 @@ impl<const D: usize> PhysicsWorld<D> {
             static_tree_dirty: false,
             mesh_contact_fn: None,
         }
+    }
+
+    /// Return the immutable lineage identity of this world.
+    pub const fn world_generation(&self) -> WorldGenerationId {
+        self.world_generation
+    }
+
+    /// Remove the current scene while preserving world configuration and
+    /// generation-scoped identity history.
+    pub fn clear_scene(&mut self) -> Result<SceneClearReport, SceneClearError> {
+        // Full identity/index preflight before the first mutation.
+        for (index, body) in self.bodies.iter().enumerate() {
+            if self.handle_to_index.get(&body.handle).copied() != Some(index) {
+                return Err(SceneClearError::HandleIndexMismatch { handle: body.handle });
+            }
+            if let Some(net_id) = body.net_id {
+                if self.net_id_map.get(&net_id).copied() != Some(body.handle) {
+                    return Err(SceneClearError::NetIdOwnershipMismatch {
+                        net_id,
+                        expected: body.handle,
+                        actual: self.net_id_map.get(&net_id).copied(),
+                    });
+                }
+            }
+        }
+        for (&handle, &index) in &self.handle_to_index {
+            if self.bodies.get(index).map(|body| body.handle) != Some(handle) {
+                return Err(SceneClearError::HandleIndexMismatch { handle });
+            }
+        }
+        for (&net_id, &handle) in &self.net_id_map {
+            if self.body(handle).and_then(|body| body.net_id) != Some(net_id) {
+                return Err(SceneClearError::NetIdOwnershipMismatch {
+                    net_id,
+                    expected: handle,
+                    actual: self.net_id_map.get(&net_id).copied(),
+                });
+            }
+        }
+
+        let next_handle_before = self.next_handle;
+        let handles: Vec<_> = self.bodies.iter().map(|body| body.handle).collect();
+        let mut report = SceneClearReport {
+            bodies_removed: 0,
+            constraints_removed: 0,
+            contacts_removed: 0,
+            collision_events_removed: 0,
+            sensor_events_removed: 0,
+            contact_cache_pairs_removed: 0,
+            prev_cache_pairs_removed: 0,
+            net_ids_removed: 0,
+            next_handle_before,
+            next_handle_after: next_handle_before,
+        };
+
+        for handle in handles {
+            let removal = self.remove_body(handle)
+                .expect("clear_scene preflight proved removal invariants");
+            report.bodies_removed += 1;
+            report.constraints_removed += removal.removed_constraints;
+            report.contacts_removed += removal.removed_contacts;
+            report.collision_events_removed += removal.removed_collision_events;
+            report.sensor_events_removed += removal.removed_sensor_events;
+            report.contact_cache_pairs_removed += removal.removed_contact_cache_pairs;
+            report.prev_cache_pairs_removed += removal.removed_prev_cache_pairs;
+            report.net_ids_removed += usize::from(removal.net_id.is_some());
+        }
+
+        self.constraints.clear();
+        self.contacts.clear();
+        self.collision_events.clear();
+        self.sensor_events.clear();
+        self.net_id_map.clear();
+        self.handle_to_index.clear();
+        self.static_broadphase.rebuild(&self.bodies);
+        self.static_tree_dirty = false;
+
+        Ok(report)
     }
 
     /// Register the legacy translation-only mesh contact interface.
