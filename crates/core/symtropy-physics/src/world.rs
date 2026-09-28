@@ -357,7 +357,7 @@ impl<const D: usize> PhysicsWorld<D> {
             report.sensor_events_removed += removal.removed_sensor_events;
             report.contact_cache_pairs_removed += removal.removed_contact_cache_pairs;
             report.prev_cache_pairs_removed += removal.removed_prev_cache_pairs;
-            report.net_ids_removed += usize::from(removal.net_id.is_some());
+            report.net_ids_removed += if removal.net_id.is_some() { 1 } else { 0 };
         }
 
         self.constraints.clear();
