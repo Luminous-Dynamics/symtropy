@@ -185,6 +185,32 @@ impl<const D: usize> Default for PhysicsWorld<D> {
     }
 }
 
+/// Diagnostic report emitted after a successful body removal.
+///
+/// The report is evidence only; the resulting world state remains canonical.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct BodyRemovalReport {
+    pub handle: BodyHandle,
+    pub net_id: Option<NetId>,
+    pub body_type: crate::body::BodyType,
+    pub removed_constraints: usize,
+    pub removed_contacts: usize,
+    pub removed_collision_events: usize,
+    pub removed_sensor_events: usize,
+    pub removed_contact_cache_pairs: usize,
+    pub removed_prev_cache_pairs: usize,
+    pub static_broadphase_dirtied: bool,
+}
+
+/// Fail-closed errors for body removal preflight.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum BodyRemovalError {
+    UnknownBody { handle: BodyHandle },
+    HandleIndexMismatch { handle: BodyHandle },
+    MovedHandleIndexMismatch { handle: BodyHandle },
+    NetIdOwnershipMismatch { net_id: NetId, expected: BodyHandle, actual: Option<BodyHandle> },
+}
+
 /// Which SAT candidate axis won for an oriented box-vs-box pair, tagged so
 /// the manifold generator knows whether to do reference/incident-face
 /// clipping (a face case) or closest-points-between-edges (an edge case).
@@ -395,6 +421,106 @@ impl<const D: usize> PhysicsWorld<D> {
         body.net_id = Some(net_id);
         self.net_id_map.insert(net_id, handle);
         Ok(())
+    }
+
+    /// Remove one body and all world-owned transient state that references it.
+    ///
+    /// The operation is fail-closed: every handle/index/NetId invariant is
+    /// checked before the first mutation. next_handle is never decremented,
+    /// so a removed handle cannot be reused within this world lineage.
+    pub fn remove_body(&mut self, handle: BodyHandle) -> Result<BodyRemovalReport, BodyRemovalError> {
+        let index = self
+            .handle_to_index
+            .get(&handle)
+            .copied()
+            .ok_or(BodyRemovalError::UnknownBody { handle })?;
+
+        let body = self
+            .bodies
+            .get(index)
+            .ok_or(BodyRemovalError::HandleIndexMismatch { handle })?;
+
+        if body.handle != handle {
+            return Err(BodyRemovalError::HandleIndexMismatch { handle });
+        }
+
+        if index + 1 < self.bodies.len() {
+            let moved = self
+                .bodies
+                .last()
+                .ok_or(BodyRemovalError::HandleIndexMismatch { handle })?;
+            if self.handle_to_index.get(&moved.handle).copied() != Some(self.bodies.len() - 1) {
+                return Err(BodyRemovalError::MovedHandleIndexMismatch {
+                    handle: moved.handle,
+                });
+            }
+        }
+
+        let net_id = body.net_id;
+        if let Some(id) = net_id {
+            let actual = self.net_id_map.get(&id).copied();
+            if actual != Some(handle) {
+                return Err(BodyRemovalError::NetIdOwnershipMismatch {
+                    net_id: id,
+                    expected: handle,
+                    actual,
+                });
+            }
+        }
+
+        let body_type = body.body_type;
+        let removed = self.bodies.swap_remove(index);
+        debug_assert_eq!(removed.handle, handle);
+
+        self.handle_to_index.remove(&handle);
+        if index < self.bodies.len() {
+            let moved_handle = self.bodies[index].handle;
+            self.handle_to_index.insert(moved_handle, index);
+        }
+
+        if let Some(id) = net_id {
+            self.net_id_map.remove(&id);
+        }
+
+        let constraints_before = self.constraints.len();
+        self.constraints.retain(|constraint| !constraint.references(handle));
+        let removed_constraints = constraints_before - self.constraints.len();
+
+        let contacts_before = self.contacts.len();
+        self.contacts.retain(|contact| !contact.references(handle));
+        let removed_contacts = contacts_before - self.contacts.len();
+
+        let collision_events_before = self.collision_events.len();
+        self.collision_events.retain(|event| !event.references(handle));
+        let removed_collision_events = collision_events_before - self.collision_events.len();
+
+        let sensor_events_before = self.sensor_events.len();
+        self.sensor_events.retain(|event| !event.references(handle));
+        let removed_sensor_events = sensor_events_before - self.sensor_events.len();
+
+        let removed_contact_cache_pairs = self.contact_cache.remove_body(handle);
+        let removed_prev_cache_pairs = self.prev_cache.remove_body(handle);
+
+        let static_broadphase_dirtied = matches!(
+            body_type,
+            crate::body::BodyType::Static | crate::body::BodyType::Kinematic
+        );
+        if static_broadphase_dirtied {
+            self.static_tree_dirty = true;
+        }
+
+        Ok(BodyRemovalReport {
+            handle,
+            net_id,
+            body_type,
+            removed_constraints,
+            removed_contacts,
+            removed_collision_events,
+            removed_sensor_events,
+            removed_contact_cache_pairs,
+            removed_prev_cache_pairs,
+            static_broadphase_dirtied,
+        })
     }
 
     /// Add a constraint between two bodies.
@@ -2560,6 +2686,188 @@ mod transformed_halfspace_tests {
             manifold.depth()
         );
         assert!(manifold.normal[0] > 0.999);
+    }
+
+    #[test]
+    fn remove_body_prunes_all_owned_state_and_repairs_swap_index() {
+        use crate::body::BodyType;
+        use symtropy_math::Point;
+
+        let mut world = PhysicsWorld::<3>::default();
+        let first = world.add_body(RigidBody::dynamic_sphere(
+            BodyHandle(0),
+            Point::new([0.0, 0.0, 0.0]),
+            1.0,
+            1.0,
+        ));
+        let second = world.add_body(RigidBody::dynamic_sphere(
+            BodyHandle(0),
+            Point::new([2.0, 0.0, 0.0]),
+            1.0,
+            1.0,
+        ));
+        let third = world.add_body(RigidBody::dynamic_sphere(
+            BodyHandle(0),
+            Point::new([4.0, 0.0, 0.0]),
+            1.0,
+            1.0,
+        ));
+        world
+            .set_net_id(first, NetId(10))
+            .expect("first NetId assignment");
+        world
+            .set_net_id(second, NetId(20))
+            .expect("second NetId assignment");
+        world
+            .set_net_id(third, NetId(30))
+            .expect("third NetId assignment");
+
+        world.add_constraint(Box::new(crate::constraint::DistanceConstraint {
+            body_a: first,
+            body_b: second,
+            rest_length: 2.0,
+            stiffness: 1.0,
+        }));
+        world.add_constraint(Box::new(crate::constraint::DistanceConstraint {
+            body_a: second,
+            body_b: third,
+            rest_length: 2.0,
+            stiffness: 1.0,
+        }));
+        world.contacts.push(ContactManifold::single(
+            first,
+            second,
+            SVector::from([1.0, 0.0, 0.0]),
+            SVector::zeros(),
+            0.1,
+        ));
+        world.contacts.push(ContactManifold::single(
+            second,
+            third,
+            SVector::from([1.0, 0.0, 0.0]),
+            SVector::zeros(),
+            0.1,
+        ));
+        world.collision_events.push(CollisionEvent {
+            body_a: first,
+            body_b: second,
+            impulse: 1.0,
+            normal: SVector::from([1.0, 0.0, 0.0]),
+            depth: 0.1,
+        });
+        world.collision_events.push(CollisionEvent {
+            body_a: second,
+            body_b: third,
+            impulse: 1.0,
+            normal: SVector::from([1.0, 0.0, 0.0]),
+            depth: 0.1,
+        });
+        world.sensor_events.push(crate::contact::SensorEvent {
+            sensor: first,
+            other: second,
+        });
+        world.sensor_events.push(crate::contact::SensorEvent {
+            sensor: second,
+            other: third,
+        });
+        world
+            .contact_cache
+            .store(first, second, SVector::zeros(), 1.0, 0.0);
+        world.contact_cache.store(
+            second,
+            third,
+            SVector::from([1.0, 0.0, 0.0]),
+            1.0,
+            0.0,
+        );
+        world
+            .prev_cache
+            .store(first, second, SVector::zeros(), 1.0, 0.0);
+
+        let next_before = world.next_handle;
+        let report = world.remove_body(second).expect("middle body removal");
+        assert_eq!(report.handle, second);
+        assert_eq!(report.net_id, Some(NetId(20)));
+        assert_eq!(report.removed_constraints, 2);
+        assert_eq!(report.removed_contacts, 2);
+        assert_eq!(report.removed_collision_events, 2);
+        assert_eq!(report.removed_sensor_events, 2);
+        assert_eq!(report.removed_contact_cache_pairs, 2);
+        assert_eq!(report.removed_prev_cache_pairs, 1);
+        assert!(!report.static_broadphase_dirtied);
+        assert_eq!(world.next_handle, next_before);
+        assert!(world.body(first).is_some());
+        assert!(world.body(third).is_some());
+        assert!(world.body(second).is_none());
+        assert_eq!(world.handle_for_net_id(NetId(20)), None);
+        assert_eq!(world.net_id_for_handle(third), Some(NetId(30)));
+        assert_eq!(world.handle_to_index.get(&third), Some(&1));
+        assert_eq!(world.constraints.len(), 0);
+        assert!(world.contacts.is_empty());
+        assert!(world.collision_events.is_empty());
+        assert!(world.sensor_events.is_empty());
+        assert_eq!(world.contact_cache.pair_count(), 0);
+        assert_eq!(world.prev_cache.pair_count(), 0);
+
+        let replacement = world.add_body(RigidBody::new(
+            BodyHandle(999),
+            BodyType::Dynamic,
+            Transform::from_translation(Point::new([6.0, 0.0, 0.0])),
+            Box::new(Sphere::<3>::unit()),
+            1.0,
+            SVector::from_element(1.0),
+        ));
+        assert!(replacement.0 > second.0);
+    }
+
+    #[test]
+    fn remove_unknown_body_is_zero_mutation() {
+        let mut world = PhysicsWorld::<3>::default();
+        let body = world.add_sphere(Point::origin(), 1.0, 1.0);
+        let before = (
+            world.bodies.len(),
+            world.constraints.len(),
+            world.contacts.len(),
+            world.collision_events.len(),
+            world.sensor_events.len(),
+            world.next_handle,
+        );
+
+        let err = world.remove_body(BodyHandle(body.0 + 100)).unwrap_err();
+        assert_eq!(err, BodyRemovalError::UnknownBody {
+            handle: BodyHandle(body.0 + 100),
+        });
+        assert_eq!(
+            before,
+            (
+                world.bodies.len(),
+                world.constraints.len(),
+                world.contacts.len(),
+                world.collision_events.len(),
+                world.sensor_events.len(),
+                world.next_handle,
+            )
+        );
+    }
+
+    #[test]
+    fn remove_static_body_marks_static_broadphase_dirty() {
+        use crate::body::BodyType;
+
+        let mut world = PhysicsWorld::<3>::default();
+        let handle = world.add_body(RigidBody::new(
+            BodyHandle(0),
+            BodyType::Static,
+            Transform::identity(),
+            Box::new(HyperBox::<3>::cube(0.5)),
+            0.0,
+            SVector::zeros(),
+        ));
+        world.static_tree_dirty = false;
+
+        let report = world.remove_body(handle).expect("static body removal");
+        assert!(report.static_broadphase_dirtied);
+        assert!(world.static_tree_dirty);
     }
 
     #[test]
