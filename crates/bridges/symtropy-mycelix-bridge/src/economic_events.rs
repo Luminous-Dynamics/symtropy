@@ -130,41 +130,38 @@ impl EconomicEventEnvelopeV1 {
     }
 
     /// Identity excludes wall-clock emission time and derived fingerprints.
-    /// Thus the same deterministic replay produces the same identity even if
-    /// serialized at different wall-clock times.
+    /// Length-prefixed framing prevents delimiter-collision ambiguity.
     pub fn stable_identity(&self) -> String {
-        let canonical = format!(
-            "{}|{}|{}|{}|{}|{}|{}",
-            self.schema_version,
-            self.world_id,
-            self.episode_id,
-            self.simulation_build_id,
-            self.deterministic_replay_id,
-            self.tick,
-            self.source_event_id,
-        );
-        sha256_hex(canonical.as_bytes())
+        let mut bytes = Vec::new();
+        append_str(&mut bytes, &self.schema_version);
+        append_str(&mut bytes, &self.world_id);
+        append_str(&mut bytes, &self.episode_id);
+        append_str(&mut bytes, &self.simulation_build_id);
+        append_str(&mut bytes, &self.deterministic_replay_id);
+        bytes.extend_from_slice(&self.tick.to_be_bytes());
+        append_str(&mut bytes, &self.source_event_id);
+        sha256_hex(&bytes)
     }
 
+    /// Replay digest covers every simulation-semantic field that can affect
+    /// the represented event. Wall-clock emission time, evidence references,
+    /// validity metadata and derived fingerprints are intentionally excluded.
     pub fn compute_replay_digest(&self) -> String {
-        let mut canonical = String::new();
-        canonical.push_str(&self.stable_identity());
-        canonical.push('|');
-        canonical.push_str(&format!("{:?}", self.source_event_type));
-        canonical.push('|');
-        canonical.push_str(&self.actor_refs.join(","));
-        canonical.push('|');
-        canonical.push_str(&self.resource_refs.join(","));
-        canonical.push('|');
+        let mut bytes = Vec::new();
+        bytes.extend_from_slice(self.stable_identity().as_bytes());
+        append_str(&mut bytes, &format!("{:?}", self.source_event_type));
+
+        append_str_vec(&mut bytes, &self.actor_refs);
+        append_str_vec(&mut bytes, &self.resource_refs);
+
+        bytes.extend_from_slice(&(self.quantities_and_units.len() as u64).to_be_bytes());
         for q in &self.quantities_and_units {
-            canonical.push_str(&q.value.to_string());
-            canonical.push(':');
-            canonical.push_str(&q.unit);
-            canonical.push(';');
+            bytes.extend_from_slice(&q.value.to_be_bytes());
+            append_str(&mut bytes, &q.unit);
         }
-        canonical.push('|');
-        canonical.push_str(&self.causal_parent_refs.join(","));
-        sha256_hex(canonical.as_bytes())
+
+        append_str_vec(&mut bytes, &self.causal_parent_refs);
+        sha256_hex(&bytes)
     }
 
     pub fn refresh_fingerprint(&mut self) {
@@ -199,10 +196,20 @@ impl EconomicEventEnvelopeV1 {
         Ok(())
     }
 
-    /// A projection may recognize this event, but it must not replace the
-    /// simulation origin or turn the event into physical/legal evidence.
     pub fn simulation_claim_ceiling(&self) -> &'static str {
         "simulation-scoped event within the declared world/episode/build/replay"
+    }
+}
+
+fn append_str(bytes: &mut Vec<u8>, value: &str) {
+    bytes.extend_from_slice(&(value.len() as u64).to_be_bytes());
+    bytes.extend_from_slice(value.as_bytes());
+}
+
+fn append_str_vec(bytes: &mut Vec<u8>, values: &[String]) {
+    bytes.extend_from_slice(&(values.len() as u64).to_be_bytes());
+    for value in values {
+        append_str(bytes, value);
     }
 }
 
@@ -287,5 +294,18 @@ mod tests {
             event().simulation_claim_ceiling(),
             "simulation-scoped event within the declared world/episode/build/replay"
         );
+    }
+
+    #[test]
+    fn delimiter_collisions_do_not_share_identity() {
+        let a = EconomicEventEnvelopeV1::new(
+            "world-a", "episode-1", "build-7", "replay-7", 4,
+            "evt-1|x", EconomicEventKind::ResourceProduced, "symtropy:world-a",
+        );
+        let b = EconomicEventEnvelopeV1::new(
+            "world-a", "episode-1", "build-7", "replay-7", 4,
+            "evt-1", EconomicEventKind::ResourceProduced, "symtropy:world-a",
+        );
+        assert_ne!(a.envelope_id, b.envelope_id);
     }
 }
