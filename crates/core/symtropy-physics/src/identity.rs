@@ -10,8 +10,33 @@
 
 use std::collections::BTreeSet;
 use std::fmt;
+use std::sync::atomic::{AtomicU64, Ordering};
 
 use crate::{BodyHandle, NetId};
+
+/// Identifies one authoritative physics-world lineage.
+///
+/// The numeric value is unique for worlds created in this process. Callers
+/// that need deterministic reconstruction can supply an explicit value with
+/// PhysicsWorld::new_with_generation. This is separate from NetId: a NetId
+/// is only non-reusable within one generation.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct WorldGenerationId(pub u64);
+
+static NEXT_WORLD_GENERATION: AtomicU64 = AtomicU64::new(1);
+
+impl WorldGenerationId {
+    /// Allocate a fresh process-local generation for a newly created world.
+    pub(crate) fn fresh() -> Self {
+        Self(NEXT_WORLD_GENERATION.fetch_add(1, Ordering::Relaxed))
+    }
+
+    /// Construct an explicit generation for deterministic import/replay setup.
+    pub const fn new(value: u64) -> Self {
+        Self(value)
+    }
+}
+
 
 /// A rejected mutation of the `NetId <-> BodyHandle` identity relation.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
