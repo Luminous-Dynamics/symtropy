@@ -6,11 +6,12 @@ Status: bounded executable reference; not production assurance.
 
 - repository: Luminous-Dynamics/symtropy
 - branch: mycelix-economic-fabric-interoperability
-- source_commit: 93affa0b5be249045f38a2c04c4ce671b1f96791
+- implementation source commit: fe6d9fcf62bbbedf324df31f12b855d9e408a891
 - implementation: crates/bridges/symtropy-mycelix-bridge/src/economic_events.rs
-- exported API: EconomicEventEnvelopeV1
+- recognition boundary: crates/bridges/symtropy-mycelix-bridge/src/recognition.rs
+- exported APIs: EconomicEventEnvelopeV1, RecognitionRecord
 - schema marker: EconomicEventEnvelopeV1
-- dependency addition: sha2 0.10
+- dependency: sha2 0.10
 
 ## Refinement chain
 
@@ -32,8 +33,10 @@ Symtropy simulation state
 | mutation detection | validate rejects changed source identity or replay content |
 | unit/quantity integrity | replay fingerprint covers every quantity and unit |
 | correction lineage | Corrected requires predecessor lineage |
-| origin preservation | origin is part of the source envelope and never rewritten by validation |
+| origin preservation | RecognitionRecord preserves source_event_id, origin and replay fingerprint |
+| projection separation | target_id is distinct from source_event_id |
 | simulation claim ceiling | simulation_claim_ceiling explicitly limits semantic scope |
+| framing integrity | length-prefixed hashing avoids delimiter-collision ambiguity |
 
 ## Required downstream tests
 
@@ -53,4 +56,4 @@ This manifest does not close ECO-FV-001..012. Formal closure requires the corres
 
 ## Claim ceiling
 
-The Symtropy implementation establishes a typed, deterministic, simulation-scoped event envelope and local validation behavior. It does not establish physical-world occurrence, legal ownership, financial settlement, economic performance, or external verification.
+The Symtropy implementation establishes a typed, deterministic, simulation-scoped event envelope and a provenance-preserving recognition boundary. It does not establish physical-world occurrence, legal ownership, financial settlement, economic performance, or external verification.
