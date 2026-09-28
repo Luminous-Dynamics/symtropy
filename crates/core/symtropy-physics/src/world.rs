@@ -3578,15 +3578,21 @@ mod transformed_halfspace_tests {
 
     #[test]
     fn old_generation_ref_does_not_resolve_same_numeric_net_id_in_new_generation() {
-        let mut old = PhysicsWorld::<3>::new_with_generation(SVector::zeros(), WorldGenerationId::new(700));
+        let mut old = PhysicsWorld::<3>::new_with_generation(
+            SVector::zeros(),
+            WorldGenerationId::new(700),
+        );
         let old_body = old.add_sphere(Point::origin(), 1.0, 1.0);
         old.set_net_id(old_body, NetId(603)).expect("old bind");
         let reference = old.issue_body_ref(old_body).expect("old ref");
-        let mut new = PhysicsWorld::<3>::new_with_generation(SVector::zeros(), WorldGenerationId::new(701));
+        let mut new = PhysicsWorld::<3>::new_with_generation(
+            SVector::zeros(),
+            WorldGenerationId::new(701),
+        );
         let new_body = new.add_sphere(Point::origin(), 1.0, 1.0);
         new.set_net_id(new_body, NetId(603)).expect("new bind");
         assert!(matches!(
-            world_generation_mismatch(&new, reference),
+            new.resolve_body_ref(reference),
             Err(PhysicsBodyRefResolutionError::WorldGenerationMismatch {
                 expected: WorldGenerationId::new(701),
                 actual: WorldGenerationId::new(700)
@@ -3631,12 +3637,22 @@ mod transformed_halfspace_tests {
 
     #[test]
     fn generation_mismatch_resolution_is_read_only() {
-        let mut world = PhysicsWorld::<3>::new_with_generation(SVector::zeros(), WorldGenerationId::new(710));
+        let mut world = PhysicsWorld::<3>::new_with_generation(
+            SVector::zeros(),
+            WorldGenerationId::new(710),
+        );
         let body = world.add_sphere(Point::origin(), 1.0, 1.0);
         world.set_net_id(body, NetId(608)).expect("bind");
         let reference = world.issue_body_ref(body).expect("ref");
-        let foreign = PhysicsBodyRef { world_generation: WorldGenerationId::new(711), net_id: NetId(608) };
-        let before = (world.body_count(), world.next_handle, world.retired_net_ids.clone());
+        let foreign = PhysicsBodyRef {
+            world_generation: WorldGenerationId::new(711),
+            net_id: NetId(608),
+        };
+        let before = (
+            world.body_count(),
+            world.next_handle,
+            world.retired_net_ids.clone(),
+        );
         assert!(matches!(
             world.resolve_body_ref(foreign),
             Err(PhysicsBodyRefResolutionError::WorldGenerationMismatch {
@@ -3644,15 +3660,12 @@ mod transformed_halfspace_tests {
                 actual: WorldGenerationId::new(711)
             })
         ));
-        assert_eq!((world.body_count(), world.next_handle, world.retired_net_ids.clone()), before);
+        assert_eq!(
+            (world.body_count(), world.next_handle, world.retired_net_ids.clone()),
+            before
+        );
         assert_eq!(world.resolve_body_ref(reference).unwrap().handle, body);
     }
 
-    fn world_generation_mismatch<const D: usize>(
-        world: &PhysicsWorld<D>,
-        reference: PhysicsBodyRef,
-    ) -> Result<&RigidBody<D>, PhysicsBodyRefResolutionError> {
-        world.resolve_body_ref(reference)
-    }
 
 }
