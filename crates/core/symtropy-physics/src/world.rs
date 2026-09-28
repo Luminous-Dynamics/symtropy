@@ -159,6 +159,11 @@ pub struct PhysicsWorld<const D: usize> {
     pub compliance: f64,
     /// NetId → BodyHandle mapping for cross-machine replay determinism.
     net_id_map: BTreeMap<NetId, BodyHandle>,
+    /// NetIds retired by successful body removal in this world generation.
+    ///
+    /// This history is intentionally monotonic: a retired NetId can never
+    /// become live again until an explicit new world generation is created.
+    retired_net_ids: std::collections::BTreeSet<NetId>,
     /// BodyHandle → Vec index for O(1) body lookup.
     handle_to_index: HashMap<BodyHandle, usize>,
     next_handle: usize,
@@ -245,6 +250,7 @@ impl<const D: usize> PhysicsWorld<D> {
             sleep_threshold: 0.5,
             sleep_ticks: 60, // ~1 second at 64Hz
             net_id_map: BTreeMap::new(),
+            retired_net_ids: std::collections::BTreeSet::new(),
             handle_to_index: HashMap::new(),
             next_handle: 0,
             static_broadphase: broadphase::StaticBroadphase::new(),
@@ -359,9 +365,11 @@ impl<const D: usize> PhysicsWorld<D> {
         use crate::body::BodyType;
 
         bodies.sort_by_key(|(id, _)| *id);
-        validate_batch_net_ids(bodies.iter().map(|(net_id, _)| *net_id), |net_id| {
-            self.net_id_map.get(&net_id).copied()
-        })?;
+        validate_batch_net_ids(
+            bodies.iter().map(|(net_id, _)| *net_id),
+            |net_id| self.net_id_map.get(&net_id).copied(),
+            |net_id| self.retired_net_ids.contains(&net_id),
+        )?;
 
         let mut handles = Vec::with_capacity(bodies.len());
         for (net_id, mut body) in bodies {
@@ -404,6 +412,7 @@ impl<const D: usize> PhysicsWorld<D> {
             self.body(handle).is_some(),
             net_id,
             self.net_id_map.get(&net_id).copied(),
+            self.retired_net_ids.contains(&net_id),
         )?;
 
         let old_id = self.body(handle).and_then(|b| b.net_id);
