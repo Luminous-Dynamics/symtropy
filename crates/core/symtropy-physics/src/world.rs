@@ -3140,6 +3140,71 @@ mod transformed_halfspace_tests {
         assert!(world.static_tree_dirty);
     }
     #[test]
+    fn clear_scene_handle_index_error_is_zero_mutation() {
+        let mut world = PhysicsWorld::<3>::default();
+        let body = world.add_sphere(Point::origin(), 1.0, 1.0);
+        world.set_net_id(body, NetId(504)).expect("bind");
+        world.retired_net_ids.insert(NetId(505));
+        world.contact_cache.store(body, BodyHandle(999), SVector::zeros(), 1.0, 0.0);
+        world.prev_cache.store(body, BodyHandle(999), SVector::zeros(), 1.0, 0.0);
+        world.static_tree_dirty = true;
+
+        let before_handles: Vec<_> = world.bodies.iter().map(|b| b.handle).collect();
+        let before_net_ids: Vec<_> = world.bodies.iter().map(|b| b.net_id).collect();
+        let before_next = world.next_handle;
+        let before_generation = world.world_generation();
+        let before_retired = world.retired_net_ids.clone();
+        let before_cache = world.contact_cache.pair_count();
+        let before_prev_cache = world.prev_cache.pair_count();
+        let before_dirty = world.static_tree_dirty;
+
+        world.handle_to_index.insert(body, 999);
+        let err = world.clear_scene().unwrap_err();
+
+        assert_eq!(err, SceneClearError::HandleIndexMismatch { handle: body });
+        assert_eq!(world.bodies.iter().map(|b| b.handle).collect::<Vec<_>>(), before_handles);
+        assert_eq!(world.bodies.iter().map(|b| b.net_id).collect::<Vec<_>>(), before_net_ids);
+        assert_eq!(world.next_handle, before_next);
+        assert_eq!(world.world_generation(), before_generation);
+        assert_eq!(world.retired_net_ids, before_retired);
+        assert_eq!(world.contact_cache.pair_count(), before_cache);
+        assert_eq!(world.prev_cache.pair_count(), before_prev_cache);
+        assert_eq!(world.static_tree_dirty, before_dirty);
+    }
+
+    #[test]
+    fn clear_scene_net_id_error_is_zero_mutation() {
+        let mut world = PhysicsWorld::<3>::default();
+        let body = world.add_sphere(Point::origin(), 1.0, 1.0);
+        world.set_net_id(body, NetId(506)).expect("bind");
+        world.retired_net_ids.insert(NetId(507));
+
+        let before_handles: Vec<_> = world.bodies.iter().map(|b| b.handle).collect();
+        let before_net_ids: Vec<_> = world.bodies.iter().map(|b| b.net_id).collect();
+        let before_next = world.next_handle;
+        let before_generation = world.world_generation();
+        let before_retired = world.retired_net_ids.clone();
+
+        world.net_id_map.insert(NetId(506), BodyHandle(999));
+        let err = world.clear_scene().unwrap_err();
+
+        assert_eq!(
+            err,
+            SceneClearError::NetIdOwnershipMismatch {
+                net_id: NetId(506),
+                expected: body,
+                actual: Some(BodyHandle(999)),
+            }
+        );
+        assert_eq!(world.bodies.iter().map(|b| b.handle).collect::<Vec<_>>(), before_handles);
+        assert_eq!(world.bodies.iter().map(|b| b.net_id).collect::<Vec<_>>(), before_net_ids);
+        assert_eq!(world.next_handle, before_next);
+        assert_eq!(world.world_generation(), before_generation);
+        assert_eq!(world.retired_net_ids, before_retired);
+        assert_eq!(world.net_id_map.get(&NetId(506)), Some(&BodyHandle(999)));
+    }
+
+    #[test]
     fn clear_scene_preserves_generation_and_retirement_history() {
         let mut world = PhysicsWorld::<3>::new_with_generation(
             SVector::from([0.0, -9.81, 0.0]),
