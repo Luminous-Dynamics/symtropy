@@ -5,7 +5,7 @@
 
 use super::economic_events::{EconomicEventEnvelopeV1, EconomicEventValidationError};
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum RecognitionTarget {
     MycelixEconomicEvent,
     ValueflowsEconomicEvent,
