@@ -188,6 +188,74 @@ impl EconomicProjection {
     }
 }
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum ConservationDimension {
+    Identity,
+    Origin,
+    Replay,
+    Quantity,
+    Unit,
+    Causality,
+    Validity,
+    CorrectionLineage,
+    ClaimCeiling,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct ConservationCheck {
+    pub dimension: ConservationDimension,
+    pub disposition: SemanticDisposition,
+    pub reason: &'static str,
+}
+
+impl EconomicProjection {
+    pub fn conservation_checks(&self, event: &EconomicEventEnvelopeV1) -> Vec<ConservationCheck> {
+        let base = [
+            (ConservationDimension::Identity, self.source_event_id == event.source_event_id),
+            (ConservationDimension::Origin, self.source_origin == event.origin),
+            (ConservationDimension::Replay, self.source_replay_fingerprint == event.replay_fingerprint.digest_hex),
+            (ConservationDimension::ClaimCeiling, self.source_claim_ceiling == event.simulation_claim_ceiling()),
+        ];
+        base.into_iter().map(|(dimension, preserved)| ConservationCheck {
+            dimension,
+            disposition: if preserved { SemanticDisposition::Preserved } else { SemanticDisposition::Conflict },
+            reason: if preserved { "source invariant is preserved" } else { "source invariant was mutated" },
+        }).chain([
+            ConservationCheck {
+                dimension: ConservationDimension::Quantity,
+                disposition: SemanticDisposition::Preserved,
+                reason: "adapter does not rewrite source quantities; target conversion must be explicit",
+            },
+            ConservationCheck {
+                dimension: ConservationDimension::Unit,
+                disposition: SemanticDisposition::Preserved,
+                reason: "adapter does not perform implicit unit conversion",
+            },
+            ConservationCheck {
+                dimension: ConservationDimension::Causality,
+                disposition: SemanticDisposition::Preserved,
+                reason: "causal source event remains the provenance anchor",
+            },
+            ConservationCheck {
+                dimension: ConservationDimension::Validity,
+                disposition: if self.has_conflict() { SemanticDisposition::Conflict } else { SemanticDisposition::Preserved },
+                reason: if self.has_conflict() { "source validity is unresolved" } else { "source validity is current" },
+            },
+            ConservationCheck {
+                dimension: ConservationDimension::CorrectionLineage,
+                disposition: SemanticDisposition::Preserved,
+                reason: "correction lineage remains owned by the source event",
+            },
+        ]).collect()
+    }
+
+    pub fn conservation_holds(&self, event: &EconomicEventEnvelopeV1) -> bool {
+        self.conservation_checks(event).iter().all(|check| {
+            check.disposition == SemanticDisposition::Preserved
+        })
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
