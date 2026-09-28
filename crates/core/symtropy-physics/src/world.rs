@@ -371,6 +371,9 @@ impl<const D: usize> PhysicsWorld<D> {
         let net_id = body
             .net_id
             .ok_or(PhysicsBodyRefResolutionError::BodyHasNoNetId { handle })?;
+        if self.retired_net_ids.contains(&net_id) {
+            return Err(PhysicsBodyRefResolutionError::NetIdRetired { net_id });
+        }
         if self.net_id_map.get(&net_id).copied() != Some(handle) {
             return Err(PhysicsBodyRefResolutionError::NetIdOwnershipMismatch {
                 net_id,
