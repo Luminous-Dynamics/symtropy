@@ -480,6 +480,7 @@ impl<const D: usize> PhysicsWorld<D> {
 
         if let Some(id) = net_id {
             self.net_id_map.remove(&id);
+            self.retired_net_ids.insert(id);
         }
 
         let constraints_before = self.constraints.len();
@@ -2800,6 +2801,7 @@ mod transformed_halfspace_tests {
         assert!(world.body(third).is_some());
         assert!(world.body(second).is_none());
         assert_eq!(world.handle_for_net_id(NetId(20)), None);
+        assert!(world.retired_net_ids.contains(&NetId(20)));
         assert_eq!(world.net_id_for_handle(third), Some(NetId(30)));
         assert_eq!(world.handle_to_index.get(&third), Some(&1));
         assert_eq!(world.constraints.len(), 0);
