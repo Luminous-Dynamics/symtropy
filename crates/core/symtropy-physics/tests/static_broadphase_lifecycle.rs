@@ -84,7 +84,6 @@ fn deterministic_dynamic_batch_uses_existing_static_cache() {
     );
 }
 
-
 #[test]
 fn clear_scene_removes_stale_static_broadphase_entries() {
     let mut world = PhysicsWorld::<3>::default();
@@ -99,7 +98,9 @@ fn clear_scene_removes_stale_static_broadphase_entries() {
     // The static cache is now populated and clean. Clearing the scene must
     // remove that cached collider rather than merely clearing authoritative
     // body storage.
-    world.clear_scene().expect("valid world clears successfully");
+    world
+        .clear_scene()
+        .expect("valid world clears successfully");
 
     // Reusing the same numeric handle is impossible because next_handle is
     // monotonic, so this contact can only come from the newly-created bodies.
