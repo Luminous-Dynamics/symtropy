@@ -16,7 +16,9 @@ use crate::ccd;
 use crate::constraint::Constraint;
 use crate::contact::{CollisionEvent, ContactCache, ContactManifold};
 use crate::gjk;
-use crate::identity::{IdentityMutationError, WorldGenerationId, validate_batch_net_ids, validate_net_id_assignment};
+use crate::identity::{
+    IdentityMutationError, WorldGenerationId, validate_batch_net_ids, validate_net_id_assignment,
+};
 use crate::integrator;
 use crate::manifold_gen;
 
@@ -210,8 +212,14 @@ pub struct SceneClearReport {
 /// Fail-closed errors for scene clearing.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum SceneClearError {
-    HandleIndexMismatch { handle: BodyHandle },
-    NetIdOwnershipMismatch { net_id: NetId, expected: BodyHandle, actual: Option<BodyHandle> },
+    HandleIndexMismatch {
+        handle: BodyHandle,
+    },
+    NetIdOwnershipMismatch {
+        net_id: NetId,
+        expected: BodyHandle,
+        actual: Option<BodyHandle>,
+    },
 }
 
 /// Diagnostic report emitted after a successful body removal.
@@ -234,10 +242,20 @@ pub struct BodyRemovalReport {
 /// Fail-closed errors for body removal preflight.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum BodyRemovalError {
-    UnknownBody { handle: BodyHandle },
-    HandleIndexMismatch { handle: BodyHandle },
-    MovedHandleIndexMismatch { handle: BodyHandle },
-    NetIdOwnershipMismatch { net_id: NetId, expected: BodyHandle, actual: Option<BodyHandle> },
+    UnknownBody {
+        handle: BodyHandle,
+    },
+    HandleIndexMismatch {
+        handle: BodyHandle,
+    },
+    MovedHandleIndexMismatch {
+        handle: BodyHandle,
+    },
+    NetIdOwnershipMismatch {
+        net_id: NetId,
+        expected: BodyHandle,
+        actual: Option<BodyHandle>,
+    },
 }
 
 /// Which SAT candidate axis won for an oriented box-vs-box pair, tagged so
@@ -312,7 +330,9 @@ impl<const D: usize> PhysicsWorld<D> {
         // No mutation is permitted before this complete preflight succeeds.
         for (index, body) in self.bodies.iter().enumerate() {
             if self.handle_to_index.get(&body.handle).copied() != Some(index) {
-                return Err(SceneClearError::HandleIndexMismatch { handle: body.handle });
+                return Err(SceneClearError::HandleIndexMismatch {
+                    handle: body.handle,
+                });
             }
             if let Some(net_id) = body.net_id {
                 if self.net_id_map.get(&net_id).copied() != Some(body.handle) {
@@ -568,7 +588,10 @@ impl<const D: usize> PhysicsWorld<D> {
     /// The operation is fail-closed: every handle/index/NetId invariant is
     /// checked before the first mutation. next_handle is never decremented,
     /// so a removed handle cannot be reused within this world lineage.
-    pub fn remove_body(&mut self, handle: BodyHandle) -> Result<BodyRemovalReport, BodyRemovalError> {
+    pub fn remove_body(
+        &mut self,
+        handle: BodyHandle,
+    ) -> Result<BodyRemovalReport, BodyRemovalError> {
         let index = self
             .handle_to_index
             .get(&handle)
@@ -624,19 +647,23 @@ impl<const D: usize> PhysicsWorld<D> {
         }
 
         let constraints_before = self.constraints.len();
-        self.constraints.retain(|constraint| !constraint.references(handle));
+        self.constraints
+            .retain(|constraint| !constraint.references(handle));
         let removed_constraints = constraints_before - self.constraints.len();
 
         let contacts_before = self.contacts.len();
-        self.contacts.retain(|contact| !contact.references(handle));
+        self.contacts
+            .retain(|contact| !contact.references(handle));
         let removed_contacts = contacts_before - self.contacts.len();
 
         let collision_events_before = self.collision_events.len();
-        self.collision_events.retain(|event| !event.references(handle));
+        self.collision_events
+            .retain(|event| !event.references(handle));
         let removed_collision_events = collision_events_before - self.collision_events.len();
 
         let sensor_events_before = self.sensor_events.len();
-        self.sensor_events.retain(|event| !event.references(handle));
+        self.sensor_events
+            .retain(|event| !event.references(handle));
         let removed_sensor_events = sensor_events_before - self.sensor_events.len();
 
         let removed_contact_cache_pairs = self.contact_cache.remove_body(handle);
@@ -2970,11 +2997,22 @@ mod transformed_halfspace_tests {
         world.remove_body(original).expect("successful removal");
 
         let replacement = world.add_sphere(Point::new([2.0, 0.0, 0.0]), 1.0, 1.0);
-        let before = (world.body_count(), world.next_handle, world.handle_for_net_id(NetId(77)));
+        let before = (
+            world.body_count(),
+            world.next_handle,
+            world.handle_for_net_id(NetId(77)),
+        );
         let err = world.set_net_id(replacement, NetId(77)).unwrap_err();
 
         assert_eq!(err, IdentityMutationError::NetIdRetired { net_id: NetId(77) });
-        assert_eq!(before, (world.body_count(), world.next_handle, world.handle_for_net_id(NetId(77))));
+        assert_eq!(
+            before,
+            (
+                world.body_count(),
+                world.next_handle,
+                world.handle_for_net_id(NetId(77)),
+            )
+        );
         assert_eq!(world.net_id_for_handle(replacement), None);
     }
 
@@ -2987,12 +3025,21 @@ mod transformed_halfspace_tests {
 
         let before = (world.body_count(), world.next_handle);
         let bodies = vec![
-            (NetId(10), RigidBody::dynamic_sphere(BodyHandle(999), Point::origin(), 1.0, 1.0)),
-            (NetId(88), RigidBody::dynamic_sphere(BodyHandle(999), Point::origin(), 1.0, 1.0)),
+            (
+                NetId(10),
+                RigidBody::dynamic_sphere(BodyHandle(999), Point::origin(), 1.0, 1.0),
+            ),
+            (
+                NetId(88),
+                RigidBody::dynamic_sphere(BodyHandle(999), Point::origin(), 1.0, 1.0),
+            ),
         ];
         let err = world.add_bodies_deterministic(bodies).unwrap_err();
 
-        assert_eq!(err, IdentityMutationError::NetIdRetired { net_id: NetId(88) });
+        assert_eq!(
+            err,
+            IdentityMutationError::NetIdRetired { net_id: NetId(88) }
+        );
         assert_eq!((world.body_count(), world.next_handle), before);
         assert_eq!(world.handle_for_net_id(NetId(10)), None);
         assert!(world.retired_net_ids.contains(&NetId(88)));
@@ -3049,15 +3096,28 @@ mod transformed_halfspace_tests {
         world.set_net_id(original, NetId(93)).expect("initial bind");
         world.remove_body(original).expect("successful removal");
 
-        let before = (world.body_count(), world.next_handle, world.retired_net_ids.clone());
+        let before = (
+            world.body_count(),
+            world.next_handle,
+            world.retired_net_ids.clone(),
+        );
         let bodies = vec![
-            (NetId(1), RigidBody::dynamic_sphere(BodyHandle(999), Point::origin(), 1.0, 1.0)),
-            (NetId(93), RigidBody::dynamic_sphere(BodyHandle(999), Point::origin(), 1.0, 1.0)),
+            (
+                NetId(1),
+                RigidBody::dynamic_sphere(BodyHandle(999), Point::origin(), 1.0, 1.0),
+            ),
+            (
+                NetId(93),
+                RigidBody::dynamic_sphere(BodyHandle(999), Point::origin(), 1.0, 1.0),
+            ),
             (NetId(93), RigidBody::dynamic_sphere(BodyHandle(999), Point::origin(), 1.0, 1.0)),
         ];
         let err = world.add_bodies_deterministic(bodies).unwrap_err();
 
-        assert_eq!(err, IdentityMutationError::DuplicateNetIdInBatch { net_id: NetId(93) });
+        assert_eq!(
+            err,
+            IdentityMutationError::DuplicateNetIdInBatch { net_id: NetId(93) }
+        );
         assert_eq!(
             (world.body_count(), world.next_handle, world.retired_net_ids.clone()),
             before
@@ -3079,9 +3139,12 @@ mod transformed_halfspace_tests {
         );
 
         let err = world.remove_body(BodyHandle(body.0 + 100)).unwrap_err();
-        assert_eq!(err, BodyRemovalError::UnknownBody {
-            handle: BodyHandle(body.0 + 100),
-        });
+        assert_eq!(
+            err,
+            BodyRemovalError::UnknownBody {
+                handle: BodyHandle(body.0 + 100),
+            }
+        );
         assert_eq!(
             before,
             (
@@ -3145,8 +3208,12 @@ mod transformed_halfspace_tests {
         let body = world.add_sphere(Point::origin(), 1.0, 1.0);
         world.set_net_id(body, NetId(504)).expect("bind");
         world.retired_net_ids.insert(NetId(505));
-        world.contact_cache.store(body, BodyHandle(999), SVector::zeros(), 1.0, 0.0);
-        world.prev_cache.store(body, BodyHandle(999), SVector::zeros(), 1.0, 0.0);
+        world
+            .contact_cache
+            .store(body, BodyHandle(999), SVector::zeros(), 1.0, 0.0);
+        world
+            .prev_cache
+            .store(body, BodyHandle(999), SVector::zeros(), 1.0, 0.0);
         world.static_tree_dirty = true;
 
         let before_handles: Vec<_> = world.bodies.iter().map(|b| b.handle).collect();
@@ -3162,8 +3229,14 @@ mod transformed_halfspace_tests {
         let err = world.clear_scene().unwrap_err();
 
         assert_eq!(err, SceneClearError::HandleIndexMismatch { handle: body });
-        assert_eq!(world.bodies.iter().map(|b| b.handle).collect::<Vec<_>>(), before_handles);
-        assert_eq!(world.bodies.iter().map(|b| b.net_id).collect::<Vec<_>>(), before_net_ids);
+        assert_eq!(
+            world.bodies.iter().map(|b| b.handle).collect::<Vec<_>>(),
+            before_handles
+        );
+        assert_eq!(
+            world.bodies.iter().map(|b| b.net_id).collect::<Vec<_>>(),
+            before_net_ids
+        );
         assert_eq!(world.next_handle, before_next);
         assert_eq!(world.world_generation(), before_generation);
         assert_eq!(world.retired_net_ids, before_retired);
@@ -3213,7 +3286,9 @@ mod transformed_halfspace_tests {
         world.solver_iterations = 8;
         world.sleep_threshold = 0.25;
         let original = world.add_sphere(Point::origin(), 1.0, 1.0);
-        world.set_net_id(original, NetId(501)).expect("initial bind");
+        world
+            .set_net_id(original, NetId(501))
+            .expect("initial bind");
         let _static = world.add_body(RigidBody::new(
             BodyHandle(0),
             crate::body::BodyType::Static,
@@ -3223,8 +3298,12 @@ mod transformed_halfspace_tests {
             SVector::zeros(),
         ));
         world.static_tree_dirty = false;
-        world.contact_cache.store(original, _static, SVector::zeros(), 1.0, 0.0);
-        world.prev_cache.store(original, _static, SVector::zeros(), 1.0, 0.0);
+        world
+            .contact_cache
+            .store(original, _static, SVector::zeros(), 1.0, 0.0);
+        world
+            .prev_cache
+            .store(original, _static, SVector::zeros(), 1.0, 0.0);
         world.contacts.push(ContactManifold::single(
             original,
             _static,
@@ -3310,18 +3389,14 @@ mod transformed_halfspace_tests {
 
     #[test]
     fn explicit_new_generation_allows_numeric_net_id_reuse() {
-        let mut old = PhysicsWorld::<3>::new_with_generation(
-            SVector::zeros(),
-            WorldGenerationId::new(100),
-        );
+        let mut old =
+            PhysicsWorld::<3>::new_with_generation(SVector::zeros(), WorldGenerationId::new(100));
         let old_body = old.add_sphere(Point::origin(), 1.0, 1.0);
         old.set_net_id(old_body, NetId(503)).expect("old bind");
         old.clear_scene().expect("old clear");
 
-        let mut new = PhysicsWorld::<3>::new_with_generation(
-            SVector::zeros(),
-            WorldGenerationId::new(101),
-        );
+        let mut new =
+            PhysicsWorld::<3>::new_with_generation(SVector::zeros(), WorldGenerationId::new(101));
         let new_body = new.add_sphere(Point::origin(), 1.0, 1.0);
         assert_eq!(new.world_generation(), WorldGenerationId::new(101));
         assert_eq!(new.set_net_id(new_body, NetId(503)), Ok(()));
@@ -3342,6 +3417,5 @@ mod transformed_halfspace_tests {
         assert_ne!(fresh.world_generation(), explicit);
         assert!(fresh.world_generation().0 > explicit.0);
     }
-
 
 }
