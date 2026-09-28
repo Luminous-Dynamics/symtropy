@@ -3121,4 +3121,135 @@ mod transformed_halfspace_tests {
 
         assert!(world.static_tree_dirty);
     }
+    #[test]
+    fn clear_scene_preserves_generation_and_retirement_history() {
+        let mut world = PhysicsWorld::<3>::new_with_generation(
+            SVector::from([0.0, -9.81, 0.0]),
+            WorldGenerationId::new(41),
+        );
+        world.solver_iterations = 8;
+        world.sleep_threshold = 0.25;
+        let original = world.add_sphere(Point::origin(), 1.0, 1.0);
+        world.set_net_id(original, NetId(501)).expect("initial bind");
+        let _static = world.add_body(RigidBody::new(
+            BodyHandle(0),
+            crate::body::BodyType::Static,
+            Transform::identity(),
+            Box::new(HyperBox::<3>::cube(0.5)),
+            0.0,
+            SVector::zeros(),
+        ));
+        world.static_tree_dirty = false;
+        world.contact_cache.store(original, _static, SVector::zeros(), 1.0, 0.0);
+        world.prev_cache.store(original, _static, SVector::zeros(), 1.0, 0.0);
+        world.contacts.push(ContactManifold::single(
+            original,
+            _static,
+            SVector::from([1.0, 0.0, 0.0]),
+            SVector::zeros(),
+            0.1,
+        ));
+        world.collision_events.push(CollisionEvent {
+            body_a: original,
+            body_b: _static,
+            impulse: 1.0,
+            normal: SVector::from([1.0, 0.0, 0.0]),
+            depth: 0.1,
+        });
+        world.sensor_events.push(crate::contact::SensorEvent {
+            sensor: original,
+            other: _static,
+        });
+
+        let next_before = world.next_handle;
+        let gravity_before = world.gravity;
+        let solver_before = world.solver_iterations;
+        let sleep_before = world.sleep_threshold;
+        let generation = world.world_generation();
+
+        let report = world.clear_scene().expect("scene clear");
+        assert_eq!(report.bodies_removed, 2);
+        assert_eq!(report.net_ids_removed, 1);
+        assert!(report.contacts_removed > 0);
+        assert!(report.collision_events_removed > 0);
+        assert!(report.sensor_events_removed > 0);
+        assert!(report.contact_cache_pairs_removed > 0);
+        assert!(report.prev_cache_pairs_removed > 0);
+        assert_eq!(report.next_handle_before, next_before);
+        assert_eq!(report.next_handle_after, next_before);
+        assert_eq!(world.world_generation(), generation);
+        assert_eq!(world.gravity, gravity_before);
+        assert_eq!(world.solver_iterations, solver_before);
+        assert_eq!(world.sleep_threshold, sleep_before);
+        assert!(world.bodies.is_empty());
+        assert!(world.constraints.is_empty());
+        assert!(world.contacts.is_empty());
+        assert!(world.collision_events.is_empty());
+        assert!(world.sensor_events.is_empty());
+        assert!(world.net_id_map.is_empty());
+        assert!(world.handle_to_index.is_empty());
+        assert_eq!(world.contact_cache.pair_count(), 0);
+        assert_eq!(world.prev_cache.pair_count(), 0);
+        assert!(!world.static_tree_dirty);
+        assert!(world.retired_net_ids.contains(&NetId(501)));
+
+        let replacement = world.add_sphere(Point::new([2.0, 0.0, 0.0]), 1.0, 1.0);
+        assert_eq!(
+            world.set_net_id(replacement, NetId(501)),
+            Err(IdentityMutationError::NetIdRetired { net_id: NetId(501) })
+        );
+        assert!(replacement.0 >= next_before);
+    }
+
+    #[test]
+    fn clear_scene_is_idempotent_and_does_not_advance_allocator() {
+        let mut world = PhysicsWorld::<3>::default();
+        let body = world.add_sphere(Point::origin(), 1.0, 1.0);
+        let next_before = world.next_handle;
+        world.set_net_id(body, NetId(502)).expect("bind");
+        let first = world.clear_scene().expect("first clear");
+        let second = world.clear_scene().expect("second clear");
+
+        assert_eq!(first.next_handle_before, next_before);
+        assert_eq!(first.next_handle_after, next_before);
+        assert_eq!(second.bodies_removed, 0);
+        assert_eq!(second.constraints_removed, 0);
+        assert_eq!(second.contacts_removed, 0);
+        assert_eq!(second.collision_events_removed, 0);
+        assert_eq!(second.sensor_events_removed, 0);
+        assert_eq!(second.contact_cache_pairs_removed, 0);
+        assert_eq!(second.prev_cache_pairs_removed, 0);
+        assert_eq!(second.net_ids_removed, 0);
+        assert_eq!(second.next_handle_before, next_before);
+        assert_eq!(second.next_handle_after, next_before);
+        assert!(world.retired_net_ids.contains(&NetId(502)));
+    }
+
+    #[test]
+    fn explicit_new_generation_allows_numeric_net_id_reuse() {
+        let mut old = PhysicsWorld::<3>::new_with_generation(
+            SVector::zeros(),
+            WorldGenerationId::new(100),
+        );
+        let old_body = old.add_sphere(Point::origin(), 1.0, 1.0);
+        old.set_net_id(old_body, NetId(503)).expect("old bind");
+        old.clear_scene().expect("old clear");
+
+        let mut new = PhysicsWorld::<3>::new_with_generation(
+            SVector::zeros(),
+            WorldGenerationId::new(101),
+        );
+        let new_body = new.add_sphere(Point::origin(), 1.0, 1.0);
+        assert_eq!(new.world_generation(), WorldGenerationId::new(101));
+        assert_eq!(new.set_net_id(new_body, NetId(503)), Ok(()));
+    }
+
+    #[test]
+    fn fresh_worlds_receive_distinct_generation_ids() {
+        let a = PhysicsWorld::<3>::default();
+        let b = PhysicsWorld::<3>::default();
+        assert_ne!(a.world_generation(), b.world_generation());
+    }
+
+
 }
