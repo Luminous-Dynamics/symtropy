@@ -28,11 +28,37 @@ static NEXT_WORLD_GENERATION: AtomicU64 = AtomicU64::new(1);
 impl WorldGenerationId {
     /// Allocate a fresh process-local generation for a newly created world.
     pub(crate) fn fresh() -> Self {
-        Self(NEXT_WORLD_GENERATION.fetch_add(1, Ordering::Relaxed))
+        loop {
+            let current = NEXT_WORLD_GENERATION.load(Ordering::Relaxed);
+            let next = current.saturating_add(1);
+            if NEXT_WORLD_GENERATION
+                .compare_exchange_weak(current, next, Ordering::Relaxed, Ordering::Relaxed)
+                .is_ok()
+            {
+                return Self(current);
+            }
+        }
     }
 
     /// Construct an explicit generation for deterministic import/replay setup.
-    pub const fn new(value: u64) -> Self {
+    ///
+    /// Explicit generation values are caller-owned lineage identifiers. The
+    /// process-local allocator is advanced past this value so a later default
+    /// world cannot accidentally receive the same generation.
+    pub fn new(value: u64) -> Self {
+        let next = value.saturating_add(1);
+        let mut current = NEXT_WORLD_GENERATION.load(Ordering::Relaxed);
+        while current < next {
+            match NEXT_WORLD_GENERATION.compare_exchange_weak(
+                current,
+                next,
+                Ordering::Relaxed,
+                Ordering::Relaxed,
+            ) {
+                Ok(_) => break,
+                Err(observed) => current = observed,
+            }
+        }
         Self(value)
     }
 }
