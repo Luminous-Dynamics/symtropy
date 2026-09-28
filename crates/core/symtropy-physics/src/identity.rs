@@ -63,7 +63,6 @@ impl WorldGenerationId {
     }
 }
 
-
 /// A rejected mutation of the `NetId <-> BodyHandle` identity relation.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum IdentityMutationError {
@@ -85,7 +84,11 @@ impl fmt::Display for IdentityMutationError {
                 write!(f, "NetId({}) appears more than once in the batch", net_id.0)
             }
             Self::NetIdRetired { net_id } => {
-                write!(f, "NetId({}) was retired in this world generation", net_id.0)
+                write!(
+                    f,
+                    "NetId({}) was retired in this world generation",
+                    net_id.0
+                )
             }
             Self::NetIdAlreadyAssigned { net_id, owner } => write!(
                 f,
@@ -236,13 +239,7 @@ mod tests {
     #[test]
     fn assignment_to_same_owner_is_idempotent() {
         assert_eq!(
-            validate_net_id_assignment(
-                BodyHandle(4),
-                true,
-                NetId(9),
-                Some(BodyHandle(4)),
-                false
-            ),
+            validate_net_id_assignment(BodyHandle(4), true, NetId(9), Some(BodyHandle(4)), false),
             Ok(())
         );
     }
@@ -250,13 +247,7 @@ mod tests {
     #[test]
     fn assignment_cannot_displace_another_owner() {
         assert_eq!(
-            validate_net_id_assignment(
-                BodyHandle(4),
-                true,
-                NetId(9),
-                Some(BodyHandle(5)),
-                false
-            ),
+            validate_net_id_assignment(BodyHandle(4), true, NetId(9), Some(BodyHandle(5)), false),
             Err(IdentityMutationError::NetIdAlreadyAssigned {
                 net_id: NetId(9),
                 owner: BodyHandle(5),
