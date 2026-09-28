@@ -91,9 +91,14 @@ pub(crate) fn validate_net_id_assignment(
     body_exists: bool,
     net_id: NetId,
     current_owner: Option<BodyHandle>,
+    retired: bool,
 ) -> Result<(), IdentityMutationError> {
     if !body_exists {
         return Err(IdentityMutationError::UnknownBody { handle });
+    }
+
+    if retired && current_owner != Some(handle) {
+        return Err(IdentityMutationError::NetIdRetired { net_id });
     }
 
     if let Some(owner) = current_owner
