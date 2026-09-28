@@ -301,8 +301,15 @@ impl<const D: usize> PhysicsWorld<D> {
 
     /// Remove the current scene while preserving world configuration and
     /// generation-scoped identity history.
+    ///
+    /// The operation is deliberately two-phase: all fallible identity/index
+    /// checks happen before the first mutation, then the commit path contains
+    /// only infallible collection operations. This makes failure fail-closed
+    /// while keeping teardown deterministic and avoiding an internal
+    /// expectation that another mutating API must remain infallible.
     pub fn clear_scene(&mut self) -> Result<SceneClearReport, SceneClearError> {
-        // Full identity/index preflight before the first mutation.
+        // Phase A: prove the authoritative identity/index relation is sound.
+        // No mutation is permitted before this complete preflight succeeds.
         for (index, body) in self.bodies.iter().enumerate() {
             if self.handle_to_index.get(&body.handle).copied() != Some(index) {
                 return Err(SceneClearError::HandleIndexMismatch { handle: body.handle });
@@ -332,42 +339,53 @@ impl<const D: usize> PhysicsWorld<D> {
             }
         }
 
+        // Phase B: capture evidence and perform one deterministic commit.
+        // Retirement is applied to every currently live NetId before the live
+        // identity map is cleared, preserving the generation-scoped tombstone
+        // law without changing the world generation or handle allocator.
         let next_handle_before = self.next_handle;
-        let handles: Vec<_> = self.bodies.iter().map(|body| body.handle).collect();
-        let mut report = SceneClearReport {
-            bodies_removed: 0,
-            constraints_removed: 0,
-            contacts_removed: 0,
-            collision_events_removed: 0,
-            sensor_events_removed: 0,
-            contact_cache_pairs_removed: 0,
-            prev_cache_pairs_removed: 0,
-            net_ids_removed: 0,
+        let bodies_removed = self.bodies.len();
+        let net_ids: Vec<NetId> = self.bodies.iter().filter_map(|body| body.net_id).collect();
+        let report = SceneClearReport {
+            bodies_removed,
+            constraints_removed: self.constraints.len(),
+            contacts_removed: self.contacts.len(),
+            collision_events_removed: self.collision_events.len(),
+            sensor_events_removed: self.sensor_events.len(),
+            contact_cache_pairs_removed: self.contact_cache.pair_count(),
+            prev_cache_pairs_removed: self.prev_cache.pair_count(),
+            net_ids_removed: net_ids.len(),
             next_handle_before,
             next_handle_after: next_handle_before,
         };
 
-        for handle in handles {
-            let removal = self.remove_body(handle)
-                .expect("clear_scene preflight proved removal invariants");
-            report.bodies_removed += 1;
-            report.constraints_removed += removal.removed_constraints;
-            report.contacts_removed += removal.removed_contacts;
-            report.collision_events_removed += removal.removed_collision_events;
-            report.sensor_events_removed += removal.removed_sensor_events;
-            report.contact_cache_pairs_removed += removal.removed_contact_cache_pairs;
-            report.prev_cache_pairs_removed += removal.removed_prev_cache_pairs;
-            report.net_ids_removed += if removal.net_id.is_some() { 1 } else { 0 };
+        for net_id in net_ids {
+            self.retired_net_ids.insert(net_id);
         }
-
+        self.bodies.clear();
         self.constraints.clear();
         self.contacts.clear();
         self.collision_events.clear();
         self.sensor_events.clear();
+        self.contact_cache.begin_frame();
+        self.prev_cache.begin_frame();
         self.net_id_map.clear();
         self.handle_to_index.clear();
         self.static_broadphase.rebuild(&self.bodies);
         self.static_tree_dirty = false;
+
+        debug_assert!(self.bodies.is_empty());
+        debug_assert!(self.constraints.is_empty());
+        debug_assert!(self.contacts.is_empty());
+        debug_assert!(self.collision_events.is_empty());
+        debug_assert!(self.sensor_events.is_empty());
+        debug_assert_eq!(self.contact_cache.pair_count(), 0);
+        debug_assert_eq!(self.prev_cache.pair_count(), 0);
+        debug_assert!(self.net_id_map.is_empty());
+        debug_assert!(self.handle_to_index.is_empty());
+        debug_assert!(self.static_broadphase.is_empty());
+        debug_assert!(!self.static_tree_dirty);
+        debug_assert_eq!(self.next_handle, next_handle_before);
 
         Ok(report)
     }
