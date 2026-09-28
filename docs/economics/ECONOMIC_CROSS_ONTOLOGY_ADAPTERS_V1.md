@@ -82,3 +82,28 @@ valid Symtropy event
 ```
 
 This is an interoperability/conformance property. It is not proof of economic efficacy, legal status, accounting compliance, physical qualification, or settlement finality.
+
+## Conservation vector
+
+The executable adapter now checks a nine-dimension conservation vector:
+
+1. source identity
+2. origin
+3. replay fingerprint
+4. quantity
+5. unit
+6. causality/provenance anchor
+7. validity
+8. correction lineage
+9. claim ceiling
+
+The adapter does not perform implicit unit conversion. A future adapter that changes units must declare an explicit conversion profile and prove the conversion rather than treating the target unit as interchangeable.
+
+A clean projection requires all core dimensions to remain Preserved. An unresolved source validity state therefore cannot produce a clean conservation result.
+
+The resulting bounded invariant is:
+
+    projection => identity AND origin AND replay AND quantity AND unit
+                 AND causality AND validity AND correction_lineage AND claim_ceiling
+
+This is an executable bounded witness, not an unbounded formal proof.
