@@ -18,6 +18,7 @@ pub enum SemanticDisposition {
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum ProjectedKind {
+    MycelixEconomicEvent,
     ValueflowsEconomicEvent,
     ValueflowsIntent,
     ValueflowsCommitment,
@@ -68,13 +69,13 @@ impl EconomicProjection {
         }
 
         let projected_kind = match target {
-            RecognitionTarget::MycelixEconomicEvent => ProjectedKind::ValueflowsEconomicEvent,
-            RecognitionTarget::ValueflowsEconomicEvent => match event.source_event_type {
+            RecognitionTarget::MycelixEconomicEvent => ProjectedKind::MycelixEconomicEvent,
+            RecognitionTarget::ValueflowsEconomicEvent => match &event.source_event_type {
                 EconomicEventKind::OfferCreated => ProjectedKind::ValueflowsIntent,
                 EconomicEventKind::OfferAccepted => ProjectedKind::ValueflowsCommitment,
                 _ => ProjectedKind::ValueflowsEconomicEvent,
             },
-            RecognitionTarget::IntegralCosObservation => match event.source_event_type {
+            RecognitionTarget::IntegralCosObservation => match &event.source_event_type {
                 EconomicEventKind::ResourceProduced
                 | EconomicEventKind::ResourceConsumed
                 | EconomicEventKind::ServicePerformed
