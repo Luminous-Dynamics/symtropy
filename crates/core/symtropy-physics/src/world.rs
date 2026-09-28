@@ -2868,6 +2868,73 @@ mod transformed_halfspace_tests {
     }
 
     #[test]
+    fn failed_removal_cannot_retire_net_id() {
+        let mut world = PhysicsWorld::<3>::default();
+        let body = world.add_sphere(Point::origin(), 1.0, 1.0);
+        world
+            .set_net_id(body, NetId(91))
+            .expect("initial NetId assignment");
+
+        // Deliberately violate the live NetId index inside the crate test so
+        // remove_body() exercises its fail-closed ownership preflight.
+        world.net_id_map.remove(&NetId(91));
+        let before_retired = world.retired_net_ids.clone();
+        let before_next_handle = world.next_handle;
+        let err = world.remove_body(body).unwrap_err();
+
+        assert_eq!(
+            err,
+            BodyRemovalError::NetIdOwnershipMismatch {
+                net_id: NetId(91),
+                expected: body,
+                actual: None,
+            }
+        );
+        assert_eq!(world.retired_net_ids, before_retired);
+        assert_eq!(world.next_handle, before_next_handle);
+        assert!(world.body(body).is_some());
+    }
+
+    #[test]
+    fn second_removal_is_unknown_and_does_not_change_retirement_history() {
+        let mut world = PhysicsWorld::<3>::default();
+        let body = world.add_sphere(Point::origin(), 1.0, 1.0);
+        world.set_net_id(body, NetId(92)).expect("initial bind");
+        world.remove_body(body).expect("first removal");
+
+        let retired_before = world.retired_net_ids.clone();
+        let next_before = world.next_handle;
+        let err = world.remove_body(body).unwrap_err();
+
+        assert_eq!(err, BodyRemovalError::UnknownBody { handle: body });
+        assert_eq!(world.retired_net_ids, retired_before);
+        assert_eq!(world.next_handle, next_before);
+    }
+
+    #[test]
+    fn duplicate_retired_id_is_rejected_before_any_batch_mutation() {
+        let mut world = PhysicsWorld::<3>::default();
+        let original = world.add_sphere(Point::origin(), 1.0, 1.0);
+        world.set_net_id(original, NetId(93)).expect("initial bind");
+        world.remove_body(original).expect("successful removal");
+
+        let before = (world.body_count(), world.next_handle, world.retired_net_ids.clone());
+        let bodies = vec![
+            (NetId(1), RigidBody::dynamic_sphere(BodyHandle(999), Point::origin(), 1.0, 1.0)),
+            (NetId(93), RigidBody::dynamic_sphere(BodyHandle(999), Point::origin(), 1.0, 1.0)),
+            (NetId(93), RigidBody::dynamic_sphere(BodyHandle(999), Point::origin(), 1.0, 1.0)),
+        ];
+        let err = world.add_bodies_deterministic(bodies).unwrap_err();
+
+        assert_eq!(err, IdentityMutationError::DuplicateNetIdInBatch { net_id: NetId(93) });
+        assert_eq!(
+            (world.body_count(), world.next_handle, world.retired_net_ids.clone()),
+            before
+        );
+        assert_eq!(world.handle_for_net_id(NetId(1)), None);
+    }
+
+    #[test]
     fn remove_unknown_body_is_zero_mutation() {
         let mut world = PhysicsWorld::<3>::default();
         let body = world.add_sphere(Point::origin(), 1.0, 1.0);
