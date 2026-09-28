@@ -3557,7 +3557,10 @@ mod transformed_halfspace_tests {
         world.set_net_id(body, NetId(601)).expect("bind");
         let reference = world.issue_body_ref(body).expect("ref");
         world.remove_body(body).expect("remove");
-        assert_eq!(world.resolve_body_ref(reference), Err(PhysicsBodyRefResolutionError::NetIdRetired { net_id: NetId(601) }));
+        assert!(matches!(
+            world.resolve_body_ref(reference),
+            Err(PhysicsBodyRefResolutionError::NetIdRetired { net_id: NetId(601) })
+        ));
     }
 
     #[test]
@@ -3567,7 +3570,10 @@ mod transformed_halfspace_tests {
         world.set_net_id(body, NetId(602)).expect("bind");
         let reference = world.issue_body_ref(body).expect("ref");
         world.clear_scene().expect("clear");
-        assert_eq!(world.resolve_body_ref(reference), Err(PhysicsBodyRefResolutionError::NetIdRetired { net_id: NetId(602) }));
+        assert!(matches!(
+            world.resolve_body_ref(reference),
+            Err(PhysicsBodyRefResolutionError::NetIdRetired { net_id: NetId(602) })
+        ));
     }
 
     #[test]
@@ -3579,7 +3585,13 @@ mod transformed_halfspace_tests {
         let mut new = PhysicsWorld::<3>::new_with_generation(SVector::zeros(), WorldGenerationId::new(701));
         let new_body = new.add_sphere(Point::origin(), 1.0, 1.0);
         new.set_net_id(new_body, NetId(603)).expect("new bind");
-        assert_eq!(world_generation_mismatch(&new, reference), Err(PhysicsBodyRefResolutionError::WorldGenerationMismatch { expected: WorldGenerationId::new(701), actual: WorldGenerationId::new(700) }));
+        assert!(matches!(
+            world_generation_mismatch(&new, reference),
+            Err(PhysicsBodyRefResolutionError::WorldGenerationMismatch {
+                expected: WorldGenerationId::new(701),
+                actual: WorldGenerationId::new(700)
+            })
+        ));
         assert_eq!(new.body(new_body).unwrap().net_id, Some(NetId(603)));
     }
 
@@ -3605,7 +3617,14 @@ mod transformed_halfspace_tests {
         world.set_net_id(body, NetId(607)).expect("bind");
         let reference = world.issue_body_ref(body).expect("ref");
         world.net_id_map.insert(NetId(607), other);
-        assert_eq!(world.resolve_body_ref(reference), Err(PhysicsBodyRefResolutionError::NetIdOwnershipMismatch { net_id: NetId(607), expected: other, actual: None }));
+        assert!(matches!(
+            world.resolve_body_ref(reference),
+            Err(PhysicsBodyRefResolutionError::NetIdOwnershipMismatch {
+                net_id: NetId(607),
+                expected,
+                actual: None
+            }) if expected == other
+        ));
         assert_eq!(world.body_count(), 2);
         assert_eq!(world.net_id_for_handle(body), Some(NetId(607)));
     }
@@ -3618,7 +3637,13 @@ mod transformed_halfspace_tests {
         let reference = world.issue_body_ref(body).expect("ref");
         let foreign = PhysicsBodyRef { world_generation: WorldGenerationId::new(711), net_id: NetId(608) };
         let before = (world.body_count(), world.next_handle, world.retired_net_ids.clone());
-        assert_eq!(world.resolve_body_ref(foreign), Err(PhysicsBodyRefResolutionError::WorldGenerationMismatch { expected: WorldGenerationId::new(710), actual: WorldGenerationId::new(711) }));
+        assert!(matches!(
+            world.resolve_body_ref(foreign),
+            Err(PhysicsBodyRefResolutionError::WorldGenerationMismatch {
+                expected: WorldGenerationId::new(710),
+                actual: WorldGenerationId::new(711)
+            })
+        ));
         assert_eq!((world.body_count(), world.next_handle, world.retired_net_ids.clone()), before);
         assert_eq!(world.resolve_body_ref(reference).unwrap().handle, body);
     }
