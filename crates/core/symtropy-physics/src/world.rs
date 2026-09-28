@@ -3539,7 +3539,10 @@ mod transformed_halfspace_tests {
     fn body_ref_is_issued_only_for_live_networked_body() {
         let mut world = PhysicsWorld::<3>::default();
         let body = world.add_sphere(Point::origin(), 1.0, 1.0);
-        assert!(matches!(world.issue_body_ref(body), Err(PhysicsBodyRefResolutionError::NetIdNotLive { .. })));
+        assert_eq!(
+            world.issue_body_ref(body),
+            Err(PhysicsBodyRefResolutionError::BodyHasNoNetId { handle: body })
+        );
         world.set_net_id(body, NetId(600)).expect("bind");
         let reference = world.issue_body_ref(body).expect("live ref");
         assert_eq!(reference.world_generation(), world.world_generation());
