@@ -2823,6 +2823,42 @@ mod transformed_halfspace_tests {
     }
 
     #[test]
+    fn retired_net_id_cannot_be_rebound_after_removal() {
+        let mut world = PhysicsWorld::<3>::default();
+        let original = world.add_sphere(Point::origin(), 1.0, 1.0);
+        world.set_net_id(original, NetId(77)).expect("initial bind");
+        world.remove_body(original).expect("successful removal");
+
+        let replacement = world.add_sphere(Point::new([2.0, 0.0, 0.0]), 1.0, 1.0);
+        let before = (world.body_count(), world.next_handle, world.handle_for_net_id(NetId(77)));
+        let err = world.set_net_id(replacement, NetId(77)).unwrap_err();
+
+        assert_eq!(err, IdentityMutationError::NetIdRetired { net_id: NetId(77) });
+        assert_eq!(before, (world.body_count(), world.next_handle, world.handle_for_net_id(NetId(77))));
+        assert_eq!(world.net_id_for_handle(replacement), None);
+    }
+
+    #[test]
+    fn retired_net_id_in_batch_is_rejected_before_any_insertion() {
+        let mut world = PhysicsWorld::<3>::default();
+        let original = world.add_sphere(Point::origin(), 1.0, 1.0);
+        world.set_net_id(original, NetId(88)).expect("initial bind");
+        world.remove_body(original).expect("successful removal");
+
+        let before = (world.body_count(), world.next_handle);
+        let bodies = vec![
+            (NetId(10), RigidBody::dynamic_sphere(BodyHandle(999), Point::origin(), 1.0, 1.0)),
+            (NetId(88), RigidBody::dynamic_sphere(BodyHandle(999), Point::origin(), 1.0, 1.0)),
+        ];
+        let err = world.add_bodies_deterministic(bodies).unwrap_err();
+
+        assert_eq!(err, IdentityMutationError::NetIdRetired { net_id: NetId(88) });
+        assert_eq!((world.body_count(), world.next_handle), before);
+        assert_eq!(world.handle_for_net_id(NetId(10)), None);
+        assert!(world.retired_net_ids.contains(&NetId(88)));
+    }
+
+    #[test]
     fn remove_unknown_body_is_zero_mutation() {
         let mut world = PhysicsWorld::<3>::default();
         let body = world.add_sphere(Point::origin(), 1.0, 1.0);
