@@ -69,6 +69,9 @@ where
     }
 
     for net_id in ids {
+        if retired(net_id) {
+            return Err(IdentityMutationError::NetIdRetired { net_id });
+        }
         if let Some(owner) = owner_for(net_id) {
             return Err(IdentityMutationError::NetIdAlreadyAssigned { net_id, owner });
         }
