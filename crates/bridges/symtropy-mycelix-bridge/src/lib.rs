@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 pub mod config;
+pub mod economic_adapters;
 pub mod economic_events;
 pub mod events;
 pub mod plugin;
@@ -11,6 +12,9 @@ pub mod scenarios;
 pub mod systems;
 
 pub use config::MycelixConfig;
+pub use economic_adapters::{
+    AdapterError, EconomicProjection, ProjectedKind, SemanticDisposition, SemanticLossEntry,
+};
 pub use economic_events::{
     EconomicEventEnvelopeV1, EconomicEventKind, EconomicEventValidationError,
     ReplayFingerprint, SimulationQuantity, SimulationValidity,
