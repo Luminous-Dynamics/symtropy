@@ -222,6 +222,7 @@ pub enum PhysicsBodyRefResolutionError {
         expected: WorldGenerationId,
         actual: WorldGenerationId,
     },
+    BodyHasNoNetId { handle: BodyHandle },
     NetIdRetired { net_id: NetId },
     NetIdNotLive { net_id: NetId },
     NetIdOwnershipMismatch {
@@ -370,9 +371,7 @@ impl<const D: usize> PhysicsWorld<D> {
             })?;
         let net_id = body
             .net_id
-            .ok_or(PhysicsBodyRefResolutionError::NetIdNotLive {
-                net_id: NetId(u64::MAX),
-            })?;
+            .ok_or(PhysicsBodyRefResolutionError::BodyHasNoNetId { handle })?;
         if self.net_id_map.get(&net_id).copied() != Some(handle) {
             return Err(PhysicsBodyRefResolutionError::NetIdOwnershipMismatch {
                 net_id,
