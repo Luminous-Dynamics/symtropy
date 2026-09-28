@@ -135,10 +135,14 @@ mod tests {
     #[test]
     fn batch_duplicate_is_rejected_before_existing_owner_lookup() {
         let mut lookups = 0usize;
-        let result = validate_batch_net_ids([NetId(7), NetId(7)], |_| {
-            lookups += 1;
-            Some(BodyHandle(9))
-        });
+        let result = validate_batch_net_ids(
+            [NetId(7), NetId(7)],
+            |_| {
+                lookups += 1;
+                Some(BodyHandle(9))
+            },
+            |_| false,
+        );
 
         assert_eq!(
             result,
@@ -149,9 +153,11 @@ mod tests {
 
     #[test]
     fn batch_existing_owner_is_rejected_after_internal_uniqueness_passes() {
-        let result = validate_batch_net_ids([NetId(7), NetId(8)], |net_id| {
-            (net_id == NetId(8)).then_some(BodyHandle(3))
-        });
+        let result = validate_batch_net_ids(
+            [NetId(7), NetId(8)],
+            |net_id| (net_id == NetId(8)).then_some(BodyHandle(3)),
+            |_| false,
+        );
 
         assert_eq!(
             result,
