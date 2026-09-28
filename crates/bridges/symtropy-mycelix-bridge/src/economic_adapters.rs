@@ -338,6 +338,36 @@ mod tests {
     }
 
     #[test]
+    #[test]
+    fn clean_projection_preserves_all_core_dimensions() {
+        let e = event(EconomicEventKind::ServicePerformed);
+        let p = EconomicProjection::from_event(
+            &e, RecognitionTarget::MycelixEconomicEvent, "myc-event-1"
+        ).unwrap();
+        assert!(p.conservation_holds(&e));
+    }
+
+    #[test]
+    fn source_identity_mutation_fails_conservation() {
+        let e = event(EconomicEventKind::ServicePerformed);
+        let mut p = EconomicProjection::from_event(
+            &e, RecognitionTarget::MycelixEconomicEvent, "myc-event-1"
+        ).unwrap();
+        p.source_event_id = "mutated".into();
+        assert!(!p.conservation_holds(&e));
+    }
+
+    #[test]
+    fn unresolved_validity_blocks_clean_conservation() {
+        let mut e = event(EconomicEventKind::ResourceProduced);
+        e.validity = SimulationValidity::Indeterminate;
+        e.refresh_fingerprint();
+        let p = EconomicProjection::from_event(
+            &e, RecognitionTarget::AccountingProjection, "journal-1"
+        ).unwrap();
+        assert!(!p.conservation_holds(&e));
+    }
+
     fn unresolved_source_cannot_become_clean_projection() {
         let mut e = event(EconomicEventKind::ResourceProduced);
         e.validity = SimulationValidity::Indeterminate;
