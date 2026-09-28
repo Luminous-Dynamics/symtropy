@@ -3251,5 +3251,14 @@ mod transformed_halfspace_tests {
         assert_ne!(a.world_generation(), b.world_generation());
     }
 
+    #[test]
+    fn explicit_generation_reserves_value_from_fresh_allocator() {
+        let explicit = WorldGenerationId::new(50_000);
+        let fresh = PhysicsWorld::<3>::default();
+        assert_eq!(explicit, WorldGenerationId::new(50_000));
+        assert_ne!(fresh.world_generation(), explicit);
+        assert!(fresh.world_generation().0 > explicit.0);
+    }
+
 
 }
