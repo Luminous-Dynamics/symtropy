@@ -194,6 +194,43 @@ impl<const D: usize> Default for PhysicsWorld<D> {
     }
 }
 
+/// An authoritative, lineage-qualified reference to a live physics body.
+///
+/// The fields are private by design: callers obtain references from
+/// PhysicsWorld::issue_body_ref, so a numeric NetId alone cannot be
+/// promoted into an authoritative live reference.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord)]
+pub struct PhysicsBodyRef {
+    world_generation: WorldGenerationId,
+    net_id: NetId,
+}
+
+impl PhysicsBodyRef {
+    pub const fn world_generation(self) -> WorldGenerationId {
+        self.world_generation
+    }
+
+    pub const fn net_id(self) -> NetId {
+        self.net_id
+    }
+}
+
+/// Fail-closed errors for resolving a lineage-qualified body reference.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum PhysicsBodyRefResolutionError {
+    WorldGenerationMismatch {
+        expected: WorldGenerationId,
+        actual: WorldGenerationId,
+    },
+    NetIdRetired { net_id: NetId },
+    NetIdNotLive { net_id: NetId },
+    NetIdOwnershipMismatch {
+        net_id: NetId,
+        expected: BodyHandle,
+        actual: Option<NetId>,
+    },
+}
+
 /// Diagnostic report emitted after clearing the current scene.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct SceneClearReport {
@@ -315,6 +352,78 @@ impl<const D: usize> PhysicsWorld<D> {
     /// Return the immutable lineage identity of this world.
     pub const fn world_generation(&self) -> WorldGenerationId {
         self.world_generation
+    }
+
+    /// Issue an authoritative reference for a currently live body.
+    ///
+    /// A reference can only be created from the world's current identity
+    /// relation. This keeps PhysicsBodyRef from becoming a second, freely
+    /// constructible identity mechanism.
+    pub fn issue_body_ref(
+        &self,
+        handle: BodyHandle,
+    ) -> Result<PhysicsBodyRef, PhysicsBodyRefResolutionError> {
+        let body = self
+            .body(handle)
+            .ok_or(PhysicsBodyRefResolutionError::NetIdNotLive {
+                net_id: NetId(u64::MAX),
+            })?;
+        let net_id = body
+            .net_id
+            .ok_or(PhysicsBodyRefResolutionError::NetIdNotLive {
+                net_id: NetId(u64::MAX),
+            })?;
+        if self.net_id_map.get(&net_id).copied() != Some(handle) {
+            return Err(PhysicsBodyRefResolutionError::NetIdOwnershipMismatch {
+                net_id,
+                expected: handle,
+                actual: body.net_id,
+            });
+        }
+        Ok(PhysicsBodyRef {
+            world_generation: self.world_generation,
+            net_id,
+        })
+    }
+
+    /// Resolve an authoritative body reference without mutating world state.
+    pub fn resolve_body_ref(
+        &self,
+        reference: PhysicsBodyRef,
+    ) -> Result<&RigidBody<D>, PhysicsBodyRefResolutionError> {
+        if reference.world_generation != self.world_generation {
+            return Err(PhysicsBodyRefResolutionError::WorldGenerationMismatch {
+                expected: self.world_generation,
+                actual: reference.world_generation,
+            });
+        }
+        if self.retired_net_ids.contains(&reference.net_id) {
+            return Err(PhysicsBodyRefResolutionError::NetIdRetired {
+                net_id: reference.net_id,
+            });
+        }
+        let handle = self
+            .net_id_map
+            .get(&reference.net_id)
+            .copied()
+            .ok_or(PhysicsBodyRefResolutionError::NetIdNotLive {
+                net_id: reference.net_id,
+            })?;
+        let body = self
+            .body(handle)
+            .ok_or(PhysicsBodyRefResolutionError::NetIdOwnershipMismatch {
+                net_id: reference.net_id,
+                expected: handle,
+                actual: None,
+            })?;
+        if body.net_id != Some(reference.net_id) {
+            return Err(PhysicsBodyRefResolutionError::NetIdOwnershipMismatch {
+                net_id: reference.net_id,
+                expected: handle,
+                actual: body.net_id,
+            });
+        }
+        Ok(body)
     }
 
     /// Remove the current scene while preserving world configuration and
@@ -3426,6 +3535,98 @@ mod transformed_halfspace_tests {
         assert_eq!(explicit, WorldGenerationId::new(50_000));
         assert_ne!(fresh.world_generation(), explicit);
         assert!(fresh.world_generation().0 > explicit.0);
+    }
+
+    #[test]
+    fn body_ref_is_issued_only_for_live_networked_body() {
+        let mut world = PhysicsWorld::<3>::default();
+        let body = world.add_sphere(Point::origin(), 1.0, 1.0);
+        assert!(matches!(world.issue_body_ref(body), Err(PhysicsBodyRefResolutionError::NetIdNotLive { .. })));
+        world.set_net_id(body, NetId(600)).expect("bind");
+        let reference = world.issue_body_ref(body).expect("live ref");
+        assert_eq!(reference.world_generation(), world.world_generation());
+        assert_eq!(reference.net_id(), NetId(600));
+        assert_eq!(world.resolve_body_ref(reference).unwrap().handle, body);
+    }
+
+    #[test]
+    fn stale_body_ref_is_rejected_after_removal() {
+        let mut world = PhysicsWorld::<3>::default();
+        let body = world.add_sphere(Point::origin(), 1.0, 1.0);
+        world.set_net_id(body, NetId(601)).expect("bind");
+        let reference = world.issue_body_ref(body).expect("ref");
+        world.remove_body(body).expect("remove");
+        assert_eq!(world.resolve_body_ref(reference), Err(PhysicsBodyRefResolutionError::NetIdRetired { net_id: NetId(601) }));
+    }
+
+    #[test]
+    fn stale_body_ref_is_rejected_after_clear_scene() {
+        let mut world = PhysicsWorld::<3>::default();
+        let body = world.add_sphere(Point::origin(), 1.0, 1.0);
+        world.set_net_id(body, NetId(602)).expect("bind");
+        let reference = world.issue_body_ref(body).expect("ref");
+        world.clear_scene().expect("clear");
+        assert_eq!(world.resolve_body_ref(reference), Err(PhysicsBodyRefResolutionError::NetIdRetired { net_id: NetId(602) }));
+    }
+
+    #[test]
+    fn old_generation_ref_does_not_resolve_same_numeric_net_id_in_new_generation() {
+        let mut old = PhysicsWorld::<3>::new_with_generation(SVector::zeros(), WorldGenerationId::new(700));
+        let old_body = old.add_sphere(Point::origin(), 1.0, 1.0);
+        old.set_net_id(old_body, NetId(603)).expect("old bind");
+        let reference = old.issue_body_ref(old_body).expect("old ref");
+        let mut new = PhysicsWorld::<3>::new_with_generation(SVector::zeros(), WorldGenerationId::new(701));
+        let new_body = new.add_sphere(Point::origin(), 1.0, 1.0);
+        new.set_net_id(new_body, NetId(603)).expect("new bind");
+        assert_eq!(world_generation_mismatch(&new, reference), Err(PhysicsBodyRefResolutionError::WorldGenerationMismatch { expected: WorldGenerationId::new(701), actual: WorldGenerationId::new(700) }));
+        assert_eq!(new.body(new_body).unwrap().net_id, Some(NetId(603)));
+    }
+
+    #[test]
+    fn valid_body_ref_survives_unrelated_middle_body_removal() {
+        let mut world = PhysicsWorld::<3>::default();
+        let first = world.add_sphere(Point::origin(), 1.0, 1.0);
+        let middle = world.add_sphere(Point::new([2.0, 0.0, 0.0]), 1.0, 1.0);
+        let third = world.add_sphere(Point::new([4.0, 0.0, 0.0]), 1.0, 1.0);
+        world.set_net_id(first, NetId(604)).expect("first bind");
+        world.set_net_id(middle, NetId(605)).expect("middle bind");
+        world.set_net_id(third, NetId(606)).expect("third bind");
+        let reference = world.issue_body_ref(third).expect("third ref");
+        world.remove_body(middle).expect("middle remove");
+        assert_eq!(world.resolve_body_ref(reference).unwrap().handle, third);
+    }
+
+    #[test]
+    fn corrupt_live_net_id_map_is_rejected_without_mutation() {
+        let mut world = PhysicsWorld::<3>::default();
+        let body = world.add_sphere(Point::origin(), 1.0, 1.0);
+        let other = world.add_sphere(Point::new([2.0, 0.0, 0.0]), 1.0, 1.0);
+        world.set_net_id(body, NetId(607)).expect("bind");
+        let reference = world.issue_body_ref(body).expect("ref");
+        world.net_id_map.insert(NetId(607), other);
+        assert_eq!(world.resolve_body_ref(reference), Err(PhysicsBodyRefResolutionError::NetIdOwnershipMismatch { net_id: NetId(607), expected: other, actual: None }));
+        assert_eq!(world.body_count(), 2);
+        assert_eq!(world.net_id_for_handle(body), Some(NetId(607)));
+    }
+
+    #[test]
+    fn generation_mismatch_resolution_is_read_only() {
+        let mut world = PhysicsWorld::<3>::new_with_generation(SVector::zeros(), WorldGenerationId::new(710));
+        let body = world.add_sphere(Point::origin(), 1.0, 1.0);
+        world.set_net_id(body, NetId(608)).expect("bind");
+        let reference = world.issue_body_ref(body).expect("ref");
+        let foreign = PhysicsBodyRef { world_generation: WorldGenerationId::new(711), net_id: NetId(608) };
+        let before = (world.body_count(), world.next_handle, world.retired_net_ids.clone());
+        assert_eq!(world.resolve_body_ref(foreign), Err(PhysicsBodyRefResolutionError::WorldGenerationMismatch { expected: WorldGenerationId::new(710), actual: WorldGenerationId::new(711) }));
+        assert_eq!((world.body_count(), world.next_handle, world.retired_net_ids.clone()), before);
+        assert_eq!(world.resolve_body_ref(reference).unwrap().handle, body);
+    }
+
+    fn world_generation_mismatch<const D: usize>(
+        world: &PhysicsWorld<D>,
+        reference: PhysicsBodyRef,
+    ) -> Result<&RigidBody<D>, PhysicsBodyRefResolutionError> {
+        world.resolve_body_ref(reference)
     }
 
 }
