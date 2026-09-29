@@ -310,6 +310,7 @@ jobs:
           test "$actual_commit" = "$CONTRACT_COMMIT_SHA"
           test "${#actual_commit}" -eq 40
           test "${#actual_tree}" -eq 40
+          export CONTRACT_TREE_SHA="$actual_tree"
           printf 'contract_tree_sha=%s\n' "$actual_tree" >> "$GITHUB_ENV"
           python - <<'PY'
           import json, os
@@ -318,7 +319,7 @@ jobs:
               "schema_id": "luminous.qualification-contract-checkout-identity.v1",
               "schema_version": 1,
               "contract_commit_sha": os.environ["CONTRACT_COMMIT_SHA"],
-              "contract_tree_sha": os.environ["actual_tree"],
+              "contract_tree_sha": os.environ["CONTRACT_TREE_SHA"],
           }
           Path(os.environ["EVIDENCE_DIR"], "qualification-contract-checkout-identity-v1.json").write_text(
               json.dumps(record, sort_keys=True, separators=(",", ":")) + "\n", encoding="utf-8"
@@ -327,7 +328,7 @@ jobs:
         env:
           CONTRACT_COMMIT_SHA: ${{ env.CONTRACT_COMMIT_SHA }}
           EVIDENCE_DIR: ${{ env.EVIDENCE_DIR }}
-          actual_tree: ${{ steps.contract.outputs.contract_tree_sha }}
+          CONTRACT_TREE_SHA: ""
 
       - name: Independently verify retained authority evidence
         if: always() && steps.dispatch.outcome == 'success' && steps.release.outcome == 'success' && steps.contract.outcome == 'success'
