@@ -16,7 +16,7 @@ sys.path.insert(0, __import__("os").path.dirname(__file__))
 
 
 def _node(kind: str, node_id: str, content: str, metadata: dict | None = None) -> dict:
-    node = {"id": node_id, "kind": kind, "content_digest": hashlib.sha256(content.encode()).hexdigest()}
+    node = {"schema_version": "luminous.formal-provenance.v0", "id": node_id, "kind": kind, "label": node_id, "content_digest": hashlib.sha256(content.encode()).hexdigest()}
     if metadata is not None:
         node["metadata"] = metadata
     return node
@@ -50,6 +50,8 @@ def make_fixture() -> tuple[dict, dict, dict]:
                 "source_tree_sha": source_tree_sha,
                 "subject_head": subject_head,
                 "subject_tree": subject_tree,
+                "status": "Passed",
+                "result": "Pass",
             },
         ),
         _node("QualificationContract", "contract:t", "contract"),
@@ -79,7 +81,7 @@ def make_fixture() -> tuple[dict, dict, dict]:
     edges = [
         {"id": "edge:proves", "relation": "proves", "source": "proof:t", "target": "theorem:t"},
         {"id": "edge:checked", "relation": "checked_by", "source": "proof:t", "target": "checker:t"},
-        {"id": "edge:qualifies", "relation": "qualifies", "source": "execution:t", "target": "evidence:t"},
+        {"id": "edge:qualifies", "relation": "qualifies", "source": "execution:t", "target": "contract:t", "evidence": ["evidence:t"]},
     ]
     graph = {"schema_version": "luminous.formal-provenance.v0", "nodes": nodes, "edges": edges}
 
