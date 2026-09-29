@@ -43,8 +43,12 @@ def main(argv: list[str] | None = None) -> int:
             raise ValueError("contract checkout identity fields are not the closed v1 set")
         if checkout["schema_id"]!="luminous.qualification-contract-checkout-identity.v1" or checkout["schema_version"]!=1:
             raise ValueError("contract checkout identity schema mismatch")
-        if not all(isinstance(checkout[k],str) and len(checkout[k])==40 and all(c in "0123456789abcdef" for c in checkout[k]) for k in ("contract_commit_sha","contract_tree_sha")):
+        if not all(isinstance(checkout[k],str) and len(checkout[k])==40 and all(c in "0123456789abcdef" for c in checkout[k]) for k in ("contract_commit_sha","contract_tree_sha","contract_blob_sha")):
             raise ValueError("contract checkout identity is invalid")
+        contract_raw=a.contract.read_bytes()
+        computed_blob=__import__("hashlib").sha1(b"blob "+str(len(contract_raw)).encode()+b"\0"+contract_raw).hexdigest()
+        if checkout["contract_blob_sha"]!=computed_blob:
+            raise ValueError("retained contract bytes do not match recorded Git blob")
         execution=_load_json(a.execution_evidence)
         if not isinstance(execution,dict) or set(execution)!=REQUIRED_EXECUTION_FIELDS:
             raise ValueError("execution evidence fields are not the closed QUAL-001B v1 evidence set")
