@@ -45,6 +45,41 @@ def _binding_record(node: dict[str, Any], nodes: dict[str, dict[str, Any]], grap
     refs.sort(key=lambda x: (x["field"], x["node_id"]))
     return {"node_id": node["id"], "kind": node["kind"], "identity_digest": _identity_digest(node), "references": refs}
 
+
+def _validate_evidence_binding(
+    evidence: dict[str, Any],
+    nodes: dict[str, dict[str, Any]],
+    subject_head: str,
+    subject_tree: str,
+    expected_result: str,
+) -> None:
+    metadata = evidence.get("metadata")
+    if not isinstance(metadata, dict):
+        raise ValueError("qualification evidence lacks metadata")
+    expected = {
+        "execution_id": "ProofExecution",
+        "contract_id": "QualificationContract",
+        "verifier_release_id": "VerifierRelease",
+    }
+    for field, kind in expected.items():
+        ref_id = metadata.get(field)
+        if not isinstance(ref_id, str) or ref_id not in nodes:
+            raise ValueError(f"qualification evidence lacks valid {field}")
+        if nodes[ref_id]["kind"] != kind:
+            raise ValueError(f"qualification evidence {field} has wrong node kind")
+    contract = nodes[metadata["contract_id"]]
+    verifier = nodes[metadata["verifier_release_id"]]
+    if metadata.get("contract_digest") != _identity_digest(contract):
+        raise ValueError("qualification evidence contract_digest mismatch")
+    if metadata.get("verifier_release_digest") != _identity_digest(verifier):
+        raise ValueError("qualification evidence verifier_release_digest mismatch")
+    if metadata.get("subject_head") != subject_head or metadata.get("subject_tree") != subject_tree:
+        raise ValueError("qualification evidence subject binding mismatch")
+    result = metadata.get("result")
+    expected_evidence_result = "Pass" if expected_result == "QualifiedPass" else "Fail"
+    if result != expected_evidence_result:
+        raise ValueError("qualification evidence result contradicts expected qualification result")
+
 def build_admission(graph: dict[str, Any], impact: dict[str, Any], *, subject_repository: str, expected_result: str) -> dict[str, Any]:
     if not isinstance(subject_repository, str) or not subject_repository or any(c.isspace() for c in subject_repository):
         raise ValueError("subject_repository must be a non-empty repository identifier")
@@ -74,6 +109,10 @@ def build_admission(graph: dict[str, Any], impact: dict[str, Any], *, subject_re
     trees = sorted({v for f,v in subject_values if f == "subject_tree"})
     if len(heads) != 1 or len(trees) != 1:
         raise ValueError("admission requires one consistent subject head and tree")
+    evidence_ids = [b["node_id"] for b in bindings if b["kind"] == "QualificationEvidence"]
+    if len(evidence_ids) != 1:
+        raise ValueError("admission requires exactly one current qualification evidence binding")
+    _validate_evidence_binding(nodes[evidence_ids[0]], nodes, heads[0], trees[0], expected_result)
     envelope = {
         "schema_version": SCHEMA_VERSION,
         "admission_version": ADMISSION_VERSION,

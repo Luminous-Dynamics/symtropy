@@ -51,6 +51,29 @@ class AdmissionTests(unittest.TestCase):
         envelope["bindings"][0]["identity_digest"]="9"*64
         envelope["admission_digest"]=digest({k:envelope[k] for k in envelope if k!="admission_digest"})
         with self.assertRaises(ValueError): validate_admission(graph,impact,envelope)
+    def test_evidence_contract_and_verifier_digests_are_required(self):
+        graph, impact, envelope = self.make()
+        graph["nodes"][-1]["metadata"]["contract_digest"] = "9" * 64
+        with self.assertRaises(ValueError):
+            build_admission(graph, impact, subject_repository="Luminous-Dynamics/symtropy", expected_result="QualifiedPass")
+
+    def test_evidence_result_must_match_expected_result(self):
+        graph, impact, _ = self.make()
+        graph["nodes"][-1]["metadata"]["result"] = "Fail"
+        with self.assertRaises(ValueError):
+            build_admission(graph, impact, subject_repository="Luminous-Dynamics/symtropy", expected_result="QualifiedPass")
+
+    def test_exactly_one_evidence_binding_is_required(self):
+        graph, impact, _ = self.make()
+        graph["nodes"].append(node("QualificationEvidence", "evidence:extra", "Extra", content_digest=A, metadata={
+            "contract_id": "contract:q", "contract_digest": A,
+            "verifier_release_id": "verifier:v", "verifier_release_digest": B,
+            "subject_head": F, "subject_tree": E,
+            "execution_id": "execution:x", "result": "Pass",
+        }))
+        with self.assertRaises(ValueError):
+            build_admission(graph, impact, subject_repository="Luminous-Dynamics/symtropy", expected_result="QualifiedPass")
+
     def test_empty_changed_roots_fail_closed(self):
         graph=valid_graph()
         with self.assertRaises(ValueError):
