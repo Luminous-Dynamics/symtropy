@@ -28,6 +28,7 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--release",type=Path,required=True)
     p.add_argument("--contract",type=Path,required=True)
     p.add_argument("--execution-evidence",type=Path,required=True)
+    p.add_argument("--contract-checkout-identity",type=Path,required=True)
     a=p.parse_args(argv)
     try:
         payload_raw=a.payload.read_bytes()
@@ -37,6 +38,13 @@ def main(argv: list[str] | None = None) -> int:
         release.validate_record(release_value)
         contract_value,contract_digest=contract.load_contract_bytes(a.contract.read_bytes())
         contract.validate_contract(contract_value)
+        checkout=_load_json(a.contract_checkout_identity)
+        if not isinstance(checkout,dict) or set(checkout)!={"schema_id","schema_version","contract_commit_sha","contract_tree_sha"}:
+            raise ValueError("contract checkout identity fields are not the closed v1 set")
+        if checkout["schema_id"]!="luminous.qualification-contract-checkout-identity.v1" or checkout["schema_version"]!=1:
+            raise ValueError("contract checkout identity schema mismatch")
+        if not all(isinstance(checkout[k],str) and len(checkout[k])==40 and all(c in "0123456789abcdef" for c in checkout[k]) for k in ("contract_commit_sha","contract_tree_sha")):
+            raise ValueError("contract checkout identity is invalid")
         execution=_load_json(a.execution_evidence)
         if not isinstance(execution,dict) or set(execution)!=REQUIRED_EXECUTION_FIELDS:
             raise ValueError("execution evidence fields are not the closed QUAL-001B v1 evidence set")
@@ -51,6 +59,8 @@ def main(argv: list[str] | None = None) -> int:
             if de[key]!=payload[key]: raise ValueError(f"dispatch/evidence mismatch: {key}")
         for key in ("verifier_commit_sha","verifier_tree_sha","suite_id","suite_revision","toolchain_id"):
             if release_value[key]!=execution[key]: raise ValueError(f"release/execution mismatch: {key}")
+        if checkout["contract_commit_sha"]!=payload["contract_commit_sha"]:
+            raise ValueError("retained contract checkout commit does not match dispatch")
         if execution["contract_commit_sha"]!=payload["contract_commit_sha"]:
             raise ValueError("execution contract commit does not match dispatch")
         if execution["contract_sha256"]!=contract_digest:
