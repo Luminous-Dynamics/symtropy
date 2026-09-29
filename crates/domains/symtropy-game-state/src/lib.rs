@@ -289,6 +289,10 @@ impl<T: Serialize> EventChain<T> {
 /// Errors produced by deterministic game-state primitives.
 #[derive(Debug)]
 pub enum StateError {
+    /// Commitment domain is empty, oversized, or non-ASCII.
+    InvalidCommitmentDomain,
+    /// A commitment field exceeded the portable input bound.
+    CommitmentInputTooLarge,
     /// Stable identifier text was empty, too long, or non-portable.
     InvalidStableId(String),
     /// The requested fixed frequency cannot divide one second exactly.
@@ -327,6 +331,12 @@ pub enum StateError {
 impl fmt::Display for StateError {
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
+            Self::InvalidCommitmentDomain => {
+                formatter.write_str("invalid commitment domain")
+            }
+            Self::CommitmentInputTooLarge => {
+                formatter.write_str("commitment input is too large")
+            }
             Self::InvalidStableId(value) => {
                 write!(formatter, "invalid stable identifier: {value:?}")
             }
@@ -466,20 +476,6 @@ impl ReplayProfile {
     /// Whether this profile is permitted to claim bit-for-bit replay.
     pub const fn permits_bit_exact_claim(self) -> bool {
         matches!(self, Self::BitExactReplay)
-    }
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-enum CommitmentFieldKind {
-    // Kept private so the public API cannot accidentally expose a second
-    // serialization format. This module intentionally accepts only raw,
-    // already-canonical byte fields.
-    _CanonicalBytes,
-}
-
-impl CommitmentFieldKind {
-    const fn _marker(self) -> u8 {
-        0
     }
 }
 
