@@ -392,6 +392,147 @@ fn hex(bytes: &[u8]) -> String {
     output
 }
 
+
+/// Schema version for transport-independent multiplayer commitments.
+pub const MULTIPLAYER_COMMITMENT_SCHEMA_VERSION: u32 = 1;
+
+/// Cryptographic digest used for multiplayer provenance identities.
+///
+/// This is deliberately distinct from the lockstep module's FNV state hash:
+/// the latter is a fast divergence detector, while this type is intended for
+/// durable identity/provenance and therefore uses SHA-256.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[serde(transparent)]
+pub struct CommitmentDigest([u8; 32]);
+
+impl CommitmentDigest {
+    /// Computes a domain-separated digest over an ordered sequence of fields.
+    ///
+    /// Each field is length-prefixed, so concatenation boundaries cannot be
+    /// ambiguous. Callers must provide already-canonical bytes.
+    pub fn derive(domain: &str, fields: &[&[u8]]) -> Result<Self, StateError> {
+        if domain.is_empty() || domain.len() > 128 || !domain.is_ascii() {
+            return Err(StateError::InvalidCommitmentDomain);
+        }
+
+        let mut hasher = Sha256::new();
+        hasher.update(b"symtropy.commitment.v1");
+        hasher.update((domain.len() as u64).to_le_bytes());
+        hasher.update(domain.as_bytes());
+
+        for field in fields {
+            let len = u64::try_from(field.len())
+                .map_err(|_| StateError::CommitmentInputTooLarge)?;
+            hasher.update(len.to_le_bytes());
+            hasher.update(field);
+        }
+
+        Ok(Self(hasher.finalize().into()))
+    }
+
+    /// Returns the raw digest bytes.
+    pub const fn as_bytes(&self) -> &[u8; 32] {
+        &self.0
+    }
+
+    /// Returns the lowercase hexadecimal representation.
+    pub fn to_hex(self) -> String {
+        hex(&self.0)
+    }
+}
+
+impl fmt::Display for CommitmentDigest {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        formatter.write_str(&hex(&self.0))
+    }
+}
+
+/// Explicit claim strength for replay evidence.
+///
+/// A replay implementation must select the strongest profile it can actually
+/// establish; the commitment layer never upgrades a weaker profile.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum ReplayProfile {
+    /// All claim-relevant state is covered by an exact deterministic model.
+    BitExactReplay,
+    /// The authoritative state/checkpoints are reproduced, but execution need
+    /// not be bit-for-bit identical internally.
+    AuthoritativeStateReplay,
+    /// Evidence is observational and cannot establish deterministic replay.
+    ObservationOnly,
+}
+
+impl ReplayProfile {
+    /// Whether this profile is permitted to claim bit-for-bit replay.
+    pub const fn permits_bit_exact_claim(self) -> bool {
+        matches!(self, Self::BitExactReplay)
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum CommitmentFieldKind {
+    // Kept private so the public API cannot accidentally expose a second
+    // serialization format. This module intentionally accepts only raw,
+    // already-canonical byte fields.
+    _CanonicalBytes,
+}
+
+impl CommitmentFieldKind {
+    const fn _marker(self) -> u8 {
+        0
+    }
+}
+
+#[cfg(test)]
+mod multiplayer_commitment_tests {
+    use super::*;
+
+    #[test]
+    fn commitment_is_domain_separated() {
+        let fields = [b"same".as_slice()];
+        let a = CommitmentDigest::derive("session", &fields).expect("valid domain");
+        let b = CommitmentDigest::derive("checkpoint", &fields).expect("valid domain");
+        assert_ne!(a, b);
+    }
+
+    #[test]
+    fn commitment_preserves_field_boundaries() {
+        let concatenated = [b"ab".as_slice()];
+        let split = [b"a".as_slice(), b"b".as_slice()];
+        let a = CommitmentDigest::derive("test", &concatenated).expect("valid");
+        let b = CommitmentDigest::derive("test", &split).expect("valid");
+        assert_ne!(a, b);
+    }
+
+    #[test]
+    fn commitment_is_stable_for_identical_canonical_bytes() {
+        let fields = [b"world".as_slice(), b"ruleset-v1".as_slice(), &[7u8][..]];
+        let first = CommitmentDigest::derive("session", &fields).expect("valid");
+        let second = CommitmentDigest::derive("session", &fields).expect("valid");
+        assert_eq!(first, second);
+        assert_eq!(first.to_hex().len(), 64);
+    }
+
+    #[test]
+    fn replay_profile_never_upgrades_itself() {
+        assert!(ReplayProfile::BitExactReplay.permits_bit_exact_claim());
+        assert!(!ReplayProfile::AuthoritativeStateReplay.permits_bit_exact_claim());
+        assert!(!ReplayProfile::ObservationOnly.permits_bit_exact_claim());
+    }
+
+    #[test]
+    fn invalid_commitment_domain_is_rejected() {
+        assert!(matches!(
+            CommitmentDigest::derive("", &[]),
+            Err(StateError::InvalidCommitmentDomain)
+        ));
+        assert!(matches!(
+            CommitmentDigest::derive("non-ascii-☃", &[]),
+            Err(StateError::InvalidCommitmentDomain)
+        ));
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
