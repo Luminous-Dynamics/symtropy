@@ -63,3 +63,16 @@ python3 formal/provenance/impact.py <canonical-or-interchange-graph.json> --chan
 The impact engine consumes only semantically valid provenance. It computes a deterministic revalidation frontier across proof, checker, execution, verifier, contract, and evidence dependencies. It never grants, revokes, or infers qualification authority.
 
 Machine-readable output uses `impact_status` values `NoImpact`, `RevalidationRequired`, and `GraphInvalid`.
+
+Impact reason codes are dependency-specific rather than generic:
+- `SEMANTIC_DEPENDENCY_CHANGED` — theorem/lemma/invariant semantics changed.
+- `PROOF_ARTIFACT_CHANGED` — the checked proof artifact changed.
+- `CHECKER_CHANGED` — the independent proof checker changed.
+- `EXECUTION_CHANGED` — a proof execution identity changed.
+- `SOURCE_DEPENDENCY_CHANGED` — a source commit/tree dependency changed.
+- `VERIFIER_RELEASE_CHANGED` — the qualification verifier release changed.
+- `QUALIFICATION_CONTRACT_CHANGED` — the qualification contract changed.
+- `SHARED_SUBPROOF_CHANGED` — a shared proof dependency changed.
+- `EVIDENCE_STALE` — evidence must be reconsidered because its provenance relationship changed.
+
+Traversal is reverse-dependency based and deterministic: adjacency is sorted, breadth-first traversal chooses the shortest dependency path, and the first path wins ties. The output is therefore reproducible under graph node/edge reordering. A change to a source identity can propagate through explicit metadata bindings such as `source_commit_id` or `source_tree_id`; no raw digest string is treated as a graph dependency unless it is also represented by a node.
