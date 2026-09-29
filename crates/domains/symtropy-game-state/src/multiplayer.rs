@@ -40,13 +40,13 @@ pub fn canonical_session_bytes(session: &MultiplayerSessionV1) -> Vec<u8> {
 }
 
 fn canonical_session_fields(
-    world_instance: IdentityDigest,
-    world_continuation: IdentityDigest,
-    simulation_identity: IdentityDigest,
-    ruleset_identity: IdentityDigest,
+    world_instance: UnqualifiedIdentityDigest,
+    world_continuation: UnqualifiedIdentityDigest,
+    simulation_identity: UnqualifiedIdentityDigest,
+    ruleset_identity: UnqualifiedIdentityDigest,
     initial_state_commitment: CommitmentDigest,
-    authority_config: IdentityDigest,
-    participants: &[IdentityDigest],
+    authority_config: UnqualifiedIdentityDigest,
+    participants: &[UnqualifiedIdentityDigest],
     replay_profile: ReplayProfile,
 ) -> Vec<u8> {
     let mut out = Vec::with_capacity(256 + participants.len() * 32);
@@ -89,15 +89,15 @@ pub fn canonical_checkpoint_bytes(checkpoint: &StateCheckpointV1) -> Vec<u8> {
 
 fn canonical_checkpoint_fields(
     session_digest: CommitmentDigest,
-    world_instance: IdentityDigest,
+    world_instance: UnqualifiedIdentityDigest,
     authority_epoch: u64,
     simulation_tick: u64,
     simulation_instant: u64,
     previous_checkpoint: Option<CommitmentDigest>,
     state_digest: CommitmentDigest,
     continuation_digest: CommitmentDigest,
-    simulation_identity: IdentityDigest,
-    ruleset_identity: IdentityDigest,
+    simulation_identity: UnqualifiedIdentityDigest,
+    ruleset_identity: UnqualifiedIdentityDigest,
 ) -> Vec<u8> {
     let mut out = Vec::with_capacity(320);
     out.extend_from_slice(b"SYMPROV");
@@ -118,38 +118,56 @@ fn canonical_checkpoint_fields(
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(transparent)]
-pub struct IdentityDigest(pub CommitmentDigest);
+/// Temporary bridge for an identity whose semantic owner has not yet exposed
+/// an owner-issued reference type.
+///
+/// This proves only possession of a 32-byte commitment. It does not prove that
+/// the commitment is a world identity, continuation identity, simulation
+/// identity, ruleset identity, authority configuration, or accepted/current
+/// authority state. The name is intentionally explicit so callers cannot
+/// mistake this bridge for semantic evidence.
+///
+/// Replace each field with an owner-issued typed reference as soon as its
+/// owning subsystem exists. Do not add semantic constructors here.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[serde(transparent)]
+pub struct UnqualifiedIdentityDigest(CommitmentDigest);
 
-impl IdentityDigest {
-    pub const fn new(digest: CommitmentDigest) -> Self { Self(digest) }
+impl UnqualifiedIdentityDigest {
+    /// Creates a temporary unqualified bridge from an already-computed digest.
+    ///
+    /// This deliberately does not claim semantic ownership or acceptance.
+    /// Owner-specific constructors belong in the owning subsystem.
+    pub const fn from_digest(digest: CommitmentDigest) -> Self { Self(digest) }
+
     pub const fn as_bytes(&self) -> &[u8; 32] { self.0.as_bytes() }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct MultiplayerSessionV1 {
-    pub world_instance: IdentityDigest,
-    pub world_continuation: IdentityDigest,
-    pub simulation_identity: IdentityDigest,
-    pub ruleset_identity: IdentityDigest,
+    pub world_instance: UnqualifiedIdentityDigest,
+    pub world_continuation: UnqualifiedIdentityDigest,
+    pub simulation_identity: UnqualifiedIdentityDigest,
+    pub ruleset_identity: UnqualifiedIdentityDigest,
     /// External pre-session admission anchor. This is not a `StateCheckpointV1` digest;
     /// keeping it independent prevents a session/checkpoint identity cycle.
     pub initial_state_commitment: CommitmentDigest,
-    pub authority_config: IdentityDigest,
-    pub participants: Vec<IdentityDigest>,
+    pub authority_config: UnqualifiedIdentityDigest,
+    pub participants: Vec<UnqualifiedIdentityDigest>,
     pub replay_profile: ReplayProfile,
     pub session_digest: CommitmentDigest,
 }
 
 impl MultiplayerSessionV1 {
     pub fn new(
-        world_instance: IdentityDigest,
-        world_continuation: IdentityDigest,
-        simulation_identity: IdentityDigest,
-        ruleset_identity: IdentityDigest,
+        world_instance: UnqualifiedIdentityDigest,
+        world_continuation: UnqualifiedIdentityDigest,
+        simulation_identity: UnqualifiedIdentityDigest,
+        ruleset_identity: UnqualifiedIdentityDigest,
         // External pre-session admission anchor; intentionally not a StateCheckpointV1 digest.
         initial_state_commitment: CommitmentDigest,
-        authority_config: IdentityDigest,
-        mut participants: Vec<IdentityDigest>,
+        authority_config: UnqualifiedIdentityDigest,
+        mut participants: Vec<UnqualifiedIdentityDigest>,
         replay_profile: ReplayProfile,
     ) -> Result<Self, StateError> {
         canonicalize_participants(&mut participants)?;
@@ -205,15 +223,15 @@ impl MultiplayerSessionV1 {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct StateCheckpointV1 {
     pub session_digest: CommitmentDigest,
-    pub world_instance: IdentityDigest,
+    pub world_instance: UnqualifiedIdentityDigest,
     pub authority_epoch: u64,
     pub simulation_tick: u64,
     pub simulation_instant: u64,
     pub previous_checkpoint: Option<CommitmentDigest>,
     pub state_digest: CommitmentDigest,
     pub continuation_digest: CommitmentDigest,
-    pub simulation_identity: IdentityDigest,
-    pub ruleset_identity: IdentityDigest,
+    pub simulation_identity: UnqualifiedIdentityDigest,
+    pub ruleset_identity: UnqualifiedIdentityDigest,
     pub checkpoint_digest: CommitmentDigest,
 }
 
@@ -221,15 +239,15 @@ impl StateCheckpointV1 {
     #[allow(clippy::too_many_arguments)]
     pub fn new(
         session_digest: CommitmentDigest,
-        world_instance: IdentityDigest,
+        world_instance: UnqualifiedIdentityDigest,
         authority_epoch: u64,
         simulation_tick: u64,
         simulation_instant: u64,
         previous_checkpoint: Option<CommitmentDigest>,
         state_digest: CommitmentDigest,
         continuation_digest: CommitmentDigest,
-        simulation_identity: IdentityDigest,
-        ruleset_identity: IdentityDigest,
+        simulation_identity: UnqualifiedIdentityDigest,
+        ruleset_identity: UnqualifiedIdentityDigest,
     ) -> Result<Self, StateError> {
         let checkpoint_digest = CommitmentDigest::derive(
             "multiplayer.checkpoint.v1",
@@ -296,7 +314,7 @@ impl StateCheckpointV1 {
     }
 }
 
-fn canonicalize_participants(participants: &mut Vec<IdentityDigest>) -> Result<(), StateError> {
+fn canonicalize_participants(participants: &mut Vec<UnqualifiedIdentityDigest>) -> Result<(), StateError> {
     if participants.len() > MAX_SESSION_PARTICIPANTS {
         return Err(StateError::TooManyMultiplayerParticipants);
     }
@@ -322,9 +340,9 @@ mod tests {
     fn digest(tag: u8) -> CommitmentDigest {
         CommitmentDigest::derive("fixture", &[&[tag]]).expect("fixture digest")
     }
-    fn identity(tag: u8) -> IdentityDigest { IdentityDigest::new(digest(tag)) }
+    fn identity(tag: u8) -> UnqualifiedIdentityDigest { UnqualifiedIdentityDigest::from_digest(digest(tag)) }
 
-    fn session(participants: Vec<IdentityDigest>) -> MultiplayerSessionV1 {
+    fn session(participants: Vec<UnqualifiedIdentityDigest>) -> MultiplayerSessionV1 {
         MultiplayerSessionV1::new(
             identity(1), identity(2), identity(3), identity(4), digest(5),
             identity(6), participants, ReplayProfile::BitExactReplay,
