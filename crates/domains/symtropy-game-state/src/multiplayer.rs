@@ -44,9 +44,7 @@ fn canonical_session_fields(
     world_continuation: IdentityDigest,
     simulation_identity: IdentityDigest,
     ruleset_identity: IdentityDigest,
-    /// External pre-session admission anchor. This is not a `StateCheckpointV1` digest;
-    /// keeping it independent prevents a session/checkpoint identity cycle.
-    pub initial_state_commitment: CommitmentDigest,
+    initial_state_commitment: CommitmentDigest,
     authority_config: IdentityDigest,
     participants: &[IdentityDigest],
     replay_profile: ReplayProfile,
@@ -135,6 +133,8 @@ pub struct MultiplayerSessionV1 {
     pub ruleset_identity: IdentityDigest,
     pub /// External pre-session admission anchor. This is not a `StateCheckpointV1` digest;
     /// keeping it independent prevents a session/checkpoint identity cycle.
+    /// External pre-session admission anchor. This is not a `StateCheckpointV1` digest;
+    /// keeping it independent prevents a session/checkpoint identity cycle.
     pub initial_state_commitment: CommitmentDigest,
     pub authority_config: IdentityDigest,
     pub participants: Vec<IdentityDigest>,
@@ -148,9 +148,8 @@ impl MultiplayerSessionV1 {
         world_continuation: IdentityDigest,
         simulation_identity: IdentityDigest,
         ruleset_identity: IdentityDigest,
-        /// External pre-session admission anchor. This is not a `StateCheckpointV1` digest;
-    /// keeping it independent prevents a session/checkpoint identity cycle.
-    pub initial_state_commitment: CommitmentDigest,
+        // External pre-session admission anchor; intentionally not a StateCheckpointV1 digest.
+        initial_state_commitment: CommitmentDigest,
         authority_config: IdentityDigest,
         mut participants: Vec<IdentityDigest>,
         replay_profile: ReplayProfile,
