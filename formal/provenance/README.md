@@ -95,3 +95,12 @@ It is deliberately downstream of semantic validation and impact analysis. It:
 - emits deterministic records and fails closed on invalid inputs.
 
 The planner authenticates its impact input before planning. It recomputes the canonical frontier from the validated graph and the declared `changed_node_ids`, then requires exact equality of the supplied impact payload. Tampered, incomplete, duplicated, unknown, or internally contradictory frontiers are rejected. Changed roots are deliberately not emitted as downstream impact records; they are the declared causes of the frontier and are therefore not silently converted into revalidation work units. A `Ready` plan means only that the dependency metadata is sufficiently bound to describe the revalidation work; it does **not** mean that any proof or qualification has passed.
+
+
+## Qualification admission envelope v0
+
+The admission envelope is the narrow handoff between authenticated provenance planning and the existing authoritative qualification machinery. It binds the canonical impact digest, plan digest, exact changed roots, subject repository/head/tree, exact node identity digests, reference identities, and expected qualification result. It recomputes the impact frontier and revalidation plan instead of trusting caller-supplied records.
+
+Run: `python3 formal/provenance/admission.py <graph.json> <impact.json> --subject-repository Luminous-Dynamics/symtropy --expected-result QualifiedPass`.
+
+The envelope is an admission identity, not an authority result. QualifiedPass/QualifiedFail remain outcomes established only by the approved default-branch qualification verifier. The envelope never upgrades a Passed execution by itself. The implementation fails closed on missing identity digests, inconsistent subject head/tree values, tampered frontiers, stale/historical evidence, or mismatched bindings. Canonical JSON ordering does not affect the admission digest.

@@ -125,8 +125,10 @@ def _authenticated_impact(
     if impact.get("impact_status") not in {"NoImpact", "RevalidationRequired"}:
         raise ValueError("unsupported impact_status")
     changed_ids = impact.get("changed_node_ids")
-    if not isinstance(changed_ids, list) or any(
-        not isinstance(node_id, str) or not node_id for node_id in changed_ids
+    if (
+        not isinstance(changed_ids, list)
+        or not changed_ids
+        or any(not isinstance(node_id, str) or not node_id for node_id in changed_ids)
     ):
         raise ValueError("changed_node_ids must be a non-empty-string array")
     if len(changed_ids) != len(set(changed_ids)):
