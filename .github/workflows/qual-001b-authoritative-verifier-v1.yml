@@ -13,6 +13,10 @@ on:
       - 'tools/qualification/tests/test_authoritative_workflow_v1.py'
       - 'tools/qualification/authority_dispatch_v1.py'
       - 'tools/qualification/tests/test_authority_dispatch_v1.py'
+      - 'tools/qualification/authority_dispatch_evidence_v1.py'
+      - 'tools/qualification/authority_dispatch_evidence_verify_v1.py'
+      - 'tools/qualification/tests/test_authority_dispatch_evidence_v1.py'
+      - 'tools/qualification/tests/test_authority_dispatch_evidence_verify_v1.py'
   repository_dispatch:
     types: [qual-001b-authority-v1]
 
