@@ -293,7 +293,7 @@ pub enum StateError {
     InvalidCommitmentDomain,
     /// A commitment field exceeded the portable input bound.
     CommitmentInputTooLarge,
-    /// Stable identifier text was empty, too long, or non-portable.
+    /// Multiplayer participant list was not in canonical order.\n    NonCanonicalMultiplayerParticipants,\n    /// A multiplayer participant appeared more than once.\n    DuplicateMultiplayerParticipant,\n    /// Too many participant references were supplied.\n    TooManyMultiplayerParticipants,\n    /// A durable multiplayer commitment did not match its canonical fields.\n    MultiplayerCommitmentMismatch,\n    /// Stable identifier text was empty, too long, or non-portable.
     InvalidStableId(String),
     /// The requested fixed frequency cannot divide one second exactly.
     InvalidFixedFrequency(u32),
@@ -337,7 +337,7 @@ impl fmt::Display for StateError {
             Self::CommitmentInputTooLarge => {
                 formatter.write_str("commitment input is too large")
             }
-            Self::InvalidStableId(value) => {
+            Self::NonCanonicalMultiplayerParticipants => {\n                formatter.write_str("multiplayer participants are not canonical")\n            }\n            Self::DuplicateMultiplayerParticipant => {\n                formatter.write_str("duplicate multiplayer participant")\n            }\n            Self::TooManyMultiplayerParticipants => {\n                formatter.write_str("too many multiplayer participants")\n            }\n            Self::MultiplayerCommitmentMismatch => {\n                formatter.write_str("multiplayer commitment mismatch")\n            }\n            Self::InvalidStableId(value) => {
                 write!(formatter, "invalid stable identifier: {value:?}")
             }
             Self::InvalidFixedFrequency(hz) => write!(
