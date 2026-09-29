@@ -109,6 +109,10 @@ pub fn canonical_checkpoint_bytes(checkpoint: &StateCheckpointV1) -> Vec<u8> {
     )
 }
 
+// Keep the canonical field list explicit: each parameter is a distinct, ordered
+// commitment field, and collapsing them into a bag/tuple would obscure the grammar.
+// This is a serialization boundary, not a general-purpose application API.
+#[allow(clippy::too_many_arguments)]
 fn canonical_checkpoint_fields(
     session_digest: CommitmentDigest,
     world_instance: UnqualifiedIdentityDigest,
@@ -189,6 +193,9 @@ pub struct MultiplayerSessionV1 {
 }
 
 impl MultiplayerSessionV1 {
+    // The constructor mirrors the v1 semantic contract field-for-field. Keeping the
+    // arguments explicit makes accidental omission/substitution visible at call sites.
+    #[allow(clippy::too_many_arguments)]
     pub fn new(
         world_instance: UnqualifiedIdentityDigest,
         world_continuation: UnqualifiedIdentityDigest,
@@ -362,7 +369,7 @@ impl StateCheckpointV1 {
 }
 
 fn canonicalize_participants(
-    participants: &mut Vec<UnqualifiedIdentityDigest>,
+    participants: &mut [UnqualifiedIdentityDigest],
 ) -> Result<(), StateError> {
     if participants.len() > MAX_SESSION_PARTICIPANTS {
         return Err(StateError::TooManyMultiplayerParticipants);
