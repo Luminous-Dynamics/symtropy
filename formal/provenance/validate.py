@@ -18,6 +18,7 @@ from typing import Any
 
 SCHEMA_VERSION = "luminous.formal-provenance.v0"
 SHA256_RE = re.compile(r"^[0-9a-f]{64}$")
+GIT_OID_RE = re.compile(r"^(?:[0-9a-f]{40}|[0-9a-f]{64})$")
 NODE_KINDS = {
     "Invariant", "Definition", "Theorem", "Lemma", "ProofArtifact",
     "ProofChecker", "ProofExecution", "Counterexample", "SourceCommit",
@@ -154,8 +155,8 @@ class Validator:
             return
         for field in ("commit_sha", "tree_sha"):
             value = p.get(field)
-            if not isinstance(value, str) or not SHA256_RE.fullmatch(value):
-                self.error("E_PROVENANCE_MALFORMED", f"{path}.{field}", "must be lowercase SHA-256")
+            if not isinstance(value, str) or not GIT_OID_RE.fullmatch(value):
+                self.error("E_PROVENANCE_MALFORMED", f"{path}.{field}", "must be a lowercase 40- or 64-hex Git object ID")
         repo = p.get("repository")
         if not isinstance(repo, str) or not repo.strip() or any(c.isspace() for c in repo):
             self.error("E_PROVENANCE_MALFORMED", f"{path}.repository", "repository identity is invalid")
@@ -286,8 +287,8 @@ class Validator:
                 if key not in metadata:
                     self.error("E_EVIDENCE_BINDING", f"node:{nid}.metadata.{key}", "missing qualification binding")
             for key in ("subject_head", "subject_tree"):
-                if key in metadata and (not isinstance(metadata[key], str) or not SHA256_RE.fullmatch(metadata[key])):
-                    self.error("E_EVIDENCE_BINDING", f"node:{nid}.metadata.{key}", "must be lowercase SHA-256")
+                if key in metadata and (not isinstance(metadata[key], str) or not GIT_OID_RE.fullmatch(metadata[key])):
+                    self.error("E_EVIDENCE_BINDING", f"node:{nid}.metadata.{key}", "must be a lowercase 40-hex Git object ID")
 
             contract = self.nodes.get(metadata.get("contract_id"))
             verifier = self.nodes.get(metadata.get("verifier_release_id"))
@@ -333,13 +334,13 @@ class Validator:
                     target = self.nodes.get(ref)
                     if not target or target["kind"] != expected_kind:
                         self.error("E_EVIDENCE_BINDING", f"node:{execution_id}.metadata.{field}", f"{field} must reference {expected_kind}")
-                    elif expected_kind == "SourceCommit" and execution_metadata.get("source_commit_sha") != target.get("content_digest"):
-                        self.error("E_EVIDENCE_BINDING", f"node:{execution_id}.metadata.source_commit_sha", "source commit digest does not match referenced SourceCommit")
-                    elif expected_kind == "SourceTree" and execution_metadata.get("source_tree_sha") != target.get("content_digest"):
-                        self.error("E_EVIDENCE_BINDING", f"node:{execution_id}.metadata.source_tree_sha", "source tree digest does not match referenced SourceTree")
+                    elif expected_kind == "SourceCommit" and execution_metadata.get("source_commit_sha") != target.get("metadata", {}).get("commit_sha"):
+                        self.error("E_EVIDENCE_BINDING", f"node:{execution_id}.metadata.source_commit_sha", "source commit ID does not match referenced SourceCommit metadata.commit_sha")
+                    elif expected_kind == "SourceTree" and execution_metadata.get("source_tree_sha") != target.get("metadata", {}).get("tree_sha"):
+                        self.error("E_EVIDENCE_BINDING", f"node:{execution_id}.metadata.source_tree_sha", "source tree ID does not match referenced SourceTree metadata.tree_sha")
                 for field in ("source_commit_sha", "source_tree_sha"):
-                    if not isinstance(execution_metadata.get(field), str) or not SHA256_RE.fullmatch(execution_metadata.get(field, "")):
-                        self.error("E_EVIDENCE_BINDING", f"node:{execution_id}.metadata.{field}", "exact source binding requires a lowercase SHA-256 digest")
+                    if not isinstance(execution_metadata.get(field), str) or not GIT_OID_RE.fullmatch(execution_metadata.get(field, "")):
+                        self.error("E_EVIDENCE_BINDING", f"node:{execution_id}.metadata.{field}", "exact source binding requires a lowercase 40-hex Git object ID")
                 if execution_metadata.get("subject_head") != metadata.get("subject_head"):
                     self.error("E_STALE_EVIDENCE", f"node:{nid}.metadata.subject_head", "qualification subject head differs from execution binding")
                 if execution_metadata.get("subject_tree") != metadata.get("subject_tree"):
