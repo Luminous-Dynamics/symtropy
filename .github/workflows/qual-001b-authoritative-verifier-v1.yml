@@ -17,6 +17,8 @@ on:
       - 'tools/qualification/authority_dispatch_evidence_verify_v1.py'
       - 'tools/qualification/tests/test_authority_dispatch_evidence_v1.py'
       - 'tools/qualification/tests/test_authority_dispatch_evidence_verify_v1.py'
+      - 'tools/qualification/authority_evidence_envelope_v1.py'
+      - 'tools/qualification/tests/test_authority_evidence_envelope_v1.py'
   repository_dispatch:
     types: [qual-001b-authority-v1]
 
@@ -59,7 +61,9 @@ jobs:
             tools/qualification/authority_dispatch_evidence_v1.py \
             tools/qualification/authority_dispatch_evidence_verify_v1.py \
             tools/qualification/tests/test_authority_dispatch_evidence_v1.py \
-            tools/qualification/tests/test_authority_dispatch_evidence_verify_v1.py
+            tools/qualification/tests/test_authority_dispatch_evidence_verify_v1.py \
+            tools/qualification/authority_evidence_envelope_v1.py \
+            tools/qualification/tests/test_authority_evidence_envelope_v1.py
       - name: Execute verifier hostile corpus
         env:
           PYTHONDONTWRITEBYTECODE: '1'
@@ -71,7 +75,8 @@ jobs:
             tools.qualification.tests.test_authoritative_workflow_v1 \
             tools.qualification.tests.test_authority_dispatch_v1 \
             tools.qualification.tests.test_authority_dispatch_evidence_v1 \
-            tools.qualification.tests.test_authority_dispatch_evidence_verify_v1 -v \
+            tools.qualification.tests.test_authority_dispatch_evidence_verify_v1 \
+            tools.qualification.tests.test_authority_evidence_envelope_v1 -v \
             2>&1 | tee /tmp/qual-001b-tests.log
           grep -Fx 'OK' /tmp/qual-001b-tests.log
       - name: Candidate postflight
@@ -300,6 +305,18 @@ jobs:
             --evidence "$EVIDENCE_DIR/authority-dispatch-evidence.json" \
             --release "$EVIDENCE_DIR/verifier-release-v1.json" \
             --contract "$EVIDENCE_DIR/qualification-contract-v1.json"
+      - name: Independently replay complete authority evidence envelope
+        if: always() && steps.dispatch.outcome == 'success' && steps.release.outcome == 'success' && steps.contract.outcome == 'success'
+        run: |
+          set -euo pipefail
+          test -s "$EVIDENCE_DIR/qualification-execution-evidence-v1.json"
+          python "$AUTHORITY_DIR/tools/qualification/authority_evidence_envelope_v1.py" \
+            --payload "$EVIDENCE_DIR/authority-dispatch-payload.json" \
+            --dispatch-evidence "$EVIDENCE_DIR/authority-dispatch-evidence.json" \
+            --release "$EVIDENCE_DIR/verifier-release-v1.json" \
+            --contract "$EVIDENCE_DIR/qualification-contract-v1.json" \
+            --execution-evidence "$EVIDENCE_DIR/qualification-execution-evidence-v1.json"
+
       - name: Upload execution evidence
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
