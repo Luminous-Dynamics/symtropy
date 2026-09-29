@@ -1,0 +1,62 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Luminous Authority Evidence Root v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_id",
+    "schema_version",
+    "manifest_sha256",
+    "manifest_root_sha256",
+    "member_sha256",
+    "semantic_bindings",
+    "root_sha256"
+  ],
+  "properties": {
+    "schema_id": {"const": "luminous.authority-evidence-root.v1"},
+    "schema_version": {"const": 1},
+    "manifest_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "manifest_root_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "member_sha256": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "dispatch_payload",
+        "dispatch_evidence",
+        "verifier_release",
+        "qualification_contract",
+        "qualification_contract_checkout_identity",
+        "execution_evidence"
+      ],
+      "properties": {
+        "dispatch_payload": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+        "dispatch_evidence": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+        "verifier_release": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+        "qualification_contract": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+        "qualification_contract_checkout_identity": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+        "execution_evidence": {"type": "string", "pattern": "^[0-9a-f]{64}$"}
+      }
+    },
+    "semantic_bindings": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "contract_commit_sha",
+        "contract_blob_sha",
+        "subject_head_sha",
+        "subject_tree_sha",
+        "final_result"
+      ],
+      "properties": {
+        "contract_commit_sha": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
+        "contract_blob_sha": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
+        "subject_head_sha": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
+        "subject_tree_sha": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
+        "final_result": {
+          "enum": ["TheoremExecutedPass", "TheoremExecutedFail", "InfrastructureFailure"]
+        }
+      }
+    },
+    "root_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"}
+  }
+}
