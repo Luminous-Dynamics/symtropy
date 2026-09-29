@@ -403,6 +403,58 @@ mod tests {
     }
 
     #[test]
+    fn checkpoint_field_perturbations_change_identity() {
+        let s = session(vec![identity(7), identity(8)]);
+        let base = StateCheckpointV1::new(
+            s.session_digest, identity(1), 0, 100, 100, None,
+            digest(10), digest(11), identity(3), identity(4),
+        ).expect("checkpoint");
+
+        let variants = [
+            StateCheckpointV1::new(
+                s.session_digest, identity(9), 0, 100, 100, None,
+                digest(10), digest(11), identity(3), identity(4),
+            ).expect("world variant"),
+            StateCheckpointV1::new(
+                s.session_digest, identity(1), 1, 100, 100, None,
+                digest(10), digest(11), identity(3), identity(4),
+            ).expect("epoch variant"),
+            StateCheckpointV1::new(
+                s.session_digest, identity(1), 0, 101, 100, None,
+                digest(10), digest(11), identity(3), identity(4),
+            ).expect("tick variant"),
+            StateCheckpointV1::new(
+                s.session_digest, identity(1), 0, 100, 101, None,
+                digest(10), digest(11), identity(3), identity(4),
+            ).expect("instant variant"),
+            StateCheckpointV1::new(
+                s.session_digest, identity(1), 0, 100, 100, Some(digest(99)),
+                digest(10), digest(11), identity(3), identity(4),
+            ).expect("previous variant"),
+            StateCheckpointV1::new(
+                s.session_digest, identity(1), 0, 100, 100, None,
+                digest(12), digest(11), identity(3), identity(4),
+            ).expect("state variant"),
+            StateCheckpointV1::new(
+                s.session_digest, identity(1), 0, 100, 100, None,
+                digest(10), digest(12), identity(3), identity(4),
+            ).expect("continuation variant"),
+            StateCheckpointV1::new(
+                s.session_digest, identity(1), 0, 100, 100, None,
+                digest(10), digest(11), identity(5), identity(4),
+            ).expect("simulation variant"),
+            StateCheckpointV1::new(
+                s.session_digest, identity(1), 0, 100, 100, None,
+                digest(10), digest(11), identity(3), identity(5),
+            ).expect("ruleset variant"),
+        ];
+
+        for variant in variants {
+            assert_ne!(base.checkpoint_digest, variant.checkpoint_digest);
+        }
+    }
+
+    #[test]
     fn checkpoint_canonical_encoding_distinguishes_absent_predecessor() {
         let s = session(vec![identity(7)]);
         let checkpoint = StateCheckpointV1::new(
