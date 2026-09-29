@@ -7,6 +7,7 @@ from pathlib import Path
 SCHEMA_ID="luminous.authority-evidence-manifest.v1"
 SCHEMA_VERSION=1
 MAX_BYTES=65536
+OUTER_FILES={"authority-evidence-root-v1.json"}
 MEMBERS=(
  ("authority-dispatch-payload.json","dispatch_payload"),
  ("authority-dispatch-evidence.json","dispatch_evidence"),
@@ -62,7 +63,7 @@ def verify(value,directory):
   except OSError as exc: _fail(f"missing evidence member {name}: {exc}")
   if len(raw)!=length: _fail(f"evidence length mismatch: {name}")
   if hashlib.sha256(raw).hexdigest()!=digest: _fail(f"evidence digest mismatch: {name}")
- actual=sorted(p.name for p in directory.iterdir() if p.is_file() and p.name!="authority-evidence-manifest-v1.json")
+ actual=sorted(p.name for p in directory.iterdir() if p.is_file() and p.name not in {"authority-evidence-manifest-v1.json", *OUTER_FILES})
  if actual!=sorted(expected): _fail("evidence directory contains files outside the closed member set")
 def main(argv=None):
  p=argparse.ArgumentParser(); sub=p.add_subparsers(dest="command",required=True)
