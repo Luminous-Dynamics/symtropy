@@ -1,6 +1,9 @@
 // Copyright (C) 2026 Tristan Stoltz / Luminous Dynamics
 // SPDX-License-Identifier: AGPL-3.0-or-later
-//! Deterministic identifiers, simulation time, causal events, hash chains, and multiplayer commitments.\n\npub mod multiplayer;\npub use multiplayer::{MultiplayerSessionV1, StateCheckpointV1, UnqualifiedIdentityDigest};
+//! Deterministic identifiers, simulation time, causal events, hash chains, and multiplayer commitments.
+
+pub mod multiplayer;
+pub use multiplayer::{MultiplayerSessionV1, StateCheckpointV1, UnqualifiedIdentityDigest};
 
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
@@ -293,7 +296,15 @@ pub enum StateError {
     InvalidCommitmentDomain,
     /// A commitment field exceeded the portable input bound.
     CommitmentInputTooLarge,
-    /// Multiplayer participant list was not in canonical order.\n    NonCanonicalMultiplayerParticipants,\n    /// A multiplayer participant appeared more than once.\n    DuplicateMultiplayerParticipant,\n    /// Too many participant references were supplied.\n    TooManyMultiplayerParticipants,\n    /// A durable multiplayer commitment did not match its canonical fields.\n    MultiplayerCommitmentMismatch,\n    /// Stable identifier text was empty, too long, or non-portable.
+    /// Multiplayer participant list was not in canonical order.
+    NonCanonicalMultiplayerParticipants,
+    /// A multiplayer participant appeared more than once.
+    DuplicateMultiplayerParticipant,
+    /// Too many participant references were supplied.
+    TooManyMultiplayerParticipants,
+    /// A durable multiplayer commitment did not match its canonical fields.
+    MultiplayerCommitmentMismatch,
+    /// Stable identifier text was empty, too long, or non-portable.
     InvalidStableId(String),
     /// The requested fixed frequency cannot divide one second exactly.
     InvalidFixedFrequency(u32),
@@ -337,7 +348,19 @@ impl fmt::Display for StateError {
             Self::CommitmentInputTooLarge => {
                 formatter.write_str("commitment input is too large")
             }
-            Self::NonCanonicalMultiplayerParticipants => {\n                formatter.write_str("multiplayer participants are not canonical")\n            }\n            Self::DuplicateMultiplayerParticipant => {\n                formatter.write_str("duplicate multiplayer participant")\n            }\n            Self::TooManyMultiplayerParticipants => {\n                formatter.write_str("too many multiplayer participants")\n            }\n            Self::MultiplayerCommitmentMismatch => {\n                formatter.write_str("multiplayer commitment mismatch")\n            }\n            Self::InvalidStableId(value) => {
+            Self::NonCanonicalMultiplayerParticipants => {
+                formatter.write_str("multiplayer participants are not canonical")
+            }
+            Self::DuplicateMultiplayerParticipant => {
+                formatter.write_str("duplicate multiplayer participant")
+            }
+            Self::TooManyMultiplayerParticipants => {
+                formatter.write_str("too many multiplayer participants")
+            }
+            Self::MultiplayerCommitmentMismatch => {
+                formatter.write_str("multiplayer commitment mismatch")
+            }
+            Self::InvalidStableId(value) => {
                 write!(formatter, "invalid stable identifier: {value:?}")
             }
             Self::InvalidFixedFrequency(hz) => write!(
