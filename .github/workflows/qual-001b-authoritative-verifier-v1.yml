@@ -252,6 +252,19 @@ jobs:
           CONTRACT_PATH: ${{ env.CONTRACT_PATH }}
           CONTRACT_SHA256: ${{ env.CONTRACT_SHA256 }}
 
+      - name: Retain exact validated verifier release record
+        if: steps.release.outcome == 'success'
+        run: |
+          set -euo pipefail
+          mkdir -p "$EVIDENCE_DIR"
+          test -s "$AUTHORITY_DIR/$RELEASE_RECORD_PATH"
+          cp --preserve=mode,timestamps "$AUTHORITY_DIR/$RELEASE_RECORD_PATH" \
+            "$EVIDENCE_DIR/verifier-release-v1.json"
+          cmp --silent "$AUTHORITY_DIR/$RELEASE_RECORD_PATH" \
+            "$EVIDENCE_DIR/verifier-release-v1.json"
+          python "$AUTHORITY_DIR/tools/qualification/verifier_release_v1.py" \
+            --record "$EVIDENCE_DIR/verifier-release-v1.json" \
+            --expected-sha256 "${{ steps.release.outputs.release_sha256 }}"
       - name: Independently verify retained dispatch evidence
         if: steps.dispatch.outcome == 'success' && steps.release.outcome == 'success'
         run: |
