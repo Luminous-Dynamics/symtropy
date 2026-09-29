@@ -358,6 +358,34 @@ mod tests {
     }
 
     #[test]
+    fn session_golden_vector_v1() {
+        let s = session(vec![identity(7), identity(8)]);
+        assert_eq!(canonical_session_bytes(&s).len(), 271);
+        assert_eq!(
+            s.session_digest.to_hex(),
+            "ad20de2bb2d9896d917338930ad65daf6c9d11d0f23863845ab098a3d559f587"
+        );
+    }
+
+    #[test]
+    fn initial_state_anchor_is_not_a_checkpoint_identity_cycle() {
+        let a = session(vec![identity(7)]);
+        let b = MultiplayerSessionV1::new(
+            identity(1),
+            identity(2),
+            identity(3),
+            identity(4),
+            digest(55),
+            identity(6),
+            vec![identity(7)],
+            ReplayProfile::BitExactReplay,
+        )
+        .expect("session");
+        assert_ne!(a.session_digest, b.session_digest);
+        assert_ne!(a.initial_state_commitment, b.initial_state_commitment);
+    }
+
+    #[test]
     fn participant_order_does_not_change_session_identity() {
         let a = session(vec![identity(8), identity(7)]);
         let b = session(vec![identity(7), identity(8)]);
