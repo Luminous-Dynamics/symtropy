@@ -434,6 +434,9 @@ impl CommitmentDigest {
         hasher.update(domain.as_bytes());
 
         for field in fields {
+            if field.len() > MAX_COMMITMENT_FIELD_BYTES {
+                return Err(StateError::CommitmentInputTooLarge);
+            }
             let len = u64::try_from(field.len())
                 .map_err(|_| StateError::CommitmentInputTooLarge)?;
             hasher.update(len.to_le_bytes());
@@ -485,6 +488,15 @@ impl ReplayProfile {
 #[cfg(test)]
 mod multiplayer_commitment_tests {
     use super::*;
+
+    #[test]
+    fn commitment_field_size_limit_is_enforced() {
+        let oversized = vec![0u8; MAX_COMMITMENT_FIELD_BYTES + 1];
+        assert!(matches!(
+            CommitmentDigest::derive("test", &[oversized.as_slice()]),
+            Err(StateError::CommitmentInputTooLarge)
+        ));
+    }
 
     #[test]
     fn commitment_is_domain_separated() {
