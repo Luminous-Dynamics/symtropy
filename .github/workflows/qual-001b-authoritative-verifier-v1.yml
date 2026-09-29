@@ -55,7 +55,11 @@ jobs:
             tools/qualification/tests/test_authoritative_verifier_v1.py \
             tools/qualification/tests/test_verifier_release_v1.py \
             tools/qualification/tests/test_authoritative_workflow_v1.py \
-            tools.qualification.tests.test_authority_dispatch_v1
+            tools/qualification/tests/test_authority_dispatch_v1.py \
+            tools/qualification/authority_dispatch_evidence_v1.py \
+            tools/qualification/authority_dispatch_evidence_verify_v1.py \
+            tools/qualification/tests/test_authority_dispatch_evidence_v1.py \
+            tools/qualification/tests/test_authority_dispatch_evidence_verify_v1.py
       - name: Execute verifier hostile corpus
         env:
           PYTHONDONTWRITEBYTECODE: '1'
