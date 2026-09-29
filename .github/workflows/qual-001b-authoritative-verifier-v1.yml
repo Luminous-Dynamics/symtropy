@@ -307,10 +307,12 @@ jobs:
           test -d "$CONTRACT_DIR/.git"
           actual_commit="$(git -C "$CONTRACT_DIR" rev-parse HEAD)"
           actual_tree="$(git -C "$CONTRACT_DIR" rev-parse HEAD^{tree})"
+          actual_blob="$(git -C "$CONTRACT_DIR" rev-parse "HEAD:$CONTRACT_PATH")"
           test "$actual_commit" = "$CONTRACT_COMMIT_SHA"
           test "${#actual_commit}" -eq 40
           test "${#actual_tree}" -eq 40
           export CONTRACT_TREE_SHA="$actual_tree"
+          export CONTRACT_BLOB_SHA="$actual_blob"
           printf 'contract_tree_sha=%s\n' "$actual_tree" >> "$GITHUB_ENV"
           python - <<'PY'
           import json, os
@@ -320,6 +322,7 @@ jobs:
               "schema_version": 1,
               "contract_commit_sha": os.environ["CONTRACT_COMMIT_SHA"],
               "contract_tree_sha": os.environ["CONTRACT_TREE_SHA"],
+              "contract_blob_sha": os.environ["CONTRACT_BLOB_SHA"],
           }
           Path(os.environ["EVIDENCE_DIR"], "qualification-contract-checkout-identity-v1.json").write_text(
               json.dumps(record, sort_keys=True, separators=(",", ":")) + "\n", encoding="utf-8"
