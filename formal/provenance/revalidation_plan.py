@@ -80,10 +80,11 @@ def _reference_bindings(
 def _proof_artifact_has_checker(
     node_id: str, graph: dict[str, Any]
 ) -> bool:
+    nodes = {node["id"]: node for node in graph["nodes"]}
     return any(
         edge["relation"] == "checked_by"
         and edge["source"] == node_id
-        and graph["nodes"]
+        and nodes.get(edge["target"], {}).get("kind") == "ProofChecker"
         for edge in graph["edges"]
     )
 
