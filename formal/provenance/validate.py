@@ -62,6 +62,7 @@ class Validator:
 
         self._index()
         self._relationships()
+        self._semantic_bindings()
         self._proof_dag()
         self._qualification()
         return self.result()
@@ -203,6 +204,45 @@ class Validator:
                 for ref in evidence or []:
                     if self.nodes.get(ref, {}).get("kind") != "QualificationEvidence":
                         self.error("E_AUTHORITY_UNPROVEN", f"edge:{eid}.evidence", "qualifies evidence must reference QualificationEvidence")
+
+    def _semantic_bindings(self) -> None:
+        semantic_kinds = {"Theorem", "Lemma", "Invariant"}
+        for nid, node in self.nodes.items():
+            if node["kind"] in semantic_kinds:
+                metadata = node.get("metadata")
+                digest = metadata.get("semantic_digest") if isinstance(metadata, dict) else None
+                if not isinstance(digest, str) or not SHA256_RE.fullmatch(digest):
+                    self.error("E_SEMANTIC_ID_MISSING", f"node:{nid}.metadata.semantic_digest", "semantic identity must be a lowercase SHA-256 digest")
+            if node["kind"] == "ProofArtifact":
+                digest = node.get("content_digest")
+                if not isinstance(digest, str) or not SHA256_RE.fullmatch(digest):
+                    self.error("E_ARTIFACT_ID_MISSING", f"node:{nid}.content_digest", "ProofArtifact requires an exact content digest")
+                metadata = node.get("metadata")
+                target_digest = metadata.get("semantic_target_digest") if isinstance(metadata, dict) else None
+                if not isinstance(target_digest, str) or not SHA256_RE.fullmatch(target_digest):
+                    self.error("E_SEMANTIC_TARGET_MISSING", f"node:{nid}.metadata.semantic_target_digest", "ProofArtifact requires an exact semantic target digest")
+                if not any(e["relation"] == "checked_by" and e["source"] == nid for e in self.edges.values()):
+                    self.error("E_CHECKER_BINDING_MISSING", f"node:{nid}", "ProofArtifact requires an explicit checked_by ProofChecker edge")
+
+        for eid, edge in self.edges.items():
+            if edge["relation"] == "proves":
+                source = self.nodes.get(edge["source"])
+                target = self.nodes.get(edge["target"])
+                if not source or not target or target["kind"] not in semantic_kinds:
+                    continue
+                target_digest = target.get("metadata", {}).get("semantic_digest") if isinstance(target.get("metadata"), dict) else None
+                proof_digest = source.get("metadata", {}).get("semantic_target_digest") if isinstance(source.get("metadata"), dict) else None
+                if proof_digest != target_digest:
+                    self.error("E_SEMANTIC_ID_MISMATCH", f"edge:{eid}", "proof artifact target digest does not match semantic target identity")
+
+        for eid, edge in self.edges.items():
+            if edge["relation"] in {"supersedes", "invalidated_by"}:
+                source = self.nodes.get(edge["source"])
+                target = self.nodes.get(edge["target"])
+                if source and target and source["kind"] != target["kind"]:
+                    self.error("E_HISTORY_KIND_MISMATCH", f"edge:{eid}", "historical relation must preserve node kind")
+                if source and target and source["id"] == target["id"]:
+                    self.error("E_HISTORY_SELF_REFERENCE", f"edge:{eid}", "historical relation cannot target itself")
 
     def _proof_dag(self) -> None:
         adjacency: dict[str, list[str]] = defaultdict(list)
