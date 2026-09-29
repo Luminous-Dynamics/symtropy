@@ -33,6 +33,31 @@ class AuthoritativeWorkflowV1Tests(unittest.TestCase):
     def test_verifier_commit_is_not_derived_from_event_sha(self) -> None:
         self.assertNotIn("VERIFIER_COMMIT: ${{ github.sha }}", self.text)
         self.assertIn("VERIFIER_COMMIT: ${{ steps.release.outputs.verifier_commit_sha }}", self.text)
+ 
+    def test_dispatch_payload_is_retained_exactly(self) -> None:
+        self.assertIn("Retain exact validated dispatch payload", self.text)
+        self.assertIn("cp --preserve=mode,timestamps /tmp/qual-001b-dispatch.json", self.text)
+        self.assertIn('"$EVIDENCE_DIR/authority-dispatch-payload.json"', self.text)
+        self.assertIn("cmp --silent /tmp/qual-001b-dispatch.json", self.text)
+
+    def test_dispatch_evidence_recording_is_fail_closed(self) -> None:
+        self.assertIn(
+            "if: steps.dispatch.outcome == 'success' && steps.release.outcome == 'success'",
+            self.text,
+        )
+        self.assertNotIn("name: Record dispatch identity\n        if: always()", self.text)
+
+    def test_dispatch_evidence_contains_contract_binding(self) -> None:
+        self.assertIn('"schema_version": 1', self.text)
+        self.assertIn('"contract_commit_sha": os.environ["CONTRACT_COMMIT_SHA"]', self.text)
+        self.assertIn('"contract_path": os.environ["CONTRACT_PATH"]', self.text)
+        self.assertIn('"contract_sha256": os.environ["CONTRACT_SHA256"]', self.text)
+
+    def test_retained_dispatch_evidence_is_replayed(self) -> None:
+        self.assertIn("Independently verify retained dispatch evidence", self.text)
+        self.assertIn("authority_dispatch_evidence_verify_v1.py", self.text)
+        self.assertIn("--payload", self.text)
+        self.assertIn("authority-dispatch-payload.json", self.text)
 
 if __name__ == "__main__":
     unittest.main()
