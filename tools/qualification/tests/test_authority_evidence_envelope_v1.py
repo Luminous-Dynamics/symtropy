@@ -11,7 +11,8 @@ def write(root,result="TheoremExecutedPass"):
     payload={"schema_id":"luminous.authority-dispatch.v1","schema_version":1,"contract_commit_sha":"3"*40,"contract_path":"tools/qualification/contract.json","contract_sha256":hashlib.sha256(cr).hexdigest()}
     pr=raw(payload)
     de={"schema_id":"luminous.authority-dispatch-evidence.v1","schema_version":1,"dispatch_schema_id":"luminous.authority-dispatch.v1","dispatch_sha256":hashlib.sha256(pr).hexdigest(),"release_sha256":hashlib.sha256(rr).hexdigest(),"contract_commit_sha":payload["contract_commit_sha"],"contract_path":payload["contract_path"],"contract_sha256":payload["contract_sha256"]}
-    checkout={"schema_id":"luminous.qualification-contract-checkout-identity.v1","schema_version":1,"contract_commit_sha":payload["contract_commit_sha"],"contract_tree_sha":"a"*40}
+    blob_sha=hashlib.sha1(b"blob "+str(len(cr)).encode()+b"\0"+cr).hexdigest()
+    checkout={"schema_id":"luminous.qualification-contract-checkout-identity.v1","schema_version":1,"contract_commit_sha":payload["contract_commit_sha"],"contract_tree_sha":"a"*40,"contract_blob_sha":blob_sha}
     ex={"schema_id":"luminous.qualification-execution-evidence.v1","verifier_commit_sha":RELEASE["verifier_commit_sha"],"verifier_tree_sha":RELEASE["verifier_tree_sha"],"contract_commit_sha":payload["contract_commit_sha"],"contract_tree_sha":"a"*40,"contract_sha256":hashlib.sha256(cr).hexdigest(),"contract_id":CONTRACT["contract_id"],"subject_repository":CONTRACT["subject_repository"],"subject_head_sha":CONTRACT["subject_head_sha"],"subject_tree_sha":CONTRACT["subject_tree_sha"],"manifest_sha256":CONTRACT["manifest_sha256"],"manifest_profile_id":"profile","suite_profile_sha256":CONTRACT["suite_profile_sha256"],"suite_id":RELEASE["suite_id"],"suite_revision":RELEASE["suite_revision"],"toolchain_id":RELEASE["toolchain_id"],"expanded_step_ids":[],"executed_step_ids":[],"steps":{},"first_failing_step_id":None,"first_failing_step_result":None,"final_result":result}
     (root/"payload.json").write_bytes(pr); (root/"dispatch-evidence.json").write_text(json.dumps(de)); (root/"release.json").write_bytes(rr); (root/"contract.json").write_bytes(cr); (root/"contract-checkout.json").write_text(json.dumps(checkout)); (root/"execution.json").write_text(json.dumps(ex))
 class T(unittest.TestCase):
@@ -22,6 +23,9 @@ class T(unittest.TestCase):
         with tempfile.TemporaryDirectory() as d: r=Path(d); write(r); (r/"contract.json").write_bytes(raw(CONTRACT)+b" "); self.assertEqual(self.runv(r),2)
     def test_tampered_execution_identity(self):
         with tempfile.TemporaryDirectory() as d: r=Path(d); write(r); e=json.loads((r/"execution.json").read_text()); e["subject_head_sha"]="9"*40; (r/"execution.json").write_text(json.dumps(e)); self.assertEqual(self.runv(r),2)
+    def test_tampered_contract_blob_identity_rejected(self):
+        with tempfile.TemporaryDirectory() as d:
+            r=Path(d); write(r); c=json.loads((r/"contract-checkout.json").read_text()); c["contract_blob_sha"]="0"*40; (r/"contract-checkout.json").write_text(json.dumps(c)); self.assertEqual(self.runv(r),2)
     def test_failed_execution_is_replayable(self):
         with tempfile.TemporaryDirectory() as d: r=Path(d); write(r,"TheoremExecutedFail"); self.assertEqual(self.runv(r),0)
 if __name__=="__main__": unittest.main()
