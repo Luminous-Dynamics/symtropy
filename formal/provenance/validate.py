@@ -1,330 +1,169 @@
 #!/usr/bin/env python3
 """Fail-closed semantic validator for Symtropy formal provenance graph v0.
 
-This validator intentionally stays independent of the runtime crates. JSON shape
-validation is complemented by cross-record identity, evidence, and DAG checks.
-It does not infer authority from execution success.
+The graph is provenance/evidence only. Proof soundness and qualification authority
+remain outside this validator.
 """
-
 from __future__ import annotations
-
-import argparse
-import json
-import re
+import argparse, json, re
 from collections import defaultdict
-from pathlib import PurePosixPath
 from dataclasses import dataclass
 from typing import Any
+from pathlib import PurePosixPath
 
-SCHEMA_VERSION = "luminous.formal-provenance.v0"
-SHA256_RE = re.compile(r"^[0-9a-f]{64}$")
-NODE_KINDS = {
-    "Invariant", "Definition", "Theorem", "Lemma", "ProofArtifact",
-    "ProofChecker", "ProofExecution", "Counterexample", "SourceCommit",
-    "SourceTree", "QualificationContract", "QualificationEvidence",
-    "VerifierRelease",
-}
-RELATIONS = {
-    "defines", "refines", "depends_on", "proves", "checked_by",
-    "derived_from", "falsified_by", "revalidated_by", "qualifies",
-    "supersedes", "invalidated_by",
-}
-EXECUTION_STATUSES = {
-    "Queued", "Running", "Passed", "Failed", "Cancelled",
-    "InfrastructureFailure", "Skipped", "Superseded", "Stale",
-}
-
+SCHEMA_VERSION="luminous.formal-provenance.v0"
+SHA256_RE=re.compile(r"^[0-9a-f]{64}$")
+SEMANTIC_KINDS={"Invariant","Definition","Theorem","Lemma"}
+NODE_KINDS=SEMANTIC_KINDS|{"ProofArtifact","ProofChecker","ProofExecution","Counterexample","SourceCommit","SourceTree","QualificationContract","QualificationEvidence","VerifierRelease"}
+RELATIONS={"defines","refines","depends_on","proves","checked_by","derived_from","falsified_by","revalidated_by","qualifies","supersedes","invalidated_by"}
+TERMINAL_EXECUTIONS={"Passed","Failed"}
 
 @dataclass(frozen=True)
 class Diagnostic:
-    code: str
-    message: str
-    path: str
-
-    def as_dict(self) -> dict[str, str]:
-        return {"code": self.code, "path": self.path, "message": self.message}
-
+    code:str; message:str; path:str
+    def as_dict(self): return {"code":self.code,"path":self.path,"message":self.message}
 
 class Validator:
-    def __init__(self, graph: dict[str, Any]) -> None:
-        self.graph = graph
-        self.errors: list[Diagnostic] = []
-        self.nodes: dict[str, dict[str, Any]] = {}
-        self.edges: dict[str, dict[str, Any]] = {}
-
-    def error(self, code: str, path: str, message: str) -> None:
-        self.errors.append(Diagnostic(code, message, path))
-
-    def validate(self) -> dict[str, Any]:
+    def __init__(self,graph:dict[str,Any])->None:
+        self.graph=graph; self.errors=[]; self.nodes={}; self.edges={}
+    def error(self,code,path,message): self.errors.append(Diagnostic(code,message,path))
+    def validate(self):
         self._shape()
-        if self.errors:
-            return self.result()
-
-        self._index()
-        self._relationships()
-        self._proof_dag()
-        self._qualification()
+        if self.errors:return self.result()
+        self._index(); self._relationships(); self._proof_dag(); self._qualification()
         return self.result()
-
-    def result(self) -> dict[str, Any]:
-        status = "Valid" if not self.errors else "GraphInvalid"
-        if any(e.code.startswith("E_SCHEMA") for e in self.errors):
-            status = "SchemaInvalid"
-        elif any(e.code.startswith("E_EVIDENCE") for e in self.errors):
-            status = "EvidenceInvalid"
-        elif any(e.code.startswith("E_AUTHORITY") for e in self.errors):
-            status = "AuthorityNotEstablished"
-        return {
-            "schema_version": SCHEMA_VERSION,
-            "status": status,
-            "errors": [e.as_dict() for e in self.errors],
-            "authority": "NotEstablished" if any(
-                e.code.startswith("E_AUTHORITY") for e in self.errors
-            ) else "Unchanged",
-        }
-
-    def _shape(self) -> None:
-        if not isinstance(self.graph, dict):
-            self.error("E_SCHEMA_ROOT", "$", "graph must be an object")
-            return
-        if self.graph.get("schema_version") != SCHEMA_VERSION:
-            self.error("E_SCHEMA_VERSION", "$.schema_version", "unsupported schema version")
-        for key in ("nodes", "edges"):
-            if not isinstance(self.graph.get(key), list):
-                self.error("E_SCHEMA_ROOT", f"$.{key}", "must be an array")
-        if self.errors:
-            return
-        for i, node in enumerate(self.graph["nodes"]):
-            if not isinstance(node, dict):
-                self.error("E_SCHEMA_NODE", f"$.nodes[{i}]", "node must be an object")
-                continue
-            if node.get("schema_version") != SCHEMA_VERSION:
-                self.error("E_SCHEMA_VERSION", f"$.nodes[{i}].schema_version", "invalid schema version")
-            if node.get("kind") not in NODE_KINDS:
-                self.error("E_SCHEMA_NODE", f"$.nodes[{i}].kind", "unknown node kind")
-            if not isinstance(node.get("id"), str) or not node["id"]:
-                self.error("E_SCHEMA_NODE", f"$.nodes[{i}].id", "node id must be non-empty")
-            if not isinstance(node.get("label"), str) or not node["label"]:
-                self.error("E_SCHEMA_NODE", f"$.nodes[{i}].label", "node label must be non-empty")
-        for i, edge in enumerate(self.graph["edges"]):
-            if not isinstance(edge, dict):
-                self.error("E_SCHEMA_EDGE", f"$.edges[{i}]", "edge must be an object")
-                continue
-            if edge.get("schema_version") != SCHEMA_VERSION:
-                self.error("E_SCHEMA_VERSION", f"$.edges[{i}].schema_version", "invalid schema version")
-            if edge.get("relation") not in RELATIONS:
-                self.error("E_SCHEMA_EDGE", f"$.edges[{i}].relation", "unknown relation")
-            for field in ("id", "source", "target"):
-                if not isinstance(edge.get(field), str) or not edge[field]:
-                    self.error("E_SCHEMA_EDGE", f"$.edges[{i}].{field}", "must be non-empty")
-
-    def _index(self) -> None:
-        for i, node in enumerate(self.graph["nodes"]):
-            nid = node.get("id")
-            if nid in self.nodes:
-                self.error("E_NODE_DUPLICATE", f"$.nodes[{i}].id", f"duplicate node id {nid!r}")
-            else:
-                self.nodes[nid] = node
-        for i, edge in enumerate(self.graph["edges"]):
-            eid = edge.get("id")
-            if eid in self.edges:
-                self.error("E_EDGE_DUPLICATE", f"$.edges[{i}].id", f"duplicate edge id {eid!r}")
-            else:
-                self.edges[eid] = edge
-            if edge.get("source") not in self.nodes:
-                self.error("E_EDGE_ENDPOINT_MISSING", f"$.edges[{i}].source", "source node does not exist")
-            if edge.get("target") not in self.nodes:
-                self.error("E_EDGE_ENDPOINT_MISSING", f"$.edges[{i}].target", "target node does not exist")
-        for nid, node in self.nodes.items():
-            if node.get("kind") in {"Theorem", "Lemma", "Invariant", "Definition"}:
-                digest = node.get("content_digest")
-                if digest is not None and not SHA256_RE.fullmatch(digest):
-                    self.error("E_SCHEMA_DIGEST", f"node:{nid}.content_digest", "invalid SHA-256 digest")
-            self._check_provenance(node, f"node:{nid}.provenance")
-        for eid, edge in self.edges.items():
-            self._check_provenance(edge, f"edge:{eid}.provenance")
-
-    def _check_provenance(self, record: dict[str, Any], path: str) -> None:
-        p = record.get("provenance")
-        if p is None:
-            return
-        if not isinstance(p, dict):
-            self.error("E_PROVENANCE_MALFORMED", path, "provenance must be an object")
-            return
-        for field in ("commit_sha", "tree_sha"):
-            value = p.get(field)
-            if not isinstance(value, str) or not SHA256_RE.fullmatch(value):
-                self.error("E_PROVENANCE_MALFORMED", f"{path}.{field}", "must be lowercase SHA-256")
-        repo = p.get("repository")
-        if not isinstance(repo, str) or not repo.strip() or any(c.isspace() for c in repo):
-            self.error("E_PROVENANCE_MALFORMED", f"{path}.repository", "repository identity is invalid")
-        repo_path = p.get("path")
-        if repo_path is not None:
-            if not isinstance(repo_path, str) or not repo_path or repo_path.startswith("/") or "\x00" in repo_path:
-                self.error("E_PROVENANCE_MALFORMED", f"{path}.path", "repository path is not normalized")
-            else:
-                parts = PurePosixPath(repo_path).parts
-                if any(part in {".", ".."} for part in parts) or "//" in repo_path:
-                    self.error("E_PROVENANCE_MALFORMED", f"{path}.path", "repository path is not normalized")
-        digest = p.get("content_digest")
-        if digest is not None and (not isinstance(digest, str) or not SHA256_RE.fullmatch(digest)):
-            self.error("E_PROVENANCE_MALFORMED", f"{path}.content_digest", "must be lowercase SHA-256")
-
-    def _relationships(self) -> None:
-        for eid, edge in self.edges.items():
-            source = self.nodes.get(edge["source"])
-            target = self.nodes.get(edge["target"])
-            if not source or not target:
-                continue
-            rel = edge["relation"]
-            if rel == "proves" and source["kind"] != "ProofArtifact":
-                self.error("E_SEMANTIC_ID_MISMATCH", f"edge:{eid}", "proves source must be a ProofArtifact")
-            if rel == "proves" and target["kind"] not in {"Theorem", "Lemma", "Invariant"}:
-                self.error("E_SEMANTIC_ID_MISMATCH", f"edge:{eid}", "proves target must be a theorem, lemma, or invariant")
-            if rel == "checked_by" and source["kind"] not in {"ProofArtifact", "ProofExecution"}:
-                self.error("E_SEMANTIC_ID_MISMATCH", f"edge:{eid}", "checked_by source must be a proof artifact or execution")
-            if rel == "checked_by" and target["kind"] != "ProofChecker":
-                self.error("E_SEMANTIC_ID_MISMATCH", f"edge:{eid}", "checked_by target must be a ProofChecker")
-            if rel == "qualifies" and target["kind"] != "QualificationContract":
-                self.error("E_AUTHORITY_QUALIFIES_TARGET", f"edge:{eid}", "qualifies target must be a QualificationContract")
-
-            evidence = edge.get("evidence", [])
-            if evidence is not None:
-                if not isinstance(evidence, list) or any(not isinstance(x, str) for x in evidence):
-                    self.error("E_EVIDENCE_REFERENCE", f"edge:{eid}.evidence", "evidence must be node-id strings")
-                else:
-                    for ref in evidence:
-                        if ref not in self.nodes:
-                            self.error("E_EVIDENCE_REFERENCE", f"edge:{eid}.evidence", f"unknown evidence node {ref!r}")
-
-            if rel == "qualifies":
-                if not evidence:
-                    self.error("E_AUTHORITY_UNPROVEN", f"edge:{eid}", "qualifies edge requires independently checkable evidence")
-                for ref in evidence or []:
-                    if self.nodes.get(ref, {}).get("kind") != "QualificationEvidence":
-                        self.error("E_AUTHORITY_UNPROVEN", f"edge:{eid}.evidence", "qualifies evidence must reference QualificationEvidence")
-
-    def _proof_dag(self) -> None:
-        adjacency: dict[str, list[str]] = defaultdict(list)
-        proof_nodes = {nid for nid, n in self.nodes.items() if n["kind"] == "ProofArtifact"}
-        for eid, edge in self.edges.items():
-            if edge["relation"] != "depends_on":
-                continue
-            if edge["source"] in proof_nodes and edge["target"] in proof_nodes:
-                if edge["source"] == edge["target"]:
-                    self.error("E_PROOF_CYCLE", f"edge:{eid}", "proof artifact cannot depend on itself")
-                adjacency[edge["source"]].append(edge["target"])
-
-        visiting: set[str] = set()
-        visited: set[str] = set()
-
-        def visit(node: str) -> None:
-            if node in visiting:
-                self.error("E_PROOF_CYCLE", f"node:{node}", "proof dependency graph contains a cycle")
-                return
-            if node in visited:
-                return
-            visiting.add(node)
-            for child in adjacency[node]:
-                visit(child)
-            visiting.remove(node)
-            visited.add(node)
-
-        for node in proof_nodes:
-            visit(node)
-
-    def _qualification(self) -> None:
-        for nid, node in self.nodes.items():
-            if node["kind"] != "QualificationEvidence":
-                continue
-            metadata = node.get("metadata")
-            if not isinstance(metadata, dict):
-                self.error("E_EVIDENCE_BINDING", f"node:{nid}.metadata", "qualification evidence requires binding metadata")
-                continue
-            required = ("contract_id", "verifier_release_id", "subject_head", "subject_tree", "execution_id", "result")
-            for key in required:
-                if key not in metadata:
-                    self.error("E_EVIDENCE_BINDING", f"node:{nid}.metadata.{key}", "missing qualification binding")
-            for key in ("subject_head", "subject_tree"):
-                if key in metadata and (not isinstance(metadata[key], str) or not SHA256_RE.fullmatch(metadata[key])):
-                    self.error("E_EVIDENCE_BINDING", f"node:{nid}.metadata.{key}", "must be lowercase SHA-256")
-
-            result = metadata.get("result")
-            if result == "QualifiedPass":
-                self.error("E_AUTHORITY_NOT_LOCAL", f"node:{nid}", "QualifiedPass must be imported from an independently established qualification system")
-
-            execution_id = metadata.get("execution_id")
-            execution = self.nodes.get(execution_id)
-            if execution and execution["kind"] != "ProofExecution":
-                self.error("E_EVIDENCE_BINDING", f"node:{nid}.metadata.execution_id", "execution_id must reference ProofExecution")
-                execution = None
-            if execution:
-                execution_metadata = execution.get("metadata")
-                if not isinstance(execution_metadata, dict):
-                    execution_metadata = {}
-                status = execution_metadata.get("status")
-                if status not in {"Passed", "Failed"}:
-                    self.error("E_AUTHORITY_UNPROVEN", f"node:{nid}", "qualification evidence cannot bind a non-terminal successful/failed execution")
-                if status == "Passed" and result not in {"QualifiedPass", "Pass", "Passed"}:
-                    self.error("E_EVIDENCE_BINDING", f"node:{nid}", "passed execution requires an explicit qualification result")
-                if status == "Failed" and result not in {"QualifiedFail", "Fail", "Failed"}:
-                    self.error("E_EVIDENCE_BINDING", f"node:{nid}", "failed execution requires an explicit qualification result")
-                for field, expected_kind in (
-                    ("artifact_id", "ProofArtifact"),
-                    ("checker_id", "ProofChecker"),
-                    ("source_commit_id", "SourceCommit"),
-                    ("source_tree_id", "SourceTree"),
-                ):
-                    ref = execution_metadata.get(field)
-                    if ref is not None:
-                        target = self.nodes.get(ref)
-                        if not target or target["kind"] != expected_kind:
-                            self.error("E_EVIDENCE_BINDING", f"node:{execution_id}.metadata.{field}", f"{field} must reference {expected_kind}")
-                if execution_metadata.get("subject_head") != metadata.get("subject_head"):
-                    self.error("E_STALE_EVIDENCE", f"node:{nid}.metadata.subject_head", "qualification subject head differs from execution binding")
-                if execution_metadata.get("subject_tree") != metadata.get("subject_tree"):
-                    self.error("E_STALE_EVIDENCE", f"node:{nid}.metadata.subject_tree", "qualification subject tree differs from execution binding")
-                if execution_metadata.get("result") is not None and execution_metadata["result"] != result:
-                    self.error("E_EVIDENCE_BINDING", f"node:{nid}.metadata.result", "qualification result differs from execution result binding")
-
-        for eid, edge in self.edges.items():
-            if edge["relation"] != "qualifies":
-                continue
-            for ref in edge.get("evidence", []):
-                evidence = self.nodes.get(ref)
-                if not evidence:
-                    continue
-                if evidence["kind"] != "QualificationEvidence":
-                    continue
-                result = evidence.get("metadata", {}).get("result")
-                if result not in {"Pass", "Passed", "QualifiedPass"}:
-                    self.error("E_AUTHORITY_UNPROVEN", f"edge:{eid}", "qualifies edge lacks a passing qualification result")
-                if result == "QualifiedPass":
-                    self.error("E_AUTHORITY_NOT_LOCAL", f"edge:{eid}", "graph cannot manufacture a QualifiedPass authority state")
-
-
-def validate_file(path: str) -> dict[str, Any]:
-    with open(path, encoding="utf-8") as handle:
-        graph = json.load(handle)
-    return Validator(graph).validate()
-
-
-def main() -> int:
-    parser = argparse.ArgumentParser(description="Validate Symtropy formal provenance graph v0")
-    parser.add_argument("graph", help="path to a formal-provenance-v0 JSON graph")
-    args = parser.parse_args()
+    def result(self):
+        codes={e.code for e in self.errors}
+        if not self.errors: status="Valid"
+        elif any(c.startswith("E_SCHEMA") for c in codes): status="SchemaInvalid"
+        elif any(c.startswith("E_EVIDENCE") or c.startswith("E_STALE") for c in codes): status="EvidenceInvalid"
+        elif any(c.startswith("E_AUTHORITY") for c in codes): status="AuthorityNotEstablished"
+        else: status="GraphInvalid"
+        return {"schema_version":SCHEMA_VERSION,"status":status,
+                "errors":[e.as_dict() for e in sorted(self.errors,key=lambda x:(x.code,x.path,x.message))],
+                "authority":"NotEstablished" if any(c.startswith("E_AUTHORITY") for c in codes) else "Unchanged"}
+    def _shape(self):
+        if not isinstance(self.graph,dict): self.error("E_SCHEMA_ROOT","$","graph must be an object"); return
+        if self.graph.get("schema_version")!=SCHEMA_VERSION:self.error("E_SCHEMA_VERSION","$.schema_version","unsupported schema version")
+        for key in ("nodes","edges"):
+            if not isinstance(self.graph.get(key),list):self.error("E_SCHEMA_ROOT",f"$.{key}","must be an array")
+        if self.errors:return
+        for i,n in enumerate(self.graph["nodes"]):
+            if not isinstance(n,dict):self.error("E_SCHEMA_NODE",f"$.nodes[{i}]","node must be an object");continue
+            if n.get("schema_version")!=SCHEMA_VERSION:self.error("E_SCHEMA_VERSION",f"$.nodes[{i}].schema_version","invalid schema version")
+            if n.get("kind") not in NODE_KINDS:self.error("E_SCHEMA_NODE",f"$.nodes[{i}].kind","unknown node kind")
+            for f in ("id","label"):
+                if not isinstance(n.get(f),str) or not n[f]:self.error("E_SCHEMA_NODE",f"$.nodes[{i}].{f}","must be non-empty")
+            if n.get("semantic_digest") is not None and not SHA256_RE.fullmatch(str(n["semantic_digest"])):
+                self.error("E_SCHEMA_DIGEST",f"$.nodes[{i}].semantic_digest","invalid SHA-256 digest")
+            if n.get("content_digest") is not None and not SHA256_RE.fullmatch(str(n["content_digest"])):
+                self.error("E_SCHEMA_DIGEST",f"$.nodes[{i}].content_digest","invalid SHA-256 digest")
+        for i,e in enumerate(self.graph["edges"]):
+            if not isinstance(e,dict):self.error("E_SCHEMA_EDGE",f"$.edges[{i}]","edge must be an object");continue
+            if e.get("schema_version")!=SCHEMA_VERSION:self.error("E_SCHEMA_VERSION",f"$.edges[{i}].schema_version","invalid schema version")
+            if e.get("relation") not in RELATIONS:self.error("E_SCHEMA_EDGE",f"$.edges[{i}].relation","unknown relation")
+            for f in ("id","source","target"):
+                if not isinstance(e.get(f),str) or not e[f]:self.error("E_SCHEMA_EDGE",f"$.edges[{i}].{f}","must be non-empty")
+    def _index(self):
+        for i,n in enumerate(self.graph["nodes"]):
+            nid=n.get("id")
+            if nid in self.nodes:self.error("E_NODE_DUPLICATE",f"$.nodes[{i}].id",f"duplicate node id {nid!r}")
+            else:self.nodes[nid]=n
+            if n.get("kind") in SEMANTIC_KINDS:
+                d=n.get("semantic_digest")
+                if not isinstance(d,str) or not SHA256_RE.fullmatch(d):
+                    self.error("E_SEMANTIC_ID_MISSING",f"node:{nid}.semantic_digest","semantic nodes require content-addressed semantic_digest")
+                if isinstance(d,str) and not nid.endswith(d):
+                    self.error("E_SEMANTIC_ID_MISMATCH",f"node:{nid}.id","semantic node id must end with its semantic_digest")
+            self._check_provenance(n,f"node:{nid}.provenance")
+        for i,e in enumerate(self.graph["edges"]):
+            eid=e.get("id")
+            if eid in self.edges:self.error("E_EDGE_DUPLICATE",f"$.edges[{i}].id",f"duplicate edge id {eid!r}")
+            else:self.edges[eid]=e
+            if e.get("source") not in self.nodes:self.error("E_EDGE_ENDPOINT_MISSING",f"$.edges[{i}].source","source node does not exist")
+            if e.get("target") not in self.nodes:self.error("E_EDGE_ENDPOINT_MISSING",f"$.edges[{i}].target","target node does not exist")
+            self._check_provenance(e,f"edge:{eid}.provenance")
+    def _check_provenance(self,r,p):
+        q=r.get("provenance")
+        if q is None:return
+        if not isinstance(q,dict):self.error("E_PROVENANCE_MALFORMED",p,"provenance must be an object");return
+        for f in ("commit_sha","tree_sha"):
+            if not isinstance(q.get(f),str) or not SHA256_RE.fullmatch(q[f]):self.error("E_PROVENANCE_MALFORMED",f"{p}.{f}","must be lowercase SHA-256")
+        if not isinstance(q.get("repository"),str) or not q["repository"] or any(c.isspace() for c in q["repository"]):self.error("E_PROVENANCE_MALFORMED",f"{p}.repository","repository identity is invalid")
+        path=q.get("path")
+        if path is not None and (not isinstance(path,str) or not path or path.startswith("/") or "\x00" in path or "//" in path or any(x in {".",".."} for x in PurePosixPath(path).parts)):
+            self.error("E_PROVENANCE_MALFORMED",f"{p}.path","repository path is not normalized")
+        if q.get("content_digest") is not None and (not isinstance(q["content_digest"],str) or not SHA256_RE.fullmatch(q["content_digest"])):
+            self.error("E_PROVENANCE_MALFORMED",f"{p}.content_digest","must be lowercase SHA-256")
+    def _relationships(self):
+        for eid,e in self.edges.items():
+            s,t=self.nodes.get(e["source"]),self.nodes.get(e["target"])
+            if not s or not t:continue
+            rel=e["relation"]
+            if rel=="proves":
+                if s["kind"]!="ProofArtifact":self.error("E_SEMANTIC_ID_MISMATCH",f"edge:{eid}","proves source must be ProofArtifact")
+                if t["kind"] not in SEMANTIC_KINDS:self.error("E_SEMANTIC_ID_MISMATCH",f"edge:{eid}","proves target must be semantic theorem/lemma/invariant/definition")
+                if s.get("metadata",{}).get("target_semantic_digest")!=t.get("semantic_digest"):
+                    self.error("E_SEMANTIC_ID_MISMATCH",f"edge:{eid}.source","proof must bind exact target semantic_digest")
+            if rel=="checked_by":
+                if s["kind"] not in {"ProofArtifact","ProofExecution"}:self.error("E_SEMANTIC_ID_MISMATCH",f"edge:{eid}","checked_by source must be ProofArtifact or ProofExecution")
+                if t["kind"]!="ProofChecker":self.error("E_SEMANTIC_ID_MISMATCH",f"edge:{eid}","checked_by target must be ProofChecker")
+            if rel=="qualifies" and t["kind"]!="QualificationContract":self.error("E_AUTHORITY_QUALIFIES_TARGET",f"edge:{eid}","qualifies target must be QualificationContract")
+            ev=e.get("evidence",[])
+            if not isinstance(ev,list) or any(not isinstance(x,str) or x not in self.nodes for x in ev):self.error("E_EVIDENCE_REFERENCE",f"edge:{eid}.evidence","all evidence references must name existing node IDs")
+            if rel=="qualifies":
+                if not ev:self.error("E_AUTHORITY_UNPROVEN",f"edge:{eid}","qualifies requires QualificationEvidence")
+                if any(self.nodes.get(x,{}).get("kind")!="QualificationEvidence" for x in ev):self.error("E_AUTHORITY_UNPROVEN",f"edge:{eid}.evidence","qualifies evidence must be QualificationEvidence")
+    def _proof_dag(self):
+        a=defaultdict(list)
+        for eid,e in self.edges.items():
+            if e["relation"]=="depends_on" and self.nodes.get(e["source"],{}).get("kind")=="ProofArtifact" and self.nodes.get(e["target"],{}).get("kind")=="ProofArtifact":
+                if e["source"]==e["target"]:self.error("E_PROOF_CYCLE",f"edge:{eid}","proof artifact cannot depend on itself")
+                a[e["source"]].append(e["target"])
+        visiting=set();visited=set()
+        def visit(n):
+            if n in visiting:self.error("E_PROOF_CYCLE",f"node:{n}","proof dependency graph contains a cycle");return
+            if n in visited:return
+            visiting.add(n)
+            for c in a[n]:visit(c)
+            visiting.remove(n);visited.add(n)
+        for n in {k for k,v in self.nodes.items() if v["kind"]=="ProofArtifact"}:visit(n)
+    def _qualification(self):
+        for nid,n in self.nodes.items():
+            if n["kind"]!="QualificationEvidence":continue
+            m=n.get("metadata")
+            if not isinstance(m,dict):self.error("E_EVIDENCE_BINDING",f"node:{nid}.metadata","qualification evidence requires binding metadata");continue
+            for f in ("contract_id","verifier_release_id","subject_head","subject_tree","execution_id","result"):
+                if f not in m:self.error("E_EVIDENCE_BINDING",f"node:{nid}.metadata.{f}","missing qualification binding")
+            for f in ("subject_head","subject_tree"):
+                if f in m and (not isinstance(m[f],str) or not SHA256_RE.fullmatch(m[f])):self.error("E_EVIDENCE_BINDING",f"node:{nid}.metadata.{f}","must be lowercase SHA-256")
+            if m.get("result")=="QualifiedPass":self.error("E_AUTHORITY_NOT_LOCAL",f"node:{nid}","QualifiedPass cannot be manufactured by the provenance graph")
+            c=self.nodes.get(m.get("contract_id"));v=self.nodes.get(m.get("verifier_release_id"));x=self.nodes.get(m.get("execution_id"))
+            if not c or c["kind"]!="QualificationContract":self.error("E_EVIDENCE_BINDING",f"node:{nid}.metadata.contract_id","must reference QualificationContract")
+            if not v or v["kind"]!="VerifierRelease":self.error("E_EVIDENCE_BINDING",f"node:{nid}.metadata.verifier_release_id","must reference VerifierRelease")
+            if not x or x["kind"]!="ProofExecution":self.error("E_EVIDENCE_BINDING",f"node:{nid}.metadata.execution_id","must reference ProofExecution")
+            if not x:continue
+            xm=x.get("metadata",{})
+            if not isinstance(xm,dict):xm={}
+            if xm.get("status") not in TERMINAL_EXECUTIONS:self.error("E_AUTHORITY_UNPROVEN",f"node:{nid}","qualification requires terminal Passed/Failed execution")
+            for f in ("artifact_id","checker_id","source_commit_id","source_tree_id"):
+                ref=xm.get(f); expected={"artifact_id":"ProofArtifact","checker_id":"ProofChecker","source_commit_id":"SourceCommit","source_tree_id":"SourceTree"}[f]
+                if not isinstance(ref,str) or self.nodes.get(ref,{}).get("kind")!=expected:self.error("E_EVIDENCE_BINDING",f"node:{x.get('id')}.metadata.{f}",f"must reference {expected}")
+            if xm.get("subject_head")!=m.get("subject_head"):self.error("E_STALE_EVIDENCE",f"node:{nid}.metadata.subject_head","qualification and execution subject heads differ")
+            if xm.get("subject_tree")!=m.get("subject_tree"):self.error("E_STALE_EVIDENCE",f"node:{nid}.metadata.subject_tree","qualification and execution subject trees differ")
+            if xm.get("result")!=m.get("result"):self.error("E_EVIDENCE_BINDING",f"node:{nid}.metadata.result","qualification result differs from execution result")
+        for eid,e in self.edges.items():
+            if e["relation"]!="qualifies":continue
+            for ref in e.get("evidence",[]):
+                r=self.nodes.get(ref)
+                if not r or r["kind"]!="QualificationEvidence":continue
+                result=r.get("metadata",{}).get("result")
+                if result not in {"Pass","Passed","Fail","Failed"}:self.error("E_AUTHORITY_UNPROVEN",f"edge:{eid}","qualification evidence has no ordinary terminal result")
+                if result=="QualifiedPass":self.error("E_AUTHORITY_NOT_LOCAL",f"edge:{eid}","graph cannot manufacture QualifiedPass")
+def validate_file(path):
     try:
-        result = validate_file(args.graph)
-    except (OSError, json.JSONDecodeError, UnicodeError) as exc:
-        result = {
-            "schema_version": SCHEMA_VERSION,
-            "status": "SchemaInvalid",
-            "errors": [{"code": "E_SCHEMA_INPUT", "path": "$", "message": str(exc)}],
-            "authority": "NotEstablished",
-        }
-    print(json.dumps(result, sort_keys=True, separators=(",", ":")))
-    return 0 if result["status"] == "Valid" else 1
-
-
-if __name__ == "__main__":
-    raise SystemExit(main())
+        with open(path,encoding="utf-8") as h:return Validator(json.load(h)).validate()
+    except (OSError,json.JSONDecodeError,UnicodeError) as exc:return {"schema_version":SCHEMA_VERSION,"status":"SchemaInvalid","errors":[{"code":"E_SCHEMA_INPUT","path":"$","message":str(exc)}],"authority":"NotEstablished"}
+def main():
+    p=argparse.ArgumentParser();p.add_argument("graph");a=p.parse_args();r=validate_file(a.graph);print(json.dumps(r,sort_keys=True,separators=(",",":")));return 0 if r["status"]=="Valid" else 1
+if __name__=="__main__":raise SystemExit(main())
