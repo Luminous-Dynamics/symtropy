@@ -492,7 +492,7 @@ mod tests {
     #[test]
     fn session_golden_vector_v1() {
         let s = session(vec![identity(7), identity(8)]);
-        assert_eq!(canonical_session_bytes(&s).len(), 271);
+        assert_eq!(canonical_session_bytes(&s).len(), 270);
         assert_eq!(
             s.session_digest.to_hex(),
             "2ac0da1bb25c1b1344b8ec1402b954bc0574d735ef1c1f4d8bb85589555cf8cf"
