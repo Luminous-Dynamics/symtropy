@@ -101,6 +101,32 @@ class ValidatorTests(unittest.TestCase):
         codes = {e["code"] for e in result["errors"]}
         self.assertIn("E_AUTHORITY_UNPROVEN", codes)
 
+
+    def test_stale_subject_binding_is_rejected(self):
+        graph = copy.deepcopy(EXAMPLE)
+        graph["nodes"].extend([
+            {"schema_version": "luminous.formal-provenance.v0", "kind": "QualificationContract", "id": "contract:v1", "label": "Contract"},
+            {"schema_version": "luminous.formal-provenance.v0", "kind": "VerifierRelease", "id": "verifier:v1", "label": "Verifier"},
+            {"schema_version": "luminous.formal-provenance.v0", "kind": "ProofExecution", "id": "execution:pass", "label": "Pass",
+             "metadata": {"status": "Passed", "subject_head": "d56d6a6c1381dc131d493f0713b657f01c98cb80",
+                          "subject_tree": "d56d6a6c1381dc131d493f0713b657f01c98cb80", "result": "Pass"}},
+            {"schema_version": "luminous.formal-provenance.v0", "kind": "QualificationEvidence", "id": "evidence:stale", "label": "Stale",
+             "metadata": {"contract_id": "contract:v1", "verifier_release_id": "verifier:v1",
+                          "subject_head": "896838a2ee666a69f612e1a2b797f1a46373b87f",
+                          "subject_tree": "d56d6a6c1381dc131d493f0713b657f01c98cb80",
+                          "execution_id": "execution:pass", "result": "Pass"}},
+        ])
+        graph["edges"].append({
+            "schema_version": "luminous.formal-provenance.v0",
+            "id": "edge:qualifies:stale",
+            "source": "proof:physics-body-ref-resolution-v1",
+            "target": "contract:v1",
+            "relation": "qualifies",
+            "evidence": ["evidence:stale"],
+        })
+        result = Validator(graph).validate()
+        self.assertIn("E_STALE_EVIDENCE", {e["code"] for e in result["errors"]})
+
     def test_authority_is_not_manufactured(self):
         graph = copy.deepcopy(EXAMPLE)
         graph["nodes"].extend([
