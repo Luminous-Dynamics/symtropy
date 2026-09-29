@@ -25,53 +25,6 @@ fn encode_optional_digest(digest: Option<CommitmentDigest>, out: &mut Vec<u8>) {
     }
 }
 
-/// Produces the language-neutral canonical bytes for a session.
-///
-/// Grammar (little-endian integers, fixed-width digests):
-/// magic "SYMPROV", encoding version, schema version, then fields in declaration order.
-/// Participants are already sorted by raw digest bytes and are length-prefixed.
-pub fn canonical_session_bytes(session: &MultiplayerSessionV1) -> Vec<u8> {
-    let mut out = Vec::with_capacity(256 + session.participants.len() * 32);
-    out.extend_from_slice(b"SYMPROV");
-    out.push(MULTIPLAYER_CANONICAL_ENCODING_VERSION);
-    out.extend_from_slice(&MULTIPLAYER_PROVENANCE_SCHEMA_VERSION.to_le_bytes());
-    for digest in [
-        session.world_instance.as_bytes(),
-        session.world_continuation.as_bytes(),
-        session.simulation_identity.as_bytes(),
-        session.ruleset_identity.as_bytes(),
-        session.initial_checkpoint.as_bytes(),
-        session.authority_config.as_bytes(),
-    ] {
-        out.extend_from_slice(digest);
-    }
-    out.extend_from_slice(&(session.participants.len() as u16).to_le_bytes());
-    for participant in &session.participants {
-        out.extend_from_slice(participant.as_bytes());
-    }
-    out.push(replay_profile_tag(session.replay_profile));
-    out
-}
-
-/// Produces the language-neutral canonical bytes for a checkpoint.
-pub fn canonical_checkpoint_bytes(checkpoint: &StateCheckpointV1) -> Vec<u8> {
-    let mut out = Vec::with_capacity(320);
-    out.extend_from_slice(b"SYMPROV");
-    out.push(MULTIPLAYER_CANONICAL_ENCODING_VERSION);
-    out.extend_from_slice(&MULTIPLAYER_PROVENANCE_SCHEMA_VERSION.to_le_bytes());
-    out.extend_from_slice(checkpoint.session_digest.as_bytes());
-    out.extend_from_slice(checkpoint.world_instance.as_bytes());
-    out.extend_from_slice(&checkpoint.authority_epoch.to_le_bytes());
-    out.extend_from_slice(&checkpoint.simulation_tick.to_le_bytes());
-    out.extend_from_slice(&checkpoint.simulation_instant.to_le_bytes());
-    encode_optional_digest(checkpoint.previous_checkpoint, &mut out);
-    out.extend_from_slice(checkpoint.state_digest.as_bytes());
-    out.extend_from_slice(checkpoint.continuation_digest.as_bytes());
-    out.extend_from_slice(checkpoint.simulation_identity.as_bytes());
-    out.extend_from_slice(checkpoint.ruleset_identity.as_bytes());
-    out
-}
-
 /// Produces the exact language-neutral bytes committed as the session identity.
 pub fn canonical_session_bytes(session: &MultiplayerSessionV1) -> Vec<u8> {
     canonical_session_fields(
@@ -324,11 +277,15 @@ impl StateCheckpointV1 {
         Ok(())
     }
 
+    /// Checks checkpoint-chain continuity within one already-accepted authority epoch.
+    ///
+    /// Authority handoff/epoch advancement is intentionally outside this predicate:
+    /// a provenance record must not manufacture acceptance of a new authority epoch.
     pub fn is_successor_of(&self, previous: &Self) -> bool {
         self.session_digest == previous.session_digest
             && self.world_instance == previous.world_instance
             && self.previous_checkpoint == Some(previous.checkpoint_digest)
-            && self.authority_epoch >= previous.authority_epoch
+            && self.authority_epoch == previous.authority_epoch
             && self.simulation_tick > previous.simulation_tick
             && self.simulation_instant > previous.simulation_instant
             && self.simulation_identity == previous.simulation_identity
@@ -473,6 +430,20 @@ mod tests {
             digest(12), digest(13), identity(3), identity(4),
         ).expect("second");
         assert!(second.is_successor_of(&first));
+    }
+
+    #[test]
+    fn checkpoint_chain_does_not_implicitly_accept_authority_handoff() {
+        let s = session(vec![identity(7)]);
+        let first = StateCheckpointV1::new(
+            s.session_digest, identity(1), 0, 100, 100, None,
+            digest(10), digest(11), identity(3), identity(4),
+        ).expect("first");
+        let next_epoch = StateCheckpointV1::new(
+            s.session_digest, identity(1), 1, 200, 200, Some(first.checkpoint_digest),
+            digest(12), digest(13), identity(3), identity(4),
+        ).expect("next epoch checkpoint");
+        assert!(!next_epoch.is_successor_of(&first));
     }
 
     #[test]
