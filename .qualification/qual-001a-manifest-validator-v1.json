@@ -1,0 +1,47 @@
+{
+  "schema_id": "luminous.qualification-manifest.v1",
+  "profile_id": "qual-001a-manifest-validator-v1",
+  "profile_version": 1,
+  "exact_parent": "d56d6a6c1381dc131d493f0713b657f01c98cb80",
+  "required_commit_count": 1,
+  "owned_paths": [
+    {
+      "kind": "file",
+      "path": ".github/workflows/qual-001a-manifest-validator-v1.yml"
+    },
+    {
+      "kind": "file",
+      "path": ".qualification/qual-001a-manifest-validator-v1.json"
+    },
+    {
+      "kind": "prefix",
+      "path": "tools/qualification"
+    }
+  ],
+  "profile_files": [
+    {
+      "path": "tools/qualification/QUALIFICATION_MANIFEST_V1.schema.json",
+      "sha256": "bfa58c22763916df94f4c2075856acb50abe4cd54f65a207a00bb74a3d059298",
+      "byte_len": 4704
+    }
+  ],
+  "parent_equal_paths": [
+    {
+      "kind": "file",
+      "path": "Cargo.lock"
+    },
+    {
+      "kind": "file",
+      "path": "Cargo.toml"
+    }
+  ],
+  "qualification_suite_id": "schema-only-v1",
+  "toolchain_id": "python-3.12.10",
+  "allow_transient_paths": [
+    {
+      "kind": "prefix",
+      "path": "qualification"
+    }
+  ],
+  "artifact_name": "qual-001a-manifest-validator-v1"
+}
