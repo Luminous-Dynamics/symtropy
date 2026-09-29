@@ -28,7 +28,7 @@ def main(argv: list[str] | None = None) -> int:
         return 2
     print("AUTHORITY_DISPATCH_EVIDENCE_VERIFY_V1 PASS")
     print(f"dispatch_sha256={payload_digest}")
-    print(f"release_sha256={evidence_value["release_sha256"]}")
+    print("release_sha256=" + evidence_value["release_sha256"])
     return 0
 
 if __name__ == "__main__":
