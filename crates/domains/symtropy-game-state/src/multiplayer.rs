@@ -116,8 +116,6 @@ fn canonical_checkpoint_fields(
     out
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
-#[serde(transparent)]
 /// Temporary bridge for an identity whose semantic owner has not yet exposed
 /// an owner-issued reference type.
 ///
