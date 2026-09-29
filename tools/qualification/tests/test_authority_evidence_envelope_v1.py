@@ -23,6 +23,14 @@ class T(unittest.TestCase):
         with tempfile.TemporaryDirectory() as d: r=Path(d); write(r); (r/"contract.json").write_bytes(raw(CONTRACT)+b" "); self.assertEqual(self.runv(r),2)
     def test_tampered_execution_identity(self):
         with tempfile.TemporaryDirectory() as d: r=Path(d); write(r); e=json.loads((r/"execution.json").read_text()); e["subject_head_sha"]="9"*40; (r/"execution.json").write_text(json.dumps(e)); self.assertEqual(self.runv(r),2)
+    def test_checkout_identity_requires_blob_field(self):
+        with tempfile.TemporaryDirectory() as d:
+            r=Path(d); write(r); c=json.loads((r/"contract-checkout.json").read_text()); del c["contract_blob_sha"]; (r/"contract-checkout.json").write_text(json.dumps(c)); self.assertEqual(self.runv(r),2)
+
+    def test_checkout_identity_rejects_unknown_field(self):
+        with tempfile.TemporaryDirectory() as d:
+            r=Path(d); write(r); c=json.loads((r/"contract-checkout.json").read_text()); c["unexpected"]="x"; (r/"contract-checkout.json").write_text(json.dumps(c)); self.assertEqual(self.runv(r),2)
+
     def test_tampered_contract_blob_identity_rejected(self):
         with tempfile.TemporaryDirectory() as d:
             r=Path(d); write(r); c=json.loads((r/"contract-checkout.json").read_text()); c["contract_blob_sha"]="0"*40; (r/"contract-checkout.json").write_text(json.dumps(c)); self.assertEqual(self.runv(r),2)
