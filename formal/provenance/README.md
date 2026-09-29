@@ -50,3 +50,16 @@ The validator is deliberately stdlib-only and runtime-independent. It checks:
 Machine-readable output has stable status classes (`Valid`, `SchemaInvalid`, `GraphInvalid`, `EvidenceInvalid`, `AuthorityNotEstablished`) and deterministic diagnostic codes.
 
 The validator is a semantic layer above `schema-v0.json`; it does not replace an independent proof checker or the existing qualification system.
+
+
+## Proof-impact engine v0
+
+Run the advisory impact analyzer with:
+
+```text
+python3 formal/provenance/impact.py <canonical-or-interchange-graph.json> --changed <node-id> [<node-id> ...]
+```
+
+The impact engine consumes only semantically valid provenance. It computes a deterministic revalidation frontier across proof, checker, execution, verifier, contract, and evidence dependencies. It never grants, revokes, or infers qualification authority.
+
+Machine-readable output uses `impact_status` values `NoImpact`, `RevalidationRequired`, and `GraphInvalid`.
