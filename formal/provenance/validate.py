@@ -281,13 +281,24 @@ class Validator:
             if not isinstance(metadata, dict):
                 self.error("E_EVIDENCE_BINDING", f"node:{nid}.metadata", "qualification evidence requires binding metadata")
                 continue
-            required = ("contract_id", "verifier_release_id", "subject_head", "subject_tree", "execution_id", "result")
+            required = ("contract_id", "contract_digest", "verifier_release_id", "verifier_release_digest", "subject_head", "subject_tree", "execution_id", "result")
             for key in required:
                 if key not in metadata:
                     self.error("E_EVIDENCE_BINDING", f"node:{nid}.metadata.{key}", "missing qualification binding")
             for key in ("subject_head", "subject_tree"):
                 if key in metadata and (not isinstance(metadata[key], str) or not SHA256_RE.fullmatch(metadata[key])):
                     self.error("E_EVIDENCE_BINDING", f"node:{nid}.metadata.{key}", "must be lowercase SHA-256")
+
+            contract = self.nodes.get(metadata.get("contract_id"))
+            verifier = self.nodes.get(metadata.get("verifier_release_id"))
+            if not contract or contract.get("kind") != "QualificationContract":
+                self.error("E_EVIDENCE_BINDING", f"node:{nid}.metadata.contract_id", "contract_id must reference QualificationContract")
+            elif metadata.get("contract_digest") != contract.get("content_digest"):
+                self.error("E_EVIDENCE_BINDING", f"node:{nid}.metadata.contract_digest", "contract digest does not match referenced contract")
+            if not verifier or verifier.get("kind") != "VerifierRelease":
+                self.error("E_EVIDENCE_BINDING", f"node:{nid}.metadata.verifier_release_id", "verifier_release_id must reference VerifierRelease")
+            elif metadata.get("verifier_release_digest") != verifier.get("content_digest"):
+                self.error("E_EVIDENCE_BINDING", f"node:{nid}.metadata.verifier_release_digest", "verifier release digest does not match referenced release")
 
             result = metadata.get("result")
             if result == "QualifiedPass":
@@ -316,10 +327,19 @@ class Validator:
                     ("source_tree_id", "SourceTree"),
                 ):
                     ref = execution_metadata.get(field)
-                    if ref is not None:
-                        target = self.nodes.get(ref)
-                        if not target or target["kind"] != expected_kind:
-                            self.error("E_EVIDENCE_BINDING", f"node:{execution_id}.metadata.{field}", f"{field} must reference {expected_kind}")
+                    if ref is None:
+                        self.error("E_EVIDENCE_BINDING", f"node:{execution_id}.metadata.{field}", f"{field} is required for exact execution binding")
+                        continue
+                    target = self.nodes.get(ref)
+                    if not target or target["kind"] != expected_kind:
+                        self.error("E_EVIDENCE_BINDING", f"node:{execution_id}.metadata.{field}", f"{field} must reference {expected_kind}")
+                    elif expected_kind == "SourceCommit" and execution_metadata.get("source_commit_sha") != target.get("content_digest"):
+                        self.error("E_EVIDENCE_BINDING", f"node:{execution_id}.metadata.source_commit_sha", "source commit digest does not match referenced SourceCommit")
+                    elif expected_kind == "SourceTree" and execution_metadata.get("source_tree_sha") != target.get("content_digest"):
+                        self.error("E_EVIDENCE_BINDING", f"node:{execution_id}.metadata.source_tree_sha", "source tree digest does not match referenced SourceTree")
+                for field in ("source_commit_sha", "source_tree_sha"):
+                    if not isinstance(execution_metadata.get(field), str) or not SHA256_RE.fullmatch(execution_metadata.get(field, "")):
+                        self.error("E_EVIDENCE_BINDING", f"node:{execution_id}.metadata.{field}", "exact source binding requires a lowercase SHA-256 digest")
                 if execution_metadata.get("subject_head") != metadata.get("subject_head"):
                     self.error("E_STALE_EVIDENCE", f"node:{nid}.metadata.subject_head", "qualification subject head differs from execution binding")
                 if execution_metadata.get("subject_tree") != metadata.get("subject_tree"):
@@ -341,6 +361,11 @@ class Validator:
                     self.error("E_AUTHORITY_UNPROVEN", f"edge:{eid}", "qualifies edge lacks a passing qualification result")
                 if result == "QualifiedPass":
                     self.error("E_AUTHORITY_NOT_LOCAL", f"edge:{eid}", "graph cannot manufacture a QualifiedPass authority state")
+                for historical_edge in self.edges.values():
+                    if historical_edge["relation"] == "supersedes" and historical_edge["target"] == ref:
+                        self.error("E_EVIDENCE_HISTORICAL", f"edge:{eid}.evidence", "superseded evidence cannot establish current qualification")
+                    if historical_edge["relation"] == "invalidated_by" and historical_edge["source"] == ref:
+                        self.error("E_EVIDENCE_HISTORICAL", f"edge:{eid}.evidence", "invalidated evidence cannot establish current qualification")
 
 
 def validate_file(path: str) -> dict[str, Any]:
