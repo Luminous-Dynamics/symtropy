@@ -30,7 +30,7 @@ class Validator:
     def validate(self):
         self._shape()
         if self.errors:return self.result()
-        self._index(); self._relationships(); self._proof_dag(); self._qualification()
+        self._index(); self._relationships(); self._require_proof_bindings(); self._proof_dag(); self._qualification()
         return self.result()
     def result(self):
         codes={e.code for e in self.errors}
@@ -109,11 +109,30 @@ class Validator:
                 if s["kind"] not in {"ProofArtifact","ProofExecution"}:self.error("E_SEMANTIC_ID_MISMATCH",f"edge:{eid}","checked_by source must be ProofArtifact or ProofExecution")
                 if t["kind"]!="ProofChecker":self.error("E_SEMANTIC_ID_MISMATCH",f"edge:{eid}","checked_by target must be ProofChecker")
             if rel=="qualifies" and t["kind"]!="QualificationContract":self.error("E_AUTHORITY_QUALIFIES_TARGET",f"edge:{eid}","qualifies target must be QualificationContract")
+            if rel=="checked_by" and s["kind"]=="ProofArtifact" and t["kind"]=="ProofChecker":
+                pass
             ev=e.get("evidence",[])
             if not isinstance(ev,list) or any(not isinstance(x,str) or x not in self.nodes for x in ev):self.error("E_EVIDENCE_REFERENCE",f"edge:{eid}.evidence","all evidence references must name existing node IDs")
             if rel=="qualifies":
                 if not ev:self.error("E_AUTHORITY_UNPROVEN",f"edge:{eid}","qualifies requires QualificationEvidence")
                 if any(self.nodes.get(x,{}).get("kind")!="QualificationEvidence" for x in ev):self.error("E_AUTHORITY_UNPROVEN",f"edge:{eid}.evidence","qualifies evidence must be QualificationEvidence")
+    def _require_proof_bindings(self):
+        checked={}; proven={}
+        for e in self.edges.values():
+            if e["relation"]=="checked_by" and self.nodes.get(e["source"],{}).get("kind")=="ProofArtifact":
+                checked.setdefault(e["source"],[]).append(e["target"])
+            if e["relation"]=="proves" and self.nodes.get(e["source"],{}).get("kind")=="ProofArtifact":
+                proven.setdefault(e["source"],[]).append(e["target"])
+        for nid,n in self.nodes.items():
+            if n["kind"]!="ProofArtifact":continue
+            if len(checked.get(nid,[]))!=1:self.error("E_CHECKER_BINDING",f"node:{nid}","ProofArtifact must have exactly one checked_by ProofChecker edge")
+            if len(proven.get(nid,[]))!=1:self.error("E_SEMANTIC_ID_MISMATCH",f"node:{nid}","ProofArtifact must have exactly one proves edge")
+        for eid,e in self.edges.items():
+            if e["relation"]!="checked_by":continue
+            s=self.nodes.get(e["source"]);t=self.nodes.get(e["target"])
+            if s and t and s["kind"]=="ProofArtifact" and t["kind"]=="ProofChecker":
+                if not isinstance(t.get("content_digest"),str) or not SHA256_RE.fullmatch(t["content_digest"]):
+                    self.error("E_CHECKER_BINDING",f"node:{t['id']}.content_digest","ProofChecker must be content-addressed")
     def _proof_dag(self):
         a=defaultdict(list)
         for eid,e in self.edges.items():
