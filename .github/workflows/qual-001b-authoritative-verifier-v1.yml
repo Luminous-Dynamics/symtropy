@@ -233,10 +233,7 @@ jobs:
             "$EVIDENCE_DIR/authority-dispatch-payload.json"
 
       - name: Record dispatch identity
-        if: steps.dispatch.outcome == 'success' && steps.release.outcome == 'success'
-        run: |
-          set -euo pipefail
-          test -s "$EVIDENCE_DIR/authority-dispatch-payload.json"
+        undefined
           mkdir -p "$EVIDENCE_DIR"
           python - <<'PY'
           import json, os
@@ -263,11 +260,7 @@ jobs:
           CONTRACT_SHA256: ${{ env.CONTRACT_SHA256 }}
 
       - name: Retain exact validated verifier release record
-        if: steps.release.outcome == 'success'
-        run: |
-          set -euo pipefail
-          mkdir -p "$EVIDENCE_DIR"
-          test -s "$AUTHORITY_DIR/$RELEASE_RECORD_PATH"
+        undefined
           cp --preserve=mode,timestamps "$AUTHORITY_DIR/$RELEASE_RECORD_PATH" \
             "$EVIDENCE_DIR/verifier-release-v1.json"
           cmp --silent "$AUTHORITY_DIR/$RELEASE_RECORD_PATH" \
@@ -277,11 +270,7 @@ jobs:
             --expected-sha256 "${{ steps.release.outputs.release_sha256 }}"
 
       - name: Retain exact validated qualification contract
-        if: steps.contract.outcome == 'success' && steps.dispatch.outcome == 'success' && steps.release.outcome == 'success'
-        run: |
-          set -euo pipefail
-          mkdir -p "$EVIDENCE_DIR"
-          test -s "$CONTRACT_DIR/$CONTRACT_PATH"
+        undefined
           cp --preserve=mode,timestamps "$CONTRACT_DIR/$CONTRACT_PATH" \
             "$EVIDENCE_DIR/qualification-contract-v1.json"
           cmp --silent "$CONTRACT_DIR/$CONTRACT_PATH" \
@@ -292,10 +281,7 @@ jobs:
             --expected-sha256 "${{ env.CONTRACT_SHA256 }}"
 
       - name: Independently verify retained authority evidence
-        if: steps.dispatch.outcome == 'success' && steps.release.outcome == 'success' && steps.contract.outcome == 'success'
-        run: |
-          set -euo pipefail
-          python "$AUTHORITY_DIR/tools/qualification/authority_dispatch_evidence_verify_v1.py" \
+        undefined \
             --payload "$EVIDENCE_DIR/authority-dispatch-payload.json" \
             --evidence "$EVIDENCE_DIR/authority-dispatch-evidence.json" \
             --release "$EVIDENCE_DIR/verifier-release-v1.json" \
