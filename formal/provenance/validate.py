@@ -154,8 +154,8 @@ class Validator:
             return
         for field in ("commit_sha", "tree_sha"):
             value = p.get(field)
-            if not isinstance(value, str) or not SHA256_RE.fullmatch(value):
-                self.error("E_PROVENANCE_MALFORMED", f"{path}.{field}", "must be lowercase SHA-256")
+            if not isinstance(value, str) or not GIT_OID_RE.fullmatch(value):
+                self.error("E_PROVENANCE_MALFORMED", f"{path}.{field}", "must be a lowercase 40- or 64-hex Git object ID")
         repo = p.get("repository")
         if not isinstance(repo, str) or not repo.strip() or any(c.isspace() for c in repo):
             self.error("E_PROVENANCE_MALFORMED", f"{path}.repository", "repository identity is invalid")

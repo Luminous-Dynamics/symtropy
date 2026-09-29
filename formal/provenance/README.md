@@ -51,7 +51,6 @@ Machine-readable output has stable status classes (`Valid`, `SchemaInvalid`, `Gr
 
 The validator is a semantic layer above `schema-v0.json`; it does not replace an independent proof checker or the existing qualification system.
 
-
 ## Proof-impact engine v0
 
 Run the advisory impact analyzer with:
@@ -77,7 +76,6 @@ Impact reason codes are dependency-specific rather than generic:
 
 Traversal is reverse-dependency based and deterministic: adjacency is sorted, breadth-first traversal chooses the shortest dependency path, and the first path wins ties. The output is therefore reproducible under graph node/edge reordering. A change to a source identity can propagate through explicit metadata bindings such as `source_commit_id` or `source_tree_id`; no raw digest string is treated as a graph dependency unless it is also represented by a node.
 
-
 ## Revalidation planner v0
 
 The revalidation planner converts an impact frontier into an explicit, machine-readable work plan:
@@ -96,7 +94,6 @@ It is deliberately downstream of semantic validation and impact analysis. It:
 
 The planner authenticates its impact input before planning. It recomputes the canonical frontier from the validated graph and the declared `changed_node_ids`, then requires exact equality of the supplied impact payload. Tampered, incomplete, duplicated, unknown, or internally contradictory frontiers are rejected. Changed roots are deliberately not emitted as downstream impact records; they are the declared causes of the frontier and are therefore not silently converted into revalidation work units. A `Ready` plan means only that the dependency metadata is sufficiently bound to describe the revalidation work; it does **not** mean that any proof or qualification has passed.
 
-
 ## Qualification admission envelope v0
 
 The admission envelope is the narrow handoff between authenticated provenance planning and the existing authoritative qualification machinery. It binds the canonical impact digest, plan digest, exact changed roots, subject repository/head/tree, exact node identity digests, reference identities, and expected qualification result. It recomputes the impact frontier and revalidation plan instead of trusting caller-supplied records.
@@ -104,3 +101,24 @@ The admission envelope is the narrow handoff between authenticated provenance pl
 Run: `python3 formal/provenance/admission.py <graph.json> <impact.json> --subject-repository Luminous-Dynamics/symtropy --expected-result QualifiedPass`.
 
 The envelope is an admission identity, not an authority result. QualifiedPass/QualifiedFail remain outcomes established only by the approved default-branch qualification verifier. The envelope never upgrades a Passed execution by itself. The implementation fails closed on missing identity digests, inconsistent subject head/tree values, tampered frontiers, stale/historical evidence, or mismatched bindings. Canonical JSON ordering does not affect the admission digest.
+
+## Authority handoff v0
+
+The authority handoff is a deliberately smaller boundary after admission. It validates the complete admission envelope again and emits only the declarative identity needed by the existing QUAL-001B authority:
+
+- admission digest;
+- expected result;
+- exact subject repository/head/tree;
+- exact qualification-contract identity;
+- exact verifier-release identity;
+- exact proof-execution identity.
+
+It emits no shell command, Cargo argument, workflow selection, or executable policy. It does not decide whether the verifier release is approved and cannot produce `QualifiedPass` or `QualifiedFail`.
+
+Run:
+
+```text
+python3 formal/provenance/handoff.py <graph.json> <impact.json> <admission.json>
+```
+
+The handoff is therefore a transport/admission boundary, not a second authority system. Approval and qualification remain owned by the existing default-branch verifier.
