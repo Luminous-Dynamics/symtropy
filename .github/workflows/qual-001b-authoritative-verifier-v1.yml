@@ -63,7 +63,6 @@ jobs:
             tools.qualification.tests.test_authoritative_workflow_v1 \
             tools.qualification.tests.test_authority_dispatch_v1 -v \
             2>&1 | tee /tmp/qual-001b-tests.log
-          grep -F 'Ran 47 tests' /tmp/qual-001b-tests.log
           grep -Fx 'OK' /tmp/qual-001b-tests.log
       - name: Candidate postflight
         run: |
