@@ -19,7 +19,7 @@ def digest(value: Any) -> str:
 def _identity_digest(node: dict[str, Any]) -> str:
     metadata = node.get("metadata")
     value = metadata.get("semantic_digest") if node["kind"] in {"Theorem","Lemma","Invariant"} and isinstance(metadata, dict) else node.get("content_digest")
-    if not isinstance(value, str) or len(value) not in {40, 64} or any(c not in "0123456789abcdef" for c in value):
+    if not isinstance(value, str) or len(value) != 64 or any(c not in "0123456789abcdef" for c in value):
         raise ValueError(f"node {node['id']} lacks an exact identity/content digest")
     return value
 
