@@ -7,6 +7,7 @@ import argparse
 import json
 from typing import Any
 
+from impact import IMPACT_VERSION, analyze
 from validate import SCHEMA_VERSION, Validator
 
 PLAN_VERSION = "luminous.formal-revalidation-plan.v0"
@@ -77,9 +78,7 @@ def _reference_bindings(
     return sorted(missing), sorted(contradictory)
 
 
-def _proof_artifact_has_checker(
-    node_id: str, graph: dict[str, Any]
-) -> bool:
+def _proof_artifact_has_checker(node_id: str, graph: dict[str, Any]) -> bool:
     nodes = {node["id"]: node for node in graph["nodes"]}
     return any(
         edge["relation"] == "checked_by"
@@ -109,29 +108,55 @@ def _required_bindings(
     return sorted(set(missing)), sorted(set(contradictory))
 
 
-def build_plan(graph: dict[str, Any], impact: dict[str, Any]) -> dict[str, Any]:
-    _validate_graph(graph)
+def _canonical_impact(graph: dict[str, Any], changed_ids: list[str]) -> dict[str, Any]:
+    """Recompute the frontier from the validated graph; caller payloads are never trusted."""
+    return analyze(graph, changed_ids)
+
+
+def _authenticated_impact(
+    graph: dict[str, Any], impact: dict[str, Any]
+) -> dict[str, Any]:
+    if not isinstance(impact, dict):
+        raise ValueError("impact result must be an object")
     if impact.get("schema_version") != SCHEMA_VERSION:
         raise ValueError("impact schema_version does not match provenance schema")
-    if impact.get("impact_status") == "GraphInvalid":
-        raise ValueError("cannot plan revalidation from an invalid impact result")
-    if impact.get("impact_version") != "luminous.formal-impact.v0":
+    if impact.get("impact_version") != IMPACT_VERSION:
         raise ValueError("unsupported impact_version")
+    if impact.get("impact_status") not in {"NoImpact", "RevalidationRequired"}:
+        raise ValueError("unsupported impact_status")
+    changed_ids = impact.get("changed_node_ids")
+    if not isinstance(changed_ids, list) or any(
+        not isinstance(node_id, str) or not node_id for node_id in changed_ids
+    ):
+        raise ValueError("changed_node_ids must be a non-empty-string array")
+    if len(changed_ids) != len(set(changed_ids)):
+        raise ValueError("changed_node_ids must not contain duplicates")
+    canonical = _canonical_impact(graph, changed_ids)
+    if canonical != impact:
+        raise ValueError(
+            "impact payload does not match canonical impact analysis: "
+            + json.dumps(
+                {"expected": canonical, "actual": impact},
+                sort_keys=True,
+                separators=(",", ":"),
+            )
+        )
+    return canonical
+
+
+def build_plan(graph: dict[str, Any], impact: dict[str, Any]) -> dict[str, Any]:
+    _validate_graph(graph)
+    authenticated = _authenticated_impact(graph, impact)
 
     nodes = {node["id"]: node for node in graph["nodes"]}
     superseded, invalidated = _history_invalidations(graph)
-    records = impact.get("records")
-    if not isinstance(records, list):
-        raise ValueError("impact records must be an array")
+    records = authenticated["records"]
 
     plans: list[dict[str, Any]] = []
     blockers: list[dict[str, Any]] = []
 
-    for record in sorted(records, key=lambda item: item.get("node_id", "")):
-        node_id = record.get("node_id")
-        if not isinstance(node_id, str) or node_id not in nodes:
-            raise ValueError("impact record references an unknown node")
-
+    for record in records:
+        node_id = record["node_id"]
         node = nodes[node_id]
         missing, contradictory = _required_bindings(node, graph, nodes)
         historical: list[str] = []
@@ -153,7 +178,13 @@ def build_plan(graph: dict[str, Any], impact: dict[str, Any]) -> dict[str, Any]:
             )
             continue
 
-        if node["kind"] in {"Theorem", "Lemma", "Invariant", "ProofArtifact", "ProofChecker"}:
+        if node["kind"] in {
+            "Theorem",
+            "Lemma",
+            "Invariant",
+            "ProofArtifact",
+            "ProofChecker",
+        }:
             action = "RECHECK_PROOF"
         elif node["kind"] == "ProofExecution":
             action = "RECHECK_EXECUTION"
@@ -167,8 +198,8 @@ def build_plan(graph: dict[str, Any], impact: dict[str, Any]) -> dict[str, Any]:
                 "node_id": node_id,
                 "kind": node["kind"],
                 "action": action,
-                "reason_code": record.get("reason_code", "DEPENDENCY_CHANGED"),
-                "via_edges": list(record.get("via_edges", [])),
+                "reason_code": record["reason_code"],
+                "via_edges": list(record["via_edges"]),
             }
         )
 

@@ -104,6 +104,70 @@ class RevalidationPlanTests(unittest.TestCase):
         self.assertEqual(result["plan_status"], "Blocked")
         self.assertEqual(result["blockers"][0]["historical_flags"], ["SUPERSEDED"])
 
+
+    def test_tampered_impact_record_is_rejected(self):
+        impact = impact_for("execution:x")
+        impact["records"][0]["reason_code"] = "CHECKER_CHANGED"
+        with self.assertRaises(ValueError):
+            build_plan(valid_graph(), impact)
+
+    def test_omitted_impact_record_is_rejected(self):
+        graph = valid_graph()
+        graph["nodes"].append(
+            node("ProofExecution", "execution:y", "Second execution", metadata={
+                "artifact_id": "proof:p", "checker_id": "checker:c",
+                "source_commit_id": "source:commit", "source_tree_id": "source:tree",
+                "source_commit_sha": D, "source_tree_sha": E,
+                "subject_head": F, "subject_tree": F,
+                "status": "Passed", "result": "Pass",
+            })
+        )
+        impact = impact_for("proof:p")
+        # Canonical impact reaches both executions through the artifact binding.
+        impact["records"] = [
+            record for record in impact["records"] if record["node_id"] != "execution:y"
+        ]
+        with self.assertRaises(ValueError):
+            build_plan(graph, impact)
+
+    def test_injected_unaffected_record_is_rejected(self):
+        graph = valid_graph()
+        impact = impact_for("execution:x")
+        impact["records"].append({
+            "node_id": "theorem:t",
+            "reason_code": "SEMANTIC_DEPENDENCY_CHANGED",
+            "via_edges": [],
+        })
+        with self.assertRaises(ValueError):
+            build_plan(graph, impact)
+
+    def test_no_impact_cannot_contain_records(self):
+        impact = {
+            "schema_version": SCHEMA,
+            "impact_version": "luminous.formal-impact.v0",
+            "impact_status": "NoImpact",
+            "changed_node_ids": ["theorem:t"],
+            "records": [{
+                "node_id": "execution:x",
+                "reason_code": "EXECUTION_CHANGED",
+                "via_edges": [],
+            }],
+        }
+        with self.assertRaises(ValueError):
+            build_plan(valid_graph(), impact)
+
+    def test_duplicate_changed_ids_are_rejected(self):
+        impact = impact_for("execution:x")
+        impact["changed_node_ids"] = ["execution:x", "execution:x"]
+        with self.assertRaises(ValueError):
+            build_plan(valid_graph(), impact)
+
+    def test_unknown_changed_id_is_rejected(self):
+        impact = impact_for("execution:x")
+        impact["changed_node_ids"] = ["execution:missing"]
+        with self.assertRaises(ValueError):
+            build_plan(valid_graph(), impact)
+
     def test_no_revalidation_required(self):
         result = build_plan(valid_graph(), {
             "schema_version": SCHEMA,
