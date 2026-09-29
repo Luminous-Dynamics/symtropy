@@ -42,6 +42,7 @@
       "additionalProperties": false,
       "required": [
         "contract_commit_sha",
+        "contract_tree_sha",
         "contract_blob_sha",
         "subject_head_sha",
         "subject_tree_sha",
@@ -49,6 +50,7 @@
       ],
       "properties": {
         "contract_commit_sha": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
+        "contract_tree_sha": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
         "contract_blob_sha": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
         "subject_head_sha": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
         "subject_tree_sha": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
