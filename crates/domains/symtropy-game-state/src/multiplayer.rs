@@ -151,9 +151,13 @@ impl UnqualifiedIdentityDigest {
     ///
     /// This deliberately does not claim semantic ownership or acceptance.
     /// Owner-specific constructors belong in the owning subsystem.
-    pub const fn from_digest(digest: CommitmentDigest) -> Self { Self(digest) }
+    pub const fn from_digest(digest: CommitmentDigest) -> Self {
+        Self(digest)
+    }
 
-    pub const fn as_bytes(&self) -> &[u8; 32] { self.0.as_bytes() }
+    pub const fn as_bytes(&self) -> &[u8; 32] {
+        self.0.as_bytes()
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -356,7 +360,9 @@ impl StateCheckpointV1 {
     }
 }
 
-fn canonicalize_participants(participants: &mut Vec<UnqualifiedIdentityDigest>) -> Result<(), StateError> {
+fn canonicalize_participants(
+    participants: &mut Vec<UnqualifiedIdentityDigest>,
+) -> Result<(), StateError> {
     if participants.len() > MAX_SESSION_PARTICIPANTS {
         return Err(StateError::TooManyMultiplayerParticipants);
     }
@@ -382,22 +388,30 @@ mod tests {
     fn digest(tag: u8) -> CommitmentDigest {
         CommitmentDigest::derive("fixture", &[&[tag]]).expect("fixture digest")
     }
-    fn identity(tag: u8) -> UnqualifiedIdentityDigest { UnqualifiedIdentityDigest::from_digest(digest(tag)) }
+    fn identity(tag: u8) -> UnqualifiedIdentityDigest {
+        UnqualifiedIdentityDigest::from_digest(digest(tag))
+    }
 
     fn session(participants: Vec<UnqualifiedIdentityDigest>) -> MultiplayerSessionV1 {
         MultiplayerSessionV1::new(
-            identity(1), identity(2), identity(3), identity(4), digest(5),
-            identity(6), participants, ReplayProfile::BitExactReplay,
-        ).expect("session")
+            identity(1),
+            identity(2),
+            identity(3),
+            identity(4),
+            digest(5),
+            identity(6),
+            participants,
+            ReplayProfile::BitExactReplay,
+        )
+        .expect("session")
     }
 
     #[test]
     fn session_identity_is_hash_of_canonical_bytes() {
         let s = session(vec![identity(7), identity(8)]);
-        let expected = CommitmentDigest::derive(
-            "multiplayer.session.v1",
-            &[&canonical_session_bytes(&s)],
-        ).expect("session commitment");
+        let expected =
+            CommitmentDigest::derive("multiplayer.session.v1", &[&canonical_session_bytes(&s)])
+                .expect("session commitment");
         assert_eq!(s.session_digest, expected);
     }
 
@@ -413,20 +427,38 @@ mod tests {
             observation.authority_config,
             observation.participants.clone(),
             ReplayProfile::BitExactReplay,
-        ).expect("bit-exact claim");
+        )
+        .expect("bit-exact claim");
         assert_eq!(observation.session_digest, bit_exact.session_digest);
-        assert_ne!(observation.replay_claim_digest, bit_exact.replay_claim_digest);
-        assert_ne!(canonical_replay_claim_bytes(&observation), canonical_replay_claim_bytes(&bit_exact));
+        assert_ne!(
+            observation.replay_claim_digest,
+            bit_exact.replay_claim_digest
+        );
+        assert_ne!(
+            canonical_replay_claim_bytes(&observation),
+            canonical_replay_claim_bytes(&bit_exact)
+        );
     }
 
     #[test]
     fn commitment_verification_is_not_owner_evidence() {
         let s = session(vec![identity(7)]);
         let checkpoint = StateCheckpointV1::new(
-            s.session_digest, identity(200), 999, 1, 1, None,
-            digest(201), digest(202), identity(203), identity(204),
-        ).expect("self-consistent checkpoint");
-        checkpoint.verify_commitment().expect("commitment is internally consistent");
+            s.session_digest,
+            identity(200),
+            999,
+            1,
+            1,
+            None,
+            digest(201),
+            digest(202),
+            identity(203),
+            identity(204),
+        )
+        .expect("self-consistent checkpoint");
+        checkpoint
+            .verify_commitment()
+            .expect("commitment is internally consistent");
     }
 
     #[test]
@@ -441,24 +473,48 @@ mod tests {
             observation.authority_config,
             observation.participants.clone(),
             ReplayProfile::BitExactReplay,
-        ).expect("bit-exact claim");
+        )
+        .expect("bit-exact claim");
         assert_eq!(observation.session_digest, bit_exact.session_digest);
-        assert_ne!(observation.replay_claim_digest, bit_exact.replay_claim_digest);
+        assert_ne!(
+            observation.replay_claim_digest,
+            bit_exact.replay_claim_digest
+        );
         assert_eq!(bit_exact.replay_profile, ReplayProfile::BitExactReplay);
-        bit_exact.verify_commitment().expect("claim commitment is self-consistent");
+        bit_exact
+            .verify_commitment()
+            .expect("claim commitment is self-consistent");
     }
 
     #[test]
     fn equal_epoch_numbers_do_not_establish_cross_lineage_continuity() {
         let s = session(vec![identity(7)]);
         let a = StateCheckpointV1::new(
-            s.session_digest, identity(1), 7, 100, 100, None,
-            digest(10), digest(11), identity(3), identity(4),
-        ).expect("first lineage");
+            s.session_digest,
+            identity(1),
+            7,
+            100,
+            100,
+            None,
+            digest(10),
+            digest(11),
+            identity(3),
+            identity(4),
+        )
+        .expect("first lineage");
         let b = StateCheckpointV1::new(
-            s.session_digest, identity(9), 7, 200, 200, Some(a.checkpoint_digest),
-            digest(12), digest(13), identity(3), identity(4),
-        ).expect("second lineage");
+            s.session_digest,
+            identity(9),
+            7,
+            200,
+            200,
+            Some(a.checkpoint_digest),
+            digest(12),
+            digest(13),
+            identity(3),
+            identity(4),
+        )
+        .expect("second lineage");
         assert_eq!(a.authority_epoch, b.authority_epoch);
         assert!(!b.is_successor_of(&a));
     }
@@ -468,24 +524,45 @@ mod tests {
         let s = session(vec![identity(7)]);
         let historical = digest(11);
         let checkpoint = StateCheckpointV1::new(
-            s.session_digest, identity(1), 0, 200, 200, None,
-            digest(12), historical, identity(3), identity(4),
-        ).expect("checkpoint");
+            s.session_digest,
+            identity(1),
+            0,
+            200,
+            200,
+            None,
+            digest(12),
+            historical,
+            identity(3),
+            identity(4),
+        )
+        .expect("checkpoint");
         assert_eq!(checkpoint.continuation_digest, historical);
-        checkpoint.verify_commitment().expect("identity commitment verifies");
+        checkpoint
+            .verify_commitment()
+            .expect("identity commitment verifies");
     }
 
     #[test]
     fn checkpoint_commitment_is_hash_of_canonical_bytes() {
         let s = session(vec![identity(7)]);
         let checkpoint = StateCheckpointV1::new(
-            s.session_digest, identity(1), 0, 100, 100, None,
-            digest(10), digest(11), identity(3), identity(4),
-        ).expect("checkpoint");
+            s.session_digest,
+            identity(1),
+            0,
+            100,
+            100,
+            None,
+            digest(10),
+            digest(11),
+            identity(3),
+            identity(4),
+        )
+        .expect("checkpoint");
         let expected = CommitmentDigest::derive(
             "multiplayer.checkpoint.v1",
             &[&canonical_checkpoint_bytes(&checkpoint)],
-        ).expect("checkpoint commitment");
+        )
+        .expect("checkpoint commitment");
         assert_eq!(checkpoint.checkpoint_digest, expected);
     }
 
@@ -532,7 +609,10 @@ mod tests {
         let bytes = canonical_session_bytes(&s);
         assert_eq!(&bytes[..7], b"SYMPROV");
         assert_eq!(bytes[7], MULTIPLAYER_CANONICAL_ENCODING_VERSION);
-        assert_eq!(&bytes[8..12], &MULTIPLAYER_PROVENANCE_SCHEMA_VERSION.to_le_bytes());
+        assert_eq!(
+            &bytes[8..12],
+            &MULTIPLAYER_PROVENANCE_SCHEMA_VERSION.to_le_bytes()
+        );
         assert_eq!(bytes.len(), 270);
     }
 
@@ -543,7 +623,10 @@ mod tests {
         assert_eq!(claim.len(), 45);
         assert_eq!(&claim[..7], b"SYMPROV");
         assert_eq!(claim[7], MULTIPLAYER_CANONICAL_ENCODING_VERSION);
-        assert_eq!(&claim[8..12], &MULTIPLAYER_PROVENANCE_SCHEMA_VERSION.to_le_bytes());
+        assert_eq!(
+            &claim[8..12],
+            &MULTIPLAYER_PROVENANCE_SCHEMA_VERSION.to_le_bytes()
+        );
         assert_eq!(claim[44], 0);
         assert_eq!(
             observation.replay_claim_digest.to_hex(),
@@ -555,47 +638,137 @@ mod tests {
     fn checkpoint_field_perturbations_change_identity() {
         let s = session(vec![identity(7), identity(8)]);
         let base = StateCheckpointV1::new(
-            s.session_digest, identity(1), 0, 100, 100, None,
-            digest(10), digest(11), identity(3), identity(4),
-        ).expect("checkpoint");
+            s.session_digest,
+            identity(1),
+            0,
+            100,
+            100,
+            None,
+            digest(10),
+            digest(11),
+            identity(3),
+            identity(4),
+        )
+        .expect("checkpoint");
 
         let variants = [
             StateCheckpointV1::new(
-                s.session_digest, identity(9), 0, 100, 100, None,
-                digest(10), digest(11), identity(3), identity(4),
-            ).expect("world variant"),
+                s.session_digest,
+                identity(9),
+                0,
+                100,
+                100,
+                None,
+                digest(10),
+                digest(11),
+                identity(3),
+                identity(4),
+            )
+            .expect("world variant"),
             StateCheckpointV1::new(
-                s.session_digest, identity(1), 1, 100, 100, None,
-                digest(10), digest(11), identity(3), identity(4),
-            ).expect("epoch variant"),
+                s.session_digest,
+                identity(1),
+                1,
+                100,
+                100,
+                None,
+                digest(10),
+                digest(11),
+                identity(3),
+                identity(4),
+            )
+            .expect("epoch variant"),
             StateCheckpointV1::new(
-                s.session_digest, identity(1), 0, 101, 100, None,
-                digest(10), digest(11), identity(3), identity(4),
-            ).expect("tick variant"),
+                s.session_digest,
+                identity(1),
+                0,
+                101,
+                100,
+                None,
+                digest(10),
+                digest(11),
+                identity(3),
+                identity(4),
+            )
+            .expect("tick variant"),
             StateCheckpointV1::new(
-                s.session_digest, identity(1), 0, 100, 101, None,
-                digest(10), digest(11), identity(3), identity(4),
-            ).expect("instant variant"),
+                s.session_digest,
+                identity(1),
+                0,
+                100,
+                101,
+                None,
+                digest(10),
+                digest(11),
+                identity(3),
+                identity(4),
+            )
+            .expect("instant variant"),
             StateCheckpointV1::new(
-                s.session_digest, identity(1), 0, 100, 100, Some(digest(99)),
-                digest(10), digest(11), identity(3), identity(4),
-            ).expect("previous variant"),
+                s.session_digest,
+                identity(1),
+                0,
+                100,
+                100,
+                Some(digest(99)),
+                digest(10),
+                digest(11),
+                identity(3),
+                identity(4),
+            )
+            .expect("previous variant"),
             StateCheckpointV1::new(
-                s.session_digest, identity(1), 0, 100, 100, None,
-                digest(12), digest(11), identity(3), identity(4),
-            ).expect("state variant"),
+                s.session_digest,
+                identity(1),
+                0,
+                100,
+                100,
+                None,
+                digest(12),
+                digest(11),
+                identity(3),
+                identity(4),
+            )
+            .expect("state variant"),
             StateCheckpointV1::new(
-                s.session_digest, identity(1), 0, 100, 100, None,
-                digest(10), digest(12), identity(3), identity(4),
-            ).expect("continuation variant"),
+                s.session_digest,
+                identity(1),
+                0,
+                100,
+                100,
+                None,
+                digest(10),
+                digest(12),
+                identity(3),
+                identity(4),
+            )
+            .expect("continuation variant"),
             StateCheckpointV1::new(
-                s.session_digest, identity(1), 0, 100, 100, None,
-                digest(10), digest(11), identity(5), identity(4),
-            ).expect("simulation variant"),
+                s.session_digest,
+                identity(1),
+                0,
+                100,
+                100,
+                None,
+                digest(10),
+                digest(11),
+                identity(5),
+                identity(4),
+            )
+            .expect("simulation variant"),
             StateCheckpointV1::new(
-                s.session_digest, identity(1), 0, 100, 100, None,
-                digest(10), digest(11), identity(3), identity(5),
-            ).expect("ruleset variant"),
+                s.session_digest,
+                identity(1),
+                0,
+                100,
+                100,
+                None,
+                digest(10),
+                digest(11),
+                identity(3),
+                identity(5),
+            )
+            .expect("ruleset variant"),
         ];
 
         for variant in variants {
@@ -607,9 +780,18 @@ mod tests {
     fn checkpoint_canonical_encoding_distinguishes_absent_predecessor() {
         let s = session(vec![identity(7)]);
         let checkpoint = StateCheckpointV1::new(
-            s.session_digest, identity(1), 0, 100, 100, None,
-            digest(10), digest(11), identity(3), identity(4),
-        ).expect("checkpoint");
+            s.session_digest,
+            identity(1),
+            0,
+            100,
+            100,
+            None,
+            digest(10),
+            digest(11),
+            identity(3),
+            identity(4),
+        )
+        .expect("checkpoint");
         let bytes = canonical_checkpoint_bytes(&checkpoint);
         assert_eq!(&bytes[..7], b"SYMPROV");
         assert_eq!(bytes[7], MULTIPLAYER_CANONICAL_ENCODING_VERSION);
@@ -619,19 +801,35 @@ mod tests {
     #[test]
     fn duplicate_participants_fail_closed() {
         let result = MultiplayerSessionV1::new(
-            identity(1), identity(2), identity(3), identity(4), digest(5),
-            identity(6), vec![identity(7), identity(7)], ReplayProfile::ObservationOnly,
+            identity(1),
+            identity(2),
+            identity(3),
+            identity(4),
+            digest(5),
+            identity(6),
+            vec![identity(7), identity(7)],
+            ReplayProfile::ObservationOnly,
         );
-        assert!(matches!(result, Err(StateError::DuplicateMultiplayerParticipant)));
+        assert!(matches!(
+            result,
+            Err(StateError::DuplicateMultiplayerParticipant)
+        ));
     }
 
     #[test]
     fn session_field_substitution_changes_identity() {
         let a = session(vec![identity(7)]);
         let b = MultiplayerSessionV1::new(
-            identity(1), identity(2), identity(99), identity(4), digest(5),
-            identity(6), vec![identity(7)], ReplayProfile::BitExactReplay,
-        ).expect("session");
+            identity(1),
+            identity(2),
+            identity(99),
+            identity(4),
+            digest(5),
+            identity(6),
+            vec![identity(7)],
+            ReplayProfile::BitExactReplay,
+        )
+        .expect("session");
         assert_ne!(a.session_digest, b.session_digest);
     }
 
@@ -639,13 +837,31 @@ mod tests {
     fn checkpoint_binds_session_and_lineage() {
         let s = session(vec![identity(7)]);
         let a = StateCheckpointV1::new(
-            s.session_digest, identity(1), 0, 100, 100, None,
-            digest(10), digest(11), identity(3), identity(4),
-        ).expect("checkpoint");
+            s.session_digest,
+            identity(1),
+            0,
+            100,
+            100,
+            None,
+            digest(10),
+            digest(11),
+            identity(3),
+            identity(4),
+        )
+        .expect("checkpoint");
         let b = StateCheckpointV1::new(
-            digest(200), identity(1), 0, 100, 100, None,
-            digest(10), digest(11), identity(3), identity(4),
-        ).expect("checkpoint");
+            digest(200),
+            identity(1),
+            0,
+            100,
+            100,
+            None,
+            digest(10),
+            digest(11),
+            identity(3),
+            identity(4),
+        )
+        .expect("checkpoint");
         assert_ne!(a.checkpoint_digest, b.checkpoint_digest);
         a.verify_commitment().expect("valid checkpoint");
     }
@@ -654,13 +870,31 @@ mod tests {
     fn checkpoint_successor_requires_explicit_predecessor() {
         let s = session(vec![identity(7)]);
         let first = StateCheckpointV1::new(
-            s.session_digest, identity(1), 0, 100, 100, None,
-            digest(10), digest(11), identity(3), identity(4),
-        ).expect("first");
+            s.session_digest,
+            identity(1),
+            0,
+            100,
+            100,
+            None,
+            digest(10),
+            digest(11),
+            identity(3),
+            identity(4),
+        )
+        .expect("first");
         let second = StateCheckpointV1::new(
-            s.session_digest, identity(1), 0, 200, 200, Some(first.checkpoint_digest),
-            digest(12), digest(13), identity(3), identity(4),
-        ).expect("second");
+            s.session_digest,
+            identity(1),
+            0,
+            200,
+            200,
+            Some(first.checkpoint_digest),
+            digest(12),
+            digest(13),
+            identity(3),
+            identity(4),
+        )
+        .expect("second");
         assert!(second.is_successor_of(&first));
     }
 
@@ -668,13 +902,31 @@ mod tests {
     fn checkpoint_chain_does_not_implicitly_accept_authority_handoff() {
         let s = session(vec![identity(7)]);
         let first = StateCheckpointV1::new(
-            s.session_digest, identity(1), 0, 100, 100, None,
-            digest(10), digest(11), identity(3), identity(4),
-        ).expect("first");
+            s.session_digest,
+            identity(1),
+            0,
+            100,
+            100,
+            None,
+            digest(10),
+            digest(11),
+            identity(3),
+            identity(4),
+        )
+        .expect("first");
         let next_epoch = StateCheckpointV1::new(
-            s.session_digest, identity(1), 1, 200, 200, Some(first.checkpoint_digest),
-            digest(12), digest(13), identity(3), identity(4),
-        ).expect("next epoch checkpoint");
+            s.session_digest,
+            identity(1),
+            1,
+            200,
+            200,
+            Some(first.checkpoint_digest),
+            digest(12),
+            digest(13),
+            identity(3),
+            identity(4),
+        )
+        .expect("next epoch checkpoint");
         assert!(!next_epoch.is_successor_of(&first));
     }
 
@@ -683,13 +935,31 @@ mod tests {
         let s1 = session(vec![identity(7)]);
         let s2 = session(vec![identity(8)]);
         let first = StateCheckpointV1::new(
-            s1.session_digest, identity(1), 0, 100, 100, None,
-            digest(10), digest(11), identity(3), identity(4),
-        ).expect("first");
+            s1.session_digest,
+            identity(1),
+            0,
+            100,
+            100,
+            None,
+            digest(10),
+            digest(11),
+            identity(3),
+            identity(4),
+        )
+        .expect("first");
         let second = StateCheckpointV1::new(
-            s2.session_digest, identity(1), 0, 200, 200, Some(first.checkpoint_digest),
-            digest(12), digest(13), identity(3), identity(4),
-        ).expect("second");
+            s2.session_digest,
+            identity(1),
+            0,
+            200,
+            200,
+            Some(first.checkpoint_digest),
+            digest(12),
+            digest(13),
+            identity(3),
+            identity(4),
+        )
+        .expect("second");
         assert!(!second.is_successor_of(&first));
     }
 }
