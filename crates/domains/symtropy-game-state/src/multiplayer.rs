@@ -11,6 +11,67 @@ use serde::{Deserialize, Serialize};
 pub const MAX_SESSION_PARTICIPANTS: usize = 256;
 pub const MULTIPLAYER_PROVENANCE_SCHEMA_VERSION: u32 = 1;
 
+/// Canonical binary encoding version. This is deliberately independent of serde/JSON.
+pub const MULTIPLAYER_CANONICAL_ENCODING_VERSION: u8 = 1;
+
+/// Encodes an optional digest without relying on an all-zero sentinel.
+fn encode_optional_digest(digest: Option<CommitmentDigest>, out: &mut Vec<u8>) {
+    match digest {
+        Some(value) => {
+            out.push(1);
+            out.extend_from_slice(value.as_bytes());
+        }
+        None => out.push(0),
+    }
+}
+
+/// Produces the language-neutral canonical bytes for a session.
+///
+/// Grammar (little-endian integers, fixed-width digests):
+/// magic "SYMPROV", encoding version, schema version, then fields in declaration order.
+/// Participants are already sorted by raw digest bytes and are length-prefixed.
+pub fn canonical_session_bytes(session: &MultiplayerSessionV1) -> Vec<u8> {
+    let mut out = Vec::with_capacity(256 + session.participants.len() * 32);
+    out.extend_from_slice(b"SYMPROV");
+    out.push(MULTIPLAYER_CANONICAL_ENCODING_VERSION);
+    out.extend_from_slice(&MULTIPLAYER_PROVENANCE_SCHEMA_VERSION.to_le_bytes());
+    for digest in [
+        session.world_instance.as_bytes(),
+        session.world_continuation.as_bytes(),
+        session.simulation_identity.as_bytes(),
+        session.ruleset_identity.as_bytes(),
+        session.initial_checkpoint.as_bytes(),
+        session.authority_config.as_bytes(),
+    ] {
+        out.extend_from_slice(digest);
+    }
+    out.extend_from_slice(&(session.participants.len() as u16).to_le_bytes());
+    for participant in &session.participants {
+        out.extend_from_slice(participant.as_bytes());
+    }
+    out.push(replay_profile_tag(session.replay_profile));
+    out
+}
+
+/// Produces the language-neutral canonical bytes for a checkpoint.
+pub fn canonical_checkpoint_bytes(checkpoint: &StateCheckpointV1) -> Vec<u8> {
+    let mut out = Vec::with_capacity(320);
+    out.extend_from_slice(b"SYMPROV");
+    out.push(MULTIPLAYER_CANONICAL_ENCODING_VERSION);
+    out.extend_from_slice(&MULTIPLAYER_PROVENANCE_SCHEMA_VERSION.to_le_bytes());
+    out.extend_from_slice(checkpoint.session_digest.as_bytes());
+    out.extend_from_slice(checkpoint.world_instance.as_bytes());
+    out.extend_from_slice(&checkpoint.authority_epoch.to_le_bytes());
+    out.extend_from_slice(&checkpoint.simulation_tick.to_le_bytes());
+    out.extend_from_slice(&checkpoint.simulation_instant.to_le_bytes());
+    encode_optional_digest(checkpoint.previous_checkpoint, &mut out);
+    out.extend_from_slice(checkpoint.state_digest.as_bytes());
+    out.extend_from_slice(checkpoint.continuation_digest.as_bytes());
+    out.extend_from_slice(checkpoint.simulation_identity.as_bytes());
+    out.extend_from_slice(checkpoint.ruleset_identity.as_bytes());
+    out
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(transparent)]
 pub struct IdentityDigest(pub CommitmentDigest);
