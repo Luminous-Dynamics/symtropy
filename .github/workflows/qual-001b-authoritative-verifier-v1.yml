@@ -367,7 +367,8 @@ jobs:
             --dispatch-evidence "$EVIDENCE_DIR/authority-dispatch-evidence.json" \
             --release "$EVIDENCE_DIR/verifier-release-v1.json" \
             --contract "$EVIDENCE_DIR/qualification-contract-v1.json" \
-            --execution-evidence "$EVIDENCE_DIR/qualification-execution-evidence-v1.json"
+            --execution-evidence "$EVIDENCE_DIR/qualification-execution-evidence-v1.json" \
+            --contract-checkout-identity "$EVIDENCE_DIR/qualification-contract-checkout-identity-v1.json"
 
 
       - name: Independently replay canonical authority evidence manifest
