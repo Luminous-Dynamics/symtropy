@@ -131,8 +131,6 @@ pub struct MultiplayerSessionV1 {
     pub world_continuation: IdentityDigest,
     pub simulation_identity: IdentityDigest,
     pub ruleset_identity: IdentityDigest,
-    pub /// External pre-session admission anchor. This is not a `StateCheckpointV1` digest;
-    /// keeping it independent prevents a session/checkpoint identity cycle.
     /// External pre-session admission anchor. This is not a `StateCheckpointV1` digest;
     /// keeping it independent prevents a session/checkpoint identity cycle.
     pub initial_state_commitment: CommitmentDigest,
