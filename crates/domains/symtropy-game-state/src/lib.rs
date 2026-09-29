@@ -406,6 +406,9 @@ fn hex(bytes: &[u8]) -> String {
 /// Schema version for transport-independent multiplayer commitments.
 pub const MULTIPLAYER_COMMITMENT_SCHEMA_VERSION: u32 = 1;
 
+/// Maximum size of one commitment field accepted by the canonical primitive.
+pub const MAX_COMMITMENT_FIELD_BYTES: usize = 16 * 1024 * 1024;
+
 /// Cryptographic digest used for multiplayer provenance identities.
 ///
 /// This is deliberately distinct from the lockstep module's FNV state hash:
