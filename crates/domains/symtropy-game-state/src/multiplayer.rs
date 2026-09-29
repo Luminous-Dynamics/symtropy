@@ -195,7 +195,7 @@ impl MultiplayerSessionV1 {
         })
     }
 
-    pub fn verify(&self) -> Result<(), StateError> {
+    /// Verifies only the self-consistency of the canonical commitment.\n    ///\n    /// This does not establish semantic ownership, owner issuance, authority acceptance,\n    /// or currentness. Those properties require evidence from the owning subsystem.\n    pub fn verify_commitment(&self) -> Result<(), StateError> {
         let mut participants = self.participants.clone();
         canonicalize_participants(&mut participants)?;
         if participants != self.participants {
@@ -277,7 +277,7 @@ impl StateCheckpointV1 {
         })
     }
 
-    pub fn verify(&self) -> Result<(), StateError> {
+    /// Verifies only the self-consistency of the canonical checkpoint commitment.\n    ///\n    /// This does not establish semantic ownership, accepted authority, continuation\n    /// admission, or currentness. Those properties require owner-issued evidence.\n    pub fn verify_commitment(&self) -> Result<(), StateError> {
         let expected = Self::new(
             self.session_digest,
             self.world_instance,
@@ -514,7 +514,7 @@ mod tests {
             digest(10), digest(11), identity(3), identity(4),
         ).expect("checkpoint");
         assert_ne!(a.checkpoint_digest, b.checkpoint_digest);
-        a.verify().expect("valid checkpoint");
+        a.verify_commitment().expect("valid checkpoint");
     }
 
     #[test]
