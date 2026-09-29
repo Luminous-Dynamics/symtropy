@@ -94,4 +94,4 @@ It is deliberately downstream of semantic validation and impact analysis. It:
 - distinguishes proof, execution, qualification-evidence, and dependency rechecks;
 - emits deterministic records and fails closed on invalid inputs.
 
-The planner has no authority transition semantics. A `Ready` plan means only that the dependency metadata is sufficiently bound to describe the revalidation work; it does **not** mean that any proof or qualification has passed.
+The planner authenticates its impact input before planning. It recomputes the canonical frontier from the validated graph and the declared `changed_node_ids`, then requires exact equality of the supplied impact payload. Tampered, incomplete, duplicated, unknown, or internally contradictory frontiers are rejected. Changed roots are deliberately not emitted as downstream impact records; they are the declared causes of the frontier and are therefore not silently converted into revalidation work units. A `Ready` plan means only that the dependency metadata is sufficiently bound to describe the revalidation work; it does **not** mean that any proof or qualification has passed.
