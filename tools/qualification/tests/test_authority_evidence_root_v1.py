@@ -84,6 +84,16 @@ class EvidenceRootTests(unittest.TestCase):
             (directory / NAMES[5]).write_text(json.dumps(execution))
             self.assertEqual(self.verify_root(directory, manifest_path, root_path), 2)
 
+    def test_root_rejects_checkout_tree_substitution(self):
+        with tempfile.TemporaryDirectory() as d:
+            directory = Path(d)
+            manifest_path = materialize_fixture(directory)
+            root_path = self.build_root(directory, manifest_path)
+            checkout = json.loads((directory / NAMES[4]).read_text())
+            checkout["contract_tree_sha"] = "b" * 40
+            (directory / NAMES[4]).write_text(json.dumps(checkout))
+            self.assertEqual(self.verify_root(directory, manifest_path, root_path), 2)
+
     def test_root_rejects_semantic_root_substitution(self):
         with tempfile.TemporaryDirectory() as d:
             directory = Path(d)
