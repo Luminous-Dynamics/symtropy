@@ -65,6 +65,8 @@ def main(argv: list[str] | None = None) -> int:
             if release_value[key]!=execution[key]: raise ValueError(f"release/execution mismatch: {key}")
         if checkout["contract_commit_sha"]!=payload["contract_commit_sha"]:
             raise ValueError("retained contract checkout commit does not match dispatch")
+        if checkout["contract_tree_sha"]!=execution["contract_tree_sha"]:
+            raise ValueError("retained contract checkout tree does not match execution identity")
         if execution["contract_commit_sha"]!=payload["contract_commit_sha"]:
             raise ValueError("execution contract commit does not match dispatch")
         if execution["contract_sha256"]!=contract_digest:
