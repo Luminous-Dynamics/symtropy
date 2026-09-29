@@ -257,14 +257,35 @@ class Validator:
             execution = self.nodes.get(execution_id)
             if execution and execution["kind"] != "ProofExecution":
                 self.error("E_EVIDENCE_BINDING", f"node:{nid}.metadata.execution_id", "execution_id must reference ProofExecution")
+                execution = None
             if execution:
-                status = execution.get("metadata", {}).get("status") if isinstance(execution.get("metadata"), dict) else None
+                execution_metadata = execution.get("metadata")
+                if not isinstance(execution_metadata, dict):
+                    execution_metadata = {}
+                status = execution_metadata.get("status")
                 if status not in {"Passed", "Failed"}:
                     self.error("E_AUTHORITY_UNPROVEN", f"node:{nid}", "qualification evidence cannot bind a non-terminal successful/failed execution")
                 if status == "Passed" and result not in {"QualifiedPass", "Pass", "Passed"}:
                     self.error("E_EVIDENCE_BINDING", f"node:{nid}", "passed execution requires an explicit qualification result")
                 if status == "Failed" and result not in {"QualifiedFail", "Fail", "Failed"}:
                     self.error("E_EVIDENCE_BINDING", f"node:{nid}", "failed execution requires an explicit qualification result")
+                for field, expected_kind in (
+                    ("artifact_id", "ProofArtifact"),
+                    ("checker_id", "ProofChecker"),
+                    ("source_commit_id", "SourceCommit"),
+                    ("source_tree_id", "SourceTree"),
+                ):
+                    ref = execution_metadata.get(field)
+                    if ref is not None:
+                        target = self.nodes.get(ref)
+                        if not target or target["kind"] != expected_kind:
+                            self.error("E_EVIDENCE_BINDING", f"node:{execution_id}.metadata.{field}", f"{field} must reference {expected_kind}")
+                if execution_metadata.get("subject_head") != metadata.get("subject_head"):
+                    self.error("E_STALE_EVIDENCE", f"node:{nid}.metadata.subject_head", "qualification subject head differs from execution binding")
+                if execution_metadata.get("subject_tree") != metadata.get("subject_tree"):
+                    self.error("E_STALE_EVIDENCE", f"node:{nid}.metadata.subject_tree", "qualification subject tree differs from execution binding")
+                if execution_metadata.get("result") is not None and execution_metadata["result"] != result:
+                    self.error("E_EVIDENCE_BINDING", f"node:{nid}.metadata.result", "qualification result differs from execution result binding")
 
         for eid, edge in self.edges.items():
             if edge["relation"] != "qualifies":
