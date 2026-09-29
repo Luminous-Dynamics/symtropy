@@ -19,6 +19,8 @@ on:
       - 'tools/qualification/tests/test_authority_dispatch_evidence_verify_v1.py'
       - 'tools/qualification/authority_evidence_envelope_v1.py'
       - 'tools/qualification/tests/test_authority_evidence_envelope_v1.py'
+      - 'tools/qualification/authority_evidence_manifest_v1.py'
+      - 'tools/qualification/tests/test_authority_evidence_manifest_v1.py'
   repository_dispatch:
     types: [qual-001b-authority-v1]
 
@@ -63,7 +65,9 @@ jobs:
             tools/qualification/tests/test_authority_dispatch_evidence_v1.py \
             tools/qualification/tests/test_authority_dispatch_evidence_verify_v1.py \
             tools/qualification/authority_evidence_envelope_v1.py \
-            tools/qualification/tests/test_authority_evidence_envelope_v1.py
+            tools/qualification/tests/test_authority_evidence_envelope_v1.py \
+            tools/qualification/authority_evidence_manifest_v1.py \
+            tools/qualification/tests/test_authority_evidence_manifest_v1.py
       - name: Execute verifier hostile corpus
         env:
           PYTHONDONTWRITEBYTECODE: '1'
@@ -76,7 +80,8 @@ jobs:
             tools.qualification.tests.test_authority_dispatch_v1 \
             tools.qualification.tests.test_authority_dispatch_evidence_v1 \
             tools.qualification.tests.test_authority_dispatch_evidence_verify_v1 \
-            tools.qualification.tests.test_authority_evidence_envelope_v1 -v \
+            tools.qualification.tests.test_authority_evidence_envelope_v1 \
+            tools.qualification.tests.test_authority_evidence_manifest_v1 -v \
             2>&1 | tee /tmp/qual-001b-tests.log
           grep -Fx 'OK' /tmp/qual-001b-tests.log
       - name: Candidate postflight
@@ -305,6 +310,18 @@ jobs:
             --evidence "$EVIDENCE_DIR/authority-dispatch-evidence.json" \
             --release "$EVIDENCE_DIR/verifier-release-v1.json" \
             --contract "$EVIDENCE_DIR/qualification-contract-v1.json"
+      - name: Materialize canonical authority evidence manifest
+        if: always() && steps.dispatch.outcome == 'success' && steps.release.outcome == 'success' && steps.contract.outcome == 'success'
+        run: |
+          set -euo pipefail
+          test -s "$EVIDENCE_DIR/authority-dispatch-payload.json"
+          test -s "$EVIDENCE_DIR/authority-dispatch-evidence.json"
+          test -s "$EVIDENCE_DIR/verifier-release-v1.json"
+          test -s "$EVIDENCE_DIR/qualification-contract-v1.json"
+          test -s "$EVIDENCE_DIR/qualification-execution-evidence-v1.json"
+          python "$AUTHORITY_DIR/tools/qualification/authority_evidence_manifest_v1.py"             build             --evidence-dir "$EVIDENCE_DIR"             --output "$EVIDENCE_DIR/authority-evidence-manifest-v1.json"
+          python "$AUTHORITY_DIR/tools/qualification/authority_evidence_manifest_v1.py"             verify             --manifest "$EVIDENCE_DIR/authority-evidence-manifest-v1.json"             --evidence-dir "$EVIDENCE_DIR"
+
       - name: Independently replay complete authority evidence envelope
         if: always() && steps.dispatch.outcome == 'success' && steps.release.outcome == 'success' && steps.contract.outcome == 'success'
         run: |
@@ -316,6 +333,14 @@ jobs:
             --release "$EVIDENCE_DIR/verifier-release-v1.json" \
             --contract "$EVIDENCE_DIR/qualification-contract-v1.json" \
             --execution-evidence "$EVIDENCE_DIR/qualification-execution-evidence-v1.json"
+
+
+      - name: Independently replay canonical authority evidence manifest
+        if: always() && steps.dispatch.outcome == 'success' && steps.release.outcome == 'success' && steps.contract.outcome == 'success'
+        run: |
+          set -euo pipefail
+          test -s "$EVIDENCE_DIR/authority-evidence-manifest-v1.json"
+          python "$AUTHORITY_DIR/tools/qualification/authority_evidence_manifest_v1.py"             verify             --manifest "$EVIDENCE_DIR/authority-evidence-manifest-v1.json"             --evidence-dir "$EVIDENCE_DIR"
 
       - name: Upload execution evidence
         if: always()
