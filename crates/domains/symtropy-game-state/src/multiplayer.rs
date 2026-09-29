@@ -25,7 +25,11 @@ fn encode_optional_digest(digest: Option<CommitmentDigest>, out: &mut Vec<u8>) {
     }
 }
 
-/// Produces the exact language-neutral bytes committed as the session identity.
+/// Produces the exact language-neutral bytes committed as the semantic session identity.
+///
+/// Replay-profile claims are intentionally excluded. A caller changing an unqualified
+/// claim about replay strength must not fork the semantic identity of an otherwise
+/// identical session.
 pub fn canonical_session_bytes(session: &MultiplayerSessionV1) -> Vec<u8> {
     canonical_session_fields(
         session.world_instance,
@@ -35,7 +39,6 @@ pub fn canonical_session_bytes(session: &MultiplayerSessionV1) -> Vec<u8> {
         session.initial_state_commitment,
         session.authority_config,
         &session.participants,
-        session.replay_profile,
     )
 }
 
@@ -47,7 +50,6 @@ fn canonical_session_fields(
     initial_state_commitment: CommitmentDigest,
     authority_config: UnqualifiedIdentityDigest,
     participants: &[UnqualifiedIdentityDigest],
-    replay_profile: ReplayProfile,
 ) -> Vec<u8> {
     let mut out = Vec::with_capacity(256 + participants.len() * 32);
     out.extend_from_slice(b"SYMPROV");
@@ -67,7 +69,20 @@ fn canonical_session_fields(
     for participant in participants {
         out.extend_from_slice(participant.as_bytes());
     }
-    out.push(replay_profile_tag(replay_profile));
+    out
+}
+
+/// Produces the exact language-neutral bytes committed as a replay claim.
+///
+/// The claim is bound to the semantic session identity and the caller-declared
+/// replay profile, but remains metadata rather than qualification evidence.
+pub fn canonical_replay_claim_bytes(session: &MultiplayerSessionV1) -> Vec<u8> {
+    let mut out = Vec::with_capacity(64);
+    out.extend_from_slice(b"SYMPROV");
+    out.push(MULTIPLAYER_CANONICAL_ENCODING_VERSION);
+    out.extend_from_slice(&MULTIPLAYER_PROVENANCE_SCHEMA_VERSION.to_le_bytes());
+    out.extend_from_slice(session.session_digest.as_bytes());
+    out.push(replay_profile_tag(session.replay_profile));
     out
 }
 
@@ -155,6 +170,10 @@ pub struct MultiplayerSessionV1 {
     /// Caller-declared replay claim strength. This field is metadata, not qualification
     /// evidence; the commitment layer never upgrades it into proof.
     pub replay_profile: ReplayProfile,
+    /// Commitment to the caller-declared replay claim, bound to session_digest.
+    /// This is metadata commitment, not qualification or acceptance evidence.
+    pub replay_claim_digest: CommitmentDigest,
+    /// Semantic session identity commitment. Replay claims are deliberately excluded.
     pub session_digest: CommitmentDigest,
 }
 
@@ -181,9 +200,17 @@ impl MultiplayerSessionV1 {
                 initial_state_commitment,
                 authority_config,
                 &participants,
-                replay_profile,
             )],
         )?;
+        let replay_claim_digest = {
+            let mut claim_bytes = Vec::with_capacity(64);
+            claim_bytes.extend_from_slice(b"SYMPROV");
+            claim_bytes.push(MULTIPLAYER_CANONICAL_ENCODING_VERSION);
+            claim_bytes.extend_from_slice(&MULTIPLAYER_PROVENANCE_SCHEMA_VERSION.to_le_bytes());
+            claim_bytes.extend_from_slice(session_digest.as_bytes());
+            claim_bytes.push(replay_profile_tag(replay_profile));
+            CommitmentDigest::derive("multiplayer.replay_claim.v1", &[&claim_bytes])?
+        };
         Ok(Self {
             world_instance,
             world_continuation,
@@ -193,6 +220,7 @@ impl MultiplayerSessionV1 {
             authority_config,
             participants,
             replay_profile,
+            replay_claim_digest,
             session_digest,
         })
     }
@@ -217,7 +245,9 @@ impl MultiplayerSessionV1 {
             participants,
             self.replay_profile,
         )?;
-        if expected.session_digest != self.session_digest {
+        if expected.session_digest != self.session_digest
+            || expected.replay_claim_digest != self.replay_claim_digest
+        {
             return Err(StateError::MultiplayerCommitmentMismatch);
         }
         Ok(())
@@ -362,13 +392,31 @@ mod tests {
     }
 
     #[test]
-    fn session_commitment_is_hash_of_canonical_bytes() {
+    fn session_identity_is_hash_of_canonical_bytes() {
         let s = session(vec![identity(7), identity(8)]);
         let expected = CommitmentDigest::derive(
             "multiplayer.session.v1",
             &[&canonical_session_bytes(&s)],
         ).expect("session commitment");
         assert_eq!(s.session_digest, expected);
+    }
+
+    #[test]
+    fn replay_claim_commitment_is_separate_from_session_identity() {
+        let observation = session(vec![identity(7)]);
+        let bit_exact = MultiplayerSessionV1::new(
+            observation.world_instance,
+            observation.world_continuation,
+            observation.simulation_identity,
+            observation.ruleset_identity,
+            observation.initial_state_commitment,
+            observation.authority_config,
+            observation.participants.clone(),
+            ReplayProfile::BitExactReplay,
+        ).expect("bit-exact claim");
+        assert_eq!(observation.session_digest, bit_exact.session_digest);
+        assert_ne!(observation.replay_claim_digest, bit_exact.replay_claim_digest);
+        assert_ne!(canonical_replay_claim_bytes(&observation), canonical_replay_claim_bytes(&bit_exact));
     }
 
     #[test]
@@ -394,7 +442,8 @@ mod tests {
             observation.participants.clone(),
             ReplayProfile::BitExactReplay,
         ).expect("bit-exact claim");
-        assert_ne!(observation.session_digest, bit_exact.session_digest);
+        assert_eq!(observation.session_digest, bit_exact.session_digest);
+        assert_ne!(observation.replay_claim_digest, bit_exact.replay_claim_digest);
         assert_eq!(bit_exact.replay_profile, ReplayProfile::BitExactReplay);
         bit_exact.verify_commitment().expect("claim commitment is self-consistent");
     }
@@ -446,7 +495,7 @@ mod tests {
         assert_eq!(canonical_session_bytes(&s).len(), 271);
         assert_eq!(
             s.session_digest.to_hex(),
-            "ad20de2bb2d9896d917338930ad65daf6c9d11d0f23863845ab098a3d559f587"
+            "2ac0da1bb25c1b1344b8ec1402b954bc0574d735ef1c1f4d8bb85589555cf8cf"
         );
     }
 
@@ -484,7 +533,7 @@ mod tests {
         assert_eq!(&bytes[..7], b"SYMPROV");
         assert_eq!(bytes[7], MULTIPLAYER_CANONICAL_ENCODING_VERSION);
         assert_eq!(&bytes[8..12], &MULTIPLAYER_PROVENANCE_SCHEMA_VERSION.to_le_bytes());
-        assert_eq!(*bytes.last().expect("profile tag"), 0);
+        assert_eq!(bytes.len(), 270);
     }
 
     #[test]
