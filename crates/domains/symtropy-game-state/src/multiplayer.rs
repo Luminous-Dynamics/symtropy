@@ -152,7 +152,9 @@ pub struct MultiplayerSessionV1 {
     pub initial_state_commitment: CommitmentDigest,
     pub authority_config: UnqualifiedIdentityDigest,
     pub participants: Vec<UnqualifiedIdentityDigest>,
-    /// Caller-declared replay claim strength. This field is metadata, not qualification\n    /// evidence; the commitment layer never upgrades it into proof.\n    pub replay_profile: ReplayProfile,
+    /// Caller-declared replay claim strength. This field is metadata, not qualification
+    /// evidence; the commitment layer never upgrades it into proof.
+    pub replay_profile: ReplayProfile,
     pub session_digest: CommitmentDigest,
 }
 
@@ -195,7 +197,11 @@ impl MultiplayerSessionV1 {
         })
     }
 
-    /// Verifies only the self-consistency of the canonical commitment.\n    ///\n    /// This does not establish semantic ownership, owner issuance, authority acceptance,\n    /// or currentness. Those properties require evidence from the owning subsystem.\n    pub fn verify_commitment(&self) -> Result<(), StateError> {
+    /// Verifies only the self-consistency of the canonical commitment.
+    ///
+    /// This does not establish semantic ownership, owner issuance, authority acceptance,
+    /// or currentness. Those properties require evidence from the owning subsystem.
+    pub fn verify_commitment(&self) -> Result<(), StateError> {
         let mut participants = self.participants.clone();
         canonicalize_participants(&mut participants)?;
         if participants != self.participants {
@@ -222,12 +228,16 @@ impl MultiplayerSessionV1 {
 pub struct StateCheckpointV1 {
     pub session_digest: CommitmentDigest,
     pub world_instance: UnqualifiedIdentityDigest,
-    /// Epoch number carried by the checkpoint. A number alone is not an accepted-authority\n    /// receipt and cannot establish a handoff.\n    pub authority_epoch: u64,
+    /// Epoch number carried by the checkpoint. A number alone is not an accepted-authority
+    /// receipt and cannot establish a handoff.
+    pub authority_epoch: u64,
     pub simulation_tick: u64,
     pub simulation_instant: u64,
     pub previous_checkpoint: Option<CommitmentDigest>,
     pub state_digest: CommitmentDigest,
-    /// Commitment identifying continuation bytes. Identity alone does not establish that\n    /// the continuation is admitted or current.\n    pub continuation_digest: CommitmentDigest,
+    /// Commitment identifying continuation bytes. Identity alone does not establish that
+    /// the continuation is admitted or current.
+    pub continuation_digest: CommitmentDigest,
     pub simulation_identity: UnqualifiedIdentityDigest,
     pub ruleset_identity: UnqualifiedIdentityDigest,
     pub checkpoint_digest: CommitmentDigest,
@@ -277,7 +287,11 @@ impl StateCheckpointV1 {
         })
     }
 
-    /// Verifies only the self-consistency of the canonical checkpoint commitment.\n    ///\n    /// This does not establish semantic ownership, accepted authority, continuation\n    /// admission, or currentness. Those properties require owner-issued evidence.\n    pub fn verify_commitment(&self) -> Result<(), StateError> {
+    /// Verifies only the self-consistency of the canonical checkpoint commitment.
+    ///
+    /// This does not establish semantic ownership, accepted authority, continuation
+    /// admission, or currentness. Those properties require owner-issued evidence.
+    pub fn verify_commitment(&self) -> Result<(), StateError> {
         let expected = Self::new(
             self.session_digest,
             self.world_instance,
@@ -355,6 +369,61 @@ mod tests {
             &[&canonical_session_bytes(&s)],
         ).expect("session commitment");
         assert_eq!(s.session_digest, expected);
+    }
+
+    #[test]
+    fn commitment_verification_is_not_owner_evidence() {
+        let s = session(vec![identity(7)]);
+        let checkpoint = StateCheckpointV1::new(
+            s.session_digest, identity(200), 999, 1, 1, None,
+            digest(201), digest(202), identity(203), identity(204),
+        ).expect("self-consistent checkpoint");
+        checkpoint.verify_commitment().expect("commitment is internally consistent");
+    }
+
+    #[test]
+    fn replay_profile_is_claim_metadata_not_qualification_evidence() {
+        let observation = session(vec![identity(7)]);
+        let bit_exact = MultiplayerSessionV1::new(
+            observation.world_instance,
+            observation.world_continuation,
+            observation.simulation_identity,
+            observation.ruleset_identity,
+            observation.initial_state_commitment,
+            observation.authority_config,
+            observation.participants.clone(),
+            ReplayProfile::BitExactReplay,
+        ).expect("bit-exact claim");
+        assert_ne!(observation.session_digest, bit_exact.session_digest);
+        assert_eq!(bit_exact.replay_profile, ReplayProfile::BitExactReplay);
+        bit_exact.verify_commitment().expect("claim commitment is self-consistent");
+    }
+
+    #[test]
+    fn equal_epoch_numbers_do_not_establish_cross_lineage_continuity() {
+        let s = session(vec![identity(7)]);
+        let a = StateCheckpointV1::new(
+            s.session_digest, identity(1), 7, 100, 100, None,
+            digest(10), digest(11), identity(3), identity(4),
+        ).expect("first lineage");
+        let b = StateCheckpointV1::new(
+            s.session_digest, identity(9), 7, 200, 200, Some(a.checkpoint_digest),
+            digest(12), digest(13), identity(3), identity(4),
+        ).expect("second lineage");
+        assert_eq!(a.authority_epoch, b.authority_epoch);
+        assert!(!b.is_successor_of(&a));
+    }
+
+    #[test]
+    fn valid_historical_continuation_digest_is_not_currentness_evidence() {
+        let s = session(vec![identity(7)]);
+        let historical = digest(11);
+        let checkpoint = StateCheckpointV1::new(
+            s.session_digest, identity(1), 0, 200, 200, None,
+            digest(12), historical, identity(3), identity(4),
+        ).expect("checkpoint");
+        assert_eq!(checkpoint.continuation_digest, historical);
+        checkpoint.verify_commitment().expect("identity commitment verifies");
     }
 
     #[test]
