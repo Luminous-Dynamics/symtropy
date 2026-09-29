@@ -300,6 +300,34 @@ jobs:
             --contract-root "$EVIDENCE_DIR" \
             --contract-path qualification-contract-v1.json \
             --expected-sha256 "${{ env.CONTRACT_SHA256 }}"
+      - name: Record exact contract checkout identity
+        if: always() && steps.contract.outcome == 'success' && steps.dispatch.outcome == 'success' && steps.release.outcome == 'success'
+        run: |
+          set -euo pipefail
+          test -d "$CONTRACT_DIR/.git"
+          actual_commit="$(git -C "$CONTRACT_DIR" rev-parse HEAD)"
+          actual_tree="$(git -C "$CONTRACT_DIR" rev-parse HEAD^{tree})"
+          test "$actual_commit" = "$CONTRACT_COMMIT_SHA"
+          test "${#actual_commit}" -eq 40
+          test "${#actual_tree}" -eq 40
+          printf 'contract_tree_sha=%s\n' "$actual_tree" >> "$GITHUB_ENV"
+          python - <<'PY'
+          import json, os
+          from pathlib import Path
+          record = {
+              "schema_id": "luminous.qualification-contract-checkout-identity.v1",
+              "schema_version": 1,
+              "contract_commit_sha": os.environ["CONTRACT_COMMIT_SHA"],
+              "contract_tree_sha": os.environ["actual_tree"],
+          }
+          Path(os.environ["EVIDENCE_DIR"], "qualification-contract-checkout-identity-v1.json").write_text(
+              json.dumps(record, sort_keys=True, separators=(",", ":")) + "\n", encoding="utf-8"
+          )
+          PY
+        env:
+          CONTRACT_COMMIT_SHA: ${{ env.CONTRACT_COMMIT_SHA }}
+          EVIDENCE_DIR: ${{ env.EVIDENCE_DIR }}
+          actual_tree: ${{ steps.contract.outputs.contract_tree_sha }}
 
       - name: Independently verify retained authority evidence
         if: always() && steps.dispatch.outcome == 'success' && steps.release.outcome == 'success' && steps.contract.outcome == 'success'
