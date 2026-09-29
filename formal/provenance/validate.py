@@ -18,7 +18,7 @@ from typing import Any
 
 SCHEMA_VERSION = "luminous.formal-provenance.v0"
 SHA256_RE = re.compile(r"^[0-9a-f]{64}$")
-GIT_OID_RE = re.compile(r"^[0-9a-f]{40}$")
+GIT_OID_RE = re.compile(r"^(?:[0-9a-f]{40}|[0-9a-f]{64})$")
 NODE_KINDS = {
     "Invariant", "Definition", "Theorem", "Lemma", "ProofArtifact",
     "ProofChecker", "ProofExecution", "Counterexample", "SourceCommit",
