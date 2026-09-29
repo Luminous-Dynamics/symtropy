@@ -1,6 +1,6 @@
 // Copyright (C) 2026 Tristan Stoltz / Luminous Dynamics
 // SPDX-License-Identifier: AGPL-3.0-or-later
-//! Deterministic identifiers, simulation time, causal events, hash chains, and multiplayer commitments.\n\npub mod multiplayer;\npub use multiplayer::{IdentityDigest, MultiplayerSessionV1, StateCheckpointV1};
+//! Deterministic identifiers, simulation time, causal events, hash chains, and multiplayer commitments.\n\npub mod multiplayer;\npub use multiplayer::{MultiplayerSessionV1, StateCheckpointV1, UnqualifiedIdentityDigest};
 
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
