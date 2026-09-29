@@ -152,7 +152,7 @@ pub struct MultiplayerSessionV1 {
     pub initial_state_commitment: CommitmentDigest,
     pub authority_config: UnqualifiedIdentityDigest,
     pub participants: Vec<UnqualifiedIdentityDigest>,
-    pub replay_profile: ReplayProfile,
+    /// Caller-declared replay claim strength. This field is metadata, not qualification\n    /// evidence; the commitment layer never upgrades it into proof.\n    pub replay_profile: ReplayProfile,
     pub session_digest: CommitmentDigest,
 }
 
@@ -222,12 +222,12 @@ impl MultiplayerSessionV1 {
 pub struct StateCheckpointV1 {
     pub session_digest: CommitmentDigest,
     pub world_instance: UnqualifiedIdentityDigest,
-    pub authority_epoch: u64,
+    /// Epoch number carried by the checkpoint. A number alone is not an accepted-authority\n    /// receipt and cannot establish a handoff.\n    pub authority_epoch: u64,
     pub simulation_tick: u64,
     pub simulation_instant: u64,
     pub previous_checkpoint: Option<CommitmentDigest>,
     pub state_digest: CommitmentDigest,
-    pub continuation_digest: CommitmentDigest,
+    /// Commitment identifying continuation bytes. Identity alone does not establish that\n    /// the continuation is admitted or current.\n    pub continuation_digest: CommitmentDigest,
     pub simulation_identity: UnqualifiedIdentityDigest,
     pub ruleset_identity: UnqualifiedIdentityDigest,
     pub checkpoint_digest: CommitmentDigest,
