@@ -323,6 +323,30 @@ mod tests {
         let b = session(vec![identity(7), identity(8)]);
         assert_eq!(a.session_digest, b.session_digest);
         assert_eq!(a.participants, b.participants);
+        assert_eq!(canonical_session_bytes(&a), canonical_session_bytes(&b));
+    }
+
+    #[test]
+    fn canonical_encoding_has_fixed_header_and_profile_tag() {
+        let s = session(vec![identity(7)]);
+        let bytes = canonical_session_bytes(&s);
+        assert_eq!(&bytes[..7], b"SYMPROV");
+        assert_eq!(bytes[7], MULTIPLAYER_CANONICAL_ENCODING_VERSION);
+        assert_eq!(&bytes[8..12], &MULTIPLAYER_PROVENANCE_SCHEMA_VERSION.to_le_bytes());
+        assert_eq!(*bytes.last().expect("profile tag"), 0);
+    }
+
+    #[test]
+    fn checkpoint_canonical_encoding_distinguishes_absent_predecessor() {
+        let s = session(vec![identity(7)]);
+        let checkpoint = StateCheckpointV1::new(
+            s.session_digest, identity(1), 0, 100, 100, None,
+            digest(10), digest(11), identity(3), identity(4),
+        ).expect("checkpoint");
+        let bytes = canonical_checkpoint_bytes(&checkpoint);
+        assert_eq!(&bytes[..7], b"SYMPROV");
+        assert_eq!(bytes[7], MULTIPLAYER_CANONICAL_ENCODING_VERSION);
+        assert_eq!(bytes[12 + 32 + 32 + 8 + 8 + 8], 0);
     }
 
     #[test]
