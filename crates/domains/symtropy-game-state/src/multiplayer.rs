@@ -72,6 +72,97 @@ pub fn canonical_checkpoint_bytes(checkpoint: &StateCheckpointV1) -> Vec<u8> {
     out
 }
 
+/// Produces the exact language-neutral bytes committed as the session identity.
+pub fn canonical_session_bytes(session: &MultiplayerSessionV1) -> Vec<u8> {
+    canonical_session_fields(
+        session.world_instance,
+        session.world_continuation,
+        session.simulation_identity,
+        session.ruleset_identity,
+        session.initial_checkpoint,
+        session.authority_config,
+        &session.participants,
+        session.replay_profile,
+    )
+}
+
+fn canonical_session_fields(
+    world_instance: IdentityDigest,
+    world_continuation: IdentityDigest,
+    simulation_identity: IdentityDigest,
+    ruleset_identity: IdentityDigest,
+    initial_checkpoint: CommitmentDigest,
+    authority_config: IdentityDigest,
+    participants: &[IdentityDigest],
+    replay_profile: ReplayProfile,
+) -> Vec<u8> {
+    let mut out = Vec::with_capacity(256 + participants.len() * 32);
+    out.extend_from_slice(b"SYMPROV");
+    out.push(MULTIPLAYER_CANONICAL_ENCODING_VERSION);
+    out.extend_from_slice(&MULTIPLAYER_PROVENANCE_SCHEMA_VERSION.to_le_bytes());
+    for digest in [
+        world_instance.as_bytes(),
+        world_continuation.as_bytes(),
+        simulation_identity.as_bytes(),
+        ruleset_identity.as_bytes(),
+        initial_checkpoint.as_bytes(),
+        authority_config.as_bytes(),
+    ] {
+        out.extend_from_slice(digest);
+    }
+    out.extend_from_slice(&(participants.len() as u16).to_le_bytes());
+    for participant in participants {
+        out.extend_from_slice(participant.as_bytes());
+    }
+    out.push(replay_profile_tag(replay_profile));
+    out
+}
+
+/// Produces the exact language-neutral bytes committed as the checkpoint identity.
+pub fn canonical_checkpoint_bytes(checkpoint: &StateCheckpointV1) -> Vec<u8> {
+    canonical_checkpoint_fields(
+        checkpoint.session_digest,
+        checkpoint.world_instance,
+        checkpoint.authority_epoch,
+        checkpoint.simulation_tick,
+        checkpoint.simulation_instant,
+        checkpoint.previous_checkpoint,
+        checkpoint.state_digest,
+        checkpoint.continuation_digest,
+        checkpoint.simulation_identity,
+        checkpoint.ruleset_identity,
+    )
+}
+
+fn canonical_checkpoint_fields(
+    session_digest: CommitmentDigest,
+    world_instance: IdentityDigest,
+    authority_epoch: u64,
+    simulation_tick: u64,
+    simulation_instant: u64,
+    previous_checkpoint: Option<CommitmentDigest>,
+    state_digest: CommitmentDigest,
+    continuation_digest: CommitmentDigest,
+    simulation_identity: IdentityDigest,
+    ruleset_identity: IdentityDigest,
+) -> Vec<u8> {
+    let mut out = Vec::with_capacity(320);
+    out.extend_from_slice(b"SYMPROV");
+    out.push(MULTIPLAYER_CANONICAL_ENCODING_VERSION);
+    out.extend_from_slice(&MULTIPLAYER_PROVENANCE_SCHEMA_VERSION.to_le_bytes());
+    out.extend_from_slice(session_digest.as_bytes());
+    out.extend_from_slice(world_instance.as_bytes());
+    out.extend_from_slice(&authority_epoch.to_le_bytes());
+    out.extend_from_slice(&simulation_tick.to_le_bytes());
+    out.extend_from_slice(&simulation_instant.to_le_bytes());
+    encode_optional_digest(previous_checkpoint, &mut out);
+    out.extend_from_slice(state_digest.as_bytes());
+    out.extend_from_slice(continuation_digest.as_bytes());
+    out.extend_from_slice(simulation_identity.as_bytes());
+    out.extend_from_slice(ruleset_identity.as_bytes());
+    out
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(transparent)]
 pub struct IdentityDigest(pub CommitmentDigest);
@@ -106,19 +197,18 @@ impl MultiplayerSessionV1 {
         replay_profile: ReplayProfile,
     ) -> Result<Self, StateError> {
         canonicalize_participants(&mut participants)?;
-        let participant_bytes = canonical_participant_bytes(&participants);
         let session_digest = CommitmentDigest::derive(
             "multiplayer.session.v1",
-            &[
-                world_instance.as_bytes(),
-                world_continuation.as_bytes(),
-                simulation_identity.as_bytes(),
-                ruleset_identity.as_bytes(),
-                initial_checkpoint.as_bytes(),
-                authority_config.as_bytes(),
-                &participant_bytes,
-                &[replay_profile_tag(replay_profile)],
-            ],
+            &[&canonical_session_fields(
+                world_instance,
+                world_continuation,
+                simulation_identity,
+                ruleset_identity,
+                initial_checkpoint,
+                authority_config,
+                &participants,
+                replay_profile,
+            )],
         )?;
         Ok(Self {
             world_instance,
@@ -185,17 +275,20 @@ impl StateCheckpointV1 {
         simulation_identity: IdentityDigest,
         ruleset_identity: IdentityDigest,
     ) -> Result<Self, StateError> {
-        let checkpoint_digest = checkpoint_commitment(
-            session_digest,
-            world_instance,
-            authority_epoch,
-            simulation_tick,
-            simulation_instant,
-            previous_checkpoint,
-            state_digest,
-            continuation_digest,
-            simulation_identity,
-            ruleset_identity,
+        let checkpoint_digest = CommitmentDigest::derive(
+            "multiplayer.checkpoint.v1",
+            &[&canonical_checkpoint_fields(
+                session_digest,
+                world_instance,
+                authority_epoch,
+                simulation_tick,
+                simulation_instant,
+                previous_checkpoint,
+                state_digest,
+                continuation_digest,
+                simulation_identity,
+                ruleset_identity,
+            )],
         )?;
         Ok(Self {
             session_digest,
@@ -243,38 +336,6 @@ impl StateCheckpointV1 {
     }
 }
 
-fn checkpoint_commitment(
-    session_digest: CommitmentDigest,
-    world_instance: IdentityDigest,
-    authority_epoch: u64,
-    simulation_tick: u64,
-    simulation_instant: u64,
-    previous_checkpoint: Option<CommitmentDigest>,
-    state_digest: CommitmentDigest,
-    continuation_digest: CommitmentDigest,
-    simulation_identity: IdentityDigest,
-    ruleset_identity: IdentityDigest,
-) -> Result<CommitmentDigest, StateError> {
-    let previous = previous_checkpoint
-        .map(|digest| *digest.as_bytes())
-        .unwrap_or([0u8; 32]);
-    CommitmentDigest::derive(
-        "multiplayer.checkpoint.v1",
-        &[
-            session_digest.as_bytes(),
-            world_instance.as_bytes(),
-            &authority_epoch.to_le_bytes(),
-            &simulation_tick.to_le_bytes(),
-            &simulation_instant.to_le_bytes(),
-            &previous,
-            state_digest.as_bytes(),
-            continuation_digest.as_bytes(),
-            simulation_identity.as_bytes(),
-            ruleset_identity.as_bytes(),
-        ],
-    )
-}
-
 fn canonicalize_participants(participants: &mut Vec<IdentityDigest>) -> Result<(), StateError> {
     if participants.len() > MAX_SESSION_PARTICIPANTS {
         return Err(StateError::TooManyMultiplayerParticipants);
@@ -284,13 +345,6 @@ fn canonicalize_participants(participants: &mut Vec<IdentityDigest>) -> Result<(
         return Err(StateError::DuplicateMultiplayerParticipant);
     }
     Ok(())
-}
-
-fn canonical_participant_bytes(participants: &[IdentityDigest]) -> Vec<u8> {
-    participants
-        .iter()
-        .flat_map(|digest| digest.as_bytes().iter().copied())
-        .collect()
 }
 
 const fn replay_profile_tag(profile: ReplayProfile) -> u8 {
@@ -315,6 +369,30 @@ mod tests {
             identity(1), identity(2), identity(3), identity(4), digest(5),
             identity(6), participants, ReplayProfile::BitExactReplay,
         ).expect("session")
+    }
+
+    #[test]
+    fn session_commitment_is_hash_of_canonical_bytes() {
+        let s = session(vec![identity(7), identity(8)]);
+        let expected = CommitmentDigest::derive(
+            "multiplayer.session.v1",
+            &[&canonical_session_bytes(&s)],
+        ).expect("session commitment");
+        assert_eq!(s.session_digest, expected);
+    }
+
+    #[test]
+    fn checkpoint_commitment_is_hash_of_canonical_bytes() {
+        let s = session(vec![identity(7)]);
+        let checkpoint = StateCheckpointV1::new(
+            s.session_digest, identity(1), 0, 100, 100, None,
+            digest(10), digest(11), identity(3), identity(4),
+        ).expect("checkpoint");
+        let expected = CommitmentDigest::derive(
+            "multiplayer.checkpoint.v1",
+            &[&canonical_checkpoint_bytes(&checkpoint)],
+        ).expect("checkpoint commitment");
+        assert_eq!(checkpoint.checkpoint_digest, expected);
     }
 
     #[test]
