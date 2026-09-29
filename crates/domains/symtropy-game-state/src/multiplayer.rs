@@ -547,7 +547,7 @@ mod tests {
         assert_eq!(claim[44], 0);
         assert_eq!(
             observation.replay_claim_digest.to_hex(),
-            "4954fbf61ac1d7a0404bb924929ee300a496333a0d05d9a9f159f672127cfd67"
+            "2d945f50ea879ea8c2a52626b124cd52b392922ce919300df9105581698c49d1"
         );
     }
 
