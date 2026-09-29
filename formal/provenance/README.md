@@ -76,3 +76,22 @@ Impact reason codes are dependency-specific rather than generic:
 - `EVIDENCE_STALE` — evidence must be reconsidered because its provenance relationship changed.
 
 Traversal is reverse-dependency based and deterministic: adjacency is sorted, breadth-first traversal chooses the shortest dependency path, and the first path wins ties. The output is therefore reproducible under graph node/edge reordering. A change to a source identity can propagate through explicit metadata bindings such as `source_commit_id` or `source_tree_id`; no raw digest string is treated as a graph dependency unless it is also represented by a node.
+
+
+## Revalidation planner v0
+
+The revalidation planner converts an impact frontier into an explicit, machine-readable work plan:
+
+```text
+python3 formal/provenance/revalidation_plan.py <graph.json> <impact.json>
+```
+
+It is deliberately downstream of semantic validation and impact analysis. It:
+- preserves exact node identity and impact provenance paths;
+- requires exact ProofExecution bindings and explicit ProofArtifact checker bindings;
+- detects contradictory reference kinds;
+- blocks superseded or invalidated historical evidence;
+- distinguishes proof, execution, qualification-evidence, and dependency rechecks;
+- emits deterministic records and fails closed on invalid inputs.
+
+The planner has no authority transition semantics. A `Ready` plan means only that the dependency metadata is sufficiently bound to describe the revalidation work; it does **not** mean that any proof or qualification has passed.
