@@ -12,6 +12,7 @@ MEMBERS=(
  ("authority-dispatch-evidence.json","dispatch_evidence"),
  ("verifier-release-v1.json","verifier_release"),
  ("qualification-contract-v1.json","qualification_contract"),
+ ("qualification-contract-checkout-identity-v1.json","qualification_contract_checkout_identity"),
  ("qualification-execution-evidence-v1.json","execution_evidence"),
 )
 class ManifestValidationError(ValueError): pass
