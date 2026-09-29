@@ -342,12 +342,8 @@ pub enum StateError {
 impl fmt::Display for StateError {
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Self::InvalidCommitmentDomain => {
-                formatter.write_str("invalid commitment domain")
-            }
-            Self::CommitmentInputTooLarge => {
-                formatter.write_str("commitment input is too large")
-            }
+            Self::InvalidCommitmentDomain => formatter.write_str("invalid commitment domain"),
+            Self::CommitmentInputTooLarge => formatter.write_str("commitment input is too large"),
             Self::NonCanonicalMultiplayerParticipants => {
                 formatter.write_str("multiplayer participants are not canonical")
             }
@@ -425,7 +421,6 @@ fn hex(bytes: &[u8]) -> String {
     output
 }
 
-
 /// Schema version for transport-independent multiplayer commitments.
 pub const MULTIPLAYER_COMMITMENT_SCHEMA_VERSION: u32 = 1;
 
@@ -460,8 +455,8 @@ impl CommitmentDigest {
             if field.len() > MAX_COMMITMENT_FIELD_BYTES {
                 return Err(StateError::CommitmentInputTooLarge);
             }
-            let len = u64::try_from(field.len())
-                .map_err(|_| StateError::CommitmentInputTooLarge)?;
+            let len =
+                u64::try_from(field.len()).map_err(|_| StateError::CommitmentInputTooLarge)?;
             hasher.update(len.to_le_bytes());
             hasher.update(field);
         }
