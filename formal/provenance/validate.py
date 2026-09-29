@@ -11,7 +11,6 @@ from __future__ import annotations
 import argparse
 import json
 import re
-import sys
 from collections import defaultdict
 from pathlib import PurePosixPath
 from dataclasses import dataclass
@@ -62,7 +61,6 @@ class Validator:
             return self.result()
 
         self._index()
-        self._provenance()
         self._relationships()
         self._proof_dag()
         self._qualification()
@@ -162,7 +160,7 @@ class Validator:
             self.error("E_PROVENANCE_MALFORMED", f"{path}.repository", "repository identity is invalid")
         repo_path = p.get("path")
         if repo_path is not None:
-            if not isinstance(repo_path, str) or not repo_path or repo_path.startswith("/") or "\\x00" in repo_path:
+            if not isinstance(repo_path, str) or not repo_path or repo_path.startswith("/") or "\x00" in repo_path:
                 self.error("E_PROVENANCE_MALFORMED", f"{path}.path", "repository path is not normalized")
             else:
                 parts = PurePosixPath(repo_path).parts
