@@ -52,6 +52,26 @@ class ValidatorTests(unittest.TestCase):
         result = Validator(graph).validate()
         self.assertIn("E_PROOF_CYCLE", {e["code"] for e in result["errors"]})
 
+
+    def test_semantic_identity_cannot_be_reused_under_changed_content(self):
+        graph = copy.deepcopy(EXAMPLE)
+        theorem = graph["nodes"][0]
+        theorem["semantic_digest"] = "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+        result = Validator(graph).validate()
+        self.assertIn("E_SEMANTIC_ID_MISMATCH", {e["code"] for e in result["errors"]})
+
+    def test_proof_must_have_exact_checker_binding(self):
+        graph = copy.deepcopy(EXAMPLE)
+        graph["edges"] = [e for e in graph["edges"] if e["relation"] != "checked_by"]
+        result = Validator(graph).validate()
+        self.assertIn("E_CHECKER_BINDING", {e["code"] for e in result["errors"]})
+
+    def test_proof_target_digest_mismatch_is_rejected(self):
+        graph = copy.deepcopy(EXAMPLE)
+        graph["nodes"][1]["metadata"]["target_semantic_digest"] = "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+        result = Validator(graph).validate()
+        self.assertIn("E_SEMANTIC_ID_MISMATCH", {e["code"] for e in result["errors"]})
+
     def test_qualification_cannot_use_skipped_execution(self):
         graph = copy.deepcopy(EXAMPLE)
         graph["nodes"].extend([
