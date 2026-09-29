@@ -527,13 +527,28 @@ mod tests {
     }
 
     #[test]
-    fn canonical_encoding_has_fixed_header_and_profile_tag() {
+    fn canonical_session_encoding_has_fixed_header() {
         let s = session(vec![identity(7)]);
         let bytes = canonical_session_bytes(&s);
         assert_eq!(&bytes[..7], b"SYMPROV");
         assert_eq!(bytes[7], MULTIPLAYER_CANONICAL_ENCODING_VERSION);
         assert_eq!(&bytes[8..12], &MULTIPLAYER_PROVENANCE_SCHEMA_VERSION.to_le_bytes());
         assert_eq!(bytes.len(), 270);
+    }
+
+    #[test]
+    fn replay_claim_encoding_and_digest_are_profile_sensitive() {
+        let observation = session(vec![identity(7)]);
+        let claim = canonical_replay_claim_bytes(&observation);
+        assert_eq!(claim.len(), 45);
+        assert_eq!(&claim[..7], b"SYMPROV");
+        assert_eq!(claim[7], MULTIPLAYER_CANONICAL_ENCODING_VERSION);
+        assert_eq!(&claim[8..12], &MULTIPLAYER_PROVENANCE_SCHEMA_VERSION.to_le_bytes());
+        assert_eq!(claim[44], 0);
+        assert_eq!(
+            observation.replay_claim_digest.to_hex(),
+            "4954fbf61ac1d7a0404bb924929ee300a496333a0d05d9a9f159f672127cfd67"
+        );
     }
 
     #[test]
