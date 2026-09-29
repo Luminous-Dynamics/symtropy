@@ -15,11 +15,12 @@
         {"$ref": "#/$defs/member"},
         {"$ref": "#/$defs/member"},
         {"$ref": "#/$defs/member"},
+        {"$ref": "#/$defs/member"},
         {"$ref": "#/$defs/member"}
       ],
       "items": false,
-      "minItems": 5,
-      "maxItems": 5
+      "minItems": 6,
+      "maxItems": 6
     },
     "root_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"}
   },
