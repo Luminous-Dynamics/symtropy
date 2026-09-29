@@ -271,7 +271,8 @@ jobs:
           set -euo pipefail
           python "$AUTHORITY_DIR/tools/qualification/authority_dispatch_evidence_verify_v1.py" \
             --payload "$EVIDENCE_DIR/authority-dispatch-payload.json" \
-            --evidence "$EVIDENCE_DIR/authority-dispatch-evidence.json"
+            --evidence "$EVIDENCE_DIR/authority-dispatch-evidence.json" \
+            --release "$EVIDENCE_DIR/verifier-release-v1.json"
 
       - name: Upload execution evidence
         if: always()
