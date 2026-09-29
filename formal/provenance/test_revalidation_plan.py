@@ -1,5 +1,4 @@
 import copy
-import json
 import pathlib
 import sys
 import unittest
@@ -9,148 +8,111 @@ sys.path.insert(0, str(ROOT))
 
 from revalidation_plan import build_plan  # noqa: E402
 
-with open(ROOT / "example-v0.json", encoding="utf-8") as f:
-    EXAMPLE = json.load(f)
+SCHEMA = "luminous.formal-provenance.v0"
+A = "a" * 64
+B = "b" * 64
+C = "c" * 64
+D = "d" * 64
+E = "e" * 64
+F = "f" * 64
 
 
-def impact_for(*node_ids):
+def node(kind, node_id, label, **extra):
+    value = {
+        "schema_version": SCHEMA,
+        "kind": kind,
+        "id": node_id,
+        "label": label,
+    }
+    value.update(extra)
+    return value
+
+
+def valid_graph():
     return {
-        "schema_version": "luminous.formal-provenance.v0",
-        "impact_version": "luminous.formal-impact.v0",
-        "impact_status": "RevalidationRequired",
-        "changed_node_ids": list(node_ids),
-        "records": [
-            {
-                "node_id": node_id,
-                "reason_code": "PROOF_ARTIFACT_CHANGED",
-                "via_edges": [],
-            }
-            for node_id in node_ids
+        "schema_version": SCHEMA,
+        "nodes": [
+            node("Theorem", "theorem:t", "Theorem", metadata={"semantic_digest": A}),
+            node("ProofArtifact", "proof:p", "Proof", content_digest=B, metadata={"semantic_target_digest": A}),
+            node("ProofChecker", "checker:c", "Checker", content_digest=C),
+            node("SourceCommit", "source:commit", "Source commit", content_digest=D,
+                 provenance={"repository": "Luminous-Dynamics/symtropy", "commit_sha": D, "tree_sha": E}),
+            node("SourceTree", "source:tree", "Source tree", content_digest=E,
+                 provenance={"repository": "Luminous-Dynamics/symtropy", "commit_sha": D, "tree_sha": E}),
+            node("ProofExecution", "execution:x", "Execution", metadata={
+                "artifact_id": "proof:p", "checker_id": "checker:c",
+                "source_commit_id": "source:commit", "source_tree_id": "source:tree",
+                "source_commit_sha": D, "source_tree_sha": E,
+                "subject_head": F, "subject_tree": F, "status": "Passed", "result": "Pass",
+            }),
+            node("QualificationContract", "contract:q", "Contract", content_digest=A),
+            node("VerifierRelease", "verifier:v", "Verifier", content_digest=B),
+            node("QualificationEvidence", "evidence:q", "Evidence", metadata={
+                "contract_id": "contract:q", "contract_digest": A,
+                "verifier_release_id": "verifier:v", "verifier_release_digest": B,
+                "subject_head": F, "subject_tree": F,
+                "execution_id": "execution:x", "result": "Pass",
+            }),
+        ],
+        "edges": [
+            {"schema_version": SCHEMA, "id": "edge:proves", "source": "proof:p", "target": "theorem:t", "relation": "proves"},
+            {"schema_version": SCHEMA, "id": "edge:checked", "source": "proof:p", "target": "checker:c", "relation": "checked_by"},
         ],
     }
 
 
-class RevalidationPlanTests(unittest.TestCase):
-    def test_proof_artifact_requires_checker_binding(self):
-        graph = copy.deepcopy(EXAMPLE)
-        graph["edges"] = [
-            edge for edge in graph["edges"] if edge["relation"] != "checked_by"
-        ]
-        with self.assertRaises(ValueError):
-            build_plan(graph, impact_for("proof:physics-body-ref-resolution-v1"))
+def impact_for(*node_ids):
+    return {
+        "schema_version": SCHEMA,
+        "impact_version": "luminous.formal-impact.v0",
+        "impact_status": "RevalidationRequired",
+        "changed_node_ids": list(node_ids),
+        "records": [{"node_id": node_id, "reason_code": "PROOF_ARTIFACT_CHANGED", "via_edges": []} for node_id in node_ids],
+    }
 
-    def test_proof_execution_missing_exact_binding_is_blocked(self):
-        graph = copy.deepcopy(EXAMPLE)
-        graph["nodes"].append(
-            {
-                "schema_version": "luminous.formal-provenance.v0",
-                "kind": "ProofExecution",
-                "id": "execution:missing",
-                "label": "Incomplete execution",
-                "metadata": {"artifact_id": "proof:physics-body-ref-resolution-v1"},
-            }
-        )
-        result = build_plan(graph, impact_for("execution:missing"))
+
+class RevalidationPlanTests(unittest.TestCase):
+    def test_ready_plan_for_exactly_bound_execution(self):
+        result = build_plan(valid_graph(), impact_for("execution:x"))
+        self.assertEqual(result["plan_status"], "Ready")
+        self.assertEqual(result["records"][0]["action"], "RECHECK_EXECUTION")
+
+    def test_missing_execution_binding_is_blocked(self):
+        graph = valid_graph()
+        graph["nodes"][5]["metadata"].pop("checker_id")
+        result = build_plan(graph, impact_for("execution:x"))
         self.assertEqual(result["plan_status"], "Blocked")
         self.assertIn("checker_id", result["blockers"][0]["missing_bindings"])
 
     def test_wrong_binding_kind_is_blocked(self):
-        graph = copy.deepcopy(EXAMPLE)
-        graph["nodes"].append(
-            {
-                "schema_version": "luminous.formal-provenance.v0",
-                "kind": "ProofExecution",
-                "id": "execution:wrong",
-                "label": "Wrong binding",
-                "metadata": {"checker_id": "theorem:physics-body-ref-resolution-v1"},
-            }
-        )
-        result = build_plan(graph, impact_for("execution:wrong"))
+        graph = valid_graph()
+        graph["nodes"][5]["metadata"]["checker_id"] = "theorem:t"
+        result = build_plan(graph, impact_for("execution:x"))
         self.assertEqual(result["plan_status"], "Blocked")
         self.assertTrue(result["blockers"][0]["contradictory_bindings"])
 
     def test_superseded_evidence_is_blocked(self):
-        graph = copy.deepcopy(EXAMPLE)
-        graph["nodes"].append(
-            {
-                "schema_version": "luminous.formal-provenance.v0",
-                "kind": "QualificationEvidence",
-                "id": "evidence:old",
-                "label": "Historical evidence",
-                "metadata": {
-                    "contract_id": "contract:example",
-                    "contract_digest": "1111111111111111111111111111111111111111111111111111111111111111",
-                    "verifier_release_id": "verifier:example",
-                    "verifier_release_digest": "2222222222222222222222222222222222222222222222222222222222222222",
-                    "subject_head": "3333333333333333333333333333333333333333333333333333333333333333",
-                    "subject_tree": "4444444444444444444444444444444444444444444444444444444444444444",
-                    "execution_id": "execution:example",
-                    "result": "QualifiedPass",
-                },
-            }
-        )
-        graph["nodes"].extend(
-            [
-                {
-                    "schema_version": "luminous.formal-provenance.v0",
-                    "kind": "QualificationContract",
-                    "id": "contract:example",
-                    "label": "Contract",
-                },
-                {
-                    "schema_version": "luminous.formal-provenance.v0",
-                    "kind": "VerifierRelease",
-                    "id": "verifier:example",
-                    "label": "Verifier",
-                },
-                {
-                    "schema_version": "luminous.formal-provenance.v0",
-                    "kind": "ProofExecution",
-                    "id": "execution:example",
-                    "label": "Execution",
-                    "metadata": {},
-                },
-            ]
-        )
-        graph["edges"].append(
-            {
-                "schema_version": "luminous.formal-provenance.v0",
-                "id": "edge:supersedes:current",
-                "source": "evidence:current",
-                "target": "evidence:old",
-                "relation": "supersedes",
-            }
-        )
-        graph["nodes"].append(
-            {
-                "schema_version": "luminous.formal-provenance.v0",
-                "kind": "QualificationEvidence",
-                "id": "evidence:current",
-                "label": "Current evidence",
-                "metadata": {
-                    "contract_id": "contract:example",
-                    "contract_digest": "1111111111111111111111111111111111111111111111111111111111111111",
-                    "verifier_release_id": "verifier:example",
-                    "verifier_release_digest": "2222222222222222222222222222222222222222222222222222222222222222",
-                    "subject_head": "3333333333333333333333333333333333333333333333333333333333333333",
-                    "subject_tree": "4444444444444444444444444444444444444444444444444444444444444444",
-                    "execution_id": "execution:example",
-                    "result": "QualifiedPass",
-                },
-            }
-        )
-        # The validator intentionally owns full evidence semantics; this fixture
-        # only checks that a validated historical edge cannot be planned as current.
-        graph["edges"] = [
-            edge for edge in graph["edges"]
-            if edge["id"] != "edge:supersedes:current"
-        ]
-        # Historical blocking is exercised through an invalidation edge in the
-        # next fixture instead of manufacturing a partially valid evidence graph.
-        self.assertEqual(
-            build_plan(EXAMPLE, impact_for("proof:physics-body-ref-resolution-v1"))["plan_status"],
-            "Ready",
-        )
+        graph = valid_graph()
+        graph["nodes"].append(copy.deepcopy(graph["nodes"][8]))
+        graph["nodes"][-1]["id"] = "evidence:old"
+        graph["nodes"][-1]["label"] = "Old evidence"
+        graph["edges"].append({
+            "schema_version": SCHEMA, "id": "edge:supersedes",
+            "source": "evidence:q", "target": "evidence:old", "relation": "supersedes",
+        })
+        result = build_plan(graph, impact_for("evidence:old"))
+        self.assertEqual(result["plan_status"], "Blocked")
+        self.assertEqual(result["blockers"][0]["historical_flags"], ["SUPERSEDED"])
+
+    def test_no_revalidation_required(self):
+        result = build_plan(valid_graph(), {
+            "schema_version": SCHEMA,
+            "impact_version": "luminous.formal-impact.v0",
+            "impact_status": "NoImpact",
+            "changed_node_ids": ["theorem:t"],
+            "records": [],
+        })
+        self.assertEqual(result["plan_status"], "NoRevalidationRequired")
 
 
 if __name__ == "__main__":
