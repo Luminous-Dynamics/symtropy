@@ -107,6 +107,7 @@ def _build_body(directory: Path, manifest_value: dict, manifest_sha256: str) -> 
         "member_sha256": members,
         "semantic_bindings": {
             "contract_commit_sha": checkout["contract_commit_sha"],
+            "contract_tree_sha": checkout["contract_tree_sha"],
             "contract_blob_sha": checkout["contract_blob_sha"],
             "subject_head_sha": execution["subject_head_sha"],
             "subject_tree_sha": execution["subject_tree_sha"],
