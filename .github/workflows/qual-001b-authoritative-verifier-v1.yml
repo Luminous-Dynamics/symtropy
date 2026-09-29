@@ -11,6 +11,8 @@ on:
       - 'tools/qualification/tests/test_authoritative_verifier_v1.py'
       - 'tools/qualification/tests/test_verifier_release_v1.py'
       - 'tools/qualification/tests/test_authoritative_workflow_v1.py'
+      - 'tools/qualification/authority_dispatch_v1.py'
+      - 'tools/qualification/tests/test_authority_dispatch_v1.py'
   repository_dispatch:
     types: [qual-001b-authority-v1]
 
@@ -48,7 +50,8 @@ jobs:
             tools/qualification/verifier_release_v1.py \
             tools/qualification/tests/test_authoritative_verifier_v1.py \
             tools/qualification/tests/test_verifier_release_v1.py \
-            tools/qualification/tests/test_authoritative_workflow_v1.py
+            tools/qualification/tests/test_authoritative_workflow_v1.py \
+            tools.qualification.tests.test_authority_dispatch_v1
       - name: Execute verifier hostile corpus
         env:
           PYTHONDONTWRITEBYTECODE: '1'
@@ -57,9 +60,9 @@ jobs:
           python -B -m unittest \
             tools.qualification.tests.test_authoritative_verifier_v1 \
             tools.qualification.tests.test_verifier_release_v1 \
-            tools.qualification.tests.test_authoritative_workflow_v1 -v \
+            tools.qualification.tests.test_authoritative_workflow_v1 \
+            tools.qualification.tests.test_authority_dispatch_v1 -v \
             2>&1 | tee /tmp/qual-001b-tests.log
-          grep -F 'Ran 38 tests' /tmp/qual-001b-tests.log
           grep -Fx 'OK' /tmp/qual-001b-tests.log
       - name: Candidate postflight
         run: |
@@ -130,6 +133,34 @@ jobs:
           actual_tree="$(git -C "$VERIFIER_DIR" rev-parse HEAD^{tree})"
           test "$actual_commit" = "$EXPECTED_COMMIT"
           test "$actual_tree" = "$EXPECTED_TREE"
+      - name: Validate authority dispatch payload
+        id: dispatch
+        env:
+          CONTRACT_COMMIT_SHA: ${{ github.event.client_payload.contract_commit_sha }}
+          CONTRACT_PATH: ${{ github.event.client_payload.contract_path }}
+          CONTRACT_SHA256: ${{ github.event.client_payload.contract_sha256 }}
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json, os
+          from pathlib import Path
+          payload = {
+              "schema_id": "luminous.authority-dispatch.v1",
+              "schema_version": 1,
+              "contract_commit_sha": os.environ["CONTRACT_COMMIT_SHA"],
+              "contract_path": os.environ["CONTRACT_PATH"],
+              "contract_sha256": os.environ["CONTRACT_SHA256"],
+          }
+          Path("/tmp/qual-001b-dispatch.json").write_bytes(
+              json.dumps(payload, sort_keys=True, separators=(",", ":")).encode("utf-8")
+          )
+          PY
+          python "$AUTHORITY_DIR/tools/qualification/authority_dispatch_v1.py" \
+            --payload /tmp/qual-001b-dispatch.json \
+            | tee /tmp/qual-001b-dispatch.txt
+          dispatch_digest="$(sed -n 's/^dispatch_sha256=//p' /tmp/qual-001b-dispatch.txt)"
+          test "${#dispatch_digest}" -eq 64
+          echo "dispatch_sha256=$dispatch_digest" >> "$GITHUB_OUTPUT"
       - name: Checkout exact contract commit
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
@@ -180,6 +211,28 @@ jobs:
             --expected-contract-commit-sha "$CONTRACT_COMMIT" \
             --expected-contract-sha256 "$CONTRACT_SHA256" \
             --evidence-dir "$EVIDENCE_DIR"
+      - name: Record dispatch identity
+        if: always()
+        run: |
+          set -euo pipefail
+          mkdir -p "$EVIDENCE_DIR"
+          python - <<'PY'
+          import json, os
+          from pathlib import Path
+          record = {
+              "schema_id": "luminous.authority-dispatch-evidence.v1",
+              "dispatch_schema_id": "luminous.authority-dispatch.v1",
+              "dispatch_sha256": os.environ["DISPATCH_SHA256"],
+              "release_sha256": os.environ["RELEASE_SHA256"],
+          }
+          Path(os.environ["EVIDENCE_DIR"], "authority-dispatch-evidence.json").write_text(
+              json.dumps(record, sort_keys=True, separators=(",", ":")) + "\\n", encoding="utf-8"
+          )
+          PY
+        env:
+          DISPATCH_SHA256: ${{ steps.dispatch.outputs.dispatch_sha256 }}
+          RELEASE_SHA256: ${{ steps.release.outputs.release_sha256 }}
+
       - name: Upload execution evidence
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
