@@ -127,6 +127,65 @@ class ValidatorTests(unittest.TestCase):
         result = Validator(graph).validate()
         self.assertIn("E_STALE_EVIDENCE", {e["code"] for e in result["errors"]})
 
+
+    def test_semantic_target_mismatch_is_rejected(self):
+        graph = copy.deepcopy(EXAMPLE)
+        graph["nodes"][0]["metadata"]["semantic_digest"] = "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+        result = Validator(graph).validate()
+        self.assertIn("E_SEMANTIC_ID_MISMATCH", {e["code"] for e in result["errors"]})
+
+    def test_proof_requires_explicit_checker_binding(self):
+        graph = copy.deepcopy(EXAMPLE)
+        graph["edges"] = [e for e in graph["edges"] if e["relation"] != "checked_by"]
+        result = Validator(graph).validate()
+        self.assertIn("E_CHECKER_BINDING_MISSING", {e["code"] for e in result["errors"]})
+
+    def test_historical_evidence_cannot_qualify_current_state(self):
+        graph = copy.deepcopy(EXAMPLE)
+        contract = {
+            "schema_version": "luminous.formal-provenance.v0", "kind": "QualificationContract",
+            "id": "contract:v1", "label": "Contract",
+            "content_digest": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+        }
+        verifier = {
+            "schema_version": "luminous.formal-provenance.v0", "kind": "VerifierRelease",
+            "id": "verifier:v1", "label": "Verifier",
+            "content_digest": "1111111111111111111111111111111111111111111111111111111111111111"
+        }
+        execution = {
+            "schema_version": "luminous.formal-provenance.v0", "kind": "ProofExecution",
+            "id": "execution:v1", "label": "Execution",
+            "metadata": {
+                "status": "Passed", "result": "Pass",
+                "subject_head": "d56d6a6c1381dc131d493f0713b657f01c98cb80",
+                "subject_tree": "d56d6a6c1381dc131d493f0713b657f01c98cb80",
+                "artifact_id": "proof:physics-body-ref-resolution-v1",
+                "checker_id": "checker:example-v0",
+                "source_commit_id": "source:commit",
+                "source_tree_id": "source:tree",
+                "source_commit_sha": "d56d6a6c1381dc131d493f0713b657f01c98cb80",
+                "source_tree_sha": "d56d6a6c1381dc131d493f0713b657f01c98cb80"
+            }
+        }
+        source_commit = {"schema_version":"luminous.formal-provenance.v0","kind":"SourceCommit","id":"source:commit","label":"Commit","content_digest":"d56d6a6c1381dc131d493f0713b657f01c98cb80"}
+        source_tree = {"schema_version":"luminous.formal-provenance.v0","kind":"SourceTree","id":"source:tree","label":"Tree","content_digest":"d56d6a6c1381dc131d493f0713b657f01c98cb80"}
+        evidence = {
+            "schema_version":"luminous.formal-provenance.v0","kind":"QualificationEvidence","id":"evidence:v1","label":"Evidence",
+            "metadata":{
+                "contract_id":"contract:v1","contract_digest":contract["content_digest"],
+                "verifier_release_id":"verifier:v1","verifier_release_digest":verifier["content_digest"],
+                "subject_head":"d56d6a6c1381dc131d493f0713b657f01c98cb80",
+                "subject_tree":"d56d6a6c1381dc131d493f0713b657f01c98cb80",
+                "execution_id":"execution:v1","result":"Pass"
+            }
+        }
+        graph["nodes"].extend([contract,verifier,execution,source_commit,source_tree,evidence])
+        graph["edges"].append({"schema_version":"luminous.formal-provenance.v0","id":"edge:qualifies:v1","source":"proof:physics-body-ref-resolution-v1","target":"contract:v1","relation":"qualifies","evidence":["evidence:v1"]})
+        graph["edges"].append({"schema_version":"luminous.formal-provenance.v0","id":"edge:supersedes:v1","source":"evidence:v2","target":"evidence:v1","relation":"supersedes"})
+        graph["nodes"].append({"schema_version":"luminous.formal-provenance.v0","kind":"QualificationEvidence","id":"evidence:v2","label":"Newer Evidence","metadata":evidence["metadata"]})
+        result = Validator(graph).validate()
+        self.assertIn("E_EVIDENCE_HISTORICAL", {e["code"] for e in result["errors"]})
+
     def test_authority_is_not_manufactured(self):
         graph = copy.deepcopy(EXAMPLE)
         graph["nodes"].extend([

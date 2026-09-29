@@ -7,6 +7,9 @@ The PKG is an evidence/provenance layer. It is **not** a proof checker and it ne
 ## Design rules
 
 - Semantic identity, artifact identity, and execution identity are distinct.
+- Theorem/lemma/invariant semantic identity is an explicit SHA-256 digest; labels are descriptive and are never the semantic key.
+- Every `ProofArtifact` binds to an exact semantic target digest and an explicit `checked_by` `ProofChecker` edge.
+- Proof execution records bind the exact artifact, checker, source commit/tree, source digests, subject head/tree, and result.
 - Proof derivations are represented as DAG-compatible references; shared subproofs are not duplicated.
 - Source-sensitive assertions bind to exact repository commit/tree and, where applicable, path/blob digest.
 - Qualification evidence binds the qualification contract, verifier release, subject head/tree, execution/evidence identity, and semantic result.
@@ -40,6 +43,8 @@ The validator is deliberately stdlib-only and runtime-independent. It checks:
 - evidence references and qualification bindings;
 - proof-artifact dependency acyclicity;
 - fail-closed qualification behavior for skipped/infrastructure/non-terminal executions;
+- exact contract/verifier digests and exact execution/source bindings;
+- historical `supersedes`/`invalidated_by` handling so stale evidence cannot establish current qualification;
 - the authority boundary: the graph cannot manufacture `QualifiedPass`.
 
 Machine-readable output has stable status classes (`Valid`, `SchemaInvalid`, `GraphInvalid`, `EvidenceInvalid`, `AuthorityNotEstablished`) and deterministic diagnostic codes.
