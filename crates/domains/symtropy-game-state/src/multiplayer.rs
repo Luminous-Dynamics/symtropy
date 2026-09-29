@@ -77,12 +77,19 @@ fn canonical_session_fields(
 /// The claim is bound to the semantic session identity and the caller-declared
 /// replay profile, but remains metadata rather than qualification evidence.
 pub fn canonical_replay_claim_bytes(session: &MultiplayerSessionV1) -> Vec<u8> {
+    canonical_replay_claim_fields(session.session_digest, session.replay_profile)
+}
+
+fn canonical_replay_claim_fields(
+    session_digest: CommitmentDigest,
+    replay_profile: ReplayProfile,
+) -> Vec<u8> {
     let mut out = Vec::with_capacity(64);
     out.extend_from_slice(b"SYMPROV");
     out.push(MULTIPLAYER_CANONICAL_ENCODING_VERSION);
     out.extend_from_slice(&MULTIPLAYER_PROVENANCE_SCHEMA_VERSION.to_le_bytes());
-    out.extend_from_slice(session.session_digest.as_bytes());
-    out.push(replay_profile_tag(session.replay_profile));
+    out.extend_from_slice(session_digest.as_bytes());
+    out.push(replay_profile_tag(replay_profile));
     out
 }
 
@@ -206,15 +213,9 @@ impl MultiplayerSessionV1 {
                 &participants,
             )],
         )?;
-        let replay_claim_digest = {
-            let mut claim_bytes = Vec::with_capacity(64);
-            claim_bytes.extend_from_slice(b"SYMPROV");
-            claim_bytes.push(MULTIPLAYER_CANONICAL_ENCODING_VERSION);
-            claim_bytes.extend_from_slice(&MULTIPLAYER_PROVENANCE_SCHEMA_VERSION.to_le_bytes());
-            claim_bytes.extend_from_slice(session_digest.as_bytes());
-            claim_bytes.push(replay_profile_tag(replay_profile));
-            CommitmentDigest::derive("multiplayer.replay_claim.v1", &[&claim_bytes])?
-        };
+        let replay_claim_bytes = canonical_replay_claim_fields(session_digest, replay_profile);
+        let replay_claim_digest =
+            CommitmentDigest::derive("multiplayer.replay_claim.v1", &[&replay_claim_bytes])?;
         Ok(Self {
             world_instance,
             world_continuation,
@@ -614,6 +615,17 @@ mod tests {
             &MULTIPLAYER_PROVENANCE_SCHEMA_VERSION.to_le_bytes()
         );
         assert_eq!(bytes.len(), 270);
+    }
+
+    #[test]
+    fn replay_claim_commitment_is_hash_of_canonical_bytes() {
+        let s = session(vec![identity(7)]);
+        let expected = CommitmentDigest::derive(
+            "multiplayer.replay_claim.v1",
+            &[&canonical_replay_claim_bytes(&s)],
+        )
+        .expect("replay claim commitment");
+        assert_eq!(s.replay_claim_digest, expected);
     }
 
     #[test]
