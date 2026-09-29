@@ -10,31 +10,13 @@ from typing import Any
 from validate import SCHEMA_VERSION, Validator
 
 PLAN_VERSION = "luminous.formal-revalidation-plan.v0"
-
-REQUIRED_KINDS = {
-    "Theorem",
-    "Lemma",
-    "Invariant",
-    "ProofArtifact",
-    "ProofChecker",
-    "ProofExecution",
-    "SourceCommit",
-    "SourceTree",
-    "VerifierRelease",
-    "QualificationContract",
-    "QualificationEvidence",
-}
-
-REFERENCE_FIELDS = (
+PROOF_EXECUTION_FIELDS = (
     "artifact_id",
     "checker_id",
     "source_commit_id",
     "source_tree_id",
-    "execution_id",
-    "contract_id",
-    "verifier_release_id",
-    "subject_commit_id",
-    "subject_tree_id",
+    "source_commit_sha",
+    "source_tree_sha",
 )
 
 
@@ -54,42 +36,76 @@ def _history_invalidations(graph: dict[str, Any]) -> tuple[set[str], set[str]]:
         if edge["relation"] == "supersedes":
             superseded.add(edge["target"])
         elif edge["relation"] == "invalidated_by":
-            invalidated.add(edge["target"])
+            invalidated.add(edge["source"])
     return superseded, invalidated
 
 
-def _bindings(node: dict[str, Any], nodes: dict[str, dict[str, Any]]) -> tuple[list[str], list[str]]:
+def _reference_bindings(
+    node: dict[str, Any], nodes: dict[str, dict[str, Any]]
+) -> tuple[list[str], list[str]]:
     metadata = node.get("metadata")
     if not isinstance(metadata, dict):
         return [], []
 
+    expected = {
+        "artifact_id": "ProofArtifact",
+        "checker_id": "ProofChecker",
+        "source_commit_id": "SourceCommit",
+        "source_tree_id": "SourceTree",
+        "execution_id": "ProofExecution",
+        "contract_id": "QualificationContract",
+        "verifier_release_id": "VerifierRelease",
+        "subject_commit_id": "SourceCommit",
+        "subject_tree_id": "SourceTree",
+    }
     missing: list[str] = []
     contradictory: list[str] = []
-    for field in REFERENCE_FIELDS:
+
+    for field, expected_kind in expected.items():
         if field not in metadata:
             continue
         ref = metadata[field]
         if not isinstance(ref, str) or ref not in nodes:
             missing.append(field)
             continue
-        target = nodes[ref]
-        expected = {
-            "artifact_id": "ProofArtifact",
-            "checker_id": "ProofChecker",
-            "source_commit_id": "SourceCommit",
-            "source_tree_id": "SourceTree",
-            "execution_id": "ProofExecution",
-            "contract_id": "QualificationContract",
-            "verifier_release_id": "VerifierRelease",
-            "subject_commit_id": "SourceCommit",
-            "subject_tree_id": "SourceTree",
-        }[field]
-        if target["kind"] != expected:
+        actual_kind = nodes[ref]["kind"]
+        if actual_kind != expected_kind:
             contradictory.append(
-                f"{field}:expected:{expected}:actual:{target['kind']}"
+                f"{field}:expected:{expected_kind}:actual:{actual_kind}"
             )
 
     return sorted(missing), sorted(contradictory)
+
+
+def _proof_artifact_has_checker(
+    node_id: str, graph: dict[str, Any]
+) -> bool:
+    return any(
+        edge["relation"] == "checked_by"
+        and edge["source"] == node_id
+        and graph["nodes"]
+        for edge in graph["edges"]
+    )
+
+
+def _required_bindings(
+    node: dict[str, Any], graph: dict[str, Any], nodes: dict[str, dict[str, Any]]
+) -> tuple[list[str], list[str]]:
+    missing, contradictory = _reference_bindings(node, nodes)
+
+    if node["kind"] == "ProofArtifact" and not _proof_artifact_has_checker(node["id"], graph):
+        missing.append("checked_by")
+
+    if node["kind"] == "ProofExecution":
+        metadata = node.get("metadata")
+        if not isinstance(metadata, dict):
+            metadata = {}
+        for field in PROOF_EXECUTION_FIELDS:
+            value = metadata.get(field)
+            if not isinstance(value, str) or not value:
+                missing.append(field)
+
+    return sorted(set(missing)), sorted(set(contradictory))
 
 
 def build_plan(graph: dict[str, Any], impact: dict[str, Any]) -> dict[str, Any]:
@@ -116,34 +132,34 @@ def build_plan(graph: dict[str, Any], impact: dict[str, Any]) -> dict[str, Any]:
             raise ValueError("impact record references an unknown node")
 
         node = nodes[node_id]
-        missing, contradictory = _bindings(node, nodes)
-        historical = []
+        missing, contradictory = _required_bindings(node, graph, nodes)
+        historical: list[str] = []
         if node_id in superseded:
             historical.append("SUPERSEDED")
         if node_id in invalidated:
             historical.append("INVALIDATED")
 
         if missing or contradictory or historical:
-            blocker = {
-                "node_id": node_id,
-                "kind": node["kind"],
-                "status": "Blocked",
-                "missing_bindings": missing,
-                "contradictory_bindings": contradictory,
-                "historical_flags": sorted(historical),
-            }
-            blockers.append(blocker)
+            blockers.append(
+                {
+                    "node_id": node_id,
+                    "kind": node["kind"],
+                    "status": "Blocked",
+                    "missing_bindings": missing,
+                    "contradictory_bindings": contradictory,
+                    "historical_flags": sorted(historical),
+                }
+            )
             continue
 
-        action = (
-            "RECHECK_PROOF"
-            if node["kind"] in {"Theorem", "Lemma", "Invariant", "ProofArtifact", "ProofChecker"}
-            else "RECHECK_EXECUTION"
-            if node["kind"] == "ProofExecution"
-            else "RECHECK_QUALIFICATION_EVIDENCE"
-            if node["kind"] == "QualificationEvidence"
-            else "RECHECK_DEPENDENCY"
-        )
+        if node["kind"] in {"Theorem", "Lemma", "Invariant", "ProofArtifact", "ProofChecker"}:
+            action = "RECHECK_PROOF"
+        elif node["kind"] == "ProofExecution":
+            action = "RECHECK_EXECUTION"
+        elif node["kind"] == "QualificationEvidence":
+            action = "RECHECK_QUALIFICATION_EVIDENCE"
+        else:
+            action = "RECHECK_DEPENDENCY"
 
         plans.append(
             {
@@ -191,7 +207,7 @@ def main() -> int:
         }
 
     print(json.dumps(result, sort_keys=True, separators=(",", ":")))
-    return 0 if result["plan_status"] == "Invalid" else 0
+    return 1 if result["plan_status"] == "Invalid" else 0
 
 
 if __name__ == "__main__":
