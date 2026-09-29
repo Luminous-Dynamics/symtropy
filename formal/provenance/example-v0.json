@@ -1,0 +1,10 @@
+{
+  "schema_version":"luminous.formal-provenance.v0",
+  "nodes":[
+    {"schema_version":"luminous.formal-provenance.v0","kind":"Theorem","id":"theorem:physics-body-ref-resolution-v1","label":"PhysicsBodyRef resolution is lineage-safe","content_digest":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","provenance":{"repository":"Luminous-Dynamics/symtropy","commit_sha":"d56d6a6c1381dc131d493f0713b657f01c98cb80","tree_sha":"d56d6a6c1381dc131d493f0713b657f01c98cb80"}},
+    {"schema_version":"luminous.formal-provenance.v0","kind":"ProofArtifact","id":"proof:physics-body-ref-resolution-v1","label":"Lineage-safe resolution proof artifact","content_digest":"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb","provenance":{"repository":"Luminous-Dynamics/symtropy","commit_sha":"d56d6a6c1381dc131d493f0713b657f01c98cb80","tree_sha":"d56d6a6c1381dc131d493f0713b657f01c98cb80"}}
+  ],
+  "edges":[
+    {"schema_version":"luminous.formal-provenance.v0","id":"edge:proves:physics-body-ref-resolution-v1","source":"proof:physics-body-ref-resolution-v1","target":"theorem:physics-body-ref-resolution-v1","relation":"proves"}
+  ]
+}
