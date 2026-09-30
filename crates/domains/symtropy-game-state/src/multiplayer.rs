@@ -1064,6 +1064,13 @@ mod tests {
                 )
             ));
         }
+
+        let mut duplicate_participant = decoded;
+        duplicate_participant.participants[1] = duplicate_participant.participants[0];
+        assert!(matches!(
+            duplicate_participant.verify_commitment(),
+            Err(StateError::DuplicateMultiplayerParticipant)
+        ));
     }
 
     #[test]
