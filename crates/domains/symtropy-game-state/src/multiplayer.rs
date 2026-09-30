@@ -1117,6 +1117,9 @@ mod tests {
         let mut ruleset = decoded.clone();
         ruleset.ruleset_identity = identity(20);
         variants.push(ruleset);
+        let mut checkpoint_digest = decoded.clone();
+        checkpoint_digest.checkpoint_digest = digest(20);
+        variants.push(checkpoint_digest);
 
         for variant in variants {
             assert!(matches!(
