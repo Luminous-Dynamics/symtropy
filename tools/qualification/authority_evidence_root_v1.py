@@ -222,6 +222,20 @@ GRAPH_SEMANTIC_FIELDS = {
     spec["graph"]: spec["source"] for spec in SEMANTIC_BINDINGS.values()
 }
 
+# Closed inventory of evidence fields that carry semantic/security meaning across
+# the recursive provenance boundary. Every inventory entry must have exactly one
+# semantic binding; every semantic binding must therefore have an inventory owner.
+SECURITY_SURFACE_FIELDS = frozenset({
+    ("qualification_contract_checkout_identity", "contract_commit_sha"),
+    ("dispatch_evidence", "release_sha256"),
+    ("qualification_contract_checkout_identity", "contract_tree_sha"),
+    ("qualification_contract_checkout_identity", "contract_blob_sha"),
+    ("execution_evidence", "subject_head_sha"),
+    ("qualification_contract", "subject_head_sha"),
+    ("execution_evidence", "subject_tree_sha"),
+    ("execution_evidence", "final_result"),
+})
+
 def _validate_relationship_contract_catalog() -> None:
     if tuple(spec.get("edge") for spec in GRAPH_RELATIONSHIP_CONTRACTS) != GRAPH_EDGES:
         _fail("relationship contract edge projection mismatch")
@@ -321,6 +335,8 @@ def _validate_relationship_contract_catalog() -> None:
     required_binding_sources = {
         spec["source"] for spec in SEMANTIC_BINDINGS.values()
     }
+    if required_binding_sources != SECURITY_SURFACE_FIELDS:
+        _fail("semantic bindings do not exactly cover the declared security surface")
     if set(SEMANTIC_BINDING_SOURCES.values()) != required_binding_sources:
         _fail("semantic binding source projection is not canonical")
     required_graph_bindings = {
