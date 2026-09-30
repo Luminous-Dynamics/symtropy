@@ -74,6 +74,23 @@ class EvidenceRootTests(unittest.TestCase):
             manifest_path.write_bytes(manifest_path.read_bytes() + b" ")
             self.assertEqual(self.verify_root(directory, manifest_path, root_path), 2)
 
+    def test_build_rejects_semantically_inconsistent_member_set(self):
+        with tempfile.TemporaryDirectory() as d:
+            directory = Path(d)
+            manifest_path = materialize_fixture(directory)
+            execution = json.loads((directory / NAMES[5]).read_text())
+            execution["subject_head_sha"] = "9" * 40
+            (directory / NAMES[5]).write_text(json.dumps(execution))
+            manifest_path.write_bytes(manifest.canonical(manifest.build(directory)) + b"\n")
+            output = directory / "authority-evidence-root-v1.json"
+            self.assertEqual(root.main([
+                "build",
+                "--evidence-dir", str(directory),
+                "--manifest", str(manifest_path),
+                "--output", str(output),
+            ]), 2)
+            self.assertFalse(output.exists())
+
     def test_root_rejects_member_substitution(self):
         with tempfile.TemporaryDirectory() as d:
             directory = Path(d)
