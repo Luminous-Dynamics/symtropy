@@ -77,6 +77,110 @@ GRAPH_RELATIONSHIP_CONTRACTS = (
 )
 GRAPH_EDGES = tuple(spec["edge"] for spec in GRAPH_RELATIONSHIP_CONTRACTS)
 
+RELATIONSHIP_OPERAND_KINDS = {"value", "member_sha256", "git_blob_sha", "graph"}
+RELATIONSHIP_VALUE_FIELDS = {
+    "dispatch_payload": frozenset({
+        "schema_id", "schema_version", "contract_commit_sha", "contract_path", "contract_sha256",
+    }),
+    "dispatch_evidence": frozenset({
+        "schema_id", "schema_version", "dispatch_schema_id", "dispatch_sha256",
+        "release_sha256", "contract_commit_sha", "contract_path", "contract_sha256",
+    }),
+    "qualification_contract": frozenset({
+        "schema_id", "contract_id", "contract_version", "subject_repository",
+        "subject_head_sha", "subject_tree_sha", "manifest_path", "manifest_sha256",
+        "suite_profile_path", "suite_profile_sha256",
+    }),
+    "qualification_contract_checkout_identity": frozenset({
+        "schema_id", "schema_version", "contract_commit_sha", "contract_tree_sha", "contract_blob_sha",
+    }),
+    "execution_evidence": frozenset({
+        "schema_id", "verifier_commit_sha", "verifier_tree_sha", "contract_commit_sha",
+        "contract_tree_sha", "contract_sha256", "contract_id", "subject_repository",
+        "subject_head_sha", "subject_tree_sha", "manifest_sha256", "manifest_profile_id",
+        "suite_profile_sha256", "suite_id", "suite_revision", "toolchain_id",
+        "expanded_step_ids", "executed_step_ids", "steps", "first_failing_step_id",
+        "first_failing_step_result", "final_result",
+    }),
+}
+GRAPH_OPERAND_FIELDS = {
+    "contract_identity": frozenset({"commit_sha", "tree_sha", "blob_sha"}),
+    "subject_identity": frozenset({"head_sha", "tree_sha"}),
+    "final_result": frozenset({"value"}),
+}
+
+def _validate_relationship_contract_catalog() -> None:
+    if tuple(spec.get("edge") for spec in GRAPH_RELATIONSHIP_CONTRACTS) != GRAPH_EDGES:
+        _fail("relationship contract edge projection mismatch")
+    if len(GRAPH_RELATIONSHIP_CONTRACTS) != len(GRAPH_EDGES) or len(GRAPH_EDGES) != len(set(GRAPH_EDGES)):
+        _fail("relationship contract edges must be unique")
+    for spec in GRAPH_RELATIONSHIP_CONTRACTS:
+        if set(spec) != {"edge", "checks"}:
+            _fail("relationship contract fields are not the closed v1 set")
+        edge = spec["edge"]
+        if not isinstance(edge, tuple) or len(edge) != 3:
+            _fail("relationship contract edge must be a 3-tuple")
+        if edge[0] not in GRAPH_NODE_IDS or edge[2] not in GRAPH_NODE_IDS:
+            _fail("relationship contract edge references an unknown graph node")
+        if not isinstance(edge[1], str) or not edge[1]:
+            _fail("relationship contract edge type must be non-empty")
+        checks = spec["checks"]
+        if not isinstance(checks, tuple) or not checks:
+            _fail("relationship contract edge must have at least one check")
+        for pair in checks:
+            if not isinstance(pair, tuple) or len(pair) != 2:
+                _fail("relationship contract check must be a pair")
+            for operand in pair:
+                if not isinstance(operand, tuple) or len(operand) not in (2, 3):
+                    _fail("relationship contract operand must have two or three elements")
+                kind, target, *field = operand
+                if kind not in RELATIONSHIP_OPERAND_KINDS:
+                    _fail(f"unknown relationship operand kind: {kind}")
+                if kind == "value":
+                    if target not in RELATIONSHIP_VALUE_FIELDS or len(field) != 1 or field[0] not in RELATIONSHIP_VALUE_FIELDS[target]:
+                        _fail(f"relationship value operand references an undeclared field: {target}.{field[0] if field else '<missing>'}")
+                elif kind == "graph":
+                    if target not in GRAPH_OPERAND_FIELDS or len(field) != 1 or field[0] not in GRAPH_OPERAND_FIELDS[target]:
+                        _fail(f"relationship graph operand references an undeclared field: {target}.{field[0] if field else '<missing>'}")
+                elif field:
+                    _fail(f"relationship {kind} operand cannot name a field")
+
+    declared_value_fields = {
+        (target, field)
+        for spec in GRAPH_RELATIONSHIP_CONTRACTS
+        for pair in spec["checks"]
+        for operand in pair
+        if operand[0] == "value"
+        for target, field in [(operand[1], operand[2])]
+    }
+    required_value_fields = {
+        ("dispatch_payload", "contract_commit_sha"),
+        ("dispatch_evidence", "release_sha256"),
+        ("qualification_contract", "subject_head_sha"),
+        ("qualification_contract_checkout_identity", "contract_blob_sha"),
+        ("execution_evidence", "contract_commit_sha"),
+        ("execution_evidence", "subject_head_sha"),
+        ("execution_evidence", "final_result"),
+    }
+    if declared_value_fields != required_value_fields:
+        _fail("relationship contract value-field coverage is not canonical")
+
+    declared_graph_fields = {
+        (operand[1], operand[2])
+        for spec in GRAPH_RELATIONSHIP_CONTRACTS
+        for pair in spec["checks"]
+        for operand in pair
+        if operand[0] == "graph"
+    }
+    required_graph_fields = {
+        ("contract_identity", "commit_sha"),
+        ("subject_identity", "head_sha"),
+        ("final_result", "value"),
+    }
+    if declared_graph_fields != required_graph_fields:
+        _fail("relationship contract graph-field coverage is not canonical")
+
+
 
 class EvidenceRootValidationError(ValueError):
     pass
@@ -159,9 +263,7 @@ def _resolve_relationship_operand(operand, values, raw_members, members, graph):
 
 
 def _validate_relationship_contracts(values, raw_members, members, graph):
-    expected_edges = tuple(spec["edge"] for spec in GRAPH_RELATIONSHIP_CONTRACTS)
-    if expected_edges != GRAPH_EDGES:
-        _fail("relationship contract edge projection mismatch")
+    _validate_relationship_contract_catalog()
     for spec in GRAPH_RELATIONSHIP_CONTRACTS:
         for left, right in spec["checks"]:
             if _resolve_relationship_operand(left, values, raw_members, members, graph) != _resolve_relationship_operand(right, values, raw_members, members, graph):
