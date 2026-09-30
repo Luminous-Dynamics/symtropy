@@ -165,11 +165,12 @@ def _validate_relationship_contract_catalog() -> None:
         for target, field in [(operand[1], operand[2])]
     }
     required_value_fields = {
-        source for source in SEMANTIC_BINDING_SOURCES.values()
-    } | {
         ("dispatch_payload", "contract_commit_sha"),
         ("dispatch_evidence", "release_sha256"),
+        ("qualification_contract_checkout_identity", "contract_blob_sha"),
         ("execution_evidence", "contract_commit_sha"),
+        ("execution_evidence", "subject_head_sha"),
+        ("execution_evidence", "final_result"),
     }
     if declared_value_fields != required_value_fields:
         _fail("relationship contract value-field coverage is not canonical")
