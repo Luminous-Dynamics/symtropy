@@ -89,9 +89,7 @@ RELATIONSHIP_VALUE_FIELDS = {
     "dispatch_payload": frozenset(dispatch.FIELDS),
     "dispatch_evidence": frozenset(dispatch_evidence.FIELDS),
     "qualification_contract": frozenset(contract_v1.FIELDS),
-    "qualification_contract_checkout_identity": frozenset({
-        "schema_id", "schema_version", "contract_commit_sha", "contract_tree_sha", "contract_blob_sha",
-    }),
+    "qualification_contract_checkout_identity": frozenset(envelope.REQUIRED_CHECKOUT_FIELDS),
     "execution_evidence": frozenset(envelope.REQUIRED_EXECUTION_FIELDS),
 }
 GRAPH_OPERAND_FIELDS = {
