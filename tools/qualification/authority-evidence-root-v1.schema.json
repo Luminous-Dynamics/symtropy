@@ -123,151 +123,344 @@
           "type": "array",
           "minItems": 9,
           "maxItems": 9,
-          "items": {
-            "oneOf": [
-              {
-                "type": "object",
-                "additionalProperties": false,
-                "required": [
-                  "id",
-                  "kind",
-                  "sha256"
-                ],
-                "properties": {
-                  "id": {
-                    "enum": [
-                      "dispatch_payload",
-                      "dispatch_evidence",
-                      "verifier_release",
-                      "qualification_contract",
-                      "qualification_contract_checkout_identity",
-                      "execution_evidence"
-                    ]
-                  },
-                  "kind": {
-                    "const": "evidence"
-                  },
-                  "sha256": {
-                    "type": "string",
-                    "pattern": "^[0-9a-f]{64}$"
-                  }
-                }
-              },
-              {
-                "type": "object",
-                "additionalProperties": false,
-                "required": [
-                  "id",
-                  "kind",
-                  "commit_sha",
-                  "tree_sha",
-                  "blob_sha"
-                ],
-                "properties": {
-                  "id": {
-                    "const": "contract_identity"
-                  },
-                  "kind": {
-                    "const": "identity"
-                  },
-                  "commit_sha": {
-                    "type": "string",
-                    "pattern": "^[0-9a-f]{40}$"
-                  },
-                  "tree_sha": {
-                    "type": "string",
-                    "pattern": "^[0-9a-f]{40}$"
-                  },
-                  "blob_sha": {
-                    "type": "string",
-                    "pattern": "^[0-9a-f]{40}$"
-                  }
-                }
-              },
-              {
-                "type": "object",
-                "additionalProperties": false,
-                "required": [
-                  "id",
-                  "kind",
-                  "head_sha",
-                  "tree_sha"
-                ],
-                "properties": {
-                  "id": {
-                    "const": "subject_identity"
-                  },
-                  "kind": {
-                    "const": "identity"
-                  },
-                  "head_sha": {
-                    "type": "string",
-                    "pattern": "^[0-9a-f]{40}$"
-                  },
-                  "tree_sha": {
-                    "type": "string",
-                    "pattern": "^[0-9a-f]{40}$"
-                  }
-                }
-              },
-              {
-                "type": "object",
-                "additionalProperties": false,
-                "required": [
-                  "id",
-                  "kind",
-                  "value"
-                ],
-                "properties": {
-                  "id": {
-                    "const": "final_result"
-                  },
-                  "kind": {
-                    "const": "observation"
-                  },
-                  "value": {
-                    "enum": [
-                      "TheoremExecutedPass",
-                      "TheoremExecutedFail",
-                      "InfrastructureFailure"
-                    ]
-                  }
+          "prefixItems": [
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "id",
+                "kind",
+                "sha256"
+              ],
+              "properties": {
+                "id": {
+                  "const": "dispatch_payload"
+                },
+                "kind": {
+                  "const": "evidence"
+                },
+                "sha256": {
+                  "type": "string",
+                  "pattern": "^[0-9a-f]{64}$"
                 }
               }
-            ]
-          }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "id",
+                "kind",
+                "sha256"
+              ],
+              "properties": {
+                "id": {
+                  "const": "dispatch_evidence"
+                },
+                "kind": {
+                  "const": "evidence"
+                },
+                "sha256": {
+                  "type": "string",
+                  "pattern": "^[0-9a-f]{64}$"
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "id",
+                "kind",
+                "sha256"
+              ],
+              "properties": {
+                "id": {
+                  "const": "verifier_release"
+                },
+                "kind": {
+                  "const": "evidence"
+                },
+                "sha256": {
+                  "type": "string",
+                  "pattern": "^[0-9a-f]{64}$"
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "id",
+                "kind",
+                "sha256"
+              ],
+              "properties": {
+                "id": {
+                  "const": "qualification_contract"
+                },
+                "kind": {
+                  "const": "evidence"
+                },
+                "sha256": {
+                  "type": "string",
+                  "pattern": "^[0-9a-f]{64}$"
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "id",
+                "kind",
+                "sha256"
+              ],
+              "properties": {
+                "id": {
+                  "const": "qualification_contract_checkout_identity"
+                },
+                "kind": {
+                  "const": "evidence"
+                },
+                "sha256": {
+                  "type": "string",
+                  "pattern": "^[0-9a-f]{64}$"
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "id",
+                "kind",
+                "sha256"
+              ],
+              "properties": {
+                "id": {
+                  "const": "execution_evidence"
+                },
+                "kind": {
+                  "const": "evidence"
+                },
+                "sha256": {
+                  "type": "string",
+                  "pattern": "^[0-9a-f]{64}$"
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "id",
+                "kind",
+                "commit_sha",
+                "tree_sha",
+                "blob_sha"
+              ],
+              "properties": {
+                "id": {
+                  "const": "contract_identity"
+                },
+                "kind": {
+                  "const": "identity"
+                },
+                "commit_sha": {
+                  "type": "string",
+                  "pattern": "^[0-9a-f]{40}$"
+                },
+                "tree_sha": {
+                  "type": "string",
+                  "pattern": "^[0-9a-f]{40}$"
+                },
+                "blob_sha": {
+                  "type": "string",
+                  "pattern": "^[0-9a-f]{40}$"
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "id",
+                "kind",
+                "tree_sha",
+                "head_sha"
+              ],
+              "properties": {
+                "id": {
+                  "const": "subject_identity"
+                },
+                "kind": {
+                  "const": "identity"
+                },
+                "tree_sha": {
+                  "type": "string",
+                  "pattern": "^[0-9a-f]{40}$"
+                },
+                "head_sha": {
+                  "type": "string",
+                  "pattern": "^[0-9a-f]{40}$"
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "id",
+                "kind",
+                "value"
+              ],
+              "properties": {
+                "id": {
+                  "const": "final_result"
+                },
+                "kind": {
+                  "const": "observation"
+                },
+                "value": {
+                  "enum": [
+                    "TheoremExecutedPass",
+                    "TheoremExecutedFail",
+                    "InfrastructureFailure"
+                  ]
+                }
+              }
+            }
+          ],
+          "items": false
         },
         "edges": {
           "type": "array",
           "minItems": 6,
           "maxItems": 6,
-          "items": {
-            "type": "object",
-            "additionalProperties": false,
-            "required": [
-              "from",
-              "type",
-              "to"
-            ],
-            "properties": {
-              "from": {
-                "type": "string"
-              },
-              "type": {
-                "enum": [
-                  "binds",
-                  "selects",
-                  "materializes",
-                  "uses",
-                  "targets",
-                  "produces"
-                ]
-              },
-              "to": {
-                "type": "string"
+          "prefixItems": [
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "from",
+                "type",
+                "to"
+              ],
+              "properties": {
+                "from": {
+                  "const": "dispatch_payload"
+                },
+                "type": {
+                  "const": "binds"
+                },
+                "to": {
+                  "const": "qualification_contract"
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "from",
+                "type",
+                "to"
+              ],
+              "properties": {
+                "from": {
+                  "const": "dispatch_payload"
+                },
+                "type": {
+                  "const": "selects"
+                },
+                "to": {
+                  "const": "verifier_release"
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "from",
+                "type",
+                "to"
+              ],
+              "properties": {
+                "from": {
+                  "const": "qualification_contract_checkout_identity"
+                },
+                "type": {
+                  "const": "materializes"
+                },
+                "to": {
+                  "const": "qualification_contract"
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "from",
+                "type",
+                "to"
+              ],
+              "properties": {
+                "from": {
+                  "const": "execution_evidence"
+                },
+                "type": {
+                  "const": "uses"
+                },
+                "to": {
+                  "const": "qualification_contract"
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "from",
+                "type",
+                "to"
+              ],
+              "properties": {
+                "from": {
+                  "const": "execution_evidence"
+                },
+                "type": {
+                  "const": "targets"
+                },
+                "to": {
+                  "const": "subject_identity"
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "from",
+                "type",
+                "to"
+              ],
+              "properties": {
+                "from": {
+                  "const": "execution_evidence"
+                },
+                "type": {
+                  "const": "produces"
+                },
+                "to": {
+                  "const": "final_result"
+                }
               }
             }
-          }
+          ],
+          "items": false
         }
       }
     }
