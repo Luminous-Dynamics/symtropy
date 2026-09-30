@@ -296,6 +296,14 @@ def _validate_relationship_contract_catalog() -> None:
                     f"semantic binding {binding} enforcement check does not contain "
                     f"the declared {operand_kind} operand kind"
                 )
+            source_role, source_field = source
+            source_operand = ("value", source_role, source_field)
+            graph_operand = ("graph", graph_field[0], graph_field[1])
+            if source_operand not in check_pair and graph_operand not in check_pair:
+                _fail(
+                    f"semantic binding {binding} enforcement check does not directly "
+                    f"reference its source or graph projection"
+                )
     required_binding_sources = {
         spec["source"] for spec in SEMANTIC_BINDINGS.values()
     }
