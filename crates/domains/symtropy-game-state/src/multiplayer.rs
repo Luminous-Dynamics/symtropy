@@ -440,18 +440,19 @@ mod tests {
 
     #[test]
     fn replay_claim_commitment_is_separate_from_session_identity() {
-        let observation = session(vec![identity(7)]);
-        let bit_exact = MultiplayerSessionV1::new(
-            observation.world_instance,
-            observation.world_continuation,
-            observation.simulation_identity,
-            observation.ruleset_identity,
-            observation.initial_state_commitment,
-            observation.authority_config,
-            observation.participants.clone(),
-            ReplayProfile::BitExactReplay,
+        let bit_exact = session(vec![identity(7)]);
+        let observation = MultiplayerSessionV1::new(
+            bit_exact.world_instance,
+            bit_exact.world_continuation,
+            bit_exact.simulation_identity,
+            bit_exact.ruleset_identity,
+            bit_exact.initial_state_commitment,
+            bit_exact.authority_config,
+            bit_exact.participants.clone(),
+            ReplayProfile::ObservationOnly,
         )
-        .expect("bit-exact claim");
+        .expect("observation claim");
+
         assert_eq!(observation.session_digest, bit_exact.session_digest);
         assert_ne!(
             observation.replay_claim_digest,
@@ -461,6 +462,12 @@ mod tests {
             canonical_replay_claim_bytes(&observation),
             canonical_replay_claim_bytes(&bit_exact)
         );
+        observation
+            .verify_commitment()
+            .expect("observation claim commitment is self-consistent");
+        bit_exact
+            .verify_commitment()
+            .expect("bit-exact claim commitment is self-consistent");
     }
 
     #[test]
