@@ -165,6 +165,42 @@ class EvidenceRootTests(unittest.TestCase):
             {spec["graph"]: spec["source"] for spec in root.SEMANTIC_BINDINGS.values()},
         )
 
+
+    def test_semantic_binding_catalog_rejects_unclassified_relationship_check(self):
+        original = root.SEMANTIC_BINDINGS
+        try:
+            malformed = {
+                **original,
+                "final_result": {
+                    **original["final_result"],
+                    "enforcement_checks": (),
+                },
+            }
+            root.SEMANTIC_BINDINGS = malformed
+            with self.assertRaises(root.EvidenceRootValidationError):
+                root._validate_relationship_contract_catalog()
+        finally:
+            root.SEMANTIC_BINDINGS = original
+
+    def test_semantic_binding_catalog_rejects_duplicate_check_classification(self):
+        original = root.SEMANTIC_BINDINGS
+        try:
+            malformed = {
+                **original,
+                "contract_commit_sha": {
+                    **original["contract_commit_sha"],
+                    "enforcement_checks": (
+                        *original["contract_commit_sha"]["enforcement_checks"],
+                        original["contract_commit_sha"]["enforcement_checks"][0],
+                    ),
+                },
+            }
+            root.SEMANTIC_BINDINGS = malformed
+            with self.assertRaises(root.EvidenceRootValidationError):
+                root._validate_relationship_contract_catalog()
+        finally:
+            root.SEMANTIC_BINDINGS = original
+
     def test_semantic_binding_catalog_rejects_missing_enforcing_relationship(self):
         original = root.SEMANTIC_BINDINGS
         try:
@@ -188,7 +224,7 @@ class EvidenceRootTests(unittest.TestCase):
                 **original,
                 "final_result": {
                     **original["final_result"],
-                    "enforcement_anchors": (
+                    "enforcement_checks": (
                         (
                             ("execution_evidence", "produces", "final_result"),
                             ("graph", "subject_identity", "head_sha"),
@@ -209,7 +245,7 @@ class EvidenceRootTests(unittest.TestCase):
                 **original,
                 "contract_blob_sha": {
                     **original["contract_blob_sha"],
-                    "enforcement_anchors": (),
+                    "enforcement_checks": (),
                 },
             }
             root.SEMANTIC_BINDINGS = malformed
