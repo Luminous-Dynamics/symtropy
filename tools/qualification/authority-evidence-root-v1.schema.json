@@ -10,13 +10,24 @@
     "manifest_root_sha256",
     "member_sha256",
     "semantic_bindings",
+    "provenance_graph",
     "root_sha256"
   ],
   "properties": {
-    "schema_id": {"const": "luminous.authority-evidence-root.v1"},
-    "schema_version": {"const": 1},
-    "manifest_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
-    "manifest_root_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "schema_id": {
+      "const": "luminous.authority-evidence-root.v1"
+    },
+    "schema_version": {
+      "const": 1
+    },
+    "manifest_sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "manifest_root_sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
     "member_sha256": {
       "type": "object",
       "additionalProperties": false,
@@ -29,12 +40,30 @@
         "execution_evidence"
       ],
       "properties": {
-        "dispatch_payload": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
-        "dispatch_evidence": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
-        "verifier_release": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
-        "qualification_contract": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
-        "qualification_contract_checkout_identity": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
-        "execution_evidence": {"type": "string", "pattern": "^[0-9a-f]{64}$"}
+        "dispatch_payload": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "dispatch_evidence": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "verifier_release": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "qualification_contract": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "qualification_contract_checkout_identity": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "execution_evidence": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        }
       }
     },
     "semantic_bindings": {
@@ -49,16 +78,198 @@
         "final_result"
       ],
       "properties": {
-        "contract_commit_sha": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
-        "contract_tree_sha": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
-        "contract_blob_sha": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
-        "subject_head_sha": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
-        "subject_tree_sha": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
+        "contract_commit_sha": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{40}$"
+        },
+        "contract_tree_sha": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{40}$"
+        },
+        "contract_blob_sha": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{40}$"
+        },
+        "subject_head_sha": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{40}$"
+        },
+        "subject_tree_sha": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{40}$"
+        },
         "final_result": {
-          "enum": ["TheoremExecutedPass", "TheoremExecutedFail", "InfrastructureFailure"]
+          "enum": [
+            "TheoremExecutedPass",
+            "TheoremExecutedFail",
+            "InfrastructureFailure"
+          ]
         }
       }
     },
-    "root_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"}
+    "root_sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "provenance_graph": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "nodes",
+        "edges"
+      ],
+      "properties": {
+        "nodes": {
+          "type": "array",
+          "minItems": 9,
+          "maxItems": 9,
+          "items": {
+            "oneOf": [
+              {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "id",
+                  "kind",
+                  "sha256"
+                ],
+                "properties": {
+                  "id": {
+                    "enum": [
+                      "dispatch_payload",
+                      "dispatch_evidence",
+                      "verifier_release",
+                      "qualification_contract",
+                      "qualification_contract_checkout_identity",
+                      "execution_evidence"
+                    ]
+                  },
+                  "kind": {
+                    "const": "evidence"
+                  },
+                  "sha256": {
+                    "type": "string",
+                    "pattern": "^[0-9a-f]{64}$"
+                  }
+                }
+              },
+              {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "id",
+                  "kind",
+                  "commit_sha",
+                  "tree_sha",
+                  "blob_sha"
+                ],
+                "properties": {
+                  "id": {
+                    "const": "contract_identity"
+                  },
+                  "kind": {
+                    "const": "identity"
+                  },
+                  "commit_sha": {
+                    "type": "string",
+                    "pattern": "^[0-9a-f]{40}$"
+                  },
+                  "tree_sha": {
+                    "type": "string",
+                    "pattern": "^[0-9a-f]{40}$"
+                  },
+                  "blob_sha": {
+                    "type": "string",
+                    "pattern": "^[0-9a-f]{40}$"
+                  }
+                }
+              },
+              {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "id",
+                  "kind",
+                  "head_sha",
+                  "tree_sha"
+                ],
+                "properties": {
+                  "id": {
+                    "const": "subject_identity"
+                  },
+                  "kind": {
+                    "const": "identity"
+                  },
+                  "head_sha": {
+                    "type": "string",
+                    "pattern": "^[0-9a-f]{40}$"
+                  },
+                  "tree_sha": {
+                    "type": "string",
+                    "pattern": "^[0-9a-f]{40}$"
+                  }
+                }
+              },
+              {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "id",
+                  "kind",
+                  "value"
+                ],
+                "properties": {
+                  "id": {
+                    "const": "final_result"
+                  },
+                  "kind": {
+                    "const": "observation"
+                  },
+                  "value": {
+                    "enum": [
+                      "TheoremExecutedPass",
+                      "TheoremExecutedFail",
+                      "InfrastructureFailure"
+                    ]
+                  }
+                }
+              }
+            ]
+          }
+        },
+        "edges": {
+          "type": "array",
+          "minItems": 6,
+          "maxItems": 6,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "from",
+              "type",
+              "to"
+            ],
+            "properties": {
+              "from": {
+                "type": "string"
+              },
+              "type": {
+                "enum": [
+                  "binds",
+                  "selects",
+                  "materializes",
+                  "uses",
+                  "targets",
+                  "produces"
+                ]
+              },
+              "to": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      }
+    }
   }
 }
