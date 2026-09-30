@@ -106,6 +106,7 @@ SEMANTIC_BINDINGS = {
     "contract_commit_sha": {
         "source": ("qualification_contract_checkout_identity", "contract_commit_sha"),
         "graph": ("contract_identity", "commit_sha"),
+        "coverage_class": "enforced",
         "relationship_operand_kind": "value",
         "enforced_by": (
             ("dispatch_payload", "binds", "qualification_contract"),
@@ -124,6 +125,7 @@ SEMANTIC_BINDINGS = {
     "verifier_release_sha256": {
         "source": ("dispatch_evidence", "release_sha256"),
         "graph": ("verifier_release", "sha256"),
+        "coverage_class": "enforced",
         "relationship_operand_kind": "member_sha256",
         "enforced_by": (
             ("dispatch_payload", "selects", "verifier_release"),
@@ -138,6 +140,7 @@ SEMANTIC_BINDINGS = {
     "contract_tree_sha": {
         "source": ("qualification_contract_checkout_identity", "contract_tree_sha"),
         "graph": ("contract_identity", "tree_sha"),
+        "coverage_class": "retained",
         "relationship_operand_kind": None,
         "enforced_by": (),
         "enforcement_checks": (),
@@ -146,6 +149,7 @@ SEMANTIC_BINDINGS = {
     "contract_blob_sha": {
         "source": ("qualification_contract_checkout_identity", "contract_blob_sha"),
         "graph": ("contract_identity", "blob_sha"),
+        "coverage_class": "enforced",
         "relationship_operand_kind": "git_blob_sha",
         "enforced_by": (
             ("qualification_contract_checkout_identity", "materializes", "qualification_contract"),
@@ -160,6 +164,7 @@ SEMANTIC_BINDINGS = {
     "subject_head_sha": {
         "source": ("execution_evidence", "subject_head_sha"),
         "graph": ("subject_identity", "head_sha"),
+        "coverage_class": "enforced",
         "relationship_operand_kind": "value",
         "enforced_by": (
             ("execution_evidence", "targets", "subject_identity"),
@@ -174,6 +179,7 @@ SEMANTIC_BINDINGS = {
     "contract_subject_head_sha": {
         "source": ("qualification_contract", "subject_head_sha"),
         "graph": ("subject_identity", "head_sha"),
+        "coverage_class": "enforced",
         "relationship_operand_kind": "value",
         "enforced_by": (
             ("dispatch_payload", "binds", "qualification_contract"),
@@ -196,6 +202,7 @@ SEMANTIC_BINDINGS = {
     "final_result": {
         "source": ("execution_evidence", "final_result"),
         "graph": ("final_result", "value"),
+        "coverage_class": "enforced",
         "relationship_operand_kind": "value",
         "enforced_by": (
             ("execution_evidence", "produces", "final_result"),
@@ -253,7 +260,7 @@ def _validate_relationship_contract_catalog() -> None:
 
     declared_edges = set(GRAPH_EDGES)
     for binding, spec in SEMANTIC_BINDINGS.items():
-        if set(spec) != {"source", "graph", "relationship_operand_kind", "enforced_by", "enforcement_checks", "purpose"}:
+        if set(spec) != {"source", "graph", "coverage_class", "relationship_operand_kind", "enforced_by", "enforcement_checks", "purpose"}:
             _fail(f"semantic binding {binding} has a non-canonical field set")
         if not isinstance(binding, str) or not binding:
             _fail("semantic binding id must be non-empty")
@@ -261,8 +268,11 @@ def _validate_relationship_contract_catalog() -> None:
         graph_field = spec["graph"]
         enforced_by = spec["enforced_by"]
         enforcement_checks = spec["enforcement_checks"]
+        coverage_class = spec["coverage_class"]
         operand_kind = spec["relationship_operand_kind"]
         purpose = spec["purpose"]
+        if coverage_class not in {"enforced", "retained"}:
+            _fail(f"semantic binding {binding} has an invalid coverage class")
         if operand_kind not in {None, "value", "member_sha256", "git_blob_sha", "graph"}:
             _fail(f"semantic binding {binding} has an invalid relationship operand kind")
         if not isinstance(source, tuple) or len(source) != 2:
@@ -271,6 +281,10 @@ def _validate_relationship_contract_catalog() -> None:
             _fail(f"semantic binding {binding} graph projection must be a (node, field) tuple")
         if not isinstance(enforced_by, tuple):
             _fail(f"semantic binding {binding} enforced_by must be a tuple")
+        if coverage_class == "enforced" and not enforced_by:
+            _fail(f"semantic binding {binding} is enforced but has no enforcing relationship")
+        if coverage_class == "retained" and enforced_by:
+            _fail(f"semantic binding {binding} is retained but declares enforcing relationships")
         if operand_kind is not None and not enforced_by:
             _fail(f"semantic binding {binding} declares an operand kind without enforcement")
         if not isinstance(enforcement_checks, tuple):
@@ -537,6 +551,10 @@ def _build_body(directory: Path, manifest_value: dict, manifest_sha256: str) -> 
             for binding, (source_role, source_field) in SEMANTIC_BINDING_SOURCES.items()
         },
         "provenance_graph": graph,
+        "semantic_binding_policy": {
+            binding: SEMANTIC_BINDINGS[binding]["coverage_class"]
+            for binding in SEMANTIC_BINDINGS
+        },
     }
 
 
@@ -570,13 +588,18 @@ def seal(body: dict) -> dict:
 def verify(root_value: dict, directory: Path, manifest_path: Path) -> None:
     expected_fields = {
         "schema_id", "schema_version", "manifest_sha256", "manifest_root_sha256",
-        "member_sha256", "semantic_bindings", "provenance_graph", "root_sha256"
+        "member_sha256", "semantic_bindings", "provenance_graph",
+        "semantic_binding_policy", "root_sha256"
     }
     if set(root_value) != expected_fields:
         _fail("evidence root fields are not the closed v1 set")
     if root_value["schema_id"] != SCHEMA_ID or root_value["schema_version"] != SCHEMA_VERSION:
         _fail("evidence root schema identity mismatch")
     _validate_graph(root_value["provenance_graph"])
+    if root_value["semantic_binding_policy"] != {
+        binding: spec["coverage_class"] for binding, spec in SEMANTIC_BINDINGS.items()
+    }:
+        _fail("evidence root semantic binding policy does not match the retained policy")
     if root_value["root_sha256"] != sha256(
         canonical({k: root_value[k] for k in root_value if k != "root_sha256"})
     ):
