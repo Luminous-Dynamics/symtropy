@@ -169,6 +169,38 @@ class EvidenceRootTests(unittest.TestCase):
         }
         self.assertTrue(value_sources <= declared)
 
+    def test_semantic_binding_catalog_rejects_missing_enforcing_relationship(self):
+        original = root.SEMANTIC_BINDINGS
+        try:
+            malformed = {
+                **original,
+                "contract_commit_sha": {
+                    **original["contract_commit_sha"],
+                    "enforced_by": (("execution_evidence", "uses", "qualification_contract"),),
+                },
+            }
+            root.SEMANTIC_BINDINGS = malformed
+            with self.assertRaises(root.EvidenceRootValidationError):
+                root._validate_relationship_contract_catalog()
+        finally:
+            root.SEMANTIC_BINDINGS = original
+
+    def test_semantic_binding_catalog_rejects_phantom_graph_projection(self):
+        original = root.SEMANTIC_BINDINGS
+        try:
+            malformed = {
+                **original,
+                "subject_head_sha": {
+                    **original["subject_head_sha"],
+                    "graph": ("subject_identity", "not_a_real_field"),
+                },
+            }
+            root.SEMANTIC_BINDINGS = malformed
+            with self.assertRaises(root.EvidenceRootValidationError):
+                root._validate_relationship_contract_catalog()
+        finally:
+            root.SEMANTIC_BINDINGS = original
+
     def test_semantic_binding_catalog_rejects_phantom_source_field(self):
         original = root.SEMANTIC_BINDING_SOURCES
         try:
