@@ -252,7 +252,10 @@ class EvidenceRootTests(unittest.TestCase):
                     "enforcement_checks": (
                         (
                             ("execution_evidence", "produces", "final_result"),
-                            ("graph", "subject_identity", "head_sha"),
+                            (
+                                ("graph", "subject_identity", "head_sha"),
+                                ("value", "execution_evidence", "final_result"),
+                            ),
                         ),
                     ),
                 },
