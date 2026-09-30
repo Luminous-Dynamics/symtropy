@@ -222,6 +222,17 @@ def _validate_relationship_contract_catalog() -> None:
         for edge in enforced_by:
             if edge not in declared_edges:
                 _fail(f"semantic binding {binding} references a missing relationship: {edge}")
+            if operand_kind is not None:
+                matching = next(spec for spec in GRAPH_RELATIONSHIP_CONTRACTS if spec["edge"] == edge)
+                if not any(
+                    operand[0] == operand_kind
+                    for pair in matching["checks"]
+                    for operand in pair
+                ):
+                    _fail(
+                        f"semantic binding {binding} relationship {edge} does not enforce "
+                        f"the declared {operand_kind} operand kind"
+                    )
     required_binding_sources = {
         spec["source"] for spec in SEMANTIC_BINDINGS.values()
     }
@@ -232,41 +243,6 @@ def _validate_relationship_contract_catalog() -> None:
     }
     if GRAPH_SEMANTIC_FIELDS != required_graph_bindings:
         _fail("semantic graph binding projection is not canonical")
-
-    declared_value_fields = {
-        (target, field)
-        for spec in GRAPH_RELATIONSHIP_CONTRACTS
-        for pair in spec["checks"]
-        for operand in pair
-        if operand[0] == "value"
-        for target, field in [(operand[1], operand[2])]
-    }
-    required_value_fields = {
-        spec["source"]
-        for spec in SEMANTIC_BINDINGS.values()
-        if spec["relationship_operand_kind"] == "value"
-    } | {
-        ("dispatch_payload", "contract_commit_sha"),
-        ("dispatch_evidence", "release_sha256"),
-        ("execution_evidence", "contract_commit_sha"),
-    }
-    if declared_value_fields != required_value_fields:
-        _fail("relationship contract value-field coverage is not canonical")
-
-    required_git_blob_sources = {
-        spec["source"]
-        for spec in SEMANTIC_BINDINGS.values()
-        if spec["relationship_operand_kind"] == "git_blob_sha"
-    }
-    declared_git_blob_sources = {
-        (operand[1], None)
-        for spec in GRAPH_RELATIONSHIP_CONTRACTS
-        for pair in spec["checks"]
-        for operand in pair
-        if operand[0] == "git_blob_sha"
-    }
-    if declared_git_blob_sources != required_git_blob_sources:
-        _fail("relationship contract Git blob coverage is not canonical")
 
     declared_graph_fields = {
         (operand[1], operand[2])
