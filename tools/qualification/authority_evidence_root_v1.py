@@ -111,11 +111,13 @@ SEMANTIC_BINDINGS = {
             ("dispatch_payload", "binds", "qualification_contract"),
             ("execution_evidence", "uses", "qualification_contract"),
         ),
-        "enforcement_anchors": (
+        "enforcement_checks": (
             (("dispatch_payload", "binds", "qualification_contract"),
-             ("graph", "contract_identity", "commit_sha")),
+             (("value", "dispatch_payload", "contract_commit_sha"),
+              ("graph", "contract_identity", "commit_sha"))),
             (("execution_evidence", "uses", "qualification_contract"),
-             ("graph", "contract_identity", "commit_sha")),
+             (("value", "execution_evidence", "contract_commit_sha"),
+              ("graph", "contract_identity", "commit_sha"))),
         ),
         "purpose": "bind qualification dispatch and execution to one frozen contract commit",
     },
@@ -124,7 +126,7 @@ SEMANTIC_BINDINGS = {
         "graph": ("contract_identity", "tree_sha"),
         "relationship_operand_kind": None,
         "enforced_by": (),
-        "enforcement_anchors": (),
+        "enforcement_checks": (),
         "purpose": "retain the exact checkout tree identity of the frozen contract",
     },
     "contract_blob_sha": {
@@ -134,9 +136,10 @@ SEMANTIC_BINDINGS = {
         "enforced_by": (
             ("qualification_contract_checkout_identity", "materializes", "qualification_contract"),
         ),
-        "enforcement_anchors": (
+        "enforcement_checks": (
             (("qualification_contract_checkout_identity", "materializes", "qualification_contract"),
-             ("git_blob_sha", "qualification_contract")),
+             (("value", "qualification_contract_checkout_identity", "contract_blob_sha"),
+              ("git_blob_sha", "qualification_contract"))),
         ),
         "purpose": "bind the checkout identity to the exact retained contract bytes",
     },
@@ -147,9 +150,10 @@ SEMANTIC_BINDINGS = {
         "enforced_by": (
             ("execution_evidence", "targets", "subject_identity"),
         ),
-        "enforcement_anchors": (
+        "enforcement_checks": (
             (("execution_evidence", "targets", "subject_identity"),
-             ("graph", "subject_identity", "head_sha")),
+             (("value", "execution_evidence", "subject_head_sha"),
+              ("graph", "subject_identity", "head_sha"))),
         ),
         "purpose": "bind execution evidence to one immutable subject revision",
     },
@@ -158,7 +162,7 @@ SEMANTIC_BINDINGS = {
         "graph": ("subject_identity", "tree_sha"),
         "relationship_operand_kind": None,
         "enforced_by": (),
-        "enforcement_anchors": (),
+        "enforcement_checks": (),
         "purpose": "retain the subject checkout tree identity",
     },
     "final_result": {
@@ -168,9 +172,10 @@ SEMANTIC_BINDINGS = {
         "enforced_by": (
             ("execution_evidence", "produces", "final_result"),
         ),
-        "enforcement_anchors": (
+        "enforcement_checks": (
             (("execution_evidence", "produces", "final_result"),
-             ("graph", "final_result", "value")),
+             (("value", "execution_evidence", "final_result"),
+              ("graph", "final_result", "value"))),
         ),
         "purpose": "bind the observed qualification result to retained execution evidence",
     },
@@ -220,14 +225,14 @@ def _validate_relationship_contract_catalog() -> None:
 
     declared_edges = set(GRAPH_EDGES)
     for binding, spec in SEMANTIC_BINDINGS.items():
-        if set(spec) != {"source", "graph", "relationship_operand_kind", "enforced_by", "enforcement_anchors", "purpose"}:
+        if set(spec) != {"source", "graph", "relationship_operand_kind", "enforced_by", "enforcement_checks", "purpose"}:
             _fail(f"semantic binding {binding} has a non-canonical field set")
         if not isinstance(binding, str) or not binding:
             _fail("semantic binding id must be non-empty")
         source = spec["source"]
         graph_field = spec["graph"]
         enforced_by = spec["enforced_by"]
-        enforcement_anchors = spec["enforcement_anchors"]
+        enforcement_checks = spec["enforcement_checks"]
         operand_kind = spec["relationship_operand_kind"]
         purpose = spec["purpose"]
         if operand_kind not in {None, "value", "member_sha256", "git_blob_sha", "graph"}:
@@ -240,30 +245,27 @@ def _validate_relationship_contract_catalog() -> None:
             _fail(f"semantic binding {binding} enforced_by must be a tuple")
         if operand_kind is not None and not enforced_by:
             _fail(f"semantic binding {binding} declares an operand kind without enforcement")
-        if not isinstance(enforcement_anchors, tuple):
-            _fail(f"semantic binding {binding} enforcement_anchors must be a tuple")
-        if len(enforcement_anchors) != len(enforced_by):
+        if not isinstance(enforcement_checks, tuple):
+            _fail(f"semantic binding {binding} enforcement_checks must be a tuple")
+        if len(enforcement_checks) != len(enforced_by):
             _fail(f"semantic binding {binding} enforcement anchors must cover every enforcing relationship")
         if not isinstance(purpose, str) or not purpose:
             _fail(f"semantic binding {binding} purpose must be non-empty")
         for edge in enforced_by:
             if edge not in declared_edges:
                 _fail(f"semantic binding {binding} references a missing relationship: {edge}")
-        for anchor_edge, anchor_operand in enforcement_anchors:
-            if anchor_edge not in enforced_by:
-                _fail(f"semantic binding {binding} anchor references a non-enforcing relationship: {anchor_edge}")
-            matching = next(spec for spec in GRAPH_RELATIONSHIP_CONTRACTS if spec["edge"] == anchor_edge)
-            if not any(
-                anchor_operand in pair
-                for pair in matching["checks"]
-            ):
+        for check_edge, check_pair in enforcement_checks:
+            if check_edge not in enforced_by:
+                _fail(f"semantic binding {binding} check references a non-enforcing relationship: {check_edge}")
+            matching = next(spec for spec in GRAPH_RELATIONSHIP_CONTRACTS if spec["edge"] == check_edge)
+            if check_pair not in matching["checks"]:
                 _fail(
-                    f"semantic binding {binding} relationship {anchor_edge} "
-                    f"does not contain its declared enforcement anchor"
+                    f"semantic binding {binding} relationship {check_edge} "
+                    f"does not contain its declared enforcement check"
                 )
-            if operand_kind is not None and anchor_operand[0] != operand_kind:
+            if operand_kind is not None and not any(operand[0] == operand_kind for operand in check_pair):
                 _fail(
-                    f"semantic binding {binding} anchor kind does not match "
+                    f"semantic binding {binding} enforcement check does not contain "
                     f"the declared {operand_kind} operand kind"
                 )
     required_binding_sources = {
@@ -276,6 +278,21 @@ def _validate_relationship_contract_catalog() -> None:
     }
     if GRAPH_SEMANTIC_FIELDS != required_graph_bindings:
         _fail("semantic graph binding projection is not canonical")
+
+    classified_checks = {
+        check_pair
+        for spec in SEMANTIC_BINDINGS.values()
+        for _, check_pair in spec["enforcement_checks"]
+    }
+    all_checks = {
+        check_pair
+        for spec in GRAPH_RELATIONSHIP_CONTRACTS
+        for check_pair in spec["checks"]
+    }
+    if len(classified_checks) != sum(len(spec["enforcement_checks"]) for spec in SEMANTIC_BINDINGS.values()):
+        _fail("relationship checks are classified more than once")
+    if classified_checks != all_checks:
+        _fail("relationship checks are not exactly covered by semantic bindings")
 
     declared_graph_fields = {
         (operand[1], operand[2])
