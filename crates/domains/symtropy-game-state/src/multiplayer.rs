@@ -1020,6 +1020,107 @@ mod tests {
     }
 
     #[test]
+    fn session_persisted_record_field_substitution_fails_closed() {
+        let original = session(vec![identity(7), identity(8)]);
+        let encoded = serde_json::to_vec(&original).expect("serialize session");
+        let decoded: MultiplayerSessionV1 =
+            serde_json::from_slice(&encoded).expect("deserialize session");
+
+        let mut variants = Vec::new();
+        let mut world_instance = decoded.clone();
+        world_instance.world_instance = identity(9);
+        variants.push(world_instance);
+        let mut world_continuation = decoded.clone();
+        world_continuation.world_continuation = identity(9);
+        variants.push(world_continuation);
+        let mut simulation = decoded.clone();
+        simulation.simulation_identity = identity(9);
+        variants.push(simulation);
+        let mut ruleset = decoded.clone();
+        ruleset.ruleset_identity = identity(9);
+        variants.push(ruleset);
+        let mut initial_state = decoded.clone();
+        initial_state.initial_state_commitment = digest(9);
+        variants.push(initial_state);
+        let mut authority = decoded.clone();
+        authority.authority_config = identity(9);
+        variants.push(authority);
+        let mut participants = decoded.clone();
+        participants.participants.swap(0, 1);
+        variants.push(participants);
+
+        for variant in variants {
+            assert!(matches!(
+                variant.verify_commitment(),
+                Err(
+                    StateError::MultiplayerCommitmentMismatch
+                        | StateError::NonCanonicalMultiplayerParticipants
+                )
+            ));
+        }
+    }
+
+    #[test]
+    fn checkpoint_persisted_record_field_substitution_fails_closed() {
+        let session = session(vec![identity(7)]);
+        let original = StateCheckpointV1::new(
+            session.session_digest,
+            identity(1),
+            0,
+            100,
+            100,
+            None,
+            digest(10),
+            digest(11),
+            identity(3),
+            identity(4),
+        )
+        .expect("checkpoint");
+        let encoded = serde_json::to_vec(&original).expect("serialize checkpoint");
+        let decoded: StateCheckpointV1 =
+            serde_json::from_slice(&encoded).expect("deserialize checkpoint");
+
+        let mut variants = Vec::new();
+        let mut session_digest = decoded.clone();
+        session_digest.session_digest = digest(20);
+        variants.push(session_digest);
+        let mut world_instance = decoded.clone();
+        world_instance.world_instance = identity(20);
+        variants.push(world_instance);
+        let mut epoch = decoded.clone();
+        epoch.authority_epoch += 1;
+        variants.push(epoch);
+        let mut tick = decoded.clone();
+        tick.simulation_tick += 1;
+        variants.push(tick);
+        let mut instant = decoded.clone();
+        instant.simulation_instant += 1;
+        variants.push(instant);
+        let mut predecessor = decoded.clone();
+        predecessor.previous_checkpoint = Some(digest(20));
+        variants.push(predecessor);
+        let mut state = decoded.clone();
+        state.state_digest = digest(20);
+        variants.push(state);
+        let mut continuation = decoded.clone();
+        continuation.continuation_digest = digest(20);
+        variants.push(continuation);
+        let mut simulation = decoded.clone();
+        simulation.simulation_identity = identity(20);
+        variants.push(simulation);
+        let mut ruleset = decoded.clone();
+        ruleset.ruleset_identity = identity(20);
+        variants.push(ruleset);
+
+        for variant in variants {
+            assert!(matches!(
+                variant.verify_commitment(),
+                Err(StateError::MultiplayerCommitmentMismatch)
+            ));
+        }
+    }
+
+    #[test]
     fn serde_round_trip_preserves_commitment_contract_but_does_not_validate_it() {
         let original = session(vec![identity(7), identity(8)]);
         let encoded = serde_json::to_vec(&original).expect("serialize session");
