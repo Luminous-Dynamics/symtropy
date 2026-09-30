@@ -155,19 +155,15 @@ class EvidenceRootTests(unittest.TestCase):
         self.assertEqual(root.RELATIONSHIP_VALUE_FIELDS["qualification_contract"], frozenset(contract_v1.FIELDS))
         self.assertEqual(root.RELATIONSHIP_VALUE_FIELDS["execution_evidence"], frozenset(envelope.REQUIRED_EXECUTION_FIELDS))
 
-    def test_semantic_binding_coverage_is_derived_not_duplicated(self):
-        value_sources = {
-            source
-            for source in root.SEMANTIC_BINDING_SOURCES.values()
-        }
-        declared = {
-            (operand[1], operand[2])
-            for spec in root.GRAPH_RELATIONSHIP_CONTRACTS
-            for pair in spec["checks"]
-            for operand in pair
-            if operand[0] == "value"
-        }
-        self.assertTrue(value_sources <= declared)
+    def test_semantic_binding_projections_are_derived_not_duplicated(self):
+        self.assertEqual(
+            root.SEMANTIC_BINDING_SOURCES,
+            {binding: spec["source"] for binding, spec in root.SEMANTIC_BINDINGS.items()},
+        )
+        self.assertEqual(
+            root.GRAPH_SEMANTIC_FIELDS,
+            {spec["graph"]: spec["source"] for spec in root.SEMANTIC_BINDINGS.values()},
+        )
 
     def test_semantic_binding_catalog_rejects_missing_enforcing_relationship(self):
         original = root.SEMANTIC_BINDINGS
@@ -176,7 +172,7 @@ class EvidenceRootTests(unittest.TestCase):
                 **original,
                 "contract_commit_sha": {
                     **original["contract_commit_sha"],
-                    "enforced_by": (("execution_evidence", "uses", "qualification_contract"),),
+                    "enforced_by": (),
                 },
             }
             root.SEMANTIC_BINDINGS = malformed
