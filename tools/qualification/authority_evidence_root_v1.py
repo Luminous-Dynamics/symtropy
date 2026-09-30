@@ -22,6 +22,19 @@ MEMBER_ROLES = (
     ("qualification-execution-evidence-v1.json", "execution_evidence"),
 )
 FINAL_RESULTS = {"TheoremExecutedPass", "TheoremExecutedFail", "InfrastructureFailure"}
+GRAPH_NODE_IDS = (
+    "dispatch_payload", "dispatch_evidence", "verifier_release",
+    "qualification_contract", "qualification_contract_checkout_identity",
+    "execution_evidence", "contract_identity", "subject_identity", "final_result",
+)
+GRAPH_EDGES = (
+    ("dispatch_payload", "binds", "qualification_contract"),
+    ("dispatch_payload", "selects", "verifier_release"),
+    ("qualification_contract_checkout_identity", "materializes", "qualification_contract"),
+    ("execution_evidence", "uses", "qualification_contract"),
+    ("execution_evidence", "targets", "subject_identity"),
+    ("execution_evidence", "produces", "final_result"),
+)
 
 
 class EvidenceRootValidationError(ValueError):
@@ -74,6 +87,65 @@ def load_member(directory: Path, name: str):
     return raw, load_json(raw)
 
 
+def _build_graph(values: dict, members: dict) -> dict:
+    checkout = values["qualification_contract_checkout_identity"]
+    contract = values["qualification_contract"]
+    dispatch = values["dispatch_payload"]
+    dispatch_evidence = values["dispatch_evidence"]
+    execution = values["execution_evidence"]
+    nodes = [
+        *[{"id": role, "kind": "evidence", "sha256": members[role]} for _, role in MEMBER_ROLES],
+        {"id": "contract_identity", "kind": "identity",
+         "commit_sha": checkout["contract_commit_sha"],
+         "tree_sha": checkout["contract_tree_sha"],
+         "blob_sha": checkout["contract_blob_sha"]},
+        {"id": "subject_identity", "kind": "identity",
+         "head_sha": execution["subject_head_sha"],
+         "tree_sha": execution["subject_tree_sha"]},
+        {"id": "final_result", "kind": "observation", "value": execution["final_result"]},
+    ]
+    edges = [{"from": source, "type": edge_type, "to": target}
+             for source, edge_type, target in GRAPH_EDGES]
+    if dispatch["contract_commit_sha"] != checkout["contract_commit_sha"]:
+        _fail("graph dispatch binding does not match contract identity")
+    if dispatch_evidence["release_sha256"] != members["verifier_release"]:
+        _fail("graph release selection does not match retained release evidence")
+    if execution["contract_commit_sha"] != checkout["contract_commit_sha"]:
+        _fail("graph execution/contract identity binding mismatch")
+    if execution["subject_head_sha"] != contract["subject_head_sha"]:
+        _fail("graph execution/subject binding mismatch")
+    return {"nodes": nodes, "edges": edges}
+
+
+def _validate_graph(graph: object) -> None:
+    if not isinstance(graph, dict) or set(graph) != {"nodes", "edges"}:
+        _fail("provenance graph fields are not the closed v1 set")
+    nodes, edges = graph["nodes"], graph["edges"]
+    if not isinstance(nodes, list) or len(nodes) != len(GRAPH_NODE_IDS):
+        _fail("provenance graph node count mismatch")
+    if [n.get("id") if isinstance(n, dict) else None for n in nodes] != list(GRAPH_NODE_IDS):
+        _fail("provenance graph node identity/order mismatch")
+    expected_edges = [{"from": s, "type": t, "to": d} for s, t, d in GRAPH_EDGES]
+    if edges != expected_edges:
+        _fail("provenance graph relationship set mismatch")
+    if not isinstance(edges, list) or len(edges) != len(GRAPH_EDGES):
+        _fail("provenance graph edge count mismatch")
+    for node in nodes[:len(MEMBER_ROLES)]:
+        if set(node) != {"id", "kind", "sha256"} or node["kind"] != "evidence":
+            _fail("provenance graph evidence node is invalid")
+        if not isinstance(node["sha256"], str) or len(node["sha256"]) != 64 or any(c not in "0123456789abcdef" for c in node["sha256"]):
+            _fail("provenance graph evidence digest is invalid")
+    contract_node = nodes[len(MEMBER_ROLES)]
+    if set(contract_node) != {"id", "kind", "commit_sha", "tree_sha", "blob_sha"} or contract_node["kind"] != "identity":
+        _fail("provenance graph contract identity node is invalid")
+    subject_node = nodes[len(MEMBER_ROLES) + 1]
+    if set(subject_node) != {"id", "kind", "head_sha", "tree_sha"} or subject_node["kind"] != "identity":
+        _fail("provenance graph subject identity node is invalid")
+    result_node = nodes[len(MEMBER_ROLES) + 2]
+    if set(result_node) != {"id", "kind", "value"} or result_node["kind"] != "observation" or result_node["value"] not in FINAL_RESULTS:
+        _fail("provenance graph result observation is invalid")
+
+
 def _build_body(directory: Path, manifest_value: dict, manifest_sha256: str) -> dict:
     members = {}
     values = {}
@@ -99,6 +171,9 @@ def _build_body(directory: Path, manifest_value: dict, manifest_sha256: str) -> 
     if execution["final_result"] not in FINAL_RESULTS:
         _fail("execution final_result is invalid")
 
+    graph = _build_graph(values, members)
+    _validate_graph(graph)
+
     return {
         "schema_id": SCHEMA_ID,
         "schema_version": SCHEMA_VERSION,
@@ -113,6 +188,7 @@ def _build_body(directory: Path, manifest_value: dict, manifest_sha256: str) -> 
             "subject_tree_sha": execution["subject_tree_sha"],
             "final_result": execution["final_result"],
         },
+        "provenance_graph": graph,
     }
 
 
@@ -146,12 +222,13 @@ def seal(body: dict) -> dict:
 def verify(root_value: dict, directory: Path, manifest_path: Path) -> None:
     expected_fields = {
         "schema_id", "schema_version", "manifest_sha256", "manifest_root_sha256",
-        "member_sha256", "semantic_bindings", "root_sha256"
+        "member_sha256", "semantic_bindings", "provenance_graph", "root_sha256"
     }
     if set(root_value) != expected_fields:
         _fail("evidence root fields are not the closed v1 set")
     if root_value["schema_id"] != SCHEMA_ID or root_value["schema_version"] != SCHEMA_VERSION:
         _fail("evidence root schema identity mismatch")
+    _validate_graph(root_value["provenance_graph"])
     if root_value["root_sha256"] != sha256(
         canonical({k: root_value[k] for k in root_value if k != "root_sha256"})
     ):
