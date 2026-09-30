@@ -105,6 +105,67 @@ class EvidenceRootTests(unittest.TestCase):
                     self.assertGreaterEqual(len(operand), 2)
 
 
+    def test_relationship_contract_catalog_rejects_unknown_operand_field(self):
+        original = root.GRAPH_RELATIONSHIP_CONTRACTS
+        try:
+            malformed = dict(original[0])
+            malformed["checks"] = (
+                ((("value", "dispatch_payload", "not_a_real_field")),
+                 (("graph", "contract_identity", "commit_sha"))),
+            )
+            root.GRAPH_RELATIONSHIP_CONTRACTS = (malformed, *original[1:])
+            with self.assertRaises(root.EvidenceRootValidationError):
+                root._validate_relationship_contract_catalog()
+        finally:
+            root.GRAPH_RELATIONSHIP_CONTRACTS = original
+
+    def test_relationship_contract_catalog_rejects_missing_checks(self):
+        original = root.GRAPH_RELATIONSHIP_CONTRACTS
+        try:
+            malformed = dict(original[0])
+            malformed["checks"] = ()
+            root.GRAPH_RELATIONSHIP_CONTRACTS = (malformed, *original[1:])
+            with self.assertRaises(root.EvidenceRootValidationError):
+                root._validate_relationship_contract_catalog()
+        finally:
+            root.GRAPH_RELATIONSHIP_CONTRACTS = original
+
+    def test_relationship_contract_catalog_rejects_unknown_operand_kind(self):
+        original = root.GRAPH_RELATIONSHIP_CONTRACTS
+        try:
+            malformed = dict(original[0])
+            malformed["checks"] = (
+                ((("mystery", "dispatch_payload")),
+                 (("graph", "contract_identity", "commit_sha"))),
+            )
+            root.GRAPH_RELATIONSHIP_CONTRACTS = (malformed, *original[1:])
+            with self.assertRaises(root.EvidenceRootValidationError):
+                root._validate_relationship_contract_catalog()
+        finally:
+            root.GRAPH_RELATIONSHIP_CONTRACTS = original
+
+    def test_relationship_contract_catalog_covers_only_declared_graph_semantics(self):
+        root._validate_relationship_contract_catalog()
+        value_fields = {
+            (operand[1], operand[2])
+            for spec in root.GRAPH_RELATIONSHIP_CONTRACTS
+            for pair in spec["checks"]
+            for operand in pair
+            if operand[0] == "value"
+        }
+        self.assertEqual(
+            value_fields,
+            {
+                ("dispatch_payload", "contract_commit_sha"),
+                ("dispatch_evidence", "release_sha256"),
+                ("qualification_contract", "subject_head_sha"),
+                ("qualification_contract_checkout_identity", "contract_blob_sha"),
+                ("execution_evidence", "contract_commit_sha"),
+                ("execution_evidence", "subject_head_sha"),
+                ("execution_evidence", "final_result"),
+            },
+        )
+
     def test_root_exposes_typed_provenance_graph(self):
         with tempfile.TemporaryDirectory() as d:
             directory = Path(d)
