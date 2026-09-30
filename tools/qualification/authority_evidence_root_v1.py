@@ -129,10 +129,12 @@ def load_member(directory: Path, name: str):
 
 
 def _git_blob_sha(raw: bytes) -> str:
-    return hashlib.sha1(b"blob " + str(len(raw)).encode("ascii") + b"\\0" + raw).hexdigest()
+    return hashlib.sha1(
+        b"blob " + str(len(raw)).encode("ascii") + b"\0" + raw
+    ).hexdigest()
 
 
-def _resolve_relationship_operand(operand, values, members, graph):
+def _resolve_relationship_operand(operand, values, raw_members, members, graph):
     kind, target, *field = operand
     if kind == "value":
         if len(field) != 1:
@@ -145,7 +147,7 @@ def _resolve_relationship_operand(operand, values, members, graph):
     if kind == "git_blob_sha":
         if field:
             _fail("relationship Git blob operand cannot name a field")
-        return _git_blob_sha(values[target]["_raw_bytes"])
+        return _git_blob_sha(raw_members[target])
     if kind == "graph":
         if len(field) != 1:
             _fail("relationship graph operand must name exactly one field")
@@ -156,18 +158,18 @@ def _resolve_relationship_operand(operand, values, members, graph):
     _fail(f"unknown relationship operand kind: {kind}")
 
 
-def _validate_relationship_contracts(values, members, graph):
+def _validate_relationship_contracts(values, raw_members, members, graph):
     expected_edges = tuple(spec["edge"] for spec in GRAPH_RELATIONSHIP_CONTRACTS)
     if expected_edges != GRAPH_EDGES:
         _fail("relationship contract edge projection mismatch")
     for spec in GRAPH_RELATIONSHIP_CONTRACTS:
         for left, right in spec["checks"]:
-            if _resolve_relationship_operand(left, values, members, graph) != _resolve_relationship_operand(right, values, members, graph):
+            if _resolve_relationship_operand(left, values, raw_members, members, graph) != _resolve_relationship_operand(right, values, raw_members, members, graph):
                 source, edge_type, target = spec["edge"]
                 _fail(f"graph relationship contract failed for {source} --{edge_type}--> {target}")
 
 
-def _build_graph(values: dict, members: dict) -> dict:
+def _build_graph(values: dict, raw_members: dict, members: dict) -> dict:
     checkout = values["qualification_contract_checkout_identity"]
     contract = values["qualification_contract"]
     dispatch = values["dispatch_payload"]
@@ -187,7 +189,7 @@ def _build_graph(values: dict, members: dict) -> dict:
     edges = [{"from": source, "type": edge_type, "to": target}
              for source, edge_type, target in GRAPH_EDGES]
     graph = {"nodes": nodes, "edges": edges}
-    _validate_relationship_contracts(values, members, graph)
+    _validate_relationship_contracts(values, raw_members, members, graph)
     return graph
 
 
@@ -222,12 +224,13 @@ def _validate_graph(graph: object) -> None:
 
 def _build_body(directory: Path, manifest_value: dict, manifest_sha256: str) -> dict:
     members = {}
+    raw_members = {}
     values = {}
     for name, role in MEMBER_ROLES:
         raw, value = load_member(directory, name)
         members[role] = sha256(raw)
+        raw_members[role] = raw
         values[role] = value
-        values[role]["_raw_bytes"] = raw
 
     checkout = values["qualification_contract_checkout_identity"]
     contract = values["qualification_contract"]
@@ -236,7 +239,7 @@ def _build_body(directory: Path, manifest_value: dict, manifest_sha256: str) -> 
     if checkout["contract_commit_sha"] != contract.get("subject_head_sha") and checkout["contract_commit_sha"] != values["dispatch_payload"]["contract_commit_sha"]:
         _fail("checkout identity is not bound to the dispatched contract commit")
 
-    contract_raw = values["qualification_contract"]["_raw_bytes"]
+    contract_raw = raw_members["qualification_contract"]
     blob = _git_blob_sha(contract_raw)
     if checkout["contract_blob_sha"] != blob:
         _fail("checkout identity blob does not match retained contract bytes")
@@ -244,11 +247,8 @@ def _build_body(directory: Path, manifest_value: dict, manifest_sha256: str) -> 
     if execution["final_result"] not in FINAL_RESULTS:
         _fail("execution final_result is invalid")
 
-    graph = _build_graph(values, members)
+    graph = _build_graph(values, raw_members, members)
     _validate_graph(graph)
-
-    for value in values.values():
-        value.pop("_raw_bytes", None)
 
     return {
         "schema_id": SCHEMA_ID,
