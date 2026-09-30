@@ -33,6 +33,8 @@ GRAPH_RELATIONSHIP_CONTRACTS = (
         "checks": (
             (("value", "dispatch_payload", "contract_commit_sha"),
              ("graph", "contract_identity", "commit_sha")),
+            (("value", "dispatch_payload", "contract_commit_sha"),
+             ("value", "qualification_contract", "subject_head_sha")),
         ),
     },
     {
@@ -61,6 +63,8 @@ GRAPH_RELATIONSHIP_CONTRACTS = (
         "checks": (
             (("value", "execution_evidence", "subject_head_sha"),
              ("graph", "subject_identity", "head_sha")),
+            (("value", "execution_evidence", "subject_head_sha"),
+             ("value", "qualification_contract", "subject_head_sha")),
         ),
     },
     {
@@ -182,14 +186,6 @@ def _build_graph(values: dict, members: dict) -> dict:
     ]
     edges = [{"from": source, "type": edge_type, "to": target}
              for source, edge_type, target in GRAPH_EDGES]
-    if dispatch["contract_commit_sha"] != checkout["contract_commit_sha"]:
-        _fail("graph dispatch binding does not match contract identity")
-    if dispatch_evidence["release_sha256"] != members["verifier_release"]:
-        _fail("graph release selection does not match retained release evidence")
-    if execution["contract_commit_sha"] != checkout["contract_commit_sha"]:
-        _fail("graph execution/contract identity binding mismatch")
-    if execution["subject_head_sha"] != contract["subject_head_sha"]:
-        _fail("graph execution/subject binding mismatch")
     graph = {"nodes": nodes, "edges": edges}
     _validate_relationship_contracts(values, members, graph)
     return graph
