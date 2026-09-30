@@ -471,6 +471,32 @@ mod tests {
     }
 
     #[test]
+    fn replay_claim_cannot_be_transplanted_between_sessions() {
+        let first = session(vec![identity(7)]);
+        let second = MultiplayerSessionV1::new(
+            identity(9),
+            identity(10),
+            identity(3),
+            identity(4),
+            digest(5),
+            identity(6),
+            vec![identity(8)],
+            ReplayProfile::BitExactReplay,
+        )
+        .expect("second session");
+
+        assert_ne!(first.session_digest, second.session_digest);
+        assert_ne!(first.replay_claim_digest, second.replay_claim_digest);
+
+        let mut transplanted = second;
+        transplanted.replay_claim_digest = first.replay_claim_digest;
+        assert!(matches!(
+            transplanted.verify_commitment(),
+            Err(StateError::MultiplayerCommitmentMismatch)
+        ));
+    }
+
+    #[test]
     fn commitment_verification_is_not_owner_evidence() {
         let s = session(vec![identity(7)]);
         let checkpoint = StateCheckpointV1::new(
