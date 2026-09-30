@@ -116,6 +116,19 @@ def _build_body(directory: Path, manifest_value: dict, manifest_sha256: str) -> 
     }
 
 
+def _replay_envelope(directory: Path) -> None:
+    envelope_args = [
+        "--payload", str(directory / "authority-dispatch-payload.json"),
+        "--dispatch-evidence", str(directory / "authority-dispatch-evidence.json"),
+        "--release", str(directory / "verifier-release-v1.json"),
+        "--contract", str(directory / "qualification-contract-v1.json"),
+        "--execution-evidence", str(directory / "qualification-execution-evidence-v1.json"),
+        "--contract-checkout-identity", str(directory / "qualification-contract-checkout-identity-v1.json"),
+    ]
+    if envelope.main(envelope_args) != 0:
+        _fail("complete authority envelope replay failed")
+
+
 def build(directory: Path, manifest_path: Path) -> dict:
     try:
         manifest_raw = manifest_path.read_bytes()
@@ -123,8 +136,8 @@ def build(directory: Path, manifest_path: Path) -> dict:
         _fail(f"cannot read manifest: {exc}")
     manifest_value, manifest_sha256 = manifest.load(manifest_raw)
     manifest.verify(manifest_value, directory)
+    _replay_envelope(directory)
     return _build_body(directory, manifest_value, manifest_sha256)
-
 
 def seal(body: dict) -> dict:
     return {**body, "root_sha256": sha256(canonical(body))}
@@ -147,18 +160,6 @@ def verify(root_value: dict, directory: Path, manifest_path: Path) -> None:
     body = build(directory, manifest_path)
     if body != {k: root_value[k] for k in body}:
         _fail("evidence root body does not match retained evidence")
-
-    envelope_args = [
-        "--payload", str(directory / "authority-dispatch-payload.json"),
-        "--dispatch-evidence", str(directory / "authority-dispatch-evidence.json"),
-        "--release", str(directory / "verifier-release-v1.json"),
-        "--contract", str(directory / "qualification-contract-v1.json"),
-        "--execution-evidence", str(directory / "qualification-execution-evidence-v1.json"),
-        "--contract-checkout-identity", str(directory / "qualification-contract-checkout-identity-v1.json"),
-    ]
-    if envelope.main(envelope_args) != 0:
-        _fail("complete authority envelope replay failed")
-
 
 def main(argv=None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
