@@ -1032,6 +1032,109 @@ mod tests {
     }
 
     #[test]
+    fn checkpoint_successor_rejects_simulation_or_ruleset_substitution() {
+        let s = session(vec![identity(7)]);
+        let first = StateCheckpointV1::new(
+            s.session_digest,
+            identity(1),
+            0,
+            100,
+            100,
+            None,
+            digest(10),
+            digest(11),
+            identity(3),
+            identity(4),
+        )
+        .expect("first");
+
+        let simulation_variant = StateCheckpointV1::new(
+            s.session_digest,
+            identity(1),
+            0,
+            200,
+            200,
+            Some(first.checkpoint_digest),
+            digest(12),
+            digest(13),
+            identity(5),
+            identity(4),
+        )
+        .expect("simulation variant");
+        let ruleset_variant = StateCheckpointV1::new(
+            s.session_digest,
+            identity(1),
+            0,
+            200,
+            200,
+            Some(first.checkpoint_digest),
+            digest(12),
+            digest(13),
+            identity(3),
+            identity(5),
+        )
+        .expect("ruleset variant");
+
+        assert!(!simulation_variant.is_successor_of(&first));
+        assert!(!ruleset_variant.is_successor_of(&first));
+        simulation_variant
+            .verify_commitment()
+            .expect("simulation variant remains self-consistent");
+        ruleset_variant
+            .verify_commitment()
+            .expect("ruleset variant remains self-consistent");
+    }
+
+    #[test]
+    fn checkpoint_successor_rejects_predecessor_from_another_lineage() {
+        let s = session(vec![identity(7)]);
+        let first = StateCheckpointV1::new(
+            s.session_digest,
+            identity(1),
+            0,
+            100,
+            100,
+            None,
+            digest(10),
+            digest(11),
+            identity(3),
+            identity(4),
+        )
+        .expect("first");
+        let foreign = StateCheckpointV1::new(
+            s.session_digest,
+            identity(9),
+            0,
+            100,
+            100,
+            None,
+            digest(20),
+            digest(21),
+            identity(3),
+            identity(4),
+        )
+        .expect("foreign lineage");
+        let mixed = StateCheckpointV1::new(
+            s.session_digest,
+            identity(1),
+            0,
+            200,
+            200,
+            Some(foreign.checkpoint_digest),
+            digest(12),
+            digest(13),
+            identity(3),
+            identity(4),
+        )
+        .expect("mixed lineage");
+
+        assert!(!mixed.is_successor_of(&first));
+        mixed
+            .verify_commitment()
+            .expect("mixed checkpoint remains self-consistent");
+    }
+
+    #[test]
     fn checkpoint_serde_round_trip_preserves_commitment_contract() {
         let session = session(vec![identity(7)]);
         let original = StateCheckpointV1::new(
