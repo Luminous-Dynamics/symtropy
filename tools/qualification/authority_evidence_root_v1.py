@@ -98,24 +98,62 @@ GRAPH_OPERAND_FIELDS = {
     "final_result": frozenset({"value"}),
 }
 
-# These are the only semantic bindings intentionally exposed by the recursive root.
-# Their source fields are authoritative parser/producer fields above; the relationship
-# contract coverage is derived from this catalog rather than duplicated as a second list.
+# One semantic-binding catalog is the policy source for the recursive root.
+# It records the authoritative evidence source, graph projection, enforcing
+# relationship(s), and the invariant each binding is intended to preserve.
+# Derived compatibility maps below are projections, not independent policy.
+SEMANTIC_BINDINGS = {
+    "contract_commit_sha": {
+        "source": ("qualification_contract_checkout_identity", "contract_commit_sha"),
+        "graph": ("contract_identity", "commit_sha"),
+        "enforced_by": (
+            ("dispatch_payload", "binds", "qualification_contract"),
+            ("execution_evidence", "uses", "qualification_contract"),
+        ),
+        "purpose": "bind qualification dispatch and execution to one frozen contract commit",
+    },
+    "contract_tree_sha": {
+        "source": ("qualification_contract_checkout_identity", "contract_tree_sha"),
+        "graph": ("contract_identity", "tree_sha"),
+        "enforced_by": (),
+        "purpose": "retain the exact checkout tree identity of the frozen contract",
+    },
+    "contract_blob_sha": {
+        "source": ("qualification_contract_checkout_identity", "contract_blob_sha"),
+        "graph": ("contract_identity", "blob_sha"),
+        "enforced_by": (
+            ("qualification_contract_checkout_identity", "materializes", "qualification_contract"),
+        ),
+        "purpose": "bind the checkout identity to the exact retained contract bytes",
+    },
+    "subject_head_sha": {
+        "source": ("execution_evidence", "subject_head_sha"),
+        "graph": ("subject_identity", "head_sha"),
+        "enforced_by": (
+            ("execution_evidence", "targets", "subject_identity"),
+        ),
+        "purpose": "bind execution evidence to one immutable subject revision",
+    },
+    "subject_tree_sha": {
+        "source": ("execution_evidence", "subject_tree_sha"),
+        "graph": ("subject_identity", "tree_sha"),
+        "enforced_by": (),
+        "purpose": "retain the subject checkout tree identity",
+    },
+    "final_result": {
+        "source": ("execution_evidence", "final_result"),
+        "graph": ("final_result", "value"),
+        "enforced_by": (
+            ("execution_evidence", "produces", "final_result"),
+        ),
+        "purpose": "bind the observed qualification result to retained execution evidence",
+    },
+}
 SEMANTIC_BINDING_SOURCES = {
-    "contract_commit_sha": ("qualification_contract_checkout_identity", "contract_commit_sha"),
-    "contract_tree_sha": ("qualification_contract_checkout_identity", "contract_tree_sha"),
-    "contract_blob_sha": ("qualification_contract_checkout_identity", "contract_blob_sha"),
-    "subject_head_sha": ("execution_evidence", "subject_head_sha"),
-    "subject_tree_sha": ("execution_evidence", "subject_tree_sha"),
-    "final_result": ("execution_evidence", "final_result"),
+    binding: spec["source"] for binding, spec in SEMANTIC_BINDINGS.items()
 }
 GRAPH_SEMANTIC_FIELDS = {
-    ("contract_identity", "commit_sha"): ("qualification_contract_checkout_identity", "contract_commit_sha"),
-    ("contract_identity", "tree_sha"): ("qualification_contract_checkout_identity", "contract_tree_sha"),
-    ("contract_identity", "blob_sha"): ("qualification_contract_checkout_identity", "contract_blob_sha"),
-    ("subject_identity", "head_sha"): ("execution_evidence", "subject_head_sha"),
-    ("subject_identity", "tree_sha"): ("execution_evidence", "subject_tree_sha"),
-    ("final_result", "value"): ("execution_evidence", "final_result"),
+    spec["graph"]: spec["source"] for spec in SEMANTIC_BINDINGS.values()
 }
 
 def _validate_relationship_contract_catalog() -> None:
@@ -153,6 +191,38 @@ def _validate_relationship_contract_catalog() -> None:
                         _fail(f"relationship graph operand references an undeclared field: {target}.{field[0] if field else '<missing>'}")
                 elif field:
                     _fail(f"relationship {kind} operand cannot name a field")
+
+    declared_edges = set(GRAPH_EDGES)
+    for binding, spec in SEMANTIC_BINDINGS.items():
+        if set(spec) != {"source", "graph", "enforced_by", "purpose"}:
+            _fail(f"semantic binding {binding} has a non-canonical field set")
+        if not isinstance(binding, str) or not binding:
+            _fail("semantic binding id must be non-empty")
+        source = spec["source"]
+        graph_field = spec["graph"]
+        enforced_by = spec["enforced_by"]
+        purpose = spec["purpose"]
+        if not isinstance(source, tuple) or len(source) != 2:
+            _fail(f"semantic binding {binding} source must be a (role, field) tuple")
+        if not isinstance(graph_field, tuple) or len(graph_field) != 2:
+            _fail(f"semantic binding {binding} graph projection must be a (node, field) tuple")
+        if not isinstance(enforced_by, tuple):
+            _fail(f"semantic binding {binding} enforced_by must be a tuple")
+        if not isinstance(purpose, str) or not purpose:
+            _fail(f"semantic binding {binding} purpose must be non-empty")
+        for edge in enforced_by:
+            if edge not in declared_edges:
+                _fail(f"semantic binding {binding} references a missing relationship: {edge}")
+    required_binding_sources = {
+        spec["source"] for spec in SEMANTIC_BINDINGS.values()
+    }
+    if set(SEMANTIC_BINDING_SOURCES.values()) != required_binding_sources:
+        _fail("semantic binding source projection is not canonical")
+    required_graph_bindings = {
+        spec["graph"]: spec["source"] for spec in SEMANTIC_BINDINGS.values()
+    }
+    if GRAPH_SEMANTIC_FIELDS != required_graph_bindings:
+        _fail("semantic graph binding projection is not canonical")
 
     declared_value_fields = {
         (target, field)
