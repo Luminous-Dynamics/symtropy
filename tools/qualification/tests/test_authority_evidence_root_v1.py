@@ -342,6 +342,42 @@ class EvidenceRootTests(unittest.TestCase):
         )
 
 
+
+    def test_security_surface_is_exactly_covered_by_semantic_bindings(self):
+        root._validate_relationship_contract_catalog()
+        self.assertEqual(
+            {
+                spec["source"]
+                for spec in root.SEMANTIC_BINDINGS.values()
+            },
+            root.SECURITY_SURFACE_FIELDS,
+        )
+
+    def test_semantic_binding_catalog_rejects_security_surface_coverage_gap(self):
+        original = root.SEMANTIC_BINDINGS
+        try:
+            malformed = {
+                binding: spec
+                for binding, spec in original.items()
+                if binding != "final_result"
+            }
+            root.SEMANTIC_BINDINGS = malformed
+            with self.assertRaises(root.EvidenceRootValidationError):
+                root._validate_relationship_contract_catalog()
+        finally:
+            root.SEMANTIC_BINDINGS = original
+
+    def test_semantic_binding_catalog_rejects_phantom_security_surface_field(self):
+        original = root.SECURITY_SURFACE_FIELDS
+        try:
+            root.SECURITY_SURFACE_FIELDS = original | {
+                ("execution_evidence", "not_a_real_field"),
+            }
+            with self.assertRaises(root.EvidenceRootValidationError):
+                root._validate_relationship_contract_catalog()
+        finally:
+            root.SECURITY_SURFACE_FIELDS = original
+
     def test_semantic_binding_policy_is_closed_and_explicit(self):
         root._validate_relationship_contract_catalog()
         policy = {
