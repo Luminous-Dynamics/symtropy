@@ -981,6 +981,7 @@ mod tests {
         .expect("second");
         assert!(!second.is_successor_of(&first));
     }
+
     #[test]
     fn serde_round_trip_preserves_commitment_contract_but_does_not_validate_it() {
         let original = session(vec![identity(7), identity(8)]);
@@ -989,8 +990,14 @@ mod tests {
             serde_json::from_slice(&encoded).expect("deserialize session");
 
         assert_eq!(decoded, original);
-        assert_eq!(canonical_session_bytes(&decoded), canonical_session_bytes(&original));
-        assert_eq!(canonical_replay_claim_bytes(&decoded), canonical_replay_claim_bytes(&original));
+        assert_eq!(
+            canonical_session_bytes(&decoded),
+            canonical_session_bytes(&original)
+        );
+        assert_eq!(
+            canonical_replay_claim_bytes(&decoded),
+            canonical_replay_claim_bytes(&original)
+        );
         assert_eq!(decoded.session_digest, original.session_digest);
         assert_eq!(decoded.replay_claim_digest, original.replay_claim_digest);
         decoded.verify_commitment().expect("round-trip commitment");
@@ -1003,5 +1010,4 @@ mod tests {
             Err(StateError::MultiplayerCommitmentMismatch)
         ));
     }
-
 }
