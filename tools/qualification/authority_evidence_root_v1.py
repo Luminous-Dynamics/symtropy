@@ -121,6 +121,20 @@ SEMANTIC_BINDINGS = {
         ),
         "purpose": "bind qualification dispatch and execution to one frozen contract commit",
     },
+    "verifier_release_sha256": {
+        "source": ("dispatch_evidence", "release_sha256"),
+        "graph": ("verifier_release", "sha256"),
+        "relationship_operand_kind": "member_sha256",
+        "enforced_by": (
+            ("dispatch_payload", "selects", "verifier_release"),
+        ),
+        "enforcement_checks": (
+            (("dispatch_payload", "selects", "verifier_release"),
+             (("value", "dispatch_evidence", "release_sha256"),
+              ("member_sha256", "verifier_release"))),
+        ),
+        "purpose": "bind dispatch selection to the exact retained verifier release member",
+    },
     "contract_tree_sha": {
         "source": ("qualification_contract_checkout_identity", "contract_tree_sha"),
         "graph": ("contract_identity", "tree_sha"),
@@ -149,11 +163,15 @@ SEMANTIC_BINDINGS = {
         "relationship_operand_kind": "value",
         "enforced_by": (
             ("execution_evidence", "targets", "subject_identity"),
+            ("dispatch_payload", "binds", "qualification_contract"),
         ),
         "enforcement_checks": (
             (("execution_evidence", "targets", "subject_identity"),
              (("value", "execution_evidence", "subject_head_sha"),
               ("graph", "subject_identity", "head_sha"))),
+            (("dispatch_payload", "binds", "qualification_contract"),
+             (("value", "dispatch_payload", "contract_commit_sha"),
+              ("value", "qualification_contract", "subject_head_sha"))),
         ),
         "purpose": "bind execution evidence to one immutable subject revision",
     },
