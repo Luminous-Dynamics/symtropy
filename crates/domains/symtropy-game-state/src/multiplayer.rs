@@ -983,6 +983,43 @@ mod tests {
     }
 
     #[test]
+    fn checkpoint_serde_round_trip_preserves_commitment_contract() {
+        let session = session(vec![identity(7)]);
+        let original = StateCheckpointV1::new(
+            session.session_digest,
+            identity(1),
+            0,
+            100,
+            100,
+            None,
+            digest(10),
+            digest(11),
+            identity(3),
+            identity(4),
+        )
+        .expect("checkpoint");
+
+        let encoded = serde_json::to_vec(&original).expect("serialize checkpoint");
+        let decoded: StateCheckpointV1 =
+            serde_json::from_slice(&encoded).expect("deserialize checkpoint");
+
+        assert_eq!(decoded, original);
+        assert_eq!(
+            canonical_checkpoint_bytes(&decoded),
+            canonical_checkpoint_bytes(&original)
+        );
+        assert_eq!(decoded.checkpoint_digest, original.checkpoint_digest);
+        decoded.verify_commitment().expect("round-trip commitment");
+
+        let mut substituted = decoded;
+        substituted.simulation_tick += 1;
+        assert!(matches!(
+            substituted.verify_commitment(),
+            Err(StateError::MultiplayerCommitmentMismatch)
+        ));
+    }
+
+    #[test]
     fn serde_round_trip_preserves_commitment_contract_but_does_not_validate_it() {
         let original = session(vec![identity(7), identity(8)]);
         let encoded = serde_json::to_vec(&original).expect("serialize session");
