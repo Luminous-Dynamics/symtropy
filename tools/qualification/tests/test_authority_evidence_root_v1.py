@@ -155,6 +155,20 @@ class EvidenceRootTests(unittest.TestCase):
         self.assertEqual(root.RELATIONSHIP_VALUE_FIELDS["qualification_contract"], frozenset(contract_v1.FIELDS))
         self.assertEqual(root.RELATIONSHIP_VALUE_FIELDS["execution_evidence"], frozenset(envelope.REQUIRED_EXECUTION_FIELDS))
 
+    def test_semantic_binding_coverage_is_derived_not_duplicated(self):
+        value_sources = {
+            source
+            for source in root.SEMANTIC_BINDING_SOURCES.values()
+        }
+        declared = {
+            (operand[1], operand[2])
+            for spec in root.GRAPH_RELATIONSHIP_CONTRACTS
+            for pair in spec["checks"]
+            for operand in pair
+            if operand[0] == "value"
+        }
+        self.assertTrue(value_sources <= declared)
+
     def test_semantic_binding_catalog_rejects_phantom_source_field(self):
         original = root.SEMANTIC_BINDING_SOURCES
         try:
