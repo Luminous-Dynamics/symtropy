@@ -1105,6 +1105,78 @@ mod tests {
     }
 
     #[test]
+    fn checkpoint_successor_requires_same_epoch_and_monotonic_time() {
+        let s = session(vec![identity(7)]);
+        let first = StateCheckpointV1::new(
+            s.session_digest,
+            identity(1),
+            4,
+            100,
+            1_000,
+            None,
+            digest(10),
+            digest(11),
+            identity(3),
+            identity(4),
+        )
+        .expect("first");
+
+        let epoch_change = StateCheckpointV1::new(
+            s.session_digest,
+            identity(1),
+            5,
+            200,
+            2_000,
+            Some(first.checkpoint_digest),
+            digest(12),
+            digest(13),
+            identity(3),
+            identity(4),
+        )
+        .expect("epoch change");
+        let tick_regression = StateCheckpointV1::new(
+            s.session_digest,
+            identity(1),
+            4,
+            99,
+            2_000,
+            Some(first.checkpoint_digest),
+            digest(14),
+            digest(15),
+            identity(3),
+            identity(4),
+        )
+        .expect("tick regression");
+        let instant_regression = StateCheckpointV1::new(
+            s.session_digest,
+            identity(1),
+            4,
+            200,
+            999,
+            Some(first.checkpoint_digest),
+            digest(16),
+            digest(17),
+            identity(3),
+            identity(4),
+        )
+        .expect("instant regression");
+
+        assert!(!epoch_change.is_successor_of(&first));
+        assert!(!tick_regression.is_successor_of(&first));
+        assert!(!instant_regression.is_successor_of(&first));
+
+        epoch_change
+            .verify_commitment()
+            .expect("epoch change remains self-consistent");
+        tick_regression
+            .verify_commitment()
+            .expect("tick regression remains self-consistent");
+        instant_regression
+            .verify_commitment()
+            .expect("instant regression remains self-consistent");
+    }
+
+    #[test]
     fn checkpoint_successor_rejects_self_inconsistent_records() {
         let previous = StateCheckpointV1::new(
             digest(20),
