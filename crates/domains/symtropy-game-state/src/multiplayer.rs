@@ -1045,6 +1045,12 @@ mod tests {
         let mut authority = decoded.clone();
         authority.authority_config = identity(9);
         variants.push(authority);
+        let mut session_digest = decoded.clone();
+        session_digest.session_digest = digest(9);
+        variants.push(session_digest);
+        let mut replay_claim_digest = decoded.clone();
+        replay_claim_digest.replay_claim_digest = digest(9);
+        variants.push(replay_claim_digest);
         let mut participants = decoded.clone();
         participants.participants.swap(0, 1);
         variants.push(participants);
