@@ -17,7 +17,7 @@ def _pairs(pairs:list[tuple[str,Any]])->dict[str,Any]:
     return out
 def _path(value:Any)->str:
     if not isinstance(value,str) or not value or len(value)>512: _fail("contract_path must be a non-empty string of at most 512 bytes")
-    if "\x00" in value or value.startswith(("/", "\\\\", "~")) or "\\\\" in value:
+    if "\x00" in value or value.startswith(("/", "\\", "~")) or "\\" in value:
         _fail("contract_path must be a repository-relative POSIX path")
     parts=value.split("/")
     if any(p in ("",".","..") for p in parts): _fail("contract_path contains forbidden path components")
