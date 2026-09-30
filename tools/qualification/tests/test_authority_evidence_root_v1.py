@@ -201,6 +201,31 @@ class EvidenceRootTests(unittest.TestCase):
         finally:
             root.SEMANTIC_BINDINGS = original
 
+
+    def test_semantic_binding_catalog_rejects_check_without_binding_reference(self):
+        original = root.SEMANTIC_BINDINGS
+        try:
+            malformed = {
+                **original,
+                "final_result": {
+                    **original["final_result"],
+                    "enforcement_checks": (
+                        (
+                            ("execution_evidence", "produces", "final_result"),
+                            (
+                                ("value", "execution_evidence", "subject_head_sha"),
+                                ("graph", "final_result", "value"),
+                            ),
+                        ),
+                    ),
+                },
+            }
+            root.SEMANTIC_BINDINGS = malformed
+            with self.assertRaises(root.EvidenceRootValidationError):
+                root._validate_relationship_contract_catalog()
+        finally:
+            root.SEMANTIC_BINDINGS = original
+
     def test_semantic_binding_catalog_rejects_missing_enforcing_relationship(self):
         original = root.SEMANTIC_BINDINGS
         try:
