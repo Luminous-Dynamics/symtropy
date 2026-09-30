@@ -372,7 +372,12 @@ impl StateCheckpointV1 {
     /// Authority handoff/epoch advancement is intentionally outside this predicate:
     /// a provenance record must not manufacture acceptance of a new authority epoch.
     pub fn is_successor_of(&self, previous: &Self) -> bool {
-        self.session_digest == previous.session_digest
+        // A relational match must not elevate malformed commitments into lineage
+        // evidence. Both records must first be self-consistent; this still does
+        // not establish owner-issued admission or currentness.
+        self.verify_commitment().is_ok()
+            && previous.verify_commitment().is_ok()
+            && self.session_digest == previous.session_digest
             && self.world_instance == previous.world_instance
             && self.previous_checkpoint == Some(previous.checkpoint_digest)
             && self.authority_epoch == previous.authority_epoch
@@ -1055,6 +1060,47 @@ mod tests {
         )
         .expect("second");
         assert!(!second.is_successor_of(&first));
+    }
+
+    #[test]
+    fn checkpoint_successor_rejects_self_inconsistent_records() {
+        let previous = StateCheckpointV1::new(
+            digest(20),
+            identity(21),
+            1,
+            10,
+            100,
+            None,
+            digest(22),
+            digest(23),
+            identity(24),
+            identity(25),
+        )
+        .expect("previous checkpoint");
+        let mut successor = StateCheckpointV1::new(
+            previous.session_digest,
+            previous.world_instance,
+            previous.authority_epoch,
+            11,
+            101,
+            Some(previous.checkpoint_digest),
+            digest(26),
+            digest(27),
+            previous.simulation_identity,
+            previous.ruleset_identity,
+        )
+        .expect("successor checkpoint");
+
+        assert!(successor.is_successor_of(&previous));
+
+        successor.checkpoint_digest = digest(28);
+        assert!(successor.verify_commitment().is_err());
+        assert!(!successor.is_successor_of(&previous));
+
+        let mut forged_previous = previous.clone();
+        forged_previous.checkpoint_digest = digest(29);
+        assert!(forged_previous.verify_commitment().is_err());
+        assert!(!successor.is_successor_of(&forged_previous));
     }
 
     #[test]
