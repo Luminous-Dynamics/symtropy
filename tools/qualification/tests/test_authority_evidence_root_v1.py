@@ -144,6 +144,41 @@ class EvidenceRootTests(unittest.TestCase):
         finally:
             root.GRAPH_RELATIONSHIP_CONTRACTS = original
 
+    def test_relationship_catalog_uses_authoritative_validator_vocabularies(self):
+        from tools.qualification import authority_dispatch_evidence_v1 as dispatch_evidence
+        from tools.qualification import authority_dispatch_v1 as dispatch
+        from tools.qualification import authority_evidence_envelope_v1 as envelope
+        from tools.qualification import qualification_contract_v1 as contract_v1
+
+        self.assertEqual(root.RELATIONSHIP_VALUE_FIELDS["dispatch_payload"], frozenset(dispatch.FIELDS))
+        self.assertEqual(root.RELATIONSHIP_VALUE_FIELDS["dispatch_evidence"], frozenset(dispatch_evidence.FIELDS))
+        self.assertEqual(root.RELATIONSHIP_VALUE_FIELDS["qualification_contract"], frozenset(contract_v1.FIELDS))
+        self.assertEqual(root.RELATIONSHIP_VALUE_FIELDS["execution_evidence"], frozenset(envelope.REQUIRED_EXECUTION_FIELDS))
+
+    def test_semantic_binding_catalog_rejects_phantom_source_field(self):
+        original = root.SEMANTIC_BINDING_SOURCES
+        try:
+            root.SEMANTIC_BINDING_SOURCES = {
+                **original,
+                "phantom": ("execution_evidence", "not_a_real_field"),
+            }
+            with self.assertRaises(root.EvidenceRootValidationError):
+                root._validate_relationship_contract_catalog()
+        finally:
+            root.SEMANTIC_BINDING_SOURCES = original
+
+    def test_graph_semantic_binding_catalog_rejects_phantom_source_field(self):
+        original = root.GRAPH_SEMANTIC_FIELDS
+        try:
+            root.GRAPH_SEMANTIC_FIELDS = {
+                **original,
+                ("subject_identity", "head_sha"): ("execution_evidence", "not_a_real_field"),
+            }
+            with self.assertRaises(root.EvidenceRootValidationError):
+                root._validate_relationship_contract_catalog()
+        finally:
+            root.GRAPH_SEMANTIC_FIELDS = original
+
     def test_relationship_contract_catalog_covers_only_declared_graph_semantics(self):
         root._validate_relationship_contract_catalog()
         value_fields = {
