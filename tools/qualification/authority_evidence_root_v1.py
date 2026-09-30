@@ -528,6 +528,22 @@ def _validate_graph(graph: object) -> None:
         _fail("provenance graph result observation is invalid")
 
 
+def _semantic_security_surface() -> dict:
+    # This is a sealed root projection, not a second policy source. The canonical
+    # policy remains SEMANTIC_BINDINGS; the projection makes the closed security
+    # surface independently inspectable from the emitted root.
+    return {
+        binding: {
+            "source": {
+                "role": source[0],
+                "field": source[1],
+            },
+            "coverage_class": SEMANTIC_BINDINGS[binding]["coverage_class"],
+        }
+        for binding, source in SEMANTIC_BINDING_SOURCES.items()
+    }
+
+
 def _build_body(directory: Path, manifest_value: dict, manifest_sha256: str) -> dict:
     members = {}
     raw_members = {}
@@ -571,6 +587,7 @@ def _build_body(directory: Path, manifest_value: dict, manifest_sha256: str) -> 
             binding: SEMANTIC_BINDINGS[binding]["coverage_class"]
             for binding in SEMANTIC_BINDINGS
         },
+        "semantic_security_surface": _semantic_security_surface(),
     }
 
 
@@ -616,6 +633,9 @@ def verify(root_value: dict, directory: Path, manifest_path: Path) -> None:
         binding: spec["coverage_class"] for binding, spec in SEMANTIC_BINDINGS.items()
     }:
         _fail("evidence root semantic binding policy does not match the retained policy")
+    expected_security_surface = _semantic_security_surface()
+    if root_value["semantic_security_surface"] != expected_security_surface:
+        _fail("evidence root semantic security surface does not match the retained policy")
     if root_value["root_sha256"] != sha256(
         canonical({k: root_value[k] for k in root_value if k != "root_sha256"})
     ):
