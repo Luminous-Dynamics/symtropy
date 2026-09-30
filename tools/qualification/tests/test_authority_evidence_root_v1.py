@@ -119,6 +119,33 @@ class EvidenceRootTests(unittest.TestCase):
             root_path.write_text(json.dumps(value))
             self.assertEqual(self.verify_root(directory, manifest_path, root_path), 2)
 
+
+    def test_root_rejects_graph_identity_substitution(self):
+        with tempfile.TemporaryDirectory() as d:
+            directory = Path(d)
+            manifest_path = materialize_fixture(directory)
+            root_path = self.build_root(directory, manifest_path)
+            value = json.loads(root_path.read_text())
+            value["provenance_graph"]["nodes"][6]["commit_sha"] = "a" * 40
+            root_path.write_text(json.dumps(value))
+            self.assertEqual(self.verify_root(directory, manifest_path, root_path), 2)
+
+    def test_graph_semantics_are_derived_from_retained_evidence(self):
+        with tempfile.TemporaryDirectory() as d:
+            directory = Path(d)
+            manifest_path = materialize_fixture(directory)
+            root_path = self.build_root(directory, manifest_path)
+            value = json.loads(root_path.read_text())
+            execution = json.loads((directory / NAMES[5]).read_text())
+            self.assertEqual(
+                value["provenance_graph"]["nodes"][7]["head_sha"],
+                execution["subject_head_sha"],
+            )
+            self.assertEqual(
+                value["provenance_graph"]["nodes"][8]["value"],
+                execution["final_result"],
+            )
+
     def test_root_rejects_member_substitution(self):
         with tempfile.TemporaryDirectory() as d:
             directory = Path(d)
