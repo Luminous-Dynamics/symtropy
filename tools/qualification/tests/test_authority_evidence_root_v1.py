@@ -341,6 +341,55 @@ class EvidenceRootTests(unittest.TestCase):
             },
         )
 
+
+    def test_semantic_binding_policy_is_closed_and_explicit(self):
+        root._validate_relationship_contract_catalog()
+        policy = {
+            binding: spec["coverage_class"]
+            for binding, spec in root.SEMANTIC_BINDINGS.items()
+        }
+        self.assertEqual(
+            policy,
+            {
+                "contract_commit_sha": "enforced",
+                "verifier_release_sha256": "enforced",
+                "contract_tree_sha": "retained",
+                "contract_blob_sha": "enforced",
+                "subject_head_sha": "enforced",
+                "contract_subject_head_sha": "enforced",
+                "subject_tree_sha": "retained",
+                "final_result": "enforced",
+            },
+        )
+
+    def test_semantic_binding_catalog_rejects_retained_binding_with_enforcement(self):
+        original = root.SEMANTIC_BINDINGS
+        try:
+            malformed = {
+                **original,
+                "contract_tree_sha": {
+                    **original["contract_tree_sha"],
+                    "coverage_class": "retained",
+                    "enforced_by": original["contract_commit_sha"]["enforced_by"],
+                    "enforcement_checks": original["contract_commit_sha"]["enforcement_checks"],
+                },
+            }
+            root.SEMANTIC_BINDINGS = malformed
+            with self.assertRaises(root.EvidenceRootValidationError):
+                root._validate_relationship_contract_catalog()
+        finally:
+            root.SEMANTIC_BINDINGS = original
+
+    def test_root_rejects_semantic_binding_policy_substitution(self):
+        with tempfile.TemporaryDirectory() as d:
+            directory = Path(d)
+            manifest_path = materialize_fixture(directory)
+            root_path = self.build_root(directory, manifest_path)
+            value = json.loads(root_path.read_text())
+            value["semantic_binding_policy"]["contract_tree_sha"] = "enforced"
+            root_path.write_text(json.dumps(value))
+            self.assertEqual(self.verify_root(directory, manifest_path, root_path), 2)
+
     def test_root_exposes_typed_provenance_graph(self):
         with tempfile.TemporaryDirectory() as d:
             directory = Path(d)
