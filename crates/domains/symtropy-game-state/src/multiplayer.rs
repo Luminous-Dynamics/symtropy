@@ -705,6 +705,48 @@ mod tests {
     }
 
     #[test]
+    fn replay_claim_metadata_does_not_change_semantic_session_identity() {
+        let observation = MultiplayerSessionV1::new(
+            identity(1),
+            identity(2),
+            identity(3),
+            identity(4),
+            digest(5),
+            identity(6),
+            vec![identity(7), identity(8)],
+            ReplayProfile::ObservationOnly,
+        )
+        .expect("observation session");
+        let bit_exact = MultiplayerSessionV1::new(
+            identity(1),
+            identity(2),
+            identity(3),
+            identity(4),
+            digest(5),
+            identity(6),
+            vec![identity(7), identity(8)],
+            ReplayProfile::BitExactReplay,
+        )
+        .expect("bit-exact claim session");
+
+        assert_eq!(observation.session_digest, bit_exact.session_digest);
+        assert_eq!(
+            canonical_session_bytes(&observation),
+            canonical_session_bytes(&bit_exact)
+        );
+        assert_ne!(
+            observation.replay_claim_digest,
+            bit_exact.replay_claim_digest
+        );
+        observation
+            .verify_commitment()
+            .expect("observation commitments");
+        bit_exact
+            .verify_commitment()
+            .expect("bit-exact claim commitments");
+    }
+
+    #[test]
     fn replay_claim_commitment_is_hash_of_canonical_bytes() {
         let s = session(vec![identity(7)]);
         let expected = CommitmentDigest::derive(
