@@ -8,7 +8,10 @@ from tools.qualification import authority_dispatch_evidence_v1 as dispatch_evide
 from tools.qualification import qualification_contract_v1 as contract
 from tools.qualification import verifier_release_v1 as release
 
-REQUIRED_EXECUTION_FIELDS = {
+REQUIRED_CHECKOUT_FIELDS = {
+    "schema_id", "schema_version", "contract_commit_sha", "contract_tree_sha", "contract_blob_sha",
+}
+\nREQUIRED_EXECUTION_FIELDS = {
     "schema_id","verifier_commit_sha","verifier_tree_sha","contract_commit_sha",
     "contract_tree_sha","contract_sha256","contract_id","subject_repository",
     "subject_head_sha","subject_tree_sha","manifest_sha256","manifest_profile_id",
@@ -39,7 +42,7 @@ def main(argv: list[str] | None = None) -> int:
         contract_value,contract_digest=contract.load_contract_bytes(a.contract.read_bytes())
         contract.validate_contract(contract_value)
         checkout=_load_json(a.contract_checkout_identity)
-        if not isinstance(checkout,dict) or set(checkout)!={"schema_id","schema_version","contract_commit_sha","contract_tree_sha","contract_blob_sha"}:
+        if not isinstance(checkout,dict) or set(checkout)!=REQUIRED_CHECKOUT_FIELDS:
             raise ValueError("contract checkout identity fields are not the closed v1 set")
         if checkout["schema_id"]!="luminous.qualification-contract-checkout-identity.v1" or checkout["schema_version"]!=1:
             raise ValueError("contract checkout identity schema mismatch")
