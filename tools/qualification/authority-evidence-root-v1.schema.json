@@ -10,6 +10,7 @@
     "manifest_root_sha256",
     "member_sha256",
     "semantic_bindings",
+    "semantic_binding_policy",
     "provenance_graph",
     "root_sha256"
   ],
@@ -71,9 +72,11 @@
       "additionalProperties": false,
       "required": [
         "contract_commit_sha",
+        "verifier_release_sha256",
         "contract_tree_sha",
         "contract_blob_sha",
         "subject_head_sha",
+        "contract_subject_head_sha",
         "subject_tree_sha",
         "final_result"
       ],
@@ -81,6 +84,10 @@
         "contract_commit_sha": {
           "type": "string",
           "pattern": "^[0-9a-f]{40}$"
+        },
+        "verifier_release_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
         },
         "contract_tree_sha": {
           "type": "string",
@@ -91,6 +98,10 @@
           "pattern": "^[0-9a-f]{40}$"
         },
         "subject_head_sha": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{40}$"
+        },
+        "contract_subject_head_sha": {
           "type": "string",
           "pattern": "^[0-9a-f]{40}$"
         },
@@ -105,6 +116,30 @@
             "InfrastructureFailure"
           ]
         }
+      }
+    },
+    "semantic_binding_policy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "contract_commit_sha",
+        "verifier_release_sha256",
+        "contract_tree_sha",
+        "contract_blob_sha",
+        "subject_head_sha",
+        "contract_subject_head_sha",
+        "subject_tree_sha",
+        "final_result"
+      ],
+      "properties": {
+        "contract_commit_sha": { "const": "enforced" },
+        "verifier_release_sha256": { "const": "enforced" },
+        "contract_tree_sha": { "const": "retained" },
+        "contract_blob_sha": { "const": "enforced" },
+        "subject_head_sha": { "const": "enforced" },
+        "contract_subject_head_sha": { "const": "enforced" },
+        "subject_tree_sha": { "const": "retained" },
+        "final_result": { "const": "enforced" }
       }
     },
     "root_sha256": {
