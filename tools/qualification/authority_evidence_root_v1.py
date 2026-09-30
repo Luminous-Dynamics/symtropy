@@ -27,14 +27,51 @@ GRAPH_NODE_IDS = (
     "qualification_contract", "qualification_contract_checkout_identity",
     "execution_evidence", "contract_identity", "subject_identity", "final_result",
 )
-GRAPH_EDGES = (
-    ("dispatch_payload", "binds", "qualification_contract"),
-    ("dispatch_payload", "selects", "verifier_release"),
-    ("qualification_contract_checkout_identity", "materializes", "qualification_contract"),
-    ("execution_evidence", "uses", "qualification_contract"),
-    ("execution_evidence", "targets", "subject_identity"),
-    ("execution_evidence", "produces", "final_result"),
+GRAPH_RELATIONSHIP_CONTRACTS = (
+    {
+        "edge": ("dispatch_payload", "binds", "qualification_contract"),
+        "checks": (
+            (("value", "dispatch_payload", "contract_commit_sha"),
+             ("graph", "contract_identity", "commit_sha")),
+        ),
+    },
+    {
+        "edge": ("dispatch_payload", "selects", "verifier_release"),
+        "checks": (
+            (("value", "dispatch_evidence", "release_sha256"),
+             ("member_sha256", "verifier_release")),
+        ),
+    },
+    {
+        "edge": ("qualification_contract_checkout_identity", "materializes", "qualification_contract"),
+        "checks": (
+            (("value", "qualification_contract_checkout_identity", "contract_blob_sha"),
+             ("git_blob_sha", "qualification_contract")),
+        ),
+    },
+    {
+        "edge": ("execution_evidence", "uses", "qualification_contract"),
+        "checks": (
+            (("value", "execution_evidence", "contract_commit_sha"),
+             ("graph", "contract_identity", "commit_sha")),
+        ),
+    },
+    {
+        "edge": ("execution_evidence", "targets", "subject_identity"),
+        "checks": (
+            (("value", "execution_evidence", "subject_head_sha"),
+             ("graph", "subject_identity", "head_sha")),
+        ),
+    },
+    {
+        "edge": ("execution_evidence", "produces", "final_result"),
+        "checks": (
+            (("value", "execution_evidence", "final_result"),
+             ("graph", "final_result", "value")),
+        ),
+    },
 )
+GRAPH_EDGES = tuple(spec["edge"] for spec in GRAPH_RELATIONSHIP_CONTRACTS)
 
 
 class EvidenceRootValidationError(ValueError):
@@ -87,6 +124,45 @@ def load_member(directory: Path, name: str):
     return raw, load_json(raw)
 
 
+def _git_blob_sha(raw: bytes) -> str:
+    return hashlib.sha1(b"blob " + str(len(raw)).encode("ascii") + b"\\0" + raw).hexdigest()
+
+
+def _resolve_relationship_operand(operand, values, members, graph):
+    kind, target, *field = operand
+    if kind == "value":
+        if len(field) != 1:
+            _fail("relationship value operand must name exactly one field")
+        return values[target][field[0]]
+    if kind == "member_sha256":
+        if field:
+            _fail("relationship member digest operand cannot name a field")
+        return members[target]
+    if kind == "git_blob_sha":
+        if field:
+            _fail("relationship Git blob operand cannot name a field")
+        return _git_blob_sha(values[target]["_raw_bytes"])
+    if kind == "graph":
+        if len(field) != 1:
+            _fail("relationship graph operand must name exactly one field")
+        node = next((n for n in graph["nodes"] if n["id"] == target), None)
+        if node is None:
+            _fail(f"relationship graph node is missing: {target}")
+        return node[field[0]]
+    _fail(f"unknown relationship operand kind: {kind}")
+
+
+def _validate_relationship_contracts(values, members, graph):
+    expected_edges = tuple(spec["edge"] for spec in GRAPH_RELATIONSHIP_CONTRACTS)
+    if expected_edges != GRAPH_EDGES:
+        _fail("relationship contract edge projection mismatch")
+    for spec in GRAPH_RELATIONSHIP_CONTRACTS:
+        for left, right in spec["checks"]:
+            if _resolve_relationship_operand(left, values, members, graph) != _resolve_relationship_operand(right, values, members, graph):
+                source, edge_type, target = spec["edge"]
+                _fail(f"graph relationship contract failed for {source} --{edge_type}--> {target}")
+
+
 def _build_graph(values: dict, members: dict) -> dict:
     checkout = values["qualification_contract_checkout_identity"]
     contract = values["qualification_contract"]
@@ -114,7 +190,9 @@ def _build_graph(values: dict, members: dict) -> dict:
         _fail("graph execution/contract identity binding mismatch")
     if execution["subject_head_sha"] != contract["subject_head_sha"]:
         _fail("graph execution/subject binding mismatch")
-    return {"nodes": nodes, "edges": edges}
+    graph = {"nodes": nodes, "edges": edges}
+    _validate_relationship_contracts(values, members, graph)
+    return graph
 
 
 def _validate_graph(graph: object) -> None:
@@ -153,6 +231,7 @@ def _build_body(directory: Path, manifest_value: dict, manifest_sha256: str) -> 
         raw, value = load_member(directory, name)
         members[role] = sha256(raw)
         values[role] = value
+        values[role]["_raw_bytes"] = raw
 
     checkout = values["qualification_contract_checkout_identity"]
     contract = values["qualification_contract"]
@@ -161,10 +240,8 @@ def _build_body(directory: Path, manifest_value: dict, manifest_sha256: str) -> 
     if checkout["contract_commit_sha"] != contract.get("subject_head_sha") and checkout["contract_commit_sha"] != values["dispatch_payload"]["contract_commit_sha"]:
         _fail("checkout identity is not bound to the dispatched contract commit")
 
-    blob = hashlib.sha1(
-        b"blob " + str(len((directory / "qualification-contract-v1.json").read_bytes())).encode("ascii")
-        + b"\0" + (directory / "qualification-contract-v1.json").read_bytes()
-    ).hexdigest()
+    contract_raw = values["qualification_contract"]["_raw_bytes"]
+    blob = _git_blob_sha(contract_raw)
     if checkout["contract_blob_sha"] != blob:
         _fail("checkout identity blob does not match retained contract bytes")
 
@@ -173,6 +250,9 @@ def _build_body(directory: Path, manifest_value: dict, manifest_sha256: str) -> 
 
     graph = _build_graph(values, members)
     _validate_graph(graph)
+
+    for value in values.values():
+        value.pop("_raw_bytes", None)
 
     return {
         "schema_id": SCHEMA_ID,
