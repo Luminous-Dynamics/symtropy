@@ -470,6 +470,33 @@ mod tests {
     }
 
     #[test]
+    fn self_consistent_epoch_and_continuation_claims_remain_unqualified() {
+        let s = session(vec![identity(7)]);
+        let checkpoint = StateCheckpointV1::new(
+            s.session_digest,
+            identity(1),
+            999,
+            1,
+            1,
+            None,
+            digest(10),
+            digest(0xf0),
+            identity(3),
+            identity(4),
+        )
+        .expect("self-consistent checkpoint");
+
+        // Recomputing the commitment is intentionally sufficient for this layer:
+        // the epoch number and continuation digest are caller-supplied claims.
+        // Qualification/currentness must be established by their owner.
+        checkpoint
+            .verify_commitment()
+            .expect("canonical commitment is self-consistent");
+        assert_eq!(checkpoint.authority_epoch, 999);
+        assert_eq!(checkpoint.continuation_digest, digest(0xf0));
+    }
+
+    #[test]
     fn replay_profile_is_claim_metadata_not_qualification_evidence() {
         let observation = session(vec![identity(7)]);
         let bit_exact = MultiplayerSessionV1::new(
