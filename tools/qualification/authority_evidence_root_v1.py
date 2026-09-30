@@ -163,17 +163,27 @@ SEMANTIC_BINDINGS = {
         "relationship_operand_kind": "value",
         "enforced_by": (
             ("execution_evidence", "targets", "subject_identity"),
-            ("dispatch_payload", "binds", "qualification_contract"),
         ),
         "enforcement_checks": (
             (("execution_evidence", "targets", "subject_identity"),
              (("value", "execution_evidence", "subject_head_sha"),
               ("graph", "subject_identity", "head_sha"))),
+        ),
+        "purpose": "bind execution evidence to one immutable subject revision",
+    },
+    "contract_subject_head_sha": {
+        "source": ("qualification_contract", "subject_head_sha"),
+        "graph": ("subject_identity", "head_sha"),
+        "relationship_operand_kind": "value",
+        "enforced_by": (
+            ("dispatch_payload", "binds", "qualification_contract"),
+        ),
+        "enforcement_checks": (
             (("dispatch_payload", "binds", "qualification_contract"),
              (("value", "dispatch_payload", "contract_commit_sha"),
               ("value", "qualification_contract", "subject_head_sha"))),
         ),
-        "purpose": "bind execution evidence to one immutable subject revision",
+        "purpose": "bind the qualification contract to the dispatched subject revision",
     },
     "subject_tree_sha": {
         "source": ("execution_evidence", "subject_tree_sha"),
