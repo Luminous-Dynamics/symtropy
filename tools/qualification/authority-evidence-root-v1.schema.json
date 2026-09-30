@@ -547,12 +547,10 @@
               ],
               "properties": {
                 "role": {
-                  "type": "string",
-                  "minLength": 1
+                  "const": "qualification_contract_checkout_identity"
                 },
                 "field": {
-                  "type": "string",
-                  "minLength": 1
+                  "const": "contract_commit_sha"
                 }
               }
             },
@@ -578,12 +576,10 @@
               ],
               "properties": {
                 "role": {
-                  "type": "string",
-                  "minLength": 1
+                  "const": "dispatch_evidence"
                 },
                 "field": {
-                  "type": "string",
-                  "minLength": 1
+                  "const": "release_sha256"
                 }
               }
             },
@@ -609,12 +605,10 @@
               ],
               "properties": {
                 "role": {
-                  "type": "string",
-                  "minLength": 1
+                  "const": "qualification_contract_checkout_identity"
                 },
                 "field": {
-                  "type": "string",
-                  "minLength": 1
+                  "const": "contract_tree_sha"
                 }
               }
             },
@@ -640,12 +634,10 @@
               ],
               "properties": {
                 "role": {
-                  "type": "string",
-                  "minLength": 1
+                  "const": "qualification_contract_checkout_identity"
                 },
                 "field": {
-                  "type": "string",
-                  "minLength": 1
+                  "const": "contract_blob_sha"
                 }
               }
             },
@@ -671,12 +663,10 @@
               ],
               "properties": {
                 "role": {
-                  "type": "string",
-                  "minLength": 1
+                  "const": "execution_evidence"
                 },
                 "field": {
-                  "type": "string",
-                  "minLength": 1
+                  "const": "subject_head_sha"
                 }
               }
             },
@@ -702,12 +692,10 @@
               ],
               "properties": {
                 "role": {
-                  "type": "string",
-                  "minLength": 1
+                  "const": "qualification_contract"
                 },
                 "field": {
-                  "type": "string",
-                  "minLength": 1
+                  "const": "subject_head_sha"
                 }
               }
             },
@@ -733,12 +721,10 @@
               ],
               "properties": {
                 "role": {
-                  "type": "string",
-                  "minLength": 1
+                  "const": "execution_evidence"
                 },
                 "field": {
-                  "type": "string",
-                  "minLength": 1
+                  "const": "subject_tree_sha"
                 }
               }
             },
@@ -764,12 +750,10 @@
               ],
               "properties": {
                 "role": {
-                  "type": "string",
-                  "minLength": 1
+                  "const": "execution_evidence"
                 },
                 "field": {
-                  "type": "string",
-                  "minLength": 1
+                  "const": "final_result"
                 }
               }
             },
