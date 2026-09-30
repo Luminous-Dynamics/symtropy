@@ -91,6 +91,34 @@ class EvidenceRootTests(unittest.TestCase):
             ]), 2)
             self.assertFalse(output.exists())
 
+
+    def test_root_exposes_typed_provenance_graph(self):
+        with tempfile.TemporaryDirectory() as d:
+            directory = Path(d)
+            manifest_path = materialize_fixture(directory)
+            root_path = self.build_root(directory, manifest_path)
+            value = json.loads(root_path.read_text())
+            graph = value["provenance_graph"]
+            self.assertEqual(
+                [node["id"] for node in graph["nodes"]],
+                list(root.GRAPH_NODE_IDS),
+            )
+            self.assertEqual(
+                [(edge["from"], edge["type"], edge["to"]) for edge in graph["edges"]],
+                list(root.GRAPH_EDGES),
+            )
+            self.assertEqual(graph["nodes"][-1]["value"], value["semantic_bindings"]["final_result"])
+
+    def test_root_rejects_provenance_graph_relationship_substitution(self):
+        with tempfile.TemporaryDirectory() as d:
+            directory = Path(d)
+            manifest_path = materialize_fixture(directory)
+            root_path = self.build_root(directory, manifest_path)
+            value = json.loads(root_path.read_text())
+            value["provenance_graph"]["edges"][0]["type"] = "produces"
+            root_path.write_text(json.dumps(value))
+            self.assertEqual(self.verify_root(directory, manifest_path, root_path), 2)
+
     def test_root_rejects_member_substitution(self):
         with tempfile.TemporaryDirectory() as d:
             directory = Path(d)
