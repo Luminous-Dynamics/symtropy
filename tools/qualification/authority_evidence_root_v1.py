@@ -8,8 +8,11 @@ import json
 import sys
 from pathlib import Path
 
+from tools.qualification import authority_dispatch_evidence_v1 as dispatch_evidence
+from tools.qualification import authority_dispatch_v1 as dispatch
 from tools.qualification import authority_evidence_envelope_v1 as envelope
 from tools.qualification import authority_evidence_manifest_v1 as manifest
+from tools.qualification import qualification_contract_v1 as contract_v1
 
 SCHEMA_ID = "luminous.authority-evidence-root.v1"
 SCHEMA_VERSION = 1
@@ -78,35 +81,43 @@ GRAPH_RELATIONSHIP_CONTRACTS = (
 GRAPH_EDGES = tuple(spec["edge"] for spec in GRAPH_RELATIONSHIP_CONTRACTS)
 
 RELATIONSHIP_OPERAND_KINDS = {"value", "member_sha256", "git_blob_sha", "graph"}
+
+# The relationship catalog must consume the same field vocabularies that validate
+# the retained evidence. This prevents the root verifier from growing a second,
+# manually maintained notion of what an evidence member contains.
 RELATIONSHIP_VALUE_FIELDS = {
-    "dispatch_payload": frozenset({
-        "schema_id", "schema_version", "contract_commit_sha", "contract_path", "contract_sha256",
-    }),
-    "dispatch_evidence": frozenset({
-        "schema_id", "schema_version", "dispatch_schema_id", "dispatch_sha256",
-        "release_sha256", "contract_commit_sha", "contract_path", "contract_sha256",
-    }),
-    "qualification_contract": frozenset({
-        "schema_id", "contract_id", "contract_version", "subject_repository",
-        "subject_head_sha", "subject_tree_sha", "manifest_path", "manifest_sha256",
-        "suite_profile_path", "suite_profile_sha256",
-    }),
+    "dispatch_payload": frozenset(dispatch.FIELDS),
+    "dispatch_evidence": frozenset(dispatch_evidence.FIELDS),
+    "qualification_contract": frozenset(contract_v1.FIELDS),
     "qualification_contract_checkout_identity": frozenset({
         "schema_id", "schema_version", "contract_commit_sha", "contract_tree_sha", "contract_blob_sha",
     }),
-    "execution_evidence": frozenset({
-        "schema_id", "verifier_commit_sha", "verifier_tree_sha", "contract_commit_sha",
-        "contract_tree_sha", "contract_sha256", "contract_id", "subject_repository",
-        "subject_head_sha", "subject_tree_sha", "manifest_sha256", "manifest_profile_id",
-        "suite_profile_sha256", "suite_id", "suite_revision", "toolchain_id",
-        "expanded_step_ids", "executed_step_ids", "steps", "first_failing_step_id",
-        "first_failing_step_result", "final_result",
-    }),
+    "execution_evidence": frozenset(envelope.REQUIRED_EXECUTION_FIELDS),
 }
 GRAPH_OPERAND_FIELDS = {
     "contract_identity": frozenset({"commit_sha", "tree_sha", "blob_sha"}),
     "subject_identity": frozenset({"head_sha", "tree_sha"}),
     "final_result": frozenset({"value"}),
+}
+
+# These are the only semantic bindings intentionally exposed by the recursive root.
+# Their source fields are authoritative parser/producer fields above; the relationship
+# contract coverage is derived from this catalog rather than duplicated as a second list.
+SEMANTIC_BINDING_SOURCES = {
+    "contract_commit_sha": ("qualification_contract_checkout_identity", "contract_commit_sha"),
+    "contract_tree_sha": ("qualification_contract_checkout_identity", "contract_tree_sha"),
+    "contract_blob_sha": ("qualification_contract_checkout_identity", "contract_blob_sha"),
+    "subject_head_sha": ("execution_evidence", "subject_head_sha"),
+    "subject_tree_sha": ("execution_evidence", "subject_tree_sha"),
+    "final_result": ("execution_evidence", "final_result"),
+}
+GRAPH_SEMANTIC_FIELDS = {
+    ("contract_identity", "commit_sha"): ("qualification_contract_checkout_identity", "contract_commit_sha"),
+    ("contract_identity", "tree_sha"): ("qualification_contract_checkout_identity", "contract_tree_sha"),
+    ("contract_identity", "blob_sha"): ("qualification_contract_checkout_identity", "contract_blob_sha"),
+    ("subject_identity", "head_sha"): ("execution_evidence", "subject_head_sha"),
+    ("subject_identity", "tree_sha"): ("execution_evidence", "subject_tree_sha"),
+    ("final_result", "value"): ("execution_evidence", "final_result"),
 }
 
 def _validate_relationship_contract_catalog() -> None:
@@ -154,13 +165,11 @@ def _validate_relationship_contract_catalog() -> None:
         for target, field in [(operand[1], operand[2])]
     }
     required_value_fields = {
+        source for source in SEMANTIC_BINDING_SOURCES.values()
+    } | {
         ("dispatch_payload", "contract_commit_sha"),
         ("dispatch_evidence", "release_sha256"),
-        ("qualification_contract", "subject_head_sha"),
-        ("qualification_contract_checkout_identity", "contract_blob_sha"),
         ("execution_evidence", "contract_commit_sha"),
-        ("execution_evidence", "subject_head_sha"),
-        ("execution_evidence", "final_result"),
     }
     if declared_value_fields != required_value_fields:
         _fail("relationship contract value-field coverage is not canonical")
@@ -172,13 +181,22 @@ def _validate_relationship_contract_catalog() -> None:
         for operand in pair
         if operand[0] == "graph"
     }
-    required_graph_fields = {
-        ("contract_identity", "commit_sha"),
-        ("subject_identity", "head_sha"),
-        ("final_result", "value"),
-    }
+    required_graph_fields = set(GRAPH_SEMANTIC_FIELDS)
     if declared_graph_fields != required_graph_fields:
         _fail("relationship contract graph-field coverage is not canonical")
+
+    for binding, source in SEMANTIC_BINDING_SOURCES.items():
+        target, field = source
+        if target not in RELATIONSHIP_VALUE_FIELDS or field not in RELATIONSHIP_VALUE_FIELDS[target]:
+            _fail(f"semantic binding {binding} references an undeclared evidence field: {target}.{field}")
+
+    for graph_field, source in GRAPH_SEMANTIC_FIELDS.items():
+        target, field = graph_field
+        source_target, source_field = source
+        if target not in GRAPH_OPERAND_FIELDS or field not in GRAPH_OPERAND_FIELDS[target]:
+            _fail(f"semantic graph binding references an undeclared graph field: {target}.{field}")
+        if source_target not in RELATIONSHIP_VALUE_FIELDS or source_field not in RELATIONSHIP_VALUE_FIELDS[source_target]:
+            _fail(f"semantic graph binding references an undeclared evidence field: {source_target}.{source_field}")
 
 
 
@@ -359,12 +377,8 @@ def _build_body(directory: Path, manifest_value: dict, manifest_sha256: str) -> 
         "manifest_root_sha256": manifest_value["root_sha256"],
         "member_sha256": members,
         "semantic_bindings": {
-            "contract_commit_sha": checkout["contract_commit_sha"],
-            "contract_tree_sha": checkout["contract_tree_sha"],
-            "contract_blob_sha": checkout["contract_blob_sha"],
-            "subject_head_sha": execution["subject_head_sha"],
-            "subject_tree_sha": execution["subject_tree_sha"],
-            "final_result": execution["final_result"],
+            binding: values[source_role][source_field]
+            for binding, (source_role, source_field) in SEMANTIC_BINDING_SOURCES.items()
         },
         "provenance_graph": graph,
     }
