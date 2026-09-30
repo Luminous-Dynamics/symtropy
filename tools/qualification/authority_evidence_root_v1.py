@@ -106,6 +106,7 @@ SEMANTIC_BINDINGS = {
     "contract_commit_sha": {
         "source": ("qualification_contract_checkout_identity", "contract_commit_sha"),
         "graph": ("contract_identity", "commit_sha"),
+        "relationship_operand_kind": "value",
         "enforced_by": (
             ("dispatch_payload", "binds", "qualification_contract"),
             ("execution_evidence", "uses", "qualification_contract"),
@@ -115,12 +116,14 @@ SEMANTIC_BINDINGS = {
     "contract_tree_sha": {
         "source": ("qualification_contract_checkout_identity", "contract_tree_sha"),
         "graph": ("contract_identity", "tree_sha"),
+        "relationship_operand_kind": None,
         "enforced_by": (),
         "purpose": "retain the exact checkout tree identity of the frozen contract",
     },
     "contract_blob_sha": {
         "source": ("qualification_contract_checkout_identity", "contract_blob_sha"),
         "graph": ("contract_identity", "blob_sha"),
+        "relationship_operand_kind": "git_blob_sha",
         "enforced_by": (
             ("qualification_contract_checkout_identity", "materializes", "qualification_contract"),
         ),
@@ -129,6 +132,7 @@ SEMANTIC_BINDINGS = {
     "subject_head_sha": {
         "source": ("execution_evidence", "subject_head_sha"),
         "graph": ("subject_identity", "head_sha"),
+        "relationship_operand_kind": "value",
         "enforced_by": (
             ("execution_evidence", "targets", "subject_identity"),
         ),
@@ -137,12 +141,14 @@ SEMANTIC_BINDINGS = {
     "subject_tree_sha": {
         "source": ("execution_evidence", "subject_tree_sha"),
         "graph": ("subject_identity", "tree_sha"),
+        "relationship_operand_kind": None,
         "enforced_by": (),
         "purpose": "retain the subject checkout tree identity",
     },
     "final_result": {
         "source": ("execution_evidence", "final_result"),
         "graph": ("final_result", "value"),
+        "relationship_operand_kind": "value",
         "enforced_by": (
             ("execution_evidence", "produces", "final_result"),
         ),
@@ -194,14 +200,17 @@ def _validate_relationship_contract_catalog() -> None:
 
     declared_edges = set(GRAPH_EDGES)
     for binding, spec in SEMANTIC_BINDINGS.items():
-        if set(spec) != {"source", "graph", "enforced_by", "purpose"}:
+        if set(spec) != {"source", "graph", "relationship_operand_kind", "enforced_by", "purpose"}:
             _fail(f"semantic binding {binding} has a non-canonical field set")
         if not isinstance(binding, str) or not binding:
             _fail("semantic binding id must be non-empty")
         source = spec["source"]
         graph_field = spec["graph"]
         enforced_by = spec["enforced_by"]
+        operand_kind = spec["relationship_operand_kind"]
         purpose = spec["purpose"]
+        if operand_kind not in {None, "value", "member_sha256", "git_blob_sha", "graph"}:
+            _fail(f"semantic binding {binding} has an invalid relationship operand kind")
         if not isinstance(source, tuple) or len(source) != 2:
             _fail(f"semantic binding {binding} source must be a (role, field) tuple")
         if not isinstance(graph_field, tuple) or len(graph_field) != 2:
@@ -233,8 +242,9 @@ def _validate_relationship_contract_catalog() -> None:
         for target, field in [(operand[1], operand[2])]
     }
     required_value_fields = {
-        source
-        for source in SEMANTIC_BINDING_SOURCES.values()
+        spec["source"]
+        for spec in SEMANTIC_BINDINGS.values()
+        if spec["relationship_operand_kind"] == "value"
     } | {
         ("dispatch_payload", "contract_commit_sha"),
         ("dispatch_evidence", "release_sha256"),
@@ -242,6 +252,21 @@ def _validate_relationship_contract_catalog() -> None:
     }
     if declared_value_fields != required_value_fields:
         _fail("relationship contract value-field coverage is not canonical")
+
+    required_git_blob_sources = {
+        spec["source"]
+        for spec in SEMANTIC_BINDINGS.values()
+        if spec["relationship_operand_kind"] == "git_blob_sha"
+    }
+    declared_git_blob_sources = {
+        (operand[1], None)
+        for spec in GRAPH_RELATIONSHIP_CONTRACTS
+        for pair in spec["checks"]
+        for operand in pair
+        if operand[0] == "git_blob_sha"
+    }
+    if declared_git_blob_sources != required_git_blob_sources:
+        _fail("relationship contract Git blob coverage is not canonical")
 
     declared_graph_fields = {
         (operand[1], operand[2])
