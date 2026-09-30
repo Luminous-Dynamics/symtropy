@@ -173,14 +173,20 @@ impl UnqualifiedIdentityDigest {
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct MultiplayerSessionV1 {
+    /// Unqualified external reference; world-identity semantics belong to the world owner.
     pub world_instance: UnqualifiedIdentityDigest,
+    /// Unqualified external reference; continuation/currentness semantics belong to its owner.
     pub world_continuation: UnqualifiedIdentityDigest,
+    /// Unqualified external reference; implementation identity is owned by the simulation subsystem.
     pub simulation_identity: UnqualifiedIdentityDigest,
+    /// Unqualified external reference; ruleset identity is owned by the ruleset/configuration subsystem.
     pub ruleset_identity: UnqualifiedIdentityDigest,
     /// External pre-session admission anchor. This is not a `StateCheckpointV1` digest;
     /// keeping it independent prevents a session/checkpoint identity cycle.
     pub initial_state_commitment: CommitmentDigest,
+    /// Unqualified external reference; accepted-authority semantics belong to the authority owner.
     pub authority_config: UnqualifiedIdentityDigest,
+    /// Unqualified external references; participant semantics are not established here.
     pub participants: Vec<UnqualifiedIdentityDigest>,
     /// Caller-declared replay claim strength. This field is metadata, not qualification
     /// evidence; the commitment layer never upgrades it into proof.
@@ -268,20 +274,29 @@ impl MultiplayerSessionV1 {
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct StateCheckpointV1 {
+    /// Canonical session identity; does not itself establish session admission.
     pub session_digest: CommitmentDigest,
+    /// Unqualified external world reference; semantic lineage is owned elsewhere.
     pub world_instance: UnqualifiedIdentityDigest,
     /// Epoch number carried by the checkpoint. A number alone is not an accepted-authority
     /// receipt and cannot establish a handoff.
     pub authority_epoch: u64,
+    /// Deterministic simulation position; not wall-clock authority.
     pub simulation_tick: u64,
+    /// Simulation instant committed as data; interpretation belongs to the lifecycle/simulation owner.
     pub simulation_instant: u64,
+    /// Explicit checkpoint lineage; does not itself authorize the predecessor.
     pub previous_checkpoint: Option<CommitmentDigest>,
+    /// State identity commitment; semantic admission is owned elsewhere.
     pub state_digest: CommitmentDigest,
     /// Commitment identifying continuation bytes. Identity alone does not establish that
     /// the continuation is admitted or current.
     pub continuation_digest: CommitmentDigest,
+    /// Unqualified external simulation reference.
     pub simulation_identity: UnqualifiedIdentityDigest,
+    /// Unqualified external ruleset reference.
     pub ruleset_identity: UnqualifiedIdentityDigest,
+    /// Canonical checkpoint identity; proves self-consistency, not authority/currentness.
     pub checkpoint_digest: CommitmentDigest,
 }
 
