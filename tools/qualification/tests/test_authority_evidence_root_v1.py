@@ -92,6 +92,19 @@ class EvidenceRootTests(unittest.TestCase):
             self.assertFalse(output.exists())
 
 
+    def test_relationship_contracts_are_canonical_and_semantically_bound(self):
+        edges = tuple(spec["edge"] for spec in root.GRAPH_RELATIONSHIP_CONTRACTS)
+        self.assertEqual(edges, root.GRAPH_EDGES)
+        self.assertEqual(len(edges), len(set(edges)))
+        self.assertEqual(len(edges), 6)
+        for spec in root.GRAPH_RELATIONSHIP_CONTRACTS:
+            self.assertGreaterEqual(len(spec["checks"]), 1)
+            for operand_pair in spec["checks"]:
+                self.assertEqual(len(operand_pair), 2)
+                for operand in operand_pair:
+                    self.assertGreaterEqual(len(operand), 2)
+
+
     def test_root_exposes_typed_provenance_graph(self):
         with tempfile.TemporaryDirectory() as d:
             directory = Path(d)
