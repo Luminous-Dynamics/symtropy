@@ -11,7 +11,8 @@ from tools.qualification import verifier_release_v1 as release
 REQUIRED_CHECKOUT_FIELDS = {
     "schema_id", "schema_version", "contract_commit_sha", "contract_tree_sha", "contract_blob_sha",
 }
-\nREQUIRED_EXECUTION_FIELDS = {
+
+REQUIRED_EXECUTION_FIELDS = {
     "schema_id","verifier_commit_sha","verifier_tree_sha","contract_commit_sha",
     "contract_tree_sha","contract_sha256","contract_id","subject_repository",
     "subject_head_sha","subject_tree_sha","manifest_sha256","manifest_profile_id",
