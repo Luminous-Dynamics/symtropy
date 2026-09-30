@@ -217,6 +217,8 @@ def _validate_relationship_contract_catalog() -> None:
             _fail(f"semantic binding {binding} graph projection must be a (node, field) tuple")
         if not isinstance(enforced_by, tuple):
             _fail(f"semantic binding {binding} enforced_by must be a tuple")
+        if operand_kind is not None and not enforced_by:
+            _fail(f"semantic binding {binding} declares an operand kind without enforcement")
         if not isinstance(purpose, str) or not purpose:
             _fail(f"semantic binding {binding} purpose must be non-empty")
         for edge in enforced_by:
