@@ -111,6 +111,12 @@ SEMANTIC_BINDINGS = {
             ("dispatch_payload", "binds", "qualification_contract"),
             ("execution_evidence", "uses", "qualification_contract"),
         ),
+        "enforcement_anchors": (
+            (("dispatch_payload", "binds", "qualification_contract"),
+             ("graph", "contract_identity", "commit_sha")),
+            (("execution_evidence", "uses", "qualification_contract"),
+             ("graph", "contract_identity", "commit_sha")),
+        ),
         "purpose": "bind qualification dispatch and execution to one frozen contract commit",
     },
     "contract_tree_sha": {
@@ -118,6 +124,7 @@ SEMANTIC_BINDINGS = {
         "graph": ("contract_identity", "tree_sha"),
         "relationship_operand_kind": None,
         "enforced_by": (),
+        "enforcement_anchors": (),
         "purpose": "retain the exact checkout tree identity of the frozen contract",
     },
     "contract_blob_sha": {
@@ -126,6 +133,10 @@ SEMANTIC_BINDINGS = {
         "relationship_operand_kind": "git_blob_sha",
         "enforced_by": (
             ("qualification_contract_checkout_identity", "materializes", "qualification_contract"),
+        ),
+        "enforcement_anchors": (
+            (("qualification_contract_checkout_identity", "materializes", "qualification_contract"),
+             ("git_blob_sha", "qualification_contract")),
         ),
         "purpose": "bind the checkout identity to the exact retained contract bytes",
     },
@@ -136,6 +147,10 @@ SEMANTIC_BINDINGS = {
         "enforced_by": (
             ("execution_evidence", "targets", "subject_identity"),
         ),
+        "enforcement_anchors": (
+            (("execution_evidence", "targets", "subject_identity"),
+             ("graph", "subject_identity", "head_sha")),
+        ),
         "purpose": "bind execution evidence to one immutable subject revision",
     },
     "subject_tree_sha": {
@@ -143,6 +158,7 @@ SEMANTIC_BINDINGS = {
         "graph": ("subject_identity", "tree_sha"),
         "relationship_operand_kind": None,
         "enforced_by": (),
+        "enforcement_anchors": (),
         "purpose": "retain the subject checkout tree identity",
     },
     "final_result": {
@@ -151,6 +167,10 @@ SEMANTIC_BINDINGS = {
         "relationship_operand_kind": "value",
         "enforced_by": (
             ("execution_evidence", "produces", "final_result"),
+        ),
+        "enforcement_anchors": (
+            (("execution_evidence", "produces", "final_result"),
+             ("graph", "final_result", "value")),
         ),
         "purpose": "bind the observed qualification result to retained execution evidence",
     },
@@ -200,13 +220,14 @@ def _validate_relationship_contract_catalog() -> None:
 
     declared_edges = set(GRAPH_EDGES)
     for binding, spec in SEMANTIC_BINDINGS.items():
-        if set(spec) != {"source", "graph", "relationship_operand_kind", "enforced_by", "purpose"}:
+        if set(spec) != {"source", "graph", "relationship_operand_kind", "enforced_by", "enforcement_anchors", "purpose"}:
             _fail(f"semantic binding {binding} has a non-canonical field set")
         if not isinstance(binding, str) or not binding:
             _fail("semantic binding id must be non-empty")
         source = spec["source"]
         graph_field = spec["graph"]
         enforced_by = spec["enforced_by"]
+        enforcement_anchors = spec["enforcement_anchors"]
         operand_kind = spec["relationship_operand_kind"]
         purpose = spec["purpose"]
         if operand_kind not in {None, "value", "member_sha256", "git_blob_sha", "graph"}:
@@ -219,22 +240,32 @@ def _validate_relationship_contract_catalog() -> None:
             _fail(f"semantic binding {binding} enforced_by must be a tuple")
         if operand_kind is not None and not enforced_by:
             _fail(f"semantic binding {binding} declares an operand kind without enforcement")
+        if not isinstance(enforcement_anchors, tuple):
+            _fail(f"semantic binding {binding} enforcement_anchors must be a tuple")
+        if len(enforcement_anchors) != len(enforced_by):
+            _fail(f"semantic binding {binding} enforcement anchors must cover every enforcing relationship")
         if not isinstance(purpose, str) or not purpose:
             _fail(f"semantic binding {binding} purpose must be non-empty")
         for edge in enforced_by:
             if edge not in declared_edges:
                 _fail(f"semantic binding {binding} references a missing relationship: {edge}")
-            if operand_kind is not None:
-                matching = next(spec for spec in GRAPH_RELATIONSHIP_CONTRACTS if spec["edge"] == edge)
-                if not any(
-                    operand[0] == operand_kind
-                    for pair in matching["checks"]
-                    for operand in pair
-                ):
-                    _fail(
-                        f"semantic binding {binding} relationship {edge} does not enforce "
-                        f"the declared {operand_kind} operand kind"
-                    )
+        for anchor_edge, anchor_operand in enforcement_anchors:
+            if anchor_edge not in enforced_by:
+                _fail(f"semantic binding {binding} anchor references a non-enforcing relationship: {anchor_edge}")
+            matching = next(spec for spec in GRAPH_RELATIONSHIP_CONTRACTS if spec["edge"] == anchor_edge)
+            if not any(
+                anchor_operand in pair
+                for pair in matching["checks"]
+            ):
+                _fail(
+                    f"semantic binding {binding} relationship {anchor_edge} "
+                    f"does not contain its declared enforcement anchor"
+                )
+            if operand_kind is not None and anchor_operand[0] != operand_kind:
+                _fail(
+                    f"semantic binding {binding} anchor kind does not match "
+                    f"the declared {operand_kind} operand kind"
+                )
     required_binding_sources = {
         spec["source"] for spec in SEMANTIC_BINDINGS.values()
     }
