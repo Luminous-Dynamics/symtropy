@@ -110,8 +110,8 @@ class EvidenceRootTests(unittest.TestCase):
         try:
             malformed = dict(original[0])
             malformed["checks"] = (
-                ((("value", "dispatch_payload", "not_a_real_field")),
-                 (("graph", "contract_identity", "commit_sha"))),
+                (("value", "dispatch_payload", "not_a_real_field"),
+                 ("graph", "contract_identity", "commit_sha")),
             )
             root.GRAPH_RELATIONSHIP_CONTRACTS = (malformed, *original[1:])
             with self.assertRaises(root.EvidenceRootValidationError):
@@ -135,8 +135,8 @@ class EvidenceRootTests(unittest.TestCase):
         try:
             malformed = dict(original[0])
             malformed["checks"] = (
-                ((("mystery", "dispatch_payload")),
-                 (("graph", "contract_identity", "commit_sha"))),
+                (("mystery", "dispatch_payload"),
+                 ("graph", "contract_identity", "commit_sha")),
             )
             root.GRAPH_RELATIONSHIP_CONTRACTS = (malformed, *original[1:])
             with self.assertRaises(root.EvidenceRootValidationError):
