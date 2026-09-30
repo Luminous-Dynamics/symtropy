@@ -12,6 +12,7 @@
     "semantic_bindings",
     "semantic_binding_policy",
     "provenance_graph",
+    "semantic_security_surface",
     "root_sha256"
   ],
   "properties": {
@@ -132,14 +133,30 @@
         "final_result"
       ],
       "properties": {
-        "contract_commit_sha": { "const": "enforced" },
-        "verifier_release_sha256": { "const": "enforced" },
-        "contract_tree_sha": { "const": "retained" },
-        "contract_blob_sha": { "const": "enforced" },
-        "subject_head_sha": { "const": "enforced" },
-        "contract_subject_head_sha": { "const": "enforced" },
-        "subject_tree_sha": { "const": "retained" },
-        "final_result": { "const": "enforced" }
+        "contract_commit_sha": {
+          "const": "enforced"
+        },
+        "verifier_release_sha256": {
+          "const": "enforced"
+        },
+        "contract_tree_sha": {
+          "const": "retained"
+        },
+        "contract_blob_sha": {
+          "const": "enforced"
+        },
+        "subject_head_sha": {
+          "const": "enforced"
+        },
+        "contract_subject_head_sha": {
+          "const": "enforced"
+        },
+        "subject_tree_sha": {
+          "const": "retained"
+        },
+        "final_result": {
+          "const": "enforced"
+        }
       }
     },
     "root_sha256": {
@@ -496,6 +513,270 @@
             }
           ],
           "items": false
+        }
+      }
+    },
+    "semantic_security_surface": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "contract_commit_sha",
+        "verifier_release_sha256",
+        "contract_tree_sha",
+        "contract_blob_sha",
+        "subject_head_sha",
+        "contract_subject_head_sha",
+        "subject_tree_sha",
+        "final_result"
+      ],
+      "properties": {
+        "contract_commit_sha": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "source",
+            "coverage_class"
+          ],
+          "properties": {
+            "source": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "role",
+                "field"
+              ],
+              "properties": {
+                "role": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "field": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              }
+            },
+            "coverage_class": {
+              "const": "enforced"
+            }
+          }
+        },
+        "verifier_release_sha256": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "source",
+            "coverage_class"
+          ],
+          "properties": {
+            "source": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "role",
+                "field"
+              ],
+              "properties": {
+                "role": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "field": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              }
+            },
+            "coverage_class": {
+              "const": "enforced"
+            }
+          }
+        },
+        "contract_tree_sha": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "source",
+            "coverage_class"
+          ],
+          "properties": {
+            "source": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "role",
+                "field"
+              ],
+              "properties": {
+                "role": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "field": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              }
+            },
+            "coverage_class": {
+              "const": "retained"
+            }
+          }
+        },
+        "contract_blob_sha": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "source",
+            "coverage_class"
+          ],
+          "properties": {
+            "source": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "role",
+                "field"
+              ],
+              "properties": {
+                "role": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "field": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              }
+            },
+            "coverage_class": {
+              "const": "enforced"
+            }
+          }
+        },
+        "subject_head_sha": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "source",
+            "coverage_class"
+          ],
+          "properties": {
+            "source": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "role",
+                "field"
+              ],
+              "properties": {
+                "role": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "field": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              }
+            },
+            "coverage_class": {
+              "const": "enforced"
+            }
+          }
+        },
+        "contract_subject_head_sha": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "source",
+            "coverage_class"
+          ],
+          "properties": {
+            "source": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "role",
+                "field"
+              ],
+              "properties": {
+                "role": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "field": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              }
+            },
+            "coverage_class": {
+              "const": "enforced"
+            }
+          }
+        },
+        "subject_tree_sha": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "source",
+            "coverage_class"
+          ],
+          "properties": {
+            "source": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "role",
+                "field"
+              ],
+              "properties": {
+                "role": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "field": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              }
+            },
+            "coverage_class": {
+              "const": "retained"
+            }
+          }
+        },
+        "final_result": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "source",
+            "coverage_class"
+          ],
+          "properties": {
+            "source": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "role",
+                "field"
+              ],
+              "properties": {
+                "role": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "field": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              }
+            },
+            "coverage_class": {
+              "const": "enforced"
+            }
+          }
         }
       }
     }
