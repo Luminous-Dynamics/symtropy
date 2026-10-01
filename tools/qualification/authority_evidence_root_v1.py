@@ -194,6 +194,7 @@ SEMANTIC_BINDINGS = {
     "subject_tree_sha": {
         "source": ("execution_evidence", "subject_tree_sha"),
         "graph": ("subject_identity", "tree_sha"),
+        "coverage_class": "retained",
         "relationship_operand_kind": None,
         "enforced_by": (),
         "enforcement_checks": (),
