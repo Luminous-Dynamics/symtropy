@@ -531,12 +531,16 @@ def _validate_graph(graph: object) -> None:
 def _semantic_security_surface() -> dict:
     # This is a sealed root projection, not a second policy source. The canonical
     # policy remains SEMANTIC_BINDINGS; the projection makes the closed security
-    # surface and its exact enforcement anchors independently inspectable.
+    # surface and its exact graph/enforcement semantics independently inspectable.
     return {
         binding: {
             "source": {
                 "role": source[0],
                 "field": source[1],
+            },
+            "graph": {
+                "node": SEMANTIC_BINDINGS[binding]["graph"][0],
+                "field": SEMANTIC_BINDINGS[binding]["graph"][1],
             },
             "coverage_class": SEMANTIC_BINDINGS[binding]["coverage_class"],
             "enforcement": {
@@ -551,10 +555,10 @@ def _semantic_security_surface() -> dict:
                     for edge, check_pair in SEMANTIC_BINDINGS[binding]["enforcement_checks"]
                 ],
             },
+            "purpose": SEMANTIC_BINDINGS[binding]["purpose"],
         }
         for binding, source in SEMANTIC_BINDING_SOURCES.items()
     }
-
 
 def _build_body(directory: Path, manifest_value: dict, manifest_sha256: str) -> dict:
     members = {}
