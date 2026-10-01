@@ -429,6 +429,51 @@ class EvidenceRootTests(unittest.TestCase):
             root_path.write_text(json.dumps(value))
             self.assertEqual(self.verify_root(directory, manifest_path, root_path), 2)
 
+    def test_root_exposes_exact_semantic_security_mapping(self):
+        with tempfile.TemporaryDirectory() as d:
+            directory = Path(d)
+            manifest_path = materialize_fixture(directory)
+            root_path = self.build_root(directory, manifest_path)
+            value = json.loads(root_path.read_text())
+            surface = value["semantic_security_surface"]
+            self.assertEqual(set(surface), set(root.SEMANTIC_BINDINGS))
+            for binding, spec in root.SEMANTIC_BINDINGS.items():
+                self.assertEqual(
+                    surface[binding]["source"],
+                    {"role": spec["source"][0], "field": spec["source"][1]},
+                )
+                self.assertEqual(
+                    surface[binding]["graph"],
+                    {"node": spec["graph"][0], "field": spec["graph"][1]},
+                )
+                self.assertEqual(surface[binding]["coverage_class"], spec["coverage_class"])
+                self.assertEqual(surface[binding]["purpose"], spec["purpose"])
+                self.assertEqual(
+                    surface[binding]["enforcement"]["enforced_by"],
+                    [list(edge) for edge in spec["enforced_by"]],
+                )
+                self.assertEqual(
+                    surface[binding]["enforcement"]["checks"],
+                    [
+                        {
+                            "edge": list(edge),
+                            "operands": [list(operand) for operand in check_pair],
+                        }
+                        for edge, check_pair in spec["enforcement_checks"]
+                    ],
+                )
+
+    def test_root_rejects_semantic_security_mapping_substitution(self):
+        with tempfile.TemporaryDirectory() as d:
+            directory = Path(d)
+            manifest_path = materialize_fixture(directory)
+            root_path = self.build_root(directory, manifest_path)
+            value = json.loads(root_path.read_text())
+            value["semantic_security_surface"]["contract_commit_sha"]["graph"]["field"] = "tree_sha"
+            root_path.write_text(json.dumps(value))
+            self.assertEqual(self.verify_root(directory, manifest_path, root_path), 2)
+
+
     def test_root_exposes_typed_provenance_graph(self):
         with tempfile.TemporaryDirectory() as d:
             directory = Path(d)
