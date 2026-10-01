@@ -327,6 +327,18 @@ def _validate_relationship_contract_catalog() -> None:
             source_role, source_field = source
             source_operand = ("value", source_role, source_field)
             graph_operand = ("graph", graph_field[0], graph_field[1])
+            graph_operands = tuple(
+                operand for operand in check_pair if operand[0] == "graph"
+            )
+            if len(graph_operands) > 1:
+                _fail(
+                    f"semantic binding {binding} enforcement check has multiple graph operands"
+                )
+            if graph_operands and graph_operands[0] != graph_operand:
+                _fail(
+                    f"semantic binding {binding} enforcement check references a non-canonical "
+                    f"graph projection"
+                )
             if source_operand not in check_pair and graph_operand not in check_pair:
                 _fail(
                     f"semantic binding {binding} enforcement check does not directly "
