@@ -40,7 +40,7 @@ def validate_record(value:dict[str,Any])->dict[str,Any]:
     if isinstance(version,bool) or not isinstance(version,int) or not 1<=version<=0xFFFFFFFF: _fail("release_version must be an integer in [1, 4294967295]")
     repo=value["verifier_repository"]
     if not isinstance(repo,str) or not REPO_RE.fullmatch(repo): _fail("verifier_repository has invalid owner/name grammar")
-    if repo!="Luminous-Dynamics/symtropy": _fail("v1 supports only Luminous-Dynamics/symtropy verifier releases")
+    if repo!="Luminous-Dynamics/symtropy": _fail("verifier_repository must equal Luminous-Dynamics/symtropy")
     for field in ("verifier_commit_sha","verifier_tree_sha"):
         if not isinstance(value[field],str) or not SHA1_RE.fullmatch(value[field]): _fail(f"{field} must be 40 lowercase hexadecimal characters")
     if not isinstance(value["verifier_profile_sha256"],str) or not SHA256_RE.fullmatch(value["verifier_profile_sha256"]): _fail("verifier_profile_sha256 must be 64 lowercase hexadecimal characters")
