@@ -3,7 +3,9 @@ import hashlib,json,unittest
 from tools.qualification import verifier_release_v1 as release
 BASE={"schema_id":release.SCHEMA_ID,"release_id":"qual-001b-verifier-v1-r2","release_version":1,"verifier_repository":"Luminous-Dynamics/symtropy","verifier_commit_sha":"1"*40,"verifier_tree_sha":"2"*40,"verifier_profile_id":"qual-001b-authoritative-verifier-v1","verifier_profile_sha256":"3"*64,"contract_schema_id":"luminous.qualification-contract.v1","contract_schema_version":1,"suite_id":"rust-workspace-package-v1","suite_revision":"rust-workspace-package-v1/1","toolchain_id":"rust-1.96.0"}
 class VerifierReleaseV1Tests(unittest.TestCase):
-    def test_valid_record(self): self.assertIs(release.validate_record(dict(BASE)),BASE)
+    def test_valid_record(self):
+        record = dict(BASE)
+        self.assertIs(release.validate_record(record), record)
     def test_exact_field_set_rejects_executable_surface(self):
         bad=dict(BASE); bad["command"]="cargo test"
         with self.assertRaisesRegex(ValueError,"unknown fields"): release.validate_record(bad)
