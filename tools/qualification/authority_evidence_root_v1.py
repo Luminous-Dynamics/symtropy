@@ -372,7 +372,12 @@ def _validate_relationship_contract_catalog() -> None:
         for operand in pair
         if operand[0] == "graph"
     }
-    required_graph_fields = set(GRAPH_SEMANTIC_FIELDS)
+    required_graph_fields = {
+        spec["graph"]
+        for spec in SEMANTIC_BINDINGS.values()
+        if spec["coverage_class"] == "enforced"
+        and spec["relationship_operand_kind"] == "graph"
+    }
     if declared_graph_fields != required_graph_fields:
         _fail("relationship contract graph-field coverage is not canonical")
 
