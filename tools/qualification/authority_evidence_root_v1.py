@@ -531,7 +531,7 @@ def _validate_graph(graph: object) -> None:
 def _semantic_security_surface() -> dict:
     # This is a sealed root projection, not a second policy source. The canonical
     # policy remains SEMANTIC_BINDINGS; the projection makes the closed security
-    # surface independently inspectable from the emitted root.
+    # surface and its exact enforcement anchors independently inspectable.
     return {
         binding: {
             "source": {
@@ -539,6 +539,18 @@ def _semantic_security_surface() -> dict:
                 "field": source[1],
             },
             "coverage_class": SEMANTIC_BINDINGS[binding]["coverage_class"],
+            "enforcement": {
+                "enforced_by": [
+                    list(edge) for edge in SEMANTIC_BINDINGS[binding]["enforced_by"]
+                ],
+                "checks": [
+                    {
+                        "edge": list(edge),
+                        "operands": [list(operand) for operand in check_pair],
+                    }
+                    for edge, check_pair in SEMANTIC_BINDINGS[binding]["enforcement_checks"]
+                ],
+            },
         }
         for binding, source in SEMANTIC_BINDING_SOURCES.items()
     }
@@ -622,7 +634,7 @@ def verify(root_value: dict, directory: Path, manifest_path: Path) -> None:
     expected_fields = {
         "schema_id", "schema_version", "manifest_sha256", "manifest_root_sha256",
         "member_sha256", "semantic_bindings", "provenance_graph",
-        "semantic_binding_policy", "root_sha256"
+        "semantic_binding_policy", "semantic_security_surface", "root_sha256"
     }
     if set(root_value) != expected_fields:
         _fail("evidence root fields are not the closed v1 set")
