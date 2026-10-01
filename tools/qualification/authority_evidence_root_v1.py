@@ -93,6 +93,7 @@ RELATIONSHIP_VALUE_FIELDS = {
     "execution_evidence": frozenset(envelope.REQUIRED_EXECUTION_FIELDS),
 }
 GRAPH_OPERAND_FIELDS = {
+    "verifier_release": frozenset({"sha256"}),
     "contract_identity": frozenset({"commit_sha", "tree_sha", "blob_sha"}),
     "subject_identity": frozenset({"head_sha", "tree_sha"}),
     "final_result": frozenset({"value"}),
