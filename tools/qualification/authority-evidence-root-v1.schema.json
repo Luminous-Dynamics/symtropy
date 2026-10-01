@@ -535,8 +535,10 @@
           "additionalProperties": false,
           "required": [
             "source",
+            "graph",
             "coverage_class",
-            "enforcement"
+            "enforcement",
+            "purpose"
           ],
           "properties": {
             "source": {
@@ -614,6 +616,25 @@
                   "minItems": 1
                 }
               }
+            },
+            "graph": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "node",
+                "field"
+              ],
+              "properties": {
+                "node": {
+                  "const": "contract_identity"
+                },
+                "field": {
+                  "const": "commit_sha"
+                }
+              }
+            },
+            "purpose": {
+              "const": "bind qualification dispatch and execution to one frozen contract commit"
             }
           }
         },
@@ -622,8 +643,10 @@
           "additionalProperties": false,
           "required": [
             "source",
+            "graph",
             "coverage_class",
-            "enforcement"
+            "enforcement",
+            "purpose"
           ],
           "properties": {
             "source": {
@@ -701,6 +724,25 @@
                   "minItems": 1
                 }
               }
+            },
+            "graph": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "node",
+                "field"
+              ],
+              "properties": {
+                "node": {
+                  "const": "verifier_release"
+                },
+                "field": {
+                  "const": "sha256"
+                }
+              }
+            },
+            "purpose": {
+              "const": "bind dispatch selection to the exact retained verifier release member"
             }
           }
         },
@@ -709,8 +751,10 @@
           "additionalProperties": false,
           "required": [
             "source",
+            "graph",
             "coverage_class",
-            "enforcement"
+            "enforcement",
+            "purpose"
           ],
           "properties": {
             "source": {
@@ -788,6 +832,25 @@
                   "minItems": 0
                 }
               }
+            },
+            "graph": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "node",
+                "field"
+              ],
+              "properties": {
+                "node": {
+                  "const": "contract_identity"
+                },
+                "field": {
+                  "const": "tree_sha"
+                }
+              }
+            },
+            "purpose": {
+              "const": "retain the exact checkout tree identity of the frozen contract"
             }
           }
         },
@@ -796,8 +859,10 @@
           "additionalProperties": false,
           "required": [
             "source",
+            "graph",
             "coverage_class",
-            "enforcement"
+            "enforcement",
+            "purpose"
           ],
           "properties": {
             "source": {
@@ -875,6 +940,25 @@
                   "minItems": 1
                 }
               }
+            },
+            "graph": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "node",
+                "field"
+              ],
+              "properties": {
+                "node": {
+                  "const": "contract_identity"
+                },
+                "field": {
+                  "const": "blob_sha"
+                }
+              }
+            },
+            "purpose": {
+              "const": "bind the checkout identity to the exact retained contract bytes"
             }
           }
         },
@@ -883,8 +967,10 @@
           "additionalProperties": false,
           "required": [
             "source",
+            "graph",
             "coverage_class",
-            "enforcement"
+            "enforcement",
+            "purpose"
           ],
           "properties": {
             "source": {
@@ -962,6 +1048,25 @@
                   "minItems": 1
                 }
               }
+            },
+            "graph": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "node",
+                "field"
+              ],
+              "properties": {
+                "node": {
+                  "const": "subject_identity"
+                },
+                "field": {
+                  "const": "head_sha"
+                }
+              }
+            },
+            "purpose": {
+              "const": "bind execution evidence to one immutable subject revision"
             }
           }
         },
@@ -970,8 +1075,10 @@
           "additionalProperties": false,
           "required": [
             "source",
+            "graph",
             "coverage_class",
-            "enforcement"
+            "enforcement",
+            "purpose"
           ],
           "properties": {
             "source": {
@@ -1049,6 +1156,25 @@
                   "minItems": 1
                 }
               }
+            },
+            "graph": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "node",
+                "field"
+              ],
+              "properties": {
+                "node": {
+                  "const": "subject_identity"
+                },
+                "field": {
+                  "const": "head_sha"
+                }
+              }
+            },
+            "purpose": {
+              "const": "bind the qualification contract to the dispatched subject revision"
             }
           }
         },
@@ -1057,8 +1183,10 @@
           "additionalProperties": false,
           "required": [
             "source",
+            "graph",
             "coverage_class",
-            "enforcement"
+            "enforcement",
+            "purpose"
           ],
           "properties": {
             "source": {
@@ -1136,6 +1264,25 @@
                   "minItems": 0
                 }
               }
+            },
+            "graph": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "node",
+                "field"
+              ],
+              "properties": {
+                "node": {
+                  "const": "subject_identity"
+                },
+                "field": {
+                  "const": "tree_sha"
+                }
+              }
+            },
+            "purpose": {
+              "const": "retain the subject checkout tree identity"
             }
           }
         },
@@ -1144,8 +1291,10 @@
           "additionalProperties": false,
           "required": [
             "source",
+            "graph",
             "coverage_class",
-            "enforcement"
+            "enforcement",
+            "purpose"
           ],
           "properties": {
             "source": {
@@ -1223,6 +1372,25 @@
                   "minItems": 1
                 }
               }
+            },
+            "graph": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "node",
+                "field"
+              ],
+              "properties": {
+                "node": {
+                  "const": "final_result"
+                },
+                "field": {
+                  "const": "value"
+                }
+              }
+            },
+            "purpose": {
+              "const": "bind the observed qualification result to retained execution evidence"
             }
           }
         }
