@@ -183,10 +183,14 @@ SEMANTIC_BINDINGS = {
         "relationship_operand_kind": "value",
         "enforced_by": (
             ("dispatch_payload", "binds", "qualification_contract"),
+            ("execution_evidence", "targets", "subject_identity"),
         ),
         "enforcement_checks": (
             (("dispatch_payload", "binds", "qualification_contract"),
              (("value", "dispatch_payload", "contract_commit_sha"),
+              ("value", "qualification_contract", "subject_head_sha"))),
+            (("execution_evidence", "targets", "subject_identity"),
+             (("value", "execution_evidence", "subject_head_sha"),
               ("value", "qualification_contract", "subject_head_sha"))),
         ),
         "purpose": "bind the qualification contract to the dispatched subject revision",
