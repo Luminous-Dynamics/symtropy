@@ -249,7 +249,7 @@ jobs:
             "$EVIDENCE_DIR/authority-dispatch-payload.json"
 
       - name: Record dispatch identity
-        if: always() && steps.dispatch.outcome == 'success' && steps.release.outcome == 'success'
+        if: steps.dispatch.outcome == 'success' && steps.release.outcome == 'success'
         run: |
           set -euo pipefail
           test -s "$EVIDENCE_DIR/authority-dispatch-payload.json"
@@ -339,7 +339,7 @@ jobs:
           EVIDENCE_DIR: ${{ env.EVIDENCE_DIR }}
           CONTRACT_TREE_SHA: ""
 
-      - name: Independently verify retained authority evidence
+      - name: Independently verify retained dispatch evidence
         if: always() && steps.dispatch.outcome == 'success' && steps.release.outcome == 'success' && steps.contract.outcome == 'success'
         run: |
           set -euo pipefail
