@@ -36,8 +36,6 @@ GRAPH_RELATIONSHIP_CONTRACTS = (
         "checks": (
             (("value", "dispatch_payload", "contract_commit_sha"),
              ("graph", "contract_identity", "commit_sha")),
-            (("value", "dispatch_payload", "contract_commit_sha"),
-             ("value", "qualification_contract", "subject_head_sha")),
         ),
     },
     {
