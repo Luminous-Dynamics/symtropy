@@ -378,9 +378,9 @@ def _validate_relationship_contract_catalog() -> None:
     # not be confused with the graph-side operand used by the same check.
     required_graph_fields = {
         (operand[1], operand[2])
-        for spec in GRAPH_RELATIONSHIP_CONTRACTS
-        for pair in spec["checks"]
-        for operand in pair
+        for binding_spec in SEMANTIC_BINDINGS.values()
+        for _, check_pair in binding_spec["enforcement_checks"]
+        for operand in check_pair
         if operand[0] == "graph"
     }
     if declared_graph_fields != required_graph_fields:
