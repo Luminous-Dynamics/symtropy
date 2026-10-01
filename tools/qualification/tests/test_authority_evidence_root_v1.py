@@ -242,6 +242,31 @@ class EvidenceRootTests(unittest.TestCase):
         finally:
             root.SEMANTIC_BINDINGS = original
 
+    def test_semantic_binding_catalog_rejects_graph_projection_substitution(self):
+        original = root.SEMANTIC_BINDINGS
+        try:
+            malformed = {
+                **original,
+                "final_result": {
+                    **original["final_result"],
+                    "graph": ("final_result", "value"),
+                    "enforcement_checks": (
+                        (
+                            ("execution_evidence", "produces", "final_result"),
+                            (
+                                ("value", "execution_evidence", "final_result"),
+                                ("graph", "subject_identity", "head_sha"),
+                            ),
+                        ),
+                    ),
+                },
+            }
+            root.SEMANTIC_BINDINGS = malformed
+            with self.assertRaises(root.EvidenceRootValidationError):
+                root._validate_relationship_contract_catalog()
+        finally:
+            root.SEMANTIC_BINDINGS = original
+
     def test_semantic_binding_catalog_rejects_wrong_enforcement_anchor(self):
         original = root.SEMANTIC_BINDINGS
         try:
