@@ -1,0 +1,13 @@
+{
+  "$schema":"https://json-schema.org/draft/2020-12/schema",
+  "$id":"https://symtropy.org/schemas/qualification-contract-checkout-identity-v1.json",
+  "type":"object","additionalProperties":false,
+  "required":["schema_id","schema_version","contract_commit_sha","contract_tree_sha","contract_blob_sha"],
+  "properties":{
+    "schema_id":{"const":"luminous.qualification-contract-checkout-identity.v1"},
+    "schema_version":{"const":1},
+    "contract_commit_sha":{"type":"string","pattern":"^[0-9a-f]{40}$"},
+    "contract_tree_sha":{"type":"string","pattern":"^[0-9a-f]{40}$"},
+    "contract_blob_sha":{"type":"string","pattern":"^[0-9a-f]{40}$"}
+  }
+}
