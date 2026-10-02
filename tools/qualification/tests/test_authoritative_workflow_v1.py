@@ -53,6 +53,28 @@ class AuthoritativeWorkflowV1Tests(unittest.TestCase):
         self.assertIn('"contract_path": os.environ["CONTRACT_PATH"]', self.text)
         self.assertIn('"contract_sha256": os.environ["CONTRACT_SHA256"]', self.text)
 
+    def test_contract_identity_is_retained_and_bound(self) -> None:
+        self.assertIn("Record exact contract checkout identity", self.text)
+        self.assertIn('git -C "$CONTRACT_DIR" rev-parse HEAD', self.text)
+        self.assertIn('git -C "$CONTRACT_DIR" rev-parse HEAD^{tree}', self.text)
+        self.assertIn('git -C "$CONTRACT_DIR" rev-parse "HEAD:$CONTRACT_PATH"', self.text)
+        self.assertIn('"contract_commit_sha": os.environ["CONTRACT_COMMIT_SHA"]', self.text)
+        self.assertIn('"contract_tree_sha": os.environ["CONTRACT_TREE_SHA"]', self.text)
+        self.assertIn('"contract_blob_sha": os.environ["CONTRACT_BLOB_SHA"]', self.text)
+
+    def test_complete_envelope_and_recursive_root_are_replayed(self) -> None:
+        self.assertIn("Independently replay complete authority evidence envelope", self.text)
+        self.assertIn("authority_evidence_envelope_v1.py", self.text)
+        self.assertIn("Materialize recursive authority evidence root", self.text)
+        self.assertIn("authority_evidence_root_v1.py", self.text)
+        self.assertIn("Independently replay recursive authority evidence root", self.text)
+
+    def test_recursive_evidence_steps_are_fail_safe(self) -> None:
+        guard = "if: always() && steps.dispatch.outcome == 'success' && steps.release.outcome == 'success' && steps.contract.outcome == 'success'"
+        self.assertGreaterEqual(self.text.count(guard), 5)
+        self.assertIn("if: always()\n        uses: actions/upload-artifact@", self.text)
+        self.assertIn("if-no-files-found: error", self.text)
+
     def test_retained_dispatch_evidence_is_replayed(self) -> None:
         self.assertIn("Independently verify retained dispatch evidence", self.text)
         self.assertIn("authority_dispatch_evidence_verify_v1.py", self.text)
