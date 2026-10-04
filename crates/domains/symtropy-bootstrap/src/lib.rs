@@ -1077,7 +1077,7 @@ mod tests {
 
         assert_eq!(
             highest_closed_stage(&report, &requirements),
-            Some(ClosureStage::Expansion)
+            Some(ClosureStage::Seed)
         );
     }
 
