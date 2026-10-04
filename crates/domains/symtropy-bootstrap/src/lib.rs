@@ -462,6 +462,88 @@ impl ProcessEfficiency {
     }
 }
 
+/// A candidate industrial transition represented by independently auditable dimensions.
+///
+/// The frontier deliberately avoids collapsing capability gain, imported mass,
+/// energy, time, and failure risk into one scalar. Higher-is-better dimensions
+/// are maximized; burden dimensions are minimized.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct BootstrapCandidate {
+    pub id: String,
+    pub critical_weight_closed_gain: u64,
+    pub dependency_weight_removed: u64,
+    pub imported_mass_g: u64,
+    pub energy_units: u64,
+    pub time_ticks: u64,
+    pub failure_risk_ppm: u64,
+}
+
+impl BootstrapCandidate {
+    #[must_use]
+    pub fn new(
+        id: impl Into<String>,
+        critical_weight_closed_gain: u64,
+        dependency_weight_removed: u64,
+        imported_mass_g: u64,
+        energy_units: u64,
+        time_ticks: u64,
+        failure_risk_ppm: u64,
+    ) -> Self {
+        Self {
+            id: id.into(),
+            critical_weight_closed_gain,
+            dependency_weight_removed,
+            imported_mass_g,
+            energy_units,
+            time_ticks,
+            failure_risk_ppm: failure_risk_ppm.min(1_000_000),
+        }
+    }
+
+    /// Whether this candidate is strictly Pareto-better than another.
+    #[must_use]
+    pub fn dominates(&self, other: &Self) -> bool {
+        let no_worse = self.critical_weight_closed_gain >= other.critical_weight_closed_gain
+            && self.dependency_weight_removed >= other.dependency_weight_removed
+            && self.imported_mass_g <= other.imported_mass_g
+            && self.energy_units <= other.energy_units
+            && self.time_ticks <= other.time_ticks
+            && self.failure_risk_ppm <= other.failure_risk_ppm;
+
+        let strictly_better = self.critical_weight_closed_gain
+            > other.critical_weight_closed_gain
+            || self.dependency_weight_removed > other.dependency_weight_removed
+            || self.imported_mass_g < other.imported_mass_g
+            || self.energy_units < other.energy_units
+            || self.time_ticks < other.time_ticks
+            || self.failure_risk_ppm < other.failure_risk_ppm;
+
+        no_worse && strictly_better
+    }
+}
+
+/// Return the deterministic non-dominated bootstrap candidates.
+///
+/// Input ordering does not affect the frontier. Duplicate candidates are
+/// retained only when their IDs differ, making provenance-preserving callers
+/// responsible for deciding whether two identically measured actions are
+/// distinct opportunities.
+#[must_use]
+pub fn pareto_frontier(candidates: &[BootstrapCandidate]) -> Vec<BootstrapCandidate> {
+    let mut frontier = candidates
+        .iter()
+        .filter(|candidate| {
+            !candidates
+                .iter()
+                .any(|other| other.id != candidate.id && other.dominates(candidate))
+        })
+        .cloned()
+        .collect::<Vec<_>>();
+
+    frontier.sort_by(|left, right| left.id.cmp(&right.id));
+    frontier
+}
+
 /// Exact rational representation of capability gain per imported mass.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct BootstrapEfficiency {
@@ -791,6 +873,44 @@ mod tests {
 
         assert!(focused.better_than(diffuse));
         assert!(!diffuse.better_than(focused));
+    }
+
+    #[test]
+    fn pareto_frontier_prefers_dependency_closure_without_single_score() {
+        let dependency_remover = BootstrapCandidate::new("close_electronics", 30, 30, 100, 500, 20, 50_000);
+        let throughput = BootstrapCandidate::new("increase_bulk_output", 0, 0, 100, 500, 20, 50_000);
+        let frontier = pareto_frontier(&[throughput, dependency_remover]);
+
+        assert_eq!(frontier.len(), 1);
+        assert_eq!(frontier[0].id, "close_electronics");
+    }
+
+    #[test]
+    fn pareto_frontier_preserves_real_tradeoffs() {
+        let low_energy = BootstrapCandidate::new("low_energy", 10, 5, 100, 100, 30, 100_000);
+        let low_mass = BootstrapCandidate::new("low_mass", 10, 5, 50, 200, 30, 100_000);
+        let frontier = pareto_frontier(&[low_energy, low_mass]);
+
+        assert_eq!(frontier.len(), 2);
+        assert_eq!(
+            frontier.iter().map(|candidate| candidate.id.as_str()).collect::<Vec<_>>(),
+            vec!["low_energy", "low_mass"]
+        );
+    }
+
+    #[test]
+    fn pareto_frontier_is_input_order_independent() {
+        let a = BootstrapCandidate::new("a", 10, 5, 100, 100, 30, 100_000);
+        let b = BootstrapCandidate::new("b", 20, 5, 100, 100, 30, 100_000);
+        let c = BootstrapCandidate::new("c", 5, 10, 90, 110, 20, 80_000);
+
+        let first = pareto_frontier(&[a.clone(), b.clone(), c.clone()]);
+        let second = pareto_frontier(&[c, b, a]);
+
+        assert_eq!(first, second);
+        assert!(first.iter().any(|candidate| candidate.id == "b"));
+        assert!(first.iter().any(|candidate| candidate.id == "c"));
+        assert!(!first.iter().any(|candidate| candidate.id == "a"));
     }
 
     #[test]
