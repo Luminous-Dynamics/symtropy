@@ -1377,16 +1377,29 @@ mod tests {
         )
         .expect("generated events must replay");
         assert_eq!(final_inventory.get("feed-004"), Some(&0));
-        assert_eq!(final_inventory.get("regolith_electrolysis:10:oxygen"), Some(&180));
-        assert_eq!(final_inventory.get("regolith_electrolysis:10:metal"), Some(&720));
+        assert_eq!(
+            final_inventory.get("regolith_electrolysis:10:oxygen"),
+            Some(&180)
+        );
+        assert_eq!(
+            final_inventory.get("regolith_electrolysis:10:metal"),
+            Some(&720)
+        );
     }
 
     #[test]
     fn estimated_resource_cannot_enter_inventory_without_certification() {
-        let claim = ResourceClaim::new("mercury-polar-ice", 5_000, EvidenceGrade::RemoteObserved, 950_000);
-        assert!(claim
-            .certify_for_inventory(EvidenceGrade::InSituMeasured, 900_000)
-            .is_err());
+        let claim = ResourceClaim::new(
+            "mercury-polar-ice",
+            5_000,
+            EvidenceGrade::RemoteObserved,
+            950_000,
+        );
+        assert!(
+            claim
+                .certify_for_inventory(EvidenceGrade::InSituMeasured, 900_000)
+                .is_err()
+        );
 
         let measured = ResourceClaim::new(
             "mercury-polar-ice",
