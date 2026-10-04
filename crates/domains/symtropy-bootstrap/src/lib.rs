@@ -484,6 +484,26 @@ impl ProductionProcess {
 
         Ok(events)
     }
+
+    /// Create the causal energy-consumption event for a process execution.
+    pub fn energy_event(
+        &self,
+        sequence: u64,
+        node_id: impl Into<String>,
+        run: &ProcessRun,
+    ) -> Result<EnergyEvent, String> {
+        self.validate_run(run)?;
+
+        Ok(
+            EnergyEvent::new(
+                sequence,
+                node_id,
+                run.energy_units,
+                EnergyEventKind::Consumed,
+            )
+            .with_provenance(format!("process:{}:{sequence}", self.id)),
+        )
+    }
 }
 
 /// One executed process event.
@@ -708,6 +728,100 @@ pub const fn recovery_horizon(outcome: &RecoveryOutcome) -> Option<u64> {
         RecoveryOutcome::Immediate => Some(0),
         RecoveryOutcome::RecoveredAfter { ticks } => Some(*ticks),
         RecoveryOutcome::Unrecoverable => None,
+    }
+}
+
+/// Energy ledger event kind.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum EnergyEventKind {
+    Generated,
+    Consumed,
+    Recovered,
+}
+
+/// One append-only energy event.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct EnergyEvent {
+    pub sequence: u64,
+    pub node_id: String,
+    pub energy_units: u64,
+    pub kind: EnergyEventKind,
+    pub provenance_id: Option<String>,
+}
+
+impl EnergyEvent {
+    #[must_use]
+    pub fn new(
+        sequence: u64,
+        node_id: impl Into<String>,
+        energy_units: u64,
+        kind: EnergyEventKind,
+    ) -> Self {
+        Self {
+            sequence,
+            node_id: node_id.into(),
+            energy_units,
+            kind,
+            provenance_id: None,
+        }
+    }
+
+    /// Attach a stable causal provenance identifier to an energy event.
+    #[must_use]
+    pub fn with_provenance(mut self, provenance_id: impl Into<String>) -> Self {
+        self.provenance_id = Some(provenance_id.into());
+        self
+    }
+}
+
+/// Replay energy from an initial balance and append-only causal events.
+pub fn replay_energy(
+    initial: &BTreeMap<String, u64>,
+    events: &[EnergyEvent],
+) -> Result<BTreeMap<String, u64>, String> {
+    let mut ordered = events.to_vec();
+    ordered.sort_by_key(|event| event.sequence);
+
+    if ordered
+        .windows(2)
+        .any(|window| window[0].sequence == window[1].sequence)
+    {
+        return Err("duplicate energy event sequence".to_string());
+    }
+
+    let mut energy = initial.clone();
+
+    for event in ordered {
+        let balance = energy.entry(event.node_id).or_insert(0);
+
+        match event.kind {
+            EnergyEventKind::Generated | EnergyEventKind::Recovered => {
+                *balance = balance
+                    .checked_add(event.energy_units)
+                    .ok_or_else(|| "energy overflow".to_string())?;
+            }
+            EnergyEventKind::Consumed => {
+                if *balance < event.energy_units {
+                    return Err("energy underflow".to_string());
+                }
+                *balance -= event.energy_units;
+            }
+        }
+    }
+
+    Ok(energy)
+}
+
+/// Verify final energy against deterministic replay of its causal history.
+pub fn verify_energy_conservation(
+    initial: &BTreeMap<String, u64>,
+    events: &[EnergyEvent],
+    observed_final: &BTreeMap<String, u64>,
+) -> Result<(), String> {
+    if replay_energy(initial, events)? == *observed_final {
+        Ok(())
+    } else {
+        Err("observed energy differs from causal replay".to_string())
     }
 }
 
@@ -1139,6 +1253,59 @@ mod tests {
             4_000,
         );
         assert!(process.validate_run(&wrong_process).is_err());
+    }
+
+    #[test]
+    fn process_execution_generates_causal_energy_event() {
+        let process = ProductionProcess::new(
+            "regolith_electrolysis",
+            "regolith",
+            ["oxygen", "metal"],
+            "waste",
+        );
+        let run = ProcessRun::new(
+            "regolith_electrolysis",
+            "regolith",
+            "feed-005",
+            1_000,
+            BTreeMap::from([("oxygen".to_string(), 180), ("metal".to_string(), 720)]),
+            100,
+            4_000,
+        );
+
+        let event = process
+            .energy_event(30, "power-bus-1", &run)
+            .expect("valid process should emit a causal energy event");
+        assert_eq!(event.kind, EnergyEventKind::Consumed);
+        assert_eq!(event.node_id, "power-bus-1");
+        assert_eq!(event.energy_units, 4_000);
+        assert_eq!(
+            event.provenance_id.as_deref(),
+            Some("process:regolith_electrolysis:30")
+        );
+
+        let initial = BTreeMap::from([("power-bus-1".to_string(), 5_000)]);
+        let expected = BTreeMap::from([("power-bus-1".to_string(), 1_000)]);
+        verify_energy_conservation(&initial, &[event], &expected)
+            .expect("energy ledger must replay exactly");
+    }
+
+    #[test]
+    fn energy_replay_rejects_unfunded_and_duplicate_history() {
+        let initial = BTreeMap::from([("bus".to_string(), 1_000)]);
+        let overdraw = [EnergyEvent::new(
+            1,
+            "bus",
+            1_001,
+            EnergyEventKind::Consumed,
+        )];
+        assert!(replay_energy(&initial, &overdraw).is_err());
+
+        let duplicate = [
+            EnergyEvent::new(1, "bus", 1, EnergyEventKind::Generated),
+            EnergyEvent::new(1, "bus", 1, EnergyEventKind::Generated),
+        ];
+        assert!(replay_energy(&BTreeMap::new(), &duplicate).is_err());
     }
 
     #[test]
