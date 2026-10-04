@@ -755,7 +755,12 @@ The first implementation should prove:
 - offline operation preserves local safety without creating remote omniscience;
 - bootstrap milestones replay from evidence references;
 - LOD transitions preserve mass, energy, machines, reservations, and unresolved failures;
-- the simulator can identify the single largest unresolved blocker to industrial closure.
+- the simulator can identify the single largest unresolved blocker to industrial closure;
+- estimated resources require an explicit evidence-certification transition before entering inventory;
+- process executions reference declared input material and a concrete source batch;
+- process executions cannot exceed available feedstock or energy budgets;
+- validated process executions emit deterministic causal inventory events;
+- industrial stage progression cannot skip an unresolved earlier stage.
 
 ## 21. Kill Criteria
 
@@ -781,6 +786,46 @@ It is:
 > **turn planetary matter and solar energy into an increasingly autonomous, repairable, evidence-grounded industrial ecology without surrendering human authority over its purposes.**
 
 Mercury is a valuable proving ground because it forces the architecture to confront energy abundance, thermal hostility, communication delay, uncertain resources, autonomous maintenance, industrial dependency, and long recovery horizons in one environment.
+
+## 23. Digital-Thread Evidence and Causal Execution
+
+The bootstrap runtime should treat industrial state as a digital thread: claims, process definitions, executions, products, and verification evidence remain linked instead of being flattened into disconnected scalar state. NIST's digital-thread work emphasizes traceability across engineering, manufacturing, and quality data, including conformance checking and persistent identifiers. NASA systems-engineering guidance likewise distinguishes verification/validation from simply asserting that a capability exists. citeturn579619search0turn579619search7turn579619search5
+
+The kernel therefore now separates three transitions:
+
+```text
+resource claim
+  -> explicit evidence certification
+  -> inventory-eligible quantity
+
+declared process
+  + identified input batch
+  + available feedstock budget
+  + available energy budget
+  -> validated process execution
+  -> causal inventory events
+```
+
+A mass-balanced process is not sufficient by itself. The run must reference the declared input material, a non-empty source batch, and sufficient feedstock and energy budgets. Validated executions can then emit deterministic consumed/produced inventory events carrying a stable causal provenance identifier.
+
+This also gives the simulator a stronger digital-thread boundary:
+
+```text
+evidence
+  -> claim
+  -> certification
+  -> stock
+  -> process definition
+  -> process execution
+  -> product batch
+  -> later manufacturing/recycling event
+```
+
+No speculative deposit, unbudgeted process, or disconnected production event should silently cross that boundary.
+
+Closure stages are similarly monotonic. A later industrial stage must not be reported merely because its local requirement happens to be satisfied while an earlier required stage is unresolved. The stage ladder is therefore evaluated in order and stops at the first unmet requirement.
+
+These rules are intentionally general: they apply to Mercury, the Moon, asteroids, terrestrial closed-loop industry, and simulation environments where evidence quality and causal reconstruction matter more than optimistic point estimates.
 
 ## References
 
