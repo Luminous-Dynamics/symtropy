@@ -524,10 +524,9 @@ impl BootstrapCandidate {
 
 /// Return the deterministic non-dominated bootstrap candidates.
 ///
-/// Input ordering does not affect the frontier. Duplicate candidates are
-/// retained only when their IDs differ, making provenance-preserving callers
-/// responsible for deciding whether two identically measured actions are
-/// distinct opportunities.
+/// Input ordering does not affect the frontier. Candidates with identical IDs
+/// are not deduplicated, leaving provenance-preserving callers responsible for
+/// deciding whether identically measured actions are distinct opportunities.
 #[must_use]
 pub fn pareto_frontier(candidates: &[BootstrapCandidate]) -> Vec<BootstrapCandidate> {
     let mut frontier = candidates
@@ -877,8 +876,10 @@ mod tests {
 
     #[test]
     fn pareto_frontier_prefers_dependency_closure_without_single_score() {
-        let dependency_remover = BootstrapCandidate::new("close_electronics", 30, 30, 100, 500, 20, 50_000);
-        let throughput = BootstrapCandidate::new("increase_bulk_output", 0, 0, 100, 500, 20, 50_000);
+        let dependency_remover =
+            BootstrapCandidate::new("close_electronics", 30, 30, 100, 500, 20, 50_000);
+        let throughput =
+            BootstrapCandidate::new("increase_bulk_output", 0, 0, 100, 500, 20, 50_000);
         let frontier = pareto_frontier(&[throughput, dependency_remover]);
 
         assert_eq!(frontier.len(), 1);
@@ -893,7 +894,10 @@ mod tests {
 
         assert_eq!(frontier.len(), 2);
         assert_eq!(
-            frontier.iter().map(|candidate| candidate.id.as_str()).collect::<Vec<_>>(),
+            frontier
+                .iter()
+                .map(|candidate| candidate.id.as_str())
+                .collect::<Vec<_>>(),
             vec!["low_energy", "low_mass"]
         );
     }
