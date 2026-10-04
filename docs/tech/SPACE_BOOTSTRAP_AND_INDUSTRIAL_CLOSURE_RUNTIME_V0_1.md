@@ -760,6 +760,7 @@ The first implementation should prove:
 - process executions reference declared input material and a concrete source batch;
 - process executions cannot exceed available feedstock or energy budgets;
 - validated process executions emit deterministic causal inventory events with provenance;
+- inventory and energy replay reject unprovenanced ledger events;
 - validated process executions emit replayable energy-consumption events with provenance;
 - industrial stage progression cannot skip an unresolved earlier stage.
 
@@ -823,7 +824,7 @@ evidence
   -> later manufacturing/recycling event
 ```
 
-No speculative deposit, unbudgeted process, or disconnected production event should silently cross that boundary.
+No speculative deposit, unbudgeted process, disconnected production event, or unprovenanced ledger delta should silently cross that boundary.
 
 Closure stages are similarly monotonic. A later industrial stage must not be reported merely because its local requirement happens to be satisfied while an earlier required stage is unresolved. The stage ladder is therefore evaluated in order and stops at the first unmet requirement.
 
