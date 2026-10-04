@@ -1236,6 +1236,8 @@ mod tests {
 
         let undeclared = ProcessRun::new(
             "regolith_electrolysis",
+            "regolith",
+            "feed-001",
             1_000,
             BTreeMap::from([("oxygen".to_string(), 180), ("gold".to_string(), 720)]),
             100,
