@@ -557,12 +557,16 @@ impl BootstrapCandidate {
 pub fn pareto_frontier(candidates: &[BootstrapCandidate]) -> Vec<BootstrapCandidate> {
     let mut frontier = candidates
         .iter()
-        .filter(|candidate| {
+        .enumerate()
+        .filter(|(index, candidate)| {
             !candidates
                 .iter()
-                .any(|other| other.id != candidate.id && other.dominates(candidate))
+                .enumerate()
+                .any(|(other_index, other)| {
+                    other_index != *index && other.dominates(candidate)
+                })
         })
-        .cloned()
+        .map(|(_, candidate)| candidate.clone())
         .collect::<Vec<_>>();
 
     frontier.sort_by(|left, right| left.id.cmp(&right.id));
@@ -965,6 +969,16 @@ mod tests {
                 .collect::<Vec<_>>(),
             vec!["low_energy", "low_mass"]
         );
+    }
+
+    #[test]
+    fn pareto_frontier_compares_same_id_observations() {
+        let dominated = BootstrapCandidate::new("same_id", 1, 1, 100, 100, 30, 100_000);
+        let stronger = BootstrapCandidate::new("same_id", 2, 2, 90, 90, 20, 90_000);
+        let frontier = pareto_frontier(&[dominated, stronger]);
+
+        assert_eq!(frontier.len(), 1);
+        assert_eq!(frontier[0].critical_weight_closed_gain, 2);
     }
 
     #[test]
