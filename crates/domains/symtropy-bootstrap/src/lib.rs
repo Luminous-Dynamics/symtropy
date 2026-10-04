@@ -359,6 +359,121 @@ pub fn highest_closed_stage(
         .max()
 }
 
+
+/// A manufacturing process definition with explicit co-product accounting.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ProductionProcess {
+    pub id: String,
+    pub input_material: String,
+    pub output_streams: Vec<String>,
+    pub waste_stream: String,
+}
+
+impl ProductionProcess {
+    #[must_use]
+    pub fn new(
+        id: impl Into<String>,
+        input_material: impl Into<String>,
+        output_streams: impl IntoIterator<Item = impl Into<String>>,
+        waste_stream: impl Into<String>,
+    ) -> Self {
+        Self {
+            id: id.into(),
+            input_material: input_material.into(),
+            output_streams: output_streams.into_iter().map(Into::into).collect(),
+            waste_stream: waste_stream.into(),
+        }
+    }
+}
+
+/// One executed process event.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ProcessRun {
+    pub process_id: String,
+    pub feed_mass_g: u64,
+    pub output_mass_g: BTreeMap<String, u64>,
+    pub waste_mass_g: u64,
+    pub energy_units: u64,
+}
+
+impl ProcessRun {
+    #[must_use]
+    pub fn new(
+        process_id: impl Into<String>,
+        feed_mass_g: u64,
+        output_mass_g: BTreeMap<String, u64>,
+        waste_mass_g: u64,
+        energy_units: u64,
+    ) -> Self {
+        Self {
+            process_id: process_id.into(),
+            feed_mass_g,
+            output_mass_g,
+            waste_mass_g,
+            energy_units,
+        }
+    }
+
+    /// Check strict mass conservation for this process execution.
+    pub fn validate_mass_balance(&self) -> Result<(), String> {
+        let recovered_output = self.output_mass_g.values().try_fold(
+            0_u64,
+            |sum, mass| sum.checked_add(*mass),
+        )
+        .ok_or_else(|| "output mass overflow".to_string())?;
+
+        let accounted = recovered_output
+            .checked_add(self.waste_mass_g)
+            .ok_or_else(|| "accounted mass overflow".to_string())?;
+
+        if accounted == self.feed_mass_g {
+            Ok(())
+        } else {
+            Err(format!(
+                "process mass imbalance: feed={} accounted={accounted}",
+                self.feed_mass_g
+            ))
+        }
+    }
+
+    #[must_use]
+    pub fn total_output_mass_g(&self) -> u64 {
+        self.output_mass_g.values().copied().sum()
+    }
+}
+
+/// Deterministic process score for comparing candidate bootstrap transitions.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct ProcessEfficiency {
+    pub capability_gain: u64,
+    pub feed_mass_g: u64,
+    pub energy_units: u64,
+}
+
+impl ProcessEfficiency {
+    #[must_use]
+    pub const fn new(capability_gain: u64, feed_mass_g: u64, energy_units: u64) -> Self {
+        Self {
+            capability_gain,
+            feed_mass_g,
+            energy_units,
+        }
+    }
+
+    /// Compare capability gained per combined mass-energy burden.
+    ///
+    /// This is intentionally a structural comparator rather than a physical
+    /// economic claim; higher layers decide the actual weighting of resources.
+    #[must_use]
+    pub fn better_than(self, other: Self) -> bool {
+        let lhs = (self.capability_gain as u128)
+            .saturating_mul((other.feed_mass_g + other.energy_units) as u128);
+        let rhs = (other.capability_gain as u128)
+            .saturating_mul((self.feed_mass_g + self.energy_units) as u128);
+        lhs > rhs
+    }
+}
+
 /// Exact rational representation of capability gain per imported mass.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct BootstrapEfficiency {
@@ -645,6 +760,46 @@ mod tests {
             highest_closed_stage(&report, &requirements),
             Some(ClosureStage::Structural)
         );
+    }
+
+    #[test]
+    fn process_co_products_must_balance_mass() {
+        let run = ProcessRun::new(
+            "regolith_electrolysis",
+            1_000,
+            BTreeMap::from([
+                ("oxygen".to_string(), 180),
+                ("metal".to_string(), 720),
+            ]),
+            100,
+            4_000,
+        );
+
+        run.validate_mass_balance()
+            .expect("co-product process should conserve mass");
+        assert_eq!(run.total_output_mass_g(), 900);
+    }
+
+    #[test]
+    fn process_imbalance_is_rejected() {
+        let run = ProcessRun::new(
+            "broken_refinery",
+            1_000,
+            BTreeMap::from([("metal".to_string(), 800)]),
+            100,
+            2_000,
+        );
+
+        assert!(run.validate_mass_balance().is_err());
+    }
+
+    #[test]
+    fn process_efficiency_is_deterministic() {
+        let focused = ProcessEfficiency::new(10, 100, 100);
+        let diffuse = ProcessEfficiency::new(12, 200, 200);
+
+        assert!(focused.better_than(diffuse));
+        assert!(!diffuse.better_than(focused));
     }
 
     #[test]
