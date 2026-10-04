@@ -229,6 +229,21 @@ after removal of one critical dependency
 
 The bootstrapper should improve recovery horizon while increasing redundancy.
 
+### Multi-objective process frontier
+
+Do not turn bootstrap planning into one opaque utility score. Candidate transitions should expose independent dimensions:
+
+```text
+critical closure gained           maximize
+dependency criticality removed    maximize
+imported mass consumed            minimize
+energy burden                     minimize
+time to capability                minimize
+failure risk                      minimize
+```
+
+A candidate dominates another only when it is no worse on every declared dimension and strictly better on at least one. The runtime therefore returns a deterministic Pareto frontier instead of pretending that one universal weighting is objective. Higher layers can then apply policy-specific preferences without discarding the underlying measurements.
+
 ## 7. Industrial Closure Ladder
 
 ```text
