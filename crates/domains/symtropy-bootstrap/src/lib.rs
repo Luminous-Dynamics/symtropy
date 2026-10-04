@@ -23,10 +23,7 @@ pub enum DependencyClass {
 impl DependencyClass {
     /// Whether this dependency can count as locally closed.
     pub const fn is_closed(self) -> bool {
-        matches!(
-            self,
-            Self::LocalClosed | Self::ReplaceableBySubstitution
-        )
+        matches!(self, Self::LocalClosed | Self::ReplaceableBySubstitution)
     }
 }
 
@@ -170,14 +167,8 @@ impl DependencyGraph {
             assessments,
             weighted_critical_closed,
             weighted_critical_total,
-            critical_closure_ppm: ratio_ppm(
-                weighted_critical_closed,
-                weighted_critical_total,
-            ),
-            mass_closure_ppm: ratio_ppm(
-                local_mass_g,
-                local_mass_g.saturating_add(imported_mass_g),
-            ),
+            critical_closure_ppm: ratio_ppm(weighted_critical_closed, weighted_critical_total),
+            mass_closure_ppm: ratio_ppm(local_mass_g, local_mass_g.saturating_add(imported_mass_g)),
         }
     }
 
@@ -206,13 +197,11 @@ impl DependencyGraph {
 
         let mut ranked = blockers
             .into_iter()
-            .map(
-                |(id, (weight, affected_capabilities))| DependencyBlocker {
-                    id,
-                    weight,
-                    affected_capabilities: affected_capabilities.into_iter().collect(),
-                },
-            )
+.map(|(id, (weight, affected_capabilities))| DependencyBlocker {
+                id,
+                weight,
+                affected_capabilities: affected_capabilities.into_iter().collect(),
+            })
             .collect::<Vec<_>>();
 
         ranked.sort_by(|left, right| {
@@ -617,8 +606,7 @@ pub const fn ratio_ppm(numerator: u64, denominator: u64) -> u64 {
     if denominator == 0 {
         0
     } else {
-        ((((numerator as u128) * 1_000_000u128) / (denominator as u128)).min(1_000_000))
-            as u64
+        ((((numerator as u128) * 1_000_000u128) / (denominator as u128)).min(1_000_000)) as u64
     }
 }
 
@@ -653,10 +641,7 @@ mod tests {
 
     #[test]
     fn unknown_dependency_fails_closed() {
-        let graph = DependencyGraph::new(
-            [Capability::new("rover", 100, ["mystery_part"])],
-            [],
-        );
+        let graph = DependencyGraph::new([Capability::new("rover", 100, ["mystery_part"])], []);
         let report = graph.evaluate(1, 0);
 
         assert!(!report.assessments[0].closed);
@@ -678,7 +663,12 @@ mod tests {
         let report = graph.evaluate(1, 0);
 
         assert!(report.fully_closed());
-        assert!(report.assessments.iter().all(|assessment| assessment.closed));
+        assert!(
+            report
+                .assessments
+                .iter()
+                .all(|assessment| assessment.closed)
+        );
     }
 
     #[test]
@@ -692,7 +682,12 @@ mod tests {
         );
         let report = graph.evaluate(1, 0);
 
-        assert!(report.assessments.iter().any(|assessment| assessment.cycle_detected));
+        assert!(
+            report
+                .assessments
+                .iter()
+                .any(|assessment| assessment.cycle_detected)
+        );
         assert!(!report.fully_closed());
     }
 
@@ -813,18 +808,12 @@ mod tests {
 
     #[test]
     fn recovery_horizon_is_explicit() {
-        assert_eq!(
-            recovery_horizon(&RecoveryOutcome::Immediate),
-            Some(0)
-        );
+        assert_eq!(recovery_horizon(&RecoveryOutcome::Immediate), Some(0));
         assert_eq!(
             recovery_horizon(&RecoveryOutcome::RecoveredAfter { ticks: 17 }),
             Some(17)
         );
-        assert_eq!(
-            recovery_horizon(&RecoveryOutcome::Unrecoverable),
-            None
-        );
+        assert_eq!(recovery_horizon(&RecoveryOutcome::Unrecoverable), None);
     }
 
     #[test]
