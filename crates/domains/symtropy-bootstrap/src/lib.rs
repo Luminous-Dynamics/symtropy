@@ -372,6 +372,32 @@ impl ProductionProcess {
             waste_stream: waste_stream.into(),
         }
     }
+
+    /// Validate that a process execution conforms to the declared process schema.
+    pub fn validate_run(&self, run: &ProcessRun) -> Result<(), String> {
+        if run.process_id != self.id {
+            return Err(format!(
+                "process ID mismatch: expected={}, observed={}",
+                self.id, run.process_id
+            ));
+        }
+
+        let declared = self
+            .output_streams
+            .iter()
+            .map(String::as_str)
+            .collect::<BTreeSet<_>>();
+
+        if let Some(undeclared) = run
+            .output_mass_g
+            .keys()
+            .find(|stream| !declared.contains(stream.as_str()))
+        {
+            return Err(format!("undeclared output stream: {undeclared}"));
+        }
+
+        run.validate_mass_balance()
+    }
 }
 
 /// One executed process event.
@@ -850,6 +876,45 @@ mod tests {
         run.validate_mass_balance()
             .expect("co-product process should conserve mass");
         assert_eq!(run.total_output_mass_g(), 900);
+    }
+
+    #[test]
+    fn process_run_must_match_declared_schema() {
+        let process = ProductionProcess::new(
+            "regolith_electrolysis",
+            "regolith",
+            ["oxygen", "metal"],
+            "waste",
+        );
+        let valid = ProcessRun::new(
+            "regolith_electrolysis",
+            1_000,
+            BTreeMap::from([("oxygen".to_string(), 180), ("metal".to_string(), 720)]),
+            100,
+            4_000,
+        );
+
+        process
+            .validate_run(&valid)
+            .expect("declared process run should validate");
+
+        let undeclared = ProcessRun::new(
+            "regolith_electrolysis",
+            1_000,
+            BTreeMap::from([("oxygen".to_string(), 180), ("gold".to_string(), 720)]),
+            100,
+            4_000,
+        );
+        assert!(process.validate_run(&undeclared).is_err());
+
+        let wrong_process = ProcessRun::new(
+            "unrelated_process",
+            1_000,
+            BTreeMap::from([("oxygen".to_string(), 180), ("metal".to_string(), 720)]),
+            100,
+            4_000,
+        );
+        assert!(process.validate_run(&wrong_process).is_err());
     }
 
     #[test]
