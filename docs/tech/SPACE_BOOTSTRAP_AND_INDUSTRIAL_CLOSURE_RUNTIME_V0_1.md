@@ -789,7 +789,7 @@ Mercury is a valuable proving ground because it forces the architecture to confr
 
 ## 23. Digital-Thread Evidence and Causal Execution
 
-The bootstrap runtime should treat industrial state as a digital thread: claims, process definitions, executions, products, and verification evidence remain linked instead of being flattened into disconnected scalar state. NIST's digital-thread work emphasizes traceability across engineering, manufacturing, and quality data, including conformance checking and persistent identifiers. NASA systems-engineering guidance likewise distinguishes verification/validation from simply asserting that a capability exists. citeturn579619search0turn579619search7turn579619search5
+The bootstrap runtime should treat industrial state as a digital thread: claims, process definitions, executions, products, and verification evidence remain linked instead of being flattened into disconnected scalar state. NIST's digital-thread work emphasizes traceability across engineering, manufacturing, and quality data, including conformance checking and persistent identifiers. NASA systems-engineering guidance likewise distinguishes verification/validation from simply asserting that a capability exists. [NIST digital-thread research](https://www.nist.gov/programs-projects/digital-thread-manufacturing) and [NASA systems-engineering verification guidance](https://www.nasa.gov/reference/5-0-product-realization/)
 
 The kernel therefore now separates three transitions:
 
