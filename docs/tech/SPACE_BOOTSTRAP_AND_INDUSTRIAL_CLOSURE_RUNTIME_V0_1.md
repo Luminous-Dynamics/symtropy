@@ -590,6 +590,58 @@ The key Mercury question is therefore not only "can Mercury be mined?" but:
 
 The simulator should be able to stop at any stage and report the highest-value unresolved dependency.
 
+## 19. Mercury Operating Bands
+
+Mercury should not be modeled as one uniform industrial environment.
+
+### Sunlit belt
+
+Use high-irradiance regions for power capture and processes that benefit from high-temperature operation.
+
+Candidate loads:
+
+```text
+solar concentration
+thermal processing
+metallurgy
+glass / ceramics
+bulk material handling
+```
+
+### Terminator corridor
+
+Mercury's solar day is about 176 Earth days. Using the mean planetary radius, the apparent solar terminator moves around the equator at roughly 3.6 km/h (derived).
+
+This creates a useful simulation hypothesis:
+
+```text
+follow dawn/dusk
+  -> avoid peak noon heating
+  -> avoid deepest night
+  -> maintain moderate thermal gradients
+  -> couple mobile industry to power availability
+```
+
+The runtime should permit a mobile industrial corridor to trade travel time against thermal stability rather than assuming a fixed base is always optimal.
+
+This is a **design hypothesis**, not a demonstrated Mercury-operating strategy. Terrain, illumination geometry, communication, mobility energy, and actual thermal envelopes must be modeled before treating it as advantageous.
+
+### Polar cold-trap zone
+
+Polar operations should minimize heat leakage into volatile deposits.
+
+The simulator must support:
+
+```text
+cold-region resource inventory
+shadow-dependent thermal state
+volatile loss from disturbed material
+protected transport containers
+energy cost of extraction and ascent
+```
+
+The objective is not maximum volatile removal. It is maintaining a durable consumables loop while preserving the resource environment.
+
 ## 19. Regression Fixtures
 
 ### Critical component loss
