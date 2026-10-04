@@ -197,7 +197,7 @@ impl DependencyGraph {
 
         let mut ranked = blockers
             .into_iter()
-.map(|(id, (weight, affected_capabilities))| DependencyBlocker {
+            .map(|(id, (weight, affected_capabilities))| DependencyBlocker {
                 id,
                 weight,
                 affected_capabilities: affected_capabilities.into_iter().collect(),
@@ -348,7 +348,6 @@ pub fn highest_closed_stage(
         .max()
 }
 
-
 /// A manufacturing process definition with explicit co-product accounting.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ProductionProcess {
@@ -405,11 +404,11 @@ impl ProcessRun {
 
     /// Check strict mass conservation for this process execution.
     pub fn validate_mass_balance(&self) -> Result<(), String> {
-        let recovered_output = self.output_mass_g.values().try_fold(
-            0_u64,
-            |sum, mass| sum.checked_add(*mass),
-        )
-        .ok_or_else(|| "output mass overflow".to_string())?;
+        let recovered_output = self
+            .output_mass_g
+            .values()
+            .try_fold(0_u64, |sum, mass| sum.checked_add(*mass))
+            .ok_or_else(|| "output mass overflow".to_string())?;
 
         let accounted = recovered_output
             .checked_add(self.waste_mass_g)
@@ -762,10 +761,7 @@ mod tests {
         let run = ProcessRun::new(
             "regolith_electrolysis",
             1_000,
-            BTreeMap::from([
-                ("oxygen".to_string(), 180),
-                ("metal".to_string(), 720),
-            ]),
+            BTreeMap::from([("oxygen".to_string(), 180), ("metal".to_string(), 720)]),
             100,
             4_000,
         );
