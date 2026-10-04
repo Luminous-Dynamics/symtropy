@@ -50,7 +50,7 @@ The milestone is not tonnes of ore. The milestone is the ability to manufacture 
 
 Current measurements make Mercury attractive and severe:
 
-- NASA gives Mercury a mean solar distance of about 0.387 AU and solar irradiance near 9,083 W/m² at the mean distance, about 6.7 times Earth's incident solar irradiance.
+- NASA gives Mercury a mean solar distance of about 0.387 AU and says sunlight there can be as much as seven times brighter than at Earth. The 9,083 W/m² mean-distance value is a derived inverse-square estimate, not a direct NASA table value.
 - JPL gives surface gravity of about 3.70 m/s² and escape velocity of about 4.25 km/s.
 - MESSENGER verified that Mercury's polar deposits are dominantly water ice in permanently shadowed regions.
 - MESSENGER also found Mercury unexpectedly rich in moderately volatile elements including potassium, sulfur, sodium, and chlorine.
@@ -72,6 +72,8 @@ polar cold traps:
 ```
 
 BepiColombo is the next major evidence upgrade: ESA currently schedules Mercury-orbit insertion for November 21, 2026 and routine science for April 2027. The simulator should therefore carry resource priors as uncertain evidence and make them updateable rather than hard-coded reserves.
+
+**Research refresh — 2026-10-04.** ESA reports that BepiColombo entered its Mercury-arrival phase on 3 September 2026; its current plan calls for Mercury orbit insertion on 21 November 2026, spacecraft separation in December, and routine science beginning in April 2027. This should be treated as a forthcoming evidence upgrade rather than evidence of a resource or landing-site advantage. NASA's 2026 lunar surface-technology work also reports integrated prototype testing of concentrated-solar carbothermal oxygen production and describes an autonomous molten-regolith electrolysis architecture producing multiple co-products from regolith simulants. Those lunar demonstrations are engineering precedents for process-chain accounting, not Mercury validation.
 
 ## 3. Bootstrap State
 
@@ -788,3 +790,5 @@ Mercury is a valuable proving ground because it forces the architecture to confr
 - NASA, Water Ice on Mercury: https://science.nasa.gov/photojournal/water-ice-on-mercury/
 - NASA, MESSENGER volatile-rich Mercury findings: https://astrobiology.nasa.gov/missions/messenger/
 - ESA, BepiColombo arrival updates: https://www.esa.int/Science_Exploration/Space_Science/BepiColombo/Latest_updates_BepiColombo_s_arrival_at_Mercury
+- NASA, Lunar Surface Technology: https://www.nasa.gov/lunar-surface-technology/
+- NASA TechPort, ISRU-Based Power on the Moon (Blue Alchemist): https://techport.nasa.gov/projects/146991
