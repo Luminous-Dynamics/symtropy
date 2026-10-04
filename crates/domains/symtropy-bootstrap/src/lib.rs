@@ -34,7 +34,7 @@ pub fn rank_blockers(&self,r:&ClosureReport)->Vec<DependencyBlocker>{
  out.sort_by(|a,b|b.weight.cmp(&a.weight).then_with(||a.id.cmp(&b.id)));
  out
 }
-fn resolve(&self,id:&str,m:&mut BTreeMap<String,bool>,s:&mut Vec<String>)->(bool,Vec<String>,bool){if let Some(v)=m.get(id){return(*v,vec![],false)}if s.iter().any(|x|x==id){return(false,vec![id.into()],true)}if let Some(d)=self.deps.get(id){let o=d.class.closed();m.insert(id.into(),o);return(o,if o{vec![]}else{vec![id.into()]},false)}let Some(c)=self.caps.get(id)else{return(false,vec![id.into()],false)};s.push(id.into());let(mut o,u,mut cy)=(true,Vec::new(),false);for d in &c.deps{let(q,mut miss,z)=if self.caps.contains_key(d){self.resolve(d,m,s)}else if let Some(x)=self.deps.get(d){(x.class.closed(),if x.class.closed(){vec![]}else{vec![d.clone()]},false)}else{(false,vec![d.clone()],false)};o&=q;u.append(&mut miss);cy|=z}s.pop();m.insert(id.into(),o);(o,u,cy)}
+fn resolve(&self,id:&str,m:&mut BTreeMap<String,bool>,s:&mut Vec<String>)->(bool,Vec<String>,bool){if let Some(v)=m.get(id){if *v{return(true,vec![],false)}}if s.iter().any(|x|x==id){return(false,vec![id.into()],true)}if let Some(d)=self.deps.get(id){let o=d.class.closed();m.insert(id.into(),o);return(o,if o{vec![]}else{vec![id.into()]},false)}let Some(c)=self.caps.get(id)else{return(false,vec![id.into()],false)};s.push(id.into());let(mut o,u,mut cy)=(true,Vec::new(),false);for d in &c.deps{let(q,mut miss,z)=if self.caps.contains_key(d){self.resolve(d,m,s)}else if let Some(x)=self.deps.get(d){(x.class.closed(),if x.class.closed(){vec![]}else{vec![d.clone()]},false)}else{(false,vec![d.clone()],false)};o&=q;u.append(&mut miss);cy|=z}s.pop();m.insert(id.into(),o);(o,u,cy)}
 }
 
 #[derive(Debug,Clone,Copy,PartialEq,Eq,PartialOrd,Ord)]
