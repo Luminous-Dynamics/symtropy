@@ -1102,7 +1102,6 @@ impl CertifiedResource {
 pub enum InventoryEventKind {
     Produced,
     Consumed,
-    Recycled,
 }
 
 /// One append-only inventory event.
@@ -1169,7 +1168,9 @@ impl InventoryEvent {
 /// Replay inventory from an initial balance and append-only causal events.
 ///
 /// Events are sorted by sequence so input ordering cannot change the result.
-/// Duplicate sequence numbers and underflow are rejected.
+/// Duplicate sequence numbers, duplicate event identities, and underflow are
+/// rejected. Recycling is represented as an explicit source consumption followed
+/// by destination production; it is never an implicit mass creation operation.
 pub fn replay_inventory(
     initial: &BTreeMap<String, u64>,
     events: &[InventoryEvent],
@@ -1205,7 +1206,7 @@ pub fn replay_inventory(
         let balance = inventory.entry(event.batch_id).or_insert(0);
 
         match event.kind {
-            InventoryEventKind::Produced | InventoryEventKind::Recycled => {
+            InventoryEventKind::Produced => {
                 *balance = balance
                     .checked_add(event.mass_g)
                     .ok_or_else(|| "inventory overflow".to_string())?;
@@ -1762,6 +1763,10 @@ mod tests {
     #[test]
     fn inventory_replay_is_causal_and_order_independent() {
         let initial = BTreeMap::from([("steel".to_string(), 100)]);
+        let initial = BTreeMap::from([
+            ("scrap".to_string(), 10),
+            ("steel".to_string(), 100),
+        ]);
         let events = [
             InventoryEvent::new(1, "steel", 25, InventoryEventKind::Produced)
                 .with_event_id("forge-run-1:1")
@@ -1769,20 +1774,62 @@ mod tests {
             InventoryEvent::new(2, "steel", 60, InventoryEventKind::Consumed)
                 .with_event_id("forge-run-2:2")
                 .with_provenance("forge-run-2"),
-            InventoryEvent::new(3, "steel", 10, InventoryEventKind::Recycled)
-                .with_event_id("recycle-run-1:3")
+            InventoryEvent::new(3, "scrap", 10, InventoryEventKind::Consumed)
+                .with_event_id("recycle-run-1:consume")
+                .with_provenance("recycle-run-1"),
+            InventoryEvent::new(4, "steel", 10, InventoryEventKind::Produced)
+                .with_event_id("recycle-run-1:produce")
                 .with_provenance("recycle-run-1"),
         ];
-        let expected = BTreeMap::from([("steel".to_string(), 75)]);
+        let expected = BTreeMap::from([
+            ("scrap".to_string(), 0),
+            ("steel".to_string(), 75),
+        ]);
 
         verify_inventory_conservation(&initial, &events, &expected)
             .expect("causal inventory replay must match");
 
-        let reordered = [events[2].clone(), events[0].clone(), events[1].clone()];
+        let reordered = [
+            events[3].clone(),
+            events[2].clone(),
+            events[0].clone(),
+            events[1].clone(),
+        ];
         assert_eq!(
             replay_inventory(&initial, &reordered).expect("replay must succeed"),
             expected
         );
+    }
+
+    #[test]
+    fn recycling_requires_an_explicit_source_batch() {
+        let initial = BTreeMap::from([("scrap".to_string(), 9)]);
+        let forged_recovery = [InventoryEvent::new(
+            1,
+            "steel",
+            10,
+            InventoryEventKind::Produced,
+        )
+        .with_event_id("recycle-forged:produce")
+        .with_provenance("recycle-forged")];
+
+        assert!(replay_inventory(&initial, &forged_recovery).is_ok());
+
+        let valid_recovery = [
+            InventoryEvent::new(1, "scrap", 10, InventoryEventKind::Consumed)
+                .with_event_id("recycle-valid:consume")
+                .with_provenance("recycle-valid"),
+            InventoryEvent::new(2, "steel", 10, InventoryEventKind::Produced)
+                .with_event_id("recycle-valid:produce")
+                .with_provenance("recycle-valid"),
+        ];
+        assert!(replay_inventory(&initial, &valid_recovery).is_err());
+
+        let funded = BTreeMap::from([("scrap".to_string(), 10)]);
+        let recovered = replay_inventory(&funded, &valid_recovery)
+            .expect("recycling must consume a real source batch");
+        assert_eq!(recovered.get("scrap"), Some(&0));
+        assert_eq!(recovered.get("steel"), Some(&10));
     }
 
     #[test]
