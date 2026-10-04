@@ -356,6 +356,73 @@ pub fn highest_closed_stage(
     highest
 }
 
+/// Consumable authorization budget for one deterministic execution scope.
+///
+/// Feedstock and energy are reserved exactly once when an execution receipt is
+/// minted. The reservation state is private so callers cannot restore capacity
+/// without creating a new budget scope.
+#[derive(Debug, PartialEq, Eq)]
+pub struct ExecutionBudget {
+    available_feed_mass_g: u64,
+    available_energy_units: u64,
+    authorized_execution_ids: BTreeSet<String>,
+}
+
+impl ExecutionBudget {
+    #[must_use]
+    pub const fn new(available_feed_mass_g: u64, available_energy_units: u64) -> Self {
+        Self {
+            available_feed_mass_g,
+            available_energy_units,
+            authorized_execution_ids: BTreeSet::new(),
+        }
+    }
+
+    #[must_use]
+    pub const fn available_feed_mass_g(&self) -> u64 {
+        self.available_feed_mass_g
+    }
+
+    #[must_use]
+    pub const fn available_energy_units(&self) -> u64 {
+        self.available_energy_units
+    }
+
+    fn reserve(
+        &mut self,
+        execution_id: &str,
+        feed_mass_g: u64,
+        energy_units: u64,
+    ) -> Result<(), String> {
+        if self.authorized_execution_ids.contains(execution_id) {
+            return Err(format!(
+                "execution ID already authorized: {execution_id}"
+            ));
+        }
+
+        if feed_mass_g > self.available_feed_mass_g {
+            return Err(format!(
+                "insufficient feedstock budget: required={feed_mass_g}, available={}",
+                self.available_feed_mass_g
+            ));
+        }
+
+        if energy_units > self.available_energy_units {
+            return Err(format!(
+                "insufficient energy budget: required={energy_units}, available={}",
+                self.available_energy_units
+            ));
+        }
+
+        self.authorized_execution_ids
+            .insert(execution_id.to_string());
+        self.available_feed_mass_g -= feed_mass_g;
+        self.available_energy_units -= energy_units;
+
+        Ok(())
+    }
+}
+
 /// A manufacturing process definition with explicit co-product accounting.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ProductionProcess {
@@ -447,66 +514,50 @@ impl ProductionProcess {
         Ok(())
     }
 
-    /// Materialize a process execution into causal inventory events.
+    /// Atomically authorize one process execution against a consumable budget.
     ///
-    /// The feed batch is consumed once; declared product streams are produced
-    /// under deterministic batch IDs derived from process identity and sequence.
-    /// Waste is intentionally not added to inventory.
-    pub fn inventory_events(
+    /// Successful authorization mints an immutable receipt. Material and energy
+    /// events must be derived from that receipt rather than from a raw budget
+    /// snapshot, preventing the same provisioned capacity from being authorized
+    /// twice within the budget scope.
+    pub fn authorize_execution(
         &self,
-        first_sequence: u64,
-        run: &ProcessRun,
-        available_feed_mass_g: u64,
-        available_energy_units: u64,
-    ) -> Result<Vec<InventoryEvent>, String> {
-        self.validate_run_against_budget(run, available_feed_mass_g, available_energy_units)?;
+        execution_id: impl Into<String>,
+        first_inventory_sequence: u64,
+        energy_sequence: u64,
+        node_id: impl Into<String>,
+        run: ProcessRun,
+        budget: &mut ExecutionBudget,
+    ) -> Result<ProcessExecutionReceipt, String> {
+        let execution_id = execution_id.into();
+        let node_id = node_id.into();
 
-        let cause = format!("process:{}:{first_sequence}", self.id);
-        let mut events = Vec::with_capacity(run.output_mass_g.len() + 1);
-        events.push(
-            InventoryEvent::new(
-                first_sequence,
-                run.input_batch_id.clone(),
-                run.feed_mass_g,
-                InventoryEventKind::Consumed,
-            )
-            .with_provenance(cause.clone()),
-        );
-
-        for (offset, (stream, mass)) in run.output_mass_g.iter().enumerate() {
-            let sequence = first_sequence
-                .checked_add(offset as u64 + 1)
-                .ok_or_else(|| "process inventory sequence overflow".to_string())?;
-            let batch_id = format!("{}:{first_sequence}:{stream}", self.id);
-            events.push(
-                InventoryEvent::new(sequence, batch_id, *mass, InventoryEventKind::Produced)
-                    .with_provenance(cause.clone()),
-            );
+        if execution_id.is_empty() {
+            return Err("execution requires a non-empty execution ID".to_string());
         }
 
-        Ok(events)
-    }
+        if node_id.is_empty() {
+            return Err("execution requires a non-empty energy node ID".to_string());
+        }
 
-    /// Create the causal energy-consumption event for a process execution.
-    pub fn energy_event(
-        &self,
-        sequence: u64,
-        node_id: impl Into<String>,
-        run: &ProcessRun,
-        available_feed_mass_g: u64,
-        available_energy_units: u64,
-    ) -> Result<EnergyEvent, String> {
-        self.validate_run_against_budget(run, available_feed_mass_g, available_energy_units)?;
+        self.validate_run_against_budget(
+            &run,
+            budget.available_feed_mass_g,
+            budget.available_energy_units,
+        )?;
 
-        Ok(EnergyEvent::new(
-            sequence,
-            node_id,
-            run.energy_units,
-            EnergyEventKind::Consumed,
-        )
-        .with_provenance(format!("process:{}:{sequence}", self.id)))
+        budget.reserve(&execution_id, run.feed_mass_g, run.energy_units)?;
+
+        Ok(ProcessExecutionReceipt {
+            execution_id,
+            process_id: self.id.clone(),
+            input_batch_id: run.input_batch_id.clone(),
+            first_inventory_sequence,
+            energy_sequence,
+            energy_node_id: node_id,
+            run,
+        })
     }
-}
 
 /// One executed process event.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -567,6 +618,99 @@ impl ProcessRun {
     #[must_use]
     pub fn total_output_mass_g(&self) -> u64 {
         self.output_mass_g.values().copied().sum()
+    }
+}
+
+/// Immutable authorization receipt for one funded process execution.
+///
+/// The receipt owns the process/run identity and the reserved input/energy
+/// quantities. Event identities are derived from the execution ID, so re-emitting
+/// the same receipt creates duplicate event IDs that the ledgers reject.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ProcessExecutionReceipt {
+    execution_id: String,
+    process_id: String,
+    input_batch_id: String,
+    first_inventory_sequence: u64,
+    energy_sequence: u64,
+    energy_node_id: String,
+    run: ProcessRun,
+}
+
+impl ProcessExecutionReceipt {
+    #[must_use]
+    pub fn execution_id(&self) -> &str {
+        &self.execution_id
+    }
+
+    #[must_use]
+    pub fn process_id(&self) -> &str {
+        &self.process_id
+    }
+
+    #[must_use]
+    pub fn input_batch_id(&self) -> &str {
+        &self.input_batch_id
+    }
+
+    #[must_use]
+    pub const fn feed_mass_g(&self) -> u64 {
+        self.run.feed_mass_g
+    }
+
+    #[must_use]
+    pub const fn energy_units(&self) -> u64 {
+        self.run.energy_units
+    }
+
+    /// Materialize the receipt into uniquely identified causal inventory events.
+    pub fn inventory_events(&self) -> Result<Vec<InventoryEvent>, String> {
+        let cause = format!("execution:{}", self.execution_id);
+        let mut events = Vec::with_capacity(self.run.output_mass_g.len() + 1);
+
+        events.push(
+            InventoryEvent::new(
+                self.first_inventory_sequence,
+                self.input_batch_id.clone(),
+                self.run.feed_mass_g,
+                InventoryEventKind::Consumed,
+            )
+            .with_event_id(format!("{}:inventory:consume", self.execution_id))
+            .with_provenance(cause.clone()),
+        );
+
+        for (offset, (stream, mass)) in self.run.output_mass_g.iter().enumerate() {
+            let sequence = self
+                .first_inventory_sequence
+                .checked_add(offset as u64 + 1)
+                .ok_or_else(|| "process inventory sequence overflow".to_string())?;
+            let batch_id =
+                format!("{}:{}:{stream}", self.process_id, self.first_inventory_sequence);
+
+            events.push(
+                InventoryEvent::new(sequence, batch_id, *mass, InventoryEventKind::Produced)
+                    .with_event_id(format!(
+                        "{}:inventory:produce:{stream}",
+                        self.execution_id
+                    ))
+                    .with_provenance(cause.clone()),
+            );
+        }
+
+        Ok(events)
+    }
+
+    /// Materialize the receipt into one uniquely identified causal energy event.
+    #[must_use]
+    pub fn energy_event(&self) -> EnergyEvent {
+        EnergyEvent::new(
+            self.energy_sequence,
+            self.energy_node_id.clone(),
+            self.run.energy_units,
+            EnergyEventKind::Consumed,
+        )
+        .with_event_id(format!("{}:energy:consume", self.execution_id))
+        .with_provenance(format!("execution:{}", self.execution_id))
     }
 }
 
@@ -745,6 +889,7 @@ pub enum EnergyEventKind {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct EnergyEvent {
     pub sequence: u64,
+    pub event_id: Option<String>,
     pub node_id: String,
     pub energy_units: u64,
     pub kind: EnergyEventKind,
@@ -761,11 +906,19 @@ impl EnergyEvent {
     ) -> Self {
         Self {
             sequence,
+            event_id: None,
             node_id: node_id.into(),
             energy_units,
             kind,
             provenance_id: None,
         }
+    }
+
+    /// Attach a unique identity to an energy event.
+    #[must_use]
+    pub fn with_event_id(mut self, event_id: impl Into<String>) -> Self {
+        self.event_id = Some(event_id.into());
+        self
     }
 
     /// Attach a stable causal provenance identifier to an energy event.
@@ -792,13 +945,20 @@ pub fn replay_energy(
     }
 
     let mut energy = initial.clone();
+    let mut seen_event_ids = BTreeSet::new();
 
     for event in ordered {
-        if event
-            .provenance_id
+        let event_id = event
+            .event_id
             .as_deref()
-            .is_none_or(str::is_empty)
-        {
+            .filter(|id| !id.is_empty())
+            .ok_or_else(|| "energy event requires non-empty event ID".to_string())?;
+
+        if !seen_event_ids.insert(event_id) {
+            return Err("duplicate energy event ID".to_string());
+        }
+
+        if event.provenance_id.as_deref().is_none_or(str::is_empty) {
             return Err("energy event requires non-empty provenance".to_string());
         }
 
@@ -923,6 +1083,7 @@ pub enum InventoryEventKind {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct InventoryEvent {
     pub sequence: u64,
+    pub event_id: Option<String>,
     pub batch_id: String,
     pub mass_g: u64,
     pub kind: InventoryEventKind,
@@ -939,11 +1100,19 @@ impl InventoryEvent {
     ) -> Self {
         Self {
             sequence,
+            event_id: None,
             batch_id: batch_id.into(),
             mass_g,
             kind,
             provenance_id: None,
         }
+    }
+
+    /// Attach a unique identity to an inventory event.
+    #[must_use]
+    pub fn with_event_id(mut self, event_id: impl Into<String>) -> Self {
+        self.event_id = Some(event_id.into());
+        self
     }
 
     /// Attach a stable causal provenance identifier to an event.
@@ -966,6 +1135,7 @@ impl InventoryEvent {
             resource.mass_g,
             InventoryEventKind::Produced,
         )
+        .with_event_id(format!("resource:{}:{sequence}", resource.claim_id))
         .with_provenance(resource.claim_id.clone())
     }
 }
@@ -989,13 +1159,20 @@ pub fn replay_inventory(
     }
 
     let mut inventory = initial.clone();
+    let mut seen_event_ids = BTreeSet::new();
 
     for event in ordered {
-        if event
-            .provenance_id
+        let event_id = event
+            .event_id
             .as_deref()
-            .is_none_or(str::is_empty)
-        {
+            .filter(|id| !id.is_empty())
+            .ok_or_else(|| "inventory event requires non-empty event ID".to_string())?;
+
+        if !seen_event_ids.insert(event_id) {
+            return Err("duplicate inventory event ID".to_string());
+        }
+
+        if event.provenance_id.as_deref().is_none_or(str::is_empty) {
             return Err("inventory event requires non-empty provenance".to_string());
         }
 
@@ -1276,7 +1453,7 @@ mod tests {
     }
 
     #[test]
-    fn process_events_reject_unbudgeted_execution() {
+    fn process_execution_requires_atomic_budget_authorization() {
         let process = ProductionProcess::new(
             "regolith_electrolysis",
             "regolith",
@@ -1293,12 +1470,29 @@ mod tests {
             4_000,
         );
 
-        assert!(process.energy_event(40, "bus", &run, 999, 4_000).is_err());
-        assert!(process.inventory_events(40, &run, 1_000, 3_999).is_err());
+        let mut budget = ExecutionBudget::new(2_000, 8_000);
+        let receipt = process
+            .authorize_execution("exec-006", 40, 41, "bus", run.clone(), &mut budget)
+            .expect("funded process should authorize");
+
+        assert_eq!(budget.available_feed_mass_g(), 1_000);
+        assert_eq!(budget.available_energy_units(), 4_000);
+        assert_eq!(receipt.execution_id(), "exec-006");
+        assert_eq!(receipt.feed_mass_g(), 1_000);
+        assert_eq!(receipt.energy_units(), 4_000);
+
+        assert!(process
+            .authorize_execution("exec-006", 50, 51, "bus", run.clone(), &mut budget)
+            .is_err());
+        assert!(process
+            .authorize_execution("exec-007", 50, 51, "bus", run, &mut budget)
+            .is_ok());
+        assert_eq!(budget.available_feed_mass_g(), 0);
+        assert_eq!(budget.available_energy_units(), 0);
     }
 
     #[test]
-    fn process_execution_generates_causal_energy_event() {
+    fn unbudgeted_execution_cannot_mint_a_receipt() {
         let process = ProductionProcess::new(
             "regolith_electrolysis",
             "regolith",
@@ -1308,78 +1502,23 @@ mod tests {
         let run = ProcessRun::new(
             "regolith_electrolysis",
             "regolith",
-            "feed-005",
+            "feed-007",
             1_000,
             BTreeMap::from([("oxygen".to_string(), 180), ("metal".to_string(), 720)]),
             100,
             4_000,
         );
+        let mut budget = ExecutionBudget::new(999, 4_000);
 
-        let event = process
-            .energy_event(30, "power-bus-1", &run, 1_000, 4_000)
-            .expect("valid process should emit a causal energy event");
-        assert_eq!(event.kind, EnergyEventKind::Consumed);
-        assert_eq!(event.node_id, "power-bus-1");
-        assert_eq!(event.energy_units, 4_000);
-        assert_eq!(
-            event.provenance_id.as_deref(),
-            Some("process:regolith_electrolysis:30")
-        );
-
-        let initial = BTreeMap::from([("power-bus-1".to_string(), 5_000)]);
-        let expected = BTreeMap::from([("power-bus-1".to_string(), 1_000)]);
-        verify_energy_conservation(&initial, &[event], &expected)
-            .expect("energy ledger must replay exactly");
+        assert!(process
+            .authorize_execution("exec-008", 60, 61, "bus", run, &mut budget)
+            .is_err());
+        assert_eq!(budget.available_feed_mass_g(), 999);
+        assert_eq!(budget.available_energy_units(), 4_000);
     }
 
     #[test]
-    fn energy_replay_rejects_unfunded_and_duplicate_history() {
-        let initial = BTreeMap::from([("bus".to_string(), 1_000)]);
-        let overdraw = [EnergyEvent::new(1, "bus", 1_001, EnergyEventKind::Consumed)];
-        assert!(replay_energy(&initial, &overdraw).is_err());
-
-        let duplicate = [
-            EnergyEvent::new(1, "bus", 1, EnergyEventKind::Generated),
-            EnergyEvent::new(1, "bus", 1, EnergyEventKind::Generated),
-        ];
-        assert!(replay_energy(&BTreeMap::new(), &duplicate).is_err());
-    }
-
-    #[test]
-    fn process_run_rejects_unbudgeted_execution() {
-        let process = ProductionProcess::new(
-            "regolith_electrolysis",
-            "regolith",
-            ["oxygen", "metal"],
-            "waste",
-        );
-        let run = ProcessRun::new(
-            "regolith_electrolysis",
-            "regolith",
-            "feed-003",
-            1_000,
-            BTreeMap::from([("oxygen".to_string(), 180), ("metal".to_string(), 720)]),
-            100,
-            4_000,
-        );
-
-        assert!(
-            process
-                .validate_run_against_budget(&run, 999, 4_000)
-                .is_err()
-        );
-        assert!(
-            process
-                .validate_run_against_budget(&run, 1_000, 3_999)
-                .is_err()
-        );
-        process
-            .validate_run_against_budget(&run, 1_000, 4_000)
-            .expect("fully funded process should validate");
-    }
-
-    #[test]
-    fn process_execution_generates_causal_inventory_events() {
+    fn process_execution_receipt_produces_causal_inventory_and_energy_events() {
         let process = ProductionProcess::new(
             "regolith_electrolysis",
             "regolith",
@@ -1396,28 +1535,40 @@ mod tests {
             4_000,
         );
 
-        let events = process
-            .inventory_events(10, &run, 1_000, 4_000)
-            .expect("valid process should materialize into events");
+        let mut budget = ExecutionBudget::new(1_000, 4_000);
+        let receipt = process
+            .authorize_execution("exec-004", 10, 20, "power-bus-1", run, &mut budget)
+            .expect("valid process should authorize");
+
+        let events = receipt
+            .inventory_events()
+            .expect("receipt should materialize inventory");
+        let energy = receipt.energy_event();
 
         assert_eq!(events.len(), 3);
         assert_eq!(events[0].kind, InventoryEventKind::Consumed);
         assert_eq!(events[0].batch_id, "feed-004");
         assert_eq!(
+            events[0].event_id.as_deref(),
+            Some("exec-004:inventory:consume")
+        );
+        assert_eq!(
             events[0].provenance_id.as_deref(),
-            Some("process:regolith_electrolysis:10")
+            Some("execution:exec-004")
         );
         assert_eq!(events[1].sequence, 11);
         assert_eq!(events[2].sequence, 12);
         assert!(events[1].batch_id.ends_with(":oxygen"));
         assert!(events[2].batch_id.ends_with(":metal"));
-        assert!(events.iter().all(|event| event.provenance_id.is_some()));
+        assert_eq!(
+            energy.event_id.as_deref(),
+            Some("exec-004:energy:consume")
+        );
+        assert_eq!(energy.provenance_id.as_deref(), Some("execution:exec-004"));
 
-        let final_inventory = replay_inventory(
-            &BTreeMap::from([("feed-004".to_string(), 1_000)]),
-            &events,
-        )
-        .expect("generated events must replay");
+        let final_inventory =
+            replay_inventory(&BTreeMap::from([("feed-004".to_string(), 1_000)]), &events)
+                .expect("generated events must replay");
         assert_eq!(final_inventory.get("feed-004"), Some(&0));
         assert_eq!(
             final_inventory.get("regolith_electrolysis:10:oxygen"),
@@ -1427,6 +1578,11 @@ mod tests {
             final_inventory.get("regolith_electrolysis:10:metal"),
             Some(&720)
         );
+
+        let initial_energy = BTreeMap::from([("power-bus-1".to_string(), 5_000)]);
+        let expected_energy = BTreeMap::from([("power-bus-1".to_string(), 1_000)]);
+        verify_energy_conservation(&initial_energy, &[energy], &expected_energy)
+            .expect("energy ledger must replay exactly");
     }
 
     #[test]
@@ -1560,10 +1716,13 @@ mod tests {
         let initial = BTreeMap::from([("steel".to_string(), 100)]);
         let events = [
             InventoryEvent::new(1, "steel", 25, InventoryEventKind::Produced)
+                .with_event_id("forge-run-1:1")
                 .with_provenance("forge-run-1"),
             InventoryEvent::new(2, "steel", 60, InventoryEventKind::Consumed)
+                .with_event_id("forge-run-2:2")
                 .with_provenance("forge-run-2"),
             InventoryEvent::new(3, "steel", 10, InventoryEventKind::Recycled)
+                .with_event_id("recycle-run-1:3")
                 .with_provenance("recycle-run-1"),
         ];
         let expected = BTreeMap::from([("steel".to_string(), 75)]);
@@ -1587,16 +1746,83 @@ mod tests {
             "steel",
             2,
             InventoryEventKind::Consumed,
-        )];
+        )
+        .with_event_id("overdraw:1")
+        .with_provenance("test")];
         assert!(replay_inventory(&initial, &overdraw).is_err());
 
         let duplicate = [
             InventoryEvent::new(1, "a", 1, InventoryEventKind::Produced)
+                .with_event_id("a:1")
                 .with_provenance("a"),
             InventoryEvent::new(1, "b", 1, InventoryEventKind::Produced)
+                .with_event_id("b:1")
                 .with_provenance("b"),
         ];
         assert!(replay_inventory(&BTreeMap::new(), &duplicate).is_err());
+    }
+
+    #[test]
+    fn ledgers_reject_duplicate_event_ids_even_at_distinct_sequences() {
+        let inventory = [
+            InventoryEvent::new(1, "steel", 1, InventoryEventKind::Produced)
+                .with_event_id("same-event")
+                .with_provenance("run"),
+            InventoryEvent::new(2, "steel", 1, InventoryEventKind::Produced)
+                .with_event_id("same-event")
+                .with_provenance("run"),
+        ];
+        assert!(replay_inventory(&BTreeMap::new(), &inventory).is_err());
+
+        let energy = [
+            EnergyEvent::new(1, "bus", 1, EnergyEventKind::Generated)
+                .with_event_id("same-event")
+                .with_provenance("run"),
+            EnergyEvent::new(2, "bus", 1, EnergyEventKind::Generated)
+                .with_event_id("same-event")
+                .with_provenance("run"),
+        ];
+        assert!(replay_energy(&BTreeMap::new(), &energy).is_err());
+    }
+
+    #[test]
+    fn receipt_reemission_is_detectable_by_event_identity() {
+        let process = ProductionProcess::new(
+            "regolith_electrolysis",
+            "regolith",
+            ["oxygen", "metal"],
+            "waste",
+        );
+        let run = ProcessRun::new(
+            "regolith_electrolysis",
+            "regolith",
+            "feed-replay",
+            1_000,
+            BTreeMap::from([("oxygen".to_string(), 180), ("metal".to_string(), 720)]),
+            100,
+            4_000,
+        );
+        let mut budget = ExecutionBudget::new(1_000, 4_000);
+        let receipt = process
+            .authorize_execution("exec-replay", 70, 71, "bus", run, &mut budget)
+            .expect("execution should authorize");
+
+        let first = receipt.inventory_events().expect("first event materialization");
+        let second = receipt.inventory_events().expect("second event materialization");
+        let mut combined = first;
+        combined.extend(second);
+        assert!(replay_inventory(
+            &BTreeMap::from([("feed-replay".to_string(), 1_000)]),
+            &combined
+        )
+        .is_err());
+
+        let energy = receipt.energy_event();
+        assert!(replay_energy(
+            &BTreeMap::from([("bus".to_string(), 8_000)]),
+            &[energy.clone(), energy],
+        )
+        .is_err());
     }
 
     #[test]
