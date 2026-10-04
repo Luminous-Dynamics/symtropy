@@ -467,9 +467,9 @@ impl ProcessEfficiency {
     #[must_use]
     pub fn better_than(self, other: Self) -> bool {
         let lhs = (self.capability_gain as u128)
-            .saturating_mul((other.feed_mass_g + other.energy_units) as u128);
+            .saturating_mul(other.feed_mass_g.saturating_add(other.energy_units) as u128);
         let rhs = (other.capability_gain as u128)
-            .saturating_mul((self.feed_mass_g + self.energy_units) as u128);
+            .saturating_mul(self.feed_mass_g.saturating_add(self.energy_units) as u128);
         lhs > rhs
     }
 }
