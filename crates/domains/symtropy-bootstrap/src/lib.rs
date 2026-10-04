@@ -382,6 +382,17 @@ impl ProductionProcess {
             ));
         }
 
+        if run.input_material != self.input_material {
+            return Err(format!(
+                "input material mismatch: expected={}, observed={}",
+                self.input_material, run.input_material
+            ));
+        }
+
+        if run.input_batch_id.is_empty() {
+            return Err("process run requires a non-empty input batch ID".to_string());
+        }
+
         let declared = self
             .output_streams
             .iter()
@@ -398,12 +409,81 @@ impl ProductionProcess {
 
         run.validate_mass_balance()
     }
+
+    /// Validate a process run against available feedstock and energy budgets.
+    ///
+    /// This keeps the kernel from treating a valid mass-balanced reaction as
+    /// executable when its required feedstock or energy has not been provisioned.
+    pub fn validate_run_against_budget(
+        &self,
+        run: &ProcessRun,
+        available_feed_mass_g: u64,
+        available_energy_units: u64,
+    ) -> Result<(), String> {
+        self.validate_run(run)?;
+
+        if run.feed_mass_g > available_feed_mass_g {
+            return Err(format!(
+                "insufficient feedstock: required={}, available={available_feed_mass_g}",
+                run.feed_mass_g
+            ));
+        }
+
+        if run.energy_units > available_energy_units {
+            return Err(format!(
+                "insufficient energy: required={}, available={available_energy_units}",
+                run.energy_units
+            ));
+        }
+
+        Ok(())
+    }
+
+    /// Materialize a process execution into causal inventory events.
+    ///
+    /// The feed batch is consumed once; declared product streams are produced
+    /// under deterministic batch IDs derived from process identity and sequence.
+    /// Waste is intentionally not added to inventory.
+    pub fn inventory_events(
+        &self,
+        first_sequence: u64,
+        run: &ProcessRun,
+    ) -> Result<Vec<InventoryEvent>, String> {
+        self.validate_run(run)?;
+
+        let cause = format!("process:{}:{first_sequence}", self.id);
+        let mut events = Vec::with_capacity(run.output_mass_g.len() + 1);
+        events.push(
+            InventoryEvent::new(
+                first_sequence,
+                run.input_batch_id.clone(),
+                run.feed_mass_g,
+                InventoryEventKind::Consumed,
+            )
+            .with_provenance(cause.clone()),
+        );
+
+        for (offset, (stream, mass)) in run.output_mass_g.iter().enumerate() {
+            let sequence = first_sequence
+                .checked_add(offset as u64 + 1)
+                .ok_or_else(|| "process inventory sequence overflow".to_string())?;
+            let batch_id = format!("{}:{first_sequence}:{stream}", self.id);
+            events.push(
+                InventoryEvent::new(sequence, batch_id, *mass, InventoryEventKind::Produced)
+                    .with_provenance(cause.clone()),
+            );
+        }
+
+        Ok(events)
+    }
 }
 
 /// One executed process event.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ProcessRun {
     pub process_id: String,
+    pub input_material: String,
+    pub input_batch_id: String,
     pub feed_mass_g: u64,
     pub output_mass_g: BTreeMap<String, u64>,
     pub waste_mass_g: u64,
@@ -414,6 +494,8 @@ impl ProcessRun {
     #[must_use]
     pub fn new(
         process_id: impl Into<String>,
+        input_material: impl Into<String>,
+        input_batch_id: impl Into<String>,
         feed_mass_g: u64,
         output_mass_g: BTreeMap<String, u64>,
         waste_mass_g: u64,
@@ -421,6 +503,8 @@ impl ProcessRun {
     ) -> Self {
         Self {
             process_id: process_id.into(),
+            input_material: input_material.into(),
+            input_batch_id: input_batch_id.into(),
             feed_mass_g,
             output_mass_g,
             waste_mass_g,
@@ -536,8 +620,7 @@ impl BootstrapCandidate {
             && self.time_ticks <= other.time_ticks
             && self.failure_risk_ppm <= other.failure_risk_ppm;
 
-        let strictly_better = self.critical_weight_closed_gain
-            > other.critical_weight_closed_gain
+        let strictly_better = self.critical_weight_closed_gain > other.critical_weight_closed_gain
             || self.dependency_weight_removed > other.dependency_weight_removed
             || self.imported_mass_g < other.imported_mass_g
             || self.energy_units < other.energy_units
@@ -562,9 +645,7 @@ pub fn pareto_frontier(candidates: &[BootstrapCandidate]) -> Vec<BootstrapCandid
             !candidates
                 .iter()
                 .enumerate()
-                .any(|(other_index, other)| {
-                    other_index != *index && other.dominates(candidate)
-                })
+                .any(|(other_index, other)| other_index != *index && other.dominates(candidate))
         })
         .map(|(_, candidate)| candidate.clone())
         .collect::<Vec<_>>();
@@ -622,6 +703,82 @@ pub const fn recovery_horizon(outcome: &RecoveryOutcome) -> Option<u64> {
     }
 }
 
+/// Confidence/evidence grade attached to a resource claim.
+///
+/// Claims become inventory-eligible only through an explicit certification
+/// transition. This prevents an estimated deposit from silently becoming stock.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+pub enum EvidenceGrade {
+    Modelled,
+    RemoteObserved,
+    InSituMeasured,
+    ProcessDemonstrated,
+}
+
+/// A bounded resource claim that is not yet inventory.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ResourceClaim {
+    pub id: String,
+    pub mass_g: u64,
+    pub evidence: EvidenceGrade,
+    pub confidence_ppm: u64,
+}
+
+impl ResourceClaim {
+    #[must_use]
+    pub fn new(
+        id: impl Into<String>,
+        mass_g: u64,
+        evidence: EvidenceGrade,
+        confidence_ppm: u64,
+    ) -> Self {
+        Self {
+            id: id.into(),
+            mass_g,
+            evidence,
+            confidence_ppm: confidence_ppm.min(1_000_000),
+        }
+    }
+
+    /// Promote a claim into an inventory-eligible certificate.
+    pub fn certify_for_inventory(
+        &self,
+        minimum_evidence: EvidenceGrade,
+        minimum_confidence_ppm: u64,
+    ) -> Result<CertifiedResource, String> {
+        if self.mass_g == 0 {
+            return Err("resource claim must have non-zero mass".to_string());
+        }
+
+        if self.evidence < minimum_evidence {
+            return Err(format!(
+                "insufficient evidence grade: required={minimum_evidence:?}, observed={:?}",
+                self.evidence
+            ));
+        }
+
+        let minimum_confidence_ppm = minimum_confidence_ppm.min(1_000_000);
+        if self.confidence_ppm < minimum_confidence_ppm {
+            return Err(format!(
+                "insufficient confidence: required={minimum_confidence_ppm}, observed={}",
+                self.confidence_ppm
+            ));
+        }
+
+        Ok(CertifiedResource {
+            claim_id: self.id.clone(),
+            mass_g: self.mass_g,
+        })
+    }
+}
+
+/// An explicitly certified resource quantity that may enter inventory.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct CertifiedResource {
+    pub claim_id: String,
+    pub mass_g: u64,
+}
+
 /// Causal inventory event kind.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum InventoryEventKind {
@@ -637,6 +794,7 @@ pub struct InventoryEvent {
     pub batch_id: String,
     pub mass_g: u64,
     pub kind: InventoryEventKind,
+    pub provenance_id: Option<String>,
 }
 
 impl InventoryEvent {
@@ -652,7 +810,31 @@ impl InventoryEvent {
             batch_id: batch_id.into(),
             mass_g,
             kind,
+            provenance_id: None,
         }
+    }
+
+    /// Attach a stable causal provenance identifier to an event.
+    #[must_use]
+    pub fn with_provenance(mut self, provenance_id: impl Into<String>) -> Self {
+        self.provenance_id = Some(provenance_id.into());
+        self
+    }
+
+    /// Create a produced inventory event from an explicitly certified resource.
+    #[must_use]
+    pub fn from_certified_resource(
+        sequence: u64,
+        batch_id: impl Into<String>,
+        resource: &CertifiedResource,
+    ) -> Self {
+        Self::new(
+            sequence,
+            batch_id,
+            resource.mass_g,
+            InventoryEventKind::Produced,
+        )
+        .with_provenance(resource.claim_id.clone())
     }
 }
 
@@ -871,6 +1053,8 @@ mod tests {
     fn process_co_products_must_balance_mass() {
         let run = ProcessRun::new(
             "regolith_electrolysis",
+            "regolith",
+            "feed-001",
             1_000,
             BTreeMap::from([("oxygen".to_string(), 180), ("metal".to_string(), 720)]),
             100,
@@ -892,6 +1076,8 @@ mod tests {
         );
         let valid = ProcessRun::new(
             "regolith_electrolysis",
+            "regolith",
+            "feed-001",
             1_000,
             BTreeMap::from([("oxygen".to_string(), 180), ("metal".to_string(), 720)]),
             100,
@@ -913,6 +1099,8 @@ mod tests {
 
         let wrong_process = ProcessRun::new(
             "unrelated_process",
+            "regolith",
+            "feed-001",
             1_000,
             BTreeMap::from([("oxygen".to_string(), 180), ("metal".to_string(), 720)]),
             100,
@@ -922,9 +1110,99 @@ mod tests {
     }
 
     #[test]
+    fn process_run_rejects_unbudgeted_execution() {
+        let process = ProductionProcess::new(
+            "regolith_electrolysis",
+            "regolith",
+            ["oxygen", "metal"],
+            "waste",
+        );
+        let run = ProcessRun::new(
+            "regolith_electrolysis",
+            "regolith",
+            "feed-003",
+            1_000,
+            BTreeMap::from([("oxygen".to_string(), 180), ("metal".to_string(), 720)]),
+            100,
+            4_000,
+        );
+
+        assert!(process.validate_run_against_budget(&run, 999, 4_000).is_err());
+        assert!(process.validate_run_against_budget(&run, 1_000, 3_999).is_err());
+        process
+            .validate_run_against_budget(&run, 1_000, 4_000)
+            .expect("fully funded process should validate");
+    }
+
+    #[test]
+    fn process_execution_generates_causal_inventory_events() {
+        let process = ProductionProcess::new(
+            "regolith_electrolysis",
+            "regolith",
+            ["oxygen", "metal"],
+            "waste",
+        );
+        let run = ProcessRun::new(
+            "regolith_electrolysis",
+            "regolith",
+            "feed-004",
+            1_000,
+            BTreeMap::from([("oxygen".to_string(), 180), ("metal".to_string(), 720)]),
+            100,
+            4_000,
+        );
+
+        let events = process
+            .inventory_events(10, &run)
+            .expect("valid process should materialize into events");
+
+        assert_eq!(events.len(), 3);
+        assert_eq!(events[0].kind, InventoryEventKind::Consumed);
+        assert_eq!(events[0].batch_id, "feed-004");
+        assert_eq!(events[0].provenance_id.as_deref(), Some("process:regolith_electrolysis:10"));
+        assert_eq!(events[1].sequence, 11);
+        assert_eq!(events[2].sequence, 12);
+        assert!(events[1].batch_id.ends_with(":oxygen"));
+        assert!(events[2].batch_id.ends_with(":metal"));
+        assert!(events.iter().all(|event| event.provenance_id.is_some()));
+
+        let final_inventory =
+            replay_inventory(&BTreeMap::from([("feed-004".to_string(), 1_000)]), &events)
+                .expect("generated events must replay");
+        assert_eq!(final_inventory.get("feed-004"), Some(&0));
+        assert_eq!(final_inventory.get("regolith_electrolysis:10:oxygen"), Some(&180));
+        assert_eq!(final_inventory.get("regolith_electrolysis:10:metal"), Some(&720));
+    }
+
+    #[test]
+    fn estimated_resource_cannot_enter_inventory_without_certification() {
+        let claim = ResourceClaim::new("mercury-polar-ice", 5_000, EvidenceGrade::RemoteObserved, 950_000);
+        assert!(claim
+            .certify_for_inventory(EvidenceGrade::InSituMeasured, 900_000)
+            .is_err());
+
+        let measured = ResourceClaim::new(
+            "mercury-polar-ice",
+            5_000,
+            EvidenceGrade::InSituMeasured,
+            950_000,
+        );
+        let certified = measured
+            .certify_for_inventory(EvidenceGrade::InSituMeasured, 900_000)
+            .expect("measured claim with sufficient confidence should certify");
+        let event = InventoryEvent::from_certified_resource(20, "ice-batch-001", &certified);
+
+        assert_eq!(event.kind, InventoryEventKind::Produced);
+        assert_eq!(event.mass_g, 5_000);
+        assert_eq!(event.provenance_id.as_deref(), Some("mercury-polar-ice"));
+    }
+
+    #[test]
     fn process_imbalance_is_rejected() {
         let run = ProcessRun::new(
             "broken_refinery",
+            "ore",
+            "feed-002",
             1_000,
             BTreeMap::from([("metal".to_string(), 800)]),
             100,
