@@ -494,15 +494,13 @@ impl ProductionProcess {
     ) -> Result<EnergyEvent, String> {
         self.validate_run(run)?;
 
-        Ok(
-            EnergyEvent::new(
-                sequence,
-                node_id,
-                run.energy_units,
-                EnergyEventKind::Consumed,
-            )
-            .with_provenance(format!("process:{}:{sequence}", self.id)),
+        Ok(EnergyEvent::new(
+            sequence,
+            node_id,
+            run.energy_units,
+            EnergyEventKind::Consumed,
         )
+        .with_provenance(format!("process:{}:{sequence}", self.id)))
     }
 }
 
@@ -1295,12 +1293,7 @@ mod tests {
     #[test]
     fn energy_replay_rejects_unfunded_and_duplicate_history() {
         let initial = BTreeMap::from([("bus".to_string(), 1_000)]);
-        let overdraw = [EnergyEvent::new(
-            1,
-            "bus",
-            1_001,
-            EnergyEventKind::Consumed,
-        )];
+        let overdraw = [EnergyEvent::new(1, "bus", 1_001, EnergyEventKind::Consumed)];
         assert!(replay_energy(&initial, &overdraw).is_err());
 
         let duplicate = [
@@ -1328,8 +1321,16 @@ mod tests {
             4_000,
         );
 
-        assert!(process.validate_run_against_budget(&run, 999, 4_000).is_err());
-        assert!(process.validate_run_against_budget(&run, 1_000, 3_999).is_err());
+        assert!(
+            process
+                .validate_run_against_budget(&run, 999, 4_000)
+                .is_err()
+        );
+        assert!(
+            process
+                .validate_run_against_budget(&run, 1_000, 3_999)
+                .is_err()
+        );
         process
             .validate_run_against_budget(&run, 1_000, 4_000)
             .expect("fully funded process should validate");
@@ -1360,16 +1361,21 @@ mod tests {
         assert_eq!(events.len(), 3);
         assert_eq!(events[0].kind, InventoryEventKind::Consumed);
         assert_eq!(events[0].batch_id, "feed-004");
-        assert_eq!(events[0].provenance_id.as_deref(), Some("process:regolith_electrolysis:10"));
+        assert_eq!(
+            events[0].provenance_id.as_deref(),
+            Some("process:regolith_electrolysis:10")
+        );
         assert_eq!(events[1].sequence, 11);
         assert_eq!(events[2].sequence, 12);
         assert!(events[1].batch_id.ends_with(":oxygen"));
         assert!(events[2].batch_id.ends_with(":metal"));
         assert!(events.iter().all(|event| event.provenance_id.is_some()));
 
-        let final_inventory =
-            replay_inventory(&BTreeMap::from([("feed-004".to_string(), 1_000)]), &events)
-                .expect("generated events must replay");
+        let final_inventory = replay_inventory(
+            &BTreeMap::from([("feed-004".to_string(), 1_000)]),
+            &events,
+        )
+        .expect("generated events must replay");
         assert_eq!(final_inventory.get("feed-004"), Some(&0));
         assert_eq!(final_inventory.get("regolith_electrolysis:10:oxygen"), Some(&180));
         assert_eq!(final_inventory.get("regolith_electrolysis:10:metal"), Some(&720));
