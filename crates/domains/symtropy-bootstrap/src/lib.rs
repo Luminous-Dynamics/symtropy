@@ -1762,7 +1762,6 @@ mod tests {
 
     #[test]
     fn inventory_replay_is_causal_and_order_independent() {
-        let initial = BTreeMap::from([("steel".to_string(), 100)]);
         let initial = BTreeMap::from([
             ("scrap".to_string(), 10),
             ("steel".to_string(), 100),
@@ -1802,20 +1801,9 @@ mod tests {
     }
 
     #[test]
-    fn recycling_requires_an_explicit_source_batch() {
-        let initial = BTreeMap::from([("scrap".to_string(), 9)]);
-        let forged_recovery = [InventoryEvent::new(
-            1,
-            "steel",
-            10,
-            InventoryEventKind::Produced,
-        )
-        .with_event_id("recycle-forged:produce")
-        .with_provenance("recycle-forged")];
-
-        assert!(replay_inventory(&initial, &forged_recovery).is_ok());
-
-        let valid_recovery = [
+    fn recovery_chain_requires_an_explicit_source_consumption() {
+        let unfunded = BTreeMap::from([("scrap".to_string(), 9)]);
+        let recovery = [
             InventoryEvent::new(1, "scrap", 10, InventoryEventKind::Consumed)
                 .with_event_id("recycle-valid:consume")
                 .with_provenance("recycle-valid"),
@@ -1823,10 +1811,10 @@ mod tests {
                 .with_event_id("recycle-valid:produce")
                 .with_provenance("recycle-valid"),
         ];
-        assert!(replay_inventory(&initial, &valid_recovery).is_err());
+        assert!(replay_inventory(&unfunded, &recovery).is_err());
 
         let funded = BTreeMap::from([("scrap".to_string(), 10)]);
-        let recovered = replay_inventory(&funded, &valid_recovery)
+        let recovered = replay_inventory(&funded, &recovery)
             .expect("recycling must consume a real source batch");
         assert_eq!(recovered.get("scrap"), Some(&0));
         assert_eq!(recovered.get("steel"), Some(&10));
