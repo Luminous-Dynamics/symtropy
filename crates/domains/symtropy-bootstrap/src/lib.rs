@@ -790,6 +790,14 @@ pub fn replay_energy(
     let mut energy = initial.clone();
 
     for event in ordered {
+        if event
+            .provenance_id
+            .as_deref()
+            .is_none_or(str::is_empty)
+        {
+            return Err("energy event requires non-empty provenance".to_string());
+        }
+
         let balance = energy.entry(event.node_id).or_insert(0);
 
         match event.kind {
@@ -979,6 +987,14 @@ pub fn replay_inventory(
     let mut inventory = initial.clone();
 
     for event in ordered {
+        if event
+            .provenance_id
+            .as_deref()
+            .is_none_or(str::is_empty)
+        {
+            return Err("inventory event requires non-empty provenance".to_string());
+        }
+
         let balance = inventory.entry(event.batch_id).or_insert(0);
 
         match event.kind {
@@ -1517,9 +1533,12 @@ mod tests {
     fn inventory_replay_is_causal_and_order_independent() {
         let initial = BTreeMap::from([("steel".to_string(), 100)]);
         let events = [
-            InventoryEvent::new(1, "steel", 25, InventoryEventKind::Produced),
-            InventoryEvent::new(2, "steel", 60, InventoryEventKind::Consumed),
-            InventoryEvent::new(3, "steel", 10, InventoryEventKind::Recycled),
+            InventoryEvent::new(1, "steel", 25, InventoryEventKind::Produced)
+                .with_provenance("forge-run-1"),
+            InventoryEvent::new(2, "steel", 60, InventoryEventKind::Consumed)
+                .with_provenance("forge-run-2"),
+            InventoryEvent::new(3, "steel", 10, InventoryEventKind::Recycled)
+                .with_provenance("recycle-run-1"),
         ];
         let expected = BTreeMap::from([("steel".to_string(), 75)]);
 
@@ -1546,10 +1565,31 @@ mod tests {
         assert!(replay_inventory(&initial, &overdraw).is_err());
 
         let duplicate = [
-            InventoryEvent::new(1, "a", 1, InventoryEventKind::Produced),
-            InventoryEvent::new(1, "b", 1, InventoryEventKind::Produced),
+            InventoryEvent::new(1, "a", 1, InventoryEventKind::Produced)
+                .with_provenance("a"),
+            InventoryEvent::new(1, "b", 1, InventoryEventKind::Produced)
+                .with_provenance("b"),
         ];
         assert!(replay_inventory(&BTreeMap::new(), &duplicate).is_err());
+    }
+
+    #[test]
+    fn ledgers_reject_unprovenanced_positive_events() {
+        let inventory = [InventoryEvent::new(
+            1,
+            "steel",
+            1,
+            InventoryEventKind::Produced,
+        )];
+        assert!(replay_inventory(&BTreeMap::new(), &inventory).is_err());
+
+        let energy = [EnergyEvent::new(
+            1,
+            "bus",
+            1,
+            EnergyEventKind::Generated,
+        )];
+        assert!(replay_energy(&BTreeMap::new(), &energy).is_err());
     }
 
     #[test]
