@@ -456,8 +456,10 @@ impl ProductionProcess {
         &self,
         first_sequence: u64,
         run: &ProcessRun,
+        available_feed_mass_g: u64,
+        available_energy_units: u64,
     ) -> Result<Vec<InventoryEvent>, String> {
-        self.validate_run(run)?;
+        self.validate_run_against_budget(run, available_feed_mass_g, available_energy_units)?;
 
         let cause = format!("process:{}:{first_sequence}", self.id);
         let mut events = Vec::with_capacity(run.output_mass_g.len() + 1);
@@ -491,8 +493,10 @@ impl ProductionProcess {
         sequence: u64,
         node_id: impl Into<String>,
         run: &ProcessRun,
+        available_feed_mass_g: u64,
+        available_energy_units: u64,
     ) -> Result<EnergyEvent, String> {
-        self.validate_run(run)?;
+        self.validate_run_against_budget(run, available_feed_mass_g, available_energy_units)?;
 
         Ok(EnergyEvent::new(
             sequence,
@@ -1272,6 +1276,28 @@ mod tests {
     }
 
     #[test]
+    fn process_events_reject_unbudgeted_execution() {
+        let process = ProductionProcess::new(
+            "regolith_electrolysis",
+            "regolith",
+            ["oxygen", "metal"],
+            "waste",
+        );
+        let run = ProcessRun::new(
+            "regolith_electrolysis",
+            "regolith",
+            "feed-006",
+            1_000,
+            BTreeMap::from([("oxygen".to_string(), 180), ("metal".to_string(), 720)]),
+            100,
+            4_000,
+        );
+
+        assert!(process.energy_event(40, "bus", &run, 999, 4_000).is_err());
+        assert!(process.inventory_events(40, &run, 1_000, 3_999).is_err());
+    }
+
+    #[test]
     fn process_execution_generates_causal_energy_event() {
         let process = ProductionProcess::new(
             "regolith_electrolysis",
@@ -1290,7 +1316,7 @@ mod tests {
         );
 
         let event = process
-            .energy_event(30, "power-bus-1", &run)
+            .energy_event(30, "power-bus-1", &run, 1_000, 4_000)
             .expect("valid process should emit a causal energy event");
         assert_eq!(event.kind, EnergyEventKind::Consumed);
         assert_eq!(event.node_id, "power-bus-1");
@@ -1371,7 +1397,7 @@ mod tests {
         );
 
         let events = process
-            .inventory_events(10, &run)
+            .inventory_events(10, &run, 1_000, 4_000)
             .expect("valid process should materialize into events");
 
         assert_eq!(events.len(), 3);
