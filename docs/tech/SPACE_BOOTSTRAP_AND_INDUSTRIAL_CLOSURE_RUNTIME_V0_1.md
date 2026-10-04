@@ -627,7 +627,7 @@ The first reference ISRU fixtures should include:
 
 The simulator must preserve the causal chain between these outputs. A kilogram of oxygen or metal cannot appear merely because a resource deposit is known.
 
-## 18. Mercury Reference Sequence
+## 19. Mercury Reference Sequence
 
 ```text
 1. orbital reconnaissance
@@ -649,7 +649,7 @@ The simulator must preserve the causal chain between these outputs. A kilogram o
 
 The simulator should be able to stop at any stage and report the highest-value unresolved dependency.
 
-## 19. Mercury Operating Bands
+## 20. Mercury Operating Bands
 
 Mercury should not be modeled as one uniform industrial environment.
 
@@ -701,7 +701,7 @@ energy cost of extraction and ascent
 
 The objective is not maximum volatile removal. It is maintaining a durable consumables loop while preserving the resource environment.
 
-## 19. Regression Fixtures
+## 21. Regression Fixtures
 
 ### Critical component loss
 
@@ -741,7 +741,7 @@ spare capacity / mutual aid is invoked
 recovery horizon is measured
 ```
 
-## 20. Acceptance Tests
+## 22. Acceptance Tests
 
 The first implementation should prove:
 
@@ -760,11 +760,12 @@ The first implementation should prove:
 - process executions reference declared input material and a concrete source batch;
 - process executions cannot exceed available feedstock or energy budgets;
 - validated process executions emit deterministic causal inventory events with provenance;
-- inventory and energy replay reject unprovenanced ledger events;
+- ledger replay rejects unprovenanced events;
+- process ledger events cannot be emitted without sufficient feedstock and energy budgets;
 - validated process executions emit replayable energy-consumption events with provenance;
 - industrial stage progression cannot skip an unresolved earlier stage.
 
-## 21. Kill Criteria
+## 23. Kill Criteria
 
 Do not add a subsystem that:
 
@@ -777,7 +778,7 @@ Do not add a subsystem that:
 - rewards extraction while reducing recovery capability;
 - cannot produce a deterministic post-failure explanation.
 
-## 22. Strategic Principle
+## 24. Strategic Principle
 
 The objective is not:
 
@@ -789,7 +790,7 @@ It is:
 
 Mercury is a valuable proving ground because it forces the architecture to confront energy abundance, thermal hostility, communication delay, uncertain resources, autonomous maintenance, industrial dependency, and long recovery horizons in one environment.
 
-## 23. Digital-Thread Evidence and Causal Execution
+## 25. Digital-Thread Evidence and Causal Execution
 
 The bootstrap runtime should treat industrial state as a digital thread: claims, process definitions, executions, products, and verification evidence remain linked instead of being flattened into disconnected scalar state. NIST's digital-thread work emphasizes traceability across engineering, manufacturing, and quality data, including conformance checking and persistent identifiers. NASA systems-engineering guidance likewise distinguishes verification/validation from simply asserting that a capability exists. [NIST digital-thread research](https://www.nist.gov/programs-projects/digital-thread-manufacturing) and [NASA systems-engineering verification guidance](https://www.nasa.gov/reference/5-0-product-realization/)
 
