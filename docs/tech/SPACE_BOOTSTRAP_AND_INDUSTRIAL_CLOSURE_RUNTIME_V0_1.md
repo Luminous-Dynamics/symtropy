@@ -763,6 +763,8 @@ The first implementation should prove:
 - an execution must have a non-empty execution identity before a receipt can be minted;
 - validated process executions emit deterministic causal inventory events with unique event identities and provenance;
 - validated process executions emit replayable energy-consumption events with unique event identities and provenance;
+- a certified resource must have a non-empty claim identity and cannot be constructed directly outside the evidence gate;
+- certification-derived inventory events use the certificate identity as their event identity, preventing the same certified quantity from being minted twice;
 - ledger replay rejects missing or duplicate event identities, unprovenanced events, and overdrawn history;
 - re-emitting the same execution receipt is detectable as duplicate causal history rather than a second valid execution;
 - industrial stage progression cannot skip an unresolved earlier stage.
@@ -778,6 +780,7 @@ Do not add a subsystem that:
 - treats speculative resources as established reserves;
 - makes reproduction a boolean;
 - reuses the same feedstock or energy authorization to mint multiple valid executions;
+- constructs or reuses the same certified resource quantity to mint multiple inventory events;
 - accepts duplicate ledger events under different sequence numbers when their event identities are the same;
 - rewards extraction while reducing recovery capability;
 - cannot produce a deterministic post-failure explanation.
@@ -816,6 +819,10 @@ declared process
 
 A mass-balanced process is not sufficient by itself. The run must reference the declared input material, a non-empty source batch, and sufficient feedstock and energy. Authorization consumes that capacity from an `ExecutionBudget` exactly once for the supplied execution identity. The resulting receipt owns the process/run context and derives stable event identities; downstream ledger replay rejects re-emission of those identities even when a caller presents the duplicated history at different sequence numbers.
 
+Resource certification follows the same rule. A certified resource has a stable certificate identity derived from its claim identity, while the certificate's fields are private so inventory authorization cannot be forged by direct construction. The certificate-derived inventory event reuses that certificate identity as its event identity; replay therefore rejects the same certified quantity being emitted again under a different sequence or batch.
+
+These identities establish deterministic causal linkage, not cryptographic authenticity by themselves. Higher layers may bind claims and certificates to signed external evidence or verifiable credentials. W3C's Verifiable Credential Data Integrity 1.0 is a Recommendation for cryptographic authenticity/integrity mechanisms; the 2026 1.1 document is still a Working Draft, so the runtime does not claim to implement either standard merely by naming certificate fields.
+
 This is intentionally an authorization boundary, not a claim that physical execution occurred. The receipt proves that the deterministic kernel admitted one funded execution from the declared state. Physical telemetry, quality measurements, thermal observations, and external evidence remain separate evidence inputs that higher layers must attach before asserting realized product performance.
 
 This also gives the simulator a stronger digital-thread boundary:
@@ -848,6 +855,8 @@ These rules are intentionally general: they apply to Mercury, the Moon, asteroid
 - NASA, Lunar Surface Technology: https://www.nasa.gov/lunar-surface-technology/
 - NASA TechPort, ISRU-Based Power on the Moon (Blue Alchemist): https://techport.nasa.gov/projects/146991
 - NIST, Digital Thread for Manufacturing: https://www.nist.gov/programs-projects/digital-thread-manufacturing
+- NIST, UUIDs in Product Data Standards: https://www.nist.gov/publications/research-results-and-recommendations-universally-unique-identifiers-product-data
+- W3C, Verifiable Credential Data Integrity 1.0: https://www.w3.org/TR/vc-data-integrity/
 - NASA, Product Implementation: https://www.nasa.gov/reference/5-1-product-implementation/
 - NASA, Product Realization / Verification Guidance: https://www.nasa.gov/reference/5-0-product-realization/
 - NASA, Product Validation: https://www.nasa.gov/reference/5-4-product-validation/
