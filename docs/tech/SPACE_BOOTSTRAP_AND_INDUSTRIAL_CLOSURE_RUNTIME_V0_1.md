@@ -568,6 +568,48 @@ The key Mercury question is therefore not only "can Mercury be mined?" but:
 
 > Can Mercury-produced material create more useful industrial capability than the material, energy, and logistics capacity consumed to obtain and move it?
 
+## 18. ISRU Process Architecture
+
+Current NASA surface-technology work reinforces a useful modeling rule: resource extraction should be represented as an integrated process chain, not as a single "mine resource" action.
+
+NASA's current lunar work includes concentrated-solar carbothermal reduction for oxygen production and molten-regolith electrolysis concepts that produce oxygen alongside metal-rich material. Blue Alchemist is explicitly framed as an autonomous end-to-end sequence producing silicon solar cells, aluminum wire, oxygen, iron, and slag from regolith simulants. These are lunar technologies, not Mercury demonstrations, but they provide a concrete engineering pattern for the simulator: co-products and process dependencies matter.
+
+The generic process graph should therefore support:
+
+- resource characterization
+- beneficiation / sorting
+- feed preparation
+- reduction / electrolysis
+- co-product separation
+- purification
+- stock certification
+- manufacturing
+- recycling
+
+Every transformation records:
+
+- feed mass
+- product mass by stream
+- waste mass
+- energy consumed
+- peak power
+- heat rejected
+- yield
+- quality
+- contamination
+- tooling wear
+
+A process may be valuable because one operation produces several useful streams. Conversely, a process may look attractive on gross extraction while being poor at bootstrap because its purification, thermal, or tooling dependencies remain imported.
+
+The first reference ISRU fixtures should include:
+
+- regolith -> oxygen + metal-rich stream
+- metal-rich stream -> structural stock
+- structural stock -> replacement tooling
+- tooling -> additional processing capacity
+
+The simulator must preserve the causal chain between these outputs. A kilogram of oxygen or metal cannot appear merely because a resource deposit is known.
+
 ## 18. Mercury Reference Sequence
 
 ```text
