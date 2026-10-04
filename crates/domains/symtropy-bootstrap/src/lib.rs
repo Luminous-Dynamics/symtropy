@@ -1057,7 +1057,12 @@ impl ResourceClaim {
             ));
         }
 
+        if self.id.is_empty() {
+            return Err("resource claim requires a non-empty ID".to_string());
+        }
+
         Ok(CertifiedResource {
+            certificate_id: format!("resource-certificate:{}", self.id),
             claim_id: self.id.clone(),
             mass_g: self.mass_g,
         })
@@ -1065,10 +1070,31 @@ impl ResourceClaim {
 }
 
 /// An explicitly certified resource quantity that may enter inventory.
+///
+/// Fields are private so callers cannot construct inventory-authorizing
+/// certificates without passing through the evidence gate above.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct CertifiedResource {
-    pub claim_id: String,
-    pub mass_g: u64,
+    certificate_id: String,
+    claim_id: String,
+    mass_g: u64,
+}
+
+impl CertifiedResource {
+    #[must_use]
+    pub fn certificate_id(&self) -> &str {
+        &self.certificate_id
+    }
+
+    #[must_use]
+    pub fn claim_id(&self) -> &str {
+        &self.claim_id
+    }
+
+    #[must_use]
+    pub const fn mass_g(&self) -> u64 {
+        self.mass_g
+    }
 }
 
 /// Causal inventory event kind.
@@ -1135,8 +1161,8 @@ impl InventoryEvent {
             resource.mass_g,
             InventoryEventKind::Produced,
         )
-        .with_event_id(format!("resource:{}:{sequence}", resource.claim_id))
-        .with_provenance(resource.claim_id.clone())
+        .with_event_id(resource.certificate_id().to_string())
+        .with_provenance(resource.claim_id().to_string())
     }
 }
 
@@ -1608,11 +1634,33 @@ mod tests {
         let certified = measured
             .certify_for_inventory(EvidenceGrade::InSituMeasured, 900_000)
             .expect("measured claim with sufficient confidence should certify");
+        assert_eq!(
+            certified.certificate_id(),
+            "resource-certificate:mercury-polar-ice"
+        );
+        assert_eq!(certified.claim_id(), "mercury-polar-ice");
+        assert_eq!(certified.mass_g(), 5_000);
+
         let event = InventoryEvent::from_certified_resource(20, "ice-batch-001", &certified);
+        let replayed = InventoryEvent::from_certified_resource(21, "ice-batch-002", &certified);
 
         assert_eq!(event.kind, InventoryEventKind::Produced);
         assert_eq!(event.mass_g, 5_000);
+        assert_eq!(
+            event.event_id.as_deref(),
+            Some("resource-certificate:mercury-polar-ice")
+        );
         assert_eq!(event.provenance_id.as_deref(), Some("mercury-polar-ice"));
+        assert_eq!(replayed.event_id, event.event_id);
+        assert!(replay_inventory(&BTreeMap::new(), &[event, replayed]).is_err());
+    }
+
+    #[test]
+    fn resource_claim_requires_identity_before_certification() {
+        let claim = ResourceClaim::new("", 5_000, EvidenceGrade::InSituMeasured, 950_000);
+        assert!(claim
+            .certify_for_inventory(EvidenceGrade::InSituMeasured, 900_000)
+            .is_err());
     }
 
     #[test]
