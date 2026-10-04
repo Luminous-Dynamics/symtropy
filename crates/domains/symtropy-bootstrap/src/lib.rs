@@ -336,16 +336,24 @@ pub fn highest_closed_stage(
         .map(|assessment| assessment.id.as_str())
         .collect::<BTreeSet<_>>();
 
-    requirements
-        .iter()
-        .filter(|requirement| {
-            requirement
-                .capabilities
-                .iter()
-                .all(|capability| closed.contains(capability.as_str()))
-        })
-        .map(|requirement| requirement.stage)
-        .max()
+    let mut ordered = requirements.to_vec();
+    ordered.sort_by_key(|requirement| requirement.stage);
+
+    let mut highest = None;
+    for requirement in ordered {
+        let satisfied = requirement
+            .capabilities
+            .iter()
+            .all(|capability| closed.contains(capability.as_str()));
+
+        if !satisfied {
+            break;
+        }
+
+        highest = Some(requirement.stage);
+    }
+
+    highest
 }
 
 /// A manufacturing process definition with explicit co-product accounting.
@@ -1046,6 +1054,30 @@ mod tests {
         assert_eq!(
             highest_closed_stage(&report, &requirements),
             Some(ClosureStage::Structural)
+        );
+    }
+
+    #[test]
+    fn stage_progression_cannot_skip_an_unmet_intermediate_stage() {
+        let graph = DependencyGraph::new(
+            [
+                Capability::new("seed", 10, ["steel"]),
+                Capability::new("expansion", 10, ["seed"]),
+                Capability::new("factory", 10, ["missing"]),
+            ],
+            [Dependency::new("steel", DependencyClass::LocalClosed)],
+        );
+        let report = graph.evaluate(1_000, 0);
+
+        let requirements = [
+            StageRequirement::new(ClosureStage::Expansion, ["expansion"]),
+            StageRequirement::new(ClosureStage::Factory, ["factory"]),
+            StageRequirement::new(ClosureStage::Seed, ["seed"]),
+        ];
+
+        assert_eq!(
+            highest_closed_stage(&report, &requirements),
+            Some(ClosureStage::Expansion)
         );
     }
 
