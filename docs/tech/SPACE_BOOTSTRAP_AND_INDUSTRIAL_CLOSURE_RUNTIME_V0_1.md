@@ -759,10 +759,12 @@ The first implementation should prove:
 - estimated resources require an explicit evidence-certification transition before entering inventory;
 - process executions reference declared input material and a concrete source batch;
 - process executions cannot exceed available feedstock or energy budgets;
-- validated process executions emit deterministic causal inventory events with provenance;
-- ledger replay rejects unprovenanced events;
-- process ledger events cannot be emitted without sufficient feedstock and energy budgets;
-- validated process executions emit replayable energy-consumption events with provenance;
+- a funded process execution must reserve feedstock and energy exactly once within its authorization budget;
+- an execution must have a non-empty execution identity before a receipt can be minted;
+- validated process executions emit deterministic causal inventory events with unique event identities and provenance;
+- validated process executions emit replayable energy-consumption events with unique event identities and provenance;
+- ledger replay rejects missing or duplicate event identities, unprovenanced events, and overdrawn history;
+- re-emitting the same execution receipt is detectable as duplicate causal history rather than a second valid execution;
 - industrial stage progression cannot skip an unresolved earlier stage.
 
 ## 23. Kill Criteria
@@ -775,6 +777,8 @@ Do not add a subsystem that:
 - assumes perfect global communication;
 - treats speculative resources as established reserves;
 - makes reproduction a boolean;
+- reuses the same feedstock or energy authorization to mint multiple valid executions;
+- accepts duplicate ledger events under different sequence numbers when their event identities are the same;
 - rewards extraction while reducing recovery capability;
 - cannot produce a deterministic post-failure explanation.
 
@@ -803,14 +807,16 @@ resource claim
 
 declared process
   + identified input batch
-  + available feedstock budget
-  + available energy budget
-  -> validated process execution
+  + consumable feedstock/energy budget
+  -> single-use execution authorization
+  -> immutable process execution receipt
   -> causal inventory events
   -> causal energy-consumption event
 ```
 
-A mass-balanced process is not sufficient by itself. The run must reference the declared input material, a non-empty source batch, and sufficient feedstock and energy budgets. Validated executions can then emit deterministic consumed/produced inventory events carrying a stable causal provenance identifier, while process energy use is represented by a matching replayable energy event.
+A mass-balanced process is not sufficient by itself. The run must reference the declared input material, a non-empty source batch, and sufficient feedstock and energy. Authorization consumes that capacity from an `ExecutionBudget` exactly once for the supplied execution identity. The resulting receipt owns the process/run context and derives stable event identities; downstream ledger replay rejects re-emission of those identities even when a caller presents the duplicated history at different sequence numbers.
+
+This is intentionally an authorization boundary, not a claim that physical execution occurred. The receipt proves that the deterministic kernel admitted one funded execution from the declared state. Physical telemetry, quality measurements, thermal observations, and external evidence remain separate evidence inputs that higher layers must attach before asserting realized product performance.
 
 This also gives the simulator a stronger digital-thread boundary:
 
@@ -842,4 +848,6 @@ These rules are intentionally general: they apply to Mercury, the Moon, asteroid
 - NASA, Lunar Surface Technology: https://www.nasa.gov/lunar-surface-technology/
 - NASA TechPort, ISRU-Based Power on the Moon (Blue Alchemist): https://techport.nasa.gov/projects/146991
 - NIST, Digital Thread for Manufacturing: https://www.nist.gov/programs-projects/digital-thread-manufacturing
+- NASA, Product Implementation: https://www.nasa.gov/reference/5-1-product-implementation/
 - NASA, Product Realization / Verification Guidance: https://www.nasa.gov/reference/5-0-product-realization/
+- NASA, Product Validation: https://www.nasa.gov/reference/5-4-product-validation/
