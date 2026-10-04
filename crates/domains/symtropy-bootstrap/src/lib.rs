@@ -18,12 +18,22 @@ pub struct CapabilityAssessment{pub id:String,pub closed:bool,pub unresolved:Vec
 #[derive(Debug,Clone,PartialEq,Eq)]
 pub struct ClosureReport{pub assessments:Vec<CapabilityAssessment>,pub critical_closed:u64,pub critical_total:u64,pub critical_ppm:u64,pub mass_ppm:u64}
 impl ClosureReport{pub const fn fully_closed(&self)->bool{self.critical_closed==self.critical_total}}
+#[derive(Debug,Clone,PartialEq,Eq)]
+pub struct DependencyBlocker{pub id:String,pub weight:u64,pub affected:Vec<String>}
+
 
 #[derive(Debug,Default,Clone)]
 pub struct DependencyGraph{caps:BTreeMap<String,Capability>,deps:BTreeMap<String,Dependency>}
 impl DependencyGraph{
 pub fn new(c:impl IntoIterator<Item=Capability>,d:impl IntoIterator<Item=Dependency>)->Self{Self{caps:c.into_iter().map(|x|(x.id.clone(),x)).collect(),deps:d.into_iter().map(|x|(x.id.clone(),x)).collect()}}
 pub fn evaluate(&self,local:u64,imported:u64)->ClosureReport{let mut m=BTreeMap::new();let mut a=Vec::new();for id in self.caps.keys(){let(o,mut u,c)=self.resolve(id,&mut m,&mut Vec::new());u.sort();u.dedup();a.push(CapabilityAssessment{id:id.clone(),closed:o,unresolved:u,cycle:c})}let total=self.caps.values().map(|x|x.weight).sum();let closed=a.iter().filter(|x|x.closed).filter_map(|x|self.caps.get(&x.id)).map(|x|x.weight).sum();ClosureReport{assessments:a,critical_closed:closed,critical_total:total,critical_ppm:ratio_ppm(closed,total),mass_ppm:ratio_ppm(local,local.saturating_add(imported))}}
+pub fn rank_blockers(&self,r:&ClosureReport)->Vec<DependencyBlocker>{
+ let mut x:BTreeMap<String,(u64,BTreeSet<String>)>=BTreeMap::new();
+ for a in &r.assessments{if a.closed{continue}if let Some(c)=self.caps.get(&a.id){for d in &a.unresolved{let e=x.entry(d.clone()).or_insert((0,BTreeSet::new()));e.0=e.0.saturating_add(c.weight);e.1.insert(c.id.clone())}}}
+ let mut out=x.into_iter().map(|(id,(weight,affected))|DependencyBlocker{id,weight,affected:affected.into_iter().collect()}).collect::<Vec<_>>();
+ out.sort_by(|a,b|b.weight.cmp(&a.weight).then_with(||a.id.cmp(&b.id)));
+ out
+}
 fn resolve(&self,id:&str,m:&mut BTreeMap<String,bool>,s:&mut Vec<String>)->(bool,Vec<String>,bool){if let Some(v)=m.get(id){return(*v,vec![],false)}if s.iter().any(|x|x==id){return(false,vec![id.into()],true)}if let Some(d)=self.deps.get(id){let o=d.class.closed();m.insert(id.into(),o);return(o,if o{vec![]}else{vec![id.into()]},false)}let Some(c)=self.caps.get(id)else{return(false,vec![id.into()],false)};s.push(id.into());let(mut o,u,mut cy)=(true,Vec::new(),false);for d in &c.deps{let(q,mut miss,z)=if self.caps.contains_key(d){self.resolve(d,m,s)}else if let Some(x)=self.deps.get(d){(x.class.closed(),if x.class.closed(){vec![]}else{vec![d.clone()]},false)}else{(false,vec![d.clone()],false)};o&=q;u.append(&mut miss);cy|=z}s.pop();m.insert(id.into(),o);(o,u,cy)}
 }
 
@@ -59,4 +69,5 @@ pub const fn ratio_ppm(n:u64,d:u64)->u64{if d==0{0}else{(((n as u128)*1_000_000)
 #[test]fn stage_and_efficiency_are_exact(){let r=DependencyGraph::new([Capability::new("repair",10,["tool"]),Capability::new("structure",10,["repair"])],[Dependency::new("tool",DependencyClass::LocalClosed)]).evaluate(1,0);let q=[StageRequirement::new(ClosureStage::Repair,["repair"]),StageRequirement::new(ClosureStage::Structural,["repair","structure"])];assert_eq!(highest_closed_stage(&r,&q),Some(ClosureStage::Structural));assert!(BootstrapEfficiency::new(3,2).better_than(BootstrapEfficiency::new(4,3)))}
 #[test]fn recovery_is_explicit(){assert_eq!(recovery_horizon(&RecoveryOutcome::RecoveredAfter{ticks:7}),Some(7));assert_eq!(recovery_horizon(&RecoveryOutcome::Unrecoverable),None)}
 #[test]fn inventory_is_causal_and_order_independent(){let i=BTreeMap::from([("steel".into(),100)]);let e=[InventoryEvent::new(1,"steel",25,InventoryEventKind::Produced),InventoryEvent::new(2,"steel",60,InventoryEventKind::Consumed),InventoryEvent::new(3,"steel",10,InventoryEventKind::Recycled)];let f=BTreeMap::from([("steel".into(),75)]);verify_inventory_conservation(&i,&e,&f).unwrap();assert_eq!(replay_inventory(&i,&[e[2].clone(),e[0].clone(),e[1].clone()]).unwrap(),f)}
+#[test]fn blocker_ranking_exposes_the_strongest_dependency(){let r=report();let g=DependencyGraph::new([Capability::new("mine",30,["rock"]),Capability::new("refine",40,["mine","chem"]),Capability::new("ctrl",30,["electronics"])],[Dependency::new("rock",DependencyClass::LocalClosed),Dependency::new("chem",DependencyClass::LocalClosed),Dependency::new("electronics",DependencyClass::ImportedDurable)]);let b=g.rank_blockers(&r);assert_eq!(b[0].id,"electronics");assert_eq!(b[0].weight,30)}
 #[test]fn inventory_rejects_bad_history(){let i=BTreeMap::from([("x".into(),1)]);assert!(replay_inventory(&i,&[InventoryEvent::new(1,"x",2,InventoryEventKind::Consumed)]).is_err());let d=[InventoryEvent::new(1,"a",1,InventoryEventKind::Produced),InventoryEvent::new(1,"b",1,InventoryEventKind::Produced)];assert!(replay_inventory(&BTreeMap::new(),&d).is_err())}}
