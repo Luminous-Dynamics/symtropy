@@ -759,7 +759,8 @@ The first implementation should prove:
 - estimated resources require an explicit evidence-certification transition before entering inventory;
 - process executions reference declared input material and a concrete source batch;
 - process executions cannot exceed available feedstock or energy budgets;
-- validated process executions emit deterministic causal inventory events;
+- validated process executions emit deterministic causal inventory events with provenance;
+- validated process executions emit replayable energy-consumption events with provenance;
 - industrial stage progression cannot skip an unresolved earlier stage.
 
 ## 21. Kill Criteria
@@ -804,9 +805,10 @@ declared process
   + available energy budget
   -> validated process execution
   -> causal inventory events
+  -> causal energy-consumption event
 ```
 
-A mass-balanced process is not sufficient by itself. The run must reference the declared input material, a non-empty source batch, and sufficient feedstock and energy budgets. Validated executions can then emit deterministic consumed/produced inventory events carrying a stable causal provenance identifier.
+A mass-balanced process is not sufficient by itself. The run must reference the declared input material, a non-empty source batch, and sufficient feedstock and energy budgets. Validated executions can then emit deterministic consumed/produced inventory events carrying a stable causal provenance identifier, while process energy use is represented by a matching replayable energy event.
 
 This also gives the simulator a stronger digital-thread boundary:
 
@@ -837,3 +839,5 @@ These rules are intentionally general: they apply to Mercury, the Moon, asteroid
 - ESA, BepiColombo arrival updates: https://www.esa.int/Science_Exploration/Space_Science/BepiColombo/Latest_updates_BepiColombo_s_arrival_at_Mercury
 - NASA, Lunar Surface Technology: https://www.nasa.gov/lunar-surface-technology/
 - NASA TechPort, ISRU-Based Power on the Moon (Blue Alchemist): https://techport.nasa.gov/projects/146991
+- NIST, Digital Thread for Manufacturing: https://www.nist.gov/programs-projects/digital-thread-manufacturing
+- NASA, Product Realization / Verification Guidance: https://www.nasa.gov/reference/5-0-product-realization/
