@@ -43,11 +43,11 @@ pub enum RecoveryOutcome{Immediate,RecoveredAfter{ticks:u64},Unrecoverable}
 pub const fn recovery_horizon(x:&RecoveryOutcome)->Option<u64>{match x{RecoveryOutcome::Immediate=>Some(0),RecoveryOutcome::RecoveredAfter{ticks}=>Some(*ticks),RecoveryOutcome::Unrecoverable=>None}}
 
 #[derive(Debug,Clone,Copy,PartialEq,Eq)]
-pub enum InventoryEventKind{Produced,Consumed,Recycled,TransferredIn,TransferredOut}
+pub enum InventoryEventKind{Produced,Consumed,Recycled}
 #[derive(Debug,Clone,PartialEq,Eq)]
 pub struct InventoryEvent{pub sequence:u64,pub batch_id:String,pub mass_g:u64,pub kind:InventoryEventKind}
 impl InventoryEvent{pub fn new(sequence:u64,batch_id:impl Into<String>,mass_g:u64,kind:InventoryEventKind)->Self{Self{sequence,batch_id:batch_id.into(),mass_g,kind}}}
-pub fn replay_inventory(i:&BTreeMap<String,u64>,e:&[InventoryEvent])->Result<BTreeMap<String,u64>,String>{let mut e=e.to_vec();e.sort_by_key(|x|x.sequence);if e.windows(2).any(|w|w[0].sequence==w[1].sequence){return Err("duplicate sequence".into())}let mut o=i.clone();for x in e{let b=o.entry(x.batch_id).or_insert(0);match x.kind{InventoryEventKind::Produced|InventoryEventKind::Recycled|InventoryEventKind::TransferredIn=>*b=b.checked_add(x.mass_g).ok_or("overflow")?,InventoryEventKind::Consumed|InventoryEventKind::TransferredOut=>{if *b<x.mass_g{return Err("underflow".into())}*b-=x.mass_g}}}Ok(o)}
+pub fn replay_inventory(i:&BTreeMap<String,u64>,e:&[InventoryEvent])->Result<BTreeMap<String,u64>,String>{let mut e=e.to_vec();e.sort_by_key(|x|x.sequence);if e.windows(2).any(|w|w[0].sequence==w[1].sequence){return Err("duplicate sequence".into())}let mut o=i.clone();for x in e{let b=o.entry(x.batch_id).or_insert(0);match x.kind{InventoryEventKind::Produced|InventoryEventKind::Recycled=>*b=b.checked_add(x.mass_g).ok_or("overflow")?,InventoryEventKind::Consumed=>{if *b<x.mass_g{return Err("underflow".into())}*b-=x.mass_g}}}Ok(o)}
 pub fn verify_inventory_conservation(i:&BTreeMap<String,u64>,e:&[InventoryEvent],f:&BTreeMap<String,u64>)->Result<(),String>{if replay_inventory(i,e)?==*f{Ok(())}else{Err("observed inventory differs from causal replay".into())}}
 pub const fn ratio_ppm(n:u64,d:u64)->u64{if d==0{0}else{(((n as u128)*1_000_000)/(d as u128)).min(1_000_000)as u64}}
 
