@@ -688,7 +688,7 @@ impl ProductionProcess {
         run: ProcessRun,
         budget: &mut ExecutionBudget,
         inventory: &mut InventoryLedger,
-    ) -> Result<ProcessExecutionReceipt, String> {
+    ) -> Result<ExecutableProcessExecutionReceipt, String> {
         let execution_id = execution_id.into();
         let node_id = node_id.into();
 
@@ -727,7 +727,7 @@ impl ProductionProcess {
             return Err(error);
         }
 
-        Ok(receipt)
+        Ok(ExecutableProcessExecutionReceipt::new(receipt))
     }
 
     /// Atomically authorize one process execution against an aggregate consumable budget.
@@ -967,6 +967,31 @@ impl ProcessExecutionReceipt {
     }
 }
 
+/// Execution receipt whose source batch has been reserved for physical execution.
+///
+/// This type is distinct from ProcessExecutionReceipt: aggregate budget
+/// authorization alone cannot produce a value accepted by the commit/abort
+/// boundaries. The constructor is private so executable receipts can only be
+/// minted after concrete source reservation succeeds.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ExecutableProcessExecutionReceipt {
+    receipt: ProcessExecutionReceipt,
+}
+
+impl ExecutableProcessExecutionReceipt {
+    fn new(receipt: ProcessExecutionReceipt) -> Self {
+        Self { receipt }
+    }
+}
+
+impl std::ops::Deref for ExecutableProcessExecutionReceipt {
+    type Target = ProcessExecutionReceipt;
+
+    fn deref(&self) -> &Self::Target {
+        &self.receipt
+    }
+}
+
 /// Commit one authorized process execution across budget, inventory, and energy.
 ///
 /// Inventory, energy, and budget state are all staged before any live
@@ -974,21 +999,22 @@ impl ProcessExecutionReceipt {
 /// both ledgers succeed, so a failed commit remains retryable without partial
 /// state.
 pub fn commit_process_execution(
-    receipt: &ProcessExecutionReceipt,
+    receipt: &ExecutableProcessExecutionReceipt,
     budget: &mut ExecutionBudget,
     inventory: &mut InventoryLedger,
     energy: &mut EnergyLedger,
 ) -> Result<(), String> {
+    let inner = &receipt.receipt;
     let reservation = budget
-        .reservation(receipt.execution_id())
-        .ok_or_else(|| format!("execution is not pending: {}", receipt.execution_id()))?;
+        .reservation(inner.execution_id())
+        .ok_or_else(|| format!("execution is not pending: {}", inner.execution_id()))?;
 
-    if reservation != receipt {
+    if reservation != inner {
         return Err("execution reservation does not match receipt".to_string());
     }
 
-    let inventory_events = receipt.inventory_events()?;
-    let energy_event = receipt.energy_event();
+    let inventory_events = inner.inventory_events()?;
+    let energy_event = inner.energy_event();
 
     let mut staged_inventory = inventory.clone();
     staged_inventory.append_reserved_process_batch(
@@ -1018,22 +1044,23 @@ pub fn commit_process_execution(
 /// live states replaced. This keeps abort atomic across authorization state and
 /// physical source reservation.
 pub fn abort_process_execution(
-    receipt: &ProcessExecutionReceipt,
+    receipt: &ExecutableProcessExecutionReceipt,
     budget: &mut ExecutionBudget,
     inventory: &mut InventoryLedger,
 ) -> Result<(), String> {
+    let inner = &receipt.receipt;
     let reservation = budget
-        .reservation(receipt.execution_id())
-        .ok_or_else(|| format!("execution is not pending: {}", receipt.execution_id()))?;
+        .reservation(inner.execution_id())
+        .ok_or_else(|| format!("execution is not pending: {}", inner.execution_id()))?;
 
-    if reservation != receipt {
+    if reservation != inner {
         return Err("execution reservation does not match receipt".to_string());
     }
 
     inventory.matching_source_reservation(
-        receipt.execution_id(),
-        receipt.input_batch_id(),
-        receipt.feed_mass_g(),
+        inner.execution_id(),
+        inner.input_batch_id(),
+        inner.feed_mass_g(),
     )?;
 
     let mut staged_inventory = inventory.clone();
