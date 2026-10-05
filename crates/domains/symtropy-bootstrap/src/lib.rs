@@ -195,11 +195,37 @@ impl DependencyGraph {
             });
         }
 
-        if !self.definition_errors.is_empty() {
+        let mut report_definition_errors = self.definition_errors.clone();
+
+        let weighted_critical_total =
+            self.capabilities
+                .values()
+                .try_fold(0_u64, |sum, capability| {
+                    sum.checked_add(capability.critical_weight)
+                });
+
+        if weighted_critical_total.is_none() {
+            report_definition_errors.push("critical weight sum overflow".to_string());
+        }
+
+        let weighted_critical_closed =
+            assessments
+                .iter()
+                .filter(|assessment| assessment.closed)
+                .filter_map(|assessment| self.capabilities.get(&assessment.id))
+                .try_fold(0_u64, |sum, capability| {
+                    sum.checked_add(capability.critical_weight)
+                });
+
+        if weighted_critical_closed.is_none() {
+            report_definition_errors.push("closed critical weight sum overflow".to_string());
+        }
+
+        if !report_definition_errors.is_empty() {
             for assessment in &mut assessments {
                 assessment.closed = false;
                 assessment.unresolved_dependencies.extend(
-                    self.definition_errors
+                    report_definition_errors
                         .iter()
                         .map(|error| format!("definition:{error}")),
                 );
@@ -208,20 +234,9 @@ impl DependencyGraph {
             }
         }
 
-        let weighted_critical_total = self
-            .capabilities
-            .values()
-            .map(|capability| capability.critical_weight)
-            .sum::<u64>();
-
-        let weighted_critical_closed = assessments
-            .iter()
-            .filter(|assessment| assessment.closed)
-            .filter_map(|assessment| self.capabilities.get(&assessment.id))
-            .map(|capability| capability.critical_weight)
-            .sum::<u64>();
-
-        let valid = self.definition_errors.is_empty();
+        let valid = report_definition_errors.is_empty();
+        let weighted_critical_total = weighted_critical_total.unwrap_or(0);
+        let weighted_critical_closed = weighted_critical_closed.unwrap_or(0);
 
         ClosureReport {
             assessments,
@@ -238,7 +253,7 @@ impl DependencyGraph {
                 0
             },
             valid,
-            definition_errors: self.definition_errors.clone(),
+            definition_errors: report_definition_errors,
         }
     }
 
@@ -412,6 +427,16 @@ pub fn highest_closed_stage(
 
     let mut ordered = requirements.to_vec();
     ordered.sort_by_key(|requirement| requirement.stage);
+
+    if ordered
+        .iter()
+        .any(|requirement| requirement.capabilities.is_empty())
+        || ordered
+            .windows(2)
+            .any(|window| window[0].stage == window[1].stage)
+    {
+        return None;
+    }
 
     let mut highest = None;
     for requirement in ordered {
@@ -1675,6 +1700,61 @@ mod tests {
     }
 
     #[test]
+    fn critical_weight_sum_overflow_fails_closed() {
+        let graph = DependencyGraph::new(
+            [
+                Capability::new("a", u64::MAX, []),
+                Capability::new("b", 1, []),
+            ],
+            [],
+        );
+        let report = graph.evaluate(100, 0);
+
+        assert!(!report.valid);
+        assert!(!report.fully_closed());
+        assert_eq!(report.critical_closure_ppm, 0);
+        assert!(
+            report
+                .definition_errors()
+                .iter()
+                .any(|error| error == "critical weight sum overflow")
+        );
+        assert!(
+            report
+                .assessments
+                .iter()
+                .all(|assessment| !assessment.closed)
+        );
+    }
+
+    #[test]
+    fn empty_stage_requirement_cannot_qualify_a_stage() {
+        let graph = DependencyGraph::new(
+            [Capability::new("seed", 100, [])],
+            [],
+        );
+        let report = graph.evaluate(100, 0);
+
+        let requirements = [StageRequirement::new(ClosureStage::Seed, [])];
+        assert_eq!(highest_closed_stage(&report, &requirements), None);
+    }
+
+    #[test]
+    fn duplicate_stage_requirements_fail_closed() {
+        let graph = DependencyGraph::new(
+            [Capability::new("seed", 100, [])],
+            [],
+        );
+        let report = graph.evaluate(100, 0);
+
+        let requirements = [
+            StageRequirement::new(ClosureStage::Seed, ["seed"]),
+            StageRequirement::new(ClosureStage::Seed, ["seed", "missing"]),
+        ];
+        assert_eq!(highest_closed_stage(&report, &requirements), None);
+    }
+
+    #[test]
     fn recursive_capability_chain_closes() {
         let graph = DependencyGraph::new(
             [
@@ -2221,11 +2301,23 @@ mod tests {
             .inventory_events()
             .expect("second receipt should materialize inventory");
 
-        assert_eq!(events_a[1].batch_id, "exec-a:regolith_electrolysis:100:oxygen");
-        assert_eq!(events_b[1].batch_id, "exec-b:regolith_electrolysis:100:oxygen");
+        assert_eq!(
+            events_a[1].batch_id,
+            "exec-a:regolith_electrolysis:100:oxygen"
+        );
+        assert_eq!(
+            events_b[1].batch_id,
+            "exec-b:regolith_electrolysis:100:oxygen"
+        );
         assert_ne!(events_a[1].batch_id, events_b[1].batch_id);
-        assert_eq!(events_a[3].batch_id, "exec-a:regolith_electrolysis:100:waste");
-        assert_eq!(events_b[3].batch_id, "exec-b:regolith_electrolysis:100:waste");
+        assert_eq!(
+            events_a[3].batch_id,
+            "exec-a:regolith_electrolysis:100:waste"
+        );
+        assert_eq!(
+            events_b[3].batch_id,
+            "exec-b:regolith_electrolysis:100:waste"
+        );
     }
 
     #[test]
