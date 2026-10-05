@@ -588,6 +588,7 @@ impl ProductionProcess {
             execution_id,
             process_id: self.id.clone(),
             input_batch_id: run.input_batch_id.clone(),
+            waste_stream: self.waste_stream.clone(),
             first_inventory_sequence,
             energy_sequence,
             energy_node_id: node_id,
@@ -671,6 +672,7 @@ pub struct ProcessExecutionReceipt {
     execution_id: String,
     process_id: String,
     input_batch_id: String,
+    waste_stream: String,
     first_inventory_sequence: u64,
     energy_sequence: u64,
     energy_node_id: String,
@@ -704,9 +706,13 @@ impl ProcessExecutionReceipt {
     }
 
     /// Materialize the receipt into uniquely identified causal inventory events.
+    ///
+    /// Waste is emitted as an explicit produced batch rather than disappearing
+    /// from the material ledger. Any later disposal or recovery must consume
+    /// that named waste batch explicitly.
     pub fn inventory_events(&self) -> Result<Vec<InventoryEvent>, String> {
         let cause = format!("execution:{}", self.execution_id);
-        let mut events = Vec::with_capacity(self.run.output_mass_g.len() + 1);
+        let mut events = Vec::with_capacity(self.run.output_mass_g.len() + 2);
 
         events.push(
             InventoryEvent::new(
@@ -735,6 +741,25 @@ impl ProcessExecutionReceipt {
                     .with_provenance(cause.clone()),
             );
         }
+
+        let waste_sequence = self
+            .first_inventory_sequence
+            .checked_add(self.run.output_mass_g.len() as u64 + 1)
+            .ok_or_else(|| "process inventory sequence overflow".to_string())?;
+        let waste_batch_id = format!(
+            "{}:{}:waste",
+            self.process_id, self.first_inventory_sequence
+        );
+        events.push(
+            InventoryEvent::new(
+                waste_sequence,
+                waste_batch_id,
+                self.run.waste_mass_g,
+                InventoryEventKind::Produced,
+            )
+            .with_event_id(format!("{}:inventory:waste", self.execution_id))
+            .with_provenance(cause),
+        );
 
         Ok(events)
     }
@@ -1813,7 +1838,7 @@ mod tests {
             .expect("receipt should materialize inventory");
         let energy = receipt.energy_event();
 
-        assert_eq!(events.len(), 3);
+        assert_eq!(events.len(), 4);
         assert_eq!(events[0].kind, InventoryEventKind::Consumed);
         assert_eq!(events[0].batch_id, "feed-004");
         assert_eq!(
@@ -1826,8 +1851,13 @@ mod tests {
         );
         assert_eq!(events[1].sequence, 11);
         assert_eq!(events[2].sequence, 12);
+        assert_eq!(events[3].sequence, 13);
         assert!(events[1].batch_id.ends_with(":oxygen"));
         assert!(events[2].batch_id.ends_with(":metal"));
+        assert!(events[3].batch_id.ends_with(":waste"));
+        assert_eq!(events[3].mass_g, 100);
+        assert_eq!(events[3].event_id.as_deref(), Some("exec-004:inventory:waste"));
+        assert_eq!(events[3].provenance_id.as_deref(), Some("execution:exec-004"));
         assert_eq!(energy.event_id.as_deref(), Some("exec-004:energy:consume"));
         assert_eq!(energy.provenance_id.as_deref(), Some("execution:exec-004"));
 
@@ -1887,7 +1917,13 @@ mod tests {
         assert_eq!(budget.available_feed_mass_g(), 0);
         assert_eq!(budget.available_energy_units(), 0);
         assert_eq!(inventory.state().get("feed-transaction"), Some(&0));
-        assert_eq!(inventory.events().len(), 3);
+        assert_eq!(inventory.events().len(), 4);
+        assert_eq!(
+            inventory
+                .state()
+                .get("regolith_electrolysis:10:waste"),
+            Some(&100)
+        );
         assert_eq!(energy.state().get("bus"), Some(&1_000));
         assert_eq!(energy.events().len(), 1);
 
@@ -2035,7 +2071,7 @@ mod tests {
 
         assert_eq!(inventory.state().get("feed-transaction-fail"), Some(&0));
         assert_eq!(energy.state().get("bus"), Some(&3_000));
-        assert_eq!(inventory.events().len(), 3);
+        assert_eq!(inventory.events().len(), 4);
         assert_eq!(energy.events().len(), 2);
     }
 
