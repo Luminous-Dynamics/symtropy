@@ -1984,10 +1984,7 @@ mod tests {
 
     #[test]
     fn duplicate_stage_requirements_fail_closed() {
-        let graph = DependencyGraph::new(
-            [Capability::new("seed", 100, [])],
-            [],
-        );
+        let graph = DependencyGraph::new([Capability::new("seed", 100, [])], []);
         let report = graph.evaluate(100, 0);
 
         let requirements = [
