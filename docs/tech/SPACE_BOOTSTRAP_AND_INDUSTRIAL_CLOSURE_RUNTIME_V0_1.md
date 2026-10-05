@@ -786,6 +786,7 @@ The first implementation should prove:
 - an aborted execution becomes terminal and cannot reuse its execution identity;
 - a committed execution cannot be committed again because its execution identity is settled;
 - re-emitting the same execution receipt is detectable as duplicate causal history rather than a second valid execution;
+- invalid closure reports cannot qualify an industrial stage, even if their assessment payload happens to contain closed capabilities;
 - industrial stage progression cannot skip an unresolved earlier stage.
 
 ## 23. Kill Criteria
@@ -797,6 +798,7 @@ Do not add a subsystem that:
 - silently overwrites duplicate graph capability/dependency definitions;
 - resolves a capability/dependency ID collision by namespace order instead of rejecting the ambiguous topology;
 - treats an empty or zero-weight critical assessment set as evidence of full closure;
+- qualifies an industrial stage from an invalid closure report;
 - allows free machine or material duplication;
 - assumes perfect global communication;
 - treats speculative resources as established reserves;
