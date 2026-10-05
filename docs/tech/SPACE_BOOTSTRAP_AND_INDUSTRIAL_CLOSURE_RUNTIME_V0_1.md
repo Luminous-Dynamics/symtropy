@@ -764,6 +764,7 @@ The first implementation should prove:
 - validated process executions emit deterministic causal inventory events with unique event identities and provenance;
 - validated process executions emit replayable energy-consumption events with unique event identities and provenance;
 - recycling is represented as an explicit consumed source batch plus produced destination batch, never as implicit mass creation;
+- process waste is emitted as a named produced batch, so strict process mass balance is preserved in inventory history rather than allowing waste to disappear between process and ledger;
 - a certified resource must have a non-empty claim identity and cannot be constructed directly outside the evidence gate;
 - certification-derived inventory events use the certificate identity as their event identity, preventing the same certified quantity from being minted twice;
 - ledger replay rejects missing or duplicate event identities, unprovenanced events, and overdrawn history;
@@ -793,6 +794,7 @@ Do not add a subsystem that:
 - reuses the same feedstock or energy authorization to mint multiple valid executions;
 - constructs or reuses the same certified resource quantity to mint multiple inventory events;
 - treats recycling as a scalar balance increase without an explicit source batch;
+- permits process waste to disappear from causal inventory history even though the process reports it as accounted mass;
 - accepts duplicate ledger events under different sequence numbers when their event identities are the same;
 - mutates a ledger before append validation completes;
 - partially commits a funded execution to one ledger while another required ledger rejects it;
@@ -819,6 +821,8 @@ Mercury is a valuable proving ground because it forces the architecture to confr
 The bootstrap runtime should treat industrial state as a digital thread: claims, process definitions, executions, products, and verification evidence remain linked instead of being flattened into disconnected scalar state. NIST's digital-thread work emphasizes traceability across engineering, manufacturing, and quality data, including conformance checking and persistent identifiers. NIST's September 2026 circular-manufacturing research likewise identifies system-level modeling, digital threads, measurement science, comparable metrics, test methods, and interoperability as open research needs. NASA systems-engineering guidance distinguishes verification/validation from simply asserting that a capability exists and emphasizes recorded objective evidence and end-to-end configuration tracing. [NIST digital-thread research](https://www.nist.gov/programs-projects/digital-thread-manufacturing), [NIST circular-manufacturing research](https://www.nist.gov/publications/manufacturing-circular-economy-research-needs-design-systems-modeling-and-digital), and [NASA systems-engineering verification guidance](https://www.nasa.gov/reference/5-3-product-verification/)
 
 The kernel therefore now separates three transitions:
+
+For a process execution, strict mass balance applies to the complete causal inventory event set. The consumed source batch is offset by every declared product stream and by a named waste batch; any subsequent disposal, containment, or recycling of that waste must be represented by another explicit event.
 
 ```text
 resource claim
