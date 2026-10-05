@@ -1957,7 +1957,10 @@ mod tests {
 
     #[test]
     fn unknown_dependency_fails_closed() {
-        let graph = DependencyGraph::new([Capability::new("rover", 100, ["mystery_part"])], []);
+        let graph = DependencyGraph::new(
+            [Capability::new("rover", 100, ["mystery_part"])],
+            std::iter::empty::<Dependency>(),
+        );
         let report = graph.evaluate(1, 0);
 
         assert!(!report.assessments[0].closed);
@@ -2086,7 +2089,7 @@ mod tests {
                 Capability::new("seed", 30, ["missing"]),
                 Capability::new("downstream", 70, ["seed"]),
             ],
-            [],
+            std::iter::empty::<Dependency>(),
         );
         let report = graph.evaluate(1, 0);
 
