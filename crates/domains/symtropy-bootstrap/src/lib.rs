@@ -87,12 +87,13 @@ pub struct ClosureReport {
     pub weighted_critical_total: u64,
     pub critical_closure_ppm: u64,
     pub mass_closure_ppm: u64,
+    pub valid: bool,
 }
 
 impl ClosureReport {
     #[must_use]
     pub const fn fully_closed(&self) -> bool {
-        self.weighted_critical_closed == self.weighted_critical_total
+        self.valid && self.weighted_critical_closed == self.weighted_critical_total
     }
 }
 
@@ -109,6 +110,7 @@ pub struct DependencyBlocker {
 pub struct DependencyGraph {
     capabilities: BTreeMap<String, Capability>,
     dependencies: BTreeMap<String, Dependency>,
+    definition_errors: Vec<String>,
 }
 
 impl DependencyGraph {
@@ -117,15 +119,44 @@ impl DependencyGraph {
         capabilities: impl IntoIterator<Item = Capability>,
         dependencies: impl IntoIterator<Item = Dependency>,
     ) -> Self {
+        let mut capability_map = BTreeMap::new();
+        let mut dependency_map = BTreeMap::new();
+        let mut definition_errors = BTreeSet::new();
+
+        for capability in capabilities {
+            if capability.id.is_empty() {
+                definition_errors.insert("empty capability ID".to_string());
+                continue;
+            }
+
+            let id = capability.id.clone();
+            if capability_map.contains_key(&id) {
+                definition_errors.insert(format!("duplicate capability ID: {id}"));
+                continue;
+            }
+
+            capability_map.insert(id, capability);
+        }
+
+        for dependency in dependencies {
+            if dependency.id.is_empty() {
+                definition_errors.insert("empty dependency ID".to_string());
+                continue;
+            }
+
+            let id = dependency.id.clone();
+            if dependency_map.contains_key(&id) {
+                definition_errors.insert(format!("duplicate dependency ID: {id}"));
+                continue;
+            }
+
+            dependency_map.insert(id, dependency);
+        }
+
         Self {
-            capabilities: capabilities
-                .into_iter()
-                .map(|capability| (capability.id.clone(), capability))
-                .collect(),
-            dependencies: dependencies
-                .into_iter()
-                .map(|dependency| (dependency.id.clone(), dependency))
-                .collect(),
+            capabilities: capability_map,
+            dependencies: dependency_map,
+            definition_errors: definition_errors.into_iter().collect(),
         }
     }
 
@@ -150,6 +181,17 @@ impl DependencyGraph {
             });
         }
 
+        if !self.definition_errors.is_empty() {
+            for assessment in &mut assessments {
+                assessment.closed = false;
+                assessment
+                    .unresolved_dependencies
+                    .extend(self.definition_errors.iter().map(|error| format!("definition:{error}")));
+                assessment.unresolved_dependencies.sort();
+                assessment.unresolved_dependencies.dedup();
+            }
+        }
+
         let weighted_critical_total = self
             .capabilities
             .values()
@@ -163,12 +205,23 @@ impl DependencyGraph {
             .map(|capability| capability.critical_weight)
             .sum::<u64>();
 
+        let valid = self.definition_errors.is_empty();
+
         ClosureReport {
             assessments,
             weighted_critical_closed,
             weighted_critical_total,
-            critical_closure_ppm: ratio_ppm(weighted_critical_closed, weighted_critical_total),
-            mass_closure_ppm: ratio_ppm(local_mass_g, local_mass_g.saturating_add(imported_mass_g)),
+            critical_closure_ppm: if valid {
+                ratio_ppm(weighted_critical_closed, weighted_critical_total)
+            } else {
+                0
+            },
+            mass_closure_ppm: if valid {
+                ratio_ppm(local_mass_g, local_mass_g.saturating_add(imported_mass_g))
+            } else {
+                0
+            },
+            valid,
         }
     }
 
@@ -1643,6 +1696,47 @@ mod tests {
             .expect("downstream capability exists");
 
         assert_eq!(downstream.unresolved_dependencies, vec!["missing"]);
+    }
+
+    #[test]
+    fn duplicate_graph_definitions_fail_closed() {
+        let graph = DependencyGraph::new(
+            [
+                Capability::new("rover", 50, ["steel"]),
+                Capability::new("rover", 50, ["electronics"]),
+            ],
+            [
+                Dependency::new("steel", DependencyClass::LocalClosed),
+                Dependency::new("steel", DependencyClass::ImportedDurable),
+            ],
+        );
+        let report = graph.evaluate(1_000, 0);
+
+        assert!(!report.valid);
+        assert!(!report.fully_closed());
+        assert!(report.assessments[0]
+            .unresolved_dependencies
+            .iter()
+            .any(|dependency| dependency == "definition:duplicate capability ID: rover"));
+        assert!(report.assessments[0]
+            .unresolved_dependencies
+            .iter()
+            .any(|dependency| dependency == "definition:duplicate dependency ID: steel"));
+        assert_eq!(report.critical_closure_ppm, 0);
+        assert_eq!(report.mass_closure_ppm, 0);
+    }
+
+    #[test]
+    fn empty_graph_definition_ids_fail_closed() {
+        let graph = DependencyGraph::new(
+            [Capability::new("", 10, [])],
+            [Dependency::new("", DependencyClass::LocalClosed)],
+        );
+        let report = graph.evaluate(100, 0);
+
+        assert!(!report.valid);
+        assert!(!report.fully_closed());
+        assert!(report.assessments.is_empty());
     }
 
     #[test]
