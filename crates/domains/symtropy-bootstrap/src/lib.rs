@@ -163,9 +163,7 @@ impl DependencyGraph {
 
         for id in capability_map.keys() {
             if dependency_map.contains_key(id) {
-                definition_errors.insert(format!(
-                    "capability/dependency ID collision: {id}"
-                ));
+                definition_errors.insert(format!("capability/dependency ID collision: {id}"));
             }
         }
 
@@ -831,8 +829,8 @@ impl ProcessExecutionReceipt {
                 .checked_add(offset as u64 + 1)
                 .ok_or_else(|| "process inventory sequence overflow".to_string())?;
             let batch_id = format!(
-                "{}:{}:{stream}",
-                self.process_id, self.first_inventory_sequence
+                "{}:{}:{}:{stream}",
+                self.execution_id, self.process_id, self.first_inventory_sequence
             );
 
             events.push(
@@ -847,7 +845,8 @@ impl ProcessExecutionReceipt {
             .checked_add(self.run.output_mass_g.len() as u64 + 1)
             .ok_or_else(|| "process inventory sequence overflow".to_string())?;
         let waste_batch_id = format!(
-            "{}:{}:{waste}",
+            "{}:{}:{}:{waste}",
+            self.execution_id,
             self.process_id,
             self.first_inventory_sequence,
             waste = self.waste_stream
@@ -2149,20 +2148,24 @@ mod tests {
             .expect("receipt should append atomically");
         assert_eq!(inventory.state().get("feed-004"), Some(&0));
         assert_eq!(
-            inventory.state().get("regolith_electrolysis:10:oxygen"),
+            inventory
+                .state()
+                .get("exec-004:regolith_electrolysis:10:oxygen"),
             Some(&180)
         );
         assert_eq!(
-            inventory.state().get("regolith_electrolysis:10:metal"),
+            inventory
+                .state()
+                .get("exec-004:regolith_electrolysis:10:metal"),
             Some(&720)
         );
         let material_after: u64 = inventory
             .state()
             .iter()
             .filter(|(batch_id, _)| {
-                batch_id.as_str() == "regolith_electrolysis:10:oxygen"
-                    || batch_id.as_str() == "regolith_electrolysis:10:metal"
-                    || batch_id.as_str() == "regolith_electrolysis:10:waste"
+                batch_id.as_str() == "exec-004:regolith_electrolysis:10:oxygen"
+                    || batch_id.as_str() == "exec-004:regolith_electrolysis:10:metal"
+                    || batch_id.as_str() == "exec-004:regolith_electrolysis:10:waste"
             })
             .map(|(_, mass)| *mass)
             .sum();
@@ -2174,6 +2177,55 @@ mod tests {
             .append_batch(&[energy])
             .expect("energy receipt should append atomically");
         assert_eq!(energy_ledger.state().get("power-bus-1"), Some(&1_000));
+    }
+
+    #[test]
+    fn process_output_batches_bind_to_execution_identity() {
+        let process = ProductionProcess::new(
+            "regolith_electrolysis",
+            "regolith",
+            ["oxygen", "metal"],
+            "waste",
+        );
+        let run_a = ProcessRun::new(
+            "regolith_electrolysis",
+            "regolith",
+            "feed-a",
+            1_000,
+            BTreeMap::from([("oxygen".to_string(), 180), ("metal".to_string(), 720)]),
+            100,
+            4_000,
+        );
+        let run_b = ProcessRun::new(
+            "regolith_electrolysis",
+            "regolith",
+            "feed-b",
+            1_000,
+            BTreeMap::from([("oxygen".to_string(), 180), ("metal".to_string(), 720)]),
+            100,
+            4_000,
+        );
+
+        let mut budget = ExecutionBudget::new(2_000, 8_000);
+        let receipt_a = process
+            .authorize_execution("exec-a", 100, 200, "bus", run_a, &mut budget)
+            .expect("first execution should authorize");
+        let receipt_b = process
+            .authorize_execution("exec-b", 100, 200, "bus", run_b, &mut budget)
+            .expect("second execution should authorize");
+
+        let events_a = receipt_a
+            .inventory_events()
+            .expect("first receipt should materialize inventory");
+        let events_b = receipt_b
+            .inventory_events()
+            .expect("second receipt should materialize inventory");
+
+        assert_eq!(events_a[1].batch_id, "exec-a:regolith_electrolysis:100:oxygen");
+        assert_eq!(events_b[1].batch_id, "exec-b:regolith_electrolysis:100:oxygen");
+        assert_ne!(events_a[1].batch_id, events_b[1].batch_id);
+        assert_eq!(events_a[3].batch_id, "exec-a:regolith_electrolysis:100:waste");
+        assert_eq!(events_b[3].batch_id, "exec-b:regolith_electrolysis:100:waste");
     }
 
     #[test]
@@ -2211,7 +2263,9 @@ mod tests {
         assert_eq!(inventory.state().get("feed-transaction"), Some(&0));
         assert_eq!(inventory.events().len(), 4);
         assert_eq!(
-            inventory.state().get("regolith_electrolysis:10:waste"),
+            inventory
+                .state()
+                .get("exec-transaction:regolith_electrolysis:10:waste"),
             Some(&100)
         );
         assert_eq!(energy.state().get("bus"), Some(&1_000));
@@ -2220,7 +2274,7 @@ mod tests {
         assert!(
             commit_process_execution(&receipt, &mut budget, &mut inventory, &mut energy).is_err()
         );
-        assert_eq!(inventory.events().len(), 3);
+        assert_eq!(inventory.events().len(), 4);
         assert_eq!(energy.events().len(), 1);
     }
 
