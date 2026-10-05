@@ -459,7 +459,7 @@ pub fn highest_closed_stage(
 /// Feedstock and energy are reserved exactly once when an execution receipt is
 /// minted. The reservation state is private so callers cannot restore capacity
 /// without creating a new budget scope.
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ExecutionBudget {
     available_feed_mass_g: u64,
     available_energy_units: u64,
