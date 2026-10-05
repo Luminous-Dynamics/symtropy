@@ -1875,6 +1875,17 @@ mod tests {
             inventory.state().get("regolith_electrolysis:10:metal"),
             Some(&720)
         );
+        let material_after: u64 = inventory
+            .state()
+            .iter()
+            .filter(|(batch_id, _)| {
+                *batch_id == "regolith_electrolysis:10:oxygen"
+                    || *batch_id == "regolith_electrolysis:10:metal"
+                    || *batch_id == "regolith_electrolysis:10:waste"
+            })
+            .map(|(_, mass)| *mass)
+            .sum();
+        assert_eq!(material_after, 1_000);
 
         let mut energy_ledger =
             EnergyLedger::new(BTreeMap::from([("power-bus-1".to_string(), 5_000)]));
