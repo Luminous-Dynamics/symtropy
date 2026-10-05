@@ -1274,150 +1274,9 @@ impl EnergyLedger {
         Self {
             state: initial,
             events: Vec::new(),
-            source_reservations: BTreeMap::new(),
             seen_event_ids: BTreeSet::new(),
             last_sequence: None,
         }
-    }
-
-    /// Reserve a concrete source batch for one pending execution.
-    ///
-    /// Reservations are physical-stock claims separate from aggregate budget
-    /// authorization. A reserved batch cannot be consumed by another append
-    /// until the owning execution commits or releases it.
-    pub fn reserve_source_batch(
-        &mut self,
-        execution_id: impl Into<String>,
-        batch_id: impl Into<String>,
-        mass_g: u64,
-    ) -> Result<(), String> {
-        let execution_id = execution_id.into();
-        let batch_id = batch_id.into();
-
-        if execution_id.is_empty() {
-            return Err("source reservation requires a non-empty execution ID".to_string());
-        }
-        if batch_id.is_empty() {
-            return Err("source reservation requires a non-empty batch ID".to_string());
-        }
-        if mass_g == 0 {
-            return Err("source reservation requires non-zero mass".to_string());
-        }
-        if self.source_reservations.contains_key(&execution_id) {
-            return Err(format!("source batch already reserved: {execution_id}"));
-        }
-
-        let already_reserved = self
-            .source_reservations
-            .values()
-            .filter(|reservation| reservation.batch_id == batch_id)
-            .try_fold(0_u64, |sum, reservation| {
-                sum.checked_add(reservation.mass_g)
-            })
-            .ok_or_else(|| "source reservation mass overflow".to_string())?;
-
-        let available = self.state.get(&batch_id).copied().unwrap_or(0);
-        let total_reserved = already_reserved
-            .checked_add(mass_g)
-            .ok_or_else(|| "source reservation mass overflow".to_string())?;
-
-        if total_reserved > available {
-            return Err(format!(
-                "insufficient unreserved source batch: batch={batch_id}, required={mass_g}, available={}",
-                available.saturating_sub(already_reserved)
-            ));
-        }
-
-        self.source_reservations.insert(
-            execution_id.clone(),
-            InventorySourceReservation {
-                execution_id,
-                batch_id,
-                mass_g,
-            },
-        );
-
-        Ok(())
-    }
-
-    fn release_source_batch(&mut self, execution_id: &str) -> Result<(), String> {
-        self.source_reservations
-            .remove(execution_id)
-            .map(|_| ())
-            .ok_or_else(|| format!("source batch reservation is not pending: {execution_id}"))
-    }
-
-    fn matching_source_reservation(
-        &self,
-        execution_id: &str,
-        batch_id: &str,
-        mass_g: u64,
-    ) -> Result<(), String> {
-        let reservation = self
-            .source_reservations
-            .get(execution_id)
-            .ok_or_else(|| format!("source batch reservation is not pending: {execution_id}"))?;
-
-        if reservation.execution_id != execution_id
-            || reservation.batch_id != batch_id
-            || reservation.mass_g != mass_g
-        {
-            return Err("source batch reservation does not match execution".to_string());
-        }
-
-        Ok(())
-    }
-
-    fn append_reserved_process_batch(
-        &mut self,
-        execution_id: &str,
-        batch_id: &str,
-        mass_g: u64,
-        events: &[InventoryEvent],
-    ) -> Result<(), String> {
-        self.matching_source_reservation(execution_id, batch_id, mass_g)?;
-
-        let expected_provenance = format!("execution:{execution_id}");
-        let matching_consumes = events
-            .iter()
-            .filter(|event| {
-                event.kind == InventoryEventKind::Consumed && event.batch_id == batch_id
-            })
-            .collect::<Vec<_>>();
-
-        if matching_consumes.len() != 1
-            || matching_consumes[0].mass_g != mass_g
-            || matching_consumes[0].provenance_id.as_deref()
-                != Some(expected_provenance.as_str())
-        {
-            return Err("reserved source batch is not consumed exactly by its execution".to_string());
-        }
-
-        let mut staged = self.clone();
-        staged.release_source_batch(execution_id)?;
-
-        let preserved = staged
-            .source_reservations
-            .iter()
-            .filter(|(_, reservation)| reservation.batch_id == batch_id)
-            .map(|(id, reservation)| (id.clone(), reservation.clone()))
-            .collect::<Vec<_>>();
-
-        for (id, _) in &preserved {
-            staged.source_reservations.remove(id);
-        }
-
-        if let Err(error) = staged.append_batch(events) {
-            return Err(error);
-        }
-
-        for (id, reservation) in preserved {
-            staged.source_reservations.insert(id, reservation);
-        }
-
-        *self = staged;
-
-        Ok(())
     }
 
     /// Append one event atomically.
@@ -1736,6 +1595,146 @@ impl InventoryLedger {
             source_reservations: BTreeMap::new(),
             last_sequence: None,
         }
+    }
+
+    /// Reserve a concrete source batch for one pending execution.
+    ///
+    /// Reservations are physical-stock claims separate from aggregate budget
+    /// authorization. A reserved batch cannot be consumed by another append
+    /// until the owning execution commits or releases it.
+    pub fn reserve_source_batch(
+        &mut self,
+        execution_id: impl Into<String>,
+        batch_id: impl Into<String>,
+        mass_g: u64,
+    ) -> Result<(), String> {
+        let execution_id = execution_id.into();
+        let batch_id = batch_id.into();
+
+        if execution_id.is_empty() {
+            return Err("source reservation requires a non-empty execution ID".to_string());
+        }
+        if batch_id.is_empty() {
+            return Err("source reservation requires a non-empty batch ID".to_string());
+        }
+        if mass_g == 0 {
+            return Err("source reservation requires non-zero mass".to_string());
+        }
+        if self.source_reservations.contains_key(&execution_id) {
+            return Err(format!("source batch already reserved: {execution_id}"));
+        }
+
+        let already_reserved = self
+            .source_reservations
+            .values()
+            .filter(|reservation| reservation.batch_id == batch_id)
+            .try_fold(0_u64, |sum, reservation| {
+                sum.checked_add(reservation.mass_g)
+            })
+            .ok_or_else(|| "source reservation mass overflow".to_string())?;
+
+        let available = self.state.get(&batch_id).copied().unwrap_or(0);
+        let total_reserved = already_reserved
+            .checked_add(mass_g)
+            .ok_or_else(|| "source reservation mass overflow".to_string())?;
+
+        if total_reserved > available {
+            return Err(format!(
+                "insufficient unreserved source batch: batch={batch_id}, required={mass_g}, available={}",
+                available.saturating_sub(already_reserved)
+            ));
+        }
+
+        self.source_reservations.insert(
+            execution_id.clone(),
+            InventorySourceReservation {
+                execution_id,
+                batch_id,
+                mass_g,
+            },
+        );
+
+        Ok(())
+    }
+
+    fn release_source_batch(&mut self, execution_id: &str) -> Result<(), String> {
+        self.source_reservations
+            .remove(execution_id)
+            .map(|_| ())
+            .ok_or_else(|| format!("source batch reservation is not pending: {execution_id}"))
+    }
+
+    fn matching_source_reservation(
+        &self,
+        execution_id: &str,
+        batch_id: &str,
+        mass_g: u64,
+    ) -> Result<(), String> {
+        let reservation = self
+            .source_reservations
+            .get(execution_id)
+            .ok_or_else(|| format!("source batch reservation is not pending: {execution_id}"))?;
+
+        if reservation.execution_id != execution_id
+            || reservation.batch_id != batch_id
+            || reservation.mass_g != mass_g
+        {
+            return Err("source batch reservation does not match execution".to_string());
+        }
+
+        Ok(())
+    }
+
+    fn append_reserved_process_batch(
+        &mut self,
+        execution_id: &str,
+        batch_id: &str,
+        mass_g: u64,
+        events: &[InventoryEvent],
+    ) -> Result<(), String> {
+        self.matching_source_reservation(execution_id, batch_id, mass_g)?;
+
+        let expected_provenance = format!("execution:{execution_id}");
+        let matching_consumes = events
+            .iter()
+            .filter(|event| {
+                event.kind == InventoryEventKind::Consumed && event.batch_id == batch_id
+            })
+            .collect::<Vec<_>>();
+
+        if matching_consumes.len() != 1
+            || matching_consumes[0].mass_g != mass_g
+            || matching_consumes[0].provenance_id.as_deref()
+                != Some(expected_provenance.as_str())
+        {
+            return Err("reserved source batch is not consumed exactly by its execution".to_string());
+        }
+
+        let mut staged = self.clone();
+        staged.release_source_batch(execution_id)?;
+
+        let preserved = staged
+            .source_reservations
+            .iter()
+            .filter(|(_, reservation)| reservation.batch_id == batch_id)
+            .map(|(id, reservation)| (id.clone(), reservation.clone()))
+            .collect::<Vec<_>>();
+
+        for (id, _) in &preserved {
+            staged.source_reservations.remove(id);
+        }
+
+        if let Err(error) = staged.append_batch(events) {
+            return Err(error);
+        }
+
+        for (id, reservation) in preserved {
+            staged.source_reservations.insert(id, reservation);
+        }
+
+        *self = staged;
+
+        Ok(())
     }
 
     /// Append one event atomically.
