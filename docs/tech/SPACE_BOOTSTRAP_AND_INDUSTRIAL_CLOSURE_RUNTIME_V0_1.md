@@ -906,6 +906,7 @@ These rules are intentionally general: they apply to Mercury, the Moon, asteroid
 - NASA, Product Verification: https://www.nasa.gov/reference/5-3-product-verification/
 - NIST, UUIDs in Product Data Standards: https://www.nist.gov/publications/research-results-and-recommendations-universally-unique-identifiers-product-data
 - W3C, Verifiable Credential Data Integrity 1.0: https://www.w3.org/TR/vc-data-integrity/
+- PostgreSQL, Two-Phase Transactions: https://www.postgresql.org/docs/current/two-phase.html
 - NASA, Product Implementation: https://www.nasa.gov/reference/5-1-product-implementation/
 - NASA, Product Realization / Verification Guidance: https://www.nasa.gov/reference/5-0-product-realization/
 - NASA, Product Validation: https://www.nasa.gov/reference/5-4-product-validation/
