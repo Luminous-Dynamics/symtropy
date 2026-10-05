@@ -94,7 +94,9 @@ pub struct ClosureReport {
 impl ClosureReport {
     #[must_use]
     pub const fn fully_closed(&self) -> bool {
-        self.valid && self.weighted_critical_closed == self.weighted_critical_total
+        self.valid
+            && self.weighted_critical_total > 0
+            && self.weighted_critical_closed == self.weighted_critical_total
     }
 
     #[must_use]
@@ -1653,6 +1655,20 @@ mod tests {
             report.assessments[0].unresolved_dependencies,
             vec!["mystery_part".to_string()]
         );
+    }
+
+    #[test]
+    fn zero_critical_weight_cannot_claim_full_closure() {
+        let graph = DependencyGraph::new(
+            [Capability::new("noncritical", 0, ["steel"])],
+            [Dependency::new("steel", DependencyClass::LocalClosed)],
+        );
+        let report = graph.evaluate(100, 0);
+
+        assert!(report.valid);
+        assert_eq!(report.weighted_critical_total, 0);
+        assert_eq!(report.critical_closure_ppm, 0);
+        assert!(!report.fully_closed());
     }
 
     #[test]
