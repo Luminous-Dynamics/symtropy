@@ -768,7 +768,8 @@ The first implementation should prove:
 - certification-derived inventory events use the certificate identity as their event identity, preventing the same certified quantity from being minted twice;
 - ledger replay rejects missing or duplicate event identities, unprovenanced events, and overdrawn history;
 - stateful ledger append rejects duplicate identities and non-monotonic sequences before mutation;
-- rejected ledger appends leave the prior state and accepted history unchanged;
+- stateful ledger batch append validates the complete batch before committing any event;
+- rejected ledger appends leave the prior state and accepted history unchanged, including when a later event in a batch fails;
 - re-emitting the same execution receipt is detectable as duplicate causal history rather than a second valid execution;
 - industrial stage progression cannot skip an unresolved earlier stage.
 
@@ -824,7 +825,7 @@ declared process
 
 A mass-balanced process is not sufficient by itself. The run must reference the declared input material, a non-empty source batch, and sufficient feedstock and energy. Authorization consumes that capacity from an `ExecutionBudget` exactly once for the supplied execution identity. The resulting receipt owns the process/run context and derives stable event identities; downstream ledger replay rejects re-emission of those identities even when a caller presents the duplicated history at different sequence numbers.
 
-The live ledgers expose the same invariant at append time. `InventoryLedger` and `EnergyLedger` maintain their balance, accepted event history, unique event-ID set, and sequence frontier together. An append validates identity, provenance, sequence monotonicity, overflow, and underflow before mutating state; a rejected append therefore cannot partially alter the ledger. Full-history replay remains available as a deterministic reconstruction/checking path, while the stateful ledger is the runtime admission boundary.
+The live ledgers expose the same invariant at append time. `InventoryLedger` and `EnergyLedger` maintain their balance, accepted event history, unique event-ID set, and sequence frontier together. An append validates identity, provenance, sequence monotonicity, overflow, and underflow before mutating state; a rejected append therefore cannot partially alter the ledger. Batch append validates the entire event group against staged balances and identities before committing any mutation, so one bad event cannot leave a process half-applied. Full-history replay remains available as a deterministic reconstruction/checking path, while the stateful ledger is the runtime admission boundary.
 
 Resource certification follows the same rule. A certified resource has a stable certificate identity derived from its claim identity, while the certificate's fields are private so inventory authorization cannot be forged by direct construction. The certificate-derived inventory event reuses that certificate identity as its event identity; replay therefore rejects the same certified quantity being emitted again under a different sequence or batch.
 
