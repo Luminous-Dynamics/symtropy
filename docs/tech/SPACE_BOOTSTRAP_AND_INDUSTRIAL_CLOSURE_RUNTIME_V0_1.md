@@ -772,6 +772,8 @@ The first implementation should prove:
 - rejected ledger appends leave the prior state and accepted history unchanged, including when a later event in a batch fails;
 - one authorized process execution commits budget settlement, material, and energy as one kernel transaction;
 - cross-ledger commit failure leaves both ledgers unchanged and keeps the execution reservation pending for retry;
+- an explicitly aborted execution restores its reserved feedstock and energy without touching either ledger;
+- an aborted execution becomes terminal and cannot reuse its execution identity;
 - a committed execution cannot be committed again because its execution identity is settled;
 - re-emitting the same execution receipt is detectable as duplicate causal history rather than a second valid execution;
 - industrial stage progression cannot skip an unresolved earlier stage.
@@ -793,6 +795,7 @@ Do not add a subsystem that:
 - mutates a ledger before append validation completes;
 - partially commits a funded execution to one ledger while another required ledger rejects it;
 - loses a reserved execution silently when cross-ledger commit fails;
+- reuses an aborted execution identity as a fresh authorization;
 - rewards extraction while reducing recovery capability;
 - cannot produce a deterministic post-failure explanation.
 
@@ -849,7 +852,7 @@ commit
   -> settle execution reservation
 ```
 
-The kernel performs preparation against ledger clones, so the live inventory and energy ledgers are changed only after both staged commits succeed. A failed preparation leaves the live ledgers untouched and the reservation pending; the receipt can therefore be retried after the required physical state is restored. This is atomic at the deterministic-kernel boundary, not a claim of distributed consensus or crash recovery across independent external systems.
+The kernel performs preparation against ledger clones, so the live inventory and energy ledgers are changed only after both staged commits succeed. A failed preparation leaves the live ledgers untouched and the reservation pending; the receipt can therefore be retried after the required physical state is restored. An execution that will not be retried can be explicitly aborted, which returns its reserved feedstock and energy while permanently retiring that execution identity. This is atomic at the deterministic-kernel boundary, not a claim of distributed consensus or crash recovery across independent external systems.
 
 Resource certification follows the same rule. A certified resource has a stable certificate identity derived from its claim identity, while the certificate's fields are private so inventory authorization cannot be forged by direct construction. The certificate-derived inventory event reuses that certificate identity as its event identity; replay therefore rejects the same certified quantity being emitted again under a different sequence or batch.
 
