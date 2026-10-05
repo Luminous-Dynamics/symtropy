@@ -593,6 +593,8 @@ NASA's current lunar work includes concentrated-solar carbothermal reduction for
 
 The generic process graph should therefore support:
 
+Output and waste stream identifiers are part of the process schema, not presentation metadata. The kernel rejects duplicate product stream declarations and product/waste name collisions before an execution receipt can be minted; emitted waste batches retain the declared waste-stream identity so downstream recycling/disposal can distinguish material classes.
+
 - resource characterization
 - beneficiation / sorting
 - feed preparation
@@ -757,6 +759,7 @@ The first implementation should prove:
 - LOD transitions preserve mass, energy, machines, reservations, and unresolved failures;
 - the simulator can identify the single largest unresolved blocker to industrial closure;
 - estimated resources require an explicit evidence-certification transition before entering inventory;
+- process definitions reject duplicate output-stream IDs and reject a waste stream that collides with a product stream;
 - process executions reference declared input material and a concrete source batch;
 - process executions cannot exceed available feedstock or energy budgets;
 - a funded process execution must reserve feedstock and energy exactly once within its authorization budget;
@@ -795,6 +798,7 @@ Do not add a subsystem that:
 - constructs or reuses the same certified resource quantity to mint multiple inventory events;
 - treats recycling as a scalar balance increase without an explicit source batch;
 - permits process waste to disappear from causal inventory history even though the process reports it as accounted mass;
+- permits ambiguous process stream definitions or a waste/product stream collision;
 - accepts duplicate ledger events under different sequence numbers when their event identities are the same;
 - admits an inventory event with an empty batch ID or an energy event with an empty node ID;
 - mutates a ledger before append validation completes;
