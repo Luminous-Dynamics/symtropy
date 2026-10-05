@@ -930,6 +930,89 @@ impl EnergyEvent {
     }
 }
 
+/// Stateful append-only energy ledger.
+///
+/// The live append boundary enforces unique event identities, a strictly
+/// increasing sequence frontier, and deterministic balance conservation.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct EnergyLedger {
+    state: BTreeMap<String, u64>,
+    events: Vec<EnergyEvent>,
+    seen_event_ids: BTreeSet<String>,
+    last_sequence: Option<u64>,
+}
+
+impl EnergyLedger {
+    #[must_use]
+    pub fn new(initial: BTreeMap<String, u64>) -> Self {
+        Self {
+            state: initial,
+            events: Vec::new(),
+            seen_event_ids: BTreeSet::new(),
+            last_sequence: None,
+        }
+    }
+
+    /// Append one event atomically.
+    pub fn append(&mut self, event: EnergyEvent) -> Result<(), String> {
+        let event_id = event
+            .event_id
+            .as_deref()
+            .filter(|id| !id.is_empty())
+            .ok_or_else(|| "energy event requires non-empty event ID".to_string())?;
+
+        if event
+            .provenance_id
+            .as_deref()
+            .is_none_or(str::is_empty)
+        {
+            return Err("energy event requires non-empty provenance".to_string());
+        }
+
+        if self.seen_event_ids.contains(event_id) {
+            return Err("duplicate energy event ID".to_string());
+        }
+
+        if let Some(last_sequence) = self.last_sequence {
+            if event.sequence <= last_sequence {
+                return Err("energy event sequence must increase".to_string());
+            }
+        }
+
+        let mut next_state = self.state.clone();
+        let balance = next_state.entry(event.node_id.clone()).or_insert(0);
+        match event.kind {
+            EnergyEventKind::Generated | EnergyEventKind::Recovered => {
+                *balance = balance
+                    .checked_add(event.energy_units)
+                    .ok_or_else(|| "energy overflow".to_string())?;
+            }
+            EnergyEventKind::Consumed => {
+                if *balance < event.energy_units {
+                    return Err("energy underflow".to_string());
+                }
+                *balance -= event.energy_units;
+            }
+        }
+
+        self.state = next_state;
+        self.seen_event_ids.insert(event_id.to_string());
+        self.last_sequence = Some(event.sequence);
+        self.events.push(event);
+        Ok(())
+    }
+
+    #[must_use]
+    pub fn state(&self) -> &BTreeMap<String, u64> {
+        &self.state
+    }
+
+    #[must_use]
+    pub fn events(&self) -> &[EnergyEvent] {
+        &self.events
+    }
+}
+
 /// Replay energy from an initial balance and append-only causal events.
 pub fn replay_energy(
     initial: &BTreeMap<String, u64>,
@@ -945,42 +1028,12 @@ pub fn replay_energy(
         return Err("duplicate energy event sequence".to_string());
     }
 
-    let mut energy = initial.clone();
-    let mut seen_event_ids = BTreeSet::new();
-
+    let mut ledger = EnergyLedger::new(initial.clone());
     for event in ordered {
-        let event_id = event
-            .event_id
-            .as_deref()
-            .filter(|id| !id.is_empty())
-            .ok_or_else(|| "energy event requires non-empty event ID".to_string())?;
-
-        if !seen_event_ids.insert(event_id) {
-            return Err("duplicate energy event ID".to_string());
-        }
-
-        if event.provenance_id.as_deref().is_none_or(str::is_empty) {
-            return Err("energy event requires non-empty provenance".to_string());
-        }
-
-        let balance = energy.entry(event.node_id).or_insert(0);
-
-        match event.kind {
-            EnergyEventKind::Generated | EnergyEventKind::Recovered => {
-                *balance = balance
-                    .checked_add(event.energy_units)
-                    .ok_or_else(|| "energy overflow".to_string())?;
-            }
-            EnergyEventKind::Consumed => {
-                if *balance < event.energy_units {
-                    return Err("energy underflow".to_string());
-                }
-                *balance -= event.energy_units;
-            }
-        }
+        ledger.append(event)?;
     }
 
-    Ok(energy)
+    Ok(ledger.state().clone())
 }
 
 /// Verify final energy against deterministic replay of its causal history.
@@ -1166,6 +1219,90 @@ impl InventoryEvent {
     }
 }
 
+/// Stateful append-only inventory ledger.
+///
+/// Unlike replay, this models the live append boundary. Accepted events advance
+/// both the sequence frontier and unique event-ID set. Failed appends leave the
+/// ledger unchanged.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct InventoryLedger {
+    state: BTreeMap<String, u64>,
+    events: Vec<InventoryEvent>,
+    seen_event_ids: BTreeSet<String>,
+    last_sequence: Option<u64>,
+}
+
+impl InventoryLedger {
+    #[must_use]
+    pub fn new(initial: BTreeMap<String, u64>) -> Self {
+        Self {
+            state: initial,
+            events: Vec::new(),
+            seen_event_ids: BTreeSet::new(),
+            last_sequence: None,
+        }
+    }
+
+    /// Append one event atomically.
+    pub fn append(&mut self, event: InventoryEvent) -> Result<(), String> {
+        let event_id = event
+            .event_id
+            .as_deref()
+            .filter(|id| !id.is_empty())
+            .ok_or_else(|| "inventory event requires non-empty event ID".to_string())?;
+
+        if event
+            .provenance_id
+            .as_deref()
+            .is_none_or(str::is_empty)
+        {
+            return Err("inventory event requires non-empty provenance".to_string());
+        }
+
+        if self.seen_event_ids.contains(event_id) {
+            return Err("duplicate inventory event ID".to_string());
+        }
+
+        if let Some(last_sequence) = self.last_sequence {
+            if event.sequence <= last_sequence {
+                return Err("inventory event sequence must increase".to_string());
+            }
+        }
+
+        let mut next_state = self.state.clone();
+        let balance = next_state.entry(event.batch_id.clone()).or_insert(0);
+        match event.kind {
+            InventoryEventKind::Produced => {
+                *balance = balance
+                    .checked_add(event.mass_g)
+                    .ok_or_else(|| "inventory overflow".to_string())?;
+            }
+            InventoryEventKind::Consumed => {
+                if *balance < event.mass_g {
+                    return Err("inventory underflow".to_string());
+                }
+                *balance -= event.mass_g;
+            }
+        }
+
+        self.state = next_state;
+        self.seen_event_ids.insert(event_id.to_string());
+        self.last_sequence = Some(event.sequence);
+        self.events.push(event);
+        Ok(())
+    }
+
+    #[must_use]
+    pub fn state(&self) -> &BTreeMap<String, u64> {
+        &self.state
+    }
+
+    #[must_use]
+    pub fn events(&self) -> &[InventoryEvent] {
+        &self.events
+    }
+}
+
 /// Replay inventory from an initial balance and append-only causal events.
 ///
 /// Events are sorted by sequence so input ordering cannot change the result.
@@ -1186,42 +1323,12 @@ pub fn replay_inventory(
         return Err("duplicate inventory event sequence".to_string());
     }
 
-    let mut inventory = initial.clone();
-    let mut seen_event_ids = BTreeSet::new();
-
+    let mut ledger = InventoryLedger::new(initial.clone());
     for event in ordered {
-        let event_id = event
-            .event_id
-            .as_deref()
-            .filter(|id| !id.is_empty())
-            .ok_or_else(|| "inventory event requires non-empty event ID".to_string())?;
-
-        if !seen_event_ids.insert(event_id) {
-            return Err("duplicate inventory event ID".to_string());
-        }
-
-        if event.provenance_id.as_deref().is_none_or(str::is_empty) {
-            return Err("inventory event requires non-empty provenance".to_string());
-        }
-
-        let balance = inventory.entry(event.batch_id).or_insert(0);
-
-        match event.kind {
-            InventoryEventKind::Produced => {
-                *balance = balance
-                    .checked_add(event.mass_g)
-                    .ok_or_else(|| "inventory overflow".to_string())?;
-            }
-            InventoryEventKind::Consumed => {
-                if *balance < event.mass_g {
-                    return Err("inventory underflow".to_string());
-                }
-                *balance -= event.mass_g;
-            }
-        }
+        ledger.append(event)?;
     }
 
-    Ok(inventory)
+    Ok(ledger.state().clone())
 }
 
 /// Verify final inventory against deterministic replay of its causal history.
@@ -1819,6 +1926,84 @@ mod tests {
             .expect("recycling must consume a real source batch");
         assert_eq!(recovered.get("scrap"), Some(&0));
         assert_eq!(recovered.get("steel"), Some(&10));
+    }
+
+    #[test]
+    fn stateful_inventory_ledger_rejects_duplicate_ids_across_appends() {
+        let mut ledger = InventoryLedger::new(BTreeMap::from([("steel".to_string(), 10)]));
+        let first = InventoryEvent::new(1, "steel", 5, InventoryEventKind::Consumed)
+            .with_event_id("inventory-1")
+            .with_provenance("run-1");
+        ledger.append(first.clone()).expect("first append should succeed");
+
+        let duplicate = InventoryEvent::new(2, "steel", 5, InventoryEventKind::Consumed)
+            .with_event_id("inventory-1")
+            .with_provenance("run-1");
+        assert!(ledger.append(duplicate).is_err());
+        assert_eq!(ledger.state().get("steel"), Some(&5));
+        assert_eq!(ledger.events(), &[first]);
+    }
+
+    #[test]
+    fn stateful_inventory_ledger_rejects_non_monotonic_sequence_without_mutation() {
+        let mut ledger = InventoryLedger::new(BTreeMap::from([("steel".to_string(), 10)]));
+        ledger
+            .append(
+                InventoryEvent::new(5, "steel", 2, InventoryEventKind::Consumed)
+                    .with_event_id("inventory-5")
+                    .with_provenance("run"),
+            )
+            .expect("first append should succeed");
+
+        assert!(ledger
+            .append(
+                InventoryEvent::new(4, "steel", 3, InventoryEventKind::Consumed)
+                    .with_event_id("inventory-4")
+                    .with_provenance("run"),
+            )
+            .is_err());
+
+        assert_eq!(ledger.state().get("steel"), Some(&8));
+        assert_eq!(ledger.events().len(), 1);
+    }
+
+    #[test]
+    fn stateful_energy_ledger_rejects_duplicate_ids_across_appends() {
+        let mut ledger = EnergyLedger::new(BTreeMap::from([("bus".to_string(), 10)]));
+        ledger
+            .append(
+                EnergyEvent::new(1, "bus", 4, EnergyEventKind::Consumed)
+                    .with_event_id("energy-1")
+                    .with_provenance("run-1"),
+            )
+            .expect("first append should succeed");
+
+        assert!(ledger
+            .append(
+                EnergyEvent::new(2, "bus", 4, EnergyEventKind::Consumed)
+                    .with_event_id("energy-1")
+                    .with_provenance("run-1"),
+            )
+            .is_err());
+
+        assert_eq!(ledger.state().get("bus"), Some(&6));
+        assert_eq!(ledger.events().len(), 1);
+    }
+
+    #[test]
+    fn stateful_energy_ledger_rejects_failed_append_without_mutation() {
+        let mut ledger = EnergyLedger::new(BTreeMap::from([("bus".to_string(), 5)]));
+        let accepted = EnergyEvent::new(1, "bus", 2, EnergyEventKind::Consumed)
+            .with_event_id("energy-accepted")
+            .with_provenance("run");
+        ledger.append(accepted).expect("first append should succeed");
+
+        let rejected = EnergyEvent::new(2, "bus", 10, EnergyEventKind::Consumed)
+            .with_event_id("energy-rejected")
+            .with_provenance("run");
+        assert!(ledger.append(rejected).is_err());
+        assert_eq!(ledger.state().get("bus"), Some(&3));
+        assert_eq!(ledger.events().len(), 1);
     }
 
     #[test]
