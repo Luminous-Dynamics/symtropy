@@ -1964,12 +1964,14 @@ mod tests {
             events[3].event_id.as_deref(),
             Some("exec-004:inventory:waste:waste")
         );
-        assert_eq!(events[3].provenance_id.as_deref(), Some("execution:exec-004"));
+        assert_eq!(
+            events[3].provenance_id.as_deref(),
+            Some("execution:exec-004")
+        );
         assert_eq!(energy.event_id.as_deref(), Some("exec-004:energy:consume"));
         assert_eq!(energy.provenance_id.as_deref(), Some("execution:exec-004"));
 
-        let mut inventory =
-            InventoryLedger::new(BTreeMap::from([("feed-004".to_string(), 1_000)]));
+        let mut inventory = InventoryLedger::new(BTreeMap::from([("feed-004".to_string(), 1_000)]));
         inventory
             .append_batch(&events)
             .expect("receipt should append atomically");
@@ -2037,16 +2039,15 @@ mod tests {
         assert_eq!(inventory.state().get("feed-transaction"), Some(&0));
         assert_eq!(inventory.events().len(), 4);
         assert_eq!(
-            inventory
-                .state()
-                .get("regolith_electrolysis:10:waste"),
+            inventory.state().get("regolith_electrolysis:10:waste"),
             Some(&100)
         );
         assert_eq!(energy.state().get("bus"), Some(&1_000));
         assert_eq!(energy.events().len(), 1);
 
-        assert!(commit_process_execution(&receipt, &mut budget, &mut inventory, &mut energy)
-            .is_err());
+        assert!(
+            commit_process_execution(&receipt, &mut budget, &mut inventory, &mut energy).is_err()
+        );
         assert_eq!(inventory.events().len(), 3);
         assert_eq!(energy.events().len(), 1);
     }
@@ -2081,7 +2082,9 @@ mod tests {
             InventoryLedger::new(BTreeMap::from([("feed-binding".to_string(), 1_000)]));
         let mut energy = EnergyLedger::new(BTreeMap::from([("bus".to_string(), 5_000)]));
 
-        assert!(commit_process_execution(&altered, &mut budget, &mut inventory, &mut energy).is_err());
+        assert!(
+            commit_process_execution(&altered, &mut budget, &mut inventory, &mut energy).is_err()
+        );
         assert!(inventory.events().is_empty());
         assert!(energy.events().is_empty());
         assert_eq!(budget.available_feed_mass_g(), 0);
@@ -2123,12 +2126,16 @@ mod tests {
         assert_eq!(budget.available_energy_units(), 4_000);
         assert!(abort_process_execution(&receipt, &mut budget).is_err());
 
-        assert!(process
-            .authorize_execution("exec-abort", 30, 40, "bus", run.clone(), &mut budget)
-            .is_err());
-        assert!(process
-            .authorize_execution("exec-reuse-different-id", 30, 40, "bus", run, &mut budget)
-            .is_ok());
+        assert!(
+            process
+                .authorize_execution("exec-abort", 30, 40, "bus", run.clone(), &mut budget)
+                .is_err()
+        );
+        assert!(
+            process
+                .authorize_execution("exec-reuse-different-id", 30, 40, "bus", run, &mut budget)
+                .is_ok()
+        );
     }
 
     #[test]
@@ -2151,18 +2158,13 @@ mod tests {
 
         let mut budget = ExecutionBudget::new(1_000, 4_000);
         let receipt = process
-            .authorize_execution(
-                "exec-transaction-fail",
-                10,
-                20,
-                "bus",
-                run,
-                &mut budget,
-            )
+            .authorize_execution("exec-transaction-fail", 10, 20, "bus", run, &mut budget)
             .expect("execution should authorize");
 
-        let mut inventory =
-            InventoryLedger::new(BTreeMap::from([("feed-transaction-fail".to_string(), 1_000)]));
+        let mut inventory = InventoryLedger::new(BTreeMap::from([(
+            "feed-transaction-fail".to_string(),
+            1_000,
+        )]));
         let mut energy = EnergyLedger::new(BTreeMap::from([("bus".to_string(), 3_000)]));
 
         assert!(
@@ -2601,11 +2603,13 @@ mod tests {
         );
 
         let energy = receipt.energy_event();
-        assert!(replay_energy(
-            &BTreeMap::from([("bus".to_string(), 8_000)]),
-            &[energy.clone(), energy],
-        )
-        .is_err());
+        assert!(
+            replay_energy(
+                &BTreeMap::from([("bus".to_string(), 8_000)]),
+                &[energy.clone(), energy],
+            )
+            .is_err()
+        );
     }
 
     #[test]
