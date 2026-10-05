@@ -488,6 +488,22 @@ impl ProductionProcess {
 
     /// Validate that a process execution conforms to the declared process schema.
     pub fn validate_run(&self, run: &ProcessRun) -> Result<(), String> {
+        if self.id.is_empty() {
+            return Err("process definition requires a non-empty process ID".to_string());
+        }
+
+        if self.input_material.is_empty() {
+            return Err("process definition requires a non-empty input material".to_string());
+        }
+
+        if self.waste_stream.is_empty() {
+            return Err("process definition requires a non-empty waste stream".to_string());
+        }
+
+        if self.output_streams.iter().any(String::is_empty) {
+            return Err("process definition requires non-empty output stream IDs".to_string());
+        }
+
         if run.process_id != self.id {
             return Err(format!(
                 "process ID mismatch: expected={}, observed={}",
@@ -1094,6 +1110,10 @@ impl EnergyLedger {
                 return Err("energy event requires non-empty provenance".to_string());
             }
 
+            if event.node_id.is_empty() {
+                return Err("energy event requires non-empty node ID".to_string());
+            }
+
             if self.seen_event_ids.contains(event_id) || !staged_event_ids.insert(event_id) {
                 return Err("duplicate energy event ID".to_string());
             }
@@ -1402,6 +1422,10 @@ impl InventoryLedger {
                 return Err("inventory event requires non-empty provenance".to_string());
             }
 
+            if event.batch_id.is_empty() {
+                return Err("inventory event requires non-empty batch ID".to_string());
+            }
+
             if self.seen_event_ids.contains(event_id) || !staged_event_ids.insert(event_id) {
                 return Err("duplicate inventory event ID".to_string());
             }
@@ -1675,6 +1699,35 @@ mod tests {
             highest_closed_stage(&report, &requirements),
             Some(ClosureStage::Seed)
         );
+    }
+
+    #[test]
+    fn empty_process_and_ledger_identifiers_fail_closed() {
+        let process = ProductionProcess::new("process", "ore", ["metal"], "");
+        let run = ProcessRun::new(
+            "process",
+            "ore",
+            "feed",
+            10,
+            BTreeMap::from([("metal".to_string(), 10)]),
+            0,
+            1,
+        );
+        assert!(process.validate_run(&run).is_err());
+
+        let mut inventory = InventoryLedger::new(BTreeMap::new());
+        let inventory_event = InventoryEvent::new(1, "", 1, InventoryEventKind::Produced)
+            .with_event_id("inventory-empty-batch")
+            .with_provenance("test");
+        assert!(inventory.append(inventory_event).is_err());
+        assert!(inventory.events().is_empty());
+
+        let mut energy = EnergyLedger::new(BTreeMap::new());
+        let energy_event = EnergyEvent::new(1, "", 1, EnergyEventKind::Generated)
+            .with_event_id("energy-empty-node")
+            .with_provenance("test");
+        assert!(energy.append(energy_event).is_err());
+        assert!(energy.events().is_empty());
     }
 
     #[test]
