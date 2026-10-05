@@ -1932,9 +1932,9 @@ mod tests {
             .state()
             .iter()
             .filter(|(batch_id, _)| {
-                *batch_id == "regolith_electrolysis:10:oxygen"
-                    || *batch_id == "regolith_electrolysis:10:metal"
-                    || *batch_id == "regolith_electrolysis:10:waste"
+                batch_id.as_str() == "regolith_electrolysis:10:oxygen"
+                    || batch_id.as_str() == "regolith_electrolysis:10:metal"
+                    || batch_id.as_str() == "regolith_electrolysis:10:waste"
             })
             .map(|(_, mass)| *mass)
             .sum();
