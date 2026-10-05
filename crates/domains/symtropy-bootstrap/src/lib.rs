@@ -365,7 +365,8 @@ pub fn highest_closed_stage(
 pub struct ExecutionBudget {
     available_feed_mass_g: u64,
     available_energy_units: u64,
-    authorized_execution_ids: BTreeSet<String>,
+    reserved_executions: BTreeMap<String, (u64, u64)>,
+    settled_execution_ids: BTreeSet<String>,
 }
 
 impl ExecutionBudget {
@@ -374,7 +375,8 @@ impl ExecutionBudget {
         Self {
             available_feed_mass_g,
             available_energy_units,
-            authorized_execution_ids: BTreeSet::new(),
+            reserved_executions: BTreeMap::new(),
+            settled_execution_ids: BTreeSet::new(),
         }
     }
 
@@ -394,10 +396,10 @@ impl ExecutionBudget {
         feed_mass_g: u64,
         energy_units: u64,
     ) -> Result<(), String> {
-        if self.authorized_execution_ids.contains(execution_id) {
-            return Err(format!(
-                "execution ID already authorized: {execution_id}"
-            ));
+        if self.reserved_executions.contains_key(execution_id)
+            || self.settled_execution_ids.contains(execution_id)
+        {
+            return Err(format!("execution ID already authorized: {execution_id}"));
         }
 
         if feed_mass_g > self.available_feed_mass_g {
@@ -414,11 +416,24 @@ impl ExecutionBudget {
             ));
         }
 
-        self.authorized_execution_ids
-            .insert(execution_id.to_string());
+        self.reserved_executions
+            .insert(execution_id.to_string(), (feed_mass_g, energy_units));
         self.available_feed_mass_g -= feed_mass_g;
         self.available_energy_units -= energy_units;
 
+        Ok(())
+    }
+
+    fn reservation(&self, execution_id: &str) -> Option<(u64, u64)> {
+        self.reserved_executions.get(execution_id).copied()
+    }
+
+    fn settle(&mut self, execution_id: &str) -> Result<(), String> {
+        if self.reserved_executions.remove(execution_id).is_none() {
+            return Err(format!("execution is not pending: {execution_id}"));
+        }
+
+        self.settled_execution_ids.insert(execution_id.to_string());
         Ok(())
     }
 }
@@ -685,15 +700,14 @@ impl ProcessExecutionReceipt {
                 .first_inventory_sequence
                 .checked_add(offset as u64 + 1)
                 .ok_or_else(|| "process inventory sequence overflow".to_string())?;
-            let batch_id =
-                format!("{}:{}:{stream}", self.process_id, self.first_inventory_sequence);
+            let batch_id = format!(
+                "{}:{}:{stream}",
+                self.process_id, self.first_inventory_sequence
+            );
 
             events.push(
                 InventoryEvent::new(sequence, batch_id, *mass, InventoryEventKind::Produced)
-                    .with_event_id(format!(
-                        "{}:inventory:produce:{stream}",
-                        self.execution_id
-                    ))
+                    .with_event_id(format!("{}:inventory:produce:{stream}", self.execution_id))
                     .with_provenance(cause.clone()),
             );
         }
@@ -713,6 +727,42 @@ impl ProcessExecutionReceipt {
         .with_event_id(format!("{}:energy:consume", self.execution_id))
         .with_provenance(format!("execution:{}", self.execution_id))
     }
+}
+
+/// Commit one authorized process execution across budget, inventory, and energy.
+///
+/// Both ledgers are staged and fully validated before either live ledger is
+/// replaced. The budget reservation is settled only after both staged ledgers
+/// succeed, so a failed commit remains retryable without partial state.
+pub fn commit_process_execution(
+    receipt: &ProcessExecutionReceipt,
+    budget: &mut ExecutionBudget,
+    inventory: &mut InventoryLedger,
+    energy: &mut EnergyLedger,
+) -> Result<(), String> {
+    let reservation = budget
+        .reservation(receipt.execution_id())
+        .ok_or_else(|| format!("execution is not pending: {}", receipt.execution_id()))?;
+
+    let expected = (receipt.feed_mass_g(), receipt.energy_units());
+    if reservation != expected {
+        return Err("execution reservation does not match receipt".to_string());
+    }
+
+    let inventory_events = receipt.inventory_events()?;
+    let energy_event = receipt.energy_event();
+
+    let mut staged_inventory = inventory.clone();
+    staged_inventory.append_batch(&inventory_events)?;
+
+    let mut staged_energy = energy.clone();
+    staged_energy.append_batch(std::slice::from_ref(&energy_event))?;
+
+    *inventory = staged_inventory;
+    *energy = staged_energy;
+    budget.settle(receipt.execution_id())?;
+
+    Ok(())
 }
 
 /// Deterministic process score for comparing candidate bootstrap transitions.
@@ -971,11 +1021,7 @@ impl EnergyLedger {
                 .filter(|id| !id.is_empty())
                 .ok_or_else(|| "energy event requires non-empty event ID".to_string())?;
 
-            if event
-                .provenance_id
-                .as_deref()
-                .is_none_or(str::is_empty)
-            {
+            if event.provenance_id.as_deref().is_none_or(str::is_empty) {
                 return Err("energy event requires non-empty provenance".to_string());
             }
 
@@ -1283,11 +1329,7 @@ impl InventoryLedger {
                 .filter(|id| !id.is_empty())
                 .ok_or_else(|| "inventory event requires non-empty event ID".to_string())?;
 
-            if event
-                .provenance_id
-                .as_deref()
-                .is_none_or(str::is_empty)
-            {
+            if event.provenance_id.as_deref().is_none_or(str::is_empty) {
                 return Err("inventory event requires non-empty provenance".to_string());
             }
 
@@ -1657,12 +1699,16 @@ mod tests {
         assert_eq!(receipt.feed_mass_g(), 1_000);
         assert_eq!(receipt.energy_units(), 4_000);
 
-        assert!(process
-            .authorize_execution("exec-006", 50, 51, "bus", run.clone(), &mut budget)
-            .is_err());
-        assert!(process
-            .authorize_execution("exec-007", 50, 51, "bus", run, &mut budget)
-            .is_ok());
+        assert!(
+            process
+                .authorize_execution("exec-006", 50, 51, "bus", run.clone(), &mut budget)
+                .is_err()
+        );
+        assert!(
+            process
+                .authorize_execution("exec-007", 50, 51, "bus", run, &mut budget)
+                .is_ok()
+        );
         assert_eq!(budget.available_feed_mass_g(), 0);
         assert_eq!(budget.available_energy_units(), 0);
     }
@@ -1686,9 +1732,11 @@ mod tests {
         );
         let mut budget = ExecutionBudget::new(999, 4_000);
 
-        assert!(process
-            .authorize_execution("exec-008", 60, 61, "bus", run, &mut budget)
-            .is_err());
+        assert!(
+            process
+                .authorize_execution("exec-008", 60, 61, "bus", run, &mut budget)
+                .is_err()
+        );
         assert_eq!(budget.available_feed_mass_g(), 999);
         assert_eq!(budget.available_energy_units(), 4_000);
     }
@@ -1736,13 +1784,11 @@ mod tests {
         assert_eq!(events[2].sequence, 12);
         assert!(events[1].batch_id.ends_with(":oxygen"));
         assert!(events[2].batch_id.ends_with(":metal"));
-        assert_eq!(
-            energy.event_id.as_deref(),
-            Some("exec-004:energy:consume")
-        );
+        assert_eq!(energy.event_id.as_deref(), Some("exec-004:energy:consume"));
         assert_eq!(energy.provenance_id.as_deref(), Some("execution:exec-004"));
 
-        let mut inventory = InventoryLedger::new(BTreeMap::from([("feed-004".to_string(), 1_000)]));
+        let mut inventory =
+            InventoryLedger::new(BTreeMap::from([("feed-004".to_string(), 1_000)]));
         inventory
             .append_batch(&events)
             .expect("receipt should append atomically");
@@ -1762,6 +1808,111 @@ mod tests {
             .append_batch(&[energy])
             .expect("energy receipt should append atomically");
         assert_eq!(energy_ledger.state().get("power-bus-1"), Some(&1_000));
+    }
+
+    #[test]
+    fn process_execution_commits_budget_inventory_and_energy_as_one_unit() {
+        let process = ProductionProcess::new(
+            "regolith_electrolysis",
+            "regolith",
+            ["oxygen", "metal"],
+            "waste",
+        );
+        let run = ProcessRun::new(
+            "regolith_electrolysis",
+            "regolith",
+            "feed-transaction",
+            1_000,
+            BTreeMap::from([("oxygen".to_string(), 180), ("metal".to_string(), 720)]),
+            100,
+            4_000,
+        );
+
+        let mut budget = ExecutionBudget::new(1_000, 4_000);
+        let receipt = process
+            .authorize_execution("exec-transaction", 10, 20, "bus", run, &mut budget)
+            .expect("execution should authorize");
+
+        let mut inventory =
+            InventoryLedger::new(BTreeMap::from([("feed-transaction".to_string(), 1_000)]));
+        let mut energy = EnergyLedger::new(BTreeMap::from([("bus".to_string(), 5_000)]));
+
+        commit_process_execution(&receipt, &mut budget, &mut inventory, &mut energy)
+            .expect("authorized execution should commit atomically");
+
+        assert_eq!(budget.available_feed_mass_g(), 0);
+        assert_eq!(budget.available_energy_units(), 0);
+        assert_eq!(inventory.state().get("feed-transaction"), Some(&0));
+        assert_eq!(inventory.events().len(), 3);
+        assert_eq!(energy.state().get("bus"), Some(&1_000));
+        assert_eq!(energy.events().len(), 1);
+
+        assert!(commit_process_execution(&receipt, &mut budget, &mut inventory, &mut energy)
+            .is_err());
+        assert_eq!(inventory.events().len(), 3);
+        assert_eq!(energy.events().len(), 1);
+    }
+
+    #[test]
+    fn failed_cross_ledger_commit_does_not_partially_consume_state() {
+        let process = ProductionProcess::new(
+            "regolith_electrolysis",
+            "regolith",
+            ["oxygen", "metal"],
+            "waste",
+        );
+        let run = ProcessRun::new(
+            "regolith_electrolysis",
+            "regolith",
+            "feed-transaction-fail",
+            1_000,
+            BTreeMap::from([("oxygen".to_string(), 180), ("metal".to_string(), 720)]),
+            100,
+            4_000,
+        );
+
+        let mut budget = ExecutionBudget::new(1_000, 4_000);
+        let receipt = process
+            .authorize_execution(
+                "exec-transaction-fail",
+                10,
+                20,
+                "bus",
+                run,
+                &mut budget,
+            )
+            .expect("execution should authorize");
+
+        let mut inventory =
+            InventoryLedger::new(BTreeMap::from([("feed-transaction-fail".to_string(), 1_000)]));
+        let mut energy = EnergyLedger::new(BTreeMap::from([("bus".to_string(), 3_000)]));
+
+        assert!(
+            commit_process_execution(&receipt, &mut budget, &mut inventory, &mut energy).is_err()
+        );
+
+        assert_eq!(inventory.state().get("feed-transaction-fail"), Some(&1_000));
+        assert!(inventory.events().is_empty());
+        assert_eq!(energy.state().get("bus"), Some(&3_000));
+        assert!(energy.events().is_empty());
+        assert_eq!(budget.available_feed_mass_g(), 0);
+        assert_eq!(budget.available_energy_units(), 0);
+
+        energy
+            .append(
+                EnergyEvent::new(21, "bus", 4_000, EnergyEventKind::Generated)
+                    .with_event_id("recovery-generation")
+                    .with_provenance("recovery"),
+            )
+            .expect("restoring energy should be explicit");
+
+        commit_process_execution(&receipt, &mut budget, &mut inventory, &mut energy)
+            .expect("pending receipt should remain retryable");
+
+        assert_eq!(inventory.state().get("feed-transaction-fail"), Some(&0));
+        assert_eq!(energy.state().get("bus"), Some(&3_000));
+        assert_eq!(inventory.events().len(), 3);
+        assert_eq!(energy.events().len(), 2);
     }
 
     #[test]
@@ -1811,9 +1962,11 @@ mod tests {
     #[test]
     fn resource_claim_requires_identity_before_certification() {
         let claim = ResourceClaim::new("", 5_000, EvidenceGrade::InSituMeasured, 950_000);
-        assert!(claim
-            .certify_for_inventory(EvidenceGrade::InSituMeasured, 900_000)
-            .is_err());
+        assert!(
+            claim
+                .certify_for_inventory(EvidenceGrade::InSituMeasured, 900_000)
+                .is_err()
+        );
     }
 
     #[test]
@@ -1914,10 +2067,7 @@ mod tests {
 
     #[test]
     fn inventory_replay_is_causal_and_order_independent() {
-        let initial = BTreeMap::from([
-            ("scrap".to_string(), 10),
-            ("steel".to_string(), 100),
-        ]);
+        let initial = BTreeMap::from([("scrap".to_string(), 10), ("steel".to_string(), 100)]);
         let events = [
             InventoryEvent::new(1, "steel", 25, InventoryEventKind::Produced)
                 .with_event_id("forge-run-1:1")
@@ -1932,10 +2082,7 @@ mod tests {
                 .with_event_id("recycle-run-1:produce")
                 .with_provenance("recycle-run-1"),
         ];
-        let expected = BTreeMap::from([
-            ("scrap".to_string(), 0),
-            ("steel".to_string(), 75),
-        ]);
+        let expected = BTreeMap::from([("scrap".to_string(), 0), ("steel".to_string(), 75)]);
 
         verify_inventory_conservation(&initial, &events, &expected)
             .expect("causal inventory replay must match");
@@ -2012,7 +2159,9 @@ mod tests {
         let first = InventoryEvent::new(1, "steel", 5, InventoryEventKind::Consumed)
             .with_event_id("inventory-1")
             .with_provenance("run-1");
-        ledger.append(first.clone()).expect("first append should succeed");
+        ledger
+            .append(first.clone())
+            .expect("first append should succeed");
 
         let duplicate = InventoryEvent::new(2, "steel", 5, InventoryEventKind::Consumed)
             .with_event_id("inventory-1")
@@ -2033,13 +2182,15 @@ mod tests {
             )
             .expect("first append should succeed");
 
-        assert!(ledger
-            .append(
-                InventoryEvent::new(4, "steel", 3, InventoryEventKind::Consumed)
-                    .with_event_id("inventory-4")
-                    .with_provenance("run"),
-            )
-            .is_err());
+        assert!(
+            ledger
+                .append(
+                    InventoryEvent::new(4, "steel", 3, InventoryEventKind::Consumed)
+                        .with_event_id("inventory-4")
+                        .with_provenance("run"),
+                )
+                .is_err()
+        );
 
         assert_eq!(ledger.state().get("steel"), Some(&8));
         assert_eq!(ledger.events().len(), 1);
@@ -2056,13 +2207,15 @@ mod tests {
             )
             .expect("first append should succeed");
 
-        assert!(ledger
-            .append(
-                EnergyEvent::new(2, "bus", 4, EnergyEventKind::Consumed)
-                    .with_event_id("energy-1")
-                    .with_provenance("run-1"),
-            )
-            .is_err());
+        assert!(
+            ledger
+                .append(
+                    EnergyEvent::new(2, "bus", 4, EnergyEventKind::Consumed)
+                        .with_event_id("energy-1")
+                        .with_provenance("run-1"),
+                )
+                .is_err()
+        );
 
         assert_eq!(ledger.state().get("bus"), Some(&6));
         assert_eq!(ledger.events().len(), 1);
@@ -2074,7 +2227,9 @@ mod tests {
         let accepted = EnergyEvent::new(1, "bus", 2, EnergyEventKind::Consumed)
             .with_event_id("energy-accepted")
             .with_provenance("run");
-        ledger.append(accepted).expect("first append should succeed");
+        ledger
+            .append(accepted)
+            .expect("first append should succeed");
 
         let rejected = EnergyEvent::new(2, "bus", 10, EnergyEventKind::Consumed)
             .with_event_id("energy-rejected")
@@ -2088,14 +2243,11 @@ mod tests {
     fn inventory_replay_rejects_bad_history() {
         let initial = BTreeMap::from([("steel".to_string(), 1)]);
 
-        let overdraw = [InventoryEvent::new(
-            1,
-            "steel",
-            2,
-            InventoryEventKind::Consumed,
-        )
-        .with_event_id("overdraw:1")
-        .with_provenance("test")];
+        let overdraw = [
+            InventoryEvent::new(1, "steel", 2, InventoryEventKind::Consumed)
+                .with_event_id("overdraw:1")
+                .with_provenance("test"),
+        ];
         assert!(replay_inventory(&initial, &overdraw).is_err());
 
         let duplicate = [
@@ -2154,15 +2306,21 @@ mod tests {
             .authorize_execution("exec-replay", 70, 71, "bus", run, &mut budget)
             .expect("execution should authorize");
 
-        let first = receipt.inventory_events().expect("first event materialization");
-        let second = receipt.inventory_events().expect("second event materialization");
+        let first = receipt
+            .inventory_events()
+            .expect("first event materialization");
+        let second = receipt
+            .inventory_events()
+            .expect("second event materialization");
         let mut combined = first;
         combined.extend(second);
-        assert!(replay_inventory(
-            &BTreeMap::from([("feed-replay".to_string(), 1_000)]),
-            &combined
-        )
-        .is_err());
+        assert!(
+            replay_inventory(
+                &BTreeMap::from([("feed-replay".to_string(), 1_000)]),
+                &combined
+            )
+            .is_err()
+        );
 
         let energy = receipt.energy_event();
         assert!(replay_energy(
@@ -2182,12 +2340,7 @@ mod tests {
         )];
         assert!(replay_inventory(&BTreeMap::new(), &inventory).is_err());
 
-        let energy = [EnergyEvent::new(
-            1,
-            "bus",
-            1,
-            EnergyEventKind::Generated,
-        )];
+        let energy = [EnergyEvent::new(1, "bus", 1, EnergyEventKind::Generated)];
         assert!(replay_energy(&BTreeMap::new(), &energy).is_err());
     }
 
