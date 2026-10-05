@@ -184,9 +184,11 @@ impl DependencyGraph {
         if !self.definition_errors.is_empty() {
             for assessment in &mut assessments {
                 assessment.closed = false;
-                assessment
-                    .unresolved_dependencies
-                    .extend(self.definition_errors.iter().map(|error| format!("definition:{error}")));
+                assessment.unresolved_dependencies.extend(
+                    self.definition_errors
+                        .iter()
+                        .map(|error| format!("definition:{error}")),
+                );
                 assessment.unresolved_dependencies.sort();
                 assessment.unresolved_dependencies.dedup();
             }
@@ -1714,14 +1716,18 @@ mod tests {
 
         assert!(!report.valid);
         assert!(!report.fully_closed());
-        assert!(report.assessments[0]
-            .unresolved_dependencies
-            .iter()
-            .any(|dependency| dependency == "definition:duplicate capability ID: rover"));
-        assert!(report.assessments[0]
-            .unresolved_dependencies
-            .iter()
-            .any(|dependency| dependency == "definition:duplicate dependency ID: steel"));
+        assert!(
+            report.assessments[0]
+                .unresolved_dependencies
+                .iter()
+                .any(|dependency| dependency == "definition:duplicate capability ID: rover")
+        );
+        assert!(
+            report.assessments[0]
+                .unresolved_dependencies
+                .iter()
+                .any(|dependency| dependency == "definition:duplicate dependency ID: steel")
+        );
         assert_eq!(report.critical_closure_ppm, 0);
         assert_eq!(report.mass_closure_ppm, 0);
     }
