@@ -790,6 +790,7 @@ The first implementation should prove:
 - output and waste batch identities are derived from the authorized execution identity as well as process/sequence context, so distinct executions cannot alias the same physical product batch merely by reusing a process and sequence position;
 - commit and abort reject a receipt that does not exactly match the still-pending authorization, even when its feedstock and energy quantities match;
 - a pending execution can be explicitly rehydrated from the authoritative budget receipt plus matching source reservation without minting a second authorization;
+- execution lifecycle state is explicitly distinguishable as Pending, Committed, or Aborted, giving durable recovery an unambiguous terminal outcome;
 - an explicitly aborted execution restores its reserved feedstock and energy and releases its concrete source-batch reservation without touching ledger history;
 - an aborted execution becomes terminal and cannot reuse its execution identity;
 - a committed execution cannot be committed again because its execution identity is settled;
@@ -833,6 +834,7 @@ Do not add a subsystem that:
 - loses a concrete source-batch reservation when authorization fails or an execution is explicitly aborted;
 - permits a pending execution reservation to be paired with a different process, source batch, sequence position, energy node, or run while retaining the same execution identity;
 - creates a fresh authorization when recovering an interrupted pending execution instead of rehydrating the still-authoritative reservation;
+- collapses committed and aborted terminal executions into one indistinguishable state in the lifecycle boundary;
 - permits distinct execution identities to alias one physical product or waste batch merely because process and sequence fields match;
 - reuses an aborted execution identity as a fresh authorization;
 - rewards extraction while reducing recovery capability;
@@ -906,6 +908,16 @@ Recycling uses the same conservation boundary. A recovery operation must consume
 These identities establish deterministic causal linkage, not cryptographic authenticity by themselves. Higher layers may bind claims and certificates to signed external evidence or verifiable credentials. W3C's Verifiable Credential Data Integrity 1.0 is a Recommendation for cryptographic authenticity/integrity mechanisms; the 2026 1.1 document is still a Working Draft, so the runtime does not claim to implement either standard merely by naming certificate fields.
 
 This is intentionally an authorization boundary, not a claim that physical execution occurred. The receipt proves that the deterministic kernel admitted one funded execution from the declared state. Physical telemetry, quality measurements, thermal observations, and external evidence remain separate evidence inputs that higher layers must attach before asserting realized product performance.
+
+The bootstrap runtime therefore has an explicit lifecycle vocabulary for future durable integration:
+
+```text
+Pending -> Committed
+Pending -> Aborted
+Committed / Aborted -> terminal
+```
+
+A terminal outcome is retained as execution identity state rather than inferred indirectly from ledger effects. A recovery adapter can therefore replay lifecycle records deterministically and distinguish an unfinished execution from one that was deliberately canceled.
 
 This also gives the simulator a stronger digital-thread boundary:
 
