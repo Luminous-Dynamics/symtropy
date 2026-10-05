@@ -768,7 +768,7 @@ The first implementation should prove:
 - a certified resource must have a non-empty claim identity and cannot be constructed directly outside the evidence gate;
 - certification-derived inventory events use the certificate identity as their event identity, preventing the same certified quantity from being minted twice;
 - ledger replay rejects missing or duplicate event identities, unprovenanced events, and overdrawn history;
-- stateful ledger append rejects duplicate identities and non-monotonic sequences before mutation;
+- stateful ledger append rejects duplicate identities, non-monotonic sequences, and empty physical account identifiers before mutation;
 - stateful ledger batch append validates the complete batch before committing any event;
 - rejected ledger appends leave the prior state and accepted history unchanged, including when a later event in a batch fails;
 - one authorized process execution commits budget settlement, material, and energy as one kernel transaction;
@@ -796,6 +796,7 @@ Do not add a subsystem that:
 - treats recycling as a scalar balance increase without an explicit source batch;
 - permits process waste to disappear from causal inventory history even though the process reports it as accounted mass;
 - accepts duplicate ledger events under different sequence numbers when their event identities are the same;
+- admits an inventory event with an empty batch ID or an energy event with an empty node ID;
 - mutates a ledger before append validation completes;
 - partially commits a funded execution to one ledger while another required ledger rejects it;
 - loses a reserved execution silently when cross-ledger commit fails;
@@ -838,7 +839,7 @@ declared process
   -> causal energy-consumption event
 ```
 
-A mass-balanced process is not sufficient by itself. The run must reference the declared input material, a non-empty source batch, and sufficient feedstock and energy. Authorization consumes that capacity from an `ExecutionBudget` exactly once for the supplied execution identity. The resulting receipt owns the process/run context and derives stable event identities; downstream ledger replay rejects re-emission of those identities even when a caller presents the duplicated history at different sequence numbers.
+A mass-balanced process is not sufficient by itself. The run must reference the declared input material, a non-empty source batch, and sufficient feedstock and energy. Process definitions and ledger events also require non-empty physical account identifiers so causal state cannot be silently attached to an anonymous batch, node, or process account. Authorization consumes that capacity from an `ExecutionBudget` exactly once for the supplied execution identity. The resulting receipt owns the process/run context and derives stable event identities; downstream ledger replay rejects re-emission of those identities even when a caller presents the duplicated history at different sequence numbers.
 
 The live ledgers expose the same invariant at append time. `InventoryLedger` and `EnergyLedger` maintain their balance, accepted event history, unique event-ID set, and sequence frontier together. An append validates identity, provenance, sequence monotonicity, overflow, and underflow before mutating state; a rejected append therefore cannot partially alter the ledger. Batch append validates the entire event group against staged balances and identities before committing any mutation, so one bad event cannot leave a process half-applied. Full-history replay remains available as a deterministic reconstruction/checking path, while the stateful ledger is the runtime admission boundary.
 
