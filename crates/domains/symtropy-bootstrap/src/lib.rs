@@ -1633,12 +1633,14 @@ impl InventoryLedger {
         }
     }
 
-    /// Reserve a concrete source batch for one pending execution.
+    /// Reserve a concrete source batch for one pending executable authorization.
     ///
     /// Reservations are physical-stock claims separate from aggregate budget
     /// authorization. A reserved batch cannot be consumed by another append
-    /// until the owning execution commits or releases it.
-    pub fn reserve_source_batch(
+    /// until the owning execution commits or releases it. The method is private:
+    /// callers cannot create an orphaned physical lock outside the authorization
+    /// lifecycle.
+    fn reserve_source_batch(
         &mut self,
         execution_id: impl Into<String>,
         batch_id: impl Into<String>,
