@@ -454,6 +454,15 @@ pub fn highest_closed_stage(
     highest
 }
 
+/// Terminal lifecycle state of an execution authorization.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+pub enum ExecutionTerminalState {
+    /// The funded execution completed and its causal ledger effects were settled.
+    Committed,
+    /// The funded execution was explicitly canceled and its capacity was restored.
+    Aborted,
+}
+
 /// Consumable authorization budget for one deterministic execution scope.
 ///
 /// Feedstock and energy are reserved exactly once when an execution receipt is
@@ -464,7 +473,7 @@ pub struct ExecutionBudget {
     available_feed_mass_g: u64,
     available_energy_units: u64,
     reserved_executions: BTreeMap<String, ProcessExecutionReceipt>,
-    settled_execution_ids: BTreeSet<String>,
+    terminal_execution_states: BTreeMap<String, ExecutionTerminalState>,
 }
 
 impl ExecutionBudget {
@@ -474,7 +483,7 @@ impl ExecutionBudget {
             available_feed_mass_g,
             available_energy_units,
             reserved_executions: BTreeMap::new(),
-            settled_execution_ids: BTreeSet::new(),
+            terminal_execution_states: BTreeMap::new(),
         }
     }
 
@@ -497,7 +506,7 @@ impl ExecutionBudget {
         let execution_id = receipt.execution_id();
 
         if self.reserved_executions.contains_key(execution_id)
-            || self.settled_execution_ids.contains(execution_id)
+            || self.terminal_execution_states.contains_key(execution_id)
         {
             return Err(format!("execution ID already authorized: {execution_id}"));
         }
@@ -540,15 +549,23 @@ impl ExecutionBudget {
         self.reservation(execution_id)
     }
 
+    /// Return the terminal outcome of an execution without exposing mutable state.
+    #[must_use]
+    pub fn terminal_state(&self, execution_id: &str) -> Option<ExecutionTerminalState> {
+        self.terminal_execution_states.get(execution_id).copied()
+    }
+
     fn settle(&mut self, execution_id: &str) -> Result<(), String> {
         if self.reserved_executions.remove(execution_id).is_none() {
             return Err(format!("execution is not pending: {execution_id}"));
         }
 
-        self.settled_execution_ids.insert(execution_id.to_string());
+        self.terminal_execution_states
+            .insert(execution_id.to_string(), ExecutionTerminalState::Committed);
         Ok(())
     }
 
+    /// Permanently record an explicit abort after restoring its reserved capacity.
     fn abort(&mut self, execution_id: &str) -> Result<(), String> {
         let receipt = self
             .reserved_executions
@@ -564,7 +581,8 @@ impl ExecutionBudget {
             .checked_add(receipt.energy_units())
             .ok_or_else(|| "energy budget overflow during abort".to_string())?;
 
-        self.settled_execution_ids.insert(execution_id.to_string());
+        self.terminal_execution_states
+            .insert(execution_id.to_string(), ExecutionTerminalState::Aborted);
         Ok(())
     }
 }
@@ -3037,6 +3055,74 @@ mod tests {
 
         commit_process_execution(&receipt, &mut budget, &mut inventory, &mut energy)
             .expect("original bound receipt should remain commit-ready");
+    }
+
+    #[test]
+    fn committed_and_aborted_execution_states_remain_distinguishable() {
+        let process = ProductionProcess::new(
+            "regolith_electrolysis",
+            "regolith",
+            ["oxygen", "metal"],
+            "waste",
+        );
+        let run = ProcessRun::new(
+            "regolith_electrolysis",
+            "regolith",
+            "feed-terminal",
+            1_000,
+            BTreeMap::from([("oxygen".to_string(), 180), ("metal".to_string(), 720)]),
+            100,
+            4_000,
+        );
+
+        let mut commit_budget = ExecutionBudget::new(1_000, 4_000);
+        let mut commit_inventory =
+            InventoryLedger::new(BTreeMap::from([("feed-terminal".to_string(), 1_000)]));
+        let commit_receipt = process
+            .authorize_execution_with_inventory(
+                "exec-terminal-commit",
+                10,
+                20,
+                "bus",
+                run.clone(),
+                &mut commit_budget,
+                &mut commit_inventory,
+            )
+            .expect("commit execution should authorize");
+        let mut commit_energy = EnergyLedger::new(BTreeMap::from([("bus".to_string(), 5_000)]));
+        assert_eq!(commit_budget.terminal_state("exec-terminal-commit"), None);
+        commit_process_execution(
+            &commit_receipt,
+            &mut commit_budget,
+            &mut commit_inventory,
+            &mut commit_energy,
+        )
+        .expect("commit execution should settle");
+        assert_eq!(
+            commit_budget.terminal_state("exec-terminal-commit"),
+            Some(ExecutionTerminalState::Committed)
+        );
+
+        let mut abort_budget = ExecutionBudget::new(1_000, 4_000);
+        let mut abort_inventory =
+            InventoryLedger::new(BTreeMap::from([("feed-terminal".to_string(), 1_000)]));
+        let abort_receipt = process
+            .authorize_execution_with_inventory(
+                "exec-terminal-abort",
+                30,
+                40,
+                "bus",
+                run,
+                &mut abort_budget,
+                &mut abort_inventory,
+            )
+            .expect("abort execution should authorize");
+        abort_process_execution(&abort_receipt, &mut abort_budget, &mut abort_inventory)
+            .expect("abort execution should settle");
+        assert_eq!(
+            abort_budget.terminal_state("exec-terminal-abort"),
+            Some(ExecutionTerminalState::Aborted)
+        );
     }
 
     #[test]
