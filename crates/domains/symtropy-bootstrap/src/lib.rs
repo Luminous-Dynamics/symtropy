@@ -365,7 +365,7 @@ pub fn highest_closed_stage(
 pub struct ExecutionBudget {
     available_feed_mass_g: u64,
     available_energy_units: u64,
-    reserved_executions: BTreeMap<String, (u64, u64)>,
+    reserved_executions: BTreeMap<String, ProcessExecutionReceipt>,
     settled_execution_ids: BTreeSet<String>,
 }
 
@@ -390,42 +390,46 @@ impl ExecutionBudget {
         self.available_energy_units
     }
 
-    fn reserve(
-        &mut self,
-        execution_id: &str,
-        feed_mass_g: u64,
-        energy_units: u64,
-    ) -> Result<(), String> {
+    /// Reserve capacity for the complete receipt, not just its quantities.
+    ///
+    /// Binding the reservation to the immutable receipt prevents a future
+    /// caller or internal refactor from swapping process, batch, sequence, node,
+    /// or run parameters while retaining the same funded execution identity.
+    fn reserve(&mut self, receipt: &ProcessExecutionReceipt) -> Result<(), String> {
+        let execution_id = receipt.execution_id();
+
         if self.reserved_executions.contains_key(execution_id)
             || self.settled_execution_ids.contains(execution_id)
         {
             return Err(format!("execution ID already authorized: {execution_id}"));
         }
 
-        if feed_mass_g > self.available_feed_mass_g {
+        if receipt.feed_mass_g() > self.available_feed_mass_g {
             return Err(format!(
-                "insufficient feedstock budget: required={feed_mass_g}, available={}",
+                "insufficient feedstock budget: required={}, available={}",
+                receipt.feed_mass_g(),
                 self.available_feed_mass_g
             ));
         }
 
-        if energy_units > self.available_energy_units {
+        if receipt.energy_units() > self.available_energy_units {
             return Err(format!(
-                "insufficient energy budget: required={energy_units}, available={}",
+                "insufficient energy budget: required={}, available={}",
+                receipt.energy_units(),
                 self.available_energy_units
             ));
         }
 
         self.reserved_executions
-            .insert(execution_id.to_string(), (feed_mass_g, energy_units));
-        self.available_feed_mass_g -= feed_mass_g;
-        self.available_energy_units -= energy_units;
+            .insert(execution_id.to_string(), receipt.clone());
+        self.available_feed_mass_g -= receipt.feed_mass_g();
+        self.available_energy_units -= receipt.energy_units();
 
         Ok(())
     }
 
-    fn reservation(&self, execution_id: &str) -> Option<(u64, u64)> {
-        self.reserved_executions.get(execution_id).copied()
+    fn reservation(&self, execution_id: &str) -> Option<&ProcessExecutionReceipt> {
+        self.reserved_executions.get(execution_id)
     }
 
     fn settle(&mut self, execution_id: &str) -> Result<(), String> {
@@ -438,18 +442,18 @@ impl ExecutionBudget {
     }
 
     fn abort(&mut self, execution_id: &str) -> Result<(), String> {
-        let (feed_mass_g, energy_units) = self
+        let receipt = self
             .reserved_executions
             .remove(execution_id)
             .ok_or_else(|| format!("execution is not pending: {execution_id}"))?;
 
         self.available_feed_mass_g = self
             .available_feed_mass_g
-            .checked_add(feed_mass_g)
+            .checked_add(receipt.feed_mass_g())
             .ok_or_else(|| "feedstock budget overflow during abort".to_string())?;
         self.available_energy_units = self
             .available_energy_units
-            .checked_add(energy_units)
+            .checked_add(receipt.energy_units())
             .ok_or_else(|| "energy budget overflow during abort".to_string())?;
 
         self.settled_execution_ids.insert(execution_id.to_string());
@@ -580,9 +584,7 @@ impl ProductionProcess {
             budget.available_energy_units,
         )?;
 
-        budget.reserve(&execution_id, run.feed_mass_g, run.energy_units)?;
-
-        Ok(ProcessExecutionReceipt {
+        let receipt = ProcessExecutionReceipt {
             execution_id,
             process_id: self.id.clone(),
             input_batch_id: run.input_batch_id.clone(),
@@ -590,7 +592,10 @@ impl ProductionProcess {
             energy_sequence,
             energy_node_id: node_id,
             run,
-        })
+        };
+
+        budget.reserve(&receipt)?;
+        Ok(receipt)
     }
 }
 
@@ -763,8 +768,7 @@ pub fn commit_process_execution(
         .reservation(receipt.execution_id())
         .ok_or_else(|| format!("execution is not pending: {}", receipt.execution_id()))?;
 
-    let expected = (receipt.feed_mass_g(), receipt.energy_units());
-    if reservation != expected {
+    if reservation != receipt {
         return Err("execution reservation does not match receipt".to_string());
     }
 
@@ -798,7 +802,7 @@ pub fn abort_process_execution(
         .reservation(receipt.execution_id())
         .ok_or_else(|| format!("execution is not pending: {}", receipt.execution_id()))?;
 
-    if reservation != (receipt.feed_mass_g(), receipt.energy_units()) {
+    if reservation != receipt {
         return Err("execution reservation does not match receipt".to_string());
     }
 
@@ -1891,6 +1895,46 @@ mod tests {
             .is_err());
         assert_eq!(inventory.events().len(), 3);
         assert_eq!(energy.events().len(), 1);
+    }
+
+    #[test]
+    fn execution_reservation_binds_the_complete_receipt() {
+        let process = ProductionProcess::new(
+            "regolith_electrolysis",
+            "regolith",
+            ["oxygen", "metal"],
+            "waste",
+        );
+        let run = ProcessRun::new(
+            "regolith_electrolysis",
+            "regolith",
+            "feed-binding",
+            1_000,
+            BTreeMap::from([("oxygen".to_string(), 180), ("metal".to_string(), 720)]),
+            100,
+            4_000,
+        );
+
+        let mut budget = ExecutionBudget::new(1_000, 4_000);
+        let receipt = process
+            .authorize_execution("exec-binding", 10, 20, "bus", run, &mut budget)
+            .expect("execution should authorize");
+
+        let mut altered = receipt.clone();
+        altered.first_inventory_sequence = 11;
+
+        let mut inventory =
+            InventoryLedger::new(BTreeMap::from([("feed-binding".to_string(), 1_000)]));
+        let mut energy = EnergyLedger::new(BTreeMap::from([("bus".to_string(), 5_000)]));
+
+        assert!(commit_process_execution(&altered, &mut budget, &mut inventory, &mut energy).is_err());
+        assert!(inventory.events().is_empty());
+        assert!(energy.events().is_empty());
+        assert_eq!(budget.available_feed_mass_g(), 0);
+        assert_eq!(budget.available_energy_units(), 0);
+
+        commit_process_execution(&receipt, &mut budget, &mut inventory, &mut energy)
+            .expect("original bound receipt should remain commit-ready");
     }
 
     #[test]
