@@ -3112,7 +3112,7 @@ mod tests {
         )
         .expect("commit execution should settle");
         assert_eq!(
-            commit_budget.terminal_state("exec-terminal-commit"),
+            commit_budget.execution_state("exec-terminal-commit"),
             Some(ExecutionState::Committed)
         );
 
@@ -3133,7 +3133,7 @@ mod tests {
         abort_process_execution(&abort_receipt, &mut abort_budget, &mut abort_inventory)
             .expect("abort execution should settle");
         assert_eq!(
-            abort_budget.terminal_state("exec-terminal-abort"),
+            abort_budget.execution_state("exec-terminal-abort"),
             Some(ExecutionState::Aborted)
         );
     }
