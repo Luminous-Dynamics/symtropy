@@ -972,7 +972,9 @@ impl ProcessExecutionReceipt {
 /// This type is distinct from ProcessExecutionReceipt: aggregate budget
 /// authorization alone cannot produce a value accepted by the commit/abort
 /// boundaries. The constructor is private so executable receipts can only be
-/// minted after concrete source reservation succeeds.
+/// minted after concrete source reservation succeeds. This makes the physical
+/// reservation proof part of the Rust type boundary rather than only a runtime
+/// convention.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ExecutableProcessExecutionReceipt {
     receipt: ProcessExecutionReceipt,
@@ -2619,7 +2621,7 @@ mod tests {
     }
 
     #[test]
-    fn execution_commit_requires_concrete_source_reservation() {
+    fn budget_only_authorization_does_not_reserve_physical_source() {
         let process = ProductionProcess::new(
             "regolith_electrolysis",
             "regolith",
@@ -2640,16 +2642,11 @@ mod tests {
         let receipt = process
             .authorize_execution("exec-unreserved", 1, 2, "bus", run, &mut budget)
             .expect("budget-only authorization should still be constructible");
-        let mut inventory =
+        let inventory =
             InventoryLedger::new(BTreeMap::from([("unreserved-feed".to_string(), 1_000)]));
-        let mut energy = EnergyLedger::new(BTreeMap::from([("bus".to_string(), 5_000)]));
 
-        assert!(
-            commit_process_execution(&receipt, &mut budget, &mut inventory, &mut energy).is_err()
-        );
-        assert_eq!(inventory.state().get("unreserved-feed"), Some(&1_000));
-        assert!(inventory.events().is_empty());
-        assert_eq!(energy.events().len(), 0);
+        assert!(budget.reservation(receipt.execution_id()).is_some());
+        assert!(inventory.source_reservations.is_empty());
     }
 
     #[test]
@@ -2926,7 +2923,7 @@ mod tests {
             .expect("execution should authorize");
 
         let mut altered = receipt.clone();
-        altered.first_inventory_sequence = 11;
+        altered.receipt.first_inventory_sequence = 11;
         let mut energy = EnergyLedger::new(BTreeMap::from([("bus".to_string(), 5_000)]));
 
         assert!(
