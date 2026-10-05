@@ -1323,7 +1323,7 @@ impl EnergyLedger {
     /// Validate and commit a complete event batch atomically.
     pub fn append_batch(&mut self, events: &[EnergyEvent]) -> Result<(), String> {
         let mut staged_balances = BTreeMap::new();
-        let mut staged_event_ids = BTreeSet::new();
+        let mut staged_event_ids: BTreeSet<String> = BTreeSet::new();
         let mut next_sequence = self.last_sequence;
 
         for event in events {
@@ -1341,7 +1341,7 @@ impl EnergyLedger {
                 return Err("energy event requires non-empty node ID".to_string());
             }
 
-            if self.seen_event_ids.contains(event_id) || !staged_event_ids.insert(event_id) {
+            if self.seen_event_ids.contains(event_id) || !staged_event_ids.insert(event_id.to_string()) {
                 return Err("duplicate energy event ID".to_string());
             }
 
@@ -1787,7 +1787,7 @@ impl InventoryLedger {
     /// staged first. No state or history is mutated until the entire batch passes.
     pub fn append_batch(&mut self, events: &[InventoryEvent]) -> Result<(), String> {
         let mut staged_balances = BTreeMap::new();
-        let mut staged_event_ids = BTreeSet::new();
+        let mut staged_event_ids: BTreeSet<String> = BTreeSet::new();
         let mut next_sequence = self.last_sequence;
 
         for event in events {
@@ -1805,7 +1805,7 @@ impl InventoryLedger {
                 return Err("inventory event requires non-empty batch ID".to_string());
             }
 
-            if self.seen_event_ids.contains(event_id) || !staged_event_ids.insert(event_id) {
+            if self.seen_event_ids.contains(event_id) || !staged_event_ids.insert(event_id.to_string()) {
                 return Err("duplicate inventory event ID".to_string());
             }
 
@@ -1917,7 +1917,12 @@ pub const fn ratio_ppm(numerator: u64, denominator: u64) -> u64 {
     if denominator == 0 {
         0
     } else {
-        ((((numerator as u128) * 1_000_000u128) / (denominator as u128)).min(1_000_000)) as u64
+        let value = ((numerator as u128) * 1_000_000u128) / (denominator as u128);
+        if value > 1_000_000 {
+            1_000_000
+        } else {
+            value as u64
+        }
     }
 }
 
@@ -1980,10 +1985,10 @@ mod tests {
     fn critical_weight_sum_overflow_fails_closed() {
         let graph = DependencyGraph::new(
             [
-                Capability::new("a", u64::MAX, []),
-                Capability::new("b", 1, []),
+                Capability::new("a", u64::MAX, std::iter::empty::<String>()),
+                Capability::new("b", 1, std::iter::empty::<String>()),
             ],
-            [],
+            std::iter::empty::<Dependency>(),
         );
         let report = graph.evaluate(100, 0);
 
@@ -2006,7 +2011,10 @@ mod tests {
 
     #[test]
     fn empty_stage_requirement_cannot_qualify_a_stage() {
-        let graph = DependencyGraph::new([Capability::new("seed", 100, [])], []);
+        let graph = DependencyGraph::new(
+            [Capability::new("seed", 100, std::iter::empty::<String>())],
+            std::iter::empty::<Dependency>(),
+        );
         let report = graph.evaluate(100, 0);
 
         let requirements = [StageRequirement::new(ClosureStage::Seed, [])];
@@ -2015,7 +2023,10 @@ mod tests {
 
     #[test]
     fn duplicate_stage_requirements_fail_closed() {
-        let graph = DependencyGraph::new([Capability::new("seed", 100, [])], []);
+        let graph = DependencyGraph::new(
+            [Capability::new("seed", 100, std::iter::empty::<String>())],
+            std::iter::empty::<Dependency>(),
+        );
         let report = graph.evaluate(100, 0);
 
         let requirements = [
@@ -2120,7 +2131,7 @@ mod tests {
     #[test]
     fn capability_dependency_namespace_collision_fails_closed() {
         let graph = DependencyGraph::new(
-            [Capability::new("steel", 100, [])],
+            [Capability::new("steel", 100, std::iter::empty::<String>())],
             [Dependency::new("steel", DependencyClass::LocalClosed)],
         );
         let report = graph.evaluate(100, 0);
@@ -2136,7 +2147,7 @@ mod tests {
     #[test]
     fn empty_graph_definition_ids_fail_closed() {
         let graph = DependencyGraph::new(
-            [Capability::new("", 10, [])],
+            [Capability::new("", 10, std::iter::empty::<String>())],
             [Dependency::new("", DependencyClass::LocalClosed)],
         );
         let report = graph.evaluate(100, 0);
