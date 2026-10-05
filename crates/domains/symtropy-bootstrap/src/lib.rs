@@ -88,12 +88,18 @@ pub struct ClosureReport {
     pub critical_closure_ppm: u64,
     pub mass_closure_ppm: u64,
     pub valid: bool,
+    pub definition_errors: Vec<String>,
 }
 
 impl ClosureReport {
     #[must_use]
     pub const fn fully_closed(&self) -> bool {
         self.valid && self.weighted_critical_closed == self.weighted_critical_total
+    }
+
+    #[must_use]
+    pub fn definition_errors(&self) -> &[String] {
+        &self.definition_errors
     }
 }
 
@@ -151,6 +157,14 @@ impl DependencyGraph {
             }
 
             dependency_map.insert(id, dependency);
+        }
+
+        for id in capability_map.keys() {
+            if dependency_map.contains_key(id) {
+                definition_errors.insert(format!(
+                    "capability/dependency ID collision: {id}"
+                ));
+            }
         }
 
         Self {
@@ -224,6 +238,7 @@ impl DependencyGraph {
                 0
             },
             valid,
+            definition_errors: self.definition_errors.clone(),
         }
     }
 
@@ -1730,6 +1745,22 @@ mod tests {
         );
         assert_eq!(report.critical_closure_ppm, 0);
         assert_eq!(report.mass_closure_ppm, 0);
+    }
+
+    #[test]
+    fn capability_dependency_namespace_collision_fails_closed() {
+        let graph = DependencyGraph::new(
+            [Capability::new("steel", 100, [])],
+            [Dependency::new("steel", DependencyClass::LocalClosed)],
+        );
+        let report = graph.evaluate(100, 0);
+
+        assert!(!report.valid);
+        assert!(!report.fully_closed());
+        assert_eq!(
+            report.definition_errors(),
+            &["capability/dependency ID collision: steel".to_string()]
+        );
     }
 
     #[test]
