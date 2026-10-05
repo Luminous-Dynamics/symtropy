@@ -752,6 +752,7 @@ The first implementation should prove:
 - no critical capability closes while an unrecognized terminal dependency remains;
 - duplicate, empty, or cross-namespace capability/dependency identifiers make the graph invalid and fail closure closed;
 - a graph with no positive critical-weight total cannot claim full industrial closure merely through a vacuous `0 == 0` comparison;
+- critical-weight aggregation overflow is an invalid closure report rather than a wrapped or panicking result;
 - removing a critical machine class causes deterministic degradation, not free resource creation;
 - inventory only increases through causal production events;
 - energy deficits alter scheduling and survive LOD transitions;
@@ -789,7 +790,8 @@ The first implementation should prove:
 - distinct authorized executions with the same process and sequence positions cannot emit aliased product or waste batch identities;
 - re-emitting the same execution receipt is detectable as duplicate causal history rather than a second valid execution;
 - invalid closure reports cannot qualify an industrial stage, even if their assessment payload happens to contain closed capabilities;
-- industrial stage progression cannot skip an unresolved earlier stage.
+- industrial stage progression cannot skip an unresolved earlier stage;
+- empty or duplicate stage requirements are invalid and cannot qualify an industrial stage.
 
 ## 23. Kill Criteria
 
@@ -800,7 +802,9 @@ Do not add a subsystem that:
 - silently overwrites duplicate graph capability/dependency definitions;
 - resolves a capability/dependency ID collision by namespace order instead of rejecting the ambiguous topology;
 - treats an empty or zero-weight critical assessment set as evidence of full closure;
+- permits critical-weight arithmetic to overflow, wrap, or panic instead of producing an invalid report with an explicit error;
 - qualifies an industrial stage from an invalid closure report;
+- qualifies a stage from an empty requirement set or ambiguous duplicate requirements for the same stage;
 - allows free machine or material duplication;
 - assumes perfect global communication;
 - treats speculative resources as established reserves;
@@ -903,7 +907,7 @@ evidence
 
 No speculative deposit, unbudgeted process, disconnected production event, or unprovenanced ledger delta should silently cross that boundary.
 
-Closure stages are similarly monotonic. A later industrial stage must not be reported merely because its local requirement happens to be satisfied while an earlier required stage is unresolved. The stage ladder is therefore evaluated in order and stops at the first unmet requirement.
+Closure stages are similarly monotonic. A later industrial stage must not be reported merely because its local requirement happens to be satisfied while an earlier required stage is unresolved. The stage ladder is therefore evaluated in order and stops at the first unmet requirement. Stage definitions themselves are part of the qualification boundary: an empty requirement set or duplicate requirements for the same stage are treated as ambiguous and fail closed.
 
 These rules are intentionally general: they apply to Mercury, the Moon, asteroids, terrestrial closed-loop industry, and simulation environments where evidence quality and causal reconstruction matter more than optimistic point estimates.
 
