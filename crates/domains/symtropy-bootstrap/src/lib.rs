@@ -1714,6 +1714,7 @@ impl InventoryLedger {
             state: initial,
             events: Vec::new(),
             seen_event_ids: BTreeSet::new(),
+            source_reservations: BTreeMap::new(),
             last_sequence: None,
         }
     }
