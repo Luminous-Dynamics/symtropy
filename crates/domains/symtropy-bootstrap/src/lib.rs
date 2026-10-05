@@ -979,23 +979,27 @@ impl EnergyLedger {
             }
         }
 
-        let mut next_state = self.state.clone();
-        let balance = next_state.entry(event.node_id.clone()).or_insert(0);
-        match event.kind {
-            EnergyEventKind::Generated | EnergyEventKind::Recovered => {
-                *balance = balance
+        let node_id = event.node_id.clone();
+        let next_balance = match self.state.get(&node_id).copied().unwrap_or(0) {
+            balance
+                if matches!(
+                    event.kind,
+                    EnergyEventKind::Generated | EnergyEventKind::Recovered
+                ) =>
+            {
+                balance
                     .checked_add(event.energy_units)
-                    .ok_or_else(|| "energy overflow".to_string())?;
+                    .ok_or_else(|| "energy overflow".to_string())?
             }
-            EnergyEventKind::Consumed => {
-                if *balance < event.energy_units {
+            balance => {
+                if balance < event.energy_units {
                     return Err("energy underflow".to_string());
                 }
-                *balance -= event.energy_units;
+                balance - event.energy_units
             }
-        }
+        };
 
-        self.state = next_state;
+        self.state.insert(node_id, next_balance);
         self.seen_event_ids.insert(event_id.to_string());
         self.last_sequence = Some(event.sequence);
         self.events.push(event);
@@ -1269,23 +1273,20 @@ impl InventoryLedger {
             }
         }
 
-        let mut next_state = self.state.clone();
-        let balance = next_state.entry(event.batch_id.clone()).or_insert(0);
-        match event.kind {
-            InventoryEventKind::Produced => {
-                *balance = balance
-                    .checked_add(event.mass_g)
-                    .ok_or_else(|| "inventory overflow".to_string())?;
-            }
-            InventoryEventKind::Consumed => {
-                if *balance < event.mass_g {
+        let batch_id = event.batch_id.clone();
+        let next_balance = match self.state.get(&batch_id).copied().unwrap_or(0) {
+            balance if matches!(event.kind, InventoryEventKind::Produced) => balance
+                .checked_add(event.mass_g)
+                .ok_or_else(|| "inventory overflow".to_string())?,
+            balance => {
+                if balance < event.mass_g {
                     return Err("inventory underflow".to_string());
                 }
-                *balance -= event.mass_g;
+                balance - event.mass_g
             }
-        }
+        };
 
-        self.state = next_state;
+        self.state.insert(batch_id, next_balance);
         self.seen_event_ids.insert(event_id.to_string());
         self.last_sequence = Some(event.sequence);
         self.events.push(event);
