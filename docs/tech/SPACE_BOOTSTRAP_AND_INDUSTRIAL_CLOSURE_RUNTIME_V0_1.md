@@ -620,7 +620,7 @@ Every transformation records:
 
 A process may be valuable because one operation produces several useful streams. Conversely, a process may look attractive on gross extraction while being poor at bootstrap because its purification, thermal, or tooling dependencies remain imported.
 
-Graph definitions are themselves evidence-bearing input. Capability and terminal-dependency IDs must be non-empty and unique. Capability and terminal-dependency namespaces must also be disjoint; a shared identifier would otherwise make dependency resolution dependent on implementation lookup order. Duplicate definitions and cross-namespace collisions are rejected into an invalid graph state rather than silently letting later input overwrite or shadow earlier topology. An invalid graph cannot report full closure or non-zero closure ratios, and the exact definition errors remain available in the closure report.
+Graph definitions are themselves evidence-bearing input. Capability and terminal-dependency IDs must be non-empty and unique. Capability and terminal-dependency namespaces must also be disjoint; a shared identifier would otherwise make dependency resolution dependent on implementation lookup order. Duplicate definitions and cross-namespace collisions are rejected into an invalid graph state rather than silently letting later input overwrite or shadow earlier topology. An invalid graph cannot report full closure or non-zero closure ratios, and the exact definition errors remain available in the closure report. A valid graph with no positive critical-weight total likewise cannot claim full closure: the empty/vacuous denominator is not evidence of industrial independence.
 
 The first reference ISRU fixtures should include:
 
@@ -751,6 +751,7 @@ The first implementation should prove:
 
 - no critical capability closes while an unrecognized terminal dependency remains;
 - duplicate, empty, or cross-namespace capability/dependency identifiers make the graph invalid and fail closure closed;
+- a graph with no positive critical-weight total cannot claim full industrial closure merely through a vacuous `0 == 0` comparison;
 - removing a critical machine class causes deterministic degradation, not free resource creation;
 - inventory only increases through causal production events;
 - energy deficits alter scheduling and survive LOD transitions;
@@ -795,6 +796,7 @@ Do not add a subsystem that:
 - hides critical dependencies behind an aggregate number;
 - silently overwrites duplicate graph capability/dependency definitions;
 - resolves a capability/dependency ID collision by namespace order instead of rejecting the ambiguous topology;
+- treats an empty or zero-weight critical assessment set as evidence of full closure;
 - allows free machine or material duplication;
 - assumes perfect global communication;
 - treats speculative resources as established reserves;
