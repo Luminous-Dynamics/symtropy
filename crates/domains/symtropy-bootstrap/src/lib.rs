@@ -197,25 +197,24 @@ impl DependencyGraph {
 
         let mut report_definition_errors = self.definition_errors.clone();
 
-        let weighted_critical_total =
-            self.capabilities
-                .values()
-                .try_fold(0_u64, |sum, capability| {
-                    sum.checked_add(capability.critical_weight)
-                });
+        let weighted_critical_total = self
+            .capabilities
+            .values()
+            .try_fold(0_u64, |sum, capability| {
+                sum.checked_add(capability.critical_weight)
+            });
 
         if weighted_critical_total.is_none() {
             report_definition_errors.push("critical weight sum overflow".to_string());
         }
 
-        let weighted_critical_closed =
-            assessments
-                .iter()
-                .filter(|assessment| assessment.closed)
-                .filter_map(|assessment| self.capabilities.get(&assessment.id))
-                .try_fold(0_u64, |sum, capability| {
-                    sum.checked_add(capability.critical_weight)
-                });
+        let weighted_critical_closed = assessments
+            .iter()
+            .filter(|assessment| assessment.closed)
+            .filter_map(|assessment| self.capabilities.get(&assessment.id))
+            .try_fold(0_u64, |sum, capability| {
+                sum.checked_add(capability.critical_weight)
+            });
 
         if weighted_critical_closed.is_none() {
             report_definition_errors.push("closed critical weight sum overflow".to_string());
@@ -1704,10 +1703,11 @@ impl InventoryLedger {
 
         if matching_consumes.len() != 1
             || matching_consumes[0].mass_g != mass_g
-            || matching_consumes[0].provenance_id.as_deref()
-                != Some(expected_provenance.as_str())
+            || matching_consumes[0].provenance_id.as_deref() != Some(expected_provenance.as_str())
         {
-            return Err("reserved source batch is not consumed exactly by its execution".to_string());
+            return Err(
+                "reserved source batch is not consumed exactly by its execution".to_string(),
+            );
         }
 
         let mut staged = self.clone();
@@ -1967,10 +1967,7 @@ mod tests {
 
     #[test]
     fn empty_stage_requirement_cannot_qualify_a_stage() {
-        let graph = DependencyGraph::new(
-            [Capability::new("seed", 100, [])],
-            [],
-        );
+        let graph = DependencyGraph::new([Capability::new("seed", 100, [])], []);
         let report = graph.evaluate(100, 0);
 
         let requirements = [StageRequirement::new(ClosureStage::Seed, [])];
@@ -2269,12 +2266,8 @@ mod tests {
         );
         assert!(duplicate.validate_run(&run).is_err());
 
-        let collision = ProductionProcess::new(
-            "waste-collision",
-            "regolith",
-            ["oxygen", "waste"],
-            "waste",
-        );
+        let collision =
+            ProductionProcess::new("waste-collision", "regolith", ["oxygen", "waste"], "waste");
         let collision_run = ProcessRun::new(
             "waste-collision",
             "regolith",
@@ -2498,18 +2491,12 @@ mod tests {
         commit_process_execution(&receipt_a, &mut budget, &mut inventory, &mut energy)
             .expect("first reservation should settle");
 
-        assert_eq!(
-            inventory.state().get("shared-feed-independent"),
-            Some(&400)
-        );
+        assert_eq!(inventory.state().get("shared-feed-independent"), Some(&400));
         assert_eq!(inventory.events().len(), 4);
 
         commit_process_execution(&receipt_b, &mut budget, &mut inventory, &mut energy)
             .expect("remaining reservation should settle");
-        assert_eq!(
-            inventory.state().get("shared-feed-independent"),
-            Some(&0)
-        );
+        assert_eq!(inventory.state().get("shared-feed-independent"), Some(&0));
         assert_eq!(inventory.events().len(), 8);
         assert_eq!(energy.events().len(), 2);
     }
@@ -2548,14 +2535,7 @@ mod tests {
         let mut budget = ExecutionBudget::new(1_000, 1_000);
 
         process
-            .authorize_execution(
-                "exec-release",
-                1,
-                2,
-                "bus",
-                seed,
-                &mut budget,
-            )
+            .authorize_execution("exec-release", 1, 2, "bus", seed, &mut budget)
             .expect("seed execution should occupy the duplicate authorization identity");
 
         assert!(
@@ -2592,20 +2572,14 @@ mod tests {
 
     #[test]
     fn reserved_source_blocks_unrelated_inventory_consumption() {
-        let mut inventory =
-            InventoryLedger::new(BTreeMap::from([("ore-batch".to_string(), 500)]));
+        let mut inventory = InventoryLedger::new(BTreeMap::from([("ore-batch".to_string(), 500)]));
         inventory
             .reserve_source_batch("exec-reserved", "ore-batch", 300)
             .expect("source reservation should succeed");
 
-        let unrelated = InventoryEvent::new(
-            1,
-            "ore-batch",
-            250,
-            InventoryEventKind::Consumed,
-        )
-        .with_event_id("unrelated-consume")
-        .with_provenance("other-execution");
+        let unrelated = InventoryEvent::new(1, "ore-batch", 250, InventoryEventKind::Consumed)
+            .with_event_id("unrelated-consume")
+            .with_provenance("other-execution");
 
         assert!(inventory.append(unrelated).is_err());
         assert_eq!(inventory.state().get("ore-batch"), Some(&500));
@@ -2634,10 +2608,8 @@ mod tests {
         let receipt = process
             .authorize_execution("exec-unreserved", 1, 2, "bus", run, &mut budget)
             .expect("budget-only authorization should still be constructible");
-        let mut inventory = InventoryLedger::new(BTreeMap::from([(
-            "unreserved-feed".to_string(),
-            1_000,
-        )]));
+        let mut inventory =
+            InventoryLedger::new(BTreeMap::from([("unreserved-feed".to_string(), 1_000)]));
         let mut energy = EnergyLedger::new(BTreeMap::from([("bus".to_string(), 5_000)]));
 
         assert!(
