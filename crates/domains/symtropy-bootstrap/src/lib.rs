@@ -558,6 +558,7 @@ impl ProductionProcess {
             run,
         })
     }
+}
 
 /// One executed process event.
 #[derive(Debug, Clone, PartialEq, Eq)]
