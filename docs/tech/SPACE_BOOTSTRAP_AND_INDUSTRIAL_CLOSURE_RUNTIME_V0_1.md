@@ -781,10 +781,12 @@ The first implementation should prove:
 - one authorized process execution commits budget settlement, material, and energy as one kernel transaction;
 - cross-ledger commit failure leaves both ledgers unchanged and keeps the execution reservation pending for retry;
 - the pending budget reservation is bound to the complete immutable receipt, including process identity, source batch, inventory and energy sequence positions, energy node, and the complete process run;
+- output and waste batch identities are derived from the authorized execution identity as well as process/sequence context, so distinct executions cannot alias the same physical product batch merely by reusing a process and sequence position;
 - commit and abort reject a receipt that does not exactly match the still-pending authorization, even when its feedstock and energy quantities match;
 - an explicitly aborted execution restores its reserved feedstock and energy without touching either ledger;
 - an aborted execution becomes terminal and cannot reuse its execution identity;
 - a committed execution cannot be committed again because its execution identity is settled;
+- distinct authorized executions with the same process and sequence positions cannot emit aliased product or waste batch identities;
 - re-emitting the same execution receipt is detectable as duplicate causal history rather than a second valid execution;
 - invalid closure reports cannot qualify an industrial stage, even if their assessment payload happens to contain closed capabilities;
 - industrial stage progression cannot skip an unresolved earlier stage.
@@ -814,6 +816,7 @@ Do not add a subsystem that:
 - partially commits a funded execution to one ledger while another required ledger rejects it;
 - loses a reserved execution silently when cross-ledger commit fails;
 - permits a pending execution reservation to be paired with a different process, source batch, sequence position, energy node, or run while retaining the same execution identity;
+- permits distinct execution identities to alias one physical product or waste batch merely because process and sequence fields match;
 - reuses an aborted execution identity as a fresh authorization;
 - rewards extraction while reducing recovery capability;
 - cannot produce a deterministic post-failure explanation.
@@ -852,7 +855,7 @@ declared process
   -> causal energy-consumption event
 ```
 
-A mass-balanced process is not sufficient by itself. The run must reference the declared input material, a non-empty source batch, and sufficient feedstock and energy. Process definitions and ledger events also require non-empty physical account identifiers so causal state cannot be silently attached to an anonymous batch, node, or process account. Authorization consumes that capacity from an `ExecutionBudget` exactly once for the supplied execution identity. The resulting receipt owns the process/run context and derives stable event identities; downstream ledger replay rejects re-emission of those identities even when a caller presents the duplicated history at different sequence numbers.
+A mass-balanced process is not sufficient by itself. The run must reference the declared input material, a non-empty source batch, and sufficient feedstock and energy. Process definitions and ledger events also require non-empty physical account identifiers so causal state cannot be silently attached to an anonymous batch, node, or process account. Authorization consumes that capacity from an `ExecutionBudget` exactly once for the supplied execution identity. The resulting receipt owns the process/run context and derives stable event identities and execution-bound product/waste batch identities; downstream ledger replay rejects re-emission of those identities even when a caller presents the duplicated history at different sequence numbers. This avoids conflating two distinct executions when process and local sequence values happen to coincide.
 
 The live ledgers expose the same invariant at append time. `InventoryLedger` and `EnergyLedger` maintain their balance, accepted event history, unique event-ID set, and sequence frontier together. An append validates identity, provenance, sequence monotonicity, overflow, and underflow before mutating state; a rejected append therefore cannot partially alter the ledger. Batch append validates the entire event group against staged balances and identities before committing any mutation, so one bad event cannot leave a process half-applied. Full-history replay remains available as a deterministic reconstruction/checking path, while the stateful ledger is the runtime admission boundary.
 
