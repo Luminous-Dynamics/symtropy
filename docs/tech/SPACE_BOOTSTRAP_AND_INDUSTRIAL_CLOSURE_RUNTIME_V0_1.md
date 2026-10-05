@@ -770,6 +770,9 @@ The first implementation should prove:
 - stateful ledger append rejects duplicate identities and non-monotonic sequences before mutation;
 - stateful ledger batch append validates the complete batch before committing any event;
 - rejected ledger appends leave the prior state and accepted history unchanged, including when a later event in a batch fails;
+- one authorized process execution commits budget settlement, material, and energy as one kernel transaction;
+- cross-ledger commit failure leaves both ledgers unchanged and keeps the execution reservation pending for retry;
+- a committed execution cannot be committed again because its execution identity is settled;
 - re-emitting the same execution receipt is detectable as duplicate causal history rather than a second valid execution;
 - industrial stage progression cannot skip an unresolved earlier stage.
 
@@ -788,6 +791,8 @@ Do not add a subsystem that:
 - treats recycling as a scalar balance increase without an explicit source batch;
 - accepts duplicate ledger events under different sequence numbers when their event identities are the same;
 - mutates a ledger before append validation completes;
+- partially commits a funded execution to one ledger while another required ledger rejects it;
+- loses a reserved execution silently when cross-ledger commit fails;
 - rewards extraction while reducing recovery capability;
 - cannot produce a deterministic post-failure explanation.
 
@@ -826,6 +831,25 @@ declared process
 A mass-balanced process is not sufficient by itself. The run must reference the declared input material, a non-empty source batch, and sufficient feedstock and energy. Authorization consumes that capacity from an `ExecutionBudget` exactly once for the supplied execution identity. The resulting receipt owns the process/run context and derives stable event identities; downstream ledger replay rejects re-emission of those identities even when a caller presents the duplicated history at different sequence numbers.
 
 The live ledgers expose the same invariant at append time. `InventoryLedger` and `EnergyLedger` maintain their balance, accepted event history, unique event-ID set, and sequence frontier together. An append validates identity, provenance, sequence monotonicity, overflow, and underflow before mutating state; a rejected append therefore cannot partially alter the ledger. Batch append validates the entire event group against staged balances and identities before committing any mutation, so one bad event cannot leave a process half-applied. Full-history replay remains available as a deterministic reconstruction/checking path, while the stateful ledger is the runtime admission boundary.
+
+Cross-ledger execution follows a prepared/commit pattern:
+
+```text
+authorize
+  -> reserve feedstock + energy
+  -> immutable execution receipt
+
+prepare
+  -> stage inventory batch
+  -> stage energy event
+  -> validate both completely
+
+commit
+  -> replace both live ledgers
+  -> settle execution reservation
+```
+
+The kernel performs preparation against ledger clones, so the live inventory and energy ledgers are changed only after both staged commits succeed. A failed preparation leaves the live ledgers untouched and the reservation pending; the receipt can therefore be retried after the required physical state is restored. This is atomic at the deterministic-kernel boundary, not a claim of distributed consensus or crash recovery across independent external systems.
 
 Resource certification follows the same rule. A certified resource has a stable certificate identity derived from its claim identity, while the certificate's fields are private so inventory authorization cannot be forged by direct construction. The certificate-derived inventory event reuses that certificate identity as its event identity; replay therefore rejects the same certified quantity being emitted again under a different sequence or batch.
 
@@ -866,6 +890,7 @@ These rules are intentionally general: they apply to Mercury, the Moon, asteroid
 - NASA TechPort, ISRU-Based Power on the Moon (Blue Alchemist): https://techport.nasa.gov/projects/146991
 - NIST, Digital Thread for Manufacturing: https://www.nist.gov/programs-projects/digital-thread-manufacturing
 - NIST, Manufacturing in a Circular Economy: Research Needs in Design, Systems Modeling, and Digital Thread: https://www.nist.gov/publications/manufacturing-circular-economy-research-needs-design-systems-modeling-and-digital
+- NASA, Product Verification: https://www.nasa.gov/reference/5-3-product-verification/
 - NIST, UUIDs in Product Data Standards: https://www.nist.gov/publications/research-results-and-recommendations-universally-unique-identifiers-product-data
 - W3C, Verifiable Credential Data Integrity 1.0: https://www.w3.org/TR/vc-data-integrity/
 - NASA, Product Implementation: https://www.nasa.gov/reference/5-1-product-implementation/
