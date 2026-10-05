@@ -436,6 +436,25 @@ impl ExecutionBudget {
         self.settled_execution_ids.insert(execution_id.to_string());
         Ok(())
     }
+
+    fn abort(&mut self, execution_id: &str) -> Result<(), String> {
+        let (feed_mass_g, energy_units) = self
+            .reserved_executions
+            .remove(execution_id)
+            .ok_or_else(|| format!("execution is not pending: {execution_id}"))?;
+
+        self.available_feed_mass_g = self
+            .available_feed_mass_g
+            .checked_add(feed_mass_g)
+            .ok_or_else(|| "feedstock budget overflow during abort".to_string())?;
+        self.available_energy_units = self
+            .available_energy_units
+            .checked_add(energy_units)
+            .ok_or_else(|| "energy budget overflow during abort".to_string())?;
+
+        self.settled_execution_ids.insert(execution_id.to_string());
+        Ok(())
+    }
 }
 
 /// A manufacturing process definition with explicit co-product accounting.
@@ -763,6 +782,27 @@ pub fn commit_process_execution(
     budget.settle(receipt.execution_id())?;
 
     Ok(())
+}
+
+/// Abort one authorized process execution without mutating either ledger.
+///
+/// The reserved feedstock and energy are returned to the budget, while the
+/// execution identity becomes terminal so the same authorization cannot be
+/// silently reused. This is the explicit rollback path for a prepared execution
+/// that will not be committed.
+pub fn abort_process_execution(
+    receipt: &ProcessExecutionReceipt,
+    budget: &mut ExecutionBudget,
+) -> Result<(), String> {
+    let reservation = budget
+        .reservation(receipt.execution_id())
+        .ok_or_else(|| format!("execution is not pending: {}", receipt.execution_id()))?;
+
+    if reservation != (receipt.feed_mass_g(), receipt.energy_units()) {
+        return Err("execution reservation does not match receipt".to_string());
+    }
+
+    budget.abort(receipt.execution_id())
 }
 
 /// Deterministic process score for comparing candidate bootstrap transitions.
@@ -1851,6 +1891,46 @@ mod tests {
             .is_err());
         assert_eq!(inventory.events().len(), 3);
         assert_eq!(energy.events().len(), 1);
+    }
+
+    #[test]
+    fn aborted_execution_restores_budget_without_reusing_identity() {
+        let process = ProductionProcess::new(
+            "regolith_electrolysis",
+            "regolith",
+            ["oxygen", "metal"],
+            "waste",
+        );
+        let run = ProcessRun::new(
+            "regolith_electrolysis",
+            "regolith",
+            "feed-abort",
+            1_000,
+            BTreeMap::from([("oxygen".to_string(), 180), ("metal".to_string(), 720)]),
+            100,
+            4_000,
+        );
+
+        let mut budget = ExecutionBudget::new(1_000, 4_000);
+        let receipt = process
+            .authorize_execution("exec-abort", 10, 20, "bus", run.clone(), &mut budget)
+            .expect("execution should authorize");
+
+        assert_eq!(budget.available_feed_mass_g(), 0);
+        assert_eq!(budget.available_energy_units(), 0);
+
+        abort_process_execution(&receipt, &mut budget).expect("abort should restore reservation");
+
+        assert_eq!(budget.available_feed_mass_g(), 1_000);
+        assert_eq!(budget.available_energy_units(), 4_000);
+        assert!(abort_process_execution(&receipt, &mut budget).is_err());
+
+        assert!(process
+            .authorize_execution("exec-abort", 30, 40, "bus", run.clone(), &mut budget)
+            .is_err());
+        assert!(process
+            .authorize_execution("exec-reuse-different-id", 30, 40, "bus", run, &mut budget)
+            .is_ok());
     }
 
     #[test]
