@@ -767,6 +767,7 @@ The first implementation should prove:
 - process definitions reject duplicate output-stream IDs and reject a waste stream that collides with a product stream;
 - process executions reference declared input material and a concrete source batch;
 - executable authorization reserves that concrete source batch before committing aggregate feed/energy budget capacity;
+- multiple executions may reserve disjoint quantities from the same source batch only when their aggregate reservation does not exceed current stock;
 - process executions cannot exceed available feedstock or energy budgets;
 - a funded process execution must reserve feedstock and energy exactly once within its authorization budget;
 - an execution must have a non-empty execution identity before a receipt can be minted;
@@ -782,6 +783,7 @@ The first implementation should prove:
 - rejected ledger appends leave the prior state and accepted history unchanged, including when a later event in a batch fails;
 - one authorized process execution commits budget settlement, source-batch settlement, material, and energy as one kernel transaction;
 - cross-ledger commit failure leaves both ledgers unchanged and keeps the execution plus concrete source-batch reservations pending for retry;
+- settling one partial source reservation does not consume or erase another execution's reservation on the same batch;
 - the pending budget reservation is bound to the complete immutable receipt, including process identity, source batch, inventory and energy sequence positions, energy node, and the complete process run;
 - the pending physical source reservation is bound to the same execution, batch, and exact feed quantity;
 - output and waste batch identities are derived from the authorized execution identity as well as process/sequence context, so distinct executions cannot alias the same physical product batch merely by reusing a process and sequence position;
@@ -813,6 +815,7 @@ Do not add a subsystem that:
 - makes reproduction a boolean;
 - reuses the same feedstock or energy authorization to mint multiple valid executions;
 - authorizes multiple executions against the same unreserved physical source stock by checking only aggregate feed capacity;
+- lets one execution's settlement consume another execution's reserved portion of a shared source batch;
 - constructs or reuses the same certified resource quantity to mint multiple inventory events;
 - treats recycling as a scalar balance increase without an explicit source batch;
 - permits process waste to disappear from causal inventory history even though the process reports it as accounted mass;
@@ -864,7 +867,7 @@ declared process
   -> causal energy-consumption event
 ```
 
-A mass-balanced process is not sufficient by itself. The run must reference the declared input material, a non-empty source batch, and sufficient feedstock and energy. Process definitions and ledger events also require non-empty physical account identifiers so causal state cannot be silently attached to an anonymous batch, node, or process account. Executable authorization first reserves the concrete source batch in the inventory ledger, then consumes aggregate feedstock and energy capacity from an `ExecutionBudget`. The two reservations are released together on authorization failure or abort. The resulting receipt owns the process/run context and derives stable event identities and execution-bound product/waste batch identities; downstream ledger replay rejects re-emission of those identities even when a caller presents the duplicated history at different sequence numbers. This avoids conflating two distinct executions when process and local sequence values happen to coincide.
+A mass-balanced process is not sufficient by itself. The run must reference the declared input material, a non-empty source batch, and sufficient feedstock and energy. Process definitions and ledger events also require non-empty physical account identifiers so causal state cannot be silently attached to an anonymous batch, node, or process account. Executable authorization first reserves the concrete source batch in the inventory ledger, then consumes aggregate feedstock and energy capacity from an `ExecutionBudget`. The two reservations are released together on authorization failure or abort. A source batch may be partitioned among multiple pending executions, but each reservation is an exact quantity claim and settlement removes only the owner's claim. The resulting receipt owns the process/run context and derives stable event identities and execution-bound product/waste batch identities; downstream ledger replay rejects re-emission of those identities even when a caller presents the duplicated history at different sequence numbers. This avoids conflating two distinct executions when process and local sequence values happen to coincide.
 
 The live ledgers expose the same invariant at append time. `InventoryLedger` and `EnergyLedger` maintain their balance, accepted event history, unique event-ID set, and sequence frontier together. `InventoryLedger` additionally tracks pending concrete source-batch reservations; a reserved source cannot be consumed through the ordinary append path by another execution. An append validates identity, provenance, sequence monotonicity, overflow, and underflow before mutating state; a rejected append therefore cannot partially alter the ledger. Batch append validates the entire event group against staged balances and identities before committing any mutation, so one bad event cannot leave a process half-applied. Full-history replay remains available as a deterministic reconstruction/checking path, while the stateful ledger is the runtime admission boundary.
 
