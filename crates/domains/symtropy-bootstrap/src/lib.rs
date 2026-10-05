@@ -675,7 +675,67 @@ impl ProductionProcess {
         Ok(())
     }
 
-    /// Atomically authorize one process execution against a consumable budget.
+    /// Authorize an executable process against aggregate budgets and its concrete source batch.
+    ///
+    /// The physical source reservation is acquired before budget reservation. A
+    /// failed budget reservation releases the source claim so the operation is
+    /// atomic across both admission boundaries.
+    pub fn authorize_execution_with_inventory(
+        &self,
+        execution_id: impl Into<String>,
+        first_inventory_sequence: u64,
+        energy_sequence: u64,
+        node_id: impl Into<String>,
+        run: ProcessRun,
+        budget: &mut ExecutionBudget,
+        inventory: &mut InventoryLedger,
+    ) -> Result<ProcessExecutionReceipt, String> {
+        let execution_id = execution_id.into();
+        let node_id = node_id.into();
+
+        if execution_id.is_empty() {
+            return Err("execution requires a non-empty execution ID".to_string());
+        }
+        if node_id.is_empty() {
+            return Err("execution requires a non-empty energy node ID".to_string());
+        }
+
+        self.validate_run_against_budget(
+            &run,
+            budget.available_feed_mass_g,
+            budget.available_energy_units,
+        )?;
+
+        let receipt = ProcessExecutionReceipt {
+            execution_id: execution_id.clone(),
+            process_id: self.id.clone(),
+            input_batch_id: run.input_batch_id.clone(),
+            waste_stream: self.waste_stream.clone(),
+            first_inventory_sequence,
+            energy_sequence,
+            energy_node_id: node_id,
+            run,
+        };
+
+        inventory.reserve_source_batch(
+            receipt.execution_id(),
+            receipt.input_batch_id(),
+            receipt.feed_mass_g(),
+        )?;
+
+        if let Err(error) = budget.reserve(&receipt) {
+            let _ = inventory.release_source_batch(receipt.execution_id());
+            return Err(error);
+        }
+
+        Ok(receipt)
+    }
+
+    /// Atomically authorize one process execution against an aggregate consumable budget.
+    ///
+    /// This budget-only path does not reserve physical source inventory; receipts created
+    /// here are suitable for budgeting/provenance inspection but are not executable through
+    /// `commit_process_execution`. Use `authorize_execution_with_inventory` for execution.
     ///
     /// Successful authorization mints an immutable receipt. Material and energy
     /// events must be derived from that receipt rather than from a raw budget
@@ -931,7 +991,12 @@ pub fn commit_process_execution(
     let energy_event = receipt.energy_event();
 
     let mut staged_inventory = inventory.clone();
-    staged_inventory.append_batch(&inventory_events)?;
+    staged_inventory.append_reserved_process_batch(
+        receipt.execution_id(),
+        receipt.input_batch_id(),
+        receipt.feed_mass_g(),
+        &inventory_events,
+    )?;
 
     let mut staged_energy = energy.clone();
     staged_energy.append_batch(std::slice::from_ref(&energy_event))?;
@@ -952,6 +1017,7 @@ pub fn commit_process_execution(
 pub fn abort_process_execution(
     receipt: &ProcessExecutionReceipt,
     budget: &mut ExecutionBudget,
+    inventory: &mut InventoryLedger,
 ) -> Result<(), String> {
     let reservation = budget
         .reservation(receipt.execution_id())
@@ -961,7 +1027,18 @@ pub fn abort_process_execution(
         return Err("execution reservation does not match receipt".to_string());
     }
 
-    budget.abort(receipt.execution_id())
+    inventory.matching_source_reservation(
+        receipt.execution_id(),
+        receipt.input_batch_id(),
+        receipt.feed_mass_g(),
+    )?;
+
+    let mut staged_inventory = inventory.clone();
+    staged_inventory.release_source_batch(receipt.execution_id())?;
+    budget.abort(receipt.execution_id())?;
+    *inventory = staged_inventory;
+
+    Ok(())
 }
 
 /// Deterministic process score for comparing candidate bootstrap transitions.
@@ -1197,9 +1274,131 @@ impl EnergyLedger {
         Self {
             state: initial,
             events: Vec::new(),
+            source_reservations: BTreeMap::new(),
             seen_event_ids: BTreeSet::new(),
             last_sequence: None,
         }
+    }
+
+    /// Reserve a concrete source batch for one pending execution.
+    ///
+    /// Reservations are physical-stock claims separate from aggregate budget
+    /// authorization. A reserved batch cannot be consumed by another append
+    /// until the owning execution commits or releases it.
+    pub fn reserve_source_batch(
+        &mut self,
+        execution_id: impl Into<String>,
+        batch_id: impl Into<String>,
+        mass_g: u64,
+    ) -> Result<(), String> {
+        let execution_id = execution_id.into();
+        let batch_id = batch_id.into();
+
+        if execution_id.is_empty() {
+            return Err("source reservation requires a non-empty execution ID".to_string());
+        }
+        if batch_id.is_empty() {
+            return Err("source reservation requires a non-empty batch ID".to_string());
+        }
+        if mass_g == 0 {
+            return Err("source reservation requires non-zero mass".to_string());
+        }
+        if self.source_reservations.contains_key(&execution_id) {
+            return Err(format!("source batch already reserved: {execution_id}"));
+        }
+
+        let already_reserved = self
+            .source_reservations
+            .values()
+            .filter(|reservation| reservation.batch_id == batch_id)
+            .try_fold(0_u64, |sum, reservation| {
+                sum.checked_add(reservation.mass_g)
+            })
+            .ok_or_else(|| "source reservation mass overflow".to_string())?;
+
+        let available = self.state.get(&batch_id).copied().unwrap_or(0);
+        let total_reserved = already_reserved
+            .checked_add(mass_g)
+            .ok_or_else(|| "source reservation mass overflow".to_string())?;
+
+        if total_reserved > available {
+            return Err(format!(
+                "insufficient unreserved source batch: batch={batch_id}, required={mass_g}, available={}",
+                available.saturating_sub(already_reserved)
+            ));
+        }
+
+        self.source_reservations.insert(
+            execution_id.clone(),
+            InventorySourceReservation {
+                execution_id,
+                batch_id,
+                mass_g,
+            },
+        );
+
+        Ok(())
+    }
+
+    fn release_source_batch(&mut self, execution_id: &str) -> Result<(), String> {
+        self.source_reservations
+            .remove(execution_id)
+            .map(|_| ())
+            .ok_or_else(|| format!("source batch reservation is not pending: {execution_id}"))
+    }
+
+    fn matching_source_reservation(
+        &self,
+        execution_id: &str,
+        batch_id: &str,
+        mass_g: u64,
+    ) -> Result<(), String> {
+        let reservation = self
+            .source_reservations
+            .get(execution_id)
+            .ok_or_else(|| format!("source batch reservation is not pending: {execution_id}"))?;
+
+        if reservation.execution_id != execution_id
+            || reservation.batch_id != batch_id
+            || reservation.mass_g != mass_g
+        {
+            return Err("source batch reservation does not match execution".to_string());
+        }
+
+        Ok(())
+    }
+
+    fn append_reserved_process_batch(
+        &mut self,
+        execution_id: &str,
+        batch_id: &str,
+        mass_g: u64,
+        events: &[InventoryEvent],
+    ) -> Result<(), String> {
+        self.matching_source_reservation(execution_id, batch_id, mass_g)?;
+
+        let expected_provenance = format!("execution:{execution_id}");
+        let matching_consumes = events
+            .iter()
+            .filter(|event| {
+                event.kind == InventoryEventKind::Consumed && event.batch_id == batch_id
+            })
+            .collect::<Vec<_>>();
+
+        if matching_consumes.len() != 1
+            || matching_consumes[0].mass_g != mass_g
+            || matching_consumes[0].provenance_id.as_deref()
+                != Some(expected_provenance.as_str())
+        {
+            return Err("reserved source batch is not consumed exactly by its execution".to_string());
+        }
+
+        let mut staged = self.clone();
+        staged.release_source_batch(execution_id)?;
+        staged.append_batch(events)?;
+        *self = staged;
+
+        Ok(())
     }
 
     /// Append one event atomically.
@@ -1497,7 +1696,15 @@ pub struct InventoryLedger {
     state: BTreeMap<String, u64>,
     events: Vec<InventoryEvent>,
     seen_event_ids: BTreeSet<String>,
+    source_reservations: BTreeMap<String, InventorySourceReservation>,
     last_sequence: Option<u64>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+struct InventorySourceReservation {
+    execution_id: String,
+    batch_id: String,
+    mass_g: u64,
 }
 
 impl InventoryLedger {
@@ -1548,6 +1755,18 @@ impl InventoryLedger {
                 if event.sequence <= last_sequence {
                     return Err("inventory event sequence must increase".to_string());
                 }
+            }
+
+            if event.kind == InventoryEventKind::Consumed
+                && self
+                    .source_reservations
+                    .values()
+                    .any(|reservation| reservation.batch_id == event.batch_id)
+            {
+                return Err(format!(
+                    "inventory source batch is reserved: {}",
+                    event.batch_id
+                ));
             }
 
             let batch_id = event.batch_id.clone();
@@ -2138,6 +2357,188 @@ mod tests {
     }
 
     #[test]
+    fn source_batch_reservation_prevents_competing_executions() {
+        let process = ProductionProcess::new(
+            "regolith_electrolysis",
+            "regolith",
+            ["oxygen", "metal"],
+            "waste",
+        );
+        let run_a = ProcessRun::new(
+            "regolith_electrolysis",
+            "regolith",
+            "shared-feed",
+            700,
+            BTreeMap::from([("oxygen".to_string(), 126), ("metal".to_string(), 504)]),
+            70,
+            2_800,
+        );
+        let run_b = ProcessRun::new(
+            "regolith_electrolysis",
+            "regolith",
+            "shared-feed",
+            400,
+            BTreeMap::from([("oxygen".to_string(), 72), ("metal".to_string(), 288)]),
+            40,
+            1_600,
+        );
+
+        let mut inventory =
+            InventoryLedger::new(BTreeMap::from([("shared-feed".to_string(), 1_000)]));
+        let mut budget = ExecutionBudget::new(2_000, 8_000);
+
+        process
+            .authorize_execution_with_inventory(
+                "exec-source-a",
+                100,
+                200,
+                "bus",
+                run_a,
+                &mut budget,
+                &mut inventory,
+            )
+            .expect("first source reservation should succeed");
+
+        assert!(
+            process
+                .authorize_execution_with_inventory(
+                    "exec-source-b",
+                    101,
+                    201,
+                    "bus",
+                    run_b,
+                    &mut budget,
+                    &mut inventory,
+                )
+                .is_err()
+        );
+
+        assert_eq!(inventory.state().get("shared-feed"), Some(&1_000));
+        assert!(inventory.events().is_empty());
+        assert_eq!(budget.available_feed_mass_g(), 1_300);
+        assert_eq!(budget.available_energy_units(), 5_200);
+    }
+
+    #[test]
+    fn failed_budget_authorization_releases_source_reservation() {
+        let process = ProductionProcess::new(
+            "regolith_electrolysis",
+            "regolith",
+            ["oxygen", "metal"],
+            "waste",
+        );
+        let too_expensive = ProcessRun::new(
+            "regolith_electrolysis",
+            "regolith",
+            "release-feed",
+            500,
+            BTreeMap::from([("oxygen".to_string(), 90), ("metal".to_string(), 360)]),
+            50,
+            1_000,
+        );
+        let affordable = ProcessRun::new(
+            "regolith_electrolysis",
+            "regolith",
+            "release-feed",
+            500,
+            BTreeMap::from([("oxygen".to_string(), 90), ("metal".to_string(), 360)]),
+            50,
+            500,
+        );
+
+        let mut inventory =
+            InventoryLedger::new(BTreeMap::from([("release-feed".to_string(), 500)]));
+        let mut budget = ExecutionBudget::new(500, 500);
+
+        assert!(
+            process
+                .authorize_execution_with_inventory(
+                    "exec-release",
+                    1,
+                    2,
+                    "bus",
+                    too_expensive,
+                    &mut budget,
+                    &mut inventory,
+                )
+                .is_err()
+        );
+
+        assert_eq!(budget.available_feed_mass_g(), 500);
+        assert_eq!(budget.available_energy_units(), 500);
+
+        process
+            .authorize_execution_with_inventory(
+                "exec-release",
+                1,
+                2,
+                "bus",
+                affordable,
+                &mut budget,
+                &mut inventory,
+            )
+            .expect("released source reservation should allow retry");
+    }
+
+    #[test]
+    fn reserved_source_blocks_unrelated_inventory_consumption() {
+        let mut inventory =
+            InventoryLedger::new(BTreeMap::from([("ore-batch".to_string(), 500)]));
+        inventory
+            .reserve_source_batch("exec-reserved", "ore-batch", 300)
+            .expect("source reservation should succeed");
+
+        let unrelated = InventoryEvent::new(
+            1,
+            "ore-batch",
+            250,
+            InventoryEventKind::Consumed,
+        )
+        .with_event_id("unrelated-consume")
+        .with_provenance("other-execution");
+
+        assert!(inventory.append(unrelated).is_err());
+        assert_eq!(inventory.state().get("ore-batch"), Some(&500));
+        assert!(inventory.events().is_empty());
+    }
+
+    #[test]
+    fn execution_commit_requires_concrete_source_reservation() {
+        let process = ProductionProcess::new(
+            "regolith_electrolysis",
+            "regolith",
+            ["oxygen", "metal"],
+            "waste",
+        );
+        let run = ProcessRun::new(
+            "regolith_electrolysis",
+            "regolith",
+            "unreserved-feed",
+            1_000,
+            BTreeMap::from([("oxygen".to_string(), 180), ("metal".to_string(), 720)]),
+            100,
+            4_000,
+        );
+
+        let mut budget = ExecutionBudget::new(1_000, 4_000);
+        let receipt = process
+            .authorize_execution("exec-unreserved", 1, 2, "bus", run, &mut budget)
+            .expect("budget-only authorization should still be constructible");
+        let mut inventory = InventoryLedger::new(BTreeMap::from([(
+            "unreserved-feed".to_string(),
+            1_000,
+        )]));
+        let mut energy = EnergyLedger::new(BTreeMap::from([("bus".to_string(), 5_000)]));
+
+        assert!(
+            commit_process_execution(&receipt, &mut budget, &mut inventory, &mut energy).is_err()
+        );
+        assert_eq!(inventory.state().get("unreserved-feed"), Some(&1_000));
+        assert!(inventory.events().is_empty());
+        assert_eq!(energy.events().len(), 0);
+    }
+
+    #[test]
     fn unbudgeted_execution_cannot_mint_a_receipt() {
         let process = ProductionProcess::new(
             "regolith_electrolysis",
@@ -2339,12 +2740,19 @@ mod tests {
         );
 
         let mut budget = ExecutionBudget::new(1_000, 4_000);
-        let receipt = process
-            .authorize_execution("exec-transaction", 10, 20, "bus", run, &mut budget)
-            .expect("execution should authorize");
-
         let mut inventory =
             InventoryLedger::new(BTreeMap::from([("feed-transaction".to_string(), 1_000)]));
+        let receipt = process
+            .authorize_execution_with_inventory(
+                "exec-transaction",
+                10,
+                20,
+                "bus",
+                run,
+                &mut budget,
+                &mut inventory,
+            )
+            .expect("execution should authorize");
         let mut energy = EnergyLedger::new(BTreeMap::from([("bus".to_string(), 5_000)]));
 
         commit_process_execution(&receipt, &mut budget, &mut inventory, &mut energy)
@@ -2389,15 +2797,22 @@ mod tests {
         );
 
         let mut budget = ExecutionBudget::new(1_000, 4_000);
+        let mut inventory =
+            InventoryLedger::new(BTreeMap::from([("feed-binding".to_string(), 1_000)]));
         let receipt = process
-            .authorize_execution("exec-binding", 10, 20, "bus", run, &mut budget)
+            .authorize_execution_with_inventory(
+                "exec-binding",
+                10,
+                20,
+                "bus",
+                run,
+                &mut budget,
+                &mut inventory,
+            )
             .expect("execution should authorize");
 
         let mut altered = receipt.clone();
         altered.first_inventory_sequence = 11;
-
-        let mut inventory =
-            InventoryLedger::new(BTreeMap::from([("feed-binding".to_string(), 1_000)]));
         let mut energy = EnergyLedger::new(BTreeMap::from([("bus".to_string(), 5_000)]));
 
         assert!(
@@ -2431,18 +2846,29 @@ mod tests {
         );
 
         let mut budget = ExecutionBudget::new(1_000, 4_000);
+        let mut inventory =
+            InventoryLedger::new(BTreeMap::from([("feed-abort".to_string(), 1_000)]));
         let receipt = process
-            .authorize_execution("exec-abort", 10, 20, "bus", run.clone(), &mut budget)
+            .authorize_execution_with_inventory(
+                "exec-abort",
+                10,
+                20,
+                "bus",
+                run.clone(),
+                &mut budget,
+                &mut inventory,
+            )
             .expect("execution should authorize");
 
         assert_eq!(budget.available_feed_mass_g(), 0);
         assert_eq!(budget.available_energy_units(), 0);
 
-        abort_process_execution(&receipt, &mut budget).expect("abort should restore reservation");
+        abort_process_execution(&receipt, &mut budget, &mut inventory)
+            .expect("abort should restore reservation");
 
         assert_eq!(budget.available_feed_mass_g(), 1_000);
         assert_eq!(budget.available_energy_units(), 4_000);
-        assert!(abort_process_execution(&receipt, &mut budget).is_err());
+        assert!(abort_process_execution(&receipt, &mut budget, &mut inventory).is_err());
 
         assert!(
             process
@@ -2475,14 +2901,21 @@ mod tests {
         );
 
         let mut budget = ExecutionBudget::new(1_000, 4_000);
-        let receipt = process
-            .authorize_execution("exec-transaction-fail", 10, 20, "bus", run, &mut budget)
-            .expect("execution should authorize");
-
         let mut inventory = InventoryLedger::new(BTreeMap::from([(
             "feed-transaction-fail".to_string(),
             1_000,
         )]));
+        let receipt = process
+            .authorize_execution_with_inventory(
+                "exec-transaction-fail",
+                10,
+                20,
+                "bus",
+                run,
+                &mut budget,
+                &mut inventory,
+            )
+            .expect("execution should authorize");
         let mut energy = EnergyLedger::new(BTreeMap::from([("bus".to_string(), 3_000)]));
 
         assert!(
