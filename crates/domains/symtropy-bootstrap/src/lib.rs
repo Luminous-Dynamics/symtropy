@@ -2522,16 +2522,16 @@ mod tests {
             ["oxygen", "metal"],
             "waste",
         );
-        let too_expensive = ProcessRun::new(
+        let seed = ProcessRun::new(
             "regolith_electrolysis",
             "regolith",
-            "release-feed",
+            "seed-feed",
             500,
             BTreeMap::from([("oxygen".to_string(), 90), ("metal".to_string(), 360)]),
             50,
-            1_000,
+            500,
         );
-        let affordable = ProcessRun::new(
+        let retry = ProcessRun::new(
             "regolith_electrolysis",
             "regolith",
             "release-feed",
@@ -2541,18 +2541,31 @@ mod tests {
             500,
         );
 
-        let mut inventory =
-            InventoryLedger::new(BTreeMap::from([("release-feed".to_string(), 500)]));
-        let mut budget = ExecutionBudget::new(500, 500);
+        let mut inventory = InventoryLedger::new(BTreeMap::from([
+            ("seed-feed".to_string(), 500),
+            ("release-feed".to_string(), 500),
+        ]));
+        let mut budget = ExecutionBudget::new(1_000, 1_000);
+
+        process
+            .authorize_execution(
+                "exec-release",
+                1,
+                2,
+                "bus",
+                seed,
+                &mut budget,
+            )
+            .expect("seed execution should occupy the duplicate authorization identity");
 
         assert!(
             process
                 .authorize_execution_with_inventory(
                     "exec-release",
-                    1,
-                    2,
+                    3,
+                    4,
                     "bus",
-                    too_expensive,
+                    retry.clone(),
                     &mut budget,
                     &mut inventory,
                 )
@@ -2561,14 +2574,16 @@ mod tests {
 
         assert_eq!(budget.available_feed_mass_g(), 500);
         assert_eq!(budget.available_energy_units(), 500);
+        assert_eq!(inventory.state().get("release-feed"), Some(&500));
+        assert!(inventory.events().is_empty());
 
         process
             .authorize_execution_with_inventory(
-                "exec-release",
-                1,
-                2,
+                "exec-retry",
+                3,
+                4,
                 "bus",
-                affordable,
+                retry,
                 &mut budget,
                 &mut inventory,
             )
