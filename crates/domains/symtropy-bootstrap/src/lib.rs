@@ -504,6 +504,20 @@ impl ProductionProcess {
             return Err("process definition requires non-empty output stream IDs".to_string());
         }
 
+        let mut declared = BTreeSet::new();
+        for stream in &self.output_streams {
+            if !declared.insert(stream.as_str()) {
+                return Err(format!("duplicate output stream ID: {stream}"));
+            }
+        }
+
+        if declared.contains(self.waste_stream.as_str()) {
+            return Err(format!(
+                "waste stream collides with output stream: {}",
+                self.waste_stream
+            ));
+        }
+
         if run.process_id != self.id {
             return Err(format!(
                 "process ID mismatch: expected={}, observed={}",
@@ -521,12 +535,6 @@ impl ProductionProcess {
         if run.input_batch_id.is_empty() {
             return Err("process run requires a non-empty input batch ID".to_string());
         }
-
-        let declared = self
-            .output_streams
-            .iter()
-            .map(String::as_str)
-            .collect::<BTreeSet<_>>();
 
         if let Some(undeclared) = run
             .output_mass_g
@@ -763,8 +771,10 @@ impl ProcessExecutionReceipt {
             .checked_add(self.run.output_mass_g.len() as u64 + 1)
             .ok_or_else(|| "process inventory sequence overflow".to_string())?;
         let waste_batch_id = format!(
-            "{}:{}:waste",
-            self.process_id, self.first_inventory_sequence
+            "{}:{}:{waste}",
+            self.process_id,
+            self.first_inventory_sequence,
+            waste = self.waste_stream
         );
         events.push(
             InventoryEvent::new(
@@ -773,7 +783,11 @@ impl ProcessExecutionReceipt {
                 self.run.waste_mass_g,
                 InventoryEventKind::Produced,
             )
-            .with_event_id(format!("{}:inventory:waste", self.execution_id))
+            .with_event_id(format!(
+                "{}:inventory:waste:{waste}",
+                self.execution_id,
+                waste = self.waste_stream
+            ))
             .with_provenance(cause),
         );
 
@@ -1748,6 +1762,43 @@ mod tests {
     }
 
     #[test]
+    fn process_definition_rejects_ambiguous_stream_schema() {
+        let duplicate = ProductionProcess::new(
+            "duplicate-streams",
+            "regolith",
+            ["oxygen", "oxygen"],
+            "waste",
+        );
+        let run = ProcessRun::new(
+            "duplicate-streams",
+            "regolith",
+            "feed-schema",
+            10,
+            BTreeMap::from([("oxygen".to_string(), 10)]),
+            0,
+            1,
+        );
+        assert!(duplicate.validate_run(&run).is_err());
+
+        let collision = ProductionProcess::new(
+            "waste-collision",
+            "regolith",
+            ["oxygen", "waste"],
+            "waste",
+        );
+        let collision_run = ProcessRun::new(
+            "waste-collision",
+            "regolith",
+            "feed-collision",
+            10,
+            BTreeMap::from([("oxygen".to_string(), 10)]),
+            0,
+            1,
+        );
+        assert!(collision.validate_run(&collision_run).is_err());
+    }
+
+    #[test]
     fn process_run_must_match_declared_schema() {
         let process = ProductionProcess::new(
             "regolith_electrolysis",
@@ -1909,7 +1960,10 @@ mod tests {
         assert!(events[2].batch_id.ends_with(":metal"));
         assert!(events[3].batch_id.ends_with(":waste"));
         assert_eq!(events[3].mass_g, 100);
-        assert_eq!(events[3].event_id.as_deref(), Some("exec-004:inventory:waste"));
+        assert_eq!(
+            events[3].event_id.as_deref(),
+            Some("exec-004:inventory:waste:waste")
+        );
         assert_eq!(events[3].provenance_id.as_deref(), Some("execution:exec-004"));
         assert_eq!(energy.event_id.as_deref(), Some("exec-004:energy:consume"));
         assert_eq!(energy.provenance_id.as_deref(), Some("execution:exec-004"));
