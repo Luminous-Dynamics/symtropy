@@ -620,6 +620,8 @@ Every transformation records:
 
 A process may be valuable because one operation produces several useful streams. Conversely, a process may look attractive on gross extraction while being poor at bootstrap because its purification, thermal, or tooling dependencies remain imported.
 
+Graph definitions are themselves evidence-bearing input. Capability and terminal-dependency IDs must be non-empty and unique; duplicate definitions are rejected into an invalid graph state rather than silently letting later input overwrite earlier topology. An invalid graph cannot report full closure or non-zero closure ratios.
+
 The first reference ISRU fixtures should include:
 
 - regolith -> oxygen + metal-rich stream
@@ -748,6 +750,7 @@ recovery horizon is measured
 The first implementation should prove:
 
 - no critical capability closes while an unrecognized terminal dependency remains;
+- duplicate or empty capability/dependency identifiers make the graph invalid and fail closure closed;
 - removing a critical machine class causes deterministic degradation, not free resource creation;
 - inventory only increases through causal production events;
 - energy deficits alter scheduling and survive LOD transitions;
@@ -790,6 +793,7 @@ Do not add a subsystem that:
 
 - collapses closure into one technology score;
 - hides critical dependencies behind an aggregate number;
+- silently overwrites duplicate graph capability/dependency definitions;
 - allows free machine or material duplication;
 - assumes perfect global communication;
 - treats speculative resources as established reserves;
