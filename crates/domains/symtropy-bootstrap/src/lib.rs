@@ -530,6 +530,16 @@ impl ExecutionBudget {
         self.reserved_executions.get(execution_id)
     }
 
+    /// Inspect a still-pending authorization for explicit recovery/rehydration.
+    ///
+    /// Returning the immutable stored receipt lets a higher layer recover an
+    /// executable wrapper after the wrapper itself was dropped, without minting
+    /// a new authorization or changing budget state.
+    #[must_use]
+    pub fn pending_receipt(&self, execution_id: &str) -> Option<&ProcessExecutionReceipt> {
+        self.reservation(execution_id)
+    }
+
     fn settle(&mut self, execution_id: &str) -> Result<(), String> {
         if self.reserved_executions.remove(execution_id).is_none() {
             return Err(format!("execution is not pending: {execution_id}"));
@@ -992,6 +1002,29 @@ impl std::ops::Deref for ExecutableProcessExecutionReceipt {
     fn deref(&self) -> &Self::Target {
         &self.receipt
     }
+}
+
+/// Rehydrate an executable receipt from the still-pending authorization state.
+///
+/// This does not create new capacity or a new reservation. It verifies that the
+/// budget still holds the exact receipt and that the concrete physical source
+/// reservation still matches, then returns a fresh typed execution proof.
+pub fn resume_pending_execution(
+    execution_id: &str,
+    budget: &ExecutionBudget,
+    inventory: &InventoryLedger,
+) -> Result<ExecutableProcessExecutionReceipt, String> {
+    let receipt = budget
+        .pending_receipt(execution_id)
+        .ok_or_else(|| format!("execution is not pending: {execution_id}"))?;
+
+    inventory.matching_source_reservation(
+        receipt.execution_id(),
+        receipt.input_batch_id(),
+        receipt.feed_mass_g(),
+    )?;
+
+    Ok(ExecutableProcessExecutionReceipt::new(receipt.clone()))
 }
 
 /// Commit one authorized process execution across budget, inventory, and energy.
@@ -2955,6 +2988,53 @@ mod tests {
 
         commit_process_execution(&receipt, &mut budget, &mut inventory, &mut energy)
             .expect("original bound receipt should remain commit-ready");
+    }
+
+    #[test]
+    fn pending_execution_can_rehydrate_executable_proof() {
+        let process = ProductionProcess::new(
+            "regolith_electrolysis",
+            "regolith",
+            ["oxygen", "metal"],
+            "waste",
+        );
+        let run = ProcessRun::new(
+            "regolith_electrolysis",
+            "regolith",
+            "feed-rehydrate",
+            1_000,
+            BTreeMap::from([("oxygen".to_string(), 180), ("metal".to_string(), 720)]),
+            100,
+            4_000,
+        );
+
+        let mut budget = ExecutionBudget::new(1_000, 4_000);
+        let mut inventory =
+            InventoryLedger::new(BTreeMap::from([("feed-rehydrate".to_string(), 1_000)]));
+        let receipt = process
+            .authorize_execution_with_inventory(
+                "exec-rehydrate",
+                10,
+                20,
+                "bus",
+                run,
+                &mut budget,
+                &mut inventory,
+            )
+            .expect("execution should authorize");
+        let execution_id = receipt.execution_id().to_string();
+        drop(receipt);
+
+        let recovered =
+            resume_pending_execution(&execution_id, &budget, &inventory)
+                .expect("pending execution should rehydrate");
+
+        let mut energy = EnergyLedger::new(BTreeMap::from([("bus".to_string(), 5_000)]));
+        commit_process_execution(&recovered, &mut budget, &mut inventory, &mut energy)
+            .expect("rehydrated execution should commit");
+        assert_eq!(inventory.source_reservations.len(), 0);
+        assert_eq!(inventory.events().len(), 4);
+        assert_eq!(energy.events().len(), 1);
     }
 
     #[test]
