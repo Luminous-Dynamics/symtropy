@@ -401,6 +401,10 @@ pub fn highest_closed_stage(
     report: &ClosureReport,
     requirements: &[StageRequirement],
 ) -> Option<ClosureStage> {
+    if !report.valid {
+        return None;
+    }
+
     let closed = report
         .assessments
         .iter()
@@ -1906,6 +1910,27 @@ mod tests {
         run.validate_mass_balance()
             .expect("co-product process should conserve mass");
         assert_eq!(run.total_output_mass_g(), 900);
+    }
+
+    #[test]
+    fn invalid_closure_report_cannot_qualify_a_stage() {
+        let report = ClosureReport {
+            assessments: vec![CapabilityAssessment {
+                id: "seed".to_string(),
+                closed: true,
+                unresolved_dependencies: Vec::new(),
+                cycle_detected: false,
+            }],
+            weighted_critical_closed: 1,
+            weighted_critical_total: 1,
+            critical_closure_ppm: 1_000_000,
+            mass_closure_ppm: 1_000_000,
+            valid: false,
+            definition_errors: vec!["invalid".to_string()],
+        };
+
+        let requirements = [StageRequirement::new(ClosureStage::Seed, ["seed"])];
+        assert_eq!(highest_closed_stage(&report, &requirements), None);
     }
 
     #[test]
