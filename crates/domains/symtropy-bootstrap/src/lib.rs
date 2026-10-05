@@ -969,9 +969,10 @@ impl ProcessExecutionReceipt {
 
 /// Commit one authorized process execution across budget, inventory, and energy.
 ///
-/// Both ledgers are staged and fully validated before either live ledger is
-/// replaced. The budget reservation is settled only after both staged ledgers
-/// succeed, so a failed commit remains retryable without partial state.
+/// Inventory, energy, and budget state are all staged before any live
+/// state is replaced. The reservation is settled on a staged budget only after
+/// both ledgers succeed, so a failed commit remains retryable without partial
+/// state.
 pub fn commit_process_execution(
     receipt: &ProcessExecutionReceipt,
     budget: &mut ExecutionBudget,
@@ -1000,19 +1001,22 @@ pub fn commit_process_execution(
     let mut staged_energy = energy.clone();
     staged_energy.append_batch(std::slice::from_ref(&energy_event))?;
 
+    let mut staged_budget = budget.clone();
+    staged_budget.settle(receipt.execution_id())?;
+
     *inventory = staged_inventory;
     *energy = staged_energy;
-    budget.settle(receipt.execution_id())?;
+    *budget = staged_budget;
 
     Ok(())
 }
 
 /// Abort one authorized process execution without mutating either ledger.
 ///
-/// The reserved feedstock and energy are returned to the budget, while the
-/// execution identity becomes terminal so the same authorization cannot be
-/// silently reused. This is the explicit rollback path for a prepared execution
-/// that will not be committed.
+/// The reserved feedstock and energy are returned to staged budget
+/// state, the concrete source reservation is released, and only then are the
+/// live states replaced. This keeps abort atomic across authorization state and
+/// physical source reservation.
 pub fn abort_process_execution(
     receipt: &ProcessExecutionReceipt,
     budget: &mut ExecutionBudget,
@@ -1034,8 +1038,12 @@ pub fn abort_process_execution(
 
     let mut staged_inventory = inventory.clone();
     staged_inventory.release_source_batch(receipt.execution_id())?;
-    budget.abort(receipt.execution_id())?;
+
+    let mut staged_budget = budget.clone();
+    staged_budget.abort(receipt.execution_id())?;
+
     *inventory = staged_inventory;
+    *budget = staged_budget;
 
     Ok(())
 }
