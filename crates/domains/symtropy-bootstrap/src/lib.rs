@@ -1395,7 +1395,26 @@ impl EnergyLedger {
 
         let mut staged = self.clone();
         staged.release_source_batch(execution_id)?;
-        staged.append_batch(events)?;
+
+        let preserved = staged
+            .source_reservations
+            .iter()
+            .filter(|(_, reservation)| reservation.batch_id == batch_id)
+            .map(|(id, reservation)| (id.clone(), reservation.clone()))
+            .collect::<Vec<_>>();
+
+        for (id, _) in &preserved {
+            staged.source_reservations.remove(id);
+        }
+
+        if let Err(error) = staged.append_batch(events) {
+            return Err(error);
+        }
+
+        for (id, reservation) in preserved {
+            staged.source_reservations.insert(id, reservation);
+        }
+
         *self = staged;
 
         Ok(())
@@ -2418,6 +2437,82 @@ mod tests {
         assert!(inventory.events().is_empty());
         assert_eq!(budget.available_feed_mass_g(), 1_300);
         assert_eq!(budget.available_energy_units(), 5_200);
+    }
+
+    #[test]
+    fn partial_source_reservations_can_settle_independently() {
+        let process = ProductionProcess::new(
+            "regolith_electrolysis",
+            "regolith",
+            ["oxygen", "metal"],
+            "waste",
+        );
+        let run_a = ProcessRun::new(
+            "regolith_electrolysis",
+            "regolith",
+            "shared-feed-independent",
+            600,
+            BTreeMap::from([("oxygen".to_string(), 108), ("metal".to_string(), 432)]),
+            60,
+            2_400,
+        );
+        let run_b = ProcessRun::new(
+            "regolith_electrolysis",
+            "regolith",
+            "shared-feed-independent",
+            400,
+            BTreeMap::from([("oxygen".to_string(), 72), ("metal".to_string(), 288)]),
+            40,
+            1_600,
+        );
+
+        let mut inventory = InventoryLedger::new(BTreeMap::from([(
+            "shared-feed-independent".to_string(),
+            1_000,
+        )]));
+        let mut budget = ExecutionBudget::new(1_000, 4_000);
+
+        let receipt_a = process
+            .authorize_execution_with_inventory(
+                "exec-source-a",
+                100,
+                200,
+                "bus",
+                run_a,
+                &mut budget,
+                &mut inventory,
+            )
+            .expect("first partial reservation should succeed");
+        let receipt_b = process
+            .authorize_execution_with_inventory(
+                "exec-source-b",
+                104,
+                204,
+                "bus",
+                run_b,
+                &mut budget,
+                &mut inventory,
+            )
+            .expect("second partial reservation should fit remaining stock");
+
+        let mut energy = EnergyLedger::new(BTreeMap::from([("bus".to_string(), 8_000)]));
+        commit_process_execution(&receipt_a, &mut budget, &mut inventory, &mut energy)
+            .expect("first reservation should settle");
+
+        assert_eq!(
+            inventory.state().get("shared-feed-independent"),
+            Some(&400)
+        );
+        assert_eq!(inventory.events().len(), 4);
+
+        commit_process_execution(&receipt_b, &mut budget, &mut inventory, &mut energy)
+            .expect("remaining reservation should settle");
+        assert_eq!(
+            inventory.state().get("shared-feed-independent"),
+            Some(&0)
+        );
+        assert_eq!(inventory.events().len(), 8);
+        assert_eq!(energy.events().len(), 2);
     }
 
     #[test]
