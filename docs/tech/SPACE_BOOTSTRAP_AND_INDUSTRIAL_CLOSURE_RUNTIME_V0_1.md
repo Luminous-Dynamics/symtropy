@@ -766,6 +766,7 @@ The first implementation should prove:
 - estimated resources require an explicit evidence-certification transition before entering inventory;
 - process definitions reject duplicate output-stream IDs and reject a waste stream that collides with a product stream;
 - process executions reference declared input material and a concrete source batch;
+- executable authorization reserves that concrete source batch before committing aggregate feed/energy budget capacity;
 - process executions cannot exceed available feedstock or energy budgets;
 - a funded process execution must reserve feedstock and energy exactly once within its authorization budget;
 - an execution must have a non-empty execution identity before a receipt can be minted;
@@ -779,12 +780,13 @@ The first implementation should prove:
 - stateful ledger append rejects duplicate identities, non-monotonic sequences, and empty physical account identifiers before mutation;
 - stateful ledger batch append validates the complete batch before committing any event;
 - rejected ledger appends leave the prior state and accepted history unchanged, including when a later event in a batch fails;
-- one authorized process execution commits budget settlement, material, and energy as one kernel transaction;
-- cross-ledger commit failure leaves both ledgers unchanged and keeps the execution reservation pending for retry;
+- one authorized process execution commits budget settlement, source-batch settlement, material, and energy as one kernel transaction;
+- cross-ledger commit failure leaves both ledgers unchanged and keeps the execution plus concrete source-batch reservations pending for retry;
 - the pending budget reservation is bound to the complete immutable receipt, including process identity, source batch, inventory and energy sequence positions, energy node, and the complete process run;
+- the pending physical source reservation is bound to the same execution, batch, and exact feed quantity;
 - output and waste batch identities are derived from the authorized execution identity as well as process/sequence context, so distinct executions cannot alias the same physical product batch merely by reusing a process and sequence position;
 - commit and abort reject a receipt that does not exactly match the still-pending authorization, even when its feedstock and energy quantities match;
-- an explicitly aborted execution restores its reserved feedstock and energy without touching either ledger;
+- an explicitly aborted execution restores its reserved feedstock and energy and releases its concrete source-batch reservation without touching ledger history;
 - an aborted execution becomes terminal and cannot reuse its execution identity;
 - a committed execution cannot be committed again because its execution identity is settled;
 - distinct authorized executions with the same process and sequence positions cannot emit aliased product or waste batch identities;
@@ -810,6 +812,7 @@ Do not add a subsystem that:
 - treats speculative resources as established reserves;
 - makes reproduction a boolean;
 - reuses the same feedstock or energy authorization to mint multiple valid executions;
+- authorizes multiple executions against the same unreserved physical source stock by checking only aggregate feed capacity;
 - constructs or reuses the same certified resource quantity to mint multiple inventory events;
 - treats recycling as a scalar balance increase without an explicit source batch;
 - permits process waste to disappear from causal inventory history even though the process reports it as accounted mass;
@@ -818,7 +821,9 @@ Do not add a subsystem that:
 - admits an inventory event with an empty batch ID or an energy event with an empty node ID;
 - mutates a ledger before append validation completes;
 - partially commits a funded execution to one ledger while another required ledger rejects it;
+- lets unrelated inventory consumption bypass a pending source-batch reservation;
 - loses a reserved execution silently when cross-ledger commit fails;
+- loses a concrete source-batch reservation when authorization fails or an execution is explicitly aborted;
 - permits a pending execution reservation to be paired with a different process, source batch, sequence position, energy node, or run while retaining the same execution identity;
 - permits distinct execution identities to alias one physical product or waste batch merely because process and sequence fields match;
 - reuses an aborted execution identity as a fresh authorization;
@@ -859,9 +864,9 @@ declared process
   -> causal energy-consumption event
 ```
 
-A mass-balanced process is not sufficient by itself. The run must reference the declared input material, a non-empty source batch, and sufficient feedstock and energy. Process definitions and ledger events also require non-empty physical account identifiers so causal state cannot be silently attached to an anonymous batch, node, or process account. Authorization consumes that capacity from an `ExecutionBudget` exactly once for the supplied execution identity. The resulting receipt owns the process/run context and derives stable event identities and execution-bound product/waste batch identities; downstream ledger replay rejects re-emission of those identities even when a caller presents the duplicated history at different sequence numbers. This avoids conflating two distinct executions when process and local sequence values happen to coincide.
+A mass-balanced process is not sufficient by itself. The run must reference the declared input material, a non-empty source batch, and sufficient feedstock and energy. Process definitions and ledger events also require non-empty physical account identifiers so causal state cannot be silently attached to an anonymous batch, node, or process account. Executable authorization first reserves the concrete source batch in the inventory ledger, then consumes aggregate feedstock and energy capacity from an `ExecutionBudget`. The two reservations are released together on authorization failure or abort. The resulting receipt owns the process/run context and derives stable event identities and execution-bound product/waste batch identities; downstream ledger replay rejects re-emission of those identities even when a caller presents the duplicated history at different sequence numbers. This avoids conflating two distinct executions when process and local sequence values happen to coincide.
 
-The live ledgers expose the same invariant at append time. `InventoryLedger` and `EnergyLedger` maintain their balance, accepted event history, unique event-ID set, and sequence frontier together. An append validates identity, provenance, sequence monotonicity, overflow, and underflow before mutating state; a rejected append therefore cannot partially alter the ledger. Batch append validates the entire event group against staged balances and identities before committing any mutation, so one bad event cannot leave a process half-applied. Full-history replay remains available as a deterministic reconstruction/checking path, while the stateful ledger is the runtime admission boundary.
+The live ledgers expose the same invariant at append time. `InventoryLedger` and `EnergyLedger` maintain their balance, accepted event history, unique event-ID set, and sequence frontier together. `InventoryLedger` additionally tracks pending concrete source-batch reservations; a reserved source cannot be consumed through the ordinary append path by another execution. An append validates identity, provenance, sequence monotonicity, overflow, and underflow before mutating state; a rejected append therefore cannot partially alter the ledger. Batch append validates the entire event group against staged balances and identities before committing any mutation, so one bad event cannot leave a process half-applied. Full-history replay remains available as a deterministic reconstruction/checking path, while the stateful ledger is the runtime admission boundary.
 
 Cross-ledger execution follows a prepared/commit pattern:
 
@@ -880,7 +885,7 @@ commit
   -> settle execution reservation
 ```
 
-The kernel performs preparation against ledger clones, so the live inventory and energy ledgers are changed only after both staged commits succeed. The budget stores the complete immutable receipt as the pending authorization, rather than only its quantities, so the commit/abort boundary is bound to the exact process, source batch, sequence positions, energy node, and run that were authorized. A different receipt cannot consume the reservation merely because it requests the same feedstock and energy amounts.
+The kernel performs preparation against ledger clones, so the live inventory and energy ledgers are changed only after both staged commits succeed. The inventory clone first consumes and settles the exact source reservation; if the energy stage then fails, that clone is discarded and the live source reservation remains pending for retry. The budget stores the complete immutable receipt as the pending authorization, rather than only its quantities, so the commit/abort boundary is bound to the exact process, source batch, sequence positions, energy node, and run that were authorized. A different receipt cannot consume the reservation merely because it requests the same feedstock and energy amounts.
 
 A failed preparation leaves the live ledgers untouched and the reservation pending; the exact receipt can therefore be retried after the required physical state is restored. An execution that will not be retried can be explicitly aborted, which returns its reserved feedstock and energy while permanently retiring that execution identity. This mirrors the prepare/commit/rollback shape used by transactional systems, but the current kernel remains an in-memory deterministic coordination boundary: it is not a durable transaction log, distributed consensus protocol, or crash-recovery mechanism for external systems.
 
@@ -905,7 +910,7 @@ evidence
   -> later manufacturing/recycling event
 ```
 
-No speculative deposit, unbudgeted process, disconnected production event, or unprovenanced ledger delta should silently cross that boundary.
+No speculative deposit, unbudgeted process, disconnected production event, double-reserved source batch, or unprovenanced ledger delta should silently cross that boundary.
 
 Closure stages are similarly monotonic. A later industrial stage must not be reported merely because its local requirement happens to be satisfied while an earlier required stage is unresolved. The stage ladder is therefore evaluated in order and stops at the first unmet requirement. Stage definitions themselves are part of the qualification boundary: an empty requirement set or duplicate requirements for the same stage are treated as ambiguous and fail closed.
 
