@@ -767,6 +767,8 @@ The first implementation should prove:
 - a certified resource must have a non-empty claim identity and cannot be constructed directly outside the evidence gate;
 - certification-derived inventory events use the certificate identity as their event identity, preventing the same certified quantity from being minted twice;
 - ledger replay rejects missing or duplicate event identities, unprovenanced events, and overdrawn history;
+- stateful ledger append rejects duplicate identities and non-monotonic sequences before mutation;
+- rejected ledger appends leave the prior state and accepted history unchanged;
 - re-emitting the same execution receipt is detectable as duplicate causal history rather than a second valid execution;
 - industrial stage progression cannot skip an unresolved earlier stage.
 
@@ -784,6 +786,7 @@ Do not add a subsystem that:
 - constructs or reuses the same certified resource quantity to mint multiple inventory events;
 - treats recycling as a scalar balance increase without an explicit source batch;
 - accepts duplicate ledger events under different sequence numbers when their event identities are the same;
+- mutates a ledger before append validation completes;
 - rewards extraction while reducing recovery capability;
 - cannot produce a deterministic post-failure explanation.
 
@@ -820,6 +823,8 @@ declared process
 ```
 
 A mass-balanced process is not sufficient by itself. The run must reference the declared input material, a non-empty source batch, and sufficient feedstock and energy. Authorization consumes that capacity from an `ExecutionBudget` exactly once for the supplied execution identity. The resulting receipt owns the process/run context and derives stable event identities; downstream ledger replay rejects re-emission of those identities even when a caller presents the duplicated history at different sequence numbers.
+
+The live ledgers expose the same invariant at append time. `InventoryLedger` and `EnergyLedger` maintain their balance, accepted event history, unique event-ID set, and sequence frontier together. An append validates identity, provenance, sequence monotonicity, overflow, and underflow before mutating state; a rejected append therefore cannot partially alter the ledger. Full-history replay remains available as a deterministic reconstruction/checking path, while the stateful ledger is the runtime admission boundary.
 
 Resource certification follows the same rule. A certified resource has a stable certificate identity derived from its claim identity, while the certificate's fields are private so inventory authorization cannot be forged by direct construction. The certificate-derived inventory event reuses that certificate identity as its event identity; replay therefore rejects the same certified quantity being emitted again under a different sequence or batch.
 
@@ -859,6 +864,7 @@ These rules are intentionally general: they apply to Mercury, the Moon, asteroid
 - NASA, Lunar Surface Technology: https://www.nasa.gov/lunar-surface-technology/
 - NASA TechPort, ISRU-Based Power on the Moon (Blue Alchemist): https://techport.nasa.gov/projects/146991
 - NIST, Digital Thread for Manufacturing: https://www.nist.gov/programs-projects/digital-thread-manufacturing
+- NIST, Manufacturing in a Circular Economy: Research Needs in Design, Systems Modeling, and Digital Thread: https://www.nist.gov/publications/manufacturing-circular-economy-research-needs-design-systems-modeling-and-digital
 - NIST, UUIDs in Product Data Standards: https://www.nist.gov/publications/research-results-and-recommendations-universally-unique-identifiers-product-data
 - W3C, Verifiable Credential Data Integrity 1.0: https://www.w3.org/TR/vc-data-integrity/
 - NASA, Product Implementation: https://www.nasa.gov/reference/5-1-product-implementation/
