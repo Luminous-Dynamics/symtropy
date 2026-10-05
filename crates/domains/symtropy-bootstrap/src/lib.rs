@@ -899,10 +899,9 @@ impl ProcessExecutionReceipt {
 
     /// Materialize the receipt into uniquely identified causal inventory events.
     ///
-    /// Waste is emitted as an explicit produced batch rather than disappearing
-    /// from the material ledger. Any later disposal or recovery must consume
-    /// that named waste batch explicitly.
-    pub fn inventory_events(&self) -> Result<Vec<InventoryEvent>, String> {
+    /// This method is private to the raw receipt: the public API exposes event
+    /// materialization only through ExecutableProcessExecutionReceipt.
+    fn inventory_events(&self) -> Result<Vec<InventoryEvent>, String> {
         let cause = format!("execution:{}", self.execution_id);
         let mut events = Vec::with_capacity(self.run.output_mass_g.len() + 2);
 
@@ -964,8 +963,11 @@ impl ProcessExecutionReceipt {
     }
 
     /// Materialize the receipt into one uniquely identified causal energy event.
+    ///
+    /// This method is private to the raw receipt: the public API exposes event
+    /// materialization only through ExecutableProcessExecutionReceipt.
     #[must_use]
-    pub fn energy_event(&self) -> EnergyEvent {
+    fn energy_event(&self) -> EnergyEvent {
         EnergyEvent::new(
             self.energy_sequence,
             self.energy_node_id.clone(),
@@ -1001,6 +1003,19 @@ impl std::ops::Deref for ExecutableProcessExecutionReceipt {
 
     fn deref(&self) -> &Self::Target {
         &self.receipt
+    }
+}
+
+impl ExecutableProcessExecutionReceipt {
+    /// Materialize causal inventory only after physical source reservation proof.
+    pub fn inventory_events(&self) -> Result<Vec<InventoryEvent>, String> {
+        self.receipt.inventory_events()
+    }
+
+    /// Materialize causal energy only after physical source reservation proof.
+    #[must_use]
+    pub fn energy_event(&self) -> EnergyEvent {
+        self.receipt.energy_event()
     }
 }
 
@@ -2752,8 +2767,18 @@ mod tests {
         );
 
         let mut budget = ExecutionBudget::new(1_000, 4_000);
+        let mut inventory =
+            InventoryLedger::new(BTreeMap::from([("feed-004".to_string(), 1_000)]));
         let receipt = process
-            .authorize_execution("exec-004", 10, 20, "power-bus-1", run, &mut budget)
+            .authorize_execution_with_inventory(
+                "exec-004",
+                10,
+                20,
+                "power-bus-1",
+                run,
+                &mut budget,
+                &mut inventory,
+            )
             .expect("valid process should authorize");
 
         let events = receipt
@@ -2855,11 +2880,31 @@ mod tests {
         );
 
         let mut budget = ExecutionBudget::new(2_000, 8_000);
+        let mut inventory = InventoryLedger::new(BTreeMap::from([
+            ("feed-a".to_string(), 1_000),
+            ("feed-b".to_string(), 1_000),
+        ]));
         let receipt_a = process
-            .authorize_execution("exec-a", 100, 200, "bus", run_a, &mut budget)
+            .authorize_execution_with_inventory(
+                "exec-a",
+                100,
+                200,
+                "bus",
+                run_a,
+                &mut budget,
+                &mut inventory,
+            )
             .expect("first execution should authorize");
         let receipt_b = process
-            .authorize_execution("exec-b", 100, 200, "bus", run_b, &mut budget)
+            .authorize_execution_with_inventory(
+                "exec-b",
+                100,
+                200,
+                "bus",
+                run_b,
+                &mut budget,
+                &mut inventory,
+            )
             .expect("second execution should authorize");
 
         let events_a = receipt_a
@@ -3548,8 +3593,18 @@ mod tests {
             4_000,
         );
         let mut budget = ExecutionBudget::new(1_000, 4_000);
+        let mut inventory =
+            InventoryLedger::new(BTreeMap::from([("feed-replay".to_string(), 1_000)]));
         let receipt = process
-            .authorize_execution("exec-replay", 70, 71, "bus", run, &mut budget)
+            .authorize_execution_with_inventory(
+                "exec-replay",
+                70,
+                71,
+                "bus",
+                run,
+                &mut budget,
+                &mut inventory,
+            )
             .expect("execution should authorize");
 
         let first = receipt
