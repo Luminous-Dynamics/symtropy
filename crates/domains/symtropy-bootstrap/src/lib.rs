@@ -454,9 +454,11 @@ pub fn highest_closed_stage(
     highest
 }
 
-/// Terminal lifecycle state of an execution authorization.
+/// Lifecycle state of a process execution authorization.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
-pub enum ExecutionTerminalState {
+pub enum ExecutionState {
+    /// Capacity and concrete source stock are reserved; execution is still pending.
+    Pending,
     /// The funded execution completed and its causal ledger effects were settled.
     Committed,
     /// The funded execution was explicitly canceled and its capacity was restored.
@@ -473,7 +475,7 @@ pub struct ExecutionBudget {
     available_feed_mass_g: u64,
     available_energy_units: u64,
     reserved_executions: BTreeMap<String, ProcessExecutionReceipt>,
-    terminal_execution_states: BTreeMap<String, ExecutionTerminalState>,
+    terminal_execution_states: BTreeMap<String, ExecutionState>,
 }
 
 impl ExecutionBudget {
@@ -549,10 +551,18 @@ impl ExecutionBudget {
         self.reservation(execution_id)
     }
 
-    /// Return the terminal outcome of an execution without exposing mutable state.
+    /// Return the complete lifecycle state of an execution.
+    ///
+    /// Pending is derived from the authoritative reservation map; terminal
+    /// states are retained permanently so recovery code can distinguish commit
+    /// from abort without inspecting ledger history.
     #[must_use]
-    pub fn terminal_state(&self, execution_id: &str) -> Option<ExecutionTerminalState> {
-        self.terminal_execution_states.get(execution_id).copied()
+    pub fn execution_state(&self, execution_id: &str) -> Option<ExecutionState> {
+        if self.reserved_executions.contains_key(execution_id) {
+            Some(ExecutionState::Pending)
+        } else {
+            self.terminal_execution_states.get(execution_id).copied()
+        }
     }
 
     fn settle(&mut self, execution_id: &str) -> Result<(), String> {
@@ -561,7 +571,7 @@ impl ExecutionBudget {
         }
 
         self.terminal_execution_states
-            .insert(execution_id.to_string(), ExecutionTerminalState::Committed);
+            .insert(execution_id.to_string(), ExecutionState::Committed);
         Ok(())
     }
 
@@ -582,7 +592,7 @@ impl ExecutionBudget {
             .ok_or_else(|| "energy budget overflow during abort".to_string())?;
 
         self.terminal_execution_states
-            .insert(execution_id.to_string(), ExecutionTerminalState::Aborted);
+            .insert(execution_id.to_string(), ExecutionState::Aborted);
         Ok(())
     }
 }
@@ -3090,7 +3100,10 @@ mod tests {
             )
             .expect("commit execution should authorize");
         let mut commit_energy = EnergyLedger::new(BTreeMap::from([("bus".to_string(), 5_000)]));
-        assert_eq!(commit_budget.terminal_state("exec-terminal-commit"), None);
+        assert_eq!(
+            commit_budget.execution_state("exec-terminal-commit"),
+            Some(ExecutionState::Pending)
+        );
         commit_process_execution(
             &commit_receipt,
             &mut commit_budget,
@@ -3100,7 +3113,7 @@ mod tests {
         .expect("commit execution should settle");
         assert_eq!(
             commit_budget.terminal_state("exec-terminal-commit"),
-            Some(ExecutionTerminalState::Committed)
+            Some(ExecutionState::Committed)
         );
 
         let mut abort_budget = ExecutionBudget::new(1_000, 4_000);
@@ -3121,7 +3134,7 @@ mod tests {
             .expect("abort execution should settle");
         assert_eq!(
             abort_budget.terminal_state("exec-terminal-abort"),
-            Some(ExecutionTerminalState::Aborted)
+            Some(ExecutionState::Aborted)
         );
     }
 
