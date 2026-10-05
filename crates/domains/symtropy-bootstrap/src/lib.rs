@@ -955,54 +955,69 @@ impl EnergyLedger {
 
     /// Append one event atomically.
     pub fn append(&mut self, event: EnergyEvent) -> Result<(), String> {
-        let event_id = event
-            .event_id
-            .as_deref()
-            .filter(|id| !id.is_empty())
-            .ok_or_else(|| "energy event requires non-empty event ID".to_string())?;
+        self.append_batch(std::slice::from_ref(&event))
+    }
 
-        if event
-            .provenance_id
-            .as_deref()
-            .is_none_or(str::is_empty)
-        {
-            return Err("energy event requires non-empty provenance".to_string());
-        }
+    /// Validate and commit a complete event batch atomically.
+    pub fn append_batch(&mut self, events: &[EnergyEvent]) -> Result<(), String> {
+        let mut staged_balances = BTreeMap::new();
+        let mut staged_event_ids = BTreeSet::new();
+        let mut next_sequence = self.last_sequence;
 
-        if self.seen_event_ids.contains(event_id) {
-            return Err("duplicate energy event ID".to_string());
-        }
+        for event in events {
+            let event_id = event
+                .event_id
+                .as_deref()
+                .filter(|id| !id.is_empty())
+                .ok_or_else(|| "energy event requires non-empty event ID".to_string())?;
 
-        if let Some(last_sequence) = self.last_sequence {
-            if event.sequence <= last_sequence {
-                return Err("energy event sequence must increase".to_string());
-            }
-        }
-
-        let node_id = event.node_id.clone();
-        let next_balance = match self.state.get(&node_id).copied().unwrap_or(0) {
-            balance
-                if matches!(
-                    event.kind,
-                    EnergyEventKind::Generated | EnergyEventKind::Recovered
-                ) =>
+            if event
+                .provenance_id
+                .as_deref()
+                .is_none_or(str::is_empty)
             {
-                balance
-                    .checked_add(event.energy_units)
-                    .ok_or_else(|| "energy overflow".to_string())?
+                return Err("energy event requires non-empty provenance".to_string());
             }
-            balance => {
-                if balance < event.energy_units {
-                    return Err("energy underflow".to_string());
-                }
-                balance - event.energy_units
-            }
-        };
 
-        self.state.insert(node_id, next_balance);
-        self.seen_event_ids.insert(event_id.to_string());
-        self.last_sequence = Some(event.sequence);
-        self.events.push(event);
+            if self.seen_event_ids.contains(event_id) || !staged_event_ids.insert(event_id) {
+                return Err("duplicate energy event ID".to_string());
+            }
+
+            if let Some(last_sequence) = next_sequence {
+                if event.sequence <= last_sequence {
+                    return Err("energy event sequence must increase".to_string());
+                }
+            }
+
+            let node_id = event.node_id.clone();
+            let balance = staged_balances
+                .get(&node_id)
+                .copied()
+                .or_else(|| self.state.get(&node_id).copied())
+                .unwrap_or(0);
+
+            let next_balance = match event.kind {
+                EnergyEventKind::Generated | EnergyEventKind::Recovered => balance
+                    .checked_add(event.energy_units)
+                    .ok_or_else(|| "energy overflow".to_string())?,
+                EnergyEventKind::Consumed => {
+                    if balance < event.energy_units {
+                        return Err("energy underflow".to_string());
+                    }
+                    balance - event.energy_units
+                }
+            };
+
+            staged_balances.insert(node_id, next_balance);
+            next_sequence = Some(event.sequence);
+        }
+
+        for (node_id, balance) in staged_balances {
+            self.state.insert(node_id, balance);
+        }
+        self.seen_event_ids.extend(staged_event_ids);
+        self.last_sequence = next_sequence;
+        self.events.extend(events.iter().cloned());
         Ok(())
     }
 
@@ -1249,47 +1264,72 @@ impl InventoryLedger {
 
     /// Append one event atomically.
     pub fn append(&mut self, event: InventoryEvent) -> Result<(), String> {
-        let event_id = event
-            .event_id
-            .as_deref()
-            .filter(|id| !id.is_empty())
-            .ok_or_else(|| "inventory event requires non-empty event ID".to_string())?;
+        self.append_batch(std::slice::from_ref(&event))
+    }
 
-        if event
-            .provenance_id
-            .as_deref()
-            .is_none_or(str::is_empty)
-        {
-            return Err("inventory event requires non-empty provenance".to_string());
-        }
+    /// Validate and commit a complete event batch atomically.
+    ///
+    /// All identities, sequence numbers, provenance, and balance changes are
+    /// staged first. No state or history is mutated until the entire batch passes.
+    pub fn append_batch(&mut self, events: &[InventoryEvent]) -> Result<(), String> {
+        let mut staged_balances = BTreeMap::new();
+        let mut staged_event_ids = BTreeSet::new();
+        let mut next_sequence = self.last_sequence;
 
-        if self.seen_event_ids.contains(event_id) {
-            return Err("duplicate inventory event ID".to_string());
-        }
+        for event in events {
+            let event_id = event
+                .event_id
+                .as_deref()
+                .filter(|id| !id.is_empty())
+                .ok_or_else(|| "inventory event requires non-empty event ID".to_string())?;
 
-        if let Some(last_sequence) = self.last_sequence {
-            if event.sequence <= last_sequence {
-                return Err("inventory event sequence must increase".to_string());
+            if event
+                .provenance_id
+                .as_deref()
+                .is_none_or(str::is_empty)
+            {
+                return Err("inventory event requires non-empty provenance".to_string());
             }
-        }
 
-        let batch_id = event.batch_id.clone();
-        let next_balance = match self.state.get(&batch_id).copied().unwrap_or(0) {
-            balance if matches!(event.kind, InventoryEventKind::Produced) => balance
-                .checked_add(event.mass_g)
-                .ok_or_else(|| "inventory overflow".to_string())?,
-            balance => {
-                if balance < event.mass_g {
-                    return Err("inventory underflow".to_string());
+            if self.seen_event_ids.contains(event_id) || !staged_event_ids.insert(event_id) {
+                return Err("duplicate inventory event ID".to_string());
+            }
+
+            if let Some(last_sequence) = next_sequence {
+                if event.sequence <= last_sequence {
+                    return Err("inventory event sequence must increase".to_string());
                 }
-                balance - event.mass_g
             }
-        };
 
-        self.state.insert(batch_id, next_balance);
-        self.seen_event_ids.insert(event_id.to_string());
-        self.last_sequence = Some(event.sequence);
-        self.events.push(event);
+            let batch_id = event.batch_id.clone();
+            let balance = staged_balances
+                .get(&batch_id)
+                .copied()
+                .or_else(|| self.state.get(&batch_id).copied())
+                .unwrap_or(0);
+
+            let next_balance = match event.kind {
+                InventoryEventKind::Produced => balance
+                    .checked_add(event.mass_g)
+                    .ok_or_else(|| "inventory overflow".to_string())?,
+                InventoryEventKind::Consumed => {
+                    if balance < event.mass_g {
+                        return Err("inventory underflow".to_string());
+                    }
+                    balance - event.mass_g
+                }
+            };
+
+            staged_balances.insert(batch_id, next_balance);
+            next_sequence = Some(event.sequence);
+        }
+
+        for (batch_id, balance) in staged_balances {
+            self.state.insert(batch_id, balance);
+        }
+        self.seen_event_ids.extend(staged_event_ids);
+        self.last_sequence = next_sequence;
+        self.events.extend(events.iter().cloned());
         Ok(())
     }
 
@@ -1702,23 +1742,26 @@ mod tests {
         );
         assert_eq!(energy.provenance_id.as_deref(), Some("execution:exec-004"));
 
-        let final_inventory =
-            replay_inventory(&BTreeMap::from([("feed-004".to_string(), 1_000)]), &events)
-                .expect("generated events must replay");
-        assert_eq!(final_inventory.get("feed-004"), Some(&0));
+        let mut inventory = InventoryLedger::new(BTreeMap::from([("feed-004".to_string(), 1_000)]));
+        inventory
+            .append_batch(&events)
+            .expect("receipt should append atomically");
+        assert_eq!(inventory.state().get("feed-004"), Some(&0));
         assert_eq!(
-            final_inventory.get("regolith_electrolysis:10:oxygen"),
+            inventory.state().get("regolith_electrolysis:10:oxygen"),
             Some(&180)
         );
         assert_eq!(
-            final_inventory.get("regolith_electrolysis:10:metal"),
+            inventory.state().get("regolith_electrolysis:10:metal"),
             Some(&720)
         );
 
-        let initial_energy = BTreeMap::from([("power-bus-1".to_string(), 5_000)]);
-        let expected_energy = BTreeMap::from([("power-bus-1".to_string(), 1_000)]);
-        verify_energy_conservation(&initial_energy, &[energy], &expected_energy)
-            .expect("energy ledger must replay exactly");
+        let mut energy_ledger =
+            EnergyLedger::new(BTreeMap::from([("power-bus-1".to_string(), 5_000)]));
+        energy_ledger
+            .append_batch(&[energy])
+            .expect("energy receipt should append atomically");
+        assert_eq!(energy_ledger.state().get("power-bus-1"), Some(&1_000));
     }
 
     #[test]
@@ -1927,6 +1970,40 @@ mod tests {
             .expect("recycling must consume a real source batch");
         assert_eq!(recovered.get("scrap"), Some(&0));
         assert_eq!(recovered.get("steel"), Some(&10));
+    }
+
+    #[test]
+    fn stateful_inventory_ledger_rejects_partial_batch_without_mutation() {
+        let mut ledger = InventoryLedger::new(BTreeMap::from([("steel".to_string(), 10)]));
+        let batch = [
+            InventoryEvent::new(1, "steel", 4, InventoryEventKind::Consumed)
+                .with_event_id("inventory-1")
+                .with_provenance("run"),
+            InventoryEvent::new(2, "steel", 10, InventoryEventKind::Consumed)
+                .with_event_id("inventory-2")
+                .with_provenance("run"),
+        ];
+
+        assert!(ledger.append_batch(&batch).is_err());
+        assert_eq!(ledger.state().get("steel"), Some(&10));
+        assert!(ledger.events().is_empty());
+    }
+
+    #[test]
+    fn stateful_energy_ledger_rejects_partial_batch_without_mutation() {
+        let mut ledger = EnergyLedger::new(BTreeMap::from([("bus".to_string(), 5)]));
+        let batch = [
+            EnergyEvent::new(1, "bus", 2, EnergyEventKind::Consumed)
+                .with_event_id("energy-1")
+                .with_provenance("run"),
+            EnergyEvent::new(2, "bus", 10, EnergyEventKind::Consumed)
+                .with_event_id("energy-2")
+                .with_provenance("run"),
+        ];
+
+        assert!(ledger.append_batch(&batch).is_err());
+        assert_eq!(ledger.state().get("bus"), Some(&5));
+        assert!(ledger.events().is_empty());
     }
 
     #[test]
