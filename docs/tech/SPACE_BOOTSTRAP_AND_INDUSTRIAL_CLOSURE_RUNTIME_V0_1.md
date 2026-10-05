@@ -781,8 +781,8 @@ The first implementation should prove:
 - stateful ledger append rejects duplicate identities, non-monotonic sequences, and empty physical account identifiers before mutation;
 - stateful ledger batch append validates the complete batch before committing any event;
 - rejected ledger appends leave the prior state and accepted history unchanged, including when a later event in a batch fails;
-- one authorized process execution commits budget settlement, source-batch settlement, material, and energy as one kernel transaction;
-- cross-ledger commit failure leaves both ledgers unchanged and keeps the execution plus concrete source-batch reservations pending for retry;
+- one authorized process execution commits budget settlement, source-batch settlement, material, and energy as one kernel transaction, with all three mutable state objects staged before live replacement;
+- cross-ledger commit failure leaves budget, ledgers, and concrete source-batch reservations unchanged and keeps the execution pending for retry;
 - settling one partial source reservation does not consume or erase another execution's reservation on the same batch;
 - the pending budget reservation is bound to the complete immutable receipt, including process identity, source batch, inventory and energy sequence positions, energy node, and the complete process run;
 - the pending physical source reservation is bound to the same execution, batch, and exact feed quantity;
@@ -816,6 +816,7 @@ Do not add a subsystem that:
 - reuses the same feedstock or energy authorization to mint multiple valid executions;
 - authorizes multiple executions against the same unreserved physical source stock by checking only aggregate feed capacity;
 - lets one execution's settlement consume another execution's reserved portion of a shared source batch;
+- publishes inventory or energy changes before budget settlement is itself safely staged;
 - constructs or reuses the same certified resource quantity to mint multiple inventory events;
 - treats recycling as a scalar balance increase without an explicit source batch;
 - permits process waste to disappear from causal inventory history even though the process reports it as accounted mass;
@@ -888,9 +889,9 @@ commit
   -> settle execution reservation
 ```
 
-The kernel performs preparation against ledger clones, so the live inventory and energy ledgers are changed only after both staged commits succeed. The inventory clone first consumes and settles the exact source reservation; if the energy stage then fails, that clone is discarded and the live source reservation remains pending for retry. The budget stores the complete immutable receipt as the pending authorization, rather than only its quantities, so the commit/abort boundary is bound to the exact process, source batch, sequence positions, energy node, and run that were authorized. A different receipt cannot consume the reservation merely because it requests the same feedstock and energy amounts.
+The kernel performs preparation against inventory and energy clones and settles the budget on its own clone. No one of the three live state objects is replaced until all staged operations succeed. The inventory clone first consumes and settles the exact source reservation; if the energy stage then fails, that clone is discarded and the live source reservation remains pending for retry. The budget stores the complete immutable receipt as the pending authorization, rather than only its quantities, so the commit/abort boundary is bound to the exact process, source batch, sequence positions, energy node, and run that were authorized. A different receipt cannot consume the reservation merely because it requests the same feedstock and energy amounts.
 
-A failed preparation leaves the live ledgers untouched and the reservation pending; the exact receipt can therefore be retried after the required physical state is restored. An execution that will not be retried can be explicitly aborted, which returns its reserved feedstock and energy while permanently retiring that execution identity. This mirrors the prepare/commit/rollback shape used by transactional systems, but the current kernel remains an in-memory deterministic coordination boundary: it is not a durable transaction log, distributed consensus protocol, or crash-recovery mechanism for external systems.
+A failed preparation leaves the live budget, ledgers, and source reservation untouched; the exact receipt can therefore be retried after the required physical state is restored. An execution that will not be retried can be explicitly aborted, which returns its reserved feedstock and energy while permanently retiring that execution identity. Abort stages the budget and source-reservation changes before replacing either live state. This mirrors the prepare/commit/rollback shape used by transactional systems, but the current kernel remains an in-memory deterministic coordination boundary: it is not a durable transaction log, distributed consensus protocol, or crash-recovery mechanism for external systems.
 
 Resource certification follows the same rule. A certified resource has a stable certificate identity derived from its claim identity, while the certificate's fields are private so inventory authorization cannot be forged by direct construction. The certificate-derived inventory event reuses that certificate identity as its event identity; replay therefore rejects the same certified quantity being emitted again under a different sequence or batch.
 
