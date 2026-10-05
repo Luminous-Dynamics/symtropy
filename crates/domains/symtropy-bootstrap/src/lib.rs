@@ -1374,7 +1374,9 @@ impl EnergyLedger {
                 return Err("energy event requires non-empty node ID".to_string());
             }
 
-            if self.seen_event_ids.contains(event_id) || !staged_event_ids.insert(event_id.to_string()) {
+            if self.seen_event_ids.contains(event_id)
+                || !staged_event_ids.insert(event_id.to_string())
+            {
                 return Err("duplicate energy event ID".to_string());
             }
 
@@ -1838,7 +1840,9 @@ impl InventoryLedger {
                 return Err("inventory event requires non-empty batch ID".to_string());
             }
 
-            if self.seen_event_ids.contains(event_id) || !staged_event_ids.insert(event_id.to_string()) {
+            if self.seen_event_ids.contains(event_id)
+                || !staged_event_ids.insert(event_id.to_string())
+            {
                 return Err("duplicate inventory event ID".to_string());
             }
 
@@ -3025,9 +3029,8 @@ mod tests {
         let execution_id = receipt.execution_id().to_string();
         drop(receipt);
 
-        let recovered =
-            resume_pending_execution(&execution_id, &budget, &inventory)
-                .expect("pending execution should rehydrate");
+        let recovered = resume_pending_execution(&execution_id, &budget, &inventory)
+            .expect("pending execution should rehydrate");
 
         let mut energy = EnergyLedger::new(BTreeMap::from([("bus".to_string(), 5_000)]));
         commit_process_execution(&recovered, &mut budget, &mut inventory, &mut energy)
