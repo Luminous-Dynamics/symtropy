@@ -3034,6 +3034,7 @@ mod tests {
 
         assert_eq!(inventory.state().get("feed-transaction-fail"), Some(&1_000));
         assert!(inventory.events().is_empty());
+        assert_eq!(inventory.source_reservations.len(), 1);
         assert_eq!(energy.state().get("bus"), Some(&3_000));
         assert!(energy.events().is_empty());
         assert_eq!(budget.available_feed_mass_g(), 0);
@@ -3051,6 +3052,7 @@ mod tests {
             .expect("pending receipt should remain retryable");
 
         assert_eq!(inventory.state().get("feed-transaction-fail"), Some(&0));
+        assert_eq!(inventory.source_reservations.len(), 0);
         assert_eq!(energy.state().get("bus"), Some(&3_000));
         assert_eq!(inventory.events().len(), 4);
         assert_eq!(energy.events().len(), 2);
