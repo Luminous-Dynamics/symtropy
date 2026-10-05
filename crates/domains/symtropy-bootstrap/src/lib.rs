@@ -2017,7 +2017,10 @@ mod tests {
         );
         let report = graph.evaluate(100, 0);
 
-        let requirements = [StageRequirement::new(ClosureStage::Seed, [])];
+        let requirements = [StageRequirement::new(
+            ClosureStage::Seed,
+            std::iter::empty::<String>(),
+        )];
         assert_eq!(highest_closed_stage(&report, &requirements), None);
     }
 
@@ -2063,7 +2066,7 @@ mod tests {
                 Capability::new("a", 50, ["b"]),
                 Capability::new("b", 50, ["a"]),
             ],
-            [],
+            std::iter::empty::<Dependency>(),
         );
         let report = graph.evaluate(1, 0);
 
