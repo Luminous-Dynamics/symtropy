@@ -829,6 +829,7 @@ impl ProductionProcess {
             first_inventory_sequence,
             energy_sequence,
             energy_node_id: node_id,
+            state_anchor: ExecutionStateAnchor::in_memory(),
             run,
         };
 
@@ -866,6 +867,7 @@ impl ProductionProcess {
             first_inventory_sequence: receipt.first_inventory_sequence,
             energy_sequence: receipt.energy_sequence,
             energy_node_id: receipt.energy_node_id.clone(),
+            state_anchor: receipt.state_anchor.clone(),
             run: receipt.run.clone(),
         };
 
@@ -967,6 +969,7 @@ impl ProductionProcess {
             first_inventory_sequence,
             energy_sequence,
             energy_node_id: node_id,
+            state_anchor: ExecutionStateAnchor::in_memory(),
             run,
         };
 
@@ -1040,6 +1043,65 @@ impl ProcessRun {
     }
 }
 
+/// Opaque journal/state frontier used to bind durable execution recovery.
+///
+/// The kernel does not interpret the frontier or depend on a persistence backend.
+/// A durable adapter should construct it from a verified append-only journal head
+/// and pass that exact value to both authorization and recovery.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ExecutionStateAnchor {
+    domain: String,
+    frontier: String,
+}
+
+impl ExecutionStateAnchor {
+    /// Construct a bounded, portable execution-state anchor.
+    pub fn new(
+        domain: impl Into<String>,
+        frontier: impl Into<String>,
+    ) -> Result<Self, String> {
+        let domain = domain.into();
+        let frontier = frontier.into();
+
+        if domain.is_empty()
+            || domain.len() > 128
+            || domain.bytes().any(|byte| byte.is_ascii_control())
+        {
+            return Err("execution anchor requires a non-empty portable domain".to_string());
+        }
+        if frontier.is_empty()
+            || frontier.len() > 256
+            || frontier.bytes().any(|byte| byte.is_ascii_control())
+        {
+            return Err("execution anchor requires a non-empty portable frontier".to_string());
+        }
+
+        Ok(Self { domain, frontier })
+    }
+
+    /// Explicit anchor for purely in-memory callers.
+    ///
+    /// This sentinel is intentionally not a durable journal position. Durable
+    /// adapters must supply their verified journal/state frontier explicitly.
+    #[must_use]
+    pub fn in_memory() -> Self {
+        Self {
+            domain: "symtropy.execution.in-memory".to_string(),
+            frontier: "UNANCHORED".to_string(),
+        }
+    }
+
+    #[must_use]
+    pub fn domain(&self) -> &str {
+        &self.domain
+    }
+
+    #[must_use]
+    pub fn frontier(&self) -> &str {
+        &self.frontier
+    }
+}
+
 /// Immutable authorization receipt for one funded process execution.
 ///
 /// The receipt owns the process/run identity and the reserved input/energy
@@ -1054,6 +1116,7 @@ pub struct ProcessExecutionReceipt {
     first_inventory_sequence: u64,
     energy_sequence: u64,
     energy_node_id: String,
+    state_anchor: ExecutionStateAnchor,
     run: ProcessRun,
 }
 
@@ -1071,6 +1134,7 @@ impl ProcessExecutionReceipt {
         first_inventory_sequence: u64,
         energy_sequence: u64,
         energy_node_id: impl Into<String>,
+        state_anchor: ExecutionStateAnchor,
         run: ProcessRun,
     ) -> Result<Self, String> {
         let execution_id = execution_id.into();
@@ -1109,6 +1173,7 @@ impl ProcessExecutionReceipt {
             first_inventory_sequence,
             energy_sequence,
             energy_node_id,
+            state_anchor,
             run,
         })
     }
@@ -1150,6 +1215,12 @@ impl ProcessExecutionReceipt {
     #[must_use]
     pub fn energy_node_id(&self) -> &str {
         &self.energy_node_id
+    }
+
+    /// Return the journal/state frontier bound to this execution.
+    #[must_use]
+    pub const fn state_anchor(&self) -> &ExecutionStateAnchor {
+        &self.state_anchor
     }
 
     /// Borrow the complete deterministic process run carried by this receipt.
