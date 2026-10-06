@@ -31,6 +31,155 @@ use symtropy_persistence::{JournalLoad, JournalLock, PersistenceError, SaveStore
 pub const EXECUTION_LIFECYCLE_SCHEMA_VERSION: u32 = 2;
 pub const EXECUTION_EVENT_KIND: &str = "symtropy.bootstrap.execution";
 pub const EXECUTION_AUTH_ALGORITHM: &str = "Ed25519-SHA256-JSON-v1";
+pub const FRESHNESS_ATTESTATION_SCHEMA_VERSION: u32 = 1;
+pub const FRESHNESS_ATTESTATION_ALGORITHM: &str = "Ed25519-SHA256-JOURNAL-HEAD-v1";
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ExternalFreshnessAttestation {
+    pub schema_version: u32,
+    pub algorithm: String,
+    pub authority_id: String,
+    pub authority_epoch: u64,
+    pub sequence: u64,
+    pub namespace: String,
+    pub seed: u64,
+    pub event_count: u64,
+    pub head_hash: String,
+    pub trust_commitment: String,
+    pub signature: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct FreshnessAuthority {
+    authority_id: String,
+    authority_epoch: u64,
+    public_key: String,
+}
+
+impl FreshnessAuthority {
+    pub fn from_public_key_hex(
+        authority_id: impl Into<String>,
+        authority_epoch: u64,
+        public_key: impl Into<String>,
+    ) -> Result<Self, AdapterError> {
+        let authority_id = authority_id.into();
+        let public_key = public_key.into();
+        validate_key_id(&authority_id)?;
+        hex_decode_exact::<32>(&public_key)
+            .map_err(AdapterError::Invalid)?;
+        Ok(Self {
+            authority_id,
+            authority_epoch,
+            public_key,
+        })
+    }
+
+    #[must_use]
+    pub fn authority_id(&self) -> &str {
+        &self.authority_id
+    }
+
+    #[must_use]
+    pub const fn authority_epoch(&self) -> u64 {
+        self.authority_epoch
+    }
+
+    #[must_use]
+    pub fn public_key_hex(&self) -> &str {
+        &self.public_key
+    }
+
+    /// Commit to the external authority identity and public key.
+    #[must_use]
+    pub fn commitment(&self) -> String {
+        let mut hasher = Sha256::new();
+        hash_string(&mut hasher, "symtropy.freshness-authority.v1");
+        hash_string(&mut hasher, &self.authority_id);
+        hasher.update(self.authority_epoch.to_le_bytes());
+        hash_string(&mut hasher, &self.public_key);
+        hex_encode(&hasher.finalize())
+    }
+
+    /// Verify an externally authored checkpoint against the exact current journal head.
+    ///
+    /// The authority key is intentionally verifier-only in this adapter. Its private
+    /// signing material never enters the runtime configuration.
+    pub fn verify(
+        &self,
+        attestation: &ExternalFreshnessAttestation,
+        namespace: &str,
+        seed: u64,
+        chain: &EventChain<ExecutionLifecycleEvent>,
+        trust: &DurableExecutionTrust,
+    ) -> Result<(), AdapterError> {
+        if attestation.schema_version != FRESHNESS_ATTESTATION_SCHEMA_VERSION {
+            return Err(AdapterError::Invalid(
+                "unsupported journal freshness attestation schema".to_string(),
+            ));
+        }
+        if attestation.algorithm != FRESHNESS_ATTESTATION_ALGORITHM {
+            return Err(AdapterError::Invalid(
+                "unsupported journal freshness attestation algorithm".to_string(),
+            ));
+        }
+        if attestation.authority_id != self.authority_id
+            || attestation.authority_epoch != self.authority_epoch
+        {
+            return Err(AdapterError::WitnessMismatch(
+                "journal freshness attestation authority does not match the configured root"
+                    .to_string(),
+            ));
+        }
+        if attestation.namespace != namespace || attestation.seed != seed {
+            return Err(AdapterError::WitnessMismatch(
+                "journal freshness attestation belongs to a different namespace or seed"
+                    .to_string(),
+            ));
+        }
+        if attestation.trust_commitment != trust.commitment() {
+            return Err(AdapterError::WitnessMismatch(
+                "journal freshness attestation is bound to a different trust policy".to_string(),
+            ));
+        }
+
+        let event_count = u64::try_from(chain.events().len())
+            .map_err(|_| AdapterError::Invalid("journal event count overflow".to_string()))?;
+        if attestation.event_count != event_count
+            || attestation.head_hash != chain.head_hash()
+        {
+            return Err(AdapterError::WitnessMismatch(
+                "journal freshness attestation does not match the exact current journal head"
+                    .to_string(),
+            ));
+        }
+        if attestation.event_count > 0 && !is_sha256_hex(&attestation.head_hash) {
+            return Err(AdapterError::Invalid(
+                "non-empty freshness attestation requires SHA-256 head".to_string(),
+            ));
+        }
+        let signature =
+            hex_decode_exact::<64>(&attestation.signature).map_err(AdapterError::Invalid)?;
+        let digest = freshness_attestation_digest(attestation);
+        let public_key =
+            hex_decode_exact::<32>(&self.public_key).map_err(AdapterError::Invalid)?;
+
+        // The freshness authority must be distinct from all execution-signing keys.
+        if trust.keys.values().any(|key| key.public_key == self.public_key) {
+            return Err(AdapterError::WitnessMismatch(
+                "freshness authority key is reused as an execution signing key".to_string(),
+            ));
+        }
+
+        UnparsedPublicKey::new(&ED25519, &public_key)
+            .verify(&digest, &signature)
+            .map_err(|_| {
+                AdapterError::WitnessMismatch(
+                    "journal freshness attestation signature is invalid".to_string(),
+                )
+            })?;
+        Ok(())
+    }
+}
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct JournalHeadWitness {
@@ -937,6 +1086,24 @@ impl DurableExecutionAdapter {
         Ok(loaded)
     }
 
+    /// Verify an exact retained head plus a separately rooted external checkpoint.
+    pub fn load_verified_with_freshness(
+        &self,
+        witness: &JournalHeadWitness,
+        authority: &FreshnessAuthority,
+        attestation: &ExternalFreshnessAttestation,
+    ) -> Result<JournalLoad<ExecutionLifecycleEvent>, AdapterError> {
+        let loaded = self.load_verified_at(witness)?;
+        authority.verify(
+            attestation,
+            &self.journal_namespace,
+            self.seed,
+            &loaded.chain,
+            &self.trust,
+        )?;
+        Ok(loaded)
+    }
+
     /// Verify the durable journal against an independently retained head witness.
     pub fn load_verified_against(
         &self,
@@ -1802,6 +1969,23 @@ fn validate_key_id(value: &str) -> Result<(), AdapterError> {
     Ok(())
 }
 
+fn freshness_attestation_digest(attestation: &ExternalFreshnessAttestation) -> [u8; 32] {
+    let mut hasher = Sha256::new();
+    hash_string(
+        &mut hasher,
+        "symtropy.journal.freshness-attestation.v1",
+    );
+    hash_string(&mut hasher, &attestation.authority_id);
+    hasher.update(attestation.authority_epoch.to_le_bytes());
+    hasher.update(attestation.sequence.to_le_bytes());
+    hash_string(&mut hasher, &attestation.namespace);
+    hasher.update(attestation.seed.to_le_bytes());
+    hasher.update(attestation.event_count.to_le_bytes());
+    hash_string(&mut hasher, &attestation.head_hash);
+    hash_string(&mut hasher, &attestation.trust_commitment);
+    hasher.finalize().into()
+}
+
 fn hash_bytes(hasher: &mut Sha256, bytes: &[u8]) {
     hasher.update((bytes.len() as u64).to_le_bytes());
     hasher.update(bytes);
@@ -1918,6 +2102,112 @@ mod tests {
             InventoryLedger::new(BTreeMap::from([("feed".to_string(), 1_000)])),
             EnergyLedger::new(BTreeMap::from([("bus".to_string(), 4_000)])),
         )
+    }
+
+    fn freshness_test_attestation(
+        authority_id: &str,
+        authority_epoch: u64,
+        signer: &DurableExecutionSigner,
+        adapter: &DurableExecutionAdapter,
+    ) -> ExternalFreshnessAttestation {
+        let loaded = adapter.load_verified().expect("verified journal");
+        let mut attestation = ExternalFreshnessAttestation {
+            schema_version: FRESHNESS_ATTESTATION_SCHEMA_VERSION,
+            algorithm: FRESHNESS_ATTESTATION_ALGORITHM.to_string(),
+            authority_id: authority_id.to_string(),
+            authority_epoch,
+            sequence: 1,
+            namespace: "bootstrap".to_string(),
+            seed: 1,
+            event_count: u64::try_from(loaded.chain.events().len()).expect("count"),
+            head_hash: loaded.chain.head_hash().to_string(),
+            trust_commitment: adapter.trust().commitment(),
+            signature: String::new(),
+        };
+        attestation.signature =
+            hex_encode(signer.key_pair.sign(&freshness_attestation_digest(&attestation)).as_ref());
+        attestation
+    }
+
+    #[test]
+    fn external_freshness_attestation_binds_exact_head_and_distinct_authority() {
+        let adapter = configured_adapter("external-freshness");
+        let authority_signer = test_signer("freshness-authority", 1);
+        let authority = FreshnessAuthority::from_public_key_hex(
+            authority_signer.key_id(),
+            authority_signer.key_epoch(),
+            authority_signer.public_key_hex(),
+        )
+        .expect("authority");
+        let witness = adapter.capture_head_witness().expect("head witness");
+        let attestation =
+            freshness_test_attestation(authority.authority_id(), authority.authority_epoch(), &authority_signer, &adapter);
+
+        assert!(adapter
+            .load_verified_with_freshness(&witness, &authority, &attestation)
+            .is_ok());
+
+        let mut bad = attestation.clone();
+        bad.head_hash = "00".repeat(32);
+        assert!(matches!(
+            authority.verify(
+                &bad,
+                "bootstrap",
+                1,
+                &adapter.load_verified().expect("journal").chain,
+                adapter.trust(),
+            ),
+            Err(AdapterError::WitnessMismatch(_))
+        ));
+
+        fs::remove_dir_all(adapter.store().root()).expect("cleanup");
+    }
+
+    #[test]
+    fn external_freshness_authority_cannot_reuse_execution_signing_key() {
+        let signer = test_signer("shared-key", 1);
+        let mut trust = DurableExecutionTrust::new();
+        trust.trust_signer(&signer, 0, None).expect("trust signer");
+        let authority = FreshnessAuthority::from_public_key_hex(
+            signer.key_id(),
+            signer.key_epoch(),
+            signer.public_key_hex(),
+        )
+        .expect("authority");
+        let adapter = DurableExecutionAdapter::open(
+            store("freshness-key-separation"),
+            "bootstrap",
+            "bootstrap-execution",
+            1,
+        )
+        .expect("adapter")
+        .with_trust(trust);
+
+        let witness = adapter.capture_head_witness().expect("head witness");
+        let attestation = ExternalFreshnessAttestation {
+            schema_version: FRESHNESS_ATTESTATION_SCHEMA_VERSION,
+            algorithm: FRESHNESS_ATTESTATION_ALGORITHM.to_string(),
+            authority_id: signer.key_id().to_string(),
+            authority_epoch: signer.key_epoch(),
+            sequence: 1,
+            namespace: "bootstrap".to_string(),
+            seed: 1,
+            event_count: 0,
+            head_hash: "GENESIS".to_string(),
+            trust_commitment: adapter.trust().commitment(),
+            signature: "00".repeat(64),
+        };
+
+        assert!(matches!(
+            adapter.load_verified_with_freshness(
+                &witness,
+                &authority,
+                &attestation,
+            ),
+            Err(AdapterError::WitnessMismatch(_))
+        ));
+
+        fs::remove_dir_all(adapter.store().root()).expect("cleanup");
     }
 
     #[test]
