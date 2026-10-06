@@ -3901,6 +3901,7 @@ mod tests {
             10,
             20,
             "bus",
+            ExecutionStateAnchor::in_memory(),
             process_run.clone(),
         )
         .expect_err("receipt/process identity mismatch must fail closed");
@@ -3917,6 +3918,7 @@ mod tests {
             10,
             20,
             "bus",
+            ExecutionStateAnchor::in_memory(),
             process_run,
         )
         .expect_err("receipt/batch identity mismatch must fail closed");
@@ -4066,6 +4068,7 @@ mod tests {
             receipt.first_inventory_sequence(),
             receipt.energy_sequence(),
             receipt.energy_node_id(),
+            ExecutionStateAnchor::in_memory(),
             receipt.run().clone(),
         )
         .expect("persisted receipt should reconstruct exactly");
