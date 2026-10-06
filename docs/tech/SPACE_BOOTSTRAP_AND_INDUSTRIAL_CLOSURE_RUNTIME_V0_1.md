@@ -793,6 +793,7 @@ The first implementation should prove:
 - a pending execution can be explicitly rehydrated from the authoritative budget receipt plus matching source reservation without minting a second authorization;
 - durable integration has an explicit pending-authorization boundary: the raw pending receipt must cross persistence before executable activation, while budget-only or merely in-memory authorization cannot cross that boundary;
 - a persisted Pending receipt can be reconstructed into the raw receipt type and restored against the pre-transition budget/inventory state without minting a new execution identity;
+- a Pending receipt carries an explicit domain-bound execution-state anchor, and durable recovery rejects a receipt whose anchor does not equal the independently verified journal/state frontier;
 - executable and budget-only receipt wrappers expose read-only accessors rather than `Deref` to the raw receipt, so raw-receipt APIs cannot acquire either authority class through implicit coercion;
 - legal execution lifecycle transitions are encoded by the kernel as `Pending -> Committed` or `Pending -> Aborted`; terminal-to-terminal, terminal-to-pending, and repeated-state transitions are invalid rather than implicitly idempotent;
 - persistence failure after pending authorization has a safe raw-receipt compensation path that aborts and refunds the reservation without exposing executable event materialization;
@@ -839,7 +840,7 @@ Do not add a subsystem that:
 - lets unrelated inventory consumption bypass a pending source-batch reservation;
 - loses a reserved execution silently when cross-ledger commit fails;
 - loses a concrete source-batch reservation when authorization fails or an execution is explicitly aborted;
-- permits a pending execution reservation to be paired with a different process, source batch, sequence position, energy node, or run while retaining the same execution identity;
+- permits a pending execution reservation to be paired with a different process, source batch, sequence position, energy node, run, or journal/state frontier while retaining the same execution identity;
 - creates a fresh authorization when recovering an interrupted pending execution instead of rehydrating the still-authoritative reservation;
 - collapses committed and aborted terminal executions into one indistinguishable state in the lifecycle boundary;
 - persists a terminal execution outcome without retaining the exact receipt/process/source/run identity that produced it;
