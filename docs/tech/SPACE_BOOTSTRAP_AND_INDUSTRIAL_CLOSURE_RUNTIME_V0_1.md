@@ -781,12 +781,14 @@ The first implementation should prove:
 - process waste is emitted as a named produced batch, so strict process mass balance is preserved in inventory history rather than allowing waste to disappear between process and ledger;
 - a certified resource must have a non-empty claim identity and cannot be constructed directly outside the evidence gate;
 - candidate failure-risk and resource-confidence values outside 0..1,000,000 ppm are rejected rather than clamped into a valid-looking value;
+- validated candidate and resource-claim value objects seal bounded constructor invariants so external struct literals cannot bypass them;
 - certification-derived inventory events use the certificate identity as their event identity, preventing the same certified quantity from being minted twice;
 - ledger replay rejects missing or duplicate event identities, unprovenanced events, and overdrawn history;
 - stateful ledger append rejects duplicate identities, non-monotonic sequences, and empty physical account identifiers before mutation;
 - stateful ledger batch append validates the complete batch before committing any event;
 - a durable execution anchor is bound to the exact pre-Pending budget/inventory state with a deterministic SHA-256 commitment;
 - recovery rejects a Pending receipt when either the verified journal frontier or the supplied kernel state commitment differs, before mutating budget or inventory;
+- the explicit in-memory `UNANCHORED` sentinel cannot be promoted into a state-bound durable anchor by attaching a commitment;
 - the canonical receipt commitment is compared with the authenticated durable lifecycle record before recovery can confer executable authority;
 - rejected ledger appends leave the prior state and accepted history unchanged, including when a later event in a batch fails;
 - one authorized process execution commits budget settlement, source-batch settlement, material, and energy as one kernel transaction, with all three mutable state objects staged before live replacement;
