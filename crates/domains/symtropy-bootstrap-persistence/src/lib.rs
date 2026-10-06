@@ -132,6 +132,7 @@ pub struct ExecutionLifecycleEvent {
     pub state: DurableExecutionState,
     pub receipt: PersistedExecutionReceipt,
     pub receipt_commitment: String,
+    pub process_definition_commitment: String,
     pub pending_event_id: Option<String>,
     pub pending_event_hash: Option<String>,
     pub pre_budget_commitment: String,
@@ -147,6 +148,7 @@ pub struct ExecutionLifecycleEvent {
 impl ExecutionLifecycleEvent {
     fn pending(
         receipt: &ProcessExecutionReceipt,
+        process_definition_commitment: String,
         pre_budget_commitment: String,
         pre_inventory_commitment: String,
         pre_energy_commitment: String,
@@ -160,6 +162,7 @@ impl ExecutionLifecycleEvent {
             state: DurableExecutionState::Pending,
             receipt: PersistedExecutionReceipt::from_receipt(receipt),
             receipt_commitment: receipt.commitment(),
+            process_definition_commitment,
             pending_event_id: None,
             pending_event_hash: None,
             pre_budget_commitment,
@@ -176,6 +179,7 @@ impl ExecutionLifecycleEvent {
     fn terminal(
         state: DurableExecutionState,
         receipt: &ProcessExecutionReceipt,
+        process_definition_commitment: String,
         pending_event_id: String,
         pending_event_hash: String,
         pre_budget_commitment: String,
@@ -192,6 +196,7 @@ impl ExecutionLifecycleEvent {
             state,
             receipt: PersistedExecutionReceipt::from_receipt(receipt),
             receipt_commitment: receipt.commitment(),
+            process_definition_commitment,
             pending_event_id: Some(pending_event_id),
             pending_event_hash: Some(pending_event_hash),
             pre_budget_commitment,
@@ -224,6 +229,10 @@ impl ExecutionLifecycleEvent {
 
         for (name, value) in [
             ("receipt commitment", &self.receipt_commitment),
+            (
+                "process definition commitment",
+                &self.process_definition_commitment,
+            ),
             ("pre budget commitment", &self.pre_budget_commitment),
             ("pre inventory commitment", &self.pre_inventory_commitment),
             ("pre energy commitment", &self.pre_energy_commitment),
@@ -410,6 +419,7 @@ impl DurableExecutionAdapter {
             event_hash: String,
             receipt: PersistedExecutionReceipt,
             receipt_commitment: String,
+            process_definition_commitment: String,
             post_budget_commitment: String,
             post_inventory_commitment: String,
             post_energy_commitment: String,
@@ -462,6 +472,10 @@ impl DurableExecutionAdapter {
                             event_hash: event.event_hash.clone(),
                             receipt: event.payload.receipt.clone(),
                             receipt_commitment: event.payload.receipt_commitment.clone(),
+                            process_definition_commitment: event
+                                .payload
+                                .process_definition_commitment
+                                .clone(),
                             post_budget_commitment: event.payload.post_budget_commitment.clone(),
                             post_inventory_commitment: event
                                 .payload
@@ -494,6 +508,8 @@ impl DurableExecutionAdapter {
 
                     if prior.receipt != event.payload.receipt
                         || prior.receipt_commitment != event.payload.receipt_commitment
+                        || prior.process_definition_commitment
+                            != event.payload.process_definition_commitment
                     {
                         return Err(AdapterError::Invalid(
                             "terminal lifecycle receipt does not exactly match Pending receipt"
@@ -610,6 +626,19 @@ impl DurableExecutionAdapter {
         process.validate_run(receipt.run()).map_err(AdapterError::Invalid)
     }
 
+    fn ensure_process_definition(
+        process: &ProductionProcess,
+        expected_commitment: &str,
+    ) -> Result<(), AdapterError> {
+        if process.commitment() != expected_commitment {
+            return Err(AdapterError::Invalid(
+                "process definition commitment does not match durable execution record"
+                    .to_string(),
+            ));
+        }
+        Ok(())
+    }
+
     fn ensure_live_matches_latest(
         chain: &EventChain<ExecutionLifecycleEvent>,
         budget: &ExecutionBudget,
@@ -686,6 +715,7 @@ impl DurableExecutionAdapter {
         let pre_budget_commitment = budget.state_commitment();
         let pre_inventory_commitment = inventory.state_commitment();
         let pre_energy_commitment = energy.state_commitment();
+        let process_definition_commitment = process.commitment();
 
         let anchor = ExecutionStateAnchor::for_state(
             self.anchor_domain.clone(),
@@ -713,6 +743,7 @@ impl DurableExecutionAdapter {
 
         let payload = ExecutionLifecycleEvent::pending(
             &receipt,
+            process_definition_commitment,
             pre_budget_commitment,
             pre_inventory_commitment,
             pre_energy_commitment.clone(),
@@ -742,6 +773,10 @@ impl DurableExecutionAdapter {
         Self::validate_journal(&loaded.chain)?;
         let event = Self::pending_event(&loaded.chain, execution_id)?;
         let receipt = event.payload.receipt.to_receipt()?;
+        Self::ensure_process_definition(
+            process,
+            &event.payload.process_definition_commitment,
+        )?;
         Self::ensure_process(process, &receipt)?;
 
         if receipt.state_anchor() != expected_anchor {
@@ -818,7 +853,12 @@ impl DurableExecutionAdapter {
 
         let (pending_event_id, pending_event_hash, persisted) =
             Self::pending_record(&loaded.chain, receipt.execution_id())?;
+        let pending_event = Self::pending_event(&loaded.chain, receipt.execution_id())?;
         let pending = persisted.to_receipt()?;
+        Self::ensure_process_definition(
+            process,
+            &pending_event.payload.process_definition_commitment,
+        )?;
         Self::ensure_process(process, &pending)?;
 
         if receipt.commitment() != pending.commitment() {
@@ -827,7 +867,6 @@ impl DurableExecutionAdapter {
             ));
         }
 
-        let pending_event = Self::pending_event(&loaded.chain, receipt.execution_id())?;
         if budget.state_commitment() != pending_event.payload.post_budget_commitment
             || inventory.state_commitment() != pending_event.payload.post_inventory_commitment
             || energy.state_commitment() != pending_event.payload.post_energy_commitment
@@ -856,6 +895,7 @@ impl DurableExecutionAdapter {
         let payload = ExecutionLifecycleEvent::terminal(
             DurableExecutionState::Committed,
             &pending,
+            pending_event.payload.process_definition_commitment.clone(),
             pending_event_id,
             pending_event_hash,
             pre_budget,
@@ -889,7 +929,12 @@ impl DurableExecutionAdapter {
 
         let (pending_event_id, pending_event_hash, persisted) =
             Self::pending_record(&loaded.chain, receipt.execution_id())?;
+        let pending_event = Self::pending_event(&loaded.chain, receipt.execution_id())?;
         let pending = persisted.to_receipt()?;
+        Self::ensure_process_definition(
+            process,
+            &pending_event.payload.process_definition_commitment,
+        )?;
         Self::ensure_process(process, &pending)?;
 
         if receipt.commitment() != pending.commitment() {
@@ -898,7 +943,6 @@ impl DurableExecutionAdapter {
             ));
         }
 
-        let pending_event = Self::pending_event(&loaded.chain, receipt.execution_id())?;
         if budget.state_commitment() != pending_event.payload.post_budget_commitment
             || inventory.state_commitment() != pending_event.payload.post_inventory_commitment
             || energy.state_commitment() != pending_event.payload.post_energy_commitment
@@ -921,6 +965,7 @@ impl DurableExecutionAdapter {
         let payload = ExecutionLifecycleEvent::terminal(
             DurableExecutionState::Aborted,
             &pending,
+            pending_event.payload.process_definition_commitment.clone(),
             pending_event_id,
             pending_event_hash,
             pre_budget,
@@ -962,6 +1007,10 @@ impl DurableExecutionAdapter {
             .ok_or_else(|| AdapterError::MissingExecution(execution_id.to_string()))?;
 
         let receipt = terminal.payload.receipt.to_receipt()?;
+        Self::ensure_process_definition(
+            process,
+            &terminal.payload.process_definition_commitment,
+        )?;
         Self::ensure_process(process, &receipt)?;
 
         if receipt.state_anchor() != expected_anchor {
@@ -1583,6 +1632,52 @@ mod tests {
             Some(symtropy_bootstrap::ExecutionState::Pending)
         );
         assert!(budget.execution_state("exec-second").is_none());
+
+        fs::remove_dir_all(adapter.store().root()).expect("cleanup");
+    }
+
+    #[test]
+    fn changed_process_definition_is_rejected_during_recovery() {
+        let adapter = DurableExecutionAdapter::open(
+            store("process-definition"),
+            "bootstrap",
+            "bootstrap-execution",
+            1,
+        )
+        .expect("adapter");
+        let (process, run) = process_and_run();
+        let changed_process =
+            ProductionProcess::new("electrolysis", "regolith", ["metal", "oxygen"], "slag");
+        let (mut budget, mut inventory, energy) = initial_kernel_state();
+
+        let receipt = adapter
+            .authorize_pending(
+                &process,
+                "exec-definition",
+                1,
+                10,
+                20,
+                "bus",
+                run,
+                &mut budget,
+                &mut inventory,
+                &energy,
+            )
+            .expect("pending authorization");
+
+        assert_ne!(process.commitment(), changed_process.commitment());
+        assert!(
+            adapter
+                .recover_pending(
+                    &changed_process,
+                    "exec-definition",
+                    receipt.state_anchor(),
+                    &mut budget,
+                    &mut inventory,
+                    &energy,
+                )
+                .is_err()
+        );
 
         fs::remove_dir_all(adapter.store().root()).expect("cleanup");
     }
