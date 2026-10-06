@@ -2030,6 +2030,73 @@ mod tests {
     }
 
     #[test]
+    fn successful_lifecycle_appends_advance_the_retained_head_witness() {
+        let adapter = configured_adapter("witness-advance");
+        let (process, run) = process_and_run();
+        let (mut budget, mut inventory, mut energy) = (
+            ExecutionBudget::new(2_000, 8_000),
+            InventoryLedger::new(BTreeMap::from([
+                ("feed".to_string(), 1_000),
+                ("feed-2".to_string(), 1_000),
+            ])),
+            EnergyLedger::new(BTreeMap::from([("bus".to_string(), 8_000])),
+        );
+
+        let mut head_witness = adapter.capture_head_witness().expect("genesis witness");
+        assert_eq!(head_witness.event_count(), 0);
+        assert_eq!(head_witness.head_hash(), "GENESIS");
+
+        let receipt = adapter
+            .authorize_pending(
+                &mut head_witness,
+                &process,
+                "exec-witness-advance",
+                1,
+                10,
+                20,
+                "bus",
+                run,
+                &mut budget,
+                &mut inventory,
+                &mut energy,
+            )
+            .expect("pending authorization");
+
+        assert_eq!(head_witness.event_count(), 1);
+        assert_eq!(
+            head_witness,
+            adapter
+                .capture_head_witness()
+                .expect("persisted Pending witness")
+        );
+
+        let executable =
+            resume_pending_execution(receipt.execution_id(), &budget, &inventory)
+                .expect("activation");
+        adapter
+            .commit(
+                &mut head_witness,
+                &process,
+                &executable,
+                2,
+                &mut budget,
+                &mut inventory,
+                &mut energy,
+            )
+            .expect("commit");
+
+        assert_eq!(head_witness.event_count(), 2);
+        assert_eq!(
+            head_witness,
+            adapter
+                .capture_head_witness()
+                .expect("persisted terminal witness")
+        );
+
+        fs::remove_dir_all(adapter.store().root()).expect("cleanup");
+    }
+
+    #[test]
     fn head_witness_binds_trust_policy() {
         let adapter = configured_adapter("witness-trust");
         let witness = adapter.capture_head_witness().expect("capture witness");
@@ -2041,14 +2108,10 @@ mod tests {
             .expect("trust other key");
 
         let loaded = adapter.load_verified().expect("journal");
-        assert!(witness
-            .verify_against(
-                "bootstrap",
-                1,
-                &loaded.chain,
-                &other_trust,
-            )
-            .is_err());
+        assert!(matches!(
+            witness.verify_against("bootstrap", 1, &loaded.chain, &other_trust),
+            Err(AdapterError::WitnessMismatch(_))
+        ));
 
         fs::remove_dir_all(adapter.store().root()).expect("cleanup");
     }
