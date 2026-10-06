@@ -465,6 +465,35 @@ pub enum ExecutionState {
     Aborted,
 }
 
+/// Immutable lifecycle record for one execution authorization.
+///
+/// The terminal record retains the exact receipt that reached the terminal
+/// state, so recovery and audit never have to infer causal identity from ledger
+/// effects alone.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ExecutionLifecycleRecord {
+    execution_id: String,
+    state: ExecutionState,
+    receipt: ProcessExecutionReceipt,
+}
+
+impl ExecutionLifecycleRecord {
+    #[must_use]
+    pub fn execution_id(&self) -> &str {
+        &self.execution_id
+    }
+
+    #[must_use]
+    pub const fn state(&self) -> ExecutionState {
+        self.state
+    }
+
+    #[must_use]
+    pub fn receipt(&self) -> &ProcessExecutionReceipt {
+        &self.receipt
+    }
+}
+
 /// Consumable authorization budget for one deterministic execution scope.
 ///
 /// Feedstock and energy are reserved exactly once when an execution receipt is
@@ -475,7 +504,7 @@ pub struct ExecutionBudget {
     available_feed_mass_g: u64,
     available_energy_units: u64,
     reserved_executions: BTreeMap<String, ProcessExecutionReceipt>,
-    terminal_execution_states: BTreeMap<String, ExecutionState>,
+    terminal_execution_states: BTreeMap<String, ExecutionLifecycleRecord>,
 }
 
 impl ExecutionBudget {
@@ -561,17 +590,40 @@ impl ExecutionBudget {
         if self.reserved_executions.contains_key(execution_id) {
             Some(ExecutionState::Pending)
         } else {
-            self.terminal_execution_states.get(execution_id).copied()
+            self.terminal_execution_states
+                .get(execution_id)
+                .map(ExecutionLifecycleRecord::state)
         }
     }
 
-    fn settle(&mut self, execution_id: &str) -> Result<(), String> {
-        if self.reserved_executions.remove(execution_id).is_none() {
-            return Err(format!("execution is not pending: {execution_id}"));
+    /// Return the exact lifecycle record, including the immutable receipt.
+    #[must_use]
+    pub fn execution_record(&self, execution_id: &str) -> Option<ExecutionLifecycleRecord> {
+        if let Some(receipt) = self.reserved_executions.get(execution_id) {
+            return Some(ExecutionLifecycleRecord {
+                execution_id: execution_id.to_string(),
+                state: ExecutionState::Pending,
+                receipt: receipt.clone(),
+            });
         }
 
-        self.terminal_execution_states
-            .insert(execution_id.to_string(), ExecutionState::Committed);
+        self.terminal_execution_states.get(execution_id).cloned()
+    }
+
+    fn settle(&mut self, execution_id: &str) -> Result<(), String> {
+        let receipt = self
+            .reserved_executions
+            .remove(execution_id)
+            .ok_or_else(|| format!("execution is not pending: {execution_id}"))?;
+
+        self.terminal_execution_states.insert(
+            execution_id.to_string(),
+            ExecutionLifecycleRecord {
+                execution_id: execution_id.to_string(),
+                state: ExecutionState::Committed,
+                receipt,
+            },
+        );
         Ok(())
     }
 
@@ -591,8 +643,14 @@ impl ExecutionBudget {
             .checked_add(receipt.energy_units())
             .ok_or_else(|| "energy budget overflow during abort".to_string())?;
 
-        self.terminal_execution_states
-            .insert(execution_id.to_string(), ExecutionState::Aborted);
+        self.terminal_execution_states.insert(
+            execution_id.to_string(),
+            ExecutionLifecycleRecord {
+                execution_id: execution_id.to_string(),
+                state: ExecutionState::Aborted,
+                receipt,
+            },
+        );
         Ok(())
     }
 }
@@ -3114,6 +3172,12 @@ mod tests {
             commit_budget.execution_state("exec-terminal-commit"),
             Some(ExecutionState::Committed)
         );
+        let committed_record = commit_budget
+            .execution_record("exec-terminal-commit")
+            .expect("committed lifecycle record should remain available");
+        assert_eq!(committed_record.execution_id(), "exec-terminal-commit");
+        assert_eq!(committed_record.state(), ExecutionState::Committed);
+        assert_eq!(committed_record.receipt(), &commit_receipt.receipt);
 
         let mut abort_budget = ExecutionBudget::new(1_000, 4_000);
         let mut abort_inventory =
@@ -3135,6 +3199,12 @@ mod tests {
             abort_budget.execution_state("exec-terminal-abort"),
             Some(ExecutionState::Aborted)
         );
+        let aborted_record = abort_budget
+            .execution_record("exec-terminal-abort")
+            .expect("aborted lifecycle record should remain available");
+        assert_eq!(aborted_record.execution_id(), "exec-terminal-abort");
+        assert_eq!(aborted_record.state(), ExecutionState::Aborted);
+        assert_eq!(aborted_record.receipt(), &abort_receipt.receipt);
     }
 
     #[test]
