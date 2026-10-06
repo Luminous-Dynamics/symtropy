@@ -7,6 +7,7 @@
 //! simulation dependencies. It turns industrial closure into explicit,
 //! replayable state and graph calculations that higher layers can consume.
 
+use sha2::{Digest, Sha256};
 use std::collections::{BTreeMap, BTreeSet};
 
 /// State of a terminal dependency.
@@ -542,6 +543,29 @@ impl ExecutionBudget {
         self.available_energy_units
     }
 
+    /// Return a deterministic SHA-256 commitment of the complete budget state.
+    #[must_use]
+    pub fn state_commitment(&self) -> String {
+        let mut hasher = CommitmentHasher::new("symtropy.execution.budget.v1");
+        hasher.u64(self.available_feed_mass_g);
+        hasher.u64(self.available_energy_units);
+        hasher.receipt_map(&self.reserved_executions);
+
+        hasher.u64(self.terminal_execution_states.len() as u64);
+        for (execution_id, record) in &self.terminal_execution_states {
+            hasher.string(execution_id);
+            hasher.string(record.execution_id());
+            hasher.byte(match record.state() {
+                ExecutionState::Pending => 0,
+                ExecutionState::Committed => 1,
+                ExecutionState::Aborted => 2,
+            });
+            hasher.receipt(record.receipt());
+        }
+
+        hasher.finish()
+    }
+
     /// Reserve capacity for the complete receipt, not just its quantities.
     ///
     /// Binding the reservation to the immutable receipt prevents a future
@@ -842,6 +866,8 @@ impl ProductionProcess {
             return Err("execution requires a non-empty energy node ID".to_string());
         }
 
+        state_anchor.verify_state(budget, inventory)?;
+
         self.validate_run_against_budget(
             &run,
             budget.available_feed_mass_g,
@@ -911,6 +937,8 @@ impl ProductionProcess {
                     .to_string(),
             );
         }
+
+        expected_anchor.verify_state(budget, inventory)?;
 
         let expected = ProcessExecutionReceipt {
             execution_id: receipt.execution_id.clone(),
@@ -1125,15 +1153,23 @@ impl ProcessRun {
 ///
 /// The kernel does not interpret the frontier or depend on a persistence backend.
 /// A durable adapter should construct it from a verified append-only journal head
-/// and pass that exact value to both authorization and recovery.
+/// and the exact kernel state represented at that frontier, then pass that value
+/// unchanged through authorization and recovery.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ExecutionStateAnchor {
     domain: String,
     frontier: String,
+    state_commitment: String,
 }
 
 impl ExecutionStateAnchor {
+    const UNBOUND_STATE_COMMITMENT: &'static str = "UNBOUND";
+
     /// Construct a bounded, portable execution-state anchor.
+    ///
+    /// new intentionally leaves the state commitment unbound. It is suitable
+    /// for identity-only comparisons, but durable execution APIs require a
+    /// state-bound anchor produced by for_state or with_state_commitment.
     pub fn new(
         domain: impl Into<String>,
         frontier: impl Into<String>,
@@ -1157,7 +1193,37 @@ impl ExecutionStateAnchor {
             return Err("execution anchor requires a non-empty portable frontier".to_string());
         }
 
-        Ok(Self { domain, frontier })
+        Ok(Self {
+            domain,
+            frontier,
+            state_commitment: Self::UNBOUND_STATE_COMMITMENT.to_string(),
+        })
+    }
+
+    /// Bind this anchor to the exact pre-Pending kernel state.
+    #[must_use]
+    pub fn for_state(
+        domain: impl Into<String>,
+        frontier: impl Into<String>,
+        budget: &ExecutionBudget,
+        inventory: &InventoryLedger,
+    ) -> Result<Self, String> {
+        Self::new(domain, frontier)?.with_state_commitment(&execution_state_commitment(
+            budget, inventory,
+        ))
+    }
+
+    /// Attach an externally computed canonical state commitment.
+    pub fn with_state_commitment(self, state_commitment: impl Into<String>) -> Result<Self, String> {
+        let state_commitment = state_commitment.into();
+        if !is_sha256_hex(&state_commitment) {
+            return Err("execution anchor requires a lowercase SHA-256 state commitment".to_string());
+        }
+
+        Ok(Self {
+            state_commitment,
+            ..self
+        })
     }
 
     /// Explicit anchor for purely in-memory callers.
@@ -1169,6 +1235,7 @@ impl ExecutionStateAnchor {
         Self {
             domain: "symtropy.execution.in-memory".to_string(),
             frontier: "UNANCHORED".to_string(),
+            state_commitment: Self::UNBOUND_STATE_COMMITMENT.to_string(),
         }
     }
 
@@ -1180,6 +1247,43 @@ impl ExecutionStateAnchor {
     #[must_use]
     pub fn frontier(&self) -> &str {
         &self.frontier
+    }
+
+    /// Return the canonical pre-Pending state commitment bound to this anchor.
+    #[must_use]
+    pub fn state_commitment(&self) -> &str {
+        &self.state_commitment
+    }
+
+    #[must_use]
+    pub fn is_state_bound(&self) -> bool {
+        self.state_commitment != Self::UNBOUND_STATE_COMMITMENT
+    }
+
+    fn verify_state(
+        &self,
+        budget: &ExecutionBudget,
+        inventory: &InventoryLedger,
+    ) -> Result<(), String> {
+        if !self.is_state_bound() {
+            if *self == Self::in_memory() {
+                return Ok(());
+            }
+
+            return Err(
+                "durable execution state anchor is missing its state commitment".to_string(),
+            );
+        }
+
+        let actual = execution_state_commitment(budget, inventory);
+        if actual != self.state_commitment {
+            return Err(format!(
+                "execution state commitment mismatch: expected={}, actual={}",
+                self.state_commitment, actual
+            ));
+        }
+
+        Ok(())
     }
 }
 
@@ -2512,6 +2616,182 @@ impl InventoryLedger {
     pub fn events(&self) -> &[InventoryEvent] {
         &self.events
     }
+
+    /// Return a deterministic SHA-256 commitment of the complete inventory state.
+    #[must_use]
+    pub fn state_commitment(&self) -> String {
+        let mut hasher = CommitmentHasher::new("symtropy.execution.inventory.v1");
+        hasher.map_u64(&self.state);
+
+        hasher.u64(self.events.len() as u64);
+        for event in &self.events {
+            hasher.inventory_event(event);
+        }
+
+        hasher.string_set(&self.seen_event_ids);
+
+        hasher.u64(self.source_reservations.len() as u64);
+        for (execution_id, reservation) in &self.source_reservations {
+            hasher.string(execution_id);
+            hasher.string(&reservation.execution_id);
+            hasher.string(&reservation.batch_id);
+            hasher.u64(reservation.mass_g);
+        }
+
+        hasher.optional_u64(self.last_sequence);
+        hasher.finish()
+    }
+}
+
+
+/// Deterministically commit the exact kernel state used by a pending execution.
+///
+/// The commitment includes budget capacity, all existing execution lifecycle
+/// records, inventory balances, causal inventory history, event identities,
+/// physical source reservations, and sequence frontier. BTree collections provide
+/// canonical ordering, while explicit length framing prevents ambiguous concatenation.
+fn execution_state_commitment(budget: &ExecutionBudget, inventory: &InventoryLedger) -> String {
+    let mut hasher = CommitmentHasher::new("symtropy.execution.pre-pending-state.v1");
+    hasher.u64(1);
+    hasher.bytes(budget.state_commitment().as_bytes());
+    hasher.bytes(inventory.state_commitment().as_bytes());
+    hasher.finish()
+}
+
+fn is_sha256_hex(value: &str) -> bool {
+    value.len() == 64
+        && value
+            .bytes()
+            .all(|byte| matches!(byte, b'0'..=b'9' | b'a'..=b'f'))
+}
+
+struct CommitmentHasher {
+    hasher: Sha256,
+}
+
+impl CommitmentHasher {
+    fn new(domain: &str) -> Self {
+        let mut hasher = Sha256::new();
+        Self::string_into(&mut hasher, domain);
+        Self { hasher }
+    }
+
+    fn bytes(&mut self, bytes: &[u8]) {
+        self.hasher.update((bytes.len() as u64).to_le_bytes());
+        self.hasher.update(bytes);
+    }
+
+    fn string(&mut self, value: &str) {
+        self.bytes(value.as_bytes());
+    }
+
+    fn u64(&mut self, value: u64) {
+        self.hasher.update(value.to_le_bytes());
+    }
+
+    fn optional_u64(&mut self, value: Option<u64>) {
+        match value {
+            Some(value) => {
+                self.byte(1);
+                self.u64(value);
+            }
+            None => self.byte(0),
+        }
+    }
+
+    fn byte(&mut self, value: u8) {
+        self.hasher.update([value]);
+    }
+
+    fn string_set(&mut self, values: &BTreeSet<String>) {
+        self.u64(values.len() as u64);
+        for value in values {
+            self.string(value);
+        }
+    }
+
+    fn map_u64(&mut self, values: &BTreeMap<String, u64>) {
+        self.u64(values.len() as u64);
+        for (key, value) in values {
+            self.string(key);
+            self.u64(*value);
+        }
+    }
+
+    fn receipt_map(&mut self, values: &BTreeMap<String, ProcessExecutionReceipt>) {
+        self.u64(values.len() as u64);
+        for (execution_id, receipt) in values {
+            self.string(execution_id);
+            self.receipt(receipt);
+        }
+    }
+
+    fn receipt(&mut self, receipt: &ProcessExecutionReceipt) {
+        self.string(receipt.execution_id());
+        self.string(receipt.process_id());
+        self.string(receipt.input_batch_id());
+        self.string(receipt.waste_stream());
+        self.u64(receipt.first_inventory_sequence());
+        self.u64(receipt.energy_sequence());
+        self.string(receipt.energy_node_id());
+        self.string(receipt.state_anchor().domain());
+        self.string(receipt.state_anchor().frontier());
+        self.string(receipt.state_anchor().state_commitment());
+        self.process_run(receipt.run());
+    }
+
+    fn process_run(&mut self, run: &ProcessRun) {
+        self.string(&run.process_id);
+        self.string(&run.input_material);
+        self.string(&run.input_batch_id);
+        self.u64(run.feed_mass_g);
+        self.map_u64(&run.output_mass_g);
+        self.u64(run.waste_mass_g);
+        self.u64(run.energy_units);
+    }
+
+    fn inventory_event(&mut self, event: &InventoryEvent) {
+        self.u64(event.sequence);
+        match &event.event_id {
+            Some(event_id) => {
+                self.byte(1);
+                self.string(event_id);
+            }
+            None => self.byte(0),
+        }
+        self.string(&event.batch_id);
+        self.u64(event.mass_g);
+        self.byte(match event.kind {
+            InventoryEventKind::Produced => 0,
+            InventoryEventKind::Consumed => 1,
+        });
+        match &event.provenance_id {
+            Some(provenance_id) => {
+                self.byte(1);
+                self.string(provenance_id);
+            }
+            None => self.byte(0),
+        }
+    }
+
+    fn finish(self) -> String {
+        hex_digest(self.hasher.finalize().as_ref())
+    }
+
+    fn string_into(hasher: &mut Sha256, value: &str) {
+        hasher.update((value.len() as u64).to_le_bytes());
+        hasher.update(value.as_bytes());
+    }
+}
+
+fn hex_digest(bytes: &[u8]) -> String {
+    const DIGITS: &[u8; 16] = b"0123456789abcdef";
+    let mut output = String::with_capacity(bytes.len() * 2);
+    for &byte in bytes {
+        output.push(char::from(DIGITS[usize::from(byte >> 4)]));
+        output.push(char::from(DIGITS[usize::from(byte & 0x0f)]));
+    }
+    output
 }
 
 /// Replay inventory from an initial balance and append-only causal events.
