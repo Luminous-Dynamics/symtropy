@@ -1552,16 +1552,21 @@ fn is_sha256_hex(value: &str) -> bool {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use ring::rand::SystemRandom;
     use std::{
         fs,
         time::{SystemTime, UNIX_EPOCH},
     };
 
-    fn configured_adapter(name: &str) -> DurableExecutionAdapter {
+    fn test_signer(key_id: &str, key_epoch: u64) -> DurableExecutionSigner {
         let document = Ed25519KeyPair::generate_pkcs8(&SystemRandom::new())
             .expect("generate test signing key");
-        let signer = DurableExecutionSigner::from_pkcs8("test-key", 1, document.as_ref())
-            .expect("construct test signer");
+        DurableExecutionSigner::from_pkcs8(key_id, key_epoch, document.as_ref())
+            .expect("construct test signer")
+    }
+
+    fn configured_adapter(name: &str) -> DurableExecutionAdapter {
+        let signer = test_signer("test-key", 1);
         let mut trust = DurableExecutionTrust::new();
         trust
             .trust_signer(&signer, 0, None)
@@ -1610,6 +1615,321 @@ mod tests {
             InventoryLedger::new(BTreeMap::from([("feed".to_string(), 1_000)])),
             EnergyLedger::new(BTreeMap::from([("bus".to_string(), 4_000)])),
         )
+    }
+
+    #[test]
+    fn signed_journal_is_accepted_and_exposes_key_epoch() {
+        let adapter = configured_adapter("signed");
+        let (process, run) = process_and_run();
+        let (mut budget, mut inventory, mut energy) = initial_kernel_state();
+
+        adapter
+            .authorize_pending(
+                &process,
+                "exec-signed",
+                1,
+                10,
+                20,
+                "bus",
+                run,
+                &mut budget,
+                &mut inventory,
+                &mut energy,
+            )
+            .expect("signed Pending");
+
+        let loaded = adapter.load_verified().expect("authenticated journal");
+        let auth = loaded.chain.events()[0]
+            .payload
+            .authentication
+            .as_ref()
+            .expect("authentication proof");
+        assert_eq!(auth.algorithm, EXECUTION_AUTH_ALGORITHM);
+        assert_eq!(auth.key_id, "test-key");
+        assert_eq!(auth.key_epoch, 1);
+        assert_eq!(auth.public_key.len(), 64);
+        assert_eq!(auth.signature.len(), 128);
+        assert_eq!(auth.signed_digest.len(), 64);
+
+        fs::remove_dir_all(adapter.store().root()).expect("cleanup");
+    }
+
+    #[test]
+    fn tampered_payload_with_rehashed_outer_event_fails_signature_verification() {
+        let adapter = configured_adapter("auth-tamper");
+        let (process, run) = process_and_run();
+        let (mut budget, mut inventory, mut energy) = initial_kernel_state();
+
+        adapter
+            .authorize_pending(
+                &process,
+                "exec-auth-tamper",
+                1,
+                10,
+                20,
+                "bus",
+                run,
+                &mut budget,
+                &mut inventory,
+                &mut energy,
+            )
+            .expect("signed Pending");
+
+        let loaded = adapter.load().expect("journal");
+        let mut payload = loaded.chain.events()[0].payload.clone();
+        payload.process_definition_commitment = "00".repeat(32);
+
+        let mut bad_chain = EventChain::new("bootstrap", 1);
+        bad_chain
+            .append(
+                1,
+                EXECUTION_EVENT_KIND,
+                None,
+                None,
+                Vec::new(),
+                payload,
+            )
+            .expect("re-hash tampered outer event");
+
+        assert!(
+            DurableExecutionAdapter::validate_authenticated_journal(
+                &bad_chain,
+                "bootstrap",
+                1,
+                adapter.trust(),
+            )
+            .is_err()
+        );
+
+        fs::remove_dir_all(adapter.store().root()).expect("cleanup");
+    }
+
+    #[test]
+    fn missing_signer_fails_before_live_projection_mutation() {
+        let signer = test_signer("missing-signer", 1);
+        let mut trust = DurableExecutionTrust::new();
+        trust.trust_signer(&signer, 0, None).expect("trust");
+
+        let adapter = DurableExecutionAdapter::open(
+            store("missing-signer"),
+            "bootstrap",
+            "bootstrap-execution",
+            1,
+        )
+        .expect("adapter")
+        .with_trust(trust);
+
+        let (process, run) = process_and_run();
+        let (mut budget, mut inventory, mut energy) = initial_kernel_state();
+        let before_budget = budget.clone();
+        let before_inventory = inventory.clone();
+        let before_energy = energy.clone();
+
+        assert!(
+            adapter
+                .authorize_pending(
+                    &process,
+                    "exec-missing-signer",
+                    1,
+                    10,
+                    20,
+                    "bus",
+                    run,
+                    &mut budget,
+                    &mut inventory,
+                    &mut energy,
+                )
+                .is_err()
+        );
+
+        assert_eq!(budget, before_budget);
+        assert_eq!(inventory, before_inventory);
+        assert_eq!(energy, before_energy);
+        assert!(adapter.load().expect("journal").chain.events().is_empty());
+
+        fs::remove_dir_all(adapter.store().root()).expect("cleanup");
+    }
+
+    #[test]
+    fn revoked_key_blocks_terminal_append_without_changing_projection() {
+        let signer = test_signer("revoked-key", 7);
+        let mut trust = DurableExecutionTrust::new();
+        trust
+            .trust_signer(&signer, 0, Some(1))
+            .expect("trust signer with ordinal revocation");
+
+        let adapter = DurableExecutionAdapter::open(
+            store("revoked-key"),
+            "bootstrap",
+            "bootstrap-execution",
+            1,
+        )
+        .expect("adapter")
+        .with_trust(trust)
+        .with_signer(signer);
+
+        let (process, run) = process_and_run();
+        let (mut budget, mut inventory, mut energy) = initial_kernel_state();
+
+        let receipt = adapter
+            .authorize_pending(
+                &process,
+                "exec-revoked",
+                1,
+                10,
+                20,
+                "bus",
+                run,
+                &mut budget,
+                &mut inventory,
+                &mut energy,
+            )
+            .expect("Pending before revocation");
+
+        let before_budget = budget.clone();
+        let before_inventory = inventory.clone();
+        let before_energy = energy.clone();
+
+        let executable =
+            resume_pending_execution(receipt.execution_id(), &budget, &inventory)
+                .expect("activation");
+
+        assert!(adapter
+            .commit(
+                &process,
+                &executable,
+                2,
+                &mut budget,
+                &mut inventory,
+                &mut energy,
+            )
+            .is_err());
+
+        assert_eq!(budget, before_budget);
+        assert_eq!(inventory, before_inventory);
+        assert_eq!(energy, before_energy);
+        assert_eq!(adapter.load().expect("journal").chain.events().len(), 1);
+
+        fs::remove_dir_all(adapter.store().root()).expect("cleanup");
+    }
+
+    #[test]
+    fn key_rotation_applies_between_executions_not_mid_lifecycle() {
+        let first = test_signer("key-one", 1);
+        let second = test_signer("key-two", 2);
+
+        let mut trust = DurableExecutionTrust::new();
+        trust.trust_signer(&first, 0, Some(2)).expect("trust first");
+        trust.trust_signer(&second, 2, None).expect("trust second");
+
+        let mut adapter = DurableExecutionAdapter::open(
+            store("key-rotation"),
+            "bootstrap",
+            "bootstrap-execution",
+            1,
+        )
+        .expect("adapter")
+        .with_trust(trust)
+        .with_signer(first);
+
+        let process =
+            ProductionProcess::new("electrolysis", "regolith", ["oxygen", "metal"], "slag");
+        let run_one = ProcessRun::new(
+            "electrolysis",
+            "regolith",
+            "feed-one",
+            1_000,
+            BTreeMap::from([("metal".to_string(), 720), ("oxygen".to_string(), 180)]),
+            100,
+            4_000,
+        );
+        let run_two = ProcessRun::new(
+            "electrolysis",
+            "regolith",
+            "feed-two",
+            1_000,
+            BTreeMap::from([("metal".to_string(), 720), ("oxygen".to_string(), 180)]),
+            100,
+            4_000,
+        );
+        let (mut budget, mut inventory, mut energy) = (
+            ExecutionBudget::new(2_000, 8_000),
+            InventoryLedger::new(BTreeMap::from([
+                ("feed-one".to_string(), 1_000),
+                ("feed-two".to_string(), 1_000),
+            ])),
+            EnergyLedger::new(BTreeMap::from([("bus".to_string(), 8_000)])),
+        );
+
+        let receipt_one = adapter
+            .authorize_pending(
+                &process,
+                "exec-key-one",
+                1,
+                10,
+                20,
+                "bus",
+                run_one,
+                &mut budget,
+                &mut inventory,
+                &mut energy,
+            )
+            .expect("first Pending");
+        let executable_one =
+            resume_pending_execution(receipt_one.execution_id(), &budget, &inventory)
+                .expect("first activation");
+        adapter
+            .commit(
+                &process,
+                &executable_one,
+                2,
+                &mut budget,
+                &mut inventory,
+                &mut energy,
+            )
+            .expect("first commit");
+
+        adapter.set_signer(second);
+
+        adapter
+            .authorize_pending(
+                &process,
+                "exec-key-two",
+                3,
+                11,
+                21,
+                "bus",
+                run_two,
+                &mut budget,
+                &mut inventory,
+                &mut energy,
+            )
+            .expect("second Pending under rotated key");
+
+        let loaded = adapter
+            .load_verified()
+            .expect("rotated authenticated journal");
+        assert_eq!(loaded.chain.events().len(), 3);
+        assert_eq!(
+            loaded.chain.events()[0]
+                .payload
+                .authentication
+                .as_ref()
+                .expect("first auth")
+                .key_epoch,
+            1
+        );
+        assert_eq!(
+            loaded.chain.events()[2]
+                .payload
+                .authentication
+                .as_ref()
+                .expect("second auth")
+                .key_epoch,
+            2
+        );
+
+        fs::remove_dir_all(adapter.store().root()).expect("cleanup");
     }
 
     #[test]
