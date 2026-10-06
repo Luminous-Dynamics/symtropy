@@ -1211,6 +1211,43 @@ pub fn resume_pending_execution(
     Ok(ExecutableProcessExecutionReceipt::new(receipt.clone()))
 }
 
+/// Abort a pending process execution using only its raw authorization receipt.
+///
+/// This is intentionally safe to call before executable activation, including
+/// when a durability adapter fails while recording the pending receipt. It
+/// releases the concrete source reservation and restores reserved capacity,
+/// but cannot materialize product or energy events.
+pub fn abort_pending_execution(
+    receipt: &ProcessExecutionReceipt,
+    budget: &mut ExecutionBudget,
+    inventory: &mut InventoryLedger,
+) -> Result<(), String> {
+    let reservation = budget
+        .reservation(receipt.execution_id())
+        .ok_or_else(|| format!("execution is not pending: {}", receipt.execution_id()))?;
+
+    if reservation != receipt {
+        return Err("execution reservation does not match receipt".to_string());
+    }
+
+    inventory.matching_source_reservation(
+        receipt.execution_id(),
+        receipt.input_batch_id(),
+        receipt.feed_mass_g(),
+    )?;
+
+    let mut staged_inventory = inventory.clone();
+    staged_inventory.release_source_batch(receipt.execution_id())?;
+
+    let mut staged_budget = budget.clone();
+    staged_budget.abort(receipt.execution_id())?;
+
+    *inventory = staged_inventory;
+    *budget = staged_budget;
+
+    Ok(())
+}
+
 /// Commit one authorized process execution across budget, inventory, and energy.
 ///
 /// Inventory, energy, and budget state are all staged before any live
@@ -1267,31 +1304,7 @@ pub fn abort_process_execution(
     budget: &mut ExecutionBudget,
     inventory: &mut InventoryLedger,
 ) -> Result<(), String> {
-    let inner = &receipt.receipt;
-    let reservation = budget
-        .reservation(inner.execution_id())
-        .ok_or_else(|| format!("execution is not pending: {}", inner.execution_id()))?;
-
-    if reservation != inner {
-        return Err("execution reservation does not match receipt".to_string());
-    }
-
-    inventory.matching_source_reservation(
-        inner.execution_id(),
-        inner.input_batch_id(),
-        inner.feed_mass_g(),
-    )?;
-
-    let mut staged_inventory = inventory.clone();
-    staged_inventory.release_source_batch(receipt.execution_id())?;
-
-    let mut staged_budget = budget.clone();
-    staged_budget.abort(receipt.execution_id())?;
-
-    *inventory = staged_inventory;
-    *budget = staged_budget;
-
-    Ok(())
+    abort_pending_execution(&receipt.receipt, budget, inventory)
 }
 
 /// Deterministic process score for comparing candidate bootstrap transitions.
@@ -3327,6 +3340,52 @@ mod tests {
             &abort_inventory,
         )
         .is_err());
+    }
+
+    #[test]
+    fn raw_pending_receipt_can_abort_without_executable_activation() {
+        let process = ProductionProcess::new(
+            "regolith_electrolysis",
+            "regolith",
+            ["oxygen", "metal"],
+            "waste",
+        );
+        let run = ProcessRun::new(
+            "regolith_electrolysis",
+            "regolith",
+            "feed-abort-pending",
+            1_000,
+            BTreeMap::from([("oxygen".to_string(), 180), ("metal".to_string(), 720)]),
+            100,
+            4_000,
+        );
+
+        let mut budget = ExecutionBudget::new(1_000, 4_000);
+        let mut inventory = InventoryLedger::new(BTreeMap::from([
+            ("feed-abort-pending".to_string(), 1_000),
+        ]));
+        let pending = process
+            .authorize_pending_execution_with_inventory(
+                "exec-abort-pending",
+                10,
+                20,
+                "bus",
+                run,
+                &mut budget,
+                &mut inventory,
+            )
+            .expect("pending execution should authorize");
+
+        abort_pending_execution(&pending, &mut budget, &mut inventory)
+            .expect("raw pending execution should abort safely");
+        assert_eq!(budget.available_feed_mass_g(), 1_000);
+        assert_eq!(budget.available_energy_units(), 4_000);
+        assert_eq!(
+            budget.execution_state("exec-abort-pending"),
+            Some(ExecutionState::Aborted)
+        );
+        assert!(inventory.source_reservations.is_empty());
+        assert!(resume_pending_execution("exec-abort-pending", &budget, &inventory).is_err());
     }
 
     #[test]
