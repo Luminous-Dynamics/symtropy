@@ -792,6 +792,7 @@ The first implementation should prove:
 - commit and abort reject a receipt that does not exactly match the still-pending authorization, even when its feedstock and energy quantities match;
 - a pending execution can be explicitly rehydrated from the authoritative budget receipt plus matching source reservation without minting a second authorization;
 - durable integration has an explicit pending-authorization boundary: the raw pending receipt must cross persistence before executable activation, while budget-only or merely in-memory authorization cannot cross that boundary;
+- a persisted Pending receipt can be reconstructed into the raw receipt type and restored against the pre-transition budget/inventory state without minting a new execution identity;
 - legal execution lifecycle transitions are encoded by the kernel as `Pending -> Committed` or `Pending -> Aborted`; terminal-to-terminal, terminal-to-pending, and repeated-state transitions are invalid rather than implicitly idempotent;
 - persistence failure after pending authorization has a safe raw-receipt compensation path that aborts and refunds the reservation without exposing executable event materialization;
 - budget-only reservations have a distinct cancellation path and cannot be mistaken for executions with concrete physical-source reservations;
@@ -914,7 +915,8 @@ The next integration layer should use an append-only, journal-first execution re
 ```text
 execution_id
 lifecycle_state
-complete_process_execution_receipt:
+complete_process_execution_receipt
+  reconstructed as a raw receipt before executable activation:
     process_id
     input_batch_id
     waste_stream
@@ -931,6 +933,8 @@ The adapter must use the explicit pending-authorization API and enforce this ord
 ```text
 authorize_pending_execution_with_inventory
     -> durably record Pending + exact receipt + source reservation
+    -> reconstruct raw ProcessExecutionReceipt from persisted fields
+    -> restore_pending_execution_with_inventory against pre-Pending state
     -> resume_pending_execution only after durable Pending exists
     -> stage deterministic ledger effects
     -> durably record exactly one terminal outcome
@@ -956,7 +960,7 @@ journal verification
            terminal; never re-authorize or rehydrate
 ```
 
-The adapter must fail closed on an unknown lifecycle state, duplicate terminal outcome, terminal receipt mismatch, missing causal predecessor, impossible sequence transition, or a committed outcome whose required causal events cannot be reconstructed exactly. The kernel's `ExecutionState::can_transition_to` provides the common legal transition rule so adapters do not invent a second lifecycle semantics.
+The adapter must fail closed on an unknown lifecycle state, duplicate terminal outcome, terminal receipt mismatch, missing causal predecessor, impossible sequence transition, or a committed outcome whose required causal events cannot be reconstructed exactly. Receipt reconstruction does not itself confer execution authority; process-definition validation and pending reservation restoration remain mandatory before executable activation. The kernel's `ExecutionState::can_transition_to` provides the common legal transition rule so adapters do not invent a second lifecycle semantics.
 
 Snapshots may be used as checkpoints, but they are not the authority for resolving an interrupted execution unless their journal anchor covers the corresponding lifecycle record. The existing symtropy-persistence journal and snapshot machinery is therefore a natural implementation substrate, while the bootstrap kernel remains independent of filesystem or database APIs.
 
