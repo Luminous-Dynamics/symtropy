@@ -1236,6 +1236,7 @@ pub fn abort_budget_only_execution(
 
     Ok(())
 }
+
 /// Abort a pending process execution using only its raw authorization receipt.
 ///
 /// This is intentionally safe to call before executable activation, including
