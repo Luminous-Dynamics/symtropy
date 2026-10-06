@@ -2562,7 +2562,10 @@ mod tests {
 
         run.validate_mass_balance()
             .expect("co-product process should conserve mass");
-        assert_eq!(run.total_output_mass_g().expect("output mass should fit"), 900);
+        assert_eq!(
+            run.total_output_mass_g().expect("output mass should fit"),
+            900
+        );
     }
 
     #[test]
@@ -2572,10 +2575,7 @@ mod tests {
             "feed",
             "batch-overflow",
             u64::MAX,
-            BTreeMap::from([
-                ("a".to_string(), u64::MAX),
-                ("b".to_string(), 1),
-            ]),
+            BTreeMap::from([("a".to_string(), u64::MAX), ("b".to_string(), 1)]),
             0,
             0,
         );
@@ -3351,13 +3351,15 @@ mod tests {
         assert_eq!(committed_record.execution_id(), "exec-terminal-commit");
         assert_eq!(committed_record.state(), ExecutionState::Committed);
         assert_eq!(committed_record.receipt(), &commit_receipt.receipt);
-        assert!(commit_budget.pending_receipt("exec-terminal-commit").is_none());
-        assert!(resume_pending_execution(
-            "exec-terminal-commit",
-            &commit_budget,
-            &commit_inventory,
-        )
-        .is_err());
+        assert!(
+            commit_budget
+                .pending_receipt("exec-terminal-commit")
+                .is_none()
+        );
+        assert!(
+            resume_pending_execution("exec-terminal-commit", &commit_budget, &commit_inventory,)
+                .is_err()
+        );
 
         let mut abort_budget = ExecutionBudget::new(1_000, 4_000);
         let mut abort_inventory =
@@ -3385,13 +3387,15 @@ mod tests {
         assert_eq!(aborted_record.execution_id(), "exec-terminal-abort");
         assert_eq!(aborted_record.state(), ExecutionState::Aborted);
         assert_eq!(aborted_record.receipt(), &abort_receipt.receipt);
-        assert!(abort_budget.pending_receipt("exec-terminal-abort").is_none());
-        assert!(resume_pending_execution(
-            "exec-terminal-abort",
-            &abort_budget,
-            &abort_inventory,
-        )
-        .is_err());
+        assert!(
+            abort_budget
+                .pending_receipt("exec-terminal-abort")
+                .is_none()
+        );
+        assert!(
+            resume_pending_execution("exec-terminal-abort", &abort_budget, &abort_inventory,)
+                .is_err()
+        );
     }
 
     #[test]
@@ -3414,14 +3418,7 @@ mod tests {
 
         let mut budget = ExecutionBudget::new(1_000, 4_000);
         let receipt = process
-            .authorize_execution(
-                "exec-budget-only-abort",
-                10,
-                20,
-                "bus",
-                run,
-                &mut budget,
-            )
+.authorize_execution("exec-budget-only-abort", 10, 20, "bus", run, &mut budget)
             .expect("budget-only authorization should reserve capacity");
 
         assert_eq!(budget.available_feed_mass_g(), 0);
@@ -3458,14 +3455,7 @@ mod tests {
         let mut budget = ExecutionBudget::new(1_000, 4_000);
         let mut inventory = InventoryLedger::new(BTreeMap::new());
         let receipt = process
-            .authorize_execution(
-                "exec-budget-only-boundary",
-                10,
-                20,
-                "bus",
-                run,
-                &mut budget,
-            )
+.authorize_execution("exec-budget-only-boundary", 10, 20, "bus", run, &mut budget)
             .expect("budget-only authorization should succeed");
 
         assert!(abort_pending_execution(&*receipt, &mut budget, &mut inventory).is_err());
@@ -3496,9 +3486,8 @@ mod tests {
         );
 
         let mut budget = ExecutionBudget::new(1_000, 4_000);
-        let mut inventory = InventoryLedger::new(BTreeMap::from([
-            ("feed-abort-pending".to_string(), 1_000),
-        ]));
+        let mut inventory =
+            InventoryLedger::new(BTreeMap::from([("feed-abort-pending".to_string(), 1_000)]));
         let pending = process
             .authorize_pending_execution_with_inventory(
                 "exec-abort-pending",
