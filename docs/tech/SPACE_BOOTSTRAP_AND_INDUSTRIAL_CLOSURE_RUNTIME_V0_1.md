@@ -907,7 +907,7 @@ The kernel performs preparation against inventory and energy clones and settles 
 
 A failed preparation leaves the live budget, ledgers, and source reservation untouched; the exact receipt can therefore be retried after the required physical state is restored. An execution that will not be retried can be explicitly aborted, which returns its reserved feedstock and energy while permanently retiring that execution identity. Abort stages the budget and source-reservation changes before replacing either live state. This mirrors the prepare/commit/rollback shape used by transactional systems, but the current kernel remains an in-memory deterministic coordination boundary: it is not a durable transaction log, distributed consensus protocol, or crash-recovery mechanism for external systems. PostgreSQL's two-phase transaction model similarly separates prepare from later commit/rollback and requires an external manager to close prepared transactions promptly; it is therefore a reference for the lifecycle shape, not evidence that this kernel is already durable. (PostgreSQL 18, https://www.postgresql.org/docs/18/two-phase.html)
 
-The remaining durability boundary is explicit: a process can be authorized and physically reserved in memory, then the process can terminate before commit/abort, leaving no durable pending-execution record. Within the in-memory kernel, an interrupted caller can now rehydrate the executable proof from the still-pending budget receipt and matching source reservation without creating fresh capacity. The next integration layer should persist an execution lifecycle record before relying on cross-ledger prepare semantics and recover pending executions deterministically. The existing symtropy-persistence crate already supplies atomic snapshots, an append-only journal, incomplete-tail handling, event-chain verification, and snapshot-anchor checks; this bootstrap kernel should remain storage-independent and consume that capability through an adapter rather than importing persistence into the deterministic kernel.
+The remaining durability boundary is explicit: a process can be authorized and physically reserved in memory, then the process can terminate before commit/abort, leaving no durable pending-execution record. Within the in-memory kernel, an interrupted caller can rehydrate the executable proof from the still-pending budget receipt and matching source reservation without creating fresh capacity. A durable integration must additionally bind that Pending receipt to the exact verified journal/state frontier from which the reservation was created. The receipt therefore carries an opaque, domain-bound execution-state anchor; durable authorization uses `authorize_pending_execution_with_inventory_at_anchor`, and recovery uses `restore_pending_execution_with_inventory_at_anchor` with the independently verified current frontier. The bootstrap kernel remains storage-independent: the adapter supplies the journal frontier while the kernel only enforces exact anchor equality.
 
 ### Durable adapter contract
 
@@ -924,6 +924,9 @@ complete_process_execution_receipt
     first_inventory_sequence
     energy_sequence
     energy_node_id
+    execution_state_anchor:
+      domain
+      frontier
     complete_process_run
 causal event identities / payloads required by the adapter
 schema_version
@@ -932,17 +935,17 @@ schema_version
 The adapter must use the explicit pending-authorization API and enforce this ordering:
 
 ```text
-authorize_pending_execution_with_inventory
-    -> durably record Pending + exact receipt + source reservation
+authorize_pending_execution_with_inventory_at_anchor
+    -> durably record Pending + exact receipt + source reservation + verified frontier
     -> reconstruct raw ProcessExecutionReceipt from persisted fields
-    -> restore_pending_execution_with_inventory against pre-Pending state
+    -> restore_pending_execution_with_inventory_at_anchor against the same verified frontier
     -> resume_pending_execution only after durable Pending exists
     -> stage deterministic ledger effects
     -> durably record exactly one terminal outcome
     -> rebuild live state from the journal
 ```
 
-The existing authorize_execution_with_inventory convenience path remains valid for purely in-memory callers, but a durable adapter must not expose its executable result before the Pending record has crossed the persistence boundary. The budget-only `authorize_execution` path is likewise type-separated, so its reservation can only be released through `abort_budget_only_execution`. The raw ProcessExecutionReceipt intentionally cannot materialize causal events; executable activation is the explicit proof transition after the pending reservation has been durably represented. When persistence of the Pending record fails, the adapter should use `abort_pending_execution` with the raw receipt to release the reservation and retire the execution without ever minting executable proof. This makes failed persistence a compensating abort, not a reason to weaken the activation boundary.
+The existing authorize_execution_with_inventory convenience path remains valid for purely in-memory callers, but a durable adapter must use `authorize_execution_with_inventory_at_anchor` and must not expose its executable result before the Pending record has crossed the persistence boundary. On recovery, the adapter must use `restore_pending_execution_with_inventory_at_anchor` with the exact independently verified frontier that is bound into the receipt. The budget-only `authorize_execution` path is likewise type-separated, so its reservation can only be released through `abort_budget_only_execution`. The raw ProcessExecutionReceipt intentionally cannot materialize causal events; executable activation is the explicit proof transition after the pending reservation has been durably represented. When persistence of the Pending record fails, the adapter should use `abort_pending_execution` with the raw receipt to release the reservation and retire the execution without ever minting executable proof. This makes failed persistence a compensating abort, not a reason to weaken the activation boundary.
 
 Commit and abort are terminal alternatives, never independent facts inferred from whichever ledger happened to contain a later event. A committed transition must carry the same receipt identity that was pending; an aborted transition must carry the same receipt identity while carrying no product/energy consumption effects. A second terminal transition for the same execution ID is invalid.
 
@@ -961,7 +964,7 @@ journal verification
            terminal; never re-authorize or rehydrate
 ```
 
-The adapter must fail closed on an unknown lifecycle state, duplicate terminal outcome, terminal receipt mismatch, missing causal predecessor, impossible sequence transition, or a committed outcome whose required causal events cannot be reconstructed exactly. Receipt reconstruction does not itself confer execution authority; process-definition validation and pending reservation restoration remain mandatory before executable activation. The kernel's `ExecutionState::can_transition_to` provides the common legal transition rule so adapters do not invent a second lifecycle semantics.
+The adapter must fail closed on an unknown lifecycle state, duplicate terminal outcome, terminal receipt mismatch, missing causal predecessor, impossible sequence transition, a Pending receipt whose execution-state anchor does not match the verified journal frontier, or a committed outcome whose required causal events cannot be reconstructed exactly. Receipt reconstruction does not itself confer execution authority; process-definition validation and pending reservation restoration remain mandatory before executable activation. The kernel's `ExecutionState::can_transition_to` provides the common legal transition rule so adapters do not invent a second lifecycle semantics.
 
 Snapshots may be used as checkpoints, but they are not the authority for resolving an interrupted execution unless their journal anchor covers the corresponding lifecycle record. The existing symtropy-persistence journal and snapshot machinery is therefore a natural implementation substrate, while the bootstrap kernel remains independent of filesystem or database APIs.
 
