@@ -405,6 +405,19 @@ impl DurableExecutionAdapter {
             .load_journal(self.journal_namespace.clone(), self.seed)?)
     }
 
+    fn load_verified(&self) -> Result<JournalLoad<ExecutionLifecycleEvent>, AdapterError> {
+        let loaded = self.load_verified()?;
+        for event in loaded.chain.events() {
+            if event.payload.receipt.state_anchor().domain() != self.anchor_domain {
+                return Err(AdapterError::Invalid(
+                    "durable execution anchor domain does not match adapter domain"
+                        .to_string(),
+                ));
+            }
+        }
+        Ok(loaded)
+    }
+
     pub fn validate_journal(
         chain: &EventChain<ExecutionLifecycleEvent>,
     ) -> Result<(), AdapterError> {
