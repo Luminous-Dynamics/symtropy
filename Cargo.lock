@@ -8904,6 +8904,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "symtropy-bootstrap"
+version = "0.1.0"
+dependencies = [
+ "sha2",
+]
+
+[[package]]
 name = "symtropy-basin"
 version = "0.1.0"
 dependencies = [
