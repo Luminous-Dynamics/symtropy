@@ -3261,7 +3261,6 @@ mod tests {
     }
 
     #[test]
-    #[test]
     fn execution_record_exposes_complete_receipt_identity() {
         let process = ProductionProcess::new(
             "regolith_electrolysis",
