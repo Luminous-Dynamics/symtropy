@@ -707,6 +707,8 @@ impl DurableExecutionAdapter {
         trust: &DurableExecutionTrust,
     ) -> Result<(), AdapterError> {
         Self::validate_journal(chain)?;
+        let mut lifecycle_signers: BTreeMap<String, (String, u64)> = BTreeMap::new();
+
         for (ordinal, event) in chain.events().iter().enumerate() {
             let ordinal = u64::try_from(ordinal)
                 .map_err(|_| AdapterError::Invalid("journal ordinal overflow".to_string()))?;
@@ -717,8 +719,41 @@ impl DurableExecutionAdapter {
                         .to_string(),
                 ));
             }
+
             trust.verify_event(namespace, seed, ordinal, event)?;
+
+            let auth = event.payload.authentication.as_ref().ok_or_else(|| {
+                AdapterError::Invalid(
+                    "authenticated execution event unexpectedly lacks origin proof".to_string(),
+                )
+            })?;
+
+            match event.payload.state {
+                DurableExecutionState::Pending => {
+                    lifecycle_signers.insert(
+                        event.payload.execution_id.clone(),
+                        (auth.key_id.clone(), auth.key_epoch),
+                    );
+                }
+                DurableExecutionState::Committed | DurableExecutionState::Aborted => {
+                    let expected = lifecycle_signers
+                        .get(&event.payload.execution_id)
+                        .ok_or_else(|| {
+                            AdapterError::Invalid(
+                                "terminal execution has no authenticated Pending signer"
+                                    .to_string(),
+                            )
+                        })?;
+                    if expected.0 != auth.key_id || expected.1 != auth.key_epoch {
+                        return Err(AdapterError::Invalid(
+                            "terminal execution changed signing authority mid-lifecycle"
+                                .to_string(),
+                        ));
+                    }
+                }
+            }
         }
+
         Ok(())
     }
 
