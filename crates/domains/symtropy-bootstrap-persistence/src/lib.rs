@@ -1692,9 +1692,9 @@ mod tests {
         )
         .expect("adapter");
         let (process, run) = process_and_run();
-        let (mut budget, mut inventory, energy) = initial_kernel_state();
+        let (mut budget, mut inventory, mut energy) = initial_kernel_state();
 
-        adapter
+        let receipt = adapter
             .authorize_pending(
                 &process,
                 "exec-projection",
@@ -1702,41 +1702,57 @@ mod tests {
                 10,
                 20,
                 "bus",
-                run.clone(),
+                run,
                 &mut budget,
                 &mut inventory,
-                &energy,
+                &mut energy,
             )
             .expect("pending authorization");
-
         let executable = resume_pending_execution("exec-projection", &budget, &inventory)
             .expect("activation");
-        let mut mutated_energy = energy.clone();
-        commit_process_execution(
-            &executable,
-            &mut budget,
-            &mut inventory,
-            &mutated_energy,
-        )
-        .expect("local projection commit");
+
+        adapter
+            .commit(
+                &process,
+                &executable,
+                2,
+                &mut budget,
+                &mut inventory,
+                &mut energy,
+            )
+            .expect("commit");
+
+        energy
+            .append(
+                symtropy_bootstrap::EnergyEvent::new(
+                    99,
+                    "bus",
+                    1,
+                    symtropy_bootstrap::EnergyEventKind::Generated,
+                )
+                .with_event_id("unrecorded-energy")
+                .with_provenance("projection-test"),
+            )
+            .expect("mutate live-only energy projection");
 
         assert!(
             adapter
                 .authorize_pending(
                     &process,
                     "exec-fork",
-                    2,
+                    3,
                     20,
                     30,
                     "bus",
-                    run,
+                    process_and_run().1,
                     &mut budget,
                     &mut inventory,
-                    &energy,
+                    &mut energy,
                 )
                 .is_err()
         );
 
         fs::remove_dir_all(adapter.store().root()).expect("cleanup");
+        let _ = receipt;
     }
 }
