@@ -4219,6 +4219,51 @@ mod tests {
         assert!(ExecutionStateAnchor::new("journal", "head\\nvalue").is_err());
         assert!(ExecutionStateAnchor::new("journal", "head/1").is_err());
         assert!(ExecutionStateAnchor::new("journal:v1", "abcdef0123456789").is_ok());
+        assert!(
+            ExecutionStateAnchor::new("journal:v1", "head")
+                .unwrap()
+                .with_state_commitment("not-a-sha256")
+                .is_err()
+        );
+        assert!(
+            ExecutionStateAnchor::new("journal:v1", "head")
+                .unwrap()
+                .with_state_commitment(&"a".repeat(64))
+                .is_ok()
+        );
+        assert!(
+            ExecutionStateAnchor::new("journal:v1", "head")
+                .unwrap()
+                .with_state_commitment(&"A".repeat(64))
+                .is_err()
+        );
+    }
+
+    #[test]
+    fn execution_state_anchor_binds_exact_kernel_state() {
+        let budget = ExecutionBudget::new(1_000, 4_000);
+        let inventory = InventoryLedger::new(BTreeMap::from([("feed".to_string(), 1_000)]));
+
+        let anchor = ExecutionStateAnchor::for_state(
+            "symtropy.execution.journal.v1",
+            "head-a",
+            &budget,
+            &inventory,
+        )
+        .expect("state-bound anchor should construct");
+        assert!(anchor.is_state_bound());
+        assert_eq!(anchor.state_commitment().len(), 64);
+
+        let changed_inventory =
+            InventoryLedger::new(BTreeMap::from([("feed".to_string(), 999)]));
+        let changed_anchor = ExecutionStateAnchor::for_state(
+            "symtropy.execution.journal.v1",
+            "head-a",
+            &budget,
+            &changed_inventory,
+        )
+        .expect("changed state should still produce a commitment");
+        assert_ne!(anchor.state_commitment(), changed_anchor.state_commitment());
     }
 
     #[test]
@@ -4238,14 +4283,18 @@ mod tests {
             100,
             4_000,
         );
-        let creation_anchor =
-            ExecutionStateAnchor::new("symtropy.execution.journal.v1", "head-a").unwrap();
-        let later_anchor =
-            ExecutionStateAnchor::new("symtropy.execution.journal.v1", "head-b").unwrap();
 
         let mut budget = ExecutionBudget::new(1_000, 4_000);
         let mut inventory =
             InventoryLedger::new(BTreeMap::from([("feed-anchor".to_string(), 1_000)]));
+        let creation_anchor = ExecutionStateAnchor::for_state(
+            "symtropy.execution.journal.v1",
+            "head-a",
+            &budget,
+            &inventory,
+        )
+        .expect("creation anchor should bind pre-pending state");
+
         let receipt = process
             .authorize_pending_execution_with_inventory_at_anchor(
                 "exec-anchor",
@@ -4262,6 +4311,13 @@ mod tests {
         let mut recovered_budget = ExecutionBudget::new(1_000, 4_000);
         let mut recovered_inventory =
             InventoryLedger::new(BTreeMap::from([("feed-anchor".to_string(), 1_000)]));
+        let later_anchor = ExecutionStateAnchor::for_state(
+            "symtropy.execution.journal.v1",
+            "head-b",
+            &recovered_budget,
+            &recovered_inventory,
+        )
+        .expect("later frontier anchor should bind recovered state");
 
         assert!(process
             .restore_pending_execution_with_inventory_at_anchor(
@@ -4282,10 +4338,70 @@ mod tests {
                 &mut recovered_budget,
                 &mut recovered_inventory,
             )
-            .expect("matching state frontier should restore");
+            .expect("matching state frontier and state should restore");
         assert_eq!(recovered_budget.available_feed_mass_g(), 0);
         assert_eq!(recovered_budget.available_energy_units(), 0);
         assert_eq!(receipt.state_anchor().frontier(), "head-a");
+    }
+
+    #[test]
+    fn persisted_pending_restore_rejects_same_frontier_with_mismatched_state() {
+        let process = ProductionProcess::new(
+            "regolith_electrolysis",
+            "regolith",
+            ["oxygen", "metal"],
+            "waste",
+        );
+        let run = ProcessRun::new(
+            "regolith_electrolysis",
+            "regolith",
+            "feed-state-mismatch",
+            1_000,
+            BTreeMap::from([("oxygen".to_string(), 180), ("metal".to_string(), 720)]),
+            100,
+            4_000,
+        );
+
+        let mut budget = ExecutionBudget::new(1_000, 4_000);
+        let mut inventory =
+            InventoryLedger::new(BTreeMap::from([("feed-state-mismatch".to_string(), 1_000)]));
+        let anchor = ExecutionStateAnchor::for_state(
+            "symtropy.execution.journal.v1",
+            "head-state",
+            &budget,
+            &inventory,
+        )
+        .expect("state-bound anchor should construct");
+
+        let receipt = process
+            .authorize_pending_execution_with_inventory_at_anchor(
+                "exec-state-mismatch",
+                30,
+                40,
+                "bus",
+                anchor.clone(),
+                run,
+                &mut budget,
+                &mut inventory,
+            )
+            .expect("pending execution should authorize");
+
+        let mut recovered_budget = ExecutionBudget::new(2_000, 4_000);
+        let mut recovered_inventory =
+            InventoryLedger::new(BTreeMap::from([("feed-state-mismatch".to_string(), 1_000)]));
+
+        let error = process
+            .restore_pending_execution_with_inventory_at_anchor(
+                &receipt,
+                &anchor,
+                &mut recovered_budget,
+                &mut recovered_inventory,
+            )
+            .expect_err("same frontier with different state must fail closed");
+        assert!(error.contains("state commitment mismatch"));
+        assert_eq!(recovered_budget.available_feed_mass_g(), 2_000);
+        assert_eq!(recovered_budget.available_energy_units(), 4_000);
+        assert!(recovered_inventory.source_reservations.is_empty());
     }
 
     #[test]
