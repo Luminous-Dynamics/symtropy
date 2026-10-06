@@ -853,6 +853,20 @@ impl DurableExecutionAdapter {
         Ok(loaded)
     }
 
+    fn advance_head_witness(
+        &self,
+        witness: &mut JournalHeadWitness,
+        chain: &EventChain<ExecutionLifecycleEvent>,
+    ) -> Result<(), AdapterError> {
+        *witness = JournalHeadWitness::capture(
+            self.journal_namespace.clone(),
+            self.seed,
+            chain,
+            &self.trust,
+        )?;
+        Ok(())
+    }
+
     pub fn load(&self) -> Result<JournalLoad<ExecutionLifecycleEvent>, AdapterError> {
         Ok(self
             .store
@@ -1260,6 +1274,7 @@ impl DurableExecutionAdapter {
 
     pub fn authorize_pending(
         &self,
+        head_witness: &mut JournalHeadWitness,
         process: &ProductionProcess,
         execution_id: impl Into<String>,
         simulation_tick: u64,
@@ -1273,7 +1288,7 @@ impl DurableExecutionAdapter {
     ) -> Result<ProcessExecutionReceipt, AdapterError> {
         let execution_id = execution_id.into();
         let journal_lock = self.store.acquire_journal_lock()?;
-        let loaded = self.load_verified()?;
+        let loaded = self.load_verified_against(head_witness)?;
         Self::ensure_only_one_pending(&loaded.chain)?;
         Self::ensure_live_matches_latest(&loaded.chain, budget, inventory, energy)?;
 
@@ -1330,6 +1345,7 @@ impl DurableExecutionAdapter {
 
         let mut chain = loaded.chain;
         self.append_authenticated_payload(&mut chain, simulation_tick, payload, &journal_lock)?;
+        self.advance_head_witness(head_witness, &chain)?;
 
         *budget = staged_budget;
         *inventory = staged_inventory;
@@ -1338,6 +1354,7 @@ impl DurableExecutionAdapter {
 
     pub fn recover_pending(
         &self,
+        head_witness: &mut JournalHeadWitness,
         process: &ProductionProcess,
         execution_id: &str,
         expected_anchor: &ExecutionStateAnchor,
@@ -1345,7 +1362,8 @@ impl DurableExecutionAdapter {
         inventory: &mut InventoryLedger,
         energy: &EnergyLedger,
     ) -> Result<ExecutableProcessExecutionReceipt, AdapterError> {
-        let loaded = self.load_verified()?;
+        let _journal_lock = self.store.acquire_journal_lock()?;
+        let loaded = self.load_verified_against(head_witness)?;
         let event = Self::pending_event(&loaded.chain, execution_id)?;
         let receipt = event.payload.receipt.to_receipt()?;
         Self::ensure_process_definition(
@@ -1370,8 +1388,11 @@ impl DurableExecutionAdapter {
             && energy.state_commitment() == event.payload.post_energy_commitment;
 
         if live_post_matches {
-            return resume_pending_execution(execution_id, budget, inventory)
-                .map_err(AdapterError::Invalid);
+            let result =
+                resume_pending_execution(execution_id, budget, inventory)
+                    .map_err(AdapterError::Invalid)?;
+            self.advance_head_witness(head_witness, &loaded.chain)?;
+            return Ok(result);
         }
 
         let live_pre_matches = budget.state_commitment() == event.payload.pre_budget_commitment
@@ -1410,12 +1431,16 @@ impl DurableExecutionAdapter {
         *budget = staged_budget;
         *inventory = staged_inventory;
 
-        resume_pending_execution(execution_id, budget, inventory)
-            .map_err(AdapterError::Invalid)
+        let result =
+            resume_pending_execution(execution_id, budget, inventory)
+                .map_err(AdapterError::Invalid)?;
+        self.advance_head_witness(head_witness, &loaded.chain)?;
+        Ok(result)
     }
 
     pub fn commit(
         &self,
+        head_witness: &mut JournalHeadWitness,
         process: &ProductionProcess,
         receipt: &ExecutableProcessExecutionReceipt,
         simulation_tick: u64,
@@ -1424,7 +1449,7 @@ impl DurableExecutionAdapter {
         energy: &mut EnergyLedger,
     ) -> Result<(), AdapterError> {
         let journal_lock = self.store.acquire_journal_lock()?;
-        let loaded = self.load_verified()?;
+        let loaded = self.load_verified_against(head_witness)?;
 
         let (pending_event_id, pending_event_hash, persisted) =
             Self::pending_record(&loaded.chain, receipt.execution_id())?;
@@ -1483,6 +1508,7 @@ impl DurableExecutionAdapter {
 
         let mut chain = loaded.chain;
         self.append_authenticated_payload(&mut chain, simulation_tick, payload, &journal_lock)?;
+        self.advance_head_witness(head_witness, &chain)?;
 
         *budget = staged_budget;
         *inventory = staged_inventory;
@@ -1492,6 +1518,7 @@ impl DurableExecutionAdapter {
 
     pub fn abort(
         &self,
+        head_witness: &mut JournalHeadWitness,
         process: &ProductionProcess,
         receipt: &ExecutableProcessExecutionReceipt,
         simulation_tick: u64,
@@ -1553,6 +1580,7 @@ impl DurableExecutionAdapter {
 
         let mut chain = loaded.chain;
         self.append_authenticated_payload(&mut chain, simulation_tick, payload, &journal_lock)?;
+        self.advance_head_witness(head_witness, &chain)?;
 
         *budget = staged_budget;
         *inventory = staged_inventory;
@@ -1561,6 +1589,7 @@ impl DurableExecutionAdapter {
 
     pub fn recover_terminal(
         &self,
+        head_witness: &mut JournalHeadWitness,
         process: &ProductionProcess,
         execution_id: &str,
         expected_anchor: &ExecutionStateAnchor,
@@ -1568,7 +1597,8 @@ impl DurableExecutionAdapter {
         inventory: &mut InventoryLedger,
         energy: &mut EnergyLedger,
     ) -> Result<RecoveryResult, AdapterError> {
-        let loaded = self.load_verified()?;
+        let _journal_lock = self.store.acquire_journal_lock()?;
+        let loaded = self.load_verified_against(head_witness)?;
 
         let terminal = loaded
             .chain
@@ -1603,11 +1633,13 @@ impl DurableExecutionAdapter {
             && energy.state_commitment() == terminal.payload.post_energy_commitment;
 
         if post_matches {
-            return Ok(match terminal.payload.state {
+            let result = match terminal.payload.state {
                 DurableExecutionState::Committed => RecoveryResult::Committed,
                 DurableExecutionState::Aborted => RecoveryResult::Aborted,
                 DurableExecutionState::Pending => unreachable!(),
-            });
+            };
+            self.advance_head_witness(head_witness, &loaded.chain)?;
+            return Ok(result);
         }
 
         let pre_matches = budget.state_commitment() == terminal.payload.pre_budget_commitment
@@ -1659,11 +1691,13 @@ impl DurableExecutionAdapter {
         *inventory = staged_inventory;
         *energy = staged_energy;
 
-        Ok(match terminal.payload.state {
+        let result = match terminal.payload.state {
             DurableExecutionState::Committed => RecoveryResult::Committed,
             DurableExecutionState::Aborted => RecoveryResult::Aborted,
             DurableExecutionState::Pending => unreachable!(),
-        })
+        };
+        self.advance_head_witness(head_witness, &loaded.chain)?;
+        Ok(result)
     }
 }
 
@@ -1802,6 +1836,7 @@ mod tests {
     #[test]
     fn retained_head_witness_rejects_rollback_to_older_valid_prefix() {
         let adapter = configured_adapter("rollback-witness");
+        let mut head_witness = adapter.capture_head_witness().expect("initial head witness");
         let (process, run) = process_and_run();
         let (mut budget, mut inventory, mut energy) = (
             ExecutionBudget::new(2_000, 8_000),
@@ -1814,6 +1849,7 @@ mod tests {
 
         adapter
             .authorize_pending(
+                &mut head_witness,
                 &process,
                 "exec-witness-a",
                 1,
@@ -1831,6 +1867,7 @@ mod tests {
                 .expect("activation");
         adapter
             .commit(
+                &mut head_witness,
                 &process,
                 &executable,
                 2,
@@ -1855,6 +1892,86 @@ mod tests {
             .verify_against("bootstrap", 1, &prefix, adapter.trust())
             .is_err());
         assert!(adapter.load_verified_against(&witness).is_ok());
+
+        fs::remove_dir_all(adapter.store().root()).expect("cleanup");
+    }
+
+    #[test]
+    fn lifecycle_mutation_rejects_rollback_below_retained_head_witness() {
+        let adapter = configured_adapter("mutation-witness");
+        let (process, run) = process_and_run();
+        let (mut budget, mut inventory, mut energy) = initial_kernel_state();
+
+        let mut head_witness = adapter.capture_head_witness().expect("genesis witness");
+        let receipt = adapter
+            .authorize_pending(
+                &mut head_witness,
+                &process,
+                "exec-witness-mutation",
+                1,
+                10,
+                20,
+                "bus",
+                run,
+                &mut budget,
+                &mut inventory,
+                &mut energy,
+            )
+            .expect("pending authorization");
+        let executable =
+            resume_pending_execution(receipt.execution_id(), &budget, &inventory)
+                .expect("activation");
+        adapter
+            .commit(
+                &mut head_witness,
+                &process,
+                &executable,
+                2,
+                &mut budget,
+                &mut inventory,
+                &mut energy,
+            )
+            .expect("commit");
+
+        let retained = head_witness.clone();
+        let full = adapter.load_verified().expect("full journal");
+        let prefix = EventChain::from_events(
+            "bootstrap",
+            1,
+            full.chain.events()[..1].to_vec(),
+        );
+        let first_event = prefix.events()[0].clone();
+        fs::write(
+            adapter.store().root().join("journal.jsonl"),
+            serde_json::to_vec(&first_event).expect("serialize retained prefix"),
+        )
+        .expect("rollback journal to valid signed prefix");
+
+        let before_budget = budget.clone();
+        let before_inventory = inventory.clone();
+        let before_energy = energy.clone();
+
+        let err = adapter
+            .authorize_pending(
+                &mut head_witness,
+                &process,
+                "exec-witness-blocked",
+                3,
+                20,
+                30,
+                "bus",
+                process_and_run().1,
+                &mut budget,
+                &mut inventory,
+                &mut energy,
+            )
+            .expect_err("retained head witness must block rollback");
+
+        assert!(matches!(err, AdapterError::Invalid(message) if message.contains("witness")));
+        assert_eq!(budget, before_budget);
+        assert_eq!(inventory, before_inventory);
+        assert_eq!(energy, before_energy);
+        assert_eq!(head_witness, retained);
 
         fs::remove_dir_all(adapter.store().root()).expect("cleanup");
     }
@@ -1886,11 +2003,13 @@ mod tests {
     #[test]
     fn signed_journal_is_accepted_and_exposes_key_epoch() {
         let adapter = configured_adapter("signed");
+        let mut head_witness = adapter.capture_head_witness().expect("initial head witness");
         let (process, run) = process_and_run();
         let (mut budget, mut inventory, mut energy) = initial_kernel_state();
 
         adapter
             .authorize_pending(
+                &mut head_witness,
                 &process,
                 "exec-signed",
                 1,
@@ -1923,11 +2042,13 @@ mod tests {
     #[test]
     fn tampered_payload_with_rehashed_outer_event_fails_signature_verification() {
         let adapter = configured_adapter("auth-tamper");
+        let mut head_witness = adapter.capture_head_witness().expect("initial head witness");
         let (process, run) = process_and_run();
         let (mut budget, mut inventory, mut energy) = initial_kernel_state();
 
         adapter
             .authorize_pending(
+                &mut head_witness,
                 &process,
                 "exec-auth-tamper",
                 1,
@@ -1984,6 +2105,7 @@ mod tests {
         )
         .expect("adapter")
         .with_trust(trust);
+        let mut head_witness = adapter.capture_head_witness().expect("initial head witness");
 
         let (process, run) = process_and_run();
         let (mut budget, mut inventory, mut energy) = initial_kernel_state();
@@ -1994,6 +2116,7 @@ mod tests {
         assert!(
             adapter
                 .authorize_pending(
+                    &mut head_witness,
                     &process,
                     "exec-missing-signer",
                     1,
@@ -2033,12 +2156,14 @@ mod tests {
         .expect("adapter")
         .with_trust(trust)
         .with_signer(signer);
+        let mut head_witness = adapter.capture_head_witness().expect("initial head witness");
 
         let (process, run) = process_and_run();
         let (mut budget, mut inventory, mut energy) = initial_kernel_state();
 
         let receipt = adapter
             .authorize_pending(
+                &mut head_witness,
                 &process,
                 "exec-revoked",
                 1,
@@ -2062,6 +2187,7 @@ mod tests {
 
         assert!(adapter
             .commit(
+                &mut head_witness,
                 &process,
                 &executable,
                 2,
@@ -2097,6 +2223,7 @@ mod tests {
         .expect("adapter")
         .with_trust(trust)
         .with_signer(first);
+        let mut head_witness = adapter.capture_head_witness().expect("initial head witness");
 
         let process =
             ProductionProcess::new("electrolysis", "regolith", ["oxygen", "metal"], "slag");
@@ -2129,6 +2256,7 @@ mod tests {
 
         let receipt_one = adapter
             .authorize_pending(
+                &mut head_witness,
                 &process,
                 "exec-key-one",
                 1,
@@ -2146,6 +2274,7 @@ mod tests {
                 .expect("first activation");
         adapter
             .commit(
+                &mut head_witness,
                 &process,
                 &executable_one,
                 2,
@@ -2159,6 +2288,7 @@ mod tests {
 
         adapter
             .authorize_pending(
+                &mut head_witness,
                 &process,
                 "exec-key-two",
                 3,
@@ -2229,12 +2359,14 @@ mod tests {
         .expect("adapter")
         .with_trust(trust)
         .with_signer(first);
+        let mut head_witness = adapter.capture_head_witness().expect("initial head witness");
 
         let (process, run) = process_and_run();
         let (mut budget, mut inventory, mut energy) = initial_kernel_state();
 
         let receipt = adapter
             .authorize_pending(
+                &mut head_witness,
                 &process,
                 "exec-key-substitution",
                 1,
@@ -2252,6 +2384,7 @@ mod tests {
             .expect("activation");
         adapter
             .commit(
+                &mut head_witness,
                 &process,
                 &executable,
                 2,
@@ -2317,6 +2450,7 @@ mod tests {
     #[test]
     fn adapter_writer_fence_blocks_authorization_without_mutating_live_state() {
         let adapter = configured_adapter("adapter-lock");
+        let mut head_witness = adapter.capture_head_witness().expect("initial head witness");
         let (process, run) = process_and_run();
         let (mut budget, mut inventory, mut energy) = initial_kernel_state();
         let before = (budget.clone(), inventory.clone(), energy.clone());
@@ -2329,6 +2463,7 @@ mod tests {
         assert!(
             adapter
                 .authorize_pending(
+                    &mut head_witness,
                     &process,
                     "exec-fenced",
                     1,
@@ -2354,6 +2489,7 @@ mod tests {
     #[test]
     fn pending_record_is_write_ahead_of_live_projection() {
         let adapter = configured_adapter("pending");
+        let mut head_witness = adapter.capture_head_witness().expect("initial head witness");
         let (process, run) = process_and_run();
         let (mut budget, mut inventory, energy) = initial_kernel_state();
 
@@ -2363,6 +2499,7 @@ mod tests {
 
         let receipt = adapter
             .authorize_pending(
+                &mut head_witness,
                 &process,
                 "exec-001",
                 1,
@@ -2405,11 +2542,13 @@ mod tests {
     #[test]
     fn semantic_anchor_tampering_is_rejected_by_valid_outer_chain() {
         let adapter = configured_adapter("anchor");
+        let mut head_witness = adapter.capture_head_witness().expect("initial head witness");
         let (process, run) = process_and_run();
         let (mut budget, mut inventory, energy) = initial_kernel_state();
 
         adapter
             .authorize_pending(
+                &mut head_witness,
                 &process,
                 "exec-anchor",
                 1,
@@ -2452,11 +2591,13 @@ mod tests {
     #[test]
     fn terminal_pre_state_must_equal_pending_post_state() {
         let adapter = configured_adapter("continuity");
+        let mut head_witness = adapter.capture_head_witness().expect("initial head witness");
         let (process, run) = process_and_run();
         let (mut budget, mut inventory, energy) = initial_kernel_state();
 
         adapter
             .authorize_pending(
+                &mut head_witness,
                 &process,
                 "exec-continuity",
                 1,
@@ -2506,6 +2647,7 @@ mod tests {
     #[test]
     fn recover_pending_from_pre_state_rehydrates_without_new_identity() {
         let adapter = configured_adapter("recover-pending");
+        let mut head_witness = adapter.capture_head_witness().expect("initial head witness");
         let (process, run) = process_and_run();
         let (mut budget, mut inventory, energy) = initial_kernel_state();
         let pre_budget = budget.clone();
@@ -2514,6 +2656,7 @@ mod tests {
 
         let receipt = adapter
             .authorize_pending(
+                &mut head_witness,
                 &process,
                 "exec-recover-pending",
                 1,
@@ -2533,6 +2676,7 @@ mod tests {
 
         let executable = adapter
             .recover_pending(
+                &mut head_witness,
                 &process,
                 "exec-recover-pending",
                 receipt.state_anchor(),
@@ -2555,11 +2699,13 @@ mod tests {
     #[test]
     fn commit_records_exact_causal_chain_and_post_state() {
         let adapter = configured_adapter("commit");
+        let mut head_witness = adapter.capture_head_witness().expect("initial head witness");
         let (process, run) = process_and_run();
         let (mut budget, mut inventory, mut energy) = initial_kernel_state();
 
         let receipt = adapter
             .authorize_pending(
+                &mut head_witness,
                 &process,
                 "exec-commit",
                 1,
@@ -2577,6 +2723,7 @@ mod tests {
 
         adapter
             .commit(
+                &mut head_witness,
                 &process,
                 &executable,
                 2,
@@ -2638,11 +2785,13 @@ mod tests {
     #[test]
     fn recover_terminal_from_pre_state_replays_exact_terminal_result() {
         let adapter = configured_adapter("recover-terminal");
+        let mut head_witness = adapter.capture_head_witness().expect("initial head witness");
         let (process, run) = process_and_run();
         let (mut budget, mut inventory, mut energy) = initial_kernel_state();
 
         let receipt = adapter
             .authorize_pending(
+                &mut head_witness,
                 &process,
                 "exec-recover-terminal",
                 1,
@@ -2664,6 +2813,7 @@ mod tests {
 
         adapter
             .commit(
+                &mut head_witness,
                 &process,
                 &executable,
                 2,
@@ -2683,6 +2833,7 @@ mod tests {
 
         let result = adapter
             .recover_terminal(
+                &mut head_witness,
                 &process,
                 "exec-recover-terminal",
                 receipt.state_anchor(),
@@ -2703,11 +2854,13 @@ mod tests {
     #[test]
     fn duplicate_terminal_is_rejected() {
         let adapter = configured_adapter("duplicate-terminal");
+        let mut head_witness = adapter.capture_head_witness().expect("initial head witness");
         let (process, run) = process_and_run();
         let (mut budget, mut inventory, mut energy) = initial_kernel_state();
 
         let receipt = adapter
             .authorize_pending(
+                &mut head_witness,
                 &process,
                 "exec-duplicate-terminal",
                 1,
@@ -2724,6 +2877,7 @@ mod tests {
             .expect("activation");
         adapter
             .commit(
+                &mut head_witness,
                 &process,
                 &executable,
                 2,
@@ -2754,11 +2908,13 @@ mod tests {
     #[test]
     fn authorizing_second_pending_execution_is_rejected() {
         let adapter = configured_adapter("single-flight");
+        let mut head_witness = adapter.capture_head_witness().expect("initial head witness");
         let (process, run) = process_and_run();
         let (mut budget, mut inventory, energy) = initial_kernel_state();
 
         adapter
             .authorize_pending(
+                &mut head_witness,
                 &process,
                 "exec-first",
                 1,
@@ -2775,6 +2931,7 @@ mod tests {
         assert!(
             adapter
                 .authorize_pending(
+                    &mut head_witness,
                     &process,
                     "exec-second",
                     2,
@@ -2801,6 +2958,7 @@ mod tests {
     #[test]
     fn changed_process_definition_is_rejected_during_recovery() {
         let adapter = configured_adapter("process-definition");
+        let mut head_witness = adapter.capture_head_witness().expect("initial head witness");
         let (process, run) = process_and_run();
         let changed_process =
             ProductionProcess::new("electrolysis", "regolith", ["metal", "oxygen"], "slag");
@@ -2808,6 +2966,7 @@ mod tests {
 
         let receipt = adapter
             .authorize_pending(
+                &mut head_witness,
                 &process,
                 "exec-definition",
                 1,
@@ -2841,11 +3000,13 @@ mod tests {
     #[test]
     fn live_projection_mismatch_is_rejected_before_new_pending_authorization() {
         let adapter = configured_adapter("projection-mismatch");
+        let mut head_witness = adapter.capture_head_witness().expect("initial head witness");
         let (process, run) = process_and_run();
         let (mut budget, mut inventory, mut energy) = initial_kernel_state();
 
         let receipt = adapter
             .authorize_pending(
+                &mut head_witness,
                 &process,
                 "exec-projection",
                 1,
@@ -2863,6 +3024,7 @@ mod tests {
 
         adapter
             .commit(
+                &mut head_witness,
                 &process,
                 &executable,
                 2,
@@ -2888,6 +3050,7 @@ mod tests {
         assert!(
             adapter
                 .authorize_pending(
+                    &mut head_witness,
                     &process,
                     "exec-fork",
                     3,
