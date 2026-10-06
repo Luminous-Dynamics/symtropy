@@ -760,6 +760,24 @@ impl ProductionProcess {
         }
     }
 
+    /// Return a canonical SHA-256 commitment of the exact authored process definition.
+    ///
+    /// Output-stream order is retained deliberately: this binds durable execution
+    /// history to the exact process configuration that was authorized, not merely
+    /// to a process ID that could later be reused for a different definition.
+    #[must_use]
+    pub fn commitment(&self) -> String {
+        let mut hasher = CommitmentHasher::new("symtropy.execution.process-definition.v1");
+        hasher.string(&self.id);
+        hasher.string(&self.input_material);
+        hasher.u64(self.output_streams.len() as u64);
+        for stream in &self.output_streams {
+            hasher.string(stream);
+        }
+        hasher.string(&self.waste_stream);
+        hasher.finish()
+    }
+
     /// Validate that a process execution conforms to the declared process schema.
     pub fn validate_run(&self, run: &ProcessRun) -> Result<(), String> {
         if self.id.is_empty() {
