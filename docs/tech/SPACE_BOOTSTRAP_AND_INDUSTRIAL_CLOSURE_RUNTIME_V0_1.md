@@ -790,6 +790,7 @@ The first implementation should prove:
 - output and waste batch identities are derived from the authorized execution identity as well as process/sequence context, so distinct executions cannot alias the same physical product batch merely by reusing a process and sequence position;
 - commit and abort reject a receipt that does not exactly match the still-pending authorization, even when its feedstock and energy quantities match;
 - a pending execution can be explicitly rehydrated from the authoritative budget receipt plus matching source reservation without minting a second authorization;
+- durable integration has an explicit pending-authorization boundary: the raw pending receipt must cross persistence before executable activation, while budget-only or merely in-memory authorization cannot cross that boundary;
 - execution lifecycle state is explicitly distinguishable as Pending, Committed, or Aborted, and each lifecycle record retains the exact immutable receipt that caused the transition, giving durable recovery an unambiguous terminal outcome and causal identity;
 - an explicitly aborted execution restores its reserved feedstock and energy and releases its concrete source-batch reservation without touching ledger history;
 - an aborted execution becomes terminal and cannot reuse its execution identity;
@@ -921,16 +922,18 @@ causal event identities / payloads required by the adapter
 schema_version
 ```
 
-The adapter must enforce this ordering:
+The adapter must use the explicit pending-authorization API and enforce this ordering:
 
 ```text
-Pending authorization
+authorize_pending_execution_with_inventory
     -> durably record Pending + exact receipt + source reservation
-    -> expose/recover executable proof
+    -> resume_pending_execution only after durable Pending exists
     -> stage deterministic ledger effects
     -> durably record exactly one terminal outcome
     -> rebuild live state from the journal
 ```
+
+The existing authorize_execution_with_inventory convenience path remains valid for purely in-memory callers, but a durable adapter must not expose its executable result before the Pending record has crossed the persistence boundary. The raw ProcessExecutionReceipt intentionally cannot materialize causal events; executable activation is the explicit proof transition after the pending reservation has been durably represented.
 
 Commit and abort are terminal alternatives, never independent facts inferred from whichever ledger happened to contain a later event. A committed transition must carry the same receipt identity that was pending; an aborted transition must carry the same receipt identity while carrying no product/energy consumption effects. A second terminal transition for the same execution ID is invalid.
 
