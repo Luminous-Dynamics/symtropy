@@ -1882,7 +1882,7 @@ pub struct BootstrapCandidate {
 }
 
 impl BootstrapCandidate {
-    #[must_use]
+    /// Construct a candidate only when every bounded metric is valid.
     pub fn new(
         id: impl Into<String>,
         critical_weight_closed_gain: u64,
@@ -1891,16 +1891,24 @@ impl BootstrapCandidate {
         energy_units: u64,
         time_ticks: u64,
         failure_risk_ppm: u64,
-    ) -> Self {
-        Self {
-            id: id.into(),
+    ) -> Result<Self, String> {
+        let id = id.into();
+        if id.is_empty() {
+            return Err("bootstrap candidate requires a non-empty ID".to_string());
+        }
+        if failure_risk_ppm > 1_000_000 {
+            return Err("bootstrap candidate failure risk must be <= 1,000,000 ppm".to_string());
+        }
+
+        Ok(Self {
+            id,
             critical_weight_closed_gain,
             dependency_weight_removed,
             imported_mass_g,
             energy_units,
             time_ticks,
-            failure_risk_ppm: failure_risk_ppm.min(1_000_000),
-        }
+            failure_risk_ppm,
+        })
     }
 
     /// Whether this candidate is strictly Pareto-better than another.
@@ -2210,19 +2218,30 @@ pub struct ResourceClaim {
 }
 
 impl ResourceClaim {
-    #[must_use]
+    /// Construct a resource claim only when identity and bounded confidence are valid.
     pub fn new(
         id: impl Into<String>,
         mass_g: u64,
         evidence: EvidenceGrade,
         confidence_ppm: u64,
-    ) -> Self {
-        Self {
-            id: id.into(),
+    ) -> Result<Self, String> {
+        let id = id.into();
+        if id.is_empty() {
+            return Err("resource claim requires a non-empty ID".to_string());
+        }
+        if mass_g == 0 {
+            return Err("resource claim must have non-zero mass".to_string());
+        }
+        if confidence_ppm > 1_000_000 {
+            return Err("resource claim confidence must be <= 1,000,000 ppm".to_string());
+        }
+
+        Ok(Self {
+            id,
             mass_g,
             evidence,
-            confidence_ppm: confidence_ppm.min(1_000_000),
-        }
+            confidence_ppm,
+        })
     }
 
     /// Promote a claim into an inventory-eligible certificate.
@@ -2234,6 +2253,12 @@ impl ResourceClaim {
         if self.mass_g == 0 {
             return Err("resource claim must have non-zero mass".to_string());
         }
+        if self.confidence_ppm > 1_000_000 {
+            return Err("resource claim confidence is out of range".to_string());
+        }
+        if minimum_confidence_ppm > 1_000_000 {
+            return Err("minimum confidence must be <= 1,000,000 ppm".to_string());
+        }
 
         if self.evidence < minimum_evidence {
             return Err(format!(
@@ -2242,7 +2267,6 @@ impl ResourceClaim {
             ));
         }
 
-        let minimum_confidence_ppm = minimum_confidence_ppm.min(1_000_000);
         if self.confidence_ppm < minimum_confidence_ppm {
             return Err(format!(
                 "insufficient confidence: required={minimum_confidence_ppm}, observed={}",
@@ -4878,7 +4902,8 @@ mod tests {
             5_000,
             EvidenceGrade::RemoteObserved,
             950_000,
-        );
+        )        .expect("valid resource claim");
+
         assert!(
             claim
                 .certify_for_inventory(EvidenceGrade::InSituMeasured, 900_000)
@@ -4890,7 +4915,8 @@ mod tests {
             5_000,
             EvidenceGrade::InSituMeasured,
             950_000,
-        );
+        )        .expect("valid resource claim");
+
         let certified = measured
             .certify_for_inventory(EvidenceGrade::InSituMeasured, 900_000)
             .expect("measured claim with sufficient confidence should certify");
@@ -4917,7 +4943,7 @@ mod tests {
 
     #[test]
     fn resource_claim_requires_identity_before_certification() {
-        let claim = ResourceClaim::new("", 5_000, EvidenceGrade::InSituMeasured, 950_000);
+        let claim = ResourceClaim::new("", 5_000, EvidenceGrade::InSituMeasured, 950_000)
         assert!(
             claim
                 .certify_for_inventory(EvidenceGrade::InSituMeasured, 900_000)
@@ -4952,9 +4978,9 @@ mod tests {
     #[test]
     fn pareto_frontier_prefers_dependency_closure_without_single_score() {
         let dependency_remover =
-            BootstrapCandidate::new("close_electronics", 30, 30, 100, 500, 20, 50_000);
+            BootstrapCandidate::new("close_electronics", 30, 30, 100, 500, 20, 50_000).expect("valid bootstrap candidate");
         let throughput =
-            BootstrapCandidate::new("increase_bulk_output", 0, 0, 100, 500, 20, 50_000);
+            BootstrapCandidate::new("increase_bulk_output", 0, 0, 100, 500, 20, 50_000).expect("valid bootstrap candidate");
         let frontier = pareto_frontier(&[throughput, dependency_remover]);
 
         assert_eq!(frontier.len(), 1);
@@ -4963,8 +4989,8 @@ mod tests {
 
     #[test]
     fn pareto_frontier_preserves_real_tradeoffs() {
-        let low_energy = BootstrapCandidate::new("low_energy", 10, 5, 100, 100, 30, 100_000);
-        let low_mass = BootstrapCandidate::new("low_mass", 10, 5, 50, 200, 30, 100_000);
+        let low_energy = BootstrapCandidate::new("low_energy", 10, 5, 100, 100, 30, 100_000).expect("valid bootstrap candidate");
+        let low_mass = BootstrapCandidate::new("low_mass", 10, 5, 50, 200, 30, 100_000).expect("valid bootstrap candidate");
         let frontier = pareto_frontier(&[low_energy, low_mass]);
 
         assert_eq!(frontier.len(), 2);
@@ -4979,8 +5005,8 @@ mod tests {
 
     #[test]
     fn pareto_frontier_compares_same_id_observations() {
-        let dominated = BootstrapCandidate::new("same_id", 1, 1, 100, 100, 30, 100_000);
-        let stronger = BootstrapCandidate::new("same_id", 2, 2, 90, 90, 20, 90_000);
+        let dominated = BootstrapCandidate::new("same_id", 1, 1, 100, 100, 30, 100_000).expect("valid bootstrap candidate");
+        let stronger = BootstrapCandidate::new("same_id", 2, 2, 90, 90, 20, 90_000).expect("valid bootstrap candidate");
         let frontier = pareto_frontier(&[dominated, stronger]);
 
         assert_eq!(frontier.len(), 1);
@@ -4989,9 +5015,9 @@ mod tests {
 
     #[test]
     fn pareto_frontier_is_input_order_independent() {
-        let a = BootstrapCandidate::new("a", 10, 5, 100, 100, 30, 100_000);
-        let b = BootstrapCandidate::new("b", 20, 5, 100, 100, 30, 100_000);
-        let c = BootstrapCandidate::new("c", 5, 10, 90, 110, 20, 80_000);
+        let a = BootstrapCandidate::new("a", 10, 5, 100, 100, 30, 100_000).expect("valid bootstrap candidate");
+        let b = BootstrapCandidate::new("b", 20, 5, 100, 100, 30, 100_000).expect("valid bootstrap candidate");
+        let c = BootstrapCandidate::new("c", 5, 10, 90, 110, 20, 80_000).expect("valid bootstrap candidate");
 
         let first = pareto_frontier(&[a.clone(), b.clone(), c.clone()]);
         let second = pareto_frontier(&[c, b, a]);
