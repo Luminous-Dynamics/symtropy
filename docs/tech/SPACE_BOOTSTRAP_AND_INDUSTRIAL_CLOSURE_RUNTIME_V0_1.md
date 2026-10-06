@@ -902,6 +902,59 @@ A failed preparation leaves the live budget, ledgers, and source reservation unt
 
 The remaining durability boundary is explicit: a process can be authorized and physically reserved in memory, then the process can terminate before commit/abort, leaving no durable pending-execution record. Within the in-memory kernel, an interrupted caller can now rehydrate the executable proof from the still-pending budget receipt and matching source reservation without creating fresh capacity. The next integration layer should persist an execution lifecycle record before relying on cross-ledger prepare semantics and recover pending executions deterministically. The existing symtropy-persistence crate already supplies atomic snapshots, an append-only journal, incomplete-tail handling, event-chain verification, and snapshot-anchor checks; this bootstrap kernel should remain storage-independent and consume that capability through an adapter rather than importing persistence into the deterministic kernel.
 
+### Durable adapter contract
+
+The next integration layer should use an append-only, journal-first execution record rather than independently persisting the budget, inventory, and energy ledgers and attempting to infer atomicity afterward. The durable record for each lifecycle transition must retain enough information to reconstruct the same causal execution without inventing a new authorization:
+
+```text
+execution_id
+lifecycle_state
+complete_process_execution_receipt:
+    process_id
+    input_batch_id
+    waste_stream
+    first_inventory_sequence
+    energy_sequence
+    energy_node_id
+    complete_process_run
+causal event identities / payloads required by the adapter
+schema_version
+```
+
+The adapter must enforce this ordering:
+
+```text
+Pending authorization
+    -> durably record Pending + exact receipt + source reservation
+    -> expose/recover executable proof
+    -> stage deterministic ledger effects
+    -> durably record exactly one terminal outcome
+    -> rebuild live state from the journal
+```
+
+Commit and abort are terminal alternatives, never independent facts inferred from whichever ledger happened to contain a later event. A committed transition must carry the same receipt identity that was pending; an aborted transition must carry the same receipt identity while carrying no product/energy consumption effects. A second terminal transition for the same execution ID is invalid.
+
+Recovery is therefore deterministic:
+
+```text
+journal verification
+    -> replay lifecycle transitions
+    -> Pending with no terminal successor:
+           reconstruct reservation state
+           verify concrete source reservation
+           call resume_pending_execution
+    -> Committed:
+           terminal; never re-authorize or rehydrate
+    -> Aborted:
+           terminal; never re-authorize or rehydrate
+```
+
+The adapter must fail closed on an unknown lifecycle state, duplicate terminal outcome, terminal receipt mismatch, missing causal predecessor, impossible sequence transition, or a committed outcome whose required causal events cannot be reconstructed exactly.
+
+Snapshots may be used as checkpoints, but they are not the authority for resolving an interrupted execution unless their journal anchor covers the corresponding lifecycle record. The existing symtropy-persistence journal and snapshot machinery is therefore a natural implementation substrate, while the bootstrap kernel remains independent of filesystem or database APIs.
+
+This design deliberately differs from treating the three in-memory ledgers as three separately durable transactions. NIST IR 8536 emphasizes linked traceability information that can support independent product-history verification; the execution lifecycle record is the corresponding causal link for process authorization and industrial state. PostgreSQL 18's two-phase transaction model is a useful analogy for the Pending -> terminal shape, but it relies on an external transaction manager to resolve prepared work and is not evidence that this kernel or adapter is durable merely because it resembles 2PC.
+
 Resource certification follows the same rule. A certified resource has a stable certificate identity derived from its claim identity, while the certificate's fields are private so inventory authorization cannot be forged by direct construction. The certificate-derived inventory event reuses that certificate identity as its event identity; replay therefore rejects the same certified quantity being emitted again under a different sequence or batch.
 
 Recycling uses the same conservation boundary. A recovery operation must consume a named source batch and separately produce the recovered destination batch. This prevents a convenient `Recycled` balance mutation from hiding where recovered mass came from or creating mass without a source.
