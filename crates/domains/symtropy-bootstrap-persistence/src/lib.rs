@@ -139,11 +139,21 @@ pub struct ExecutionEventAuthentication {
     pub signature: String,
 }
 
-#[derive(Debug)]
 pub struct DurableExecutionSigner {
     key_id: String,
     key_epoch: u64,
     key_pair: Ed25519KeyPair,
+}
+
+impl fmt::Debug for DurableExecutionSigner {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        formatter
+            .debug_struct("DurableExecutionSigner")
+            .field("key_id", &self.key_id)
+            .field("key_epoch", &self.key_epoch)
+            .field("public_key", &self.public_key_hex())
+            .finish_non_exhaustive()
+    }
 }
 
 impl DurableExecutionSigner {
@@ -199,6 +209,33 @@ pub struct DurableExecutionTrust {
 impl DurableExecutionTrust {
     #[must_use]
     pub fn new() -> Self { Self::default() }
+
+    /// Commit to the complete public trust policy used for journal verification.
+    ///
+    /// This binds key identity, epoch, public key material, activation, and
+    /// revocation intervals without including any private signing material.
+    #[must_use]
+    pub fn commitment(&self) -> String {
+        let mut hasher = Sha256::new();
+        hash_string(&mut hasher, "symtropy.execution.trust-policy.v1");
+        hasher.update((self.keys.len() as u64).to_le_bytes());
+
+        for ((key_id, key_epoch), key) in &self.keys {
+            hash_string(&mut hasher, key_id);
+            hasher.update(key_epoch.to_le_bytes());
+            hash_string(&mut hasher, &key.public_key);
+            hasher.update(key.active_from_ordinal.to_le_bytes());
+            match key.revoked_at_ordinal {
+                Some(value) => {
+                    hasher.update([1]);
+                    hasher.update(value.to_le_bytes());
+                }
+                None => hasher.update([0]),
+            }
+        }
+
+        hex_encode(&hasher.finalize())
+    }
 
     pub fn trust_signer(
         &mut self,
