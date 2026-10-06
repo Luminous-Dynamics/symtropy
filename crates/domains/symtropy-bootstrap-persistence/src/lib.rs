@@ -2129,6 +2129,17 @@ mod tests {
         let before_inventory = inventory.clone();
         let before_energy = energy.clone();
 
+        assert!(
+            adapter
+                .load_verified_against(&stale)
+                .is_ok(),
+            "prefix-extension verification is intentionally weaker and remains suitable for audit"
+        );
+        assert!(matches!(
+            adapter.load_verified_at(&stale),
+            Err(AdapterError::WitnessMismatch(_))
+        ));
+
         let mut stale_copy = stale.clone();
         let err = adapter
             .authorize_pending(
