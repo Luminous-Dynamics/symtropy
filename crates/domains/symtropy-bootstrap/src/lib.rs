@@ -3161,6 +3161,12 @@ mod tests {
             commit_budget.execution_state("exec-terminal-commit"),
             Some(ExecutionState::Pending)
         );
+        let pending_record = commit_budget
+            .execution_record("exec-terminal-commit")
+            .expect("pending lifecycle record should be available");
+        assert_eq!(pending_record.execution_id(), "exec-terminal-commit");
+        assert_eq!(pending_record.state(), ExecutionState::Pending);
+        assert_eq!(pending_record.receipt(), &commit_receipt.receipt);
         commit_process_execution(
             &commit_receipt,
             &mut commit_budget,
