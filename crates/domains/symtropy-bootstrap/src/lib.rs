@@ -2795,8 +2795,7 @@ mod tests {
         );
 
         let mut budget = ExecutionBudget::new(1_000, 4_000);
-        let mut inventory =
-            InventoryLedger::new(BTreeMap::from([("feed-004".to_string(), 1_000)]));
+        let mut inventory = InventoryLedger::new(BTreeMap::from([("feed-004".to_string(), 1_000)]));
         let receipt = process
             .authorize_execution_with_inventory(
                 "exec-004",
