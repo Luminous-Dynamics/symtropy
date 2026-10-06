@@ -870,7 +870,9 @@ impl ProductionProcess {
         };
 
         if expected != *receipt {
-            return Err("persisted execution receipt does not match process definition".to_string());
+            return Err(
+                "persisted execution receipt does not match process definition".to_string(),
+            );
         }
 
         self.validate_run_against_budget(
@@ -1091,6 +1093,14 @@ impl ProcessExecutionReceipt {
         }
         if energy_node_id.is_empty() {
             return Err("persisted receipt requires a non-empty energy node ID".to_string());
+        }
+        if run.process_id != process_id {
+            return Err("persisted receipt process ID does not match process run".to_string());
+        }
+        if run.input_batch_id != input_batch_id {
+            return Err(
+                "persisted receipt input batch ID does not match process run".to_string(),
+            );
         }
 
         Ok(Self {
@@ -3622,6 +3632,51 @@ mod tests {
     }
 
     #[test]
+    fn persisted_receipt_reconstruction_rejects_embedded_identity_mismatch() {
+        let process_run = ProcessRun::new(
+            "regolith_electrolysis",
+            "regolith",
+            "run-batch",
+            1_000,
+            BTreeMap::from([("oxygen".to_string(), 180), ("metal".to_string(), 720)]),
+            100,
+            4_000,
+        );
+
+        let process_mismatch = ProcessExecutionReceipt::from_persisted_parts(
+            "exec-persisted-mismatch-process",
+            "different-process",
+            "run-batch",
+            "waste",
+            10,
+            20,
+            "bus",
+            process_run.clone(),
+        )
+        .expect_err("receipt/process identity mismatch must fail closed");
+        assert_eq!(
+            process_mismatch,
+            "persisted receipt process ID does not match process run"
+        );
+
+        let batch_mismatch = ProcessExecutionReceipt::from_persisted_parts(
+            "exec-persisted-mismatch-batch",
+            "regolith_electrolysis",
+            "receipt-batch",
+            "waste",
+            10,
+            20,
+            "bus",
+            process_run,
+        )
+        .expect_err("receipt/batch identity mismatch must fail closed");
+        assert_eq!(
+            batch_mismatch,
+            "persisted receipt input batch ID does not match process run"
+        );
+    }
+
+    #[test]
     fn persisted_receipt_can_be_reconstructed_without_executable_authority() {
         let receipt = ProcessExecutionReceipt::from_persisted_parts(
             "exec-persisted",
@@ -3671,9 +3726,8 @@ mod tests {
         );
 
         let mut original_budget = ExecutionBudget::new(1_000, 4_000);
-        let mut original_inventory = InventoryLedger::new(BTreeMap::from([
-            ("feed-restore".to_string(), 1_000),
-        ]));
+        let mut original_inventory =
+            InventoryLedger::new(BTreeMap::from([("feed-restore".to_string(), 1_000)]));
         let receipt = process
             .authorize_pending_execution_with_inventory(
                 "exec-restore",
