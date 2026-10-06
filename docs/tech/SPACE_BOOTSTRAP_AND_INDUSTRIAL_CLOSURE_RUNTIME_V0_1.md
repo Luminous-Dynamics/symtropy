@@ -791,6 +791,7 @@ The first implementation should prove:
 - commit and abort reject a receipt that does not exactly match the still-pending authorization, even when its feedstock and energy quantities match;
 - a pending execution can be explicitly rehydrated from the authoritative budget receipt plus matching source reservation without minting a second authorization;
 - durable integration has an explicit pending-authorization boundary: the raw pending receipt must cross persistence before executable activation, while budget-only or merely in-memory authorization cannot cross that boundary;
+- legal execution lifecycle transitions are encoded by the kernel as `Pending -> Committed` or `Pending -> Aborted`; terminal-to-terminal, terminal-to-pending, and repeated-state transitions are invalid rather than implicitly idempotent;
 - execution lifecycle state is explicitly distinguishable as Pending, Committed, or Aborted, and each lifecycle record retains the exact immutable receipt that caused the transition, giving durable recovery an unambiguous terminal outcome and causal identity;
 - an explicitly aborted execution restores its reserved feedstock and energy and releases its concrete source-batch reservation without touching ledger history;
 - an aborted execution becomes terminal and cannot reuse its execution identity;
@@ -952,7 +953,7 @@ journal verification
            terminal; never re-authorize or rehydrate
 ```
 
-The adapter must fail closed on an unknown lifecycle state, duplicate terminal outcome, terminal receipt mismatch, missing causal predecessor, impossible sequence transition, or a committed outcome whose required causal events cannot be reconstructed exactly.
+The adapter must fail closed on an unknown lifecycle state, duplicate terminal outcome, terminal receipt mismatch, missing causal predecessor, impossible sequence transition, or a committed outcome whose required causal events cannot be reconstructed exactly. The kernel's `ExecutionState::can_transition_to` provides the common legal transition rule so adapters do not invent a second lifecycle semantics.
 
 Snapshots may be used as checkpoints, but they are not the authority for resolving an interrupted execution unless their journal anchor covers the corresponding lifecycle record. The existing symtropy-persistence journal and snapshot machinery is therefore a natural implementation substrate, while the bootstrap kernel remains independent of filesystem or database APIs.
 
