@@ -1098,9 +1098,7 @@ impl ProcessExecutionReceipt {
             return Err("persisted receipt process ID does not match process run".to_string());
         }
         if run.input_batch_id != input_batch_id {
-            return Err(
-                "persisted receipt input batch ID does not match process run".to_string(),
-            );
+            return Err("persisted receipt input batch ID does not match process run".to_string());
         }
 
         Ok(Self {
