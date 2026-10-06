@@ -874,16 +874,16 @@ impl ProductionProcess {
         resume_pending_execution(receipt.execution_id(), budget, inventory)
     }
 
-    /// Atomically authorize one process execution against an aggregate consumable budget.
+    /// Atomically reserve a budget-only process authorization for inspection/provenance.
     ///
     /// This budget-only path does not reserve physical source inventory; receipts created
     /// here are suitable for budgeting/provenance inspection but are not executable through
     /// `commit_process_execution`. Use `authorize_execution_with_inventory` for execution.
     ///
-    /// Successful authorization mints an immutable receipt. Material and energy
-    /// events must be derived from that receipt rather than from a raw budget
-    /// snapshot, preventing the same provisioned capacity from being authorized
-    /// twice within the budget scope.
+    /// Successful authorization mints a budget-only receipt. It intentionally carries no
+    /// concrete physical-source proof and cannot materialize causal events or cross
+    /// the executable commit/abort boundary. Reserved capacity is released with
+    /// `abort_budget_only_execution` if the inspection authorization is canceled.
     pub fn authorize_execution(
         &self,
         execution_id: impl Into<String>,
@@ -892,7 +892,7 @@ impl ProductionProcess {
         node_id: impl Into<String>,
         run: ProcessRun,
         budget: &mut ExecutionBudget,
-    ) -> Result<ProcessExecutionReceipt, String> {
+    ) -> Result<BudgetOnlyProcessExecutionReceipt, String> {
         let execution_id = execution_id.into();
         let node_id = node_id.into();
 
@@ -922,7 +922,7 @@ impl ProductionProcess {
         };
 
         budget.reserve(&receipt)?;
-        Ok(receipt)
+        Ok(BudgetOnlyProcessExecutionReceipt::new(receipt))
     }
 }
 
@@ -1149,6 +1149,31 @@ impl ProcessExecutionReceipt {
     }
 }
 
+/// Budget-only authorization receipt.
+///
+/// This distinct type prevents a caller from using a physically executable
+/// receipt with the budget-only cancellation API. It exposes the underlying
+/// receipt read-only for inspection but has no causal event materialization
+/// methods and cannot cross the physical execution boundary.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct BudgetOnlyProcessExecutionReceipt {
+    receipt: ProcessExecutionReceipt,
+}
+
+impl BudgetOnlyProcessExecutionReceipt {
+    fn new(receipt: ProcessExecutionReceipt) -> Self {
+        Self { receipt }
+    }
+}
+
+impl std::ops::Deref for BudgetOnlyProcessExecutionReceipt {
+    type Target = ProcessExecutionReceipt;
+
+    fn deref(&self) -> &Self::Target {
+        &self.receipt
+    }
+}
+
 /// Execution receipt whose source batch has been reserved for physical execution.
 ///
 /// This type is distinct from ProcessExecutionReceipt: aggregate budget
@@ -1219,19 +1244,20 @@ pub fn resume_pending_execution(
 /// inspection/provenance authorization API, which intentionally does not
 /// cross the executable physical-source boundary.
 pub fn abort_budget_only_execution(
-    receipt: &ProcessExecutionReceipt,
+    receipt: &BudgetOnlyProcessExecutionReceipt,
     budget: &mut ExecutionBudget,
 ) -> Result<(), String> {
+    let inner = &receipt.receipt;
     let reservation = budget
-        .reservation(receipt.execution_id())
-        .ok_or_else(|| format!("execution is not pending: {}", receipt.execution_id()))?;
+        .reservation(inner.execution_id())
+        .ok_or_else(|| format!("execution is not pending: {}", inner.execution_id()))?;
 
-    if reservation != receipt {
+    if reservation != inner {
         return Err("execution reservation does not match receipt".to_string());
     }
 
     let mut staged_budget = budget.clone();
-    staged_budget.abort(receipt.execution_id())?;
+    staged_budget.abort(inner.execution_id())?;
     *budget = staged_budget;
 
     Ok(())
@@ -3442,7 +3468,7 @@ mod tests {
             )
             .expect("budget-only authorization should succeed");
 
-        assert!(abort_pending_execution(&receipt, &mut budget, &mut inventory).is_err());
+        assert!(abort_pending_execution(&*receipt, &mut budget, &mut inventory).is_err());
         assert_eq!(
             budget.execution_state("exec-budget-only-boundary"),
             Some(ExecutionState::Pending)
