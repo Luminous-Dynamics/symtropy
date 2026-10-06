@@ -1272,6 +1272,10 @@ impl DurableExecutionAdapter {
         Ok(())
     }
 
+    /// Authorize a Pending execution only against a caller-retained journal-head witness.
+    ///
+    /// The witness is verified while the journal writer fence is held and is advanced
+    /// only after the authenticated Pending record is durable.
     pub fn authorize_pending(
         &self,
         head_witness: &mut JournalHeadWitness,
@@ -1352,6 +1356,9 @@ impl DurableExecutionAdapter {
         Ok(receipt)
     }
 
+    /// Recover a Pending execution only against a caller-retained journal-head witness.
+    ///
+    /// Recovery holds the journal writer fence for the entire verification/replay window.
     pub fn recover_pending(
         &self,
         head_witness: &mut JournalHeadWitness,
@@ -1438,6 +1445,7 @@ impl DurableExecutionAdapter {
         Ok(result)
     }
 
+    /// Commit an execution only against a caller-retained journal-head witness.
     pub fn commit(
         &self,
         head_witness: &mut JournalHeadWitness,
@@ -1516,6 +1524,7 @@ impl DurableExecutionAdapter {
         Ok(())
     }
 
+    /// Abort an execution only against a caller-retained journal-head witness.
     pub fn abort(
         &self,
         head_witness: &mut JournalHeadWitness,
@@ -1527,7 +1536,7 @@ impl DurableExecutionAdapter {
         energy: &mut EnergyLedger,
     ) -> Result<(), AdapterError> {
         let journal_lock = self.store.acquire_journal_lock()?;
-        let loaded = self.load_verified()?;
+        let loaded = self.load_verified_against(head_witness)?;
 
         let (pending_event_id, pending_event_hash, persisted) =
             Self::pending_record(&loaded.chain, receipt.execution_id())?;
@@ -1587,6 +1596,7 @@ impl DurableExecutionAdapter {
         Ok(())
     }
 
+    /// Recover a terminal execution only against a caller-retained journal-head witness.
     pub fn recover_terminal(
         &self,
         head_witness: &mut JournalHeadWitness,
@@ -1891,7 +1901,15 @@ mod tests {
         assert!(witness
             .verify_against("bootstrap", 1, &prefix, adapter.trust())
             .is_err());
-        assert!(adapter.load_verified_against(&witness).is_ok());
+
+        let first_event = prefix.events()[0].clone();
+        fs::write(
+            adapter.store().root().join("journal.jsonl"),
+            serde_json::to_vec(&first_event).expect("serialize rolled-back prefix"),
+        )
+        .expect("rollback durable journal to older valid prefix");
+
+        assert!(adapter.load_verified_against(&witness).is_err());
 
         fs::remove_dir_all(adapter.store().root()).expect("cleanup");
     }
