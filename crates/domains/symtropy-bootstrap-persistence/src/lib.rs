@@ -710,8 +710,7 @@ impl DurableExecutionAdapter {
         energy: &EnergyLedger,
     ) -> Result<ProcessExecutionReceipt, AdapterError> {
         let execution_id = execution_id.into();
-        let loaded = self.load()?;
-        Self::validate_journal(&loaded.chain)?;
+        let loaded = self.load_verified()?;
         Self::ensure_only_one_pending(&loaded.chain)?;
         Self::ensure_live_matches_latest(&loaded.chain, budget, inventory, energy)?;
 
@@ -783,8 +782,7 @@ impl DurableExecutionAdapter {
         inventory: &mut InventoryLedger,
         energy: &EnergyLedger,
     ) -> Result<ExecutableProcessExecutionReceipt, AdapterError> {
-        let loaded = self.load()?;
-        Self::validate_journal(&loaded.chain)?;
+        let loaded = self.load_verified()?;
         let event = Self::pending_event(&loaded.chain, execution_id)?;
         let receipt = event.payload.receipt.to_receipt()?;
         Self::ensure_process_definition(
@@ -862,8 +860,7 @@ impl DurableExecutionAdapter {
         inventory: &mut InventoryLedger,
         energy: &mut EnergyLedger,
     ) -> Result<(), AdapterError> {
-        let loaded = self.load()?;
-        Self::validate_journal(&loaded.chain)?;
+        let loaded = self.load_verified()?;
 
         let (pending_event_id, pending_event_hash, persisted) =
             Self::pending_record(&loaded.chain, receipt.execution_id())?;
@@ -938,8 +935,7 @@ impl DurableExecutionAdapter {
         inventory: &mut InventoryLedger,
         energy: &mut EnergyLedger,
     ) -> Result<(), AdapterError> {
-        let loaded = self.load()?;
-        Self::validate_journal(&loaded.chain)?;
+        let loaded = self.load_verified()?;
 
         let (pending_event_id, pending_event_hash, persisted) =
             Self::pending_record(&loaded.chain, receipt.execution_id())?;
@@ -1007,8 +1003,7 @@ impl DurableExecutionAdapter {
         inventory: &mut InventoryLedger,
         energy: &mut EnergyLedger,
     ) -> Result<RecoveryResult, AdapterError> {
-        let loaded = self.load()?;
-        Self::validate_journal(&loaded.chain)?;
+        let loaded = self.load_verified()?;
 
         let terminal = loaded
             .chain
