@@ -792,6 +792,8 @@ The first implementation should prove:
 - recovery rejects a Pending receipt when either the verified journal frontier or the supplied kernel state commitment differs, before mutating budget or inventory;
 - the explicit in-memory `UNANCHORED` sentinel cannot be promoted into a state-bound durable anchor by attaching a commitment;
 - the canonical receipt commitment is compared with the authenticated durable lifecycle record before recovery can confer executable authority;
+- terminal pre-state commitments equal the exact Pending post-state commitments, so lifecycle continuity cannot jump across a different semantic projection;
+- the durable adapter rejects multiple open Pending records and requires its live projection to equal the verified journal head projection before authorizing a new execution;
 - rejected ledger appends leave the prior state and accepted history unchanged, including when a later event in a batch fails;
 - one authorized process execution commits budget settlement, source-batch settlement, material, and energy as one kernel transaction, with all three mutable state objects staged before live replacement;
 - cross-ledger commit failure leaves budget, ledgers, and concrete source-batch reservations unchanged and keeps the execution pending for retry;
@@ -859,7 +861,11 @@ Do not add a subsystem that:
 - permits distinct execution identities to alias one physical product or waste batch merely because process and sequence fields match;
 - reuses an aborted execution identity as a fresh authorization;
 - rewards extraction while reducing recovery capability;
-- cannot produce a deterministic post-failure explanation.
+- cannot produce a deterministic post-failure explanation;
+- permits a terminal transition whose claimed pre-state differs from its Pending post-state;
+- commits or aborts an execution while the live projection differs from the durable Pending post-state;
+- rehydrates a persisted receipt without revalidating the complete ProcessRun against the declared process;
+- silently permits multiple open durable Pending records in a journal that claims linearized lifecycle semantics.
 
 ## 24. Strategic Principle
 
@@ -920,7 +926,15 @@ The kernel performs preparation against inventory and energy clones and settles 
 
 A failed preparation leaves the live budget, ledgers, and source reservation untouched; the exact receipt can therefore be retried after the required physical state is restored. An execution that will not be retried can be explicitly aborted, which returns its reserved feedstock and energy while permanently retiring that execution identity. Abort stages the budget and source-reservation changes before replacing either live state. This mirrors the prepare/commit/rollback shape used by transactional systems, but the current kernel remains an in-memory deterministic coordination boundary: it is not a durable transaction log, distributed consensus protocol, or crash-recovery mechanism for external systems. PostgreSQL's two-phase transaction model similarly separates prepare from later commit/rollback and requires an external manager to close prepared transactions promptly; it is therefore a reference for the lifecycle shape, not evidence that this kernel is already durable. (PostgreSQL 18, https://www.postgresql.org/docs/18/two-phase.html)
 
-The remaining durability boundary is explicit: a process can be authorized and physically reserved in memory, then the process can terminate before commit/abort, leaving no durable pending-execution record. Within the in-memory kernel, an interrupted caller can rehydrate the executable proof from the still-pending budget receipt and matching source reservation without creating fresh capacity. A durable integration must additionally bind that Pending receipt to the exact verified journal/state frontier from which the reservation was created. The receipt therefore carries an opaque, domain-bound execution-state anchor containing the verified frontier plus a SHA-256 commitment to the exact kernel state immediately before the Pending transition. Durable authorization uses `authorize_pending_execution_with_inventory_at_anchor`, and recovery uses `restore_pending_execution_with_inventory_at_anchor` with the independently verified current frontier. The kernel verifies both anchor equality and the supplied budget/inventory state commitment before any recovery mutation. The bootstrap kernel remains storage-independent: the adapter supplies the verified journal frontier and state-derived commitment, while the kernel enforces the binding.
+The remaining durability boundary is explicit: a process can be authorized and physically reserved in memory, then the process can terminate before commit/abort, leaving no durable pending-execution record.
+
+That boundary now has a concrete implementation in `symtropy-bootstrap-persistence`. The adapter is intentionally single-flight: one open durable Pending execution is allowed at a time. This is a conservative linearization choice, not a limitation of the underlying bootstrap kernel, which still supports multiple disjoint source reservations. It makes the first durable integration auditable end-to-end without pretending that concurrent lifecycle interleaving has already been proven.
+
+The adapter is journal-first. Pending authorization stages the kernel reservation against a state-bound frontier, writes the complete lifecycle record through the synchronized append-only journal, and only then replaces the live budget/inventory projection. Terminal commit/abort similarly stages all relevant kernel mutations, persists exactly one terminal lifecycle record, and only then swaps the live projection. Recovery accepts either the exact persisted post-state already present or the exact persisted pre-state followed by deterministic replay; any other projection is rejected.
+
+The adapter also treats the journal as a semantic authority rather than merely a byte store. Outer event hashes and previous-hash linkage must verify, the receipt commitment must recompute exactly, the receipt anchor must match the Pending event's prior journal head, process validation must reproduce the declared ProcessRun constraints, and terminal records must point to the exact Pending event and carry matching pre-state continuity. The terminal causal identities are derived directly from the immutable receipt rather than copied from an independent mutable event list.
+
+ Within the in-memory kernel, an interrupted caller can rehydrate the executable proof from the still-pending budget receipt and matching source reservation without creating fresh capacity. A durable integration must additionally bind that Pending receipt to the exact verified journal/state frontier from which the reservation was created. The receipt therefore carries an opaque, domain-bound execution-state anchor containing the verified frontier plus a SHA-256 commitment to the exact kernel state immediately before the Pending transition. Durable authorization uses `authorize_pending_execution_with_inventory_at_anchor`, and recovery uses `restore_pending_execution_with_inventory_at_anchor` with the independently verified current frontier. The kernel verifies both anchor equality and the supplied budget/inventory state commitment before any recovery mutation. The bootstrap kernel remains storage-independent: the adapter supplies the verified journal frontier and state-derived commitment, while the kernel enforces the binding.
 
 ### Durable adapter contract
 
