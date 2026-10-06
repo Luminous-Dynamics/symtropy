@@ -793,6 +793,7 @@ The first implementation should prove:
 - a pending execution can be explicitly rehydrated from the authoritative budget receipt plus matching source reservation without minting a second authorization;
 - durable integration has an explicit pending-authorization boundary: the raw pending receipt must cross persistence before executable activation, while budget-only or merely in-memory authorization cannot cross that boundary;
 - a persisted Pending receipt can be reconstructed into the raw receipt type and restored against the pre-transition budget/inventory state without minting a new execution identity;
+- executable and budget-only receipt wrappers expose read-only accessors rather than `Deref` to the raw receipt, so raw-receipt APIs cannot acquire either authority class through implicit coercion;
 - legal execution lifecycle transitions are encoded by the kernel as `Pending -> Committed` or `Pending -> Aborted`; terminal-to-terminal, terminal-to-pending, and repeated-state transitions are invalid rather than implicitly idempotent;
 - persistence failure after pending authorization has a safe raw-receipt compensation path that aborts and refunds the reservation without exposing executable event materialization;
 - budget-only reservations have a distinct cancellation path and cannot be mistaken for executions with concrete physical-source reservations;
