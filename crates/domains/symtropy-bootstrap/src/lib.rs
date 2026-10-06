@@ -846,6 +846,53 @@ impl ProductionProcess {
         Ok(receipt)
     }
 
+    /// Restore an already-authorized pending execution from an exact persisted receipt.
+    ///
+    /// This replays the pending reservation transition without minting a new
+    /// execution identity, sequence, or receipt. The supplied receipt must match
+    /// this process definition, and the supplied budget/inventory must represent
+    /// the state immediately before that pending transition.
+    pub fn restore_pending_execution_with_inventory(
+        &self,
+        receipt: &ProcessExecutionReceipt,
+        budget: &mut ExecutionBudget,
+        inventory: &mut InventoryLedger,
+    ) -> Result<(), String> {
+        let expected = ProcessExecutionReceipt {
+            execution_id: receipt.execution_id.clone(),
+            process_id: self.id.clone(),
+            input_batch_id: receipt.input_batch_id.clone(),
+            waste_stream: self.waste_stream.clone(),
+            first_inventory_sequence: receipt.first_inventory_sequence,
+            energy_sequence: receipt.energy_sequence,
+            energy_node_id: receipt.energy_node_id.clone(),
+            run: receipt.run.clone(),
+        };
+
+        if expected != *receipt {
+            return Err("persisted execution receipt does not match process definition".to_string());
+        }
+
+        self.validate_run_against_budget(
+            &receipt.run,
+            budget.available_feed_mass_g,
+            budget.available_energy_units,
+        )?;
+
+        inventory.reserve_source_batch(
+            receipt.execution_id(),
+            receipt.input_batch_id(),
+            receipt.feed_mass_g(),
+        )?;
+
+        if let Err(error) = budget.reserve(receipt) {
+            let _ = inventory.release_source_batch(receipt.execution_id());
+            return Err(error);
+        }
+
+        Ok(())
+    }
+
     /// Authorize an executable process against aggregate budgets and its concrete source batch.
     ///
     /// This convenience path reserves the pending execution and immediately
@@ -3523,6 +3570,78 @@ mod tests {
         assert!(!ExecutionState::Aborted.can_transition_to(ExecutionState::Pending));
         assert!(!ExecutionState::Aborted.can_transition_to(ExecutionState::Committed));
         assert!(!ExecutionState::Aborted.can_transition_to(ExecutionState::Aborted));
+    }
+
+    #[test]
+    fn persisted_pending_receipt_can_restore_pre_crash_reservation() {
+        let process = ProductionProcess::new(
+            "regolith_electrolysis",
+            "regolith",
+            ["oxygen", "metal"],
+            "waste",
+        );
+        let run = ProcessRun::new(
+            "regolith_electrolysis",
+            "regolith",
+            "feed-restore",
+            1_000,
+            BTreeMap::from([("oxygen".to_string(), 180), ("metal".to_string(), 720)]),
+            100,
+            4_000,
+        );
+
+        let mut original_budget = ExecutionBudget::new(1_000, 4_000);
+        let mut original_inventory = InventoryLedger::new(BTreeMap::from([
+            ("feed-restore".to_string(), 1_000),
+        ]));
+        let receipt = process
+            .authorize_pending_execution_with_inventory(
+                "exec-restore",
+                10,
+                20,
+                "bus",
+                run,
+                &mut original_budget,
+                &mut original_inventory,
+            )
+            .expect("pending execution should authorize");
+
+        let mut recovered_budget = ExecutionBudget::new(1_000, 4_000);
+        let mut recovered_inventory =
+            InventoryLedger::new(BTreeMap::from([("feed-restore".to_string(), 1_000)]));
+        process
+            .restore_pending_execution_with_inventory(
+                &receipt,
+                &mut recovered_budget,
+                &mut recovered_inventory,
+            )
+            .expect("persisted pending receipt should restore its reservation");
+
+        assert_eq!(
+            recovered_budget
+                .execution_record("exec-restore")
+                .expect("restored pending record should exist")
+                .receipt(),
+            &receipt
+        );
+        assert_eq!(recovered_budget.available_feed_mass_g(), 0);
+        assert_eq!(recovered_budget.available_energy_units(), 0);
+
+        let recovered =
+            resume_pending_execution("exec-restore", &recovered_budget, &recovered_inventory)
+                .expect("restored pending execution should activate");
+        let mut energy = EnergyLedger::new(BTreeMap::from([("bus".to_string(), 5_000)]));
+        commit_process_execution(
+            &recovered,
+            &mut recovered_budget,
+            &mut recovered_inventory,
+            &mut energy,
+        )
+        .expect("restored execution should commit");
+        assert_eq!(
+            recovered_budget.execution_state("exec-restore"),
+            Some(ExecutionState::Committed)
+        );
     }
 
     #[test]
