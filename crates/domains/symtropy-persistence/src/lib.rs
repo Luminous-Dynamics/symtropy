@@ -67,6 +67,34 @@ pub struct SaveStore {
     root: PathBuf,
 }
 
+/// Exclusive cross-process writer fence for a save journal.
+#[derive(Debug)]
+pub struct JournalLock {
+    root: PathBuf,
+    path: PathBuf,
+    file: File,
+}
+
+impl JournalLock {
+    #[must_use]
+    pub fn path(&self) -> &Path {
+        &self.path
+    }
+}
+
+impl Drop for JournalLock {
+    fn drop(&mut self) {
+        let _ = self.file.sync_data();
+        let _ = fs::remove_file(&self.path);
+        #[cfg(unix)]
+        {
+            if let Ok(directory) = File::open(&self.root) {
+                let _ = directory.sync_all();
+            }
+        }
+    }
+}
+
 impl SaveStore {
     /// Creates or opens a save directory.
     pub fn open(root: impl Into<PathBuf>) -> Result<Self, PersistenceError> {
@@ -78,6 +106,28 @@ impl SaveStore {
     /// Returns the directory containing this save slot.
     pub fn root(&self) -> &Path {
         &self.root
+    }
+
+    /// Acquire the exclusive cross-process journal writer fence.
+    pub fn acquire_journal_lock(&self) -> Result<JournalLock, PersistenceError> {
+        let path = self.root.join("journal.jsonl.lock");
+        let file = OpenOptions::new()
+            .write(true)
+            .create_new(true)
+            .open(&path)
+            .map_err(|error| {
+                if error.kind() == io::ErrorKind::AlreadyExists {
+                    PersistenceError::JournalLocked
+                } else {
+                    PersistenceError::Io(error)
+                }
+            })?;
+        file.sync_data().map_err(PersistenceError::Io)?;
+        Ok(JournalLock {
+            root: self.root.clone(),
+            path,
+            file,
+        })
     }
 
     /// Writes a complete snapshot through a synchronized temporary file and rename.
@@ -112,18 +162,24 @@ impl SaveStore {
         Ok(snapshot)
     }
 
-    /// Append one already-hashed event after repairing/separating a crash tail.
-    ///
-    /// A journal whose last write ended without a newline is ambiguous at the
-    /// filesystem boundary. If the final fragment is invalid JSON it is treated
-    /// as the same incomplete crash tail that load_journal already discards
-    /// and is truncated before the new record is appended. If it is a complete
-    /// JSON record without a newline, a separator is added instead of corrupting
-    /// the line framing.
+    /// Append one already-hashed event while taking the journal writer fence.
     pub fn append_event<T: Serialize>(
         &self,
         event: &EventEnvelope<T>,
     ) -> Result<(), PersistenceError> {
+        let lock = self.acquire_journal_lock()?;
+        self.append_event_locked(event, &lock)
+    }
+
+    /// Append one already-hashed event after the caller acquired this store's fence.
+    pub fn append_event_locked<T: Serialize>(
+        &self,
+        event: &EventEnvelope<T>,
+        lock: &JournalLock,
+    ) -> Result<(), PersistenceError> {
+        if lock.root != self.root {
+            return Err(PersistenceError::JournalLockMismatch);
+        }
         event.verify_hash().map_err(PersistenceError::State)?;
         prepare_journal_for_append(&self.root.join("journal.jsonl"))?;
         let file = OpenOptions::new()
@@ -313,6 +369,10 @@ pub enum PersistenceError {
     MissingSnapshotAnchor(String),
     /// Journal changed between tail inspection and repair.
     JournalChanged,
+    /// Another writer currently holds the journal fence.
+    JournalLocked,
+    /// A supplied journal fence belongs to another save store.
+    JournalLockMismatch,
 }
 
 impl fmt::Display for PersistenceError {
@@ -337,6 +397,12 @@ impl fmt::Display for PersistenceError {
             Self::JournalChanged => {
                 write!(formatter, "journal changed during crash-tail repair")
             }
+            Self::JournalLocked => {
+                write!(formatter, "journal writer lock is already held")
+            }
+            Self::JournalLockMismatch => {
+                write!(formatter, "journal writer lock belongs to a different save store")
+            }
         }
     }
 }
@@ -348,7 +414,11 @@ impl Error for PersistenceError {
             Self::Json(error) => Some(error),
             Self::State(error) => Some(error),
             Self::InvalidJournalRecord { source, .. } => Some(source),
-            Self::UnsupportedSchema(_) | Self::MissingSnapshotAnchor(_) | Self::JournalChanged => None,
+            Self::UnsupportedSchema(_)
+            | Self::MissingSnapshotAnchor(_)
+            | Self::JournalChanged
+            | Self::JournalLocked
+            | Self::JournalLockMismatch => None,
         }
     }
 }
@@ -523,6 +593,24 @@ mod tests {
             store.load_journal("journal", 8).expect("load separated journal");
         assert_eq!(loaded.chain.events().len(), 2);
         assert_eq!(loaded.discarded_tail_bytes, 0);
+
+        fs::remove_dir_all(store.root()).expect("remove temporary store");
+    }
+
+    #[test]
+    fn journal_writer_lock_is_exclusive() {
+        let store = temporary_store("writer-lock");
+        let lock = store.acquire_journal_lock().expect("first writer lock");
+        assert!(matches!(
+            store.acquire_journal_lock(),
+            Err(PersistenceError::JournalLocked)
+        ));
+
+        drop(lock);
+        let lock = store
+            .acquire_journal_lock()
+            .expect("lock should be reusable after clean release");
+        drop(lock);
 
         fs::remove_dir_all(store.root()).expect("remove temporary store");
     }
