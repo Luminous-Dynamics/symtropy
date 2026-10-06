@@ -457,7 +457,8 @@ pub fn highest_closed_stage(
 /// Lifecycle state of a process execution authorization.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub enum ExecutionState {
-    /// Capacity and concrete source stock are reserved; execution is still pending.
+    /// Budget capacity is reserved; executable receipts additionally require a
+    /// matching concrete source reservation before physical execution is allowed.
     Pending,
     /// The funded execution completed and its causal ledger effects were settled.
     Committed,
@@ -1211,6 +1212,30 @@ pub fn resume_pending_execution(
     Ok(ExecutableProcessExecutionReceipt::new(receipt.clone()))
 }
 
+/// Cancel a budget-only execution authorization.
+///
+/// This releases the reserved feedstock and energy without requiring a
+/// concrete inventory reservation. It is the compensation path for the
+/// inspection/provenance authorization API, which intentionally does not
+/// cross the executable physical-source boundary.
+pub fn abort_budget_only_execution(
+    receipt: &ProcessExecutionReceipt,
+    budget: &mut ExecutionBudget,
+) -> Result<(), String> {
+    let reservation = budget
+        .reservation(receipt.execution_id())
+        .ok_or_else(|| format!("execution is not pending: {}", receipt.execution_id()))?;
+
+    if reservation != receipt {
+        return Err("execution reservation does not match receipt".to_string());
+    }
+
+    let mut staged_budget = budget.clone();
+    staged_budget.abort(receipt.execution_id())?;
+    *budget = staged_budget;
+
+    Ok(())
+}
 /// Abort a pending process execution using only its raw authorization receipt.
 ///
 /// This is intentionally safe to call before executable activation, including
@@ -3340,6 +3365,89 @@ mod tests {
             &abort_inventory,
         )
         .is_err());
+    }
+
+    #[test]
+    fn budget_only_authorization_can_be_canceled_without_source_reservation() {
+        let process = ProductionProcess::new(
+            "regolith_electrolysis",
+            "regolith",
+            ["oxygen", "metal"],
+            "waste",
+        );
+        let run = ProcessRun::new(
+            "regolith_electrolysis",
+            "regolith",
+            "feed-budget-only-abort",
+            1_000,
+            BTreeMap::from([("oxygen".to_string(), 180), ("metal".to_string(), 720)]),
+            100,
+            4_000,
+        );
+
+        let mut budget = ExecutionBudget::new(1_000, 4_000);
+        let receipt = process
+            .authorize_execution(
+                "exec-budget-only-abort",
+                10,
+                20,
+                "bus",
+                run,
+                &mut budget,
+            )
+            .expect("budget-only authorization should reserve capacity");
+
+        assert_eq!(budget.available_feed_mass_g(), 0);
+        assert_eq!(budget.available_energy_units(), 0);
+        abort_budget_only_execution(&receipt, &mut budget)
+            .expect("budget-only authorization should cancel safely");
+        assert_eq!(budget.available_feed_mass_g(), 1_000);
+        assert_eq!(budget.available_energy_units(), 4_000);
+        assert_eq!(
+            budget.execution_state("exec-budget-only-abort"),
+            Some(ExecutionState::Aborted)
+        );
+        assert!(budget.pending_receipt("exec-budget-only-abort").is_none());
+    }
+
+    #[test]
+    fn budget_only_receipts_cannot_use_physical_abort_boundary() {
+        let process = ProductionProcess::new(
+            "regolith_electrolysis",
+            "regolith",
+            ["oxygen", "metal"],
+            "waste",
+        );
+        let run = ProcessRun::new(
+            "regolith_electrolysis",
+            "regolith",
+            "feed-budget-only-boundary",
+            1_000,
+            BTreeMap::from([("oxygen".to_string(), 180), ("metal".to_string(), 720)]),
+            100,
+            4_000,
+        );
+
+        let mut budget = ExecutionBudget::new(1_000, 4_000);
+        let mut inventory = InventoryLedger::new(BTreeMap::new());
+        let receipt = process
+            .authorize_execution(
+                "exec-budget-only-boundary",
+                10,
+                20,
+                "bus",
+                run,
+                &mut budget,
+            )
+            .expect("budget-only authorization should succeed");
+
+        assert!(abort_pending_execution(&receipt, &mut budget, &mut inventory).is_err());
+        assert_eq!(
+            budget.execution_state("exec-budget-only-boundary"),
+            Some(ExecutionState::Pending)
+        );
+        abort_budget_only_execution(&receipt, &mut budget)
+            .expect("budget-only cancellation should remain the safe path");
     }
 
     #[test]
