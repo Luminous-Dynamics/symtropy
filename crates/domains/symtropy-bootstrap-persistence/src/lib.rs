@@ -1949,6 +1949,122 @@ mod tests {
     }
 
     #[test]
+    fn trust_rejects_public_key_aliasing_across_epochs_or_identities() {
+        let document = Ed25519KeyPair::generate_pkcs8(&SystemRandom::new())
+            .expect("generate signing key");
+        let first = DurableExecutionSigner::from_pkcs8("alias-one", 1, document.as_ref())
+            .expect("first signer");
+        let second = DurableExecutionSigner::from_pkcs8("alias-two", 2, document.as_ref())
+            .expect("second signer");
+
+        let mut trust = DurableExecutionTrust::new();
+        trust.trust_signer(&first, 0, None).expect("first trust entry");
+        assert!(trust.trust_signer(&second, 1, None).is_err());
+    }
+
+    #[test]
+    fn terminal_cannot_change_authenticated_signing_authority() {
+        let first = test_signer("terminal-key-one", 1);
+        let second = test_signer("terminal-key-two", 2);
+        let mut trust = DurableExecutionTrust::new();
+        trust.trust_signer(&first, 0, None).expect("first trust");
+        trust.trust_signer(&second, 0, None).expect("second trust");
+
+        let adapter = DurableExecutionAdapter::open(
+            store("terminal-key-substitution"),
+            "bootstrap",
+            "bootstrap-execution",
+            1,
+        )
+        .expect("adapter")
+        .with_trust(trust)
+        .with_signer(first);
+
+        let (process, run) = process_and_run();
+        let (mut budget, mut inventory, mut energy) = initial_kernel_state();
+
+        let receipt = adapter
+            .authorize_pending(
+                &process,
+                "exec-key-substitution",
+                1,
+                10,
+                20,
+                "bus",
+                run,
+                &mut budget,
+                &mut inventory,
+                &mut energy,
+            )
+            .expect("Pending");
+
+        let executable = resume_pending_execution(receipt.execution_id(), &budget, &inventory)
+            .expect("activation");
+        adapter
+            .commit(
+                &process,
+                &executable,
+                2,
+                &mut budget,
+                &mut inventory,
+                &mut energy,
+            )
+            .expect("normal commit");
+
+        let loaded = adapter.load().expect("journal");
+        let pending = loaded.chain.events()[0].clone();
+        let terminal = loaded.chain.events()[1].clone();
+        let mut terminal_payload = terminal.payload;
+        terminal_payload.authentication = None;
+
+        let mut bad_chain = EventChain::new("bootstrap", 1);
+        bad_chain
+            .append(
+                1,
+                EXECUTION_EVENT_KIND,
+                None,
+                None,
+                Vec::new(),
+                pending.payload,
+            )
+            .expect("rebuild Pending");
+
+        let event_id = StableId::derive("bootstrap", 1, 1);
+        let digest = terminal_payload
+            .signing_digest(
+                "bootstrap",
+                1,
+                event_id.as_str(),
+                bad_chain.events()[0].event_hash.as_str(),
+            )
+            .expect("terminal digest");
+        terminal_payload.authentication = Some(second.sign_digest(&digest));
+
+        bad_chain
+            .append(
+                2,
+                EXECUTION_EVENT_KIND,
+                None,
+                None,
+                Vec::new(),
+                terminal_payload,
+            )
+            .expect("rebuild substituted terminal");
+
+        assert!(
+            DurableExecutionAdapter::validate_authenticated_journal(
+                &bad_chain,
+                "bootstrap",
+                1,
+                adapter.trust(),
+            )
+            .is_err()
+        );
+
+        fs::remove_dir_all(adapter.store().root()).expect("cleanup");
+    }
+
+    #[test]
     fn adapter_writer_fence_blocks_authorization_without_mutating_live_state() {
         let adapter = configured_adapter("adapter-lock");
         let (process, run) = process_and_run();
