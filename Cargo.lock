@@ -8911,6 +8911,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "symtropy-bootstrap-persistence"
+version = "0.1.0"
+dependencies = [
+ "serde",
+ "symtropy-bootstrap",
+ "symtropy-game-state",
+ "symtropy-persistence",
+]
+
+[[package]]
 name = "symtropy-basin"
 version = "0.1.0"
 dependencies = [
