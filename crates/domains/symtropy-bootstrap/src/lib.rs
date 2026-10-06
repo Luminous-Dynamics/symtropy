@@ -2775,7 +2775,8 @@ impl CommitmentHasher {
     }
 
     fn finish(self) -> String {
-        hex_digest(self.hasher.finalize().as_ref())
+        let digest = self.hasher.finalize();
+        hex_digest(&digest)
     }
 
     fn string_into(hasher: &mut Sha256, value: &str) {
@@ -4228,13 +4229,13 @@ mod tests {
         assert!(
             ExecutionStateAnchor::new("journal:v1", "head")
                 .unwrap()
-                .with_state_commitment(&"a".repeat(64))
+                .with_state_commitment("a".repeat(64))
                 .is_ok()
         );
         assert!(
             ExecutionStateAnchor::new("journal:v1", "head")
                 .unwrap()
-                .with_state_commitment(&"A".repeat(64))
+                .with_state_commitment("A".repeat(64))
                 .is_err()
         );
     }
