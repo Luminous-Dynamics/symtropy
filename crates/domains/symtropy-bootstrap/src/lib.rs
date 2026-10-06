@@ -1270,13 +1270,60 @@ impl BudgetOnlyProcessExecutionReceipt {
     fn new(receipt: ProcessExecutionReceipt) -> Self {
         Self { receipt }
     }
-}
 
-impl std::ops::Deref for BudgetOnlyProcessExecutionReceipt {
-    type Target = ProcessExecutionReceipt;
+    /// Read-only execution identity without granting raw-receipt coercion.
+    #[must_use]
+    pub fn execution_id(&self) -> &str {
+        self.receipt.execution_id()
+    }
 
-    fn deref(&self) -> &Self::Target {
-        &self.receipt
+    /// Read-only process identity without granting raw-receipt coercion.
+    #[must_use]
+    pub fn process_id(&self) -> &str {
+        self.receipt.process_id()
+    }
+
+    /// Read-only source-batch identity without granting raw-receipt coercion.
+    #[must_use]
+    pub fn input_batch_id(&self) -> &str {
+        self.receipt.input_batch_id()
+    }
+
+    /// Read-only waste-stream identity without granting raw-receipt coercion.
+    #[must_use]
+    pub fn waste_stream(&self) -> &str {
+        self.receipt.waste_stream()
+    }
+
+    #[must_use]
+    pub const fn first_inventory_sequence(&self) -> u64 {
+        self.receipt.first_inventory_sequence()
+    }
+
+    #[must_use]
+    pub const fn energy_sequence(&self) -> u64 {
+        self.receipt.energy_sequence()
+    }
+
+    /// Read-only energy-node identity without granting raw-receipt coercion.
+    #[must_use]
+    pub fn energy_node_id(&self) -> &str {
+        self.receipt.energy_node_id()
+    }
+
+    #[must_use]
+    pub const fn run(&self) -> &ProcessRun {
+        self.receipt.run()
+    }
+
+    #[must_use]
+    pub const fn feed_mass_g(&self) -> u64 {
+        self.receipt.feed_mass_g()
+    }
+
+    #[must_use]
+    pub const fn energy_units(&self) -> u64 {
+        self.receipt.energy_units()
     }
 }
 
@@ -1297,17 +1344,63 @@ impl ExecutableProcessExecutionReceipt {
     fn new(receipt: ProcessExecutionReceipt) -> Self {
         Self { receipt }
     }
-}
 
-impl std::ops::Deref for ExecutableProcessExecutionReceipt {
-    type Target = ProcessExecutionReceipt;
-
-    fn deref(&self) -> &Self::Target {
-        &self.receipt
+    /// Read-only execution identity without granting raw-receipt coercion.
+    #[must_use]
+    pub fn execution_id(&self) -> &str {
+        self.receipt.execution_id()
     }
-}
 
-impl ExecutableProcessExecutionReceipt {
+    /// Read-only process identity without granting raw-receipt coercion.
+    #[must_use]
+    pub fn process_id(&self) -> &str {
+        self.receipt.process_id()
+    }
+
+    /// Read-only source-batch identity without granting raw-receipt coercion.
+    #[must_use]
+    pub fn input_batch_id(&self) -> &str {
+        self.receipt.input_batch_id()
+    }
+
+    /// Read-only waste-stream identity without granting raw-receipt coercion.
+    #[must_use]
+    pub fn waste_stream(&self) -> &str {
+        self.receipt.waste_stream()
+    }
+
+    #[must_use]
+    pub const fn first_inventory_sequence(&self) -> u64 {
+        self.receipt.first_inventory_sequence()
+    }
+
+    #[must_use]
+    pub const fn energy_sequence(&self) -> u64 {
+        self.receipt.energy_sequence()
+    }
+
+    /// Read-only energy-node identity without granting raw-receipt coercion.
+    #[must_use]
+    pub fn energy_node_id(&self) -> &str {
+        self.receipt.energy_node_id()
+    }
+
+    #[must_use]
+    pub const fn run(&self) -> &ProcessRun {
+        self.receipt.run()
+    }
+
+    #[must_use]
+    pub const fn feed_mass_g(&self) -> u64 {
+        self.receipt.feed_mass_g()
+    }
+
+    #[must_use]
+    pub const fn energy_units(&self) -> u64 {
+        self.receipt.energy_units()
+    }
+
+    /// Materialize causal inventory only after physical source reservation proof.
     /// Materialize causal inventory only after physical source reservation proof.
     pub fn inventory_events(&self) -> Result<Vec<InventoryEvent>, String> {
         self.receipt.inventory_events()
@@ -3564,11 +3657,11 @@ mod tests {
             .authorize_execution("exec-budget-only-boundary", 10, 20, "bus", run, &mut budget)
             .expect("budget-only authorization should succeed");
 
-        assert!(abort_pending_execution(&*receipt, &mut budget, &mut inventory).is_err());
         assert_eq!(
-            budget.execution_state("exec-budget-only-boundary"),
+            budget.execution_state(receipt.execution_id()),
             Some(ExecutionState::Pending)
         );
+        assert!(inventory.source_reservations.is_empty());
         abort_budget_only_execution(&receipt, &mut budget)
             .expect("budget-only cancellation should remain the safe path");
     }
