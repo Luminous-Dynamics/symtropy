@@ -1158,7 +1158,7 @@ mod tests {
         let pre_inventory = inventory.state_commitment();
         let pre_energy = energy.state_commitment();
 
-        let receipt = adapter
+        let _receipt = adapter
             .authorize_pending(
                 &process,
                 "exec-001",
@@ -1753,6 +1753,5 @@ mod tests {
         );
 
         fs::remove_dir_all(adapter.store().root()).expect("cleanup");
-        let _ = receipt;
     }
 }
