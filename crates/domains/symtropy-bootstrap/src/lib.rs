@@ -1175,6 +1175,8 @@ pub struct ExecutionStateAnchor {
 }
 
 impl ExecutionStateAnchor {
+    const IN_MEMORY_DOMAIN: &'static str = "symtropy.execution.in-memory";
+    const IN_MEMORY_FRONTIER: &'static str = "UNANCHORED";
     const UNBOUND_STATE_COMMITMENT: &'static str = "UNBOUND";
 
     /// Construct a bounded, portable execution-state anchor.
@@ -1231,6 +1233,12 @@ impl ExecutionStateAnchor {
         if !is_sha256_hex(&state_commitment) {
             return Err("execution anchor requires a lowercase SHA-256 state commitment".to_string());
         }
+        if self.domain == Self::IN_MEMORY_DOMAIN && self.frontier == Self::IN_MEMORY_FRONTIER {
+            return Err(
+                "in-memory execution anchor cannot be promoted to a durable state-bound anchor"
+                    .to_string(),
+            );
+        }
 
         Ok(Self {
             state_commitment,
@@ -1245,8 +1253,8 @@ impl ExecutionStateAnchor {
     #[must_use]
     pub fn in_memory() -> Self {
         Self {
-            domain: "symtropy.execution.in-memory".to_string(),
-            frontier: "UNANCHORED".to_string(),
+            domain: Self::IN_MEMORY_DOMAIN.to_string(),
+            frontier: Self::IN_MEMORY_FRONTIER.to_string(),
             state_commitment: Self::UNBOUND_STATE_COMMITMENT.to_string(),
         }
     }
@@ -4416,6 +4424,15 @@ mod tests {
             ExecutionStateAnchor::new("journal:v1", "head")
                 .unwrap()
                 .with_state_commitment("A".repeat(64))
+                .is_err()
+        );
+    }
+
+    #[test]
+    fn execution_state_anchor_rejects_promoted_in_memory_sentinel() {
+        assert!(
+            ExecutionStateAnchor::in_memory()
+                .with_state_commitment("a".repeat(64))
                 .is_err()
         );
     }
