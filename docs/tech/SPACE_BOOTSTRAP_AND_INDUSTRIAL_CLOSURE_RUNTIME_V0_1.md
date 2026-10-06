@@ -753,6 +753,7 @@ The first implementation should prove:
 - duplicate, empty, or cross-namespace capability/dependency identifiers make the graph invalid and fail closure closed;
 - a graph with no positive critical-weight total cannot claim full industrial closure merely through a vacuous `0 == 0` comparison;
 - critical-weight aggregation overflow is an invalid closure report rather than a wrapped or panicking result;
+- authored dependency topology beyond the bounded resolution depth is an invalid closure report rather than a stack-exhaustion risk;
 - mass-closure denominator overflow makes the closure report invalid rather than saturating the denominator;
 - blocker-weight aggregation overflow is rejected rather than saturating the reported dependency importance;
 - process-efficiency comparison remains exact at u64 boundary values without saturating cross-products;
