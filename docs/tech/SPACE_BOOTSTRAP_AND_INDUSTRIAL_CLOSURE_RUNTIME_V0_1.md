@@ -767,6 +767,7 @@ The first implementation should prove:
 - bootstrap milestones replay from evidence references;
 - LOD transitions preserve mass, energy, machines, reservations, and unresolved failures;
 - the simulator can identify the single largest unresolved blocker to industrial closure;
+- blocker ranking refuses invalid closure reports instead of treating definition errors as physical industrial dependencies;
 - execution recovery cannot replay a valid Pending receipt against a later or otherwise different budget/inventory state even when the textual journal frontier is reused;
 - estimated resources require an explicit evidence-certification transition before entering inventory;
 - process definitions reject duplicate output-stream IDs and reject a waste stream that collides with a product stream;
