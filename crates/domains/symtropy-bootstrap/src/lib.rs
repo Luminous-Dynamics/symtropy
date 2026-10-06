@@ -3184,6 +3184,13 @@ mod tests {
         assert_eq!(committed_record.execution_id(), "exec-terminal-commit");
         assert_eq!(committed_record.state(), ExecutionState::Committed);
         assert_eq!(committed_record.receipt(), &commit_receipt.receipt);
+        assert!(commit_budget.pending_receipt("exec-terminal-commit").is_none());
+        assert!(resume_pending_execution(
+            "exec-terminal-commit",
+            &commit_budget,
+            &commit_inventory,
+        )
+        .is_err());
 
         let mut abort_budget = ExecutionBudget::new(1_000, 4_000);
         let mut abort_inventory =
@@ -3211,6 +3218,13 @@ mod tests {
         assert_eq!(aborted_record.execution_id(), "exec-terminal-abort");
         assert_eq!(aborted_record.state(), ExecutionState::Aborted);
         assert_eq!(aborted_record.receipt(), &abort_receipt.receipt);
+        assert!(abort_budget.pending_receipt("exec-terminal-abort").is_none());
+        assert!(resume_pending_execution(
+            "exec-terminal-abort",
+            &abort_budget,
+            &abort_inventory,
+        )
+        .is_err());
     }
 
     #[test]
