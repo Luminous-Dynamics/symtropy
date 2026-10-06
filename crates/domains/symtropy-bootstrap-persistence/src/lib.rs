@@ -1256,28 +1256,6 @@ impl DurableExecutionAdapter {
             .cloned()
             .ok_or_else(|| AdapterError::Invalid("journal append produced no event".to_string()))?;
 
-        self.store.append_event(&event)?;
-        Ok(event)
-    }
-        chain
-            .append(
-                simulation_tick,
-                EXECUTION_EVENT_KIND,
-                None,
-                None,
-                Vec::new(),
-                payload,
-            )
-            .map_err(|error| {
-                AdapterError::Invalid(format!("cannot append lifecycle event: {error}"))
-            })?;
-
-        let event = chain
-            .events()
-            .last()
-            .cloned()
-            .ok_or_else(|| AdapterError::Invalid("journal append produced no event".to_string()))?;
-
         self.store.append_event_locked(&event, journal_lock)?;
         Ok(event)
     }
