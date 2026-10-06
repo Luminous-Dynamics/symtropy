@@ -1872,13 +1872,13 @@ impl ProcessEfficiency {
 /// are maximized; burden dimensions are minimized.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct BootstrapCandidate {
-    pub id: String,
-    pub critical_weight_closed_gain: u64,
-    pub dependency_weight_removed: u64,
-    pub imported_mass_g: u64,
-    pub energy_units: u64,
-    pub time_ticks: u64,
-    pub failure_risk_ppm: u64,
+    id: String,
+    critical_weight_closed_gain: u64,
+    dependency_weight_removed: u64,
+    imported_mass_g: u64,
+    energy_units: u64,
+    time_ticks: u64,
+    failure_risk_ppm: u64,
 }
 
 impl BootstrapCandidate {
@@ -1909,6 +1909,41 @@ impl BootstrapCandidate {
             time_ticks,
             failure_risk_ppm,
         })
+    }
+
+    #[must_use]
+    pub fn id(&self) -> &str {
+        &self.id
+    }
+
+    #[must_use]
+    pub const fn critical_weight_closed_gain(&self) -> u64 {
+        self.critical_weight_closed_gain
+    }
+
+    #[must_use]
+    pub const fn dependency_weight_removed(&self) -> u64 {
+        self.dependency_weight_removed
+    }
+
+    #[must_use]
+    pub const fn imported_mass_g(&self) -> u64 {
+        self.imported_mass_g
+    }
+
+    #[must_use]
+    pub const fn energy_units(&self) -> u64 {
+        self.energy_units
+    }
+
+    #[must_use]
+    pub const fn time_ticks(&self) -> u64 {
+        self.time_ticks
+    }
+
+    #[must_use]
+    pub const fn failure_risk_ppm(&self) -> u64 {
+        self.failure_risk_ppm
     }
 
     /// Whether this candidate is strictly Pareto-better than another.
