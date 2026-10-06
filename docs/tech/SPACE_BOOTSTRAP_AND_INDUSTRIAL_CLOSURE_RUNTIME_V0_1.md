@@ -794,6 +794,8 @@ The first implementation should prove:
 - the canonical receipt commitment is compared with the authenticated durable lifecycle record before recovery can confer executable authority;
 - terminal pre-state commitments equal the exact Pending post-state commitments, so lifecycle continuity cannot jump across a different semantic projection;
 - the durable adapter rejects multiple open Pending records and requires its live projection to equal the verified journal head projection before authorizing a new execution;
+- the durable record commits to the exact process-definition configuration as well as the ProcessRun, so replay is not silently reinterpreted under a later definition with the same process ID;
+- append-after-crash repairs an incomplete final journal fragment before writing the next event, and concurrent journal-size changes fail closed;
 - rejected ledger appends leave the prior state and accepted history unchanged, including when a later event in a batch fails;
 - one authorized process execution commits budget settlement, source-batch settlement, material, and energy as one kernel transaction, with all three mutable state objects staged before live replacement;
 - cross-ledger commit failure leaves budget, ledgers, and concrete source-batch reservations unchanged and keeps the execution pending for retry;
@@ -865,7 +867,9 @@ Do not add a subsystem that:
 - permits a terminal transition whose claimed pre-state differs from its Pending post-state;
 - commits or aborts an execution while the live projection differs from the durable Pending post-state;
 - rehydrates a persisted receipt without revalidating the complete ProcessRun against the declared process;
-- silently permits multiple open durable Pending records in a journal that claims linearized lifecycle semantics.
+- silently permits multiple open durable Pending records in a journal that claims linearized lifecycle semantics;
+- reinterprets a persisted execution under a changed process definition while retaining the same process ID;
+- appends a new JSON record directly after a partial crash-tail fragment and corrupts subsequent journal replay.
 
 ## 24. Strategic Principle
 
@@ -932,7 +936,7 @@ That boundary now has a concrete implementation in `symtropy-bootstrap-persisten
 
 The adapter is journal-first. Pending authorization stages the kernel reservation against a state-bound frontier, writes the complete lifecycle record through the synchronized append-only journal, and only then replaces the live budget/inventory projection. Terminal commit/abort similarly stages all relevant kernel mutations, persists exactly one terminal lifecycle record, and only then swaps the live projection. Recovery accepts either the exact persisted post-state already present or the exact persisted pre-state followed by deterministic replay; any other projection is rejected.
 
-The adapter also treats the journal as a semantic authority rather than merely a byte store. Outer event hashes and previous-hash linkage must verify, the receipt commitment must recompute exactly, the receipt anchor must match the Pending event's prior journal head, process validation must reproduce the declared ProcessRun constraints, and terminal records must point to the exact Pending event and carry matching pre-state continuity. The terminal causal identities are derived directly from the immutable receipt rather than copied from an independent mutable event list.
+The adapter also treats the journal as a semantic authority rather than merely a byte store. Its process-definition commitment is a version-independent cryptographic identity of the exact authored process configuration (including output-stream order), so a reconfiguration cannot silently reinterpret an old execution. The lower persistence layer also repairs only the final crash-tail framing before append; an invalid complete record remains a hard error, and an unexpected concurrent size change fails closed. Outer event hashes and previous-hash linkage must verify, the receipt commitment must recompute exactly, the receipt anchor must match the Pending event's prior journal head, process validation must reproduce the declared ProcessRun constraints, and terminal records must point to the exact Pending event and carry matching pre-state continuity. The terminal causal identities are derived directly from the immutable receipt rather than copied from an independent mutable event list.
 
  Within the in-memory kernel, an interrupted caller can rehydrate the executable proof from the still-pending budget receipt and matching source reservation without creating fresh capacity. A durable integration must additionally bind that Pending receipt to the exact verified journal/state frontier from which the reservation was created. The receipt therefore carries an opaque, domain-bound execution-state anchor containing the verified frontier plus a SHA-256 commitment to the exact kernel state immediately before the Pending transition. Durable authorization uses `authorize_pending_execution_with_inventory_at_anchor`, and recovery uses `restore_pending_execution_with_inventory_at_anchor` with the independently verified current frontier. The kernel verifies both anchor equality and the supplied budget/inventory state commitment before any recovery mutation. The bootstrap kernel remains storage-independent: the adapter supplies the verified journal frontier and state-derived commitment, while the kernel enforces the binding.
 
