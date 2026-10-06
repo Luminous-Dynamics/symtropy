@@ -1707,7 +1707,7 @@ impl DurableExecutionAdapter {
         energy: &mut EnergyLedger,
     ) -> Result<RecoveryResult, AdapterError> {
         let _journal_lock = self.store.acquire_journal_lock()?;
-        let loaded = self.load_verified_against(head_witness)?;
+        let loaded = self.load_verified_at(head_witness)?;
 
         let terminal = loaded
             .chain
