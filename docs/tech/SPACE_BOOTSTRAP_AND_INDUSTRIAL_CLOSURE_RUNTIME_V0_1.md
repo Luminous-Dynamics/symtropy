@@ -783,6 +783,7 @@ The first implementation should prove:
 - stateful ledger batch append validates the complete batch before committing any event;
 - a durable execution anchor is bound to the exact pre-Pending budget/inventory state with a deterministic SHA-256 commitment;
 - recovery rejects a Pending receipt when either the verified journal frontier or the supplied kernel state commitment differs, before mutating budget or inventory;
+- the canonical receipt commitment is compared with the authenticated durable lifecycle record before recovery can confer executable authority;
 - rejected ledger appends leave the prior state and accepted history unchanged, including when a later event in a batch fails;
 - one authorized process execution commits budget settlement, source-batch settlement, material, and energy as one kernel transaction, with all three mutable state objects staged before live replacement;
 - cross-ledger commit failure leaves budget, ledgers, and concrete source-batch reservations unchanged and keeps the execution pending for retry;
@@ -933,6 +934,7 @@ complete_process_execution_receipt
       frontier
       state_commitment (lowercase SHA-256 of the exact pre-Pending budget/inventory state)
     complete_process_run
+receipt_commitment (canonical SHA-256 of the exact complete receipt)
 causal event identities / payloads required by the adapter
 schema_version
 ```
@@ -942,8 +944,9 @@ The adapter must use the explicit pending-authorization API and enforce this ord
 ```text
 authorize_pending_execution_with_inventory_at_anchor
     -> derive state-bound ExecutionStateAnchor from verified frontier + exact pre-Pending budget/inventory state
-    -> durably record Pending + exact receipt + source reservation + verified frontier + state commitment
+    -> durably record Pending + exact receipt + receipt commitment + source reservation + verified frontier + state commitment
     -> reconstruct raw ProcessExecutionReceipt from persisted fields
+    -> recompute receipt commitment and compare it with the authenticated Pending record
     -> restore_pending_execution_with_inventory_at_anchor against the same verified frontier and state
     -> resume_pending_execution only after durable Pending exists
     -> stage deterministic ledger effects
@@ -970,7 +973,7 @@ journal verification
            terminal; never re-authorize or rehydrate
 ```
 
-The adapter must fail closed on an unknown lifecycle state, duplicate terminal outcome, terminal receipt mismatch, missing causal predecessor, impossible sequence transition, an unbound durable execution anchor, a Pending receipt whose execution-state anchor does not match the verified journal frontier, a Pending receipt whose state commitment does not match the reconstructed budget/inventory state, or a committed outcome whose required causal events cannot be reconstructed exactly. Receipt reconstruction does not itself confer execution authority; process-definition validation and pending reservation restoration remain mandatory before executable activation. The kernel's `ExecutionState::can_transition_to` provides the common legal transition rule so adapters do not invent a second lifecycle semantics.
+The adapter must fail closed on an unknown lifecycle state, duplicate terminal outcome, terminal receipt mismatch, receipt commitment mismatch, missing causal predecessor, impossible sequence transition, an unbound durable execution anchor, a Pending receipt whose execution-state anchor does not match the verified journal frontier, a Pending receipt whose state commitment does not match the reconstructed budget/inventory state, or a committed outcome whose required causal events cannot be reconstructed exactly. Receipt reconstruction does not itself confer execution authority; process-definition validation and pending reservation restoration remain mandatory before executable activation. The kernel's `ExecutionState::can_transition_to` provides the common legal transition rule so adapters do not invent a second lifecycle semantics.
 
 Snapshots may be used as checkpoints, but they are not the authority for resolving an interrupted execution unless their journal anchor covers the corresponding lifecycle record. The existing symtropy-persistence journal and snapshot machinery is therefore a natural implementation substrate: its verified `event_head_hash` supplies the frontier, while the adapter reconstructs the corresponding kernel state before deriving the state commitment. The bootstrap kernel remains independent of filesystem or database APIs.
 
