@@ -1056,6 +1056,55 @@ pub struct ProcessExecutionReceipt {
 }
 
 impl ProcessExecutionReceipt {
+    /// Reconstruct a raw receipt from persisted fields without granting executable authority.
+    ///
+    /// The returned value remains a raw receipt: it cannot materialize causal events or
+    /// cross the physical commit/abort boundary. A caller restoring persisted work must
+    /// pass it through `ProductionProcess::restore_pending_execution_with_inventory`.
+    pub fn from_persisted_parts(
+        execution_id: impl Into<String>,
+        process_id: impl Into<String>,
+        input_batch_id: impl Into<String>,
+        waste_stream: impl Into<String>,
+        first_inventory_sequence: u64,
+        energy_sequence: u64,
+        energy_node_id: impl Into<String>,
+        run: ProcessRun,
+    ) -> Result<Self, String> {
+        let execution_id = execution_id.into();
+        let process_id = process_id.into();
+        let input_batch_id = input_batch_id.into();
+        let waste_stream = waste_stream.into();
+        let energy_node_id = energy_node_id.into();
+
+        if execution_id.is_empty() {
+            return Err("persisted receipt requires a non-empty execution ID".to_string());
+        }
+        if process_id.is_empty() {
+            return Err("persisted receipt requires a non-empty process ID".to_string());
+        }
+        if input_batch_id.is_empty() {
+            return Err("persisted receipt requires a non-empty input batch ID".to_string());
+        }
+        if waste_stream.is_empty() {
+            return Err("persisted receipt requires a non-empty waste stream".to_string());
+        }
+        if energy_node_id.is_empty() {
+            return Err("persisted receipt requires a non-empty energy node ID".to_string());
+        }
+
+        Ok(Self {
+            execution_id,
+            process_id,
+            input_batch_id,
+            waste_stream,
+            first_inventory_sequence,
+            energy_sequence,
+            energy_node_id,
+            run,
+        })
+    }
+
     #[must_use]
     pub fn execution_id(&self) -> &str {
         &self.execution_id
@@ -3570,6 +3619,37 @@ mod tests {
         assert!(!ExecutionState::Aborted.can_transition_to(ExecutionState::Pending));
         assert!(!ExecutionState::Aborted.can_transition_to(ExecutionState::Committed));
         assert!(!ExecutionState::Aborted.can_transition_to(ExecutionState::Aborted));
+    }
+
+    #[test]
+    fn persisted_receipt_can_be_reconstructed_without_executable_authority() {
+        let receipt = ProcessExecutionReceipt::from_persisted_parts(
+            "exec-persisted",
+            "regolith_electrolysis",
+            "feed-persisted",
+            "waste",
+            10,
+            20,
+            "bus",
+            ProcessRun::new(
+                "regolith_electrolysis",
+                "regolith",
+                "feed-persisted",
+                1_000,
+                BTreeMap::from([("oxygen".to_string(), 180), ("metal".to_string(), 720)]),
+                100,
+                4_000,
+            ),
+        )
+        .expect("persisted receipt should reconstruct");
+
+        assert_eq!(receipt.execution_id(), "exec-persisted");
+        assert_eq!(receipt.process_id(), "regolith_electrolysis");
+        assert_eq!(receipt.input_batch_id(), "feed-persisted");
+        assert_eq!(receipt.waste_stream(), "waste");
+        assert_eq!(receipt.first_inventory_sequence(), 10);
+        assert_eq!(receipt.energy_sequence(), 20);
+        assert_eq!(receipt.energy_node_id(), "bus");
     }
 
     #[test]
