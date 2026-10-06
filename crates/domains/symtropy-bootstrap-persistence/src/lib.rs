@@ -50,6 +50,48 @@ pub struct ExternalFreshnessAttestation {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
+pub struct FreshnessCursor {
+    authority_commitment: String,
+    last_sequence: u64,
+    last_head_hash: String,
+    last_event_count: u64,
+}
+
+impl FreshnessCursor {
+    fn from_verified(
+        authority: &FreshnessAuthority,
+        attestation: &ExternalFreshnessAttestation,
+    ) -> Self {
+        Self {
+            authority_commitment: authority.commitment(),
+            last_sequence: attestation.sequence,
+            last_head_hash: attestation.head_hash.clone(),
+            last_event_count: attestation.event_count,
+        }
+    }
+
+    #[must_use]
+    pub fn authority_commitment(&self) -> &str {
+        &self.authority_commitment
+    }
+
+    #[must_use]
+    pub const fn last_sequence(&self) -> u64 {
+        self.last_sequence
+    }
+
+    #[must_use]
+    pub fn last_head_hash(&self) -> &str {
+        &self.last_head_hash
+    }
+
+    #[must_use]
+    pub const fn last_event_count(&self) -> u64 {
+        self.last_event_count
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct FreshnessAuthority {
     authority_id: String,
     authority_epoch: u64,
@@ -98,6 +140,40 @@ impl FreshnessAuthority {
         hasher.update(self.authority_epoch.to_le_bytes());
         hash_string(&mut hasher, &self.public_key);
         hex_encode(&hasher.finalize())
+    }
+
+    /// Verify a new external checkpoint and advance a caller-retained monotonic cursor.
+    ///
+    /// A cursor rejects replay of an older authority sequence. It is deliberately not
+    /// serializable here: persisting the cursor is itself a trust boundary and belongs
+    /// to an external durable authority/checkpoint store.
+    pub fn verify_and_advance(
+        &self,
+        cursor: &mut FreshnessCursor,
+        attestation: &ExternalFreshnessAttestation,
+        namespace: &str,
+        seed: u64,
+        chain: &EventChain<ExecutionLifecycleEvent>,
+        trust: &DurableExecutionTrust,
+    ) -> Result<(), AdapterError> {
+        self.verify(attestation, namespace, seed, chain, trust)?;
+
+        if cursor.authority_commitment != self.commitment() {
+            return Err(AdapterError::WitnessMismatch(
+                "freshness cursor belongs to a different authority root".to_string(),
+            ));
+        }
+        if attestation.sequence <= cursor.last_sequence {
+            return Err(AdapterError::WitnessMismatch(
+                "journal freshness attestation sequence is not newer than retained cursor"
+                    .to_string(),
+            ));
+        }
+
+        cursor.last_sequence = attestation.sequence;
+        cursor.last_head_hash = attestation.head_hash.clone();
+        cursor.last_event_count = attestation.event_count;
+        Ok(())
     }
 
     /// Verify an externally authored checkpoint against the exact current journal head.
@@ -1078,6 +1154,27 @@ impl DurableExecutionAdapter {
     ) -> Result<JournalLoad<ExecutionLifecycleEvent>, AdapterError> {
         let loaded = self.load_verified()?;
         witness.verify_exact(
+            &self.journal_namespace,
+            self.seed,
+            &loaded.chain,
+            &self.trust,
+        )?;
+        Ok(loaded)
+    }
+
+    /// Verify an exact retained head plus a separately rooted external checkpoint,
+    /// and ratchet a retained external freshness cursor.
+    pub fn load_verified_with_freshness_cursor(
+        &self,
+        witness: &JournalHeadWitness,
+        authority: &FreshnessAuthority,
+        attestation: &ExternalFreshnessAttestation,
+        cursor: &mut FreshnessCursor,
+    ) -> Result<JournalLoad<ExecutionLifecycleEvent>, AdapterError> {
+        let loaded = self.load_verified_at(witness)?;
+        authority.verify_and_advance(
+            cursor,
+            attestation,
             &self.journal_namespace,
             self.seed,
             &loaded.chain,
@@ -2127,6 +2224,49 @@ mod tests {
         attestation.signature =
             hex_encode(signer.key_pair.sign(&freshness_attestation_digest(&attestation)).as_ref());
         attestation
+    }
+
+    #[test]
+    fn external_freshness_cursor_rejects_replayed_authority_sequence() {
+        let adapter = configured_adapter("freshness-cursor");
+        let authority_signer = test_signer("freshness-cursor-authority", 1);
+        let authority = FreshnessAuthority::from_public_key_hex(
+            authority_signer.key_id(),
+            authority_signer.key_epoch(),
+            authority_signer.public_key_hex(),
+        )
+        .expect("authority");
+
+        let witness = adapter.capture_head_witness().expect("head witness");
+        let attestation =
+            freshness_test_attestation(authority.authority_id(), authority.authority_epoch(), &authority_signer, &adapter);
+        let mut cursor = FreshnessCursor::from_verified(&authority, &attestation);
+
+        assert!(adapter
+            .load_verified_with_freshness_cursor(
+                &witness,
+                &authority,
+                &attestation,
+                &mut cursor,
+            )
+            .is_err());
+
+        let mut newer = attestation.clone();
+        newer.sequence = newer.sequence.checked_add(1).expect("sequence");
+        newer.signature =
+            hex_encode(authority_signer.key_pair.sign(&freshness_attestation_digest(&newer)).as_ref());
+
+        assert!(adapter
+            .load_verified_with_freshness_cursor(
+                &witness,
+                &authority,
+                &newer,
+                &mut cursor,
+            )
+            .is_ok());
+        assert_eq!(cursor.last_sequence(), 2);
+
+        fs::remove_dir_all(adapter.store().root()).expect("cleanup");
     }
 
     #[test]
