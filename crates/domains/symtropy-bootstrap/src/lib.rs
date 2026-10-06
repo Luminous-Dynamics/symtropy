@@ -1408,6 +1408,18 @@ impl ProcessExecutionReceipt {
         &self.state_anchor
     }
 
+    /// Return a canonical SHA-256 commitment of this exact receipt.
+    ///
+    /// Durable adapters should persist this value inside the authenticated
+    /// lifecycle record so recovery can detect receipt-field tampering before
+    /// invoking any authorization or reservation operation.
+    #[must_use]
+    pub fn commitment(&self) -> String {
+        let mut hasher = CommitmentHasher::new("symtropy.execution.receipt.v1");
+        hasher.receipt(self);
+        hasher.finish()
+    }
+
     /// Borrow the complete deterministic process run carried by this receipt.
     ///
     /// This is intentionally read-only: recovery layers can serialize the exact
@@ -4403,6 +4415,76 @@ mod tests {
         assert_eq!(recovered_budget.available_feed_mass_g(), 2_000);
         assert_eq!(recovered_budget.available_energy_units(), 4_000);
         assert!(recovered_inventory.source_reservations.is_empty());
+    }
+
+    #[test]
+    fn receipt_commitment_is_deterministic_and_context_bound() {
+        let anchor = ExecutionStateAnchor::new(
+            "symtropy.execution.journal.v1",
+            "head-receipt",
+        )
+        .expect("valid anchor")
+        .with_state_commitment("a".repeat(64))
+        .expect("valid commitment");
+
+        let first = ProcessExecutionReceipt::from_persisted_parts(
+            "exec-receipt",
+            "regolith_electrolysis",
+            "feed-receipt",
+            "waste",
+            10,
+            20,
+            "bus",
+            anchor.clone(),
+            ProcessRun::new(
+                "regolith_electrolysis",
+                "regolith",
+                "feed-receipt",
+                1_000,
+                BTreeMap::from([("oxygen".to_string(), 180), ("metal".to_string(), 720)]),
+                100,
+                4_000,
+            ),
+        )
+        .expect("first receipt should reconstruct");
+
+        let second = ProcessExecutionReceipt::from_persisted_parts(
+            "exec-receipt",
+            "regolith_electrolysis",
+            "feed-receipt",
+            "waste",
+            10,
+            20,
+            "bus",
+            anchor,
+            first.run().clone(),
+        )
+        .expect("second receipt should reconstruct");
+
+        assert_eq!(first.commitment(), second.commitment());
+        assert!(is_sha256_hex(&first.commitment()));
+
+        let changed_anchor = ExecutionStateAnchor::new(
+            "symtropy.execution.journal.v1",
+            "different-head",
+        )
+        .expect("valid anchor")
+        .with_state_commitment("a".repeat(64))
+        .expect("valid commitment");
+        let changed = ProcessExecutionReceipt::from_persisted_parts(
+            "exec-receipt",
+            "regolith_electrolysis",
+            "feed-receipt",
+            "waste",
+            10,
+            20,
+            "bus",
+            changed_anchor,
+            first.run().clone(),
+        )
+        .expect("changed receipt should reconstruct");
+
+        assert_ne!(first.commitment(), changed.commitment());
     }
 
     #[test]
