@@ -10,6 +10,13 @@
 use sha2::{Digest, Sha256};
 use std::collections::{BTreeMap, BTreeSet};
 
+/// Maximum dependency depth evaluated by the recursive closure resolver.
+///
+/// A deterministic ceiling prevents pathological authored topology from turning
+/// into an unbounded process-stack obligation. Exceeding the ceiling is treated
+/// as unresolved closure data, not as a successful or partial resolution.
+const MAX_DEPENDENCY_RESOLUTION_DEPTH: usize = 1024;
+
 /// State of a terminal dependency.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub enum DependencyClass {
@@ -346,6 +353,14 @@ impl DependencyGraph {
         let Some(capability) = self.capabilities.get(id) else {
             return (false, vec![id.to_string()], false);
         };
+
+        if stack.len() >= MAX_DEPENDENCY_RESOLUTION_DEPTH {
+            return (
+                false,
+                vec![format!("resolution-depth-exceeded:{MAX_DEPENDENCY_RESOLUTION_DEPTH}")],
+                false,
+            );
+        }
 
         stack.push(id.to_string());
 
@@ -3031,6 +3046,39 @@ mod tests {
         assert_eq!(report.mass_closure_ppm, 900_000);
         assert_eq!(report.critical_closure_ppm, 700_000);
         assert!(!report.fully_closed());
+    }
+
+    #[test]
+    fn excessive_dependency_depth_fails_closed() {
+        let mut capabilities = Vec::with_capacity(MAX_DEPENDENCY_RESOLUTION_DEPTH + 1);
+        for index in 0..=MAX_DEPENDENCY_RESOLUTION_DEPTH {
+            let dependencies = if index == 0 {
+                Vec::new()
+            } else {
+                vec![format!("capability-{previous}", previous = index - 1)]
+            };
+            capabilities.push(Capability::new(
+                format!("capability-{index}"),
+                1,
+                dependencies,
+            ));
+        }
+
+        let graph = DependencyGraph::new(capabilities, std::iter::empty::<Dependency>());
+        let report = graph.evaluate(1, 0);
+
+        assert!(!report.valid);
+        assert!(
+            report.assessments.iter().any(|assessment| {
+                assessment
+                    .unresolved_dependencies
+                    .iter()
+                    .any(|dependency| {
+                        dependency
+                            == "resolution-depth-exceeded:1024"
+                    })
+            })
+        );
     }
 
     #[test]
