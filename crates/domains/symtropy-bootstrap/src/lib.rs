@@ -3418,7 +3418,7 @@ mod tests {
 
         let mut budget = ExecutionBudget::new(1_000, 4_000);
         let receipt = process
-.authorize_execution("exec-budget-only-abort", 10, 20, "bus", run, &mut budget)
+            .authorize_execution("exec-budget-only-abort", 10, 20, "bus", run, &mut budget)
             .expect("budget-only authorization should reserve capacity");
 
         assert_eq!(budget.available_feed_mass_g(), 0);
@@ -3455,7 +3455,7 @@ mod tests {
         let mut budget = ExecutionBudget::new(1_000, 4_000);
         let mut inventory = InventoryLedger::new(BTreeMap::new());
         let receipt = process
-.authorize_execution("exec-budget-only-boundary", 10, 20, "bus", run, &mut budget)
+            .authorize_execution("exec-budget-only-boundary", 10, 20, "bus", run, &mut budget)
             .expect("budget-only authorization should succeed");
 
         assert!(abort_pending_execution(&*receipt, &mut budget, &mut inventory).is_err());
