@@ -465,6 +465,19 @@ pub enum ExecutionState {
     Aborted,
 }
 
+impl ExecutionState {
+    /// Whether a lifecycle record may legally advance from `self` to `next`.
+    ///
+    /// There is no terminal-to-terminal or terminal-to-pending transition, and
+    /// repeating the same state is not treated as an idempotent transition.
+    #[must_use]
+    pub const fn can_transition_to(self, next: Self) -> bool {
+        matches!(
+            (self, next),
+            (Self::Pending, Self::Committed) | (Self::Pending, Self::Aborted)
+        )
+    }
+}
 /// Immutable lifecycle record for one execution authorization.
 ///
 /// The terminal record retains the exact receipt that reached the terminal
@@ -3314,6 +3327,19 @@ mod tests {
             &abort_inventory,
         )
         .is_err());
+    }
+
+    #[test]
+    fn execution_state_transitions_are_fail_closed() {
+        assert!(ExecutionState::Pending.can_transition_to(ExecutionState::Committed));
+        assert!(ExecutionState::Pending.can_transition_to(ExecutionState::Aborted));
+        assert!(!ExecutionState::Pending.can_transition_to(ExecutionState::Pending));
+        assert!(!ExecutionState::Committed.can_transition_to(ExecutionState::Pending));
+        assert!(!ExecutionState::Committed.can_transition_to(ExecutionState::Committed));
+        assert!(!ExecutionState::Committed.can_transition_to(ExecutionState::Aborted));
+        assert!(!ExecutionState::Aborted.can_transition_to(ExecutionState::Pending));
+        assert!(!ExecutionState::Aborted.can_transition_to(ExecutionState::Committed));
+        assert!(!ExecutionState::Aborted.can_transition_to(ExecutionState::Aborted));
     }
 
     #[test]
