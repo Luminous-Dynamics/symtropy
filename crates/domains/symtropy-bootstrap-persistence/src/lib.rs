@@ -33,6 +33,103 @@ pub const EXECUTION_EVENT_KIND: &str = "symtropy.bootstrap.execution";
 pub const EXECUTION_AUTH_ALGORITHM: &str = "Ed25519-SHA256-JSON-v1";
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct JournalHeadWitness {
+    pub namespace: String,
+    pub seed: u64,
+    pub event_count: u64,
+    pub head_hash: String,
+    pub trust_commitment: String,
+}
+
+impl JournalHeadWitness {
+    pub fn capture(
+        namespace: impl Into<String>,
+        seed: u64,
+        chain: &EventChain<ExecutionLifecycleEvent>,
+        trust: &DurableExecutionTrust,
+    ) -> Result<Self, AdapterError> {
+        let namespace = namespace.into();
+        let event_count = u64::try_from(chain.events().len())
+            .map_err(|_| AdapterError::Invalid("journal event count overflow".to_string()))?;
+        let head_hash = chain.head_hash().to_string();
+
+        if event_count == 0 {
+            if head_hash != "GENESIS" {
+                return Err(AdapterError::Invalid(
+                    "empty journal witness must reference GENESIS".to_string(),
+                ));
+            }
+        } else if !is_sha256_hex(&head_hash) {
+            return Err(AdapterError::Invalid(
+                "non-empty journal witness requires SHA-256 head".to_string(),
+            ));
+        }
+
+        Ok(Self {
+            namespace,
+            seed,
+            event_count,
+            head_hash,
+            trust_commitment: trust.commitment(),
+        })
+    }
+
+    /// Verify the loaded journal is the witnessed history or a strict extension of it.
+    ///
+    /// A valid signature alone does not prove freshness because an attacker may
+    /// replay an older, correctly signed prefix. The witness is intended to live
+    /// outside the journal authority and be retained across restarts.
+    pub fn verify_against(
+        &self,
+        namespace: &str,
+        seed: u64,
+        chain: &EventChain<ExecutionLifecycleEvent>,
+        trust: &DurableExecutionTrust,
+    ) -> Result<(), AdapterError> {
+        if self.namespace != namespace || self.seed != seed {
+            return Err(AdapterError::Invalid(
+                "journal head witness belongs to a different namespace or seed".to_string(),
+            ));
+        }
+
+        if self.trust_commitment != trust.commitment() {
+            return Err(AdapterError::Invalid(
+                "journal head witness is bound to a different trust policy".to_string(),
+            ));
+        }
+
+        let current_count = u64::try_from(chain.events().len())
+            .map_err(|_| AdapterError::Invalid("journal event count overflow".to_string()))?;
+
+        if current_count < self.event_count {
+            return Err(AdapterError::Invalid(
+                "durable journal has rolled back behind the retained head witness".to_string(),
+            ));
+        }
+
+        if self.event_count == 0 {
+            return Ok(());
+        }
+
+        let index = usize::try_from(self.event_count - 1)
+            .map_err(|_| AdapterError::Invalid("journal witness index overflow".to_string()))?;
+        let actual = chain.events().get(index).ok_or_else(|| {
+            AdapterError::Invalid("journal is shorter than its retained witness".to_string())
+        })?;
+
+        if actual.event_hash != self.head_hash {
+            return Err(AdapterError::Invalid(
+                "durable journal does not extend the retained head witness".to_string(),
+            ));
+        }
+
+        Ok(())
+    }
+}
+
+
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ExecutionEventAuthentication {
     pub algorithm: String,
     pub key_id: String,
@@ -685,6 +782,38 @@ impl DurableExecutionAdapter {
     #[must_use]
     pub fn store(&self) -> &SaveStore {
         &self.store
+    }
+
+    #[must_use]
+    pub fn trust(&self) -> &DurableExecutionTrust {
+        &self.trust
+    }
+
+    /// Capture the currently verified journal head and the exact trust policy used
+    /// to authenticate it.
+    pub fn capture_head_witness(&self) -> Result<JournalHeadWitness, AdapterError> {
+        let loaded = self.load_verified()?;
+        JournalHeadWitness::capture(
+            self.journal_namespace.clone(),
+            self.seed,
+            &loaded.chain,
+            &self.trust,
+        )
+    }
+
+    /// Verify the durable journal against an independently retained head witness.
+    pub fn load_verified_against(
+        &self,
+        witness: &JournalHeadWitness,
+    ) -> Result<JournalLoad<ExecutionLifecycleEvent>, AdapterError> {
+        let loaded = self.load_verified()?;
+        witness.verify_against(
+            &self.journal_namespace,
+            self.seed,
+            &loaded.chain,
+            &self.trust,
+        )?;
+        Ok(loaded)
     }
 
     pub fn load(&self) -> Result<JournalLoad<ExecutionLifecycleEvent>, AdapterError> {
@@ -1631,6 +1760,90 @@ mod tests {
             InventoryLedger::new(BTreeMap::from([("feed".to_string(), 1_000)])),
             EnergyLedger::new(BTreeMap::from([("bus".to_string(), 4_000)])),
         )
+    }
+
+    #[test]
+    fn retained_head_witness_rejects_rollback_to_older_valid_prefix() {
+        let adapter = configured_adapter("rollback-witness");
+        let (process, run) = process_and_run();
+        let (mut budget, mut inventory, mut energy) = (
+            ExecutionBudget::new(2_000, 8_000),
+            InventoryLedger::new(BTreeMap::from([
+                ("feed".to_string(), 1_000),
+                ("feed-2".to_string(), 1_000),
+            ])),
+            EnergyLedger::new(BTreeMap::from([("bus".to_string(), 8_000)]),
+        );
+
+        adapter
+            .authorize_pending(
+                &process,
+                "exec-witness-a",
+                1,
+                10,
+                20,
+                "bus",
+                run,
+                &mut budget,
+                &mut inventory,
+                &mut energy,
+            )
+            .expect("first Pending");
+        let executable =
+            resume_pending_execution("exec-witness-a", &budget, &inventory)
+                .expect("activation");
+        adapter
+            .commit(
+                &process,
+                &executable,
+                2,
+                &mut budget,
+                &mut inventory,
+                &mut energy,
+            )
+            .expect("first commit");
+
+        let witness = adapter
+            .capture_head_witness()
+            .expect("capture current head witness");
+
+        let full = adapter.load_verified().expect("verified journal");
+        let prefix = EventChain::from_events(
+            "bootstrap",
+            1,
+            full.chain.events()[..1].to_vec(),
+        );
+
+        assert!(witness
+            .verify_against("bootstrap", 1, &prefix, adapter.trust())
+            .is_err());
+        assert!(adapter.load_verified_against(&witness).is_ok());
+
+        fs::remove_dir_all(adapter.store().root()).expect("cleanup");
+    }
+
+    #[test]
+    fn head_witness_binds_trust_policy() {
+        let adapter = configured_adapter("witness-trust");
+        let witness = adapter.capture_head_witness().expect("capture witness");
+
+        let other_signer = test_signer("other-key", 9);
+        let mut other_trust = DurableExecutionTrust::new();
+        other_trust
+            .trust_signer(&other_signer, 0, None)
+            .expect("trust other key");
+
+        let loaded = adapter.load_verified().expect("journal");
+        assert!(witness
+            .verify_against(
+                "bootstrap",
+                1,
+                &loaded.chain,
+                &other_trust,
+            )
+            .is_err());
+
+        fs::remove_dir_all(adapter.store().root()).expect("cleanup");
     }
 
     #[test]
