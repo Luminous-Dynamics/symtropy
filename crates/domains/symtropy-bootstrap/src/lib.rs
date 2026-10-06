@@ -1458,6 +1458,28 @@ impl ProcessExecutionReceipt {
         &self.state_anchor
     }
 
+    /// Return exact causal event identities this receipt would materialize.
+    ///
+    /// These are metadata only; raw receipts still cannot materialize event payloads.
+    #[must_use]
+    pub fn inventory_event_ids(&self) -> Vec<String> {
+        let mut ids = Vec::with_capacity(self.run.output_mass_g.len() + 2);
+        ids.push(format!("{}:inventory:consume", self.execution_id));
+        for stream in self.run.output_mass_g.keys() {
+            ids.push(format!("{}:inventory:produce:{stream}", self.execution_id));
+        }
+        ids.push(format!(
+            "{}:inventory:waste:{}",
+            self.execution_id, self.waste_stream
+        ));
+        ids
+    }
+
+    #[must_use]
+    pub fn energy_event_id(&self) -> String {
+        format!("{}:energy:consume", self.execution_id)
+    }
+
     /// Return a canonical SHA-256 commitment of this exact receipt.
     ///
     /// Durable adapters should persist this value inside the authenticated
@@ -1632,6 +1654,12 @@ impl BudgetOnlyProcessExecutionReceipt {
         self.receipt.state_anchor()
     }
 
+    /// Return the canonical commitment of the receipt carried by this proof.
+    #[must_use]
+    pub fn commitment(&self) -> String {
+        self.receipt.commitment()
+    }
+
     #[must_use]
     pub const fn run(&self) -> &ProcessRun {
         self.receipt.run()
@@ -1709,6 +1737,12 @@ impl ExecutableProcessExecutionReceipt {
     #[must_use]
     pub const fn state_anchor(&self) -> &ExecutionStateAnchor {
         self.receipt.state_anchor()
+    }
+
+    /// Return the canonical commitment of the receipt carried by this proof.
+    #[must_use]
+    pub fn commitment(&self) -> String {
+        self.receipt.commitment()
     }
 
     #[must_use]
@@ -2252,6 +2286,20 @@ impl EnergyLedger {
     pub fn events(&self) -> &[EnergyEvent] {
         &self.events
     }
+
+    /// Return a deterministic SHA-256 commitment of the complete energy state.
+    #[must_use]
+    pub fn state_commitment(&self) -> String {
+        let mut hasher = CommitmentHasher::new("symtropy.execution.energy.v1");
+        hasher.map_u64(&self.state);
+        hasher.u64(self.events.len() as u64);
+        for event in &self.events {
+            hasher.energy_event(event);
+        }
+        hasher.string_set(&self.seen_event_ids);
+        hasher.optional_u64(self.last_sequence);
+        hasher.finish()
+    }
 }
 
 /// Replay energy from an initial balance and append-only causal events.
@@ -2794,17 +2842,28 @@ impl InventoryLedger {
 }
 
 
-/// Deterministically commit the exact kernel state used by a pending execution.
-///
-/// The commitment includes budget capacity, all existing execution lifecycle
-/// records, inventory balances, causal inventory history, event identities,
-/// physical source reservations, and sequence frontier. BTree collections provide
-/// canonical ordering, while explicit length framing prevents ambiguous concatenation.
-fn execution_state_commitment(budget: &ExecutionBudget, inventory: &InventoryLedger) -> String {
+/// Return the canonical commitment of the exact budget/inventory state represented by an anchor.
+#[must_use]
+pub fn execution_state_commitment(
+    budget: &ExecutionBudget,
+    inventory: &InventoryLedger,
+) -> String {
+    combine_execution_state_commitments(
+        budget.state_commitment().as_str(),
+        inventory.state_commitment().as_str(),
+    )
+}
+
+/// Combine independently canonical budget and inventory commitments into the pre-Pending state commitment.
+#[must_use]
+pub fn combine_execution_state_commitments(
+    budget_commitment: &str,
+    inventory_commitment: &str,
+) -> String {
     let mut hasher = CommitmentHasher::new("symtropy.execution.pre-pending-state.v1");
     hasher.u64(1);
-    hasher.bytes(budget.state_commitment().as_bytes());
-    hasher.bytes(inventory.state_commitment().as_bytes());
+    hasher.bytes(budget_commitment.as_bytes());
+    hasher.bytes(inventory_commitment.as_bytes());
     hasher.finish()
 }
 
@@ -2947,6 +3006,31 @@ impl CommitmentHasher {
         self.byte(match event.kind {
             InventoryEventKind::Produced => 0,
             InventoryEventKind::Consumed => 1,
+        });
+        match &event.provenance_id {
+            Some(provenance_id) => {
+                self.byte(1);
+                self.string(provenance_id);
+            }
+            None => self.byte(0),
+        }
+    }
+
+    fn energy_event(&mut self, event: &EnergyEvent) {
+        self.u64(event.sequence);
+        match &event.event_id {
+            Some(event_id) => {
+                self.byte(1);
+                self.string(event_id);
+            }
+            None => self.byte(0),
+        }
+        self.string(&event.node_id);
+        self.u64(event.energy_units);
+        self.byte(match event.kind {
+            EnergyEventKind::Generated => 0,
+            EnergyEventKind::Consumed => 1,
+            EnergyEventKind::Recovered => 2,
         });
         match &event.provenance_id {
             Some(provenance_id) => {
@@ -5651,6 +5735,67 @@ mod tests {
 
         let energy = [EnergyEvent::new(1, "bus", 1, EnergyEventKind::Generated)];
         assert!(replay_energy(&BTreeMap::new(), &energy).is_err());
+    }
+
+    #[test]
+    fn energy_commitment_binds_history_not_only_balance() {
+        let mut left = EnergyLedger::new(BTreeMap::from([("bus".to_string(), 10)]));
+        let mut right = EnergyLedger::new(BTreeMap::from([("bus".to_string(), 10)]));
+
+        left.append(
+            EnergyEvent::new(1, "bus", 3, EnergyEventKind::Consumed)
+                .with_event_id("energy-a")
+                .with_provenance("run-a"),
+        ).expect("left event");
+        right.append(
+            EnergyEvent::new(1, "bus", 3, EnergyEventKind::Consumed)
+                .with_event_id("energy-b")
+                .with_provenance("run-b"),
+        ).expect("right event");
+
+        assert_eq!(left.state(), right.state());
+        assert_ne!(left.events(), right.events());
+        assert_ne!(left.state_commitment(), right.state_commitment());
+    }
+
+    #[test]
+    fn receipt_causal_event_ids_are_deterministic() {
+        let process =
+            ProductionProcess::new("electrolysis", "regolith", ["oxygen", "metal"], "slag");
+        let run = ProcessRun::new(
+            "electrolysis",
+            "regolith",
+            "feed",
+            1_000,
+            BTreeMap::from([("metal".to_string(), 720), ("oxygen".to_string(), 180)]),
+            100,
+            4_000,
+        );
+        let mut budget = ExecutionBudget::new(1_000, 4_000);
+        let mut inventory =
+            InventoryLedger::new(BTreeMap::from([("feed".to_string(), 1_000)]));
+        let receipt = process
+            .authorize_pending_execution_with_inventory(
+                "exec-ids",
+                10,
+                20,
+                "bus",
+                run,
+                &mut budget,
+                &mut inventory,
+            )
+            .expect("pending authorization");
+
+        assert_eq!(
+            receipt.inventory_event_ids(),
+            vec![
+                "exec-ids:inventory:consume",
+                "exec-ids:inventory:produce:metal",
+                "exec-ids:inventory:produce:oxygen",
+                "exec-ids:inventory:waste:slag",
+            ]
+        );
+        assert_eq!(receipt.energy_event_id(), "exec-ids:energy:consume");
     }
 
     #[test]
