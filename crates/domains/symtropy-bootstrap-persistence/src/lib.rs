@@ -125,13 +125,13 @@ impl DurableExecutionTrust {
 
         if self
             .keys
-            .insert((key.key_id.clone(), key.key_epoch), key)
-            .is_some()
+            .contains_key(&(key.key_id.clone(), key.key_epoch))
         {
             return Err(AdapterError::Invalid(
                 "duplicate trusted execution key identity and epoch".to_string(),
             ));
         }
+        self.keys.insert((key.key_id.clone(), key.key_epoch), key);
         Ok(())
     }
 
@@ -1266,7 +1266,7 @@ impl DurableExecutionAdapter {
         );
 
         let mut chain = loaded.chain;
-        self.append_payload(&mut chain, simulation_tick, payload)?;
+        self.append_authenticated_payload(&mut chain, simulation_tick, payload)?;
 
         *budget = staged_budget;
         *inventory = staged_inventory;
@@ -1335,7 +1335,7 @@ impl DurableExecutionAdapter {
         );
 
         let mut chain = loaded.chain;
-        self.append_payload(&mut chain, simulation_tick, payload)?;
+        self.append_authenticated_payload(&mut chain, simulation_tick, payload)?;
 
         *budget = staged_budget;
         *inventory = staged_inventory;
@@ -1587,7 +1587,7 @@ mod tests {
         let pre_inventory = inventory.state_commitment();
         let pre_energy = energy.state_commitment();
 
-        let _receipt = adapter
+        let receipt = adapter
             .authorize_pending(
                 &process,
                 "exec-001",
@@ -1702,6 +1702,7 @@ mod tests {
         let terminal_payload = ExecutionLifecycleEvent::terminal(
             DurableExecutionState::Aborted,
             &persisted,
+            pending.payload.process_definition_commitment.clone(),
             pending.event_id.to_string(),
             pending.event_hash.clone(),
             ExecutionBudget::new(999, 3_999).state_commitment(),
