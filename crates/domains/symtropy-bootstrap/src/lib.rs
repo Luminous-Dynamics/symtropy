@@ -3686,12 +3686,24 @@ mod tests {
             )
             .expect("pending execution should authorize");
 
+        let persisted = ProcessExecutionReceipt::from_persisted_parts(
+            receipt.execution_id(),
+            receipt.process_id(),
+            receipt.input_batch_id(),
+            receipt.waste_stream(),
+            receipt.first_inventory_sequence(),
+            receipt.energy_sequence(),
+            receipt.energy_node_id(),
+            receipt.run().clone(),
+        )
+        .expect("persisted receipt should reconstruct exactly");
+
         let mut recovered_budget = ExecutionBudget::new(1_000, 4_000);
         let mut recovered_inventory =
             InventoryLedger::new(BTreeMap::from([("feed-restore".to_string(), 1_000)]));
         process
             .restore_pending_execution_with_inventory(
-                &receipt,
+                &persisted,
                 &mut recovered_budget,
                 &mut recovered_inventory,
             )
