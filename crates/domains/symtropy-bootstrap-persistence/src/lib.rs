@@ -117,13 +117,13 @@ impl JournalHeadWitness {
         trust: &DurableExecutionTrust,
     ) -> Result<(), AdapterError> {
         if self.namespace != namespace || self.seed != seed {
-            return Err(AdapterError::Invalid(
+            return Err(AdapterError::WitnessMismatch(
                 "journal head witness belongs to a different namespace or seed".to_string(),
             ));
         }
 
         if self.trust_commitment != trust.commitment() {
-            return Err(AdapterError::Invalid(
+            return Err(AdapterError::WitnessMismatch(
                 "journal head witness is bound to a different trust policy".to_string(),
             ));
         }
@@ -132,7 +132,7 @@ impl JournalHeadWitness {
             .map_err(|_| AdapterError::Invalid("journal event count overflow".to_string()))?;
 
         if current_count < self.event_count {
-            return Err(AdapterError::Invalid(
+            return Err(AdapterError::WitnessMismatch(
                 "durable journal has rolled back behind the retained head witness".to_string(),
             ));
         }
@@ -144,11 +144,11 @@ impl JournalHeadWitness {
         let index = usize::try_from(self.event_count - 1)
             .map_err(|_| AdapterError::Invalid("journal witness index overflow".to_string()))?;
         let actual = chain.events().get(index).ok_or_else(|| {
-            AdapterError::Invalid("journal is shorter than its retained witness".to_string())
+            AdapterError::WitnessMismatch("journal is shorter than its retained witness".to_string())
         })?;
 
         if actual.event_hash != self.head_hash {
-            return Err(AdapterError::Invalid(
+            return Err(AdapterError::WitnessMismatch(
                 "durable journal does not extend the retained head witness".to_string(),
             ));
         }
@@ -752,6 +752,7 @@ impl ExecutionLifecycleEvent {
 pub enum AdapterError {
     Persistence(PersistenceError),
     Invalid(String),
+    WitnessMismatch(String),
     MissingExecution(String),
     UnexpectedState(String),
 }
@@ -761,6 +762,7 @@ impl fmt::Display for AdapterError {
         match self {
             Self::Persistence(error) => write!(f, "persistence error: {error}"),
             Self::Invalid(error) => write!(f, "invalid durable execution record: {error}"),
+            Self::WitnessMismatch(error) => write!(f, "journal head witness rejected: {error}"),
             Self::MissingExecution(id) => {
                 write!(f, "execution is absent from durable journal: {id}")
             }
@@ -775,7 +777,10 @@ impl Error for AdapterError {
     fn source(&self) -> Option<&(dyn Error + 'static)> {
         match self {
             Self::Persistence(error) => Some(error),
-            Self::Invalid(_) | Self::MissingExecution(_) | Self::UnexpectedState(_) => None,
+            Self::Invalid(_)
+            | Self::WitnessMismatch(_)
+            | Self::MissingExecution(_)
+            | Self::UnexpectedState(_) => None,
         }
     }
 }
@@ -2015,7 +2020,7 @@ mod tests {
             )
             .expect_err("retained head witness must block rollback");
 
-        assert!(matches!(err, AdapterError::Invalid(message) if message.contains("witness")));
+        assert!(matches!(err, AdapterError::WitnessMismatch(message) if message.contains("witness")));
         assert_eq!(budget, before_budget);
         assert_eq!(inventory, before_inventory);
         assert_eq!(energy, before_energy);
