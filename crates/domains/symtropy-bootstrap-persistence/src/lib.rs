@@ -131,6 +131,18 @@ impl DurableExecutionTrust {
                 "duplicate trusted execution key identity and epoch".to_string(),
             ));
         }
+
+        if self
+            .keys
+            .values()
+            .any(|existing| existing.public_key == key.public_key)
+        {
+            return Err(AdapterError::Invalid(
+                "execution public key cannot be trusted under multiple key identities or epochs"
+                    .to_string(),
+            ));
+        }
+
         self.keys.insert((key.key_id.clone(), key.key_epoch), key);
         Ok(())
     }
