@@ -1556,7 +1556,7 @@ impl DurableExecutionAdapter {
         energy: &mut EnergyLedger,
     ) -> Result<(), AdapterError> {
         let journal_lock = self.store.acquire_journal_lock()?;
-        let loaded = self.load_verified_against(head_witness)?;
+        let loaded = self.load_verified_at(head_witness)?;
 
         let (pending_event_id, pending_event_hash, persisted) =
             Self::pending_record(&loaded.chain, receipt.execution_id())?;
@@ -1635,7 +1635,7 @@ impl DurableExecutionAdapter {
         energy: &mut EnergyLedger,
     ) -> Result<(), AdapterError> {
         let journal_lock = self.store.acquire_journal_lock()?;
-        let loaded = self.load_verified_against(head_witness)?;
+        let loaded = self.load_verified_at(head_witness)?;
 
         let (pending_event_id, pending_event_hash, persisted) =
             Self::pending_record(&loaded.chain, receipt.execution_id())?;
