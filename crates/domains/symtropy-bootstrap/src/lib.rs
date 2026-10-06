@@ -805,6 +805,33 @@ impl ProductionProcess {
         budget: &mut ExecutionBudget,
         inventory: &mut InventoryLedger,
     ) -> Result<ProcessExecutionReceipt, String> {
+        self.authorize_pending_execution_with_inventory_at_anchor(
+            execution_id,
+            first_inventory_sequence,
+            energy_sequence,
+            node_id,
+            ExecutionStateAnchor::in_memory(),
+            run,
+            budget,
+            inventory,
+        )
+    }
+
+    /// Authorize one pending process execution against a caller-supplied state frontier.
+    ///
+    /// A durable adapter should derive the anchor from its independently verified
+    /// journal/state head and persist the resulting receipt before activation.
+    pub fn authorize_pending_execution_with_inventory_at_anchor(
+        &self,
+        execution_id: impl Into<String>,
+        first_inventory_sequence: u64,
+        energy_sequence: u64,
+        node_id: impl Into<String>,
+        state_anchor: ExecutionStateAnchor,
+        run: ProcessRun,
+        budget: &mut ExecutionBudget,
+        inventory: &mut InventoryLedger,
+    ) -> Result<ProcessExecutionReceipt, String> {
         let execution_id = execution_id.into();
         let node_id = node_id.into();
 
@@ -829,7 +856,7 @@ impl ProductionProcess {
             first_inventory_sequence,
             energy_sequence,
             energy_node_id: node_id,
-            state_anchor: ExecutionStateAnchor::in_memory(),
+            state_anchor,
             run,
         };
 
@@ -859,6 +886,32 @@ impl ProductionProcess {
         budget: &mut ExecutionBudget,
         inventory: &mut InventoryLedger,
     ) -> Result<(), String> {
+        self.restore_pending_execution_with_inventory_at_anchor(
+            receipt,
+            &ExecutionStateAnchor::in_memory(),
+            budget,
+            inventory,
+        )
+    }
+
+    /// Restore an already-authorized pending execution against an exact state frontier.
+    ///
+    /// The receipt's bound frontier must equal the independently verified frontier
+    /// supplied by the caller. This does not mint a new identity or reservation.
+    pub fn restore_pending_execution_with_inventory_at_anchor(
+        &self,
+        receipt: &ProcessExecutionReceipt,
+        expected_anchor: &ExecutionStateAnchor,
+        budget: &mut ExecutionBudget,
+        inventory: &mut InventoryLedger,
+    ) -> Result<(), String> {
+        if receipt.state_anchor() != expected_anchor {
+            return Err(
+                "persisted execution receipt state anchor does not match recovery frontier"
+                    .to_string(),
+            );
+        }
+
         let expected = ProcessExecutionReceipt {
             execution_id: receipt.execution_id.clone(),
             process_id: self.id.clone(),
@@ -913,11 +966,36 @@ impl ProductionProcess {
         budget: &mut ExecutionBudget,
         inventory: &mut InventoryLedger,
     ) -> Result<ExecutableProcessExecutionReceipt, String> {
-        let receipt = self.authorize_pending_execution_with_inventory(
+        self.authorize_execution_with_inventory_at_anchor(
             execution_id,
             first_inventory_sequence,
             energy_sequence,
             node_id,
+            ExecutionStateAnchor::in_memory(),
+            run,
+            budget,
+            inventory,
+        )
+    }
+
+    /// Authorize an executable process against a caller-supplied durable frontier.
+    pub fn authorize_execution_with_inventory_at_anchor(
+        &self,
+        execution_id: impl Into<String>,
+        first_inventory_sequence: u64,
+        energy_sequence: u64,
+        node_id: impl Into<String>,
+        state_anchor: ExecutionStateAnchor,
+        run: ProcessRun,
+        budget: &mut ExecutionBudget,
+        inventory: &mut InventoryLedger,
+    ) -> Result<ExecutableProcessExecutionReceipt, String> {
+        let receipt = self.authorize_pending_execution_with_inventory_at_anchor(
+            execution_id,
+            first_inventory_sequence,
+            energy_sequence,
+            node_id,
+            state_anchor,
             run,
             budget,
             inventory,
@@ -1381,6 +1459,11 @@ impl BudgetOnlyProcessExecutionReceipt {
     }
 
     #[must_use]
+    pub const fn state_anchor(&self) -> &ExecutionStateAnchor {
+        self.receipt.state_anchor()
+    }
+
+    #[must_use]
     pub const fn run(&self) -> &ProcessRun {
         self.receipt.run()
     }
@@ -1452,6 +1535,11 @@ impl ExecutableProcessExecutionReceipt {
     #[must_use]
     pub fn energy_node_id(&self) -> &str {
         self.receipt.energy_node_id()
+    }
+
+    #[must_use]
+    pub const fn state_anchor(&self) -> &ExecutionStateAnchor {
+        self.receipt.state_anchor()
     }
 
     #[must_use]
@@ -3839,6 +3927,73 @@ mod tests {
     }
 
     #[test]
+    fn persisted_pending_restore_rejects_mismatched_state_anchor() {
+        let process = ProductionProcess::new(
+            "regolith_electrolysis",
+            "regolith",
+            ["oxygen", "metal"],
+            "waste",
+        );
+        let run = ProcessRun::new(
+            "regolith_electrolysis",
+            "regolith",
+            "feed-anchor",
+            1_000,
+            BTreeMap::from([("oxygen".to_string(), 180), ("metal".to_string(), 720)]),
+            100,
+            4_000,
+        );
+        let creation_anchor =
+            ExecutionStateAnchor::new("symtropy.execution.journal.v1", "head-a").unwrap();
+        let later_anchor =
+            ExecutionStateAnchor::new("symtropy.execution.journal.v1", "head-b").unwrap();
+
+        let mut budget = ExecutionBudget::new(1_000, 4_000);
+        let mut inventory =
+            InventoryLedger::new(BTreeMap::from([("feed-anchor".to_string(), 1_000)]));
+        let receipt = process
+            .authorize_pending_execution_with_inventory_at_anchor(
+                "exec-anchor",
+                10,
+                20,
+                "bus",
+                creation_anchor.clone(),
+                run,
+                &mut budget,
+                &mut inventory,
+            )
+            .expect("anchored pending execution should authorize");
+
+        let mut recovered_budget = ExecutionBudget::new(1_000, 4_000);
+        let mut recovered_inventory =
+            InventoryLedger::new(BTreeMap::from([("feed-anchor".to_string(), 1_000)]));
+
+        assert!(process
+            .restore_pending_execution_with_inventory_at_anchor(
+                &receipt,
+                &later_anchor,
+                &mut recovered_budget,
+                &mut recovered_inventory,
+            )
+            .is_err());
+        assert_eq!(recovered_budget.available_feed_mass_g(), 1_000);
+        assert_eq!(recovered_budget.available_energy_units(), 4_000);
+        assert!(recovered_inventory.source_reservations.is_empty());
+
+        process
+            .restore_pending_execution_with_inventory_at_anchor(
+                &receipt,
+                &creation_anchor,
+                &mut recovered_budget,
+                &mut recovered_inventory,
+            )
+            .expect("matching state frontier should restore");
+        assert_eq!(recovered_budget.available_feed_mass_g(), 0);
+        assert_eq!(recovered_budget.available_energy_units(), 0);
+        assert_eq!(receipt.state_anchor().frontier(), "head-a");
+    }
+
+    #[test]
     fn persisted_receipt_can_be_reconstructed_without_executable_authority() {
         let receipt = ProcessExecutionReceipt::from_persisted_parts(
             "exec-persisted",
@@ -3848,6 +4003,7 @@ mod tests {
             10,
             20,
             "bus",
+            ExecutionStateAnchor::in_memory(),
             ProcessRun::new(
                 "regolith_electrolysis",
                 "regolith",
