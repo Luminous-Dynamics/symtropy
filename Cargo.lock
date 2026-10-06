@@ -8914,6 +8914,7 @@ dependencies = [
 name = "symtropy-bootstrap-persistence"
 version = "0.1.0"
 dependencies = [
+ "ring",
  "serde",
  "symtropy-bootstrap",
  "symtropy-game-state",
