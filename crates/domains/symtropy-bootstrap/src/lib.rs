@@ -859,6 +859,7 @@ impl ProductionProcess {
         )?;
         resume_pending_execution(receipt.execution_id(), budget, inventory)
     }
+
     /// Atomically authorize one process execution against an aggregate consumable budget.
     ///
     /// This budget-only path does not reserve physical source inventory; receipts created
@@ -3294,7 +3295,7 @@ mod tests {
     }
 
     #[test]
-    fn durable_activation_requires_explicit_pending_receipt() {
+    fn pending_activation_requires_explicit_pending_receipt() {
         let process = ProductionProcess::new(
             "regolith_electrolysis",
             "regolith",
