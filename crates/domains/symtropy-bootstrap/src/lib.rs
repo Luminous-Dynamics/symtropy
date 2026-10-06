@@ -601,7 +601,7 @@ impl ExecutionBudget {
     pub fn execution_record(&self, execution_id: &str) -> Option<ExecutionLifecycleRecord> {
         if let Some(receipt) = self.reserved_executions.get(execution_id) {
             return Some(ExecutionLifecycleRecord {
-                execution_id: execution_id.to_string(),
+                execution_id: receipt.execution_id().to_string(),
                 state: ExecutionState::Pending,
                 receipt: receipt.clone(),
             });
@@ -971,6 +971,39 @@ impl ProcessExecutionReceipt {
     #[must_use]
     pub fn input_batch_id(&self) -> &str {
         &self.input_batch_id
+    }
+
+    /// Declared waste stream identity carried by this receipt.
+    ///
+    /// Durable adapters must persist this independently of the generated waste
+    /// event so replay never has to infer the stream from event ordering.
+    #[must_use]
+    pub fn waste_stream(&self) -> &str {
+        &self.waste_stream
+    }
+
+    #[must_use]
+    pub const fn first_inventory_sequence(&self) -> u64 {
+        self.first_inventory_sequence
+    }
+
+    #[must_use]
+    pub const fn energy_sequence(&self) -> u64 {
+        self.energy_sequence
+    }
+
+    #[must_use]
+    pub fn energy_node_id(&self) -> &str {
+        &self.energy_node_id
+    }
+
+    /// Borrow the complete deterministic process run carried by this receipt.
+    ///
+    /// This is intentionally read-only: recovery layers can serialize the exact
+    /// run without gaining a constructor that bypasses authorization.
+    #[must_use]
+    pub const fn run(&self) -> &ProcessRun {
+        &self.run
     }
 
     #[must_use]
@@ -3225,6 +3258,55 @@ mod tests {
             &abort_inventory,
         )
         .is_err());
+    }
+
+    #[test]
+    #[test]
+    fn execution_record_exposes_complete_receipt_identity() {
+        let process = ProductionProcess::new(
+            "regolith_electrolysis",
+            "regolith",
+            ["oxygen", "metal"],
+            "waste",
+        );
+        let run = ProcessRun::new(
+            "regolith_electrolysis",
+            "regolith",
+            "feed-record",
+            1_000,
+            BTreeMap::from([("oxygen".to_string(), 180), ("metal".to_string(), 720)]),
+            100,
+            4_000,
+        );
+
+        let mut budget = ExecutionBudget::new(1_000, 4_000);
+        let mut inventory =
+            InventoryLedger::new(BTreeMap::from([("feed-record".to_string(), 1_000)]));
+        process
+            .authorize_execution_with_inventory(
+                "exec-record",
+                10,
+                20,
+                "bus",
+                run.clone(),
+                &mut budget,
+                &mut inventory,
+            )
+            .expect("execution should authorize");
+
+        let record = budget
+            .execution_record("exec-record")
+            .expect("pending record should be available");
+        let receipt = record.receipt();
+
+        assert_eq!(receipt.execution_id(), "exec-record");
+        assert_eq!(receipt.process_id(), "regolith_electrolysis");
+        assert_eq!(receipt.input_batch_id(), "feed-record");
+        assert_eq!(receipt.waste_stream(), "waste");
+        assert_eq!(receipt.first_inventory_sequence(), 10);
+        assert_eq!(receipt.energy_sequence(), 20);
+        assert_eq!(receipt.energy_node_id(), "bus");
+        assert_eq!(receipt.run(), &run);
     }
 
     #[test]
