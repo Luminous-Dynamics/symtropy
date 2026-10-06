@@ -32,7 +32,7 @@ pub const EXECUTION_LIFECYCLE_SCHEMA_VERSION: u32 = 2;
 pub const EXECUTION_EVENT_KIND: &str = "symtropy.bootstrap.execution";
 pub const EXECUTION_AUTH_ALGORITHM: &str = "Ed25519-SHA256-JSON-v1";
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct JournalHeadWitness {
     namespace: String,
     seed: u64,
