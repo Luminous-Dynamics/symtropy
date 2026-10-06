@@ -1141,16 +1141,19 @@ impl ExecutionStateAnchor {
         let domain = domain.into();
         let frontier = frontier.into();
 
-        if domain.is_empty()
-            || domain.len() > 128
-            || domain.bytes().any(|byte| byte.is_ascii_control())
-        {
+        let portable = |value: &str| {
+            !value.is_empty()
+                && value.len() <= 256
+                && value.bytes().all(|byte| {
+                    byte.is_ascii_alphanumeric()
+                        || matches!(byte, b'.' | b'-' | b'_' | b':')
+                })
+        };
+
+        if !portable(&domain) || domain.len() > 128 {
             return Err("execution anchor requires a non-empty portable domain".to_string());
         }
-        if frontier.is_empty()
-            || frontier.len() > 256
-            || frontier.bytes().any(|byte| byte.is_ascii_control())
-        {
+        if !portable(&frontier) {
             return Err("execution anchor requires a non-empty portable frontier".to_string());
         }
 
@@ -1557,7 +1560,6 @@ impl ExecutableProcessExecutionReceipt {
         self.receipt.energy_units()
     }
 
-    /// Materialize causal inventory only after physical source reservation proof.
     /// Materialize causal inventory only after physical source reservation proof.
     pub fn inventory_events(&self) -> Result<Vec<InventoryEvent>, String> {
         self.receipt.inventory_events()
@@ -3929,6 +3931,17 @@ mod tests {
     }
 
     #[test]
+    fn execution_state_anchor_rejects_non_portable_values() {
+        assert!(ExecutionStateAnchor::new("", "head").is_err());
+        assert!(ExecutionStateAnchor::new("journal", "").is_err());
+        assert!(ExecutionStateAnchor::new("journal name", "head").is_err());
+        assert!(ExecutionStateAnchor::new("journal", "head value").is_err());
+        assert!(ExecutionStateAnchor::new("journal", "head\\nvalue").is_err());
+        assert!(ExecutionStateAnchor::new("journal", "head/1").is_err());
+        assert!(ExecutionStateAnchor::new("journal:v1", "abcdef0123456789").is_ok());
+    }
+
+    #[test]
     fn persisted_pending_restore_rejects_mismatched_state_anchor() {
         let process = ProductionProcess::new(
             "regolith_electrolysis",
@@ -4025,6 +4038,7 @@ mod tests {
         assert_eq!(receipt.first_inventory_sequence(), 10);
         assert_eq!(receipt.energy_sequence(), 20);
         assert_eq!(receipt.energy_node_id(), "bus");
+        assert_eq!(receipt.state_anchor().frontier(), "UNANCHORED");
     }
 
     #[test]
