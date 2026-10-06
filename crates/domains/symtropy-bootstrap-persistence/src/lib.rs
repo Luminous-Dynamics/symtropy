@@ -1809,7 +1809,7 @@ mod tests {
                 ("feed".to_string(), 1_000),
                 ("feed-2".to_string(), 1_000),
             ])),
-            EnergyLedger::new(BTreeMap::from([("bus".to_string(), 8_000)]),
+            EnergyLedger::new(BTreeMap::from([("bus".to_string(), 8_000)])),
         );
 
         adapter
