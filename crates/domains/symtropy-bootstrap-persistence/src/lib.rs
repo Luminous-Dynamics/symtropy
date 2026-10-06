@@ -11,7 +11,13 @@ use std::{
     collections::BTreeMap,
     error::Error,
     fmt,
+    sync::Arc,
 };
+
+use ring::{
+    signature::{Ed25519KeyPair, KeyPair, UnparsedPublicKey, ED25519},
+};
+use sha2::{Digest, Sha256};
 
 use symtropy_bootstrap::{
     abort_pending_execution, abort_process_execution, commit_process_execution,
@@ -19,11 +25,233 @@ use symtropy_bootstrap::{
     EnergyLedger, ExecutionStateAnchor, ExecutableProcessExecutionReceipt, ExecutionBudget,
     InventoryLedger, ProcessExecutionReceipt, ProcessRun, ProductionProcess,
 };
-use symtropy_game_state::{EventChain, EventEnvelope};
+use symtropy_game_state::{EventChain, EventEnvelope, StableId};
 use symtropy_persistence::{JournalLoad, PersistenceError, SaveStore};
 
-pub const EXECUTION_LIFECYCLE_SCHEMA_VERSION: u32 = 1;
+pub const EXECUTION_LIFECYCLE_SCHEMA_VERSION: u32 = 2;
 pub const EXECUTION_EVENT_KIND: &str = "symtropy.bootstrap.execution";
+pub const EXECUTION_AUTH_ALGORITHM: &str = "Ed25519-SHA256-JSON-v1";
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ExecutionEventAuthentication {
+    pub algorithm: String,
+    pub key_id: String,
+    pub key_epoch: u64,
+    pub public_key: String,
+    pub signed_digest: String,
+    pub signature: String,
+}
+
+#[derive(Debug)]
+pub struct DurableExecutionSigner {
+    key_id: String,
+    key_epoch: u64,
+    key_pair: Ed25519KeyPair,
+}
+
+impl DurableExecutionSigner {
+    pub fn from_pkcs8(
+        key_id: impl Into<String>,
+        key_epoch: u64,
+        pkcs8: &[u8],
+    ) -> Result<Self, AdapterError> {
+        let key_id = key_id.into();
+        validate_key_id(&key_id)?;
+        let key_pair = Ed25519KeyPair::from_pkcs8(pkcs8)
+            .map_err(|_| AdapterError::Invalid("invalid Ed25519 PKCS#8 signing key".to_string()))?;
+        Ok(Self { key_id, key_epoch, key_pair })
+    }
+
+    #[must_use]
+    pub fn key_id(&self) -> &str { &self.key_id }
+
+    #[must_use]
+    pub const fn key_epoch(&self) -> u64 { self.key_epoch }
+
+    #[must_use]
+    pub fn public_key_hex(&self) -> String {
+        hex_encode(self.key_pair.public_key().as_ref())
+    }
+
+    fn sign_digest(&self, digest: &[u8; 32]) -> ExecutionEventAuthentication {
+        ExecutionEventAuthentication {
+            algorithm: EXECUTION_AUTH_ALGORITHM.to_string(),
+            key_id: self.key_id.clone(),
+            key_epoch: self.key_epoch,
+            public_key: self.public_key_hex(),
+            signed_digest: hex_encode(digest),
+            signature: hex_encode(self.key_pair.sign(digest).as_ref()),
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct TrustedExecutionKey {
+    key_id: String,
+    key_epoch: u64,
+    public_key: String,
+    active_from_ordinal: u64,
+    revoked_at_ordinal: Option<u64>,
+}
+
+#[derive(Debug, Clone, Default)]
+pub struct DurableExecutionTrust {
+    keys: BTreeMap<(String, u64), TrustedExecutionKey>,
+}
+
+impl DurableExecutionTrust {
+    #[must_use]
+    pub fn new() -> Self { Self::default() }
+
+    pub fn trust_signer(
+        &mut self,
+        signer: &DurableExecutionSigner,
+        active_from_ordinal: u64,
+        revoked_at_ordinal: Option<u64>,
+    ) -> Result<(), AdapterError> {
+        if revoked_at_ordinal.is_some_and(|value| value <= active_from_ordinal) {
+            return Err(AdapterError::Invalid(
+                "key revocation ordinal must be after activation ordinal".to_string(),
+            ));
+        }
+
+        let key = TrustedExecutionKey {
+            key_id: signer.key_id.clone(),
+            key_epoch: signer.key_epoch,
+            public_key: signer.public_key_hex(),
+            active_from_ordinal,
+            revoked_at_ordinal,
+        };
+
+        if self
+            .keys
+            .insert((key.key_id.clone(), key.key_epoch), key)
+            .is_some()
+        {
+            return Err(AdapterError::Invalid(
+                "duplicate trusted execution key identity and epoch".to_string(),
+            ));
+        }
+        Ok(())
+    }
+
+    pub fn revoke_key(
+        &mut self,
+        key_id: &str,
+        key_epoch: u64,
+        revoked_at_ordinal: u64,
+    ) -> Result<(), AdapterError> {
+        let key = self
+            .keys
+            .get_mut(&(key_id.to_string(), key_epoch))
+            .ok_or_else(|| {
+                AdapterError::Invalid("cannot revoke an unknown execution key".to_string())
+            })?;
+
+        if revoked_at_ordinal <= key.active_from_ordinal {
+            return Err(AdapterError::Invalid(
+                "key revocation ordinal must be after activation ordinal".to_string(),
+            ));
+        }
+        if key
+            .revoked_at_ordinal
+            .is_some_and(|existing| existing < revoked_at_ordinal)
+        {
+            return Err(AdapterError::Invalid(
+                "key revocation cannot be moved later".to_string(),
+            ));
+        }
+        key.revoked_at_ordinal = Some(revoked_at_ordinal);
+        Ok(())
+    }
+
+    fn authorize_new_event(
+        &self,
+        signer: &DurableExecutionSigner,
+        ordinal: u64,
+    ) -> Result<(), AdapterError> {
+        let key = self
+            .keys
+            .get(&(signer.key_id.clone(), signer.key_epoch))
+            .ok_or_else(|| AdapterError::Invalid("signing key is not trusted".to_string()))?;
+
+        if key.public_key != signer.public_key_hex() {
+            return Err(AdapterError::Invalid(
+                "trusted execution key material does not match signer".to_string(),
+            ));
+        }
+        if ordinal < key.active_from_ordinal
+            || key.revoked_at_ordinal.is_some_and(|revoked| ordinal >= revoked)
+        {
+            return Err(AdapterError::Invalid(
+                "signing key is not authorized for this journal ordinal".to_string(),
+            ));
+        }
+        Ok(())
+    }
+
+    fn verify_event(
+        &self,
+        namespace: &str,
+        seed: u64,
+        ordinal: u64,
+        event: &EventEnvelope<ExecutionLifecycleEvent>,
+    ) -> Result<(), AdapterError> {
+        let auth = event.payload.authentication.as_ref().ok_or_else(|| {
+            AdapterError::Invalid(
+                "durable lifecycle event has no origin-authentication proof".to_string(),
+            )
+        })?;
+
+        if auth.algorithm != EXECUTION_AUTH_ALGORITHM {
+            return Err(AdapterError::Invalid(
+                "unsupported execution authentication algorithm".to_string(),
+            ));
+        }
+
+        let key = self
+            .keys
+            .get(&(auth.key_id.clone(), auth.key_epoch))
+            .ok_or_else(|| {
+                AdapterError::Invalid("execution event was signed by an untrusted key".to_string())
+            })?;
+
+        if auth.public_key != key.public_key {
+            return Err(AdapterError::Invalid(
+                "execution event public key does not match trusted key material".to_string(),
+            ));
+        }
+        if ordinal < key.active_from_ordinal
+            || key.revoked_at_ordinal.is_some_and(|revoked| ordinal >= revoked)
+        {
+            return Err(AdapterError::Invalid(
+                "execution event is outside the trusted key validity interval".to_string(),
+            ));
+        }
+
+        let digest = event.payload.signing_digest(
+            namespace,
+            seed,
+            event.event_id.as_str(),
+            &event.previous_hash,
+        )?;
+
+        if auth.signed_digest != hex_encode(&digest) {
+            return Err(AdapterError::Invalid(
+                "execution event signed-digest commitment mismatch".to_string(),
+            ));
+        }
+
+        let public_key = hex_decode_exact::<32>(&auth.public_key).map_err(AdapterError::Invalid)?;
+        let signature = hex_decode_exact::<64>(&auth.signature).map_err(AdapterError::Invalid)?;
+
+        UnparsedPublicKey::new(&ED25519, public_key)
+            .verify(&digest, &signature)
+            .map_err(|_| {
+                AdapterError::Invalid("execution event signature verification failed".to_string())
+            })
+    }
+}
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum DurableExecutionState {
@@ -143,6 +371,7 @@ pub struct ExecutionLifecycleEvent {
     pub post_energy_commitment: String,
     pub causal_inventory_event_ids: Vec<String>,
     pub causal_energy_event_id: Option<String>,
+    pub authentication: Option<ExecutionEventAuthentication>,
 }
 
 impl ExecutionLifecycleEvent {
@@ -173,6 +402,7 @@ impl ExecutionLifecycleEvent {
             post_energy_commitment,
             causal_inventory_event_ids: Vec::new(),
             causal_energy_event_id: None,
+            authentication: None,
         }
     }
 
@@ -211,7 +441,33 @@ impl ExecutionLifecycleEvent {
                 Vec::new()
             },
             causal_energy_event_id: committed.then(|| receipt.energy_event_id()),
+            authentication: None,
         }
+    }
+
+    fn signing_digest(
+        &self,
+        namespace: &str,
+        seed: u64,
+        event_id: &str,
+        previous_hash: &str,
+    ) -> Result<[u8; 32], AdapterError> {
+        let mut unsigned = self.clone();
+        unsigned.authentication = None;
+        let serialized = serde_json::to_vec(&unsigned).map_err(|error| {
+            AdapterError::Invalid(format!(
+                "cannot serialize unsigned execution lifecycle payload: {error}"
+            ))
+        })?;
+
+        let mut hasher = Sha256::new();
+        hash_string(&mut hasher, "symtropy.execution.origin-auth.v1");
+        hash_string(&mut hasher, namespace);
+        hasher.update(seed.to_le_bytes());
+        hash_string(&mut hasher, event_id);
+        hash_string(&mut hasher, previous_hash);
+        hash_bytes(&mut hasher, &serialized);
+        Ok(hasher.finalize().into())
     }
 
     fn validate_basic(&self) -> Result<ProcessExecutionReceipt, AdapterError> {
@@ -366,6 +622,8 @@ pub struct DurableExecutionAdapter {
     journal_namespace: String,
     anchor_domain: String,
     seed: u64,
+    trust: DurableExecutionTrust,
+    signer: Option<Arc<DurableExecutionSigner>>,
 }
 
 impl DurableExecutionAdapter {
@@ -391,7 +649,25 @@ impl DurableExecutionAdapter {
             journal_namespace,
             anchor_domain,
             seed,
+            trust: DurableExecutionTrust::new(),
+            signer: None,
         })
+    }
+
+    #[must_use]
+    pub fn with_trust(mut self, trust: DurableExecutionTrust) -> Self {
+        self.trust = trust;
+        self
+    }
+
+    #[must_use]
+    pub fn with_signer(mut self, signer: DurableExecutionSigner) -> Self {
+        self.signer = Some(Arc::new(signer));
+        self
+    }
+
+    pub fn set_signer(&mut self, signer: DurableExecutionSigner) {
+        self.signer = Some(Arc::new(signer));
     }
 
     #[must_use]
@@ -407,7 +683,12 @@ impl DurableExecutionAdapter {
 
     fn load_verified(&self) -> Result<JournalLoad<ExecutionLifecycleEvent>, AdapterError> {
         let loaded = self.load()?;
-        Self::validate_journal(&loaded.chain)?;
+        Self::validate_authenticated_journal(
+            &loaded.chain,
+            &self.journal_namespace,
+            self.seed,
+            &self.trust,
+        )?;
         for event in loaded.chain.events() {
             if event.payload.receipt.state_anchor().domain() != self.anchor_domain {
                 return Err(AdapterError::Invalid(
@@ -417,6 +698,28 @@ impl DurableExecutionAdapter {
             }
         }
         Ok(loaded)
+    }
+
+    pub fn validate_authenticated_journal(
+        chain: &EventChain<ExecutionLifecycleEvent>,
+        namespace: &str,
+        seed: u64,
+        trust: &DurableExecutionTrust,
+    ) -> Result<(), AdapterError> {
+        Self::validate_journal(chain)?;
+        for (ordinal, event) in chain.events().iter().enumerate() {
+            let ordinal = u64::try_from(ordinal)
+                .map_err(|_| AdapterError::Invalid("journal ordinal overflow".to_string()))?;
+            let expected_id = StableId::derive(namespace, seed, ordinal);
+            if event.event_id != expected_id {
+                return Err(AdapterError::Invalid(
+                    "authenticated execution event has an unexpected stable identity"
+                        .to_string(),
+                ));
+            }
+            trust.verify_event(namespace, seed, ordinal, event)?;
+        }
+        Ok(())
     }
 
     pub fn validate_journal(
@@ -578,12 +881,57 @@ impl DurableExecutionAdapter {
         Ok(())
     }
 
-    fn append_payload(
+    fn append_authenticated_payload(
         &self,
         chain: &mut EventChain<ExecutionLifecycleEvent>,
         simulation_tick: u64,
-        payload: ExecutionLifecycleEvent,
+        mut payload: ExecutionLifecycleEvent,
     ) -> Result<EventEnvelope<ExecutionLifecycleEvent>, AdapterError> {
+        let signer = self
+            .signer
+            .as_ref()
+            .ok_or_else(|| {
+                AdapterError::Invalid(
+                    "durable lifecycle signing key is not configured".to_string(),
+                )
+            })?;
+
+        let ordinal = u64::try_from(chain.events().len())
+            .map_err(|_| AdapterError::Invalid("journal ordinal overflow".to_string()))?;
+        self.trust.authorize_new_event(signer, ordinal)?;
+
+        let event_id = StableId::derive(&self.journal_namespace, self.seed, ordinal);
+        let previous_hash = chain.head_hash().to_string();
+        let digest = payload.signing_digest(
+            &self.journal_namespace,
+            self.seed,
+            event_id.as_str(),
+            &previous_hash,
+        )?;
+        payload.authentication = Some(signer.sign_digest(&digest));
+
+        chain
+            .append(
+                simulation_tick,
+                EXECUTION_EVENT_KIND,
+                None,
+                None,
+                Vec::new(),
+                payload,
+            )
+            .map_err(|error| {
+                AdapterError::Invalid(format!("cannot append lifecycle event: {error}"))
+            })?;
+
+        let event = chain
+            .events()
+            .last()
+            .cloned()
+            .ok_or_else(|| AdapterError::Invalid("journal append produced no event".to_string()))?;
+
+        self.store.append_event(&event)?;
+        Ok(event)
+    }
         chain
             .append(
                 simulation_tick,
@@ -766,7 +1114,7 @@ impl DurableExecutionAdapter {
         );
 
         let mut chain = loaded.chain;
-        self.append_payload(&mut chain, simulation_tick, payload)?;
+        self.append_authenticated_payload(&mut chain, simulation_tick, payload)?;
 
         *budget = staged_budget;
         *inventory = staged_inventory;
@@ -1102,6 +1450,63 @@ impl DurableExecutionAdapter {
     }
 }
 
+fn validate_key_id(value: &str) -> Result<(), AdapterError> {
+    if value.is_empty()
+        || value.len() > 96
+        || !value.bytes().all(|byte| {
+            byte.is_ascii_alphanumeric() || matches!(byte, b'.' | b'-' | b'_' | b':')
+        })
+    {
+        return Err(AdapterError::Invalid(
+            "execution key ID must be portable, non-empty, and <= 96 bytes".to_string(),
+        ));
+    }
+    Ok(())
+}
+
+fn hash_bytes(hasher: &mut Sha256, bytes: &[u8]) {
+    hasher.update((bytes.len() as u64).to_le_bytes());
+    hasher.update(bytes);
+}
+
+fn hash_string(hasher: &mut Sha256, value: &str) {
+    hash_bytes(hasher, value.as_bytes());
+}
+
+fn hex_encode(bytes: &[u8]) -> String {
+    const HEX: &[u8; 16] = b"0123456789abcdef";
+    let mut output = String::with_capacity(bytes.len() * 2);
+    for byte in bytes {
+        output.push(HEX[(byte >> 4) as usize] as char);
+        output.push(HEX[(byte & 0x0f) as usize] as char);
+    }
+    output
+}
+
+fn hex_decode_exact<const N: usize>(value: &str) -> Result<[u8; N], String> {
+    if value.len() != N * 2 {
+        return Err(format!("expected {N}-byte lowercase hexadecimal value"));
+    }
+    let bytes = value.as_bytes();
+    let mut output = [0_u8; N];
+    for index in 0..N {
+        let high = hex_nibble(bytes[index * 2])
+            .ok_or_else(|| "invalid lowercase hexadecimal value".to_string())?;
+        let low = hex_nibble(bytes[index * 2 + 1])
+            .ok_or_else(|| "invalid lowercase hexadecimal value".to_string())?;
+        output[index] = (high << 4) | low;
+    }
+    Ok(output)
+}
+
+fn hex_nibble(byte: u8) -> Option<u8> {
+    match byte {
+        b'0'..=b'9' => Some(byte - b'0'),
+        b'a'..=b'f' => Some(byte - b'a' + 10),
+        _ => None,
+    }
+}
+
 fn is_sha256_hex(value: &str) -> bool {
     value.len() == 64
         && value
@@ -1116,6 +1521,27 @@ mod tests {
         fs,
         time::{SystemTime, UNIX_EPOCH},
     };
+
+    fn configured_adapter(name: &str) -> DurableExecutionAdapter {
+        let document = Ed25519KeyPair::generate_pkcs8(&SystemRandom::new())
+            .expect("generate test signing key");
+        let signer = DurableExecutionSigner::from_pkcs8("test-key", 1, document.as_ref())
+            .expect("construct test signer");
+        let mut trust = DurableExecutionTrust::new();
+        trust
+            .trust_signer(&signer, 0, None)
+            .expect("trust test signer");
+
+        DurableExecutionAdapter::open(
+            store(name),
+            "bootstrap",
+            "bootstrap-execution",
+            1,
+        )
+        .expect("adapter")
+        .with_trust(trust)
+        .with_signer(signer)
+    }
 
     fn store(name: &str) -> SaveStore {
         let suffix = SystemTime::now()
@@ -1153,13 +1579,7 @@ mod tests {
 
     #[test]
     fn pending_record_is_write_ahead_of_live_projection() {
-        let adapter = DurableExecutionAdapter::open(
-            store("pending"),
-            "bootstrap",
-            "bootstrap-execution",
-            1,
-        )
-        .expect("adapter");
+        let adapter = configured_adapter("pending");
         let (process, run) = process_and_run();
         let (mut budget, mut inventory, energy) = initial_kernel_state();
 
@@ -1210,13 +1630,7 @@ mod tests {
 
     #[test]
     fn semantic_anchor_tampering_is_rejected_by_valid_outer_chain() {
-        let adapter = DurableExecutionAdapter::open(
-            store("anchor"),
-            "bootstrap",
-            "bootstrap-execution",
-            1,
-        )
-        .expect("adapter");
+        let adapter = configured_adapter("anchor");
         let (process, run) = process_and_run();
         let (mut budget, mut inventory, energy) = initial_kernel_state();
 
@@ -1263,13 +1677,7 @@ mod tests {
 
     #[test]
     fn terminal_pre_state_must_equal_pending_post_state() {
-        let adapter = DurableExecutionAdapter::open(
-            store("continuity"),
-            "bootstrap",
-            "bootstrap-execution",
-            1,
-        )
-        .expect("adapter");
+        let adapter = configured_adapter("continuity");
         let (process, run) = process_and_run();
         let (mut budget, mut inventory, energy) = initial_kernel_state();
 
@@ -1322,13 +1730,7 @@ mod tests {
 
     #[test]
     fn recover_pending_from_pre_state_rehydrates_without_new_identity() {
-        let adapter = DurableExecutionAdapter::open(
-            store("recover-pending"),
-            "bootstrap",
-            "bootstrap-execution",
-            1,
-        )
-        .expect("adapter");
+        let adapter = configured_adapter("recover-pending");
         let (process, run) = process_and_run();
         let (mut budget, mut inventory, energy) = initial_kernel_state();
         let pre_budget = budget.clone();
@@ -1377,13 +1779,7 @@ mod tests {
 
     #[test]
     fn commit_records_exact_causal_chain_and_post_state() {
-        let adapter = DurableExecutionAdapter::open(
-            store("commit"),
-            "bootstrap",
-            "bootstrap-execution",
-            1,
-        )
-        .expect("adapter");
+        let adapter = configured_adapter("commit");
         let (process, run) = process_and_run();
         let (mut budget, mut inventory, mut energy) = initial_kernel_state();
 
@@ -1466,13 +1862,7 @@ mod tests {
 
     #[test]
     fn recover_terminal_from_pre_state_replays_exact_terminal_result() {
-        let adapter = DurableExecutionAdapter::open(
-            store("recover-terminal"),
-            "bootstrap",
-            "bootstrap-execution",
-            1,
-        )
-        .expect("adapter");
+        let adapter = configured_adapter("recover-terminal");
         let (process, run) = process_and_run();
         let (mut budget, mut inventory, mut energy) = initial_kernel_state();
 
@@ -1537,13 +1927,7 @@ mod tests {
 
     #[test]
     fn duplicate_terminal_is_rejected() {
-        let adapter = DurableExecutionAdapter::open(
-            store("duplicate-terminal"),
-            "bootstrap",
-            "bootstrap-execution",
-            1,
-        )
-        .expect("adapter");
+        let adapter = configured_adapter("duplicate-terminal");
         let (process, run) = process_and_run();
         let (mut budget, mut inventory, mut energy) = initial_kernel_state();
 
@@ -1594,13 +1978,7 @@ mod tests {
 
     #[test]
     fn authorizing_second_pending_execution_is_rejected() {
-        let adapter = DurableExecutionAdapter::open(
-            store("single-flight"),
-            "bootstrap",
-            "bootstrap-execution",
-            1,
-        )
-        .expect("adapter");
+        let adapter = configured_adapter("single-flight");
         let (process, run) = process_and_run();
         let (mut budget, mut inventory, energy) = initial_kernel_state();
 
@@ -1647,13 +2025,7 @@ mod tests {
 
     #[test]
     fn changed_process_definition_is_rejected_during_recovery() {
-        let adapter = DurableExecutionAdapter::open(
-            store("process-definition"),
-            "bootstrap",
-            "bootstrap-execution",
-            1,
-        )
-        .expect("adapter");
+        let adapter = configured_adapter("process-definition");
         let (process, run) = process_and_run();
         let changed_process =
             ProductionProcess::new("electrolysis", "regolith", ["metal", "oxygen"], "slag");
@@ -1693,13 +2065,7 @@ mod tests {
 
     #[test]
     fn live_projection_mismatch_is_rejected_before_new_pending_authorization() {
-        let adapter = DurableExecutionAdapter::open(
-            store("projection-mismatch"),
-            "bootstrap",
-            "bootstrap-execution",
-            1,
-        )
-        .expect("adapter");
+        let adapter = configured_adapter("projection-mismatch");
         let (process, run) = process_and_run();
         let (mut budget, mut inventory, mut energy) = initial_kernel_state();
 
