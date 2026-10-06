@@ -26,7 +26,7 @@ use symtropy_bootstrap::{
     InventoryLedger, ProcessExecutionReceipt, ProcessRun, ProductionProcess,
 };
 use symtropy_game_state::{EventChain, EventEnvelope, StableId};
-use symtropy_persistence::{JournalLoad, PersistenceError, SaveStore};
+use symtropy_persistence::{JournalLoad, JournalLock, PersistenceError, SaveStore};
 
 pub const EXECUTION_LIFECYCLE_SCHEMA_VERSION: u32 = 2;
 pub const EXECUTION_EVENT_KIND: &str = "symtropy.bootstrap.execution";
@@ -933,6 +933,7 @@ impl DurableExecutionAdapter {
         chain: &mut EventChain<ExecutionLifecycleEvent>,
         simulation_tick: u64,
         mut payload: ExecutionLifecycleEvent,
+        journal_lock: &JournalLock,
     ) -> Result<EventEnvelope<ExecutionLifecycleEvent>, AdapterError> {
         let signer = self
             .signer
@@ -998,7 +999,7 @@ impl DurableExecutionAdapter {
             .cloned()
             .ok_or_else(|| AdapterError::Invalid("journal append produced no event".to_string()))?;
 
-        self.store.append_event(&event)?;
+        self.store.append_event_locked(&event, journal_lock)?;
         Ok(event)
     }
 
@@ -1105,6 +1106,7 @@ impl DurableExecutionAdapter {
         energy: &EnergyLedger,
     ) -> Result<ProcessExecutionReceipt, AdapterError> {
         let execution_id = execution_id.into();
+        let journal_lock = self.store.acquire_journal_lock()?;
         let loaded = self.load_verified()?;
         Self::ensure_only_one_pending(&loaded.chain)?;
         Self::ensure_live_matches_latest(&loaded.chain, budget, inventory, energy)?;
@@ -1161,7 +1163,7 @@ impl DurableExecutionAdapter {
         );
 
         let mut chain = loaded.chain;
-        self.append_authenticated_payload(&mut chain, simulation_tick, payload)?;
+        self.append_authenticated_payload(&mut chain, simulation_tick, payload, &journal_lock)?;
 
         *budget = staged_budget;
         *inventory = staged_inventory;
@@ -1255,6 +1257,7 @@ impl DurableExecutionAdapter {
         inventory: &mut InventoryLedger,
         energy: &mut EnergyLedger,
     ) -> Result<(), AdapterError> {
+        let journal_lock = self.store.acquire_journal_lock()?;
         let loaded = self.load_verified()?;
 
         let (pending_event_id, pending_event_hash, persisted) =
@@ -1313,7 +1316,7 @@ impl DurableExecutionAdapter {
         );
 
         let mut chain = loaded.chain;
-        self.append_authenticated_payload(&mut chain, simulation_tick, payload)?;
+        self.append_authenticated_payload(&mut chain, simulation_tick, payload, &journal_lock)?;
 
         *budget = staged_budget;
         *inventory = staged_inventory;
@@ -1330,6 +1333,7 @@ impl DurableExecutionAdapter {
         inventory: &mut InventoryLedger,
         energy: &mut EnergyLedger,
     ) -> Result<(), AdapterError> {
+        let journal_lock = self.store.acquire_journal_lock()?;
         let loaded = self.load_verified()?;
 
         let (pending_event_id, pending_event_hash, persisted) =
@@ -1382,7 +1386,7 @@ impl DurableExecutionAdapter {
         );
 
         let mut chain = loaded.chain;
-        self.append_authenticated_payload(&mut chain, simulation_tick, payload)?;
+        self.append_authenticated_payload(&mut chain, simulation_tick, payload, &journal_lock)?;
 
         *budget = staged_budget;
         *inventory = staged_inventory;
@@ -1940,6 +1944,43 @@ mod tests {
                 .key_epoch,
             2
         );
+
+        fs::remove_dir_all(adapter.store().root()).expect("cleanup");
+    }
+
+    #[test]
+    fn adapter_writer_fence_blocks_authorization_without_mutating_live_state() {
+        let adapter = configured_adapter("adapter-lock");
+        let (process, run) = process_and_run();
+        let (mut budget, mut inventory, mut energy) = initial_kernel_state();
+        let before = (budget.clone(), inventory.clone(), energy.clone());
+
+        let lock = adapter
+            .store()
+            .acquire_journal_lock()
+            .expect("hold writer fence");
+
+        assert!(
+            adapter
+                .authorize_pending(
+                    &process,
+                    "exec-fenced",
+                    1,
+                    10,
+                    20,
+                    "bus",
+                    run,
+                    &mut budget,
+                    &mut inventory,
+                    &mut energy,
+                )
+                .is_err()
+        );
+
+        assert_eq!(budget, before.0);
+        assert_eq!(inventory, before.1);
+        assert_eq!(energy, before.2);
+        drop(lock);
 
         fs::remove_dir_all(adapter.store().root()).expect("cleanup");
     }
