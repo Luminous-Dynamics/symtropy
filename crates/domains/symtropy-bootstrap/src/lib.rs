@@ -2267,10 +2267,10 @@ pub enum EvidenceGrade {
 /// A bounded resource claim that is not yet inventory.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ResourceClaim {
-    pub id: String,
-    pub mass_g: u64,
-    pub evidence: EvidenceGrade,
-    pub confidence_ppm: u64,
+    id: String,
+    mass_g: u64,
+    evidence: EvidenceGrade,
+    confidence_ppm: u64,
 }
 
 impl ResourceClaim {
@@ -2298,6 +2298,26 @@ impl ResourceClaim {
             evidence,
             confidence_ppm,
         })
+    }
+
+    #[must_use]
+    pub fn id(&self) -> &str {
+        &self.id
+    }
+
+    #[must_use]
+    pub const fn mass_g(&self) -> u64 {
+        self.mass_g
+    }
+
+    #[must_use]
+    pub const fn evidence(&self) -> EvidenceGrade {
+        self.evidence
+    }
+
+    #[must_use]
+    pub const fn confidence_ppm(&self) -> u64 {
+        self.confidence_ppm
     }
 
     /// Promote a claim into an inventory-eligible certificate.
