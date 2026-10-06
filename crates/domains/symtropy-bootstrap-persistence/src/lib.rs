@@ -406,7 +406,8 @@ impl DurableExecutionAdapter {
     }
 
     fn load_verified(&self) -> Result<JournalLoad<ExecutionLifecycleEvent>, AdapterError> {
-        let loaded = self.load_verified()?;
+        let loaded = self.load()?;
+        Self::validate_journal(&loaded.chain)?;
         for event in loaded.chain.events() {
             if event.payload.receipt.state_anchor().domain() != self.anchor_domain {
                 return Err(AdapterError::Invalid(
