@@ -4943,11 +4943,30 @@ mod tests {
 
     #[test]
     fn resource_claim_requires_identity_before_certification() {
-        let claim = ResourceClaim::new("", 5_000, EvidenceGrade::InSituMeasured, 950_000)
         assert!(
-            claim
-                .certify_for_inventory(EvidenceGrade::InSituMeasured, 900_000)
-                .is_err()
+            ResourceClaim::new("", 5_000, EvidenceGrade::InSituMeasured, 950_000).is_err()
+        );
+    }
+
+    #[test]
+    fn resource_claim_rejects_out_of_range_confidence() {
+        assert!(
+            ResourceClaim::new(
+                "mercury-polar-ice",
+                5_000,
+                EvidenceGrade::InSituMeasured,
+                1_000_001,
+            )
+            .is_err()
+        );
+        assert!(
+            ResourceClaim::new(
+                "mercury-polar-ice",
+                5_000,
+                EvidenceGrade::InSituMeasured,
+                1_000_000,
+            )
+            .is_ok()
         );
     }
 
@@ -4976,11 +4995,40 @@ mod tests {
     }
 
     #[test]
+    fn bootstrap_candidate_rejects_invalid_identity_and_risk() {
+        assert!(
+            BootstrapCandidate::new("", 1, 1, 1, 1, 1, 0).is_err()
+        );
+        assert!(
+            BootstrapCandidate::new("candidate", 1, 1, 1, 1, 1, 1_000_001).is_err()
+        );
+        assert!(
+            BootstrapCandidate::new("candidate", 1, 1, 1, 1, 1, 1_000_000).is_ok()
+        );
+    }
+
+    #[test]
     fn pareto_frontier_prefers_dependency_closure_without_single_score() {
-        let dependency_remover =
-            BootstrapCandidate::new("close_electronics", 30, 30, 100, 500, 20, 50_000).expect("valid bootstrap candidate");
-        let throughput =
-            BootstrapCandidate::new("increase_bulk_output", 0, 0, 100, 500, 20, 50_000).expect("valid bootstrap candidate");
+        let dependency_remover = BootstrapCandidate::new(
+            "close_electronics",
+            30,
+            30,
+            100,
+            500,
+            20,
+            50_000,
+        )
+        .expect("valid bootstrap candidate");
+        let throughput = BootstrapCandidate::new(
+            "increase_bulk_output",
+            0,
+            0,
+            100,
+            500,
+            20,
+            50_000,
+        )
+        .expect("valid bootstrap candidate");
         let frontier = pareto_frontier(&[throughput, dependency_remover]);
 
         assert_eq!(frontier.len(), 1);
@@ -4989,8 +5037,12 @@ mod tests {
 
     #[test]
     fn pareto_frontier_preserves_real_tradeoffs() {
-        let low_energy = BootstrapCandidate::new("low_energy", 10, 5, 100, 100, 30, 100_000).expect("valid bootstrap candidate");
-        let low_mass = BootstrapCandidate::new("low_mass", 10, 5, 50, 200, 30, 100_000).expect("valid bootstrap candidate");
+        let low_energy =
+            BootstrapCandidate::new("low_energy", 10, 5, 100, 100, 30, 100_000)
+                .expect("valid bootstrap candidate");
+        let low_mass =
+            BootstrapCandidate::new("low_mass", 10, 5, 50, 200, 30, 100_000)
+                .expect("valid bootstrap candidate");
         let frontier = pareto_frontier(&[low_energy, low_mass]);
 
         assert_eq!(frontier.len(), 2);
@@ -5005,8 +5057,12 @@ mod tests {
 
     #[test]
     fn pareto_frontier_compares_same_id_observations() {
-        let dominated = BootstrapCandidate::new("same_id", 1, 1, 100, 100, 30, 100_000).expect("valid bootstrap candidate");
-        let stronger = BootstrapCandidate::new("same_id", 2, 2, 90, 90, 20, 90_000).expect("valid bootstrap candidate");
+        let dominated =
+            BootstrapCandidate::new("same_id", 1, 1, 100, 100, 30, 100_000)
+                .expect("valid bootstrap candidate");
+        let stronger =
+            BootstrapCandidate::new("same_id", 2, 2, 90, 90, 20, 90_000)
+                .expect("valid bootstrap candidate");
         let frontier = pareto_frontier(&[dominated, stronger]);
 
         assert_eq!(frontier.len(), 1);
@@ -5015,9 +5071,12 @@ mod tests {
 
     #[test]
     fn pareto_frontier_is_input_order_independent() {
-        let a = BootstrapCandidate::new("a", 10, 5, 100, 100, 30, 100_000).expect("valid bootstrap candidate");
-        let b = BootstrapCandidate::new("b", 20, 5, 100, 100, 30, 100_000).expect("valid bootstrap candidate");
-        let c = BootstrapCandidate::new("c", 5, 10, 90, 110, 20, 80_000).expect("valid bootstrap candidate");
+        let a =
+            BootstrapCandidate::new("a", 10, 5, 100, 100, 30, 100_000).expect("valid bootstrap candidate");
+        let b =
+            BootstrapCandidate::new("b", 20, 5, 100, 100, 30, 100_000).expect("valid bootstrap candidate");
+        let c =
+            BootstrapCandidate::new("c", 5, 10, 90, 110, 20, 80_000).expect("valid bootstrap candidate");
 
         let first = pareto_frontier(&[a.clone(), b.clone(), c.clone()]);
         let second = pareto_frontier(&[c, b, a]);
