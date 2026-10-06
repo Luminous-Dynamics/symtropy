@@ -2084,6 +2084,8 @@ fn freshness_attestation_digest(attestation: &ExternalFreshnessAttestation) -> [
         "symtropy.journal.freshness-attestation.v1",
     );
     hash_string(&mut hasher, &attestation.authority_id);
+    hasher.update(attestation.schema_version.to_le_bytes());
+    hash_string(&mut hasher, &attestation.algorithm);
     hasher.update(attestation.authority_epoch.to_le_bytes());
     hasher.update(attestation.sequence.to_le_bytes());
     hash_string(&mut hasher, &attestation.namespace);
@@ -2318,6 +2320,40 @@ mod tests {
             ),
             Err(AdapterError::WitnessMismatch(_))
         ));
+
+        fs::remove_dir_all(adapter.store().root()).expect("cleanup");
+    }
+
+    #[test]
+    fn external_freshness_attestation_rejects_bad_signature() {
+        let adapter = configured_adapter("freshness-bad-signature");
+        let authority_signer = test_signer("freshness-bad-signature-authority", 1);
+        let authority = FreshnessAuthority::from_public_key_hex(
+            authority_signer.key_id(),
+            authority_signer.key_epoch(),
+            authority_signer.public_key_hex(),
+        )
+        .expect("authority");
+        let witness = adapter.capture_head_witness().expect("head witness");
+        let mut attestation = freshness_test_attestation(
+            authority.authority_id(),
+            authority.authority_epoch(),
+            &authority_signer,
+            &adapter,
+        );
+        attestation.sequence = attestation.sequence.checked_add(1).expect("sequence");
+
+        assert!(matches!(
+            authority.verify(
+                &attestation,
+                "bootstrap",
+                1,
+                &adapter.load_verified().expect("journal").chain,
+                adapter.trust(),
+            ),
+            Err(AdapterError::WitnessMismatch(_))
+        ));
+        assert_eq!(witness.event_count(), attestation.event_count);
 
         fs::remove_dir_all(adapter.store().root()).expect("cleanup");
     }
