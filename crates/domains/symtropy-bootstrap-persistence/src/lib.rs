@@ -3002,6 +3002,7 @@ mod tests {
         assert!(
             adapter
                 .recover_pending(
+                    &mut head_witness,
                     &changed_process,
                     "exec-definition",
                     receipt.state_anchor(),
