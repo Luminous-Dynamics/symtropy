@@ -34,14 +34,44 @@ pub const EXECUTION_AUTH_ALGORITHM: &str = "Ed25519-SHA256-JSON-v1";
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct JournalHeadWitness {
-    pub namespace: String,
-    pub seed: u64,
-    pub event_count: u64,
-    pub head_hash: String,
-    pub trust_commitment: String,
+    namespace: String,
+    seed: u64,
+    event_count: u64,
+    head_hash: String,
+    trust_commitment: String,
 }
 
 impl JournalHeadWitness {
+    /// Access the journal namespace bound into this retained checkpoint.
+    #[must_use]
+    pub fn namespace(&self) -> &str {
+        &self.namespace
+    }
+
+    /// Access the deterministic journal seed bound into this retained checkpoint.
+    #[must_use]
+    pub fn seed(&self) -> u64 {
+        self.seed
+    }
+
+    /// Access the number of durable events covered by this checkpoint.
+    #[must_use]
+    pub fn event_count(&self) -> u64 {
+        self.event_count
+    }
+
+    /// Access the exact durable event hash covered by this checkpoint.
+    #[must_use]
+    pub fn head_hash(&self) -> &str {
+        &self.head_hash
+    }
+
+    /// Access the trust-policy commitment bound into this checkpoint.
+    #[must_use]
+    pub fn trust_commitment(&self) -> &str {
+        &self.trust_commitment
+    }
+
     pub fn capture(
         namespace: impl Into<String>,
         seed: u64,
