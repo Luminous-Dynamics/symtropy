@@ -968,9 +968,12 @@ impl ProcessRun {
         }
     }
 
-    #[must_use]
-    pub fn total_output_mass_g(&self) -> u64 {
-        self.output_mass_g.values().copied().sum()
+    /// Return total product mass without permitting integer overflow.
+    pub fn total_output_mass_g(&self) -> Result<u64, String> {
+        self.output_mass_g
+            .values()
+            .try_fold(0_u64, |sum, mass| sum.checked_add(*mass))
+            .ok_or_else(|| "output mass overflow".to_string())
     }
 }
 
@@ -2481,7 +2484,26 @@ mod tests {
 
         run.validate_mass_balance()
             .expect("co-product process should conserve mass");
-        assert_eq!(run.total_output_mass_g(), 900);
+        assert_eq!(run.total_output_mass_g().expect("output mass should fit"), 900);
+    }
+
+    #[test]
+    fn total_output_mass_fails_closed_on_overflow() {
+        let run = ProcessRun::new(
+            "overflow",
+            "feed",
+            "batch-overflow",
+            u64::MAX,
+            BTreeMap::from([
+                ("a".to_string(), u64::MAX),
+                ("b".to_string(), 1),
+            ]),
+            0,
+            0,
+        );
+
+        assert!(run.total_output_mass_g().is_err());
+        assert!(run.validate_mass_balance().is_err());
     }
 
     #[test]
