@@ -787,12 +787,14 @@ The first implementation should prove:
 - the pending budget reservation is bound to the complete immutable receipt, including process identity, source batch, inventory and energy sequence positions, energy node, and the complete process run;
 - the pending physical source reservation is bound to the same execution, batch, and exact feed quantity;
 - budget-only authorization returns an inspection/provenance receipt that is intentionally distinct from the executable receipt type; only the latter can cross the commit/abort API boundary or materialize causal inventory/energy events, making concrete source reservation a type-level execution precondition;
+- budget-only authorization has its own explicit compensation path: `abort_budget_only_execution` releases reserved feed/energy without requiring physical source state, while the physical `abort_pending_execution` boundary rejects such receipts;
 - output and waste batch identities are derived from the authorized execution identity as well as process/sequence context, so distinct executions cannot alias the same physical product batch merely by reusing a process and sequence position;
 - commit and abort reject a receipt that does not exactly match the still-pending authorization, even when its feedstock and energy quantities match;
 - a pending execution can be explicitly rehydrated from the authoritative budget receipt plus matching source reservation without minting a second authorization;
 - durable integration has an explicit pending-authorization boundary: the raw pending receipt must cross persistence before executable activation, while budget-only or merely in-memory authorization cannot cross that boundary;
 - legal execution lifecycle transitions are encoded by the kernel as `Pending -> Committed` or `Pending -> Aborted`; terminal-to-terminal, terminal-to-pending, and repeated-state transitions are invalid rather than implicitly idempotent;
 - persistence failure after pending authorization has a safe raw-receipt compensation path that aborts and refunds the reservation without exposing executable event materialization;
+- budget-only reservations have a distinct cancellation path and cannot be mistaken for executions with concrete physical-source reservations;
 - execution lifecycle state is explicitly distinguishable as Pending, Committed, or Aborted, and each lifecycle record retains the exact immutable receipt that caused the transition, giving durable recovery an unambiguous terminal outcome and causal identity;
 - an explicitly aborted execution restores its reserved feedstock and energy and releases its concrete source-batch reservation without touching ledger history;
 - an aborted execution becomes terminal and cannot reuse its execution identity;
@@ -907,7 +909,7 @@ The remaining durability boundary is explicit: a process can be authorized and p
 
 ### Durable adapter contract
 
-The next integration layer should use an append-only, journal-first execution record rather than independently persisting the budget, inventory, and energy ledgers and attempting to infer atomicity afterward. The durable record for each lifecycle transition must retain enough information to reconstruct the same causal execution without inventing a new authorization:
+The next integration layer should use an append-only, journal-first execution record rather than independently persisting the budget, inventory, and energy ledgers and attempting to infer atomicity afterward. Budget-only inspection authorizations are separate: they reserve only aggregate budget capacity and must be canceled through the budget-only compensation path rather than being represented as physically executable work. The durable record for each lifecycle transition must retain enough information to reconstruct the same causal execution without inventing a new authorization:
 
 ```text
 execution_id
