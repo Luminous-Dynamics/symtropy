@@ -112,12 +112,20 @@ impl SaveStore {
         Ok(snapshot)
     }
 
-    /// Appends one already-hashed event and synchronizes it before returning.
+    /// Append one already-hashed event after repairing/separating a crash tail.
+    ///
+    /// A journal whose last write ended without a newline is ambiguous at the
+    /// filesystem boundary. If the final fragment is invalid JSON it is treated
+    /// as the same incomplete crash tail that load_journal already discards
+    /// and is truncated before the new record is appended. If it is a complete
+    /// JSON record without a newline, a separator is added instead of corrupting
+    /// the line framing.
     pub fn append_event<T: Serialize>(
         &self,
         event: &EventEnvelope<T>,
     ) -> Result<(), PersistenceError> {
         event.verify_hash().map_err(PersistenceError::State)?;
+        prepare_journal_for_append(&self.root.join("journal.jsonl"))?;
         let file = OpenOptions::new()
             .create(true)
             .append(true)
@@ -207,6 +215,56 @@ impl SaveStore {
     }
 }
 
+/// Repair journal line framing before appending a new durable record.
+///
+/// Only a final fragment without a newline is touched. A syntactically valid
+/// final JSON record receives the missing separator; an invalid final fragment
+/// is truncated to the last complete line. Any concurrent file-size change
+/// between inspection and mutation fails closed.
+fn prepare_journal_for_append(path: &Path) -> Result<(), PersistenceError> {
+    if !path.exists() {
+        return Ok(());
+    }
+
+    let bytes = fs::read(path).map_err(PersistenceError::Io)?;
+    if bytes.is_empty() || bytes.last() == Some(&b'\n') {
+        return Ok(());
+    }
+
+    let expected_len = bytes.len() as u64;
+    let final_start = bytes
+        .iter()
+        .rposition(|byte| *byte == b'\n')
+        .map_or(0, |index| index + 1);
+    let tail = &bytes[final_start..];
+
+    let mut file = OpenOptions::new()
+        .write(true)
+        .append(true)
+        .open(path)
+        .map_err(PersistenceError::Io)?;
+
+    if fs::metadata(path)
+        .map_err(PersistenceError::Io)?
+        .len()
+        != expected_len
+    {
+        return Err(PersistenceError::JournalChanged);
+    }
+
+    if serde_json::from_slice::<serde_json::Value>(tail).is_err() {
+        file.set_len(final_start as u64)
+            .map_err(PersistenceError::Io)?;
+        file.sync_all().map_err(PersistenceError::Io)?;
+    } else {
+        file.write_all(b"\n").map_err(PersistenceError::Io)?;
+        file.flush().map_err(PersistenceError::Io)?;
+        file.sync_data().map_err(PersistenceError::Io)?;
+    }
+
+    Ok(())
+}
+
 /// Flush directory metadata so that a create/rename inside it survives a crash.
 ///
 /// **Unix only — on Windows this is deliberately a no-op**, and callers do not
@@ -253,6 +311,8 @@ pub enum PersistenceError {
     },
     /// Snapshot refers to an event not present in the recovered journal.
     MissingSnapshotAnchor(String),
+    /// Journal changed between tail inspection and repair.
+    JournalChanged,
 }
 
 impl fmt::Display for PersistenceError {
@@ -274,6 +334,9 @@ impl fmt::Display for PersistenceError {
             Self::MissingSnapshotAnchor(hash) => {
                 write!(formatter, "snapshot anchor is absent from journal: {hash}")
             }
+            Self::JournalChanged => {
+                write!(formatter, "journal changed during crash-tail repair")
+            }
         }
     }
 }
@@ -285,7 +348,7 @@ impl Error for PersistenceError {
             Self::Json(error) => Some(error),
             Self::State(error) => Some(error),
             Self::InvalidJournalRecord { source, .. } => Some(source),
-            Self::UnsupportedSchema(_) | Self::MissingSnapshotAnchor(_) => None,
+            Self::UnsupportedSchema(_) | Self::MissingSnapshotAnchor(_) | Self::JournalChanged => None,
         }
     }
 }
@@ -363,6 +426,60 @@ mod tests {
             store.load_journal("journal", 7).expect("recover journal");
         assert_eq!(loaded.chain.events().len(), 1);
         assert!(loaded.discarded_tail_bytes > 0);
+        fs::remove_dir_all(store.root()).expect("remove temporary store");
+    }
+
+    #[test]
+    fn append_repairs_incomplete_crash_tail_before_writing() {
+        let store = temporary_store("append-tail-repair");
+        let mut chain = EventChain::new("journal", 7);
+        chain
+            .append(
+                1,
+                "repair",
+                None,
+                None,
+                Vec::new(),
+                TestEvent {
+                    action: "first".into(),
+                },
+            )
+            .expect("append first event");
+
+        store
+            .append_event(&chain.events()[0])
+            .expect("persist first event");
+
+        let mut raw = OpenOptions::new()
+            .append(true)
+            .open(store.root().join("journal.jsonl"))
+            .expect("open journal");
+        raw.write_all(b"{\"partial\":")
+            .expect("write incomplete tail");
+        raw.sync_all().expect("sync incomplete tail");
+
+        chain
+            .append(
+                2,
+                "repair",
+                None,
+                None,
+                Vec::new(),
+                TestEvent {
+                    action: "second".into(),
+                },
+            )
+            .expect("append second event");
+
+        store
+            .append_event(&chain.events()[1])
+            .expect("append after repair");
+
+        let loaded: JournalLoad<TestEvent> =
+            store.load_journal("journal", 7).expect("load repaired journal");
+        assert_eq!(loaded.chain.events().len(), 2);
+        assert_eq!(loaded.discarded_tail_bytes, 0);
+
         fs::remove_dir_all(store.root()).expect("remove temporary store");
     }
 
