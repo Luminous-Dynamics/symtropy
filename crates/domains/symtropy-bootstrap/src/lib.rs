@@ -253,7 +253,7 @@ impl DependencyGraph {
                 0
             },
             mass_closure_ppm: if valid {
-                ratio_ppm(local_mass_g, mass_total.expect("valid mass total"))
+                ratio_ppm(local_mass_g, mass_total.unwrap_or(0))
             } else {
                 0
             },
