@@ -770,12 +770,18 @@ impl ProductionProcess {
         Ok(())
     }
 
-    /// Authorize an executable process against aggregate budgets and its concrete source batch.
+    /// Authorize one pending process execution against aggregate budgets and its concrete source batch.
     ///
     /// The physical source reservation is acquired before budget reservation. A
     /// failed budget reservation releases the source claim so the operation is
     /// atomic across both admission boundaries.
-    pub fn authorize_execution_with_inventory(
+    ///
+    /// This is the durability boundary for higher layers: the returned raw
+    /// receipt proves the pending reservation, but it cannot materialize causal
+    /// events or cross the commit/abort execution boundary. A durable adapter
+    /// should persist this receipt and its reservation before calling
+    /// `resume_pending_execution`.
+    pub fn authorize_pending_execution_with_inventory(
         &self,
         execution_id: impl Into<String>,
         first_inventory_sequence: u64,
@@ -784,7 +790,7 @@ impl ProductionProcess {
         run: ProcessRun,
         budget: &mut ExecutionBudget,
         inventory: &mut InventoryLedger,
-    ) -> Result<ExecutableProcessExecutionReceipt, String> {
+    ) -> Result<ProcessExecutionReceipt, String> {
         let execution_id = execution_id.into();
         let node_id = node_id.into();
 
@@ -823,9 +829,36 @@ impl ProductionProcess {
             return Err(error);
         }
 
-        Ok(ExecutableProcessExecutionReceipt::new(receipt))
+        Ok(receipt)
     }
 
+    /// Authorize an executable process against aggregate budgets and its concrete source batch.
+    ///
+    /// This convenience path reserves the pending execution and immediately
+    /// rehydrates its executable proof. Durable adapters should instead call
+    /// `authorize_pending_execution_with_inventory`, persist the pending record,
+    /// and only then call `resume_pending_execution`.
+    pub fn authorize_execution_with_inventory(
+        &self,
+        execution_id: impl Into<String>,
+        first_inventory_sequence: u64,
+        energy_sequence: u64,
+        node_id: impl Into<String>,
+        run: ProcessRun,
+        budget: &mut ExecutionBudget,
+        inventory: &mut InventoryLedger,
+    ) -> Result<ExecutableProcessExecutionReceipt, String> {
+        let receipt = self.authorize_pending_execution_with_inventory(
+            execution_id,
+            first_inventory_sequence,
+            energy_sequence,
+            node_id,
+            run,
+            budget,
+            inventory,
+        )?;
+        resume_pending_execution(receipt.execution_id(), budget, inventory)
+    }
     /// Atomically authorize one process execution against an aggregate consumable budget.
     ///
     /// This budget-only path does not reserve physical source inventory; receipts created
@@ -3258,6 +3291,58 @@ mod tests {
             &abort_inventory,
         )
         .is_err());
+    }
+
+    #[test]
+    fn durable_activation_requires_explicit_pending_receipt() {
+        let process = ProductionProcess::new(
+            "regolith_electrolysis",
+            "regolith",
+            ["oxygen", "metal"],
+            "waste",
+        );
+        let run = ProcessRun::new(
+            "regolith_electrolysis",
+            "regolith",
+            "feed-activate",
+            1_000,
+            BTreeMap::from([("oxygen".to_string(), 180), ("metal".to_string(), 720)]),
+            100,
+            4_000,
+        );
+
+        let mut budget = ExecutionBudget::new(1_000, 4_000);
+        let mut inventory =
+            InventoryLedger::new(BTreeMap::from([("feed-activate".to_string(), 1_000)]));
+        let pending = process
+            .authorize_pending_execution_with_inventory(
+                "exec-activate",
+                10,
+                20,
+                "bus",
+                run,
+                &mut budget,
+                &mut inventory,
+            )
+            .expect("pending execution should authorize");
+
+        assert_eq!(
+            budget
+                .execution_record("exec-activate")
+                .expect("pending record should exist")
+                .receipt(),
+            &pending
+        );
+
+        let activated = resume_pending_execution("exec-activate", &budget, &inventory)
+            .expect("explicit activation should rehydrate executable proof");
+        let mut energy = EnergyLedger::new(BTreeMap::from([("bus".to_string(), 5_000)]));
+        commit_process_execution(&activated, &mut budget, &mut inventory, &mut energy)
+            .expect("activated execution should commit");
+        assert_eq!(
+            budget.execution_state("exec-activate"),
+            Some(ExecutionState::Committed)
+        );
     }
 
     #[test]
