@@ -753,6 +753,9 @@ The first implementation should prove:
 - duplicate, empty, or cross-namespace capability/dependency identifiers make the graph invalid and fail closure closed;
 - a graph with no positive critical-weight total cannot claim full industrial closure merely through a vacuous `0 == 0` comparison;
 - critical-weight aggregation overflow is an invalid closure report rather than a wrapped or panicking result;
+- mass-closure denominator overflow makes the closure report invalid rather than saturating the denominator;
+- blocker-weight aggregation overflow is rejected rather than saturating the reported dependency importance;
+- process-efficiency comparison remains exact at u64 boundary values without saturating cross-products;
 - removing a critical machine class causes deterministic degradation, not free resource creation;
 - inventory only increases through causal production events;
 - energy deficits alter scheduling and survive LOD transitions;
@@ -777,6 +780,7 @@ The first implementation should prove:
 - recycling is represented as an explicit consumed source batch plus produced destination batch, never as implicit mass creation;
 - process waste is emitted as a named produced batch, so strict process mass balance is preserved in inventory history rather than allowing waste to disappear between process and ledger;
 - a certified resource must have a non-empty claim identity and cannot be constructed directly outside the evidence gate;
+- candidate failure-risk and resource-confidence values outside 0..1,000,000 ppm are rejected rather than clamped into a valid-looking value;
 - certification-derived inventory events use the certificate identity as their event identity, preventing the same certified quantity from being minted twice;
 - ledger replay rejects missing or duplicate event identities, unprovenanced events, and overdrawn history;
 - stateful ledger append rejects duplicate identities, non-monotonic sequences, and empty physical account identifiers before mutation;
