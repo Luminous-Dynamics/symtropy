@@ -58,17 +58,6 @@ pub struct FreshnessCursor {
 }
 
 impl FreshnessCursor {
-    fn from_verified(
-        authority: &FreshnessAuthority,
-        attestation: &ExternalFreshnessAttestation,
-    ) -> Self {
-        Self {
-            authority_commitment: authority.commitment(),
-            last_sequence: attestation.sequence,
-            last_head_hash: attestation.head_hash.clone(),
-            last_event_count: attestation.event_count,
-        }
-    }
 
     #[must_use]
     pub fn authority_commitment(&self) -> &str {
@@ -140,6 +129,28 @@ impl FreshnessAuthority {
         hasher.update(self.authority_epoch.to_le_bytes());
         hash_string(&mut hasher, &self.public_key);
         hex_encode(&hasher.finalize())
+    }
+
+    /// Establish a freshness cursor from a fully verified external checkpoint.
+    ///
+    /// This is the only production constructor: callers cannot manufacture a cursor
+    /// from arbitrary checkpoint fields without first passing the authority, journal,
+    /// and trust-policy verification boundary.
+    pub fn initialize_cursor(
+        &self,
+        attestation: &ExternalFreshnessAttestation,
+        namespace: &str,
+        seed: u64,
+        chain: &EventChain<ExecutionLifecycleEvent>,
+        trust: &DurableExecutionTrust,
+    ) -> Result<FreshnessCursor, AdapterError> {
+        self.verify(attestation, namespace, seed, chain, trust)?;
+        Ok(FreshnessCursor {
+            authority_commitment: self.commitment(),
+            last_sequence: attestation.sequence,
+            last_head_hash: attestation.head_hash.clone(),
+            last_event_count: attestation.event_count,
+        })
     }
 
     /// Verify a new external checkpoint and advance a caller-retained monotonic cursor.
@@ -2240,7 +2251,15 @@ mod tests {
         let witness = adapter.capture_head_witness().expect("head witness");
         let attestation =
             freshness_test_attestation(authority.authority_id(), authority.authority_epoch(), &authority_signer, &adapter);
-        let mut cursor = FreshnessCursor::from_verified(&authority, &attestation);
+        let mut cursor = authority
+            .initialize_cursor(
+                &attestation,
+                "bootstrap",
+                1,
+                &adapter.load_verified().expect("journal").chain,
+                adapter.trust(),
+            )
+            .expect("initialize cursor");
 
         assert!(adapter
             .load_verified_with_freshness_cursor(
