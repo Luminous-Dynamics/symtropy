@@ -228,6 +228,17 @@ impl DependencyGraph {
             report_definition_errors.push("closed critical weight sum overflow".to_string());
         }
 
+        if assessments.iter().any(|assessment| {
+            assessment
+                .unresolved_dependencies
+                .iter()
+                .any(|dependency| dependency.starts_with("resolution-depth-exceeded:"))
+        }) {
+            report_definition_errors.push(format!(
+                "dependency resolution depth exceeded: {MAX_DEPENDENCY_RESOLUTION_DEPTH}"
+            ));
+        }
+
         let mass_total = local_mass_g.checked_add(imported_mass_g);
         if mass_total.is_none() {
             report_definition_errors.push("mass total overflow".to_string());
@@ -3069,14 +3080,17 @@ mod tests {
 
         assert!(!report.valid);
         assert!(
+            report
+                .definition_errors()
+                .iter()
+                .any(|error| error == "dependency resolution depth exceeded: 1024")
+        );
+        assert!(
             report.assessments.iter().any(|assessment| {
                 assessment
                     .unresolved_dependencies
                     .iter()
-                    .any(|dependency| {
-                        dependency
-                            == "resolution-depth-exceeded:1024"
-                    })
+                    .any(|dependency| dependency == "resolution-depth-exceeded:1024")
             })
         );
     }
