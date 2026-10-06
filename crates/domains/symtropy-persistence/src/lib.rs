@@ -484,6 +484,50 @@ mod tests {
     }
 
     #[test]
+    fn append_separates_complete_final_record_without_newline() {
+        let store = temporary_store("append-complete-tail");
+        let mut chain = EventChain::new("journal", 8);
+        chain
+            .append(
+                1,
+                "repair",
+                None,
+                None,
+                Vec::new(),
+                TestEvent {
+                    action: "first".into(),
+                },
+            )
+            .expect("append first event");
+        let first = serde_json::to_vec(&chain.events()[0]).expect("serialize first event");
+        fs::write(store.root().join("journal.jsonl"), first).expect("write complete no-newline record");
+
+        chain
+            .append(
+                2,
+                "repair",
+                None,
+                None,
+                Vec::new(),
+                TestEvent {
+                    action: "second".into(),
+                },
+            )
+            .expect("append second event");
+
+        store
+            .append_event(&chain.events()[1])
+            .expect("append after separator repair");
+
+        let loaded: JournalLoad<TestEvent> =
+            store.load_journal("journal", 8).expect("load separated journal");
+        assert_eq!(loaded.chain.events().len(), 2);
+        assert_eq!(loaded.discarded_tail_bytes, 0);
+
+        fs::remove_dir_all(store.root()).expect("remove temporary store");
+    }
+
+    #[test]
     fn snapshot_anchor_must_exist() {
         let store = temporary_store("anchor");
         let snapshot = SaveSnapshot::new(
