@@ -104,6 +104,55 @@ impl JournalHeadWitness {
         })
     }
 
+    /// Verify the loaded journal is exactly the retained checkpoint.
+    ///
+    /// Mutation/recovery paths use this stricter relation so an older cloned witness
+    /// cannot authorize work against a newer journal head, nor can a newer journal
+    /// silently extend a stale caller checkpoint.
+    pub fn verify_exact(
+        &self,
+        namespace: &str,
+        seed: u64,
+        chain: &EventChain<ExecutionLifecycleEvent>,
+        trust: &DurableExecutionTrust,
+    ) -> Result<(), AdapterError> {
+        if self.namespace != namespace || self.seed != seed {
+            return Err(AdapterError::WitnessMismatch(
+                "journal head witness belongs to a different namespace or seed".to_string(),
+            ));
+        }
+        if self.trust_commitment != trust.commitment() {
+            return Err(AdapterError::WitnessMismatch(
+                "journal head witness is bound to a different trust policy".to_string(),
+            ));
+        }
+
+        let current_count = u64::try_from(chain.events().len())
+            .map_err(|_| AdapterError::WitnessMismatch("journal event count overflow".to_string()))?;
+        if current_count != self.event_count {
+            return Err(AdapterError::WitnessMismatch(
+                "durable journal head count differs from retained witness".to_string(),
+            ));
+        }
+
+        if self.event_count == 0 {
+            if self.head_hash != "GENESIS" || chain.head_hash() != "GENESIS" {
+                return Err(AdapterError::WitnessMismatch(
+                    "empty journal head does not match retained GENESIS witness".to_string(),
+                ));
+            }
+            return Ok(());
+        }
+
+        if chain.head_hash() != self.head_hash {
+            return Err(AdapterError::WitnessMismatch(
+                "durable journal head does not exactly match retained witness".to_string(),
+            ));
+        }
+
+        Ok(())
+    }
+
     /// Verify the loaded journal is the witnessed history or a strict extension of it.
     ///
     /// A valid signature alone does not prove freshness because an attacker may
@@ -873,6 +922,21 @@ impl DurableExecutionAdapter {
         )
     }
 
+    /// Verify the durable journal against an independently retained exact head.
+    pub fn load_verified_at(
+        &self,
+        witness: &JournalHeadWitness,
+    ) -> Result<JournalLoad<ExecutionLifecycleEvent>, AdapterError> {
+        let loaded = self.load_verified()?;
+        witness.verify_exact(
+            &self.journal_namespace,
+            self.seed,
+            &loaded.chain,
+            &self.trust,
+        )?;
+        Ok(loaded)
+    }
+
     /// Verify the durable journal against an independently retained head witness.
     pub fn load_verified_against(
         &self,
@@ -1327,7 +1391,7 @@ impl DurableExecutionAdapter {
     ) -> Result<ProcessExecutionReceipt, AdapterError> {
         let execution_id = execution_id.into();
         let journal_lock = self.store.acquire_journal_lock()?;
-        let loaded = self.load_verified_against(head_witness)?;
+        let loaded = self.load_verified_at(head_witness)?;
         Self::ensure_only_one_pending(&loaded.chain)?;
         Self::ensure_live_matches_latest(&loaded.chain, budget, inventory, energy)?;
 
@@ -2025,6 +2089,67 @@ mod tests {
         assert_eq!(inventory, before_inventory);
         assert_eq!(energy, before_energy);
         assert_eq!(head_witness, retained);
+
+        fs::remove_dir_all(adapter.store().root()).expect("cleanup");
+    }
+
+    #[test]
+    fn stale_retained_witness_cannot_authorize_against_a_newer_head() {
+        let adapter = configured_adapter("stale-witness");
+        let (process, run) = process_and_run();
+        let (mut budget, mut inventory, mut energy) = (
+            ExecutionBudget::new(2_000, 8_000),
+            InventoryLedger::new(BTreeMap::from([
+                ("feed".to_string(), 1_000),
+                ("feed-2".to_string(), 1_000),
+            ])),
+            EnergyLedger::new(BTreeMap::from([("bus".to_string(), 8_000])),
+        );
+
+        let mut fresh = adapter.capture_head_witness().expect("genesis witness");
+        let stale = fresh.clone();
+
+        adapter
+            .authorize_pending(
+                &mut fresh,
+                &process,
+                "exec-stale-witness-seed",
+                1,
+                10,
+                20,
+                "bus",
+                run,
+                &mut budget,
+                &mut inventory,
+                &mut energy,
+            )
+            .expect("first authorization");
+
+        let before_budget = budget.clone();
+        let before_inventory = inventory.clone();
+        let before_energy = energy.clone();
+
+        let mut stale_copy = stale.clone();
+        let err = adapter
+            .authorize_pending(
+                &mut stale_copy,
+                &process,
+                "exec-stale-witness-reuse",
+                2,
+                11,
+                21,
+                "bus",
+                process_and_run().1,
+                &mut budget,
+                &mut inventory,
+                &mut energy,
+            )
+            .expect_err("stale exact-head witness must be rejected");
+
+        assert!(matches!(err, AdapterError::WitnessMismatch(_)));
+        assert_eq!(budget, before_budget);
+        assert_eq!(inventory, before_inventory);
+        assert_eq!(energy, before_energy);
 
         fs::remove_dir_all(adapter.store().root()).expect("cleanup");
     }
