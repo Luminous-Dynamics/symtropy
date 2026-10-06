@@ -285,6 +285,10 @@ impl DependencyGraph {
     /// Weight aggregation is checked rather than saturated: an overflow is
     /// invalid qualification data, not a reason to silently cap the blocker.
     pub fn rank_blockers(&self, report: &ClosureReport) -> Result<Vec<DependencyBlocker>, String> {
+        if !report.valid {
+            return Err("cannot rank blockers for invalid closure report".to_string());
+        }
+
         let mut blockers: BTreeMap<String, (u64, BTreeSet<String>)> = BTreeMap::new();
 
         for assessment in &report.assessments {
@@ -3330,6 +3334,17 @@ mod tests {
         assert_eq!(blockers[0].id, "electronics");
         assert_eq!(blockers[0].weight, 30);
         assert_eq!(blockers[0].affected_capabilities, vec!["controller"]);
+    }
+
+    #[test]
+    fn blocker_ranking_rejects_invalid_report() {
+        let graph = bottleneck_graph();
+        let report = graph.evaluate(u64::MAX, 1);
+
+        let error = graph
+            .rank_blockers(&report)
+            .expect_err("invalid closure reports must not produce ranked blockers");
+        assert_eq!(error, "cannot rank blockers for invalid closure report");
     }
 
     #[test]
