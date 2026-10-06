@@ -221,6 +221,11 @@ impl DependencyGraph {
             report_definition_errors.push("closed critical weight sum overflow".to_string());
         }
 
+        let mass_total = local_mass_g.checked_add(imported_mass_g);
+        if mass_total.is_none() {
+            report_definition_errors.push("mass total overflow".to_string());
+        }
+
         if !report_definition_errors.is_empty() {
             for assessment in &mut assessments {
                 assessment.closed = false;
@@ -248,7 +253,7 @@ impl DependencyGraph {
                 0
             },
             mass_closure_ppm: if valid {
-                ratio_ppm(local_mass_g, local_mass_g.saturating_add(imported_mass_g))
+                ratio_ppm(local_mass_g, mass_total.expect("valid mass total"))
             } else {
                 0
             },
@@ -258,8 +263,10 @@ impl DependencyGraph {
     }
 
     /// Rank unresolved dependencies by the criticality weight they block.
-    #[must_use]
-    pub fn rank_blockers(&self, report: &ClosureReport) -> Vec<DependencyBlocker> {
+    ///
+    /// Weight aggregation is checked rather than saturated: an overflow is
+    /// invalid qualification data, not a reason to silently cap the blocker.
+    pub fn rank_blockers(&self, report: &ClosureReport) -> Result<Vec<DependencyBlocker>, String> {
         let mut blockers: BTreeMap<String, (u64, BTreeSet<String>)> = BTreeMap::new();
 
         for assessment in &report.assessments {
@@ -275,7 +282,12 @@ impl DependencyGraph {
                 let entry = blockers
                     .entry(dependency.clone())
                     .or_insert_with(|| (0, BTreeSet::new()));
-                entry.0 = entry.0.saturating_add(capability.critical_weight);
+                entry.0 = entry
+                    .0
+                    .checked_add(capability.critical_weight)
+                    .ok_or_else(|| {
+                        format!("blocker weight overflow for dependency: {dependency}")
+                    })?;
                 entry.1.insert(capability.id.clone());
             }
         }
@@ -296,7 +308,7 @@ impl DependencyGraph {
                 .then_with(|| left.id.cmp(&right.id))
         });
 
-        ranked
+        Ok(ranked)
     }
 
     fn resolve(
@@ -1851,17 +1863,26 @@ impl ProcessEfficiency {
         }
     }
 
-    /// Compare capability gained per combined mass-energy burden.
+    /// Compare capability gained per combined mass-energy burden exactly.
     ///
     /// This is intentionally a structural comparator rather than a physical
     /// economic claim; higher layers decide the actual weighting of resources.
     #[must_use]
     pub fn better_than(self, other: Self) -> bool {
-        let lhs = (self.capability_gain as u128)
-            .saturating_mul(other.feed_mass_g.saturating_add(other.energy_units) as u128);
-        let rhs = (other.capability_gain as u128)
-            .saturating_mul(self.feed_mass_g.saturating_add(self.energy_units) as u128);
-        lhs > rhs
+        let self_burden = u128::from(self.feed_mass_g) + u128::from(self.energy_units);
+        let other_burden = u128::from(other.feed_mass_g) + u128::from(other.energy_units);
+
+        match (self_burden, other_burden) {
+            (0, 0) => self.capability_gain > other.capability_gain,
+            (0, _) => self.capability_gain > 0,
+            (_, 0) => false,
+            _ => ratio_greater(
+                u128::from(self.capability_gain),
+                self_burden,
+                u128::from(other.capability_gain),
+                other_burden,
+            ),
+        }
     }
 }
 
@@ -2729,6 +2750,39 @@ fn execution_state_commitment(budget: &ExecutionBudget, inventory: &InventoryLed
     hasher.finish()
 }
 
+/// Compare two positive rational numbers without cross-product overflow.
+fn ratio_greater(mut left_num: u128, mut left_den: u128, mut right_num: u128, mut right_den: u128) -> bool {
+    let mut reverse = false;
+
+    loop {
+        let left_quotient = left_num / left_den;
+        let right_quotient = right_num / right_den;
+        if left_quotient != right_quotient {
+            return if reverse {
+                left_quotient < right_quotient
+            } else {
+                left_quotient > right_quotient
+            };
+        }
+
+        let left_remainder = left_num % left_den;
+        let right_remainder = right_num % right_den;
+
+        match (left_remainder == 0, right_remainder == 0) {
+            (true, true) => return false,
+            (true, false) => return reverse,
+            (false, true) => return !reverse,
+            (false, false) => {
+                left_num = left_den;
+                left_den = left_remainder;
+                right_num = right_den;
+                right_den = right_remainder;
+                reverse = !reverse;
+            }
+        }
+    }
+}
+
 fn is_sha256_hex(value: &str) -> bool {
     value.len() == 64
         && value
@@ -2981,6 +3035,24 @@ mod tests {
     }
 
     #[test]
+    fn mass_closure_overflow_fails_closed() {
+        let graph = DependencyGraph::new(
+            [Capability::new("seed", 1, std::iter::empty::<String>())],
+            std::iter::empty::<Dependency>(),
+        );
+        let report = graph.evaluate(u64::MAX, 1);
+
+        assert!(!report.valid);
+        assert_eq!(report.mass_closure_ppm, 0);
+        assert!(
+            report
+                .definition_errors()
+                .iter()
+                .any(|error| error == "mass total overflow")
+        );
+    }
+
+    #[test]
     fn critical_weight_sum_overflow_fails_closed() {
         let graph = DependencyGraph::new(
             [
@@ -3163,11 +3235,28 @@ mod tests {
     fn blocker_ranking_exposes_strongest_constraint() {
         let graph = bottleneck_graph();
         let report = graph.evaluate(9_000, 1_000);
-        let blockers = graph.rank_blockers(&report);
+        let blockers = graph.rank_blockers(&report).expect("blocker weights fit");
 
         assert_eq!(blockers[0].id, "electronics");
         assert_eq!(blockers[0].weight, 30);
         assert_eq!(blockers[0].affected_capabilities, vec!["controller"]);
+    }
+
+    #[test]
+    fn blocker_ranking_overflow_fails_closed() {
+        let graph = DependencyGraph::new(
+            [
+                Capability::new("first", u64::MAX, ["missing"]),
+                Capability::new("second", 1, ["missing"]),
+            ],
+            std::iter::empty::<Dependency>(),
+        );
+        let report = graph.evaluate(1, 0);
+
+        let error = graph
+            .rank_blockers(&report)
+            .expect_err("blocker weight overflow must be rejected");
+        assert_eq!(error, "blocker weight overflow for dependency: missing");
     }
 
     #[test]
@@ -5018,6 +5107,24 @@ mod tests {
         );
 
         assert!(run.validate_mass_balance().is_err());
+    }
+
+    #[test]
+    fn process_efficiency_remains_exact_at_u64_bounds() {
+        let lower = ProcessEfficiency::new(u64::MAX, u64::MAX, u64::MAX);
+        let higher = ProcessEfficiency::new(u64::MAX, u64::MAX - 1, u64::MAX);
+
+        assert!(higher.better_than(lower));
+        assert!(!lower.better_than(higher));
+    }
+
+    #[test]
+    fn process_efficiency_ties_remain_ties() {
+        let left = ProcessEfficiency::new(u64::MAX, u64::MAX, 0);
+        let right = ProcessEfficiency::new(u64::MAX, u64::MAX - 1, 1);
+
+        assert!(!left.better_than(right));
+        assert!(!right.better_than(left));
     }
 
     #[test]
