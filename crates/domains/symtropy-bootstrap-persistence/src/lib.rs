@@ -1772,7 +1772,12 @@ impl DurableExecutionAdapter {
         for event in chain.events() {
             let checkpoint = &event.payload.transparency_evidence.checkpoint;
             let sequence = checkpoint.sequence();
-            if sequence != expected_sequence.saturating_add(1) {
+            let next_sequence = expected_sequence.checked_add(1).ok_or_else(|| {
+                AdapterError::Invalid(
+                    "transparency checkpoint sequence exhausted durable u64 range".to_string(),
+                )
+            })?;
+            if sequence != next_sequence {
                 return Err(AdapterError::Invalid(
                     "transparency checkpoint sequence is not contiguous with durable lifecycle history"
                         .to_string(),
@@ -3158,23 +3163,17 @@ mod tests {
 
         let first = loaded.chain.events()[0].clone();
         let mut forked_payload = first.payload.clone();
-        let predecessor = forked_payload
-            .transparency_evidence
-            .checkpoint
-            .previous_checkpoint_digest()
-            .to_string();
-        let forked_unsigned =
-            forked_payload.transparency_evidence.checkpoint.unsigned().clone();
+        let checkpoint = &forked_payload.transparency_evidence.checkpoint;
         let forked = transparency::TransparencyCheckpointUnsignedV1::new(
-            forked_unsigned.log_id().to_string(),
-            forked_unsigned.log_epoch(),
+            checkpoint.log_id().to_string(),
+            checkpoint.log_epoch(),
             1,
-            forked_unsigned.journal_namespace().to_string(),
-            forked_unsigned.seed(),
-            forked_unsigned.event_count(),
-            forked_unsigned.head_hash().to_string(),
-            predecessor,
-            forked_unsigned.witness_policy_commitment().to_string(),
+            checkpoint.journal_namespace().to_string(),
+            checkpoint.seed(),
+            checkpoint.event_count(),
+            checkpoint.head_hash().to_string(),
+            checkpoint.previous_checkpoint_digest().to_string(),
+            checkpoint.witness_policy_commitment().to_string(),
         )
         .expect("forked checkpoint")
         .into_signed("00".repeat(64))
