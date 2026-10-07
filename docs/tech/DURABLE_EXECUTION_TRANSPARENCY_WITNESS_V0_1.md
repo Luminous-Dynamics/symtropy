@@ -362,7 +362,7 @@ The repository now also exposes protocol-shaped Merkle proof bindings:
     RFC 9942 inclusion content
         = tree size + leaf index + inclusion path
 
-Those bindings are intentionally semantic rather than wire encodings. Their verification methods consume the tree sizes carried by the proof object itself, reducing the chance that a future transport adapter pairs a valid path with the wrong tree-size context. The eventual CBOR/COSE adapter must still encode hashes as bstr and must bind the resulting proof to the signed/detached root exactly as the RFC requires.
+Those bindings are intentionally semantic rather than wire encodings. Their verification methods consume the tree sizes carried by the proof object itself, reducing the chance that a future transport adapter pairs a valid path with the wrong tree-size context. The consistency/inclusion binding types also retain the exact root hashes used for verification, so a proof cannot be validated successfully against a different root merely because a caller supplied a different root argument. The eventual CBOR/COSE adapter must still encode hashes as bstr and must authenticate the newer/inclusion root with the signed/detached payload exactly as the RFC requires.
 
 C2SP policy remains a separate interoperability concern. Its current policy language supports nested named witness groups with all/any/numeric thresholds; the present Symtropy policy uses a flat quorum plus an application-specific minimum-independent-domain rule. A future policy adapter must model those semantics explicitly rather than treating the two policies as equivalent.
 
