@@ -713,12 +713,58 @@ impl TransparencyWitnessSignatureV1 {
     }
 }
 
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct TransparencyWitnessEvidenceV1 {
+    witness_signature: TransparencyWitnessSignatureV1,
+    vds_consistency_proof: Option<MerkleConsistencyProofV1>,
+}
+
+impl TransparencyWitnessEvidenceV1 {
+    pub fn new(
+        witness_signature: TransparencyWitnessSignatureV1,
+        vds_consistency_proof: Option<MerkleConsistencyProofV1>,
+    ) -> Result<Self, TransparencyError> {
+        witness_signature.validate_basic()?;
+        if let Some(proof) = &vds_consistency_proof {
+            proof.validate_basic()?;
+        }
+        Ok(Self {
+            witness_signature,
+            vds_consistency_proof,
+        })
+    }
+
+    #[must_use]
+    pub fn witness_id(&self) -> &str {
+        self.witness_signature.witness_id()
+    }
+
+    #[must_use]
+    pub fn witness_signature(&self) -> &TransparencyWitnessSignatureV1 {
+        &self.witness_signature
+    }
+
+    #[must_use]
+    pub fn vds_consistency_proof(&self) -> Option<&MerkleConsistencyProofV1> {
+        self.vds_consistency_proof.as_ref()
+    }
+
+    pub fn validate_basic(&self) -> Result<(), TransparencyError> {
+        self.witness_signature.validate_basic()?;
+        if let Some(proof) = &self.vds_consistency_proof {
+            proof.validate_basic()?;
+        }
+        Ok(())
+    }
+}
+
 #[derive(Debug, PartialEq, Eq)]
 pub struct AcceptedTransparencyCheckpointV1 {
     checkpoint: TransparencyCheckpointV1,
     accepted_witnesses: Vec<String>,
     accepted_domains: Vec<String>,
     witness_signatures: Vec<TransparencyWitnessSignatureV1>,
+    witness_evidence: Vec<TransparencyWitnessEvidenceV1>,
     vds_consistency_proof: Option<MerkleConsistencyProofV1>,
     checkpoint_digest: String,
     predecessor_states: BTreeMap<String, RetainedWitnessState>,
@@ -753,6 +799,11 @@ impl AcceptedTransparencyCheckpointV1 {
     #[must_use]
     pub fn vds_consistency_proof(&self) -> Option<&MerkleConsistencyProofV1> {
         self.vds_consistency_proof.as_ref()
+    }
+
+    #[must_use]
+    pub fn witness_evidence(&self) -> &[TransparencyWitnessEvidenceV1] {
+        &self.witness_evidence
     }
 }
 
@@ -894,6 +945,33 @@ impl TransparencyWitnessSetV1 {
         Ok(accepted)
     }
 
+    pub fn verify_for_new_transition_with_witness_evidence(
+        &self,
+        log: &TransparencyLogAuthorityV1,
+        policy: &TransparencyWitnessPolicyV1,
+        checkpoint: &TransparencyCheckpointV1,
+        witness_evidence: &[TransparencyWitnessEvidenceV1],
+        journal_namespace: &str,
+        seed: u64,
+        event_count: u64,
+        head_hash: &str,
+    ) -> Result<AcceptedTransparencyCheckpointV1, TransparencyError> {
+        let accepted = self.verify_candidate_with_witness_evidence(
+            log,
+            policy,
+            checkpoint,
+            witness_evidence,
+            journal_namespace,
+            seed,
+            event_count,
+            head_hash,
+        )?;
+        if accepted.checkpoint.sequence() <= self.max_retained_sequence() {
+            return Err(TransparencyError::ReplayDetected);
+        }
+        Ok(accepted)
+    }
+
     /// Verify, but do not mutate, a checkpoint against independently retained witness state.
     ///
     /// Every supplied witness signature is validated. Unknown witnesses, duplicate witness
@@ -936,6 +1014,39 @@ impl TransparencyWitnessSetV1 {
         head_hash: &str,
         vds_consistency_proof: Option<&MerkleConsistencyProofV1>,
     ) -> Result<AcceptedTransparencyCheckpointV1, TransparencyError> {
+        let witness_evidence = witness_signatures
+            .iter()
+            .cloned()
+            .map(|signature| {
+                TransparencyWitnessEvidenceV1::new(
+                    signature,
+                    vds_consistency_proof.cloned(),
+                )
+            })
+            .collect::<Result<Vec<_>, _>>()?;
+        self.verify_candidate_with_witness_evidence(
+            log,
+            policy,
+            checkpoint,
+            &witness_evidence,
+            journal_namespace,
+            seed,
+            event_count,
+            head_hash,
+        )
+    }
+
+    pub fn verify_candidate_with_witness_evidence(
+        &self,
+        log: &TransparencyLogAuthorityV1,
+        policy: &TransparencyWitnessPolicyV1,
+        checkpoint: &TransparencyCheckpointV1,
+        witness_evidence: &[TransparencyWitnessEvidenceV1],
+        journal_namespace: &str,
+        seed: u64,
+        event_count: u64,
+        head_hash: &str,
+    ) -> Result<AcceptedTransparencyCheckpointV1, TransparencyError> {
         checkpoint.validate_basic()?;
         if self.policy_commitment != policy.commitment() {
             return Err(TransparencyError::PolicyMismatch);
@@ -967,10 +1078,12 @@ impl TransparencyWitnessSetV1 {
             String,
             String,
             RetainedWitnessState,
-            TransparencyWitnessSignatureV1,
+            TransparencyWitnessEvidenceV1,
         )>::new();
 
-        for signature in witness_signatures {
+        for evidence in witness_evidence {
+            evidence.validate_basic()?;
+            let signature = evidence.witness_signature();
             let witness_id = signature.witness_id().to_string();
             if seen.insert(witness_id.clone(), ()).is_some() {
                 return Err(TransparencyError::DuplicateWitnessSignature);
@@ -1027,7 +1140,7 @@ impl TransparencyWitnessSetV1 {
                 &retained.vds_root_hash,
                 checkpoint.vds_tree_size(),
                 checkpoint.vds_root_hash(),
-                vds_consistency_proof,
+                evidence.vds_consistency_proof(),
             )
             .map_err(|_| TransparencyError::VdsConsistency)?;
 
@@ -1035,24 +1148,37 @@ impl TransparencyWitnessSetV1 {
                 witness_id,
                 witness.independence_domain().to_string(),
                 retained,
-                signature.clone(),
+                evidence.clone(),
             ));
         }
 
         let mut domains = BTreeMap::<String, ()>::new();
         let mut accepted_witnesses = Vec::new();
-        let mut accepted_signatures = Vec::new();
+        let mut accepted_evidence = Vec::new();
         let mut predecessor_states = BTreeMap::new();
 
-        for (witness_id, domain, retained, signature) in &verified {
+        for (witness_id, domain, retained, evidence) in &verified {
             domains.insert(domain.clone(), ());
             accepted_witnesses.push(witness_id.clone());
-            accepted_signatures.push(signature.clone());
+            accepted_evidence.push(evidence.clone());
             predecessor_states.insert(witness_id.clone(), retained.clone());
         }
 
-        accepted_signatures
-            .sort_unstable_by(|left, right| left.witness_id().cmp(right.witness_id()));
+        accepted_evidence.sort_unstable_by(|left, right| {
+            left.witness_id().cmp(right.witness_id())
+        });
+        let accepted_signatures = accepted_evidence
+            .iter()
+            .map(|evidence| evidence.witness_signature().clone())
+            .collect::<Vec<_>>();
+        let shared_vds_consistency_proof = accepted_evidence
+            .first()
+            .and_then(|evidence| evidence.vds_consistency_proof().cloned())
+            .filter(|proof| {
+                accepted_evidence.iter().all(|evidence| {
+                    evidence.vds_consistency_proof() == Some(proof)
+                })
+            });
 
         if accepted_witnesses.len() < policy.quorum as usize {
             return Err(TransparencyError::InsufficientQuorum);
@@ -1068,7 +1194,8 @@ impl TransparencyWitnessSetV1 {
             accepted_witnesses,
             accepted_domains,
             witness_signatures: accepted_signatures,
-            vds_consistency_proof: vds_consistency_proof.cloned(),
+            witness_evidence: accepted_evidence,
+            vds_consistency_proof: shared_vds_consistency_proof,
             checkpoint_digest,
             predecessor_states,
         })
