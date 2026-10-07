@@ -33,8 +33,8 @@ use symtropy_persistence::{JournalLoad, JournalLock, PersistenceError, SaveStore
 
 use transparency::{
     AcceptedTransparencyCheckpointV1, TransparencyCheckpointV1, TransparencyError,
-    TransparencyLogAuthorityV1, TransparencyWitnessPolicyV1, TransparencyWitnessSetV1,
-    TransparencyWitnessSignatureV1,
+    transparency_genesis_digest, TransparencyLogAuthorityV1, TransparencyWitnessPolicyV1,
+    TransparencyWitnessSetV1, TransparencyWitnessSignatureV1,
 };
 
 pub const EXECUTION_LIFECYCLE_SCHEMA_VERSION: u32 = 3;
@@ -1793,6 +1793,20 @@ impl DurableExecutionAdapter {
                 }
             }
 
+            if sequence == 1
+                && checkpoint.previous_checkpoint_digest()
+                    != transparency_genesis_digest(
+                        checkpoint.log_id(),
+                        checkpoint.log_epoch(),
+                        checkpoint.witness_policy_commitment(),
+                    )
+            {
+                return Err(AdapterError::Invalid(
+                    "first durable transparency checkpoint does not extend the canonical genesis"
+                        .to_string(),
+                ));
+            }
+
             if let Some((log_id, log_epoch, policy_commitment)) = &log_identity {
                 if checkpoint.log_id() != log_id
                     || checkpoint.log_epoch() != *log_epoch
@@ -3168,6 +3182,63 @@ mod tests {
         fs::remove_dir_all(adapter.store().root()).expect("cleanup");
     }
 
+
+    #[test]
+    fn durable_transparency_history_requires_canonical_genesis() {
+        let adapter = configured_adapter("transparency-genesis-history");
+        let mut security = TestSecurityMaterial::new(&adapter);
+        let (process, run) = process_and_run();
+        let (mut budget, mut inventory, mut energy) = initial_kernel_state();
+
+        security.refresh(&adapter);
+        adapter
+            .authorize_pending(
+                &mut security.context,
+                &process,
+                "exec-transparency-genesis-history",
+                1,
+                10,
+                20,
+                "bus",
+                run,
+                &mut budget,
+                &mut inventory,
+                &mut energy,
+            )
+            .expect("pending");
+
+        let loaded = adapter.load().expect("journal");
+        let mut payload = loaded.chain.events()[0].payload.clone();
+        let checkpoint = &payload.transparency_evidence.checkpoint;
+        let forked = transparency::TransparencyCheckpointUnsignedV1::new(
+            checkpoint.log_id().to_string(),
+            checkpoint.log_epoch(),
+            1,
+            checkpoint.journal_namespace().to_string(),
+            checkpoint.seed(),
+            checkpoint.event_count(),
+            checkpoint.head_hash().to_string(),
+            "11".repeat(32),
+            checkpoint.witness_policy_commitment().to_string(),
+        )
+        .expect("shape-valid checkpoint")
+        .into_signed("00".repeat(64))
+        .expect("shape-valid signature");
+        payload.transparency_evidence.checkpoint = forked;
+
+        let mut bad_chain = EventChain::new("bootstrap", 1);
+        bad_chain
+            .append(1, EXECUTION_EVENT_KIND, None, None, Vec::new(), payload)
+            .expect("outer chain");
+
+        assert!(matches!(
+            DurableExecutionAdapter::validate_journal(&bad_chain),
+            Err(AdapterError::Invalid(message))
+                if message.contains("canonical genesis")
+        ));
+
+        fs::remove_dir_all(adapter.store().root()).expect("cleanup");
+    }
 
     #[test]
     fn durable_transparency_history_rejects_sequence_reuse_and_forking() {
