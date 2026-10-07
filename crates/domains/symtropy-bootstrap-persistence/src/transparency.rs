@@ -1566,6 +1566,51 @@ mod tests {
     }
 
     #[test]
+    fn witness_can_bootstrap_from_nonzero_external_vds_size() {
+        let keys = TestKeys::new();
+        let policy = policy(&keys);
+        let log = TransparencyLogAuthorityV1::from_public_key_hex("log-1", 1, keys.log_public())
+            .expect("log");
+        let mut state = TransparencyWitnessSetV1::new(&policy).expect("state");
+        let entries = vec![b"preexisting-0".to_vec(), b"preexisting-1".to_vec()];
+        let root = crate::transparency_vds::merkle_tree_hash_sha256(&entries);
+        let genesis = transparency_genesis_digest("log-1", 1, &policy.commitment());
+
+        let unsigned = TransparencyCheckpointUnsignedV1::new(
+            "log-1",
+            1,
+            1,
+            "bootstrap",
+            1,
+            0,
+            "GENESIS",
+            entries.len() as u64,
+            &root,
+            &genesis,
+            policy.commitment(),
+        )
+        .expect("checkpoint");
+        let signature = keys.log.sign(&unsigned.signing_digest());
+        let checkpoint = unsigned
+            .into_signed(encode_hex(signature.as_ref()))
+            .expect("signed checkpoint");
+
+        state
+            .verify_for_new_transition_with_vds(
+                &log,
+                &policy,
+                &checkpoint,
+                &witnessed_signatures(&keys, &checkpoint, &[0, 1]),
+                "bootstrap",
+                1,
+                0,
+                "GENESIS",
+                None,
+            )
+            .expect("nonzero VDS bootstrap");
+    }
+
+    #[test]
     fn valid_checkpoint_requires_quorum_and_independent_domains() {
         let keys = TestKeys::new();
         let policy = policy(&keys);
