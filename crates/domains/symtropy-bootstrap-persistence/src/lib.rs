@@ -2623,6 +2623,9 @@ mod tests {
 
     struct TestSecurityMaterial {
         authority_signer: DurableExecutionSigner,
+        log_signer: DurableExecutionSigner,
+        witness_signers: Vec<DurableExecutionSigner>,
+        transparency_policy: TransparencyWitnessPolicyV1,
         context: DurableExecutionSecurityContext,
     }
 
@@ -2635,6 +2638,48 @@ mod tests {
                 authority_signer.public_key_hex(),
             )
             .expect("freshness authority");
+
+            let log_signer = test_signer("transparency-log", 1);
+            let witness_signers = vec![
+                test_signer("witness-1", 1),
+                test_signer("witness-2", 1),
+                test_signer("witness-3", 1),
+            ];
+            let transparency_policy = TransparencyWitnessPolicyV1::new(
+                "policy-1",
+                "transparency-log",
+                1,
+                2,
+                2,
+                vec![
+                    transparency::TransparencyWitnessKeyV1::from_public_key_hex(
+                        "w1",
+                        "domain-a",
+                        witness_signers[0].public_key_hex(),
+                    )
+                    .expect("w1"),
+                    transparency::TransparencyWitnessKeyV1::from_public_key_hex(
+                        "w2",
+                        "domain-b",
+                        witness_signers[1].public_key_hex(),
+                    )
+                    .expect("w2"),
+                    transparency::TransparencyWitnessKeyV1::from_public_key_hex(
+                        "w3",
+                        "domain-b",
+                        witness_signers[2].public_key_hex(),
+                    )
+                    .expect("w3"),
+                ],
+            )
+            .expect("transparency policy");
+            let transparency_witnesses =
+                TransparencyWitnessSetV1::new(&transparency_policy).expect("witness set");
+            let genesis_transparency_digest = transparency_witnesses
+                .retained_checkpoint_digest("w1")
+                .expect("transparency genesis")
+                .to_string();
+
             let genesis = freshness_test_attestation(
                 authority.authority_id(),
                 authority.authority_epoch(),
@@ -2658,20 +2703,45 @@ mod tests {
                 adapter,
                 1,
             );
+            let transparency_log = TransparencyLogAuthorityV1::from_public_key_hex(
+                log_signer.key_id(),
+                log_signer.key_epoch(),
+                log_signer.public_key_hex(),
+            )
+            .expect("transparency log");
+            let (first_checkpoint, first_witness_signatures) =
+                transparency_test_evidence(
+                    adapter,
+                    &transparency_log,
+                    &transparency_policy,
+                    &log_signer,
+                    &witness_signers,
+                    1,
+                    &genesis_transparency_digest,
+                );
+
             let context = DurableExecutionSecurityContext::establish(
                 adapter,
                 authority,
                 cursor,
                 first,
+                transparency_log,
+                transparency_policy.clone(),
+                transparency_witnesses,
+                first_checkpoint,
+                first_witness_signatures,
             )
             .expect("security context");
             Self {
                 authority_signer,
+                log_signer,
+                witness_signers,
+                transparency_policy,
                 context,
             }
         }
 
-        fn refresh(&mut self, adapter: &DurableExecutionAdapter) {
+        fn refresh_freshness(&mut self, adapter: &DurableExecutionAdapter) {
             let sequence = self
                 .context
                 .freshness_cursor()
@@ -2687,6 +2757,85 @@ mod tests {
             );
             self.context.set_freshness_attestation(attestation);
         }
+
+        fn refresh(&mut self, adapter: &DurableExecutionAdapter) {
+            self.refresh_freshness(adapter);
+
+            let sequence = self
+                .context
+                .transparency_witnesses()
+                .max_retained_sequence()
+                .checked_add(1)
+                .expect("transparency sequence");
+            let previous_digest = if sequence == 1 {
+                self.context
+                    .transparency_witnesses()
+                    .retained_checkpoint_digest("w1")
+                    .expect("transparency genesis")
+                    .to_string()
+            } else {
+                hex_encode(&self.context.transparency_checkpoint().digest())
+            };
+
+            let (checkpoint, witness_signatures) = transparency_test_evidence(
+                adapter,
+                self.context.transparency_log(),
+                &self.transparency_policy,
+                &self.log_signer,
+                &self.witness_signers,
+                sequence,
+                &previous_digest,
+            );
+            self.context
+                .set_transparency_evidence(checkpoint, witness_signatures);
+        }
+    }
+
+    fn transparency_test_evidence(
+        adapter: &DurableExecutionAdapter,
+        log: &TransparencyLogAuthorityV1,
+        policy: &TransparencyWitnessPolicyV1,
+        log_signer: &DurableExecutionSigner,
+        witness_signers: &[DurableExecutionSigner],
+        sequence: u64,
+        previous_digest: &str,
+    ) -> (TransparencyCheckpointV1, Vec<TransparencyWitnessSignatureV1>) {
+        let loaded = adapter.load_verified().expect("verified journal");
+        let event_count = u64::try_from(loaded.chain.events().len()).expect("event count");
+        let unsigned = transparency::TransparencyCheckpointUnsignedV1::new(
+            log.log_id().to_string(),
+            log.log_epoch(),
+            sequence,
+            "bootstrap",
+            1,
+            event_count,
+            loaded.chain.head_hash().to_string(),
+            previous_digest,
+            policy.commitment(),
+        )
+        .expect("unsigned transparency checkpoint");
+        let signature = log_signer.key_pair.sign(&unsigned.signing_digest());
+        let checkpoint = unsigned
+            .into_signed(hex_encode(signature.as_ref()))
+            .expect("signed transparency checkpoint");
+
+        let witness_signatures = ["w1", "w2"]
+            .iter()
+            .enumerate()
+            .map(|(index, witness_id)| {
+                let witness = policy.witness(witness_id).expect("policy witness");
+                let signature = witness_signers[index]
+                    .key_pair
+                    .sign(&witness.signing_digest(&checkpoint));
+                TransparencyWitnessSignatureV1::new(
+                    (*witness_id).to_string(),
+                    hex_encode(signature.as_ref()),
+                )
+                .expect("signed witness checkpoint")
+            })
+            .collect();
+
+        (checkpoint, witness_signatures)
     }
 
     fn store(name: &str) -> SaveStore {
@@ -2747,6 +2896,107 @@ mod tests {
         attestation.signature =
             hex_encode(signer.key_pair.sign(&freshness_attestation_digest(&attestation)).as_ref());
         attestation
+    }
+
+    #[test]
+    fn lifecycle_event_persists_exact_transparency_pre_state_evidence() {
+        let adapter = configured_adapter("transparency-persisted-evidence");
+        let mut security = TestSecurityMaterial::new(&adapter);
+        let (process, run) = process_and_run();
+        let (mut budget, mut inventory, mut energy) = initial_kernel_state();
+
+        security.refresh(&adapter);
+        adapter
+            .authorize_pending(
+                &mut security.context,
+                &process,
+                "exec-transparency-persisted",
+                1,
+                10,
+                20,
+                "bus",
+                run,
+                &mut budget,
+                &mut inventory,
+                &mut energy,
+            )
+            .expect("pending");
+
+        let loaded = adapter.load_verified().expect("verified journal");
+        let event = &loaded.chain.events()[0];
+        assert_eq!(event.payload.transparency_evidence.checkpoint.event_count(), 0);
+        assert_eq!(
+            event.payload.transparency_evidence.checkpoint.head_hash(),
+            "GENESIS"
+        );
+        assert_eq!(
+            event.payload.transparency_evidence.checkpoint.journal_namespace(),
+            "bootstrap"
+        );
+        assert_eq!(
+            event.payload.transparency_evidence.accepted_witnesses,
+            vec!["w1".to_string(), "w2".to_string()]
+        );
+
+        fs::remove_dir_all(adapter.store().root()).expect("cleanup");
+    }
+
+    #[test]
+    fn transparency_checkpoint_replay_cannot_authorize_second_transition() {
+        let adapter = configured_adapter("transparency-replay");
+        let mut security = TestSecurityMaterial::new(&adapter);
+        let (process, run) = process_and_run();
+        let (mut budget, mut inventory, mut energy) = initial_kernel_state();
+
+        security.refresh(&adapter);
+        let receipt = adapter
+            .authorize_pending(
+                &mut security.context,
+                &process,
+                "exec-transparency-replay",
+                1,
+                10,
+                20,
+                "bus",
+                run,
+                &mut budget,
+                &mut inventory,
+                &mut energy,
+            )
+            .expect("pending");
+
+        security.refresh_freshness(&adapter);
+        let executable = resume_pending_execution(
+            "exec-transparency-replay",
+            &budget,
+            &inventory,
+        )
+        .expect("activation");
+
+        let error = adapter
+            .commit(
+                &mut security.context,
+                &process,
+                &executable,
+                2,
+                &mut budget,
+                &mut inventory,
+                &mut energy,
+            )
+            .expect_err("replayed transparency checkpoint must reject the second transition");
+
+        assert!(matches!(error, AdapterError::Transparency(TransparencyError::ReplayDetected)));
+        assert_eq!(
+            security.context.transparency_witnesses().max_retained_sequence(),
+            1
+        );
+        assert_eq!(
+            adapter.load_verified().expect("journal").chain.events().len(),
+            1
+        );
+
+        let _ = receipt;
+        fs::remove_dir_all(adapter.store().root()).expect("cleanup");
     }
 
     #[test]
@@ -2861,9 +3111,25 @@ mod tests {
         security.refresh(&adapter);
         let attestation = security.context.freshness_attestation().clone();
         let authority = security.context.freshness_authority().clone();
-        let error =
-            DurableExecutionSecurityContext::establish(&adapter, authority, stale_cursor, attestation)
-                .expect_err("restart must not reinitialize from an unadvanced genesis cursor");
+        let transparency_log = security.context.transparency_log().clone();
+        let transparency_policy = security.context.transparency_policy().clone();
+        let transparency_witnesses =
+            TransparencyWitnessSetV1::new(&transparency_policy).expect("fresh witness set");
+        let transparency_checkpoint = security.context.transparency_checkpoint().clone();
+        let transparency_witness_signatures =
+            security.context.transparency_witness_signatures().to_vec();
+        let error = DurableExecutionSecurityContext::establish(
+            &adapter,
+            authority,
+            stale_cursor,
+            attestation,
+            transparency_log,
+            transparency_policy,
+            transparency_witnesses,
+            transparency_checkpoint,
+            transparency_witness_signatures,
+        )
+        .expect_err("restart must not reinitialize from an unadvanced genesis cursor");
 
         assert!(matches!(
             error,
@@ -4193,6 +4459,15 @@ mod tests {
         let loaded = adapter.load().expect("journal");
         let pending = loaded.chain.events()[0].clone();
         let persisted = pending.payload.receipt.to_receipt().expect("receipt");
+
+        security.refresh(&adapter);
+        let accepted_transparency = security
+            .context
+            .verify_before_transition(&adapter, &loaded.chain, true)
+            .expect("terminal transparency evidence");
+        let terminal_evidence =
+            PersistedTransparencyEvidenceV1::from_accepted(&accepted_transparency);
+
         let terminal_payload = ExecutionLifecycleEvent::terminal(
             DurableExecutionState::Aborted,
             &persisted,
@@ -4205,6 +4480,7 @@ mod tests {
             budget.state_commitment(),
             inventory.state_commitment(),
             energy.state_commitment(),
+            terminal_evidence,
         );
 
         let mut bad_chain = loaded.chain.clone();
