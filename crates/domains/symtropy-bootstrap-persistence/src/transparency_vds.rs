@@ -13,6 +13,9 @@ use sha2::{Digest, Sha256};
 pub const MERKLE_CONSISTENCY_SCHEMA_VERSION: u32 = 1;
 pub const MERKLE_CONSISTENCY_ALGORITHM: &str = "SHA-256-RFC9162-MERKLE-CONSISTENCY-v1";
 pub const MAX_MERKLE_CONSISTENCY_PROOF_HASHES: usize = 63;
+pub const MERKLE_INCLUSION_SCHEMA_VERSION: u32 = 1;
+pub const MERKLE_INCLUSION_ALGORITHM: &str = "SHA-256-RFC9162-MERKLE-INCLUSION-v1";
+pub const MAX_MERKLE_INCLUSION_PROOF_HASHES: usize = 63;
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct MerkleConsistencyProofV1 {
@@ -72,6 +75,7 @@ impl MerkleConsistencyProofV1 {
         second_size: u64,
         second_root: &str,
     ) -> Result<(), MerkleVdsError> {
+        self.validate_basic()?;
         if first_size == 0 || second_size == 0 {
             return Err(MerkleVdsError::Invalid(
                 "Merkle consistency verification requires non-empty tree heads".to_string(),
@@ -147,6 +151,119 @@ impl MerkleConsistencyProofV1 {
 
         Ok(())
     }
+}
+
+/// An RFC 9162 Merkle inclusion proof for one leaf in a tree head.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct MerkleInclusionProofV1 {
+    schema_version: u32,
+    algorithm: String,
+    leaf_index: u64,
+    leaf_hash: String,
+    hashes: Vec<String>,
+}
+
+impl MerkleInclusionProofV1 {
+    pub fn new(
+        leaf_index: u64,
+        leaf_hash: impl Into<String>,
+        hashes: Vec<String>,
+    ) -> Result<Self, MerkleVdsError> {
+        let value = Self {
+            schema_version: MERKLE_INCLUSION_SCHEMA_VERSION,
+            algorithm: MERKLE_INCLUSION_ALGORITHM.to_string(),
+            leaf_index,
+            leaf_hash: leaf_hash.into(),
+            hashes,
+        };
+        value.validate_basic()?;
+        Ok(value)
+    }
+
+    pub fn validate_basic(&self) -> Result<(), MerkleVdsError> {
+        if self.schema_version != MERKLE_INCLUSION_SCHEMA_VERSION
+            || self.algorithm != MERKLE_INCLUSION_ALGORITHM
+        {
+            return Err(MerkleVdsError::Invalid(
+                "unsupported Merkle inclusion proof schema or algorithm".to_string(),
+            ));
+        }
+        decode_hex::<32>(&self.leaf_hash)?;
+        if self.hashes.len() > MAX_MERKLE_INCLUSION_PROOF_HASHES {
+            return Err(MerkleVdsError::Invalid(
+                "Merkle inclusion proof exceeds 63 hashes".to_string(),
+            ));
+        }
+        for hash in &self.hashes {
+            decode_hex::<32>(hash)?;
+        }
+        Ok(())
+    }
+
+    #[must_use]
+    pub const fn leaf_index(&self) -> u64 {
+        self.leaf_index
+    }
+
+    #[must_use]
+    pub fn leaf_hash(&self) -> &str {
+        &self.leaf_hash
+    }
+
+    #[must_use]
+    pub fn hashes(&self) -> &[String] {
+        &self.hashes
+    }
+
+    /// Verify inclusion using the RFC 9162 section 2.1.3.2 algorithm.
+    pub fn verify_sha256(&self, tree_size: u64, root_hash: &str) -> Result<(), MerkleVdsError> {
+        self.validate_basic()?;
+        if tree_size == 0 || self.leaf_index >= tree_size {
+            return Err(MerkleVdsError::Invalid(
+                "Merkle inclusion leaf index is outside the advertised tree".to_string(),
+            ));
+        }
+
+        let root = decode_hex::<32>(root_hash)?;
+        let mut fn_index = self.leaf_index;
+        let mut sn_index = tree_size - 1;
+        let mut reconstructed = decode_hex::<32>(&self.leaf_hash)?;
+
+        for hash in &self.hashes {
+            if sn_index == 0 {
+                return Err(MerkleVdsError::Invalid(
+                    "Merkle inclusion proof contains trailing data".to_string(),
+                ));
+            }
+            let current = decode_hex::<32>(hash)?;
+            if fn_index & 1 == 1 || fn_index == sn_index {
+                reconstructed = merkle_parent_sha256(&current, &reconstructed);
+                if fn_index & 1 == 0 {
+                    while fn_index != 0 && fn_index & 1 == 0 {
+                        fn_index >>= 1;
+                        sn_index >>= 1;
+                    }
+                }
+            } else {
+                reconstructed = merkle_parent_sha256(&reconstructed, &current);
+            }
+            fn_index >>= 1;
+            sn_index >>= 1;
+        }
+
+        if sn_index != 0 || reconstructed != root {
+            return Err(MerkleVdsError::ProofMismatch);
+        }
+        Ok(())
+    }
+}
+
+#[must_use]
+pub fn merkle_leaf_hash_sha256(entry: &[u8]) -> String {
+    let mut hasher = Sha256::new();
+    hasher.update([0x00]);
+    hasher.update(entry);
+    encode_hex(&hasher.finalize())
 }
 
 /// Verify the append-only boundary used by C2SP-style witnesses.
@@ -233,12 +350,7 @@ pub fn merkle_tree_hash_sha256(entries: &[Vec<u8>]) -> String {
 fn merkle_tree_hash_bytes(entries: &[Vec<u8>]) -> [u8; 32] {
     match entries.len() {
         0 => Sha256::digest(b"").into(),
-        1 => {
-            let mut hasher = Sha256::new();
-            hasher.update([0x00]);
-            hasher.update(&entries[0]);
-            hasher.finalize().into()
-        }
+        1 => decode_hex::<32>(&merkle_leaf_hash_sha256(&entries[0])).expect("leaf hash");
         n => {
             let mut power = 1usize << (usize::BITS - 1 - n.leading_zeros());
             if power == n {
@@ -452,6 +564,75 @@ mod tests {
         let wrong = "33".repeat(32);
         assert!(matches!(
             verify_append_only_sha256(5, &root, 5, &wrong, Some(&empty)),
+            Err(MerkleVdsError::ProofMismatch)
+        ));
+    }
+
+    #[test]
+    fn accepts_inclusion_proofs_for_many_tree_shapes() {
+        fn inclusion_path(index: usize, entries: &[Vec<u8>]) -> Vec<String> {
+            let n = entries.len();
+            if n <= 1 {
+                return Vec::new();
+            }
+            let mut power = 1usize << (usize::BITS - 1 - n.leading_zeros());
+            if power == n {
+                power >>= 1;
+            }
+            if index < power {
+                let mut path = inclusion_path(index, &entries[..power]);
+                path.push(merkle_tree_hash_sha256(&entries[power..]));
+                path
+            } else {
+                let mut path = inclusion_path(index - power, &entries[power..]);
+                path.push(merkle_tree_hash_sha256(&entries[..power]));
+                path
+            }
+        }
+
+        for tree_size in 1..64 {
+            let data = (0..tree_size)
+                .map(|index| format!("leaf-{index}").into_bytes())
+                .collect::<Vec<_>>();
+            let root = merkle_tree_hash_sha256(&data);
+            for index in 0..tree_size {
+                let leaf_hash = merkle_leaf_hash_sha256(&data[index]);
+                let proof = MerkleInclusionProofV1::new(
+                    index as u64,
+                    leaf_hash,
+                    inclusion_path(index, &data),
+                )
+                .expect("inclusion proof");
+                proof.verify_sha256(tree_size as u64, &root).expect("inclusion");
+            }
+        }
+    }
+
+    #[test]
+    fn rejects_inclusion_leaf_out_of_range_and_wrong_root() {
+        let data = entries(5);
+        let root = merkle_tree_hash_sha256(&data);
+        let leaf_hash = merkle_leaf_hash_sha256(&data[2]);
+        let proof = MerkleInclusionProofV1::new(5, leaf_hash.clone(), Vec::new())
+            .expect("shape-valid out-of-range proof");
+        assert!(matches!(
+            proof.verify_sha256(5, &root),
+            Err(MerkleVdsError::Invalid(_))
+        ));
+
+        let valid_path = {
+            let mut path = Vec::new();
+            path.push(merkle_tree_hash_sha256(&data[3..]));
+            path
+        };
+        let proof = MerkleInclusionProofV1::new(
+            2,
+            leaf_hash,
+            valid_path,
+        )
+        .expect("shape-valid proof");
+        assert!(matches!(
+            proof.verify_sha256(5, &"11".repeat(32)),
             Err(MerkleVdsError::ProofMismatch)
         ));
     }
