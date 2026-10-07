@@ -139,7 +139,7 @@ pub fn merkle_tree_hash_sha256(entries: &[Vec<u8>]) -> String {
 
 fn merkle_tree_hash_bytes(entries: &[Vec<u8>]) -> [u8; 32] {
     match entries.len() {
-        0 => Sha256::digest([]).into(),
+        0 => Sha256::digest(b"").into(),
         1 => {
             let mut hasher = Sha256::new();
             hasher.update([0x00]);
