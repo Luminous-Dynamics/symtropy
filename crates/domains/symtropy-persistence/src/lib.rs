@@ -300,11 +300,7 @@ fn prepare_journal_for_append(path: &Path) -> Result<(), PersistenceError> {
         .open(path)
         .map_err(PersistenceError::Io)?;
 
-    if fs::metadata(path)
-        .map_err(PersistenceError::Io)?
-        .len()
-        != expected_len
-    {
+    if fs::metadata(path).map_err(PersistenceError::Io)?.len() != expected_len {
         return Err(PersistenceError::JournalChanged);
     }
 
@@ -401,7 +397,10 @@ impl fmt::Display for PersistenceError {
                 write!(formatter, "journal writer lock is already held")
             }
             Self::JournalLockMismatch => {
-                write!(formatter, "journal writer lock belongs to a different save store")
+                write!(
+                    formatter,
+                    "journal writer lock belongs to a different save store"
+                )
             }
         }
     }
@@ -545,8 +544,9 @@ mod tests {
             .append_event(&chain.events()[1])
             .expect("append after repair");
 
-        let loaded: JournalLoad<TestEvent> =
-            store.load_journal("journal", 7).expect("load repaired journal");
+        let loaded: JournalLoad<TestEvent> = store
+            .load_journal("journal", 7)
+            .expect("load repaired journal");
         assert_eq!(loaded.chain.events().len(), 2);
         assert_eq!(loaded.discarded_tail_bytes, 0);
 
@@ -570,7 +570,8 @@ mod tests {
             )
             .expect("append first event");
         let first = serde_json::to_vec(&chain.events()[0]).expect("serialize first event");
-        fs::write(store.root().join("journal.jsonl"), first).expect("write complete no-newline record");
+        fs::write(store.root().join("journal.jsonl"), first)
+            .expect("write complete no-newline record");
 
         chain
             .append(
@@ -589,8 +590,9 @@ mod tests {
             .append_event(&chain.events()[1])
             .expect("append after separator repair");
 
-        let loaded: JournalLoad<TestEvent> =
-            store.load_journal("journal", 8).expect("load separated journal");
+        let loaded: JournalLoad<TestEvent> = store
+            .load_journal("journal", 8)
+            .expect("load separated journal");
         assert_eq!(loaded.chain.events().len(), 2);
         assert_eq!(loaded.discarded_tail_bytes, 0);
 
