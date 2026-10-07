@@ -10,31 +10,24 @@ pub mod transparency;
 pub mod transparency_vds;
 
 use serde::{Deserialize, Serialize};
-use std::{
-    collections::BTreeMap,
-    error::Error,
-    fmt,
-    sync::Arc,
-};
+use std::{collections::BTreeMap, error::Error, fmt, sync::Arc};
 
-use ring::{
-    signature::{Ed25519KeyPair, KeyPair, UnparsedPublicKey, ED25519},
-};
+use ring::signature::{ED25519, Ed25519KeyPair, KeyPair, UnparsedPublicKey};
 use sha2::{Digest, Sha256};
 
 use symtropy_bootstrap::{
-    abort_pending_execution, abort_process_execution, commit_process_execution,
-    combine_execution_state_commitments, resume_pending_execution,
-    EnergyLedger, ExecutionStateAnchor, ExecutableProcessExecutionReceipt, ExecutionBudget,
+    EnergyLedger, ExecutableProcessExecutionReceipt, ExecutionBudget, ExecutionStateAnchor,
     InventoryLedger, ProcessExecutionReceipt, ProcessRun, ProductionProcess,
+    abort_pending_execution, abort_process_execution, combine_execution_state_commitments,
+    commit_process_execution, resume_pending_execution,
 };
 use symtropy_game_state::{EventChain, EventEnvelope, StableId};
 use symtropy_persistence::{JournalLoad, JournalLock, PersistenceError, SaveStore};
 
 use transparency::{
     AcceptedTransparencyCheckpointV1, TransparencyCheckpointV1, TransparencyError,
-    transparency_genesis_digest, TransparencyLogAuthorityV1, TransparencyWitnessPolicyV1,
-    TransparencyWitnessSetV1, TransparencyWitnessSignatureV1,
+    TransparencyLogAuthorityV1, TransparencyWitnessPolicyV1, TransparencyWitnessSetV1,
+    TransparencyWitnessSignatureV1, transparency_genesis_digest,
 };
 
 pub const EXECUTION_LIFECYCLE_SCHEMA_VERSION: u32 = 3;
@@ -92,10 +85,9 @@ impl FreshnessCursor {
         }
 
         if self.last_event_count > 0 {
-            let index = usize::try_from(self.last_event_count - 1)
-                .map_err(|_| AdapterError::WitnessMismatch(
-                    "freshness cursor history index overflow".to_string(),
-                ))?;
+            let index = usize::try_from(self.last_event_count - 1).map_err(|_| {
+                AdapterError::WitnessMismatch("freshness cursor history index overflow".to_string())
+            })?;
             let prior = chain.events().get(index).ok_or_else(|| {
                 AdapterError::WitnessMismatch(
                     "journal freshness chain is shorter than the retained cursor".to_string(),
@@ -166,8 +158,7 @@ impl FreshnessAuthority {
         let authority_id = authority_id.into();
         let public_key = public_key.into();
         validate_key_id(&authority_id)?;
-        hex_decode_exact::<32>(&public_key)
-            .map_err(AdapterError::Invalid)?;
+        hex_decode_exact::<32>(&public_key).map_err(AdapterError::Invalid)?;
         Ok(Self {
             authority_id,
             authority_epoch,
@@ -221,8 +212,7 @@ impl FreshnessAuthority {
             || !chain.events().is_empty()
         {
             return Err(AdapterError::WitnessMismatch(
-                "freshness cursor bootstrap is restricted to the empty GENESIS journal"
-                    .to_string(),
+                "freshness cursor bootstrap is restricted to the empty GENESIS journal".to_string(),
             ));
         }
         Ok(FreshnessCursor {
@@ -294,9 +284,7 @@ impl FreshnessAuthority {
 
         let event_count = u64::try_from(chain.events().len())
             .map_err(|_| AdapterError::Invalid("journal event count overflow".to_string()))?;
-        if attestation.event_count != event_count
-            || attestation.head_hash != chain.head_hash()
-        {
+        if attestation.event_count != event_count || attestation.head_hash != chain.head_hash() {
             return Err(AdapterError::WitnessMismatch(
                 "journal freshness attestation does not match the exact current journal head"
                     .to_string(),
@@ -310,11 +298,14 @@ impl FreshnessAuthority {
         let signature =
             hex_decode_exact::<64>(&attestation.signature).map_err(AdapterError::Invalid)?;
         let digest = freshness_attestation_digest(attestation);
-        let public_key =
-            hex_decode_exact::<32>(&self.public_key).map_err(AdapterError::Invalid)?;
+        let public_key = hex_decode_exact::<32>(&self.public_key).map_err(AdapterError::Invalid)?;
 
         // The freshness authority must be distinct from all execution-signing keys.
-        if trust.keys.values().any(|key| key.public_key == self.public_key) {
+        if trust
+            .keys
+            .values()
+            .any(|key| key.public_key == self.public_key)
+        {
             return Err(AdapterError::WitnessMismatch(
                 "freshness authority key is reused as an execution signing key".to_string(),
             ));
@@ -351,10 +342,15 @@ impl PersistedTransparencyEvidenceV1 {
     }
 
     pub fn validate_basic(&self) -> Result<(), AdapterError> {
-        self.checkpoint.validate_basic().map_err(AdapterError::from)?;
+        self.checkpoint
+            .validate_basic()
+            .map_err(AdapterError::from)?;
 
         if self.accepted_witnesses.is_empty()
-            || self.accepted_witnesses.windows(2).any(|pair| pair[0] >= pair[1])
+            || self
+                .accepted_witnesses
+                .windows(2)
+                .any(|pair| pair[0] >= pair[1])
         {
             return Err(AdapterError::Invalid(
                 "transparency accepted witness identities must be non-empty and canonical"
@@ -362,7 +358,10 @@ impl PersistedTransparencyEvidenceV1 {
             ));
         }
         if self.accepted_domains.is_empty()
-            || self.accepted_domains.windows(2).any(|pair| pair[0] >= pair[1])
+            || self
+                .accepted_domains
+                .windows(2)
+                .any(|pair| pair[0] >= pair[1])
         {
             return Err(AdapterError::Invalid(
                 "transparency accepted independence domains must be non-empty and canonical"
@@ -382,11 +381,12 @@ impl PersistedTransparencyEvidenceV1 {
             .map(|signature| signature.witness_id())
             .collect::<Vec<_>>();
         if signature_ids.windows(2).any(|pair| pair[0] >= pair[1])
-            || signature_ids != self
-                .accepted_witnesses
-                .iter()
-                .map(String::as_str)
-                .collect::<Vec<_>>()
+            || signature_ids
+                != self
+                    .accepted_witnesses
+                    .iter()
+                    .map(String::as_str)
+                    .collect::<Vec<_>>()
         {
             return Err(AdapterError::Invalid(
                 "transparency witness signatures are not a canonical exact set".to_string(),
@@ -398,8 +398,7 @@ impl PersistedTransparencyEvidenceV1 {
         }
         if !is_sha256_hex(self.checkpoint.previous_checkpoint_digest()) {
             return Err(AdapterError::Invalid(
-                "transparency checkpoint predecessor digest must be lowercase SHA-256"
-                    .to_string(),
+                "transparency checkpoint predecessor digest must be lowercase SHA-256".to_string(),
             ));
         }
         Ok(())
@@ -411,12 +410,10 @@ impl PersistedTransparencyEvidenceV1 {
         previous_hash: &str,
     ) -> Result<(), AdapterError> {
         self.validate_basic()?;
-        if self.checkpoint.event_count() != ordinal
-            || self.checkpoint.head_hash() != previous_hash
+        if self.checkpoint.event_count() != ordinal || self.checkpoint.head_hash() != previous_hash
         {
             return Err(AdapterError::Invalid(
-                "transparency checkpoint does not bind the exact lifecycle pre-state"
-                    .to_string(),
+                "transparency checkpoint does not bind the exact lifecycle pre-state".to_string(),
             ));
         }
         Ok(())
@@ -493,8 +490,7 @@ impl DurableExecutionSecurityContext {
             ));
         }
 
-        let persisted_transparency_sequence =
-            Self::persisted_transparency_sequence(&loaded.chain)?;
+        let persisted_transparency_sequence = Self::persisted_transparency_sequence(&loaded.chain)?;
         if transparency_checkpoint.sequence() <= persisted_transparency_sequence {
             return Err(AdapterError::from(TransparencyError::ReplayDetected));
         }
@@ -768,8 +764,9 @@ impl JournalHeadWitness {
             ));
         }
 
-        let current_count = u64::try_from(chain.events().len())
-            .map_err(|_| AdapterError::WitnessMismatch("journal event count overflow".to_string()))?;
+        let current_count = u64::try_from(chain.events().len()).map_err(|_| {
+            AdapterError::WitnessMismatch("journal event count overflow".to_string())
+        })?;
         if current_count != self.event_count {
             return Err(AdapterError::WitnessMismatch(
                 "durable journal head count differs from retained witness".to_string(),
@@ -834,7 +831,9 @@ impl JournalHeadWitness {
         let index = usize::try_from(self.event_count - 1)
             .map_err(|_| AdapterError::Invalid("journal witness index overflow".to_string()))?;
         let actual = chain.events().get(index).ok_or_else(|| {
-            AdapterError::WitnessMismatch("journal is shorter than its retained witness".to_string())
+            AdapterError::WitnessMismatch(
+                "journal is shorter than its retained witness".to_string(),
+            )
         })?;
 
         if actual.event_hash != self.head_hash {
@@ -846,8 +845,6 @@ impl JournalHeadWitness {
         Ok(())
     }
 }
-
-
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ExecutionEventAuthentication {
@@ -886,14 +883,22 @@ impl DurableExecutionSigner {
         validate_key_id(&key_id)?;
         let key_pair = Ed25519KeyPair::from_pkcs8(pkcs8)
             .map_err(|_| AdapterError::Invalid("invalid Ed25519 PKCS#8 signing key".to_string()))?;
-        Ok(Self { key_id, key_epoch, key_pair })
+        Ok(Self {
+            key_id,
+            key_epoch,
+            key_pair,
+        })
     }
 
     #[must_use]
-    pub fn key_id(&self) -> &str { &self.key_id }
+    pub fn key_id(&self) -> &str {
+        &self.key_id
+    }
 
     #[must_use]
-    pub const fn key_epoch(&self) -> u64 { self.key_epoch }
+    pub const fn key_epoch(&self) -> u64 {
+        self.key_epoch
+    }
 
     #[must_use]
     pub fn public_key_hex(&self) -> String {
@@ -928,7 +933,9 @@ pub struct DurableExecutionTrust {
 
 impl DurableExecutionTrust {
     #[must_use]
-    pub fn new() -> Self { Self::default() }
+    pub fn new() -> Self {
+        Self::default()
+    }
 
     /// Commit to the complete public trust policy used for journal verification.
     ///
@@ -977,10 +984,7 @@ impl DurableExecutionTrust {
             revoked_at_ordinal,
         };
 
-        if self
-            .keys
-            .contains_key(&(key.key_id.clone(), key.key_epoch))
-        {
+        if self.keys.contains_key(&(key.key_id.clone(), key.key_epoch)) {
             return Err(AdapterError::Invalid(
                 "duplicate trusted execution key identity and epoch".to_string(),
             ));
@@ -1047,7 +1051,9 @@ impl DurableExecutionTrust {
             ));
         }
         if ordinal < key.active_from_ordinal
-            || key.revoked_at_ordinal.is_some_and(|revoked| ordinal >= revoked)
+            || key
+                .revoked_at_ordinal
+                .is_some_and(|revoked| ordinal >= revoked)
         {
             return Err(AdapterError::Invalid(
                 "signing key is not authorized for this journal ordinal".to_string(),
@@ -1088,7 +1094,9 @@ impl DurableExecutionTrust {
             ));
         }
         if ordinal < key.active_from_ordinal
-            || key.revoked_at_ordinal.is_some_and(|revoked| ordinal >= revoked)
+            || key
+                .revoked_at_ordinal
+                .is_some_and(|revoked| ordinal >= revoked)
         {
             return Err(AdapterError::Invalid(
                 "execution event is outside the trusted key validity interval".to_string(),
@@ -1688,8 +1696,7 @@ impl DurableExecutionAdapter {
         for event in loaded.chain.events() {
             if event.payload.receipt.state_anchor().domain() != self.anchor_domain {
                 return Err(AdapterError::Invalid(
-                    "durable execution anchor domain does not match adapter domain"
-                        .to_string(),
+                    "durable execution anchor domain does not match adapter domain".to_string(),
                 ));
             }
         }
@@ -1711,14 +1718,18 @@ impl DurableExecutionAdapter {
             let expected_id = StableId::derive(namespace, seed, ordinal);
             if event.event_id != expected_id {
                 return Err(AdapterError::Invalid(
-                    "authenticated execution event has an unexpected stable identity"
-                        .to_string(),
+                    "authenticated execution event has an unexpected stable identity".to_string(),
                 ));
             }
 
             trust.verify_event(namespace, seed, ordinal, event)?;
 
-            if event.payload.transparency_evidence.checkpoint.journal_namespace() != namespace
+            if event
+                .payload
+                .transparency_evidence
+                .checkpoint
+                .journal_namespace()
+                != namespace
                 || event.payload.transparency_evidence.checkpoint.seed() != seed
             {
                 return Err(AdapterError::Invalid(
@@ -1835,11 +1846,9 @@ impl DurableExecutionAdapter {
     pub fn validate_journal(
         chain: &EventChain<ExecutionLifecycleEvent>,
     ) -> Result<(), AdapterError> {
-        chain
-            .verify()
-            .map_err(|error| AdapterError::Invalid(format!(
-                "journal chain verification failed: {error}"
-            )))?;
+        chain.verify().map_err(|error| {
+            AdapterError::Invalid(format!("journal chain verification failed: {error}"))
+        })?;
 
         let _ = Self::persisted_transparency_sequence(chain)?;
 
@@ -1860,7 +1869,9 @@ impl DurableExecutionAdapter {
         for (ordinal, event) in chain.events().iter().enumerate() {
             let ordinal = u64::try_from(ordinal)
                 .map_err(|_| AdapterError::Invalid("journal ordinal overflow".to_string()))?;
-            event.payload.transparency_evidence
+            event
+                .payload
+                .transparency_evidence
                 .validate_against_event(ordinal, &event.previous_hash)?;
 
             if event.kind != EXECUTION_EVENT_KIND {
@@ -1915,23 +1926,18 @@ impl DurableExecutionAdapter {
                                 .payload
                                 .post_inventory_commitment
                                 .clone(),
-                            post_energy_commitment: event
-                                .payload
-                                .post_energy_commitment
-                                .clone(),
+                            post_energy_commitment: event.payload.post_energy_commitment.clone(),
                             terminal: false,
                         },
                     );
                 }
                 DurableExecutionState::Committed | DurableExecutionState::Aborted => {
-                    let prior = seen
-                        .get_mut(&event.payload.execution_id)
-                        .ok_or_else(|| {
-                            AdapterError::Invalid(format!(
-                                "terminal event {} has no Pending predecessor",
-                                event.event_id
-                            ))
-                        })?;
+                    let prior = seen.get_mut(&event.payload.execution_id).ok_or_else(|| {
+                        AdapterError::Invalid(format!(
+                            "terminal event {} has no Pending predecessor",
+                            event.event_id
+                        ))
+                    })?;
 
                     if prior.terminal {
                         return Err(AdapterError::Invalid(format!(
@@ -1951,8 +1957,7 @@ impl DurableExecutionAdapter {
                         ));
                     }
 
-                    if event.payload.pending_event_id.as_deref()
-                        != Some(prior.event_id.as_str())
+                    if event.payload.pending_event_id.as_deref() != Some(prior.event_id.as_str())
                         || event.payload.pending_event_hash.as_deref()
                             != Some(prior.event_hash.as_str())
                     {
@@ -1963,8 +1968,7 @@ impl DurableExecutionAdapter {
                     }
 
                     if event.payload.pre_budget_commitment != prior.post_budget_commitment
-                        || event.payload.pre_inventory_commitment
-                            != prior.post_inventory_commitment
+                        || event.payload.pre_inventory_commitment != prior.post_inventory_commitment
                         || event.payload.pre_energy_commitment != prior.post_energy_commitment
                     {
                         return Err(AdapterError::Invalid(
@@ -2005,14 +2009,9 @@ impl DurableExecutionAdapter {
         mut payload: ExecutionLifecycleEvent,
         journal_lock: &JournalLock,
     ) -> Result<EventEnvelope<ExecutionLifecycleEvent>, AdapterError> {
-        let signer = self
-            .signer
-            .as_ref()
-            .ok_or_else(|| {
-                AdapterError::Invalid(
-                    "durable lifecycle signing key is not configured".to_string(),
-                )
-            })?;
+        let signer = self.signer.as_ref().ok_or_else(|| {
+            AdapterError::Invalid("durable lifecycle signing key is not configured".to_string())
+        })?;
 
         let ordinal = u64::try_from(chain.events().len())
             .map_err(|_| AdapterError::Invalid("journal ordinal overflow".to_string()))?;
@@ -2041,11 +2040,10 @@ impl DurableExecutionAdapter {
                 AdapterError::Invalid(format!("cannot append lifecycle event: {error}"))
             })?;
 
-        let event = chain
-            .events()
-            .last()
-            .cloned()
-            .ok_or_else(|| AdapterError::Invalid("journal append produced no event".to_string()))?;
+        let event =
+            chain.events().last().cloned().ok_or_else(|| {
+                AdapterError::Invalid("journal append produced no event".to_string())
+            })?;
 
         self.store.append_event_locked(&event, journal_lock)?;
         Ok(event)
@@ -2081,7 +2079,9 @@ impl DurableExecutionAdapter {
         process: &ProductionProcess,
         receipt: &ProcessExecutionReceipt,
     ) -> Result<(), AdapterError> {
-        process.validate_run(receipt.run()).map_err(AdapterError::Invalid)
+        process
+            .validate_run(receipt.run())
+            .map_err(AdapterError::Invalid)
     }
 
     fn ensure_process_definition(
@@ -2090,8 +2090,7 @@ impl DurableExecutionAdapter {
     ) -> Result<(), AdapterError> {
         if process.commitment() != expected_commitment {
             return Err(AdapterError::Invalid(
-                "process definition commitment does not match durable execution record"
-                    .to_string(),
+                "process definition commitment does not match durable execution record".to_string(),
             ));
         }
         Ok(())
@@ -2241,13 +2240,11 @@ impl DurableExecutionAdapter {
     ) -> Result<ExecutableProcessExecutionReceipt, AdapterError> {
         let _journal_lock = self.store.acquire_journal_lock()?;
         let loaded = self.load_verified()?;
-        let _accepted_transparency = security.verify_before_transition(self, &loaded.chain, false)?;
+        let _accepted_transparency =
+            security.verify_before_transition(self, &loaded.chain, false)?;
         let event = Self::pending_event(&loaded.chain, execution_id)?;
         let receipt = event.payload.receipt.to_receipt()?;
-        Self::ensure_process_definition(
-            process,
-            &event.payload.process_definition_commitment,
-        )?;
+        Self::ensure_process_definition(process, &event.payload.process_definition_commitment)?;
         Self::ensure_process(process, &receipt)?;
 
         if receipt.state_anchor() != expected_anchor {
@@ -2266,10 +2263,9 @@ impl DurableExecutionAdapter {
             && energy.state_commitment() == event.payload.post_energy_commitment;
 
         if live_post_matches {
-            let result =
-                resume_pending_execution(execution_id, budget, inventory)
-                    .map_err(AdapterError::Invalid)?;
-                return Ok(result);
+            let result = resume_pending_execution(execution_id, budget, inventory)
+                .map_err(AdapterError::Invalid)?;
+            return Ok(result);
         }
 
         let live_pre_matches = budget.state_commitment() == event.payload.pre_budget_commitment
@@ -2308,9 +2304,8 @@ impl DurableExecutionAdapter {
         *budget = staged_budget;
         *inventory = staged_inventory;
 
-        let result =
-            resume_pending_execution(execution_id, budget, inventory)
-                .map_err(AdapterError::Invalid)?;
+        let result = resume_pending_execution(execution_id, budget, inventory)
+            .map_err(AdapterError::Invalid)?;
         Ok(result)
     }
 
@@ -2482,7 +2477,8 @@ impl DurableExecutionAdapter {
     ) -> Result<RecoveryResult, AdapterError> {
         let _journal_lock = self.store.acquire_journal_lock()?;
         let loaded = self.load_verified()?;
-        let _accepted_transparency = security.verify_before_transition(self, &loaded.chain, false)?;
+        let _accepted_transparency =
+            security.verify_before_transition(self, &loaded.chain, false)?;
 
         let terminal = loaded
             .chain
@@ -2495,10 +2491,7 @@ impl DurableExecutionAdapter {
             .ok_or_else(|| AdapterError::MissingExecution(execution_id.to_string()))?;
 
         let receipt = terminal.payload.receipt.to_receipt()?;
-        Self::ensure_process_definition(
-            process,
-            &terminal.payload.process_definition_commitment,
-        )?;
+        Self::ensure_process_definition(process, &terminal.payload.process_definition_commitment)?;
         Self::ensure_process(process, &receipt)?;
 
         if receipt.state_anchor() != expected_anchor {
@@ -2522,7 +2515,7 @@ impl DurableExecutionAdapter {
                 DurableExecutionState::Aborted => RecoveryResult::Aborted,
                 DurableExecutionState::Pending => unreachable!(),
             };
-                return Ok(result);
+            return Ok(result);
         }
 
         let pre_matches = budget.state_commitment() == terminal.payload.pre_budget_commitment
@@ -2586,9 +2579,9 @@ impl DurableExecutionAdapter {
 fn validate_key_id(value: &str) -> Result<(), AdapterError> {
     if value.is_empty()
         || value.len() > 96
-        || !value.bytes().all(|byte| {
-            byte.is_ascii_alphanumeric() || matches!(byte, b'.' | b'-' | b'_' | b':')
-        })
+        || !value
+            .bytes()
+            .all(|byte| byte.is_ascii_alphanumeric() || matches!(byte, b'.' | b'-' | b'_' | b':'))
     {
         return Err(AdapterError::Invalid(
             "execution key ID must be portable, non-empty, and <= 96 bytes".to_string(),
@@ -2599,10 +2592,7 @@ fn validate_key_id(value: &str) -> Result<(), AdapterError> {
 
 fn freshness_attestation_digest(attestation: &ExternalFreshnessAttestation) -> [u8; 32] {
     let mut hasher = Sha256::new();
-    hash_string(
-        &mut hasher,
-        "symtropy.journal.freshness-attestation.v1",
-    );
+    hash_string(&mut hasher, "symtropy.journal.freshness-attestation.v1");
     hash_string(&mut hasher, &attestation.authority_id);
     hasher.update(attestation.schema_version.to_le_bytes());
     hash_string(&mut hasher, &attestation.algorithm);
@@ -2689,15 +2679,10 @@ mod tests {
             .trust_signer(&signer, 0, None)
             .expect("trust test signer");
 
-        DurableExecutionAdapter::open(
-            store(name),
-            "bootstrap",
-            "bootstrap-execution",
-            1,
-        )
-        .expect("adapter")
-        .with_trust(trust)
-        .with_signer(signer)
+        DurableExecutionAdapter::open(store(name), "bootstrap", "bootstrap-execution", 1)
+            .expect("adapter")
+            .with_trust(trust)
+            .with_signer(signer)
     }
 
     struct TestSecurityMaterial {
@@ -2788,16 +2773,15 @@ mod tests {
                 log_signer.public_key_hex(),
             )
             .expect("transparency log");
-            let (first_checkpoint, first_witness_signatures) =
-                transparency_test_evidence(
-                    adapter,
-                    &transparency_log,
-                    &transparency_policy,
-                    &log_signer,
-                    &witness_signers,
-                    1,
-                    &genesis_transparency_digest,
-                );
+            let (first_checkpoint, first_witness_signatures) = transparency_test_evidence(
+                adapter,
+                &transparency_log,
+                &transparency_policy,
+                &log_signer,
+                &witness_signers,
+                1,
+                &genesis_transparency_digest,
+            );
 
             let context = DurableExecutionSecurityContext::establish(
                 adapter,
@@ -2878,7 +2862,10 @@ mod tests {
         witness_signers: &[DurableExecutionSigner],
         sequence: u64,
         previous_digest: &str,
-    ) -> (TransparencyCheckpointV1, Vec<TransparencyWitnessSignatureV1>) {
+    ) -> (
+        TransparencyCheckpointV1,
+        Vec<TransparencyWitnessSignatureV1>,
+    ) {
         let loaded = adapter.load_verified().expect("verified journal");
         let event_count = u64::try_from(loaded.chain.events().len()).expect("event count");
         let unsigned = transparency::TransparencyCheckpointUnsignedV1::new(
@@ -2922,9 +2909,9 @@ mod tests {
             .duration_since(UNIX_EPOCH)
             .expect("clock")
             .as_nanos();
-        SaveStore::open(std::env::temp_dir().join(format!(
-            "symtropy-bootstrap-adapter-{name}-{suffix}"
-        )))
+        SaveStore::open(
+            std::env::temp_dir().join(format!("symtropy-bootstrap-adapter-{name}-{suffix}")),
+        )
         .expect("store")
     }
 
@@ -2972,8 +2959,12 @@ mod tests {
             trust_commitment: adapter.trust().commitment(),
             signature: String::new(),
         };
-        attestation.signature =
-            hex_encode(signer.key_pair.sign(&freshness_attestation_digest(&attestation)).as_ref());
+        attestation.signature = hex_encode(
+            signer
+                .key_pair
+                .sign(&freshness_attestation_digest(&attestation))
+                .as_ref(),
+        );
         attestation
     }
 
@@ -3003,13 +2994,20 @@ mod tests {
 
         let loaded = adapter.load_verified().expect("verified journal");
         let event = &loaded.chain.events()[0];
-        assert_eq!(event.payload.transparency_evidence.checkpoint.event_count(), 0);
+        assert_eq!(
+            event.payload.transparency_evidence.checkpoint.event_count(),
+            0
+        );
         assert_eq!(
             event.payload.transparency_evidence.checkpoint.head_hash(),
             "GENESIS"
         );
         assert_eq!(
-            event.payload.transparency_evidence.checkpoint.journal_namespace(),
+            event
+                .payload
+                .transparency_evidence
+                .checkpoint
+                .journal_namespace(),
             "bootstrap"
         );
         assert_eq!(
@@ -3045,12 +3043,8 @@ mod tests {
             .expect("pending");
 
         security.refresh_freshness(&adapter);
-        let executable = resume_pending_execution(
-            "exec-transparency-replay",
-            &budget,
-            &inventory,
-        )
-        .expect("activation");
+        let executable = resume_pending_execution("exec-transparency-replay", &budget, &inventory)
+            .expect("activation");
 
         let error = adapter
             .commit(
@@ -3064,13 +3058,24 @@ mod tests {
             )
             .expect_err("replayed transparency checkpoint must reject the second transition");
 
-        assert!(matches!(error, AdapterError::Transparency(TransparencyError::ReplayDetected)));
+        assert!(matches!(
+            error,
+            AdapterError::Transparency(TransparencyError::ReplayDetected)
+        ));
         assert_eq!(
-            security.context.transparency_witnesses().max_retained_sequence(),
+            security
+                .context
+                .transparency_witnesses()
+                .max_retained_sequence(),
             1
         );
         assert_eq!(
-            adapter.load_verified().expect("journal").chain.events().len(),
+            adapter
+                .load_verified()
+                .expect("journal")
+                .chain
+                .events()
+                .len(),
             1
         );
 
@@ -3122,7 +3127,11 @@ mod tests {
                 .authority_commitment()
                 .to_string(),
             last_sequence: security.context.freshness_cursor().last_sequence(),
-            last_head_hash: security.context.freshness_cursor().last_head_hash().to_string(),
+            last_head_hash: security
+                .context
+                .freshness_cursor()
+                .last_head_hash()
+                .to_string(),
             last_event_count: security.context.freshness_cursor().last_event_count(),
         };
 
@@ -3152,9 +3161,8 @@ mod tests {
             AdapterError::Transparency(TransparencyError::ReplayDetected)
         ));
 
-        let fresh_witnesses =
-            TransparencyWitnessSetV1::new(security.context.transparency_policy())
-                .expect("fresh witness set");
+        let fresh_witnesses = TransparencyWitnessSetV1::new(security.context.transparency_policy())
+            .expect("fresh witness set");
         let discontinuity_error = DurableExecutionSecurityContext::establish(
             &adapter,
             security.context.freshness_authority().clone(),
@@ -3170,18 +3178,15 @@ mod tests {
 
         assert!(matches!(
             discontinuity_error,
-            AdapterError::Transparency(
-                TransparencyError::SequenceDiscontinuity {
-                    retained_sequence: 0,
-                    candidate_sequence: 2,
-                    ..
-                }
-            )
+            AdapterError::Transparency(TransparencyError::SequenceDiscontinuity {
+                retained_sequence: 0,
+                candidate_sequence: 2,
+                ..
+            })
         ));
 
         fs::remove_dir_all(adapter.store().root()).expect("cleanup");
     }
-
 
     #[test]
     fn durable_transparency_history_requires_canonical_genesis() {
@@ -3556,38 +3561,43 @@ mod tests {
             1,
         );
 
-        assert!(adapter
-            .load_verified_with_freshness_cursor(
-                &witness,
-                &authority,
-                &attestation,
-                &mut cursor,
-            )
-            .is_ok());
+        assert!(
+            adapter
+                .load_verified_with_freshness_cursor(
+                    &witness,
+                    &authority,
+                    &attestation,
+                    &mut cursor,
+                )
+                .is_ok()
+        );
         assert_eq!(cursor.last_sequence(), 1);
 
-        assert!(adapter
-            .load_verified_with_freshness_cursor(
-                &witness,
-                &authority,
-                &attestation,
-                &mut cursor,
-            )
-            .is_err());
+        assert!(
+            adapter
+                .load_verified_with_freshness_cursor(
+                    &witness,
+                    &authority,
+                    &attestation,
+                    &mut cursor,
+                )
+                .is_err()
+        );
 
         let mut newer = attestation.clone();
         newer.sequence = newer.sequence.checked_add(1).expect("sequence");
-        newer.signature =
-            hex_encode(authority_signer.key_pair.sign(&freshness_attestation_digest(&newer)).as_ref());
+        newer.signature = hex_encode(
+            authority_signer
+                .key_pair
+                .sign(&freshness_attestation_digest(&newer))
+                .as_ref(),
+        );
 
-        assert!(adapter
-            .load_verified_with_freshness_cursor(
-                &witness,
-                &authority,
-                &newer,
-                &mut cursor,
-            )
-            .is_ok());
+        assert!(
+            adapter
+                .load_verified_with_freshness_cursor(&witness, &authority, &newer, &mut cursor,)
+                .is_ok()
+        );
         assert_eq!(cursor.last_sequence(), 2);
 
         fs::remove_dir_all(adapter.store().root()).expect("cleanup");
@@ -3632,8 +3642,7 @@ mod tests {
             .expect("pending");
         security.refresh(&adapter);
         let executable =
-            resume_pending_execution("exec-cursor-fork", &budget, &inventory)
-                .expect("activation");
+            resume_pending_execution("exec-cursor-fork", &budget, &inventory).expect("activation");
         adapter
             .commit(
                 &mut security.context,
@@ -3681,11 +3690,7 @@ mod tests {
                 adapter.trust(),
             )
             .expect("advance cursor to retained full head");
-        let fork = EventChain::from_events(
-            "bootstrap",
-            1,
-            full.chain.events()[..1].to_vec(),
-        );
+        let fork = EventChain::from_events("bootstrap", 1, full.chain.events()[..1].to_vec());
         let mut older = ExternalFreshnessAttestation {
             schema_version: FRESHNESS_ATTESTATION_SCHEMA_VERSION,
             algorithm: FRESHNESS_ATTESTATION_ALGORITHM.to_string(),
@@ -3699,8 +3704,12 @@ mod tests {
             trust_commitment: adapter.trust().commitment(),
             signature: String::new(),
         };
-        older.signature =
-            hex_encode(authority_signer.key_pair.sign(&freshness_attestation_digest(&older)).as_ref());
+        older.signature = hex_encode(
+            authority_signer
+                .key_pair
+                .sign(&freshness_attestation_digest(&older))
+                .as_ref(),
+        );
 
         assert!(matches!(
             authority.verify_and_advance(
@@ -3728,12 +3737,18 @@ mod tests {
         )
         .expect("authority");
         let witness = adapter.capture_head_witness().expect("head witness");
-        let attestation =
-            freshness_test_attestation(authority.authority_id(), authority.authority_epoch(), &authority_signer, &adapter);
+        let attestation = freshness_test_attestation(
+            authority.authority_id(),
+            authority.authority_epoch(),
+            &authority_signer,
+            &adapter,
+        );
 
-        assert!(adapter
-            .load_verified_with_freshness(&witness, &authority, &attestation)
-            .is_ok());
+        assert!(
+            adapter
+                .load_verified_with_freshness(&witness, &authority, &attestation)
+                .is_ok()
+        );
 
         let mut bad = attestation.clone();
         bad.head_hash = "00".repeat(32);
@@ -3821,11 +3836,7 @@ mod tests {
         };
 
         assert!(matches!(
-            adapter.load_verified_with_freshness(
-                &witness,
-                &authority,
-                &attestation,
-            ),
+            adapter.load_verified_with_freshness(&witness, &authority, &attestation,),
             Err(AdapterError::WitnessMismatch(_))
         ));
 
@@ -3863,8 +3874,7 @@ mod tests {
             )
             .expect("first Pending");
         let executable =
-            resume_pending_execution("exec-witness-a", &budget, &inventory)
-                .expect("activation");
+            resume_pending_execution("exec-witness-a", &budget, &inventory).expect("activation");
         security.refresh(&adapter);
         adapter
             .commit(
@@ -3883,15 +3893,13 @@ mod tests {
             .expect("capture current head witness");
 
         let full = adapter.load_verified().expect("verified journal");
-        let prefix = EventChain::from_events(
-            "bootstrap",
-            1,
-            full.chain.events()[..1].to_vec(),
-        );
+        let prefix = EventChain::from_events("bootstrap", 1, full.chain.events()[..1].to_vec());
 
-        assert!(witness
-            .verify_against("bootstrap", 1, &prefix, adapter.trust())
-            .is_err());
+        assert!(
+            witness
+                .verify_against("bootstrap", 1, &prefix, adapter.trust())
+                .is_err()
+        );
 
         let first_event = prefix.events()[0].clone();
         fs::write(
@@ -3928,9 +3936,8 @@ mod tests {
                 &mut energy,
             )
             .expect("pending authorization");
-        let executable =
-            resume_pending_execution(receipt.execution_id(), &budget, &inventory)
-                .expect("activation");
+        let executable = resume_pending_execution(receipt.execution_id(), &budget, &inventory)
+            .expect("activation");
         security.refresh(&adapter);
         adapter
             .commit(
@@ -3946,11 +3953,7 @@ mod tests {
 
         let retained = security.context.head_witness().clone();
         let full = adapter.load_verified().expect("full journal");
-        let prefix = EventChain::from_events(
-            "bootstrap",
-            1,
-            full.chain.events()[..1].to_vec(),
-        );
+        let prefix = EventChain::from_events("bootstrap", 1, full.chain.events()[..1].to_vec());
         let first_event = prefix.events()[0].clone();
         fs::write(
             adapter.store().root().join("journal.jsonl"),
@@ -3979,7 +3982,9 @@ mod tests {
             )
             .expect_err("retained head witness must block rollback");
 
-        assert!(matches!(err, AdapterError::WitnessMismatch(message) if message.contains("witness")));
+        assert!(
+            matches!(err, AdapterError::WitnessMismatch(message) if message.contains("witness"))
+        );
         assert_eq!(budget, before_budget);
         assert_eq!(inventory, before_inventory);
         assert_eq!(energy, before_energy);
@@ -4026,9 +4031,7 @@ mod tests {
         let before_energy = energy.clone();
 
         assert!(
-            adapter
-                .load_verified_against(&stale)
-                .is_ok(),
+            adapter.load_verified_against(&stale).is_ok(),
             "prefix-extension verification is intentionally weaker and remains suitable for audit"
         );
         assert!(matches!(
@@ -4095,9 +4098,8 @@ mod tests {
         let before_budget = budget.clone();
         let before_inventory = inventory.clone();
         let before_energy = energy.clone();
-        let executable =
-            resume_pending_execution(receipt.execution_id(), &budget, &inventory)
-                .expect("activation");
+        let executable = resume_pending_execution(receipt.execution_id(), &budget, &inventory)
+            .expect("activation");
 
         // Deliberately do not refresh the external attestation. The prior checkpoint
         // was consumed by the durable Pending append.
@@ -4113,7 +4115,9 @@ mod tests {
             )
             .expect_err("freshness attestation must be single-use");
 
-        assert!(matches!(err, AdapterError::WitnessMismatch(message) if message.contains("sequence")));
+        assert!(
+            matches!(err, AdapterError::WitnessMismatch(message) if message.contains("sequence"))
+        );
         assert_eq!(budget, before_budget);
         assert_eq!(inventory, before_inventory);
         assert_eq!(energy, before_energy);
@@ -4164,9 +4168,8 @@ mod tests {
                 .expect("persisted Pending witness")
         );
 
-        let executable =
-            resume_pending_execution(receipt.execution_id(), &budget, &inventory)
-                .expect("activation");
+        let executable = resume_pending_execution(receipt.execution_id(), &budget, &inventory)
+            .expect("activation");
         security.refresh(&adapter);
         adapter
             .commit(
@@ -4281,14 +4284,7 @@ mod tests {
 
         let mut bad_chain = EventChain::new("bootstrap", 1);
         bad_chain
-            .append(
-                1,
-                EXECUTION_EVENT_KIND,
-                None,
-                None,
-                Vec::new(),
-                payload,
-            )
+            .append(1, EXECUTION_EVENT_KIND, None, None, Vec::new(), payload)
             .expect("re-hash tampered outer event");
 
         assert!(
@@ -4396,22 +4392,23 @@ mod tests {
         let before_inventory = inventory.clone();
         let before_energy = energy.clone();
 
-        let executable =
-            resume_pending_execution(receipt.execution_id(), &budget, &inventory)
-                .expect("activation");
+        let executable = resume_pending_execution(receipt.execution_id(), &budget, &inventory)
+            .expect("activation");
 
         security.refresh(&adapter);
-        assert!(adapter
-            .commit(
-                &mut security.context,
-                &process,
-                &executable,
-                2,
-                &mut budget,
-                &mut inventory,
-                &mut energy,
-            )
-            .is_err());
+        assert!(
+            adapter
+                .commit(
+                    &mut security.context,
+                    &process,
+                    &executable,
+                    2,
+                    &mut budget,
+                    &mut inventory,
+                    &mut energy,
+                )
+                .is_err()
+        );
 
         assert_eq!(budget, before_budget);
         assert_eq!(inventory, before_inventory);
@@ -4549,15 +4546,17 @@ mod tests {
 
     #[test]
     fn trust_rejects_public_key_aliasing_across_epochs_or_identities() {
-        let document = Ed25519KeyPair::generate_pkcs8(&SystemRandom::new())
-            .expect("generate signing key");
+        let document =
+            Ed25519KeyPair::generate_pkcs8(&SystemRandom::new()).expect("generate signing key");
         let first = DurableExecutionSigner::from_pkcs8("alias-one", 1, document.as_ref())
             .expect("first signer");
         let second = DurableExecutionSigner::from_pkcs8("alias-two", 2, document.as_ref())
             .expect("second signer");
 
         let mut trust = DurableExecutionTrust::new();
-        trust.trust_signer(&first, 0, None).expect("first trust entry");
+        trust
+            .trust_signer(&first, 0, None)
+            .expect("first trust entry");
         assert!(trust.trust_signer(&second, 1, None).is_err());
     }
 
@@ -4752,7 +4751,10 @@ mod tests {
             event.payload.post_inventory_commitment,
             inventory.state_commitment()
         );
-        assert_eq!(event.payload.post_energy_commitment, energy.state_commitment());
+        assert_eq!(
+            event.payload.post_energy_commitment,
+            energy.state_commitment()
+        );
         assert_eq!(
             budget.execution_state("exec-001"),
             Some(symtropy_bootstrap::ExecutionState::Pending)
@@ -4798,14 +4800,7 @@ mod tests {
 
         let mut bad_chain = EventChain::new("bootstrap", 1);
         bad_chain
-            .append(
-                1,
-                EXECUTION_EVENT_KIND,
-                None,
-                None,
-                Vec::new(),
-                payload,
-            )
+            .append(1, EXECUTION_EVENT_KIND, None, None, Vec::new(), payload)
             .expect("outer chain can hash tampered payload");
 
         assert!(DurableExecutionAdapter::validate_journal(&bad_chain).is_err());
@@ -5269,8 +5264,8 @@ mod tests {
                 &mut energy,
             )
             .expect("pending authorization");
-        let executable = resume_pending_execution("exec-projection", &budget, &inventory)
-            .expect("activation");
+        let executable =
+            resume_pending_execution("exec-projection", &budget, &inventory).expect("activation");
 
         security.refresh(&adapter);
         adapter
