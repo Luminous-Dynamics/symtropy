@@ -19,6 +19,11 @@ pub struct MerkleConsistencyProofV1 {
 }
 
 impl MerkleConsistencyProofV1 {
+    #[must_use]
+    pub fn empty() -> Self {
+        Self { hashes: Vec::new() }
+    }
+
     pub fn new(hashes: Vec<String>) -> Result<Self, MerkleVdsError> {
         for hash in &hashes {
             decode_hex::<32>(hash)?;
@@ -124,6 +129,78 @@ impl MerkleConsistencyProofV1 {
 
         Ok(())
     }
+}
+
+/// Verify the append-only boundary used by C2SP-style witnesses.
+///
+/// This wrapper handles the two special cases that are outside the strict
+/// 0 < first_size < second_size RFC 9162 consistency-proof API:
+///
+/// - first_size == 0: the old root must be the empty-tree hash and the proof
+///   must be absent/empty.
+/// - first_size == second_size: no growth occurred, so the roots must match
+///   and no proof is necessary.
+///
+/// For a genuinely growing non-empty tree, a proof is required and is checked
+/// by the RFC 9162 verifier above.
+pub fn verify_append_only_sha256(
+    first_size: u64,
+    first_root: &str,
+    second_size: u64,
+    second_root: &str,
+    proof: Option<&MerkleConsistencyProofV1>,
+) -> Result<(), MerkleVdsError> {
+    let first_hash = decode_hex::<32>(first_root)?;
+    let second_hash = decode_hex::<32>(second_root)?;
+    let empty_root: [u8; 32] = Sha256::digest(b"").into();
+
+    if first_size == 0 {
+        if first_hash != empty_root {
+            return Err(MerkleVdsError::ProofMismatch);
+        }
+        if let Some(proof) = proof {
+            if !proof.hashes.is_empty() {
+                return Err(MerkleVdsError::Invalid(
+                    "non-empty consistency proof is invalid from the empty tree".to_string(),
+                ));
+            }
+        }
+        if second_size == 0 {
+            if second_hash != empty_root {
+                return Err(MerkleVdsError::ProofMismatch);
+            }
+            return Ok(());
+        }
+        return Ok(());
+    }
+
+    if first_size == second_size {
+        if first_hash != second_hash {
+            return Err(MerkleVdsError::ProofMismatch);
+        }
+        if let Some(proof) = proof {
+            if !proof.hashes.is_empty() {
+                return Err(MerkleVdsError::Invalid(
+                    "consistency proof must be empty when tree size is unchanged".to_string(),
+                ));
+            }
+        }
+        return Ok(());
+    }
+
+    if first_size > second_size {
+        return Err(MerkleVdsError::Invalid(
+            "first Merkle tree size must not exceed second tree size".to_string(),
+        ));
+    }
+
+    let proof = proof.ok_or_else(|| {
+        MerkleVdsError::Invalid(
+            "a non-empty tree growth transition requires a consistency proof".to_string(),
+        )
+    })?;
+
+    proof.verify_sha256(first_size, first_root, second_size, second_root)
 }
 
 /// Compute the RFC 9162 Merkle Tree Hash for an ordered list of leaf inputs.
@@ -322,6 +399,51 @@ mod tests {
         assert!(matches!(
             proof.verify_sha256(4, &root, 4, &root),
             Err(MerkleVdsError::Invalid(_))
+        ));
+    }
+
+    #[test]
+    fn c2sp_empty_tree_start_requires_empty_root_and_proof() {
+        let empty_root = merkle_tree_hash_sha256(&[]);
+        let data = entries(5);
+        let second_root = merkle_tree_hash_sha256(&data);
+
+        verify_append_only_sha256(0, &empty_root, 5, &second_root, None)
+            .expect("empty-tree start");
+
+        let bad_root = "11".repeat(32);
+        assert!(matches!(
+            verify_append_only_sha256(0, &bad_root, 5, &second_root, None),
+            Err(MerkleVdsError::ProofMismatch)
+        ));
+
+        let nonempty = MerkleConsistencyProofV1::new(vec!["22".repeat(32)])
+            .expect("shape-valid");
+        assert!(matches!(
+            verify_append_only_sha256(
+                0,
+                &empty_root,
+                5,
+                &second_root,
+                Some(&nonempty),
+            ),
+            Err(MerkleVdsError::Invalid(_))
+        ));
+    }
+
+    #[test]
+    fn unchanged_tree_head_requires_equal_roots() {
+        let data = entries(5);
+        let root = merkle_tree_hash_sha256(&data);
+        let empty = MerkleConsistencyProofV1::empty();
+
+        verify_append_only_sha256(5, &root, 5, &root, Some(&empty))
+            .expect("unchanged tree");
+
+        let wrong = "33".repeat(32);
+        assert!(matches!(
+            verify_append_only_sha256(5, &root, 5, &wrong, Some(&empty)),
+            Err(MerkleVdsError::ProofMismatch)
         ));
     }
 
