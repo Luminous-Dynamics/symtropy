@@ -332,14 +332,18 @@ The clean architectural rule remains:
         sit underneath
     the durable execution admission policy
 
-The next interoperability refinement is to make consistency evidence **per witness** rather than one proof shared by an entire quorum. Different witnesses may legitimately retain different VDS tree sizes, so a future semantic evidence tuple should bind:
+The semantic witness layer now represents consistency evidence **per witness** rather than requiring one proof to serve an entire quorum. Different witnesses may legitimately retain different VDS tree sizes, so each evidence tuple binds:
 
     witness identity
     + witness checkpoint signature
     + consistency proof from that witness's retained VDS head
 
-Quorum and independence-domain admission can then operate over independently verified tuples without requiring all selected witnesses to share one VDS frontier. This is a liveness/interoperability refinement, not a relaxation of durable checkpoint sequence or predecessor checks.
+Quorum and independence-domain admission operate over independently verified tuples without requiring all selected witnesses to share one VDS frontier. The legacy shared-proof API remains as a compatibility wrapper that expands one proof to each supplied witness.
 
-That keeps execution authority, freshness authority, transparency authority, and witness policy independently attributable.
+Persisted lifecycle evidence retains the exact per-witness proof tuples, while the older shared-proof field is retained only as a derived compatibility representation when every witness uses the same proof.
+
+This is a liveness/interoperability refinement, not a relaxation of durable checkpoint sequence or predecessor checks. It keeps execution authority, freshness authority, transparency authority, and witness policy independently attributable.
+
+The next implementation frontier is wire interoperability and restart-resistant external witness memory. A future C2SP/RFC 9942 adapter must map the semantic per-witness evidence into the protocol's base64/note or CBOR/COSE structures without silently dropping journal, policy, or VDS bindings.
 
 Protocol details were cross-checked against the current C2SP development specifications on 2026-10-07.
