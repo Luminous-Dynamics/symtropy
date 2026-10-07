@@ -8,6 +8,7 @@
 
 pub mod transparency;
 pub mod transparency_vds;
+pub mod transparency_protocol;
 
 use serde::{Deserialize, Serialize};
 use std::{collections::BTreeMap, error::Error, fmt, sync::Arc};
