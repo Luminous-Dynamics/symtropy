@@ -219,7 +219,7 @@ This design is deliberately narrower than SCITT.
 
 RFC 9943 requires a SCITT transparency VDS to support append-only history, non-equivocation, and replayability. The current Symtropy boundary supplies a durable execution checkpoint plus independently retained witness continuity, but it does not yet implement a SCITT receipt or a public VDS. https://www.rfc-editor.org/info/rfc9943/
 
-RFC 9162 defines Merkle consistency proofs that demonstrate that a newer tree contains the older tree as a prefix. Those proofs are the natural next cryptographic layer once the current semantic checkpoint interface is adapted to a real VDS. https://www.rfc-editor.org/rfc/rfc9162.html
+RFC 9162 defines Merkle consistency proofs that demonstrate that a newer tree contains the older tree as a prefix. The repository now has a SHA-256 verifier for that proof algorithm, with tests spanning many tree shapes and corrupted proof/root/size inputs. It is not yet bound to the current checkpoint schema because that schema does not carry a VDS tree root. https://www.rfc-editor.org/rfc/rfc9162.html
 
 The current C2SP Transparency Log Witness Protocol has the closest architectural shape: a witness retains its latest verified checkpoint, requires a consistency proof for a newer checkpoint, and requires continuity checking plus durable persistence to be atomic. The current Symtropy witness set mirrors the retained-state and CAS boundary, but is intentionally still service-neutral and in-process. It is therefore **not** C2SP wire compatible yet. https://c2sp.org/tlog-witness
 
@@ -279,16 +279,23 @@ The minimum regression corpus for this layer should continue to cover:
 - journal tampering after evidence persistence;
 - restart with journal-only state and no retained witness state;
 - freshness checkpoint and transparency checkpoint bound to different exact journal heads.
+- Merkle consistency proof path corruption.
+- advertised Merkle root corruption.
+- invalid tree-size relationship.
 
 ## Next implementation frontier
 
-The semantic composition is now implemented. The next layer should remain protocol-shaped rather than replacing the admission boundary:
+The semantic composition and a protocol-shaped RFC 9162-style SHA-256 consistency verifier are now implemented. The verifier remains deliberately below the admission boundary.
+
+The current checkpoint schema still commits the durable journal head rather than a VDS tree root, so the verifier is not yet invoked by witness admission. The next integration is:
 
     semantic checkpoint
         ↓
     concrete VDS tree-size/root identity
         ↓
     Merkle consistency proof
+        ↓
+    bind VDS head + proof into witness admission
         ↓
     optional inclusion/non-inclusion proofs
         ↓
