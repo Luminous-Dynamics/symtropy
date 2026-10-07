@@ -441,6 +441,12 @@ impl PersistedTransparencyEvidenceV1 {
             }
             for evidence in &self.witness_evidence {
                 evidence.validate_basic().map_err(AdapterError::from)?;
+                if evidence.retained_vds_tree_head().is_none() {
+                    return Err(AdapterError::Invalid(
+                        "persisted per-witness transparency evidence is missing its retained VDS frontier"
+                            .to_string(),
+                    ));
+                }
             }
             if let Some(shared_proof) = &self.vds_consistency_proof {
                 if self
@@ -3315,6 +3321,14 @@ mod tests {
                 .checkpoint
                 .vds_tree_size(),
             0
+        );
+        assert!(
+            event
+                .payload
+                .transparency_evidence
+                .witness_evidence
+                .iter()
+                .all(|evidence| evidence.retained_vds_tree_head().is_some())
         );
         assert!(
             event
