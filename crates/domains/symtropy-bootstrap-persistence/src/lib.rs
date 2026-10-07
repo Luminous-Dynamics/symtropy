@@ -30,7 +30,13 @@ use symtropy_bootstrap::{
 use symtropy_game_state::{EventChain, EventEnvelope, StableId};
 use symtropy_persistence::{JournalLoad, JournalLock, PersistenceError, SaveStore};
 
-pub const EXECUTION_LIFECYCLE_SCHEMA_VERSION: u32 = 2;
+use transparency::{
+    AcceptedTransparencyCheckpointV1, TransparencyCheckpointV1, TransparencyError,
+    TransparencyLogAuthorityV1, TransparencyWitnessPolicyV1, TransparencyWitnessSetV1,
+    TransparencyWitnessSignatureV1,
+};
+
+pub const EXECUTION_LIFECYCLE_SCHEMA_VERSION: u32 = 3;
 pub const EXECUTION_EVENT_KIND: &str = "symtropy.bootstrap.execution";
 pub const EXECUTION_AUTH_ALGORITHM: &str = "Ed25519-SHA256-JSON-v1";
 pub const FRESHNESS_ATTESTATION_SCHEMA_VERSION: u32 = 1;
@@ -105,6 +111,12 @@ impl FreshnessCursor {
         Ok(())
     }
 
+    fn advance_verified(&mut self, attestation: &ExternalFreshnessAttestation) {
+        self.last_sequence = attestation.sequence;
+        self.last_head_hash = attestation.head_hash.clone();
+        self.last_event_count = attestation.event_count;
+    }
+
     fn accept_verified(
         &mut self,
         authority: &FreshnessAuthority,
@@ -112,9 +124,7 @@ impl FreshnessCursor {
         chain: &EventChain<ExecutionLifecycleEvent>,
     ) -> Result<(), AdapterError> {
         self.verify_candidate(authority, attestation, chain)?;
-        self.last_sequence = attestation.sequence;
-        self.last_head_hash = attestation.head_hash.clone();
-        self.last_event_count = attestation.event_count;
+        self.advance_verified(attestation);
         Ok(())
     }
 
@@ -320,6 +330,98 @@ impl FreshnessAuthority {
     }
 }
 
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct PersistedTransparencyEvidenceV1 {
+    pub checkpoint: TransparencyCheckpointV1,
+    pub witness_signatures: Vec<TransparencyWitnessSignatureV1>,
+    pub accepted_witnesses: Vec<String>,
+    pub accepted_domains: Vec<String>,
+}
+
+impl PersistedTransparencyEvidenceV1 {
+    #[must_use]
+    pub fn from_accepted(accepted: &AcceptedTransparencyCheckpointV1) -> Self {
+        Self {
+            checkpoint: accepted.checkpoint().clone(),
+            witness_signatures: accepted.witness_signatures().to_vec(),
+            accepted_witnesses: accepted.accepted_witnesses().to_vec(),
+            accepted_domains: accepted.accepted_domains().to_vec(),
+        }
+    }
+
+    pub fn validate_basic(&self) -> Result<(), AdapterError> {
+        self.checkpoint.validate_basic().map_err(AdapterError::from)?;
+
+        if self.accepted_witnesses.is_empty()
+            || self.accepted_witnesses.windows(2).any(|pair| pair[0] >= pair[1])
+        {
+            return Err(AdapterError::Invalid(
+                "transparency accepted witness identities must be non-empty and canonical"
+                    .to_string(),
+            ));
+        }
+        if self.accepted_domains.is_empty()
+            || self.accepted_domains.windows(2).any(|pair| pair[0] >= pair[1])
+        {
+            return Err(AdapterError::Invalid(
+                "transparency accepted independence domains must be non-empty and canonical"
+                    .to_string(),
+            ));
+        }
+        if self.witness_signatures.len() != self.accepted_witnesses.len() {
+            return Err(AdapterError::Invalid(
+                "transparency witness signature count does not match accepted witness count"
+                    .to_string(),
+            ));
+        }
+
+        let signature_ids = self
+            .witness_signatures
+            .iter()
+            .map(|signature| signature.witness_id())
+            .collect::<Vec<_>>();
+        if signature_ids.windows(2).any(|pair| pair[0] >= pair[1])
+            || signature_ids != self
+                .accepted_witnesses
+                .iter()
+                .map(String::as_str)
+                .collect::<Vec<_>>()
+        {
+            return Err(AdapterError::Invalid(
+                "transparency witness signatures are not a canonical exact set".to_string(),
+            ));
+        }
+
+        for signature in &self.witness_signatures {
+            signature.validate_basic().map_err(AdapterError::from)?;
+        }
+        if !is_sha256_hex(self.checkpoint.previous_checkpoint_digest()) {
+            return Err(AdapterError::Invalid(
+                "transparency checkpoint predecessor digest must be lowercase SHA-256"
+                    .to_string(),
+            ));
+        }
+        Ok(())
+    }
+
+    pub fn validate_against_event(
+        &self,
+        ordinal: u64,
+        previous_hash: &str,
+    ) -> Result<(), AdapterError> {
+        self.validate_basic()?;
+        if self.checkpoint.event_count() != ordinal
+            || self.checkpoint.head_hash() != previous_hash
+        {
+            return Err(AdapterError::Invalid(
+                "transparency checkpoint does not bind the exact lifecycle pre-state"
+                    .to_string(),
+            ));
+        }
+        Ok(())
+    }
+}
+
 /// Unified security capability for state-changing durable execution lifecycle operations.
 ///
 /// The context owns the retained local head witness and external freshness cursor. Only the
@@ -331,6 +433,11 @@ pub struct DurableExecutionSecurityContext {
     freshness_authority: FreshnessAuthority,
     freshness_cursor: FreshnessCursor,
     freshness_attestation: ExternalFreshnessAttestation,
+    transparency_log: TransparencyLogAuthorityV1,
+    transparency_policy: TransparencyWitnessPolicyV1,
+    transparency_witnesses: TransparencyWitnessSetV1,
+    transparency_checkpoint: TransparencyCheckpointV1,
+    transparency_witness_signatures: Vec<TransparencyWitnessSignatureV1>,
 }
 
 impl DurableExecutionSecurityContext {
@@ -339,7 +446,32 @@ impl DurableExecutionSecurityContext {
         authority: FreshnessAuthority,
         cursor: FreshnessCursor,
         freshness_attestation: ExternalFreshnessAttestation,
+        transparency_log: TransparencyLogAuthorityV1,
+        transparency_policy: TransparencyWitnessPolicyV1,
+        transparency_witnesses: TransparencyWitnessSetV1,
+        transparency_checkpoint: TransparencyCheckpointV1,
+        transparency_witness_signatures: Vec<TransparencyWitnessSignatureV1>,
     ) -> Result<Self, AdapterError> {
+        transparency_log
+            .validate_independence_from_freshness(&authority)
+            .map_err(AdapterError::from)?;
+        transparency_log
+            .validate_independence_from_execution(&adapter.trust)
+            .map_err(AdapterError::from)?;
+        transparency_policy
+            .validate_matches_log(&transparency_log)
+            .map_err(AdapterError::from)?;
+        transparency_policy
+            .validate_independence_from_freshness(&authority)
+            .map_err(AdapterError::from)?;
+        transparency_policy
+            .validate_independence_from_execution(&adapter.trust)
+            .map_err(AdapterError::from)?;
+
+        if transparency_witnesses.policy_commitment() != transparency_policy.commitment() {
+            return Err(AdapterError::from(TransparencyError::PolicyMismatch));
+        }
+
         let head_witness = adapter.capture_head_witness()?;
         let loaded = adapter.load_verified_at(&head_witness)?;
         authority.verify(
@@ -350,10 +482,7 @@ impl DurableExecutionSecurityContext {
             &adapter.trust,
         )?;
         cursor.verify_candidate(&authority, &freshness_attestation, &loaded.chain)?;
-        // Sequence zero is the unadvanced bootstrap cursor. Once the journal has
-        // advanced, accepting it again would silently reset replay protection after
-        // restart, so establishment fails closed until an externally retained cursor
-        // is restored.
+
         if cursor.last_sequence() == 0
             && (!loaded.chain.events().is_empty() || freshness_attestation.sequence != 1)
         {
@@ -362,11 +491,32 @@ impl DurableExecutionSecurityContext {
                     .to_string(),
             ));
         }
+
+        let event_count = u64::try_from(loaded.chain.events().len())
+            .map_err(|_| AdapterError::Invalid("journal event count overflow".to_string()))?;
+        transparency_witnesses
+            .verify_for_new_transition(
+                &transparency_log,
+                &transparency_policy,
+                &transparency_checkpoint,
+                &transparency_witness_signatures,
+                &adapter.journal_namespace,
+                adapter.seed,
+                event_count,
+                loaded.chain.head_hash(),
+            )
+            .map_err(AdapterError::from)?;
+
         Ok(Self {
             head_witness,
             freshness_authority: authority,
             freshness_cursor: cursor,
             freshness_attestation,
+            transparency_log,
+            transparency_policy,
+            transparency_witnesses,
+            transparency_checkpoint,
+            transparency_witness_signatures,
         })
     }
 
@@ -375,6 +525,15 @@ impl DurableExecutionSecurityContext {
         freshness_attestation: ExternalFreshnessAttestation,
     ) {
         self.freshness_attestation = freshness_attestation;
+    }
+
+    pub fn set_transparency_evidence(
+        &mut self,
+        transparency_checkpoint: TransparencyCheckpointV1,
+        transparency_witness_signatures: Vec<TransparencyWitnessSignatureV1>,
+    ) {
+        self.transparency_checkpoint = transparency_checkpoint;
+        self.transparency_witness_signatures = transparency_witness_signatures;
     }
 
     #[must_use]
@@ -397,11 +556,37 @@ impl DurableExecutionSecurityContext {
         &self.freshness_attestation
     }
 
+    #[must_use]
+    pub fn transparency_log(&self) -> &TransparencyLogAuthorityV1 {
+        &self.transparency_log
+    }
+
+    #[must_use]
+    pub fn transparency_policy(&self) -> &TransparencyWitnessPolicyV1 {
+        &self.transparency_policy
+    }
+
+    #[must_use]
+    pub fn transparency_witnesses(&self) -> &TransparencyWitnessSetV1 {
+        &self.transparency_witnesses
+    }
+
+    #[must_use]
+    pub fn transparency_checkpoint(&self) -> &TransparencyCheckpointV1 {
+        &self.transparency_checkpoint
+    }
+
+    #[must_use]
+    pub fn transparency_witness_signatures(&self) -> &[TransparencyWitnessSignatureV1] {
+        &self.transparency_witness_signatures
+    }
+
     fn verify_before_transition(
         &self,
         adapter: &DurableExecutionAdapter,
         chain: &EventChain<ExecutionLifecycleEvent>,
-    ) -> Result<(), AdapterError> {
+        require_new_transparency_sequence: bool,
+    ) -> Result<AcceptedTransparencyCheckpointV1, AdapterError> {
         self.head_witness.verify_exact(
             &adapter.journal_namespace,
             adapter.seed,
@@ -415,26 +600,68 @@ impl DurableExecutionSecurityContext {
             chain,
             &adapter.trust,
         )?;
-        self.freshness_cursor
-            .verify_candidate(
-                &self.freshness_authority,
-                &self.freshness_attestation,
-                chain,
-            )?;
-        Ok(())
+        self.freshness_cursor.verify_candidate(
+            &self.freshness_authority,
+            &self.freshness_attestation,
+            chain,
+        )?;
+
+        let event_count = u64::try_from(chain.events().len())
+            .map_err(|_| AdapterError::Invalid("journal event count overflow".to_string()))?;
+
+        let result = if require_new_transparency_sequence {
+            self.transparency_witnesses.verify_for_new_transition(
+                &self.transparency_log,
+                &self.transparency_policy,
+                &self.transparency_checkpoint,
+                &self.transparency_witness_signatures,
+                &adapter.journal_namespace,
+                adapter.seed,
+                event_count,
+                chain.head_hash(),
+            )
+        } else {
+            self.transparency_witnesses.verify_candidate(
+                &self.transparency_log,
+                &self.transparency_policy,
+                &self.transparency_checkpoint,
+                &self.transparency_witness_signatures,
+                &adapter.journal_namespace,
+                adapter.seed,
+                event_count,
+                chain.head_hash(),
+            )
+        };
+
+        result.map_err(AdapterError::from)
     }
 
     fn advance_after_durable_transition(
         &mut self,
         adapter: &DurableExecutionAdapter,
         chain: &EventChain<ExecutionLifecycleEvent>,
+        accepted_transparency: AcceptedTransparencyCheckpointV1,
     ) -> Result<(), AdapterError> {
-        adapter.advance_head_witness(&mut self.head_witness, chain)?;
-        self.freshness_cursor.accept_verified(
+        let next_head_witness = JournalHeadWitness::capture(
+            adapter.journal_namespace.clone(),
+            adapter.seed,
+            chain,
+            &adapter.trust,
+        )?;
+
+        self.freshness_cursor.verify_candidate(
             &self.freshness_authority,
             &self.freshness_attestation,
             chain,
         )?;
+
+        self.transparency_witnesses
+            .commit_after_durable_append(accepted_transparency)
+            .map_err(AdapterError::from)?;
+
+        self.head_witness = next_head_witness;
+        self.freshness_cursor
+            .advance_verified(&self.freshness_attestation);
         Ok(())
     }
 }
@@ -1003,6 +1230,7 @@ pub struct ExecutionLifecycleEvent {
     pub post_energy_commitment: String,
     pub causal_inventory_event_ids: Vec<String>,
     pub causal_energy_event_id: Option<String>,
+    pub transparency_evidence: PersistedTransparencyEvidenceV1,
     pub authentication: Option<ExecutionEventAuthentication>,
 }
 
@@ -1016,6 +1244,7 @@ impl ExecutionLifecycleEvent {
         post_budget_commitment: String,
         post_inventory_commitment: String,
         post_energy_commitment: String,
+        transparency_evidence: PersistedTransparencyEvidenceV1,
     ) -> Self {
         Self {
             schema_version: EXECUTION_LIFECYCLE_SCHEMA_VERSION,
@@ -1034,6 +1263,7 @@ impl ExecutionLifecycleEvent {
             post_energy_commitment,
             causal_inventory_event_ids: Vec::new(),
             causal_energy_event_id: None,
+            transparency_evidence,
             authentication: None,
         }
     }
@@ -1050,6 +1280,7 @@ impl ExecutionLifecycleEvent {
         post_budget_commitment: String,
         post_inventory_commitment: String,
         post_energy_commitment: String,
+        transparency_evidence: PersistedTransparencyEvidenceV1,
     ) -> Self {
         let committed = matches!(state, DurableExecutionState::Committed);
         Self {
@@ -1073,6 +1304,7 @@ impl ExecutionLifecycleEvent {
                 Vec::new()
             },
             causal_energy_event_id: committed.then(|| receipt.energy_event_id()),
+            transparency_evidence,
             authentication: None,
         }
     }
@@ -1136,6 +1368,7 @@ impl ExecutionLifecycleEvent {
         }
 
         let receipt = self.receipt.to_receipt()?;
+        self.transparency_evidence.validate_basic()?;
         if !receipt.state_anchor().is_state_bound() {
             return Err(AdapterError::Invalid(
                 "durable lifecycle receipt cannot use an unbound execution anchor".to_string(),
@@ -1209,6 +1442,7 @@ pub enum AdapterError {
     Persistence(PersistenceError),
     Invalid(String),
     WitnessMismatch(String),
+    Transparency(TransparencyError),
     MissingExecution(String),
     UnexpectedState(String),
 }
@@ -1219,6 +1453,7 @@ impl fmt::Display for AdapterError {
             Self::Persistence(error) => write!(f, "persistence error: {error}"),
             Self::Invalid(error) => write!(f, "invalid durable execution record: {error}"),
             Self::WitnessMismatch(error) => write!(f, "journal head witness rejected: {error}"),
+            Self::Transparency(error) => write!(f, "transparency security rejected: {error}"),
             Self::MissingExecution(id) => {
                 write!(f, "execution is absent from durable journal: {id}")
             }
@@ -1229,12 +1464,19 @@ impl fmt::Display for AdapterError {
     }
 }
 
+impl From<TransparencyError> for AdapterError {
+    fn from(error: TransparencyError) -> Self {
+        Self::Transparency(error)
+    }
+}
+
 impl Error for AdapterError {
     fn source(&self) -> Option<&(dyn Error + 'static)> {
         match self {
             Self::Persistence(error) => Some(error),
             Self::Invalid(_)
             | Self::WitnessMismatch(_)
+            | Self::Transparency(_)
             | Self::MissingExecution(_)
             | Self::UnexpectedState(_) => None,
         }
@@ -1352,7 +1594,7 @@ impl DurableExecutionAdapter {
         security: &DurableExecutionSecurityContext,
     ) -> Result<JournalLoad<ExecutionLifecycleEvent>, AdapterError> {
         let loaded = self.load_verified()?;
-        security.verify_before_transition(self, &loaded.chain)?;
+        let _ = security.verify_before_transition(self, &loaded.chain, false)?;
         Ok(loaded)
     }
 
@@ -1469,6 +1711,15 @@ impl DurableExecutionAdapter {
 
             trust.verify_event(namespace, seed, ordinal, event)?;
 
+            if event.payload.transparency_evidence.checkpoint.journal_namespace() != namespace
+                || event.payload.transparency_evidence.checkpoint.seed() != seed
+            {
+                return Err(AdapterError::Invalid(
+                    "transparency checkpoint belongs to a different journal namespace or seed"
+                        .to_string(),
+                ));
+            }
+
             let auth = event.payload.authentication.as_ref().ok_or_else(|| {
                 AdapterError::Invalid(
                     "authenticated execution event unexpectedly lacks origin proof".to_string(),
@@ -1527,7 +1778,12 @@ impl DurableExecutionAdapter {
 
         let mut seen: BTreeMap<String, LifecycleSeen> = BTreeMap::new();
 
-        for event in chain.events() {
+        for (ordinal, event) in chain.events().iter().enumerate() {
+            let ordinal = u64::try_from(ordinal)
+                .map_err(|_| AdapterError::Invalid("journal ordinal overflow".to_string()))?;
+            event.payload.transparency_evidence
+                .validate_against_event(ordinal, &event.previous_hash)?;
+
             if event.kind != EXECUTION_EVENT_KIND {
                 return Err(AdapterError::Invalid(format!(
                     "unexpected execution journal event kind: {}",
@@ -1826,7 +2082,7 @@ impl DurableExecutionAdapter {
         let execution_id = execution_id.into();
         let journal_lock = self.store.acquire_journal_lock()?;
         let loaded = self.load_verified()?;
-        security.verify_before_transition(self, &loaded.chain)?;
+        let accepted_transparency = security.verify_before_transition(self, &loaded.chain, true)?;
         Self::ensure_only_one_pending(&loaded.chain)?;
         Self::ensure_live_matches_latest(&loaded.chain, budget, inventory, energy)?;
 
@@ -1879,11 +2135,12 @@ impl DurableExecutionAdapter {
             staged_budget.state_commitment(),
             staged_inventory.state_commitment(),
             pre_energy_commitment,
+            PersistedTransparencyEvidenceV1::from_accepted(&accepted_transparency),
         );
 
         let mut chain = loaded.chain;
         self.append_authenticated_payload(&mut chain, simulation_tick, payload, &journal_lock)?;
-        security.advance_after_durable_transition(self, &chain)?;
+        security.advance_after_durable_transition(self, &chain, accepted_transparency)?;
 
         *budget = staged_budget;
         *inventory = staged_inventory;
@@ -1905,7 +2162,7 @@ impl DurableExecutionAdapter {
     ) -> Result<ExecutableProcessExecutionReceipt, AdapterError> {
         let _journal_lock = self.store.acquire_journal_lock()?;
         let loaded = self.load_verified()?;
-        security.verify_before_transition(self, &loaded.chain)?;
+        let _accepted_transparency = security.verify_before_transition(self, &loaded.chain, false)?;
         let event = Self::pending_event(&loaded.chain, execution_id)?;
         let receipt = event.payload.receipt.to_receipt()?;
         Self::ensure_process_definition(
@@ -1991,7 +2248,7 @@ impl DurableExecutionAdapter {
     ) -> Result<(), AdapterError> {
         let journal_lock = self.store.acquire_journal_lock()?;
         let loaded = self.load_verified()?;
-        security.verify_before_transition(self, &loaded.chain)?;
+        let accepted_transparency = security.verify_before_transition(self, &loaded.chain, true)?;
 
         let (pending_event_id, pending_event_hash, persisted) =
             Self::pending_record(&loaded.chain, receipt.execution_id())?;
@@ -2046,11 +2303,12 @@ impl DurableExecutionAdapter {
             staged_budget.state_commitment(),
             staged_inventory.state_commitment(),
             staged_energy.state_commitment(),
+            PersistedTransparencyEvidenceV1::from_accepted(&accepted_transparency),
         );
 
         let mut chain = loaded.chain;
         self.append_authenticated_payload(&mut chain, simulation_tick, payload, &journal_lock)?;
-        security.advance_after_durable_transition(self, &chain)?;
+        security.advance_after_durable_transition(self, &chain, accepted_transparency)?;
 
         *budget = staged_budget;
         *inventory = staged_inventory;
@@ -2071,7 +2329,7 @@ impl DurableExecutionAdapter {
     ) -> Result<(), AdapterError> {
         let journal_lock = self.store.acquire_journal_lock()?;
         let loaded = self.load_verified()?;
-        security.verify_before_transition(self, &loaded.chain)?;
+        let accepted_transparency = security.verify_before_transition(self, &loaded.chain, true)?;
 
         let (pending_event_id, pending_event_hash, persisted) =
             Self::pending_record(&loaded.chain, receipt.execution_id())?;
@@ -2120,11 +2378,12 @@ impl DurableExecutionAdapter {
             staged_budget.state_commitment(),
             staged_inventory.state_commitment(),
             energy.state_commitment(),
+            PersistedTransparencyEvidenceV1::from_accepted(&accepted_transparency),
         );
 
         let mut chain = loaded.chain;
         self.append_authenticated_payload(&mut chain, simulation_tick, payload, &journal_lock)?;
-        security.advance_after_durable_transition(self, &chain)?;
+        security.advance_after_durable_transition(self, &chain, accepted_transparency)?;
 
         *budget = staged_budget;
         *inventory = staged_inventory;
@@ -2144,7 +2403,7 @@ impl DurableExecutionAdapter {
     ) -> Result<RecoveryResult, AdapterError> {
         let _journal_lock = self.store.acquire_journal_lock()?;
         let loaded = self.load_verified()?;
-        security.verify_before_transition(self, &loaded.chain)?;
+        let _accepted_transparency = security.verify_before_transition(self, &loaded.chain, false)?;
 
         let terminal = loaded
             .chain
