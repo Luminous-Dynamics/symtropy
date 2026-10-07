@@ -1767,7 +1767,8 @@ impl DurableExecutionAdapter {
     ) -> Result<ProcessExecutionReceipt, AdapterError> {
         let execution_id = execution_id.into();
         let journal_lock = self.store.acquire_journal_lock()?;
-        let loaded = self.load_verified()?
+        let loaded = self.load_verified()?;
+        security.verify_before_transition(self, &loaded.chain)?;
         Self::ensure_only_one_pending(&loaded.chain)?;
         Self::ensure_live_matches_latest(&loaded.chain, budget, inventory, energy)?;
 
@@ -1825,14 +1826,13 @@ impl DurableExecutionAdapter {
         let mut chain = loaded.chain;
         self.append_authenticated_payload(&mut chain, simulation_tick, payload, &journal_lock)?;
         security.advance_after_durable_transition(self, &chain)?;
-        self.advance_head_witness(head_witness, &chain)?;
 
         *budget = staged_budget;
         *inventory = staged_inventory;
         Ok(receipt)
     }
 
-    /// Recover a Pending execution only against a caller-retained journal-head witness.
+    /// Recover a Pending execution only against the unified durable security context.
     ///
     /// Recovery holds the journal writer fence for the entire verification/replay window.
     pub fn recover_pending(
@@ -1846,7 +1846,8 @@ impl DurableExecutionAdapter {
         energy: &EnergyLedger,
     ) -> Result<ExecutableProcessExecutionReceipt, AdapterError> {
         let _journal_lock = self.store.acquire_journal_lock()?;
-        let loaded = self.load_verified_against(head_witness)?;
+        let loaded = self.load_verified()?;
+        security.verify_before_transition(self, &loaded.chain)?;
         let event = Self::pending_event(&loaded.chain, execution_id)?;
         let receipt = event.payload.receipt.to_receipt()?;
         Self::ensure_process_definition(
@@ -1874,8 +1875,7 @@ impl DurableExecutionAdapter {
             let result =
                 resume_pending_execution(execution_id, budget, inventory)
                     .map_err(AdapterError::Invalid)?;
-            self.advance_head_witness(head_witness, &loaded.chain)?;
-            return Ok(result);
+                return Ok(result);
         }
 
         let live_pre_matches = budget.state_commitment() == event.payload.pre_budget_commitment
@@ -1917,11 +1917,10 @@ impl DurableExecutionAdapter {
         let result =
             resume_pending_execution(execution_id, budget, inventory)
                 .map_err(AdapterError::Invalid)?;
-        self.advance_head_witness(head_witness, &loaded.chain)?;
         Ok(result)
     }
 
-    /// Commit an execution only against a caller-retained journal-head witness.
+    /// Commit an execution only against the unified durable security context.
     pub fn commit(
         &self,
         security: &mut DurableExecutionSecurityContext,
@@ -1933,7 +1932,8 @@ impl DurableExecutionAdapter {
         energy: &mut EnergyLedger,
     ) -> Result<(), AdapterError> {
         let journal_lock = self.store.acquire_journal_lock()?;
-        let loaded = self.load_verified()?
+        let loaded = self.load_verified()?;
+        security.verify_before_transition(self, &loaded.chain)?;
 
         let (pending_event_id, pending_event_hash, persisted) =
             Self::pending_record(&loaded.chain, receipt.execution_id())?;
@@ -1993,7 +1993,6 @@ impl DurableExecutionAdapter {
         let mut chain = loaded.chain;
         self.append_authenticated_payload(&mut chain, simulation_tick, payload, &journal_lock)?;
         security.advance_after_durable_transition(self, &chain)?;
-        self.advance_head_witness(head_witness, &chain)?;
 
         *budget = staged_budget;
         *inventory = staged_inventory;
@@ -2001,7 +2000,7 @@ impl DurableExecutionAdapter {
         Ok(())
     }
 
-    /// Abort an execution only against a caller-retained journal-head witness.
+    /// Abort an execution only against the unified durable security context.
     pub fn abort(
         &self,
         security: &mut DurableExecutionSecurityContext,
@@ -2013,7 +2012,8 @@ impl DurableExecutionAdapter {
         energy: &mut EnergyLedger,
     ) -> Result<(), AdapterError> {
         let journal_lock = self.store.acquire_journal_lock()?;
-        let loaded = self.load_verified()?
+        let loaded = self.load_verified()?;
+        security.verify_before_transition(self, &loaded.chain)?;
 
         let (pending_event_id, pending_event_hash, persisted) =
             Self::pending_record(&loaded.chain, receipt.execution_id())?;
@@ -2067,14 +2067,13 @@ impl DurableExecutionAdapter {
         let mut chain = loaded.chain;
         self.append_authenticated_payload(&mut chain, simulation_tick, payload, &journal_lock)?;
         security.advance_after_durable_transition(self, &chain)?;
-        self.advance_head_witness(head_witness, &chain)?;
 
         *budget = staged_budget;
         *inventory = staged_inventory;
         Ok(())
     }
 
-    /// Recover a terminal execution only against a caller-retained journal-head witness.
+    /// Recover a terminal execution only against the unified durable security context.
     pub fn recover_terminal(
         &self,
         security: &mut DurableExecutionSecurityContext,
@@ -2086,7 +2085,8 @@ impl DurableExecutionAdapter {
         energy: &mut EnergyLedger,
     ) -> Result<RecoveryResult, AdapterError> {
         let _journal_lock = self.store.acquire_journal_lock()?;
-        let loaded = self.load_verified()?
+        let loaded = self.load_verified()?;
+        security.verify_before_transition(self, &loaded.chain)?;
 
         let terminal = loaded
             .chain
@@ -2126,8 +2126,7 @@ impl DurableExecutionAdapter {
                 DurableExecutionState::Aborted => RecoveryResult::Aborted,
                 DurableExecutionState::Pending => unreachable!(),
             };
-            self.advance_head_witness(head_witness, &loaded.chain)?;
-            return Ok(result);
+                return Ok(result);
         }
 
         let pre_matches = budget.state_commitment() == terminal.payload.pre_budget_commitment
@@ -2184,7 +2183,6 @@ impl DurableExecutionAdapter {
             DurableExecutionState::Aborted => RecoveryResult::Aborted,
             DurableExecutionState::Pending => unreachable!(),
         };
-        self.advance_head_witness(head_witness, &loaded.chain)?;
         Ok(result)
     }
 }
