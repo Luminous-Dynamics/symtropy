@@ -175,10 +175,13 @@ The journal also retains a contiguous transparency history: sequence numbers adv
 Each lifecycle record persists:
 
     exact transparency checkpoint
-    exact VDS consistency proof when tree growth requires one
+    exact per-witness VDS consistency proof when tree growth requires one
+    exact retained VDS frontier from which each witness continuity check was performed
     validated witness signatures
     canonical accepted witness identities
     canonical accepted independence domains
+
+The older single shared-proof field remains only as compatibility metadata when all accepted witnesses used the same proof.
 
 The persisted checkpoint is additionally tied to the lifecycle event's journal position:
 
