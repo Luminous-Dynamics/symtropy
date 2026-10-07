@@ -9,8 +9,9 @@
 //! independently retained witness state prevents silent replacement of that checkpoint
 //! with a conflicting or non-extending view.
 //!
-//! It does not implement HTTP transport, a Merkle VDS, a public transparency service,
-//! trusted time, or physical execution authority. Those are separate layers.
+//! It does not implement HTTP transport, a public transparency service, trusted time,
+//! or physical execution authority. Merkle VDS mechanics are provided by the
+//! sibling `transparency_vds` module and remain separate from admission policy.
 
 use ring::signature::{ED25519, UnparsedPublicKey};
 use serde::{Deserialize, Serialize};
@@ -18,14 +19,62 @@ use sha2::{Digest, Sha256};
 use std::collections::BTreeMap;
 
 use super::{DurableExecutionTrust, FreshnessAuthority};
+use super::transparency_vds::{verify_append_only_sha256, MerkleConsistencyProofV1};
 
 pub const TRANSPARENCY_CHECKPOINT_SCHEMA_VERSION: u32 = 1;
-pub const TRANSPARENCY_CHECKPOINT_ALGORITHM: &str = "Ed25519-SHA256-JOURNAL-CHECKPOINT-v1";
+pub const TRANSPARENCY_CHECKPOINT_ALGORITHM: &str =
+    "Ed25519-SHA256-VDS-JOURNAL-CHECKPOINT-v1";
 pub const TRANSPARENCY_WITNESS_ALGORITHM: &str = "Ed25519-SHA256-JOURNAL-WITNESS-v1";
 
-const TRANSPARENCY_DOMAIN: &str = "symtropy.transparency-checkpoint.v1";
+const TRANSPARENCY_DOMAIN: &str = "symtropy.transparency-checkpoint.v1.vds";
 const TRANSPARENCY_WITNESS_DOMAIN: &str = "symtropy.transparency-witness.v1";
 const TRANSPARENCY_GENESIS_TAG: &str = "TRANSPARENCY-GENESIS-V1";
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct TransparencyVdsTreeHeadV1 {
+    tree_size: u64,
+    root_hash: String,
+}
+
+impl TransparencyVdsTreeHeadV1 {
+    pub fn new(tree_size: u64, root_hash: impl Into<String>) -> Result<Self, TransparencyError> {
+        let root_hash = root_hash.into();
+        if !is_sha256_hex(&root_hash) {
+            return Err(TransparencyError::Invalid(
+                "transparency VDS root must be lowercase SHA-256".to_string(),
+            ));
+        }
+        let empty_root = encode_hex(&Sha256::digest(b""));
+        if tree_size == 0 && root_hash != empty_root {
+            return Err(TransparencyError::Invalid(
+                "zero-sized transparency VDS must use the empty-tree root".to_string(),
+            ));
+        }
+        Ok(Self { tree_size, root_hash })
+    }
+
+    #[must_use]
+    pub fn empty() -> Self {
+        Self {
+            tree_size: 0,
+            root_hash: encode_hex(&Sha256::digest(b"")),
+        }
+    }
+
+    pub fn validate_basic(&self) -> Result<(), TransparencyError> {
+        Self::new(self.tree_size, self.root_hash.clone()).map(|_| ())
+    }
+
+    #[must_use]
+    pub const fn tree_size(&self) -> u64 {
+        self.tree_size
+    }
+
+    #[must_use]
+    pub fn root_hash(&self) -> &str {
+        &self.root_hash
+    }
+}
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct TransparencyCheckpointUnsignedV1 {
@@ -38,6 +87,7 @@ pub struct TransparencyCheckpointUnsignedV1 {
     seed: u64,
     event_count: u64,
     head_hash: String,
+    vds_tree_head: TransparencyVdsTreeHeadV1,
     previous_checkpoint_digest: String,
     witness_policy_commitment: String,
 }
@@ -51,6 +101,8 @@ impl TransparencyCheckpointUnsignedV1 {
         seed: u64,
         event_count: u64,
         head_hash: impl Into<String>,
+        vds_tree_size: u64,
+        vds_root_hash: impl Into<String>,
         previous_checkpoint_digest: impl Into<String>,
         witness_policy_commitment: impl Into<String>,
     ) -> Result<Self, TransparencyError> {
@@ -64,6 +116,7 @@ impl TransparencyCheckpointUnsignedV1 {
             seed,
             event_count,
             head_hash: head_hash.into(),
+            vds_tree_head: TransparencyVdsTreeHeadV1::new(vds_tree_size, vds_root_hash)?,
             previous_checkpoint_digest: previous_checkpoint_digest.into(),
             witness_policy_commitment: witness_policy_commitment.into(),
         };
@@ -94,7 +147,8 @@ impl TransparencyCheckpointUnsignedV1 {
             &self.previous_checkpoint_digest,
         )?;
         validate_nonempty("witness_policy_commitment", &self.witness_policy_commitment)?;
-        validate_head(self.event_count, &self.head_hash)
+        validate_head(self.event_count, &self.head_hash)?;
+        self.vds_tree_head.validate_basic()
     }
 
     #[must_use]
@@ -110,6 +164,8 @@ impl TransparencyCheckpointUnsignedV1 {
         hash_u64(&mut hasher, self.seed);
         hash_u64(&mut hasher, self.event_count);
         hash_string(&mut hasher, &self.head_hash);
+        hash_u64(&mut hasher, self.vds_tree_head.tree_size());
+        hash_string(&mut hasher, self.vds_tree_head.root_hash());
         hash_string(&mut hasher, &self.previous_checkpoint_digest);
         hash_string(&mut hasher, &self.witness_policy_commitment);
         finalize_digest(hasher)
@@ -180,6 +236,16 @@ impl TransparencyCheckpointV1 {
     #[must_use]
     pub fn head_hash(&self) -> &str {
         &self.unsigned.head_hash
+    }
+
+    #[must_use]
+    pub fn vds_tree_size(&self) -> u64 {
+        self.unsigned.vds_tree_head.tree_size()
+    }
+
+    #[must_use]
+    pub fn vds_root_hash(&self) -> &str {
+        self.unsigned.vds_tree_head.root_hash()
     }
 
     #[must_use]
@@ -560,6 +626,7 @@ pub struct AcceptedTransparencyCheckpointV1 {
     accepted_witnesses: Vec<String>,
     accepted_domains: Vec<String>,
     witness_signatures: Vec<TransparencyWitnessSignatureV1>,
+    vds_consistency_proof: Option<MerkleConsistencyProofV1>,
     checkpoint_digest: String,
     predecessor_states: BTreeMap<String, RetainedWitnessState>,
 }
@@ -589,6 +656,11 @@ impl AcceptedTransparencyCheckpointV1 {
     pub fn witness_signatures(&self) -> &[TransparencyWitnessSignatureV1] {
         &self.witness_signatures
     }
+
+    #[must_use]
+    pub fn vds_consistency_proof(&self) -> Option<&MerkleConsistencyProofV1> {
+        self.vds_consistency_proof.as_ref()
+    }
 }
 
 #[derive(Debug)]
@@ -597,6 +669,8 @@ struct RetainedWitnessState {
     checkpoint_digest: String,
     event_count: u64,
     head_hash: String,
+    vds_tree_size: u64,
+    vds_root_hash: String,
 }
 
 impl Clone for RetainedWitnessState {
@@ -606,6 +680,8 @@ impl Clone for RetainedWitnessState {
             checkpoint_digest: self.checkpoint_digest.clone(),
             event_count: self.event_count,
             head_hash: self.head_hash.clone(),
+            vds_tree_size: self.vds_tree_size,
+            vds_root_hash: self.vds_root_hash.clone(),
         }
     }
 }
@@ -634,6 +710,8 @@ impl TransparencyWitnessSetV1 {
                     checkpoint_digest: genesis_digest.clone(),
                     event_count: 0,
                     head_hash: "GENESIS".to_string(),
+                    vds_tree_size: 0,
+                    vds_root_hash: TransparencyVdsTreeHeadV1::empty().root_hash().to_string(),
                 },
             );
         }
@@ -681,7 +759,7 @@ impl TransparencyWitnessSetV1 {
         event_count: u64,
         head_hash: &str,
     ) -> Result<AcceptedTransparencyCheckpointV1, TransparencyError> {
-        let accepted = self.verify_candidate(
+        self.verify_for_new_transition_with_vds(
             log,
             policy,
             checkpoint,
@@ -690,6 +768,32 @@ impl TransparencyWitnessSetV1 {
             seed,
             event_count,
             head_hash,
+            None,
+        )
+    }
+
+    pub fn verify_for_new_transition_with_vds(
+        &self,
+        log: &TransparencyLogAuthorityV1,
+        policy: &TransparencyWitnessPolicyV1,
+        checkpoint: &TransparencyCheckpointV1,
+        witness_signatures: &[TransparencyWitnessSignatureV1],
+        journal_namespace: &str,
+        seed: u64,
+        event_count: u64,
+        head_hash: &str,
+        vds_consistency_proof: Option<&MerkleConsistencyProofV1>,
+    ) -> Result<AcceptedTransparencyCheckpointV1, TransparencyError> {
+        let accepted = self.verify_candidate_with_vds(
+            log,
+            policy,
+            checkpoint,
+            witness_signatures,
+            journal_namespace,
+            seed,
+            event_count,
+            head_hash,
+            vds_consistency_proof,
         )?;
         if accepted.checkpoint.sequence() <= self.max_retained_sequence() {
             return Err(TransparencyError::ReplayDetected);
@@ -713,6 +817,31 @@ impl TransparencyWitnessSetV1 {
         seed: u64,
         event_count: u64,
         head_hash: &str,
+    ) -> Result<AcceptedTransparencyCheckpointV1, TransparencyError> {
+        self.verify_candidate_with_vds(
+            log,
+            policy,
+            checkpoint,
+            witness_signatures,
+            journal_namespace,
+            seed,
+            event_count,
+            head_hash,
+            None,
+        )
+    }
+
+    pub fn verify_candidate_with_vds(
+        &self,
+        log: &TransparencyLogAuthorityV1,
+        policy: &TransparencyWitnessPolicyV1,
+        checkpoint: &TransparencyCheckpointV1,
+        witness_signatures: &[TransparencyWitnessSignatureV1],
+        journal_namespace: &str,
+        seed: u64,
+        event_count: u64,
+        head_hash: &str,
+        vds_consistency_proof: Option<&MerkleConsistencyProofV1>,
     ) -> Result<AcceptedTransparencyCheckpointV1, TransparencyError> {
         if self.policy_commitment != policy.commitment() {
             return Err(TransparencyError::PolicyMismatch);
@@ -804,6 +933,15 @@ impl TransparencyWitnessSetV1 {
                 }
             }
 
+            verify_append_only_sha256(
+                retained.vds_tree_size,
+                &retained.vds_root_hash,
+                checkpoint.vds_tree_size(),
+                checkpoint.vds_root_hash(),
+                vds_consistency_proof,
+            )
+            .map_err(|_| TransparencyError::VdsConsistency)?;
+
             verified.push((
                 witness_id,
                 witness.independence_domain().to_string(),
@@ -841,6 +979,7 @@ impl TransparencyWitnessSetV1 {
             accepted_witnesses,
             accepted_domains,
             witness_signatures: accepted_signatures,
+            vds_consistency_proof: vds_consistency_proof.cloned(),
             checkpoint_digest,
             predecessor_states,
         })
@@ -867,6 +1006,8 @@ impl TransparencyWitnessSetV1 {
                 || current.checkpoint_digest != expected.checkpoint_digest
                 || current.event_count != expected.event_count
                 || current.head_hash != expected.head_hash
+                || current.vds_tree_size != expected.vds_tree_size
+                || current.vds_root_hash != expected.vds_root_hash
             {
                 return Err(TransparencyError::StaleAcceptedCheckpoint);
             }
@@ -880,6 +1021,8 @@ impl TransparencyWitnessSetV1 {
                     checkpoint_digest: accepted.checkpoint_digest.clone(),
                     event_count: accepted.checkpoint.event_count(),
                     head_hash: accepted.checkpoint.head_hash().to_string(),
+                    vds_tree_size: accepted.checkpoint.vds_tree_size(),
+                    vds_root_hash: accepted.checkpoint.vds_root_hash().to_string(),
                 },
             );
         }
@@ -910,6 +1053,7 @@ pub enum TransparencyError {
     NonExtension {
         witness_id: String,
     },
+    VdsConsistency,
     InsufficientQuorum,
     InsufficientIndependentDomains,
     SequenceDiscontinuity {
@@ -962,7 +1106,10 @@ impl std::fmt::Display for TransparencyError {
                     "witness {witness_id} observed non-extending checkpoint history"
                 )
             }
-            Self::InsufficientQuorum => {
+            Self::VdsConsistency => {
+                write!(formatter, "transparency VDS consistency proof failed")
+            }
+            Self::InsufficientQuorum => {}
                 write!(formatter, "transparency witness quorum insufficient")
             }
             Self::InsufficientIndependentDomains => {
@@ -1193,6 +1340,8 @@ mod tests {
             1,
             event_count,
             head_hash,
+            0,
+            TransparencyVdsTreeHeadV1::empty().root_hash(),
             previous_digest,
             policy.commitment(),
         )
