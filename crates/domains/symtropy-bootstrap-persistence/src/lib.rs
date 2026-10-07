@@ -62,6 +62,7 @@ impl FreshnessCursor {
         &self,
         authority: &FreshnessAuthority,
         attestation: &ExternalFreshnessAttestation,
+        chain: &EventChain<ExecutionLifecycleEvent>,
     ) -> Result<(), AdapterError> {
         if self.authority_commitment != authority.commitment() {
             return Err(AdapterError::WitnessMismatch(
@@ -74,6 +75,31 @@ impl FreshnessCursor {
                     .to_string(),
             ));
         }
+
+        if attestation.event_count < self.last_event_count {
+            return Err(AdapterError::WitnessMismatch(
+                "journal freshness authority rolled back behind the retained cursor".to_string(),
+            ));
+        }
+
+        if self.last_event_count > 0 {
+            let index = usize::try_from(self.last_event_count - 1)
+                .map_err(|_| AdapterError::WitnessMismatch(
+                    "freshness cursor history index overflow".to_string(),
+                ))?;
+            let prior = chain.events().get(index).ok_or_else(|| {
+                AdapterError::WitnessMismatch(
+                    "journal freshness chain is shorter than the retained cursor".to_string(),
+                )
+            })?;
+            if prior.event_hash != self.last_head_hash {
+                return Err(AdapterError::WitnessMismatch(
+                    "journal freshness checkpoint does not extend the retained cursor head"
+                        .to_string(),
+                ));
+            }
+        }
+
         Ok(())
     }
 
@@ -81,8 +107,9 @@ impl FreshnessCursor {
         &mut self,
         authority: &FreshnessAuthority,
         attestation: &ExternalFreshnessAttestation,
+        chain: &EventChain<ExecutionLifecycleEvent>,
     ) -> Result<(), AdapterError> {
-        self.verify_candidate(authority, attestation)?;
+        self.verify_candidate(authority, attestation, chain)?;
         self.last_sequence = attestation.sequence;
         self.last_head_hash = attestation.head_hash.clone();
         self.last_event_count = attestation.event_count;
@@ -198,7 +225,7 @@ impl FreshnessAuthority {
         trust: &DurableExecutionTrust,
     ) -> Result<(), AdapterError> {
         self.verify(attestation, namespace, seed, chain, trust)?;
-        cursor.accept_verified(self, attestation)
+        cursor.accept_verified(self, attestation, chain)
     }
     /// Verify an externally authored checkpoint against the exact current journal head.
     ///
@@ -310,7 +337,7 @@ impl DurableExecutionSecurityContext {
             &loaded.chain,
             &adapter.trust,
         )?;
-        cursor.verify_candidate(&authority, &freshness_attestation)?;
+        cursor.verify_candidate(&authority, &freshness_attestation, &loaded.chain)?;
         Ok(Self {
             head_witness,
             freshness_authority: authority,
@@ -365,7 +392,11 @@ impl DurableExecutionSecurityContext {
             &adapter.trust,
         )?;
         self.freshness_cursor
-            .verify_candidate(&self.freshness_authority, &self.freshness_attestation)?;
+            .verify_candidate(
+                &self.freshness_authority,
+                &self.freshness_attestation,
+                chain,
+            )?;
         Ok(())
     }
 
@@ -375,8 +406,11 @@ impl DurableExecutionSecurityContext {
         chain: &EventChain<ExecutionLifecycleEvent>,
     ) -> Result<(), AdapterError> {
         adapter.advance_head_witness(&mut self.head_witness, chain)?;
-        self.freshness_cursor
-            .accept_verified(&self.freshness_authority, &self.freshness_attestation)?;
+        self.freshness_cursor.accept_verified(
+            &self.freshness_authority,
+            &self.freshness_attestation,
+            chain,
+        )?;
         Ok(())
     }
 }
@@ -2479,6 +2513,114 @@ mod tests {
             )
             .is_ok());
         assert_eq!(cursor.last_sequence(), 2);
+
+        fs::remove_dir_all(adapter.store().root()).expect("cleanup");
+    }
+
+    #[test]
+    fn external_freshness_cursor_rejects_older_fork_with_higher_sequence() {
+        let adapter = configured_adapter("freshness-cursor-fork");
+        let authority_signer = test_signer("freshness-cursor-fork-authority", 1);
+        let authority = FreshnessAuthority::from_public_key_hex(
+            authority_signer.key_id(),
+            authority_signer.key_epoch(),
+            authority_signer.public_key_hex(),
+        )
+        .expect("authority");
+
+        let attestation = freshness_test_attestation(
+            authority.authority_id(),
+            authority.authority_epoch(),
+            &authority_signer,
+            &adapter,
+            1,
+        );
+        let mut cursor = authority
+            .initialize_cursor(
+                &attestation,
+                "bootstrap",
+                1,
+                &adapter.load_verified().expect("journal").chain,
+                adapter.trust(),
+            )
+            .expect("cursor");
+
+        // Retain an attested non-empty history so a later higher sequence must extend it.
+        let mut security = TestSecurityMaterial::new(&adapter);
+        security.refresh(&adapter);
+        let (process, run) = process_and_run();
+        let (mut budget, mut inventory, mut energy) = (
+            ExecutionBudget::new(2_000, 8_000),
+            InventoryLedger::new(BTreeMap::from([
+                ("feed".to_string(), 1_000),
+                ("feed-2".to_string(), 1_000),
+            ])),
+            EnergyLedger::new(BTreeMap::from([("bus".to_string(), 8_000])),
+        );
+        adapter
+            .authorize_pending(
+                &mut security.context,
+                &process,
+                "exec-cursor-fork",
+                1,
+                10,
+                20,
+                "bus",
+                run,
+                &mut budget,
+                &mut inventory,
+                &mut energy,
+            )
+            .expect("pending");
+        security.refresh(&adapter);
+        let executable =
+            resume_pending_execution("exec-cursor-fork", &budget, &inventory)
+                .expect("activation");
+        adapter
+            .commit(
+                &mut security.context,
+                &process,
+                &executable,
+                2,
+                &mut budget,
+                &mut inventory,
+                &mut energy,
+            )
+            .expect("commit");
+
+        let full = adapter.load_verified().expect("full journal");
+        let fork = EventChain::from_events(
+            "bootstrap",
+            1,
+            full.chain.events()[..1].to_vec(),
+        );
+        let mut older = ExternalFreshnessAttestation {
+            schema_version: FRESHNESS_ATTESTATION_SCHEMA_VERSION,
+            algorithm: FRESHNESS_ATTESTATION_ALGORITHM.to_string(),
+            authority_id: authority.authority_id().to_string(),
+            authority_epoch: authority.authority_epoch(),
+            sequence: security.context.freshness_cursor().last_sequence().checked_add(1).expect("sequence"),
+            namespace: "bootstrap".to_string(),
+            seed: 1,
+            event_count: 1,
+            head_hash: fork.head_hash().to_string(),
+            trust_commitment: adapter.trust().commitment(),
+            signature: String::new(),
+        };
+        older.signature =
+            hex_encode(authority_signer.key_pair.sign(&freshness_attestation_digest(&older)).as_ref());
+
+        assert!(matches!(
+            authority.verify_and_advance(
+                &mut cursor,
+                &older,
+                "bootstrap",
+                1,
+                &fork,
+                adapter.trust(),
+            ),
+            Err(AdapterError::WitnessMismatch(_))
+        ));
 
         fs::remove_dir_all(adapter.store().root()).expect("cleanup");
     }
