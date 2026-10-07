@@ -1839,13 +1839,6 @@ impl DurableExecutionAdapter {
                 ));
             }
 
-            if sequence == 1 && checkpoint.vds_tree_size() != 0 {
-                return Err(AdapterError::Invalid(
-                    "first durable transparency checkpoint must start at VDS tree size zero"
-                        .to_string(),
-                ));
-            }
-
             verify_append_only_sha256(
                 previous_vds_tree_size,
                 &previous_vds_root,
