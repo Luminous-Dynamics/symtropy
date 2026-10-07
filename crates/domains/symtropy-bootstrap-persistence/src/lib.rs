@@ -7,6 +7,7 @@
 //! execution records and treats in-memory kernel state as a checked projection.
 
 pub mod transparency;
+pub mod transparency_vds;
 
 use serde::{Deserialize, Serialize};
 use std::{
