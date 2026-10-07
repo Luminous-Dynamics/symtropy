@@ -717,6 +717,8 @@ impl TransparencyWitnessSignatureV1 {
 pub struct TransparencyWitnessEvidenceV1 {
     witness_signature: TransparencyWitnessSignatureV1,
     vds_consistency_proof: Option<MerkleConsistencyProofV1>,
+    #[serde(default)]
+    retained_vds_tree_head: Option<TransparencyVdsTreeHeadV1>,
 }
 
 impl TransparencyWitnessEvidenceV1 {
@@ -731,6 +733,7 @@ impl TransparencyWitnessEvidenceV1 {
         Ok(Self {
             witness_signature,
             vds_consistency_proof,
+            retained_vds_tree_head: None,
         })
     }
 
@@ -747,6 +750,28 @@ impl TransparencyWitnessEvidenceV1 {
     #[must_use]
     pub fn vds_consistency_proof(&self) -> Option<&MerkleConsistencyProofV1> {
         self.vds_consistency_proof.as_ref()
+    }
+
+    #[must_use]
+    pub fn retained_vds_tree_head(&self) -> Option<&TransparencyVdsTreeHeadV1> {
+        self.retained_vds_tree_head.as_ref()
+    }
+
+    fn bind_retained_vds_frontier(
+        mut self,
+        retained: &TransparencyVdsTreeHeadV1,
+    ) -> Result<Self, TransparencyError> {
+        retained.validate_basic()?;
+        if let Some(bound) = &self.retained_vds_tree_head {
+            if bound != retained {
+                return Err(TransparencyError::VdsPredecessorMismatch {
+                    witness_id: self.witness_id().to_string(),
+                });
+            }
+        } else {
+            self.retained_vds_tree_head = Some(retained.clone());
+        }
+        Ok(self)
     }
 
     pub fn validate_basic(&self) -> Result<(), TransparencyError> {
@@ -1135,6 +1160,13 @@ impl TransparencyWitnessSetV1 {
                 }
             }
 
+            let retained_vds_head =
+                TransparencyVdsTreeHeadV1::new(
+                    retained.vds_tree_size,
+                    retained.vds_root_hash.clone(),
+                )?;
+            let evidence = evidence.bind_retained_vds_frontier(&retained_vds_head)?;
+
             verify_append_only_sha256(
                 retained.vds_tree_size,
                 &retained.vds_root_hash,
@@ -1148,7 +1180,7 @@ impl TransparencyWitnessSetV1 {
                 witness_id,
                 witness.independence_domain().to_string(),
                 retained,
-                evidence.clone(),
+                evidence,
             ));
         }
 
@@ -1270,6 +1302,9 @@ pub enum TransparencyError {
         witness_id: String,
     },
     VdsConsistency,
+    VdsPredecessorMismatch {
+        witness_id: String,
+    },
     InclusionLeafMismatch,
     InsufficientQuorum,
     InsufficientIndependentDomains,
@@ -1320,6 +1355,12 @@ impl std::fmt::Display for TransparencyError {
             }
             Self::VdsConsistency => {
                 write!(formatter, "transparency VDS consistency proof failed")
+            }
+            Self::VdsPredecessorMismatch { witness_id } => {
+                write!(
+                    formatter,
+                    "transparency witness {witness_id} supplied a mismatched retained VDS frontier"
+                )
             }
             Self::InclusionLeafMismatch => {
                 write!(formatter, "transparency inclusion evidence leaf does not match entry")
