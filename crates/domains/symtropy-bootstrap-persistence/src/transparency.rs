@@ -2098,6 +2098,7 @@ mod tests {
         let policy = policy(&keys);
         let log = TransparencyLogAuthorityV1::from_public_key_hex("log-1", 1, keys.log_public())
             .expect("log");
+        state.bind_log_authority(&log).expect("log binding");
         let mut state = TransparencyWitnessSetV1::new(&policy).expect("state");
         let entries = vec![b"preexisting-0".to_vec(), b"preexisting-1".to_vec()];
         let root = crate::transparency_vds::merkle_tree_hash_sha256(&entries);
@@ -2144,6 +2145,7 @@ mod tests {
         let mut state = TransparencyWitnessSetV1::new(&policy).expect("state");
         let log = TransparencyLogAuthorityV1::from_public_key_hex("log-1", 1, keys.log_public())
             .expect("log");
+        state.bind_log_authority(&log).expect("log binding");
 
         let genesis = transparency_genesis_digest("log-1", 1, &policy.commitment());
         let checkpoint = signed_checkpoint(keys, &policy, 1, 1, &"00".repeat(32), &genesis);
@@ -2189,6 +2191,7 @@ mod tests {
         let mut state = TransparencyWitnessSetV1::new(&policy).expect("state");
         let log = TransparencyLogAuthorityV1::from_public_key_hex("log-1", 1, keys.log_public())
             .expect("log");
+        state.bind_log_authority(&log).expect("log binding");
         let genesis = transparency_genesis_digest("log-1", 1, &policy.commitment());
         let checkpoint = signed_checkpoint(&keys, &policy, 1, 1, &"44".repeat(32), &genesis);
         let signatures = witnessed_signatures(&keys, &checkpoint, &[0, 1]);
@@ -2231,6 +2234,7 @@ mod tests {
         let mut state = TransparencyWitnessSetV1::new(&policy).expect("state");
         let log = TransparencyLogAuthorityV1::from_public_key_hex("log-1", 1, keys.log_public())
             .expect("log");
+        state.bind_log_authority(&log).expect("log binding");
         let genesis = transparency_genesis_digest("log-1", 1, &policy.commitment());
         let checkpoint = signed_checkpoint(&keys, &policy, 1, 1, &"55".repeat(32), &genesis);
         let mut signatures = witnessed_signatures(&keys, &checkpoint, &[0, 1]);
@@ -2261,6 +2265,7 @@ mod tests {
         let mut state = TransparencyWitnessSetV1::new(&policy).expect("state");
         let log = TransparencyLogAuthorityV1::from_public_key_hex("log-1", 1, keys.log_public())
             .expect("log");
+        state.bind_log_authority(&log).expect("log binding");
         let genesis = transparency_genesis_digest("log-1", 1, &policy.commitment());
         let checkpoint = signed_checkpoint(&keys, &policy, 1, 1, &"66".repeat(32), &genesis);
         let accepted = state
@@ -2418,6 +2423,7 @@ mod tests {
         let mut state = TransparencyWitnessSetV1::new(&policy).expect("state");
         let log = TransparencyLogAuthorityV1::from_public_key_hex("log-1", 1, keys.log_public())
             .expect("log");
+        state.bind_log_authority(&log).expect("log binding");
 
         let entries = vec![b"leaf-0".to_vec(), b"leaf-1".to_vec()];
         let first_root = crate::transparency_vds::merkle_tree_hash_sha256(&entries[..1]);
