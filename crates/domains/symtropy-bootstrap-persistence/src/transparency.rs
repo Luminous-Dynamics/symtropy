@@ -315,6 +315,7 @@ impl TransparencyWitnessKeyV1 {
 pub struct TransparencyWitnessPolicyV1 {
     policy_id: String,
     log_id: String,
+    log_epoch: u64,
     quorum: u32,
     minimum_domains: u32,
     witnesses: BTreeMap<String, TransparencyWitnessKeyV1>,
@@ -324,6 +325,7 @@ impl TransparencyWitnessPolicyV1 {
     pub fn new(
         policy_id: impl Into<String>,
         log_id: impl Into<String>,
+        log_epoch: u64,
         quorum: u32,
         minimum_domains: u32,
         witnesses: Vec<TransparencyWitnessKeyV1>,
@@ -372,6 +374,7 @@ impl TransparencyWitnessPolicyV1 {
         Ok(Self {
             policy_id,
             log_id,
+            log_epoch,
             quorum,
             minimum_domains,
             witnesses: by_id,
@@ -386,6 +389,11 @@ impl TransparencyWitnessPolicyV1 {
     #[must_use]
     pub fn log_id(&self) -> &str {
         &self.log_id
+    }
+
+    #[must_use]
+    pub const fn log_epoch(&self) -> u64 {
+        self.log_epoch
     }
 
     #[must_use]
@@ -414,6 +422,7 @@ impl TransparencyWitnessPolicyV1 {
         hash_string(&mut hasher, "symtropy.transparency-witness-policy.v1");
         hash_string(&mut hasher, &self.policy_id);
         hash_string(&mut hasher, &self.log_id);
+        hash_u64(&mut hasher, self.log_epoch);
         hash_u32(&mut hasher, self.quorum);
         hash_u32(&mut hasher, self.minimum_domains);
         hash_u64(&mut hasher, self.witnesses.len() as u64);
@@ -425,10 +434,13 @@ impl TransparencyWitnessPolicyV1 {
         encode_hex(&finalize_digest(hasher))
     }
 
-    pub fn validate_independence_from_log(
+    pub fn validate_matches_log(
         &self,
         log: &TransparencyLogAuthorityV1,
     ) -> Result<(), TransparencyError> {
+        if self.log_id != log.log_id() || self.log_epoch != log.log_epoch() {
+            return Err(TransparencyError::LogMismatch);
+        }
         if self
             .witnesses
             .values()
@@ -555,6 +567,7 @@ impl TransparencyWitnessSetV1 {
         }
         let genesis_digest = transparency_genesis_digest(
             &policy.log_id,
+            policy.log_epoch,
             &policy.commitment(),
         );
         let mut witnesses = BTreeMap::new();
@@ -615,7 +628,11 @@ impl TransparencyWitnessSetV1 {
         if checkpoint.witness_policy_commitment() != self.policy_commitment {
             return Err(TransparencyError::PolicyMismatch);
         }
-        if checkpoint.log_id() != policy.log_id() || checkpoint.log_id() != log.log_id() {
+        if checkpoint.log_id() != policy.log_id()
+            || checkpoint.log_id() != log.log_id()
+            || checkpoint.log_epoch() != policy.log_epoch()
+            || checkpoint.log_epoch() != log.log_epoch()
+        {
             return Err(TransparencyError::LogMismatch);
         }
         if checkpoint.journal_namespace() != journal_namespace
@@ -830,10 +847,15 @@ impl std::fmt::Display for TransparencyError {
 
 impl std::error::Error for TransparencyError {}
 
-fn transparency_genesis_digest(log_id: &str, policy_commitment: &str) -> String {
+fn transparency_genesis_digest(
+    log_id: &str,
+    log_epoch: u64,
+    policy_commitment: &str,
+) -> String {
     let mut hasher = Sha256::new();
     hash_string(&mut hasher, TRANSPARENCY_GENESIS_TAG);
     hash_string(&mut hasher, log_id);
+    hash_u64(&mut hasher, log_epoch);
     hash_string(&mut hasher, policy_commitment);
     encode_hex(&finalize_digest(hasher))
 }
@@ -913,8 +935,9 @@ fn decode_exact<const N: usize>(value: &str) -> Result<[u8; N], TransparencyErro
     let bytes = value.as_bytes();
     let mut output = [0_u8; N];
     for index in 0..N {
-        output[index] =
-            decode_hex_nibble(bytes[index * 2])? << 4 | decode_hex_nibble(bytes[index * 2 + 1])?;
+        let high = decode_hex_nibble(bytes[index * 2])?;
+        let low = decode_hex_nibble(bytes[index * 2 + 1])?;
+        output[index] = (high << 4) | low;
     }
     Ok(output)
 }
@@ -971,6 +994,7 @@ mod tests {
         TransparencyWitnessPolicyV1::new(
             "policy-1",
             "log-1",
+            1,
             2,
             2,
             vec![
@@ -1037,7 +1061,7 @@ mod tests {
         state: &TransparencyWitnessSetV1,
         policy: &TransparencyWitnessPolicyV1,
     ) -> AcceptedTransparencyCheckpointV1 {
-        let genesis = transparency_genesis_digest("log-1", &policy.commitment());
+        let genesis = transparency_genesis_digest("log-1", 1, &policy.commitment());
         let checkpoint = signed_checkpoint(keys, policy, 1, 1, &"00".repeat(32), &genesis);
         state
             .verify_candidate(
@@ -1063,8 +1087,8 @@ mod tests {
         let second = policy(&keys);
         assert_eq!(policy.commitment(), second.commitment());
         assert_eq!(
-            transparency_genesis_digest("log-1", &policy.commitment()),
-            transparency_genesis_digest("log-1", &policy.commitment())
+            transparency_genesis_digest("log-1", 1, &policy.commitment()),
+            transparency_genesis_digest("log-1", 1, &policy.commitment())
         );
     }
 
@@ -1077,7 +1101,7 @@ mod tests {
             "log-1", 1, keys.log_public()
         ).expect("log");
 
-        let genesis = transparency_genesis_digest("log-1", &policy.commitment());
+        let genesis = transparency_genesis_digest("log-1", 1, &policy.commitment());
         let checkpoint = signed_checkpoint(keys, &policy, 1, 1, &"00".repeat(32), &genesis);
 
         assert!(matches!(
@@ -1224,7 +1248,7 @@ mod tests {
             Err(TransparencyError::KeyReuse(_))
         ));
         assert!(matches!(
-            policy.validate_independence_from_log(&log),
+            policy.validate_matches_log(&log),
             Ok(())
         ));
     }
