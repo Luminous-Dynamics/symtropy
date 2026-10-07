@@ -331,6 +331,12 @@ impl TransparencyWitnessKeyV1 {
     pub fn public_key_hex(&self) -> &str {
         &self.public_key
     }
+
+    /// Compute the domain-separated digest a witness must sign for a checkpoint.
+    #[must_use]
+    pub fn signing_digest(&self, checkpoint: &TransparencyCheckpointV1) -> [u8; 32] {
+        witness_signing_digest(self.witness_id(), &checkpoint.digest())
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
