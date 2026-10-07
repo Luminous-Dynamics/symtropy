@@ -117,9 +117,7 @@ impl MerkleConsistencyProofV1 {
             sn_index >>= 1;
         }
 
-        if sn_index != 0
-            || first_reconstructed != first_hash
-            || second_reconstructed != second_hash
+        if sn_index != 0 || first_reconstructed != first_hash || second_reconstructed != second_hash
         {
             return Err(MerkleVdsError::ProofMismatch);
         }
@@ -213,7 +211,10 @@ impl std::fmt::Display for MerkleVdsError {
         match self {
             Self::Invalid(message) => write!(formatter, "invalid Merkle VDS input: {message}"),
             Self::ProofMismatch => {
-                write!(formatter, "Merkle consistency proof does not match advertised roots")
+                write!(
+                    formatter,
+                    "Merkle consistency proof does not match advertised roots"
+                )
             }
         }
     }
@@ -228,12 +229,7 @@ mod tests {
     fn consistency_proof(m: usize, entries: &[Vec<u8>]) -> Vec<String> {
         let mut output = Vec::new();
 
-        fn subproof(
-            m: usize,
-            entries: &[Vec<u8>],
-            complete: bool,
-            output: &mut Vec<String>,
-        ) {
+        fn subproof(m: usize, entries: &[Vec<u8>], complete: bool, output: &mut Vec<String>) {
             let n = entries.len();
             if m == n {
                 if !complete {
@@ -275,8 +271,7 @@ mod tests {
             for first_size in 1..second_size {
                 let proof = consistency_proof(first_size, &data);
                 let proof = MerkleConsistencyProofV1::new(proof).expect("proof");
-                let first_root =
-                    merkle_tree_hash_sha256(&data[..first_size].to_vec());
+                let first_root = merkle_tree_hash_sha256(&data[..first_size].to_vec());
 
                 proof
                     .verify_sha256(
@@ -308,8 +303,7 @@ mod tests {
     #[test]
     fn rejects_corrupted_advertised_root() {
         let data = entries(7);
-        let proof = MerkleConsistencyProofV1::new(consistency_proof(3, &data))
-            .expect("proof");
+        let proof = MerkleConsistencyProofV1::new(consistency_proof(3, &data)).expect("proof");
         let second_root = merkle_tree_hash_sha256(&data);
         let wrong_first_root = "11".repeat(32);
 
@@ -322,8 +316,7 @@ mod tests {
     #[test]
     fn rejects_wrong_size_relationship() {
         let data = entries(4);
-        let proof = MerkleConsistencyProofV1::new(consistency_proof(2, &data))
-            .expect("proof");
+        let proof = MerkleConsistencyProofV1::new(consistency_proof(2, &data)).expect("proof");
         let root = merkle_tree_hash_sha256(&data);
 
         assert!(matches!(
