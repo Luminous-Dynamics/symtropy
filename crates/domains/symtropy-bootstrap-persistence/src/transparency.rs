@@ -976,7 +976,7 @@ impl std::fmt::Display for TransparencyError {
 
 impl std::error::Error for TransparencyError {}
 
-fn transparency_genesis_digest(
+pub fn transparency_genesis_digest(
     log_id: &str,
     log_epoch: u64,
     policy_commitment: &str,
