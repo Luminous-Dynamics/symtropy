@@ -3233,8 +3233,8 @@ mod tests {
         let before_inventory = inventory.clone();
         let before_energy = energy.clone();
 
-        assert!(
         security.refresh(&adapter);
+        assert!(
             adapter
                 .authorize_pending(
                     &mut security.context,
@@ -3588,8 +3588,8 @@ mod tests {
             .acquire_journal_lock()
             .expect("hold writer fence");
 
-        assert!(
         security.refresh(&adapter);
+        assert!(
             adapter
                 .authorize_pending(
                     &mut security.context,
@@ -4070,8 +4070,8 @@ mod tests {
             )
             .expect("first pending authorization");
 
-        assert!(
         security.refresh(&adapter);
+        assert!(
             adapter
                 .authorize_pending(
                     &mut security.context,
@@ -4125,8 +4125,8 @@ mod tests {
             .expect("pending authorization");
 
         assert_ne!(process.commitment(), changed_process.commitment());
-        assert!(
         security.refresh(&adapter);
+        assert!(
             adapter
                 .recover_pending(
                     &mut security.context,
@@ -4195,8 +4195,8 @@ mod tests {
             )
             .expect("mutate live-only energy projection");
 
-        assert!(
         security.refresh(&adapter);
+        assert!(
             adapter
                 .authorize_pending(
                     &mut security.context,
