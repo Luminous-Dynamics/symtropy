@@ -861,6 +861,7 @@ impl Clone for RetainedWitnessState {
 #[derive(Debug)]
 pub struct TransparencyWitnessSetV1 {
     policy_commitment: String,
+    log_authority_commitment: Option<String>,
     witnesses: BTreeMap<String, RetainedWitnessState>,
 }
 
@@ -1076,6 +1077,7 @@ impl TransparencyWitnessSetV1 {
         head_hash: &str,
     ) -> Result<AcceptedTransparencyCheckpointV1, TransparencyError> {
         checkpoint.validate_basic()?;
+        self.require_log_authority(log)?;
         if self.policy_commitment != policy.commitment() {
             return Err(TransparencyError::PolicyMismatch);
         }
@@ -1286,6 +1288,8 @@ pub enum TransparencyError {
     Invalid(String),
     KeyReuse(String),
     LogMismatch,
+    LogAuthorityUnbound,
+    LogAuthorityMismatch,
     PolicyMismatch,
     JournalMismatch,
     SignatureInvalid,
@@ -1320,6 +1324,12 @@ impl std::fmt::Display for TransparencyError {
             Self::Invalid(message) => write!(formatter, "invalid transparency state: {message}"),
             Self::KeyReuse(message) => write!(formatter, "transparency key reuse: {message}"),
             Self::LogMismatch => write!(formatter, "transparency log mismatch"),
+            Self::LogAuthorityUnbound => {
+                write!(formatter, "transparency witness state is not bound to a log authority")
+            }
+            Self::LogAuthorityMismatch => {
+                write!(formatter, "transparency witness state is bound to a different log authority")
+            }
             Self::PolicyMismatch => write!(formatter, "transparency witness policy mismatch"),
             Self::JournalMismatch => write!(formatter, "transparency checkpoint/journal mismatch"),
             Self::SignatureInvalid => write!(formatter, "transparency log signature invalid"),
@@ -1622,15 +1632,17 @@ mod tests {
 
     fn accepted_first_checkpoint(
         keys: &TestKeys,
-        state: &TransparencyWitnessSetV1,
+        state: &mut TransparencyWitnessSetV1,
         policy: &TransparencyWitnessPolicyV1,
     ) -> AcceptedTransparencyCheckpointV1 {
         let genesis = transparency_genesis_digest("log-1", 1, &policy.commitment());
         let checkpoint = signed_checkpoint(keys, policy, 1, 1, &"00".repeat(32), &genesis);
+        let log = TransparencyLogAuthorityV1::from_public_key_hex("log-1", 1, keys.log_public())
+            .expect("log authority");
+        state.bind_log_authority(&log).expect("log binding");
         state
             .verify_candidate(
-                &TransparencyLogAuthorityV1::from_public_key_hex("log-1", 1, keys.log_public())
-                    .expect("log authority"),
+                &log,
                 policy,
                 &checkpoint,
                 &witnessed_signatures(keys, &checkpoint, &[0, 1]),
@@ -1681,12 +1693,96 @@ mod tests {
     }
 
     #[test]
+    fn unbound_witness_state_is_rejected() {
+        let keys = TestKeys::new();
+        let policy = policy(&keys);
+        let state = TransparencyWitnessSetV1::new(&policy).expect("state");
+        let log = TransparencyLogAuthorityV1::from_public_key_hex("log-1", 1, keys.log_public())
+            .expect("log");
+        let genesis = transparency_genesis_digest("log-1", 1, &policy.commitment());
+        let checkpoint = signed_checkpoint(&keys, &policy, 1, 1, &"00".repeat(32), &genesis);
+
+        assert!(matches!(
+            state.verify_candidate(
+                &log,
+                &policy,
+                &checkpoint,
+                &witnessed_signatures(&keys, &checkpoint, &[0, 1]),
+                "bootstrap",
+                1,
+                1,
+                &"00".repeat(32),
+            ),
+            Err(TransparencyError::LogAuthorityUnbound)
+        ));
+    }
+
+    #[test]
+    fn witness_state_rejects_same_identity_with_rotated_log_key() {
+        let keys = TestKeys::new();
+        let policy = policy(&keys);
+        let mut state = TransparencyWitnessSetV1::new(&policy).expect("state");
+        let original_log =
+            TransparencyLogAuthorityV1::from_public_key_hex("log-1", 1, keys.log_public())
+                .expect("original log");
+        state
+            .bind_log_authority(&original_log)
+            .expect("original log binding");
+
+        let rotated_key =
+            Ed25519KeyPair::generate_pkcs8(&SystemRandom::new()).expect("rotated key");
+        let rotated_pair =
+            Ed25519KeyPair::from_pkcs8(rotated_key.as_ref()).expect("rotated log");
+        let rotated_log = TransparencyLogAuthorityV1::from_public_key_hex(
+            "log-1",
+            1,
+            encode_hex(rotated_pair.public_key().as_ref()),
+        )
+        .expect("rotated authority");
+
+        let genesis = transparency_genesis_digest("log-1", 1, &policy.commitment());
+        let unsigned = TransparencyCheckpointUnsignedV1::new(
+            "log-1",
+            1,
+            1,
+            "bootstrap",
+            1,
+            1,
+            &"00".repeat(32),
+            0,
+            TransparencyVdsTreeHeadV1::empty().root_hash(),
+            &genesis,
+            policy.commitment(),
+        )
+        .expect("unsigned checkpoint");
+        let checkpoint = unsigned
+            .clone()
+            .into_signed(encode_hex(rotated_pair.sign(&unsigned.signing_digest()).as_ref()))
+            .expect("rotated checkpoint");
+
+        assert!(matches!(
+            state.verify_candidate(
+                &rotated_log,
+                &policy,
+                &checkpoint,
+                &witnessed_signatures(&keys, &checkpoint, &[0, 1]),
+                "bootstrap",
+                1,
+                1,
+                &"00".repeat(32),
+            ),
+            Err(TransparencyError::LogAuthorityMismatch)
+        ));
+    }
+
+    #[test]
     fn different_witness_vds_frontiers_require_distinct_consistency_proofs() {
         let keys = TestKeys::new();
         let policy = policy(&keys);
         let mut state = TransparencyWitnessSetV1::new(&policy).expect("state");
         let log = TransparencyLogAuthorityV1::from_public_key_hex("log-1", 1, keys.log_public())
             .expect("log");
+        state.bind_log_authority(&log).expect("log binding");
 
         let entries = vec![
             b"leaf-0".to_vec(),
@@ -1789,7 +1885,7 @@ mod tests {
         let mut state = TransparencyWitnessSetV1::new(&policy).expect("state");
         let log = TransparencyLogAuthorityV1::from_public_key_hex("log-1", 1, keys.log_public())
             .expect("log");
-        let first = accepted_first_checkpoint(&keys, &state, &policy);
+        let first = accepted_first_checkpoint(&keys, &mut state, &policy);
         state.commit_after_durable_append(first).expect("first commit");
 
         let entries = vec![b"leaf-0".to_vec(), b"leaf-1".to_vec()];
@@ -1969,10 +2065,11 @@ mod tests {
     fn signed_unsupported_checkpoint_schema_is_rejected() {
         let keys = TestKeys::new();
         let policy = policy(&keys);
-        let state = TransparencyWitnessSetV1::new(&policy).expect("state");
+        let mut state = TransparencyWitnessSetV1::new(&policy).expect("state");
         let log =
             TransparencyLogAuthorityV1::from_public_key_hex("log-1", 1, keys.log_public())
                 .expect("log");
+        state.bind_log_authority(&log).expect("log binding");
         let genesis = transparency_genesis_digest("log-1", 1, &policy.commitment());
         let mut checkpoint =
             signed_checkpoint(&keys, &policy, 1, 1, &"77".repeat(32), &genesis);
@@ -2089,7 +2186,7 @@ mod tests {
     fn witness_signature_order_does_not_change_acceptance_identity() {
         let keys = TestKeys::new();
         let policy = policy(&keys);
-        let state = TransparencyWitnessSetV1::new(&policy).expect("state");
+        let mut state = TransparencyWitnessSetV1::new(&policy).expect("state");
         let log = TransparencyLogAuthorityV1::from_public_key_hex("log-1", 1, keys.log_public())
             .expect("log");
         let genesis = transparency_genesis_digest("log-1", 1, &policy.commitment());
@@ -2131,7 +2228,7 @@ mod tests {
     fn invalid_extra_witness_signature_is_not_ignored() {
         let keys = TestKeys::new();
         let policy = policy(&keys);
-        let state = TransparencyWitnessSetV1::new(&policy).expect("state");
+        let mut state = TransparencyWitnessSetV1::new(&policy).expect("state");
         let log = TransparencyLogAuthorityV1::from_public_key_hex("log-1", 1, keys.log_public())
             .expect("log");
         let genesis = transparency_genesis_digest("log-1", 1, &policy.commitment());
@@ -2161,7 +2258,7 @@ mod tests {
     fn verification_does_not_advance_witness_before_durable_commit() {
         let keys = TestKeys::new();
         let policy = policy(&keys);
-        let state = TransparencyWitnessSetV1::new(&policy).expect("state");
+        let mut state = TransparencyWitnessSetV1::new(&policy).expect("state");
         let log = TransparencyLogAuthorityV1::from_public_key_hex("log-1", 1, keys.log_public())
             .expect("log");
         let genesis = transparency_genesis_digest("log-1", 1, &policy.commitment());
@@ -2202,7 +2299,7 @@ mod tests {
         let log = TransparencyLogAuthorityV1::from_public_key_hex("log-1", 1, keys.log_public())
             .expect("log");
 
-        let first = accepted_first_checkpoint(&keys, &state, &policy);
+        let first = accepted_first_checkpoint(&keys, &mut state, &policy);
         let first_checkpoint = first.checkpoint().clone();
         state.commit_after_durable_append(first).expect("commit");
 
@@ -2240,7 +2337,7 @@ mod tests {
         let log = TransparencyLogAuthorityV1::from_public_key_hex("log-1", 1, keys.log_public())
             .expect("log");
 
-        let first = accepted_first_checkpoint(&keys, &state, &policy);
+        let first = accepted_first_checkpoint(&keys, &mut state, &policy);
         let checkpoint = first.checkpoint().clone();
         let signatures = first.witness_signatures().to_vec();
         state
@@ -2286,7 +2383,7 @@ mod tests {
         let log = TransparencyLogAuthorityV1::from_public_key_hex("log-1", 1, keys.log_public())
             .expect("log");
 
-        let first = accepted_first_checkpoint(&keys, &state, &policy);
+        let first = accepted_first_checkpoint(&keys, &mut state, &policy);
         state.commit_after_durable_append(first).expect("commit");
 
         let forged = signed_checkpoint(
@@ -2417,9 +2514,9 @@ mod tests {
         let keys = TestKeys::new();
         let policy = policy(&keys);
         let mut state = TransparencyWitnessSetV1::new(&policy).expect("state");
-        let accepted = accepted_first_checkpoint(&keys, &state, &policy);
+        let accepted = accepted_first_checkpoint(&keys, &mut state, &policy);
 
-        let competing = accepted_first_checkpoint(&keys, &state, &policy);
+        let competing = accepted_first_checkpoint(&keys, &mut state, &policy);
         state
             .commit_after_durable_append(competing)
             .expect("competing commit");
