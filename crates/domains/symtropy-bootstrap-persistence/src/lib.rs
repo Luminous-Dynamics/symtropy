@@ -2768,9 +2768,7 @@ mod tests {
             EnergyLedger::new(BTreeMap::from([("bus".to_string(), 8_000])),
         );
 
-        let mut security = TestSecurityMaterial::new(&adapter);
-        let mut fresh = adapter.capture_head_witness().expect("genesis witness");
-        let stale = fresh.clone();
+        let stale = adapter.capture_head_witness().expect("genesis witness");
 
         security.refresh(&adapter);
         adapter
@@ -2804,7 +2802,6 @@ mod tests {
             Err(AdapterError::WitnessMismatch(_))
         ));
 
-        let mut stale_copy = stale.clone();
         security.refresh(&adapter);
         let err = adapter
             .authorize_pending(
