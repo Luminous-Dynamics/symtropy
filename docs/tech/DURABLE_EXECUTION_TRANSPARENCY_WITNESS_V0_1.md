@@ -349,4 +349,14 @@ This is a liveness/interoperability refinement, not a relaxation of durable chec
 
 The next implementation frontier is wire interoperability and restart-resistant external witness memory. A future C2SP/RFC 9942 adapter must map the semantic per-witness evidence into the protocol's base64/note or CBOR/COSE structures without silently dropping journal, policy, or VDS bindings.
 
-Protocol details were cross-checked against the current C2SP development specifications on 2026-10-07.
+The repository now also exposes protocol-shaped Merkle proof bindings:
+    RFC 9942 consistency content
+        = older tree size + newer tree size + consistency path
+    RFC 9942 inclusion content
+        = tree size + leaf index + inclusion path
+
+Those bindings are intentionally semantic rather than wire encodings. Their verification methods consume the tree sizes carried by the proof object itself, reducing the chance that a future transport adapter pairs a valid path with the wrong tree-size context. The eventual CBOR/COSE adapter must still encode hashes as bstr and must bind the resulting proof to the signed/detached root exactly as the RFC requires.
+
+C2SP policy remains a separate interoperability concern. Its current policy language supports nested named witness groups with all/any/numeric thresholds; the present Symtropy policy uses a flat quorum plus an application-specific minimum-independent-domain rule. A future policy adapter must model those semantics explicitly rather than treating the two policies as equivalent.
+
+Protocol details were cross-checked against the current C2SP development specifications and RFC 9942 on 2026-10-08.
