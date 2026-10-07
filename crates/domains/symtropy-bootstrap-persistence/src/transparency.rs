@@ -1555,7 +1555,7 @@ mod tests {
 
     #[test]
     fn checkpoint_rejects_non_sha256_commitments() {
-        let result = TransparencyCheckpointUnsignedV1::new(
+        let bad_predecessor = TransparencyCheckpointUnsignedV1::new(
             "log-1",
             1,
             1,
@@ -1566,13 +1566,31 @@ mod tests {
             1,
             &"22".repeat(32),
             "not-a-digest",
-            "also-not-a-digest",
+            &"33".repeat(32),
         );
-
         assert!(matches!(
-            result,
+            bad_predecessor,
             Err(TransparencyError::Invalid(message))
                 if message.contains("previous checkpoint digest")
+        ));
+
+        let bad_policy_commitment = TransparencyCheckpointUnsignedV1::new(
+            "log-1",
+            1,
+            1,
+            "bootstrap",
+            1,
+            1,
+            &"11".repeat(32),
+            1,
+            &"22".repeat(32),
+            &"33".repeat(32),
+            "also-not-a-digest",
+        );
+        assert!(matches!(
+            bad_policy_commitment,
+            Err(TransparencyError::Invalid(message))
+                if message.contains("witness policy commitment")
         ));
     }
 
@@ -1890,7 +1908,7 @@ mod tests {
     }
 
     #[test]
-    fn higher_sequence_must_extend_retained_checkpoint() {
+    fn higher_sequence_requires_vds_continuity_when_witness_cannot_catch_up() {
         let keys = TestKeys::new();
         let policy = policy(&keys);
         let mut state = TransparencyWitnessSetV1::new(&policy).expect("state");
@@ -1898,7 +1916,6 @@ mod tests {
             .expect("log");
 
         let first = accepted_first_checkpoint(&keys, &state, &policy);
-        let first_digest = first.checkpoint_digest().to_string();
         state.commit_after_durable_append(first).expect("commit");
 
         let forged = signed_checkpoint(
@@ -1907,7 +1924,7 @@ mod tests {
             2,
             2,
             &"22".repeat(32),
-            &transparency_genesis_digest("log-1", 1, &policy.commitment()),
+            &"99".repeat(32),
         );
 
         let error = state
@@ -1921,12 +1938,9 @@ mod tests {
                 2,
                 &"22".repeat(32),
             )
-            .expect_err("forked successor must reject");
-        assert!(matches!(
-            error,
-            TransparencyError::NonExtension { witness_id } if witness_id == "w1"
-        ));
-        assert_ne!(forged.previous_checkpoint_digest(), first_digest);
+            .expect_err("unproven VDS growth must reject");
+
+        assert!(matches!(error, TransparencyError::VdsConsistency));
     }
 
     #[test]
