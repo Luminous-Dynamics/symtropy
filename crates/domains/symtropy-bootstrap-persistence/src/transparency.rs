@@ -1191,7 +1191,7 @@ mod tests {
             2,
             2,
             &"22".repeat(32),
-            &transparency_genesis_digest("log-1", &policy.commitment()),
+            &transparency_genesis_digest("log-1", 1, &policy.commitment()),
         );
 
         let error = state
