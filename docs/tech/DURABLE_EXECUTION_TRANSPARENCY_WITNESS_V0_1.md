@@ -157,7 +157,7 @@ The accepted transparency object is consumable: its witness predecessor state is
 
 The lifecycle event's execution-signature digest covers the complete persisted transparency evidence, so replacing that evidence changes the authenticated event payload.
 
-The journal also retains a contiguous transparency history: sequence numbers advance one-by-one, each checkpoint names the immediately previous checkpoint digest, and the log/policy identity remains stable across the lifecycle journal. This gives the local journal a durable record of which external checkpoint sequences have already been consumed; it does not replace the independent witness memory.
+The journal also retains a contiguous transparency history: sequence numbers advance one-by-one, each checkpoint names the immediately previous checkpoint digest, and the log/policy identity remains stable across the lifecycle journal. The first durable checkpoint must name the deterministic transparency genesis derived from log identity, log epoch, and witness-policy commitment. This gives the local journal a durable record of which external checkpoint sequences have already been consumed; it does not replace the independent witness memory.
 
 ## Persisted transparency evidence
 
