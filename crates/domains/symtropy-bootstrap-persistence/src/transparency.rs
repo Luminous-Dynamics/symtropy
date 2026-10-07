@@ -625,6 +625,7 @@ impl TransparencyWitnessSetV1 {
         if self.policy_commitment != policy.commitment() {
             return Err(TransparencyError::PolicyMismatch);
         }
+        policy.validate_matches_log(log)?;
         if checkpoint.witness_policy_commitment() != self.policy_commitment {
             return Err(TransparencyError::PolicyMismatch);
         }
@@ -1155,6 +1156,94 @@ mod tests {
     }
 
     #[test]
+    fn witness_signature_order_does_not_change_acceptance_identity() {
+        let keys = TestKeys::new();
+        let policy = policy(&keys);
+        let state = TransparencyWitnessSetV1::new(&policy).expect("state");
+        let log = TransparencyLogAuthorityV1::from_public_key_hex(
+            "log-1", 1, keys.log_public()
+        ).expect("log");
+        let genesis = transparency_genesis_digest("log-1", 1, &policy.commitment());
+        let checkpoint = signed_checkpoint(
+            &keys,
+            &policy,
+            1,
+            1,
+            &"44".repeat(32),
+            &genesis,
+        );
+        let signatures = witnessed_signatures(&keys, &checkpoint, &[0, 1]);
+        let reverse = vec![signatures[1].clone(), signatures[0].clone()];
+
+        let left = state
+            .verify_candidate(
+                &log,
+                &policy,
+                &checkpoint,
+                &signatures,
+                "bootstrap",
+                1,
+                1,
+                &"44".repeat(32),
+            )
+            .expect("forward order");
+        let right = state
+            .verify_candidate(
+                &log,
+                &policy,
+                &checkpoint,
+                &reverse,
+                "bootstrap",
+                1,
+                1,
+                &"44".repeat(32),
+            )
+            .expect("reverse order");
+
+        assert_eq!(left.checkpoint_digest(), right.checkpoint_digest());
+        assert_eq!(left.accepted_witnesses(), right.accepted_witnesses());
+        assert_eq!(left.accepted_domains(), right.accepted_domains());
+    }
+
+    #[test]
+    fn invalid_extra_witness_signature_is_not_ignored() {
+        let keys = TestKeys::new();
+        let policy = policy(&keys);
+        let state = TransparencyWitnessSetV1::new(&policy).expect("state");
+        let log = TransparencyLogAuthorityV1::from_public_key_hex(
+            "log-1", 1, keys.log_public()
+        ).expect("log");
+        let genesis = transparency_genesis_digest("log-1", 1, &policy.commitment());
+        let checkpoint = signed_checkpoint(
+            &keys,
+            &policy,
+            1,
+            1,
+            &"55".repeat(32),
+            &genesis,
+        );
+        let mut signatures = witnessed_signatures(&keys, &checkpoint, &[0, 1]);
+        signatures.push(
+            TransparencyWitnessSignatureV1::new("w3", "00".repeat(64))
+                .expect("well-shaped but invalid signature"),
+        );
+
+        assert!(matches!(
+            state.verify_candidate(
+                &log,
+                &policy,
+                &checkpoint,
+                &signatures,
+                "bootstrap",
+                1,
+                1,
+                &"55".repeat(32),
+            ),
+            Err(TransparencyError::WitnessSignatureInvalid)
+        ));
+    }
+
+    #[test]
     fn same_sequence_different_checkpoint_is_equivocation() {
         let keys = TestKeys::new();
         let policy = policy(&keys);
@@ -1292,6 +1381,20 @@ mod tests {
             .expect_err("stale accepted object must fail");
         assert!(matches!(error, TransparencyError::StaleAcceptedCheckpoint));
         assert_eq!(state.retained_sequence("w1"), Some(1));
+    }
+
+    #[test]
+    fn witness_keys_must_not_reuse_freshness_authority() {
+        let keys = TestKeys::new();
+        let policy = policy(&keys);
+        let freshness = FreshnessAuthority::from_public_key_hex(
+            "freshness", 1, keys.witness_public(0)
+        ).expect("freshness");
+
+        assert!(matches!(
+            policy.validate_independence_from_freshness(&freshness),
+            Err(TransparencyError::KeyReuse(_))
+        ));
     }
 
     #[test]
