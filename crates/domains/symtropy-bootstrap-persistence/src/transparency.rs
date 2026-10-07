@@ -1233,9 +1233,8 @@ mod tests {
         let keys = TestKeys::new();
         let policy = policy(&keys);
         let mut state = TransparencyWitnessSetV1::new(&policy).expect("state");
-        let log = TransparencyLogAuthorityV1::from_public_key_hex(
-            "log-1", 1, keys.log_public()
-        ).expect("log");
+        let log = TransparencyLogAuthorityV1::from_public_key_hex("log-1", 1, keys.log_public())
+            .expect("log");
 
         let genesis = transparency_genesis_digest("log-1", 1, &policy.commitment());
         let checkpoint = signed_checkpoint(keys, &policy, 1, 1, &"00".repeat(32), &genesis);
@@ -1366,14 +1365,8 @@ mod tests {
             "log-1", 1, keys.log_public()
         ).expect("log");
         let genesis = transparency_genesis_digest("log-1", 1, &policy.commitment());
-        let checkpoint = signed_checkpoint(
-            &keys,
-            &policy,
-            1,
-            1,
-            &"66".repeat(32),
-            &genesis,
-        );
+        let checkpoint =
+            signed_checkpoint(&keys, &policy, 1, 1, &"66".repeat(32), &genesis);
         let accepted = state
             .verify_candidate(
                 &log,
@@ -1446,10 +1439,8 @@ mod tests {
         let keys = TestKeys::new();
         let policy = policy(&keys);
         let mut state = TransparencyWitnessSetV1::new(&policy).expect("state");
-        let log = TransparencyLogAuthorityV1::from_public_key_hex(
-            "log-1", 1, keys.log_public()
-        )
-        .expect("log");
+        let log = TransparencyLogAuthorityV1::from_public_key_hex("log-1", 1, keys.log_public())
+            .expect("log");
 
         let first = accepted_first_checkpoint(&keys, &state, &policy);
         let checkpoint = first.checkpoint().clone();
@@ -1543,14 +1534,8 @@ mod tests {
         let first_digest = first.checkpoint_digest().to_string();
         state.commit_after_durable_append(first).expect("commit");
 
-        let skipped = signed_checkpoint(
-            &keys,
-            &policy,
-            3,
-            2,
-            &"33".repeat(32),
-            &first_digest,
-        );
+        let skipped =
+            signed_checkpoint(&keys, &policy, 3, 2, &"33".repeat(32), &first_digest);
 
         let error = state
             .verify_candidate(
@@ -1605,12 +1590,9 @@ mod tests {
             execution_signer.public_key_hex(),
         )
         .expect("log");
-        let freshness = FreshnessAuthority::from_public_key_hex(
-            "freshness",
-            1,
-            keys.witness_public(2),
-        )
-        .expect("freshness");
+        let freshness =
+            FreshnessAuthority::from_public_key_hex("freshness", 1, keys.witness_public(2))
+                .expect("freshness");
 
         assert!(matches!(
             log.validate_independence_from_execution(&trust),
@@ -1625,11 +1607,15 @@ mod tests {
             2,
             vec![
                 TransparencyWitnessKeyV1::from_public_key_hex(
-                    "w1", "domain-a", execution_signer.public_key_hex()
+                    "w1",
+                    "domain-a",
+                    execution_signer.public_key_hex(),
                 )
                 .expect("w1"),
                 TransparencyWitnessKeyV1::from_public_key_hex(
-                    "w2", "domain-b", keys.witness_public(0)
+                    "w2",
+                    "domain-b",
+                    keys.witness_public(0),
                 )
                 .expect("w2"),
             ],
@@ -1647,9 +1633,9 @@ mod tests {
     fn witness_keys_must_not_reuse_freshness_authority() {
         let keys = TestKeys::new();
         let policy = policy(&keys);
-        let freshness = FreshnessAuthority::from_public_key_hex(
-            "freshness", 1, keys.witness_public(0)
-        ).expect("freshness");
+        let freshness =
+            FreshnessAuthority::from_public_key_hex("freshness", 1, keys.witness_public(0))
+                .expect("freshness");
 
         assert!(matches!(
             policy.validate_independence_from_freshness(&freshness),
