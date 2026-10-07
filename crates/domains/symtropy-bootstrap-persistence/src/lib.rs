@@ -518,7 +518,7 @@ impl DurableExecutionSecurityContext {
         freshness_attestation: ExternalFreshnessAttestation,
         transparency_log: TransparencyLogAuthorityV1,
         transparency_policy: TransparencyWitnessPolicyV1,
-        transparency_witnesses: TransparencyWitnessSetV1,
+        mut transparency_witnesses: TransparencyWitnessSetV1,
         transparency_checkpoint: TransparencyCheckpointV1,
         transparency_witness_signatures: Vec<TransparencyWitnessSignatureV1>,
         transparency_vds_consistency_proof: Option<MerkleConsistencyProofV1>,
@@ -537,6 +537,10 @@ impl DurableExecutionSecurityContext {
             .map_err(AdapterError::from)?;
         transparency_policy
             .validate_independence_from_execution(&adapter.trust)
+            .map_err(AdapterError::from)?;
+
+        transparency_witnesses
+            .bind_log_authority(&transparency_log)
             .map_err(AdapterError::from)?;
 
         if transparency_witnesses.policy_commitment() != transparency_policy.commitment() {
