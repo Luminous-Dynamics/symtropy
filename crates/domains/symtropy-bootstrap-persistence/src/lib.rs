@@ -3250,29 +3250,15 @@ mod tests {
             .expect("current evidence");
 
         let mut persisted = PersistedTransparencyEvidenceV1::from_accepted(&accepted);
-        persisted.vds_consistency_proof = persisted
-            .witness_evidence
-            .first()
-            .and_then(|evidence| evidence.vds_consistency_proof().cloned());
-
-        if persisted
-            .witness_evidence
-            .iter()
-            .all(|evidence| evidence.vds_consistency_proof() == persisted.vds_consistency_proof.as_ref())
-        {
-            persisted.witness_evidence.push(
-                TransparencyWitnessEvidenceV1::new(
-                    persisted.witness_signatures[0].clone(),
-                    None,
-                )
-                .expect("shape-valid mismatched evidence"),
-            );
-        }
+        persisted.vds_consistency_proof = Some(
+            MerkleConsistencyProofV1::new(vec!["aa".repeat(32)])
+                .expect("shape-valid unrelated proof"),
+        );
 
         assert!(matches!(
             persisted.validate_basic(),
             Err(AdapterError::Invalid(message))
-                if message.contains("per-witness evidence")
+                if message.contains("shared transparency VDS proof")
         ));
     }
 
