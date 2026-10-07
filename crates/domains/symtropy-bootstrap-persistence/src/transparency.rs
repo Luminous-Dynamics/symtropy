@@ -1244,6 +1244,51 @@ mod tests {
     }
 
     #[test]
+    fn verification_does_not_advance_witness_before_durable_commit() {
+        let keys = TestKeys::new();
+        let policy = policy(&keys);
+        let state = TransparencyWitnessSetV1::new(&policy).expect("state");
+        let log = TransparencyLogAuthorityV1::from_public_key_hex(
+            "log-1", 1, keys.log_public()
+        ).expect("log");
+        let genesis = transparency_genesis_digest("log-1", 1, &policy.commitment());
+        let checkpoint = signed_checkpoint(
+            &keys,
+            &policy,
+            1,
+            1,
+            &"66".repeat(32),
+            &genesis,
+        );
+        let accepted = state
+            .verify_candidate(
+                &log,
+                &policy,
+                &checkpoint,
+                &witnessed_signatures(&keys, &checkpoint, &[0, 1]),
+                "bootstrap",
+                1,
+                1,
+                &"66".repeat(32),
+            )
+            .expect("verification");
+
+        assert_eq!(state.retained_sequence("w1"), Some(0));
+        assert_eq!(
+            state.retained_checkpoint_digest("w1"),
+            Some(genesis.as_str())
+        );
+
+        drop(accepted);
+
+        assert_eq!(state.retained_sequence("w1"), Some(0));
+        assert_eq!(
+            state.retained_checkpoint_digest("w1"),
+            Some(genesis.as_str())
+        );
+    }
+
+    #[test]
     fn same_sequence_different_checkpoint_is_equivocation() {
         let keys = TestKeys::new();
         let policy = policy(&keys);
