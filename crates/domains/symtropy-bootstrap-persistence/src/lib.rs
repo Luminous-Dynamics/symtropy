@@ -193,7 +193,7 @@ impl FreshnessAuthority {
     /// This is the only production constructor: callers cannot manufacture a cursor
     /// from arbitrary checkpoint fields without first passing the authority, journal,
     /// and trust-policy verification boundary.
-    pub fn initialize_cursor(
+    pub fn bootstrap_cursor(
         &self,
         attestation: &ExternalFreshnessAttestation,
         namespace: &str,
@@ -202,11 +202,21 @@ impl FreshnessAuthority {
         trust: &DurableExecutionTrust,
     ) -> Result<FreshnessCursor, AdapterError> {
         self.verify(attestation, namespace, seed, chain, trust)?;
+        if attestation.sequence != 0
+            || attestation.event_count != 0
+            || attestation.head_hash != "GENESIS"
+            || !chain.events().is_empty()
+        {
+            return Err(AdapterError::WitnessMismatch(
+                "freshness cursor bootstrap is restricted to the empty GENESIS journal"
+                    .to_string(),
+            ));
+        }
         Ok(FreshnessCursor {
             authority_commitment: self.commitment(),
-            last_sequence: attestation.sequence,
-            last_head_hash: attestation.head_hash.clone(),
-            last_event_count: attestation.event_count,
+            last_sequence: 0,
+            last_head_hash: "GENESIS".to_string(),
+            last_event_count: 0,
         })
     }
 
@@ -338,6 +348,15 @@ impl DurableExecutionSecurityContext {
             &adapter.trust,
         )?;
         cursor.verify_candidate(&authority, &freshness_attestation, &loaded.chain)?;
+        if cursor.last_sequence() == 0
+            && (!loaded.chain.events().is_empty()
+                || freshness_attestation.sequence != 1)
+        {
+            return Err(AdapterError::WitnessMismatch(
+                "unadvanced freshness cursor cannot establish against an already-advanced journal"
+                    .to_string(),
+            ));
+        }
         Ok(Self {
             head_witness,
             freshness_authority: authority,
@@ -2360,7 +2379,7 @@ mod tests {
                 0,
             );
             let cursor = authority
-                .initialize_cursor(
+                .bootstrap_cursor(
                     &genesis,
                     "bootstrap",
                     1,
@@ -2481,7 +2500,7 @@ mod tests {
         let attestation =
             freshness_test_attestation(authority.authority_id(), authority.authority_epoch(), &authority_signer, &adapter, 1);
         let mut cursor = authority
-            .initialize_cursor(
+            .bootstrap_cursor(
                 &attestation,
                 "bootstrap",
                 1,
@@ -2578,7 +2597,7 @@ mod tests {
             3,
         );
         let mut cursor = authority
-            .initialize_cursor(
+            .bootstrap_cursor(
                 &retained,
                 "bootstrap",
                 1,
