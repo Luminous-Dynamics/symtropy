@@ -372,7 +372,9 @@ impl DependencyGraph {
         if stack.len() >= MAX_DEPENDENCY_RESOLUTION_DEPTH {
             return (
                 false,
-                vec![format!("resolution-depth-exceeded:{MAX_DEPENDENCY_RESOLUTION_DEPTH}")],
+                vec![format!(
+                    "resolution-depth-exceeded:{MAX_DEPENDENCY_RESOLUTION_DEPTH}"
+                )],
                 false,
             );
         }
@@ -1232,10 +1234,7 @@ impl ExecutionStateAnchor {
     /// new intentionally leaves the state commitment unbound. It is suitable
     /// for identity-only comparisons, but durable execution APIs require a
     /// state-bound anchor produced by for_state or with_state_commitment.
-    pub fn new(
-        domain: impl Into<String>,
-        frontier: impl Into<String>,
-    ) -> Result<Self, String> {
+    pub fn new(domain: impl Into<String>, frontier: impl Into<String>) -> Result<Self, String> {
         let domain = domain.into();
         let frontier = frontier.into();
 
@@ -1243,8 +1242,7 @@ impl ExecutionStateAnchor {
             !value.is_empty()
                 && value.len() <= 256
                 && value.bytes().all(|byte| {
-                    byte.is_ascii_alphanumeric()
-                        || matches!(byte, b'.' | b'-' | b'_' | b':')
+                    byte.is_ascii_alphanumeric() || matches!(byte, b'.' | b'-' | b'_' | b':')
                 })
         };
 
@@ -1270,16 +1268,20 @@ impl ExecutionStateAnchor {
         budget: &ExecutionBudget,
         inventory: &InventoryLedger,
     ) -> Result<Self, String> {
-        Self::new(domain, frontier)?.with_state_commitment(&execution_state_commitment(
-            budget, inventory,
-        ))
+        Self::new(domain, frontier)?
+            .with_state_commitment(&execution_state_commitment(budget, inventory))
     }
 
     /// Attach an externally computed canonical state commitment.
-    pub fn with_state_commitment(self, state_commitment: impl Into<String>) -> Result<Self, String> {
+    pub fn with_state_commitment(
+        self,
+        state_commitment: impl Into<String>,
+    ) -> Result<Self, String> {
         let state_commitment = state_commitment.into();
         if !is_sha256_hex(&state_commitment) {
-            return Err("execution anchor requires a lowercase SHA-256 state commitment".to_string());
+            return Err(
+                "execution anchor requires a lowercase SHA-256 state commitment".to_string(),
+            );
         }
         if self.domain == Self::IN_MEMORY_DOMAIN && self.frontier == Self::IN_MEMORY_FRONTIER {
             return Err(
@@ -2862,10 +2864,7 @@ impl InventoryLedger {
 
 /// Return the canonical commitment of the exact budget/inventory state represented by an anchor.
 #[must_use]
-pub fn execution_state_commitment(
-    budget: &ExecutionBudget,
-    inventory: &InventoryLedger,
-) -> String {
+pub fn execution_state_commitment(budget: &ExecutionBudget, inventory: &InventoryLedger) -> String {
     combine_execution_state_commitments(
         budget.state_commitment().as_str(),
         inventory.state_commitment().as_str(),
@@ -2886,7 +2885,12 @@ pub fn combine_execution_state_commitments(
 }
 
 /// Compare two positive rational numbers without cross-product overflow.
-fn ratio_greater(mut left_num: u128, mut left_den: u128, mut right_num: u128, mut right_den: u128) -> bool {
+fn ratio_greater(
+    mut left_num: u128,
+    mut left_den: u128,
+    mut right_num: u128,
+    mut right_den: u128,
+) -> bool {
     let mut reverse = false;
 
     loop {
@@ -4631,8 +4635,7 @@ mod tests {
         assert!(anchor.is_state_bound());
         assert_eq!(anchor.state_commitment().len(), 64);
 
-        let changed_inventory =
-            InventoryLedger::new(BTreeMap::from([("feed".to_string(), 999)]));
+        let changed_inventory = InventoryLedger::new(BTreeMap::from([("feed".to_string(), 999)]));
         let changed_anchor = ExecutionStateAnchor::for_state(
             "symtropy.execution.journal.v1",
             "head-a",
@@ -5395,12 +5398,10 @@ mod tests {
 
     #[test]
     fn pareto_frontier_preserves_real_tradeoffs() {
-        let low_energy =
-            BootstrapCandidate::new("low_energy", 10, 5, 100, 100, 30, 100_000)
-                .expect("valid bootstrap candidate");
-        let low_mass =
-            BootstrapCandidate::new("low_mass", 10, 5, 50, 200, 30, 100_000)
-                .expect("valid bootstrap candidate");
+        let low_energy = BootstrapCandidate::new("low_energy", 10, 5, 100, 100, 30, 100_000)
+            .expect("valid bootstrap candidate");
+        let low_mass = BootstrapCandidate::new("low_mass", 10, 5, 50, 200, 30, 100_000)
+            .expect("valid bootstrap candidate");
         let frontier = pareto_frontier(&[low_energy, low_mass]);
 
         assert_eq!(frontier.len(), 2);
@@ -5415,12 +5416,10 @@ mod tests {
 
     #[test]
     fn pareto_frontier_compares_same_id_observations() {
-        let dominated =
-            BootstrapCandidate::new("same_id", 1, 1, 100, 100, 30, 100_000)
-                .expect("valid bootstrap candidate");
-        let stronger =
-            BootstrapCandidate::new("same_id", 2, 2, 90, 90, 20, 90_000)
-                .expect("valid bootstrap candidate");
+        let dominated = BootstrapCandidate::new("same_id", 1, 1, 100, 100, 30, 100_000)
+            .expect("valid bootstrap candidate");
+        let stronger = BootstrapCandidate::new("same_id", 2, 2, 90, 90, 20, 90_000)
+            .expect("valid bootstrap candidate");
         let frontier = pareto_frontier(&[dominated, stronger]);
 
         assert_eq!(frontier.len(), 1);
@@ -5429,12 +5428,12 @@ mod tests {
 
     #[test]
     fn pareto_frontier_is_input_order_independent() {
-        let a =
-            BootstrapCandidate::new("a", 10, 5, 100, 100, 30, 100_000).expect("valid bootstrap candidate");
-        let b =
-            BootstrapCandidate::new("b", 20, 5, 100, 100, 30, 100_000).expect("valid bootstrap candidate");
-        let c =
-            BootstrapCandidate::new("c", 5, 10, 90, 110, 20, 80_000).expect("valid bootstrap candidate");
+        let a = BootstrapCandidate::new("a", 10, 5, 100, 100, 30, 100_000)
+            .expect("valid bootstrap candidate");
+        let b = BootstrapCandidate::new("b", 20, 5, 100, 100, 30, 100_000)
+            .expect("valid bootstrap candidate");
+        let c = BootstrapCandidate::new("c", 5, 10, 90, 110, 20, 80_000)
+            .expect("valid bootstrap candidate");
 
         let first = pareto_frontier(&[a.clone(), b.clone(), c.clone()]);
         let second = pareto_frontier(&[c, b, a]);
@@ -5790,8 +5789,7 @@ mod tests {
             4_000,
         );
         let mut budget = ExecutionBudget::new(1_000, 4_000);
-        let mut inventory =
-            InventoryLedger::new(BTreeMap::from([("feed".to_string(), 1_000)]));
+        let mut inventory = InventoryLedger::new(BTreeMap::from([("feed".to_string(), 1_000)]));
         let receipt = process
             .authorize_pending_execution_with_inventory(
                 "exec-ids",
