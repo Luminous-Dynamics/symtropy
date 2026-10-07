@@ -931,6 +931,7 @@ impl TransparencyWitnessSetV1 {
         head_hash: &str,
         vds_consistency_proof: Option<&MerkleConsistencyProofV1>,
     ) -> Result<AcceptedTransparencyCheckpointV1, TransparencyError> {
+        checkpoint.validate_basic()?;
         if self.policy_commitment != policy.commitment() {
             return Err(TransparencyError::PolicyMismatch);
         }
@@ -1201,7 +1202,7 @@ impl std::fmt::Display for TransparencyError {
             Self::InclusionLeafMismatch => {
                 write!(formatter, "transparency inclusion evidence leaf does not match entry")
             }
-            Self::InsufficientQuorum => {}
+            Self::InsufficientQuorum => {
                 write!(formatter, "transparency witness quorum insufficient")
             }
             Self::InsufficientIndependentDomains => {
@@ -1563,6 +1564,36 @@ mod tests {
             transparency_genesis_digest("log-1", 1, &policy.commitment()),
             transparency_genesis_digest("log-1", 1, &policy.commitment())
         );
+    }
+
+    #[test]
+    fn signed_unsupported_checkpoint_schema_is_rejected() {
+        let keys = TestKeys::new();
+        let policy = policy(&keys);
+        let state = TransparencyWitnessSetV1::new(&policy).expect("state");
+        let log =
+            TransparencyLogAuthorityV1::from_public_key_hex("log-1", 1, keys.log_public())
+                .expect("log");
+        let genesis = transparency_genesis_digest("log-1", 1, &policy.commitment());
+        let mut checkpoint =
+            signed_checkpoint(&keys, &policy, 1, 1, &"77".repeat(32), &genesis);
+
+        checkpoint.unsigned.schema_version = TRANSPARENCY_CHECKPOINT_SCHEMA_VERSION + 1;
+        checkpoint.signature = encode_hex(keys.log.sign(&checkpoint.digest()).as_ref());
+
+        assert!(matches!(
+            state.verify_candidate(
+                &log,
+                &policy,
+                &checkpoint,
+                &witnessed_signatures(&keys, &checkpoint, &[0, 1]),
+                "bootstrap",
+                1,
+                1,
+                &"77".repeat(32),
+            ),
+            Err(TransparencyError::Invalid(_))
+        ));
     }
 
     #[test]
