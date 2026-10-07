@@ -12,7 +12,7 @@
 //! It does not implement HTTP transport, a Merkle VDS, a public transparency service,
 //! trusted time, or physical execution authority. Those are separate layers.
 
-use ring::signature::{UnparsedPublicKey, ED25519};
+use ring::signature::{ED25519, UnparsedPublicKey};
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use std::collections::BTreeMap;
@@ -20,10 +20,8 @@ use std::collections::BTreeMap;
 use super::{DurableExecutionTrust, FreshnessAuthority};
 
 pub const TRANSPARENCY_CHECKPOINT_SCHEMA_VERSION: u32 = 1;
-pub const TRANSPARENCY_CHECKPOINT_ALGORITHM: &str =
-    "Ed25519-SHA256-JOURNAL-CHECKPOINT-v1";
-pub const TRANSPARENCY_WITNESS_ALGORITHM: &str =
-    "Ed25519-SHA256-JOURNAL-WITNESS-v1";
+pub const TRANSPARENCY_CHECKPOINT_ALGORITHM: &str = "Ed25519-SHA256-JOURNAL-CHECKPOINT-v1";
+pub const TRANSPARENCY_WITNESS_ALGORITHM: &str = "Ed25519-SHA256-JOURNAL-WITNESS-v1";
 
 const TRANSPARENCY_DOMAIN: &str = "symtropy.transparency-checkpoint.v1";
 const TRANSPARENCY_WITNESS_DOMAIN: &str = "symtropy.transparency-witness.v1";
@@ -91,7 +89,10 @@ impl TransparencyCheckpointUnsignedV1 {
             ));
         }
         validate_nonempty("journal_namespace", &self.journal_namespace)?;
-        validate_nonempty("previous_checkpoint_digest", &self.previous_checkpoint_digest)?;
+        validate_nonempty(
+            "previous_checkpoint_digest",
+            &self.previous_checkpoint_digest,
+        )?;
         validate_nonempty("witness_policy_commitment", &self.witness_policy_commitment)?;
         validate_head(self.event_count, &self.head_hash)
     }
@@ -622,11 +623,8 @@ impl TransparencyWitnessSetV1 {
                 "cannot initialize an empty transparency witness set".to_string(),
             ));
         }
-        let genesis_digest = transparency_genesis_digest(
-            &policy.log_id,
-            policy.log_epoch,
-            &policy.commitment(),
-        );
+        let genesis_digest =
+            transparency_genesis_digest(&policy.log_id, policy.log_epoch, &policy.commitment());
         let mut witnesses = BTreeMap::new();
         for witness_id in policy.witnesses.keys() {
             witnesses.insert(
@@ -742,8 +740,12 @@ impl TransparencyWitnessSetV1 {
 
         let checkpoint_digest = encode_hex(&checkpoint.digest());
         let mut seen = BTreeMap::<String, ()>::new();
-        let mut verified =
-            Vec::<(String, String, RetainedWitnessState, TransparencyWitnessSignatureV1)>::new();
+        let mut verified = Vec::<(
+            String,
+            String,
+            RetainedWitnessState,
+            TransparencyWitnessSignatureV1,
+        )>::new();
 
         for signature in witness_signatures {
             let witness_id = signature.witness_id().to_string();
@@ -755,10 +757,7 @@ impl TransparencyWitnessSetV1 {
                 .ok_or(TransparencyError::UnknownWitness)?;
             let public_key = decode_exact::<32>(witness.public_key_hex())?;
             let detached_signature = decode_exact::<64>(signature.signature())?;
-            let signing_digest = witness_signing_digest(
-                witness.witness_id(),
-                &checkpoint.digest(),
-            );
+            let signing_digest = witness_signing_digest(witness.witness_id(), &checkpoint.digest());
             UnparsedPublicKey::new(&ED25519, &public_key)
                 .verify(&signing_digest, &detached_signature)
                 .map_err(|_| TransparencyError::WitnessSignatureInvalid)?;
@@ -825,9 +824,8 @@ impl TransparencyWitnessSetV1 {
             predecessor_states.insert(witness_id.clone(), retained.clone());
         }
 
-        accepted_signatures.sort_unstable_by(|left, right| {
-            left.witness_id().cmp(right.witness_id())
-        });
+        accepted_signatures
+            .sort_unstable_by(|left, right| left.witness_id().cmp(right.witness_id()));
 
         if accepted_witnesses.len() < policy.quorum as usize {
             return Err(TransparencyError::InsufficientQuorum);
@@ -939,7 +937,10 @@ impl std::fmt::Display for TransparencyError {
             }
             Self::UnknownWitness => write!(formatter, "unknown transparency witness"),
             Self::ReplayDetected => {
-                write!(formatter, "transparency checkpoint is not newer than retained witness state")
+                write!(
+                    formatter,
+                    "transparency checkpoint is not newer than retained witness state"
+                )
             }
             Self::RollbackDetected {
                 witness_id,
@@ -950,14 +951,25 @@ impl std::fmt::Display for TransparencyError {
                 "witness {witness_id} detected checkpoint rollback from {retained_sequence} to {candidate_sequence}"
             ),
             Self::EquivocationDetected { witness_id } => {
-                write!(formatter, "witness {witness_id} observed same-sequence checkpoint equivocation")
+                write!(
+                    formatter,
+                    "witness {witness_id} observed same-sequence checkpoint equivocation"
+                )
             }
             Self::NonExtension { witness_id } => {
-                write!(formatter, "witness {witness_id} observed non-extending checkpoint history")
+                write!(
+                    formatter,
+                    "witness {witness_id} observed non-extending checkpoint history"
+                )
             }
-            Self::InsufficientQuorum => write!(formatter, "transparency witness quorum insufficient"),
+            Self::InsufficientQuorum => {
+                write!(formatter, "transparency witness quorum insufficient")
+            }
             Self::InsufficientIndependentDomains => {
-                write!(formatter, "transparency witness independence-domain quorum insufficient")
+                write!(
+                    formatter,
+                    "transparency witness independence-domain quorum insufficient"
+                )
             }
             Self::SequenceDiscontinuity {
                 witness_id,
@@ -968,7 +980,10 @@ impl std::fmt::Display for TransparencyError {
                 "witness {witness_id} rejected checkpoint sequence jump from {retained_sequence} to {candidate_sequence}"
             ),
             Self::StaleAcceptedCheckpoint => {
-                write!(formatter, "accepted transparency checkpoint became stale before commit")
+                write!(
+                    formatter,
+                    "accepted transparency checkpoint became stale before commit"
+                )
             }
         }
     }
@@ -999,7 +1014,9 @@ fn witness_signing_digest(witness_id: &str, checkpoint_digest: &[u8; 32]) -> [u8
 
 fn validate_nonempty(field: &str, value: &str) -> Result<(), TransparencyError> {
     if value.is_empty() {
-        return Err(TransparencyError::Invalid(format!("{field} must not be empty")));
+        return Err(TransparencyError::Invalid(format!(
+            "{field} must not be empty"
+        )));
     }
     Ok(())
 }
@@ -1014,9 +1031,9 @@ fn validate_head(event_count: u64, head_hash: &str) -> Result<(), TransparencyEr
         return Ok(());
     }
     if head_hash.len() != 64
-        || head_hash.bytes().any(|byte| {
-            !matches!(byte, b'0'..=b'9' | b'a'..=b'f')
-        })
+        || head_hash
+            .bytes()
+            .any(|byte| !matches!(byte, b'0'..=b'9' | b'a'..=b'f'))
     {
         return Err(TransparencyError::Invalid(
             "non-empty journal transparency checkpoint requires lowercase SHA-256 head".to_string(),
@@ -1090,8 +1107,7 @@ mod tests {
     };
 
     fn test_execution_signer() -> DurableExecutionSigner {
-        let pkcs8 = Ed25519KeyPair::generate_pkcs8(&SystemRandom::new())
-            .expect("execution key");
+        let pkcs8 = Ed25519KeyPair::generate_pkcs8(&SystemRandom::new()).expect("execution key");
         DurableExecutionSigner::from_pkcs8("execution-key", 1, pkcs8.as_ref())
             .expect("execution signer")
     }
@@ -1107,9 +1123,13 @@ mod tests {
             let log_pkcs8 = Ed25519KeyPair::generate_pkcs8(&rng).expect("log key");
             let mut witnesses = Vec::new();
             for _ in 0..3 {
-                witnesses.push(Ed25519KeyPair::generate_pkcs8(&rng).map(|pkcs8| {
-                    Ed25519KeyPair::from_pkcs8(pkcs8.as_ref()).expect("witness key")
-                }).expect("witness keygen"));
+                witnesses.push(
+                    Ed25519KeyPair::generate_pkcs8(&rng)
+                        .map(|pkcs8| {
+                            Ed25519KeyPair::from_pkcs8(pkcs8.as_ref()).expect("witness key")
+                        })
+                        .expect("witness keygen"),
+                );
             }
             Self {
                 log: Ed25519KeyPair::from_pkcs8(log_pkcs8.as_ref()).expect("log key"),
@@ -1135,14 +1155,23 @@ mod tests {
             2,
             vec![
                 TransparencyWitnessKeyV1::from_public_key_hex(
-                    "w1", "domain-a", keys.witness_public(0)
-                ).expect("w1"),
+                    "w1",
+                    "domain-a",
+                    keys.witness_public(0),
+                )
+                .expect("w1"),
                 TransparencyWitnessKeyV1::from_public_key_hex(
-                    "w2", "domain-b", keys.witness_public(1)
-                ).expect("w2"),
+                    "w2",
+                    "domain-b",
+                    keys.witness_public(1),
+                )
+                .expect("w2"),
                 TransparencyWitnessKeyV1::from_public_key_hex(
-                    "w3", "domain-b", keys.witness_public(2)
-                ).expect("w3"),
+                    "w3",
+                    "domain-b",
+                    keys.witness_public(2),
+                )
+                .expect("w3"),
             ],
         )
         .expect("policy")
@@ -1169,7 +1198,9 @@ mod tests {
         )
         .expect("unsigned checkpoint");
         let signature = keys.log.sign(&unsigned.signing_digest());
-        unsigned.into_signed(encode_hex(signature.as_ref())).expect("signed checkpoint")
+        unsigned
+            .into_signed(encode_hex(signature.as_ref()))
+            .expect("signed checkpoint")
     }
 
     fn witnessed_signatures(
@@ -1183,11 +1214,8 @@ mod tests {
                 let witness_id = format!("w{}", index + 1);
                 let digest = witness_signing_digest(&witness_id, &checkpoint.digest());
                 let signature = keys.witnesses[*index].sign(&digest);
-                TransparencyWitnessSignatureV1::new(
-                    witness_id,
-                    encode_hex(signature.as_ref()),
-                )
-                .expect("witness signature")
+                TransparencyWitnessSignatureV1::new(witness_id, encode_hex(signature.as_ref()))
+                    .expect("witness signature")
             })
             .collect()
     }
@@ -1201,10 +1229,8 @@ mod tests {
         let checkpoint = signed_checkpoint(keys, policy, 1, 1, &"00".repeat(32), &genesis);
         state
             .verify_candidate(
-                &TransparencyLogAuthorityV1::from_public_key_hex(
-                    "log-1", 1, keys.log_public()
-                )
-                .expect("log authority"),
+                &TransparencyLogAuthorityV1::from_public_key_hex("log-1", 1, keys.log_public())
+                    .expect("log authority"),
                 policy,
                 &checkpoint,
                 &witnessed_signatures(keys, &checkpoint, &[0, 1]),
@@ -1241,10 +1267,17 @@ mod tests {
 
         assert!(matches!(
             state.verify_candidate(
-                &log, &policy, &checkpoint, &witnessed_signatures(&keys, &checkpoint, &[0]),
-                "bootstrap", 1, 1, &"00".repeat(32),
+                &log,
+                &policy,
+                &checkpoint,
+                &witnessed_signatures(&keys, &checkpoint, &[0]),
+                "bootstrap",
+                1,
+                1,
+                &"00".repeat(32),
             ),
-            Err(TransparencyError::InsufficientQuorum | TransparencyError::InsufficientIndependentDomains)
+            Err(TransparencyError::InsufficientQuorum
+                | TransparencyError::InsufficientIndependentDomains)
         ));
 
         let accepted = state
@@ -1260,9 +1293,7 @@ mod tests {
             )
             .expect("quorum");
 
-        state
-            .commit_after_durable_append(accepted)
-            .expect("commit");
+        state.commit_after_durable_append(accepted).expect("commit");
         assert_eq!(state.retained_sequence("w1"), Some(1));
         assert_eq!(state.retained_sequence("w2"), Some(1));
         assert_eq!(state.retained_sequence("w3"), Some(0));
@@ -1273,18 +1304,10 @@ mod tests {
         let keys = TestKeys::new();
         let policy = policy(&keys);
         let state = TransparencyWitnessSetV1::new(&policy).expect("state");
-        let log = TransparencyLogAuthorityV1::from_public_key_hex(
-            "log-1", 1, keys.log_public()
-        ).expect("log");
+        let log = TransparencyLogAuthorityV1::from_public_key_hex("log-1", 1, keys.log_public())
+            .expect("log");
         let genesis = transparency_genesis_digest("log-1", 1, &policy.commitment());
-        let checkpoint = signed_checkpoint(
-            &keys,
-            &policy,
-            1,
-            1,
-            &"44".repeat(32),
-            &genesis,
-        );
+        let checkpoint = signed_checkpoint(&keys, &policy, 1, 1, &"44".repeat(32), &genesis);
         let signatures = witnessed_signatures(&keys, &checkpoint, &[0, 1]);
         let reverse = vec![signatures[1].clone(), signatures[0].clone()];
 
@@ -1323,18 +1346,10 @@ mod tests {
         let keys = TestKeys::new();
         let policy = policy(&keys);
         let state = TransparencyWitnessSetV1::new(&policy).expect("state");
-        let log = TransparencyLogAuthorityV1::from_public_key_hex(
-            "log-1", 1, keys.log_public()
-        ).expect("log");
+        let log = TransparencyLogAuthorityV1::from_public_key_hex("log-1", 1, keys.log_public())
+            .expect("log");
         let genesis = transparency_genesis_digest("log-1", 1, &policy.commitment());
-        let checkpoint = signed_checkpoint(
-            &keys,
-            &policy,
-            1,
-            1,
-            &"55".repeat(32),
-            &genesis,
-        );
+        let checkpoint = signed_checkpoint(&keys, &policy, 1, 1, &"55".repeat(32), &genesis);
         let mut signatures = witnessed_signatures(&keys, &checkpoint, &[0, 1]);
         signatures.push(
             TransparencyWitnessSignatureV1::new("w3", "00".repeat(64))
@@ -1361,12 +1376,10 @@ mod tests {
         let keys = TestKeys::new();
         let policy = policy(&keys);
         let state = TransparencyWitnessSetV1::new(&policy).expect("state");
-        let log = TransparencyLogAuthorityV1::from_public_key_hex(
-            "log-1", 1, keys.log_public()
-        ).expect("log");
+        let log = TransparencyLogAuthorityV1::from_public_key_hex("log-1", 1, keys.log_public())
+            .expect("log");
         let genesis = transparency_genesis_digest("log-1", 1, &policy.commitment());
-        let checkpoint =
-            signed_checkpoint(&keys, &policy, 1, 1, &"66".repeat(32), &genesis);
+        let checkpoint = signed_checkpoint(&keys, &policy, 1, 1, &"66".repeat(32), &genesis);
         let accepted = state
             .verify_candidate(
                 &log,
@@ -1400,9 +1413,8 @@ mod tests {
         let keys = TestKeys::new();
         let policy = policy(&keys);
         let mut state = TransparencyWitnessSetV1::new(&policy).expect("state");
-        let log = TransparencyLogAuthorityV1::from_public_key_hex(
-            "log-1", 1, keys.log_public()
-        ).expect("log");
+        let log = TransparencyLogAuthorityV1::from_public_key_hex("log-1", 1, keys.log_public())
+            .expect("log");
 
         let first = accepted_first_checkpoint(&keys, &state, &policy);
         let first_checkpoint = first.checkpoint().clone();
@@ -1485,9 +1497,8 @@ mod tests {
         let keys = TestKeys::new();
         let policy = policy(&keys);
         let mut state = TransparencyWitnessSetV1::new(&policy).expect("state");
-        let log = TransparencyLogAuthorityV1::from_public_key_hex(
-            "log-1", 1, keys.log_public()
-        ).expect("log");
+        let log = TransparencyLogAuthorityV1::from_public_key_hex("log-1", 1, keys.log_public())
+            .expect("log");
 
         let first = accepted_first_checkpoint(&keys, &state, &policy);
         let first_digest = first.checkpoint_digest().to_string();
@@ -1526,16 +1537,14 @@ mod tests {
         let keys = TestKeys::new();
         let policy = policy(&keys);
         let mut state = TransparencyWitnessSetV1::new(&policy).expect("state");
-        let log = TransparencyLogAuthorityV1::from_public_key_hex(
-            "log-1", 1, keys.log_public()
-        ).expect("log");
+        let log = TransparencyLogAuthorityV1::from_public_key_hex("log-1", 1, keys.log_public())
+            .expect("log");
 
         let first = accepted_first_checkpoint(&keys, &state, &policy);
         let first_digest = first.checkpoint_digest().to_string();
         state.commit_after_durable_append(first).expect("commit");
 
-        let skipped =
-            signed_checkpoint(&keys, &policy, 3, 2, &"33".repeat(32), &first_digest);
+        let skipped = signed_checkpoint(&keys, &policy, 3, 2, &"33".repeat(32), &first_digest);
 
         let error = state
             .verify_candidate(
@@ -1626,7 +1635,11 @@ mod tests {
             policy.validate_independence_from_execution(&trust),
             Err(TransparencyError::KeyReuse(_))
         ));
-        assert!(policy.validate_independence_from_freshness(&freshness).is_ok());
+        assert!(
+            policy
+                .validate_independence_from_freshness(&freshness)
+                .is_ok()
+        );
     }
 
     #[test]
@@ -1647,20 +1660,15 @@ mod tests {
     fn key_roles_are_explicitly_distinct() {
         let keys = TestKeys::new();
         let policy = policy(&keys);
-        let log = TransparencyLogAuthorityV1::from_public_key_hex(
-            "log-1", 1, keys.log_public()
-        ).expect("log");
-        let freshness = FreshnessAuthority::from_public_key_hex(
-            "freshness", 1, keys.log_public()
-        ).expect("freshness");
+        let log = TransparencyLogAuthorityV1::from_public_key_hex("log-1", 1, keys.log_public())
+            .expect("log");
+        let freshness = FreshnessAuthority::from_public_key_hex("freshness", 1, keys.log_public())
+            .expect("freshness");
 
         assert!(matches!(
             log.validate_independence_from_freshness(&freshness),
             Err(TransparencyError::KeyReuse(_))
         ));
-        assert!(matches!(
-            policy.validate_matches_log(&log),
-            Ok(())
-        ));
+        assert!(matches!(policy.validate_matches_log(&log), Ok(())));
     }
 }
