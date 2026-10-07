@@ -65,12 +65,14 @@ The checkpoint is deliberately a statement about the **pre-transition** durable 
 
 TransparencyWitnessSetV1 is deliberately not Clone, Serialize, or Deserialize.
 
-Each retained witness records only the minimum continuity state:
+Each retained witness records the minimum observed checkpoint state needed for replay and VDS continuity:
 
     checkpoint sequence
     checkpoint digest
     journal event count
     journal head hash
+    VDS tree size
+    VDS root hash
 
 Genesis is a deterministic semantic checkpoint derived from:
 
@@ -78,7 +80,7 @@ Genesis is a deterministic semantic checkpoint derived from:
 
 For general evidence verification, a checkpoint may be idempotently re-verified against a witness's already-retained checkpoint.
 
-For a **new durable transition**, a separate admission operation requires the checkpoint sequence to be strictly greater than the maximum retained witness sequence. This prevents a previously consumed checkpoint from authorizing another state-changing lifecycle event merely because its signatures remain valid.
+For a **new durable transition**, two different monotonic boundaries are checked. The durable lifecycle journal requires the candidate checkpoint sequence to be exactly the next sequence after its persisted history, while retained witnesses require the candidate to be newer than every witness state used for admission. This prevents a previously consumed checkpoint from authorizing another state-changing lifecycle event while still allowing a witness to catch up after missed intermediate checkpoints when VDS continuity is proven.
 
 The following fail closed:
 
@@ -95,11 +97,19 @@ The following fail closed:
         -> ReplayDetected
 
     candidate sequence > retained sequence
-    + wrong predecessor
-        -> NonExtension
+    + VDS head is not a monotonic extension
+        -> NonExtension / RollbackDetected
 
-    candidate sequence > retained sequence + 1
-        -> SequenceDiscontinuity
+    candidate VDS tree grows from retained VDS head
+    + consistency proof is absent or invalid
+        -> VDS consistency failure
+
+    candidate checkpoint sequence may exceed retained sequence by more than one
+    + VDS continuity is proven
+        -> witness catch-up is permitted
+
+    durable lifecycle checkpoint sequence skips a number
+        -> durable transparency lineage failure
 
 ## Quorum and independence
 
@@ -191,9 +201,9 @@ Therefore this tranche establishes:
 
 It does **not** establish:
 
-    restart-resistant external witness continuity or automatic witness catch-up
+    restart-resistant external witness continuity
 
-A runtime restart with only the execution journal must not reconstruct an external witness's memory. The journal now prevents replay of the last already-consumed transparency sequence, but it cannot establish that a fresh witness object has observed the intervening checkpoint history. The next recovery layer needs an independently retained witness/checkpoint store or a real VDS consistency-proof catch-up mechanism.
+A runtime restart with only the execution journal must not reconstruct an external witness's memory. The journal now prevents replay of the last already-consumed transparency sequence, but it cannot establish that a fresh witness object has observed the intervening checkpoint history. The in-process witness can catch up across missed checkpoint sequences while it retains its prior VDS head; after restart, the next recovery layer still needs an independently retained witness/checkpoint store or equivalent external continuity authority.
 
 This is analogous to the existing freshness cursor boundary: durable journal data can document what happened, but it must not become the sole authority for reconstructing an external anti-rollback memory.
 
@@ -203,7 +213,7 @@ This is analogous to the existing freshness cursor boundary: durable journal dat
 | --- | --- |
 | Invalid local chain | local integrity failure |
 | Older external sequence | freshness rollback |
-| Higher sequence with wrong local predecessor | transparency non-extension |
+| Higher sequence with wrong durable predecessor | durable transparency non-extension |
 | Same transparency sequence with different digest | transparency equivocation evidence |
 | Reuse of an already-consumed sequence for a new transition | transparency replay |
 | No newer checkpoint observed | freshness/transparency unavailability or possible freeze |
@@ -231,7 +241,7 @@ This design is deliberately narrower than SCITT.
 
 RFC 9943 requires a SCITT transparency VDS to support append-only history, non-equivocation, and replayability. The current Symtropy boundary supplies a durable execution checkpoint plus independently retained witness continuity, VDS consistency checking, and a service-neutral inclusion-evidence precursor. It still does not implement a SCITT receipt, C2SP wire encoding, or a public VDS. https://www.rfc-editor.org/info/rfc9943/
 
-RFC 9162 defines Merkle consistency proofs that demonstrate that a newer tree contains the older tree as a prefix. The repository now has SHA-256 consistency and inclusion primitives, with tests spanning many tree shapes and corrupted proof/root/index/size inputs. The checkpoint carries the concrete VDS tree size/root, witness admission rejects unsupported growth without consistency evidence, and service-neutral inclusion evidence can prove an exact entry against the signed tree head. https://www.rfc-editor.org/rfc/rfc9162.html
+RFC 9162 defines Merkle consistency proofs that demonstrate that a newer tree contains the older tree as a prefix. The repository now has SHA-256 consistency and inclusion primitives, with tests spanning many tree shapes and corrupted proof/root/index/size inputs. The checkpoint carries the concrete VDS tree size/root; witness admission enforces VDS continuity against each retained witness and permits catch-up across missed checkpoint sequence numbers when a valid consistency proof connects the retained and candidate tree heads. Durable lifecycle admission separately enforces contiguous checkpoint sequence/predecessor lineage. Service-neutral inclusion evidence can prove an exact entry against the signed tree head. https://www.rfc-editor.org/rfc/rfc9162.html
 
 The current C2SP Transparency Log Witness Protocol has the closest architectural shape: a witness retains its latest verified checkpoint, requires a consistency proof for a newer checkpoint, and requires continuity checking plus durable persistence to be atomic. The current Symtropy witness set mirrors the retained-state and CAS boundary, but is intentionally still service-neutral and in-process. It is therefore **not** C2SP wire compatible yet. https://c2sp.org/tlog-witness
 
@@ -247,7 +257,8 @@ A successfully executed integration can support claims such as:
 
     exact journal pre-state bound to an authenticated transparency checkpoint
     consumed checkpoint evidence durably authenticated in the lifecycle record
-    witness-visible checkpoint lineage is non-equivocating within retained witness state
+    witness-visible VDS lineage is non-equivocating within retained witness state
+    witnesses can catch up after missed checkpoint sequence numbers when VDS continuity is proven
     accepted quorum satisfies the configured witness/domain policy
     already-consumed transparency sequences cannot authorize a new durable transition
     durable transparency sequence history is contiguous and predecessor-linked
@@ -274,7 +285,7 @@ The minimum regression corpus for this layer should continue to cover:
 - exact-head mismatch;
 - same-sequence conflicting checkpoint;
 - lower sequence;
-- skipped sequence;
+- skipped durable checkpoint sequence;
 - higher sequence with wrong predecessor;
 - same checkpoint replay for a new transition;
 - quorum below threshold;
@@ -295,6 +306,9 @@ The minimum regression corpus for this layer should continue to cover:
 - Merkle consistency proof path corruption.
 - advertised Merkle root corruption.
 - invalid tree-size relationship.
+- witness catch-up after missed checkpoint sequence numbers with a valid VDS consistency proof.
+- witness catch-up without the required VDS consistency proof.
+- durable lifecycle checkpoint sequence gap despite valid signatures.
 
 ## Next implementation frontier
 
@@ -304,9 +318,9 @@ The checkpoint commits a concrete VDS tree-size/root, and witness admission invo
 
     semantic checkpoint + concrete VDS tree head
         ↓
-    Merkle consistency proof
+    per-witness VDS continuity / catch-up
         ↓
-    witness admission
+    durable lifecycle sequence / predecessor admission
         ↓
     optional inclusion/non-inclusion proofs
         ↓
