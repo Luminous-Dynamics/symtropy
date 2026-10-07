@@ -148,11 +148,16 @@ impl TransparencyCheckpointUnsignedV1 {
             ));
         }
         validate_nonempty("journal_namespace", &self.journal_namespace)?;
-        validate_nonempty(
-            "previous_checkpoint_digest",
-            &self.previous_checkpoint_digest,
-        )?;
-        validate_nonempty("witness_policy_commitment", &self.witness_policy_commitment)?;
+        if !is_sha256_hex(&self.previous_checkpoint_digest) {
+            return Err(TransparencyError::Invalid(
+                "previous checkpoint digest must be lowercase SHA-256".to_string(),
+            ));
+        }
+        if !is_sha256_hex(&self.witness_policy_commitment) {
+            return Err(TransparencyError::Invalid(
+                "witness policy commitment must be lowercase SHA-256".to_string(),
+            ));
+        }
         validate_head(self.event_count, &self.head_hash)?;
         self.vds_tree_head.validate_basic()
     }
@@ -1546,6 +1551,29 @@ mod tests {
             transparency_genesis_digest("log-1", 1, &policy.commitment()),
             transparency_genesis_digest("log-1", 1, &policy.commitment())
         );
+    }
+
+    #[test]
+    fn checkpoint_rejects_non_sha256_commitments() {
+        let result = TransparencyCheckpointUnsignedV1::new(
+            "log-1",
+            1,
+            1,
+            "bootstrap",
+            1,
+            1,
+            &"11".repeat(32),
+            1,
+            &"22".repeat(32),
+            "not-a-digest",
+            "also-not-a-digest",
+        );
+
+        assert!(matches!(
+            result,
+            Err(TransparencyError::Invalid(message))
+                if message.contains("previous checkpoint digest")
+        ));
     }
 
     #[test]
