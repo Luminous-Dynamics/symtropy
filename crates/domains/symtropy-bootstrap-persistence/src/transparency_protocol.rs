@@ -84,6 +84,113 @@ impl Rfc9942ConsistencyProofContentV1 {
     }
 }
 
+/// Binds RFC 9942 consistency content to the exact older and newer tree roots
+/// supplied by the surrounding witness/log evidence.
+///
+/// The newer root is the value a signed consistency proof's detached payload
+/// must authenticate. Keeping it beside the proof content prevents a future
+/// adapter from accidentally verifying the path against a different root.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct Rfc9942ConsistencyProofBindingV1 {
+    content: Rfc9942ConsistencyProofContentV1,
+    older_root_hash: String,
+    newer_root_hash: String,
+}
+
+impl Rfc9942ConsistencyProofBindingV1 {
+    pub fn new(
+        content: Rfc9942ConsistencyProofContentV1,
+        older_root_hash: impl Into<String>,
+        newer_root_hash: impl Into<String>,
+    ) -> Result<Self, MerkleVdsError> {
+        let value = Self {
+            content,
+            older_root_hash: older_root_hash.into(),
+            newer_root_hash: newer_root_hash.into(),
+        };
+        value.validate_basic()?;
+        Ok(value)
+    }
+
+    #[must_use]
+    pub fn content(&self) -> &Rfc9942ConsistencyProofContentV1 {
+        &self.content
+    }
+
+    #[must_use]
+    pub fn older_root_hash(&self) -> &str {
+        &self.older_root_hash
+    }
+
+    #[must_use]
+    pub fn newer_root_hash(&self) -> &str {
+        &self.newer_root_hash
+    }
+
+    pub fn validate_basic(&self) -> Result<(), MerkleVdsError> {
+        self.content.validate_basic()?;
+        if !is_sha256_hex(&self.older_root_hash) || !is_sha256_hex(&self.newer_root_hash) {
+            return Err(MerkleVdsError::Invalid(
+                "RFC 9942 proof roots must be lowercase SHA-256".to_string(),
+            ));
+        }
+        Ok(())
+    }
+
+    pub fn verify_sha256(&self) -> Result<(), MerkleVdsError> {
+        self.validate_basic()?;
+        self.content
+            .verify_sha256(&self.older_root_hash, &self.newer_root_hash)
+    }
+}
+
+/// Binds RFC 9942 inclusion content to the exact tree root that a signed
+/// inclusion receipt proves.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct Rfc9942InclusionProofBindingV1 {
+    content: Rfc9942InclusionProofContentV1,
+    root_hash: String,
+}
+
+impl Rfc9942InclusionProofBindingV1 {
+    pub fn new(
+        content: Rfc9942InclusionProofContentV1,
+        root_hash: impl Into<String>,
+    ) -> Result<Self, MerkleVdsError> {
+        let value = Self {
+            content,
+            root_hash: root_hash.into(),
+        };
+        value.validate_basic()?;
+        Ok(value)
+    }
+
+    #[must_use]
+    pub fn content(&self) -> &Rfc9942InclusionProofContentV1 {
+        &self.content
+    }
+
+    #[must_use]
+    pub fn root_hash(&self) -> &str {
+        &self.root_hash
+    }
+
+    pub fn validate_basic(&self) -> Result<(), MerkleVdsError> {
+        self.content.validate_basic()?;
+        if !is_sha256_hex(&self.root_hash) {
+            return Err(MerkleVdsError::Invalid(
+                "RFC 9942 proof root must be lowercase SHA-256".to_string(),
+            ));
+        }
+        Ok(())
+    }
+
+    pub fn verify_sha256(&self) -> Result<(), MerkleVdsError> {
+        self.validate_basic()?;
+        self.content.verify_sha256(&self.root_hash)
+    }
+}
+
 /// Semantic binding for the RFC 9942 inclusion-proof content tuple:
 /// [tree size, leaf index, inclusion path].
 ///
@@ -128,6 +235,13 @@ impl Rfc9942InclusionProofContentV1 {
         self.validate_basic()?;
         self.proof.verify_sha256(self.tree_size, root_hash)
     }
+}
+
+fn is_sha256_hex(value: &str) -> bool {
+    value.len() == 64
+        && value
+            .bytes()
+            .all(|byte| matches!(byte, b'0'..=b'9' | b'a'..=b'f'))
 }
 
 #[cfg(test)]
@@ -239,6 +353,62 @@ mod tests {
         assert!(matches!(
             Rfc9942InclusionProofContentV1::new(2, content.proof().clone()),
             Err(MerkleVdsError::Invalid(_))
+        ));
+    }
+
+    #[test]
+    fn consistency_binding_rejects_root_mismatch() {
+        let old_entries = entries(3);
+        let new_entries = entries(7);
+        let old_root = merkle_tree_hash_sha256(&old_entries);
+        let new_root = merkle_tree_hash_sha256(&new_entries);
+        let path = MerkleConsistencyProofV1::new(consistency_proof(3, &new_entries))
+            .expect("proof");
+        let content =
+            Rfc9942ConsistencyProofContentV1::new(3, 7, path).expect("content");
+        let binding =
+            Rfc9942ConsistencyProofBindingV1::new(content, old_root.clone(), new_root.clone())
+                .expect("binding");
+
+        binding.verify_sha256().expect("bound roots");
+
+        let swapped =
+            Rfc9942ConsistencyProofBindingV1::new(
+                binding.content().clone(),
+                old_root,
+                "11".repeat(32),
+            )
+            .expect("shape-valid root");
+        assert!(matches!(
+            swapped.verify_sha256(),
+            Err(MerkleVdsError::ProofMismatch)
+        ));
+    }
+
+    #[test]
+    fn inclusion_binding_rejects_root_mismatch() {
+        let data = entries(5);
+        let root = merkle_tree_hash_sha256(&data);
+        let proof = MerkleInclusionProofV1::new(
+            2,
+            merkle_leaf_hash_sha256(&data[2]),
+            inclusion_path(2, &data),
+        )
+        .expect("proof");
+        let content = Rfc9942InclusionProofContentV1::new(5, proof).expect("content");
+        let binding =
+            Rfc9942InclusionProofBindingV1::new(content, root).expect("binding");
+
+        binding.verify_sha256().expect("bound root");
+
+        let wrong = Rfc9942InclusionProofBindingV1::new(
+            binding.content().clone(),
+            "22".repeat(32),
+        )
+        .expect("shape-valid root");
+        assert!(matches!(
+            wrong.verify_sha256(),
+            Err(MerkleVdsError::ProofMismatch)
         ));
     }
 
