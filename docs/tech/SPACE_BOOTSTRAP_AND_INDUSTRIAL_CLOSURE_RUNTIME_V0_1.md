@@ -804,6 +804,8 @@ The first implementation should prove:
 - lifecycle mutation and recovery use the witness as an **exact-head capability**, not a merely historical prefix: an older cloned witness cannot authorize against a newer journal head; prefix-extension verification remains available only for audit/replay inspection;
 - the retained witness is intentionally not `Serialize`/`Deserialize` constructible; accepting arbitrary checkpoint JSON would turn the anti-rollback boundary back into caller-supplied metadata. External checkpoint persistence/import therefore belongs to a separate trusted storage or attestation interface.
 - the adapter now has a verifier-only `ExternalFreshnessAttestation` envelope and `FreshnessAuthority` root: the external statement binds authority identity/epoch, monotonic sequence, namespace, seed, exact journal event count/head hash, and the execution trust-policy commitment; its private signing key is never part of the runtime adapter;
+- state-changing lifecycle APIs consume one `DurableExecutionSecurityContext` that owns the sealed local witness and external freshness cursor together; only the external attestation may be replaced between transitions, preventing callers from independently mixing a stale witness with a newer or mismatched freshness cursor;
+- before a journal transition, the security context verifies the exact pre-transition head and checks that the external attestation sequence is newer than the retained cursor; after the durable append succeeds, the context advances the local witness and consumes that attestation sequence. A failed append therefore cannot advance freshness state.
 - `FreshnessCursor` is established only through successful authority verification and rejects a non-increasing authority sequence, providing explicit replay resistance for retained external checkpoints; the cursor is intentionally not self-serializable because its persistence is itself a trust boundary;
 
 - a successful durable append advances the caller-retained witness only after the authenticated lifecycle record is synchronized to the journal; failed durable writes therefore cannot silently move the freshness checkpoint;
@@ -999,9 +1001,11 @@ schema_version
 The adapter must use the explicit pending-authorization API and enforce this ordering:
 
 ```text
-caller-retained JournalHeadWitness
-    -> optionally verify externally rooted JournalFreshnessAttestation + retained FreshnessCursor
-    -> verify witness against authenticated journal while holding journal writer fence
+DurableExecutionSecurityContext
+    -> verify exact local head witness
+    -> verify externally rooted JournalFreshnessAttestation
+    -> verify attestation sequence against retained FreshnessCursor
+    -> hold journal writer fence
     -> authorize_pending_execution_with_inventory_at_anchor
     -> derive state-bound ExecutionStateAnchor from verified frontier + exact pre-Pending budget/inventory state
     -> durably record Pending + exact receipt + receipt commitment + source reservation + verified frontier + state commitment
