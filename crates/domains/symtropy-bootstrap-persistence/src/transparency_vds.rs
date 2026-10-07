@@ -408,8 +408,7 @@ mod tests {
         let data = entries(5);
         let second_root = merkle_tree_hash_sha256(&data);
 
-        verify_append_only_sha256(0, &empty_root, 5, &second_root, None)
-            .expect("empty-tree start");
+        verify_append_only_sha256(0, &empty_root, 5, &second_root, None).expect("empty-tree start");
 
         let bad_root = "11".repeat(32);
         assert!(matches!(
@@ -417,16 +416,9 @@ mod tests {
             Err(MerkleVdsError::ProofMismatch)
         ));
 
-        let nonempty = MerkleConsistencyProofV1::new(vec!["22".repeat(32)])
-            .expect("shape-valid");
+        let nonempty = MerkleConsistencyProofV1::new(vec!["22".repeat(32)]).expect("shape-valid");
         assert!(matches!(
-            verify_append_only_sha256(
-                0,
-                &empty_root,
-                5,
-                &second_root,
-                Some(&nonempty),
-            ),
+            verify_append_only_sha256(0, &empty_root, 5, &second_root, Some(&nonempty),),
             Err(MerkleVdsError::Invalid(_))
         ));
     }
@@ -437,8 +429,7 @@ mod tests {
         let root = merkle_tree_hash_sha256(&data);
         let empty = MerkleConsistencyProofV1::empty();
 
-        verify_append_only_sha256(5, &root, 5, &root, Some(&empty))
-            .expect("unchanged tree");
+        verify_append_only_sha256(5, &root, 5, &root, Some(&empty)).expect("unchanged tree");
 
         let wrong = "33".repeat(32);
         assert!(matches!(
