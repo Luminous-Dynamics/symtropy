@@ -3088,6 +3088,18 @@ mod tests {
             )
             .expect("pending");
 
+        let persisted = adapter.load().expect("journal");
+        let consumed_checkpoint = persisted.chain.events()[0]
+            .payload
+            .transparency_evidence
+            .checkpoint
+            .clone();
+        let consumed_witness_signatures = persisted.chain.events()[0]
+            .payload
+            .transparency_evidence
+            .witness_signatures
+            .clone();
+
         security.refresh(&adapter);
         let cursor = FreshnessCursor {
             authority_commitment: security
@@ -3099,11 +3111,37 @@ mod tests {
             last_head_hash: security.context.freshness_cursor().last_head_hash().to_string(),
             last_event_count: security.context.freshness_cursor().last_event_count(),
         };
+
+        let replay_witnesses =
+            TransparencyWitnessSetV1::new(security.context.transparency_policy())
+                .expect("fresh witness set");
+        let replay_error = DurableExecutionSecurityContext::establish(
+            &adapter,
+            security.context.freshness_authority().clone(),
+            FreshnessCursor {
+                authority_commitment: cursor.authority_commitment.clone(),
+                last_sequence: cursor.last_sequence,
+                last_head_hash: cursor.last_head_hash.clone(),
+                last_event_count: cursor.last_event_count,
+            },
+            security.context.freshness_attestation().clone(),
+            security.context.transparency_log().clone(),
+            security.context.transparency_policy().clone(),
+            replay_witnesses,
+            consumed_checkpoint,
+            consumed_witness_signatures,
+        )
+        .expect_err("last consumed checkpoint must not authorize after restart");
+
+        assert!(matches!(
+            replay_error,
+            AdapterError::Transparency(TransparencyError::ReplayDetected)
+        ));
+
         let fresh_witnesses =
             TransparencyWitnessSetV1::new(security.context.transparency_policy())
                 .expect("fresh witness set");
-
-        let error = DurableExecutionSecurityContext::establish(
+        let discontinuity_error = DurableExecutionSecurityContext::establish(
             &adapter,
             security.context.freshness_authority().clone(),
             cursor,
@@ -3114,10 +3152,10 @@ mod tests {
             security.context.transparency_checkpoint().clone(),
             security.context.transparency_witness_signatures().to_vec(),
         )
-        .expect_err("restart with journal-only transparency memory must fail closed");
+        .expect_err("fresh witness memory must not skip unseen checkpoints");
 
         assert!(matches!(
-            error,
+            discontinuity_error,
             AdapterError::Transparency(
                 TransparencyError::SequenceDiscontinuity {
                     retained_sequence: 0,
@@ -3129,6 +3167,7 @@ mod tests {
 
         fs::remove_dir_all(adapter.store().root()).expect("cleanup");
     }
+
 
     #[test]
     fn durable_transparency_history_rejects_sequence_reuse_and_forking() {
