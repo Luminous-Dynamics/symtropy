@@ -26,9 +26,10 @@ use symtropy_persistence::{JournalLoad, JournalLock, PersistenceError, SaveStore
 
 use transparency::{
     AcceptedTransparencyCheckpointV1, TransparencyCheckpointV1, TransparencyError,
-    TransparencyLogAuthorityV1, TransparencyWitnessPolicyV1, TransparencyWitnessSetV1,
-    TransparencyWitnessSignatureV1, transparency_genesis_digest,
+    TransparencyLogAuthorityV1, TransparencyVdsTreeHeadV1, TransparencyWitnessPolicyV1,
+    TransparencyWitnessSetV1, TransparencyWitnessSignatureV1, transparency_genesis_digest,
 };
+use transparency_vds::{verify_append_only_sha256, MerkleConsistencyProofV1};
 
 pub const EXECUTION_LIFECYCLE_SCHEMA_VERSION: u32 = 3;
 pub const EXECUTION_EVENT_KIND: &str = "symtropy.bootstrap.execution";
@@ -326,6 +327,7 @@ impl FreshnessAuthority {
 pub struct PersistedTransparencyEvidenceV1 {
     pub checkpoint: TransparencyCheckpointV1,
     pub witness_signatures: Vec<TransparencyWitnessSignatureV1>,
+    pub vds_consistency_proof: Option<MerkleConsistencyProofV1>,
     pub accepted_witnesses: Vec<String>,
     pub accepted_domains: Vec<String>,
 }
@@ -336,6 +338,7 @@ impl PersistedTransparencyEvidenceV1 {
         Self {
             checkpoint: accepted.checkpoint().clone(),
             witness_signatures: accepted.witness_signatures().to_vec(),
+            vds_consistency_proof: accepted.vds_consistency_proof().cloned(),
             accepted_witnesses: accepted.accepted_witnesses().to_vec(),
             accepted_domains: accepted.accepted_domains().to_vec(),
         }
@@ -396,6 +399,9 @@ impl PersistedTransparencyEvidenceV1 {
         for signature in &self.witness_signatures {
             signature.validate_basic().map_err(AdapterError::from)?;
         }
+        if let Some(proof) = &self.vds_consistency_proof {
+            proof.validate_basic().map_err(AdapterError::from)?;
+        }
         if !is_sha256_hex(self.checkpoint.previous_checkpoint_digest()) {
             return Err(AdapterError::Invalid(
                 "transparency checkpoint predecessor digest must be lowercase SHA-256".to_string(),
@@ -436,6 +442,7 @@ pub struct DurableExecutionSecurityContext {
     transparency_witnesses: TransparencyWitnessSetV1,
     transparency_checkpoint: TransparencyCheckpointV1,
     transparency_witness_signatures: Vec<TransparencyWitnessSignatureV1>,
+    transparency_vds_consistency_proof: Option<MerkleConsistencyProofV1>,
 }
 
 impl DurableExecutionSecurityContext {
@@ -449,6 +456,7 @@ impl DurableExecutionSecurityContext {
         transparency_witnesses: TransparencyWitnessSetV1,
         transparency_checkpoint: TransparencyCheckpointV1,
         transparency_witness_signatures: Vec<TransparencyWitnessSignatureV1>,
+        transparency_vds_consistency_proof: Option<MerkleConsistencyProofV1>,
     ) -> Result<Self, AdapterError> {
         transparency_log
             .validate_independence_from_freshness(&authority)
@@ -507,6 +515,7 @@ impl DurableExecutionSecurityContext {
                 adapter.seed,
                 event_count,
                 loaded.chain.head_hash(),
+                transparency_vds_consistency_proof.as_ref(),
             )
             .map_err(AdapterError::from)?;
 
@@ -520,6 +529,7 @@ impl DurableExecutionSecurityContext {
             transparency_witnesses,
             transparency_checkpoint,
             transparency_witness_signatures,
+            transparency_vds_consistency_proof,
         })
     }
 
@@ -534,9 +544,11 @@ impl DurableExecutionSecurityContext {
         &mut self,
         transparency_checkpoint: TransparencyCheckpointV1,
         transparency_witness_signatures: Vec<TransparencyWitnessSignatureV1>,
+        transparency_vds_consistency_proof: Option<MerkleConsistencyProofV1>,
     ) {
         self.transparency_checkpoint = transparency_checkpoint;
         self.transparency_witness_signatures = transparency_witness_signatures;
+        self.transparency_vds_consistency_proof = transparency_vds_consistency_proof;
     }
 
     #[must_use]
@@ -584,6 +596,11 @@ impl DurableExecutionSecurityContext {
         &self.transparency_witness_signatures
     }
 
+    #[must_use]
+    pub fn transparency_vds_consistency_proof(&self) -> Option<&MerkleConsistencyProofV1> {
+        self.transparency_vds_consistency_proof.as_ref()
+    }
+
     fn verify_before_transition(
         &self,
         adapter: &DurableExecutionAdapter,
@@ -613,7 +630,7 @@ impl DurableExecutionSecurityContext {
             .map_err(|_| AdapterError::Invalid("journal event count overflow".to_string()))?;
 
         let result = if require_new_transparency_sequence {
-            self.transparency_witnesses.verify_for_new_transition(
+            self.transparency_witnesses.verify_for_new_transition_with_vds(
                 &self.transparency_log,
                 &self.transparency_policy,
                 &self.transparency_checkpoint,
@@ -622,9 +639,10 @@ impl DurableExecutionSecurityContext {
                 adapter.seed,
                 event_count,
                 chain.head_hash(),
+                self.transparency_vds_consistency_proof.as_ref(),
             )
         } else {
-            self.transparency_witnesses.verify_candidate(
+            self.transparency_witnesses.verify_candidate_with_vds(
                 &self.transparency_log,
                 &self.transparency_policy,
                 &self.transparency_checkpoint,
@@ -633,6 +651,7 @@ impl DurableExecutionSecurityContext {
                 adapter.seed,
                 event_count,
                 chain.head_hash(),
+                self.transparency_vds_consistency_proof.as_ref(),
             )
         };
 
@@ -1778,6 +1797,8 @@ impl DurableExecutionAdapter {
     ) -> Result<u64, AdapterError> {
         let mut expected_sequence = 0_u64;
         let mut previous_digest: Option<String> = None;
+        let mut previous_vds_tree_size = 0_u64;
+        let mut previous_vds_root = TransparencyVdsTreeHeadV1::empty().root_hash().to_string();
         let mut log_identity: Option<(String, u64, String)> = None;
 
         for event in chain.events() {
@@ -1817,6 +1838,32 @@ impl DurableExecutionAdapter {
                         .to_string(),
                 ));
             }
+
+            if sequence == 1 && checkpoint.vds_tree_size() != 0 {
+                return Err(AdapterError::Invalid(
+                    "first durable transparency checkpoint must start at VDS tree size zero"
+                        .to_string(),
+                ));
+            }
+
+            verify_append_only_sha256(
+                previous_vds_tree_size,
+                &previous_vds_root,
+                checkpoint.vds_tree_size(),
+                checkpoint.vds_root_hash(),
+                event.payload
+                    .transparency_evidence
+                    .vds_consistency_proof
+                    .as_ref(),
+            )
+            .map_err(|_| {
+                AdapterError::Invalid(
+                    "durable transparency VDS history is not append-only consistent".to_string(),
+                )
+            })?;
+
+            previous_vds_tree_size = checkpoint.vds_tree_size();
+            previous_vds_root = checkpoint.vds_root_hash().to_string();
 
             if let Some((log_id, log_epoch, policy_commitment)) = &log_identity {
                 if checkpoint.log_id() != log_id
@@ -2773,7 +2820,7 @@ mod tests {
                 log_signer.public_key_hex(),
             )
             .expect("transparency log");
-            let (first_checkpoint, first_witness_signatures) = transparency_test_evidence(
+            let (first_checkpoint, first_witness_signatures, first_vds_proof) = transparency_test_evidence(
                 adapter,
                 &transparency_log,
                 &transparency_policy,
@@ -2793,6 +2840,7 @@ mod tests {
                 transparency_witnesses,
                 first_checkpoint,
                 first_witness_signatures,
+                first_vds_proof,
             )
             .expect("security context");
             Self {
@@ -2840,7 +2888,7 @@ mod tests {
                 hex_encode(&self.context.transparency_checkpoint().digest())
             };
 
-            let (checkpoint, witness_signatures) = transparency_test_evidence(
+            let (checkpoint, witness_signatures, vds_proof) = transparency_test_evidence(
                 adapter,
                 self.context.transparency_log(),
                 &self.transparency_policy,
@@ -2850,7 +2898,7 @@ mod tests {
                 &previous_digest,
             );
             self.context
-                .set_transparency_evidence(checkpoint, witness_signatures);
+                .set_transparency_evidence(checkpoint, witness_signatures, vds_proof);
         }
     }
 
@@ -2865,9 +2913,29 @@ mod tests {
     ) -> (
         TransparencyCheckpointV1,
         Vec<TransparencyWitnessSignatureV1>,
+        Option<MerkleConsistencyProofV1>,
     ) {
         let loaded = adapter.load_verified().expect("verified journal");
-        let event_count = u64::try_from(loaded.chain.events().len()).expect("event count");
+        let leaf_entries = loaded
+            .chain
+            .events()
+            .iter()
+            .map(|event| serde_json::to_vec(event).expect("serialize VDS leaf"))
+            .collect::<Vec<_>>();
+        let event_count = u64::try_from(leaf_entries.len()).expect("event count");
+        let vds_root = transparency_vds::merkle_tree_hash_sha256(&leaf_entries);
+        let vds_consistency_proof = if leaf_entries.len() <= 1 {
+            None
+        } else {
+            Some(
+                MerkleConsistencyProofV1::new(consistency_proof(
+                    leaf_entries.len() - 1,
+                    &leaf_entries,
+                ))
+                .expect("VDS consistency proof"),
+            )
+        };
+
         let unsigned = transparency::TransparencyCheckpointUnsignedV1::new(
             log.log_id().to_string(),
             log.log_epoch(),
@@ -2876,6 +2944,8 @@ mod tests {
             1,
             event_count,
             loaded.chain.head_hash().to_string(),
+            event_count,
+            vds_root,
             previous_digest,
             policy.commitment(),
         )
@@ -2901,7 +2971,41 @@ mod tests {
             })
             .collect();
 
-        (checkpoint, witness_signatures)
+        (checkpoint, witness_signatures, vds_consistency_proof)
+    }
+
+    fn consistency_proof(m: usize, entries: &[Vec<u8>]) -> Vec<String> {
+        fn subproof(
+            m: usize,
+            entries: &[Vec<u8>],
+            complete: bool,
+            output: &mut Vec<String>,
+        ) {
+            let n = entries.len();
+            if m == n {
+                if !complete {
+                    output.push(transparency_vds::merkle_tree_hash_sha256(entries));
+                }
+                return;
+            }
+
+            let mut power = 1usize << (usize::BITS - 1 - n.leading_zeros());
+            if power == n {
+                power >>= 1;
+            }
+
+            if m <= power {
+                subproof(m, &entries[..power], complete, output);
+                output.push(transparency_vds::merkle_tree_hash_sha256(&entries[power..]));
+            } else {
+                subproof(m - power, &entries[power..], false, output);
+                output.push(transparency_vds::merkle_tree_hash_sha256(&entries[..power]));
+            }
+        }
+
+        let mut output = Vec::new();
+        subproof(m, entries, true, &mut output);
+        output
     }
 
     fn store(name: &str) -> SaveStore {
@@ -3153,6 +3257,7 @@ mod tests {
             replay_witnesses,
             consumed_checkpoint,
             consumed_witness_signatures,
+            None,
         )
         .expect_err("last consumed checkpoint must not authorize after restart");
 
@@ -3173,6 +3278,7 @@ mod tests {
             fresh_witnesses,
             security.context.transparency_checkpoint().clone(),
             security.context.transparency_witness_signatures().to_vec(),
+            security.context.transparency_vds_consistency_proof().cloned(),
         )
         .expect_err("fresh witness memory must not skip unseen checkpoints");
 
@@ -3223,6 +3329,8 @@ mod tests {
             checkpoint.seed(),
             checkpoint.event_count(),
             checkpoint.head_hash().to_string(),
+            checkpoint.vds_tree_size(),
+            checkpoint.vds_root_hash().to_string(),
             "11".repeat(32),
             checkpoint.witness_policy_commitment().to_string(),
         )
@@ -3287,6 +3395,8 @@ mod tests {
             checkpoint.seed(),
             checkpoint.event_count(),
             checkpoint.head_hash().to_string(),
+            checkpoint.vds_tree_size(),
+            checkpoint.vds_root_hash().to_string(),
             checkpoint.previous_checkpoint_digest().to_string(),
             checkpoint.witness_policy_commitment().to_string(),
         )
@@ -3513,6 +3623,7 @@ mod tests {
             transparency_witnesses,
             transparency_checkpoint,
             transparency_witness_signatures,
+            security.context.transparency_vds_consistency_proof().cloned(),
         )
         .expect_err("restart must not reinitialize from an unadvanced genesis cursor");
 
