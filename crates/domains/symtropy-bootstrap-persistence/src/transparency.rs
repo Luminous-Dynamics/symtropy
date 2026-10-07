@@ -685,6 +685,13 @@ impl TransparencyWitnessSetV1 {
                     return Err(TransparencyError::EquivocationDetected { witness_id });
                 }
             } else {
+                if checkpoint.sequence() != retained.sequence.saturating_add(1) {
+                    return Err(TransparencyError::SequenceDiscontinuity {
+                        witness_id,
+                        retained_sequence: retained.sequence,
+                        candidate_sequence: checkpoint.sequence(),
+                    });
+                }
                 if checkpoint.previous_checkpoint_digest() != retained.checkpoint_digest {
                     return Err(TransparencyError::NonExtension { witness_id });
                 }
@@ -726,6 +733,7 @@ impl TransparencyWitnessSetV1 {
             return Err(TransparencyError::InsufficientIndependentDomains);
         }
 
+        accepted_witnesses.sort_unstable();
         let accepted_domains = domains.into_keys().collect::<Vec<_>>();
         Ok(AcceptedTransparencyCheckpointV1 {
             checkpoint: checkpoint.clone(),
@@ -801,6 +809,11 @@ pub enum TransparencyError {
     },
     InsufficientQuorum,
     InsufficientIndependentDomains,
+    SequenceDiscontinuity {
+        witness_id: String,
+        retained_sequence: u64,
+        candidate_sequence: u64,
+    },
     StaleAcceptedCheckpoint,
 }
 
@@ -838,6 +851,14 @@ impl std::fmt::Display for TransparencyError {
             Self::InsufficientIndependentDomains => {
                 write!(formatter, "transparency witness independence-domain quorum insufficient")
             }
+            Self::SequenceDiscontinuity {
+                witness_id,
+                retained_sequence,
+                candidate_sequence,
+            } => write!(
+                formatter,
+                "witness {witness_id} rejected checkpoint sequence jump from {retained_sequence} to {candidate_sequence}"
+            ),
             Self::StaleAcceptedCheckpoint => {
                 write!(formatter, "accepted transparency checkpoint became stale before commit")
             }
@@ -1211,6 +1232,47 @@ mod tests {
             TransparencyError::NonExtension { witness_id } if witness_id == "w1"
         ));
         assert_ne!(forged.previous_checkpoint_digest(), first_digest);
+    }
+
+    #[test]
+    fn checkpoint_sequence_must_not_skip() {
+        let keys = TestKeys::new();
+        let policy = policy(&keys);
+        let mut state = TransparencyWitnessSetV1::new(&policy).expect("state");
+        let log = TransparencyLogAuthorityV1::from_public_key_hex(
+            "log-1", 1, keys.log_public()
+        ).expect("log");
+
+        let first = accepted_first_checkpoint(&keys, &state, &policy);
+        let first_digest = first.checkpoint_digest().to_string();
+        state.commit_after_durable_append(first).expect("commit");
+
+        let skipped = signed_checkpoint(
+            &keys,
+            &policy,
+            3,
+            2,
+            &"33".repeat(32),
+            &first_digest,
+        );
+
+        let error = state
+            .verify_candidate(
+                &log,
+                &policy,
+                &skipped,
+                &witnessed_signatures(&keys, &skipped, &[0, 1]),
+                "bootstrap",
+                1,
+                2,
+                &"33".repeat(32),
+            )
+            .expect_err("checkpoint sequence must be contiguous");
+
+        assert!(matches!(
+            error,
+            TransparencyError::SequenceDiscontinuity { witness_id, .. } if witness_id == "w1"
+        ));
     }
 
     #[test]
