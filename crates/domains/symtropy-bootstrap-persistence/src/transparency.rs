@@ -1961,7 +1961,7 @@ mod tests {
                 1,
                 1,
                 &"11".repeat(32),
-                Some(&growth_proof),
+                None,
             )
             .expect("first verification");
         state
