@@ -442,6 +442,18 @@ impl PersistedTransparencyEvidenceV1 {
             for evidence in &self.witness_evidence {
                 evidence.validate_basic().map_err(AdapterError::from)?;
             }
+            if let Some(shared_proof) = &self.vds_consistency_proof {
+                if self
+                    .witness_evidence
+                    .iter()
+                    .any(|evidence| evidence.vds_consistency_proof() != Some(shared_proof))
+                {
+                    return Err(AdapterError::Invalid(
+                        "shared transparency VDS proof does not match per-witness evidence"
+                            .to_string(),
+                    ));
+                }
+            }
         }
 
         if let Some(proof) = &self.vds_consistency_proof {
@@ -3214,6 +3226,54 @@ mod tests {
                 .as_ref(),
         );
         attestation
+    }
+
+    #[test]
+    fn persisted_transparency_evidence_rejects_incoherent_shared_proof() {
+        let adapter = configured_adapter("transparency-evidence-coherence");
+        let mut security = TestSecurityMaterial::new(&adapter);
+        security.refresh(&adapter);
+
+        let accepted = security
+            .context
+            .transparency_witnesses()
+            .verify_for_new_transition_with_witness_evidence(
+                security.context.transparency_log(),
+                &security.transparency_policy,
+                security.context.transparency_checkpoint(),
+                security.context.transparency_witness_evidence(),
+                "bootstrap",
+                1,
+                0,
+                "GENESIS",
+            )
+            .expect("current evidence");
+
+        let mut persisted = PersistedTransparencyEvidenceV1::from_accepted(&accepted);
+        persisted.vds_consistency_proof = persisted
+            .witness_evidence
+            .first()
+            .and_then(|evidence| evidence.vds_consistency_proof().cloned());
+
+        if persisted
+            .witness_evidence
+            .iter()
+            .all(|evidence| evidence.vds_consistency_proof() == persisted.vds_consistency_proof.as_ref())
+        {
+            persisted.witness_evidence.push(
+                TransparencyWitnessEvidenceV1::new(
+                    persisted.witness_signatures[0].clone(),
+                    None,
+                )
+                .expect("shape-valid mismatched evidence"),
+            );
+        }
+
+        assert!(matches!(
+            persisted.validate_basic(),
+            Err(AdapterError::Invalid(message))
+                if message.contains("per-witness evidence")
+        ));
     }
 
     #[test]
