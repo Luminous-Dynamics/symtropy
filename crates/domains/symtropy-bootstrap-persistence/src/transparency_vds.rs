@@ -291,6 +291,9 @@ pub fn verify_append_only_sha256(
 ) -> Result<(), MerkleVdsError> {
     let first_hash = decode_hex::<32>(first_root)?;
     let second_hash = decode_hex::<32>(second_root)?;
+    if let Some(proof) = proof {
+        proof.validate_basic()?;
+    }
     let empty_root: [u8; 32] = Sha256::digest(b"").into();
 
     if first_size == 0 {
@@ -574,6 +577,26 @@ mod tests {
         assert!(matches!(
             verify_append_only_sha256(5, &root, 5, &wrong, Some(&empty)),
             Err(MerkleVdsError::ProofMismatch)
+        ));
+    }
+
+    #[test]
+    fn rejects_deserialized_malformed_consistency_proof() {
+        let malformed = serde_json::json!({
+            "hashes": ["zz"]
+        });
+        let proof: MerkleConsistencyProofV1 =
+            serde_json::from_value(malformed).expect("deserialize");
+        let root = merkle_tree_hash_sha256(&entries(2));
+        assert!(matches!(
+            verify_append_only_sha256(
+                1,
+                &merkle_tree_hash_sha256(&entries(1)),
+                2,
+                &root,
+                Some(&proof),
+            ),
+            Err(MerkleVdsError::Invalid(_))
         ));
     }
 
