@@ -2861,7 +2861,6 @@ impl InventoryLedger {
     }
 }
 
-
 /// Return the canonical commitment of the exact budget/inventory state represented by an anchor.
 #[must_use]
 pub fn execution_state_commitment(budget: &ExecutionBudget, inventory: &InventoryLedger) -> String {
@@ -4786,11 +4785,10 @@ mod tests {
 
     #[test]
     fn receipt_commitment_is_deterministic_and_context_bound() {
-        let anchor =
-            ExecutionStateAnchor::new("symtropy.execution.journal.v1", "head-receipt")
-        .expect("valid anchor")
-        .with_state_commitment("a".repeat(64))
-        .expect("valid commitment");
+        let anchor = ExecutionStateAnchor::new("symtropy.execution.journal.v1", "head-receipt")
+            .expect("valid anchor")
+            .with_state_commitment("a".repeat(64))
+            .expect("valid commitment");
 
         let first = ProcessExecutionReceipt::from_persisted_parts(
             "exec-receipt",
@@ -4831,9 +4829,9 @@ mod tests {
 
         let changed_anchor =
             ExecutionStateAnchor::new("symtropy.execution.journal.v1", "different-head")
-        .expect("valid anchor")
-        .with_state_commitment("a".repeat(64))
-        .expect("valid commitment");
+                .expect("valid anchor")
+                .with_state_commitment("a".repeat(64))
+                .expect("valid commitment");
         let changed = ProcessExecutionReceipt::from_persisted_parts(
             "exec-receipt",
             "regolith_electrolysis",
@@ -5360,26 +5358,12 @@ mod tests {
 
     #[test]
     fn pareto_frontier_prefers_dependency_closure_without_single_score() {
-        let dependency_remover = BootstrapCandidate::new(
-            "close_electronics",
-            30,
-            30,
-            100,
-            500,
-            20,
-            50_000,
-        )
-        .expect("valid bootstrap candidate");
-        let throughput = BootstrapCandidate::new(
-            "increase_bulk_output",
-            0,
-            0,
-            100,
-            500,
-            20,
-            50_000,
-        )
-        .expect("valid bootstrap candidate");
+        let dependency_remover =
+            BootstrapCandidate::new("close_electronics", 30, 30, 100, 500, 20, 50_000)
+                .expect("valid bootstrap candidate");
+        let throughput =
+            BootstrapCandidate::new("increase_bulk_output", 0, 0, 100, 500, 20, 50_000)
+                .expect("valid bootstrap candidate");
         let frontier = pareto_frontier(&[throughput, dependency_remover]);
 
         assert_eq!(frontier.len(), 1);
