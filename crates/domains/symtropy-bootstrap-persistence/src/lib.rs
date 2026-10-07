@@ -2969,6 +2969,66 @@ mod tests {
     }
 
     #[test]
+    fn consumed_freshness_attestation_cannot_be_reused_for_next_transition() {
+        let adapter = configured_adapter("freshness-single-use");
+        let mut security = TestSecurityMaterial::new(&adapter);
+        let (process, run) = process_and_run();
+        let (mut budget, mut inventory, mut energy) = (
+            ExecutionBudget::new(2_000, 8_000),
+            InventoryLedger::new(BTreeMap::from([
+                ("feed".to_string(), 1_000),
+                ("feed-2".to_string(), 1_000),
+            ])),
+            EnergyLedger::new(BTreeMap::from([("bus".to_string(), 8_000])),
+        );
+
+        security.refresh(&adapter);
+        let receipt = adapter
+            .authorize_pending(
+                &mut security.context,
+                &process,
+                "exec-freshness-single-use",
+                1,
+                10,
+                20,
+                "bus",
+                run,
+                &mut budget,
+                &mut inventory,
+                &mut energy,
+            )
+            .expect("pending authorization");
+
+        let before_budget = budget.clone();
+        let before_inventory = inventory.clone();
+        let before_energy = energy.clone();
+        let executable =
+            resume_pending_execution(receipt.execution_id(), &budget, &inventory)
+                .expect("activation");
+
+        // Deliberately do not refresh the external attestation. The prior checkpoint
+        // was consumed by the durable Pending append.
+        let err = adapter
+            .commit(
+                &mut security.context,
+                &process,
+                &executable,
+                2,
+                &mut budget,
+                &mut inventory,
+                &mut energy,
+            )
+            .expect_err("freshness attestation must be single-use");
+
+        assert!(matches!(err, AdapterError::WitnessMismatch(message) if message.contains("sequence")));
+        assert_eq!(budget, before_budget);
+        assert_eq!(inventory, before_inventory);
+        assert_eq!(energy, before_energy);
+
+        fs::remove_dir_all(adapter.store().root()).expect("cleanup");
+    }
+
+    #[test]
     fn successful_lifecycle_appends_advance_the_retained_head_witness() {
         let adapter = configured_adapter("witness-advance");
         let mut security = TestSecurityMaterial::new(&adapter);
