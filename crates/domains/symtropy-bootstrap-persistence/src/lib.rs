@@ -3000,6 +3000,139 @@ mod tests {
     }
 
     #[test]
+    fn restart_without_retained_transparency_state_fails_closed() {
+        let adapter = configured_adapter("transparency-restart-boundary");
+        let mut security = TestSecurityMaterial::new(&adapter);
+        let (process, run) = process_and_run();
+        let (mut budget, mut inventory, mut energy) = initial_kernel_state();
+
+        security.refresh(&adapter);
+        adapter
+            .authorize_pending(
+                &mut security.context,
+                &process,
+                "exec-transparency-restart",
+                1,
+                10,
+                20,
+                "bus",
+                run,
+                &mut budget,
+                &mut inventory,
+                &mut energy,
+            )
+            .expect("pending");
+
+        security.refresh(&adapter);
+        let cursor = FreshnessCursor {
+            authority_commitment: security
+                .context
+                .freshness_cursor()
+                .authority_commitment()
+                .to_string(),
+            last_sequence: security.context.freshness_cursor().last_sequence(),
+            last_head_hash: security.context.freshness_cursor().last_head_hash().to_string(),
+            last_event_count: security.context.freshness_cursor().last_event_count(),
+        };
+        let fresh_witnesses =
+            TransparencyWitnessSetV1::new(security.context.transparency_policy())
+                .expect("fresh witness set");
+
+        let error = DurableExecutionSecurityContext::establish(
+            &adapter,
+            security.context.freshness_authority().clone(),
+            cursor,
+            security.context.freshness_attestation().clone(),
+            security.context.transparency_log().clone(),
+            security.context.transparency_policy().clone(),
+            fresh_witnesses,
+            security.context.transparency_checkpoint().clone(),
+            security.context.transparency_witness_signatures().to_vec(),
+        )
+        .expect_err("restart with journal-only transparency memory must fail closed");
+
+        assert!(matches!(
+            error,
+            AdapterError::Transparency(
+                TransparencyError::SequenceDiscontinuity {
+                    retained_sequence: 0,
+                    candidate_sequence: 2,
+                    ..
+                }
+            )
+        ));
+
+        fs::remove_dir_all(adapter.store().root()).expect("cleanup");
+    }
+
+    #[test]
+    fn authenticated_lifecycle_signature_covers_transparency_evidence() {
+        let adapter = configured_adapter("transparency-auth-coverage");
+        let mut security = TestSecurityMaterial::new(&adapter);
+        let (process, run) = process_and_run();
+        let (mut budget, mut inventory, mut energy) = initial_kernel_state();
+
+        security.refresh(&adapter);
+        adapter
+            .authorize_pending(
+                &mut security.context,
+                &process,
+                "exec-transparency-auth-coverage",
+                1,
+                10,
+                20,
+                "bus",
+                run,
+                &mut budget,
+                &mut inventory,
+                &mut energy,
+            )
+            .expect("pending");
+
+        let original = adapter.load().expect("journal");
+        let event = original.chain.events()[0].clone();
+        let tampered_checkpoint = security
+            .context
+            .transparency_checkpoint()
+            .unsigned()
+            .clone()
+            .into_signed("00".repeat(64))
+            .expect("shape-valid tampered checkpoint");
+
+        let mut tampered_payload = event.payload.clone();
+        tampered_payload.transparency_evidence.checkpoint = tampered_checkpoint;
+
+        let mut bad_chain = EventChain::new("bootstrap", 1);
+        bad_chain
+            .append(
+                1,
+                EXECUTION_EVENT_KIND,
+                None,
+                None,
+                Vec::new(),
+                tampered_payload,
+            )
+            .expect("outer chain can hash tampered event");
+
+        assert!(
+            DurableExecutionAdapter::validate_journal(&bad_chain).is_ok(),
+            "tampered evidence remains structurally well-formed"
+        );
+        assert!(
+            DurableExecutionAdapter::validate_authenticated_journal(
+                &bad_chain,
+                "bootstrap",
+                1,
+                adapter.trust(),
+            )
+            .is_err(),
+            "execution authentication must cover transparency evidence"
+        );
+
+        fs::remove_dir_all(adapter.store().root()).expect("cleanup");
+    }
+
+    #[test]
     fn freshness_cursor_bootstrap_rejects_non_genesis_attestation() {
         let adapter = configured_adapter("freshness-bootstrap-only");
         let authority_signer = test_signer("freshness-bootstrap-only-authority", 1);
