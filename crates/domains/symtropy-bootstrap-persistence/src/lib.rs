@@ -506,7 +506,7 @@ impl DurableExecutionSecurityContext {
         let event_count = u64::try_from(loaded.chain.events().len())
             .map_err(|_| AdapterError::Invalid("journal event count overflow".to_string()))?;
         transparency_witnesses
-            .verify_for_new_transition(
+            .verify_for_new_transition_with_vds(
                 &transparency_log,
                 &transparency_policy,
                 &transparency_checkpoint,
@@ -3118,6 +3118,22 @@ mod tests {
             event.payload.transparency_evidence.accepted_witnesses,
             vec!["w1".to_string(), "w2".to_string()]
         );
+        assert_eq!(
+            event
+                .payload
+                .transparency_evidence
+                .checkpoint
+                .vds_tree_size(),
+            0
+        );
+        assert!(
+            event
+                .payload
+                .transparency_evidence
+                .vds_consistency_proof
+                .is_none()
+        );
+
 
         fs::remove_dir_all(adapter.store().root()).expect("cleanup");
     }
