@@ -12,7 +12,15 @@ The durable execution adapter composes five security planes:
 - authenticated lifecycle records; and
 - an independent transparency log + witness quorum.
 
-Every state-changing lifecycle transition admits only a **strictly newer** transparency checkpoint. Read-only recovery may re-verify the currently staged checkpoint without advancing retained witness state.
+Every state-changing lifecycle transition admits only a **strictly newer** transparency checkpoint.
+
+The boundary is deliberately dual-monotonic:
+
+    durable journal transparency sequence
+        +
+    independently retained witness transparency sequence
+
+A new transition must advance past both. Read-only recovery may re-verify the currently staged checkpoint without advancing retained witness state.
 
 The intended role separation is:
 
@@ -149,6 +157,8 @@ The accepted transparency object is consumable: its witness predecessor state is
 
 The lifecycle event's execution-signature digest covers the complete persisted transparency evidence, so replacing that evidence changes the authenticated event payload.
 
+The journal also retains a contiguous transparency history: sequence numbers advance one-by-one, each checkpoint names the immediately previous checkpoint digest, and the log/policy identity remains stable across the lifecycle journal. This gives the local journal a durable record of which external checkpoint sequences have already been consumed; it does not replace the independent witness memory.
+
 ## Persisted transparency evidence
 
 Each lifecycle record persists:
@@ -179,9 +189,9 @@ Therefore this tranche establishes:
 
 It does **not** establish:
 
-    restart-resistant witness rollback protection
+    restart-resistant external witness continuity or automatic witness catch-up
 
-A runtime restart with only the execution journal must not reconstruct a higher transparency witness sequence from caller-controlled serialized bytes. The next recovery layer needs an independently retained witness/checkpoint store.
+A runtime restart with only the execution journal must not reconstruct an external witness's memory. The journal now prevents replay of the last already-consumed transparency sequence, but it cannot establish that a fresh witness object has observed the intervening checkpoint history. The next recovery layer needs an independently retained witness/checkpoint store or a real VDS consistency-proof catch-up mechanism.
 
 This is analogous to the existing freshness cursor boundary: durable journal data can document what happened, but it must not become the sole authority for reconstructing an external anti-rollback memory.
 
@@ -238,6 +248,7 @@ A successfully executed integration can support claims such as:
     witness-visible checkpoint lineage is non-equivocating within retained witness state
     accepted quorum satisfies the configured witness/domain policy
     already-consumed transparency sequences cannot authorize a new durable transition
+    durable transparency sequence history is contiguous and predecessor-linked
     witness-state commit is CAS-protected after the corresponding durable append
 
 It must not silently promote those into:
