@@ -38,15 +38,16 @@ Role separation is enforced cryptographically by rejecting public-key reuse acro
 
 TransparencyCheckpointUnsignedV1 commits:
 
-- schema and algorithm;
+- schema and VDS-bound algorithm;
 - transparency log identity and epoch;
 - transparency checkpoint sequence;
 - exact journal namespace and deterministic seed;
 - exact durable journal event count and head hash;
+- concrete VDS tree size and SHA-256 root;
 - exact witness-policy commitment; and
 - exact predecessor checkpoint digest.
 
-The log signs the canonical SHA-256 digest of those fields.
+The log signs the canonical SHA-256 digest of those fields, including the concrete VDS tree head.
 
 Witness signatures are detached from the checkpoint object. Each witness signs a domain-separated digest containing its own witness identity and the exact checkpoint digest.
 
@@ -164,6 +165,7 @@ The journal also retains a contiguous transparency history: sequence numbers adv
 Each lifecycle record persists:
 
     exact transparency checkpoint
+    exact VDS consistency proof when tree growth requires one
     validated witness signatures
     canonical accepted witness identities
     canonical accepted independence domains
@@ -227,9 +229,9 @@ In particular:
 
 This design is deliberately narrower than SCITT.
 
-RFC 9943 requires a SCITT transparency VDS to support append-only history, non-equivocation, and replayability. The current Symtropy boundary supplies a durable execution checkpoint plus independently retained witness continuity, but it does not yet implement a SCITT receipt or a public VDS. https://www.rfc-editor.org/info/rfc9943/
+RFC 9943 requires a SCITT transparency VDS to support append-only history, non-equivocation, and replayability. The current Symtropy boundary supplies a durable execution checkpoint plus independently retained witness continuity and a service-neutral VDS head/proof primitive, but it does not yet implement a SCITT receipt or a public VDS. https://www.rfc-editor.org/info/rfc9943/
 
-RFC 9162 defines Merkle consistency proofs that demonstrate that a newer tree contains the older tree as a prefix. The repository now has a SHA-256 verifier for that proof algorithm, with tests spanning many tree shapes and corrupted proof/root/size inputs. It is not yet bound to the current checkpoint schema because that schema does not carry a VDS tree root. https://www.rfc-editor.org/rfc/rfc9162.html
+RFC 9162 defines Merkle consistency proofs that demonstrate that a newer tree contains the older tree as a prefix. The repository now has a SHA-256 verifier for that proof algorithm, with tests spanning many tree shapes and corrupted proof/root/size inputs. The checkpoint now carries the concrete VDS tree size/root, and witness admission rejects growth without a valid consistency proof. https://www.rfc-editor.org/rfc/rfc9162.html
 
 The current C2SP Transparency Log Witness Protocol has the closest architectural shape: a witness retains its latest verified checkpoint, requires a consistency proof for a newer checkpoint, and requires continuity checking plus durable persistence to be atomic. The current Symtropy witness set mirrors the retained-state and CAS boundary, but is intentionally still service-neutral and in-process. It is therefore **not** C2SP wire compatible yet. https://c2sp.org/tlog-witness
 
@@ -298,15 +300,13 @@ The minimum regression corpus for this layer should continue to cover:
 
 The semantic composition and a protocol-shaped RFC 9162-style SHA-256 consistency verifier are now implemented. The verifier remains deliberately below the admission boundary.
 
-The current checkpoint schema still commits the durable journal head rather than a VDS tree root, so the verifier is not yet invoked by witness admission. The next integration is:
+The checkpoint now commits a concrete VDS tree-size/root, and witness admission invokes the consistency verifier against the retained VDS head. The consistency proof remains separate evidence, so it can later map cleanly onto the C2SP witness request boundary.
 
-    semantic checkpoint
-        ↓
-    concrete VDS tree-size/root identity
+    semantic checkpoint + concrete VDS tree head
         ↓
     Merkle consistency proof
         ↓
-    bind VDS head + proof into witness admission
+    witness admission
         ↓
     optional inclusion/non-inclusion proofs
         ↓
