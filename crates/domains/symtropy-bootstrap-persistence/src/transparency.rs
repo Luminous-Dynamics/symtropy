@@ -17,7 +17,7 @@ use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use std::collections::BTreeMap;
 
-use super::FreshnessAuthority;
+use super::{DurableExecutionTrust, FreshnessAuthority};
 
 pub const TRANSPARENCY_CHECKPOINT_SCHEMA_VERSION: u32 = 1;
 pub const TRANSPARENCY_CHECKPOINT_ALGORITHM: &str =
@@ -135,6 +135,12 @@ pub struct TransparencyCheckpointV1 {
 }
 
 impl TransparencyCheckpointV1 {
+    pub fn validate_basic(&self) -> Result<(), TransparencyError> {
+        self.unsigned.validate()?;
+        decode_exact::<64>(&self.signature)?;
+        Ok(())
+    }
+
     #[must_use]
     pub fn digest(&self) -> [u8; 32] {
         self.unsigned.signing_digest()
@@ -252,6 +258,22 @@ impl TransparencyLogAuthorityV1 {
         if self.public_key == freshness.public_key_hex() {
             return Err(TransparencyError::KeyReuse(
                 "transparency log authority reuses the freshness authority key".to_string(),
+            ));
+        }
+        Ok(())
+    }
+
+    pub fn validate_independence_from_execution(
+        &self,
+        trust: &DurableExecutionTrust,
+    ) -> Result<(), TransparencyError> {
+        if trust
+            .keys
+            .values()
+            .any(|key| key.public_key == self.public_key)
+        {
+            return Err(TransparencyError::KeyReuse(
+                "transparency log authority reuses an execution signing key".to_string(),
             ));
         }
         Ok(())
@@ -468,6 +490,23 @@ impl TransparencyWitnessPolicyV1 {
         }
         Ok(())
     }
+
+    pub fn validate_independence_from_execution(
+        &self,
+        trust: &DurableExecutionTrust,
+    ) -> Result<(), TransparencyError> {
+        if self.witnesses.values().any(|witness| {
+            trust
+                .keys
+                .values()
+                .any(|key| key.public_key == witness.public_key_hex())
+        }) {
+            return Err(TransparencyError::KeyReuse(
+                "transparency witness reuses an execution signing key".to_string(),
+            ));
+        }
+        Ok(())
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -500,6 +539,12 @@ impl TransparencyWitnessSignatureV1 {
     pub fn signature(&self) -> &str {
         &self.signature
     }
+
+    pub fn validate_basic(&self) -> Result<(), TransparencyError> {
+        validate_nonempty("witness_id", &self.witness_id)?;
+        decode_exact::<64>(&self.signature)?;
+        Ok(())
+    }
 }
 
 #[derive(Debug, PartialEq, Eq)]
@@ -507,6 +552,7 @@ pub struct AcceptedTransparencyCheckpointV1 {
     checkpoint: TransparencyCheckpointV1,
     accepted_witnesses: Vec<String>,
     accepted_domains: Vec<String>,
+    witness_signatures: Vec<TransparencyWitnessSignatureV1>,
     checkpoint_digest: String,
     predecessor_states: BTreeMap<String, RetainedWitnessState>,
 }
@@ -530,6 +576,11 @@ impl AcceptedTransparencyCheckpointV1 {
     #[must_use]
     pub fn accepted_domains(&self) -> &[String] {
         &self.accepted_domains
+    }
+
+    #[must_use]
+    pub fn witness_signatures(&self) -> &[TransparencyWitnessSignatureV1] {
+        &self.witness_signatures
     }
 }
 
@@ -605,6 +656,43 @@ impl TransparencyWitnessSetV1 {
             .map(|state| state.checkpoint_digest.as_str())
     }
 
+    #[must_use]
+    pub fn max_retained_sequence(&self) -> u64 {
+        self.witnesses
+            .values()
+            .map(|state| state.sequence)
+            .max()
+            .unwrap_or(0)
+    }
+
+    /// Verify a strictly newer checkpoint for a new durable transition.
+    pub fn verify_for_new_transition(
+        &self,
+        log: &TransparencyLogAuthorityV1,
+        policy: &TransparencyWitnessPolicyV1,
+        checkpoint: &TransparencyCheckpointV1,
+        witness_signatures: &[TransparencyWitnessSignatureV1],
+        journal_namespace: &str,
+        seed: u64,
+        event_count: u64,
+        head_hash: &str,
+    ) -> Result<AcceptedTransparencyCheckpointV1, TransparencyError> {
+        let accepted = self.verify_candidate(
+            log,
+            policy,
+            checkpoint,
+            witness_signatures,
+            journal_namespace,
+            seed,
+            event_count,
+            head_hash,
+        )?;
+        if accepted.checkpoint.sequence() <= self.max_retained_sequence() {
+            return Err(TransparencyError::ReplayDetected);
+        }
+        Ok(accepted)
+    }
+
     /// Verify, but do not mutate, a checkpoint against independently retained witness state.
     ///
     /// Every supplied witness signature is validated. Unknown witnesses, duplicate witness
@@ -648,7 +736,8 @@ impl TransparencyWitnessSetV1 {
 
         let checkpoint_digest = encode_hex(&checkpoint.digest());
         let mut seen = BTreeMap::<String, ()>::new();
-        let mut verified = Vec::<(String, String, RetainedWitnessState)>::new();
+        let mut verified =
+            Vec::<(String, String, RetainedWitnessState, TransparencyWitnessSignatureV1)>::new();
 
         for signature in witness_signatures {
             let witness_id = signature.witness_id().to_string();
@@ -714,18 +803,25 @@ impl TransparencyWitnessSetV1 {
                 witness_id,
                 witness.independence_domain().to_string(),
                 retained,
+                signature.clone(),
             ));
         }
 
         let mut domains = BTreeMap::<String, ()>::new();
         let mut accepted_witnesses = Vec::new();
+        let mut accepted_signatures = Vec::new();
         let mut predecessor_states = BTreeMap::new();
 
-        for (witness_id, domain, retained) in &verified {
+        for (witness_id, domain, retained, signature) in &verified {
             domains.insert(domain.clone(), ());
             accepted_witnesses.push(witness_id.clone());
+            accepted_signatures.push(signature.clone());
             predecessor_states.insert(witness_id.clone(), retained.clone());
         }
+
+        accepted_signatures.sort_unstable_by(|left, right| {
+            left.witness_id().cmp(right.witness_id())
+        });
 
         if accepted_witnesses.len() < policy.quorum as usize {
             return Err(TransparencyError::InsufficientQuorum);
@@ -740,6 +836,7 @@ impl TransparencyWitnessSetV1 {
             checkpoint: checkpoint.clone(),
             accepted_witnesses,
             accepted_domains,
+            witness_signatures: accepted_signatures,
             checkpoint_digest,
             predecessor_states,
         })
@@ -797,6 +894,7 @@ pub enum TransparencyError {
     WitnessSignatureInvalid,
     DuplicateWitnessSignature,
     UnknownWitness,
+    ReplayDetected,
     RollbackDetected {
         witness_id: String,
         retained_sequence: u64,
@@ -834,6 +932,9 @@ impl std::fmt::Display for TransparencyError {
                 write!(formatter, "duplicate transparency witness signature")
             }
             Self::UnknownWitness => write!(formatter, "unknown transparency witness"),
+            Self::ReplayDetected => {
+                write!(formatter, "transparency checkpoint is not newer than retained witness state")
+            }
             Self::RollbackDetected {
                 witness_id,
                 retained_sequence,
