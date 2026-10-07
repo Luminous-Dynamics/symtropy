@@ -188,11 +188,11 @@ impl FreshnessAuthority {
         hex_encode(&hasher.finalize())
     }
 
-    /// Establish a freshness cursor from a fully verified external checkpoint.
+    /// Bootstrap a freshness cursor from the signed empty-journal GENESIS checkpoint.
     ///
-    /// This is the only production constructor: callers cannot manufacture a cursor
-    /// from arbitrary checkpoint fields without first passing the authority, journal,
-    /// and trust-policy verification boundary.
+    /// This constructor is deliberately limited to the initial bootstrap state. A cursor
+    /// lost after the journal advances must be restored from an independently retained
+    /// external checkpoint/receipt; it cannot be reset from an arbitrary historical head.
     pub fn bootstrap_cursor(
         &self,
         attestation: &ExternalFreshnessAttestation,
@@ -348,9 +348,12 @@ impl DurableExecutionSecurityContext {
             &adapter.trust,
         )?;
         cursor.verify_candidate(&authority, &freshness_attestation, &loaded.chain)?;
+        // Sequence zero is the unadvanced bootstrap cursor. Once the journal has
+        // advanced, accepting it again would silently reset replay protection after
+        // restart, so establishment fails closed until an externally retained cursor
+        // is restored.
         if cursor.last_sequence() == 0
-            && (!loaded.chain.events().is_empty()
-                || freshness_attestation.sequence != 1)
+            && (!loaded.chain.events().is_empty() || freshness_attestation.sequence != 1)
         {
             return Err(AdapterError::WitnessMismatch(
                 "unadvanced freshness cursor cannot establish against an already-advanced journal"
@@ -2546,6 +2549,65 @@ mod tests {
             ),
             Err(AdapterError::WitnessMismatch(message))
                 if message.contains("GENESIS")
+        ));
+
+        fs::remove_dir_all(adapter.store().root()).expect("cleanup");
+    }
+
+    #[test]
+    fn freshness_cursor_cannot_be_rebootstrapped_after_journal_advances() {
+        let adapter = configured_adapter("freshness-restart-boundary");
+        let mut security = TestSecurityMaterial::new(&adapter);
+
+        let genesis = freshness_test_attestation(
+            security.context.freshness_authority().authority_id(),
+            security.context.freshness_authority().authority_epoch(),
+            &security.authority_signer,
+            &adapter,
+            0,
+        );
+        let stale_cursor = security
+            .context
+            .freshness_authority()
+            .bootstrap_cursor(
+                &genesis,
+                "bootstrap",
+                1,
+                &EventChain::new("bootstrap", 1),
+                adapter.trust(),
+            )
+            .expect("genesis cursor");
+
+        security.refresh(&adapter);
+        let (process, run) = process_and_run();
+        let (mut budget, mut inventory, mut energy) = initial_kernel_state();
+        adapter
+            .authorize_pending(
+                &mut security.context,
+                &process,
+                "exec-restart-boundary",
+                1,
+                10,
+                20,
+                "bus",
+                run,
+                &mut budget,
+                &mut inventory,
+                &mut energy,
+            )
+            .expect("pending");
+
+        security.refresh(&adapter);
+        let attestation = security.context.freshness_attestation().clone();
+        let authority = security.context.freshness_authority().clone();
+        let error =
+            DurableExecutionSecurityContext::establish(&adapter, authority, stale_cursor, attestation)
+                .expect_err("restart must not reinitialize from an unadvanced genesis cursor");
+
+        assert!(matches!(
+            error,
+            AdapterError::WitnessMismatch(message)
+                if message.contains("already-advanced")
         ));
 
         fs::remove_dir_all(adapter.store().root()).expect("cleanup");
