@@ -298,9 +298,9 @@ The minimum regression corpus for this layer should continue to cover:
 
 ## Next implementation frontier
 
-The semantic composition and protocol-shaped RFC 9162-style SHA-256 consistency/inclusion primitives are now implemented. Consistency verification is part of witness admission; inclusion evidence remains a separate offline proof boundary.
+The semantic composition and protocol-shaped RFC 9162-style SHA-256 consistency/inclusion primitives are now implemented. Consistency verification is part of witness admission; `TransparencyInclusionEvidenceV1` is the separate offline inclusion-proof boundary.
 
-The checkpoint commits a concrete VDS tree-size/root, and witness admission invokes the consistency verifier against the retained VDS head. The consistency proof remains separate evidence, matching the structural boundary of the C2SP witness request while remaining service-neutral.
+The checkpoint commits a concrete VDS tree-size/root, and witness admission invokes the consistency verifier against the retained VDS head. Inclusion evidence binds an exact entry's RFC 9162 leaf hash to that signed tree head. Both remain service-neutral: the implementation still does not claim C2SP wire compatibility or a SCITT COSE receipt.
 
     semantic checkpoint + concrete VDS tree head
         ↓
