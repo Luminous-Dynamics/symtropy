@@ -2486,6 +2486,72 @@ mod tests {
     }
 
     #[test]
+    fn freshness_cursor_bootstrap_rejects_non_genesis_attestation() {
+        let adapter = configured_adapter("freshness-bootstrap-only");
+        let authority_signer = test_signer("freshness-bootstrap-only-authority", 1);
+        let authority = FreshnessAuthority::from_public_key_hex(
+            authority_signer.key_id(),
+            authority_signer.key_epoch(),
+            authority_signer.public_key_hex(),
+        )
+        .expect("authority");
+
+        let mut security = TestSecurityMaterial::new(&adapter);
+        security.refresh(&adapter);
+        let (process, run) = process_and_run();
+        let (mut budget, mut inventory, mut energy) = initial_kernel_state();
+        adapter
+            .authorize_pending(
+                &mut security.context,
+                &process,
+                "exec-bootstrap-boundary",
+                1,
+                10,
+                20,
+                "bus",
+                run,
+                &mut budget,
+                &mut inventory,
+                &mut energy,
+            )
+            .expect("pending");
+        security.refresh(&adapter);
+        adapter
+            .commit(
+                &mut security.context,
+                &process,
+                &resume_pending_execution("exec-bootstrap-boundary", &budget, &inventory)
+                    .expect("activation"),
+                2,
+                &mut budget,
+                &mut inventory,
+                &mut energy,
+            )
+            .expect("commit");
+
+        let current = freshness_test_attestation(
+            authority.authority_id(),
+            authority.authority_epoch(),
+            &authority_signer,
+            &adapter,
+            3,
+        );
+        assert!(matches!(
+            authority.bootstrap_cursor(
+                &current,
+                "bootstrap",
+                1,
+                &adapter.load_verified().expect("journal").chain,
+                adapter.trust(),
+            ),
+            Err(AdapterError::WitnessMismatch(message))
+                if message.contains("GENESIS")
+        ));
+
+        fs::remove_dir_all(adapter.store().root()).expect("cleanup");
+    }
+
+    #[test]
     fn external_freshness_cursor_rejects_replayed_authority_sequence() {
         let adapter = configured_adapter("freshness-cursor");
         let authority_signer = test_signer("freshness-cursor-authority", 1);
@@ -2497,17 +2563,29 @@ mod tests {
         .expect("authority");
 
         let witness = adapter.capture_head_witness().expect("head witness");
-        let attestation =
-            freshness_test_attestation(authority.authority_id(), authority.authority_epoch(), &authority_signer, &adapter, 1);
+        let genesis = freshness_test_attestation(
+            authority.authority_id(),
+            authority.authority_epoch(),
+            &authority_signer,
+            &adapter,
+            0,
+        );
         let mut cursor = authority
             .bootstrap_cursor(
-                &attestation,
+                &genesis,
                 "bootstrap",
                 1,
                 &adapter.load_verified().expect("journal").chain,
                 adapter.trust(),
             )
-            .expect("initialize cursor");
+            .expect("genesis cursor");
+        let attestation = freshness_test_attestation(
+            authority.authority_id(),
+            authority.authority_epoch(),
+            &authority_signer,
+            &adapter,
+            1,
+        );
 
         assert!(adapter
             .load_verified_with_freshness_cursor(
@@ -2589,6 +2667,23 @@ mod tests {
             )
             .expect("commit");
 
+        let genesis = freshness_test_attestation(
+            authority.authority_id(),
+            authority.authority_epoch(),
+            &authority_signer,
+            &adapter,
+            0,
+        );
+        let mut cursor = authority
+            .bootstrap_cursor(
+                &genesis,
+                "bootstrap",
+                1,
+                &EventChain::new("bootstrap", 1),
+                adapter.trust(),
+            )
+            .expect("genesis cursor");
+
         let retained = freshness_test_attestation(
             authority.authority_id(),
             authority.authority_epoch(),
@@ -2596,17 +2691,17 @@ mod tests {
             &adapter,
             3,
         );
-        let mut cursor = authority
-            .bootstrap_cursor(
+        let full = adapter.load_verified().expect("full journal");
+        authority
+            .verify_and_advance(
+                &mut cursor,
                 &retained,
                 "bootstrap",
                 1,
-                &adapter.load_verified().expect("journal").chain,
+                &full.chain,
                 adapter.trust(),
             )
-            .expect("non-empty retained cursor");
-
-        let full = adapter.load_verified().expect("full journal");
+            .expect("advance cursor to retained full head");
         let fork = EventChain::from_events(
             "bootstrap",
             1,
