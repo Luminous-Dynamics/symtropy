@@ -498,7 +498,17 @@ impl DurableExecutionSecurityContext {
             ));
         }
 
-        Self::require_next_transparency_sequence(
+        let persisted_transparency_sequence =
+            Self::persisted_transparency_sequence(&loaded.chain)?;
+        if persisted_transparency_sequence > 0
+            && transparency_witnesses.max_retained_sequence() == 0
+        {
+            return Err(AdapterError::WitnessMismatch(
+                "transparency witness state cannot be re-bootstrapped from an already-advanced durable journal"
+                    .to_string(),
+            ));
+        }
+        Self::require_next_transparency_checkpoint(
             &loaded.chain,
             &transparency_checkpoint,
         )?;
@@ -627,7 +637,10 @@ impl DurableExecutionSecurityContext {
         )?;
 
         if require_new_transparency_sequence {
-            Self::require_next_transparency_sequence(chain, &self.transparency_checkpoint)?;
+            Self::require_next_transparency_checkpoint(
+                chain,
+                &self.transparency_checkpoint,
+            )?;
         }
 
         let event_count = u64::try_from(chain.events().len())
@@ -1796,10 +1809,11 @@ impl DurableExecutionAdapter {
         Ok(())
     }
 
-    fn require_next_transparency_sequence(
+    fn require_next_transparency_checkpoint(
         chain: &EventChain<ExecutionLifecycleEvent>,
         checkpoint: &TransparencyCheckpointV1,
     ) -> Result<(), AdapterError> {
+        checkpoint.validate_basic().map_err(AdapterError::from)?;
         let persisted_sequence = Self::persisted_transparency_sequence(chain)?;
         let expected_sequence = persisted_sequence.checked_add(1).ok_or_else(|| {
             AdapterError::Invalid(
@@ -1812,6 +1826,25 @@ impl DurableExecutionAdapter {
                 checkpoint.sequence()
             )));
         }
+
+        let expected_predecessor = chain
+            .events()
+            .last()
+            .map(|event| encode_hex(&event.payload.transparency_evidence.checkpoint.digest()))
+            .unwrap_or_else(|| {
+                transparency_genesis_digest(
+                    checkpoint.log_id(),
+                    checkpoint.log_epoch(),
+                    checkpoint.witness_policy_commitment(),
+                )
+            });
+        if checkpoint.previous_checkpoint_digest() != expected_predecessor {
+            return Err(AdapterError::Invalid(
+                "next transparency checkpoint does not extend the durable predecessor"
+                    .to_string(),
+            ));
+        }
+
         Ok(())
     }
 
@@ -3316,11 +3349,8 @@ mod tests {
 
         assert!(matches!(
             discontinuity_error,
-            AdapterError::Transparency(TransparencyError::SequenceDiscontinuity {
-                retained_sequence: 0,
-                candidate_sequence: 2,
-                ..
-            })
+            AdapterError::WitnessMismatch(message)
+                if message.contains("cannot be re-bootstrapped")
         ));
 
         fs::remove_dir_all(adapter.store().root()).expect("cleanup");
