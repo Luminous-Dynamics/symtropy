@@ -1089,6 +1089,13 @@ mod tests {
         signature::{Ed25519KeyPair, KeyPair},
     };
 
+    fn test_execution_signer() -> DurableExecutionSigner {
+        let pkcs8 = Ed25519KeyPair::generate_pkcs8(&SystemRandom::new())
+            .expect("execution key");
+        DurableExecutionSigner::from_pkcs8("execution-key", 1, pkcs8.as_ref())
+            .expect("execution signer")
+    }
+
     struct TestKeys {
         log: Ed25519KeyPair,
         witnesses: Vec<Ed25519KeyPair>,
@@ -1435,6 +1442,54 @@ mod tests {
     }
 
     #[test]
+    fn new_transition_rejects_idempotent_checkpoint_replay() {
+        let keys = TestKeys::new();
+        let policy = policy(&keys);
+        let mut state = TransparencyWitnessSetV1::new(&policy).expect("state");
+        let log = TransparencyLogAuthorityV1::from_public_key_hex(
+            "log-1", 1, keys.log_public()
+        )
+        .expect("log");
+
+        let first = accepted_first_checkpoint(&keys, &state, &policy);
+        let checkpoint = first.checkpoint().clone();
+        let signatures = first.witness_signatures().to_vec();
+        state
+            .commit_after_durable_append(first)
+            .expect("first checkpoint");
+
+        assert_eq!(
+            state
+                .verify_candidate(
+                    &log,
+                    &policy,
+                    &checkpoint,
+                    &signatures,
+                    "bootstrap",
+                    1,
+                    1,
+                    &"00".repeat(32),
+                )
+                .expect("idempotent read verification")
+                .checkpoint_digest(),
+            encode_hex(&checkpoint.digest())
+        );
+        assert!(matches!(
+            state.verify_for_new_transition(
+                &log,
+                &policy,
+                &checkpoint,
+                &signatures,
+                "bootstrap",
+                1,
+                1,
+                &"00".repeat(32),
+            ),
+            Err(TransparencyError::ReplayDetected)
+        ));
+    }
+
+    #[test]
     fn higher_sequence_must_extend_retained_checkpoint() {
         let keys = TestKeys::new();
         let policy = policy(&keys);
@@ -1533,6 +1588,59 @@ mod tests {
             .expect_err("stale accepted object must fail");
         assert!(matches!(error, TransparencyError::StaleAcceptedCheckpoint));
         assert_eq!(state.retained_sequence("w1"), Some(1));
+    }
+
+    #[test]
+    fn transparency_roles_must_not_reuse_execution_key() {
+        let keys = TestKeys::new();
+        let execution_signer = test_execution_signer();
+        let mut trust = DurableExecutionTrust::new();
+        trust
+            .trust_signer(&execution_signer, 0, None)
+            .expect("execution trust");
+
+        let log = TransparencyLogAuthorityV1::from_public_key_hex(
+            "log-1",
+            1,
+            execution_signer.public_key_hex(),
+        )
+        .expect("log");
+        let freshness = FreshnessAuthority::from_public_key_hex(
+            "freshness",
+            1,
+            keys.witness_public(2),
+        )
+        .expect("freshness");
+
+        assert!(matches!(
+            log.validate_independence_from_execution(&trust),
+            Err(TransparencyError::KeyReuse(_))
+        ));
+
+        let policy = TransparencyWitnessPolicyV1::new(
+            "policy-1",
+            "log-1",
+            1,
+            2,
+            2,
+            vec![
+                TransparencyWitnessKeyV1::from_public_key_hex(
+                    "w1", "domain-a", execution_signer.public_key_hex()
+                )
+                .expect("w1"),
+                TransparencyWitnessKeyV1::from_public_key_hex(
+                    "w2", "domain-b", keys.witness_public(0)
+                )
+                .expect("w2"),
+            ],
+        )
+        .expect("policy");
+
+        assert!(matches!(
+            policy.validate_independence_from_execution(&trust),
+            Err(TransparencyError::KeyReuse(_))
+        ));
+        assert!(policy.validate_independence_from_freshness(&freshness).is_ok());
     }
 
     #[test]
