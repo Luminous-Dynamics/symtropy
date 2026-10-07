@@ -2656,6 +2656,16 @@ mod tests {
                 &attestation,
                 &mut cursor,
             )
+            .is_ok());
+        assert_eq!(cursor.last_sequence(), 1);
+
+        assert!(adapter
+            .load_verified_with_freshness_cursor(
+                &witness,
+                &authority,
+                &attestation,
+                &mut cursor,
+            )
             .is_err());
 
         let mut newer = attestation.clone();
