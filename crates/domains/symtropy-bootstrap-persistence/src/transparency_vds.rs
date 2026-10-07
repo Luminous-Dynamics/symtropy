@@ -12,6 +12,7 @@ use sha2::{Digest, Sha256};
 
 pub const MERKLE_CONSISTENCY_SCHEMA_VERSION: u32 = 1;
 pub const MERKLE_CONSISTENCY_ALGORITHM: &str = "SHA-256-RFC9162-MERKLE-CONSISTENCY-v1";
+pub const MAX_MERKLE_CONSISTENCY_PROOF_HASHES: usize = 63;
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct MerkleConsistencyProofV1 {
@@ -25,6 +26,11 @@ impl MerkleConsistencyProofV1 {
     }
 
     pub fn new(hashes: Vec<String>) -> Result<Self, MerkleVdsError> {
+        if hashes.len() > MAX_MERKLE_CONSISTENCY_PROOF_HASHES {
+            return Err(MerkleVdsError::Invalid(
+                "Merkle consistency proof exceeds 63 hashes".to_string(),
+            ));
+        }
         for hash in &hashes {
             decode_hex::<32>(hash)?;
         }
@@ -42,6 +48,11 @@ impl MerkleConsistencyProofV1 {
     }
 
     pub fn validate_basic(&self) -> Result<(), MerkleVdsError> {
+        if self.hashes.len() > MAX_MERKLE_CONSISTENCY_PROOF_HASHES {
+            return Err(MerkleVdsError::Invalid(
+                "Merkle consistency proof exceeds 63 hashes".to_string(),
+            ));
+        }
         for hash in &self.hashes {
             decode_hex::<32>(hash)?;
         }
@@ -442,6 +453,15 @@ mod tests {
         assert!(matches!(
             verify_append_only_sha256(5, &root, 5, &wrong, Some(&empty)),
             Err(MerkleVdsError::ProofMismatch)
+        ));
+    }
+
+    #[test]
+    fn rejects_oversized_consistency_proof() {
+        let oversized = vec!["00".repeat(32); MAX_MERKLE_CONSISTENCY_PROOF_HASHES + 1];
+        assert!(matches!(
+            MerkleConsistencyProofV1::new(oversized),
+            Err(MerkleVdsError::Invalid(message)) if message.contains("63 hashes")
         ));
     }
 
