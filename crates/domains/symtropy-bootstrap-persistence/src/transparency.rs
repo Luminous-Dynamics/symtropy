@@ -19,12 +19,18 @@ use sha2::{Digest, Sha256};
 use std::collections::BTreeMap;
 
 use super::{DurableExecutionTrust, FreshnessAuthority};
-use super::transparency_vds::{verify_append_only_sha256, MerkleConsistencyProofV1};
+use super::transparency_vds::{
+    merkle_leaf_hash_sha256, verify_append_only_sha256, MerkleConsistencyProofV1,
+    MerkleInclusionProofV1,
+};
 
 pub const TRANSPARENCY_CHECKPOINT_SCHEMA_VERSION: u32 = 1;
 pub const TRANSPARENCY_CHECKPOINT_ALGORITHM: &str =
     "Ed25519-SHA256-VDS-JOURNAL-CHECKPOINT-v1";
 pub const TRANSPARENCY_WITNESS_ALGORITHM: &str = "Ed25519-SHA256-JOURNAL-WITNESS-v1";
+pub const TRANSPARENCY_INCLUSION_EVIDENCE_SCHEMA_VERSION: u32 = 1;
+pub const TRANSPARENCY_INCLUSION_EVIDENCE_ALGORITHM: &str =
+    "SHA-256-RFC9162-INCLUSION-EVIDENCE-v1";
 
 const TRANSPARENCY_DOMAIN: &str = "symtropy.transparency-checkpoint.v1.vds";
 const TRANSPARENCY_WITNESS_DOMAIN: &str = "symtropy.transparency-witness.v1";
@@ -266,6 +272,88 @@ impl TransparencyCheckpointV1 {
     #[must_use]
     pub fn unsigned(&self) -> &TransparencyCheckpointUnsignedV1 {
         &self.unsigned
+    }
+}
+
+/// Service-neutral offline evidence that a concrete entry is included in the signed VDS head.
+///
+/// This deliberately is not a C2SP or SCITT wire receipt. The signed checkpoint supplies
+/// the authoritative tree head, while the RFC 9162 inclusion proof supplies membership.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct TransparencyInclusionEvidenceV1 {
+    schema_version: u32,
+    algorithm: String,
+    checkpoint: TransparencyCheckpointV1,
+    proof: MerkleInclusionProofV1,
+}
+
+impl TransparencyInclusionEvidenceV1 {
+    pub fn new(
+        checkpoint: TransparencyCheckpointV1,
+        proof: MerkleInclusionProofV1,
+    ) -> Result<Self, TransparencyError> {
+        let value = Self {
+            schema_version: TRANSPARENCY_INCLUSION_EVIDENCE_SCHEMA_VERSION,
+            algorithm: TRANSPARENCY_INCLUSION_EVIDENCE_ALGORITHM.to_string(),
+            checkpoint,
+            proof,
+        };
+        value.validate_basic()?;
+        Ok(value)
+    }
+
+    pub fn validate_basic(&self) -> Result<(), TransparencyError> {
+        if self.schema_version != TRANSPARENCY_INCLUSION_EVIDENCE_SCHEMA_VERSION
+            || self.algorithm != TRANSPARENCY_INCLUSION_EVIDENCE_ALGORITHM
+        {
+            return Err(TransparencyError::Invalid(
+                "unsupported transparency inclusion evidence schema or algorithm".to_string(),
+            ));
+        }
+        self.checkpoint.validate_basic()?;
+        self.proof
+            .validate_basic()
+            .map_err(|error| TransparencyError::Invalid(format!("invalid inclusion proof: {error}")))?;
+        if self.proof.leaf_index() >= self.checkpoint.vds_tree_size() {
+            return Err(TransparencyError::Invalid(
+                "inclusion proof leaf index is outside the checkpoint VDS".to_string(),
+            ));
+        }
+        Ok(())
+    }
+
+    #[must_use]
+    pub fn checkpoint(&self) -> &TransparencyCheckpointV1 {
+        &self.checkpoint
+    }
+
+    #[must_use]
+    pub fn proof(&self) -> &MerkleInclusionProofV1 {
+        &self.proof
+    }
+
+    pub fn verify_leaf_hash(
+        &self,
+        log: &TransparencyLogAuthorityV1,
+        leaf_hash: &str,
+    ) -> Result<(), TransparencyError> {
+        self.validate_basic()?;
+        log.verify(&self.checkpoint)?;
+        if self.proof.leaf_hash() != leaf_hash {
+            return Err(TransparencyError::InclusionLeafMismatch);
+        }
+        self.proof
+            .verify_sha256(self.checkpoint.vds_tree_size(), self.checkpoint.vds_root_hash())
+            .map_err(|error| TransparencyError::Invalid(format!("invalid inclusion proof: {error}")))
+    }
+
+    pub fn verify_entry(
+        &self,
+        log: &TransparencyLogAuthorityV1,
+        entry: &[u8],
+    ) -> Result<(), TransparencyError> {
+        let leaf_hash = merkle_leaf_hash_sha256(entry);
+        self.verify_leaf_hash(log, &leaf_hash)
     }
 }
 
@@ -1054,6 +1142,7 @@ pub enum TransparencyError {
         witness_id: String,
     },
     VdsConsistency,
+    InclusionLeafMismatch,
     InsufficientQuorum,
     InsufficientIndependentDomains,
     SequenceDiscontinuity {
@@ -1108,6 +1197,9 @@ impl std::fmt::Display for TransparencyError {
             }
             Self::VdsConsistency => {
                 write!(formatter, "transparency VDS consistency proof failed")
+            }
+            Self::InclusionLeafMismatch => {
+                write!(formatter, "transparency inclusion evidence leaf does not match entry")
             }
             Self::InsufficientQuorum => {}
                 write!(formatter, "transparency witness quorum insufficient")
@@ -1389,6 +1481,76 @@ mod tests {
                 &"00".repeat(32),
             )
             .expect("accepted checkpoint")
+    }
+
+    #[test]
+    fn inclusion_evidence_binds_entry_to_signed_checkpoint() {
+        let keys = TestKeys::new();
+        let policy = policy(&keys);
+        let log = TransparencyLogAuthorityV1::from_public_key_hex("log-1", 1, keys.log_public())
+            .expect("log");
+        let entries = vec![
+            b"statement-0".to_vec(),
+            b"statement-1".to_vec(),
+            b"statement-2".to_vec(),
+        ];
+        let root = crate::transparency_vds::merkle_tree_hash_sha256(&entries);
+        let unsigned = TransparencyCheckpointUnsignedV1::new(
+            "log-1",
+            1,
+            1,
+            "bootstrap",
+            1,
+            0,
+            "GENESIS",
+            entries.len() as u64,
+            &root,
+            &transparency_genesis_digest("log-1", 1, &policy.commitment()),
+            policy.commitment(),
+        )
+        .expect("checkpoint");
+        let signature = keys.log.sign(&unsigned.signing_digest());
+        let checkpoint = unsigned
+            .into_signed(encode_hex(signature.as_ref()))
+            .expect("signed checkpoint");
+
+        fn inclusion_path(index: usize, entries: &[Vec<u8>]) -> Vec<String> {
+            let n = entries.len();
+            if n <= 1 {
+                return Vec::new();
+            }
+            let mut power = 1usize << (usize::BITS - 1 - n.leading_zeros());
+            if power == n {
+                power >>= 1;
+            }
+            if index < power {
+                let mut path = inclusion_path(index, &entries[..power]);
+                path.push(crate::transparency_vds::merkle_tree_hash_sha256(&entries[power..]));
+                path
+            } else {
+                let mut path = inclusion_path(index - power, &entries[power..]);
+                path.push(crate::transparency_vds::merkle_tree_hash_sha256(&entries[..power]));
+                path
+            }
+        }
+
+        let leaf_index = 1usize;
+        let proof = MerkleInclusionProofV1::new(
+            leaf_index as u64,
+            merkle_leaf_hash_sha256(&entries[leaf_index]),
+            inclusion_path(leaf_index, &entries),
+        )
+        .expect("inclusion proof");
+        let evidence =
+            TransparencyInclusionEvidenceV1::new(checkpoint, proof).expect("evidence");
+
+        evidence
+            .verify_entry(&log, &entries[leaf_index])
+            .expect("verify entry");
+        assert!(matches!(
+            evidence.verify_entry(&log, b"tampered"),
+            Err(TransparencyError::InclusionLeafMismatch)
+        ));
     }
 
     #[test]
