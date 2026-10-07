@@ -998,16 +998,11 @@ impl TransparencyWitnessSetV1 {
                     return Err(TransparencyError::EquivocationDetected { witness_id });
                 }
             } else {
-                if checkpoint.sequence() != retained.sequence.saturating_add(1) {
-                    return Err(TransparencyError::SequenceDiscontinuity {
-                        witness_id,
-                        retained_sequence: retained.sequence,
-                        candidate_sequence: checkpoint.sequence(),
-                    });
-                }
-                if checkpoint.previous_checkpoint_digest() != retained.checkpoint_digest {
-                    return Err(TransparencyError::NonExtension { witness_id });
-                }
+                // Witness continuity is deliberately independent of the durable checkpoint
+                // sequence. A witness may have missed one or more intermediate checkpoints
+                // and can catch up from its last observed VDS tree head. The durable journal
+                // admission layer owns contiguous checkpoint sequencing and predecessor
+                // lineage; here the witness owns monotonic VDS observation.
                 if checkpoint.event_count() < retained.event_count {
                     return Err(TransparencyError::RollbackDetected {
                         witness_id,
@@ -1146,11 +1141,6 @@ pub enum TransparencyError {
     InclusionLeafMismatch,
     InsufficientQuorum,
     InsufficientIndependentDomains,
-    SequenceDiscontinuity {
-        witness_id: String,
-        retained_sequence: u64,
-        candidate_sequence: u64,
-    },
     StaleAcceptedCheckpoint,
 }
 
@@ -1211,14 +1201,6 @@ impl std::fmt::Display for TransparencyError {
                     "transparency witness independence-domain quorum insufficient"
                 )
             }
-            Self::SequenceDiscontinuity {
-                witness_id,
-                retained_sequence,
-                candidate_sequence,
-            } => write!(
-                formatter,
-                "witness {witness_id} rejected checkpoint sequence jump from {retained_sequence} to {candidate_sequence}"
-            ),
             Self::StaleAcceptedCheckpoint => {
                 write!(
                     formatter,
@@ -1920,21 +1902,90 @@ mod tests {
     }
 
     #[test]
-    fn checkpoint_sequence_must_not_skip() {
+    fn witness_can_catch_up_after_missing_checkpoint_sequence() {
         let keys = TestKeys::new();
         let policy = policy(&keys);
         let mut state = TransparencyWitnessSetV1::new(&policy).expect("state");
         let log = TransparencyLogAuthorityV1::from_public_key_hex("log-1", 1, keys.log_public())
             .expect("log");
 
-        let first = accepted_first_checkpoint(&keys, &state, &policy);
-        let first_digest = first.checkpoint_digest().to_string();
-        state.commit_after_durable_append(first).expect("commit");
+        let entries = vec![b"leaf-0".to_vec(), b"leaf-1".to_vec()];
+        let first_root = crate::transparency_vds::merkle_tree_hash_sha256(&entries[..1]);
+        let second_root = crate::transparency_vds::merkle_tree_hash_sha256(&entries);
+        let growth_proof =
+            MerkleConsistencyProofV1::new(vec![merkle_leaf_hash_sha256(&entries[1])])
+                .expect("growth proof");
 
-        let skipped = signed_checkpoint(&keys, &policy, 3, 2, &"33".repeat(32), &first_digest);
+        let first = {
+            let genesis =
+                transparency_genesis_digest("log-1", 1, &policy.commitment());
+            let unsigned = TransparencyCheckpointUnsignedV1::new(
+                "log-1",
+                1,
+                1,
+                "bootstrap",
+                1,
+                1,
+                &"11".repeat(32),
+                1,
+                &first_root,
+                genesis,
+                policy.commitment(),
+            )
+            .expect("first checkpoint");
+            let signature = keys.log.sign(&unsigned.signing_digest());
+            unsigned
+                .into_signed(encode_hex(signature.as_ref()))
+                .expect("signed checkpoint")
+        };
+        state
+            .verify_for_new_transition_with_vds(
+                &log,
+                &policy,
+                &first,
+                &witnessed_signatures(&keys, &first, &[0, 1]),
+                "bootstrap",
+                1,
+                1,
+                &"11".repeat(32),
+                Some(&growth_proof),
+            )
+            .expect("bootstrap first checkpoint");
+        let first_accepted = state
+            .verify_candidate_with_vds(
+                &log,
+                &policy,
+                &first,
+                &witnessed_signatures(&keys, &first, &[0, 1]),
+                "bootstrap",
+                1,
+                1,
+                &"11".repeat(32),
+                Some(&growth_proof),
+            )
+            .expect("first verification");
+        state
+            .commit_after_durable_append(first_accepted)
+            .expect("first commit");
 
-        let error = state
-            .verify_candidate(
+        let skipped = signed_checkpoint(
+            &keys,
+            &policy,
+            3,
+            2,
+            &"33".repeat(32),
+            &"22".repeat(32),
+        );
+        let mut skipped_unsigned = skipped.unsigned.clone();
+        skipped_unsigned.vds_tree_head =
+            TransparencyVdsTreeHeadV1::new(2, &second_root).expect("second tree head");
+        let signature = keys.log.sign(&skipped_unsigned.signing_digest());
+        let skipped = skipped_unsigned
+            .into_signed(encode_hex(signature.as_ref()))
+            .expect("skipped checkpoint");
+
+        state
+            .verify_for_new_transition_with_vds(
                 &log,
                 &policy,
                 &skipped,
@@ -1943,13 +1994,9 @@ mod tests {
                 1,
                 2,
                 &"33".repeat(32),
+                Some(&growth_proof),
             )
-            .expect_err("checkpoint sequence must be contiguous");
-
-        assert!(matches!(
-            error,
-            TransparencyError::SequenceDiscontinuity { witness_id, .. } if witness_id == "w1"
-        ));
+            .expect("witness catch-up over missing checkpoint");
     }
 
     #[test]
