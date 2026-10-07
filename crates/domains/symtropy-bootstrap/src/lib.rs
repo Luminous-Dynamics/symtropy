@@ -3195,14 +3195,12 @@ mod tests {
                 .iter()
                 .any(|error| error == "dependency resolution depth exceeded: 1024")
         );
-        assert!(
-            report.assessments.iter().any(|assessment| {
-                assessment
-                    .unresolved_dependencies
-                    .iter()
-                    .any(|dependency| dependency == "resolution-depth-exceeded:1024")
-            })
-        );
+        assert!(report.assessments.iter().any(|assessment| {
+            assessment
+                .unresolved_dependencies
+                .iter()
+                .any(|dependency| dependency == "resolution-depth-exceeded:1024")
+        }));
     }
 
     #[test]
@@ -4699,14 +4697,16 @@ mod tests {
         )
         .expect("later frontier anchor should bind recovered state");
 
-        assert!(process
-            .restore_pending_execution_with_inventory_at_anchor(
-                &receipt,
-                &later_anchor,
-                &mut recovered_budget,
-                &mut recovered_inventory,
-            )
-            .is_err());
+        assert!(
+            process
+                .restore_pending_execution_with_inventory_at_anchor(
+                    &receipt,
+                    &later_anchor,
+                    &mut recovered_budget,
+                    &mut recovered_inventory,
+                )
+                .is_err()
+        );
         assert_eq!(recovered_budget.available_feed_mass_g(), 1_000);
         assert_eq!(recovered_budget.available_energy_units(), 4_000);
         assert!(recovered_inventory.source_reservations.is_empty());
@@ -4786,10 +4786,8 @@ mod tests {
 
     #[test]
     fn receipt_commitment_is_deterministic_and_context_bound() {
-        let anchor = ExecutionStateAnchor::new(
-            "symtropy.execution.journal.v1",
-            "head-receipt",
-        )
+        let anchor =
+            ExecutionStateAnchor::new("symtropy.execution.journal.v1", "head-receipt")
         .expect("valid anchor")
         .with_state_commitment("a".repeat(64))
         .expect("valid commitment");
@@ -4831,10 +4829,8 @@ mod tests {
         assert_eq!(first.commitment(), second.commitment());
         assert!(is_sha256_hex(&first.commitment()));
 
-        let changed_anchor = ExecutionStateAnchor::new(
-            "symtropy.execution.journal.v1",
-            "different-head",
-        )
+        let changed_anchor =
+            ExecutionStateAnchor::new("symtropy.execution.journal.v1", "different-head")
         .expect("valid anchor")
         .with_state_commitment("a".repeat(64))
         .expect("valid commitment");
@@ -5245,7 +5241,8 @@ mod tests {
             5_000,
             EvidenceGrade::RemoteObserved,
             950_000,
-        )        .expect("valid resource claim");
+        )
+        .expect("valid resource claim");
 
         assert!(
             claim
@@ -5258,7 +5255,8 @@ mod tests {
             5_000,
             EvidenceGrade::InSituMeasured,
             950_000,
-        )        .expect("valid resource claim");
+        )
+        .expect("valid resource claim");
 
         let certified = measured
             .certify_for_inventory(EvidenceGrade::InSituMeasured, 900_000)
@@ -5286,9 +5284,7 @@ mod tests {
 
     #[test]
     fn resource_claim_requires_identity_before_certification() {
-        assert!(
-            ResourceClaim::new("", 5_000, EvidenceGrade::InSituMeasured, 950_000).is_err()
-        );
+        assert!(ResourceClaim::new("", 5_000, EvidenceGrade::InSituMeasured, 950_000).is_err());
     }
 
     #[test]
@@ -5357,15 +5353,9 @@ mod tests {
 
     #[test]
     fn bootstrap_candidate_rejects_invalid_identity_and_risk() {
-        assert!(
-            BootstrapCandidate::new("", 1, 1, 1, 1, 1, 0).is_err()
-        );
-        assert!(
-            BootstrapCandidate::new("candidate", 1, 1, 1, 1, 1, 1_000_001).is_err()
-        );
-        assert!(
-            BootstrapCandidate::new("candidate", 1, 1, 1, 1, 1, 1_000_000).is_ok()
-        );
+        assert!(BootstrapCandidate::new("", 1, 1, 1, 1, 1, 0).is_err());
+        assert!(BootstrapCandidate::new("candidate", 1, 1, 1, 1, 1, 1_000_001).is_err());
+        assert!(BootstrapCandidate::new("candidate", 1, 1, 1, 1, 1, 1_000_000).is_ok());
     }
 
     #[test]
@@ -5763,12 +5753,15 @@ mod tests {
             EnergyEvent::new(1, "bus", 3, EnergyEventKind::Consumed)
                 .with_event_id("energy-a")
                 .with_provenance("run-a"),
-        ).expect("left event");
-        right.append(
-            EnergyEvent::new(1, "bus", 3, EnergyEventKind::Consumed)
-                .with_event_id("energy-b")
-                .with_provenance("run-b"),
-        ).expect("right event");
+        )
+        .expect("left event");
+        right
+            .append(
+                EnergyEvent::new(1, "bus", 3, EnergyEventKind::Consumed)
+                    .with_event_id("energy-b")
+                    .with_provenance("run-b"),
+            )
+            .expect("right event");
 
         assert_eq!(left.state(), right.state());
         assert_ne!(left.events(), right.events());
