@@ -1,19 +1,20 @@
 # Durable Execution Transparency & Witness Boundary v0.1
 
-Status: source hardening / semantic boundary; not a production transparency-service integration.
+Status: source hardening / durable lifecycle integration; not a production transparency-service integration.
 
 ## Purpose
 
-The durable execution adapter already separates:
+The durable execution adapter composes five security planes:
 
 - exact local journal integrity;
 - external freshness authority;
-- retained monotonic freshness state; and
-- authenticated lifecycle records.
+- retained monotonic freshness state;
+- authenticated lifecycle records; and
+- an independent transparency log + witness quorum.
 
-The next failure mode is external non-equivocation. A correctly signed external freshness checkpoint can still be shown inconsistently to different relying parties unless an independently retained party remembers which checkpoint history it previously accepted.
+Every state-changing lifecycle transition admits only a **strictly newer** transparency checkpoint. Read-only recovery may re-verify the currently staged checkpoint without advancing retained witness state.
 
-This document freezes the narrow boundary added by the symtropy_bootstrap_persistence::transparency module:
+The intended role separation is:
 
     execution signer
         !=
@@ -23,7 +24,7 @@ This document freezes the narrow boundary added by the symtropy_bootstrap_persis
         !=
     transparency witnesses
 
-The implementation is deliberately service-neutral. It does not implement HTTP transport, a Merkle VDS, a public log, trusted time, or physical execution.
+Role separation is enforced cryptographically by rejecting public-key reuse across those trust roles.
 
 ## Checkpoint identity
 
@@ -37,23 +38,25 @@ TransparencyCheckpointUnsignedV1 commits:
 - exact witness-policy commitment; and
 - exact predecessor checkpoint digest.
 
-The external log signs the canonical SHA-256 digest of those fields.
+The log signs the canonical SHA-256 digest of those fields.
 
-The witness signatures are detached from the checkpoint object. Each witness signs a domain-separated digest containing its own witness identity and the exact checkpoint digest.
+Witness signatures are detached from the checkpoint object. Each witness signs a domain-separated digest containing its own witness identity and the exact checkpoint digest.
 
-An accepted checkpoint is therefore not merely a statement that the log says it is current. It is:
+An accepted checkpoint therefore binds:
 
-    exact journal head
+    exact journal pre-state
     + exact transparency log identity
     + exact checkpoint lineage
     + exact witness policy
-    + authenticated external observations
+    + authenticated witness observations
+
+The checkpoint is deliberately a statement about the **pre-transition** durable head. The lifecycle event that consumes it records that evidence and then advances the journal.
 
 ## Retained witness state
 
 TransparencyWitnessSetV1 is deliberately not Clone, Serialize, or Deserialize.
 
-Each retained witness records only the minimum state needed for continuity:
+Each retained witness records only the minimum continuity state:
 
     checkpoint sequence
     checkpoint digest
@@ -64,10 +67,9 @@ Genesis is a deterministic semantic checkpoint derived from:
 
     log identity + log epoch + witness-policy commitment
 
-A later candidate is accepted only when the counted witness can establish one of:
+For general evidence verification, a checkpoint may be idempotently re-verified against a witness's already-retained checkpoint.
 
-1. Idempotent replay — the checkpoint is exactly the checkpoint already retained.
-2. Forward extension — the candidate sequence is higher and names the exact retained checkpoint as its predecessor.
+For a **new durable transition**, a separate admission operation requires the checkpoint sequence to be strictly greater than the maximum retained witness sequence. This prevents a previously consumed checkpoint from authorizing another state-changing lifecycle event merely because its signatures remain valid.
 
 The following fail closed:
 
@@ -78,15 +80,21 @@ The following fail closed:
     + different checkpoint digest
         -> EquivocationDetected
 
+    candidate sequence == retained sequence
+    + same checkpoint digest
+    + new durable transition
+        -> ReplayDetected
+
     candidate sequence > retained sequence
     + wrong predecessor
         -> NonExtension
 
-This makes same-sequence conflict evidence materially different from ordinary stale absence.
+    candidate sequence > retained sequence + 1
+        -> SequenceDiscontinuity
 
 ## Quorum and independence
 
-The witness policy is itself content-addressed and binds:
+The witness policy is content-addressed and binds:
 
 - policy identity;
 - transparency log identity and epoch;
@@ -96,68 +104,100 @@ The witness policy is itself content-addressed and binds:
 - quorum threshold; and
 - minimum independent-domain threshold.
 
-Duplicate witness IDs and duplicate public keys are rejected.
+Duplicate witness identities and duplicate public keys are rejected.
 
-Every supplied witness signature is verified. An invalid, malformed, or unknown extra signature is not silently ignored to salvage a threshold.
+Every supplied witness signature is verified. A malformed or invalid extra witness signature is not silently discarded to salvage a convenient threshold.
 
-This prevents the verifier from selecting a convenient valid subset out of a contradictory evidence bundle.
+The current v0.1 model supports quorum over configured independence domains, but it does **not** claim that different labels prove real-world organizational independence, geographic independence, or non-collusion.
 
-The current v0.1 model supports a quorum over independent domains, but it does not claim real-world independence merely because two configured domains have different labels.
+## Durable lifecycle integration
 
-## Durable ordering
+The unified DurableExecutionSecurityContext now retains:
 
-The semantic lifecycle is:
+    sealed local exact-head witness
+    external freshness authority
+    retained freshness cursor
+    current freshness attestation
+    transparency log authority
+    transparency witness policy
+    retained transparency witness set
+    current transparency checkpoint + witness signatures
+
+The five lifecycle/recovery APIs use the same context.
+
+For state-changing operations, the ordering is:
 
     verify local journal head
             ↓
     verify external freshness
             ↓
-    verify freshness cursor
+    verify retained freshness cursor
             ↓
     verify transparency checkpoint
             ↓
-    verify witness quorum / continuity
+    verify witness quorum + continuity
             ↓
-    durable journal append
+    construct lifecycle record containing consumed transparency evidence
             ↓
-    commit accepted transparency state
+    durably append authenticated journal event
             ↓
-    advance execution/freshness state
+    commit retained transparency witness state
+            ↓
+    advance local head witness + freshness cursor
 
-The accepted transparency object is consumable: commit_after_durable_append takes ownership of it.
+The accepted transparency object is consumable: its witness predecessor state is captured during verification and the object is consumed only after the corresponding journal append succeeds.
 
-Before committing, the witness set performs a compare-and-set style recheck of every predecessor state that was used during verification. A concurrent witness-state change therefore rejects the commit rather than overwriting newer state.
+The lifecycle event's execution-signature digest covers the complete persisted transparency evidence, so replacing that evidence changes the authenticated event payload.
 
-This is deliberately analogous to the already-established rule that freshness state must not advance when the durable journal append fails.
+## Persisted transparency evidence
+
+Each lifecycle record persists:
+
+    exact transparency checkpoint
+    validated witness signatures
+    canonical accepted witness identities
+    canonical accepted independence domains
+
+The persisted checkpoint is additionally tied to the lifecycle event's journal position:
+
+    checkpoint.event_count == event.ordinal
+    checkpoint.head_hash   == event.previous_hash
+
+This means the evidence is explicitly for the exact pre-state of the event that consumes it.
+
+The record is not treated as a substitute for retained witness state. The persisted event is an authenticated audit receipt; the independently retained witness state is still the anti-rollback/non-equivocation memory.
 
 ## Crash/restart boundary
 
-This semantic tranche does not yet persist witness state into a platform-resistant external store.
+The current witness state remains intentionally non-serializable.
 
-Therefore it establishes:
+Therefore this tranche establishes:
 
-    no in-process silent witness rollback
+    no silent in-process witness rollback
+    no replay of an already-consumed transparency sequence
+    durable authenticated record of which checkpoint was consumed
 
-but not:
+It does **not** establish:
 
     restart-resistant witness rollback protection
 
-The next durable integration should record the accepted checkpoint identity in the authenticated lifecycle journal and reconstruct witness state from a separately trusted checkpoint store. The lifecycle journal should never treat a caller-supplied serialized witness cursor as authoritative merely because its bytes are intact.
+A runtime restart with only the execution journal must not reconstruct a higher transparency witness sequence from caller-controlled serialized bytes. The next recovery layer needs an independently retained witness/checkpoint store.
+
+This is analogous to the existing freshness cursor boundary: durable journal data can document what happened, but it must not become the sole authority for reconstructing an external anti-rollback memory.
 
 ## Failure taxonomy
-
-The intended distinctions are:
 
 | Observation | Meaning |
 | --- | --- |
 | Invalid local chain | local integrity failure |
 | Older external sequence | freshness rollback |
-| Higher sequence with wrong local predecessor | external non-extension |
-| Same external sequence with different checkpoint digest | external equivocation |
-| No newer evidence within freshness policy | freshness unavailable / possible freeze |
-| Conflicting witness-visible roots | split-view / transparency equivocation |
+| Higher sequence with wrong local predecessor | transparency non-extension |
+| Same transparency sequence with different digest | transparency equivocation evidence |
+| Reuse of an already-consumed sequence for a new transition | transparency replay |
+| No newer checkpoint observed | freshness/transparency unavailability or possible freeze |
 | Quorum below threshold | insufficient corroboration |
-| Quorum exists only inside one independence domain | insufficient independence |
+| Quorum exists only inside one configured domain | insufficient independence |
+| Restart without retained witness state | fail-closed recovery boundary |
 
 In particular:
 
@@ -175,63 +215,91 @@ In particular:
 
 ## Relationship to transparency standards
 
-This design is intentionally narrower than SCITT.
+This design is deliberately narrower than SCITT.
 
-RFC 9943 requires a transparency service's verifiable data structure to provide append-only history, non-equivocation, and replayability. It also defines receipts and leaves consistency/inclusion proof mechanisms to the underlying VDS. The current Symtropy boundary implements the external checkpoint + independent witness continuity part only; it does not yet provide a SCITT receipt or public VDS consistency proof.
+RFC 9943 requires a SCITT transparency VDS to support append-only history, non-equivocation, and replayability. The current Symtropy boundary supplies a durable execution checkpoint plus independently retained witness continuity, but it does not yet implement a SCITT receipt or a public VDS. https://www.rfc-editor.org/info/rfc9943/
 
-RFC 9162 defines Merkle consistency proofs for establishing that a newer tree contains the older tree as a prefix.
+RFC 9162 defines Merkle consistency proofs that demonstrate that a newer tree contains the older tree as a prefix. Those proofs are the natural next cryptographic layer once the current semantic checkpoint interface is adapted to a real VDS. https://www.rfc-editor.org/rfc/rfc9162.html
 
-The current C2SP Transparency Log Witness Protocol is especially relevant to the next integration step: a witness retains its latest verified checkpoint and requires a Merkle consistency proof before accepting a newer checkpoint; same-size conflicting roots are rejected, and the witness update must be atomic with respect to the continuity check.
+The current C2SP Transparency Log Witness Protocol has the closest architectural shape: a witness retains its latest verified checkpoint, requires a consistency proof for a newer checkpoint, and requires continuity checking plus durable persistence to be atomic. The current Symtropy witness set mirrors the retained-state and CAS boundary, but is intentionally still service-neutral and in-process. It is therefore **not** C2SP wire compatible yet. https://c2sp.org/tlog-witness
 
-C2SP's policy model also makes witness quorum and witness grouping explicit. This maps cleanly onto the present quorum + minimum independent domains model, while the real-world independence assumption remains a separate qualification obligation.
+The current C2SP transparency-log policy model also makes known logs, known witnesses, and a quorum rule explicit. That maps naturally onto the present policy commitment and quorum layer. The configured independence-domain rule remains an application qualification requirement rather than a proof of real-world independence. https://c2sp.org/tlog-policy
 
-TUF remains a useful threat-model reference because rollback and indefinite-freeze attacks are distinct. This tranche addresses non-equivocation/rollback evidence; it does not turn a silent source into proof of malicious freeze.
+TUF remains useful for the threat taxonomy because rollback and indefinite-freeze attacks are separate classes. This tranche provides positive rollback/equivocation evidence but does not convert absence of fresh evidence into proof of malicious freeze. https://theupdateframework.io/docs/security/
 
-Sigstore's security model likewise treats an append-only transparency log and independent monitoring as complementary protections: a log can provide durable evidence, but monitoring is important for detecting inconsistent views.
+Sigstore likewise treats an append-only transparency log and independent monitoring as complementary controls. The current Symtropy boundary is the local admission-side analogue and does not claim global monitoring coverage. https://docs.sigstore.dev/about/security/
 
 ## Claim ceiling
 
-A future successfully executed integration may support claims such as:
+A successfully executed integration can support claims such as:
 
-    exact journal head bound to an authenticated transparency checkpoint
-    witness-visible checkpoint lineage is non-equivocating
-    accepted quorum satisfies the configured independence-domain policy
-    checkpoint admission is state-CAS protected before durable commit
+    exact journal pre-state bound to an authenticated transparency checkpoint
+    consumed checkpoint evidence durably authenticated in the lifecycle record
+    witness-visible checkpoint lineage is non-equivocating within retained witness state
+    accepted quorum satisfies the configured witness/domain policy
+    already-consumed transparency sequences cannot authorize a new durable transition
+    witness-state commit is CAS-protected after the corresponding durable append
 
 It must not silently promote those into:
 
-    global liveness
+    global transparency-service availability
+    globally observed non-equivocation
     honest witnesses
+    proof of real-world independence
     absence of collusion
+    restart-resistant witness persistence
     hardware rollback resistance
     trusted time
     physical execution success
-    semantic correctness of the underlying process
+    semantic correctness of the underlying industrial process
+
+## Adversarial corpus
+
+The minimum regression corpus for this layer should continue to cover:
+
+- valid new checkpoint;
+- exact-head mismatch;
+- same-sequence conflicting checkpoint;
+- lower sequence;
+- skipped sequence;
+- higher sequence with wrong predecessor;
+- same checkpoint replay for a new transition;
+- quorum below threshold;
+- quorum entirely within one domain;
+- duplicate witness identity;
+- duplicate witness signature;
+- invalid extra witness signature;
+- log/freshness key reuse;
+- witness/freshness key reuse;
+- log/witness/execution-key reuse;
+- policy/log epoch mismatch;
+- policy commitment drift;
+- concurrent witness-state change before commit;
+- durable append failure before witness commit;
+- journal tampering after evidence persistence;
+- restart with journal-only state and no retained witness state;
+- freshness checkpoint and transparency checkpoint bound to different exact journal heads.
 
 ## Next implementation frontier
 
-The next concrete integration should connect this semantic boundary to the existing DurableExecutionSecurityContext without replacing its freshness cursor.
+The semantic composition is now implemented. The next layer should remain protocol-shaped rather than replacing the admission boundary:
 
-The intended composition is:
+    semantic checkpoint
+        ↓
+    concrete VDS tree-size/root identity
+        ↓
+    Merkle consistency proof
+        ↓
+    optional inclusion/non-inclusion proofs
+        ↓
+    SCITT/C2SP-compatible receipt/transport adapter
 
-    DurableExecutionSecurityContext
-    ├── sealed local exact-head witness
-    ├── external freshness authority
-    ├── retained freshness cursor
-    ├── current freshness attestation
-    ├── transparency log authority
-    ├── retained transparency witness set
-    └── current accepted transparency checkpoint
+The clean architectural rule remains:
 
-The accepted transparency checkpoint identity should then be persisted inside the authenticated Pending/terminal lifecycle record so restart recovery can reconstruct exactly which external checkpoint was consumed for each durable transition.
+    protocol transport and VDS mechanics
+        sit underneath
+    the durable execution admission policy
 
-Only after that composition exists should the repository consider a concrete network transparency adapter or SCITT-compatible receipt format.
+That keeps execution authority, freshness authority, transparency authority, and witness policy independently attributable.
 
-## References
-
-- RFC 9943 — An Architecture for Trustworthy and Transparent Digital Supply Chains: https://www.rfc-editor.org/info/rfc9943/
-- RFC 9162 — Certificate Transparency Version 2.0: https://www.rfc-editor.org/rfc/rfc9162.html
-- C2SP Transparency Log Witness Protocol: https://c2sp.org/tlog-witness
-- C2SP Transparency Log Policy: https://c2sp.org/tlog-policy
-- TUF Security: https://theupdateframework.io/docs/security/
-- Sigstore Security Model: https://docs.sigstore.dev/about/security/
+Protocol details were cross-checked against the current C2SP development specifications on 2026-10-07.
