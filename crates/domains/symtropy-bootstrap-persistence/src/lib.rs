@@ -312,7 +312,7 @@ impl DurableExecutionSecurityContext {
         )?;
         cursor.verify_candidate(&authority, &freshness_attestation)?;
         Ok(Self {
-            head_witness,
+            security.context.head_witness(),
             freshness_authority: authority,
             freshness_cursor: cursor,
             freshness_attestation,
@@ -2612,8 +2612,8 @@ mod tests {
             EnergyLedger::new(BTreeMap::from([("bus".to_string(), 8_000)])),
         );
 
-        adapter
         security.refresh(&adapter);
+        adapter
             .authorize_pending(
                 &mut security.context,
                 &process,
@@ -2631,8 +2631,8 @@ mod tests {
         let executable =
             resume_pending_execution("exec-witness-a", &budget, &inventory)
                 .expect("activation");
-        adapter
         security.refresh(&adapter);
+        adapter
             .commit(
                 &mut security.context,
                 &process,
@@ -2678,9 +2678,8 @@ mod tests {
         let (process, run) = process_and_run();
         let (mut budget, mut inventory, mut energy) = initial_kernel_state();
 
-        let mut head_witness = adapter.capture_head_witness().expect("genesis witness");
-        let receipt = adapter
         security.refresh(&adapter);
+        let receipt = adapter
             .authorize_pending(
                 &mut security.context,
                 &process,
@@ -2698,8 +2697,8 @@ mod tests {
         let executable =
             resume_pending_execution(receipt.execution_id(), &budget, &inventory)
                 .expect("activation");
-        adapter
         security.refresh(&adapter);
+        adapter
             .commit(
                 &mut security.context,
                 &process,
@@ -2729,8 +2728,8 @@ mod tests {
         let before_inventory = inventory.clone();
         let before_energy = energy.clone();
 
-        let err = adapter
         security.refresh(&adapter);
+        let err = adapter
             .authorize_pending(
                 &mut security.context,
                 &process,
@@ -2773,10 +2772,10 @@ mod tests {
         let mut fresh = adapter.capture_head_witness().expect("genesis witness");
         let stale = fresh.clone();
 
-        adapter
         security.refresh(&adapter);
+        adapter
             .authorize_pending(
-                &mut fresh,
+                &mut security.context,
                 &process,
                 "exec-stale-witness-seed",
                 1,
@@ -2806,10 +2805,10 @@ mod tests {
         ));
 
         let mut stale_copy = stale.clone();
-        let err = adapter
         security.refresh(&adapter);
+        let err = adapter
             .authorize_pending(
-                &mut stale_copy,
+                &mut security.context,
                 &process,
                 "exec-stale-witness-reuse",
                 2,
@@ -2846,11 +2845,11 @@ mod tests {
         );
 
         let mut head_witness = adapter.capture_head_witness().expect("genesis witness");
-        assert_eq!(head_witness.event_count(), 0);
-        assert_eq!(head_witness.head_hash(), "GENESIS");
+        assert_eq!(security.context.head_witness().event_count(), 0);
+        assert_eq!(security.context.head_witness().head_hash(), "GENESIS");
 
-        let receipt = adapter
         security.refresh(&adapter);
+        let receipt = adapter
             .authorize_pending(
                 &mut security.context,
                 &process,
@@ -2868,7 +2867,7 @@ mod tests {
 
         assert_eq!(security.context.head_witness().event_count(), 1);
         assert_eq!(
-            head_witness,
+            security.context.head_witness(),
             adapter
                 .capture_head_witness()
                 .expect("persisted Pending witness")
@@ -2877,8 +2876,8 @@ mod tests {
         let executable =
             resume_pending_execution(receipt.execution_id(), &budget, &inventory)
                 .expect("activation");
-        adapter
         security.refresh(&adapter);
+        adapter
             .commit(
                 &mut security.context,
                 &process,
@@ -2892,7 +2891,7 @@ mod tests {
 
         assert_eq!(security.context.head_witness().event_count(), 2);
         assert_eq!(
-            head_witness,
+            security.context.head_witness(),
             adapter
                 .capture_head_witness()
                 .expect("persisted terminal witness")
@@ -2928,8 +2927,8 @@ mod tests {
         let (process, run) = process_and_run();
         let (mut budget, mut inventory, mut energy) = initial_kernel_state();
 
-        adapter
         security.refresh(&adapter);
+        adapter
             .authorize_pending(
                 &mut security.context,
                 &process,
@@ -2968,8 +2967,8 @@ mod tests {
         let (process, run) = process_and_run();
         let (mut budget, mut inventory, mut energy) = initial_kernel_state();
 
-        adapter
         security.refresh(&adapter);
+        adapter
             .authorize_pending(
                 &mut security.context,
                 &process,
@@ -3037,8 +3036,8 @@ mod tests {
         let before_energy = energy.clone();
 
         assert!(
-            adapter
         security.refresh(&adapter);
+            adapter
                 .authorize_pending(
                     &mut security.context,
                     &process,
@@ -3085,8 +3084,8 @@ mod tests {
         let (process, run) = process_and_run();
         let (mut budget, mut inventory, mut energy) = initial_kernel_state();
 
-        let receipt = adapter
         security.refresh(&adapter);
+        let receipt = adapter
             .authorize_pending(
                 &mut security.context,
                 &process,
@@ -3110,8 +3109,8 @@ mod tests {
             resume_pending_execution(receipt.execution_id(), &budget, &inventory)
                 .expect("activation");
 
-        assert!(adapter
         security.refresh(&adapter);
+        assert!(adapter
             .commit(
                 &mut security.context,
                 &process,
@@ -3180,8 +3179,8 @@ mod tests {
             EnergyLedger::new(BTreeMap::from([("bus".to_string(), 8_000)])),
         );
 
-        let receipt_one = adapter
         security.refresh(&adapter);
+        let receipt_one = adapter
             .authorize_pending(
                 &mut security.context,
                 &process,
@@ -3199,8 +3198,8 @@ mod tests {
         let executable_one =
             resume_pending_execution(receipt_one.execution_id(), &budget, &inventory)
                 .expect("first activation");
-        adapter
         security.refresh(&adapter);
+        adapter
             .commit(
                 &mut security.context,
                 &process,
@@ -3214,8 +3213,8 @@ mod tests {
 
         adapter.set_signer(second);
 
-        adapter
         security.refresh(&adapter);
+        adapter
             .authorize_pending(
                 &mut security.context,
                 &process,
@@ -3293,8 +3292,8 @@ mod tests {
         let (process, run) = process_and_run();
         let (mut budget, mut inventory, mut energy) = initial_kernel_state();
 
-        let receipt = adapter
         security.refresh(&adapter);
+        let receipt = adapter
             .authorize_pending(
                 &mut security.context,
                 &process,
@@ -3312,8 +3311,8 @@ mod tests {
 
         let executable = resume_pending_execution(receipt.execution_id(), &budget, &inventory)
             .expect("activation");
-        adapter
         security.refresh(&adapter);
+        adapter
             .commit(
                 &mut security.context,
                 &process,
@@ -3392,8 +3391,8 @@ mod tests {
             .expect("hold writer fence");
 
         assert!(
-            adapter
         security.refresh(&adapter);
+            adapter
                 .authorize_pending(
                     &mut security.context,
                     &process,
@@ -3429,8 +3428,8 @@ mod tests {
         let pre_inventory = inventory.state_commitment();
         let pre_energy = energy.state_commitment();
 
-        let receipt = adapter
         security.refresh(&adapter);
+        let receipt = adapter
             .authorize_pending(
                 &mut security.context,
                 &process,
@@ -3479,8 +3478,8 @@ mod tests {
         let (process, run) = process_and_run();
         let (mut budget, mut inventory, energy) = initial_kernel_state();
 
-        adapter
         security.refresh(&adapter);
+        adapter
             .authorize_pending(
                 &mut security.context,
                 &process,
@@ -3529,8 +3528,8 @@ mod tests {
         let (process, run) = process_and_run();
         let (mut budget, mut inventory, energy) = initial_kernel_state();
 
-        adapter
         security.refresh(&adapter);
+        adapter
             .authorize_pending(
                 &mut security.context,
                 &process,
@@ -3589,8 +3588,8 @@ mod tests {
         let pre_inventory = inventory.clone();
         let pre_energy = energy.clone();
 
-        let receipt = adapter
         security.refresh(&adapter);
+        let receipt = adapter
             .authorize_pending(
                 &mut security.context,
                 &process,
@@ -3610,8 +3609,8 @@ mod tests {
         inventory = pre_inventory;
         let mut energy = pre_energy;
 
-        let executable = adapter
         security.refresh(&adapter);
+        let executable = adapter
             .recover_pending(
                 &mut security.context,
                 &process,
@@ -3640,8 +3639,8 @@ mod tests {
         let (process, run) = process_and_run();
         let (mut budget, mut inventory, mut energy) = initial_kernel_state();
 
-        let receipt = adapter
         security.refresh(&adapter);
+        let receipt = adapter
             .authorize_pending(
                 &mut security.context,
                 &process,
@@ -3659,8 +3658,8 @@ mod tests {
         let executable = resume_pending_execution(receipt.execution_id(), &budget, &inventory)
             .expect("activation");
 
-        adapter
         security.refresh(&adapter);
+        adapter
             .commit(
                 &mut security.context,
                 &process,
@@ -3728,8 +3727,8 @@ mod tests {
         let (process, run) = process_and_run();
         let (mut budget, mut inventory, mut energy) = initial_kernel_state();
 
-        let receipt = adapter
         security.refresh(&adapter);
+        let receipt = adapter
             .authorize_pending(
                 &mut security.context,
                 &process,
@@ -3751,8 +3750,8 @@ mod tests {
         let terminal_pre_inventory = inventory.clone();
         let terminal_pre_energy = energy.clone();
 
-        adapter
         security.refresh(&adapter);
+        adapter
             .commit(
                 &mut security.context,
                 &process,
@@ -3772,8 +3771,8 @@ mod tests {
         inventory = terminal_pre_inventory;
         energy = terminal_pre_energy;
 
-        let result = adapter
         security.refresh(&adapter);
+        let result = adapter
             .recover_terminal(
                 &mut security.context,
                 &process,
@@ -3800,8 +3799,8 @@ mod tests {
         let (process, run) = process_and_run();
         let (mut budget, mut inventory, mut energy) = initial_kernel_state();
 
-        let receipt = adapter
         security.refresh(&adapter);
+        let receipt = adapter
             .authorize_pending(
                 &mut security.context,
                 &process,
@@ -3818,8 +3817,8 @@ mod tests {
             .expect("pending authorization");
         let executable = resume_pending_execution(receipt.execution_id(), &budget, &inventory)
             .expect("activation");
-        adapter
         security.refresh(&adapter);
+        adapter
             .commit(
                 &mut security.context,
                 &process,
@@ -3856,8 +3855,8 @@ mod tests {
         let (process, run) = process_and_run();
         let (mut budget, mut inventory, energy) = initial_kernel_state();
 
-        adapter
         security.refresh(&adapter);
+        adapter
             .authorize_pending(
                 &mut security.context,
                 &process,
@@ -3874,8 +3873,8 @@ mod tests {
             .expect("first pending authorization");
 
         assert!(
-            adapter
         security.refresh(&adapter);
+            adapter
                 .authorize_pending(
                     &mut security.context,
                     &process,
@@ -3910,8 +3909,8 @@ mod tests {
             ProductionProcess::new("electrolysis", "regolith", ["metal", "oxygen"], "slag");
         let (mut budget, mut inventory, energy) = initial_kernel_state();
 
-        let receipt = adapter
         security.refresh(&adapter);
+        let receipt = adapter
             .authorize_pending(
                 &mut security.context,
                 &process,
@@ -3929,8 +3928,8 @@ mod tests {
 
         assert_ne!(process.commitment(), changed_process.commitment());
         assert!(
-            adapter
         security.refresh(&adapter);
+            adapter
                 .recover_pending(
                     &mut security.context,
                     &changed_process,
@@ -3953,8 +3952,8 @@ mod tests {
         let (process, run) = process_and_run();
         let (mut budget, mut inventory, mut energy) = initial_kernel_state();
 
-        let receipt = adapter
         security.refresh(&adapter);
+        let receipt = adapter
             .authorize_pending(
                 &mut security.context,
                 &process,
@@ -3972,8 +3971,8 @@ mod tests {
         let executable = resume_pending_execution("exec-projection", &budget, &inventory)
             .expect("activation");
 
-        adapter
         security.refresh(&adapter);
+        adapter
             .commit(
                 &mut security.context,
                 &process,
@@ -3999,8 +3998,8 @@ mod tests {
             .expect("mutate live-only energy projection");
 
         assert!(
-            adapter
         security.refresh(&adapter);
+            adapter
                 .authorize_pending(
                     &mut security.context,
                     &process,
