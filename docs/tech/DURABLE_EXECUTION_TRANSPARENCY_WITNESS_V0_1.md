@@ -229,9 +229,9 @@ In particular:
 
 This design is deliberately narrower than SCITT.
 
-RFC 9943 requires a SCITT transparency VDS to support append-only history, non-equivocation, and replayability. The current Symtropy boundary supplies a durable execution checkpoint plus independently retained witness continuity and a service-neutral VDS head/proof primitive, but it does not yet implement a SCITT receipt or a public VDS. https://www.rfc-editor.org/info/rfc9943/
+RFC 9943 requires a SCITT transparency VDS to support append-only history, non-equivocation, and replayability. The current Symtropy boundary supplies a durable execution checkpoint plus independently retained witness continuity, VDS consistency checking, and a service-neutral inclusion-evidence precursor. It still does not implement a SCITT receipt, C2SP wire encoding, or a public VDS. https://www.rfc-editor.org/info/rfc9943/
 
-RFC 9162 defines Merkle consistency proofs that demonstrate that a newer tree contains the older tree as a prefix. The repository now has a SHA-256 verifier for that proof algorithm, with tests spanning many tree shapes and corrupted proof/root/size inputs. The checkpoint now carries the concrete VDS tree size/root, and witness admission rejects growth without a valid consistency proof. https://www.rfc-editor.org/rfc/rfc9162.html
+RFC 9162 defines Merkle consistency proofs that demonstrate that a newer tree contains the older tree as a prefix. The repository now has SHA-256 consistency and inclusion primitives, with tests spanning many tree shapes and corrupted proof/root/index/size inputs. The checkpoint carries the concrete VDS tree size/root, witness admission rejects unsupported growth without consistency evidence, and service-neutral inclusion evidence can prove an exact entry against the signed tree head. https://www.rfc-editor.org/rfc/rfc9162.html
 
 The current C2SP Transparency Log Witness Protocol has the closest architectural shape: a witness retains its latest verified checkpoint, requires a consistency proof for a newer checkpoint, and requires continuity checking plus durable persistence to be atomic. The current Symtropy witness set mirrors the retained-state and CAS boundary, but is intentionally still service-neutral and in-process. It is therefore **not** C2SP wire compatible yet. https://c2sp.org/tlog-witness
 
@@ -298,9 +298,9 @@ The minimum regression corpus for this layer should continue to cover:
 
 ## Next implementation frontier
 
-The semantic composition and a protocol-shaped RFC 9162-style SHA-256 consistency verifier are now implemented. The verifier remains deliberately below the admission boundary.
+The semantic composition and protocol-shaped RFC 9162-style SHA-256 consistency/inclusion primitives are now implemented. Consistency verification is part of witness admission; inclusion evidence remains a separate offline proof boundary.
 
-The checkpoint now commits a concrete VDS tree-size/root, and witness admission invokes the consistency verifier against the retained VDS head. The consistency proof remains separate evidence, so it can later map cleanly onto the C2SP witness request boundary.
+The checkpoint commits a concrete VDS tree-size/root, and witness admission invokes the consistency verifier against the retained VDS head. The consistency proof remains separate evidence, matching the structural boundary of the C2SP witness request while remaining service-neutral.
 
     semantic checkpoint + concrete VDS tree head
         ↓
