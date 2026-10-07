@@ -3272,6 +3272,14 @@ mod tests {
         let (process, run) = process_and_run();
         let (mut budget, mut inventory, mut energy) = initial_kernel_state();
 
+        assert!(
+            security
+                .context
+                .transparency_witness_evidence()
+                .iter()
+                .all(|evidence| evidence.retained_vds_tree_head().is_some())
+        );
+
         security.refresh(&adapter);
         adapter
             .authorize_pending(
