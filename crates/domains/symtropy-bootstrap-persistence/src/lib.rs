@@ -626,7 +626,7 @@ impl DurableExecutionSecurityContext {
                 )
             })
             .collect::<Result<Vec<_>, _>>()
-            .unwrap_or_default();
+            .unwrap_or_else(|_| Vec::new());
         self.transparency_vds_consistency_proof = transparency_vds_consistency_proof;
     }
 
@@ -634,7 +634,7 @@ impl DurableExecutionSecurityContext {
         &mut self,
         transparency_checkpoint: TransparencyCheckpointV1,
         witness_evidence: Vec<TransparencyWitnessEvidenceV1>,
-    ) ) {
+    ) {
         self.transparency_checkpoint = transparency_checkpoint;
         self.transparency_witness_signatures = witness_evidence
             .iter()
