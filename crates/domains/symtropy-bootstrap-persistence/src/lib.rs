@@ -584,7 +584,7 @@ impl DurableExecutionSecurityContext {
 
         let event_count = u64::try_from(loaded.chain.events().len())
             .map_err(|_| AdapterError::Invalid("journal event count overflow".to_string()))?;
-        transparency_witnesses
+        let accepted_transparency = transparency_witnesses
             .verify_for_new_transition_with_vds(
                 &transparency_log,
                 &transparency_policy,
@@ -598,17 +598,9 @@ impl DurableExecutionSecurityContext {
             )
             .map_err(AdapterError::from)?;
 
-        let transparency_witness_evidence = transparency_witness_signatures
-            .iter()
-            .cloned()
-            .map(|signature| {
-                TransparencyWitnessEvidenceV1::new(
-                    signature,
-                    transparency_vds_consistency_proof.clone(),
-                )
-            })
-            .collect::<Result<Vec<_>, _>>()
-            .map_err(AdapterError::from)?;
+        let transparency_witness_evidence = accepted_transparency.witness_evidence().to_vec();
+        let transparency_witness_signatures = accepted_transparency.witness_signatures().to_vec();
+        let transparency_vds_consistency_proof = accepted_transparency.vds_consistency_proof().cloned();
 
         Ok(Self {
             head_witness,
