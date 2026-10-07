@@ -1,0 +1,1231 @@
+// Copyright (C) 2026 Tristan Stoltz / Luminous Dynamics
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
+//! Service-neutral transparency checkpoints and independently retained witnesses.
+//!
+//! This module is deliberately narrower than a full SCITT/VDS implementation.
+//! It establishes the semantic boundary needed by the durable execution adapter:
+//! an externally signed checkpoint identifies one exact durable journal head, while
+//! independently retained witness state prevents silent replacement of that checkpoint
+//! with a conflicting or non-extending view.
+//!
+//! It does not implement HTTP transport, a Merkle VDS, a public transparency service,
+//! trusted time, or physical execution authority. Those are separate layers.
+
+use ring::signature::{UnparsedPublicKey, ED25519};
+use serde::{Deserialize, Serialize};
+use sha2::{Digest, Sha256};
+use std::collections::BTreeMap;
+
+use super::FreshnessAuthority;
+
+pub const TRANSPARENCY_CHECKPOINT_SCHEMA_VERSION: u32 = 1;
+pub const TRANSPARENCY_CHECKPOINT_ALGORITHM: &str =
+    "Ed25519-SHA256-JOURNAL-CHECKPOINT-v1";
+pub const TRANSPARENCY_WITNESS_ALGORITHM: &str =
+    "Ed25519-SHA256-JOURNAL-WITNESS-v1";
+
+const TRANSPARENCY_DOMAIN: &str = "symtropy.transparency-checkpoint.v1";
+const TRANSPARENCY_WITNESS_DOMAIN: &str = "symtropy.transparency-witness.v1";
+const TRANSPARENCY_GENESIS_TAG: &str = "TRANSPARENCY-GENESIS-V1";
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct TransparencyCheckpointUnsignedV1 {
+    schema_version: u32,
+    algorithm: String,
+    log_id: String,
+    log_epoch: u64,
+    sequence: u64,
+    journal_namespace: String,
+    seed: u64,
+    event_count: u64,
+    head_hash: String,
+    previous_checkpoint_digest: String,
+    witness_policy_commitment: String,
+}
+
+impl TransparencyCheckpointUnsignedV1 {
+    pub fn new(
+        log_id: impl Into<String>,
+        log_epoch: u64,
+        sequence: u64,
+        journal_namespace: impl Into<String>,
+        seed: u64,
+        event_count: u64,
+        head_hash: impl Into<String>,
+        previous_checkpoint_digest: impl Into<String>,
+        witness_policy_commitment: impl Into<String>,
+    ) -> Result<Self, TransparencyError> {
+        let value = Self {
+            schema_version: TRANSPARENCY_CHECKPOINT_SCHEMA_VERSION,
+            algorithm: TRANSPARENCY_CHECKPOINT_ALGORITHM.to_string(),
+            log_id: log_id.into(),
+            log_epoch,
+            sequence,
+            journal_namespace: journal_namespace.into(),
+            seed,
+            event_count,
+            head_hash: head_hash.into(),
+            previous_checkpoint_digest: previous_checkpoint_digest.into(),
+            witness_policy_commitment: witness_policy_commitment.into(),
+        };
+        value.validate()?;
+        Ok(value)
+    }
+
+    fn validate(&self) -> Result<(), TransparencyError> {
+        if self.schema_version != TRANSPARENCY_CHECKPOINT_SCHEMA_VERSION {
+            return Err(TransparencyError::Invalid(
+                "unsupported transparency checkpoint schema".to_string(),
+            ));
+        }
+        if self.algorithm != TRANSPARENCY_CHECKPOINT_ALGORITHM {
+            return Err(TransparencyError::Invalid(
+                "unsupported transparency checkpoint algorithm".to_string(),
+            ));
+        }
+        validate_nonempty("log_id", &self.log_id)?;
+        if self.sequence == 0 {
+            return Err(TransparencyError::Invalid(
+                "transparency checkpoint sequence must be non-zero".to_string(),
+            ));
+        }
+        validate_nonempty("journal_namespace", &self.journal_namespace)?;
+        validate_nonempty("previous_checkpoint_digest", &self.previous_checkpoint_digest)?;
+        validate_nonempty("witness_policy_commitment", &self.witness_policy_commitment)?;
+        validate_head(self.event_count, &self.head_hash)
+    }
+
+    #[must_use]
+    pub fn signing_digest(&self) -> [u8; 32] {
+        let mut hasher = Sha256::new();
+        hash_string(&mut hasher, TRANSPARENCY_DOMAIN);
+        hash_u32(&mut hasher, self.schema_version);
+        hash_string(&mut hasher, &self.algorithm);
+        hash_string(&mut hasher, &self.log_id);
+        hash_u64(&mut hasher, self.log_epoch);
+        hash_u64(&mut hasher, self.sequence);
+        hash_string(&mut hasher, &self.journal_namespace);
+        hash_u64(&mut hasher, self.seed);
+        hash_u64(&mut hasher, self.event_count);
+        hash_string(&mut hasher, &self.head_hash);
+        hash_string(&mut hasher, &self.previous_checkpoint_digest);
+        hash_string(&mut hasher, &self.witness_policy_commitment);
+        finalize_digest(hasher)
+    }
+
+    pub fn into_signed(
+        self,
+        signature_hex: impl Into<String>,
+    ) -> Result<TransparencyCheckpointV1, TransparencyError> {
+        self.validate()?;
+        let signature = signature_hex.into();
+        decode_exact::<64>(&signature)?;
+        Ok(TransparencyCheckpointV1 {
+            unsigned: self,
+            signature,
+        })
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct TransparencyCheckpointV1 {
+    unsigned: TransparencyCheckpointUnsignedV1,
+    signature: String,
+}
+
+impl TransparencyCheckpointV1 {
+    #[must_use]
+    pub fn digest(&self) -> [u8; 32] {
+        self.unsigned.signing_digest()
+    }
+
+    #[must_use]
+    pub fn log_id(&self) -> &str {
+        &self.unsigned.log_id
+    }
+
+    #[must_use]
+    pub const fn log_epoch(&self) -> u64 {
+        self.unsigned.log_epoch
+    }
+
+    #[must_use]
+    pub const fn sequence(&self) -> u64 {
+        self.unsigned.sequence
+    }
+
+    #[must_use]
+    pub fn journal_namespace(&self) -> &str {
+        &self.unsigned.journal_namespace
+    }
+
+    #[must_use]
+    pub const fn seed(&self) -> u64 {
+        self.unsigned.seed
+    }
+
+    #[must_use]
+    pub const fn event_count(&self) -> u64 {
+        self.unsigned.event_count
+    }
+
+    #[must_use]
+    pub fn head_hash(&self) -> &str {
+        &self.unsigned.head_hash
+    }
+
+    #[must_use]
+    pub fn previous_checkpoint_digest(&self) -> &str {
+        &self.unsigned.previous_checkpoint_digest
+    }
+
+    #[must_use]
+    pub fn witness_policy_commitment(&self) -> &str {
+        &self.unsigned.witness_policy_commitment
+    }
+
+    #[must_use]
+    pub fn signature(&self) -> &str {
+        &self.signature
+    }
+
+    #[must_use]
+    pub fn unsigned(&self) -> &TransparencyCheckpointUnsignedV1 {
+        &self.unsigned
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct TransparencyLogAuthorityV1 {
+    log_id: String,
+    log_epoch: u64,
+    public_key: String,
+}
+
+impl TransparencyLogAuthorityV1 {
+    pub fn from_public_key_hex(
+        log_id: impl Into<String>,
+        log_epoch: u64,
+        public_key: impl Into<String>,
+    ) -> Result<Self, TransparencyError> {
+        let log_id = log_id.into();
+        let public_key = public_key.into();
+        validate_nonempty("log_id", &log_id)?;
+        decode_exact::<32>(&public_key)?;
+        Ok(Self {
+            log_id,
+            log_epoch,
+            public_key,
+        })
+    }
+
+    #[must_use]
+    pub fn log_id(&self) -> &str {
+        &self.log_id
+    }
+
+    #[must_use]
+    pub const fn log_epoch(&self) -> u64 {
+        self.log_epoch
+    }
+
+    #[must_use]
+    pub fn public_key_hex(&self) -> &str {
+        &self.public_key
+    }
+
+    #[must_use]
+    pub fn commitment(&self) -> String {
+        let mut hasher = Sha256::new();
+        hash_string(&mut hasher, "symtropy.transparency-log-authority.v1");
+        hash_string(&mut hasher, &self.log_id);
+        hash_u64(&mut hasher, self.log_epoch);
+        hash_string(&mut hasher, &self.public_key);
+        encode_hex(&finalize_digest(hasher))
+    }
+
+    pub fn validate_independence_from_freshness(
+        &self,
+        freshness: &FreshnessAuthority,
+    ) -> Result<(), TransparencyError> {
+        if self.public_key == freshness.public_key_hex() {
+            return Err(TransparencyError::KeyReuse(
+                "transparency log authority reuses the freshness authority key".to_string(),
+            ));
+        }
+        Ok(())
+    }
+
+    fn verify(&self, checkpoint: &TransparencyCheckpointV1) -> Result<(), TransparencyError> {
+        if checkpoint.log_id() != self.log_id || checkpoint.log_epoch() != self.log_epoch {
+            return Err(TransparencyError::LogMismatch);
+        }
+        let public_key = decode_exact::<32>(&self.public_key)?;
+        let signature = decode_exact::<64>(checkpoint.signature())?;
+        UnparsedPublicKey::new(&ED25519, &public_key)
+            .verify(&checkpoint.digest(), &signature)
+            .map_err(|_| TransparencyError::SignatureInvalid)
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct TransparencyWitnessKeyV1 {
+    witness_id: String,
+    independence_domain: String,
+    public_key: String,
+}
+
+impl TransparencyWitnessKeyV1 {
+    pub fn from_public_key_hex(
+        witness_id: impl Into<String>,
+        independence_domain: impl Into<String>,
+        public_key: impl Into<String>,
+    ) -> Result<Self, TransparencyError> {
+        let witness_id = witness_id.into();
+        let independence_domain = independence_domain.into();
+        let public_key = public_key.into();
+        validate_nonempty("witness_id", &witness_id)?;
+        validate_nonempty("independence_domain", &independence_domain)?;
+        decode_exact::<32>(&public_key)?;
+        Ok(Self {
+            witness_id,
+            independence_domain,
+            public_key,
+        })
+    }
+
+    #[must_use]
+    pub fn witness_id(&self) -> &str {
+        &self.witness_id
+    }
+
+    #[must_use]
+    pub fn independence_domain(&self) -> &str {
+        &self.independence_domain
+    }
+
+    #[must_use]
+    pub fn public_key_hex(&self) -> &str {
+        &self.public_key
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct TransparencyWitnessPolicyV1 {
+    policy_id: String,
+    log_id: String,
+    quorum: u32,
+    minimum_domains: u32,
+    witnesses: BTreeMap<String, TransparencyWitnessKeyV1>,
+}
+
+impl TransparencyWitnessPolicyV1 {
+    pub fn new(
+        policy_id: impl Into<String>,
+        log_id: impl Into<String>,
+        quorum: u32,
+        minimum_domains: u32,
+        witnesses: Vec<TransparencyWitnessKeyV1>,
+    ) -> Result<Self, TransparencyError> {
+        let policy_id = policy_id.into();
+        let log_id = log_id.into();
+        validate_nonempty("policy_id", &policy_id)?;
+        validate_nonempty("log_id", &log_id)?;
+        if witnesses.is_empty() {
+            return Err(TransparencyError::Invalid(
+                "transparency witness policy requires at least one witness".to_string(),
+            ));
+        }
+        if quorum == 0 || quorum as usize > witnesses.len() {
+            return Err(TransparencyError::Invalid(
+                "transparency witness quorum is outside the witness set".to_string(),
+            ));
+        }
+        if minimum_domains == 0 || minimum_domains > quorum {
+            return Err(TransparencyError::Invalid(
+                "minimum witness domains must be non-zero and no greater than quorum".to_string(),
+            ));
+        }
+
+        let mut by_id = BTreeMap::new();
+        let mut public_keys = BTreeMap::new();
+        for witness in witnesses {
+            if by_id
+                .insert(witness.witness_id.clone(), witness.clone())
+                .is_some()
+            {
+                return Err(TransparencyError::Invalid(
+                    "duplicate transparency witness identity".to_string(),
+                ));
+            }
+            if public_keys
+                .insert(witness.public_key.clone(), witness.witness_id.clone())
+                .is_some()
+            {
+                return Err(TransparencyError::Invalid(
+                    "duplicate transparency witness public key".to_string(),
+                ));
+            }
+        }
+
+        Ok(Self {
+            policy_id,
+            log_id,
+            quorum,
+            minimum_domains,
+            witnesses: by_id,
+        })
+    }
+
+    #[must_use]
+    pub fn policy_id(&self) -> &str {
+        &self.policy_id
+    }
+
+    #[must_use]
+    pub fn log_id(&self) -> &str {
+        &self.log_id
+    }
+
+    #[must_use]
+    pub const fn quorum(&self) -> u32 {
+        self.quorum
+    }
+
+    #[must_use]
+    pub const fn minimum_domains(&self) -> u32 {
+        self.minimum_domains
+    }
+
+    #[must_use]
+    pub fn witness(&self, witness_id: &str) -> Option<&TransparencyWitnessKeyV1> {
+        self.witnesses.get(witness_id)
+    }
+
+    #[must_use]
+    pub fn witnesses(&self) -> impl Iterator<Item = &TransparencyWitnessKeyV1> {
+        self.witnesses.values()
+    }
+
+    #[must_use]
+    pub fn commitment(&self) -> String {
+        let mut hasher = Sha256::new();
+        hash_string(&mut hasher, "symtropy.transparency-witness-policy.v1");
+        hash_string(&mut hasher, &self.policy_id);
+        hash_string(&mut hasher, &self.log_id);
+        hash_u32(&mut hasher, self.quorum);
+        hash_u32(&mut hasher, self.minimum_domains);
+        hash_u64(&mut hasher, self.witnesses.len() as u64);
+        for witness in self.witnesses.values() {
+            hash_string(&mut hasher, witness.witness_id());
+            hash_string(&mut hasher, witness.independence_domain());
+            hash_string(&mut hasher, witness.public_key_hex());
+        }
+        encode_hex(&finalize_digest(hasher))
+    }
+
+    pub fn validate_independence_from_log(
+        &self,
+        log: &TransparencyLogAuthorityV1,
+    ) -> Result<(), TransparencyError> {
+        if self
+            .witnesses
+            .values()
+            .any(|witness| witness.public_key_hex() == log.public_key_hex())
+        {
+            return Err(TransparencyError::KeyReuse(
+                "transparency witness reuses the log authority key".to_string(),
+            ));
+        }
+        Ok(())
+    }
+
+    pub fn validate_independence_from_freshness(
+        &self,
+        freshness: &FreshnessAuthority,
+    ) -> Result<(), TransparencyError> {
+        if self
+            .witnesses
+            .values()
+            .any(|witness| witness.public_key_hex() == freshness.public_key_hex())
+        {
+            return Err(TransparencyError::KeyReuse(
+                "transparency witness reuses the freshness authority key".to_string(),
+            ));
+        }
+        Ok(())
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct TransparencyWitnessSignatureV1 {
+    witness_id: String,
+    signature: String,
+}
+
+impl TransparencyWitnessSignatureV1 {
+    pub fn new(
+        witness_id: impl Into<String>,
+        signature_hex: impl Into<String>,
+    ) -> Result<Self, TransparencyError> {
+        let witness_id = witness_id.into();
+        let signature = signature_hex.into();
+        validate_nonempty("witness_id", &witness_id)?;
+        decode_exact::<64>(&signature)?;
+        Ok(Self {
+            witness_id,
+            signature,
+        })
+    }
+
+    #[must_use]
+    pub fn witness_id(&self) -> &str {
+        &self.witness_id
+    }
+
+    #[must_use]
+    pub fn signature(&self) -> &str {
+        &self.signature
+    }
+}
+
+#[derive(Debug, PartialEq, Eq)]
+pub struct AcceptedTransparencyCheckpointV1 {
+    checkpoint: TransparencyCheckpointV1,
+    accepted_witnesses: Vec<String>,
+    accepted_domains: Vec<String>,
+    checkpoint_digest: String,
+    predecessor_states: BTreeMap<String, RetainedWitnessState>,
+}
+
+impl AcceptedTransparencyCheckpointV1 {
+    #[must_use]
+    pub fn checkpoint(&self) -> &TransparencyCheckpointV1 {
+        &self.checkpoint
+    }
+
+    #[must_use]
+    pub fn checkpoint_digest(&self) -> &str {
+        &self.checkpoint_digest
+    }
+
+    #[must_use]
+    pub fn accepted_witnesses(&self) -> &[String] {
+        &self.accepted_witnesses
+    }
+
+    #[must_use]
+    pub fn accepted_domains(&self) -> &[String] {
+        &self.accepted_domains
+    }
+}
+
+#[derive(Debug)]
+struct RetainedWitnessState {
+    sequence: u64,
+    checkpoint_digest: String,
+    event_count: u64,
+    head_hash: String,
+}
+
+impl Clone for RetainedWitnessState {
+    fn clone(&self) -> Self {
+        Self {
+            sequence: self.sequence,
+            checkpoint_digest: self.checkpoint_digest.clone(),
+            event_count: self.event_count,
+            head_hash: self.head_hash.clone(),
+        }
+    }
+}
+
+#[derive(Debug)]
+pub struct TransparencyWitnessSetV1 {
+    policy_commitment: String,
+    witnesses: BTreeMap<String, RetainedWitnessState>,
+}
+
+impl TransparencyWitnessSetV1 {
+    pub fn new(policy: &TransparencyWitnessPolicyV1) -> Result<Self, TransparencyError> {
+        if policy.witnesses.is_empty() {
+            return Err(TransparencyError::Invalid(
+                "cannot initialize an empty transparency witness set".to_string(),
+            ));
+        }
+        let genesis_digest = transparency_genesis_digest(
+            &policy.log_id,
+            &policy.commitment(),
+        );
+        let mut witnesses = BTreeMap::new();
+        for witness_id in policy.witnesses.keys() {
+            witnesses.insert(
+                witness_id.clone(),
+                RetainedWitnessState {
+                    sequence: 0,
+                    checkpoint_digest: genesis_digest.clone(),
+                    event_count: 0,
+                    head_hash: "GENESIS".to_string(),
+                },
+            );
+        }
+        Ok(Self {
+            policy_commitment: policy.commitment(),
+            witnesses,
+        })
+    }
+
+    #[must_use]
+    pub fn policy_commitment(&self) -> &str {
+        &self.policy_commitment
+    }
+
+    #[must_use]
+    pub fn retained_sequence(&self, witness_id: &str) -> Option<u64> {
+        self.witnesses.get(witness_id).map(|state| state.sequence)
+    }
+
+    #[must_use]
+    pub fn retained_checkpoint_digest(&self, witness_id: &str) -> Option<&str> {
+        self.witnesses
+            .get(witness_id)
+            .map(|state| state.checkpoint_digest.as_str())
+    }
+
+    /// Verify, but do not mutate, a checkpoint against independently retained witness state.
+    ///
+    /// Every supplied witness signature is validated. Unknown witnesses, duplicate witness
+    /// identities, invalid signatures, stale rollback candidates, same-sequence conflicting
+    /// roots, and non-extending successors fail closed. A later commit consumes the accepted
+    /// object and advances only after the durable journal append succeeds.
+    pub fn verify_candidate(
+        &self,
+        log: &TransparencyLogAuthorityV1,
+        policy: &TransparencyWitnessPolicyV1,
+        checkpoint: &TransparencyCheckpointV1,
+        witness_signatures: &[TransparencyWitnessSignatureV1],
+        journal_namespace: &str,
+        seed: u64,
+        event_count: u64,
+        head_hash: &str,
+    ) -> Result<AcceptedTransparencyCheckpointV1, TransparencyError> {
+        if self.policy_commitment != policy.commitment() {
+            return Err(TransparencyError::PolicyMismatch);
+        }
+        if checkpoint.witness_policy_commitment() != self.policy_commitment {
+            return Err(TransparencyError::PolicyMismatch);
+        }
+        if checkpoint.log_id() != policy.log_id() || checkpoint.log_id() != log.log_id() {
+            return Err(TransparencyError::LogMismatch);
+        }
+        if checkpoint.journal_namespace() != journal_namespace
+            || checkpoint.seed() != seed
+            || checkpoint.event_count() != event_count
+            || checkpoint.head_hash() != head_hash
+        {
+            return Err(TransparencyError::JournalMismatch);
+        }
+
+        log.verify(checkpoint)?;
+
+        let checkpoint_digest = encode_hex(&checkpoint.digest());
+        let mut seen = BTreeMap::<String, ()>::new();
+        let mut verified = Vec::<(String, String, RetainedWitnessState)>::new();
+
+        for signature in witness_signatures {
+            let witness_id = signature.witness_id().to_string();
+            if seen.insert(witness_id.clone(), ()).is_some() {
+                return Err(TransparencyError::DuplicateWitnessSignature);
+            }
+            let witness = policy
+                .witness(&witness_id)
+                .ok_or(TransparencyError::UnknownWitness)?;
+            let public_key = decode_exact::<32>(witness.public_key_hex())?;
+            let detached_signature = decode_exact::<64>(signature.signature())?;
+            let signing_digest = witness_signing_digest(
+                witness.witness_id(),
+                &checkpoint.digest(),
+            );
+            UnparsedPublicKey::new(&ED25519, &public_key)
+                .verify(&signing_digest, &detached_signature)
+                .map_err(|_| TransparencyError::WitnessSignatureInvalid)?;
+
+            let retained = self
+                .witnesses
+                .get(witness_id.as_str())
+                .ok_or(TransparencyError::UnknownWitness)?
+                .clone();
+
+            if checkpoint.sequence() < retained.sequence {
+                return Err(TransparencyError::RollbackDetected {
+                    witness_id,
+                    retained_sequence: retained.sequence,
+                    candidate_sequence: checkpoint.sequence(),
+                });
+            }
+            if checkpoint.sequence() == retained.sequence {
+                if checkpoint_digest != retained.checkpoint_digest {
+                    return Err(TransparencyError::EquivocationDetected { witness_id });
+                }
+            } else {
+                if checkpoint.previous_checkpoint_digest() != retained.checkpoint_digest {
+                    return Err(TransparencyError::NonExtension { witness_id });
+                }
+                if checkpoint.event_count() < retained.event_count {
+                    return Err(TransparencyError::RollbackDetected {
+                        witness_id,
+                        retained_sequence: retained.sequence,
+                        candidate_sequence: checkpoint.sequence(),
+                    });
+                }
+                if checkpoint.event_count() == retained.event_count
+                    && checkpoint.head_hash() != retained.head_hash
+                {
+                    return Err(TransparencyError::NonExtension { witness_id });
+                }
+            }
+
+            verified.push((
+                witness_id,
+                witness.independence_domain().to_string(),
+                retained,
+            ));
+        }
+
+        let mut domains = BTreeMap::<String, ()>::new();
+        let mut accepted_witnesses = Vec::new();
+        let mut predecessor_states = BTreeMap::new();
+
+        for (witness_id, domain, retained) in &verified {
+            domains.insert(domain.clone(), ());
+            accepted_witnesses.push(witness_id.clone());
+            predecessor_states.insert(witness_id.clone(), retained.clone());
+        }
+
+        if accepted_witnesses.len() < policy.quorum as usize {
+            return Err(TransparencyError::InsufficientQuorum);
+        }
+        if domains.len() < policy.minimum_domains as usize {
+            return Err(TransparencyError::InsufficientIndependentDomains);
+        }
+
+        let accepted_domains = domains.into_keys().collect::<Vec<_>>();
+        Ok(AcceptedTransparencyCheckpointV1 {
+            checkpoint: checkpoint.clone(),
+            accepted_witnesses,
+            accepted_domains,
+            checkpoint_digest,
+            predecessor_states,
+        })
+    }
+
+    /// Commit a previously accepted checkpoint after the corresponding durable append.
+    ///
+    /// The operation consumes the accepted proof. Any concurrent witness-state change between
+    /// verification and commit is rejected rather than overwritten.
+    pub fn commit_after_durable_append(
+        &mut self,
+        accepted: AcceptedTransparencyCheckpointV1,
+    ) -> Result<(), TransparencyError> {
+        for witness_id in &accepted.accepted_witnesses {
+            let expected = accepted
+                .predecessor_states
+                .get(witness_id)
+                .ok_or(TransparencyError::StaleAcceptedCheckpoint)?;
+            let current = self
+                .witnesses
+                .get(witness_id)
+                .ok_or(TransparencyError::UnknownWitness)?;
+            if current.sequence != expected.sequence
+                || current.checkpoint_digest != expected.checkpoint_digest
+                || current.event_count != expected.event_count
+                || current.head_hash != expected.head_hash
+            {
+                return Err(TransparencyError::StaleAcceptedCheckpoint);
+            }
+        }
+
+        for witness_id in accepted.accepted_witnesses {
+            self.witnesses.insert(
+                witness_id,
+                RetainedWitnessState {
+                    sequence: accepted.checkpoint.sequence(),
+                    checkpoint_digest: accepted.checkpoint_digest.clone(),
+                    event_count: accepted.checkpoint.event_count(),
+                    head_hash: accepted.checkpoint.head_hash().to_string(),
+                },
+            );
+        }
+        Ok(())
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum TransparencyError {
+    Invalid(String),
+    KeyReuse(String),
+    LogMismatch,
+    PolicyMismatch,
+    JournalMismatch,
+    SignatureInvalid,
+    WitnessSignatureInvalid,
+    DuplicateWitnessSignature,
+    UnknownWitness,
+    RollbackDetected {
+        witness_id: String,
+        retained_sequence: u64,
+        candidate_sequence: u64,
+    },
+    EquivocationDetected {
+        witness_id: String,
+    },
+    NonExtension {
+        witness_id: String,
+    },
+    InsufficientQuorum,
+    InsufficientIndependentDomains,
+    StaleAcceptedCheckpoint,
+}
+
+impl std::fmt::Display for TransparencyError {
+    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Invalid(message) => write!(formatter, "invalid transparency state: {message}"),
+            Self::KeyReuse(message) => write!(formatter, "transparency key reuse: {message}"),
+            Self::LogMismatch => write!(formatter, "transparency log mismatch"),
+            Self::PolicyMismatch => write!(formatter, "transparency witness policy mismatch"),
+            Self::JournalMismatch => write!(formatter, "transparency checkpoint/journal mismatch"),
+            Self::SignatureInvalid => write!(formatter, "transparency log signature invalid"),
+            Self::WitnessSignatureInvalid => {
+                write!(formatter, "transparency witness signature invalid")
+            }
+            Self::DuplicateWitnessSignature => {
+                write!(formatter, "duplicate transparency witness signature")
+            }
+            Self::UnknownWitness => write!(formatter, "unknown transparency witness"),
+            Self::RollbackDetected {
+                witness_id,
+                retained_sequence,
+                candidate_sequence,
+            } => write!(
+                formatter,
+                "witness {witness_id} detected checkpoint rollback from {retained_sequence} to {candidate_sequence}"
+            ),
+            Self::EquivocationDetected { witness_id } => {
+                write!(formatter, "witness {witness_id} observed same-sequence checkpoint equivocation")
+            }
+            Self::NonExtension { witness_id } => {
+                write!(formatter, "witness {witness_id} observed non-extending checkpoint history")
+            }
+            Self::InsufficientQuorum => write!(formatter, "transparency witness quorum insufficient"),
+            Self::InsufficientIndependentDomains => {
+                write!(formatter, "transparency witness independence-domain quorum insufficient")
+            }
+            Self::StaleAcceptedCheckpoint => {
+                write!(formatter, "accepted transparency checkpoint became stale before commit")
+            }
+        }
+    }
+}
+
+impl std::error::Error for TransparencyError {}
+
+fn transparency_genesis_digest(log_id: &str, policy_commitment: &str) -> String {
+    let mut hasher = Sha256::new();
+    hash_string(&mut hasher, TRANSPARENCY_GENESIS_TAG);
+    hash_string(&mut hasher, log_id);
+    hash_string(&mut hasher, policy_commitment);
+    encode_hex(&finalize_digest(hasher))
+}
+
+fn witness_signing_digest(witness_id: &str, checkpoint_digest: &[u8; 32]) -> [u8; 32] {
+    let mut hasher = Sha256::new();
+    hash_string(&mut hasher, TRANSPARENCY_WITNESS_DOMAIN);
+    hash_string(&mut hasher, witness_id);
+    hasher.update(checkpoint_digest);
+    finalize_digest(hasher)
+}
+
+fn validate_nonempty(field: &str, value: &str) -> Result<(), TransparencyError> {
+    if value.is_empty() {
+        return Err(TransparencyError::Invalid(format!("{field} must not be empty")));
+    }
+    Ok(())
+}
+
+fn validate_head(event_count: u64, head_hash: &str) -> Result<(), TransparencyError> {
+    if event_count == 0 {
+        if head_hash != "GENESIS" {
+            return Err(TransparencyError::Invalid(
+                "empty journal transparency checkpoint must use GENESIS head".to_string(),
+            ));
+        }
+        return Ok(());
+    }
+    if head_hash.len() != 64
+        || head_hash.bytes().any(|byte| {
+            !matches!(byte, b'0'..=b'9' | b'a'..=b'f')
+        })
+    {
+        return Err(TransparencyError::Invalid(
+            "non-empty journal transparency checkpoint requires lowercase SHA-256 head".to_string(),
+        ));
+    }
+    Ok(())
+}
+
+fn hash_string(hasher: &mut Sha256, value: &str) {
+    hash_u64(hasher, value.len() as u64);
+    hasher.update(value.as_bytes());
+}
+
+fn hash_u32(hasher: &mut Sha256, value: u32) {
+    hasher.update(value.to_be_bytes());
+}
+
+fn hash_u64(hasher: &mut Sha256, value: u64) {
+    hasher.update(value.to_be_bytes());
+}
+
+fn finalize_digest(hasher: Sha256) -> [u8; 32] {
+    let bytes = hasher.finalize();
+    let mut digest = [0_u8; 32];
+    digest.copy_from_slice(&bytes);
+    digest
+}
+
+fn encode_hex(bytes: &[u8]) -> String {
+    const HEX: &[u8; 16] = b"0123456789abcdef";
+    let mut output = String::with_capacity(bytes.len() * 2);
+    for byte in bytes {
+        output.push(HEX[(byte >> 4) as usize] as char);
+        output.push(HEX[(byte & 0x0f) as usize] as char);
+    }
+    output
+}
+
+fn decode_exact<const N: usize>(value: &str) -> Result<[u8; N], TransparencyError> {
+    if value.len() != N * 2 {
+        return Err(TransparencyError::Invalid(format!(
+            "expected {N} byte hexadecimal value"
+        )));
+    }
+    let bytes = value.as_bytes();
+    let mut output = [0_u8; N];
+    for index in 0..N {
+        output[index] =
+            decode_hex_nibble(bytes[index * 2])? << 4 | decode_hex_nibble(bytes[index * 2 + 1])?;
+    }
+    Ok(output)
+}
+
+fn decode_hex_nibble(value: u8) -> Result<u8, TransparencyError> {
+    match value {
+        b'0'..=b'9' => Ok(value - b'0'),
+        b'a'..=b'f' => Ok(value - b'a' + 10),
+        _ => Err(TransparencyError::Invalid(
+            "hexadecimal value must use lowercase ASCII".to_string(),
+        )),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use ring::{
+        rand::SystemRandom,
+        signature::{Ed25519KeyPair, KeyPair},
+    };
+
+    struct TestKeys {
+        log: Ed25519KeyPair,
+        witnesses: Vec<Ed25519KeyPair>,
+    }
+
+    impl TestKeys {
+        fn new() -> Self {
+            let rng = SystemRandom::new();
+            let log_pkcs8 = Ed25519KeyPair::generate_pkcs8(&rng).expect("log key");
+            let mut witnesses = Vec::new();
+            for _ in 0..3 {
+                witnesses.push(Ed25519KeyPair::generate_pkcs8(&rng).map(|pkcs8| {
+                    Ed25519KeyPair::from_pkcs8(pkcs8.as_ref()).expect("witness key")
+                }).expect("witness keygen"));
+            }
+            Self {
+                log: Ed25519KeyPair::from_pkcs8(log_pkcs8.as_ref()).expect("log key"),
+                witnesses,
+            }
+        }
+
+        fn log_public(&self) -> String {
+            encode_hex(self.log.public_key().as_ref())
+        }
+
+        fn witness_public(&self, index: usize) -> String {
+            encode_hex(self.witnesses[index].public_key().as_ref())
+        }
+    }
+
+    fn policy(keys: &TestKeys) -> TransparencyWitnessPolicyV1 {
+        TransparencyWitnessPolicyV1::new(
+            "policy-1",
+            "log-1",
+            2,
+            2,
+            vec![
+                TransparencyWitnessKeyV1::from_public_key_hex(
+                    "w1", "domain-a", keys.witness_public(0)
+                ).expect("w1"),
+                TransparencyWitnessKeyV1::from_public_key_hex(
+                    "w2", "domain-b", keys.witness_public(1)
+                ).expect("w2"),
+                TransparencyWitnessKeyV1::from_public_key_hex(
+                    "w3", "domain-b", keys.witness_public(2)
+                ).expect("w3"),
+            ],
+        )
+        .expect("policy")
+    }
+
+    fn signed_checkpoint(
+        keys: &TestKeys,
+        policy: &TransparencyWitnessPolicyV1,
+        sequence: u64,
+        event_count: u64,
+        head_hash: &str,
+        previous_digest: &str,
+    ) -> TransparencyCheckpointV1 {
+        let unsigned = TransparencyCheckpointUnsignedV1::new(
+            "log-1",
+            1,
+            sequence,
+            "bootstrap",
+            1,
+            event_count,
+            head_hash,
+            previous_digest,
+            policy.commitment(),
+        )
+        .expect("unsigned checkpoint");
+        let signature = keys.log.sign(&unsigned.signing_digest());
+        unsigned.into_signed(encode_hex(signature.as_ref())).expect("signed checkpoint")
+    }
+
+    fn witnessed_signatures(
+        keys: &TestKeys,
+        checkpoint: &TransparencyCheckpointV1,
+        witness_ids: &[usize],
+    ) -> Vec<TransparencyWitnessSignatureV1> {
+        witness_ids
+            .iter()
+            .map(|index| {
+                let witness_id = format!("w{}", index + 1);
+                let digest = witness_signing_digest(&witness_id, &checkpoint.digest());
+                let signature = keys.witnesses[*index].sign(&digest);
+                TransparencyWitnessSignatureV1::new(
+                    witness_id,
+                    encode_hex(signature.as_ref()),
+                )
+                .expect("witness signature")
+            })
+            .collect()
+    }
+
+    fn accepted_first_checkpoint(
+        keys: &TestKeys,
+        state: &TransparencyWitnessSetV1,
+        policy: &TransparencyWitnessPolicyV1,
+    ) -> AcceptedTransparencyCheckpointV1 {
+        let genesis = transparency_genesis_digest("log-1", &policy.commitment());
+        let checkpoint = signed_checkpoint(keys, policy, 1, 1, &"00".repeat(32), &genesis);
+        state
+            .verify_candidate(
+                &TransparencyLogAuthorityV1::from_public_key_hex(
+                    "log-1", 1, keys.log_public()
+                )
+                .expect("log authority"),
+                policy,
+                &checkpoint,
+                &witnessed_signatures(keys, &checkpoint, &[0, 1]),
+                "bootstrap",
+                1,
+                1,
+                &"00".repeat(32),
+            )
+            .expect("accepted checkpoint")
+    }
+
+    #[test]
+    fn policy_commitment_and_genesis_are_deterministic() {
+        let keys = TestKeys::new();
+        let policy = policy(&keys);
+        let second = policy(&keys);
+        assert_eq!(policy.commitment(), second.commitment());
+        assert_eq!(
+            transparency_genesis_digest("log-1", &policy.commitment()),
+            transparency_genesis_digest("log-1", &policy.commitment())
+        );
+    }
+
+    #[test]
+    fn valid_checkpoint_requires_quorum_and_independent_domains() {
+        let keys = TestKeys::new();
+        let policy = policy(&keys);
+        let mut state = TransparencyWitnessSetV1::new(&policy).expect("state");
+        let log = TransparencyLogAuthorityV1::from_public_key_hex(
+            "log-1", 1, keys.log_public()
+        ).expect("log");
+
+        let genesis = transparency_genesis_digest("log-1", &policy.commitment());
+        let checkpoint = signed_checkpoint(keys, &policy, 1, 1, &"00".repeat(32), &genesis);
+
+        assert!(matches!(
+            state.verify_candidate(
+                &log, &policy, &checkpoint, &witnessed_signatures(&keys, &checkpoint, &[0]),
+                "bootstrap", 1, 1, &"00".repeat(32),
+            ),
+            Err(TransparencyError::InsufficientQuorum | TransparencyError::InsufficientIndependentDomains)
+        ));
+
+        let accepted = state
+            .verify_candidate(
+                &log,
+                &policy,
+                &checkpoint,
+                &witnessed_signatures(&keys, &checkpoint, &[0, 1]),
+                "bootstrap",
+                1,
+                1,
+                &"00".repeat(32),
+            )
+            .expect("quorum");
+
+        state
+            .commit_after_durable_append(accepted)
+            .expect("commit");
+        assert_eq!(state.retained_sequence("w1"), Some(1));
+        assert_eq!(state.retained_sequence("w2"), Some(1));
+        assert_eq!(state.retained_sequence("w3"), Some(0));
+    }
+
+    #[test]
+    fn same_sequence_different_checkpoint_is_equivocation() {
+        let keys = TestKeys::new();
+        let policy = policy(&keys);
+        let mut state = TransparencyWitnessSetV1::new(&policy).expect("state");
+        let log = TransparencyLogAuthorityV1::from_public_key_hex(
+            "log-1", 1, keys.log_public()
+        ).expect("log");
+
+        let first = accepted_first_checkpoint(&keys, &state, &policy);
+        let first_checkpoint = first.checkpoint().clone();
+        state.commit_after_durable_append(first).expect("commit");
+
+        let conflicting = signed_checkpoint(
+            &keys,
+            &policy,
+            1,
+            1,
+            &"11".repeat(32),
+            first_checkpoint.previous_checkpoint_digest(),
+        );
+        let error = state
+            .verify_candidate(
+                &log,
+                &policy,
+                &conflicting,
+                &witnessed_signatures(&keys, &conflicting, &[0, 1]),
+                "bootstrap",
+                1,
+                1,
+                &"11".repeat(32),
+            )
+            .expect_err("equivocation must reject");
+        assert!(matches!(
+            error,
+            TransparencyError::EquivocationDetected { witness_id } if witness_id == "w1"
+        ));
+    }
+
+    #[test]
+    fn higher_sequence_must_extend_retained_checkpoint() {
+        let keys = TestKeys::new();
+        let policy = policy(&keys);
+        let mut state = TransparencyWitnessSetV1::new(&policy).expect("state");
+        let log = TransparencyLogAuthorityV1::from_public_key_hex(
+            "log-1", 1, keys.log_public()
+        ).expect("log");
+
+        let first = accepted_first_checkpoint(&keys, &state, &policy);
+        let first_digest = first.checkpoint_digest().to_string();
+        state.commit_after_durable_append(first).expect("commit");
+
+        let forged = signed_checkpoint(
+            &keys,
+            &policy,
+            2,
+            2,
+            &"22".repeat(32),
+            &transparency_genesis_digest("log-1", &policy.commitment()),
+        );
+
+        let error = state
+            .verify_candidate(
+                &log,
+                &policy,
+                &forged,
+                &witnessed_signatures(&keys, &forged, &[0, 1]),
+                "bootstrap",
+                1,
+                2,
+                &"22".repeat(32),
+            )
+            .expect_err("forked successor must reject");
+        assert!(matches!(
+            error,
+            TransparencyError::NonExtension { witness_id } if witness_id == "w1"
+        ));
+        assert_ne!(forged.previous_checkpoint_digest(), first_digest);
+    }
+
+    #[test]
+    fn failed_commit_cannot_advance_witness_after_concurrent_change() {
+        let keys = TestKeys::new();
+        let policy = policy(&keys);
+        let mut state = TransparencyWitnessSetV1::new(&policy).expect("state");
+        let accepted = accepted_first_checkpoint(&keys, &state, &policy);
+
+        let competing = accepted_first_checkpoint(&keys, &state, &policy);
+        state
+            .commit_after_durable_append(competing)
+            .expect("competing commit");
+
+        let error = state
+            .commit_after_durable_append(accepted)
+            .expect_err("stale accepted object must fail");
+        assert!(matches!(error, TransparencyError::StaleAcceptedCheckpoint));
+        assert_eq!(state.retained_sequence("w1"), Some(1));
+    }
+
+    #[test]
+    fn key_roles_are_explicitly_distinct() {
+        let keys = TestKeys::new();
+        let policy = policy(&keys);
+        let log = TransparencyLogAuthorityV1::from_public_key_hex(
+            "log-1", 1, keys.log_public()
+        ).expect("log");
+        let freshness = FreshnessAuthority::from_public_key_hex(
+            "freshness", 1, keys.log_public()
+        ).expect("freshness");
+
+        assert!(matches!(
+            log.validate_independence_from_freshness(&freshness),
+            Err(TransparencyError::KeyReuse(_))
+        ));
+        assert!(matches!(
+            policy.validate_independence_from_log(&log),
+            Ok(())
+        ));
+    }
+}
