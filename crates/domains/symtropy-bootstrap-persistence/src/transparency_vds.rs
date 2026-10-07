@@ -41,6 +41,13 @@ impl MerkleConsistencyProofV1 {
         &self.hashes
     }
 
+    pub fn validate_basic(&self) -> Result<(), MerkleVdsError> {
+        for hash in &self.hashes {
+            decode_hex::<32>(hash)?;
+        }
+        Ok(())
+    }
+
     /// Verify an RFC 9162-style consistency proof for two non-empty tree heads.
     ///
     /// The algorithm is deliberately SHA-256 specific in this v1 profile. It uses
