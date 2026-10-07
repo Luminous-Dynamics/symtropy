@@ -1598,6 +1598,146 @@ mod tests {
             .expect("accepted checkpoint")
     }
 
+    fn consistency_proof(m: usize, entries: &[Vec<u8>]) -> Vec<String> {
+        fn subproof(
+            m: usize,
+            entries: &[Vec<u8>],
+            complete: bool,
+            output: &mut Vec<String>,
+        ) {
+            let n = entries.len();
+            if m == n {
+                if !complete {
+                    output.push(crate::transparency_vds::merkle_tree_hash_sha256(entries));
+                }
+                return;
+            }
+
+            let mut power = 1usize << (usize::BITS - 1 - n.leading_zeros());
+            if power == n {
+                power >>= 1;
+            }
+
+            if m <= power {
+                subproof(m, &entries[..power], complete, output);
+                output.push(crate::transparency_vds::merkle_tree_hash_sha256(
+                    &entries[power..],
+                ));
+            } else {
+                subproof(m - power, &entries[power..], false, output);
+                output.push(crate::transparency_vds::merkle_tree_hash_sha256(
+                    &entries[..power],
+                ));
+            }
+        }
+
+        let mut output = Vec::new();
+        subproof(m, entries, true, &mut output);
+        output
+    }
+
+    #[test]
+    fn different_witness_vds_frontiers_require_distinct_consistency_proofs() {
+        let keys = TestKeys::new();
+        let policy = policy(&keys);
+        let mut state = TransparencyWitnessSetV1::new(&policy).expect("state");
+        let log = TransparencyLogAuthorityV1::from_public_key_hex("log-1", 1, keys.log_public())
+            .expect("log");
+
+        let entries = vec![
+            b"leaf-0".to_vec(),
+            b"leaf-1".to_vec(),
+            b"leaf-2".to_vec(),
+        ];
+        let root_one =
+            crate::transparency_vds::merkle_tree_hash_sha256(&entries[..1]);
+        let root_two =
+            crate::transparency_vds::merkle_tree_hash_sha256(&entries[..2]);
+        let root_three =
+            crate::transparency_vds::merkle_tree_hash_sha256(&entries);
+
+        state.witnesses.insert(
+            "w1".to_string(),
+            RetainedWitnessState {
+                sequence: 2,
+                checkpoint_digest: "11".repeat(32),
+                event_count: 2,
+                head_hash: "22".repeat(32),
+                vds_tree_size: 2,
+                vds_root_hash: root_two.clone(),
+            },
+        );
+        state.witnesses.insert(
+            "w2".to_string(),
+            RetainedWitnessState {
+                sequence: 1,
+                checkpoint_digest: "33".repeat(32),
+                event_count: 1,
+                head_hash: "44".repeat(32),
+                vds_tree_size: 1,
+                vds_root_hash: root_one.clone(),
+            },
+        );
+
+        let unsigned = TransparencyCheckpointUnsignedV1::new(
+            "log-1",
+            1,
+            3,
+            "bootstrap",
+            1,
+            3,
+            &"55".repeat(32),
+            3,
+            &root_three,
+            &"66".repeat(32),
+            policy.commitment(),
+        )
+        .expect("candidate checkpoint");
+        let signature = keys.log.sign(&unsigned.signing_digest());
+        let checkpoint = unsigned
+            .into_signed(encode_hex(signature.as_ref()))
+            .expect("signed checkpoint");
+
+        let signatures = witnessed_signatures(&keys, &checkpoint, &[0, 1]);
+        let evidence = vec![
+            TransparencyWitnessEvidenceV1::new(
+                signatures[0].clone(),
+                Some(
+                    MerkleConsistencyProofV1::new(consistency_proof(2, &entries))
+                        .expect("w1 consistency proof"),
+                ),
+            )
+            .expect("w1 evidence"),
+            TransparencyWitnessEvidenceV1::new(
+                signatures[1].clone(),
+                Some(
+                    MerkleConsistencyProofV1::new(consistency_proof(1, &entries))
+                        .expect("w2 consistency proof"),
+                ),
+            )
+            .expect("w2 evidence"),
+        ];
+
+        let accepted = state
+            .verify_for_new_transition_with_witness_evidence(
+                &log,
+                &policy,
+                &checkpoint,
+                &evidence,
+                "bootstrap",
+                1,
+                3,
+                &"55".repeat(32),
+            )
+            .expect("both different VDS frontiers should verify");
+
+        assert_eq!(accepted.witness_evidence().len(), 2);
+        assert_ne!(
+            accepted.witness_evidence()[0].vds_consistency_proof(),
+            accepted.witness_evidence()[1].vds_consistency_proof()
+        );
+    }
+
     #[test]
     fn inclusion_evidence_binds_entry_to_signed_checkpoint() {
         let keys = TestKeys::new();
