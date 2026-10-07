@@ -498,10 +498,10 @@ impl DurableExecutionSecurityContext {
             ));
         }
 
-        let persisted_transparency_sequence = Self::persisted_transparency_sequence(&loaded.chain)?;
-        if transparency_checkpoint.sequence() <= persisted_transparency_sequence {
-            return Err(AdapterError::from(TransparencyError::ReplayDetected));
-        }
+        Self::require_next_transparency_sequence(
+            &loaded.chain,
+            &transparency_checkpoint,
+        )?;
 
         let event_count = u64::try_from(loaded.chain.events().len())
             .map_err(|_| AdapterError::Invalid("journal event count overflow".to_string()))?;
@@ -625,6 +625,10 @@ impl DurableExecutionSecurityContext {
             &self.freshness_attestation,
             chain,
         )?;
+
+        if require_new_transparency_sequence {
+            Self::require_next_transparency_sequence(chain, &self.transparency_checkpoint)?;
+        }
 
         let event_count = u64::try_from(chain.events().len())
             .map_err(|_| AdapterError::Invalid("journal event count overflow".to_string()))?;
@@ -1789,6 +1793,25 @@ impl DurableExecutionAdapter {
             }
         }
 
+        Ok(())
+    }
+
+    fn require_next_transparency_sequence(
+        chain: &EventChain<ExecutionLifecycleEvent>,
+        checkpoint: &TransparencyCheckpointV1,
+    ) -> Result<(), AdapterError> {
+        let persisted_sequence = Self::persisted_transparency_sequence(chain)?;
+        let expected_sequence = persisted_sequence.checked_add(1).ok_or_else(|| {
+            AdapterError::Invalid(
+                "transparency checkpoint sequence exhausted durable u64 range".to_string(),
+            )
+        })?;
+        if checkpoint.sequence() != expected_sequence {
+            return Err(AdapterError::Invalid(format!(
+                "next transparency checkpoint sequence must be {expected_sequence}, got {}",
+                checkpoint.sequence()
+            )));
+        }
         Ok(())
     }
 
