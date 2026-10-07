@@ -332,6 +332,14 @@ The clean architectural rule remains:
         sit underneath
     the durable execution admission policy
 
+The next interoperability refinement is to make consistency evidence **per witness** rather than one proof shared by an entire quorum. Different witnesses may legitimately retain different VDS tree sizes, so a future semantic evidence tuple should bind:
+
+    witness identity
+    + witness checkpoint signature
+    + consistency proof from that witness's retained VDS head
+
+Quorum and independence-domain admission can then operate over independently verified tuples without requiring all selected witnesses to share one VDS frontier. This is a liveness/interoperability refinement, not a relaxation of durable checkpoint sequence or predecessor checks.
+
 That keeps execution authority, freshness authority, transparency authority, and witness policy independently attributable.
 
 Protocol details were cross-checked against the current C2SP development specifications on 2026-10-07.
