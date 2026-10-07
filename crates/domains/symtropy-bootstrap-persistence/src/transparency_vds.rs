@@ -260,10 +260,14 @@ impl MerkleInclusionProofV1 {
 
 #[must_use]
 pub fn merkle_leaf_hash_sha256(entry: &[u8]) -> String {
+    encode_hex(&merkle_leaf_hash_bytes(entry))
+}
+
+fn merkle_leaf_hash_bytes(entry: &[u8]) -> [u8; 32] {
     let mut hasher = Sha256::new();
     hasher.update([0x00]);
     hasher.update(entry);
-    encode_hex(&hasher.finalize())
+    hasher.finalize().into()
 }
 
 /// Verify the append-only boundary used by C2SP-style witnesses.
@@ -350,7 +354,12 @@ pub fn merkle_tree_hash_sha256(entries: &[Vec<u8>]) -> String {
 fn merkle_tree_hash_bytes(entries: &[Vec<u8>]) -> [u8; 32] {
     match entries.len() {
         0 => Sha256::digest(b"").into(),
-        1 => decode_hex::<32>(&merkle_leaf_hash_sha256(&entries[0])).expect("leaf hash");
+        1 => {
+            let mut hasher = Sha256::new();
+            hasher.update([0x00]);
+            hasher.update(&entries[0]);
+            hasher.finalize().into()
+        },
         n => {
             let mut power = 1usize << (usize::BITS - 1 - n.leading_zeros());
             if power == n {
