@@ -493,6 +493,12 @@ impl DurableExecutionSecurityContext {
             ));
         }
 
+        let persisted_transparency_sequence =
+            Self::persisted_transparency_sequence(&loaded.chain)?;
+        if transparency_checkpoint.sequence() <= persisted_transparency_sequence {
+            return Err(AdapterError::from(TransparencyError::ReplayDetected));
+        }
+
         let event_count = u64::try_from(loaded.chain.events().len())
             .map_err(|_| AdapterError::Invalid("journal event count overflow".to_string()))?;
         transparency_witnesses
@@ -1756,6 +1762,57 @@ impl DurableExecutionAdapter {
         Ok(())
     }
 
+    fn persisted_transparency_sequence(
+        chain: &EventChain<ExecutionLifecycleEvent>,
+    ) -> Result<u64, AdapterError> {
+        let mut expected_sequence = 0_u64;
+        let mut previous_digest: Option<String> = None;
+        let mut log_identity: Option<(String, u64, String)> = None;
+
+        for event in chain.events() {
+            let checkpoint = &event.payload.transparency_evidence.checkpoint;
+            let sequence = checkpoint.sequence();
+            if sequence != expected_sequence.saturating_add(1) {
+                return Err(AdapterError::Invalid(
+                    "transparency checkpoint sequence is not contiguous with durable lifecycle history"
+                        .to_string(),
+                ));
+            }
+
+            if let Some(previous) = &previous_digest {
+                if checkpoint.previous_checkpoint_digest() != previous {
+                    return Err(AdapterError::Invalid(
+                        "transparency checkpoint predecessor does not match prior durable checkpoint"
+                            .to_string(),
+                    ));
+                }
+            }
+
+            if let Some((log_id, log_epoch, policy_commitment)) = &log_identity {
+                if checkpoint.log_id() != log_id
+                    || checkpoint.log_epoch() != *log_epoch
+                    || checkpoint.witness_policy_commitment() != policy_commitment
+                {
+                    return Err(AdapterError::Invalid(
+                        "durable lifecycle transparency evidence changes log or witness policy identity"
+                            .to_string(),
+                    ));
+                }
+            } else {
+                log_identity = Some((
+                    checkpoint.log_id().to_string(),
+                    checkpoint.log_epoch(),
+                    checkpoint.witness_policy_commitment().to_string(),
+                ));
+            }
+
+            previous_digest = Some(encode_hex(&checkpoint.digest()));
+            expected_sequence = sequence;
+        }
+
+        Ok(expected_sequence)
+    }
+
     pub fn validate_journal(
         chain: &EventChain<ExecutionLifecycleEvent>,
     ) -> Result<(), AdapterError> {
@@ -1764,6 +1821,8 @@ impl DurableExecutionAdapter {
             .map_err(|error| AdapterError::Invalid(format!(
                 "journal chain verification failed: {error}"
             )))?;
+
+        let _ = Self::persisted_transparency_sequence(chain)?;
 
         struct LifecycleSeen {
             event_id: String,
@@ -3061,6 +3120,84 @@ mod tests {
                     ..
                 }
             )
+        ));
+
+        fs::remove_dir_all(adapter.store().root()).expect("cleanup");
+    }
+
+    #[test]
+    fn durable_transparency_history_rejects_sequence_reuse_and_forking() {
+        let adapter = configured_adapter("transparency-history");
+        let mut security = TestSecurityMaterial::new(&adapter);
+        let (process, run) = process_and_run();
+        let (mut budget, mut inventory, mut energy) = initial_kernel_state();
+
+        security.refresh(&adapter);
+        adapter
+            .authorize_pending(
+                &mut security.context,
+                &process,
+                "exec-transparency-history",
+                1,
+                10,
+                20,
+                "bus",
+                run,
+                &mut budget,
+                &mut inventory,
+                &mut energy,
+            )
+            .expect("pending");
+
+        let loaded = adapter.load().expect("journal");
+        assert_eq!(
+            DurableExecutionAdapter::persisted_transparency_sequence(&loaded.chain)
+                .expect("sequence"),
+            1
+        );
+
+        let first = loaded.chain.events()[0].clone();
+        let mut forked_payload = first.payload.clone();
+        let predecessor = forked_payload
+            .transparency_evidence
+            .checkpoint
+            .previous_checkpoint_digest()
+            .to_string();
+        let forked_unsigned =
+            forked_payload.transparency_evidence.checkpoint.unsigned().clone();
+        let forked = transparency::TransparencyCheckpointUnsignedV1::new(
+            forked_unsigned.log_id().to_string(),
+            forked_unsigned.log_epoch(),
+            1,
+            forked_unsigned.journal_namespace().to_string(),
+            forked_unsigned.seed(),
+            forked_unsigned.event_count(),
+            forked_unsigned.head_hash().to_string(),
+            predecessor,
+            forked_unsigned.witness_policy_commitment().to_string(),
+        )
+        .expect("forked checkpoint")
+        .into_signed("00".repeat(64))
+        .expect("shape-valid signature");
+
+        forked_payload.transparency_evidence.checkpoint = forked;
+
+        let mut bad_chain = EventChain::new("bootstrap", 1);
+        bad_chain
+            .append(
+                1,
+                EXECUTION_EVENT_KIND,
+                None,
+                None,
+                Vec::new(),
+                forked_payload,
+            )
+            .expect("outer chain");
+
+        assert!(matches!(
+            DurableExecutionAdapter::validate_journal(&bad_chain),
+            Err(AdapterError::Invalid(message))
+                if message.contains("sequence is not contiguous")
         ));
 
         fs::remove_dir_all(adapter.store().root()).expect("cleanup");
