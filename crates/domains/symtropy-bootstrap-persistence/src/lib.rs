@@ -2528,7 +2528,7 @@ mod tests {
         )
         .expect("authority");
 
-        let mut security = TestSecurityMaterial::new(&adapter);;
+        let mut security = TestSecurityMaterial::new(&adapter);
         security.refresh(&adapter);
         let (process, run) = process_and_run();
         let (mut budget, mut inventory, mut energy) = (
@@ -2537,7 +2537,7 @@ mod tests {
                 ("feed".to_string(), 1_000),
                 ("feed-2".to_string(), 1_000),
             ])),
-            EnergyLedger::new(BTreeMap::from([("bus".to_string(), 8_000])),
+            EnergyLedger::new(BTreeMap::from([("bus".to_string(), 8_000)])),
         );
         adapter
             .authorize_pending(
@@ -2906,7 +2906,7 @@ mod tests {
                 ("feed".to_string(), 1_000),
                 ("feed-2".to_string(), 1_000),
             ])),
-            EnergyLedger::new(BTreeMap::from([("bus".to_string(), 8_000])),
+            EnergyLedger::new(BTreeMap::from([("bus".to_string(), 8_000)])),
         );
 
         let stale = adapter.capture_head_witness().expect("genesis witness");
@@ -2979,7 +2979,7 @@ mod tests {
                 ("feed".to_string(), 1_000),
                 ("feed-2".to_string(), 1_000),
             ])),
-            EnergyLedger::new(BTreeMap::from([("bus".to_string(), 8_000])),
+            EnergyLedger::new(BTreeMap::from([("bus".to_string(), 8_000)])),
         );
 
         security.refresh(&adapter);
