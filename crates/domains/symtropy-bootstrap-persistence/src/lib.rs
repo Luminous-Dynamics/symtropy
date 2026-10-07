@@ -27,7 +27,8 @@ use symtropy_persistence::{JournalLoad, JournalLock, PersistenceError, SaveStore
 use transparency::{
     AcceptedTransparencyCheckpointV1, TransparencyCheckpointV1, TransparencyError,
     TransparencyLogAuthorityV1, TransparencyVdsTreeHeadV1, TransparencyWitnessPolicyV1,
-    TransparencyWitnessSetV1, TransparencyWitnessSignatureV1, transparency_genesis_digest,
+    TransparencyWitnessEvidenceV1, TransparencyWitnessSetV1,
+    TransparencyWitnessSignatureV1, transparency_genesis_digest,
 };
 use transparency_vds::{verify_append_only_sha256, MerkleConsistencyProofV1};
 
@@ -327,6 +328,8 @@ impl FreshnessAuthority {
 pub struct PersistedTransparencyEvidenceV1 {
     pub checkpoint: TransparencyCheckpointV1,
     pub witness_signatures: Vec<TransparencyWitnessSignatureV1>,
+    #[serde(default)]
+    pub witness_evidence: Vec<TransparencyWitnessEvidenceV1>,
     pub vds_consistency_proof: Option<MerkleConsistencyProofV1>,
     pub accepted_witnesses: Vec<String>,
     pub accepted_domains: Vec<String>,
@@ -338,6 +341,7 @@ impl PersistedTransparencyEvidenceV1 {
         Self {
             checkpoint: accepted.checkpoint().clone(),
             witness_signatures: accepted.witness_signatures().to_vec(),
+            witness_evidence: accepted.witness_evidence().to_vec(),
             vds_consistency_proof: accepted.vds_consistency_proof().cloned(),
             accepted_witnesses: accepted.accepted_witnesses().to_vec(),
             accepted_domains: accepted.accepted_domains().to_vec(),
@@ -399,6 +403,47 @@ impl PersistedTransparencyEvidenceV1 {
         for signature in &self.witness_signatures {
             signature.validate_basic().map_err(AdapterError::from)?;
         }
+
+        if !self.witness_evidence.is_empty() {
+            if self.witness_evidence.len() != self.accepted_witnesses.len() {
+                return Err(AdapterError::Invalid(
+                    "transparency per-witness evidence count does not match accepted witness count"
+                        .to_string(),
+                ));
+            }
+            let evidence_ids = self
+                .witness_evidence
+                .iter()
+                .map(|evidence| evidence.witness_id())
+                .collect::<Vec<_>>();
+            if evidence_ids != self
+                    .accepted_witnesses
+                    .iter()
+                    .map(String::as_str)
+                    .collect::<Vec<_>>()
+            {
+                return Err(AdapterError::Invalid(
+                    "transparency per-witness evidence is not a canonical exact set".to_string(),
+                ));
+            }
+            let evidence_signatures = self
+                .witness_evidence
+                .iter()
+                .map(|evidence| evidence.witness_signature())
+                .collect::<Vec<_>>();
+            if evidence_signatures
+                != self.witness_signatures.iter().collect::<Vec<_>>()
+            {
+                return Err(AdapterError::Invalid(
+                    "transparency per-witness evidence signatures do not match persisted witness signatures"
+                        .to_string(),
+                ));
+            }
+            for evidence in &self.witness_evidence {
+                evidence.validate_basic().map_err(AdapterError::from)?;
+            }
+        }
+
         if let Some(proof) = &self.vds_consistency_proof {
             proof.validate_basic().map_err(AdapterError::from)?;
         }
@@ -442,6 +487,7 @@ pub struct DurableExecutionSecurityContext {
     transparency_witnesses: TransparencyWitnessSetV1,
     transparency_checkpoint: TransparencyCheckpointV1,
     transparency_witness_signatures: Vec<TransparencyWitnessSignatureV1>,
+    transparency_witness_evidence: Vec<TransparencyWitnessEvidenceV1>,
     transparency_vds_consistency_proof: Option<MerkleConsistencyProofV1>,
 }
 
@@ -529,6 +575,18 @@ impl DurableExecutionSecurityContext {
             )
             .map_err(AdapterError::from)?;
 
+        let transparency_witness_evidence = transparency_witness_signatures
+            .iter()
+            .cloned()
+            .map(|signature| {
+                TransparencyWitnessEvidenceV1::new(
+                    signature,
+                    transparency_vds_consistency_proof.clone(),
+                )
+            })
+            .collect::<Result<Vec<_>, _>>()
+            .map_err(AdapterError::from)?;
+
         Ok(Self {
             head_witness,
             freshness_authority: authority,
@@ -539,6 +597,7 @@ impl DurableExecutionSecurityContext {
             transparency_witnesses,
             transparency_checkpoint,
             transparency_witness_signatures,
+            transparency_witness_evidence,
             transparency_vds_consistency_proof,
         })
     }
@@ -557,8 +616,39 @@ impl DurableExecutionSecurityContext {
         transparency_vds_consistency_proof: Option<MerkleConsistencyProofV1>,
     ) {
         self.transparency_checkpoint = transparency_checkpoint;
-        self.transparency_witness_signatures = transparency_witness_signatures;
+        self.transparency_witness_signatures = transparency_witness_signatures.clone();
+        self.transparency_witness_evidence = transparency_witness_signatures
+            .into_iter()
+            .map(|signature| {
+                TransparencyWitnessEvidenceV1::new(
+                    signature,
+                    transparency_vds_consistency_proof.clone(),
+                )
+            })
+            .collect::<Result<Vec<_>, _>>()
+            .unwrap_or_default();
         self.transparency_vds_consistency_proof = transparency_vds_consistency_proof;
+    }
+
+    pub fn set_transparency_witness_evidence(
+        &mut self,
+        transparency_checkpoint: TransparencyCheckpointV1,
+        witness_evidence: Vec<TransparencyWitnessEvidenceV1>,
+    ) ) {
+        self.transparency_checkpoint = transparency_checkpoint;
+        self.transparency_witness_signatures = witness_evidence
+            .iter()
+            .map(|evidence| evidence.witness_signature().clone())
+            .collect();
+        self.transparency_vds_consistency_proof = witness_evidence
+            .first()
+            .and_then(|evidence| evidence.vds_consistency_proof().cloned())
+            .filter(|proof| {
+                witness_evidence
+                    .iter()
+                    .all(|evidence| evidence.vds_consistency_proof() == Some(proof))
+            });
+        self.transparency_witness_evidence = witness_evidence;
     }
 
     #[must_use]
@@ -607,6 +697,11 @@ impl DurableExecutionSecurityContext {
     }
 
     #[must_use]
+    pub fn transparency_witness_evidence(&self) -> &[TransparencyWitnessEvidenceV1] {
+        &self.transparency_witness_evidence
+    }
+
+    #[must_use]
     pub fn transparency_vds_consistency_proof(&self) -> Option<&MerkleConsistencyProofV1> {
         self.transparency_vds_consistency_proof.as_ref()
     }
@@ -647,29 +742,29 @@ impl DurableExecutionSecurityContext {
             .map_err(|_| AdapterError::Invalid("journal event count overflow".to_string()))?;
 
         let result = if require_new_transparency_sequence {
-            self.transparency_witnesses.verify_for_new_transition_with_vds(
-                &self.transparency_log,
-                &self.transparency_policy,
-                &self.transparency_checkpoint,
-                &self.transparency_witness_signatures,
-                &adapter.journal_namespace,
-                adapter.seed,
-                event_count,
-                chain.head_hash(),
-                self.transparency_vds_consistency_proof.as_ref(),
-            )
+            self.transparency_witnesses
+                .verify_for_new_transition_with_witness_evidence(
+                    &self.transparency_log,
+                    &self.transparency_policy,
+                    &self.transparency_checkpoint,
+                    &self.transparency_witness_evidence,
+                    &adapter.journal_namespace,
+                    adapter.seed,
+                    event_count,
+                    chain.head_hash(),
+                )
         } else {
-            self.transparency_witnesses.verify_candidate_with_vds(
-                &self.transparency_log,
-                &self.transparency_policy,
-                &self.transparency_checkpoint,
-                &self.transparency_witness_signatures,
-                &adapter.journal_namespace,
-                adapter.seed,
-                event_count,
-                chain.head_hash(),
-                self.transparency_vds_consistency_proof.as_ref(),
-            )
+            self.transparency_witnesses
+                .verify_candidate_with_witness_evidence(
+                    &self.transparency_log,
+                    &self.transparency_policy,
+                    &self.transparency_checkpoint,
+                    &self.transparency_witness_evidence,
+                    &adapter.journal_namespace,
+                    adapter.seed,
+                    event_count,
+                    chain.head_hash(),
+                )
         };
 
         result.map_err(AdapterError::from)
