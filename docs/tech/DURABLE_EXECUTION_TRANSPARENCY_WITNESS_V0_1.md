@@ -74,6 +74,12 @@ Each retained witness records the minimum observed checkpoint state needed for r
     VDS tree size
     VDS root hash
 
+The retained witness set is also bound in-process to the concrete
+TransparencyLogAuthorityV1 public-key commitment. Binding is idempotent for the
+same authority root and rejects a different key under the same log identity/epoch.
+Direct witness admission therefore cannot silently rotate the transparency-log
+signing key while reusing the retained witness lineage.
+
 Genesis is a deterministic semantic checkpoint derived from:
 
     log identity + log epoch + witness-policy commitment
@@ -261,6 +267,7 @@ A successfully executed integration can support claims such as:
     exact journal pre-state bound to an authenticated transparency checkpoint
     consumed checkpoint evidence durably authenticated in the lifecycle record
     witness-visible VDS lineage is non-equivocating within retained witness state
+    retained witness state is bound in-process to one concrete transparency-log authority key commitment
     witnesses can catch up after missed checkpoint sequence numbers when VDS continuity is proven
     accepted quorum satisfies the configured witness/domain policy
     already-consumed transparency sequences cannot authorize a new durable transition
