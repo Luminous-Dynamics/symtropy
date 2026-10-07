@@ -3248,6 +3248,69 @@ mod tests {
             1
         );
 
+        security.refresh_freshness(&adapter);
+        let transparency_sequence_three = transparency_test_evidence(
+            &adapter,
+            security.context.transparency_log(),
+            &security.transparency_policy,
+            &security.log_signer,
+            &security.witness_signers,
+            3,
+            &hex_encode(&security.context.transparency_checkpoint().digest()),
+        );
+        security.context.set_transparency_evidence(
+            transparency_sequence_three.0,
+            transparency_sequence_three.1,
+            transparency_sequence_three.2,
+        );
+        let gap_error = adapter
+            .commit(
+                &mut security.context,
+                &process,
+                &executable,
+                2,
+                &mut budget,
+                &mut inventory,
+                &mut energy,
+            )
+            .expect_err("durable transparency sequence gaps must reject");
+        assert!(matches!(
+            gap_error,
+            AdapterError::Invalid(message)
+                if message.contains("next transparency checkpoint sequence")
+        ));
+
+        let transparency_wrong_predecessor = transparency_test_evidence(
+            &adapter,
+            security.context.transparency_log(),
+            &security.transparency_policy,
+            &security.log_signer,
+            &security.witness_signers,
+            2,
+            &"99".repeat(32),
+        );
+        security.context.set_transparency_evidence(
+            transparency_wrong_predecessor.0,
+            transparency_wrong_predecessor.1,
+            transparency_wrong_predecessor.2,
+        );
+        let predecessor_error = adapter
+            .commit(
+                &mut security.context,
+                &process,
+                &executable,
+                2,
+                &mut budget,
+                &mut inventory,
+                &mut energy,
+            )
+            .expect_err("wrong durable transparency predecessor must reject");
+        assert!(matches!(
+            predecessor_error,
+            AdapterError::Invalid(message)
+                if message.contains("does not extend the durable predecessor")
+        ));
+
         let _ = receipt;
         fs::remove_dir_all(adapter.store().root()).expect("cleanup");
     }
