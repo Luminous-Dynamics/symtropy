@@ -312,7 +312,7 @@ impl DurableExecutionSecurityContext {
         )?;
         cursor.verify_candidate(&authority, &freshness_attestation)?;
         Ok(Self {
-            security.context.head_witness(),
+            head_witness,
             freshness_authority: authority,
             freshness_cursor: cursor,
             freshness_attestation,
