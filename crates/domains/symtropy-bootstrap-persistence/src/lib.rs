@@ -2528,25 +2528,7 @@ mod tests {
         )
         .expect("authority");
 
-        let attestation = freshness_test_attestation(
-            authority.authority_id(),
-            authority.authority_epoch(),
-            &authority_signer,
-            &adapter,
-            1,
-        );
-        let mut cursor = authority
-            .initialize_cursor(
-                &attestation,
-                "bootstrap",
-                1,
-                &adapter.load_verified().expect("journal").chain,
-                adapter.trust(),
-            )
-            .expect("cursor");
-
-        // Retain an attested non-empty history so a later higher sequence must extend it.
-        let mut security = TestSecurityMaterial::new(&adapter);
+        let mut security = TestSecurityMaterial::new(&adapter);;
         security.refresh(&adapter);
         let (process, run) = process_and_run();
         let (mut budget, mut inventory, mut energy) = (
@@ -2588,6 +2570,23 @@ mod tests {
             )
             .expect("commit");
 
+        let retained = freshness_test_attestation(
+            authority.authority_id(),
+            authority.authority_epoch(),
+            &authority_signer,
+            &adapter,
+            3,
+        );
+        let mut cursor = authority
+            .initialize_cursor(
+                &retained,
+                "bootstrap",
+                1,
+                &adapter.load_verified().expect("journal").chain,
+                adapter.trust(),
+            )
+            .expect("non-empty retained cursor");
+
         let full = adapter.load_verified().expect("full journal");
         let fork = EventChain::from_events(
             "bootstrap",
@@ -2599,7 +2598,7 @@ mod tests {
             algorithm: FRESHNESS_ATTESTATION_ALGORITHM.to_string(),
             authority_id: authority.authority_id().to_string(),
             authority_epoch: authority.authority_epoch(),
-            sequence: security.context.freshness_cursor().last_sequence().checked_add(1).expect("sequence"),
+            sequence: cursor.last_sequence().checked_add(1).expect("sequence"),
             namespace: "bootstrap".to_string(),
             seed: 1,
             event_count: 1,
