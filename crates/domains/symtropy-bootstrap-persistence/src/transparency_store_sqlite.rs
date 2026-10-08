@@ -66,8 +66,20 @@ impl SqliteTransparencyWitnessStateStore {
             | OpenFlags::SQLITE_OPEN_URI
             | OpenFlags::SQLITE_OPEN_NO_MUTEX
             | OpenFlags::SQLITE_OPEN_NOFOLLOW;
-        let connection =
-            Connection::open_with_flags(&self.path, flags).map_err(sqlite_error)?;
+        let connection = {
+            #[cfg(test)]
+            if let Some(vfs) = sqlite_fault_vfs::active_name() {
+                Connection::open_with_flags_and_vfs(&self.path, flags, vfs)
+                    .map_err(sqlite_error)?
+            } else {
+                Connection::open_with_flags(&self.path, flags).map_err(sqlite_error)?
+            }
+
+            #[cfg(not(test))]
+            {
+                Connection::open_with_flags(&self.path, flags).map_err(sqlite_error)?
+            }
+        };
         connection
             .busy_timeout(Duration::from_secs(5))
             .map_err(sqlite_error)?;
@@ -414,6 +426,9 @@ fn abort_for_test(point: &str) {
 }
 
 #[cfg(test)]
+mod sqlite_fault_vfs;
+
+#[cfg(test)]
 mod tests {
     use super::*;
     use crate::transparency::{TransparencyVdsTreeHeadV1, TransparencyWitnessRecordV1, TransparencyWitnessStateSnapshotV1};
@@ -688,6 +703,79 @@ mod tests {
         cleanup(&path);
         cleanup(&snapshot_path);
         cleanup(&restored_path);
+    }
+
+    #[test]
+    fn injected_wal_write_failure_recovers_to_a_valid_frontier() {
+        use crate::sqlite_fault_vfs::{arm_wal, activate_current_thread, FaultOperation};
+
+        let path = temp_database_path("vfs-write-failure");
+        let (key, initial) = fixture();
+        let store = SqliteTransparencyWitnessStateStore::open(&path).expect("open");
+        let committed = store
+            .compare_and_swap(&key, None, initial.clone())
+            .expect("initial commit");
+
+        let _activation = activate_current_thread();
+        let _fault = arm_wal(FaultOperation::Write, 1);
+
+        let candidate = store.compare_and_swap(&key, Some(&committed), initial.clone());
+        assert!(candidate.is_err(), "injected WAL write must surface as an error");
+        assert!(crate::sqlite_fault_vfs::fired(), "WAL write fault must fire");
+
+        drop(_fault);
+        drop(_activation);
+
+        let recovered = SqliteTransparencyWitnessStateStore::open(&path)
+            .expect("reopen after injected write failure")
+            .load(&key)
+            .expect("load after injected write failure")
+            .expect("committed frontier");
+        assert!(recovered.generation() <= 1);
+        assert_eq!(recovered.snapshot().policy_commitment(), key.policy_commitment());
+        assert_eq!(
+            recovered.snapshot().log_authority_commitment(),
+            key.log_authority_commitment()
+        );
+
+        cleanup(&path);
+    }
+
+    #[test]
+    fn injected_wal_sync_failure_recovers_to_a_valid_frontier() {
+        use crate::sqlite_fault_vfs::{arm_wal, activate_current_thread, FaultOperation};
+
+        let path = temp_database_path("vfs-sync-failure");
+        let (key, initial) = fixture();
+        let store = SqliteTransparencyWitnessStateStore::open(&path).expect("open");
+        let committed = store
+            .compare_and_swap(&key, None, initial.clone())
+            .expect("initial commit");
+
+        let _activation = activate_current_thread();
+        let _fault = arm_wal(FaultOperation::Sync, 1);
+
+        let candidate = store.compare_and_swap(&key, Some(&committed), initial.clone());
+        assert!(crate::sqlite_fault_vfs::fired(), "WAL sync fault must fire");
+
+        drop(_fault);
+        drop(_activation);
+
+        let recovered = SqliteTransparencyWitnessStateStore::open(&path)
+            .expect("reopen after injected sync failure")
+            .load(&key)
+            .expect("load after injected sync failure")
+            .expect("recoverable frontier");
+        assert!(recovered.generation() <= 1);
+        assert_eq!(recovered.snapshot(), &initial);
+
+        if candidate.is_ok() {
+            assert_eq!(recovered.generation(), 1);
+        } else {
+            assert!(recovered.generation() <= 1);
+        }
+
+        cleanup(&path);
     }
 
     #[test]
