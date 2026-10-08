@@ -209,9 +209,10 @@ fn maybe_fail(operation: FaultOperation, open_flags: c_int) -> Option<c_int> {
     }
 
     let is_wal = (open_flags & ffi::SQLITE_OPEN_WAL) != 0;
+    let is_main_database = (open_flags & ffi::SQLITE_OPEN_MAIN_DB) != 0;
     let scope_matches = match plan.scope {
         FaultScope::Wal => is_wal,
-        FaultScope::MainDatabase => !is_wal,
+        FaultScope::MainDatabase => is_main_database,
     };
     if !scope_matches {
         return None;
