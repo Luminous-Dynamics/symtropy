@@ -654,7 +654,12 @@ mod tests {
             .expect("load")
             .expect("winning state");
         assert_eq!(stored.generation(), 0);
-        assert_eq!(stored.snapshot(), results.iter().find_map(Result::as_ref).unwrap().snapshot());
+        let winner = results
+            .iter()
+            .find(|result| result.is_ok())
+            .and_then(|result| result.as_ref().ok())
+            .expect("winning result");
+        assert_eq!(stored.snapshot(), winner.snapshot());
     }
 
     #[test]
