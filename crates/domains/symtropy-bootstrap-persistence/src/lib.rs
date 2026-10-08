@@ -10,6 +10,7 @@ pub mod transparency;
 pub mod transparency_vds;
 pub mod transparency_protocol;
 pub mod transparency_store;
+pub mod transparency_store_sqlite;
 pub mod transparency_c2sp;
 
 use serde::{Deserialize, Serialize};
