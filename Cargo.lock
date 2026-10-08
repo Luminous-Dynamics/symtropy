@@ -8915,7 +8915,9 @@ name = "symtropy-bootstrap-persistence"
 version = "0.1.0"
 dependencies = [
  "ring",
+ "rusqlite",
  "serde",
+ "serde_json",
  "symtropy-bootstrap",
  "symtropy-game-state",
  "symtropy-persistence",
