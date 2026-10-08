@@ -212,6 +212,12 @@ A separate `TransparencyWitnessStateStore` boundary now defines restart-resistan
     + reject stale generation/snapshot writers
     + commit the replacement before reporting success
 
+A concrete SQLite implementation now exists. It stores the complete versioned
+snapshot as one row per policy/log namespace, uses an immediate write transaction
+for CAS serialization, and configures WAL with `synchronous=FULL`. It has
+repository-side tests for reopen persistence, independent-instance stale-writer
+rejection, concurrent creation, and survival across an abrupt process exit.
+
 The adapter independently verifies the successful CAS postconditions as well: the
 returned snapshot must equal the requested replacement, and the returned
 generation must advance exactly one step (generation zero for initial creation).
@@ -219,6 +225,12 @@ For this lifecycle integration, a restored store generation must also equal the
 checkpoint frontier immediately before the supplied next checkpoint. A backend
 that violates these response/integration contracts is rejected rather than
 silently trusted.
+
+These tests establish an actual application-crash/reopen path for the SQLite
+implementation. They do **not** by themselves establish power-loss durability,
+filesystem/hardware honesty, backup/restore safety, or independent operational
+control. The SQLite backend therefore remains an implementation candidate, not
+a blanket production qualification.
 
 The generation counter is concurrency metadata, not a cryptographic freshness proof.
 
@@ -318,6 +330,7 @@ A successfully executed integration can support claims such as:
     already-consumed transparency sequences cannot authorize a new durable transition
     durable transparency sequence history is contiguous and predecessor-linked
     witness-state commit is CAS-protected after the corresponding durable append
+    SQLite witness-store CAS is transactionally serialized and response-validated
 
 It must not silently promote those into:
 
@@ -371,13 +384,15 @@ The minimum regression corpus for this layer should continue to cover:
 - failed external-store bootstrap preflight leaves no genesis state behind.
 - concurrent external-store bootstrap creation uses the authoritative winning snapshot or fails closed on divergence.
 - restart restoration from an externally retained witness snapshot.
-- successful external CAS returning a forged generation or replacement snapshot.
+    successful external CAS returning a forged generation or replacement snapshot.
 - restored external generation inconsistent with the durable transparency frontier.
+- SQLite-backed witness state surviving an abrupt application crash and reopening exactly.
+- SQLite concurrent CAS writers preserving single-winner creation semantics.
 - C2SP policy translation that would collapse recursive quorum semantics into a non-equivalent flat rule.
 
 ## Next implementation frontier
 
-The semantic composition and protocol-shaped RFC 9162-style SHA-256 consistency/inclusion primitives are now implemented. Consistency verification is part of witness admission; `TransparencyInclusionEvidenceV1` is the separate offline inclusion-proof boundary.
+The semantic composition, protocol-shaped RFC 9162-style SHA-256 consistency/inclusion primitives, and a concrete SQLite witness-state backend are now implemented. Consistency verification is part of witness admission; `TransparencyInclusionEvidenceV1` is the separate offline inclusion-proof boundary.
 
 The checkpoint commits a concrete VDS tree-size/root, and witness admission invokes the consistency verifier against the retained VDS head. Inclusion evidence binds an exact entry's RFC 9162 leaf hash to that signed tree head. Both remain service-neutral: the implementation still does not claim C2SP wire compatibility or a SCITT COSE receipt.
 
