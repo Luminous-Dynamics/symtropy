@@ -340,6 +340,8 @@ impl TransparencyWitnessStateStore for SqliteTransparencyWitnessStateStore {
             )
             .map_err(sqlite_error)?;
 
+        abort_for_test("after-write-before-commit");
+
         let persisted_json = transaction
             .query_row(
                 &format!(
@@ -366,6 +368,15 @@ impl TransparencyWitnessStateStore for SqliteTransparencyWitnessStateStore {
 
 fn sqlite_error(error: rusqlite::Error) -> TransparencyWitnessStoreError {
     TransparencyWitnessStoreError::Backend(format!("SQLite error: {error}"))
+}
+
+fn abort_for_test(point: &str) {
+    #[cfg(test)]
+    {
+        if std::env::var("SYMTROPY_SQLITE_ABORT_AT").ok().as_deref() == Some(point) {
+            std::process::abort();
+        }
+    }
 }
 
 #[cfg(test)]
@@ -547,6 +558,74 @@ mod tests {
     }
 
     #[test]
+    fn abort_after_write_before_commit_recovers_previous_frontier() {
+        const WORKER_ENV: &str = "SYMTROPY_SQLITE_ABORT_WORKER";
+        const ABORT_POINT_ENV: &str = "SYMTROPY_SQLITE_ABORT_AT";
+
+        if let Ok(path) = std::env::var(WORKER_ENV) {
+            let path = PathBuf::from(path);
+            let (key, initial) = fixture();
+            let store = SqliteTransparencyWitnessStateStore::open(&path).expect("worker open");
+            store
+                .compare_and_swap(&key, None, initial)
+                .expect("initial commit");
+
+            let next = TransparencyWitnessStateSnapshotV1::new(
+                key.policy_commitment().to_string(),
+                key.log_authority_commitment().to_string(),
+                vec![fixture().1.witnesses()[0].clone()],
+            )
+            .expect("replacement");
+            let _ = store.compare_and_swap(
+                &key,
+                Some(
+                    &store
+                        .load(&key)
+                        .expect("load")
+                        .expect("initial state"),
+                ),
+                next,
+            );
+            std::process::exit(0);
+        }
+
+        let path = temp_database_path("abort-before-commit");
+        let (key, initial) = fixture();
+        let store = SqliteTransparencyWitnessStateStore::open(&path).expect("open");
+        let committed = store
+            .compare_and_swap(&key, None, initial.clone())
+            .expect("initial commit");
+        assert_eq!(committed.generation(), 0);
+
+        let status = Command::new(std::env::current_exe().expect("test binary"))
+            .args([
+                "--exact",
+                "transparency_store_sqlite::tests::abort_after_write_before_commit_recovers_previous_frontier",
+                "--nocapture",
+            ])
+            .env(WORKER_ENV, &path)
+            .env(ABORT_POINT_ENV, "after-write-before-commit")
+            .status()
+            .expect("spawn abort worker");
+
+        assert!(
+            !status.success(),
+            "abort worker must terminate before transaction commit"
+        );
+
+        let reopened =
+            SqliteTransparencyWitnessStateStore::open(&path).expect("reopen after abort");
+        let recovered = reopened
+            .load(&key)
+            .expect("load after abort")
+            .expect("previous committed state");
+        assert_eq!(recovered, committed);
+
+        cleanup(&path);
+    }
+
+    #[test]
+    fn stale_writer_is_rejected_across_independent_store_instances() {    #[test]
     fn stale_writer_is_rejected_across_independent_store_instances() {
         let path = temp_database_path("stale");
         let (key, initial) = fixture();
