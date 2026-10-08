@@ -602,17 +602,33 @@ mod tests {
             .expect("checkpoint committed state");
         drop(checkpoint);
 
-        let page_size = Connection::open(&path)
-            .expect("page-size connection")
+        let connection = Connection::open(&path).expect("root-page connection");
+        let page_size = connection
             .query_row("PRAGMA page_size", [], |row| row.get::<_, i64>(0))
             .expect("page size");
+        let root_page = connection
+            .query_row(
+                &format!(
+                    "SELECT rootpage FROM sqlite_master
+                     WHERE type = 'table' AND name = ?1"
+                ),
+                params![TABLE],
+                |row| row.get::<_, i64>(0),
+            )
+            .expect("table root page");
         let page_size = u64::try_from(page_size).expect("positive page size");
+        let root_page = u64::try_from(root_page).expect("positive root page");
 
         let mut file = std::fs::OpenOptions::new()
             .write(true)
             .open(&path)
             .expect("open database bytes");
-        file.seek(SeekFrom::Start(page_size))
+        let root_offset = root_page
+            .checked_sub(1)
+            .expect("root page is one-based")
+            .checked_mul(page_size)
+            .expect("root page offset");
+        file.seek(SeekFrom::Start(root_offset))
             .expect("seek to table root page");
         file.write_all(&[0xff])
             .expect("corrupt table root page type");
@@ -644,6 +660,8 @@ mod tests {
                         state_json TEXT NOT NULL,
                         PRIMARY KEY (policy_commitment, log_authority_commitment)
                     );
+                    CREATE INDEX witness_extra_index
+                    ON {TABLE}(state_json);
                     CREATE TRIGGER witness_mutation
                     AFTER INSERT ON {TABLE}
                     BEGIN
