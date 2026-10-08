@@ -707,15 +707,19 @@ impl DurableExecutionSecurityContext {
                 // Another bootstrapper won the creation race. Re-read the authoritative
                 // state and re-run admission against exactly that witness frontier rather
                 // than silently attaching our preflight genesis view to a different state.
-                let (stored, witness_set) =
-                    restore_witness_set(&store, &key, &context.transparency_policy, &context.transparency_log)
-                        .map_err(|error| AdapterError::Invalid(error.to_string()))?
-                        .ok_or_else(|| {
-                            AdapterError::WitnessMismatch(
-                                "external witness bootstrap lost a creation race but the authoritative state disappeared"
-                                    .to_string(),
-                            )
-                        })?;
+                let (stored, witness_set) = restore_witness_set(
+                    &store,
+                    &key,
+                    &context.transparency_policy,
+                    &context.transparency_log,
+                )
+                .map_err(|error| AdapterError::Invalid(error.to_string()))?
+                .ok_or_else(|| {
+                    AdapterError::WitnessMismatch(
+                        "external witness bootstrap lost a creation race but the authoritative state disappeared"
+                            .to_string(),
+                    )
+                })?;
 
                 let mut raced_context = Self::establish(
                     adapter,
