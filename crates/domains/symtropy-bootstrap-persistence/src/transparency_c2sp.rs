@@ -49,7 +49,38 @@ impl C2spCheckpointNoteBodyV1 {
         origin: impl Into<String>,
         tree_size: u64,
         root_hash_hex: &str,
-        extensions: Vec<String>,
+        extensions: Vec<String>,    /// Parse a complete canonical C2SP checkpoint note body, excluding signature lines.
+    ///
+    /// The input must contain the terminating newline required by the note body.
+    pub fn parse(serialized: &str) -> Result<Self, C2spWireError> {
+        if !serialized.ends_with('\n') {
+            return Err(C2spWireError::Invalid(
+                "C2SP checkpoint note must end with a newline".to_string(),
+            ));
+        }
+        let lines = serialized[..serialized.len() - 1].split('\n').collect::<Vec<_>>();
+        if lines.len() < 3 || lines.iter().any(|line| line.is_empty()) {
+            return Err(C2spWireError::Invalid(
+                "C2SP checkpoint note requires at least three non-empty lines".to_string(),
+            ));
+        }
+
+        let tree_size = parse_canonical_decimal(lines[1])?;
+        let root = decode_base64_exact::<32>(lines[2])?;
+        let root_hex = encode_hex(&root);
+        let extensions = lines[3..]
+            .iter()
+            .map(|line| (*line).to_string())
+            .collect::<Vec<_>>();
+        let note = Self::new(lines[0].to_string(), tree_size, &root_hex, extensions)?;
+        if note.as_str() != serialized {
+            return Err(C2spWireError::Invalid(
+                "C2SP checkpoint note is not canonical".to_string(),
+            ));
+        }
+        Ok(note)
+    }
+
     ) -> Result<Self, C2spWireError> {
         let origin = origin.into();
         if origin.is_empty() || origin.bytes().any(|byte| byte == b'\n' || byte == b'\r') {
@@ -58,6 +89,14 @@ impl C2spCheckpointNoteBodyV1 {
             ));
         }
         let root = decode_hex_32(root_hash_hex)?;
+        if tree_size == 0 {
+            let empty_root: [u8; 32] = Sha256::digest(b"").into();
+            if root != empty_root {
+                return Err(C2spWireError::Invalid(
+                    "C2SP empty checkpoint must use the empty-tree root".to_string(),
+                ));
+            }
+        }
         if extensions.iter().any(|extension| {
             extension.is_empty()
                 || extension
@@ -100,6 +139,11 @@ impl C2spCheckpointNoteBodyV1 {
     #[must_use]
     pub fn root_hash_base64(&self) -> &str {
         &self.root_hash_base64
+    }
+
+    #[must_use]
+    pub fn root_hash_hex(&self) -> Result<String, C2spWireError> {
+        Ok(encode_hex(&decode_base64_exact::<32>(&self.root_hash_base64)?))
     }
 
     #[must_use]
@@ -267,6 +311,20 @@ pub fn witness_key_id(witness_name: &str, witness_public_key: &[u8; 32]) -> [u8;
     [digest[0], digest[1], digest[2], digest[3]]
 }
 
+fn parse_canonical_decimal(value: &str) -> Result<u64, C2spWireError> {
+    if value.is_empty()
+        || (value.len() > 1 && value.starts_with('0'))
+        || !value.bytes().all(|byte| byte.is_ascii_digit())
+    {
+        return Err(C2spWireError::Invalid(
+            "C2SP tree size must be canonical ASCII decimal".to_string(),
+        ));
+    }
+    value.parse::<u64>().map_err(|_| {
+        C2spWireError::Invalid("C2SP tree size exceeds uint64 range".to_string())
+    })
+}
+
 fn decode_hex_32(value: &str) -> Result<[u8; 32], C2spWireError> {
     if value.len() != 64 {
         return Err(C2spWireError::Invalid(
@@ -432,6 +490,33 @@ mod tests {
         assert_eq!(note.as_str().lines().count(), 4);
         assert!(note.as_str().ends_with('\n'));
         note.validate_basic().expect("canonical");
+    }
+
+    #[test]
+    fn checkpoint_note_parse_round_trip_preserves_wire_bytes() {
+        let note = C2spCheckpointNoteBodyV1::new(
+            "example.com/log",
+            104,
+            &encode_hex(&[0xabu8; 32]),
+            vec!["extension-v1".to_string()],
+        )
+        .expect("note");
+        let parsed = C2spCheckpointNoteBodyV1::parse(note.as_str()).expect("parse");
+        assert_eq!(parsed, note);
+        assert_eq!(parsed.root_hash_hex().expect("root"), encode_hex(&[0xabu8; 32]));
+    }
+
+    #[test]
+    fn checkpoint_note_rejects_noncanonical_tree_size_and_empty_root_mismatch() {
+        let root = encode_hex(&[0x00u8; 32]);
+        assert!(matches!(
+            C2spCheckpointNoteBodyV1::parse(&format!("example.com/log\n01\n{}\n", base64_encode(&[0u8; 32]))),
+            Err(C2spWireError::Invalid(_))
+        ));
+        assert!(matches!(
+            C2spCheckpointNoteBodyV1::new("example.com/log", 0, &root, Vec::new()),
+            Err(C2spWireError::Invalid(_))
+        ));
     }
 
     #[test]
