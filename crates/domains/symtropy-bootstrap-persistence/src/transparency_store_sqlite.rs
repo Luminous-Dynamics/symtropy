@@ -571,6 +571,12 @@ mod tests {
             .expect("initial commit");
         drop(store);
 
+        let checkpoint = Connection::open(&path).expect("checkpoint connection");
+        checkpoint
+            .execute_batch("PRAGMA wal_checkpoint(TRUNCATE);")
+            .expect("checkpoint committed state");
+        drop(checkpoint);
+
         let page_size = Connection::open(&path)
             .expect("page-size connection")
             .query_row("PRAGMA page_size", [], |row| row.get::<_, i64>(0))
