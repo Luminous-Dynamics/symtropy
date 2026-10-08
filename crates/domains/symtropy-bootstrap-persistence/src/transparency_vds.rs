@@ -362,7 +362,7 @@ fn merkle_tree_hash_bytes(entries: &[Vec<u8>]) -> [u8; 32] {
             hasher.update([0x00]);
             hasher.update(&entries[0]);
             hasher.finalize().into()
-        },
+        }
         n => {
             let mut power = 1usize << (usize::BITS - 1 - n.leading_zeros());
             if power == n {
@@ -635,7 +635,9 @@ mod tests {
                     inclusion_path(index, &data),
                 )
                 .expect("inclusion proof");
-                proof.verify_sha256(tree_size as u64, &root).expect("inclusion");
+                proof
+                    .verify_sha256(tree_size as u64, &root)
+                    .expect("inclusion");
             }
         }
     }
@@ -657,12 +659,8 @@ mod tests {
             path.push(merkle_tree_hash_sha256(&data[3..]));
             path
         };
-        let proof = MerkleInclusionProofV1::new(
-            2,
-            leaf_hash,
-            valid_path,
-        )
-        .expect("shape-valid proof");
+        let proof =
+            MerkleInclusionProofV1::new(2, leaf_hash, valid_path).expect("shape-valid proof");
         assert!(matches!(
             proof.verify_sha256(5, &"11".repeat(32)),
             Err(MerkleVdsError::ProofMismatch)
