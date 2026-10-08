@@ -18,10 +18,10 @@ use std::{
 
 use rusqlite::{params, Connection, OptionalExtension, TransactionBehavior};
 
+use super::transparency::TransparencyWitnessStateSnapshotV1;
 use super::transparency_store::{
-    validate_cas_result, TransparencyWitnessStateStore, TransparencyWitnessStateSnapshotV1,
-    TransparencyWitnessStoreError, TransparencyWitnessStoreKeyV1,
-    TransparencyWitnessStoredStateV1,
+    validate_cas_result, TransparencyWitnessStateStore, TransparencyWitnessStoreError,
+    TransparencyWitnessStoreKeyV1, TransparencyWitnessStoredStateV1,
 };
 
 const TABLE: &str = "symtropy_transparency_witness_state";
