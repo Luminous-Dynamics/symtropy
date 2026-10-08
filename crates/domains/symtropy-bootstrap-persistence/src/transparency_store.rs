@@ -404,8 +404,9 @@ fn is_sha256_hex(value: &str) -> bool {
 mod tests {
     use super::*;
     use crate::transparency::{
+        transparency_genesis_digest, TransparencyCheckpointUnsignedV1,
         TransparencyLogAuthorityV1, TransparencyVdsTreeHeadV1, TransparencyWitnessKeyV1,
-        TransparencyWitnessPolicyV1,
+        TransparencyWitnessPolicyV1, TransparencyWitnessSignatureV1, TransparencyWitnessSetV1,
     };
     use ring::{
         rand::SystemRandom,
@@ -416,13 +417,19 @@ mod tests {
         bytes.iter().map(|byte| format!("{byte:02x}")).collect()
     }
 
-    fn policy_and_log() -> (TransparencyWitnessPolicyV1, TransparencyLogAuthorityV1) {
+    fn acceptance_material() -> (
+        TransparencyWitnessPolicyV1,
+        TransparencyLogAuthorityV1,
+        Ed25519KeyPair,
+        Ed25519KeyPair,
+    ) {
         let rng = SystemRandom::new();
         let log_pkcs8 = Ed25519KeyPair::generate_pkcs8(&rng).expect("log key");
-        let log_pair = Ed25519KeyPair::from_pkcs8(log_pkcs8.as_ref()).expect("log pair");
         let witness_pkcs8 = Ed25519KeyPair::generate_pkcs8(&rng).expect("witness key");
+        let log_pair = Ed25519KeyPair::from_pkcs8(log_pkcs8.as_ref()).expect("log pair");
         let witness_pair =
             Ed25519KeyPair::from_pkcs8(witness_pkcs8.as_ref()).expect("witness pair");
+
         let witness = TransparencyWitnessKeyV1::from_public_key_hex(
             "w1",
             "domain-a",
@@ -444,7 +451,7 @@ mod tests {
             encode_hex(log_pair.public_key().as_ref()),
         )
         .expect("log");
-        (policy, log)
+        (policy, log, log_pair, witness_pair)
     }
 
     fn base_snapshot() -> (TransparencyWitnessStoreKeyV1, TransparencyWitnessStateSnapshotV1) {
@@ -501,10 +508,7 @@ mod tests {
         let second_snapshot = TransparencyWitnessStateSnapshotV1::new(
             initial_snapshot.policy_commitment().to_string(),
             initial_snapshot.log_authority_commitment().to_string(),
-            vec![
-                replacement,
-                initial_snapshot.witnesses()[1].clone(),
-            ],
+            vec![replacement, initial_snapshot.witnesses()[1].clone()],
         )
         .expect("replacement snapshot");
 
@@ -526,7 +530,7 @@ mod tests {
 
     #[test]
     fn from_external_state_requires_exact_policy_witness_set_and_log_root() {
-        let (policy, log) = policy_and_log();
+        let (policy, log, _, _) = acceptance_material();
         let mut set = TransparencyWitnessSetV1::new(&policy).expect("set");
         set.bind_log_authority(&log).expect("bind");
         let snapshot = set.export_state().expect("export");
@@ -544,16 +548,93 @@ mod tests {
             set.retained_checkpoint_digest("w1")
         );
 
-        let mut wrong_root = snapshot.clone();
-        wrong_root = TransparencyWitnessStateSnapshotV1::new(
-            wrong_root.policy_commitment().to_string(),
+        let wrong_root = TransparencyWitnessStateSnapshotV1::new(
+            snapshot.policy_commitment().to_string(),
             "99".repeat(32),
-            wrong_root.witnesses().to_vec(),
+            snapshot.witnesses().to_vec(),
         )
         .expect("wrong-root snapshot");
         assert!(matches!(
             TransparencyWitnessSetV1::from_external_state(&policy, &log, &wrong_root),
             Err(crate::transparency::TransparencyError::LogAuthorityMismatch)
+        ));
+    }
+
+    #[test]
+    fn accepted_checkpoint_derives_exact_external_replacement_and_rejects_stale_state() {
+        let (policy, log, log_pair, witness_pair) = acceptance_material();
+        let mut set = TransparencyWitnessSetV1::new(&policy).expect("set");
+        set.bind_log_authority(&log).expect("bind");
+        let current = set.export_state().expect("initial snapshot");
+        let genesis = transparency_genesis_digest("log-store", 1, &policy.commitment());
+
+        let unsigned = TransparencyCheckpointUnsignedV1::new(
+            "log-store",
+            1,
+            1,
+            "bootstrap",
+            1,
+            1,
+            &"77".repeat(32),
+            0,
+            TransparencyVdsTreeHeadV1::empty().root_hash(),
+            &genesis,
+            policy.commitment(),
+        )
+        .expect("checkpoint");
+        let checkpoint = unsigned
+            .clone()
+            .into_signed(encode_hex(log_pair.sign(&unsigned.signing_digest()).as_ref()))
+            .expect("signed checkpoint");
+        let witness = policy.witness("w1").expect("w1");
+        let witness_signature = TransparencyWitnessSignatureV1::new(
+            "w1",
+            encode_hex(
+                witness_pair
+                    .sign(&witness.signing_digest(&checkpoint))
+                    .as_ref(),
+            ),
+        )
+        .expect("witness signature");
+
+        let accepted = set
+            .verify_candidate(
+                &log,
+                &policy,
+                &checkpoint,
+                &[witness_signature],
+                "bootstrap",
+                1,
+                1,
+                &"77".repeat(32),
+            )
+            .expect("accepted");
+
+        let replacement = snapshot_after_accepted(&current, &accepted).expect("replacement");
+        assert_eq!(replacement.witnesses().len(), 1);
+        assert_eq!(replacement.witnesses()[0].sequence(), 1);
+        assert_eq!(
+            replacement.witnesses()[0].checkpoint_digest(),
+            accepted.checkpoint_digest()
+        );
+
+        let stale = TransparencyWitnessStateSnapshotV1::new(
+            current.policy_commitment().to_string(),
+            current.log_authority_commitment().to_string(),
+            vec![TransparencyWitnessRecordV1::new(
+                "w1",
+                9,
+                "aa".repeat(32),
+                9,
+                &"bb".repeat(32),
+                TransparencyVdsTreeHeadV1::empty(),
+            )
+            .expect("stale record")],
+        )
+        .expect("stale snapshot");
+        assert!(matches!(
+            snapshot_after_accepted(&stale, &accepted),
+            Err(TransparencyWitnessStoreError::StaleAcceptedCheckpoint(_))
         ));
     }
 
@@ -586,8 +667,7 @@ mod tests {
             TransparencyWitnessStoredStateV1::new(first.generation(), altered)
                 .expect("forged generation-matched state");
 
-        let replacement = snapshot.clone();
-        let stale = store.compare_and_swap(&key, Some(&forged_expected), replacement);
+        let stale = store.compare_and_swap(&key, Some(&forged_expected), snapshot);
         assert!(matches!(
             stale,
             Err(TransparencyWitnessStoreError::GenerationMismatch)
