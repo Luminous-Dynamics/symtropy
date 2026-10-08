@@ -668,6 +668,23 @@ impl DurableExecutionSecurityContext {
                 transparency_witness_signatures,
                 transparency_vds_consistency_proof,
             )?;
+
+            let expected_generation = context
+                .transparency_checkpoint
+                .sequence()
+                .checked_sub(1)
+                .ok_or_else(|| {
+                    AdapterError::WitnessMismatch(
+                        "external witness store cannot restore a checkpoint frontier before genesis"
+                            .to_string(),
+                    )
+                })?;
+            if stored.generation() != expected_generation {
+                return Err(AdapterError::WitnessMismatch(
+                    "external witness-store generation is inconsistent with the durable transparency frontier"
+                        .to_string(),
+                ));
+            }
             context.transparency_external_store = Some(store);
             context.transparency_external_store_key = Some(key);
             context.transparency_external_store_state = Some(stored);
@@ -3295,6 +3312,15 @@ mod tests {
                         .compare_and_swap(key, None, replacement)?;
                     Err(TransparencyWitnessStoreError::GenerationMismatch)
                 }
+                4 => {
+                    let stored = self
+                        .inner
+                        .compare_and_swap(key, expected, replacement)?;
+                    TransparencyWitnessStoredStateV1::new(
+                        stored.generation().saturating_add(9),
+                        stored.snapshot().clone(),
+                    )
+                }
                 _ => self.inner.compare_and_swap(key, expected, replacement),
             }
         }
@@ -4003,6 +4029,60 @@ mod tests {
                 .expect("external store load")
                 .is_none(),
             "failed admission must not leave an externally persisted genesis witness state"
+        );
+    }
+
+    #[test]
+    fn nonconforming_external_store_response_is_rejected() {
+        let adapter = configured_adapter("external-bootstrap-response-contract");
+        let security = TestSecurityMaterial::new(&adapter);
+        let external_store = Arc::new(ToggleFailTransparencyStore::default());
+        external_store.cas_mode.store(4, Ordering::SeqCst);
+
+        let cursor = FreshnessCursor {
+            authority_commitment: security
+                .context
+                .freshness_cursor()
+                .authority_commitment()
+                .to_string(),
+            last_sequence: security.context.freshness_cursor().last_sequence(),
+            last_head_hash: security
+                .context
+                .freshness_cursor()
+                .last_head_hash()
+                .to_string(),
+            last_event_count: security.context.freshness_cursor().last_event_count(),
+        };
+
+        let error = DurableExecutionSecurityContext::establish_with_external_witness_store(
+            &adapter,
+            security.context.freshness_authority().clone(),
+            cursor,
+            security.context.freshness_attestation().clone(),
+            security.context.transparency_log().clone(),
+            security.context.transparency_policy().clone(),
+            SharedTransparencyWitnessStateStore::new(external_store.clone()),
+            security.context.transparency_checkpoint().clone(),
+            security.context.transparency_witness_signatures().to_vec(),
+            security.context.transparency_vds_consistency_proof().cloned(),
+        )
+        .expect_err("nonconforming CAS response must fail closed");
+
+        assert!(matches!(error, AdapterError::WitnessMismatch(_)));
+        let key = TransparencyWitnessStoreKeyV1::new(
+            security.context.transparency_policy().commitment(),
+            security.context.transparency_log().commitment(),
+        )
+        .expect("key");
+        let stored = external_store
+            .inner
+            .load(&key)
+            .expect("load")
+            .expect("the injected backend did commit its value");
+        assert_eq!(
+            stored.generation(),
+            0,
+            "the bootstrap store itself committed generation zero; only the forged return value was wrong"
         );
     }
 
