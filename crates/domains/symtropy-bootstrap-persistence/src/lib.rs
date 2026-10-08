@@ -4304,6 +4304,97 @@ mod tests {
     }
 
     #[test]
+    fn sqlite_witness_store_integrates_with_security_context_and_reopens() {
+        let adapter = configured_adapter("sqlite-witness-integration");
+        let material = TestSecurityMaterial::new(&adapter);
+        let path = std::env::temp_dir().join(format!(
+            "symtropy-sqlite-integration-{}-{}.sqlite3",
+            std::process::id(),
+            SystemTime::now()
+                .duration_since(UNIX_EPOCH)
+                .expect("clock")
+                .as_nanos()
+        ));
+
+        let sqlite_store =
+            SqliteTransparencyWitnessStateStore::open(&path).expect("sqlite store");
+        let shared_store = SharedTransparencyWitnessStateStore::new(Arc::new(sqlite_store));
+
+        let cursor = FreshnessCursor {
+            authority_commitment: material
+                .context
+                .freshness_cursor()
+                .authority_commitment()
+                .to_string(),
+            last_sequence: material.context.freshness_cursor().last_sequence(),
+            last_head_hash: material.context.freshness_cursor().last_head_hash().to_string(),
+            last_event_count: material.context.freshness_cursor().last_event_count(),
+        };
+
+        let first = DurableExecutionSecurityContext::establish_with_external_witness_store(
+            &adapter,
+            material.context.freshness_authority().clone(),
+            cursor,
+            material.context.freshness_attestation().clone(),
+            material.context.transparency_log().clone(),
+            material.context.transparency_policy().clone(),
+            shared_store.clone(),
+            material.context.transparency_checkpoint().clone(),
+            material.context.transparency_witness_signatures().to_vec(),
+            material.context.transparency_vds_consistency_proof().cloned(),
+        )
+        .expect("initial SQLite-backed context");
+
+        assert_eq!(
+            first
+                .external_transparency_witness_state()
+                .expect("stored genesis")
+                .generation(),
+            0
+        );
+
+        drop(first);
+
+        let second_cursor = FreshnessCursor {
+            authority_commitment: material
+                .context
+                .freshness_cursor()
+                .authority_commitment()
+                .to_string(),
+            last_sequence: material.context.freshness_cursor().last_sequence(),
+            last_head_hash: material.context.freshness_cursor().last_head_hash().to_string(),
+            last_event_count: material.context.freshness_cursor().last_event_count(),
+        };
+
+        let reopened = DurableExecutionSecurityContext::establish_with_external_witness_store(
+            &adapter,
+            material.context.freshness_authority().clone(),
+            second_cursor,
+            material.context.freshness_attestation().clone(),
+            material.context.transparency_log().clone(),
+            material.context.transparency_policy().clone(),
+            shared_store,
+            material.context.transparency_checkpoint().clone(),
+            material.context.transparency_witness_signatures().to_vec(),
+            material.context.transparency_vds_consistency_proof().cloned(),
+        )
+        .expect("reopened SQLite-backed context");
+
+        assert_eq!(
+            reopened
+                .external_transparency_witness_state()
+                .expect("reopened state")
+                .generation(),
+            0
+        );
+        assert_eq!(reopened.transparency_witnesses().max_retained_sequence(), 0);
+
+        let _ = std::fs::remove_file(&path);
+        let _ = std::fs::remove_file(path.with_extension("sqlite3-wal"));
+        let _ = std::fs::remove_file(path.with_extension("sqlite3-shm"));
+    }
+
+    #[test]
     fn external_witness_store_failure_fences_context_after_journal_append() {
         let adapter = configured_adapter("external-witness-cas-failure");
         let mut security = TestSecurityMaterial::new(&adapter);
