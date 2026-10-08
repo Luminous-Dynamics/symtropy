@@ -77,6 +77,7 @@ impl SqliteTransparencyWitnessStateStore {
         connection
             .pragma_update(None, "foreign_keys", "ON")
             .map_err(sqlite_error)?;
+        Self::validate_runtime_pragmas(&connection)?;
 
         connection
             .execute_batch(&format!(
@@ -92,6 +93,39 @@ impl SqliteTransparencyWitnessStateStore {
         Self::validate_integrity(&connection)?;
 
         Ok(connection)
+    }
+
+    fn validate_runtime_pragmas(
+        connection: &Connection,
+    ) -> Result<(), TransparencyWitnessStoreError> {
+        let journal_mode = connection
+            .query_row("PRAGMA journal_mode", [], |row| row.get::<_, String>(0))
+            .map_err(sqlite_error)?;
+        if !journal_mode.eq_ignore_ascii_case("wal") {
+            return Err(TransparencyWitnessStoreError::BackendContractViolation(
+                format!("SQLite journal_mode resolved to {journal_mode}, expected WAL"),
+            ));
+        }
+
+        let synchronous = connection
+            .query_row("PRAGMA synchronous", [], |row| row.get::<_, i64>(0))
+            .map_err(sqlite_error)?;
+        if synchronous != 2 {
+            return Err(TransparencyWitnessStoreError::BackendContractViolation(
+                format!("SQLite synchronous resolved to {synchronous}, expected FULL (2)"),
+            ));
+        }
+
+        let foreign_keys = connection
+            .query_row("PRAGMA foreign_keys", [], |row| row.get::<_, i64>(0))
+            .map_err(sqlite_error)?;
+        if foreign_keys != 1 {
+            return Err(TransparencyWitnessStoreError::BackendContractViolation(
+                "SQLite foreign_keys could not be enabled".to_string(),
+            ));
+        }
+
+        Ok(())
     }
 
     fn validate_integrity(connection: &Connection) -> Result<(), TransparencyWitnessStoreError> {
@@ -371,6 +405,17 @@ mod tests {
         let _ = std::fs::remove_file(path);
         let _ = std::fs::remove_file(path.with_extension("sqlite3-wal"));
         let _ = std::fs::remove_file(path.with_extension("sqlite3-shm"));
+    }
+
+    #[test]
+    fn runtime_sqlite_safety_pragmas_are_verified() {
+        let path = temp_database_path("runtime-pragmas");
+        let _store = SqliteTransparencyWitnessStateStore::open(&path).expect("store");
+        let connection = Connection::open(&path).expect("connection");
+        SqliteTransparencyWitnessStateStore::validate_runtime_pragmas(&connection)
+            .expect("configured SQLite safety pragmas");
+
+        cleanup(&path);
     }
 
     #[test]
