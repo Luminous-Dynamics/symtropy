@@ -3065,12 +3065,8 @@ mod tests {
                 ],
             )
             .expect("transparency policy");
-            let transparency_witnesses =
-                TransparencyWitnessSetV1::new(&transparency_policy).expect("witness set");
-            let genesis_transparency_digest = transparency_witnesses
-                .retained_checkpoint_digest("w1")
-                .expect("transparency genesis")
-                .to_string();
+            let genesis_transparency_digest =
+                transparency_genesis_digest("transparency-log", 1, &transparency_policy.commitment());
 
             let genesis = freshness_test_attestation(
                 authority.authority_id(),
@@ -3111,14 +3107,17 @@ mod tests {
                 &genesis_transparency_digest,
             );
 
-            let context = DurableExecutionSecurityContext::establish(
+            let store = SharedTransparencyWitnessStateStore::new(
+                Arc::new(transparency_store::MemoryTransparencyWitnessStateStore::default()),
+            );
+            let context = DurableExecutionSecurityContext::establish_with_external_witness_store(
                 adapter,
                 authority,
                 cursor,
                 first,
                 transparency_log,
                 transparency_policy.clone(),
-                transparency_witnesses,
+                store,
                 first_checkpoint,
                 first_witness_signatures,
                 first_vds_proof,
