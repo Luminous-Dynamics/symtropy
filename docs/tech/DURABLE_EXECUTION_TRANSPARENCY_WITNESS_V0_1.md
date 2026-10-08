@@ -289,6 +289,8 @@ The current C2SP Transparency Log Witness Protocol has the closest architectural
 
 The current C2SP transparency-log policy model also makes known logs, known witnesses, and a quorum rule explicit. That maps naturally onto the present policy commitment and quorum layer. The configured independence-domain rule remains an application qualification requirement rather than a proof of real-world independence. https://c2sp.org/tlog-policy
 
+C2SP timestamped witness cosignatures are a separate wire-level statement: the timestamp is included in the signed cosignature structure and signed message. The present Symtropy witness signature intentionally does not contain a timestamp and therefore is not a C2SP timestamped cosignature. A future adapter must construct the canonical checkpoint note, include the timestamped cosignature input, and treat timestamp acceptance as an explicit policy decision rather than silently turning an unsigned local clock into trusted time. https://c2sp.org/tlog-cosignature
+
 TUF remains useful for the threat taxonomy because rollback and indefinite-freeze attacks are separate classes. This tranche provides positive rollback/equivocation evidence but does not convert absence of fresh evidence into proof of malicious freeze. https://theupdateframework.io/docs/security/
 
 Sigstore likewise treats an append-only transparency log and independent monitoring as complementary controls. The current Symtropy boundary is the local admission-side analogue and does not claim global monitoring coverage. https://docs.sigstore.dev/about/security/
