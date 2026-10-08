@@ -3170,6 +3170,7 @@ mod tests {
         log_signer: DurableExecutionSigner,
         witness_signers: Vec<DurableExecutionSigner>,
         transparency_policy: TransparencyWitnessPolicyV1,
+        external_store: Arc<ToggleFailTransparencyStore>,
         context: DurableExecutionSecurityContext,
     }
 
@@ -3259,9 +3260,7 @@ mod tests {
                 &genesis_transparency_digest,
             );
 
-            let store = SharedTransparencyWitnessStateStore::new(
-                Arc::new(transparency_store::MemoryTransparencyWitnessStateStore::default()),
-            );
+            let external_store = Arc::new(ToggleFailTransparencyStore::default());
             let context = DurableExecutionSecurityContext::establish_with_external_witness_store(
                 adapter,
                 authority,
@@ -3269,7 +3268,7 @@ mod tests {
                 first,
                 transparency_log,
                 transparency_policy.clone(),
-                store,
+                SharedTransparencyWitnessStateStore::new(external_store.clone()),
                 first_checkpoint,
                 first_witness_signatures,
                 first_vds_proof,
@@ -3280,6 +3279,7 @@ mod tests {
                 log_signer,
                 witness_signers,
                 transparency_policy,
+                external_store,
                 context,
             }
         }
@@ -3624,44 +3624,11 @@ mod tests {
     fn external_witness_store_failure_fences_context_after_journal_append() {
         let adapter = configured_adapter("external-witness-cas-failure");
         let mut security = TestSecurityMaterial::new(&adapter);
-        let backing = Arc::new(ToggleFailTransparencyStore::default());
-        // Re-establish using a separately controlled backend so the test can inject
-        // failure after the genesis state has been initialized.
-        let log = security.context.transparency_log().clone();
-        let policy = security.context.transparency_policy().clone();
-        let checkpoint = security.context.transparency_checkpoint().clone();
-        let signatures = security.context.transparency_witness_signatures().to_vec();
-        let proof = security.context.transparency_vds_consistency_proof().cloned();
-        let authority = security.context.freshness_authority().clone();
-        let cursor = FreshnessCursor {
-            authority_commitment: security.context.freshness_cursor().authority_commitment.clone(),
-            last_sequence: security.context.freshness_cursor().last_sequence(),
-            last_head_hash: security.context.freshness_cursor().last_head_hash().to_string(),
-            last_event_count: security.context.freshness_cursor().last_event_count(),
-        };
-        let attestation = security.context.freshness_attestation().clone();
-        let shared = SharedTransparencyWitnessStateStore::new(backing.clone());
-
-        let mut context = DurableExecutionSecurityContext::establish_with_external_witness_store(
-            &adapter,
-            authority,
-            cursor,
-            attestation,
-            log,
-            policy,
-            shared,
-            checkpoint,
-            signatures,
-            proof,
-        )
-        .expect("external context");
-
-        security.context = context;
-
         let (process, run) = process_and_run();
         let (mut budget, mut inventory, mut energy) = initial_kernel_state();
+
         security.refresh(&adapter);
-        backing.fail_cas.store(true, Ordering::SeqCst);
+        security.external_store.fail_cas.store(true, Ordering::SeqCst);
 
         let error = adapter
             .authorize_pending(
@@ -3692,27 +3659,16 @@ mod tests {
             "the journal append is retained, but the context must not continue"
         );
 
-        backing.fail_cas.store(false, Ordering::SeqCst);
-        security.refresh(&adapter);
-        let (process2, run2) = process_and_run();
-        let (mut budget2, mut inventory2, mut energy2) = initial_kernel_state();
-        let error2 = adapter
-            .authorize_pending(
-                &mut security.context,
-                &process2,
-                "exec-external-store-fenced",
-                2,
-                10,
-                20,
-                "bus",
-                run2,
-                &mut budget2,
-                &mut inventory2,
-                &mut energy2,
-            )
-            .expect_err("fenced context must reject subsequent transitions");
-
-        assert!(matches!(error2, AdapterError::WitnessMismatch(_)));
+        security.external_store.fail_cas.store(false, Ordering::SeqCst);
+        assert!(security
+            .context
+            .reconcile_external_transparency_witness_store(&adapter)
+            .is_err());
+        assert!(
+            security
+                .context
+                .external_transparency_witness_store_desynchronized()
+        );
     }
 
     #[test]
