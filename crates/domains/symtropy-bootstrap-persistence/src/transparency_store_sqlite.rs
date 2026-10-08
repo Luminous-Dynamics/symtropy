@@ -197,7 +197,7 @@ impl SqliteTransparencyWitnessStateStore {
             .prepare(
                 "SELECT type, name, tbl_name
                  FROM sqlite_master
-                 WHERE tbl_name = ?1
+                 WHERE tbl_name = ?1 AND type != 'index'
                  ORDER BY type, name",
             )
             .map_err(sqlite_error)?;
@@ -213,15 +213,40 @@ impl SqliteTransparencyWitnessStateStore {
             .collect::<Result<Vec<_>, _>>()
             .map_err(sqlite_error)?;
 
-        let expected = vec![(
+        let expected_objects = vec![(
             "table".to_string(),
             TABLE.to_string(),
             TABLE.to_string(),
         )];
 
-        if objects != expected {
+        if objects != expected_objects {
             return Err(TransparencyWitnessStoreError::Invalid(
-                "SQLite witness-state schema contains unexpected database objects"
+                "SQLite witness-state schema contains unexpected non-index database objects"
+                    .to_string(),
+            ));
+        }
+
+        let mut index_statement = connection
+            .prepare(&format!("PRAGMA index_list({TABLE})"))
+            .map_err(sqlite_error)?;
+        let mut index_rows = index_statement.query([]).map_err(sqlite_error)?;
+        let mut indexes = Vec::new();
+
+        while let Some(row) = index_rows.next().map_err(sqlite_error)? {
+            let name = row.get::<_, String>(1).map_err(sqlite_error)?;
+            let unique = row.get::<_, i64>(2).map_err(sqlite_error)?;
+            let origin = row.get::<_, String>(3).map_err(sqlite_error)?;
+            let partial = row.get::<_, i64>(4).map_err(sqlite_error)?;
+            indexes.push((name, unique, origin, partial));
+        }
+
+        if indexes.len() != 1
+            || indexes[0].1 != 1
+            || indexes[0].2 != "pk"
+            || indexes[0].3 != 0
+        {
+            return Err(TransparencyWitnessStoreError::Invalid(
+                "SQLite witness-state table indexes do not contain exactly the required composite primary-key index"
                     .to_string(),
             ));
         }
