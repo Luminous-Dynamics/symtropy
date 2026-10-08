@@ -877,6 +877,74 @@ impl DurableExecutionSecurityContext {
                 "persisted transparency evidence contains no accepted witnesses".to_string(),
             ));
         }
+
+        let expected_before = self
+            .transparency_external_store_state
+            .as_ref()
+            .ok_or_else(|| {
+                AdapterError::WitnessMismatch(
+                    "fenced recovery has no retained external-store predecessor state"
+                        .to_string(),
+                )
+            })?;
+        let expected_generation = expected_before
+            .generation()
+            .checked_add(1)
+            .ok_or_else(|| {
+                AdapterError::WitnessMismatch(
+                    "external witness-store generation exhausted during recovery".to_string(),
+                )
+            })?;
+        if stored.generation() != expected_generation {
+            return Err(AdapterError::WitnessMismatch(
+                "external witness-store generation does not match the uncertain CAS transition"
+                    .to_string(),
+            ));
+        }
+
+        let mut expected_witnesses = expected_before
+            .snapshot()
+            .witnesses()
+            .iter()
+            .cloned()
+            .map(|record| (record.witness_id().to_string(), record))
+            .collect::<BTreeMap<_, _>>();
+
+        for witness_id in selected {
+            let replacement = transparency::TransparencyWitnessRecordV1::new(
+                witness_id.clone(),
+                evidence.checkpoint.sequence(),
+                hex_encode(&evidence.checkpoint.digest()),
+                evidence.checkpoint.event_count(),
+                evidence.checkpoint.head_hash().to_string(),
+                TransparencyVdsTreeHeadV1::new(
+                    evidence.checkpoint.vds_tree_size(),
+                    evidence.checkpoint.vds_root_hash().to_string(),
+                )
+                .map_err(AdapterError::from)?,
+            )
+            .map_err(AdapterError::from)?;
+            expected_witnesses.insert(witness_id.clone(), replacement);
+        }
+
+        let expected_snapshot =
+            transparency::TransparencyWitnessStateSnapshotV1::new(
+                expected_before.snapshot().policy_commitment().to_string(),
+                expected_before
+                    .snapshot()
+                    .log_authority_commitment()
+                    .to_string(),
+                expected_witnesses.into_values().collect(),
+            )
+            .map_err(AdapterError::from)?;
+
+        if stored.snapshot() != &expected_snapshot {
+            return Err(AdapterError::WitnessMismatch(
+                "external witness-store snapshot does not exactly match the committed transition"
+                    .to_string(),
+            ));
+        }
+
         for witness_id in selected {
             let record = stored
                 .snapshot()
