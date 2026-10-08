@@ -263,13 +263,6 @@ impl TransparencyWitnessStateStore for SqliteTransparencyWitnessStateStore {
             return Ok(None);
         };
 
-        let state = serde_json::from_str::<TransparencyWitnessStoredStateV1>(&json).map_err(
-            |error| {
-                TransparencyWitnessStoreError::Invalid(format!(
-                    "SQLite witness state JSON is invalid: {error}"
-                ))
-            },
-        )?;
         Ok(Some(Self::decode_state(key, &json)?))
     }
 
