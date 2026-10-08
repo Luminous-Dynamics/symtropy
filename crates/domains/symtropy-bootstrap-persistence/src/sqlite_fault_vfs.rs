@@ -241,6 +241,9 @@ unsafe extern "C" fn vfs_x_open(
         )
     };
     if rc != ffi::SQLITE_OK {
+        unsafe {
+            (*file).pMethods = ptr::null();
+        }
         return rc;
     }
 
@@ -251,7 +254,11 @@ unsafe extern "C" fn vfs_x_open(
 
     let tail = unsafe { tail_from_file_with_offset(file, state.tail_offset) };
     tail.original_methods = original_methods;
-    tail.open_flags = flags;
+    tail.open_flags = if out_flags.is_null() {
+        flags
+    } else {
+        unsafe { *out_flags }
+    };
     tail.proxy_methods = unsafe { *original_methods };
     tail.proxy_methods.xClose = Some(io_x_close);
     tail.proxy_methods.xRead = Some(io_x_read);
