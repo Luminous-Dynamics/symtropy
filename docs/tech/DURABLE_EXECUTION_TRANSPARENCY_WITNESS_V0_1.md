@@ -227,10 +227,14 @@ that violates these response/integration contracts is rejected rather than
 silently trusted.
 
 These tests establish an actual application-crash/reopen path for the SQLite
-implementation. They do **not** by themselves establish power-loss durability,
-filesystem/hardware honesty, backup/restore safety, or independent operational
-control. The SQLite backend therefore remains an implementation candidate, not
-a blanket production qualification.
+implementation, plus transactional stale-writer and concurrent-create behavior.
+They do **not** by themselves establish power-loss durability under an adverse
+filesystem/device, offline rollback resistance for a copied/restored database
+image, backup/restore safety, or independent operational control. SQLite's
+documented WAL/transaction mechanisms provide a strong local crash-consistency
+substrate, but the backend cannot manufacture an independent monotonic authority
+out of the same database image. The SQLite backend therefore remains an
+implementation candidate, not a blanket production qualification.
 
 The generation counter is concurrency metadata, not a cryptographic freshness proof.
 
@@ -388,6 +392,8 @@ The minimum regression corpus for this layer should continue to cover:
 - restored external generation inconsistent with the durable transparency frontier.
 - SQLite-backed witness state surviving an abrupt application crash and reopening exactly.
 - SQLite concurrent CAS writers preserving single-winner creation semantics.
+- nonconforming pre-existing SQLite schema rejected before witness state is trusted.
+- SQLite page-integrity failure rejected before witness state is trusted.
 - C2SP policy translation that would collapse recursive quorum semantics into a non-equivalent flat rule.
 
 ## Next implementation frontier
