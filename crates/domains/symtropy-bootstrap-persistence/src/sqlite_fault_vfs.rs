@@ -598,7 +598,6 @@ mod main_database_sync_tests {
     };
     use crate::transparency_store::TransparencyWitnessStateStore;
     use crate::transparency_store_sqlite::SqliteTransparencyWitnessStateStore;
-    use rusqlite::Connection;
     use std::{
         path::{Path, PathBuf},
         time::{SystemTime, UNIX_EPOCH},
