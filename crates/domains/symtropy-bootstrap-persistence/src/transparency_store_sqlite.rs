@@ -164,13 +164,12 @@ impl SqliteTransparencyWitnessStateStore {
             return Ok(None);
         };
 
-        let state = serde_json::from_str::<TransparencyWitnessStoredStateV1>(&json).map_err(
-            |error| {
+        let state =
+            serde_json::from_str::<TransparencyWitnessStoredStateV1>(&json).map_err(|error| {
                 TransparencyWitnessStoreError::Invalid(format!(
                     "SQLite witness state JSON is invalid: {error}"
                 ))
-            },
-        )?;
+            })?;
         state.validate_basic()?;
 
         if state.snapshot().policy_commitment() != key.policy_commitment()
@@ -322,7 +321,9 @@ fn sqlite_error(error: rusqlite::Error) -> TransparencyWitnessStoreError {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::transparency::{TransparencyVdsTreeHeadV1, TransparencyWitnessRecordV1, TransparencyWitnessStateSnapshotV1};
+    use crate::transparency::{
+        TransparencyVdsTreeHeadV1, TransparencyWitnessRecordV1, TransparencyWitnessStateSnapshotV1,
+    };
     use crate::transparency_store::TransparencyWitnessStateStore;
     use std::process::Command;
     use std::sync::{Arc, Barrier};
@@ -339,7 +340,10 @@ mod tests {
         ))
     }
 
-    fn fixture() -> (TransparencyWitnessStoreKeyV1, TransparencyWitnessStateSnapshotV1) {
+    fn fixture() -> (
+        TransparencyWitnessStoreKeyV1,
+        TransparencyWitnessStateSnapshotV1,
+    ) {
         let policy_commitment = "11".repeat(32);
         let log_commitment = "22".repeat(32);
         let witness = TransparencyWitnessRecordV1::new(
@@ -499,12 +503,9 @@ mod tests {
     fn concurrent_creates_have_exactly_one_winner() {
         let path = temp_database_path("concurrent-create");
         let (key, snapshot) = fixture();
-        let left = Arc::new(
-            SqliteTransparencyWitnessStateStore::open(&path).expect("left store"),
-        );
-        let right = Arc::new(
-            SqliteTransparencyWitnessStateStore::open(&path).expect("right store"),
-        );
+        let left = Arc::new(SqliteTransparencyWitnessStateStore::open(&path).expect("left store"));
+        let right =
+            Arc::new(SqliteTransparencyWitnessStateStore::open(&path).expect("right store"));
         let barrier = Arc::new(Barrier::new(3));
 
         let left_store = Arc::clone(&left);
@@ -531,14 +532,14 @@ mod tests {
             left_thread.join().expect("left join"),
             right_thread.join().expect("right join"),
         ];
-        assert_eq!(
-            results.iter().filter(|result| result.is_ok()).count(),
-            1
-        );
+        assert_eq!(results.iter().filter(|result| result.is_ok()).count(), 1);
         assert_eq!(
             results
                 .iter()
-                .filter(|result| matches!(result, Err(TransparencyWitnessStoreError::GenerationMismatch)))
+                .filter(|result| matches!(
+                    result,
+                    Err(TransparencyWitnessStoreError::GenerationMismatch)
+                ))
                 .count(),
             1
         );
