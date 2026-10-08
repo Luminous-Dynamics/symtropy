@@ -212,6 +212,14 @@ A separate `TransparencyWitnessStateStore` boundary now defines restart-resistan
     + reject stale generation/snapshot writers
     + commit the replacement before reporting success
 
+The adapter independently verifies the successful CAS postconditions as well: the
+returned snapshot must equal the requested replacement, and the returned
+generation must advance exactly one step (generation zero for initial creation).
+For this lifecycle integration, a restored store generation must also equal the
+checkpoint frontier immediately before the supplied next checkpoint. A backend
+that violates these response/integration contracts is rejected rather than
+silently trusted.
+
 The generation counter is concurrency metadata, not a cryptographic freshness proof.
 
 The lifecycle integration uses this store in the following order:
@@ -363,6 +371,8 @@ The minimum regression corpus for this layer should continue to cover:
 - failed external-store bootstrap preflight leaves no genesis state behind.
 - concurrent external-store bootstrap creation uses the authoritative winning snapshot or fails closed on divergence.
 - restart restoration from an externally retained witness snapshot.
+- successful external CAS returning a forged generation or replacement snapshot.
+- restored external generation inconsistent with the durable transparency frontier.
 
 ## Next implementation frontier
 
