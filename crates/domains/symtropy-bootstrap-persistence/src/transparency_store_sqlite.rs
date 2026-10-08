@@ -1415,6 +1415,11 @@ mod tests {
     }
 
     #[test]
+    fn main_database_write_fault_sweep_covers_every_reachable_ordinal() {
+        sweep_checkpoint_faults(crate::sqlite_fault_vfs::FaultOperation::Write, true);
+    }
+
+    #[test]
     fn main_database_sync_fault_sweep_covers_every_reachable_ordinal() {
         sweep_checkpoint_faults(crate::sqlite_fault_vfs::FaultOperation::Sync, true);
     }
