@@ -793,12 +793,31 @@ impl DurableExecutionSecurityContext {
         self.transparency_vds_consistency_proof.as_ref()
     }
 
+    #[must_use]
+    pub fn external_transparency_witness_state(
+        &self,
+    ) -> Option<&TransparencyWitnessStoredStateV1> {
+        self.transparency_external_store_state.as_ref()
+    }
+
+    #[must_use]
+    pub const fn external_transparency_witness_store_desynchronized(&self) -> bool {
+        self.transparency_external_store_desynchronized
+    }
+
     fn verify_before_transition(
         &self,
         adapter: &DurableExecutionAdapter,
         chain: &EventChain<ExecutionLifecycleEvent>,
         require_new_transparency_sequence: bool,
     ) -> Result<AcceptedTransparencyCheckpointV1, AdapterError> {
+        if self.transparency_external_store_desynchronized {
+            return Err(AdapterError::WitnessMismatch(
+                "external transparency witness store is desynchronized; recovery is required"
+                    .to_string(),
+            ));
+        }
+
         self.head_witness.verify_exact(
             &adapter.journal_namespace,
             adapter.seed,
