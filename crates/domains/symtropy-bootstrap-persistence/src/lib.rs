@@ -4169,6 +4169,12 @@ mod tests {
             &adapter,
             next_freshness_sequence,
         );
+        let current_journal = adapter.load_verified().expect("current verified journal");
+        assert_eq!(
+            next_attestation.event_count,
+            u64::try_from(current_journal.chain.events().len()).expect("journal event count")
+        );
+        assert_eq!(next_attestation.head_hash, current_journal.chain.head_hash());
         let next_transparency_sequence = sqlite_context
             .transparency_witnesses()
             .max_retained_sequence()
@@ -4220,9 +4226,7 @@ mod tests {
             next_signatures,
             next_vds_proof,
         )
-        .expect_err(
-            "a valid but historically restored SQLite image must not override the independent current frontier",
-        );
+        .expect_err("historical SQLite rollback must fail against the retained current authority");
 
         assert!(
             matches!(
