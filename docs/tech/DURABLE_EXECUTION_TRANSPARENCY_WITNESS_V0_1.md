@@ -297,7 +297,7 @@ RFC 9162 defines Merkle consistency proofs that demonstrate that a newer tree co
 
 The current C2SP Transparency Log Witness Protocol has the closest architectural shape: a witness retains its latest verified checkpoint, requires a consistency proof for a newer checkpoint, and requires continuity checking plus durable persistence to be atomic. The current Symtropy witness set mirrors the retained-state and CAS boundary, but is intentionally still service-neutral and in-process. It is therefore **not** C2SP wire compatible yet. https://c2sp.org/tlog-witness
 
-The current C2SP transparency-log policy model also makes known logs, known witnesses, and a quorum rule explicit. That maps naturally onto the present policy commitment and quorum layer. The configured independence-domain rule remains an application qualification requirement rather than a proof of real-world independence. https://c2sp.org/tlog-policy
+The current C2SP transparency-log policy model also makes known logs, known witnesses, and a quorum rule explicit. However, its quorum language is recursive: groups may use numeric thresholds, `all`, or `any`, and groups may contain other groups. The present Symtropy policy is intentionally flatter (total quorum plus minimum independent domains), so a future C2SP adapter MUST reject or explicitly translate non-equivalent policies rather than serialize a superficially similar quorum as if the semantics were identical. The configured independence-domain rule remains an application qualification requirement rather than a proof of real-world independence. https://c2sp.org/tlog-policy
 
 C2SP timestamped witness cosignatures are a separate wire-level statement: the timestamp is included in the signed cosignature structure and signed message. The present Symtropy witness signature intentionally does not contain a timestamp and therefore is not a C2SP timestamped cosignature. A future adapter must construct the canonical checkpoint note, include the timestamped cosignature input, and treat timestamp acceptance as an explicit policy decision rather than silently turning an unsigned local clock into trusted time. https://c2sp.org/tlog-cosignature
 
@@ -373,6 +373,7 @@ The minimum regression corpus for this layer should continue to cover:
 - restart restoration from an externally retained witness snapshot.
 - successful external CAS returning a forged generation or replacement snapshot.
 - restored external generation inconsistent with the durable transparency frontier.
+- C2SP policy translation that would collapse recursive quorum semantics into a non-equivalent flat rule.
 
 ## Next implementation frontier
 
