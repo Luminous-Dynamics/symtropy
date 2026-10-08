@@ -4036,6 +4036,211 @@ mod tests {
     }
 
     #[test]
+    fn historical_sqlite_witness_image_is_rejected_against_independent_freshness_frontier() {
+        use rusqlite::{params, Connection};
+
+        let adapter = configured_adapter("sqlite-witness-rollback-composition");
+        let mut security = TestSecurityMaterial::new(&adapter);
+        security.refresh(&adapter);
+
+        let nonce = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .expect("clock")
+            .as_nanos();
+        let database_path = std::env::temp_dir().join(format!(
+            "symtropy-rollback-composition-{}-{nonce}.sqlite3",
+            std::process::id()
+        ));
+        let snapshot_path = std::env::temp_dir().join(format!(
+            "symtropy-rollback-snapshot-{}-{nonce}.sqlite3",
+            std::process::id()
+        ));
+        let restored_path = std::env::temp_dir().join(format!(
+            "symtropy-rollback-restored-{}-{nonce}.sqlite3",
+            std::process::id()
+        ));
+
+        let sqlite_store = Arc::new(
+            SqliteTransparencyWitnessStateStore::open(&database_path)
+                .expect("SQLite witness store"),
+        );
+        let key = TransparencyWitnessStoreKeyV1::new(
+            security.context.transparency_policy().commitment(),
+            security.context.transparency_log().commitment(),
+        )
+        .expect("witness store key");
+        let cursor = FreshnessCursor {
+            authority_commitment: security
+                .context
+                .freshness_cursor()
+                .authority_commitment()
+                .to_string(),
+            last_sequence: security.context.freshness_cursor().last_sequence(),
+            last_head_hash: security
+                .context
+                .freshness_cursor()
+                .last_head_hash()
+                .to_string(),
+            last_event_count: security.context.freshness_cursor().last_event_count(),
+        };
+
+        let mut sqlite_context =
+            DurableExecutionSecurityContext::establish_with_external_witness_store(
+                &adapter,
+                security.context.freshness_authority().clone(),
+                cursor,
+                security.context.freshness_attestation().clone(),
+                security.context.transparency_log().clone(),
+                security.context.transparency_policy().clone(),
+                SharedTransparencyWitnessStateStore::new(sqlite_store.clone()),
+                security.context.transparency_checkpoint().clone(),
+                security.context.transparency_witness_signatures().to_vec(),
+                security.context.transparency_vds_consistency_proof().cloned(),
+            )
+            .expect("SQLite-backed context admission");
+
+        let historical = sqlite_store
+            .load(&key)
+            .expect("load genesis witness memory")
+            .expect("genesis witness memory");
+        assert_eq!(historical.generation(), 0);
+
+        {
+            let connection = Connection::open(&database_path).expect("snapshot connection");
+            connection
+                .execute(
+                    "VACUUM INTO ?1",
+                    params![snapshot_path.to_string_lossy().as_ref()],
+                )
+                .expect("coherent historical SQLite snapshot");
+        }
+
+        let (process, run) = process_and_run();
+        let (mut budget, mut inventory, mut energy) = initial_kernel_state();
+        adapter
+            .authorize_pending(
+                &mut sqlite_context,
+                &process,
+                "exec-sqlite-rollback-composition",
+                1,
+                10,
+                20,
+                "bus",
+                run,
+                &mut budget,
+                &mut inventory,
+                &mut energy,
+            )
+            .expect("commit first transition to SQLite-backed witness store");
+
+        let current = sqlite_store
+            .load(&key)
+            .expect("load advanced witness memory")
+            .expect("advanced witness memory");
+        assert_eq!(current.generation(), 1);
+        assert_eq!(
+            current.snapshot().policy_commitment(),
+            key.policy_commitment()
+        );
+
+        // Retain the freshness cursor separately from the SQLite image. On recovery,
+        // the next attestation and checkpoint are bound to the current durable journal,
+        // not reconstructed from the restored witness database.
+        let retained_cursor = FreshnessCursor {
+            authority_commitment: sqlite_context
+                .freshness_cursor()
+                .authority_commitment()
+                .to_string(),
+            last_sequence: sqlite_context.freshness_cursor().last_sequence(),
+            last_head_hash: sqlite_context
+                .freshness_cursor()
+                .last_head_hash()
+                .to_string(),
+            last_event_count: sqlite_context.freshness_cursor().last_event_count(),
+        };
+        let next_freshness_sequence = retained_cursor
+            .last_sequence()
+            .checked_add(1)
+            .expect("freshness sequence");
+        let next_attestation = freshness_test_attestation(
+            sqlite_context.freshness_authority().authority_id(),
+            sqlite_context.freshness_authority().authority_epoch(),
+            &security.authority_signer,
+            &adapter,
+            next_freshness_sequence,
+        );
+        let next_transparency_sequence = sqlite_context
+            .transparency_witnesses()
+            .max_retained_sequence()
+            .checked_add(1)
+            .expect("transparency sequence");
+        let previous_digest = if next_transparency_sequence == 1 {
+            sqlite_context
+                .transparency_witnesses()
+                .retained_checkpoint_digest("w1")
+                .expect("genesis checkpoint digest")
+                .to_string()
+        } else {
+            hex_encode(&sqlite_context.transparency_checkpoint().digest())
+        };
+        let (next_checkpoint, next_signatures, next_vds_proof) = transparency_test_evidence(
+            &adapter,
+            sqlite_context.transparency_log(),
+            sqlite_context.transparency_policy(),
+            &security.log_signer,
+            &security.witness_signers,
+            next_transparency_sequence,
+            &previous_digest,
+        );
+
+        drop(sqlite_context);
+        drop(sqlite_store);
+        fs::copy(&snapshot_path, &restored_path).expect("restore historical SQLite image");
+
+        let restored_store = Arc::new(
+            SqliteTransparencyWitnessStateStore::open(&restored_path)
+                .expect("open valid historical witness image"),
+        );
+        let restored = restored_store
+            .load(&key)
+            .expect("load historical witness state")
+            .expect("historical witness state");
+        assert_eq!(restored.generation(), 0);
+        assert_eq!(restored, historical);
+
+        let error = DurableExecutionSecurityContext::establish_with_external_witness_store(
+            &adapter,
+            security.context.freshness_authority().clone(),
+            retained_cursor,
+            next_attestation,
+            security.context.transparency_log().clone(),
+            security.context.transparency_policy().clone(),
+            SharedTransparencyWitnessStateStore::new(restored_store),
+            next_checkpoint,
+            next_signatures,
+            next_vds_proof,
+        )
+        .expect_err(
+            "a valid but historically restored SQLite image must not override the independent current frontier",
+        );
+
+        assert!(
+            matches!(
+                error,
+                AdapterError::WitnessMismatch(_) | AdapterError::Transparency(_)
+            ),
+            "rollback must fail at the freshness/transparency admission boundary, got: {error:?}"
+        );
+
+        for path in [&database_path, &snapshot_path, &restored_path] {
+            let _ = fs::remove_file(path);
+            let _ = fs::remove_file(path.with_extension("sqlite3-wal"));
+            let _ = fs::remove_file(path.with_extension("sqlite3-shm"));
+        }
+        fs::remove_dir_all(adapter.store().root()).expect("cleanup journal store");
+    }
+
+    #[test]
     fn external_store_generation_must_match_restored_checkpoint_frontier() {
         let adapter = configured_adapter("external-bootstrap-generation");
         let security = TestSecurityMaterial::new(&adapter);
