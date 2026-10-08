@@ -374,7 +374,9 @@ The checkpoint commits a concrete VDS tree-size/root, and witness admission invo
         ↓
     optional inclusion/non-inclusion proofs
         ↓
-    SCITT/C2SP-compatible receipt/transport adapter
+    C2SP checkpoint-note / witness-cosignature codec
+        ↓
+    SCITT/COSE + HTTP transport and policy adapter
 
 The clean architectural rule remains:
 
@@ -394,7 +396,9 @@ Persisted lifecycle evidence retains the exact per-witness proof tuples, while t
 
 This is a liveness/interoperability refinement, not a relaxation of durable checkpoint sequence or predecessor checks. It keeps execution authority, freshness authority, transparency authority, and witness policy independently attributable.
 
-The next implementation frontier is concrete external-backend qualification and wire interoperability. A future C2SP/RFC 9942 adapter must map the semantic per-witness evidence into the protocol's base64/note or CBOR/COSE structures without silently dropping journal, policy, or VDS bindings.
+The next implementation frontier is concrete external-backend qualification plus C2SP policy/transport integration and COSE receipt interoperability. A future C2SP/RFC 9942 adapter must map the semantic per-witness evidence into the protocol's base64/note or CBOR/COSE structures without silently dropping journal, policy, or VDS bindings.
+
+The repository now also exposes a narrow C2SP wire adapter alongside the protocol-shaped Merkle proof bindings. It constructs canonical checkpoint note bodies and parses/verifies timestamped Ed25519 witness cosignatures, including the C2SP witness key-ID derivation and signed `cosignature/v1` message. It deliberately does not treat the internal Symtropy checkpoint signature as a C2SP note signature, and it does not implement HTTP, C2SP policy files, or COSE receipts.
 
 The repository now also exposes protocol-shaped Merkle proof bindings:
     RFC 9942 consistency content
