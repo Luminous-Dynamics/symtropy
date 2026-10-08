@@ -391,9 +391,11 @@ The minimum regression corpus for this layer should continue to cover:
 - successful external CAS returning a forged generation or replacement snapshot.
 - restored external generation inconsistent with the durable transparency frontier.
 - SQLite-backed witness state surviving an abrupt application crash and reopening exactly.
+- SQLite CAS recovery after an uncommitted mid-transaction process abort preserves the prior committed frontier.
 - SQLite concurrent CAS writers preserving single-winner creation semantics.
 - nonconforming pre-existing SQLite schema rejected before witness state is trusted.
 - SQLite page-integrity failure rejected before witness state is trusted.
+- coherent SQLite database-image restoration producing a valid older frontier, demonstrating that local durability is not an anti-rollback authority.
 - C2SP policy translation that would collapse recursive quorum semantics into a non-equivalent flat rule.
 
 ## Next implementation frontier
@@ -446,7 +448,7 @@ Those bindings are intentionally semantic rather than wire encodings. Their veri
 
 The SQLite backend now performs an additional admission check before trusting a database: the required table shape is verified with full column metadata, the witness table is required to have no unexpected SQLite schema objects attached to it (such as triggers or explicit indexes), and `PRAGMA integrity_check` must report `ok`. The CAS also reads the stored state back inside the same `BEGIN IMMEDIATE` transaction and requires exact equality with the candidate before COMMIT. This closes the distinction between validating the Rust-side value intended for storage and validating the value actually retained by SQLite.
 
-These checks establish a stronger local storage contract, but they do not establish physical power-loss qualification or database-image rollback resistance. The adversarial qualification corpus should therefore proceed through deterministic process interruption, SQLite VFS write/sync fault injection, coherent historical database-image restoration, and an independently retained monotonic frontier. SQLite's Online Backup API is the appropriate primitive for coherent live snapshots; copying a WAL-mode database file without its associated WAL/SHM state is not a sound historical-image experiment.
+These checks establish a stronger local storage contract, and the regression corpus now includes recovery from an uncommitted mid-transaction process abort. They do not establish physical power-loss qualification or database-image rollback resistance. The adversarial qualification corpus should therefore proceed through deterministic process interruption, SQLite VFS write/sync fault injection, coherent historical database-image restoration, and an independently retained monotonic frontier. SQLite's Online Backup API is the appropriate primitive for coherent live snapshots; copying a WAL-mode database file without its associated WAL/SHM state is not a sound historical-image experiment.
 
 The repository's in-memory backend remains only an adversarial semantic model and intentionally does not survive process restart. The SQLite backend should be treated as a durable implementation candidate until the hostile-interruption and rollback corpora have executed successfully on the exact pinned dependency/runner topology.
 
