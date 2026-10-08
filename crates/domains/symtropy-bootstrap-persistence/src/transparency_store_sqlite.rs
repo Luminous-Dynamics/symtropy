@@ -731,7 +731,7 @@ mod tests {
             .load(&key)
             .expect("load after injected write failure")
             .expect("committed frontier");
-        assert!(recovered.generation() <= 1);
+        assert!(matches!(recovered.generation(), 0 | 1));
         assert_eq!(recovered.snapshot().policy_commitment(), key.policy_commitment());
         assert_eq!(
             recovered.snapshot().log_authority_commitment(),
@@ -766,7 +766,7 @@ mod tests {
             .load(&key)
             .expect("load after injected sync failure")
             .expect("recoverable frontier");
-        assert!(recovered.generation() <= 1);
+        assert!(matches!(recovered.generation(), 0 | 1));
         assert_eq!(recovered.snapshot(), &initial);
 
         if candidate.is_ok() {
