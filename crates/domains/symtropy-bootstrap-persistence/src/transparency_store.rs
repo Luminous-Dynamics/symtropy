@@ -354,27 +354,50 @@ fn is_sha256_hex(value: &str) -> bool {
 mod tests {
     use super::*;
     use crate::transparency::{
-        TransparencyCheckpointUnsignedV1, TransparencyLogAuthorityV1,
-        TransparencyVdsTreeHeadV1, TransparencyWitnessPolicyV1,
+        TransparencyLogAuthorityV1, TransparencyVdsTreeHeadV1, TransparencyWitnessKeyV1,
+        TransparencyWitnessPolicyV1,
     };
-    use ring::{rand::SystemRandom, signature::{Ed25519KeyPair, KeyPair}};
+    use ring::{
+        rand::SystemRandom,
+        signature::{Ed25519KeyPair, KeyPair},
+    };
 
-    fn keys() -> (Ed25519KeyPair, Vec<Ed25519KeyPair>) {
-        let rng = SystemRandom::new();
-        let log = Ed25519KeyPair::generate_pkcs8(&rng).expect("log").to_vec();
-        let witnesses = (0..2)
-            .map(|_| Ed25519KeyPair::generate_pkcs8(&rng).expect("witness").to_vec())
-            .collect::<Vec<_>>();
-        (
-            Ed25519KeyPair::from_pkcs8(&log).expect("log"),
-            witnesses
-                .into_iter()
-                .map(|bytes| Ed25519KeyPair::from_pkcs8(&bytes).expect("witness"))
-                .collect(),
-        )
+    fn encode_hex(bytes: &[u8]) -> String {
+        bytes.iter().map(|byte| format!("{byte:02x}")).collect()
     }
 
-    fn snapshot() -> (TransparencyWitnessStoreKeyV1, TransparencyWitnessStateSnapshotV1) {
+    fn policy_and_log() -> (TransparencyWitnessPolicyV1, TransparencyLogAuthorityV1) {
+        let rng = SystemRandom::new();
+        let log_pkcs8 = Ed25519KeyPair::generate_pkcs8(&rng).expect("log key");
+        let log_pair = Ed25519KeyPair::from_pkcs8(log_pkcs8.as_ref()).expect("log pair");
+        let witness_pkcs8 = Ed25519KeyPair::generate_pkcs8(&rng).expect("witness key");
+        let witness_pair =
+            Ed25519KeyPair::from_pkcs8(witness_pkcs8.as_ref()).expect("witness pair");
+        let witness = TransparencyWitnessKeyV1::from_public_key_hex(
+            "w1",
+            "domain-a",
+            encode_hex(witness_pair.public_key().as_ref()),
+        )
+        .expect("witness");
+        let policy = TransparencyWitnessPolicyV1::new(
+            "policy-store",
+            "log-store",
+            1,
+            1,
+            1,
+            vec![witness],
+        )
+        .expect("policy");
+        let log = TransparencyLogAuthorityV1::from_public_key_hex(
+            "log-store",
+            1,
+            encode_hex(log_pair.public_key().as_ref()),
+        )
+        .expect("log");
+        (policy, log)
+    }
+
+    fn base_snapshot() -> (TransparencyWitnessStoreKeyV1, TransparencyWitnessStateSnapshotV1) {
         let policy_commitment = "11".repeat(32);
         let log_commitment = "22".repeat(32);
         let witness_one = TransparencyWitnessRecordV1::new(
@@ -398,7 +421,7 @@ mod tests {
         let snapshot = TransparencyWitnessStateSnapshotV1::new(
             policy_commitment.clone(),
             log_commitment.clone(),
-            vec![witness_one, witness_two],
+            vec![witness_two, witness_one],
         )
         .expect("snapshot");
         (
@@ -410,84 +433,83 @@ mod tests {
 
     #[test]
     fn compare_and_swap_is_atomic_and_stale_writer_cannot_rollback() {
-        let (key, initial_snapshot) = snapshot();
+        let (key, initial_snapshot) = base_snapshot();
         let store = MemoryTransparencyWitnessStateStore::default();
         let first = store
             .compare_and_swap(&key, None, initial_snapshot.clone())
             .expect("initial put");
 
+        let replacement = TransparencyWitnessRecordV1::new(
+            "w1",
+            1,
+            "55".repeat(32),
+            1,
+            &"66".repeat(32),
+            TransparencyVdsTreeHeadV1::empty(),
+        )
+        .expect("replacement");
         let second_snapshot = TransparencyWitnessStateSnapshotV1::new(
             initial_snapshot.policy_commitment().to_string(),
             initial_snapshot.log_authority_commitment().to_string(),
-            initial_snapshot
-                .witnesses()
-                .iter()
-                .cloned()
-                .map(|mut witness| {
-                    if witness.witness_id() == "w1" {
-                        witness
-                    } else {
-                        witness
-                    }
-                })
-                .collect(),
+            vec![
+                replacement,
+                initial_snapshot.witnesses()[1].clone(),
+            ],
         )
-        .expect("replacement");
+        .expect("replacement snapshot");
 
         let second = store
             .compare_and_swap(&key, Some(&first), second_snapshot)
             .expect("second put");
         assert_eq!(second.generation(), 1);
 
-        let stale_result = store.compare_and_swap(
-            &key,
-            Some(&first),
-            initial_snapshot,
-        );
+        let stale_result = store.compare_and_swap(&key, Some(&first), initial_snapshot);
         assert!(matches!(
             stale_result,
             Err(TransparencyWitnessStoreError::GenerationMismatch)
         ));
-        assert_eq!(
-            store.load(&key).expect("load").expect("stored").generation(),
-            1
-        );
+
+        let loaded = store.load(&key).expect("load").expect("stored");
+        assert_eq!(loaded.generation(), 1);
+        assert_eq!(loaded.snapshot().witnesses()[0].sequence(), 1);
     }
 
     #[test]
-    fn bootstrap_and_restart_round_trip_preserves_log_binding() {
-        let policy_commitment = "11".repeat(32);
-        let log_commitment = "22".repeat(32);
-        let key = TransparencyWitnessStoreKeyV1::new(&policy_commitment, &log_commitment)
-            .expect("key");
-        let snapshot = TransparencyWitnessStateSnapshotV1::new(
-            policy_commitment.clone(),
-            log_commitment.clone(),
-            vec![TransparencyWitnessRecordV1::new(
-                "w1",
-                0,
-                "33".repeat(32),
-                0,
-                "GENESIS",
-                TransparencyVdsTreeHeadV1::empty(),
-            )
-            .expect("w1")],
-        )
-        .expect("snapshot");
-        let store = MemoryTransparencyWitnessStateStore::default();
-        let stored = store
-            .compare_and_swap(&key, None, snapshot)
-            .expect("store");
-        assert_eq!(stored.generation(), 0);
+    fn from_external_state_requires_exact_policy_witness_set_and_log_root() {
+        let (policy, log) = policy_and_log();
+        let mut set = TransparencyWitnessSetV1::new(&policy).expect("set");
+        set.bind_log_authority(&log).expect("bind");
+        let snapshot = set.export_state().expect("export");
+        let restored =
+            TransparencyWitnessSetV1::from_external_state(&policy, &log, &snapshot)
+                .expect("restore");
+
         assert_eq!(
-            store.load(&key).expect("load").expect("state").snapshot(),
-            stored.snapshot()
+            restored.log_authority_commitment(),
+            Some(log.commitment().as_str())
         );
+        assert_eq!(restored.retained_sequence("w1"), Some(0));
+        assert_eq!(
+            restored.retained_checkpoint_digest("w1"),
+            set.retained_checkpoint_digest("w1")
+        );
+
+        let mut wrong_root = snapshot.clone();
+        wrong_root = TransparencyWitnessStateSnapshotV1::new(
+            wrong_root.policy_commitment().to_string(),
+            "99".repeat(32),
+            wrong_root.witnesses().to_vec(),
+        )
+        .expect("wrong-root snapshot");
+        assert!(matches!(
+            TransparencyWitnessSetV1::from_external_state(&policy, &log, &wrong_root),
+            Err(crate::transparency::TransparencyError::LogAuthorityMismatch)
+        ));
     }
 
     #[test]
     fn stale_expected_snapshot_is_not_salvaged_by_matching_generation() {
-        let (key, snapshot) = snapshot();
+        let (key, snapshot) = base_snapshot();
         let store = MemoryTransparencyWitnessStateStore::default();
         let first = store
             .compare_and_swap(&key, None, snapshot.clone())
@@ -496,19 +518,26 @@ mod tests {
         let altered = TransparencyWitnessStateSnapshotV1::new(
             snapshot.policy_commitment().to_string(),
             snapshot.log_authority_commitment().to_string(),
-            snapshot.witnesses().iter().cloned().rev().collect(),
+            vec![
+                TransparencyWitnessRecordV1::new(
+                    "w1",
+                    1,
+                    "aa".repeat(32),
+                    1,
+                    &"bb".repeat(32),
+                    TransparencyVdsTreeHeadV1::empty(),
+                )
+                .expect("altered w1"),
+                snapshot.witnesses()[1].clone(),
+            ],
         )
-        .expect("canonicalized");
-        let current = store
-            .compare_and_swap(&key, Some(&first), altered)
-            .expect("same logical snapshot");
-        assert_eq!(current.generation(), 1);
+        .expect("altered snapshot");
+        let forged_expected =
+            TransparencyWitnessStoredStateV1::new(first.generation(), altered)
+                .expect("forged generation-matched state");
 
-        let stale = store.compare_and_swap(
-            &key,
-            Some(&first),
-            snapshot,
-        );
+        let replacement = snapshot.clone();
+        let stale = store.compare_and_swap(&key, Some(&forged_expected), replacement);
         assert!(matches!(
             stale,
             Err(TransparencyWitnessStoreError::GenerationMismatch)
