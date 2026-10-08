@@ -89,8 +89,21 @@ impl SqliteTransparencyWitnessStateStore {
             ))
             .map_err(sqlite_error)?;
         Self::validate_schema(&connection)?;
+        Self::validate_integrity(&connection)?;
 
         Ok(connection)
+    }
+
+    fn validate_integrity(connection: &Connection) -> Result<(), TransparencyWitnessStoreError> {
+        let result = connection
+            .query_row("PRAGMA integrity_check", [], |row| row.get::<_, String>(0))
+            .map_err(sqlite_error)?;
+        if result != "ok" {
+            return Err(TransparencyWitnessStoreError::Invalid(format!(
+                "SQLite integrity_check failed: {result}"
+            )));
+        }
+        Ok(())
     }
 
     fn validate_schema(connection: &Connection) -> Result<(), TransparencyWitnessStoreError> {
