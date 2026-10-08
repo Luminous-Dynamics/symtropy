@@ -340,7 +340,9 @@ impl TransparencyWitnessStateStore for SqliteTransparencyWitnessStateStore {
             )
             .map_err(sqlite_error)?;
 
-        abort_for_test("after-write-before-commit");
+        if expected.is_some() {
+            abort_for_test("after-write-before-commit");
+        }
 
         let persisted_json = transaction
             .query_row(
@@ -371,11 +373,10 @@ fn sqlite_error(error: rusqlite::Error) -> TransparencyWitnessStoreError {
 }
 
 fn abort_for_test(point: &str) {
-    #[cfg(test)]
+    if cfg!(test)
+        && std::env::var("SYMTROPY_SQLITE_ABORT_AT").ok().as_deref() == Some(point)
     {
-        if std::env::var("SYMTROPY_SQLITE_ABORT_AT").ok().as_deref() == Some(point) {
-            std::process::abort();
-        }
+        std::process::abort();
     }
 }
 
@@ -573,7 +574,7 @@ mod tests {
             let next = TransparencyWitnessStateSnapshotV1::new(
                 key.policy_commitment().to_string(),
                 key.log_authority_commitment().to_string(),
-                vec![fixture().1.witnesses()[0].clone()],
+                vec![initial.witnesses()[0].clone()],
             )
             .expect("replacement");
             let _ = store.compare_and_swap(
