@@ -49,9 +49,7 @@ thread_local! {
     static ACTIVE_NAME: RefCell<Option<String>> = const { RefCell::new(None) };
 }
 
-pub struct FaultGuard {
-    _serial: MutexGuard<'static, ()>,
-}
+pub struct FaultGuard;
 
 impl Drop for FaultGuard {
     fn drop(&mut self) {
@@ -61,6 +59,10 @@ impl Drop for FaultGuard {
 
 pub struct ActivationGuard {
     previous: Option<String>,
+    // Hold the test serializer for the entire VFS activation, including database
+    // setup before a fault plan is armed. Otherwise another test could consume the
+    // global plan's ordinal during its own setup I/O.
+    _serial: Option<MutexGuard<'static, ()>>,
 }
 
 impl Drop for ActivationGuard {
@@ -151,9 +153,17 @@ pub fn install() {
 
 pub fn activate_current_thread() -> ActivationGuard {
     install();
-    ACTIVE_NAME.with(|name| ActivationGuard {
-        previous: name.borrow_mut().replace(NAME.to_owned()),
-    })
+    let already_active = ACTIVE_NAME.with(|name| name.borrow().is_some());
+    let serial = if already_active {
+        None
+    } else {
+        Some(SERIAL.lock().expect("fault VFS activation mutex"))
+    };
+    let previous = ACTIVE_NAME.with(|name| name.borrow_mut().replace(NAME.to_owned()));
+    ActivationGuard {
+        previous,
+        _serial: serial,
+    }
 }
 
 pub fn active_name() -> Option<String> {
@@ -171,7 +181,10 @@ pub fn arm_main(operation: FaultOperation, ordinal: usize) -> FaultGuard {
 
 fn arm_inner(operation: FaultOperation, ordinal: usize, scope: FaultScope) -> FaultGuard {
     assert!(ordinal > 0, "fault ordinal is one-based");
-    let serial = SERIAL.lock().expect("fault serial mutex");
+    assert!(
+        active_name().is_some(),
+        "fault plan requires an active, serialized VFS scope"
+    );
     *PLAN.lock().expect("fault plan mutex") = Some(FaultPlan {
         operation,
         ordinal,
@@ -179,7 +192,7 @@ fn arm_inner(operation: FaultOperation, ordinal: usize, scope: FaultScope) -> Fa
         fired: false,
         scope,
     });
-    FaultGuard { _serial: serial }
+    FaultGuard
 }
 
 pub fn fired() -> bool {
