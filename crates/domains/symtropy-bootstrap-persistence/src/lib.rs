@@ -3774,6 +3774,85 @@ mod tests {
     }
 
     #[test]
+    fn external_witness_store_unselected_witness_mutation_blocks_recovery() {
+        let adapter = configured_adapter("external-witness-store-tamper");
+        let mut security = TestSecurityMaterial::new(&adapter);
+        let (process, run) = process_and_run();
+        let (mut budget, mut inventory, mut energy) = initial_kernel_state();
+
+        security.refresh(&adapter);
+        security.external_store.cas_mode.store(2, Ordering::SeqCst);
+
+        adapter
+            .authorize_pending(
+                &mut security.context,
+                &process,
+                "exec-external-store-tamper",
+                1,
+                10,
+                20,
+                "bus",
+                run,
+                &mut budget,
+                &mut inventory,
+                &mut energy,
+            )
+            .expect_err("post-commit error must fence");
+
+        let key = security
+            .context
+            .transparency_external_store_key
+            .as_ref()
+            .expect("store key")
+            .clone();
+        let current = security
+            .external_store
+            .inner
+            .load(&key)
+            .expect("load")
+            .expect("stored state");
+        let mut tampered_witnesses = current.snapshot().witnesses().to_vec();
+        let w3 = tampered_witnesses
+            .iter_mut()
+            .find(|record| record.witness_id() == "w3")
+            .expect("unselected w3");
+        *w3 = transparency::TransparencyWitnessRecordV1::new(
+            "w3",
+            1,
+            "99".repeat(32),
+            1,
+            &"aa".repeat(32),
+            TransparencyVdsTreeHeadV1::empty(),
+        )
+        .expect("tampered w3");
+        let tampered = transparency::TransparencyWitnessStateSnapshotV1::new(
+            current.snapshot().policy_commitment().to_string(),
+            current.snapshot().log_authority_commitment().to_string(),
+            tampered_witnesses,
+        )
+        .expect("tampered snapshot");
+
+        security
+            .external_store
+            .inner
+            .compare_and_swap(&key, Some(&current), tampered)
+            .expect("tamper update");
+
+        security.external_store.cas_mode.store(0, Ordering::SeqCst);
+        let error = security
+            .context
+            .reconcile_external_transparency_witness_store(&adapter)
+            .expect_err("whole-snapshot mutation must block recovery");
+
+        assert!(matches!(error, AdapterError::WitnessMismatch(_)));
+        assert!(
+            security
+                .context
+                .external_transparency_witness_store_desynchronized()
+        );
+    }
+
+    #[test]
     fn external_witness_store_failure_fences_context_after_journal_append() {
         let adapter = configured_adapter("external-witness-cas-failure");
         let mut security = TestSecurityMaterial::new(&adapter);
