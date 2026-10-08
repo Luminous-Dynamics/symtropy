@@ -4512,6 +4512,32 @@ mod tests {
         let _ = std::fs::remove_file(path.with_extension("sqlite3-shm"));
     }
 
+    fn sqlite_sidecar(path: &std::path::Path, suffix: &str) -> std::path::PathBuf {
+        std::path::PathBuf::from(format!("{}-{suffix}", path.display()))
+    }
+
+    fn copy_sqlite_image(
+        source: &std::path::Path,
+        destination: &std::path::Path,
+    ) -> std::io::Result<()> {
+        cleanup_sqlite_image(destination);
+        std::fs::copy(source, destination)?;
+        for suffix in ["wal", "shm"] {
+            let source_sidecar = sqlite_sidecar(source, suffix);
+            let destination_sidecar = sqlite_sidecar(destination, suffix);
+            if source_sidecar.exists() {
+                std::fs::copy(source_sidecar, destination_sidecar)?;
+            }
+        }
+        Ok(())
+    }
+
+    fn cleanup_sqlite_image(path: &std::path::Path) {
+        let _ = std::fs::remove_file(path);
+        let _ = std::fs::remove_file(sqlite_sidecar(path, "wal"));
+        let _ = std::fs::remove_file(sqlite_sidecar(path, "shm"));
+    }
+
     #[test]
     fn rolled_back_sqlite_database_image_cannot_be_reused_after_later_transition() {
         let adapter = configured_adapter("sqlite-image-rollback");
@@ -4573,7 +4599,7 @@ mod tests {
             )
             .expect("first transition");
 
-        std::fs::copy(&path, &backup).expect("capture committed database image");
+        copy_sqlite_image(&path, &backup).expect("capture committed database image");
 
         security.set_freshness_attestation(freshness_test_attestation(
             security.freshness_authority().authority_id(),
@@ -4610,7 +4636,7 @@ mod tests {
             )
             .expect("second transition");
 
-        std::fs::copy(&backup, &path).expect("restore older database image");
+        copy_sqlite_image(&backup, &path).expect("restore older database image");
 
         security.set_freshness_attestation(freshness_test_attestation(
             security.freshness_authority().authority_id(),
@@ -4664,10 +4690,8 @@ mod tests {
                 if message.contains("generation is inconsistent")
         ));
 
-        let _ = std::fs::remove_file(&path);
-        let _ = std::fs::remove_file(&backup);
-        let _ = std::fs::remove_file(path.with_extension("sqlite3-wal"));
-        let _ = std::fs::remove_file(path.with_extension("sqlite3-shm"));
+        cleanup_sqlite_image(&path);
+        cleanup_sqlite_image(&backup);
     }
 
     #[test]
