@@ -224,6 +224,40 @@ impl SqliteTransparencyWitnessStateStore {
             ));
         }
 
+        let mut table_statement = connection
+            .prepare("PRAGMA main.table_list")
+            .map_err(sqlite_error)?;
+        let mut table_rows = table_statement.query([]).map_err(sqlite_error)?;
+        let mut table_kind = None;
+
+        while let Some(row) = table_rows.next().map_err(sqlite_error)? {
+            let schema = row.get::<_, String>(0).map_err(sqlite_error)?;
+            let name = row.get::<_, String>(1).map_err(sqlite_error)?;
+            if schema == "main" && name == TABLE {
+                table_kind = Some((
+                    row.get::<_, String>(2).map_err(sqlite_error)?,
+                    row.get::<_, i64>(3).map_err(sqlite_error)?,
+                    row.get::<_, i64>(4).map_err(sqlite_error)?,
+                    row.get::<_, i64>(5).map_err(sqlite_error)?,
+                ));
+                break;
+            }
+        }
+
+        match table_kind {
+            Some((kind, ncol, without_rowid, strict))
+                if kind == "table"
+                    && ncol == 3
+                    && without_rowid == 0
+                    && strict == 0 => {}
+            _ => {
+                return Err(TransparencyWitnessStoreError::Invalid(
+                    "SQLite witness-state table kind does not match the required ordinary non-STRICT rowid table"
+                        .to_string(),
+                ));
+            }
+        }
+
         let mut index_statement = connection
             .prepare(&format!("PRAGMA index_list({TABLE})"))
             .map_err(sqlite_error)?;
@@ -606,6 +640,62 @@ mod tests {
             error,
             TransparencyWitnessStoreError::Invalid(message)
                 if message.contains("schema does not match")
+        ));
+
+        cleanup(&path);
+    }
+
+    #[test]
+    fn without_rowid_witness_schema_is_rejected() {
+        let path = temp_database_path("without-rowid");
+        {
+            let connection = Connection::open(&path).expect("raw sqlite");
+            connection
+                .execute_batch(&format!(
+                    "CREATE TABLE {TABLE} (
+                        policy_commitment TEXT NOT NULL,
+                        log_authority_commitment TEXT NOT NULL,
+                        state_json TEXT NOT NULL,
+                        PRIMARY KEY (policy_commitment, log_authority_commitment)
+                    ) WITHOUT ROWID;"
+                ))
+                .expect("without rowid schema");
+        }
+
+        let error =
+            SqliteTransparencyWitnessStateStore::open(&path).expect_err("WITHOUT ROWID must fail");
+        assert!(matches!(
+            error,
+            TransparencyWitnessStoreError::Invalid(message)
+                if message.contains("ordinary non-STRICT rowid table")
+        ));
+
+        cleanup(&path);
+    }
+
+    #[test]
+    fn strict_witness_schema_is_rejected() {
+        let path = temp_database_path("strict-table");
+        {
+            let connection = Connection::open(&path).expect("raw sqlite");
+            connection
+                .execute_batch(&format!(
+                    "CREATE TABLE {TABLE} (
+                        policy_commitment TEXT NOT NULL,
+                        log_authority_commitment TEXT NOT NULL,
+                        state_json TEXT NOT NULL,
+                        PRIMARY KEY (policy_commitment, log_authority_commitment)
+                    ) STRICT;"
+                ))
+                .expect("strict schema");
+        }
+
+        let error =
+            SqliteTransparencyWitnessStateStore::open(&path).expect_err("STRICT must fail");
+        assert!(matches!(
+            error,
+            TransparencyWitnessStoreError::Invalid(message)
+                if message.contains("ordinary non-STRICT rowid table")
         ));
 
         cleanup(&path);
