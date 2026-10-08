@@ -4395,6 +4395,124 @@ mod tests {
     }
 
     #[test]
+    fn sqlite_witness_store_commits_real_transition_and_matches_journal_evidence() {
+        let adapter = configured_adapter("sqlite-real-transition");
+        let material = TestSecurityMaterial::new(&adapter);
+        let path = std::env::temp_dir().join(format!(
+            "symtropy-sqlite-transition-{}-{}.sqlite3",
+            std::process::id(),
+            SystemTime::now()
+                .duration_since(UNIX_EPOCH)
+                .expect("clock")
+                .as_nanos()
+        ));
+
+        let sqlite_store =
+            SqliteTransparencyWitnessStateStore::open(&path).expect("sqlite store");
+        let shared_store = SharedTransparencyWitnessStateStore::new(Arc::new(sqlite_store));
+
+        let cursor = FreshnessCursor {
+            authority_commitment: material
+                .context
+                .freshness_cursor()
+                .authority_commitment()
+                .to_string(),
+            last_sequence: material.context.freshness_cursor().last_sequence(),
+            last_head_hash: material.context.freshness_cursor().last_head_hash().to_string(),
+            last_event_count: material.context.freshness_cursor().last_event_count(),
+        };
+
+        let mut security = DurableExecutionSecurityContext::establish_with_external_witness_store(
+            &adapter,
+            material.context.freshness_authority().clone(),
+            cursor,
+            material.context.freshness_attestation().clone(),
+            material.context.transparency_log().clone(),
+            material.context.transparency_policy().clone(),
+            shared_store.clone(),
+            material.context.transparency_checkpoint().clone(),
+            material.context.transparency_witness_signatures().to_vec(),
+            material.context.transparency_vds_consistency_proof().cloned(),
+        )
+        .expect("SQLite-backed context");
+
+        let (process, run) = process_and_run();
+        let (mut budget, mut inventory, mut energy) = initial_kernel_state();
+        security.freshness_attestation.sequence = 1;
+
+        security
+            .set_freshness_attestation(
+                material.context.freshness_attestation().clone(),
+            );
+
+        let _receipt = adapter
+            .authorize_pending(
+                &mut security,
+                &process,
+                "exec-sqlite-real-transition",
+                1,
+                10,
+                20,
+                "bus",
+                run,
+                &mut budget,
+                &mut inventory,
+                &mut energy,
+            )
+            .expect("real transition");
+
+        let event = adapter
+            .load_verified()
+            .expect("journal")
+            .chain
+            .events()
+            .last()
+            .expect("persisted event");
+        let evidence = &event.payload.transparency_evidence;
+
+        let reopened =
+            SqliteTransparencyWitnessStateStore::open(&path).expect("reopen SQLite");
+        let key = security
+            .transparency_external_store_key
+            .as_ref()
+            .expect("store key")
+            .clone();
+        let stored = reopened
+            .load(&key)
+            .expect("load stored transition")
+            .expect("transition state");
+
+        assert_eq!(stored.generation(), 1);
+        for witness_id in &evidence.accepted_witnesses {
+            let record = stored
+                .snapshot()
+                .witnesses()
+                .iter()
+                .find(|record| record.witness_id() == witness_id)
+                .expect("accepted witness record");
+            assert_eq!(record.sequence(), evidence.checkpoint.sequence());
+            assert_eq!(
+                record.checkpoint_digest(),
+                hex_encode(&evidence.checkpoint.digest())
+            );
+            assert_eq!(record.event_count(), evidence.checkpoint.event_count());
+            assert_eq!(record.head_hash(), evidence.checkpoint.head_hash());
+            assert_eq!(
+                record.vds_tree_head().tree_size(),
+                evidence.checkpoint.vds_tree_size()
+            );
+            assert_eq!(
+                record.vds_tree_head().root_hash(),
+                evidence.checkpoint.vds_root_hash()
+            );
+        }
+
+        let _ = std::fs::remove_file(&path);
+        let _ = std::fs::remove_file(path.with_extension("sqlite3-wal"));
+        let _ = std::fs::remove_file(path.with_extension("sqlite3-shm"));
+    }
+
+    #[test]
     fn external_witness_store_failure_fences_context_after_journal_append() {
         let adapter = configured_adapter("external-witness-cas-failure");
         let mut security = TestSecurityMaterial::new(&adapter);
