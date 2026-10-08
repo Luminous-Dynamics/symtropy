@@ -70,6 +70,9 @@ impl Drop for ActivationGuard {
         ACTIVE_NAME.with(|name| {
             *name.borrow_mut() = self.previous.take();
         });
+        if self._serial.is_some() {
+            *PLAN.lock().unwrap_or_else(|poisoned| poisoned.into_inner()) = None;
+        }
     }
 }
 
@@ -157,7 +160,7 @@ pub fn activate_current_thread() -> ActivationGuard {
     let serial = if already_active {
         None
     } else {
-        Some(SERIAL.lock().expect("fault VFS activation mutex"))
+        Some(SERIAL.lock().unwrap_or_else(|poisoned| poisoned.into_inner()))
     };
     let previous = ACTIVE_NAME.with(|name| name.borrow_mut().replace(NAME.to_owned()));
     ActivationGuard {
