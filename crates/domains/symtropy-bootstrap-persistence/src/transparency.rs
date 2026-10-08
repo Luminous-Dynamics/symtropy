@@ -890,6 +890,7 @@ impl TransparencyWitnessSetV1 {
         }
         Ok(Self {
             policy_commitment: policy.commitment(),
+            log_authority_commitment: None,
             witnesses,
         })
     }
