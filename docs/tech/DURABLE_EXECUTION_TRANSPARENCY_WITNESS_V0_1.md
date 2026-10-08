@@ -384,7 +384,7 @@ The minimum regression corpus for this layer should continue to cover:
 - failed external-store bootstrap preflight leaves no genesis state behind.
 - concurrent external-store bootstrap creation uses the authoritative winning snapshot or fails closed on divergence.
 - restart restoration from an externally retained witness snapshot.
-    successful external CAS returning a forged generation or replacement snapshot.
+- successful external CAS returning a forged generation or replacement snapshot.
 - restored external generation inconsistent with the durable transparency frontier.
 - SQLite-backed witness state surviving an abrupt application crash and reopening exactly.
 - SQLite concurrent CAS writers preserving single-winner creation semantics.
