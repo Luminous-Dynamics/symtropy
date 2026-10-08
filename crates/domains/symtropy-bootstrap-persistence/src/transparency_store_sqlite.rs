@@ -545,6 +545,102 @@ mod tests {
     }
 
     #[test]
+    fn concurrent_advances_from_same_generation_have_exactly_one_winner() {
+        let path = temp_database_path("concurrent-advance");
+        let (key, initial) = fixture();
+        let seed_store =
+            SqliteTransparencyWitnessStateStore::open(&path).expect("seed store");
+        let initial_state = seed_store
+            .compare_and_swap(&key, None, initial.clone())
+            .expect("initial state");
+
+        let left = Arc::new(
+            SqliteTransparencyWitnessStateStore::open(&path).expect("left store"),
+        );
+        let right = Arc::new(
+            SqliteTransparencyWitnessStateStore::open(&path).expect("right store"),
+        );
+        let barrier = Arc::new(Barrier::new(3));
+
+        let left_store = Arc::clone(&left);
+        let left_key = key.clone();
+        let left_expected = initial_state.clone();
+        let left_snapshot = TransparencyWitnessStateSnapshotV1::new(
+            initial.policy_commitment().to_string(),
+            initial.log_authority_commitment().to_string(),
+            vec![TransparencyWitnessRecordV1::new(
+                "w1",
+                1,
+                &"55".repeat(32),
+                1,
+                &"66".repeat(32),
+                TransparencyVdsTreeHeadV1::empty(),
+            )
+            .expect("left witness")],
+        )
+        .expect("left snapshot");
+        let left_barrier = Arc::clone(&barrier);
+        let left_thread = std::thread::spawn(move || {
+            left_barrier.wait();
+            left_store.compare_and_swap(&left_key, Some(&left_expected), left_snapshot)
+        });
+
+        let right_store = Arc::clone(&right);
+        let right_key = key;
+        let right_expected = initial_state;
+        let right_snapshot = TransparencyWitnessStateSnapshotV1::new(
+            initial.policy_commitment().to_string(),
+            initial.log_authority_commitment().to_string(),
+            vec![TransparencyWitnessRecordV1::new(
+                "w1",
+                1,
+                &"77".repeat(32),
+                1,
+                &"88".repeat(32),
+                TransparencyVdsTreeHeadV1::empty(),
+            )
+            .expect("right witness")],
+        )
+        .expect("right snapshot");
+        let right_barrier = Arc::clone(&barrier);
+        let right_thread = std::thread::spawn(move || {
+            right_barrier.wait();
+            right_store.compare_and_swap(&right_key, Some(&right_expected), right_snapshot)
+        });
+
+        barrier.wait();
+
+        let results = [
+            left_thread.join().expect("left join"),
+            right_thread.join().expect("right join"),
+        ];
+        assert_eq!(results.iter().filter(|result| result.is_ok()).count(), 1);
+        assert_eq!(
+            results
+                .iter()
+                .filter(|result| matches!(
+                    result,
+                    Err(TransparencyWitnessStoreError::GenerationMismatch)
+                ))
+                .count(),
+            1,
+        );
+
+        let stored = left.load(&key).expect("load").expect("winner");
+        assert_eq!(stored.generation(), 1);
+        assert_eq!(
+            stored.snapshot(),
+            results
+                .iter()
+                .find_map(|result| result.as_ref().ok())
+                .expect("winner result")
+                .snapshot()
+        );
+
+        cleanup(&path);
+    }
+
+    #[test]
     fn concurrent_creates_have_exactly_one_winner() {
         let path = temp_database_path("concurrent-create");
         let (key, snapshot) = fixture();
