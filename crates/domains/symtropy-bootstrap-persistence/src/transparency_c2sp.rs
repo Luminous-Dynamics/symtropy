@@ -52,14 +52,17 @@ impl C2spCheckpointNoteBodyV1 {
         extensions: Vec<String>,
     ) -> Result<Self, C2spWireError> {
         let origin = origin.into();
-        if origin.is_empty() || origin.contains(['\n', '\r']) {
+        if origin.is_empty() || origin.bytes().any(|byte| byte == b'\n' || byte == b'\r') {
             return Err(C2spWireError::Invalid(
                 "C2SP checkpoint origin must be one non-empty line".to_string(),
             ));
         }
         let root = decode_hex_32(root_hash_hex)?;
         if extensions.iter().any(|extension| {
-            extension.is_empty() || extension.contains(['\n', '\r'])
+            extension.is_empty()
+                || extension
+                    .bytes()
+                    .any(|byte| byte == b'\n' || byte == b'\r')
         }) {
             return Err(C2spWireError::Invalid(
                 "C2SP checkpoint extensions must be non-empty single lines".to_string(),
@@ -161,7 +164,12 @@ impl C2spTimestampedEd25519CosignatureV1 {
                 "C2SP cosignature must contain witness name and base64 payload".to_string(),
             )
         })?;
-        if witness_name.is_empty() || encoded.is_empty() || witness_name.contains(['\n', '\r']) {
+        if witness_name.is_empty()
+            || encoded.is_empty()
+            || witness_name
+                .bytes()
+                .any(|byte| byte == b'\n' || byte == b'\r')
+        {
             return Err(C2spWireError::Invalid(
                 "C2SP cosignature witness name must be one non-empty line".to_string(),
             ));
