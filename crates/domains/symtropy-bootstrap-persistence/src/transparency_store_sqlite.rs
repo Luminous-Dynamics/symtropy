@@ -270,8 +270,8 @@ fn sqlite_error(error: rusqlite::Error) -> TransparencyWitnessStoreError {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::transparency::TransparencyVdsTreeHeadV1;
-    use crate::transparency_store::{TransparencyWitnessRecordV1, TransparencyWitnessStateSnapshotV1};
+    use crate::transparency::{TransparencyVdsTreeHeadV1, TransparencyWitnessRecordV1, TransparencyWitnessStateSnapshotV1};
+    use crate::transparency_store::TransparencyWitnessStateStore;
     use std::sync::{Arc, Barrier};
     use std::time::{SystemTime, UNIX_EPOCH};
 
