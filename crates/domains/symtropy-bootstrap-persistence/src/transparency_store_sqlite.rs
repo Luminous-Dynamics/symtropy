@@ -88,8 +88,47 @@ impl SqliteTransparencyWitnessStateStore {
                 );"
             ))
             .map_err(sqlite_error)?;
+        Self::validate_schema(&connection)?;
 
         Ok(connection)
+    }
+
+    fn validate_schema(connection: &Connection) -> Result<(), TransparencyWitnessStoreError> {
+        let mut statement = connection
+            .prepare(&format!("PRAGMA table_info({TABLE})"))
+            .map_err(sqlite_error)?;
+        let mut rows = statement.query([]).map_err(sqlite_error)?;
+        let mut columns = Vec::new();
+
+        while let Some(row) = rows.next().map_err(sqlite_error)? {
+            let cid = row.get::<_, i64>(0).map_err(sqlite_error)?;
+            let name = row.get::<_, String>(1).map_err(sqlite_error)?;
+            let sql_type = row.get::<_, String>(2).map_err(sqlite_error)?;
+            let not_null = row.get::<_, i64>(3).map_err(sqlite_error)?;
+            let primary_key_position = row.get::<_, i64>(5).map_err(sqlite_error)?;
+            columns.push((cid, name, sql_type, not_null, primary_key_position));
+        }
+
+        let expected = vec![
+            (0_i64, "policy_commitment".to_string(), "TEXT".to_string(), 1_i64, 1_i64),
+            (
+                1_i64,
+                "log_authority_commitment".to_string(),
+                "TEXT".to_string(),
+                1_i64,
+                2_i64,
+            ),
+            (2_i64, "state_json".to_string(), "TEXT".to_string(), 1_i64, 0_i64),
+        ];
+
+        if columns != expected {
+            return Err(TransparencyWitnessStoreError::Invalid(
+                "SQLite witness-state table schema does not match the required atomic whole-snapshot layout"
+                    .to_string(),
+            ));
+        }
+
+        Ok(())
     }
 
     fn load_in_transaction(
@@ -315,6 +354,33 @@ mod tests {
         let _ = std::fs::remove_file(path);
         let _ = std::fs::remove_file(path.with_extension("sqlite3-wal"));
         let _ = std::fs::remove_file(path.with_extension("sqlite3-shm"));
+    }
+
+    #[test]
+    fn nonconforming_preexisting_schema_is_rejected() {
+        let path = temp_database_path("schema-reject");
+        {
+            let connection = Connection::open(&path).expect("raw sqlite");
+            connection
+                .execute_batch(&format!(
+                    "CREATE TABLE {TABLE} (
+                        policy_commitment TEXT NOT NULL,
+                        log_authority_commitment TEXT NOT NULL,
+                        state_json TEXT NOT NULL
+                    );"
+                ))
+                .expect("bad schema");
+        }
+
+        let error =
+            SqliteTransparencyWitnessStateStore::open(&path).expect_err("bad schema must fail");
+        assert!(matches!(
+            error,
+            TransparencyWitnessStoreError::Invalid(message)
+                if message.contains("schema does not match")
+        ));
+
+        cleanup(&path);
     }
 
     #[test]
