@@ -559,6 +559,52 @@ mod tests {
     }
 
     #[test]
+    fn coherent_database_snapshot_restore_produces_valid_older_frontier() {
+        let path = temp_database_path("rollback-source");
+        let snapshot_path = temp_database_path("rollback-snapshot");
+        let restored_path = temp_database_path("rollback-restored");
+        let (key, initial) = fixture();
+
+        let store = SqliteTransparencyWitnessStateStore::open(&path).expect("open");
+        let committed = store
+            .compare_and_swap(&key, None, initial.clone())
+            .expect("initial commit");
+        assert_eq!(committed.generation(), 0);
+        drop(store);
+
+        {
+            let connection = Connection::open(&path).expect("snapshot connection");
+            connection
+                .execute("VACUUM INTO ?1", params![snapshot_path.to_string_lossy().as_ref()])
+                .expect("coherent snapshot");
+        }
+
+        {
+            let store = SqliteTransparencyWitnessStateStore::open(&path).expect("reopen");
+            let advanced = store
+                .compare_and_swap(&key, Some(&committed), initial.clone())
+                .expect("advance after snapshot");
+            assert_eq!(advanced.generation(), 1);
+        }
+
+        std::fs::copy(&snapshot_path, &restored_path).expect("restore coherent snapshot");
+
+        let restored = SqliteTransparencyWitnessStateStore::open(&restored_path)
+            .expect("open restored snapshot");
+        let recovered = restored
+            .load(&key)
+            .expect("load restored snapshot")
+            .expect("restored witness state");
+
+        assert_eq!(recovered, committed);
+        assert_eq!(recovered.generation(), 0);
+
+        cleanup(&path);
+        cleanup(&snapshot_path);
+        cleanup(&restored_path);
+    }
+
+    #[test]
     fn abort_after_write_before_commit_recovers_previous_frontier() {
         const WORKER_ENV: &str = "SYMTROPY_SQLITE_ABORT_WORKER";
         const ABORT_POINT_ENV: &str = "SYMTROPY_SQLITE_ABORT_AT";
