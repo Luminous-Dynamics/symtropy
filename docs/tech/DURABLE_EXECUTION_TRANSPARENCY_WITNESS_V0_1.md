@@ -84,6 +84,8 @@ Genesis is a deterministic semantic checkpoint derived from:
 
     log identity + log epoch + witness-policy commitment
 
+When an external witness store is empty, bootstrap first completes the full security-context admission against an in-memory genesis witness set. Only a successfully admitted context may create the durable genesis snapshot. If another writer wins the creation race, the resulting authoritative snapshot is reloaded and the admission is re-run against that exact state; a divergent winner is not silently adopted.
+
 For general evidence verification, a checkpoint may be idempotently re-verified against a witness's already-retained checkpoint.
 
 For a **new durable transition**, two different monotonic boundaries are checked. The durable lifecycle journal requires the candidate checkpoint sequence to be exactly the next sequence after its persisted history, while retained witnesses require the candidate to be newer than every witness state used for admission. This prevents a previously consumed checkpoint from authorizing another state-changing lifecycle event while still allowing a witness to catch up after missed intermediate checkpoints when VDS continuity is proven.
@@ -358,6 +360,8 @@ The minimum regression corpus for this layer should continue to cover:
 - external witness store snapshot mismatch under a matching generation.
 - stale accepted checkpoint against changed external witness state.
 - successful journal append followed by failed external witness-state CAS.
+- failed external-store bootstrap preflight leaves no genesis state behind.
+- concurrent external-store bootstrap creation uses the authoritative winning snapshot or fails closed on divergence.
 - restart restoration from an externally retained witness snapshot.
 
 ## Next implementation frontier
