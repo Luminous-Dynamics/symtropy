@@ -16,7 +16,7 @@ use std::{
     time::Duration,
 };
 
-use rusqlite::{params, Connection, OptionalExtension, TransactionBehavior};
+use rusqlite::{params, Connection, OpenFlags, OptionalExtension, TransactionBehavior};
 
 use super::transparency::TransparencyWitnessStateSnapshotV1;
 use super::transparency_store::{
@@ -61,7 +61,13 @@ impl SqliteTransparencyWitnessStateStore {
     }
 
     fn connection(&self) -> Result<Connection, TransparencyWitnessStoreError> {
-        let connection = Connection::open(&self.path).map_err(sqlite_error)?;
+        let flags = OpenFlags::SQLITE_OPEN_READ_WRITE
+            | OpenFlags::SQLITE_OPEN_CREATE
+            | OpenFlags::SQLITE_OPEN_URI
+            | OpenFlags::SQLITE_OPEN_NO_MUTEX
+            | OpenFlags::SQLITE_OPEN_NOFOLLOW;
+        let connection =
+            Connection::open_with_flags(&self.path, flags).map_err(sqlite_error)?;
         connection
             .busy_timeout(Duration::from_secs(5))
             .map_err(sqlite_error)?;
@@ -455,6 +461,29 @@ mod tests {
         let _ = std::fs::remove_file(path);
         let _ = std::fs::remove_file(path.with_extension("sqlite3-wal"));
         let _ = std::fs::remove_file(path.with_extension("sqlite3-shm"));
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn symlinked_database_path_is_rejected() {
+        use std::os::unix::fs::symlink;
+
+        let target = temp_database_path("nofollow-target");
+        let link = temp_database_path("nofollow-link");
+        let store = SqliteTransparencyWitnessStateStore::open(&target).expect("target open");
+        drop(store);
+
+        symlink(&target, &link).expect("symlink");
+        let error = SqliteTransparencyWitnessStateStore::open(&link)
+            .expect_err("symlinked database path must be rejected");
+        assert!(matches!(
+            error,
+            TransparencyWitnessStoreError::Backend(message)
+                if message.contains("SQLite error")
+        ));
+
+        cleanup(&link);
+        cleanup(&target);
     }
 
     #[test]
