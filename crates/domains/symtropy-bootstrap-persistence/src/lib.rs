@@ -34,7 +34,7 @@ use transparency::{
     TransparencyWitnessSignatureV1, transparency_genesis_digest,
 };
 use transparency_store::{
-    cas_replacement, restore_witness_set, SharedTransparencyWitnessStateStore,
+    cas_replacement, restore_witness_set, validate_cas_result, SharedTransparencyWitnessStateStore,
     TransparencyWitnessStateStore, TransparencyWitnessStoreError, TransparencyWitnessStoreKeyV1,
     TransparencyWitnessStoredStateV1,
 };
@@ -701,8 +701,12 @@ impl DurableExecutionSecurityContext {
             .export_state()
             .map_err(AdapterError::from)?;
 
-        let stored = match store.compare_and_swap(&key, None, snapshot) {
-            Ok(stored) => stored,
+        let stored = match store.compare_and_swap(&key, None, snapshot.clone()) {
+            Ok(stored) => {
+                validate_cas_result(&key, None, &snapshot, &stored)
+                    .map_err(|error| AdapterError::Invalid(error.to_string()))?;
+                stored
+            }
             Err(TransparencyWitnessStoreError::GenerationMismatch) => {
                 // Another bootstrapper won the creation race. Re-read the authoritative
                 // state and re-run admission against exactly that witness frontier rather
