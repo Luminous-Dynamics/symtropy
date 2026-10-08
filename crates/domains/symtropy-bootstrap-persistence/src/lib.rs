@@ -3282,6 +3282,11 @@ mod tests {
                         stored.generation()
                     )))
                 }
+                3 if expected.is_none() => {
+                    self.inner
+                        .compare_and_swap(key, None, replacement)?;
+                    Err(TransparencyWitnessStoreError::GenerationMismatch)
+                }
                 _ => self.inner.compare_and_swap(key, expected, replacement),
             }
         }
@@ -3990,6 +3995,64 @@ mod tests {
                 .expect("external store load")
                 .is_none(),
             "failed admission must not leave an externally persisted genesis witness state"
+        );
+    }
+
+    #[test]
+    fn external_bootstrap_creation_race_uses_authoritative_winner() {
+        let adapter = configured_adapter("external-bootstrap-race");
+        let security = TestSecurityMaterial::new(&adapter);
+        let external_store = Arc::new(ToggleFailTransparencyStore::default());
+        external_store.cas_mode.store(3, Ordering::SeqCst);
+        let key = TransparencyWitnessStoreKeyV1::new(
+            security.context.transparency_policy().commitment(),
+            security.context.transparency_log().commitment(),
+        )
+        .expect("store key");
+
+        let cursor = FreshnessCursor {
+            authority_commitment: security
+                .context
+                .freshness_cursor()
+                .authority_commitment()
+                .to_string(),
+            last_sequence: security.context.freshness_cursor().last_sequence(),
+            last_head_hash: security
+                .context
+                .freshness_cursor()
+                .last_head_hash()
+                .to_string(),
+            last_event_count: security.context.freshness_cursor().last_event_count(),
+        };
+
+        let raced = DurableExecutionSecurityContext::establish_with_external_witness_store(
+            &adapter,
+            security.context.freshness_authority().clone(),
+            cursor,
+            security.context.freshness_attestation().clone(),
+            security.context.transparency_log().clone(),
+            security.context.transparency_policy().clone(),
+            SharedTransparencyWitnessStateStore::new(external_store.clone()),
+            security.context.transparency_checkpoint().clone(),
+            security.context.transparency_witness_signatures().to_vec(),
+            security.context.transparency_vds_consistency_proof().cloned(),
+        )
+        .expect("creation race must re-admit against the authoritative winner");
+
+        assert_eq!(
+            raced
+                .external_transparency_witness_state()
+                .expect("external state")
+                .generation(),
+            0
+        );
+        assert_eq!(raced.transparency_witnesses().max_retained_sequence(), 0);
+        assert!(
+            external_store
+                .inner
+                .load(&key)
+                .expect("external store load")
+                .is_some()
         );
     }
 
