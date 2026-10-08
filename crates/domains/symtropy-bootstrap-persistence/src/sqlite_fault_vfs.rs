@@ -74,7 +74,6 @@ struct ProxyVfsState {
 #[repr(C)]
 struct FileTail {
     original_methods: *const ffi::sqlite3_io_methods,
-    state: *const ProxyVfsState,
     open_flags: c_int,
     proxy_methods: ffi::sqlite3_io_methods,
 }
@@ -261,7 +260,6 @@ unsafe extern "C" fn vfs_x_open(
 
     let tail = unsafe { tail_from_file_with_offset(file, state.tail_offset) };
     tail.original_methods = original_methods;
-    tail.state = state as *const _;
     tail.open_flags = flags;
     tail.proxy_methods = unsafe { *original_methods };
     tail.proxy_methods.xClose = Some(io_x_close);
