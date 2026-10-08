@@ -34,7 +34,8 @@ use transparency::{
 };
 use transparency_store::{
     cas_replacement, restore_witness_set, SharedTransparencyWitnessStateStore,
-    TransparencyWitnessStoreKeyV1, TransparencyWitnessStoredStateV1,
+    TransparencyWitnessStateStore, TransparencyWitnessStoreError, TransparencyWitnessStoreKeyV1,
+    TransparencyWitnessStoredStateV1,
 };
 use transparency_vds::{verify_append_only_sha256, MerkleConsistencyProofV1};
 
@@ -2990,6 +2991,7 @@ mod tests {
     use ring::rand::SystemRandom;
     use std::{
         fs,
+        sync::atomic::{AtomicBool, Ordering},
         time::{SystemTime, UNIX_EPOCH},
     };
 
@@ -2998,6 +3000,35 @@ mod tests {
             .expect("generate test signing key");
         DurableExecutionSigner::from_pkcs8(key_id, key_epoch, document.as_ref())
             .expect("construct test signer")
+    }
+
+    #[derive(Default)]
+    struct ToggleFailTransparencyStore {
+        inner: transparency_store::MemoryTransparencyWitnessStateStore,
+        fail_cas: AtomicBool,
+    }
+
+    impl TransparencyWitnessStateStore for ToggleFailTransparencyStore {
+        fn load(
+            &self,
+            key: &TransparencyWitnessStoreKeyV1,
+        ) -> Result<Option<TransparencyWitnessStoredStateV1>, TransparencyWitnessStoreError> {
+            self.inner.load(key)
+        }
+
+        fn compare_and_swap(
+            &self,
+            key: &TransparencyWitnessStoreKeyV1,
+            expected: Option<&TransparencyWitnessStoredStateV1>,
+            replacement: transparency::TransparencyWitnessStateSnapshotV1,
+        ) -> Result<TransparencyWitnessStoredStateV1, TransparencyWitnessStoreError> {
+            if self.fail_cas.load(Ordering::SeqCst) {
+                return Err(TransparencyWitnessStoreError::Backend(
+                    "injected CAS failure".to_string(),
+                ));
+            }
+            self.inner.compare_and_swap(key, expected, replacement)
+        }
     }
 
     fn configured_adapter(name: &str) -> DurableExecutionAdapter {
@@ -3466,6 +3497,101 @@ mod tests {
 
 
         fs::remove_dir_all(adapter.store().root()).expect("cleanup");
+    }
+
+    #[test]
+    fn external_witness_store_failure_fences_context_after_journal_append() {
+        let adapter = configured_adapter("external-witness-cas-failure");
+        let mut security = TestSecurityMaterial::new(&adapter);
+        let backing = Arc::new(ToggleFailTransparencyStore::default());
+        // Re-establish using a separately controlled backend so the test can inject
+        // failure after the genesis state has been initialized.
+        let log = security.context.transparency_log().clone();
+        let policy = security.context.transparency_policy().clone();
+        let checkpoint = security.context.transparency_checkpoint().clone();
+        let signatures = security.context.transparency_witness_signatures().to_vec();
+        let proof = security.context.transparency_vds_consistency_proof().cloned();
+        let authority = security.context.freshness_authority().clone();
+        let cursor = FreshnessCursor {
+            authority_commitment: security.context.freshness_cursor().authority_commitment.clone(),
+            last_sequence: security.context.freshness_cursor().last_sequence(),
+            last_head_hash: security.context.freshness_cursor().last_head_hash().to_string(),
+            last_event_count: security.context.freshness_cursor().last_event_count(),
+        };
+        let attestation = security.context.freshness_attestation().clone();
+        let shared = SharedTransparencyWitnessStateStore::new(backing.clone());
+
+        let mut context = DurableExecutionSecurityContext::establish_with_external_witness_store(
+            &adapter,
+            authority,
+            cursor,
+            attestation,
+            log,
+            policy,
+            shared,
+            checkpoint,
+            signatures,
+            proof,
+        )
+        .expect("external context");
+
+        security.context = context;
+
+        let (process, run) = process_and_run();
+        let (mut budget, mut inventory, mut energy) = initial_kernel_state();
+        security.refresh(&adapter);
+        backing.fail_cas.store(true, Ordering::SeqCst);
+
+        let error = adapter
+            .authorize_pending(
+                &mut security.context,
+                &process,
+                "exec-external-store-failure",
+                1,
+                10,
+                20,
+                "bus",
+                run,
+                &mut budget,
+                &mut inventory,
+                &mut energy,
+            )
+            .expect_err("external CAS failure must fail the transition");
+
+        assert!(matches!(
+            error,
+            AdapterError::Invalid(message) if message.contains("injected CAS failure")
+        ));
+        assert!(security
+            .context
+            .external_transparency_witness_store_desynchronized());
+        assert_eq!(
+            adapter.load_verified().expect("journal").chain.events().len(),
+            1,
+            "the journal append is retained, but the context must not continue"
+        );
+
+        backing.fail_cas.store(false, Ordering::SeqCst);
+        security.refresh(&adapter);
+        let (process2, run2) = process_and_run();
+        let (mut budget2, mut inventory2, mut energy2) = initial_kernel_state();
+        let error2 = adapter
+            .authorize_pending(
+                &mut security.context,
+                &process2,
+                "exec-external-store-fenced",
+                2,
+                10,
+                20,
+                "bus",
+                run2,
+                &mut budget2,
+                &mut inventory2,
+                &mut energy2,
+            )
+            .expect_err("fenced context must reject subsequent transitions");
+
+        assert!(matches!(error2, AdapterError::WitnessMismatch(_)));
     }
 
     #[test]
