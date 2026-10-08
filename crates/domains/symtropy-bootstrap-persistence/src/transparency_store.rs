@@ -479,6 +479,7 @@ mod tests {
         rand::SystemRandom,
         signature::{Ed25519KeyPair, KeyPair},
     };
+    use std::sync::{Arc, Barrier};
 
     fn encode_hex(bytes: &[u8]) -> String {
         bytes.iter().map(|byte| format!("{byte:02x}")).collect()
@@ -600,6 +601,60 @@ mod tests {
             error,
             TransparencyWitnessStoreError::BackendContractViolation(_)
         ));
+    }
+
+    #[test]
+    fn concurrent_create_cas_has_exactly_one_winner() {
+        let (key, snapshot) = base_snapshot();
+        let store = Arc::new(MemoryTransparencyWitnessStateStore::default());
+        let barrier = Arc::new(Barrier::new(3));
+
+        let left_store = Arc::clone(&store);
+        let left_barrier = Arc::clone(&barrier);
+        let left_key = key.clone();
+        let left_snapshot = snapshot.clone();
+        let left = std::thread::spawn(move || {
+            left_barrier.wait();
+            left_store.compare_and_swap(&left_key, None, left_snapshot)
+        });
+
+        let right_store = Arc::clone(&store);
+        let right_barrier = Arc::clone(&barrier);
+        let right_key = key.clone();
+        let right_snapshot = snapshot;
+        let right = std::thread::spawn(move || {
+            right_barrier.wait();
+            right_store.compare_and_swap(&right_key, None, right_snapshot)
+        });
+
+        barrier.wait();
+
+        let results = [left.join().expect("left"), right.join().expect("right")];
+        assert_eq!(
+            results.iter().filter(|result| result.is_ok()).count(),
+            1,
+            "exactly one concurrent create may win"
+        );
+        assert_eq!(
+            results
+                .iter()
+                .filter(|result| {
+                    matches!(
+                        result,
+                        Err(TransparencyWitnessStoreError::GenerationMismatch)
+                    )
+                })
+                .count(),
+            1,
+            "the losing concurrent create must be rejected as stale"
+        );
+
+        let stored = store
+            .load(&key)
+            .expect("load")
+            .expect("winning state");
+        assert_eq!(stored.generation(), 0);
+        assert_eq!(stored.snapshot(), results.iter().find_map(Result::as_ref).unwrap().snapshot());
     }
 
     #[test]
