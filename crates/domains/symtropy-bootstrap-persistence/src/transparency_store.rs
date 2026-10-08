@@ -184,6 +184,67 @@ pub trait TransparencyWitnessStateStore {
     ) -> Result<TransparencyWitnessStoredStateV1, TransparencyWitnessStoreError>;
 }
 
+/// Independently validate the postconditions promised by a successful CAS.
+///
+/// The backend contract is part of this trust boundary, so callers do not
+/// merely trust the returned value. A conforming successful CAS must return
+/// exactly the requested replacement and advance the generation by one from
+/// the supplied predecessor (or create generation zero for an empty key).
+pub(crate) fn validate_cas_result(
+    key: &TransparencyWitnessStoreKeyV1,
+    expected: Option<&TransparencyWitnessStoredStateV1>,
+    replacement: &TransparencyWitnessStateSnapshotV1,
+    returned: &TransparencyWitnessStoredStateV1,
+) -> Result<(), TransparencyWitnessStoreError> {
+    key.validate_basic()?;
+    if let Some(expected) = expected {
+        expected.validate_basic()?;
+        if expected.snapshot().policy_commitment() != key.policy_commitment()
+            || expected.snapshot().log_authority_commitment() != key.log_authority_commitment()
+        {
+            return Err(TransparencyWitnessStoreError::IdentityMismatch);
+        }
+    }
+
+    replacement.validate_basic()?;
+    if replacement.policy_commitment() != key.policy_commitment()
+        || replacement.log_authority_commitment() != key.log_authority_commitment()
+    {
+        return Err(TransparencyWitnessStoreError::IdentityMismatch);
+    }
+
+    returned.validate_basic()?;
+
+    let expected_generation = expected
+        .map(|state| {
+            state
+                .generation()
+                .checked_add(1)
+                .ok_or(TransparencyWitnessStoreError::GenerationExhausted)
+        })
+        .transpose()?
+        .unwrap_or(0);
+
+    if returned.generation() != expected_generation {
+        return Err(TransparencyWitnessStoreError::BackendContractViolation(
+            format!(
+                "successful CAS returned generation {}, expected {}",
+                returned.generation(),
+                expected_generation
+            ),
+        ));
+    }
+
+    if returned.snapshot() != replacement {
+        return Err(TransparencyWitnessStoreError::BackendContractViolation(
+            "successful CAS returned a snapshot different from the requested replacement"
+                .to_string(),
+        ));
+    }
+
+    Ok(())
+}
+
 /// Restore a non-serializable in-process witness set from external state.
 ///
 /// The returned set is safe to use for verification only insofar as the store
@@ -306,7 +367,9 @@ pub fn cas_replacement<S: TransparencyWitnessStateStore>(
     {
         return Err(TransparencyWitnessStoreError::IdentityMismatch);
     }
-    store.compare_and_swap(key, Some(expected), replacement)
+    let returned = store.compare_and_swap(key, Some(expected), replacement.clone())?;
+    validate_cas_result(key, Some(expected), &replacement, &returned)?;
+    Ok(returned)
 }
 
 /// In-memory model of an atomic external store used only for adversarial tests.
@@ -375,6 +438,7 @@ pub enum TransparencyWitnessStoreError {
     GenerationMismatch,
     GenerationExhausted,
     StaleAcceptedCheckpoint(String),
+    BackendContractViolation(String),
     Backend(String),
 }
 
@@ -386,6 +450,9 @@ impl std::fmt::Display for TransparencyWitnessStoreError {
             Self::GenerationMismatch => write!(formatter, "external witness state generation mismatch"),
             Self::GenerationExhausted => write!(formatter, "external witness state generation exhausted"),
             Self::StaleAcceptedCheckpoint(message) => write!(formatter, "stale accepted transparency checkpoint: {message}"),
+            Self::BackendContractViolation(message) => {
+                write!(formatter, "external witness store backend contract violation: {message}")
+            }
             Self::Backend(message) => write!(formatter, "external witness store backend error: {message}"),
         }
     }
@@ -486,6 +553,38 @@ mod tests {
                 .expect("store key"),
             snapshot,
         )
+    }
+
+    #[test]
+    fn validate_cas_result_rejects_nonconforming_backend_response() {
+        let (key, replacement) = base_snapshot();
+        let expected = TransparencyWitnessStoredStateV1::new(7, replacement.clone())
+            .expect("expected state");
+
+        let wrong_generation = TransparencyWitnessStoredStateV1::new(42, replacement.clone())
+            .expect("wrong generation");
+        let error = validate_cas_result(
+            &key,
+            Some(&expected),
+            &replacement,
+            &wrong_generation,
+        )
+        .expect_err("wrong generation must fail closed");
+        assert!(matches!(
+            error,
+            TransparencyWitnessStoreError::BackendContractViolation(_)
+        ));
+
+        let wrong_snapshot = TransparencyWitnessStateSnapshotV1::new(
+            replacement.policy_commitment().to_string(),
+            replacement.log_authority_commitment().to_string(),
+            replacement.witnesses().to_vec(),
+        )
+        .expect("equal semantic snapshot");
+        let returned = TransparencyWitnessStoredStateV1::new(8, wrong_snapshot)
+            .expect("returned state");
+        validate_cas_result(&key, Some(&expected), &replacement, &returned)
+            .expect("identical replacement must satisfy response contract");
     }
 
     #[test]
