@@ -651,27 +651,37 @@ impl DurableExecutionSecurityContext {
         )
         .map_err(|error| AdapterError::Invalid(error.to_string()))?;
 
-        let (stored, witness_set) =
-            match restore_witness_set(&store, &key, &transparency_policy, &transparency_log)
-                .map_err(|error| AdapterError::Invalid(error.to_string()))?
-            {
-                Some((stored, witness_set)) => (stored, witness_set),
-                None => {
-                    let mut witness_set =
-                        TransparencyWitnessSetV1::new(&transparency_policy)
-                            .map_err(AdapterError::from)?;
-                    witness_set
-                        .bind_log_authority(&transparency_log)
-                        .map_err(AdapterError::from)?;
-                    let snapshot = witness_set
-                        .export_state()
-                        .map_err(AdapterError::from)?;
-                    let stored = store
-                        .compare_and_swap(&key, None, snapshot)
-                        .map_err(|error| AdapterError::Invalid(error.to_string()))?;
-                    (stored, witness_set)
-                }
-            };
+        let restored =
+            restore_witness_set(&store, &key, &transparency_policy, &transparency_log)
+                .map_err(|error| AdapterError::Invalid(error.to_string()))?;
+
+        if let Some((stored, witness_set)) = restored {
+            let mut context = Self::establish(
+                adapter,
+                authority,
+                cursor,
+                freshness_attestation,
+                transparency_log,
+                transparency_policy,
+                witness_set,
+                transparency_checkpoint,
+                transparency_witness_signatures,
+                transparency_vds_consistency_proof,
+            )?;
+            context.transparency_external_store = Some(store);
+            context.transparency_external_store_key = Some(key);
+            context.transparency_external_store_state = Some(stored);
+            return Ok(context);
+        }
+
+        // A missing external state is only created after the complete security-context
+        // admission succeeds. This prevents failed bootstrap validation from leaving
+        // durable genesis state behind in the external authority.
+        let mut witness_set =
+            TransparencyWitnessSetV1::new(&transparency_policy).map_err(AdapterError::from)?;
+        witness_set
+            .bind_log_authority(&transparency_log)
+            .map_err(AdapterError::from)?;
 
         let mut context = Self::establish(
             adapter,
@@ -685,6 +695,48 @@ impl DurableExecutionSecurityContext {
             transparency_witness_signatures,
             transparency_vds_consistency_proof,
         )?;
+
+        let snapshot = context
+            .transparency_witnesses
+            .export_state()
+            .map_err(AdapterError::from)?;
+
+        let stored = match store.compare_and_swap(&key, None, snapshot) {
+            Ok(stored) => stored,
+            Err(TransparencyWitnessStoreError::GenerationMismatch) => {
+                // Another bootstrapper won the creation race. Re-read the authoritative
+                // state and re-run admission against exactly that witness frontier rather
+                // than silently attaching our preflight genesis view to a different state.
+                let (stored, witness_set) =
+                    restore_witness_set(&store, &key, &context.transparency_policy, &context.transparency_log)
+                        .map_err(|error| AdapterError::Invalid(error.to_string()))?
+                        .ok_or_else(|| {
+                            AdapterError::WitnessMismatch(
+                                "external witness bootstrap lost a creation race but the authoritative state disappeared"
+                                    .to_string(),
+                            )
+                        })?;
+
+                let mut raced_context = Self::establish(
+                    adapter,
+                    context.freshness_authority,
+                    context.freshness_cursor,
+                    context.freshness_attestation,
+                    context.transparency_log,
+                    context.transparency_policy,
+                    witness_set,
+                    context.transparency_checkpoint,
+                    context.transparency_witness_signatures,
+                    context.transparency_vds_consistency_proof,
+                )?;
+                raced_context.transparency_external_store = Some(store);
+                raced_context.transparency_external_store_key = Some(key);
+                raced_context.transparency_external_store_state = Some(stored);
+                return Ok(raced_context);
+            }
+            Err(error) => return Err(AdapterError::Invalid(error.to_string())),
+        };
+
         context.transparency_external_store = Some(store);
         context.transparency_external_store_key = Some(key);
         context.transparency_external_store_state = Some(stored);
