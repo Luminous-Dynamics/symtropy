@@ -4575,7 +4575,13 @@ mod tests {
 
         std::fs::copy(&path, &backup).expect("capture committed database image");
 
-        material.refresh(&adapter);
+        security.set_freshness_attestation(freshness_test_attestation(
+            security.freshness_authority().authority_id(),
+            security.freshness_authority().authority_epoch(),
+            &material.authority_signer,
+            &adapter,
+            2,
+        ));
         let (checkpoint, witness_signatures, vds_proof) = transparency_test_evidence(
             &adapter,
             security.transparency_log(),
@@ -4606,8 +4612,14 @@ mod tests {
 
         std::fs::copy(&backup, &path).expect("restore older database image");
 
-        material.refresh(&adapter);
-        let (checkpoint, witness_signatures, vds_proof) = transparency_test_evidence(
+        security.set_freshness_attestation(freshness_test_attestation(
+            security.freshness_authority().authority_id(),
+            security.freshness_authority().authority_epoch(),
+            &material.authority_signer,
+            &adapter,
+            3,
+        ));
+        let (checkpoint, witness_signatures, _vds_proof) = transparency_test_evidence(
             &adapter,
             security.transparency_log(),
             &material.transparency_policy,
@@ -4615,6 +4627,10 @@ mod tests {
             &material.witness_signers,
             3,
             &hex_encode(&security.transparency_checkpoint().digest()),
+        );
+        let vds_proof = Some(
+            MerkleConsistencyProofV1::new(Vec::new())
+                .expect("zero-size VDS predecessor proof"),
         );
         let cursor = FreshnessCursor {
             authority_commitment: security
