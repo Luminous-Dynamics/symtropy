@@ -1200,4 +1200,223 @@ mod tests {
 
         cleanup(&path);
     }
+ 
+    fn calibrate_wal_cas_faults(operation: crate::sqlite_fault_vfs::FaultOperation) -> usize {
+        use crate::sqlite_fault_vfs::{activate_current_thread, arm_wal, observed};
+        let path = temp_database_path("vfs-cas-calibration");
+        let (key, initial) = fixture();
+        let _activation = activate_current_thread();
+        let store = SqliteTransparencyWitnessStateStore::open(&path).expect("open");
+        let committed = store
+            .compare_and_swap(&key, None, initial.clone())
+            .expect("initial commit");
+        let mut connection = store.connection().expect("configured connection");
+
+        let _fault = arm_wal(operation, usize::MAX);
+        let candidate = SqliteTransparencyWitnessStateStore::compare_and_swap_with_connection(
+            &mut connection,
+            &key,
+            Some(&committed),
+            initial,
+        );
+        assert!(candidate.is_ok(), "unarmed calibration CAS must succeed");
+        let count = observed();
+        assert!(count > 0, "calibration must observe at least one matching I/O call");
+
+        drop(_fault);
+        drop(connection);
+        drop(_activation);
+        cleanup(&path);
+        count
+    }
+
+    fn sweep_wal_cas_faults(operation: crate::sqlite_fault_vfs::FaultOperation) {
+        use crate::sqlite_fault_vfs::{activate_current_thread, arm_wal, fired, observed};
+        let count = calibrate_wal_cas_faults(operation);
+        for ordinal in 1..=count {
+            let path = temp_database_path("vfs-cas-sweep");
+            let (key, initial) = fixture();
+            let _activation = activate_current_thread();
+            let store = SqliteTransparencyWitnessStateStore::open(&path).expect("open");
+            let committed = store
+                .compare_and_swap(&key, None, initial.clone())
+                .expect("initial commit");
+            let mut connection = store.connection().expect("configured connection");
+
+            let _fault = arm_wal(operation, ordinal);
+            let candidate = SqliteTransparencyWitnessStateStore::compare_and_swap_with_connection(
+                &mut connection,
+                &key,
+                Some(&committed),
+                initial.clone(),
+            );
+            assert_eq!(
+                observed(),
+                ordinal,
+                "fault plan must fire at the requested reachable ordinal"
+            );
+            assert!(
+                fired(),
+                "fault must fire at each reachable {operation:?} WAL ordinal"
+            );
+            drop(_fault);
+            drop(connection);
+            drop(_activation);
+
+            let recovered = SqliteTransparencyWitnessStateStore::open(&path)
+                .expect("reopen after WAL fault");
+            let recovered = recovered
+                .load(&key)
+                .expect("load after WAL fault")
+                .expect("valid witness frontier");
+            assert!(
+                matches!(recovered.generation(), 0 | 1),
+                "fault recovery must not create a generation beyond the attempted advance; candidate={candidate:?}"
+            );
+            assert_eq!(recovered.snapshot(), &initial);
+            cleanup(&path);
+        }
+    }
+
+    fn calibrate_checkpoint_faults(
+        operation: crate::sqlite_fault_vfs::FaultOperation,
+        main_database: bool,
+    ) -> usize {
+        use crate::sqlite_fault_vfs::{activate_current_thread, arm_main, arm_wal, observed};
+        let path = temp_database_path("vfs-checkpoint-calibration");
+        let (key, initial) = fixture();
+        let _activation = activate_current_thread();
+        let store = SqliteTransparencyWitnessStateStore::open(&path).expect("open");
+        let mut connection = store.connection().expect("configured connection");
+        let committed = SqliteTransparencyWitnessStateStore::compare_and_swap_with_connection(
+            &mut connection,
+            &key,
+            None,
+            initial.clone(),
+        )
+        .expect("initial commit");
+        let _advanced = SqliteTransparencyWitnessStateStore::compare_and_swap_with_connection(
+            &mut connection,
+            &key,
+            Some(&committed),
+            initial,
+        )
+        .expect("advance commit");
+
+        let _fault = if main_database {
+            arm_main(operation, usize::MAX)
+        } else {
+            arm_wal(operation, usize::MAX)
+        };
+        let checkpoint = connection.query_row(
+            "PRAGMA wal_checkpoint(TRUNCATE)",
+            [],
+            |row| row.get::<_, i64>(0),
+        );
+        assert!(checkpoint.is_ok(), "unarmed calibration checkpoint must succeed");
+        let count = observed();
+        assert!(
+            count > 0,
+            "calibration must observe at least one matching checkpoint I/O call"
+        );
+
+        drop(_fault);
+        drop(connection);
+        drop(_activation);
+        cleanup(&path);
+        count
+    }
+
+    fn sweep_checkpoint_faults(
+        operation: crate::sqlite_fault_vfs::FaultOperation,
+        main_database: bool,
+    ) {
+        use crate::sqlite_fault_vfs::{
+            activate_current_thread, arm_main, arm_wal, fired, observed,
+        };
+        let count = calibrate_checkpoint_faults(operation, main_database);
+        for ordinal in 1..=count {
+            let path = temp_database_path("vfs-checkpoint-sweep");
+            let (key, initial) = fixture();
+            let _activation = activate_current_thread();
+            let store = SqliteTransparencyWitnessStateStore::open(&path).expect("open");
+            let mut connection = store.connection().expect("configured connection");
+            let committed =
+                SqliteTransparencyWitnessStateStore::compare_and_swap_with_connection(
+                    &mut connection,
+                    &key,
+                    None,
+                    initial.clone(),
+                )
+                .expect("initial commit");
+            let advanced =
+                SqliteTransparencyWitnessStateStore::compare_and_swap_with_connection(
+                    &mut connection,
+                    &key,
+                    Some(&committed),
+                    initial.clone(),
+                )
+                .expect("advance commit");
+
+            let _fault = if main_database {
+                arm_main(operation, ordinal)
+            } else {
+                arm_wal(operation, ordinal)
+            };
+            let checkpoint = connection.query_row(
+                "PRAGMA wal_checkpoint(TRUNCATE)",
+                [],
+                |row| row.get::<_, i64>(0),
+            );
+            assert_eq!(
+                observed(),
+                ordinal,
+                "fault plan must fire at the requested reachable checkpoint ordinal"
+            );
+            assert!(
+                fired(),
+                "fault must fire at each reachable {operation:?} checkpoint ordinal"
+            );
+            assert!(
+                checkpoint.is_err(),
+                "injected checkpoint fault must surface for ordinal {ordinal}"
+            );
+
+            drop(_fault);
+            drop(connection);
+            drop(_activation);
+
+            let recovered = SqliteTransparencyWitnessStateStore::open(&path)
+                .expect("reopen after checkpoint fault")
+                .load(&key)
+                .expect("load after checkpoint fault")
+                .expect("valid witness frontier");
+            assert_eq!(
+                recovered, advanced,
+                "checkpoint fault must preserve the already committed witness frontier"
+            );
+            cleanup(&path);
+        }
+    }
+
+    #[test]
+    fn wal_write_fault_sweep_covers_every_reachable_ordinal() {
+        sweep_wal_cas_faults(crate::sqlite_fault_vfs::FaultOperation::Write);
+    }
+
+    #[test]
+    fn wal_sync_fault_sweep_covers_every_reachable_ordinal() {
+        sweep_wal_cas_faults(crate::sqlite_fault_vfs::FaultOperation::Sync);
+    }
+
+    #[test]
+    fn wal_truncate_fault_sweep_covers_every_reachable_ordinal() {
+        sweep_checkpoint_faults(crate::sqlite_fault_vfs::FaultOperation::Truncate, false);
+    }
+
+    #[test]
+    fn main_database_sync_fault_sweep_covers_every_reachable_ordinal() {
+        sweep_checkpoint_faults(crate::sqlite_fault_vfs::FaultOperation::Sync, true);
+    }
+
 }
