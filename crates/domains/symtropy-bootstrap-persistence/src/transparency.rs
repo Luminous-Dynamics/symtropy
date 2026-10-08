@@ -858,6 +858,165 @@ impl Clone for RetainedWitnessState {
     }
 }
 
+/// Serializable record of one witness's retained anti-rollback state.
+///
+/// This is a storage representation only. A restart-resistant deployment must
+/// obtain it from a backend that provides the atomic CAS contract described by
+/// `TransparencyWitnessStateStore`.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct TransparencyWitnessRecordV1 {
+    witness_id: String,
+    sequence: u64,
+    checkpoint_digest: String,
+    event_count: u64,
+    head_hash: String,
+    vds_tree_head: TransparencyVdsTreeHeadV1,
+}
+
+impl TransparencyWitnessRecordV1 {
+    pub fn new(
+        witness_id: impl Into<String>,
+        sequence: u64,
+        checkpoint_digest: impl Into<String>,
+        event_count: u64,
+        head_hash: impl Into<String>,
+        vds_tree_head: TransparencyVdsTreeHeadV1,
+    ) -> Result<Self, TransparencyError> {
+        let value = Self {
+            witness_id: witness_id.into(),
+            sequence,
+            checkpoint_digest: checkpoint_digest.into(),
+            event_count,
+            head_hash: head_hash.into(),
+            vds_tree_head,
+        };
+        value.validate_basic()?;
+        Ok(value)
+    }
+
+    fn validate_basic(&self) -> Result<(), TransparencyError> {
+        validate_nonempty("witness_id", &self.witness_id)?;
+        if !is_sha256_hex(&self.checkpoint_digest) {
+            return Err(TransparencyError::Invalid(
+                "retained witness checkpoint digest must be lowercase SHA-256".to_string(),
+            ));
+        }
+        validate_head(self.event_count, &self.head_hash)?;
+        self.vds_tree_head.validate_basic()
+    }
+
+    #[must_use]
+    pub fn witness_id(&self) -> &str {
+        &self.witness_id
+    }
+
+    #[must_use]
+    pub const fn sequence(&self) -> u64 {
+        self.sequence
+    }
+
+    #[must_use]
+    pub fn checkpoint_digest(&self) -> &str {
+        &self.checkpoint_digest
+    }
+
+    #[must_use]
+    pub const fn event_count(&self) -> u64 {
+        self.event_count
+    }
+
+    #[must_use]
+    pub fn head_hash(&self) -> &str {
+        &self.head_hash
+    }
+
+    #[must_use]
+    pub fn vds_tree_head(&self) -> &TransparencyVdsTreeHeadV1 {
+        &self.vds_tree_head
+    }
+}
+
+/// Complete externally persisted witness-memory snapshot.
+///
+/// Canonical ordering is by witness identity. An external backend must treat
+/// the whole snapshot as one CAS-protected value; updating witness records
+/// independently is not sufficient for quorum atomicity.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct TransparencyWitnessStateSnapshotV1 {
+    schema_version: u32,
+    policy_commitment: String,
+    log_authority_commitment: String,
+    witnesses: Vec<TransparencyWitnessRecordV1>,
+}
+
+impl TransparencyWitnessStateSnapshotV1 {
+    pub fn new(
+        policy_commitment: impl Into<String>,
+        log_authority_commitment: impl Into<String>,
+        mut witnesses: Vec<TransparencyWitnessRecordV1>,
+    ) -> Result<Self, TransparencyError> {
+        witnesses.sort_unstable_by(|left, right| left.witness_id().cmp(right.witness_id()));
+        let value = Self {
+            schema_version: 1,
+            policy_commitment: policy_commitment.into(),
+            log_authority_commitment: log_authority_commitment.into(),
+            witnesses,
+        };
+        value.validate_basic()?;
+        Ok(value)
+    }
+
+    pub fn validate_basic(&self) -> Result<(), TransparencyError> {
+        if self.schema_version != 1 {
+            return Err(TransparencyError::Invalid(
+                "unsupported external transparency witness state schema".to_string(),
+            ));
+        }
+        if !is_sha256_hex(&self.policy_commitment) {
+            return Err(TransparencyError::Invalid(
+                "external witness policy commitment must be lowercase SHA-256".to_string(),
+            ));
+        }
+        if !is_sha256_hex(&self.log_authority_commitment) {
+            return Err(TransparencyError::Invalid(
+                "external witness log authority commitment must be lowercase SHA-256".to_string(),
+            ));
+        }
+        if self.witnesses.is_empty() {
+            return Err(TransparencyError::Invalid(
+                "external witness state snapshot must contain at least one witness".to_string(),
+            ));
+        }
+        for pair in self.witnesses.windows(2) {
+            if pair[0].witness_id() >= pair[1].witness_id() {
+                return Err(TransparencyError::Invalid(
+                    "external witness state snapshot witness identities are not canonical"
+                        .to_string(),
+                ));
+            }
+        }
+        for witness in &self.witnesses {
+            witness.validate_basic()?;
+        }
+        Ok(())
+    }
+
+    #[must_use]
+    pub fn policy_commitment(&self) -> &str {
+        &self.policy_commitment
+    }
+
+    #[must_use]
+    pub fn log_authority_commitment(&self) -> &str {
+        &self.log_authority_commitment
+    }
+
+    #[must_use]
+    pub fn witnesses(&self) -> &[TransparencyWitnessRecordV1] {
+        &self.witnesses
+    }
+}
+
 #[derive(Debug)]
 pub struct TransparencyWitnessSetV1 {
     policy_commitment: String,
@@ -892,6 +1051,101 @@ impl TransparencyWitnessSetV1 {
             policy_commitment: policy.commitment(),
             log_authority_commitment: None,
             witnesses,
+        })
+    }
+
+    /// Export the exact retained witness memory for an external atomic state store.
+    pub fn export_state(&self) -> Result<TransparencyWitnessStateSnapshotV1, TransparencyError> {
+        let log_authority_commitment = self
+            .log_authority_commitment
+            .as_deref()
+            .ok_or(TransparencyError::LogAuthorityUnbound)?
+            .to_string();
+        let witnesses = self
+            .witnesses
+            .iter()
+            .map(|(witness_id, state)| {
+                TransparencyWitnessRecordV1::new(
+                    witness_id.clone(),
+                    state.sequence,
+                    state.checkpoint_digest.clone(),
+                    state.event_count,
+                    state.head_hash.clone(),
+                    TransparencyVdsTreeHeadV1::new(
+                        state.vds_tree_size,
+                        state.vds_root_hash.clone(),
+                    )?,
+                )
+            })
+            .collect::<Result<Vec<_>, _>>()?;
+        TransparencyWitnessStateSnapshotV1::new(
+            self.policy_commitment.clone(),
+            log_authority_commitment,
+            witnesses,
+        )
+    }
+
+    /// Restore retained witness memory from a snapshot obtained from an external store.
+    ///
+    /// The snapshot is only data; restart resistance comes from the backend's
+    /// durable, linearizable compare-and-swap semantics.
+    pub fn from_external_state(
+        policy: &TransparencyWitnessPolicyV1,
+        log: &TransparencyLogAuthorityV1,
+        snapshot: &TransparencyWitnessStateSnapshotV1,
+    ) -> Result<Self, TransparencyError> {
+        snapshot.validate_basic()?;
+        if snapshot.policy_commitment() != policy.commitment() {
+            return Err(TransparencyError::PolicyMismatch);
+        }
+        if snapshot.log_authority_commitment() != log.commitment() {
+            return Err(TransparencyError::LogAuthorityMismatch);
+        }
+        if snapshot.witnesses().len() != policy.witnesses.len() {
+            return Err(TransparencyError::Invalid(
+                "external witness state snapshot does not contain the exact policy witness set"
+                    .to_string(),
+            ));
+        }
+
+        let mut restored = BTreeMap::new();
+        for record in snapshot.witnesses() {
+            if policy.witness(record.witness_id()).is_none() {
+                return Err(TransparencyError::UnknownWitness);
+            }
+            if restored
+                .insert(
+                    record.witness_id().to_string(),
+                    RetainedWitnessState {
+                        sequence: record.sequence(),
+                        checkpoint_digest: record.checkpoint_digest().to_string(),
+                        event_count: record.event_count(),
+                        head_hash: record.head_hash().to_string(),
+                        vds_tree_size: record.vds_tree_head().tree_size(),
+                        vds_root_hash: record.vds_tree_head().root_hash().to_string(),
+                    },
+                )
+                .is_some()
+            {
+                return Err(TransparencyError::Invalid(
+                    "external witness state snapshot contains duplicate witness identity"
+                        .to_string(),
+                ));
+            }
+        }
+
+        if restored.len() != policy.witnesses.len()
+            || policy.witnesses.keys().any(|id| !restored.contains_key(id))
+        {
+            return Err(TransparencyError::Invalid(
+                "external witness state snapshot is missing a configured witness".to_string(),
+            ));
+        }
+
+        Ok(Self {
+            policy_commitment: snapshot.policy_commitment().to_string(),
+            log_authority_commitment: Some(snapshot.log_authority_commitment().to_string()),
+            witnesses: restored,
         })
     }
 
