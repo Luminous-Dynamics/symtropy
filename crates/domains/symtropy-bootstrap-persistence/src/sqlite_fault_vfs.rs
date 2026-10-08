@@ -598,7 +598,7 @@ mod main_database_sync_tests {
     };
     use crate::transparency_store::TransparencyWitnessStateStore;
     use crate::transparency_store_sqlite::SqliteTransparencyWitnessStateStore;
-    use rusqlite::{params, Connection};
+    use rusqlite::Connection;
     use std::{
         path::{Path, PathBuf},
         time::{SystemTime, UNIX_EPOCH},
@@ -677,18 +677,11 @@ mod main_database_sync_tests {
         .expect("advance commit");
 
         let _fault = arm_main(FaultOperation::Sync, 1);
-        let checkpoint = Connection::open_with_flags_and_vfs(
-            &path,
-            rusqlite::OpenFlags::SQLITE_OPEN_READ_WRITE,
-            super::NAME,
-        )
-        .and_then(|checkpoint| {
-            checkpoint.query_row(
-                "PRAGMA wal_checkpoint(TRUNCATE)",
-                [],
-                |row| row.get::<_, i64>(0),
-            )
-        });
+        let checkpoint = connection.query_row(
+            "PRAGMA wal_checkpoint(TRUNCATE)",
+            [],
+            |row| row.get::<_, i64>(0),
+        );
 
         assert!(fired(), "main database sync fault must fire");
         assert!(checkpoint.is_err(), "injected main database sync must surface as an error");
@@ -706,6 +699,5 @@ mod main_database_sync_tests {
         assert_eq!(recovered.generation(), 1);
 
         cleanup(&path);
-        let _ = params!["unused"];
     }
 }
