@@ -3112,7 +3112,7 @@ mod tests {
     use ring::rand::SystemRandom;
     use std::{
         fs,
-        sync::atomic::{AtomicBool, Ordering},
+        sync::atomic::{AtomicU8, Ordering},
         time::{SystemTime, UNIX_EPOCH},
     };
 
@@ -3126,7 +3126,7 @@ mod tests {
     #[derive(Default)]
     struct ToggleFailTransparencyStore {
         inner: transparency_store::MemoryTransparencyWitnessStateStore,
-        fail_cas: AtomicBool,
+        cas_mode: AtomicU8,
     }
 
     impl TransparencyWitnessStateStore for ToggleFailTransparencyStore {
@@ -3143,12 +3143,21 @@ mod tests {
             expected: Option<&TransparencyWitnessStoredStateV1>,
             replacement: transparency::TransparencyWitnessStateSnapshotV1,
         ) -> Result<TransparencyWitnessStoredStateV1, TransparencyWitnessStoreError> {
-            if self.fail_cas.load(Ordering::SeqCst) {
-                return Err(TransparencyWitnessStoreError::Backend(
+            match self.cas_mode.load(Ordering::SeqCst) {
+                1 => Err(TransparencyWitnessStoreError::Backend(
                     "injected CAS failure".to_string(),
-                ));
+                )),
+                2 => {
+                    let stored = self
+                        .inner
+                        .compare_and_swap(key, expected, replacement)?;
+                    Err(TransparencyWitnessStoreError::Backend(format!(
+                        "injected post-commit CAS response loss at generation {}",
+                        stored.generation()
+                    )))
+                }
+                _ => self.inner.compare_and_swap(key, expected, replacement),
             }
-            self.inner.compare_and_swap(key, expected, replacement)
         }
     }
 
@@ -3621,6 +3630,81 @@ mod tests {
     }
 
     #[test]
+    fn uncertain_external_witness_cas_is_reconciled_from_authoritative_store() {
+        let adapter = configured_adapter("external-witness-cas-uncertain");
+        let mut security = TestSecurityMaterial::new(&adapter);
+        let (process, run) = process_and_run();
+        let (mut budget, mut inventory, mut energy) = initial_kernel_state();
+
+        security.refresh(&adapter);
+        security.external_store.cas_mode.store(2, Ordering::SeqCst);
+
+        let error = adapter
+            .authorize_pending(
+                &mut security.context,
+                &process,
+                "exec-external-store-uncertain",
+                1,
+                10,
+                20,
+                "bus",
+                run,
+                &mut budget,
+                &mut inventory,
+                &mut energy,
+            )
+            .expect_err("post-commit error must fence");
+
+        assert!(matches!(
+            error,
+            AdapterError::Invalid(message) if message.contains("post-commit CAS response loss")
+        ));
+        assert!(
+            security
+                .context
+                .external_transparency_witness_store_desynchronized()
+        );
+        assert_eq!(
+            security
+                .external_store
+                .inner
+                .load(
+                    security
+                        .context
+                        .transparency_external_store_key
+                        .as_ref()
+                        .expect("store key")
+                )
+                .expect("load")
+                .expect("external state")
+                .generation(),
+            1
+        );
+
+        security.external_store.cas_mode.store(0, Ordering::SeqCst);
+        security
+            .context
+            .reconcile_external_transparency_witness_store(&adapter)
+            .expect("authoritative external state must reconcile");
+
+        assert!(!security
+            .context
+            .external_transparency_witness_store_desynchronized());
+        assert_eq!(
+            security
+                .context
+                .transparency_witnesses()
+                .retained_sequence("w1"),
+            Some(1)
+        );
+        assert_eq!(
+            security.context.head_witness().event_count(),
+            1,
+            "reconciliation advances the local head witness to the committed journal"
+        );
+    }
+
+    #[test]
     fn external_witness_store_failure_fences_context_after_journal_append() {
         let adapter = configured_adapter("external-witness-cas-failure");
         let mut security = TestSecurityMaterial::new(&adapter);
@@ -3628,7 +3712,7 @@ mod tests {
         let (mut budget, mut inventory, mut energy) = initial_kernel_state();
 
         security.refresh(&adapter);
-        security.external_store.fail_cas.store(true, Ordering::SeqCst);
+        security.external_store.cas_mode.store(1, Ordering::SeqCst);
 
         let error = adapter
             .authorize_pending(
@@ -3659,7 +3743,7 @@ mod tests {
             "the journal append is retained, but the context must not continue"
         );
 
-        security.external_store.fail_cas.store(false, Ordering::SeqCst);
+        security.external_store.cas_mode.store(0, Ordering::SeqCst);
         assert!(security
             .context
             .reconcile_external_transparency_witness_store(&adapter)
