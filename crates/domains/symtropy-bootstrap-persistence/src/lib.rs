@@ -895,9 +895,40 @@ impl DurableExecutionSecurityContext {
             chain,
         )?;
 
-        self.transparency_witnesses
-            .commit_after_durable_append(accepted_transparency)
-            .map_err(AdapterError::from)?;
+        if let (Some(store), Some(key), Some(expected)) = (
+            self.transparency_external_store.as_ref(),
+            self.transparency_external_store_key.as_ref(),
+            self.transparency_external_store_state.as_ref(),
+        ) {
+            let replacement =
+                transparency_store::snapshot_after_accepted(expected.snapshot(), &accepted_transparency)
+                    .map_err(|error| {
+                        self.transparency_external_store_desynchronized = true;
+                        AdapterError::Invalid(error.to_string())
+                    })?;
+
+            let next = match cas_replacement(store, key, expected, replacement) {
+                Ok(next) => next,
+                Err(error) => {
+                    self.transparency_external_store_desynchronized = true;
+                    return Err(AdapterError::Invalid(error.to_string()));
+                }
+            };
+
+            if let Err(error) = self
+                .transparency_witnesses
+                .commit_after_durable_append(accepted_transparency)
+            {
+                self.transparency_external_store_desynchronized = true;
+                return Err(AdapterError::from(error));
+            }
+
+            self.transparency_external_store_state = Some(next);
+        } else {
+            self.transparency_witnesses
+                .commit_after_durable_append(accepted_transparency)
+                .map_err(AdapterError::from)?;
+        }
 
         self.head_witness = next_head_witness;
         self.freshness_cursor
