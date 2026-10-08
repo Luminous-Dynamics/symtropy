@@ -32,6 +32,10 @@ use transparency::{
     TransparencyWitnessEvidenceV1, TransparencyWitnessSetV1,
     TransparencyWitnessSignatureV1, transparency_genesis_digest,
 };
+use transparency_store::{
+    cas_replacement, restore_witness_set, SharedTransparencyWitnessStateStore,
+    TransparencyWitnessStoreKeyV1, TransparencyWitnessStoredStateV1,
+};
 use transparency_vds::{verify_append_only_sha256, MerkleConsistencyProofV1};
 
 pub const EXECUTION_LIFECYCLE_SCHEMA_VERSION: u32 = 3;
@@ -509,6 +513,10 @@ pub struct DurableExecutionSecurityContext {
     transparency_witness_signatures: Vec<TransparencyWitnessSignatureV1>,
     transparency_witness_evidence: Vec<TransparencyWitnessEvidenceV1>,
     transparency_vds_consistency_proof: Option<MerkleConsistencyProofV1>,
+    transparency_external_store: Option<SharedTransparencyWitnessStateStore>,
+    transparency_external_store_key: Option<TransparencyWitnessStoreKeyV1>,
+    transparency_external_store_state: Option<TransparencyWitnessStoredStateV1>,
+    transparency_external_store_desynchronized: bool,
 }
 
 impl DurableExecutionSecurityContext {
@@ -615,7 +623,70 @@ impl DurableExecutionSecurityContext {
             transparency_witness_signatures,
             transparency_witness_evidence,
             transparency_vds_consistency_proof,
+            transparency_external_store: None,
+            transparency_external_store_key: None,
+            transparency_external_store_state: None,
+            transparency_external_store_desynchronized: false,
         })
+    }
+
+    /// Establish using externally retained witness memory.
+    pub fn establish_with_external_witness_store(
+        adapter: &DurableExecutionAdapter,
+        authority: FreshnessAuthority,
+        cursor: FreshnessCursor,
+        freshness_attestation: ExternalFreshnessAttestation,
+        transparency_log: TransparencyLogAuthorityV1,
+        transparency_policy: TransparencyWitnessPolicyV1,
+        store: SharedTransparencyWitnessStateStore,
+        transparency_checkpoint: TransparencyCheckpointV1,
+        transparency_witness_signatures: Vec<TransparencyWitnessSignatureV1>,
+        transparency_vds_consistency_proof: Option<MerkleConsistencyProofV1>,
+    ) -> Result<Self, AdapterError> {
+        let key = TransparencyWitnessStoreKeyV1::new(
+            transparency_policy.commitment(),
+            transparency_log.commitment(),
+        )
+        .map_err(|error| AdapterError::Invalid(error.to_string()))?;
+
+        let (stored, witness_set) =
+            match restore_witness_set(&store, &key, &transparency_policy, &transparency_log)
+                .map_err(|error| AdapterError::Invalid(error.to_string()))?
+            {
+                Some((stored, witness_set)) => (stored, witness_set),
+                None => {
+                    let mut witness_set =
+                        TransparencyWitnessSetV1::new(&transparency_policy)
+                            .map_err(AdapterError::from)?;
+                    witness_set
+                        .bind_log_authority(&transparency_log)
+                        .map_err(AdapterError::from)?;
+                    let snapshot = witness_set
+                        .export_state()
+                        .map_err(AdapterError::from)?;
+                    let stored = store
+                        .compare_and_swap(&key, None, snapshot)
+                        .map_err(|error| AdapterError::Invalid(error.to_string()))?;
+                    (stored, witness_set)
+                }
+            };
+
+        let mut context = Self::establish(
+            adapter,
+            authority,
+            cursor,
+            freshness_attestation,
+            transparency_log,
+            transparency_policy,
+            witness_set,
+            transparency_checkpoint,
+            transparency_witness_signatures,
+            transparency_vds_consistency_proof,
+        )?;
+        context.transparency_external_store = Some(store);
+        context.transparency_external_store_key = Some(key);
+        context.transparency_external_store_state = Some(stored);
+        Ok(context)
     }
 
     pub fn set_freshness_attestation(
