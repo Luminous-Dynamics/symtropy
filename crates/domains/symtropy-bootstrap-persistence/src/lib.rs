@@ -4438,12 +4438,9 @@ mod tests {
 
         let (process, run) = process_and_run();
         let (mut budget, mut inventory, mut energy) = initial_kernel_state();
-        security.freshness_attestation.sequence = 1;
-
-        security
-            .set_freshness_attestation(
-                material.context.freshness_attestation().clone(),
-            );
+        security.set_freshness_attestation(
+            material.context.freshness_attestation().clone(),
+        );
 
         let _receipt = adapter
             .authorize_pending(
