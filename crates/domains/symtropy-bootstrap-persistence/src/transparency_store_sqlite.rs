@@ -406,7 +406,7 @@ impl SqliteTransparencyWitnessStateStore {
         transaction.commit().map_err(sqlite_error)?;
 
         Ok(stored)
-
+    }
 }
 
 impl TransparencyWitnessStateStore for SqliteTransparencyWitnessStateStore {
