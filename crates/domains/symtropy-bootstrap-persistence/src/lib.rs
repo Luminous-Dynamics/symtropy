@@ -13,6 +13,8 @@ pub mod transparency_store;
 pub mod transparency_store_sqlite;
 pub mod transparency_c2sp;
 
+pub use transparency_store_sqlite::SqliteTransparencyWitnessStateStore;
+
 use serde::{Deserialize, Serialize};
 use std::{collections::BTreeMap, error::Error, fmt, sync::Arc};
 
