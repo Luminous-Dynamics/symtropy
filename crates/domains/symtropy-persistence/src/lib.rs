@@ -67,6 +67,34 @@ pub struct SaveStore {
     root: PathBuf,
 }
 
+/// Exclusive cross-process writer fence for a save journal.
+#[derive(Debug)]
+pub struct JournalLock {
+    root: PathBuf,
+    path: PathBuf,
+    file: File,
+}
+
+impl JournalLock {
+    #[must_use]
+    pub fn path(&self) -> &Path {
+        &self.path
+    }
+}
+
+impl Drop for JournalLock {
+    fn drop(&mut self) {
+        let _ = self.file.sync_data();
+        let _ = fs::remove_file(&self.path);
+        #[cfg(unix)]
+        {
+            if let Ok(directory) = File::open(&self.root) {
+                let _ = directory.sync_all();
+            }
+        }
+    }
+}
+
 impl SaveStore {
     /// Creates or opens a save directory.
     pub fn open(root: impl Into<PathBuf>) -> Result<Self, PersistenceError> {
@@ -78,6 +106,28 @@ impl SaveStore {
     /// Returns the directory containing this save slot.
     pub fn root(&self) -> &Path {
         &self.root
+    }
+
+    /// Acquire the exclusive cross-process journal writer fence.
+    pub fn acquire_journal_lock(&self) -> Result<JournalLock, PersistenceError> {
+        let path = self.root.join("journal.jsonl.lock");
+        let file = OpenOptions::new()
+            .write(true)
+            .create_new(true)
+            .open(&path)
+            .map_err(|error| {
+                if error.kind() == io::ErrorKind::AlreadyExists {
+                    PersistenceError::JournalLocked
+                } else {
+                    PersistenceError::Io(error)
+                }
+            })?;
+        file.sync_data().map_err(PersistenceError::Io)?;
+        Ok(JournalLock {
+            root: self.root.clone(),
+            path,
+            file,
+        })
     }
 
     /// Writes a complete snapshot through a synchronized temporary file and rename.
@@ -112,12 +162,26 @@ impl SaveStore {
         Ok(snapshot)
     }
 
-    /// Appends one already-hashed event and synchronizes it before returning.
+    /// Append one already-hashed event while taking the journal writer fence.
     pub fn append_event<T: Serialize>(
         &self,
         event: &EventEnvelope<T>,
     ) -> Result<(), PersistenceError> {
+        let lock = self.acquire_journal_lock()?;
+        self.append_event_locked(event, &lock)
+    }
+
+    /// Append one already-hashed event after the caller acquired this store's fence.
+    pub fn append_event_locked<T: Serialize>(
+        &self,
+        event: &EventEnvelope<T>,
+        lock: &JournalLock,
+    ) -> Result<(), PersistenceError> {
+        if lock.root != self.root {
+            return Err(PersistenceError::JournalLockMismatch);
+        }
         event.verify_hash().map_err(PersistenceError::State)?;
+        prepare_journal_for_append(&self.root.join("journal.jsonl"))?;
         let file = OpenOptions::new()
             .create(true)
             .append(true)
@@ -207,6 +271,52 @@ impl SaveStore {
     }
 }
 
+/// Repair journal line framing before appending a new durable record.
+///
+/// Only a final fragment without a newline is touched. A syntactically valid
+/// final JSON record receives the missing separator; an invalid final fragment
+/// is truncated to the last complete line. Any concurrent file-size change
+/// between inspection and mutation fails closed.
+fn prepare_journal_for_append(path: &Path) -> Result<(), PersistenceError> {
+    if !path.exists() {
+        return Ok(());
+    }
+
+    let bytes = fs::read(path).map_err(PersistenceError::Io)?;
+    if bytes.is_empty() || bytes.last() == Some(&b'\n') {
+        return Ok(());
+    }
+
+    let expected_len = bytes.len() as u64;
+    let final_start = bytes
+        .iter()
+        .rposition(|byte| *byte == b'\n')
+        .map_or(0, |index| index + 1);
+    let tail = &bytes[final_start..];
+
+    let mut file = OpenOptions::new()
+        .write(true)
+        .append(true)
+        .open(path)
+        .map_err(PersistenceError::Io)?;
+
+    if fs::metadata(path).map_err(PersistenceError::Io)?.len() != expected_len {
+        return Err(PersistenceError::JournalChanged);
+    }
+
+    if serde_json::from_slice::<serde_json::Value>(tail).is_err() {
+        file.set_len(final_start as u64)
+            .map_err(PersistenceError::Io)?;
+        file.sync_all().map_err(PersistenceError::Io)?;
+    } else {
+        file.write_all(b"\n").map_err(PersistenceError::Io)?;
+        file.flush().map_err(PersistenceError::Io)?;
+        file.sync_data().map_err(PersistenceError::Io)?;
+    }
+
+    Ok(())
+}
+
 /// Flush directory metadata so that a create/rename inside it survives a crash.
 ///
 /// **Unix only — on Windows this is deliberately a no-op**, and callers do not
@@ -253,6 +363,12 @@ pub enum PersistenceError {
     },
     /// Snapshot refers to an event not present in the recovered journal.
     MissingSnapshotAnchor(String),
+    /// Journal changed between tail inspection and repair.
+    JournalChanged,
+    /// Another writer currently holds the journal fence.
+    JournalLocked,
+    /// A supplied journal fence belongs to another save store.
+    JournalLockMismatch,
 }
 
 impl fmt::Display for PersistenceError {
@@ -274,6 +390,18 @@ impl fmt::Display for PersistenceError {
             Self::MissingSnapshotAnchor(hash) => {
                 write!(formatter, "snapshot anchor is absent from journal: {hash}")
             }
+            Self::JournalChanged => {
+                write!(formatter, "journal changed during crash-tail repair")
+            }
+            Self::JournalLocked => {
+                write!(formatter, "journal writer lock is already held")
+            }
+            Self::JournalLockMismatch => {
+                write!(
+                    formatter,
+                    "journal writer lock belongs to a different save store"
+                )
+            }
         }
     }
 }
@@ -285,7 +413,11 @@ impl Error for PersistenceError {
             Self::Json(error) => Some(error),
             Self::State(error) => Some(error),
             Self::InvalidJournalRecord { source, .. } => Some(source),
-            Self::UnsupportedSchema(_) | Self::MissingSnapshotAnchor(_) => None,
+            Self::UnsupportedSchema(_)
+            | Self::MissingSnapshotAnchor(_)
+            | Self::JournalChanged
+            | Self::JournalLocked
+            | Self::JournalLockMismatch => None,
         }
     }
 }
@@ -363,6 +495,125 @@ mod tests {
             store.load_journal("journal", 7).expect("recover journal");
         assert_eq!(loaded.chain.events().len(), 1);
         assert!(loaded.discarded_tail_bytes > 0);
+        fs::remove_dir_all(store.root()).expect("remove temporary store");
+    }
+
+    #[test]
+    fn append_repairs_incomplete_crash_tail_before_writing() {
+        let store = temporary_store("append-tail-repair");
+        let mut chain = EventChain::new("journal", 7);
+        chain
+            .append(
+                1,
+                "repair",
+                None,
+                None,
+                Vec::new(),
+                TestEvent {
+                    action: "first".into(),
+                },
+            )
+            .expect("append first event");
+
+        store
+            .append_event(&chain.events()[0])
+            .expect("persist first event");
+
+        let mut raw = OpenOptions::new()
+            .append(true)
+            .open(store.root().join("journal.jsonl"))
+            .expect("open journal");
+        raw.write_all(b"{\"partial\":")
+            .expect("write incomplete tail");
+        raw.sync_all().expect("sync incomplete tail");
+
+        chain
+            .append(
+                2,
+                "repair",
+                None,
+                None,
+                Vec::new(),
+                TestEvent {
+                    action: "second".into(),
+                },
+            )
+            .expect("append second event");
+
+        store
+            .append_event(&chain.events()[1])
+            .expect("append after repair");
+
+        let loaded: JournalLoad<TestEvent> = store
+            .load_journal("journal", 7)
+            .expect("load repaired journal");
+        assert_eq!(loaded.chain.events().len(), 2);
+        assert_eq!(loaded.discarded_tail_bytes, 0);
+
+        fs::remove_dir_all(store.root()).expect("remove temporary store");
+    }
+
+    #[test]
+    fn append_separates_complete_final_record_without_newline() {
+        let store = temporary_store("append-complete-tail");
+        let mut chain = EventChain::new("journal", 8);
+        chain
+            .append(
+                1,
+                "repair",
+                None,
+                None,
+                Vec::new(),
+                TestEvent {
+                    action: "first".into(),
+                },
+            )
+            .expect("append first event");
+        let first = serde_json::to_vec(&chain.events()[0]).expect("serialize first event");
+        fs::write(store.root().join("journal.jsonl"), first)
+            .expect("write complete no-newline record");
+
+        chain
+            .append(
+                2,
+                "repair",
+                None,
+                None,
+                Vec::new(),
+                TestEvent {
+                    action: "second".into(),
+                },
+            )
+            .expect("append second event");
+
+        store
+            .append_event(&chain.events()[1])
+            .expect("append after separator repair");
+
+        let loaded: JournalLoad<TestEvent> = store
+            .load_journal("journal", 8)
+            .expect("load separated journal");
+        assert_eq!(loaded.chain.events().len(), 2);
+        assert_eq!(loaded.discarded_tail_bytes, 0);
+
+        fs::remove_dir_all(store.root()).expect("remove temporary store");
+    }
+
+    #[test]
+    fn journal_writer_lock_is_exclusive() {
+        let store = temporary_store("writer-lock");
+        let lock = store.acquire_journal_lock().expect("first writer lock");
+        assert!(matches!(
+            store.acquire_journal_lock(),
+            Err(PersistenceError::JournalLocked)
+        ));
+
+        drop(lock);
+        let lock = store
+            .acquire_journal_lock()
+            .expect("lock should be reusable after clean release");
+        drop(lock);
+
         fs::remove_dir_all(store.root()).expect("remove temporary store");
     }
 
