@@ -334,8 +334,8 @@ impl TransparencyWitnessStateStore for SqliteTransparencyWitnessStateStore {
         Ok(Some(Self::decode_state(key, &json)?))
     }
 
-    fn compare_and_swap(
-        &self,
+    fn compare_and_swap_with_connection(
+        connection: &mut Connection,
         key: &TransparencyWitnessStoreKeyV1,
         expected: Option<&TransparencyWitnessStoredStateV1>,
         replacement: TransparencyWitnessStateSnapshotV1,
@@ -357,7 +357,6 @@ impl TransparencyWitnessStateStore for SqliteTransparencyWitnessStateStore {
             }
         }
 
-        let mut connection = self.connection()?;
         let transaction = connection
             .transaction_with_behavior(TransactionBehavior::Immediate)
             .map_err(sqlite_error)?;
@@ -431,8 +430,38 @@ impl TransparencyWitnessStateStore for SqliteTransparencyWitnessStateStore {
 
         transaction.commit().map_err(sqlite_error)?;
 
+        Ok(stored)
+
+    fn compare_and_swap(
+        &self,
+        key: &TransparencyWitnessStoreKeyV1,
+        expected: Option<&TransparencyWitnessStoredStateV1>,
+        replacement: TransparencyWitnessStateSnapshotV1,
+    ) -> Result<TransparencyWitnessStoredStateV1, TransparencyWitnessStoreError> {
+        key.validate_basic()?;
+        replacement.validate_basic()?;
+
+        if replacement.policy_commitment() != key.policy_commitment()
+            || replacement.log_authority_commitment() != key.log_authority_commitment()
+        {
+            return Err(TransparencyWitnessStoreError::IdentityMismatch);
+        }
+        if let Some(expected) = expected {
+            expected.validate_basic()?;
+            if expected.snapshot().policy_commitment() != key.policy_commitment()
+                || expected.snapshot().log_authority_commitment() != key.log_authority_commitment()
+            {
+                return Err(TransparencyWitnessStoreError::IdentityMismatch);
+            }
+        }
+
+        let mut connection = self.connection()?;
+        let stored =
+            Self::compare_and_swap_with_connection(&mut connection, key, expected, replacement.clone())?;
         validate_cas_result(key, expected, &replacement, &stored)?;
         Ok(stored)
+    }
+
     }
 }
 
@@ -806,9 +835,15 @@ mod tests {
             .expect("initial commit");
 
         let _activation = activate_current_thread();
+        let mut connection = store.connection().expect("open configured fault VFS connection");
         let _fault = arm_wal(FaultOperation::Write, 1);
 
-        let candidate = store.compare_and_swap(&key, Some(&committed), initial.clone());
+        let candidate = SqliteTransparencyWitnessStateStore::compare_and_swap_with_connection(
+            &mut connection,
+            &key,
+            Some(&committed),
+            initial.clone(),
+        );
         assert!(candidate.is_err(), "injected WAL write must surface as an error");
         assert!(crate::sqlite_fault_vfs::fired(), "WAL write fault must fire");
 
@@ -891,9 +926,15 @@ mod tests {
             .expect("initial commit");
 
         let _activation = activate_current_thread();
+        let mut connection = store.connection().expect("open configured fault VFS connection");
         let _fault = arm_wal(FaultOperation::Sync, 1);
 
-        let candidate = store.compare_and_swap(&key, Some(&committed), initial.clone());
+        let candidate = SqliteTransparencyWitnessStateStore::compare_and_swap_with_connection(
+            &mut connection,
+            &key,
+            Some(&committed),
+            initial.clone(),
+        );
         assert!(crate::sqlite_fault_vfs::fired(), "WAL sync fault must fire");
 
         drop(_fault);
