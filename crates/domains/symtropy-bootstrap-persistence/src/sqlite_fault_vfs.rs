@@ -69,7 +69,6 @@ impl Drop for ActivationGuard {
 struct ProxyVfsState {
     base_vfs: *mut ffi::sqlite3_vfs,
     tail_offset: usize,
-    proxy_size: usize,
 }
 
 #[repr(C)]
@@ -105,7 +104,6 @@ pub fn install() {
         let state = Box::new(ProxyVfsState {
             base_vfs,
             tail_offset,
-            proxy_size,
         });
         let state_ptr = Box::into_raw(state);
 
