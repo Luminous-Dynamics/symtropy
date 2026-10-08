@@ -68,7 +68,7 @@ impl SqliteTransparencyWitnessStateStore {
             | OpenFlags::SQLITE_OPEN_NOFOLLOW;
         let connection = {
             #[cfg(test)]
-            if let Some(vfs) = sqlite_fault_vfs::active_name() {
+            if let Some(vfs) = crate::sqlite_fault_vfs::active_name() {
                 Connection::open_with_flags_and_vfs(&self.path, flags, vfs.as_str())
                     .map_err(sqlite_error)?
             } else {
