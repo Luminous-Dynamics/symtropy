@@ -963,23 +963,24 @@ mod tests {
         let path = temp_database_path("vfs-truncate-failure");
         let (key, initial) = fixture();
 
-        let store = SqliteTransparencyWitnessStateStore::open(&path).expect("open");
-        let committed = store
-            .compare_and_swap(&key, None, initial.clone())
-            .expect("initial commit");
-        let advanced = store
-            .compare_and_swap(&key, Some(&committed), initial.clone())
-            .expect("advance commit");
-        drop(store);
-
         let _activation = activate_current_thread();
-        let connection = Connection::open_with_flags_and_vfs(
-            &path,
-            OpenFlags::SQLITE_OPEN_READ_WRITE
-                | OpenFlags::SQLITE_OPEN_NOFOLLOW,
-            crate::sqlite_fault_vfs::NAME,
+        let store = SqliteTransparencyWitnessStateStore::open(&path).expect("open");
+        let mut connection = store.connection().expect("configured connection");
+
+        let committed = SqliteTransparencyWitnessStateStore::compare_and_swap_with_connection(
+            &mut connection,
+            &key,
+            None,
+            initial.clone(),
         )
-        .expect("fault-injected connection");
+        .expect("initial commit");
+        let advanced = SqliteTransparencyWitnessStateStore::compare_and_swap_with_connection(
+            &mut connection,
+            &key,
+            Some(&committed),
+            initial.clone(),
+        )
+        .expect("advance commit");
 
         let _fault = arm_wal(FaultOperation::Truncate, 1);
         let checkpoint = connection.query_row(
