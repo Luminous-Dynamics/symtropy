@@ -559,6 +559,48 @@ mod tests {
     }
 
     #[test]
+    fn sqlite_page_corruption_is_rejected_before_state_trust() {
+        use std::io::{Seek, SeekFrom, Write};
+
+        let path = temp_database_path("page-corruption");
+        let (key, snapshot) = fixture();
+
+        let store = SqliteTransparencyWitnessStateStore::open(&path).expect("open");
+        store
+            .compare_and_swap(&key, None, snapshot)
+            .expect("initial commit");
+        drop(store);
+
+        let page_size = Connection::open(&path)
+            .expect("page-size connection")
+            .query_row("PRAGMA page_size", [], |row| row.get::<_, i64>(0))
+            .expect("page size");
+        let page_size = u64::try_from(page_size).expect("positive page size");
+
+        let mut file = std::fs::OpenOptions::new()
+            .write(true)
+            .open(&path)
+            .expect("open database bytes");
+        file.seek(SeekFrom::Start(page_size))
+            .expect("seek to table root page");
+        file.write_all(&[0xff])
+            .expect("corrupt table root page type");
+        file.sync_all().expect("persist corruption");
+
+        let error = SqliteTransparencyWitnessStateStore::open(&path)
+            .expect_err("corrupt SQLite page must not become trusted state");
+        assert!(matches!(
+            error,
+            TransparencyWitnessStoreError::Invalid(message)
+                if message.contains("integrity_check")
+                || message.contains("schema")
+                || message.contains("SQLite error")
+        ));
+
+        cleanup(&path);
+    }
+
+    #[test]
     fn unexpected_schema_objects_are_rejected_before_witness_state_is_trusted() {
         let path = temp_database_path("schema-object-reject");
         {
@@ -737,6 +779,57 @@ mod tests {
             recovered.snapshot().log_authority_commitment(),
             key.log_authority_commitment()
         );
+
+        cleanup(&path);
+    }
+
+    #[test]
+    fn injected_wal_truncate_failure_preserves_last_valid_frontier() {
+        use crate::sqlite_fault_vfs::{activate_current_thread, arm_wal, FaultOperation};
+
+        let path = temp_database_path("vfs-truncate-failure");
+        let (key, initial) = fixture();
+
+        let store = SqliteTransparencyWitnessStateStore::open(&path).expect("open");
+        let committed = store
+            .compare_and_swap(&key, None, initial.clone())
+            .expect("initial commit");
+        let advanced = store
+            .compare_and_swap(&key, Some(&committed), initial.clone())
+            .expect("advance commit");
+        drop(store);
+
+        let _activation = activate_current_thread();
+        let connection = Connection::open_with_flags_and_vfs(
+            &path,
+            OpenFlags::SQLITE_OPEN_READ_WRITE
+                | OpenFlags::SQLITE_OPEN_URI
+                | OpenFlags::SQLITE_OPEN_NO_MUTEX
+                | OpenFlags::SQLITE_OPEN_NOFOLLOW,
+            crate::sqlite_fault_vfs::NAME,
+        )
+        .expect("fault-injected connection");
+
+        let _fault = arm_wal(FaultOperation::Truncate, 1);
+        let checkpoint = connection.query_row(
+            "PRAGMA wal_checkpoint(TRUNCATE)",
+            [],
+            |row| row.get::<_, i64>(0),
+        );
+        assert!(crate::sqlite_fault_vfs::fired(), "WAL truncate fault must fire");
+        assert!(checkpoint.is_err(), "injected truncate must surface as an error");
+
+        drop(_fault);
+        drop(connection);
+        drop(_activation);
+
+        let recovered = SqliteTransparencyWitnessStateStore::open(&path)
+            .expect("reopen after truncate failure")
+            .load(&key)
+            .expect("load after truncate failure")
+            .expect("last valid frontier");
+        assert_eq!(recovered, advanced);
+        assert_eq!(recovered.generation(), 1);
 
         cleanup(&path);
     }
