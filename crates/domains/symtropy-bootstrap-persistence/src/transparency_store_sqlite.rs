@@ -272,6 +272,7 @@ mod tests {
     use super::*;
     use crate::transparency::{TransparencyVdsTreeHeadV1, TransparencyWitnessRecordV1, TransparencyWitnessStateSnapshotV1};
     use crate::transparency_store::TransparencyWitnessStateStore;
+    use std::process::Command;
     use std::sync::{Arc, Barrier};
     use std::time::{SystemTime, UNIX_EPOCH};
 
@@ -338,6 +339,46 @@ mod tests {
             assert_eq!(stored.generation(), 0);
             assert_eq!(stored.snapshot(), &snapshot);
         }
+
+        cleanup(&path);
+    }
+
+    #[test]
+    fn sqlite_commit_survives_abrupt_process_exit() {
+        const WORKER_ENV: &str = "SYMTROPY_SQLITE_CRASH_WORKER";
+
+        if let Ok(path) = std::env::var(WORKER_ENV) {
+            let path = PathBuf::from(path);
+            let (key, snapshot) = fixture();
+            let store = SqliteTransparencyWitnessStateStore::open(&path).expect("worker open");
+            store
+                .compare_and_swap(&key, None, snapshot)
+                .expect("worker commit");
+            std::process::exit(0);
+        }
+
+        let path = temp_database_path("process-exit");
+        let status = Command::new(std::env::current_exe().expect("test binary"))
+            .args([
+                "--exact",
+                "transparency_store_sqlite::tests::sqlite_commit_survives_abrupt_process_exit",
+                "--nocapture",
+            ])
+            .env(WORKER_ENV, &path)
+            .status()
+            .expect("spawn worker");
+
+        assert!(status.success(), "crash worker must exit successfully");
+
+        let (key, snapshot) = fixture();
+        let reopened =
+            SqliteTransparencyWitnessStateStore::open(&path).expect("reopen after worker");
+        let stored = reopened
+            .load(&key)
+            .expect("load after process crash")
+            .expect("committed state");
+        assert_eq!(stored.generation(), 0);
+        assert_eq!(stored.snapshot(), &snapshot);
 
         cleanup(&path);
     }
