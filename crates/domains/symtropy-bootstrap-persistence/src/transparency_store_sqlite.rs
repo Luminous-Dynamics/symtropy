@@ -69,7 +69,7 @@ impl SqliteTransparencyWitnessStateStore {
         let connection = {
             #[cfg(test)]
             if let Some(vfs) = sqlite_fault_vfs::active_name() {
-                Connection::open_with_flags_and_vfs(&self.path, flags, vfs)
+                Connection::open_with_flags_and_vfs(&self.path, flags, vfs.as_str())
                     .map_err(sqlite_error)?
             } else {
                 Connection::open_with_flags(&self.path, flags).map_err(sqlite_error)?
