@@ -308,32 +308,7 @@ impl SqliteTransparencyWitnessStateStore {
     }
 }
 
-impl TransparencyWitnessStateStore for SqliteTransparencyWitnessStateStore {
-    fn load(
-        &self,
-        key: &TransparencyWitnessStoreKeyV1,
-    ) -> Result<Option<TransparencyWitnessStoredStateV1>, TransparencyWitnessStoreError> {
-        key.validate_basic()?;
-        let connection = self.connection()?;
-        let json = connection
-            .query_row(
-                &format!(
-                    "SELECT state_json FROM {TABLE}
-                     WHERE policy_commitment = ?1 AND log_authority_commitment = ?2"
-                ),
-                params![key.policy_commitment(), key.log_authority_commitment()],
-                |row| row.get::<_, String>(0),
-            )
-            .optional()
-            .map_err(sqlite_error)?;
-
-        let Some(json) = json else {
-            return Ok(None);
-        };
-
-        Ok(Some(Self::decode_state(key, &json)?))
-    }
-
+impl SqliteTransparencyWitnessStateStore {
     fn compare_and_swap_with_connection(
         connection: &mut Connection,
         key: &TransparencyWitnessStoreKeyV1,
@@ -432,6 +407,34 @@ impl TransparencyWitnessStateStore for SqliteTransparencyWitnessStateStore {
 
         Ok(stored)
 
+}
+
+impl TransparencyWitnessStateStore for SqliteTransparencyWitnessStateStore {
+    fn load(
+        &self,
+        key: &TransparencyWitnessStoreKeyV1,
+    ) -> Result<Option<TransparencyWitnessStoredStateV1>, TransparencyWitnessStoreError> {
+        key.validate_basic()?;
+        let connection = self.connection()?;
+        let json = connection
+            .query_row(
+                &format!(
+                    "SELECT state_json FROM {TABLE}
+                     WHERE policy_commitment = ?1 AND log_authority_commitment = ?2"
+                ),
+                params![key.policy_commitment(), key.log_authority_commitment()],
+                |row| row.get::<_, String>(0),
+            )
+            .optional()
+            .map_err(sqlite_error)?;
+
+        let Some(json) = json else {
+            return Ok(None);
+        };
+
+        Ok(Some(Self::decode_state(key, &json)?))
+    }
+
     fn compare_and_swap(
         &self,
         key: &TransparencyWitnessStoreKeyV1,
@@ -460,8 +463,6 @@ impl TransparencyWitnessStateStore for SqliteTransparencyWitnessStateStore {
             Self::compare_and_swap_with_connection(&mut connection, key, expected, replacement.clone())?;
         validate_cas_result(key, expected, &replacement, &stored)?;
         Ok(stored)
-    }
-
     }
 }
 
