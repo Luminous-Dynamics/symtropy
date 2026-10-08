@@ -183,6 +183,7 @@ pub struct C2spTimestampedEd25519CosignatureV1 {
 
 impl C2spTimestampedEd25519CosignatureV1 {
     pub fn from_signature_line(line: &str) -> Result<Self, C2spWireError> {
+        let line = line.strip_suffix('\n').unwrap_or(line);
         let remainder = line.strip_prefix("— ").ok_or_else(|| {
             C2spWireError::Invalid(
                 "C2SP cosignature must start with an em dash and space".to_string(),
@@ -280,7 +281,7 @@ impl C2spTimestampedEd25519CosignatureV1 {
         blob.extend_from_slice(&self.key_id);
         blob.extend_from_slice(&self.timestamp.to_be_bytes());
         blob.extend_from_slice(&self.signature);
-        format!("— {} {}", self.witness_name, base64_encode(&blob))
+        format!("— {} {}\n", self.witness_name, base64_encode(&blob))
     }
 }
 
@@ -599,7 +600,11 @@ mod tests {
             C2spTimestampedEd25519CosignatureV1::from_signature_line(&line).expect("parse");
 
         parsed.verify(&note, &public_key).expect("verify");
-        assert_eq!(parsed.signature_line(), line);
+        assert_eq!(parsed.signature_line(), format!("{line}\n"));
+        let parsed_without_newline =
+            C2spTimestampedEd25519CosignatureV1::from_signature_line(&line)
+                .expect("parse without terminal newline");
+        assert_eq!(parsed_without_newline, parsed);
     }
 
     #[test]
