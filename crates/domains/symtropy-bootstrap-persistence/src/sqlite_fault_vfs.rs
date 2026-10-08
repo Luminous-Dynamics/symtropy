@@ -26,13 +26,19 @@ pub enum FaultOperation {
     Truncate,
 }
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum FaultScope {
+    Wal,
+    MainDatabase,
+}
+
 #[derive(Clone, Copy, Debug)]
 struct FaultPlan {
     operation: FaultOperation,
     ordinal: usize,
     seen: usize,
     fired: bool,
-    wal_only: bool,
+    scope: FaultScope,
 }
 
 static PLAN: Mutex<Option<FaultPlan>> = Mutex::new(None);
@@ -155,10 +161,15 @@ pub fn active_name() -> Option<String> {
 }
 
 pub fn arm_wal(operation: FaultOperation, ordinal: usize) -> FaultGuard {
-    arm_inner(operation, ordinal, true)
+    arm_inner(operation, ordinal, FaultScope::Wal)
 }
 
-fn arm_inner(operation: FaultOperation, ordinal: usize, wal_only: bool) -> FaultGuard {
+/// Arm a one-shot fault against the main database file, excluding WAL I/O.
+pub fn arm_main(operation: FaultOperation, ordinal: usize) -> FaultGuard {
+    arm_inner(operation, ordinal, FaultScope::MainDatabase)
+}
+
+fn arm_inner(operation: FaultOperation, ordinal: usize, scope: FaultScope) -> FaultGuard {
     assert!(ordinal > 0, "fault ordinal is one-based");
     let serial = SERIAL.lock().expect("fault serial mutex");
     *PLAN.lock().expect("fault plan mutex") = Some(FaultPlan {
@@ -166,7 +177,7 @@ fn arm_inner(operation: FaultOperation, ordinal: usize, wal_only: bool) -> Fault
         ordinal,
         seen: 0,
         fired: false,
-        wal_only,
+        scope,
     });
     FaultGuard { _serial: serial }
 }
@@ -183,9 +194,16 @@ fn maybe_fail(operation: FaultOperation, open_flags: c_int) -> Option<c_int> {
         return None;
     };
 
-    if plan.operation != operation
-        || (plan.wal_only && (open_flags & ffi::SQLITE_OPEN_WAL) == 0)
-    {
+    if plan.operation != operation {
+        return None;
+    }
+
+    let is_wal = (open_flags & ffi::SQLITE_OPEN_WAL) != 0;
+    let scope_matches = match plan.scope {
+        FaultScope::Wal => is_wal,
+        FaultScope::MainDatabase => !is_wal,
+    };
+    if !scope_matches {
         return None;
     }
 
@@ -234,6 +252,10 @@ unsafe extern "C" fn vfs_x_open(
 ) -> c_int {
     let state = unsafe { &*((*vfs).pAppData.cast::<ProxyVfsState>()) };
     let base = state.base_vfs;
+
+    unsafe {
+        (*file).pMethods = ptr::null();
+    }
 
     let rc = unsafe {
         ((*base).xOpen.expect("default SQLite VFS xOpen"))(
@@ -566,4 +588,124 @@ unsafe extern "C" fn vfs_x_next_system_call(
 ) -> *const c_char {
     let base = unsafe { &*((*vfs).pAppData.cast::<ProxyVfsState>()) }.base_vfs;
     unsafe { ((*base).xNextSystemCall.expect("default SQLite VFS xNextSystemCall"))(base, z_name) }
+}
+
+#[cfg(test)]
+mod main_database_sync_tests {
+    use super::{activate_current_thread, arm_main, fired, FaultOperation};
+    use crate::transparency::{
+        TransparencyVdsTreeHeadV1, TransparencyWitnessRecordV1, TransparencyWitnessStateSnapshotV1,
+    };
+    use crate::transparency_store::TransparencyWitnessStateStore;
+    use crate::transparency_store_sqlite::SqliteTransparencyWitnessStateStore;
+    use rusqlite::{params, Connection};
+    use std::{
+        path::{Path, PathBuf},
+        time::{SystemTime, UNIX_EPOCH},
+    };
+
+    fn temp_database_path(label: &str) -> PathBuf {
+        let nonce = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .expect("clock")
+            .as_nanos();
+        std::env::temp_dir().join(format!(
+            "symtropy-{label}-{}-{nonce}.sqlite3",
+            std::process::id()
+        ))
+    }
+
+    fn cleanup(path: &Path) {
+        let _ = std::fs::remove_file(path);
+        let _ = std::fs::remove_file(path.with_extension("sqlite3-wal"));
+        let _ = std::fs::remove_file(path.with_extension("sqlite3-shm"));
+    }
+
+    fn fixture() -> (
+        crate::transparency_store::TransparencyWitnessStoreKeyV1,
+        TransparencyWitnessStateSnapshotV1,
+    ) {
+        let policy_commitment = "11".repeat(32);
+        let log_commitment = "22".repeat(32);
+        let witness = TransparencyWitnessRecordV1::new(
+            "w1",
+            0,
+            &"33".repeat(32),
+            0,
+            "GENESIS",
+            TransparencyVdsTreeHeadV1::empty(),
+        )
+        .expect("witness");
+        let snapshot = TransparencyWitnessStateSnapshotV1::new(
+            policy_commitment.clone(),
+            log_commitment.clone(),
+            vec![witness],
+        )
+        .expect("snapshot");
+        (
+            crate::transparency_store::TransparencyWitnessStoreKeyV1::new(
+                policy_commitment,
+                log_commitment,
+            )
+            .expect("key"),
+            snapshot,
+        )
+    }
+
+    #[test]
+    fn injected_main_database_sync_failure_recovers_to_the_last_valid_frontier() {
+        let path = temp_database_path("vfs-main-sync-failure");
+        let (key, initial) = fixture();
+
+        let _activation = activate_current_thread();
+        let store = SqliteTransparencyWitnessStateStore::open(&path).expect("open");
+        let mut connection = store.connection().expect("configured connection");
+
+        let committed = SqliteTransparencyWitnessStateStore::compare_and_swap_with_connection(
+            &mut connection,
+            &key,
+            None,
+            initial.clone(),
+        )
+        .expect("initial commit");
+        let advanced = SqliteTransparencyWitnessStateStore::compare_and_swap_with_connection(
+            &mut connection,
+            &key,
+            Some(&committed),
+            initial,
+        )
+        .expect("advance commit");
+
+        let _fault = arm_main(FaultOperation::Sync, 1);
+        let checkpoint = Connection::open_with_flags_and_vfs(
+            &path,
+            rusqlite::OpenFlags::SQLITE_OPEN_READ_WRITE,
+            super::NAME,
+        )
+        .and_then(|checkpoint| {
+            checkpoint.query_row(
+                "PRAGMA wal_checkpoint(TRUNCATE)",
+                [],
+                |row| row.get::<_, i64>(0),
+            )
+        });
+
+        assert!(fired(), "main database sync fault must fire");
+        assert!(checkpoint.is_err(), "injected main database sync must surface as an error");
+
+        drop(_fault);
+        drop(connection);
+        drop(_activation);
+
+        let recovered = SqliteTransparencyWitnessStateStore::open(&path)
+            .expect("reopen after main database sync failure")
+            .load(&key)
+            .expect("load after main database sync failure")
+            .expect("last valid frontier");
+        assert_eq!(recovered, advanced);
+        assert_eq!(recovered.generation(), 1);
+
+        cleanup(&path);
+        let _ = params!["unused"];
+    }
 }
