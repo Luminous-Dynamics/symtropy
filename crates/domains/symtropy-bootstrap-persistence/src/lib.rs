@@ -702,11 +702,10 @@ impl DurableExecutionSecurityContext {
         transparency_checkpoint: TransparencyCheckpointV1,
         transparency_witness_signatures: Vec<TransparencyWitnessSignatureV1>,
         transparency_vds_consistency_proof: Option<MerkleConsistencyProofV1>,
-    ) {
-        self.transparency_checkpoint = transparency_checkpoint;
-        self.transparency_witness_signatures = transparency_witness_signatures.clone();
-        self.transparency_witness_evidence = transparency_witness_signatures
-            .into_iter()
+    ) -> Result<(), AdapterError> {
+        let transparency_witness_evidence = transparency_witness_signatures
+            .iter()
+            .cloned()
             .map(|signature| {
                 TransparencyWitnessEvidenceV1::new(
                     signature,
@@ -714,8 +713,13 @@ impl DurableExecutionSecurityContext {
                 )
             })
             .collect::<Result<Vec<_>, _>>()
-            .unwrap_or_else(|_| Vec::new());
+            .map_err(AdapterError::from)?;
+
+        self.transparency_checkpoint = transparency_checkpoint;
+        self.transparency_witness_signatures = transparency_witness_signatures;
+        self.transparency_witness_evidence = transparency_witness_evidence;
         self.transparency_vds_consistency_proof = transparency_vds_consistency_proof;
+        Ok(())
     }
 
     pub fn set_transparency_witness_evidence(
@@ -3408,7 +3412,8 @@ mod tests {
                 &previous_digest,
             );
             self.context
-                .set_transparency_evidence(checkpoint, witness_signatures, vds_proof);
+                .set_transparency_evidence(checkpoint, witness_signatures, vds_proof)
+                .expect("well-shaped transparency evidence");
         }
     }
 
@@ -3614,6 +3619,38 @@ mod tests {
             Err(AdapterError::Invalid(message))
                 if message.contains("shared transparency VDS proof")
         ));
+    }
+
+    #[test]
+    fn malformed_transparency_setter_does_not_mutate_context() {
+        let adapter = configured_adapter("transparency-setter-transactional");
+        let mut security = TestSecurityMaterial::new(&adapter);
+        let checkpoint_before = security.context.transparency_checkpoint().clone();
+        let signatures_before = security.context.transparency_witness_signatures().to_vec();
+        let evidence_before = security.context.transparency_witness_evidence().to_vec();
+        let proof_before = security.context.transparency_vds_consistency_proof().cloned();
+
+        let error = security.context.set_transparency_evidence(
+            checkpoint_before.clone(),
+            vec![TransparencyWitnessSignatureV1::new("w1", "zz".repeat(64))
+                .expect("shape-valid signature object")],
+            None,
+        );
+
+        assert!(matches!(error, Err(AdapterError::Transparency(_))));
+        assert_eq!(security.context.transparency_checkpoint(), &checkpoint_before);
+        assert_eq!(
+            security.context.transparency_witness_signatures(),
+            signatures_before.as_slice()
+        );
+        assert_eq!(
+            security.context.transparency_witness_evidence(),
+            evidence_before.as_slice()
+        );
+        assert_eq!(
+            security.context.transparency_vds_consistency_proof(),
+            proof_before.as_ref()
+        );
     }
 
     #[test]
@@ -3974,11 +4011,13 @@ mod tests {
             3,
             &hex_encode(&security.context.transparency_checkpoint().digest()),
         );
-        security.context.set_transparency_evidence(
-            transparency_sequence_three.0,
-            transparency_sequence_three.1,
-            transparency_sequence_three.2,
-        );
+        security.context
+            .set_transparency_evidence(
+                transparency_sequence_three.0,
+                transparency_sequence_three.1,
+                transparency_sequence_three.2,
+            )
+            .expect("sequence-three transparency evidence");
         let gap_error = adapter
             .commit(
                 &mut security.context,
@@ -4005,11 +4044,13 @@ mod tests {
             2,
             &"99".repeat(32),
         );
-        security.context.set_transparency_evidence(
-            transparency_wrong_predecessor.0,
-            transparency_wrong_predecessor.1,
-            transparency_wrong_predecessor.2,
-        );
+        security.context
+            .set_transparency_evidence(
+                transparency_wrong_predecessor.0,
+                transparency_wrong_predecessor.1,
+                transparency_wrong_predecessor.2,
+            )
+            .expect("wrong-predecessor transparency evidence");
         let predecessor_error = adapter
             .commit(
                 &mut security.context,
