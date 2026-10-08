@@ -111,6 +111,56 @@ impl TransparencyWitnessStoredStateV1 {
     }
 }
 
+/// Shared trait-object handle for integrating an external witness store into a
+/// long-lived security context.
+///
+/// The backend remains the authority; this wrapper only provides object-safe,
+/// cloneable ownership for adapters that need to retain the store across transitions.
+#[derive(Clone)]
+pub struct SharedTransparencyWitnessStateStore(
+    std::sync::Arc<dyn TransparencyWitnessStateStore + Send + Sync>,
+);
+
+impl std::fmt::Debug for SharedTransparencyWitnessStateStore {
+    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        formatter
+            .debug_struct("SharedTransparencyWitnessStateStore")
+            .finish_non_exhaustive()
+    }
+}
+
+impl SharedTransparencyWitnessStateStore {
+    #[must_use]
+    pub fn new(
+        store: std::sync::Arc<dyn TransparencyWitnessStateStore + Send + Sync>,
+    ) -> Self {
+        Self(store)
+    }
+
+    #[must_use]
+    pub fn as_store(&self) -> &(dyn TransparencyWitnessStateStore + Send + Sync) {
+        self.0.as_ref()
+    }
+}
+
+impl TransparencyWitnessStateStore for SharedTransparencyWitnessStateStore {
+    fn load(
+        &self,
+        key: &TransparencyWitnessStoreKeyV1,
+    ) -> Result<Option<TransparencyWitnessStoredStateV1>, TransparencyWitnessStoreError> {
+        self.0.load(key)
+    }
+
+    fn compare_and_swap(
+        &self,
+        key: &TransparencyWitnessStoreKeyV1,
+        expected: Option<&TransparencyWitnessStoredStateV1>,
+        replacement: TransparencyWitnessStateSnapshotV1,
+    ) -> Result<TransparencyWitnessStoredStateV1, TransparencyWitnessStoreError> {
+        self.0.compare_and_swap(key, expected, replacement)
+    }
+}
+
 /// Backend contract for restart-resistant retained witness memory.
 ///
 /// Implementations MUST make `compare_and_swap` linearizable with respect to
