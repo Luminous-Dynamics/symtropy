@@ -78,11 +78,6 @@ struct FileTail {
     proxy_methods: ffi::sqlite3_io_methods,
 }
 
-// SQLite owns the VFS callback thread. The process-leaked default VFS pointer
-// and immutable proxy state remain valid for the lifetime of the test process.
-unsafe impl Send for ProxyVfsState {}
-unsafe impl Sync for ProxyVfsState {}
-
 fn align_up(value: usize, alignment: usize) -> usize {
     debug_assert!(alignment.is_power_of_two());
     (value + alignment - 1) & !(alignment - 1)
@@ -157,10 +152,6 @@ pub fn activate_current_thread() -> ActivationGuard {
 
 pub fn active_name() -> Option<String> {
     ACTIVE_NAME.with(|name| name.borrow().clone())
-}
-
-pub fn arm(operation: FaultOperation, ordinal: usize) -> FaultGuard {
-    arm_inner(operation, ordinal, false)
 }
 
 pub fn arm_wal(operation: FaultOperation, ordinal: usize) -> FaultGuard {
