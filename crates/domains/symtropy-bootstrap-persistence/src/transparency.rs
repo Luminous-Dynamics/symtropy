@@ -833,6 +833,31 @@ impl AcceptedTransparencyCheckpointV1 {
     pub fn witness_evidence(&self) -> &[TransparencyWitnessEvidenceV1] {
         &self.witness_evidence
     }
+
+    /// Export the exact predecessor witness states used during verification.
+    ///
+    /// An external state store can use these records as the compare-and-swap
+    /// precondition, preventing a newer concurrent writer from being overwritten.
+    pub fn predecessor_state_records(&self) -> Vec<TransparencyWitnessRecordV1> {
+        self.predecessor_states
+            .iter()
+            .map(|(witness_id, state)| {
+                TransparencyWitnessRecordV1::new(
+                    witness_id.clone(),
+                    state.sequence,
+                    state.checkpoint_digest.clone(),
+                    state.event_count,
+                    state.head_hash.clone(),
+                    TransparencyVdsTreeHeadV1::new(
+                        state.vds_tree_size,
+                        state.vds_root_hash.clone(),
+                    )
+                    .expect("verified retained VDS state"),
+                )
+                .expect("verified predecessor witness state")
+            })
+            .collect()
+    }
 }
 
 #[derive(Debug)]
