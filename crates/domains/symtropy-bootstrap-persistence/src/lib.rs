@@ -806,6 +806,127 @@ impl DurableExecutionSecurityContext {
         self.transparency_external_store_desynchronized
     }
 
+    /// Reconcile a fenced context after an uncertain external witness-store operation.
+    ///
+    /// Recovery is intentionally one-way: it accepts only the exact externally stored
+    /// witness state corresponding to the most recently appended lifecycle event. It
+    /// never reconstructs or writes missing witness memory from the durable journal.
+    pub fn reconcile_external_transparency_witness_store(
+        &mut self,
+        adapter: &DurableExecutionAdapter,
+    ) -> Result<(), AdapterError> {
+        if !self.transparency_external_store_desynchronized {
+            return Ok(());
+        }
+
+        let journal_lock = adapter.store.acquire_journal_lock()?;
+        let loaded = adapter.load_verified()?;
+        Self::validate_journal(&loaded.chain)?;
+
+        let store = self.transparency_external_store.as_ref().ok_or_else(|| {
+            AdapterError::WitnessMismatch(
+                "external witness store is unavailable for fenced recovery".to_string(),
+            )
+        })?;
+        let key = self.transparency_external_store_key.as_ref().ok_or_else(|| {
+            AdapterError::WitnessMismatch(
+                "external witness store key is unavailable for fenced recovery".to_string(),
+            )
+        })?;
+
+        let stored = store
+            .load(key)
+            .map_err(|error| AdapterError::Invalid(error.to_string()))?
+            .ok_or_else(|| {
+                AdapterError::WitnessMismatch(
+                    "external witness state is missing; journal data cannot reconstruct it"
+                        .to_string(),
+                )
+            })?;
+
+        let restored = restore_witness_set(
+            store,
+            key,
+            &self.transparency_policy,
+            &self.transparency_log,
+        )
+        .map_err(|error| AdapterError::Invalid(error.to_string()))?
+        .ok_or_else(|| {
+            AdapterError::WitnessMismatch(
+                "external witness state disappeared during fenced recovery".to_string(),
+            )
+        })?;
+
+        let (stored, witness_set) = restored;
+        let event = loaded.chain.events().last().ok_or_else(|| {
+            AdapterError::WitnessMismatch(
+                "fenced transparency recovery requires an appended lifecycle event".to_string(),
+            )
+        })?;
+        let evidence = &event.payload.transparency_evidence;
+        evidence.validate_against_event(
+            u64::try_from(loaded.chain.events().len() - 1)
+                .map_err(|_| AdapterError::WitnessMismatch("journal event count overflow".to_string()))?,
+            &event.previous_hash,
+        )?;
+
+        let selected = evidence.accepted_witnesses.as_slice();
+        if selected.is_empty() {
+            return Err(AdapterError::WitnessMismatch(
+                "persisted transparency evidence contains no accepted witnesses".to_string(),
+            ));
+        }
+        for witness_id in selected {
+            let record = stored
+                .snapshot()
+                .witnesses()
+                .iter()
+                .find(|record| record.witness_id() == witness_id)
+                .ok_or_else(|| {
+                    AdapterError::WitnessMismatch(format!(
+                        "external witness state is missing accepted witness {witness_id}"
+                    ))
+                })?;
+            let expected_digest = hex_encode(&evidence.checkpoint.digest());
+            if record.sequence() != evidence.checkpoint.sequence()
+                || record.checkpoint_digest() != expected_digest
+                || record.event_count() != evidence.checkpoint.event_count()
+                || record.head_hash() != evidence.checkpoint.head_hash()
+                || record.vds_tree_head().tree_size() != evidence.checkpoint.vds_tree_size()
+                || record.vds_tree_head().root_hash() != evidence.checkpoint.vds_root_hash()
+            {
+                return Err(AdapterError::WitnessMismatch(
+                    "external witness state does not contain the exact post-append checkpoint state"
+                        .to_string(),
+                ));
+            }
+        }
+
+        let next_head_witness = adapter.capture_head_witness()?;
+        self.freshness_authority.verify(
+            &self.freshness_attestation,
+            &adapter.journal_namespace,
+            adapter.seed,
+            &loaded.chain,
+            &adapter.trust,
+        )?;
+        self.freshness_cursor.verify_candidate(
+            &self.freshness_authority,
+            &self.freshness_attestation,
+            &loaded.chain,
+        )?;
+
+        self.transparency_witnesses = witness_set;
+        self.transparency_external_store_state = Some(stored);
+        self.head_witness = next_head_witness;
+        self.freshness_cursor
+            .advance_verified(&self.freshness_attestation);
+        self.transparency_external_store_desynchronized = false;
+
+        drop(journal_lock);
+        Ok(())
+    }
+
     fn verify_before_transition(
         &self,
         adapter: &DurableExecutionAdapter,
