@@ -200,17 +200,50 @@ The record is not treated as a substitute for retained witness state. The persis
 
 ## Crash/restart boundary
 
-The current witness state remains intentionally non-serializable.
+The retained witness object remains intentionally non-serializable for ordinary in-process use.
+
+A separate `TransparencyWitnessStateStore` boundary now defines restart-resistant storage semantics. Its backend must:
+
+    durably retain the complete witness snapshot
+    + provide linearizable load
+    + provide atomic compare-and-swap over the whole snapshot
+    + reject stale generation/snapshot writers
+    + commit the replacement before reporting success
+
+The generation counter is concurrency metadata, not a cryptographic freshness proof.
+
+The lifecycle integration uses this store in the following order:
+
+    verify candidate against retained witness state
+        ↓
+    durably append authenticated lifecycle event
+        ↓
+    atomically CAS the external witness snapshot
+        ↓
+    commit in-process witness state
+        ↓
+    advance local head/freshness witnesses
+
+The two resources are intentionally not presented as one atomic transaction. If the journal append succeeds but external witness CAS fails, the security context becomes **fenced** and rejects subsequent state-changing operations rather than continuing with stale witness memory. This leaves the durable event intact while making reconciliation an explicit recovery operation.
+
+External snapshots include the policy commitment, concrete log-authority commitment, canonical witness set, checkpoint lineage, journal head/count, and VDS frontier for every retained witness. A snapshot can therefore restore in-process witness state after restart, but the security claim still depends on the backend's actual durability and linearizable CAS semantics.
+
+A backend that is merely a local file, eventually-consistent object store, or caller-controlled JSON document must not be described as an independent anti-rollback authority.
 
 Therefore this tranche establishes:
 
     no silent in-process witness rollback
     no replay of an already-consumed transparency sequence
     durable authenticated record of which checkpoint was consumed
+    an explicit restart-resistant witness-memory interface
+    fail-closed fencing when the external witness authority cannot be advanced
 
 It does **not** establish:
 
-    restart-resistant external witness continuity
+    that any particular backend is independently operated
+    hardware rollback resistance
+    cross-resource atomicity between journal and witness store
+    automatic recovery after witness-store divergence
 
 A runtime restart with only the execution journal must not reconstruct an external witness's memory. The journal now prevents replay of the last already-consumed transparency sequence, but it cannot establish that a fresh witness object has observed the intervening checkpoint history. The in-process witness can catch up across missed checkpoint sequences while it retains its prior VDS head; after restart, the next recovery layer still needs an independently retained witness/checkpoint store or equivalent external continuity authority.
 
@@ -319,6 +352,11 @@ The minimum regression corpus for this layer should continue to cover:
 - witness catch-up after missed checkpoint sequence numbers with a valid VDS consistency proof.
 - witness catch-up without the required VDS consistency proof.
 - durable lifecycle checkpoint sequence gap despite valid signatures.
+- external witness store generation rollback.
+- external witness store snapshot mismatch under a matching generation.
+- stale accepted checkpoint against changed external witness state.
+- successful journal append followed by failed external witness-state CAS.
+- restart restoration from an externally retained witness snapshot.
 
 ## Next implementation frontier
 
@@ -354,7 +392,7 @@ Persisted lifecycle evidence retains the exact per-witness proof tuples, while t
 
 This is a liveness/interoperability refinement, not a relaxation of durable checkpoint sequence or predecessor checks. It keeps execution authority, freshness authority, transparency authority, and witness policy independently attributable.
 
-The next implementation frontier is wire interoperability and restart-resistant external witness memory. A future C2SP/RFC 9942 adapter must map the semantic per-witness evidence into the protocol's base64/note or CBOR/COSE structures without silently dropping journal, policy, or VDS bindings.
+The next implementation frontier is concrete external-backend qualification and wire interoperability. A future C2SP/RFC 9942 adapter must map the semantic per-witness evidence into the protocol's base64/note or CBOR/COSE structures without silently dropping journal, policy, or VDS bindings.
 
 The repository now also exposes protocol-shaped Merkle proof bindings:
     RFC 9942 consistency content
@@ -363,6 +401,8 @@ The repository now also exposes protocol-shaped Merkle proof bindings:
         = tree size + leaf index + inclusion path
 
 Those bindings are intentionally semantic rather than wire encodings. Their verification methods consume the tree sizes carried by the proof object itself, reducing the chance that a future transport adapter pairs a valid path with the wrong tree-size context. The consistency/inclusion binding types also retain the exact root hashes used for verification, so a proof cannot be validated successfully against a different root merely because a caller supplied a different root argument. The eventual CBOR/COSE adapter must still encode hashes as bstr and must authenticate the newer/inclusion root with the signed/detached payload exactly as the RFC requires.
+
+A backend adapter should be qualified independently against crash consistency, durability, concurrent writers, generation rollback, snapshot corruption, and recovery-after-failure behavior. The repository's in-memory backend is only an adversarial semantic model and intentionally does not survive process restart.
 
 C2SP policy remains a separate interoperability concern. Its current policy language supports nested named witness groups with all/any/numeric thresholds; the present Symtropy policy uses a flat quorum plus an application-specific minimum-independent-domain rule. A future policy adapter must model those semantics explicitly rather than treating the two policies as equivalent.
 
