@@ -4225,6 +4225,82 @@ mod tests {
     }
 
     #[test]
+    fn nonconforming_external_store_response_fences_then_reconciles_authoritative_commit() {
+        let adapter = configured_adapter("external-witness-response-contract");
+        let mut security = TestSecurityMaterial::new(&adapter);
+        let (process, run) = process_and_run();
+        let (mut budget, mut inventory, mut energy) = initial_kernel_state();
+
+        security.refresh(&adapter);
+        security.external_store.cas_mode.store(4, Ordering::SeqCst);
+
+        let error = adapter
+            .authorize_pending(
+                &mut security.context,
+                &process,
+                "exec-external-store-contract",
+                1,
+                10,
+                20,
+                "bus",
+                run,
+                &mut budget,
+                &mut inventory,
+                &mut energy,
+            )
+            .expect_err("forged successful CAS response must fence");
+
+        assert!(matches!(
+            error,
+            AdapterError::Invalid(message)
+                if message.contains("backend contract violation")
+        ));
+        assert!(
+            security
+                .context
+                .external_transparency_witness_store_desynchronized()
+        );
+        assert_eq!(
+            adapter.load_verified().expect("journal").chain.events().len(),
+            1,
+            "journal append remains durable while the response contract is rejected"
+        );
+
+        let key = security
+            .context
+            .transparency_external_store_key
+            .as_ref()
+            .expect("store key")
+            .clone();
+        let authoritative = security
+            .external_store
+            .inner
+            .load(&key)
+            .expect("load")
+            .expect("backend committed the replacement");
+        assert_eq!(authoritative.generation(), 1);
+
+        security.external_store.cas_mode.store(0, Ordering::SeqCst);
+        security
+            .context
+            .reconcile_external_transparency_witness_store(&adapter)
+            .expect("exact authoritative commit must reconcile");
+
+        assert!(
+            !security
+                .context
+                .external_transparency_witness_store_desynchronized()
+        );
+        assert_eq!(
+            security
+                .context
+                .transparency_witnesses()
+                .retained_sequence("w1"),
+            Some(1)
+        );
+    }
+
+    #[test]
     fn external_witness_store_failure_fences_context_after_journal_append() {
         let adapter = configured_adapter("external-witness-cas-failure");
         let mut security = TestSecurityMaterial::new(&adapter);
