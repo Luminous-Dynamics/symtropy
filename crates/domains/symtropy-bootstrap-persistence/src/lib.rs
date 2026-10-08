@@ -3943,6 +3943,57 @@ mod tests {
     }
 
     #[test]
+    fn failed_external_bootstrap_does_not_persist_genesis_state() {
+        let adapter = configured_adapter("external-bootstrap-preflight");
+        let security = TestSecurityMaterial::new(&adapter);
+        let external_store = Arc::new(ToggleFailTransparencyStore::default());
+        let key = TransparencyWitnessStoreKeyV1::new(
+            security.context.transparency_policy().commitment(),
+            security.context.transparency_log().commitment(),
+        )
+        .expect("store key");
+
+        let cursor = FreshnessCursor {
+            authority_commitment: security
+                .context
+                .freshness_cursor()
+                .authority_commitment()
+                .to_string(),
+            last_sequence: security.context.freshness_cursor().last_sequence(),
+            last_head_hash: security
+                .context
+                .freshness_cursor()
+                .last_head_hash()
+                .to_string(),
+            last_event_count: security.context.freshness_cursor().last_event_count(),
+        };
+
+        let error = DurableExecutionSecurityContext::establish_with_external_witness_store(
+            &adapter,
+            security.context.freshness_authority().clone(),
+            cursor,
+            security.context.freshness_attestation().clone(),
+            security.context.transparency_log().clone(),
+            security.context.transparency_policy().clone(),
+            SharedTransparencyWitnessStateStore::new(external_store.clone()),
+            security.context.transparency_checkpoint().clone(),
+            Vec::new(),
+            security.context.transparency_vds_consistency_proof().cloned(),
+        )
+        .expect_err("invalid witness quorum must fail before external bootstrap");
+
+        assert!(matches!(error, AdapterError::Transparency(_)));
+        assert!(
+            external_store
+                .inner
+                .load(&key)
+                .expect("external store load")
+                .is_none(),
+            "failed admission must not leave an externally persisted genesis witness state"
+        );
+    }
+
+    #[test]
     fn external_witness_store_failure_fences_context_after_journal_append() {
         let adapter = configured_adapter("external-witness-cas-failure");
         let mut security = TestSecurityMaterial::new(&adapter);
