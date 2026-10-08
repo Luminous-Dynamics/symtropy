@@ -63,8 +63,6 @@ impl SqliteTransparencyWitnessStateStore {
     fn connection(&self) -> Result<Connection, TransparencyWitnessStoreError> {
         let flags = OpenFlags::SQLITE_OPEN_READ_WRITE
             | OpenFlags::SQLITE_OPEN_CREATE
-            | OpenFlags::SQLITE_OPEN_URI
-
             | OpenFlags::SQLITE_OPEN_NOFOLLOW;
         let connection = {
             #[cfg(test)]
@@ -852,7 +850,6 @@ mod tests {
         let connection = Connection::open_with_flags_and_vfs(
             &path,
             OpenFlags::SQLITE_OPEN_READ_WRITE
-                | OpenFlags::SQLITE_OPEN_URI
                 | OpenFlags::SQLITE_OPEN_NOFOLLOW,
             crate::sqlite_fault_vfs::NAME,
         )
