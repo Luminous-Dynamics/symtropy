@@ -843,21 +843,22 @@ impl DurableExecutionSecurityContext {
                         .to_string(),
                 )
             })?;
-
-        let restored = restore_witness_set(
-            store,
-            key,
+        stored
+            .validate_basic()
+            .map_err(|error| AdapterError::Invalid(error.to_string()))?;
+        if stored.snapshot().policy_commitment() != self.transparency_policy.commitment()
+            || stored.snapshot().log_authority_commitment() != self.transparency_log.commitment()
+        {
+            return Err(AdapterError::WitnessMismatch(
+                "external witness state identity changed during fenced recovery".to_string(),
+            ));
+        }
+        let witness_set = TransparencyWitnessSetV1::from_external_state(
             &self.transparency_policy,
             &self.transparency_log,
+            stored.snapshot(),
         )
-        .map_err(|error| AdapterError::Invalid(error.to_string()))?
-        .ok_or_else(|| {
-            AdapterError::WitnessMismatch(
-                "external witness state disappeared during fenced recovery".to_string(),
-            )
-        })?;
-
-        let (stored, witness_set) = restored;
+        .map_err(AdapterError::from)?;
         let event = loaded.chain.events().last().ok_or_else(|| {
             AdapterError::WitnessMismatch(
                 "fenced transparency recovery requires an appended lifecycle event".to_string(),
