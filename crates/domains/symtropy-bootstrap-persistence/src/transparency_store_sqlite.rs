@@ -89,6 +89,7 @@ impl SqliteTransparencyWitnessStateStore {
             ))
             .map_err(sqlite_error)?;
         Self::validate_schema(&connection)?;
+        Self::validate_schema_objects(&connection)?;
         Self::validate_integrity(&connection)?;
 
         Ok(connection)
@@ -108,7 +109,7 @@ impl SqliteTransparencyWitnessStateStore {
 
     fn validate_schema(connection: &Connection) -> Result<(), TransparencyWitnessStoreError> {
         let mut statement = connection
-            .prepare(&format!("PRAGMA table_info({TABLE})"))
+            .prepare(&format!("PRAGMA table_xinfo({TABLE})"))
             .map_err(sqlite_error)?;
         let mut rows = statement.query([]).map_err(sqlite_error)?;
         let mut columns = Vec::new();
@@ -144,6 +145,67 @@ impl SqliteTransparencyWitnessStateStore {
         Ok(())
     }
 
+    fn validate_schema_objects(
+        connection: &Connection,
+    ) -> Result<(), TransparencyWitnessStoreError> {
+        let mut statement = connection
+            .prepare(
+                "SELECT type, name, tbl_name
+                 FROM sqlite_master
+                 WHERE tbl_name = ?1
+                 ORDER BY type, name",
+            )
+            .map_err(sqlite_error)?;
+        let objects = statement
+            .query_map([TABLE], |row| {
+                Ok((
+                    row.get::<_, String>(0)?,
+                    row.get::<_, String>(1)?,
+                    row.get::<_, String>(2)?,
+                ))
+            })
+            .map_err(sqlite_error)?
+            .collect::<Result<Vec<_>, _>>()
+            .map_err(sqlite_error)?;
+
+        let expected = vec![(
+            "table".to_string(),
+            TABLE.to_string(),
+            TABLE.to_string(),
+        )];
+
+        if objects != expected {
+            return Err(TransparencyWitnessStoreError::Invalid(
+                "SQLite witness-state schema contains unexpected database objects"
+                    .to_string(),
+            ));
+        }
+
+        Ok(())
+    }
+
+    fn decode_state(
+        key: &TransparencyWitnessStoreKeyV1,
+        json: &str,
+    ) -> Result<TransparencyWitnessStoredStateV1, TransparencyWitnessStoreError> {
+        let state = serde_json::from_str::<TransparencyWitnessStoredStateV1>(json).map_err(
+            |error| {
+                TransparencyWitnessStoreError::Invalid(format!(
+                    "SQLite witness state JSON is invalid: {error}"
+                ))
+            },
+        )?;
+        state.validate_basic()?;
+
+        if state.snapshot().policy_commitment() != key.policy_commitment()
+            || state.snapshot().log_authority_commitment() != key.log_authority_commitment()
+        {
+            return Err(TransparencyWitnessStoreError::IdentityMismatch);
+        }
+
+        Ok(state)
+    }
+
     fn load_in_transaction(
         transaction: &rusqlite::Transaction<'_>,
         key: &TransparencyWitnessStoreKeyV1,
@@ -164,22 +226,7 @@ impl SqliteTransparencyWitnessStateStore {
             return Ok(None);
         };
 
-        let state = serde_json::from_str::<TransparencyWitnessStoredStateV1>(&json).map_err(
-            |error| {
-                TransparencyWitnessStoreError::Invalid(format!(
-                    "SQLite witness state JSON is invalid: {error}"
-                ))
-            },
-        )?;
-        state.validate_basic()?;
-
-        if state.snapshot().policy_commitment() != key.policy_commitment()
-            || state.snapshot().log_authority_commitment() != key.log_authority_commitment()
-        {
-            return Err(TransparencyWitnessStoreError::IdentityMismatch);
-        }
-
-        Ok(Some(state))
+        Ok(Some(Self::decode_state(key, &json)?))
     }
 
     fn encode_state(
@@ -223,15 +270,7 @@ impl TransparencyWitnessStateStore for SqliteTransparencyWitnessStateStore {
                 ))
             },
         )?;
-        state.validate_basic()?;
-
-        if state.snapshot().policy_commitment() != key.policy_commitment()
-            || state.snapshot().log_authority_commitment() != key.log_authority_commitment()
-        {
-            return Err(TransparencyWitnessStoreError::IdentityMismatch);
-        }
-
-        Ok(Some(state))
+        Ok(Some(Self::decode_state(key, &json)?))
     }
 
     fn compare_and_swap(
@@ -307,6 +346,23 @@ impl TransparencyWitnessStateStore for SqliteTransparencyWitnessStateStore {
                 ],
             )
             .map_err(sqlite_error)?;
+
+        let persisted_json = transaction
+            .query_row(
+                &format!(
+                    "SELECT state_json FROM {TABLE}
+                     WHERE policy_commitment = ?1 AND log_authority_commitment = ?2"
+                ),
+                params![key.policy_commitment(), key.log_authority_commitment()],
+                |row| row.get::<_, String>(0),
+            )
+            .map_err(sqlite_error)?;
+        let persisted = Self::decode_state(key, &persisted_json)?;
+        if persisted != stored {
+            return Err(TransparencyWitnessStoreError::Invalid(
+                "SQLite witness-state postcondition mismatch before commit".to_string(),
+            ));
+        }
 
         transaction.commit().map_err(sqlite_error)?;
 
@@ -391,6 +447,41 @@ mod tests {
             error,
             TransparencyWitnessStoreError::Invalid(message)
                 if message.contains("schema does not match")
+        ));
+
+        cleanup(&path);
+    }
+
+    #[test]
+    fn unexpected_schema_objects_are_rejected_before_witness_state_is_trusted() {
+        let path = temp_database_path("schema-object-reject");
+        {
+            let connection = Connection::open(&path).expect("raw sqlite");
+            connection
+                .execute_batch(&format!(
+                    "CREATE TABLE {TABLE} (
+                        policy_commitment TEXT NOT NULL,
+                        log_authority_commitment TEXT NOT NULL,
+                        state_json TEXT NOT NULL,
+                        PRIMARY KEY (policy_commitment, log_authority_commitment)
+                    );
+                    CREATE TRIGGER witness_mutation
+                    AFTER INSERT ON {TABLE}
+                    BEGIN
+                        UPDATE {TABLE}
+                        SET state_json = '{"generation":999}'
+                        WHERE rowid = NEW.rowid;
+                    END;"
+                ))
+                .expect("hostile schema");
+        }
+
+        let error =
+            SqliteTransparencyWitnessStateStore::open(&path).expect_err("trigger must be rejected");
+        assert!(matches!(
+            error,
+            TransparencyWitnessStoreError::Invalid(message)
+                if message.contains("unexpected database objects")
         ));
 
         cleanup(&path);
