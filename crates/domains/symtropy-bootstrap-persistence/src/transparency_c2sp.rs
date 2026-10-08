@@ -49,38 +49,7 @@ impl C2spCheckpointNoteBodyV1 {
         origin: impl Into<String>,
         tree_size: u64,
         root_hash_hex: &str,
-        extensions: Vec<String>,    /// Parse a complete canonical C2SP checkpoint note body, excluding signature lines.
-    ///
-    /// The input must contain the terminating newline required by the note body.
-    pub fn parse(serialized: &str) -> Result<Self, C2spWireError> {
-        if !serialized.ends_with('\n') {
-            return Err(C2spWireError::Invalid(
-                "C2SP checkpoint note must end with a newline".to_string(),
-            ));
-        }
-        let lines = serialized[..serialized.len() - 1].split('\n').collect::<Vec<_>>();
-        if lines.len() < 3 || lines.iter().any(|line| line.is_empty()) {
-            return Err(C2spWireError::Invalid(
-                "C2SP checkpoint note requires at least three non-empty lines".to_string(),
-            ));
-        }
-
-        let tree_size = parse_canonical_decimal(lines[1])?;
-        let root = decode_base64_exact::<32>(lines[2])?;
-        let root_hex = encode_hex(&root);
-        let extensions = lines[3..]
-            .iter()
-            .map(|line| (*line).to_string())
-            .collect::<Vec<_>>();
-        let note = Self::new(lines[0].to_string(), tree_size, &root_hex, extensions)?;
-        if note.as_str() != serialized {
-            return Err(C2spWireError::Invalid(
-                "C2SP checkpoint note is not canonical".to_string(),
-            ));
-        }
-        Ok(note)
-    }
-
+        extensions: Vec<String>,
     ) -> Result<Self, C2spWireError> {
         let origin = origin.into();
         if origin.is_empty() || origin.bytes().any(|byte| byte == b'\n' || byte == b'\r') {
