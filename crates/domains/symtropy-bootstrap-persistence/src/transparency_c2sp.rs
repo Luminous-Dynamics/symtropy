@@ -40,7 +40,7 @@ impl C2spCheckpointNoteBodyV1 {
         Self::new(
             origin,
             checkpoint.vds_tree_size(),
-            &checkpoint.vds_root_hash(),
+            checkpoint.vds_root_hash(),
             Vec::new(),
         )
     }
@@ -125,6 +125,22 @@ impl C2spCheckpointNoteBodyV1 {
     #[must_use]
     pub fn as_str(&self) -> &str {
         &self.serialized
+    }
+
+    /// Verify that this wire checkpoint carries the exact VDS head committed by
+    /// an internal Symtropy checkpoint. The internal checkpoint signature is
+    /// deliberately not reused here; this only checks semantic tree identity.
+    pub fn matches_checkpoint(
+        &self,
+        checkpoint: &TransparencyCheckpointV1,
+    ) -> Result<(), C2spWireError> {
+        self.validate_basic()?;
+        if self.tree_size != checkpoint.vds_tree_size()
+            || self.root_hash_hex()? != checkpoint.vds_root_hash()
+        {
+            return Err(C2spWireError::VdsMismatch);
+        }
+        Ok(())
     }
 
     pub fn validate_basic(&self) -> Result<(), C2spWireError> {
@@ -422,6 +438,7 @@ fn base64_value(value: u8) -> Result<u8, C2spWireError> {
 pub enum C2spWireError {
     Invalid(String),
     KeyIdMismatch,
+    VdsMismatch,
     SignatureInvalid,
 }
 
@@ -430,6 +447,7 @@ impl std::fmt::Display for C2spWireError {
         match self {
             Self::Invalid(message) => write!(formatter, "invalid C2SP wire value: {message}"),
             Self::KeyIdMismatch => write!(formatter, "C2SP witness key ID mismatch"),
+            Self::VdsMismatch => write!(formatter, "C2SP checkpoint VDS head mismatch"),
             Self::SignatureInvalid => write!(formatter, "C2SP witness signature invalid"),
         }
     }
@@ -444,6 +462,36 @@ mod tests {
         rand::SystemRandom,
         signature::{Ed25519KeyPair, KeyPair},
     };
+
+    #[test]
+    fn checkpoint_note_maps_exactly_to_internal_vds_head() {
+        let root = [0xabu8; 32];
+        let note = C2spCheckpointNoteBodyV1::new(
+            "example.com/log",
+            104,
+            &encode_hex(&root),
+            Vec::new(),
+        )
+        .expect("note");
+        let unsigned = crate::transparency::TransparencyCheckpointUnsignedV1::new(
+            "log-id",
+            1,
+            1,
+            "bootstrap",
+            1,
+            0,
+            "GENESIS",
+            104,
+            encode_hex(&root),
+            "00".repeat(32),
+            "11".repeat(32),
+        )
+        .expect("checkpoint");
+        // A C2SP note adapter only compares the VDS head; note origin is a wire identifier.
+        let signature = "00".repeat(64);
+        let checkpoint = unsigned.into_signed(signature).expect("shape-valid checkpoint");
+        note.matches_checkpoint(&checkpoint).expect("matching VDS");
+    }
 
     #[test]
     fn checkpoint_note_serialization_is_canonical() {
