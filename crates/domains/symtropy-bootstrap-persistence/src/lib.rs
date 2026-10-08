@@ -4033,6 +4033,82 @@ mod tests {
     }
 
     #[test]
+    fn external_store_generation_must_match_restored_checkpoint_frontier() {
+        let adapter = configured_adapter("external-bootstrap-generation");
+        let security = TestSecurityMaterial::new(&adapter);
+        let external_store = Arc::new(ToggleFailTransparencyStore::default());
+
+        let mut witness_set =
+            TransparencyWitnessSetV1::new(security.context.transparency_policy())
+                .expect("witness set");
+        witness_set
+            .bind_log_authority(security.context.transparency_log())
+            .expect("log binding");
+        let snapshot = witness_set.export_state().expect("snapshot");
+        let key = TransparencyWitnessStoreKeyV1::new(
+            security.context.transparency_policy().commitment(),
+            security.context.transparency_log().commitment(),
+        )
+        .expect("key");
+
+        external_store
+            .inner
+            .compare_and_swap(
+                &key,
+                None,
+                snapshot,
+            )
+            .expect("seed malformed generation");
+        let seeded = external_store
+            .inner
+            .load(&key)
+            .expect("load")
+            .expect("seeded state");
+        external_store
+            .inner
+            .compare_and_swap(
+                &key,
+                Some(&seeded),
+                witness_set.export_state().expect("snapshot"),
+            )
+            .expect("advance generation");
+        let cursor = FreshnessCursor {
+            authority_commitment: security
+                .context
+                .freshness_cursor()
+                .authority_commitment()
+                .to_string(),
+            last_sequence: security.context.freshness_cursor().last_sequence(),
+            last_head_hash: security
+                .context
+                .freshness_cursor()
+                .last_head_hash()
+                .to_string(),
+            last_event_count: security.context.freshness_cursor().last_event_count(),
+        };
+
+        let error = DurableExecutionSecurityContext::establish_with_external_witness_store(
+            &adapter,
+            security.context.freshness_authority().clone(),
+            cursor,
+            security.context.freshness_attestation().clone(),
+            security.context.transparency_log().clone(),
+            security.context.transparency_policy().clone(),
+            SharedTransparencyWitnessStateStore::new(external_store),
+            security.context.transparency_checkpoint().clone(),
+            security.context.transparency_witness_signatures().to_vec(),
+            security.context.transparency_vds_consistency_proof().cloned(),
+        )
+        .expect_err("generation mismatch must fail closed on restore");
+
+        assert!(matches!(
+            error,
+            AdapterError::WitnessMismatch(message)
+                if message.contains("generation is inconsistent")
+        ));
+    }
+
+    #[test]
     fn nonconforming_external_store_response_is_rejected() {
         let adapter = configured_adapter("external-bootstrap-response-contract");
         let security = TestSecurityMaterial::new(&adapter);
@@ -4068,7 +4144,11 @@ mod tests {
         )
         .expect_err("nonconforming CAS response must fail closed");
 
-        assert!(matches!(error, AdapterError::WitnessMismatch(_)));
+        assert!(matches!(
+            error,
+            AdapterError::Invalid(message)
+                if message.contains("backend contract violation")
+        ));
         let key = TransparencyWitnessStoreKeyV1::new(
             security.context.transparency_policy().commitment(),
             security.context.transparency_log().commitment(),
