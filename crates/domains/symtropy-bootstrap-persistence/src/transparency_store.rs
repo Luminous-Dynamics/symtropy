@@ -639,6 +639,22 @@ mod tests {
     }
 
     #[test]
+    fn serialized_snapshot_round_trip_preserves_canonical_state() {
+        let (_, snapshot) = base_snapshot();
+        let encoded = serde_json::to_vec(&snapshot).expect("serialize snapshot");
+        let decoded: TransparencyWitnessStateSnapshotV1 =
+            serde_json::from_slice(&encoded).expect("deserialize snapshot");
+        decoded
+            .validate_basic()
+            .expect("round-trip snapshot validity");
+        assert_eq!(decoded, snapshot);
+        assert_eq!(
+            decoded.witnesses().iter().map(|w| w.witness_id()).collect::<Vec<_>>(),
+            vec!["w1", "w2"]
+        );
+    }
+
+    #[test]
     fn stale_expected_snapshot_is_not_salvaged_by_matching_generation() {
         let (key, snapshot) = base_snapshot();
         let store = MemoryTransparencyWitnessStateStore::default();
