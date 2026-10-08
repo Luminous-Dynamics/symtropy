@@ -334,7 +334,7 @@ A successfully executed integration can support claims such as:
     already-consumed transparency sequences cannot authorize a new durable transition
     durable transparency sequence history is contiguous and predecessor-linked
     witness-state commit is CAS-protected after the corresponding durable append
-    SQLite witness-store CAS is transactionally serialized and response-validated
+    SQLite witness-store CAS is transactionally serialized, response-validated, and runtime-configuration-checked
 
 It must not silently promote those into:
 
@@ -392,6 +392,8 @@ The minimum regression corpus for this layer should continue to cover:
 - restored external generation inconsistent with the durable transparency frontier.
 - SQLite-backed witness state surviving an abrupt application crash and reopening exactly.
 - SQLite concurrent CAS writers preserving single-winner creation semantics.
+- SQLite concurrent successor CAS writers preserving exactly one same-generation winner.
+- SQLite durability/concurrency PRAGMAs verified at connection time.
 - nonconforming pre-existing SQLite schema rejected before witness state is trusted.
 - SQLite page-integrity failure rejected before witness state is trusted.
 - C2SP policy translation that would collapse recursive quorum semantics into a non-equivalent flat rule.
