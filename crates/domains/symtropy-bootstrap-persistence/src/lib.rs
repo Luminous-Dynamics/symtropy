@@ -4513,6 +4513,148 @@ mod tests {
     }
 
     #[test]
+    fn rolled_back_sqlite_database_image_cannot_be_reused_after_later_transition() {
+        let adapter = configured_adapter("sqlite-image-rollback");
+        let mut material = TestSecurityMaterial::new(&adapter);
+        let path = std::env::temp_dir().join(format!(
+            "symtropy-sqlite-rollback-{}-{}.sqlite3",
+            std::process::id(),
+            SystemTime::now()
+                .duration_since(UNIX_EPOCH)
+                .expect("clock")
+                .as_nanos()
+        ));
+        let backup = path.with_extension("sqlite3.backup");
+
+        let sqlite_store =
+            SqliteTransparencyWitnessStateStore::open(&path).expect("sqlite store");
+        let shared_store = SharedTransparencyWitnessStateStore::new(Arc::new(sqlite_store));
+
+        let cursor = FreshnessCursor {
+            authority_commitment: material
+                .context
+                .freshness_cursor()
+                .authority_commitment()
+                .to_string(),
+            last_sequence: material.context.freshness_cursor().last_sequence(),
+            last_head_hash: material.context.freshness_cursor().last_head_hash().to_string(),
+            last_event_count: material.context.freshness_cursor().last_event_count(),
+        };
+
+        let mut security = DurableExecutionSecurityContext::establish_with_external_witness_store(
+            &adapter,
+            material.context.freshness_authority().clone(),
+            cursor,
+            material.context.freshness_attestation().clone(),
+            material.context.transparency_log().clone(),
+            material.context.transparency_policy().clone(),
+            shared_store,
+            material.context.transparency_checkpoint().clone(),
+            material.context.transparency_witness_signatures().to_vec(),
+            material.context.transparency_vds_consistency_proof().cloned(),
+        )
+        .expect("SQLite-backed context");
+
+        let (process, run) = process_and_run();
+        let (mut budget, mut inventory, mut energy) = initial_kernel_state();
+        adapter
+            .authorize_pending(
+                &mut security,
+                &process,
+                "exec-sqlite-rollback-1",
+                1,
+                10,
+                20,
+                "bus",
+                run.clone(),
+                &mut budget,
+                &mut inventory,
+                &mut energy,
+            )
+            .expect("first transition");
+
+        std::fs::copy(&path, &backup).expect("capture committed database image");
+
+        material.refresh(&adapter);
+        let (checkpoint, witness_signatures, vds_proof) = transparency_test_evidence(
+            &adapter,
+            security.transparency_log(),
+            &material.transparency_policy,
+            &material.log_signer,
+            &material.witness_signers,
+            2,
+            &hex_encode(&security.transparency_checkpoint().digest()),
+        );
+        security
+            .set_transparency_evidence(checkpoint, witness_signatures, vds_proof)
+            .expect("second transparency evidence");
+        adapter
+            .authorize_pending(
+                &mut security,
+                &process,
+                "exec-sqlite-rollback-2",
+                2,
+                30,
+                40,
+                "bus",
+                run,
+                &mut budget,
+                &mut inventory,
+                &mut energy,
+            )
+            .expect("second transition");
+
+        std::fs::copy(&backup, &path).expect("restore older database image");
+
+        material.refresh(&adapter);
+        let (checkpoint, witness_signatures, vds_proof) = transparency_test_evidence(
+            &adapter,
+            security.transparency_log(),
+            &material.transparency_policy,
+            &material.log_signer,
+            &material.witness_signers,
+            3,
+            &hex_encode(&security.transparency_checkpoint().digest()),
+        );
+        let cursor = FreshnessCursor {
+            authority_commitment: security
+                .freshness_cursor()
+                .authority_commitment()
+                .to_string(),
+            last_sequence: security.freshness_cursor().last_sequence(),
+            last_head_hash: security.freshness_cursor().last_head_hash().to_string(),
+            last_event_count: security.freshness_cursor().last_event_count(),
+        };
+
+        let error = DurableExecutionSecurityContext::establish_with_external_witness_store(
+            &adapter,
+            security.freshness_authority().clone(),
+            cursor,
+            security.freshness_attestation().clone(),
+            security.transparency_log().clone(),
+            security.transparency_policy().clone(),
+            SharedTransparencyWitnessStateStore::new(Arc::new(
+                SqliteTransparencyWitnessStateStore::open(&path).expect("reopen rollback image"),
+            )),
+            checkpoint,
+            witness_signatures,
+            vds_proof,
+        )
+        .expect_err("rolled-back database image must not be accepted");
+
+        assert!(matches!(
+            error,
+            AdapterError::WitnessMismatch(message)
+                if message.contains("generation is inconsistent")
+        ));
+
+        let _ = std::fs::remove_file(&path);
+        let _ = std::fs::remove_file(&backup);
+        let _ = std::fs::remove_file(path.with_extension("sqlite3-wal"));
+        let _ = std::fs::remove_file(path.with_extension("sqlite3-shm"));
+    }
+
+    #[test]
     fn external_witness_store_failure_fences_context_after_journal_append() {
         let adapter = configured_adapter("external-witness-cas-failure");
         let mut security = TestSecurityMaterial::new(&adapter);
