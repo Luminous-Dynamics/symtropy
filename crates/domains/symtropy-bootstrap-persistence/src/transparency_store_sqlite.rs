@@ -78,6 +78,33 @@ impl SqliteTransparencyWitnessStateStore {
             .pragma_update(None, "foreign_keys", "ON")
             .map_err(sqlite_error)?;
 
+        let journal_mode = connection
+            .query_row("PRAGMA journal_mode", [], |row| row.get::<_, String>(0))
+            .map_err(sqlite_error)?;
+        if !journal_mode.eq_ignore_ascii_case("wal") {
+            return Err(TransparencyWitnessStoreError::Backend(format!(
+                "SQLite did not retain required WAL journal mode: {journal_mode}"
+            )));
+        }
+
+        let synchronous = connection
+            .query_row("PRAGMA synchronous", [], |row| row.get::<_, i64>(0))
+            .map_err(sqlite_error)?;
+        if synchronous != 2 {
+            return Err(TransparencyWitnessStoreError::Backend(format!(
+                "SQLite did not retain required synchronous=FULL mode: {synchronous}"
+            )));
+        }
+
+        let foreign_keys = connection
+            .query_row("PRAGMA foreign_keys", [], |row| row.get::<_, i64>(0))
+            .map_err(sqlite_error)?;
+        if foreign_keys != 1 {
+            return Err(TransparencyWitnessStoreError::Backend(
+                "SQLite did not retain required foreign_keys=ON mode".to_string(),
+            ));
+        }
+
         connection
             .execute_batch(&format!(
                 "CREATE TABLE IF NOT EXISTS {TABLE} (
@@ -428,6 +455,36 @@ mod tests {
         let _ = std::fs::remove_file(path);
         let _ = std::fs::remove_file(path.with_extension("sqlite3-wal"));
         let _ = std::fs::remove_file(path.with_extension("sqlite3-shm"));
+    }
+
+    #[test]
+    fn required_sqlite_durability_pragmas_are_retained() {
+        let path = temp_database_path("pragma-contract");
+        let store = SqliteTransparencyWitnessStateStore::open(&path).expect("open");
+        let connection = store.connection().expect("reopen connection");
+
+        assert_eq!(
+            connection
+                .query_row("PRAGMA journal_mode", [], |row| row.get::<_, String>(0))
+                .expect("journal mode"),
+            "wal"
+        );
+        assert_eq!(
+            connection
+                .query_row("PRAGMA synchronous", [], |row| row.get::<_, i64>(0))
+                .expect("synchronous mode"),
+            2
+        );
+        assert_eq!(
+            connection
+                .query_row("PRAGMA foreign_keys", [], |row| row.get::<_, i64>(0))
+                .expect("foreign keys"),
+            1
+        );
+
+        drop(connection);
+        drop(store);
+        cleanup(&path);
     }
 
     #[test]
