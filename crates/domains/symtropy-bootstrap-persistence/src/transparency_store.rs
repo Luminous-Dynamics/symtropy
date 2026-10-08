@@ -575,16 +575,31 @@ mod tests {
             TransparencyWitnessStoreError::BackendContractViolation(_)
         ));
 
+        let mut altered_witnesses = replacement.witnesses().to_vec();
+        let altered = TransparencyWitnessRecordV1::new(
+            "w1",
+            1,
+            "55".repeat(32),
+            1,
+            &"66".repeat(32),
+            TransparencyVdsTreeHeadV1::empty(),
+        )
+        .expect("altered witness");
+        altered_witnesses[0] = altered;
         let wrong_snapshot = TransparencyWitnessStateSnapshotV1::new(
             replacement.policy_commitment().to_string(),
             replacement.log_authority_commitment().to_string(),
-            replacement.witnesses().to_vec(),
+            altered_witnesses,
         )
-        .expect("equal semantic snapshot");
+        .expect("wrong snapshot");
         let returned = TransparencyWitnessStoredStateV1::new(8, wrong_snapshot)
             .expect("returned state");
-        validate_cas_result(&key, Some(&expected), &replacement, &returned)
-            .expect("identical replacement must satisfy response contract");
+        let error = validate_cas_result(&key, Some(&expected), &replacement, &returned)
+            .expect_err("returned snapshot must match requested replacement");
+        assert!(matches!(
+            error,
+            TransparencyWitnessStoreError::BackendContractViolation(_)
+        ));
     }
 
     #[test]
