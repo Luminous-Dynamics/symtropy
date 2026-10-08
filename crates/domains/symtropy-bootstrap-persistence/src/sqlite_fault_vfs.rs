@@ -259,7 +259,7 @@ unsafe extern "C" fn vfs_x_open(
     z_name: ffi::sqlite3_filename,
     file: *mut ffi::sqlite3_file,
     flags: c_int,
-    out_flags: *mut c_int,
+    _out_flags: *mut c_int,
 ) -> c_int {
     let state = unsafe { &*((*vfs).pAppData.cast::<ProxyVfsState>()) };
     let base = state.base_vfs;
@@ -287,11 +287,9 @@ unsafe extern "C" fn vfs_x_open(
 
     let tail = unsafe { tail_from_file_with_offset(file, state.tail_offset) };
     tail.original_methods = original_methods;
-    tail.open_flags = if out_flags.is_null() {
-        flags
-    } else {
-        unsafe { *out_flags }
-    };
+    // SQLite supplies object-kind bits (MAIN_DB/WAL) in xOpen's input flags.
+    // pOutFlags describes properties of the opened file and need not retain them.
+    tail.open_flags = flags;
     tail.proxy_methods = unsafe { *original_methods };
     tail.proxy_methods.xClose = Some(io_x_close);
     tail.proxy_methods.xRead = Some(io_x_read);
