@@ -42,8 +42,9 @@ impl Plugin for BevyMycelixPlugin {
             app.add_plugins(TokioTasksPlugin::default());
         }
 
-        // Bounded channels so a saturated conductor can't OOM the game. Keep
-        // their capacity aligned with the dispatcher's in-flight semaphore.
+        // Bounded channels so a saturated conductor can't OOM the game.
+        // One shared admission semaphore covers queued requests, subprocess
+        // work, and responses not yet transferred into Bevy's message queue.
         let inflight_budget = self.config.effective_inflight_budget();
         if self.config.inflight_budget == 0 {
             warn!("symtropy-mycelix-bridge: inflight_budget=0 normalized to 1");
