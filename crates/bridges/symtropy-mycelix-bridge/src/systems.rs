@@ -901,13 +901,16 @@ async fn translate(
                 outstanding: entries.len(),
             });
         }
-        match entries.get(&id) {
-            None => return Err(DispatcherError::UnknownRequestId(id)),
-            Some(entry) if entry.dispatch_phase == DispatchPhase::NotStarted => {
-                return Err(DispatcherError::ResponseBeforeDispatch(id));
-            }
-            Some(_) => entries.remove(&id),
+        if !entries.contains_key(&id) {
+            return Err(DispatcherError::UnknownRequestId(id));
         }
+        if entries
+            .get(&id)
+            .is_some_and(|entry| entry.dispatch_phase == DispatchPhase::NotStarted)
+        {
+            return Err(DispatcherError::ResponseBeforeDispatch(id));
+        }
+        entries.remove(&id)
     };
     let Some(Pending {
         requester,
@@ -1431,6 +1434,51 @@ mod tests {
                     MycelixResponse::IndeterminateMutation { .. }
                 ));
                 assert_eq!(admission.available_permits(), 1);
+            });
+    }
+
+    #[test]
+    fn response_before_dispatch_is_rejected_without_consuming_the_request() {
+        tokio::runtime::Runtime::new()
+            .expect("runtime")
+            .block_on(async {
+                let semaphore = Arc::new(Semaphore::new(1));
+                let pending = pending_one(51, &semaphore).await;
+                {
+                    let mut entries = lock_pending(&pending);
+                    entries.get_mut(&51).expect("pending request").dispatch_phase =
+                        DispatchPhase::NotStarted;
+                }
+                let fenced = AtomicBool::new(false);
+                let result = translate(
+                    51,
+                    WireResponse {
+                        request_id: Some(51),
+                        ok: true,
+                        data: Some(serde_json::json!("uhCkk_action_hash")),
+                        error: None,
+                    },
+                    &pending,
+                    Duration::from_secs(30),
+                    &fenced,
+                )
+                .await;
+
+                assert!(matches!(
+                    result,
+                    Err(DispatcherError::ResponseBeforeDispatch(51))
+                ));
+                assert!(!fenced.load(Ordering::SeqCst));
+                assert!(lock_pending(&pending).contains_key(&51));
+
+                let (resp_tx, resp_rx) = flume::bounded(1);
+                fail_all_pending(&pending, &resp_tx, "response before dispatch").await;
+                assert!(matches!(
+                    resp_rx.recv_async().await.expect("not-dispatched outcome").into_response(),
+                    MycelixResponse::NotDispatched { requester, .. }
+                        if requester == Entity::PLACEHOLDER
+                ));
+                assert_eq!(semaphore.available_permits(), 1);
             });
     }
 
