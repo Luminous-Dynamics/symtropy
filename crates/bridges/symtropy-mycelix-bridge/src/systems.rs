@@ -250,6 +250,7 @@ async fn run_dispatcher_loop(
             match writer_result {
                 Err(join) => {
                     let failure = DispatcherError::Join(join);
+                    let _ = child.start_kill();
                     reader_task.abort();
                     let _ = reader_task.await;
                     let reason = failure.to_string();
@@ -262,6 +263,7 @@ async fn run_dispatcher_loop(
                     Err(failure)
                 }
                 Ok(Err(failure)) => {
+                    let _ = child.start_kill();
                     reader_task.abort();
                     let _ = reader_task.await;
                     let reason = failure.to_string();
@@ -277,6 +279,7 @@ async fn run_dispatcher_loop(
                     match reader_task.await {
                         Ok(Ok(())) => Ok(()),
                         Ok(Err(failure)) => {
+                            let _ = child.start_kill();
                             let reason = failure.to_string();
                             fail_pending_and_queued(
                                 &pending,
@@ -288,6 +291,7 @@ async fn run_dispatcher_loop(
                         }
                         Err(join) => {
                             let failure = DispatcherError::Join(join);
+                            let _ = child.start_kill();
                             let reason = failure.to_string();
                             fail_pending_and_queued(
                                 &pending,
@@ -307,6 +311,7 @@ async fn run_dispatcher_loop(
             // from the reader that has already exited.
             writer_task.abort();
             let _ = writer_task.await;
+            let _ = child.start_kill();
             let failure = match reader_result {
                 Ok(Ok(())) => DispatcherError::UnexpectedBridgeExit,
                 Ok(Err(failure)) => failure,
