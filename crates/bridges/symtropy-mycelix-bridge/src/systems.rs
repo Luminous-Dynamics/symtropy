@@ -218,7 +218,7 @@ async fn run_dispatcher_loop(
     // The request channel bounds queued work; this semaphore separately bounds
     // sent requests awaiting a correlated reply. Treat a configured zero as one
     // so a bad setting cannot deadlock all dispatch.
-    let inflight = Arc::new(Semaphore::new(config.inflight_budget.max(1)));
+    let inflight = Arc::new(Semaphore::new(config.effective_inflight_budget()));
 
     let writer_task = {
         let pending = pending.clone();
@@ -552,9 +552,14 @@ async fn translate(
             }
             _ => invalid_success("SubmitProposal requires a non-empty action hash"),
         },
-        PendingKind::VoteCast { proposal_id } => MycelixResponse::VoteCast {
-            requester,
-            proposal_id,
+        PendingKind::VoteCast { proposal_id } => match wire.data {
+            Some(serde_json::Value::String(returned_id)) if returned_id == proposal_id => {
+                MycelixResponse::VoteCast {
+                    requester,
+                    proposal_id,
+                }
+            }
+            _ => invalid_success("CastVote requires the matching proposal ID in data"),
         },
         PendingKind::TendBalance => match wire.data {
             Some(balance) => MycelixResponse::TendBalance { requester, balance },
@@ -793,3 +798,4 @@ mod tests {
         });
     }
 }
+
