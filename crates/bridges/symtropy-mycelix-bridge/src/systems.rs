@@ -31,7 +31,7 @@
 
 use std::collections::HashMap;
 use std::process::Stdio;
-use std::sync::Arc;
+use std::sync::{Arc, Mutex, MutexGuard};
 use std::sync::atomic::{AtomicU64, Ordering};
 
 use bevy::prelude::*;
@@ -40,7 +40,7 @@ use flume::{Receiver, Sender};
 use serde::{Deserialize, Serialize};
 use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
 use tokio::process::Command;
-use tokio::sync::{Mutex, OwnedSemaphorePermit};
+use tokio::sync::OwnedSemaphorePermit;
 
 use crate::config::MycelixConfig;
 use crate::events::{MycelixRequest, MycelixResponse};
@@ -118,6 +118,13 @@ struct Pending {
 }
 
 type PendingMap = Arc<Mutex<HashMap<u64, Pending>>>;
+
+/// Pending-map critical sections only mutate the map and never cross an await.
+/// A synchronous mutex therefore prevents cancellation between dequeueing an
+/// admitted request and registering it for supervisor failure delivery.
+fn lock_pending(pending: &PendingMap) -> MutexGuard<'_, HashMap<u64, Pending>> {
+    pending.lock().unwrap_or_else(|poisoned| poisoned.into_inner())
+}
 
 // ---------------------------------------------------------------------------
 // Systems
@@ -454,7 +461,7 @@ where
         };
 
         {
-            let mut p = pending.lock().await;
+            let mut p = lock_pending(&pending);
             p.insert(
                 request_id,
                 Pending {
@@ -517,7 +524,7 @@ where
         let line = match lines.next_line().await {
             Ok(Some(line)) => line,
             Ok(None) => {
-                let outstanding = pending.lock().await.len();
+                let outstanding = lock_pending(&pending).len();
                 if outstanding == 0 {
                     return Ok(());
                 }
@@ -593,7 +600,7 @@ async fn fail_all_pending(
     reason: &str,
 ) {
     let entries = {
-        let mut guard = pending.lock().await;
+        let mut guard = lock_pending(pending);
         std::mem::take(&mut *guard)
     };
     for (_, entry) in entries {
@@ -629,7 +636,7 @@ async fn translate(
     wire: WireResponse,
     pending: &PendingMap,
 ) -> Result<MycelixResponseDelivery, DispatcherError> {
-    let pending_entry = { pending.lock().await.remove(&id) };
+    let pending_entry = { lock_pending(pending).remove(&id) };
     let Some(Pending {
         requester,
         kind,
@@ -786,7 +793,7 @@ mod tests {
                     result,
                     Err(DispatcherError::MalformedResponseJson(_))
                 ));
-                assert!(pending.lock().await.is_empty());
+                assert!(lock_pending(&pending).is_empty());
                 assert_eq!(semaphore.available_permits(), 1);
                 assert!(matches!(
                     resp_rx.recv_async().await.expect("failure response").into_response(),
@@ -812,7 +819,7 @@ mod tests {
                     result,
                     Err(DispatcherError::UnexpectedStdoutEof { outstanding: 1 })
                 ));
-                assert!(pending.lock().await.is_empty());
+                assert!(lock_pending(&pending).is_empty());
                 assert!(matches!(
                     resp_rx.recv_async().await.expect("failure response").into_response(),
                     MycelixResponse::Error { requester, .. } if requester == Entity::PLACEHOLDER
@@ -838,7 +845,7 @@ mod tests {
                 let result = reader_loop(stdout, resp_tx, pending.clone()).await;
 
                 assert!(matches!(result, Err(DispatcherError::UnknownRequestId(99))));
-                assert!(pending.lock().await.is_empty());
+                assert!(lock_pending(&pending).is_empty());
                 assert!(matches!(
                     resp_rx.recv_async().await.expect("failure response").into_response(),
                     MycelixResponse::Error { requester, reason }
@@ -903,7 +910,7 @@ mod tests {
                 .await
                 .expect("failure delivery must fit in the reserved response capacity");
 
-                assert!(pending.lock().await.is_empty());
+                assert!(lock_pending(&pending).is_empty());
                 assert_eq!(resp_rx.len(), 3);
                 assert_eq!(admission.available_permits(), 0);
 
@@ -971,7 +978,7 @@ mod tests {
                     .expect("first request was written")
                     .expect("read first request");
                 assert!(!first_line.is_empty());
-                assert_eq!(pending.lock().await.len(), 1);
+                assert_eq!(lock_pending(&pending).len(), 1);
                 assert_eq!(admission.available_permits(), 0);
 
                 writer.abort();
@@ -1026,7 +1033,7 @@ mod tests {
                     MycelixResponse::Error { requester, reason }
                         if requester == Entity::PLACEHOLDER && reason.contains("matching proposal ID")
                 ));
-                assert!(pending.lock().await.is_empty());
+                assert!(lock_pending(&pending).is_empty());
                 assert_eq!(semaphore.available_permits(), 1);
             });
     }
@@ -1060,7 +1067,7 @@ mod tests {
                         ..
                     } if proposal_id == "proposal-test" && action_hash == "uhCkk_action_hash"
                 ));
-                assert!(pending.lock().await.is_empty());
+                assert!(lock_pending(&pending).is_empty());
                 assert_eq!(semaphore.available_permits(), 1);
             });
     }
@@ -1090,7 +1097,7 @@ mod tests {
                     MycelixResponse::Error { requester, reason }
                         if requester == Entity::PLACEHOLDER && reason.contains("action hash")
                 ));
-                assert!(pending.lock().await.is_empty());
+                assert!(lock_pending(&pending).is_empty());
                 assert_eq!(semaphore.available_permits(), 1);
             });
     }
