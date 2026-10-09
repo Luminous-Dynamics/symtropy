@@ -80,5 +80,10 @@ jobs:
     - name: Run Tests (Physics Core)
       run: cargo test -p symtropy-math -p symtropy-physics -p symtropy-consciousness-physics --lib
 
+    # The relay intentionally fails closed until a real authenticated
+    # AppWebSocket dispatch exists. Run its regression tests on every OS.
+    - name: Run Tests (Fail-Closed Holochain Relay)
+      run: cargo test -p symtropy-holochain-relay-bridge --lib
+
     - name: Verify Workspace Build
       run: cargo check --workspace --all-targets
