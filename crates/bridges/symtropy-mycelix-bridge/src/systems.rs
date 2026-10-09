@@ -39,7 +39,7 @@ use bevy_tokio_tasks::TokioTasksRuntime;
 use flume::{Receiver, Sender};
 use serde::{Deserialize, Serialize};
 use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
-use tokio::process::{ChildStdin, Command};
+use tokio::process::Command;
 use tokio::sync::{Mutex, OwnedSemaphorePermit, Semaphore};
 
 use crate::config::MycelixConfig;
