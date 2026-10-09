@@ -39,9 +39,14 @@ impl Plugin for BevyMycelixPlugin {
             app.add_plugins(TokioTasksPlugin::default());
         }
 
-        // Bounded channels so a saturated conductor can't OOM the game.
-        let (req_tx, req_rx) = flume::bounded(self.config.inflight_budget);
-        let (resp_tx, resp_rx) = flume::bounded(self.config.inflight_budget);
+        // Bounded channels so a saturated conductor can't OOM the game. Keep
+        // their capacity aligned with the dispatcher's in-flight semaphore.
+        let inflight_budget = self.config.effective_inflight_budget();
+        if self.config.inflight_budget == 0 {
+            warn!("symtropy-mycelix-bridge: inflight_budget=0 normalized to 1");
+        }
+        let (req_tx, req_rx) = flume::bounded(inflight_budget);
+        let (resp_tx, resp_rx) = flume::bounded(inflight_budget);
 
         app.insert_resource(self.config.clone())
             .insert_resource(MycelixClient::new(req_tx))
