@@ -121,6 +121,14 @@ async fn step_async(
     field: &mut FieldGrid,
     request: &FieldStepRequest,
 ) -> Result<(), FieldStepError> {
+    step_async_with_backends(field, request, wgpu::Backends::all()).await
+}
+
+async fn step_async_with_backends(
+    field: &mut FieldGrid,
+    request: &FieldStepRequest,
+    backends: wgpu::Backends,
+) -> Result<(), FieldStepError> {
     request.params.validate()?;
     let cell_count = field.width() * field.height();
     if request.source.len() != cell_count {
@@ -130,7 +138,10 @@ async fn step_async(
         )));
     }
 
-    let instance = wgpu::Instance::default();
+    let instance = wgpu::Instance::new(&wgpu::InstanceDescriptor {
+        backends,
+        ..Default::default()
+    });
     let adapter = instance
         .request_adapter(&wgpu::RequestAdapterOptions {
             power_preference: wgpu::PowerPreference::HighPerformance,
@@ -791,7 +802,17 @@ mod tests {
 
         CpuFieldStepper.step(&mut cpu, &request).unwrap();
         let require_adapter = std::env::var_os("SYMTROPY_REQUIRE_WGPU_ADAPTER").is_some();
-        match WgslFieldStepper.step(&mut gpu, &request) {
+        let require_vulkan = std::env::var_os("SYMTROPY_REQUIRE_WGPU_VULKAN").is_some();
+        let step_result = if require_vulkan {
+            pollster::block_on(step_async_with_backends(
+                &mut gpu,
+                &request,
+                wgpu::Backends::VULKAN,
+            ))
+        } else {
+            WgslFieldStepper.step(&mut gpu, &request)
+        };
+        match step_result {
             Ok(()) => {}
             Err(FieldStepError::GpuUnavailable(message))
                 if !require_adapter && message.starts_with("adapter request failed:") =>
