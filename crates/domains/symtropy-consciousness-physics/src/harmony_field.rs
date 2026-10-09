@@ -11,7 +11,7 @@
 //!
 //! # Field Properties
 //! - Each of the 9 harmonies creates a radial field around the entity
-//! - Field strength falls off as 1/r^(D-1) (dimension-correct, Plummer-softened)
+//! - Field uses a Plummer-softened radial influence kernel with exponent max(D-1, 1). D=1 deliberately retains a 1/r attenuation floor; this is a modeling choice, not a universal dimension law.
 //! - Overlapping fields interact: resonance (aligned) vs interference (opposed)
 //! - Physical effects: resonant fields reduce friction, dissonant increase impulse
 //! - Harmony 9 (index 8): Emotional Contagion — social emotion spreading via
@@ -80,7 +80,7 @@ impl<const D: usize> HarmonyField<D> {
     /// Sample the total harmony field at a point.
     ///
     /// Returns the summed harmony activations at that location,
-    /// with dimension-correct 1/r^(D-1) falloff and Plummer softening.
+    /// using exponent p_D = max(D - 1, 1) and Plummer softening. The D=1 floor is a deliberate attenuation choice, not the strict inverse-area law.
     pub fn sample(&self, point: &Point<D>) -> [f64; NUM_HARMONIES] {
         let mut total = [0.0f64; NUM_HARMONIES];
         let exponent = (D as f64 - 1.0).max(1.0); // 2D→1/r, 3D→1/r², 4D→1/r³
@@ -89,7 +89,7 @@ impl<const D: usize> HarmonyField<D> {
             if dist >= source.radius {
                 continue;
             }
-            // Plummer-softened 1/r^(D-1) falloff (dimension-correct field theory)
+            // Plummer-softened radial influence with p_D = max(D - 1, 1).
             let r_soft = (dist * dist + Self::SOFTENING_EPSILON * Self::SOFTENING_EPSILON)
                 .powf(exponent / 2.0);
             let falloff = source.strength / r_soft;
@@ -120,10 +120,11 @@ impl<const D: usize> HarmonyField<D> {
     /// Resonant fields (aligned harmonies) reduce friction (cooperation flows).
     /// Dissonant fields (opposed harmonies) increase friction (conflict resistance).
     ///
-    /// Returns multiplier [0.5, 2.0]:
-    /// - 0.5 = half friction (strong resonance)
-    /// - 1.0 = normal friction (no field or neutral)
-    /// - 2.0 = double friction (strong dissonance)
+    /// For documented nonnegative activations, returns [0.5, 1.0]. Arbitrary signed
+    /// inputs can extend the mathematical range to [0.5, 1.5], but signed activations
+    /// are outside the current input contract.
+    /// - 0.5 = half friction (fully aligned vectors)
+    /// - 1.0 = unchanged friction (orthogonal vectors or no field)
     pub fn friction_multiplier(
         &self,
         point: &Point<D>,
@@ -131,10 +132,9 @@ impl<const D: usize> HarmonyField<D> {
     ) -> f64 {
         let field = self.sample(point);
         let res = Self::resonance(&field, entity_harmonies);
-        // Map resonance [-1, 1] → friction [2.0, 0.5]
-        // res = 1.0 → 0.5 (half friction, harmony flows)
-        // res = 0.0 → 1.0 (normal)
-        // res = -1.0 → 2.0 (double friction, conflict resists)
+        // Formula: 1 - 0.5 * resonance.
+        // For nonnegative activation vectors, resonance is in [0, 1] and friction is in [0.5, 1.0].
+        // Arbitrary signed vectors permit [0.5, 1.5]; signed activations are not the documented contract.
         1.0 - res * 0.5
     }
 
