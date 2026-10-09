@@ -76,17 +76,31 @@ fn documented_nonnegative_harmonies_never_produce_friction_amplification() {
     ] {
         let aligned_multiplier = field.friction_multiplier(&point, &aligned);
         let orthogonal_multiplier = field.friction_multiplier(&point, &orthogonal);
+        let aligned_impulse = field.impulse_multiplier(&point, &aligned);
+        let orthogonal_impulse = field.impulse_multiplier(&point, &orthogonal);
         assert!(
             (0.5..=1.0).contains(&aligned_multiplier),
-            "aligned multiplier out of documented range: {aligned_multiplier}"
+            "aligned friction multiplier out of documented range: {aligned_multiplier}"
         );
         assert!(
             (0.5..=1.0).contains(&orthogonal_multiplier),
-            "orthogonal multiplier out of documented range: {orthogonal_multiplier}"
+            "orthogonal friction multiplier out of documented range: {orthogonal_multiplier}"
+        );
+        assert!(
+            (0.5..=1.0).contains(&aligned_impulse),
+            "aligned impulse multiplier out of documented range: {aligned_impulse}"
+        );
+        assert!(
+            (0.5..=1.0).contains(&orthogonal_impulse),
+            "orthogonal impulse multiplier out of documented range: {orthogonal_impulse}"
         );
         assert!(
             (orthogonal_multiplier - 1.0).abs() < 1e-12,
-            "orthogonal nonnegative harmonies should be neutral: {orthogonal_multiplier}"
+            "orthogonal nonnegative harmonies should be friction-neutral: {orthogonal_multiplier}"
+        );
+        assert!(
+            (orthogonal_impulse - 1.0).abs() < 1e-12,
+            "orthogonal nonnegative harmonies should be impulse-neutral: {orthogonal_impulse}"
         );
     }
 }
