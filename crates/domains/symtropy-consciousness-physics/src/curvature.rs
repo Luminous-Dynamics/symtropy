@@ -116,16 +116,40 @@ impl<const D: usize> ConformalMetric<D> {
             raw
         }
     }
-    /// Ricci scalar curvature for validation (Fix 8).
+    /// Weak-conformal-factor approximation to the Ricci scalar for
+    /// g_ij = exp(2σ) δ_ij on a flat Euclidean background.
     ///
-    /// For conformal metric g = e^{2σ}δ in D dimensions:
-    /// R = -2(D-1)(∇²σ + (D-1)|∇σ|²)   (small σ approximation)
+    /// The exact conformal transformation is
+    /// R = exp(-2σ) * [-2(D-1) Δσ - (D-1)(D-2) |∇σ|²].
+    /// This method omits the exp(-2σ) factor, approximating it by 1 when
+    /// |σ| is small. The gradient-squared coefficient is dimension-sensitive:
+    /// in D=2 it vanishes, and in D=1 the scalar curvature is identically 0.
     ///
-    /// Negative R = positive curvature (space bends toward source).
-    /// Zero R = flat space. Used for experiment validation, not dynamics.
+    /// Gradients and the Laplacian are with respect to the flat background.
+    /// The scalar-curvature sign alone does not establish attraction or
+    /// repulsion; that interpretation requires the full geometry and paths.
     pub fn ricci_scalar(&self, sigma_gradient: &SVector<f64, D>, sigma_laplacian: f64) -> f64 {
         let d = D as f64;
-        -2.0 * (d - 1.0) * (sigma_laplacian + (d - 1.0) * sigma_gradient.norm_squared())
+        -2.0 * (d - 1.0) * sigma_laplacian
+            - (d - 1.0) * (d - 2.0) * sigma_gradient.norm_squared()
+    }
+
+    /// Exact scalar curvature for g_ij = exp(2σ) δ_ij on a flat
+    /// Euclidean background, given σ, its background gradient, and its
+    /// background Laplacian.
+    ///
+    /// Uses the conformal transformation law
+    /// R = exp(-2σ) * [-2(D-1) Δσ - (D-1)(D-2) |∇σ|²].
+    pub fn ricci_scalar_exact(
+        &self,
+        sigma: f64,
+        sigma_gradient: &SVector<f64, D>,
+        sigma_laplacian: f64,
+    ) -> f64 {
+        let d = D as f64;
+        let flat_background_expression = -2.0 * (d - 1.0) * sigma_laplacian
+            - (d - 1.0) * (d - 2.0) * sigma_gradient.norm_squared();
+        (-2.0 * sigma).exp() * flat_background_expression
     }
 
     /// Integrate geodesic velocity correction using 4th-order Runge-Kutta.
@@ -293,6 +317,44 @@ mod tests {
         let correction = metric.geodesic_correction(&v, &grad);
         // |v|² = 9, v·∇σ = 0 → a = 9 * (0,1,0,0) = (0,9,0,0)
         assert!((correction[1] - 9.0).abs() < 1e-10);
+    }
+
+    #[test]
+    fn ricci_scalar_in_two_dimensions_has_no_gradient_squared_term() {
+        let metric = ConformalMetric::<2>::new();
+        let grad_a = SVector::from([0.0, 0.0]);
+        let grad_b = SVector::from([100.0, -37.0]);
+        let laplacian = 2.5;
+
+        let expected = -2.0 * laplacian;
+        assert!((metric.ricci_scalar(&grad_a, laplacian) - expected).abs() < 1e-12);
+        assert!((metric.ricci_scalar(&grad_b, laplacian) - expected).abs() < 1e-12);
+    }
+
+    #[test]
+    fn ricci_scalar_uses_the_dimension_correct_gradient_coefficient() {
+        let metric = ConformalMetric::<3>::new();
+        let grad = SVector::from([3.0, 4.0, 0.0]);
+        // |grad|^2 = 25; R ~= -4 * Δσ - 2 * |grad σ|^2.
+        let expected = -4.0 * 2.0 - 2.0 * 25.0;
+        assert!((metric.ricci_scalar(&grad, 2.0) - expected).abs() < 1e-12);
+    }
+
+    #[test]
+    fn exact_ricci_scalar_applies_the_conformal_prefactor() {
+        let metric = ConformalMetric::<3>::new();
+        let grad = SVector::from([3.0, 4.0, 0.0]);
+        // Flat-background expression = -58; exp(-2 ln 2) = 1/4.
+        let expected = -58.0 * 0.25;
+        assert!((metric.ricci_scalar_exact(2.0_f64.ln(), &grad, 2.0) - expected).abs() < 1e-12);
+    }
+
+    #[test]
+    fn one_dimensional_ricci_scalar_is_zero() {
+        let metric = ConformalMetric::<1>::new();
+        let grad = SVector::from([9.0]);
+        assert_eq!(metric.ricci_scalar(&grad, 12.0), 0.0);
+        assert_eq!(metric.ricci_scalar_exact(3.0, &grad, 12.0), 0.0);
     }
 
     // ── geodesic_rk4_step ─────────────────────────────────────────────────────
