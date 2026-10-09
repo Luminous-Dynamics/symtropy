@@ -28,8 +28,7 @@ jobs:
       SYMTROPY_REQUIRE_WGPU_VULKAN: "1"
       VK_ICD_FILENAMES: /usr/share/vulkan/icd.d/lvp_icd.x86_64.json
       VK_INSTANCE_LAYERS: VK_LAYER_KHRONOS_validation
-      VK_VALIDATION_VALIDATE_SYNC: "1"
-      VK_LAYER_ENABLES: VK_VALIDATION_FEATURE_ENABLE_SYNCHRONIZATION_VALIDATION_EXT
+      VK_LAYER_VALIDATE_SYNC: "1"
       RUST_BACKTRACE: "1"
     steps:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
@@ -69,9 +68,8 @@ jobs:
             cargo -V
             echo "wgpu_backend=Vulkan"
             echo "vulkan_icd=$VK_ICD_FILENAMES"
+            echo "validation_sync_requested=VK_LAYER_VALIDATE_SYNC=1"
             echo "validation_layer=VK_LAYER_KHRONOS_validation"
-            echo "validation_sync_requested=VK_VALIDATION_VALIDATE_SYNC=1"
-            echo "validation_sync_compat_requested=VK_VALIDATION_FEATURE_ENABLE_SYNCHRONIZATION_VALIDATION_EXT"
           } > .ci/symtropy-wgpu-parity/toolchain-and-runtime.txt
           sha256sum Cargo.toml Cargo.lock \
             crates/domains/symtropy-lifesim-core/Cargo.toml \
