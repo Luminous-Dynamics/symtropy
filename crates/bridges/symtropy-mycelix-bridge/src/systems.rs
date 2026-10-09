@@ -31,8 +31,8 @@
 
 use std::collections::HashMap;
 use std::process::Stdio;
-use std::sync::{Arc, Mutex, MutexGuard};
 use std::sync::atomic::{AtomicU64, Ordering};
+use std::sync::{Arc, Mutex, MutexGuard};
 
 use bevy::prelude::*;
 use bevy_tokio_tasks::TokioTasksRuntime;
@@ -123,7 +123,9 @@ type PendingMap = Arc<Mutex<HashMap<u64, Pending>>>;
 /// A synchronous mutex therefore prevents cancellation between dequeueing an
 /// admitted request and registering it for supervisor failure delivery.
 fn lock_pending(pending: &PendingMap) -> MutexGuard<'_, HashMap<u64, Pending>> {
-    pending.lock().unwrap_or_else(|poisoned| poisoned.into_inner())
+    pending
+        .lock()
+        .unwrap_or_else(|poisoned| poisoned.into_inner())
 }
 
 // ---------------------------------------------------------------------------
@@ -241,9 +243,7 @@ async fn run_dispatcher_loop(
         let pending = pending.clone();
         let next_id = next_id.clone();
         let response_tx = resp_tx.clone();
-        tokio::spawn(async move {
-            writer_loop(stdin, req_rx, pending, next_id, response_tx).await
-        })
+        tokio::spawn(async move { writer_loop(stdin, req_rx, pending, next_id, response_tx).await })
     };
     let mut reader_task = {
         let pending = pending.clone();
@@ -350,10 +350,7 @@ async fn drain_with_error(
     reason: String,
 ) {
     while let Ok(queued) = req_rx.recv_async().await {
-        let QueuedRequest {
-            request,
-            _permit,
-        } = queued;
+        let QueuedRequest { request, _permit } = queued;
         let requester = request.requester();
         if resp_tx
             .send_async(MycelixResponseDelivery {
