@@ -104,6 +104,8 @@ For the documented nonnegative activation vectors, R lies in [0, 1], so the impl
 - R = 0.0 → multiplier 1.0 (friction unchanged)
 - For arbitrary signed vectors, R = -1.0 → multiplier 1.5 (not 2.0); this case is outside the documented activation contract.
 
+The collision impulse multiplier uses the same implemented factor, `1 - 0.5 * R`. Therefore, under nonnegative source strengths and activation vectors, it also lies in [0.5, 1.0]: aligned inputs damp an impulse and orthogonal inputs leave it unchanged. The implementation does **not** currently realize the prose claim that dissonance amplifies impulses; that would require a signed/phase-aware representation and explicit tests.
+
 ### 2.5 Prediction Error Feedback (Collision → Consciousness)
 
 On collision with impulse magnitude `|J|`:
