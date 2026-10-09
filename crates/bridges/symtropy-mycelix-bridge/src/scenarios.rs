@@ -359,24 +359,7 @@ fn proposal_vote_collector(
         state.recv_count += 1;
         match response {
             MycelixResponse::ProposalSubmitted { proposal_id, .. } => {
-                // Correlate by stable proposal identity, not by response order.
-                // The subprocess may return responses in a different order than
-                // requests were submitted.
-                if let Some(agent) = state
-                    .agents
-                    .iter_mut()
-                    .find(|a| {
-                        a.proposal_id.as_str() == proposal_id.as_str()
-                            && a.submitted
-                            && !a.submission_confirmed
-                    })
-                {
-                    agent.submission_confirmed = true;
-                } else {
-                    state.errors.push(format!(
-                        "submission receipt did not match an outstanding proposal: {proposal_id}"
-                    ));
-                }
+                confirm_submission(&mut state, proposal_id);
             }
             MycelixResponse::Proposal {
                 proposal_id,
@@ -412,5 +395,76 @@ fn proposal_vote_collector(
                 // Not used by this scenario.
             }
         }
+    }
+}
+
+
+fn confirm_submission(state: &mut ProposalVoteState, proposal_id: &str) {
+    // The subprocess may return responses in a different order than requests
+    // were submitted. Match the immutable domain ID, never the next pending slot.
+    if let Some(agent) = state
+        .agents
+        .iter_mut()
+        .find(|agent| {
+            agent.proposal_id == proposal_id
+                && agent.submitted
+                && !agent.submission_confirmed
+        })
+    {
+        agent.submission_confirmed = true;
+    } else {
+        state.errors.push(format!(
+            "submission receipt did not match an outstanding proposal: {proposal_id}"
+        ));
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn fixture_state() -> ProposalVoteState {
+        ProposalVoteState {
+            agents: ["proposal-A", "proposal-B"]
+                .into_iter()
+                .map(|proposal_id| AgentState {
+                    did: format!("did:key:{proposal_id}"),
+                    proposal_id: proposal_id.to_string(),
+                    submitted: true,
+                    submission_confirmed: false,
+                    retrieval_confirmed: false,
+                    get_query_sent: false,
+                })
+                .collect(),
+            all_proposals_retrieved: false,
+            errors: Vec::new(),
+            sent_count: 2,
+            recv_count: 0,
+            frame: 0,
+        }
+    }
+
+    #[test]
+    fn reordered_submission_receipts_confirm_the_matching_proposal() {
+        let mut state = fixture_state();
+
+        confirm_submission(&mut state, "proposal-B");
+        confirm_submission(&mut state, "proposal-A");
+
+        assert!(state.agents.iter().all(|agent| agent.submission_confirmed));
+        assert!(state.errors.is_empty());
+    }
+
+    #[test]
+    fn unknown_or_duplicate_submission_receipt_fails_closed() {
+        let mut state = fixture_state();
+
+        confirm_submission(&mut state, "proposal-A");
+        confirm_submission(&mut state, "proposal-A");
+        confirm_submission(&mut state, "not-a-submitted-proposal");
+
+        assert!(state.agents[0].submission_confirmed);
+        assert!(!state.agents[1].submission_confirmed);
+        assert_eq!(state.errors.len(), 2);
     }
 }
