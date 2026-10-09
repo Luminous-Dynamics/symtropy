@@ -358,14 +358,20 @@ fn proposal_vote_collector(
     for response in reader.read() {
         state.recv_count += 1;
         match response {
-            MycelixResponse::ProposalSubmitted { .. } => {
-                // Order isn't guaranteed; mark the first not-yet-confirmed.
+            MycelixResponse::ProposalSubmitted { proposal_id, .. } => {
+                // Correlate by stable proposal identity, not by response order.
+                // The subprocess may return responses in a different order than
+                // requests were submitted.
                 if let Some(agent) = state
                     .agents
                     .iter_mut()
-                    .find(|a| a.submitted && !a.submission_confirmed)
+                    .find(|a| a.proposal_id == *proposal_id && a.submitted && !a.submission_confirmed)
                 {
                     agent.submission_confirmed = true;
+                } else {
+                    state.errors.push(format!(
+                        "submission receipt did not match an outstanding proposal: {proposal_id}"
+                    ));
                 }
             }
             MycelixResponse::Proposal {
