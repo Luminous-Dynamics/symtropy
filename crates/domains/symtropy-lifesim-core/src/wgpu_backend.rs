@@ -652,6 +652,83 @@ mod tests {
     };
 
     #[test]
+    fn persistent_runtime_matches_cpu_reference_over_repeated_steps_and_resize() {
+        let require_adapter = std::env::var_os("SYMTROPY_REQUIRE_WGPU_ADAPTER").is_some();
+        let require_vulkan = std::env::var_os("SYMTROPY_REQUIRE_WGPU_VULKAN").is_some();
+        let runtime_result = if require_vulkan {
+            PersistentWgslFieldRuntime::new_with_backends(wgpu::Backends::VULKAN)
+        } else {
+            PersistentWgslFieldRuntime::new()
+        };
+        let mut runtime = match runtime_result {
+            Ok(runtime) => runtime,
+            Err(FieldStepError::GpuUnavailable(message))
+                if !require_adapter && message.starts_with("adapter request failed:") =>
+            {
+                eprintln!("skipping persistent WGSL parity test: {message}");
+                return;
+            }
+            Err(error) => panic!("persistent WGPU runtime initialization failed: {error}"),
+        };
+        if require_vulkan {
+            assert_eq!(
+                runtime.adapter_info().backend,
+                wgpu::Backend::Vulkan,
+                "qualification must execute through WGPU's Vulkan backend"
+            );
+        }
+        println!("selected_adapter={:?}", runtime.adapter_info());
+
+        // Reuse the same runtime for multiple steps, then reuse it again after
+        // a shape change. Source sanitization must agree with the CPU oracle,
+        // including negative and non-finite inputs.
+        for (width, height) in [(8, 6), (13, 7)] {
+            let mut cpu = FieldGrid::new(width, height);
+            let mut gpu = FieldGrid::new(width, height);
+            for field in [&mut cpu, &mut gpu] {
+                field.set(FieldLayer::Nutrient, width / 2, height / 2, 15.0);
+                field.set(FieldLayer::Nutrient, width - 1, 0, 2.0);
+                field.set(FieldLayer::Obstacle, width / 2 + 1, height / 2, 1.0);
+            }
+            let mut source = vec![0.0; width * height];
+            source[0] = f32::NAN;
+            source[1] = f32::INFINITY;
+            source[2] = f32::NEG_INFINITY;
+            source[3] = -5.0;
+            source[width * height - 1] = 4.0;
+            let request = FieldStepRequest {
+                layer: FieldLayer::Nutrient,
+                source,
+                params: DiffusionParams {
+                    diffusion: 0.08,
+                    decay: 0.02,
+                    dt: 1.0,
+                    max_value: 1_000.0,
+                },
+            };
+
+            for step_index in 0..5 {
+                CpuFieldStepper
+                    .step(&mut cpu, &request)
+                    .expect("CPU reference step must succeed");
+                runtime
+                    .step(&mut gpu, &request)
+                    .unwrap_or_else(|error| panic!("persistent GPU step {step_index} failed: {error}"));
+                let report = compare_layer_within_epsilon(
+                    &cpu,
+                    &gpu,
+                    FieldLayer::Nutrient,
+                    0.0001,
+                );
+                assert!(
+                    report.within_epsilon(),
+                    "step {step_index}, grid {width}x{height}, report={report:?}"
+                );
+            }
+        }
+    }
+
+    #[test]
     fn wgsl_stepper_matches_cpu_reference_with_source_and_obstacles() {
         let mut cpu = FieldGrid::new(8, 6);
         let mut gpu = FieldGrid::new(8, 6);
