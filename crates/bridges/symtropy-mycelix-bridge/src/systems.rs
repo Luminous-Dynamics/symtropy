@@ -961,8 +961,10 @@ mod tests {
                 let _ = writer.await;
                 fail_all_pending(&pending, &resp_tx, "test cleanup").await;
                 let delivered = resp_rx.recv_async().await.expect("failure response");
-                assert!(matches!(delivered.response, MycelixResponse::Error { .. }));
-                drop(delivered);
+                assert!(matches!(
+                    delivered.into_response(),
+                    MycelixResponse::Error { .. }
+                ));
                 assert_eq!(admission.available_permits(), 1);
             });
     }
