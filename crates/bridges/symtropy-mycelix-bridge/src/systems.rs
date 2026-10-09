@@ -1438,6 +1438,52 @@ mod tests {
     }
 
     #[test]
+    fn response_acceptance_rechecks_expiry_atomically_before_removal() {
+        tokio::runtime::Runtime::new()
+            .expect("runtime")
+            .block_on(async {
+                let semaphore = Arc::new(Semaphore::new(1));
+                let pending = pending_one(52, &semaphore).await;
+                {
+                    let mut entries = lock_pending(&pending);
+                    entries.get_mut(&52).expect("pending request").dispatch_phase =
+                        DispatchPhase::AwaitingResponse {
+                            deadline: Instant::now() - Duration::from_millis(1),
+                        };
+                }
+                let fenced = AtomicBool::new(false);
+                let result = translate(
+                    52,
+                    WireResponse {
+                        request_id: Some(52),
+                        ok: true,
+                        data: Some(serde_json::json!("uhCkk_action_hash")),
+                        error: None,
+                    },
+                    &pending,
+                    Duration::from_secs(30),
+                    &fenced,
+                )
+                .await;
+
+                assert!(matches!(
+                    result,
+                    Err(DispatcherError::ResponseTimeout { outstanding: 1, .. })
+                ));
+                assert!(fenced.load(Ordering::SeqCst));
+                assert!(lock_pending(&pending).contains_key(&52));
+
+                let (resp_tx, resp_rx) = flume::bounded(1);
+                fail_all_pending(&pending, &resp_tx, "response deadline expired").await;
+                assert!(matches!(
+                    resp_rx.recv_async().await.expect("indeterminate outcome").into_response(),
+                    MycelixResponse::IndeterminateMutation { .. }
+                ));
+                assert_eq!(semaphore.available_permits(), 1);
+            });
+    }
+
+    #[test]
     fn response_before_dispatch_is_rejected_without_consuming_the_request() {
         tokio::runtime::Runtime::new()
             .expect("runtime")
