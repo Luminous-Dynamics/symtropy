@@ -96,11 +96,15 @@ mod tests {
     #[test]
     fn inflight_budget_has_a_nonzero_effective_capacity() {
         assert_eq!(
-            MycelixConfig::default().with_inflight_budget(0).effective_inflight_budget(),
+            MycelixConfig::default()
+                .with_inflight_budget(0)
+                .effective_inflight_budget(),
             1
         );
         assert_eq!(
-            MycelixConfig::default().with_inflight_budget(16).effective_inflight_budget(),
+            MycelixConfig::default()
+                .with_inflight_budget(16)
+                .effective_inflight_budget(),
             16
         );
     }
