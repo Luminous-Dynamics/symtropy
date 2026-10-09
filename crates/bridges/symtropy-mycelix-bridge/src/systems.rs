@@ -920,7 +920,7 @@ mod tests {
                     pending.clone(),
                     Arc::new(AtomicU64::new(0)),
                     semaphore,
-                    resp_tx,
+                    resp_tx.clone(),
                 ));
 
                 let mut first_line = String::new();
