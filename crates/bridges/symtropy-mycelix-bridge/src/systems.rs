@@ -791,11 +791,25 @@ mod tests {
                     Err(DispatcherError::MalformedResponseJson(_))
                 ));
                 assert!(lock_pending(&pending).is_empty());
-                assert_eq!(semaphore.available_permits(), 1);
+                assert_eq!(
+                    semaphore.available_permits(),
+                    0,
+                    "the pending credit stays with its failure response while buffered"
+                );
+                let failure = resp_rx
+                    .recv_async()
+                    .await
+                    .expect("failure response")
+                    .into_response();
                 assert!(matches!(
-                    resp_rx.recv_async().await.expect("failure response").into_response(),
+                    failure,
                     MycelixResponse::Error { requester, .. } if requester == Entity::PLACEHOLDER
                 ));
+                assert_eq!(
+                    semaphore.available_permits(),
+                    1,
+                    "consuming the failure response releases its admission credit"
+                );
             });
     }
 
