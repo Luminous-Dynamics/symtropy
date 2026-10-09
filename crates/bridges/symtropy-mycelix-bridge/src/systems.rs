@@ -944,7 +944,7 @@ mod tests {
                 assert_eq!(pending.lock().await.len(), 1);
 
                 writer.abort();
-                fail_all_pending(&pending, &_resp_tx, "test cleanup").await;
+                fail_all_pending(&pending, &resp_tx, "test cleanup").await;
             });
     }
 
