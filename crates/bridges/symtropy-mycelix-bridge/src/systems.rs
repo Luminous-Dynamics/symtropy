@@ -1183,6 +1183,52 @@ mod tests {
             });
     }
 
+    #[tokio::test(start_paused = true)]
+    async fn silent_child_triggers_deadline_without_wall_clock_sleep() {
+        // Keep stdout open but never write a response, modeling a child that is
+        // alive and silent. Paused Tokio time makes the deadline deterministic.
+        let (_source, stdout) = tokio::io::duplex(1024);
+        let semaphore = Arc::new(Semaphore::new(1));
+        let pending = pending_one(53, &semaphore).await;
+        let deadline = Instant::now() + Duration::from_secs(5);
+        {
+            let mut entries = lock_pending(&pending);
+            entries.get_mut(&53).expect("pending request").dispatch_phase =
+                DispatchPhase::AwaitingResponse { deadline };
+        }
+
+        let (resp_tx, resp_rx) = flume::bounded(1);
+        let fenced = Arc::new(AtomicBool::new(false));
+        let reader = tokio::spawn(reader_loop(
+            stdout,
+            resp_tx.clone(),
+            pending.clone(),
+            Duration::from_secs(5),
+            Arc::new(Notify::new()),
+            fenced.clone(),
+        ));
+
+        // Let reader_loop enter its select on the pending deadline before
+        // advancing virtual time.
+        tokio::task::yield_now().await;
+        tokio::time::advance(Duration::from_secs(5)).await;
+
+        let result = reader.await.expect("reader task");
+        assert!(matches!(
+            result,
+            Err(DispatcherError::ResponseTimeout { outstanding: 1, .. })
+        ));
+        assert!(fenced.load(Ordering::SeqCst));
+        assert!(lock_pending(&pending).contains_key(&53));
+
+        fail_all_pending(&pending, &resp_tx, "silent child exceeded response deadline").await;
+        assert!(matches!(
+            resp_rx.recv_async().await.expect("indeterminate timeout result").into_response(),
+            MycelixResponse::IndeterminateMutation { .. }
+        ));
+        assert_eq!(semaphore.available_permits(), 1);
+    }
+
     #[test]
     fn expired_preflush_deadline_fences_mutation_outcome() {
         tokio::runtime::Runtime::new()
