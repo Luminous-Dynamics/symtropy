@@ -1,0 +1,103 @@
+name: Symtropy persistent WGPU field parity
+
+permissions:
+  contents: read
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+    paths:
+      - 'crates/domains/symtropy-lifesim-core/**'
+      - '.github/workflows/symtropy-wgpu-field-parity.yml'
+      - 'Cargo.toml'
+      - 'Cargo.lock'
+
+jobs:
+  persistent-field-parity:
+    name: Persistent field runtime CPU parity (software Vulkan)
+    if: github.event_name != 'pull_request' || github.event.pull_request.draft == false
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    env:
+      SYMTROPY_REQUIRE_WGPU_ADAPTER: "1"
+      SYMTROPY_REQUIRE_WGPU_VULKAN: "1"
+      VK_ICD_FILENAMES: /usr/share/vulkan/icd.d/lvp_icd.x86_64.json
+      RUST_BACKTRACE: "1"
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Assert exact qualification checkout
+        env:
+          EXPECTED_QUALIFICATION_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          ACTUAL_QUALIFICATION_SHA="$(git rev-parse HEAD)"
+          test "$ACTUAL_QUALIFICATION_SHA" = "$EXPECTED_QUALIFICATION_SHA"
+          mkdir -p .ci/symtropy-wgpu-parity
+          {
+            echo "expected_head=$EXPECTED_QUALIFICATION_SHA"
+            echo "actual_head=$ACTUAL_QUALIFICATION_SHA"
+          } | tee .ci/symtropy-wgpu-parity/qualification-head.txt
+
+      - name: Install Mesa software Vulkan runtime
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libvulkan1 mesa-vulkan-drivers vulkan-tools
+          test -s "$VK_ICD_FILENAMES"
+          vulkaninfo --summary 2>&1 | tee .ci/symtropy-wgpu-parity/vulkaninfo-summary.txt
+          dpkg-query -W -f='${Package}\t${Version}\n' \
+            libvulkan1 mesa-vulkan-drivers vulkan-tools \
+            > .ci/symtropy-wgpu-parity/vulkan-package-versions.txt
+
+      - uses: dtolnay/rust-toolchain@3db9de313aa3e84732d075f6fd8938cc0d6d4b58 # Rust 1.96.0
+
+      - name: Capture toolchain and input digests
+        run: |
+          {
+            rustc -Vv
+            cargo -V
+            echo "wgpu_backend=Vulkan"
+            echo "vulkan_icd=$VK_ICD_FILENAMES"
+          } > .ci/symtropy-wgpu-parity/toolchain-and-runtime.txt
+          sha256sum Cargo.toml Cargo.lock \
+            crates/domains/symtropy-lifesim-core/Cargo.toml \
+            crates/domains/symtropy-lifesim-core/src/lib.rs \
+            crates/domains/symtropy-lifesim-core/src/wgpu_backend.rs \
+            .github/workflows/symtropy-wgpu-field-parity.yml \
+            > .ci/symtropy-wgpu-parity/input-sha256.txt
+
+      - name: Run persistent multi-step CPU-oracle parity
+        run: |
+          set -o pipefail
+          cargo test --locked -p symtropy-lifesim-core --features wgpu \
+            persistent_runtime_matches_cpu_reference_over_repeated_steps_and_resize \
+            -- --nocapture \
+            2>&1 | tee .ci/symtropy-wgpu-parity/persistent-field-parity.log
+
+      - name: Seal exact-head qualification evidence
+        if: always()
+        env:
+          EXPECTED_QUALIFICATION_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          mkdir -p .ci/symtropy-wgpu-parity
+          printf 'expected_head=%s\nactual_head=%s\n' \
+            "$EXPECTED_QUALIFICATION_SHA" "$(git rev-parse HEAD)" \
+            > .ci/symtropy-wgpu-parity/qualification-head.txt
+          dpkg-query -W -f='${Package}\t${Version}\n' \
+            libvulkan1 mesa-vulkan-drivers vulkan-tools \
+            > .ci/symtropy-wgpu-parity/vulkan-package-versions.txt 2>&1 || true
+          find .ci/symtropy-wgpu-parity -maxdepth 1 -type f \
+            ! -name qualification-evidence.sha256 -print0 \
+            | sort -z | xargs -0 -r sha256sum \
+            > .ci/symtropy-wgpu-parity/qualification-evidence.sha256
+
+      - name: Upload exact-head evidence
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: symtropy-wgpu-field-parity-${{ github.event.pull_request.head.sha || github.sha }}
+          if-no-files-found: error
+          path: .ci/symtropy-wgpu-parity/
