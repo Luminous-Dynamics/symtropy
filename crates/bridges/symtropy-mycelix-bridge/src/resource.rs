@@ -79,7 +79,7 @@ impl MycelixClient {
 /// Reasons [`MycelixClient::send`] can fail.
 #[derive(Debug, thiserror::Error)]
 pub enum MycelixSendError {
-    #[error("request channel is full (inflight budget reached)")]
+    #[error("bridge admission budget is exhausted")]
     Full,
     #[error("request channel is disconnected — background task exited")]
     Disconnected,
