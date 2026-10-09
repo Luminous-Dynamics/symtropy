@@ -221,6 +221,11 @@ async fn run_dispatcher_loop(
     // so a bad setting cannot deadlock all dispatch.
     let inflight = Arc::new(Semaphore::new(config.effective_inflight_budget()));
 
+    // Keep supervisor-owned receiver/sender clones so either task's exit can
+    // fail queued and pending callers, including a request racing with stdout EOF.
+    let supervisor_req_rx = req_rx.clone();
+    let supervisor_resp_tx = resp_tx.clone();
+
     let mut writer_task = {
         let pending = pending.clone();
         let next_id = next_id.clone();
@@ -237,18 +242,75 @@ async fn run_dispatcher_loop(
 
     // If the request channel closes, the writer closes child stdin; then allow
     // the reader to drain final replies before accepting shutdown. Conversely,
-    // the child exiting first is a runtime failure even when no request happened
-    // to be pending at that instant.
+    // any reader exit while the writer is still alive is treated as a failure;
+    // all pending and queued requests are completed with an error before return.
     tokio::select! {
         biased;
         writer_result = &mut writer_task => {
-            writer_result.map_err(DispatcherError::Join)??;
-            reader_task.await.map_err(DispatcherError::Join)??;
-            Ok(())
+            match writer_result {
+                Err(join) => {
+                    let failure = DispatcherError::Join(join);
+                    let reason = failure.to_string();
+                    fail_pending_and_queued(
+                        &pending,
+                        supervisor_req_rx.clone(),
+                        supervisor_resp_tx.clone(),
+                        &reason,
+                    ).await;
+                    Err(failure)
+                }
+                Ok(Err(failure)) => {
+                    let reason = failure.to_string();
+                    fail_pending_and_queued(
+                        &pending,
+                        supervisor_req_rx.clone(),
+                        supervisor_resp_tx.clone(),
+                        &reason,
+                    ).await;
+                    Err(failure)
+                }
+                Ok(Ok(())) => {
+                    match reader_task.await {
+                        Ok(Ok(())) => Ok(()),
+                        Ok(Err(failure)) => {
+                            let reason = failure.to_string();
+                            fail_pending_and_queued(
+                                &pending,
+                                supervisor_req_rx.clone(),
+                                supervisor_resp_tx.clone(),
+                                &reason,
+                            ).await;
+                            Err(failure)
+                        }
+                        Err(join) => {
+                            let failure = DispatcherError::Join(join);
+                            let reason = failure.to_string();
+                            fail_pending_and_queued(
+                                &pending,
+                                supervisor_req_rx.clone(),
+                                supervisor_resp_tx.clone(),
+                                &reason,
+                            ).await;
+                            Err(failure)
+                        }
+                    }
+                }
+            }
         }
         reader_result = &mut reader_task => {
-            reader_result.map_err(DispatcherError::Join)??;
-            Err(DispatcherError::UnexpectedBridgeExit)
+            let failure = match reader_result {
+                Ok(Ok(())) => DispatcherError::UnexpectedBridgeExit,
+                Ok(Err(failure)) => failure,
+                Err(join) => DispatcherError::Join(join),
+            };
+            let reason = failure.to_string();
+            fail_pending_and_queued(
+                &pending,
+                supervisor_req_rx,
+                supervisor_resp_tx,
+                &reason,
+            ).await;
+            Err(failure)
         }
     }
 }
@@ -521,6 +583,16 @@ async fn fail_all_pending(pending: &PendingMap, resp_tx: &Sender<MycelixResponse
     }
 }
 
+async fn fail_pending_and_queued(
+    pending: &PendingMap,
+    queued: Receiver<MycelixRequest>,
+    resp_tx: Sender<MycelixResponse>,
+    reason: &str,
+) {
+    fail_all_pending(pending, &resp_tx, reason).await;
+    drain_with_error(queued, resp_tx, reason.to_string()).await;
+}
+
 async fn translate(
     id: u64,
     wire: WireResponse,
@@ -734,6 +806,38 @@ mod tests {
                 MycelixResponse::Error { requester, reason }
                     if requester == Entity::PLACEHOLDER && reason.contains("unknown request_id 99")
             ));
+        });
+    }
+
+    #[test]
+    fn supervisor_failure_completes_both_pending_and_queued_requests() {
+        tokio::runtime::Runtime::new().expect("runtime").block_on(async {
+            let semaphore = Arc::new(Semaphore::new(1));
+            let pending = pending_one(17, &semaphore).await;
+            let (request_tx, request_rx) = flume::bounded(2);
+            request_tx
+                .send(MycelixRequest::QueryTendBalance {
+                    requester: Entity::PLACEHOLDER,
+                    member_did: "did:key:queued".to_string(),
+                })
+                .expect("queued request");
+            let (resp_tx, resp_rx) = flume::bounded(3);
+
+            fail_pending_and_queued(
+                &pending,
+                request_rx,
+                resp_tx,
+                "bridge exited unexpectedly",
+            )
+            .await;
+
+            assert!(pending.lock().await.is_empty());
+            assert_eq!(semaphore.available_permits(), 1);
+            let first = resp_rx.recv_async().await.expect("pending failure");
+            let second = resp_rx.recv_async().await.expect("queued failure");
+            assert!(matches!(first, MycelixResponse::Error { .. }));
+            assert!(matches!(second, MycelixResponse::Error { .. }));
+            assert!(resp_rx.is_empty());
         });
     }
 
