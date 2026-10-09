@@ -9,15 +9,8 @@ use tokio::sync::{OwnedSemaphorePermit, Semaphore, TryAcquireError};
 
 use crate::events::{MycelixRequest, MycelixResponse};
 
-/// Bevy `Resource` holding the sending end of the request channel.
-///
-/// Bevy systems obtain this via `Res<MycelixClient>` and call [`send`] to
-/// dispatch zome calls to the tokio background task.
-///
-/// [`send`]: MycelixClient::send
-/// An admitted request owns one credit until its response is transferred to
-/// Bevy's message queue. This makes the budget end-to-end: queued requests,
-/// in-flight calls, and undelivered responses all count against the same cap.
+/// An admitted request carrying its credit through the request queue and
+/// dispatched call until its response reaches Bevy's message queue.
 pub(crate) struct QueuedRequest {
     pub(crate) request: MycelixRequest,
     pub(crate) _permit: OwnedSemaphorePermit,
@@ -40,6 +33,13 @@ impl MycelixResponseDelivery {
     }
 }
 
+/// Bevy `Resource` that submits requests to the background bridge.
+///
+/// Call [`send`] from Bevy systems to attempt non-blocking admission.
+/// Accepted work consumes a shared credit until the response is transferred
+/// to Bevy's message queue.
+///
+/// [`send`]: MycelixClient::send
 #[derive(Resource, Clone)]
 pub struct MycelixClient {
     tx: Sender<QueuedRequest>,
