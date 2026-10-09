@@ -406,7 +406,7 @@ fn confirm_submission(state: &mut ProposalVoteState, proposal_id: &str) {
         .agents
         .iter_mut()
         .find(|agent| {
-            agent.proposal_id == proposal_id
+            agent.proposal_id.as_str() == proposal_id
                 && agent.submitted
                 && !agent.submission_confirmed
         })
