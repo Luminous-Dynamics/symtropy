@@ -42,7 +42,7 @@ pub struct MycelixConfig {
     /// Maximum time from the first stdin write attempt to response acceptance.
     /// Queue/admission wait is excluded; the deadline also bounds stalled pipe
     /// writes/flushes. Expiry does not prove a remote mutation was rejected.
-    /// Zero is normalized to one millisecond.
+    /// The effective value is clamped to 1 ms through 5 minutes.
     pub response_timeout: Duration,
 }
 
