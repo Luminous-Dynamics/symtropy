@@ -13,7 +13,7 @@
 //! - Each of the 9 harmonies creates a radial field around the entity
 //! - Field uses a Plummer-softened radial influence kernel with exponent max(D-1, 1). D=1 deliberately retains a 1/r attenuation floor; this is a modeling choice, not a universal dimension law.
 //! - Overlapping fields interact: resonance (aligned) vs interference (opposed)
-//! - Physical effects: resonant fields reduce friction, dissonant increase impulse
+//! - Physical effects: the nonnegative documented activation contract lets aligned fields reduce friction/impulse and orthogonal fields leave them unchanged; signed anti-alignment is not represented
 //! - Harmony 9 (index 8): Emotional Contagion — social emotion spreading via
 //!   proximity-weighted CEMI coupling (McFadden 2020, Dunbar 2012)
 
@@ -117,8 +117,8 @@ impl<const D: usize> HarmonyField<D> {
 
     /// Friction multiplier at a point, based on local harmony field.
     ///
-    /// Resonant fields (aligned harmonies) reduce friction (cooperation flows).
-    /// Dissonant fields (opposed harmonies) increase friction (conflict resistance).
+    /// Aligned nonnegative harmonies reduce friction; orthogonal vectors leave it unchanged.
+    /// The current documented nonnegative activation contract does not encode negative resonance.
     ///
     /// For documented nonnegative activations, returns [0.5, 1.0]. Arbitrary signed
     /// inputs can extend the mathematical range to [0.5, 1.5], but signed activations
@@ -140,10 +140,12 @@ impl<const D: usize> HarmonyField<D> {
 
     /// Collision impulse multiplier at a point.
     ///
-    /// Resonant fields dampen collisions (peaceful interactions).
-    /// Dissonant fields amplify collisions (conflict escalates).
+    /// Aligned nonnegative harmonies dampen collisions; orthogonal vectors leave impulses unchanged.
+    /// The documented nonnegative activation contract does not encode negative resonance, so it
+    /// does not currently support dissonance-driven amplification.
     ///
-    /// Returns multiplier [0.5, 1.5].
+    /// For documented nonnegative inputs the multiplier is [0.5, 1.0]; arbitrary signed vectors
+    /// mathematically allow [0.5, 1.5], but signed inputs are outside the contract.
     pub fn impulse_multiplier(
         &self,
         point: &Point<D>,
@@ -151,9 +153,9 @@ impl<const D: usize> HarmonyField<D> {
     ) -> f64 {
         let field = self.sample(point);
         let res = Self::resonance(&field, entity_harmonies);
-        // res = 1.0 → 0.5 (dampened)
-        // res = 0.0 → 1.0 (normal)
-        // res = -1.0 → 1.5 (amplified)
+        // Formula: 1 - 0.5 * resonance.
+        // For nonnegative activations, resonance is in [0, 1] and the multiplier is in [0.5, 1.0].
+        // Signed anti-alignment would permit amplification but is not the documented input contract.
         1.0 - res * 0.5
     }
 
