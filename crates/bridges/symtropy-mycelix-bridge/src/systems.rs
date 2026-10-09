@@ -30,6 +30,7 @@
 //! ```
 
 use std::collections::HashMap;
+use std::io;
 use std::process::Stdio;
 use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use std::sync::{Arc, Mutex, MutexGuard};
@@ -686,6 +687,71 @@ where
     Ok(())
 }
 
+/// Maximum accepted stdout JSON frame size. A newline-free child response must not
+/// be able to grow the reader buffer without bound. The limit is on the UTF-8 JSON
+/// payload bytes, excluding the line terminator.
+const MAX_RESPONSE_LINE_BYTES: usize = 1024 * 1024;
+
+/// Read one newline-delimited UTF-8 frame while enforcing a hard byte ceiling.
+/// Unlike the unbounded Tokio line reader, this consumes the buffered stream
+/// incrementally and rejects oversized frames before retaining more than the limit.
+/// A final non-empty partial frame at EOF matches Tokio's line-reader behavior.
+async fn read_bounded_line<R>(reader: &mut R, max_bytes: usize) -> io::Result<Option<String>>
+where
+    R: tokio::io::AsyncBufRead + Unpin,
+{
+    let mut bytes = Vec::with_capacity(max_bytes.min(8 * 1024));
+
+    loop {
+        let (consumed, line_complete, eof) = {
+            let available = reader.fill_buf().await?;
+            if available.is_empty() {
+                (0, false, true)
+            } else if let Some(newline_at) = available.iter().position(|byte| *byte == b'\n') {
+                if bytes.len() + newline_at > max_bytes {
+                    return Err(io::Error::new(
+                        io::ErrorKind::InvalidData,
+                        format!("response frame exceeded maximum line size ({max_bytes} bytes)"),
+                    ));
+                }
+                bytes.extend_from_slice(&available[..newline_at]);
+                (newline_at + 1, true, false)
+            } else {
+                if bytes.len() + available.len() > max_bytes {
+                    return Err(io::Error::new(
+                        io::ErrorKind::InvalidData,
+                        format!("response frame exceeded maximum line size ({max_bytes} bytes)"),
+                    ));
+                }
+                let count = available.len();
+                bytes.extend_from_slice(available);
+                (count, false, false)
+            }
+        };
+
+        if eof {
+            if bytes.is_empty() {
+                return Ok(None);
+            }
+            break;
+        }
+
+        reader.consume(consumed);
+        if line_complete {
+            break;
+        }
+    }
+
+    // Accept CRLF as well as LF framing without charging CR to the JSON parser.
+    if bytes.last() == Some(&b'\r') {
+        bytes.pop();
+    }
+
+    String::from_utf8(bytes)
+        .map(Some)
+        .map_err(|err| io::Error::new(io::ErrorKind::InvalidData, err))
+}
+
 async fn reader_loop<R>(
     stdout: R,
     resp_tx: Sender<MycelixResponseDelivery>,
@@ -697,7 +763,7 @@ async fn reader_loop<R>(
 where
     R: tokio::io::AsyncRead + Unpin,
 {
-    let mut lines = BufReader::new(stdout).lines();
+    let mut stdout = BufReader::new(stdout);
 
     loop {
         if let Some(outstanding) = expire_response_deadline(&pending, &generation_fenced) {
@@ -724,7 +790,7 @@ where
                         }
                         continue;
                     }
-                    line = lines.next_line() => {
+                    line = read_bounded_line(&mut stdout, MAX_RESPONSE_LINE_BYTES) => {
                         if let Some(outstanding) =
                             expire_response_deadline(&pending, &generation_fenced)
                         {
@@ -741,7 +807,7 @@ where
             None => {
                 tokio::select! {
                     biased;
-                    line = lines.next_line() => line,
+                    line = read_bounded_line(&mut stdout, MAX_RESPONSE_LINE_BYTES) => line,
                     _ = deadline_changed.notified() => continue,
                 }
             }
@@ -1065,6 +1131,52 @@ mod tests {
             _permit: permit,
         };
         Arc::new(Mutex::new(HashMap::from([(id, entry)])))
+    }
+
+    #[test]
+    fn bounded_reader_accepts_lf_and_crlf_and_preserves_eof_frame_semantics() {
+        tokio::runtime::Runtime::new()
+            .expect("runtime")
+            .block_on(async {
+                let input = b"{\"ok\":true}\r\n{\"ok\":false}";
+                let mut reader = BufReader::new(&input[..]);
+
+                assert_eq!(
+                    read_bounded_line(&mut reader, 32)
+                        .await
+                        .expect("first frame"),
+                    Some("{\"ok\":true}".to_string())
+                );
+                assert_eq!(
+                    read_bounded_line(&mut reader, 32)
+                        .await
+                        .expect("final frame"),
+                    Some("{\"ok\":false}".to_string())
+                );
+                assert_eq!(
+                    read_bounded_line(&mut reader, 32)
+                        .await
+                        .expect("EOF"),
+                    None
+                );
+            });
+    }
+
+    #[test]
+    fn bounded_reader_rejects_oversized_frame_before_newline() {
+        tokio::runtime::Runtime::new()
+            .expect("runtime")
+            .block_on(async {
+                let (mut source, stdout) = tokio::io::duplex(64);
+                source.write_all(b"123456789").await.expect("write oversized frame");
+                let mut reader = BufReader::new(stdout);
+
+                let error = read_bounded_line(&mut reader, 8)
+                    .await
+                    .expect_err("oversized line must be rejected without waiting for newline");
+                assert_eq!(error.kind(), io::ErrorKind::InvalidData);
+                assert!(error.to_string().contains("maximum line size (8 bytes)"));
+            });
     }
 
     #[test]
