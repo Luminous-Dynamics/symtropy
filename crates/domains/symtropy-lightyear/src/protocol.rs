@@ -21,13 +21,10 @@ pub fn register(app: &mut bevy_app::App) {
     // Register replicated components.
     // Each component that crosses the network needs registration.
     //
-    // Lightyear 0.26 uses ComponentRegistry — components are registered
-    // via the app's type registry. The Replicate marker component
-    // controls which entities are networked.
-    //
-    // For now, we register the types so they're available for
-    // serialization/deserialization. Full Lightyear wiring happens
-    // when the plugin is built.
+    // This registers Bevy reflection metadata only. The Lightyear 0.28+
+    // replication protocol, entity markers, prediction/interpolation policy,
+    // server/client plugin setup, and actual Link transport still need explicit
+    // integration and end-to-end tests.
     app.register_type::<NetPosition>();
     app.register_type::<NetVelocity>();
     app.register_type::<NetRotation>();
