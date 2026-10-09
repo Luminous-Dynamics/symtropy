@@ -774,7 +774,10 @@ mod tests {
                 let (resp_tx, resp_rx) = flume::bounded(2);
                 let result = reader_loop(stdout, resp_tx, pending.clone()).await;
 
-                assert!(matches!(result, Err(DispatcherError::MalformedResponseJson(_))));
+                assert!(matches!(
+                    result,
+                    Err(DispatcherError::MalformedResponseJson(_))
+                ));
                 assert!(pending.lock().await.is_empty());
                 assert_eq!(semaphore.available_permits(), 1);
                 assert!(matches!(
@@ -922,9 +925,9 @@ mod tests {
 
                 let mut first_line = String::new();
                 tokio::time::timeout(Duration::from_secs(1), stdout.read_line(&mut first_line))
-                .await
-                .expect("first request was written")
-                .expect("read first request");
+                    .await
+                    .expect("first request was written")
+                    .expect("read first request");
                 assert!(!first_line.is_empty());
                 assert_eq!(pending.lock().await.len(), 1);
 
@@ -1051,4 +1054,3 @@ mod tests {
             });
     }
 }
-
