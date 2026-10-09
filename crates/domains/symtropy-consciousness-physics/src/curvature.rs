@@ -130,8 +130,7 @@ impl<const D: usize> ConformalMetric<D> {
     /// repulsion; that interpretation requires the full geometry and paths.
     pub fn ricci_scalar(&self, sigma_gradient: &SVector<f64, D>, sigma_laplacian: f64) -> f64 {
         let d = D as f64;
-        -2.0 * (d - 1.0) * sigma_laplacian
-            - (d - 1.0) * (d - 2.0) * sigma_gradient.norm_squared()
+        -2.0 * (d - 1.0) * sigma_laplacian - (d - 1.0) * (d - 2.0) * sigma_gradient.norm_squared()
     }
 
     /// Exact scalar curvature for g_ij = exp(2σ) δ_ij on a flat
