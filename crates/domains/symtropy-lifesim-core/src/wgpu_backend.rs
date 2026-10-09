@@ -772,6 +772,12 @@ mod tests {
         }
         let mut source = vec![0.0; cpu.width() * cpu.height()];
         source[cpu.idx(2, 2)] = 4.0;
+        // CPU and GPU must agree on malformed source values, not just ordinary
+        // finite values. The GPU path sanitizes these before storage upload.
+        source[0] = f32::NAN;
+        source[1] = f32::INFINITY;
+        source[2] = f32::NEG_INFINITY;
+        source[3] = -5.0;
         let request = FieldStepRequest {
             layer: FieldLayer::Nutrient,
             source,
