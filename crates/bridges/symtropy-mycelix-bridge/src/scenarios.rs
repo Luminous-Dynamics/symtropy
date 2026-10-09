@@ -398,19 +398,12 @@ fn proposal_vote_collector(
     }
 }
 
-
 fn confirm_submission(state: &mut ProposalVoteState, proposal_id: &str) {
     // The subprocess may return responses in a different order than requests
     // were submitted. Match the immutable domain ID, never the next pending slot.
-    if let Some(agent) = state
-        .agents
-        .iter_mut()
-        .find(|agent| {
-            agent.proposal_id.as_str() == proposal_id
-                && agent.submitted
-                && !agent.submission_confirmed
-        })
-    {
+    if let Some(agent) = state.agents.iter_mut().find(|agent| {
+        agent.proposal_id.as_str() == proposal_id && agent.submitted && !agent.submission_confirmed
+    }) {
         agent.submission_confirmed = true;
     } else {
         state.errors.push(format!(
