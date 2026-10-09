@@ -38,7 +38,7 @@ pub mod scenarios;
 pub mod systems;
 
 pub use config::MycelixConfig;
-pub use events::{MycelixRequest, MycelixResponse};
+pub use events::{MycelixMutationKind, MycelixRequest, MycelixResponse};
 pub use plugin::BevyMycelixPlugin;
 pub use resource::{MycelixClient, MycelixSendError};
 pub use scenarios::{ScenarioConfig, ScenarioReport, proposal_vote_invariant};
