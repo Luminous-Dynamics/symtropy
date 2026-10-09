@@ -30,9 +30,10 @@ pub struct MycelixConfig {
     pub app_id: String,
     /// Passed to the subprocess as `--role`.
     pub role: String,
-    /// Maximum unanswered requests permitted in the request channel. When
-    /// full, [`crate::MycelixClient::send`] returns an error rather than
-    /// blocking the Bevy schedule.
+    /// Maximum accepted operations across the request queue, dispatched
+    /// subprocess calls, and responses awaiting transfer into Bevy's message
+    /// queue. When exhausted, [`crate::MycelixClient::send`] returns an error
+    /// rather than blocking the Bevy schedule.
     pub inflight_budget: usize,
 }
 
@@ -49,7 +50,7 @@ impl Default for MycelixConfig {
 }
 
 impl MycelixConfig {
-    /// Effective request/response in-flight budget.
+    /// Effective end-to-end admission budget.
     ///
     /// Zero is normalized to one so the bounded channels and semaphore retain
     /// a consistent, non-deadlocking minimum capacity.
