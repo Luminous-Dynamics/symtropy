@@ -39,7 +39,9 @@ The current `crates/bridges/symtropy-holochain-relay` source was a placeholder: 
 
 The relay hardening changes this behavior to fail closed and adds regression tests. It deliberately does **not** claim that a real AppWebSocket client, token authentication, zome-call signing, MessagePack request/response framing, or verified result handling is implemented. The crate is included in the Symtropy workspace so normal formatting/build/test checks can detect regressions.
 
-A real implementation should use a version-matched Holochain client library (or a correctly adapted existing Mycelix client transport), not invent a second wire protocol over `tokio-tungstenite`.
+The public Symtropy repository already contains a separate integration path: `crates/bridges/symtropy-mycelix-bridge`. It wraps a `mycelix-conductor-bridge` subprocess over request-ID-correlated JSON-lines IPC, keeping Holochain's client dependency graph outside Bevy's compilation unit. That is the more relevant integration seam to harden for current Mycelix governance/finance calls. Its README calls it a Milestone 1 spike; the subprocess binary source is referenced as an external monorepo path and is not present in the public Symtropy tree, and the published scenario harness documents a live example but by itself does not prove live-conductor qualification. The separate `symtropy-holochain-relay` in this PR is currently a false-success placeholder and must not compete with or bypass that integration seam.
+
+The next implementation should either retire that redundant relay or keep it explicitly unsupported, while the Mycelix bridge gets bounded in-flight work, exact response-shape validation, pending-call fencing on malformed replies/EOF, and reproducible multi-agent qualification. A real transport should use the pinned Holochain client protocol (or a correctly adapted existing Mycelix client transport), not invent a second wire protocol over `tokio-tungstenite`.
 
 ## Version compatibility is a release gate
 
