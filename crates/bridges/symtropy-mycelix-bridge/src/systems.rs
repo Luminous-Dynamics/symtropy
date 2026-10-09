@@ -31,8 +31,9 @@
 
 use std::collections::HashMap;
 use std::process::Stdio;
-use std::sync::atomic::{AtomicU64, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use std::sync::{Arc, Mutex, MutexGuard};
+use std::time::Duration;
 
 use bevy::prelude::*;
 use bevy_tokio_tasks::TokioTasksRuntime;
@@ -40,10 +41,11 @@ use flume::{Receiver, Sender};
 use serde::{Deserialize, Serialize};
 use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
 use tokio::process::Command;
-use tokio::sync::OwnedSemaphorePermit;
+use tokio::sync::{Notify, OwnedSemaphorePermit};
+use tokio::time::{sleep_until, Instant};
 
 use crate::config::MycelixConfig;
-use crate::events::{MycelixRequest, MycelixResponse};
+use crate::events::{MycelixMutationKind, MycelixRequest, MycelixResponse};
 use crate::resource::{
     MycelixRequestOutbox, MycelixResponseDelivery, MycelixResponseInbox, QueuedRequest,
 };
@@ -109,12 +111,96 @@ enum PendingKind {
     Proposal { proposal_id: String },
 }
 
+impl PendingKind {
+    fn mutation_kind(&self) -> Option<MycelixMutationKind> {
+        match self {
+            Self::ProposalSubmitted { proposal_id } => Some(MycelixMutationKind::SubmitProposal {
+                proposal_id: proposal_id.clone(),
+            }),
+            Self::VoteCast { proposal_id } => Some(MycelixMutationKind::CastVote {
+                proposal_id: proposal_id.clone(),
+            }),
+            Self::GetActiveProposals | Self::TendBalance { .. } | Self::Proposal { .. } => None,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum DispatchPhase {
+    /// The command has not begun writing to child stdin.
+    NotStarted,
+    /// Writing may have transferred some or all command bytes to the child.
+    MayHaveReachedChild,
+    /// stdin write and flush completed; response deadline is now active.
+    AwaitingResponse { deadline: Instant },
+}
+
 struct Pending {
     requester: Entity,
     kind: PendingKind,
+    dispatch_phase: DispatchPhase,
     // Holds the end-to-end admission credit while pending. Translation moves
-    // it into a response delivery; failure teardown moves it into an error delivery.
+    // it into a response delivery; failure teardown moves it into a typed outcome.
     _permit: OwnedSemaphorePermit,
+}
+
+fn pending_failure_response(
+    requester: Entity,
+    kind: &PendingKind,
+    dispatch_phase: DispatchPhase,
+    reason: &str,
+) -> MycelixResponse {
+    match dispatch_phase {
+        DispatchPhase::NotStarted => MycelixResponse::NotDispatched {
+            requester,
+            reason: reason.to_string(),
+        },
+        DispatchPhase::MayHaveReachedChild | DispatchPhase::AwaitingResponse { .. } => {
+            match kind.mutation_kind() {
+                Some(operation) => MycelixResponse::IndeterminateMutation {
+                    requester,
+                    operation,
+                    reason: reason.to_string(),
+                },
+                None => MycelixResponse::Error {
+                    requester,
+                    reason: reason.to_string(),
+                },
+            }
+        }
+    }
+}
+
+fn earliest_response_deadline(pending: &PendingMap) -> Option<Instant> {
+    lock_pending(pending)
+        .values()
+        .filter_map(|entry| match entry.dispatch_phase {
+            DispatchPhase::AwaitingResponse { deadline } => Some(deadline),
+            DispatchPhase::NotStarted | DispatchPhase::MayHaveReachedChild => None,
+        })
+        .min()
+}
+
+/// Atomically fences the dispatcher generation when any response deadline has
+/// expired. Responses are accepted only while their request remains pending
+/// and before this deadline check succeeds.
+fn expire_response_deadline(
+    pending: &PendingMap,
+    generation_fenced: &AtomicBool,
+) -> Option<usize> {
+    let entries = lock_pending(pending);
+    let now = Instant::now();
+    if entries.values().any(|entry| {
+        matches!(
+            entry.dispatch_phase,
+            DispatchPhase::AwaitingResponse { deadline } if deadline <= now
+        )
+    }) {
+        generation_fenced.store(true, Ordering::SeqCst);
+        Some(entries.len())
+    } else {
+        None
+    }
 }
 
 type PendingMap = Arc<Mutex<HashMap<u64, Pending>>>;
@@ -230,6 +316,9 @@ async fn run_dispatcher_loop(
 
     let pending: PendingMap = Arc::new(Mutex::new(HashMap::new()));
     let next_id = Arc::new(AtomicU64::new(0));
+    let response_timeout = config.effective_response_timeout();
+    let deadline_changed = Arc::new(Notify::new());
+    let generation_fenced = Arc::new(AtomicBool::new(false));
     // The client acquires one admission credit before enqueue and carries it
     // through the queue, pending map, and response inbox. Consequently, with a
     // response channel of the same capacity, pending/queued failure outcomes
@@ -243,11 +332,37 @@ async fn run_dispatcher_loop(
         let pending = pending.clone();
         let next_id = next_id.clone();
         let response_tx = resp_tx.clone();
-        tokio::spawn(async move { writer_loop(stdin, req_rx, pending, next_id, response_tx).await })
+        let deadline_changed = deadline_changed.clone();
+        let generation_fenced = generation_fenced.clone();
+        tokio::spawn(async move {
+            writer_loop(
+                stdin,
+                req_rx,
+                pending,
+                next_id,
+                response_tx,
+                response_timeout,
+                deadline_changed,
+                generation_fenced,
+            )
+            .await
+        })
     };
     let mut reader_task = {
         let pending = pending.clone();
-        tokio::spawn(async move { reader_loop(stdout, resp_tx, pending).await })
+        let deadline_changed = deadline_changed.clone();
+        let generation_fenced = generation_fenced.clone();
+        tokio::spawn(async move {
+            reader_loop(
+                stdout,
+                resp_tx,
+                pending,
+                response_timeout,
+                deadline_changed,
+                generation_fenced,
+            )
+            .await
+        })
     };
 
     // If the request channel closes, the writer closes child stdin; then allow
@@ -354,7 +469,7 @@ async fn drain_with_error(
         let requester = request.requester();
         if resp_tx
             .send_async(MycelixResponseDelivery {
-                response: MycelixResponse::Error {
+                response: MycelixResponse::NotDispatched {
                     requester,
                     reason: reason.clone(),
                 },
@@ -375,6 +490,9 @@ async fn writer_loop<W>(
     pending: PendingMap,
     next_id: Arc<AtomicU64>,
     resp_tx: Sender<MycelixResponseDelivery>,
+    response_timeout: Duration,
+    deadline_changed: Arc<Notify>,
+    generation_fenced: Arc<AtomicBool>,
 ) -> Result<(), DispatcherError>
 where
     W: tokio::io::AsyncWrite + Unpin + Send + 'static,
@@ -385,6 +503,29 @@ where
             _permit: permit,
         } = queued;
         let requester = req.requester();
+
+        if generation_fenced.load(Ordering::SeqCst) {
+            let reason = format!(
+                "dispatcher generation fenced after response deadline of {response_timeout:?}"
+            );
+            if resp_tx
+                .send_async(MycelixResponseDelivery {
+                    response: MycelixResponse::NotDispatched {
+                        requester,
+                        reason,
+                    },
+                    _permit: permit,
+                })
+                .await
+                .is_err()
+            {
+                warn!("response inbox closed; fenced queued request could not be delivered");
+            }
+            return Err(DispatcherError::ResponseTimeout {
+                timeout: response_timeout,
+                outstanding: lock_pending(&pending).len(),
+            });
+        }
 
         let request_id = next_id.fetch_add(1, Ordering::SeqCst);
         if request_id == u64::MAX {
@@ -464,6 +605,7 @@ where
                 Pending {
                     requester,
                     kind,
+                    dispatch_phase: DispatchPhase::NotStarted,
                     _permit: permit,
                 },
             );
@@ -485,6 +627,22 @@ where
         };
         line.push('\n');
 
+        // Fence check and dispatch-state transition share the pending-map lock
+        // with deadline expiry, so a request either remains definitely local or
+        // is conservatively recorded as possibly delivered before any I/O await.
+        {
+            let mut entries = lock_pending(&pending);
+            if generation_fenced.load(Ordering::SeqCst) {
+                return Err(DispatcherError::ResponseTimeout {
+                    timeout: response_timeout,
+                    outstanding: entries.len(),
+                });
+            }
+            if let Some(entry) = entries.get_mut(&request_id) {
+                entry.dispatch_phase = DispatchPhase::MayHaveReachedChild;
+            }
+        }
+
         if let Err(err) = stdin.write_all(line.as_bytes()).await {
             let reason = format!("bridge subprocess request write failed: {err}");
             drop(stdin);
@@ -500,6 +658,22 @@ where
             return Err(DispatcherError::Stdin(err));
         }
 
+        {
+            let mut entries = lock_pending(&pending);
+            if generation_fenced.load(Ordering::SeqCst) {
+                return Err(DispatcherError::ResponseTimeout {
+                    timeout: response_timeout,
+                    outstanding: entries.len(),
+                });
+            }
+            if let Some(entry) = entries.get_mut(&request_id) {
+                entry.dispatch_phase = DispatchPhase::AwaitingResponse {
+                    deadline: Instant::now() + response_timeout,
+                };
+                deadline_changed.notify_one();
+            }
+        }
+
         trace!(%request_id, %requester, "dispatched request to subprocess");
     }
 
@@ -511,6 +685,9 @@ async fn reader_loop<R>(
     stdout: R,
     resp_tx: Sender<MycelixResponseDelivery>,
     pending: PendingMap,
+    response_timeout: Duration,
+    deadline_changed: Arc<Notify>,
+    generation_fenced: Arc<AtomicBool>,
 ) -> Result<(), DispatcherError>
 where
     R: tokio::io::AsyncRead + Unpin,
@@ -518,7 +695,54 @@ where
     let mut lines = BufReader::new(stdout).lines();
 
     loop {
-        let line = match lines.next_line().await {
+        if let Some(outstanding) = expire_response_deadline(&pending, &generation_fenced) {
+            return Err(DispatcherError::ResponseTimeout {
+                timeout: response_timeout,
+                outstanding,
+            });
+        }
+
+        let deadline = earliest_response_deadline(&pending);
+        let line_result = match deadline {
+            Some(deadline) => {
+                tokio::select! {
+                    biased;
+                    // At the boundary, deadline expiry wins over a simultaneously ready reply.
+                    _ = sleep_until(deadline) => {
+                        if let Some(outstanding) =
+                            expire_response_deadline(&pending, &generation_fenced)
+                        {
+                            return Err(DispatcherError::ResponseTimeout {
+                                timeout: response_timeout,
+                                outstanding,
+                            });
+                        }
+                        continue;
+                    }
+                    line = lines.next_line() => {
+                        if let Some(outstanding) =
+                            expire_response_deadline(&pending, &generation_fenced)
+                        {
+                            return Err(DispatcherError::ResponseTimeout {
+                                timeout: response_timeout,
+                                outstanding,
+                            });
+                        }
+                        line
+                    }
+                    _ = deadline_changed.notified() => continue,
+                }
+            }
+            None => {
+                tokio::select! {
+                    biased;
+                    line = lines.next_line() => line,
+                    _ = deadline_changed.notified() => continue,
+                }
+            }
+        };
+
+        let line = match line_result {
             Ok(Some(line)) => line,
             Ok(None) => {
                 let outstanding = lock_pending(&pending).len();
@@ -601,12 +825,15 @@ async fn fail_all_pending(
         std::mem::take(&mut *guard)
     };
     for (_, entry) in entries {
+        let response = pending_failure_response(
+            entry.requester,
+            &entry.kind,
+            entry.dispatch_phase,
+            reason,
+        );
         if resp_tx
             .send_async(MycelixResponseDelivery {
-                response: MycelixResponse::Error {
-                    requester: entry.requester,
-                    reason: reason.to_string(),
-                },
+                response,
                 _permit: entry._permit,
             })
             .await
@@ -742,6 +969,8 @@ pub(crate) enum DispatcherError {
     Stdout(#[source] std::io::Error),
     #[error("failed to serialise request: {0}")]
     Serialise(#[source] serde_json::Error),
+    #[error("bridge response deadline of {timeout:?} expired with {outstanding} request(s) unresolved")]
+    ResponseTimeout { timeout: Duration, outstanding: usize },
     #[error("tokio task panicked: {0}")]
     Join(#[source] tokio::task::JoinError),
 }
