@@ -4,6 +4,8 @@
 
 **Component-level gap analysis:** see [`docs/GAME_ENGINE_COMPONENTS.md`](docs/GAME_ENGINE_COMPONENTS.md) for a per-component matrix of what's covered by Symtropy vs Bevy vs Symthaea/Mycelix vs community crates vs still-missing, with concrete crate recommendations for each gap. The doc complements this ROADMAP: the ROADMAP is phase-oriented; the components doc is a living checklist.
 
+**Multiplayer and internal Sol Atlas integration:** see [the multiplayer scale and Sol Atlas integration gates](docs/tech/MULTIPLAYER_SCALE_AND_SOL_ATLAS.md). This is a design proposal, not measured capacity; the public Lightyear/Iroh path still needs end-to-end qualification.
+
 Dual-track engine:
 
 - **A. Research hero** — best-in-class **N-dimensional, Φ-coupled physics with deterministic replay** as a first-class physical law. No other engine does this. 2D/3D/4D rigid-body dynamics with integration metrics (Φ, harmony, energy) that meaningfully modulate forces, impulses, and friction at the solver level.
