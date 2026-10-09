@@ -826,6 +826,37 @@ mod tests {
     }
 
     #[test]
+    fn successful_proposal_response_preserves_the_original_proposal_id() {
+        tokio::runtime::Runtime::new().expect("runtime").block_on(async {
+            let semaphore = Arc::new(Semaphore::new(1));
+            let pending = pending_one(4, &semaphore).await;
+            let response = translate(
+                4,
+                WireResponse {
+                    request_id: Some(4),
+                    ok: true,
+                    data: Some(serde_json::json!("uhCkk_action_hash")),
+                    error: None,
+                },
+                &pending,
+            )
+            .await
+            .expect("valid proposal acknowledgement");
+
+            assert!(matches!(
+                response,
+                MycelixResponse::ProposalSubmitted {
+                    proposal_id,
+                    action_hash,
+                    ..
+                } if proposal_id == "proposal-test" && action_hash == "uhCkk_action_hash"
+            ));
+            assert!(pending.lock().await.is_empty());
+            assert_eq!(semaphore.available_permits(), 1);
+        });
+    }
+
+    #[test]
     fn successful_proposal_response_requires_a_nonempty_action_hash() {
         tokio::runtime::Runtime::new().expect("runtime").block_on(async {
             let semaphore = Arc::new(Semaphore::new(1));
