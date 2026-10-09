@@ -1117,7 +1117,6 @@ mod tests {
     }
 
     #[test]
-    fn stale_writer_is_rejected_across_independent_store_instances() {    #[test]
     fn stale_writer_is_rejected_across_independent_store_instances() {
         let path = temp_database_path("stale");
         let (key, initial) = fixture();
