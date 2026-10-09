@@ -6,13 +6,31 @@
 //! Tests that need a real Holochain conductor are gated behind the
 //! `live-conductor` feature (not yet in Milestone 1).
 
+use std::sync::Arc;
+
 use bevy::prelude::*;
 use flume::bounded;
+use tokio::sync::Semaphore;
 
 use crate::config::MycelixConfig;
 use crate::events::{MycelixRequest, MycelixResponse};
-use crate::resource::{MycelixClient, MycelixResponseInbox, MycelixSendError};
+use crate::resource::{
+    MycelixClient, MycelixResponseDelivery, MycelixResponseInbox, MycelixSendError, QueuedRequest,
+};
 use crate::systems::pump_responses;
+
+fn delivery(
+    response: MycelixResponse,
+    admission: &Arc<Semaphore>,
+) -> MycelixResponseDelivery {
+    MycelixResponseDelivery {
+        response,
+        _permit: admission
+            .clone()
+            .try_acquire_owned()
+            .expect("response must own an admission credit"),
+    }
+}
 
 #[test]
 fn config_default_hits_local_shared_conductor() {
@@ -57,7 +75,7 @@ fn response_requester_extracts_entity() {
 #[test]
 fn client_send_succeeds_with_room_in_channel() {
     let (tx, rx) = bounded(4);
-    let client = MycelixClient::new(tx);
+    let client = MycelixClient::new(tx, Arc::new(Semaphore::new(4)));
     client
         .send(MycelixRequest::GetActiveProposals {
             requester: Entity::PLACEHOLDER,
@@ -69,7 +87,7 @@ fn client_send_succeeds_with_room_in_channel() {
 #[test]
 fn client_send_returns_full_when_at_capacity() {
     let (tx, _rx) = bounded(1);
-    let client = MycelixClient::new(tx);
+    let client = MycelixClient::new(tx, Arc::new(Semaphore::new(4)));
     client
         .send(MycelixRequest::GetActiveProposals {
             requester: Entity::PLACEHOLDER,
@@ -85,9 +103,9 @@ fn client_send_returns_full_when_at_capacity() {
 
 #[test]
 fn client_send_returns_disconnected_when_rx_dropped() {
-    let (tx, rx) = bounded::<MycelixRequest>(4);
+    let (tx, rx) = bounded::<QueuedRequest>(4);
     drop(rx);
-    let client = MycelixClient::new(tx);
+    let client = MycelixClient::new(tx, Arc::new(Semaphore::new(4)));
     match client.send(MycelixRequest::GetActiveProposals {
         requester: Entity::PLACEHOLDER,
     }) {
@@ -99,6 +117,7 @@ fn client_send_returns_disconnected_when_rx_dropped() {
 #[test]
 fn pump_responses_drains_inbox_into_event_stream() {
     let (resp_tx, resp_rx) = bounded(4);
+    let admission = Arc::new(Semaphore::new(4));
     let mut app = App::new();
     app.add_message::<MycelixResponse>()
         .insert_resource(MycelixResponseInbox { rx: resp_rx })
@@ -106,27 +125,38 @@ fn pump_responses_drains_inbox_into_event_stream() {
 
     // Push two responses into the inbox before running a schedule tick.
     resp_tx
-        .send(MycelixResponse::ActiveProposals {
-            requester: Entity::PLACEHOLDER,
-            proposals: vec![],
-        })
+        .send(delivery(
+            MycelixResponse::ActiveProposals {
+                requester: Entity::PLACEHOLDER,
+                proposals: vec![],
+            },
+            &admission,
+        ))
         .unwrap();
     resp_tx
-        .send(MycelixResponse::Error {
-            requester: Entity::PLACEHOLDER,
-            reason: "test".to_string(),
-        })
+        .send(delivery(
+            MycelixResponse::Error {
+                requester: Entity::PLACEHOLDER,
+                reason: "test".to_string(),
+            },
+            &admission,
+        ))
         .unwrap();
 
     app.update();
 
     let events = app.world().resource::<Messages<MycelixResponse>>();
     assert_eq!(events.len(), 2, "both inbox items should be emitted");
+    assert_eq!(
+        admission.available_permits(),
+        4,
+        "pumping the inbox transfers each response and releases its credit"
+    );
 }
 
 #[test]
 fn pump_responses_is_idempotent_when_inbox_empty() {
-    let (_resp_tx, resp_rx) = bounded::<MycelixResponse>(4);
+    let (_resp_tx, resp_rx) = bounded::<MycelixResponseDelivery>(4);
     let mut app = App::new();
     app.add_message::<MycelixResponse>()
         .insert_resource(MycelixResponseInbox { rx: resp_rx })
@@ -206,7 +236,7 @@ fn response_requester_extracts_entity_from_every_variant() {
 #[test]
 fn client_send_accepts_all_variants() {
     let (tx, rx) = bounded(8);
-    let client = MycelixClient::new(tx);
+    let client = MycelixClient::new(tx, Arc::new(Semaphore::new(4)));
     client
         .send(MycelixRequest::GetActiveProposals {
             requester: Entity::PLACEHOLDER,
