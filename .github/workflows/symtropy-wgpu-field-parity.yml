@@ -27,6 +27,9 @@ jobs:
       SYMTROPY_REQUIRE_WGPU_ADAPTER: "1"
       SYMTROPY_REQUIRE_WGPU_VULKAN: "1"
       VK_ICD_FILENAMES: /usr/share/vulkan/icd.d/lvp_icd.x86_64.json
+      VK_INSTANCE_LAYERS: VK_LAYER_KHRONOS_validation
+      VK_VALIDATION_VALIDATE_SYNC: "1"
+      VK_LAYER_ENABLES: VK_VALIDATION_FEATURE_ENABLE_SYNCHRONIZATION_VALIDATION_EXT
       RUST_BACKTRACE: "1"
     steps:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
@@ -50,11 +53,11 @@ jobs:
       - name: Install Mesa software Vulkan runtime
         run: |
           sudo apt-get update
-          sudo apt-get install -y libvulkan1 mesa-vulkan-drivers vulkan-tools
+          sudo apt-get install -y libvulkan1 mesa-vulkan-drivers vulkan-tools vulkan-validationlayers
           test -s "$VK_ICD_FILENAMES"
           vulkaninfo --summary 2>&1 | tee .ci/symtropy-wgpu-parity/vulkaninfo-summary.txt
           dpkg-query -W -f='${Package}\t${Version}\n' \
-            libvulkan1 mesa-vulkan-drivers vulkan-tools \
+            libvulkan1 mesa-vulkan-drivers vulkan-tools vulkan-validationlayers \
             > .ci/symtropy-wgpu-parity/vulkan-package-versions.txt
 
       - uses: dtolnay/rust-toolchain@3db9de313aa3e84732d075f6fd8938cc0d6d4b58 # Rust 1.96.0
@@ -66,6 +69,9 @@ jobs:
             cargo -V
             echo "wgpu_backend=Vulkan"
             echo "vulkan_icd=$VK_ICD_FILENAMES"
+            echo "validation_layer=VK_LAYER_KHRONOS_validation"
+            echo "validation_sync_requested=VK_VALIDATION_VALIDATE_SYNC=1"
+            echo "validation_sync_compat_requested=VK_VALIDATION_FEATURE_ENABLE_SYNCHRONIZATION_VALIDATION_EXT"
           } > .ci/symtropy-wgpu-parity/toolchain-and-runtime.txt
           sha256sum Cargo.toml Cargo.lock \
             crates/domains/symtropy-lifesim-core/Cargo.toml \
@@ -73,6 +79,14 @@ jobs:
             crates/domains/symtropy-lifesim-core/src/wgpu_backend.rs \
             .github/workflows/symtropy-wgpu-field-parity.yml \
             > .ci/symtropy-wgpu-parity/input-sha256.txt
+
+      - name: Run one-shot Vulkan CPU-oracle regression
+        run: |
+          set -o pipefail
+          cargo test --locked -p symtropy-lifesim-core --features wgpu \
+            wgsl_stepper_matches_cpu_reference_with_source_and_obstacles \
+            -- --nocapture \
+            2>&1 | tee .ci/symtropy-wgpu-parity/one-shot-field-parity.log
 
       - name: Run persistent multi-step CPU-oracle parity
         run: |
@@ -92,7 +106,7 @@ jobs:
             "$EXPECTED_QUALIFICATION_SHA" "$(git rev-parse HEAD)" \
             > .ci/symtropy-wgpu-parity/qualification-head.txt
           dpkg-query -W -f='${Package}\t${Version}\n' \
-            libvulkan1 mesa-vulkan-drivers vulkan-tools \
+            libvulkan1 mesa-vulkan-drivers vulkan-tools vulkan-validationlayers \
             > .ci/symtropy-wgpu-parity/vulkan-package-versions.txt 2>&1 || true
           find .ci/symtropy-wgpu-parity -maxdepth 1 -type f \
             ! -name qualification-evidence.sha256 -print0 \
