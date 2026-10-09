@@ -221,9 +221,10 @@ async fn run_dispatcher_loop(
 
     let pending: PendingMap = Arc::new(Mutex::new(HashMap::new()));
     let next_id = Arc::new(AtomicU64::new(0));
-    // The request channel bounds queued work; this semaphore separately bounds
-    // sent requests awaiting a correlated reply. Treat a configured zero as one
-    // so a bad setting cannot deadlock all dispatch.
+    // The client acquires one admission credit before enqueue and carries it
+    // through the queue, pending map, and response inbox. Consequently, with a
+    // response channel of the same capacity, pending/queued failure outcomes
+    // always have reserved room even if Bevy temporarily stops pumping replies.
     // Keep supervisor-owned receiver/sender clones so either task's exit can
     // fail queued and pending callers, including a request racing with stdout EOF.
     let supervisor_req_rx = req_rx.clone();
