@@ -62,12 +62,23 @@ impl MycelixRequest {
     }
 }
 
+/// A mutating operation whose remote outcome may become ambiguous when IPC
+/// fails after dispatch starts. This identity is descriptive; it is not a
+/// target-side idempotency key.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum MycelixMutationKind {
+    SubmitProposal { proposal_id: String },
+    CastVote { proposal_id: String },
+}
+
 /// A zome call response, delivered as a Bevy [`Message`] (formerly `Event`
 /// in pre-0.18 Bevy).
 ///
-/// Every outstanding [`MycelixRequest`] produces exactly one `MycelixResponse`
-/// — either a success variant matching the request shape, or
-/// [`MycelixResponse::Error`].
+/// Each accepted request produces a response or a documented inbox-closed
+/// delivery failure. `NotDispatched` means this adapter did not begin writing
+/// the request; `IndeterminateMutation` means a mutation may have reached the
+/// child but no authoritative response was accepted. Neither variant asserts
+/// anything about Holochain commit or DHT publication.
 #[derive(Debug, Clone, Message)]
 pub enum MycelixResponse {
     /// Success response to [`MycelixRequest::GetActiveProposals`]. Proposals
@@ -104,7 +115,17 @@ pub enum MycelixResponse {
         proposal_id: String,
         record: Option<serde_json::Value>,
     },
-    /// Any error from transport, authentication, or zome execution.
+    /// Failure before dispatch began; the bridge did not write request bytes.
+    NotDispatched { requester: Entity, reason: String },
+    /// A mutation may have reached the child but no response was accepted.
+    /// Never interpret this as a definitive rejection or retry with a new ID.
+    IndeterminateMutation {
+        requester: Entity,
+        operation: MycelixMutationKind,
+        reason: String,
+    },
+    /// A response received from the child reported an error or invalid data.
+    /// This variant alone does not prove a failed mutation was rolled back.
     Error { requester: Entity, reason: String },
 }
 
@@ -117,6 +138,8 @@ impl MycelixResponse {
             | MycelixResponse::VoteCast { requester, .. }
             | MycelixResponse::TendBalance { requester, .. }
             | MycelixResponse::Proposal { requester, .. }
+            | MycelixResponse::NotDispatched { requester, .. }
+            | MycelixResponse::IndeterminateMutation { requester, .. }
             | MycelixResponse::Error { requester, .. } => *requester,
         }
     }
