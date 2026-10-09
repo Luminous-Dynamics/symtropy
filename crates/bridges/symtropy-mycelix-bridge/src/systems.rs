@@ -532,7 +532,7 @@ where
             let reason = "bridge request_id space exhausted; refusing identifier reuse".to_string();
             let _ = resp_tx
                 .send_async(MycelixResponseDelivery {
-                    response: MycelixResponse::Error {
+                    response: MycelixResponse::NotDispatched {
                         requester,
                         reason: reason.clone(),
                     },
