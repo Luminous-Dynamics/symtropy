@@ -359,6 +359,9 @@ pub struct PersistentWgslFieldRuntime {
     bind_group_layout: wgpu::BindGroupLayout,
     adapter_info: wgpu::AdapterInfo,
     buffers: Option<PersistentFieldBuffers>,
+    // Any failure after submit leaves completion/mapping state uncertain.
+    // Do not reuse this runtime; construct a fresh runtime instead.
+    poisoned: Option<String>,
 }
 
 struct PersistentFieldBuffers {
@@ -456,6 +459,7 @@ impl PersistentWgslFieldRuntime {
             bind_group_layout,
             adapter_info,
             buffers: None,
+            poisoned: None,
         })
     }
 
@@ -474,6 +478,11 @@ impl PersistentWgslFieldRuntime {
         field: &mut FieldGrid,
         request: &FieldStepRequest,
     ) -> Result<(), FieldStepError> {
+        if let Some(reason) = &self.poisoned {
+            return Err(FieldStepError::GpuDispatchFailed(format!(
+                "persistent WGPU runtime is poisoned after an uncertain execution state: {reason}"
+            )));
+        }
         request.params.validate()?;
         let width = u32::try_from(field.width()).map_err(|_| {
             FieldStepError::GpuDispatchFailed("field width exceeds the WGSL u32 index space".into())
@@ -572,21 +581,35 @@ impl PersistentWgslFieldRuntime {
         slice.map_async(wgpu::MapMode::Read, move |result| {
             let _ = tx.send(result);
         });
-        self.device
-            .poll(wgpu::PollType::wait_indefinitely())
-            .map_err(|error| FieldStepError::GpuDispatchFailed(format!("device poll failed: {error}")))?;
-        rx.recv()
-            .map_err(|error| FieldStepError::GpuDispatchFailed(format!("readback callback failed: {error}")))?
-            .map_err(|error| FieldStepError::GpuDispatchFailed(format!("readback mapping failed: {error}")))?;
+        if let Err(error) = self.device.poll(wgpu::PollType::wait_indefinitely()) {
+            let reason = format!("device poll failed after submission: {error}");
+            self.poisoned = Some(reason.clone());
+            return Err(FieldStepError::GpuDispatchFailed(reason));
+        }
+        let map_result = match rx.recv() {
+            Ok(result) => result,
+            Err(error) => {
+                let reason = format!("readback callback failed after submission: {error}");
+                self.poisoned = Some(reason.clone());
+                return Err(FieldStepError::GpuDispatchFailed(reason));
+            }
+        };
+        if let Err(error) = map_result {
+            let reason = format!("readback mapping failed after submission: {error}");
+            self.poisoned = Some(reason.clone());
+            return Err(FieldStepError::GpuDispatchFailed(reason));
+        }
         let mapped = slice.get_mapped_range();
         let values: Vec<f32> = bytemuck::cast_slice(&mapped).to_vec();
         drop(mapped);
         buffers.readback.unmap();
         if values.len() != cell_count {
-            return Err(FieldStepError::GpuDispatchFailed(format!(
+            let reason = format!(
                 "readback returned {} cells, expected {cell_count}",
                 values.len()
-            )));
+            );
+            self.poisoned = Some(reason.clone());
+            return Err(FieldStepError::GpuDispatchFailed(reason));
         }
         field.channels[request.layer.index()] = values;
         Ok(())
