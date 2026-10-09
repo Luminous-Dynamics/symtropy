@@ -36,14 +36,14 @@ fn idx(x: u32, y: u32) -> u32 {
 }
 
 fn sanitize_concentration(value: f32) -> f32 {
-    if !(value == value) {
+    if !isFinite(value) {
         return 0.0;
     }
     return clamp(value, 0.0, params.max_value);
 }
 
 fn sanitize_source(value: f32) -> f32 {
-    if !(value == value) {
+    if !isFinite(value) {
         return 0.0;
     }
     return max(value, 0.0);
@@ -321,6 +321,325 @@ fn bind_entry(binding: u32, buffer: &wgpu::Buffer) -> wgpu::BindGroupEntry<'_> {
     wgpu::BindGroupEntry {
         binding,
         resource: buffer.as_entire_binding(),
+    }
+}
+
+
+/// An explicitly owned WGPU runtime for repeated field diffusion steps.
+///
+/// The instance, adapter, device, shader, and compute pipeline live for the
+/// lifetime of this value. Buffers and the bind group are reused while field
+/// dimensions remain unchanged and replaced atomically on dimension changes.
+/// No global cache is used; mutable access serializes submissions through this
+/// runtime and prevents unsynchronized buffer reuse by concurrent callers.
+pub struct PersistentWgslFieldRuntime {
+    device: wgpu::Device,
+    queue: wgpu::Queue,
+    pipeline: wgpu::ComputePipeline,
+    bind_group_layout: wgpu::BindGroupLayout,
+    adapter_info: wgpu::AdapterInfo,
+    buffers: Option<PersistentFieldBuffers>,
+}
+
+struct PersistentFieldBuffers {
+    width: u32,
+    height: u32,
+    cell_count: usize,
+    input: wgpu::Buffer,
+    obstacle: wgpu::Buffer,
+    source: wgpu::Buffer,
+    output: wgpu::Buffer,
+    params: wgpu::Buffer,
+    readback: wgpu::Buffer,
+    bind_group: wgpu::BindGroup,
+}
+
+impl PersistentWgslFieldRuntime {
+    /// Construct a persistent runtime using any configured WGPU backend.
+    pub fn new() -> Result<Self, FieldStepError> {
+        Self::new_with_backends(wgpu::Backends::all())
+    }
+
+    fn new_with_backends(backends: wgpu::Backends) -> Result<Self, FieldStepError> {
+        pollster::block_on(Self::new_async(backends))
+    }
+
+    async fn new_async(backends: wgpu::Backends) -> Result<Self, FieldStepError> {
+        let instance = wgpu::Instance::new(&wgpu::InstanceDescriptor {
+            backends,
+            ..Default::default()
+        });
+        let adapter = instance
+            .request_adapter(&wgpu::RequestAdapterOptions {
+                power_preference: wgpu::PowerPreference::HighPerformance,
+                compatible_surface: None,
+                force_fallback_adapter: false,
+            })
+            .await
+            .map_err(|error| FieldStepError::GpuUnavailable(format!("adapter request failed: {error}")))?;
+        let adapter_info = adapter.get_info();
+        let (device, queue) = adapter
+            .request_device(&wgpu::DeviceDescriptor {
+                label: Some("symtropy-persistent-lifesim"),
+                required_features: wgpu::Features::empty(),
+                required_limits: wgpu::Limits::downlevel_defaults(),
+                experimental_features: wgpu::ExperimentalFeatures::disabled(),
+                memory_hints: wgpu::MemoryHints::Performance,
+                trace: wgpu::Trace::Off,
+            })
+            .await
+            .map_err(|error| FieldStepError::GpuUnavailable(format!("device request failed: {error}")))?;
+
+        let shader = device.create_shader_module(wgpu::ShaderModuleDescriptor {
+            label: Some("field-diffuse-decay-persistent"),
+            source: wgpu::ShaderSource::Wgsl(SHADER.into()),
+        });
+        let bind_group_layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
+            label: Some("field-persistent-bind-group-layout"),
+            entries: &[
+                storage_entry(0, true),
+                storage_entry(1, true),
+                storage_entry(2, true),
+                storage_entry(3, false),
+                wgpu::BindGroupLayoutEntry {
+                    binding: 4,
+                    visibility: wgpu::ShaderStages::COMPUTE,
+                    ty: wgpu::BindingType::Buffer {
+                        ty: wgpu::BufferBindingType::Uniform,
+                        has_dynamic_offset: false,
+                        min_binding_size: None,
+                    },
+                    count: None,
+                },
+            ],
+        });
+        let pipeline_layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
+            label: Some("field-persistent-pipeline-layout"),
+            bind_group_layouts: &[Some(&bind_group_layout)],
+            immediate_size: 0,
+        });
+        let pipeline = device.create_compute_pipeline(&wgpu::ComputePipelineDescriptor {
+            label: Some("field-persistent-pipeline"),
+            layout: Some(&pipeline_layout),
+            module: &shader,
+            entry_point: Some("step"),
+            compilation_options: wgpu::PipelineCompilationOptions::default(),
+            cache: None,
+        });
+
+        Ok(Self {
+            device,
+            queue,
+            pipeline,
+            bind_group_layout,
+            adapter_info,
+            buffers: None,
+        })
+    }
+
+    /// Return the actual adapter selected by WGPU; backend identity is not inferred.
+    pub fn adapter_info(&self) -> &wgpu::AdapterInfo {
+        &self.adapter_info
+    }
+
+    /// Execute one field step, reusing device resources until dimensions change.
+    ///
+    /// The input field is mutated only after submission completes and readback
+    /// succeeds. Invalid dimensions, resource limits, device failures, or map
+    /// failures return an error without publishing partial field output.
+    pub fn step(
+        &mut self,
+        field: &mut FieldGrid,
+        request: &FieldStepRequest,
+    ) -> Result<(), FieldStepError> {
+        request.params.validate()?;
+        let width = u32::try_from(field.width()).map_err(|_| {
+            FieldStepError::GpuDispatchFailed("field width exceeds the WGSL u32 index space".into())
+        })?;
+        let height = u32::try_from(field.height()).map_err(|_| {
+            FieldStepError::GpuDispatchFailed("field height exceeds the WGSL u32 index space".into())
+        })?;
+        if width == 0 || height == 0 {
+            return Err(FieldStepError::GpuDispatchFailed(
+                "field dimensions must both be non-zero".into(),
+            ));
+        }
+        let cell_count = field.width().checked_mul(field.height()).ok_or_else(|| {
+            FieldStepError::GpuDispatchFailed("field cell count overflow".into())
+        })?;
+        if request.source.len() != cell_count {
+            return Err(FieldStepError::GpuDispatchFailed(format!(
+                "source length {} does not match field cell count {cell_count}",
+                request.source.len()
+            )));
+        }
+        let byte_size = u64::try_from(cell_count)
+            .ok()
+            .and_then(|count| count.checked_mul(std::mem::size_of::<f32>() as u64))
+            .ok_or_else(|| FieldStepError::GpuDispatchFailed("field buffer byte size overflow".into()))?;
+        let workgroups_x = width.div_ceil(8);
+        let workgroups_y = height.div_ceil(8);
+        let limits = self.device.limits();
+        if byte_size > limits.max_buffer_size {
+            return Err(FieldStepError::GpuDispatchFailed(format!(
+                "field buffer requires {byte_size} bytes, device max_buffer_size is {}",
+                limits.max_buffer_size
+            )));
+        }
+        if byte_size > u64::from(limits.max_storage_buffer_binding_size) {
+            return Err(FieldStepError::GpuDispatchFailed(format!(
+                "field storage binding requires {byte_size} bytes, device max_storage_buffer_binding_size is {}",
+                limits.max_storage_buffer_binding_size
+            )));
+        }
+        if workgroups_x > limits.max_compute_workgroups_per_dimension
+            || workgroups_y > limits.max_compute_workgroups_per_dimension
+        {
+            return Err(FieldStepError::GpuDispatchFailed(format!(
+                "field dispatch ({workgroups_x}, {workgroups_y}, 1) exceeds device per-dimension workgroup limit {}",
+                limits.max_compute_workgroups_per_dimension
+            )));
+        }
+
+        self.ensure_buffers(width, height, cell_count, byte_size)?;
+        let input = &field.channels[request.layer.index()];
+        let obstacle = &field.channels[FieldLayer::Obstacle.index()];
+        if input.len() != cell_count || obstacle.len() != cell_count {
+            return Err(FieldStepError::GpuDispatchFailed(
+                "field channels do not match checked field dimensions".into(),
+            ));
+        }
+        let params = GpuParams {
+            width,
+            height,
+            diffusion: request.params.diffusion,
+            decay: request.params.decay,
+            dt: request.params.dt,
+            max_value: request.params.max_value,
+            _pad0: 0,
+            _pad1: 0,
+        };
+        let buffers = self.buffers.as_ref().ok_or_else(|| {
+            FieldStepError::GpuDispatchFailed("persistent field buffers were not initialized".into())
+        })?;
+        self.queue.write_buffer(&buffers.input, 0, bytemuck::cast_slice(input));
+        self.queue.write_buffer(&buffers.obstacle, 0, bytemuck::cast_slice(obstacle));
+        self.queue.write_buffer(&buffers.source, 0, bytemuck::cast_slice(&request.source));
+        self.queue.write_buffer(&buffers.params, 0, bytemuck::bytes_of(&params));
+
+        let mut encoder = self.device.create_command_encoder(&wgpu::CommandEncoderDescriptor {
+            label: Some("field-persistent-command-encoder"),
+        });
+        {
+            let mut pass = encoder.begin_compute_pass(&wgpu::ComputePassDescriptor {
+                label: Some("field-persistent-compute-pass"),
+                timestamp_writes: None,
+            });
+            pass.set_pipeline(&self.pipeline);
+            pass.set_bind_group(0, &buffers.bind_group, &[]);
+            pass.dispatch_workgroups(workgroups_x, workgroups_y, 1);
+        }
+        encoder.copy_buffer_to_buffer(&buffers.output, 0, &buffers.readback, 0, byte_size);
+        self.queue.submit(Some(encoder.finish()));
+
+        let slice = buffers.readback.slice(..);
+        let (tx, rx) = mpsc::channel();
+        slice.map_async(wgpu::MapMode::Read, move |result| {
+            let _ = tx.send(result);
+        });
+        self.device
+            .poll(wgpu::PollType::wait_indefinitely())
+            .map_err(|error| FieldStepError::GpuDispatchFailed(format!("device poll failed: {error}")))?;
+        rx.recv()
+            .map_err(|error| FieldStepError::GpuDispatchFailed(format!("readback callback failed: {error}")))?
+            .map_err(|error| FieldStepError::GpuDispatchFailed(format!("readback mapping failed: {error}")))?;
+        let mapped = slice.get_mapped_range();
+        let values: Vec<f32> = bytemuck::cast_slice(&mapped).to_vec();
+        drop(mapped);
+        buffers.readback.unmap();
+        if values.len() != cell_count {
+            return Err(FieldStepError::GpuDispatchFailed(format!(
+                "readback returned {} cells, expected {cell_count}",
+                values.len()
+            )));
+        }
+        field.channels[request.layer.index()] = values;
+        Ok(())
+    }
+
+    fn ensure_buffers(
+        &mut self,
+        width: u32,
+        height: u32,
+        cell_count: usize,
+        byte_size: u64,
+    ) -> Result<(), FieldStepError> {
+        if self.buffers.as_ref().is_some_and(|buffers| {
+            buffers.width == width && buffers.height == height && buffers.cell_count == cell_count
+        }) {
+            return Ok(());
+        }
+
+        let input = self.device.create_buffer(&wgpu::BufferDescriptor {
+            label: Some("field-persistent-input"),
+            size: byte_size,
+            usage: wgpu::BufferUsages::STORAGE | wgpu::BufferUsages::COPY_DST,
+            mapped_at_creation: false,
+        });
+        let obstacle = self.device.create_buffer(&wgpu::BufferDescriptor {
+            label: Some("field-persistent-obstacle"),
+            size: byte_size,
+            usage: wgpu::BufferUsages::STORAGE | wgpu::BufferUsages::COPY_DST,
+            mapped_at_creation: false,
+        });
+        let source = self.device.create_buffer(&wgpu::BufferDescriptor {
+            label: Some("field-persistent-source"),
+            size: byte_size,
+            usage: wgpu::BufferUsages::STORAGE | wgpu::BufferUsages::COPY_DST,
+            mapped_at_creation: false,
+        });
+        let output = self.device.create_buffer(&wgpu::BufferDescriptor {
+            label: Some("field-persistent-output"),
+            size: byte_size,
+            usage: wgpu::BufferUsages::STORAGE | wgpu::BufferUsages::COPY_SRC,
+            mapped_at_creation: false,
+        });
+        let params = self.device.create_buffer(&wgpu::BufferDescriptor {
+            label: Some("field-persistent-params"),
+            size: std::mem::size_of::<GpuParams>() as u64,
+            usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
+            mapped_at_creation: false,
+        });
+        let readback = self.device.create_buffer(&wgpu::BufferDescriptor {
+            label: Some("field-persistent-readback"),
+            size: byte_size,
+            usage: wgpu::BufferUsages::COPY_DST | wgpu::BufferUsages::MAP_READ,
+            mapped_at_creation: false,
+        });
+        let bind_group = self.device.create_bind_group(&wgpu::BindGroupDescriptor {
+            label: Some("field-persistent-bind-group"),
+            layout: &self.bind_group_layout,
+            entries: &[
+                bind_entry(0, &input),
+                bind_entry(1, &obstacle),
+                bind_entry(2, &source),
+                bind_entry(3, &output),
+                bind_entry(4, &params),
+            ],
+        });
+        self.buffers = Some(PersistentFieldBuffers {
+            width,
+            height,
+            cell_count,
+            input,
+            obstacle,
+            source,
+            output,
+            params,
+            readback,
+            bind_group,
+        });
+        Ok(())
     }
 }
 
