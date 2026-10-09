@@ -1,6 +1,16 @@
 # symtropy-mycelix-bridge
 
-**Status:** Milestone 1 spike (2026-04-17). See `symtropy/plans/mycelix-bridge-plan.md` for the full plan.
+**Status:** subprocess IPC bridge scaffold; live-conductor integration is not qualified. The default tests cover request/response plumbing and the in-memory mock, not live Holochain/DHT behavior. See `symtropy/plans/mycelix-bridge-plan.md` for the broader integration plan.
+
+## Failure and correlation contract
+
+- A shared admission credit bounds total accepted work end-to-end: queued requests, dispatched calls, and responses not yet transferred into Bevy's message queue cannot exceed the effective `inflight_budget` (minimum one). A request's credit is carried across each stage rather than released as soon as the wire reply is parsed.
+- Every subprocess reply must match a live `request_id`; malformed JSON, missing/unknown IDs, failed reads/writes, or EOF with requests outstanding fail pending calls closed. Failure responses retain the same admission credits, so when accepted work is at the budget limit, the bounded response inbox has capacity reserved for every accepted outcome.
+- Successful envelopes are checked against the expected response shape. Proposal submission and TEND balance responses preserve their proposal/member IDs so reordered replies cannot be assigned to the wrong domain entity.
+- Subprocess stderr is drained but not copied into application logs, because bridge output can accidentally contain personal or credential material.
+- These request IDs correlate one process's IPC only. They are **not** durable idempotency keys. A timeout after a mutating call is dispatched is an ambiguous outcome; reconcile against Holochain action/source-chain/DHT evidence before retrying.
+
+The separate `symtropy-holochain-relay` crate is not the active integration path and does not perform a real zome call. Do not infer live connectivity or application authority from a successful mock scenario.
 
 Wraps Mycelix Holochain zome calls as a Bevy `Resource` so Bevy systems (and NPCs) can call real Mycelix governance, finance, and other zomes via the shared Holochain conductor.
 
