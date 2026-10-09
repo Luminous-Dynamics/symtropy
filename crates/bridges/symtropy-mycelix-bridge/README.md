@@ -4,8 +4,8 @@
 
 ## Failure and correlation contract
 
-- Queue capacity and dispatched in-flight work are both bounded by the effective `inflight_budget` (minimum one).
-- Every subprocess reply must match a live `request_id`; malformed JSON, missing/unknown IDs, failed reads/writes, or EOF with requests outstanding fail pending calls closed.
+- A shared admission credit bounds total accepted work end-to-end: queued requests, dispatched calls, and responses not yet transferred into Bevy's message queue cannot exceed the effective `inflight_budget` (minimum one). A request's credit is carried across each stage rather than released as soon as the wire reply is parsed.
+- Every subprocess reply must match a live `request_id`; malformed JSON, missing/unknown IDs, failed reads/writes, or EOF with requests outstanding fail pending calls closed. Failure responses retain the same admission credits, so when accepted work is at the budget limit, the bounded response inbox has capacity reserved for every accepted outcome.
 - Successful envelopes are checked against the expected response shape. Proposal submission and TEND balance responses preserve their proposal/member IDs so reordered replies cannot be assigned to the wrong domain entity.
 - Subprocess stderr is drained but not copied into application logs, because bridge output can accidentally contain personal or credential material.
 - These request IDs correlate one process's IPC only. They are **not** durable idempotency keys. A timeout after a mutating call is dispatched is an ambiguous outcome; reconcile against Holochain action/source-chain/DHT evidence before retrying.
