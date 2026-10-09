@@ -36,9 +36,10 @@ pub struct MycelixConfig {
     /// queue. When exhausted, [`crate::MycelixClient::send`] returns an error
     /// rather than blocking the Bevy schedule.
     pub inflight_budget: usize,
-    /// Maximum time from successful stdin flush to response acceptance.
-    /// Expiry fences the subprocess generation; it does not prove a remote
-    /// mutation was rejected. Zero is normalized to one millisecond.
+    /// Maximum time from the first stdin write attempt to response acceptance.
+    /// Queue/admission wait is excluded; the deadline also bounds stalled pipe
+    /// writes/flushes. Expiry does not prove a remote mutation was rejected.
+    /// Zero is normalized to one millisecond.
     pub response_timeout: Duration,
 }
 
@@ -104,7 +105,7 @@ impl MycelixConfig {
         self.response_timeout.max(Duration::from_millis(1))
     }
 
-    /// Override the response deadline measured from successful stdin flush.
+    /// Override the response deadline measured from the first stdin write attempt.
     pub fn with_response_timeout(mut self, timeout: Duration) -> Self {
         self.response_timeout = timeout;
         self
