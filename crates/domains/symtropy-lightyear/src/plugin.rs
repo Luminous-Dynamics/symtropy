@@ -1,8 +1,9 @@
 // Copyright (C) 2024-2026 Tristan Stoltz / Luminous Dynamics
 // SPDX-License-Identifier: AGPL-3.0-or-later
-//! Symtropy Network Plugin — combines IrohIo + Lightyear + spatial authority.
+//! Symtropy networking integration scaffold.
 //!
-//! This is the single plugin games add to enable multiplayer:
+//! This plugin does not yet enable end-to-end multiplayer: the Iroh transport
+//! is a stub and Lightyear replication/Link wiring is incomplete.
 //!
 //! ```rust,ignore
 //! App::new()
@@ -16,15 +17,13 @@ use bevy_app::prelude::*;
 use crate::iroh_io::IrohIoPlugin;
 use crate::protocol;
 
-/// Main networking plugin for Symtropy multiplayer.
+/// Networking scaffold for Symtropy; not a production multiplayer plugin yet.
 ///
-/// Adds:
-/// - IrohIo transport systems (PreUpdate/PostUpdate)
-/// - Component registration for Lightyear replication
-/// - Spatial authority zone management
-///
-/// Games should configure Lightyear separately (ClientPlugins/ServerPlugins)
-/// and use this plugin alongside it.
+/// Adds local stub-transport systems, reflected component type registration,
+/// and placeholder spatial-zone labeling. It does not create a real connection,
+/// configure Lightyear ClientPlugins/ServerPlugins, or register full replication
+/// rules. Keep it explicitly unqualified until the integration gates in
+/// `docs/tech/MULTIPLAYER_SCALE_AND_SOL_ATLAS.md` pass.
 pub struct SymtropyNetPlugin;
 
 impl Plugin for SymtropyNetPlugin {
@@ -44,6 +43,6 @@ impl Plugin for SymtropyNetPlugin {
             ),
         );
 
-        bevy_log::info!("Symtropy networking initialized (Lightyear + Iroh QUIC)");
+        bevy_log::warn!("Symtropy networking scaffold initialized; live transport and Lightyear replication are not yet wired");
     }
 }
