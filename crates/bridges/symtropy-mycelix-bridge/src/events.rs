@@ -77,8 +77,9 @@ pub enum MycelixMutationKind {
 /// Each accepted request produces a response or a documented inbox-closed
 /// delivery failure. `NotDispatched` means this adapter did not begin writing
 /// the request; `IndeterminateMutation` means a mutation may have reached the
-/// child but no authoritative response was accepted. Neither variant asserts
-/// anything about Holochain commit or DHT publication.
+/// child but no verified target result establishes success or definitive
+/// rejection. Neither variant asserts anything about Holochain commit or DHT
+/// publication.
 #[derive(Debug, Clone, Message)]
 pub enum MycelixResponse {
     /// Success response to [`MycelixRequest::GetActiveProposals`]. Proposals
@@ -117,8 +118,9 @@ pub enum MycelixResponse {
     },
     /// Failure before dispatch began; the bridge did not write request bytes.
     NotDispatched { requester: Entity, reason: String },
-    /// A mutation may have reached the child but no response was accepted.
-    /// Never interpret this as a definitive rejection or retry with a new ID.
+    /// A mutation may have reached the child, but there is no verified target
+    /// result establishing success or a definitive rejection. Never retry with
+    /// a new operation identity; this bridge request ID is not that identity.
     IndeterminateMutation {
         requester: Entity,
         operation: MycelixMutationKind,
