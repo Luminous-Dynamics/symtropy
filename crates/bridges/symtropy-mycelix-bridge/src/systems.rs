@@ -692,45 +692,47 @@ where
 /// payload bytes, excluding the line terminator.
 const MAX_RESPONSE_LINE_BYTES: usize = 1024 * 1024;
 
-/// Read one newline-delimited UTF-8 frame while enforcing a hard byte ceiling.
-/// Unlike the unbounded Tokio line reader, this consumes the buffered stream
-/// incrementally and rejects oversized frames before retaining more than the limit.
-/// A final non-empty partial frame at EOF matches Tokio's line-reader behavior.
-async fn read_bounded_line<R>(reader: &mut R, max_bytes: usize) -> io::Result<Option<String>>
+/// Read one newline-delimited UTF-8 frame with a hard byte ceiling. Partial bytes
+/// live in the caller-owned buffer so cancelling this future (for example, when
+/// the earliest response deadline changes) cannot discard bytes already consumed
+/// from the stream. A final non-empty partial frame at EOF matches Tokio's behavior.
+async fn read_bounded_line<R>(
+    reader: &mut R,
+    partial_line: &mut Vec<u8>,
+    max_bytes: usize,
+) -> io::Result<Option<String>>
 where
     R: tokio::io::AsyncBufRead + Unpin,
 {
-    let mut bytes = Vec::with_capacity(max_bytes.min(8 * 1024));
-
     loop {
         let (consumed, line_complete, eof) = {
             let available = reader.fill_buf().await?;
             if available.is_empty() {
                 (0, false, true)
             } else if let Some(newline_at) = available.iter().position(|byte| *byte == b'\n') {
-                if bytes.len() + newline_at > max_bytes {
+                if partial_line.len() + newline_at > max_bytes {
                     return Err(io::Error::new(
                         io::ErrorKind::InvalidData,
                         format!("response frame exceeded maximum line size ({max_bytes} bytes)"),
                     ));
                 }
-                bytes.extend_from_slice(&available[..newline_at]);
+                partial_line.extend_from_slice(&available[..newline_at]);
                 (newline_at + 1, true, false)
             } else {
-                if bytes.len() + available.len() > max_bytes {
+                if partial_line.len() + available.len() > max_bytes {
                     return Err(io::Error::new(
                         io::ErrorKind::InvalidData,
                         format!("response frame exceeded maximum line size ({max_bytes} bytes)"),
                     ));
                 }
                 let count = available.len();
-                bytes.extend_from_slice(available);
+                partial_line.extend_from_slice(available);
                 (count, false, false)
             }
         };
 
         if eof {
-            if bytes.is_empty() {
+            if partial_line.is_empty() {
                 return Ok(None);
             }
             break;
@@ -743,10 +745,13 @@ where
     }
 
     // Accept CRLF as well as LF framing without charging CR to the JSON parser.
-    if bytes.last() == Some(&b'\r') {
-        bytes.pop();
+    if partial_line.last() == Some(&b'\r') {
+        partial_line.pop();
     }
 
+    // Keep a reusable buffer across frames while transferring this frame's bytes
+    // into the returned String. The replacement starts small and grows only as needed.
+    let bytes = std::mem::replace(partial_line, Vec::with_capacity(max_bytes.min(8 * 1024)));
     String::from_utf8(bytes)
         .map(Some)
         .map_err(|err| io::Error::new(io::ErrorKind::InvalidData, err))
@@ -764,6 +769,9 @@ where
     R: tokio::io::AsyncRead + Unpin,
 {
     let mut stdout = BufReader::new(stdout);
+    // Persist across select! iterations: deadline-change notifications can cancel
+    // a pending read future after it has consumed part of a frame.
+    let mut partial_line = Vec::with_capacity(8 * 1024);
 
     loop {
         if let Some(outstanding) = expire_response_deadline(&pending, &generation_fenced) {
@@ -790,7 +798,7 @@ where
                         }
                         continue;
                     }
-                    line = read_bounded_line(&mut stdout, MAX_RESPONSE_LINE_BYTES) => {
+                    line = read_bounded_line(&mut stdout, &mut partial_line, MAX_RESPONSE_LINE_BYTES) => {
                         if let Some(outstanding) =
                             expire_response_deadline(&pending, &generation_fenced)
                         {
@@ -807,7 +815,7 @@ where
             None => {
                 tokio::select! {
                     biased;
-                    line = read_bounded_line(&mut stdout, MAX_RESPONSE_LINE_BYTES) => line,
+                    line = read_bounded_line(&mut stdout, &mut partial_line, MAX_RESPONSE_LINE_BYTES) => line,
                     _ = deadline_changed.notified() => continue,
                 }
             }
@@ -1140,6 +1148,7 @@ mod tests {
             .block_on(async {
                 let input = b"{\"ok\":true}\r\n{\"ok\":false}";
                 let mut reader = BufReader::new(&input[..]);
+                let mut partial_line = Vec::new();
 
                 assert_eq!(
                     read_bounded_line(&mut reader, 32)
@@ -1163,6 +1172,34 @@ mod tests {
     }
 
     #[test]
+    fn bounded_reader_preserves_partial_bytes_when_read_future_is_cancelled() {
+        tokio::runtime::Runtime::new()
+            .expect("runtime")
+            .block_on(async {
+                let (mut source, stdout) = tokio::io::duplex(64);
+                source.write_all(b"1234").await.expect("write frame prefix");
+                let mut reader = BufReader::new(stdout);
+                let mut partial_line = Vec::new();
+
+                tokio::select! {
+                    result = read_bounded_line(&mut reader, &mut partial_line, 8) => {
+                        panic!("incomplete line unexpectedly completed: {result:?}");
+                    }
+                    _ = tokio::time::sleep(Duration::from_millis(1)) => {}
+                }
+
+                assert_eq!(partial_line, b"1234");
+                source.write_all(b"5\n").await.expect("finish frame");
+                assert_eq!(
+                    read_bounded_line(&mut reader, &mut partial_line, 8)
+                        .await
+                        .expect("completed frame"),
+                    Some("12345".to_string())
+                );
+            });
+    }
+
+    #[test]
     fn bounded_reader_rejects_oversized_frame_before_newline() {
         tokio::runtime::Runtime::new()
             .expect("runtime")
@@ -1170,8 +1207,9 @@ mod tests {
                 let (mut source, stdout) = tokio::io::duplex(64);
                 source.write_all(b"123456789").await.expect("write oversized frame");
                 let mut reader = BufReader::new(stdout);
+                let mut partial_line = Vec::new();
 
-                let error = read_bounded_line(&mut reader, 8)
+                let error = read_bounded_line(&mut reader, &mut partial_line, 8)
                     .await
                     .expect_err("oversized line must be rejected without waiting for newline");
                 assert_eq!(error.kind(), io::ErrorKind::InvalidData);
