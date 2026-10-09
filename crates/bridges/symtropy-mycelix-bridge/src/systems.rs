@@ -805,7 +805,15 @@ where
             });
         }
 
-        let response = match translate(id, wire, &pending).await {
+        let response = match translate(
+            id,
+            wire,
+            &pending,
+            response_timeout,
+            &generation_fenced,
+        )
+        .await
+        {
             Ok(response) => response,
             Err(err) => {
                 let reason = err.to_string();
@@ -871,15 +879,42 @@ async fn translate(
     id: u64,
     wire: WireResponse,
     pending: &PendingMap,
+    response_timeout: Duration,
+    generation_fenced: &AtomicBool,
 ) -> Result<MycelixResponseDelivery, DispatcherError> {
-    let pending_entry = { lock_pending(pending).remove(&id) };
+    // The expiry test and removal are one mutex-protected acceptance decision.
+    // A response cannot slip across the deadline between an outer check and
+    // removing its pending entry; any expired request fences the generation.
+    let pending_entry = {
+        let mut entries = lock_pending(pending);
+        let now = Instant::now();
+        if entries.values().any(|entry| {
+            matches!(
+                entry.dispatch_phase,
+                DispatchPhase::MayHaveReachedChild { deadline }
+                    | DispatchPhase::AwaitingResponse { deadline } if deadline <= now
+            )
+        }) {
+            generation_fenced.store(true, Ordering::SeqCst);
+            return Err(DispatcherError::ResponseTimeout {
+                timeout: response_timeout,
+                outstanding: entries.len(),
+            });
+        }
+        match entries.get(&id) {
+            None => return Err(DispatcherError::UnknownRequestId(id)),
+            Some(entry) if entry.dispatch_phase == DispatchPhase::NotStarted => {
+                return Err(DispatcherError::ResponseBeforeDispatch(id));
+            }
+            Some(_) => entries.remove(&id),
+        }
+    };
     let Some(Pending {
         requester,
         kind,
         _permit,
         ..
-    }) = pending_entry
-    else {
+    }) = pending_entry else {
         return Err(DispatcherError::UnknownRequestId(id));
     };
 
@@ -989,6 +1024,8 @@ pub(crate) enum DispatcherError {
     MissingRequestId,
     #[error("bridge response referenced unknown request_id {0}")]
     UnknownRequestId(u64),
+    #[error("bridge response arrived before request_id {0} was dispatched")]
+    ResponseBeforeDispatch(u64),
     #[error("failed to write to subprocess stdin: {0}")]
     Stdin(#[source] std::io::Error),
     #[error("failed to read from subprocess stdout: {0}")]
@@ -1430,6 +1467,8 @@ mod tests {
                         error: None,
                     },
                     &pending,
+                    Duration::from_secs(30),
+                    &AtomicBool::new(false),
                 )
                 .await
                 .expect("invalid vote acknowledgement becomes a typed error response")
@@ -1461,6 +1500,8 @@ mod tests {
                         error: Some("transport failed after dispatch".to_string()),
                     },
                     &pending,
+                    Duration::from_secs(30),
+                    &AtomicBool::new(false),
                 )
                 .await
                 .expect("error envelope is delivered as a typed outcome")
@@ -1496,6 +1537,8 @@ mod tests {
                         error: None,
                     },
                     &pending,
+                    Duration::from_secs(30),
+                    &AtomicBool::new(false),
                 )
                 .await
                 .expect("valid proposal acknowledgement")
@@ -1530,6 +1573,8 @@ mod tests {
                         error: None,
                     },
                     &pending,
+                    Duration::from_secs(30),
+                    &AtomicBool::new(false),
                 )
                 .await
                 .expect("invalid success becomes a typed error response")
