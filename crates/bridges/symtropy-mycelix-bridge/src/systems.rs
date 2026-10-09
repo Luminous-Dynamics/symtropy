@@ -898,10 +898,7 @@ mod tests {
                 ));
 
                 let mut first_line = String::new();
-                tokio::time::timeout(
-                    Duration::from_secs(1),
-                    stdout.read_line(&mut first_line),
-                )
+                tokio::time::timeout(Duration::from_secs(1), stdout.read_line(&mut first_line))
                 .await
                 .expect("first request was written")
                 .expect("read first request");
