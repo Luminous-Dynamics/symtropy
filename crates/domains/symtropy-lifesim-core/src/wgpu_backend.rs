@@ -333,6 +333,8 @@ fn bind_entry(binding: u32, buffer: &wgpu::Buffer) -> wgpu::BindGroupEntry<'_> {
 /// No global cache is used; mutable access serializes submissions through this
 /// runtime and prevents unsynchronized buffer reuse by concurrent callers.
 pub struct PersistentWgslFieldRuntime {
+    // Keep the WGPU instance alive for the full runtime lifetime.
+    _instance: wgpu::Instance,
     device: wgpu::Device,
     queue: wgpu::Queue,
     pipeline: wgpu::ComputePipeline,
@@ -428,6 +430,7 @@ impl PersistentWgslFieldRuntime {
         });
 
         Ok(Self {
+            _instance: instance,
             device,
             queue,
             pipeline,
@@ -655,11 +658,13 @@ mod tests {
     fn persistent_runtime_matches_cpu_reference_over_repeated_steps_and_resize() {
         let require_adapter = std::env::var_os("SYMTROPY_REQUIRE_WGPU_ADAPTER").is_some();
         let require_vulkan = std::env::var_os("SYMTROPY_REQUIRE_WGPU_VULKAN").is_some();
+        let initialization_started = std::time::Instant::now();
         let runtime_result = if require_vulkan {
             PersistentWgslFieldRuntime::new_with_backends(wgpu::Backends::VULKAN)
         } else {
             PersistentWgslFieldRuntime::new()
         };
+        let initialization_elapsed = initialization_started.elapsed();
         let mut runtime = match runtime_result {
             Ok(runtime) => runtime,
             Err(FieldStepError::GpuUnavailable(message))
@@ -678,6 +683,10 @@ mod tests {
             );
         }
         println!("selected_adapter={:?}", runtime.adapter_info());
+        println!(
+            "cold_runtime_initialization_ms={:.3}",
+            initialization_elapsed.as_secs_f64() * 1_000.0
+        );
 
         // Reuse the same runtime for multiple steps, then reuse it again after
         // a shape change. Source sanitization must agree with the CPU oracle,
@@ -708,12 +717,24 @@ mod tests {
             };
 
             for step_index in 0..5 {
+                let cpu_started = std::time::Instant::now();
                 CpuFieldStepper
                     .step(&mut cpu, &request)
                     .expect("CPU reference step must succeed");
+                let cpu_elapsed = cpu_started.elapsed();
+                let gpu_started = std::time::Instant::now();
                 runtime
                     .step(&mut gpu, &request)
                     .unwrap_or_else(|error| panic!("persistent GPU step {step_index} failed: {error}"));
+                let gpu_elapsed = gpu_started.elapsed();
+                println!(
+                    "field_step_timing grid={}x{} step={} cpu_ms={:.3} gpu_end_to_end_upload_submit_completion_readback_ms={:.3}",
+                    width,
+                    height,
+                    step_index,
+                    cpu_elapsed.as_secs_f64() * 1_000.0,
+                    gpu_elapsed.as_secs_f64() * 1_000.0
+                );
                 let report = compare_layer_within_epsilon(
                     &cpu,
                     &gpu,
