@@ -181,6 +181,7 @@ fn response_requester_extracts_entity_from_every_variant() {
         },
         MycelixResponse::ProposalSubmitted {
             requester: e,
+            proposal_id: "MIP-001".to_string(),
             action_hash: "hash".to_string(),
         },
         MycelixResponse::VoteCast {
@@ -189,6 +190,7 @@ fn response_requester_extracts_entity_from_every_variant() {
         },
         MycelixResponse::TendBalance {
             requester: e,
+            member_did: "did:key:z6Mk".to_string(),
             balance: serde_json::json!({ "balance": 0 }),
         },
         MycelixResponse::Error {
