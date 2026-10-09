@@ -40,11 +40,11 @@ use flume::{Receiver, Sender};
 use serde::{Deserialize, Serialize};
 use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
 use tokio::process::Command;
-use tokio::sync::{Mutex, OwnedSemaphorePermit, Semaphore};
+use tokio::sync::{Mutex, OwnedSemaphorePermit};
 
 use crate::config::MycelixConfig;
 use crate::events::{MycelixRequest, MycelixResponse};
-use crate::resource::{MycelixRequestOutbox, MycelixResponseInbox};
+use crate::resource::{MycelixRequestOutbox, MycelixResponseDelivery, MycelixResponseInbox, QueuedRequest};
 
 // ---------------------------------------------------------------------------
 // Wire protocol types
@@ -154,8 +154,11 @@ pub(crate) fn pump_responses(
     inbox: Res<MycelixResponseInbox>,
     mut writer: MessageWriter<MycelixResponse>,
 ) {
-    for response in inbox.rx.try_iter() {
+    for delivery in inbox.rx.try_iter() {
+        let MycelixResponseDelivery { response, _permit } = delivery;
         writer.write(response);
+        // Transfer into Bevy's message queue before freeing admission capacity.
+        drop(_permit);
     }
 }
 
@@ -165,8 +168,8 @@ pub(crate) fn pump_responses(
 
 async fn run_dispatcher_loop(
     config: MycelixConfig,
-    req_rx: Receiver<MycelixRequest>,
-    resp_tx: Sender<MycelixResponse>,
+    req_rx: Receiver<QueuedRequest>,
+    resp_tx: Sender<MycelixResponseDelivery>,
 ) -> Result<(), DispatcherError> {
     info!(
         binary = %config.bridge_binary.display(),
@@ -219,8 +222,6 @@ async fn run_dispatcher_loop(
     // The request channel bounds queued work; this semaphore separately bounds
     // sent requests awaiting a correlated reply. Treat a configured zero as one
     // so a bad setting cannot deadlock all dispatch.
-    let inflight = Arc::new(Semaphore::new(config.effective_inflight_budget()));
-
     // Keep supervisor-owned receiver/sender clones so either task's exit can
     // fail queued and pending callers, including a request racing with stdout EOF.
     let supervisor_req_rx = req_rx.clone();
@@ -229,10 +230,9 @@ async fn run_dispatcher_loop(
     let mut writer_task = {
         let pending = pending.clone();
         let next_id = next_id.clone();
-        let inflight = inflight.clone();
         let response_tx = resp_tx.clone();
         tokio::spawn(async move {
-            writer_loop(stdin, req_rx, pending, next_id, inflight, response_tx).await
+            writer_loop(stdin, req_rx, pending, next_id, response_tx).await
         })
     };
     let mut reader_task = {
@@ -335,16 +335,23 @@ async fn run_dispatcher_loop(
 }
 
 async fn drain_with_error(
-    req_rx: Receiver<MycelixRequest>,
-    resp_tx: Sender<MycelixResponse>,
+    req_rx: Receiver<QueuedRequest>,
+    resp_tx: Sender<MycelixResponseDelivery>,
     reason: String,
 ) {
-    while let Ok(req) = req_rx.recv_async().await {
-        let requester = req.requester();
+    while let Ok(queued) = req_rx.recv_async().await {
+        let QueuedRequest {
+            request,
+            _permit,
+        } = queued;
+        let requester = request.requester();
         if resp_tx
-            .send_async(MycelixResponse::Error {
-                requester,
-                reason: reason.clone(),
+            .send_async(MycelixResponseDelivery {
+                response: MycelixResponse::Error {
+                    requester,
+                    reason: reason.clone(),
+                },
+                _permit,
             })
             .await
             .is_err()
@@ -356,41 +363,31 @@ async fn drain_with_error(
 
 async fn writer_loop<W>(
     mut stdin: W,
-    req_rx: Receiver<MycelixRequest>,
+    req_rx: Receiver<QueuedRequest>,
     pending: PendingMap,
     next_id: Arc<AtomicU64>,
-    inflight: Arc<Semaphore>,
-    resp_tx: Sender<MycelixResponse>,
+    resp_tx: Sender<MycelixResponseDelivery>,
 ) -> Result<(), DispatcherError>
 where
     W: tokio::io::AsyncWrite + Unpin + Send + 'static,
 {
-    while let Ok(req) = req_rx.recv_async().await {
+    while let Ok(queued) = req_rx.recv_async().await {
+        let QueuedRequest {
+            request: req,
+            _permit: permit,
+        } = queued;
         let requester = req.requester();
-        let permit = match inflight.clone().acquire_owned().await {
-            Ok(permit) => permit,
-            Err(_) => {
-                let reason = "in-flight request limiter closed unexpectedly".to_string();
-                let _ = resp_tx
-                    .send_async(MycelixResponse::Error {
-                        requester,
-                        reason: reason.clone(),
-                    })
-                    .await;
-                drop(stdin);
-                fail_all_pending(&pending, &resp_tx, &reason).await;
-                drain_with_error(req_rx, resp_tx, reason).await;
-                return Err(DispatcherError::InFlightClosed);
-            }
-        };
 
         let request_id = next_id.fetch_add(1, Ordering::SeqCst);
         if request_id == u64::MAX {
             let reason = "bridge request_id space exhausted; refusing identifier reuse".to_string();
             let _ = resp_tx
-                .send_async(MycelixResponse::Error {
-                    requester,
-                    reason: reason.clone(),
+                .send_async(MycelixResponseDelivery {
+                    response: MycelixResponse::Error {
+                        requester,
+                        reason: reason.clone(),
+                    },
+                    _permit: permit,
                 })
                 .await;
             drop(stdin);
@@ -504,7 +501,7 @@ where
 
 async fn reader_loop<R>(
     stdout: R,
-    resp_tx: Sender<MycelixResponse>,
+    resp_tx: Sender<MycelixResponseDelivery>,
     pending: PendingMap,
 ) -> Result<(), DispatcherError>
 where
@@ -586,16 +583,23 @@ where
     }
 }
 
-async fn fail_all_pending(pending: &PendingMap, resp_tx: &Sender<MycelixResponse>, reason: &str) {
+async fn fail_all_pending(
+    pending: &PendingMap,
+    resp_tx: &Sender<MycelixResponseDelivery>,
+    reason: &str,
+) {
     let entries = {
         let mut guard = pending.lock().await;
         std::mem::take(&mut *guard)
     };
     for (_, entry) in entries {
         if resp_tx
-            .send_async(MycelixResponse::Error {
-                requester: entry.requester,
-                reason: reason.to_string(),
+            .send_async(MycelixResponseDelivery {
+                response: MycelixResponse::Error {
+                    requester: entry.requester,
+                    reason: reason.to_string(),
+                },
+                _permit: entry._permit,
             })
             .await
             .is_err()
@@ -607,8 +611,8 @@ async fn fail_all_pending(pending: &PendingMap, resp_tx: &Sender<MycelixResponse
 
 async fn fail_pending_and_queued(
     pending: &PendingMap,
-    queued: Receiver<MycelixRequest>,
-    resp_tx: Sender<MycelixResponse>,
+    queued: Receiver<QueuedRequest>,
+    resp_tx: Sender<MycelixResponseDelivery>,
     reason: &str,
 ) {
     fail_all_pending(pending, &resp_tx, reason).await;
@@ -619,82 +623,82 @@ async fn translate(
     id: u64,
     wire: WireResponse,
     pending: &PendingMap,
-) -> Result<MycelixResponse, DispatcherError> {
+) -> Result<MycelixResponseDelivery, DispatcherError> {
     let pending_entry = { pending.lock().await.remove(&id) };
     let Some(Pending {
         requester,
         kind,
-        _permit: _,
+        _permit,
     }) = pending_entry
     else {
         return Err(DispatcherError::UnknownRequestId(id));
     };
 
-    if !wire.ok {
-        return Ok(MycelixResponse::Error {
+    let response = if !wire.ok {
+        MycelixResponse::Error {
             requester,
             reason: wire
                 .error
                 .unwrap_or_else(|| "bridge reported failure with no reason".to_string()),
-        });
-    }
+        }
+    } else {
+        let invalid_success = |detail: &str| MycelixResponse::Error {
+            requester,
+            reason: format!("bridge returned an invalid successful response: {detail}"),
+        };
 
-    let invalid_success = |detail: &str| MycelixResponse::Error {
-        requester,
-        reason: format!("bridge returned an invalid successful response: {detail}"),
-    };
-
-    let response = match kind {
-        PendingKind::GetActiveProposals => match wire.data {
-            Some(serde_json::Value::Array(proposals)) => MycelixResponse::ActiveProposals {
-                requester,
-                proposals,
+        match kind {
+            PendingKind::GetActiveProposals => match wire.data {
+                Some(serde_json::Value::Array(proposals)) => MycelixResponse::ActiveProposals {
+                    requester,
+                    proposals,
+                },
+                _ => invalid_success("QueryActiveProposals requires an array in data"),
             },
-            _ => invalid_success("QueryActiveProposals requires an array in data"),
-        },
-        PendingKind::ProposalSubmitted { proposal_id } => match wire.data {
-            Some(serde_json::Value::String(action_hash)) if !action_hash.trim().is_empty() => {
-                MycelixResponse::ProposalSubmitted {
+            PendingKind::ProposalSubmitted { proposal_id } => match wire.data {
+                Some(serde_json::Value::String(action_hash)) if !action_hash.trim().is_empty() => {
+                    MycelixResponse::ProposalSubmitted {
+                        requester,
+                        proposal_id,
+                        action_hash,
+                    }
+                }
+                _ => invalid_success("SubmitProposal requires a non-empty action hash"),
+            },
+            PendingKind::VoteCast { proposal_id } => match wire.data {
+                Some(serde_json::Value::String(returned_id)) if returned_id == proposal_id => {
+                    MycelixResponse::VoteCast {
+                        requester,
+                        proposal_id,
+                    }
+                }
+                _ => invalid_success("CastVote requires the matching proposal ID in data"),
+            },
+            PendingKind::TendBalance { member_did } => match wire.data {
+                Some(balance) => MycelixResponse::TendBalance {
+                    requester,
+                    member_did,
+                    balance,
+                },
+                None => invalid_success("QueryTendBalance omitted data"),
+            },
+            PendingKind::Proposal { proposal_id } => match wire.data {
+                Some(serde_json::Value::Null) | None => MycelixResponse::Proposal {
                     requester,
                     proposal_id,
-                    action_hash,
-                }
-            }
-            _ => invalid_success("SubmitProposal requires a non-empty action hash"),
-        },
-        PendingKind::VoteCast { proposal_id } => match wire.data {
-            Some(serde_json::Value::String(returned_id)) if returned_id == proposal_id => {
-                MycelixResponse::VoteCast {
+                    record: None,
+                },
+                Some(record @ serde_json::Value::Object(_)) => MycelixResponse::Proposal {
                     requester,
                     proposal_id,
-                }
-            }
-            _ => invalid_success("CastVote requires the matching proposal ID in data"),
-        },
-        PendingKind::TendBalance { member_did } => match wire.data {
-            Some(balance) => MycelixResponse::TendBalance {
-                requester,
-                member_did,
-                balance,
+                    record: Some(record),
+                },
+                Some(_) => invalid_success("GetProposal data must be null or a record object"),
             },
-            None => invalid_success("QueryTendBalance omitted data"),
-        },
-        PendingKind::Proposal { proposal_id } => match wire.data {
-            Some(serde_json::Value::Null) | None => MycelixResponse::Proposal {
-                requester,
-                proposal_id,
-                record: None,
-            },
-            Some(record @ serde_json::Value::Object(_)) => MycelixResponse::Proposal {
-                requester,
-                proposal_id,
-                record: Some(record),
-            },
-            Some(_) => invalid_success("GetProposal data must be null or a record object"),
-        },
+        }
     };
 
-    Ok(response)
+    Ok(MycelixResponseDelivery { response, _permit })
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -713,8 +717,6 @@ pub(crate) enum DispatcherError {
     MissingStderr,
     #[error("bridge subprocess exited before its request channel was shut down")]
     UnexpectedBridgeExit,
-    #[error("in-flight request limiter closed unexpectedly")]
-    InFlightClosed,
     #[error("bridge request_id space exhausted")]
     RequestIdExhausted,
     #[error("bridge subprocess closed stdout with {outstanding} unresolved request(s)")]
@@ -740,6 +742,7 @@ mod tests {
     use super::*;
     use std::time::Duration;
     use tokio::io::{AsyncBufReadExt, AsyncWriteExt};
+    use tokio::sync::Semaphore;
 
     async fn pending_one(id: u64, semaphore: &Arc<Semaphore>) -> PendingMap {
         let permit = semaphore
