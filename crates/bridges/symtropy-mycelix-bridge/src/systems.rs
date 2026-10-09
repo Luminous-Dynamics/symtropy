@@ -251,6 +251,7 @@ async fn run_dispatcher_loop(
                 Err(join) => {
                     let failure = DispatcherError::Join(join);
                     let _ = child.start_kill();
+                    let _ = child.wait().await;
                     reader_task.abort();
                     let _ = reader_task.await;
                     let reason = failure.to_string();
@@ -264,6 +265,7 @@ async fn run_dispatcher_loop(
                 }
                 Ok(Err(failure)) => {
                     let _ = child.start_kill();
+                    let _ = child.wait().await;
                     reader_task.abort();
                     let _ = reader_task.await;
                     let reason = failure.to_string();
@@ -280,6 +282,7 @@ async fn run_dispatcher_loop(
                         Ok(Ok(())) => Ok(()),
                         Ok(Err(failure)) => {
                             let _ = child.start_kill();
+                            let _ = child.wait().await;
                             let reason = failure.to_string();
                             fail_pending_and_queued(
                                 &pending,
@@ -292,6 +295,7 @@ async fn run_dispatcher_loop(
                         Err(join) => {
                             let failure = DispatcherError::Join(join);
                             let _ = child.start_kill();
+                            let _ = child.wait().await;
                             let reason = failure.to_string();
                             fail_pending_and_queued(
                                 &pending,
@@ -312,6 +316,7 @@ async fn run_dispatcher_loop(
             writer_task.abort();
             let _ = writer_task.await;
             let _ = child.start_kill();
+            let _ = child.wait().await;
             let failure = match reader_result {
                 Ok(Ok(())) => DispatcherError::UnexpectedBridgeExit,
                 Ok(Err(failure)) => failure,
@@ -847,21 +852,35 @@ mod tests {
                     .expect("queued request");
                 let (resp_tx, resp_rx) = flume::bounded(3);
 
-                fail_pending_and_queued(
+                let drain_task = tokio::spawn(fail_pending_and_queued(
                     &pending,
                     request_rx,
                     resp_tx,
                     "bridge exited unexpectedly",
-                )
-                .await;
+                ));
 
-                assert!(pending.lock().await.is_empty());
-                assert_eq!(semaphore.available_permits(), 1);
                 let first = resp_rx.recv_async().await.expect("pending failure");
                 let second = resp_rx.recv_async().await.expect("queued failure");
                 assert!(matches!(first, MycelixResponse::Error { .. }));
                 assert!(matches!(second, MycelixResponse::Error { .. }));
                 assert!(resp_rx.is_empty());
+
+                // A failed generation remains a rejection sink while callers
+                // still own senders; it must never silently accept later work.
+                request_tx
+                    .send(MycelixRequest::GetActiveProposals {
+                        requester: Entity::PLACEHOLDER,
+                    })
+                    .expect("failed bridge retains a rejection sink");
+                assert!(matches!(
+                    resp_rx.recv_async().await.expect("post-failure rejection"),
+                    MycelixResponse::Error { .. }
+                ));
+
+                assert!(pending.lock().await.is_empty());
+                assert_eq!(semaphore.available_permits(), 1);
+                drop(request_tx);
+                drain_task.await.expect("error drain task");
             });
     }
 
