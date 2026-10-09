@@ -130,7 +130,9 @@ enum DispatchPhase {
     /// The command has not begun writing to child stdin.
     NotStarted,
     /// Writing may have transferred some or all command bytes to the child.
-    MayHaveReachedChild,
+    /// The deadline starts immediately before the first write, so a stalled
+    /// stdin write/flush is bounded as well as a child that stops replying.
+    MayHaveReachedChild { deadline: Instant },
     /// stdin write and flush completed; response deadline is now active.
     AwaitingResponse { deadline: Instant },
 }
@@ -155,7 +157,8 @@ fn pending_failure_response(
             requester,
             reason: reason.to_string(),
         },
-        DispatchPhase::MayHaveReachedChild | DispatchPhase::AwaitingResponse { .. } => {
+        DispatchPhase::MayHaveReachedChild { .. }
+        | DispatchPhase::AwaitingResponse { .. } => {
             match kind.mutation_kind() {
                 Some(operation) => MycelixResponse::IndeterminateMutation {
                     requester,
@@ -176,7 +179,9 @@ fn earliest_response_deadline(pending: &PendingMap) -> Option<Instant> {
         .values()
         .filter_map(|entry| match entry.dispatch_phase {
             DispatchPhase::AwaitingResponse { deadline } => Some(deadline),
-            DispatchPhase::NotStarted | DispatchPhase::MayHaveReachedChild => None,
+            DispatchPhase::NotStarted => None,
+            DispatchPhase::MayHaveReachedChild { deadline }
+            | DispatchPhase::AwaitingResponse { deadline } => Some(deadline),
         })
         .min()
 }
@@ -193,7 +198,8 @@ fn expire_response_deadline(
     if entries.values().any(|entry| {
         matches!(
             entry.dispatch_phase,
-            DispatchPhase::AwaitingResponse { deadline } if deadline <= now
+            DispatchPhase::MayHaveReachedChild { deadline }
+                | DispatchPhase::AwaitingResponse { deadline } if deadline <= now
         )
     }) {
         generation_fenced.store(true, Ordering::SeqCst);
@@ -627,10 +633,10 @@ where
         };
         line.push('\n');
 
-        // Fence check and dispatch-state transition share the pending-map lock
-        // with deadline expiry, so a request either remains definitely local or
-        // is conservatively recorded as possibly delivered before any I/O await.
-        {
+        // Start the deadline at dispatch, not enqueue. In particular this also
+        // bounds a child that has stopped reading stdin and causes write/flush
+        // to stall before a response can possibly arrive.
+        let deadline = {
             let mut entries = lock_pending(&pending);
             if generation_fenced.load(Ordering::SeqCst) {
                 return Err(DispatcherError::ResponseTimeout {
@@ -638,10 +644,13 @@ where
                     outstanding: entries.len(),
                 });
             }
+            let deadline = Instant::now() + response_timeout;
             if let Some(entry) = entries.get_mut(&request_id) {
-                entry.dispatch_phase = DispatchPhase::MayHaveReachedChild;
+                entry.dispatch_phase = DispatchPhase::MayHaveReachedChild { deadline };
             }
-        }
+            deadline
+        };
+        deadline_changed.notify_one();
 
         if let Err(err) = stdin.write_all(line.as_bytes()).await {
             let reason = format!("bridge subprocess request write failed: {err}");
@@ -667,10 +676,7 @@ where
                 });
             }
             if let Some(entry) = entries.get_mut(&request_id) {
-                entry.dispatch_phase = DispatchPhase::AwaitingResponse {
-                    deadline: Instant::now() + response_timeout,
-                };
-                deadline_changed.notify_one();
+                entry.dispatch_phase = DispatchPhase::AwaitingResponse { deadline };
             }
         }
 
@@ -1002,7 +1008,9 @@ mod tests {
             kind: PendingKind::ProposalSubmitted {
                 proposal_id: "proposal-test".to_string(),
             },
-            dispatch_phase: DispatchPhase::MayHaveReachedChild,
+            dispatch_phase: DispatchPhase::MayHaveReachedChild {
+                deadline: Instant::now() + Duration::from_secs(30),
+            },
             _permit: permit,
         };
         Arc::new(Mutex::new(HashMap::from([(id, entry)])))
