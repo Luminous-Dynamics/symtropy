@@ -852,12 +852,16 @@ mod tests {
                     .expect("queued request");
                 let (resp_tx, resp_rx) = flume::bounded(3);
 
-                let drain_task = tokio::spawn(fail_pending_and_queued(
-                    &pending,
-                    request_rx,
-                    resp_tx,
-                    "bridge exited unexpectedly",
-                ));
+                let pending_for_drain = pending.clone();
+                let drain_task = tokio::spawn(async move {
+                    fail_pending_and_queued(
+                        &pending_for_drain,
+                        request_rx,
+                        resp_tx,
+                        "bridge exited unexpectedly",
+                    )
+                    .await;
+                });
 
                 let first = resp_rx.recv_async().await.expect("pending failure");
                 let second = resp_rx.recv_async().await.expect("queued failure");
