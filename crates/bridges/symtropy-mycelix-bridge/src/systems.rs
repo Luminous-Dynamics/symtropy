@@ -772,6 +772,48 @@ mod tests {
     }
 
     #[test]
+    fn successful_vote_response_requires_the_matching_proposal_id() {
+        tokio::runtime::Runtime::new().expect("runtime").block_on(async {
+            let semaphore = Arc::new(Semaphore::new(1));
+            let permit = semaphore
+                .clone()
+                .acquire_owned()
+                .await
+                .expect("in-flight permit");
+            let pending = Arc::new(Mutex::new(HashMap::from([(
+                3,
+                Pending {
+                    requester: Entity::PLACEHOLDER,
+                    kind: PendingKind::VoteCast {
+                        proposal_id: "P1".to_string(),
+                    },
+                    _permit: permit,
+                },
+            )])));
+            let response = translate(
+                3,
+                WireResponse {
+                    request_id: Some(3),
+                    ok: true,
+                    data: Some(serde_json::json!("P2")),
+                    error: None,
+                },
+                &pending,
+            )
+            .await
+            .expect("invalid vote acknowledgement becomes a typed error response");
+
+            assert!(matches!(
+                response,
+                MycelixResponse::Error { requester, reason }
+                    if requester == Entity::PLACEHOLDER && reason.contains("matching proposal ID")
+            ));
+            assert!(pending.lock().await.is_empty());
+            assert_eq!(semaphore.available_permits(), 1);
+        });
+    }
+
+    #[test]
     fn successful_proposal_response_requires_a_nonempty_action_hash() {
         tokio::runtime::Runtime::new().expect("runtime").block_on(async {
             let semaphore = Arc::new(Semaphore::new(1));
