@@ -16,7 +16,7 @@ use std::{
     time::Duration,
 };
 
-use rusqlite::{params, Connection, OptionalExtension, TransactionBehavior};
+use rusqlite::{params, Connection, OpenFlags, OptionalExtension, TransactionBehavior};
 
 use super::transparency::TransparencyWitnessStateSnapshotV1;
 use super::transparency_store::{
@@ -61,7 +61,23 @@ impl SqliteTransparencyWitnessStateStore {
     }
 
     fn connection(&self) -> Result<Connection, TransparencyWitnessStoreError> {
-        let connection = Connection::open(&self.path).map_err(sqlite_error)?;
+        let flags = OpenFlags::SQLITE_OPEN_READ_WRITE
+            | OpenFlags::SQLITE_OPEN_CREATE
+            | OpenFlags::SQLITE_OPEN_NOFOLLOW;
+        let connection = {
+            #[cfg(test)]
+            if let Some(vfs) = crate::sqlite_fault_vfs::active_name() {
+                Connection::open_with_flags_and_vfs(&self.path, flags, vfs.as_str())
+                    .map_err(sqlite_error)?
+            } else {
+                Connection::open_with_flags(&self.path, flags).map_err(sqlite_error)?
+            }
+
+            #[cfg(not(test))]
+            {
+                Connection::open_with_flags(&self.path, flags).map_err(sqlite_error)?
+            }
+        };
         connection
             .busy_timeout(Duration::from_secs(5))
             .map_err(sqlite_error)?;
@@ -78,6 +94,33 @@ impl SqliteTransparencyWitnessStateStore {
             .pragma_update(None, "foreign_keys", "ON")
             .map_err(sqlite_error)?;
 
+        let journal_mode = connection
+            .query_row("PRAGMA journal_mode", [], |row| row.get::<_, String>(0))
+            .map_err(sqlite_error)?;
+        if !journal_mode.eq_ignore_ascii_case("wal") {
+            return Err(TransparencyWitnessStoreError::Backend(format!(
+                "SQLite did not retain required WAL journal mode: {journal_mode}"
+            )));
+        }
+
+        let synchronous = connection
+            .query_row("PRAGMA synchronous", [], |row| row.get::<_, i64>(0))
+            .map_err(sqlite_error)?;
+        if synchronous != 2 {
+            return Err(TransparencyWitnessStoreError::Backend(format!(
+                "SQLite did not retain required synchronous=FULL mode: {synchronous}"
+            )));
+        }
+
+        let foreign_keys = connection
+            .query_row("PRAGMA foreign_keys", [], |row| row.get::<_, i64>(0))
+            .map_err(sqlite_error)?;
+        if foreign_keys != 1 {
+            return Err(TransparencyWitnessStoreError::Backend(
+                "SQLite did not retain required foreign_keys=ON mode".to_string(),
+            ));
+        }
+
         connection
             .execute_batch(&format!(
                 "CREATE TABLE IF NOT EXISTS {TABLE} (
@@ -89,6 +132,7 @@ impl SqliteTransparencyWitnessStateStore {
             ))
             .map_err(sqlite_error)?;
         Self::validate_schema(&connection)?;
+        Self::validate_schema_objects(&connection)?;
         Self::validate_integrity(&connection)?;
 
         Ok(connection)
@@ -108,7 +152,7 @@ impl SqliteTransparencyWitnessStateStore {
 
     fn validate_schema(connection: &Connection) -> Result<(), TransparencyWitnessStoreError> {
         let mut statement = connection
-            .prepare(&format!("PRAGMA table_info({TABLE})"))
+            .prepare(&format!("PRAGMA table_xinfo({TABLE})"))
             .map_err(sqlite_error)?;
         let mut rows = statement.query([]).map_err(sqlite_error)?;
         let mut columns = Vec::new();
@@ -144,6 +188,126 @@ impl SqliteTransparencyWitnessStateStore {
         Ok(())
     }
 
+    fn validate_schema_objects(
+        connection: &Connection,
+    ) -> Result<(), TransparencyWitnessStoreError> {
+        let mut statement = connection
+            .prepare(
+                "SELECT type, name, tbl_name
+                 FROM sqlite_master
+                 WHERE tbl_name = ?1 AND type != 'index'
+                 ORDER BY type, name",
+            )
+            .map_err(sqlite_error)?;
+        let objects = statement
+            .query_map([TABLE], |row| {
+                Ok((
+                    row.get::<_, String>(0)?,
+                    row.get::<_, String>(1)?,
+                    row.get::<_, String>(2)?,
+                ))
+            })
+            .map_err(sqlite_error)?
+            .collect::<Result<Vec<_>, _>>()
+            .map_err(sqlite_error)?;
+
+        let expected_objects = vec![(
+            "table".to_string(),
+            TABLE.to_string(),
+            TABLE.to_string(),
+        )];
+
+        if objects != expected_objects {
+            return Err(TransparencyWitnessStoreError::Invalid(
+                "SQLite witness-state schema contains unexpected non-index database objects"
+                    .to_string(),
+            ));
+        }
+
+        let mut table_statement = connection
+            .prepare("PRAGMA main.table_list")
+            .map_err(sqlite_error)?;
+        let mut table_rows = table_statement.query([]).map_err(sqlite_error)?;
+        let mut table_kind = None;
+
+        while let Some(row) = table_rows.next().map_err(sqlite_error)? {
+            let schema = row.get::<_, String>(0).map_err(sqlite_error)?;
+            let name = row.get::<_, String>(1).map_err(sqlite_error)?;
+            if schema == "main" && name == TABLE {
+                table_kind = Some((
+                    row.get::<_, String>(2).map_err(sqlite_error)?,
+                    row.get::<_, i64>(3).map_err(sqlite_error)?,
+                    row.get::<_, i64>(4).map_err(sqlite_error)?,
+                    row.get::<_, i64>(5).map_err(sqlite_error)?,
+                ));
+                break;
+            }
+        }
+
+        match table_kind {
+            Some((kind, ncol, without_rowid, strict))
+                if kind == "table"
+                    && ncol == 3
+                    && without_rowid == 0
+                    && strict == 0 => {}
+            _ => {
+                return Err(TransparencyWitnessStoreError::Invalid(
+                    "SQLite witness-state table kind does not match the required ordinary non-STRICT rowid table"
+                        .to_string(),
+                ));
+            }
+        }
+
+        let mut index_statement = connection
+            .prepare(&format!("PRAGMA index_list({TABLE})"))
+            .map_err(sqlite_error)?;
+        let mut index_rows = index_statement.query([]).map_err(sqlite_error)?;
+        let mut indexes = Vec::new();
+
+        while let Some(row) = index_rows.next().map_err(sqlite_error)? {
+            let name = row.get::<_, String>(1).map_err(sqlite_error)?;
+            let unique = row.get::<_, i64>(2).map_err(sqlite_error)?;
+            let origin = row.get::<_, String>(3).map_err(sqlite_error)?;
+            let partial = row.get::<_, i64>(4).map_err(sqlite_error)?;
+            indexes.push((name, unique, origin, partial));
+        }
+
+        if indexes.len() != 1
+            || indexes[0].1 != 1
+            || indexes[0].2 != "pk"
+            || indexes[0].3 != 0
+        {
+            return Err(TransparencyWitnessStoreError::Invalid(
+                "SQLite witness-state table indexes do not contain exactly the required composite primary-key index"
+                    .to_string(),
+            ));
+        }
+
+        Ok(())
+    }
+
+    fn decode_state(
+        key: &TransparencyWitnessStoreKeyV1,
+        json: &str,
+    ) -> Result<TransparencyWitnessStoredStateV1, TransparencyWitnessStoreError> {
+        let state = serde_json::from_str::<TransparencyWitnessStoredStateV1>(json).map_err(
+            |error| {
+                TransparencyWitnessStoreError::Invalid(format!(
+                    "SQLite witness state JSON is invalid: {error}"
+                ))
+            },
+        )?;
+        state.validate_basic()?;
+
+        if state.snapshot().policy_commitment() != key.policy_commitment()
+            || state.snapshot().log_authority_commitment() != key.log_authority_commitment()
+        {
+            return Err(TransparencyWitnessStoreError::IdentityMismatch);
+        }
+
+        Ok(state)
+    }
+
     fn load_in_transaction(
         transaction: &rusqlite::Transaction<'_>,
         key: &TransparencyWitnessStoreKeyV1,
@@ -164,22 +328,7 @@ impl SqliteTransparencyWitnessStateStore {
             return Ok(None);
         };
 
-        let state = serde_json::from_str::<TransparencyWitnessStoredStateV1>(&json).map_err(
-            |error| {
-                TransparencyWitnessStoreError::Invalid(format!(
-                    "SQLite witness state JSON is invalid: {error}"
-                ))
-            },
-        )?;
-        state.validate_basic()?;
-
-        if state.snapshot().policy_commitment() != key.policy_commitment()
-            || state.snapshot().log_authority_commitment() != key.log_authority_commitment()
-        {
-            return Err(TransparencyWitnessStoreError::IdentityMismatch);
-        }
-
-        Ok(Some(state))
+        Ok(Some(Self::decode_state(key, &json)?))
     }
 
     fn encode_state(
@@ -193,49 +342,9 @@ impl SqliteTransparencyWitnessStateStore {
     }
 }
 
-impl TransparencyWitnessStateStore for SqliteTransparencyWitnessStateStore {
-    fn load(
-        &self,
-        key: &TransparencyWitnessStoreKeyV1,
-    ) -> Result<Option<TransparencyWitnessStoredStateV1>, TransparencyWitnessStoreError> {
-        key.validate_basic()?;
-        let connection = self.connection()?;
-        let json = connection
-            .query_row(
-                &format!(
-                    "SELECT state_json FROM {TABLE}
-                     WHERE policy_commitment = ?1 AND log_authority_commitment = ?2"
-                ),
-                params![key.policy_commitment(), key.log_authority_commitment()],
-                |row| row.get::<_, String>(0),
-            )
-            .optional()
-            .map_err(sqlite_error)?;
-
-        let Some(json) = json else {
-            return Ok(None);
-        };
-
-        let state = serde_json::from_str::<TransparencyWitnessStoredStateV1>(&json).map_err(
-            |error| {
-                TransparencyWitnessStoreError::Invalid(format!(
-                    "SQLite witness state JSON is invalid: {error}"
-                ))
-            },
-        )?;
-        state.validate_basic()?;
-
-        if state.snapshot().policy_commitment() != key.policy_commitment()
-            || state.snapshot().log_authority_commitment() != key.log_authority_commitment()
-        {
-            return Err(TransparencyWitnessStoreError::IdentityMismatch);
-        }
-
-        Ok(Some(state))
-    }
-
-    fn compare_and_swap(
-        &self,
+impl SqliteTransparencyWitnessStateStore {
+    fn compare_and_swap_with_connection(
+        connection: &mut Connection,
         key: &TransparencyWitnessStoreKeyV1,
         expected: Option<&TransparencyWitnessStoredStateV1>,
         replacement: TransparencyWitnessStateSnapshotV1,
@@ -257,7 +366,6 @@ impl TransparencyWitnessStateStore for SqliteTransparencyWitnessStateStore {
             }
         }
 
-        let mut connection = self.connection()?;
         let transaction = connection
             .transaction_with_behavior(TransactionBehavior::Immediate)
             .map_err(sqlite_error)?;
@@ -308,8 +416,85 @@ impl TransparencyWitnessStateStore for SqliteTransparencyWitnessStateStore {
             )
             .map_err(sqlite_error)?;
 
+        if expected.is_some() {
+            abort_for_test("after-write-before-commit");
+        }
+
+        let persisted_json = transaction
+            .query_row(
+                &format!(
+                    "SELECT state_json FROM {TABLE}
+                     WHERE policy_commitment = ?1 AND log_authority_commitment = ?2"
+                ),
+                params![key.policy_commitment(), key.log_authority_commitment()],
+                |row| row.get::<_, String>(0),
+            )
+            .map_err(sqlite_error)?;
+        let persisted = Self::decode_state(key, &persisted_json)?;
+        if persisted != stored {
+            return Err(TransparencyWitnessStoreError::Invalid(
+                "SQLite witness-state postcondition mismatch before commit".to_string(),
+            ));
+        }
+
         transaction.commit().map_err(sqlite_error)?;
 
+        Ok(stored)
+    }
+}
+
+impl TransparencyWitnessStateStore for SqliteTransparencyWitnessStateStore {
+    fn load(
+        &self,
+        key: &TransparencyWitnessStoreKeyV1,
+    ) -> Result<Option<TransparencyWitnessStoredStateV1>, TransparencyWitnessStoreError> {
+        key.validate_basic()?;
+        let connection = self.connection()?;
+        let json = connection
+            .query_row(
+                &format!(
+                    "SELECT state_json FROM {TABLE}
+                     WHERE policy_commitment = ?1 AND log_authority_commitment = ?2"
+                ),
+                params![key.policy_commitment(), key.log_authority_commitment()],
+                |row| row.get::<_, String>(0),
+            )
+            .optional()
+            .map_err(sqlite_error)?;
+
+        let Some(json) = json else {
+            return Ok(None);
+        };
+
+        Ok(Some(Self::decode_state(key, &json)?))
+    }
+
+    fn compare_and_swap(
+        &self,
+        key: &TransparencyWitnessStoreKeyV1,
+        expected: Option<&TransparencyWitnessStoredStateV1>,
+        replacement: TransparencyWitnessStateSnapshotV1,
+    ) -> Result<TransparencyWitnessStoredStateV1, TransparencyWitnessStoreError> {
+        key.validate_basic()?;
+        replacement.validate_basic()?;
+
+        if replacement.policy_commitment() != key.policy_commitment()
+            || replacement.log_authority_commitment() != key.log_authority_commitment()
+        {
+            return Err(TransparencyWitnessStoreError::IdentityMismatch);
+        }
+        if let Some(expected) = expected {
+            expected.validate_basic()?;
+            if expected.snapshot().policy_commitment() != key.policy_commitment()
+                || expected.snapshot().log_authority_commitment() != key.log_authority_commitment()
+            {
+                return Err(TransparencyWitnessStoreError::IdentityMismatch);
+            }
+        }
+
+        let mut connection = self.connection()?;
+        let stored =
+            Self::compare_and_swap_with_connection(&mut connection, key, expected, replacement.clone())?;
         validate_cas_result(key, expected, &replacement, &stored)?;
         Ok(stored)
     }
@@ -318,6 +503,17 @@ impl TransparencyWitnessStateStore for SqliteTransparencyWitnessStateStore {
 fn sqlite_error(error: rusqlite::Error) -> TransparencyWitnessStoreError {
     TransparencyWitnessStoreError::Backend(format!("SQLite error: {error}"))
 }
+
+fn abort_for_test(point: &str) {
+    if cfg!(test)
+        && std::env::var("SYMTROPY_SQLITE_ABORT_AT").ok().as_deref() == Some(point)
+    {
+        std::process::abort();
+    }
+}
+
+#[cfg(test)]
+mod sqlite_fault_vfs;
 
 #[cfg(test)]
 mod tests {
@@ -369,6 +565,59 @@ mod tests {
         let _ = std::fs::remove_file(path.with_extension("sqlite3-shm"));
     }
 
+    #[cfg(unix)]
+    #[test]
+    fn symlinked_database_path_is_rejected() {
+        use std::os::unix::fs::symlink;
+
+        let target = temp_database_path("nofollow-target");
+        let link = temp_database_path("nofollow-link");
+        let store = SqliteTransparencyWitnessStateStore::open(&target).expect("target open");
+        drop(store);
+
+        symlink(&target, &link).expect("symlink");
+        let error = SqliteTransparencyWitnessStateStore::open(&link)
+            .expect_err("symlinked database path must be rejected");
+        assert!(matches!(
+            error,
+            TransparencyWitnessStoreError::Backend(message)
+                if message.contains("SQLite error")
+        ));
+
+        cleanup(&link);
+        cleanup(&target);
+    }
+
+    #[test]
+    fn required_sqlite_durability_pragmas_are_retained() {
+        let path = temp_database_path("pragma-contract");
+        let store = SqliteTransparencyWitnessStateStore::open(&path).expect("open");
+        let connection = store.connection().expect("reopen connection");
+
+        assert_eq!(
+            connection
+                .query_row("PRAGMA journal_mode", [], |row| row.get::<_, String>(0))
+                .expect("journal mode"),
+            "wal"
+        );
+        assert_eq!(
+            connection
+                .query_row("PRAGMA synchronous", [], |row| row.get::<_, i64>(0))
+                .expect("synchronous mode"),
+            2
+        );
+        assert_eq!(
+            connection
+                .query_row("PRAGMA foreign_keys", [], |row| row.get::<_, i64>(0))
+                .expect("foreign keys"),
+            1
+        );
+
+        drop(connection);
+        drop(store);
+        cleanup(&path);
+    }
+
     #[test]
     fn nonconforming_preexisting_schema_is_rejected() {
         let path = temp_database_path("schema-reject");
@@ -391,6 +640,163 @@ mod tests {
             error,
             TransparencyWitnessStoreError::Invalid(message)
                 if message.contains("schema does not match")
+        ));
+
+        cleanup(&path);
+    }
+
+    #[test]
+    fn without_rowid_witness_schema_is_rejected() {
+        let path = temp_database_path("without-rowid");
+        {
+            let connection = Connection::open(&path).expect("raw sqlite");
+            connection
+                .execute_batch(&format!(
+                    "CREATE TABLE {TABLE} (
+                        policy_commitment TEXT NOT NULL,
+                        log_authority_commitment TEXT NOT NULL,
+                        state_json TEXT NOT NULL,
+                        PRIMARY KEY (policy_commitment, log_authority_commitment)
+                    ) WITHOUT ROWID;"
+                ))
+                .expect("without rowid schema");
+        }
+
+        let error =
+            SqliteTransparencyWitnessStateStore::open(&path).expect_err("WITHOUT ROWID must fail");
+        assert!(matches!(
+            error,
+            TransparencyWitnessStoreError::Invalid(message)
+                if message.contains("ordinary non-STRICT rowid table")
+        ));
+
+        cleanup(&path);
+    }
+
+    #[test]
+    fn strict_witness_schema_is_rejected() {
+        let path = temp_database_path("strict-table");
+        {
+            let connection = Connection::open(&path).expect("raw sqlite");
+            connection
+                .execute_batch(&format!(
+                    "CREATE TABLE {TABLE} (
+                        policy_commitment TEXT NOT NULL,
+                        log_authority_commitment TEXT NOT NULL,
+                        state_json TEXT NOT NULL,
+                        PRIMARY KEY (policy_commitment, log_authority_commitment)
+                    ) STRICT;"
+                ))
+                .expect("strict schema");
+        }
+
+        let error =
+            SqliteTransparencyWitnessStateStore::open(&path).expect_err("STRICT must fail");
+        assert!(matches!(
+            error,
+            TransparencyWitnessStoreError::Invalid(message)
+                if message.contains("ordinary non-STRICT rowid table")
+        ));
+
+        cleanup(&path);
+    }
+
+    #[test]
+    fn sqlite_page_corruption_is_rejected_before_state_trust() {
+        use std::io::{Seek, SeekFrom, Write};
+
+        let path = temp_database_path("page-corruption");
+        let (key, snapshot) = fixture();
+
+        let store = SqliteTransparencyWitnessStateStore::open(&path).expect("open");
+        store
+            .compare_and_swap(&key, None, snapshot)
+            .expect("initial commit");
+        drop(store);
+
+        let checkpoint = Connection::open(&path).expect("checkpoint connection");
+        checkpoint
+            .execute_batch("PRAGMA wal_checkpoint(TRUNCATE);")
+            .expect("checkpoint committed state");
+        drop(checkpoint);
+
+        let connection = Connection::open(&path).expect("root-page connection");
+        let page_size = connection
+            .query_row("PRAGMA page_size", [], |row| row.get::<_, i64>(0))
+            .expect("page size");
+        let root_page = connection
+            .query_row(
+                &format!(
+                    "SELECT rootpage FROM sqlite_master
+                     WHERE type = 'table' AND name = ?1"
+                ),
+                params![TABLE],
+                |row| row.get::<_, i64>(0),
+            )
+            .expect("table root page");
+        let page_size = u64::try_from(page_size).expect("positive page size");
+        let root_page = u64::try_from(root_page).expect("positive root page");
+
+        let mut file = std::fs::OpenOptions::new()
+            .write(true)
+            .open(&path)
+            .expect("open database bytes");
+        let root_offset = root_page
+            .checked_sub(1)
+            .expect("root page is one-based")
+            .checked_mul(page_size)
+            .expect("root page offset");
+        file.seek(SeekFrom::Start(root_offset))
+            .expect("seek to table root page");
+        file.write_all(&[0xff])
+            .expect("corrupt table root page type");
+        file.sync_all().expect("persist corruption");
+
+        let error = SqliteTransparencyWitnessStateStore::open(&path)
+            .expect_err("corrupt SQLite page must not become trusted state");
+        assert!(matches!(
+            error,
+            TransparencyWitnessStoreError::Invalid(message)
+                if message.contains("integrity_check")
+                || message.contains("schema")
+                || message.contains("SQLite error")
+        ));
+
+        cleanup(&path);
+    }
+
+    #[test]
+    fn unexpected_schema_objects_are_rejected_before_witness_state_is_trusted() {
+        let path = temp_database_path("schema-object-reject");
+        {
+            let connection = Connection::open(&path).expect("raw sqlite");
+            connection
+                .execute_batch(&format!(
+                    "CREATE TABLE {TABLE} (
+                        policy_commitment TEXT NOT NULL,
+                        log_authority_commitment TEXT NOT NULL,
+                        state_json TEXT NOT NULL,
+                        PRIMARY KEY (policy_commitment, log_authority_commitment)
+                    );
+                    CREATE INDEX witness_extra_index
+                    ON {TABLE}(state_json);
+                    CREATE TRIGGER witness_mutation
+                    AFTER INSERT ON {TABLE}
+                    BEGIN
+                        UPDATE {TABLE}
+                        SET state_json = '{"generation":999}'
+                        WHERE rowid = NEW.rowid;
+                    END;"
+                ))
+                .expect("hostile schema");
+        }
+
+        let error =
+            SqliteTransparencyWitnessStateStore::open(&path).expect_err("trigger must be rejected");
+        assert!(matches!(
+            error,
+            TransparencyWitnessStoreError::Invalid(message)
+                if message.contains("unexpected database objects")
         ));
 
         cleanup(&path);
@@ -458,6 +864,254 @@ mod tests {
             .expect("committed state");
         assert_eq!(stored.generation(), 0);
         assert_eq!(stored.snapshot(), &snapshot);
+
+        cleanup(&path);
+    }
+
+    #[test]
+    fn coherent_database_snapshot_restore_produces_valid_older_frontier() {
+        let path = temp_database_path("rollback-source");
+        let snapshot_path = temp_database_path("rollback-snapshot");
+        let restored_path = temp_database_path("rollback-restored");
+        let (key, initial) = fixture();
+
+        let store = SqliteTransparencyWitnessStateStore::open(&path).expect("open");
+        let committed = store
+            .compare_and_swap(&key, None, initial.clone())
+            .expect("initial commit");
+        assert_eq!(committed.generation(), 0);
+        drop(store);
+
+        {
+            let connection = Connection::open(&path).expect("snapshot connection");
+            connection
+                .execute("VACUUM INTO ?1", params![snapshot_path.to_string_lossy().as_ref()])
+                .expect("coherent snapshot");
+        }
+
+        {
+            let store = SqliteTransparencyWitnessStateStore::open(&path).expect("reopen");
+            let advanced = store
+                .compare_and_swap(&key, Some(&committed), initial.clone())
+                .expect("advance after snapshot");
+            assert_eq!(advanced.generation(), 1);
+        }
+
+        std::fs::copy(&snapshot_path, &restored_path).expect("restore coherent snapshot");
+
+        let restored = SqliteTransparencyWitnessStateStore::open(&restored_path)
+            .expect("open restored snapshot");
+        let recovered = restored
+            .load(&key)
+            .expect("load restored snapshot")
+            .expect("restored witness state");
+
+        assert_eq!(recovered, committed);
+        assert_eq!(recovered.generation(), 0);
+
+        cleanup(&path);
+        cleanup(&snapshot_path);
+        cleanup(&restored_path);
+    }
+
+    #[test]
+    fn injected_wal_write_failure_recovers_to_a_valid_frontier() {
+        use crate::sqlite_fault_vfs::{arm_wal, activate_current_thread, FaultOperation};
+
+        let path = temp_database_path("vfs-write-failure");
+        let (key, initial) = fixture();
+        let store = SqliteTransparencyWitnessStateStore::open(&path).expect("open");
+        let committed = store
+            .compare_and_swap(&key, None, initial.clone())
+            .expect("initial commit");
+
+        let _activation = activate_current_thread();
+        let mut connection = store.connection().expect("open configured fault VFS connection");
+        let _fault = arm_wal(FaultOperation::Write, 1);
+
+        let candidate = SqliteTransparencyWitnessStateStore::compare_and_swap_with_connection(
+            &mut connection,
+            &key,
+            Some(&committed),
+            initial.clone(),
+        );
+        assert!(candidate.is_err(), "injected WAL write must surface as an error");
+        assert!(crate::sqlite_fault_vfs::fired(), "WAL write fault must fire");
+
+        drop(_fault);
+        drop(_activation);
+
+        let recovered = SqliteTransparencyWitnessStateStore::open(&path)
+            .expect("reopen after injected write failure")
+            .load(&key)
+            .expect("load after injected write failure")
+            .expect("committed frontier");
+        assert!(matches!(recovered.generation(), 0 | 1));
+        assert_eq!(recovered.snapshot().policy_commitment(), key.policy_commitment());
+        assert_eq!(
+            recovered.snapshot().log_authority_commitment(),
+            key.log_authority_commitment()
+        );
+
+        cleanup(&path);
+    }
+
+    #[test]
+    fn injected_wal_truncate_failure_preserves_last_valid_frontier() {
+        use crate::sqlite_fault_vfs::{activate_current_thread, arm_wal, FaultOperation};
+
+        let path = temp_database_path("vfs-truncate-failure");
+        let (key, initial) = fixture();
+
+        let _activation = activate_current_thread();
+        let store = SqliteTransparencyWitnessStateStore::open(&path).expect("open");
+        let mut connection = store.connection().expect("configured connection");
+
+        let committed = SqliteTransparencyWitnessStateStore::compare_and_swap_with_connection(
+            &mut connection,
+            &key,
+            None,
+            initial.clone(),
+        )
+        .expect("initial commit");
+        let advanced = SqliteTransparencyWitnessStateStore::compare_and_swap_with_connection(
+            &mut connection,
+            &key,
+            Some(&committed),
+            initial.clone(),
+        )
+        .expect("advance commit");
+
+        let _fault = arm_wal(FaultOperation::Truncate, 1);
+        let checkpoint = connection.query_row(
+            "PRAGMA wal_checkpoint(TRUNCATE)",
+            [],
+            |row| row.get::<_, i64>(0),
+        );
+        assert!(crate::sqlite_fault_vfs::fired(), "WAL truncate fault must fire");
+        assert!(checkpoint.is_err(), "injected truncate must surface as an error");
+
+        drop(_fault);
+        drop(connection);
+        drop(_activation);
+
+        let recovered = SqliteTransparencyWitnessStateStore::open(&path)
+            .expect("reopen after truncate failure")
+            .load(&key)
+            .expect("load after truncate failure")
+            .expect("last valid frontier");
+        assert_eq!(recovered, advanced);
+        assert_eq!(recovered.generation(), 1);
+
+        cleanup(&path);
+    }
+
+    #[test]
+    fn injected_wal_sync_failure_recovers_to_a_valid_frontier() {
+        use crate::sqlite_fault_vfs::{arm_wal, activate_current_thread, FaultOperation};
+
+        let path = temp_database_path("vfs-sync-failure");
+        let (key, initial) = fixture();
+        let store = SqliteTransparencyWitnessStateStore::open(&path).expect("open");
+        let committed = store
+            .compare_and_swap(&key, None, initial.clone())
+            .expect("initial commit");
+
+        let _activation = activate_current_thread();
+        let mut connection = store.connection().expect("open configured fault VFS connection");
+        let _fault = arm_wal(FaultOperation::Sync, 1);
+
+        let candidate = SqliteTransparencyWitnessStateStore::compare_and_swap_with_connection(
+            &mut connection,
+            &key,
+            Some(&committed),
+            initial.clone(),
+        );
+        assert!(crate::sqlite_fault_vfs::fired(), "WAL sync fault must fire");
+
+        drop(_fault);
+        drop(_activation);
+
+        let recovered = SqliteTransparencyWitnessStateStore::open(&path)
+            .expect("reopen after injected sync failure")
+            .load(&key)
+            .expect("load after injected sync failure")
+            .expect("recoverable frontier");
+        assert!(matches!(recovered.generation(), 0 | 1));
+        assert_eq!(recovered.snapshot(), &initial);
+
+        if candidate.is_ok() {
+            assert_eq!(recovered.generation(), 1);
+        } else {
+            assert!(recovered.generation() <= 1);
+        }
+
+        cleanup(&path);
+    }
+
+    #[test]
+    fn abort_after_write_before_commit_recovers_previous_frontier() {
+        const WORKER_ENV: &str = "SYMTROPY_SQLITE_ABORT_WORKER";
+        const ABORT_POINT_ENV: &str = "SYMTROPY_SQLITE_ABORT_AT";
+
+        if let Ok(path) = std::env::var(WORKER_ENV) {
+            let path = PathBuf::from(path);
+            let (key, initial) = fixture();
+            let store = SqliteTransparencyWitnessStateStore::open(&path).expect("worker open");
+            store
+                .compare_and_swap(&key, None, initial)
+                .expect("initial commit");
+
+            let next = TransparencyWitnessStateSnapshotV1::new(
+                key.policy_commitment().to_string(),
+                key.log_authority_commitment().to_string(),
+                vec![initial.witnesses()[0].clone()],
+            )
+            .expect("replacement");
+            let _ = store.compare_and_swap(
+                &key,
+                Some(
+                    &store
+                        .load(&key)
+                        .expect("load")
+                        .expect("initial state"),
+                ),
+                next,
+            );
+            std::process::exit(0);
+        }
+
+        let path = temp_database_path("abort-before-commit");
+        let (key, initial) = fixture();
+        let store = SqliteTransparencyWitnessStateStore::open(&path).expect("open");
+        let committed = store
+            .compare_and_swap(&key, None, initial.clone())
+            .expect("initial commit");
+        assert_eq!(committed.generation(), 0);
+
+        let status = Command::new(std::env::current_exe().expect("test binary"))
+            .args([
+                "--exact",
+                "transparency_store_sqlite::tests::abort_after_write_before_commit_recovers_previous_frontier",
+                "--nocapture",
+            ])
+            .env(WORKER_ENV, &path)
+            .env(ABORT_POINT_ENV, "after-write-before-commit")
+            .status()
+            .expect("spawn abort worker");
+
+        assert!(
+            !status.success(),
+            "abort worker must terminate before transaction commit"
+        );
+
+        let reopened =
+            SqliteTransparencyWitnessStateStore::open(&path).expect("reopen after abort");
+        let recovered = reopened
+            .load(&key)
+            .expect("load after abort")
+            .expect("previous committed state");
+        assert_eq!(recovered, committed);
 
         cleanup(&path);
     }
@@ -545,4 +1199,228 @@ mod tests {
 
         cleanup(&path);
     }
+ 
+    fn calibrate_wal_cas_faults(operation: crate::sqlite_fault_vfs::FaultOperation) -> usize {
+        use crate::sqlite_fault_vfs::{activate_current_thread, arm_wal, observed};
+        let path = temp_database_path("vfs-cas-calibration");
+        let (key, initial) = fixture();
+        let _activation = activate_current_thread();
+        let store = SqliteTransparencyWitnessStateStore::open(&path).expect("open");
+        let committed = store
+            .compare_and_swap(&key, None, initial.clone())
+            .expect("initial commit");
+        let mut connection = store.connection().expect("configured connection");
+
+        let _fault = arm_wal(operation, usize::MAX);
+        let candidate = SqliteTransparencyWitnessStateStore::compare_and_swap_with_connection(
+            &mut connection,
+            &key,
+            Some(&committed),
+            initial,
+        );
+        assert!(candidate.is_ok(), "unarmed calibration CAS must succeed");
+        let count = observed();
+        assert!(count > 0, "calibration must observe at least one matching I/O call");
+
+        drop(_fault);
+        drop(connection);
+        drop(_activation);
+        cleanup(&path);
+        count
+    }
+
+    fn sweep_wal_cas_faults(operation: crate::sqlite_fault_vfs::FaultOperation) {
+        use crate::sqlite_fault_vfs::{activate_current_thread, arm_wal, fired, observed};
+        let count = calibrate_wal_cas_faults(operation);
+        for ordinal in 1..=count {
+            let path = temp_database_path("vfs-cas-sweep");
+            let (key, initial) = fixture();
+            let _activation = activate_current_thread();
+            let store = SqliteTransparencyWitnessStateStore::open(&path).expect("open");
+            let committed = store
+                .compare_and_swap(&key, None, initial.clone())
+                .expect("initial commit");
+            let mut connection = store.connection().expect("configured connection");
+
+            let _fault = arm_wal(operation, ordinal);
+            let candidate = SqliteTransparencyWitnessStateStore::compare_and_swap_with_connection(
+                &mut connection,
+                &key,
+                Some(&committed),
+                initial.clone(),
+            );
+            assert_eq!(
+                observed(),
+                ordinal,
+                "fault plan must fire at the requested reachable ordinal"
+            );
+            assert!(
+                fired(),
+                "fault must fire at each reachable {operation:?} WAL ordinal"
+            );
+            drop(_fault);
+            drop(connection);
+            drop(_activation);
+
+            let recovered = SqliteTransparencyWitnessStateStore::open(&path)
+                .expect("reopen after WAL fault");
+            let recovered = recovered
+                .load(&key)
+                .expect("load after WAL fault")
+                .expect("valid witness frontier");
+            assert!(
+                matches!(recovered.generation(), 0 | 1),
+                "fault recovery must not create a generation beyond the attempted advance; candidate={candidate:?}"
+            );
+            assert_eq!(recovered.snapshot(), &initial);
+            cleanup(&path);
+        }
+    }
+
+    fn calibrate_checkpoint_faults(
+        operation: crate::sqlite_fault_vfs::FaultOperation,
+        main_database: bool,
+    ) -> usize {
+        use crate::sqlite_fault_vfs::{activate_current_thread, arm_main, arm_wal, observed};
+        let path = temp_database_path("vfs-checkpoint-calibration");
+        let (key, initial) = fixture();
+        let _activation = activate_current_thread();
+        let store = SqliteTransparencyWitnessStateStore::open(&path).expect("open");
+        let mut connection = store.connection().expect("configured connection");
+        let committed = SqliteTransparencyWitnessStateStore::compare_and_swap_with_connection(
+            &mut connection,
+            &key,
+            None,
+            initial.clone(),
+        )
+        .expect("initial commit");
+        let _advanced = SqliteTransparencyWitnessStateStore::compare_and_swap_with_connection(
+            &mut connection,
+            &key,
+            Some(&committed),
+            initial,
+        )
+        .expect("advance commit");
+
+        let _fault = if main_database {
+            arm_main(operation, usize::MAX)
+        } else {
+            arm_wal(operation, usize::MAX)
+        };
+        let checkpoint = connection.query_row(
+            "PRAGMA wal_checkpoint(TRUNCATE)",
+            [],
+            |row| row.get::<_, i64>(0),
+        );
+        assert!(checkpoint.is_ok(), "unarmed calibration checkpoint must succeed");
+        let count = observed();
+        assert!(
+            count > 0,
+            "calibration must observe at least one matching checkpoint I/O call"
+        );
+
+        drop(_fault);
+        drop(connection);
+        drop(_activation);
+        cleanup(&path);
+        count
+    }
+
+    fn sweep_checkpoint_faults(
+        operation: crate::sqlite_fault_vfs::FaultOperation,
+        main_database: bool,
+    ) {
+        use crate::sqlite_fault_vfs::{
+            activate_current_thread, arm_main, arm_wal, fired, observed,
+        };
+        let count = calibrate_checkpoint_faults(operation, main_database);
+        for ordinal in 1..=count {
+            let path = temp_database_path("vfs-checkpoint-sweep");
+            let (key, initial) = fixture();
+            let _activation = activate_current_thread();
+            let store = SqliteTransparencyWitnessStateStore::open(&path).expect("open");
+            let mut connection = store.connection().expect("configured connection");
+            let committed =
+                SqliteTransparencyWitnessStateStore::compare_and_swap_with_connection(
+                    &mut connection,
+                    &key,
+                    None,
+                    initial.clone(),
+                )
+                .expect("initial commit");
+            let advanced =
+                SqliteTransparencyWitnessStateStore::compare_and_swap_with_connection(
+                    &mut connection,
+                    &key,
+                    Some(&committed),
+                    initial.clone(),
+                )
+                .expect("advance commit");
+
+            let _fault = if main_database {
+                arm_main(operation, ordinal)
+            } else {
+                arm_wal(operation, ordinal)
+            };
+            let checkpoint = connection.query_row(
+                "PRAGMA wal_checkpoint(TRUNCATE)",
+                [],
+                |row| row.get::<_, i64>(0),
+            );
+            assert_eq!(
+                observed(),
+                ordinal,
+                "fault plan must fire at the requested reachable checkpoint ordinal"
+            );
+            assert!(
+                fired(),
+                "fault must fire at each reachable {operation:?} checkpoint ordinal"
+            );
+            assert!(
+                checkpoint.is_err(),
+                "injected checkpoint fault must surface for ordinal {ordinal}"
+            );
+
+            drop(_fault);
+            drop(connection);
+            drop(_activation);
+
+            let recovered = SqliteTransparencyWitnessStateStore::open(&path)
+                .expect("reopen after checkpoint fault")
+                .load(&key)
+                .expect("load after checkpoint fault")
+                .expect("valid witness frontier");
+            assert_eq!(
+                recovered, advanced,
+                "checkpoint fault must preserve the already committed witness frontier"
+            );
+            cleanup(&path);
+        }
+    }
+
+    #[test]
+    fn wal_write_fault_sweep_covers_every_reachable_ordinal() {
+        sweep_wal_cas_faults(crate::sqlite_fault_vfs::FaultOperation::Write);
+    }
+
+    #[test]
+    fn wal_sync_fault_sweep_covers_every_reachable_ordinal() {
+        sweep_wal_cas_faults(crate::sqlite_fault_vfs::FaultOperation::Sync);
+    }
+
+    #[test]
+    fn wal_truncate_fault_sweep_covers_every_reachable_ordinal() {
+        sweep_checkpoint_faults(crate::sqlite_fault_vfs::FaultOperation::Truncate, false);
+    }
+
+    #[test]
+    fn main_database_write_fault_sweep_covers_every_reachable_ordinal() {
+        sweep_checkpoint_faults(crate::sqlite_fault_vfs::FaultOperation::Write, true);
+    }
+
+    #[test]
+    fn main_database_sync_fault_sweep_covers_every_reachable_ordinal() {
+        sweep_checkpoint_faults(crate::sqlite_fault_vfs::FaultOperation::Sync, true);
+    }
+
 }
