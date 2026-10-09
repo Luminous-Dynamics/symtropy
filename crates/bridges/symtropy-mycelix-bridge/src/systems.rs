@@ -689,7 +689,7 @@ where
 
 /// Maximum accepted stdout JSON frame size. A newline-free child response must not
 /// be able to grow the reader buffer without bound. The limit is on the UTF-8 JSON
-/// payload bytes, excluding the line terminator.
+/// bytes before LF; for CRLF, the CR is included in this limit.
 const MAX_RESPONSE_LINE_BYTES: usize = 1024 * 1024;
 
 /// Read one newline-delimited UTF-8 frame with a hard byte ceiling. Partial bytes
@@ -1151,19 +1151,19 @@ mod tests {
                 let mut partial_line = Vec::new();
 
                 assert_eq!(
-                    read_bounded_line(&mut reader, 32)
+                    read_bounded_line(&mut reader, &mut partial_line, 32)
                         .await
                         .expect("first frame"),
                     Some("{\"ok\":true}".to_string())
                 );
                 assert_eq!(
-                    read_bounded_line(&mut reader, 32)
+                    read_bounded_line(&mut reader, &mut partial_line, 32)
                         .await
                         .expect("final frame"),
                     Some("{\"ok\":false}".to_string())
                 );
                 assert_eq!(
-                    read_bounded_line(&mut reader, 32)
+                    read_bounded_line(&mut reader, &mut partial_line, 32)
                         .await
                         .expect("EOF"),
                     None
