@@ -188,7 +188,10 @@ mod tests {
                     .await;
                 assert!(!result.success, "mode {mode:?} must not fake delivery");
                 assert!(
-                    result.response.as_deref().is_some_and(|v| v.contains("not dispatched")),
+                    result
+                        .response
+                        .as_deref()
+                        .is_some_and(|v| v.contains("not dispatched")),
                     "failure must explain the missing dispatch"
                 );
                 assert!(matches!(
