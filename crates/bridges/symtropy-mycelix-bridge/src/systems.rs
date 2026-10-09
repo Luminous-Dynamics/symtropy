@@ -250,6 +250,8 @@ async fn run_dispatcher_loop(
             match writer_result {
                 Err(join) => {
                     let failure = DispatcherError::Join(join);
+                    reader_task.abort();
+                    let _ = reader_task.await;
                     let reason = failure.to_string();
                     fail_pending_and_queued(
                         &pending,
@@ -260,6 +262,8 @@ async fn run_dispatcher_loop(
                     Err(failure)
                 }
                 Ok(Err(failure)) => {
+                    reader_task.abort();
+                    let _ = reader_task.await;
                     let reason = failure.to_string();
                     fail_pending_and_queued(
                         &pending,
@@ -298,6 +302,11 @@ async fn run_dispatcher_loop(
             }
         }
         reader_result = &mut reader_task => {
+            // Stop the writer before draining the shared request queue; otherwise
+            // it could consume a queued mutation while blocked awaiting a reply
+            // from the reader that has already exited.
+            writer_task.abort();
+            let _ = writer_task.await;
             let failure = match reader_result {
                 Ok(Ok(())) => DispatcherError::UnexpectedBridgeExit,
                 Ok(Err(failure)) => failure,
