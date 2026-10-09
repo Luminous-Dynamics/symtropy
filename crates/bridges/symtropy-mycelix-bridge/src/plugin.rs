@@ -49,6 +49,14 @@ impl Plugin for BevyMycelixPlugin {
         if self.config.inflight_budget == 0 {
             warn!("symtropy-mycelix-bridge: inflight_budget=0 normalized to 1");
         }
+        let effective_response_timeout = self.config.effective_response_timeout();
+        if self.config.response_timeout != effective_response_timeout {
+            warn!(
+                configured = ?self.config.response_timeout,
+                effective = ?effective_response_timeout,
+                "symtropy-mycelix-bridge: response_timeout normalized to its supported range"
+            );
+        }
         let (req_tx, req_rx) = flume::bounded(inflight_budget);
         let (resp_tx, resp_rx) = flume::bounded(inflight_budget);
         // One shared credit budget covers queued requests, dispatched calls,

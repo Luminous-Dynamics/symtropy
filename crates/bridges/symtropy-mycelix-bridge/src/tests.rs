@@ -13,7 +13,7 @@ use flume::bounded;
 use tokio::sync::Semaphore;
 
 use crate::config::MycelixConfig;
-use crate::events::{MycelixRequest, MycelixResponse};
+use crate::events::{MycelixMutationKind, MycelixRequest, MycelixResponse};
 use crate::resource::{
     MycelixClient, MycelixResponseDelivery, MycelixResponseInbox, MycelixSendError, QueuedRequest,
 };
@@ -219,6 +219,17 @@ fn response_requester_extracts_entity_from_every_variant() {
             requester: e,
             member_did: "did:key:z6Mk".to_string(),
             balance: serde_json::json!({ "balance": 0 }),
+        },
+        MycelixResponse::NotDispatched {
+            requester: e,
+            reason: "not sent".to_string(),
+        },
+        MycelixResponse::IndeterminateMutation {
+            requester: e,
+            operation: MycelixMutationKind::CastVote {
+                proposal_id: "MIP-001".to_string(),
+            },
+            reason: "reply lost".to_string(),
         },
         MycelixResponse::Error {
             requester: e,

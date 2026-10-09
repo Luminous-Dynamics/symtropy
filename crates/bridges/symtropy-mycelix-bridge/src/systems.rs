@@ -31,8 +31,9 @@
 
 use std::collections::HashMap;
 use std::process::Stdio;
-use std::sync::atomic::{AtomicU64, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use std::sync::{Arc, Mutex, MutexGuard};
+use std::time::Duration;
 
 use bevy::prelude::*;
 use bevy_tokio_tasks::TokioTasksRuntime;
@@ -40,10 +41,11 @@ use flume::{Receiver, Sender};
 use serde::{Deserialize, Serialize};
 use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
 use tokio::process::Command;
-use tokio::sync::OwnedSemaphorePermit;
+use tokio::sync::{Notify, OwnedSemaphorePermit};
+use tokio::time::{sleep_until, Instant};
 
 use crate::config::MycelixConfig;
-use crate::events::{MycelixRequest, MycelixResponse};
+use crate::events::{MycelixMutationKind, MycelixRequest, MycelixResponse};
 use crate::resource::{
     MycelixRequestOutbox, MycelixResponseDelivery, MycelixResponseInbox, QueuedRequest,
 };
@@ -109,12 +111,101 @@ enum PendingKind {
     Proposal { proposal_id: String },
 }
 
+impl PendingKind {
+    fn mutation_kind(&self) -> Option<MycelixMutationKind> {
+        match self {
+            Self::ProposalSubmitted { proposal_id } => Some(MycelixMutationKind::SubmitProposal {
+                proposal_id: proposal_id.clone(),
+            }),
+            Self::VoteCast { proposal_id } => Some(MycelixMutationKind::CastVote {
+                proposal_id: proposal_id.clone(),
+            }),
+            Self::GetActiveProposals | Self::TendBalance { .. } | Self::Proposal { .. } => None,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum DispatchPhase {
+    /// The command has not begun writing to child stdin.
+    NotStarted,
+    /// Writing may have transferred some or all command bytes to the child.
+    /// The deadline starts immediately before the first write, so a stalled
+    /// stdin write/flush is bounded as well as a child that stops replying.
+    MayHaveReachedChild { deadline: Instant },
+    /// stdin write and flush completed; response deadline is now active.
+    AwaitingResponse { deadline: Instant },
+}
+
 struct Pending {
     requester: Entity,
     kind: PendingKind,
+    dispatch_phase: DispatchPhase,
     // Holds the end-to-end admission credit while pending. Translation moves
-    // it into a response delivery; failure teardown moves it into an error delivery.
+    // it into a response delivery; failure teardown moves it into a typed outcome.
     _permit: OwnedSemaphorePermit,
+}
+
+fn pending_failure_response(
+    requester: Entity,
+    kind: &PendingKind,
+    dispatch_phase: DispatchPhase,
+    reason: &str,
+) -> MycelixResponse {
+    match dispatch_phase {
+        DispatchPhase::NotStarted => MycelixResponse::NotDispatched {
+            requester,
+            reason: reason.to_string(),
+        },
+        DispatchPhase::MayHaveReachedChild { .. }
+        | DispatchPhase::AwaitingResponse { .. } => {
+            match kind.mutation_kind() {
+                Some(operation) => MycelixResponse::IndeterminateMutation {
+                    requester,
+                    operation,
+                    reason: reason.to_string(),
+                },
+                None => MycelixResponse::Error {
+                    requester,
+                    reason: reason.to_string(),
+                },
+            }
+        }
+    }
+}
+
+fn earliest_response_deadline(pending: &PendingMap) -> Option<Instant> {
+    lock_pending(pending)
+        .values()
+        .filter_map(|entry| match entry.dispatch_phase {
+            DispatchPhase::NotStarted => None,
+            DispatchPhase::MayHaveReachedChild { deadline }
+            | DispatchPhase::AwaitingResponse { deadline } => Some(deadline),
+        })
+        .min()
+}
+
+/// Atomically fences the dispatcher generation when any response deadline has
+/// expired. Responses are accepted only while their request remains pending
+/// and before this deadline check succeeds.
+fn expire_response_deadline(
+    pending: &PendingMap,
+    generation_fenced: &AtomicBool,
+) -> Option<usize> {
+    let entries = lock_pending(pending);
+    let now = Instant::now();
+    if entries.values().any(|entry| {
+        matches!(
+            entry.dispatch_phase,
+            DispatchPhase::MayHaveReachedChild { deadline }
+                | DispatchPhase::AwaitingResponse { deadline } if deadline <= now
+        )
+    }) {
+        generation_fenced.store(true, Ordering::SeqCst);
+        Some(entries.len())
+    } else {
+        None
+    }
 }
 
 type PendingMap = Arc<Mutex<HashMap<u64, Pending>>>;
@@ -230,6 +321,9 @@ async fn run_dispatcher_loop(
 
     let pending: PendingMap = Arc::new(Mutex::new(HashMap::new()));
     let next_id = Arc::new(AtomicU64::new(0));
+    let response_timeout = config.effective_response_timeout();
+    let deadline_changed = Arc::new(Notify::new());
+    let generation_fenced = Arc::new(AtomicBool::new(false));
     // The client acquires one admission credit before enqueue and carries it
     // through the queue, pending map, and response inbox. Consequently, with a
     // response channel of the same capacity, pending/queued failure outcomes
@@ -243,11 +337,37 @@ async fn run_dispatcher_loop(
         let pending = pending.clone();
         let next_id = next_id.clone();
         let response_tx = resp_tx.clone();
-        tokio::spawn(async move { writer_loop(stdin, req_rx, pending, next_id, response_tx).await })
+        let deadline_changed = deadline_changed.clone();
+        let generation_fenced = generation_fenced.clone();
+        tokio::spawn(async move {
+            writer_loop(
+                stdin,
+                req_rx,
+                pending,
+                next_id,
+                response_tx,
+                response_timeout,
+                deadline_changed,
+                generation_fenced,
+            )
+            .await
+        })
     };
     let mut reader_task = {
         let pending = pending.clone();
-        tokio::spawn(async move { reader_loop(stdout, resp_tx, pending).await })
+        let deadline_changed = deadline_changed.clone();
+        let generation_fenced = generation_fenced.clone();
+        tokio::spawn(async move {
+            reader_loop(
+                stdout,
+                resp_tx,
+                pending,
+                response_timeout,
+                deadline_changed,
+                generation_fenced,
+            )
+            .await
+        })
     };
 
     // If the request channel closes, the writer closes child stdin; then allow
@@ -354,7 +474,7 @@ async fn drain_with_error(
         let requester = request.requester();
         if resp_tx
             .send_async(MycelixResponseDelivery {
-                response: MycelixResponse::Error {
+                response: MycelixResponse::NotDispatched {
                     requester,
                     reason: reason.clone(),
                 },
@@ -375,6 +495,9 @@ async fn writer_loop<W>(
     pending: PendingMap,
     next_id: Arc<AtomicU64>,
     resp_tx: Sender<MycelixResponseDelivery>,
+    response_timeout: Duration,
+    deadline_changed: Arc<Notify>,
+    generation_fenced: Arc<AtomicBool>,
 ) -> Result<(), DispatcherError>
 where
     W: tokio::io::AsyncWrite + Unpin + Send + 'static,
@@ -386,12 +509,35 @@ where
         } = queued;
         let requester = req.requester();
 
+        if generation_fenced.load(Ordering::SeqCst) {
+            let reason = format!(
+                "dispatcher generation fenced after response deadline of {response_timeout:?}"
+            );
+            if resp_tx
+                .send_async(MycelixResponseDelivery {
+                    response: MycelixResponse::NotDispatched {
+                        requester,
+                        reason,
+                    },
+                    _permit: permit,
+                })
+                .await
+                .is_err()
+            {
+                warn!("response inbox closed; fenced queued request could not be delivered");
+            }
+            return Err(DispatcherError::ResponseTimeout {
+                timeout: response_timeout,
+                outstanding: lock_pending(&pending).len(),
+            });
+        }
+
         let request_id = next_id.fetch_add(1, Ordering::SeqCst);
         if request_id == u64::MAX {
             let reason = "bridge request_id space exhausted; refusing identifier reuse".to_string();
             let _ = resp_tx
                 .send_async(MycelixResponseDelivery {
-                    response: MycelixResponse::Error {
+                    response: MycelixResponse::NotDispatched {
                         requester,
                         reason: reason.clone(),
                     },
@@ -464,6 +610,7 @@ where
                 Pending {
                     requester,
                     kind,
+                    dispatch_phase: DispatchPhase::NotStarted,
                     _permit: permit,
                 },
             );
@@ -485,6 +632,25 @@ where
         };
         line.push('\n');
 
+        // Start the deadline at dispatch, not enqueue. In particular this also
+        // bounds a child that has stopped reading stdin and causes write/flush
+        // to stall before a response can possibly arrive.
+        let deadline = {
+            let mut entries = lock_pending(&pending);
+            if generation_fenced.load(Ordering::SeqCst) {
+                return Err(DispatcherError::ResponseTimeout {
+                    timeout: response_timeout,
+                    outstanding: entries.len(),
+                });
+            }
+            let deadline = Instant::now() + response_timeout;
+            if let Some(entry) = entries.get_mut(&request_id) {
+                entry.dispatch_phase = DispatchPhase::MayHaveReachedChild { deadline };
+            }
+            deadline
+        };
+        deadline_changed.notify_one();
+
         if let Err(err) = stdin.write_all(line.as_bytes()).await {
             let reason = format!("bridge subprocess request write failed: {err}");
             drop(stdin);
@@ -500,6 +666,19 @@ where
             return Err(DispatcherError::Stdin(err));
         }
 
+        {
+            let mut entries = lock_pending(&pending);
+            if generation_fenced.load(Ordering::SeqCst) {
+                return Err(DispatcherError::ResponseTimeout {
+                    timeout: response_timeout,
+                    outstanding: entries.len(),
+                });
+            }
+            if let Some(entry) = entries.get_mut(&request_id) {
+                entry.dispatch_phase = DispatchPhase::AwaitingResponse { deadline };
+            }
+        }
+
         trace!(%request_id, %requester, "dispatched request to subprocess");
     }
 
@@ -511,6 +690,9 @@ async fn reader_loop<R>(
     stdout: R,
     resp_tx: Sender<MycelixResponseDelivery>,
     pending: PendingMap,
+    response_timeout: Duration,
+    deadline_changed: Arc<Notify>,
+    generation_fenced: Arc<AtomicBool>,
 ) -> Result<(), DispatcherError>
 where
     R: tokio::io::AsyncRead + Unpin,
@@ -518,7 +700,54 @@ where
     let mut lines = BufReader::new(stdout).lines();
 
     loop {
-        let line = match lines.next_line().await {
+        if let Some(outstanding) = expire_response_deadline(&pending, &generation_fenced) {
+            return Err(DispatcherError::ResponseTimeout {
+                timeout: response_timeout,
+                outstanding,
+            });
+        }
+
+        let deadline = earliest_response_deadline(&pending);
+        let line_result = match deadline {
+            Some(deadline) => {
+                tokio::select! {
+                    biased;
+                    // At the boundary, deadline expiry wins over a simultaneously ready reply.
+                    _ = sleep_until(deadline) => {
+                        if let Some(outstanding) =
+                            expire_response_deadline(&pending, &generation_fenced)
+                        {
+                            return Err(DispatcherError::ResponseTimeout {
+                                timeout: response_timeout,
+                                outstanding,
+                            });
+                        }
+                        continue;
+                    }
+                    line = lines.next_line() => {
+                        if let Some(outstanding) =
+                            expire_response_deadline(&pending, &generation_fenced)
+                        {
+                            return Err(DispatcherError::ResponseTimeout {
+                                timeout: response_timeout,
+                                outstanding,
+                            });
+                        }
+                        line
+                    }
+                    _ = deadline_changed.notified() => continue,
+                }
+            }
+            None => {
+                tokio::select! {
+                    biased;
+                    line = lines.next_line() => line,
+                    _ = deadline_changed.notified() => continue,
+                }
+            }
+        };
+
+        let line = match line_result {
             Ok(Some(line)) => line,
             Ok(None) => {
                 let outstanding = lock_pending(&pending).len();
@@ -569,7 +798,22 @@ where
             }
         };
 
-        let response = match translate(id, wire, &pending).await {
+        if let Some(outstanding) = expire_response_deadline(&pending, &generation_fenced) {
+            return Err(DispatcherError::ResponseTimeout {
+                timeout: response_timeout,
+                outstanding,
+            });
+        }
+
+        let response = match translate(
+            id,
+            wire,
+            &pending,
+            response_timeout,
+            &generation_fenced,
+        )
+        .await
+        {
             Ok(response) => response,
             Err(err) => {
                 let reason = err.to_string();
@@ -601,12 +845,15 @@ async fn fail_all_pending(
         std::mem::take(&mut *guard)
     };
     for (_, entry) in entries {
+        let response = pending_failure_response(
+            entry.requester,
+            &entry.kind,
+            entry.dispatch_phase,
+            reason,
+        );
         if resp_tx
             .send_async(MycelixResponseDelivery {
-                response: MycelixResponse::Error {
-                    requester: entry.requester,
-                    reason: reason.to_string(),
-                },
+                response,
                 _permit: entry._permit,
             })
             .await
@@ -632,28 +879,72 @@ async fn translate(
     id: u64,
     wire: WireResponse,
     pending: &PendingMap,
+    response_timeout: Duration,
+    generation_fenced: &AtomicBool,
 ) -> Result<MycelixResponseDelivery, DispatcherError> {
-    let pending_entry = { lock_pending(pending).remove(&id) };
+    // The expiry test and removal are one mutex-protected acceptance decision.
+    // A response cannot slip across the deadline between an outer check and
+    // removing its pending entry; any expired request fences the generation.
+    let pending_entry = {
+        let mut entries = lock_pending(pending);
+        let now = Instant::now();
+        if entries.values().any(|entry| {
+            matches!(
+                entry.dispatch_phase,
+                DispatchPhase::MayHaveReachedChild { deadline }
+                    | DispatchPhase::AwaitingResponse { deadline } if deadline <= now
+            )
+        }) {
+            generation_fenced.store(true, Ordering::SeqCst);
+            return Err(DispatcherError::ResponseTimeout {
+                timeout: response_timeout,
+                outstanding: entries.len(),
+            });
+        }
+        if !entries.contains_key(&id) {
+            return Err(DispatcherError::UnknownRequestId(id));
+        }
+        if entries
+            .get(&id)
+            .is_some_and(|entry| entry.dispatch_phase == DispatchPhase::NotStarted)
+        {
+            return Err(DispatcherError::ResponseBeforeDispatch(id));
+        }
+        entries.remove(&id)
+    };
     let Some(Pending {
         requester,
         kind,
         _permit,
-    }) = pending_entry
-    else {
+        ..
+    }) = pending_entry else {
         return Err(DispatcherError::UnknownRequestId(id));
     };
 
+    let mutation_kind = kind.mutation_kind();
     let response = if !wire.ok {
-        MycelixResponse::Error {
-            requester,
-            reason: wire
-                .error
-                .unwrap_or_else(|| "bridge reported failure with no reason".to_string()),
+        let reason = wire
+            .error
+            .unwrap_or_else(|| "bridge reported failure with no reason".to_string());
+        match mutation_kind.clone() {
+            Some(operation) => MycelixResponse::IndeterminateMutation {
+                requester,
+                operation,
+                reason,
+            },
+            None => MycelixResponse::Error { requester, reason },
         }
     } else {
-        let invalid_success = |detail: &str| MycelixResponse::Error {
-            requester,
-            reason: format!("bridge returned an invalid successful response: {detail}"),
+        let invalid_success = |detail: &str| match mutation_kind.clone() {
+            Some(operation) => MycelixResponse::IndeterminateMutation {
+                requester,
+                operation,
+                reason: format!("bridge returned an invalid successful response: {detail}"),
+            },
+            None => MycelixResponse::Error {
+                requester,
+                reason: format!("bridge returned an invalid successful response: {detail}"),
+            },
         };
 
         match kind {
@@ -736,12 +1027,16 @@ pub(crate) enum DispatcherError {
     MissingRequestId,
     #[error("bridge response referenced unknown request_id {0}")]
     UnknownRequestId(u64),
+    #[error("bridge response arrived before request_id {0} was dispatched")]
+    ResponseBeforeDispatch(u64),
     #[error("failed to write to subprocess stdin: {0}")]
     Stdin(#[source] std::io::Error),
     #[error("failed to read from subprocess stdout: {0}")]
     Stdout(#[source] std::io::Error),
     #[error("failed to serialise request: {0}")]
     Serialise(#[source] serde_json::Error),
+    #[error("bridge response deadline of {timeout:?} expired with {outstanding} request(s) unresolved")]
+    ResponseTimeout { timeout: Duration, outstanding: usize },
     #[error("tokio task panicked: {0}")]
     Join(#[source] tokio::task::JoinError),
 }
@@ -764,6 +1059,9 @@ mod tests {
             kind: PendingKind::ProposalSubmitted {
                 proposal_id: "proposal-test".to_string(),
             },
+            dispatch_phase: DispatchPhase::MayHaveReachedChild {
+                deadline: Instant::now() + Duration::from_secs(30),
+            },
             _permit: permit,
         };
         Arc::new(Mutex::new(HashMap::from([(id, entry)])))
@@ -784,7 +1082,15 @@ mod tests {
                 let semaphore = Arc::new(Semaphore::new(1));
                 let pending = pending_one(7, &semaphore).await;
                 let (resp_tx, resp_rx) = flume::bounded(2);
-                let result = reader_loop(stdout, resp_tx, pending.clone()).await;
+                let result = reader_loop(
+                    stdout,
+                    resp_tx,
+                    pending.clone(),
+                    Duration::from_secs(30),
+                    Arc::new(Notify::new()),
+                    Arc::new(AtomicBool::new(false)),
+                )
+                .await;
 
                 assert!(matches!(
                     result,
@@ -803,13 +1109,188 @@ mod tests {
                     .into_response();
                 assert!(matches!(
                     failure,
-                    MycelixResponse::Error { requester, .. } if requester == Entity::PLACEHOLDER
+                    MycelixResponse::IndeterminateMutation {
+                        requester,
+                        operation: MycelixMutationKind::SubmitProposal { proposal_id },
+                        ..
+                    } if requester == Entity::PLACEHOLDER && proposal_id == "proposal-test"
                 ));
                 assert_eq!(
                     semaphore.available_permits(),
                     1,
                     "consuming the failure response releases its admission credit"
                 );
+            });
+    }
+
+    #[test]
+    fn expired_deadline_fences_generation_and_marks_mutation_indeterminate() {
+        tokio::runtime::Runtime::new()
+            .expect("runtime")
+            .block_on(async {
+                // A reply is already readable, but the deadline expired before
+                // the reader processes it. At the boundary, timeout wins; a late
+                // action hash must not be accepted as a successful mutation.
+                let (mut source, stdout) = tokio::io::duplex(1024);
+                source
+                    .write_all(b"{\"request_id\":44,\"ok\":true,\"data\":\"action-hash\"}\n")
+                    .await
+                    .expect("write late success response");
+
+                let semaphore = Arc::new(Semaphore::new(1));
+                let pending = pending_one(44, &semaphore).await;
+                {
+                    let mut entries = lock_pending(&pending);
+                    entries.get_mut(&44).expect("pending request").dispatch_phase =
+                        DispatchPhase::AwaitingResponse {
+                            deadline: Instant::now() - Duration::from_millis(1),
+                        };
+                }
+                let (resp_tx, resp_rx) = flume::bounded(2);
+                let fenced = Arc::new(AtomicBool::new(false));
+                let result = reader_loop(
+                    stdout,
+                    resp_tx.clone(),
+                    pending.clone(),
+                    Duration::from_secs(1),
+                    Arc::new(Notify::new()),
+                    fenced.clone(),
+                )
+                .await;
+
+                assert!(matches!(
+                    result,
+                    Err(DispatcherError::ResponseTimeout { outstanding: 1, .. })
+                ));
+                assert!(fenced.load(Ordering::SeqCst));
+                assert!(lock_pending(&pending).contains_key(&44));
+
+                fail_all_pending(&pending, &resp_tx, "response deadline expired").await;
+                let response = resp_rx
+                    .recv_async()
+                    .await
+                    .expect("typed timeout result")
+                    .into_response();
+                assert!(matches!(
+                    response,
+                    MycelixResponse::IndeterminateMutation {
+                        requester,
+                        operation: MycelixMutationKind::SubmitProposal { proposal_id },
+                        ..
+                    } if requester == Entity::PLACEHOLDER && proposal_id == "proposal-test"
+                ));
+                assert_eq!(semaphore.available_permits(), 1);
+            });
+    }
+
+    #[test]
+    fn local_queue_phase_has_no_response_deadline() {
+        tokio::runtime::Runtime::new()
+            .expect("runtime")
+            .block_on(async {
+                let semaphore = Arc::new(Semaphore::new(1));
+                let pending = pending_one(54, &semaphore).await;
+                {
+                    let mut entries = lock_pending(&pending);
+                    entries.get_mut(&54).expect("pending request").dispatch_phase =
+                        DispatchPhase::NotStarted;
+                }
+
+                let fenced = AtomicBool::new(false);
+                assert_eq!(earliest_response_deadline(&pending), None);
+                assert_eq!(expire_response_deadline(&pending, &fenced), None);
+                assert!(!fenced.load(Ordering::SeqCst));
+                assert!(lock_pending(&pending).contains_key(&54));
+            });
+    }
+
+    #[tokio::test(start_paused = true)]
+    async fn silent_child_triggers_deadline_without_wall_clock_sleep() {
+        // Keep stdout open but never write a response, modeling a child that is
+        // alive and silent. Paused Tokio time makes the deadline deterministic.
+        let (_source, stdout) = tokio::io::duplex(1024);
+        let semaphore = Arc::new(Semaphore::new(1));
+        let pending = pending_one(53, &semaphore).await;
+        let deadline = Instant::now() + Duration::from_secs(5);
+        {
+            let mut entries = lock_pending(&pending);
+            entries.get_mut(&53).expect("pending request").dispatch_phase =
+                DispatchPhase::AwaitingResponse { deadline };
+        }
+
+        let (resp_tx, resp_rx) = flume::bounded(1);
+        let fenced = Arc::new(AtomicBool::new(false));
+        let reader = tokio::spawn(reader_loop(
+            stdout,
+            resp_tx.clone(),
+            pending.clone(),
+            Duration::from_secs(5),
+            Arc::new(Notify::new()),
+            fenced.clone(),
+        ));
+
+        // Let reader_loop enter its select on the pending deadline before
+        // advancing virtual time.
+        tokio::task::yield_now().await;
+        tokio::time::advance(Duration::from_secs(5)).await;
+
+        let result = reader.await.expect("reader task");
+        assert!(matches!(
+            result,
+            Err(DispatcherError::ResponseTimeout { outstanding: 1, .. })
+        ));
+        assert!(fenced.load(Ordering::SeqCst));
+        assert!(lock_pending(&pending).contains_key(&53));
+
+        fail_all_pending(&pending, &resp_tx, "silent child exceeded response deadline").await;
+        assert!(matches!(
+            resp_rx.recv_async().await.expect("indeterminate timeout result").into_response(),
+            MycelixResponse::IndeterminateMutation { .. }
+        ));
+        assert_eq!(semaphore.available_permits(), 1);
+    }
+
+    #[test]
+    fn expired_preflush_deadline_fences_mutation_outcome() {
+        tokio::runtime::Runtime::new()
+            .expect("runtime")
+            .block_on(async {
+                // Model an expired deadline in the pre-flush dispatch phase.
+                // The phase is deliberately conservative: some bytes may have
+                // reached the child, so a mutation must remain indeterminate.
+                let (_source, stdout) = tokio::io::duplex(1024);
+                let semaphore = Arc::new(Semaphore::new(1));
+                let pending = pending_one(45, &semaphore).await;
+                {
+                    let mut entries = lock_pending(&pending);
+                    entries.get_mut(&45).expect("pending request").dispatch_phase =
+                        DispatchPhase::MayHaveReachedChild {
+                            deadline: Instant::now() - Duration::from_millis(1),
+                        };
+                }
+                let (resp_tx, resp_rx) = flume::bounded(2);
+                let fenced = Arc::new(AtomicBool::new(false));
+                let result = reader_loop(
+                    stdout,
+                    resp_tx.clone(),
+                    pending.clone(),
+                    Duration::from_secs(1),
+                    Arc::new(Notify::new()),
+                    fenced.clone(),
+                )
+                .await;
+
+                assert!(matches!(
+                    result,
+                    Err(DispatcherError::ResponseTimeout { outstanding: 1, .. })
+                ));
+                assert!(fenced.load(Ordering::SeqCst));
+                fail_all_pending(&pending, &resp_tx, "dispatch deadline expired").await;
+                assert!(matches!(
+                    resp_rx.recv_async().await.expect("timeout result").into_response(),
+                    MycelixResponse::IndeterminateMutation { .. }
+                ));
+                assert_eq!(semaphore.available_permits(), 1);
             });
     }
 
@@ -824,7 +1305,15 @@ mod tests {
                 let semaphore = Arc::new(Semaphore::new(1));
                 let pending = pending_one(8, &semaphore).await;
                 let (resp_tx, resp_rx) = flume::bounded(2);
-                let result = reader_loop(stdout, resp_tx, pending.clone()).await;
+                let result = reader_loop(
+                    stdout,
+                    resp_tx,
+                    pending.clone(),
+                    Duration::from_secs(30),
+                    Arc::new(Notify::new()),
+                    Arc::new(AtomicBool::new(false)),
+                )
+                .await;
 
                 assert!(matches!(
                     result,
@@ -833,7 +1322,8 @@ mod tests {
                 assert!(lock_pending(&pending).is_empty());
                 assert!(matches!(
                     resp_rx.recv_async().await.expect("failure response").into_response(),
-                    MycelixResponse::Error { requester, .. } if requester == Entity::PLACEHOLDER
+                    MycelixResponse::IndeterminateMutation { requester, .. }
+                        if requester == Entity::PLACEHOLDER
                 ));
             });
     }
@@ -853,13 +1343,21 @@ mod tests {
                 let semaphore = Arc::new(Semaphore::new(1));
                 let pending = pending_one(8, &semaphore).await;
                 let (resp_tx, resp_rx) = flume::bounded(2);
-                let result = reader_loop(stdout, resp_tx, pending.clone()).await;
+                let result = reader_loop(
+                    stdout,
+                    resp_tx,
+                    pending.clone(),
+                    Duration::from_secs(30),
+                    Arc::new(Notify::new()),
+                    Arc::new(AtomicBool::new(false)),
+                )
+                .await;
 
                 assert!(matches!(result, Err(DispatcherError::UnknownRequestId(99))));
                 assert!(lock_pending(&pending).is_empty());
                 assert!(matches!(
                     resp_rx.recv_async().await.expect("failure response").into_response(),
-                    MycelixResponse::Error { requester, reason }
+                    MycelixResponse::IndeterminateMutation { requester, reason, .. }
                         if requester == Entity::PLACEHOLDER && reason.contains("unknown request_id 99")
                 ));
             });
@@ -943,8 +1441,8 @@ mod tests {
                     .await
                     .expect("queued failure")
                     .into_response();
-                assert!(matches!(pending_failure, MycelixResponse::Error { .. }));
-                assert!(matches!(queued_failure, MycelixResponse::Error { .. }));
+                assert!(matches!(pending_failure, MycelixResponse::IndeterminateMutation { .. }));
+                assert!(matches!(queued_failure, MycelixResponse::NotDispatched { .. }));
                 assert_eq!(admission.available_permits(), 3);
             });
     }
@@ -981,6 +1479,9 @@ mod tests {
                     pending.clone(),
                     Arc::new(AtomicU64::new(0)),
                     resp_tx.clone(),
+                    Duration::from_secs(30),
+                    Arc::new(Notify::new()),
+                    Arc::new(AtomicBool::new(false)),
                 ));
 
                 let mut first_line = String::new();
@@ -998,9 +1499,100 @@ mod tests {
                 let delivered = resp_rx.recv_async().await.expect("failure response");
                 assert!(matches!(
                     delivered.into_response(),
-                    MycelixResponse::Error { .. }
+                    MycelixResponse::IndeterminateMutation { .. }
                 ));
                 assert_eq!(admission.available_permits(), 1);
+            });
+    }
+
+    #[test]
+    fn response_acceptance_rechecks_expiry_atomically_before_removal() {
+        tokio::runtime::Runtime::new()
+            .expect("runtime")
+            .block_on(async {
+                let semaphore = Arc::new(Semaphore::new(1));
+                let pending = pending_one(52, &semaphore).await;
+                {
+                    let mut entries = lock_pending(&pending);
+                    entries.get_mut(&52).expect("pending request").dispatch_phase =
+                        DispatchPhase::AwaitingResponse {
+                            deadline: Instant::now() - Duration::from_millis(1),
+                        };
+                }
+                let fenced = AtomicBool::new(false);
+                let result = translate(
+                    52,
+                    WireResponse {
+                        request_id: Some(52),
+                        ok: true,
+                        data: Some(serde_json::json!("uhCkk_action_hash")),
+                        error: None,
+                    },
+                    &pending,
+                    Duration::from_secs(30),
+                    &fenced,
+                )
+                .await;
+
+                assert!(matches!(
+                    result,
+                    Err(DispatcherError::ResponseTimeout { outstanding: 1, .. })
+                ));
+                assert!(fenced.load(Ordering::SeqCst));
+                assert!(lock_pending(&pending).contains_key(&52));
+
+                let (resp_tx, resp_rx) = flume::bounded(1);
+                fail_all_pending(&pending, &resp_tx, "response deadline expired").await;
+                assert!(matches!(
+                    resp_rx.recv_async().await.expect("indeterminate outcome").into_response(),
+                    MycelixResponse::IndeterminateMutation { .. }
+                ));
+                assert_eq!(semaphore.available_permits(), 1);
+            });
+    }
+
+    #[test]
+    fn response_before_dispatch_is_rejected_without_consuming_the_request() {
+        tokio::runtime::Runtime::new()
+            .expect("runtime")
+            .block_on(async {
+                let semaphore = Arc::new(Semaphore::new(1));
+                let pending = pending_one(51, &semaphore).await;
+                {
+                    let mut entries = lock_pending(&pending);
+                    entries.get_mut(&51).expect("pending request").dispatch_phase =
+                        DispatchPhase::NotStarted;
+                }
+                let fenced = AtomicBool::new(false);
+                let result = translate(
+                    51,
+                    WireResponse {
+                        request_id: Some(51),
+                        ok: true,
+                        data: Some(serde_json::json!("uhCkk_action_hash")),
+                        error: None,
+                    },
+                    &pending,
+                    Duration::from_secs(30),
+                    &fenced,
+                )
+                .await;
+
+                assert!(matches!(
+                    result,
+                    Err(DispatcherError::ResponseBeforeDispatch(51))
+                ));
+                assert!(!fenced.load(Ordering::SeqCst));
+                assert!(lock_pending(&pending).contains_key(&51));
+
+                let (resp_tx, resp_rx) = flume::bounded(1);
+                fail_all_pending(&pending, &resp_tx, "response before dispatch").await;
+                assert!(matches!(
+                    resp_rx.recv_async().await.expect("not-dispatched outcome").into_response(),
+                    MycelixResponse::NotDispatched { requester, .. }
+                        if requester == Entity::PLACEHOLDER
+                ));
+                assert_eq!(semaphore.available_permits(), 1);
             });
     }
 
@@ -1022,6 +1614,9 @@ mod tests {
                         kind: PendingKind::VoteCast {
                             proposal_id: "P1".to_string(),
                         },
+                        dispatch_phase: DispatchPhase::AwaitingResponse {
+                            deadline: Instant::now() + Duration::from_secs(30),
+                        },
                         _permit: permit,
                     },
                 )])));
@@ -1034,6 +1629,8 @@ mod tests {
                         error: None,
                     },
                     &pending,
+                    Duration::from_secs(30),
+                    &AtomicBool::new(false),
                 )
                 .await
                 .expect("invalid vote acknowledgement becomes a typed error response")
@@ -1041,10 +1638,47 @@ mod tests {
 
                 assert!(matches!(
                     response,
-                    MycelixResponse::Error { requester, reason }
+                    MycelixResponse::IndeterminateMutation { requester, reason, .. }
                         if requester == Entity::PLACEHOLDER && reason.contains("matching proposal ID")
                 ));
                 assert!(lock_pending(&pending).is_empty());
+                assert_eq!(semaphore.available_permits(), 1);
+            });
+    }
+
+    #[test]
+    fn mutation_error_envelope_does_not_claim_definitive_rejection() {
+        tokio::runtime::Runtime::new()
+            .expect("runtime")
+            .block_on(async {
+                let semaphore = Arc::new(Semaphore::new(1));
+                let pending = pending_one(12, &semaphore).await;
+                let response = translate(
+                    12,
+                    WireResponse {
+                        request_id: Some(12),
+                        ok: false,
+                        data: None,
+                        error: Some("transport failed after dispatch".to_string()),
+                    },
+                    &pending,
+                    Duration::from_secs(30),
+                    &AtomicBool::new(false),
+                )
+                .await
+                .expect("error envelope is delivered as a typed outcome")
+                .into_response();
+
+                assert!(matches!(
+                    response,
+                    MycelixResponse::IndeterminateMutation {
+                        requester,
+                        operation: MycelixMutationKind::SubmitProposal { proposal_id },
+                        reason,
+                    } if requester == Entity::PLACEHOLDER
+                        && proposal_id == "proposal-test"
+                        && reason.contains("transport failed after dispatch")
+                ));
                 assert_eq!(semaphore.available_permits(), 1);
             });
     }
@@ -1065,6 +1699,8 @@ mod tests {
                         error: None,
                     },
                     &pending,
+                    Duration::from_secs(30),
+                    &AtomicBool::new(false),
                 )
                 .await
                 .expect("valid proposal acknowledgement")
@@ -1099,13 +1735,15 @@ mod tests {
                         error: None,
                     },
                     &pending,
+                    Duration::from_secs(30),
+                    &AtomicBool::new(false),
                 )
                 .await
                 .expect("invalid success becomes a typed error response")
                 .into_response();
                 assert!(matches!(
                     response,
-                    MycelixResponse::Error { requester, reason }
+                    MycelixResponse::IndeterminateMutation { requester, reason, .. }
                         if requester == Entity::PLACEHOLDER && reason.contains("action hash")
                 ));
                 assert!(lock_pending(&pending).is_empty());

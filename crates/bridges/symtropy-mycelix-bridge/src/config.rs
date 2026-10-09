@@ -2,8 +2,12 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 use std::path::PathBuf;
+use std::time::Duration;
 
 use bevy::prelude::Resource;
+
+const MIN_RESPONSE_TIMEOUT: Duration = Duration::from_millis(1);
+const MAX_RESPONSE_TIMEOUT: Duration = Duration::from_secs(300);
 
 /// Runtime configuration for the Bevy ↔ Mycelix bridge.
 ///
@@ -35,6 +39,11 @@ pub struct MycelixConfig {
     /// queue. When exhausted, [`crate::MycelixClient::send`] returns an error
     /// rather than blocking the Bevy schedule.
     pub inflight_budget: usize,
+    /// Maximum time from the first stdin write attempt to response acceptance.
+    /// Queue/admission wait is excluded; the deadline also bounds stalled pipe
+    /// writes/flushes. Expiry does not prove a remote mutation was rejected.
+    /// The effective value is clamped to 1 ms through 5 minutes.
+    pub response_timeout: Duration,
 }
 
 impl Default for MycelixConfig {
@@ -45,6 +54,7 @@ impl Default for MycelixConfig {
             app_id: "mycelix-governance".to_string(),
             role: "governance".to_string(),
             inflight_budget: 128,
+            response_timeout: Duration::from_secs(30),
         }
     }
 }
@@ -88,11 +98,30 @@ impl MycelixConfig {
         self.inflight_budget = budget;
         self
     }
+
+    /// Effective finite deadline for a dispatched request.
+    ///
+    /// Clamp the timeout to a finite, operational range. The lower bound
+    /// prevents zero from disabling enforcement; the upper bound prevents an
+    /// unbounded hostile duration from overflowing a monotonic deadline.
+    #[must_use]
+    pub fn effective_response_timeout(&self) -> Duration {
+        self.response_timeout
+            .max(MIN_RESPONSE_TIMEOUT)
+            .min(MAX_RESPONSE_TIMEOUT)
+    }
+
+    /// Override the response deadline measured from the first stdin write attempt.
+    pub fn with_response_timeout(mut self, timeout: Duration) -> Self {
+        self.response_timeout = timeout;
+        self
+    }
 }
 
 #[cfg(test)]
 mod tests {
     use super::MycelixConfig;
+    use std::time::Duration;
 
     #[test]
     fn inflight_budget_has_a_nonzero_effective_capacity() {
@@ -107,6 +136,22 @@ mod tests {
                 .with_inflight_budget(16)
                 .effective_inflight_budget(),
             16
+        );
+        assert_eq!(
+            MycelixConfig::default().effective_response_timeout(),
+            Duration::from_secs(30)
+        );
+        assert_eq!(
+            MycelixConfig::default()
+                .with_response_timeout(Duration::ZERO)
+                .effective_response_timeout(),
+            Duration::from_millis(1)
+        );
+        assert_eq!(
+            MycelixConfig::default()
+                .with_response_timeout(Duration::MAX)
+                .effective_response_timeout(),
+            Duration::from_secs(300)
         );
     }
 }
