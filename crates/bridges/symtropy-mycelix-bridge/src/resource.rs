@@ -26,6 +26,7 @@ pub(crate) struct MycelixResponseDelivery {
 impl MycelixResponseDelivery {
     /// Extract a response for tests or adapters that explicitly consume it.
     /// Production pumping writes the message before dropping the permit.
+    #[cfg(test)]
     pub(crate) fn into_response(self) -> MycelixResponse {
         let Self { response, _permit } = self;
         drop(_permit);
