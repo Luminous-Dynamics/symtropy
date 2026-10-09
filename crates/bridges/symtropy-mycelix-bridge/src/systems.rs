@@ -885,11 +885,16 @@ async fn translate(
 
     let mutation_kind = kind.mutation_kind();
     let response = if !wire.ok {
-        MycelixResponse::Error {
-            requester,
-            reason: wire
-                .error
-                .unwrap_or_else(|| "bridge reported failure with no reason".to_string()),
+        let reason = wire
+            .error
+            .unwrap_or_else(|| "bridge reported failure with no reason".to_string());
+        match mutation_kind.clone() {
+            Some(operation) => MycelixResponse::IndeterminateMutation {
+                requester,
+                operation,
+                reason,
+            },
+            None => MycelixResponse::Error { requester, reason },
         }
     } else {
         let invalid_success = |detail: &str| match mutation_kind.clone() {
@@ -1436,6 +1441,41 @@ mod tests {
                         if requester == Entity::PLACEHOLDER && reason.contains("matching proposal ID")
                 ));
                 assert!(lock_pending(&pending).is_empty());
+                assert_eq!(semaphore.available_permits(), 1);
+            });
+    }
+
+    #[test]
+    fn mutation_error_envelope_does_not_claim_definitive_rejection() {
+        tokio::runtime::Runtime::new()
+            .expect("runtime")
+            .block_on(async {
+                let semaphore = Arc::new(Semaphore::new(1));
+                let pending = pending_one(12, &semaphore).await;
+                let response = translate(
+                    12,
+                    WireResponse {
+                        request_id: Some(12),
+                        ok: false,
+                        data: None,
+                        error: Some("transport failed after dispatch".to_string()),
+                    },
+                    &pending,
+                )
+                .await
+                .expect("error envelope is delivered as a typed outcome")
+                .into_response();
+
+                assert!(matches!(
+                    response,
+                    MycelixResponse::IndeterminateMutation {
+                        requester,
+                        operation: MycelixMutationKind::SubmitProposal { proposal_id },
+                        reason,
+                    } if requester == Entity::PLACEHOLDER
+                        && proposal_id == "proposal-test"
+                        && reason.contains("transport failed after dispatch")
+                ));
                 assert_eq!(semaphore.available_permits(), 1);
             });
     }
