@@ -221,7 +221,7 @@ async fn run_dispatcher_loop(
     // so a bad setting cannot deadlock all dispatch.
     let inflight = Arc::new(Semaphore::new(config.effective_inflight_budget()));
 
-    let writer_task = {
+    let mut writer_task = {
         let pending = pending.clone();
         let next_id = next_id.clone();
         let inflight = inflight.clone();
@@ -230,17 +230,27 @@ async fn run_dispatcher_loop(
             writer_loop(stdin, req_rx, pending, next_id, inflight, response_tx).await
         })
     };
-    let reader_task = {
+    let mut reader_task = {
         let pending = pending.clone();
         tokio::spawn(async move { reader_loop(stdout, resp_tx, pending).await })
     };
 
+    // If the request channel closes, the writer closes child stdin; then allow
+    // the reader to drain final replies before accepting shutdown. Conversely,
+    // the child exiting first is a runtime failure even when no request happened
+    // to be pending at that instant.
     tokio::select! {
-        res = writer_task => res.map_err(DispatcherError::Join)??,
-        res = reader_task => res.map_err(DispatcherError::Join)??,
-    };
-
-    Ok(())
+        biased;
+        writer_result = &mut writer_task => {
+            writer_result.map_err(DispatcherError::Join)??;
+            reader_task.await.map_err(DispatcherError::Join)??;
+            Ok(())
+        }
+        reader_result = &mut reader_task => {
+            reader_result.map_err(DispatcherError::Join)??;
+            Err(DispatcherError::UnexpectedBridgeExit)
+        }
+    }
 }
 
 async fn drain_with_error(
