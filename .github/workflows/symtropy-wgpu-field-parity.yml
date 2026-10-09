@@ -3,6 +3,11 @@ name: Symtropy persistent WGPU field parity
 permissions:
   contents: read
 
+# A newer PR head supersedes the old execution; never count stale-head evidence.
+concurrency:
+  group: symtropy-wgpu-field-parity-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 on:
   pull_request:
     types: [opened, synchronize, reopened, ready_for_review]
