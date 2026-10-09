@@ -6,6 +6,9 @@ use std::time::Duration;
 
 use bevy::prelude::Resource;
 
+const MIN_RESPONSE_TIMEOUT: Duration = Duration::from_millis(1);
+const MAX_RESPONSE_TIMEOUT: Duration = Duration::from_secs(300);
+
 /// Runtime configuration for the Bevy ↔ Mycelix bridge.
 ///
 /// The bridge runs `mycelix-conductor-bridge` (from the monorepo) as a child
@@ -98,11 +101,14 @@ impl MycelixConfig {
 
     /// Effective finite deadline for a dispatched request.
     ///
-    /// A zero duration is normalized to one millisecond so this setting can
-    /// never silently disable response-deadline enforcement.
+    /// Clamp the timeout to a finite, operational range. The lower bound
+    /// prevents zero from disabling enforcement; the upper bound prevents an
+    /// unbounded hostile duration from overflowing a monotonic deadline.
     #[must_use]
     pub fn effective_response_timeout(&self) -> Duration {
-        self.response_timeout.max(Duration::from_millis(1))
+        self.response_timeout
+            .max(MIN_RESPONSE_TIMEOUT)
+            .min(MAX_RESPONSE_TIMEOUT)
     }
 
     /// Override the response deadline measured from the first stdin write attempt.
@@ -140,6 +146,12 @@ mod tests {
                 .with_response_timeout(Duration::ZERO)
                 .effective_response_timeout(),
             Duration::from_millis(1)
+        );
+        assert_eq!(
+            MycelixConfig::default()
+                .with_response_timeout(Duration::MAX)
+                .effective_response_timeout(),
+            Duration::from_secs(300)
         );
     }
 }
