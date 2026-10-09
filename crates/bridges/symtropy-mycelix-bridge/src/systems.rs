@@ -1139,6 +1139,49 @@ mod tests {
     }
 
     #[test]
+    fn dispatch_deadline_covers_a_stalled_stdin_write() {
+        tokio::runtime::Runtime::new()
+            .expect("runtime")
+            .block_on(async {
+                // If stdin write/flush stalls, the deadline is already armed
+                // from dispatch start even though no successful flush occurred.
+                let (_source, stdout) = tokio::io::duplex(1024);
+                let semaphore = Arc::new(Semaphore::new(1));
+                let pending = pending_one(45, &semaphore).await;
+                {
+                    let mut entries = lock_pending(&pending);
+                    entries.get_mut(&45).expect("pending request").dispatch_phase =
+                        DispatchPhase::MayHaveReachedChild {
+                            deadline: Instant::now() - Duration::from_millis(1),
+                        };
+                }
+                let (resp_tx, resp_rx) = flume::bounded(2);
+                let fenced = Arc::new(AtomicBool::new(false));
+                let result = reader_loop(
+                    stdout,
+                    resp_tx.clone(),
+                    pending.clone(),
+                    Duration::from_secs(1),
+                    Arc::new(Notify::new()),
+                    fenced.clone(),
+                )
+                .await;
+
+                assert!(matches!(
+                    result,
+                    Err(DispatcherError::ResponseTimeout { outstanding: 1, .. })
+                ));
+                assert!(fenced.load(Ordering::SeqCst));
+                fail_all_pending(&pending, &resp_tx, "dispatch deadline expired").await;
+                assert!(matches!(
+                    resp_rx.recv_async().await.expect("timeout result").into_response(),
+                    MycelixResponse::IndeterminateMutation { .. }
+                ));
+                assert_eq!(semaphore.available_permits(), 1);
+            });
+    }
+
+    #[test]
     fn stdout_eof_with_pending_request_is_not_reported_as_clean_shutdown() {
         tokio::runtime::Runtime::new()
             .expect("runtime")
