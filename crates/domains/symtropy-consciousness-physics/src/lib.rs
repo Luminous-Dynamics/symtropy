@@ -23,7 +23,7 @@
 //! 1. **Φ → Force**: Motor gain modulation via NRC 4-tier safety (Green/Yellow/Orange/Red)
 //! 2. **Φ → Energy**: Φ-gated energy budget (movement, maintenance, collision costs)
 //! 3. **Harmony → Impulse**: Sanctuary zones dampen collision impulses (Sacred Stillness)
-//! 4. **Harmony → Friction**: 1/r² CEMI-inspired fields modulate friction coefficients
+//! 4. **Harmony → Friction**: dimension-dependent, Plummer-softened influence fields modulate friction; the kernel is phenomenological, not a derived CEMI field law
 //! 5. **Collision → Φ**: Prediction error feedback reduces motor precision
 
 pub mod active_inference;
