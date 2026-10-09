@@ -784,7 +784,7 @@ mod tests {
                 assert!(pending.lock().await.is_empty());
                 assert_eq!(semaphore.available_permits(), 1);
                 assert!(matches!(
-                    resp_rx.recv_async().await.expect("failure response"),
+                    resp_rx.recv_async().await.expect("failure response").into_response(),
                     MycelixResponse::Error { requester, .. } if requester == Entity::PLACEHOLDER
                 ));
             });
@@ -809,7 +809,7 @@ mod tests {
                 ));
                 assert!(pending.lock().await.is_empty());
                 assert!(matches!(
-                    resp_rx.recv_async().await.expect("failure response"),
+                    resp_rx.recv_async().await.expect("failure response").into_response(),
                     MycelixResponse::Error { requester, .. } if requester == Entity::PLACEHOLDER
                 ));
             });
@@ -835,7 +835,7 @@ mod tests {
                 assert!(matches!(result, Err(DispatcherError::UnknownRequestId(99))));
                 assert!(pending.lock().await.is_empty());
                 assert!(matches!(
-                    resp_rx.recv_async().await.expect("failure response"),
+                    resp_rx.recv_async().await.expect("failure response").into_response(),
                     MycelixResponse::Error { requester, reason }
                         if requester == Entity::PLACEHOLDER && reason.contains("unknown request_id 99")
                 ));
@@ -843,86 +843,108 @@ mod tests {
     }
 
     #[test]
-    fn supervisor_failure_completes_both_pending_and_queued_requests() {
+    fn supervisor_failure_completes_pending_and_queued_requests_without_blocking_full_inbox() {
         tokio::runtime::Runtime::new()
             .expect("runtime")
             .block_on(async {
-                let semaphore = Arc::new(Semaphore::new(1));
-                let pending = pending_one(17, &semaphore).await;
-                let (request_tx, request_rx) = flume::bounded(2);
+                // Every accepted operation owns one credit until delivery. With
+                // one already-buffered response, one pending request, and one
+                // queued request, the bounded response inbox has exactly enough
+                // room for both failure outcomes without awaiting the consumer.
+                let admission = Arc::new(Semaphore::new(3));
+                let pending = pending_one(17, &admission).await;
+                let (request_tx, request_rx) = flume::bounded(3);
+                let queued_permit = admission
+                    .clone()
+                    .acquire_owned()
+                    .await
+                    .expect("queued request credit");
                 request_tx
-                    .send(MycelixRequest::QueryTendBalance {
-                        requester: Entity::PLACEHOLDER,
-                        member_did: "did:key:queued".to_string(),
+                    .send(QueuedRequest {
+                        request: MycelixRequest::QueryTendBalance {
+                            requester: Entity::PLACEHOLDER,
+                            member_did: "did:key:queued".to_string(),
+                        },
+                        _permit: queued_permit,
                     })
                     .expect("queued request");
+
                 let (resp_tx, resp_rx) = flume::bounded(3);
-
-                let pending_for_drain = pending.clone();
-                let drain_task = tokio::spawn(async move {
-                    fail_pending_and_queued(
-                        &pending_for_drain,
-                        request_rx,
-                        resp_tx,
-                        "bridge exited unexpectedly",
-                    )
-                    .await;
-                });
-
-                let first = resp_rx.recv_async().await.expect("pending failure");
-                let second = resp_rx.recv_async().await.expect("queued failure");
-                assert!(matches!(first, MycelixResponse::Error { .. }));
-                assert!(matches!(second, MycelixResponse::Error { .. }));
-                assert!(resp_rx.is_empty());
-
-                // A failed generation remains a rejection sink while callers
-                // still own senders; it must never silently accept later work.
-                request_tx
-                    .send(MycelixRequest::GetActiveProposals {
-                        requester: Entity::PLACEHOLDER,
+                let already_delivered_permit = admission
+                    .clone()
+                    .acquire_owned()
+                    .await
+                    .expect("buffered response credit");
+                resp_tx
+                    .send(MycelixResponseDelivery {
+                        response: MycelixResponse::ActiveProposals {
+                            requester: Entity::PLACEHOLDER,
+                            proposals: vec![],
+                        },
+                        _permit: already_delivered_permit,
                     })
-                    .expect("failed bridge retains a rejection sink");
-                assert!(matches!(
-                    resp_rx.recv_async().await.expect("post-failure rejection"),
-                    MycelixResponse::Error { .. }
-                ));
+                    .expect("buffered response");
+                drop(request_tx);
+
+                tokio::time::timeout(
+                    Duration::from_secs(1),
+                    fail_pending_and_queued(
+                        &pending,
+                        request_rx,
+                        resp_tx.clone(),
+                        "bridge exited unexpectedly",
+                    ),
+                )
+                .await
+                .expect("failure delivery must fit in the reserved response capacity");
 
                 assert!(pending.lock().await.is_empty());
-                assert_eq!(semaphore.available_permits(), 1);
-                drop(request_tx);
-                drain_task.await.expect("error drain task");
+                assert_eq!(resp_rx.len(), 3);
+                assert_eq!(admission.available_permits(), 0);
+
+                // Consuming responses returns credits; no failure-path outcome
+                // is dropped, and subsequent work can be rejected/delivered by
+                // the generation's fail-closed sink without a deadlock.
+                let _buffered = resp_rx.recv_async().await.expect("buffered response").into_response();
+                let pending_failure = resp_rx.recv_async().await.expect("pending failure").into_response();
+                let queued_failure = resp_rx.recv_async().await.expect("queued failure").into_response();
+                assert!(matches!(pending_failure, MycelixResponse::Error { .. }));
+                assert!(matches!(queued_failure, MycelixResponse::Error { .. }));
+                assert_eq!(admission.available_permits(), 3);
             });
     }
 
     #[test]
-    fn dispatched_requests_are_bounded_by_inflight_budget() {
+    fn admission_credit_is_held_until_response_delivery() {
         tokio::runtime::Runtime::new()
             .expect("runtime")
             .block_on(async {
+                use crate::resource::{MycelixClient, MycelixSendError};
+
                 let (request_tx, request_rx) = flume::bounded(2);
-                request_tx
+                let admission = Arc::new(Semaphore::new(1));
+                let client = MycelixClient::new(request_tx, admission.clone());
+                client
                     .send(MycelixRequest::GetActiveProposals {
                         requester: Entity::PLACEHOLDER,
                     })
-                    .expect("first request");
-                request_tx
-                    .send(MycelixRequest::QueryTendBalance {
+                    .expect("first request admitted");
+                assert!(matches!(
+                    client.send(MycelixRequest::GetActiveProposals {
                         requester: Entity::PLACEHOLDER,
-                        member_did: "did:key:test".to_string(),
-                    })
-                    .expect("second request");
+                    }),
+                    Err(MycelixSendError::Full)
+                ));
 
                 let (stdin, stdout) = tokio::io::duplex(4096);
                 let mut stdout = BufReader::new(stdout);
-                let (resp_tx, _resp_rx) = flume::bounded(2);
+                let (resp_tx, resp_rx) = flume::bounded(1);
                 let pending = Arc::new(Mutex::new(HashMap::new()));
-                let semaphore = Arc::new(Semaphore::new(1));
                 let writer = tokio::spawn(writer_loop(
                     stdin,
                     request_rx,
                     pending.clone(),
                     Arc::new(AtomicU64::new(0)),
-                    semaphore,
                     resp_tx.clone(),
                 ));
 
@@ -933,21 +955,15 @@ mod tests {
                     .expect("read first request");
                 assert!(!first_line.is_empty());
                 assert_eq!(pending.lock().await.len(), 1);
-
-                let mut second_line = String::new();
-                assert!(
-                    tokio::time::timeout(
-                        Duration::from_millis(50),
-                        stdout.read_line(&mut second_line),
-                    )
-                    .await
-                    .is_err(),
-                    "the second request must wait for the first response to release its permit"
-                );
-                assert_eq!(pending.lock().await.len(), 1);
+                assert_eq!(admission.available_permits(), 0);
 
                 writer.abort();
+                let _ = writer.await;
                 fail_all_pending(&pending, &resp_tx, "test cleanup").await;
+                let delivered = resp_rx.recv_async().await.expect("failure response");
+                assert!(matches!(delivered.response, MycelixResponse::Error { .. }));
+                drop(delivered);
+                assert_eq!(admission.available_permits(), 1);
             });
     }
 
@@ -983,7 +999,8 @@ mod tests {
                     &pending,
                 )
                 .await
-                .expect("invalid vote acknowledgement becomes a typed error response");
+                .expect("invalid vote acknowledgement becomes a typed error response")
+                .into_response();
 
                 assert!(matches!(
                     response,
@@ -1013,7 +1030,8 @@ mod tests {
                     &pending,
                 )
                 .await
-                .expect("valid proposal acknowledgement");
+                .expect("valid proposal acknowledgement")
+                .into_response();
 
                 assert!(matches!(
                     response,
@@ -1046,7 +1064,8 @@ mod tests {
                     &pending,
                 )
                 .await
-                .expect("invalid success becomes a typed error response");
+                .expect("invalid success becomes a typed error response")
+                .into_response();
                 assert!(matches!(
                     response,
                     MycelixResponse::Error { requester, reason }
