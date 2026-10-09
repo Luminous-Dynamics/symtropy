@@ -617,6 +617,8 @@ pub(crate) enum DispatcherError {
     MissingStdout,
     #[error("subprocess stderr handle missing")]
     MissingStderr,
+    #[error("bridge subprocess exited before its request channel was shut down")]
+    UnexpectedBridgeExit,
     #[error("in-flight request limiter closed unexpectedly")]
     InFlightClosed,
     #[error("bridge request_id space exhausted")]
