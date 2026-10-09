@@ -871,6 +871,7 @@ async fn translate(
         return Err(DispatcherError::UnknownRequestId(id));
     };
 
+    let mutation_kind = kind.mutation_kind();
     let response = if !wire.ok {
         MycelixResponse::Error {
             requester,
@@ -879,9 +880,16 @@ async fn translate(
                 .unwrap_or_else(|| "bridge reported failure with no reason".to_string()),
         }
     } else {
-        let invalid_success = |detail: &str| MycelixResponse::Error {
-            requester,
-            reason: format!("bridge returned an invalid successful response: {detail}"),
+        let invalid_success = |detail: &str| match mutation_kind.clone() {
+            Some(operation) => MycelixResponse::IndeterminateMutation {
+                requester,
+                operation,
+                reason: format!("bridge returned an invalid successful response: {detail}"),
+            },
+            None => MycelixResponse::Error {
+                requester,
+                reason: format!("bridge returned an invalid successful response: {detail}"),
+            },
         };
 
         match kind {
@@ -1367,7 +1375,7 @@ mod tests {
 
                 assert!(matches!(
                     response,
-                    MycelixResponse::Error { requester, reason }
+                    MycelixResponse::IndeterminateMutation { requester, reason, .. }
                         if requester == Entity::PLACEHOLDER && reason.contains("matching proposal ID")
                 ));
                 assert!(lock_pending(&pending).is_empty());
@@ -1431,7 +1439,7 @@ mod tests {
                 .into_response();
                 assert!(matches!(
                     response,
-                    MycelixResponse::Error { requester, reason }
+                    MycelixResponse::IndeterminateMutation { requester, reason, .. }
                         if requester == Entity::PLACEHOLDER && reason.contains("action hash")
                 ));
                 assert!(lock_pending(&pending).is_empty());
