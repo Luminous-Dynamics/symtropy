@@ -44,7 +44,9 @@ use tokio::sync::{Mutex, OwnedSemaphorePermit};
 
 use crate::config::MycelixConfig;
 use crate::events::{MycelixRequest, MycelixResponse};
-use crate::resource::{MycelixRequestOutbox, MycelixResponseDelivery, MycelixResponseInbox, QueuedRequest};
+use crate::resource::{
+    MycelixRequestOutbox, MycelixResponseDelivery, MycelixResponseInbox, QueuedRequest,
+};
 
 // ---------------------------------------------------------------------------
 // Wire protocol types
@@ -905,9 +907,21 @@ mod tests {
                 // Consuming responses returns credits; no failure-path outcome
                 // is dropped, and subsequent work can be rejected/delivered by
                 // the generation's fail-closed sink without a deadlock.
-                let _buffered = resp_rx.recv_async().await.expect("buffered response").into_response();
-                let pending_failure = resp_rx.recv_async().await.expect("pending failure").into_response();
-                let queued_failure = resp_rx.recv_async().await.expect("queued failure").into_response();
+                let _buffered = resp_rx
+                    .recv_async()
+                    .await
+                    .expect("buffered response")
+                    .into_response();
+                let pending_failure = resp_rx
+                    .recv_async()
+                    .await
+                    .expect("pending failure")
+                    .into_response();
+                let queued_failure = resp_rx
+                    .recv_async()
+                    .await
+                    .expect("queued failure")
+                    .into_response();
                 assert!(matches!(pending_failure, MycelixResponse::Error { .. }));
                 assert!(matches!(queued_failure, MycelixResponse::Error { .. }));
                 assert_eq!(admission.available_permits(), 3);
