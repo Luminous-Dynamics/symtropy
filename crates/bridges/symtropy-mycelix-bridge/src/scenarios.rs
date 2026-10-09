@@ -365,7 +365,11 @@ fn proposal_vote_collector(
                 if let Some(agent) = state
                     .agents
                     .iter_mut()
-                    .find(|a| a.proposal_id == *proposal_id && a.submitted && !a.submission_confirmed)
+                    .find(|a| {
+                        a.proposal_id.as_str() == proposal_id.as_str()
+                            && a.submitted
+                            && !a.submission_confirmed
+                    })
                 {
                     agent.submission_confirmed = true;
                 } else {
