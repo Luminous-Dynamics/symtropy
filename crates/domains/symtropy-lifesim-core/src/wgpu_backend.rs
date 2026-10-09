@@ -138,7 +138,7 @@ async fn step_async(
             force_fallback_adapter: false,
         })
         .await
-        .map_err(|e| FieldStepError::GpuUnavailable(e.to_string()))?;
+        .map_err(|e| FieldStepError::GpuUnavailable(format!("adapter request failed: {e}")))?;
 
     let (device, queue) = adapter
         .request_device(&wgpu::DeviceDescriptor {
@@ -150,7 +150,7 @@ async fn step_async(
             trace: wgpu::Trace::Off,
         })
         .await
-        .map_err(|e| FieldStepError::GpuUnavailable(e.to_string()))?;
+        .map_err(|e| FieldStepError::GpuUnavailable(format!("device request failed: {e}")))?;
 
     let input = &field.channels[request.layer.index()];
     let obstacle = &field.channels[FieldLayer::Obstacle.index()];
@@ -790,9 +790,12 @@ mod tests {
         };
 
         CpuFieldStepper.step(&mut cpu, &request).unwrap();
+        let require_adapter = std::env::var_os("SYMTROPY_REQUIRE_WGPU_ADAPTER").is_some();
         match WgslFieldStepper.step(&mut gpu, &request) {
             Ok(()) => {}
-            Err(FieldStepError::GpuUnavailable(message)) => {
+            Err(FieldStepError::GpuUnavailable(message))
+                if !require_adapter && message.starts_with("adapter request failed:") =>
+            {
                 eprintln!("skipping WGSL parity test: {message}");
                 return;
             }
