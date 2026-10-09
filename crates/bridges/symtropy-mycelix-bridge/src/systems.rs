@@ -1183,6 +1183,27 @@ mod tests {
             });
     }
 
+    #[test]
+    fn local_queue_phase_has_no_response_deadline() {
+        tokio::runtime::Runtime::new()
+            .expect("runtime")
+            .block_on(async {
+                let semaphore = Arc::new(Semaphore::new(1));
+                let pending = pending_one(54, &semaphore).await;
+                {
+                    let mut entries = lock_pending(&pending);
+                    entries.get_mut(&54).expect("pending request").dispatch_phase =
+                        DispatchPhase::NotStarted;
+                }
+
+                let fenced = AtomicBool::new(false);
+                assert_eq!(earliest_response_deadline(&pending), None);
+                assert_eq!(expire_response_deadline(&pending, &fenced), None);
+                assert!(!fenced.load(Ordering::SeqCst));
+                assert!(lock_pending(&pending).contains_key(&54));
+            });
+    }
+
     #[tokio::test(start_paused = true)]
     async fn silent_child_triggers_deadline_without_wall_clock_sleep() {
         // Keep stdout open but never write a response, modeling a child that is
