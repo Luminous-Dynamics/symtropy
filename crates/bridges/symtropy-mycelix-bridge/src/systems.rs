@@ -112,8 +112,8 @@ enum PendingKind {
 struct Pending {
     requester: Entity,
     kind: PendingKind,
-    // Keeps the in-flight permit alive until the correlated response or a
-    // fail-closed teardown removes this request from the pending map.
+    // Holds the end-to-end admission credit while pending. Translation moves
+    // it into a response delivery; failure teardown moves it into an error delivery.
     _permit: OwnedSemaphorePermit,
 }
 
