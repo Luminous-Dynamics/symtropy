@@ -178,7 +178,6 @@ fn earliest_response_deadline(pending: &PendingMap) -> Option<Instant> {
     lock_pending(pending)
         .values()
         .filter_map(|entry| match entry.dispatch_phase {
-            DispatchPhase::AwaitingResponse { deadline } => Some(deadline),
             DispatchPhase::NotStarted => None,
             DispatchPhase::MayHaveReachedChild { deadline }
             | DispatchPhase::AwaitingResponse { deadline } => Some(deadline),
@@ -798,6 +797,13 @@ where
                 return Err(DispatcherError::MissingRequestId);
             }
         };
+
+        if let Some(outstanding) = expire_response_deadline(&pending, &generation_fenced) {
+            return Err(DispatcherError::ResponseTimeout {
+                timeout: response_timeout,
+                outstanding,
+            });
+        }
 
         let response = match translate(id, wire, &pending).await {
             Ok(response) => response,
