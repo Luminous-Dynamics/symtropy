@@ -82,21 +82,27 @@ Maximum dampening: 90% at zone center.
 
 ### 2.4 Harmony Fields (Harmony → Friction)
 
-Each agent emits a harmony field with 1/r² falloff:
+The implementation uses a **phenomenological, dimension-dependent influence kernel**; it is not a universal field law. For source i, let r_i = ||x - x_i||, s_i be its strength, h_i in [0,1]^9 its activation vector, and R_i its finite influence radius. The softening length is epsilon = 1 world unit. A source contributes zero outside its radius and otherwise contributes:
+
 ```
-H(x) = Σ_i (strength_i / max(|x - x_i|, 1)²) × h_i
+H_i(x) = s_i * h_i / (r_i^2 + epsilon^2)^(p_D/2)
+p_D = max(D - 1, 1)
+H(x) = sum_i H_i(x)
 ```
+
+Thus the far-field envelope is approximately 1/r in 2D, 1/r^2 in 3D, and 1/r^3 in 4D. In 1D the implementation deliberately retains a 1/r attenuation floor instead of the strict inverse-area exponent D - 1 = 0. That floor preserves distance attenuation for this influence model; it must not be described as a dimension-derived Gauss-law result. Plummer-style softening avoids a singularity at the source, and the finite radius truncates the field.
 
 Friction coefficient modulation:
 ```
-μ_effective = μ_base × (1 - 0.5 × R(H(x), h_agent))
+mu_effective = mu_base * (1 - 0.5 * R(H(x), h_agent))
 ```
+where R(a, b) = (a · b) / (|a| * |b|) is cosine similarity; it is zero if either vector has a near-zero norm.
 
-where `R(a, b) = (a · b) / (|a| × |b|)` is the harmony resonance (cosine similarity).
+For the documented nonnegative activation vectors, R lies in [0, 1], so the implemented multiplier lies in [0.5, 1.0]: aligned fields reduce friction and orthogonal fields leave it unchanged. Although cosine similarity can be negative for signed vectors, signed activations are outside the documented input contract, so negative "dissonance" and increased friction are **not** currently established behavior. Supporting that behavior would require an explicit signed/phase representation and dedicated tests.
 
-- `R = 1.0` → friction halved (resonance → cooperation flows)
-- `R = 0.0` → friction unchanged
-- `R = -1.0` → friction doubled (dissonance → conflict resists)
+- R = 1.0 → multiplier 0.5 (friction halved)
+- R = 0.0 → multiplier 1.0 (friction unchanged)
+- For arbitrary signed vectors, R = -1.0 → multiplier 1.5 (not 2.0); this case is outside the documented activation contract.
 
 ### 2.5 Prediction Error Feedback (Collision → Consciousness)
 
