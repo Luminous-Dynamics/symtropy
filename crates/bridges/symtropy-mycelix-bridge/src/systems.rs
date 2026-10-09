@@ -865,6 +865,7 @@ async fn translate(
         requester,
         kind,
         _permit,
+        ..
     }) = pending_entry
     else {
         return Err(DispatcherError::UnknownRequestId(id));
@@ -993,6 +994,7 @@ mod tests {
             kind: PendingKind::ProposalSubmitted {
                 proposal_id: "proposal-test".to_string(),
             },
+            dispatch_phase: DispatchPhase::MayHaveReachedChild,
             _permit: permit,
         };
         Arc::new(Mutex::new(HashMap::from([(id, entry)])))
@@ -1013,7 +1015,15 @@ mod tests {
                 let semaphore = Arc::new(Semaphore::new(1));
                 let pending = pending_one(7, &semaphore).await;
                 let (resp_tx, resp_rx) = flume::bounded(2);
-                let result = reader_loop(stdout, resp_tx, pending.clone()).await;
+                let result = reader_loop(
+                    stdout,
+                    resp_tx,
+                    pending.clone(),
+                    Duration::from_secs(30),
+                    Arc::new(Notify::new()),
+                    Arc::new(AtomicBool::new(false)),
+                )
+                .await;
 
                 assert!(matches!(
                     result,
@@ -1032,13 +1042,77 @@ mod tests {
                     .into_response();
                 assert!(matches!(
                     failure,
-                    MycelixResponse::Error { requester, .. } if requester == Entity::PLACEHOLDER
+                    MycelixResponse::IndeterminateMutation {
+                        requester,
+                        operation: MycelixMutationKind::SubmitProposal { proposal_id },
+                        ..
+                    } if requester == Entity::PLACEHOLDER && proposal_id == "proposal-test"
                 ));
                 assert_eq!(
                     semaphore.available_permits(),
                     1,
                     "consuming the failure response releases its admission credit"
                 );
+            });
+    }
+
+    #[test]
+    fn expired_deadline_fences_generation_and_marks_mutation_indeterminate() {
+        tokio::runtime::Runtime::new()
+            .expect("runtime")
+            .block_on(async {
+                // A reply is already readable, but the deadline expired before
+                // the reader processes it. At the boundary, timeout wins; a late
+                // action hash must not be accepted as a successful mutation.
+                let (mut source, stdout) = tokio::io::duplex(1024);
+                source
+                    .write_all(b"{\"request_id\":44,\"ok\":true,\"data\":\"action-hash\"}\n")
+                    .await
+                    .expect("write late success response");
+
+                let semaphore = Arc::new(Semaphore::new(1));
+                let pending = pending_one(44, &semaphore).await;
+                {
+                    let mut entries = lock_pending(&pending);
+                    entries.get_mut(&44).expect("pending request").dispatch_phase =
+                        DispatchPhase::AwaitingResponse {
+                            deadline: Instant::now() - Duration::from_millis(1),
+                        };
+                }
+                let (resp_tx, resp_rx) = flume::bounded(2);
+                let fenced = Arc::new(AtomicBool::new(false));
+                let result = reader_loop(
+                    stdout,
+                    resp_tx.clone(),
+                    pending.clone(),
+                    Duration::from_secs(1),
+                    Arc::new(Notify::new()),
+                    fenced.clone(),
+                )
+                .await;
+
+                assert!(matches!(
+                    result,
+                    Err(DispatcherError::ResponseTimeout { outstanding: 1, .. })
+                ));
+                assert!(fenced.load(Ordering::SeqCst));
+                assert!(lock_pending(&pending).contains_key(&44));
+
+                fail_all_pending(&pending, &resp_tx, "response deadline expired").await;
+                let response = resp_rx
+                    .recv_async()
+                    .await
+                    .expect("typed timeout result")
+                    .into_response();
+                assert!(matches!(
+                    response,
+                    MycelixResponse::IndeterminateMutation {
+                        requester,
+                        operation: MycelixMutationKind::SubmitProposal { proposal_id },
+                        ..
+                    } if requester == Entity::PLACEHOLDER && proposal_id == "proposal-test"
+                ));
+                assert_eq!(semaphore.available_permits(), 1);
             });
     }
 
@@ -1053,7 +1127,15 @@ mod tests {
                 let semaphore = Arc::new(Semaphore::new(1));
                 let pending = pending_one(8, &semaphore).await;
                 let (resp_tx, resp_rx) = flume::bounded(2);
-                let result = reader_loop(stdout, resp_tx, pending.clone()).await;
+                let result = reader_loop(
+                    stdout,
+                    resp_tx,
+                    pending.clone(),
+                    Duration::from_secs(30),
+                    Arc::new(Notify::new()),
+                    Arc::new(AtomicBool::new(false)),
+                )
+                .await;
 
                 assert!(matches!(
                     result,
@@ -1062,7 +1144,8 @@ mod tests {
                 assert!(lock_pending(&pending).is_empty());
                 assert!(matches!(
                     resp_rx.recv_async().await.expect("failure response").into_response(),
-                    MycelixResponse::Error { requester, .. } if requester == Entity::PLACEHOLDER
+                    MycelixResponse::IndeterminateMutation { requester, .. }
+                        if requester == Entity::PLACEHOLDER
                 ));
             });
     }
@@ -1082,13 +1165,21 @@ mod tests {
                 let semaphore = Arc::new(Semaphore::new(1));
                 let pending = pending_one(8, &semaphore).await;
                 let (resp_tx, resp_rx) = flume::bounded(2);
-                let result = reader_loop(stdout, resp_tx, pending.clone()).await;
+                let result = reader_loop(
+                    stdout,
+                    resp_tx,
+                    pending.clone(),
+                    Duration::from_secs(30),
+                    Arc::new(Notify::new()),
+                    Arc::new(AtomicBool::new(false)),
+                )
+                .await;
 
                 assert!(matches!(result, Err(DispatcherError::UnknownRequestId(99))));
                 assert!(lock_pending(&pending).is_empty());
                 assert!(matches!(
                     resp_rx.recv_async().await.expect("failure response").into_response(),
-                    MycelixResponse::Error { requester, reason }
+                    MycelixResponse::IndeterminateMutation { requester, reason, .. }
                         if requester == Entity::PLACEHOLDER && reason.contains("unknown request_id 99")
                 ));
             });
@@ -1172,8 +1263,8 @@ mod tests {
                     .await
                     .expect("queued failure")
                     .into_response();
-                assert!(matches!(pending_failure, MycelixResponse::Error { .. }));
-                assert!(matches!(queued_failure, MycelixResponse::Error { .. }));
+                assert!(matches!(pending_failure, MycelixResponse::IndeterminateMutation { .. }));
+                assert!(matches!(queued_failure, MycelixResponse::NotDispatched { .. }));
                 assert_eq!(admission.available_permits(), 3);
             });
     }
@@ -1210,6 +1301,9 @@ mod tests {
                     pending.clone(),
                     Arc::new(AtomicU64::new(0)),
                     resp_tx.clone(),
+                    Duration::from_secs(30),
+                    Arc::new(Notify::new()),
+                    Arc::new(AtomicBool::new(false)),
                 ));
 
                 let mut first_line = String::new();
@@ -1227,7 +1321,7 @@ mod tests {
                 let delivered = resp_rx.recv_async().await.expect("failure response");
                 assert!(matches!(
                     delivered.into_response(),
-                    MycelixResponse::Error { .. }
+                    MycelixResponse::IndeterminateMutation { .. }
                 ));
                 assert_eq!(admission.available_permits(), 1);
             });
@@ -1250,6 +1344,9 @@ mod tests {
                         requester: Entity::PLACEHOLDER,
                         kind: PendingKind::VoteCast {
                             proposal_id: "P1".to_string(),
+                        },
+                        dispatch_phase: DispatchPhase::AwaitingResponse {
+                            deadline: Instant::now() + Duration::from_secs(30),
                         },
                         _permit: permit,
                     },
