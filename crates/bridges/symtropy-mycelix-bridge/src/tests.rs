@@ -19,10 +19,7 @@ use crate::resource::{
 };
 use crate::systems::pump_responses;
 
-fn delivery(
-    response: MycelixResponse,
-    admission: &Arc<Semaphore>,
-) -> MycelixResponseDelivery {
+fn delivery(response: MycelixResponse, admission: &Arc<Semaphore>) -> MycelixResponseDelivery {
     MycelixResponseDelivery {
         response,
         _permit: admission
