@@ -154,6 +154,13 @@ async fn step_async(
 
     let input = &field.channels[request.layer.index()];
     let obstacle = &field.channels[FieldLayer::Obstacle.index()];
+    // Sanitize host-provided source values before upload rather than relying on
+    // shader-side checks for NaN/Infinity under WGSL's finite-math assumptions.
+    let sanitized_source: Vec<f32> = request
+        .source
+        .iter()
+        .map(|&value| if value.is_finite() { value.max(0.0) } else { 0.0 })
+        .collect();
     let output = vec![0.0f32; cell_count];
     let params = GpuParams {
         width: field.width() as u32,
@@ -176,7 +183,7 @@ async fn step_async(
     let source_buffer = storage_buffer(
         &device,
         "field-source",
-        &request.source,
+        &sanitized_source,
         wgpu::BufferUsages::STORAGE,
     );
     let output_buffer = storage_buffer(
@@ -350,6 +357,7 @@ struct PersistentFieldBuffers {
     input: wgpu::Buffer,
     obstacle: wgpu::Buffer,
     source: wgpu::Buffer,
+    source_staging: Vec<f32>,
     output: wgpu::Buffer,
     params: wgpu::Buffer,
     readback: wgpu::Buffer,
@@ -522,12 +530,15 @@ impl PersistentWgslFieldRuntime {
             _pad0: 0,
             _pad1: 0,
         };
-        let buffers = self.buffers.as_ref().ok_or_else(|| {
+        let buffers = self.buffers.as_mut().ok_or_else(|| {
             FieldStepError::GpuDispatchFailed("persistent field buffers were not initialized".into())
         })?;
+        for (packed, &value) in buffers.source_staging.iter_mut().zip(&request.source) {
+            *packed = if value.is_finite() { value.max(0.0) } else { 0.0 };
+        }
         self.queue.write_buffer(&buffers.input, 0, bytemuck::cast_slice(input));
         self.queue.write_buffer(&buffers.obstacle, 0, bytemuck::cast_slice(obstacle));
-        self.queue.write_buffer(&buffers.source, 0, bytemuck::cast_slice(&request.source));
+        self.queue.write_buffer(&buffers.source, 0, bytemuck::cast_slice(&buffers.source_staging));
         self.queue.write_buffer(&buffers.params, 0, bytemuck::bytes_of(&params));
 
         let mut encoder = self.device.create_command_encoder(&wgpu::CommandEncoderDescriptor {
@@ -637,6 +648,7 @@ impl PersistentWgslFieldRuntime {
             input,
             obstacle,
             source,
+            source_staging: vec![0.0; cell_count],
             output,
             params,
             readback,
