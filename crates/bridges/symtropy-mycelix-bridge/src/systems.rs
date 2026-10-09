@@ -1184,12 +1184,13 @@ mod tests {
     }
 
     #[test]
-    fn dispatch_deadline_covers_a_stalled_stdin_write() {
+    fn expired_preflush_deadline_fences_mutation_outcome() {
         tokio::runtime::Runtime::new()
             .expect("runtime")
             .block_on(async {
-                // If stdin write/flush stalls, the deadline is already armed
-                // from dispatch start even though no successful flush occurred.
+                // Model an expired deadline in the pre-flush dispatch phase.
+                // The phase is deliberately conservative: some bytes may have
+                // reached the child, so a mutation must remain indeterminate.
                 let (_source, stdout) = tokio::io::duplex(1024);
                 let semaphore = Arc::new(Semaphore::new(1));
                 let pending = pending_one(45, &semaphore).await;
