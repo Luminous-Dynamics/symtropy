@@ -49,6 +49,15 @@ impl Default for MycelixConfig {
 }
 
 impl MycelixConfig {
+    /// Effective request/response in-flight budget.
+    ///
+    /// Zero is normalized to one so the bounded channels and semaphore retain
+    /// a consistent, non-deadlocking minimum capacity.
+    #[must_use]
+    pub fn effective_inflight_budget(&self) -> usize {
+        self.inflight_budget.max(1)
+    }
+
     /// Override the bridge binary path.
     pub fn with_bridge_binary(mut self, path: impl Into<PathBuf>) -> Self {
         self.bridge_binary = path.into();
@@ -77,5 +86,22 @@ impl MycelixConfig {
     pub fn with_inflight_budget(mut self, budget: usize) -> Self {
         self.inflight_budget = budget;
         self
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::MycelixConfig;
+
+    #[test]
+    fn inflight_budget_has_a_nonzero_effective_capacity() {
+        assert_eq!(
+            MycelixConfig::default().with_inflight_budget(0).effective_inflight_budget(),
+            1
+        );
+        assert_eq!(
+            MycelixConfig::default().with_inflight_budget(16).effective_inflight_budget(),
+            16
+        );
     }
 }
