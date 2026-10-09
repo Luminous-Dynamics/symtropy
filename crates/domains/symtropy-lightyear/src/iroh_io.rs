@@ -12,7 +12,7 @@
 //! Next gate: connect real Lightyear Link buffers to a verified transport,
 //! preserve reliable/unreliable channel semantics, handle failures without
 //! dropping them silently, and prove the path with two separate processes.
-//! See [multiplayer scale and integration gates](../../../docs/tech/MULTIPLAYER_SCALE_AND_SOL_ATLAS.md).
+//! See `docs/tech/MULTIPLAYER_SCALE_AND_SOL_ATLAS.md` for the implementation gates.
 
 use bevy_app::prelude::*;
 use bevy_ecs::prelude::*;
