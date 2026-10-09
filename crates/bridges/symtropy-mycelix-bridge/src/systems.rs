@@ -101,9 +101,9 @@ struct WireResponse {
 #[derive(Debug)]
 enum PendingKind {
     GetActiveProposals,
-    ProposalSubmitted,
+    ProposalSubmitted { proposal_id: String },
     VoteCast { proposal_id: String },
-    TendBalance,
+    TendBalance { member_did: String },
     Proposal { proposal_id: String },
 }
 
@@ -208,7 +208,8 @@ async fn run_dispatcher_loop(
     // A piped stderr that nobody reads can fill its OS buffer and stall the
     // child. Drain it without logging raw output, which may contain secrets.
     let _stderr_task = tokio::spawn(async move {
-        if let Err(err) = tokio::io::copy(&mut stderr, &mut tokio::io::sink()).await {
+        let mut sink = tokio::io::sink();
+        if let Err(err) = tokio::io::copy(&mut stderr, &mut sink).await {
             debug!(?err, "bridge stderr pipe closed with an I/O error");
         }
     });
@@ -319,7 +320,9 @@ where
                 author_did,
                 ..
             } => (
-                PendingKind::ProposalSubmitted,
+                PendingKind::ProposalSubmitted {
+                    proposal_id: proposal_id.clone(),
+                },
                 WireCommand::SubmitProposal(WireProposalInput {
                     id: proposal_id,
                     title,
@@ -345,7 +348,9 @@ where
                 }),
             ),
             MycelixRequest::QueryTendBalance { member_did, .. } => (
-                PendingKind::TendBalance,
+                PendingKind::TendBalance {
+                    member_did: member_did.clone(),
+                },
                 WireCommand::QueryTendBalance { member_did },
             ),
             MycelixRequest::GetProposal { proposal_id, .. } => (
@@ -543,10 +548,11 @@ async fn translate(
             },
             _ => invalid_success("QueryActiveProposals requires an array in data"),
         },
-        PendingKind::ProposalSubmitted => match wire.data {
+        PendingKind::ProposalSubmitted { proposal_id } => match wire.data {
             Some(serde_json::Value::String(action_hash)) if !action_hash.trim().is_empty() => {
                 MycelixResponse::ProposalSubmitted {
                     requester,
+                    proposal_id,
                     action_hash,
                 }
             }
@@ -561,8 +567,12 @@ async fn translate(
             }
             _ => invalid_success("CastVote requires the matching proposal ID in data"),
         },
-        PendingKind::TendBalance => match wire.data {
-            Some(balance) => MycelixResponse::TendBalance { requester, balance },
+        PendingKind::TendBalance { member_did } => match wire.data {
+            Some(balance) => MycelixResponse::TendBalance {
+                requester,
+                member_did,
+                balance,
+            },
             None => invalid_success("QueryTendBalance omitted data"),
         },
         PendingKind::Proposal { proposal_id } => match wire.data {
@@ -634,7 +644,9 @@ mod tests {
             .expect("in-flight permit");
         let entry = Pending {
             requester: Entity::PLACEHOLDER,
-            kind: PendingKind::ProposalSubmitted,
+            kind: PendingKind::ProposalSubmitted {
+                proposal_id: "proposal-test".to_string(),
+            },
             _permit: permit,
         };
         Arc::new(Mutex::new(HashMap::from([(id, entry)])))
@@ -840,4 +852,5 @@ mod tests {
         });
     }
 }
+
 
