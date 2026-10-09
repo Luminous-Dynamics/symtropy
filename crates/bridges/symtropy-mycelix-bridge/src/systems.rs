@@ -359,6 +359,7 @@ async fn drain_with_error(
             .await
             .is_err()
         {
+            warn!("response inbox closed; queued bridge failure outcome could not be delivered");
             return;
         }
     }
@@ -607,6 +608,7 @@ async fn fail_all_pending(
             .await
             .is_err()
         {
+            warn!("response inbox closed; pending bridge failure outcomes could not be delivered");
             return;
         }
     }
