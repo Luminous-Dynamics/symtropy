@@ -532,7 +532,10 @@ where
             Ok(wire) => wire,
             Err(err) => {
                 // Do not log the raw line: it can contain personal or secret data.
-                warn!(?err, "invalid JSON from bridge subprocess; fencing pending requests");
+                warn!(
+                    ?err,
+                    "invalid JSON from bridge subprocess; fencing pending requests"
+                );
                 fail_all_pending(
                     &pending,
                     &resp_tx,
@@ -727,7 +730,6 @@ pub(crate) enum DispatcherError {
     Join(#[source] tokio::task::JoinError),
 }
 
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -752,266 +754,281 @@ mod tests {
 
     #[test]
     fn malformed_response_fails_all_inflight_requests() {
-        tokio::runtime::Runtime::new().expect("runtime").block_on(async {
-            let (mut source, stdout) = tokio::io::duplex(1024);
-            source
-                .write_all(b"{not-json\n")
-                .await
-                .expect("write malformed response");
-            drop(source);
+        tokio::runtime::Runtime::new()
+            .expect("runtime")
+            .block_on(async {
+                let (mut source, stdout) = tokio::io::duplex(1024);
+                source
+                    .write_all(b"{not-json\n")
+                    .await
+                    .expect("write malformed response");
+                drop(source);
 
-            let semaphore = Arc::new(Semaphore::new(1));
-            let pending = pending_one(7, &semaphore).await;
-            let (resp_tx, resp_rx) = flume::bounded(2);
-            let result = reader_loop(stdout, resp_tx, pending.clone()).await;
+                let semaphore = Arc::new(Semaphore::new(1));
+                let pending = pending_one(7, &semaphore).await;
+                let (resp_tx, resp_rx) = flume::bounded(2);
+                let result = reader_loop(stdout, resp_tx, pending.clone()).await;
 
-            assert!(matches!(result, Err(DispatcherError::MalformedResponseJson(_))));
-            assert!(pending.lock().await.is_empty());
-            assert_eq!(semaphore.available_permits(), 1);
-            assert!(matches!(
-                resp_rx.recv_async().await.expect("failure response"),
-                MycelixResponse::Error { requester, .. } if requester == Entity::PLACEHOLDER
-            ));
-        });
+                assert!(matches!(result, Err(DispatcherError::MalformedResponseJson(_))));
+                assert!(pending.lock().await.is_empty());
+                assert_eq!(semaphore.available_permits(), 1);
+                assert!(matches!(
+                    resp_rx.recv_async().await.expect("failure response"),
+                    MycelixResponse::Error { requester, .. } if requester == Entity::PLACEHOLDER
+                ));
+            });
     }
 
     #[test]
     fn stdout_eof_with_pending_request_is_not_reported_as_clean_shutdown() {
-        tokio::runtime::Runtime::new().expect("runtime").block_on(async {
-            let (source, stdout) = tokio::io::duplex(1024);
-            drop(source);
+        tokio::runtime::Runtime::new()
+            .expect("runtime")
+            .block_on(async {
+                let (source, stdout) = tokio::io::duplex(1024);
+                drop(source);
 
-            let semaphore = Arc::new(Semaphore::new(1));
-            let pending = pending_one(8, &semaphore).await;
-            let (resp_tx, resp_rx) = flume::bounded(2);
-            let result = reader_loop(stdout, resp_tx, pending.clone()).await;
+                let semaphore = Arc::new(Semaphore::new(1));
+                let pending = pending_one(8, &semaphore).await;
+                let (resp_tx, resp_rx) = flume::bounded(2);
+                let result = reader_loop(stdout, resp_tx, pending.clone()).await;
 
-            assert!(matches!(
-                result,
-                Err(DispatcherError::UnexpectedStdoutEof { outstanding: 1 })
-            ));
-            assert!(pending.lock().await.is_empty());
-            assert!(matches!(
-                resp_rx.recv_async().await.expect("failure response"),
-                MycelixResponse::Error { requester, .. } if requester == Entity::PLACEHOLDER
-            ));
-        });
+                assert!(matches!(
+                    result,
+                    Err(DispatcherError::UnexpectedStdoutEof { outstanding: 1 })
+                ));
+                assert!(pending.lock().await.is_empty());
+                assert!(matches!(
+                    resp_rx.recv_async().await.expect("failure response"),
+                    MycelixResponse::Error { requester, .. } if requester == Entity::PLACEHOLDER
+                ));
+            });
     }
 
     #[test]
     fn unmatched_request_id_fences_all_remaining_requests() {
-        tokio::runtime::Runtime::new().expect("runtime").block_on(async {
-            let (mut source, stdout) = tokio::io::duplex(1024);
-            source
-                .write_all(b"{\"request_id\":99,\"ok\":true,\"data\":\"unexpected\"}\n")
-                .await
-                .expect("write unmatched response");
-            drop(source);
+        tokio::runtime::Runtime::new()
+            .expect("runtime")
+            .block_on(async {
+                let (mut source, stdout) = tokio::io::duplex(1024);
+                source
+                    .write_all(b"{\"request_id\":99,\"ok\":true,\"data\":\"unexpected\"}\n")
+                    .await
+                    .expect("write unmatched response");
+                drop(source);
 
-            let semaphore = Arc::new(Semaphore::new(1));
-            let pending = pending_one(8, &semaphore).await;
-            let (resp_tx, resp_rx) = flume::bounded(2);
-            let result = reader_loop(stdout, resp_tx, pending.clone()).await;
+                let semaphore = Arc::new(Semaphore::new(1));
+                let pending = pending_one(8, &semaphore).await;
+                let (resp_tx, resp_rx) = flume::bounded(2);
+                let result = reader_loop(stdout, resp_tx, pending.clone()).await;
 
-            assert!(matches!(result, Err(DispatcherError::UnknownRequestId(99))));
-            assert!(pending.lock().await.is_empty());
-            assert!(matches!(
-                resp_rx.recv_async().await.expect("failure response"),
-                MycelixResponse::Error { requester, reason }
-                    if requester == Entity::PLACEHOLDER && reason.contains("unknown request_id 99")
-            ));
-        });
+                assert!(matches!(result, Err(DispatcherError::UnknownRequestId(99))));
+                assert!(pending.lock().await.is_empty());
+                assert!(matches!(
+                    resp_rx.recv_async().await.expect("failure response"),
+                    MycelixResponse::Error { requester, reason }
+                        if requester == Entity::PLACEHOLDER && reason.contains("unknown request_id 99")
+                ));
+            });
     }
 
     #[test]
     fn supervisor_failure_completes_both_pending_and_queued_requests() {
-        tokio::runtime::Runtime::new().expect("runtime").block_on(async {
-            let semaphore = Arc::new(Semaphore::new(1));
-            let pending = pending_one(17, &semaphore).await;
-            let (request_tx, request_rx) = flume::bounded(2);
-            request_tx
-                .send(MycelixRequest::QueryTendBalance {
-                    requester: Entity::PLACEHOLDER,
-                    member_did: "did:key:queued".to_string(),
-                })
-                .expect("queued request");
-            let (resp_tx, resp_rx) = flume::bounded(3);
+        tokio::runtime::Runtime::new()
+            .expect("runtime")
+            .block_on(async {
+                let semaphore = Arc::new(Semaphore::new(1));
+                let pending = pending_one(17, &semaphore).await;
+                let (request_tx, request_rx) = flume::bounded(2);
+                request_tx
+                    .send(MycelixRequest::QueryTendBalance {
+                        requester: Entity::PLACEHOLDER,
+                        member_did: "did:key:queued".to_string(),
+                    })
+                    .expect("queued request");
+                let (resp_tx, resp_rx) = flume::bounded(3);
 
-            fail_pending_and_queued(
-                &pending,
-                request_rx,
-                resp_tx,
-                "bridge exited unexpectedly",
-            )
-            .await;
+                fail_pending_and_queued(
+                    &pending,
+                    request_rx,
+                    resp_tx,
+                    "bridge exited unexpectedly",
+                )
+                .await;
 
-            assert!(pending.lock().await.is_empty());
-            assert_eq!(semaphore.available_permits(), 1);
-            let first = resp_rx.recv_async().await.expect("pending failure");
-            let second = resp_rx.recv_async().await.expect("queued failure");
-            assert!(matches!(first, MycelixResponse::Error { .. }));
-            assert!(matches!(second, MycelixResponse::Error { .. }));
-            assert!(resp_rx.is_empty());
-        });
+                assert!(pending.lock().await.is_empty());
+                assert_eq!(semaphore.available_permits(), 1);
+                let first = resp_rx.recv_async().await.expect("pending failure");
+                let second = resp_rx.recv_async().await.expect("queued failure");
+                assert!(matches!(first, MycelixResponse::Error { .. }));
+                assert!(matches!(second, MycelixResponse::Error { .. }));
+                assert!(resp_rx.is_empty());
+            });
     }
 
     #[test]
     fn dispatched_requests_are_bounded_by_inflight_budget() {
-        tokio::runtime::Runtime::new().expect("runtime").block_on(async {
-            let (request_tx, request_rx) = flume::bounded(2);
-            request_tx
-                .send(MycelixRequest::GetActiveProposals {
-                    requester: Entity::PLACEHOLDER,
-                })
-                .expect("first request");
-            request_tx
-                .send(MycelixRequest::QueryTendBalance {
-                    requester: Entity::PLACEHOLDER,
-                    member_did: "did:key:test".to_string(),
-                })
-                .expect("second request");
+        tokio::runtime::Runtime::new()
+            .expect("runtime")
+            .block_on(async {
+                let (request_tx, request_rx) = flume::bounded(2);
+                request_tx
+                    .send(MycelixRequest::GetActiveProposals {
+                        requester: Entity::PLACEHOLDER,
+                    })
+                    .expect("first request");
+                request_tx
+                    .send(MycelixRequest::QueryTendBalance {
+                        requester: Entity::PLACEHOLDER,
+                        member_did: "did:key:test".to_string(),
+                    })
+                    .expect("second request");
 
-            let (stdin, stdout) = tokio::io::duplex(4096);
-            let mut stdout = BufReader::new(stdout);
-            let (resp_tx, _resp_rx) = flume::bounded(2);
-            let pending = Arc::new(Mutex::new(HashMap::new()));
-            let semaphore = Arc::new(Semaphore::new(1));
-            let writer = tokio::spawn(writer_loop(
-                stdin,
-                request_rx,
-                pending.clone(),
-                Arc::new(AtomicU64::new(0)),
-                semaphore,
-                resp_tx,
-            ));
+                let (stdin, stdout) = tokio::io::duplex(4096);
+                let mut stdout = BufReader::new(stdout);
+                let (resp_tx, _resp_rx) = flume::bounded(2);
+                let pending = Arc::new(Mutex::new(HashMap::new()));
+                let semaphore = Arc::new(Semaphore::new(1));
+                let writer = tokio::spawn(writer_loop(
+                    stdin,
+                    request_rx,
+                    pending.clone(),
+                    Arc::new(AtomicU64::new(0)),
+                    semaphore,
+                    resp_tx,
+                ));
 
-            let mut first_line = String::new();
-            tokio::time::timeout(
-                Duration::from_secs(1),
-                stdout.read_line(&mut first_line),
-            )
-            .await
-            .expect("first request was written")
-            .expect("read first request");
-            assert!(!first_line.is_empty());
-            assert_eq!(pending.lock().await.len(), 1);
-
-            let mut second_line = String::new();
-            assert!(
+                let mut first_line = String::new();
                 tokio::time::timeout(
-                    Duration::from_millis(50),
-                    stdout.read_line(&mut second_line),
+                    Duration::from_secs(1),
+                    stdout.read_line(&mut first_line),
                 )
                 .await
-                .is_err(),
-                "the second request must wait for the first response to release its permit"
-            );
-            assert_eq!(pending.lock().await.len(), 1);
+                .expect("first request was written")
+                .expect("read first request");
+                assert!(!first_line.is_empty());
+                assert_eq!(pending.lock().await.len(), 1);
 
-            writer.abort();
-            fail_all_pending(&pending, &_resp_tx, "test cleanup").await;
-        });
+                let mut second_line = String::new();
+                assert!(
+                    tokio::time::timeout(
+                        Duration::from_millis(50),
+                        stdout.read_line(&mut second_line),
+                    )
+                    .await
+                    .is_err(),
+                    "the second request must wait for the first response to release its permit"
+                );
+                assert_eq!(pending.lock().await.len(), 1);
+
+                writer.abort();
+                fail_all_pending(&pending, &_resp_tx, "test cleanup").await;
+            });
     }
 
     #[test]
     fn successful_vote_response_requires_the_matching_proposal_id() {
-        tokio::runtime::Runtime::new().expect("runtime").block_on(async {
-            let semaphore = Arc::new(Semaphore::new(1));
-            let permit = semaphore
-                .clone()
-                .acquire_owned()
-                .await
-                .expect("in-flight permit");
-            let pending = Arc::new(Mutex::new(HashMap::from([(
-                3,
-                Pending {
-                    requester: Entity::PLACEHOLDER,
-                    kind: PendingKind::VoteCast {
-                        proposal_id: "P1".to_string(),
+        tokio::runtime::Runtime::new()
+            .expect("runtime")
+            .block_on(async {
+                let semaphore = Arc::new(Semaphore::new(1));
+                let permit = semaphore
+                    .clone()
+                    .acquire_owned()
+                    .await
+                    .expect("in-flight permit");
+                let pending = Arc::new(Mutex::new(HashMap::from([(
+                    3,
+                    Pending {
+                        requester: Entity::PLACEHOLDER,
+                        kind: PendingKind::VoteCast {
+                            proposal_id: "P1".to_string(),
+                        },
+                        _permit: permit,
                     },
-                    _permit: permit,
-                },
-            )])));
-            let response = translate(
-                3,
-                WireResponse {
-                    request_id: Some(3),
-                    ok: true,
-                    data: Some(serde_json::json!("P2")),
-                    error: None,
-                },
-                &pending,
-            )
-            .await
-            .expect("invalid vote acknowledgement becomes a typed error response");
+                )])));
+                let response = translate(
+                    3,
+                    WireResponse {
+                        request_id: Some(3),
+                        ok: true,
+                        data: Some(serde_json::json!("P2")),
+                        error: None,
+                    },
+                    &pending,
+                )
+                .await
+                .expect("invalid vote acknowledgement becomes a typed error response");
 
-            assert!(matches!(
-                response,
-                MycelixResponse::Error { requester, reason }
-                    if requester == Entity::PLACEHOLDER && reason.contains("matching proposal ID")
-            ));
-            assert!(pending.lock().await.is_empty());
-            assert_eq!(semaphore.available_permits(), 1);
-        });
+                assert!(matches!(
+                    response,
+                    MycelixResponse::Error { requester, reason }
+                        if requester == Entity::PLACEHOLDER && reason.contains("matching proposal ID")
+                ));
+                assert!(pending.lock().await.is_empty());
+                assert_eq!(semaphore.available_permits(), 1);
+            });
     }
 
     #[test]
     fn successful_proposal_response_preserves_the_original_proposal_id() {
-        tokio::runtime::Runtime::new().expect("runtime").block_on(async {
-            let semaphore = Arc::new(Semaphore::new(1));
-            let pending = pending_one(4, &semaphore).await;
-            let response = translate(
-                4,
-                WireResponse {
-                    request_id: Some(4),
-                    ok: true,
-                    data: Some(serde_json::json!("uhCkk_action_hash")),
-                    error: None,
-                },
-                &pending,
-            )
-            .await
-            .expect("valid proposal acknowledgement");
+        tokio::runtime::Runtime::new()
+            .expect("runtime")
+            .block_on(async {
+                let semaphore = Arc::new(Semaphore::new(1));
+                let pending = pending_one(4, &semaphore).await;
+                let response = translate(
+                    4,
+                    WireResponse {
+                        request_id: Some(4),
+                        ok: true,
+                        data: Some(serde_json::json!("uhCkk_action_hash")),
+                        error: None,
+                    },
+                    &pending,
+                )
+                .await
+                .expect("valid proposal acknowledgement");
 
-            assert!(matches!(
-                response,
-                MycelixResponse::ProposalSubmitted {
-                    proposal_id,
-                    action_hash,
-                    ..
-                } if proposal_id == "proposal-test" && action_hash == "uhCkk_action_hash"
-            ));
-            assert!(pending.lock().await.is_empty());
-            assert_eq!(semaphore.available_permits(), 1);
-        });
+                assert!(matches!(
+                    response,
+                    MycelixResponse::ProposalSubmitted {
+                        proposal_id,
+                        action_hash,
+                        ..
+                    } if proposal_id == "proposal-test" && action_hash == "uhCkk_action_hash"
+                ));
+                assert!(pending.lock().await.is_empty());
+                assert_eq!(semaphore.available_permits(), 1);
+            });
     }
 
     #[test]
     fn successful_proposal_response_requires_a_nonempty_action_hash() {
-        tokio::runtime::Runtime::new().expect("runtime").block_on(async {
-            let semaphore = Arc::new(Semaphore::new(1));
-            let pending = pending_one(3, &semaphore).await;
-            let response = translate(
-                3,
-                WireResponse {
-                    request_id: Some(3),
-                    ok: true,
-                    data: None,
-                    error: None,
-                },
-                &pending,
-            )
-            .await
-            .expect("invalid success becomes a typed error response");
-            assert!(matches!(
-                response,
-                MycelixResponse::Error { requester, reason }
-                    if requester == Entity::PLACEHOLDER && reason.contains("action hash")
-            ));
-            assert!(pending.lock().await.is_empty());
-            assert_eq!(semaphore.available_permits(), 1);
-        });
+        tokio::runtime::Runtime::new()
+            .expect("runtime")
+            .block_on(async {
+                let semaphore = Arc::new(Semaphore::new(1));
+                let pending = pending_one(3, &semaphore).await;
+                let response = translate(
+                    3,
+                    WireResponse {
+                        request_id: Some(3),
+                        ok: true,
+                        data: None,
+                        error: None,
+                    },
+                    &pending,
+                )
+                .await
+                .expect("invalid success becomes a typed error response");
+                assert!(matches!(
+                    response,
+                    MycelixResponse::Error { requester, reason }
+                        if requester == Entity::PLACEHOLDER && reason.contains("action hash")
+                ));
+                assert!(pending.lock().await.is_empty());
+                assert_eq!(semaphore.available_permits(), 1);
+            });
     }
 }
-
 
