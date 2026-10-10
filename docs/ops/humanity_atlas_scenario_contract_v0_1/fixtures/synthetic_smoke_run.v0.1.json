@@ -1,0 +1,130 @@
+{
+  "deterministic": true,
+  "engine": {
+    "adapter": "synthetic_reference_only",
+    "engine_version": "contract-smoke-v0.1",
+    "model_sha256": "62656555cd45a4395bfba6c73706100572edd4f5aed84eb30164564de1b251c0"
+  },
+  "inputs": {
+    "dataset_sha256": "a976ef2368057b40265ee5b054ee3311bb22000dbac10edd57e3fb9919fe246e",
+    "scenario_sha256": "8eb7cf4fe48bd5ed4c2e3afb29872e5eff9874651f58ca80d7a1247774c5ef1a"
+  },
+  "output_classification": "synthetic_fixture",
+  "outputs": [
+    {
+      "metric_id": "installed_storage_gwh",
+      "sample_count": 1,
+      "statistic": "value",
+      "unit": "GWh",
+      "value": 100,
+      "year": 2025
+    },
+    {
+      "metric_id": "unserved_energy_gwh_per_year",
+      "sample_count": 1,
+      "statistic": "value",
+      "unit": "GWh/year",
+      "value": 12,
+      "year": 2025
+    },
+    {
+      "metric_id": "installed_storage_gwh",
+      "sample_count": 1,
+      "statistic": "value",
+      "unit": "GWh",
+      "value": 112,
+      "year": 2026
+    },
+    {
+      "metric_id": "unserved_energy_gwh_per_year",
+      "sample_count": 1,
+      "statistic": "value",
+      "unit": "GWh/year",
+      "value": 11.035714,
+      "year": 2026
+    },
+    {
+      "metric_id": "installed_storage_gwh",
+      "sample_count": 1,
+      "statistic": "value",
+      "unit": "GWh",
+      "value": 125.44,
+      "year": 2027
+    },
+    {
+      "metric_id": "unserved_energy_gwh_per_year",
+      "sample_count": 1,
+      "statistic": "value",
+      "unit": "GWh/year",
+      "value": 10.148916,
+      "year": 2027
+    },
+    {
+      "metric_id": "installed_storage_gwh",
+      "sample_count": 1,
+      "statistic": "value",
+      "unit": "GWh",
+      "value": 140.4928,
+      "year": 2028
+    },
+    {
+      "metric_id": "unserved_energy_gwh_per_year",
+      "sample_count": 1,
+      "statistic": "value",
+      "unit": "GWh/year",
+      "value": 9.333378,
+      "year": 2028
+    },
+    {
+      "metric_id": "installed_storage_gwh",
+      "sample_count": 1,
+      "statistic": "value",
+      "unit": "GWh",
+      "value": 157.351936,
+      "year": 2029
+    },
+    {
+      "metric_id": "unserved_energy_gwh_per_year",
+      "sample_count": 1,
+      "statistic": "value",
+      "unit": "GWh/year",
+      "value": 8.583374,
+      "year": 2029
+    },
+    {
+      "metric_id": "installed_storage_gwh",
+      "sample_count": 1,
+      "statistic": "value",
+      "unit": "GWh",
+      "value": 176.234168,
+      "year": 2030
+    },
+    {
+      "metric_id": "unserved_energy_gwh_per_year",
+      "sample_count": 1,
+      "statistic": "value",
+      "unit": "GWh/year",
+      "value": 7.893639,
+      "year": 2030
+    }
+  ],
+  "replicates": 1,
+  "run_id": "ha.run.synthetic.8eb7cf4fe48bd5ed",
+  "run_status": "completed",
+  "scenario_id": "ha.energy-storage.earlier-rollout.synthetic-v0-1",
+  "schema_version": "humanity-atlas.run.v0.1",
+  "seed": 0,
+  "validation": {
+    "notes": [
+      "Synthetic reference calculation only; not a Symtropy engine run.",
+      "No empirical calibration, historical validation, or forecasting claim is made.",
+      "Single deterministic replicate does not quantify uncertainty."
+    ],
+    "status": "contract_smoke"
+  },
+  "warnings": [
+    "Synthetic fixture only; numbers are not empirical or predictive.",
+    "A deterministic run does not estimate event probabilities or uncertainty.",
+    "The reference runner does not execute the Symtropy physics engine."
+  ]
+}
