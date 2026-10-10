@@ -11,6 +11,11 @@
 //! - Server sends: `{"type": "peer_joined", "peer_id": 42}`
 //! - Client sends: `{"type": "signal", "to": 42, "data": {...}}`
 //! - Server forwards to peer 42: `{"type": "signal", "from": 1, "data": {...}}`
+//!
+//! Resource bounds in this implementation:
+//! - 16 queued outgoing commands and 32 queued incoming events.
+//! - 64 KiB maximum WebSocket message/frame and a bounded 256 KiB write buffer.
+//! - Queue overflow is surfaced as an error; it is never reported as successful enqueue.
 
 #[cfg(feature = "webrtc")]
 use tokio::sync::mpsc;
