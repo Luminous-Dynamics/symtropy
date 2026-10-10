@@ -13,7 +13,7 @@ fi
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$repo_root"
 
-cargo build -p symtropy-multiplayer-demo
+cargo build --locked -p symtropy-multiplayer-demo
 binary="$repo_root/target/debug/symtropy-multiplayer-demo"
 tmp_dir="$(mktemp -d "${TMPDIR:-/tmp}/symtropy-lightyear-smoke.XXXXXX")"
 server_pid=""
@@ -44,9 +44,18 @@ trap cleanup EXIT
 "$binary" --network-server >"$tmp_dir/server.log" 2>&1 &
 server_pid=$!
 
-# Give the server time to bind; client-side logs and replication updates below
-# are the acceptance evidence, not this sleep or the server's startup message.
+# Give the server time to initialize, then require its own startup log.
+# This check alone is not success evidence; the server must later observe this
+# test client connecting and the client must observe replicated updates.
 sleep 1
+if ! kill -0 "$server_pid" 2>/dev/null; then
+    echo "Server process exited before the client started." >&2
+    exit 1
+fi
+if ! grep -q 'LIGHTYEAR_SMOKE server_start_requested' "$tmp_dir/server.log"; then
+    echo "Server startup marker was not recorded." >&2
+    exit 1
+fi
 
 set +e
 timeout --signal=TERM 12s \
@@ -63,7 +72,11 @@ if [[ "$updates" -lt 3 ]]; then
     echo "Expected at least 3 replicated state updates; observed $updates." >&2
     exit 1
 fi
+if ! grep -q 'LIGHTYEAR_SMOKE client_connected' "$tmp_dir/server.log"; then
+    echo "The test server did not record this client's successful connection." >&2
+    exit 1
+fi
 
-echo "PASS: received $updates replicated-state updates over localhost UDP."
+echo "PASS: the server observed the client connection and the client received $updates replicated-state updates over localhost UDP."
 echo "Evidence is derived from a separate server and client process."
 passed=true
