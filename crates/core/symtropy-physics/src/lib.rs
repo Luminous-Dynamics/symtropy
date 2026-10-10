@@ -30,6 +30,7 @@ pub mod manifold_gen;
 pub mod raycast;
 pub mod replay;
 pub mod support_map;
+pub mod validation;
 pub mod world;
 
 pub use articulation::{ArticulatedChain, ChainBuilder, LinkSpec};
