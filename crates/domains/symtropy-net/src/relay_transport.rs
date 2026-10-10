@@ -13,7 +13,7 @@
 //!
 //! This is not a WebRTC data channel and does not implement direct P2P.
 
-#[cfg(feature = "webrtc")]
+#[cfg(feature = "ws-relay")]
 mod implementation {
     use crate::config::NetworkConfig;
     use crate::peer::PeerId;
@@ -820,5 +820,5 @@ mod implementation {
     }
 }
 
-#[cfg(feature = "webrtc")]
+#[cfg(feature = "ws-relay")]
 pub use implementation::RelayTransport;
