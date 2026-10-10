@@ -174,11 +174,11 @@ impl<T: Transport> NetworkSession<T> {
         }
     }
 
-    /// Whether the underlying transport reports its connection handshake complete.
+    /// Whether the underlying transport reports its connection/control-plane state as established.
     ///
-    /// This is separate from peer admission. A transport can be connected to a
-    /// control server before any remote peer has joined; for relay transports this
-    /// becomes true only after Welcome is processed by `tick()`.
+    /// This is separate from peer admission and remote delivery. The exact state is
+    /// transport-specific: relay transports require Welcome to be processed by
+    /// `tick()`, while an in-memory transport may report its local endpoint connected.
     pub fn is_connected(&self) -> bool {
         self.transport.is_signaling_connected()
     }
