@@ -649,6 +649,72 @@ mod tests {
     }
 
     #[test]
+    fn inbound_control_message_exact_boundary_is_accepted_and_one_byte_over_is_rejected() {
+        let empty = serde_json::to_string(&SignalIncoming::Error {
+            message: String::new(),
+        })
+        .expect("serialize empty control message");
+        let message_bytes = MAX_SIGNAL_CONTROL_BYTES - empty.len();
+
+        let exact = serde_json::to_string(&SignalIncoming::Error {
+            message: "x".repeat(message_bytes),
+        })
+        .expect("serialize control message at exact cap");
+        assert_eq!(exact.len(), MAX_SIGNAL_CONTROL_BYTES);
+        assert!(parse_incoming(&exact).is_ok());
+
+        let one_over = serde_json::to_string(&SignalIncoming::Error {
+            message: "x".repeat(message_bytes + 1),
+        })
+        .expect("serialize control message one byte over cap");
+        assert_eq!(one_over.len(), MAX_SIGNAL_CONTROL_BYTES + 1);
+        assert!(parse_incoming(&one_over)
+            .expect_err("control message one byte over cap must fail")
+            .contains("control message"));
+    }
+
+    #[test]
+    fn relay_packet_one_byte_over_binary_cap_is_rejected_even_below_outer_cap() {
+        let outgoing = SignalOutgoing::Signal {
+            to: 1,
+            data: SignalData::RelayData {
+                channel: SignalChannel::Reliable,
+                payload: vec![0; MAX_PEER_MESSAGE_BYTES + 1],
+            },
+        };
+        assert!(serialized_outgoing(&outgoing)
+            .expect_err("outgoing binary packet is one byte too large")
+            .contains("relay packet"));
+
+        // Zero-valued JSON array elements make this oversized binary payload much
+        // smaller than the outer-envelope cap, exercising the independent 1 MiB guard.
+        let incoming = SignalIncoming::Signal {
+            from: 2,
+            data: SignalData::RelayData {
+                channel: SignalChannel::Unreliable,
+                payload: vec![0; MAX_PEER_MESSAGE_BYTES + 1],
+            },
+        };
+        let json = serde_json::to_string(&incoming).expect("serialize oversized relay packet");
+        assert!(json.len() < MAX_SIGNALING_MESSAGE_BYTES);
+        assert!(parse_incoming(&json)
+            .expect_err("inbound binary packet is one byte too large")
+            .contains("relay packet"));
+    }
+
+    #[cfg(feature = "webrtc")]
+    #[test]
+    fn websocket_config_supports_maximum_relay_envelope() {
+        let config = bounded_websocket_config();
+        assert_eq!(config.max_message_size, Some(MAX_SIGNALING_MESSAGE_BYTES));
+        assert_eq!(config.max_frame_size, Some(MAX_SIGNALING_MESSAGE_BYTES));
+        assert!(
+            config.max_write_buffer_size > MAX_SIGNALING_MESSAGE_BYTES,
+            "write buffer must be larger than one maximum relay envelope"
+        );
+    }
+
+    #[test]
     fn incoming_outer_envelope_rejects_one_byte_over_cap_before_parsing() {
         let oversized = " ".repeat(MAX_SIGNALING_MESSAGE_BYTES + 1);
         let error = parse_incoming(&oversized).expect_err("oversized envelope must fail closed");
