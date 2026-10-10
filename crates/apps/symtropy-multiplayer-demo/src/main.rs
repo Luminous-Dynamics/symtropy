@@ -2,13 +2,31 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 use bevy::prelude::*;
+use bevy::log::{Level, LogPlugin};
+use bevy::state::app::StatesPlugin;
+use lightyear::connection::client::Connected;
+use lightyear::connection::server::Start;
+use lightyear::netcode::Key;
+use lightyear::prelude::client::{
+    Authentication, ClientPlugins, NetcodeClient,
+    NetcodeConfig as ClientNetcodeConfig, UdpIo,
+};
+use lightyear::prelude::server::{
+    NetcodeConfig as ServerNetcodeConfig, NetcodeServer, ServerPlugins, ServerUdpIo,
+};
+use lightyear::prelude::*;
 use serde::{Deserialize, Serialize};
+use std::net::{IpAddr, Ipv4Addr, SocketAddr};
+use std::time::Duration;
 use symtropy_lightyear::SymtropyNetPlugin;
 use symtropy_lightyear::components::*;
 
 /// This demo currently runs locally only. The networking plugin is a scaffold;
 /// the host flag is retained for command-line compatibility, not server startup.
 const DEMO_PLAYER_COUNT: u64 = 8;
+const NETWORK_TICK_HZ: f64 = 30.0;
+const NETWORK_SERVER_ADDR: SocketAddr =
+    SocketAddr::new(IpAddr::V4(Ipv4Addr::LOCALHOST), 5000);
 
 #[derive(Resource, Clone, Copy, Debug)]
 struct LocalDemoPlayerId(u64);
@@ -77,6 +95,31 @@ fn parse_player_id(args: &[String]) -> Result<u64, String> {
 
 fn main() {
     let args: Vec<String> = std::env::args().collect();
+
+    // This mode uses real Lightyear 0.28 UDP/Netcode sockets on localhost.
+    // It is separate from the Iroh stub and is an experimental smoke path.
+    if args.iter().any(|arg| arg == "--network-server") {
+        eprintln!(
+            "LIGHTYEAR UDP SMOKE: starting localhost server on {NETWORK_SERVER_ADDR}"
+        );
+        run_network_server();
+        return;
+    }
+    if args.iter().any(|arg| arg == "--network-client") {
+        let player_id = match parse_player_id(&args) {
+            Ok(id) => id,
+            Err(error) => {
+                eprintln!("{error}");
+                std::process::exit(2);
+            }
+        };
+        eprintln!(
+            "LIGHTYEAR UDP SMOKE: connecting client {player_id} to {NETWORK_SERVER_ADDR}"
+        );
+        run_network_client(player_id);
+        return;
+    }
+
     let is_host_flag = args.iter().any(|arg| arg == "--host");
     let player_id = match parse_player_id(&args) {
         Ok(id) => id,
@@ -91,6 +134,9 @@ fn main() {
     if is_host_flag {
         eprintln!("The --host flag is compatibility-only; it does not start a server.");
     }
+    eprintln!(
+        "Experimental localhost smoke: run with --network-server, then launch another process with --network-client --player-id 1."
+    );
 
     let mut app = App::new();
     app.add_plugins(DefaultPlugins.set(WindowPlugin {
@@ -112,6 +158,143 @@ fn main() {
     app.add_plugins(SymtropyNetPlugin);
     app.add_plugins(MultiplayerDemoPlugin);
     app.run();
+}
+
+fn build_headless_app() -> App {
+    let mut app = App::new();
+    app.add_plugins((
+        MinimalPlugins,
+        LogPlugin {
+            level: Level::INFO,
+            ..default()
+        },
+        StatesPlugin,
+    ));
+    app
+}
+
+fn run_network_server() {
+    let mut app = build_headless_app();
+    app.add_plugins(ServerPlugins {
+        tick_duration: Duration::from_secs_f64(1.0 / NETWORK_TICK_HZ),
+    });
+    app.component::<NetPosition>().replicate();
+    app.insert_resource(ReplicationMetadata::new(Duration::from_millis(100)));
+    app.add_systems(
+        Startup,
+        (start_network_server, spawn_server_replicated_state),
+    );
+    app.add_systems(Update, advance_server_replicated_state);
+    app.add_observer(attach_replication_sender);
+    app.run();
+}
+
+fn start_network_server(mut commands: Commands) -> Result {
+    let server = commands
+        .spawn((
+            NetcodeServer::new(ServerNetcodeConfig::default()),
+            LocalAddr(NETWORK_SERVER_ADDR),
+            ServerUdpIo::default(),
+            Name::new("Symtropy Lightyear UDP Smoke Server"),
+        ))
+        .id();
+    commands.trigger(Start { entity: server });
+    info!(
+        "LIGHTYEAR_SMOKE server_start_requested addr={NETWORK_SERVER_ADDR}"
+    );
+    Ok(())
+}
+
+fn spawn_server_replicated_state(mut commands: Commands) {
+    commands.spawn((
+        NetPosition {
+            x: 0.0,
+            y: 0.5,
+            z: 0.0,
+        },
+        Replicate::to_clients(NetworkTarget::All),
+        Name::new("Symtropy Authoritative Smoke Entity"),
+    ));
+    info!("LIGHTYEAR_SMOKE authoritative_entity_spawned");
+}
+
+fn attach_replication_sender(
+    trigger: On<Add, Connected>,
+    mut commands: Commands,
+) {
+    commands.entity(trigger.entity).insert(ReplicationSender);
+    info!(
+        "LIGHTYEAR_SMOKE client_connected link={:?}",
+        trigger.entity
+    );
+}
+
+fn advance_server_replicated_state(mut positions: Query<&mut NetPosition>) {
+    for mut position in &mut positions {
+        position.x += 0.05;
+        position.z += 0.025;
+    }
+}
+
+fn run_network_client(player_id: u64) {
+    let mut app = build_headless_app();
+    app.add_plugins(ClientPlugins {
+        tick_duration: Duration::from_secs_f64(1.0 / NETWORK_TICK_HZ),
+    });
+    app.component::<NetPosition>().replicate();
+    app.insert_resource(LocalDemoPlayerId(player_id));
+    app.add_systems(Startup, start_network_client);
+    app.add_systems(Update, report_replicated_state);
+    app.run();
+}
+
+fn start_network_client(
+    mut commands: Commands,
+    player_id: Res<LocalDemoPlayerId>,
+) -> Result {
+    let client_addr = SocketAddr::new(
+        IpAddr::V4(Ipv4Addr::LOCALHOST),
+        4000 + player_id.0 as u16,
+    );
+    let auth = Authentication::Manual {
+        server_addr: NETWORK_SERVER_ADDR,
+        client_id: player_id.0,
+        private_key: Key::default(),
+        protocol_id: 0,
+    };
+    let client = commands
+        .spawn((
+            Client::default(),
+            LocalAddr(client_addr),
+            PeerAddr(NETWORK_SERVER_ADDR),
+            Link::new(None),
+            ReplicationReceiver,
+            NetcodeClient::new(auth, ClientNetcodeConfig::default())?,
+            UdpIo::default(),
+            Name::new(format!("Symtropy Lightyear UDP Smoke Client P{}", player_id.0)),
+        ))
+        .id();
+    commands.trigger(Connect { entity: client });
+    info!(
+        "LIGHTYEAR_SMOKE client_connect_requested id={} addr={} server={}",
+        player_id.0,
+        client_addr,
+        NETWORK_SERVER_ADDR
+    );
+    Ok(())
+}
+
+fn report_replicated_state(
+    query: Query<(Entity, &NetPosition), Changed<NetPosition>>,
+) {
+    for (entity, position) in &query {
+        info!(
+            "LIGHTYEAR_SMOKE replication_update entity={entity:?} position=({:.3}, {:.3}, {:.3})",
+            position.x,
+            position.y,
+            position.z,
+        );
+    }
 }
 
 fn setup_scene(
