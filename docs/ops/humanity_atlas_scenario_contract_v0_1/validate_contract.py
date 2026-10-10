@@ -98,6 +98,9 @@ def validate_run_claim_gate(run: dict[str, Any]) -> None:
     status = validation["status"]
     evidence = validation.get("evidence", [])
     kinds = {item.get("kind") for item in evidence}
+    if classification in {"calibrated_simulation", "prospective_forecast"}:
+        need(run["run_status"] == "completed",
+             f"{classification} requires a completed run")
     if classification == "calibrated_simulation":
         need(status in {"retrospective", "external_review"},
              "calibrated_simulation requires retrospective or external_review status")
