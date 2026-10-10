@@ -17,9 +17,9 @@ use crate::transport::{
     AuthorityMessage, BodyStateUpdate, Channel, PhysicsSync, Transport, TransportEvent,
 };
 
-/// Hard upper bound for a decoded peer message. Concrete transports should enforce
-/// their own frame limits too; this is the session's last guard before deserialization.
-const MAX_INBOUND_PEER_MESSAGE_BYTES: usize = 1024 * 1024;
+/// Hard upper bound for serialized or decoded peer messages. Concrete transports
+/// should enforce their own frame limits too; this is the session-level protocol cap.
+const MAX_PEER_MESSAGE_BYTES: usize = 1024 * 1024;
 
 /// An authority message received from a peer, retaining the transport sender identity.
 ///
@@ -29,6 +29,36 @@ const MAX_INBOUND_PEER_MESSAGE_BYTES: usize = 1024 * 1024;
 pub struct IncomingAuthorityMessage {
     pub from: PeerId,
     pub message: AuthorityMessage,
+}
+
+/// A failed send to a session-admitted peer.
+#[derive(Debug, Clone)]
+pub struct OutboundSendFailure {
+    pub peer: PeerId,
+    pub error: String,
+}
+
+/// Observable outcome of one session-level outbound operation.
+///
+/// A report can describe partial delivery: delivered_peers may be non-zero even
+/// when failures is non-empty. Callers should inspect the report before treating
+/// reliable authority changes as delivered to every admitted peer.
+#[derive(Debug, Clone, Default)]
+pub struct OutboundSendReport {
+    pub attempted_peers: usize,
+    pub delivered_peers: usize,
+    pub failures: Vec<OutboundSendFailure>,
+    pub validation_error: Option<String>,
+    pub serialization_error: Option<String>,
+}
+
+impl OutboundSendReport {
+    /// Whether the operation had no validation, serialization, or per-peer send errors.
+    pub fn is_complete(&self) -> bool {
+        self.validation_error.is_none()
+            && self.serialization_error.is_none()
+            && self.failures.is_empty()
+    }
 }
 
 /// A multiplayer network session.
@@ -157,7 +187,7 @@ impl<T: Transport> NetworkSession<T> {
                     // Membership is established only by a transport PeerConnected event.
                     // Drop payloads from unknown peers and oversized frames before parsing.
                     if !self.peers.contains_key(&msg.from)
-                        || msg.data.len() > MAX_INBOUND_PEER_MESSAGE_BYTES
+                        || msg.data.len() > MAX_PEER_MESSAGE_BYTES
                     {
                         continue;
                     }
@@ -244,9 +274,9 @@ impl<T: Transport> NetworkSession<T> {
     /// Send local physics state to all peers.
     ///
     /// Call after computing physics for bodies the local peer has authority over.
-    pub fn send_physics(&mut self, bodies: Vec<BodyStateUpdate>) {
+    pub fn send_physics(&mut self, bodies: Vec<BodyStateUpdate>) -> OutboundSendReport {
         if bodies.is_empty() || self.peers.is_empty() {
-            return;
+            return OutboundSendReport::default();
         }
 
         let sync = PhysicsSync {
@@ -255,28 +285,93 @@ impl<T: Transport> NetworkSession<T> {
             bodies,
         };
 
-        if let Ok(data) = rmp_serde::to_vec(&sync) {
-            // Never use transport-wide broadcast here: transports may have links
-            // for peers this session refused to admit (for example, over max_peers).
-            let admitted_peers: Vec<PeerId> = self.peers.keys().copied().collect();
-            for peer in admitted_peers {
-                let _ = self.transport.send(peer, Channel::Unreliable, &data);
+        let data = match rmp_serde::to_vec(&sync) {
+            Ok(data) => data,
+            Err(error) => {
+                return OutboundSendReport {
+                    serialization_error: Some(error.to_string()),
+                    ..OutboundSendReport::default()
+                };
             }
+        };
+        if data.len() > MAX_PEER_MESSAGE_BYTES {
+            return OutboundSendReport {
+                validation_error: Some(format!(
+                    "serialized physics payload is {} bytes; maximum is {} bytes",
+                    data.len(),
+                    MAX_PEER_MESSAGE_BYTES
+                )),
+                ..OutboundSendReport::default()
+            };
         }
+
+        self.send_to_admitted_peers(Channel::Unreliable, &data)
     }
 
-    /// Send an authority message to all peers.
-    pub fn send_authority(&mut self, msg: &AuthorityMessage) {
+    /// Send an authority message to admitted peers and report partial failures.
+    pub fn send_authority(&mut self, msg: &AuthorityMessage) -> OutboundSendReport {
         if self.peers.is_empty() {
-            return;
+            return OutboundSendReport::default();
         }
 
-        if let Ok(data) = rmp_serde::to_vec(msg) {
-            let admitted_peers: Vec<PeerId> = self.peers.keys().copied().collect();
-            for peer in admitted_peers {
-                let _ = self.transport.send(peer, Channel::Reliable, &data);
+        // A peer can only advertise its own claim. Receivers independently verify
+        // this against the transport sender, but reject it here before fanout too.
+        if let AuthorityMessage::Claim { peer_id, .. } = msg {
+            let local_peer_id = self.transport.local_peer_id().0;
+            if *peer_id != local_peer_id {
+                return OutboundSendReport {
+                    validation_error: Some(format!(
+                        "refusing authority Claim for peer {peer_id}; local peer is {local_peer_id}"
+                    )),
+                    ..OutboundSendReport::default()
+                };
             }
         }
+
+        let data = match rmp_serde::to_vec(msg) {
+            Ok(data) => data,
+            Err(error) => {
+                return OutboundSendReport {
+                    serialization_error: Some(error.to_string()),
+                    ..OutboundSendReport::default()
+                };
+            }
+        };
+        if data.len() > MAX_PEER_MESSAGE_BYTES {
+            return OutboundSendReport {
+                validation_error: Some(format!(
+                    "serialized authority payload is {} bytes; maximum is {} bytes",
+                    data.len(),
+                    MAX_PEER_MESSAGE_BYTES
+                )),
+                ..OutboundSendReport::default()
+            };
+        }
+
+        self.send_to_admitted_peers(Channel::Reliable, &data)
+    }
+
+    fn send_to_admitted_peers(
+        &mut self,
+        channel: Channel,
+        data: &[u8],
+    ) -> OutboundSendReport {
+        // Never use transport-wide broadcast here: transports may have links for
+        // peers this session refused to admit (for example, over max_peers).
+        let admitted_peers: Vec<PeerId> = self.peers.keys().copied().collect();
+        let mut report = OutboundSendReport {
+            attempted_peers: admitted_peers.len(),
+            ..OutboundSendReport::default()
+        };
+
+        for peer in admitted_peers {
+            match self.transport.send(peer, channel, data) {
+                Ok(()) => report.delivered_peers += 1,
+                Err(error) => report.failures.push(OutboundSendFailure { peer, error }),
+            }
+        }
+
+        report
     }
 
     /// Number of connected peers.
@@ -410,6 +505,75 @@ mod tests {
 
         assert_eq!(session.authority.authority_of(body), Some(local_id));
         assert!(session.authority.is_local(body));
+    }
+
+    #[test]
+    fn send_authority_rejects_claim_for_another_peer() {
+        let (transport, _other) = loopback_pair();
+        let mut session =
+            NetworkSession::new(transport, NetworkConfig::local_test());
+        session.peers.insert(
+            PeerId(1),
+            PeerState::remote(PeerId(1), "remote".to_string(), 0),
+        );
+
+        let report = session.send_authority(&AuthorityMessage::Claim {
+            body_ids: vec![7],
+            peer_id: 999,
+        });
+
+        assert!(!report.is_complete());
+        assert_eq!(report.attempted_peers, 0);
+        assert_eq!(report.delivered_peers, 0);
+        assert!(report.failures.is_empty());
+        assert!(report.validation_error.unwrap().contains("refusing authority Claim"));
+    }
+
+    #[test]
+    fn outbound_physics_payload_is_bounded_before_fanout() {
+        let (transport, _other) = loopback_pair();
+        let mut session =
+            NetworkSession::new(transport, NetworkConfig::local_test());
+        session.peers.insert(
+            PeerId(1),
+            PeerState::remote(PeerId(1), "remote".to_string(), 0),
+        );
+
+        let body = BodyStateUpdate {
+            body_id: 1,
+            position: [0.0, 0.0, 0.0],
+            velocity: [0.0, 0.0, 0.0],
+            rotation: [1.0, 0.0, 0.0, 0.0],
+            angular_velocity: [0.0, 0.0, 0.0],
+        };
+        let report = session.send_physics(vec![body; 12_000]);
+
+        assert!(!report.is_complete());
+        assert_eq!(report.attempted_peers, 0);
+        assert_eq!(report.delivered_peers, 0);
+        assert!(report.validation_error.unwrap().contains("maximum is"));
+    }
+
+    #[test]
+    fn per_peer_send_failures_are_returned_in_delivery_report() {
+        let (transport, _other) = loopback_pair();
+        let mut session =
+            NetworkSession::new(transport, NetworkConfig::local_test());
+        let unexpected = PeerId(999);
+        session.peers.insert(
+            unexpected,
+            PeerState::remote(unexpected, "not-the-loopback-peer".to_string(), 0),
+        );
+
+        let report = session.send_authority(&AuthorityMessage::Release {
+            body_ids: vec![7],
+        });
+
+        assert_eq!(report.attempted_peers, 1);
+        assert_eq!(report.delivered_peers, 0);
+        assert_eq!(report.failures.len(), 1);
+        assert_eq!(report.failures[0].peer, unexpected);
+        assert!(report.failures[0].error.contains("Unknown loopback target"));
     }
 
     #[test]
@@ -588,7 +752,7 @@ mod tests {
         session_b.transport.inject_message(crate::transport::PeerMessage {
             from: PeerId(0),
             channel: Channel::Unreliable,
-            data: vec![0; MAX_INBOUND_PEER_MESSAGE_BYTES + 1],
+            data: vec![0; MAX_PEER_MESSAGE_BYTES + 1],
         });
 
         session_b.tick();
