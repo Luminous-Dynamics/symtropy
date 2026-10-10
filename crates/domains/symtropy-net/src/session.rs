@@ -488,12 +488,12 @@ impl<T: Transport> NetworkSession<T> {
         self.peers.len()
     }
 
-    /// Whether the underlying transport reports its connection handshake complete.
+    /// Whether the underlying transport reports its connection/control-plane state as established.
     ///
-    /// This is distinct from `is_multiplayer()`: a transport can be connected to
-    /// its control server before any remote peer has been admitted. For relay
-    /// transports, the state becomes true only after a server Welcome is processed
-    /// by `tick()`; it is not a gameplay-authorization signal.
+    /// This is distinct from `is_multiplayer()` and remote delivery. The exact state
+    /// is transport-specific: relay transports require Welcome to be processed by
+    /// `tick()`, while an in-memory transport may report its local endpoint connected.
+    /// This is not a gameplay-authorization signal.
     pub fn is_connected(&self) -> bool {
         self.transport.is_signaling_connected()
     }
