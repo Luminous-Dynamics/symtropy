@@ -76,6 +76,8 @@ pub struct NetworkSession<T: Transport> {
     pub authority: SpatialAuthority,
     /// Known peers.
     pub peers: HashMap<PeerId, PeerState>,
+    /// Most recent accepted remote physics snapshot tick, scoped to the current peer session.
+    latest_physics_tick: HashMap<PeerId, u64>,
     /// Current tick.
     pub tick: u64,
     /// Received physics updates from remote peers (consumed by game loop).
@@ -93,6 +95,7 @@ impl<T: Transport> NetworkSession<T> {
             config,
             authority: SpatialAuthority::new(local_id, 100.0),
             peers: HashMap::new(),
+            latest_physics_tick: HashMap::new(),
             tick: 0,
             incoming_physics: Vec::new(),
             incoming_authority: Vec::new(),
@@ -118,6 +121,7 @@ impl<T: Transport> NetworkSession<T> {
         }
 
         self.peers.remove(&peer_id);
+        self.latest_physics_tick.remove(&peer_id);
         self.authority.release_peer(peer_id);
         self.incoming_physics
             .retain(|sync| sync.authority != peer_id.0);
@@ -134,6 +138,7 @@ impl<T: Transport> NetworkSession<T> {
         // authority intent remains valid for the next session.
         self.incoming_physics.clear();
         self.incoming_authority.clear();
+        self.latest_physics_tick.clear();
     }
 
     /// Process one tick of networking.
@@ -205,6 +210,18 @@ impl<T: Transport> NetworkSession<T> {
                                 if sync.authority != msg.from.0 {
                                     continue;
                                 }
+
+                                // Unreliable snapshots may be delayed or reordered.
+                                // Never let an older or duplicate tick overwrite newer state.
+                                if self
+                                    .latest_physics_tick
+                                    .get(&msg.from)
+                                    .is_some_and(|last_tick| sync.tick <= *last_tick)
+                                {
+                                    continue;
+                                }
+                                self.latest_physics_tick.insert(msg.from, sync.tick);
+
                                 if let Some(peer) = self.peers.get_mut(&msg.from) {
                                     peer.mark_seen(self.tick);
                                 }
@@ -703,6 +720,46 @@ mod tests {
 
         session_b.tick();
         assert!(session_b.incoming_physics.is_empty());
+    }
+
+    #[test]
+    fn session_drops_duplicate_and_out_of_order_physics_snapshots() {
+        let (a_transport, b_transport) = loopback_pair();
+        let config = NetworkConfig::local_test();
+        let mut session_a = NetworkSession::new(a_transport, config.clone());
+        let mut session_b = NetworkSession::new(b_transport, config);
+
+        session_a.join("test").unwrap();
+        session_b.join("test").unwrap();
+        session_b.tick(); // admit peer before receiving its state
+
+        for remote_tick in [12, 10, 12] {
+            let payload = rmp_serde::to_vec(&PhysicsSync {
+                tick: remote_tick,
+                authority: 0,
+                bodies: vec![BodyStateUpdate {
+                    body_id: 1,
+                    position: [remote_tick as f64, 0.0, 0.0],
+                    velocity: [0.0, 0.0, 0.0],
+                    rotation: [1.0, 0.0, 0.0, 0.0],
+                    angular_velocity: [0.0, 0.0, 0.0],
+                }],
+            })
+            .expect("serialize physics snapshot");
+            session_b
+                .transport
+                .inject_message(crate::transport::PeerMessage {
+                    from: PeerId(0),
+                    channel: Channel::Unreliable,
+                    data: payload,
+                });
+        }
+
+        session_b.tick();
+
+        assert_eq!(session_b.incoming_physics.len(), 1);
+        assert_eq!(session_b.incoming_physics[0].tick, 12);
+        assert_eq!(session_b.incoming_physics[0].bodies[0].position[0], 12.0);
     }
 
     #[test]
