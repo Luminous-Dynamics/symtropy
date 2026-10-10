@@ -246,10 +246,7 @@
       ],
       "properties": {
         "kind": {
-          "enum": [
-            "retrospective_evaluation",
-            "independent_review"
-          ]
+          "const": "retrospective_evaluation"
         }
       }
     },
