@@ -8,7 +8,7 @@
 //! 3. Sends local authority bodies' state to peers
 //! 4. Handles authority claim/release messages
 
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
 use crate::authority::SpatialAuthority;
 use crate::config::NetworkConfig;
@@ -20,6 +20,23 @@ use crate::transport::{
 /// Hard upper bound for serialized or decoded peer messages. Concrete transports
 /// should enforce their own frame limits too; this is the session-level protocol cap.
 const MAX_PEER_MESSAGE_BYTES: usize = 1024 * 1024;
+
+/// Reject non-finite components and duplicate body IDs before updating session
+/// freshness state. Domain-specific bounds remain the authoritative simulation's job.
+fn is_valid_physics_sync(sync: &PhysicsSync) -> bool {
+    let mut body_ids = HashSet::with_capacity(sync.bodies.len());
+    sync.bodies.iter().all(|body| {
+        let finite_components = body
+            .position
+            .iter()
+            .chain(body.velocity.iter())
+            .chain(body.rotation.iter())
+            .chain(body.angular_velocity.iter())
+            .all(|component| component.is_finite());
+
+        finite_components && body_ids.insert(body.body_id)
+    })
+}
 
 /// An authority message received from a peer, retaining the transport sender identity.
 ///
@@ -207,7 +224,7 @@ impl<T: Transport> NetworkSession<T> {
                             if let Ok(sync) = rmp_serde::from_slice::<PhysicsSync>(&msg.data) {
                                 // The payload's claimed authority must agree with the
                                 // transport-authenticated sender identity.
-                                if sync.authority != msg.from.0 {
+                                if sync.authority != msg.from.0 || !is_valid_physics_sync(&sync) {
                                     continue;
                                 }
 
@@ -760,6 +777,68 @@ mod tests {
         assert_eq!(session_b.incoming_physics.len(), 1);
         assert_eq!(session_b.incoming_physics[0].tick, 12);
         assert_eq!(session_b.incoming_physics[0].bodies[0].position[0], 12.0);
+    }
+
+    #[test]
+    fn session_rejects_nonfinite_and_duplicate_body_updates_without_advancing_tick() {
+        let (a_transport, b_transport) = loopback_pair();
+        let config = NetworkConfig::local_test();
+        let mut session_a = NetworkSession::new(a_transport, config.clone());
+        let mut session_b = NetworkSession::new(b_transport, config);
+
+        session_a.join("test").unwrap();
+        session_b.join("test").unwrap();
+        session_b.tick();
+
+        let body = |body_id: u32, position: [f64; 3]| BodyStateUpdate {
+            body_id,
+            position,
+            velocity: [0.0, 0.0, 0.0],
+            rotation: [1.0, 0.0, 0.0, 0.0],
+            angular_velocity: [0.0, 0.0, 0.0],
+        };
+        let snapshots = vec![
+            PhysicsSync {
+                tick: 7,
+                authority: 0,
+                bodies: vec![body(1, [f64::NAN, 0.0, 0.0])],
+            },
+            PhysicsSync {
+                tick: 7,
+                authority: 0,
+                bodies: vec![body(1, [1.0, 0.0, 0.0])],
+            },
+            PhysicsSync {
+                tick: 8,
+                authority: 0,
+                bodies: vec![body(2, [1.0, 0.0, 0.0]), body(2, [2.0, 0.0, 0.0])],
+            },
+            PhysicsSync {
+                tick: 8,
+                authority: 0,
+                bodies: vec![body(2, [2.0, 0.0, 0.0])],
+            },
+        ];
+
+        for sync in snapshots {
+            let data = rmp_serde::to_vec(&sync).expect("serialize physics snapshot");
+            session_b.transport.inject_message(crate::transport::PeerMessage {
+                from: PeerId(0),
+                channel: Channel::Unreliable,
+                data,
+            });
+        }
+        session_b.tick();
+
+        assert_eq!(session_b.incoming_physics.len(), 2);
+        assert_eq!(
+            session_b
+                .incoming_physics
+                .iter()
+                .map(|sync| sync.tick)
+                .collect::<Vec<_>>(),
+            vec![7, 8]
+        );
     }
 
     #[test]
