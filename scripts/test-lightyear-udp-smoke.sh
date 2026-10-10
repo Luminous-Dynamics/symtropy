@@ -76,14 +76,9 @@ if ! kill -0 "$server_pid" 2>/dev/null; then
     exit 1
 fi
 
-updates="$(grep -c 'LIGHTYEAR_SMOKE replication_update' "$tmp_dir/client.log" || true)"
-unique_states="$(
-    grep 'LIGHTYEAR_SMOKE replication_update' "$tmp_dir/client.log" \
-        | sed -nE 's/.*position=\(([^)]*)\).*/\1/p' \
-        | sort -u \
-        | wc -l \
-        | tr -d '[:space:]'
-)"
+state_lines="$(grep 'LIGHTYEAR_SMOKE replication_update' "$tmp_dir/client.log" || true)"
+updates="$(printf '%s\n' "$state_lines" | grep -c 'LIGHTYEAR_SMOKE replication_update' || true)"
+unique_states="$(printf '%s\n' "$state_lines" | sed -nE 's/.*position=\(([^)]*)\).*/\1/p' | sort -u | grep -c . || true)"
 if [[ "$updates" -lt 3 ]]; then
     echo "Expected at least 3 replicated-state updates; observed $updates." >&2
     exit 1
