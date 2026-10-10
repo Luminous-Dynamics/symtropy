@@ -9,13 +9,17 @@ if [[ "$(uname -s)" != "Linux" ]]; then
     echo "This smoke helper currently requires Linux (GNU timeout)." >&2
     exit 2
 fi
+if ! command -v timeout >/dev/null 2>&1; then
+    echo "GNU timeout is required for this smoke helper." >&2
+    exit 2
+fi
 
-repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+repo_root="$(cd "$(dirname "\${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$repo_root"
 
 cargo build --locked -p symtropy-multiplayer-demo
 binary="$repo_root/target/debug/symtropy-multiplayer-demo"
-tmp_dir="$(mktemp -d "${TMPDIR:-/tmp}/symtropy-lightyear-smoke.XXXXXX")"
+tmp_dir="$(mktemp -d "\${TMPDIR:-/tmp}/symtropy-lightyear-smoke.XXXXXX")"
 server_pid=""
 passed=false
 
@@ -63,13 +67,29 @@ timeout --signal=TERM 12s \
 client_status=$?
 set -e
 
-updates="$(grep -c 'LIGHTYEAR_SMOKE replication_update' "$tmp_dir/client.log" || true)"
 if [[ "$client_status" -ne 124 && "$client_status" -ne 143 ]]; then
     echo "Client exited unexpectedly with status $client_status." >&2
     exit 1
 fi
+if ! kill -0 "$server_pid" 2>/dev/null; then
+    echo "Server process exited during the client smoke run." >&2
+    exit 1
+fi
+
+updates="$(grep -c 'LIGHTYEAR_SMOKE replication_update' "$tmp_dir/client.log" || true)"
+unique_states="$(
+    grep 'LIGHTYEAR_SMOKE replication_update' "$tmp_dir/client.log" \
+        | sed -nE 's/.*position=\(([^)]*)\).*/\1/p' \
+        | sort -u \
+        | wc -l \
+        | tr -d '[:space:]'
+)"
 if [[ "$updates" -lt 3 ]]; then
-    echo "Expected at least 3 replicated state updates; observed $updates." >&2
+    echo "Expected at least 3 replicated-state updates; observed $updates." >&2
+    exit 1
+fi
+if [[ "$unique_states" -lt 3 ]]; then
+    echo "Expected at least 3 distinct replicated positions; observed $unique_states." >&2
     exit 1
 fi
 if ! grep -q 'LIGHTYEAR_SMOKE client_connected' "$tmp_dir/server.log"; then
@@ -77,6 +97,6 @@ if ! grep -q 'LIGHTYEAR_SMOKE client_connected' "$tmp_dir/server.log"; then
     exit 1
 fi
 
-echo "PASS: the server observed the client connection and the client received $updates replicated-state updates over localhost UDP."
+echo "PASS: the server observed the client connection and the client received $updates updates across $unique_states distinct replicated positions over localhost UDP."
 echo "Evidence is derived from a separate server and client process."
 passed=true
