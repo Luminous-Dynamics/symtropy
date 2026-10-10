@@ -408,7 +408,7 @@ impl<T: Transport> NetworkSession<T> {
         }
 
         // Bound resource use and keep authority payload shape deterministic before
-        // serializing or faning out to any admitted peer.
+        // serializing or fanning out to any admitted peer.
         if let Some(error) = authority_message_validation_error(msg) {
             return OutboundSendReport {
                 validation_error: Some(error),
@@ -1028,6 +1028,35 @@ mod tests {
         assert_eq!(session_b.incoming_physics.len(), 1);
         assert_eq!(session_b.incoming_physics[0].bodies[0].body_id, 1);
         assert_eq!(session_b.incoming_physics[0].bodies[0].position[0], 10.0);
+    }
+
+    #[test]
+    fn session_drops_authority_message_over_body_id_limit() {
+        let (a_transport, b_transport) = loopback_pair();
+        let config = NetworkConfig::local_test();
+        let mut session_a = NetworkSession::new(a_transport, config.clone());
+        let mut session_b = NetworkSession::new(b_transport, config);
+
+        session_a.join("test").unwrap();
+        session_b.join("test").unwrap();
+
+        let payload = rmp_serde::to_vec(&AuthorityMessage::Release {
+            body_ids: (0..=MAX_AUTHORITY_BODY_IDS as u32).collect(),
+        })
+        .expect("serialize oversized authority operation");
+        assert!(payload.len() <= MAX_PEER_MESSAGE_BYTES);
+
+        session_b.transport.inject_message(crate::transport::PeerMessage {
+            from: PeerId(0),
+            channel: Channel::Reliable,
+            data: payload,
+        });
+
+        session_b.tick();
+        assert!(
+            session_b.incoming_authority.is_empty(),
+            "oversized authority operation must not reach the application"
+        );
     }
 
     #[test]
