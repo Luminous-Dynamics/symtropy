@@ -145,13 +145,12 @@ fn serialized_outgoing(command: &SignalOutgoing) -> Result<String, String> {
         },
     };
 
-    if is_relay_data {
-        if largest_field > MAX_PEER_MESSAGE_BYTES {
-            return Err(format!(
-                "relay packet is {largest_field} bytes; maximum is {MAX_PEER_MESSAGE_BYTES} bytes"
-            ));
-        }
-    } else if largest_field > MAX_SIGNAL_CONTROL_BYTES {
+    if is_relay_data && largest_field > MAX_PEER_MESSAGE_BYTES {
+        return Err(format!(
+            "relay packet is {largest_field} bytes; maximum is {MAX_PEER_MESSAGE_BYTES} bytes"
+        ));
+    }
+    if !is_relay_data && largest_field > MAX_SIGNAL_CONTROL_BYTES {
         return Err(format!(
             "signaling control field is {largest_field} bytes; maximum is {MAX_SIGNAL_CONTROL_BYTES} bytes"
         ));
@@ -730,6 +729,39 @@ mod tests {
         let second = rx.recv().await.expect("second event is queued");
         drop(second);
         assert_eq!(bytes.available_permits(), 10);
+    }
+
+    #[test]
+    fn one_poll_returns_a_bounded_batch_even_if_the_channel_has_more_items() {
+        let (cmd_tx, _cmd_rx) = mpsc::channel(SIGNAL_COMMAND_QUEUE_CAPACITY);
+        let (evt_tx, evt_rx) = mpsc::channel(SIGNAL_EVENT_QUEUE_CAPACITY + 1);
+        let command_bytes = Arc::new(Semaphore::new(MAX_SIGNAL_QUEUE_BYTES));
+        let event_bytes = Arc::new(Semaphore::new(MAX_SIGNAL_QUEUE_BYTES));
+
+        for id in 0..=SIGNAL_EVENT_QUEUE_CAPACITY {
+            let permit = event_bytes
+                .clone()
+                .try_acquire_many_owned(64)
+                .expect("test events fit the queue byte budget");
+            evt_tx
+                .try_send(QueuedSignalingEvent {
+                    event: SignalingEvent::PeerJoined(PeerId(id as u64)),
+                    _byte_permit: permit,
+                })
+                .expect("test channel has room for one extra item");
+        }
+
+        let mut client = SignalingClient {
+            tx: cmd_tx,
+            rx: evt_rx,
+            command_bytes,
+            event_bytes: event_bytes.clone(),
+            local_id: None,
+        };
+        let first_batch = client.poll_events();
+        assert_eq!(first_batch.len(), SIGNAL_EVENT_QUEUE_CAPACITY);
+        assert_eq!(client.rx.len(), 1);
+        assert_eq!(event_bytes.available_permits(), MAX_SIGNAL_QUEUE_BYTES - 64);
     }
 
     #[test]
