@@ -2,17 +2,17 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 //! Network configuration — signaling, STUN/TURN, transport settings.
 //!
-//! All URLs are configurable so game studios deploying Symtropy
-//! can swap in their own infrastructure. Defaults use Holo's free
-//! public servers.
+//! URLs are configurable so game studios deploying Symtropy can use their
+//! own infrastructure. No public signaling default is provided: the relay expects
+//! Symtropy's JSON protocol, which is not the Holochain SBD wire protocol.
 
 use serde::{Deserialize, Serialize};
 
 /// Network configuration for Symtropy multiplayer.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct NetworkConfig {
-    /// WebRTC signaling server URL.
-    /// Default: Holo's free public signaling server.
+    /// URL of a server implementing Symtropy's JSON signaling protocol.
+    /// Set SYMTROPY_SIGNAL_URL; no compatible public server is configured by default.
     pub signal_url: String,
 
     /// STUN server URL for NAT traversal.
@@ -45,8 +45,10 @@ pub struct NetworkConfig {
 impl Default for NetworkConfig {
     fn default() -> Self {
         Self {
-            signal_url: std::env::var("SYMTROPY_SIGNAL_URL")
-                .unwrap_or_else(|_| "wss://signal.holo.host".to_string()),
+            // Do not default to Holochain SBD: it uses an authenticated binary
+            // protocol, not Symtropy's JSON join/Welcome/relay_data protocol.
+            // An empty value makes an unconfigured deployment fail explicitly.
+            signal_url: std::env::var("SYMTROPY_SIGNAL_URL").unwrap_or_default(),
             stun_url: std::env::var("SYMTROPY_STUN_URL")
                 .unwrap_or_else(|_| "stun:stun.l.google.com:19302".to_string()),
             turn_url: std::env::var("SYMTROPY_TURN_URL").ok(),
@@ -83,5 +85,20 @@ impl NetworkConfig {
             stun_url: stun.to_string(),
             ..Self::default()
         }
+    }
+}
+
+
+#[cfg(test)]
+mod tests {
+    use super::NetworkConfig;
+
+    #[test]
+    fn default_signaling_endpoint_is_explicitly_configured() {
+        // Defaults must not silently select an unrelated public signaling protocol.
+        // Preserve explicit runtime configuration while leaving the unconfigured
+        // default empty and fail-closed.
+        let expected = std::env::var("SYMTROPY_SIGNAL_URL").unwrap_or_default();
+        assert_eq!(NetworkConfig::default().signal_url, expected);
     }
 }
