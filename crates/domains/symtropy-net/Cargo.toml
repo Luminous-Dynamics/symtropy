@@ -7,12 +7,11 @@ description = "Deterministic lockstep physics sync for Symtropy: tested lockstep
 
 [features]
 default = []
-# Compiles the WebSocket-based signaling client (`signaling.rs`) and the
-# relay transport that piggybacks game data over that same WebSocket
-# (`relay_transport.rs`). This makes `RelayTransport` compile and run
-# against a real signaling server, but it has NOT been validated
-# end-to-end against a live server (no integration test drives it) —
-# see `relay_transport.rs` module docs for known trade-offs.
+# Compiles the experimental Symtropy JSON signaling client (`signaling.rs`)
+# and WebSocket data relay (`relay_transport.rs`). It is not an implementation
+# of Holochain SBD and has no compatible public service configured by default.
+# Only an in-process local WebSocket fixture exists; live interoperability is
+# unqualified. See the crate README and module docs for the protocol boundary.
 webrtc = ["dep:tokio-tungstenite", "dep:futures-util", "dep:log"]
 logging = []
 
