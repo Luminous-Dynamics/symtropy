@@ -87,8 +87,9 @@ pub trait Transport {
     /// Number of currently connected peers.
     fn peer_count(&self) -> usize;
 
-    /// Whether the transport reports its connection handshake complete.
-    /// For relay transports this remains false until the server Welcome is observed.
+    /// Whether the transport reports its connection/control-plane state as established.
+    /// The exact point is transport-specific: relay transports remain false until
+    /// a server Welcome, while in-memory transports may report local connection setup.
     fn is_signaling_connected(&self) -> bool;
 
     /// Our own peer ID (assigned by signaling server or self-generated).
