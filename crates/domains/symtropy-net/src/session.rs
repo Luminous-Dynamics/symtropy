@@ -163,9 +163,9 @@ impl<T: Transport> NetworkSession<T> {
     /// Start joining a room through the transport's async connection path.
     ///
     /// A successful return means the transport's connection/join request was
-    /// accepted by its local async API. For network transports, observe
-    /// `TransportEvent::SignalingConnected` from `tick()` before treating the
-    /// session as connected.
+    /// accepted by its local async API. For asynchronous transports, call `tick()`
+    /// and then inspect `is_connected()`; returning from this method does not
+    /// prove that a remote server has completed its Welcome handshake.
     pub async fn join_async(&mut self, room_id: &str) -> Result<(), String> {
         self.transport.connect_async(room_id).await
     }
@@ -488,6 +488,16 @@ impl<T: Transport> NetworkSession<T> {
         self.peers.len()
     }
 
+    /// Whether the underlying transport reports its connection handshake complete.
+    ///
+    /// This is distinct from `is_multiplayer()`: a transport can be connected to
+    /// its control server before any remote peer has been admitted. For relay
+    /// transports, the state becomes true only after a server Welcome is processed
+    /// by `tick()`; it is not a gameplay-authorization signal.
+    pub fn is_connected(&self) -> bool {
+        self.transport.is_signaling_connected()
+    }
+
     /// Whether we're in a multiplayer session.
     pub fn is_multiplayer(&self) -> bool {
         !self.peers.is_empty()
@@ -511,6 +521,22 @@ mod tests {
     }
 
     #[test]
+    fn session_connection_state_is_separate_from_peer_admission() {
+        let (transport, _peer) = loopback_pair();
+        let mut session = NetworkSession::new(transport, NetworkConfig::local_test());
+
+        assert!(!session.is_connected());
+        assert!(!session.is_multiplayer());
+
+        session.join("test-room").expect("connect local transport");
+        assert!(session.is_connected());
+        assert!(
+            !session.is_multiplayer(),
+            "a local transport connection is not proof that a remote peer was admitted"
+        );
+    }
+
+    #[test]
     fn session_async_join_supports_synchronous_transports() {
         let (transport, _peer) = loopback_pair();
         let mut session = NetworkSession::new(transport, NetworkConfig::local_test());
@@ -520,7 +546,7 @@ mod tests {
             .block_on(session.join_async("test-room"))
             .expect("async join delegates to sync transport");
 
-        assert!(session.transport.is_signaling_connected());
+        assert!(session.is_connected());
     }
 
     #[test]
