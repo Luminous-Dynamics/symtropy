@@ -1,8 +1,8 @@
 // Copyright (C) 2024-2026 Tristan Stoltz / Luminous Dynamics
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-use bevy::prelude::*;
 use bevy::log::{Level, LogPlugin};
+use bevy::prelude::*;
 use bevy::state::app::StatesPlugin;
 use lightyear::connection::client::Connected;
 use lightyear::connection::server::Start;
@@ -99,9 +99,7 @@ fn main() {
     // This mode uses real Lightyear 0.28 UDP/Netcode sockets on localhost.
     // It is separate from the Iroh stub and is an experimental smoke path.
     if args.iter().any(|arg| arg == "--network-server") {
-        eprintln!(
-            "LIGHTYEAR UDP SMOKE: starting localhost server on {NETWORK_SERVER_ADDR}"
-        );
+        eprintln!("LIGHTYEAR UDP SMOKE: starting localhost server on {NETWORK_SERVER_ADDR}");
         run_network_server();
         return;
     }
@@ -113,9 +111,7 @@ fn main() {
                 std::process::exit(2);
             }
         };
-        eprintln!(
-            "LIGHTYEAR UDP SMOKE: connecting client {player_id} to {NETWORK_SERVER_ADDR}"
-        );
+        eprintln!("LIGHTYEAR UDP SMOKE: connecting client {player_id} to {NETWORK_SERVER_ADDR}");
         run_network_client(player_id);
         return;
     }
@@ -180,10 +176,7 @@ fn run_network_server() {
     });
     app.component::<NetPosition>().replicate();
     app.insert_resource(ReplicationMetadata::new(Duration::from_millis(100)));
-    app.add_systems(
-        Startup,
-        (start_network_server, spawn_server_replicated_state),
-    );
+    app.add_systems(Startup, (start_network_server, spawn_server_replicated_state));
     app.add_systems(Update, advance_server_replicated_state);
     app.add_observer(attach_replication_sender);
     app.run();
@@ -199,9 +192,7 @@ fn start_network_server(mut commands: Commands) -> Result {
         ))
         .id();
     commands.trigger(Start { entity: server });
-    info!(
-        "LIGHTYEAR_SMOKE server_start_requested addr={NETWORK_SERVER_ADDR}"
-    );
+    info!("LIGHTYEAR_SMOKE server_start_requested addr={NETWORK_SERVER_ADDR}");
     Ok(())
 }
 
@@ -218,10 +209,7 @@ fn spawn_server_replicated_state(mut commands: Commands) {
     info!("LIGHTYEAR_SMOKE authoritative_entity_spawned");
 }
 
-fn attach_replication_sender(
-    trigger: On<Add, Connected>,
-    mut commands: Commands,
-) {
+fn attach_replication_sender(trigger: On<Add, Connected>, mut commands: Commands) {
     commands.entity(trigger.entity).insert(ReplicationSender);
     info!(
         "LIGHTYEAR_SMOKE client_connected link={:?}",
@@ -248,10 +236,7 @@ fn run_network_client(player_id: u64) {
     app.run();
 }
 
-fn start_network_client(
-    mut commands: Commands,
-    player_id: Res<LocalDemoPlayerId>,
-) -> Result {
+fn start_network_client(mut commands: Commands, player_id: Res<LocalDemoPlayerId>) -> Result {
     let client_addr = SocketAddr::new(
         IpAddr::V4(Ipv4Addr::LOCALHOST),
         4000 + player_id.0 as u16,
@@ -284,9 +269,7 @@ fn start_network_client(
     Ok(())
 }
 
-fn report_replicated_state(
-    query: Query<(Entity, &NetPosition), Changed<NetPosition>>,
-) {
+fn report_replicated_state(query: Query<(Entity, &NetPosition), Changed<NetPosition>>) {
     for (entity, position) in &query {
         info!(
             "LIGHTYEAR_SMOKE replication_update entity={entity:?} position=({:.3}, {:.3}, {:.3})",
