@@ -223,6 +223,36 @@ mod tests {
     }
 
     #[test]
+    fn duplicate_peer_connected_event_preserves_liveness_state() {
+        let (a_transport, b_transport) = loopback_pair();
+        let config = NetworkConfig::local_test();
+        let mut session_a = NetworkSession::new(a_transport, config.clone());
+        let mut session_b = NetworkSession::new(b_transport, config);
+
+        session_a.join("test").unwrap();
+        session_b.join("test").unwrap();
+        session_b.tick();
+
+        session_b
+            .peers
+            .get_mut(&PeerId(0))
+            .expect("peer admitted")
+            .mark_seen(session_b.tick);
+        let last_seen = session_b.peers[&PeerId(0)].core.last_seen_tick;
+
+        session_b
+            .transport
+            .inject_event(TransportEvent::PeerConnected(PeerId(0)));
+        session_b.tick();
+
+        assert_eq!(
+            session_b.peers[&PeerId(0)].core.last_seen_tick,
+            last_seen,
+            "duplicate admission must not reset peer liveness"
+        );
+    }
+
+    #[test]
     fn session_tick_tolerates_zero_configured_send_rate() {
         let (transport, _peer) = loopback_pair();
         let mut config = NetworkConfig::local_test();
