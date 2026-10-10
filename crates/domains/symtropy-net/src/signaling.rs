@@ -715,9 +715,27 @@ mod tests {
     }
 
     #[test]
-    fn incoming_outer_envelope_rejects_one_byte_over_cap_before_parsing() {
-        let oversized = " ".repeat(MAX_SIGNALING_MESSAGE_BYTES + 1);
-        let error = parse_incoming(&oversized).expect_err("oversized envelope must fail closed");
+    fn incoming_outer_envelope_accepts_exact_cap_and_rejects_one_byte_over() {
+        let valid = serde_json::to_string(&SignalIncoming::Signal {
+            from: 2,
+            data: SignalData::RelayData {
+                channel: SignalChannel::Unreliable,
+                payload: vec![0],
+            },
+        })
+        .expect("serialize short relay message");
+        let exact = format!(
+            "{}{}",
+            valid,
+            " ".repeat(MAX_SIGNALING_MESSAGE_BYTES - valid.len())
+        );
+        assert_eq!(exact.len(), MAX_SIGNALING_MESSAGE_BYTES);
+        assert!(parse_incoming(&exact).is_ok());
+
+        let one_over = format!("{exact} ");
+        assert_eq!(one_over.len(), MAX_SIGNALING_MESSAGE_BYTES + 1);
+        let error = parse_incoming(&one_over)
+            .expect_err("outer envelope one byte over cap must fail before JSON parsing");
         assert!(error.contains("maximum is"));
     }
 
@@ -849,9 +867,15 @@ mod tests {
             )
             .expect("small command fits both bounds");
         }
+        let permits_before = bytes.available_permits();
         let error = enqueue_command(&tx, &bytes, SignalOutgoing::Leave)
             .expect_err("command count cap must reject the next entry");
         assert!(error.contains("queue is full"));
+        assert_eq!(
+            bytes.available_permits(),
+            permits_before,
+            "a failed count-bounded enqueue must release its byte permit"
+        );
         assert_eq!(rx.max_capacity(), SIGNAL_COMMAND_QUEUE_CAPACITY);
     }
 }
