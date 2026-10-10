@@ -129,6 +129,23 @@ def test_claim_promotion_gate() -> None:
         "description": "Synthetic evidence shape used only to exercise the gate.",
     }]
     gate(forecast)
+    failed_calibrated = copy.deepcopy(calibrated)
+    failed_calibrated["run_status"] = "failed"
+    try:
+        gate(failed_calibrated)
+    except ValueError as exc:
+        need("requires a completed run" in str(exc), f"unexpected failed-run rejection: {exc}")
+    else:
+        raise AssertionError("failed calibrated run unexpectedly passed")
+    failed_forecast = copy.deepcopy(forecast)
+    failed_forecast["run_status"] = "failed"
+    try:
+        gate(failed_forecast)
+    except ValueError as exc:
+        need("requires a completed run" in str(exc), f"unexpected failed-forecast rejection: {exc}")
+    else:
+        raise AssertionError("failed forecast run unexpectedly passed")
+    print("PASS: rejected calibrated/forecast labels on failed runs")
     print("PASS: accepted well-formed evidence-receipt shapes (not authenticated evidence)")
 
 
@@ -139,7 +156,7 @@ def main() -> int:
     run_case("unsupported intervention parameter", mutate_unknown_parameter, "unsupported intervention parameter")
     run_case("invalid time step", mutate_zero_step, "invalid horizon")
     test_claim_promotion_gate()
-    print("PASS: 5 fail-closed mutation cases plus 3 classification-promotion gates")
+    print("PASS: 5 fail-closed mutation cases plus evidence, class and run-status gates")
     print("BOUNDARY: structural and deterministic contract tests only; no scientific validity claim")
     return 0
 
