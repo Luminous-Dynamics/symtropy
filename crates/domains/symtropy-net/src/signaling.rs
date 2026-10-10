@@ -38,6 +38,16 @@ const SIGNAL_EVENT_QUEUE_CAPACITY: usize = 32;
 #[cfg(feature = "webrtc")]
 const MAX_SIGNAL_WRITE_BUFFER_BYTES: usize = MAX_SIGNALING_MESSAGE_BYTES + 256 * 1024;
 
+#[cfg(feature = "webrtc")]
+fn bounded_websocket_config() -> tokio_tungstenite::tungstenite::protocol::WebSocketConfig {
+    tokio_tungstenite::tungstenite::protocol::WebSocketConfig {
+        max_message_size: Some(MAX_SIGNALING_MESSAGE_BYTES),
+        max_frame_size: Some(MAX_SIGNALING_MESSAGE_BYTES),
+        max_write_buffer_size: MAX_SIGNAL_WRITE_BUFFER_BYTES,
+        ..Default::default()
+    }
+}
+
 /// Reliability lane for an explicit relayed game-data envelope.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
@@ -320,18 +330,10 @@ impl SignalingClient {
     /// Connect to the signaling server and spawn the WebSocket task.
     pub async fn connect(url: &str) -> Result<Self, String> {
         use futures_util::{SinkExt, StreamExt};
-        use tokio_tungstenite::{
-            connect_async_with_config, tungstenite::protocol::WebSocketConfig,
-        };
+        use tokio_tungstenite::connect_async_with_config;
 
         // The write budget must be large enough for one maximum-size relay packet.
-        let ws_config = WebSocketConfig {
-            max_message_size: Some(MAX_SIGNALING_MESSAGE_BYTES),
-            max_frame_size: Some(MAX_SIGNALING_MESSAGE_BYTES),
-            max_write_buffer_size: MAX_SIGNAL_WRITE_BUFFER_BYTES,
-            ..WebSocketConfig::default()
-        };
-        let (ws_stream, _) = connect_async_with_config(url, Some(ws_config), false)
+        let (ws_stream, _) = connect_async_with_config(url, Some(bounded_websocket_config()), false)
             .await
             .map_err(|error| format!("Signaling connect failed: {error}"))?;
 
