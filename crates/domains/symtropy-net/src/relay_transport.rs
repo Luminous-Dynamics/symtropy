@@ -375,6 +375,131 @@ mod implementation {
 
             assert!(error.contains("non-admitted peer"));
         }
+
+        #[tokio::test]
+        async fn localhost_websocket_fixture_roundtrips_explicit_relay_data() {
+            use futures_util::{SinkExt, StreamExt};
+            use std::time::Duration;
+            use tokio::net::TcpListener;
+            use tokio::time::{sleep, timeout};
+            use tokio_tungstenite::{accept_async, tungstenite::Message};
+
+            let listener = TcpListener::bind("127.0.0.1:0")
+                .await
+                .expect("bind local signaling fixture");
+            let address = listener.local_addr().expect("fixture local address");
+
+            let server = tokio::spawn(async move {
+                let (stream, _) = listener.accept().await.expect("accept relay client");
+                let mut websocket = accept_async(stream).await.expect("accept WebSocket");
+
+                let join_text = match websocket.next().await {
+                    Some(Ok(Message::Text(text))) => text,
+                    other => panic!("expected join command, received {other:?}"),
+                };
+                let join: serde_json::Value =
+                    serde_json::from_str(&join_text).expect("parse join command");
+                assert_eq!(join["type"], "join");
+                assert_eq!(join["room"], "fixture-room");
+
+                websocket
+                    .send(Message::Text(
+                        serde_json::to_string(&SignalIncoming::Welcome { peer_id: 1 })
+                            .expect("serialize Welcome"),
+                    ))
+                    .await
+                    .expect("send Welcome");
+                websocket
+                    .send(Message::Text(
+                        serde_json::to_string(&SignalIncoming::PeerJoined { peer_id: 2 })
+                            .expect("serialize peer_joined"),
+                    ))
+                    .await
+                    .expect("send peer_joined");
+
+                let outgoing_text = match websocket.next().await {
+                    Some(Ok(Message::Text(text))) => text,
+                    other => panic!("expected relay-data command, received {other:?}"),
+                };
+                let outgoing: serde_json::Value =
+                    serde_json::from_str(&outgoing_text).expect("parse relay-data command");
+                assert_eq!(outgoing["type"], "signal");
+                assert_eq!(outgoing["to"], 2);
+                assert_eq!(outgoing["data"]["kind"], "relay_data");
+                assert_eq!(outgoing["data"]["channel"], "reliable");
+                assert_eq!(outgoing["data"]["payload"], serde_json::json!([104, 101, 108, 108, 111]));
+
+                websocket
+                    .send(Message::Text(
+                        serde_json::to_string(&SignalIncoming::Signal {
+                            from: 2,
+                            data: SignalData::RelayData {
+                                channel: SignalChannel::Unreliable,
+                                payload: b"world".to_vec(),
+                            },
+                        })
+                        .expect("serialize inbound relay data"),
+                    ))
+                    .await
+                    .expect("send inbound relay data");
+
+                outgoing
+            });
+
+            let mut config = NetworkConfig::local_test();
+            config.signal_url = format!("ws://{address}");
+            let mut transport = RelayTransport::new(config);
+            transport
+                .connect_async("fixture-room")
+                .await
+                .expect("connect to local signaling fixture");
+
+            let mut initial_events = Vec::new();
+            timeout(Duration::from_secs(3), async {
+                loop {
+                    initial_events.extend(transport.poll());
+                    if transport.is_signaling_connected() && transport.peer_count() == 1 {
+                        break;
+                    }
+                    sleep(Duration::from_millis(1)).await;
+                }
+            })
+            .await
+            .expect("Welcome and peer admission must arrive from the fixture");
+
+            assert!(initial_events
+                .iter()
+                .any(|event| matches!(event, TransportEvent::SignalingConnected)));
+            assert!(initial_events
+                .iter()
+                .any(|event| matches!(event, TransportEvent::PeerConnected(PeerId(2)))));
+
+            transport
+                .send(PeerId(2), Channel::Reliable, b"hello")
+                .expect("queue explicit relay_data command");
+
+            // Awaiting the server task verifies the exact outbound JSON protocol shape.
+            let _outgoing = timeout(Duration::from_secs(3), server)
+                .await
+                .expect("server must receive and answer the relay packet")
+                .expect("fixture task must not panic");
+
+            let delivered = timeout(Duration::from_secs(3), async {
+                loop {
+                    for event in transport.poll() {
+                        if let TransportEvent::Message(message) = event {
+                            return message;
+                        }
+                    }
+                    sleep(Duration::from_millis(1)).await;
+                }
+            })
+            .await
+            .expect("client must receive the relayed packet");
+            assert_eq!(delivered.from, PeerId(2));
+            assert_eq!(delivered.channel, Channel::Unreliable);
+            assert_eq!(delivered.data, b"world");
+        }
     }
 
     /// Generate a random peer ID (used before server assigns one).
