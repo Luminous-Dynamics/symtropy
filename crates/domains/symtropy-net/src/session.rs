@@ -21,6 +21,16 @@ use crate::transport::{
 /// their own frame limits too; this is the session's last guard before deserialization.
 const MAX_INBOUND_PEER_MESSAGE_BYTES: usize = 1024 * 1024;
 
+/// An authority message received from a peer, retaining the transport sender identity.
+///
+/// This is provenance metadata, not proof that the peer is authorized to perform the
+/// requested operation. Consumers must validate permissions before changing authority.
+#[derive(Debug, Clone)]
+pub struct IncomingAuthorityMessage {
+    pub from: PeerId,
+    pub message: AuthorityMessage,
+}
+
 /// A multiplayer network session.
 pub struct NetworkSession<T: Transport> {
     /// The underlying transport (WebRTC, loopback, etc.).
@@ -35,8 +45,8 @@ pub struct NetworkSession<T: Transport> {
     pub tick: u64,
     /// Received physics updates from remote peers (consumed by game loop).
     pub incoming_physics: Vec<PhysicsSync>,
-    /// Received authority messages (consumed by game loop).
-    pub incoming_authority: Vec<AuthorityMessage>,
+    /// Received authority intents with source identity preserved for game-layer validation.
+    pub incoming_authority: Vec<IncomingAuthorityMessage>,
 }
 
 impl<T: Transport> NetworkSession<T> {
@@ -68,6 +78,10 @@ impl<T: Transport> NetworkSession<T> {
     fn remove_peer(&mut self, peer_id: PeerId) {
         self.peers.remove(&peer_id);
         self.authority.release_peer(peer_id);
+        self.incoming_physics
+            .retain(|sync| sync.authority != peer_id.0);
+        self.incoming_authority
+            .retain(|message| message.from != peer_id);
     }
 
     fn clear_peers(&mut self) {
@@ -75,6 +89,10 @@ impl<T: Transport> NetworkSession<T> {
         for peer_id in peers {
             self.remove_peer(peer_id);
         }
+        // The session/control connection is gone; no queued remote snapshot or
+        // authority intent remains valid for the next session.
+        self.incoming_physics.clear();
+        self.incoming_authority.clear();
     }
 
     /// Process one tick of networking.
@@ -140,7 +158,10 @@ impl<T: Transport> NetworkSession<T> {
                                 if let Some(peer) = self.peers.get_mut(&msg.from) {
                                     peer.mark_seen(self.tick);
                                 }
-                                self.incoming_authority.push(auth);
+                                self.incoming_authority.push(IncomingAuthorityMessage {
+                                    from: msg.from,
+                                    message: auth,
+                                });
                             }
                         }
                     }
@@ -457,7 +478,8 @@ mod tests {
         // B receives
         session_b.tick();
         assert_eq!(session_b.incoming_authority.len(), 1);
-        match &session_b.incoming_authority[0] {
+        assert_eq!(session_b.incoming_authority[0].from, PeerId(0));
+        match &session_b.incoming_authority[0].message {
             AuthorityMessage::Claim { body_ids, peer_id } => {
                 assert_eq!(body_ids, &[1, 2, 3]);
                 assert_eq!(*peer_id, 0);
