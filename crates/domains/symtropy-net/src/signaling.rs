@@ -25,9 +25,12 @@ use tokio::sync::{mpsc, OwnedSemaphorePermit, Semaphore};
 use serde::{Deserialize, Serialize};
 
 use crate::peer::PeerId;
+#[cfg(feature = "webrtc")]
 use crate::transport::MAX_PEER_MESSAGE_BYTES;
 
+#[cfg(feature = "webrtc")]
 pub(crate) const MAX_SIGNAL_CONTROL_BYTES: usize = 64 * 1024;
+#[cfg(feature = "webrtc")]
 pub(crate) const MAX_SIGNALING_MESSAGE_BYTES: usize = (4 * MAX_PEER_MESSAGE_BYTES) + 16 * 1024;
 #[cfg(feature = "webrtc")]
 const MAX_SIGNAL_QUEUE_BYTES: usize = MAX_SIGNALING_MESSAGE_BYTES;
@@ -137,6 +140,7 @@ pub enum SignalingEvent {
     Error(String),
 }
 
+#[cfg(feature = "webrtc")]
 fn serialized_outgoing(command: &SignalOutgoing) -> Result<String, String> {
     let (is_relay_data, largest_field) = match command {
         SignalOutgoing::Join { room } => (false, room.len()),
@@ -184,6 +188,7 @@ fn serialized_outgoing(command: &SignalOutgoing) -> Result<String, String> {
     Ok(json)
 }
 
+#[cfg(feature = "webrtc")]
 fn validate_incoming(message: &SignalIncoming, encoded_bytes: usize) -> Result<(), String> {
     if encoded_bytes > MAX_SIGNALING_MESSAGE_BYTES {
         return Err(format!(
@@ -212,6 +217,7 @@ fn validate_incoming(message: &SignalIncoming, encoded_bytes: usize) -> Result<(
     }
 }
 
+#[cfg(feature = "webrtc")]
 fn parse_incoming(text: &str) -> Result<SignalIncoming, String> {
     if text.len() > MAX_SIGNALING_MESSAGE_BYTES {
         return Err(format!(
