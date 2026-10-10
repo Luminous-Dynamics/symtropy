@@ -325,6 +325,18 @@ impl<T: Transport> NetworkSession<T> {
             bodies,
         };
 
+        // Apply the same structural invariants locally that receivers enforce.
+        // Do not emit packets every compliant peer will discard.
+        if !is_valid_physics_sync(&sync) {
+            return OutboundSendReport {
+                validation_error: Some(
+                    "physics payload contains non-finite components or duplicate body IDs"
+                        .to_string(),
+                ),
+                ..OutboundSendReport::default()
+            };
+        }
+
         let data = match rmp_serde::to_vec(&sync) {
             Ok(data) => data,
             Err(error) => {
@@ -585,6 +597,53 @@ mod tests {
         assert_eq!(report.attempted_peers, 0);
         assert_eq!(report.accepted_by_transport, 0);
         assert!(report.validation_error.unwrap().contains("maximum is"));
+    }
+
+    #[test]
+    fn outbound_physics_rejects_nonfinite_and_duplicate_body_updates_before_fanout() {
+        let (a_transport, b_transport) = loopback_pair();
+        let config = NetworkConfig::local_test();
+        let mut session_a = NetworkSession::new(a_transport, config.clone());
+        let mut session_b = NetworkSession::new(b_transport, config);
+
+        session_a.join("test").unwrap();
+        session_b.join("test").unwrap();
+        session_a.tick(); // admit the receiver before attempting outbound delivery
+
+        let body = BodyStateUpdate {
+            body_id: 7,
+            position: [0.0, 0.0, 0.0],
+            velocity: [0.0, 0.0, 0.0],
+            rotation: [1.0, 0.0, 0.0, 0.0],
+            angular_velocity: [0.0, 0.0, 0.0],
+        };
+        let mut nonfinite = body.clone();
+        nonfinite.position[0] = f64::NAN;
+
+        let nonfinite_report = session_a.send_physics(vec![nonfinite]);
+        assert!(!nonfinite_report.is_complete());
+        assert_eq!(nonfinite_report.attempted_peers, 0);
+        assert_eq!(nonfinite_report.accepted_by_transport, 0);
+        assert!(nonfinite_report
+            .validation_error
+            .as_deref()
+            .is_some_and(|error| error.contains("non-finite")));
+
+        let duplicate_report = session_a.send_physics(vec![body.clone(), body]);
+        assert!(!duplicate_report.is_complete());
+        assert_eq!(duplicate_report.attempted_peers, 0);
+        assert_eq!(duplicate_report.accepted_by_transport, 0);
+        assert!(duplicate_report
+            .validation_error
+            .as_deref()
+            .is_some_and(|error| error.contains("duplicate body IDs")));
+
+        // The peer may observe its admission event, but neither invalid state
+        // packet must cross the transport boundary.
+        let events = session_b.transport.poll();
+        assert!(!events
+            .iter()
+            .any(|event| matches!(event, TransportEvent::Message(_))));
     }
 
     #[test]
