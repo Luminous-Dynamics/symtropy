@@ -15,7 +15,6 @@
 //! The relay-data variant is a protocol change. A live signaling server must
 //! forward the new kind: relay_data shape opaquely before this path is usable.
 
-
 #[cfg(feature = "webrtc")]
 use std::sync::Arc;
 
