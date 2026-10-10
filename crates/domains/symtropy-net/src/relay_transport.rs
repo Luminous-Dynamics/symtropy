@@ -450,6 +450,111 @@ mod implementation {
 
         #[cfg(not(target_arch = "wasm32"))]
         #[tokio::test]
+        async fn changed_welcome_disconnects_relay_and_clears_membership() {
+            use futures_util::{SinkExt, StreamExt};
+            use std::time::Duration;
+            use tokio::net::TcpListener;
+            use tokio::time::{sleep, timeout};
+            use tokio_tungstenite::{accept_async, tungstenite::Message};
+
+            let listener = TcpListener::bind("127.0.0.1:0")
+                .await
+                .expect("bind local signaling fixture");
+            let address = listener.local_addr().expect("fixture local address");
+
+            let server = tokio::spawn(async move {
+                let (stream, _) = timeout(Duration::from_secs(5), listener.accept())
+                    .await
+                    .expect("client should connect")
+                    .expect("accept client");
+                let mut websocket = accept_async(stream)
+                    .await
+                    .expect("accept WebSocket");
+
+                let join_text = match timeout(Duration::from_secs(5), websocket.next())
+                    .await
+                    .expect("Join should arrive")
+                {
+                    Some(Ok(Message::Text(text))) => text,
+                    other => panic!("expected Join command, received {other:?}"),
+                };
+                let join: serde_json::Value =
+                    serde_json::from_str(&join_text).expect("parse Join command");
+                assert_eq!(join["type"], "join");
+                assert_eq!(join["room"], "identity-change-room");
+
+                // Reproduce a server that changes a client's identity mid-session.
+                // The transport must not remap it; the second Welcome is a protocol error.
+                for message in [
+                    SignalIncoming::Welcome { peer_id: 7 },
+                    SignalIncoming::PeerJoined { peer_id: 9 },
+                    SignalIncoming::Welcome { peer_id: 8 },
+                ] {
+                    websocket
+                        .send(Message::Text(
+                            serde_json::to_string(&message)
+                                .expect("serialize signaling fixture event"),
+                        ))
+                        .await
+                        .expect("send signaling fixture event");
+                }
+            });
+
+            let mut config = NetworkConfig::local_test();
+            config.signal_url = format!("ws://{address}");
+            let mut transport = RelayTransport::new(config);
+            transport
+                .connect_async("identity-change-room")
+                .await
+                .expect("connect to local signaling fixture");
+
+            let mut observed = Vec::new();
+            timeout(Duration::from_secs(5), async {
+                loop {
+                    observed.extend(transport.poll());
+                    if observed.iter().any(|event| {
+                        matches!(event, TransportEvent::SignalingDisconnected)
+                    }) {
+                        break;
+                    }
+                    sleep(Duration::from_millis(1)).await;
+                }
+            })
+            .await
+            .expect("identity change must fail closed and disconnect");
+
+            assert_eq!(
+                transport.local_peer_id(),
+                PeerId(7),
+                "never adopt the changed identity from a second Welcome"
+            );
+            assert!(!transport.is_signaling_connected());
+            assert_eq!(transport.peer_count(), 0);
+            assert!(observed
+                .iter()
+                .any(|event| matches!(event, TransportEvent::SignalingConnected)));
+            assert!(observed
+                .iter()
+                .any(|event| matches!(event, TransportEvent::PeerConnected(PeerId(9)))));
+            assert!(observed.iter().any(|event| {
+                matches!(
+                    event,
+                    TransportEvent::Error(error)
+                        if error.contains("changed local peer identity")
+                )
+            }));
+            assert!(observed
+                .iter()
+                .any(|event| matches!(event, TransportEvent::PeerDisconnected(PeerId(9)))));
+            assert!(observed
+                .iter()
+                .any(|event| matches!(event, TransportEvent::SignalingDisconnected)));
+
+            server.await.expect("signaling fixture should complete");
+        }
+
+        #[cfg(not(target_arch = "wasm32"))]
+        #[tokio::test]
         async fn localhost_websocket_fixture_roundtrips_relay_data_and_reconnects() {
             use futures_util::{SinkExt, StreamExt};
             use std::time::Duration;
