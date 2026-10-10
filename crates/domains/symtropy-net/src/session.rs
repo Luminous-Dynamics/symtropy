@@ -290,6 +290,7 @@ mod tests {
         let mut config = NetworkConfig::local_test();
         config.max_peers = 1;
         let mut session = NetworkSession::new(transport, config);
+        session.join("test").unwrap();
 
         session
             .transport
