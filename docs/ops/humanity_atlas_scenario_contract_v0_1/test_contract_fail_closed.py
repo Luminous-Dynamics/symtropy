@@ -1,7 +1,9 @@
 #!/usr/bin/env python3
 """Mutation tests: ensure the local contract gate rejects tampered inputs."""
 from __future__ import annotations
+import copy
 import json
+import runpy
 import shutil
 import subprocess
 import sys
@@ -22,6 +24,7 @@ def run_case(name: str, mutate, expected: str) -> None:
         shutil.copytree(HERE / "fixtures", root / "fixtures")
         shutil.copytree(HERE / "schemas", root / "schemas")
         shutil.copy2(HERE / "validate_contract.py", root / "validate_contract.py")
+        shutil.copy2(HERE / "test_contract_fail_closed.py", root / "test_contract_fail_closed.py")
         mutate(root)
         proc = subprocess.run(
             [sys.executable, str(root / "validate_contract.py")],
@@ -67,13 +70,60 @@ def mutate_zero_step(root: Path) -> None:
     p.write_text(json.dumps(doc, indent=2) + "\n", encoding="utf-8")
 
 
+def test_claim_promotion_gate() -> None:
+    namespace = runpy.run_path(str(HERE / "validate_contract.py"))
+    gate = namespace["validate_run_claim_gate"]
+    fixture = json.loads((HERE / "fixtures/synthetic_smoke_run.v0.1.json").read_text())
+
+    calibrated = copy.deepcopy(fixture)
+    calibrated["output_classification"] = "calibrated_simulation"
+    calibrated["validation"]["status"] = "retrospective"
+    try:
+        gate(calibrated)
+    except ValueError as exc:
+        need("requires evaluation evidence" in str(exc), f"unexpected calibration rejection: {exc}")
+    else:
+        raise AssertionError("calibrated_simulation without evidence unexpectedly passed")
+    print("PASS: rejected calibration promotion without an evaluation receipt")
+
+    forecast = copy.deepcopy(fixture)
+    forecast["output_classification"] = "prospective_forecast"
+    forecast["validation"]["status"] = "prospective"
+    try:
+        gate(forecast)
+    except ValueError as exc:
+        need("requires forecast receipt evidence" in str(exc), f"unexpected forecast rejection: {exc}")
+    else:
+        raise AssertionError("prospective_forecast without a receipt unexpectedly passed")
+    print("PASS: rejected forecast promotion without a forecast receipt")
+
+    calibrated["validation"]["evidence"] = [{
+        "evidence_id": "test.hindcast.report.v1",
+        "kind": "retrospective_evaluation",
+        "artifact_ref": "test-fixtures/hindcast-report.json",
+        "artifact_sha256": "a" * 64,
+        "description": "Synthetic evidence shape used only to exercise the gate.",
+    }]
+    gate(calibrated)
+    forecast["validation"]["evidence"] = [{
+        "evidence_id": "test.forecast.receipt.v1",
+        "kind": "prospective_forecast",
+        "artifact_ref": "test-fixtures/forecast-receipt.json",
+        "artifact_sha256": "b" * 64,
+        "description": "Synthetic evidence shape used only to exercise the gate.",
+    }]
+    gate(forecast)
+    print("PASS: accepted well-formed evidence-receipt shapes (not authenticated evidence)")
+
+
 def main() -> int:
     run_case("baseline byte tampering", mutate_baseline, "baseline byte digest mismatch")
     run_case("model byte tampering", mutate_model, "model byte digest mismatch")
     run_case("intervention outside horizon", mutate_intervention_year, "intervention year outside horizon")
     run_case("unsupported intervention parameter", mutate_unknown_parameter, "unsupported intervention parameter")
     run_case("invalid time step", mutate_zero_step, "invalid horizon")
-    print("PASS: 5 fail-closed mutation cases")
+    test_claim_promotion_gate()
+    print("PASS: 5 fail-closed mutation cases plus 2 classification-promotion gates")
     print("BOUNDARY: structural and deterministic contract tests only; no scientific validity claim")
     return 0
 
