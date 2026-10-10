@@ -126,9 +126,10 @@ impl SignalingClient {
         use futures_util::{SinkExt, StreamExt};
         use tokio_tungstenite::connect_async_with_config;
 
-        let (ws_stream, _) = connect_async_with_config(url, Some(bounded_websocket_config()), false)
-            .await
-            .map_err(|e| format!("Signaling connect failed: {e}"))?;
+        let (ws_stream, _) =
+            connect_async_with_config(url, Some(bounded_websocket_config()), false)
+                .await
+                .map_err(|e| format!("Signaling connect failed: {e}"))?;
 
         let (mut ws_tx, mut ws_rx) = ws_stream.split();
         let (cmd_tx, mut cmd_rx) = mpsc::unbounded_channel::<SignalOutgoing>();
