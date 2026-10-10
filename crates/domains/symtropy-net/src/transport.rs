@@ -69,11 +69,12 @@ pub enum TransportEvent {
     Error(String),
 }
 
-/// The transport trait — how peers actually exchange bytes.
+/// The transport trait — the byte/message boundary between peers.
 ///
-/// Implementations handle signaling, ICE negotiation, and data channels.
-/// The game loop calls `poll()` each tick and `send()` when it has
-/// state to distribute.
+/// Concrete transports own connection setup, framing, peer membership, and their
+/// own reliability semantics. Some backends use a signaling relay; this trait
+/// does not imply ICE negotiation, direct peer-to-peer connectivity, or data-channel
+/// support. The game loop calls `poll()` each tick and `send()` to distribute state.
 pub trait Transport {
     /// Connect to the signaling server and join a room.
     /// This begins the peer discovery process.
