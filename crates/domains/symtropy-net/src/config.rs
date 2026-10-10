@@ -15,16 +15,17 @@ pub struct NetworkConfig {
     /// Set SYMTROPY_SIGNAL_URL; no compatible public server is configured by default.
     pub signal_url: String,
 
-    /// STUN server URL for NAT traversal.
-    /// Default: Google's free public STUN server.
+    /// STUN URL reserved for a future ICE/WebRTC transport.
+    /// The current WebSocket JSON relay does not consult this setting.
     pub stun_url: String,
 
-    /// Optional TURN server URL for relay fallback.
-    /// Only needed when players are behind symmetric NAT.
-    /// Default: None (no relay — direct P2P only).
+    /// Optional TURN URL reserved for a future ICE/WebRTC transport.
+    /// The current WebSocket JSON relay does not use TURN; `None` does not
+    /// imply direct P2P or guarantee any fallback transport.
     pub turn_url: Option<String>,
 
-    /// Optional TURN credentials.
+    /// TURN credentials reserved for a future ICE/WebRTC transport.
+    /// The current WebSocket JSON relay does not consume these fields.
     pub turn_username: Option<String>,
     pub turn_credential: Option<String>,
 
@@ -78,7 +79,8 @@ impl NetworkConfig {
         }
     }
 
-    /// Create a config pointing at self-hosted infrastructure.
+    /// Create a config with an explicitly supplied Symtropy signal endpoint.
+    /// The STUN value is reserved for a future ICE/WebRTC transport.
     pub fn self_hosted(signal: &str, stun: &str) -> Self {
         Self {
             signal_url: signal.to_string(),
