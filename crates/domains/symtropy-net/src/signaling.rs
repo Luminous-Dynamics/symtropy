@@ -96,12 +96,6 @@ pub enum SignalingEvent {
     Error(String),
 }
 
-/// Signaling client handle — used by the transport to send/receive signaling messages.
-///
-/// Both directions use bounded mailboxes. A full command queue returns an error to
-/// the caller; a full event queue backpressures WebSocket reads instead of growing
-/// memory without limit.
-
 #[cfg(feature = "webrtc")]
 const SIGNAL_COMMAND_QUEUE_CAPACITY: usize = 16;
 #[cfg(feature = "webrtc")]
@@ -151,6 +145,12 @@ fn enqueue_command(
         mpsc::error::TrySendError::Closed(_) => "signaling command queue is closed".to_string(),
     })
 }
+
+/// Signaling client handle — used by the transport to send/receive signaling messages.
+///
+/// Both directions use bounded mailboxes. A full command queue returns an error to
+/// the caller; a full event queue backpressures WebSocket reads instead of growing
+/// memory without limit.
 
 #[cfg(feature = "webrtc")]
 pub struct SignalingClient {
