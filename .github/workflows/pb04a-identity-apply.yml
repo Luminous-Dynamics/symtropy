@@ -1,0 +1,229 @@
+name: PB-04a Identity Hardening Apply
+
+on:
+  push:
+    branches:
+      - "spatial/pb04a-faceted-topology-kernel"
+    paths:
+      - "scripts/pb04a-harden-content-identity.py"
+      - "scripts/pb04a-harden-global-source-consistency.py"
+      - "scripts/pb04a-harden-query-semantics.py"
+      - "scripts/pb04a-seal-identity-state.py"
+      - ".github/workflows/pb04a-identity-apply.yml"
+      - ".github/workflows/pb04a-spatial-topology-qualification.yml"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: pb04a-identity-hardening
+  cancel-in-progress: true
+
+jobs:
+  apply:
+    name: Apply PB-04a identity and query hardening
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+
+      - name: Bind exact transformer input head and ephemeral build path
+        shell: bash
+        run: |
+          set -euo pipefail
+          actual_head="$(git rev-parse HEAD)"
+          test "${actual_head}" = "${GITHUB_SHA}"
+          echo "PB04A_IDENTITY_INPUT_HEAD=${actual_head}"
+          echo "PB04A_IDENTITY_INPUT_TREE=$(git rev-parse HEAD^{tree})"
+          echo "CARGO_TARGET_DIR=${RUNNER_TEMP}/pb04a-target" >> "${GITHUB_ENV}"
+          test ! -e crates/domains/symtropy-spatial-topology/Cargo.lock || {
+            echo "PB-04a self-apply expects the exact unlocked pre-product subject" >&2
+            exit 1
+          }
+          test ! -e crates/domains/symtropy-spatial-topology/target
+          python3 --version
+
+      - name: Record hosted execution environment
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "PB04A_RUNNER_OS=${RUNNER_OS}"
+          echo "PB04A_RUNNER_ARCH=${RUNNER_ARCH}"
+          echo "PB04A_IMAGE_OS=${ImageOS:-unknown}"
+          echo "PB04A_IMAGE_VERSION=${ImageVersion:-unknown}"
+          echo "PB04A_CARGO_TARGET_DIR=${CARGO_TARGET_DIR}"
+          uname -a
+          git --version
+
+      - name: Verify exact transformation capsule
+        shell: bash
+        run: |
+          set -euo pipefail
+          check_blob() {
+            expected="$1"
+            path="$2"
+            actual="$(git hash-object "$path")"
+            if [[ "${actual}" != "${expected}" ]]; then
+              echo "PB-04a hardening capsule drift: ${path}" >&2
+              echo "expected ${expected}" >&2
+              echo "actual   ${actual}" >&2
+              exit 1
+            fi
+            echo "PB04A_CAPSULE_BLOB ${path} ${actual}"
+          }
+          check_blob 01ac9cfb159fe5c87b41e386a2b70c6edb6f6ae9 crates/domains/symtropy-spatial-topology/src/lib.rs
+          check_blob 66d2d48ef30208bf1389983a5e3dd5708d5eab3f crates/domains/symtropy-spatial-topology/Cargo.toml
+          check_blob 859392660ab0a722d76892ee317aceb2f2522be4 crates/domains/symtropy-spatial-topology/tests/hostile_projection.rs
+          check_blob 1d94ebb0a6819bfd1d95060920ec5b3d460194a9 scripts/pb04a-harden-content-identity.py
+          check_blob e03de8d8e452af9720d24f8922081c5e00209022 scripts/pb04a-harden-global-source-consistency.py
+          check_blob 0790af59fc936515a1a9131ffe1a945e2696f7c6 scripts/pb04a-harden-query-semantics.py
+          check_blob 14b41e0c1e010aa9ba4011cff90ded3e77e747f6 scripts/pb04a-seal-identity-state.py
+
+      - name: Set up pinned Rust
+        uses: dtolnay/rust-toolchain@6bed0761d98439e5a578e2877258200ad565ba87
+        with:
+          toolchain: 1.96.0
+          components: clippy, rustfmt
+
+      - name: Bind exact Rust toolchain
+        shell: bash
+        run: |
+          set -euo pipefail
+          rustc -Vv
+          cargo -Vv
+          rustfmt --version
+          cargo clippy --version
+
+      - name: Apply fail-closed hardening transformers
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 scripts/pb04a-harden-content-identity.py
+          python3 scripts/pb04a-harden-global-source-consistency.py
+          python3 scripts/pb04a-harden-query-semantics.py
+          python3 scripts/pb04a-seal-identity-state.py
+
+      - name: Verify exact diagnostic-proven raw transform output
+        shell: bash
+        run: |
+          set -euo pipefail
+          check_blob() {
+            expected="$1"
+            path="$2"
+            actual="$(git hash-object "$path")"
+            test "${actual}" = "${expected}" || {
+              echo "PB-04a transformed output drift: ${path}" >&2
+              echo "expected ${expected}" >&2
+              echo "actual   ${actual}" >&2
+              exit 1
+            }
+            echo "PB04A_TRANSFORMED_BLOB ${path} ${actual}"
+          }
+          check_blob 22e4b9ed397b7fd94d5918d0dc26868710794d17 crates/domains/symtropy-spatial-topology/Cargo.toml
+          check_blob e6148c6e575e21d7d543531deaf5ac5e0d36488b crates/domains/symtropy-spatial-topology/src/lib.rs
+          check_blob cdf6dda210433706381030073002b20123ae4a5d crates/domains/symtropy-spatial-topology/tests/hostile_projection.rs
+          patch_sha="$(git diff --binary --full-index --no-ext-diff -- \
+            crates/domains/symtropy-spatial-topology/Cargo.toml \
+            crates/domains/symtropy-spatial-topology/src/lib.rs \
+            crates/domains/symtropy-spatial-topology/tests/hostile_projection.rs \
+            | sha256sum | awk '{print $1}')"
+          test "${patch_sha}" = "4506212661bf870aaa1b09b0ff152df2a86946ac563e9d1d13ca9bcef27c21ef"
+          echo "PB04A_TRANSFORM_PATCH_SHA256=${patch_sha}"
+
+      - name: Freeze exact isolated dependency resolution
+        shell: bash
+        run: |
+          set -euo pipefail
+          manifest="crates/domains/symtropy-spatial-topology/Cargo.toml"
+          lock="crates/domains/symtropy-spatial-topology/Cargo.lock"
+          cargo generate-lockfile --manifest-path "${manifest}"
+          test -s "${lock}"
+          lock_blob="$(git hash-object "${lock}")"
+          lock_sha="$(sha256sum "${lock}" | awk '{print $1}')"
+          test "${lock_blob}" = "f465ef97074a973eb3bf742a918609f7a06bccc4"
+          test "${lock_sha}" = "0bf42b85a41a04bed6cb8038cb8863872ecf8b319a1e9d3dd7a9fa7b4981cf30"
+          echo "PB04A_NESTED_LOCK_BLOB=${lock_blob}"
+          echo "PB04A_NESTED_LOCK_SHA256=${lock_sha}"
+
+      - name: Canonical formatting under pinned rustfmt
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo fmt --manifest-path crates/domains/symtropy-spatial-topology/Cargo.toml
+          lib_blob="$(git hash-object crates/domains/symtropy-spatial-topology/src/lib.rs)"
+          test_blob="$(git hash-object crates/domains/symtropy-spatial-topology/tests/hostile_projection.rs)"
+          test "${lib_blob}" = "d0553da04de45f5df6e372b24a5a2fdc4d894b66"
+          test "${test_blob}" = "79abd90a6aa2c0b6623f75a279a66ff309094926"
+          echo "PB04A_FORMATTED_LIB_BLOB=${lib_blob}"
+          echo "PB04A_FORMATTED_TEST_BLOB=${test_blob}"
+
+      - name: Verify locked dependency graph
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo metadata --manifest-path crates/domains/symtropy-spatial-topology/Cargo.toml --locked --format-version 1 > "${RUNNER_TEMP}/pb04a-cargo-metadata.json"
+          echo "PB04A_LOCKED_METADATA_SHA256=$(sha256sum "${RUNNER_TEMP}/pb04a-cargo-metadata.json" | awk '{print $1}')"
+
+      - name: Prove hardened isolated crate under frozen resolution
+        shell: bash
+        run: |
+          set -euo pipefail
+          manifest="crates/domains/symtropy-spatial-topology/Cargo.toml"
+          cargo check --manifest-path "${manifest}" --locked --all-targets
+          cargo test --manifest-path "${manifest}" --locked
+          cargo clippy --manifest-path "${manifest}" --locked --all-targets -- -D warnings
+
+      - name: Require exact intended product delta
+        shell: bash
+        run: |
+          set -euo pipefail
+          git diff --check
+          test -s crates/domains/symtropy-spatial-topology/Cargo.lock
+          test ! -e crates/domains/symtropy-spatial-topology/target
+          expected="$(printf '%s\n' \
+            crates/domains/symtropy-spatial-topology/Cargo.lock \
+            crates/domains/symtropy-spatial-topology/Cargo.toml \
+            crates/domains/symtropy-spatial-topology/src/lib.rs \
+            crates/domains/symtropy-spatial-topology/tests/hostile_projection.rs | sort)"
+          actual="$({
+            git diff --name-only
+            git ls-files --others --exclude-standard
+          } | sort -u)"
+          if [[ "${actual}" != "${expected}" ]]; then
+            echo "PB-04a hardening produced an unexpected path set" >&2
+            echo "expected:" >&2
+            printf '%s\n' "${expected}" >&2
+            echo "actual:" >&2
+            printf '%s\n' "${actual}" >&2
+            exit 1
+          fi
+          printf '%s\n' "${actual}"
+
+      - name: Commit qualified PB-04a hardening and dependency lock
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "PB-04a Qualification Bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add crates/domains/symtropy-spatial-topology/Cargo.toml \
+                  crates/domains/symtropy-spatial-topology/Cargo.lock \
+                  crates/domains/symtropy-spatial-topology/src/lib.rs \
+                  crates/domains/symtropy-spatial-topology/tests/hostile_projection.rs
+          git diff --cached --check
+          git diff --cached --exit-code --quiet && {
+            echo "no qualified source delta to commit" >&2
+            exit 1
+          }
+          git commit -m "fix(spatial): harden PB-04a topology authority semantics"
+          qualified_head="$(git rev-parse HEAD)"
+          qualified_tree="$(git rev-parse HEAD^{tree})"
+          echo "PB04A_HARDENED_HEAD=${qualified_head}"
+          echo "PB04A_HARDENED_TREE=${qualified_tree}"
+          echo "PB04A_HARDENED_LOCK_BLOB=$(git rev-parse HEAD:crates/domains/symtropy-spatial-topology/Cargo.lock)"
+          echo "PB04A_HARDENED_LIB_BLOB=$(git rev-parse HEAD:crates/domains/symtropy-spatial-topology/src/lib.rs)"
+          echo "PB04A_HARDENED_TEST_BLOB=$(git rev-parse HEAD:crates/domains/symtropy-spatial-topology/tests/hostile_projection.rs)"
+          remote_head="$(git ls-remote origin refs/heads/spatial/pb04a-faceted-topology-kernel | cut -f1)"
+          test "${remote_head}" = "${GITHUB_SHA}"
+          git push origin HEAD:spatial/pb04a-faceted-topology-kernel
