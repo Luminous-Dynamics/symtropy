@@ -15,7 +15,7 @@ use crate::config::NetworkConfig;
 use crate::peer::{PeerId, PeerState};
 use crate::transport::{
     AuthorityMessage, BodyStateUpdate, Channel, PhysicsSync, Transport, TransportEvent,
-    MAX_PEER_MESSAGE_BYTES,
+    MAX_AUTHORITY_BODY_IDS, MAX_AUTHORITY_REASON_BYTES, MAX_PEER_MESSAGE_BYTES,
 };
 
 /// Reject non-finite components and duplicate body IDs before updating session
@@ -33,6 +33,44 @@ fn is_valid_physics_sync(sync: &PhysicsSync) -> bool {
 
         finite_components && body_ids.insert(body.body_id)
     })
+}
+
+/// Validate resource bounds and structural invariants for authority messages.
+///
+/// The session intentionally does not decide whether the sender is authorized to
+/// claim/release these bodies; it only bounds parsing and preserves sender identity
+/// for the application-level permission check.
+fn authority_message_validation_error(message: &AuthorityMessage) -> Option<String> {
+    let (body_ids, reason): (&[u32], Option<&str>) = match message {
+        AuthorityMessage::Claim { body_ids, .. } | AuthorityMessage::Release { body_ids } => {
+            (body_ids, None)
+        }
+        AuthorityMessage::RequestTransfer { body_ids, reason } => (body_ids, Some(reason.as_str())),
+    };
+
+    if body_ids.len() > MAX_AUTHORITY_BODY_IDS {
+        return Some(format!(
+            "authority message contains {} body IDs; maximum is {}",
+            body_ids.len(),
+            MAX_AUTHORITY_BODY_IDS
+        ));
+    }
+    if let Some(reason) = reason {
+        if reason.len() > MAX_AUTHORITY_REASON_BYTES {
+            return Some(format!(
+                "authority-transfer reason is {} bytes; maximum is {}",
+                reason.len(),
+                MAX_AUTHORITY_REASON_BYTES
+            ));
+        }
+    }
+
+    let mut unique_ids = HashSet::with_capacity(body_ids.len());
+    if !body_ids.iter().all(|body_id| unique_ids.insert(*body_id)) {
+        return Some("authority message contains duplicate body IDs".to_string());
+    }
+
+    None
 }
 
 /// An authority message received from a peer, retaining the transport sender identity.
@@ -244,6 +282,12 @@ impl<T: Transport> NetworkSession<T> {
                         }
                         Channel::Reliable => {
                             if let Ok(auth) = rmp_serde::from_slice::<AuthorityMessage>(&msg.data) {
+                                // Bound operation size and reject ambiguous duplicate body IDs
+                                // before marking this payload as valid peer activity.
+                                if authority_message_validation_error(&auth).is_some() {
+                                    continue;
+                                }
+
                                 // A claim must identify the admitted peer that sent it.
                                 // Other authority operations remain intents until the
                                 // application validates their source and permissions.
@@ -361,6 +405,15 @@ impl<T: Transport> NetworkSession<T> {
     pub fn send_authority(&mut self, msg: &AuthorityMessage) -> OutboundSendReport {
         if self.peers.is_empty() {
             return OutboundSendReport::default();
+        }
+
+        // Bound resource use and keep authority payload shape deterministic before
+        // serializing or faning out to any admitted peer.
+        if let Some(error) = authority_message_validation_error(msg) {
+            return OutboundSendReport {
+                validation_error: Some(error),
+                ..OutboundSendReport::default()
+            };
         }
 
         // A peer can only advertise its own claim. Receivers independently verify
@@ -1000,6 +1053,55 @@ mod tests {
 
         session_b.tick();
         assert!(session_b.incoming_authority.is_empty());
+    }
+
+    #[test]
+    fn authority_message_validation_bounds_ids_reason_and_duplicates() {
+        assert!(authority_message_validation_error(&AuthorityMessage::Claim {
+            body_ids: (0..=MAX_AUTHORITY_BODY_IDS as u32).collect(),
+            peer_id: 1,
+        })
+        .is_some());
+
+        assert!(authority_message_validation_error(&AuthorityMessage::Release {
+            body_ids: vec![7, 7],
+        })
+        .is_some());
+
+        assert!(authority_message_validation_error(&AuthorityMessage::RequestTransfer {
+            body_ids: vec![1],
+            reason: "r".repeat(MAX_AUTHORITY_REASON_BYTES + 1),
+        })
+        .is_some());
+
+        assert!(authority_message_validation_error(&AuthorityMessage::RequestTransfer {
+            body_ids: vec![1, 2, 3],
+            reason: "handoff".to_string(),
+        })
+        .is_none());
+    }
+
+    #[test]
+    fn session_rejects_invalid_authority_shape_before_fanout() {
+        let (a_transport, b_transport) = loopback_pair();
+        let config = NetworkConfig::local_test();
+        let mut session_a = NetworkSession::new(a_transport, config.clone());
+        let mut session_b = NetworkSession::new(b_transport, config);
+
+        session_a.join("test").unwrap();
+        session_b.join("test").unwrap();
+        session_a.tick(); // Admit the loopback peer before testing the outbound guard.
+
+        let report = session_a.send_authority(&AuthorityMessage::Release {
+            body_ids: vec![9, 9],
+        });
+        assert_eq!(report.attempted_peers, 0);
+        assert_eq!(report.accepted_by_transport, 0);
+        assert!(report.failures.is_empty());
+        assert!(report
+            .validation_error
+            .as_deref()
+            .is_some_and(|message| message.contains("duplicate body IDs")));
     }
 
     #[test]
