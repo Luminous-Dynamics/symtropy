@@ -432,8 +432,12 @@ mod tests {
         transport.broadcast(Channel::Unreliable, b"state").unwrap();
         let outbox = transport.drain_outbox();
         assert_eq!(outbox.len(), 2);
-        assert!(outbox.iter().any(|(peer, channel, _)| *peer == PeerId(2) && *channel == Channel::Unreliable));
-        assert!(outbox.iter().any(|(peer, channel, _)| *peer == PeerId(3) && *channel == Channel::Unreliable));
+        assert!(outbox.iter().any(|(peer, channel, _)| {
+            *peer == PeerId(2) && *channel == Channel::Unreliable
+        }));
+        assert!(outbox.iter().any(|(peer, channel, _)| {
+            *peer == PeerId(3) && *channel == Channel::Unreliable
+        }));
     }
 
     #[test]
@@ -515,8 +519,12 @@ mod tests {
         assert_eq!(transport.pending_outbound_packets(), 0);
 
         let events = transport.poll();
-        assert!(events.iter().any(|event| matches!(event, TransportEvent::PeerConnected(peer) if *peer == PeerId(2))));
-        assert!(events.iter().any(|event| matches!(event, TransportEvent::PeerDisconnected(peer) if *peer == PeerId(2))));
+        assert!(events.iter().any(|event| {
+            matches!(event, TransportEvent::PeerConnected(peer) if *peer == PeerId(2))
+        }));
+        assert!(events.iter().any(|event| {
+            matches!(event, TransportEvent::PeerDisconnected(peer) if *peer == PeerId(2))
+        }));
         assert!(!events.iter().any(|event| matches!(event, TransportEvent::Message(_))));
     }
 
