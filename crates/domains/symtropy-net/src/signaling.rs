@@ -604,6 +604,102 @@ mod tests {
     }
 
     #[test]
+    fn outgoing_wire_shapes_are_stable_for_server_implementations() {
+        assert_eq!(
+            serde_json::to_value(SignalOutgoing::Join {
+                room: "room-1".into(),
+            })
+            .expect("serialize Join"),
+            serde_json::json!({"type": "join", "room": "room-1"})
+        );
+        assert_eq!(
+            serde_json::to_value(SignalOutgoing::Leave).expect("serialize Leave"),
+            serde_json::json!({"type": "leave"})
+        );
+        assert_eq!(
+            serde_json::to_value(SignalOutgoing::Signal {
+                to: 42,
+                data: SignalData::Offer { sdp: "v=0".into() },
+            })
+            .expect("serialize SDP offer"),
+            serde_json::json!({
+                "type": "signal",
+                "to": 42,
+                "data": {"kind": "offer", "sdp": "v=0"}
+            })
+        );
+        assert_eq!(
+            serde_json::to_value(SignalOutgoing::Signal {
+                to: 42,
+                data: SignalData::Answer { sdp: "v=0-answer".into() },
+            })
+            .expect("serialize SDP answer"),
+            serde_json::json!({
+                "type": "signal",
+                "to": 42,
+                "data": {"kind": "answer", "sdp": "v=0-answer"}
+            })
+        );
+        assert_eq!(
+            serde_json::to_value(SignalOutgoing::Signal {
+                to: 42,
+                data: SignalData::IceCandidate {
+                    candidate: "candidate:1".into(),
+                    sdp_mid: None,
+                    sdp_mline_index: None,
+                },
+            })
+            .expect("serialize ICE candidate"),
+            serde_json::json!({
+                "type": "signal",
+                "to": 42,
+                "data": {
+                    "kind": "ice",
+                    "candidate": "candidate:1",
+                    "sdp_mid": null,
+                    "sdp_mline_index": null
+                }
+            })
+        );
+        assert_eq!(
+            serde_json::to_value(SignalOutgoing::Signal {
+                to: 42,
+                data: SignalData::RelayData {
+                    channel: SignalChannel::Unreliable,
+                    payload: vec![0, 255],
+                },
+            })
+            .expect("serialize relay packet"),
+            serde_json::json!({
+                "type": "signal",
+                "to": 42,
+                "data": {"kind": "relay_data", "channel": "unreliable", "payload": [0, 255]}
+            })
+        );
+    }
+
+    #[test]
+    fn incoming_wire_shapes_parse_the_documented_discriminators() {
+        let cases = [
+            (r#"{"type":"welcome","peer_id":7}"#, "welcome"),
+            (r#"{"type":"peer_joined","peer_id":8}"#, "peer_joined"),
+            (r#"{"type":"peer_left","peer_id":8}"#, "peer_left"),
+            (
+                r#"{"type":"signal","from":8,"data":{"kind":"relay_data","channel":"reliable","payload":[104,105]}}"#,
+                "signal",
+            ),
+            (r#"{"type":"error","message":"rejected"}"#, "error"),
+        ];
+
+        for (json, expected_type) in cases {
+            let value: serde_json::Value =
+                serde_json::from_str(json).expect("documented incoming envelope is valid JSON");
+            assert_eq!(value["type"], expected_type);
+            parse_incoming(json).expect("documented incoming envelope must parse");
+        }
+    }
+
+    #[test]
     fn control_message_exact_boundary_is_accepted_and_one_byte_over_is_rejected() {
         let empty = serialized_outgoing(&SignalOutgoing::Join {
             room: String::new(),
