@@ -8,10 +8,13 @@
 //! - **Reliable**: Authority changes, governance actions, chat.
 //!   Must arrive in order, no drops.
 //!
-//! Implementations:
-//! - `WebRtcTransport` (native, via webrtc-rs) — the production transport
-//! - `LoopbackTransport` (testing) — in-memory, zero-latency
-//! - Future: `web-sys` WebRTC for WASM browser builds
+//! Current implementations and qualification status:
+//! - `RelayTransport` (feature `webrtc`) — experimental WebSocket signaling/data relay;
+//!   not a WebRTC data channel and not qualified against a live signaling server.
+//! - `IrohTransport` — in-memory scaffold only; it does not open an Iroh/QUIC endpoint.
+//! - `LoopbackTransport` — in-memory test transport.
+//!
+//! No production-qualified network transport is currently provided by this crate.
 
 use crate::peer::PeerId;
 use serde::{Deserialize, Serialize};
