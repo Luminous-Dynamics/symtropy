@@ -109,6 +109,26 @@ fn enqueue_command(
     tx: &mpsc::Sender<SignalOutgoing>,
     command: SignalOutgoing,
 ) -> Result<(), String> {
+    // Reject obviously oversized caller-owned strings before serializing them.
+    // JSON escaping can increase size, so perform an exact envelope-size check next.
+    let largest_field = match &command {
+        SignalOutgoing::Join { room } => room.len(),
+        SignalOutgoing::Leave => 0,
+        SignalOutgoing::Signal { data, .. } => match data {
+            SignalData::Offer { sdp } | SignalData::Answer { sdp } => sdp.len(),
+            SignalData::IceCandidate {
+                candidate, sdp_mid, ..
+            } => candidate
+                .len()
+                .saturating_add(sdp_mid.as_deref().map_or(0, str::len)),
+        },
+    };
+    if largest_field > MAX_SIGNAL_MESSAGE_BYTES {
+        return Err(format!(
+            "signaling payload field is {largest_field} bytes; maximum is {MAX_SIGNAL_MESSAGE_BYTES} bytes"
+        ));
+    }
+
     let encoded = serde_json::to_vec(&command)
         .map_err(|error| format!("failed to serialize signaling command: {error}"))?;
     if encoded.len() > MAX_SIGNAL_MESSAGE_BYTES {
@@ -171,7 +191,7 @@ mod tests {
         let command = SignalOutgoing::Signal {
             to: 42,
             data: SignalData::Offer {
-                sdp: "x".repeat(MAX_SIGNAL_MESSAGE_BYTES),
+                sdp: "x".repeat(MAX_SIGNAL_MESSAGE_BYTES + 1),
             },
         };
 
