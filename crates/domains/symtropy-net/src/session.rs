@@ -111,6 +111,16 @@ impl<T: Transport> NetworkSession<T> {
         for event in events {
             match event {
                 TransportEvent::PeerConnected(peer_id) => {
+                    // A transport must never admit the local identity as a remote peer.
+                    if peer_id == self.transport.local_peer_id() {
+                        #[cfg(feature = "logging")]
+                        eprintln!(
+                            "[symtropy-net] rejected local peer identity {} from PeerConnected",
+                            peer_id.0
+                        );
+                        continue;
+                    }
+
                     // Duplicate connection events must not reset liveness state.
                     if self.peers.contains_key(&peer_id) {
                         continue;
@@ -184,7 +194,13 @@ impl<T: Transport> NetworkSession<T> {
                         }
                     }
                 }
-                TransportEvent::SignalingConnected => {}
+                TransportEvent::SignalingConnected => {
+                    // Some transports receive their authoritative local peer ID
+                    // only after the remote handshake. Keep spatial authority in
+                    // sync with that assigned identity before accepting gameplay.
+                    self.authority
+                        .reidentify_local_peer(self.transport.local_peer_id());
+                }
                 TransportEvent::SignalingDisconnected => {
                     // A lost signaling/control connection invalidates all admitted
                     // remote peers and their authority leases.
@@ -368,6 +384,22 @@ mod tests {
             "both channels must target admitted peers only"
         );
         assert!(session.is_multiplayer());
+    }
+
+    #[test]
+    fn session_rejects_local_identity_as_remote_peer() {
+        let (transport, _other) = loopback_pair();
+        let local_id = transport.local_peer_id();
+        let config = NetworkConfig::local_test();
+        let mut session = NetworkSession::new(transport, config);
+
+        session
+            .transport
+            .inject_event(TransportEvent::PeerConnected(local_id));
+        session.tick();
+
+        assert!(!session.peers.contains_key(&local_id));
+        assert_eq!(session.peer_count(), 0);
     }
 
     #[test]
