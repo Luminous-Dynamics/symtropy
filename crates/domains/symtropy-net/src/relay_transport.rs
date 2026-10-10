@@ -180,7 +180,11 @@ mod implementation {
         }
 
         fn peer_count(&self) -> usize {
-            self.peers.len()
+            if self.connected {
+                self.peers.len()
+            } else {
+                0
+            }
         }
 
         fn is_signaling_connected(&self) -> bool {
@@ -209,6 +213,18 @@ mod implementation {
             assert!(!transport.is_signaling_connected());
             assert!(transport.signaling.is_none());
             assert!(transport.pending_events.is_empty());
+        }
+
+        #[test]
+        fn sends_are_rejected_until_server_welcome() {
+            let mut transport = RelayTransport::new(NetworkConfig::local_test());
+
+            let error = transport
+                .send(PeerId(42), Channel::Reliable, b"premature")
+                .expect_err("game data must not be sent before Welcome");
+
+            assert!(error.contains("waiting for signaling-server Welcome"));
+            assert!(!transport.is_signaling_connected());
         }
 
         #[test]
