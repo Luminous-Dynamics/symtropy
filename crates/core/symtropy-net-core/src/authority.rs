@@ -30,6 +30,24 @@ impl SpatialAuthority {
         }
     }
 
+    /// Replace the provisional local peer ID with the identity assigned by the
+    /// transport handshake, preserving the local peer's existing body claims.
+    pub fn reidentify_local_peer(&mut self, new_local_peer: PeerId) {
+        let old_local_peer = self.local_peer;
+        if old_local_peer == new_local_peer {
+            return;
+        }
+
+        for owner in self.body_authority.values_mut() {
+            if *owner == old_local_peer {
+                *owner = new_local_peer;
+            }
+        }
+
+        // local_bodies is keyed by body, so it remains valid across ID remapping.
+        self.local_peer = new_local_peer;
+    }
+
     /// Claim authority over a body.
     pub fn claim(&mut self, body: BodyHandle, peer: PeerId) {
         self.body_authority.insert(body, peer);
@@ -96,3 +114,44 @@ impl SpatialAuthority {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use symtropy_physics::body::BodyHandle;
+
+    #[test]
+    fn reidentifying_local_peer_preserves_and_remaps_local_claims() {
+        let provisional = PeerId(999);
+        let assigned = PeerId(1);
+        let remote = PeerId(2);
+        let local_body = BodyHandle(10);
+        let remote_body = BodyHandle(20);
+        let mut authority = SpatialAuthority::new(provisional, 100.0);
+
+        authority.claim(local_body, provisional);
+        authority.claim(remote_body, remote);
+        authority.reidentify_local_peer(assigned);
+
+        assert_eq!(authority.local_peer, assigned);
+        assert_eq!(authority.authority_of(local_body), Some(assigned));
+        assert_eq!(authority.authority_of(remote_body), Some(remote));
+        assert!(authority.is_local(local_body));
+        assert!(!authority.is_local(remote_body));
+        assert_eq!(authority.local_body_count(), 1);
+    }
+
+    #[test]
+    fn reidentifying_local_peer_to_same_id_is_idempotent() {
+        let local = PeerId(1);
+        let body = BodyHandle(10);
+        let mut authority = SpatialAuthority::new(local, 100.0);
+        authority.claim(body, local);
+
+        authority.reidentify_local_peer(local);
+
+        assert_eq!(authority.authority_of(body), Some(local));
+        assert!(authority.is_local(body));
+    }
+}
+
