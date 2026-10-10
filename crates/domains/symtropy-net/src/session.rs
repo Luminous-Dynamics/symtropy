@@ -126,6 +126,17 @@ impl<T: Transport> NetworkSession<T> {
                         }
                         Channel::Reliable => {
                             if let Ok(auth) = rmp_serde::from_slice::<AuthorityMessage>(&msg.data) {
+                                // A claim must identify the admitted peer that sent it.
+                                // Other authority operations remain intents until the
+                                // application validates their source and permissions.
+                                if matches!(
+                                    &auth,
+                                    AuthorityMessage::Claim { peer_id, .. }
+                                        if *peer_id != msg.from.0
+                                ) {
+                                    continue;
+                                }
+
                                 if let Some(peer) = self.peers.get_mut(&msg.from) {
                                     peer.mark_seen(self.tick);
                                 }
@@ -399,6 +410,31 @@ mod tests {
         assert_eq!(session_b.incoming_physics.len(), 1);
         assert_eq!(session_b.incoming_physics[0].bodies[0].body_id, 1);
         assert_eq!(session_b.incoming_physics[0].bodies[0].position[0], 10.0);
+    }
+
+    #[test]
+    fn session_drops_authority_claim_that_impersonates_another_peer() {
+        let (a_transport, b_transport) = loopback_pair();
+        let config = NetworkConfig::local_test();
+        let mut session_a = NetworkSession::new(a_transport, config.clone());
+        let mut session_b = NetworkSession::new(b_transport, config);
+
+        session_a.join("test").unwrap();
+        session_b.join("test").unwrap();
+
+        let payload = rmp_serde::to_vec(&AuthorityMessage::Claim {
+            body_ids: vec![42],
+            peer_id: 99,
+        })
+        .expect("serialize spoofed claim");
+        session_b.transport.inject_message(crate::transport::PeerMessage {
+            from: PeerId(0),
+            channel: Channel::Reliable,
+            data: payload,
+        });
+
+        session_b.tick();
+        assert!(session_b.incoming_authority.is_empty());
     }
 
     #[test]
