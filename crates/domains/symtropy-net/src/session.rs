@@ -285,6 +285,22 @@ mod tests {
         session
             .transport
             .inject_event(TransportEvent::PeerConnected(PeerId(11)));
+
+        // Even a syntactically valid update from the rejected peer must remain
+        // outside the session's admitted-member boundary.
+        let payload = rmp_serde::to_vec(&PhysicsSync {
+            tick: 1,
+            authority: 11,
+            bodies: Vec::new(),
+        })
+        .expect("serialize over-limit peer update");
+        session
+            .transport
+            .inject_message(crate::transport::PeerMessage {
+                from: PeerId(11),
+                channel: Channel::Unreliable,
+                data: payload,
+            });
         session.tick();
 
         assert_eq!(session.peer_count(), 1);
@@ -292,6 +308,10 @@ mod tests {
         assert!(
             !session.peers.contains_key(&PeerId(11)),
             "peers over the configured session admission limit must not be admitted"
+        );
+        assert!(
+            session.incoming_physics.is_empty(),
+            "updates from peers rejected at admission must not reach the game"
         );
     }
 
