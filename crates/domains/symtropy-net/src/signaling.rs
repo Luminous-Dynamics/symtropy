@@ -311,7 +311,6 @@ pub struct SignalingClient {
     tx: mpsc::Sender<QueuedSignalCommand>,
     rx: mpsc::Receiver<QueuedSignalingEvent>,
     command_bytes: Arc<Semaphore>,
-    event_bytes: Arc<Semaphore>,
     /// Our peer ID (set after Welcome message).
     pub local_id: Option<PeerId>,
 }
@@ -521,7 +520,6 @@ impl SignalingClient {
             tx: cmd_tx,
             rx: evt_rx,
             command_bytes,
-            event_bytes,
             local_id: None,
         })
     }
@@ -755,7 +753,6 @@ mod tests {
             tx: cmd_tx,
             rx: evt_rx,
             command_bytes,
-            event_bytes: event_bytes.clone(),
             local_id: None,
         };
         let first_batch = client.poll_events();
