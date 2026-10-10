@@ -17,6 +17,10 @@ use crate::transport::{
     AuthorityMessage, BodyStateUpdate, Channel, PhysicsSync, Transport, TransportEvent,
 };
 
+/// Hard upper bound for a decoded peer message. Concrete transports should enforce
+/// their own frame limits too; this is the session's last guard before deserialization.
+const MAX_INBOUND_PEER_MESSAGE_BYTES: usize = 1024 * 1024;
+
 /// A multiplayer network session.
 pub struct NetworkSession<T: Transport> {
     /// The underlying transport (WebRTC, loopback, etc.).
@@ -84,21 +88,33 @@ impl<T: Transport> NetworkSession<T> {
                     self.peers.remove(&peer_id);
                 }
                 TransportEvent::Message(msg) => {
-                    // Update last-seen
-                    if let Some(peer) = self.peers.get_mut(&msg.from) {
-                        peer.mark_seen(self.tick);
+                    // Membership is established only by a transport PeerConnected event.
+                    // Drop payloads from unknown peers and oversized frames before parsing.
+                    if !self.peers.contains_key(&msg.from)
+                        || msg.data.len() > MAX_INBOUND_PEER_MESSAGE_BYTES
+                    {
+                        continue;
                     }
 
                     match msg.channel {
                         Channel::Unreliable => {
-                            // Physics state update
                             if let Ok(sync) = rmp_serde::from_slice::<PhysicsSync>(&msg.data) {
+                                // The payload's claimed authority must agree with the
+                                // transport-authenticated sender identity.
+                                if sync.authority != msg.from.0 {
+                                    continue;
+                                }
+                                if let Some(peer) = self.peers.get_mut(&msg.from) {
+                                    peer.mark_seen(self.tick);
+                                }
                                 self.incoming_physics.push(sync);
                             }
                         }
                         Channel::Reliable => {
-                            // Authority message
                             if let Ok(auth) = rmp_serde::from_slice::<AuthorityMessage>(&msg.data) {
+                                if let Some(peer) = self.peers.get_mut(&msg.from) {
+                                    peer.mark_seen(self.tick);
+                                }
                                 self.incoming_authority.push(auth);
                             }
                         }
@@ -180,6 +196,90 @@ mod tests {
         session.join("test-room").unwrap();
         session.tick();
         assert_eq!(session.tick, 1);
+    }
+
+    #[test]
+    fn session_drops_messages_from_unknown_peers() {
+        let (a_transport, b_transport) = loopback_pair();
+        let config = NetworkConfig::local_test();
+        let mut session_a = NetworkSession::new(a_transport, config.clone());
+        let mut session_b = NetworkSession::new(b_transport, config);
+
+        session_a.join("test").unwrap();
+        session_b.join("test").unwrap();
+
+        let payload = rmp_serde::to_vec(&PhysicsSync {
+            tick: 1,
+            authority: 99,
+            bodies: vec![BodyStateUpdate {
+                body_id: 1,
+                position: [1.0, 2.0, 3.0],
+                velocity: [0.0, 0.0, 0.0],
+                rotation: [1.0, 0.0, 0.0, 0.0],
+                angular_velocity: [0.0, 0.0, 0.0],
+            }],
+        })
+        .expect("serialize physics sync");
+        session_b.transport.inject_message(crate::transport::PeerMessage {
+            from: PeerId(99),
+            channel: Channel::Unreliable,
+            data: payload,
+        });
+
+        session_b.tick();
+        assert!(session_b.incoming_physics.is_empty());
+    }
+
+    #[test]
+    fn session_drops_physics_sync_with_mismatched_authority() {
+        let (a_transport, b_transport) = loopback_pair();
+        let config = NetworkConfig::local_test();
+        let mut session_a = NetworkSession::new(a_transport, config.clone());
+        let mut session_b = NetworkSession::new(b_transport, config);
+
+        session_a.join("test").unwrap();
+        session_b.join("test").unwrap();
+
+        let payload = rmp_serde::to_vec(&PhysicsSync {
+            tick: 1,
+            authority: 99,
+            bodies: vec![BodyStateUpdate {
+                body_id: 1,
+                position: [1.0, 2.0, 3.0],
+                velocity: [0.0, 0.0, 0.0],
+                rotation: [1.0, 0.0, 0.0, 0.0],
+                angular_velocity: [0.0, 0.0, 0.0],
+            }],
+        })
+        .expect("serialize physics sync");
+        session_b.transport.inject_message(crate::transport::PeerMessage {
+            from: PeerId(0),
+            channel: Channel::Unreliable,
+            data: payload,
+        });
+
+        session_b.tick();
+        assert!(session_b.incoming_physics.is_empty());
+    }
+
+    #[test]
+    fn session_drops_oversized_peer_payload_before_decode() {
+        let (a_transport, b_transport) = loopback_pair();
+        let config = NetworkConfig::local_test();
+        let mut session_a = NetworkSession::new(a_transport, config.clone());
+        let mut session_b = NetworkSession::new(b_transport, config);
+
+        session_a.join("test").unwrap();
+        session_b.join("test").unwrap();
+
+        session_b.transport.inject_message(crate::transport::PeerMessage {
+            from: PeerId(0),
+            channel: Channel::Unreliable,
+            data: vec![0; MAX_INBOUND_PEER_MESSAGE_BYTES + 1],
+        });
+
+        session_b.tick();
+        assert!(session_b.incoming_physics.is_empty());
     }
 
     #[test]
