@@ -13,7 +13,7 @@ Deterministic lockstep networking for Symtropy.
 
 ## What's partial
 
-- **`RelayTransport` / `signaling.rs`** (behind the legacy `webrtc` feature):
+- **`RelayTransport` / `signaling.rs`** (behind the `ws-relay` feature; `webrtc` remains a compatibility alias):
   an experimental WebSocket JSON signaling client and a transport that relays
   game data over that same WebSocket. It has only an in-process fixture, not live
   service qualification. `NetworkConfig::default()` intentionally leaves
@@ -25,6 +25,8 @@ Deterministic lockstep networking for Symtropy.
   this client's JSON-text protocol and multi-megabyte envelope. Updating the URL
   alone does not make the protocols compatible; an adapter or Symtropy-compatible
   server is required.
+  New builds should enable `symtropy-net/ws-relay`; the old `webrtc` feature is
+  retained only as an alias and does not enable a WebRTC data channel.
 
 ## What's a stub
 
