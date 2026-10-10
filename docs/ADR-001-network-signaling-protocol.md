@@ -6,6 +6,8 @@
 
 ## Context
 
+The exact currently implemented JSON envelope shapes and client-side byte/count limits are recorded in [the experimental V0 wire description](protocol/symtropy-signaling-v0.md). That document is not accepted as a production wire contract; the current messages contain no version negotiation or authentication binding.
+
 The current `RelayTransport` is an experimental WebSocket JSON relay, not a WebRTC data-channel implementation or a direct P2P transport. It speaks Symtropy-specific text messages (`join`, `welcome`, `peer_joined`, `peer_left`, `signal`) and an explicit `kind: "relay_data"` variant. The client currently permits a 1 MiB game payload encoded as a JSON array of byte values, with a larger bounded envelope to account for JSON expansion. Control messages have a separate 64 KiB limit and mailbox count/byte quotas.
 
 The former default `wss://signal.holo.host` is not a compatible-service guarantee. Holochain's [official migration guide](https://developer.holochain.org/resources/upgrade/upgrade-holochain-0.4/) identifies that endpoint as old and names `wss://sbd-0.main.infra.holo.host` for SBD. The [SBD wire specification](https://github.com/holochain/sbd/blob/main/spec.md) defines a different authenticated binary protocol with public-key identities and a 20,000-byte message ceiling. SBD is not compatible with this JSON client merely by changing the URL.
@@ -34,7 +36,7 @@ Implement SBD's actual authentication and binary frames, with a separate room/di
 
 Provide a real peer-connection/data-channel transport and a compatible signaling/control service. Use the reliable and unreliable data-channel semantics directly.
 
-**Advantages:** matches the current `webrtc` feature name and can reduce game-data relay through a central service.
+**Advantages:** implements actual data-channel semantics instead of the current WebSocket relay; the accurately named `ws-relay` feature now describes that existing transport, with `webrtc` retained only as a compatibility alias.
 
 **Costs:** substantially more lifecycle, ICE/NAT traversal, reconnect, browser/native, and observability work; still needs a defined compatible signaling protocol. It is not achieved by the current WebSocket relay.
 
