@@ -15,6 +15,8 @@
 //! The relay-data variant is a protocol change. A live signaling server must
 //! forward the new kind: relay_data shape opaquely before this path is usable.
 
+
+#[cfg(feature = "webrtc")]
 use std::sync::Arc;
 
 #[cfg(feature = "webrtc")]
@@ -27,9 +29,13 @@ use crate::transport::MAX_PEER_MESSAGE_BYTES;
 
 pub(crate) const MAX_SIGNAL_CONTROL_BYTES: usize = 64 * 1024;
 pub(crate) const MAX_SIGNALING_MESSAGE_BYTES: usize = (4 * MAX_PEER_MESSAGE_BYTES) + 16 * 1024;
-pub(crate) const MAX_SIGNAL_QUEUE_BYTES: usize = MAX_SIGNALING_MESSAGE_BYTES;
+#[cfg(feature = "webrtc")]
+const MAX_SIGNAL_QUEUE_BYTES: usize = MAX_SIGNALING_MESSAGE_BYTES;
+#[cfg(feature = "webrtc")]
 const SIGNAL_COMMAND_QUEUE_CAPACITY: usize = 16;
+#[cfg(feature = "webrtc")]
 const SIGNAL_EVENT_QUEUE_CAPACITY: usize = 32;
+#[cfg(feature = "webrtc")]
 const MAX_SIGNAL_WRITE_BUFFER_BYTES: usize = MAX_SIGNALING_MESSAGE_BYTES + 256 * 1024;
 
 /// Reliability lane for an explicit relayed game-data envelope.
