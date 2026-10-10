@@ -38,14 +38,19 @@ pub const TEMP_CLARITY_FLOOR: f64 = 0.1;
 
 /// Smooth temperature-to-consciousness clarity penalty.
 ///
-/// Returns a multiplier in [TEMP_CLARITY_FLOOR, 1.0]:
+/// Returns a multiplier in [TEMP_CLARITY_FLOOR, 1.0] for physically valid,
+/// finite positive Kelvin inputs:
 /// - At body temperature (310K): ≈ 0.994 (essentially no penalty)
 /// - At midpoint (360K): 0.55 (half capacity)
 /// - At fever peak (410K+): ≈ 0.106 (near floor)
 ///
-/// Uses a logistic sigmoid centred at TEMP_SIGMOID_MIDPOINT_K so the
-/// penalty is **continuous and differentiable** — no binary step at any
-/// temperature, which previously caused a Dirac-like jump at 311K.
+/// Non-finite or non-positive absolute temperature is invalid authoritative
+/// evidence and fails closed to [`TEMP_CLARITY_FLOOR`]. It must never become
+/// favorable near-unity motor/cognitive authority merely because floating-point
+/// comparisons or a logistic expression happen to produce a benign value.
+///
+/// Uses a logistic sigmoid centred at TEMP_SIGMOID_MIDPOINT_K so the valid-input
+/// penalty is continuous and differentiable.
 ///
 /// Formula: `FLOOR + (1 - FLOOR) / (1 + exp(k * (T - T_mid)))`
 ///
@@ -54,6 +59,10 @@ pub const TEMP_CLARITY_FLOOR: f64 = 0.1;
 /// - Kiyatkin (2010) — brain temperature and neural activity review
 #[inline]
 pub fn smooth_temperature_penalty(temperature_k: f64) -> f64 {
+    if !temperature_k.is_finite() || temperature_k <= 0.0 {
+        return TEMP_CLARITY_FLOOR;
+    }
+
     let exponent = TEMP_SIGMOID_STEEPNESS * (temperature_k - TEMP_SIGMOID_MIDPOINT_K);
     let sigmoid = 1.0 / (1.0 + exponent.exp());
     (TEMP_CLARITY_FLOOR + (1.0 - TEMP_CLARITY_FLOOR) * sigmoid).clamp(TEMP_CLARITY_FLOOR, 1.0)
@@ -511,8 +520,38 @@ mod tests {
     }
 
     #[test]
+    fn invalid_absolute_temperature_fails_closed() {
+        for temperature in [
+            f64::NAN,
+            f64::INFINITY,
+            f64::NEG_INFINITY,
+            0.0,
+            -1.0,
+            -273.15,
+        ] {
+            let penalty = smooth_temperature_penalty(temperature);
+            assert_eq!(
+                penalty, TEMP_CLARITY_FLOOR,
+                "invalid absolute temperature {temperature:?} must fail closed"
+            );
+            assert!(penalty.is_finite());
+        }
+    }
+
+    #[test]
+    fn extreme_positive_finite_temperatures_remain_bounded() {
+        for temperature in [f64::MIN_POSITIVE, BODY_TEMPERATURE_K, 1.0e6, f64::MAX] {
+            let penalty = smooth_temperature_penalty(temperature);
+            assert!(penalty.is_finite());
+            assert!((TEMP_CLARITY_FLOOR..=1.0).contains(&penalty));
+        }
+    }
+
+    #[test]
     fn penalty_monotonic_cold() {
-        // Below body temperature, penalty should be ≥ body_temp penalty (no super-clarity).
+        // This model currently penalizes excess heat only. Valid positive cold
+        // inputs may therefore be at least as permissive as body temperature;
+        // hypothermia is a separate future physiological model.
         let p_cold = smooth_temperature_penalty(280.0);
         let p_body = smooth_temperature_penalty(BODY_TEMPERATURE_K);
         assert!(
