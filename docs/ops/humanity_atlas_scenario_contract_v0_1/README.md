@@ -42,9 +42,11 @@ A deterministic run proves repeatability for specified inputs, not that the mode
 
 ### Evidence-gated classification
 
+The detailed intended-use, verification, validation, uncertainty, retrospective-evaluation and forecast-receipt process is documented in **MODEL_CREDIBILITY_GATE_V0_1.md**. This is a proposed internal gate, not a certification.
+
 A status string alone must not promote a run to `calibrated_simulation` or `prospective_forecast`. The run schema and local validator require:
 
-- `calibrated_simulation`: `retrospective` or `external_review` status and a hashed `retrospective_evaluation` or `independent_review` artifact.
+- `calibrated_simulation`: `retrospective` or `external_review` status and a hashed `retrospective_evaluation` artifact. An independent review may supplement but does not replace retrospective evaluation.
 - `prospective_forecast`: `prospective` or `external_review` status and a hashed `prospective_forecast` receipt.
 
 Every validation evidence item has an ID, kind, artifact reference, SHA-256 digest, and description. These fields provide content-addressed traceability, **not authentication or scientific proof**. The v0.1 contract does not yet define signatures; Mycelix-backed publisher identity and independent review receipts remain a follow-up.
