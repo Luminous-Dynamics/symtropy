@@ -149,6 +149,52 @@ def test_claim_promotion_gate() -> None:
     print("PASS: accepted well-formed evidence-receipt shapes (not authenticated evidence)")
 
 
+
+def test_schema_claim_guards() -> None:
+    try:
+        import jsonschema
+    except ImportError:
+        print("SKIP: JSON Schema promotion tests (jsonschema package is not installed)")
+        return
+    schema = json.loads((HERE / "schemas/run-v0.1.schema.json").read_text())
+    validator = jsonschema.Draft202012Validator(schema)
+    fixture = json.loads((HERE / "fixtures/synthetic_smoke_run.v0.1.json").read_text())
+
+    calibrated = copy.deepcopy(fixture)
+    calibrated["output_classification"] = "calibrated_simulation"
+    calibrated["validation"]["status"] = "retrospective"
+    need(not validator.is_valid(calibrated), "schema accepted calibration label without retrospective evidence")
+    calibrated["validation"]["evidence"] = [{
+        "evidence_id": "test.hindcast.v1", "kind": "retrospective_evaluation",
+        "artifact_ref": "test-fixtures/hindcast.json", "artifact_sha256": "a" * 64,
+        "description": "Synthetic shape test only.",
+    }]
+    need(validator.is_valid(calibrated), "schema rejected valid-shaped retrospective evidence")
+
+    review_only = copy.deepcopy(calibrated)
+    review_only["validation"]["evidence"] = [{
+        "evidence_id": "test.review.v1", "kind": "independent_review",
+        "artifact_ref": "test-fixtures/review.json", "artifact_sha256": "b" * 64,
+        "description": "Review does not replace retrospective evaluation.",
+    }]
+    need(not validator.is_valid(review_only), "schema accepted review without retrospective evaluation")
+
+    forecast = copy.deepcopy(fixture)
+    forecast["output_classification"] = "prospective_forecast"
+    forecast["validation"]["status"] = "prospective"
+    need(not validator.is_valid(forecast), "schema accepted forecast label without receipt")
+    forecast["validation"]["evidence"] = [{
+        "evidence_id": "test.forecast.v1", "kind": "prospective_forecast",
+        "artifact_ref": "test-fixtures/forecast.json", "artifact_sha256": "c" * 64,
+        "description": "Synthetic shape test only.",
+    }]
+    need(validator.is_valid(forecast), "schema rejected valid-shaped forecast evidence")
+
+    forecast["run_status"] = "failed"
+    need(not validator.is_valid(forecast), "schema accepted failed run as prospective forecast")
+    print("PASS: JSON Schema rejects evidence-free/review-only promotion and failed forecast runs")
+
+
 def main() -> int:
     run_case("baseline byte tampering", mutate_baseline, "baseline byte digest mismatch")
     run_case("model byte tampering", mutate_model, "model byte digest mismatch")
@@ -156,7 +202,8 @@ def main() -> int:
     run_case("unsupported intervention parameter", mutate_unknown_parameter, "unsupported intervention parameter")
     run_case("invalid time step", mutate_zero_step, "invalid horizon")
     test_claim_promotion_gate()
-    print("PASS: 5 fail-closed mutation cases plus evidence, class and run-status gates")
+    test_schema_claim_guards()
+    print("PASS: fail-closed mutation, evidence, classification and run-status gates")
     print("BOUNDARY: structural and deterministic contract tests only; no scientific validity claim")
     return 0
 
