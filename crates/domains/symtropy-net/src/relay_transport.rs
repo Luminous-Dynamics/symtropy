@@ -418,6 +418,20 @@ mod implementation {
                     .await
                     .expect("send peer_joined");
 
+                // A control-plane SDP offer must not be treated as gameplay data.
+                websocket
+                    .send(Message::Text(
+                        serde_json::to_string(&SignalIncoming::Signal {
+                            from: 2,
+                            data: SignalData::Offer {
+                                sdp: "not-a-game-packet".to_string(),
+                            },
+                        })
+                        .expect("serialize control-plane offer"),
+                    ))
+                    .await
+                    .expect("send control-plane offer");
+
                 let outgoing_text = match websocket.next().await {
                     Some(Ok(Message::Text(text))) => text,
                     other => panic!("expected relay-data command, received {other:?}"),
@@ -499,17 +513,29 @@ mod implementation {
                 .expect("connect to local signaling fixture");
 
             let mut initial_events = Vec::new();
+            let mut rejected_control_message = false;
             timeout(Duration::from_secs(3), async {
                 loop {
-                    initial_events.extend(transport.poll());
-                    if transport.is_signaling_connected() && transport.peer_count() == 1 {
+                    let events = transport.poll();
+                    rejected_control_message |= events.iter().any(|event| {
+                        matches!(
+                            event,
+                            TransportEvent::Error(error)
+                                if error.contains("non-relay signaling control message")
+                        )
+                    });
+                    initial_events.extend(events);
+                    if transport.is_signaling_connected()
+                        && transport.peer_count() == 1
+                        && rejected_control_message
+                    {
                         break;
                     }
                     sleep(Duration::from_millis(1)).await;
                 }
             })
             .await
-            .expect("Welcome and peer admission must arrive from the fixture");
+            .expect("Welcome, peer admission and control/data separation must arrive");
 
             assert!(initial_events
                 .iter()
@@ -517,6 +543,10 @@ mod implementation {
             assert!(initial_events
                 .iter()
                 .any(|event| matches!(event, TransportEvent::PeerConnected(PeerId(2)))));
+            assert!(
+                rejected_control_message,
+                "SDP/ICE control messages must never be promoted to game packets"
+            );
 
             transport
                 .send(PeerId(2), Channel::Reliable, b"hello")
