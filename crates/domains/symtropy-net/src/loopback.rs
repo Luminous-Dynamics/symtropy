@@ -100,6 +100,12 @@ impl Transport for LoopbackTransport {
             connectivity.events[0].push_back(TransportEvent::PeerDisconnected(PeerId(1)));
             connectivity.events[1].push_back(TransportEvent::PeerDisconnected(PeerId(0)));
         }
+        drop(connectivity);
+
+        // Queued payloads belong to the old connection. Never replay them after
+        // the pair reconnects, where they could arrive outside their original session.
+        self.outbox.lock().unwrap().clear();
+        self.inbox.lock().unwrap().clear();
     }
 
     fn send(&mut self, _to: PeerId, channel: Channel, data: &[u8]) -> Result<(), String> {
@@ -218,6 +224,24 @@ mod tests {
     fn loopback_not_connected() {
         let (mut a, _b) = loopback_pair();
         assert!(a.send(PeerId(1), Channel::Reliable, b"fail").is_err());
+    }
+
+    #[test]
+    fn loopback_does_not_replay_queued_payload_after_reconnect() {
+        let (mut a, mut b) = loopback_pair();
+        a.connect("test").unwrap();
+        b.connect("test").unwrap();
+
+        a.send(PeerId(1), Channel::Reliable, b"old-session")
+            .expect("queue old-session payload");
+        b.disconnect();
+        b.connect("test").unwrap();
+
+        let events = b.poll();
+        assert!(
+            events.iter().all(|event| !matches!(event, TransportEvent::Message(_))),
+            "old-session payload must be discarded on disconnect"
+        );
     }
 
     #[test]
