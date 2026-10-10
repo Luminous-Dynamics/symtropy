@@ -134,9 +134,9 @@ fn main() {
     if is_host_flag {
         eprintln!("The --host flag is compatibility-only; it does not start a server.");
     }
-    eprintln!(
-        "Experimental localhost smoke: run with --network-server, then launch another process with --network-client --player-id 1."
-    );
+    eprintln!("Experimental localhost UDP smoke commands:");
+    eprintln!("  server: --network-server");
+    eprintln!("  client: --network-client --player-id 1");
 
     let mut app = App::new();
     app.add_plugins(DefaultPlugins.set(WindowPlugin {
