@@ -17,15 +17,12 @@
 mod implementation {
     use crate::config::NetworkConfig;
     use crate::peer::PeerId;
-    use crate::signaling::{SignalData, SignalingClient, SignalingEvent};
-    use crate::transport::{Channel, PeerMessage, Transport, TransportEvent};
-
-    /// Game data message relayed through the signaling server.
-    #[derive(serde::Serialize, serde::Deserialize)]
-    struct RelayedData {
-        channel: u8, // 0 = unreliable, 1 = reliable
-        payload: Vec<u8>,
-    }
+    use crate::signaling::{
+        SignalChannel, SignalData, SignalingClient, SignalingEvent,
+    };
+    use crate::transport::{
+        Channel, PeerMessage, Transport, TransportEvent, MAX_PEER_MESSAGE_BYTES,
+    };
 
     /// Transport that uses the signaling WebSocket as a data relay.
     pub struct RelayTransport {
@@ -95,32 +92,63 @@ mod implementation {
         }
 
         fn send(&mut self, to: PeerId, channel: Channel, data: &[u8]) -> Result<(), String> {
+            if data.len() > MAX_PEER_MESSAGE_BYTES {
+                return Err(format!(
+                    "relay packet is {} bytes; maximum is {} bytes",
+                    data.len(),
+                    MAX_PEER_MESSAGE_BYTES
+                ));
+            }
             if !self.connected {
                 return Err("Not connected: waiting for signaling-server Welcome".into());
             }
+            if !self.peers.contains(&to) {
+                return Err(format!("Refusing relay send to non-admitted peer {}", to.0));
+            }
             let signaling = self.signaling.as_ref().ok_or("Not connected")?;
-
-            let relayed = RelayedData {
-                channel: match channel {
-                    Channel::Unreliable => 0,
-                    Channel::Reliable => 1,
-                },
-                payload: data.to_vec(),
+            let channel = match channel {
+                Channel::Unreliable => SignalChannel::Unreliable,
+                Channel::Reliable => SignalChannel::Reliable,
             };
 
-            let json = serde_json::to_string(&relayed).map_err(|e| format!("Serialize: {e}"))?;
-
             signaling
-                .signal(to, SignalData::Offer { sdp: json })
+                .signal(
+                    to,
+                    SignalData::RelayData {
+                        channel,
+                        payload: data.to_vec(),
+                    },
+                )
                 .map_err(|e| format!("Send: {e}"))
         }
 
         fn broadcast(&mut self, channel: Channel, data: &[u8]) -> Result<(), String> {
-            let peers: Vec<PeerId> = self.peers.clone();
-            for peer in peers {
-                self.send(peer, channel, data)?;
+            // Validate deterministic packet limits before the first peer send so a bad
+            // packet cannot produce a predictable partial broadcast.
+            if data.len() > MAX_PEER_MESSAGE_BYTES {
+                return Err(format!(
+                    "relay packet is {} bytes; maximum is {} bytes",
+                    data.len(),
+                    MAX_PEER_MESSAGE_BYTES
+                ));
             }
-            Ok(())
+            let peers: Vec<PeerId> = self.peers.clone();
+            let mut failures = Vec::new();
+            for peer in peers.iter().copied() {
+                if let Err(error) = self.send(peer, channel, data) {
+                    failures.push(format!("peer {}: {error}", peer.0));
+                }
+            }
+            if failures.is_empty() {
+                Ok(())
+            } else {
+                Err(format!(
+                    "relay broadcast had {} local send failure(s) across {} admitted peer(s): {}",
+                    failures.len(),
+                    peers.len(),
+                    failures.join("; ")
+                ))
+            }
         }
 
         fn poll(&mut self) -> Vec<TransportEvent> {
@@ -137,30 +165,60 @@ mod implementation {
                             }
                         }
                         SignalingEvent::PeerJoined(id) => {
-                            if !self.peers.contains(&id) {
-                                self.peers.push(id);
-                                events.push(TransportEvent::PeerConnected(id));
+                            if self.peers.contains(&id) {
+                                continue;
                             }
+                            if self.peers.len() >= self.config.max_peers {
+                                events.push(TransportEvent::Error(format!(
+                                    "rejected peer {}: relay peer limit ({}) reached",
+                                    id.0,
+                                    self.config.max_peers
+                                )));
+                                continue;
+                            }
+                            self.peers.push(id);
+                            events.push(TransportEvent::PeerConnected(id));
                         }
                         SignalingEvent::PeerLeft(id) => {
+                            let was_admitted = self.peers.contains(&id);
                             self.peers.retain(|p| *p != id);
-                            events.push(TransportEvent::PeerDisconnected(id));
+                            if was_admitted {
+                                events.push(TransportEvent::PeerDisconnected(id));
+                            }
                         }
                         SignalingEvent::Signal { from, data } => {
-                            // Decode relayed game data
-                            if let SignalData::Offer { sdp } = data
-                                && let Ok(relayed) = serde_json::from_str::<RelayedData>(&sdp)
-                            {
-                                let channel = if relayed.channel == 0 {
-                                    Channel::Unreliable
-                                } else {
-                                    Channel::Reliable
-                                };
-                                events.push(TransportEvent::Message(PeerMessage {
-                                    from,
-                                    channel,
-                                    data: relayed.payload,
-                                }));
+                            // The signaling client parses an explicit relay_data
+                            // variant. SDP/ICE control messages are not game packets.
+                            if !self.peers.contains(&from) {
+                                events.push(TransportEvent::Error(format!(
+                                    "ignored relay payload from non-admitted peer {}",
+                                    from.0
+                                )));
+                                continue;
+                            }
+                            match data {
+                                SignalData::RelayData { channel, payload } => {
+                                    if payload.len() > MAX_PEER_MESSAGE_BYTES {
+                                        events.push(TransportEvent::Error(format!(
+                                            "ignored oversized relay packet from peer {}",
+                                            from.0
+                                        )));
+                                        continue;
+                                    }
+                                    let channel = match channel {
+                                        SignalChannel::Unreliable => Channel::Unreliable,
+                                        SignalChannel::Reliable => Channel::Reliable,
+                                    };
+                                    events.push(TransportEvent::Message(PeerMessage {
+                                        from,
+                                        channel,
+                                        data: payload,
+                                    }));
+                                }
+                                _ => events.push(TransportEvent::Error(format!(
+                                    "ignored non-relay signaling control message from peer {}",
+                                    from.0
+                                ))),
                             }
                         }
                         SignalingEvent::Disconnected => {
