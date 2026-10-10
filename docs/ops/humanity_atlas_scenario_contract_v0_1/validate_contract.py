@@ -120,6 +120,10 @@ def main() -> int:
     need(len({x["id"] for x in scenario["assumptions"]}) == len(scenario["assumptions"]), "duplicate assumption IDs")
     need(len({x["metric_id"] for x in scenario["requested_metrics"]}) == len(scenario["requested_metrics"]), "duplicate metric IDs")
     for item in scenario["interventions"]:
+        need(item["target_id"] == "world.energy-system", "unsupported intervention target")
+        need(item["parameter"] == "annual_storage_growth_rate", "unsupported intervention parameter")
+        need(item["operation"] in {"set", "add", "multiply"}, "unsupported intervention operation")
+        need(math.isfinite(float(item["value"])), "intervention value must be finite")
         need(h["start_year"] <= item["effective_year"] <= h["end_year"], "intervention year outside horizon")
         need("expires_year" not in item or item["expires_year"] >= item["effective_year"], "intervention expiry precedes start")
     for assumption in scenario["assumptions"]:
