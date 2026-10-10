@@ -2,11 +2,16 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 //! Transport trait — the abstraction over how peers exchange data.
 //!
-//! Symtropy uses two channels per peer connection:
-//! - **Unreliable**: Physics state (positions, velocities). Dropped packets
-//!   are fine — next tick's data supersedes. Low latency critical.
-//! - **Reliable**: Authority changes, governance actions, chat.
-//!   Must arrive in order, no drops.
+//! Symtropy labels two application-level delivery classes:
+//! - **Unreliable**: Physics state (positions, velocities) may be superseded by a
+//!   newer tick. A backend may drop/reorder these only if it actually supports that.
+//! - **Reliable**: Authority changes, governance actions, chat need ordered delivery.
+//!
+//! These enum labels are not a capability guarantee. The experimental WebSocket
+//! relay carries both classes over the same ordered TCP/WebSocket connection and
+//! provides no remote application acknowledgement. Local queue acceptance is not
+//! proof of remote receipt; applications needing that evidence require an explicit
+//! acknowledgement protocol or a transport that provides one.
 //!
 //! Current implementations and qualification status:
 //! - `RelayTransport` (feature `ws-relay`; legacy alias `webrtc`) — experimental
@@ -32,13 +37,17 @@ pub(crate) const MAX_AUTHORITY_BODY_IDS: usize = 4096;
 /// Maximum UTF-8 byte length for an authority-transfer reason.
 pub(crate) const MAX_AUTHORITY_REASON_BYTES: usize = 4 * 1024;
 
-/// Channel reliability mode.
+/// Application-level delivery class. A concrete transport may not provide
+/// these semantics; consult its capability documentation.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Channel {
-    /// Unreliable, unordered. For physics state (positions, velocities).
-    /// Dropped packets accepted — next tick supersedes.
+    /// State update that can be superseded by a newer tick.
+    ///
+    /// This is not itself a guarantee of datagram delivery or reordering.
     Unreliable,
-    /// Reliable, ordered. For authority changes, governance, chat.
+    /// Ordered state transition that the application expects not to lose.
+    ///
+    /// This enum alone is not a remote-delivery acknowledgement.
     Reliable,
 }
 
