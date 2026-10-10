@@ -43,9 +43,8 @@
 //! the inbound queue. These queues are not connected to any external actor
 //! (the `inject_*`/`drain_outbox` methods exist for a future bridge actor
 //! to call, but no such actor exists yet). `connect()` just flips a bool;
-//! it never joins any swarm. Unit tests below exercise only local contracts.
-//! call inject_peer_connected/inject_message directly — they exercise bounded
-//! queue and lifecycle plumbing, not any P2P connectivity.
+//! it never joins any swarm. Unit tests inject peer events/messages directly
+//! and verify bounded local queue/lifecycle contracts, not P2P connectivity.
 //!
 //! What *does* exist, and is real: a substantial (~2,143 LOC across
 //! `bridge.rs`/`mod.rs`/`streaming.rs`/`ticket.rs`) Iroh integration in
