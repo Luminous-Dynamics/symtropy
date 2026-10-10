@@ -24,6 +24,33 @@ mod implementation {
         Channel, PeerMessage, Transport, TransportEvent, MAX_PEER_MESSAGE_BYTES,
     };
 
+    /// Accept the server-assigned identity exactly once per WebSocket lifecycle.
+    ///
+    /// A repeated Welcome with the same ID is harmless, but a changed ID cannot be
+    /// applied silently: NetworkSession only learns the identity through the first
+    /// SignalingConnected event, so remapping here would desynchronize authority.
+    fn handle_welcome(
+        connected: &mut bool,
+        local_id: &mut PeerId,
+        incoming_id: PeerId,
+    ) -> Result<bool, String> {
+        if *connected {
+            if *local_id == incoming_id {
+                return Ok(false);
+            }
+
+            *connected = false;
+            return Err(format!(
+                "signaling protocol violation: Welcome changed local peer identity from {} to {}",
+                local_id.0, incoming_id.0
+            ));
+        }
+
+        *local_id = incoming_id;
+        *connected = true;
+        Ok(true)
+    }
+
     /// Transport that uses the signaling WebSocket as a data relay.
     pub struct RelayTransport {
         config: NetworkConfig,
@@ -187,10 +214,21 @@ mod implementation {
                 for evt in signaling.poll_events() {
                     match evt {
                         SignalingEvent::Connected(id) => {
-                            self.local_id = id;
-                            if !self.connected {
-                                self.connected = true;
-                                events.push(TransportEvent::SignalingConnected);
+                            match handle_welcome(&mut self.connected, &mut self.local_id, id) {
+                                Ok(true) => events.push(TransportEvent::SignalingConnected),
+                                Ok(false) => {}
+                                Err(error) => {
+                                    // A changed server identity invalidates the whole
+                                    // session. Preserve the last accepted ID, clear peer
+                                    // membership, and discard this signaling connection.
+                                    events.push(TransportEvent::Error(error));
+                                    clear_signaling = true;
+                                    for peer in self.peers.drain(..) {
+                                        events.push(TransportEvent::PeerDisconnected(peer));
+                                    }
+                                    events.push(TransportEvent::SignalingDisconnected);
+                                    break;
+                                }
                             }
                         }
                         SignalingEvent::PeerJoined(id) => match self.admit_peer(id) {
@@ -317,6 +355,40 @@ mod implementation {
             assert!(!transport.is_signaling_connected());
             assert_eq!(transport.peer_count(), 0);
             assert!(transport.pending_events.is_empty());
+        }
+
+        #[test]
+        fn first_welcome_assigns_identity_and_same_id_repeat_is_idempotent() {
+            let mut connected = false;
+            let mut local_id = PeerId(999);
+
+            assert_eq!(
+                handle_welcome(&mut connected, &mut local_id, PeerId(7)),
+                Ok(true)
+            );
+            assert!(connected);
+            assert_eq!(local_id, PeerId(7));
+
+            assert_eq!(
+                handle_welcome(&mut connected, &mut local_id, PeerId(7)),
+                Ok(false),
+                "a duplicate Welcome for the same identity must not emit a second connect"
+            );
+            assert!(connected);
+            assert_eq!(local_id, PeerId(7));
+        }
+
+        #[test]
+        fn changed_welcome_identity_fails_closed_without_remapping_local_id() {
+            let mut connected = true;
+            let mut local_id = PeerId(7);
+
+            let error = handle_welcome(&mut connected, &mut local_id, PeerId(8))
+                .expect_err("a second Welcome cannot replace the accepted local identity");
+
+            assert!(error.contains("changed local peer identity"));
+            assert!(!connected, "identity violation must make the transport disconnected");
+            assert_eq!(local_id, PeerId(7), "never adopt the untrusted replacement ID");
         }
 
         #[test]
