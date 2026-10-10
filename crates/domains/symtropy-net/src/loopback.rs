@@ -226,7 +226,10 @@ mod tests {
         a.disconnect();
         assert_eq!(a.peer_count(), 0);
         assert_eq!(
-            b.poll().iter().filter(|event| matches!(event, TransportEvent::PeerDisconnected(PeerId(0)))).count(),
+            b.poll()
+                .iter()
+                .filter(|event| matches!(event, TransportEvent::PeerDisconnected(PeerId(0))))
+                .count(),
             1
         );
     }
