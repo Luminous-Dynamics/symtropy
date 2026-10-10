@@ -86,5 +86,10 @@ jobs:
     - name: Run Tests (Networking Core)
       run: cargo test -p symtropy-net -p symtropy-net-core -p symtropy-lightyear --all-features
 
+    # Keep the accurately named WebSocket relay feature usable without relying
+    # on the legacy `webrtc` compatibility alias or `--all-features`.
+    - name: Run Tests (WebSocket Relay Feature)
+      run: cargo test -p symtropy-net --no-default-features --features ws-relay
+
     - name: Verify Workspace Build
       run: cargo check --workspace --all-targets
