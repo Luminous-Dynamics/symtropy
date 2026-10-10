@@ -108,7 +108,14 @@ impl Transport for LoopbackTransport {
         self.inbox.lock().unwrap().clear();
     }
 
-    fn send(&mut self, _to: PeerId, channel: Channel, data: &[u8]) -> Result<(), String> {
+    fn send(&mut self, to: PeerId, channel: Channel, data: &[u8]) -> Result<(), String> {
+        if to != self.remote_id {
+            return Err(format!(
+                "Unknown loopback target {}; expected {}",
+                to.0, self.remote_id.0
+            ));
+        }
+
         let peer_connected = self.connectivity.lock().unwrap().connected[1 - self.side];
         if !self.connected || !peer_connected {
             return Err("Not connected".into());
@@ -218,6 +225,19 @@ mod tests {
             }
             _ => panic!("Expected Message"),
         }
+    }
+
+    #[test]
+    fn loopback_rejects_unknown_target() {
+        let (mut a, mut b) = loopback_pair();
+        a.connect("test").unwrap();
+        b.connect("test").unwrap();
+
+        let error = a
+            .send(PeerId(999), Channel::Reliable, b"hello")
+            .expect_err("loopback pair must not silently route to a different target");
+
+        assert!(error.contains("Unknown loopback target"));
     }
 
     #[test]
