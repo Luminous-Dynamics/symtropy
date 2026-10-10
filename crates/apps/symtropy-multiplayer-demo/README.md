@@ -36,7 +36,7 @@ For an automated Linux smoke run, use:
 bash scripts/test-lightyear-udp-smoke.sh
 ```
 
-The helper performs `cargo build --locked`, launches the server and client as separate OS processes, requires the server to observe the client connection, and requires at least three replicated-state updates in the client log. Failed-run logs are preserved for diagnosis. A successful script run has not yet been recorded for this source revision; do not treat the presence of this script as a pass.
+The helper performs `cargo build --locked`, launches the server and client as separate OS processes, requires the server to observe the client connection, requires at least three distinct replicated positions in the client log, and checks that the server remains alive through the smoke window. Failed-run logs are preserved for diagnosis. A successful script run has not yet been recorded for this source revision; do not treat the presence of this script as a pass.
 
 ## What this does not prove
 
