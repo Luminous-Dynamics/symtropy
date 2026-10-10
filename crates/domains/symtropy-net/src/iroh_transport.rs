@@ -43,7 +43,7 @@
 //! the inbound queue. These queues are not connected to any external actor
 //! (the `inject_*`/`drain_outbox` methods exist for a future bridge actor
 //! to call, but no such actor exists yet). `connect()` just flips a bool;
-//! it never joins any swarm. The 4 unit tests below pass because they
+//! it never joins any swarm. Unit tests below exercise only local contracts.
 //! call inject_peer_connected/inject_message directly — they exercise bounded
 //! queue and lifecycle plumbing, not any P2P connectivity.
 //!
@@ -352,6 +352,36 @@ mod tests {
         let events = transport.poll();
         assert_eq!(events.len(), 1);
         assert!(matches!(&events[0], TransportEvent::PeerConnected(peer) if *peer == PeerId(2)));
+    }
+
+    #[test]
+    fn peer_admission_ceiling_is_enforced() {
+        let mut transport = connected_transport();
+        for raw_id in 2..=(MAX_STUB_PEERS as u64 + 1) {
+            transport.inject_peer_connected(PeerId(raw_id)).unwrap();
+        }
+
+        let error = transport
+            .inject_peer_connected(PeerId(MAX_STUB_PEERS as u64 + 2))
+            .unwrap_err();
+        assert!(error.contains("Peer limit reached"));
+        assert_eq!(transport.peer_count(), MAX_STUB_PEERS);
+    }
+
+    #[test]
+    fn lifecycle_event_queue_is_bounded_without_partial_admission() {
+        let mut transport = connected_transport();
+        for raw_id in 2..=(MAX_STUB_PEERS as u64 + 1) {
+            let peer = PeerId(raw_id);
+            transport.inject_peer_connected(peer).unwrap();
+            transport.inject_peer_disconnected(peer).unwrap();
+        }
+        assert_eq!(transport.pending_events.len(), MAX_STUB_PENDING_EVENTS);
+        assert_eq!(transport.peer_count(), 0);
+
+        assert!(transport.inject_peer_connected(PeerId(900)).is_err());
+        assert_eq!(transport.peer_count(), 0);
+        assert_eq!(transport.pending_events.len(), MAX_STUB_PENDING_EVENTS);
     }
 
     #[test]
