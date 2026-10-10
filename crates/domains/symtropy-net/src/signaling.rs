@@ -145,13 +145,12 @@ fn serialized_outgoing(command: &SignalOutgoing) -> Result<String, String> {
         },
     };
 
-    if is_relay_data {
-        if largest_field > MAX_PEER_MESSAGE_BYTES {
-            return Err(format!(
-                "relay packet is {largest_field} bytes; maximum is {MAX_PEER_MESSAGE_BYTES} bytes"
-            ));
-        }
-    } else if largest_field > MAX_SIGNAL_CONTROL_BYTES {
+    if is_relay_data && largest_field > MAX_PEER_MESSAGE_BYTES {
+        return Err(format!(
+            "relay packet is {largest_field} bytes; maximum is {MAX_PEER_MESSAGE_BYTES} bytes"
+        ));
+    }
+    if !is_relay_data && largest_field > MAX_SIGNAL_CONTROL_BYTES {
         return Err(format!(
             "signaling control field is {largest_field} bytes; maximum is {MAX_SIGNAL_CONTROL_BYTES} bytes"
         ));
@@ -312,7 +311,6 @@ pub struct SignalingClient {
     tx: mpsc::Sender<QueuedSignalCommand>,
     rx: mpsc::Receiver<QueuedSignalingEvent>,
     command_bytes: Arc<Semaphore>,
-    event_bytes: Arc<Semaphore>,
     /// Our peer ID (set after Welcome message).
     pub local_id: Option<PeerId>,
 }
@@ -399,13 +397,15 @@ impl SignalingClient {
 
                     match message {
                         tokio_tungstenite::tungstenite::Message::Text(text) => {
-                            if text.len() > MAX_SIGNALING_MESSAGE_BYTES {
+                            let text_len = text.len();
+                            if text_len > MAX_SIGNALING_MESSAGE_BYTES {
+                                drop(text);
                                 let _ = enqueue_event(
                                     &recv_event_tx,
                                     &recv_event_bytes,
                                     SignalingEvent::Error(format!(
                                         "incoming WebSocket message is {} bytes; maximum is {} bytes",
-                                        text.len(),
+                                        text_len,
                                         MAX_SIGNALING_MESSAGE_BYTES
                                     )),
                                     512,
@@ -444,6 +444,7 @@ impl SignalingClient {
                                 Ok(message) => message,
                                 Err(error) => {
                                     log::warn!("Signaling message rejected: {error}");
+                                    drop(text);
                                     let _ = enqueue_event_with_permit(
                                         &recv_event_tx,
                                         SignalingEvent::Error(error),
@@ -475,6 +476,9 @@ impl SignalingClient {
                                 }
                             };
 
+                            // The parsed event now owns its data; release the raw JSON
+                            // buffer before any bounded-channel wait.
+                            drop(text);
                             if enqueue_event_with_permit(&recv_event_tx, event, permit)
                                 .await
                                 .is_err()
@@ -522,7 +526,6 @@ impl SignalingClient {
             tx: cmd_tx,
             rx: evt_rx,
             command_bytes,
-            event_bytes,
             local_id: None,
         })
     }
@@ -547,11 +550,20 @@ impl SignalingClient {
         )
     }
 
-    /// Poll for events (non-blocking). Byte permits are released as events leave the
-    /// internal mailbox; memory retained by the caller is outside the queue budget.
+    /// Poll for a bounded batch of events without blocking.
+    ///
+    /// Keep the byte permits while building the returned batch; otherwise a fast
+    /// producer could refill the mailbox as each item is popped and make one poll
+    /// return an unbounded amount of application-owned memory.
     pub fn poll_events(&mut self) -> Vec<SignalingEvent> {
         let mut events = Vec::new();
-        while let Ok(queued) = self.rx.try_recv() {
+        let mut batch_byte_permits = Vec::new();
+
+        for _ in 0..SIGNAL_EVENT_QUEUE_CAPACITY {
+            let queued = match self.rx.try_recv() {
+                Ok(queued) => queued,
+                Err(_) => break,
+            };
             let QueuedSignalingEvent {
                 event,
                 _byte_permit,
@@ -560,8 +572,12 @@ impl SignalingClient {
                 self.local_id = Some(*id);
             }
             events.push(event);
-            drop(_byte_permit);
+            batch_byte_permits.push(_byte_permit);
         }
+
+        // The batch itself never exceeds the event count or byte budget. Once the
+        // function returns, ownership of its events passes to the caller.
+        drop(batch_byte_permits);
         events
     }
 }
@@ -651,8 +667,8 @@ mod tests {
         assert!(error.contains("control message"));
     }
 
-    #[tokio::test]
-    async fn command_queue_is_bounded_by_aggregate_bytes_as_well_as_count() {
+    #[test]
+    fn command_queue_is_bounded_by_aggregate_bytes_as_well_as_count() {
         let (tx, _rx, bytes) = command_queue();
         enqueue_command(
             &tx,
@@ -720,8 +736,40 @@ mod tests {
     }
 
     #[test]
+    fn one_poll_returns_a_bounded_batch_even_if_the_channel_has_more_items() {
+        let (cmd_tx, _cmd_rx) = mpsc::channel(SIGNAL_COMMAND_QUEUE_CAPACITY);
+        let (evt_tx, evt_rx) = mpsc::channel(SIGNAL_EVENT_QUEUE_CAPACITY + 1);
+        let command_bytes = Arc::new(Semaphore::new(MAX_SIGNAL_QUEUE_BYTES));
+        let event_bytes = Arc::new(Semaphore::new(MAX_SIGNAL_QUEUE_BYTES));
+
+        for id in 0..=SIGNAL_EVENT_QUEUE_CAPACITY {
+            let permit = event_bytes
+                .clone()
+                .try_acquire_many_owned(64)
+                .expect("test events fit the queue byte budget");
+            evt_tx
+                .try_send(QueuedSignalingEvent {
+                    event: SignalingEvent::PeerJoined(PeerId(id as u64)),
+                    _byte_permit: permit,
+                })
+                .expect("test channel has room for one extra item");
+        }
+
+        let mut client = SignalingClient {
+            tx: cmd_tx,
+            rx: evt_rx,
+            command_bytes,
+            local_id: None,
+        };
+        let first_batch = client.poll_events();
+        assert_eq!(first_batch.len(), SIGNAL_EVENT_QUEUE_CAPACITY);
+        assert_eq!(client.rx.len(), 1);
+        assert_eq!(event_bytes.available_permits(), MAX_SIGNAL_QUEUE_BYTES - 64);
+    }
+
+    #[test]
     fn bounded_queue_item_count_constants_remain_explicit() {
-        let (tx, mut rx) = mpsc::channel::<QueuedSignalCommand>(SIGNAL_COMMAND_QUEUE_CAPACITY);
+        let (tx, rx) = mpsc::channel::<QueuedSignalCommand>(SIGNAL_COMMAND_QUEUE_CAPACITY);
         let bytes = Arc::new(Semaphore::new(MAX_SIGNAL_QUEUE_BYTES));
         for index in 0..SIGNAL_COMMAND_QUEUE_CAPACITY {
             enqueue_command(
