@@ -40,24 +40,29 @@ pub struct OutboundSendFailure {
 
 /// Observable outcome of one session-level outbound operation.
 ///
-/// A report can describe partial delivery: delivered_peers may be non-zero even
-/// when failures is non-empty. Callers should inspect the report before treating
-/// reliable authority changes as delivered to every admitted peer.
+/// This reports local transport acceptance, not remote receipt or application.
+/// Partial acceptance is possible: accepted_by_transport may be non-zero while
+/// failures is non-empty. Reliable authority state still needs protocol-level
+/// acknowledgement if the caller requires proof that a remote peer applied it.
 #[derive(Debug, Clone, Default)]
 pub struct OutboundSendReport {
     pub attempted_peers: usize,
-    pub delivered_peers: usize,
+    pub accepted_by_transport: usize,
     pub failures: Vec<OutboundSendFailure>,
     pub validation_error: Option<String>,
     pub serialization_error: Option<String>,
 }
 
 impl OutboundSendReport {
-    /// Whether the operation had no validation, serialization, or per-peer send errors.
+    /// Whether all intended local send attempts were accepted without errors.
+    ///
+    /// This is not a remote-delivery acknowledgement. A report with no admitted
+    /// recipients is a successful no-op with zero attempted sends.
     pub fn is_complete(&self) -> bool {
         self.validation_error.is_none()
             && self.serialization_error.is_none()
             && self.failures.is_empty()
+            && self.attempted_peers == self.accepted_by_transport
     }
 }
 
@@ -274,7 +279,7 @@ impl<T: Transport> NetworkSession<T> {
     /// Send local physics state to all admitted peers.
     ///
     /// Call after computing physics for bodies the local peer has authority over.
-    /// Returns per-peer delivery failures; over-budget payloads are rejected before fanout.
+    /// Returns a per-peer send report; acceptance by the local transport is not proof of remote receipt. Over-budget payloads are rejected before fanout.
     pub fn send_physics(&mut self, bodies: Vec<BodyStateUpdate>) -> OutboundSendReport {
         if bodies.is_empty() || self.peers.is_empty() {
             return OutboundSendReport::default();
@@ -363,7 +368,7 @@ impl<T: Transport> NetworkSession<T> {
 
         for peer in admitted_peers {
             match self.transport.send(peer, channel, data) {
-                Ok(()) => report.delivered_peers += 1,
+                Ok(()) => report.accepted_by_transport += 1,
                 Err(error) => report.failures.push(OutboundSendFailure { peer, error }),
             }
         }
@@ -519,7 +524,7 @@ mod tests {
 
         assert!(!report.is_complete());
         assert_eq!(report.attempted_peers, 0);
-        assert_eq!(report.delivered_peers, 0);
+        assert_eq!(report.accepted_by_transport, 0);
         assert!(report.failures.is_empty());
         assert!(report.validation_error.unwrap().contains("refusing authority Claim"));
     }
@@ -544,7 +549,7 @@ mod tests {
 
         assert!(!report.is_complete());
         assert_eq!(report.attempted_peers, 0);
-        assert_eq!(report.delivered_peers, 0);
+        assert_eq!(report.accepted_by_transport, 0);
         assert!(report.validation_error.unwrap().contains("maximum is"));
     }
 
@@ -563,7 +568,7 @@ mod tests {
         });
 
         assert_eq!(report.attempted_peers, 1);
-        assert_eq!(report.delivered_peers, 0);
+        assert_eq!(report.accepted_by_transport, 0);
         assert_eq!(report.failures.len(), 1);
         assert_eq!(report.failures[0].peer, unexpected);
         assert!(report.failures[0].error.contains("Unknown loopback target"));
