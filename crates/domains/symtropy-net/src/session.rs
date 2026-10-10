@@ -50,9 +50,22 @@ impl<T: Transport> NetworkSession<T> {
         }
     }
 
-    /// Join a room and start peer discovery.
+    /// Join a room using the synchronous path.
+    ///
+    /// Async transports fail closed here. Use Self::join_async for transports
+    /// that require network I/O and a remote handshake.
     pub fn join(&mut self, room_id: &str) -> Result<(), String> {
         self.transport.connect(room_id)
+    }
+
+    /// Start joining a room through the transport's async connection path.
+    ///
+    /// A successful return means the transport's connection/join request was
+    /// accepted by its local async API. For network transports, observe
+    /// TransportEvent::SignalingConnected from tick() before treating the session
+    /// as connected.
+    pub async fn join_async(&mut self, room_id: &str) -> Result<(), String> {
+        self.transport.connect_async(room_id).await
     }
 
     /// Leave the session.
@@ -104,7 +117,12 @@ impl<T: Transport> NetworkSession<T> {
                         }
                     }
                 }
-                TransportEvent::SignalingConnected => {}
+                TransportEvent::SignalingConnected => {
+                    // Some transports receive their authoritative local peer ID
+                    // only after the remote handshake. Keep spatial authority in
+                    // sync with that assigned identity before accepting gameplay.
+                    self.authority.local_peer = self.transport.local_peer_id();
+                }
                 TransportEvent::SignalingDisconnected => {}
                 TransportEvent::Error(e) => {
                     // Log but don't crash — graceful degradation
@@ -180,6 +198,19 @@ mod tests {
         session.join("test-room").unwrap();
         session.tick();
         assert_eq!(session.tick, 1);
+    }
+
+    #[test]
+    fn session_async_join_supports_synchronous_transports() {
+        let (transport, _peer) = loopback_pair();
+        let mut session = NetworkSession::new(transport, NetworkConfig::local_test());
+
+        tokio::runtime::Runtime::new()
+            .expect("runtime")
+            .block_on(session.join_async("test-room"))
+            .expect("async join delegates to sync transport");
+
+        assert!(session.transport.is_signaling_connected());
     }
 
     #[test]
