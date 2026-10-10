@@ -1,26 +1,17 @@
 // Copyright (C) 2024-2026 Tristan Stoltz / Luminous Dynamics
 // SPDX-License-Identifier: AGPL-3.0-or-later
-//! Relay transport — uses the signaling WebSocket as a data relay.
+//! Relay transport — an experimental WebSocket-based signaling/data relay.
 //!
-//! This is the simplest working multiplayer transport. Instead of
-//! establishing WebRTC peer connections (which require ICE negotiation,
-//! STUN/TURN, etc.), it sends game data through the signaling server.
+//! **Not production-qualified.** This transport has no live-server integration
+//! test; it tunnels game payloads through a signaling envelope and needs protocol,
+//! backpressure, size-limit, and interoperability qualification before release.
 //!
-//! Trade-offs:
-//! - (+) Works immediately — no ICE, no STUN, no NAT traversal needed
-//! - (+) Works through any firewall (outbound WebSocket)
-//! - (-) Higher latency (server hop instead of direct P2P)
-//! - (-) Server bandwidth scales with player count
+//! Connection lifecycle is async. The synchronous Transport::connect method
+//! fails closed; use NetworkSession::join_async (or the inherent
+//! RelayTransport::connect_async) and wait for a server Welcome event before
+//! treating the session as connected.
 //!
-//! For a small indie game (2-8 players), this is perfectly fine.
-//! WebRTC data channels can be added later as an optimization via
-//! the `Transport` trait — the game code doesn't change.
-//!
-//! # Upgrade Path
-//!
-//! 1. Ship with RelayTransport (works now, no infrastructure)
-//! 2. Add WebRtcTransport (direct P2P, lower latency)
-//! 3. Use relay as fallback when WebRTC fails (symmetric NAT)
+//! This is not a WebRTC data channel and does not implement direct P2P.
 
 #[cfg(feature = "webrtc")]
 mod implementation {
@@ -59,60 +50,49 @@ mod implementation {
             }
         }
 
-        /// Connect to signaling server (async — call from tokio runtime).
+        /// Open the signaling WebSocket and enqueue a room join.
+        ///
+        /// This returns after the local WebSocket/command setup succeeds. The
+        /// transport remains disconnected until poll() observes the server's
+        /// Welcome event and emits TransportEvent::SignalingConnected.
         pub async fn connect_async(&mut self, room_id: &str) -> Result<(), String> {
+            if self.signaling.is_some() {
+                return Err("RelayTransport already has a signaling connection or pending join".into());
+            }
+
             let client = SignalingClient::connect(&self.config.signal_url).await?;
             client.join(room_id)?;
+            self.peers.clear();
+            self.pending_events.clear();
+            self.connected = false;
             self.signaling = Some(client);
-            self.connected = true;
-            self.pending_events.push(TransportEvent::SignalingConnected);
             Ok(())
         }
     }
 
     impl Transport for RelayTransport {
-        fn connect(&mut self, room_id: &str) -> Result<(), String> {
-            // For sync connect, we queue the async connect.
-            // The caller should use connect_async in a tokio context.
-            // This fallback creates a runtime if none exists.
-            let url = self.config.signal_url.clone();
-            let room = room_id.to_string();
+        fn connect(&mut self, _room_id: &str) -> Result<(), String> {
+            Err("RelayTransport requires async connection setup; use NetworkSession::join_async(...).await".into())
+        }
 
-            match tokio::runtime::Handle::try_current() {
-                Ok(handle) => {
-                    // KNOWN GAP: this fallback path spawns the connect future but
-                    // never stores the result on `self` (the receiving end `_rx` is
-                    // dropped) and never sends `room` to join once connected — so
-                    // `self.signaling` stays `None` and no room is ever joined via
-                    // this path. Untested/unfixed as part of the webrtc-compiles
-                    // fix; use `connect_async()` directly instead of this sync
-                    // fallback until it's wired up for real.
-                    let (tx, _rx) = std::sync::mpsc::channel();
-                    let url = url.clone();
-                    let _room = room.clone();
-                    handle.spawn(async move {
-                        let result = SignalingClient::connect(&url).await;
-                        let _ = tx.send(result);
-                    });
-                    // Non-blocking — signaling will connect in background
-                    // Events arrive via poll()
-                    self.connected = true;
-                    self.pending_events.push(TransportEvent::SignalingConnected);
-                    Ok(())
-                }
-                Err(_) => {
-                    Err("RelayTransport requires a tokio runtime. Use connect_async().".into())
-                }
-            }
+        fn connect_async<'a>(
+            &'a mut self,
+            room_id: &'a str,
+        ) -> impl std::future::Future<Output = Result<(), String>> + 'a {
+            async move { RelayTransport::connect_async(self, room_id).await }
         }
 
         fn disconnect(&mut self) {
             self.signaling = None;
             self.peers.clear();
+            self.pending_events.clear();
             self.connected = false;
         }
 
         fn send(&mut self, to: PeerId, channel: Channel, data: &[u8]) -> Result<(), String> {
+            if !self.connected {
+                return Err("Not connected: waiting for signaling-server Welcome".into());
+            }
             let signaling = self.signaling.as_ref().ok_or("Not connected")?;
 
             let relayed = RelayedData {
@@ -146,6 +126,10 @@ mod implementation {
                     match evt {
                         SignalingEvent::Connected(id) => {
                             self.local_id = id;
+                            if !self.connected {
+                                self.connected = true;
+                                events.push(TransportEvent::SignalingConnected);
+                            }
                         }
                         SignalingEvent::PeerJoined(id) => {
                             if !self.peers.contains(&id) {
@@ -198,6 +182,35 @@ mod implementation {
 
         fn local_peer_id(&self) -> PeerId {
             self.local_id
+        }
+    }
+
+    #[cfg(test)]
+    mod tests {
+        use super::*;
+        use crate::config::NetworkConfig;
+
+        #[test]
+        fn synchronous_connect_fails_closed_without_claiming_connection() {
+            let mut transport = RelayTransport::new(NetworkConfig::local_test());
+
+            let error = transport
+                .connect("test-room")
+                .expect_err("sync connect must not pretend async setup succeeded");
+
+            assert!(error.contains("join_async"));
+            assert!(!transport.is_signaling_connected());
+            assert!(transport.signaling.is_none());
+            assert!(transport.pending_events.is_empty());
+        }
+
+        #[test]
+        fn new_relay_transport_is_not_connected_before_server_welcome() {
+            let transport = RelayTransport::new(NetworkConfig::local_test());
+
+            assert!(!transport.is_signaling_connected());
+            assert_eq!(transport.peer_count(), 0);
+            assert!(transport.pending_events.is_empty());
         }
     }
 
