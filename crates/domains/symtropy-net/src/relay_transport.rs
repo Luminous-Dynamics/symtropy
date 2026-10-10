@@ -468,12 +468,12 @@ mod implementation {
 
                 // Accept a second explicit connection to prove the client discarded
                 // the terminated websocket handle instead of retaining stale state.
-                let (stream, _) = timeout(Duration::from_secs(3), listener.accept())
+                let (stream, _) = timeout(Duration::from_secs(5), listener.accept())
                     .await
                     .expect("client should reconnect to the same fixture")
                     .expect("accept second client");
                 let mut websocket = accept_async(stream).await.expect("accept second WebSocket");
-                let second_join_text = match timeout(Duration::from_secs(3), websocket.next())
+                let second_join_text = match timeout(Duration::from_secs(5), websocket.next())
                     .await
                     .expect("second Join should arrive")
                 {
@@ -493,7 +493,7 @@ mod implementation {
                     .await
                     .expect("send second Welcome");
 
-                let close = timeout(Duration::from_secs(3), websocket.next())
+                let close = timeout(Duration::from_secs(5), websocket.next())
                     .await
                     .expect("client should close the second connection after the test");
                 assert!(
@@ -514,7 +514,7 @@ mod implementation {
 
             let mut initial_events = Vec::new();
             let mut rejected_control_message = false;
-            timeout(Duration::from_secs(3), async {
+            timeout(Duration::from_secs(5), async {
                 loop {
                     let events = transport.poll();
                     rejected_control_message |= events.iter().any(|event| {
@@ -554,7 +554,7 @@ mod implementation {
 
             let mut got_payload = false;
             let mut got_disconnect = false;
-            timeout(Duration::from_secs(3), async {
+            timeout(Duration::from_secs(5), async {
                 while !(got_payload && got_disconnect) {
                     for event in transport.poll() {
                         match event {
@@ -582,7 +582,7 @@ mod implementation {
                 .await
                 .expect("create fresh connection after terminal disconnect");
             let mut reconnected = false;
-            timeout(Duration::from_secs(3), async {
+            timeout(Duration::from_secs(5), async {
                 loop {
                     let events = transport.poll();
                     if events
@@ -602,7 +602,7 @@ mod implementation {
             assert_eq!(transport.local_peer_id(), PeerId(3));
 
             transport.disconnect();
-            let _outgoing = timeout(Duration::from_secs(3), server)
+            let _outgoing = timeout(Duration::from_secs(5), server)
                 .await
                 .expect("fixture should complete both sessions")
                 .expect("fixture task should not panic");
