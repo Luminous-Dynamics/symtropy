@@ -84,7 +84,7 @@ mod implementation {
             &'a mut self,
             room_id: &'a str,
         ) -> impl std::future::Future<Output = Result<(), String>> + 'a {
-            async move { RelayTransport::connect_async(self, room_id).await }
+            RelayTransport::connect_async(self, room_id)
         }
 
         fn disconnect(&mut self) {
