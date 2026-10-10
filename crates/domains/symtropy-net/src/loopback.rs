@@ -160,6 +160,11 @@ impl LoopbackTransport {
     pub(crate) fn inject_message(&mut self, msg: PeerMessage) {
         self.inbox.lock().unwrap().push_back(msg);
     }
+
+    /// Inject a synthetic event to exercise session lifecycle edge cases.
+    pub(crate) fn inject_event(&mut self, event: TransportEvent) {
+        self.connectivity.lock().unwrap().events[self.side].push_back(event);
+    }
 }
 
 #[cfg(test)]
