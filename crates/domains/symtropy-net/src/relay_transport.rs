@@ -74,7 +74,10 @@ mod implementation {
 
     impl Transport for RelayTransport {
         fn connect(&mut self, _room_id: &str) -> Result<(), String> {
-            Err("RelayTransport requires async connection setup; use NetworkSession::join_async(...).await".into())
+            Err(
+                "RelayTransport requires async connection setup; use NetworkSession::join_async(...).await"
+                    .into(),
+            )
         }
 
         fn connect_async<'a>(
