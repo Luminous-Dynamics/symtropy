@@ -271,9 +271,10 @@ impl<T: Transport> NetworkSession<T> {
         }
     }
 
-    /// Send local physics state to all peers.
+    /// Send local physics state to all admitted peers.
     ///
     /// Call after computing physics for bodies the local peer has authority over.
+    /// Returns per-peer delivery failures; over-budget payloads are rejected before fanout.
     pub fn send_physics(&mut self, bodies: Vec<BodyStateUpdate>) -> OutboundSendReport {
         if bodies.is_empty() || self.peers.is_empty() {
             return OutboundSendReport::default();
@@ -351,11 +352,7 @@ impl<T: Transport> NetworkSession<T> {
         self.send_to_admitted_peers(Channel::Reliable, &data)
     }
 
-    fn send_to_admitted_peers(
-        &mut self,
-        channel: Channel,
-        data: &[u8],
-    ) -> OutboundSendReport {
+    fn send_to_admitted_peers(&mut self, channel: Channel, data: &[u8]) -> OutboundSendReport {
         // Never use transport-wide broadcast here: transports may have links for
         // peers this session refused to admit (for example, over max_peers).
         let admitted_peers: Vec<PeerId> = self.peers.keys().copied().collect();
@@ -493,8 +490,7 @@ mod tests {
 
         let (transport, _other) = loopback_pair();
         let local_id = transport.local_peer_id();
-        let mut session =
-            NetworkSession::new(transport, NetworkConfig::local_test());
+        let mut session = NetworkSession::new(transport, NetworkConfig::local_test());
         let body = BodyHandle(77);
         session.authority.claim(body, local_id);
 
@@ -510,8 +506,7 @@ mod tests {
     #[test]
     fn send_authority_rejects_claim_for_another_peer() {
         let (transport, _other) = loopback_pair();
-        let mut session =
-            NetworkSession::new(transport, NetworkConfig::local_test());
+        let mut session = NetworkSession::new(transport, NetworkConfig::local_test());
         session.peers.insert(
             PeerId(1),
             PeerState::remote(PeerId(1), "remote".to_string(), 0),
@@ -532,8 +527,7 @@ mod tests {
     #[test]
     fn outbound_physics_payload_is_bounded_before_fanout() {
         let (transport, _other) = loopback_pair();
-        let mut session =
-            NetworkSession::new(transport, NetworkConfig::local_test());
+        let mut session = NetworkSession::new(transport, NetworkConfig::local_test());
         session.peers.insert(
             PeerId(1),
             PeerState::remote(PeerId(1), "remote".to_string(), 0),
@@ -557,8 +551,7 @@ mod tests {
     #[test]
     fn per_peer_send_failures_are_returned_in_delivery_report() {
         let (transport, _other) = loopback_pair();
-        let mut session =
-            NetworkSession::new(transport, NetworkConfig::local_test());
+        let mut session = NetworkSession::new(transport, NetworkConfig::local_test());
         let unexpected = PeerId(999);
         session.peers.insert(
             unexpected,
