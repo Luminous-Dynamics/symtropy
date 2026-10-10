@@ -786,6 +786,55 @@ mod tests {
         assert!(error.contains("byte budget"));
     }
 
+    #[test]
+    fn command_queue_accepts_exact_aggregate_byte_budget_and_rejects_next_item() {
+        let (tx, rx, bytes) = command_queue();
+        let maximum_relay = SignalOutgoing::Signal {
+            to: 1,
+            data: SignalData::RelayData {
+                channel: SignalChannel::Reliable,
+                payload: vec![u8::MAX; MAX_PEER_MESSAGE_BYTES],
+            },
+        };
+        let relay_bytes = serialized_outgoing(&maximum_relay)
+            .expect("maximum relay packet must be serializable")
+            .len();
+        let remaining = MAX_SIGNAL_QUEUE_BYTES
+            .checked_sub(relay_bytes)
+            .expect("maximum relay packet fits aggregate byte budget");
+        let empty_join_bytes = serialized_outgoing(&SignalOutgoing::Join {
+            room: String::new(),
+        })
+        .expect("empty join command")
+        .len();
+        let room_bytes = remaining
+            .checked_sub(empty_join_bytes)
+            .expect("remaining budget should fit a join envelope");
+        let exact_fill = SignalOutgoing::Join {
+            room: "x".repeat(room_bytes),
+        };
+        let exact_fill_json =
+            serialized_outgoing(&exact_fill).expect("exact-fill join must fit control limit");
+        assert_eq!(exact_fill_json.len(), remaining);
+
+        enqueue_command(&tx, &bytes, maximum_relay)
+            .expect("maximum relay packet occupies the first part of the byte budget");
+        enqueue_command(&tx, &bytes, exact_fill)
+            .expect("second command must fill the aggregate budget exactly");
+        assert_eq!(bytes.available_permits(), 0);
+
+        let error = enqueue_command(&tx, &bytes, SignalOutgoing::Leave)
+            .expect_err("any next command must exceed the exhausted byte budget");
+        assert!(error.contains("byte budget"));
+
+        drop(rx);
+        assert_eq!(
+            bytes.available_permits(),
+            MAX_SIGNAL_QUEUE_BYTES,
+            "dropping queued commands must release every byte permit"
+        );
+    }
+
     #[tokio::test]
     async fn stalled_event_consumer_backpressures_on_aggregate_bytes() {
         use tokio::task::yield_now;
