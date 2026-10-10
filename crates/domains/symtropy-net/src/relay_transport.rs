@@ -376,6 +376,7 @@ mod implementation {
             assert!(error.contains("non-admitted peer"));
         }
 
+        #[cfg(not(target_arch = "wasm32"))]
         #[tokio::test]
         async fn localhost_websocket_fixture_roundtrips_explicit_relay_data() {
             use futures_util::{SinkExt, StreamExt};
