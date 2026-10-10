@@ -1,0 +1,116 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://atlas.luminousdynamics.io/schemas/humanity-atlas/scenario-v0.1.schema.json",
+  "title": "Humanity Atlas Scenario v0.1",
+  "description": "Portable, versioned scenario input shared by Symtropy, Symthaea adapters, and Sol-Atlas consumers.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "scenario_id",
+    "title",
+    "intent",
+    "baseline",
+    "horizon",
+    "engine",
+    "interventions",
+    "assumptions",
+    "requested_metrics",
+    "limitations"
+  ],
+  "properties": {
+    "schema_version": {"const": "humanity-atlas.scenario.v0.1"},
+    "scenario_id": {"type": "string", "minLength": 3, "maxLength": 180, "pattern": "^[a-zA-Z0-9._:-]+$"},
+    "title": {"type": "string", "minLength": 1, "maxLength": 240},
+    "intent": {"enum": ["baseline", "forecast_candidate", "historical_counterfactual", "design_study"]},
+    "baseline": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["dataset_id", "dataset_sha256", "reference_year"],
+      "properties": {
+        "dataset_id": {"type": "string", "minLength": 1, "maxLength": 200},
+        "dataset_sha256": {"$ref": "#/$defs/sha256"},
+        "reference_year": {"type": "integer", "minimum": -100000, "maximum": 100000}
+      }
+    },
+    "horizon": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["start_year", "end_year", "step_years"],
+      "properties": {
+        "start_year": {"type": "integer", "minimum": -100000, "maximum": 100000},
+        "end_year": {"type": "integer", "minimum": -100000, "maximum": 100000},
+        "step_years": {"type": "integer", "minimum": 1, "maximum": 10000}
+      }
+    },
+    "engine": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["adapter", "engine_version", "model_sha256", "deterministic", "seed", "replicates"],
+      "properties": {
+        "adapter": {"type": "string", "minLength": 1, "maxLength": 120},
+        "engine_version": {"type": "string", "minLength": 1, "maxLength": 120},
+        "model_sha256": {"$ref": "#/$defs/sha256"},
+        "deterministic": {"type": "boolean"},
+        "seed": {"type": "integer", "minimum": 0, "maximum": 9007199254740991},
+        "replicates": {"type": "integer", "minimum": 1, "maximum": 1000000}
+      }
+    },
+    "interventions": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["target_id", "parameter", "operation", "value", "unit", "effective_year"],
+        "properties": {
+          "target_id": {"type": "string", "minLength": 1, "maxLength": 200},
+          "parameter": {"type": "string", "minLength": 1, "maxLength": 200},
+          "operation": {"enum": ["set", "add", "multiply"]},
+          "value": {"type": "number"},
+          "unit": {"type": "string", "minLength": 1, "maxLength": 80},
+          "effective_year": {"type": "integer", "minimum": -100000, "maximum": 100000},
+          "expires_year": {"type": "integer", "minimum": -100000, "maximum": 100000}
+        }
+      }
+    },
+    "assumptions": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "kind", "statement", "value", "unit"],
+        "properties": {
+          "id": {"type": "string", "minLength": 1, "maxLength": 200},
+          "kind": {"enum": ["fixed", "uncertain", "normative"]},
+          "statement": {"type": "string", "minLength": 1, "maxLength": 1200},
+          "value": {"oneOf": [{"type": "number"}, {"type": "string"}, {"type": "boolean"}]},
+          "unit": {"type": "string", "minLength": 1, "maxLength": 80},
+          "range": {"type": "array", "minItems": 2, "maxItems": 2, "items": {"type": "number"}},
+          "source_ids": {"type": "array", "uniqueItems": true, "items": {"type": "string", "minLength": 1}}
+        }
+      }
+    },
+    "requested_metrics": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["metric_id", "unit", "objective"],
+        "properties": {
+          "metric_id": {"type": "string", "minLength": 1, "maxLength": 200},
+          "unit": {"type": "string", "minLength": 1, "maxLength": 80},
+          "objective": {"enum": ["minimize", "maximize", "target_range", "report_only"]},
+          "target_range": {"type": "array", "minItems": 2, "maxItems": 2, "items": {"type": "number"}}
+        }
+      }
+    },
+    "evidence_ids": {"type": "array", "uniqueItems": true, "items": {"type": "string", "minLength": 1}},
+    "limitations": {"type": "array", "minItems": 1, "items": {"type": "string", "minLength": 1, "maxLength": 1200}}
+  },
+  "$defs": {
+    "sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"}
+  }
+}
