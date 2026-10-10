@@ -21,8 +21,10 @@ use std::time::Duration;
 use symtropy_lightyear::SymtropyNetPlugin;
 use symtropy_lightyear::components::*;
 
-/// This demo currently runs locally only. The networking plugin is a scaffold;
-/// the host flag is retained for command-line compatibility, not server startup.
+/// The default scene is a local preview; it is not networked.
+/// Explicit --network-* modes exercise Lightyear UDP only on localhost and do
+/// not use the Iroh stub or qualify production multiplayer.
+/// The --host flag is display compatibility, not server startup.
 const DEMO_PLAYER_COUNT: u64 = 8;
 const NETWORK_TICK_HZ: f64 = 30.0;
 const NETWORK_SERVER_ADDR: SocketAddr =
