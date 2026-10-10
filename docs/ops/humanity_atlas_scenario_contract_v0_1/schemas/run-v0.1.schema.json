@@ -1,0 +1,81 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://atlas.luminousdynamics.io/schemas/humanity-atlas/run-v0.1.schema.json",
+  "title": "Humanity Atlas Scenario Run v0.1",
+  "description": "Reproducible simulation output envelope; output classification is separate from scientific validation status.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "run_id",
+    "scenario_id",
+    "inputs",
+    "engine",
+    "run_status",
+    "output_classification",
+    "deterministic",
+    "seed",
+    "replicates",
+    "outputs",
+    "validation",
+    "warnings"
+  ],
+  "properties": {
+    "schema_version": {"const": "humanity-atlas.run.v0.1"},
+    "run_id": {"type": "string", "minLength": 3, "maxLength": 200},
+    "scenario_id": {"type": "string", "minLength": 3, "maxLength": 180},
+    "inputs": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["scenario_sha256", "dataset_sha256"],
+      "properties": {
+        "scenario_sha256": {"$ref": "#/$defs/sha256"},
+        "dataset_sha256": {"$ref": "#/$defs/sha256"}
+      }
+    },
+    "engine": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["adapter", "engine_version", "model_sha256"],
+      "properties": {
+        "adapter": {"type": "string", "minLength": 1, "maxLength": 120},
+        "engine_version": {"type": "string", "minLength": 1, "maxLength": 120},
+        "model_sha256": {"$ref": "#/$defs/sha256"}
+      }
+    },
+    "run_status": {"enum": ["completed", "partial", "failed"]},
+    "output_classification": {"enum": ["synthetic_fixture", "illustrative_scenario", "unvalidated_simulation", "calibrated_simulation", "prospective_forecast"]},
+    "deterministic": {"type": "boolean"},
+    "seed": {"type": "integer", "minimum": 0, "maximum": 9007199254740991},
+    "replicates": {"type": "integer", "minimum": 1, "maximum": 1000000},
+    "outputs": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["metric_id", "year", "unit", "statistic", "value", "sample_count"],
+        "properties": {
+          "metric_id": {"type": "string", "minLength": 1, "maxLength": 200},
+          "year": {"type": "integer", "minimum": -100000, "maximum": 100000},
+          "unit": {"type": "string", "minLength": 1, "maxLength": 80},
+          "statistic": {"enum": ["value", "mean", "median", "min", "max", "p05", "p95"]},
+          "value": {"type": "number"},
+          "sample_count": {"type": "integer", "minimum": 1, "maximum": 1000000}
+        }
+      }
+    },
+    "validation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["status", "notes"],
+      "properties": {
+        "status": {"enum": ["not_run", "contract_smoke", "retrospective", "prospective", "external_review"]},
+        "notes": {"type": "array", "items": {"type": "string", "minLength": 1}}
+      }
+    },
+    "warnings": {"type": "array", "items": {"type": "string", "minLength": 1}}
+  },
+  "$defs": {
+    "sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"}
+  }
+}
