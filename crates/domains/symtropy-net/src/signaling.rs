@@ -219,10 +219,12 @@ impl SignalingClient {
             tungstenite::protocol::WebSocketConfig,
         };
 
-        let ws_config = WebSocketConfig::default()
-            .max_message_size(Some(MAX_SIGNAL_MESSAGE_BYTES))
-            .max_frame_size(Some(MAX_SIGNAL_MESSAGE_BYTES))
-            .max_write_buffer_size(256 * 1024);
+        let ws_config = WebSocketConfig {
+            max_message_size: Some(MAX_SIGNAL_MESSAGE_BYTES),
+            max_frame_size: Some(MAX_SIGNAL_MESSAGE_BYTES),
+            max_write_buffer_size: 256 * 1024,
+            ..WebSocketConfig::default()
+        };
         let (ws_stream, _) = connect_async_with_config(url, Some(ws_config), false)
             .await
             .map_err(|e| format!("Signaling connect failed: {e}"))?;
