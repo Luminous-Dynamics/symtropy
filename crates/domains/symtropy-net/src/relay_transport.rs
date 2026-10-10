@@ -160,6 +160,11 @@ mod implementation {
                         }
                         SignalingEvent::Disconnected => {
                             self.connected = false;
+                            // A dead signaling connection invalidates the peer set;
+                            // do not leave the session looking multiplayer-connected.
+                            for peer in self.peers.drain(..) {
+                                events.push(TransportEvent::PeerDisconnected(peer));
+                            }
                             events.push(TransportEvent::SignalingDisconnected);
                         }
                         SignalingEvent::Error(e) => {
