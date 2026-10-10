@@ -1,15 +1,17 @@
 // Copyright (C) 2024-2026 Tristan Stoltz / Luminous Dynamics
 // SPDX-License-Identifier: AGPL-3.0-or-later
-//! Iroh transport — direct P2P via QUIC (Magicsock NAT traversal).
+//! Iroh transport scaffold — an in-memory queue stub, not a QUIC transport.
 //!
-//! Uses Iroh's QUIC-based networking for <50ms latency peer connections.
-//! NAT traversal is handled automatically by Magicsock — no STUN/TURN
-//! configuration needed in most cases.
+//! This module currently does not use Iroh, establish network connections,
+//! perform NAT traversal, or provide a latency guarantee. Its injection and
+//! drain methods support local tests and planned future integration only.
 //!
-//! This is the **preferred transport for native (desktop/server) builds**.
-//! For WASM/browser builds, use `RelayTransport` (WebSocket fallback).
+//! A real Iroh adapter still needs endpoint creation, ALPN negotiation,
+//! authenticated admission, bounded framing, lifecycle handling, and
+//! multi-process qualification. Do not advertise this type as a working
+//! desktop transport until those gates pass.
 //!
-//! # Architecture
+//! # Intended Future Architecture (Not Implemented Here)
 //!
 //! ```text
 //! IrohTransport
@@ -82,13 +84,10 @@
 use crate::peer::PeerId;
 use crate::transport::{Channel, PeerMessage, Transport, TransportEvent};
 
-/// Iroh-backed transport using QUIC for direct P2P connections.
+/// In-memory queue stub reserved for a future Iroh transport.
 ///
-/// **This is a stub — see the module-level doc comment above for the
-/// full, honest breakdown of what is and isn't real here.** In short:
-/// every method below only touches in-memory `Vec` queues on `self`;
-/// nothing here talks to Iroh, QUIC, or the network. It will be wired to
-/// a real Iroh transport in a dedicated follow-up.
+/// Every method currently touches only local queues. There is no Iroh
+/// endpoint, QUIC connection, network discovery, or cross-process delivery.
 ///
 /// The integration path (still true, still future work):
 /// 1. Symtropy enables `symthaea/swarm` feature, or `symtropy-net`
