@@ -121,7 +121,8 @@ impl<T: Transport> NetworkSession<T> {
                     // Some transports receive their authoritative local peer ID
                     // only after the remote handshake. Keep spatial authority in
                     // sync with that assigned identity before accepting gameplay.
-                    self.authority.local_peer = self.transport.local_peer_id();
+                    self.authority
+                        .reidentify_local_peer(self.transport.local_peer_id());
                 }
                 TransportEvent::SignalingDisconnected => {}
                 TransportEvent::Error(e) => {
