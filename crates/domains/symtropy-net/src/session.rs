@@ -55,14 +55,12 @@ fn authority_message_validation_error(message: &AuthorityMessage) -> Option<Stri
             MAX_AUTHORITY_BODY_IDS
         ));
     }
-    if let Some(reason) = reason {
-        if reason.len() > MAX_AUTHORITY_REASON_BYTES {
-            return Some(format!(
-                "authority-transfer reason is {} bytes; maximum is {}",
-                reason.len(),
-                MAX_AUTHORITY_REASON_BYTES
-            ));
-        }
+    if let Some(reason) = reason.filter(|reason| reason.len() > MAX_AUTHORITY_REASON_BYTES) {
+        return Some(format!(
+            "authority-transfer reason is {} bytes; maximum is {}",
+            reason.len(),
+            MAX_AUTHORITY_REASON_BYTES
+        ));
     }
 
     let mut unique_ids = HashSet::with_capacity(body_ids.len());
