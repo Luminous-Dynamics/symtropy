@@ -87,7 +87,8 @@ pub trait Transport {
     /// Number of currently connected peers.
     fn peer_count(&self) -> usize;
 
-    /// Whether we're connected to the signaling server.
+    /// Whether the transport reports its connection handshake complete.
+    /// For relay transports this remains false until the server Welcome is observed.
     fn is_signaling_connected(&self) -> bool;
 
     /// Our own peer ID (assigned by signaling server or self-generated).
