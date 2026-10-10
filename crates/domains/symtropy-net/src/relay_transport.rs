@@ -292,6 +292,32 @@ mod implementation {
             assert_eq!(transport.peer_count(), 0);
             assert!(transport.pending_events.is_empty());
         }
+
+        #[test]
+        fn rejects_oversized_game_packet_before_connection_or_payload_copy() {
+            let mut transport = RelayTransport::new(NetworkConfig::local_test());
+            let payload = vec![0; MAX_PEER_MESSAGE_BYTES + 1];
+
+            let error = transport
+                .send(PeerId(42), Channel::Reliable, &payload)
+                .expect_err("relay transport must enforce packet cap before connection work");
+
+            assert!(error.contains("maximum is"));
+            assert!(!transport.is_signaling_connected());
+            assert!(transport.signaling.is_none());
+        }
+
+        #[test]
+        fn connected_relay_refuses_unadmitted_recipient() {
+            let mut transport = RelayTransport::new(NetworkConfig::local_test());
+            transport.connected = true;
+
+            let error = transport
+                .send(PeerId(42), Channel::Reliable, b"not admitted")
+                .expect_err("an arbitrary peer ID must not become a relay destination");
+
+            assert!(error.contains("non-admitted peer"));
+        }
     }
 
     /// Generate a random peer ID (used before server assigns one).
