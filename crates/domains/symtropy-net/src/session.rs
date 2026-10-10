@@ -76,6 +76,12 @@ impl<T: Transport> NetworkSession<T> {
     }
 
     fn remove_peer(&mut self, peer_id: PeerId) {
+        // A malformed disconnect event for the local identity must never release
+        // locally owned bodies; only remote identities belong to this cleanup path.
+        if peer_id == self.transport.local_peer_id() {
+            return;
+        }
+
         self.peers.remove(&peer_id);
         self.authority.release_peer(peer_id);
         self.incoming_physics
@@ -384,6 +390,26 @@ mod tests {
             "both channels must target admitted peers only"
         );
         assert!(session.is_multiplayer());
+    }
+
+    #[test]
+    fn disconnect_event_for_local_identity_preserves_local_authority() {
+        use symtropy_physics::body::BodyHandle;
+
+        let (transport, _other) = loopback_pair();
+        let local_id = transport.local_peer_id();
+        let mut session =
+            NetworkSession::new(transport, NetworkConfig::local_test());
+        let body = BodyHandle(77);
+        session.authority.claim(body, local_id);
+
+        session
+            .transport
+            .inject_event(TransportEvent::PeerDisconnected(local_id));
+        session.tick();
+
+        assert_eq!(session.authority.authority_of(body), Some(local_id));
+        assert!(session.authority.is_local(body));
     }
 
     #[test]
