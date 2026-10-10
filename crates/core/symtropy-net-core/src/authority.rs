@@ -88,6 +88,35 @@ impl SpatialAuthority {
         self.body_authority.len()
     }
 
+
+    /// Update authority based on distances from peers' players.
+    pub fn update_from_distances(
+        &mut self,
+        bodies: &[BodyHandle],
+        body_distances_to_local: &HashMap<BodyHandle, f64>,
+        remote_peer_claims: &HashMap<BodyHandle, PeerId>,
+    ) {
+        for &body in bodies {
+            let local_dist = body_distances_to_local
+                .get(&body)
+                .copied()
+                .unwrap_or(f64::MAX);
+
+            if local_dist < self.authority_radius {
+                if let Some(&remote_peer) = remote_peer_claims.get(&body) {
+                    self.claim(body, remote_peer);
+                } else {
+                    self.claim(body, self.local_peer);
+                }
+            } else if let Some(&remote_peer) = remote_peer_claims.get(&body) {
+                self.claim(body, remote_peer);
+            } else {
+                self.release(body);
+            }
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -120,33 +149,5 @@ mod tests {
         assert_eq!(authority.release_peer(PeerId(1)), 1);
         assert_eq!(authority.release_peer(PeerId(1)), 0);
         assert_eq!(authority.total_claimed(), 0);
-    }
-}
-
-    /// Update authority based on distances from peers' players.
-    pub fn update_from_distances(
-        &mut self,
-        bodies: &[BodyHandle],
-        body_distances_to_local: &HashMap<BodyHandle, f64>,
-        remote_peer_claims: &HashMap<BodyHandle, PeerId>,
-    ) {
-        for &body in bodies {
-            let local_dist = body_distances_to_local
-                .get(&body)
-                .copied()
-                .unwrap_or(f64::MAX);
-
-            if local_dist < self.authority_radius {
-                if let Some(&remote_peer) = remote_peer_claims.get(&body) {
-                    self.claim(body, remote_peer);
-                } else {
-                    self.claim(body, self.local_peer);
-                }
-            } else if let Some(&remote_peer) = remote_peer_claims.get(&body) {
-                self.claim(body, remote_peer);
-            } else {
-                self.release(body);
-            }
-        }
     }
 }
