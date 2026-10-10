@@ -22,15 +22,16 @@ The upstream release notes and book make Lightyear 0.30 a particularly strong ca
 
 ### Proposed Lightyear qualification slice
 
-Before upgrading the dependency in the production graph, use an isolated branch/PR to:
+Before changing Lightyear versions or building a custom adapter, establish a reproducible baseline against the currently pinned 0.28 API:
 
-1. Update Lightyear from 0.28 to 0.30 and review the lockfile diff and transitive Bevy compatibility; run the repository's existing formatting, Clippy, tests and workspace-build matrix on the exact head.
-2. Replace the reflected-types-only scaffold with one actual server/client configuration, a registered replicated component, one server-owned dynamic body, a client input command, and authoritative validation.
-3. Predict the local player; interpolate one remote entity; change one entity's timeline at runtime based on a deterministic relevance rule.
-4. Add two independent client processes plus a headless server. Assert handshake, unsupported-version rejection, disconnect/reconnect, target-specific visibility, spoofed-input rejection, and bounded memory under a stalled/slow client.
-5. Record per-client bytes/sec, server simulation p50/p95/p99, snapshot age, prediction corrections, and entity counts for which prediction is enabled. Keep this evidence separate from loopback/unit-test success.
+1. Run `bash scripts/test-lightyear-udp-smoke.sh`. It starts a headless server and a separate headless client using Lightyear 0.28 Netcode+UDP on localhost and requires multiple received updates to the replicated `NetPosition`. This is an initial transport/replication smoke only; the code is not yet runtime-qualified and does not test Iroh, relays, internet reachability, client input authorization, prediction, or interpolation.
+2. Once that baseline passes repeatedly, update Lightyear from 0.28 to 0.30 in an isolated PR and review the lockfile diff and transitive Bevy compatibility; run formatting, Clippy, tests and workspace builds on the exact head.
+3. Extend the smoke slice with a client input command and server-side authorization. Clients must send intents, not authoritative position mutations.
+4. Predict the local player; interpolate one remote entity; change one entity's timeline at runtime based on a deterministic relevance rule.
+5. Add adversarial two-client tests for unsupported-version rejection, disconnect/reconnect, target-specific visibility, spoofed-input rejection, and bounded memory under a stalled/slow client.
+6. Record per-client bytes/sec, server simulation p50/p95/p99, snapshot age, prediction corrections, and entity counts for which prediction is enabled. Keep this evidence separate from loopback/unit-test success.
 
-The first slice should demonstrate the end-to-end contract and visibility policy before a scale sweep. Upgrade acceptance is **green exact-head CI plus a real multi-process smoke test**, not merely a successful compile of the Lightyear dependency.
+The first slice should demonstrate the end-to-end contract and visibility policy before a scale sweep. Upgrade acceptance is **green exact-head CI plus a repeatable real multi-process smoke test**, not merely a successful compile of the Lightyear dependency.
 
 ## What “very large” should mean
 
@@ -62,7 +63,7 @@ These are direct code-inspection findings, not judgments about work that may exi
 - `crates/domains/symtropy-lightyear/src/iroh_io.rs` wraps that stub. Its queues now enforce packet-count and byte budgets, preserve sender/channel metadata, target outbound packets to a specific peer, and count/log rejected or failed operations. Lightyear already exposes a transport-neutral `Link` with send and receive buffers; the custom queues are still not connected to it. Inbound overflow is an explicit drop because the current transport API cannot pause/ack reads, and outbound failures are reported but not retried or acknowledged by the remote application. Consequently, the current plugin is not yet a qualified Lightyear+Iroh multiplayer path.
 - `crates/domains/symtropy-lightyear/src/protocol.rs` registers reflected component types only. The crate manifest currently pins Lightyear 0.28; the upstream version upgrade and actual replication-rule wiring remain separate qualification work.
 - `crates/domains/symtropy-lightyear/src/components.rs` computes a coarse Morton spatial-zone label, but the code itself says actual peer assignment based on that zone is not implemented.
-- `crates/apps/symtropy-multiplayer-demo/src/main.rs` is a local scene preview, not a multiplayer test: `--host` does not start a server, no Lightyear replication is configured, and the input system controls a single selected preview player. The preview explicitly labels its state so screenshots or local play cannot be mistaken for network qualification.
+- `crates/apps/symtropy-multiplayer-demo/src/main.rs` defaults to a clearly labelled local preview: `--host` is display-only there, and only one selected placeholder moves. It now also has an experimental `--network-server`/`--network-client` mode using Lightyear 0.28 Netcode+UDP on localhost, plus `scripts/test-lightyear-udp-smoke.sh`. That new path is source-only until the smoke is actually run; it tests server-driven state replication, not Iroh/relay connectivity, client input authority, prediction, interpolation, or scale.
 - `crates/domains/symtropy-net/src/relay_transport.rs` explicitly documents a broken synchronous `connect()` fallback; use of its async path still needs an end-to-end integration test with an actual signaling server. It also wraps game data in a signaling offer envelope, a temporary relay convention rather than a proper production transport contract. The overlapping signaling PRs currently disagree about the message-size contract: #1564 caps all messages at 64 KiB, while #1565 allows an approximately 4 MiB nested-JSON envelope for a 1 MiB game packet. Their queue-count limits also do not bound total queued bytes. Track the payload-budget conflict in [MULTIPLAYER-NET #1568](https://github.com/Luminous-Dynamics/symtropy/issues/1568) and the cross-PR/source/CI ordering in [MULTIPLAYER-NET #1569](https://github.com/Luminous-Dynamics/symtropy/issues/1569); do not merge those branches in arbitrary order.
 - `crates/domains/symtropy-net/src/lockstep.rs` documents same-architecture lockstep, with divergence detection/resync rather than cross-architecture bitwise determinism. `ARCHITECTURE.md` separately documents that cross-platform bitwise equality is not guaranteed.
 - The public standalone root `Cargo.toml` has the `atlas` feature and `sol-atlas-core`/`sol-atlas-bevy` path dependencies commented out as stripped/unavailable. The internal Atlas integration is therefore not enabled by that standalone manifest. The private monorepo may carry additional wiring; verify it there before claiming the experience is connected.
@@ -74,6 +75,9 @@ Relevant source:
 - [Lightyear I/O bridge](../../crates/domains/symtropy-lightyear/src/iroh_io.rs)
 - [Lightyear protocol registration](../../crates/domains/symtropy-lightyear/src/protocol.rs)
 - [Root Cargo features](../../Cargo.toml)
+- [Upstream Lightyear 0.28.0 minimal client/server example](https://github.com/cBournhonesque/lightyear/tree/0.28.0/examples/simple_setup)
+- [Upstream Lightyear 0.28.0 authoritative replication/prediction example](https://github.com/cBournhonesque/lightyear/tree/0.28.0/examples/simple_box)
+- [Symtropy localhost UDP smoke helper](../../scripts/test-lightyear-udp-smoke.sh)
 - [Upstream Lightyear feature and Bevy compatibility matrix](https://github.com/cBournhonesque/lightyear/blob/main/README.md)
 
 ## Proposed runtime layers
@@ -126,7 +130,7 @@ There is also an unrelated public project named [SOL Atlas](https://github.com/e
 ## Qualification gates before scaling claims
 
 1. **Status correctness:** make every network plugin and transport clearly report whether it is a stub, loopback-only, compile-tested, or live-integration-tested. No “direct P2P” or latency claims from queues or injected test messages. Keep queue-bound tests separate from transport delivery and remote-acceptance evidence.
-2. **Two-process smoke test:** start a real headless server and two clients in separate processes. Complete handshake, send/receive a versioned message, verify disconnect detection, reconnect and reject unsupported protocol versions.
+2. **Two-process smoke test:** first run `bash scripts/test-lightyear-udp-smoke.sh` to establish localhost UDP replication, then extend to two clients and assert handshake, disconnect detection, reconnect and unsupported-version rejection. The script's existence is not a pass; preserve its exact-head output.
 3. **First playable slice:** run 2–8 clients through a real Lightyear transport. One client moves a body; server authority resolves it; remote clients interpolate it. Run on actual target OSes.
 4. **Adversarial network simulation:** inject latency, jitter, packet loss, reordering, disconnects, reconnects, duplicate commands, oversized payloads and stale authority updates. Assert bounded queues/memory and a single accepted authoritative outcome.
 5. **Load sweep:** 2, 8, 16, 32, then 64 clients; sweep active physical entities and agent update rates separately. Record server tick p50/p95/p99, CPU by subsystem, bandwidth per client, memory per connection, corrections/rollback frequency, disconnect rate, and durable event lag. Treat these as measurements, not assumptions.
