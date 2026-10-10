@@ -162,12 +162,17 @@ impl IrohIo {
     }
 
     fn accept_received(&mut self, msg: PeerMessage) -> Result<(), String> {
-        validate_admission(
+        if let Err(error) = validate_admission(
             "inbound",
             self.recv_buffer.len(),
             self.recv_buffer_bytes,
             msg.data.len(),
-        )?;
+        ) {
+            self.stats.rejected_inbound_packets =
+                self.stats.rejected_inbound_packets.saturating_add(1);
+            self.stats.last_error = Some(error.clone());
+            return Err(error);
+        }
         let data = Bytes::from(msg.data);
         self.recv_buffer_bytes += data.len();
         self.recv_buffer.push_back(IrohInboundPacket {
@@ -179,9 +184,7 @@ impl IrohIo {
     }
 
     fn record_inbound_rejection(&mut self, error: String) {
-        self.stats.rejected_inbound_packets =
-            self.stats.rejected_inbound_packets.saturating_add(1);
-        self.stats.last_error = Some(error.clone());
+        // The admission method already counted and retained this failure.
         bevy_log::warn!("Symtropy Lightyear adapter rejected inbound packet: {error}");
     }
 
@@ -192,6 +195,14 @@ impl IrohIo {
             "Symtropy Lightyear adapter local send to peer {:?} failed: {error}",
             to
         );
+    }
+
+    fn dispatch_queued_packet(&mut self, packet: IrohOutboundPacket) {
+        self.send_buffer_bytes = self.send_buffer_bytes.saturating_sub(packet.data.len());
+        if let Err(error) = self.transport.send(packet.to, packet.channel, &packet.data) {
+            self.record_send_failure(packet.to, error);
+        }
+        // Transport::send returning Ok is only local acceptance, not remote receipt.
     }
 }
 
@@ -227,10 +238,7 @@ pub fn iroh_io_recv(mut query: Query<&mut IrohIo>) {
 pub fn iroh_io_send(mut query: Query<&mut IrohIo>) {
     for mut io in query.iter_mut() {
         while let Some(packet) = io.send_buffer.pop_front() {
-            io.send_buffer_bytes = io.send_buffer_bytes.saturating_sub(packet.data.len());
-            if let Err(error) = io.transport.send(packet.to, packet.channel, &packet.data) {
-                io.record_send_failure(packet.to, error);
-            }
+            io.dispatch_queued_packet(packet);
         }
     }
 }
@@ -342,7 +350,7 @@ mod tests {
 
         assert!(error.contains("limit"));
         assert_eq!(io.pending_inbound_packets(), 1);
-        assert_eq!(io.stats.rejected_inbound_packets, 0);
+        assert_eq!(io.stats.rejected_inbound_packets, 1);
     }
 
     #[test]
