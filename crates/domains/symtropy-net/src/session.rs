@@ -223,7 +223,7 @@ impl<T: Transport> NetworkSession<T> {
     ///
     /// Call after computing physics for bodies the local peer has authority over.
     pub fn send_physics(&mut self, bodies: Vec<BodyStateUpdate>) {
-        if bodies.is_empty() || self.transport.peer_count() == 0 {
+        if bodies.is_empty() || self.peers.is_empty() {
             return;
         }
 
@@ -234,14 +234,26 @@ impl<T: Transport> NetworkSession<T> {
         };
 
         if let Ok(data) = rmp_serde::to_vec(&sync) {
-            let _ = self.transport.broadcast(Channel::Unreliable, &data);
+            // Never use transport-wide broadcast here: transports may have links
+            // for peers this session refused to admit (for example, over max_peers).
+            let admitted_peers: Vec<PeerId> = self.peers.keys().copied().collect();
+            for peer in admitted_peers {
+                let _ = self.transport.send(peer, Channel::Unreliable, &data);
+            }
         }
     }
 
     /// Send an authority message to all peers.
     pub fn send_authority(&mut self, msg: &AuthorityMessage) {
+        if self.peers.is_empty() {
+            return;
+        }
+
         if let Ok(data) = rmp_serde::to_vec(msg) {
-            let _ = self.transport.broadcast(Channel::Reliable, &data);
+            let admitted_peers: Vec<PeerId> = self.peers.keys().copied().collect();
+            for peer in admitted_peers {
+                let _ = self.transport.send(peer, Channel::Reliable, &data);
+            }
         }
     }
 
@@ -252,7 +264,7 @@ impl<T: Transport> NetworkSession<T> {
 
     /// Whether we're in a multiplayer session.
     pub fn is_multiplayer(&self) -> bool {
-        self.transport.peer_count() > 0
+        !self.peers.is_empty()
     }
 }
 
@@ -313,6 +325,44 @@ mod tests {
             session.incoming_physics.is_empty(),
             "updates from peers rejected at admission must not reach the game"
         );
+    }
+
+    #[test]
+    fn session_sends_only_to_admitted_peers_not_all_transport_links() {
+        use crate::iroh_transport::IrohTransport;
+
+        let mut transport = IrohTransport::new(PeerId(0));
+        transport.connect("test").unwrap();
+        transport.inject_peer_connected(PeerId(10));
+        transport.inject_peer_connected(PeerId(11));
+
+        let mut config = NetworkConfig::local_test();
+        config.max_peers = 1;
+        let mut session = NetworkSession::new(transport, config);
+        session.peers.insert(
+            PeerId(10),
+            PeerState::remote(PeerId(10), "admitted".to_string(), 0),
+        );
+
+        session.send_physics(vec![BodyStateUpdate {
+            body_id: 7,
+            position: [0.0, 0.0, 0.0],
+            velocity: [0.0, 0.0, 0.0],
+            rotation: [1.0, 0.0, 0.0, 0.0],
+            angular_velocity: [0.0, 0.0, 0.0],
+        }]);
+        session.send_authority(&AuthorityMessage::Claim {
+            body_ids: vec![7],
+            peer_id: 0,
+        });
+
+        let outbox = session.transport.drain_outbox();
+        assert_eq!(outbox.len(), 2, "one physics and one authority packet");
+        assert!(
+            outbox.iter().all(|(to, _, _)| *to == PeerId(10)),
+            "both channels must target admitted peers only"
+        );
+        assert!(session.is_multiplayer());
     }
 
     #[test]
@@ -492,6 +542,7 @@ mod tests {
 
         session_a.join("test").unwrap();
         session_b.join("test").unwrap();
+        session_a.tick(); // process peer admission before sending to session members
 
         // A sends physics
         session_a.send_physics(vec![BodyStateUpdate {
@@ -544,6 +595,7 @@ mod tests {
 
         session_a.join("test").unwrap();
         session_b.join("test").unwrap();
+        session_a.tick(); // process peer admission before sending to session members
 
         // A claims authority
         session_a.send_authority(&AuthorityMessage::Claim {
