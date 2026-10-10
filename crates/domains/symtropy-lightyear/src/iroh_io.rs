@@ -276,8 +276,8 @@ mod tests {
     fn outbound_dispatch_targets_only_requested_peer_and_preserves_channel() {
         let mut io = IrohIo::new(PeerId(1));
         io.connect("room").unwrap();
-        io.transport.inject_peer_connected(PeerId(2));
-        io.transport.inject_peer_connected(PeerId(3));
+        io.transport.inject_peer_connected(PeerId(2)).unwrap();
+        io.transport.inject_peer_connected(PeerId(3)).unwrap();
         io.queue_send(PeerId(2), Channel::Unreliable, Bytes::from_static(b"physics"))
             .unwrap();
 
