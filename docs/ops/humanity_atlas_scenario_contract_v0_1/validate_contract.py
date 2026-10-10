@@ -101,8 +101,8 @@ def validate_run_claim_gate(run: dict[str, Any]) -> None:
     if classification == "calibrated_simulation":
         need(status in {"retrospective", "external_review"},
              "calibrated_simulation requires retrospective or external_review status")
-        need(bool(kinds & {"retrospective_evaluation", "independent_review"}),
-             "calibrated_simulation requires evaluation evidence")
+        need("retrospective_evaluation" in kinds,
+             "calibrated_simulation requires retrospective evaluation evidence")
     elif classification == "prospective_forecast":
         need(status in {"prospective", "external_review"},
              "prospective_forecast requires prospective or external_review status")
