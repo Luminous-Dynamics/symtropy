@@ -1101,9 +1101,15 @@ mod tests {
         })
         .is_some());
 
+        assert!(authority_message_validation_error(&AuthorityMessage::Claim {
+            body_ids: (0..MAX_AUTHORITY_BODY_IDS as u32).collect(),
+            peer_id: 1,
+        })
+        .is_none());
+
         assert!(authority_message_validation_error(&AuthorityMessage::RequestTransfer {
             body_ids: vec![1, 2, 3],
-            reason: "handoff".to_string(),
+            reason: "r".repeat(MAX_AUTHORITY_REASON_BYTES),
         })
         .is_none());
     }
