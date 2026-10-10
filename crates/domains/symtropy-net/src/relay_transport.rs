@@ -67,6 +67,34 @@ mod implementation {
             self.signaling = Some(client);
             Ok(())
         }
+
+        /// Enforce session membership before exposing a remote peer to NetworkSession.
+        fn admit_peer(&mut self, peer_id: PeerId) -> Result<bool, String> {
+            if !self.connected {
+                return Err(format!(
+                    "rejected peer {} before signaling-server Welcome",
+                    peer_id.0
+                ));
+            }
+            if peer_id == self.local_id {
+                return Err(format!(
+                    "rejected signaling peer {} because it matches the local identity",
+                    peer_id.0
+                ));
+            }
+            if self.peers.contains(&peer_id) {
+                return Ok(false);
+            }
+            if self.peers.len() >= self.config.max_peers {
+                return Err(format!(
+                    "rejected peer {}: relay peer limit ({}) reached",
+                    peer_id.0,
+                    self.config.max_peers
+                ));
+            }
+            self.peers.push(peer_id);
+            Ok(true)
+        }
     }
 
     impl Transport for RelayTransport {
@@ -153,6 +181,7 @@ mod implementation {
 
         fn poll(&mut self) -> Vec<TransportEvent> {
             let mut events: Vec<TransportEvent> = self.pending_events.drain(..).collect();
+            let mut clear_signaling = false;
 
             if let Some(ref mut signaling) = self.signaling {
                 for evt in signaling.poll_events() {
@@ -164,21 +193,11 @@ mod implementation {
                                 events.push(TransportEvent::SignalingConnected);
                             }
                         }
-                        SignalingEvent::PeerJoined(id) => {
-                            if self.peers.contains(&id) {
-                                continue;
-                            }
-                            if self.peers.len() >= self.config.max_peers {
-                                events.push(TransportEvent::Error(format!(
-                                    "rejected peer {}: relay peer limit ({}) reached",
-                                    id.0,
-                                    self.config.max_peers
-                                )));
-                                continue;
-                            }
-                            self.peers.push(id);
-                            events.push(TransportEvent::PeerConnected(id));
-                        }
+                        SignalingEvent::PeerJoined(id) => match self.admit_peer(id) {
+                            Ok(true) => events.push(TransportEvent::PeerConnected(id)),
+                            Ok(false) => {}
+                            Err(error) => events.push(TransportEvent::Error(error)),
+                        },
                         SignalingEvent::PeerLeft(id) => {
                             let was_admitted = self.peers.contains(&id);
                             self.peers.retain(|p| *p != id);
@@ -223,6 +242,7 @@ mod implementation {
                         }
                         SignalingEvent::Disconnected => {
                             self.connected = false;
+                            clear_signaling = true;
                             // A dead signaling connection invalidates the peer set;
                             // do not leave the session looking multiplayer-connected.
                             for peer in self.peers.drain(..) {
@@ -235,6 +255,12 @@ mod implementation {
                         }
                     }
                 }
+            }
+
+            // Drop the terminated client so an explicit later connect_async can create
+            // a fresh websocket/command task instead of retaining a closed handle.
+            if clear_signaling {
+                self.signaling = None;
             }
 
             events
@@ -291,6 +317,37 @@ mod implementation {
             assert!(!transport.is_signaling_connected());
             assert_eq!(transport.peer_count(), 0);
             assert!(transport.pending_events.is_empty());
+        }
+
+        #[test]
+        fn relay_peer_admission_is_idempotent_and_respects_identity_and_limit() {
+            let mut config = NetworkConfig::local_test();
+            config.max_peers = 1;
+            let mut transport = RelayTransport::new(config);
+            transport.local_id = PeerId(100);
+            transport.connected = true;
+
+            assert!(transport.admit_peer(PeerId(1)).expect("first peer is admitted"));
+            assert!(!transport.admit_peer(PeerId(1)).expect("duplicate is idempotent"));
+            assert!(transport
+                .admit_peer(PeerId(100))
+                .expect_err("local identity must not be a remote peer")
+                .contains("local identity"));
+            assert!(transport
+                .admit_peer(PeerId(2))
+                .expect_err("peer limit must be enforced")
+                .contains("peer limit"));
+            assert_eq!(transport.peers.len(), 1);
+        }
+
+        #[test]
+        fn peer_admission_fails_closed_before_welcome() {
+            let mut transport = RelayTransport::new(NetworkConfig::local_test());
+            let error = transport
+                .admit_peer(PeerId(1))
+                .expect_err("peer events before Welcome must not create membership");
+            assert!(error.contains("before signaling-server Welcome"));
+            assert!(transport.peers.is_empty());
         }
 
         #[test]
