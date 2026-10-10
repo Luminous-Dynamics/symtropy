@@ -1,7 +1,15 @@
 // Copyright (C) 2024-2026 Tristan Stoltz / Luminous Dynamics
 // SPDX-License-Identifier: Apache-2.0 OR MIT
 
-//! SPH-based fluid dynamics for Symtropy.
+//! Fluid dynamics primitives for Symtropy.
+//!
+//! The current runtime implementation is an early SPH scaffold: density uses
+//! an all-pairs reference loop and pressure/viscosity gradients are not yet a
+//! production solver. [`validation`] is deliberately solver-independent and
+//! must not be read as a claim that this crate currently implements or
+//! reproduces incompressible Navier-Stokes benchmark flows.
+
+pub mod validation;
 
 use nalgebra::SVector;
 use serde::{Deserialize, Serialize};
@@ -94,15 +102,12 @@ impl<const D: usize> FluidSimulation<D> {
     }
 
     fn calculate_forces(&mut self, gravity: &SVector<f64, D>) {
-        let h = self.config.smoothing_radius;
-        // Gradients/Laplacians for pressure/viscosity (placeholders)
-
+        // Gradients/Laplacians for pressure/viscosity remain placeholders.
+        // Keep this explicit until #452/#511 replaces the scaffold with a
+        // qualified local/reference formulation.
         for i in 0..self.particles.len() {
-            let mut f_press = SVector::<f64, D>::zeros();
-            let mut f_visc = SVector::<f64, D>::zeros();
-
-            // Simplified force calculation (O(N^2) for initial scaffolding)
-            // ... (real gradients would go here)
+            let f_press = SVector::<f64, D>::zeros();
+            let f_visc = SVector::<f64, D>::zeros();
 
             self.particles[i].force = f_press + f_visc + gravity * self.particles[i].density;
         }
