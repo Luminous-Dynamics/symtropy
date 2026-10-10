@@ -57,7 +57,9 @@ mod implementation {
         /// Welcome event and emits TransportEvent::SignalingConnected.
         pub async fn connect_async(&mut self, room_id: &str) -> Result<(), String> {
             if self.signaling.is_some() {
-                return Err("RelayTransport already has a signaling connection or pending join".into());
+                return Err(
+                    "RelayTransport already has a signaling connection or pending join".into(),
+                );
             }
 
             let client = SignalingClient::connect(&self.config.signal_url).await?;
