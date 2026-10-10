@@ -59,10 +59,22 @@ impl<T: Transport> NetworkSession<T> {
         self.transport.connect(room_id)
     }
 
-    /// Leave the session.
+    /// Leave the session and release ownership claims held by remote peers.
     pub fn leave(&mut self) {
         self.transport.disconnect();
-        self.peers.clear();
+        self.clear_peers();
+    }
+
+    fn remove_peer(&mut self, peer_id: PeerId) {
+        self.peers.remove(&peer_id);
+        self.authority.release_peer(peer_id);
+    }
+
+    fn clear_peers(&mut self) {
+        let peers: Vec<PeerId> = self.peers.keys().copied().collect();
+        for peer_id in peers {
+            self.remove_peer(peer_id);
+        }
     }
 
     /// Process one tick of networking.
@@ -85,7 +97,7 @@ impl<T: Transport> NetworkSession<T> {
                     self.peers.insert(peer_id, peer);
                 }
                 TransportEvent::PeerDisconnected(peer_id) => {
-                    self.peers.remove(&peer_id);
+                    self.remove_peer(peer_id);
                 }
                 TransportEvent::Message(msg) => {
                     // Membership is established only by a transport PeerConnected event.
@@ -121,7 +133,11 @@ impl<T: Transport> NetworkSession<T> {
                     }
                 }
                 TransportEvent::SignalingConnected => {}
-                TransportEvent::SignalingDisconnected => {}
+                TransportEvent::SignalingDisconnected => {
+                    // A lost signaling/control connection invalidates all admitted
+                    // remote peers and their authority leases.
+                    self.clear_peers();
+                }
                 TransportEvent::Error(e) => {
                     // Log but don't crash — graceful degradation
                     #[cfg(feature = "logging")]
@@ -141,7 +157,7 @@ impl<T: Transport> NetworkSession<T> {
             .map(|(id, _)| *id)
             .collect();
         for id in stale {
-            self.peers.remove(&id);
+            self.remove_peer(id);
         }
     }
 
@@ -196,6 +212,31 @@ mod tests {
         session.join("test-room").unwrap();
         session.tick();
         assert_eq!(session.tick, 1);
+    }
+
+    #[test]
+    fn session_releases_remote_authority_on_peer_disconnect() {
+        use symtropy_physics::body::BodyHandle;
+
+        let (a_transport, b_transport) = loopback_pair();
+        let config = NetworkConfig::local_test();
+        let mut session_a = NetworkSession::new(a_transport, config.clone());
+        let mut session_b = NetworkSession::new(b_transport, config);
+
+        session_a.join("test").unwrap();
+        session_b.join("test").unwrap();
+        session_b.tick();
+        assert!(session_b.peers.contains_key(&PeerId(0)));
+
+        let remote_body = BodyHandle(42);
+        session_b.authority.claim(remote_body, PeerId(0));
+        assert_eq!(session_b.authority.authority_of(remote_body), Some(PeerId(0)));
+
+        session_a.leave();
+        session_b.tick();
+
+        assert!(!session_b.peers.contains_key(&PeerId(0)));
+        assert_eq!(session_b.authority.authority_of(remote_body), None);
     }
 
     #[test]
