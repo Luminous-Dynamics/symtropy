@@ -85,6 +85,12 @@ mod implementation {
                     "RelayTransport already has a signaling connection or pending join".into(),
                 );
             }
+            if self.config.signal_url.trim().is_empty() {
+                return Err(
+                    "no signaling server configured: set SYMTROPY_SIGNAL_URL to a server implementing Symtropy's JSON signaling protocol; Holochain SBD uses a different authenticated binary protocol"
+                        .into(),
+                );
+            }
 
             let client = SignalingClient::connect(&self.config.signal_url).await?;
             client.join(room_id)?;
@@ -321,6 +327,23 @@ mod implementation {
     mod tests {
         use super::*;
         use crate::config::NetworkConfig;
+
+        #[tokio::test]
+        async fn unconfigured_signaling_endpoint_fails_before_network_io() {
+            let mut config = NetworkConfig::default();
+            config.signal_url.clear();
+            let mut transport = RelayTransport::new(config);
+
+            let error = transport
+                .connect_async("test-room")
+                .await
+                .expect_err("an empty endpoint must not trigger an implicit network attempt");
+
+            assert!(error.contains("SYMTROPY_SIGNAL_URL"));
+            assert!(error.contains("JSON signaling protocol"));
+            assert!(transport.signaling.is_none());
+            assert!(!transport.is_signaling_connected());
+        }
 
         #[test]
         fn synchronous_connect_fails_closed_without_claiming_connection() {
