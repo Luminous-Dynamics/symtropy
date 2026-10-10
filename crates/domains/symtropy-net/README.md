@@ -13,12 +13,18 @@ Deterministic lockstep networking for Symtropy.
 
 ## What's partial
 
-- **`RelayTransport` / `signaling.rs`** (behind the `webrtc` feature):
-  a WebSocket-based signaling client and a transport that relays game
-  data over that same WebSocket. Compiles cleanly (fixed 2026-07-04 —
-  previously the feature didn't even build, since `tokio-tungstenite`
-  wasn't a declared dependency), but has not been validated end-to-end
-  against a live signaling server; no integration test drives it.
+- **`RelayTransport` / `signaling.rs`** (behind the legacy `webrtc` feature):
+  an experimental WebSocket JSON signaling client and a transport that relays
+  game data over that same WebSocket. It has only an in-process fixture, not live
+  service qualification. `NetworkConfig::default()` intentionally leaves
+  `signal_url` empty unless `SYMTROPY_SIGNAL_URL` is configured to a server that
+  implements Symtropy's JSON `join`/`welcome`/`peer_joined`/`signal` protocol.
+  Holochain's public SBD service is **not** a drop-in endpoint: its
+  [wire specification](https://github.com/holochain/sbd/blob/main/spec.md) uses
+  authenticated binary forwarding frames and a 20,000-byte limit, rather than
+  this client's JSON-text protocol and multi-megabyte envelope. Updating the URL
+  alone does not make the protocols compatible; an adapter or Symtropy-compatible
+  server is required.
 
 ## What's a stub
 
