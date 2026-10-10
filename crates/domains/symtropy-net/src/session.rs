@@ -112,9 +112,27 @@ impl<T: Transport> NetworkSession<T> {
             match event {
                 TransportEvent::PeerConnected(peer_id) => {
                     // Duplicate connection events must not reset liveness state.
-                    self.peers.entry(peer_id).or_insert_with(|| {
-                        PeerState::remote(peer_id, format!("Peer-{}", peer_id.0), 0)
-                    });
+                    if self.peers.contains_key(&peer_id) {
+                        continue;
+                    }
+
+                    // max_peers is a session admission limit, not a transport-level
+                    // socket limit. Excess peers remain unadmitted and their messages
+                    // are rejected by the membership check below.
+                    if self.peers.len() >= self.config.max_peers {
+                        #[cfg(feature = "logging")]
+                        eprintln!(
+                            "[symtropy-net] rejected peer {}: session peer limit ({}) reached",
+                            peer_id.0,
+                            self.config.max_peers
+                        );
+                        continue;
+                    }
+
+                    self.peers.insert(
+                        peer_id,
+                        PeerState::remote(peer_id, format!("Peer-{}", peer_id.0), 0),
+                    );
                 }
                 TransportEvent::PeerDisconnected(peer_id) => {
                     self.remove_peer(peer_id);
@@ -252,6 +270,44 @@ mod tests {
         session.join("test-room").unwrap();
         session.tick();
         assert_eq!(session.tick, 1);
+    }
+
+    #[test]
+    fn session_rejects_peer_admission_after_max_peers_is_reached() {
+        let (transport, _other) = loopback_pair();
+        let mut config = NetworkConfig::local_test();
+        config.max_peers = 1;
+        let mut session = NetworkSession::new(transport, config);
+
+        session
+            .transport
+            .inject_event(TransportEvent::PeerConnected(PeerId(10)));
+        session
+            .transport
+            .inject_event(TransportEvent::PeerConnected(PeerId(11)));
+        session.tick();
+
+        assert_eq!(session.peer_count(), 1);
+        assert!(session.peers.contains_key(&PeerId(10)));
+        assert!(
+            !session.peers.contains_key(&PeerId(11)),
+            "peers over the configured session admission limit must not be admitted"
+        );
+    }
+
+    #[test]
+    fn zero_max_peers_rejects_all_remote_admissions() {
+        let (transport, _other) = loopback_pair();
+        let mut config = NetworkConfig::local_test();
+        config.max_peers = 0;
+        let mut session = NetworkSession::new(transport, config);
+
+        session
+            .transport
+            .inject_event(TransportEvent::PeerConnected(PeerId(10)));
+        session.tick();
+
+        assert_eq!(session.peer_count(), 0);
     }
 
     #[test]
