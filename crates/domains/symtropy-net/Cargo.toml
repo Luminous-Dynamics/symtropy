@@ -7,12 +7,12 @@ description = "Deterministic lockstep physics sync for Symtropy: tested lockstep
 
 [features]
 default = []
-# Compiles the experimental Symtropy JSON signaling client (`signaling.rs`)
-# and WebSocket data relay (`relay_transport.rs`). It is not an implementation
-# of Holochain SBD and has no compatible public service configured by default.
-# Only an in-process local WebSocket fixture exists; live interoperability is
-# unqualified. See the crate README and module docs for the protocol boundary.
-webrtc = ["dep:tokio-tungstenite", "dep:futures-util", "dep:log"]
+# Explicit name for the experimental Symtropy JSON WebSocket relay.
+# This is not actual WebRTC and has no compatible public service by default.
+# Only in-process WebSocket fixtures exist; live interoperability is unqualified.
+ws-relay = ["dep:tokio-tungstenite", "dep:futures-util", "dep:log"]
+# Compatibility alias for existing consumers. Prefer `ws-relay` in new builds.
+webrtc = ["ws-relay"]
 logging = []
 
 [dependencies]
