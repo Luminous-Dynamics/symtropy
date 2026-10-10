@@ -19,6 +19,15 @@ use serde::{Deserialize, Serialize};
 /// Maximum encoded game packet accepted by the session and relay envelope.
 pub(crate) const MAX_PEER_MESSAGE_BYTES: usize = 1024 * 1024;
 
+/// Maximum number of body identifiers in one authority message.
+///
+/// Larger authority transitions must be chunked into explicit protocol messages
+/// instead of forcing receivers to allocate an unbounded collection from one packet.
+pub(crate) const MAX_AUTHORITY_BODY_IDS: usize = 4096;
+
+/// Maximum UTF-8 byte length for an authority-transfer reason.
+pub(crate) const MAX_AUTHORITY_REASON_BYTES: usize = 4 * 1024;
+
 /// Channel reliability mode.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Channel {
