@@ -183,11 +183,7 @@ mod implementation {
         }
 
         fn peer_count(&self) -> usize {
-            if self.connected {
-                self.peers.len()
-            } else {
-                0
-            }
+            if self.connected { self.peers.len() } else { 0 }
         }
 
         fn is_signaling_connected(&self) -> bool {
