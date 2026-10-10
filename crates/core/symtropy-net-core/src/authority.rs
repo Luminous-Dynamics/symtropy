@@ -49,6 +49,25 @@ impl SpatialAuthority {
         }
     }
 
+    /// Release every body claim held by a peer and return the number of claims removed.
+    ///
+    /// Call when a peer disconnects or loses its authority lease. Removing a
+    /// claim does not transfer authority; a subsequent election/lease must assign
+    /// the body to another peer before that peer simulates it.
+    pub fn release_peer(&mut self, peer: PeerId) -> usize {
+        let owned_bodies: Vec<BodyHandle> = self
+            .body_authority
+            .iter()
+            .filter_map(|(body, owner)| (*owner == peer).then_some(*body))
+            .collect();
+
+        for body in &owned_bodies {
+            self.release(*body);
+        }
+
+        owned_bodies.len()
+    }
+
     /// Whether the local peer has authority over a body.
     pub fn is_local(&self, body: BodyHandle) -> bool {
         self.local_bodies.contains(&body)
@@ -68,6 +87,41 @@ impl SpatialAuthority {
     pub fn total_claimed(&self) -> usize {
         self.body_authority.len()
     }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn release_peer_clears_only_that_peers_claims() {
+        let mut authority = SpatialAuthority::new(PeerId(0), 100.0);
+        let local_body = BodyHandle(1);
+        let disconnected_body = BodyHandle(2);
+        let other_remote_body = BodyHandle(3);
+
+        authority.claim(local_body, PeerId(0));
+        authority.claim(disconnected_body, PeerId(1));
+        authority.claim(other_remote_body, PeerId(2));
+
+        assert_eq!(authority.release_peer(PeerId(1)), 1);
+        assert_eq!(authority.authority_of(disconnected_body), None);
+        assert_eq!(authority.authority_of(local_body), Some(PeerId(0)));
+        assert_eq!(authority.authority_of(other_remote_body), Some(PeerId(2)));
+        assert!(authority.is_local(local_body));
+        assert_eq!(authority.local_body_count(), 1);
+        assert_eq!(authority.total_claimed(), 2);
+    }
+
+    #[test]
+    fn release_peer_is_idempotent() {
+        let mut authority = SpatialAuthority::new(PeerId(0), 100.0);
+        authority.claim(BodyHandle(2), PeerId(1));
+
+        assert_eq!(authority.release_peer(PeerId(1)), 1);
+        assert_eq!(authority.release_peer(PeerId(1)), 0);
+        assert_eq!(authority.total_claimed(), 0);
+    }
+}
 
     /// Update authority based on distances from peers' players.
     pub fn update_from_distances(
