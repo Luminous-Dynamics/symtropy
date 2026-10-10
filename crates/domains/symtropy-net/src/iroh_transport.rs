@@ -256,6 +256,9 @@ impl IrohTransport {
 impl Transport for IrohTransport {
     fn connect(&mut self, _room_id: &str) -> Result<(), String> {
         // This deliberately models local stub state only; no server or swarm joins.
+        if self.connected {
+            return Err("Already connected; disconnect before starting a new session".into());
+        }
         self.connected = true;
         Ok(())
     }
@@ -526,6 +529,19 @@ mod tests {
             matches!(event, TransportEvent::PeerDisconnected(peer) if *peer == PeerId(2))
         }));
         assert!(!events.iter().any(|event| matches!(event, TransportEvent::Message(_))));
+    }
+
+    #[test]
+    fn duplicate_connect_requires_explicit_disconnect() {
+        let mut transport = connected_transport();
+        transport.inject_peer_connected(PeerId(2)).unwrap();
+
+        assert!(transport.connect("different-room").is_err());
+        assert_eq!(transport.peer_count(), 1);
+
+        transport.disconnect();
+        transport.connect("different-room").unwrap();
+        assert_eq!(transport.peer_count(), 0);
     }
 
     #[test]
