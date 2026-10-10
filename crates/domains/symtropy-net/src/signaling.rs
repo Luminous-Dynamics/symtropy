@@ -547,11 +547,20 @@ impl SignalingClient {
         )
     }
 
-    /// Poll for events (non-blocking). Byte permits are released as events leave the
-    /// internal mailbox; memory retained by the caller is outside the queue budget.
+    /// Poll for a bounded batch of events without blocking.
+    ///
+    /// Keep the byte permits while building the returned batch; otherwise a fast
+    /// producer could refill the mailbox as each item is popped and make one poll
+    /// return an unbounded amount of application-owned memory.
     pub fn poll_events(&mut self) -> Vec<SignalingEvent> {
         let mut events = Vec::new();
-        while let Ok(queued) = self.rx.try_recv() {
+        let mut batch_byte_permits = Vec::new();
+
+        for _ in 0..SIGNAL_EVENT_QUEUE_CAPACITY {
+            let queued = match self.rx.try_recv() {
+                Ok(queued) => queued,
+                Err(_) => break,
+            };
             let QueuedSignalingEvent {
                 event,
                 _byte_permit,
@@ -560,8 +569,12 @@ impl SignalingClient {
                 self.local_id = Some(*id);
             }
             events.push(event);
-            drop(_byte_permit);
+            batch_byte_permits.push(_byte_permit);
         }
+
+        // The batch itself never exceeds the event count or byte budget. Once the
+        // function returns, ownership of its events passes to the caller.
+        drop(batch_byte_permits);
         events
     }
 }
@@ -651,8 +664,8 @@ mod tests {
         assert!(error.contains("control message"));
     }
 
-    #[tokio::test]
-    async fn command_queue_is_bounded_by_aggregate_bytes_as_well_as_count() {
+    #[test]
+    fn command_queue_is_bounded_by_aggregate_bytes_as_well_as_count() {
         let (tx, _rx, bytes) = command_queue();
         enqueue_command(
             &tx,
@@ -721,7 +734,7 @@ mod tests {
 
     #[test]
     fn bounded_queue_item_count_constants_remain_explicit() {
-        let (tx, mut rx) = mpsc::channel::<QueuedSignalCommand>(SIGNAL_COMMAND_QUEUE_CAPACITY);
+        let (tx, rx) = mpsc::channel::<QueuedSignalCommand>(SIGNAL_COMMAND_QUEUE_CAPACITY);
         let bytes = Arc::new(Semaphore::new(MAX_SIGNAL_QUEUE_BYTES));
         for index in 0..SIGNAL_COMMAND_QUEUE_CAPACITY {
             enqueue_command(
