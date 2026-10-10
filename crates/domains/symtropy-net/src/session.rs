@@ -15,11 +15,8 @@ use crate::config::NetworkConfig;
 use crate::peer::{PeerId, PeerState};
 use crate::transport::{
     AuthorityMessage, BodyStateUpdate, Channel, PhysicsSync, Transport, TransportEvent,
+    MAX_PEER_MESSAGE_BYTES,
 };
-
-/// Hard upper bound for serialized or decoded peer messages. Concrete transports
-/// should enforce their own frame limits too; this is the session-level protocol cap.
-const MAX_PEER_MESSAGE_BYTES: usize = 1024 * 1024;
 
 /// Reject non-finite components and duplicate body IDs before updating session
 /// freshness state. Domain-specific bounds remain the authoritative simulation's job.
