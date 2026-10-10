@@ -9,8 +9,9 @@
 //!   Must arrive in order, no drops.
 //!
 //! Current implementations and qualification status:
-//! - `RelayTransport` (feature `webrtc`) — experimental WebSocket signaling/data relay;
-//!   not a WebRTC data channel and not qualified against a live signaling server.
+//! - `RelayTransport` (feature `ws-relay`; legacy alias `webrtc`) — experimental
+//!   WebSocket signaling/data relay; not a WebRTC data channel and not qualified
+//!   against a live signaling server.
 //! - `IrohTransport` — in-memory scaffold only; it does not open an Iroh/QUIC endpoint.
 //! - `LoopbackTransport` — in-memory test transport.
 //!
