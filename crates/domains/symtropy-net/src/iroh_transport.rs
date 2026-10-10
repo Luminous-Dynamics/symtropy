@@ -165,6 +165,9 @@ impl Transport for IrohTransport {
         if !self.connected {
             return Err("Not connected".into());
         }
+        if !self.peers.contains(&to) {
+            return Err(format!("Peer {:?} is not connected/admitted", to));
+        }
         self.outbox.push((to, channel, data.to_vec()));
         Ok(())
     }
@@ -223,6 +226,19 @@ mod tests {
         assert_eq!(outbox.len(), 1);
         assert_eq!(outbox[0].0, PeerId(2));
         assert_eq!(outbox[0].2, b"physics");
+    }
+
+    #[test]
+    fn iroh_transport_rejects_send_to_unknown_peer() {
+        let mut transport = IrohTransport::new(PeerId(1));
+        transport.connect("test-room").unwrap();
+
+        let error = transport
+            .send(PeerId(99), Channel::Reliable, b"authority")
+            .unwrap_err();
+
+        assert!(error.contains("not connected/admitted"));
+        assert!(transport.drain_outbox().is_empty());
     }
 
     #[test]
