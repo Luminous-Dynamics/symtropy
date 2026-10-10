@@ -15,32 +15,32 @@
 //! The relay-data variant is a protocol change. A live signaling server must
 //! forward the new kind: relay_data shape opaquely before this path is usable.
 
-#[cfg(feature = "webrtc")]
+#[cfg(feature = "ws-relay")]
 use std::sync::Arc;
 
-#[cfg(feature = "webrtc")]
+#[cfg(feature = "ws-relay")]
 use tokio::sync::{mpsc, OwnedSemaphorePermit, Semaphore};
 
 use serde::{Deserialize, Serialize};
 
 use crate::peer::PeerId;
-#[cfg(feature = "webrtc")]
+#[cfg(feature = "ws-relay")]
 use crate::transport::MAX_PEER_MESSAGE_BYTES;
 
-#[cfg(feature = "webrtc")]
+#[cfg(feature = "ws-relay")]
 pub(crate) const MAX_SIGNAL_CONTROL_BYTES: usize = 64 * 1024;
-#[cfg(feature = "webrtc")]
+#[cfg(feature = "ws-relay")]
 pub(crate) const MAX_SIGNALING_MESSAGE_BYTES: usize = (4 * MAX_PEER_MESSAGE_BYTES) + 16 * 1024;
-#[cfg(feature = "webrtc")]
+#[cfg(feature = "ws-relay")]
 const MAX_SIGNAL_QUEUE_BYTES: usize = MAX_SIGNALING_MESSAGE_BYTES;
-#[cfg(feature = "webrtc")]
+#[cfg(feature = "ws-relay")]
 const SIGNAL_COMMAND_QUEUE_CAPACITY: usize = 16;
-#[cfg(feature = "webrtc")]
+#[cfg(feature = "ws-relay")]
 const SIGNAL_EVENT_QUEUE_CAPACITY: usize = 32;
-#[cfg(feature = "webrtc")]
+#[cfg(feature = "ws-relay")]
 const MAX_SIGNAL_WRITE_BUFFER_BYTES: usize = MAX_SIGNALING_MESSAGE_BYTES + 256 * 1024;
 
-#[cfg(feature = "webrtc")]
+#[cfg(feature = "ws-relay")]
 fn bounded_websocket_config() -> tokio_tungstenite::tungstenite::protocol::WebSocketConfig {
     tokio_tungstenite::tungstenite::protocol::WebSocketConfig {
         max_message_size: Some(MAX_SIGNALING_MESSAGE_BYTES),
@@ -139,7 +139,7 @@ pub enum SignalingEvent {
     Error(String),
 }
 
-#[cfg(feature = "webrtc")]
+#[cfg(feature = "ws-relay")]
 fn serialized_outgoing(command: &SignalOutgoing) -> Result<String, String> {
     let (is_relay_data, largest_field) = match command {
         SignalOutgoing::Join { room } => (false, room.len()),
@@ -187,7 +187,7 @@ fn serialized_outgoing(command: &SignalOutgoing) -> Result<String, String> {
     Ok(json)
 }
 
-#[cfg(feature = "webrtc")]
+#[cfg(feature = "ws-relay")]
 fn validate_incoming(message: &SignalIncoming, encoded_bytes: usize) -> Result<(), String> {
     if encoded_bytes > MAX_SIGNALING_MESSAGE_BYTES {
         return Err(format!(
@@ -216,7 +216,7 @@ fn validate_incoming(message: &SignalIncoming, encoded_bytes: usize) -> Result<(
     }
 }
 
-#[cfg(feature = "webrtc")]
+#[cfg(feature = "ws-relay")]
 fn parse_incoming(text: &str) -> Result<SignalIncoming, String> {
     if text.len() > MAX_SIGNALING_MESSAGE_BYTES {
         return Err(format!(
@@ -231,19 +231,19 @@ fn parse_incoming(text: &str) -> Result<SignalIncoming, String> {
     Ok(message)
 }
 
-#[cfg(feature = "webrtc")]
+#[cfg(feature = "ws-relay")]
 struct QueuedSignalCommand {
     json: String,
     _byte_permit: OwnedSemaphorePermit,
 }
 
-#[cfg(feature = "webrtc")]
+#[cfg(feature = "ws-relay")]
 struct QueuedSignalingEvent {
     event: SignalingEvent,
     _byte_permit: OwnedSemaphorePermit,
 }
 
-#[cfg(feature = "webrtc")]
+#[cfg(feature = "ws-relay")]
 fn enqueue_command(
     tx: &mpsc::Sender<QueuedSignalCommand>,
     queued_bytes: &Arc<Semaphore>,
@@ -274,7 +274,7 @@ fn enqueue_command(
     })
 }
 
-#[cfg(feature = "webrtc")]
+#[cfg(feature = "ws-relay")]
 async fn reserve_queue_bytes(
     budget: &Arc<Semaphore>,
     bytes: usize,
@@ -294,7 +294,7 @@ async fn reserve_queue_bytes(
         .map_err(|_| "signaling byte budget closed".to_string())
 }
 
-#[cfg(feature = "webrtc")]
+#[cfg(feature = "ws-relay")]
 async fn enqueue_event_with_permit(
     tx: &mpsc::Sender<QueuedSignalingEvent>,
     event: SignalingEvent,
@@ -308,7 +308,7 @@ async fn enqueue_event_with_permit(
     .map_err(|_| "signaling event queue is closed".to_string())
 }
 
-#[cfg(feature = "webrtc")]
+#[cfg(feature = "ws-relay")]
 async fn enqueue_event(
     tx: &mpsc::Sender<QueuedSignalingEvent>,
     queued_bytes: &Arc<Semaphore>,
@@ -321,7 +321,7 @@ async fn enqueue_event(
 }
 
 /// Signaling client handle — used by the transport to send/receive signaling messages.
-#[cfg(feature = "webrtc")]
+#[cfg(feature = "ws-relay")]
 pub struct SignalingClient {
     tx: mpsc::Sender<QueuedSignalCommand>,
     rx: mpsc::Receiver<QueuedSignalingEvent>,
@@ -330,7 +330,7 @@ pub struct SignalingClient {
     pub local_id: Option<PeerId>,
 }
 
-#[cfg(feature = "webrtc")]
+#[cfg(feature = "ws-relay")]
 impl SignalingClient {
     /// Connect to the signaling server and spawn the WebSocket task.
     pub async fn connect(url: &str) -> Result<Self, String> {
@@ -589,7 +589,7 @@ impl SignalingClient {
     }
 }
 
-#[cfg(all(test, feature = "webrtc"))]
+#[cfg(all(test, feature = "ws-relay"))]
 mod tests {
     use super::*;
 
@@ -707,7 +707,7 @@ mod tests {
             .contains("relay packet"));
     }
 
-    #[cfg(feature = "webrtc")]
+    #[cfg(feature = "ws-relay")]
     #[test]
     fn websocket_config_supports_maximum_relay_envelope() {
         let config = bounded_websocket_config();
