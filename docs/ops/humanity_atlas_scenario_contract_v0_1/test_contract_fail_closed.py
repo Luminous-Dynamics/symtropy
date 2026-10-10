@@ -81,10 +81,26 @@ def test_claim_promotion_gate() -> None:
     try:
         gate(calibrated)
     except ValueError as exc:
-        need("requires evaluation evidence" in str(exc), f"unexpected calibration rejection: {exc}")
+        need("requires retrospective evaluation evidence" in str(exc), f"unexpected calibration rejection: {exc}")
     else:
         raise AssertionError("calibrated_simulation without evidence unexpectedly passed")
     print("PASS: rejected calibration promotion without an evaluation receipt")
+
+    reviewed_but_not_calibrated = copy.deepcopy(fixture)
+    reviewed_but_not_calibrated["output_classification"] = "calibrated_simulation"
+    reviewed_but_not_calibrated["validation"]["status"] = "external_review"
+    reviewed_but_not_calibrated["validation"]["evidence"] = [{
+        "evidence_id": "test.review.v1", "kind": "independent_review",
+        "artifact_ref": "test-fixtures/review.json", "artifact_sha256": "c" * 64,
+        "description": "A review receipt does not replace a retrospective evaluation.",
+    }]
+    try:
+        gate(reviewed_but_not_calibrated)
+    except ValueError as exc:
+        need("requires retrospective evaluation evidence" in str(exc), f"unexpected review-only rejection: {exc}")
+    else:
+        raise AssertionError("independent review alone unexpectedly qualified calibration")
+    print("PASS: rejected calibration promotion with review but no retrospective evaluation")
 
     forecast = copy.deepcopy(fixture)
     forecast["output_classification"] = "prospective_forecast"
@@ -123,7 +139,7 @@ def main() -> int:
     run_case("unsupported intervention parameter", mutate_unknown_parameter, "unsupported intervention parameter")
     run_case("invalid time step", mutate_zero_step, "invalid horizon")
     test_claim_promotion_gate()
-    print("PASS: 5 fail-closed mutation cases plus 2 classification-promotion gates")
+    print("PASS: 5 fail-closed mutation cases plus 3 classification-promotion gates")
     print("BOUNDARY: structural and deterministic contract tests only; no scientific validity claim")
     return 0
 
