@@ -77,7 +77,7 @@ pub enum SignalOutgoing {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(tag = "type")]
 pub enum SignalIncoming {
-    /// Server assigned us an ID.
+    /// Server-assigned transport-local ID; not, by itself, a cryptographic identity proof.
     #[serde(rename = "welcome")]
     Welcome { peer_id: u64 },
     /// A peer joined the room.
@@ -86,7 +86,7 @@ pub enum SignalIncoming {
     /// A peer left the room.
     #[serde(rename = "peer_left")]
     PeerLeft { peer_id: u64 },
-    /// A signaling message from another peer.
+    /// Server-forwarded message carrying the sender ID reported by that service.
     #[serde(rename = "signal")]
     Signal { from: u64, data: SignalData },
     /// Error from the server.
@@ -101,13 +101,13 @@ pub enum SignalIncoming {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(tag = "kind")]
 pub enum SignalData {
-    /// SDP offer.
+    /// SDP offer reserved for a future direct-WebRTC transport; RelayTransport ignores it.
     #[serde(rename = "offer")]
     Offer { sdp: String },
-    /// SDP answer.
+    /// SDP answer reserved for a future direct-WebRTC transport; RelayTransport ignores it.
     #[serde(rename = "answer")]
     Answer { sdp: String },
-    /// ICE candidate.
+    /// ICE candidate reserved for a future direct-WebRTC transport; RelayTransport ignores it.
     #[serde(rename = "ice")]
     IceCandidate {
         candidate: String,
@@ -127,9 +127,9 @@ pub enum SignalData {
 pub enum SignalingEvent {
     /// We received our peer ID from the server.
     Connected(PeerId),
-    /// A peer joined our room — we should initiate a WebRTC connection.
+    /// A peer joined the room; the transport must still enforce its admission policy.
     PeerJoined(PeerId),
-    /// A peer left our room — clean up their connection.
+    /// A peer left the room; the transport should remove its membership state.
     PeerLeft(PeerId),
     /// Received signaling data from another peer.
     Signal { from: PeerId, data: SignalData },
