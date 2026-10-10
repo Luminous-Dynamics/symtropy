@@ -397,13 +397,15 @@ impl SignalingClient {
 
                     match message {
                         tokio_tungstenite::tungstenite::Message::Text(text) => {
-                            if text.len() > MAX_SIGNALING_MESSAGE_BYTES {
+                            let text_len = text.len();
+                            if text_len > MAX_SIGNALING_MESSAGE_BYTES {
+                                drop(text);
                                 let _ = enqueue_event(
                                     &recv_event_tx,
                                     &recv_event_bytes,
                                     SignalingEvent::Error(format!(
                                         "incoming WebSocket message is {} bytes; maximum is {} bytes",
-                                        text.len(),
+                                        text_len,
                                         MAX_SIGNALING_MESSAGE_BYTES
                                     )),
                                     512,
@@ -442,6 +444,7 @@ impl SignalingClient {
                                 Ok(message) => message,
                                 Err(error) => {
                                     log::warn!("Signaling message rejected: {error}");
+                                    drop(text);
                                     let _ = enqueue_event_with_permit(
                                         &recv_event_tx,
                                         SignalingEvent::Error(error),
@@ -473,6 +476,9 @@ impl SignalingClient {
                                 }
                             };
 
+                            // The parsed event now owns its data; release the raw JSON
+                            // buffer before any bounded-channel wait.
+                            drop(text);
                             if enqueue_event_with_permit(&recv_event_tx, event, permit)
                                 .await
                                 .is_err()
