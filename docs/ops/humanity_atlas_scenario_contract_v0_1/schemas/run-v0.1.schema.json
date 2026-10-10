@@ -292,6 +292,12 @@
                 "minContains": 1
               }
             }
+          },
+          "run_status": {
+            "const": "completed"
+          },
+          "outputs": {
+            "minItems": 1
           }
         }
       }
@@ -324,6 +330,12 @@
                 "minContains": 1
               }
             }
+          },
+          "run_status": {
+            "const": "completed"
+          },
+          "outputs": {
+            "minItems": 1
           }
         }
       }
