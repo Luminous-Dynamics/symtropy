@@ -88,7 +88,6 @@ impl NetworkConfig {
     }
 }
 
-
 #[cfg(test)]
 mod tests {
     use super::NetworkConfig;
