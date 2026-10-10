@@ -84,7 +84,7 @@ jobs:
     # --all-targets check type-checks tests but does not execute them, so keep
     # lifecycle, protocol, and resource-bound regressions as a dedicated gate.
     - name: Run Tests (Networking Core)
-      run: cargo test -p symtropy-net -p symtropy-net-core --all-features
+      run: cargo test -p symtropy-net -p symtropy-net-core -p symtropy-lightyear --all-features
 
     - name: Verify Workspace Build
       run: cargo check --workspace --all-targets
