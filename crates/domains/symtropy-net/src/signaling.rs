@@ -93,16 +93,100 @@ pub enum SignalingEvent {
 
 /// Signaling client handle — used by the transport to send/receive signaling messages.
 ///
-/// The actual WebSocket connection runs in a tokio task.
-/// This handle provides a channel-based interface.
+/// Both directions use bounded mailboxes. A full command queue returns an error to
+/// the caller; a full event queue backpressures WebSocket reads instead of growing
+/// memory without limit.
+
+#[cfg(feature = "webrtc")]
+const SIGNAL_COMMAND_QUEUE_CAPACITY: usize = 16;
+#[cfg(feature = "webrtc")]
+const SIGNAL_EVENT_QUEUE_CAPACITY: usize = 32;
+#[cfg(feature = "webrtc")]
+const MAX_SIGNAL_MESSAGE_BYTES: usize = 64 * 1024;
+
+#[cfg(feature = "webrtc")]
+fn enqueue_command(
+    tx: &mpsc::Sender<SignalOutgoing>,
+    command: SignalOutgoing,
+) -> Result<(), String> {
+    let encoded = serde_json::to_vec(&command)
+        .map_err(|error| format!("failed to serialize signaling command: {error}"))?;
+    if encoded.len() > MAX_SIGNAL_MESSAGE_BYTES {
+        return Err(format!(
+            "signaling message is {} bytes; maximum is {} bytes",
+            encoded.len(),
+            MAX_SIGNAL_MESSAGE_BYTES
+        ));
+    }
+
+    tx.try_send(command).map_err(|error| match error {
+        mpsc::error::TrySendError::Full(_) => format!(
+            "signaling command queue is full (capacity {SIGNAL_COMMAND_QUEUE_CAPACITY}); command rejected"
+        ),
+        mpsc::error::TrySendError::Closed(_) => "signaling command queue is closed".to_string(),
+    })
+}
+
 #[cfg(feature = "webrtc")]
 pub struct SignalingClient {
     /// Send commands to the signaling task.
-    pub tx: mpsc::UnboundedSender<SignalOutgoing>,
+    pub tx: mpsc::Sender<SignalOutgoing>,
     /// Receive events from the signaling task.
-    pub rx: mpsc::UnboundedReceiver<SignalingEvent>,
+    pub rx: mpsc::Receiver<SignalingEvent>,
     /// Our peer ID (set after Welcome message).
     pub local_id: Option<PeerId>,
+}
+
+
+#[cfg(all(test, feature = "webrtc"))]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn bounded_command_queue_rejects_overflow_explicitly() {
+        let (tx, _rx) = mpsc::channel(SIGNAL_COMMAND_QUEUE_CAPACITY);
+
+        for index in 0..SIGNAL_COMMAND_QUEUE_CAPACITY {
+            enqueue_command(
+                &tx,
+                SignalOutgoing::Join {
+                    room: format!("room-{index}"),
+                },
+            )
+            .expect("capacity permits queueing the command");
+        }
+
+        let error = enqueue_command(
+            &tx,
+            SignalOutgoing::Leave,
+        )
+        .expect_err("full queue must reject instead of growing");
+
+        assert!(error.contains("queue is full"));
+    }
+
+    #[test]
+    fn oversized_outgoing_signal_is_rejected_before_enqueue() {
+        let (tx, _rx) = mpsc::channel(SIGNAL_COMMAND_QUEUE_CAPACITY);
+        let command = SignalOutgoing::Signal {
+            to: 42,
+            data: SignalData::Offer {
+                sdp: "x".repeat(MAX_SIGNAL_MESSAGE_BYTES),
+            },
+        };
+
+        let error = enqueue_command(&tx, command)
+            .expect_err("oversized signal must be rejected before enqueue");
+
+        assert!(error.contains("maximum is"));
+        assert_eq!(tx.capacity(), SIGNAL_COMMAND_QUEUE_CAPACITY);
+    }
+
+    #[test]
+    fn bounded_event_queue_capacity_is_finite() {
+        let (_tx, mut rx) = mpsc::channel::<SignalingEvent>(SIGNAL_EVENT_QUEUE_CAPACITY);
+        assert_eq!(rx.max_capacity(), SIGNAL_EVENT_QUEUE_CAPACITY);
+    }
 }
 
 #[cfg(feature = "webrtc")]
@@ -110,72 +194,126 @@ impl SignalingClient {
     /// Connect to the signaling server and spawn the WebSocket task.
     pub async fn connect(url: &str) -> Result<Self, String> {
         use futures_util::{SinkExt, StreamExt};
-        use tokio_tungstenite::connect_async;
+        use tokio_tungstenite::{
+            connect_async_with_config,
+            tungstenite::protocol::WebSocketConfig,
+        };
 
-        let (ws_stream, _) = connect_async(url)
+        let ws_config = WebSocketConfig::default()
+            .max_message_size(Some(MAX_SIGNAL_MESSAGE_BYTES))
+            .max_frame_size(Some(MAX_SIGNAL_MESSAGE_BYTES))
+            .max_write_buffer_size(256 * 1024);
+        let (ws_stream, _) = connect_async_with_config(url, Some(ws_config), false)
             .await
             .map_err(|e| format!("Signaling connect failed: {e}"))?;
 
         let (mut ws_tx, mut ws_rx) = ws_stream.split();
-        let (cmd_tx, mut cmd_rx) = mpsc::unbounded_channel::<SignalOutgoing>();
-        let (evt_tx, evt_rx) = mpsc::unbounded_channel::<SignalingEvent>();
+        let (cmd_tx, mut cmd_rx) = mpsc::channel::<SignalOutgoing>(SIGNAL_COMMAND_QUEUE_CAPACITY);
+        let (evt_tx, evt_rx) = mpsc::channel::<SignalingEvent>(SIGNAL_EVENT_QUEUE_CAPACITY);
 
-        // Spawn task: forward outgoing commands to WebSocket
-        let evt_tx_clone = evt_tx.clone();
+        // The event buffer is bounded; if the ECS caller falls behind, receive-side
+        // sends await capacity and naturally apply backpressure to WebSocket reads.
+        let task_event_tx = evt_tx.clone();
         tokio::spawn(async move {
-            // Forward commands to WebSocket
+            let send_event_tx = task_event_tx.clone();
+            let recv_event_tx = task_event_tx.clone();
+
             let send_task = async {
                 while let Some(cmd) = cmd_rx.recv().await {
-                    let json = serde_json::to_string(&cmd).unwrap();
-                    if ws_tx
+                    let json = match serde_json::to_string(&cmd) {
+                        Ok(json) => json,
+                        Err(error) => {
+                            if send_event_tx
+                                .send(SignalingEvent::Error(format!(
+                                    "failed to serialize signaling command: {error}"
+                                )))
+                                .await
+                                .is_err()
+                            {
+                                return;
+                            }
+                            continue;
+                        }
+                    };
+
+                    if let Err(error) = ws_tx
                         .send(tokio_tungstenite::tungstenite::Message::Text(json))
                         .await
-                        .is_err()
                     {
+                        let _ = send_event_tx
+                            .send(SignalingEvent::Error(format!(
+                                "failed to write signaling WebSocket: {error}"
+                            )))
+                            .await;
                         break;
                     }
                 }
             };
 
-            // Receive from WebSocket and parse
             let recv_task = async {
-                while let Some(Ok(msg)) = ws_rx.next().await {
-                    if let tokio_tungstenite::tungstenite::Message::Text(text) = msg {
-                        match serde_json::from_str::<SignalIncoming>(&text) {
-                            Ok(SignalIncoming::Welcome { peer_id }) => {
-                                let _ =
-                                    evt_tx_clone.send(SignalingEvent::Connected(PeerId(peer_id)));
+                while let Some(message_result) = ws_rx.next().await {
+                    let msg = match message_result {
+                        Ok(msg) => msg,
+                        Err(error) => {
+                            if recv_event_tx
+                                .send(SignalingEvent::Error(format!(
+                                    "failed to read signaling WebSocket: {error}"
+                                )))
+                                .await
+                                .is_err()
+                            {
+                                return;
                             }
-                            Ok(SignalIncoming::PeerJoined { peer_id }) => {
-                                let _ =
-                                    evt_tx_clone.send(SignalingEvent::PeerJoined(PeerId(peer_id)));
-                            }
-                            Ok(SignalIncoming::PeerLeft { peer_id }) => {
-                                let _ =
-                                    evt_tx_clone.send(SignalingEvent::PeerLeft(PeerId(peer_id)));
-                            }
-                            Ok(SignalIncoming::Signal { from, data }) => {
-                                let _ = evt_tx_clone.send(SignalingEvent::Signal {
-                                    from: PeerId(from),
-                                    data,
-                                });
-                            }
-                            Ok(SignalIncoming::Error { message }) => {
-                                let _ = evt_tx_clone.send(SignalingEvent::Error(message));
-                            }
-                            Err(e) => {
-                                log::warn!("Signaling parse error: {e}");
+                            break;
+                        }
+                    };
+
+                    match msg {
+                        tokio_tungstenite::tungstenite::Message::Text(text) => {
+                            let event = match serde_json::from_str::<SignalIncoming>(&text) {
+                                Ok(SignalIncoming::Welcome { peer_id }) => {
+                                    Some(SignalingEvent::Connected(PeerId(peer_id)))
+                                }
+                                Ok(SignalIncoming::PeerJoined { peer_id }) => {
+                                    Some(SignalingEvent::PeerJoined(PeerId(peer_id)))
+                                }
+                                Ok(SignalIncoming::PeerLeft { peer_id }) => {
+                                    Some(SignalingEvent::PeerLeft(PeerId(peer_id)))
+                                }
+                                Ok(SignalIncoming::Signal { from, data }) => {
+                                    Some(SignalingEvent::Signal {
+                                        from: PeerId(from),
+                                        data,
+                                    })
+                                }
+                                Ok(SignalIncoming::Error { message }) => {
+                                    Some(SignalingEvent::Error(message))
+                                }
+                                Err(error) => {
+                                    log::warn!("Signaling parse error: {error}");
+                                    None
+                                }
+                            };
+
+                            if let Some(event) = event
+                                && recv_event_tx.send(event).await.is_err()
+                            {
+                                return;
                             }
                         }
+                        tokio_tungstenite::tungstenite::Message::Close(_) => break,
+                        _ => {}
                     }
                 }
-                let _ = evt_tx_clone.send(SignalingEvent::Disconnected);
             };
 
             tokio::select! {
                 _ = send_task => {},
                 _ = recv_task => {},
             }
+
+            // Publish one terminal event for either socket direction closing.
+            let _ = task_event_tx.send(SignalingEvent::Disconnected).await;
         });
 
         Ok(Self {
@@ -186,19 +324,23 @@ impl SignalingClient {
     }
 
     /// Join a room.
+    ///
+    /// Fails immediately if the bounded command queue is full or closed.
     pub fn join(&self, room: &str) -> Result<(), String> {
-        self.tx
-            .send(SignalOutgoing::Join {
+        enqueue_command(
+            &self.tx,
+            SignalOutgoing::Join {
                 room: room.to_string(),
-            })
-            .map_err(|e| format!("Send failed: {e}"))
+            },
+        )
     }
 
     /// Send signaling data to a peer.
+    ///
+    /// Payloads above the configured signaling message limit and commands rejected
+    /// by the bounded queue return an error instead of being buffered indefinitely.
     pub fn signal(&self, to: PeerId, data: SignalData) -> Result<(), String> {
-        self.tx
-            .send(SignalOutgoing::Signal { to: to.0, data })
-            .map_err(|e| format!("Send failed: {e}"))
+        enqueue_command(&self.tx, SignalOutgoing::Signal { to: to.0, data })
     }
 
     /// Poll for events (non-blocking).
