@@ -86,9 +86,8 @@ fn main() {
         }
     };
 
-    eprintln!(
-        "LOCAL PREVIEW ONLY: no multiplayer server, peer connection, or Lightyear replication is active."
-    );
+    eprintln!("LOCAL PREVIEW ONLY: no multiplayer server or peer connection is active.");
+    eprintln!("Lightyear replication is not configured.");
     if is_host_flag {
         eprintln!("The --host flag is compatibility-only; it does not start a server.");
     }
