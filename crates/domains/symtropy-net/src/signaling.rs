@@ -162,7 +162,6 @@ pub struct SignalingClient {
     pub local_id: Option<PeerId>,
 }
 
-
 #[cfg(all(test, feature = "webrtc"))]
 mod tests {
     use super::*;
@@ -181,11 +180,8 @@ mod tests {
             .expect("capacity permits queueing the command");
         }
 
-        let error = enqueue_command(
-            &tx,
-            SignalOutgoing::Leave,
-        )
-        .expect_err("full queue must reject instead of growing");
+        let error = enqueue_command(&tx, SignalOutgoing::Leave)
+            .expect_err("full queue must reject instead of growing");
 
         assert!(error.contains("queue is full"));
     }
@@ -220,8 +216,7 @@ impl SignalingClient {
     pub async fn connect(url: &str) -> Result<Self, String> {
         use futures_util::{SinkExt, StreamExt};
         use tokio_tungstenite::{
-            connect_async_with_config,
-            tungstenite::protocol::WebSocketConfig,
+            connect_async_with_config, tungstenite::protocol::WebSocketConfig,
         };
 
         let ws_config = WebSocketConfig {
