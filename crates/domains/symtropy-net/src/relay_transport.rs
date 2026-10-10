@@ -497,7 +497,7 @@ mod implementation {
                     .await
                     .expect("client should close the second connection after the test");
                 assert!(
-                    matches!(close, None | Some(Ok(Message::Close(_)))),
+                    matches!(&close, None | Some(Ok(Message::Close(_)))),
                     "expected second websocket to close cleanly, got {close:?}"
                 );
 
