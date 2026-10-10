@@ -340,6 +340,10 @@ mod tests {
         let mut config = NetworkConfig::local_test();
         config.max_peers = 1;
         let mut session = NetworkSession::new(transport, config);
+        assert!(
+            !session.is_multiplayer(),
+            "raw transport links do not make an unadmitted session multiplayer"
+        );
         session.peers.insert(
             PeerId(10),
             PeerState::remote(PeerId(10), "admitted".to_string(), 0),
