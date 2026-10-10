@@ -154,4 +154,3 @@ mod tests {
         assert!(authority.is_local(body));
     }
 }
-
