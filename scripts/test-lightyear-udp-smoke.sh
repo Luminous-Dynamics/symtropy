@@ -14,12 +14,12 @@ if ! command -v timeout >/dev/null 2>&1; then
     exit 2
 fi
 
-repo_root="$(cd "$(dirname "\${BASH_SOURCE[0]}")/.." && pwd)"
+repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$repo_root"
 
 cargo build --locked -p symtropy-multiplayer-demo
 binary="$repo_root/target/debug/symtropy-multiplayer-demo"
-tmp_dir="$(mktemp -d "\${TMPDIR:-/tmp}/symtropy-lightyear-smoke.XXXXXX")"
+tmp_dir="$(mktemp -d "${TMPDIR:-/tmp}/symtropy-lightyear-smoke.XXXXXX")"
 server_pid=""
 passed=false
 
