@@ -120,7 +120,8 @@
       "No empirical calibration, historical validation, or forecasting claim is made.",
       "Single deterministic replicate does not quantify uncertainty."
     ],
-    "status": "contract_smoke"
+    "status": "contract_smoke",
+    "evidence": []
   },
   "warnings": [
     "Synthetic fixture only; numbers are not empirical or predictive.",
