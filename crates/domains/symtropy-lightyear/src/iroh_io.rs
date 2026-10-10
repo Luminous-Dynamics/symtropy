@@ -273,6 +273,25 @@ mod tests {
     }
 
     #[test]
+    fn outbound_dispatch_targets_only_requested_peer_and_preserves_channel() {
+        let mut io = IrohIo::new(PeerId(1));
+        io.connect("room").unwrap();
+        io.transport.inject_peer_connected(PeerId(2));
+        io.transport.inject_peer_connected(PeerId(3));
+        io.queue_send(PeerId(2), Channel::Unreliable, Bytes::from_static(b"physics"))
+            .unwrap();
+
+        let packet = io.send_buffer.pop_front().unwrap();
+        io.dispatch_queued_packet(packet);
+        let outbox = io.transport.drain_outbox();
+
+        assert_eq!(outbox.len(), 1);
+        assert_eq!(outbox[0].0, PeerId(2));
+        assert_eq!(outbox[0].1, Channel::Unreliable);
+        assert_eq!(outbox[0].2.as_slice(), b"physics");
+    }
+
+    #[test]
     fn outbound_oversize_packet_is_rejected_without_queue_mutation() {
         let mut io = IrohIo::new(PeerId(1));
         let error = io
