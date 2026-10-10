@@ -359,10 +359,37 @@ mod tests {
         io.queue_send(PeerId(2), Channel::Unreliable, Bytes::from_static(b"x"))
             .unwrap();
 
-        // The transport is not connected; executing its send path must not
-        // silently ignore the failure. Exercise the same accounting directly.
-        io.record_send_failure(PeerId(2), "Not connected".into());
+        // Exercise the actual transport-send path while the stub is disconnected.
+        let packet = io.send_buffer.pop_front().unwrap();
+        io.dispatch_queued_packet(packet);
+        assert_eq!(io.pending_outbound_packets(), 0);
+        assert_eq!(io.send_buffer_bytes, 0);
         assert_eq!(io.stats.outbound_send_failures, 1);
         assert_eq!(io.stats.last_error.as_deref(), Some("Not connected"));
+    }
+
+    #[test]
+    fn inbound_queue_packet_count_is_bounded() {
+        let mut io = IrohIo::new(PeerId(1));
+        for _ in 0..MAX_PENDING_PACKETS {
+            io.accept_received(PeerMessage {
+                from: PeerId(2),
+                channel: Channel::Unreliable,
+                data: Vec::new(),
+            })
+            .unwrap();
+        }
+
+        let error = io
+            .accept_received(PeerMessage {
+                from: PeerId(3),
+                channel: Channel::Unreliable,
+                data: Vec::new(),
+            })
+            .unwrap_err();
+
+        assert!(error.contains("full"));
+        assert_eq!(io.pending_inbound_packets(), MAX_PENDING_PACKETS);
+        assert_eq!(io.stats.rejected_inbound_packets, 1);
     }
 }
