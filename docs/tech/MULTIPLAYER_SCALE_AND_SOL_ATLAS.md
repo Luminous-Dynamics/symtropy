@@ -10,6 +10,28 @@
 4. **Connect the internal Sol Atlas experience through a stable world/command API**, as a sibling experience of the launcher. Do not make the physics core depend on Atlas UI, and do not use the Atlas renderer as a multiplayer authority or transport.
 5. Keep identity, durable ownership, trade receipts and civic governance on appropriate persistent/authority paths. Do not route frame-frequency physics updates through Mycelix/Holochain consensus.
 
+
+## Upstream Lightyear findings and implementation fit (verified 2026-10-10)
+
+The upstream release notes and book make Lightyear 0.30 a particularly strong candidate for Symtropy's multi-fidelity world model:
+
+- **Version compatibility:** upstream currently documents Lightyear 0.28–0.30 for Bevy 0.19 and recommends `lightyear = "0.30"`. The Symtropy workspace currently uses 0.28, so version alignment should be an isolated upgrade/qualification step—not an unreviewed dependency bump. [Upstream README and compatibility matrix](https://github.com/cBournhonesque/lightyear#supported-bevy-version).
+- **Runtime prediction/interpolation switching:** the 0.30.0 release adds the ability to move entities between predicted and interpolated timelines at runtime. This maps directly to the proposed fidelity tiers: predict the locally controlled actor and nearby gameplay-critical entities, while interpolating remote actors that do not need local rollback. This is a capability to integrate and measure, not proof that Symtropy currently uses it. [Lightyear 0.30.0 release notes](https://github.com/cBournhonesque/lightyear/releases/tag/0.30.0).
+- **Interest management is a correctness boundary:** Lightyear describes visibility per entity/client-link and supports combining visibility with explicit replication targets. Use it to avoid sending irrelevant regions/entities; also test that hidden inventory, fog-of-war units, private claims and other non-visible state are not replicated to unauthorized clients. [Interest-management guide](https://cbournhonesque.github.io/lightyear/book/concepts/advanced_replication/interest_management.html).
+- **Server-side input policy:** the 0.28 release highlights input hardening and authorization hooks. Symtropy should build its command pipeline around those controls so clients submit bounded, validated inputs/intents; they must not authoritatively set contested positions, inventory, currency balances or region ownership. [Upstream release notes](https://github.com/cBournhonesque/lightyear/releases/tag/0.28.0).
+
+### Proposed Lightyear qualification slice
+
+Before upgrading the dependency in the production graph, use an isolated branch/PR to:
+
+1. Update Lightyear from 0.28 to 0.30 and review the lockfile diff and transitive Bevy compatibility; run the repository's existing formatting, Clippy, tests and workspace-build matrix on the exact head.
+2. Replace the reflected-types-only scaffold with one actual server/client configuration, a registered replicated component, one server-owned dynamic body, a client input command, and authoritative validation.
+3. Predict the local player; interpolate one remote entity; change one entity's timeline at runtime based on a deterministic relevance rule.
+4. Add two independent client processes plus a headless server. Assert handshake, unsupported-version rejection, disconnect/reconnect, target-specific visibility, spoofed-input rejection, and bounded memory under a stalled/slow client.
+5. Record per-client bytes/sec, server simulation p50/p95/p99, snapshot age, prediction corrections, and entity counts for which prediction is enabled. Keep this evidence separate from loopback/unit-test success.
+
+The first slice should demonstrate the end-to-end contract and visibility policy before a scale sweep. Upgrade acceptance is **green exact-head CI plus a real multi-process smoke test**, not merely a successful compile of the Lightyear dependency.
+
 ## What “very large” should mean
 
 Player count alone hides the real cost. Track these independently:
