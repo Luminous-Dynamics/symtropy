@@ -40,6 +40,17 @@ Keep three state dimensions distinct:
 
 A deterministic run proves repeatability for specified inputs, not that the model represents reality. One run cannot establish uncertainty bounds. A scenario output is not a calibrated probability. **prospective_forecast** should only be emitted by a separately governed forecast workflow with a resolved outcome definition, deadline, calibration history, scoring rule and archived prediction receipt. Historical counterfactuals need sensitivity analysis across alternative causal models; their unseen outcomes are not directly verifiable.
 
+### Evidence-gated classification
+
+A status string alone must not promote a run to `calibrated_simulation` or `prospective_forecast`. The run schema and local validator require:
+
+- `calibrated_simulation`: `retrospective` or `external_review` status and a hashed `retrospective_evaluation` or `independent_review` artifact.
+- `prospective_forecast`: `prospective` or `external_review` status and a hashed `prospective_forecast` receipt.
+
+Every validation evidence item has an ID, kind, artifact reference, SHA-256 digest, and description. These fields provide content-addressed traceability, **not authentication or scientific proof**. The v0.1 contract does not yet define signatures; Mycelix-backed publisher identity and independent review receipts remain a follow-up.
+
+The failure-injection test copies the fixture set into temporary directories and verifies that changed baseline/model bytes, an out-of-horizon intervention, an unsupported parameter, an invalid time step, and evidence-free classification promotion all fail closed. Well-formed synthetic receipt shapes are accepted only to test the validator—not to qualify any real model.
+
 Do not collapse source reliability, causal-edge confidence, forecast probability, normative preference and model completeness into one score. Do not infer that a technology is feasible solely because an unconstrained simulation reaches it: supported models must account for conservation laws, units, resource and energy budgets, manufacturing throughput, deployment lead times and physical constraints relevant to the claim.
 
 ## Planned integration sequence
