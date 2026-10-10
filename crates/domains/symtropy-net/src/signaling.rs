@@ -97,10 +97,6 @@ pub enum SignalingEvent {
     Error(String),
 }
 
-/// Signaling client handle — used by the transport to send/receive signaling messages.
-///
-/// The actual WebSocket connection runs in a tokio task.
-/// This handle provides a channel-based interface.
 /// Bound WebSocket allocation before signaling JSON is parsed.
 #[cfg(feature = "webrtc")]
 fn bounded_websocket_config() -> tokio_tungstenite::tungstenite::protocol::WebSocketConfig {
@@ -109,6 +105,10 @@ fn bounded_websocket_config() -> tokio_tungstenite::tungstenite::protocol::WebSo
         .max_frame_size(Some(MAX_SIGNALING_MESSAGE_BYTES))
 }
 
+/// Signaling client handle — used by the transport to send/receive signaling messages.
+///
+/// The actual WebSocket connection runs in a tokio task.
+/// This handle provides a channel-based interface.
 #[cfg(feature = "webrtc")]
 pub struct SignalingClient {
     /// Send commands to the signaling task.
@@ -236,7 +236,6 @@ impl SignalingClient {
         events
     }
 }
-
 
 #[cfg(test)]
 mod tests {
