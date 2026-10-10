@@ -85,9 +85,36 @@ def replay(scenario: dict[str, Any], baseline: dict[str, Any], model: dict[str, 
         "validation": {"status": "contract_smoke", "notes": [
             "Synthetic reference calculation only; not a Symtropy engine run.",
             "No empirical calibration, historical validation, or forecasting claim is made.",
-            "Single deterministic replicate does not quantify uncertainty."]},
+            "Single deterministic replicate does not quantify uncertainty."], "evidence": []},
         "warnings": list(scenario["limitations"]),
     }
+
+
+
+def validate_run_claim_gate(run: dict[str, Any]) -> None:
+    """Reject stronger run labels without matching evidence receipts."""
+    classification = run["output_classification"]
+    validation = run["validation"]
+    status = validation["status"]
+    evidence = validation.get("evidence", [])
+    kinds = {item.get("kind") for item in evidence}
+    if classification == "calibrated_simulation":
+        need(status in {"retrospective", "external_review"},
+             "calibrated_simulation requires retrospective or external_review status")
+        need(bool(kinds & {"retrospective_evaluation", "independent_review"}),
+             "calibrated_simulation requires evaluation evidence")
+    elif classification == "prospective_forecast":
+        need(status in {"prospective", "external_review"},
+             "prospective_forecast requires prospective or external_review status")
+        need("prospective_forecast" in kinds,
+             "prospective_forecast requires forecast receipt evidence")
+    for item in evidence:
+        need(bool(item.get("evidence_id", "").strip()), "validation evidence ID is required")
+        need(bool(item.get("artifact_ref", "").strip()), "validation evidence artifact reference is required")
+        digest_value = item.get("artifact_sha256", "")
+        need(len(digest_value) == 64 and all(ch in "0123456789abcdef" for ch in digest_value),
+             "validation evidence artifact_sha256 must be lowercase SHA-256")
+        need(bool(item.get("description", "").strip()), "validation evidence description is required")
 
 
 def main() -> int:
@@ -135,6 +162,7 @@ def main() -> int:
     need(run_a == expected, "checked-in output fixture differs from replay output")
     need(run_a["inputs"]["scenario_sha256"] == digest(scenario_path), "run scenario byte digest mismatch")
     need(run_a["output_classification"] == "synthetic_fixture" and run_a["validation"]["status"] == "contract_smoke", "run epistemic classification invalid")
+    validate_run_claim_gate(run_a)
     need(all(math.isfinite(x["value"]) for x in run_a["outputs"]), "non-finite output")
     need({x["metric_id"] for x in run_a["outputs"]} == {x["metric_id"] for x in scenario["requested_metrics"]}, "output metric set mismatch")
     duration = h["end_year"] - h["start_year"]
