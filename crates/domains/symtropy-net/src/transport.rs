@@ -60,9 +60,24 @@ pub enum TransportEvent {
 /// The game loop calls `poll()` each tick and `send()` when it has
 /// state to distribute.
 pub trait Transport {
-    /// Connect to the signaling server and join a room.
-    /// This begins the peer discovery process.
+    /// Connect using a synchronous transport.
+    ///
+    /// Implementations that require asynchronous connection setup must return an
+    /// error here instead of pretending to be connected. Callers that can await
+    /// network setup should use Self::connect_async.
     fn connect(&mut self, room_id: &str) -> Result<(), String>;
+
+    /// Connect using the transport's asynchronous path when one is required.
+    ///
+    /// Synchronous transports inherit this default implementation. Async
+    /// transports should override it and must not report signaling connectivity
+    /// until the remote handshake has actually been observed.
+    fn connect_async<'a>(
+        &'a mut self,
+        room_id: &'a str,
+    ) -> impl std::future::Future<Output = Result<(), String>> + 'a {
+        async move { self.connect(room_id) }
+    }
 
     /// Disconnect from all peers and the signaling server.
     fn disconnect(&mut self);
