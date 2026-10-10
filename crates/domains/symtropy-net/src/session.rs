@@ -93,8 +93,10 @@ impl<T: Transport> NetworkSession<T> {
         for event in events {
             match event {
                 TransportEvent::PeerConnected(peer_id) => {
-                    let peer = PeerState::remote(peer_id, format!("Peer-{}", peer_id.0), 0);
-                    self.peers.insert(peer_id, peer);
+                    // Duplicate connection events must not reset liveness state.
+                    self.peers.entry(peer_id).or_insert_with(|| {
+                        PeerState::remote(peer_id, format!("Peer-{}", peer_id.0), 0)
+                    });
                 }
                 TransportEvent::PeerDisconnected(peer_id) => {
                     self.remove_peer(peer_id);
@@ -148,8 +150,14 @@ impl<T: Transport> NetworkSession<T> {
         }
 
         // Expire stale peers
-        let timeout =
-            self.config.authority_timeout_ms / (1000 / self.config.send_rate_hz as u64).max(1);
+        // Normalize a zero send rate to 1 Hz for timeout accounting so malformed
+        // configuration cannot panic on integer division by zero.
+        let effective_send_rate_hz = self.config.send_rate_hz.max(1) as u64;
+        let timeout = self
+            .config
+            .authority_timeout_ms
+            .saturating_mul(effective_send_rate_hz)
+            .div_ceil(1000);
         let stale: Vec<PeerId> = self
             .peers
             .iter()
@@ -211,6 +219,19 @@ mod tests {
 
         session.join("test-room").unwrap();
         session.tick();
+        assert_eq!(session.tick, 1);
+    }
+
+    #[test]
+    fn session_tick_tolerates_zero_configured_send_rate() {
+        let (transport, _peer) = loopback_pair();
+        let mut config = NetworkConfig::local_test();
+        config.send_rate_hz = 0;
+        let mut session = NetworkSession::new(transport, config);
+
+        session.join("test").unwrap();
+        session.tick();
+
         assert_eq!(session.tick, 1);
     }
 
