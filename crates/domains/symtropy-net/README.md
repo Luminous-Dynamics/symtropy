@@ -13,6 +13,8 @@ Deterministic lockstep networking for Symtropy.
 
 ## What's partial
 
+- Experimental wire shapes, limits, and trust gaps are documented in [symtropy-signaling-v0.md](../../docs/protocol/symtropy-signaling-v0.md); that document describes the current client contract, not a qualified service.
+
 - **`RelayTransport` / `signaling.rs`** (behind the `ws-relay` feature; `webrtc` remains a compatibility alias):
   an experimental WebSocket JSON signaling client and a transport that relays
   game data over that same WebSocket. It has only an in-process fixture, not live
