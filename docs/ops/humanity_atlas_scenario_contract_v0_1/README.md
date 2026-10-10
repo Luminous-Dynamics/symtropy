@@ -24,7 +24,7 @@ This contract separates roles:
 
 ## Run the process gate locally
 
-From this directory, run **python3 validate_contract.py**. To print the generated result envelope, run **python3 validate_contract.py --emit-run**.
+From this directory, run **python3 validate_contract.py**. To exercise fail-closed behavior, run **python3 test_contract_fail_closed.py**. To print the generated result envelope, run **python3 validate_contract.py --emit-run**.
 
 The smoke test verifies JSON parseability, top-level schema envelope shape, exact-byte SHA-256 bindings, valid horizon and intervention ranges, unique IDs, finite outputs, and deterministic replay by running the fixture twice and comparing results. This gate can run independently of GitHub Actions.
 
