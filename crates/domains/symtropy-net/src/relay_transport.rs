@@ -378,7 +378,7 @@ mod implementation {
 
         #[cfg(not(target_arch = "wasm32"))]
         #[tokio::test]
-        async fn localhost_websocket_fixture_roundtrips_explicit_relay_data() {
+        async fn localhost_websocket_fixture_roundtrips_relay_data_and_reconnects() {
             use futures_util::{SinkExt, StreamExt};
             use std::time::Duration;
             use tokio::net::TcpListener;
@@ -391,25 +391,25 @@ mod implementation {
             let address = listener.local_addr().expect("fixture local address");
 
             let server = tokio::spawn(async move {
-                let (stream, _) = listener.accept().await.expect("accept relay client");
-                let mut websocket = accept_async(stream).await.expect("accept WebSocket");
+                let (stream, _) = listener.accept().await.expect("accept first client");
+                let mut websocket = accept_async(stream).await.expect("accept first WebSocket");
 
                 let join_text = match websocket.next().await {
                     Some(Ok(Message::Text(text))) => text,
-                    other => panic!("expected join command, received {other:?}"),
+                    other => panic!("expected first join command, received {other:?}"),
                 };
                 let join: serde_json::Value =
-                    serde_json::from_str(&join_text).expect("parse join command");
+                    serde_json::from_str(&join_text).expect("parse first join command");
                 assert_eq!(join["type"], "join");
                 assert_eq!(join["room"], "fixture-room");
 
                 websocket
                     .send(Message::Text(
                         serde_json::to_string(&SignalIncoming::Welcome { peer_id: 1 })
-                            .expect("serialize Welcome"),
+                            .expect("serialize first Welcome"),
                     ))
                     .await
-                    .expect("send Welcome");
+                    .expect("send first Welcome");
                 websocket
                     .send(Message::Text(
                         serde_json::to_string(&SignalIncoming::PeerJoined { peer_id: 2 })
@@ -428,7 +428,10 @@ mod implementation {
                 assert_eq!(outgoing["to"], 2);
                 assert_eq!(outgoing["data"]["kind"], "relay_data");
                 assert_eq!(outgoing["data"]["channel"], "reliable");
-                assert_eq!(outgoing["data"]["payload"], serde_json::json!([104, 101, 108, 108, 111]));
+                assert_eq!(
+                    outgoing["data"]["payload"],
+                    serde_json::json!([104, 101, 108, 108, 111])
+                );
 
                 websocket
                     .send(Message::Text(
@@ -443,6 +446,46 @@ mod implementation {
                     ))
                     .await
                     .expect("send inbound relay data");
+                websocket
+                    .send(Message::Close(None))
+                    .await
+                    .expect("close first signaling connection");
+                drop(websocket);
+
+                // Accept a second explicit connection to prove the client discarded
+                // the terminated websocket handle instead of retaining stale state.
+                let (stream, _) = timeout(Duration::from_secs(3), listener.accept())
+                    .await
+                    .expect("client should reconnect to the same fixture")
+                    .expect("accept second client");
+                let mut websocket = accept_async(stream).await.expect("accept second WebSocket");
+                let second_join_text = match timeout(Duration::from_secs(3), websocket.next())
+                    .await
+                    .expect("second Join should arrive")
+                {
+                    Some(Ok(Message::Text(text))) => text,
+                    other => panic!("expected second join command, received {other:?}"),
+                };
+                let second_join: serde_json::Value =
+                    serde_json::from_str(&second_join_text).expect("parse second join command");
+                assert_eq!(second_join["type"], "join");
+                assert_eq!(second_join["room"], "fixture-room-2");
+
+                websocket
+                    .send(Message::Text(
+                        serde_json::to_string(&SignalIncoming::Welcome { peer_id: 3 })
+                            .expect("serialize second Welcome"),
+                    ))
+                    .await
+                    .expect("send second Welcome");
+
+                let close = timeout(Duration::from_secs(3), websocket.next())
+                    .await
+                    .expect("client should close the second connection after the test");
+                assert!(
+                    matches!(close, None | Some(Ok(Message::Close(_)))),
+                    "expected second websocket to close cleanly, got {close:?}"
+                );
 
                 outgoing
             });
@@ -479,28 +522,62 @@ mod implementation {
                 .send(PeerId(2), Channel::Reliable, b"hello")
                 .expect("queue explicit relay_data command");
 
-            // Awaiting the server task verifies the exact outbound JSON protocol shape.
-            let _outgoing = timeout(Duration::from_secs(3), server)
-                .await
-                .expect("server must receive and answer the relay packet")
-                .expect("fixture task must not panic");
-
-            let delivered = timeout(Duration::from_secs(3), async {
-                loop {
+            let mut got_payload = false;
+            let mut got_disconnect = false;
+            timeout(Duration::from_secs(3), async {
+                while !(got_payload && got_disconnect) {
                     for event in transport.poll() {
-                        if let TransportEvent::Message(message) = event {
-                            return message;
+                        match event {
+                            TransportEvent::Message(message) => {
+                                assert_eq!(message.from, PeerId(2));
+                                assert_eq!(message.channel, Channel::Unreliable);
+                                assert_eq!(message.data, b"world");
+                                got_payload = true;
+                            }
+                            TransportEvent::SignalingDisconnected => got_disconnect = true,
+                            _ => {}
                         }
                     }
                     sleep(Duration::from_millis(1)).await;
                 }
             })
             .await
-            .expect("client must receive the relayed packet");
-            assert_eq!(delivered.from, PeerId(2));
-            assert_eq!(delivered.channel, Channel::Unreliable);
-            assert_eq!(delivered.data, b"world");
+            .expect("client must receive relay data and terminal disconnect");
+
+            assert!(!transport.is_signaling_connected());
+            assert_eq!(transport.peer_count(), 0);
+
+            transport
+                .connect_async("fixture-room-2")
+                .await
+                .expect("create fresh connection after terminal disconnect");
+            let mut reconnected = false;
+            timeout(Duration::from_secs(3), async {
+                loop {
+                    let events = transport.poll();
+                    if events
+                        .iter()
+                        .any(|event| matches!(event, TransportEvent::SignalingConnected))
+                    {
+                        reconnected = true;
+                    }
+                    if reconnected {
+                        break;
+                    }
+                    sleep(Duration::from_millis(1)).await;
+                }
+            })
+            .await
+            .expect("second Welcome must establish the new connection");
+            assert_eq!(transport.local_peer_id(), PeerId(3));
+
+            transport.disconnect();
+            let _outgoing = timeout(Duration::from_secs(3), server)
+                .await
+                .expect("fixture should complete both sessions")
+                .expect("fixture task should not panic");
         }
+
     }
 
     /// Generate a random peer ID (used before server assigns one).
