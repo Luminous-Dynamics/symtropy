@@ -88,7 +88,6 @@ impl SpatialAuthority {
         self.body_authority.len()
     }
 
-
     /// Update authority based on distances from peers' players.
     pub fn update_from_distances(
         &mut self,
