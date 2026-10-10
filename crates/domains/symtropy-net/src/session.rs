@@ -61,9 +61,9 @@ impl<T: Transport> NetworkSession<T> {
     /// Start joining a room through the transport's async connection path.
     ///
     /// A successful return means the transport's connection/join request was
-    /// accepted by its local async API. For network transports, observe
-    /// TransportEvent::SignalingConnected from tick() before treating the session
-    /// as connected.
+    /// accepted by its local async API. For asynchronous transports, call `tick()`
+    /// and then inspect `is_connected()`; returning from this method does not
+    /// prove that a remote server has completed its Welcome handshake.
     pub async fn join_async(&mut self, room_id: &str) -> Result<(), String> {
         self.transport.connect_async(room_id).await
     }
@@ -174,6 +174,15 @@ impl<T: Transport> NetworkSession<T> {
         }
     }
 
+    /// Whether the underlying transport reports its connection handshake complete.
+    ///
+    /// This is separate from peer admission. A transport can be connected to a
+    /// control server before any remote peer has joined; for relay transports this
+    /// becomes true only after Welcome is processed by `tick()`.
+    pub fn is_connected(&self) -> bool {
+        self.transport.is_signaling_connected()
+    }
+
     /// Number of connected peers.
     pub fn peer_count(&self) -> usize {
         self.peers.len()
@@ -211,7 +220,24 @@ mod tests {
             .block_on(session.join_async("test-room"))
             .expect("async join delegates to sync transport");
 
-        assert!(session.transport.is_signaling_connected());
+        assert!(session.is_connected());
+    }
+
+    #[test]
+    fn session_connection_state_is_separate_from_peer_admission() {
+        let (transport, _peer) = loopback_pair();
+        let mut session = NetworkSession::new(transport, NetworkConfig::local_test());
+
+        assert!(!session.is_connected());
+        assert_eq!(session.peer_count(), 0);
+
+        session.join("test-room").expect("connect local transport");
+        assert!(session.is_connected());
+        assert_eq!(
+            session.peer_count(),
+            0,
+            "local connection is not proof that a remote peer was admitted"
+        );
     }
 
     #[test]
