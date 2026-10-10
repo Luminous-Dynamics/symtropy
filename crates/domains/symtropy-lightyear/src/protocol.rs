@@ -1,16 +1,19 @@
 // Copyright (C) 2024-2026 Tristan Stoltz / Luminous Dynamics
 // SPDX-License-Identifier: AGPL-3.0-or-later
-//! Protocol definition — register components and messages with Lightyear.
+//! Candidate component reflection registration for future Lightyear replication.
 //!
-//! This tells Lightyear which components to replicate, predict, and
-//! interpolate. Components must be registered in both client and server
-//! (or both peers in P2P mode).
+//! This module currently registers Bevy reflection metadata only. It does not
+//! configure Lightyear replication, prediction/interpolation policies, wire
+//! messages, or client/server plugins; those require explicit runtime wiring
+//! and end-to-end qualification.
 
 use crate::components::*;
 
-/// Register all Symtropy networked components and messages with Lightyear.
+/// Register candidate component types with Bevy reflection.
 ///
-/// Call this during app setup before adding Lightyear plugins.
+/// This only calls `App::register_type`; it does not register replication
+/// rules or enable Lightyear networking. Call it during app setup only when
+/// the application also needs the candidate reflection metadata.
 ///
 /// ```rust,ignore
 /// let mut app = App::new();
