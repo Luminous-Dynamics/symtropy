@@ -43,6 +43,8 @@ impl Plugin for SymtropyNetPlugin {
             ),
         );
 
-        bevy_log::warn!("Symtropy networking scaffold initialized; live transport and Lightyear replication are not yet wired");
+        bevy_log::warn!(
+            "Symtropy networking scaffold initialized; live transport and Lightyear replication are not yet wired"
+        );
     }
 }
