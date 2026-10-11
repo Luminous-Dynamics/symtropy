@@ -46,7 +46,33 @@
           "$ref": "#/$defs/sha256"
         },
         "dataset_sha256": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/sha256"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Null means a separately identified dataset digest was not established; it must not be interpreted as proof that no data influenced the engine."
+        },
+        "scenario_identity_kind": {
+          "enum": [
+            "scenario_document_bytes",
+            "canonical_effective_scenario"
+          ],
+          "description": "Optional convention for interpreting scenario_sha256. canonical_effective_scenario hashes the declared effective model, resolved input digests and horizon."
+        },
+        "resolved_config_sha256": {
           "$ref": "#/$defs/sha256"
+        },
+        "resolved_params_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "selected_definition_source": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
         }
       }
     },
@@ -71,6 +97,27 @@
         },
         "model_sha256": {
           "$ref": "#/$defs/sha256"
+        },
+        "model_identity_kind": {
+          "enum": [
+            "full_model",
+            "technology_tree_definition",
+            "unknown"
+          ],
+          "description": "Scope of model_sha256. technology_tree_definition must not be represented as a digest of the complete executable or source tree."
+        },
+        "source_revision": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "minLength": 1,
+          "description": "Source revision reported by the producer; null means it was not supplied."
+        },
+        "definition_source": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
         }
       }
     },
@@ -91,7 +138,11 @@
       ]
     },
     "deterministic": {
-      "type": "boolean"
+      "type": [
+        "boolean",
+        "null"
+      ],
+      "description": "True only when repeatability is supported by evidence, false when known not to be deterministic, null when determinism has not been established."
     },
     "seed": {
       "type": "integer",
@@ -193,6 +244,47 @@
         "type": "string",
         "minLength": 1
       }
+    },
+    "artifacts": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "artifact_id",
+          "role",
+          "media_type",
+          "artifact_ref",
+          "artifact_sha256"
+        ],
+        "properties": {
+          "artifact_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "role": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 120
+          },
+          "media_type": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 120
+          },
+          "artifact_ref": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 2000
+          },
+          "artifact_sha256": {
+            "$ref": "#/$defs/sha256"
+          }
+        }
+      },
+      "description": "Optional content-addressed source or domain artifacts. Digests bind bytes, not publisher identity, accessibility, or scientific validity."
     }
   },
   "$defs": {
