@@ -66,13 +66,14 @@ Set clients' `SYMTROPY_SIGNAL_URL=wss://relay.example.com` and `SYMTROPY_SIGNAL_
 | Per-peer queued serialized bytes | At most one maximum envelope budget (4,210,688 bytes) |
 | Aggregate queued/in-flight relay-data envelopes, across all clients | 8 maximum envelopes = 33,685,504 bytes (~32.1 MiB) |
 | Reserved aggregate control-envelope bytes, across all clients | 16 × 65,536 = 1,048,576 bytes (1 MiB) |
+| Reserved aggregate membership-envelope bytes, across all clients | 16 × 32 × 128 = 65,536 bytes (64 KiB) |
 | Per-connection rate | 120 messages/s and 8 MiB/s |
 | WebSocket upgrade timeout | 10 seconds |
 | Initial Join timeout | 10 seconds |
 | Read-idle timeout | 90 seconds |
 | Writer drain after close | 2 seconds |
 
-These are initial implementation values, not capacity benchmarks or recommended internet-scale settings. The shared relay-data budget is held from queue reservation through completion of the socket write, in addition to the per-peer budget. A separate 1 MiB global control-envelope budget keeps Welcome/PeerLeft/error/SDP/ICE messages queueable when the game-data allowance is exhausted; PONG frames (at most 125-byte payloads) use the message-count bound but are not charged to either text-envelope budget. The limits for client sockets are separate from inbound parsing and WebSocket library buffers, so they are not a total process-RSS ceiling. The memory footprint can still be substantial. Measure RSS, CPU, latency, queue saturation, reconnect storms, and slow-client eviction before scaling.
+These are initial implementation values, not capacity benchmarks or recommended internet-scale settings. The shared relay-data budget is held from queue reservation through completion of the socket write, in addition to the per-peer budget. A separate 1 MiB global protocol-control budget covers Error/SDP/ICE envelopes, and a further 64 KiB membership reserve covers Welcome/PeerJoined/PeerLeft so cleanup can progress even if the game-data and general control allowances are exhausted. PONG frames (at most 125-byte payloads) use the message-count bound but are not charged to these text-envelope budgets. The limits for client sockets are separate from inbound parsing and WebSocket library buffers, so they are not a total process-RSS ceiling. The memory footprint can still be substantial. Measure RSS, CPU, latency, queue saturation, reconnect storms, and slow-client eviction before scaling.
 
 The server overwrites a forwarded sender ID with the ID assigned to that WebSocket connection and checks the recipient belongs to the same room. It reserves recipient queue count/bytes before forwarding. A recipient that cannot queue required membership events is disconnected to avoid silent partial membership notifications.
 
