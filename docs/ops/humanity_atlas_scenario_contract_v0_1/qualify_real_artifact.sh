@@ -41,7 +41,7 @@ mkdir -p -- "$OUT_DIR"
 OUT_DIR="$(cd -- "$OUT_DIR" && pwd)"
 case "$OUT_DIR/" in
   "$MONOREPO_ROOT/"*|"$SOL_ATLAS_ROOT/"*|"$SYMTROPY_ROOT/"*)
-    echo "qualification output directory must be outside both source checkouts" >&2
+    echo "qualification output directory must be outside all three source checkouts" >&2
     exit 2
     ;;
 esac
