@@ -5,6 +5,11 @@ edition = "2024"
 license = "AGPL-3.0-or-later"
 description = "Deterministic lockstep physics sync for Symtropy: tested lockstep protocol + in-memory loopback transport; WebSocket relay transport compiles but is untested against a live server; Iroh QUIC P2P transport is a documented stub (see iroh_transport.rs)"
 
+[[bin]]
+name = "symtropy-signaling-server"
+path = "src/bin/signaling_server.rs"
+required-features = ["ws-relay"]
+
 [features]
 default = []
 # Explicit name for the experimental Symtropy JSON WebSocket relay.
