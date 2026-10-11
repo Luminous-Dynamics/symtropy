@@ -105,14 +105,16 @@ exact source bytes but is not itself a hosting location. When storing the source
 artifact in a content-addressed store or evidence service, pass its resolvable
 URI with `--artifact-ref`.
 
-The adapter deliberately emits `unvalidated_simulation`, a null determinism
-value (not independently demonstrated), and a null dataset digest (no separate
-dataset identity was established by this source manifest). It scopes
-`model_sha256` to the effective technology-tree definition, records resolved
-config/parameter digests, and binds the exact simulator-output bytes in
-`artifacts`. SHA-256 is not publisher authentication. The source revision is
-preserved if present; it is never inferred from a branch name. Calibration and
-forecast classifications remain forbidden without their separate evidence
+The adapter also requires `resolved_config.seed` and
+`resolved_config.total_ticks` to agree with the top-level run before it emits
+an envelope. The adapter deliberately emits `unvalidated_simulation`, a null
+determinism value (not independently demonstrated), and a null dataset digest
+(no separate dataset identity was established by this source manifest). It
+scopes `model_sha256` to the effective technology-tree definition, records
+resolved config/parameter digests, and binds the exact simulator-output bytes
+in `artifacts`. SHA-256 is not publisher authentication. The source revision
+is preserved if present; it is never inferred from a branch name. Calibration
+and forecast classifications remain forbidden without their separate evidence
 receipts.
 
 Run the independent adapter regression tests with:
@@ -147,3 +149,37 @@ The generic envelope's `engine_version` is taken from the producer's declared
 `source_revision` still records the exact build revision only when the build
 environment supplies it; a package version must not be mistaken for an exact
 commit identity.
+
+## Single-artifact end-to-end qualification
+
+The script `qualify_real_artifact.sh` performs the full local path against the
+checked-out producer and standalone consumer. It captures the simulator output
+once, stores its SHA-256, runs the Python adapter, runs the Sol-Atlas core unit
+tests, then runs the standalone Rust example against that same source file and
+the generated envelope. It records both repository HEADs, tool versions, all
+three artifact digests, the consumer report, and test logs in an evidence
+directory.
+
+From a checkout of this Symtropy repository, set the two repository paths:
+
+```sh
+LUMINOUS_MONOREPO_ROOT=/path/to/luminous-dynamics \
+SOL_ATLAS_ROOT=/path/to/sol-atlas-leptos \
+ATLAS_QUALIFICATION_DIR=/path/to/humanity-atlas-evidence \
+bash docs/ops/humanity_atlas_scenario_contract_v0_1/qualify_real_artifact.sh
+```
+
+The example validator is
+`sol-atlas-core/examples/validate_humanity_atlas_artifact.rs` in Sol-Atlas;
+it verifies the envelope, checks the SHA-256 of the exact source bytes, and
+validates the technology-tree artifact independently of the UI. The validation
+report's `structural_contract_pass` label means only that the declared contract,
+digest, provenance bindings, summary metrics, and graph checks passed. It does
+not establish publisher authenticity, deterministic replay, empirical
+calibration, or scientific validity.
+
+The script intentionally fails on the first failed command/test. A missing
+toolchain, compilation failure, rejected artifact, or schema mismatch must
+remain a failure rather than becoming a partial success receipt. The script is
+provided as a qualification path; it has **not** been executed in this editing
+environment. Queued CI is not counted as a pass.
