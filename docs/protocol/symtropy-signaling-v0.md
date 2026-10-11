@@ -77,7 +77,8 @@ The client serializes `Vec<u8>` as a JSON integer array, not base64. Do not sile
 | Outgoing command mailbox | 16 items plus aggregate serialized-byte budget | Byte permits remain held until the WebSocket write completes; queue-full and budget-full are errors. |
 | Incoming event mailbox | 32 items plus aggregate raw-envelope-byte budget | Reserve raw text bytes before parse, hold the permit while queued, and return at most 32 events per poll. |
 | WebSocket write buffer | Above one maximum relay envelope | Configured so the client write buffer does not reject a single maximum permitted envelope solely for being larger than the buffer cap. |
-| Server aggregate outbound text envelopes (prototype) | 8 × 4,210,688 = 33,685,504 bytes (~32.1 MiB) | Shared semaphore covers queued and in-flight text envelopes across all clients; it is not a total process-memory cap. |
+| Server aggregate outbound relay data (prototype) | 8 × 4,210,688 = 33,685,504 bytes (~32.1 MiB) | Shared semaphore covers queued and in-flight game-data text envelopes across all clients. |
+| Server aggregate outbound control reserve (prototype) | 16 × 65,536 = 1,048,576 bytes (1 MiB) | Separate shared semaphore for control/membership/SDP/ICE envelopes, so cleanup can proceed during game-data saturation. Neither quota is a total process-memory cap. |
 
 These are client limits, not proof of server-side enforcement. A compatible service must impose its own room, identity, concurrency, rate, and memory quotas before forwarding any message. Queued-byte budgets do not include a message currently being read/written or memory already transferred to the caller after `poll_events()`.
 
