@@ -56,9 +56,11 @@ const MAX_ROOM_PEERS: usize = 16;
 const MAX_ROOM_ID_BYTES: usize = 128;
 /// Shared budget for queued/in-flight game-data envelopes across every client.
 const MAX_TOTAL_OUTBOUND_DATA_BYTES: usize = MAX_SIGNALING_MESSAGE_BYTES * 8;
-/// Reserved global budget for membership/errors/SDP/ICE so control-plane cleanup can
-/// progress even when the game-data allowance is exhausted.
+/// Reserved global budget for non-membership protocol control envelopes.
 const MAX_TOTAL_OUTBOUND_CONTROL_BYTES: usize = MAX_SIGNAL_CONTROL_BYTES * MAX_CLIENTS;
+/// Separate reserve for Welcome/PeerJoined/PeerLeft so membership cleanup keeps
+/// progressing even if data and SDP/ICE/error messages saturate their own budgets.
+const MAX_TOTAL_OUTBOUND_MEMBERSHIP_BYTES: usize = MAX_ROOM_PEERS * OUTBOUND_QUEUE_CAPACITY * 128;
 const OUTBOUND_QUEUE_CAPACITY: usize = 32;
 const MAX_MESSAGES_PER_SECOND: usize = 120;
 const MAX_BYTES_PER_SECOND: usize = 8 * 1024 * 1024;
@@ -79,8 +81,10 @@ struct PeerHandle {
     queued_bytes: Arc<Semaphore>,
     /// Shared budget for all queued/in-flight relay-data envelopes.
     global_data_bytes: Arc<Semaphore>,
-    /// Reserved shared budget for control and membership envelopes.
+    /// Shared budget for non-membership control envelopes.
     global_control_bytes: Arc<Semaphore>,
+    /// Reserved shared budget for Welcome/PeerJoined/PeerLeft envelopes.
+    global_membership_bytes: Arc<Semaphore>,
     /// Lets the room registry terminate a connection evicted for backpressure.
     shutdown_tx: watch::Sender<bool>,
 }
@@ -212,6 +216,7 @@ async fn run_server(
     let client_slots = Arc::new(Semaphore::new(MAX_CLIENTS));
     let global_data_bytes = Arc::new(Semaphore::new(MAX_TOTAL_OUTBOUND_DATA_BYTES));
     let global_control_bytes = Arc::new(Semaphore::new(MAX_TOTAL_OUTBOUND_CONTROL_BYTES));
+    let global_membership_bytes = Arc::new(Semaphore::new(MAX_TOTAL_OUTBOUND_MEMBERSHIP_BYTES));
     let next_peer_id = Arc::new(AtomicU64::new(1));
     let mut clients = JoinSet::new();
 
@@ -237,6 +242,7 @@ async fn run_server(
                 let next_peer_id = next_peer_id.clone();
                 let global_data_bytes = global_data_bytes.clone();
                 let global_control_bytes = global_control_bytes.clone();
+                let global_membership_bytes = global_membership_bytes.clone();
                 clients.spawn(async move {
                     let _client_permit = permit;
                     if let Err(error) = handle_connection(
@@ -246,6 +252,7 @@ async fn run_server(
                         next_peer_id,
                         global_data_bytes,
                         global_control_bytes,
+                        global_membership_bytes,
                     )
                     .await
                     {
@@ -372,8 +379,19 @@ fn prepare_message(peer: &PeerHandle, message: &SignalIncoming) -> Result<Prepar
             ..
         }
     );
+    let is_membership = matches!(
+        message,
+        &SignalIncoming::Welcome { .. }
+            | &SignalIncoming::PeerJoined { .. }
+            | &SignalIncoming::PeerLeft { .. }
+    );
     let (global_budget, budget_error) = if is_relay_data {
         (&peer.global_data_bytes, "server aggregate outbound data budget is full")
+    } else if is_membership {
+        (
+            &peer.global_membership_bytes,
+            "server aggregate outbound membership budget is full",
+        )
     } else {
         (
             &peer.global_control_bytes,
@@ -594,6 +612,7 @@ async fn handle_connection(
     next_peer_id: Arc<AtomicU64>,
     global_data_bytes: Arc<Semaphore>,
     global_control_bytes: Arc<Semaphore>,
+    global_membership_bytes: Arc<Semaphore>,
 ) -> Result<(), String> {
     let expected = token.clone();
     let callback = move |request: &Request, response: Response| {
@@ -676,6 +695,7 @@ async fn handle_connection(
         queued_bytes: Arc::new(Semaphore::new(MAX_SIGNALING_MESSAGE_BYTES)),
         global_data_bytes,
         global_control_bytes,
+        global_membership_bytes,
         shutdown_tx,
     };
 
@@ -963,6 +983,7 @@ mod tests {
             queued_bytes: Arc::new(Semaphore::new(MAX_SIGNALING_MESSAGE_BYTES)),
             global_data_bytes: Arc::new(Semaphore::new(MAX_TOTAL_OUTBOUND_DATA_BYTES)),
             global_control_bytes: Arc::new(Semaphore::new(MAX_TOTAL_OUTBOUND_CONTROL_BYTES)),
+            global_membership_bytes: Arc::new(Semaphore::new(MAX_TOTAL_OUTBOUND_MEMBERSHIP_BYTES)),
             shutdown_tx,
         };
 
@@ -1116,6 +1137,7 @@ mod tests {
             shutdown_tx,
             Arc::new(Semaphore::new(MAX_TOTAL_OUTBOUND_DATA_BYTES)),
             Arc::new(Semaphore::new(MAX_TOTAL_OUTBOUND_CONTROL_BYTES)),
+            Arc::new(Semaphore::new(MAX_TOTAL_OUTBOUND_MEMBERSHIP_BYTES)),
         )
     }
 
@@ -1125,6 +1147,7 @@ mod tests {
         shutdown_tx: watch::Sender<bool>,
         global_data_bytes: Arc<Semaphore>,
         global_control_bytes: Arc<Semaphore>,
+        global_membership_bytes: Arc<Semaphore>,
     ) -> (PeerHandle, mpsc::Receiver<QueuedFrame>) {
         (
             PeerHandle {
@@ -1132,6 +1155,7 @@ mod tests {
                 queued_bytes: Arc::new(Semaphore::new(MAX_SIGNALING_MESSAGE_BYTES)),
                 global_data_bytes,
                 global_control_bytes,
+                global_membership_bytes,
                 shutdown_tx,
             },
             rx,
