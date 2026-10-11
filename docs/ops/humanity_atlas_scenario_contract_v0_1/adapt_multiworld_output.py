@@ -186,13 +186,21 @@ def adapt_source(raw: bytes, *, artifact_ref: str | None = None) -> dict[str, An
     if not source_model.startswith(model_version_prefix):
         raise AdapterError("source_model must identify the versioned mycelix-multiworld-sim engine")
     engine_version = source_model[len(model_version_prefix):]
-    if not engine_version or len(engine_version) > 120 or engine_version.strip() != engine_version:
-        raise AdapterError("source_model engine version must be a non-empty value of at most 120 characters")
+    if (
+        not engine_version
+        or len(engine_version) > 120
+        or engine_version.strip() != engine_version
+        or "/" in engine_version
+        or any(character.isspace() for character in engine_version)
+    ):
+        raise AdapterError("source_model engine version must be a non-empty version token of at most 120 characters")
     tree_source = _required_string(tree, "definition_source", "technology_tree")
     if len(tree_source) > 200:
         raise AdapterError("technology_tree.definition_source exceeds 200 characters")
     model_sha = _required_sha256(tree, "definition_sha256", "technology_tree")
     ticks_per_year = _required_int(tree, "ticks_per_year", "technology_tree", minimum=1)
+    if ticks_per_year > 4_294_967_295:
+        raise AdapterError("technology_tree.ticks_per_year exceeds the u32 wire range")
     milestones = tree.get("milestones")
     if not isinstance(milestones, list) or not milestones:
         raise AdapterError("technology_tree.milestones must be a non-empty array")
@@ -208,6 +216,8 @@ def adapt_source(raw: bytes, *, artifact_ref: str | None = None) -> dict[str, An
     ticks = _required_int(source, "ticks", "source", minimum=1)
     manifest_seed = _required_int(manifest, "seed", "run_manifest")
     manifest_ticks = _required_int(manifest, "ticks", "run_manifest")
+    if ticks > 4_294_967_295 or manifest_ticks > 4_294_967_295:
+        raise AdapterError("source or run_manifest ticks exceed the u32 wire range")
     source_revision = manifest.get("source_revision")
     if source_revision is not None and (
         not isinstance(source_revision, str) or not source_revision.strip() or len(source_revision) > 120
