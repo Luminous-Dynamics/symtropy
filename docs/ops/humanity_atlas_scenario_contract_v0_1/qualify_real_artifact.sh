@@ -69,7 +69,7 @@ rustc --version > "$OUT_DIR/rustc-version.txt"
 cargo --version > "$OUT_DIR/cargo-version.txt"
 python3 --version > "$OUT_DIR/python-version.txt"
 
-echo "[1/5] Running adapter regressions with JSON Schema validation required." >&2
+echo "[1/6] Running adapter regressions with JSON Schema validation required." >&2
 if ! (
   cd -- "$SCRIPT_DIR"
   PYTHONDONTWRITEBYTECODE=1 HUMANITY_ATLAS_REQUIRE_JSONSCHEMA=1 \
@@ -79,7 +79,7 @@ if ! (
   exit 1
 fi
 
-echo "[2/5] Capturing one actual simulator run (stdout is the immutable source artifact)." >&2
+echo "[2/6] Capturing one actual simulator run (stdout is the immutable source artifact)." >&2
 if ! (
   cd -- "$MONOREPO_ROOT"
   cargo run --release \
@@ -93,14 +93,32 @@ fi
 
 sha256sum "$SOURCE_ARTIFACT" > "$SOURCE_ARTIFACT.sha256"
 
-echo "[3/5] Adapting that exact artifact into Humanity Atlas run v0.1." >&2
+echo "[3/6] Adapting that exact artifact into Humanity Atlas run v0.1." >&2
 if ! python3 "$SCRIPT_DIR/adapt_multiworld_output.py" "$SOURCE_ARTIFACT" --output "$RUN_ENVELOPE" 2> "$OUT_DIR/adapter.log"; then
   cat "$OUT_DIR/adapter.log" >&2
   exit 1
 fi
 sha256sum "$RUN_ENVELOPE" > "$RUN_ENVELOPE.sha256"
 
-echo "[4/5] Running standalone Sol-Atlas core tests." >&2
+echo "[4/6] Validating the actual generated envelope against the published run schema." >&2
+if ! python3 - "$SCRIPT_DIR/schemas/run-v0.1.schema.json" "$RUN_ENVELOPE" <<'PY' > "$OUT_DIR/run-schema-validation.log" 2>&1
+import json, sys
+import jsonschema
+schema_path, envelope_path = sys.argv[1:]
+with open(schema_path, encoding="utf-8") as stream:
+    schema = json.load(stream)
+with open(envelope_path, encoding="utf-8") as stream:
+    envelope = json.load(stream)
+jsonschema.Draft202012Validator.check_schema(schema)
+jsonschema.Draft202012Validator(schema).validate(envelope)
+print("actual run envelope validates against run-v0.1.schema.json")
+PY
+then
+  cat "$OUT_DIR/run-schema-validation.log" >&2
+  exit 1
+fi
+
+echo "[5/6] Running standalone Sol-Atlas core tests." >&2
 (
   cd -- "$SOL_ATLAS_ROOT"
   cargo test --manifest-path "$SOL_ATLAS_ROOT/sol-atlas-core/Cargo.toml" --lib
@@ -109,7 +127,7 @@ echo "[4/5] Running standalone Sol-Atlas core tests." >&2
   exit 1
 }
 
-echo "[5/5] Verifying the envelope against the same source bytes in the independent importer." >&2
+echo "[6/6] Verifying the envelope against the same source bytes in the independent importer." >&2
 if ! (
   cd -- "$SOL_ATLAS_ROOT"
   cargo run --manifest-path "$SOL_ATLAS_ROOT/sol-atlas-core/Cargo.toml" \
@@ -151,6 +169,7 @@ metadata = {
     "simulator_log_sha256": sha(os.path.join(os.path.dirname(metadata_path), "simulator-run.log")),
     "adapter_log_sha256": sha(os.path.join(os.path.dirname(metadata_path), "adapter.log")),
     "python_adapter_tests_log_sha256": sha(os.path.join(os.path.dirname(metadata_path), "python-adapter-tests.log")),
+    "run_schema_validation_log_sha256": sha(os.path.join(os.path.dirname(metadata_path), "run-schema-validation.log")),
     "sol_atlas_core_tests_log_sha256": sha(os.path.join(os.path.dirname(metadata_path), "sol-atlas-core-tests.log")),
     "sol_atlas_validation_log_sha256": sha(os.path.join(os.path.dirname(metadata_path), "sol-atlas-validation.log")),
     "rustc_version": text(os.path.join(os.path.dirname(metadata_path), "rustc-version.txt")),
