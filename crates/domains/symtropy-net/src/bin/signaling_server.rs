@@ -950,6 +950,71 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn room_membership_prevents_cross_room_forwarding() {
+        let listener = TcpListener::bind("127.0.0.1:0").await.expect("bind fixture");
+        let address = listener.local_addr().expect("fixture address");
+        let (shutdown_tx, shutdown_rx) = watch::channel(false);
+        let server = tokio::spawn(run_server(listener, TEST_TOKEN.to_string(), shutdown_rx));
+        let url = format!("ws://{address}");
+
+        let mut alpha = connect_authenticated(&url).await;
+        send_client_message(
+            &mut alpha,
+            SignalOutgoing::Join {
+                room: "room-alpha".to_string(),
+            },
+        )
+        .await;
+        let alpha_id = match next_server_message(&mut alpha).await {
+            SignalIncoming::Welcome { peer_id } => peer_id,
+            other => panic!("alpha must receive Welcome, got {other:?}"),
+        };
+
+        let mut beta = connect_authenticated(&url).await;
+        send_client_message(
+            &mut beta,
+            SignalOutgoing::Join {
+                room: "room-beta".to_string(),
+            },
+        )
+        .await;
+        let beta_id = match next_server_message(&mut beta).await {
+            SignalIncoming::Welcome { peer_id } => peer_id,
+            other => panic!("beta must receive Welcome, got {other:?}"),
+        };
+        assert_ne!(alpha_id, beta_id);
+
+        send_client_message(
+            &mut alpha,
+            SignalOutgoing::Signal {
+                to: beta_id,
+                data: SignalData::RelayData {
+                    channel: symtropy_net::signaling::SignalChannel::Reliable,
+                    payload: b"must-not-cross-room".to_vec(),
+                },
+            },
+        )
+        .await;
+        assert!(matches!(
+            next_server_message(&mut alpha).await,
+            SignalIncoming::Error { message } if message.contains("not a member of room")
+        ));
+        assert!(
+            timeout(Duration::from_millis(100), beta.next()).await.is_err(),
+            "recipient in another room must receive no forwarded payload"
+        );
+
+        alpha.close(None).await.expect("close alpha");
+        beta.close(None).await.expect("close beta");
+        let _ = shutdown_tx.send(true);
+        timeout(Duration::from_secs(3), server)
+            .await
+            .expect("server shutdown timeout")
+            .expect("server task join")
+            .expect("server shutdown");
+    }
+
+    #[tokio::test]
     async fn two_clients_exchange_relay_data_and_reconnect_with_authentication() {
         let listener = TcpListener::bind("127.0.0.1:0").await.expect("bind fixture");
         let address = listener.local_addr().expect("fixture address");
