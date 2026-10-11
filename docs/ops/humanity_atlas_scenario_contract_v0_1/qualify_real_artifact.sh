@@ -54,6 +54,18 @@ done
 SOURCE_ARTIFACT="$OUT_DIR/simulator-output.json"
 RUN_ENVELOPE="$OUT_DIR/run-envelope.v0.1.json"
 VALIDATION_REPORT="$OUT_DIR/sol-atlas-validation.json"
+CORE_LOCK_PATH="$SOL_ATLAS_ROOT/sol-atlas-core/Cargo.lock"
+if [[ -f "$CORE_LOCK_PATH" ]]; then
+  CORE_LOCK_PREEXISTED=1
+else
+  CORE_LOCK_PREEXISTED=0
+fi
+cleanup_generated_core_lock() {
+  if [[ "$CORE_LOCK_PREEXISTED" -eq 0 ]]; then
+    rm -f -- "$CORE_LOCK_PATH"
+  fi
+}
+trap cleanup_generated_core_lock EXIT
 
 for path in "$MONOREPO_ROOT/mycelix-multiworld-sim/Cargo.toml" "$SOL_ATLAS_ROOT/sol-atlas-core/Cargo.toml"; do
   if [[ ! -f "$path" ]]; then
@@ -140,9 +152,16 @@ fi
 
 sha256sum "$VALIDATION_REPORT" > "$VALIDATION_REPORT.sha256"
 
-python3 - "$OUT_DIR/qualification-metadata.json" "$SOURCE_ARTIFACT" "$RUN_ENVELOPE" "$VALIDATION_REPORT" "$YEARS" "$SEED" <<'PY'
+if [[ ! -f "$CORE_LOCK_PATH" ]]; then
+  echo "standalone Sol-Atlas Cargo.lock was not produced; refusing an unpinned qualification record" >&2
+  exit 1
+fi
+cp -- "$CORE_LOCK_PATH" "$OUT_DIR/sol-atlas-core-Cargo.lock"
+sha256sum "$OUT_DIR/sol-atlas-core-Cargo.lock" > "$OUT_DIR/sol-atlas-core-Cargo.lock.sha256"
+
+python3 - "$OUT_DIR/qualification-metadata.json" "$SOURCE_ARTIFACT" "$RUN_ENVELOPE" "$VALIDATION_REPORT" "$YEARS" "$SEED" "$OUT_DIR/sol-atlas-core-Cargo.lock" <<'PY'
 import hashlib, json, os, subprocess, sys
-metadata_path, source_path, envelope_path, report_path, years, seed = sys.argv[1:]
+metadata_path, source_path, envelope_path, report_path, years, seed, core_lock_path = sys.argv[1:]
 def sha(path):
     h = hashlib.sha256()
     with open(path, "rb") as stream:
@@ -166,6 +185,7 @@ metadata = {
     "source_artifact_sha256": sha(source_path),
     "run_envelope_sha256": sha(envelope_path),
     "validation_report_sha256": sha(report_path),
+    "sol_atlas_core_cargo_lock_sha256": sha(core_lock_path),
     "simulator_log_sha256": sha(os.path.join(os.path.dirname(metadata_path), "simulator-run.log")),
     "adapter_log_sha256": sha(os.path.join(os.path.dirname(metadata_path), "adapter.log")),
     "python_adapter_tests_log_sha256": sha(os.path.join(os.path.dirname(metadata_path), "python-adapter-tests.log")),
