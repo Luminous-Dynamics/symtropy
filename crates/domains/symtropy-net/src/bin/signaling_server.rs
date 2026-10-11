@@ -856,7 +856,7 @@ async fn handle_connection(
                                 let forwarded = SignalIncoming::Signal { from: peer_id, data };
                                 if let Err(error) = forward_message(&recipient, &forwarded) {
                                     let _ = enqueue_message(&peer, &SignalIncoming::Error {
-                                        message: format!("message not queued for recipient {to}; slow peer is disconnecting: {error}"),
+                                        message: format!("message not queued for recipient {to}: {error}"),
                                     });
                                 }
                             }
