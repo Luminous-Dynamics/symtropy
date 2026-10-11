@@ -25,15 +25,21 @@ pub enum KinematicTransformError {
 impl std::fmt::Display for KinematicTransformError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Self::InvalidTolerance => write!(f, "rotation tolerance must be finite and non-negative"),
-            Self::TargetFrameNotInertial => write!(f, "kinematic velocity/acceleration transforms require inertial target axes"),
+            Self::InvalidTolerance => {
+                write!(f, "rotation tolerance must be finite and non-negative")
+            },
+            Self::TargetFrameNotInertial => {
+                write!(f, "kinematic derivative transforms require inertial target axes")
+            },
             Self::MissingFrameMetadata(name) => write!(f, "{name} must be specified"),
             Self::NonFiniteInput(name) => write!(f, "{name} contains a non-finite value"),
             Self::InvalidRotation { orthogonality_error, determinant, tolerance } => write!(
                 f,
                 "rotation is not proper: orthogonality error {orthogonality_error}, determinant {determinant}, tolerance {tolerance}"
             ),
-            Self::NonFiniteResult(name) => write!(f, "kinematic transform produced non-finite {name}"),
+            Self::NonFiniteResult(name) => {
+                write!(f, "kinematic transform produced non-finite {name}")
+            },
         }
     }
 }
@@ -246,31 +252,59 @@ mod tests {
 
     #[test]
     fn inertial_identity_maps_position_velocity_and_acceleration() {
-        let t = identity(vec(1.0, 2.0, 3.0), vec(4.0, 5.0, 6.0), vec(0.0, 0.0, 0.0), vec(0.0, 0.0, 0.0));
+        let t = identity(
+            vec(1.0, 2.0, 3.0),
+            vec(4.0, 5.0, 6.0),
+            vec(0.0, 0.0, 0.0),
+            vec(0.0, 0.0, 0.0),
+        );
         let p = Point::new([7.0, 8.0, 9.0]);
         assert_eq!(t.transform_position(&p).unwrap(), Point::new([7.0, 8.0, 9.0]));
         assert_eq!(t.transform_velocity(&p, &vec(0.5, 1.0, 1.5)).unwrap(), vec(1.5, 3.0, 4.5));
-        assert_eq!(t.transform_acceleration(&p, &vec(0.5, 1.0, 1.5), &vec(1.0, 1.0, 1.0)).unwrap(), vec(5.0, 6.0, 7.0));
+        assert_eq!(
+            t.transform_acceleration(&p, &vec(0.5, 1.0, 1.5), &vec(1.0, 1.0, 1.0))
+                .unwrap(),
+            vec(5.0, 6.0, 7.0)
+        );
     }
 
     #[test]
     fn rotating_frame_adds_transport_velocity() {
-        let t = identity(vec(0.0, 0.0, 0.0), vec(0.0, 0.0, 0.0), vec(0.0, 0.0, 2.0), vec(0.0, 0.0, 0.0));
-        let velocity = t.transform_velocity(&Point::new([1.0, 0.0, 0.0]), &vec(0.0, 0.0, 0.0)).unwrap();
+        let t = identity(
+            vec(0.0, 0.0, 0.0),
+            vec(0.0, 0.0, 0.0),
+            vec(0.0, 0.0, 2.0),
+            vec(0.0, 0.0, 0.0),
+        );
+        let velocity = t
+            .transform_velocity(&Point::new([1.0, 0.0, 0.0]), &vec(0.0, 0.0, 0.0))
+            .unwrap();
         assert_eq!(velocity, vec(0.0, 2.0, 0.0));
     }
 
     #[test]
     fn acceleration_includes_coriolis_term() {
         let t = identity(vec(0.0, 0.0, 0.0), vec(0.0, 0.0, 0.0), vec(0.0, 0.0, 2.0), vec(0.0, 0.0, 0.0));
-        let acceleration = t.transform_acceleration(&Point::origin(), &vec(1.0, 0.0, 0.0), &vec(0.0, 0.0, 0.0)).unwrap();
+        let acceleration = t
+            .transform_acceleration(
+                &Point::origin(),
+                &vec(1.0, 0.0, 0.0),
+                &vec(0.0, 0.0, 0.0),
+            )
+            .unwrap();
         assert_eq!(acceleration, vec(0.0, 4.0, 0.0));
     }
 
     #[test]
     fn acceleration_includes_centripetal_term() {
         let t = identity(vec(0.0, 0.0, 0.0), vec(0.0, 0.0, 0.0), vec(0.0, 0.0, 2.0), vec(0.0, 0.0, 0.0));
-        let acceleration = t.transform_acceleration(&Point::new([1.0, 0.0, 0.0]), &vec(0.0, 0.0, 0.0), &vec(0.0, 0.0, 0.0)).unwrap();
+        let acceleration = t
+            .transform_acceleration(
+                &Point::new([1.0, 0.0, 0.0]),
+                &vec(0.0, 0.0, 0.0),
+                &vec(0.0, 0.0, 0.0),
+            )
+            .unwrap();
         assert_eq!(acceleration, vec(-4.0, 0.0, 0.0));
     }
 
@@ -306,13 +340,21 @@ mod tests {
             vec(0.0, 0.0, 0.0), vec(0.0, 0.0, 0.0),
             vec(0.0, 0.0, 0.0), vec(0.0, 0.0, 0.0), 1e-12,
         );
-        assert!(matches!(missing, Err(KinematicTransformError::MissingFrameMetadata("from_frame"))));
+        assert!(matches!(
+            missing,
+            Err(KinematicTransformError::MissingFrameMetadata("from_frame"))
+        ));
 
         let nonfinite = KinematicTransform3::try_new(
             "source", "target", "fixture://epoch", true, Transform::identity(),
             vec(f64::NAN, 0.0, 0.0), vec(0.0, 0.0, 0.0),
             vec(0.0, 0.0, 0.0), vec(0.0, 0.0, 0.0), 1e-12,
         );
-        assert!(matches!(nonfinite, Err(KinematicTransformError::NonFiniteInput("origin_velocity_target_m_s"))));
+        assert!(matches!(
+            nonfinite,
+            Err(KinematicTransformError::NonFiniteInput(
+                "origin_velocity_target_m_s"
+            ))
+        ));
     }
 }
