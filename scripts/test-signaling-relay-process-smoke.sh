@@ -1,7 +1,6 @@
 #!/usr/bin/env bash
 set -Eeuo pipefail
 
-script_dir="${BASH_SOURCE[0]}"
 script_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 repo_root="$(cd -- "${script_dir}/.." && pwd)"
 cd "${repo_root}"
@@ -25,8 +24,9 @@ echo "[smoke] building server and independent smoke client"
 cargo build --locked -p symtropy-net --no-default-features --features ws-relay \
   --bin symtropy-signaling-server --bin symtropy-signaling-smoke-client
 
-server_bin="${repo_root}/target/debug/symtropy-signaling-server"
-client_bin="${repo_root}/target/debug/symtropy-signaling-smoke-client"
+target_dir="${CARGO_TARGET_DIR:-${repo_root}/target}"
+server_bin="${target_dir}/debug/symtropy-signaling-server"
+client_bin="${target_dir}/debug/symtropy-signaling-smoke-client"
 if [[ ! -x "${server_bin}" || ! -x "${client_bin}" ]]; then
   echo "[smoke] expected binaries were not produced" >&2
   exit 1
