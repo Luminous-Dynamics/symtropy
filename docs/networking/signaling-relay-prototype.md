@@ -58,9 +58,9 @@ Set clients' `SYMTROPY_SIGNAL_URL=wss://relay.example.com` and `SYMTROPY_SIGNAL_
 
 | Boundary | Current setting |
 |---|---:|
-| Concurrent TCP/WebSocket clients | 32 |
-| Active rooms | 32 |
-| Peers in a room | 32 |
+| Concurrent TCP/WebSocket clients | 16 |
+| Active rooms | 16 |
+| Peers in a room | 16 |
 | Room ID | 1–128 UTF-8 bytes, no control characters |
 | Per-peer outbound message queue | 32 messages |
 | Per-peer queued serialized bytes | At most one maximum envelope budget (4,210,688 bytes) |
