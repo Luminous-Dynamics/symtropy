@@ -221,7 +221,9 @@ fn validate_incoming(message: &SignalIncoming, encoded_bytes: usize) -> Result<(
 }
 
 #[cfg(feature = "ws-relay")]
-fn parse_incoming(text: &str) -> Result<SignalIncoming, String> {
+/// Parse and validate one incoming server envelope against the shared V0 limits.
+#[cfg(feature = "ws-relay")]
+pub fn parse_incoming(text: &str) -> Result<SignalIncoming, String> {
     if text.len() > MAX_SIGNALING_MESSAGE_BYTES {
         return Err(format!(
             "incoming WebSocket message is {} bytes; maximum is {} bytes",
