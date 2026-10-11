@@ -8,7 +8,7 @@ from adapt_multiworld_output import AdapterError, adapt_source, canonical_json_b
 
 class AdapterTests(unittest.TestCase):
     def source(self):
-        cfg = {"years": 2, "policy": {"rate": 0.5}}
+        cfg = {"seed": 42, "total_ticks": 24, "policy": {"rate": 0.5}}
         params = {"decay": 0.25}
         cfg_sha = hashlib.sha256(canonical_json_bytes(cfg)).hexdigest()
         params_sha = hashlib.sha256(canonical_json_bytes(params)).hexdigest()
@@ -106,6 +106,24 @@ class AdapterTests(unittest.TestCase):
         source = self.source()
         source["technology_tree"]["source_model"] = "mycelix-multiworld-sim"
         with self.assertRaisesRegex(AdapterError, "versioned mycelix-multiworld-sim engine"):
+            adapt_source(json.dumps(source).encode())
+
+    def test_rejects_resolved_config_seed_mismatch_even_with_matching_digest(self):
+        source = self.source()
+        source["resolved_config"]["seed"] = 7
+        source["run_manifest"]["resolved_config_sha256"] = hashlib.sha256(
+            canonical_json_bytes(source["resolved_config"])
+        ).hexdigest()
+        with self.assertRaisesRegex(AdapterError, "resolved_config.seed disagrees"):
+            adapt_source(json.dumps(source).encode())
+
+    def test_rejects_resolved_config_tick_mismatch_even_with_matching_digest(self):
+        source = self.source()
+        source["resolved_config"]["total_ticks"] = 36
+        source["run_manifest"]["resolved_config_sha256"] = hashlib.sha256(
+            canonical_json_bytes(source["resolved_config"])
+        ).hexdigest()
+        with self.assertRaisesRegex(AdapterError, "resolved_config.total_ticks disagrees"):
             adapt_source(json.dumps(source).encode())
 
     def test_rejects_manifest_model_mismatch(self):
