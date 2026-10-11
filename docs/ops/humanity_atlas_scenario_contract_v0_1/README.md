@@ -1,6 +1,6 @@
 # Humanity Atlas scenario contract v0.1
 
-**Status:** proposal plus synthetic contract smoke fixture. This directory defines a transport contract; it does not add a production adapter or claim that a calibrated civilization simulator exists.
+**Status:** draft contract plus a fail-closed adapter prototype and synthetic regression fixtures. The adapter consumes captured simulator output but has not yet been qualified against a real run in this execution environment. It does not imply empirical calibration or claim that a calibrated civilization simulator exists.
 
 ## Why Symtropy belongs in this system
 
