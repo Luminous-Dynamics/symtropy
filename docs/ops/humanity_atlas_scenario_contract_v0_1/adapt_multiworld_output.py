@@ -351,6 +351,8 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--output", type=Path, help="write envelope to this path; default is stdout")
     args = parser.parse_args(argv)
     try:
+        input_size = args.input.stat().st_size
+        _check_source_artifact_size(input_size)
         raw = args.input.read_bytes()
         envelope = adapt_source(raw, artifact_ref=args.artifact_ref)
         rendered = json.dumps(envelope, ensure_ascii=False, allow_nan=False, indent=2) + "\n"
