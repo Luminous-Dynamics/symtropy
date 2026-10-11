@@ -64,13 +64,14 @@ Set clients' `SYMTROPY_SIGNAL_URL=wss://relay.example.com` and `SYMTROPY_SIGNAL_
 | Room ID | 1–128 UTF-8 bytes, no control characters |
 | Per-peer outbound message queue | 32 messages |
 | Per-peer queued serialized bytes | At most one maximum envelope budget (4,210,688 bytes) |
+| Aggregate queued/in-flight text envelope bytes, across all clients | 8 maximum envelopes = 33,685,504 bytes (~32.1 MiB) |
 | Per-connection rate | 120 messages/s and 8 MiB/s |
 | WebSocket upgrade timeout | 10 seconds |
 | Initial Join timeout | 10 seconds |
 | Read-idle timeout | 90 seconds |
 | Writer drain after close | 2 seconds |
 
-These are initial implementation values, not capacity benchmarks or recommended internet-scale settings. The limit for client sockets is separate from each peer's queued-byte cap; the memory footprint can still be substantial when many peers have large queues. Measure RSS, CPU, latency, queue saturation, reconnect storms, and slow-client eviction before scaling.
+These are initial implementation values, not capacity benchmarks or recommended internet-scale settings. The global text-envelope budget is held from queue reservation through completion of the socket write, in addition to the per-peer budget. PONG/control frames (at most 125-byte payloads) use the message-count bound but are not charged to this text-payload budget. The limit for client sockets is separate from inbound parsing and WebSocket library buffers, so it is not a total process-RSS ceiling. The memory footprint can still be substantial. Measure RSS, CPU, latency, queue saturation, reconnect storms, and slow-client eviction before scaling.
 
 The server overwrites a forwarded sender ID with the ID assigned to that WebSocket connection and checks the recipient belongs to the same room. It reserves recipient queue count/bytes before forwarding. A recipient that cannot queue required membership events is disconnected to avoid silent partial membership notifications.
 
