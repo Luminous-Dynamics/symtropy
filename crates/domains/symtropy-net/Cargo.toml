@@ -3,7 +3,7 @@ name = "symtropy-net"
 version = "0.1.0"
 edition = "2024"
 license = "AGPL-3.0-or-later"
-description = "Deterministic lockstep physics sync for Symtropy: tested lockstep protocol + in-memory loopback transport; WebSocket relay transport compiles but is untested against a live server; Iroh QUIC P2P transport is a documented stub (see iroh_transport.rs)"
+description = "Symtropy networking primitives: loopback transport, experimental authenticated JSON WebSocket relay client/server prototype, and an in-memory Iroh scaffold; no production-qualified remote transport"
 
 [[bin]]
 name = "symtropy-signaling-server"
