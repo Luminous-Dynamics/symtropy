@@ -1024,6 +1024,44 @@ mod tests {
     }
 
     #[test]
+    fn client_parser_rejects_unknown_kinds_and_oversized_control_or_relay_data() {
+        assert!(parse_client_message(r#"{"type":"unknown"}"#).is_err());
+        assert!(parse_client_message(
+            r#"{"type":"signal","to":2,"data":{"kind":"relay_data","channel":"reliable","payload":[256]}}"#
+        ).is_err());
+
+        let oversized_control = serde_json::to_string(&SignalOutgoing::Signal {
+            to: 2,
+            data: SignalData::Offer {
+                sdp: "x".repeat(MAX_SIGNAL_CONTROL_BYTES),
+            },
+        })
+        .expect("serialize oversized control input");
+        assert!(oversized_control.len() > MAX_SIGNAL_CONTROL_BYTES);
+        assert!(
+            matches!(parse_client_message(&oversized_control), Err(ref error) if error.contains("control envelope")),
+            "oversized control messages must be rejected independently of the relay allowance"
+        );
+
+        let oversized_data = serde_json::json!({
+            "type": "signal",
+            "to": 2,
+            "data": {
+                "kind": "relay_data",
+                "channel": "reliable",
+                "payload": vec![0; symtropy_net::transport::MAX_PEER_MESSAGE_BYTES + 1]
+            }
+        });
+        let oversized_data = serde_json::to_string(&oversized_data)
+            .expect("serialize over-limit relay payload");
+        assert!(oversized_data.len() < MAX_SIGNALING_MESSAGE_BYTES);
+        assert!(
+            matches!(parse_client_message(&oversized_data), Err(ref error) if error.contains("relay packet")),
+            "binary payload cap must fail before the larger outer-envelope cap"
+        );
+    }
+
+    #[test]
     fn room_ids_are_bounded_and_reject_control_characters() {
         assert!(validate_room_id("room-1").is_ok());
         assert!(validate_room_id("🚀".repeat(32)).is_ok());
