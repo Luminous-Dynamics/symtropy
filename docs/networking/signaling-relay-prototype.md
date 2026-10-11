@@ -89,7 +89,19 @@ The authored local tests cover unauthorized upgrade rejection, token comparison,
 
 **Authored does not mean passed.** The implementation and tests still require an exact-head Rust build/test run. A successful localhost fixture also does not establish public-service interoperability, production security, NAT traversal, WebRTC, application authorization, or scale.
 
-## 5. Explicit non-goals and blockers
+## 5. Process-level localhost smoke
+
+Run the process smoke from the repository root:
+
+```sh
+bash scripts/test-signaling-relay-process-smoke.sh
+```
+
+The script builds the experimental server and a small client driver, launches the server plus two independent client processes, and requires a bidirectional application-payload exchange. It stores server/client logs and a summary under `target/signaling-relay-smoke/`; CI uploads that directory as a short-retention artifact.
+
+This demonstrates process-level behavior on loopback only. It does not prove public Internet reachability, a correctly deployed TLS proxy, production credentials, individual user identity, direct WebRTC/SBD/Iroh transport, delivery acknowledgements beyond the smoke driver's observed payload, or scale.
+
+## 6. Explicit non-goals and blockers
 
 The current prototype does **not** provide:
 

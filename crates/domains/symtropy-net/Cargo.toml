@@ -10,6 +10,11 @@ name = "symtropy-signaling-server"
 path = "src/bin/signaling_server.rs"
 required-features = ["ws-relay"]
 
+[[bin]]
+name = "symtropy-signaling-smoke-client"
+path = "src/bin/signaling_smoke_client.rs"
+required-features = ["ws-relay"]
+
 [features]
 default = []
 # Explicit name for the experimental Symtropy JSON WebSocket relay.

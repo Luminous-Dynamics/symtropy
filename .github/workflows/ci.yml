@@ -99,5 +99,20 @@ jobs:
     - name: Run Tests (Legacy WebRTC Feature Alias)
       run: cargo test -p symtropy-net --no-default-features --features webrtc
 
+    # Exercise the actual server binary and two independent client processes on Linux.
+    # This qualifies local bidirectional relay delivery only, not a public deployment.
+    - name: Two-process Signaling Relay Smoke (Linux)
+      if: runner.os == 'Linux'
+      run: bash scripts/test-signaling-relay-process-smoke.sh
+
+    - name: Preserve Signaling Relay Smoke Evidence
+      if: always() && runner.os == 'Linux'
+      uses: actions/upload-artifact@v4
+      with:
+        name: signaling-relay-process-smoke-${{ github.run_id }}-${{ github.run_attempt }}
+        path: target/signaling-relay-smoke/
+        if-no-files-found: ignore
+        retention-days: 14
+
     - name: Verify Workspace Build
       run: cargo check --workspace --all-targets
