@@ -601,6 +601,7 @@ async fn handle_connection(
 
     let (out_tx, mut out_rx) = mpsc::channel::<QueuedFrame>(OUTBOUND_QUEUE_CAPACITY);
     let (shutdown_tx, mut shutdown_rx) = watch::channel(false);
+    let mut writer_shutdown_rx = shutdown_tx.subscribe();
     let peer = PeerHandle {
         tx: out_tx,
         queued_bytes: Arc::new(Semaphore::new(MAX_SIGNALING_MESSAGE_BYTES)),
@@ -620,7 +621,19 @@ async fn handle_connection(
 
     let (mut sink, mut input) = websocket.split();
     let mut writer = tokio::spawn(async move {
-        while let Some(queued) = out_rx.recv().await {
+        loop {
+            let queued = tokio::select! {
+                shutdown_changed = writer_shutdown_rx.changed() => {
+                    if shutdown_changed.is_err() || *writer_shutdown_rx.borrow() {
+                        break;
+                    }
+                    continue;
+                }
+                queued = out_rx.recv() => queued,
+            };
+            let Some(queued) = queued else {
+                break;
+            };
             let QueuedFrame {
                 frame,
                 _byte_permit,
@@ -638,6 +651,7 @@ async fn handle_connection(
         Ok::<(), String>(())
     });
 
+    let mut writer_finished = false;
     let mut rate = RateWindow::new();
     loop {
         tokio::select! {
@@ -647,6 +661,7 @@ async fn handle_connection(
                 }
             }
             writer_result = &mut writer => {
+                writer_finished = true;
                 match writer_result {
                     Ok(Ok(())) => {}
                     Ok(Err(error)) => eprintln!("peer {peer_id} writer stopped: {error}"),
@@ -761,7 +776,7 @@ async fn handle_connection(
 
     remove_peer_and_notify(&rooms, &room_id, peer_id);
     drop(peer);
-    if timeout(WRITER_DRAIN_TIMEOUT, &mut writer).await.is_err() {
+    if !writer_finished && timeout(WRITER_DRAIN_TIMEOUT, &mut writer).await.is_err() {
         writer.abort();
     }
     Ok(())
