@@ -1,5 +1,6 @@
 import hashlib
 import json
+import os
 import unittest
 from pathlib import Path
 
@@ -60,7 +61,9 @@ class AdapterTests(unittest.TestCase):
         try:
             import jsonschema
         except ImportError:
-            self.skipTest("jsonschema is optional in the local process environment")
+            if os.environ.get("HUMANITY_ATLAS_REQUIRE_JSONSCHEMA") == "1":
+                self.fail("jsonschema is required by the end-to-end qualification gate")
+            self.skipTest("jsonschema is optional in an ordinary local regression run")
         schema_path = Path(__file__).parent / "schemas" / "run-v0.1.schema.json"
         schema = json.loads(schema_path.read_text(encoding="utf-8"))
         jsonschema.Draft202012Validator.check_schema(schema)
