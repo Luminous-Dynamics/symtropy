@@ -51,6 +51,7 @@ class AdapterTests(unittest.TestCase):
         self.assertEqual(run["artifacts"][0]["artifact_ref"], f"urn:sha256:{hashlib.sha256(raw).hexdigest()}")
         self.assertEqual(run["artifacts"][0]["json_pointer"], "/technology_tree")
         self.assertEqual(len(run["outputs"]), 3)
+        self.assertTrue(all(row["time_basis"] == "scenario_relative_year" for row in run["outputs"]))
         self.assertEqual(run["validation"]["evidence"], [])
 
 
@@ -88,6 +89,15 @@ class AdapterTests(unittest.TestCase):
         source = self.source()
         source["seed"] = 7
         with self.assertRaisesRegex(AdapterError, "disagree with run manifest"):
+            adapt_source(json.dumps(source).encode())
+
+    def test_rejects_horizon_outside_metric_schema_range(self):
+        source = self.source()
+        source["years"] = 100001
+        source["ticks"] = 1200012
+        source["run_manifest"]["ticks"] = 1200012
+        source["technology_tree"]["ticks_per_year"] = 12
+        with self.assertRaisesRegex(AdapterError, "year <= 100000"):
             adapt_source(json.dumps(source).encode())
 
     def test_rejects_ticks_not_matching_year_horizon(self):
