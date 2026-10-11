@@ -31,7 +31,9 @@ pub enum RotorMatrixError {
 impl fmt::Display for RotorMatrixError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Self::InvalidTolerance => write!(f, "rotation tolerance must be finite and non-negative"),
+            Self::InvalidTolerance => {
+                write!(f, "rotation tolerance must be finite and non-negative")
+            },
             Self::NonFiniteEntry => write!(f, "rotation matrix contains a non-finite entry"),
             Self::NonOrthogonal { error, tolerance } => {
                 write!(f, "rotation matrix orthogonality error {error} exceeds tolerance {tolerance}")
