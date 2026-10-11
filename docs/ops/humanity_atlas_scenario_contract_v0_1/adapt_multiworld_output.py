@@ -182,6 +182,12 @@ def adapt_source(raw: bytes, *, artifact_ref: str | None = None) -> dict[str, An
     if tree.get("year_zero_semantics") != "relative_to_scenario_start":
         raise AdapterError("unsupported technology_tree.year_zero_semantics")
     source_model = _required_string(tree, "source_model", "technology_tree")
+    model_version_prefix = "mycelix-multiworld-sim/"
+    if not source_model.startswith(model_version_prefix):
+        raise AdapterError("source_model must identify the versioned mycelix-multiworld-sim engine")
+    engine_version = source_model[len(model_version_prefix):]
+    if not engine_version or len(engine_version) > 120 or engine_version.strip() != engine_version:
+        raise AdapterError("source_model engine version must be a non-empty value of at most 120 characters")
     tree_source = _required_string(tree, "definition_source", "technology_tree")
     model_sha = _required_sha256(tree, "definition_sha256", "technology_tree")
     ticks_per_year = _required_int(tree, "ticks_per_year", "technology_tree", minimum=1)
@@ -253,11 +259,10 @@ def adapt_source(raw: bytes, *, artifact_ref: str | None = None) -> dict[str, An
         "determinism_unverified: a seed is recorded, but exact replay has not been independently demonstrated by this adapter",
         "dataset_identity_unestablished: the source manifest does not declare a separately identified dataset",
         "model_sha256_scope: the model digest identifies the technology-tree definition, not the complete executable or source tree",
-        "engine_version_unidentified: no semantic engine version is present in the source manifest",
         "sha256_proves_byte_integrity_only: this envelope does not authenticate a publisher or establish scientific truth",
     ]
     if source_revision is None:
-        warnings.append("source_revision_missing: the source artifact does not identify the simulator commit")
+        warnings.append("source_revision_missing: package version is known, but the exact simulator build commit is not identified")
 
     return {
         "schema_version": RUN_SCHEMA_VERSION,
@@ -273,7 +278,7 @@ def adapt_source(raw: bytes, *, artifact_ref: str | None = None) -> dict[str, An
         },
         "engine": {
             "adapter": ADAPTER_ID,
-            "engine_version": "unversioned-build",
+            "engine_version": engine_version,
             "model_sha256": model_sha,
             "model_identity_kind": "technology_tree_definition",
             "definition_source": tree_source,
