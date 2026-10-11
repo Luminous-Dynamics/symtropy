@@ -35,12 +35,14 @@ impl fmt::Display for RotorMatrixError {
                 write!(f, "rotation tolerance must be finite and non-negative")
             },
             Self::NonFiniteEntry => write!(f, "rotation matrix contains a non-finite entry"),
-            Self::NonOrthogonal { error, tolerance } => {
-                write!(f, "rotation matrix orthogonality error {error} exceeds tolerance {tolerance}")
-            }
-            Self::ImproperDeterminant { determinant, tolerance } => {
-                write!(f, "rotation matrix determinant {determinant} is not +1 within tolerance {tolerance}")
-            }
+            Self::NonOrthogonal { error, tolerance } => write!(
+                f,
+                "rotation matrix orthogonality error {error} exceeds tolerance {tolerance}"
+            ),
+            Self::ImproperDeterminant { determinant, tolerance } => write!(
+                f,
+                "rotation matrix determinant {determinant} is not +1 within tolerance {tolerance}"
+            ),
         }
     }
 }
