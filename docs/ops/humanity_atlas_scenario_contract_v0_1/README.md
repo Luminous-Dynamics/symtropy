@@ -182,7 +182,7 @@ bash docs/ops/humanity_atlas_scenario_contract_v0_1/qualify_real_artifact.sh
 ```
 
 The example validator is
-`sol-atlas-core/examples/validate_humanity_atlas_artifact.rs` in Sol-Atlas;
+`sol-atlas-core/examples/verify_humanity_atlas_artifact.rs` in Sol-Atlas;
 it verifies the envelope, checks the SHA-256 of the exact source bytes, and
 validates the technology-tree artifact independently of the UI. The validation
 report's `structural_contract_pass` label means only that the declared contract,
