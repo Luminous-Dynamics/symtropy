@@ -1273,6 +1273,61 @@ mod tests {
     }
 
     #[test]
+    fn peer_left_cleanup_survives_exhausted_data_and_general_control_budgets() {
+        let rooms: SharedRooms = Arc::new(Mutex::new(Rooms::default()));
+        let global_data_bytes = Arc::new(Semaphore::new(0));
+        let global_control_bytes = Arc::new(Semaphore::new(0));
+        let global_membership_bytes =
+            Arc::new(Semaphore::new(MAX_TOTAL_OUTBOUND_MEMBERSHIP_BYTES));
+
+        let (peer1_tx, peer1_rx) = mpsc::channel(OUTBOUND_QUEUE_CAPACITY);
+        let (peer1, mut rx1) = test_peer_handle_with_global(
+            peer1_tx,
+            peer1_rx,
+            watch::channel(false).0,
+            global_data_bytes.clone(),
+            global_control_bytes.clone(),
+            global_membership_bytes.clone(),
+        );
+        let (peer2_tx, peer2_rx) = mpsc::channel(OUTBOUND_QUEUE_CAPACITY);
+        let (peer2, mut rx2) = test_peer_handle_with_global(
+            peer2_tx,
+            peer2_rx,
+            watch::channel(false).0,
+            global_data_bytes,
+            global_control_bytes,
+            global_membership_bytes,
+        );
+
+        join_room(&rooms, "room", 1, &peer1).expect("admit first peer");
+        join_room(&rooms, "room", 2, &peer2).expect("admit second peer");
+
+        // Drain join notifications so this checks only whether the dedicated
+        // membership budget can carry PeerLeft while both other budgets are zero.
+        while let Ok(frame) = rx1.try_recv() {
+            drop(frame);
+        }
+        while let Ok(frame) = rx2.try_recv() {
+            drop(frame);
+        }
+        remove_peer_and_notify(&rooms, "room", 2);
+
+        assert!(matches!(
+            rx1.try_recv().expect("remaining peer must get PeerLeft").frame,
+            Message::Text(text)
+                if matches!(
+                    parse_incoming(&text).expect("valid PeerLeft envelope"),
+                    SignalIncoming::PeerLeft { peer_id: 2 }
+                )
+        ));
+        let state = rooms.lock().expect("room registry lock");
+        let members = state.rooms.get("room").expect("remaining room");
+        assert_eq!(members.len(), 1);
+        assert!(members.contains_key(&1));
+        assert!(!members.contains_key(&2));
+    }
+
+    #[test]
     fn recipient_queue_byte_budget_accepts_one_maximum_envelope_then_backpressures() {
         let (peer, rx) = test_peer_handle();
         let message = SignalIncoming::Signal {
