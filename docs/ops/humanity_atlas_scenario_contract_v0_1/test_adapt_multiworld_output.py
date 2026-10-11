@@ -1,6 +1,7 @@
 import hashlib
 import json
 import unittest
+from pathlib import Path
 
 from adapt_multiworld_output import AdapterError, adapt_source, canonical_json_bytes
 
@@ -46,6 +47,17 @@ class AdapterTests(unittest.TestCase):
         self.assertEqual(run["artifacts"][0]["artifact_ref"], f"urn:sha256:{hashlib.sha256(raw).hexdigest()}")
         self.assertEqual(len(run["outputs"]), 3)
         self.assertEqual(run["validation"]["evidence"], [])
+
+
+    def test_generated_envelope_matches_run_schema_when_jsonschema_available(self):
+        try:
+            import jsonschema
+        except ImportError:
+            self.skipTest("jsonschema is optional in the local process environment")
+        schema_path = Path(__file__).parent / "schemas" / "run-v0.1.schema.json"
+        schema = json.loads(schema_path.read_text(encoding="utf-8"))
+        jsonschema.Draft202012Validator.check_schema(schema)
+        jsonschema.validate(instance=adapt_source(self.raw_source()), schema=schema)
 
     def test_rejects_manifest_model_mismatch(self):
         source = self.source()
