@@ -81,7 +81,9 @@ run v0.1 envelope. It is an adapter, not a second simulator and not a scientific
 validator. It requires the producer's `technology_tree`, `run_manifest`,
 `resolved_config`, and `resolved_params` fields and rejects inconsistent
 source/model/input/seed/tick bindings, malformed digests, duplicate JSON keys,
-non-standard numeric tokens, and non-finite numbers.
+non-standard numeric tokens, non-finite numbers, and source artifacts larger
+than 64 MiB. The independent Sol-Atlas importer enforces the same size ceiling
+before hashing and parsing.
 
 From the canonical monorepo, first capture a real run:
 
