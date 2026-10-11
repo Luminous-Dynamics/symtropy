@@ -86,8 +86,13 @@ non-standard numeric tokens, and non-finite numbers.
 From the canonical monorepo, first capture a real run:
 
 ```sh
-cargo run --release --bin luminous_sim -- --years 150 --seed 42 --format humanity-atlas-json > humanity-atlas-run.json
+cargo run --manifest-path mycelix-multiworld-sim/Cargo.toml --release --bin luminous_sim -- --years 150 --seed 42 --format humanity-atlas-json > humanity-atlas-run.json
 ```
+
+
+The CLI's progress/status messages go to stderr, so the redirected artifact remains
+JSON-only. Preserve the file unchanged after capture: the envelope's source digest
+is computed over these exact bytes.
 
 Then run the adapter from the Symtropy repository:
 
