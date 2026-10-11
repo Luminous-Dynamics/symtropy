@@ -284,7 +284,12 @@ mod tests {
 
     #[test]
     fn acceleration_includes_coriolis_term() {
-        let t = identity(vec(0.0, 0.0, 0.0), vec(0.0, 0.0, 0.0), vec(0.0, 0.0, 2.0), vec(0.0, 0.0, 0.0));
+        let t = identity(
+            vec(0.0, 0.0, 0.0),
+            vec(0.0, 0.0, 0.0),
+            vec(0.0, 0.0, 2.0),
+            vec(0.0, 0.0, 0.0),
+        );
         let acceleration = t
             .transform_acceleration(
                 &Point::origin(),
@@ -297,7 +302,12 @@ mod tests {
 
     #[test]
     fn acceleration_includes_centripetal_term() {
-        let t = identity(vec(0.0, 0.0, 0.0), vec(0.0, 0.0, 0.0), vec(0.0, 0.0, 2.0), vec(0.0, 0.0, 0.0));
+        let t = identity(
+            vec(0.0, 0.0, 0.0),
+            vec(0.0, 0.0, 0.0),
+            vec(0.0, 0.0, 2.0),
+            vec(0.0, 0.0, 0.0),
+        );
         let acceleration = t
             .transform_acceleration(
                 &Point::new([1.0, 0.0, 0.0]),
