@@ -54,8 +54,11 @@ const MAX_CLIENTS: usize = 16;
 const MAX_ROOMS: usize = 16;
 const MAX_ROOM_PEERS: usize = 16;
 const MAX_ROOM_ID_BYTES: usize = 128;
-/// Aggregate budget for all server-side queued/in-flight text relay envelopes.
-const MAX_TOTAL_OUTBOUND_QUEUED_BYTES: usize = MAX_SIGNALING_MESSAGE_BYTES * 8;
+/// Shared budget for queued/in-flight game-data envelopes across every client.
+const MAX_TOTAL_OUTBOUND_DATA_BYTES: usize = MAX_SIGNALING_MESSAGE_BYTES * 8;
+/// Reserved global budget for membership/errors/SDP/ICE so control-plane cleanup can
+/// progress even when the game-data allowance is exhausted.
+const MAX_TOTAL_OUTBOUND_CONTROL_BYTES: usize = MAX_SIGNAL_CONTROL_BYTES * MAX_CLIENTS;
 const OUTBOUND_QUEUE_CAPACITY: usize = 32;
 const MAX_MESSAGES_PER_SECOND: usize = 120;
 const MAX_BYTES_PER_SECOND: usize = 8 * 1024 * 1024;
@@ -74,8 +77,10 @@ struct Rooms {
 struct PeerHandle {
     tx: mpsc::Sender<QueuedFrame>,
     queued_bytes: Arc<Semaphore>,
-    /// Shared by every peer so connection count cannot multiply queued memory without limit.
-    global_queued_bytes: Arc<Semaphore>,
+    /// Shared budget for all queued/in-flight relay-data envelopes.
+    global_data_bytes: Arc<Semaphore>,
+    /// Reserved shared budget for control and membership envelopes.
+    global_control_bytes: Arc<Semaphore>,
     /// Lets the room registry terminate a connection evicted for backpressure.
     shutdown_tx: watch::Sender<bool>,
 }
@@ -205,7 +210,8 @@ async fn run_server(
     let token = Arc::new(token);
     let rooms: SharedRooms = Arc::new(Mutex::new(Rooms::default()));
     let client_slots = Arc::new(Semaphore::new(MAX_CLIENTS));
-    let global_queued_bytes = Arc::new(Semaphore::new(MAX_TOTAL_OUTBOUND_QUEUED_BYTES));
+    let global_data_bytes = Arc::new(Semaphore::new(MAX_TOTAL_OUTBOUND_DATA_BYTES));
+    let global_control_bytes = Arc::new(Semaphore::new(MAX_TOTAL_OUTBOUND_CONTROL_BYTES));
     let next_peer_id = Arc::new(AtomicU64::new(1));
     let mut clients = JoinSet::new();
 
@@ -229,7 +235,8 @@ async fn run_server(
                 let token = token.clone();
                 let rooms = rooms.clone();
                 let next_peer_id = next_peer_id.clone();
-                let global_queued_bytes = global_queued_bytes.clone();
+                let global_data_bytes = global_data_bytes.clone();
+                let global_control_bytes = global_control_bytes.clone();
                 clients.spawn(async move {
                     let _client_permit = permit;
                     if let Err(error) = handle_connection(
@@ -237,7 +244,8 @@ async fn run_server(
                         token,
                         rooms,
                         next_peer_id,
-                        global_queued_bytes,
+                        global_data_bytes,
+                        global_control_bytes,
                     )
                     .await
                     {
@@ -357,11 +365,25 @@ fn prepare_message(peer: &PeerHandle, message: &SignalIncoming) -> Result<Prepar
         .clone()
         .try_acquire_many_owned(charged_bytes)
         .map_err(|_| "recipient outbound byte budget is full".to_string())?;
-    let global_byte_permit = peer
-        .global_queued_bytes
+    let is_relay_data = matches!(
+        message,
+        &SignalIncoming::Signal {
+            data: SignalData::RelayData { .. },
+            ..
+        }
+    );
+    let (global_budget, budget_error) = if is_relay_data {
+        (&peer.global_data_bytes, "server aggregate outbound data budget is full")
+    } else {
+        (
+            &peer.global_control_bytes,
+            "server aggregate outbound control budget is full",
+        )
+    };
+    let global_byte_permit = global_budget
         .clone()
         .try_acquire_many_owned(charged_bytes)
-        .map_err(|_| "server aggregate outbound byte budget is full".to_string())?;
+        .map_err(|_| budget_error.to_string())?;
     let slot = peer
         .tx
         .clone()
@@ -570,7 +592,8 @@ async fn handle_connection(
     token: Arc<String>,
     rooms: SharedRooms,
     next_peer_id: Arc<AtomicU64>,
-    global_queued_bytes: Arc<Semaphore>,
+    global_data_bytes: Arc<Semaphore>,
+    global_control_bytes: Arc<Semaphore>,
 ) -> Result<(), String> {
     let expected = token.clone();
     let callback = move |request: &Request, response: Response| {
@@ -651,7 +674,8 @@ async fn handle_connection(
     let peer = PeerHandle {
         tx: out_tx,
         queued_bytes: Arc::new(Semaphore::new(MAX_SIGNALING_MESSAGE_BYTES)),
-        global_queued_bytes,
+        global_data_bytes,
+        global_control_bytes,
         shutdown_tx,
     };
 
@@ -937,7 +961,8 @@ mod tests {
         let peer = PeerHandle {
             tx,
             queued_bytes: Arc::new(Semaphore::new(MAX_SIGNALING_MESSAGE_BYTES)),
-            global_queued_bytes: Arc::new(Semaphore::new(MAX_TOTAL_OUTBOUND_QUEUED_BYTES)),
+            global_data_bytes: Arc::new(Semaphore::new(MAX_TOTAL_OUTBOUND_DATA_BYTES)),
+            global_control_bytes: Arc::new(Semaphore::new(MAX_TOTAL_OUTBOUND_CONTROL_BYTES)),
             shutdown_tx,
         };
 
@@ -1089,7 +1114,8 @@ mod tests {
             tx,
             rx,
             shutdown_tx,
-            Arc::new(Semaphore::new(MAX_TOTAL_OUTBOUND_QUEUED_BYTES)),
+            Arc::new(Semaphore::new(MAX_TOTAL_OUTBOUND_DATA_BYTES)),
+            Arc::new(Semaphore::new(MAX_TOTAL_OUTBOUND_CONTROL_BYTES)),
         )
     }
 
@@ -1097,13 +1123,15 @@ mod tests {
         tx: mpsc::Sender<QueuedFrame>,
         rx: mpsc::Receiver<QueuedFrame>,
         shutdown_tx: watch::Sender<bool>,
-        global_queued_bytes: Arc<Semaphore>,
+        global_data_bytes: Arc<Semaphore>,
+        global_control_bytes: Arc<Semaphore>,
     ) -> (PeerHandle, mpsc::Receiver<QueuedFrame>) {
         (
             PeerHandle {
                 tx,
                 queued_bytes: Arc::new(Semaphore::new(MAX_SIGNALING_MESSAGE_BYTES)),
-                global_queued_bytes,
+                global_data_bytes,
+                global_control_bytes,
                 shutdown_tx,
             },
             rx,
