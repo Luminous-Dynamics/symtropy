@@ -339,12 +339,38 @@ impl SignalingClient {
     /// Connect to the signaling server and spawn the WebSocket task.
     pub async fn connect(url: &str) -> Result<Self, String> {
         use futures_util::{SinkExt, StreamExt};
-        use tokio_tungstenite::connect_async_with_config;
+        use tokio_tungstenite::{
+            connect_async_with_config,
+            tungstenite::{
+                client::IntoClientRequest,
+                http::{header::AUTHORIZATION, HeaderValue},
+            },
+        };
+
+        // Optional client access token for the self-hosted relay server. It is sent
+        // in the HTTP upgrade header, never in the URL where it might be logged.
+        // A server configured with SYMTROPY_RELAY_TOKEN rejects absent/invalid tokens.
+        let mut request = url
+            .to_owned()
+            .into_client_request()
+            .map_err(|error| format!("Invalid signaling WebSocket URL: {error}"))?;
+        if let Ok(token) = std::env::var("SYMTROPY_SIGNAL_TOKEN") {
+            if token.is_empty() {
+                return Err("SYMTROPY_SIGNAL_TOKEN is set but empty".to_string());
+            }
+            let header = HeaderValue::from_str(&format!("Bearer {token}"))
+                .map_err(|_| "SYMTROPY_SIGNAL_TOKEN is not valid in an HTTP authorization header; use a base64url-safe token".to_string())?;
+            request.headers_mut().insert(AUTHORIZATION, header);
+        }
 
         // The write budget must be large enough for one maximum-size relay packet.
-        let (ws_stream, _) = connect_async_with_config(url, Some(bounded_websocket_config()), false)
-            .await
-            .map_err(|error| format!("Signaling connect failed: {error}"))?;
+        let (ws_stream, _) = connect_async_with_config(
+            request,
+            Some(bounded_websocket_config()),
+            false,
+        )
+        .await
+        .map_err(|error| format!("Signaling connect failed: {error}"))?;
 
         let (mut ws_tx, mut ws_rx) = ws_stream.split();
         let (cmd_tx, mut cmd_rx) =
