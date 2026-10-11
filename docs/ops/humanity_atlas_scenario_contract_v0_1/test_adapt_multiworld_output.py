@@ -80,6 +80,12 @@ class AdapterTests(unittest.TestCase):
                 with self.assertRaisesRegex(AdapterError, "u32 wire range"):
                     adapt_source(json.dumps(source).encode())
 
+    def test_rejects_missing_required_source_revision_key(self):
+        source = self.source()
+        del source["run_manifest"]["source_revision"]
+        with self.assertRaisesRegex(AdapterError, "required key and may be null"):
+            adapt_source(json.dumps(source).encode())
+
     def test_rejects_source_revision_above_schema_limit(self):
         source = self.source()
         source["run_manifest"]["source_revision"] = "r" * 121
