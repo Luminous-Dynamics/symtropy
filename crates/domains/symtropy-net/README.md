@@ -15,20 +15,39 @@ Deterministic lockstep networking for Symtropy.
 
 - Experimental wire shapes, limits, and trust gaps are documented in [symtropy-signaling-v0.md](../../../docs/protocol/symtropy-signaling-v0.md); that document describes the current client contract, not a qualified service.
 
-- **`RelayTransport` / `signaling.rs`** (behind the `ws-relay` feature; `webrtc` remains a compatibility alias):
-  an experimental WebSocket JSON signaling client and a transport that relays
-  game data over that same WebSocket. It has only an in-process fixture, not live
-  service qualification. `NetworkConfig::default()` intentionally leaves
-  `signal_url` empty unless `SYMTROPY_SIGNAL_URL` is configured to a server that
-  implements Symtropy's JSON `join`/`welcome`/`peer_joined`/`signal` protocol.
-  Holochain's public SBD service is **not** a drop-in endpoint: its
+- **`RelayTransport` / `signaling.rs` and `symtropy-signaling-server`** (behind `ws-relay`; `webrtc` is a compatibility alias):
+  the client now has an experimental self-hosted JSON relay-server prototype and
+  a local two-client integration test. This is **not production-qualified** and no
+  public live service has been verified. The server requires `SYMTROPY_RELAY_TOKEN`
+  and defaults to loopback-only `127.0.0.1:9001`; clients set
+  `SYMTROPY_SIGNAL_URL` and `SYMTROPY_SIGNAL_TOKEN`. Place it behind a
+  TLS-terminating reverse proxy and preserve the Authorization header.
+  The prototype uses one shared bearer secret, not per-user identity or an
+  end-to-end authorization system. It is suitable only for private/controlled
+  deployments where clients can keep the secret; do not embed that secret in a
+  publicly distributed binary. Browser clients cannot set arbitrary WebSocket
+  Authorization headers, so a separate browser credential design is still needed.
+  Holochain's SBD service is **not** a drop-in endpoint: its
   [wire specification](https://github.com/holochain/sbd/blob/main/spec.md) uses
-  authenticated binary forwarding frames and a 20,000-byte limit, rather than
-  this client's JSON-text protocol and multi-megabyte envelope. Updating the URL
-  alone does not make the protocols compatible; an adapter or Symtropy-compatible
-  server is required.
+  authenticated binary forwarding frames and a 20,000-byte limit, not this
+  client's JSON-text protocol and multi-megabyte envelope. A URL swap is not
+  compatibility.
   New builds should enable `symtropy-net/ws-relay`; the old `webrtc` feature is
   retained only as an alias and does not enable a WebRTC data channel.
+
+### Run the experimental local relay prototype
+
+```sh
+export SYMTROPY_RELAY_TOKEN="$(openssl rand -base64 36 | tr '+/' '-_' | tr -d '=')"
+cargo run -p symtropy-net --no-default-features --features ws-relay --bin symtropy-signaling-server
+```
+
+For a client process, configure `SYMTROPY_SIGNAL_URL=wss://your-relay.example`
+at the TLS proxy's public URL and `SYMTROPY_SIGNAL_TOKEN` to the same shared
+secret. Do not set `SYMTROPY_RELAY_ALLOW_INSECURE_BIND=1` in production.
+The prototype has bounded rooms/clients/queues and per-connection rate limits,
+but lacks per-user credentials, token rotation, Origin policy, durable state,
+distributed coordination, and production load/abuse qualification.
 
 ## What's a stub
 
