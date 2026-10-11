@@ -846,6 +846,59 @@ mod tests {
         assert!(!token_matches("test_token_that_is_long_enough_for_local_tests_124", TEST_TOKEN));
     }
 
+    #[tokio::test]
+    async fn room_peer_and_room_count_limits_fail_closed() {
+        let rooms: SharedRooms = Arc::new(Mutex::new(Rooms::default()));
+        let mut peers = Vec::new();
+
+        for peer_id in 1..=MAX_ROOM_PEERS as u64 {
+            let (peer, rx) = test_peer_handle();
+            join_room(&rooms, "capacity-room", peer_id, &peer)
+                .expect("room must admit peers up to the inclusive limit");
+            peers.push((peer, rx));
+        }
+        let (overflow_peer, overflow_rx) = test_peer_handle();
+        let overflow = join_room(
+            &rooms,
+            "capacity-room",
+            (MAX_ROOM_PEERS + 1) as u64,
+            &overflow_peer,
+        );
+        assert!(
+            matches!(overflow, Err(ref error) if error.contains("room peer limit")),
+            "the peer cap must reject the next join"
+        );
+
+        let mut separate_rooms = Vec::new();
+        for index in 0..MAX_ROOMS {
+            let (peer, rx) = test_peer_handle();
+            let room_name = format!("room-{index}");
+            join_room(&rooms, &room_name, 10_000 + index as u64, &peer)
+                .expect("room registry must admit up to its room limit");
+            separate_rooms.push((peer, rx));
+        }
+        let (overflow_room_peer, overflow_room_rx) = test_peer_handle();
+        let room_overflow = join_room(
+            &rooms,
+            "one-room-too-many",
+            99_999,
+            &overflow_room_peer,
+        );
+        assert!(
+            matches!(room_overflow, Err(ref error) if error.contains("room limit")),
+            "the active room cap must reject a new room"
+        );
+
+        drop((
+            peers,
+            overflow_rx,
+            overflow_peer,
+            separate_rooms,
+            overflow_room_rx,
+            overflow_room_peer,
+        ));
+    }
+
     #[test]
     fn room_ids_are_bounded_and_reject_control_characters() {
         assert!(validate_room_id("room-1").is_ok());
