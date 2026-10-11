@@ -319,6 +319,39 @@ mod tests {
     }
 
     #[test]
+    fn acceleration_includes_angular_acceleration_term() {
+        let t = identity(
+            vec(0.0, 0.0, 0.0),
+            vec(0.0, 0.0, 0.0),
+            vec(0.0, 0.0, 0.0),
+            vec(0.0, 0.0, 3.0),
+        );
+        let acceleration = t
+            .transform_acceleration(
+                &Point::new([1.0, 0.0, 0.0]),
+                &vec(0.0, 0.0, 0.0),
+                &vec(0.0, 0.0, 0.0),
+            )
+            .unwrap();
+        assert_eq!(acceleration, vec(0.0, 3.0, 0.0));
+    }
+
+    #[test]
+    fn position_transform_rejects_non_finite_result() {
+        let t = identity(
+            vec(0.0, 0.0, 0.0),
+            vec(0.0, 0.0, 0.0),
+            vec(0.0, 0.0, 0.0),
+            vec(0.0, 0.0, 0.0),
+        );
+        let result = t.transform_position(&Point::new([f64::MAX, f64::MAX, f64::MAX]));
+        assert!(matches!(
+            result,
+            Err(KinematicTransformError::NonFiniteResult("position_target_m"))
+        ));
+    }
+
+    #[test]
     fn constructor_rejects_non_proper_rotation() {
         let pose = Transform {
             translation: Point::origin(),
