@@ -95,6 +95,54 @@ struct QueuedFrame {
     _global_byte_permit: Option<OwnedSemaphorePermit>,
 }
 
+/// Queue reservation failures are typed so connection lifecycle decisions never depend
+/// on error-message wording.
+#[derive(Debug, PartialEq, Eq)]
+enum QueueError {
+    Serialize(String),
+    InvalidWire(String),
+    AccountingOverflow,
+    RecipientByteBudgetFull,
+    AggregateDataBudgetFull,
+    AggregateMembershipBudgetFull,
+    AggregateControlBudgetFull,
+    RecipientQueueFull,
+}
+
+impl QueueError {
+    fn is_recipient_backpressure(&self) -> bool {
+        matches!(
+            self,
+            Self::RecipientByteBudgetFull | Self::RecipientQueueFull
+        )
+    }
+}
+
+impl std::fmt::Display for QueueError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Serialize(error) => write!(f, "failed to serialize server message: {error}"),
+            Self::InvalidWire(error) => write!(f, "server message violates wire limits: {error}"),
+            Self::AccountingOverflow => {
+                f.write_str("outbound message byte count exceeds accounting range")
+            }
+            Self::RecipientByteBudgetFull => f.write_str("recipient outbound byte budget is full"),
+            Self::AggregateDataBudgetFull => {
+                f.write_str("server aggregate outbound data budget is full")
+            }
+            Self::AggregateMembershipBudgetFull => {
+                f.write_str("server aggregate outbound membership budget is full")
+            }
+            Self::AggregateControlBudgetFull => {
+                f.write_str("server aggregate outbound control budget is full")
+            }
+            Self::RecipientQueueFull => {
+                f.write_str("recipient outbound message-count queue is full")
+            }
+        }
+    }
+}
+
 /// Reserves both count capacity and byte capacity before changing any room state.
 /// The reservation can be committed synchronously after all recipients pass preflight.
 struct PreparedFrame {
@@ -372,18 +420,17 @@ fn validate_room_id(room: &str) -> Result<(), String> {
     Ok(())
 }
 
-fn prepare_message(peer: &PeerHandle, message: &SignalIncoming) -> Result<PreparedFrame, String> {
+fn prepare_message(peer: &PeerHandle, message: &SignalIncoming) -> Result<PreparedFrame, QueueError> {
     let text = serde_json::to_string(message)
-        .map_err(|error| format!("failed to serialize server message: {error}"))?;
-    parse_incoming(&text).map_err(|error| format!("server message violates wire limits: {error}"))?;
+        .map_err(|error| QueueError::Serialize(error.to_string()))?;
+    parse_incoming(&text).map_err(|error| QueueError::InvalidWire(error.to_string()))?;
 
-    let charged_bytes = u32::try_from(text.len())
-        .map_err(|_| "outbound message byte count exceeds accounting range".to_string())?;
+    let charged_bytes = u32::try_from(text.len()).map_err(|_| QueueError::AccountingOverflow)?;
     let byte_permit = peer
         .queued_bytes
         .clone()
         .try_acquire_many_owned(charged_bytes)
-        .map_err(|_| "recipient outbound byte budget is full".to_string())?;
+        .map_err(|_| QueueError::RecipientByteBudgetFull)?;
     let is_relay_data = matches!(
         message,
         &SignalIncoming::Signal {
@@ -398,27 +445,27 @@ fn prepare_message(peer: &PeerHandle, message: &SignalIncoming) -> Result<Prepar
             | &SignalIncoming::PeerLeft { .. }
     );
     let (global_budget, budget_error) = if is_relay_data {
-        (&peer.global_data_bytes, "server aggregate outbound data budget is full")
+        (&peer.global_data_bytes, QueueError::AggregateDataBudgetFull)
     } else if is_membership {
         (
             &peer.global_membership_bytes,
-            "server aggregate outbound membership budget is full",
+            QueueError::AggregateMembershipBudgetFull,
         )
     } else {
         (
             &peer.global_control_bytes,
-            "server aggregate outbound control budget is full",
+            QueueError::AggregateControlBudgetFull,
         )
     };
     let global_byte_permit = global_budget
         .clone()
         .try_acquire_many_owned(charged_bytes)
-        .map_err(|_| budget_error.to_string())?;
+        .map_err(|_| budget_error)?;
     let slot = peer
         .tx
         .clone()
         .try_reserve_owned()
-        .map_err(|_| "recipient outbound message-count queue is full".to_string())?;
+        .map_err(|_| QueueError::RecipientQueueFull)?;
 
     Ok(PreparedFrame {
         slot,
@@ -428,20 +475,20 @@ fn prepare_message(peer: &PeerHandle, message: &SignalIncoming) -> Result<Prepar
     })
 }
 
-fn enqueue_message(peer: &PeerHandle, message: &SignalIncoming) -> Result<(), String> {
+fn enqueue_message(peer: &PeerHandle, message: &SignalIncoming) -> Result<(), QueueError> {
     prepare_message(peer, message)?.commit();
     Ok(())
 }
 
 /// Forward only after a bounded queue reservation succeeds. A peer whose queue is
 /// saturated is evicted rather than retained indefinitely as an unresponsive member.
-fn forward_message(recipient: &PeerHandle, message: &SignalIncoming) -> Result<(), String> {
+fn forward_message(recipient: &PeerHandle, message: &SignalIncoming) -> Result<(), QueueError> {
     match enqueue_message(recipient, message) {
         Ok(()) => Ok(()),
         Err(error) => {
-            // Evict peers whose own mailbox cannot accept work. Aggregate server
-            // budget exhaustion rejects this send without penalizing the recipient.
-            if error.contains("recipient outbound") {
+            // Evict only when the recipient's own bounded mailbox is saturated.
+            // Shared aggregate budgets are server-wide backpressure, not peer fault.
+            if error.is_recipient_backpressure() {
                 let _ = recipient.shutdown_tx.send(true);
             }
             Err(error)
@@ -492,22 +539,25 @@ fn join_room(
     }
 
     let mut staged = Vec::with_capacity(1 + existing.len() * 2);
-    staged.push(prepare_message(
-        new_peer,
-        &SignalIncoming::Welcome { peer_id },
-    )?);
+    staged.push(
+        prepare_message(new_peer, &SignalIncoming::Welcome { peer_id })
+            .map_err(|error| error.to_string())?,
+    );
 
     for (existing_id, existing_peer) in &existing {
-        staged.push(prepare_message(
-            new_peer,
-            &SignalIncoming::PeerJoined {
-                peer_id: *existing_id,
-            },
-        )?);
-        staged.push(prepare_message(
-            existing_peer,
-            &SignalIncoming::PeerJoined { peer_id },
-        )?);
+        staged.push(
+            prepare_message(
+                new_peer,
+                &SignalIncoming::PeerJoined {
+                    peer_id: *existing_id,
+                },
+            )
+            .map_err(|error| error.to_string())?,
+        );
+        staged.push(
+            prepare_message(existing_peer, &SignalIncoming::PeerJoined { peer_id })
+                .map_err(|error| error.to_string())?,
+        );
     }
 
     state
@@ -1016,7 +1066,7 @@ mod tests {
             },
         )
         .expect_err("full recipient queue must not silently accept another message");
-        assert!(error.contains("message-count queue is full"));
+        assert_eq!(error, QueueError::RecipientQueueFull);
         assert!(*shutdown_rx.borrow(), "saturated peer must receive a shutdown signal");
         assert_eq!(rx.len(), OUTBOUND_QUEUE_CAPACITY);
         drop(rx);
@@ -1264,12 +1314,12 @@ mod tests {
             },
         );
         assert!(
-            matches!(blocked_data, Err(ref error) if error.contains("server aggregate outbound data budget is full")),
+            matches!(blocked_data, Err(QueueError::AggregateDataBudgetFull)),
             "the global relay-data budget must span all peer mailboxes"
         );
         let blocked_control = prepare_message(&peer2, &control_message);
         assert!(
-            matches!(blocked_control, Err(ref error) if error.contains("server aggregate outbound control budget is full")),
+            matches!(blocked_control, Err(QueueError::AggregateControlBudgetFull)),
             "the non-membership control budget must also be aggregate-bounded"
         );
 
@@ -1333,10 +1383,7 @@ mod tests {
         };
         let error = forward_message(&peer, &data_message)
             .expect_err("an exhausted aggregate data budget must reject this send");
-        assert!(
-            error.contains("server aggregate outbound data budget is full"),
-            "unexpected backpressure classification: {error}"
-        );
+        assert_eq!(error, QueueError::AggregateDataBudgetFull);
         assert!(
             !*shutdown_rx.borrow(),
             "shared data-budget exhaustion must not evict a healthy recipient"
@@ -1453,7 +1500,7 @@ mod tests {
         );
         let second = prepare_message(&peer, &message);
         assert!(
-            matches!(second, Err(ref error) if error.contains("byte budget is full")),
+            matches!(second, Err(QueueError::RecipientByteBudgetFull)),
             "a second maximum envelope must not accumulate behind the first"
         );
 
@@ -1475,7 +1522,7 @@ mod tests {
         }
         let next = prepare_message(&peer, &SignalIncoming::PeerJoined { peer_id: 999 });
         assert!(
-            matches!(next, Err(ref error) if error.contains("message-count queue is full")),
+            matches!(next, Err(QueueError::RecipientQueueFull)),
             "the item-count cap must reject the next small envelope"
         );
         drop(rx);
