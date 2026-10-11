@@ -1,8 +1,9 @@
 # Symtropy JSON signaling / relay protocol (experimental V0)
 
 - **Status:** implementation-derived wire description, not an accepted production protocol
-- **Compatibility:** no live signaling/data-relay service has been qualified against this contract
+- **Compatibility:** no public/live signaling service has been qualified; an experimental local server prototype now exercises this contract
 - **Implementation:** `crates/domains/symtropy-net/src/signaling.rs`
+- **Experimental server:** [`src/bin/signaling_server.rs`](../../crates/domains/symtropy-net/src/bin/signaling_server.rs) is a self-hostable conformance prototype behind the `ws-relay` feature. It requires a shared bearer token and a TLS-terminating reverse proxy.
 - **Decision record:** [ADR-001](../ADR-001-network-signaling-protocol.md)
 - **Open architecture blocker:** [issue #1572](https://github.com/Luminous-Dynamics/symtropy/issues/1572)
 
@@ -85,6 +86,7 @@ These are client limits, not proof of server-side enforcement. A compatible serv
 - There is no protocol-level delivery acknowledgement. Local `send()` acceptance or successful WebSocket queueing does not prove remote receipt, remote deserialization, or application.
 - `welcome.peer_id` is a numeric, connection-local identifier, **not a cryptographic identity proof**. The current wire contract does not define client authentication, end-to-end peer authentication, authorization policy, server-authentication beyond the deployment's WebSocket/TLS configuration, or an authenticated binding from numeric ID to a key.
 - The relay trusts the server to enforce room membership and attach the correct `from` ID. A server must never accept an arbitrary client-supplied sender ID or forward messages from a sender who is not an admitted room member.
+- The current server prototype authenticates possession of one shared bearer token for the whole deployment. That token does not identify or authorize individual users and is unsafe to embed in a publicly distributed client binary. It is only a first access gate for trusted/private deployments.
 - There is no explicit protocol-version negotiation. Unknown message kinds, version skew, replay/idempotency, identity rollover, and delivery receipt semantics need a decided contract before production qualification.
 - Close, write/read error, and identity protocol violation must invalidate the current connection and peer membership. The client emits a terminal disconnected event; reconnection is an explicit new connect/join operation.
 
@@ -101,4 +103,4 @@ A server implementing these shapes is not automatically production-safe. At mini
 
 ## Non-goals and current gap
 
-This is not a WebRTC data-channel specification, not an SBD compatibility layer, not a direct-P2P/ICE/NAT-traversal contract, and not a production security design. Holochain SBD uses a different authenticated binary framing protocol and cannot be used by changing the endpoint URL. The current Symtropy relay still needs an owner-approved architecture choice, a compatible service or adapter, and live two-client evidence.
+This is not a WebRTC data-channel specification, not an SBD compatibility layer, not a direct-P2P/ICE/NAT-traversal contract, and not a production security design. Holochain SBD uses a different authenticated binary framing protocol and cannot be used by changing the endpoint URL. The current Symtropy relay now has an experimental local server with two-client fixture tests, but still needs an owner-approved architecture choice, a production identity/credential design, TLS deployment, and live service evidence.
