@@ -28,9 +28,9 @@ use crate::peer::PeerId;
 use crate::transport::MAX_PEER_MESSAGE_BYTES;
 
 #[cfg(feature = "ws-relay")]
-pub(crate) const MAX_SIGNAL_CONTROL_BYTES: usize = 64 * 1024;
+pub const MAX_SIGNAL_CONTROL_BYTES: usize = 64 * 1024;
 #[cfg(feature = "ws-relay")]
-pub(crate) const MAX_SIGNALING_MESSAGE_BYTES: usize = (4 * MAX_PEER_MESSAGE_BYTES) + 16 * 1024;
+pub const MAX_SIGNALING_MESSAGE_BYTES: usize = (4 * MAX_PEER_MESSAGE_BYTES) + 16 * 1024;
 #[cfg(feature = "ws-relay")]
 const MAX_SIGNAL_QUEUE_BYTES: usize = MAX_SIGNALING_MESSAGE_BYTES;
 #[cfg(feature = "ws-relay")]
@@ -59,7 +59,9 @@ pub enum SignalChannel {
 }
 
 /// Messages sent TO the signaling server.
-#[derive(Debug, Clone, Serialize)]
+///
+/// The experimental relay server deserializes these same version-0 wire shapes.
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(tag = "type")]
 pub enum SignalOutgoing {
     /// Join a room.
@@ -140,7 +142,9 @@ pub enum SignalingEvent {
 }
 
 #[cfg(feature = "ws-relay")]
-fn serialized_outgoing(command: &SignalOutgoing) -> Result<String, String> {
+/// Serialize and validate a version-0 client message against the shared limits.
+/// The relay server uses this function to avoid drifting from the client contract.
+pub fn serialized_outgoing(command: &SignalOutgoing) -> Result<String, String> {
     let (is_relay_data, largest_field) = match command {
         SignalOutgoing::Join { room } => (false, room.len()),
         SignalOutgoing::Leave => (false, 0),
