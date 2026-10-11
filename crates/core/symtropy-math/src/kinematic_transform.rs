@@ -338,12 +338,22 @@ mod tests {
 
     #[test]
     fn position_transform_rejects_non_finite_result() {
-        let t = identity(
+        let pose = Transform {
+            translation: Point::new([f64::MAX, f64::MAX, f64::MAX]),
+            rotation: Rotor::<3>::identity(),
+        };
+        let t = KinematicTransform3::try_new(
+            "source",
+            "target",
+            "fixture://epoch",
+            true,
+            pose,
             vec(0.0, 0.0, 0.0),
             vec(0.0, 0.0, 0.0),
             vec(0.0, 0.0, 0.0),
             vec(0.0, 0.0, 0.0),
-        );
+            1e-12,
+        ).unwrap();
         let result = t.transform_position(&Point::new([f64::MAX, f64::MAX, f64::MAX]));
         assert!(matches!(
             result,
