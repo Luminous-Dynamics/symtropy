@@ -57,6 +57,7 @@ const OUTBOUND_QUEUE_CAPACITY: usize = 32;
 const MAX_MESSAGES_PER_SECOND: usize = 120;
 const MAX_BYTES_PER_SECOND: usize = 8 * 1024 * 1024;
 const CONNECT_TIMEOUT: Duration = Duration::from_secs(10);
+const IDLE_TIMEOUT: Duration = Duration::from_secs(90);
 const WRITER_DRAIN_TIMEOUT: Duration = Duration::from_secs(2);
 
 type SharedRooms = Arc<Mutex<Rooms>>;
@@ -153,7 +154,7 @@ impl ServerConfig {
             .parse()
             .map_err(|_| "SYMTROPY_RELAY_BIND must be a socket address such as 127.0.0.1:9001".to_string())?;
         if !bind.ip().is_loopback()
-            && env::var("SYMTROPY_RELAY_ALLOW_INSECURE_BIND").as_deref() != Ok("1")
+            && env::var("SYMTROPY_RELAY_ALLOW_INSECURE_BIND").ok().as_deref() != Some("1")
         {
             return Err(
                 "refusing a non-loopback plaintext bind; use a TLS-terminating reverse proxy or explicitly set SYMTROPY_RELAY_ALLOW_INSECURE_BIND=1 only in a controlled test environment"
@@ -533,9 +534,13 @@ async fn handle_connection(
             Err(unauthorized_response())
         }
     };
-    let websocket = accept_hdr_async_with_config(stream, callback, Some(websocket_config()))
-        .await
-        .map_err(|error| format!("WebSocket handshake rejected: {error}"))?;
+    let websocket = timeout(
+        CONNECT_TIMEOUT,
+        accept_hdr_async_with_config(stream, callback, Some(websocket_config())),
+    )
+    .await
+    .map_err(|_| "WebSocket upgrade timed out".to_string())?
+    .map_err(|error| format!("WebSocket handshake rejected: {error}"))?;
     let mut websocket = websocket;
 
     let first = timeout(CONNECT_TIMEOUT, websocket.next())
@@ -649,9 +654,16 @@ async fn handle_connection(
                 }
                 break;
             }
-            incoming = input.next() => {
-                let Some(incoming) = incoming else {
-                    break;
+            incoming = timeout(IDLE_TIMEOUT, input.next()) => {
+                let incoming = match incoming {
+                    Ok(Some(incoming)) => incoming,
+                    Ok(None) => break,
+                    Err(_) => {
+                        let _ = enqueue_message(&peer, &SignalIncoming::Error {
+                            message: "connection idle timeout".to_string(),
+                        });
+                        break;
+                    }
                 };
                 let message = match incoming {
                     Ok(message) => message,
@@ -675,6 +687,9 @@ async fn handle_connection(
                                 break;
                             }
                         };
+                        // Do not retain the incoming raw JSON beside its decoded payload
+                        // while serializing/enqueuing the forwarded envelope.
+                        drop(text);
                         match command {
                             SignalOutgoing::Leave => break,
                             SignalOutgoing::Join { .. } => {
