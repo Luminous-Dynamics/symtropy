@@ -160,6 +160,10 @@ class AdapterTests(unittest.TestCase):
         source["years"] = 100001
         source["ticks"] = 1200012
         source["run_manifest"]["ticks"] = 1200012
+        source["resolved_config"]["total_ticks"] = 1200012
+        source["run_manifest"]["resolved_config_sha256"] = hashlib.sha256(
+            canonical_json_bytes(source["resolved_config"])
+        ).hexdigest()
         source["technology_tree"]["ticks_per_year"] = 12
         with self.assertRaisesRegex(AdapterError, "year <= 100000"):
             adapt_source(json.dumps(source).encode())
@@ -168,6 +172,10 @@ class AdapterTests(unittest.TestCase):
         source = self.source()
         source["ticks"] = 25
         source["run_manifest"]["ticks"] = 25
+        source["resolved_config"]["total_ticks"] = 25
+        source["run_manifest"]["resolved_config_sha256"] = hashlib.sha256(
+            canonical_json_bytes(source["resolved_config"])
+        ).hexdigest()
         with self.assertRaisesRegex(AdapterError, r"years \* ticks_per_year"):
             adapt_source(json.dumps(source).encode())
 
