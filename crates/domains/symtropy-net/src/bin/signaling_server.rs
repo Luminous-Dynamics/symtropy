@@ -576,8 +576,8 @@ fn join_room(
 }
 
 /// Removes a peer and publishes all required PeerLeft notifications as an atomic
-/// bounded batch. If a recipient cannot reserve queue capacity, that slow recipient
-/// is disconnected too; the surviving peers then receive events for every removal.
+/// bounded batch. A recipient-local queue failure evicts that slow peer and retries.
+/// A shared/serialization failure closes the room instead of blaming healthy peers.
 fn remove_peer_and_notify(rooms: &SharedRooms, room_id: &str, initial_peer_id: u64) {
     let Ok(mut state) = rooms.lock() else {
         eprintln!("relay room registry lock poisoned while removing peer");
@@ -612,6 +612,7 @@ fn remove_peer_and_notify(rooms: &SharedRooms, room_id: &str, initial_peer_id: u
 
         let mut staged = Vec::new();
         let mut slow_peers = HashSet::new();
+        let mut fatal_error = None;
         for removed_id in &removed {
             for (survivor_id, survivor) in &survivors {
                 match prepare_message(
@@ -621,11 +622,30 @@ fn remove_peer_and_notify(rooms: &SharedRooms, room_id: &str, initial_peer_id: u
                     },
                 ) {
                     Ok(message) => staged.push(message),
-                    Err(_) => {
+                    Err(error) if error.is_recipient_backpressure() => {
                         slow_peers.insert(*survivor_id);
+                    }
+                    Err(error) => {
+                        fatal_error.get_or_insert(error);
                     }
                 }
             }
+        }
+
+        if let Some(error) = fatal_error {
+            // Membership delivery is essential for keeping client and server state
+            // aligned. If the shared reserve cannot carry the batch, terminate the
+            // room rather than misclassifying every survivor as a slow peer.
+            drop(staged);
+            eprintln!(
+                "relay room {room_id:?} cannot publish membership cleanup: {error}; closing room"
+            );
+            if let Some(room) = state.rooms.remove(room_id) {
+                for (_, peer) in room.peers {
+                    let _ = peer.shutdown_tx.send(true);
+                }
+            }
+            return;
         }
 
         if slow_peers.is_empty() {
@@ -1474,6 +1494,53 @@ mod tests {
         assert_eq!(members.len(), 1);
         assert!(members.contains_key(&1));
         assert!(!members.contains_key(&2));
+    }
+
+    #[test]
+    fn membership_budget_exhaustion_closes_room_without_blame_shifting() {
+        let rooms: SharedRooms = Arc::new(Mutex::new(Rooms::default()));
+        let global_data_bytes = Arc::new(Semaphore::new(MAX_TOTAL_OUTBOUND_DATA_BYTES));
+        let global_control_bytes = Arc::new(Semaphore::new(MAX_TOTAL_OUTBOUND_CONTROL_BYTES));
+        let global_membership_bytes = Arc::new(Semaphore::new(0));
+
+        let (survivor_tx, survivor_rx) = mpsc::channel(OUTBOUND_QUEUE_CAPACITY);
+        let (survivor_shutdown_tx, mut survivor_shutdown_rx) = watch::channel(false);
+        let (survivor, _survivor_outbound) = test_peer_handle_with_global(
+            survivor_tx,
+            survivor_rx,
+            survivor_shutdown_tx,
+            global_data_bytes.clone(),
+            global_control_bytes.clone(),
+            global_membership_bytes.clone(),
+        );
+        let (departing_tx, departing_rx) = mpsc::channel(OUTBOUND_QUEUE_CAPACITY);
+        let (departing_shutdown_tx, _departing_shutdown_rx) = watch::channel(false);
+        let (departing, _departing_outbound) = test_peer_handle_with_global(
+            departing_tx,
+            departing_rx,
+            departing_shutdown_tx,
+            global_data_bytes,
+            global_control_bytes,
+            global_membership_bytes,
+        );
+
+        {
+            let mut state = rooms.lock().expect("room registry lock");
+            let members = state.rooms.entry("room".to_string()).or_default();
+            members.insert(1, survivor);
+            members.insert(2, departing);
+        }
+
+        remove_peer_and_notify(&rooms, "room", 2);
+
+        assert!(
+            *survivor_shutdown_rx.borrow(),
+            "failed critical membership publication must close the affected room"
+        );
+        assert!(
+            !rooms.lock().expect("room registry lock").rooms.contains_key("room"),
+            "room closure prevents a stale client membership view after atomic notification failure"
+        );
     }
 
     #[test]
