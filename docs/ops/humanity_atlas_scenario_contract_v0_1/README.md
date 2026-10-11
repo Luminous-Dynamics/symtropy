@@ -71,3 +71,54 @@ Do not collapse source reliability, causal-edge confidence, forecast probability
 - No cryptographic signature format is specified yet. SHA-256 identifies exact bytes but does not establish who published them or whether the content is true.
 - No probability field is defined in v0.1. Add event-forecast receipts only after the scoring, resolution and calibration contract is specified.
 - Schema changes require a new version and fixture migration; do not silently reinterpret old payloads.
+
+
+## Real simulator artifact adapter
+
+The companion `adapt_multiworld_output.py` maps a captured
+`humanity-atlas-json` artifact from `mycelix-multiworld-sim` into the generic
+run v0.1 envelope. It is an adapter, not a second simulator and not a scientific
+validator. It requires the producer's `technology_tree`, `run_manifest`,
+`resolved_config`, and `resolved_params` fields and rejects inconsistent
+source/model/input/seed/tick bindings, malformed digests, duplicate JSON keys,
+non-standard numeric tokens, and non-finite numbers.
+
+From the canonical monorepo, first capture a real run:
+
+```sh
+cargo run --release --bin luminous_sim -- --years 150 --seed 42 --format humanity-atlas-json > humanity-atlas-run.json
+```
+
+Then run the adapter from the Symtropy repository:
+
+```sh
+python3 docs/ops/humanity_atlas_scenario_contract_v0_1/adapt_multiworld_output.py /path/to/humanity-atlas-run.json > humanity-atlas-envelope.v0.1.json
+```
+
+The default artifact reference is `urn:sha256:<digest>`, which identifies the
+exact source bytes but is not itself a hosting location. When storing the source
+artifact in a content-addressed store or evidence service, pass its resolvable
+URI with `--artifact-ref`.
+
+The adapter deliberately emits `unvalidated_simulation`, a null determinism
+value (not independently demonstrated), and a null dataset digest (no separate
+dataset identity was established by this source manifest). It scopes
+`model_sha256` to the effective technology-tree definition, records resolved
+config/parameter digests, and binds the exact simulator-output bytes in
+`artifacts`. SHA-256 is not publisher authentication. The source revision is
+preserved if present; it is never inferred from a branch name. Calibration and
+forecast classifications remain forbidden without their separate evidence
+receipts.
+
+Run the independent adapter regression tests with:
+
+```sh
+cd docs/ops/humanity_atlas_scenario_contract_v0_1
+python3 -m unittest -v test_adapt_multiworld_output.py
+```
+
+These tests use an explicitly synthetic source-shaped fixture to exercise
+adapter invariants; they are not evidence of a real simulator execution. The
+end-to-end qualification step remains exporting an actual run, validating the
+artifact through the independently implemented Sol-Atlas technology-tree
+importer, and preserving the exact output bytes and resulting digests.
