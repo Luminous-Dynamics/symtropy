@@ -23,6 +23,14 @@ MANIFEST_SCHEMA_VERSION = "humanity-atlas.run-manifest.v1"
 ADAPTER_ID = "mycelix-multiworld-sim-humanity-atlas-adapter"
 SHA256_RE = re.compile(r"^[a-f0-9]{64}$")
 MAX_SAFE_INTEGER = 9_007_199_254_740_991
+MAX_SOURCE_ARTIFACT_BYTES = 64 * 1024 * 1024
+
+
+def _check_source_artifact_size(size: int) -> None:
+    if size < 0 or size > MAX_SOURCE_ARTIFACT_BYTES:
+        raise AdapterError(
+            f"source simulator artifact exceeds the {MAX_SOURCE_ARTIFACT_BYTES}-byte v0.1 limit"
+        )
 
 
 class JsonNumberToken:
@@ -69,6 +77,7 @@ def _check_finite(value: Any, path: str = "$") -> None:
 
 
 def parse_json_strict(raw: bytes) -> dict[str, Any]:
+    _check_source_artifact_size(len(raw))
     try:
         text = raw.decode("utf-8", errors="strict")
         value = json.loads(
