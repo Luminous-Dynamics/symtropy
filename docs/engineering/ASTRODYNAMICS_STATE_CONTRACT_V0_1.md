@@ -49,6 +49,16 @@ These identities state the convention this interface must implement or explicitl
 
 Every transform must state its direction (from-frame and to-frame), epoch, origin state, orientation convention, and angular kinematics when derivatives are required. Composition must not silently reverse the order of transforms.
 
+## Reference basis and independent comparison
+
+The transform conventions above should be cross-checked against mature, independently maintained astrodynamics implementations before this API supports engineering claims:
+
+- [IAU SOFA](https://www.iausofa.org/) provides IAU-endorsed algorithms for astronomical reference systems, time scales and related transformations. Use the applicable routines and published conventions where the chosen frame requires them.
+- [Orekit frame architecture](https://www.orekit.org/site-orekit-9.3/architecture/frames.html) documents time-dependent frame trees and transforms with the derivatives needed for velocity conversion. Use it as a candidate independent reference for transform/kinematic fixtures, not as a substitute for specifying the frame realization and epoch.
+- [NASA GMAT verification and validation](https://ntrs.nasa.gov/citations/20140017798) is a useful precedent for regression against independent reference data. Re-running the same implementation twice establishes determinism, not independent correctness.
+
+These are references for the mathematics and verification process only. None of them validates the continuous-skyhook architecture, its support loads, a ring equilibrium, or its stability.
+
 ## Physics authority boundary
 
 - Orbital forces and state propagation must derive from declared physical models and units.
