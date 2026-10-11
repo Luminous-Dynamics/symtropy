@@ -479,6 +479,65 @@
           }
         }
       }
+    },
+    {
+      "if": {
+        "properties": {
+          "engine": {
+            "properties": {
+              "model_identity_kind": {
+                "const": "technology_tree_definition"
+              }
+            },
+            "required": [
+              "model_identity_kind"
+            ]
+          }
+        },
+        "required": [
+          "engine"
+        ]
+      },
+      "then": {
+        "properties": {
+          "inputs": {
+            "required": [
+              "scenario_identity_kind",
+              "selected_definition_source",
+              "resolved_config_sha256",
+              "resolved_params_sha256"
+            ],
+            "properties": {
+              "scenario_identity_kind": {
+                "const": "canonical_effective_scenario"
+              },
+              "selected_definition_source": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 200
+              },
+              "resolved_config_sha256": {
+                "$ref": "#/$defs/sha256"
+              },
+              "resolved_params_sha256": {
+                "$ref": "#/$defs/sha256"
+              }
+            }
+          },
+          "engine": {
+            "required": [
+              "definition_source"
+            ],
+            "properties": {
+              "definition_source": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 200
+              }
+            }
+          }
+        }
+      }
     }
   ]
 }
