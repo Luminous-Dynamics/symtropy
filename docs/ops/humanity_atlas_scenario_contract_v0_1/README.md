@@ -155,12 +155,14 @@ commit identity.
 The script `qualify_real_artifact.sh` performs the full local path against the
 checked-out producer and standalone consumer. It captures the simulator output
 once, stores its SHA-256, runs the Python adapter, runs the Sol-Atlas core unit
-tests, then runs the standalone Rust example against that same source file and
-the generated envelope. It records both repository HEADs, tool versions, all
-three artifact digests, the consumer report, and test logs in an evidence
-directory.
+tests, then runs the standalone Rust example against those same source bytes and
+the generated envelope. It requires all three source checkouts (monorepo,
+Symtropy, and Sol-Atlas) to be clean and records all three HEADs, tool versions,
+source/envelope/report and log digests, the consumer report, and test logs in
+an evidence directory. By default it creates that directory under `TMPDIR`
+(or `/tmp`), outside the source trees.
 
-From a checkout of this Symtropy repository, set the two repository paths:
+From a checkout of this Symtropy repository, set the two external repository paths (the script infers the Symtropy checkout from its own location):
 
 ```sh
 LUMINOUS_MONOREPO_ROOT=/path/to/luminous-dynamics \
