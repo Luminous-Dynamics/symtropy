@@ -201,8 +201,10 @@ def adapt_source(raw: bytes, *, artifact_ref: str | None = None) -> dict[str, An
     manifest_seed = _required_int(manifest, "seed", "run_manifest")
     manifest_ticks = _required_int(manifest, "ticks", "run_manifest")
     source_revision = manifest.get("source_revision")
-    if source_revision is not None and (not isinstance(source_revision, str) or not source_revision.strip()):
-        raise AdapterError("run_manifest.source_revision must be a non-empty string or null")
+    if source_revision is not None and (
+        not isinstance(source_revision, str) or not source_revision.strip() or len(source_revision) > 120
+    ):
+        raise AdapterError("run_manifest.source_revision must be a non-empty string of at most 120 characters or null")
     if tree_source != manifest_source:
         raise AdapterError("technology-tree definition_source disagrees with run manifest")
     if model_sha != manifest_model_sha:
@@ -224,6 +226,8 @@ def adapt_source(raw: bytes, *, artifact_ref: str | None = None) -> dict[str, An
     final_cvs = _required_finite_number(source, "final_cvs", "source")
     final_population = _required_int(source, "final_population", "source")
     tech_milestones = _required_int(source, "tech_milestones", "source")
+    if final_population > MAX_SAFE_INTEGER or tech_milestones > MAX_SAFE_INTEGER:
+        raise AdapterError("population or milestone count exceeds the exact numeric range of the run envelope")
     survived = source.get("survived")
     if not isinstance(survived, bool):
         raise AdapterError("source.survived must be a boolean")
@@ -249,6 +253,7 @@ def adapt_source(raw: bytes, *, artifact_ref: str | None = None) -> dict[str, An
         "determinism_unverified: a seed is recorded, but exact replay has not been independently demonstrated by this adapter",
         "dataset_identity_unestablished: the source manifest does not declare a separately identified dataset",
         "model_sha256_scope: the model digest identifies the technology-tree definition, not the complete executable or source tree",
+        "engine_version_unidentified: no semantic engine version is present in the source manifest",
         "sha256_proves_byte_integrity_only: this envelope does not authenticate a publisher or establish scientific truth",
     ]
     if source_revision is None:
@@ -268,7 +273,7 @@ def adapt_source(raw: bytes, *, artifact_ref: str | None = None) -> dict[str, An
         },
         "engine": {
             "adapter": ADAPTER_ID,
-            "engine_version": source_revision or "unknown-source-revision",
+            "engine_version": "unversioned-build",
             "model_sha256": model_sha,
             "model_identity_kind": "technology_tree_definition",
             "definition_source": tree_source,
@@ -316,7 +321,7 @@ def main(argv: list[str] | None = None) -> int:
             args.output.write_text(rendered, encoding="utf-8")
         else:
             sys.stdout.write(rendered)
-    except (OSError, AdapterError) as exc:
+    except (OSError, AdapterError, RecursionError) as exc:
         print(f"adapter rejected input: {exc}", file=sys.stderr)
         return 2
     return 0
