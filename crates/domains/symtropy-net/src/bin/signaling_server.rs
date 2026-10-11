@@ -1139,12 +1139,20 @@ mod tests {
     }
 
     #[test]
-    fn aggregate_outbound_budget_bounds_all_clients_and_recovers_after_drain() {
-        let message = SignalIncoming::PeerJoined { peer_id: 1 };
-        let charge = serde_json::to_string(&message)
-            .expect("serialize test envelope")
+    fn aggregate_outbound_budget_bounds_all_clients_and_reserves_control_capacity() {
+        let data_message = SignalIncoming::Signal {
+            from: 1,
+            data: SignalData::RelayData {
+                channel: symtropy_net::signaling::SignalChannel::Reliable,
+                payload: b"data".to_vec(),
+            },
+        };
+        let data_charge = serde_json::to_string(&data_message)
+            .expect("serialize relay-data test envelope")
             .len();
-        let global_budget = Arc::new(Semaphore::new(charge));
+        let global_data_bytes = Arc::new(Semaphore::new(data_charge));
+        let global_control_bytes =
+            Arc::new(Semaphore::new(MAX_TOTAL_OUTBOUND_CONTROL_BYTES));
 
         let (tx1, rx1) = mpsc::channel(OUTBOUND_QUEUE_CAPACITY);
         let (shutdown_tx1, _shutdown_rx1) = watch::channel(false);
@@ -1152,12 +1160,13 @@ mod tests {
             tx1,
             rx1,
             shutdown_tx1,
-            global_budget.clone(),
+            global_data_bytes.clone(),
+            global_control_bytes.clone(),
         );
-        prepare_message(&peer1, &message)
-            .expect("first peer uses the exact shared global budget")
+        prepare_message(&peer1, &data_message)
+            .expect("first peer uses the exact shared game-data budget")
             .commit();
-        assert_eq!(global_budget.available_permits(), 0);
+        assert_eq!(global_data_bytes.available_permits(), 0);
 
         let (tx2, rx2) = mpsc::channel(OUTBOUND_QUEUE_CAPACITY);
         let (shutdown_tx2, _shutdown_rx2) = watch::channel(false);
@@ -1165,22 +1174,62 @@ mod tests {
             tx2,
             rx2,
             shutdown_tx2,
-            global_budget.clone(),
+            global_data_bytes.clone(),
+            global_control_bytes.clone(),
         );
-        let blocked = prepare_message(&peer2, &SignalIncoming::PeerJoined { peer_id: 2 });
+        let blocked = prepare_message(
+            &peer2,
+            &SignalIncoming::Signal {
+                from: 2,
+                data: SignalData::RelayData {
+                    channel: symtropy_net::signaling::SignalChannel::Reliable,
+                    payload: b"data".to_vec(),
+                },
+            },
+        );
         assert!(
-            matches!(blocked, Err(ref error) if error.contains("server aggregate outbound byte budget is full")),
-            "the global budget must span all peer mailboxes, not just each peer's quota"
+            matches!(blocked, Err(ref error) if error.contains("server aggregate outbound data budget is full")),
+            "the global relay-data budget must span all peer mailboxes"
+        );
+
+        // Membership cleanup remains queueable even when no more game-data bytes
+        // are available globally; this prevents a full data queue from cascading
+        // into spurious peer disconnects.
+        let control_message = SignalIncoming::PeerLeft { peer_id: 1 };
+        let control_charge = serde_json::to_string(&control_message)
+            .expect("serialize membership control envelope")
+            .len();
+        prepare_message(&peer2, &control_message)
+            .expect("reserved global control capacity remains available")
+            .commit();
+        assert_eq!(
+            global_control_bytes.available_permits(),
+            MAX_TOTAL_OUTBOUND_CONTROL_BYTES - control_charge
         );
 
         drop(rx1);
-        assert_eq!(global_budget.available_permits(), charge);
-        prepare_message(&peer2, &SignalIncoming::PeerJoined { peer_id: 2 })
-            .expect("draining a queued frame returns the shared capacity")
-            .commit();
-        assert_eq!(global_budget.available_permits(), 0);
+        assert_eq!(global_data_bytes.available_permits(), data_charge);
+        prepare_message(
+            &peer2,
+            &SignalIncoming::Signal {
+                from: 2,
+                data: SignalData::RelayData {
+                    channel: symtropy_net::signaling::SignalChannel::Reliable,
+                    payload: b"data".to_vec(),
+                },
+            },
+        )
+        .expect("draining first peer returns the shared game-data capacity")
+        .commit();
+        assert_eq!(global_data_bytes.available_permits(), 0);
+
         drop(rx2);
-        assert_eq!(global_budget.available_permits(), charge);
+        assert_eq!(global_data_bytes.available_permits(), data_charge);
+        assert_eq!(
+            global_control_bytes.available_permits(),
+            MAX_TOTAL_OUTBOUND_CONTROL_BYTES,
+            "dropping queued control messages returns reserved control permits"
+        );
     }
 
     #[test]
