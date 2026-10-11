@@ -29,7 +29,7 @@ use futures_util::{SinkExt, StreamExt};
 use symtropy_net::{
     signaling::{
         MAX_SIGNAL_CONTROL_BYTES, MAX_SIGNALING_MESSAGE_BYTES, SignalData, SignalIncoming,
-        SignalOutgoing, parse_incoming, serialized_outgoing,
+        SignalOutgoing, SignalingClient, SignalingEvent, parse_incoming, serialized_outgoing,
     },
 };
 use tokio::{
@@ -930,6 +930,44 @@ mod tests {
         );
         drop(rx);
         assert_eq!(peer.queued_bytes.available_permits(), MAX_SIGNALING_MESSAGE_BYTES);
+    }
+
+    #[tokio::test]
+    async fn library_signaling_client_authenticates_with_authorization_header() {
+        let listener = TcpListener::bind("127.0.0.1:0").await.expect("bind fixture");
+        let address = listener.local_addr().expect("fixture address");
+        let (shutdown_tx, shutdown_rx) = watch::channel(false);
+        let server = tokio::spawn(run_server(listener, TEST_TOKEN.to_string(), shutdown_rx));
+        let url = format!("ws://{address}");
+
+        let mut client = SignalingClient::connect_with_token(&url, Some(TEST_TOKEN))
+            .await
+            .expect("library client must authenticate through the upgrade header");
+        client.join("client-library-room").expect("queue Join");
+
+        timeout(Duration::from_secs(3), async {
+            loop {
+                let events = client.poll_events();
+                if events
+                    .iter()
+                    .any(|event| matches!(event, SignalingEvent::Connected(_)))
+                {
+                    break;
+                }
+                tokio::time::sleep(Duration::from_millis(1)).await;
+            }
+        })
+        .await
+        .expect("Welcome must be delivered through the library client's bounded mailbox");
+        assert!(client.local_id.is_some());
+
+        drop(client);
+        let _ = shutdown_tx.send(true);
+        timeout(Duration::from_secs(3), server)
+            .await
+            .expect("server shutdown timeout")
+            .expect("server task join")
+            .expect("server shutdown");
     }
 
     #[tokio::test]
