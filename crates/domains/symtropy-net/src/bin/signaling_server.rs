@@ -29,9 +29,8 @@ use futures_util::{SinkExt, StreamExt};
 use symtropy_net::{
     signaling::{
         MAX_SIGNAL_CONTROL_BYTES, MAX_SIGNALING_MESSAGE_BYTES, SignalData, SignalIncoming,
-        SignalOutgoing, SignalingEvent, parse_incoming, serialized_outgoing,
+        SignalOutgoing, parse_incoming, serialized_outgoing,
     },
-    transport::MAX_PEER_MESSAGE_BYTES,
 };
 use tokio::{
     net::{TcpListener, TcpStream},
@@ -47,7 +46,6 @@ use tokio_tungstenite::{
         http::{StatusCode, header::AUTHORIZATION},
         protocol::WebSocketConfig,
     },
-    WebSocketStream,
 };
 
 const DEFAULT_BIND: &str = "127.0.0.1:9001";
@@ -502,11 +500,13 @@ fn remove_peer_and_notify(rooms: &SharedRooms, room_id: &str, initial_peer_id: u
         }
     }
 
-    let Some(room) = state.rooms.get_mut(room_id) else {
+    let room_is_empty = if let Some(room) = state.rooms.get_mut(room_id) {
+        room.peers.retain(|id, _| !removed_set.contains(id));
+        room.peers.is_empty()
+    } else {
         return;
     };
-    room.peers.retain(|id, _| !removed_set.contains(id));
-    if room.peers.is_empty() {
+    if room_is_empty {
         state.rooms.remove(room_id);
     }
 }
@@ -582,10 +582,9 @@ async fn handle_connection(
         }
     };
 
-    let peer_id = next_peer_id.fetch_add(1, Ordering::Relaxed);
-    if peer_id == u64::MAX {
-        return Err("server peer-ID space exhausted".to_string());
-    }
+    let peer_id = next_peer_id
+        .fetch_update(Ordering::Relaxed, Ordering::Relaxed, |current| current.checked_add(1))
+        .map_err(|_| "server peer-ID space exhausted".to_string())?;
 
     let (out_tx, mut out_rx) = mpsc::channel::<QueuedFrame>(OUTBOUND_QUEUE_CAPACITY);
     let peer = PeerHandle {
@@ -607,10 +606,16 @@ async fn handle_connection(
     let (mut sink, mut input) = websocket.split();
     let mut writer = tokio::spawn(async move {
         while let Some(queued) = out_rx.recv().await {
-            if let Err(error) = sink.send(queued.frame.clone()).await {
+            let QueuedFrame {
+                frame,
+                _byte_permit,
+            } = queued;
+            if let Err(error) = sink.send(frame).await {
+                drop(_byte_permit);
                 return Err(format!("WebSocket write failed: {error}"));
             }
-            drop(queued);
+            // Keep the permit charged until the queued frame is fully written.
+            drop(_byte_permit);
         }
         sink.close()
             .await
@@ -670,12 +675,17 @@ async fn handle_connection(
                                     });
                                     continue;
                                 }
-                                let recipient = {
-                                    let state = rooms.lock().map_err(|_| "relay room registry lock poisoned".to_string())?;
-                                    state.rooms
+                                let recipient = match rooms.lock() {
+                                    Ok(state) => state.rooms
                                         .get(&room_id)
                                         .and_then(|room| room.get(&to))
-                                        .cloned()
+                                        .cloned(),
+                                    Err(_) => {
+                                        let _ = enqueue_message(&peer, &SignalIncoming::Error {
+                                            message: "relay room registry unavailable".to_string(),
+                                        });
+                                        break;
+                                    }
                                 };
                                 let Some(recipient) = recipient else {
                                     let _ = enqueue_message(&peer, &SignalIncoming::Error {
@@ -806,12 +816,17 @@ mod tests {
     async fn unauthorized_handshake_is_rejected_before_join() {
         let listener = TcpListener::bind("127.0.0.1:0").await.expect("bind fixture");
         let address = listener.local_addr().expect("fixture address");
-        let (_shutdown_tx, shutdown_rx) = watch::channel(false);
+        let (shutdown_tx, shutdown_rx) = watch::channel(false);
         let server = tokio::spawn(run_server(listener, TEST_TOKEN.to_string(), shutdown_rx));
         let url = format!("ws://{address}");
         let result = connect_async(url).await;
         assert!(result.is_err(), "server must require a bearer token");
-        let _ = server.await.expect("server task").expect("server exit");
+        let _ = shutdown_tx.send(true);
+        timeout(Duration::from_secs(3), server)
+            .await
+            .expect("server shutdown timeout")
+            .expect("server task join")
+            .expect("server shutdown");
     }
 
     #[tokio::test]
