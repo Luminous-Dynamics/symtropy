@@ -80,6 +80,12 @@ class AdapterTests(unittest.TestCase):
                 with self.assertRaisesRegex(AdapterError, "u32 wire range"):
                     adapt_source(json.dumps(source).encode())
 
+    def test_rejects_source_revision_above_schema_limit(self):
+        source = self.source()
+        source["run_manifest"]["source_revision"] = "r" * 121
+        with self.assertRaisesRegex(AdapterError, "at most 120 characters"):
+            adapt_source(json.dumps(source).encode())
+
     def test_rejects_invalid_package_version_token(self):
         source = self.source()
         source["technology_tree"]["source_model"] = "mycelix-multiworld-sim/0.1.0/extra"
