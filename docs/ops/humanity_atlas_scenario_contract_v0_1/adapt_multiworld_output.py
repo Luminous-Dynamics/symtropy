@@ -189,6 +189,8 @@ def adapt_source(raw: bytes, *, artifact_ref: str | None = None) -> dict[str, An
     if not engine_version or len(engine_version) > 120 or engine_version.strip() != engine_version:
         raise AdapterError("source_model engine version must be a non-empty value of at most 120 characters")
     tree_source = _required_string(tree, "definition_source", "technology_tree")
+    if len(tree_source) > 200:
+        raise AdapterError("technology_tree.definition_source exceeds 200 characters")
     model_sha = _required_sha256(tree, "definition_sha256", "technology_tree")
     ticks_per_year = _required_int(tree, "ticks_per_year", "technology_tree", minimum=1)
     milestones = tree.get("milestones")
@@ -211,6 +213,8 @@ def adapt_source(raw: bytes, *, artifact_ref: str | None = None) -> dict[str, An
         not isinstance(source_revision, str) or not source_revision.strip() or len(source_revision) > 120
     ):
         raise AdapterError("run_manifest.source_revision must be a non-empty string of at most 120 characters or null")
+    if len(manifest_source) > 200:
+        raise AdapterError("run_manifest.selected_definition_source exceeds 200 characters")
     if tree_source != manifest_source:
         raise AdapterError("technology-tree definition_source disagrees with run manifest")
     if model_sha != manifest_model_sha:
@@ -250,8 +254,8 @@ def adapt_source(raw: bytes, *, artifact_ref: str | None = None) -> dict[str, An
     }
     scenario_sha = sha256_hex(canonical_json_bytes(scenario_descriptor))
     source_sha = sha256_hex(raw)
-    if artifact_ref is not None and not artifact_ref.strip():
-        raise AdapterError("artifact_ref must not be empty")
+    if artifact_ref is not None and (not artifact_ref.strip() or len(artifact_ref) > 2000):
+        raise AdapterError("artifact_ref must be non-empty and at most 2000 characters")
     artifact_locator = artifact_ref or f"urn:sha256:{source_sha}"
 
     warnings = [
@@ -267,7 +271,7 @@ def adapt_source(raw: bytes, *, artifact_ref: str | None = None) -> dict[str, An
     return {
         "schema_version": RUN_SCHEMA_VERSION,
         "run_id": f"urn:sha256:{source_sha}",
-        "scenario_id": f"mycelix-multiworld-sim:scenario:{scenario_sha[:32]}",
+        "scenario_id": f"mycelix-multiworld-sim:scenario:{scenario_sha}",
         "inputs": {
             "scenario_sha256": scenario_sha,
             "scenario_identity_kind": "canonical_effective_scenario",
