@@ -338,8 +338,18 @@ pub struct SignalingClient {
 
 #[cfg(feature = "ws-relay")]
 impl SignalingClient {
-    /// Connect to the signaling server and spawn the WebSocket task.
+    /// Connect using SYMTROPY_SIGNAL_TOKEN when configured, then spawn the WebSocket task.
     pub async fn connect(url: &str) -> Result<Self, String> {
+        let token = std::env::var("SYMTROPY_SIGNAL_TOKEN").ok();
+        Self::connect_with_token(url, token.as_deref()).await
+    }
+
+    /// Connect with an explicitly supplied shared relay-access token.
+    ///
+    /// The token is sent as an HTTP Authorization header, never as a URL parameter.
+    /// This authenticates access to a private relay deployment; it is not an
+    /// end-user identity or end-to-end peer-authentication mechanism.
+    pub async fn connect_with_token(url: &str, token: Option<&str>) -> Result<Self, String> {
         use futures_util::{SinkExt, StreamExt};
         use tokio_tungstenite::{
             connect_async_with_config,
@@ -356,7 +366,7 @@ impl SignalingClient {
             .to_owned()
             .into_client_request()
             .map_err(|error| format!("Invalid signaling WebSocket URL: {error}"))?;
-        if let Ok(token) = std::env::var("SYMTROPY_SIGNAL_TOKEN") {
+        if let Some(token) = token {
             if token.is_empty() {
                 return Err("SYMTROPY_SIGNAL_TOKEN is set but empty".to_string());
             }
