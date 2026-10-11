@@ -91,6 +91,10 @@ jobs:
     - name: Run Tests (WebSocket Relay Feature)
       run: cargo test -p symtropy-net --no-default-features --features ws-relay
 
+    # Execute the new server's auth, room-admission, queue and two-client lifecycle tests explicitly.
+    - name: Run Tests (Signaling Server)
+      run: cargo test -p symtropy-net --no-default-features --features ws-relay --bin symtropy-signaling-server
+
     # The old feature remains an alias so downstream users can migrate gradually.
     - name: Run Tests (Legacy WebRTC Feature Alias)
       run: cargo test -p symtropy-net --no-default-features --features webrtc
