@@ -869,17 +869,18 @@ mod tests {
             "the peer cap must reject the next join"
         );
 
+        let room_registry: SharedRooms = Arc::new(Mutex::new(Rooms::default()));
         let mut separate_rooms = Vec::new();
         for index in 0..MAX_ROOMS {
             let (peer, rx) = test_peer_handle();
             let room_name = format!("room-{index}");
-            join_room(&rooms, &room_name, 10_000 + index as u64, &peer)
+            join_room(&room_registry, &room_name, 10_000 + index as u64, &peer)
                 .expect("room registry must admit up to its room limit");
             separate_rooms.push((peer, rx));
         }
         let (overflow_room_peer, overflow_room_rx) = test_peer_handle();
         let room_overflow = join_room(
-            &rooms,
+            &room_registry,
             "one-room-too-many",
             99_999,
             &overflow_room_peer,
