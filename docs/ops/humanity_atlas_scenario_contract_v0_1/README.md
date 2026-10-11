@@ -136,3 +136,9 @@ scenario start), not a calendar date. Older v0.1 rows without `time_basis`
 remain parseable as unspecified; consumers must not silently infer a calendar
 year from them. The adapter rejects horizons greater than 100,000 years because
 that exceeds the run schema's metric-year bound.
+
+The generic envelope's `engine_version` is taken from the producer's declared
+`source_model` value (`mycelix-multiworld-sim/<package version>`). The optional
+`source_revision` still records the exact build revision only when the build
+environment supplies it; a package version must not be mistaken for an exact
+commit identity.
