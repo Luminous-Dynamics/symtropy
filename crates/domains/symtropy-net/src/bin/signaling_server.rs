@@ -785,6 +785,7 @@ async fn handle_connection(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use symtropy_net::transport::MAX_PEER_MESSAGE_BYTES;
     use tokio_tungstenite::{
         connect_async,
         tungstenite::{client::IntoClientRequest, http::HeaderValue},
@@ -863,6 +864,72 @@ mod tests {
         let mut byte_limiter = RateWindow::new();
         assert!(byte_limiter.admit(MAX_BYTES_PER_SECOND));
         assert!(!byte_limiter.admit(1));
+    }
+
+    fn test_peer_handle() -> (PeerHandle, mpsc::Receiver<QueuedFrame>) {
+        let (tx, rx) = mpsc::channel(OUTBOUND_QUEUE_CAPACITY);
+        let (shutdown_tx, _shutdown_rx) = watch::channel(false);
+        (
+            PeerHandle {
+                tx,
+                queued_bytes: Arc::new(Semaphore::new(MAX_SIGNALING_MESSAGE_BYTES)),
+                shutdown_tx,
+            },
+            rx,
+        )
+    }
+
+    #[test]
+    fn recipient_queue_byte_budget_accepts_one_maximum_envelope_then_backpressures() {
+        let (peer, rx) = test_peer_handle();
+        let message = SignalIncoming::Signal {
+            from: 7,
+            data: SignalData::RelayData {
+                channel: symtropy_net::signaling::SignalChannel::Reliable,
+                payload: vec![u8::MAX; MAX_PEER_MESSAGE_BYTES],
+            },
+        };
+        let serialized_bytes = serde_json::to_string(&message)
+            .expect("serialize maximum relay envelope")
+            .len();
+        assert!(serialized_bytes <= MAX_SIGNALING_MESSAGE_BYTES);
+
+        prepare_message(&peer, &message)
+            .expect("one maximum envelope fits the outbound budget")
+            .commit();
+        assert_eq!(
+            peer.queued_bytes.available_permits(),
+            MAX_SIGNALING_MESSAGE_BYTES - serialized_bytes
+        );
+        let second = prepare_message(&peer, &message);
+        assert!(
+            matches!(second, Err(ref error) if error.contains("byte budget is full")),
+            "a second maximum envelope must not accumulate behind the first"
+        );
+
+        drop(rx);
+        assert_eq!(
+            peer.queued_bytes.available_permits(),
+            MAX_SIGNALING_MESSAGE_BYTES,
+            "dropping the mailbox must release the queued envelope's permits"
+        );
+    }
+
+    #[test]
+    fn recipient_queue_count_budget_is_enforced_independently_of_bytes() {
+        let (peer, rx) = test_peer_handle();
+        for peer_id in 0..OUTBOUND_QUEUE_CAPACITY as u64 {
+            prepare_message(&peer, &SignalIncoming::PeerJoined { peer_id })
+                .expect("small membership message fits queue")
+                .commit();
+        }
+        let next = prepare_message(&peer, &SignalIncoming::PeerJoined { peer_id: 999 });
+        assert!(
+            matches!(next, Err(ref error) if error.contains("message-count queue is full")),
+            "the item-count cap must reject the next small envelope"
+        );
+        drop(rx);
+        assert_eq!(peer.queued_bytes.available_permits(), MAX_SIGNALING_MESSAGE_BYTES);
     }
 
     #[tokio::test]
