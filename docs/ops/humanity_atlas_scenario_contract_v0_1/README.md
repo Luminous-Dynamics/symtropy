@@ -162,6 +162,8 @@ source/envelope/report and log digests, the consumer report, and test logs in
 an evidence directory. By default it creates that directory under `TMPDIR`
 (or `/tmp`), outside the source trees.
 
+The qualification gate requires the Python `jsonschema` package; the ordinary adapter unit test can skip schema validation when run without it, but the qualification script sets `HUMANITY_ATLAS_REQUIRE_JSONSCHEMA=1` and fails if it is missing. Add `python3Packages.jsonschema` to the temporary Nix shell or install `jsonschema` in the Python environment before qualifying.
+
 From a checkout of this Symtropy repository, set the two external repository paths (the script infers the Symtropy checkout from its own location):
 
 ```sh
