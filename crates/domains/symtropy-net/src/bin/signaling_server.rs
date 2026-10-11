@@ -54,6 +54,8 @@ const MAX_CLIENTS: usize = 32;
 const MAX_ROOMS: usize = 32;
 const MAX_ROOM_PEERS: usize = 32;
 const MAX_ROOM_ID_BYTES: usize = 128;
+/// Aggregate budget for all server-side queued/in-flight text relay envelopes.
+const MAX_TOTAL_OUTBOUND_QUEUED_BYTES: usize = MAX_SIGNALING_MESSAGE_BYTES * 8;
 const OUTBOUND_QUEUE_CAPACITY: usize = 32;
 const MAX_MESSAGES_PER_SECOND: usize = 120;
 const MAX_BYTES_PER_SECOND: usize = 8 * 1024 * 1024;
@@ -72,6 +74,8 @@ struct Rooms {
 struct PeerHandle {
     tx: mpsc::Sender<QueuedFrame>,
     queued_bytes: Arc<Semaphore>,
+    /// Shared by every peer so connection count cannot multiply queued memory without limit.
+    global_queued_bytes: Arc<Semaphore>,
     /// Lets the room registry terminate a connection evicted for backpressure.
     shutdown_tx: watch::Sender<bool>,
 }
@@ -79,6 +83,7 @@ struct PeerHandle {
 struct QueuedFrame {
     frame: Message,
     _byte_permit: Option<OwnedSemaphorePermit>,
+    _global_byte_permit: Option<OwnedSemaphorePermit>,
 }
 
 /// Reserves both count capacity and byte capacity before changing any room state.
@@ -87,6 +92,7 @@ struct PreparedFrame {
     slot: mpsc::OwnedPermit<QueuedFrame>,
     frame: Message,
     byte_permit: Option<OwnedSemaphorePermit>,
+    global_byte_permit: Option<OwnedSemaphorePermit>,
 }
 
 impl PreparedFrame {
@@ -94,6 +100,7 @@ impl PreparedFrame {
         self.slot.send(QueuedFrame {
             frame: self.frame,
             _byte_permit: self.byte_permit,
+            _global_byte_permit: self.global_byte_permit,
         });
     }
 }
@@ -198,6 +205,7 @@ async fn run_server(
     let token = Arc::new(token);
     let rooms: SharedRooms = Arc::new(Mutex::new(Rooms::default()));
     let client_slots = Arc::new(Semaphore::new(MAX_CLIENTS));
+    let global_queued_bytes = Arc::new(Semaphore::new(MAX_TOTAL_OUTBOUND_QUEUED_BYTES));
     let next_peer_id = Arc::new(AtomicU64::new(1));
     let mut clients = JoinSet::new();
 
@@ -221,9 +229,18 @@ async fn run_server(
                 let token = token.clone();
                 let rooms = rooms.clone();
                 let next_peer_id = next_peer_id.clone();
+                let global_queued_bytes = global_queued_bytes.clone();
                 clients.spawn(async move {
                     let _client_permit = permit;
-                    if let Err(error) = handle_connection(stream, token, rooms, next_peer_id).await {
+                    if let Err(error) = handle_connection(
+                        stream,
+                        token,
+                        rooms,
+                        next_peer_id,
+                        global_queued_bytes,
+                    )
+                    .await
+                    {
                         eprintln!("relay client {address} ended: {error}");
                     }
                 });
@@ -340,6 +357,11 @@ fn prepare_message(peer: &PeerHandle, message: &SignalIncoming) -> Result<Prepar
         .clone()
         .try_acquire_many_owned(charged_bytes)
         .map_err(|_| "recipient outbound byte budget is full".to_string())?;
+    let global_byte_permit = peer
+        .global_queued_bytes
+        .clone()
+        .try_acquire_many_owned(charged_bytes)
+        .map_err(|_| "server aggregate outbound byte budget is full".to_string())?;
     let slot = peer
         .tx
         .clone()
@@ -350,6 +372,7 @@ fn prepare_message(peer: &PeerHandle, message: &SignalIncoming) -> Result<Prepar
         slot,
         frame: Message::Text(text),
         byte_permit: Some(byte_permit),
+        global_byte_permit: Some(global_byte_permit),
     })
 }
 
@@ -364,7 +387,11 @@ fn forward_message(recipient: &PeerHandle, message: &SignalIncoming) -> Result<(
     match enqueue_message(recipient, message) {
         Ok(()) => Ok(()),
         Err(error) => {
-            let _ = recipient.shutdown_tx.send(true);
+            // Evict peers whose own mailbox cannot accept work. Aggregate server
+            // budget exhaustion rejects this send without penalizing the recipient.
+            if error.contains("recipient outbound") {
+                let _ = recipient.shutdown_tx.send(true);
+            }
             Err(error)
         }
     }
@@ -379,6 +406,7 @@ fn enqueue_control_frame(peer: &PeerHandle, frame: Message) -> Result<(), String
     slot.send(QueuedFrame {
         frame,
         _byte_permit: None,
+        _global_byte_permit: None,
     });
     Ok(())
 }
@@ -542,6 +570,7 @@ async fn handle_connection(
     token: Arc<String>,
     rooms: SharedRooms,
     next_peer_id: Arc<AtomicU64>,
+    global_queued_bytes: Arc<Semaphore>,
 ) -> Result<(), String> {
     let expected = token.clone();
     let callback = move |request: &Request, response: Response| {
@@ -622,6 +651,7 @@ async fn handle_connection(
     let peer = PeerHandle {
         tx: out_tx,
         queued_bytes: Arc::new(Semaphore::new(MAX_SIGNALING_MESSAGE_BYTES)),
+        global_queued_bytes,
         shutdown_tx,
     };
 
@@ -903,6 +933,7 @@ mod tests {
         let peer = PeerHandle {
             tx,
             queued_bytes: Arc::new(Semaphore::new(MAX_SIGNALING_MESSAGE_BYTES)),
+            global_queued_bytes: Arc::new(Semaphore::new(MAX_TOTAL_OUTBOUND_QUEUED_BYTES)),
             shutdown_tx,
         };
 
@@ -1012,10 +1043,25 @@ mod tests {
     fn test_peer_handle() -> (PeerHandle, mpsc::Receiver<QueuedFrame>) {
         let (tx, rx) = mpsc::channel(OUTBOUND_QUEUE_CAPACITY);
         let (shutdown_tx, _shutdown_rx) = watch::channel(false);
+        test_peer_handle_with_global(
+            tx,
+            rx,
+            shutdown_tx,
+            Arc::new(Semaphore::new(MAX_TOTAL_OUTBOUND_QUEUED_BYTES)),
+        )
+    }
+
+    fn test_peer_handle_with_global(
+        tx: mpsc::Sender<QueuedFrame>,
+        rx: mpsc::Receiver<QueuedFrame>,
+        shutdown_tx: watch::Sender<bool>,
+        global_queued_bytes: Arc<Semaphore>,
+    ) -> (PeerHandle, mpsc::Receiver<QueuedFrame>) {
         (
             PeerHandle {
                 tx,
                 queued_bytes: Arc::new(Semaphore::new(MAX_SIGNALING_MESSAGE_BYTES)),
+                global_queued_bytes,
                 shutdown_tx,
             },
             rx,
