@@ -43,8 +43,13 @@ class AdapterTests(unittest.TestCase):
         self.assertIsNone(run["deterministic"])
         self.assertIsNone(run["inputs"]["dataset_sha256"])
         self.assertEqual(run["engine"]["model_identity_kind"], "technology_tree_definition")
+        self.assertEqual(run["engine"]["engine_version"], "unversioned-build")
+        self.assertIsNone(run["engine"]["source_revision"])
+        self.assertEqual(run["inputs"]["scenario_identity_kind"], "canonical_effective_scenario")
+        self.assertEqual(run["inputs"]["selected_definition_source"], "in_code_default_tree")
         self.assertEqual(run["artifacts"][0]["artifact_sha256"], hashlib.sha256(raw).hexdigest())
         self.assertEqual(run["artifacts"][0]["artifact_ref"], f"urn:sha256:{hashlib.sha256(raw).hexdigest()}")
+        self.assertEqual(run["artifacts"][0]["json_pointer"], "/technology_tree")
         self.assertEqual(len(run["outputs"]), 3)
         self.assertEqual(run["validation"]["evidence"], [])
 
