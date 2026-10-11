@@ -17,6 +17,7 @@ SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 
 MONOREPO_ROOT="$(cd -- "$LUMINOUS_MONOREPO_ROOT" && pwd)"
 SOL_ATLAS_ROOT="$(cd -- "$SOL_ATLAS_ROOT" && pwd)"
+SYMTROPY_ROOT="$(git -C "$SCRIPT_DIR" rev-parse --show-toplevel)"
 YEARS="${YEARS:-150}"
 SEED="${SEED:-42}"
 OUT_DIR="${ATLAS_QUALIFICATION_DIR:-$PWD/.humanity-atlas-qualification}"
@@ -35,12 +36,12 @@ fi
 mkdir -p -- "$OUT_DIR"
 OUT_DIR="$(cd -- "$OUT_DIR" && pwd)"
 case "$OUT_DIR/" in
-  "$MONOREPO_ROOT/"*|"$SOL_ATLAS_ROOT/"*)
+  "$MONOREPO_ROOT/"*|"$SOL_ATLAS_ROOT/"*|"$SYMTROPY_ROOT/"*)
     echo "qualification output directory must be outside both source checkouts" >&2
     exit 2
     ;;
 esac
-for checkout in "$MONOREPO_ROOT" "$SOL_ATLAS_ROOT"; do
+for checkout in "$MONOREPO_ROOT" "$SOL_ATLAS_ROOT" "$SYMTROPY_ROOT"; do
   if [[ -n "$(git -C "$checkout" status --porcelain --untracked-files=all)" ]]; then
     echo "source checkout is dirty; refusing to bind a build to HEAD only: $checkout" >&2
     exit 2
@@ -59,6 +60,7 @@ done
 
 git -C "$MONOREPO_ROOT" rev-parse HEAD > "$OUT_DIR/monorepo-commit.txt"
 git -C "$SOL_ATLAS_ROOT" rev-parse HEAD > "$OUT_DIR/sol-atlas-commit.txt"
+git -C "$SYMTROPY_ROOT" rev-parse HEAD > "$OUT_DIR/symtropy-commit.txt"
 rustc --version > "$OUT_DIR/rustc-version.txt"
 cargo --version > "$OUT_DIR/cargo-version.txt"
 python3 --version > "$OUT_DIR/python-version.txt"
@@ -128,6 +130,7 @@ metadata = {
     "seed": int(seed),
     "monorepo_commit": text(os.path.join(os.path.dirname(metadata_path), "monorepo-commit.txt")),
     "sol_atlas_commit": text(os.path.join(os.path.dirname(metadata_path), "sol-atlas-commit.txt")),
+    "symtropy_commit": text(os.path.join(os.path.dirname(metadata_path), "symtropy-commit.txt")),
     "source_artifact_sha256": sha(source_path),
     "run_envelope_sha256": sha(envelope_path),
     "validation_report_sha256": sha(report_path),
