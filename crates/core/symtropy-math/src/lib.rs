@@ -44,7 +44,7 @@ pub use halfspace::HalfSpace;
 pub use hyperbox::HyperBox;
 pub use hyperplane::Hyperplane;
 pub use point::Point;
-pub use rotor::Rotor;
+pub use rotor::{Rotor, RotorMatrixError};
 pub use shape::Shape;
 pub use sphere::Sphere;
 pub use transform::Transform;
