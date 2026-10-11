@@ -47,6 +47,7 @@ class AdapterTests(unittest.TestCase):
         self.assertIsNone(run["engine"]["source_revision"])
         self.assertEqual(run["inputs"]["scenario_identity_kind"], "canonical_effective_scenario")
         self.assertEqual(run["inputs"]["selected_definition_source"], "in_code_default_tree")
+        self.assertTrue(run["scenario_id"].endswith(run["inputs"]["scenario_sha256"]))
         self.assertEqual(run["artifacts"][0]["artifact_sha256"], hashlib.sha256(raw).hexdigest())
         self.assertEqual(run["artifacts"][0]["artifact_ref"], f"urn:sha256:{hashlib.sha256(raw).hexdigest()}")
         self.assertEqual(run["artifacts"][0]["json_pointer"], "/technology_tree")
@@ -64,6 +65,10 @@ class AdapterTests(unittest.TestCase):
         schema = json.loads(schema_path.read_text(encoding="utf-8"))
         jsonschema.Draft202012Validator.check_schema(schema)
         jsonschema.validate(instance=adapt_source(self.raw_source()), schema=schema)
+
+    def test_rejects_overlong_artifact_reference(self):
+        with self.assertRaisesRegex(AdapterError, "at most 2000 characters"):
+            adapt_source(self.raw_source(), artifact_ref="x" * 2001)
 
     def test_rejects_missing_engine_package_version(self):
         source = self.source()
