@@ -12,6 +12,12 @@ use crate::point::Point;
 use crate::transform::Transform;
 use nalgebra::Vector3;
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum FrameKind {
+    Inertial,
+    NonInertial,
+}
+
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum KinematicTransformError {
     InvalidTolerance,
@@ -57,7 +63,7 @@ pub struct KinematicTransform3 {
     from_frame: String,
     to_frame: String,
     epoch: String,
-    target_frame_is_inertial: bool,
+    target_frame_kind: FrameKind,
     pose: Transform<3>,
     origin_velocity_target_m_s: Vector3<f64>,
     origin_acceleration_target_m_s2: Vector3<f64>,
@@ -71,7 +77,7 @@ impl KinematicTransform3 {
         from_frame: impl Into<String>,
         to_frame: impl Into<String>,
         epoch: impl Into<String>,
-        target_frame_is_inertial: bool,
+        target_frame_kind: FrameKind,
         pose: Transform<3>,
         origin_velocity_target_m_s: Vector3<f64>,
         origin_acceleration_target_m_s2: Vector3<f64>,
@@ -83,7 +89,7 @@ impl KinematicTransform3 {
             return Err(KinematicTransformError::InvalidTolerance);
         }
 
-        if !target_frame_is_inertial {
+        if target_frame_kind != FrameKind::Inertial {
             return Err(KinematicTransformError::TargetFrameNotInertial);
         }
 
@@ -132,7 +138,7 @@ impl KinematicTransform3 {
             from_frame,
             to_frame,
             epoch,
-            target_frame_is_inertial,
+            target_frame_kind,
             pose,
             origin_velocity_target_m_s,
             origin_acceleration_target_m_s2,
@@ -144,7 +150,7 @@ impl KinematicTransform3 {
     pub fn from_frame(&self) -> &str { &self.from_frame }
     pub fn to_frame(&self) -> &str { &self.to_frame }
     pub fn epoch(&self) -> &str { &self.epoch }
-    pub fn target_frame_is_inertial(&self) -> bool { self.target_frame_is_inertial }
+    pub fn target_frame_kind(&self) -> FrameKind { self.target_frame_kind }
 
     /// Transform source-frame position into target-frame components.
     pub fn transform_position(
@@ -244,7 +250,7 @@ mod tests {
         alpha: Vector3<f64>,
     ) -> KinematicTransform3 {
         KinematicTransform3::try_new(
-            "source", "target", "fixture://epoch", true,
+            "source", "target", "fixture://epoch", FrameKind::Inertial,
             Transform::identity(),
             origin_velocity, origin_acceleration, omega, alpha, 1e-12,
         ).unwrap()
@@ -346,7 +352,7 @@ mod tests {
             "source",
             "target",
             "fixture://epoch",
-            true,
+            FrameKind::Inertial,
             pose,
             vec(0.0, 0.0, 0.0),
             vec(0.0, 0.0, 0.0),
@@ -368,7 +374,7 @@ mod tests {
             rotation: Rotor::from_matrix(nalgebra::SMatrix::<f64, 3, 3>::identity() * 2.0),
         };
         let result = KinematicTransform3::try_new(
-            "source", "target", "fixture://epoch", true, pose,
+            "source", "target", "fixture://epoch", FrameKind::Inertial, pose,
             vec(0.0, 0.0, 0.0), vec(0.0, 0.0, 0.0),
             vec(0.0, 0.0, 0.0), vec(0.0, 0.0, 0.0), 1e-12,
         );
@@ -378,7 +384,7 @@ mod tests {
     #[test]
     fn constructor_rejects_non_inertial_target_frame() {
         let result = KinematicTransform3::try_new(
-            "source", "rotating-target", "fixture://epoch", false,
+            "source", "rotating-target", "fixture://epoch", FrameKind::NonInertial,
             Transform::identity(),
             vec(0.0, 0.0, 0.0), vec(0.0, 0.0, 0.0),
             vec(0.0, 0.0, 0.0), vec(0.0, 0.0, 0.0), 1e-12,
@@ -389,7 +395,7 @@ mod tests {
     #[test]
     fn constructor_rejects_missing_frame_and_nonfinite_rates() {
         let missing = KinematicTransform3::try_new(
-            "", "target", "fixture://epoch", true, Transform::identity(),
+            "", "target", "fixture://epoch", FrameKind::Inertial, Transform::identity(),
             vec(0.0, 0.0, 0.0), vec(0.0, 0.0, 0.0),
             vec(0.0, 0.0, 0.0), vec(0.0, 0.0, 0.0), 1e-12,
         );
@@ -399,7 +405,7 @@ mod tests {
         ));
 
         let nonfinite = KinematicTransform3::try_new(
-            "source", "target", "fixture://epoch", true, Transform::identity(),
+            "source", "target", "fixture://epoch", FrameKind::Inertial, Transform::identity(),
             vec(f64::NAN, 0.0, 0.0), vec(0.0, 0.0, 0.0),
             vec(0.0, 0.0, 0.0), vec(0.0, 0.0, 0.0), 1e-12,
         );
