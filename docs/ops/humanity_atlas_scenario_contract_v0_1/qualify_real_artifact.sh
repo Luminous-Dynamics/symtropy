@@ -165,7 +165,7 @@ echo "[6/6] Verifying the envelope against the same source bytes in the independ
 if ! (
   cd -- "$SOL_ATLAS_ROOT"
   cargo run --manifest-path "$SOL_ATLAS_ROOT/sol-atlas-core/Cargo.toml" \
-    --example validate_humanity_atlas_artifact -- \
+    --example verify_humanity_atlas_artifact -- \
     "$RUN_ENVELOPE" "$SOURCE_ARTIFACT" source-simulator-output
 ) > "$VALIDATION_REPORT" 2> "$OUT_DIR/sol-atlas-validation.log"; then
   cat "$OUT_DIR/sol-atlas-validation.log" >&2
