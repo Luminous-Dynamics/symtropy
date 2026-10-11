@@ -47,9 +47,10 @@ cargo run -p symtropy-net --no-default-features --features ws-relay --bin symtro
 For a client process, configure `SYMTROPY_SIGNAL_URL=wss://your-relay.example`
 at the TLS proxy's public URL and `SYMTROPY_SIGNAL_TOKEN` to the same shared
 secret. Do not set `SYMTROPY_RELAY_ALLOW_INSECURE_BIND=1` in production.
-The prototype has bounded rooms/clients/queues and per-connection rate limits,
-but lacks per-user credentials, token rotation, Origin policy, durable state,
-distributed coordination, and production load/abuse qualification.
+The prototype has bounded rooms/clients/queues, a shared outbound text-envelope
+budget of about 32.1 MiB, and per-connection rate limits, but lacks per-user
+credentials, token rotation, Origin policy, durable state, distributed coordination,
+and production load/abuse qualification.
 
 ## What's a stub
 
