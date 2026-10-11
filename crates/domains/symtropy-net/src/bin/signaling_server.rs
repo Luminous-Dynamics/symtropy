@@ -684,13 +684,17 @@ async fn handle_connection(
             let QueuedFrame {
                 frame,
                 _byte_permit,
+                _global_byte_permit,
             } = queued;
             if let Err(error) = sink.send(frame).await {
                 drop(_byte_permit);
+                drop(_global_byte_permit);
                 return Err(format!("WebSocket write failed: {error}"));
             }
-            // Keep the permit charged until the queued frame is fully written.
+            // Keep both peer-local and global byte permits charged until the queued
+            // frame is fully written, not merely until it leaves the mpsc queue.
             drop(_byte_permit);
+            drop(_global_byte_permit);
         }
         sink.close()
             .await
@@ -1066,6 +1070,51 @@ mod tests {
             },
             rx,
         )
+    }
+
+    #[test]
+    fn aggregate_outbound_budget_bounds_all_clients_and_recovers_after_drain() {
+        let message = SignalIncoming::PeerJoined { peer_id: 1 };
+        let charge = serde_json::to_string(&message)
+            .expect("serialize test envelope")
+            .len();
+        let global_budget = Arc::new(Semaphore::new(charge));
+
+        let (tx1, rx1) = mpsc::channel(OUTBOUND_QUEUE_CAPACITY);
+        let (shutdown_tx1, _shutdown_rx1) = watch::channel(false);
+        let (peer1, rx1) = test_peer_handle_with_global(
+            tx1,
+            rx1,
+            shutdown_tx1,
+            global_budget.clone(),
+        );
+        prepare_message(&peer1, &message)
+            .expect("first peer uses the exact shared global budget")
+            .commit();
+        assert_eq!(global_budget.available_permits(), 0);
+
+        let (tx2, rx2) = mpsc::channel(OUTBOUND_QUEUE_CAPACITY);
+        let (shutdown_tx2, _shutdown_rx2) = watch::channel(false);
+        let (peer2, rx2) = test_peer_handle_with_global(
+            tx2,
+            rx2,
+            shutdown_tx2,
+            global_budget.clone(),
+        );
+        let blocked = prepare_message(&peer2, &SignalIncoming::PeerJoined { peer_id: 2 });
+        assert!(
+            matches!(blocked, Err(ref error) if error.contains("server aggregate outbound byte budget is full")),
+            "the global budget must span all peer mailboxes, not just each peer's quota"
+        );
+
+        drop(rx1);
+        assert_eq!(global_budget.available_permits(), charge);
+        prepare_message(&peer2, &SignalIncoming::PeerJoined { peer_id: 2 })
+            .expect("draining a queued frame returns the shared capacity")
+            .commit();
+        assert_eq!(global_budget.available_permits(), 0);
+        drop(rx2);
+        assert_eq!(global_budget.available_permits(), charge);
     }
 
     #[test]
