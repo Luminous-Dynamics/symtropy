@@ -1163,7 +1163,7 @@ mod tests {
     }
 
     #[test]
-    fn aggregate_outbound_budget_bounds_all_clients_and_reserves_control_capacity() {
+    fn aggregate_outbound_budgets_isolate_data_control_and_membership_capacity() {
         let data_message = SignalIncoming::Signal {
             from: 1,
             data: SignalData::RelayData {
@@ -1174,9 +1174,20 @@ mod tests {
         let data_charge = serde_json::to_string(&data_message)
             .expect("serialize relay-data test envelope")
             .len();
+        let control_message = SignalIncoming::Error {
+            message: "test-error".to_string(),
+        };
+        let control_charge = serde_json::to_string(&control_message)
+            .expect("serialize error envelope")
+            .len();
+        let membership_message = SignalIncoming::PeerLeft { peer_id: 1 };
+        let membership_charge = serde_json::to_string(&membership_message)
+            .expect("serialize membership envelope")
+            .len();
+
         let global_data_bytes = Arc::new(Semaphore::new(data_charge));
-        let global_control_bytes =
-            Arc::new(Semaphore::new(MAX_TOTAL_OUTBOUND_CONTROL_BYTES));
+        let global_control_bytes = Arc::new(Semaphore::new(control_charge));
+        let global_membership_bytes = Arc::new(Semaphore::new(membership_charge));
 
         let (tx1, rx1) = mpsc::channel(OUTBOUND_QUEUE_CAPACITY);
         let (shutdown_tx1, _shutdown_rx1) = watch::channel(false);
@@ -1186,11 +1197,16 @@ mod tests {
             shutdown_tx1,
             global_data_bytes.clone(),
             global_control_bytes.clone(),
+            global_membership_bytes.clone(),
         );
         prepare_message(&peer1, &data_message)
             .expect("first peer uses the exact shared game-data budget")
             .commit();
         assert_eq!(global_data_bytes.available_permits(), 0);
+        prepare_message(&peer1, &control_message)
+            .expect("control envelope uses the separate reserved budget")
+            .commit();
+        assert_eq!(global_control_bytes.available_permits(), 0);
 
         let (tx2, rx2) = mpsc::channel(OUTBOUND_QUEUE_CAPACITY);
         let (shutdown_tx2, _shutdown_rx2) = watch::channel(false);
@@ -1200,8 +1216,9 @@ mod tests {
             shutdown_tx2,
             global_data_bytes.clone(),
             global_control_bytes.clone(),
+            global_membership_bytes.clone(),
         );
-        let blocked = prepare_message(
+        let blocked_data = prepare_message(
             &peer2,
             &SignalIncoming::Signal {
                 from: 2,
@@ -1212,27 +1229,25 @@ mod tests {
             },
         );
         assert!(
-            matches!(blocked, Err(ref error) if error.contains("server aggregate outbound data budget is full")),
+            matches!(blocked_data, Err(ref error) if error.contains("server aggregate outbound data budget is full")),
             "the global relay-data budget must span all peer mailboxes"
         );
-
-        // Membership cleanup remains queueable even when no more game-data bytes
-        // are available globally; this prevents a full data queue from cascading
-        // into spurious peer disconnects.
-        let control_message = SignalIncoming::PeerLeft { peer_id: 1 };
-        let control_charge = serde_json::to_string(&control_message)
-            .expect("serialize membership control envelope")
-            .len();
-        prepare_message(&peer2, &control_message)
-            .expect("reserved global control capacity remains available")
-            .commit();
-        assert_eq!(
-            global_control_bytes.available_permits(),
-            MAX_TOTAL_OUTBOUND_CONTROL_BYTES - control_charge
+        let blocked_control = prepare_message(&peer2, &control_message);
+        assert!(
+            matches!(blocked_control, Err(ref error) if error.contains("server aggregate outbound control budget is full")),
+            "the non-membership control budget must also be aggregate-bounded"
         );
+
+        // Membership cleanup remains queueable when both data and general control
+        // quotas are exhausted. This avoids a full queue causing a disconnect cascade.
+        prepare_message(&peer2, &membership_message)
+            .expect("reserved global membership capacity remains available")
+            .commit();
+        assert_eq!(global_membership_bytes.available_permits(), 0);
 
         drop(rx1);
         assert_eq!(global_data_bytes.available_permits(), data_charge);
+        assert_eq!(global_control_bytes.available_permits(), control_charge);
         prepare_message(
             &peer2,
             &SignalIncoming::Signal {
@@ -1249,10 +1264,11 @@ mod tests {
 
         drop(rx2);
         assert_eq!(global_data_bytes.available_permits(), data_charge);
+        assert_eq!(global_control_bytes.available_permits(), control_charge);
         assert_eq!(
-            global_control_bytes.available_permits(),
-            MAX_TOTAL_OUTBOUND_CONTROL_BYTES,
-            "dropping queued control messages returns reserved control permits"
+            global_membership_bytes.available_permits(),
+            membership_charge,
+            "dropping queued membership messages returns reserved permits"
         );
     }
 
