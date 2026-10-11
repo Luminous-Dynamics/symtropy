@@ -48,7 +48,7 @@ For a client process, configure `SYMTROPY_SIGNAL_URL=wss://your-relay.example`
 at the TLS proxy's public URL and `SYMTROPY_SIGNAL_TOKEN` to the same shared
 secret. Do not set `SYMTROPY_RELAY_ALLOW_INSECURE_BIND=1` in production.
 The prototype has bounded rooms/clients/queues, a shared outbound text-envelope
-game-data budget of about 32.1 MiB plus a separate 1 MiB control reserve, and per-connection rate limits, but lacks per-user
+game-data budget of about 32.1 MiB, a separate 1 MiB protocol-control quota, a 64 KiB membership reserve, and per-connection rate limits, but lacks per-user
 credentials, token rotation, Origin policy, durable state, distributed coordination,
 and production load/abuse qualification.
 
