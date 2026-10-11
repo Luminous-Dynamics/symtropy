@@ -280,6 +280,11 @@
           },
           "artifact_sha256": {
             "$ref": "#/$defs/sha256"
+          },
+          "json_pointer": {
+            "type": "string",
+            "maxLength": 1000,
+            "description": "Optional RFC 6901 JSON Pointer selecting an embedded payload in the exact artifact bytes; artifact_sha256 still binds the complete referenced artifact."
           }
         }
       },
