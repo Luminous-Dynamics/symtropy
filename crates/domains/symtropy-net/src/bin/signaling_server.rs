@@ -354,6 +354,18 @@ fn enqueue_message(peer: &PeerHandle, message: &SignalIncoming) -> Result<(), St
     Ok(())
 }
 
+/// Forward only after a bounded queue reservation succeeds. A peer whose queue is
+/// saturated is evicted rather than retained indefinitely as an unresponsive member.
+fn forward_message(recipient: &PeerHandle, message: &SignalIncoming) -> Result<(), String> {
+    match enqueue_message(recipient, message) {
+        Ok(()) => Ok(()),
+        Err(error) => {
+            let _ = recipient.shutdown_tx.send(true);
+            Err(error)
+        }
+    }
+}
+
 fn enqueue_control_frame(peer: &PeerHandle, frame: Message) -> Result<(), String> {
     let slot = peer
         .tx
@@ -748,9 +760,9 @@ async fn handle_connection(
                                     continue;
                                 };
                                 let forwarded = SignalIncoming::Signal { from: peer_id, data };
-                                if let Err(error) = enqueue_message(&recipient, &forwarded) {
+                                if let Err(error) = forward_message(&recipient, &forwarded) {
                                     let _ = enqueue_message(&peer, &SignalIncoming::Error {
-                                        message: format!("message not queued for recipient {to}: {error}"),
+                                        message: format!("message not queued for recipient {to}; slow peer is disconnecting: {error}"),
                                     });
                                 }
                             }
@@ -844,6 +856,44 @@ mod tests {
         assert!(!token_matches("x", TEST_TOKEN));
         assert!(!token_matches("Bearer test", TEST_TOKEN));
         assert!(!token_matches("test_token_that_is_long_enough_for_local_tests_124", TEST_TOKEN));
+    }
+
+    #[test]
+    fn recipient_queue_saturation_evicts_the_slow_peer() {
+        let (tx, mut rx) = mpsc::channel::<QueuedFrame>(OUTBOUND_QUEUE_CAPACITY);
+        let (shutdown_tx, shutdown_rx) = watch::channel(false);
+        let peer = PeerHandle {
+            tx,
+            queued_bytes: Arc::new(Semaphore::new(MAX_SIGNALING_MESSAGE_BYTES)),
+            shutdown_tx,
+        };
+
+        for peer_id in 0..OUTBOUND_QUEUE_CAPACITY as u64 {
+            prepare_message(&peer, &SignalIncoming::PeerJoined { peer_id })
+                .expect("small membership event fits before count cap")
+                .commit();
+        }
+
+        let error = forward_message(
+            &peer,
+            &SignalIncoming::Signal {
+                from: 9,
+                data: SignalData::RelayData {
+                    channel: symtropy_net::signaling::SignalChannel::Reliable,
+                    payload: b"overloaded".to_vec(),
+                },
+            },
+        )
+        .expect_err("full recipient queue must not silently accept another message");
+        assert!(error.contains("message-count queue is full"));
+        assert!(*shutdown_rx.borrow(), "saturated peer must receive a shutdown signal");
+        assert_eq!(rx.len(), OUTBOUND_QUEUE_CAPACITY);
+        drop(rx);
+        assert_eq!(
+            peer.queued_bytes.available_permits(),
+            MAX_SIGNALING_MESSAGE_BYTES,
+            "dropping queued messages releases all byte permits"
+        );
     }
 
     #[tokio::test]
