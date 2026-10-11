@@ -44,7 +44,7 @@ pub use convex_hull::ConvexHull;
 pub use halfspace::HalfSpace;
 pub use hyperbox::HyperBox;
 pub use hyperplane::Hyperplane;
-pub use kinematic_transform::{KinematicTransform3, KinematicTransformError};
+pub use kinematic_transform::{FrameKind, KinematicTransform3, KinematicTransformError};
 pub use point::Point;
 pub use rotor::Rotor;
 pub use shape::Shape;
