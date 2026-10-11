@@ -302,6 +302,7 @@ def adapt_source(raw: bytes, *, artifact_ref: str | None = None) -> dict[str, An
                 "media_type": "application/json",
                 "artifact_ref": artifact_locator,
                 "artifact_sha256": source_sha,
+                "json_pointer": "/technology_tree",
             }
         ],
     }
