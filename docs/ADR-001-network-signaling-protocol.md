@@ -12,7 +12,7 @@ The current `RelayTransport` is an experimental WebSocket JSON relay, not a WebR
 
 The former default `wss://signal.holo.host` is not a compatible-service guarantee. Holochain's [official migration guide](https://developer.holochain.org/resources/upgrade/upgrade-holochain-0.4/) identifies that endpoint as old and names `wss://sbd-0.main.infra.holo.host` for SBD. The [SBD wire specification](https://github.com/holochain/sbd/blob/main/spec.md) defines a different authenticated binary protocol with public-key identities and a 20,000-byte message ceiling. SBD is not compatible with this JSON client merely by changing the URL.
 
-In the current integration candidate, `NetworkConfig::default()` intentionally leaves the signaling URL empty unless `SYMTROPY_SIGNAL_URL` is set. `RelayTransport::connect_async` returns an explicit configuration error if it is unset. The localhost WebSocket fixtures validate client-side behavior only; they do not prove a compatible live server exists or accepts the protocol.
+In the current integration candidate, `NetworkConfig::default()` intentionally leaves the signaling URL empty unless `SYMTROPY_SIGNAL_URL` is set. `RelayTransport::connect_async` returns an explicit configuration error if it is unset. An experimental self-hosted binary now exists at `crates/domains/symtropy-net/src/bin/signaling_server.rs`, with local tests for bearer-authenticated upgrade, room isolation, sender-ID overwriting, queue bounds, bidirectional payloads, disconnect, and reconnect. It uses one shared bearer token for the whole deployment; this is a private/trusted-group access gate, not per-user identity or a production authorization system. The localhost tests do not prove public deployment, production TLS, abuse resistance, or a compatible public service.
 
 ## Options
 
@@ -21,6 +21,8 @@ In the current integration candidate, `NetworkConfig::default()` intentionally l
 Implement the exact versioned JSON contract on a separately deployable, self-hostable service. The service is responsible for authenticated client sessions, room membership, canonical sender identity, peer admission, forwarding, bounded queues, rate/size limits, and observable disconnect/rejoin behavior.
 
 **Advantages:** preserves the client wire format and 1 MiB packet contract; easiest way to qualify the existing client as an end-to-end relay; allows local deterministic integration tests and owner-controlled deployments.
+
+An initial bounded prototype is now present in `src/bin/signaling_server.rs`, though its shared-secret model is only appropriate for controlled deployments.
 
 **Costs:** adds a server component to build, secure, deploy, monitor, and version; requires an explicit identity/authentication model and threat model; relayed data is not direct P2P and the service remains in the trust path.
 
@@ -58,7 +60,9 @@ This recommendation optimizes for a tractable, testable first delivery and avoid
 
 - [ ] ADR accepted with identity/trust assumptions recorded.
 - [ ] Versioned protocol schema and server behavior contract are published in the repository.
-- [ ] Server-side validation rejects unauthenticated or non-member senders, forged sender IDs, unknown message kinds, oversized messages, and rate/queue-budget violations.
+- [x] Experimental prototype: rejects unauthenticated WebSocket upgrades, assigns sender IDs on the server, enforces same-room recipient membership, caps incoming envelope/payload sizes, rate-limits connections, and bounds per-peer outbound count/bytes. Local tests cover forged sender fields and cross-room attempts; these have not yet been executed here.
+- [ ] Replace the prototype shared bearer secret with a reviewed authentication/identity design before exposing it to untrusted clients.
+- [ ] Service-side validation rejects unauthenticated or non-member senders, forged sender IDs, unknown message kinds, oversized messages, and rate/queue-budget violations under the accepted identity design.
 - [ ] Tests exercise exact byte boundaries, aggregate queue exhaustion, disconnect/reconnect, and partial-forward failure.
 - [ ] Two independent client instances connect to the selected service, are admitted to one room, exchange data in both directions, reject control/data confusion and malformed/oversized packets, then disconnect and reconnect.
 - [ ] Evidence packet records source commit, service/configuration version, test runner, request/response traces with secrets removed, results and limitations.
@@ -67,4 +71,4 @@ This recommendation optimizes for a tractable, testable first delivery and avoid
 
 ## Current state
 
-This is a proposed decision record based on source review and the cited public protocol specifications. No Rust build, formatting run, test run, service deployment, or live-network experiment is claimed. The integration PR remains draft until the design and validation gates are resolved.
+This is a proposed decision record based on source review and the cited public protocol specifications. A local server prototype and regression tests have been authored, but they have not been run in this environment. No Rust build, formatting run, passing test result, service deployment, production security review, or live-network experiment is claimed. The ADR remains proposed and the integration PR remains draft until the trust model and validation gates are resolved.
