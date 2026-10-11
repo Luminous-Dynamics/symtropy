@@ -239,9 +239,10 @@
           "time_basis": {
             "enum": [
               "calendar_year",
-              "scenario_relative_year"
+              "scenario_relative_year",
+              null
             ],
-            "description": "Time coordinate semantics for year; scenario_relative_year is measured from the simulated scenario start and is not a calendar date."
+            "description": "Optional time-coordinate semantics for year; scenario_relative_year is measured from the simulated scenario start and is not a calendar date."
           }
         }
       }
