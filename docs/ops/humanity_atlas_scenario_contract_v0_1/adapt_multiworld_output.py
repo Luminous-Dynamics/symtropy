@@ -218,7 +218,9 @@ def adapt_source(raw: bytes, *, artifact_ref: str | None = None) -> dict[str, An
     manifest_ticks = _required_int(manifest, "ticks", "run_manifest")
     if ticks > 4_294_967_295 or manifest_ticks > 4_294_967_295:
         raise AdapterError("source or run_manifest ticks exceed the u32 wire range")
-    source_revision = manifest.get("source_revision")
+    if "source_revision" not in manifest:
+        raise AdapterError("run_manifest.source_revision is a required key and may be null")
+    source_revision = manifest["source_revision"]
     if source_revision is not None and (
         not isinstance(source_revision, str) or not source_revision.strip() or len(source_revision) > 120
     ):
