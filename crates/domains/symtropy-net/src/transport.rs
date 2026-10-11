@@ -26,7 +26,7 @@ use crate::peer::PeerId;
 use serde::{Deserialize, Serialize};
 
 /// Maximum encoded game packet accepted by the session and relay envelope.
-pub(crate) const MAX_PEER_MESSAGE_BYTES: usize = 1024 * 1024;
+pub const MAX_PEER_MESSAGE_BYTES: usize = 1024 * 1024;
 
 /// Maximum number of body identifiers in one authority message.
 ///
