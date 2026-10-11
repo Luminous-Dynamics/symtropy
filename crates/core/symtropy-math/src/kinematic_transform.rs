@@ -250,7 +250,10 @@ mod tests {
         alpha: Vector3<f64>,
     ) -> KinematicTransform3 {
         KinematicTransform3::try_new(
-            "source", "target", "fixture://epoch", FrameKind::Inertial,
+            "source",
+            "target",
+            "fixture://epoch",
+            FrameKind::Inertial,
             Transform::identity(),
             origin_velocity, origin_acceleration, omega, alpha, 1e-12,
         ).unwrap()
@@ -265,10 +268,20 @@ mod tests {
             vec(0.0, 0.0, 0.0),
         );
         let p = Point::new([7.0, 8.0, 9.0]);
-        assert_eq!(t.transform_position(&p).unwrap(), Point::new([7.0, 8.0, 9.0]));
-        assert_eq!(t.transform_velocity(&p, &vec(0.5, 1.0, 1.5)).unwrap(), vec(1.5, 3.0, 4.5));
         assert_eq!(
-            t.transform_acceleration(&p, &vec(0.5, 1.0, 1.5), &vec(1.0, 1.0, 1.0))
+            t.transform_position(&p).unwrap(),
+            Point::new([7.0, 8.0, 9.0])
+        );
+        assert_eq!(
+            t.transform_velocity(&p, &vec(0.5, 1.0, 1.5)).unwrap(),
+            vec(1.5, 3.0, 4.5)
+        );
+        assert_eq!(
+            t.transform_acceleration(
+                &p,
+                &vec(0.5, 1.0, 1.5),
+                &vec(1.0, 1.0, 1.0)
+            )
                 .unwrap(),
             vec(5.0, 6.0, 7.0)
         );
@@ -359,7 +372,8 @@ mod tests {
             vec(0.0, 0.0, 0.0),
             vec(0.0, 0.0, 0.0),
             1e-12,
-        ).unwrap();
+        )
+        .unwrap();
         let result = t.transform_position(&Point::new([f64::MAX, f64::MAX, f64::MAX]));
         assert!(matches!(
             result,
@@ -374,11 +388,18 @@ mod tests {
             rotation: Rotor::from_matrix(nalgebra::SMatrix::<f64, 3, 3>::identity() * 2.0),
         };
         let result = KinematicTransform3::try_new(
-            "source", "target", "fixture://epoch", FrameKind::Inertial, pose,
+            "source",
+            "target",
+            "fixture://epoch",
+            FrameKind::Inertial,
+            pose,
             vec(0.0, 0.0, 0.0), vec(0.0, 0.0, 0.0),
             vec(0.0, 0.0, 0.0), vec(0.0, 0.0, 0.0), 1e-12,
         );
-        assert!(matches!(result, Err(KinematicTransformError::InvalidRotation { .. })));
+        assert!(matches!(
+            result,
+            Err(KinematicTransformError::InvalidRotation { .. })
+        ));
     }
 
     #[test]
@@ -389,13 +410,20 @@ mod tests {
             vec(0.0, 0.0, 0.0), vec(0.0, 0.0, 0.0),
             vec(0.0, 0.0, 0.0), vec(0.0, 0.0, 0.0), 1e-12,
         );
-        assert!(matches!(result, Err(KinematicTransformError::TargetFrameNotInertial)));
+        assert!(matches!(
+            result,
+            Err(KinematicTransformError::TargetFrameNotInertial)
+        ));
     }
 
     #[test]
     fn constructor_rejects_missing_frame_and_nonfinite_rates() {
         let missing = KinematicTransform3::try_new(
-            "", "target", "fixture://epoch", FrameKind::Inertial, Transform::identity(),
+            "",
+            "target",
+            "fixture://epoch",
+            FrameKind::Inertial,
+            Transform::identity(),
             vec(0.0, 0.0, 0.0), vec(0.0, 0.0, 0.0),
             vec(0.0, 0.0, 0.0), vec(0.0, 0.0, 0.0), 1e-12,
         );
@@ -405,7 +433,11 @@ mod tests {
         ));
 
         let nonfinite = KinematicTransform3::try_new(
-            "source", "target", "fixture://epoch", FrameKind::Inertial, Transform::identity(),
+            "source",
+            "target",
+            "fixture://epoch",
+            FrameKind::Inertial,
+            Transform::identity(),
             vec(f64::NAN, 0.0, 0.0), vec(0.0, 0.0, 0.0),
             vec(0.0, 0.0, 0.0), vec(0.0, 0.0, 0.0), 1e-12,
         );
