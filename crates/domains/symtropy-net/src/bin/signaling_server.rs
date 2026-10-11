@@ -1308,6 +1308,73 @@ mod tests {
     }
 
     #[test]
+    fn aggregate_data_backpressure_does_not_evict_recipient_or_block_membership() {
+        let (tx, rx) = mpsc::channel(OUTBOUND_QUEUE_CAPACITY);
+        let (shutdown_tx, shutdown_rx) = watch::channel(false);
+        let global_data_bytes = Arc::new(Semaphore::new(0));
+        let global_control_bytes = Arc::new(Semaphore::new(MAX_TOTAL_OUTBOUND_CONTROL_BYTES));
+        let global_membership_bytes =
+            Arc::new(Semaphore::new(MAX_TOTAL_OUTBOUND_MEMBERSHIP_BYTES));
+        let (peer, mut outbound) = test_peer_handle_with_global(
+            tx,
+            rx,
+            shutdown_tx,
+            global_data_bytes.clone(),
+            global_control_bytes,
+            global_membership_bytes.clone(),
+        );
+
+        let data_message = SignalIncoming::Signal {
+            from: 1,
+            data: SignalData::RelayData {
+                channel: symtropy_net::signaling::SignalChannel::Reliable,
+                payload: b"temporary aggregate pressure".to_vec(),
+            },
+        };
+        let error = forward_message(&peer, &data_message)
+            .expect_err("an exhausted aggregate data budget must reject this send");
+        assert!(
+            error.contains("server aggregate outbound data budget is full"),
+            "unexpected backpressure classification: {error}"
+        );
+        assert!(
+            !*shutdown_rx.borrow(),
+            "shared data-budget exhaustion must not evict a healthy recipient"
+        );
+        assert_eq!(
+            peer.queued_bytes.available_permits(),
+            MAX_SIGNALING_MESSAGE_BYTES,
+            "the local byte reservation must roll back when the shared reservation fails"
+        );
+        assert_eq!(global_data_bytes.available_permits(), 0);
+        assert!(
+            outbound.try_recv().is_err(),
+            "a rejected relay envelope must not enter the recipient mailbox"
+        );
+
+        forward_message(&peer, &SignalIncoming::PeerLeft { peer_id: 99 })
+            .expect("reserved membership capacity remains usable under data pressure");
+        let membership = outbound
+            .try_recv()
+            .expect("membership notification should be queued");
+        drop(membership);
+        assert!(
+            !*shutdown_rx.borrow(),
+            "successful membership delivery must leave the recipient connected"
+        );
+        assert_eq!(
+            peer.queued_bytes.available_permits(),
+            MAX_SIGNALING_MESSAGE_BYTES,
+            "dropping the queued membership frame must release local permits"
+        );
+        assert_eq!(
+            global_membership_bytes.available_permits(),
+            MAX_TOTAL_OUTBOUND_MEMBERSHIP_BYTES,
+            "dropping the queued membership frame must release reserved global permits"
+        );
+    }
+
+    #[test]
     fn peer_left_cleanup_survives_exhausted_data_and_general_control_budgets() {
         let rooms: SharedRooms = Arc::new(Mutex::new(Rooms::default()));
         let global_data_bytes = Arc::new(Semaphore::new(0));
