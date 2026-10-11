@@ -34,6 +34,18 @@ fi
 
 mkdir -p -- "$OUT_DIR"
 OUT_DIR="$(cd -- "$OUT_DIR" && pwd)"
+case "$OUT_DIR/" in
+  "$MONOREPO_ROOT/"*|"$SOL_ATLAS_ROOT/"*)
+    echo "qualification output directory must be outside both source checkouts" >&2
+    exit 2
+    ;;
+esac
+for checkout in "$MONOREPO_ROOT" "$SOL_ATLAS_ROOT"; do
+  if [[ -n "$(git -C "$checkout" status --porcelain --untracked-files=all)" ]]; then
+    echo "source checkout is dirty; refusing to bind a build to HEAD only: $checkout" >&2
+    exit 2
+  fi
+done
 SOURCE_ARTIFACT="$OUT_DIR/simulator-output.json"
 RUN_ENVELOPE="$OUT_DIR/run-envelope.v0.1.json"
 VALIDATION_REPORT="$OUT_DIR/sol-atlas-validation.json"
@@ -52,18 +64,24 @@ cargo --version > "$OUT_DIR/cargo-version.txt"
 python3 --version > "$OUT_DIR/python-version.txt"
 
 echo "[1/4] Capturing one actual simulator run (stdout is the immutable source artifact)." >&2
-(
+if ! (
   cd -- "$MONOREPO_ROOT"
   cargo run --release \
     --manifest-path "$MONOREPO_ROOT/mycelix-multiworld-sim/Cargo.toml" \
     --bin luminous_sim -- --years "$YEARS" --seed "$SEED" \
     --format humanity-atlas-json
-) > "$SOURCE_ARTIFACT"
+) > "$SOURCE_ARTIFACT" 2> "$OUT_DIR/simulator-run.log"; then
+  cat "$OUT_DIR/simulator-run.log" >&2
+  exit 1
+fi
 
 sha256sum "$SOURCE_ARTIFACT" > "$SOURCE_ARTIFACT.sha256"
 
 echo "[2/4] Adapting that exact artifact into Humanity Atlas run v0.1." >&2
-python3 "$SCRIPT_DIR/adapt_multiworld_output.py" "$SOURCE_ARTIFACT" --output "$RUN_ENVELOPE"
+if ! python3 "$SCRIPT_DIR/adapt_multiworld_output.py" "$SOURCE_ARTIFACT" --output "$RUN_ENVELOPE" 2> "$OUT_DIR/adapter.log"; then
+  cat "$OUT_DIR/adapter.log" >&2
+  exit 1
+fi
 sha256sum "$RUN_ENVELOPE" > "$RUN_ENVELOPE.sha256"
 
 echo "[3/4] Running standalone Sol-Atlas core tests." >&2
@@ -76,12 +94,15 @@ echo "[3/4] Running standalone Sol-Atlas core tests." >&2
 }
 
 echo "[4/4] Verifying the envelope against the same source bytes in the independent importer." >&2
-(
+if ! (
   cd -- "$SOL_ATLAS_ROOT"
   cargo run --manifest-path "$SOL_ATLAS_ROOT/sol-atlas-core/Cargo.toml" \
     --example validate_humanity_atlas_artifact -- \
     "$RUN_ENVELOPE" "$SOURCE_ARTIFACT" source-simulator-output
-) > "$VALIDATION_REPORT" 2> "$OUT_DIR/sol-atlas-validation.log"
+) > "$VALIDATION_REPORT" 2> "$OUT_DIR/sol-atlas-validation.log"; then
+  cat "$OUT_DIR/sol-atlas-validation.log" >&2
+  exit 1
+fi
 
 sha256sum "$VALIDATION_REPORT" > "$VALIDATION_REPORT.sha256"
 
