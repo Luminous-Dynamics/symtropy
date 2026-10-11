@@ -395,22 +395,22 @@ mod tests {
     fn checked_matrix_constructor_rejects_non_finite_entries() {
         let mut matrix = SMatrix::<f64, 3, 3>::identity();
         matrix[(0, 1)] = f64::NAN;
-        assert_eq!(
+        assert!(matches!(
             Rotor::try_from_matrix(matrix, 1e-12),
             Err(RotorMatrixError::NonFiniteEntry)
-        );
+        ));
     }
 
     #[test]
     fn checked_matrix_constructor_rejects_invalid_tolerance() {
-        assert_eq!(
+        assert!(matches!(
             Rotor::try_from_matrix(SMatrix::<f64, 3, 3>::identity(), f64::NAN),
             Err(RotorMatrixError::InvalidTolerance)
-        );
-        assert_eq!(
+        ));
+        assert!(matches!(
             Rotor::try_from_matrix(SMatrix::<f64, 3, 3>::identity(), -1.0),
             Err(RotorMatrixError::InvalidTolerance)
-        );
+        ));
     }
 
     #[test]
