@@ -122,3 +122,10 @@ adapter invariants; they are not evidence of a real simulator execution. The
 end-to-end qualification step remains exporting an actual run, validating the
 artifact through the independently implemented Sol-Atlas technology-tree
 importer, and preserving the exact output bytes and resulting digests.
+
+The source artifact reference also carries JSON Pointer `/technology_tree`.
+The digest binds the complete simulator-output artifact bytes; the pointer selects
+its embedded tree and is not represented as a separate digest. Sol-Atlas validates
+the pointer syntax and independently validates the imported graph. A URI or
+content-addressed name does not prove that the bytes have been published, signed,
+or scientifically qualified.
