@@ -267,6 +267,7 @@ mod tests {
             vec(0.0, 0.0, 0.0),
             vec(0.0, 0.0, 0.0),
         );
+        assert_eq!(t.target_frame_kind(), FrameKind::Inertial);
         let p = Point::new([7.0, 8.0, 9.0]);
         assert_eq!(
             t.transform_position(&p).unwrap(),
@@ -378,6 +379,26 @@ mod tests {
         assert!(matches!(
             result,
             Err(KinematicTransformError::NonFiniteResult("position_target_m"))
+        ));
+    }
+
+    #[test]
+    fn constructor_rejects_non_finite_tolerance() {
+        let result = KinematicTransform3::try_new(
+            "source",
+            "target",
+            "fixture://epoch",
+            FrameKind::Inertial,
+            Transform::identity(),
+            vec(0.0, 0.0, 0.0),
+            vec(0.0, 0.0, 0.0),
+            vec(0.0, 0.0, 0.0),
+            vec(0.0, 0.0, 0.0),
+            f64::NAN,
+        );
+        assert!(matches!(
+            result,
+            Err(KinematicTransformError::InvalidTolerance)
         ));
     }
 
