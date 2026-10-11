@@ -35,6 +35,8 @@ Deterministic lockstep networking for Symtropy.
   New builds should enable `symtropy-net/ws-relay`; the old `webrtc` feature is
   retained only as an alias and does not enable a WebRTC data channel.
 
+For controlled deployments, see [the relay prototype deployment guide](../../../docs/networking/signaling-relay-prototype.md) for the reverse-proxy pattern, token setup, configured bounds, and explicit security limitations.
+
 ### Run the experimental local relay prototype
 
 ```sh
