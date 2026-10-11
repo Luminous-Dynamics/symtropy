@@ -79,12 +79,6 @@ The server overwrites a forwarded sender ID with the ID assigned to that WebSock
 Run the dedicated server tests:
 
 ```sh
-cargo test -p symtropy --no-default-features --features ws-relay --bin symtropy-signaling-server
-```
-
-In the current workspace package, the actual package name is `symtropy-net`; use this command:
-
-```sh
 cargo test -p symtropy-net --no-default-features --features ws-relay --bin symtropy-signaling-server
 ```
 
