@@ -54,6 +54,9 @@ done
 SOURCE_ARTIFACT="$OUT_DIR/simulator-output.json"
 RUN_ENVELOPE="$OUT_DIR/run-envelope.v0.1.json"
 VALIDATION_REPORT="$OUT_DIR/sol-atlas-validation.json"
+RUN_SCHEMA_SOURCE="$SCRIPT_DIR/schemas/run-v0.1.schema.json"
+TREE_SCHEMA_PRODUCER="$MONOREPO_ROOT/sol-atlas-core/schemas/mycelix-multiworld-sim-tech-tree-v1.schema.json"
+TREE_SCHEMA_CONSUMER="$SOL_ATLAS_ROOT/sol-atlas-core/schemas/mycelix-multiworld-sim-tech-tree-v1.schema.json"
 CORE_LOCK_PATH="$SOL_ATLAS_ROOT/sol-atlas-core/Cargo.lock"
 if [[ -f "$CORE_LOCK_PATH" ]]; then
   CORE_LOCK_PREEXISTED=1
@@ -67,12 +70,31 @@ cleanup_generated_core_lock() {
 }
 trap cleanup_generated_core_lock EXIT
 
-for path in "$MONOREPO_ROOT/mycelix-multiworld-sim/Cargo.toml" "$SOL_ATLAS_ROOT/sol-atlas-core/Cargo.toml"; do
+for path in \
+  "$MONOREPO_ROOT/mycelix-multiworld-sim/Cargo.toml" \
+  "$SOL_ATLAS_ROOT/sol-atlas-core/Cargo.toml" \
+  "$RUN_SCHEMA_SOURCE" "$TREE_SCHEMA_PRODUCER" "$TREE_SCHEMA_CONSUMER"; do
   if [[ ! -f "$path" ]]; then
-    echo "required manifest not found: $path" >&2
+    echo "required manifest/schema not found: $path" >&2
     exit 2
   fi
 done
+if ! cmp -s -- "$TREE_SCHEMA_PRODUCER" "$TREE_SCHEMA_CONSUMER"; then
+  echo "producer and standalone consumer technology-tree schemas differ byte-for-byte" >&2
+  exit 1
+fi
+
+# Snapshot every schema/script that participates in the qualification. Hashes
+# below describe these copies, while the checkout HEADs bind their source trees.
+cp -- "$SCRIPT_DIR/adapt_multiworld_output.py" "$OUT_DIR/adapt_multiworld_output.py"
+cp -- "$SCRIPT_DIR/test_adapt_multiworld_output.py" "$OUT_DIR/test_adapt_multiworld_output.py"
+cp -- "$RUN_SCHEMA_SOURCE" "$OUT_DIR/run-v0.1.schema.json"
+cp -- "$TREE_SCHEMA_PRODUCER" "$OUT_DIR/producer-tech-tree-v1.schema.json"
+cp -- "$TREE_SCHEMA_CONSUMER" "$OUT_DIR/consumer-tech-tree-v1.schema.json"
+if ! cmp -s -- "$RUN_SCHEMA_SOURCE" "$OUT_DIR/run-v0.1.schema.json"; then
+  echo "run schema snapshot does not match its source" >&2
+  exit 1
+fi
 
 git -C "$MONOREPO_ROOT" rev-parse HEAD > "$OUT_DIR/monorepo-commit.txt"
 git -C "$SOL_ATLAS_ROOT" rev-parse HEAD > "$OUT_DIR/sol-atlas-commit.txt"
@@ -113,7 +135,7 @@ fi
 sha256sum "$RUN_ENVELOPE" > "$RUN_ENVELOPE.sha256"
 
 echo "[4/6] Validating the actual generated envelope against the published run schema." >&2
-if ! python3 - "$SCRIPT_DIR/schemas/run-v0.1.schema.json" "$RUN_ENVELOPE" <<'PY' > "$OUT_DIR/run-schema-validation.log" 2>&1
+if ! python3 - "$OUT_DIR/run-v0.1.schema.json" "$RUN_ENVELOPE" <<'PY' > "$OUT_DIR/run-schema-validation.log" 2>&1
 import json, sys
 import jsonschema
 schema_path, envelope_path = sys.argv[1:]
@@ -186,6 +208,12 @@ metadata = {
     "run_envelope_sha256": sha(envelope_path),
     "validation_report_sha256": sha(report_path),
     "sol_atlas_core_cargo_lock_sha256": sha(core_lock_path),
+    "adapter_source_sha256": sha(os.path.join(os.path.dirname(metadata_path), "adapt_multiworld_output.py")),
+    "adapter_tests_source_sha256": sha(os.path.join(os.path.dirname(metadata_path), "test_adapt_multiworld_output.py")),
+    "run_schema_sha256": sha(os.path.join(os.path.dirname(metadata_path), "run-v0.1.schema.json")),
+    "producer_tree_schema_sha256": sha(os.path.join(os.path.dirname(metadata_path), "producer-tech-tree-v1.schema.json")),
+    "consumer_tree_schema_sha256": sha(os.path.join(os.path.dirname(metadata_path), "consumer-tech-tree-v1.schema.json")),
+    "tree_schemas_byte_identical": True,
     "simulator_log_sha256": sha(os.path.join(os.path.dirname(metadata_path), "simulator-run.log")),
     "adapter_log_sha256": sha(os.path.join(os.path.dirname(metadata_path), "adapter.log")),
     "python_adapter_tests_log_sha256": sha(os.path.join(os.path.dirname(metadata_path), "python-adapter-tests.log")),
