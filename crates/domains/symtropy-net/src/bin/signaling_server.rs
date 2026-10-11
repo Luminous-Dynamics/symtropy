@@ -1082,8 +1082,20 @@ mod tests {
         let (shutdown_tx, shutdown_rx) = watch::channel(false);
         let server = tokio::spawn(run_server(listener, TEST_TOKEN.to_string(), shutdown_rx));
         let url = format!("ws://{address}");
-        let result = connect_async(url).await;
+        let result = connect_async(url.clone()).await;
         assert!(result.is_err(), "server must require a bearer token");
+
+        let mut wrong_request = url.into_client_request().expect("valid WebSocket URL");
+        wrong_request.headers_mut().insert(
+            AUTHORIZATION,
+            HeaderValue::from_str("Bearer wrong_token_that_is_long_enough_123456")
+                .expect("valid wrong-token header"),
+        );
+        let wrong_token_result = connect_async(wrong_request).await;
+        assert!(
+            wrong_token_result.is_err(),
+            "server must reject a well-formed but incorrect bearer token"
+        );
         let _ = shutdown_tx.send(true);
         timeout(Duration::from_secs(3), server)
             .await
