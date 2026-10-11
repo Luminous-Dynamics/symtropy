@@ -129,3 +129,10 @@ its embedded tree and is not represented as a separate digest. Sol-Atlas validat
 the pointer syntax and independently validates the imported graph. A URI or
 content-addressed name does not prove that the bytes have been published, signed,
 or scientifically qualified.
+
+The adapter marks each metric row with `time_basis: "scenario_relative_year"`.
+The numeric `year` is therefore a horizon coordinate (e.g. 150 years after
+scenario start), not a calendar date. Older v0.1 rows without `time_basis`
+remain parseable as unspecified; consumers must not silently infer a calendar
+year from them. The adapter rejects horizons greater than 100,000 years because
+that exceeds the run schema's metric-year bound.
