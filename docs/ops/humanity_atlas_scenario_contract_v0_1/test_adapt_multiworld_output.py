@@ -19,7 +19,7 @@ class AdapterTests(unittest.TestCase):
             "resolved_config": cfg, "resolved_params": params,
             "technology_tree": {
                 "schema_version": "mycelix-multiworld-sim.tech-tree.v1",
-                "classification": "simulated_scenario", "source_model": "mycelix-multiworld-sim",
+                "classification": "simulated_scenario", "source_model": "mycelix-multiworld-sim/0.1.0",
                 "definition_sha256": model_sha, "definition_source": "in_code_default_tree",
                 "ticks_per_year": 12, "year_zero_semantics": "relative_to_scenario_start",
                 "milestones": [{"id": "synthetic-only"}],
@@ -43,7 +43,7 @@ class AdapterTests(unittest.TestCase):
         self.assertIsNone(run["deterministic"])
         self.assertIsNone(run["inputs"]["dataset_sha256"])
         self.assertEqual(run["engine"]["model_identity_kind"], "technology_tree_definition")
-        self.assertEqual(run["engine"]["engine_version"], "unversioned-build")
+        self.assertEqual(run["engine"]["engine_version"], "0.1.0")
         self.assertIsNone(run["engine"]["source_revision"])
         self.assertEqual(run["inputs"]["scenario_identity_kind"], "canonical_effective_scenario")
         self.assertEqual(run["inputs"]["selected_definition_source"], "in_code_default_tree")
@@ -64,6 +64,12 @@ class AdapterTests(unittest.TestCase):
         schema = json.loads(schema_path.read_text(encoding="utf-8"))
         jsonschema.Draft202012Validator.check_schema(schema)
         jsonschema.validate(instance=adapt_source(self.raw_source()), schema=schema)
+
+    def test_rejects_missing_engine_package_version(self):
+        source = self.source()
+        source["technology_tree"]["source_model"] = "mycelix-multiworld-sim"
+        with self.assertRaisesRegex(AdapterError, "versioned mycelix-multiworld-sim engine"):
+            adapt_source(json.dumps(source).encode())
 
     def test_rejects_manifest_model_mismatch(self):
         source = self.source()
