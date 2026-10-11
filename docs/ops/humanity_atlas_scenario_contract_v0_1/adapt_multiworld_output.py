@@ -231,6 +231,12 @@ def adapt_source(raw: bytes, *, artifact_ref: str | None = None) -> dict[str, An
         raise AdapterError("technology-tree definition_source disagrees with run manifest")
     if model_sha != manifest_model_sha:
         raise AdapterError("technology-tree definition digest disagrees with run manifest")
+    config_seed = _required_int(resolved_config, "seed", "resolved_config")
+    config_ticks = _required_int(resolved_config, "total_ticks", "resolved_config", minimum=1)
+    if config_seed != seed:
+        raise AdapterError("resolved_config.seed disagrees with top-level seed")
+    if config_ticks != ticks:
+        raise AdapterError("resolved_config.total_ticks disagrees with top-level ticks")
     if seed != manifest_seed or ticks != manifest_ticks:
         raise AdapterError("top-level seed/ticks disagree with run manifest")
     if ticks != years * ticks_per_year:
