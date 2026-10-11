@@ -66,6 +66,26 @@ class AdapterTests(unittest.TestCase):
         jsonschema.Draft202012Validator.check_schema(schema)
         jsonschema.validate(instance=adapt_source(self.raw_source()), schema=schema)
 
+    def test_rejects_tick_counts_outside_u32_wire_range(self):
+        for field in ("ticks", "run_manifest_ticks", "ticks_per_year"):
+            source = self.source()
+            if field == "ticks":
+                source["ticks"] = 4_294_967_296
+                source["run_manifest"]["ticks"] = 4_294_967_296
+            elif field == "run_manifest_ticks":
+                source["run_manifest"]["ticks"] = 4_294_967_296
+            else:
+                source["technology_tree"]["ticks_per_year"] = 4_294_967_296
+            with self.subTest(field=field):
+                with self.assertRaisesRegex(AdapterError, "u32 wire range"):
+                    adapt_source(json.dumps(source).encode())
+
+    def test_rejects_invalid_package_version_token(self):
+        source = self.source()
+        source["technology_tree"]["source_model"] = "mycelix-multiworld-sim/0.1.0/extra"
+        with self.assertRaisesRegex(AdapterError, "version token"):
+            adapt_source(json.dumps(source).encode())
+
     def test_rejects_overlong_artifact_reference(self):
         with self.assertRaisesRegex(AdapterError, "at most 2000 characters"):
             adapt_source(self.raw_source(), artifact_ref="x" * 2001)
