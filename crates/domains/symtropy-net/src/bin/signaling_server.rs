@@ -925,17 +925,24 @@ mod tests {
             SignalIncoming::PeerJoined { peer_id } if peer_id == second_id
         ));
 
-        send_client_message(
-            &mut first,
-            SignalOutgoing::Signal {
-                to: second_id,
-                data: SignalData::RelayData {
-                    channel: symtropy_net::signaling::SignalChannel::Reliable,
-                    payload: b"hello".to_vec(),
-                },
-            },
-        )
-        .await;
+        // A malicious client may try to include its own "from" field. The server
+        // ignores that extra field and derives the forwarded sender ID from the
+        // authenticated WebSocket session instead.
+        let forged_sender_message = serde_json::json!({
+            "type": "signal",
+            "from": 999_999,
+            "to": second_id,
+            "data": {
+                "kind": "relay_data",
+                "channel": "reliable",
+                "payload": [104, 101, 108, 108, 111]
+            }
+        })
+        .to_string();
+        first
+            .send(Message::Text(forged_sender_message))
+            .await
+            .expect("send message with an untrusted extra sender field");
         assert!(matches!(
             next_server_message(&mut second).await,
             SignalIncoming::Signal {
@@ -944,7 +951,7 @@ mod tests {
                     channel: symtropy_net::signaling::SignalChannel::Reliable,
                     payload,
                 },
-            } if from == first_id && payload == b"hello"
+            } if from == first_id && from != 999_999 && payload == b"hello"
         ));
 
         send_client_message(
