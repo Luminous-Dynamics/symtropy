@@ -4,7 +4,10 @@ import os
 import unittest
 from pathlib import Path
 
-from adapt_multiworld_output import AdapterError, adapt_source, canonical_json_bytes
+from adapt_multiworld_output import (
+    AdapterError, MAX_SOURCE_ARTIFACT_BYTES, _check_source_artifact_size,
+    adapt_source, canonical_json_bytes,
+)
 
 
 class AdapterTests(unittest.TestCase):
@@ -68,6 +71,11 @@ class AdapterTests(unittest.TestCase):
         schema = json.loads(schema_path.read_text(encoding="utf-8"))
         jsonschema.Draft202012Validator.check_schema(schema)
         jsonschema.validate(instance=adapt_source(self.raw_source()), schema=schema)
+
+    def test_source_artifact_size_limit_is_explicit_and_fail_closed(self):
+        _check_source_artifact_size(MAX_SOURCE_ARTIFACT_BYTES)
+        with self.assertRaisesRegex(AdapterError, "source simulator artifact exceeds"):
+            _check_source_artifact_size(MAX_SOURCE_ARTIFACT_BYTES + 1)
 
     def test_rejects_tick_counts_outside_u32_wire_range(self):
         for field in ("ticks", "run_manifest_ticks", "ticks_per_year"):
