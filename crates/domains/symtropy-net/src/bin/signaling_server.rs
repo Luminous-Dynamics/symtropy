@@ -146,6 +146,18 @@ impl RateWindow {
     }
 }
 
+/// Return payload bytes for rate accounting for every client-originated frame type.
+/// Control frames consume message budget too; otherwise Ping/Pong traffic could avoid
+/// the per-connection rate limit applied to JSON text messages.
+fn inbound_frame_payload_bytes(message: &Message) -> usize {
+    match message {
+        Message::Text(text) => text.len(),
+        Message::Binary(payload) | Message::Ping(payload) | Message::Pong(payload) => payload.len(),
+        Message::Close(_) => 0,
+        _ => 0,
+    }
+}
+
 struct ServerConfig {
     bind: SocketAddr,
     token: String,
@@ -782,14 +794,14 @@ async fn handle_connection(
                         break;
                     }
                 };
+                if !rate.admit(inbound_frame_payload_bytes(&message)) {
+                    let _ = enqueue_message(&peer, &SignalIncoming::Error {
+                        message: "per-connection message or byte rate limit exceeded".to_string(),
+                    });
+                    break;
+                }
                 match message {
                     Message::Text(text) => {
-                        if !rate.admit(text.len()) {
-                            let _ = enqueue_message(&peer, &SignalIncoming::Error {
-                                message: "per-connection message or byte rate limit exceeded".to_string(),
-                            });
-                            break;
-                        }
                         let command = match parse_client_message(&text) {
                             Ok(command) => command,
                             Err(error) => {
@@ -1114,6 +1126,29 @@ mod tests {
         assert!(validate_room_id("").is_err());
         assert!(validate_room_id("room\nforged").is_err());
         assert!(validate_room_id("x".repeat(MAX_ROOM_ID_BYTES + 1)).is_err());
+    }
+
+    #[test]
+    fn inbound_rate_accounting_includes_websocket_control_frames() {
+        let ping = Message::Ping(vec![0; 125]);
+        let pong = Message::Pong(vec![0; 125]);
+        let text = Message::Text("{}".to_string());
+
+        assert_eq!(inbound_frame_payload_bytes(&ping), 125);
+        assert_eq!(inbound_frame_payload_bytes(&pong), 125);
+        assert_eq!(inbound_frame_payload_bytes(&text), 2);
+
+        let mut limiter = RateWindow::new();
+        for _ in 0..MAX_MESSAGES_PER_SECOND {
+            assert!(
+                limiter.admit(inbound_frame_payload_bytes(&ping)),
+                "Ping frames must consume the same message budget as text frames"
+            );
+        }
+        assert!(
+            !limiter.admit(inbound_frame_payload_bytes(&pong)),
+            "a Pong frame must not bypass the per-connection message ceiling"
+        );
     }
 
     #[test]
