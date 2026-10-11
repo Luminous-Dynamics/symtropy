@@ -139,6 +139,13 @@ impl ServerConfig {
     fn from_env() -> Result<Self, String> {
         let token = env::var("SYMTROPY_RELAY_TOKEN")
             .map_err(|_| "SYMTROPY_RELAY_TOKEN is required; generate a random 32+ character base64url-safe token".to_string())?;
+        let bind = env::var("SYMTROPY_RELAY_BIND").unwrap_or_else(|_| DEFAULT_BIND.to_string());
+        let allow_insecure_bind =
+            env::var("SYMTROPY_RELAY_ALLOW_INSECURE_BIND").ok().as_deref() == Some("1");
+        Self::from_values(token, &bind, allow_insecure_bind)
+    }
+
+    fn from_values(token: String, bind: &str, allow_insecure_bind: bool) -> Result<Self, String> {
         if !(32..=128).contains(&token.len())
             || !token
                 .bytes()
@@ -150,13 +157,10 @@ impl ServerConfig {
             );
         }
 
-        let bind = env::var("SYMTROPY_RELAY_BIND").unwrap_or_else(|_| DEFAULT_BIND.to_string());
         let bind: SocketAddr = bind
             .parse()
             .map_err(|_| "SYMTROPY_RELAY_BIND must be a socket address such as 127.0.0.1:9001".to_string())?;
-        if !bind.ip().is_loopback()
-            && env::var("SYMTROPY_RELAY_ALLOW_INSECURE_BIND").ok().as_deref() != Some("1")
-        {
+        if !bind.ip().is_loopback() && !allow_insecure_bind {
             return Err(
                 "refusing a non-loopback plaintext bind; use a TLS-terminating reverse proxy or explicitly set SYMTROPY_RELAY_ALLOW_INSECURE_BIND=1 only in a controlled test environment"
                     .to_string(),
@@ -847,6 +851,40 @@ mod tests {
     ) {
         let text = serialized_outgoing(&message).expect("valid client message");
         socket.send(Message::Text(text)).await.expect("send client message");
+    }
+
+    #[test]
+    fn startup_config_rejects_bad_tokens_and_public_plaintext_binds() {
+        assert!(ServerConfig::from_values(
+            "short".to_string(),
+            "127.0.0.1:9001",
+            false
+        )
+        .is_err());
+        assert!(ServerConfig::from_values(
+            "invalid token that has enough length to fail only character validation".to_string(),
+            "127.0.0.1:9001",
+            false
+        )
+        .is_err());
+        assert!(ServerConfig::from_values(
+            TEST_TOKEN.to_string(),
+            "not-a-socket",
+            false
+        )
+        .is_err());
+        assert!(
+            ServerConfig::from_values(TEST_TOKEN.to_string(), "0.0.0.0:9001", false).is_err(),
+            "non-loopback plaintext binds must fail closed by default"
+        );
+        assert!(
+            ServerConfig::from_values(TEST_TOKEN.to_string(), "127.0.0.1:9001", false).is_ok(),
+            "loopback should be the safe default"
+        );
+        assert!(
+            ServerConfig::from_values(TEST_TOKEN.to_string(), "0.0.0.0:9001", true).is_ok(),
+            "the dangerous bind override should only be explicit"
+        );
     }
 
     #[test]
