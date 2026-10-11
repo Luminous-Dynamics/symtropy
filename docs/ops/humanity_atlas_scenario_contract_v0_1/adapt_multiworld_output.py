@@ -213,8 +213,8 @@ def adapt_source(raw: bytes, *, artifact_ref: str | None = None) -> dict[str, An
         raise AdapterError("top-level seed/ticks disagree with run manifest")
     if ticks != years * ticks_per_year:
         raise AdapterError("top-level ticks do not equal years * ticks_per_year")
-    if seed > MAX_SAFE_INTEGER or years > 2_147_483_647:
-        raise AdapterError("seed or horizon exceeds Humanity Atlas v0.1 numeric range")
+    if seed > MAX_SAFE_INTEGER or years > 100_000:
+        raise AdapterError("seed or horizon exceeds Humanity Atlas v0.1 numeric range (year <= 100000)")
 
     # The simulator computes these digests over recursively key-sorted compact
     # JSON. Reject a mismatch; never substitute a freshly invented identity.
@@ -285,9 +285,9 @@ def adapt_source(raw: bytes, *, artifact_ref: str | None = None) -> dict[str, An
         "seed": seed,
         "replicates": 1,
         "outputs": [
-            {"metric_id": "final_cvs", "year": years, "unit": "CVS", "statistic": "value", "value": final_cvs, "sample_count": 1},
-            {"metric_id": "final_population", "year": years, "unit": "persons", "statistic": "value", "value": float(final_population), "sample_count": 1},
-            {"metric_id": "tech_milestones_achieved", "year": years, "unit": "milestones", "statistic": "value", "value": float(tech_milestones), "sample_count": 1},
+            {"metric_id": "final_cvs", "year": years, "time_basis": "scenario_relative_year", "unit": "CVS", "statistic": "value", "value": final_cvs, "sample_count": 1},
+            {"metric_id": "final_population", "year": years, "time_basis": "scenario_relative_year", "unit": "persons", "statistic": "value", "value": float(final_population), "sample_count": 1},
+            {"metric_id": "tech_milestones_achieved", "year": years, "time_basis": "scenario_relative_year", "unit": "milestones", "statistic": "value", "value": float(tech_milestones), "sample_count": 1},
         ],
         "validation": {
             "status": "not_run",
