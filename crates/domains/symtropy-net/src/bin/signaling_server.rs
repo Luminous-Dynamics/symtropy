@@ -50,9 +50,9 @@ use tokio_tungstenite::{
 };
 
 const DEFAULT_BIND: &str = "127.0.0.1:9001";
-const MAX_CLIENTS: usize = 32;
-const MAX_ROOMS: usize = 32;
-const MAX_ROOM_PEERS: usize = 32;
+const MAX_CLIENTS: usize = 16;
+const MAX_ROOMS: usize = 16;
+const MAX_ROOM_PEERS: usize = 16;
 const MAX_ROOM_ID_BYTES: usize = 128;
 /// Aggregate budget for all server-side queued/in-flight text relay envelopes.
 const MAX_TOTAL_OUTBOUND_QUEUED_BYTES: usize = MAX_SIGNALING_MESSAGE_BYTES * 8;
