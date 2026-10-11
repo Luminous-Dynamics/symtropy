@@ -52,7 +52,7 @@ relay.example.com {
 
 Caddy's `reverse_proxy` supports WebSocket upgrade/tunneling. Its default request-header behavior passes through headers unless a header is explicitly changed/removed; ensure the `Authorization` header reaches the backend because that is how this prototype checks its shared token. Do not add a proxy rule that logs bearer values.
 
-Set clients' `SYMTROPY_SIGNAL_URL=wss://relay.example.com` and `SYMTROPY_SIGNAL_TOKEN` to the same secret for trusted native/test clients. Verify this in your deployment rather than assuming a reverse proxy is configured correctly. TLS in transit protects the shared token on the network; it does not turn the shared token into per-user authentication.
+Set clients' `SYMTROPY_SIGNAL_URL=wss://relay.example.com` and `SYMTROPY_SIGNAL_TOKEN` to the same secret for trusted native/test clients. The client rejects plaintext `ws://` endpoints unless their host is `localhost` or an IP loopback address; remote endpoints must use `wss://`. This client-side guard prevents accidentally sending the bearer token or relay data to a remote plaintext listener. Verify the reverse proxy and certificate in your deployment rather than assuming they are correct. TLS in transit protects the shared token on the network; it does not turn the shared token into per-user authentication.
 
 ## 3. Current server-side bounds
 

@@ -50,6 +50,42 @@ fn bounded_websocket_config() -> tokio_tungstenite::tungstenite::protocol::WebSo
     }
 }
 
+/// Reject plaintext WebSocket connections to remote hosts before any request,
+/// including a bearer token, can leave the process.
+#[cfg(feature = "ws-relay")]
+fn validate_websocket_transport(
+    uri: &tokio_tungstenite::tungstenite::http::Uri,
+) -> Result<(), String> {
+    match uri.scheme_str() {
+        Some("wss") => Ok(()),
+        Some("ws") => {
+            let host = uri
+                .host()
+                .ok_or_else(|| "signaling WebSocket URL has no host".to_string())?;
+            let unbracketed_host = host.trim_matches(|character| character == '[' || character == ']');
+            let is_loopback = unbracketed_host.eq_ignore_ascii_case("localhost")
+                || unbracketed_host
+                    .parse::<std::net::IpAddr>()
+                    .is_ok_and(|address| address.is_loopback());
+
+            if is_loopback {
+                Ok(())
+            } else {
+                Err(format!(
+                    "refusing plaintext ws:// to non-loopback host {host:?}; use wss:// for remote signaling so credentials and relay traffic are encrypted"
+                ))
+            }
+        }
+        Some(scheme) => Err(format!(
+            "unsupported signaling URL scheme {scheme:?}; use ws:// for loopback development or wss:// for remote signaling"
+        )),
+        None => Err(
+            "signaling WebSocket URL must use ws:// for loopback development or wss:// for remote signaling"
+                .to_string(),
+        ),
+    }
+}
+
 /// Reliability lane for an explicit relayed game-data envelope.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
@@ -366,6 +402,9 @@ impl SignalingClient {
             .to_owned()
             .into_client_request()
             .map_err(|error| format!("Invalid signaling WebSocket URL: {error}"))?;
+        // Fail closed before putting credentials on a plaintext remote connection.
+        // Loopback ws:// remains available for local development and test fixtures.
+        validate_websocket_transport(request.uri())?;
         if let Some(token) = token {
             if token.is_empty() {
                 return Err("SYMTROPY_SIGNAL_TOKEN is set but empty".to_string());
@@ -643,6 +682,30 @@ mod tests {
         let (tx, rx) = mpsc::channel(SIGNAL_COMMAND_QUEUE_CAPACITY);
         let bytes = Arc::new(Semaphore::new(MAX_SIGNAL_QUEUE_BYTES));
         (tx, rx, bytes)
+    }
+
+    #[test]
+    fn websocket_transport_requires_tls_for_remote_hosts() {
+        use tokio_tungstenite::tungstenite::http::Uri;
+
+        let loopback_ipv4: Uri = "ws://127.0.0.1:9001".parse().expect("valid URI");
+        let loopback_ipv6: Uri = "ws://[::1]:9001".parse().expect("valid URI");
+        let localhost: Uri = "ws://localhost:9001".parse().expect("valid URI");
+        let remote_dns: Uri = "ws://relay.example.com:9001".parse().expect("valid URI");
+        let remote_ipv4: Uri = "ws://192.0.2.10:9001".parse().expect("valid URI");
+        let unspecified: Uri = "ws://0.0.0.0:9001".parse().expect("valid URI");
+        let secure_remote: Uri = "wss://relay.example.com:443".parse().expect("valid URI");
+
+        assert!(validate_websocket_transport(&loopback_ipv4).is_ok());
+        assert!(validate_websocket_transport(&loopback_ipv6).is_ok());
+        assert!(validate_websocket_transport(&localhost).is_ok());
+        assert!(validate_websocket_transport(&secure_remote).is_ok());
+
+        for uri in [&remote_dns, &remote_ipv4, &unspecified] {
+            let error = validate_websocket_transport(uri)
+                .expect_err("plaintext remote endpoint must fail before network I/O");
+            assert!(error.contains("wss://"), "unexpected error: {error}");
+        }
     }
 
     #[test]
