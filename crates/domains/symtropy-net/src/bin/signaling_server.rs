@@ -70,6 +70,8 @@ struct Rooms {
 struct PeerHandle {
     tx: mpsc::Sender<QueuedFrame>,
     queued_bytes: Arc<Semaphore>,
+    /// Lets the room registry terminate a connection evicted for backpressure.
+    shutdown_tx: watch::Sender<bool>,
 }
 
 struct QueuedFrame {
@@ -433,11 +435,14 @@ fn remove_peer_and_notify(rooms: &SharedRooms, room_id: &str, initial_peer_id: u
         eprintln!("relay room registry lock poisoned while removing peer");
         return;
     };
-    let Some(room) = state.rooms.get_mut(room_id) else {
-        return;
-    };
-    if room.peers.remove(&initial_peer_id).is_none() {
-        if room.peers.is_empty() {
+
+    let removed_initial = state
+        .rooms
+        .get_mut(room_id)
+        .is_some_and(|room| room.peers.remove(&initial_peer_id).is_some());
+    if !removed_initial {
+        let empty = state.rooms.get(room_id).is_some_and(|room| room.peers.is_empty());
+        if empty {
             state.rooms.remove(room_id);
         }
         return;
@@ -482,17 +487,20 @@ fn remove_peer_and_notify(rooms: &SharedRooms, room_id: &str, initial_peer_id: u
             break;
         }
 
-        // Dropping staged reservations releases all permits. Re-stage notifications
-        // for the smaller survivor set so no peer sees a partial removal batch.
+        // No notification is committed until every survivor can queue the full
+        // removal batch. Disconnect saturated recipients, then retry for survivors.
         drop(staged);
         let Some(room) = state.rooms.get_mut(room_id) else {
             return;
         };
         let mut added = false;
         for slow_id in slow_peers {
-            if room.peers.remove(&slow_id).is_some() && removed_set.insert(slow_id) {
-                removed.push(slow_id);
-                added = true;
+            if let Some(slow_peer) = room.peers.remove(&slow_id) {
+                let _ = slow_peer.shutdown_tx.send(true);
+                if removed_set.insert(slow_id) {
+                    removed.push(slow_id);
+                    added = true;
+                }
             }
         }
         if !added {
@@ -500,13 +508,13 @@ fn remove_peer_and_notify(rooms: &SharedRooms, room_id: &str, initial_peer_id: u
         }
     }
 
-    let room_is_empty = if let Some(room) = state.rooms.get_mut(room_id) {
+    let empty = if let Some(room) = state.rooms.get_mut(room_id) {
         room.peers.retain(|id, _| !removed_set.contains(id));
         room.peers.is_empty()
     } else {
         return;
     };
-    if room_is_empty {
+    if empty {
         state.rooms.remove(room_id);
     }
 }
@@ -587,9 +595,11 @@ async fn handle_connection(
         .map_err(|_| "server peer-ID space exhausted".to_string())?;
 
     let (out_tx, mut out_rx) = mpsc::channel::<QueuedFrame>(OUTBOUND_QUEUE_CAPACITY);
+    let (shutdown_tx, mut shutdown_rx) = watch::channel(false);
     let peer = PeerHandle {
         tx: out_tx,
         queued_bytes: Arc::new(Semaphore::new(MAX_SIGNALING_MESSAGE_BYTES)),
+        shutdown_tx,
     };
 
     if let Err(error) = join_room(&rooms, &room_id, peer_id, &peer) {
@@ -626,6 +636,11 @@ async fn handle_connection(
     let mut rate = RateWindow::new();
     loop {
         tokio::select! {
+            shutdown_changed = shutdown_rx.changed() => {
+                if shutdown_changed.is_err() || *shutdown_rx.borrow() {
+                    break;
+                }
+            }
             writer_result = &mut writer => {
                 match writer_result {
                     Ok(Ok(())) => {}
@@ -675,11 +690,14 @@ async fn handle_connection(
                                     });
                                     continue;
                                 }
-                                let recipient = match rooms.lock() {
-                                    Ok(state) => state.rooms
-                                        .get(&room_id)
-                                        .and_then(|room| room.get(&to))
-                                        .cloned(),
+                                let (sender_is_member, recipient) = match rooms.lock() {
+                                    Ok(state) => match state.rooms.get(&room_id) {
+                                        Some(room) => (
+                                            room.contains_key(&peer_id),
+                                            room.get(&to).cloned(),
+                                        ),
+                                        None => (false, None),
+                                    },
                                     Err(_) => {
                                         let _ = enqueue_message(&peer, &SignalIncoming::Error {
                                             message: "relay room registry unavailable".to_string(),
@@ -687,6 +705,11 @@ async fn handle_connection(
                                         break;
                                     }
                                 };
+                                // A peer evicted for backpressure may race with the
+                                // shutdown watch notification; membership is the authority.
+                                if !sender_is_member {
+                                    break;
+                                }
                                 let Some(recipient) = recipient else {
                                     let _ = enqueue_message(&peer, &SignalIncoming::Error {
                                         message: format!("recipient {to} is not a member of room {room_id:?}"),
