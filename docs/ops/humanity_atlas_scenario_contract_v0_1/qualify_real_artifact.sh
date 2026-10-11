@@ -20,7 +20,11 @@ SOL_ATLAS_ROOT="$(cd -- "$SOL_ATLAS_ROOT" && pwd)"
 SYMTROPY_ROOT="$(git -C "$SCRIPT_DIR" rev-parse --show-toplevel)"
 YEARS="${YEARS:-150}"
 SEED="${SEED:-42}"
-OUT_DIR="${ATLAS_QUALIFICATION_DIR:-$PWD/.humanity-atlas-qualification}"
+if [[ -n "${ATLAS_QUALIFICATION_DIR:-}" ]]; then
+  OUT_DIR="$ATLAS_QUALIFICATION_DIR"
+else
+  OUT_DIR="$(mktemp -d "${TMPDIR:-/tmp}/humanity-atlas-qualification.XXXXXX")"
+fi
 
 case "$YEARS" in
   ''|*[!0-9]*) echo "YEARS must be a positive integer" >&2; exit 2 ;;
@@ -134,6 +138,14 @@ metadata = {
     "source_artifact_sha256": sha(source_path),
     "run_envelope_sha256": sha(envelope_path),
     "validation_report_sha256": sha(report_path),
+    "simulator_log_sha256": sha(os.path.join(os.path.dirname(metadata_path), "simulator-run.log")),
+    "adapter_log_sha256": sha(os.path.join(os.path.dirname(metadata_path), "adapter.log")),
+    "sol_atlas_core_tests_log_sha256": sha(os.path.join(os.path.dirname(metadata_path), "sol-atlas-core-tests.log")),
+    "sol_atlas_validation_log_sha256": sha(os.path.join(os.path.dirname(metadata_path), "sol-atlas-validation.log")),
+    "rustc_version": text(os.path.join(os.path.dirname(metadata_path), "rustc-version.txt")),
+    "cargo_version": text(os.path.join(os.path.dirname(metadata_path), "cargo-version.txt")),
+    "python_version": text(os.path.join(os.path.dirname(metadata_path), "python-version.txt")),
+    "checkouts_clean_at_start": True,
     "validation_report": report,
 }
 with open(metadata_path, "w", encoding="utf-8") as stream:
