@@ -163,8 +163,12 @@ Symtropy, and Sol-Atlas) to be clean and records all three HEADs, tool versions,
 source/envelope/report and log digests, the consumer report, and test logs in
 an evidence directory. It also snapshots and hashes the standalone core's
 resolved Cargo lockfile; if Cargo created that lockfile only for this run, the
-script removes it on exit so it does not dirty the checkout. By default the
-evidence directory is under `TMPDIR` (or `/tmp`), outside source trees.
+script removes it on exit so it does not dirty the checkout. The adapter source,
+its tests, the run schema, and both copies of the technology-tree schema are
+also snapshotted and hashed. The script fails unless the producer and consumer
+tree-schema files are byte-identical, and validates the actual run envelope
+against the snapshotted run schema. By default the evidence directory is under
+`TMPDIR` (or `/tmp`), outside source trees.
 
 The qualification gate requires the Python `jsonschema` package; the ordinary adapter unit test can skip schema validation when run without it, but the qualification script sets `HUMANITY_ATLAS_REQUIRE_JSONSCHEMA=1` and fails if it is missing. Add `python3Packages.jsonschema` to the temporary Nix shell or install `jsonschema` in the Python environment before qualifying.
 
