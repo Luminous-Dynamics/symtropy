@@ -19,7 +19,7 @@ use std::{
     net::SocketAddr,
     str::FromStr,
     sync::{
-        Arc, Barrier, Mutex,
+        Arc, Mutex,
         atomic::{AtomicU64, Ordering},
     },
     time::{Duration, Instant},
@@ -961,6 +961,7 @@ async fn handle_connection(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::sync::Barrier;
     use symtropy_net::transport::MAX_PEER_MESSAGE_BYTES;
     use tokio_tungstenite::{
         connect_async,
