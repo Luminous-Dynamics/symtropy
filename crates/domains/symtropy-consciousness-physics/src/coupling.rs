@@ -1175,6 +1175,33 @@ mod tests {
     }
 
     #[test]
+    fn invalid_collision_harmony_is_conservative_and_records_failure() {
+        use symtropy_physics::contact::CollisionEvent;
+        use symtropy_physics::world::PhysicsCallback;
+
+        let mut field = ConsciousnessField::<3>::new();
+        let body_a = BodyHandle(0);
+        let body_b = BodyHandle(1);
+        field.register(body_a, 100.0, 10.0);
+        field.register(body_b, 100.0, 10.0);
+        field.entities.get_mut(&body_a).unwrap().harmony_activations[4] = f64::INFINITY;
+
+        let event = CollisionEvent {
+            body_a,
+            body_b,
+            impulse: 10.0,
+            normal: SVector::from([1.0, 0.0, 0.0]),
+            depth: 0.25,
+        };
+        PhysicsCallback::<3>::on_collision(&mut field, &event);
+
+        assert_eq!(field.harmony_field_validation_failure_count(), 1);
+        assert!(field.entities.get(&body_a).unwrap().prediction_error > 0.0);
+        assert!(field.entities.get(&body_b).unwrap().prediction_error > 0.0);
+        assert_eq!(field.take_harmony_field_validation_failures(), 1);
+    }
+
+    #[test]
     fn valid_harmony_profile_does_not_increment_validation_failure_counter() {
         use symtropy_physics::world::PhysicsCallback;
 
