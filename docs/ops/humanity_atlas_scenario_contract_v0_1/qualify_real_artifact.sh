@@ -130,6 +130,7 @@ names = [
     "simulator-Cargo.lock",
     "sol-atlas-core-Cargo.lock",
     "simulator-run.log",
+    "producer-consumer-roundtrip.log",
     "adapter.log",
     "python-adapter-tests.log",
     "run-schema-validation.log",
@@ -248,12 +249,13 @@ fi
 git -C "$MONOREPO_ROOT" rev-parse HEAD > "$OUT_DIR/monorepo-commit.txt"
 git -C "$SOL_ATLAS_ROOT" rev-parse HEAD > "$OUT_DIR/sol-atlas-commit.txt"
 git -C "$SYMTROPY_ROOT" rev-parse HEAD > "$OUT_DIR/symtropy-commit.txt"
+PRODUCER_REVISION="$(cat "$OUT_DIR/monorepo-commit.txt")"
 rustc --version > "$OUT_DIR/rustc-version.txt"
 cargo --version > "$OUT_DIR/cargo-version.txt"
 python3 --version > "$OUT_DIR/python-version.txt"
 
 QUALIFICATION_PHASE="adapter_regressions"
-echo "[1/7] Running adapter regressions with JSON Schema validation required." >&2
+echo "[1/8] Running adapter regressions with JSON Schema validation required." >&2
 if ! (
   cd -- "$SCRIPT_DIR"
   PYTHONDONTWRITEBYTECODE=1 HUMANITY_ATLAS_REQUIRE_JSONSCHEMA=1 \
@@ -264,7 +266,7 @@ if ! (
 fi
 
 QUALIFICATION_PHASE="dependency_lock_resolution"
-echo "[2/7] Resolving and snapshotting simulator + standalone-consumer dependency locks." >&2
+echo "[2/8] Resolving and snapshotting simulator + standalone-consumer dependency locks." >&2
 if [[ ! -f "$SIMULATOR_LOCK_PATH" ]]; then
   if ! cargo generate-lockfile \
     --manifest-path "$MONOREPO_ROOT/mycelix-multiworld-sim/Cargo.toml" \
@@ -293,8 +295,24 @@ sha256sum "$OUT_DIR/simulator-Cargo.lock" > "$OUT_DIR/simulator-Cargo.lock.sha25
 sha256sum "$OUT_DIR/sol-atlas-core-Cargo.lock" > "$OUT_DIR/sol-atlas-core-Cargo.lock.sha256"
 
 QUALIFICATION_PHASE="simulator_capture_and_revision_binding"
-echo "[3/7] Capturing one actual simulator run (stdout is the immutable source artifact)." >&2
-PRODUCER_REVISION="$(cat "$OUT_DIR/monorepo-commit.txt")"
+QUALIFICATION_PHASE="producer_consumer_roundtrip_test"
+echo "[3/8] Running the simulator-backed producer → core round-trip integration test." >&2
+if ! (
+  cd -- "$MONOREPO_ROOT"
+  CARGO_TARGET_DIR="$SIMULATOR_TARGET_DIR" \
+  GITHUB_SHA="$PRODUCER_REVISION" \
+  GIT_COMMIT="$PRODUCER_REVISION" \
+  VERGEN_GIT_SHA="$PRODUCER_REVISION" \
+    cargo test --locked \
+      --manifest-path "$MONOREPO_ROOT/mycelix-multiworld-sim/Cargo.toml" \
+      --test humanity_atlas_roundtrip
+) > "$OUT_DIR/producer-consumer-roundtrip.log" 2>&1; then
+  cat "$OUT_DIR/producer-consumer-roundtrip.log" >&2
+  exit 1
+fi
+
+QUALIFICATION_PHASE="simulator_capture_and_revision_binding"
+echo "[4/8] Capturing one actual simulator run (stdout is the immutable source artifact)." >&2
 if ! (
   cd -- "$MONOREPO_ROOT"
   # option_env! reads these at compile time. The workflow's ambient GITHUB_SHA
@@ -335,7 +353,7 @@ fi
 sha256sum "$SOURCE_ARTIFACT" > "$SOURCE_ARTIFACT.sha256"
 
 QUALIFICATION_PHASE="adapter_execution"
-echo "[4/7] Adapting that exact artifact into Humanity Atlas run v0.1." >&2
+echo "[5/8] Adapting that exact artifact into Humanity Atlas run v0.1." >&2
 if ! python3 "$SCRIPT_DIR/adapt_multiworld_output.py" "$SOURCE_ARTIFACT" --output "$RUN_ENVELOPE" 2> "$OUT_DIR/adapter.log"; then
   cat "$OUT_DIR/adapter.log" >&2
   exit 1
@@ -343,7 +361,7 @@ fi
 sha256sum "$RUN_ENVELOPE" > "$RUN_ENVELOPE.sha256"
 
 QUALIFICATION_PHASE="run_schema_validation"
-echo "[5/7] Validating the actual generated envelope against the published run schema." >&2
+echo "[6/8] Validating the actual generated envelope against the published run schema." >&2
 if ! python3 - "$OUT_DIR/run-v0.1.schema.json" "$RUN_ENVELOPE" <<'PY' > "$OUT_DIR/run-schema-validation.log" 2>&1
 import json, sys
 import jsonschema
@@ -362,7 +380,7 @@ then
 fi
 
 QUALIFICATION_PHASE="consumer_unit_tests"
-echo "[6/7] Running standalone Sol-Atlas core tests with the snapshotted lock." >&2
+echo "[7/8] Running standalone Sol-Atlas core tests with the snapshotted lock." >&2
 (
   cd -- "$SOL_ATLAS_ROOT"
   CARGO_TARGET_DIR="$CORE_TARGET_DIR" \
@@ -373,7 +391,7 @@ echo "[6/7] Running standalone Sol-Atlas core tests with the snapshotted lock." 
 }
 
 QUALIFICATION_PHASE="independent_consumer_import"
-echo "[7/7] Verifying the envelope against the same source bytes in the independent importer." >&2
+echo "[8/8] Verifying the envelope against the same source bytes in the independent importer." >&2
 if ! (
   cd -- "$SOL_ATLAS_ROOT"
   CARGO_TARGET_DIR="$CORE_TARGET_DIR" \
@@ -459,6 +477,8 @@ metadata = {
     "adapter_log_sha256": sha(os.path.join(os.path.dirname(metadata_path), "adapter.log")),
     "python_adapter_tests_log_sha256": sha(os.path.join(os.path.dirname(metadata_path), "python-adapter-tests.log")),
     "run_schema_validation_log_sha256": sha(os.path.join(os.path.dirname(metadata_path), "run-schema-validation.log")),
+    "producer_consumer_roundtrip_log_sha256": sha(os.path.join(os.path.dirname(metadata_path), "producer-consumer-roundtrip.log")),
+    "producer_consumer_roundtrip_test_passed": True,
     "sol_atlas_core_tests_log_sha256": sha(os.path.join(os.path.dirname(metadata_path), "sol-atlas-core-tests.log")),
     "sol_atlas_validation_log_sha256": sha(os.path.join(os.path.dirname(metadata_path), "sol-atlas-validation.log")),
     "rustc_version": text(os.path.join(os.path.dirname(metadata_path), "rustc-version.txt")),
