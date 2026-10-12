@@ -77,6 +77,100 @@ else
   mkdir -p -- "$OUT_DIR"
 fi
 OUT_DIR="$(cd -- "$OUT_DIR" && pwd -P)"
+QUALIFICATION_PHASE="preflight"
+SIMULATOR_TARGET_DIR=""
+CORE_TARGET_DIR=""
+SIMULATOR_LOCK_PATH=""
+CORE_LOCK_PATH=""
+SIMULATOR_LOCK_PREEXISTED=1
+CORE_LOCK_PREEXISTED=1
+cleanup_generated_locks_and_targets() {
+  local exit_status="$?"
+  if [[ "$SIMULATOR_LOCK_PREEXISTED" -eq 0 && -n "$SIMULATOR_LOCK_PATH" && -f "$SIMULATOR_LOCK_PATH" ]]; then
+    rm -f -- "$SIMULATOR_LOCK_PATH"
+  fi
+  if [[ "$CORE_LOCK_PREEXISTED" -eq 0 && -n "$CORE_LOCK_PATH" && -f "$CORE_LOCK_PATH" ]]; then
+    rm -f -- "$CORE_LOCK_PATH"
+  fi
+  if [[ -n "$SIMULATOR_TARGET_DIR" && -d "$SIMULATOR_TARGET_DIR" ]]; then
+    rm -rf -- "$SIMULATOR_TARGET_DIR"
+  fi
+  if [[ -n "$CORE_TARGET_DIR" && -d "$CORE_TARGET_DIR" ]]; then
+    rm -rf -- "$CORE_TARGET_DIR"
+  fi
+  if [[ -d "$OUT_DIR" ]]; then
+    python3 - "$OUT_DIR/qualification-execution-status.json" "$exit_status" "$QUALIFICATION_PHASE" "$OUT_DIR" "$MONOREPO_ROOT" "$SOL_ATLAS_ROOT" "$SYMTROPY_ROOT" <<'PY'
+import hashlib, json, os, subprocess, sys
+status_path, raw_exit_code, phase, out_dir, monorepo, sol_atlas, symtropy = sys.argv[1:]
+exit_code = int(raw_exit_code)
+def git_head(root):
+    try:
+        return subprocess.run(
+            ["git", "-C", root, "rev-parse", "HEAD"],
+            check=True, capture_output=True, text=True,
+        ).stdout.strip()
+    except Exception:
+        return None
+def sha(path):
+    h = hashlib.sha256()
+    with open(path, "rb") as stream:
+        for chunk in iter(lambda: stream.read(1024 * 1024), b""):
+            h.update(chunk)
+    return h.hexdigest()
+def maybe_text(path):
+    try:
+        with open(path, encoding="utf-8") as stream:
+            return stream.read().strip()
+    except OSError:
+        return None
+names = [
+    "simulator-output.json",
+    "run-envelope.v0.1.json",
+    "sol-atlas-validation.json",
+    "simulator-Cargo.lock",
+    "sol-atlas-core-Cargo.lock",
+    "simulator-run.log",
+    "adapter.log",
+    "python-adapter-tests.log",
+    "run-schema-validation.log",
+    "sol-atlas-core-tests.log",
+    "sol-atlas-validation.log",
+    "qualification-metadata.json",
+]
+available = {}
+for name in names:
+    path = os.path.join(out_dir, name)
+    if os.path.isfile(path):
+        available[name] = sha(path)
+metadata = {
+    "record_type": "humanity-atlas-execution-status",
+    "exit_code": exit_code,
+    "execution_state": "completed_successfully" if exit_code == 0 else "failed",
+    "qualification_state": "pass" if exit_code == 0 else "not_passed",
+    "last_phase": phase,
+    "repository_heads": {
+        "monorepo": maybe_text(os.path.join(out_dir, "monorepo-commit.txt")) or git_head(monorepo),
+        "sol_atlas": maybe_text(os.path.join(out_dir, "sol-atlas-commit.txt")) or git_head(sol_atlas),
+        "symtropy": maybe_text(os.path.join(out_dir, "symtropy-commit.txt")) or git_head(symtropy),
+    },
+    "available_artifact_sha256": available,
+    "tool_versions": {
+        "rustc": maybe_text(os.path.join(out_dir, "rustc-version.txt")),
+        "cargo": maybe_text(os.path.join(out_dir, "cargo-version.txt")),
+        "python": maybe_text(os.path.join(out_dir, "python-version.txt")),
+    },
+    "scientific_validation": "not_established_by_this_execution_status_record",
+}
+temp_path = status_path + ".tmp"
+with open(temp_path, "w", encoding="utf-8") as stream:
+    json.dump(metadata, stream, indent=2, sort_keys=True)
+    stream.write("\n")
+os.replace(temp_path, status_path)
+PY
+  fi
+  exit "$exit_status"
+}
+trap cleanup_generated_locks_and_targets EXIT
 echo "Evidence directory: $OUT_DIR" >&2
 for checkout in "$MONOREPO_ROOT" "$SOL_ATLAS_ROOT" "$SYMTROPY_ROOT"; do
   if [[ -n "$(git -C "$checkout" status --porcelain --untracked-files=all)" ]]; then
@@ -118,17 +212,6 @@ if [[ -f "$CORE_LOCK_PATH" ]]; then
 else
   CORE_LOCK_PREEXISTED=0
 fi
-cleanup_generated_locks_and_targets() {
-  if [[ "$SIMULATOR_LOCK_PREEXISTED" -eq 0 ]]; then
-    rm -f -- "$SIMULATOR_LOCK_PATH"
-  fi
-  if [[ "$CORE_LOCK_PREEXISTED" -eq 0 ]]; then
-    rm -f -- "$CORE_LOCK_PATH"
-  fi
-  rm -rf -- "$SIMULATOR_TARGET_DIR" "$CORE_TARGET_DIR"
-}
-trap cleanup_generated_locks_and_targets EXIT
-
 for path in \
   "$MONOREPO_ROOT/mycelix-multiworld-sim/Cargo.toml" \
   "$SOL_ATLAS_ROOT/sol-atlas-core/Cargo.toml" \
@@ -169,6 +252,7 @@ rustc --version > "$OUT_DIR/rustc-version.txt"
 cargo --version > "$OUT_DIR/cargo-version.txt"
 python3 --version > "$OUT_DIR/python-version.txt"
 
+QUALIFICATION_PHASE="adapter_regressions"
 echo "[1/7] Running adapter regressions with JSON Schema validation required." >&2
 if ! (
   cd -- "$SCRIPT_DIR"
@@ -179,6 +263,7 @@ if ! (
   exit 1
 fi
 
+QUALIFICATION_PHASE="dependency_lock_resolution"
 echo "[2/7] Resolving and snapshotting simulator + standalone-consumer dependency locks." >&2
 if [[ ! -f "$SIMULATOR_LOCK_PATH" ]]; then
   if ! cargo generate-lockfile \
@@ -207,6 +292,7 @@ CORE_LOCK_SHA256="$(sha256sum "$CORE_LOCK_PATH" | awk '{print $1}')"
 sha256sum "$OUT_DIR/simulator-Cargo.lock" > "$OUT_DIR/simulator-Cargo.lock.sha256"
 sha256sum "$OUT_DIR/sol-atlas-core-Cargo.lock" > "$OUT_DIR/sol-atlas-core-Cargo.lock.sha256"
 
+QUALIFICATION_PHASE="simulator_capture_and_revision_binding"
 echo "[3/7] Capturing one actual simulator run (stdout is the immutable source artifact)." >&2
 PRODUCER_REVISION="$(cat "$OUT_DIR/monorepo-commit.txt")"
 if ! (
@@ -248,6 +334,7 @@ fi
 
 sha256sum "$SOURCE_ARTIFACT" > "$SOURCE_ARTIFACT.sha256"
 
+QUALIFICATION_PHASE="adapter_execution"
 echo "[4/7] Adapting that exact artifact into Humanity Atlas run v0.1." >&2
 if ! python3 "$SCRIPT_DIR/adapt_multiworld_output.py" "$SOURCE_ARTIFACT" --output "$RUN_ENVELOPE" 2> "$OUT_DIR/adapter.log"; then
   cat "$OUT_DIR/adapter.log" >&2
@@ -255,6 +342,7 @@ if ! python3 "$SCRIPT_DIR/adapt_multiworld_output.py" "$SOURCE_ARTIFACT" --outpu
 fi
 sha256sum "$RUN_ENVELOPE" > "$RUN_ENVELOPE.sha256"
 
+QUALIFICATION_PHASE="run_schema_validation"
 echo "[5/7] Validating the actual generated envelope against the published run schema." >&2
 if ! python3 - "$OUT_DIR/run-v0.1.schema.json" "$RUN_ENVELOPE" <<'PY' > "$OUT_DIR/run-schema-validation.log" 2>&1
 import json, sys
@@ -273,6 +361,7 @@ then
   exit 1
 fi
 
+QUALIFICATION_PHASE="consumer_unit_tests"
 echo "[6/7] Running standalone Sol-Atlas core tests with the snapshotted lock." >&2
 (
   cd -- "$SOL_ATLAS_ROOT"
@@ -283,6 +372,7 @@ echo "[6/7] Running standalone Sol-Atlas core tests with the snapshotted lock." 
   exit 1
 }
 
+QUALIFICATION_PHASE="independent_consumer_import"
 echo "[7/7] Verifying the envelope against the same source bytes in the independent importer." >&2
 if ! (
   cd -- "$SOL_ATLAS_ROOT"
@@ -297,6 +387,7 @@ fi
 
 sha256sum "$VALIDATION_REPORT" > "$VALIDATION_REPORT.sha256"
 
+QUALIFICATION_PHASE="lockfile_integrity_and_checkout_cleanliness"
 if [[ "$(sha256sum "$SIMULATOR_LOCK_PATH" | awk '{print $1}')" != "$SIMULATOR_LOCK_SHA256" ]]; then
   echo "simulator Cargo.lock changed during qualification despite --locked" >&2
   exit 1
@@ -318,6 +409,7 @@ for checkout in "$MONOREPO_ROOT" "$SOL_ATLAS_ROOT" "$SYMTROPY_ROOT"; do
   fi
 done
 
+QUALIFICATION_PHASE="qualification_metadata_finalization"
 python3 - "$OUT_DIR/qualification-metadata.json" "$SOURCE_ARTIFACT" "$RUN_ENVELOPE" "$VALIDATION_REPORT" "$YEARS" "$SEED" "$OUT_DIR/simulator-Cargo.lock" "$OUT_DIR/sol-atlas-core-Cargo.lock" "$OUT_DIR/simulator-lockfile-origin.txt" "$OUT_DIR/sol-atlas-core-lockfile-origin.txt" <<'PY'
 import hashlib, json, os, subprocess, sys
 metadata_path, source_path, envelope_path, report_path, years, seed, simulator_lock_path, core_lock_path, simulator_lock_origin_path, core_lock_origin_path = sys.argv[1:]
@@ -385,5 +477,6 @@ if metadata["status"] != "pass":
 PY
 
 sha256sum "$OUT_DIR/qualification-metadata.json" > "$OUT_DIR/qualification-metadata.json.sha256"
+QUALIFICATION_PHASE="completed"
 echo "PASS: structural artifact qualification recorded at $OUT_DIR/qualification-metadata.json" >&2
 echo "Note: this is not empirical calibration, scientific validation, or publisher authentication." >&2
