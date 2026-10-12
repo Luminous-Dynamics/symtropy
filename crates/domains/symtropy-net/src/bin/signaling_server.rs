@@ -1724,8 +1724,7 @@ mod tests {
         let rooms: SharedRooms = Arc::new(Mutex::new(Rooms::default()));
         let global_data_bytes = Arc::new(Semaphore::new(MAX_TOTAL_OUTBOUND_DATA_BYTES));
         let global_control_bytes = Arc::new(Semaphore::new(MAX_TOTAL_OUTBOUND_CONTROL_BYTES));
-        let global_membership_bytes =
-            Arc::new(Semaphore::new(MAX_TOTAL_OUTBOUND_MEMBERSHIP_BYTES));
+        let global_membership_bytes = Arc::new(Semaphore::new(MAX_TOTAL_OUTBOUND_MEMBERSHIP_BYTES));
 
         let (departing_tx, departing_rx) = mpsc::channel(OUTBOUND_QUEUE_CAPACITY);
         let (departing_shutdown_tx, _departing_shutdown_rx) = watch::channel(false);
@@ -1760,7 +1759,11 @@ mod tests {
         // peer joins. The new peer must not inherit a departed peer's identity.
         remove_peer_and_notify(&rooms, "room", 1);
         assert!(
-            !rooms.lock().expect("room registry lock").rooms.contains_key("room"),
+            !rooms
+                .lock()
+                .expect("room registry lock")
+                .rooms
+                .contains_key("room"),
             "a room with no members must be removed"
         );
         join_room(&rooms, "room", 2, &joining).expect("new peer can create a fresh room");
