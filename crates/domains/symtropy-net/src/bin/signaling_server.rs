@@ -1719,6 +1719,103 @@ mod tests {
     }
 
     #[test]
+    fn completed_join_before_leave_publishes_ordered_membership() {
+        let rooms: SharedRooms = Arc::new(Mutex::new(Rooms::default()));
+        let global_data_bytes = Arc::new(Semaphore::new(MAX_TOTAL_OUTBOUND_DATA_BYTES));
+        let global_control_bytes = Arc::new(Semaphore::new(MAX_TOTAL_OUTBOUND_CONTROL_BYTES));
+        let global_membership_bytes = Arc::new(Semaphore::new(MAX_TOTAL_OUTBOUND_MEMBERSHIP_BYTES));
+
+        let (departing_tx, departing_rx) = mpsc::channel(OUTBOUND_QUEUE_CAPACITY);
+        let (departing_shutdown_tx, _departing_shutdown_rx) = watch::channel(false);
+        let (departing, mut departing_outbound) = test_peer_handle_with_global(
+            departing_tx,
+            departing_rx,
+            departing_shutdown_tx,
+            global_data_bytes.clone(),
+            global_control_bytes.clone(),
+            global_membership_bytes.clone(),
+        );
+        let (joining_tx, joining_rx) = mpsc::channel(OUTBOUND_QUEUE_CAPACITY);
+        let (joining_shutdown_tx, _joining_shutdown_rx) = watch::channel(false);
+        let (joining, mut joining_outbound) = test_peer_handle_with_global(
+            joining_tx,
+            joining_rx,
+            joining_shutdown_tx,
+            global_data_bytes,
+            global_control_bytes,
+            global_membership_bytes.clone(),
+        );
+        {
+            let mut state = rooms.lock().expect("room registry lock");
+            state
+                .rooms
+                .entry("room".to_string())
+                .or_default()
+                .insert(1, departing.clone());
+        }
+
+        join_room(&rooms, "room", 2, &joining).expect("join publishes both membership views");
+        remove_peer_and_notify(&rooms, "room", 1);
+
+        {
+            let state = rooms.lock().expect("room registry lock");
+            let members = state
+                .rooms
+                .get("room")
+                .expect("room remains for the joining peer");
+            assert_eq!(members.len(), 1);
+            assert!(members.contains_key(&2));
+            assert!(!members.contains_key(&1));
+        }
+
+        let mut joining_events = Vec::new();
+        while let Ok(frame) = joining_outbound.try_recv() {
+            match frame.frame {
+                Message::Text(text) => {
+                    joining_events.push(parse_incoming(&text).expect("valid membership frame"));
+                }
+                other => panic!("expected text membership event, got {other:?}"),
+            }
+        }
+        assert!(matches!(
+            joining_events.as_slice(),
+            [
+                SignalIncoming::Welcome { peer_id: 2 },
+                SignalIncoming::PeerJoined { peer_id: 1 },
+                SignalIncoming::PeerLeft { peer_id: 1 }
+            ]
+        ), "join-first history must be Welcome, PeerJoined, PeerLeft; got {joining_events:?}");
+
+        let departed_event = departing_outbound
+            .try_recv()
+            .expect("old peer must receive PeerJoined before it leaves");
+        assert!(matches!(
+            departed_event.frame,
+            Message::Text(ref text)
+                if matches!(
+                    parse_incoming(text).expect("valid PeerJoined"),
+                    SignalIncoming::PeerJoined { peer_id: 2 }
+                )
+        ));
+        assert!(departing_outbound.try_recv().is_err());
+        drop(departed_event);
+
+        assert_eq!(
+            joining.queued_bytes.available_permits(),
+            MAX_SIGNALING_MESSAGE_BYTES
+        );
+        assert_eq!(
+            departing.queued_bytes.available_permits(),
+            MAX_SIGNALING_MESSAGE_BYTES
+        );
+        assert_eq!(
+            global_membership_bytes.available_permits(),
+            MAX_TOTAL_OUTBOUND_MEMBERSHIP_BYTES,
+            "draining ordered join/leave events must recover shared membership capacity"
+        );
+    }
+
+    #[test]
     fn completed_leave_before_join_never_publishes_stale_membership() {
         let rooms: SharedRooms = Arc::new(Mutex::new(Rooms::default()));
         let global_data_bytes = Arc::new(Semaphore::new(MAX_TOTAL_OUTBOUND_DATA_BYTES));
