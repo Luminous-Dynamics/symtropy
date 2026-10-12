@@ -90,6 +90,8 @@ VALIDATION_REPORT="$OUT_DIR/sol-atlas-validation.json"
 RUN_SCHEMA_SOURCE="$SCRIPT_DIR/schemas/run-v0.1.schema.json"
 TREE_SCHEMA_PRODUCER="$MONOREPO_ROOT/sol-atlas-core/schemas/mycelix-multiworld-sim-tech-tree-v1.schema.json"
 TREE_SCHEMA_CONSUMER="$SOL_ATLAS_ROOT/sol-atlas-core/schemas/mycelix-multiworld-sim-tech-tree-v1.schema.json"
+RUN_MANIFEST_SCHEMA_PRODUCER="$MONOREPO_ROOT/sol-atlas-core/schemas/humanity-atlas-run-manifest-v1.schema.json"
+RUN_MANIFEST_SCHEMA_CONSUMER="$SOL_ATLAS_ROOT/sol-atlas-core/schemas/humanity-atlas-run-manifest-v1.schema.json"
 CORE_LOCK_PATH="$SOL_ATLAS_ROOT/sol-atlas-core/Cargo.lock"
 if [[ -f "$CORE_LOCK_PATH" ]]; then
   CORE_LOCK_PREEXISTED=1
@@ -106,7 +108,8 @@ trap cleanup_generated_core_lock EXIT
 for path in \
   "$MONOREPO_ROOT/mycelix-multiworld-sim/Cargo.toml" \
   "$SOL_ATLAS_ROOT/sol-atlas-core/Cargo.toml" \
-  "$RUN_SCHEMA_SOURCE" "$TREE_SCHEMA_PRODUCER" "$TREE_SCHEMA_CONSUMER"; do
+  "$RUN_SCHEMA_SOURCE" "$TREE_SCHEMA_PRODUCER" "$TREE_SCHEMA_CONSUMER" \
+  "$RUN_MANIFEST_SCHEMA_PRODUCER" "$RUN_MANIFEST_SCHEMA_CONSUMER"; do
   if [[ ! -f "$path" ]]; then
     echo "required manifest/schema not found: $path" >&2
     exit 2
@@ -114,6 +117,10 @@ for path in \
 done
 if ! cmp -s -- "$TREE_SCHEMA_PRODUCER" "$TREE_SCHEMA_CONSUMER"; then
   echo "producer and standalone consumer technology-tree schemas differ byte-for-byte" >&2
+  exit 1
+fi
+if ! cmp -s -- "$RUN_MANIFEST_SCHEMA_PRODUCER" "$RUN_MANIFEST_SCHEMA_CONSUMER"; then
+  echo "producer and standalone consumer run-manifest schemas differ byte-for-byte" >&2
   exit 1
 fi
 
@@ -124,6 +131,8 @@ cp -- "$SCRIPT_DIR/test_adapt_multiworld_output.py" "$OUT_DIR/test_adapt_multiwo
 cp -- "$RUN_SCHEMA_SOURCE" "$OUT_DIR/run-v0.1.schema.json"
 cp -- "$TREE_SCHEMA_PRODUCER" "$OUT_DIR/producer-tech-tree-v1.schema.json"
 cp -- "$TREE_SCHEMA_CONSUMER" "$OUT_DIR/consumer-tech-tree-v1.schema.json"
+cp -- "$RUN_MANIFEST_SCHEMA_PRODUCER" "$OUT_DIR/producer-run-manifest-v1.schema.json"
+cp -- "$RUN_MANIFEST_SCHEMA_CONSUMER" "$OUT_DIR/consumer-run-manifest-v1.schema.json"
 if ! cmp -s -- "$RUN_SCHEMA_SOURCE" "$OUT_DIR/run-v0.1.schema.json"; then
   echo "run schema snapshot does not match its source" >&2
   exit 1
@@ -247,6 +256,9 @@ metadata = {
     "producer_tree_schema_sha256": sha(os.path.join(os.path.dirname(metadata_path), "producer-tech-tree-v1.schema.json")),
     "consumer_tree_schema_sha256": sha(os.path.join(os.path.dirname(metadata_path), "consumer-tech-tree-v1.schema.json")),
     "tree_schemas_byte_identical": True,
+    "producer_run_manifest_schema_sha256": sha(os.path.join(os.path.dirname(metadata_path), "producer-run-manifest-v1.schema.json")),
+    "consumer_run_manifest_schema_sha256": sha(os.path.join(os.path.dirname(metadata_path), "consumer-run-manifest-v1.schema.json")),
+    "run_manifest_schemas_byte_identical": True,
     "simulator_log_sha256": sha(os.path.join(os.path.dirname(metadata_path), "simulator-run.log")),
     "adapter_log_sha256": sha(os.path.join(os.path.dirname(metadata_path), "adapter.log")),
     "python_adapter_tests_log_sha256": sha(os.path.join(os.path.dirname(metadata_path), "python-adapter-tests.log")),
