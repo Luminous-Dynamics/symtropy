@@ -204,6 +204,13 @@ calibration, or scientific validity.
 
 The script intentionally fails on the first failed command/test. A missing
 toolchain, compilation failure, rejected artifact, or schema mismatch must
-remain a failure rather than becoming a partial success receipt. The script is
-provided as a qualification path; it has **not** been executed in this editing
-environment. Queued CI is not counted as a pass.
+remain a failure rather than becoming a partial success receipt. An exit trap
+writes `qualification-execution-status.json` with the last phase, repository
+HEADs, tool versions, and hashes of whichever artifact/log files exist—even when
+a gate fails early. This status record is not a qualification pass; only a zero
+exit after all gates and the separate `qualification-metadata.json` record can
+indicate structural qualification success. Fresh temporary Cargo target
+directories prevent cached binaries from smuggling in a previous compile-time
+revision and are removed on exit. The script is provided as a qualification
+path; it has **not** been executed in this editing environment. Queued CI is not
+counted as a pass.
