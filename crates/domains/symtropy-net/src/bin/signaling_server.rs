@@ -148,19 +148,6 @@ enum RoomForwardError {
     Queue(QueueError),
 }
 
-impl std::fmt::Display for RoomForwardError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Self::SenderNotMember => f.write_str("sender is no longer a member of the room"),
-            Self::RecipientNotMember => {
-                f.write_str("recipient is no longer a member of the room")
-            }
-            Self::RegistryUnavailable => f.write_str("relay room registry unavailable"),
-            Self::Queue(error) => write!(f, "{error}"),
-        }
-    }
-}
-
 /// Reserves both count capacity and byte capacity before changing any room state.
 /// The reservation can be committed synchronously after all recipients pass preflight.
 struct PreparedFrame {
@@ -500,8 +487,9 @@ fn enqueue_message(peer: &PeerHandle, message: &SignalIncoming) -> Result<(), Qu
     Ok(())
 }
 
-/// Forward only after a bounded queue reservation succeeds. A peer whose queue is
-/// saturated is evicted rather than retained indefinitely as an unresponsive member.
+/// Test-only primitive for queue/backpressure behavior. Production forwarding must use
+/// `forward_room_message` so delivery is serialized with membership changes.
+#[cfg(test)]
 fn forward_message(recipient: &PeerHandle, message: &SignalIncoming) -> Result<(), QueueError> {
     match enqueue_message(recipient, message) {
         Ok(()) => Ok(()),
