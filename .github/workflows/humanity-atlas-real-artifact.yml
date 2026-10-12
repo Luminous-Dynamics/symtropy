@@ -5,6 +5,12 @@ on:
     paths:
       - "docs/ops/humanity_atlas_scenario_contract_v0_1/**"
       - ".github/workflows/humanity-atlas-real-artifact.yml"
+  push:
+    branches: ["feat/humanity-atlas-scenario-contract-v0-1"]
+    paths:
+      - "docs/ops/humanity_atlas_scenario_contract_v0_1/**"
+      - ".github/workflows/humanity-atlas-real-artifact.yml"
+  workflow_dispatch:
 
 permissions:
   contents: read
