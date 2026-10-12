@@ -3,7 +3,10 @@ name: Humanity Atlas Real Artifact Qualification
 on:
   pull_request:
     paths:
-      - "docs/ops/humanity_atlas_scenario_contract_v0_1/**"
+      - "docs/ops/humanity_atlas_scenario_contract_v0_1/adapt_multiworld_output.py"
+      - "docs/ops/humanity_atlas_scenario_contract_v0_1/test_adapt_multiworld_output.py"
+      - "docs/ops/humanity_atlas_scenario_contract_v0_1/qualify_real_artifact.sh"
+      - "docs/ops/humanity_atlas_scenario_contract_v0_1/schemas/run-v0.1.schema.json"
       - ".github/workflows/humanity-atlas-real-artifact.yml"
   workflow_dispatch:
 
@@ -49,7 +52,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: Luminous-Dynamics/symtropy
-          ref: ${{ github.event.pull_request.head.sha }}
+          ref: ${{ github.event.pull_request.head.sha || github.ref }}
           path: symtropy
           persist-credentials: false
 
