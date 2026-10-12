@@ -584,10 +584,7 @@ fn remove_peer_and_notify(rooms: &SharedRooms, room_id: &str, initial_peer_id: u
         .get_mut(room_id)
         .is_some_and(|room| room.remove(&initial_peer_id).is_some());
     if !removed_initial {
-        let empty = state
-            .rooms
-            .get(room_id)
-            .is_some_and(|room| room.is_empty());
+        let empty = state.rooms.get(room_id).is_some_and(|room| room.is_empty());
         if empty {
             state.rooms.remove(room_id);
         }
@@ -1561,7 +1558,10 @@ mod tests {
                 .expect("existing room survives failed admission");
             assert_eq!(members.len(), 1);
             assert!(members.contains_key(&1));
-            assert!(!members.contains_key(&2), "failed join must never become visible");
+            assert!(
+                !members.contains_key(&2),
+                "failed join must never become visible"
+            );
         }
         assert!(existing_outbound.try_recv().is_err());
         assert!(new_outbound.try_recv().is_err());
