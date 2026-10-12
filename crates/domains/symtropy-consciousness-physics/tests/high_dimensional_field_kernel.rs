@@ -34,9 +34,8 @@ fn assert_falloff<const D: usize>(near: Point<D>, far: Point<D>, dimension: usiz
     let near_value = field.sample(&near)[0];
     let far_value = field.sample(&far)[0];
     let exponent = (dimension as f64 - 1.0).max(1.0);
-    let expected_ratio =
-        ((1.0 + SOFTENING_EPSILON.powi(2)) / (9.0 + SOFTENING_EPSILON.powi(2)))
-            .powf(exponent / 2.0);
+    let expected_ratio = ((1.0 + SOFTENING_EPSILON.powi(2)) / (9.0 + SOFTENING_EPSILON.powi(2)))
+        .powf(exponent / 2.0);
     let observed_ratio = near_value / far_value;
 
     assert!(
