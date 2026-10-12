@@ -562,12 +562,13 @@ fn forward_room_message(
                 let state = rooms
                     .lock()
                     .map_err(|_| RoomForwardError::RegistryUnavailable)?;
-                if let Some(room) = state.rooms.get(room_id) {
-                    if room.contains_key(&sender_id) {
-                        if let Some(current_recipient) = room.get(&recipient_id) {
-                            let _ = current_recipient.shutdown_tx.send(true);
-                        }
-                    }
+                if let Some(current_recipient) = state
+                    .rooms
+                    .get(room_id)
+                    .filter(|room| room.contains_key(&sender_id))
+                    .and_then(|room| room.get(&recipient_id))
+                {
+                    let _ = current_recipient.shutdown_tx.send(true);
                 }
             }
             return Err(RoomForwardError::Queue(error));
@@ -763,6 +764,9 @@ fn remove_peer_and_notify(rooms: &SharedRooms, room_id: &str, initial_peer_id: u
     }
 }
 
+// Tungstenite fixes this callback's error type to `ErrorResponse` by value. The
+// protocol API cannot be boxed locally, so keep the Clippy exception scoped here.
+#[allow(clippy::result_large_err)]
 async fn handle_connection(
     stream: TcpStream,
     token: Arc<String>,
@@ -1270,10 +1274,10 @@ mod tests {
     #[test]
     fn room_ids_are_bounded_and_reject_control_characters() {
         assert!(validate_room_id("room-1").is_ok());
-        assert!(validate_room_id("🚀".repeat(32)).is_ok());
+        assert!(validate_room_id(&"🚀".repeat(32)).is_ok());
         assert!(validate_room_id("").is_err());
         assert!(validate_room_id("room\nforged").is_err());
-        assert!(validate_room_id("x".repeat(MAX_ROOM_ID_BYTES + 1)).is_err());
+        assert!(validate_room_id(&"x".repeat(MAX_ROOM_ID_BYTES + 1)).is_err());
     }
 
     #[test]
