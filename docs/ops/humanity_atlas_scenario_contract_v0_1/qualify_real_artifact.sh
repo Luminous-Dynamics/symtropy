@@ -417,7 +417,12 @@ fi
 
 # Newly resolved lockfiles are evidence inputs, not source edits. Keep their
 # exact copies in the evidence packet and restore clean checkouts before PASS.
-cleanup_generated_locks
+if [[ "$SIMULATOR_LOCK_PREEXISTED" -eq 0 ]]; then
+  rm -f -- "$SIMULATOR_LOCK_PATH"
+fi
+if [[ "$CORE_LOCK_PREEXISTED" -eq 0 ]]; then
+  rm -f -- "$CORE_LOCK_PATH"
+fi
 SIMULATOR_LOCK_PREEXISTED=1
 CORE_LOCK_PREEXISTED=1
 for checkout in "$MONOREPO_ROOT" "$SOL_ATLAS_ROOT" "$SYMTROPY_ROOT"; do
