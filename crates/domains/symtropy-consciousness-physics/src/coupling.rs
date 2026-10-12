@@ -734,8 +734,7 @@ impl<const D: usize> PhysicsCallback<D> for ConsciousnessField<D> {
                 (Some(a), Some(b)) => {
                     match crate::harmony_field::HarmonyField::<D>::try_resonance(&a, &b) {
                         Ok(resonance)
-                            if resonance.is_finite()
-                                && (0.0..=1.0).contains(&resonance) =>
+                            if resonance.is_finite() && (0.0..=1.0).contains(&resonance) =>
                         {
                             resonance
                         }
@@ -1165,8 +1164,7 @@ mod tests {
         field.rebuild_harmony_field(&[(handle, symtropy_math::Point::origin())]);
 
         let contact = SVector::from([0.0, 0.0, 0.0]);
-        let multiplier =
-            PhysicsCallback::<3>::friction_multiplier(&field, &contact, handle);
+        let multiplier = PhysicsCallback::<3>::friction_multiplier(&field, &contact, handle);
 
         assert_eq!(multiplier, 1.0);
         assert_eq!(field.harmony_field_validation_failure_count(), 1);
@@ -1212,8 +1210,7 @@ mod tests {
         field.rebuild_harmony_field(&[(handle, symtropy_math::Point::origin())]);
 
         let contact = SVector::from([0.0, 0.0, 0.0]);
-        let multiplier =
-            PhysicsCallback::<3>::friction_multiplier(&field, &contact, handle);
+        let multiplier = PhysicsCallback::<3>::friction_multiplier(&field, &contact, handle);
 
         assert!(multiplier.is_finite());
         assert!((0.5..=1.0).contains(&multiplier));
