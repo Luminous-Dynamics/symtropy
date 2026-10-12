@@ -119,12 +119,16 @@ impl SemanticObservationEncoder {
             "channel-count",
             &observation.len().to_string(),
         ))?;
+        if observation.iter().any(|value| !value.is_finite()) {
+            return Err(HdcError::InvalidEncoderSpec(
+                "numeric observation channels must be finite; missing/invalid data must be handled before encoding".to_owned(),
+            ));
+        }
         for (index, value) in observation.iter().copied().enumerate() {
-            let finite = if value.is_finite() { value } else { 0.0 };
             let role = self.memory.role(&format!("channel.{index}"));
             let encoded = self
                 .scalar
-                .encode(finite, -self.value_extent, self.value_extent)?;
+                .encode(value, -self.value_extent, self.value_extent)?;
             bundle.add(&role.bind(&encoded)?)?;
         }
         let bipolar = bundle.finish(&self.memory.tie_breaker("numeric-observation"))?;
@@ -212,25 +216,50 @@ impl EmbodimentPlanner {
 
 impl MotorPlanner for EmbodimentPlanner {
     fn plan(&mut self, observation: &[f64], gain: f64, num_actuators: usize) -> Vec<f64> {
+        // Invalid observations or control parameters must not be converted to
+        // ordinary numeric values and then allowed to influence actuation.
+        // In particular, NaN bypasses ordinary range comparisons/clamps.
+        if !gain.is_finite()
+            || !self.dt.is_finite()
+            || self.dt <= 0.0
+            || self.hv_dim == 0
+            || observation.iter().any(|value| !value.is_finite())
+        {
+            return vec![0.0; num_actuators];
+        }
+
+        let capped_gain = gain.clamp(0.0, 1.0);
         let thought_hv = match &self.observation_encoder {
             ObservationEncoding::LegacyTiled => encode_observation(observation, self.hv_dim),
-            ObservationEncoding::SemanticHdc(encoder) => encoder.encode(observation).expect(
-                "validated semantic observation encoder cannot fail on finite-clamped input",
-            ),
+            ObservationEncoding::SemanticHdc(encoder) => match encoder.encode(observation) {
+                Ok(encoded) => encoded,
+                Err(_) => return vec![0.0; num_actuators],
+            },
         };
-        let result = self.bridge.step(&thought_hv, self.dt, gain);
+        let result = self.bridge.step(&thought_hv, self.dt, capped_gain);
 
-        // Translate the bridge's scalar response into a per-actuator vector.
-        //
-        // The effective per-joint authority is the product of:
-        //   - the bridge's post-step safety gain (its own NRC tier),
-        //   - |control_effort| (how hard the bridge believes it is pushing),
-        // then capped by `gain` (the caller's cap) so we never exceed the
-        // Symtropy-side NRC ceiling. Uniform across actuators.
+        // A failed bridge step or malformed telemetry conveys no authority.
+        // Do not let a finite-looking effort mask an explicit failure, NaN,
+        // or infinity in the rest of the result.
+        if !result.success
+            || !result.control_effort.is_finite()
+            || !result.prediction_error.is_finite()
+            || !result.observation_confidence.is_finite()
+        {
+            return vec![0.0; num_actuators];
+        }
+
+        // Translate the bridge's scalar response into a bounded per-actuator
+        // authority. This adapter exposes authority, not a signed actuator
+        // torque; platform-specific command semantics remain bridge-owned.
         let bridge_gain = result.safety_level.motor_gain() as f64;
         let effort = (result.control_effort as f64).abs();
-        let per_joint = (bridge_gain * effort).min(gain).max(0.0);
+        let raw_authority = bridge_gain * effort;
+        if !raw_authority.is_finite() {
+            return vec![0.0; num_actuators];
+        }
 
+        let per_joint = raw_authority.min(capped_gain).clamp(0.0, 1.0);
         vec![per_joint; num_actuators]
     }
 }
@@ -281,6 +310,9 @@ mod tests {
         last_phi: f64,
         result_safety: MotorSafetyLevel,
         result_effort: f32,
+        result_success: bool,
+        result_prediction_error: f32,
+        result_observation_confidence: f32,
         num_actuators: usize,
         safety_override: Option<MotorSafetyLevel>,
     }
@@ -294,6 +326,9 @@ mod tests {
                 last_phi: 0.0,
                 result_safety: MotorSafetyLevel::Green,
                 result_effort: 1.0,
+                result_success: true,
+                result_prediction_error: 0.1,
+                result_observation_confidence: 0.9,
                 num_actuators: 21,
                 safety_override: None,
             }
@@ -309,11 +344,11 @@ mod tests {
             EmbodimentResult {
                 num_actuators: self.num_actuators,
                 control_effort: self.result_effort,
-                success: true,
-                prediction_error: 0.1,
+                success: self.result_success,
+                prediction_error: self.result_prediction_error,
                 safety_level: self.result_safety,
                 epistemic_grounding: 0,
-                observation_confidence: 0.9,
+                observation_confidence: self.result_observation_confidence,
             }
         }
 
@@ -555,6 +590,71 @@ mod tests {
         for c in &cmds {
             assert!((c - 0.3).abs() < 1e-6);
         }
+    }
+
+    #[test]
+    fn non_finite_gain_fails_closed_without_stepping_bridge() {
+        let mut p = make_planner();
+        let commands = p.plan(&[0.5], f64::NAN, 4);
+        assert_eq!(commands, vec![0.0; 4]);
+        assert_eq!(p.bridge().total_steps(), 0);
+    }
+
+    #[test]
+    fn non_finite_observation_fails_closed_without_stepping_bridge() {
+        let mut p = make_planner();
+        let commands = p.plan(&[0.5, f64::INFINITY], 1.0, 4);
+        assert_eq!(commands, vec![0.0; 4]);
+        assert_eq!(p.bridge().total_steps(), 0);
+    }
+
+    #[test]
+    fn invalid_timestep_fails_closed_without_stepping_bridge() {
+        let mut p = EmbodimentPlanner::new(Box::new(MockBridge::new())).with_dt(0.0);
+        let commands = p.plan(&[0.5], 1.0, 4);
+        assert_eq!(commands, vec![0.0; 4]);
+        assert_eq!(p.bridge().total_steps(), 0);
+    }
+
+    #[test]
+    fn unsuccessful_bridge_result_fails_closed() {
+        let mut bridge = MockBridge::new();
+        bridge.result_success = false;
+        let mut p = EmbodimentPlanner::new(Box::new(bridge));
+        let commands = p.plan(&[0.5], 1.0, 4);
+        assert_eq!(commands, vec![0.0; 4]);
+        assert_eq!(p.bridge().total_steps(), 1);
+    }
+
+    #[test]
+    fn non_finite_bridge_telemetry_fails_closed() {
+        let mut bridge = MockBridge::new();
+        bridge.result_effort = f32::NAN;
+        let mut p = EmbodimentPlanner::new(Box::new(bridge));
+        let commands = p.plan(&[0.5], 1.0, 4);
+        assert_eq!(commands, vec![0.0; 4]);
+        assert_eq!(p.bridge().total_steps(), 1);
+    }
+
+    #[test]
+    fn authority_is_capped_at_one_even_if_effort_exceeds_one() {
+        let mut bridge = MockBridge::new();
+        bridge.result_effort = 20.0;
+        let mut p = EmbodimentPlanner::new(Box::new(bridge));
+        let commands = p.plan(&[0.5], 2.0, 4);
+        assert_eq!(commands, vec![1.0; 4]);
+    }
+
+    #[test]
+    fn semantic_encoder_rejects_non_finite_observation_channels() {
+        let spec = EncoderSpec {
+            schema_version: 1,
+            dimension: 4_096,
+            seed: 17,
+            scalar_levels: 129,
+        };
+        let result = encode_observation_semantic(&[0.2, f64::NAN], spec, 2.0);
+        assert!(result.is_err());
     }
 
     #[test]
