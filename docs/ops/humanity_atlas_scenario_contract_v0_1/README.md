@@ -168,12 +168,15 @@ script resolves it once, records whether it was generated during qualification,
 and preserves its exact bytes and SHA-256 in the evidence packet. It checks that
 neither lockfile changes during the run, removes only lockfiles it generated,
 and verifies that all three source checkouts are clean again before recording a
-pass. The adapter source, its tests, the run schema, and the producer/consumer
-copies of both versioned schemas (technology tree and run manifest) are
-snapshotted and hashed. The script fails unless both producer/consumer schema
-pairs are byte-identical, and validates the actual run envelope against the
-snapshotted run schema. By default the evidence directory is under `TMPDIR`
-(or `/tmp`), outside source trees.
+pass. Because GitHub's ambient `GITHUB_SHA` identifies the Symtropy workflow
+commit, the script overrides the producer's compile-time revision variables with
+the monorepo's recorded HEAD; it rejects the captured artifact and consumer
+report unless they declare that same producer revision. The adapter source,
+its tests, the run schema, and the producer/consumer copies of both versioned
+schemas (technology tree and run manifest) are snapshotted and hashed. The
+script fails unless both producer/consumer schema pairs are byte-identical, and
+validates the actual run envelope against the snapshotted run schema. By default
+the evidence directory is under `TMPDIR` (or `/tmp`), outside source trees.
 
 The qualification gate requires the Python `jsonschema` package; the ordinary adapter unit test can skip schema validation when run without it, but the qualification script sets `HUMANITY_ATLAS_REQUIRE_JSONSCHEMA=1` and fails if it is missing. Add `python3Packages.jsonschema` to the temporary Nix shell or install `jsonschema` in the Python environment before qualifying.
 
