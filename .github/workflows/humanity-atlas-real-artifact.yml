@@ -1,0 +1,77 @@
+name: Humanity Atlas Real Artifact Qualification
+
+on:
+  pull_request:
+    paths:
+      - "docs/ops/humanity_atlas_scenario_contract_v0_1/**"
+      - ".github/workflows/humanity-atlas-real-artifact.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: humanity-atlas-real-artifact-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  real-artifact:
+    name: Simulator → adapter → independent consumer
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    env:
+      CARGO_TERM_COLOR: never
+      RUST_BACKTRACE: "1"
+      PYTHONDONTWRITEBYTECODE: "1"
+      LUMINOUS_MONOREPO_ROOT: ${{ github.workspace }}/luminous-dynamics
+      SOL_ATLAS_ROOT: ${{ github.workspace }}/sol-atlas-leptos
+      ATLAS_QUALIFICATION_DIR: ${{ runner.temp }}/humanity-atlas-real-artifact-evidence
+      YEARS: "150"
+      SEED: "42"
+    steps:
+      - name: Checkout simulator producer branch
+        uses: actions/checkout@v4
+        with:
+          repository: Luminous-Dynamics/luminous-dynamics
+          ref: feat/humanity-atlas-tech-tree-export-v0-1
+          path: luminous-dynamics
+          persist-credentials: false
+
+      - name: Checkout standalone Sol-Atlas consumer branch
+        uses: actions/checkout@v4
+        with:
+          repository: Luminous-Dynamics/sol-atlas-leptos
+          ref: feat/humanity-atlas-run-consumer-v0-1
+          path: sol-atlas-leptos
+          persist-credentials: false
+
+      - name: Checkout Symtropy adapter at the triggering commit
+        uses: actions/checkout@v4
+        with:
+          repository: Luminous-Dynamics/symtropy
+          ref: ${{ github.event.pull_request.head.sha }}
+          path: symtropy
+          persist-credentials: false
+
+      - name: Install pinned Rust toolchain
+        uses: dtolnay/rust-toolchain@1.96.0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install required JSON Schema validator
+        run: python -m pip install --disable-pip-version-check "jsonschema>=4.23,<5"
+
+      - name: Run real-artifact qualification and preserve evidence
+        working-directory: symtropy
+        run: bash docs/ops/humanity_atlas_scenario_contract_v0_1/qualify_real_artifact.sh
+
+      - name: Upload qualification evidence, including failed-gate diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: humanity-atlas-real-artifact-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/humanity-atlas-real-artifact-evidence/
+          if-no-files-found: warn
+          retention-days: 14
