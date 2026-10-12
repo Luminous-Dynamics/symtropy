@@ -1,21 +1,24 @@
 // Copyright (C) 2024-2026 Tristan Stoltz / Luminous Dynamics
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // Commercial licensing: see COMMERCIAL_LICENSE.md at repository root
-//! Harmony field physics: spatially-varying consciousness fields that modulate
-//! local physics constants.
+//! HarmonyField: a phenomenological spatial influence model for simulations.
 //!
-//! Inspired by McFadden's CEMI field theory (2020): the brain's EM field *is*
-//! consciousness and causally influences neural activity. By analogy, harmony
-//! activations create fields that modulate local friction, collision response,
-//! and other physics parameters.
+//! The model uses explicit software rules to translate nonnegative activation
+//! profiles into spatially varying influences. It is inspired by ideas about
+//! field-mediated coupling, but it does not simulate electromagnetic fields,
+//! establish the CEMI theory, or imply subjective experience. It is a tunable
+//! simulation mechanism, not a validated physical law.
 //!
-//! # Field Properties
-//! - Each of the 9 harmonies creates a radial field around the entity
-//! - Field uses a Plummer-softened radial influence kernel with exponent max(D-1, 1). D=1 deliberately retains a 1/r attenuation floor; this is a modeling choice, not a universal dimension law.
-//! - Overlapping fields interact: resonance (aligned) vs interference (opposed)
-//! - Physical effects: the nonnegative documented activation contract lets aligned fields reduce friction/impulse and orthogonal fields leave them unchanged; signed anti-alignment is not represented
-//! - Harmony 9 (index 8): Emotional Contagion — social emotion spreading via
-//!   proximity-weighted CEMI coupling (McFadden 2020, Dunbar 2012)
+//! # Model Contract
+//! - Each source emits a radial influence profile over nine activation channels.
+//! - The Plummer-softened kernel uses p_D = max(D - 1, 1). The D=1 attenuation
+//!   floor is a modeling choice, not a universal dimension law.
+//! - Sources superpose. Nonnegative profiles can express similarity and
+//!   orthogonality; they do not represent signed anti-alignment or interference.
+//! - The coupled friction effect reduces friction for aligned profiles and
+//!   leaves orthogonal or absent profiles at baseline.
+//! - Emotional contagion is a separate, proximity-weighted agent update; it is
+//!   not an electromagnetic-field simulation.
 
 use nalgebra::SVector;
 use symtropy_math::Point;
@@ -39,7 +42,6 @@ pub const EMOTIONAL_CONTAGION_DECAY: f64 = 0.05;
 
 /// Maximum radius for emotional contagion influence (world units).
 pub const EMOTIONAL_CONTAGION_RADIUS: f64 = 20.0;
-
 
 /// Typed validation failures for harmony-field sources and numerical queries.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -199,8 +201,6 @@ impl<const D: usize> HarmonySource<D> {
         validate_source(self, 0)
     }
 }
-
-
 
 /// The harmony field: aggregates all sources and computes field effects.
 pub struct HarmonyField<const D: usize> {
@@ -471,7 +471,6 @@ impl<const D: usize> HarmonyField<D> {
         self.try_field_energy(point).unwrap_or(f64::NAN)
     }
 
-
     /// Softening parameter ε for Plummer softening: (r² + ε²)^(n/2).
     /// Prevents singularity at r→0. Standard N-body astrophysics technique.
     const SOFTENING_EPSILON: f64 = 1.0;
@@ -524,11 +523,11 @@ impl<const D: usize> Default for HarmonyField<D> {
 
 /// Compute the updated emotional contagion value for a single entity after one tick.
 ///
-/// Implements social emotion spreading via proximity-weighted EM field coupling
-/// (McFadden's CEMI theory). Nearby high-Φ entities share their emotional state;
-/// the receiver drifts toward the social mean at a rate proportional to their
-/// own Φ (consciousness gates emotional receptivity). In isolation, emotion
-/// decays toward zero at `EMOTIONAL_CONTAGION_DECAY`.
+/// Implements a simple agent-based affect update. Nearby sources contribute
+/// to a proximity-weighted social mean; the receiver drifts toward that mean at
+/// a rate scaled by the model's Φ input. In isolation, emotion decays toward
+/// zero at `EMOTIONAL_CONTAGION_DECAY`. This is a phenomenological rule, not
+/// an electromagnetic-field model or a validation of CEMI theory.
 ///
 /// # Parameters
 /// - `position`: this entity's position as a nalgebra SVector
