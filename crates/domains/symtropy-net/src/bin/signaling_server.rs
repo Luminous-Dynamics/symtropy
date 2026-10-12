@@ -140,6 +140,27 @@ impl std::fmt::Display for QueueError {
     }
 }
 
+#[derive(Debug, PartialEq, Eq)]
+enum RoomForwardError {
+    SenderNotMember,
+    RecipientNotMember,
+    RegistryUnavailable,
+    Queue(QueueError),
+}
+
+impl std::fmt::Display for RoomForwardError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::SenderNotMember => f.write_str("sender is no longer a member of the room"),
+            Self::RecipientNotMember => {
+                f.write_str("recipient is no longer a member of the room")
+            }
+            Self::RegistryUnavailable => f.write_str("relay room registry unavailable"),
+            Self::Queue(error) => write!(f, "{error}"),
+        }
+    }
+}
+
 /// Reserves both count capacity and byte capacity before changing any room state.
 /// The reservation can be committed synchronously after all recipients pass preflight.
 struct PreparedFrame {
@@ -493,6 +514,79 @@ fn forward_message(recipient: &PeerHandle, message: &SignalIncoming) -> Result<(
             Err(error)
         }
     }
+}
+
+/// Commits a prepared data frame only while both endpoints are still members of the
+/// room. The room lock makes this commit linearizable with membership removal.
+fn commit_room_forward(
+    rooms: &SharedRooms,
+    room_id: &str,
+    sender_id: u64,
+    recipient_id: u64,
+    prepared: PreparedFrame,
+) -> Result<(), RoomForwardError> {
+    let state = rooms
+        .lock()
+        .map_err(|_| RoomForwardError::RegistryUnavailable)?;
+    let Some(room) = state.rooms.get(room_id) else {
+        return Err(RoomForwardError::SenderNotMember);
+    };
+    if !room.contains_key(&sender_id) {
+        return Err(RoomForwardError::SenderNotMember);
+    }
+    if !room.contains_key(&recipient_id) {
+        return Err(RoomForwardError::RecipientNotMember);
+    }
+
+    prepared.commit();
+    Ok(())
+}
+
+/// Reserves the target's outbound capacity outside the registry lock, then
+/// revalidates membership while holding the lock for the actual queue commit.
+/// A leave that wins the lock first therefore cannot be followed by stale data.
+fn forward_room_message(
+    rooms: &SharedRooms,
+    room_id: &str,
+    sender_id: u64,
+    recipient_id: u64,
+    message: &SignalIncoming,
+) -> Result<(), RoomForwardError> {
+    let recipient = {
+        let state = rooms
+            .lock()
+            .map_err(|_| RoomForwardError::RegistryUnavailable)?;
+        let Some(room) = state.rooms.get(room_id) else {
+            return Err(RoomForwardError::SenderNotMember);
+        };
+        if !room.contains_key(&sender_id) {
+            return Err(RoomForwardError::SenderNotMember);
+        }
+        room.get(&recipient_id)
+            .cloned()
+            .ok_or(RoomForwardError::RecipientNotMember)?
+    };
+
+    let prepared = match prepare_message(&recipient, message) {
+        Ok(prepared) => prepared,
+        Err(error) => {
+            if error.is_recipient_backpressure() {
+                let state = rooms
+                    .lock()
+                    .map_err(|_| RoomForwardError::RegistryUnavailable)?;
+                if let Some(room) = state.rooms.get(room_id) {
+                    if room.contains_key(&sender_id) {
+                        if let Some(current_recipient) = room.get(&recipient_id) {
+                            let _ = current_recipient.shutdown_tx.send(true);
+                        }
+                    }
+                }
+            }
+            return Err(RoomForwardError::Queue(error));
+        }
+    };
+
+    commit_room_forward(rooms, room_id, sender_id, recipient_id, prepared)
 }
 
 fn enqueue_control_frame(peer: &PeerHandle, frame: Message) -> Result<(), String> {
@@ -893,37 +987,32 @@ async fn handle_connection(
                                     });
                                     continue;
                                 }
-                                let (sender_is_member, recipient) = match rooms.lock() {
-                                    Ok(state) => match state.rooms.get(&room_id) {
-                                        Some(room) => (
-                                            room.contains_key(&peer_id),
-                                            room.get(&to).cloned(),
-                                        ),
-                                        None => (false, None),
-                                    },
-                                    Err(_) => {
+                                let forwarded = SignalIncoming::Signal { from: peer_id, data };
+                                match forward_room_message(
+                                    &rooms,
+                                    &room_id,
+                                    peer_id,
+                                    to,
+                                    &forwarded,
+                                ) {
+                                    Ok(()) => {}
+                                    Err(RoomForwardError::SenderNotMember) => break,
+                                    Err(RoomForwardError::RegistryUnavailable) => {
                                         let _ = enqueue_message(&peer, &SignalIncoming::Error {
                                             message: "relay room registry unavailable".to_string(),
                                         });
                                         break;
                                     }
-                                };
-                                // A peer evicted for backpressure may race with the
-                                // shutdown watch notification; membership is the authority.
-                                if !sender_is_member {
-                                    break;
-                                }
-                                let Some(recipient) = recipient else {
-                                    let _ = enqueue_message(&peer, &SignalIncoming::Error {
-                                        message: format!("recipient {to} is not a member of room {room_id:?}"),
-                                    });
-                                    continue;
-                                };
-                                let forwarded = SignalIncoming::Signal { from: peer_id, data };
-                                if let Err(error) = forward_message(&recipient, &forwarded) {
-                                    let _ = enqueue_message(&peer, &SignalIncoming::Error {
-                                        message: format!("message not queued for recipient {to}: {error}"),
-                                    });
+                                    Err(RoomForwardError::RecipientNotMember) => {
+                                        let _ = enqueue_message(&peer, &SignalIncoming::Error {
+                                            message: format!("recipient {to} is not a member of room {room_id:?}"),
+                                        });
+                                    }
+                                    Err(RoomForwardError::Queue(error)) => {
+                                        let _ = enqueue_message(&peer, &SignalIncoming::Error {
+                                            message: format!("message not queued for recipient {to}: {error}"),
+                                        });
+                                    }
                                 }
                             }
                         }
@@ -1816,6 +1905,86 @@ mod tests {
             global_membership_bytes.available_permits(),
             MAX_TOTAL_OUTBOUND_MEMBERSHIP_BYTES,
             "draining ordered join/leave events must recover shared membership capacity"
+        );
+    }
+
+    #[test]
+    fn prepared_relay_frame_is_discarded_if_recipient_leaves_before_commit() {
+        let rooms: SharedRooms = Arc::new(Mutex::new(Rooms::default()));
+        let global_data_bytes = Arc::new(Semaphore::new(MAX_TOTAL_OUTBOUND_DATA_BYTES));
+        let global_control_bytes = Arc::new(Semaphore::new(MAX_TOTAL_OUTBOUND_CONTROL_BYTES));
+        let global_membership_bytes = Arc::new(Semaphore::new(MAX_TOTAL_OUTBOUND_MEMBERSHIP_BYTES));
+
+        let (sender_tx, sender_rx) = mpsc::channel(OUTBOUND_QUEUE_CAPACITY);
+        let (sender_shutdown_tx, _sender_shutdown_rx) = watch::channel(false);
+        let (sender, sender_outbound) = test_peer_handle_with_global(
+            sender_tx,
+            sender_rx,
+            sender_shutdown_tx,
+            global_data_bytes.clone(),
+            global_control_bytes.clone(),
+            global_membership_bytes.clone(),
+        );
+        let (recipient_tx, recipient_rx) = mpsc::channel(OUTBOUND_QUEUE_CAPACITY);
+        let (recipient_shutdown_tx, _recipient_shutdown_rx) = watch::channel(false);
+        let (recipient, recipient_outbound) = test_peer_handle_with_global(
+            recipient_tx,
+            recipient_rx,
+            recipient_shutdown_tx,
+            global_data_bytes.clone(),
+            global_control_bytes,
+            global_membership_bytes.clone(),
+        );
+        {
+            let mut state = rooms.lock().expect("room registry lock");
+            let members = state.rooms.entry("room".to_string()).or_default();
+            members.insert(1, sender.clone());
+            members.insert(2, recipient.clone());
+        }
+
+        let message = SignalIncoming::Signal {
+            from: 1,
+            data: SignalData::RelayData {
+                channel: symtropy_net::signaling::SignalChannel::Reliable,
+                payload: b"must-not-arrive-after-leave".to_vec(),
+            },
+        };
+        let prepared = prepare_message(&recipient, &message)
+            .expect("reserve the recipient mailbox before the leave wins");
+        assert!(
+            recipient.queued_bytes.available_permits() < MAX_SIGNALING_MESSAGE_BYTES,
+            "staged relay data must hold its byte reservation until commit or drop"
+        );
+
+        // This deterministically models the race: a sender held a recipient handle
+        // and reserved its queue before the recipient's leave acquired the registry.
+        remove_peer_and_notify(&rooms, "room", 2);
+        assert_eq!(
+            commit_room_forward(&rooms, "room", 1, 2, prepared),
+            Err(RoomForwardError::RecipientNotMember),
+            "a completed leave must invalidate any pre-reserved data frame"
+        );
+        assert!(
+            recipient_outbound.try_recv().is_err(),
+            "a departed recipient must not receive the staged relay payload"
+        );
+
+        drop(sender_outbound);
+        drop(recipient_outbound);
+        assert_eq!(
+            recipient.queued_bytes.available_permits(),
+            MAX_SIGNALING_MESSAGE_BYTES,
+            "dropping a stale prepared frame must release recipient capacity"
+        );
+        assert_eq!(
+            global_data_bytes.available_permits(),
+            MAX_TOTAL_OUTBOUND_DATA_BYTES,
+            "dropping a stale prepared frame must release global data capacity"
+        );
+        assert_eq!(
+            global_membership_bytes.available_permits(),
+            MAX_TOTAL_OUTBOUND_MEMBERSHIP_BYTES,
+            "dropping queued PeerLeft and stale reservations must restore membership capacity"
         );
     }
 
