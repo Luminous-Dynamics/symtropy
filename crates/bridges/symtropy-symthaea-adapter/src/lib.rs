@@ -221,7 +221,12 @@ impl MotorPlanner for EmbodimentPlanner {
             || !self.dt.is_finite()
             || self.dt <= 0.0
             || self.hv_dim == 0
-            || observation.iter().any(|value| !value.is_finite())
+            // The legacy tiled encoder narrows f64 channels to f32. A finite
+            // f64 can overflow to infinity during that conversion, so validate
+            // representability before constructing the hypervector.
+            || observation
+                .iter()
+                .any(|value| !value.is_finite() || !(*value as f32).is_finite())
         {
             return vec![0.0; num_actuators];
         }
@@ -602,6 +607,14 @@ mod tests {
     fn non_finite_observation_fails_closed_without_stepping_bridge() {
         let mut p = make_planner();
         let commands = p.plan(&[0.5, f64::INFINITY], 1.0, 4);
+        assert_eq!(commands, vec![0.0; 4]);
+        assert_eq!(p.bridge().total_steps(), 0);
+    }
+
+    #[test]
+    fn finite_f64_that_overflows_f32_fails_closed_without_stepping_bridge() {
+        let mut p = make_planner();
+        let commands = p.plan(&[f64::MAX], 1.0, 4);
         assert_eq!(commands, vec![0.0; 4]);
         assert_eq!(p.bridge().total_steps(), 0);
     }
