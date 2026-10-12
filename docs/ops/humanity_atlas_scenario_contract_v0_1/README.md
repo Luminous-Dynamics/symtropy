@@ -161,14 +161,19 @@ tests, then runs the standalone Rust example against those same source bytes and
 the generated envelope. It requires all three source checkouts (monorepo,
 Symtropy, and Sol-Atlas) to be clean and records all three HEADs, tool versions,
 source/envelope/report and log digests, the consumer report, and test logs in
-an evidence directory. It also snapshots and hashes the standalone core's
-resolved Cargo lockfile; if Cargo created that lockfile only for this run, the
-script removes it on exit so it does not dirty the checkout. The adapter source,
-its tests, the run schema, and the producer/consumer copies of both versioned
-schemas (technology tree and run manifest) are snapshotted and hashed. The script
-fails unless both producer/consumer schema pairs are byte-identical, and validates
-the actual run envelope against the snapshotted run schema. By default the evidence directory is under
-`TMPDIR` (or `/tmp`), outside source trees.
+an evidence directory. It snapshots and hashes both the simulator and
+standalone core Cargo lockfiles, then uses `cargo run/test --locked` for every
+build, test, and importer invocation. If either checkout lacks a lockfile, the
+script resolves it once, records whether it was generated during qualification,
+and preserves its exact bytes and SHA-256 in the evidence packet. It checks that
+neither lockfile changes during the run, removes only lockfiles it generated,
+and verifies that all three source checkouts are clean again before recording a
+pass. The adapter source, its tests, the run schema, and the producer/consumer
+copies of both versioned schemas (technology tree and run manifest) are
+snapshotted and hashed. The script fails unless both producer/consumer schema
+pairs are byte-identical, and validates the actual run envelope against the
+snapshotted run schema. By default the evidence directory is under `TMPDIR`
+(or `/tmp`), outside source trees.
 
 The qualification gate requires the Python `jsonschema` package; the ordinary adapter unit test can skip schema validation when run without it, but the qualification script sets `HUMANITY_ATLAS_REQUIRE_JSONSCHEMA=1` and fails if it is missing. Add `python3Packages.jsonschema` to the temporary Nix shell or install `jsonschema` in the Python environment before qualifying.
 
