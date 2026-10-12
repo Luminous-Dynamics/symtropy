@@ -57,7 +57,7 @@ pub use biometrics::{
 };
 pub use coupling::{ConsciousnessField, EntityConsciousness};
 pub use energy::EnergyBudget;
-pub use harmony_field::HarmonyField;
+pub use harmony_field::{HarmonyField, HarmonySource};
 pub use macro_bridge::{MacroWorldModifiers, apply_macro_modifiers};
 pub use phase_transition::{
     BifurcationConfig, BifurcationResult, CriticalityIndicators, TransitionType,
