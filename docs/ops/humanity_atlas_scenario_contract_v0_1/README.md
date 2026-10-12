@@ -171,7 +171,11 @@ and verifies that all three source checkouts are clean again before recording a
 pass. Because GitHub's ambient `GITHUB_SHA` identifies the Symtropy workflow
 commit, the script overrides the producer's compile-time revision variables with
 the monorepo's recorded HEAD; it rejects the captured artifact and consumer
-report unless they declare that same producer revision. The adapter source,
+report unless they declare that same producer revision. The producer and consumer
+compile into fresh temporary `CARGO_TARGET_DIR` directories, so a previously
+cached binary cannot silently retain an old compile-time revision. Those build
+directories are removed on exit and are not included in the evidence upload.
+The adapter source,
 its tests, the run schema, and the producer/consumer copies of both versioned
 schemas (technology tree and run manifest) are snapshotted and hashed. The
 script fails unless both producer/consumer schema pairs are byte-identical, and
