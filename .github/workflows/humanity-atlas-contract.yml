@@ -1,0 +1,44 @@
+name: Humanity Atlas Contract
+
+on:
+  pull_request:
+    paths:
+      - "docs/ops/humanity_atlas_scenario_contract_v0_1/**"
+      - ".github/workflows/humanity-atlas-contract.yml"
+  push:
+    branches: ["main", "stabilize/*"]
+    paths:
+      - "docs/ops/humanity_atlas_scenario_contract_v0_1/**"
+      - ".github/workflows/humanity-atlas-contract.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: humanity-atlas-contract-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  adapter-contract:
+    name: Adapter tests + run-schema validation
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: "pip"
+
+      - name: Install JSON Schema validator
+        run: python -m pip install --disable-pip-version-check "jsonschema>=4.23,<5"
+
+      - name: Run fail-closed adapter regressions (schema check required)
+        working-directory: docs/ops/humanity_atlas_scenario_contract_v0_1
+        env:
+          PYTHONDONTWRITEBYTECODE: "1"
+          HUMANITY_ATLAS_REQUIRE_JSONSCHEMA: "1"
+        run: python -m unittest -v test_adapt_multiworld_output.py
+
+      - name: Check the real-artifact qualification script syntax
+        run: bash -n docs/ops/humanity_atlas_scenario_contract_v0_1/qualify_real_artifact.sh
