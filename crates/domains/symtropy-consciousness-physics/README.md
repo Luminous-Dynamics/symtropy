@@ -51,7 +51,7 @@ Treat this as a tunable simulation hypothesis. Its usefulness should be establis
 
 ## Sanctuary Zones
 
-When Sacred Stillness > 0.6 and Φ > 0.3, a consciousness-created safe zone forms. Collision impulses dampened up to 90%. The physics literally protects conscious beings.
+When the configured Sacred Stillness and Φ thresholds are met, a sanctuary zone can dampen collision impulses up to its configured limit (up to 90% with the corresponding settings). This is a simulation mechanic, not evidence of subjective consciousness.
 
 ## Benchmarks
 
