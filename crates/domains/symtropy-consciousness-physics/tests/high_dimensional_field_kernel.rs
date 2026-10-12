@@ -34,9 +34,9 @@ fn assert_falloff<const D: usize>(near: Point<D>, far: Point<D>, dimension: usiz
     let near_value = field.sample(&near)[0];
     let far_value = field.sample(&far)[0];
     let exponent = (dimension as f64 - 1.0).max(1.0);
-    let expected_ratio = ((1.0 + SOFTENING_EPSILON.powi(2))
-        / (9.0 + SOFTENING_EPSILON.powi(2)))
-        .powf(exponent / 2.0);
+    let expected_ratio =
+        ((1.0 + SOFTENING_EPSILON.powi(2)) / (9.0 + SOFTENING_EPSILON.powi(2)))
+            .powf(exponent / 2.0);
     let observed_ratio = near_value / far_value;
 
     assert!(
@@ -51,7 +51,11 @@ fn softened_radial_falloff_matches_the_declared_exponent_in_dimensions_one_throu
     // near/far ratio ((1^2+epsilon^2)/(3^2+epsilon^2))^(p_D/2), p_D=max(D-1,1).
     assert_falloff(Point::<1>::new([1.0]), Point::<1>::new([3.0]), 1);
     assert_falloff(Point::<2>::new([1.0, 0.0]), Point::<2>::new([3.0, 0.0]), 2);
-    assert_falloff(Point::<3>::new([1.0, 0.0, 0.0]), Point::<3>::new([3.0, 0.0, 0.0]), 3);
+    assert_falloff(
+        Point::<3>::new([1.0, 0.0, 0.0]),
+        Point::<3>::new([3.0, 0.0, 0.0]),
+        3,
+    );
     assert_falloff(
         Point::<4>::new([1.0, 0.0, 0.0, 0.0]),
         Point::<4>::new([3.0, 0.0, 0.0, 0.0]),
