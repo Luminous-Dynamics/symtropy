@@ -71,7 +71,7 @@ A proposed plan is not an authorized command. A queued test is not a pass. An ac
 
 Use applicable standards as interoperability targets rather than inventing replacements:
 
-- **CCSDS 502.0-B-3, Orbit Data Messages (May 2023):** OPM, OMM, OEM and OCM formats for orbital data exchange. Keep any internal richer schema and provide explicit standards-aware import/export adapters.
+- **CCSDS 502.0-B-3, Orbit Data Messages (May 2023), with Technical Corrigendum 1 (issued June 2026 and listed by CCSDS on 2 October 2026):** implement OPM, OMM, OEM and OCM adapters against the corrected publication. Preserve message identity, central body, reference frame, time system, covariance/metadata semantics and registered keyword constraints. Keep any internal richer schema; use corrected examples in conformance tests and do not claim interoperability until parser/serializer tests pass.
 - **CCSDS Conjunction Data Message:** exchange conjunction events and covariance/metadata using the applicable controlled version, preserving frame, epoch and uncertainty semantics.
 - **NASA / ESA / JAXA LunaNet Interoperability Specification v5 (published 7 February 2025):** align lunar network, communications, navigation and timing service concepts, message identity and availability assumptions.
 - **USGS lunar grid releases:** enforce source-specific LTM/LPS/LGRS/ACC projection and lunar datum metadata; the named grid spacing is not a terrain-accuracy claim.
