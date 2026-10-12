@@ -92,6 +92,20 @@ TREE_SCHEMA_PRODUCER="$MONOREPO_ROOT/sol-atlas-core/schemas/mycelix-multiworld-s
 TREE_SCHEMA_CONSUMER="$SOL_ATLAS_ROOT/sol-atlas-core/schemas/mycelix-multiworld-sim-tech-tree-v1.schema.json"
 RUN_MANIFEST_SCHEMA_PRODUCER="$MONOREPO_ROOT/sol-atlas-core/schemas/humanity-atlas-run-manifest-v1.schema.json"
 RUN_MANIFEST_SCHEMA_CONSUMER="$SOL_ATLAS_ROOT/sol-atlas-core/schemas/humanity-atlas-run-manifest-v1.schema.json"
+TARGET_ROOT="${TMPDIR:-/tmp}"
+if [[ ! -d "$TARGET_ROOT" ]]; then
+  echo "TMPDIR must name an existing directory: $TARGET_ROOT" >&2
+  exit 2
+fi
+TARGET_ROOT="$(cd -- "$TARGET_ROOT" && pwd -P)"
+case "$TARGET_ROOT/" in
+  "$MONOREPO_ROOT/"*|"$SOL_ATLAS_ROOT/"*|"$SYMTROPY_ROOT/"*)
+    echo "TMPDIR must be outside all three source checkouts" >&2
+    exit 2
+    ;;
+esac
+SIMULATOR_TARGET_DIR="$(mktemp -d "$TARGET_ROOT/humanity-atlas-simulator-target.XXXXXX")"
+CORE_TARGET_DIR="$(mktemp -d "$TARGET_ROOT/humanity-atlas-consumer-target.XXXXXX")"
 SIMULATOR_LOCK_PATH="$MONOREPO_ROOT/mycelix-multiworld-sim/Cargo.lock"
 CORE_LOCK_PATH="$SOL_ATLAS_ROOT/sol-atlas-core/Cargo.lock"
 if [[ -f "$SIMULATOR_LOCK_PATH" ]]; then
@@ -104,15 +118,16 @@ if [[ -f "$CORE_LOCK_PATH" ]]; then
 else
   CORE_LOCK_PREEXISTED=0
 fi
-cleanup_generated_locks() {
+cleanup_generated_locks_and_targets() {
   if [[ "$SIMULATOR_LOCK_PREEXISTED" -eq 0 ]]; then
     rm -f -- "$SIMULATOR_LOCK_PATH"
   fi
   if [[ "$CORE_LOCK_PREEXISTED" -eq 0 ]]; then
     rm -f -- "$CORE_LOCK_PATH"
   fi
+  rm -rf -- "$SIMULATOR_TARGET_DIR" "$CORE_TARGET_DIR"
 }
-trap cleanup_generated_locks EXIT
+trap cleanup_generated_locks_and_targets EXIT
 
 for path in \
   "$MONOREPO_ROOT/mycelix-multiworld-sim/Cargo.toml" \
@@ -198,6 +213,7 @@ if ! (
   cd -- "$MONOREPO_ROOT"
   # option_env! reads these at compile time. The workflow's ambient GITHUB_SHA
   # belongs to Symtropy, so override every supported producer revision variable.
+  CARGO_TARGET_DIR="$SIMULATOR_TARGET_DIR" \
   GITHUB_SHA="$PRODUCER_REVISION" \
   GIT_COMMIT="$PRODUCER_REVISION" \
   VERGEN_GIT_SHA="$PRODUCER_REVISION" \
@@ -260,7 +276,8 @@ fi
 echo "[6/7] Running standalone Sol-Atlas core tests with the snapshotted lock." >&2
 (
   cd -- "$SOL_ATLAS_ROOT"
-  cargo test --locked --manifest-path "$SOL_ATLAS_ROOT/sol-atlas-core/Cargo.toml" --lib
+  CARGO_TARGET_DIR="$CORE_TARGET_DIR" \
+    cargo test --locked --manifest-path "$SOL_ATLAS_ROOT/sol-atlas-core/Cargo.toml" --lib
 ) > "$OUT_DIR/sol-atlas-core-tests.log" 2>&1 || {
   cat "$OUT_DIR/sol-atlas-core-tests.log" >&2
   exit 1
@@ -269,8 +286,9 @@ echo "[6/7] Running standalone Sol-Atlas core tests with the snapshotted lock." 
 echo "[7/7] Verifying the envelope against the same source bytes in the independent importer." >&2
 if ! (
   cd -- "$SOL_ATLAS_ROOT"
-  cargo run --locked --manifest-path "$SOL_ATLAS_ROOT/sol-atlas-core/Cargo.toml" \
-    --example verify_humanity_atlas_artifact -- \
+  CARGO_TARGET_DIR="$CORE_TARGET_DIR" \
+    cargo run --locked --manifest-path "$SOL_ATLAS_ROOT/sol-atlas-core/Cargo.toml" \
+      --example verify_humanity_atlas_artifact -- \
     "$RUN_ENVELOPE" "$SOURCE_ARTIFACT" source-simulator-output
 ) > "$VALIDATION_REPORT" 2> "$OUT_DIR/sol-atlas-validation.log"; then
   cat "$OUT_DIR/sol-atlas-validation.log" >&2
@@ -356,6 +374,7 @@ metadata = {
     "python_version": text(os.path.join(os.path.dirname(metadata_path), "python-version.txt")),
     "checkouts_clean_at_start": True,
     "checkouts_clean_after_qualification": True,
+    "isolated_cargo_target_dirs": True,
     "validation_report": report,
 }
 with open(metadata_path, "w", encoding="utf-8") as stream:
