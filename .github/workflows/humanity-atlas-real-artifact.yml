@@ -30,7 +30,7 @@ jobs:
       PYTHONDONTWRITEBYTECODE: "1"
       LUMINOUS_MONOREPO_ROOT: ${{ github.workspace }}/luminous-dynamics
       SOL_ATLAS_ROOT: ${{ github.workspace }}/sol-atlas-leptos
-      ATLAS_QUALIFICATION_DIR: ${{ runner.temp }}/humanity-atlas-real-artifact-evidence
+      ATLAS_QUALIFICATION_DIR: /tmp/humanity-atlas-real-artifact-evidence
       YEARS: "150"
       SEED: "42"
     steps:
@@ -78,6 +78,6 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: humanity-atlas-real-artifact-${{ github.run_id }}-${{ github.run_attempt }}
-          path: ${{ runner.temp }}/humanity-atlas-real-artifact-evidence/
+          path: /tmp/humanity-atlas-real-artifact-evidence/
           if-no-files-found: warn
           retention-days: 14
