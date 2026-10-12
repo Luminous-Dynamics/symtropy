@@ -154,16 +154,16 @@ pub struct HarmonySource<const D: usize> {
     /// Harmony activations [0.0, 1.0] for each of the 9 harmonies.
     /// Index 8 = Emotional Contagion.
     pub activations: [f64; NUM_HARMONIES],
-    /// Field strength multiplier (scales with consciousness level).
+    /// Finite, nonnegative field-strength multiplier (scales with consciousness level).
     pub strength: f64,
-    /// Field radius (beyond this, field is negligible).
+    /// Finite, positive influence radius; zero/negative radii are invalid.
     pub radius: f64,
-    /// Simulation time when this source was created/activated (Fix 6).
+    /// Finite, nonnegative simulation time when this source was created/activated.
     /// Used for finite propagation delay. Default 0.0 (instant).
     pub created_at: f64,
-    /// Field propagation speed in units/sec (Fix 6).
-    /// Default f64::MAX (instant propagation for moving agents).
-    /// Use finite values only for stationary sources (wells, sanctuaries).
+    /// Finite, positive field propagation speed in units/sec.
+    /// f64::MAX is the documented instant-propagation sentinel for moving agents.
+    /// Use finite values below f64::MAX for stationary sources (wells, sanctuaries).
     pub propagation_speed: f64,
 }
 
