@@ -349,24 +349,40 @@ mod tests {
     fn checked_sprint_floor_gain_rejects_non_finite_values() {
         use MotorGainInputError::*;
 
-        assert_eq!(try_sprint_floor_gain(f64::NAN, 0.5, 0.3), Err(NonFiniteSignal));
-        assert_eq!(try_sprint_floor_gain(f64::INFINITY, 0.5, 0.3), Err(NonFiniteSignal));
-        assert_eq!(try_sprint_floor_gain(f64::NEG_INFINITY, 0.5, 0.3), Err(NonFiniteSignal));
-        assert_eq!(try_sprint_floor_gain(0.5, f64::NAN, 0.3), Err(NonFiniteSprintThreshold));
-        assert_eq!(try_sprint_floor_gain(0.5, f64::INFINITY, 0.3), Err(NonFiniteSprintThreshold));
-        assert_eq!(try_sprint_floor_gain(0.5, 0.5, f64::NEG_INFINITY), Err(NonFiniteFloor));
+        for invalid in [f64::NAN, f64::INFINITY, f64::NEG_INFINITY] {
+            assert_eq!(
+                try_sprint_floor_gain(invalid, 0.5, 0.3),
+                Err(NonFiniteSignal)
+            );
+            assert_eq!(
+                try_sprint_floor_gain(0.5, invalid, 0.3),
+                Err(NonFiniteSprintThreshold)
+            );
+            assert_eq!(
+                try_sprint_floor_gain(0.5, 0.5, invalid),
+                Err(NonFiniteFloor)
+            );
+        }
     }
 
     #[test]
     fn checked_sprint_floor_gain_rejects_out_of_range_values() {
         use MotorGainInputError::*;
 
-        assert_eq!(try_sprint_floor_gain(-f64::EPSILON, 0.5, 0.3), Err(SignalOutOfRange));
-        assert_eq!(try_sprint_floor_gain(1.0 + f64::EPSILON, 0.5, 0.3), Err(SignalOutOfRange));
-        assert_eq!(try_sprint_floor_gain(0.5, -f64::EPSILON, 0.3), Err(SprintThresholdOutOfRange));
-        assert_eq!(try_sprint_floor_gain(0.5, 1.0 + f64::EPSILON, 0.3), Err(SprintThresholdOutOfRange));
-        assert_eq!(try_sprint_floor_gain(0.5, 0.5, -f64::EPSILON), Err(FloorOutOfRange));
-        assert_eq!(try_sprint_floor_gain(0.5, 0.5, 1.0 + f64::EPSILON), Err(FloorOutOfRange));
+        for invalid in [-f64::EPSILON, 1.0 + f64::EPSILON] {
+            assert_eq!(
+                try_sprint_floor_gain(invalid, 0.5, 0.3),
+                Err(SignalOutOfRange)
+            );
+            assert_eq!(
+                try_sprint_floor_gain(0.5, invalid, 0.3),
+                Err(SprintThresholdOutOfRange)
+            );
+            assert_eq!(
+                try_sprint_floor_gain(0.5, 0.5, invalid),
+                Err(FloorOutOfRange)
+            );
+        }
     }
 
     #[test]
@@ -375,6 +391,7 @@ mod tests {
         assert_eq!(try_sprint_floor_gain(0.5, 0.5, 0.7), Ok(0.7));
         assert_eq!(try_sprint_floor_gain(0.500_001, 0.5, 0.7), Ok(1.0));
         assert_eq!(try_sprint_floor_gain(1.0, 0.0, 1.0), Ok(1.0));
+
         for signal_i in 0..=10 {
             for threshold_i in 0..=10 {
                 for floor_i in 0..=10 {
@@ -397,5 +414,4 @@ mod tests {
         assert_eq!(sprint_floor_gain(0.8, 0.5, 1.5), 0.0);
         assert_eq!(sprint_floor_gain(0.8, 0.5, f64::INFINITY), 0.0);
     }
-
 }
