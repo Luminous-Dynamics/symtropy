@@ -1555,7 +1555,10 @@ mod tests {
 
         {
             let state = rooms.lock().expect("room registry lock");
-            let members = state.rooms.get("room").expect("existing room survives failed admission");
+            let members = state
+                .rooms
+                .get("room")
+                .expect("existing room survives failed admission");
             assert_eq!(members.len(), 1);
             assert!(members.contains_key(&1));
             assert!(!members.contains_key(&2), "failed join must never become visible");
@@ -1584,8 +1587,7 @@ mod tests {
         let rooms: SharedRooms = Arc::new(Mutex::new(Rooms::default()));
         let global_data_bytes = Arc::new(Semaphore::new(MAX_TOTAL_OUTBOUND_DATA_BYTES));
         let global_control_bytes = Arc::new(Semaphore::new(MAX_TOTAL_OUTBOUND_CONTROL_BYTES));
-        let global_membership_bytes =
-            Arc::new(Semaphore::new(MAX_TOTAL_OUTBOUND_MEMBERSHIP_BYTES));
+        let global_membership_bytes = Arc::new(Semaphore::new(MAX_TOTAL_OUTBOUND_MEMBERSHIP_BYTES));
 
         let (departing_tx, departing_rx) = mpsc::channel(OUTBOUND_QUEUE_CAPACITY);
         let (departing_shutdown_tx, _departing_shutdown_rx) = watch::channel(false);
@@ -1637,13 +1639,14 @@ mod tests {
             join_result.is_ok(),
             "serialized join must complete regardless of whether leave takes the room lock first: {join_result:?}"
         );
-        leave_thread
-            .join()
-            .expect("leave thread must not panic");
+        leave_thread.join().expect("leave thread must not panic");
 
         {
             let state = rooms.lock().expect("room registry lock");
-            let members = state.rooms.get("room").expect("joining peer's room remains");
+            let members = state
+                .rooms
+                .get("room")
+                .expect("joining peer's room remains");
             assert_eq!(members.len(), 1);
             assert!(members.contains_key(&2));
             assert!(!members.contains_key(&1));
@@ -1677,7 +1680,10 @@ mod tests {
             "if the joining peer saw peer 1 join, it must also see peer 1 leave"
         );
         if let (Some(joined), Some(left)) = (saw_old_peer_join, saw_old_peer_leave) {
-            assert!(joined < left, "PeerJoined must precede PeerLeft for the same transition");
+            assert!(
+                joined < left,
+                "PeerJoined must precede PeerLeft for the same transition"
+            );
         }
         assert!(
             joining_events.len() == 1 || joining_events.len() == 3,
