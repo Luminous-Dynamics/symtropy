@@ -92,18 +92,27 @@ TREE_SCHEMA_PRODUCER="$MONOREPO_ROOT/sol-atlas-core/schemas/mycelix-multiworld-s
 TREE_SCHEMA_CONSUMER="$SOL_ATLAS_ROOT/sol-atlas-core/schemas/mycelix-multiworld-sim-tech-tree-v1.schema.json"
 RUN_MANIFEST_SCHEMA_PRODUCER="$MONOREPO_ROOT/sol-atlas-core/schemas/humanity-atlas-run-manifest-v1.schema.json"
 RUN_MANIFEST_SCHEMA_CONSUMER="$SOL_ATLAS_ROOT/sol-atlas-core/schemas/humanity-atlas-run-manifest-v1.schema.json"
+SIMULATOR_LOCK_PATH="$MONOREPO_ROOT/mycelix-multiworld-sim/Cargo.lock"
 CORE_LOCK_PATH="$SOL_ATLAS_ROOT/sol-atlas-core/Cargo.lock"
+if [[ -f "$SIMULATOR_LOCK_PATH" ]]; then
+  SIMULATOR_LOCK_PREEXISTED=1
+else
+  SIMULATOR_LOCK_PREEXISTED=0
+fi
 if [[ -f "$CORE_LOCK_PATH" ]]; then
   CORE_LOCK_PREEXISTED=1
 else
   CORE_LOCK_PREEXISTED=0
 fi
-cleanup_generated_core_lock() {
+cleanup_generated_locks() {
+  if [[ "$SIMULATOR_LOCK_PREEXISTED" -eq 0 ]]; then
+    rm -f -- "$SIMULATOR_LOCK_PATH"
+  fi
   if [[ "$CORE_LOCK_PREEXISTED" -eq 0 ]]; then
     rm -f -- "$CORE_LOCK_PATH"
   fi
 }
-trap cleanup_generated_core_lock EXIT
+trap cleanup_generated_locks EXIT
 
 for path in \
   "$MONOREPO_ROOT/mycelix-multiworld-sim/Cargo.toml" \
@@ -155,10 +164,38 @@ if ! (
   exit 1
 fi
 
-echo "[2/6] Capturing one actual simulator run (stdout is the immutable source artifact)." >&2
+echo "[2/7] Resolving and snapshotting simulator + standalone-consumer dependency locks." >&2
+if [[ ! -f "$SIMULATOR_LOCK_PATH" ]]; then
+  if ! cargo generate-lockfile \
+    --manifest-path "$MONOREPO_ROOT/mycelix-multiworld-sim/Cargo.toml" \
+    > "$OUT_DIR/simulator-lock-resolution.log" 2>&1; then
+    cat "$OUT_DIR/simulator-lock-resolution.log" >&2
+    exit 1
+  fi
+fi
+if [[ ! -f "$CORE_LOCK_PATH" ]]; then
+  if ! cargo generate-lockfile \
+    --manifest-path "$SOL_ATLAS_ROOT/sol-atlas-core/Cargo.toml" \
+    > "$OUT_DIR/sol-atlas-lock-resolution.log" 2>&1; then
+    cat "$OUT_DIR/sol-atlas-lock-resolution.log" >&2
+    exit 1
+  fi
+fi
+cp -- "$SIMULATOR_LOCK_PATH" "$OUT_DIR/simulator-Cargo.lock"
+cp -- "$CORE_LOCK_PATH" "$OUT_DIR/sol-atlas-core-Cargo.lock"
+printf '%s\n' "$([[ "$SIMULATOR_LOCK_PREEXISTED" -eq 1 ]] && printf 'present_at_start' || printf 'generated_during_qualification')" \
+  > "$OUT_DIR/simulator-lockfile-origin.txt"
+printf '%s\n' "$([[ "$CORE_LOCK_PREEXISTED" -eq 1 ]] && printf 'present_at_start' || printf 'generated_during_qualification')" \
+  > "$OUT_DIR/sol-atlas-core-lockfile-origin.txt"
+SIMULATOR_LOCK_SHA256="$(sha256sum "$SIMULATOR_LOCK_PATH" | awk '{print $1}')"
+CORE_LOCK_SHA256="$(sha256sum "$CORE_LOCK_PATH" | awk '{print $1}')"
+sha256sum "$OUT_DIR/simulator-Cargo.lock" > "$OUT_DIR/simulator-Cargo.lock.sha256"
+sha256sum "$OUT_DIR/sol-atlas-core-Cargo.lock" > "$OUT_DIR/sol-atlas-core-Cargo.lock.sha256"
+
+echo "[3/7] Capturing one actual simulator run (stdout is the immutable source artifact)." >&2
 if ! (
   cd -- "$MONOREPO_ROOT"
-  cargo run --release \
+  cargo run --locked --release \
     --manifest-path "$MONOREPO_ROOT/mycelix-multiworld-sim/Cargo.toml" \
     --bin luminous_sim -- --years "$YEARS" --seed "$SEED" \
     --format humanity-atlas-json
@@ -169,14 +206,14 @@ fi
 
 sha256sum "$SOURCE_ARTIFACT" > "$SOURCE_ARTIFACT.sha256"
 
-echo "[3/6] Adapting that exact artifact into Humanity Atlas run v0.1." >&2
+echo "[4/7] Adapting that exact artifact into Humanity Atlas run v0.1." >&2
 if ! python3 "$SCRIPT_DIR/adapt_multiworld_output.py" "$SOURCE_ARTIFACT" --output "$RUN_ENVELOPE" 2> "$OUT_DIR/adapter.log"; then
   cat "$OUT_DIR/adapter.log" >&2
   exit 1
 fi
 sha256sum "$RUN_ENVELOPE" > "$RUN_ENVELOPE.sha256"
 
-echo "[4/6] Validating the actual generated envelope against the published run schema." >&2
+echo "[5/7] Validating the actual generated envelope against the published run schema." >&2
 if ! python3 - "$OUT_DIR/run-v0.1.schema.json" "$RUN_ENVELOPE" <<'PY' > "$OUT_DIR/run-schema-validation.log" 2>&1
 import json, sys
 import jsonschema
@@ -194,19 +231,19 @@ then
   exit 1
 fi
 
-echo "[5/6] Running standalone Sol-Atlas core tests." >&2
+echo "[6/7] Running standalone Sol-Atlas core tests with the snapshotted lock." >&2
 (
   cd -- "$SOL_ATLAS_ROOT"
-  cargo test --manifest-path "$SOL_ATLAS_ROOT/sol-atlas-core/Cargo.toml" --lib
+  cargo test --locked --manifest-path "$SOL_ATLAS_ROOT/sol-atlas-core/Cargo.toml" --lib
 ) > "$OUT_DIR/sol-atlas-core-tests.log" 2>&1 || {
   cat "$OUT_DIR/sol-atlas-core-tests.log" >&2
   exit 1
 }
 
-echo "[6/6] Verifying the envelope against the same source bytes in the independent importer." >&2
+echo "[7/7] Verifying the envelope against the same source bytes in the independent importer." >&2
 if ! (
   cd -- "$SOL_ATLAS_ROOT"
-  cargo run --manifest-path "$SOL_ATLAS_ROOT/sol-atlas-core/Cargo.toml" \
+  cargo run --locked --manifest-path "$SOL_ATLAS_ROOT/sol-atlas-core/Cargo.toml" \
     --example verify_humanity_atlas_artifact -- \
     "$RUN_ENVELOPE" "$SOURCE_ARTIFACT" source-simulator-output
 ) > "$VALIDATION_REPORT" 2> "$OUT_DIR/sol-atlas-validation.log"; then
@@ -216,16 +253,30 @@ fi
 
 sha256sum "$VALIDATION_REPORT" > "$VALIDATION_REPORT.sha256"
 
-if [[ ! -f "$CORE_LOCK_PATH" ]]; then
-  echo "standalone Sol-Atlas Cargo.lock was not produced; refusing an unpinned qualification record" >&2
+if [[ "$(sha256sum "$SIMULATOR_LOCK_PATH" | awk '{print $1}')" != "$SIMULATOR_LOCK_SHA256" ]]; then
+  echo "simulator Cargo.lock changed during qualification despite --locked" >&2
   exit 1
 fi
-cp -- "$CORE_LOCK_PATH" "$OUT_DIR/sol-atlas-core-Cargo.lock"
-sha256sum "$OUT_DIR/sol-atlas-core-Cargo.lock" > "$OUT_DIR/sol-atlas-core-Cargo.lock.sha256"
+if [[ "$(sha256sum "$CORE_LOCK_PATH" | awk '{print $1}')" != "$CORE_LOCK_SHA256" ]]; then
+  echo "standalone Sol-Atlas Cargo.lock changed during qualification despite --locked" >&2
+  exit 1
+fi
 
-python3 - "$OUT_DIR/qualification-metadata.json" "$SOURCE_ARTIFACT" "$RUN_ENVELOPE" "$VALIDATION_REPORT" "$YEARS" "$SEED" "$OUT_DIR/sol-atlas-core-Cargo.lock" <<'PY'
+# Newly resolved lockfiles are evidence inputs, not source edits. Keep their
+# exact copies in the evidence packet and restore clean checkouts before PASS.
+cleanup_generated_locks
+SIMULATOR_LOCK_PREEXISTED=1
+CORE_LOCK_PREEXISTED=1
+for checkout in "$MONOREPO_ROOT" "$SOL_ATLAS_ROOT" "$SYMTROPY_ROOT"; do
+  if [[ -n "$(git -C "$checkout" status --porcelain --untracked-files=all)" ]]; then
+    echo "source checkout became dirty during qualification: $checkout" >&2
+    exit 1
+  fi
+done
+
+python3 - "$OUT_DIR/qualification-metadata.json" "$SOURCE_ARTIFACT" "$RUN_ENVELOPE" "$VALIDATION_REPORT" "$YEARS" "$SEED" "$OUT_DIR/simulator-Cargo.lock" "$OUT_DIR/sol-atlas-core-Cargo.lock" "$OUT_DIR/simulator-lockfile-origin.txt" "$OUT_DIR/sol-atlas-core-lockfile-origin.txt" <<'PY'
 import hashlib, json, os, subprocess, sys
-metadata_path, source_path, envelope_path, report_path, years, seed, core_lock_path = sys.argv[1:]
+metadata_path, source_path, envelope_path, report_path, years, seed, simulator_lock_path, core_lock_path, simulator_lock_origin_path, core_lock_origin_path = sys.argv[1:]
 def sha(path):
     h = hashlib.sha256()
     with open(path, "rb") as stream:
@@ -249,7 +300,10 @@ metadata = {
     "source_artifact_sha256": sha(source_path),
     "run_envelope_sha256": sha(envelope_path),
     "validation_report_sha256": sha(report_path),
+    "simulator_cargo_lock_sha256": sha(simulator_lock_path),
+    "simulator_lockfile_origin": text(simulator_lock_origin_path),
     "sol_atlas_core_cargo_lock_sha256": sha(core_lock_path),
+    "sol_atlas_core_lockfile_origin": text(core_lock_origin_path),
     "adapter_source_sha256": sha(os.path.join(os.path.dirname(metadata_path), "adapt_multiworld_output.py")),
     "adapter_tests_source_sha256": sha(os.path.join(os.path.dirname(metadata_path), "test_adapt_multiworld_output.py")),
     "run_schema_sha256": sha(os.path.join(os.path.dirname(metadata_path), "run-v0.1.schema.json")),
@@ -269,6 +323,7 @@ metadata = {
     "cargo_version": text(os.path.join(os.path.dirname(metadata_path), "cargo-version.txt")),
     "python_version": text(os.path.join(os.path.dirname(metadata_path), "python-version.txt")),
     "checkouts_clean_at_start": True,
+    "checkouts_clean_after_qualification": True,
     "validation_report": report,
 }
 with open(metadata_path, "w", encoding="utf-8") as stream:
