@@ -77,9 +77,7 @@ impl std::fmt::Display for HarmonyFieldInputError {
 
 impl std::error::Error for HarmonyFieldInputError {}
 
-fn validate_point<const D: usize>(
-    point: &Point<D>,
-) -> Result<(), HarmonyFieldInputError> {
+fn validate_point<const D: usize>(point: &Point<D>) -> Result<(), HarmonyFieldInputError> {
     for axis in 0..D {
         if !point.coord(axis).is_finite() {
             return Err(HarmonyFieldInputError::NonFiniteQueryCoordinate { axis });
@@ -194,6 +192,8 @@ impl<const D: usize> HarmonySource<D> {
     }
 
     /// Validate all source fields using the documented contract.
+    ///
+    /// The returned source index is zero because this validates one standalone source.
     pub fn validate(&self) -> Result<(), HarmonyFieldInputError> {
         validate_source(self, 0)
     }
@@ -369,10 +369,8 @@ impl<const D: usize> HarmonyField<D> {
             return Ok(0.0);
         }
 
-        let normalized_a: [f64; NUM_HARMONIES] =
-            std::array::from_fn(|i| a[i] / scale_a);
-        let normalized_b: [f64; NUM_HARMONIES] =
-            std::array::from_fn(|i| b[i] / scale_b);
+        let normalized_a: [f64; NUM_HARMONIES] = std::array::from_fn(|i| a[i] / scale_a);
+        let normalized_b: [f64; NUM_HARMONIES] = std::array::from_fn(|i| b[i] / scale_b);
         let dot: f64 = normalized_a
             .iter()
             .zip(normalized_b.iter())
@@ -439,10 +437,7 @@ impl<const D: usize> HarmonyField<D> {
     }
 
     /// Checked total field energy. Overflow cannot masquerade as a valid scalar.
-    pub fn try_field_energy(
-        &self,
-        point: &Point<D>,
-    ) -> Result<f64, HarmonyFieldInputError> {
+    pub fn try_field_energy(&self, point: &Point<D>) -> Result<f64, HarmonyFieldInputError> {
         let field = self.try_sample(point)?;
         let energy = field.iter().sum::<f64>();
         if !energy.is_finite() {
@@ -728,7 +723,7 @@ mod tests {
     fn source_constructor_rejects_invalid_contract_values() {
         let valid_activations = [0.5; NUM_HARMONIES];
         assert_eq!(
-            HarmonySource::try_new(
+            HarmonySource::<3>::try_new(
                 Point::origin(),
                 valid_activations,
                 -1.0,
@@ -740,7 +735,7 @@ mod tests {
             HarmonyFieldInputError::NegativeStrength { source_index: 0 }
         );
         assert_eq!(
-            HarmonySource::try_new(
+            HarmonySource::<3>::try_new(
                 Point::origin(),
                 valid_activations,
                 1.0,
@@ -752,7 +747,7 @@ mod tests {
             HarmonyFieldInputError::NonPositiveRadius { source_index: 0 }
         );
         assert!(matches!(
-            HarmonySource::try_new(
+            HarmonySource::<3>::try_new(
                 Point::new([f64::NAN, 0.0, 0.0]),
                 valid_activations,
                 1.0,
@@ -765,7 +760,7 @@ mod tests {
         let mut negative_activation = valid_activations;
         negative_activation[4] = -0.1;
         assert!(matches!(
-            HarmonySource::try_new(
+            HarmonySource::<3>::try_new(
                 Point::origin(),
                 negative_activation,
                 1.0,
@@ -778,7 +773,7 @@ mod tests {
         let mut nan_activation = valid_activations;
         nan_activation[3] = f64::NAN;
         assert!(matches!(
-            HarmonySource::try_new(
+            HarmonySource::<3>::try_new(
                 Point::origin(),
                 nan_activation,
                 1.0,
@@ -789,7 +784,7 @@ mod tests {
             Err(HarmonyFieldInputError::NonFiniteActivation { index: 3, .. })
         ));
         assert!(matches!(
-            HarmonySource::try_new(
+            HarmonySource::<3>::try_new(
                 Point::origin(),
                 valid_activations,
                 1.0,
@@ -800,7 +795,7 @@ mod tests {
             Err(HarmonyFieldInputError::NonPositivePropagationSpeed { .. })
         ));
         assert!(matches!(
-            HarmonySource::try_new(
+            HarmonySource::<3>::try_new(
                 Point::origin(),
                 valid_activations,
                 f64::INFINITY,
@@ -811,7 +806,7 @@ mod tests {
             Err(HarmonyFieldInputError::NonFiniteStrength { .. })
         ));
         assert!(matches!(
-            HarmonySource::try_new(
+            HarmonySource::<3>::try_new(
                 Point::origin(),
                 valid_activations,
                 1.0,
@@ -822,7 +817,7 @@ mod tests {
             Err(HarmonyFieldInputError::NonFiniteRadius { .. })
         ));
         assert!(matches!(
-            HarmonySource::try_new(
+            HarmonySource::<3>::try_new(
                 Point::origin(),
                 valid_activations,
                 1.0,
@@ -833,7 +828,7 @@ mod tests {
             Err(HarmonyFieldInputError::NonPositiveRadius { .. })
         ));
         assert!(matches!(
-            HarmonySource::try_new(
+            HarmonySource::<3>::try_new(
                 Point::origin(),
                 valid_activations,
                 1.0,
@@ -844,7 +839,7 @@ mod tests {
             Err(HarmonyFieldInputError::NonFiniteCreatedAt { .. })
         ));
         assert!(matches!(
-            HarmonySource::try_new(
+            HarmonySource::<3>::try_new(
                 Point::origin(),
                 valid_activations,
                 1.0,
@@ -855,7 +850,7 @@ mod tests {
             Err(HarmonyFieldInputError::NegativeCreatedAt { .. })
         ));
         assert!(matches!(
-            HarmonySource::try_new(
+            HarmonySource::<3>::try_new(
                 Point::origin(),
                 valid_activations,
                 1.0,
@@ -868,7 +863,7 @@ mod tests {
         let mut over_activation = valid_activations;
         over_activation[6] = 1.01;
         assert!(matches!(
-            HarmonySource::try_new(
+            HarmonySource::<3>::try_new(
                 Point::origin(),
                 over_activation,
                 1.0,
@@ -892,6 +887,12 @@ mod tests {
             HarmonyFieldInputError::NonFiniteStrength { source_index: 0 }
         );
         assert!(field.sample(&Point::origin())[7].is_nan());
+        assert!(field.field_energy(&Point::origin()).is_nan());
+        assert!(
+            field
+                .friction_multiplier(&Point::origin(), &[0.5; NUM_HARMONIES])
+                .is_nan()
+        );
     }
 
     #[test]
@@ -924,7 +925,7 @@ mod tests {
             HarmonyFieldInputError::NonFiniteDistance { source_index: 0 }
         );
 
-        let source = HarmonySource::try_new(
+        let source = HarmonySource::<3>::try_new(
             Point::origin(),
             [1.0; NUM_HARMONIES],
             1.0,
@@ -944,7 +945,7 @@ mod tests {
 
     #[test]
     fn checked_field_energy_rejects_overflow_across_harmonies() {
-        let source = HarmonySource::try_new(
+        let source = HarmonySource::<3>::try_new(
             Point::origin(),
             [1.0; NUM_HARMONIES],
             f64::MAX,
@@ -984,7 +985,7 @@ mod tests {
     fn checked_field_rejects_overflow_from_multiple_extreme_sources() {
         let mut activations = [0.0; NUM_HARMONIES];
         activations[0] = 1.0;
-        let source = HarmonySource::try_new(
+        let source = HarmonySource::<3>::try_new(
             Point::origin(),
             activations,
             f64::MAX,
@@ -1004,7 +1005,7 @@ mod tests {
 
     #[test]
     fn checked_constructors_accept_documented_instant_propagation_sentinel() {
-        let source = HarmonySource::try_new(
+        let source = HarmonySource::<3>::try_new(
             Point::origin(),
             [0.5; NUM_HARMONIES],
             1.0,
