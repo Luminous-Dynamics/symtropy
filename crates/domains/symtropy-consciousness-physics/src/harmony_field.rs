@@ -100,10 +100,16 @@ fn validate_source<const D: usize>(
     }
     for (index, activation) in source.activations.iter().enumerate() {
         if !activation.is_finite() {
-            return Err(HarmonyFieldInputError::NonFiniteActivation { source_index, index });
+            return Err(HarmonyFieldInputError::NonFiniteActivation {
+                source_index,
+                index,
+            });
         }
         if !(0.0..=1.0).contains(activation) {
-            return Err(HarmonyFieldInputError::ActivationOutOfRange { source_index, index });
+            return Err(HarmonyFieldInputError::ActivationOutOfRange {
+                source_index,
+                index,
+            });
         }
     }
     if !source.strength.is_finite() {
@@ -356,10 +362,7 @@ impl<const D: usize> HarmonyField<D> {
         for (vector, values) in [(0_u8, a), (1_u8, b)] {
             for (index, value) in values.iter().enumerate() {
                 if !value.is_finite() {
-                    return Err(HarmonyFieldInputError::NonFiniteResonanceInput {
-                        vector,
-                        index,
-                    });
+                    return Err(HarmonyFieldInputError::NonFiniteResonanceInput { vector, index });
                 }
                 if *value < 0.0 {
                     return Err(HarmonyFieldInputError::NegativeResonanceInput {
@@ -785,25 +788,11 @@ mod tests {
         let mut nan_activation = valid_activations;
         nan_activation[3] = f64::NAN;
         assert!(matches!(
-            HarmonySource::<3>::try_new(
-                Point::origin(),
-                nan_activation,
-                1.0,
-                10.0,
-                0.0,
-                f64::MAX,
-            ),
+            HarmonySource::<3>::try_new(Point::origin(), nan_activation, 1.0, 10.0, 0.0, f64::MAX,),
             Err(HarmonyFieldInputError::NonFiniteActivation { index: 3, .. })
         ));
         assert!(matches!(
-            HarmonySource::<3>::try_new(
-                Point::origin(),
-                valid_activations,
-                1.0,
-                10.0,
-                0.0,
-                0.0,
-            ),
+            HarmonySource::<3>::try_new(Point::origin(), valid_activations, 1.0, 10.0, 0.0, 0.0,),
             Err(HarmonyFieldInputError::NonPositivePropagationSpeed { .. })
         ));
         assert!(matches!(
@@ -875,14 +864,7 @@ mod tests {
         let mut over_activation = valid_activations;
         over_activation[6] = 1.01;
         assert!(matches!(
-            HarmonySource::<3>::try_new(
-                Point::origin(),
-                over_activation,
-                1.0,
-                10.0,
-                0.0,
-                f64::MAX,
-            ),
+            HarmonySource::<3>::try_new(Point::origin(), over_activation, 1.0, 10.0, 0.0, f64::MAX,),
             Err(HarmonyFieldInputError::ActivationOutOfRange { index: 6, .. })
         ));
     }
@@ -923,15 +905,21 @@ mod tests {
     fn checked_field_rejects_invalid_query_and_time() {
         let field = HarmonyField::<3>::new();
         assert_eq!(
-            field.try_sample(&Point::new([f64::INFINITY, 0.0, 0.0])).unwrap_err(),
+            field
+                .try_sample(&Point::new([f64::INFINITY, 0.0, 0.0]))
+                .unwrap_err(),
             HarmonyFieldInputError::NonFiniteQueryCoordinate { axis: 0 }
         );
         assert_eq!(
-            field.try_sample_at_time(&Point::origin(), f64::NAN).unwrap_err(),
+            field
+                .try_sample_at_time(&Point::origin(), f64::NAN)
+                .unwrap_err(),
             HarmonyFieldInputError::NonFiniteCurrentTime
         );
         assert_eq!(
-            field.try_sample_at_time(&Point::origin(), -1.0).unwrap_err(),
+            field
+                .try_sample_at_time(&Point::origin(), -1.0)
+                .unwrap_err(),
             HarmonyFieldInputError::NegativeCurrentTime
         );
     }
@@ -989,8 +977,7 @@ mod tests {
     #[test]
     fn checked_resonance_defines_zero_norm_and_handles_extreme_magnitudes() {
         assert_eq!(
-            HarmonyField::<3>::try_resonance(&[0.0; NUM_HARMONIES], &[1.0; NUM_HARMONIES])
-                .unwrap(),
+            HarmonyField::<3>::try_resonance(&[0.0; NUM_HARMONIES], &[1.0; NUM_HARMONIES]).unwrap(),
             0.0
         );
         let huge = [f64::MAX; NUM_HARMONIES];
@@ -1001,7 +988,10 @@ mod tests {
         negative[2] = -1.0;
         assert_eq!(
             HarmonyField::<3>::try_resonance(&negative, &[1.0; NUM_HARMONIES]).unwrap_err(),
-            HarmonyFieldInputError::NegativeResonanceInput { vector: 0, index: 2 }
+            HarmonyFieldInputError::NegativeResonanceInput {
+                vector: 0,
+                index: 2
+            }
         );
     }
 
