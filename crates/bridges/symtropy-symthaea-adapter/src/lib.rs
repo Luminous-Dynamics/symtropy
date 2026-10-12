@@ -264,7 +264,12 @@ impl MotorPlanner for EmbodimentPlanner {
         // Translate the bridge's scalar response into a bounded per-actuator
         // authority. This adapter exposes authority, not a signed actuator
         // torque; platform-specific command semantics remain bridge-owned.
-        let bridge_gain = result.safety_level.motor_gain() as f64;
+        // A configured safety override is part of the bridge's live state.
+        // The per-step result may still contain an earlier safety level, so
+        // honor the more restrictive of the reported and currently enforced levels.
+        let result_gain = result.safety_level.motor_gain() as f64;
+        let live_bridge_gain = self.bridge.safety_level().motor_gain() as f64;
+        let bridge_gain = result_gain.min(live_bridge_gain);
         let effort = (result.control_effort as f64).abs();
         let raw_authority = bridge_gain * effort;
         if !raw_authority.is_finite() {
@@ -701,6 +706,18 @@ mod tests {
         let mut p = EmbodimentPlanner::new(Box::new(bridge));
         let commands = p.plan(&[0.5], 2.0, 4);
         assert_eq!(commands, vec![1.0; 4]);
+    }
+
+    #[test]
+    fn bridge_safety_override_caps_authority_even_if_step_result_is_green() {
+        let mut p = make_planner();
+        p.bridge_mut().set_safety_override(MotorSafetyLevel::Red);
+
+        // The mock step reports Green, while the live bridge safety
+        // override reports Red. The override must dominate the stale result.
+        let commands = p.plan(&[0.5], 1.0, 4);
+        assert_eq!(commands, vec![0.0; 4]);
+        assert_eq!(p.bridge().total_steps(), 1);
     }
 
     #[test]
