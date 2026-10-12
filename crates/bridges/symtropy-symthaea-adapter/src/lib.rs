@@ -120,9 +120,7 @@ impl SemanticObservationEncoder {
             &observation.len().to_string(),
         ))?;
         if observation.iter().any(|value| !value.is_finite()) {
-            return Err(HdcError::InvalidEncoderSpec(
-                "numeric observation channels must be finite; missing/invalid data must be handled before encoding".to_owned(),
-            ));
+            return Err(HdcError::NonFiniteValue);
         }
         for (index, value) in observation.iter().copied().enumerate() {
             let role = self.memory.role(&format!("channel.{index}"));
