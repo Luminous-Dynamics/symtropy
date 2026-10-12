@@ -64,9 +64,20 @@ esac
 if [[ -z "${ATLAS_QUALIFICATION_DIR:-}" ]]; then
   # Only create the temporary directory after validating its parent location.
   OUT_DIR="$(mktemp -d "$TEMP_ROOT/humanity-atlas-qualification.XXXXXX")"
+elif [[ -e "$OUT_DIR" ]]; then
+  if [[ ! -d "$OUT_DIR" ]]; then
+    echo "qualification output path exists but is not a directory: $OUT_DIR" >&2
+    exit 2
+  fi
+  if [[ -n "$(find "$OUT_DIR" -mindepth 1 -print -quit)" ]]; then
+    echo "qualification output directory must be empty: $OUT_DIR" >&2
+    exit 2
+  fi
+else
+  mkdir -p -- "$OUT_DIR"
 fi
-mkdir -p -- "$OUT_DIR"
 OUT_DIR="$(cd -- "$OUT_DIR" && pwd -P)"
+echo "Evidence directory: $OUT_DIR" >&2
 for checkout in "$MONOREPO_ROOT" "$SOL_ATLAS_ROOT" "$SYMTROPY_ROOT"; do
   if [[ -n "$(git -C "$checkout" status --porcelain --untracked-files=all)" ]]; then
     echo "source checkout is dirty; refusing to bind a build to HEAD only: $checkout" >&2
