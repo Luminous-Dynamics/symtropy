@@ -2,11 +2,14 @@ import hashlib
 import json
 import os
 import unittest
+from io import BytesIO
+from types import SimpleNamespace
+from unittest.mock import patch
 from pathlib import Path
 
 from adapt_multiworld_output import (
     AdapterError, MAX_SOURCE_ARTIFACT_BYTES, _check_source_artifact_size,
-    adapt_source, canonical_json_bytes,
+    adapt_source, canonical_json_bytes, read_source_artifact,
 )
 
 
@@ -71,6 +74,16 @@ class AdapterTests(unittest.TestCase):
         schema = json.loads(schema_path.read_text(encoding="utf-8"))
         jsonschema.Draft202012Validator.check_schema(schema)
         jsonschema.validate(instance=adapt_source(self.raw_source()), schema=schema)
+
+    def test_reader_rejects_growth_after_metadata_check(self):
+        fake_path = Path("simulated-artifact.json")
+        with (
+            patch("adapt_multiworld_output.MAX_SOURCE_ARTIFACT_BYTES", 8),
+            patch.object(Path, "stat", return_value=SimpleNamespace(st_size=4)),
+            patch.object(Path, "open", return_value=BytesIO(b"x" * 9)),
+        ):
+            with self.assertRaisesRegex(AdapterError, "source simulator artifact exceeds"):
+                read_source_artifact(fake_path)
 
     def test_source_artifact_size_limit_is_explicit_and_fail_closed(self):
         _check_source_artifact_size(MAX_SOURCE_ARTIFACT_BYTES)
