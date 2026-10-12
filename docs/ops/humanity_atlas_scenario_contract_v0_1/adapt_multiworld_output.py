@@ -176,6 +176,16 @@ def _required_sha256(parent: dict[str, Any], key: str, where: str) -> str:
     return value
 
 
+def read_source_artifact(path: Path) -> bytes:
+    """Read at most the v0.1 size limit plus one byte, even if the file grows after stat."""
+    input_size = path.stat().st_size
+    _check_source_artifact_size(input_size)
+    with path.open("rb") as stream:
+        raw = stream.read(MAX_SOURCE_ARTIFACT_BYTES + 1)
+    _check_source_artifact_size(len(raw))
+    return raw
+
+
 def adapt_source(raw: bytes, *, artifact_ref: str | None = None) -> dict[str, Any]:
     """Validate cross-field bindings and produce a conservative generic envelope."""
     source = parse_json_strict(raw)
@@ -351,9 +361,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--output", type=Path, help="write envelope to this path; default is stdout")
     args = parser.parse_args(argv)
     try:
-        input_size = args.input.stat().st_size
-        _check_source_artifact_size(input_size)
-        raw = args.input.read_bytes()
+        raw = read_source_artifact(args.input)
         envelope = adapt_source(raw, artifact_ref=args.artifact_ref)
         rendered = json.dumps(envelope, ensure_ascii=False, allow_nan=False, indent=2) + "\n"
         if args.output:
