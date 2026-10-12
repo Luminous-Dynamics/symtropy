@@ -15,8 +15,7 @@
 
 use std::{
     collections::{HashMap, HashSet},
-    env,
-    io,
+    env, io,
     net::SocketAddr,
     str::FromStr,
     sync::{
@@ -27,11 +26,9 @@ use std::{
 };
 
 use futures_util::{SinkExt, StreamExt};
-use symtropy_net::{
-    signaling::{
-        MAX_SIGNAL_CONTROL_BYTES, MAX_SIGNALING_MESSAGE_BYTES, SignalData, SignalIncoming,
-        SignalOutgoing, SignalingClient, SignalingEvent, parse_incoming, serialized_outgoing,
-    },
+use symtropy_net::signaling::{
+    MAX_SIGNAL_CONTROL_BYTES, MAX_SIGNALING_MESSAGE_BYTES, SignalData, SignalIncoming,
+    SignalOutgoing, SignalingClient, SignalingEvent, parse_incoming, serialized_outgoing,
 };
 use tokio::{
     net::{TcpListener, TcpStream},
@@ -216,8 +213,10 @@ impl ServerConfig {
         let token = env::var("SYMTROPY_RELAY_TOKEN")
             .map_err(|_| "SYMTROPY_RELAY_TOKEN is required; generate a random 32+ character base64url-safe token".to_string())?;
         let bind = env::var("SYMTROPY_RELAY_BIND").unwrap_or_else(|_| DEFAULT_BIND.to_string());
-        let allow_insecure_bind =
-            env::var("SYMTROPY_RELAY_ALLOW_INSECURE_BIND").ok().as_deref() == Some("1");
+        let allow_insecure_bind = env::var("SYMTROPY_RELAY_ALLOW_INSECURE_BIND")
+            .ok()
+            .as_deref()
+            == Some("1");
         Self::from_values(token, &bind, allow_insecure_bind)
     }
 
@@ -233,9 +232,9 @@ impl ServerConfig {
             );
         }
 
-        let bind: SocketAddr = bind
-            .parse()
-            .map_err(|_| "SYMTROPY_RELAY_BIND must be a socket address such as 127.0.0.1:9001".to_string())?;
+        let bind: SocketAddr = bind.parse().map_err(|_| {
+            "SYMTROPY_RELAY_BIND must be a socket address such as 127.0.0.1:9001".to_string()
+        })?;
         if !bind.ip().is_loopback() && !allow_insecure_bind {
             return Err(
                 "refusing a non-loopback plaintext bind; use a TLS-terminating reverse proxy or explicitly set SYMTROPY_RELAY_ALLOW_INSECURE_BIND=1 only in a controlled test environment"
@@ -379,8 +378,8 @@ fn parse_client_message(text: &str) -> Result<SignalOutgoing, String> {
         ));
     }
 
-    let command: SignalOutgoing =
-        serde_json::from_str(text).map_err(|_| "invalid or unsupported signaling JSON".to_string())?;
+    let command: SignalOutgoing = serde_json::from_str(text)
+        .map_err(|_| "invalid or unsupported signaling JSON".to_string())?;
 
     let is_relay_data = matches!(
         &command,
@@ -409,10 +408,7 @@ fn parse_client_message(text: &str) -> Result<SignalOutgoing, String> {
 }
 
 fn validate_room_id(room: &str) -> Result<(), String> {
-    if room.is_empty()
-        || room.len() > MAX_ROOM_ID_BYTES
-        || room.chars().any(char::is_control)
-    {
+    if room.is_empty() || room.len() > MAX_ROOM_ID_BYTES || room.chars().any(char::is_control) {
         return Err(format!(
             "room ID must contain 1..={MAX_ROOM_ID_BYTES} UTF-8 bytes and no control characters"
         ));
@@ -420,9 +416,12 @@ fn validate_room_id(room: &str) -> Result<(), String> {
     Ok(())
 }
 
-fn prepare_message(peer: &PeerHandle, message: &SignalIncoming) -> Result<PreparedFrame, QueueError> {
-    let text = serde_json::to_string(message)
-        .map_err(|error| QueueError::Serialize(error.to_string()))?;
+fn prepare_message(
+    peer: &PeerHandle,
+    message: &SignalIncoming,
+) -> Result<PreparedFrame, QueueError> {
+    let text =
+        serde_json::to_string(message).map_err(|error| QueueError::Serialize(error.to_string()))?;
     parse_incoming(&text).map_err(|error| QueueError::InvalidWire(error.to_string()))?;
 
     let charged_bytes = u32::try_from(text.len()).map_err(|_| QueueError::AccountingOverflow)?;
@@ -524,11 +523,7 @@ fn join_room(
     let existing: Vec<(u64, PeerHandle)> = state
         .rooms
         .get(room_id)
-        .map(|room| {
-            room.iter()
-                .map(|(id, peer)| (*id, peer.clone()))
-                .collect()
-        })
+        .map(|room| room.iter().map(|(id, peer)| (*id, peer.clone())).collect())
         .unwrap_or_default();
 
     if existing.len() >= MAX_ROOM_PEERS {
@@ -589,7 +584,10 @@ fn remove_peer_and_notify(rooms: &SharedRooms, room_id: &str, initial_peer_id: u
         .get_mut(room_id)
         .is_some_and(|room| room.peers.remove(&initial_peer_id).is_some());
     if !removed_initial {
-        let empty = state.rooms.get(room_id).is_some_and(|room| room.peers.is_empty());
+        let empty = state
+            .rooms
+            .get(room_id)
+            .is_some_and(|room| room.peers.is_empty());
         if empty {
             state.rooms.remove(room_id);
         }
@@ -766,7 +764,9 @@ async fn handle_connection(
     };
 
     let peer_id = next_peer_id
-        .fetch_update(Ordering::Relaxed, Ordering::Relaxed, |current| current.checked_add(1))
+        .fetch_update(Ordering::Relaxed, Ordering::Relaxed, |current| {
+            current.checked_add(1)
+        })
         .map_err(|_| "server peer-ID space exhausted".to_string())?;
 
     let (out_tx, mut out_rx) = mpsc::channel::<QueuedFrame>(OUTBOUND_QUEUE_CAPACITY);
@@ -970,9 +970,9 @@ mod tests {
 
     const TEST_TOKEN: &str = "test_token_that_is_long_enough_for_local_tests_123";
 
-    async fn connect_authenticated(url: &str) -> tokio_tungstenite::WebSocketStream<
-        tokio_tungstenite::MaybeTlsStream<TcpStream>,
-    > {
+    async fn connect_authenticated(
+        url: &str,
+    ) -> tokio_tungstenite::WebSocketStream<tokio_tungstenite::MaybeTlsStream<TcpStream>> {
         let mut request = url.into_client_request().expect("valid WebSocket URL");
         request.headers_mut().insert(
             AUTHORIZATION,
@@ -996,7 +996,9 @@ mod tests {
                 .expect("server closed unexpectedly")
                 .expect("read server frame")
             {
-                Message::Text(text) => return parse_incoming(&text).expect("valid server envelope"),
+                Message::Text(text) => {
+                    return parse_incoming(&text).expect("valid server envelope");
+                }
                 Message::Ping(payload) => socket.send(Message::Pong(payload)).await.expect("pong"),
                 other => panic!("expected server text envelope, received {other:?}"),
             }
@@ -1010,29 +1012,25 @@ mod tests {
         message: SignalOutgoing,
     ) {
         let text = serialized_outgoing(&message).expect("valid client message");
-        socket.send(Message::Text(text)).await.expect("send client message");
+        socket
+            .send(Message::Text(text))
+            .await
+            .expect("send client message");
     }
 
     #[test]
     fn startup_config_rejects_bad_tokens_and_public_plaintext_binds() {
-        assert!(ServerConfig::from_values(
-            "short".to_string(),
-            "127.0.0.1:9001",
-            false
-        )
-        .is_err());
-        assert!(ServerConfig::from_values(
-            "invalid token that has enough length to fail only character validation".to_string(),
-            "127.0.0.1:9001",
-            false
-        )
-        .is_err());
-        assert!(ServerConfig::from_values(
-            TEST_TOKEN.to_string(),
-            "not-a-socket",
-            false
-        )
-        .is_err());
+        assert!(ServerConfig::from_values("short".to_string(), "127.0.0.1:9001", false).is_err());
+        assert!(
+            ServerConfig::from_values(
+                "invalid token that has enough length to fail only character validation"
+                    .to_string(),
+                "127.0.0.1:9001",
+                false
+            )
+            .is_err()
+        );
+        assert!(ServerConfig::from_values(TEST_TOKEN.to_string(), "not-a-socket", false).is_err());
         assert!(
             ServerConfig::from_values(TEST_TOKEN.to_string(), "0.0.0.0:9001", false).is_err(),
             "non-loopback plaintext binds must fail closed by default"
@@ -1053,7 +1051,10 @@ mod tests {
         assert!(!token_matches("", TEST_TOKEN));
         assert!(!token_matches("x", TEST_TOKEN));
         assert!(!token_matches("Bearer test", TEST_TOKEN));
-        assert!(!token_matches("test_token_that_is_long_enough_for_local_tests_124", TEST_TOKEN));
+        assert!(!token_matches(
+            "test_token_that_is_long_enough_for_local_tests_124",
+            TEST_TOKEN
+        ));
     }
 
     #[test]
@@ -1087,7 +1088,10 @@ mod tests {
         )
         .expect_err("full recipient queue must not silently accept another message");
         assert_eq!(error, QueueError::RecipientQueueFull);
-        assert!(*shutdown_rx.borrow(), "saturated peer must receive a shutdown signal");
+        assert!(
+            *shutdown_rx.borrow(),
+            "saturated peer must receive a shutdown signal"
+        );
         assert_eq!(rx.len(), OUTBOUND_QUEUE_CAPACITY);
         drop(rx);
         assert_eq!(
@@ -1180,8 +1184,8 @@ mod tests {
                 "payload": vec![0; symtropy_net::transport::MAX_PEER_MESSAGE_BYTES + 1]
             }
         });
-        let oversized_data = serde_json::to_string(&oversized_data)
-            .expect("serialize over-limit relay payload");
+        let oversized_data =
+            serde_json::to_string(&oversized_data).expect("serialize over-limit relay payload");
         assert!(oversized_data.len() < MAX_SIGNALING_MESSAGE_BYTES);
         assert!(
             matches!(parse_client_message(&oversized_data), Err(ref error) if error.contains("relay packet")),
@@ -1383,8 +1387,7 @@ mod tests {
         let (shutdown_tx, shutdown_rx) = watch::channel(false);
         let global_data_bytes = Arc::new(Semaphore::new(0));
         let global_control_bytes = Arc::new(Semaphore::new(MAX_TOTAL_OUTBOUND_CONTROL_BYTES));
-        let global_membership_bytes =
-            Arc::new(Semaphore::new(MAX_TOTAL_OUTBOUND_MEMBERSHIP_BYTES));
+        let global_membership_bytes = Arc::new(Semaphore::new(MAX_TOTAL_OUTBOUND_MEMBERSHIP_BYTES));
         let (peer, mut outbound) = test_peer_handle_with_global(
             tx,
             rx,
@@ -1446,8 +1449,7 @@ mod tests {
         let rooms: SharedRooms = Arc::new(Mutex::new(Rooms::default()));
         let global_data_bytes = Arc::new(Semaphore::new(0));
         let global_control_bytes = Arc::new(Semaphore::new(0));
-        let global_membership_bytes =
-            Arc::new(Semaphore::new(MAX_TOTAL_OUTBOUND_MEMBERSHIP_BYTES));
+        let global_membership_bytes = Arc::new(Semaphore::new(MAX_TOTAL_OUTBOUND_MEMBERSHIP_BYTES));
 
         let (peer1_tx, peer1_rx) = mpsc::channel(OUTBOUND_QUEUE_CAPACITY);
         let (peer1, mut rx1) = test_peer_handle_with_global(
@@ -1544,7 +1546,10 @@ mod tests {
 
         let result = join_room(&rooms, "room", 2, &new_peer);
         assert!(
-            matches!(&result, Err(error) if error.contains("aggregate outbound membership budget is full")),
+            matches!(
+                &result,
+                Err(error) if error.contains("aggregate outbound membership budget is full")
+            ),
             "third staged reservation should fail on the shared membership budget: {result:?}"
         );
 
@@ -1616,7 +1621,11 @@ mod tests {
             "failed critical membership publication must close the affected room"
         );
         assert!(
-            !rooms.lock().expect("room registry lock").rooms.contains_key("room"),
+            !rooms
+                .lock()
+                .expect("room registry lock")
+                .rooms
+                .contains_key("room"),
             "room closure prevents a stale client membership view after atomic notification failure"
         );
     }
@@ -1671,12 +1680,17 @@ mod tests {
             "the item-count cap must reject the next small envelope"
         );
         drop(rx);
-        assert_eq!(peer.queued_bytes.available_permits(), MAX_SIGNALING_MESSAGE_BYTES);
+        assert_eq!(
+            peer.queued_bytes.available_permits(),
+            MAX_SIGNALING_MESSAGE_BYTES
+        );
     }
 
     #[tokio::test]
     async fn library_signaling_client_authenticates_with_authorization_header() {
-        let listener = TcpListener::bind("127.0.0.1:0").await.expect("bind fixture");
+        let listener = TcpListener::bind("127.0.0.1:0")
+            .await
+            .expect("bind fixture");
         let address = listener.local_addr().expect("fixture address");
         let (shutdown_tx, shutdown_rx) = watch::channel(false);
         let server = tokio::spawn(run_server(listener, TEST_TOKEN.to_string(), shutdown_rx));
@@ -1714,7 +1728,9 @@ mod tests {
 
     #[tokio::test]
     async fn unauthorized_handshake_is_rejected_before_join() {
-        let listener = TcpListener::bind("127.0.0.1:0").await.expect("bind fixture");
+        let listener = TcpListener::bind("127.0.0.1:0")
+            .await
+            .expect("bind fixture");
         let address = listener.local_addr().expect("fixture address");
         let (shutdown_tx, shutdown_rx) = watch::channel(false);
         let server = tokio::spawn(run_server(listener, TEST_TOKEN.to_string(), shutdown_rx));
@@ -1743,7 +1759,9 @@ mod tests {
 
     #[tokio::test]
     async fn room_membership_prevents_cross_room_forwarding() {
-        let listener = TcpListener::bind("127.0.0.1:0").await.expect("bind fixture");
+        let listener = TcpListener::bind("127.0.0.1:0")
+            .await
+            .expect("bind fixture");
         let address = listener.local_addr().expect("fixture address");
         let (shutdown_tx, shutdown_rx) = watch::channel(false);
         let server = tokio::spawn(run_server(listener, TEST_TOKEN.to_string(), shutdown_rx));
@@ -1792,7 +1810,9 @@ mod tests {
             SignalIncoming::Error { message } if message.contains("not a member of room")
         ));
         assert!(
-            timeout(Duration::from_millis(100), beta.next()).await.is_err(),
+            timeout(Duration::from_millis(100), beta.next())
+                .await
+                .is_err(),
             "recipient in another room must receive no forwarded payload"
         );
 
@@ -1808,7 +1828,9 @@ mod tests {
 
     #[tokio::test]
     async fn two_clients_exchange_relay_data_and_reconnect_with_authentication() {
-        let listener = TcpListener::bind("127.0.0.1:0").await.expect("bind fixture");
+        let listener = TcpListener::bind("127.0.0.1:0")
+            .await
+            .expect("bind fixture");
         let address = listener.local_addr().expect("fixture address");
         let (shutdown_tx, shutdown_rx) = watch::channel(false);
         let server = tokio::spawn(run_server(listener, TEST_TOKEN.to_string(), shutdown_rx));
@@ -1928,7 +1950,10 @@ mod tests {
             SignalIncoming::PeerJoined { peer_id } if peer_id == replacement_id
         ));
 
-        reconnected.close(None).await.expect("close reconnected client");
+        reconnected
+            .close(None)
+            .await
+            .expect("close reconnected client");
         first.close(None).await.expect("close first client");
         let _ = shutdown_tx.send(true);
         timeout(Duration::from_secs(3), server)

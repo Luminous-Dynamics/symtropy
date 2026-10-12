@@ -259,7 +259,9 @@ mod tests {
 
         let events = b.poll();
         assert!(
-            events.iter().all(|event| !matches!(event, TransportEvent::Message(_))),
+            events
+                .iter()
+                .all(|event| !matches!(event, TransportEvent::Message(_))),
             "old-session payload must be discarded on disconnect"
         );
     }

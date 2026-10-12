@@ -17,11 +17,9 @@
 mod implementation {
     use crate::config::NetworkConfig;
     use crate::peer::PeerId;
-    use crate::signaling::{
-        SignalChannel, SignalData, SignalingClient, SignalingEvent,
-    };
+    use crate::signaling::{SignalChannel, SignalData, SignalingClient, SignalingEvent};
     use crate::transport::{
-        Channel, PeerMessage, Transport, TransportEvent, MAX_PEER_MESSAGE_BYTES,
+        Channel, MAX_PEER_MESSAGE_BYTES, PeerMessage, Transport, TransportEvent,
     };
 
     /// Accept the server-assigned identity exactly once per WebSocket lifecycle.
@@ -121,8 +119,7 @@ mod implementation {
             if self.peers.len() >= self.config.max_peers {
                 return Err(format!(
                     "rejected peer {}: relay peer limit ({}) reached",
-                    peer_id.0,
-                    self.config.max_peers
+                    peer_id.0, self.config.max_peers
                 ));
             }
             self.peers.push(peer_id);
@@ -410,8 +407,15 @@ mod implementation {
                 .expect_err("a second Welcome cannot replace the accepted local identity");
 
             assert!(error.contains("changed local peer identity"));
-            assert!(!connected, "identity violation must make the transport disconnected");
-            assert_eq!(local_id, PeerId(7), "never adopt the untrusted replacement ID");
+            assert!(
+                !connected,
+                "identity violation must make the transport disconnected"
+            );
+            assert_eq!(
+                local_id,
+                PeerId(7),
+                "never adopt the untrusted replacement ID"
+            );
         }
 
         #[test]
@@ -422,16 +426,28 @@ mod implementation {
             transport.local_id = PeerId(100);
             transport.connected = true;
 
-            assert!(transport.admit_peer(PeerId(1)).expect("first peer is admitted"));
-            assert!(!transport.admit_peer(PeerId(1)).expect("duplicate is idempotent"));
-            assert!(transport
-                .admit_peer(PeerId(100))
-                .expect_err("local identity must not be a remote peer")
-                .contains("local identity"));
-            assert!(transport
-                .admit_peer(PeerId(2))
-                .expect_err("peer limit must be enforced")
-                .contains("peer limit"));
+            assert!(
+                transport
+                    .admit_peer(PeerId(1))
+                    .expect("first peer is admitted")
+            );
+            assert!(
+                !transport
+                    .admit_peer(PeerId(1))
+                    .expect("duplicate is idempotent")
+            );
+            assert!(
+                transport
+                    .admit_peer(PeerId(100))
+                    .expect_err("local identity must not be a remote peer")
+                    .contains("local identity")
+            );
+            assert!(
+                transport
+                    .admit_peer(PeerId(2))
+                    .expect_err("peer limit must be enforced")
+                    .contains("peer limit")
+            );
             assert_eq!(transport.peers.len(), 1);
         }
 
@@ -490,9 +506,7 @@ mod implementation {
                     .await
                     .expect("client should connect")
                     .expect("accept client");
-                let mut websocket = accept_async(stream)
-                    .await
-                    .expect("accept WebSocket");
+                let mut websocket = accept_async(stream).await.expect("accept WebSocket");
 
                 let join_text = match timeout(Duration::from_secs(5), websocket.next())
                     .await
@@ -535,9 +549,10 @@ mod implementation {
             timeout(Duration::from_secs(5), async {
                 loop {
                     observed.extend(transport.poll());
-                    if observed.iter().any(|event| {
-                        matches!(event, TransportEvent::SignalingDisconnected)
-                    }) {
+                    if observed
+                        .iter()
+                        .any(|event| matches!(event, TransportEvent::SignalingDisconnected))
+                    {
                         break;
                     }
                     sleep(Duration::from_millis(1)).await;
@@ -553,12 +568,16 @@ mod implementation {
             );
             assert!(!transport.is_signaling_connected());
             assert_eq!(transport.peer_count(), 0);
-            assert!(observed
-                .iter()
-                .any(|event| matches!(event, TransportEvent::SignalingConnected)));
-            assert!(observed
-                .iter()
-                .any(|event| matches!(event, TransportEvent::PeerConnected(PeerId(9)))));
+            assert!(
+                observed
+                    .iter()
+                    .any(|event| matches!(event, TransportEvent::SignalingConnected))
+            );
+            assert!(
+                observed
+                    .iter()
+                    .any(|event| matches!(event, TransportEvent::PeerConnected(PeerId(9))))
+            );
             assert!(observed.iter().any(|event| {
                 matches!(
                     event,
@@ -566,12 +585,16 @@ mod implementation {
                         if error.contains("changed local peer identity")
                 )
             }));
-            assert!(observed
-                .iter()
-                .any(|event| matches!(event, TransportEvent::PeerDisconnected(PeerId(9)))));
-            assert!(observed
-                .iter()
-                .any(|event| matches!(event, TransportEvent::SignalingDisconnected)));
+            assert!(
+                observed
+                    .iter()
+                    .any(|event| matches!(event, TransportEvent::PeerDisconnected(PeerId(9))))
+            );
+            assert!(
+                observed
+                    .iter()
+                    .any(|event| matches!(event, TransportEvent::SignalingDisconnected))
+            );
 
             server.await.expect("signaling fixture should complete");
         }
@@ -737,12 +760,16 @@ mod implementation {
             .await
             .expect("Welcome, peer admission and control/data separation must arrive");
 
-            assert!(initial_events
-                .iter()
-                .any(|event| matches!(event, TransportEvent::SignalingConnected)));
-            assert!(initial_events
-                .iter()
-                .any(|event| matches!(event, TransportEvent::PeerConnected(PeerId(2)))));
+            assert!(
+                initial_events
+                    .iter()
+                    .any(|event| matches!(event, TransportEvent::SignalingConnected))
+            );
+            assert!(
+                initial_events
+                    .iter()
+                    .any(|event| matches!(event, TransportEvent::PeerConnected(PeerId(2))))
+            );
             assert!(
                 rejected_control_message,
                 "SDP/ICE control messages must never be promoted to game packets"
@@ -807,7 +834,6 @@ mod implementation {
                 .expect("fixture should complete both sessions")
                 .expect("fixture task should not panic");
         }
-
     }
 
     /// Generate a random peer ID (used before server assigns one).

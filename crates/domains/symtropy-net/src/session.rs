@@ -14,8 +14,8 @@ use crate::authority::SpatialAuthority;
 use crate::config::NetworkConfig;
 use crate::peer::{PeerId, PeerState};
 use crate::transport::{
-    AuthorityMessage, BodyStateUpdate, Channel, PhysicsSync, Transport, TransportEvent,
-    MAX_AUTHORITY_BODY_IDS, MAX_AUTHORITY_REASON_BYTES, MAX_PEER_MESSAGE_BYTES,
+    AuthorityMessage, BodyStateUpdate, Channel, MAX_AUTHORITY_BODY_IDS, MAX_AUTHORITY_REASON_BYTES,
+    MAX_PEER_MESSAGE_BYTES, PhysicsSync, Transport, TransportEvent,
 };
 
 /// Reject non-finite components and duplicate body IDs before updating session
@@ -242,8 +242,7 @@ impl<T: Transport> NetworkSession<T> {
                         #[cfg(feature = "logging")]
                         eprintln!(
                             "[symtropy-net] rejected peer {}: session peer limit ({}) reached",
-                            peer_id.0,
-                            self.config.max_peers
+                            peer_id.0, self.config.max_peers
                         );
                         continue;
                     }
@@ -672,7 +671,12 @@ mod tests {
         assert_eq!(report.attempted_peers, 0);
         assert_eq!(report.accepted_by_transport, 0);
         assert!(report.failures.is_empty());
-        assert!(report.validation_error.unwrap().contains("refusing authority Claim"));
+        assert!(
+            report
+                .validation_error
+                .unwrap()
+                .contains("refusing authority Claim")
+        );
     }
 
     #[test]
@@ -724,26 +728,32 @@ mod tests {
         assert!(!nonfinite_report.is_complete());
         assert_eq!(nonfinite_report.attempted_peers, 0);
         assert_eq!(nonfinite_report.accepted_by_transport, 0);
-        assert!(nonfinite_report
-            .validation_error
-            .as_deref()
-            .is_some_and(|error| error.contains("non-finite")));
+        assert!(
+            nonfinite_report
+                .validation_error
+                .as_deref()
+                .is_some_and(|error| error.contains("non-finite"))
+        );
 
         let duplicate_report = session_a.send_physics(vec![body.clone(), body]);
         assert!(!duplicate_report.is_complete());
         assert_eq!(duplicate_report.attempted_peers, 0);
         assert_eq!(duplicate_report.accepted_by_transport, 0);
-        assert!(duplicate_report
-            .validation_error
-            .as_deref()
-            .is_some_and(|error| error.contains("duplicate body IDs")));
+        assert!(
+            duplicate_report
+                .validation_error
+                .as_deref()
+                .is_some_and(|error| error.contains("duplicate body IDs"))
+        );
 
         // The peer may observe its admission event, but neither invalid state
         // packet must cross the transport boundary.
         let events = session_b.transport.poll();
-        assert!(!events
-            .iter()
-            .any(|event| matches!(event, TransportEvent::Message(_))));
+        assert!(
+            !events
+                .iter()
+                .any(|event| matches!(event, TransportEvent::Message(_)))
+        );
     }
 
     #[test]
@@ -756,9 +766,7 @@ mod tests {
             PeerState::remote(unexpected, "not-the-loopback-peer".to_string(), 0),
         );
 
-        let report = session.send_authority(&AuthorityMessage::Release {
-            body_ids: vec![7],
-        });
+        let report = session.send_authority(&AuthorityMessage::Release { body_ids: vec![7] });
 
         assert_eq!(report.attempted_peers, 1);
         assert_eq!(report.accepted_by_transport, 0);
@@ -857,7 +865,10 @@ mod tests {
 
         let remote_body = BodyHandle(42);
         session_b.authority.claim(remote_body, PeerId(0));
-        assert_eq!(session_b.authority.authority_of(remote_body), Some(PeerId(0)));
+        assert_eq!(
+            session_b.authority.authority_of(remote_body),
+            Some(PeerId(0))
+        );
 
         session_a.leave();
         session_b.tick();
@@ -888,11 +899,13 @@ mod tests {
             }],
         })
         .expect("serialize physics sync");
-        session_b.transport.inject_message(crate::transport::PeerMessage {
-            from: PeerId(99),
-            channel: Channel::Unreliable,
-            data: payload,
-        });
+        session_b
+            .transport
+            .inject_message(crate::transport::PeerMessage {
+                from: PeerId(99),
+                channel: Channel::Unreliable,
+                data: payload,
+            });
 
         session_b.tick();
         assert!(session_b.incoming_physics.is_empty());
@@ -981,11 +994,13 @@ mod tests {
 
         for sync in snapshots {
             let data = rmp_serde::to_vec(&sync).expect("serialize physics snapshot");
-            session_b.transport.inject_message(crate::transport::PeerMessage {
-                from: PeerId(0),
-                channel: Channel::Unreliable,
-                data,
-            });
+            session_b
+                .transport
+                .inject_message(crate::transport::PeerMessage {
+                    from: PeerId(0),
+                    channel: Channel::Unreliable,
+                    data,
+                });
         }
         session_b.tick();
 
@@ -1022,11 +1037,13 @@ mod tests {
             }],
         })
         .expect("serialize physics sync");
-        session_b.transport.inject_message(crate::transport::PeerMessage {
-            from: PeerId(0),
-            channel: Channel::Unreliable,
-            data: payload,
-        });
+        session_b
+            .transport
+            .inject_message(crate::transport::PeerMessage {
+                from: PeerId(0),
+                channel: Channel::Unreliable,
+                data: payload,
+            });
 
         session_b.tick();
         assert!(session_b.incoming_physics.is_empty());
@@ -1042,11 +1059,13 @@ mod tests {
         session_a.join("test").unwrap();
         session_b.join("test").unwrap();
 
-        session_b.transport.inject_message(crate::transport::PeerMessage {
-            from: PeerId(0),
-            channel: Channel::Unreliable,
-            data: vec![0; MAX_PEER_MESSAGE_BYTES + 1],
-        });
+        session_b
+            .transport
+            .inject_message(crate::transport::PeerMessage {
+                from: PeerId(0),
+                channel: Channel::Unreliable,
+                data: vec![0; MAX_PEER_MESSAGE_BYTES + 1],
+            });
 
         session_b.tick();
         assert!(session_b.incoming_physics.is_empty());
@@ -1096,11 +1115,13 @@ mod tests {
         .expect("serialize oversized authority operation");
         assert!(payload.len() <= MAX_PEER_MESSAGE_BYTES);
 
-        session_b.transport.inject_message(crate::transport::PeerMessage {
-            from: PeerId(0),
-            channel: Channel::Reliable,
-            data: payload,
-        });
+        session_b
+            .transport
+            .inject_message(crate::transport::PeerMessage {
+                from: PeerId(0),
+                channel: Channel::Reliable,
+                data: payload,
+            });
 
         session_b.tick();
         assert!(
@@ -1124,11 +1145,13 @@ mod tests {
             peer_id: 99,
         })
         .expect("serialize spoofed claim");
-        session_b.transport.inject_message(crate::transport::PeerMessage {
-            from: PeerId(0),
-            channel: Channel::Reliable,
-            data: payload,
-        });
+        session_b
+            .transport
+            .inject_message(crate::transport::PeerMessage {
+                from: PeerId(0),
+                channel: Channel::Reliable,
+                data: payload,
+            });
 
         session_b.tick();
         assert!(session_b.incoming_authority.is_empty());
@@ -1136,34 +1159,44 @@ mod tests {
 
     #[test]
     fn authority_message_validation_bounds_ids_reason_and_duplicates() {
-        assert!(authority_message_validation_error(&AuthorityMessage::Claim {
-            body_ids: (0..=MAX_AUTHORITY_BODY_IDS as u32).collect(),
-            peer_id: 1,
-        })
-        .is_some());
+        assert!(
+            authority_message_validation_error(&AuthorityMessage::Claim {
+                body_ids: (0..=MAX_AUTHORITY_BODY_IDS as u32).collect(),
+                peer_id: 1,
+            })
+            .is_some()
+        );
 
-        assert!(authority_message_validation_error(&AuthorityMessage::Release {
-            body_ids: vec![7, 7],
-        })
-        .is_some());
+        assert!(
+            authority_message_validation_error(&AuthorityMessage::Release {
+                body_ids: vec![7, 7],
+            })
+            .is_some()
+        );
 
-        assert!(authority_message_validation_error(&AuthorityMessage::RequestTransfer {
-            body_ids: vec![1],
-            reason: "r".repeat(MAX_AUTHORITY_REASON_BYTES + 1),
-        })
-        .is_some());
+        assert!(
+            authority_message_validation_error(&AuthorityMessage::RequestTransfer {
+                body_ids: vec![1],
+                reason: "r".repeat(MAX_AUTHORITY_REASON_BYTES + 1),
+            })
+            .is_some()
+        );
 
-        assert!(authority_message_validation_error(&AuthorityMessage::Claim {
-            body_ids: (0..MAX_AUTHORITY_BODY_IDS as u32).collect(),
-            peer_id: 1,
-        })
-        .is_none());
+        assert!(
+            authority_message_validation_error(&AuthorityMessage::Claim {
+                body_ids: (0..MAX_AUTHORITY_BODY_IDS as u32).collect(),
+                peer_id: 1,
+            })
+            .is_none()
+        );
 
-        assert!(authority_message_validation_error(&AuthorityMessage::RequestTransfer {
-            body_ids: vec![1, 2, 3],
-            reason: "r".repeat(MAX_AUTHORITY_REASON_BYTES),
-        })
-        .is_none());
+        assert!(
+            authority_message_validation_error(&AuthorityMessage::RequestTransfer {
+                body_ids: vec![1, 2, 3],
+                reason: "r".repeat(MAX_AUTHORITY_REASON_BYTES),
+            })
+            .is_none()
+        );
     }
 
     #[test]
@@ -1183,10 +1216,12 @@ mod tests {
         assert_eq!(report.attempted_peers, 0);
         assert_eq!(report.accepted_by_transport, 0);
         assert!(report.failures.is_empty());
-        assert!(report
-            .validation_error
-            .as_deref()
-            .is_some_and(|message| message.contains("duplicate body IDs")));
+        assert!(
+            report
+                .validation_error
+                .as_deref()
+                .is_some_and(|message| message.contains("duplicate body IDs"))
+        );
     }
 
     #[test]

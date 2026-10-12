@@ -58,7 +58,10 @@ async fn run() -> Result<(), String> {
                 payload: ALPHA_TO_BETA.to_vec(),
             },
         )?;
-        println!("LOCAL_SEND_ACCEPTED role=alpha payload_bytes={}", ALPHA_TO_BETA.len());
+        println!(
+            "LOCAL_SEND_ACCEPTED role=alpha payload_bytes={}",
+            ALPHA_TO_BETA.len()
+        );
         wait_for_payload(&mut client, remote_id, BETA_TO_ALPHA, &mut pending).await?;
         println!("REMOTE_PAYLOAD_OBSERVED role=alpha direction=beta-to-alpha");
     } else {
@@ -71,7 +74,10 @@ async fn run() -> Result<(), String> {
                 payload: BETA_TO_ALPHA.to_vec(),
             },
         )?;
-        println!("LOCAL_SEND_ACCEPTED role=beta payload_bytes={}", BETA_TO_ALPHA.len());
+        println!(
+            "LOCAL_SEND_ACCEPTED role=beta payload_bytes={}",
+            BETA_TO_ALPHA.len()
+        );
     }
 
     println!("PASS role={role} bidirectional_relay_round_trip=true");
@@ -162,15 +168,30 @@ async fn wait_for_payload(
                 match event {
                     SignalingEvent::Signal { from, data } => match data {
                         SignalData::RelayData { channel, payload } => {
-                            return validate_payload(from, channel, &payload, expected_from, expected_payload);
+                            return validate_payload(
+                                from,
+                                channel,
+                                &payload,
+                                expected_from,
+                                expected_payload,
+                            );
                         }
-                        _ => return Err("received a signaling control message instead of relay data".to_string()),
+                        _ => {
+                            return Err(
+                                "received a signaling control message instead of relay data"
+                                    .to_string(),
+                            );
+                        }
                     },
                     SignalingEvent::Disconnected => {
-                        return Err("signaling server disconnected before the expected payload".to_string());
+                        return Err(
+                            "signaling server disconnected before the expected payload".to_string()
+                        );
                     }
                     SignalingEvent::Error(message) => {
-                        return Err(format!("signaling server error before the expected payload: {message}"));
+                        return Err(format!(
+                            "signaling server error before the expected payload: {message}"
+                        ));
                     }
                     SignalingEvent::PeerLeft(id) if id == expected_from => {
                         return Err(format!("expected sender {} disconnected", id.0));
@@ -182,7 +203,12 @@ async fn wait_for_payload(
         }
     })
     .await
-    .map_err(|_| format!("timed out waiting for expected payload from peer {}", expected_from.0))?
+    .map_err(|_| {
+        format!(
+            "timed out waiting for expected payload from peer {}",
+            expected_from.0
+        )
+    })?
 }
 
 fn validate_payload(
