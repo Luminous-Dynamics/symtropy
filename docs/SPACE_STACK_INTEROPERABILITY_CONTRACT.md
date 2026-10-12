@@ -124,6 +124,14 @@ Fault cases: stale ephemeris, frame mismatch, missing terrain tile, malformed co
 - NASA-HDBK-7009B, Model and Simulation Implementation Guide (active, 3 February 2026): https://standards.nasa.gov/standard/nasa/nasa-hdbk-7009
 - NASA Software Assurance and Software Safety: https://sma.nasa.gov/sma-disciplines/software-assurance-and-software-safety
 
-## Current research caveat
+## Current repository and implementation status (12 October 2026)
 
-GitHub repository metadata marked `Luminous-Dynamics/mycelix-space` as archived during this pass. GitHub therefore rejected branch creation and issue creation there as read-only, so the identified frame-mismatch and ephemeris-step defects are recorded here as migration/follow-up items rather than represented as fixed. Decide whether to unarchive that repository deliberately or port its orbital subsystem into an active Mycelix Space successor, then apply the follow-up tests. This audit did not execute Mycelix Space code, calibrate covariance, validate a cislunar propagator, or run a flight-dynamics campaign.
+The standalone `Luminous-Dynamics/mycelix-space` repository was archived on 6 March 2026 and is historical/read-only. The implementation was migrated into the active `Luminous-Dynamics/mycelix` monorepo:
+
+- Space hApp / zomes: `mycelix-workspace/mycelix-space/`
+- Shared standalone native orbital-mechanics crate: `mycelix-workspace/crates/orbital-mechanics/`
+- The orbital crate is intentionally excluded from the root Cargo workspace, so it needs its own explicit CI/test lane; it must not be assumed covered by `cargo test --workspace`.
+
+The same frame mismatch and non-progressing ephemeris-step behavior were confirmed in this migrated copy. Draft [Mycelix PR #4969](https://github.com/Luminous-Dynamics/mycelix/pull/4969) now targets the active monorepo: it labels the TLE-age covariance heuristic as TEME to match SGP4 output, rejects zero/negative ephemeris steps, refuses mixed covariance frames in Mahalanobis distance, rejects non-finite covariance matrices, documents the current RTN method's rotation-only limitation, and adds a standalone-crate CI workflow.
+
+**Status boundary:** PR #4969's targeted CI run was queued at the latest observation; no current-head pass is claimed. The code changes are proposed, not yet merged. They repair representation/input-safety issues only. They do not calibrate the TLE-age covariance model, validate the conjunction-probability algorithm, establish cislunar propagation, or provide flight qualification. This research pass did not run a complete flight-dynamics campaign.
