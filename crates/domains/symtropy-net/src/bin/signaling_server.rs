@@ -14,7 +14,7 @@
 //! The default bind is 127.0.0.1:9001. Do not expose the plaintext listener publicly.
 
 use std::{
-    collections::{HashMap, HashSet},
+    collections::{HashMap, HashSet, VecDeque},
     env, io,
     net::SocketAddr,
     str::FromStr,
@@ -167,33 +167,44 @@ impl PreparedFrame {
     }
 }
 
+/// Per-connection rolling one-second limiter. Because successful events are bounded
+/// by `MAX_MESSAGES_PER_SECOND`, the timestamp deque is bounded independently of
+/// attacker-supplied payload sizes.
 struct RateWindow {
-    started: Instant,
-    messages: usize,
+    events: VecDeque<(Instant, usize)>,
     bytes: usize,
 }
 
 impl RateWindow {
     fn new() -> Self {
         Self {
-            started: Instant::now(),
-            messages: 0,
+            events: VecDeque::new(),
             bytes: 0,
         }
     }
 
     fn admit(&mut self, bytes: usize) -> bool {
-        if self.started.elapsed() >= Duration::from_secs(1) {
-            self.started = Instant::now();
-            self.messages = 0;
-            self.bytes = 0;
+        self.admit_at(Instant::now(), bytes)
+    }
+
+    fn admit_at(&mut self, now: Instant, bytes: usize) -> bool {
+        const WINDOW: Duration = Duration::from_secs(1);
+
+        while let Some((timestamp, expired_bytes)) = self.events.front().copied() {
+            if now.saturating_duration_since(timestamp) < WINDOW {
+                break;
+            }
+            self.events.pop_front();
+            self.bytes = self.bytes.saturating_sub(expired_bytes);
         }
-        if self.messages >= MAX_MESSAGES_PER_SECOND
+
+        if self.events.len() >= MAX_MESSAGES_PER_SECOND
             || self.bytes.saturating_add(bytes) > MAX_BYTES_PER_SECOND
         {
             return false;
         }
-        self.messages += 1;
+
+        self.events.push_back((now, bytes));
         self.bytes += bytes;
         true
     }
@@ -1313,6 +1324,35 @@ mod tests {
         let mut byte_limiter = RateWindow::new();
         assert!(byte_limiter.admit(MAX_BYTES_PER_SECOND));
         assert!(!byte_limiter.admit(1));
+    }
+
+    #[test]
+    fn rate_window_prevents_boundary_bursts() {
+        let start = Instant::now();
+        let before_boundary = start + Duration::from_millis(999);
+        let boundary = start + Duration::from_secs(1);
+
+        let mut message_limiter = RateWindow::new();
+        assert!(message_limiter.admit_at(start, 0));
+        for _ in 1..MAX_MESSAGES_PER_SECOND {
+            assert!(message_limiter.admit_at(before_boundary, 0));
+        }
+        assert!(
+            message_limiter.admit_at(boundary, 0),
+            "only the event at the one-second boundary has expired"
+        );
+        assert!(
+            !message_limiter.admit_at(boundary, 0),
+            "events from 999 ms ago must still count against the message ceiling"
+        );
+
+        let mut byte_limiter = RateWindow::new();
+        assert!(byte_limiter.admit_at(start, 0));
+        assert!(byte_limiter.admit_at(before_boundary, MAX_BYTES_PER_SECOND));
+        assert!(
+            !byte_limiter.admit_at(boundary, 1),
+            "bytes admitted 999 ms ago must remain charged for the full rolling window"
+        );
     }
 
     fn test_peer_handle() -> (PeerHandle, mpsc::Receiver<QueuedFrame>) {
