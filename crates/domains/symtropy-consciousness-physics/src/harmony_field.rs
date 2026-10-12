@@ -63,6 +63,7 @@ pub enum HarmonyFieldInputError {
     NonFiniteCurrentTime,
     NegativeCurrentTime,
     NonFiniteDistance { source_index: usize },
+    NonFiniteKernel { source_index: usize },
     NonFinitePropagationDelay { source_index: usize },
     NonFiniteFieldValue { harmony_index: usize },
     NonFiniteFieldEnergy,
@@ -241,8 +242,12 @@ impl<const D: usize> HarmonyField<D> {
         Ok(())
     }
 
-    /// Checked field sampling. Invalid public-field mutations and non-finite
-    /// intermediate results are errors, not numeric-looking field values.
+    /// Checked field sampling using p_D = max(D - 1, 1) and Plummer softening.
+    ///
+    /// Invalid public-field mutations and non-finite intermediate results are
+    /// errors, not numeric-looking field values. The source activations are
+    /// nonnegative and bounded by [0, 1]; field samples may exceed 1 after
+    /// superposition across sources.
     pub fn try_sample(
         &self,
         point: &Point<D>,
@@ -315,7 +320,7 @@ impl<const D: usize> HarmonyField<D> {
                 (source.strength.ln() - exponent * softened_distance.ln()).exp()
             };
             if !falloff.is_finite() {
-                return Err(HarmonyFieldInputError::NonFiniteDistance { source_index });
+                return Err(HarmonyFieldInputError::NonFiniteKernel { source_index });
             }
 
             for (index, total_value) in total.iter_mut().enumerate() {
@@ -391,6 +396,9 @@ impl<const D: usize> HarmonyField<D> {
     }
 
     /// Checked friction modulation at a point.
+    ///
+    /// Under the documented nonnegative activation contract, returns [0.5, 1.0]:
+    /// aligned vectors approach 0.5, while orthogonal or absent fields return 1.0.
     pub fn try_friction_multiplier(
         &self,
         point: &Point<D>,
@@ -403,6 +411,9 @@ impl<const D: usize> HarmonyField<D> {
     }
 
     /// Checked collision impulse modulation at a point.
+    ///
+    /// Under the documented nonnegative activation contract, returns [0.5, 1.0]:
+    /// aligned vectors approach 0.5, while orthogonal or absent fields return 1.0.
     pub fn try_impulse_multiplier(
         &self,
         point: &Point<D>,
@@ -931,13 +942,13 @@ mod tests {
             1.0,
             f64::MAX,
             0.0,
-            0.5,
+            1.0e-200,
         )
         .unwrap();
         let field = HarmonyField::try_from_sources(vec![source]).unwrap();
         assert_eq!(
             field
-                .try_sample_at_time(&Point::new([1.0e308, 0.0, 0.0]), 1.0)
+                .try_sample_at_time(&Point::new([1.0e150, 0.0, 0.0]), 1.0)
                 .unwrap_err(),
             HarmonyFieldInputError::NonFinitePropagationDelay { source_index: 0 }
         );
