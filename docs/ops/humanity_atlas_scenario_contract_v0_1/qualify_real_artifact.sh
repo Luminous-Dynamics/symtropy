@@ -134,6 +134,7 @@ names = [
     "adapter.log",
     "python-adapter-tests.log",
     "run-schema-validation.log",
+    "source-model-schema-validation.log",
     "sol-atlas-core-tests.log",
     "sol-atlas-validation.log",
     "qualification-metadata.json",
@@ -255,7 +256,7 @@ cargo --version > "$OUT_DIR/cargo-version.txt"
 python3 --version > "$OUT_DIR/python-version.txt"
 
 QUALIFICATION_PHASE="adapter_regressions"
-echo "[1/8] Running adapter regressions with JSON Schema validation required." >&2
+echo "[1/9] Running adapter regressions with JSON Schema validation required." >&2
 if ! (
   cd -- "$SCRIPT_DIR"
   PYTHONDONTWRITEBYTECODE=1 HUMANITY_ATLAS_REQUIRE_JSONSCHEMA=1 \
@@ -266,7 +267,7 @@ if ! (
 fi
 
 QUALIFICATION_PHASE="dependency_lock_resolution"
-echo "[2/8] Resolving and snapshotting simulator + standalone-consumer dependency locks." >&2
+echo "[2/9] Resolving and snapshotting simulator + standalone-consumer dependency locks." >&2
 if [[ ! -f "$SIMULATOR_LOCK_PATH" ]]; then
   if ! cargo generate-lockfile \
     --manifest-path "$MONOREPO_ROOT/mycelix-multiworld-sim/Cargo.toml" \
@@ -296,7 +297,7 @@ sha256sum "$OUT_DIR/sol-atlas-core-Cargo.lock" > "$OUT_DIR/sol-atlas-core-Cargo.
 
 QUALIFICATION_PHASE="simulator_capture_and_revision_binding"
 QUALIFICATION_PHASE="producer_consumer_roundtrip_test"
-echo "[3/8] Running the simulator-backed producer → core round-trip integration test." >&2
+echo "[3/9] Running the simulator-backed producer → core round-trip integration test." >&2
 if ! (
   cd -- "$MONOREPO_ROOT"
   CARGO_TARGET_DIR="$SIMULATOR_TARGET_DIR" \
@@ -312,7 +313,7 @@ if ! (
 fi
 
 QUALIFICATION_PHASE="simulator_capture_and_revision_binding"
-echo "[4/8] Capturing one actual simulator run (stdout is the immutable source artifact)." >&2
+echo "[4/9] Capturing one actual simulator run (stdout is the immutable source artifact)." >&2
 if ! (
   cd -- "$MONOREPO_ROOT"
   # option_env! reads these at compile time. The workflow's ambient GITHUB_SHA
@@ -353,7 +354,7 @@ fi
 sha256sum "$SOURCE_ARTIFACT" > "$SOURCE_ARTIFACT.sha256"
 
 QUALIFICATION_PHASE="adapter_execution"
-echo "[5/8] Adapting that exact artifact into Humanity Atlas run v0.1." >&2
+echo "[5/9] Adapting that exact artifact into Humanity Atlas run v0.1." >&2
 if ! python3 "$SCRIPT_DIR/adapt_multiworld_output.py" "$SOURCE_ARTIFACT" --output "$RUN_ENVELOPE" 2> "$OUT_DIR/adapter.log"; then
   cat "$OUT_DIR/adapter.log" >&2
   exit 1
@@ -361,7 +362,7 @@ fi
 sha256sum "$RUN_ENVELOPE" > "$RUN_ENVELOPE.sha256"
 
 QUALIFICATION_PHASE="run_schema_validation"
-echo "[6/8] Validating the actual generated envelope against the published run schema." >&2
+echo "[6/9] Validating the actual generated envelope against the published run schema." >&2
 if ! python3 - "$OUT_DIR/run-v0.1.schema.json" "$RUN_ENVELOPE" <<'PY' > "$OUT_DIR/run-schema-validation.log" 2>&1
 import json, sys
 import jsonschema
@@ -379,8 +380,37 @@ then
   exit 1
 fi
 
+QUALIFICATION_PHASE="source_model_schema_validation"
+echo "[7/9] Validating the captured producer tree and run manifest against both versioned schemas." >&2
+if ! python3 - "$OUT_DIR/producer-tech-tree-v1.schema.json" "$OUT_DIR/producer-run-manifest-v1.schema.json" "$SOURCE_ARTIFACT" <<'PY' > "$OUT_DIR/source-model-schema-validation.log" 2>&1
+import json, sys
+import jsonschema
+tree_schema_path, manifest_schema_path, artifact_path = sys.argv[1:]
+def load(path):
+    with open(path, encoding="utf-8") as stream:
+        return json.load(stream)
+tree_schema = load(tree_schema_path)
+manifest_schema = load(manifest_schema_path)
+artifact = load(artifact_path)
+if not isinstance(artifact, dict):
+    raise SystemExit("source artifact must be a JSON object")
+if "technology_tree" not in artifact or "run_manifest" not in artifact:
+    raise SystemExit("source artifact must contain technology_tree and run_manifest")
+for label, schema in (("technology tree", tree_schema), ("run manifest", manifest_schema)):
+    jsonschema.Draft202012Validator.check_schema(schema)
+    print(f"{label} schema meta-validation passed")
+jsonschema.Draft202012Validator(tree_schema).validate(artifact["technology_tree"])
+print("captured technology_tree validates against the producer versioned schema")
+jsonschema.Draft202012Validator(manifest_schema).validate(artifact["run_manifest"])
+print("captured run_manifest validates against the producer versioned schema")
+PY
+then
+  cat "$OUT_DIR/source-model-schema-validation.log" >&2
+  exit 1
+fi
+
 QUALIFICATION_PHASE="consumer_unit_tests"
-echo "[7/8] Running standalone Sol-Atlas core tests with the snapshotted lock." >&2
+echo "[8/9] Running standalone Sol-Atlas core tests with the snapshotted lock." >&2
 (
   cd -- "$SOL_ATLAS_ROOT"
   CARGO_TARGET_DIR="$CORE_TARGET_DIR" \
@@ -391,7 +421,7 @@ echo "[7/8] Running standalone Sol-Atlas core tests with the snapshotted lock." 
 }
 
 QUALIFICATION_PHASE="independent_consumer_import"
-echo "[8/8] Verifying the envelope against the same source bytes in the independent importer." >&2
+echo "[9/9] Verifying the envelope against the same source bytes in the independent importer." >&2
 if ! (
   cd -- "$SOL_ATLAS_ROOT"
   CARGO_TARGET_DIR="$CORE_TARGET_DIR" \
@@ -482,6 +512,7 @@ metadata = {
     "adapter_log_sha256": sha(os.path.join(os.path.dirname(metadata_path), "adapter.log")),
     "python_adapter_tests_log_sha256": sha(os.path.join(os.path.dirname(metadata_path), "python-adapter-tests.log")),
     "run_schema_validation_log_sha256": sha(os.path.join(os.path.dirname(metadata_path), "run-schema-validation.log")),
+    "source_model_schema_validation_log_sha256": sha(os.path.join(os.path.dirname(metadata_path), "source-model-schema-validation.log")),
     "producer_consumer_roundtrip_log_sha256": sha(os.path.join(os.path.dirname(metadata_path), "producer-consumer-roundtrip.log")),
     "producer_consumer_roundtrip_test_passed": True,
     "sol_atlas_core_tests_log_sha256": sha(os.path.join(os.path.dirname(metadata_path), "sol-atlas-core-tests.log")),
