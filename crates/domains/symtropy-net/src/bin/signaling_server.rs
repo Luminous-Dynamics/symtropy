@@ -19,7 +19,7 @@ use std::{
     net::SocketAddr,
     str::FromStr,
     sync::{
-        Arc, Mutex,
+        Arc, Barrier, Mutex,
         atomic::{AtomicU64, Ordering},
     },
     time::{Duration, Instant},
@@ -1576,6 +1576,140 @@ mod tests {
             global_membership_bytes.available_permits(),
             initial_membership_budget,
             "all staged global membership permits must roll back after a later reservation fails"
+        );
+    }
+
+    #[test]
+    fn concurrent_join_and_leave_never_leave_stale_membership() {
+        let rooms: SharedRooms = Arc::new(Mutex::new(Rooms::default()));
+        let global_data_bytes = Arc::new(Semaphore::new(MAX_TOTAL_OUTBOUND_DATA_BYTES));
+        let global_control_bytes = Arc::new(Semaphore::new(MAX_TOTAL_OUTBOUND_CONTROL_BYTES));
+        let global_membership_bytes =
+            Arc::new(Semaphore::new(MAX_TOTAL_OUTBOUND_MEMBERSHIP_BYTES));
+
+        let (departing_tx, departing_rx) = mpsc::channel(OUTBOUND_QUEUE_CAPACITY);
+        let (departing_shutdown_tx, _departing_shutdown_rx) = watch::channel(false);
+        let (departing, mut departing_outbound) = test_peer_handle_with_global(
+            departing_tx,
+            departing_rx,
+            departing_shutdown_tx,
+            global_data_bytes.clone(),
+            global_control_bytes.clone(),
+            global_membership_bytes.clone(),
+        );
+        let (joining_tx, joining_rx) = mpsc::channel(OUTBOUND_QUEUE_CAPACITY);
+        let (joining_shutdown_tx, _joining_shutdown_rx) = watch::channel(false);
+        let (joining, mut joining_outbound) = test_peer_handle_with_global(
+            joining_tx,
+            joining_rx,
+            joining_shutdown_tx,
+            global_data_bytes,
+            global_control_bytes,
+            global_membership_bytes.clone(),
+        );
+        {
+            let mut state = rooms.lock().expect("room registry lock");
+            state
+                .rooms
+                .entry("room".to_string())
+                .or_default()
+                .insert(1, departing.clone());
+        }
+
+        let start = Arc::new(Barrier::new(3));
+        let join_rooms = rooms.clone();
+        let join_start = start.clone();
+        let join_peer = joining.clone();
+        let join_thread = std::thread::spawn(move || {
+            join_start.wait();
+            join_room(&join_rooms, "room", 2, &join_peer)
+        });
+        let leave_rooms = rooms.clone();
+        let leave_start = start.clone();
+        let leave_thread = std::thread::spawn(move || {
+            leave_start.wait();
+            remove_peer_and_notify(&leave_rooms, "room", 1);
+        });
+        start.wait();
+
+        let join_result = join_thread.join().expect("join thread must not panic");
+        assert!(
+            join_result.is_ok(),
+            "serialized join must complete regardless of whether leave takes the room lock first: {join_result:?}"
+        );
+        leave_thread
+            .join()
+            .expect("leave thread must not panic");
+
+        {
+            let state = rooms.lock().expect("room registry lock");
+            let members = state.rooms.get("room").expect("joining peer's room remains");
+            assert_eq!(members.len(), 1);
+            assert!(members.contains_key(&2));
+            assert!(!members.contains_key(&1));
+        }
+
+        let mut joining_events = Vec::new();
+        while let Ok(frame) = joining_outbound.try_recv() {
+            match frame.frame {
+                Message::Text(text) => {
+                    joining_events.push(parse_incoming(&text).expect("valid membership frame"));
+                }
+                other => panic!("expected a text membership frame, received {other:?}"),
+            }
+        }
+        assert!(
+            matches!(
+                joining_events.first(),
+                Some(SignalIncoming::Welcome { peer_id: 2 })
+            ),
+            "joining peer must always observe Welcome first"
+        );
+        let saw_old_peer_join = joining_events
+            .iter()
+            .position(|event| matches!(event, SignalIncoming::PeerJoined { peer_id: 1 }));
+        let saw_old_peer_leave = joining_events
+            .iter()
+            .position(|event| matches!(event, SignalIncoming::PeerLeft { peer_id: 1 }));
+        assert_eq!(
+            saw_old_peer_join.is_some(),
+            saw_old_peer_leave.is_some(),
+            "if the joining peer saw peer 1 join, it must also see peer 1 leave"
+        );
+        if let (Some(joined), Some(left)) = (saw_old_peer_join, saw_old_peer_leave) {
+            assert!(joined < left, "PeerJoined must precede PeerLeft for the same transition");
+        }
+        assert!(
+            joining_events.len() == 1 || joining_events.len() == 3,
+            "unexpected membership event sequence: {joining_events:?}"
+        );
+
+        let mut departing_saw_join = false;
+        while let Ok(frame) = departing_outbound.try_recv() {
+            if let Message::Text(text) = frame.frame {
+                departing_saw_join |= matches!(
+                    parse_incoming(&text).expect("valid membership frame"),
+                    SignalIncoming::PeerJoined { peer_id: 2 }
+                );
+            }
+        }
+        assert_eq!(
+            departing_saw_join,
+            saw_old_peer_join.is_some(),
+            "the old peer and new peer must agree about whether the join preceded the leave"
+        );
+        assert_eq!(
+            joining.queued_bytes.available_permits(),
+            MAX_SIGNALING_MESSAGE_BYTES
+        );
+        assert_eq!(
+            departing.queued_bytes.available_permits(),
+            MAX_SIGNALING_MESSAGE_BYTES
+        );
+        assert_eq!(
+            global_membership_bytes.available_permits(),
+            MAX_TOTAL_OUTBOUND_MEMBERSHIP_BYTES,
+            "draining all race-generated events must release every shared membership permit"
         );
     }
 
