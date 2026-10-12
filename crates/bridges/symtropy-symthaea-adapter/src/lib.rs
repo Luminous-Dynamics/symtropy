@@ -231,6 +231,15 @@ impl MotorPlanner for EmbodimentPlanner {
             return vec![0.0; num_actuators];
         }
 
+        // Legacy tiling stores each channel directly as f32 and the bridge
+        // may compute an f32 L2 norm. Finite individual components are not enough:
+        // their squared sum must also remain representable.
+        if matches!(&self.observation_encoder, ObservationEncoding::LegacyTiled)
+            && !legacy_tiled_norm_is_representable(observation, self.hv_dim)
+        {
+            return vec![0.0; num_actuators];
+        }
+
         let capped_gain = gain.clamp(0.0, 1.0);
         let thought_hv = match &self.observation_encoder {
             ObservationEncoding::LegacyTiled => encode_observation(observation, self.hv_dim),
@@ -265,6 +274,35 @@ impl MotorPlanner for EmbodimentPlanner {
         let per_joint = raw_authority.min(capped_gain).clamp(0.0, 1.0);
         vec![per_joint; num_actuators]
     }
+}
+
+/// Check that the legacy tiled vector's f32 L2 norm can be accumulated safely.
+///
+/// This computes the repeated-channel squared norm analytically, avoiding a
+/// loop proportional to `hv_dim` just for validation. The half-MAX bound leaves
+/// headroom for f32 multiplication and summation rounding.
+fn legacy_tiled_norm_is_representable(obs: &[f64], hv_dim: usize) -> bool {
+    if obs.is_empty() || hv_dim == 0 {
+        return true;
+    }
+
+    let repeats_each = hv_dim / obs.len();
+    let extra_repeats = hv_dim % obs.len();
+    let mut squared_norm = 0.0_f64;
+    let limit = (f32::MAX as f64) * 0.5;
+
+    for (index, value) in obs.iter().copied().enumerate() {
+        let narrowed = value as f32;
+        if !narrowed.is_finite() {
+            return false;
+        }
+        let repeats = repeats_each + usize::from(index < extra_repeats);
+        squared_norm += (narrowed as f64) * (narrowed as f64) * (repeats as f64);
+        if !squared_norm.is_finite() || squared_norm > limit {
+            return false;
+        }
+    }
+    true
 }
 
 /// Encode a short observation vector into a dim-wide [`ContinuousHV`].
@@ -615,6 +653,15 @@ mod tests {
     fn finite_f64_that_overflows_f32_fails_closed_without_stepping_bridge() {
         let mut p = make_planner();
         let commands = p.plan(&[f64::MAX], 1.0, 4);
+        assert_eq!(commands, vec![0.0; 4]);
+        assert_eq!(p.bridge().total_steps(), 0);
+    }
+
+    #[test]
+    fn finite_f32_components_with_overflowing_norm_fail_closed() {
+        let mut p = make_planner();
+        // 1e20 is finite in f32, but its repeated squared sum is not.
+        let commands = p.plan(&[1.0e20], 1.0, 4);
         assert_eq!(commands, vec![0.0; 4]);
         assert_eq!(p.bridge().total_steps(), 0);
     }
