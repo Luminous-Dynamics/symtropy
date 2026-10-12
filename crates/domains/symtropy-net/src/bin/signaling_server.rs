@@ -1777,14 +1777,17 @@ mod tests {
                 other => panic!("expected text membership event, got {other:?}"),
             }
         }
-        assert!(matches!(
-            joining_events.as_slice(),
-            [
-                SignalIncoming::Welcome { peer_id: 2 },
-                SignalIncoming::PeerJoined { peer_id: 1 },
-                SignalIncoming::PeerLeft { peer_id: 1 }
-            ]
-        ), "join-first history must be Welcome, PeerJoined, PeerLeft; got {joining_events:?}");
+        assert!(
+            matches!(
+                joining_events.as_slice(),
+                [
+                    SignalIncoming::Welcome { peer_id: 2 },
+                    SignalIncoming::PeerJoined { peer_id: 1 },
+                    SignalIncoming::PeerLeft { peer_id: 1 }
+                ]
+            ),
+            "join-first history must be Welcome, PeerJoined, PeerLeft; got {joining_events:?}"
+        );
 
         let departed_event = departing_outbound
             .try_recv()
