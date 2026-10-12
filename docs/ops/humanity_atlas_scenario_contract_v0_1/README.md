@@ -155,13 +155,16 @@ commit identity.
 ## Single-artifact end-to-end qualification
 
 The script `qualify_real_artifact.sh` performs the full local path against the
-checked-out producer and standalone consumer. It captures the simulator output
-once, stores its SHA-256, runs the Python adapter, runs the Sol-Atlas core unit
-tests, then runs the standalone Rust example against those same source bytes and
-the generated envelope. It requires all three source checkouts (monorepo,
-Symtropy, and Sol-Atlas) to be clean and records all three HEADs, tool versions,
-source/envelope/report and log digests, the consumer report, and test logs in
-an evidence directory. It snapshots and hashes both the simulator and
+checked-out producer and standalone consumer. It first runs the
+monorepo's `humanity_atlas_roundtrip` integration test, which exercises the
+simulator-backed producer-to-core importer seam, then captures one simulator
+output and stores its SHA-256. It runs the Python adapter, the Sol-Atlas core
+unit tests, and the standalone Rust example against those exact source bytes
+and generated envelope. The producer round-trip test is mandatory and its
+output log is included in the evidence packet. It requires all three source
+checkouts (monorepo, Symtropy, and Sol-Atlas) to be clean and records all three
+HEADs, tool versions, source/envelope/report and log digests, the consumer
+report, and test logs in an evidence directory. It snapshots and hashes both the simulator and
 standalone core Cargo lockfiles, then uses `cargo run/test --locked` for every
 build, test, and importer invocation. If either checkout lacks a lockfile, the
 script resolves it once, records whether it was generated during qualification,
