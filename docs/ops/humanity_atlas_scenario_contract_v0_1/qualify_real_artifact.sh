@@ -193,14 +193,40 @@ sha256sum "$OUT_DIR/simulator-Cargo.lock" > "$OUT_DIR/simulator-Cargo.lock.sha25
 sha256sum "$OUT_DIR/sol-atlas-core-Cargo.lock" > "$OUT_DIR/sol-atlas-core-Cargo.lock.sha256"
 
 echo "[3/7] Capturing one actual simulator run (stdout is the immutable source artifact)." >&2
+PRODUCER_REVISION="$(cat "$OUT_DIR/monorepo-commit.txt")"
 if ! (
   cd -- "$MONOREPO_ROOT"
-  cargo run --locked --release \
-    --manifest-path "$MONOREPO_ROOT/mycelix-multiworld-sim/Cargo.toml" \
-    --bin luminous_sim -- --years "$YEARS" --seed "$SEED" \
-    --format humanity-atlas-json
+  # option_env! reads these at compile time. The workflow's ambient GITHUB_SHA
+  # belongs to Symtropy, so override every supported producer revision variable.
+  GITHUB_SHA="$PRODUCER_REVISION" \
+  GIT_COMMIT="$PRODUCER_REVISION" \
+  VERGEN_GIT_SHA="$PRODUCER_REVISION" \
+    cargo run --locked --release \
+      --manifest-path "$MONOREPO_ROOT/mycelix-multiworld-sim/Cargo.toml" \
+      --bin luminous_sim -- --years "$YEARS" --seed "$SEED" \
+      --format humanity-atlas-json
 ) > "$SOURCE_ARTIFACT" 2> "$OUT_DIR/simulator-run.log"; then
   cat "$OUT_DIR/simulator-run.log" >&2
+  exit 1
+fi
+
+# Prove the source run declares the producer checkout's exact immutable HEAD;
+# never accept the caller workflow's SHA or an absent/malformed revision.
+if ! python3 - "$SOURCE_ARTIFACT" "$PRODUCER_REVISION" <<'PY'
+import json, sys
+artifact_path, expected_revision = sys.argv[1:]
+with open(artifact_path, encoding="utf-8") as stream:
+    payload = json.load(stream)
+manifest = payload.get("run_manifest") if isinstance(payload, dict) else None
+actual_revision = manifest.get("source_revision") if isinstance(manifest, dict) else None
+if actual_revision != expected_revision:
+    raise SystemExit(
+        "producer run_manifest.source_revision does not match the monorepo HEAD "
+        f"(expected {expected_revision!r}, got {actual_revision!r})"
+    )
+print(f"producer source revision verified: {actual_revision}")
+PY
+then
   exit 1
 fi
 
@@ -288,13 +314,19 @@ def text(path):
         return stream.read().strip()
 with open(report_path, encoding="utf-8") as stream:
     report = json.load(stream)
+expected_producer_revision = text(os.path.join(os.path.dirname(metadata_path), "monorepo-commit.txt"))
+reported_source_revision = report.get("source_revision")
+if reported_source_revision != expected_producer_revision:
+    raise SystemExit("consumer report source revision does not match the captured monorepo HEAD")
 metadata = {
     "record_type": "humanity-atlas-structural-qualification",
     "status": "pass" if report.get("qualification") == "structural_contract_pass" else "fail",
     "qualification_scope": "contract and artifact integrity only; not scientific validation",
     "years": int(years),
     "seed": int(seed),
-    "monorepo_commit": text(os.path.join(os.path.dirname(metadata_path), "monorepo-commit.txt")),
+    "monorepo_commit": expected_producer_revision,
+    "producer_revision_reported_by_consumer": reported_source_revision,
+    "source_revision_matches_monorepo_commit": reported_source_revision == expected_producer_revision,
     "sol_atlas_commit": text(os.path.join(os.path.dirname(metadata_path), "sol-atlas-commit.txt")),
     "symtropy_commit": text(os.path.join(os.path.dirname(metadata_path), "symtropy-commit.txt")),
     "source_artifact_sha256": sha(source_path),
