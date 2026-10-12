@@ -1544,7 +1544,7 @@ mod tests {
 
         let result = join_room(&rooms, "room", 2, &new_peer);
         assert!(
-            matches!(result, Err(ref error) if error.contains("aggregate outbound membership budget is full")),
+            matches!(&result, Err(error) if error.contains("aggregate outbound membership budget is full")),
             "third staged reservation should fail on the shared membership budget: {result:?}"
         );
 
