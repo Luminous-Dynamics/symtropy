@@ -154,7 +154,7 @@ rustc --version > "$OUT_DIR/rustc-version.txt"
 cargo --version > "$OUT_DIR/cargo-version.txt"
 python3 --version > "$OUT_DIR/python-version.txt"
 
-echo "[1/6] Running adapter regressions with JSON Schema validation required." >&2
+echo "[1/7] Running adapter regressions with JSON Schema validation required." >&2
 if ! (
   cd -- "$SCRIPT_DIR"
   PYTHONDONTWRITEBYTECODE=1 HUMANITY_ATLAS_REQUIRE_JSONSCHEMA=1 \
