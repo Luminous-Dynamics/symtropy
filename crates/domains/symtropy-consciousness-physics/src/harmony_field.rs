@@ -269,7 +269,6 @@ impl<const D: usize> HarmonyField<D> {
         point: &Point<D>,
         current_time: Option<f64>,
     ) -> Result<[f64; NUM_HARMONIES], HarmonyFieldInputError> {
-        self.validate()?;
         validate_point(point)?;
         if let Some(time) = current_time {
             if !time.is_finite() {
@@ -283,6 +282,9 @@ impl<const D: usize> HarmonyField<D> {
         let mut total = [0.0f64; NUM_HARMONIES];
         let exponent = (D as f64 - 1.0).max(1.0);
         for (source_index, source) in self.sources.iter().enumerate() {
+            // Validate before radius/time filters so invalid sources are never
+            // silently ignored merely because they are currently out of range.
+            validate_source(source, source_index)?;
             let dist = source.position.distance(point);
             if !dist.is_finite() {
                 return Err(HarmonyFieldInputError::NonFiniteDistance { source_index });
@@ -884,6 +886,18 @@ mod tests {
             ),
             Err(HarmonyFieldInputError::ActivationOutOfRange { index: 6, .. })
         ));
+    }
+
+    #[test]
+    fn checked_add_rejects_invalid_source_without_mutating_field() {
+        let mut field = HarmonyField::<3>::new();
+        let mut invalid = stillness_source(Point::origin());
+        invalid.radius = -1.0;
+        assert_eq!(
+            field.try_add_source(invalid).unwrap_err(),
+            HarmonyFieldInputError::NonPositiveRadius { source_index: 0 }
+        );
+        assert!(field.sources.is_empty());
     }
 
     #[test]
