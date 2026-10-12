@@ -1915,7 +1915,7 @@ mod tests {
         );
         let (recipient_tx, recipient_rx) = mpsc::channel(OUTBOUND_QUEUE_CAPACITY);
         let (recipient_shutdown_tx, _recipient_shutdown_rx) = watch::channel(false);
-        let (recipient, recipient_outbound) = test_peer_handle_with_global(
+        let (recipient, mut recipient_outbound) = test_peer_handle_with_global(
             recipient_tx,
             recipient_rx,
             recipient_shutdown_tx,
