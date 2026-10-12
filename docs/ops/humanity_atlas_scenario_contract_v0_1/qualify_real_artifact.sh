@@ -21,9 +21,27 @@ SYMTROPY_ROOT="$(git -C "$SCRIPT_DIR" rev-parse --show-toplevel)"
 YEARS="${YEARS:-150}"
 SEED="${SEED:-42}"
 if [[ -n "${ATLAS_QUALIFICATION_DIR:-}" ]]; then
-  OUT_DIR="$ATLAS_QUALIFICATION_DIR"
+  # Resolve a possibly not-yet-existing destination without creating it first.
+  # This keeps a rejected in-checkout path from leaving an untracked directory.
+  OUT_DIR="$(python3 - "$ATLAS_QUALIFICATION_DIR" <<'PY'
+import os, sys
+print(os.path.realpath(sys.argv[1]))
+PY
+)"
 else
-  OUT_DIR="$(mktemp -d "${TMPDIR:-/tmp}/humanity-atlas-qualification.XXXXXX")"
+  TEMP_ROOT="${TMPDIR:-/tmp}"
+  if [[ ! -d "$TEMP_ROOT" ]]; then
+    echo "TMPDIR must name an existing directory: $TEMP_ROOT" >&2
+    exit 2
+  fi
+  TEMP_ROOT="$(cd -- "$TEMP_ROOT" && pwd -P)"
+  case "$TEMP_ROOT/" in
+    "$MONOREPO_ROOT/"*|"$SOL_ATLAS_ROOT/"*|"$SYMTROPY_ROOT/"*)
+      echo "TMPDIR must be outside all three source checkouts" >&2
+      exit 2
+      ;;
+  esac
+  OUT_DIR="$TEMP_ROOT/humanity-atlas-qualification.pending"
 fi
 
 case "$YEARS" in
@@ -37,14 +55,18 @@ if (( YEARS < 1 || YEARS > 100000 )); then
   exit 2
 fi
 
-mkdir -p -- "$OUT_DIR"
-OUT_DIR="$(cd -- "$OUT_DIR" && pwd)"
 case "$OUT_DIR/" in
   "$MONOREPO_ROOT/"*|"$SOL_ATLAS_ROOT/"*|"$SYMTROPY_ROOT/"*)
     echo "qualification output directory must be outside all three source checkouts" >&2
     exit 2
     ;;
 esac
+if [[ -z "${ATLAS_QUALIFICATION_DIR:-}" ]]; then
+  # Only create the temporary directory after validating its parent location.
+  OUT_DIR="$(mktemp -d "$TEMP_ROOT/humanity-atlas-qualification.XXXXXX")"
+fi
+mkdir -p -- "$OUT_DIR"
+OUT_DIR="$(cd -- "$OUT_DIR" && pwd -P)"
 for checkout in "$MONOREPO_ROOT" "$SOL_ATLAS_ROOT" "$SYMTROPY_ROOT"; do
   if [[ -n "$(git -C "$checkout" status --porcelain --untracked-files=all)" ]]; then
     echo "source checkout is dirty; refusing to bind a build to HEAD only: $checkout" >&2
