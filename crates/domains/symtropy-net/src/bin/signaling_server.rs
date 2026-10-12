@@ -582,12 +582,12 @@ fn remove_peer_and_notify(rooms: &SharedRooms, room_id: &str, initial_peer_id: u
     let removed_initial = state
         .rooms
         .get_mut(room_id)
-        .is_some_and(|room| room.peers.remove(&initial_peer_id).is_some());
+        .is_some_and(|room| room.remove(&initial_peer_id).is_some());
     if !removed_initial {
         let empty = state
             .rooms
             .get(room_id)
-            .is_some_and(|room| room.peers.is_empty());
+            .is_some_and(|room| room.is_empty());
         if empty {
             state.rooms.remove(room_id);
         }
@@ -602,7 +602,6 @@ fn remove_peer_and_notify(rooms: &SharedRooms, room_id: &str, initial_peer_id: u
             return;
         };
         let survivors: Vec<(u64, PeerHandle)> = room
-            .peers
             .iter()
             .filter(|(id, _)| !removed_set.contains(id))
             .map(|(id, peer)| (*id, peer.clone()))
@@ -639,7 +638,7 @@ fn remove_peer_and_notify(rooms: &SharedRooms, room_id: &str, initial_peer_id: u
                 "relay room {room_id:?} cannot publish membership cleanup: {error}; closing room"
             );
             if let Some(room) = state.rooms.remove(room_id) {
-                for (_, peer) in room.peers {
+                for (_, peer) in room {
                     let _ = peer.shutdown_tx.send(true);
                 }
             }
@@ -661,7 +660,7 @@ fn remove_peer_and_notify(rooms: &SharedRooms, room_id: &str, initial_peer_id: u
         };
         let mut added = false;
         for slow_id in slow_peers {
-            if let Some(slow_peer) = room.peers.remove(&slow_id) {
+            if let Some(slow_peer) = room.remove(&slow_id) {
                 let _ = slow_peer.shutdown_tx.send(true);
                 if removed_set.insert(slow_id) {
                     removed.push(slow_id);
@@ -675,8 +674,8 @@ fn remove_peer_and_notify(rooms: &SharedRooms, room_id: &str, initial_peer_id: u
     }
 
     let empty = if let Some(room) = state.rooms.get_mut(room_id) {
-        room.peers.retain(|id, _| !removed_set.contains(id));
-        room.peers.is_empty()
+        room.retain(|id, _| !removed_set.contains(id));
+        room.is_empty()
     } else {
         return;
     };
