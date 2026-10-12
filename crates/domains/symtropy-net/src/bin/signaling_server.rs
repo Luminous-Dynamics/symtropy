@@ -1497,6 +1497,84 @@ mod tests {
     }
 
     #[test]
+    fn failed_room_join_rolls_back_every_staged_reservation() {
+        let rooms: SharedRooms = Arc::new(Mutex::new(Rooms::default()));
+        let welcome_bytes = serde_json::to_string(&SignalIncoming::Welcome { peer_id: 2 })
+            .expect("serialize staged Welcome")
+            .len();
+        let joined_bytes = serde_json::to_string(&SignalIncoming::PeerJoined { peer_id: 1 })
+            .expect("serialize staged PeerJoined")
+            .len();
+        // Exactly enough for Welcome and the new peer's first PeerJoined event,
+        // so the following reservation for the existing peer fails deterministically.
+        let initial_membership_budget = welcome_bytes + joined_bytes;
+        let global_data_bytes = Arc::new(Semaphore::new(MAX_TOTAL_OUTBOUND_DATA_BYTES));
+        let global_control_bytes = Arc::new(Semaphore::new(MAX_TOTAL_OUTBOUND_CONTROL_BYTES));
+        let global_membership_bytes = Arc::new(Semaphore::new(initial_membership_budget));
+
+        let (existing_tx, existing_rx) = mpsc::channel(OUTBOUND_QUEUE_CAPACITY);
+        let (existing_shutdown_tx, _existing_shutdown_rx) = watch::channel(false);
+        let (existing, mut existing_outbound) = test_peer_handle_with_global(
+            existing_tx,
+            existing_rx,
+            existing_shutdown_tx,
+            global_data_bytes.clone(),
+            global_control_bytes.clone(),
+            global_membership_bytes.clone(),
+        );
+        let (new_tx, new_rx) = mpsc::channel(OUTBOUND_QUEUE_CAPACITY);
+        let (new_shutdown_tx, _new_shutdown_rx) = watch::channel(false);
+        let (new_peer, mut new_outbound) = test_peer_handle_with_global(
+            new_tx,
+            new_rx,
+            new_shutdown_tx,
+            global_data_bytes,
+            global_control_bytes,
+            global_membership_bytes.clone(),
+        );
+
+        {
+            let mut state = rooms.lock().expect("room registry lock");
+            state
+                .rooms
+                .entry("room".to_string())
+                .or_default()
+                .insert(1, existing.clone());
+        }
+
+        let result = join_room(&rooms, "room", 2, &new_peer);
+        assert!(
+            matches!(result, Err(ref error) if error.contains("aggregate outbound membership budget is full")),
+            "third staged reservation should fail on the shared membership budget: {result:?}"
+        );
+
+        {
+            let state = rooms.lock().expect("room registry lock");
+            let members = state.rooms.get("room").expect("existing room survives failed admission");
+            assert_eq!(members.len(), 1);
+            assert!(members.contains_key(&1));
+            assert!(!members.contains_key(&2), "failed join must never become visible");
+        }
+        assert!(existing_outbound.try_recv().is_err());
+        assert!(new_outbound.try_recv().is_err());
+        assert_eq!(
+            existing.queued_bytes.available_permits(),
+            MAX_SIGNALING_MESSAGE_BYTES,
+            "failed admission must release all existing-peer byte reservations"
+        );
+        assert_eq!(
+            new_peer.queued_bytes.available_permits(),
+            MAX_SIGNALING_MESSAGE_BYTES,
+            "failed admission must release all joining-peer byte reservations"
+        );
+        assert_eq!(
+            global_membership_bytes.available_permits(),
+            initial_membership_budget,
+            "all staged global membership permits must roll back after a later reservation fails"
+        );
+    }
+
+    #[test]
     fn membership_budget_exhaustion_closes_room_without_blame_shifting() {
         let rooms: SharedRooms = Arc::new(Mutex::new(Rooms::default()));
         let global_data_bytes = Arc::new(Semaphore::new(MAX_TOTAL_OUTBOUND_DATA_BYTES));
