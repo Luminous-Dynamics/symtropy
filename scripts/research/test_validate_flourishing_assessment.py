@@ -542,7 +542,7 @@ class FlourishingAssessmentTests(unittest.TestCase):
             root = Path(temp)
             materialize_artifact_files(doc, root)
             assessment_path = root / "assessment.json"
-            assessment_path.write_text(json.dumps(doc, indent=2) + "\\n", encoding="utf-8")
+            assessment_path.write_text(json.dumps(doc, indent=2) + "\n", encoding="utf-8")
             evidence_path = root / "sample.txt"
             original_evidence = evidence_path.read_bytes()
             error_output = StringIO()
