@@ -841,7 +841,10 @@ mod tests {
         let (schema, mut manifest, root, expected) = set_up_pass_manifest();
         manifest["evidence_artifacts"][0]["sha256"] =
             json!("dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd");
-        let digest = manifest["evidence_artifacts"][0]["sha256"].as_str().unwrap();
+        let digest = manifest["evidence_artifacts"][0]["sha256"]
+            .as_str()
+            .unwrap()
+            .to_string();
         manifest["claims"][0]["input_artifact_sha256"] = json!([digest]);
         manifest["claims"][0]["output_artifact_sha256"] = json!([digest]);
         let result = evaluate_manifest(&schema, &manifest, Some(&expected), true, Some(&root));
