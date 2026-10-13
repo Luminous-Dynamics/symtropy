@@ -166,6 +166,65 @@ Research anchors:
 - [Reusable packaging review](https://www.sciencedirect.com/science/article/pii/S0925527320301201): reusable packaging requires joint accounting of economic/environmental impacts, packaging-system design and reverse logistics; reuse does not guarantee a net benefit when return, cleaning and loss costs are ignored.
 - [World Development Report 2025 — Standards for Development](https://www.worldbank.org/en/publication/wdr2025): standards and containerization as coordination infrastructure.
 
+## 5.4 Space logistics is a separate physical-feasibility profile
+
+The same logistics concepts can span terrestrial, orbital, cislunar, lunar-surface and later Mars supply chains, but a generic graph edge with hand-entered cost/time is not a flight-feasibility model. Keep the optimization architecture reusable while requiring a domain-specific physical feasibility adapter for space legs.
+
+### Physical movement constraints
+
+A future `SpaceLegProfile` / adapter should declare the exact service and model version and bind at least:
+
+- origin/destination operational domain and reference frame;
+- launch/arrival window, schedule confidence, service provider and capacity commitment;
+- trajectory/orbit/transfer model and qualified ephemeris/kernel/assumption commitments;
+- delta-v budget, propellant and propulsion assumptions, dry/wet mass, payload fraction and staging/refuelling assumptions where relevant;
+- allowable payload envelope, mass properties, restraint/handling contract and any crew/cargo safety constraints;
+- thermal, radiation, power, environment, lifetime, storage and consumables limits;
+- rendezvous/docking/berthing or planetary landing/surface transfer interfaces;
+- maintenance, repair, spares, refurbishment, reuse and end-of-life assumptions;
+- planetary-surface mobility range, payload, terrain and local energy for surface legs;
+- for local resource utilization, feedstock evidence, process throughput/yield, energy/water inputs, product quality, equipment availability and reliability.
+
+Missing constraints must make a leg unsupported or explicitly scenario-only; a plausible duration or cost value must not upgrade it to feasible. Reuse a mission-validated astrodynamics/service source rather than implementing a new orbital propagator inside the general-purpose route enumerator. Keep mission analysis and certification outside this planning crate.
+
+### Distinct networks, linked by explicit handoffs
+
+Do not collapse these graphs:
+
+1. **Physical logistics graph** — movement of cargo/assets through terrestrial legs, launch and rendezvous operations, orbital/cislunar transport, landers and planetary surface mobility.
+2. **Communication/contact graph** — direct or relay contact opportunities, time windows, direction, latency, capacity, confidence and security profile. Reuse a Delay-Tolerant Networking/contact-plan standard (for example BPv7/BPSec, CCSDS Schedule-Aware Bundle Routing, and applicable LunaNet profiles); do not reimplement their routing protocols here.
+3. **Evidence-reconciliation graph** — delayed observations, custody/event commitments, source provenance, conflict sets and reconciliation outcomes across disconnected operational domains.
+
+A physical vehicle may move when no communications contact exists. A message may arrive without cargo moving. A new synchronization can reveal conflicting evidence, but must not automatically decide which physical-state claim is true.
+
+### Whole-life supply-chain objective
+
+For terrestrial-to-space/lunar/Mars scenarios, optimize more than currency or elapsed time. Keep visible, dimensioned objectives for:
+
+- recurring launch mass and propellant;
+- packaging/tare, cargo utilization and transfer/crew/robot handling burden;
+- resupply cadence, storage capacity/lifetime, consumables and inventory risk;
+- missed launch/contact-window consequences and service reliability;
+- power, thermal control, maintenance, spares, repairability, refurbishment and reuse;
+- local production / ISRU scenarios and their energy, feedstock, yield and equipment constraints;
+- waste closure, recycling, planetary-protection / contamination constraints where applicable;
+- redundancy, common-mode failure, spare logistics and recovery from long-duration outages.
+
+Do not presume local-resource production improves resilience: scenario benefits must include process yield, power, maintenance and uptime assumptions, and be tested against launch-supplied alternatives. Do not combine currency, mass, mission risk and environmental constraints into a single score without an explicit policy and sensitivity analysis.
+
+### Boundaries and qualification
+
+- Earth freight standards (for example ISO container profiles and GS1/DCSA/IATA cargo-data models) remain terrestrial/modal adapters; they are not automatically lunar or Martian physical standards.
+- Space communication standards qualify their own data/service interfaces; they do not certify cargo movement or physical delivery.
+- Time and reference-frame conversion must preserve source time scale/clock, frame, kernel/profile commitment and uncertainty. UTC and terrestrial coordinates are not universal defaults.
+- Sol Atlas may visualize these outputs only with explicit observed / curated / derived / scenario statuses; visualization is not a feasibility proof.
+- Mycelix may coordinate identity, evidence, scoped authorization and delayed reconciliation; a DHT receipt alone does not establish a physical fact.
+- Symthaea predictions remain advisory and must not authorize launch, custody, inventory, dispatch or equipment mutation.
+
+### First useful qualification fixture
+
+After the terrestrial route/module/resource invariants pass, use a small, fully synthetic Earth logistics → launch-site transfer → scheduled Earth-orbit/cislunar service → lunar relay/contact opportunity → lander/surface depot scenario. Include a missed launch window, a missed communication contact, a stale inventory/propellant report, one shared-capacity conflict and delayed contradictory custody evidence. The independent verifier should prove that physical movement, communications delivery and evidence reconciliation remain distinct. This is an architecture/algorithm fixture, not a flight trajectory or mission design.
+
 ## 6. Optimization formulation
 
 Let \(k\) identify a passenger group or cargo class and \(a\) a feasible time-dependent movement or transfer edge.
