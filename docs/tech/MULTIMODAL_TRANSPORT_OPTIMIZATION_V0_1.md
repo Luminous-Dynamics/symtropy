@@ -1,7 +1,7 @@
 # Multimodal Transport Optimization — Research and Model Contract v0.1
 
 **Status:** research specification; no route-level winner or cost-saving claim has been established.  
-**Related issue:** [TRANSPORT-OPT-001](https://github.com/Luminous-Dynamics/symtropy/issues/1601)  
+**Related issues:** [TRANSPORT-OPT-001](https://github.com/Luminous-Dynamics/symtropy/issues/1601), [CARGO-MOD-001](https://github.com/Luminous-Dynamics/symtropy/issues/1604)  
 **Related existing design:** [Symtropy Vehicle & Mobility Design Bible](./Symtropy%20Vehicle%20%26%20Mobility%20Design.md) and [interbody transit](https://github.com/Luminous-Dynamics/symtropy/issues/103).
 
 ## 1. Executive conclusion
