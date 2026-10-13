@@ -136,6 +136,8 @@ For the complete factorial, estimate the F, R, and E main effects and all intera
 
 Predeclare treatment contrasts, multiplicity handling for secondary metrics, exclusion/qualification rules, and how missing/failed runs will be described. Report sensitivity both across seeds and across parameter/model variants. Distinguish practical effect size from statistical detectability. If intervals span both meaningful benefit and meaningful harm, call the result inconclusive rather than robust.
 
+For each arm-versus-A000 contrast, also report the held-out sample variance of paired differences, the sum of the separate sample variances (the independent-difference variance estimate), and their ratio when defined. Label this as an empirical pairing diagnostic only. A ratio below 1 indicates lower observed variance for the paired-difference estimator in that sample; above 1 indicates higher variance. Do not infer actual common-random-number alignment from this statistic, and do not assume matching seeds reduce variance. If fewer than two held-out blocks exist, the sample variance is undefined and the confirmatory analysis must remain unqualified.
+
 ## 8. Qualification gates
 
 A result is eligible for a utility claim only when all applicable gates are met:
@@ -159,6 +161,7 @@ This protocol adapts general methodological guidance; it is not a claim that any
 1. Borgonovo, E., Pangallo, M., Rivkin, J., Rizzo, L., & Siggelkow, N. (2022). *Sensitivity analysis of agent-based models: a new protocol*. Computational and Mathematical Organization Theory, 28, 52–94. https://doi.org/10.1007/s10588-021-09358-5 — describes matching sensitivity methods to questions and using factorial designs to estimate main and interaction effects.
 2. Troost, C. et al. (2023). *How to keep it adequate: A protocol for ensuring validity in agent-based simulation*. Environmental Modelling & Software, 159, 105559. https://doi.org/10.1016/j.envsoft.2022.105559 — frames validity as context-adequacy across model choice, inference, uncertainty analysis, and interpretation, with uncertainty traced throughout.
 3. Heikes, R. G., Montgomery, D. C., & Rardin, R. L. (1976). *Using common random numbers in simulation experiments — an approach to statistical analysis*. Simulation, 27(3). https://doi.org/10.1177/003754977602700301 — discusses using the same pseudo-random streams across alternatives as a simulation-comparison design. For this experiment, a fixed seed alone does not prove that treatment arms consumed equivalent draws, so the RNG alignment policy and evidence must be recorded.
+4. Wright, R. D., & Ramsay, T. E. (1979). *On the effectiveness of common random numbers*. Management Science, 25(7), 649–656. https://doi.org/10.1287/mnsc.25.7.649 — reports cases where common-random-number coupling produced negative output correlation and increased variance. Therefore, a CRN strategy must be verified and its observed pairing effect assessed, not treated as automatic variance reduction.
 
 ## 10. Current implementation notes
 
