@@ -1537,6 +1537,47 @@ mod tests {
     }
 
     #[test]
+    fn valid_mandatory_code_compliance_claim_requires_a_pinned_source_snapshot() {
+        let (schema, mut manifest, root, mut expected) = set_up_pass_manifest();
+        let source_bytes = b"synthetic public legislation excerpt - not real law";
+        fs::write(root.join("rule-source.bin"), source_bytes).expect("write source fixture");
+        let source_digest = sha256_hex(source_bytes);
+
+        manifest["rule_pack"]["source_references"][0]["source_type"] = json!("legislation");
+        manifest["rule_pack"]["source_references"][0]["edition"] = json!("synthetic-edition-v1");
+        manifest["rule_pack"]["source_references"][0]["effective_from"] = json!("2026-01-01");
+        manifest["rule_pack"]["source_references"][0]["clause_or_location"] = json!("synthetic clause 1.1");
+        manifest["rule_pack"]["source_references"][0]["rights_status"] = json!("public");
+        manifest["rule_pack"]["source_references"][0]["source_sha256"] = json!(source_digest);
+        manifest["evidence_artifacts"].as_array_mut().unwrap().push(json!({
+            "artifact_id": "rule-source-snapshot",
+            "media_type": "application/octet-stream",
+            "sha256": source_digest,
+            "role": "other",
+            "uri": "rule-source.bin",
+            "retention_class": "test-only"
+        }));
+        manifest["claims"][0]["claim_type"] = json!("code_compliance");
+        manifest["claims"][0]["requirement"] = json!({
+            "requirement_id": "SYNTHETIC-CLAUSE-1.1",
+            "source_id": "za-nbr-act",
+            "applicability_notes": "synthetic test only"
+        });
+        expected.rule_pack = manifest["rule_pack"].clone();
+        expected.mandatory_claims[0].claim_type = "code_compliance".to_string();
+        expected.mandatory_claims[0].requirement = manifest["claims"][0]["requirement"].clone();
+
+        let result = evaluate_manifest(&schema, &manifest, Some(&expected), true, Some(&root));
+        assert_eq!(result.effective_status, STATUS_PASS, "{:?}", result.issues);
+        assert_eq!(
+            result.evidence_integrity_status,
+            STATUS_EVIDENCE_INTEGRITY_VERIFIED
+        );
+        assert_eq!(result.artifact_digests_verified, 3);
+        fs::remove_dir_all(root).expect("clean temp dir");
+    }
+
+    #[test]
     fn code_compliance_claim_requires_a_rule_pack_source() {
         let (schema, mut manifest, root, expected) = set_up_pass_manifest();
         manifest["claims"][0]["claim_type"] = json!("code_compliance");
