@@ -579,10 +579,8 @@ mod tests {
             let result = mse.propagate_standard_uncertainty(&input).unwrap();
             let power_component = (sigma_power / volume_rate).powi(2);
             let volume_component = (power * sigma_volume / volume_rate.powi(2)).powi(2);
-            let covariance_component =
-                2.0 * power * covariance / volume_rate.powi(3);
-            let expected_variance =
-                power_component + volume_component - covariance_component;
+            let covariance_component = 2.0 * power * covariance / volume_rate.powi(3);
+            let expected_variance = power_component + volume_component - covariance_component;
             assert!(
                 (result.variance_pa2 - expected_variance).abs()
                     < expected_variance.abs() * 1.0e-12,
