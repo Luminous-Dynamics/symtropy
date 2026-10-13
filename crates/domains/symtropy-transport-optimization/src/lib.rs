@@ -169,6 +169,10 @@ pub struct TemperatureBand {
     pub max_millicelsius: i32,
 }
 
+/// Dimension-axis permutation relative to the declared upright frame. XYZ is
+/// upright; YXZ swaps the floor-plane axes; other variants tip a vertical axis.
+/// The profile and specific equipment must both explicitly allow the selected
+/// permutation. This is geometric screening, not a stability or load approval.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum CargoOrientation {
     XYZ,
@@ -838,8 +842,12 @@ pub fn estimate_reusable_module_economics(
         .baseline_handling_cost_avoided_per_cycle_minor_units
         .checked_mul(cycles)
         .ok_or(CargoEconomicsError::ArithmeticOverflow)?;
-    let average_cost = lifecycle_cost / cycles
-        + u64::from(lifecycle_cost % cycles != 0);
+    let quotient = lifecycle_cost / cycles;
+    let average_cost = if lifecycle_cost % cycles == 0 {
+        quotient
+    } else {
+        quotient + 1
+    };
     let empty_return_energy_wh = input
         .empty_return_energy_wh_per_cycle
         .checked_mul(cycles)
