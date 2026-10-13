@@ -146,6 +146,24 @@ def materialize_artifact_files(doc: dict, root: Path) -> None:
         (root / artifact["path"]).write_bytes(preregistration_payload(constraint))
 
 
+def refresh_preregistration_artifacts(doc: dict) -> None:
+    for constraint in doc["constraints"]:
+        artifact_id = constraint.get("preregistration_artifact_id")
+        if not isinstance(artifact_id, str):
+            continue
+        artifact = next(a for a in doc["artifacts"] if a["artifact_id"] == artifact_id)
+        payload = preregistration_payload(constraint)
+        artifact["sha256"] = hashlib.sha256(payload).hexdigest()
+        artifact["collected_at"] = constraint["predeclared_at"]
+
+
+def validate_with_artifacts(doc: dict) -> tuple[list[str], dict | None]:
+    with tempfile.TemporaryDirectory() as temp:
+        root = Path(temp)
+        materialize_artifact_files(doc, root)
+        return validate_assessment(doc, artifact_root=root, verify_artifacts=True)
+
+
 def add_evidence_and_known_values(doc: dict, values: dict[str, float] | None = None) -> dict:
     raw = b"synthetic evidence; not a real observation\n"
     doc["artifacts"] = [{
@@ -195,9 +213,18 @@ class FlourishingAssessmentTests(unittest.TestCase):
         self.assertEqual(by_id["candidate"]["constraint_results"][0]["status"], "UNKNOWN")
         self.assertIsNone(report["ranking"])
 
-    def test_known_passing_constraints_produce_comparison_readiness_not_a_ranking(self) -> None:
+    def test_unverified_artifact_bytes_never_qualify_a_hard_constraint(self) -> None:
         doc = add_evidence_and_known_values(assessment())
         errors, report = validate_assessment(doc)
+        self.assertEqual(errors, [])
+        self.assertFalse(report["artifact_bytes_verified"])
+        by_id = {a["alternative_id"]: a for a in report["alternatives"]}
+        self.assertEqual(by_id["candidate"]["comparison_status"], "UNRESOLVED")
+        self.assertEqual(by_id["candidate"]["constraint_results"][0]["status"], "UNKNOWN")
+
+    def test_known_passing_constraints_produce_comparison_readiness_not_a_ranking(self) -> None:
+        doc = add_evidence_and_known_values(assessment())
+        errors, report = validate_with_artifacts(doc)
         self.assertEqual(errors, [])
         self.assertEqual(
             {a["comparison_status"] for a in report["alternatives"]},
@@ -209,7 +236,7 @@ class FlourishingAssessmentTests(unittest.TestCase):
         doc = add_evidence_and_known_values(
             assessment(), {"outage_hours": 3.0, "critical_outage_hours": 1.2}
         )
-        errors, report = validate_assessment(doc)
+        errors, report = validate_with_artifacts(doc)
         self.assertEqual(errors, [])
         by_id = {a["alternative_id"]: a for a in report["alternatives"]}
         self.assertEqual(by_id["candidate"]["comparison_status"], "INELIGIBLE")
@@ -227,7 +254,7 @@ class FlourishingAssessmentTests(unittest.TestCase):
             "interpretation": "scenario_envelope",
             "method": "synthetic uncertainty envelope",
         }
-        errors, report = validate_assessment(doc)
+        errors, report = validate_with_artifacts(doc)
         self.assertEqual(errors, [])
         by_id = {a["alternative_id"]: a for a in report["alternatives"]}
         self.assertEqual(by_id["candidate"]["constraint_results"][0]["status"], "UNKNOWN")
@@ -245,7 +272,7 @@ class FlourishingAssessmentTests(unittest.TestCase):
                 "interpretation": "scenario_envelope",
                 "method": "synthetic uncertainty envelope",
             }
-        errors, report = validate_assessment(doc)
+        errors, report = validate_with_artifacts(doc)
         self.assertEqual(errors, [])
         self.assertEqual(
             {a["comparison_status"] for a in report["alternatives"]},
@@ -260,7 +287,7 @@ class FlourishingAssessmentTests(unittest.TestCase):
             "method": "uncertainty budget assessment",
             "reason": "no defensible interval is available",
         }
-        errors, report = validate_assessment(doc)
+        errors, report = validate_with_artifacts(doc)
         self.assertEqual(errors, [])
         by_id = {a["alternative_id"]: a for a in report["alternatives"]}
         self.assertEqual(by_id["candidate"]["constraint_results"][0]["status"], "UNKNOWN")
@@ -292,7 +319,7 @@ class FlourishingAssessmentTests(unittest.TestCase):
                 "method": "uncertainty budget assessment",
                 "reason": "no defensible interval is available",
             }
-        errors, report = validate_assessment(doc)
+        errors, report = validate_with_artifacts(doc)
         self.assertEqual(errors, [])
         self.assertEqual(
             {a["comparison_status"] for a in report["alternatives"]},
@@ -382,6 +409,7 @@ class FlourishingAssessmentTests(unittest.TestCase):
         doc = add_evidence_and_known_values(assessment())
         constraint = doc["constraints"][0]
         constraint["scope"] = "overall_and_subgroups"
+        refresh_preregistration_artifacts(doc)
         baseline = doc["alternatives"][0]["outcomes"][1]
         baseline["subgroups"] = [
             {
@@ -418,7 +446,7 @@ class FlourishingAssessmentTests(unittest.TestCase):
                 "artifact_ids": [],
             },
         ]
-        errors, report = validate_assessment(doc)
+        errors, report = validate_with_artifacts(doc)
         self.assertEqual(errors, [])
         by_id = {a["alternative_id"]: a for a in report["alternatives"]}
         self.assertEqual(by_id["candidate"]["constraint_results"][0]["status"], "FAIL")
