@@ -23,6 +23,8 @@ pub struct ExcavationToolProfileV1 {
     pub profile_artifact: ArtifactRef,
     /// The exact geometry artifact must also be declared by the world's assets.
     pub geometry_artifact: ArtifactRef,
+    pub feed_speed_limit_m_s: f64,
+    pub angular_speed_limit_rad_s: f64,
     /// Maximum tool-interface mechanical power for this operating envelope.
     pub power_limit_w: f64,
     pub thrust_limit_n: f64,
@@ -213,7 +215,19 @@ impl MaterialAwareExcavationRequestV1 {
                 "requested_duration_ns",
             ));
         }
-        for (field, value) in [
+        if self.feed_speed_m_s > self.tool.feed_speed_limit_m_s {
+            return Err(ExcavationContractErrorV1::OperatingEnvelopeExceeded(
+                "feed_speed_m_s",
+            ));
+        }
+        if self.angular_speed_rad_s > self.tool.angular_speed_limit_rad_s {
+            return Err(ExcavationContractErrorV1::OperatingEnvelopeExceeded(
+                "angular_speed_rad_s",
+            ));
+        }
+        for (field, value) [
+            ("feed_speed_limit_m_s", self.tool.feed_speed_limit_m_s),
+            ("angular_speed_limit_rad_s", self.tool.angular_speed_limit_rad_s),
             ("power_limit_w", self.tool.power_limit_w),
             ("thrust_limit_n", self.tool.thrust_limit_n),
             ("torque_limit_nm", self.tool.torque_limit_nm),
@@ -456,6 +470,8 @@ mod tests {
                 tool_id: "disc-cutter-001".to_owned(),
                 profile_artifact: artifact("disc-cutter-001", '9'),
                 geometry_artifact: artifact("disc-cutter-geometry", 'a'),
+                feed_speed_limit_m_s: 0.005,
+                angular_speed_limit_rad_s: 150.0,
                 power_limit_w: 2_500.0,
                 thrust_limit_n: 1_000.0,
                 torque_limit_nm: 25.0,
@@ -533,6 +549,20 @@ mod tests {
         assert_eq!(
             unknown_geometry.validate_against_world(&world(), &"d".repeat(SHA256_HEX_LENGTH)),
             Err(ExcavationContractErrorV1::UndeclaredToolGeometryArtifact)
+        );
+
+        let mut excessive_feed = request();
+        excessive_feed.feed_speed_m_s = 0.01;
+        assert_eq!(
+            excessive_feed.validate_against_world(&world(), &"d".repeat(SHA256_HEX_LENGTH)),
+            Err(ExcavationContractErrorV1::OperatingEnvelopeExceeded("feed_speed_m_s"))
+        );
+
+        let mut excessive_rotation = request();
+        excessive_rotation.angular_speed_rad_s = 200.0;
+        assert_eq!(
+            excessive_rotation.validate_against_world(&world(), &"d".repeat(SHA256_HEX_LENGTH)),
+            Err(ExcavationContractErrorV1::OperatingEnvelopeExceeded("angular_speed_rad_s"))
         );
     }
 
