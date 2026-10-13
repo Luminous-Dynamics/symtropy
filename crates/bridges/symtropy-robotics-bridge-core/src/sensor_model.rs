@@ -32,6 +32,8 @@ pub struct SensorReadingV1 {
     pub value: f64,
     pub unit: String,
     pub frame_id: String,
+    /// Declared scalar noise standard deviation in the same unit as value.
+    pub uncertainty_std: f64,
     pub saturation_applied: bool,
 }
 
@@ -58,6 +60,7 @@ pub struct SensorSampleV1 {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum SensorModelError {
     InvalidProfile(&'static str),
+    InvalidState,
     CaptureNotDue { now_ns: u64, next_due_ns: u64 },
     InvalidTruthChannel { index: usize },
     NoiseUnitMismatch { index: usize },
@@ -70,6 +73,10 @@ impl fmt::Display for SensorModelError {
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::InvalidProfile(reason) => write!(formatter, "invalid sensor profile: {reason}"),
+            Self::InvalidState => write!(
+                formatter,
+                "serialized sensor state does not match its profile or sample schedule"
+            ),
             Self::CaptureNotDue { now_ns, next_due_ns } => write!(
                 formatter,
                 "sensor capture at {now_ns} ns is early; next sample is due at {next_due_ns} ns"
@@ -97,6 +104,7 @@ impl std::error::Error for SensorModelError {}
 /// future noise or dropout draws; separate sensors receive separate streams.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct SensorModelV1 {
+    schema_version: u16,
     profile: SensorProfileV1,
     world_seed: u64,
     sample_rate_nanohz: u64,
@@ -119,6 +127,7 @@ impl SensorModelV1 {
             ));
         }
         Ok(Self {
+            schema_version: Self::SCHEMA_VERSION,
             profile,
             world_seed,
             sample_rate_nanohz,
@@ -139,6 +148,24 @@ impl SensorModelV1 {
         self.next_due_time_ns
     }
 
+    fn validate_state(&self) -> Result<(), SensorModelError> {
+        if self.schema_version != Self::SCHEMA_VERSION {
+            return Err(SensorModelError::InvalidState);
+        }
+        validate_profile(&self.profile)?;
+        let expected_rate =
+            (self.profile.sample_rate_hz * NANO_HERTZ_PER_HERTZ).round() as u64;
+        if expected_rate == 0 || expected_rate != self.sample_rate_nanohz {
+            return Err(SensorModelError::InvalidState);
+        }
+        if sample_time_ns(self.next_sample_index, self.sample_rate_nanohz)?
+            != self.next_due_time_ns
+        {
+            return Err(SensorModelError::InvalidState);
+        }
+        Ok(())
+    }
+
     /// Acquire at the supplied simulation timestamp.
     ///
     /// If the world has stepped past due times, the latest due sample is
@@ -149,6 +176,7 @@ impl SensorModelV1 {
         acquisition_time_ns: u64,
         truth: &[SensorTruthChannelV1],
     ) -> Result<SensorSampleV1, SensorModelError> {
+        self.validate_state()?;
         validate_truth(&self.profile, truth)?;
         if acquisition_time_ns < self.next_due_time_ns {
             return Err(SensorModelError::CaptureNotDue {
@@ -217,6 +245,7 @@ impl SensorModelV1 {
                     value,
                     unit: channel.unit.clone(),
                     frame_id: channel.frame_id.clone(),
+                    uncertainty_std: self.profile.noise_std,
                     saturation_applied: value != noisy,
                 });
             }
@@ -545,6 +574,17 @@ mod tests {
             (0.9 * 0.02..=1.1 * 0.02).contains(&observed_std),
             "unexpected noise std {observed_std}"
         );
+    }
+
+    #[test]
+    fn deserialized_schedule_drift_is_rejected_before_sampling() {
+        let mut sensor = SensorModelV1::new(42, profile()).unwrap();
+        sensor.next_due_time_ns = 1;
+        assert_eq!(
+            sensor.capture_at(0, &truth(0.0)),
+            Err(SensorModelError::InvalidState)
+        );
+        assert_eq!(sensor.next_sample_index(), 0);
     }
 
     #[test]
