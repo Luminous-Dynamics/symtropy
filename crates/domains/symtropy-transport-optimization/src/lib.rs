@@ -379,7 +379,7 @@ pub fn check_module_compatibility(
     if equipment.mode == Mode::Air
         && equipment.requires_verified_aircraft_uld
         && (profile.family != CargoModuleFamily::AircraftUld
-            || !matches!(profile.conformity, ProfileConformity::Verified { .. }))
+            || !matches!(&profile.conformity, ProfileConformity::Verified { .. }))
     {
         return Err(CargoError::AircraftUldNotVerified);
     }
