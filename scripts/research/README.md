@@ -89,7 +89,25 @@ A qualified manifest requires every planned record, complete eight-arm/grid cove
 
 Exit code 0 means the manifest meets these mechanical checks only. Exit code 1 means results are not qualified; exit code 2 means the plan/input is invalid. Even a mechanically qualified manifest is **not** a utility analysis. A separate, predeclared paired/factorial effect analysis with uncertainty intervals is still required.
 
-## 5. Built-in checks
+## 5. Analyze held-out effects
+
+After the manifest validates, estimate paired arm differences and factorial main/interaction contrasts using the held-out seeds only:
+
+    python3 scripts/research/harmony_field_ablation.py analyze \
+      --plan plan.json \
+      --results results.jsonl \
+      --artifact-root ./run-artifacts \
+      --bootstrap-replicates 5000 \
+      --bootstrap-seed 20261013 \
+      --output analysis-report.json
+
+The analysis re-validates the plan, result records, and artifact bytes before computing anything. It reports each arm's paired difference against A000 and the F, R, E, F×R, F×E, R×E, and F×R×E contrasts for each parameter/dimension variant. It estimates 95% percentile bootstrap intervals by resampling matched seed blocks, and uses the preregistered endpoint direction so positive effects always mean better on that endpoint.
+
+At least two held-out seeds are required. The bootstrap seed and replicate count are recorded for reproducibility. The interval procedure is descriptive, uses no multiplicity correction, and does not guarantee confirmatory family-wise error control. If the interval does not clear the predeclared meaningful-effect threshold in either direction, the status is inconclusive relative to that threshold. This is not proof of equivalence or general model validity.
+
+The analyzer refuses unqualified manifests and never substitutes development-seed outcomes for held-out evidence. It estimates effects inside this specific simulator/task/configuration only.
+
+## 6. Built-in checks
 
     python3 scripts/research/harmony_field_ablation.py self-test
 
