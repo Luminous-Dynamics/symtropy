@@ -731,6 +731,8 @@ impl CargoTransferEquipmentProfile {
 /// particular time window.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct CargoTransferResourceBinding {
+    pub module_id: String,
+    pub module_profile_id: String,
     pub transfer_edge_id: String,
     pub equipment_id: String,
     pub terminal_id: String,
@@ -762,14 +764,18 @@ pub fn check_cargo_transfer_compatibility(
     if edge.capacity == 0 {
         return Err(CargoError::TransferCapacityUnavailable);
     }
-    if binding.transfer_edge_id.trim().is_empty()
+    if binding.module_id.trim().is_empty()
+        || binding.module_profile_id.trim().is_empty()
+        || binding.transfer_edge_id.trim().is_empty()
         || binding.equipment_id.trim().is_empty()
         || binding.terminal_id.trim().is_empty()
         || binding.capacity_units == 0
     {
         return Err(CargoError::TransferResourceBindingInvalid);
     }
-    if binding.transfer_edge_id != edge.id
+    if binding.module_id != instance.module_id
+        || binding.module_profile_id != profile.profile_id
+        || binding.transfer_edge_id != edge.id
         || binding.equipment_id != equipment.equipment_id
         || binding.terminal_id != equipment.terminal_id
     {
@@ -1132,7 +1138,7 @@ impl fmt::Display for CargoError {
                 write!(f, "transfer resource binding is incomplete or consumes zero capacity")
             }
             Self::TransferResourceBindingMismatch => {
-                write!(f, "transfer resource binding does not match the selected edge, equipment and terminal")
+                write!(f, "transfer resource binding does not match the selected module, profile, edge, equipment and terminal")
             }
             Self::TransferCapacityUnitMismatch => {
                 write!(f, "transfer resource binding capacity unit does not match the edge")
@@ -2230,6 +2236,8 @@ mod tests {
 
     fn cargo_transfer_resource_binding() -> CargoTransferResourceBinding {
         CargoTransferResourceBinding {
+            module_id: "container-42".to_owned(),
+            module_profile_id: "iso-40ft-v1".to_owned(),
             transfer_edge_id: "road-rail-at-hub".to_owned(),
             equipment_id: "hub-cross-dock-crane-3".to_owned(),
             terminal_id: "Hub".to_owned(),
@@ -2389,6 +2397,20 @@ mod tests {
 
         let mut binding = cargo_transfer_resource_binding();
         binding.transfer_edge_id = "different-edge".to_owned();
+        assert_eq!(
+            check_cargo_transfer_compatibility(&profile, &instance, &edge, &equipment, &binding),
+            Err(CargoError::TransferResourceBindingMismatch)
+        );
+
+        let mut binding = cargo_transfer_resource_binding();
+        binding.module_id = "different-container".to_owned();
+        assert_eq!(
+            check_cargo_transfer_compatibility(&profile, &instance, &edge, &equipment, &binding),
+            Err(CargoError::TransferResourceBindingMismatch)
+        );
+
+        let mut binding = cargo_transfer_resource_binding();
+        binding.module_profile_id = "different-profile".to_owned();
         assert_eq!(
             check_cargo_transfer_compatibility(&profile, &instance, &edge, &equipment, &binding),
             Err(CargoError::TransferResourceBindingMismatch)
