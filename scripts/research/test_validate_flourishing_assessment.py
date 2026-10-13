@@ -7,7 +7,7 @@ import json
 import sys
 import tempfile
 import unittest
-from contextlib import redirect_stdout
+from contextlib import redirect_stderr, redirect_stdout
 from io import StringIO
 from pathlib import Path
 
@@ -346,6 +346,12 @@ class FlourishingAssessmentTests(unittest.TestCase):
         errors, _ = validate_assessment(doc)
         self.assertTrue(any("safe relative path" in error for error in errors))
 
+    def test_artifact_path_control_characters_are_rejected(self) -> None:
+        doc = add_evidence_and_known_values(assessment())
+        doc["artifacts"][0]["path"] = "sample.txt\\x00suffix"
+        errors, _ = validate_assessment(doc)
+        self.assertTrue(any("safe relative path" in error for error in errors))
+
     def test_artifact_digest_is_checked_against_file_bytes(self) -> None:
         doc = add_evidence_and_known_values(assessment())
         with tempfile.TemporaryDirectory() as temp:
@@ -444,6 +450,19 @@ class FlourishingAssessmentTests(unittest.TestCase):
             {item["comparison_status"] for item in report["alternatives"]},
             {"UNRESOLVED"},
         )
+
+    @unittest.skipIf(jsonschema is None, "jsonschema dependency is installed by the CI workflow")
+    def test_cli_refuses_to_overwrite_assessment_with_report(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            path = Path(temp) / "assessment.json"
+            original = json.dumps(assessment(), indent=2) + "\\n"
+            path.write_text(original, encoding="utf-8")
+            error_output = StringIO()
+            with redirect_stderr(error_output):
+                exit_code = main([str(path), "--report", str(path)])
+            self.assertEqual(exit_code, 2)
+            self.assertIn("would overwrite the assessment", error_output.getvalue())
+            self.assertEqual(path.read_text(encoding="utf-8"), original)
 
     @unittest.skipIf(jsonschema is None, "jsonschema dependency is installed by the CI workflow")
     def test_unknown_fixture_conforms_to_pinned_draft_2020_12_schema(self) -> None:
