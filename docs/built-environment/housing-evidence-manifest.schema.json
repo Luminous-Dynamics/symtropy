@@ -13,7 +13,8 @@
     "model",
     "rule_pack",
     "claims",
-    "overall_status"
+    "overall_status",
+    "evidence_artifacts"
   ],
   "properties": {
     "schema_version": {
@@ -70,7 +71,7 @@
         "revision_id",
         "format",
         "unit_system",
-        "artifacts"
+        "artifact_ids"
       ],
       "properties": {
         "model_id": {
@@ -100,12 +101,15 @@
         "unit_mapping_artifact_sha256": {
           "$ref": "#/$defs/sha256"
         },
-        "artifacts": {
+        "artifact_ids": {
           "type": "array",
           "minItems": 1,
+          "uniqueItems": true,
           "items": {
-            "$ref": "#/$defs/artifact"
-          }
+            "type": "string",
+            "minLength": 1
+          },
+          "description": "References to artifact_id values in evidence_artifacts."
         }
       }
     },
@@ -185,6 +189,14 @@
         "string",
         "null"
       ]
+    },
+    "evidence_artifacts": {
+      "type": "array",
+      "minItems": 1,
+      "description": "Canonical inventory of model, inputs, outputs, configurations, raw results, and other artifacts referenced by SHA-256.",
+      "items": {
+        "$ref": "#/$defs/artifact"
+      }
     }
   },
   "$defs": {
