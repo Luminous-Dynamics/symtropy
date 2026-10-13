@@ -1657,4 +1657,12 @@ mod tests {
         }));
     }
 
+    #[test]
+    fn artifact_identity_accepts_hex_case_variation() {
+        let mut manifest = valid_manifest();
+        manifest.platforms[0].geometry.sha256 =
+            manifest.platforms[0].geometry.sha256.to_uppercase();
+        assert!(manifest.validate().is_ok());
+    }
+
 }
