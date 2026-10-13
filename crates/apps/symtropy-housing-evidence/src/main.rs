@@ -3,8 +3,8 @@
 
 //! Evidence-first housing manifest verifier.
 //!
-//! This tool verifies document shape, manifest-level invariants, expected
-//! mandatory-claim coverage, and SHA-256 digests for referenced local files.
+//! This tool verifies manifest shape, an independently pinned case/model/rule-pack
+//! contract, mandatory claim definitions, and SHA-256 digests for local artifacts.
 //! It does not interpret building codes, validate engineering calculations,
 //! prove physical truth, or grant professional/statutory approval.
 //!
@@ -14,14 +14,14 @@
 //!       [--artifact-root <directory>]
 //!       [--require-pass]
 //!
-//! The expected-claims file is JSON:
-//!   { "mandatory_claim_ids": ["stable-claim-id", "..."] }
+//! The expected-claims file pins the case ID, exact model and rule-pack objects,
+//! and each mandatory claim's type, statement, scope, requirement, domain, and criteria.
 //!
 //! Artifact URIs used by a PASS manifest must be safe, relative paths beneath
 //! --artifact-root. Remote retrieval is intentionally not supported.
 
 use jsonschema::draft202012;
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use sha2::{Digest, Sha256};
 use std::{
@@ -52,6 +52,28 @@ struct VerificationReport {
     effective_status: String,
     artifact_digests_verified: usize,
     issues: Vec<String>,
+}
+
+#[derive(Debug, Deserialize, Serialize)]
+#[serde(deny_unknown_fields)]
+struct ExpectedClaimsFile {
+    case_id: String,
+    model: Value,
+    rule_pack: Value,
+    mandatory_claims: Vec<ExpectedClaimContract>,
+}
+
+#[derive(Debug, Deserialize, Serialize)]
+#[serde(deny_unknown_fields)]
+struct ExpectedClaimContract {
+    claim_id: String,
+    claim_type: String,
+    statement: String,
+    subject_element_ids: Vec<String>,
+    // Explicit null is required when the claim is not tied to a named code requirement.
+    requirement: Value,
+    validity_domain: String,
+    acceptance_criteria: String,
 }
 
 fn main() -> ExitCode {
@@ -141,10 +163,10 @@ fn run(args: Vec<String>) -> Result<(VerificationReport, bool), String> {
 
     let expected_claim_data = expected_claims_path
         .as_deref()
-        .map(read_expected_claim_ids)
+        .map(read_expected_claims_file)
         .transpose()?;
-    let (expected_claim_ids, expected_claims_actual_sha256) = match expected_claim_data {
-        Some((ids, digest)) => (Some(ids), Some(digest)),
+    let (expected_claims, expected_claims_actual_sha256) = match expected_claim_data {
+        Some((contracts, digest)) => (Some(contracts), Some(digest)),
         None => (None, None),
     };
     let expected_claims_pinned = match (
@@ -166,7 +188,7 @@ fn run(args: Vec<String>) -> Result<(VerificationReport, bool), String> {
     let mut report = evaluate_manifest(
         &schema,
         &manifest,
-        expected_claim_ids.as_ref(),
+        expected_claims.as_ref(),
         expected_claims_pinned,
         artifact_root.as_deref(),
     );
@@ -183,35 +205,64 @@ fn usage() -> String {
         .to_string()
 }
 
-fn read_expected_claim_ids(path: &Path) -> Result<(BTreeSet<String>, String), String> {
+fn read_expected_claims_file(path: &Path) -> Result<(ExpectedClaimsFile, String), String> {
     let bytes = fs::read(path).map_err(|error| format!("cannot read {}: {error}", path.display()))?;
-    let value: Value = serde_json::from_slice(&bytes)
-        .map_err(|error| format!("{} is not valid JSON: {error}", path.display()))?;
-    let ids = value
-        .get("mandatory_claim_ids")
-        .and_then(Value::as_array)
-        .ok_or_else(|| {
-            format!(
-                "{} must contain a mandatory_claim_ids array",
-                path.display()
-            )
-        })?;
+    let expected: ExpectedClaimsFile = serde_json::from_slice(&bytes)
+        .map_err(|error| format!("{} is not a valid expected-claims contract: {error}", path.display()))?;
 
-    if ids.is_empty() {
-        return Err("mandatory_claim_ids must not be empty".to_string());
+    if expected.case_id.trim().is_empty() {
+        return Err("expected-claims case_id must not be empty".to_string());
+    }
+    if !expected.model.is_object() {
+        return Err("expected-claims model must be an object".to_string());
+    }
+    if !expected.rule_pack.is_object() {
+        return Err("expected-claims rule_pack must be an object".to_string());
+    }
+    if expected.mandatory_claims.is_empty() {
+        return Err("expected-claims mandatory_claims must not be empty".to_string());
     }
 
     let mut result = BTreeSet::new();
-    for id in ids {
-        let id = id
-            .as_str()
-            .filter(|value| !value.trim().is_empty())
-            .ok_or_else(|| "mandatory_claim_ids entries must be non-empty strings".to_string())?;
-        if !result.insert(id.to_string()) {
-            return Err(format!("duplicate expected mandatory claim ID: {id}"));
+    for claim in &expected.mandatory_claims {
+        if claim.claim_id.trim().is_empty()
+            || claim.claim_type.trim().is_empty()
+            || claim.statement.trim().is_empty()
+            || claim.validity_domain.trim().is_empty()
+            || claim.acceptance_criteria.trim().is_empty()
+        {
+            return Err("expected mandatory claim IDs, types, statements, validity domains, and acceptance criteria must be non-empty".to_string());
+        }
+        if !(claim.requirement.is_null() || claim.requirement.is_object()) {
+            return Err(format!(
+                "expected claim {} requirement must be an object or explicit null",
+                claim.claim_id
+            ));
+        }
+        let mut elements = BTreeSet::new();
+        for element_id in &claim.subject_element_ids {
+            if element_id.trim().is_empty() {
+                return Err(format!(
+                    "expected claim {} has an empty subject element ID",
+                    claim.claim_id
+                ));
+            }
+            if !elements.insert(element_id) {
+                return Err(format!(
+                    "expected claim {} has duplicate subject element ID: {element_id}",
+                    claim.claim_id
+                ));
+            }
+        }
+        if !result.insert(claim.claim_id.clone()) {
+            return Err(format!(
+                "duplicate expected mandatory claim ID: {}",
+                claim.claim_id
+            ));
         }
     }
-    Ok((result, sha256_hex(&bytes)))
+
+    Ok((expected, sha256_hex(&bytes)))
 }
 
 fn is_sha256(value: &str) -> bool {
@@ -248,7 +299,7 @@ fn reject_external_refs(value: &Value) -> Result<(), String> {
 fn evaluate_manifest(
     schema: &Value,
     manifest: &Value,
-    expected_claim_ids: Option<&BTreeSet<String>>,
+    expected_claims: Option<&ExpectedClaimsFile>,
     expected_claims_pinned: bool,
     artifact_root: Option<&Path>,
 ) -> VerificationReport {
@@ -481,7 +532,7 @@ fn evaluate_manifest(
         );
     }
 
-    let Some(expected_claim_ids) = expected_claim_ids else {
+    let Some(expected_claims) = expected_claims else {
         return report(
             true,
             case_id,
@@ -489,7 +540,7 @@ fn evaluate_manifest(
             STATUS_INSUFFICIENT_EVIDENCE,
             0,
             vec![
-                "overall PASS requires an independent --expected-claims file; manifest self-description cannot prove requirement-set completeness"
+                "overall PASS requires an independent --expected-claims contract; manifest self-description cannot prove case, model, rule-pack, or requirement completeness"
                     .to_string(),
             ],
         );
@@ -509,19 +560,41 @@ fn evaluate_manifest(
         );
     }
 
+    if expected_claims.case_id != case_id.as_deref().unwrap_or_default()
+        || expected_claims.model != manifest["model"]
+        || expected_claims.rule_pack != manifest["rule_pack"]
+    {
+        return report(
+            true,
+            case_id,
+            declared_status,
+            STATUS_INSUFFICIENT_EVIDENCE,
+            0,
+            vec![
+                "manifest case ID, exact model object, or exact rule-pack object differs from the independently pinned contract"
+                    .to_string(),
+            ],
+        );
+    }
+
+    let expected_claim_ids: BTreeSet<String> = expected_claims
+        .mandatory_claims
+        .iter()
+        .map(|claim| claim.claim_id.clone())
+        .collect();
     let actual_mandatory_ids: BTreeSet<String> = claims
         .iter()
         .filter(|claim| claim["mandatory"].as_bool() == Some(true))
         .filter_map(|claim| claim["claim_id"].as_str().map(ToString::to_string))
         .collect();
 
-    if &actual_mandatory_ids != expected_claim_ids {
+    if actual_mandatory_ids != expected_claim_ids {
         let missing: Vec<_> = expected_claim_ids
             .difference(&actual_mandatory_ids)
             .cloned()
             .collect();
         let unexpected: Vec<_> = actual_mandatory_ids
-            .difference(expected_claim_ids)
+            .difference(&expected_claim_ids)
             .cloned()
             .collect();
         return report(
@@ -533,6 +606,80 @@ fn evaluate_manifest(
             vec![format!(
                 "mandatory claim set does not match the independent requirements file; missing={missing:?}, unexpected={unexpected:?}"
             )],
+        );
+    }
+
+    let mut contract_issues = Vec::new();
+    for expected in &expected_claims.mandatory_claims {
+        let Some(actual) = claims
+            .iter()
+            .find(|claim| claim["claim_id"].as_str() == Some(expected.claim_id.as_str()))
+        else {
+            contract_issues.push(format!(
+                "expected mandatory claim {} is missing from the manifest",
+                expected.claim_id
+            ));
+            continue;
+        };
+
+        let actual_elements: BTreeSet<String> = actual["subject_element_ids"]
+            .as_array()
+            .into_iter()
+            .flatten()
+            .filter_map(Value::as_str)
+            .map(ToString::to_string)
+            .collect();
+        let expected_elements: BTreeSet<String> =
+            expected.subject_element_ids.iter().cloned().collect();
+
+        if actual["claim_type"].as_str() != Some(expected.claim_type.as_str()) {
+            contract_issues.push(format!(
+                "mandatory claim {} differs from the pinned claim_type",
+                expected.claim_id
+            ));
+        }
+        if actual["statement"].as_str() != Some(expected.statement.as_str()) {
+            contract_issues.push(format!(
+                "mandatory claim {} differs from the pinned statement",
+                expected.claim_id
+            ));
+        }
+        if actual_elements != expected_elements {
+            contract_issues.push(format!(
+                "mandatory claim {} differs from the pinned subject element scope",
+                expected.claim_id
+            ));
+        }
+        if actual.get("requirement") != Some(&expected.requirement) {
+            contract_issues.push(format!(
+                "mandatory claim {} differs from the pinned requirement reference",
+                expected.claim_id
+            ));
+        }
+        if actual["validity_domain"].as_str() != Some(expected.validity_domain.as_str()) {
+            contract_issues.push(format!(
+                "mandatory claim {} differs from the pinned validity domain",
+                expected.claim_id
+            ));
+        }
+        if actual["acceptance_criteria"].as_str()
+            != Some(expected.acceptance_criteria.as_str())
+        {
+            contract_issues.push(format!(
+                "mandatory claim {} differs from the pinned acceptance criteria",
+                expected.claim_id
+            ));
+        }
+    }
+
+    if !contract_issues.is_empty() {
+        return report(
+            true,
+            case_id,
+            declared_status,
+            STATUS_INSUFFICIENT_EVIDENCE,
+            0,
+            contract_issues,
         );
     }
 
@@ -819,7 +966,7 @@ mod tests {
         path
     }
 
-    fn set_up_pass_manifest() -> (Value, Value, PathBuf, BTreeSet<String>) {
+    fn set_up_pass_manifest() -> (Value, Value, PathBuf, ExpectedClaimsFile) {
         let (schema, mut manifest) = fixture_values();
         let root = temp_dir("valid");
         let artifact_bytes = b"synthetic test artifact - not engineering evidence";
@@ -860,7 +1007,20 @@ mod tests {
         manifest["claims"][0]["measured_result"] = json!("test-only");
         manifest["overall_status"] = json!(STATUS_PASS);
 
-        let expected = BTreeSet::from(["example-structural-claim".to_string()]);
+        let expected = ExpectedClaimsFile {
+            case_id: manifest["case_id"].as_str().unwrap().to_string(),
+            model: manifest["model"].clone(),
+            rule_pack: manifest["rule_pack"].clone(),
+            mandatory_claims: vec![ExpectedClaimContract {
+                claim_id: "example-structural-claim".to_string(),
+                claim_type: "structural_analysis".to_string(),
+                statement: manifest["claims"][0]["statement"].as_str().unwrap().to_string(),
+                subject_element_ids: Vec::new(),
+                requirement: Value::Null,
+                validity_domain: "test-only".to_string(),
+                acceptance_criteria: "test-only".to_string(),
+            }],
+        };
         (schema, manifest, root, expected)
     }
 
@@ -896,10 +1056,8 @@ mod tests {
         fs::write(&manifest_path, &manifest_bytes).expect("write manifest");
 
         let requirements_path = root.join("requirements.json");
-        let requirements_bytes = serde_json::to_vec_pretty(&json!({
-            "mandatory_claim_ids": ["example-structural-claim"]
-        }))
-        .expect("serialize requirements");
+        let requirements_bytes = serde_json::to_vec_pretty(&expected)
+            .expect("serialize requirements");
         fs::write(&requirements_path, &requirements_bytes).expect("write requirements");
         let expected_digest = sha256_hex(&requirements_bytes);
 
@@ -1005,14 +1163,44 @@ mod tests {
 
     #[test]
     fn missing_mandatory_claim_is_not_a_pass() {
-        let (schema, manifest, root, _) = set_up_pass_manifest();
-        let expected = BTreeSet::from([
-            "example-structural-claim".to_string(),
-            "independently-required-fire-claim".to_string(),
-        ]);
+        let (schema, manifest, root, mut expected) = set_up_pass_manifest();
+        expected.mandatory_claims.push(ExpectedClaimContract {
+            claim_id: "independently-required-fire-claim".to_string(),
+            claim_type: "building_physics".to_string(),
+            statement: "Synthetic expected fire-performance claim.".to_string(),
+            subject_element_ids: Vec::new(),
+            requirement: Value::Null,
+            validity_domain: "test-only".to_string(),
+            acceptance_criteria: "test-only".to_string(),
+        });
         let result = evaluate_manifest(&schema, &manifest, Some(&expected), true, Some(&root));
         assert_eq!(result.effective_status, STATUS_INSUFFICIENT_EVIDENCE);
         assert!(result.issues.iter().any(|issue| issue.contains("mandatory claim set")));
+        fs::remove_dir_all(root).expect("clean temp dir");
+    }
+
+    #[test]
+    fn changed_acceptance_criteria_cannot_reuse_a_pinned_claim_id() {
+        let (schema, mut manifest, root, expected) = set_up_pass_manifest();
+        manifest["claims"][0]["acceptance_criteria"] =
+            json!("a weakened criterion that was never independently approved");
+        let result = evaluate_manifest(&schema, &manifest, Some(&expected), true, Some(&root));
+        assert_eq!(result.effective_status, STATUS_INSUFFICIENT_EVIDENCE);
+        assert!(result.issues.iter().any(|issue| {
+            issue.contains("pinned acceptance criteria")
+        }));
+        fs::remove_dir_all(root).expect("clean temp dir");
+    }
+
+    #[test]
+    fn changed_model_revision_cannot_reuse_a_pinned_requirements_contract() {
+        let (schema, mut manifest, root, expected) = set_up_pass_manifest();
+        manifest["model"]["revision_id"] = json!("substituted-model-revision");
+        let result = evaluate_manifest(&schema, &manifest, Some(&expected), true, Some(&root));
+        assert_eq!(result.effective_status, STATUS_INSUFFICIENT_EVIDENCE);
+        assert!(result.issues.iter().any(|issue| {
+            issue.contains("exact model object")
+        }));
         fs::remove_dir_all(root).expect("clean temp dir");
     }
 
