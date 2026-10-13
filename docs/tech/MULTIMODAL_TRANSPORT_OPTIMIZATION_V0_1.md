@@ -266,6 +266,19 @@ No output should headline “cheapest mode” without stating the service obliga
 - UITP, [Automated Mobility: The Next Step for Public Transport](https://www.uitp.org/publications/automated-mobility-next-step-public-transport/).
 - Archetti, Peirano and Speranza, [Optimization in multimodal freight transportation problems: A survey](https://doi.org/10.1016/j.ejor.2021.07.031), *European Journal of Operational Research* (2022): covers network, intermodal and multi-objective formulation families.
 
-## Next implementation step
+## v0.1 reference implementation and next step
 
-Once this contract is reviewed, implement a standalone, deterministic Rust model module with validated node/edge/demand/cost records and exact toy-network tests. Start with shortest path and constrained min-cost flow; defer learned predictions, real-time dispatch and investment MILPs until the base flow/accounting invariants and data adapters qualify.
+A first deterministic Rust reference module now lives in the domain crate `symtropy-transport-optimization`. It enumerates a bounded Pareto frontier for a single demand over validated nodes, movement edges and explicit intermodal transfer edges. It records operator cost, user cash cost, external cost, time, distance, energy, greenhouse-gas emissions and declared safety/disruption risk proxies. It enforces per-edge capacity and quantity-unit compatibility, deadlines, transfer limits and checked arithmetic. Search exhaustion fails closed rather than silently truncating the frontier.
+
+The crate's toy passenger and cargo cases use **synthetic illustrative numbers only**. They demonstrate that a fast/high-cost/high-emission route can remain on the Pareto frontier beside a slower/lower-cost/lower-emission intermodal route. They do not represent actual Gauteng–Durban prices or a recommendation for a real corridor.
+
+This is a *route-option enumerator*, not a complete transport optimization system. It does not yet allocate multiple simultaneous demands against shared capacity, optimize timetable/service frequency or vehicle schedules, select infrastructure investments, estimate stochastic reliability from data, or validate cost factors against operators. These limitations are explicit.
+
+Next steps:
+1. qualify the exact Rust crate and its toy-network tests;
+2. add multiple-demand min-cost flow with shared capacity and explicit unserved demand;
+3. introduce timetable and transfer-window feasibility;
+4. add versioned input adapters for real South African route, service, tariff, dwell, load, and energy data;
+5. compare Pareto and sensitivity outputs against held-out operator/official measurements before discussing a specific cost-saving winner.
+
+Learned predictions, real-time dispatch and investment MILPs stay out of scope until the base flow/accounting invariants and evidence adapters qualify.
