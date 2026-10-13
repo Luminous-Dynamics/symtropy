@@ -169,6 +169,30 @@ pub struct TemperatureBand {
     pub max_millicelsius: i32,
 }
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub enum CargoOrientation {
+    XYZ,
+    XZY,
+    YXZ,
+    YZX,
+    ZXY,
+    ZYX,
+}
+
+impl CargoOrientation {
+    pub fn permute_dimensions(self, dimensions_mm: [u32; 3]) -> [u32; 3] {
+        let [x, y, z] = dimensions_mm;
+        match self {
+            Self::XYZ => [x, y, z],
+            Self::XZY => [x, z, y],
+            Self::YXZ => [y, x, z],
+            Self::YZX => [y, z, x],
+            Self::ZXY => [z, x, y],
+            Self::ZYX => [z, y, x],
+        }
+    }
+}
+
 impl TemperatureBand {
     pub fn validate(self) -> Result<Self, CargoError> {
         if self.min_millicelsius > self.max_millicelsius {
@@ -191,11 +215,39 @@ impl TemperatureBand {
 /// uses grams, volume uses litres, and temperatures use thousandths of °C.
 /// Profile conformity is data, not a claim inferred from approximate geometry.
 #[derive(Clone, Debug, PartialEq, Eq)]
+pub struct AircraftUldEligibilityEvidence {
+    pub uld_type_code: String,
+    pub aircraft_type_code: String,
+    pub aircraft_position_id: String,
+    pub approval_reference: String,
+    pub max_gross_mass_grams: u64,
+    pub evidence_digest: String,
+}
+
+impl AircraftUldEligibilityEvidence {
+    fn validate(&self) -> Result<(), CargoError> {
+        if self.uld_type_code.trim().is_empty()
+            || self.aircraft_type_code.trim().is_empty()
+            || self.aircraft_position_id.trim().is_empty()
+            || self.approval_reference.trim().is_empty()
+            || self.evidence_digest.trim().is_empty()
+            || self.max_gross_mass_grams == 0
+        {
+            return Err(CargoError::InvalidProfile(
+                "aircraft ULD eligibility evidence is incomplete",
+            ));
+        }
+        Ok(())
+    }
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct CargoModuleProfile {
     pub profile_id: String,
     pub family: CargoModuleFamily,
     pub conformity: ProfileConformity,
     pub outer_dimensions_mm: [u32; 3],
+    pub permitted_orientations: BTreeSet<CargoOrientation>,
     pub usable_volume_litres: u64,
     pub tare_mass_grams: u64,
     pub max_payload_mass_grams: u64,
@@ -205,6 +257,8 @@ pub struct CargoModuleProfile {
     pub required_temperature_millicelsius: Option<TemperatureBand>,
     pub requires_power: bool,
     pub requires_intact_seal: bool,
+    pub requires_verified_load_securing: bool,
+    pub aircraft_uld_eligibility: Option<AircraftUldEligibilityEvidence>,
 }
 
 impl CargoModuleProfile {
@@ -216,6 +270,19 @@ impl CargoModuleProfile {
             return Err(CargoError::InvalidProfile(
                 "dimensions and usable volume must be positive",
             ));
+        }
+        if self.permitted_orientations.is_empty() {
+            return Err(CargoError::InvalidProfile(
+                "at least one permitted module orientation is required",
+            ));
+        }
+        if let Some(evidence) = &self.aircraft_uld_eligibility {
+            evidence.validate()?;
+            if self.family != CargoModuleFamily::AircraftUld {
+                return Err(CargoError::InvalidProfile(
+                    "aircraft ULD eligibility evidence requires the aircraft ULD family",
+                ));
+            }
         }
         if self.max_gross_mass_grams < self.tare_mass_grams
             || self
@@ -272,6 +339,13 @@ pub enum CargoServiceability {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
+pub enum LoadSecuringStatus {
+    Verified { record_digest: String },
+    Unverified,
+    Failed,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct CargoModuleInstance {
     pub module_id: String,
     pub profile_id: String,
@@ -279,6 +353,7 @@ pub struct CargoModuleInstance {
     pub occupied_volume_litres: u64,
     pub contents_digest: String,
     pub seal_status: CargoSealStatus,
+    pub load_securing_status: LoadSecuringStatus,
     pub serviceability: CargoServiceability,
     /// Required when the profile declares a controlled temperature band.
     pub observed_temperature_millicelsius: Option<i32>,
@@ -307,6 +382,16 @@ impl CargoModuleInstance {
         if profile.requires_intact_seal && self.seal_status != CargoSealStatus::Intact {
             return Err(CargoError::SealRequirementFailed);
         }
+        if profile.requires_verified_load_securing {
+            match &self.load_securing_status {
+                LoadSecuringStatus::Verified { record_digest }
+                    if !record_digest.trim().is_empty() => {}
+                LoadSecuringStatus::Verified { .. } | LoadSecuringStatus::Unverified => {
+                    return Err(CargoError::LoadSecuringEvidenceMissing);
+                }
+                LoadSecuringStatus::Failed => return Err(CargoError::LoadSecuringFailed),
+            }
+        }
         if self.serviceability != CargoServiceability::Serviceable {
             return Err(CargoError::ModuleNotServiceable);
         }
@@ -333,18 +418,23 @@ pub struct HandlingEquipmentProfile {
     pub equipment_id: String,
     pub mode: Mode,
     pub max_module_dimensions_mm: [u32; 3],
+    pub accepted_orientations: BTreeSet<CargoOrientation>,
     pub max_module_gross_mass_grams: u64,
     pub supported_families: BTreeSet<CargoModuleFamily>,
     pub interfaces: BTreeSet<HandlingInterface>,
     pub available_temperature_millicelsius: Option<TemperatureBand>,
     pub supplies_module_power: bool,
     pub requires_verified_aircraft_uld: bool,
+    pub aircraft_type_code: Option<String>,
+    pub aircraft_position_id: Option<String>,
+    pub accepted_uld_type_codes: BTreeSet<String>,
 }
 
 impl HandlingEquipmentProfile {
     pub fn validate(&self) -> Result<(), CargoError> {
         if self.equipment_id.trim().is_empty()
             || self.max_module_dimensions_mm.contains(&0)
+            || self.accepted_orientations.is_empty()
             || self.max_module_gross_mass_grams == 0
             || self.supported_families.is_empty()
             || self.interfaces.is_empty()
@@ -355,6 +445,16 @@ impl HandlingEquipmentProfile {
         }
         if let Some(band) = self.available_temperature_millicelsius {
             band.validate()?;
+        }
+        if self.requires_verified_aircraft_uld
+            && (self.mode != Mode::Air
+                || self.aircraft_type_code.as_deref().is_none_or(str::is_empty)
+                || self.aircraft_position_id.as_deref().is_none_or(str::is_empty)
+                || self.accepted_uld_type_codes.is_empty())
+        {
+            return Err(CargoError::InvalidEquipment(
+                "verified ULD policy requires aircraft type, position and accepted ULD codes",
+            ));
         }
         Ok(())
     }
@@ -376,12 +476,24 @@ pub fn check_module_compatibility(
     if profile.conformity == ProfileConformity::NonConforming {
         return Err(CargoError::ProfileNonConforming);
     }
-    if equipment.mode == Mode::Air
-        && equipment.requires_verified_aircraft_uld
-        && (profile.family != CargoModuleFamily::AircraftUld
-            || !matches!(&profile.conformity, ProfileConformity::Verified { .. }))
-    {
-        return Err(CargoError::AircraftUldNotVerified);
+    if equipment.mode == Mode::Air && equipment.requires_verified_aircraft_uld {
+        if profile.family != CargoModuleFamily::AircraftUld
+            || !matches!(&profile.conformity, ProfileConformity::Verified { .. })
+        {
+            return Err(CargoError::AircraftUldNotVerified);
+        }
+        let Some(approval) = &profile.aircraft_uld_eligibility else {
+            return Err(CargoError::AircraftUldNotVerified);
+        };
+        let aircraft_type_code = equipment.aircraft_type_code.as_deref().unwrap_or_default();
+        let aircraft_position_id = equipment.aircraft_position_id.as_deref().unwrap_or_default();
+        if approval.aircraft_type_code != aircraft_type_code
+            || approval.aircraft_position_id != aircraft_position_id
+            || approval.max_gross_mass_grams < gross_mass
+            || !equipment.accepted_uld_type_codes.contains(&approval.uld_type_code)
+        {
+            return Err(CargoError::AircraftUldIncompatible);
+        }
     }
     if !equipment.supported_families.contains(&profile.family) {
         return Err(CargoError::FamilyNotSupported);
@@ -393,12 +505,21 @@ pub fn check_module_compatibility(
     {
         return Err(CargoError::HandlingInterfaceMismatch);
     }
-    if profile
-        .outer_dimensions_mm
-        .iter()
-        .zip(equipment.max_module_dimensions_mm)
-        .any(|(module, limit)| *module > limit)
-    {
+    let compatible_orientations: Vec<_> = profile
+        .permitted_orientations
+        .intersection(&equipment.accepted_orientations)
+        .copied()
+        .collect();
+    if compatible_orientations.is_empty() {
+        return Err(CargoError::OrientationNotSupported);
+    }
+    if !compatible_orientations.iter().any(|orientation| {
+        orientation
+            .permute_dimensions(profile.outer_dimensions_mm)
+            .iter()
+            .zip(equipment.max_module_dimensions_mm)
+            .all(|(module, limit)| *module <= limit)
+    }) {
         return Err(CargoError::DimensionsExceeded);
     }
     if gross_mass > equipment.max_module_gross_mass_grams {
@@ -434,6 +555,10 @@ pub enum CargoError {
     ModeNotPermitted,
     ProfileNonConforming,
     AircraftUldNotVerified,
+    AircraftUldIncompatible,
+    OrientationNotSupported,
+    LoadSecuringEvidenceMissing,
+    LoadSecuringFailed,
     FamilyNotSupported,
     HandlingInterfaceMismatch,
     DimensionsExceeded,
@@ -469,6 +594,16 @@ impl fmt::Display for CargoError {
             Self::AircraftUldNotVerified => {
                 write!(f, "air transport requires a verified aircraft ULD profile")
             }
+            Self::AircraftUldIncompatible => {
+                write!(f, "aircraft ULD evidence does not match the aircraft position")
+            }
+            Self::OrientationNotSupported => {
+                write!(f, "module orientation is not supported by handling equipment")
+            }
+            Self::LoadSecuringEvidenceMissing => {
+                write!(f, "required load-securing evidence is missing or unverified")
+            }
+            Self::LoadSecuringFailed => write!(f, "cargo load-securing inspection failed"),
             Self::FamilyNotSupported => write!(f, "equipment does not support this module family"),
             Self::HandlingInterfaceMismatch => {
                 write!(f, "module handling/locking interfaces do not match equipment")
@@ -1449,6 +1584,7 @@ mod tests {
                 evidence_digest: "sha256:profile-evidence".to_owned(),
             },
             outer_dimensions_mm: [6_000, 2_400, 2_500],
+            permitted_orientations: BTreeSet::from([CargoOrientation::XYZ]),
             usable_volume_litres: 30_000,
             tare_mass_grams: 2_000_000,
             max_payload_mass_grams: 20_000_000,
@@ -1461,6 +1597,8 @@ mod tests {
             required_temperature_millicelsius: None,
             requires_power: false,
             requires_intact_seal: true,
+            requires_verified_load_securing: true,
+            aircraft_uld_eligibility: None,
         }
     }
 
@@ -1472,6 +1610,9 @@ mod tests {
             occupied_volume_litres: 12_000,
             contents_digest: "sha256:contents".to_owned(),
             seal_status: CargoSealStatus::Intact,
+            load_securing_status: LoadSecuringStatus::Verified {
+                record_digest: "sha256:securing-inspection".to_owned(),
+            },
             serviceability: CargoServiceability::Serviceable,
             observed_temperature_millicelsius: None,
         }
@@ -1482,12 +1623,16 @@ mod tests {
             equipment_id: "rail-wagon-position-7".to_owned(),
             mode: Mode::Rail,
             max_module_dimensions_mm: [6_100, 2_500, 2_600],
+            accepted_orientations: BTreeSet::from([CargoOrientation::XYZ]),
             max_module_gross_mass_grams: 25_000_000,
             supported_families: BTreeSet::from([CargoModuleFamily::IsoSeries1Container]),
             interfaces: BTreeSet::from([HandlingInterface::IsoCornerFittings]),
             available_temperature_millicelsius: None,
             supplies_module_power: false,
             requires_verified_aircraft_uld: false,
+            aircraft_type_code: None,
+            aircraft_position_id: None,
+            accepted_uld_type_codes: BTreeSet::new(),
         }
     }
 
@@ -1592,16 +1737,111 @@ mod tests {
             equipment_id: "certified-aircraft-position-1".to_owned(),
             mode: Mode::Air,
             max_module_dimensions_mm: [3_100, 2_100, 1_700],
+            accepted_orientations: BTreeSet::from([CargoOrientation::XYZ]),
             max_module_gross_mass_grams: 700_000,
             supported_families: BTreeSet::from([CargoModuleFamily::AircraftUld]),
             interfaces: BTreeSet::from([HandlingInterface::AircraftRestraint]),
             available_temperature_millicelsius: None,
             supplies_module_power: false,
             requires_verified_aircraft_uld: true,
+            aircraft_type_code: Some("A350F".to_owned()),
+            aircraft_position_id: Some("position-1".to_owned()),
+            accepted_uld_type_codes: BTreeSet::from(["AMW".to_owned()]),
         };
         assert_eq!(
             check_module_compatibility(&profile, &instance, &equipment),
             Err(CargoError::AircraftUldNotVerified)
+        );
+    }
+
+
+
+    #[test]
+    fn cargo_compatibility_uses_only_declared_safe_orientations() {
+        let mut profile = iso_container_profile();
+        profile.outer_dimensions_mm = [6_000, 2_400, 2_500];
+        profile.permitted_orientations = BTreeSet::from([CargoOrientation::XYZ, CargoOrientation::XZY]);
+        let instance = cargo_instance(&profile);
+        let mut equipment = rail_equipment();
+        equipment.accepted_orientations = BTreeSet::from([CargoOrientation::XZY]);
+        equipment.max_module_dimensions_mm = [6_100, 2_600, 2_500];
+        assert!(check_module_compatibility(&profile, &instance, &equipment).is_ok());
+
+        equipment.accepted_orientations = BTreeSet::from([CargoOrientation::YXZ]);
+        assert_eq!(
+            check_module_compatibility(&profile, &instance, &equipment),
+            Err(CargoError::OrientationNotSupported)
+        );
+    }
+
+    #[test]
+    fn required_load_securing_evidence_fails_closed() {
+        let profile = iso_container_profile();
+        let mut instance = cargo_instance(&profile);
+        instance.load_securing_status = LoadSecuringStatus::Unverified;
+        assert_eq!(
+            instance.validate_against(&profile),
+            Err(CargoError::LoadSecuringEvidenceMissing)
+        );
+
+        instance.load_securing_status = LoadSecuringStatus::Failed;
+        assert_eq!(
+            instance.validate_against(&profile),
+            Err(CargoError::LoadSecuringFailed)
+        );
+    }
+
+    #[test]
+    fn verified_aircraft_uld_requires_aircraft_position_specific_evidence() {
+        let mut profile = iso_container_profile();
+        profile.profile_id = "verified-air-uld-v1".to_owned();
+        profile.family = CargoModuleFamily::AircraftUld;
+        profile.conformity = ProfileConformity::Verified {
+            standard_id: "IATA ULDR".to_owned(),
+            edition: "2026".to_owned(),
+            evidence_digest: "sha256:airworthiness-evidence".to_owned(),
+        };
+        profile.outer_dimensions_mm = [3_000, 2_000, 1_600];
+        profile.permitted_orientations = BTreeSet::from([CargoOrientation::XYZ]);
+        profile.usable_volume_litres = 8_000;
+        profile.tare_mass_grams = 100_000;
+        profile.max_payload_mass_grams = 500_000;
+        profile.max_gross_mass_grams = 600_000;
+        profile.interfaces = BTreeSet::from([HandlingInterface::AircraftRestraint]);
+        profile.permitted_modes = BTreeSet::from([Mode::Air, Mode::Road]);
+        profile.aircraft_uld_eligibility = Some(AircraftUldEligibilityEvidence {
+            uld_type_code: "AMW".to_owned(),
+            aircraft_type_code: "A350F".to_owned(),
+            aircraft_position_id: "position-1".to_owned(),
+            approval_reference: "operator-approved-load-manual-entry".to_owned(),
+            max_gross_mass_grams: 550_000,
+            evidence_digest: "sha256:uld-position-proof".to_owned(),
+        });
+
+        let mut instance = cargo_instance(&profile);
+        instance.payload_mass_grams = 100_000;
+        instance.occupied_volume_litres = 2_000;
+        let mut equipment = HandlingEquipmentProfile {
+            equipment_id: "aircraft-position-1".to_owned(),
+            mode: Mode::Air,
+            max_module_dimensions_mm: [3_100, 2_100, 1_700],
+            accepted_orientations: BTreeSet::from([CargoOrientation::XYZ]),
+            max_module_gross_mass_grams: 600_000,
+            supported_families: BTreeSet::from([CargoModuleFamily::AircraftUld]),
+            interfaces: BTreeSet::from([HandlingInterface::AircraftRestraint]),
+            available_temperature_millicelsius: None,
+            supplies_module_power: false,
+            requires_verified_aircraft_uld: true,
+            aircraft_type_code: Some("A350F".to_owned()),
+            aircraft_position_id: Some("position-1".to_owned()),
+            accepted_uld_type_codes: BTreeSet::from(["AMW".to_owned()]),
+        };
+        assert!(check_module_compatibility(&profile, &instance, &equipment).is_ok());
+
+        equipment.aircraft_position_id = Some("position-2".to_owned());
+        assert_eq!(
+            check_module_compatibility(&profile, &instance, &equipment),
+            Err(CargoError::AircraftUldIncompatible)
         );
     }
 
