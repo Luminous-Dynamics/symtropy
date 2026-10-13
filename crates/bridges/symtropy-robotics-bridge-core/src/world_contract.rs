@@ -232,10 +232,18 @@ impl WorldManifestV1 {
                     format!("{path}.sensor_id"),
                 ));
             }
-            if !sensor.sample_rate_hz.is_finite() || sensor.sample_rate_hz <= 0.0 {
+            if !sensor.sample_rate_hz.is_finite()
+                || !(1.0e-9..=1.0e9).contains(&sensor.sample_rate_hz)
+            {
                 issues.push(WorldValidationIssue::new(
                     WorldValidationCode::InvalidSensorRate,
                     format!("{path}.sample_rate_hz"),
+                ));
+            }
+            if sensor.jitter_ns > i64::MAX as u64 {
+                issues.push(WorldValidationIssue::new(
+                    WorldValidationCode::InvalidRange,
+                    format!("{path}.jitter_ns"),
                 ));
             }
             if !sensor.noise_std.is_finite() || sensor.noise_std < 0.0 {
@@ -689,6 +697,22 @@ mod tests {
         let issues = manifest.validate().unwrap_err();
         assert!(issues.iter().any(|issue| issue.code == WorldValidationCode::UnknownSolverReference));
         assert!(issues.iter().any(|issue| issue.code == WorldValidationCode::MissingUnit));
+    }
+
+    #[test]
+    fn sensor_timing_parameters_must_fit_integer_nanosecond_clock() {
+        let mut manifest = valid_manifest();
+        manifest.sensors[0].sample_rate_hz = 1.0e10;
+        manifest.sensors[0].jitter_ns = (i64::MAX as u64) + 1;
+        let issues = manifest.validate().unwrap_err();
+        assert!(issues.iter().any(|issue| {
+            issue.code == WorldValidationCode::InvalidSensorRate
+                && issue.path == "sensors[0].sample_rate_hz"
+        }));
+        assert!(issues.iter().any(|issue| {
+            issue.code == WorldValidationCode::InvalidRange
+                && issue.path == "sensors[0].jitter_ns"
+        }));
     }
 
     #[test]
