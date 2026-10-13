@@ -278,6 +278,65 @@ impl Default for HarmonyFieldMechanismToggles {
     }
 }
 
+impl HarmonyFieldMechanismToggles {
+    /// Return the eight configurations in A000, A001, ..., A111 factorial order.
+    ///
+    /// The arm identifier stores F as the most significant bit, R as the middle
+    /// bit, and E as the least significant bit. This explicit enumeration prevents
+    /// ablation runners from accidentally omitting a treatment combination.
+    pub const fn factorial_arms() -> [Self; 8] {
+        [
+            Self {
+                friction_modulation: false,
+                resonance_prediction_error: false,
+                emotional_contagion: false,
+            },
+            Self {
+                friction_modulation: false,
+                resonance_prediction_error: false,
+                emotional_contagion: true,
+            },
+            Self {
+                friction_modulation: false,
+                resonance_prediction_error: true,
+                emotional_contagion: false,
+            },
+            Self {
+                friction_modulation: false,
+                resonance_prediction_error: true,
+                emotional_contagion: true,
+            },
+            Self {
+                friction_modulation: true,
+                resonance_prediction_error: false,
+                emotional_contagion: false,
+            },
+            Self {
+                friction_modulation: true,
+                resonance_prediction_error: false,
+                emotional_contagion: true,
+            },
+            Self {
+                friction_modulation: true,
+                resonance_prediction_error: true,
+                emotional_contagion: false,
+            },
+            Self {
+                friction_modulation: true,
+                resonance_prediction_error: true,
+                emotional_contagion: true,
+            },
+        ]
+    }
+
+    /// Stable integer identifier for the F/R/E factorial arm (A000 = 0, A111 = 7).
+    pub const fn arm_id(self) -> u8 {
+        ((self.friction_modulation as u8) << 2)
+            | ((self.resonance_prediction_error as u8) << 1)
+            | (self.emotional_contagion as u8)
+    }
+}
+
 /// The consciousness field: aggregates all entity consciousness states
 /// and provides physics modulation functions.
 pub struct ConsciousnessField<const D: usize> {
@@ -1189,6 +1248,17 @@ mod tests {
             (energy_after - energy_before).abs() < 1e-10,
             "disabled leakage should not affect energy"
         );
+    }
+
+    #[test]
+    fn factorial_arm_generator_enumerates_all_eight_combinations_in_stable_order() {
+        let arms = HarmonyFieldMechanismToggles::factorial_arms();
+        for (expected_id, arm) in arms.iter().enumerate() {
+            assert_eq!(arm.arm_id(), expected_id as u8);
+        }
+        assert_eq!(arms[0].arm_id(), 0); // A000: no mechanisms enabled
+        assert_eq!(arms[7].arm_id(), 7); // A111: all mechanisms enabled
+        assert_eq!(arms[7], HarmonyFieldMechanismToggles::default());
     }
 
     #[test]
