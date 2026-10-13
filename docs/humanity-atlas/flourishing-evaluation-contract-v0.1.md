@@ -58,7 +58,7 @@ Use comparable temporal and geographic boundaries for every alternative. Bind ev
 
 ### Stage D — Apply feasibility constraints before preference ranking
 
-Evaluate every mandatory constraint as PASS, FAIL, or UNKNOWN, with evidence references and uncertainty. UNKNOWN does not pass. A known violation of a non-compensable constraint makes an option ineligible regardless of any aggregate benefit score. Constraints and thresholds must be declared before seeing the ranking, with the accountable source of each threshold recorded.
+Evaluate every mandatory constraint as PASS, FAIL, or UNKNOWN, with evidence references and uncertainty. UNKNOWN does not pass. A known violation of a non-compensable constraint makes an option ineligible regardless of any aggregate benefit score. Constraints and thresholds must be declared before seeing the ranking, with the accountable source of each threshold recorded. A hard constraint must reference a digest-bound pre-registration artifact whose declared collection time precedes analysis; a self-reported timestamp alone is not enough to qualify the constraint. Artifact hashing establishes byte identity, not trusted time or publisher authenticity.
 
 ### Stage E — Compare feasible options without hiding trade-offs
 
