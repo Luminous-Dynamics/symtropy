@@ -135,6 +135,7 @@ impl QualifiedWorldDigestV2 {
 #[derive(Debug)]
 pub enum QualifiedWorldError {
     InvalidWorldManifest(Vec<WorldValidationIssue>),
+    InvalidSolverRequestIdentity(Vec<WorldValidationIssue>),
     InvalidFrameConventionRegistry(Vec<FrameConventionIssue>),
     FrameConventionBytesTooLarge { limit_bytes: usize },
     WorldManifestCommitmentTooLarge { limit_bytes: usize },
@@ -149,6 +150,9 @@ impl fmt::Display for QualifiedWorldError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::InvalidWorldManifest(_) => f.write_str("world manifest is invalid"),
+            Self::InvalidSolverRequestIdentity(_) => {
+                f.write_str("solver request identity is invalid")
+            }
             Self::InvalidFrameConventionRegistry(_) => {
                 f.write_str("frame convention registry is invalid")
             }
@@ -225,7 +229,11 @@ impl FrameConventionRegistryV1 {
             }
         }
 
-        if issues.is_empty() { Ok(()) } else { Err(issues) }
+        if issues.is_empty() {
+            Ok(())
+        } else {
+            Err(issues)
+        }
     }
 
     /// Require exactly one convention binding for every declared world frame.
@@ -258,7 +266,11 @@ impl FrameConventionRegistryV1 {
             }
         }
 
-        if issues.is_empty() { Ok(()) } else { Err(issues) }
+        if issues.is_empty() {
+            Ok(())
+        } else {
+            Err(issues)
+        }
     }
 
     /// Canonical registry bytes, independent of JSON/Serde and input table order.
@@ -380,6 +392,9 @@ impl QualifiedSolverRequestV2 {
         world: &QualifiedWorldManifestV2,
     ) -> Result<Self, QualifiedWorldError> {
         world.validate()?;
+        identity
+            .validate()
+            .map_err(QualifiedWorldError::InvalidSolverRequestIdentity)?;
         let expected_inner_digest = world
             .world
             .content_digest_v1()
@@ -423,7 +438,11 @@ fn encode_convention(encoder: &mut RegistryEncoder, convention: &FrameAxisConven
         FrameAxisConventionV1::NedNorthEastDown => encoder.u8(2),
         FrameAxisConventionV1::CameraOpticalRightDownForward => encoder.u8(3),
         FrameAxisConventionV1::FrdForwardRightDown => encoder.u8(4),
-        FrameAxisConventionV1::ExternalSpec { handedness, specification_uri, specification_sha256 } => {
+        FrameAxisConventionV1::ExternalSpec {
+            handedness,
+            specification_uri,
+            specification_sha256,
+        } => {
             encoder.u8(255);
             encoder.u8(match handedness {
                 FrameHandednessV1::RightHanded => 0,
@@ -465,10 +484,17 @@ struct RegistryEncoder {
 }
 
 impl RegistryEncoder {
-    fn new() -> Self { Self { bytes: Vec::new(), too_large: false } }
+    fn new() -> Self {
+        Self {
+            bytes: Vec::new(),
+            too_large: false,
+        }
+    }
 
     fn raw(&mut self, data: &[u8]) {
-        if self.too_large { return; }
+        if self.too_large {
+            return;
+        }
         let Some(next) = self.bytes.len().checked_add(data.len()) else {
             self.too_large = true;
             return;
@@ -480,8 +506,13 @@ impl RegistryEncoder {
         self.bytes.extend_from_slice(data);
     }
 
-    fn u8(&mut self, value: u8) { self.raw(&[value]); }
-    fn u16(&mut self, value: u16) { self.raw(&value.to_be_bytes()); }
+    fn u8(&mut self, value: u8) {
+        self.raw(&[value]);
+    }
+
+    fn u16(&mut self, value: u16) {
+        self.raw(&value.to_be_bytes());
+    }
 
     fn count(&mut self, count: usize) {
         match u64::try_from(count) {
@@ -750,6 +781,17 @@ pub(crate) mod tests {
             registry.validate(),
             Err(issues) if issues.iter().any(|issue|
                 issue.code == FrameConventionIssueCode::InvalidExternalSpecification)
+        ));
+    }
+
+    #[test]
+    fn request_binding_rejects_invalid_inner_identity() {
+        let world = qualified_world();
+        let mut identity = solver_identity(&world.world);
+        identity.input_digest_sha256 = "not-a-sha256".to_owned();
+        assert!(matches!(
+            QualifiedSolverRequestV2::bind(identity, &world),
+            Err(QualifiedWorldError::InvalidSolverRequestIdentity(_))
         ));
     }
 
