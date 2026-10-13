@@ -55,7 +55,7 @@ A hash proves that an artifact matches a recorded digest; it does not prove that
 
 A draft JSON Schema for this envelope is available at [`housing-evidence-manifest.schema.json`](housing-evidence-manifest.schema.json). The [`example-not-evidence.json`](fixtures/example-not-evidence.json) fixture is intentionally synthetic: its digest is a placeholder, no engineering computation has run, and its status is `NOT_EVALUATED`. It must never be used as a real project record.
 
-The JSON Schema checks document shape; it cannot alone establish that a digest matches an artifact, that a clause is applicable, or that the overall status is truthful. A separate verifier must enforce cross-record invariants, including that an aggregate `PASS` is impossible while any mandatory claim is unresolved or failed. Add fixture-based tests for both permitted and rejected cases before treating the contract as stable.
+The JSON Schema checks document shape and includes conservative aggregate guards: an overall `PASS` requires a confirmed jurisdiction, a rule pack marked `reviewed_for_use`, at least one mandatory `PASS` claim, and `PASS` for every included mandatory claim. It cannot establish that the declared requirement set is complete, that a digest matches the bytes, or that a clause is applicable. A separate verifier must compare the manifest's claim set to the expected mandatory requirement set, verify artifact bytes and tool provenance, and enforce all cross-record invariants. Add fixture-based positive and negative tests—including omitted mandatory claims—before treating the contract as stable.
 
 ### 3.3 Fail-closed result states
 
