@@ -14,7 +14,8 @@
     "rule_pack",
     "claims",
     "overall_status",
-    "evidence_artifacts"
+    "evidence_artifacts",
+    "toolchain"
   ],
   "properties": {
     "schema_version": {
@@ -628,6 +629,28 @@
               }
             }
           }
+        },
+        {
+          "if": {
+            "properties": {
+              "claim_type": {
+                "const": "code_compliance"
+              }
+            },
+            "required": [
+              "claim_type"
+            ]
+          },
+          "then": {
+            "required": [
+              "requirement"
+            ],
+            "properties": {
+              "requirement": {
+                "type": "object"
+              }
+            }
+          }
         }
       ]
     }
@@ -648,7 +671,8 @@
         "required": [
           "jurisdiction",
           "rule_pack",
-          "claims"
+          "claims",
+          "toolchain"
         ],
         "properties": {
           "jurisdiction": {
@@ -710,6 +734,10 @@
                 }
               }
             }
+          },
+          "toolchain": {
+            "type": "array",
+            "minItems": 1
           }
         }
       }
