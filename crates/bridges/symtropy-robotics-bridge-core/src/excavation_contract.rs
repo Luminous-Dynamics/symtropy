@@ -19,6 +19,8 @@ const SHA256_HEX_LENGTH: usize = 64;
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct ExcavationToolProfileV1 {
     pub tool_id: String,
+    /// This profile artifact's ID must equal tool_id and be a declared world asset.
+    pub profile_artifact: ArtifactRef,
     /// The exact geometry artifact must also be declared by the world's assets.
     pub geometry_artifact: ArtifactRef,
     /// Maximum tool-interface mechanical power for this operating envelope.
@@ -103,6 +105,9 @@ pub enum ExcavationContractErrorV1 {
     WorldManifestDigestMismatch,
     InvalidToolGeometryArtifact,
     UndeclaredToolGeometryArtifact,
+    InvalidToolProfileArtifact,
+    UndeclaredToolProfileArtifact,
+    ToolProfileIdentityMismatch,
     UnknownMaterialProfile(String),
     UnknownSolver(String),
     UnsupportedSolverDomain(PhysicsDomain),
@@ -156,6 +161,15 @@ impl MaterialAwareExcavationRequestV1 {
             return Err(ExcavationContractErrorV1::InvalidDigest(
                 "input_digest_sha256",
             ));
+        }
+        if !valid_artifact(&self.tool.profile_artifact) {
+            return Err(ExcavationContractErrorV1::InvalidToolProfileArtifact);
+        }
+        if self.tool.profile_artifact.artifact_id != self.tool.tool_id {
+            return Err(ExcavationContractErrorV1::ToolProfileIdentityMismatch);
+        }
+        if !world.world_assets.iter().any(|asset| asset == &self.tool.profile_artifact) {
+            return Err(ExcavationContractErrorV1::UndeclaredToolProfileArtifact);
         }
         if !valid_artifact(&self.tool.geometry_artifact) {
             return Err(ExcavationContractErrorV1::InvalidToolGeometryArtifact);
@@ -380,7 +394,10 @@ mod tests {
                 transform_to_parent: FrameTransformV1::Root,
             }],
             fidelity: PhysicsFidelity::DeterministicReference,
-            world_assets: vec![artifact("disc-cutter-geometry", 'a')],
+            world_assets: vec![
+                artifact("disc-cutter-001", '9'),
+                artifact("disc-cutter-geometry", 'a'),
+            ],
             material_profiles: vec![RockMaterialProfileV1 {
                 profile_id: "granite-synthetic-001".to_owned(),
                 lithology: RockLithologyV1::Granite,
@@ -430,6 +447,7 @@ mod tests {
             solver_id: "reduced-order-cutter-v1".to_owned(),
             tool: ExcavationToolProfileV1 {
                 tool_id: "disc-cutter-001".to_owned(),
+                profile_artifact: artifact("disc-cutter-001", '9'),
                 geometry_artifact: artifact("disc-cutter-geometry", 'a'),
                 power_limit_w: 2_500.0,
                 thrust_limit_n: 1_000.0,
@@ -489,9 +507,24 @@ mod tests {
             ))
         );
         let mut unknown_tool = request();
-        unknown_tool.tool.geometry_artifact = artifact("undeclared-tool", 'a');
+        unknown_tool.tool.profile_artifact = artifact("unregistered-cutter", '9');
+        unknown_tool.tool.tool_id = "unregistered-cutter".to_owned();
         assert_eq!(
             unknown_tool.validate_against_world(&world(), &"d".repeat(SHA256_HEX_LENGTH)),
+            Err(ExcavationContractErrorV1::UndeclaredToolProfileArtifact)
+        );
+
+        let mut mismatched_tool = request();
+        mismatched_tool.tool.profile_artifact = artifact("unregistered-cutter", '9');
+        assert_eq!(
+            mismatched_tool.validate_against_world(&world(), &"d".repeat(SHA256_HEX_LENGTH)),
+            Err(ExcavationContractErrorV1::ToolProfileIdentityMismatch)
+        );
+
+        let mut unknown_geometry = request();
+        unknown_geometry.tool.geometry_artifact = artifact("undeclared-tool-geometry", 'a');
+        assert_eq!(
+            unknown_geometry.validate_against_world(&world(), &"d".repeat(SHA256_HEX_LENGTH)),
             Err(ExcavationContractErrorV1::UndeclaredToolGeometryArtifact)
         );
     }
