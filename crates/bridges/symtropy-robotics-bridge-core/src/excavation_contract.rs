@@ -127,6 +127,36 @@ pub struct CellRemovalMaskPayloadV1 {
     pub removed_cells: Vec<[u32; 3]>,
 }
 
+impl CellRemovalMaskPayloadV1 {
+    /// Serialize the payload once and return the exact bytes plus their digest-bound artifact.
+    ///
+    /// This computes byte identity only; callers must still run semantic admission
+    /// against the intended world/request/delta before the payload can be applied.
+    pub fn encode_with_digest(
+        &self,
+        artifact_id: impl Into<String>,
+        uri: impl Into<String>,
+    ) -> Result<(Vec<u8>, ArtifactRef), ExcavationContractErrorV1> {
+        let artifact_id = artifact_id.into();
+        let uri = uri.into();
+        if artifact_id.trim().is_empty() || uri.trim().is_empty() {
+            return Err(ExcavationContractErrorV1::InvalidCellMaskArtifact);
+        }
+        let bytes = serde_json::to_vec(self)
+            .map_err(|_| ExcavationContractErrorV1::InvalidCellMaskPayload)?;
+        if bytes.len() > MAX_CELL_REMOVAL_MASK_PAYLOAD_BYTES {
+            return Err(ExcavationContractErrorV1::CellMaskPayloadTooLarge);
+        }
+        let sha256 = format!("{:x}", Sha256::digest(&bytes));
+        let artifact = ArtifactRef {
+            artifact_id,
+            uri,
+            sha256,
+        };
+        Ok((bytes, artifact))
+    }
+}
+
 /// A decoded cell-removal mask bound to the exact bytes from which it was parsed.
 ///
 /// Use `decode_verified_json` for untrusted data paths. Semantic validation
@@ -855,6 +885,33 @@ mod tests {
                 removed_cells: vec![[1, 2, 3], [1, 2, 4], [2, 2, 4]],
             },
         }
+    }
+
+    #[test]
+    fn cell_mask_encoder_and_decoder_share_the_exact_digest_contract() {
+        let payload = valid_cell_removal_mask().payload;
+        let (bytes, artifact) = payload
+            .encode_with_digest(
+                "rock-face-delta-001",
+                "urn:symtropy:synthetic:rock-face-delta-001",
+            )
+            .unwrap();
+        let decoded = CellRemovalMaskV1::decode_verified_json(&bytes, artifact.clone()).unwrap();
+        assert_eq!(decoded.payload, payload);
+        assert_eq!(artifact.sha256, format!("{:x}", Sha256::digest(&bytes)));
+
+        let mut delta = result(ExcavationDispositionV1::CompletedWithinEnvelope)
+            .spatial_delta
+            .unwrap();
+        delta.state_delta_artifact = artifact;
+        assert!(decoded
+            .validate_against(
+                &world(),
+                &"d".repeat(SHA256_HEX_LENGTH),
+                &request(),
+                &delta
+            )
+            .is_ok());
     }
 
     #[test]
