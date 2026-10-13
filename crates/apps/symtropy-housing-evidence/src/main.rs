@@ -803,6 +803,7 @@ mod tests {
         let tool_digest = sha256_hex(tool_bytes);
 
         manifest["evidence_artifacts"][0]["artifact_id"] = json!("model-fixture");
+        manifest["model"]["artifact_ids"] = json!(["model-fixture"]);
         manifest["jurisdiction"]["resolution_status"] = json!("confirmed");
         manifest["rule_pack"]["status"] = json!("reviewed_for_use");
         manifest["evidence_artifacts"][0]["sha256"] = json!(digest);
