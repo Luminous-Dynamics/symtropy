@@ -34,7 +34,11 @@ The verifier produces per-alternative feasibility statuses only:
 
 `READY_FOR_COMPARISON` does not mean the model is valid, the intervention causes an improvement, legal or ethical approval has been granted, or the candidate is preferable. The verifier deliberately sets `ranking: null` and does not calculate a composite flourishing score. Reviewers must inspect the outcome vector, uncertainty, subgroup effects, and assumptions before drawing conclusions.
 
-For a constraint scoped to `overall_and_subgroups`, every alternative must provide at least one subgroup record. A known violation is reported as `FAIL` even if another subgroup is unknown; missing observations do not erase observed harm. The current implementation validates registry references, units, timestamps, tri-state missingness, finite numbers, uncertainty bounds, and artifact digests. It does not establish the validity of an instrument, data publisher, causal design, or simulator.
+For a constraint scoped to `overall_and_subgroups`, every alternative must provide at least one subgroup record. A known violation is reported as `FAIL` even if another subgroup is unknown; missing observations do not erase observed harm.
+
+When an outcome supplies an uncertainty envelope, constraint evaluation is conservative: for an upper-bound constraint, the full envelope must lie at or below the threshold to pass; for a lower-bound constraint, the full envelope must lie at or above it; for a between-range constraint, the full envelope must lie inside the permitted range. An envelope that overlaps a constraint boundary yields `UNKNOWN`, not a pass. An envelope wholly outside the permitted range yields `FAIL`. These semantics treat the declared interval as the qualification envelope; they do not assume an interval is a probabilistic guarantee.
+
+The current implementation validates registry references, units, timestamps, tri-state missingness, finite numbers, uncertainty bounds, preregistered threshold chronology, and artifact digests. It does not establish the validity of an instrument, data publisher, causal design, or simulator.
 
 ## Why a vector rather than one score?
 
