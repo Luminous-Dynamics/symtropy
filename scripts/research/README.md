@@ -22,10 +22,15 @@ Example structure (illustrative only; replace these values with a real, reviewed
         "solver": "REPLACE_WITH_EXACT_SOLVER_AND_VERSION",
         "dt": 0.016,
         "max_steps": 1000
+      },
+      "random_stream_contract": {
+        "strategy": "counter_based_event_keyed",
+        "treatment_alignment": "event_keyed",
+        "alignment_evidence": "REPLACE_WITH_ACTUAL_IMPLEMENTATION_AND_VERIFICATION"
       }
     }
 
-Do not use this illustrative threshold or timestep merely because they appear here. They must suit the task and selected solver. Include all other scenario inputs in the same file so the file hash identifies the declared scenario configuration.
+Do not use this illustrative threshold or timestep merely because they appear here. They must suit the task and selected solver. Include all other scenario inputs in the same file so the file hash identifies the declared scenario configuration. The random-stream contract is required: a shared top-level seed does not guarantee that treatment arms receive the same random variates when branch behavior consumes draws differently. Declare the actual RNG strategy and whether cross-treatment draws are event-keyed, verified common random numbers, only same-seed blocks, or not applicable. Provide concrete alignment evidence; do not claim common random numbers are verified without demonstrating alignment.
 
 ## 2. Generate a plan
 
@@ -104,7 +109,7 @@ After the manifest validates, estimate paired arm differences and factorial main
 
 The analysis re-validates the plan, result records, and artifact bytes before computing anything. It reports each arm's paired difference against A000 and the F, R, E, F×R, F×E, R×E, and F×R×E contrasts for each parameter/dimension variant. It estimates 95% percentile bootstrap intervals by resampling matched seed blocks, and uses the preregistered endpoint direction so positive effects always mean better on that endpoint.
 
-At least two held-out seeds are required. The bootstrap seed and replicate count are recorded for reproducibility. The interval procedure is descriptive, uses no multiplicity correction, and does not guarantee confirmatory family-wise error control. If the interval does not clear the predeclared meaningful-effect threshold in either direction, the status is inconclusive relative to that threshold. This is not proof of equivalence or general model validity.
+At least two held-out seeds are required. The bootstrap seed and replicate count are recorded for reproducibility. The interval procedure is descriptive, uses no multiplicity correction, and does not guarantee confirmatory family-wise error control. If the interval does not clear the predeclared meaningful-effect threshold in either direction, the status is inconclusive relative to that threshold. This is not proof of equivalence or general model validity. The analysis report repeats the declared random-stream contract. If arms are only grouped by the same seed, the analysis does not claim common-random-number variance reduction.
 
 The analyzer refuses unqualified manifests and never substitutes development-seed outcomes for held-out evidence. It estimates effects inside this specific simulator/task/configuration only.
 
