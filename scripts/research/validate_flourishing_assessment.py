@@ -442,6 +442,32 @@ def validate_assessment(
         if metric.get("role") == "hard_constraint" and metric_id not in required_hard_metric_ids:
             errors.append(f"metrics[{metric_id}]: hard_constraint metric has no registered constraint")
 
+    # Fair subgroup comparisons require the same declared group identities for
+    # every alternative. Missing coverage must be represented as UNKNOWN rows,
+    # not hidden by changing the set of groups between alternatives.
+    subgroup_coverage_matches: dict[str, bool] = {}
+    for constraint_id, constraint in constraints.items():
+        if constraint.get("scope") != "overall_and_subgroups":
+            subgroup_coverage_matches[constraint_id] = True
+            continue
+        metric_id = constraint.get("metric_id")
+        group_sets: list[set[str]] = []
+        for alternative in alternatives.values():
+            outcome_map = {
+                item.get("metric_id"): item for item in alternative.get("outcomes", [])
+                if isinstance(item, dict)
+            } if isinstance(alternative.get("outcomes"), list) else {}
+            outcome = outcome_map.get(metric_id, {})
+            groups = outcome.get("subgroups", []) if isinstance(outcome, dict) else []
+            ids = {
+                group.get("group_id") for group in groups
+                if isinstance(group, dict) and isinstance(group.get("group_id"), str)
+            } if isinstance(groups, list) else set()
+            group_sets.append(ids)
+        subgroup_coverage_matches[constraint_id] = bool(group_sets and group_sets[0]) and all(
+            group_set == group_sets[0] for group_set in group_sets[1:]
+        )
+
     report_alternatives: list[dict[str, Any]] = []
     for alt_id, alternative in alternatives.items():
         outcomes = _unique_records(alternative.get("outcomes"), "metric_id", f"alternatives[{alt_id}].outcomes", errors)
@@ -460,6 +486,11 @@ def validate_assessment(
             if outcome.get("unit") != metric.get("unit"):
                 errors.append(f"alternatives[{alt_id}].outcomes[{metric_id}]: unit does not match metric registry")
             _validate_known_unknown(outcome, f"alternatives[{alt_id}].outcomes[{metric_id}]", artifact_ids, errors)
+            for artifact_ref in outcome.get("artifact_ids", []) if isinstance(outcome.get("artifact_ids"), list) else []:
+                if artifact_ref in artifacts and artifacts[artifact_ref].get("purpose") == "pre-registration":
+                    errors.append(
+                        f"alternatives[{alt_id}].outcomes[{metric_id}]: pre-registration artifact cannot support a measured outcome"
+                    )
             groups = outcome.get("subgroups", [])
             if not isinstance(groups, list):
                 errors.append(f"alternatives[{alt_id}].outcomes[{metric_id}].subgroups: expected an array")
@@ -472,6 +503,11 @@ def validate_assessment(
                     errors.append(f"alternatives[{alt_id}].outcomes[{metric_id}].subgroups[{group_index}]: expected an object")
                     continue
                 _validate_known_unknown(group, f"alternatives[{alt_id}].outcomes[{metric_id}].subgroup:{group.get('group_id', '?')}", artifact_ids, errors)
+                for artifact_ref in group.get("artifact_ids", []) if isinstance(group.get("artifact_ids"), list) else []:
+                    if artifact_ref in artifacts and artifacts[artifact_ref].get("purpose") == "pre-registration":
+                        errors.append(
+                            f"alternatives[{alt_id}].outcomes[{metric_id}].subgroup:{group.get('group_id', '?')}: pre-registration artifact cannot support a measured outcome"
+                        )
 
         c_report: list[dict[str, str]] = []
         for constraint_id, constraint in constraints.items():
@@ -481,7 +517,17 @@ def validate_assessment(
                 status = "UNKNOWN"
             else:
                 status = _constraint_status(constraint, outcome, f"constraints[{constraint_id}]@{alt_id}", artifact_ids, errors)
-            c_report.append({"constraint_id": constraint_id, "status": status})
+            coverage_matches = subgroup_coverage_matches.get(constraint_id, True)
+            if (
+                constraint.get("scope") == "overall_and_subgroups"
+                and not coverage_matches
+                and status == "PASS"
+            ):
+                status = "UNKNOWN"
+            constraint_result = {"constraint_id": constraint_id, "status": status}
+            if constraint.get("scope") == "overall_and_subgroups" and not coverage_matches:
+                constraint_result["reason"] = "subgroup_coverage_mismatch"
+            c_report.append(constraint_result)
 
         statuses = [record["status"] for record in c_report]
         any_incomplete_outcome = any(
