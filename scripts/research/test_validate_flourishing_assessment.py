@@ -365,7 +365,7 @@ class FlourishingAssessmentTests(unittest.TestCase):
             path = root / artifact["path"]
             payload = json.loads(path.read_text(encoding="utf-8"))
             payload["threshold"] = 0.75
-            tampered_but_rehashed = (json.dumps(payload, indent=2) + "\\n").encode("utf-8")
+            tampered_but_rehashed = (json.dumps(payload, indent=2) + "\n").encode("utf-8")
             path.write_bytes(tampered_but_rehashed)
             artifact["sha256"] = hashlib.sha256(tampered_but_rehashed).hexdigest()
             errors, report = validate_assessment(doc, artifact_root=root, verify_artifacts=True)
