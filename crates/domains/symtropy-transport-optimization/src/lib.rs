@@ -1,3 +1,6 @@
+// Copyright (C) 2024-2026 Tristan Stoltz / Luminous Dynamics
+// SPDX-License-Identifier: Apache-2.0 OR MIT
+
 //! Deterministic, unit-checked reference model for multimodal route trade-offs.
 //!
 //! This is a planning/research primitive, not an autonomous dispatch controller.
@@ -223,7 +226,7 @@ impl Demand {
 /// Cumulative per-unit trade-off vector. Every field is minimized when
 /// constructing the Pareto frontier; policies may choose from that frontier
 /// using explicitly declared constraints or weights after inspection.
-#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, PartialOrd, Ord)]
 pub struct RouteMetrics {
     pub distance_metres: u64,
     pub elapsed_seconds: u64,
@@ -721,10 +724,14 @@ mod tests {
         let routes = pareto_routes(&network, &passenger_demand(1), SearchLimits::default()).unwrap();
 
         assert_eq!(routes.len(), 2);
-        assert!(routes.iter().any(|route| route.edge_ids == ["air-direct"]));
+        assert!(routes.iter().any(|route| route.edge_ids == vec!["air-direct".to_owned()]));
         let intermodal = routes
             .iter()
-            .find(|route| route.edge_ids == ["road-feeder", "road-rail-transfer", "rail-linehaul"])
+            .find(|route| route.edge_ids == vec![
+                "road-feeder".to_owned(),
+                "road-rail-transfer".to_owned(),
+                "rail-linehaul".to_owned(),
+            ])
             .unwrap();
         assert_eq!(intermodal.transfer_count, 1);
         assert_eq!(intermodal.metrics_per_unit.operator_cost_minor_per_unit, 150);
@@ -777,7 +784,7 @@ mod tests {
         let routes = pareto_routes(&network, &passenger_demand(1), SearchLimits::default()).unwrap();
 
         assert_eq!(routes.len(), 1);
-        assert_eq!(routes[0].edge_ids, ["good"]);
+        assert_eq!(routes[0].edge_ids, vec!["good".to_owned()]);
     }
 
     #[test]
@@ -857,7 +864,7 @@ mod tests {
         demand.max_elapsed_seconds = Some(2_000);
         let routes = pareto_routes(&network, &demand, SearchLimits::default()).unwrap();
         assert_eq!(routes.len(), 1);
-        assert_eq!(routes[0].edge_ids, ["air-direct"]);
+        assert_eq!(routes[0].edge_ids, vec!["air-direct".to_owned()]);
 
         demand.max_elapsed_seconds = None;
         demand.max_transfers = Some(0);
@@ -865,15 +872,6 @@ mod tests {
         assert_eq!(routes.len(), 1);
         assert_eq!(routes[0].edge_ids, ["air-direct"]);
 
-        network.add_edge(Edge::movement(
-            "alternate-air",
-            "A",
-            "B",
-            Mode::Air,
-            100,
-            QuantityUnit::Passengers,
-            metrics(500, 600, 1_200, 100_000, 500, 1_000, 100, 2, 8),
-        ));
     }
 
     #[test]
@@ -889,7 +887,7 @@ mod tests {
     }
 
     #[test]
-    fn malformed_currency_and_overflowing_metrics_are_rejected() {
+    fn malformed_currency_and_unknown_endpoints_fail_closed() {
         assert_eq!(
             Network::new(["A", "B"], "zar"),
             Err(ModelError::InvalidCurrencyCode)
@@ -963,4 +961,80 @@ mod tests {
             Err(ModelError::InvalidSearchLimits)
         );
     }
+
+
+    #[test]
+    fn cargo_route_respects_tonne_capacity_and_reports_whole_shipment_totals() {
+        let mut network = Network::new(["Mine", "Port", "Market"], "ZAR").unwrap();
+        network.add_edge(Edge::movement(
+            "rail-to-port",
+            "Mine",
+            "Port",
+            Mode::Rail,
+            1_000,
+            QuantityUnit::Tonnes,
+            metrics(20, 25, 6_000, 500_000, 300, 50, 10, 1, 4),
+        ));
+        network.add_edge(Edge::transfer(
+            "rail-maritime-transfer",
+            "Port",
+            Mode::Rail,
+            Mode::Maritime,
+            500,
+            QuantityUnit::Tonnes,
+            metrics(4, 5, 1_800, 0, 10, 1, 1, 0, 2),
+        ));
+        network.add_edge(Edge::movement(
+            "ship-linehaul",
+            "Port",
+            "Market",
+            Mode::Maritime,
+            300,
+            QuantityUnit::Tonnes,
+            metrics(15, 35, 20_000, 1_000_000, 250, 25, 5, 2, 8),
+        ));
+        network.add_edge(Edge::movement(
+            "air-cargo-direct",
+            "Mine",
+            "Market",
+            Mode::Air,
+            200,
+            QuantityUnit::Tonnes,
+            metrics(1_000, 1_200, 1_200, 1_500_000, 2_500, 2_000, 250, 10, 12),
+        ));
+        let demand = Demand {
+            id: "ore-shipment".to_owned(),
+            origin: "Mine".to_owned(),
+            destination: "Market".to_owned(),
+            quantity: 100,
+            unit: QuantityUnit::Tonnes,
+            max_elapsed_seconds: None,
+            max_transfers: Some(1),
+        };
+
+        let routes = pareto_routes(&network, &demand, SearchLimits::default()).unwrap();
+        assert_eq!(routes.len(), 2);
+        let rail_sea = routes
+            .iter()
+            .find(|route| route.edge_ids.len() == 3)
+            .unwrap();
+        assert_eq!(rail_sea.metrics_per_unit.operator_cost_minor_per_unit, 39);
+        assert_eq!(rail_sea.metrics_per_unit.ghg_grams_co2e_per_unit, 76);
+        assert_eq!(rail_sea.metrics_per_unit.elapsed_seconds, 27_800);
+
+        let totals = rail_sea.aggregate(demand.quantity).unwrap();
+        assert_eq!(totals.operator_cost_minor_units, 3_900);
+        assert_eq!(totals.ghg_grams_co2e, 7_600);
+
+        let mut oversize = demand;
+        oversize.quantity = 400;
+        let routes = pareto_routes(&network, &oversize, SearchLimits::default()).unwrap();
+        assert_eq!(routes.len(), 1);
+        assert_eq!(routes[0].edge_ids, vec![
+            "rail-to-port".to_owned(),
+            "rail-maritime-transfer".to_owned(),
+            "ship-linehaul".to_owned(),
+        ]);
+    }
+
 }
