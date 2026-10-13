@@ -90,6 +90,16 @@ A separate requirements file has this shape:
 
 The requirements contract must come from a controlled source independent of the manifest, and its expected SHA-256 digest must be supplied out of band. It pins the exact embedded schema digest, verifier package version and executable digest as well as the actual model artifact SHA-256 digests separately from stable artifact IDs. It pins the schema version, case ID, jurisdiction, exact model, rule-pack and toolchain objects, plus the complete mandatory claim contract—not just stable claim IDs. The model object pins its revision and artifact IDs; model, source-snapshot, tool and result bytes referenced by digest are verified locally. Each claim contract pins its type, statement, element scope, requirement reference, approved tool ID, exact input and output artifact digests, validity domain, and acceptance criteria. The all-zero/all-`a`/`b`/`c`/`d` executable, schema and input/output digests above are illustrative placeholders only; never use these literal values for a real case. Merely storing this file next to a manifest does not make it an independent trust anchor.
 
+### Establishing the out-of-band pins
+
+1. Build the exact verifier artifact intended for the run, for example with `cargo build --release -p symtropy-housing-evidence`.
+2. Execute that exact binary against the deliberately `NOT_EVALUATED` fixture and retain its report. Use the report's `schema_sha256`, `verifier_version`, and `verifier_binary_sha256` values to populate the independent requirements contract. The fixture run establishes only the identity of the schema and executable; it does not validate a solver.
+3. Have the responsible reviewer or release process construct and approve the full expected-claims contract from the controlled design requirements, approved rule pack, intended model, toolchain and mandatory claims. Include each claim's precise input and output artifact digests.
+4. Compute the expected-claims file's SHA-256 over its exact bytes and convey/pin that digest through a trusted channel outside the manifest and requirements file. Keep the exact binary unchanged between the identity report and the candidate verification run. Rebuilding, changing target/platform, or modifying the embedded schema changes a pin and must require a new approved contract.
+5. Run the candidate command with `--expected-claims`, the independently supplied `--expected-claims-sha256`, and `--artifact-root`. Any mismatch, missing artifact, or changed criteria must prevent `evidence_integrity_status: EVIDENCE_INTEGRITY_VERIFIED`.
+
+Computing a hash is not the approval act: the expected contract and the channel that pins its digest are the trust anchor. Never copy the digest from the same untrusted package and treat that alone as independent approval.
+
 Artifacts referenced by `model.artifact_ids`, `model.unit_mapping_artifact_sha256`, and claim input/output digest arrays must be present in `evidence_artifacts`. Their `uri` values must be safe, unescaped relative file paths under the artifact root. Example: `model/main.ifc`, with the file located at `<artifact-root>/model/main.ifc`.
 
 ```text
