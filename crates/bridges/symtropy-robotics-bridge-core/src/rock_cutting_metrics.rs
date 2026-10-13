@@ -15,7 +15,7 @@ use std::fmt;
 pub const CUTTING_METRIC_SCHEMA_VERSION: u16 = 1;
 const SHA256_HEX_LENGTH: usize = 64;
 
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
 pub enum CuttingPowerInputV1 {
     /// Mechanical power measured at the tool interface, in watts.
     ///
