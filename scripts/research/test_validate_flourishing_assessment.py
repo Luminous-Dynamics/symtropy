@@ -116,27 +116,56 @@ def assessment() -> dict:
     }
 
 
+def preregistration_payload(constraint: dict) -> bytes:
+    payload = {
+        "contract_version": "0.1",
+        "artifact_type": "humanity_atlas_constraint_preregistration",
+        "constraint_id": constraint["constraint_id"],
+        "metric_id": constraint["metric_id"],
+        "comparator": constraint["comparator"],
+        "threshold": constraint["threshold"],
+        "threshold_upper": constraint.get("threshold_upper") if constraint["comparator"] == "between" else None,
+        "scope": constraint["scope"],
+        "non_compensable": constraint["non_compensable"],
+        "declared_at": constraint["predeclared_at"],
+        "rationale": "Synthetic preregistration protects essential service continuity.",
+        "registered_by": "synthetic test steward",
+    }
+    return (json.dumps(payload, indent=2) + "\n").encode("utf-8")
+
+
+def materialize_artifact_files(doc: dict, root: Path) -> None:
+    root.mkdir(parents=True, exist_ok=True)
+    (root / "sample.txt").write_bytes(b"synthetic evidence; not a real observation\n")
+    for constraint in doc["constraints"]:
+        artifact_id = constraint.get("preregistration_artifact_id")
+        if not isinstance(artifact_id, str):
+            continue
+        artifact = next(a for a in doc["artifacts"] if a["artifact_id"] == artifact_id)
+        (root / artifact["path"]).write_bytes(preregistration_payload(constraint))
+
+
 def add_evidence_and_known_values(doc: dict, values: dict[str, float] | None = None) -> dict:
     raw = b"synthetic evidence; not a real observation\n"
-    preregistration_bytes = b"preregistered synthetic test thresholds\n"
-    doc["artifacts"] = [
-        {
-            "artifact_id": "sample-artifact",
-            "path": "sample.txt",
-            "sha256": hashlib.sha256(raw).hexdigest(),
-            "purpose": "synthetic verifier test input",
-            "collected_at": "2026-10-13T10:30:00Z",
-        },
-        {
-            "artifact_id": "preregistration-artifact",
-            "path": "preregistration.json",
+    doc["artifacts"] = [{
+        "artifact_id": "sample-artifact",
+        "path": "sample.txt",
+        "sha256": hashlib.sha256(raw).hexdigest(),
+        "purpose": "synthetic verifier test input",
+        "collected_at": "2026-10-13T10:30:00Z",
+    }]
+    for index, constraint in enumerate(doc["constraints"]):
+        artifact_id = f"preregistration-artifact-{index}"
+        artifact_path = f"preregistration-{index}.json"
+        constraint["preregistration_artifact_id"] = artifact_id
+        preregistration_bytes = preregistration_payload(constraint)
+        doc["artifacts"].append({
+            "artifact_id": artifact_id,
+            "path": artifact_path,
             "sha256": hashlib.sha256(preregistration_bytes).hexdigest(),
             "purpose": "pre-registration",
-            "collected_at": "2026-10-13T09:30:00Z",
-        },
-    ]
-    for constraint in doc["constraints"]:
-        constraint["preregistration_artifact_id"] = "preregistration-artifact"
+            "collected_at": constraint["predeclared_at"],
+        })
     values = values or {"outage_hours": 3.0, "critical_outage_hours": 0.5}
     for alternative in doc["alternatives"]:
         for outcome in alternative["outcomes"]:
@@ -320,8 +349,8 @@ class FlourishingAssessmentTests(unittest.TestCase):
         doc = add_evidence_and_known_values(assessment())
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp)
+            materialize_artifact_files(doc, root)
             (root / "sample.txt").write_bytes(b"bytes differ from the declared digest")
-            (root / "preregistration.json").write_bytes(b"preregistered synthetic test thresholds\n")
             errors, _ = validate_assessment(doc, artifact_root=root, verify_artifacts=True)
         self.assertTrue(any("SHA-256 mismatch" in error for error in errors))
 
