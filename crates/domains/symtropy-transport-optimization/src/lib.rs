@@ -2402,6 +2402,20 @@ mod tests {
         );
 
         let mut binding = cargo_transfer_resource_binding();
+        binding.terminal_id = "different-terminal".to_owned();
+        assert_eq!(
+            check_cargo_transfer_compatibility(&profile, &instance, &edge, &equipment, &binding),
+            Err(CargoError::TransferResourceBindingMismatch)
+        );
+
+        let mut binding = cargo_transfer_resource_binding();
+        binding.equipment_id.clear();
+        assert_eq!(
+            check_cargo_transfer_compatibility(&profile, &instance, &edge, &equipment, &binding),
+            Err(CargoError::TransferResourceBindingInvalid)
+        );
+
+        let mut binding = cargo_transfer_resource_binding();
         binding.capacity_unit = QuantityUnit::Teu;
         assert_eq!(
             check_cargo_transfer_compatibility(&profile, &instance, &edge, &equipment, &binding),
