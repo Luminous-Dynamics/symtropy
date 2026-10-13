@@ -335,6 +335,128 @@ pub enum CargoSealStatus {
     NotPresent,
 }
 
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct CargoCustodyState {
+    pub module_id: String,
+    pub current_custodian_id: String,
+    pub current_location_id: String,
+    pub revision: u64,
+    pub contents_digest: String,
+    pub seal_status: CargoSealStatus,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct CargoCustodyHandoff {
+    pub module_id: String,
+    pub expected_revision: u64,
+    pub from_custodian_id: String,
+    pub to_custodian_id: String,
+    pub from_location_id: String,
+    pub to_location_id: String,
+    pub contents_digest_before: String,
+    pub contents_digest_after: String,
+    pub seal_status_before: CargoSealStatus,
+    pub seal_status_after: CargoSealStatus,
+    pub seal_transition_evidence_digest: Option<String>,
+    pub receipt_digest: String,
+}
+
+/// Applies one proposed handoff to a single current-state snapshot. Persistence,
+/// issuer authentication and multi-writer serialization remain the caller's
+/// responsibility. Reapplying a stale receipt fails its revision check.
+pub fn apply_cargo_custody_handoff(
+    current: &CargoCustodyState,
+    handoff: &CargoCustodyHandoff,
+) -> Result<CargoCustodyState, CargoCustodyError> {
+    if current.module_id.trim().is_empty()
+        || current.current_custodian_id.trim().is_empty()
+        || current.current_location_id.trim().is_empty()
+        || current.contents_digest.trim().is_empty()
+    {
+        return Err(CargoCustodyError::InvalidCurrentState);
+    }
+    if handoff.module_id.trim().is_empty()
+        || handoff.from_custodian_id.trim().is_empty()
+        || handoff.to_custodian_id.trim().is_empty()
+        || handoff.from_location_id.trim().is_empty()
+        || handoff.to_location_id.trim().is_empty()
+        || handoff.receipt_digest.trim().is_empty()
+    {
+        return Err(CargoCustodyError::InvalidHandoff);
+    }
+    if handoff.expected_revision != current.revision {
+        return Err(CargoCustodyError::StaleRevision);
+    }
+    if handoff.module_id != current.module_id
+        || handoff.from_custodian_id != current.current_custodian_id
+        || handoff.from_location_id != current.current_location_id
+    {
+        return Err(CargoCustodyError::AuthorityMismatch);
+    }
+    if handoff.contents_digest_before != current.contents_digest
+        || handoff.contents_digest_after != current.contents_digest
+    {
+        return Err(CargoCustodyError::ContentsDigestMismatch);
+    }
+    if handoff.seal_status_before != current.seal_status {
+        return Err(CargoCustodyError::SealStateMismatch);
+    }
+    if handoff.seal_status_after != handoff.seal_status_before
+        && handoff
+            .seal_transition_evidence_digest
+            .as_deref()
+            .is_none_or(str::is_empty)
+    {
+        return Err(CargoCustodyError::SealTransitionEvidenceMissing);
+    }
+    let revision = current
+        .revision
+        .checked_add(1)
+        .ok_or(CargoCustodyError::RevisionOverflow)?;
+
+    Ok(CargoCustodyState {
+        module_id: current.module_id.clone(),
+        current_custodian_id: handoff.to_custodian_id.clone(),
+        current_location_id: handoff.to_location_id.clone(),
+        revision,
+        contents_digest: current.contents_digest.clone(),
+        seal_status: handoff.seal_status_after,
+    })
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum CargoCustodyError {
+    InvalidCurrentState,
+    InvalidHandoff,
+    StaleRevision,
+    AuthorityMismatch,
+    ContentsDigestMismatch,
+    SealStateMismatch,
+    SealTransitionEvidenceMissing,
+    RevisionOverflow,
+}
+
+impl fmt::Display for CargoCustodyError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::InvalidCurrentState => write!(f, "current cargo custody state is incomplete"),
+            Self::InvalidHandoff => write!(f, "cargo handoff is missing required identity/evidence"),
+            Self::StaleRevision => write!(f, "cargo handoff revision is stale or was already applied"),
+            Self::AuthorityMismatch => write!(f, "cargo handoff does not match current custody authority"),
+            Self::ContentsDigestMismatch => {
+                write!(f, "cargo handoff changes or mismatches the contents digest")
+            }
+            Self::SealStateMismatch => write!(f, "cargo handoff seal state does not match current state"),
+            Self::SealTransitionEvidenceMissing => {
+                write!(f, "a seal-state change requires evidence")
+            }
+            Self::RevisionOverflow => write!(f, "cargo custody revision overflowed"),
+        }
+    }
+}
+
+impl std::error::Error for CargoCustodyError {}
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum CargoServiceability {
     Serviceable,
@@ -2039,11 +2161,11 @@ mod tests {
         let mut profile = iso_container_profile();
         profile.outer_dimensions_mm = [6_000, 2_400, 2_500];
         profile.permitted_orientations =
-            BTreeSet::from([CargoOrientation::XYZ, CargoOrientation::XZY]);
+            BTreeSet::from([CargoOrientation::XYZ, CargoOrientation::YXZ]);
         let instance = cargo_instance(&profile);
         let mut equipment = rail_equipment();
-        equipment.accepted_orientations = BTreeSet::from([CargoOrientation::XZY]);
-        equipment.max_module_dimensions_mm = [6_100, 2_600, 2_500];
+        equipment.accepted_orientations = BTreeSet::from([CargoOrientation::YXZ]);
+        equipment.max_module_dimensions_mm = [2_600, 6_100, 2_500];
         assert!(check_module_compatibility(&profile, &instance, &equipment).is_ok());
 
         equipment.accepted_orientations = BTreeSet::from([CargoOrientation::YXZ]);
@@ -2122,6 +2244,84 @@ mod tests {
             check_module_compatibility(&profile, &instance, &equipment),
             Err(CargoError::AircraftUldIncompatible)
         );
+    }
+
+    fn cargo_custody_state() -> CargoCustodyState {
+        CargoCustodyState {
+            module_id: "container-42".to_owned(),
+            current_custodian_id: "warehouse-a".to_owned(),
+            current_location_id: "depot-a".to_owned(),
+            revision: 4,
+            contents_digest: "sha256:contents".to_owned(),
+            seal_status: CargoSealStatus::Intact,
+        }
+    }
+
+    fn cargo_custody_handoff() -> CargoCustodyHandoff {
+        CargoCustodyHandoff {
+            module_id: "container-42".to_owned(),
+            expected_revision: 4,
+            from_custodian_id: "warehouse-a".to_owned(),
+            to_custodian_id: "carrier-b".to_owned(),
+            from_location_id: "depot-a".to_owned(),
+            to_location_id: "rail-terminal-b".to_owned(),
+            contents_digest_before: "sha256:contents".to_owned(),
+            contents_digest_after: "sha256:contents".to_owned(),
+            seal_status_before: CargoSealStatus::Intact,
+            seal_status_after: CargoSealStatus::Intact,
+            seal_transition_evidence_digest: None,
+            receipt_digest: "sha256:handoff-receipt".to_owned(),
+        }
+    }
+
+    #[test]
+    fn cargo_custody_handoff_transfers_authority_exactly_one_revision() {
+        let current = cargo_custody_state();
+        let receipt = cargo_custody_handoff();
+        let next = apply_cargo_custody_handoff(&current, &receipt).unwrap();
+        assert_eq!(next.current_custodian_id, "carrier-b");
+        assert_eq!(next.current_location_id, "rail-terminal-b");
+        assert_eq!(next.revision, 5);
+        assert_eq!(next.contents_digest, current.contents_digest);
+        assert_eq!(next.seal_status, CargoSealStatus::Intact);
+
+        assert_eq!(
+            apply_cargo_custody_handoff(&next, &receipt),
+            Err(CargoCustodyError::StaleRevision)
+        );
+    }
+
+    #[test]
+    fn cargo_custody_handoff_rejects_authority_or_contents_mismatch() {
+        let current = cargo_custody_state();
+        let mut receipt = cargo_custody_handoff();
+        receipt.from_custodian_id = "spoofed-warehouse".to_owned();
+        assert_eq!(
+            apply_cargo_custody_handoff(&current, &receipt),
+            Err(CargoCustodyError::AuthorityMismatch)
+        );
+
+        let mut receipt = cargo_custody_handoff();
+        receipt.contents_digest_after = "sha256:changed-content".to_owned();
+        assert_eq!(
+            apply_cargo_custody_handoff(&current, &receipt),
+            Err(CargoCustodyError::ContentsDigestMismatch)
+        );
+    }
+
+    #[test]
+    fn cargo_custody_seal_change_requires_explicit_evidence() {
+        let current = cargo_custody_state();
+        let mut receipt = cargo_custody_handoff();
+        receipt.seal_status_after = CargoSealStatus::Broken;
+        assert_eq!(
+            apply_cargo_custody_handoff(&current, &receipt),
+            Err(CargoCustodyError::SealTransitionEvidenceMissing)
+        );
+
+        receipt.seal_transition_evidence_digest = Some("sha256:seal-open-log".to_owned());
+        let next = apply_cargo_custody_handoff(&current, &receipt).unwrap();
+        assert_eq!(next.seal_status, CargoSealStatus::Broken);
     }
 
     #[test]
