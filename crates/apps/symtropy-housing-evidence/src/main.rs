@@ -11,11 +11,14 @@
 //! Usage:
 //!   housing-evidence-verify <manifest.json>
 //!       [--expected-claims <requirements.json>]
+//!       [--expected-claims-sha256 <sha256-pinned-out-of-band>]
 //!       [--artifact-root <directory>]
 //!       [--require-pass]
 //!
-//! The expected-claims file pins the case ID, exact model and rule-pack objects,
-//! and each mandatory claim's type, statement, scope, requirement, domain, and criteria.
+//! The independent expected-claims file pins the embedded schema digest, verifier
+//! version and executable digest, case ID, exact model and rule-pack objects, and
+//! each mandatory claim's type, statement, scope, requirement, domain, criteria,
+//! and exact input/output artifact digests.
 //!
 //! Artifact URIs used by a PASS manifest must be safe, relative paths beneath
 //! --artifact-root. Remote retrieval is intentionally not supported.
@@ -224,8 +227,7 @@ fn run(args: Vec<String>) -> Result<(VerificationReport, bool), String> {
 }
 
 fn usage() -> String {
-    "Usage: housing-evidence-verify <manifest.json> \\
-     [--expected-claims <requirements.json>] [--artifact-root <directory>] [--require-pass]"
+    "Usage: housing-evidence-verify <manifest.json> \\\n     [--expected-claims <requirements.json>] \\\n     [--expected-claims-sha256 <sha256-pinned-out-of-band>] \\\n     [--artifact-root <directory>] [--require-pass]"
         .to_string()
 }
 
@@ -1345,6 +1347,13 @@ mod tests {
             }],
         };
         (schema, manifest, root, expected)
+    }
+
+    #[test]
+    fn usage_mentions_the_out_of_band_contract_digest() {
+        let usage = usage();
+        assert!(usage.contains("--expected-claims-sha256"));
+        assert!(usage.contains("pinned-out-of-band"));
     }
 
     #[test]
