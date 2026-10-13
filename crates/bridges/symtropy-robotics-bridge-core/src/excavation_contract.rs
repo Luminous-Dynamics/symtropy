@@ -42,6 +42,8 @@ pub struct MaterialAwareExcavationRequestV1 {
     /// Digest of the complete command and solver-input bundle.
     pub input_digest_sha256: String,
     pub material_profile_id: String,
+    /// Exact initial rock/terrain geometry targeted by this operation.
+    pub target_geometry_artifact: ArtifactRef,
     pub solver_id: String,
     pub tool: ExcavationToolProfileV1,
     /// Commanded linear feed speed, in m/s.
@@ -61,6 +63,21 @@ pub enum ExcavationDispositionV1 {
     DeadlineExceeded,
     InvalidResult,
     Cancelled,
+}
+
+/// A spatial state change produced by a completed excavation attempt.
+///
+/// The transition artifacts must identify the exact previous geometry and world
+/// generation and carry the resulting geometry plus a machine-readable delta
+/// (for example, a voxel mask or mesh/material patch). This contract validates
+/// identities/digests but does not decode or certify the geometry update.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct ExcavationSpatialDeltaV1 {
+    pub base_world_generation: u64,
+    pub result_world_generation: u64,
+    pub base_geometry_artifact: ArtifactRef,
+    pub result_geometry_artifact: ArtifactRef,
+    pub state_delta_artifact: ArtifactRef,
 }
 
 /// A measured or solver-reported excavation output. Values use named SI units.
@@ -83,6 +100,8 @@ pub struct ExcavationResponseV1 {
     pub loose_spoil_volume_m3: f64,
     pub removed_solid_rock_volume_standard_uncertainty_m3: Option<f64>,
     pub mechanical_energy_standard_uncertainty_j: Option<f64>,
+    /// Required for completed responses; rejected for failed/non-completed runs.
+    pub spatial_delta: Option<ExcavationSpatialDeltaV1>,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -95,6 +114,8 @@ pub struct MaterialAwareExcavationResultV1 {
     pub result_artifact: Option<ArtifactRef>,
     /// Non-completed dispositions must not carry accepted physical outputs.
     pub response: Option<ExcavationResponseV1>,
+    /// Physical state transition, required for completed results only.
+    pub spatial_delta: Option<ExcavationSpatialDeltaV1>,
     pub warnings: Vec<String>,
 }
 
@@ -110,6 +131,8 @@ pub enum ExcavationContractErrorV1 {
     InvalidToolProfileArtifact,
     UndeclaredToolProfileArtifact,
     ToolProfileIdentityMismatch,
+    UndeclaredTargetGeometryArtifact,
+    InvalidSpatialDelta,
     UnknownMaterialProfile(String),
     UnknownSolver(String),
     UnsupportedSolverDomain(PhysicsDomain),
@@ -187,6 +210,16 @@ impl MaterialAwareExcavationRequestV1 {
             return Err(ExcavationContractErrorV1::UnknownMaterialProfile(
                 self.material_profile_id.clone(),
             ));
+        }
+        if !valid_artifact(&self.target_geometry_artifact) {
+            return Err(ExcavationContractErrorV1::UndeclaredTargetGeometryArtifact);
+        }
+        if !world
+            .world_assets
+            .iter()
+            .any(|asset| asset == &self.target_geometry_artifact)
+        {
+            return Err(ExcavationContractErrorV1::UndeclaredTargetGeometryArtifact);
         }
 
         let solver = world
@@ -273,6 +306,14 @@ impl MaterialAwareExcavationResultV1 {
                     .as_ref()
                     .ok_or(ExcavationContractErrorV1::InconsistentDisposition)?;
                 validate_response(response)?;
+                let spatial_delta = self
+                    .spatial_delta
+                    .as_ref()
+                    .ok_or(ExcavationContractErrorV1::InvalidSpatialDelta)?;
+                validate_spatial_delta(
+                    spatial_delta,
+                    expected_request,
+                )?;
                 if self.disposition == ExcavationDispositionV1::CompletedWithinEnvelope {
                     validate_operating_envelope(expected_request, response)?;
                     if !self.warnings.is_empty() {
@@ -283,7 +324,7 @@ impl MaterialAwareExcavationResultV1 {
                 }
             }
             _ => {
-                if self.response.is_some() {
+                if self.response.is_some() || self.spatial_delta.is_some() {
                     return Err(ExcavationContractErrorV1::InconsistentDisposition);
                 }
                 if self
@@ -297,6 +338,26 @@ impl MaterialAwareExcavationResultV1 {
         }
         Ok(())
     }
+}
+
+fn validate_spatial_delta(
+    delta: &ExcavationSpatialDeltaV1,
+    request: &MaterialAwareExcavationRequestV1,
+) -> Result<(), ExcavationContractErrorV1> {
+    let expected_result_generation = request
+        .world_generation
+        .checked_add(1)
+        .ok_or(ExcavationContractErrorV1::InvalidSpatialDelta)?;
+    if delta.base_world_generation != request.world_generation
+        || delta.result_world_generation != expected_result_generation
+        || delta.base_geometry_artifact != request.target_geometry_artifact
+        || !valid_artifact(&delta.base_geometry_artifact)
+        || !valid_artifact(&delta.result_geometry_artifact)
+        || !valid_artifact(&delta.state_delta_artifact)
+    {
+        return Err(ExcavationContractErrorV1::InvalidSpatialDelta);
+    }
+    Ok(())
 }
 
 fn supports_material_excavation(solver: &SolverDeclarationV1) -> bool {
@@ -418,6 +479,7 @@ mod tests {
             world_assets: vec![
                 artifact("disc-cutter-001", '9'),
                 artifact("disc-cutter-geometry", 'a'),
+                artifact("rock-face-geometry", '8'),
             ],
             material_profiles: vec![RockMaterialProfileV1 {
                 profile_id: "granite-synthetic-001".to_owned(),
@@ -465,6 +527,7 @@ mod tests {
             world_manifest_sha256: "d".repeat(SHA256_HEX_LENGTH),
             input_digest_sha256: "e".repeat(SHA256_HEX_LENGTH),
             material_profile_id: "granite-synthetic-001".to_owned(),
+            target_geometry_artifact: artifact("rock-face-geometry", '8'),
             solver_id: "reduced-order-cutter-v1".to_owned(),
             tool: ExcavationToolProfileV1 {
                 tool_id: "disc-cutter-001".to_owned(),
@@ -493,6 +556,13 @@ mod tests {
             loose_spoil_volume_m3: 1.2e-5,
             removed_solid_rock_volume_standard_uncertainty_m3: Some(1.0e-7),
             mechanical_energy_standard_uncertainty_j: Some(10.0),
+            spatial_delta: Some(ExcavationSpatialDeltaV1 {
+                base_world_generation: 7,
+                result_world_generation: 8,
+                base_geometry_artifact: artifact("rock-face-geometry", '8'),
+                result_geometry_artifact: artifact("rock-face-after-cut-001", '6'),
+                state_delta_artifact: artifact("rock-face-delta-001", '7'),
+            }),
         }
     }
 
@@ -508,6 +578,7 @@ mod tests {
             disposition,
             result_artifact: completed.then(|| artifact("excavation-output-001", 'f')),
             response: completed.then(response),
+            spatial_delta: completed.then(|| response().spatial_delta.unwrap()),
             warnings: if disposition == ExcavationDispositionV1::CompletedWithWarnings {
                 vec!["Synthetic warning fixture".to_owned()]
             } else {
@@ -571,6 +642,36 @@ mod tests {
         assert_eq!(
             request().validate_against_world(&world(), &"0".repeat(SHA256_HEX_LENGTH)),
             Err(ExcavationContractErrorV1::WorldManifestDigestMismatch)
+        );
+    }
+
+    #[test]
+    fn completed_result_requires_spatial_delta_for_exact_geometry_and_generation() {
+        let world = world();
+        let expected = request();
+        let mut missing_delta = result(ExcavationDispositionV1::CompletedWithinEnvelope);
+        missing_delta.spatial_delta = None;
+        assert_eq!(
+            missing_delta.validate_against(&world, &"d".repeat(SHA256_HEX_LENGTH), &expected),
+            Err(ExcavationContractErrorV1::InvalidSpatialDelta)
+        );
+
+        let mut stale_geometry = result(ExcavationDispositionV1::CompletedWithinEnvelope);
+        stale_geometry.spatial_delta.as_mut().unwrap().base_geometry_artifact =
+            artifact("different-rock-face", '8');
+        assert_eq!(
+            stale_geometry.validate_against(&world, &"d".repeat(SHA256_HEX_LENGTH), &expected),
+            Err(ExcavationContractErrorV1::InvalidSpatialDelta)
+        );
+    }
+
+    #[test]
+    fn failed_result_cannot_carry_spatial_state_change() {
+        let mut failed = result(ExcavationDispositionV1::OutOfDomain);
+        failed.spatial_delta = Some(response().spatial_delta.unwrap());
+        assert_eq!(
+            failed.validate_against(&world(), &"d".repeat(SHA256_HEX_LENGTH), &request()),
+            Err(ExcavationContractErrorV1::InconsistentDisposition)
         );
     }
 
