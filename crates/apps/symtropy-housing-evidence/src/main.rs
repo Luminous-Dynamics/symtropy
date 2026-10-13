@@ -30,12 +30,9 @@ use std::{
     fs,
     path::{Component, Path, PathBuf},
     process::ExitCode,
-    time::{SystemTime, UNIX_EPOCH},
 };
 
 const STATUS_PASS: &str = "PASS";
-const STATUS_FAIL: &str = "FAIL";
-const STATUS_REQUIRES_REVIEW: &str = "REQUIRES_REVIEW";
 const STATUS_NOT_EVALUATED: &str = "NOT_EVALUATED";
 const STATUS_BLOCKED: &str = "BLOCKED";
 const STATUS_INSUFFICIENT_EVIDENCE: &str = "INSUFFICIENT_EVIDENCE";
@@ -612,6 +609,7 @@ fn report(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::time::{SystemTime, UNIX_EPOCH};
 
     fn fixture_values() -> (Value, Value) {
         let root = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../../docs/built-environment");
