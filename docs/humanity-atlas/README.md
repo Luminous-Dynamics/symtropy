@@ -5,7 +5,8 @@ This directory contains the **proposed** Humanity Atlas flourishing-evaluation c
 ## Files
 
 - `flourishing-evaluation-contract-v0.1.md` — research and decision protocol.
-- `flourishing-assessment-v0.1.schema.json` — Draft 2020-12 wire schema.
+- `flourishing-assessment-v0.1.schema.json` — Draft 2020-12 assessment wire schema.
+- `constraint-preregistration-v0.1.schema.json` — versioned schema for the exact constraint declaration bytes.
 - `fixtures/flourishing-assessment.not-evidence.json` — schema-valid example with no evidence and all outcomes unknown.
 - `../../scripts/research/validate_flourishing_assessment.py` — schema, cross-record, chronology, and optional artifact-byte verification CLI.
 - `../../scripts/research/test_validate_flourishing_assessment.py` — failure-oriented regression tests.
@@ -21,7 +22,7 @@ python scripts/research/validate_flourishing_assessment.py \
 python -m unittest discover -s scripts/research -p 'test_validate_flourishing_assessment.py' -v
 ```
 
-The CLI verifies every declared relative artifact path against bytes beneath the input JSON's parent directory by default. Use `--artifact-root DIR` when artifacts live in a separate directory, and `--report FILE` to save the machine-readable report. It rejects path traversal, symlinks resolving outside the root, missing evidence files, and digest mismatches. It never downloads a URI or treats a digest-shaped string as proof of source authenticity.
+The CLI verifies every declared relative artifact path against bytes beneath the input JSON's parent directory by default. Use `--artifact-root DIR` when artifacts live in a separate directory, and `--report FILE` to save the machine-readable report. It rejects path traversal, control characters, duplicate normalized paths across artifact IDs, symlinks resolving outside the root, missing evidence files, and digest mismatches. Duplicate paths are forbidden so one file cannot be relabeled under another evidence role. The report writer also refuses to overwrite the input assessment, schema, or any registered artifact. It never downloads a URI or treats a digest-shaped string as proof of source authenticity.
 
 ## Interpretation of the report
 
