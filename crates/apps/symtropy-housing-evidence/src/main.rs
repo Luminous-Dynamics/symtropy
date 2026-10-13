@@ -316,6 +316,30 @@ fn evaluate_manifest(
         artifacts_by_digest.entry(digest).or_default().push(artifact);
     }
 
+    let toolchain = manifest["toolchain"]
+        .as_array()
+        .expect("schema requires toolchain array");
+    let mut tools_by_id: BTreeMap<&str, &Value> = BTreeMap::new();
+    for tool in toolchain {
+        let id = tool["tool_id"].as_str().expect("schema requires tool_id");
+        if tools_by_id.insert(id, tool).is_some() {
+            issues.push(format!("duplicate tool_id in toolchain: {id}"));
+        }
+    }
+
+    let source_references = manifest["rule_pack"]["source_references"]
+        .as_array()
+        .cloned()
+        .unwrap_or_default();
+    let mut source_ids = BTreeSet::new();
+    for source in &source_references {
+        if let Some(id) = source["source_id"].as_str() {
+            if !source_ids.insert(id.to_string()) {
+                issues.push(format!("duplicate source_id in rule pack: {id}"));
+            }
+        }
+    }
+
     for id in manifest["model"]["artifact_ids"]
         .as_array()
         .expect("schema requires model.artifact_ids")
@@ -333,6 +357,54 @@ fn evaluate_manifest(
             .expect("schema requires claim_id");
         if !claim_ids.insert(id.to_string()) {
             issues.push(format!("duplicate claim_id: {id}"));
+        }
+
+        if matches!(claim["status"].as_str(), Some(STATUS_PASS | STATUS_FAIL)) {
+            let Some(tool_id) = claim["tool_id"].as_str() else {
+                issues.push(format!("evaluated claim {id} has no tool_id"));
+                continue;
+            };
+            let Some(tool) = tools_by_id.get(tool_id) else {
+                issues.push(format!("evaluated claim {id} references unknown tool_id: {tool_id}"));
+                continue;
+            };
+
+            let Some(executable_digest) = tool
+                .get("executable_or_container_sha256")
+                .and_then(Value::as_str)
+            else {
+                issues.push(format!(
+                    "evaluated claim {id} has no executable/container digest for tool {tool_id}"
+                ));
+                continue;
+            };
+            if !artifacts_by_digest.contains_key(executable_digest) {
+                issues.push(format!(
+                    "tool {tool_id} executable/container digest is absent from evidence_artifacts: {executable_digest}"
+                ));
+            }
+
+            if let Some(config_digest) = tool
+                .get("configuration_artifact_sha256")
+                .and_then(Value::as_str)
+            {
+                if !artifacts_by_digest.contains_key(config_digest) {
+                    issues.push(format!(
+                        "tool {tool_id} configuration digest is absent from evidence_artifacts: {config_digest}"
+                    ));
+                }
+            }
+        }
+
+        if claim["claim_type"].as_str() == Some("code_compliance") {
+            let source_id = claim["requirement"]["source_id"].as_str();
+            match source_id {
+                Some(id) if source_ids.contains(id) => {}
+                Some(id) => issues.push(format!(
+                    "code compliance claim {id} references a source absent from the rule pack"
+                )),
+                None => issues.push(format!("code compliance claim {} has no source_id", id)),
+            }
         }
 
         for field in ["input_artifact_sha256", "output_artifact_sha256"] {
@@ -510,6 +582,14 @@ fn referenced_digests(manifest: &Value) -> BTreeSet<String> {
         .and_then(Value::as_str)
     {
         result.insert(digest.to_string());
+    }
+
+    for tool in manifest["toolchain"].as_array().into_iter().flatten() {
+        for field in ["executable_or_container_sha256", "configuration_artifact_sha256"] {
+            if let Some(digest) = tool.get(field).and_then(Value::as_str) {
+                result.insert(digest.to_string());
+            }
+        }
     }
 
     for claim in manifest["claims"].as_array().into_iter().flatten() {
@@ -717,11 +797,31 @@ mod tests {
         let artifact_bytes = b"synthetic test artifact - not engineering evidence";
         fs::write(root.join("model.bin"), artifact_bytes).expect("write test artifact");
         let digest = sha256_hex(artifact_bytes);
+        let tool_bytes = b"synthetic verifier tool - not a solver";
+        fs::write(root.join("tool.bin"), tool_bytes).expect("write tool artifact");
+        let tool_digest = sha256_hex(tool_bytes);
 
+        manifest["evidence_artifacts"][0]["artifact_id"] = json!("model-fixture");
         manifest["jurisdiction"]["resolution_status"] = json!("confirmed");
         manifest["rule_pack"]["status"] = json!("reviewed_for_use");
         manifest["evidence_artifacts"][0]["sha256"] = json!(digest);
         manifest["evidence_artifacts"][0]["uri"] = json!("model.bin");
+        manifest["evidence_artifacts"].as_array_mut().unwrap().push(json!({
+            "artifact_id": "tool-executable",
+            "media_type": "application/octet-stream",
+            "sha256": tool_digest,
+            "role": "other",
+            "uri": "tool.bin",
+            "retention_class": "test-only"
+        }));
+        manifest["toolchain"] = json!([{
+            "tool_id": "synthetic-tool",
+            "name": "Synthetic Test Tool",
+            "version": "0.0-test",
+            "executable_or_container_sha256": tool_digest,
+            "configuration_artifact_sha256": null,
+            "runtime": "unit-test only"
+        }]);
         manifest["claims"][0]["status"] = json!(STATUS_PASS);
         manifest["claims"][0]["input_artifact_sha256"] = json!([digest]);
         manifest["claims"][0]["output_artifact_sha256"] = json!([digest]);
@@ -819,7 +919,7 @@ mod tests {
         let result = evaluate_manifest(&schema, &manifest, Some(&expected), true, Some(&root));
         assert!(result.schema_valid, "{:?}", result.issues);
         assert_eq!(result.effective_status, STATUS_PASS, "{:?}", result.issues);
-        assert_eq!(result.artifact_digests_verified, 1);
+        assert_eq!(result.artifact_digests_verified, 2);
         fs::remove_dir_all(root).expect("clean temp dir");
     }
 
