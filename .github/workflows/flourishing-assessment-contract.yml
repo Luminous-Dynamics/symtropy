@@ -4,6 +4,7 @@ on:
   pull_request:
     paths:
       - "docs/humanity-atlas/flourishing-assessment-v0.1.schema.json"
+      - "docs/humanity-atlas/constraint-preregistration-v0.1.schema.json"
       - "docs/humanity-atlas/flourishing-evaluation-contract-v0.1.md"
       - "docs/humanity-atlas/README.md"
       - "docs/humanity-atlas/fixtures/flourishing-assessment.not-evidence.json"
@@ -44,8 +45,10 @@ jobs:
           python-version: "3.12"
       - name: Install pinned schema validator
         run: python -m pip install --disable-pip-version-check "jsonschema==4.26.0"
-      - name: Parse schema as JSON
-        run: python -m json.tool docs/humanity-atlas/flourishing-assessment-v0.1.schema.json > /dev/null
+      - name: Parse schemas as JSON
+        run: |
+          python -m json.tool docs/humanity-atlas/flourishing-assessment-v0.1.schema.json > /dev/null
+          python -m json.tool docs/humanity-atlas/constraint-preregistration-v0.1.schema.json > /dev/null
       - name: Compile checker and tests
         run: python -m py_compile scripts/research/validate_flourishing_assessment.py scripts/research/test_validate_flourishing_assessment.py
       - name: Run fail-closed regression suite
