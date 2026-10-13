@@ -157,8 +157,8 @@ An unrun test, queued job, skipped suite, absent artifact, or invalid interval d
 This protocol adapts general methodological guidance; it is not a claim that any experiment has already been run:
 
 1. Borgonovo, E., Pangallo, M., Rivkin, J., Rizzo, L., & Siggelkow, N. (2022). *Sensitivity analysis of agent-based models: a new protocol*. Computational and Mathematical Organization Theory, 28, 52–94. https://doi.org/10.1007/s10588-021-09358-5 — describes matching sensitivity methods to questions and using factorial designs to estimate main and interaction effects.
-3. Heikes, R. G., Montgomery, D. C., & Rardin, R. L. (1976). *Using common random numbers in simulation experiments — an approach to statistical analysis*. Simulation, 27(3). https://doi.org/10.1177/003754977602700301 — discusses using the same pseudo-random streams across alternatives as a simulation-comparison design. For this experiment, a fixed seed alone does not prove that treatment arms consumed equivalent draws, so the RNG alignment policy and evidence must be recorded.
 2. Troost, C. et al. (2023). *How to keep it adequate: A protocol for ensuring validity in agent-based simulation*. Environmental Modelling & Software, 159, 105559. https://doi.org/10.1016/j.envsoft.2022.105559 — frames validity as context-adequacy across model choice, inference, uncertainty analysis, and interpretation, with uncertainty traced throughout.
+3. Heikes, R. G., Montgomery, D. C., & Rardin, R. L. (1976). *Using common random numbers in simulation experiments — an approach to statistical analysis*. Simulation, 27(3). https://doi.org/10.1177/003754977602700301 — discusses using the same pseudo-random streams across alternatives as a simulation-comparison design. For this experiment, a fixed seed alone does not prove that treatment arms consumed equivalent draws, so the RNG alignment policy and evidence must be recorded.
 
 ## 10. Current implementation notes
 
