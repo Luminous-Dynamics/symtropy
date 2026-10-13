@@ -731,6 +731,11 @@ impl CargoTransferEquipmentProfile {
 /// particular time window.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct CargoTransferResourceBinding {
+    /// Unique within one planning batch; prevents replaying one assignment twice.
+    pub assignment_id: String,
+    /// Capacity accounting scope, such as a named shift or frozen scenario window.
+    /// It is an identifier, not a timestamp or proof of live availability.
+    pub capacity_scope_id: String,
     pub module_id: String,
     pub module_profile_id: String,
     pub transfer_edge_id: String,
@@ -739,6 +744,213 @@ pub struct CargoTransferResourceBinding {
     /// Capacity consumed by this proposed transfer in the edge's declared unit.
     pub capacity_units: u64,
     pub capacity_unit: QuantityUnit,
+}
+
+/// Available capacity budget for one named terminal-equipment resource in one
+/// explicit planning scope. Capacity must use the same unit as its bindings.
+/// This is supplied planning data, not proof of a live reservation/availability.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct CargoTransferEquipmentCapacity {
+    pub equipment_id: String,
+    pub terminal_id: String,
+    pub capacity_scope_id: String,
+    pub capacity_units: u64,
+    pub capacity_unit: QuantityUnit,
+}
+
+/// Capacity use emitted by deterministic batch validation.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct CargoTransferCapacityUse {
+    pub resource_kind: CargoTransferCapacityResourceKind,
+    pub resource_id: String,
+    pub capacity_scope_id: String,
+    pub capacity_units_used: u64,
+    pub capacity_units_limit: u64,
+    pub capacity_unit: QuantityUnit,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
+pub enum CargoTransferCapacityResourceKind {
+    TransferEdge,
+    Equipment,
+}
+
+/// A reproducible capacity accounting summary for a proposed planning batch.
+/// This validates aggregate numeric capacity only; all module/edge/equipment
+/// compatibility checks and time-window scheduling remain separate.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct CargoTransferCapacityReport {
+    pub assignment_count: usize,
+    pub capacity_uses: Vec<CargoTransferCapacityUse>,
+}
+
+/// Reject duplicate assignments, missing/ambiguous resource budgets, capacity
+/// unit mismatches, and overcommitment of either a transfer edge or a shared
+/// equipment resource across multiple edges in the same planning scope.
+///
+/// The input edge IDs must be unique. Equipment capacity is grouped by
+/// equipment ID + planning scope (not by edge), so two edges cannot each spend
+/// the same crane's full declared capacity. Inputs and outputs are deterministic.
+pub fn validate_cargo_transfer_capacity_plan(
+    bindings: &[CargoTransferResourceBinding],
+    edges: &[Edge],
+    equipment_capacities: &[CargoTransferEquipmentCapacity],
+) -> Result<CargoTransferCapacityReport, CargoError> {
+    use std::collections::btree_map::Entry;
+
+    let mut edges_by_id = BTreeMap::new();
+    for edge in edges {
+        if edge.id.trim().is_empty() || edges_by_id.insert(edge.id.as_str(), edge).is_some() {
+            return Err(CargoError::TransferCapacityPlanInvalid);
+        }
+    }
+
+    let mut equipment_budgets = BTreeMap::new();
+    for budget in equipment_capacities {
+        if budget.equipment_id.trim().is_empty()
+            || budget.terminal_id.trim().is_empty()
+            || budget.capacity_scope_id.trim().is_empty()
+            || budget.capacity_units == 0
+        {
+            return Err(CargoError::TransferCapacityPlanInvalid);
+        }
+        let key = (budget.equipment_id.as_str(), budget.capacity_scope_id.as_str());
+        if equipment_budgets.insert(key, budget).is_some() {
+            return Err(CargoError::TransferCapacityBudgetDuplicate);
+        }
+    }
+
+    let mut assignments = BTreeSet::new();
+    let mut edge_used: BTreeMap<(String, String, QuantityUnit), u64> = BTreeMap::new();
+    let mut equipment_used: BTreeMap<(String, String, QuantityUnit), u64> = BTreeMap::new();
+
+    for binding in bindings {
+        if binding.assignment_id.trim().is_empty()
+            || binding.capacity_scope_id.trim().is_empty()
+            || binding.module_id.trim().is_empty()
+            || binding.module_profile_id.trim().is_empty()
+            || binding.transfer_edge_id.trim().is_empty()
+            || binding.equipment_id.trim().is_empty()
+            || binding.terminal_id.trim().is_empty()
+            || binding.capacity_units == 0
+        {
+            return Err(CargoError::TransferResourceBindingInvalid);
+        }
+        if !assignments.insert(binding.assignment_id.as_str()) {
+            return Err(CargoError::TransferAssignmentIdDuplicate);
+        }
+
+        let edge = edges_by_id
+            .get(binding.transfer_edge_id.as_str())
+            .ok_or(CargoError::TransferResourceBindingMismatch)?;
+        if !matches!(edge.operation, EdgeOperation::Transfer { .. })
+            || edge.from != edge.to
+            || edge.from != binding.terminal_id
+        {
+            return Err(CargoError::TransferTerminalMismatch);
+        }
+        if edge.capacity == 0 {
+            return Err(CargoError::TransferCapacityUnavailable);
+        }
+        if edge.capacity_unit != binding.capacity_unit {
+            return Err(CargoError::TransferCapacityUnitMismatch);
+        }
+        if binding.capacity_units > edge.capacity {
+            return Err(CargoError::TransferCapacityExceeded);
+        }
+
+        let budget = equipment_budgets
+            .get(&(
+                binding.equipment_id.as_str(),
+                binding.capacity_scope_id.as_str(),
+            ))
+            .ok_or(CargoError::TransferCapacityBudgetMissing)?;
+        if budget.terminal_id != binding.terminal_id {
+            return Err(CargoError::TransferResourceBindingMismatch);
+        }
+        if budget.capacity_unit != binding.capacity_unit {
+            return Err(CargoError::TransferCapacityUnitMismatch);
+        }
+
+        let edge_key = (
+            binding.transfer_edge_id.clone(),
+            binding.capacity_scope_id.clone(),
+            binding.capacity_unit,
+        );
+        let used_edge = match edge_used.entry(edge_key) {
+            Entry::Occupied(entry) => entry.into_mut(),
+            Entry::Vacant(entry) => entry.insert(0),
+        };
+        *used_edge = used_edge
+            .checked_add(binding.capacity_units)
+            .ok_or(CargoError::TransferCapacityArithmeticOverflow)?;
+        if *used_edge > edge.capacity {
+            return Err(CargoError::TransferCapacityExceeded);
+        }
+
+        let equipment_key = (
+            binding.equipment_id.clone(),
+            binding.capacity_scope_id.clone(),
+            binding.capacity_unit,
+        );
+        let used_equipment = match equipment_used.entry(equipment_key) {
+            Entry::Occupied(entry) => entry.into_mut(),
+            Entry::Vacant(entry) => entry.insert(0),
+        };
+        *used_equipment = used_equipment
+            .checked_add(binding.capacity_units)
+            .ok_or(CargoError::TransferCapacityArithmeticOverflow)?;
+        if *used_equipment > budget.capacity_units {
+            return Err(CargoError::TransferEquipmentCapacityExceeded);
+        }
+    }
+
+    let mut capacity_uses = Vec::with_capacity(edge_used.len() + equipment_used.len());
+    for ((resource_id, capacity_scope_id, capacity_unit), used) in edge_used {
+        let edge = edges_by_id
+            .get(resource_id.as_str())
+            .ok_or(CargoError::TransferResourceBindingMismatch)?;
+        capacity_uses.push(CargoTransferCapacityUse {
+            resource_kind: CargoTransferCapacityResourceKind::TransferEdge,
+            resource_id,
+            capacity_scope_id,
+            capacity_units_used: used,
+            capacity_units_limit: edge.capacity,
+            capacity_unit,
+        });
+    }
+    for ((resource_id, capacity_scope_id, capacity_unit), used) in equipment_used {
+        let budget = equipment_budgets
+            .get(&(resource_id.as_str(), capacity_scope_id.as_str()))
+            .ok_or(CargoError::TransferCapacityBudgetMissing)?;
+        capacity_uses.push(CargoTransferCapacityUse {
+            resource_kind: CargoTransferCapacityResourceKind::Equipment,
+            resource_id,
+            capacity_scope_id,
+            capacity_units_used: used,
+            capacity_units_limit: budget.capacity_units,
+            capacity_unit,
+        });
+    }
+    capacity_uses.sort_by(|left, right| {
+        (
+            left.resource_kind,
+            left.capacity_scope_id.as_str(),
+            left.resource_id.as_str(),
+            left.capacity_unit,
+        )
+            .cmp(&(
+                right.resource_kind,
+                right.capacity_scope_id.as_str(),
+                right.resource_id.as_str(),
+                right.capacity_unit,
+            ))
+    });
+
+    Ok(CargoTransferCapacityReport {
+        assignment_count: assignments.len(),
+        capacity_uses,
+    })
 }
 
 /// Validate one module against one explicit intermodal transfer edge, the
@@ -1069,6 +1281,12 @@ pub enum CargoError {
     TransferResourceBindingMismatch,
     TransferCapacityUnitMismatch,
     TransferCapacityExceeded,
+    TransferAssignmentIdDuplicate,
+    TransferCapacityBudgetMissing,
+    TransferCapacityBudgetDuplicate,
+    TransferEquipmentCapacityExceeded,
+    TransferCapacityArithmeticOverflow,
+    TransferCapacityPlanInvalid,
 }
 
 impl fmt::Display for CargoError {
@@ -1145,6 +1363,24 @@ impl fmt::Display for CargoError {
             }
             Self::TransferCapacityExceeded => {
                 write!(f, "proposed transfer consumes more capacity than the edge declares")
+            }
+            Self::TransferAssignmentIdDuplicate => {
+                write!(f, "transfer assignment ID is duplicated in the planning batch")
+            }
+            Self::TransferCapacityBudgetMissing => {
+                write!(f, "transfer equipment has no capacity budget for this planning scope")
+            }
+            Self::TransferCapacityBudgetDuplicate => {
+                write!(f, "transfer equipment has duplicate capacity budgets for one planning scope")
+            }
+            Self::TransferEquipmentCapacityExceeded => {
+                write!(f, "proposed transfers exceed shared equipment capacity in the planning scope")
+            }
+            Self::TransferCapacityArithmeticOverflow => {
+                write!(f, "transfer capacity aggregation overflowed integer arithmetic")
+            }
+            Self::TransferCapacityPlanInvalid => {
+                write!(f, "transfer capacity plan contains an invalid or duplicate resource definition")
             }
         }
     }
@@ -2236,6 +2472,8 @@ mod tests {
 
     fn cargo_transfer_resource_binding() -> CargoTransferResourceBinding {
         CargoTransferResourceBinding {
+            assignment_id: "assignment-1".to_owned(),
+            capacity_scope_id: "shift-2026-10-13-day".to_owned(),
             module_id: "container-42".to_owned(),
             module_profile_id: "iso-40ft-v1".to_owned(),
             transfer_edge_id: "road-rail-at-hub".to_owned(),
@@ -2456,6 +2694,192 @@ mod tests {
         assert_eq!(
             check_cargo_transfer_compatibility(&profile, &instance, &edge, &equipment, &binding),
             Err(CargoError::TransferResourceBindingInvalid)
+        );
+    }
+
+    fn second_road_rail_transfer_edge() -> Edge {
+        Edge::transfer(
+            "road-rail-at-hub-2",
+            "Hub",
+            Mode::Road,
+            Mode::Rail,
+            2,
+            QuantityUnit::Shipments,
+            metrics(10, 0, 120, 0, 2, 1, 0, 1, 1),
+        )
+    }
+
+    fn equipment_capacity(
+        equipment_id: &str,
+        capacity_units: u64,
+        capacity_unit: QuantityUnit,
+    ) -> CargoTransferEquipmentCapacity {
+        CargoTransferEquipmentCapacity {
+            equipment_id: equipment_id.to_owned(),
+            terminal_id: "Hub".to_owned(),
+            capacity_scope_id: "shift-2026-10-13-day".to_owned(),
+            capacity_units,
+            capacity_unit,
+        }
+    }
+
+    fn second_transfer_binding() -> CargoTransferResourceBinding {
+        CargoTransferResourceBinding {
+            assignment_id: "assignment-2".to_owned(),
+            capacity_scope_id: "shift-2026-10-13-day".to_owned(),
+            module_id: "container-43".to_owned(),
+            module_profile_id: "iso-40ft-v1".to_owned(),
+            transfer_edge_id: "road-rail-at-hub-2".to_owned(),
+            equipment_id: "hub-cross-dock-crane-3".to_owned(),
+            terminal_id: "Hub".to_owned(),
+            capacity_units: 1,
+            capacity_unit: QuantityUnit::Shipments,
+        }
+    }
+
+    #[test]
+    fn cargo_transfer_capacity_plan_accepts_shared_resource_within_budget() {
+        let mut first = cargo_transfer_resource_binding();
+        first.capacity_units = 1;
+        let second = second_transfer_binding();
+        let budget = equipment_capacity("hub-cross-dock-crane-3", 2, QuantityUnit::Shipments);
+        let report = validate_cargo_transfer_capacity_plan(
+            &[first, second],
+            &[road_rail_transfer_edge(), second_road_rail_transfer_edge()],
+            &[budget],
+        )
+        .unwrap();
+
+        assert_eq!(report.assignment_count, 2);
+        let equipment_use = report
+            .capacity_uses
+            .iter()
+            .find(|usage| {
+                usage.resource_kind == CargoTransferCapacityResourceKind::Equipment
+            })
+            .unwrap();
+        assert_eq!(equipment_use.capacity_units_used, 2);
+        assert_eq!(equipment_use.capacity_units_limit, 2);
+        assert_eq!(equipment_use.capacity_unit, QuantityUnit::Shipments);
+    }
+
+    #[test]
+    fn cargo_transfer_capacity_plan_rejects_shared_equipment_overcommit_across_edges() {
+        let first = cargo_transfer_resource_binding();
+        let mut second = second_transfer_binding();
+        second.capacity_units = 1;
+        let budget = equipment_capacity("hub-cross-dock-crane-3", 1, QuantityUnit::Shipments);
+        assert_eq!(
+            validate_cargo_transfer_capacity_plan(
+                &[first, second],
+                &[road_rail_transfer_edge(), second_road_rail_transfer_edge()],
+                &[budget],
+            ),
+            Err(CargoError::TransferEquipmentCapacityExceeded)
+        );
+    }
+
+    #[test]
+    fn cargo_transfer_capacity_plan_rejects_edge_overcommit_and_duplicate_assignment() {
+        let first = cargo_transfer_resource_binding();
+        let mut second = cargo_transfer_resource_binding();
+        second.assignment_id = "assignment-2".to_owned();
+        second.module_id = "container-43".to_owned();
+        second.capacity_units = 1;
+        let budget = equipment_capacity("hub-cross-dock-crane-3", 10, QuantityUnit::Shipments);
+        let mut edge = road_rail_transfer_edge();
+        edge.capacity = 1;
+        assert_eq!(
+            validate_cargo_transfer_capacity_plan(
+                &[first.clone(), second.clone()],
+                &[edge],
+                &[budget.clone()],
+            ),
+            Err(CargoError::TransferCapacityExceeded)
+        );
+
+        second.assignment_id = first.assignment_id.clone();
+        assert_eq!(
+            validate_cargo_transfer_capacity_plan(
+                &[first, second],
+                &[road_rail_transfer_edge()],
+                &[budget],
+            ),
+            Err(CargoError::TransferAssignmentIdDuplicate)
+        );
+    }
+
+    #[test]
+    fn cargo_transfer_capacity_plan_rejects_missing_and_ambiguous_budgets() {
+        let binding = cargo_transfer_resource_binding();
+        assert_eq!(
+            validate_cargo_transfer_capacity_plan(
+                &[binding.clone()],
+                &[road_rail_transfer_edge()],
+                &[],
+            ),
+            Err(CargoError::TransferCapacityBudgetMissing)
+        );
+
+        let budget = equipment_capacity("hub-cross-dock-crane-3", 2, QuantityUnit::Shipments);
+        assert_eq!(
+            validate_cargo_transfer_capacity_plan(
+                &[binding],
+                &[road_rail_transfer_edge()],
+                &[budget.clone(), budget],
+            ),
+            Err(CargoError::TransferCapacityBudgetDuplicate)
+        );
+    }
+
+    #[test]
+    fn cargo_transfer_capacity_plan_rejects_capacity_unit_mismatch_and_overflow() {
+        let mut binding = cargo_transfer_resource_binding();
+        binding.capacity_unit = QuantityUnit::Teu;
+        let budget = equipment_capacity("hub-cross-dock-crane-3", 2, QuantityUnit::Teu);
+        assert_eq!(
+            validate_cargo_transfer_capacity_plan(
+                &[binding],
+                &[road_rail_transfer_edge()],
+                &[budget],
+            ),
+            Err(CargoError::TransferCapacityUnitMismatch)
+        );
+
+        let mut first = cargo_transfer_resource_binding();
+        first.capacity_units = u64::MAX;
+        let mut second = second_transfer_binding();
+        second.capacity_units = 1;
+        let huge_edge = Edge::transfer(
+            "road-rail-at-hub",
+            "Hub",
+            Mode::Road,
+            Mode::Rail,
+            u64::MAX,
+            QuantityUnit::Shipments,
+            metrics(10, 0, 120, 0, 2, 1, 0, 1, 1),
+        );
+        let second_edge = Edge::transfer(
+            "road-rail-at-hub-2",
+            "Hub",
+            Mode::Road,
+            Mode::Rail,
+            u64::MAX,
+            QuantityUnit::Shipments,
+            metrics(10, 0, 120, 0, 2, 1, 0, 1, 1),
+        );
+        let budget = equipment_capacity(
+            "hub-cross-dock-crane-3",
+            u64::MAX,
+            QuantityUnit::Shipments,
+        );
+        assert_eq!(
+            validate_cargo_transfer_capacity_plan(
+                &[first, second],
+                &[huge_edge, second_edge],
+                &[budget],
+            ),
+            Err(CargoError::TransferCapacityArithmeticOverflow)
         );
     }
 
