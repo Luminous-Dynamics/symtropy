@@ -583,6 +583,18 @@ def main(argv: list[str] | None = None) -> int:
 
     rendered = json.dumps(report, indent=2, sort_keys=True, allow_nan=False) + "\n"
     if args.report:
+        report_target = args.report.resolve(strict=False)
+        protected_targets = {args.assessment.resolve(strict=False), schema_path.resolve(strict=False)}
+        artifact_root_for_paths = (args.artifact_root or args.assessment.parent).resolve()
+        for artifact in document.get("artifacts", []):
+            if not isinstance(artifact, dict):
+                continue
+            relative = artifact.get("path")
+            if _safe_relative_path(relative):
+                protected_targets.add((artifact_root_for_paths / relative).resolve(strict=False))
+        if report_target in protected_targets:
+            print("ERROR: report path would overwrite the assessment, schema, or a registered evidence artifact", file=sys.stderr)
+            return 2
         try:
             args.report.write_text(rendered, encoding="utf-8")
         except OSError as exc:
