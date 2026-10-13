@@ -100,6 +100,7 @@ pub enum ExcavationContractErrorV1 {
     InvalidWorldManifest(Vec<WorldValidationIssue>),
     EmptyIdentity(&'static str),
     InvalidDigest(&'static str),
+    WorldManifestDigestMismatch,
     InvalidToolGeometryArtifact,
     UndeclaredToolGeometryArtifact,
     UnknownMaterialProfile(String),
@@ -122,6 +123,7 @@ impl MaterialAwareExcavationRequestV1 {
     pub fn validate_against_world(
         &self,
         world: &WorldManifestV1,
+        canonical_world_manifest_sha256: &str,
     ) -> Result<(), ExcavationContractErrorV1> {
         world
             .validate()
@@ -140,10 +142,15 @@ impl MaterialAwareExcavationRequestV1 {
                 return Err(ExcavationContractErrorV1::EmptyIdentity(field));
             }
         }
-        if !is_sha256_hex(&self.world_manifest_sha256) {
+        if !is_sha256_hex(&self.world_manifest_sha256)
+            || !is_sha256_hex(canonical_world_manifest_sha256)
+        {
             return Err(ExcavationContractErrorV1::InvalidDigest(
                 "world_manifest_sha256",
             ));
+        }
+        if self.world_manifest_sha256 != canonical_world_manifest_sha256 {
+            return Err(ExcavationContractErrorV1::WorldManifestDigestMismatch);
         }
         if !is_sha256_hex(&self.input_digest_sha256) {
             return Err(ExcavationContractErrorV1::InvalidDigest(
@@ -212,9 +219,10 @@ impl MaterialAwareExcavationResultV1 {
     pub fn validate_against(
         &self,
         world: &WorldManifestV1,
+        canonical_world_manifest_sha256: &str,
         expected_request: &MaterialAwareExcavationRequestV1,
     ) -> Result<(), ExcavationContractErrorV1> {
-        expected_request.validate_against_world(world)?;
+        expected_request.validate_against_world(world, canonical_world_manifest_sha256)?;
         if self.schema_version != MATERIAL_AWARE_EXCAVATION_SCHEMA_VERSION {
             return Err(ExcavationContractErrorV1::UnsupportedSchemaVersion);
         }
@@ -468,11 +476,13 @@ mod tests {
 
     #[test]
     fn request_requires_declared_material_tool_geometry_and_solver() {
-        assert!(request().validate_against_world(&world()).is_ok());
+        assert!(request()
+            .validate_against_world(&world(), &"d".repeat(SHA256_HEX_LENGTH))
+            .is_ok());
         let mut unknown_material = request();
         unknown_material.material_profile_id = "unlisted-basalt-profile".to_owned();
         assert_eq!(
-            unknown_material.validate_against_world(&world()),
+            unknown_material.validate_against_world(&world(), &"d".repeat(SHA256_HEX_LENGTH)),
             Err(ExcavationContractErrorV1::UnknownMaterialProfile(
                 "unlisted-basalt-profile".to_owned()
             ))
@@ -480,8 +490,16 @@ mod tests {
         let mut unknown_tool = request();
         unknown_tool.tool.geometry_artifact = artifact("undeclared-tool", 'a');
         assert_eq!(
-            unknown_tool.validate_against_world(&world()),
+            unknown_tool.validate_against_world(&world(), &"d".repeat(SHA256_HEX_LENGTH)),
             Err(ExcavationContractErrorV1::UndeclaredToolGeometryArtifact)
+        );
+    }
+
+    #[test]
+    fn request_rejects_mismatched_canonical_world_digest() {
+        assert_eq!(
+            request().validate_against_world(&world(), &"0".repeat(SHA256_HEX_LENGTH)),
+            Err(ExcavationContractErrorV1::WorldManifestDigestMismatch)
         );
     }
 
@@ -490,12 +508,12 @@ mod tests {
         let world = world();
         let expected = request();
         assert!(result(ExcavationDispositionV1::CompletedWithinEnvelope)
-            .validate_against(&world, &expected)
+            .validate_against(&world, &"d".repeat(SHA256_HEX_LENGTH), &expected)
             .is_ok());
         let mut stale = result(ExcavationDispositionV1::CompletedWithinEnvelope);
         stale.request.world_generation -= 1;
         assert_eq!(
-            stale.validate_against(&world, &expected),
+            stale.validate_against(&world, &"d".repeat(SHA256_HEX_LENGTH), &expected),
             Err(ExcavationContractErrorV1::RequestIdentityMismatch)
         );
     }
@@ -505,7 +523,7 @@ mod tests {
         let mut failed = result(ExcavationDispositionV1::OutOfDomain);
         failed.response = Some(response());
         assert_eq!(
-            failed.validate_against(&world(), &request()),
+            failed.validate_against(&world(), &"d".repeat(SHA256_HEX_LENGTH), &request()),
             Err(ExcavationContractErrorV1::InconsistentDisposition)
         );
     }
@@ -515,7 +533,7 @@ mod tests {
         let mut invalid = result(ExcavationDispositionV1::CompletedWithinEnvelope);
         invalid.response.as_mut().unwrap().removed_solid_rock_volume_m3 = f64::NAN;
         assert_eq!(
-            invalid.validate_against(&world(), &request()),
+            invalid.validate_against(&world(), &"d".repeat(SHA256_HEX_LENGTH), &request()),
             Err(ExcavationContractErrorV1::InvalidOutput(
                 "removed_solid_rock_volume_m3"
             ))
@@ -527,14 +545,16 @@ mod tests {
         let mut overlimit = result(ExcavationDispositionV1::CompletedWithinEnvelope);
         overlimit.response.as_mut().unwrap().peak_thrust_n = 1_200.0;
         assert_eq!(
-            overlimit.validate_against(&world(), &request()),
+            overlimit.validate_against(&world(), &"d".repeat(SHA256_HEX_LENGTH), &request()),
             Err(ExcavationContractErrorV1::OperatingEnvelopeExceeded(
                 "peak_thrust_n"
             ))
         );
         overlimit.disposition = ExcavationDispositionV1::CompletedWithWarnings;
         overlimit.warnings = vec!["Peak thrust exceeded declared tool limit.".to_owned()];
-        assert!(overlimit.validate_against(&world(), &request()).is_ok());
+        assert!(overlimit
+            .validate_against(&world(), &"d".repeat(SHA256_HEX_LENGTH), &request())
+            .is_ok());
     }
 
     #[test]
@@ -542,7 +562,7 @@ mod tests {
         let mut warningless = result(ExcavationDispositionV1::CompletedWithWarnings);
         warningless.warnings.clear();
         assert_eq!(
-            warningless.validate_against(&world(), &request()),
+            warningless.validate_against(&world(), &"d".repeat(SHA256_HEX_LENGTH), &request()),
             Err(ExcavationContractErrorV1::WarningStatusWithoutWarning)
         );
     }
