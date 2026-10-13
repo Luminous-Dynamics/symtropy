@@ -730,7 +730,11 @@ mod tests {
         wrong_frame.spatial_delta.as_mut().unwrap().coordinate_frame_id =
             "unregistered-frame".to_owned();
         assert_eq!(
-            wrong_frame.validate_against(&world, &"d".repeat(SHA256_HEX_LENGTH), &expected),
+            wrong_frame.validate_against(
+                &world,
+                &"d".repeat(SHA256_HEX_LENGTH),
+                &expected
+            ),
             Err(ExcavationContractErrorV1::InvalidSpatialDelta)
         );
 
