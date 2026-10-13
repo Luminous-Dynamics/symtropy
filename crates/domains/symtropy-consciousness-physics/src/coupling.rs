@@ -1288,21 +1288,35 @@ mod tests {
         enabled.register(receiver, 100.0, 10.0);
         enabled.update_entity(source, &inputs, symtropy_math::Point::origin());
         enabled.update_entity(receiver, &inputs, symtropy_math::Point::origin());
-        enabled.entities.get_mut(&source).unwrap().harmony_activations[EMOTIONAL_CONTAGION_IDX] = 1.0;
+        enabled
+            .entities
+            .get_mut(&source)
+            .unwrap()
+            .harmony_activations[EMOTIONAL_CONTAGION_IDX] = 1.0;
         enabled.spread_emotional_contagion(&positions, 1.0);
-        let enabled_receiver =
-            enabled.entities.get(&receiver).unwrap().harmony_activations[EMOTIONAL_CONTAGION_IDX];
+        let enabled_receiver = enabled
+            .entities
+            .get(&receiver)
+            .unwrap()
+            .harmony_activations[EMOTIONAL_CONTAGION_IDX];
 
         let mut disabled = ConsciousnessField::<3>::new();
         disabled.register(source, 100.0, 10.0);
         disabled.register(receiver, 100.0, 10.0);
         disabled.update_entity(source, &inputs, symtropy_math::Point::origin());
         disabled.update_entity(receiver, &inputs, symtropy_math::Point::origin());
-        disabled.entities.get_mut(&source).unwrap().harmony_activations[EMOTIONAL_CONTAGION_IDX] = 1.0;
+        disabled
+            .entities
+            .get_mut(&source)
+            .unwrap()
+            .harmony_activations[EMOTIONAL_CONTAGION_IDX] = 1.0;
         disabled.mechanism_toggles.emotional_contagion = false;
         disabled.spread_emotional_contagion(&positions, 1.0);
-        let disabled_receiver =
-            disabled.entities.get(&receiver).unwrap().harmony_activations[EMOTIONAL_CONTAGION_IDX];
+        let disabled_receiver = disabled
+            .entities
+            .get(&receiver)
+            .unwrap()
+            .harmony_activations[EMOTIONAL_CONTAGION_IDX];
 
         assert!(enabled_receiver > 0.0);
         assert_eq!(disabled_receiver, 0.0);
