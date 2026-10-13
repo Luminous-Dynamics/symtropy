@@ -68,9 +68,11 @@ Each result line must include the following minimum fields:
       "validation_failure_count": 0,
       "nonfinite_count": 0,
       "invariant_drift": 0.001,
-      "artifact_sha256": "ACTUAL_64_CHARACTER_ARTIFACT_SHA256",
+      "artifact_path": "run-001.trace",
+      "artifact_sha256": "ACTUAL_SHA256_OF_THE_TRACE_FILE",
       "replay_status": "exact_match",
-      "replay_evidence_sha256": "ACTUAL_64_CHARACTER_REPLAY_EVIDENCE_SHA256"
+      "replay_evidence_path": "run-001.replay.json",
+      "replay_evidence_sha256": "ACTUAL_SHA256_OF_THE_REPLAY_FILE"
     }
 
 The values above are placeholders for the schema only, not measured Symtropy results. Failed/skipped/cancelled/unqualified runs must also be recorded, with null primary_endpoint, and must never be silently removed. If replay has not been checked, use not_tested; such a manifest cannot qualify.
@@ -80,9 +82,10 @@ The values above are placeholders for the schema only, not measured Symtropy res
     python3 scripts/research/harmony_field_ablation.py validate \
       --plan plan.json \
       --results results.jsonl \
+      --artifact-root ./run-artifacts \
       --report validation-report.json
 
-A qualified manifest requires every planned record, complete eight-arm/grid coverage, matching configuration identities, completed runs, zero validation/non-finite counters, valid artifact hashes, and recorded replay evidence. Missing records, unexpected records, duplicate records, malformed data, or unaccepted replay statuses fail closed.
+A qualified manifest requires every planned record, complete eight-arm/grid coverage, matching configuration identities, completed runs, zero validation/non-finite counters, and recorded replay evidence. Artifact/replay paths must be relative to the declared artifact root (default: result file's directory), may not traverse parents, and are hashed from the actual files; a digest string that does not match the bytes fails qualification. Path resolution rejects symlinks that escape the declared root. Missing records, unexpected records, duplicate records, malformed data, or unaccepted replay statuses fail closed.
 
 Exit code 0 means the manifest meets these mechanical checks only. Exit code 1 means results are not qualified; exit code 2 means the plan/input is invalid. Even a mechanically qualified manifest is **not** a utility analysis. A separate, predeclared paired/factorial effect analysis with uncertainty intervals is still required.
 
