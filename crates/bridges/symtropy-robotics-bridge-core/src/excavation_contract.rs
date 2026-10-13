@@ -99,6 +99,33 @@ pub struct ExcavationSpatialDeltaV1 {
     pub coordinate_frame_id: String,
 }
 
+/** Supported schema for a decoded cell-removal-mask artifact. */
+pub const CELL_REMOVAL_MASK_SCHEMA_VERSION: u16 = 1;
+
+/// A decoded, grid-indexed cell-removal mask.
+///
+/// The decoder that constructs this value must verify the exact artifact bytes
+/// against `source_artifact.sha256` before calling `validate_against`. This
+/// type provides semantic validation of the decoded structure; it does not
+/// perform byte decoding or mutate terrain.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct CellRemovalMaskV1 {
+    pub schema_version: u16,
+    pub source_artifact: ArtifactRef,
+    pub base_world_generation: u64,
+    pub base_geometry_artifact: ArtifactRef,
+    pub material_profile_id: String,
+    pub coordinate_frame_id: String,
+    /// Grid origin in the declared coordinate frame, metres.
+    pub grid_origin_m: [f64; 3],
+    /// Full cell dimensions, metres.
+    pub cell_size_m: [f64; 3],
+    /// Number of cells on each axis; each value must be nonzero.
+    pub grid_dimensions: [u32; 3],
+    /// Unique cell indices in strict lexicographic order for deterministic replay.
+    pub removed_cells: Vec<[u32; 3]>,
+}
+
 /// A measured or solver-reported excavation output. Values use named SI units.
 ///
 /// These fields are observations/outputs supplied by a model or instrument. This
@@ -151,6 +178,14 @@ pub enum ExcavationContractErrorV1 {
     UndeclaredTargetGeometryArtifact,
     UnknownTargetFrame(String),
     InvalidSpatialDelta,
+    InvalidCellRemovalMaskSchema,
+    CellMaskFormatMismatch,
+    CellMaskArtifactMismatch,
+    CellMaskMaterialMismatch,
+    InvalidCellGrid,
+    EmptyCellRemovalMask,
+    CellIndexOutOfBounds([u32; 3]),
+    CellIndicesNotCanonical,
     UnknownMaterialProfile(String),
     UnknownSolver(String),
     UnsupportedSolverDomain(PhysicsDomain),
@@ -161,6 +196,70 @@ pub enum ExcavationContractErrorV1 {
     InvalidOutput(&'static str),
     OperatingEnvelopeExceeded(&'static str),
     WarningStatusWithoutWarning,
+}
+
+impl CellRemovalMaskV1 {
+    /// Validate a decoded mask against the exact request, world and result delta.
+    ///
+    /// The caller must supply the digest of the canonical world-manifest bytes
+    /// and must verify the mask's byte digest before constructing this value.
+    /// No cell or terrain state is mutated by validation.
+    pub fn validate_against(
+        &self,
+        world: &WorldManifestV1,
+        canonical_world_manifest_sha256: &str,
+        request: &MaterialAwareExcavationRequestV1,
+        delta: &ExcavationSpatialDeltaV1,
+    ) -> Result<(), ExcavationContractErrorV1> {
+        request.validate_against_world(world, canonical_world_manifest_sha256)?;
+        validate_spatial_delta(delta, request)?;
+        if delta.state_delta_format != ExcavationStateDeltaFormatV1::CellRemovalMask {
+            return Err(ExcavationContractErrorV1::CellMaskFormatMismatch);
+        }
+        if self.schema_version != CELL_REMOVAL_MASK_SCHEMA_VERSION {
+            return Err(ExcavationContractErrorV1::InvalidCellRemovalMaskSchema);
+        }
+        if !valid_artifact(&self.source_artifact)
+            || self.source_artifact != delta.state_delta_artifact
+            || self.base_geometry_artifact != delta.base_geometry_artifact
+            || self.base_world_generation != delta.base_world_generation
+            || self.coordinate_frame_id != delta.coordinate_frame_id
+        {
+            return Err(ExcavationContractErrorV1::CellMaskArtifactMismatch);
+        }
+        if self.material_profile_id != request.material_profile_id {
+            return Err(ExcavationContractErrorV1::CellMaskMaterialMismatch);
+        }
+        if self.grid_dimensions.iter().any(|dimension| *dimension == 0)
+            || !self.grid_origin_m.iter().all(|coordinate| coordinate.is_finite())
+            || !self.cell_size_m.iter().all(|size| size.is_finite() && *size > 0.0)
+        {
+            return Err(ExcavationContractErrorV1::InvalidCellGrid);
+        }
+        for axis in 0..3 {
+            let extent = f64::from(self.grid_dimensions[axis]) * self.cell_size_m[axis];
+            if !extent.is_finite() || !(self.grid_origin_m[axis] + extent).is_finite() {
+                return Err(ExcavationContractErrorV1::InvalidCellGrid);
+            }
+        }
+        if !world.frames.iter().any(|frame| frame.frame_id == self.coordinate_frame_id) {
+            return Err(ExcavationContractErrorV1::UnknownTargetFrame(
+                self.coordinate_frame_id.clone(),
+            ));
+        }
+        if self.removed_cells.is_empty() {
+            return Err(ExcavationContractErrorV1::EmptyCellRemovalMask);
+        }
+        for cell in &self.removed_cells {
+            if (0..3).any(|axis| cell[axis] >= self.grid_dimensions[axis]) {
+                return Err(ExcavationContractErrorV1::CellIndexOutOfBounds(*cell));
+            }
+        }
+        if !self.removed_cells.windows(2).all(|pair| pair[0] < pair[1]) {
+            return Err(ExcavationContractErrorV1::CellIndicesNotCanonical);
+        }
+        Ok(())
+    }
 }
 
 impl MaterialAwareExcavationRequestV1 {
@@ -690,6 +789,100 @@ mod tests {
         assert_eq!(
             request().validate_against_world(&world(), &"0".repeat(SHA256_HEX_LENGTH)),
             Err(ExcavationContractErrorV1::WorldManifestDigestMismatch)
+        );
+    }
+
+    fn valid_cell_removal_mask() -> CellRemovalMaskV1 {
+        CellRemovalMaskV1 {
+            schema_version: CELL_REMOVAL_MASK_SCHEMA_VERSION,
+            source_artifact: artifact("rock-face-delta-001", '7'),
+            base_world_generation: 7,
+            base_geometry_artifact: artifact("rock-face-geometry", '8'),
+            material_profile_id: "granite-synthetic-001".to_owned(),
+            coordinate_frame_id: "world".to_owned(),
+            grid_origin_m: [0.0, 0.0, 0.0],
+            cell_size_m: [0.1, 0.1, 0.1],
+            grid_dimensions: [10, 8, 6],
+            removed_cells: vec![[1, 2, 3], [1, 2, 4], [2, 2, 4]],
+        }
+    }
+
+    #[test]
+    fn cell_mask_accepts_canonical_in_bounds_patch() {
+        let world = world();
+        let request = request();
+        let delta = result(ExcavationDispositionV1::CompletedWithinEnvelope)
+            .spatial_delta
+            .unwrap();
+        assert!(valid_cell_removal_mask()
+            .validate_against(
+                &world,
+                &"d".repeat(SHA256_HEX_LENGTH),
+                &request,
+                &delta
+            )
+            .is_ok());
+    }
+
+    #[test]
+    fn cell_mask_rejects_duplicate_or_noncanonical_cell_order() {
+        let world = world();
+        let request = request();
+        let delta = result(ExcavationDispositionV1::CompletedWithinEnvelope)
+            .spatial_delta
+            .unwrap();
+        let mut mask = valid_cell_removal_mask();
+        mask.removed_cells = vec![[1, 2, 3], [1, 2, 3]];
+        assert_eq!(
+            mask.validate_against(&world, &"d".repeat(SHA256_HEX_LENGTH), &request, &delta),
+            Err(ExcavationContractErrorV1::CellIndicesNotCanonical)
+        );
+        mask.removed_cells = vec![[2, 2, 4], [1, 2, 3]];
+        assert_eq!(
+            mask.validate_against(&world, &"d".repeat(SHA256_HEX_LENGTH), &request, &delta),
+            Err(ExcavationContractErrorV1::CellIndicesNotCanonical)
+        );
+    }
+
+    #[test]
+    fn cell_mask_rejects_out_of_bounds_cells_and_invalid_grid() {
+        let world = world();
+        let request = request();
+        let delta = result(ExcavationDispositionV1::CompletedWithinEnvelope)
+            .spatial_delta
+            .unwrap();
+        let mut mask = valid_cell_removal_mask();
+        mask.removed_cells = vec![[10, 0, 0]];
+        assert_eq!(
+            mask.validate_against(&world, &"d".repeat(SHA256_HEX_LENGTH), &request, &delta),
+            Err(ExcavationContractErrorV1::CellIndexOutOfBounds([10, 0, 0]))
+        );
+        mask = valid_cell_removal_mask();
+        mask.cell_size_m[1] = f64::NAN;
+        assert_eq!(
+            mask.validate_against(&world, &"d".repeat(SHA256_HEX_LENGTH), &request, &delta),
+            Err(ExcavationContractErrorV1::InvalidCellGrid)
+        );
+    }
+
+    #[test]
+    fn cell_mask_must_match_delta_artifact_geometry_material_and_frame() {
+        let world = world();
+        let request = request();
+        let delta = result(ExcavationDispositionV1::CompletedWithinEnvelope)
+            .spatial_delta
+            .unwrap();
+        let mut mask = valid_cell_removal_mask();
+        mask.source_artifact.sha256 = "0".repeat(SHA256_HEX_LENGTH);
+        assert_eq!(
+            mask.validate_against(&world, &"d".repeat(SHA256_HEX_LENGTH), &request, &delta),
+            Err(ExcavationContractErrorV1::CellMaskArtifactMismatch)
+        );
+        mask = valid_cell_removal_mask();
+        mask.material_profile_id = "different-material".to_owned();
+        assert_eq!(
+            mask.validate_against(&world, &"d".repeat(SHA256_HEX_LENGTH), &request, &delta),
+            Err(ExcavationContractErrorV1::CellMaskMaterialMismatch)
         );
     }
 
