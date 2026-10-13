@@ -100,8 +100,6 @@ pub struct ExcavationResponseV1 {
     pub loose_spoil_volume_m3: f64,
     pub removed_solid_rock_volume_standard_uncertainty_m3: Option<f64>,
     pub mechanical_energy_standard_uncertainty_j: Option<f64>,
-    /// Required for completed responses; rejected for failed/non-completed runs.
-    pub spatial_delta: Option<ExcavationSpatialDeltaV1>,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -556,13 +554,6 @@ mod tests {
             loose_spoil_volume_m3: 1.2e-5,
             removed_solid_rock_volume_standard_uncertainty_m3: Some(1.0e-7),
             mechanical_energy_standard_uncertainty_j: Some(10.0),
-            spatial_delta: Some(ExcavationSpatialDeltaV1 {
-                base_world_generation: 7,
-                result_world_generation: 8,
-                base_geometry_artifact: artifact("rock-face-geometry", '8'),
-                result_geometry_artifact: artifact("rock-face-after-cut-001", '6'),
-                state_delta_artifact: artifact("rock-face-delta-001", '7'),
-            }),
         }
     }
 
@@ -578,7 +569,13 @@ mod tests {
             disposition,
             result_artifact: completed.then(|| artifact("excavation-output-001", 'f')),
             response: completed.then(response),
-            spatial_delta: completed.then(|| response().spatial_delta.unwrap()),
+            spatial_delta: completed.then(|| ExcavationSpatialDeltaV1 {
+                base_world_generation: 7,
+                result_world_generation: 8,
+                base_geometry_artifact: artifact("rock-face-geometry", '8'),
+                result_geometry_artifact: artifact("rock-face-after-cut-001", '6'),
+                state_delta_artifact: artifact("rock-face-delta-001", '7'),
+            }),
             warnings: if disposition == ExcavationDispositionV1::CompletedWithWarnings {
                 vec!["Synthetic warning fixture".to_owned()]
             } else {
