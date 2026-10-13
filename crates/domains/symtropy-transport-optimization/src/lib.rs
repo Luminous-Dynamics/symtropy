@@ -347,6 +347,7 @@ pub struct CargoCustodyState {
     pub revision: u64,
     pub contents_digest: String,
     pub seal_status: CargoSealStatus,
+    pub last_receipt_digest: Option<String>,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -376,6 +377,10 @@ pub fn apply_cargo_custody_handoff(
         || current.current_custodian_id.trim().is_empty()
         || current.current_location_id.trim().is_empty()
         || current.contents_digest.trim().is_empty()
+        || current
+            .last_receipt_digest
+            .as_deref()
+            .is_some_and(str::is_empty)
     {
         return Err(CargoCustodyError::InvalidCurrentState);
     }
@@ -425,6 +430,7 @@ pub fn apply_cargo_custody_handoff(
         revision,
         contents_digest: current.contents_digest.clone(),
         seal_status: handoff.seal_status_after,
+        last_receipt_digest: Some(handoff.receipt_digest.clone()),
     })
 }
 
@@ -1270,14 +1276,18 @@ pub fn pareto_routes(
         edges.sort_by(|left, right| left.id.cmp(&right.id));
     }
 
+    let start_key = StateKey {
+        node: demand.origin.clone(),
+        current_mode: None,
+    };
     let start = SearchLabel {
         node: demand.origin.clone(),
         current_mode: None,
         transfer_count: 0,
         metrics: RouteMetrics::default(),
         edge_ids: Vec::new(),
+        visited_states: BTreeSet::from([start_key.clone()]),
     };
-    let start_key = StateKey::from(&start);
     let mut labels: BTreeMap<StateKey, Vec<SearchLabel>> = BTreeMap::new();
     labels.insert(start_key, vec![start.clone()]);
     let mut pending = VecDeque::from([start]);
@@ -1333,6 +1343,21 @@ pub fn pareto_routes(
                 continue;
             }
 
+            // A nonnegative-cost route never needs to revisit its origin or an
+            // already visited (node, mode) state. Explicitly reject such loops
+            // so zero-cost cycles cannot pollute the Pareto frontier.
+            if edge.to == demand.origin || label.visited_states.contains(&StateKey {
+                node: edge.to.clone(),
+                current_mode: next_mode,
+            }) {
+                continue;
+            }
+            let key = StateKey {
+                node: edge.to.clone(),
+                current_mode: next_mode,
+            };
+            let mut visited_states = label.visited_states.clone();
+            visited_states.insert(key.clone());
             let mut edge_ids = label.edge_ids.clone();
             edge_ids.push(edge.id.clone());
             let candidate = SearchLabel {
@@ -1341,8 +1366,8 @@ pub fn pareto_routes(
                 transfer_count: next_transfers,
                 metrics,
                 edge_ids,
+                visited_states,
             };
-            let key = StateKey::from(&candidate);
             let state_labels = labels.entry(key.clone()).or_default();
 
             if insert_nondominated(state_labels, candidate.clone()) {
@@ -1432,6 +1457,7 @@ struct SearchLabel {
     transfer_count: u32,
     metrics: RouteMetrics,
     edge_ids: Vec<String>,
+    visited_states: BTreeSet<StateKey>,
 }
 
 impl SearchLabel {
@@ -1557,6 +1583,47 @@ mod tests {
             metrics(60, 30, 2_200, 300_000, 20, 100, 8, 2, 3),
         ));
         network
+    }
+
+    #[test]
+    fn zero_cost_cycles_cannot_replace_a_direct_route_in_the_pareto_frontier() {
+        let mut network = Network::new(["A", "B", "C"], "ZAR").unwrap();
+        network.add_edge(Edge::movement(
+            "a-loop-out",
+            "A",
+            "B",
+            Mode::Road,
+            10,
+            QuantityUnit::Passengers,
+            EdgeMetrics::default(),
+        ));
+        network.add_edge(Edge::movement(
+            "b-loop-back",
+            "B",
+            "A",
+            Mode::Road,
+            10,
+            QuantityUnit::Passengers,
+            EdgeMetrics::default(),
+        ));
+        network.add_edge(Edge::movement(
+            "z-direct",
+            "A",
+            "C",
+            Mode::Road,
+            10,
+            QuantityUnit::Passengers,
+            EdgeMetrics::default(),
+        ));
+
+        let routes = pareto_routes(
+            &network,
+            &passenger_demand(1),
+            SearchLimits::default(),
+        )
+        .unwrap();
+        assert_eq!(routes.len(), 1);
+        assert_eq!(routes[0].edge_ids, vec!["z-direct".to_owned()]);
     }
 
     #[test]
@@ -2270,6 +2337,7 @@ mod tests {
             revision: 4,
             contents_digest: "sha256:contents".to_owned(),
             seal_status: CargoSealStatus::Intact,
+            last_receipt_digest: Some("sha256:previous-receipt".to_owned()),
         }
     }
 
@@ -2300,6 +2368,10 @@ mod tests {
         assert_eq!(next.revision, 5);
         assert_eq!(next.contents_digest, current.contents_digest);
         assert_eq!(next.seal_status, CargoSealStatus::Intact);
+        assert_eq!(
+            next.last_receipt_digest.as_deref(),
+            Some("sha256:handoff-receipt")
+        );
 
         assert_eq!(
             apply_cargo_custody_handoff(&next, &receipt),
