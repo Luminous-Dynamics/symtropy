@@ -46,6 +46,7 @@ const STATUS_REQUIRES_REVIEW: &str = "REQUIRES_REVIEW";
 struct VerificationReport {
     verifier_version: String,
     schema_sha256: Option<String>,
+    verifier_binary_sha256: Option<String>,
     manifest_sha256: Option<String>,
     expected_claims_sha256: Option<String>,
     expected_claims_digest_pinned: bool,
@@ -62,6 +63,9 @@ struct VerificationReport {
 #[serde(deny_unknown_fields)]
 struct ExpectedClaimsFile {
     schema_version: String,
+    schema_sha256: String,
+    verifier_version: String,
+    verifier_binary_sha256: String,
     case_id: String,
     jurisdiction: Value,
     model: Value,
@@ -171,6 +175,9 @@ fn run(args: Vec<String>) -> Result<(VerificationReport, bool), String> {
         return Err("--expected-claims-sha256 requires --expected-claims".to_string());
     }
 
+    let schema_sha256 = sha256_hex(EMBEDDED_SCHEMA.as_bytes());
+    let verifier_binary_sha256 = current_verifier_binary_sha256()?;
+
     let manifest_bytes = fs::read(&manifest_path)
         .map_err(|error| format!("cannot read {}: {error}", manifest_path.display()))?;
     let manifest: Value = serde_json::from_slice(&manifest_bytes)
@@ -208,7 +215,8 @@ fn run(args: Vec<String>) -> Result<(VerificationReport, bool), String> {
         expected_claims_pinned,
         artifact_root.as_deref(),
     );
-    report.schema_sha256 = Some(sha256_hex(EMBEDDED_SCHEMA.as_bytes()));
+    report.schema_sha256 = Some(schema_sha256);
+    report.verifier_binary_sha256 = Some(verifier_binary_sha256);
     report.manifest_sha256 = Some(manifest_sha256);
     report.expected_claims_sha256 = expected_claims_actual_sha256;
     report.expected_claims_digest_pinned = expected_claims_pinned;
@@ -228,6 +236,15 @@ fn read_expected_claims_file(path: &Path) -> Result<(ExpectedClaimsFile, String)
 
     if expected.schema_version.trim().is_empty() {
         return Err("expected-claims schema_version must not be empty".to_string());
+    }
+    if !is_sha256(&expected.schema_sha256) {
+        return Err("expected-claims schema_sha256 must be 64 lowercase hexadecimal characters".to_string());
+    }
+    if expected.verifier_version.trim().is_empty() {
+        return Err("expected-claims verifier_version must not be empty".to_string());
+    }
+    if !is_sha256(&expected.verifier_binary_sha256) {
+        return Err("expected-claims verifier_binary_sha256 must be 64 lowercase hexadecimal characters".to_string());
     }
     if expected.case_id.trim().is_empty() {
         return Err("expected-claims case_id must not be empty".to_string());
@@ -664,6 +681,48 @@ fn evaluate_manifest(
     let expected_model_artifact_digests: BTreeSet<String> =
         expected_claims.model_artifact_sha256.iter().cloned().collect();
 
+    let expected_schema_sha256 = sha256_hex(EMBEDDED_SCHEMA.as_bytes());
+    if expected_claims.schema_sha256 != expected_schema_sha256
+        || expected_claims.verifier_version != env!("CARGO_PKG_VERSION")
+    {
+        return report(
+            true,
+            case_id,
+            declared_status,
+            STATUS_INSUFFICIENT_EVIDENCE,
+            0,
+            vec![
+                "embedded schema digest or verifier package version differs from the independently pinned contract".to_string(),
+            ],
+        );
+    }
+
+    let actual_verifier_binary_sha256 = match current_verifier_binary_sha256() {
+        Ok(digest) => digest,
+        Err(error) => {
+            return report(
+                true,
+                case_id,
+                declared_status,
+                STATUS_INSUFFICIENT_EVIDENCE,
+                0,
+                vec![format!("cannot hash current verifier executable: {error}")],
+            );
+        }
+    };
+    if expected_claims.verifier_binary_sha256 != actual_verifier_binary_sha256 {
+        return report(
+            true,
+            case_id,
+            declared_status,
+            STATUS_INSUFFICIENT_EVIDENCE,
+            0,
+            vec![
+                "verifier executable digest differs from the independently pinned contract".to_string(),
+            ],
+        );
+    }
+
     if expected_claims.schema_version != manifest["schema_version"].as_str().unwrap_or_default()
         || expected_claims.case_id != case_id.as_deref().unwrap_or_default()
         || expected_claims.jurisdiction != manifest["jurisdiction"]
@@ -1058,6 +1117,14 @@ fn safe_local_artifact_path(root: &Path, uri: &str) -> Result<PathBuf, String> {
     Ok(canonical)
 }
 
+fn current_verifier_binary_sha256() -> Result<String, String> {
+    let executable = env::current_exe()
+        .map_err(|error| format!("cannot resolve verifier executable: {error}"))?;
+    let bytes = fs::read(&executable)
+        .map_err(|error| format!("cannot read verifier executable {}: {error}", executable.display()))?;
+    Ok(sha256_hex(&bytes))
+}
+
 fn sha256_hex(bytes: &[u8]) -> String {
     let digest = Sha256::digest(bytes);
     let mut output = String::with_capacity(64);
@@ -1091,6 +1158,7 @@ fn report(
     VerificationReport {
         verifier_version: env!("CARGO_PKG_VERSION").to_string(),
         schema_sha256: None,
+        verifier_binary_sha256: None,
         manifest_sha256: None,
         expected_claims_sha256: None,
         expected_claims_digest_pinned: false,
@@ -1181,6 +1249,10 @@ mod tests {
 
         let expected = ExpectedClaimsFile {
             schema_version: manifest["schema_version"].as_str().unwrap().to_string(),
+            schema_sha256: sha256_hex(EMBEDDED_SCHEMA.as_bytes()),
+            verifier_version: env!("CARGO_PKG_VERSION").to_string(),
+            verifier_binary_sha256: current_verifier_binary_sha256()
+                .expect("test executable digest available"),
             case_id: manifest["case_id"].as_str().unwrap().to_string(),
             jurisdiction: manifest["jurisdiction"].clone(),
             model: manifest["model"].clone(),
@@ -1518,6 +1590,42 @@ mod tests {
         assert_eq!(result.effective_status, STATUS_INSUFFICIENT_EVIDENCE);
         assert!(result.issues.iter().any(|issue| {
             issue.contains("model artifact digest set")
+        }));
+        fs::remove_dir_all(root).expect("clean temp dir");
+    }
+
+    #[test]
+    fn changed_schema_digest_cannot_reuse_a_pinned_requirements_contract() {
+        let (schema, manifest, root, mut expected) = set_up_pass_manifest();
+        expected.schema_sha256 =
+            "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc".to_string();
+
+        let result = evaluate_manifest(&schema, &manifest, Some(&expected), true, Some(&root));
+        assert_eq!(result.effective_status, STATUS_INSUFFICIENT_EVIDENCE);
+        assert_eq!(
+            result.evidence_integrity_status,
+            STATUS_EVIDENCE_INTEGRITY_NOT_VERIFIED
+        );
+        assert!(result.issues.iter().any(|issue| {
+            issue.contains("embedded schema digest")
+        }));
+        fs::remove_dir_all(root).expect("clean temp dir");
+    }
+
+    #[test]
+    fn changed_verifier_executable_cannot_reuse_a_pinned_requirements_contract() {
+        let (schema, manifest, root, mut expected) = set_up_pass_manifest();
+        expected.verifier_binary_sha256 =
+            "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd".to_string();
+
+        let result = evaluate_manifest(&schema, &manifest, Some(&expected), true, Some(&root));
+        assert_eq!(result.effective_status, STATUS_INSUFFICIENT_EVIDENCE);
+        assert_eq!(
+            result.evidence_integrity_status,
+            STATUS_EVIDENCE_INTEGRITY_NOT_VERIFIED
+        );
+        assert!(result.issues.iter().any(|issue| {
+            issue.contains("verifier executable digest")
         }));
         fs::remove_dir_all(root).expect("clean temp dir");
     }

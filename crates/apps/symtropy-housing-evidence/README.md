@@ -11,7 +11,7 @@ This binary is a fail-closed verifier for the draft housing evidence manifest. I
 - compares each mandatory claim's type, statement, element scope, requirement reference, validity domain, and acceptance criteria against that contract;
 - requires mandatory code-compliance claims to cite a rule-pack source snapshot whose digest resolves to locally verifiable artifact bytes;
 - requires local artifact bytes under an explicit root and verifies their SHA-256 digests for every referenced artifact in a candidate `PASS`;
-- emits a machine-readable report with separate producer-declared `declared_status`, conservative `effective_status`, and `evidence_integrity_status` fields.
+- emits a machine-readable report with separate producer-declared `declared_status`, conservative `effective_status`, and `evidence_integrity_status` fields, plus the actual verifier-binary and schema SHA-256 values.
 
 It does **not** parse or interpret legislation/SANS clauses, independently recompute structural/building-physics results, determine whether a measured result satisfies an engineering criterion, establish physical truth, verify a person's professional registration, or issue approvals. A successful package check sets `evidence_integrity_status: EVIDENCE_INTEGRITY_VERIFIED`; it does not replace the declared or effective engineering status. `effective_status` stays `PASS` only if the manifest declared PASS and all integrity checks succeed. The manifest's declared engineering status remains an assertion from the evidence producer.
 
@@ -32,6 +32,9 @@ A separate requirements file has this shape:
 ```json
 {
   "schema_version": "0.1.0",
+  "schema_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+  "verifier_version": "0.1.0",
+  "verifier_binary_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
   "case_id": "project-a/dwelling-001",
   "jurisdiction": {
     "country_code": "ZA",
@@ -83,7 +86,7 @@ A separate requirements file has this shape:
 }
 ```
 
-The requirements contract must come from a controlled source independent of the manifest, and its expected SHA-256 digest must be supplied out of band. It pins the actual model artifact SHA-256 digests separately from stable artifact IDs. It pins the schema version, case ID, jurisdiction, exact model, rule-pack and toolchain objects, plus the complete mandatory claim contract—not just stable claim IDs. The model object pins its revision and artifact IDs; model, source-snapshot, tool and result bytes referenced by digest are verified locally. Each claim contract pins its type, statement, element scope, requirement reference, approved tool ID, exact input and output artifact digests, validity domain, and acceptance criteria. The all-zero executable digest and all-`a`/`b` input/output digests above are illustrative placeholders only; never use these literal values for a real case. Merely storing this file next to a manifest does not make it an independent trust anchor.
+The requirements contract must come from a controlled source independent of the manifest, and its expected SHA-256 digest must be supplied out of band. It pins the exact embedded schema digest, verifier package version and executable digest as well as the actual model artifact SHA-256 digests separately from stable artifact IDs. It pins the schema version, case ID, jurisdiction, exact model, rule-pack and toolchain objects, plus the complete mandatory claim contract—not just stable claim IDs. The model object pins its revision and artifact IDs; model, source-snapshot, tool and result bytes referenced by digest are verified locally. Each claim contract pins its type, statement, element scope, requirement reference, approved tool ID, exact input and output artifact digests, validity domain, and acceptance criteria. The all-zero/all-`a`/`b`/`c`/`d` executable, schema and input/output digests above are illustrative placeholders only; never use these literal values for a real case. Merely storing this file next to a manifest does not make it an independent trust anchor.
 
 Artifacts referenced by `model.artifact_ids`, `model.unit_mapping_artifact_sha256`, and claim input/output digest arrays must be present in `evidence_artifacts`. Their `uri` values must be safe, unescaped relative file paths under the artifact root. Example: `model/main.ifc`, with the file located at `<artifact-root>/model/main.ifc`.
 
@@ -96,7 +99,7 @@ cargo run -p symtropy-housing-evidence -- \
   --require-pass
 ```
 
-The verifier hashes the exact bytes of the manifest, embedded schema, and provided requirements file and includes those digests and the verifier version in its JSON report. The expected-claims digest must be supplied from a trusted source outside the manifest; hashing a requirements file and then trusting a digest copied from that same untrusted file does not create an independent trust anchor.
+The verifier hashes the exact bytes of the running executable, embedded schema, manifest, and provided requirements file and includes those digests and the verifier version in its JSON report. The expected-claims digest must be supplied from a trusted source outside the manifest; hashing a requirements file and then trusting a digest copied from that same untrusted file does not create an independent trust anchor.
 
 ## Exit codes
 
