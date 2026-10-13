@@ -158,7 +158,8 @@
           "threshold",
           "scope",
           "non_compensable",
-          "predeclared_at"
+          "predeclared_at",
+          "preregistration_artifact_id"
         ],
         "properties": {
           "constraint_id": {
@@ -193,6 +194,13 @@
           "predeclared_at": {
             "type": "string",
             "format": "date-time"
+          },
+          "preregistration_artifact_id": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{1,127}$"
           }
         },
         "allOf": [
