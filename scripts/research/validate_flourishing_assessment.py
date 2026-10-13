@@ -1,0 +1,373 @@
+#!/usr/bin/env python3
+"""Fail-closed semantic checker for Humanity Atlas flourishing assessments.
+
+Standard-library only. The JSON Schema defines the wire shape; this checker
+adds cross-record, chronology, artifact-integrity, and tri-state decision rules.
+It does not rank alternatives or certify a model or policy.
+"""
+from __future__ import annotations
+
+import argparse
+import hashlib
+import json
+import math
+import re
+import sys
+from datetime import datetime
+from pathlib import Path, PurePosixPath
+from typing import Any
+
+
+SHA256_RE = re.compile(r"^[0-9a-fA-F]{64}$")
+
+
+def _is_number(value: Any) -> bool:
+    return isinstance(value, (int, float)) and not isinstance(value, bool) and math.isfinite(value)
+
+
+def _time(value: Any, label: str, errors: list[str]) -> datetime | None:
+    if not isinstance(value, str):
+        errors.append(f"{label}: expected an ISO-8601 timestamp")
+        return None
+    try:
+        parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
+    except ValueError:
+        errors.append(f"{label}: invalid ISO-8601 timestamp {value!r}")
+        return None
+    if parsed.tzinfo is None:
+        errors.append(f"{label}: timestamp must include a timezone")
+        return None
+    return parsed
+
+
+def _unique_records(records: Any, key: str, label: str, errors: list[str]) -> dict[str, dict[str, Any]]:
+    if not isinstance(records, list):
+        errors.append(f"{label}: expected an array")
+        return {}
+    by_id: dict[str, dict[str, Any]] = {}
+    for index, record in enumerate(records):
+        if not isinstance(record, dict):
+            errors.append(f"{label}[{index}]: expected an object")
+            continue
+        identifier = record.get(key)
+        if not isinstance(identifier, str) or not identifier:
+            errors.append(f"{label}[{index}].{key}: expected a non-empty string")
+            continue
+        if identifier in by_id:
+            errors.append(f"{label}: duplicate {key} {identifier!r}")
+        else:
+            by_id[identifier] = record
+    return by_id
+
+
+def _safe_relative_path(value: Any) -> bool:
+    if not isinstance(value, str) or not value or "\\" in value:
+        return False
+    path = PurePosixPath(value)
+    return not path.is_absolute() and all(part not in ("", ".", "..") for part in path.parts)
+
+
+def _validate_known_unknown(
+    record: dict[str, Any], label: str, artifact_ids: set[str], errors: list[str]
+) -> None:
+    status = record.get("status")
+    value = record.get("value")
+    uncertainty = record.get("uncertainty")
+    missing_reason = record.get("missing_reason")
+    refs = record.get("artifact_ids")
+
+    if not isinstance(refs, list) or any(not isinstance(ref, str) for ref in refs):
+        errors.append(f"{label}.artifact_ids: expected an array of artifact IDs")
+        refs = []
+    if len(refs) != len(set(refs)):
+        errors.append(f"{label}.artifact_ids: duplicate artifact references")
+    for ref in refs:
+        if ref not in artifact_ids:
+            errors.append(f"{label}: references unknown artifact {ref!r}")
+
+    if status == "KNOWN":
+        if not _is_number(value):
+            errors.append(f"{label}: KNOWN requires a finite numeric value")
+        if not refs:
+            errors.append(f"{label}: KNOWN requires at least one evidence artifact")
+        if missing_reason is not None:
+            errors.append(f"{label}: KNOWN requires missing_reason=null")
+        if uncertainty is not None:
+            if not isinstance(uncertainty, dict):
+                errors.append(f"{label}.uncertainty: expected an object or null")
+            else:
+                low, high = uncertainty.get("lower"), uncertainty.get("upper")
+                if not _is_number(low) or not _is_number(high) or low > high:
+                    errors.append(f"{label}.uncertainty: bounds must be finite and lower <= upper")
+                elif _is_number(value) and not low <= value <= high:
+                    errors.append(f"{label}.uncertainty: bounds must contain the reported value")
+                if not isinstance(uncertainty.get("method"), str) or not uncertainty["method"].strip():
+                    errors.append(f"{label}.uncertainty.method: required when uncertainty is supplied")
+    elif status == "UNKNOWN":
+        if value is not None:
+            errors.append(f"{label}: UNKNOWN requires value=null")
+        if uncertainty is not None:
+            errors.append(f"{label}: UNKNOWN requires uncertainty=null")
+        if not isinstance(missing_reason, str) or len(missing_reason.strip()) < 4:
+            errors.append(f"{label}: UNKNOWN requires an explicit missing_reason")
+    else:
+        errors.append(f"{label}.status: expected KNOWN or UNKNOWN")
+
+
+def _constraint_status(
+    constraint: dict[str, Any], outcome: dict[str, Any], label: str,
+    artifact_ids: set[str], errors: list[str]
+) -> str:
+    targets: list[tuple[str, dict[str, Any]]] = [("overall", outcome)]
+    scope = constraint.get("scope")
+    subgroups = outcome.get("subgroups", [])
+    if scope == "overall_and_subgroups":
+        if not isinstance(subgroups, list) or not subgroups:
+            errors.append(f"{label}: scope overall_and_subgroups requires at least one subgroup record")
+            return "UNKNOWN"
+        targets.extend((f"subgroup:{g.get('group_id', '?')}", g) for g in subgroups if isinstance(g, dict))
+
+    comparator = constraint.get("comparator")
+    threshold = constraint.get("threshold")
+    upper = constraint.get("threshold_upper")
+    observed: list[tuple[str, dict[str, Any]]] = []
+    for target_name, target in targets:
+        _validate_known_unknown(target, f"{label}.{target_name}", artifact_ids, errors)
+        if target.get("status") == "KNOWN" and _is_number(target.get("value")):
+            observed.append((target_name, target))
+    if any(target.get("status") == "UNKNOWN" for _, target in targets):
+        saw_unknown = True
+    else:
+        saw_unknown = False
+
+    failed = False
+    for _, target in observed:
+        value = target["value"]
+        if not _is_number(threshold):
+            errors.append(f"{label}.threshold: expected a finite number")
+            return "UNKNOWN"
+        if comparator == "<=":
+            failed = failed or value > threshold
+        elif comparator == ">=":
+            failed = failed or value < threshold
+        elif comparator == "between":
+            if not _is_number(upper) or threshold > upper:
+                errors.append(f"{label}: between requires finite threshold <= threshold_upper")
+                return "UNKNOWN"
+            failed = failed or value < threshold or value > upper
+        else:
+            errors.append(f"{label}.comparator: unsupported comparator {comparator!r}")
+            return "UNKNOWN"
+
+    # A known violation is decisive even if another subgroup is unknown.
+    if failed:
+        return "FAIL"
+    if saw_unknown or len(observed) != len(targets):
+        return "UNKNOWN"
+    return "PASS"
+
+
+def validate_assessment(
+    document: Any,
+    *,
+    artifact_root: Path | None = None,
+    verify_artifacts: bool = False,
+) -> tuple[list[str], dict[str, Any] | None]:
+    """Return semantic errors and, if valid enough to evaluate, a non-ranking report."""
+    errors: list[str] = []
+    if not isinstance(document, dict):
+        return ["assessment: expected a JSON object"], None
+
+    if document.get("contract_version") != "0.1":
+        errors.append("contract_version: expected '0.1'")
+
+    declared_at = _time(document.get("declared_at"), "declared_at", errors)
+    analysis_started_at = _time(document.get("analysis_started_at"), "analysis_started_at", errors)
+    if declared_at and analysis_started_at and declared_at > analysis_started_at:
+        errors.append("declared_at must be no later than analysis_started_at")
+
+    decision = document.get("decision")
+    if not isinstance(decision, dict):
+        errors.append("decision: expected an object")
+        decision = {}
+    baseline_id = decision.get("baseline_alternative_id")
+
+    metrics = _unique_records(document.get("metrics"), "metric_id", "metrics", errors)
+    constraints = _unique_records(document.get("constraints"), "constraint_id", "constraints", errors)
+    artifacts = _unique_records(document.get("artifacts"), "artifact_id", "artifacts", errors)
+    alternatives = _unique_records(document.get("alternatives"), "alternative_id", "alternatives", errors)
+    artifact_ids = set(artifacts)
+
+    if len(alternatives) < 2:
+        errors.append("alternatives: at least two alternatives are required")
+    baselines = [a_id for a_id, alt in alternatives.items() if alt.get("kind") == "baseline"]
+    if len(baselines) != 1:
+        errors.append("alternatives: exactly one alternative must have kind='baseline'")
+    if baseline_id not in alternatives or (baselines and baseline_id != baselines[0]):
+        errors.append("decision.baseline_alternative_id must identify the unique baseline alternative")
+
+    for constraint_id, constraint in constraints.items():
+        metric_id = constraint.get("metric_id")
+        if metric_id not in metrics:
+            errors.append(f"constraints[{constraint_id}]: references unknown metric {metric_id!r}")
+        elif metrics[metric_id].get("role") != "hard_constraint":
+            errors.append(f"constraints[{constraint_id}]: metric {metric_id!r} is not registered as hard_constraint")
+        if constraint.get("non_compensable") is not True:
+            errors.append(f"constraints[{constraint_id}]: every registered hard constraint must be non-compensable")
+        predeclared = _time(constraint.get("predeclared_at"), f"constraints[{constraint_id}].predeclared_at", errors)
+        if predeclared and analysis_started_at and predeclared > analysis_started_at:
+            errors.append(f"constraints[{constraint_id}]: must be predeclared no later than analysis_started_at")
+
+    # Verify paths before reading bytes; a digest string alone is not evidence of integrity.
+    for artifact_id, artifact in artifacts.items():
+        relative = artifact.get("path")
+        digest = artifact.get("sha256")
+        if not _safe_relative_path(relative):
+            errors.append(f"artifacts[{artifact_id}].path: must be a safe relative path without traversal")
+            continue
+        if not isinstance(digest, str) or not SHA256_RE.fullmatch(digest):
+            errors.append(f"artifacts[{artifact_id}].sha256: expected 64 hexadecimal characters")
+            continue
+        if verify_artifacts:
+            if artifact_root is None:
+                errors.append("artifact verification requested without an artifact root")
+                break
+            root = artifact_root.resolve()
+            candidate = (root / relative).resolve()
+            try:
+                candidate.relative_to(root)
+            except ValueError:
+                errors.append(f"artifacts[{artifact_id}].path: resolves outside the artifact root")
+                continue
+            if not candidate.is_file():
+                errors.append(f"artifacts[{artifact_id}]: file not found: {relative}")
+                continue
+            hasher = hashlib.sha256()
+            try:
+                with candidate.open("rb") as stream:
+                    for chunk in iter(lambda: stream.read(1024 * 1024), b""):
+                        hasher.update(chunk)
+            except OSError as exc:
+                errors.append(f"artifacts[{artifact_id}]: cannot read {relative}: {exc}")
+                continue
+            if hasher.hexdigest().lower() != digest.lower():
+                errors.append(f"artifacts[{artifact_id}]: SHA-256 mismatch for {relative}")
+
+    metric_ids = set(metrics)
+    required_hard_metric_ids = {
+        c.get("metric_id") for c in constraints.values() if isinstance(c.get("metric_id"), str)
+    }
+    for metric_id, metric in metrics.items():
+        if metric.get("role") == "hard_constraint" and metric_id not in required_hard_metric_ids:
+            errors.append(f"metrics[{metric_id}]: hard_constraint metric has no registered constraint")
+
+    report_alternatives: list[dict[str, Any]] = []
+    for alt_id, alternative in alternatives.items():
+        outcomes = _unique_records(alternative.get("outcomes"), "metric_id", f"alternatives[{alt_id}].outcomes", errors)
+        if set(outcomes) != metric_ids:
+            missing = sorted(metric_ids - set(outcomes))
+            extra = sorted(set(outcomes) - metric_ids)
+            if missing:
+                errors.append(f"alternatives[{alt_id}].outcomes: missing metrics {missing}")
+            if extra:
+                errors.append(f"alternatives[{alt_id}].outcomes: unknown metrics {extra}")
+
+        for metric_id, outcome in outcomes.items():
+            if metric_id not in metrics:
+                continue
+            metric = metrics[metric_id]
+            if outcome.get("unit") != metric.get("unit"):
+                errors.append(f"alternatives[{alt_id}].outcomes[{metric_id}]: unit does not match metric registry")
+            _validate_known_unknown(outcome, f"alternatives[{alt_id}].outcomes[{metric_id}]", artifact_ids, errors)
+            groups = outcome.get("subgroups", [])
+            if not isinstance(groups, list):
+                errors.append(f"alternatives[{alt_id}].outcomes[{metric_id}].subgroups: expected an array")
+                continue
+            group_ids = [g.get("group_id") for g in groups if isinstance(g, dict)]
+            if len(group_ids) != len(set(group_ids)):
+                errors.append(f"alternatives[{alt_id}].outcomes[{metric_id}].subgroups: duplicate group_id")
+            for group in groups:
+                if isinstance(group, dict):
+                    _validate_known_unknown(group, f"alternatives[{alt_id}].outcomes[{metric_id}].subgroup:{group.get('group_id', '?')}", artifact_ids, errors)
+
+        c_report: list[dict[str, str]] = []
+        for constraint_id, constraint in constraints.items():
+            metric_id = constraint.get("metric_id")
+            outcome = outcomes.get(metric_id) if isinstance(metric_id, str) else None
+            if outcome is None:
+                status = "UNKNOWN"
+            else:
+                status = _constraint_status(constraint, outcome, f"constraints[{constraint_id}]@{alt_id}", artifact_ids, errors)
+            c_report.append({"constraint_id": constraint_id, "status": status})
+
+        statuses = [record["status"] for record in c_report]
+        any_incomplete_outcome = any(outcome.get("status") != "KNOWN" for outcome in outcomes.values())
+        if "FAIL" in statuses:
+            comparison_status = "INELIGIBLE"
+        elif "UNKNOWN" in statuses:
+            comparison_status = "UNRESOLVED"
+        elif any_incomplete_outcome or set(outcomes) != metric_ids:
+            comparison_status = "OUTCOME_INCOMPLETE"
+        else:
+            comparison_status = "READY_FOR_COMPARISON"
+        report_alternatives.append({
+            "alternative_id": alt_id,
+            "comparison_status": comparison_status,
+            "constraint_results": c_report,
+        })
+
+    if errors:
+        return errors, None
+
+    return [], {
+        "contract_version": "0.1",
+        "assessment_id": document.get("assessment_id"),
+        "assessment_status": "VALIDATED_ASSESSMENT_NOT_POLICY_APPROVAL",
+        "ranking": None,
+        "alternatives": report_alternatives,
+        "limitations": [
+            "This report checks declared structure, references, chronology, and artifact bytes only.",
+            "PASS is relative to the registered threshold and evidence; it does not establish scientific validity or legal compliance.",
+            "No candidate is ranked and no claim of real-world causal effect is made.",
+        ],
+    }
+
+
+def _reject_nonstandard_constant(value: str) -> None:
+    raise ValueError(f"non-standard JSON numeric constant is forbidden: {value}")
+
+
+def main(argv: list[str] | None = None) -> int:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("assessment", type=Path, help="assessment JSON file")
+    parser.add_argument("--artifact-root", type=Path, help="root for verifying artifact paths (default: assessment parent)")
+    parser.add_argument("--report", type=Path, help="optional path for a JSON evaluation report")
+    args = parser.parse_args(argv)
+
+    try:
+        with args.assessment.open("r", encoding="utf-8") as stream:
+            document = json.load(stream, parse_constant=_reject_nonstandard_constant)
+    except (OSError, json.JSONDecodeError, ValueError) as exc:
+        print(f"ERROR: cannot read valid JSON assessment: {exc}", file=sys.stderr)
+        return 2
+
+    root = args.artifact_root or args.assessment.parent
+    errors, report = validate_assessment(document, artifact_root=root, verify_artifacts=True)
+    if errors:
+        for error in errors:
+            print(f"ERROR: {error}", file=sys.stderr)
+        return 1
+
+    rendered = json.dumps(report, indent=2, sort_keys=True, allow_nan=False) + "\n"
+    if args.report:
+        try:
+            args.report.write_text(rendered, encoding="utf-8")
+        except OSError as exc:
+            print(f"ERROR: cannot write report: {exc}", file=sys.stderr)
+            return 2
+    print(rendered, end="")
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
