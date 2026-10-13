@@ -57,9 +57,12 @@ struct VerificationReport {
 #[derive(Debug, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
 struct ExpectedClaimsFile {
+    schema_version: String,
     case_id: String,
+    jurisdiction: Value,
     model: Value,
     rule_pack: Value,
+    toolchain: Value,
     mandatory_claims: Vec<ExpectedClaimContract>,
 }
 
@@ -210,14 +213,23 @@ fn read_expected_claims_file(path: &Path) -> Result<(ExpectedClaimsFile, String)
     let expected: ExpectedClaimsFile = serde_json::from_slice(&bytes)
         .map_err(|error| format!("{} is not a valid expected-claims contract: {error}", path.display()))?;
 
+    if expected.schema_version.trim().is_empty() {
+        return Err("expected-claims schema_version must not be empty".to_string());
+    }
     if expected.case_id.trim().is_empty() {
         return Err("expected-claims case_id must not be empty".to_string());
+    }
+    if !expected.jurisdiction.is_object() {
+        return Err("expected-claims jurisdiction must be an object".to_string());
     }
     if !expected.model.is_object() {
         return Err("expected-claims model must be an object".to_string());
     }
     if !expected.rule_pack.is_object() {
         return Err("expected-claims rule_pack must be an object".to_string());
+    }
+    if !expected.toolchain.is_array() || expected.toolchain.as_array().is_some_and(Vec::is_empty) {
+        return Err("expected-claims toolchain must be a non-empty array".to_string());
     }
     if expected.mandatory_claims.is_empty() {
         return Err("expected-claims mandatory_claims must not be empty".to_string());
@@ -451,7 +463,24 @@ fn evaluate_manifest(
         if claim["claim_type"].as_str() == Some("code_compliance") {
             let source_id = claim["requirement"]["source_id"].as_str();
             match source_id {
-                Some(source_id) if source_ids.contains(source_id) => {}
+                Some(source_id) if source_ids.contains(source_id) => {
+                    if claim["mandatory"].as_bool() == Some(true)
+                        && claim["status"].as_str() == Some(STATUS_PASS)
+                    {
+                        let source = source_references
+                            .iter()
+                            .find(|source| source["source_id"].as_str() == Some(source_id));
+                        match source.and_then(|source| source["source_sha256"].as_str()) {
+                            Some(digest) if artifacts_by_digest.contains_key(digest) => {}
+                            Some(digest) => issues.push(format!(
+                                "mandatory code compliance claim {id} source digest {digest} is absent from evidence_artifacts"
+                            )),
+                            None => issues.push(format!(
+                                "mandatory code compliance claim {id} source {source_id} has no source_sha256"
+                            )),
+                        }
+                    }
+                }
                 Some(source_id) => issues.push(format!(
                     "code compliance claim {id} references source_id {source_id} absent from the rule pack"
                 )),
@@ -560,9 +589,12 @@ fn evaluate_manifest(
         );
     }
 
-    if expected_claims.case_id != case_id.as_deref().unwrap_or_default()
+    if expected_claims.schema_version != manifest["schema_version"].as_str().unwrap_or_default()
+        || expected_claims.case_id != case_id.as_deref().unwrap_or_default()
+        || expected_claims.jurisdiction != manifest["jurisdiction"]
         || expected_claims.model != manifest["model"]
         || expected_claims.rule_pack != manifest["rule_pack"]
+        || expected_claims.toolchain != manifest["toolchain"]
     {
         return report(
             true,
@@ -757,6 +789,16 @@ fn referenced_digests(manifest: &Value) -> BTreeSet<String> {
         .and_then(Value::as_str)
     {
         result.insert(digest.to_string());
+    }
+
+    for source in manifest["rule_pack"]["source_references"]
+        .as_array()
+        .into_iter()
+        .flatten()
+    {
+        if let Some(digest) = source.get("source_sha256").and_then(Value::as_str) {
+            result.insert(digest.to_string());
+        }
     }
 
     for tool in manifest["toolchain"].as_array().into_iter().flatten() {
@@ -1008,9 +1050,12 @@ mod tests {
         manifest["overall_status"] = json!(STATUS_PASS);
 
         let expected = ExpectedClaimsFile {
+            schema_version: manifest["schema_version"].as_str().unwrap().to_string(),
             case_id: manifest["case_id"].as_str().unwrap().to_string(),
+            jurisdiction: manifest["jurisdiction"].clone(),
             model: manifest["model"].clone(),
             rule_pack: manifest["rule_pack"].clone(),
+            toolchain: manifest["toolchain"].clone(),
             mandatory_claims: vec![ExpectedClaimContract {
                 claim_id: "example-structural-claim".to_string(),
                 claim_type: "structural_analysis".to_string(),
@@ -1049,7 +1094,7 @@ mod tests {
 
     #[test]
     fn cli_pass_requires_pinned_requirements_and_emits_provenance_digests() {
-        let (schema, manifest, root, _) = set_up_pass_manifest();
+        let (schema, manifest, root, expected) = set_up_pass_manifest();
 
         let manifest_path = root.join("manifest.json");
         let manifest_bytes = serde_json::to_vec_pretty(&manifest).expect("serialize manifest");
@@ -1176,6 +1221,44 @@ mod tests {
         let result = evaluate_manifest(&schema, &manifest, Some(&expected), true, Some(&root));
         assert_eq!(result.effective_status, STATUS_INSUFFICIENT_EVIDENCE);
         assert!(result.issues.iter().any(|issue| issue.contains("mandatory claim set")));
+        fs::remove_dir_all(root).expect("clean temp dir");
+    }
+
+    #[test]
+    fn a_mandatory_code_compliance_claim_needs_a_hashed_source_artifact() {
+        let (schema, mut manifest, root, _) = set_up_pass_manifest();
+        manifest["claims"][0]["claim_type"] = json!("code_compliance");
+        manifest["claims"][0]["requirement"] = json!({
+            "requirement_id": "SYNTHETIC-CLAUSE",
+            "source_id": "za-nbr-act",
+            "applicability_notes": "test fixture only"
+        });
+        let result = evaluate_manifest(&schema, &manifest, None, false, Some(&root));
+        assert_eq!(result.effective_status, STATUS_BLOCKED);
+        assert!(result.issues.iter().any(|issue| issue.contains("has no source_sha256")));
+        fs::remove_dir_all(root).expect("clean temp dir");
+    }
+
+    #[test]
+    fn provided_rule_source_digests_are_verified_against_local_artifacts() {
+        let (schema, mut manifest, root, mut expected) = set_up_pass_manifest();
+        let source_bytes = b"synthetic source snapshot - not a real legal standard";
+        fs::write(root.join("source.bin"), source_bytes).expect("write source fixture");
+        let source_digest = sha256_hex(source_bytes);
+        manifest["rule_pack"]["source_references"][0]["source_sha256"] = json!(source_digest);
+        manifest["evidence_artifacts"].as_array_mut().unwrap().push(json!({
+            "artifact_id": "rule-source-snapshot",
+            "media_type": "application/octet-stream",
+            "sha256": source_digest,
+            "role": "other",
+            "uri": "source.bin",
+            "retention_class": "test-only"
+        }));
+        expected.rule_pack = manifest["rule_pack"].clone();
+
+        let result = evaluate_manifest(&schema, &manifest, Some(&expected), true, Some(&root));
+        assert_eq!(result.effective_status, STATUS_PASS, "{:?}", result.issues);
+        assert_eq!(result.artifact_digests_verified, 3);
         fs::remove_dir_all(root).expect("clean temp dir");
     }
 

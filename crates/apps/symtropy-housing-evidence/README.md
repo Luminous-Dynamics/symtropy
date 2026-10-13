@@ -7,8 +7,9 @@ This binary is a fail-closed verifier for the draft housing evidence manifest. I
 - validates manifests against the checked-in JSON Schema Draft 2020-12 schema embedded at compile time;
 - rejects external schema references, so schema validation cannot fetch remote content;
 - checks artifact/claim identifiers and SHA-256 cross-references, including the executable/container and configuration digests of tools used by evaluated claims;
-- requires an independently pinned case/model/rule-pack contract and mandatory-claim definitions before accepting an aggregate `PASS`;
+- requires an independently pinned schema/case/jurisdiction/model/rule-pack/toolchain contract and mandatory-claim definitions before accepting an aggregate `PASS`;
 - compares each mandatory claim's type, statement, element scope, requirement reference, validity domain, and acceptance criteria against that contract;
+- requires mandatory code-compliance claims to cite a rule-pack source snapshot whose digest resolves to locally verifiable artifact bytes;
 - requires local artifact bytes under an explicit root and verifies their SHA-256 digests for every referenced artifact in a candidate `PASS`;
 - emits a machine-readable report that distinguishes the declared status from the verifier's effective status.
 
@@ -30,7 +31,14 @@ A separate requirements file has this shape:
 
 ```json
 {
+  "schema_version": "0.1.0",
   "case_id": "project-a/dwelling-001",
+  "jurisdiction": {
+    "country_code": "ZA",
+    "region": "Gauteng",
+    "municipality": "confirmed-municipality-id",
+    "resolution_status": "confirmed"
+  },
   "model": {
     "model_id": "dwelling-001",
     "revision_id": "revision-7",
@@ -46,6 +54,17 @@ A separate requirements file has this shape:
     "effective_date": null,
     "source_references": []
   },
+  "toolchain": [
+    {
+      "tool_id": "approved-solver",
+      "name": "Approved Solver",
+      "version": "4.2.0",
+      "executable_or_container_sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+      "configuration_artifact_sha256": null,
+      "invocation": "solver --input model.ifc",
+      "runtime": "pinned runtime image"
+    }
+  ],
   "mandatory_claims": [
     {
       "claim_id": "structural-baseline-case",
@@ -60,7 +79,7 @@ A separate requirements file has this shape:
 }
 ```
 
-The requirements contract must come from a controlled source independent of the manifest, and its expected SHA-256 digest must be supplied out of band. It pins the case ID, the exact model and rule-pack objects, and the complete mandatory claim contract—not just stable claim IDs. The model object pins its revision and artifact IDs; the referenced model bytes are then verified by digest. Each claim contract pins its type, statement, element scope, requirement reference, validity domain, and acceptance criteria. Merely storing this file next to a manifest does not make it an independent trust anchor.
+The requirements contract must come from a controlled source independent of the manifest, and its expected SHA-256 digest must be supplied out of band. It pins the schema version, case ID, jurisdiction, exact model, rule-pack and toolchain objects, plus the complete mandatory claim contract—not just stable claim IDs. The model object pins its revision and artifact IDs; model, source-snapshot, tool and result bytes referenced by digest are verified locally. Each claim contract pins its type, statement, element scope, requirement reference, validity domain, and acceptance criteria. The all-zero executable digest above is illustrative only and must never be used for a real case. Merely storing this file next to a manifest does not make it an independent trust anchor.
 
 Artifacts referenced by `model.artifact_ids`, `model.unit_mapping_artifact_sha256`, and claim input/output digest arrays must be present in `evidence_artifacts`. Their `uri` values must be safe, unescaped relative file paths under the artifact root. Example: `model/main.ifc`, with the file located at `<artifact-root>/model/main.ifc`.
 
