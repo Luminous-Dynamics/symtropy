@@ -981,6 +981,29 @@ fn write_trace(
     Ok((relative, digest, bytes))
 }
 
+fn validate_source_commit_binding(expected_commit: &str, actual_commit: &str) -> Result<(), String> {
+    if expected_commit.len() != 40
+        || !expected_commit
+            .bytes()
+            .all(|byte| byte.is_ascii_hexdigit() && !byte.is_ascii_uppercase())
+    {
+        return Err("expected source revision must be a lowercase full 40-character Git SHA".to_string());
+    }
+    if actual_commit != expected_commit {
+        return Err(format!(
+            "checkout commit mismatch: plan requires {expected_commit}, checkout is {actual_commit}"
+        ));
+    }
+    Ok(())
+}
+
+fn validate_clean_worktree_status(porcelain_status: &str) -> Result<(), String> {
+    if !porcelain_status.trim().is_empty() {
+        return Err("working tree is dirty; the adapter refuses to execute an unbound source tree".to_string());
+    }
+    Ok(())
+}
+
 fn validate_source_checkout(repo_root: &Path, expected_commit: &str) -> Result<(), String> {
     let output = Command::new("git")
         .current_dir(repo_root)
@@ -991,11 +1014,8 @@ fn validate_source_checkout(repo_root: &Path, expected_commit: &str) -> Result<(
         return Err("git rev-parse HEAD failed".to_string());
     }
     let actual_commit = String::from_utf8_lossy(&output.stdout).trim().to_string();
-    if actual_commit != expected_commit {
-        return Err(format!(
-            "checkout commit mismatch: plan requires {expected_commit}, checkout is {actual_commit}"
-        ));
-    }
+    validate_source_commit_binding(expected_commit, &actual_commit)?;
+
     let output = Command::new("git")
         .current_dir(repo_root)
         .args(["status", "--porcelain", "--untracked-files=all"])
@@ -1004,10 +1024,8 @@ fn validate_source_checkout(repo_root: &Path, expected_commit: &str) -> Result<(
     if !output.status.success() {
         return Err("git status failed".to_string());
     }
-    if !String::from_utf8_lossy(&output.stdout).trim().is_empty() {
-        return Err("working tree is dirty; the adapter refuses to execute an unbound source tree".to_string());
-    }
-    Ok(())
+    let porcelain_status = String::from_utf8_lossy(&output.stdout);
+    validate_clean_worktree_status(&porcelain_status)
 }
 
 fn parse_args() -> Result<(PathBuf, PathBuf), String> {
@@ -1430,6 +1448,52 @@ mod tests {
             .unwrap()
             .insert("plan_sha256".to_string(), json!(plan_sha256));
         plan
+    }
+
+    #[test]
+    fn source_revision_binding_rejects_a_mismatched_candidate_commit() {
+        let expected = "0123456789abcdef0123456789abcdef01234567";
+        let different = "1123456789abcdef0123456789abcdef01234567";
+        assert!(validate_source_commit_binding(expected, expected).is_ok());
+        assert!(validate_source_commit_binding(expected, different).is_err());
+        assert!(validate_source_commit_binding("short", "short").is_err());
+    }
+
+    #[test]
+    fn working_tree_gate_rejects_modified_and_untracked_files() {
+        assert!(validate_clean_worktree_status("").is_ok());
+        assert!(validate_clean_worktree_status(" M src/lib.rs\n").is_err());
+        assert!(validate_clean_worktree_status("?? new-evidence.json\n").is_err());
+    }
+
+    #[test]
+    fn changed_configuration_is_rejected_even_if_the_outer_plan_is_rehashed() {
+        let mut plan = valid_plan_fixture();
+        plan.as_object_mut().unwrap().remove("plan_sha256");
+        plan["planned_runs"][0]["configuration"]["source_strength"] = json!(2.0);
+        let plan_sha = digest_value(&plan).unwrap();
+        plan.as_object_mut()
+            .unwrap()
+            .insert("plan_sha256".to_string(), json!(plan_sha));
+        assert!(validate_plan(&plan).is_err(), "configuration tampering was accepted");
+    }
+
+    #[test]
+    fn written_trace_receipt_hashes_the_actual_file_bytes() {
+        let root = env::temp_dir().join(format!(
+            "harmony-field-adapter-artifact-test-{}",
+            process::id()
+        ));
+        let _ = fs::remove_dir_all(&root);
+        fs::create_dir_all(root.join("runs")).unwrap();
+        let run_id = format!("run-{}", "1".repeat(64));
+        let trace = json!({"schema_version": RESULT_SCHEMA, "trace": [1, 2, 3]});
+        let (relative, claimed_sha, bytes) =
+            write_trace(&root, &run_id, "trace", &trace).unwrap();
+        let actual = fs::read(root.join(&relative)).unwrap();
+        assert_eq!(actual, bytes);
+        assert_eq!(sha256(&actual), claimed_sha);
+        fs::remove_dir_all(root).unwrap();
     }
 
     #[test]
