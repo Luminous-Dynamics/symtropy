@@ -88,13 +88,20 @@ pub struct SensorProfileV1 {
     pub modality: SensorModality,
     pub model_solver_id: Option<String>,
     pub calibration_artifact: Option<ArtifactRef>,
+    /// Nominal sample frequency in hertz; runtime model supports 1 nHz through 1 GHz.
     pub sample_rate_hz: f64,
+    /// Nominal acquisition-to-delivery latency, excluding timestamp jitter.
     pub latency_ns: u64,
+    /// Maximum absolute timestamp jitter in nanoseconds; the reference model draws uniformly.
     pub jitter_ns: u64,
+    /// Scalar additive-noise standard deviation in noise_unit.
     pub noise_std: f64,
     pub noise_unit: String,
+    /// Independent per-sample dropout probability in [0, 1].
     pub dropout_probability: f64,
+    /// Optional scalar lower saturation bound, expressed in noise_unit.
     pub saturation_min: Option<f64>,
+    /// Optional scalar upper saturation bound, expressed in noise_unit.
     pub saturation_max: Option<f64>,
 }
 
