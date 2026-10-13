@@ -1,0 +1,61 @@
+name: HarmonyField Runtime Adapter
+
+on:
+  push:
+    branches:
+      - research/harmony-field-runtime-adapter
+  pull_request:
+    branches:
+      - feat/harmony-field-factorial-switches
+
+permissions:
+  contents: read
+
+concurrency:
+  group: harmony-field-runtime-adapter-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  compile:
+    name: Compile and exercise adapter contract
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.96.0
+          components: rustfmt
+
+      - name: Cache Cargo
+        uses: Swatinem/rust-cache@v2
+
+      - name: Format candidate and emit a recoverable source snapshot
+        shell: bash
+        run: |
+          set -euo pipefail
+          rustfmt --edition 2024 crates/domains/symtropy-consciousness-physics/examples/harmony_field_ablation_adapter.rs
+          rustfmt --edition 2024 --check crates/domains/symtropy-consciousness-physics/examples/harmony_field_ablation_adapter.rs
+          python3 - <<'PY'
+          import base64
+          from pathlib import Path
+          source = Path("crates/domains/symtropy-consciousness-physics/examples/harmony_field_ablation_adapter.rs").read_bytes()
+          encoded = base64.b64encode(source).decode("ascii")
+          print("ADAPTER_FORMATTED_B64_BEGIN")
+          for index in range(0, len(encoded), 3000):
+              print(f"ADAPTER_FORMATTED_B64_CHUNK:{index // 3000:04d}:{encoded[index:index + 3000]}")
+          print("ADAPTER_FORMATTED_B64_END")
+          PY
+
+
+      - name: Compile the runtime adapter with locked dependencies
+        run: cargo check --locked -p symtropy-consciousness-physics --example harmony_field_ablation_adapter
+
+      - name: Test factorial mechanism switches
+        run: cargo test --locked -p symtropy-consciousness-physics --lib factorial
+
+      - name: Exercise real runtime adapter smoke and replay
+        run: cargo test --locked -p symtropy-consciousness-physics --example harmony_field_ablation_adapter

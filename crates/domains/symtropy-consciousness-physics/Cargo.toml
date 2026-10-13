@@ -47,6 +47,9 @@ wasm = ["dep:wasm-bindgen", "dep:serde", "dep:serde_json", "dep:console_error_pa
 [dev-dependencies]
 proptest = "1.4"
 criterion = { version = "0.5", features = ["html_reports"] }
+# Used only by the auditable factorial run adapter; keep optional WASM serde deps separate.
+serde_json_runtime = { package = "serde_json", version = "1.0" }
+sha2 = "0.10"
 
 [[bench]]
 name = "coupling_bench"

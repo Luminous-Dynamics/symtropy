@@ -1,0 +1,49 @@
+{
+  "task_description": "Four-agent deterministic crossing-traffic task: each sphere is driven toward its assigned opposite-corner goal under a bounded proportional-derivative controller; the F/R/E switches govern field-friction coupling, resonance-scaled collision surprise, and proximity-weighted emotional contagion.",
+  "task_parameters": {
+    "start_positions_model_units": [[-12.0, -12.0, 0.0], [-12.0, 12.0, 0.0], [12.0, -12.0, 0.0], [12.0, 12.0, 0.0]],
+    "goal_positions_model_units": [[12.0, 12.0, 0.0], [12.0, -12.0, 0.0], [-12.0, 12.0, 0.0], [-12.0, -12.0, 0.0]],
+    "initial_position_jitter_half_width": 0.25,
+    "gravity": [0.0, 0.0, 0.0],
+    "body": {
+      "radius": 0.75,
+      "mass": 1.0,
+      "friction": 0.6,
+      "restitution": 0.05,
+      "linear_damping": 0.1
+    },
+    "controller": {
+      "kp": 2.0,
+      "kd": 2.5,
+      "force_norm_cap": 30.0
+    },
+    "goal_radius": 2.0,
+    "initial_harmony_profiles": [
+      [0.90, 0.10, 0.20, 0.10, 0.15, 0.25, 0.10, 0.80, 0.85],
+      [0.15, 0.88, 0.15, 0.20, 0.10, 0.35, 0.80, 0.15, 0.15],
+      [0.20, 0.10, 0.92, 0.15, 0.30, 0.80, 0.10, 0.20, 0.55],
+      [0.35, 0.25, 0.30, 0.90, 0.65, 0.25, 0.30, 0.45, 0.30]
+    ]
+  },
+  "primary_endpoint": {
+    "name": "goal_completion_fraction",
+    "units": "fraction_of_4_agents_within_2_model_units_of_goal_at_terminal_tick",
+    "direction": "higher_is_better",
+    "meaningful_effect_threshold": 0.25
+  },
+  "solver_and_timestep": {
+    "solver": "symtropy-physics::PhysicsWorld::<3>::step_with_callback",
+    "timestep_seconds": 0.008333333333333333,
+    "max_steps": 720,
+    "agents": 4,
+    "body_radius": 0.75,
+    "controller": "bounded_PD_Kp_2.0_Kd_2.5_force_norm_cap_30.0"
+  },
+  "random_stream_contract": {
+    "strategy": "single_stateful_stream",
+    "treatment_alignment": "same_seed_only",
+    "alignment_evidence": "One seeded LCG is consumed only while constructing initial positions, before treatment switches. No RNG is consumed inside the deterministic integration loop. The adapter hashes the complete initial state, checks same-seed equality across all arms and parameter variants, and requires byte-identical same-config replay. This is matched initial-state blocking and deterministic replay, not event-level common-random-number alignment.",
+    "alignment_evidence_path": "rng-alignment-review.md",
+    "alignment_evidence_sha256": "80b285acb54be72e604d35a4bc6c58ebe6cb17be82bd113680aa18efdb91a06c"
+  }
+}
