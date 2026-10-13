@@ -234,10 +234,6 @@ impl CargoModuleProfile {
         }
         if let Some(band) = self.required_temperature_millicelsius {
             band.validate()?;
-            if !self.requires_power {
-                // Passive insulated modules are permitted; this boolean means
-                // the module itself requires external power, not refrigeration.
-            }
         }
         match &self.conformity {
             ProfileConformity::Verified {
@@ -390,10 +386,10 @@ pub fn check_module_compatibility(
     if !equipment.supported_families.contains(&profile.family) {
         return Err(CargoError::FamilyNotSupported);
     }
-    if profile
+    if !profile
         .interfaces
         .iter()
-        .any(|interface| !equipment.interfaces.contains(interface))
+        .any(|interface| equipment.interfaces.contains(interface))
     {
         return Err(CargoError::HandlingInterfaceMismatch);
     }
@@ -1437,6 +1433,189 @@ mod tests {
             },
         };
         assert_eq!(route.aggregate(2), Err(ModelError::MetricOverflow));
+    }
+
+
+
+    fn iso_container_profile() -> CargoModuleProfile {
+        CargoModuleProfile {
+            profile_id: "iso-series1-example-v1".to_owned(),
+            family: CargoModuleFamily::IsoSeries1Container,
+            conformity: ProfileConformity::Verified {
+                standard_id: "ISO 668".to_owned(),
+                edition: "2020".to_owned(),
+                evidence_digest: "sha256:profile-evidence".to_owned(),
+            },
+            outer_dimensions_mm: [6_000, 2_400, 2_500],
+            usable_volume_litres: 30_000,
+            tare_mass_grams: 2_000_000,
+            max_payload_mass_grams: 20_000_000,
+            max_gross_mass_grams: 22_000_000,
+            interfaces: BTreeSet::from([
+                HandlingInterface::IsoCornerFittings,
+                HandlingInterface::ForkPockets,
+            ]),
+            permitted_modes: BTreeSet::from([Mode::Road, Mode::Rail, Mode::Maritime]),
+            required_temperature_millicelsius: None,
+            requires_power: false,
+            requires_intact_seal: true,
+        }
+    }
+
+    fn cargo_instance(profile: &CargoModuleProfile) -> CargoModuleInstance {
+        CargoModuleInstance {
+            module_id: "container-42".to_owned(),
+            profile_id: profile.profile_id.clone(),
+            payload_mass_grams: 10_000_000,
+            occupied_volume_litres: 12_000,
+            contents_digest: "sha256:contents".to_owned(),
+            seal_status: CargoSealStatus::Intact,
+            serviceability: CargoServiceability::Serviceable,
+            observed_temperature_millicelsius: None,
+        }
+    }
+
+    fn rail_equipment() -> HandlingEquipmentProfile {
+        HandlingEquipmentProfile {
+            equipment_id: "rail-wagon-position-7".to_owned(),
+            mode: Mode::Rail,
+            max_module_dimensions_mm: [6_100, 2_500, 2_600],
+            max_module_gross_mass_grams: 25_000_000,
+            supported_families: BTreeSet::from([CargoModuleFamily::IsoSeries1Container]),
+            interfaces: BTreeSet::from([HandlingInterface::IsoCornerFittings]),
+            available_temperature_millicelsius: None,
+            supplies_module_power: false,
+            requires_verified_aircraft_uld: false,
+        }
+    }
+
+    #[test]
+    fn modular_cargo_accepts_matching_verified_profile_and_equipment() {
+        let profile = iso_container_profile();
+        let instance = cargo_instance(&profile);
+        let equipment = rail_equipment();
+        assert!(check_module_compatibility(&profile, &instance, &equipment).is_ok());
+    }
+
+    #[test]
+    fn modular_cargo_rejects_capacity_interface_and_mode_mismatches() {
+        let profile = iso_container_profile();
+        let instance = cargo_instance(&profile);
+        let mut equipment = rail_equipment();
+        equipment.interfaces = BTreeSet::from([HandlingInterface::AircraftRestraint]);
+        assert_eq!(
+            check_module_compatibility(&profile, &instance, &equipment),
+            Err(CargoError::HandlingInterfaceMismatch)
+        );
+
+        let mut equipment = rail_equipment();
+        equipment.max_module_dimensions_mm = [5_000, 2_000, 2_000];
+        assert_eq!(
+            check_module_compatibility(&profile, &instance, &equipment),
+            Err(CargoError::DimensionsExceeded)
+        );
+
+        let mut equipment = rail_equipment();
+        equipment.mode = Mode::Air;
+        assert_eq!(
+            check_module_compatibility(&profile, &instance, &equipment),
+            Err(CargoError::ModeNotPermitted)
+        );
+    }
+
+    #[test]
+    fn modular_cargo_rejects_overweight_overvolume_and_unsealed_instances() {
+        let profile = iso_container_profile();
+        let mut instance = cargo_instance(&profile);
+        instance.payload_mass_grams = profile.max_payload_mass_grams + 1;
+        assert_eq!(
+            instance.validate_against(&profile),
+            Err(CargoError::PayloadExceeded)
+        );
+
+        let mut instance = cargo_instance(&profile);
+        instance.occupied_volume_litres = profile.usable_volume_litres + 1;
+        assert_eq!(
+            instance.validate_against(&profile),
+            Err(CargoError::VolumeExceeded)
+        );
+
+        let mut instance = cargo_instance(&profile);
+        instance.seal_status = CargoSealStatus::Broken;
+        assert_eq!(
+            instance.validate_against(&profile),
+            Err(CargoError::SealRequirementFailed)
+        );
+    }
+
+    #[test]
+    fn air_cargo_requires_verified_aircraft_uld_profile() {
+        let mut profile = iso_container_profile();
+        profile.profile_id = "air-uld-example-v1".to_owned();
+        profile.family = CargoModuleFamily::AircraftUld;
+        profile.conformity = ProfileConformity::DeclaredUnverified;
+        profile.outer_dimensions_mm = [3_000, 2_000, 1_600];
+        profile.usable_volume_litres = 8_000;
+        profile.tare_mass_grams = 100_000;
+        profile.max_payload_mass_grams = 500_000;
+        profile.max_gross_mass_grams = 600_000;
+        profile.interfaces = BTreeSet::from([HandlingInterface::AircraftRestraint]);
+        profile.permitted_modes = BTreeSet::from([Mode::Air, Mode::Road]);
+
+        let instance = cargo_instance(&profile);
+        let equipment = HandlingEquipmentProfile {
+            equipment_id: "certified-aircraft-position-1".to_owned(),
+            mode: Mode::Air,
+            max_module_dimensions_mm: [3_100, 2_100, 1_700],
+            max_module_gross_mass_grams: 700_000,
+            supported_families: BTreeSet::from([CargoModuleFamily::AircraftUld]),
+            interfaces: BTreeSet::from([HandlingInterface::AircraftRestraint]),
+            available_temperature_millicelsius: None,
+            supplies_module_power: false,
+            requires_verified_aircraft_uld: true,
+        };
+        assert_eq!(
+            check_module_compatibility(&profile, &instance, &equipment),
+            Err(CargoError::AircraftUldNotVerified)
+        );
+    }
+
+    #[test]
+    fn cold_chain_rejects_missing_or_out_of_range_temperature_evidence() {
+        let mut profile = iso_container_profile();
+        profile.profile_id = "cold-chain-pod-v1".to_owned();
+        profile.family = CargoModuleFamily::ColdChainPod;
+        profile.requires_power = true;
+        profile.required_temperature_millicelsius = Some(TemperatureBand {
+            min_millicelsius: 2_000,
+            max_millicelsius: 8_000,
+        });
+        let mut instance = cargo_instance(&profile);
+        assert_eq!(
+            instance.validate_against(&profile),
+            Err(CargoError::TemperatureEvidenceMissing)
+        );
+        instance.observed_temperature_millicelsius = Some(10_000);
+        assert_eq!(
+            instance.validate_against(&profile),
+            Err(CargoError::TemperatureOutOfRange)
+        );
+        instance.observed_temperature_millicelsius = Some(5_000);
+        assert!(instance.validate_against(&profile).is_ok());
+
+        let equipment = rail_equipment();
+        assert_eq!(
+            check_module_compatibility(&profile, &instance, &equipment),
+            Err(CargoError::FamilyNotSupported)
+        );
+        let mut cold_equipment = equipment;
+        cold_equipment.supported_families = BTreeSet::from([CargoModuleFamily::ColdChainPod]);
+        cold_equipment.supplies_module_power = true;
+        cold_equipment.available_temperature_millicelsius = Some(TemperatureBand {
+            min_millicelsius: 1_000,
+            max_millicelsius: 9_000,
+        });
+        assert!(check_module_compatibility(&profile, &instance, &cold_equipment).is_ok());
     }
 
 }
