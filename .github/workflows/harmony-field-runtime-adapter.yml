@@ -56,3 +56,6 @@ jobs:
 
       - name: Test factorial mechanism switches
         run: cargo test --locked -p symtropy-consciousness-physics --lib factorial
+
+      - name: Exercise real runtime adapter smoke and replay
+        run: cargo test --locked -p symtropy-consciousness-physics --example harmony_field_ablation_adapter
