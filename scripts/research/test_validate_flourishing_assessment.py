@@ -7,6 +7,8 @@ import json
 import sys
 import tempfile
 import unittest
+from contextlib import redirect_stdout
+from io import StringIO
 from pathlib import Path
 
 try:
@@ -17,7 +19,7 @@ except ImportError:  # CI installs the pinned schema validator.
 ROOT = Path(__file__).resolve().parents[2]
 SCHEMA_PATH = ROOT / "docs/humanity-atlas/flourishing-assessment-v0.1.schema.json"
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from validate_flourishing_assessment import validate_assessment  # noqa: E402
+from validate_flourishing_assessment import main, validate_assessment  # noqa: E402
 
 
 def unknown_outcome(metric_id: str, unit: str) -> dict:
@@ -339,6 +341,21 @@ class FlourishingAssessmentTests(unittest.TestCase):
         self.assertIsNone(report["ranking"])
         self.assertEqual(
             {a["comparison_status"] for a in report["alternatives"]},
+            {"UNRESOLVED"},
+        )
+
+    @unittest.skipIf(jsonschema is None, "jsonschema dependency is installed by the CI workflow")
+    def test_cli_validates_checked_in_fixture_and_reports_unresolved(self) -> None:
+        fixture_path = ROOT / "docs/humanity-atlas/fixtures/flourishing-assessment.not-evidence.json"
+        output = StringIO()
+        with redirect_stdout(output):
+            exit_code = main([str(fixture_path)])
+        self.assertEqual(exit_code, 0)
+        report = json.loads(output.getvalue())
+        self.assertIsNone(report["ranking"])
+        self.assertEqual(report["assessment_status"], "VALIDATED_ASSESSMENT_NOT_POLICY_APPROVAL")
+        self.assertEqual(
+            {item["comparison_status"] for item in report["alternatives"]},
             {"UNRESOLVED"},
         )
 
