@@ -39,7 +39,8 @@ const STATUS_PASS: &str = "PASS";
 const STATUS_EVIDENCE_INTEGRITY_VERIFIED: &str = "EVIDENCE_INTEGRITY_VERIFIED";
 const STATUS_EVIDENCE_INTEGRITY_NOT_VERIFIED: &str = "NOT_VERIFIED";
 const STATUS_FAIL: &str = "FAIL";
-const EMBEDDED_SCHEMA: &str = include_str!("../../../../docs/built-environment/housing-evidence-manifest.schema.json");
+const EMBEDDED_SCHEMA: &str =
+    include_str!("../../../../docs/built-environment/housing-evidence-manifest.schema.json");
 const STATUS_NOT_EVALUATED: &str = "NOT_EVALUATED";
 const STATUS_BLOCKED: &str = "BLOCKED";
 const STATUS_INSUFFICIENT_EVIDENCE: &str = "INSUFFICIENT_EVIDENCE";
@@ -153,7 +154,10 @@ fn run(args: Vec<String>) -> Result<(VerificationReport, bool), String> {
                 index += 1;
                 let value = args.get(index).ok_or_else(usage)?;
                 if !is_sha256(value) {
-                    return Err("--expected-claims-sha256 must be 64 lowercase hexadecimal characters".to_string());
+                    return Err(
+                        "--expected-claims-sha256 must be 64 lowercase hexadecimal characters"
+                            .to_string(),
+                    );
                 }
                 expected_claims_sha256 = Some(value.to_string());
             }
@@ -227,14 +231,23 @@ fn run(args: Vec<String>) -> Result<(VerificationReport, bool), String> {
 }
 
 fn usage() -> String {
-    "Usage: housing-evidence-verify <manifest.json> \\\n     [--expected-claims <requirements.json>] \\\n     [--expected-claims-sha256 <sha256-pinned-out-of-band>] \\\n     [--artifact-root <directory>] [--require-pass]"
-        .to_string()
+    [
+        "Usage: housing-evidence-verify <manifest.json>",
+        "  [--expected-claims <requirements.json>]",
+        "  [--expected-claims-sha256 <sha256-pinned-out-of-band>]",
+        "  [--artifact-root <directory>] [--require-pass]",
+    ]
+    .join("\\n")
 }
 
 fn read_expected_claims_file(path: &Path) -> Result<(ExpectedClaimsFile, String), String> {
     let bytes = fs::read(path).map_err(|error| format!("cannot read {}: {error}", path.display()))?;
-    let expected: ExpectedClaimsFile = serde_json::from_slice(&bytes)
-        .map_err(|error| format!("{} is not a valid expected-claims contract: {error}", path.display()))?;
+    let expected: ExpectedClaimsFile = serde_json::from_slice(&bytes).map_err(|error| {
+        format!(
+            "{} is not a valid expected-claims contract: {error}",
+            path.display()
+        )
+    })?;
 
     if expected.schema_version.trim().is_empty() {
         return Err("expected-claims schema_version must not be empty".to_string());
@@ -297,7 +310,7 @@ fn read_expected_claims_file(path: &Path) -> Result<(ExpectedClaimsFile, String)
             || claim.validity_domain.trim().is_empty()
             || claim.acceptance_criteria.trim().is_empty()
         {
-            return Err("expected mandatory claim IDs, types, statements, validity domains, and acceptance criteria must be non-empty".to_string());
+            return Err("mandatory claim fields must be non-empty".to_string());
         }
         if !(claim.requirement.is_null() || claim.requirement.is_object()) {
             return Err(format!(
@@ -507,7 +520,9 @@ fn evaluate_manifest(
             issues.push(format!("duplicate claim_id: {id}"));
         }
 
-        if claim["status"].as_str().is_some_and(|status| status == STATUS_PASS || status == STATUS_FAIL) {
+        if claim["status"].as_str().is_some_and(|status| {
+            status == STATUS_PASS || status == STATUS_FAIL
+        }) {
             let Some(tool_id) = claim["tool_id"].as_str() else {
                 issues.push(format!("evaluated claim {id} has no tool_id"));
                 continue;
@@ -1606,7 +1621,8 @@ mod tests {
         manifest["rule_pack"]["source_references"][0]["source_type"] = json!("legislation");
         manifest["rule_pack"]["source_references"][0]["edition"] = json!("synthetic-edition-v1");
         manifest["rule_pack"]["source_references"][0]["effective_from"] = json!("2026-01-01");
-        manifest["rule_pack"]["source_references"][0]["clause_or_location"] = json!("synthetic clause 1.1");
+        manifest["rule_pack"]["source_references"][0]["clause_or_location"] =
+            json!("synthetic clause 1.1");
         manifest["rule_pack"]["source_references"][0]["rights_status"] = json!("public");
         manifest["rule_pack"]["source_references"][0]["source_sha256"] = json!(source_digest);
         manifest["evidence_artifacts"].as_array_mut().unwrap().push(json!({
@@ -1648,7 +1664,10 @@ mod tests {
         });
         let result = evaluate_manifest(&schema, &manifest, Some(&expected), true, Some(&root));
         assert_eq!(result.effective_status, STATUS_BLOCKED);
-        assert!(result.issues.iter().any(|issue| issue.contains("source absent from the rule pack")));
+        assert!(result
+            .issues
+            .iter()
+            .any(|issue| issue.contains("source absent from the rule pack")));
         fs::remove_dir_all(root).expect("clean temp dir");
     }
 
