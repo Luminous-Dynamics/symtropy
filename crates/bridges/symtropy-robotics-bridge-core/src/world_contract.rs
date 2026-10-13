@@ -232,9 +232,19 @@ impl WorldManifestV1 {
             ));
         }
 
+        // Repeated references to one artifact ID must agree on content identity.
+        // URIs may differ as mirrors, but the expected bytes may not.
+        let mut artifact_digests_by_id = BTreeMap::new();
         let mut world_asset_ids = BTreeSet::new();
         for (index, artifact) in self.world_assets.iter().enumerate() {
-            artifact.validate_at(&format!("world_assets[{index}]"), &mut issues);
+            let path = format!("world_assets[{index}]");
+            artifact.validate_at(&path, &mut issues);
+            record_artifact_digest_identity(
+                artifact,
+                &path,
+                &mut artifact_digests_by_id,
+                &mut issues,
+            );
             if !world_asset_ids.insert(artifact.artifact_id.as_str()) {
                 issues.push(WorldValidationIssue::new(
                     WorldValidationCode::DuplicateIdentity,
@@ -351,7 +361,14 @@ impl WorldManifestV1 {
                 ));
             }
             if let Some(artifact) = &sensor.calibration_artifact {
-                artifact.validate_at(&format!("{path}.calibration_artifact"), &mut issues);
+                let artifact_path = format!("{path}.calibration_artifact");
+                artifact.validate_at(&artifact_path, &mut issues);
+                record_artifact_digest_identity(
+                    artifact,
+                    &artifact_path,
+                    &mut artifact_digests_by_id,
+                    &mut issues,
+                );
             }
         }
 
@@ -388,12 +405,22 @@ impl WorldManifestV1 {
                     format!("{path}.platform_id"),
                 ));
             }
-            platform
-                .geometry
-                .validate_at(&format!("{path}.geometry"), &mut issues);
-            platform
-                .kinematics
-                .validate_at(&format!("{path}.kinematics"), &mut issues);
+            let geometry_path = format!("{path}.geometry");
+            platform.geometry.validate_at(&geometry_path, &mut issues);
+            record_artifact_digest_identity(
+                &platform.geometry,
+                &geometry_path,
+                &mut artifact_digests_by_id,
+                &mut issues,
+            );
+            let kinematics_path = format!("{path}.kinematics");
+            platform.kinematics.validate_at(&kinematics_path, &mut issues);
+            record_artifact_digest_identity(
+                &platform.kinematics,
+                &kinematics_path,
+                &mut artifact_digests_by_id,
+                &mut issues,
+            );
 
             let mut actuator_ids = BTreeSet::new();
             for (actuator_index, actuator) in platform.actuators.iter().enumerate() {
@@ -1042,6 +1069,33 @@ pub enum WorldValidationCode {
     WorldManifestCommitmentUnavailable,
 }
 
+fn record_artifact_digest_identity(
+    artifact: &ArtifactRef,
+    path: &str,
+    seen: &mut BTreeMap<String, String>,
+    issues: &mut Vec<WorldValidationIssue>,
+) {
+    // Invalid hashes already receive InvalidDigest from ArtifactRef::validate_at;
+    // do not manufacture a second, misleading identity-conflict diagnostic.
+    if artifact.artifact_id.trim().is_empty() || !is_sha256_hex(&artifact.sha256) {
+        return;
+    }
+
+    let normalized_digest = artifact.sha256.to_ascii_lowercase();
+    match seen.get(&artifact.artifact_id) {
+        Some(previous) if previous != &normalized_digest => {
+            issues.push(WorldValidationIssue::new(
+                WorldValidationCode::DuplicateIdentity,
+                format!("{path}.artifact_id"),
+            ));
+        }
+        Some(_) => {}
+        None => {
+            seen.insert(artifact.artifact_id.clone(), normalized_digest);
+        }
+    }
+}
+
 fn is_sha256_hex(value: &str) -> bool {
     value.len() == SHA256_HEX_LENGTH && value.bytes().all(|byte| byte.is_ascii_hexdigit())
 }
@@ -1588,6 +1642,18 @@ mod tests {
         assert!(issues.iter().any(|issue| {
             issue.code == WorldValidationCode::DuplicateIdentity
                 && issue.path == "world_assets[1].artifact_id"
+        }));
+    }
+
+    #[test]
+    fn artifact_identity_cannot_name_conflicting_content_digests() {
+        let mut manifest = valid_manifest();
+        // `robot-cad` already appears in world_assets with a different digest.
+        manifest.platforms[0].geometry.sha256 = "00".repeat(32);
+        let issues = manifest.validate().unwrap_err();
+        assert!(issues.iter().any(|issue| {
+            issue.code == WorldValidationCode::DuplicateIdentity
+                && issue.path == "platforms[0].geometry.artifact_id"
         }));
     }
 
