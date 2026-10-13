@@ -734,6 +734,7 @@ fn run_simulation(
         }
 
         let mut effective_forces = Vec::with_capacity(AGENT_COUNT);
+        let mut controller_input_trace = Vec::with_capacity(AGENT_COUNT);
         let mut before_positions = Vec::with_capacity(AGENT_COUNT);
         for (index, handle) in handles.iter().enumerate() {
             let body = world
@@ -743,6 +744,7 @@ fn run_simulation(
             let velocity = body.linear_velocity;
             let goal = SVector::from(goals[index]);
             let mut force = (goal - position) * KP - velocity * KD;
+            let raw_pd_force = force;
             let norm = force.norm();
             if !norm.is_finite() || !force.iter().all(|component| component.is_finite()) {
                 nonfinite_count += 1;
@@ -750,6 +752,7 @@ fn run_simulation(
             } else if norm > FORCE_CAP {
                 force *= FORCE_CAP / norm;
             }
+            let bounded_force = force;
             let effective = PhysicsCallback::<3>::modulate_force(&field, *handle, &force);
             if effective.iter().all(|component| component.is_finite()) {
                 effective_forces.push(effective);
@@ -757,6 +760,24 @@ fn run_simulation(
                 nonfinite_count += 1;
                 effective_forces.push(SVector::zeros());
             }
+            controller_input_trace.push(json!({
+                "handle": handle.0,
+                "raw_pd_force": [
+                    finite_json(raw_pd_force[0], &mut nonfinite_count),
+                    finite_json(raw_pd_force[1], &mut nonfinite_count),
+                    finite_json(raw_pd_force[2], &mut nonfinite_count)
+                ],
+                "bounded_controller_force": [
+                    finite_json(bounded_force[0], &mut nonfinite_count),
+                    finite_json(bounded_force[1], &mut nonfinite_count),
+                    finite_json(bounded_force[2], &mut nonfinite_count)
+                ],
+                "callback_modulated_force": [
+                    finite_json(effective[0], &mut nonfinite_count),
+                    finite_json(effective[1], &mut nonfinite_count),
+                    finite_json(effective[2], &mut nonfinite_count)
+                ]
+            }));
             before_positions.push(position);
             world
                 .body_mut(*handle)
@@ -775,7 +796,7 @@ fn run_simulation(
             }
         }
         let residual = ((energy_after - energy_before) - work_estimate).max(0.0)
-            / energy_before.max(1.0e-12);
+            / energy_before.max(1.0);
         if residual.is_finite() {
             max_normalized_positive_energy_residual =
                 max_normalized_positive_energy_residual.max(residual);
@@ -789,6 +810,23 @@ fn run_simulation(
             .iter()
             .map(|event| event.impulse.abs())
             .sum();
+        let collision_event_trace: Vec<Value> = world
+            .collision_events
+            .iter()
+            .map(|event| {
+                json!({
+                    "body_a": event.body_a.0,
+                    "body_b": event.body_b.0,
+                    "impulse": finite_json(event.impulse, &mut nonfinite_count),
+                    "normal": [
+                        finite_json(event.normal[0], &mut nonfinite_count),
+                        finite_json(event.normal[1], &mut nonfinite_count),
+                        finite_json(event.normal[2], &mut nonfinite_count)
+                    ],
+                    "penetration_depth": finite_json(event.depth, &mut nonfinite_count)
+                })
+            })
+            .collect();
         if !collision_impulse.is_finite() {
             nonfinite_count += 1;
         } else {
@@ -810,6 +848,8 @@ fn run_simulation(
             "kinetic_energy_before": finite_json(energy_before, &mut nonfinite_count),
             "kinetic_energy_after": finite_json(energy_after, &mut nonfinite_count),
             "normalized_positive_energy_residual": finite_json(residual, &mut nonfinite_count),
+            "controller_inputs": controller_input_trace,
+            "collision_events": collision_event_trace,
             "states": states
         }));
         field.tick_prediction_errors();
