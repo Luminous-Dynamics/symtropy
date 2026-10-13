@@ -597,6 +597,60 @@ impl WorldManifestV1 {
                 ));
             }
         }
+
+        let frame_by_id: BTreeMap<&str, &CoordinateFrameV1> = self
+            .frames
+            .iter()
+            .map(|frame| (frame.frame_id.as_str(), frame))
+            .collect();
+        for (platform_index, platform) in self.platforms.iter().enumerate() {
+            if let Some(base_frame) = frame_by_id.get(platform.base_frame_id.as_str()) {
+                match &base_frame.transform_to_parent {
+                    FrameTransformV1::Kinematic {
+                        provider_artifact_id,
+                        ..
+                    } if provider_artifact_id.as_str()
+                        == platform.kinematics.artifact_id.as_str() => {}
+                    _ => issues.push(WorldValidationIssue::new(
+                        WorldValidationCode::InvalidPlatformBaseFrame,
+                        format!("platforms[{platform_index}].base_frame_id"),
+                    )),
+                }
+            }
+
+            for (sensor_index, sensor_id) in platform.sensor_ids.iter().enumerate() {
+                let Some(sensor) = self
+                    .sensors
+                    .iter()
+                    .find(|sensor| sensor.sensor_id.as_str() == sensor_id.as_str())
+                else {
+                    // The unknown sensor reference is already reported above.
+                    continue;
+                };
+
+                let mut visited = BTreeSet::new();
+                let mut cursor = Some(sensor.frame_id.as_str());
+                let mut descends_from_platform = false;
+                while let Some(frame_id) = cursor {
+                    if !visited.insert(frame_id) {
+                        break;
+                    }
+                    if frame_id == platform.base_frame_id.as_str() {
+                        descends_from_platform = true;
+                        break;
+                    }
+                    cursor = parent_by_id.get(frame_id).copied().flatten();
+                }
+                if !descends_from_platform {
+                    issues.push(WorldValidationIssue::new(
+                        WorldValidationCode::SensorFrameNotAttachedToPlatform,
+                        format!(
+                            "platforms[{platform_index}].sensor_ids[{sensor_index}]"
+                        ),
+                    ));
+                }
+            }
+        }
     }
 }
 
@@ -889,6 +943,8 @@ pub enum WorldValidationCode {
     InvalidWorldGeneration,
     ScenarioIdentityMismatch,
     WorldGenerationMismatch,
+    InvalidPlatformBaseFrame,
+    SensorFrameNotAttachedToPlatform,
 }
 
 fn is_sha256_hex(value: &str) -> bool {
@@ -1274,5 +1330,32 @@ mod tests {
                 && issue.path == "request.scenario_id"
         }));
     }
+
+
+    #[test]
+    fn platform_base_frame_must_use_its_declared_kinematics_provider() {
+        let mut manifest = valid_manifest();
+        manifest.frames[1].transform_to_parent = FrameTransformV1::Kinematic {
+            provider_artifact_id: "different-robot-kinematics".to_owned(),
+            provider_frame_id: "base_link".to_owned(),
+        };
+        let issues = manifest.validate().unwrap_err();
+        assert!(issues.iter().any(|issue| {
+            issue.code == WorldValidationCode::InvalidPlatformBaseFrame
+                && issue.path == "platforms[0].base_frame_id"
+        }));
+    }
+
+    #[test]
+    fn attached_sensor_frame_must_descend_from_platform_base() {
+        let mut manifest = valid_manifest();
+        manifest.sensors[0].frame_id = "world".to_owned();
+        let issues = manifest.validate().unwrap_err();
+        assert!(issues.iter().any(|issue| {
+            issue.code == WorldValidationCode::SensorFrameNotAttachedToPlatform
+                && issue.path == "platforms[0].sensor_ids[0]"
+        }));
+    }
+
 
 }
