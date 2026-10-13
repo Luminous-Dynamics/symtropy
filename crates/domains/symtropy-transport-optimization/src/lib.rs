@@ -440,13 +440,21 @@ impl fmt::Display for CargoCustodyError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::InvalidCurrentState => write!(f, "current cargo custody state is incomplete"),
-            Self::InvalidHandoff => write!(f, "cargo handoff is missing required identity/evidence"),
-            Self::StaleRevision => write!(f, "cargo handoff revision is stale or was already applied"),
-            Self::AuthorityMismatch => write!(f, "cargo handoff does not match current custody authority"),
+            Self::InvalidHandoff => {
+                write!(f, "cargo handoff is missing required identity/evidence")
+            }
+            Self::StaleRevision => {
+                write!(f, "cargo handoff revision is stale or was already applied")
+            }
+            Self::AuthorityMismatch => {
+                write!(f, "cargo handoff does not match current custody authority")
+            }
             Self::ContentsDigestMismatch => {
                 write!(f, "cargo handoff changes or mismatches the contents digest")
             }
-            Self::SealStateMismatch => write!(f, "cargo handoff seal state does not match current state"),
+            Self::SealStateMismatch => {
+                write!(f, "cargo handoff seal state does not match current state")
+            }
             Self::SealTransitionEvidenceMissing => {
                 write!(f, "a seal-state change requires evidence")
             }
@@ -2168,7 +2176,7 @@ mod tests {
         equipment.max_module_dimensions_mm = [2_600, 6_100, 2_500];
         assert!(check_module_compatibility(&profile, &instance, &equipment).is_ok());
 
-        equipment.accepted_orientations = BTreeSet::from([CargoOrientation::YXZ]);
+        equipment.accepted_orientations = BTreeSet::from([CargoOrientation::ZXY]);
         assert_eq!(
             check_module_compatibility(&profile, &instance, &equipment),
             Err(CargoError::OrientationNotSupported)
