@@ -172,6 +172,10 @@ pub struct SolverDeclarationV1 {
 pub struct WorldManifestV1 {
     pub schema_version: u16,
     pub scenario_id: String,
+    /// Monotonic identity for a physics-relevant world generation. Any change
+    /// to canonical geometry, materials, solver/profile configuration, or
+    /// platform state that can invalidate a result must advance this value.
+    pub world_generation: u64,
     pub seed: u64,
     /// Fixed world step in integer nanoseconds; wall-clock cadence is separate.
     pub fixed_step_ns: u64,
@@ -204,6 +208,12 @@ impl WorldManifestV1 {
             issues.push(WorldValidationIssue::new(
                 WorldValidationCode::EmptyIdentity,
                 "scenario_id",
+            ));
+        }
+        if self.world_generation == 0 {
+            issues.push(WorldValidationIssue::new(
+                WorldValidationCode::InvalidWorldGeneration,
+                "world_generation",
             ));
         }
         if self.fixed_step_ns == 0 {
@@ -594,6 +604,8 @@ impl WorldManifestV1 {
 pub struct SolverRequestIdentityV1 {
     pub run_id: String,
     pub request_id: u64,
+    /// Scenario identity must match the manifest in which this request runs.
+    pub scenario_id: String,
     pub world_generation: u64,
     pub solver_id: String,
     pub input_digest_sha256: String,
@@ -604,10 +616,19 @@ pub struct SolverRequestIdentityV1 {
 impl SolverRequestIdentityV1 {
     pub fn validate(&self) -> Result<(), Vec<WorldValidationIssue>> {
         let mut issues = Vec::new();
-        if self.run_id.trim().is_empty() || self.solver_id.trim().is_empty() {
+        if self.run_id.trim().is_empty()
+            || self.scenario_id.trim().is_empty()
+            || self.solver_id.trim().is_empty()
+        {
             issues.push(WorldValidationIssue::new(
                 WorldValidationCode::EmptyIdentity,
                 "request_identity",
+            ));
+        }
+        if self.scenario_id.trim() != self.scenario_id.as_str() {
+            issues.push(WorldValidationIssue::new(
+                WorldValidationCode::EmptyIdentity,
+                "request_identity.scenario_id",
             ));
         }
         if self.simulation_time_end_ns < self.simulation_time_start_ns {
@@ -774,6 +795,19 @@ impl WorldManifestV1 {
             issues.append(&mut result_issues);
         }
 
+        if expected_request.scenario_id.as_str() != self.scenario_id.as_str() {
+            issues.push(WorldValidationIssue::new(
+                WorldValidationCode::ScenarioIdentityMismatch,
+                "request.scenario_id",
+            ));
+        }
+        if expected_request.world_generation != self.world_generation {
+            issues.push(WorldValidationIssue::new(
+                WorldValidationCode::WorldGenerationMismatch,
+                "request.world_generation",
+            ));
+        }
+
         if !self
             .solvers
             .iter()
@@ -852,6 +886,9 @@ pub enum WorldValidationCode {
     MissingFrame,
     UnknownFrameReference,
     UnknownFrameProvider,
+    InvalidWorldGeneration,
+    ScenarioIdentityMismatch,
+    WorldGenerationMismatch,
 }
 
 fn is_sha256_hex(value: &str) -> bool {
@@ -874,6 +911,7 @@ mod tests {
         WorldManifestV1 {
             schema_version: WORLD_MANIFEST_SCHEMA_VERSION,
             scenario_id: "hard-rock-workcell-smoke-v1".to_owned(),
+            world_generation: 12,
             seed: 42,
             fixed_step_ns: 1_000_000,
             gravity_mps2: [0.0, -9.81, 0.0],
@@ -951,6 +989,7 @@ mod tests {
         SolverRequestIdentityV1 {
             run_id: "run-0001".to_owned(),
             request_id: 7,
+            scenario_id: "hard-rock-workcell-smoke-v1".to_owned(),
             world_generation: 12,
             solver_id: "acoustic-reference".to_owned(),
             input_digest_sha256: "d".repeat(SHA256_HEX_LENGTH),
@@ -1188,6 +1227,51 @@ mod tests {
         assert!(issues.iter().any(|issue| {
             issue.code == WorldValidationCode::UnknownFrameReference
                 && issue.path == "outputs[0].frame_id"
+        }));
+    }
+
+
+    #[test]
+    fn world_admission_rejects_stale_world_generation() {
+        let manifest = valid_manifest();
+        let mut expected = valid_request();
+        expected.world_generation += 1;
+        let result = SolverResultEnvelopeV1 {
+            schema_version: SOLVER_RESULT_SCHEMA_VERSION,
+            request: expected.clone(),
+            disposition: SolverResultDisposition::NumericalNonConvergence,
+            output_digest_sha256: None,
+            outputs: Vec::new(),
+            warnings: Vec::new(),
+        };
+        let issues = manifest
+            .validate_solver_result_against_world(&expected, &result)
+            .unwrap_err();
+        assert!(issues.iter().any(|issue| {
+            issue.code == WorldValidationCode::WorldGenerationMismatch
+                && issue.path == "request.world_generation"
+        }));
+    }
+
+    #[test]
+    fn world_admission_rejects_cross_scenario_result() {
+        let manifest = valid_manifest();
+        let mut expected = valid_request();
+        expected.scenario_id = "different-scenario".to_owned();
+        let result = SolverResultEnvelopeV1 {
+            schema_version: SOLVER_RESULT_SCHEMA_VERSION,
+            request: expected.clone(),
+            disposition: SolverResultDisposition::NumericalNonConvergence,
+            output_digest_sha256: None,
+            outputs: Vec::new(),
+            warnings: Vec::new(),
+        };
+        let issues = manifest
+            .validate_solver_result_against_world(&expected, &result)
+            .unwrap_err();
+        assert!(issues.iter().any(|issue| {
+            issue.code == WorldValidationCode::ScenarioIdentityMismatch
+                && issue.path == "request.scenario_id"
         }));
     }
 
