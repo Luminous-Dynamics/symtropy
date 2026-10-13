@@ -828,7 +828,8 @@ mod tests {
             QuantityUnit::Passengers,
             metrics(1, 1, 60, 0, 1, 1, 0, 0, 0),
         ));
-        let routes = pareto_routes(&network, &passenger_demand(1), SearchLimits::default()).unwrap();
+        let routes =
+            pareto_routes(&network, &passenger_demand(1), SearchLimits::default()).unwrap();
         assert_eq!(routes.len(), 1);
         assert_eq!(routes[0].transfer_count, 1);
         assert_eq!(routes[0].metrics_per_unit.elapsed_seconds, 60);
@@ -996,7 +997,7 @@ mod tests {
             "Port",
             "Market",
             Mode::Maritime,
-            300,
+            500,
             QuantityUnit::Tonnes,
             metrics(15, 35, 20_000, 1_000_000, 250, 25, 5, 2, 8),
         ));
