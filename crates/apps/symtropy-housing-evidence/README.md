@@ -106,6 +106,10 @@ The verifier hashes the exact bytes of the manifest, embedded schema, and provid
 
 Use `--require-pass` in gates where an engineering verification result is required. Preserve the JSON report as an evidence artifact.
 
+## Solver adapter evaluation
+
+See [solver-adapter-evaluation.md](../../../docs/built-environment/solver-adapter-evaluation.md) for the current research memo. It treats CalculiX as a candidate for a bounded static comparison—not an adopted or certified solver—and flags GPL-2.0 redistribution review and beam/truss connection cases as explicit gates. OpenSees is reserved as a later candidate until its product-license path is resolved.
+
 ## Analytical structural reference fixture
 
 The repository also includes [`cantilever-beam-linear-static-v1.json`](../../../docs/built-environment/benchmarks/cantilever-beam-linear-static-v1.json) and an integration test in `tests/reference_cantilever_beam.rs`. It checks the elementary Euler-Bernoulli formulas for rectangular-section second moment of area, cantilever tip deflection, and support bending stress, and rejects non-positive input values.

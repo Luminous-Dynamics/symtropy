@@ -104,11 +104,12 @@ Do not implement bespoke building-grade solvers merely because Rust is the prefe
 
 Initial evaluation candidates (not yet selected or certified):
 
-- structural analysis: compare suitable open-source finite-element/frame solvers and an independent reference suite before making structural claims;
-- energy/thermal: EnergyPlus/OpenStudio or another suitable engine with ANSI/ASHRAE 140/BESTEST evidence;
-- geometry/coordination: IFC validation, IDS validation, clash checks, and explicit unsupported-feature reporting;
-- site/hydrology/geotechnical: authoritative geospatial data plus discipline-specific analyses and investigation inputs;
-- construction robots: Symtropy scene/replay plus robot-specific kinematics, collision, force/load, reachability, and safety checks.
+- **Structural linear-static pilot:** begin evaluation with CalculiX as a candidate adapter for the analytical cantilever and additional reference cases. The [solver-adapter evaluation memo](solver-adapter-evaluation.md) documents the rationale, GPL-2.0 distribution gate, and mandatory acceptance tests. A public test corpus is useful for designing a campaign, but does not prove suitability for a specific design domain.
+- **Nonlinear/dynamic structural and geotechnical studies:** keep OpenSees as a later candidate. Its official documentation targets structural/geotechnical dynamic-response simulation, but its license requires review before incorporating it into a commercial-distribution product. Do not bundle or link it as a dependency absent legal clearance.
+- **Energy/thermal:** EnergyPlus/OpenStudio or another suitable engine with ANSI/ASHRAE 140/BESTEST evidence;
+- **Geometry/coordination:** IFC validation, IDS validation, clash checks, and explicit unsupported-feature reporting;
+- **Site/hydrology/geotechnical:** authoritative geospatial data plus discipline-specific analyses and investigation inputs;
+- **Construction robots:** Symtropy scene/replay plus robot-specific kinematics, collision, force/load, reachability, and safety checks.
 
 Symtropy's existing rigid-body functionality remains useful for physical interaction, construction choreography, and robotics scenes. The RFC does not treat rigid-body validation as structural FEM validation.
 
