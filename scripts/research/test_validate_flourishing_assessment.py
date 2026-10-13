@@ -348,7 +348,7 @@ class FlourishingAssessmentTests(unittest.TestCase):
 
     def test_artifact_path_control_characters_are_rejected(self) -> None:
         doc = add_evidence_and_known_values(assessment())
-        doc["artifacts"][0]["path"] = "sample.txt\\x00suffix"
+        doc["artifacts"][0]["path"] = "sample.txt\x00suffix"
         errors, _ = validate_assessment(doc)
         self.assertTrue(any("safe relative path" in error for error in errors))
 
@@ -455,7 +455,7 @@ class FlourishingAssessmentTests(unittest.TestCase):
     def test_cli_refuses_to_overwrite_assessment_with_report(self) -> None:
         with tempfile.TemporaryDirectory() as temp:
             path = Path(temp) / "assessment.json"
-            original = json.dumps(assessment(), indent=2) + "\\n"
+            original = json.dumps(assessment(), indent=2) + "\n"
             path.write_text(original, encoding="utf-8")
             error_output = StringIO()
             with redirect_stderr(error_output):
