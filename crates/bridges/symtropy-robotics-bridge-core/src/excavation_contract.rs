@@ -885,6 +885,20 @@ mod tests {
     }
 
     #[test]
+    fn cell_mask_json_decoder_rejects_oversized_payload_before_parsing() {
+        let bytes = vec![b' '; MAX_CELL_REMOVAL_MASK_PAYLOAD_BYTES + 1];
+        let source_artifact = ArtifactRef {
+            artifact_id: "oversized-mask".to_owned(),
+            uri: "urn:symtropy:test:oversized-mask".to_owned(),
+            sha256: "a".repeat(SHA256_HEX_LENGTH),
+        };
+        assert_eq!(
+            CellRemovalMaskV1::decode_verified_json(&bytes, source_artifact),
+            Err(ExcavationContractErrorV1::CellMaskPayloadTooLarge)
+        );
+    }
+
+    #[test]
     fn cell_mask_json_decoder_rejects_unknown_fields() {
         use sha2::{Digest, Sha256};
 
