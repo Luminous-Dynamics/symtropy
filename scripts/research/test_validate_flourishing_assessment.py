@@ -163,6 +163,48 @@ class FlourishingAssessmentTests(unittest.TestCase):
         self.assertEqual(by_id["candidate"]["comparison_status"], "INELIGIBLE")
         self.assertEqual(by_id["candidate"]["constraint_results"][0]["status"], "FAIL")
 
+    def test_uncertainty_crossing_constraint_boundary_is_unresolved(self) -> None:
+        doc = add_evidence_and_known_values(
+            assessment(), {"outage_hours": 3.0, "critical_outage_hours": 0.9}
+        )
+        candidate_constraint = doc["alternatives"][1]["outcomes"][1]
+        candidate_constraint["uncertainty"] = {
+            "lower": 0.5,
+            "upper": 1.2,
+            "method": "synthetic uncertainty envelope",
+        }
+        errors, report = validate_assessment(doc)
+        self.assertEqual(errors, [])
+        by_id = {a["alternative_id"]: a for a in report["alternatives"]}
+        self.assertEqual(by_id["candidate"]["constraint_results"][0]["status"], "UNKNOWN")
+        self.assertEqual(by_id["candidate"]["comparison_status"], "UNRESOLVED")
+
+    def test_uncertainty_envelope_inside_constraint_can_pass(self) -> None:
+        doc = add_evidence_and_known_values(
+            assessment(), {"outage_hours": 3.0, "critical_outage_hours": 0.5}
+        )
+        for alternative in doc["alternatives"]:
+            alternative["outcomes"][1]["uncertainty"] = {
+                "lower": 0.2,
+                "upper": 0.8,
+                "method": "synthetic uncertainty envelope",
+            }
+        errors, report = validate_assessment(doc)
+        self.assertEqual(errors, [])
+        self.assertEqual(
+            {a["comparison_status"] for a in report["alternatives"]},
+            {"READY_FOR_COMPARISON"},
+        )
+
+    def test_invalid_between_thresholds_rejected_even_when_values_unknown(self) -> None:
+        doc = assessment()
+        doc["constraints"][0]["comparator"] = "between"
+        doc["constraints"][0]["threshold"] = 2.0
+        doc["constraints"][0]["threshold_upper"] = 1.0
+        errors, report = validate_assessment(doc)
+        self.assertTrue(any("between requires finite threshold" in error for error in errors))
+        self.assertIsNone(report)
+
     def test_missing_metric_outcome_is_rejected(self) -> None:
         doc = assessment()
         doc["alternatives"][0]["outcomes"].pop()
