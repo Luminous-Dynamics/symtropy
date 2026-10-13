@@ -835,10 +835,6 @@ fn run_simulation(
         cumulative_collisions += collision_count;
         validation_failure_count += field.take_harmony_field_validation_failures();
 
-        let positions_after: Vec<(BodyHandle, Point<3>)> = handles
-            .iter()
-            .filter_map(|handle| world.body(*handle).map(|body| (*handle, point_for(&body.position()))))
-            .collect();
         let states = capture_states(&world, &field, &handles, &goals, &mut nonfinite_count);
         frames.push(json!({
             "tick": tick,
@@ -853,11 +849,6 @@ fn run_simulation(
             "states": states
         }));
         field.tick_prediction_errors();
-        // Keep this binding explicit: it proves positions were captured from the
-        // actual post-step world and remains useful when reviewing the trace.
-        if positions_after.len() != AGENT_COUNT {
-            nonfinite_count += 1;
-        }
     }
 
     let mut completed = 0_u64;
