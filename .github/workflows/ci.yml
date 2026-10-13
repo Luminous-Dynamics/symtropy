@@ -86,7 +86,7 @@ jobs:
     - name: Smoke Test Housing Evidence Manifest (Linux)
       if: runner.os == 'Linux'
       run: |
-        cargo run -q -p symtropy-housing-evidence -- docs/built-environment/housing-evidence-manifest.schema.json docs/built-environment/fixtures/example-not-evidence.json > /tmp/housing-evidence-report.json
+        cargo run -q -p symtropy-housing-evidence -- docs/built-environment/fixtures/example-not-evidence.json > /tmp/housing-evidence-report.json
         python3 -c 'import json; r=json.load(open("/tmp/housing-evidence-report.json")); assert r["schema_valid"] is True, r; assert r["effective_status"] == "NOT_EVALUATED", r; assert r["declared_status"] == "NOT_EVALUATED", r'
 
     - name: Verify Workspace Build
