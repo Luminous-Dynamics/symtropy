@@ -9,7 +9,7 @@
 //! prove physical truth, or grant professional/statutory approval.
 //!
 //! Usage:
-//!   housing-evidence-verify <schema.json> <manifest.json>
+//!   housing-evidence-verify <manifest.json>
 //!       [--expected-claims <requirements.json>]
 //!       [--artifact-root <directory>]
 //!       [--require-pass]
@@ -663,6 +663,14 @@ mod tests {
 
         let expected = BTreeSet::from(["example-structural-claim".to_string()]);
         (schema, manifest, root, expected)
+    }
+
+    #[test]
+    fn embedded_schema_matches_checked_in_schema() {
+        let root = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../../docs/built-environment");
+        let disk_schema = fs::read_to_string(root.join("housing-evidence-manifest.schema.json"))
+            .expect("checked-in schema exists");
+        assert_eq!(EMBEDDED_SCHEMA, disk_schema);
     }
 
     #[test]
