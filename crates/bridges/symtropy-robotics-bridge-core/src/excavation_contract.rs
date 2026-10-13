@@ -269,15 +269,20 @@ impl CellRemovalMaskV1 {
         if payload.material_profile_id != request.material_profile_id {
             return Err(ExcavationContractErrorV1::CellMaskMaterialMismatch);
         }
-        if payload.grid_dimensions.iter().any(|dimension| *dimension == 0)
+        if payload.grid_dimensions.contains(&0)
             || !payload.grid_origin_m.iter().all(|coordinate| coordinate.is_finite())
             || !payload.cell_size_m.iter().all(|size| size.is_finite() && *size > 0.0)
         {
             return Err(ExcavationContractErrorV1::InvalidCellGrid);
         }
-        for axis in 0..3 {
-            let extent = f64::from(payload.grid_dimensions[axis]) * payload.cell_size_m[axis];
-            if !extent.is_finite() || !(payload.grid_origin_m[axis] + extent).is_finite() {
+        for ((dimension, cell_size), origin) in payload
+            .grid_dimensions
+            .iter()
+            .zip(payload.cell_size_m.iter())
+            .zip(payload.grid_origin_m.iter())
+        {
+            let extent = f64::from(*dimension) * *cell_size;
+            if !extent.is_finite() || !(*origin + extent).is_finite() {
                 return Err(ExcavationContractErrorV1::InvalidCellGrid);
             }
         }
@@ -290,7 +295,11 @@ impl CellRemovalMaskV1 {
             return Err(ExcavationContractErrorV1::EmptyCellRemovalMask);
         }
         for cell in &payload.removed_cells {
-            if (0..3).any(|axis| cell[axis] >= payload.grid_dimensions[axis]) {
+            if !cell
+                .iter()
+                .zip(payload.grid_dimensions.iter())
+                .all(|(index, dimension)| index < dimension)
+            {
                 return Err(ExcavationContractErrorV1::CellIndexOutOfBounds(*cell));
             }
         }
