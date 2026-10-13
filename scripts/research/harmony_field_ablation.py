@@ -745,7 +745,7 @@ def self_test():
                     enabled = configs[record["run_id"]]["mechanisms"]["friction_modulation"]
                     record["primary_endpoint"] = 1.0 if enabled else 0.0
                 results = Path(tmp) / "results.jsonl"
-                results.write_text("".join(json.dumps(r) + "\\n" for r in records), encoding="utf-8")
+                results.write_text("".join(json.dumps(r) + "\n" for r in records), encoding="utf-8")
                 report = analyze_results(plan, results, Path(tmp), bootstrap_replicates=100, bootstrap_seed=23)
                 self.assertEqual(report["analysis_status"], "analyzed_held_out_runs")
                 self.assertEqual(report["held_out_seed_count"], 2)
