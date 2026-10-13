@@ -379,6 +379,12 @@ class FlourishingAssessmentTests(unittest.TestCase):
         errors, _ = validate_assessment(doc)
         self.assertTrue(any("safe relative path" in error for error in errors))
 
+    def test_duplicate_artifact_path_cannot_change_evidence_role(self) -> None:
+        doc = add_evidence_and_known_values(assessment())
+        doc["artifacts"][0]["path"] = doc["artifacts"][1]["path"]
+        errors, _ = validate_assessment(doc)
+        self.assertTrue(any("duplicate artifact path" in error for error in errors))
+
     def test_artifact_digest_is_checked_against_file_bytes(self) -> None:
         doc = add_evidence_and_known_values(assessment())
         with tempfile.TemporaryDirectory() as temp:
