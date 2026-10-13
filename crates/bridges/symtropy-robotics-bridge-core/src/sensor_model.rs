@@ -62,6 +62,7 @@ pub enum SensorModelError {
     InvalidProfile(&'static str),
     InvalidState,
     CaptureNotDue { now_ns: u64, next_due_ns: u64 },
+    InvalidTruthChannelCount { actual: usize },
     InvalidTruthChannel { index: usize },
     NoiseUnitMismatch { index: usize },
     NonFiniteReading { index: usize },
@@ -80,6 +81,10 @@ impl fmt::Display for SensorModelError {
             Self::CaptureNotDue { now_ns, next_due_ns } => write!(
                 formatter,
                 "sensor capture at {now_ns} ns is early; next sample is due at {next_due_ns} ns"
+            ),
+            Self::InvalidTruthChannelCount { actual } => write!(
+                formatter,
+                "sensor truth has {actual} channels; expected 1 to {MAX_SENSOR_CHANNELS}"
             ),
             Self::InvalidTruthChannel { index } => {
                 write!(formatter, "invalid sensor truth channel at index {index}")
@@ -322,9 +327,9 @@ fn validate_truth(
     truth: &[SensorTruthChannelV1],
 ) -> Result<(), SensorModelError> {
     if truth.is_empty() || truth.len() > MAX_SENSOR_CHANNELS {
-        return Err(SensorModelError::InvalidProfile(
-            "truth must contain between 1 and 4096 scalar channels",
-        ));
+        return Err(SensorModelError::InvalidTruthChannelCount {
+            actual: truth.len(),
+        });
     }
     for (index, channel) in truth.iter().enumerate() {
         if channel.quantity.trim().is_empty()
@@ -482,6 +487,26 @@ mod tests {
         assert_eq!(sample.missed_sample_count, 3);
         assert_eq!(sample.acquisition_time_ns, 30_000_000);
         assert_eq!(sensor.next_due_time_ns(), 40_000_000);
+    }
+
+    #[test]
+    fn empty_or_oversized_truth_frame_is_rejected() {
+        let mut sensor = SensorModelV1::new(42, profile()).unwrap();
+        assert_eq!(
+            sensor.capture_at(0, &[]),
+            Err(SensorModelError::InvalidTruthChannelCount { actual: 0 })
+        );
+        let oversized = vec![
+            truth(0.0).into_iter().next().unwrap();
+            MAX_SENSOR_CHANNELS + 1
+        ];
+        assert_eq!(
+            sensor.capture_at(0, &oversized),
+            Err(SensorModelError::InvalidTruthChannelCount {
+                actual: MAX_SENSOR_CHANNELS + 1
+            })
+        );
+        assert_eq!(sensor.next_sample_index(), 0);
     }
 
     #[test]
