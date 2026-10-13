@@ -59,6 +59,12 @@ The verifier hashes the exact bytes of the manifest, embedded schema, and provid
 
 Use `--require-pass` in gates where an engineering verification result is required. Preserve the JSON report as an evidence artifact.
 
+## Analytical structural reference fixture
+
+The repository also includes [`cantilever-beam-linear-static-v1.json`](../../../docs/built-environment/benchmarks/cantilever-beam-linear-static-v1.json) and an integration test in `tests/reference_cantilever_beam.rs`. It checks the elementary Euler-Bernoulli formulas for rectangular-section second moment of area, cantilever tip deflection, and support bending stress, and rejects non-positive input values.
+
+This is an analytical oracle and unit/verification plumbing test only. It does **not** run or validate a finite-element solver, and the beam case is not a proxy for a real building element's full load combinations, buckling, connections, support behaviour, fire performance, or code compliance. The next structural milestone is to compare a suitable external solver against this oracle, then against reference FEM cases and qualified engineering review.
+
 ## Trust boundaries
 
 A full aggregate `PASS` requires all of the following: a valid embedded schema, a schema-valid manifest, confirmed jurisdiction, a rule pack explicitly marked `reviewed_for_use`, an exact match between manifest mandatory claims and the independent expected-claim set, references that resolve, and locally verified artifact bytes. This is necessary for integrity but still not sufficient for regulatory approval.
