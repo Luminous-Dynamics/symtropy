@@ -236,6 +236,24 @@ class FlourishingAssessmentTests(unittest.TestCase):
         self.assertEqual(by_id["candidate"]["constraint_results"][0]["status"], "UNKNOWN")
         self.assertEqual(by_id["candidate"]["comparison_status"], "UNRESOLVED")
 
+    def test_missing_preregistration_evidence_prevents_constraint_pass(self) -> None:
+        doc = add_evidence_and_known_values(assessment())
+        doc["constraints"][0]["preregistration_artifact_id"] = None
+        errors, report = validate_assessment(doc)
+        self.assertEqual(errors, [])
+        by_id = {a["alternative_id"]: a for a in report["alternatives"]}
+        self.assertEqual(by_id["candidate"]["constraint_results"][0]["status"], "UNKNOWN")
+        self.assertEqual(by_id["candidate"]["comparison_status"], "UNRESOLVED")
+
+    def test_preregistration_artifact_must_precede_analysis(self) -> None:
+        doc = add_evidence_and_known_values(assessment())
+        for artifact in doc["artifacts"]:
+            if artifact["artifact_id"] == "preregistration-artifact":
+                artifact["collected_at"] = "2026-10-13T12:00:00Z"
+        errors, report = validate_assessment(doc)
+        self.assertTrue(any("preregistration artifact must predate analysis" in error for error in errors))
+        self.assertIsNone(report)
+
     def test_unquantified_non_constraint_outcome_is_incomplete(self) -> None:
         doc = add_evidence_and_known_values(assessment())
         for alternative in doc["alternatives"]:
