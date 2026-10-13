@@ -310,12 +310,21 @@ def validate_assessment(
     verified_artifact_contents: dict[str, bytes] = {}
     verified_preregistration_ids: set[str] = set()
     preregistration_limit = 64 * 1024
+    seen_artifact_paths: dict[str, str] = {}
     for artifact_id, artifact in artifacts.items():
         relative = artifact.get("path")
         digest = artifact.get("sha256")
         if not _safe_relative_path(relative):
             errors.append(f"artifacts[{artifact_id}].path: must be a safe relative path without traversal")
             continue
+        normalized_relative = str(PurePosixPath(relative))
+        prior_artifact_id = seen_artifact_paths.get(normalized_relative)
+        if prior_artifact_id is not None:
+            errors.append(
+                f"artifacts[{artifact_id}].path: duplicate artifact path also registered as {prior_artifact_id!r}"
+            )
+            continue
+        seen_artifact_paths[normalized_relative] = artifact_id
         if not isinstance(digest, str) or not SHA256_RE.fullmatch(digest):
             errors.append(f"artifacts[{artifact_id}].sha256: expected 64 hexadecimal characters")
             continue
