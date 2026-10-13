@@ -83,6 +83,7 @@ def assessment() -> dict:
                 "scope": "overall",
                 "non_compensable": True,
                 "predeclared_at": "2026-10-13T10:00:00Z",
+                "preregistration_artifact_id": None,
             }
         ],
         "artifacts": [],
@@ -117,13 +118,25 @@ def assessment() -> dict:
 
 def add_evidence_and_known_values(doc: dict, values: dict[str, float] | None = None) -> dict:
     raw = b"synthetic evidence; not a real observation\n"
-    doc["artifacts"] = [{
-        "artifact_id": "sample-artifact",
-        "path": "sample.txt",
-        "sha256": hashlib.sha256(raw).hexdigest(),
-        "purpose": "synthetic verifier test input",
-        "collected_at": "2026-10-13T10:30:00Z",
-    }]
+    preregistration_bytes = b"preregistered synthetic test thresholds\n"
+    doc["artifacts"] = [
+        {
+            "artifact_id": "sample-artifact",
+            "path": "sample.txt",
+            "sha256": hashlib.sha256(raw).hexdigest(),
+            "purpose": "synthetic verifier test input",
+            "collected_at": "2026-10-13T10:30:00Z",
+        },
+        {
+            "artifact_id": "preregistration-artifact",
+            "path": "preregistration.json",
+            "sha256": hashlib.sha256(preregistration_bytes).hexdigest(),
+            "purpose": "pre-registration",
+            "collected_at": "2026-10-13T09:30:00Z",
+        },
+    ]
+    for constraint in doc["constraints"]:
+        constraint["preregistration_artifact_id"] = "preregistration-artifact"
     values = values or {"outage_hours": 3.0, "critical_outage_hours": 0.5}
     for alternative in doc["alternatives"]:
         for outcome in alternative["outcomes"]:
@@ -290,6 +303,7 @@ class FlourishingAssessmentTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp)
             (root / "sample.txt").write_bytes(b"bytes differ from the declared digest")
+            (root / "preregistration.json").write_bytes(b"preregistered synthetic test thresholds\n")
             errors, _ = validate_assessment(doc, artifact_root=root, verify_artifacts=True)
         self.assertTrue(any("SHA-256 mismatch" in error for error in errors))
 
