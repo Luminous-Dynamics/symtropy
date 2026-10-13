@@ -8,7 +8,7 @@
 //! rock-strength estimator, cutting constitutive law, or predictive model.
 //! Accuracy depends on power measurement boundaries and removed-volume data.
 
-use crate::world_contract::ArtifactRef;
+use crate::world_contract::{ArtifactRef, WorldManifestV1, WorldValidationIssue};
 use serde::{Deserialize, Serialize};
 use std::fmt;
 
@@ -91,6 +91,10 @@ pub enum CuttingMetricError {
     NegativeMagnitude(&'static str),
     ComputedPowerNotFinite,
     MseNotFinite,
+    /// The measurement names a material profile not declared by this world.
+    UnknownMaterialProfile(String),
+    /// The world did not pass structural validation before admitting this result.
+    InvalidWorldManifest(Vec<WorldValidationIssue>),
 }
 
 impl fmt::Display for CuttingMetricError {
@@ -120,6 +124,14 @@ impl fmt::Display for CuttingMetricError {
                 formatter.write_str("computed mechanical power is not finite")
             }
             Self::MseNotFinite => formatter.write_str("mechanical specific energy is not finite"),
+            Self::UnknownMaterialProfile(profile_id) => {
+                write!(formatter, "material profile {profile_id:?} is not declared by the world")
+            }
+            Self::InvalidWorldManifest(issues) => write!(
+                formatter,
+                "world manifest failed admission validation with {} issue(s)",
+                issues.len()
+            ),
         }
     }
 }
@@ -127,6 +139,33 @@ impl fmt::Display for CuttingMetricError {
 impl std::error::Error for CuttingMetricError {}
 
 impl RockCuttingObservationV1 {
+    /// Calculate this observation's MSE only after admitting it against a valid world.
+    ///
+    /// This is the preferred boundary for simulation use: a mathematically valid
+    /// observation is not admitted unless its material profile is declared by the
+    /// exact world manifest supplied by the caller. The world is structurally
+    /// validated first; that validation does not certify physical fidelity or the
+    /// truth of any measurement. Tool identity remains measurement provenance and
+    /// must be checked against the owning tool/platform registry by the caller.
+    pub fn calculate_mse_in_world(
+        &self,
+        world: &WorldManifestV1,
+    ) -> Result<MechanicalSpecificEnergyV1, CuttingMetricError> {
+        world
+            .validate()
+            .map_err(CuttingMetricError::InvalidWorldManifest)?;
+        if !world
+            .material_profiles
+            .iter()
+            .any(|profile| profile.profile_id == self.material_profile_id)
+        {
+            return Err(CuttingMetricError::UnknownMaterialProfile(
+                self.material_profile_id.clone(),
+            ));
+        }
+        self.calculate_mse()
+    }
+
     /// Calculate MSE from measured input. Validation rejects missing provenance,
     /// invalid units by convention, non-finite/negative magnitudes, and a zero
     /// removed-volume rate. No rock material constants are invented here.
@@ -242,6 +281,48 @@ fn is_sha256_hex(value: &str) -> bool {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::material_profile::{RockLithologyV1, RockMaterialConditionV1, RockMaterialProfileV1};
+    use crate::world_contract::{
+        CoordinateFrameV1, FrameTransformV1, PhysicsFidelity, WORLD_MANIFEST_SCHEMA_VERSION,
+    };
+
+    fn world_with_profiles(profile_ids: &[&str]) -> WorldManifestV1 {
+        WorldManifestV1 {
+            schema_version: WORLD_MANIFEST_SCHEMA_VERSION,
+            scenario_id: "mse-admission-test-v1".to_owned(),
+            seed: 17,
+            fixed_step_ns: 1_000_000,
+            gravity_mps2: [0.0, -9.81, 0.0],
+            frames: vec![CoordinateFrameV1 {
+                frame_id: "world".to_owned(),
+                parent_frame_id: None,
+                transform_to_parent: FrameTransformV1::Root,
+            }],
+            fidelity: PhysicsFidelity::DeterministicReference,
+            world_assets: Vec::new(),
+            material_profiles: profile_ids
+                .iter()
+                .map(|profile_id| RockMaterialProfileV1 {
+                    profile_id: (*profile_id).to_owned(),
+                    lithology: RockLithologyV1::Granite,
+                    display_label: format!("Synthetic fixture {profile_id}"),
+                    condition: RockMaterialConditionV1 {
+                        condition_id: "synthetic-condition-v1".to_owned(),
+                        temperature_k: Some(293.15),
+                        water_saturation_fraction: Some(0.0),
+                        confining_pressure_pa: Some(0.0),
+                        orientation_description: None,
+                        alteration_description: None,
+                    },
+                    properties: Vec::new(),
+                    notes: Some("Synthetic schema fixture only; not physical granite data.".to_owned()),
+                })
+                .collect(),
+            solvers: Vec::new(),
+            sensors: Vec::new(),
+            platforms: Vec::new(),
+        }
+    }
 
     fn source() -> ArtifactRef {
         ArtifactRef {
@@ -262,6 +343,45 @@ mod tests {
             power_input,
             source: source(),
         }
+    }
+
+    #[test]
+    fn world_admission_accepts_only_a_declared_material_profile() {
+        let observation = observation(CuttingPowerInputV1::MeasuredToolInterfacePower {
+            mechanical_power_w: 1_500.0,
+        });
+        let world = world_with_profiles(&["granite-lab-001"]);
+        let result = observation.calculate_mse_in_world(&world).unwrap();
+        assert_eq!(result.material_profile_id, "granite-lab-001");
+        assert_eq!(result.mse_pa, 150_000_000.0);
+    }
+
+    #[test]
+    fn world_admission_rejects_an_undeclared_material_profile() {
+        let observation = observation(CuttingPowerInputV1::MeasuredToolInterfacePower {
+            mechanical_power_w: 1_500.0,
+        });
+        let world = world_with_profiles(&["basalt-lab-001"]);
+        assert_eq!(
+            observation.calculate_mse_in_world(&world),
+            Err(CuttingMetricError::UnknownMaterialProfile(
+                "granite-lab-001".to_owned()
+            ))
+        );
+    }
+
+    #[test]
+    fn world_admission_rejects_a_structurally_invalid_world() {
+        let observation = observation(CuttingPowerInputV1::MeasuredToolInterfacePower {
+            mechanical_power_w: 1_500.0,
+        });
+        let mut world = world_with_profiles(&["granite-lab-001"]);
+        world.scenario_id.clear();
+        assert!(matches!(
+            observation.calculate_mse_in_world(&world),
+            Err(CuttingMetricError::InvalidWorldManifest(issues))
+                if issues.iter().any(|issue| issue.path == "scenario_id")
+        ));
     }
 
     #[test]
