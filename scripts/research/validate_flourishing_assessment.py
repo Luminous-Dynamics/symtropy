@@ -351,7 +351,12 @@ def validate_assessment(
             c_report.append({"constraint_id": constraint_id, "status": status})
 
         statuses = [record["status"] for record in c_report]
-        any_incomplete_outcome = any(outcome.get("status") != "KNOWN" for outcome in outcomes.values())
+        any_incomplete_outcome = any(
+            outcome.get("status") != "KNOWN"
+            or not isinstance(outcome.get("uncertainty"), dict)
+            or outcome["uncertainty"].get("status") != "QUANTIFIED"
+            for outcome in outcomes.values()
+        )
         if "FAIL" in statuses:
             comparison_status = "INELIGIBLE"
         elif "UNKNOWN" in statuses:
