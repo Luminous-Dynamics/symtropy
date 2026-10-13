@@ -377,14 +377,14 @@ def validate_results(plan, path):
     if missing:
         errors.append(f"{len(missing)} planned result record(s) missing; missing is not zero or pass")
     completed = sum(r.get("run_status") == "completed" for r in by_id.values())
-    failed = sum(r.get("run_status") in {"failed", "skipped", "cancelled", "unqualified"} for r in by_id.values())
+    failed = sum(isinstance(r.get("run_status"), str) and r.get("run_status") in {"failed", "skipped", "cancelled", "unqualified"} for r in by_id.values())
     invalid_counters = sum(
         r.get("run_status") == "completed" and
         ((isinstance(r.get("validation_failure_count"), int) and not isinstance(r.get("validation_failure_count"), bool) and r["validation_failure_count"] > 0)
          or (isinstance(r.get("nonfinite_count"), int) and not isinstance(r.get("nonfinite_count"), bool) and r["nonfinite_count"] > 0))
         for r in by_id.values()
     )
-    unreplayed = sum(r.get("replay_status") not in {"exact_match", "bounded_nondeterminism_accepted"} for r in by_id.values())
+    unreplayed = sum(not isinstance(r.get("replay_status"), str) or r.get("replay_status") not in {"exact_match", "bounded_nondeterminism_accepted"} for r in by_id.values())
     qualified = (not errors and len(by_id) == len(planned_by_id) and completed == len(planned_by_id)
                  and failed == 0 and invalid_counters == 0 and unreplayed == 0)
     return {
@@ -463,6 +463,26 @@ def self_test():
                 report = validate_results(plan, result)
                 self.assertEqual(report["validation_status"], "NOT_QUALIFIED")
                 self.assertEqual(report["missing_run_count"], 16)
+
+        def test_malformed_status_values_fail_closed_without_crashing(self):
+            with tempfile.TemporaryDirectory() as tmp:
+                scenario = self.scenario(Path(tmp) / "scenario.json")
+                args = argparse.Namespace(candidate_commit="d"*40, task_id="smoke", scenario_config=scenario,
+                                          seeds=[1,2], held_out_seeds=[2], dimensions=[3],
+                                          source_strengths=[1.0], radii=[8.0])
+                plan = make_plan(args)
+                first = plan["planned_runs"][0]
+                record = {"schema_version": RESULT_SCHEMA, "run_id": first["run_id"],
+                          "candidate_commit": plan["candidate_commit"],
+                          "configuration_sha256": first["configuration_sha256"],
+                          "run_status": [], "termination_reason": "malformed",
+                          "primary_endpoint": None, "validation_failure_count": 0,
+                          "nonfinite_count": 0, "replay_status": []}
+                result = Path(tmp) / "results.jsonl"
+                result.write_text(json.dumps(record) + "\\n", encoding="utf-8")
+                report = validate_results(plan, result)
+                self.assertEqual(report["validation_status"], "NOT_QUALIFIED")
+                self.assertTrue(report["errors"])
 
     result = unittest.TextTestRunner(verbosity=2).run(unittest.defaultTestLoader.loadTestsFromTestCase(Tests))
     return 0 if result.wasSuccessful() else 1
