@@ -23,6 +23,14 @@ on:
 permissions:
   contents: read
 
+# Keep only the newest validation run for this branch; older queued revisions
+# must not crowd out the exact head that reviewers need to qualify.
+concurrency:
+  group: flourishing-assessment-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+workflow_dispatch:
+
 jobs:
   contract:
     runs-on: ubuntu-24.04
