@@ -130,7 +130,7 @@ fn run(args: Vec<String>) -> Result<(VerificationReport, bool), String> {
 }
 
 fn usage() -> String {
-    "Usage: housing-evidence-verify <schema.json> <manifest.json> \
+    "Usage: housing-evidence-verify <manifest.json> \\
      [--expected-claims <requirements.json>] [--artifact-root <directory>] [--require-pass]"
         .to_string()
 }
