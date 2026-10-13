@@ -393,11 +393,25 @@ fn evaluate_manifest(
             STATUS_INSUFFICIENT_EVIDENCE,
             0,
             vec![
-                "overall PASS requires an independent --expected-claims file;                  manifest self-description cannot prove requirement-set completeness"
+                "overall PASS requires an independent --expected-claims file; manifest self-description cannot prove requirement-set completeness"
                     .to_string(),
             ],
         );
     };
+
+    if !expected_claims_pinned {
+        return report(
+            true,
+            case_id,
+            declared_status,
+            STATUS_INSUFFICIENT_EVIDENCE,
+            0,
+            vec![
+                "overall PASS requires --expected-claims-sha256 pinned outside the manifest"
+                    .to_string(),
+            ],
+        );
+    }
 
     let actual_mandatory_ids: BTreeSet<String> = claims
         .iter()
@@ -753,6 +767,15 @@ mod tests {
         let result = evaluate_manifest(&schema, &manifest, None, false, Some(&root));
         assert_eq!(result.effective_status, STATUS_INSUFFICIENT_EVIDENCE);
         assert!(!result.issues.is_empty());
+        fs::remove_dir_all(root).expect("clean temp dir");
+    }
+
+    #[test]
+    fn pass_is_insufficient_when_expected_claims_digest_is_not_pinned() {
+        let (schema, manifest, root, expected) = set_up_pass_manifest();
+        let result = evaluate_manifest(&schema, &manifest, Some(&expected), false, Some(&root));
+        assert_eq!(result.effective_status, STATUS_INSUFFICIENT_EVIDENCE);
+        assert!(result.issues.iter().any(|issue| issue.contains("--expected-claims-sha256")));
         fs::remove_dir_all(root).expect("clean temp dir");
     }
 
