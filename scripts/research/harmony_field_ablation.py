@@ -563,6 +563,21 @@ def self_test():
                 self.assertEqual(report["validation_status"], "NOT_QUALIFIED")
                 self.assertEqual(report["completed_runs_with_invalid_counters"], 1)
 
+        def test_modified_artifact_bytes_fail_hash_verification(self):
+            with tempfile.TemporaryDirectory() as tmp:
+                scenario = self.scenario(Path(tmp) / "scenario.json")
+                args = argparse.Namespace(candidate_commit="e"*40, task_id="smoke", scenario_config=scenario,
+                                          seeds=[1,2], held_out_seeds=[2], dimensions=[3],
+                                          source_strengths=[1.0], radii=[8.0])
+                plan = make_plan(args)
+                records = self.complete_records(plan, Path(tmp))
+                (Path(tmp) / records[0]["artifact_path"]).write_bytes(b"modified after hash")
+                results = Path(tmp) / "results.jsonl"
+                results.write_text("".join(json.dumps(r) + "\n" for r in records), encoding="utf-8")
+                report = validate_results(plan, results, Path(tmp))
+                self.assertEqual(report["validation_status"], "NOT_QUALIFIED")
+                self.assertTrue(any("does not match artifact bytes" in e for e in report["errors"]))
+
         def test_malformed_status_values_fail_closed_without_crashing(self):
             with tempfile.TemporaryDirectory() as tmp:
                 scenario = self.scenario(Path(tmp) / "scenario.json")
@@ -604,6 +619,7 @@ def main():
     v.add_argument("--plan", required=True, type=Path)
     v.add_argument("--results", required=True, type=Path)
     v.add_argument("--report", required=True, type=Path)
+    v.add_argument("--artifact-root", type=Path, help="root for relative artifact paths (default: results file directory)")
     sub.add_parser("self-test", help="run the built-in dependency-free tests")
     args = parser.parse_args()
     if args.command == "self-test":
@@ -624,7 +640,7 @@ def main():
     except ValidationError as exc:
         print(json.dumps({"validation_status": "invalid_plan", "errors": [str(exc)]}, indent=2))
         return 2
-    report = validate_results(plan, args.results)
+    report = validate_results(plan, args.results, args.artifact_root)
     atomic_json(args.report, report)
     print(json.dumps(report, sort_keys=True, indent=2))
     return 0 if report.get("validation_status") == "qualified_manifest" else 1
