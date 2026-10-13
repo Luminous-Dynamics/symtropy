@@ -237,7 +237,7 @@ fn usage() -> String {
         "  [--expected-claims-sha256 <sha256-pinned-out-of-band>]",
         "  [--artifact-root <directory>] [--require-pass]",
     ]
-    .join("\\n")
+    .join("\n")
 }
 
 fn read_expected_claims_file(path: &Path) -> Result<(ExpectedClaimsFile, String), String> {
