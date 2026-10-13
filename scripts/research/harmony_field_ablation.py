@@ -493,7 +493,7 @@ def self_test():
                                           source_strengths=[1.0], radii=[8.0])
                 plan = make_plan(args)
                 results = Path(tmp) / "results.jsonl"
-                results.write_text("".join(json.dumps(r) + "\\n" for r in self.complete_records(plan)), encoding="utf-8")
+                results.write_text("".join(json.dumps(r) + "\n" for r in self.complete_records(plan)), encoding="utf-8")
                 report = validate_results(plan, results)
                 self.assertEqual(report["validation_status"], "qualified_manifest")
                 self.assertEqual(report["completed_run_count"], 16)
@@ -509,7 +509,7 @@ def self_test():
                 records = self.complete_records(plan)
                 records[0]["validation_failure_count"] = 1
                 results = Path(tmp) / "results.jsonl"
-                results.write_text("".join(json.dumps(r) + "\\n" for r in records), encoding="utf-8")
+                results.write_text("".join(json.dumps(r) + "\n" for r in records), encoding="utf-8")
                 report = validate_results(plan, results)
                 self.assertEqual(report["validation_status"], "NOT_QUALIFIED")
                 self.assertEqual(report["completed_runs_with_invalid_counters"], 1)
@@ -529,7 +529,7 @@ def self_test():
                           "primary_endpoint": None, "validation_failure_count": 0,
                           "nonfinite_count": 0, "replay_status": []}
                 result = Path(tmp) / "results.jsonl"
-                result.write_text(json.dumps(record) + "\\n", encoding="utf-8")
+                result.write_text(json.dumps(record) + "\n", encoding="utf-8")
                 report = validate_results(plan, result)
                 self.assertEqual(report["validation_status"], "NOT_QUALIFIED")
                 self.assertTrue(report["errors"])
