@@ -539,6 +539,196 @@ pub fn check_module_compatibility(
     Ok(())
 }
 
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum BindingConstraint {
+    Mass,
+    Volume,
+    MassAndVolume,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct CargoUtilization {
+    /// Integer basis points: 10_000 means 100%.
+    pub mass_basis_points: u16,
+    /// Integer basis points: 10_000 means 100%.
+    pub volume_basis_points: u16,
+    /// The more-used dimension is the constraint that will fill first.
+    pub binding_constraint: BindingConstraint,
+}
+
+impl CargoModuleInstance {
+    pub fn utilization_against(
+        &self,
+        profile: &CargoModuleProfile,
+    ) -> Result<CargoUtilization, CargoError> {
+        self.validate_against(profile)?;
+        if profile.max_payload_mass_grams == 0 || profile.usable_volume_litres == 0 {
+            return Err(CargoError::InvalidProfile(
+                "payload and usable-volume ratings must be positive for utilization",
+            ));
+        }
+
+        let mass_basis_points = (u128::from(self.payload_mass_grams) * 10_000
+            / u128::from(profile.max_payload_mass_grams)) as u16;
+        let volume_basis_points = (u128::from(self.occupied_volume_litres) * 10_000
+            / u128::from(profile.usable_volume_litres)) as u16;
+        let mass_used = u128::from(self.payload_mass_grams)
+            * u128::from(profile.usable_volume_litres);
+        let volume_used = u128::from(self.occupied_volume_litres)
+            * u128::from(profile.max_payload_mass_grams);
+
+        let binding_constraint = match mass_used.cmp(&volume_used) {
+            std::cmp::Ordering::Greater => BindingConstraint::Mass,
+            std::cmp::Ordering::Less => BindingConstraint::Volume,
+            std::cmp::Ordering::Equal => BindingConstraint::MassAndVolume,
+        };
+
+        Ok(CargoUtilization {
+            mass_basis_points,
+            volume_basis_points,
+            binding_constraint,
+        })
+    }
+}
+
+/// Lifecycle economics for a reusable module, per declared planning scenario.
+/// Monetary values are integer minor currency units; empty return energy and
+/// emissions are counted explicitly. This is a scenario calculator, not a
+/// statistical forecast or evidence of actual savings.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct ReusableModuleEconomics {
+    pub module_profile_id: String,
+    pub currency_code: String,
+    pub planned_delivery_cycles: u64,
+    pub acquisition_cost_minor_units: u64,
+    pub replacement_cost_minor_units: u64,
+    pub cleaning_and_inspection_cost_per_cycle_minor_units: u64,
+    pub repair_cost_per_cycle_minor_units: u64,
+    pub empty_reposition_cost_per_cycle_minor_units: u64,
+    pub baseline_handling_cost_avoided_per_cycle_minor_units: u64,
+    pub expected_module_loss_rate_parts_per_million: u32,
+    pub empty_return_energy_wh_per_cycle: u64,
+    pub empty_return_ghg_grams_co2e_per_cycle: u64,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct ReusableModuleEconomicsResult {
+    pub planned_delivery_cycles: u64,
+    /// Conservative integer replacement allowance: fractional expected losses
+    /// round up so a plan cannot under-budget replacements by truncation.
+    pub replacement_allowance: u64,
+    pub lifecycle_reusable_cost_minor_units: u64,
+    pub baseline_handling_cost_avoided_minor_units: u64,
+    /// Positive means the reusable plan costs more than the declared baseline;
+    /// negative means a modeled saving, not a proven real-world saving.
+    pub net_incremental_cost_minor_units: i128,
+    pub average_reusable_cost_per_delivery_minor_units: u64,
+    pub empty_return_energy_wh: u64,
+    pub empty_return_ghg_grams_co2e: u64,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum CargoEconomicsError {
+    InvalidInput(&'static str),
+    ArithmeticOverflow,
+}
+
+impl fmt::Display for CargoEconomicsError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::InvalidInput(reason) => write!(f, "invalid reusable-module economics: {reason}"),
+            Self::ArithmeticOverflow => write!(f, "reusable-module economics overflowed"),
+        }
+    }
+}
+
+impl std::error::Error for CargoEconomicsError {}
+
+pub fn estimate_reusable_module_economics(
+    input: &ReusableModuleEconomics,
+) -> Result<ReusableModuleEconomicsResult, CargoEconomicsError> {
+    if input.module_profile_id.trim().is_empty() {
+        return Err(CargoEconomicsError::InvalidInput(
+            "module profile identity is required",
+        ));
+    }
+    if input.currency_code.len() != 3
+        || !input.currency_code.bytes().all(|byte| byte.is_ascii_uppercase())
+    {
+        return Err(CargoEconomicsError::InvalidInput(
+            "currency code must be three uppercase ASCII letters",
+        ));
+    }
+    if input.planned_delivery_cycles == 0 {
+        return Err(CargoEconomicsError::InvalidInput(
+            "planned delivery cycles must be positive",
+        ));
+    }
+    if input.expected_module_loss_rate_parts_per_million > 1_000_000 {
+        return Err(CargoEconomicsError::InvalidInput(
+            "module loss rate cannot exceed one million parts per million",
+        ));
+    }
+
+    let cycles = input.planned_delivery_cycles;
+    let loss_numerator = u128::from(cycles)
+        .checked_mul(u128::from(input.expected_module_loss_rate_parts_per_million))
+        .ok_or(CargoEconomicsError::ArithmeticOverflow)?;
+    let replacement_allowance_u128 = loss_numerator
+        .checked_add(999_999)
+        .ok_or(CargoEconomicsError::ArithmeticOverflow)?
+        / 1_000_000;
+    let replacement_allowance = u64::try_from(replacement_allowance_u128)
+        .map_err(|_| CargoEconomicsError::ArithmeticOverflow)?;
+
+    let per_cycle_operating_cost = input
+        .cleaning_and_inspection_cost_per_cycle_minor_units
+        .checked_add(input.repair_cost_per_cycle_minor_units)
+        .and_then(|total| total.checked_add(input.empty_reposition_cost_per_cycle_minor_units))
+        .ok_or(CargoEconomicsError::ArithmeticOverflow)?;
+    let operating_cost = per_cycle_operating_cost
+        .checked_mul(cycles)
+        .ok_or(CargoEconomicsError::ArithmeticOverflow)?;
+    let replacement_cost = input
+        .replacement_cost_minor_units
+        .checked_mul(replacement_allowance)
+        .ok_or(CargoEconomicsError::ArithmeticOverflow)?;
+    let lifecycle_cost = input
+        .acquisition_cost_minor_units
+        .checked_add(replacement_cost)
+        .and_then(|total| total.checked_add(operating_cost))
+        .ok_or(CargoEconomicsError::ArithmeticOverflow)?;
+    let avoided_baseline_cost = input
+        .baseline_handling_cost_avoided_per_cycle_minor_units
+        .checked_mul(cycles)
+        .ok_or(CargoEconomicsError::ArithmeticOverflow)?;
+    let average_cost = lifecycle_cost
+        .checked_add(cycles - 1)
+        .ok_or(CargoEconomicsError::ArithmeticOverflow)?
+        / cycles;
+    let empty_return_energy_wh = input
+        .empty_return_energy_wh_per_cycle
+        .checked_mul(cycles)
+        .ok_or(CargoEconomicsError::ArithmeticOverflow)?;
+    let empty_return_ghg_grams_co2e = input
+        .empty_return_ghg_grams_co2e_per_cycle
+        .checked_mul(cycles)
+        .ok_or(CargoEconomicsError::ArithmeticOverflow)?;
+
+    Ok(ReusableModuleEconomicsResult {
+        planned_delivery_cycles: cycles,
+        replacement_allowance,
+        lifecycle_reusable_cost_minor_units: lifecycle_cost,
+        baseline_handling_cost_avoided_minor_units: avoided_baseline_cost,
+        net_incremental_cost_minor_units: i128::from(lifecycle_cost)
+            - i128::from(avoided_baseline_cost),
+        average_reusable_cost_per_delivery_minor_units: average_cost,
+        empty_return_energy_wh,
+        empty_return_ghg_grams_co2e,
+    })
+}
+
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum CargoError {
     InvalidProfile(&'static str),
