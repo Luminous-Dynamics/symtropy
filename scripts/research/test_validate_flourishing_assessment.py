@@ -126,8 +126,15 @@ def add_evidence_and_known_values(doc: dict, values: dict[str, float] | None = N
     for alternative in doc["alternatives"]:
         for outcome in alternative["outcomes"]:
             outcome["status"] = "KNOWN"
-            outcome["value"] = values.get(outcome["metric_id"], 0.5)
-            outcome["uncertainty"] = None
+            value = values.get(outcome["metric_id"], 0.5)
+            outcome["value"] = value
+            outcome["uncertainty"] = {
+                "status": "QUANTIFIED",
+                "lower": value,
+                "upper": value,
+                "interpretation": "scenario_envelope",
+                "method": "synthetic deterministic test value",
+            }
             outcome["missing_reason"] = None
             outcome["artifact_ids"] = ["sample-artifact"]
     return doc
@@ -169,8 +176,10 @@ class FlourishingAssessmentTests(unittest.TestCase):
         )
         candidate_constraint = doc["alternatives"][1]["outcomes"][1]
         candidate_constraint["uncertainty"] = {
+            "status": "QUANTIFIED",
             "lower": 0.5,
             "upper": 1.2,
+            "interpretation": "scenario_envelope",
             "method": "synthetic uncertainty envelope",
         }
         errors, report = validate_assessment(doc)
@@ -185,8 +194,10 @@ class FlourishingAssessmentTests(unittest.TestCase):
         )
         for alternative in doc["alternatives"]:
             alternative["outcomes"][1]["uncertainty"] = {
+                "status": "QUANTIFIED",
                 "lower": 0.2,
                 "upper": 0.8,
+                "interpretation": "scenario_envelope",
                 "method": "synthetic uncertainty envelope",
             }
         errors, report = validate_assessment(doc)
@@ -265,7 +276,13 @@ class FlourishingAssessmentTests(unittest.TestCase):
                 "group_id": "area-a",
                 "status": "KNOWN",
                 "value": 1.4,
-                "uncertainty": None,
+                "uncertainty": {
+                    "status": "QUANTIFIED",
+                    "lower": 1.4,
+                    "upper": 1.4,
+                    "interpretation": "scenario_envelope",
+                    "method": "synthetic subgroup value",
+                },
                 "missing_reason": None,
                 "artifact_ids": ["sample-artifact"],
             },
@@ -312,7 +329,14 @@ class FlourishingAssessmentTests(unittest.TestCase):
             "group_id": "area-a",
             "status": "KNOWN",
             "value": 0.5,
-            "uncertainty": {"lower": 0.2, "upper": 0.8, "method": "synthetic interval"},
+            "uncertainty": {
+                "status": "QUANTIFIED",
+                "lower": 0.2,
+                "upper": 0.8,
+                "interpretation": "coverage_interval",
+                "coverage_probability": 0.95,
+                "method": "synthetic interval",
+            },
             "missing_reason": None,
             "artifact_ids": ["sample-artifact"],
         }]
