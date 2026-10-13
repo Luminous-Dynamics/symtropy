@@ -665,7 +665,13 @@ mod tests {
     #[test]
     fn failed_result_cannot_carry_spatial_state_change() {
         let mut failed = result(ExcavationDispositionV1::OutOfDomain);
-        failed.spatial_delta = Some(response().spatial_delta.unwrap());
+        failed.spatial_delta = Some(ExcavationSpatialDeltaV1 {
+            base_world_generation: 7,
+            result_world_generation: 8,
+            base_geometry_artifact: artifact("rock-face-geometry", '8'),
+            result_geometry_artifact: artifact("rock-face-after-cut-001", '6'),
+            state_delta_artifact: artifact("rock-face-delta-001", '7'),
+        });
         assert_eq!(
             failed.validate_against(&world(), &"d".repeat(SHA256_HEX_LENGTH), &request()),
             Err(ExcavationContractErrorV1::InconsistentDisposition)
