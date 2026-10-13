@@ -9,7 +9,6 @@
 
 use crate::world_contract::{
     SolverRequestIdentityV1, SolverResultEnvelopeV1, WorldManifestV1, WorldValidationIssue,
-    SOLVER_RESULT_SCHEMA_VERSION,
 };
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
@@ -513,7 +512,7 @@ pub(crate) mod tests {
     use crate::world_contract::{
         ActuatorProfileV1, ArtifactRef, CoordinateFrameV1, FrameTransformV1, PhysicsDomain,
         PhysicsFidelity, PlatformProfileV1, SensorModality, SensorProfileV1, SolverDeclarationV1,
-        WORLD_MANIFEST_SCHEMA_VERSION,
+        WORLD_MANIFEST_SCHEMA_VERSION, SOLVER_RESULT_SCHEMA_VERSION,
     };
     use crate::platform::PlatformType;
 
