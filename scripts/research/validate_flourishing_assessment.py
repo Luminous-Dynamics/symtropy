@@ -365,6 +365,7 @@ def main(argv: list[str] | None = None) -> int:
     try:
         with schema_path.open("r", encoding="utf-8") as stream:
             schema = json.load(stream, parse_constant=_reject_nonstandard_constant)
+        jsonschema.Draft202012Validator.check_schema(schema)
         shape_validator = jsonschema.Draft202012Validator(
             schema, format_checker=jsonschema.FormatChecker()
         )
