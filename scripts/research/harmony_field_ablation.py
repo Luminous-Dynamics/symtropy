@@ -489,6 +489,12 @@ def interpret_effect(lower, upper, threshold):
 
 def analyze_results(plan, results_path, artifact_root=None, bootstrap_replicates=5000, bootstrap_seed=20261013):
     """Estimate held-out paired arm effects and factorial contrasts; no p-values or causal overclaim."""
+    if not isinstance(bootstrap_replicates, int) or isinstance(bootstrap_replicates, bool) or bootstrap_replicates < 100:
+        return {
+            "schema_version": "luminous.harmony-field-ablation-analysis.v1",
+            "analysis_status": "NOT_QUALIFIED",
+            "errors": ["bootstrap_replicates must be an integer >= 100"],
+        }
     validity = validate_results(plan, results_path, artifact_root)
     if validity.get("validation_status") != "qualified_manifest":
         return {
