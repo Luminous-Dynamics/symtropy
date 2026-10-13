@@ -1441,11 +1441,22 @@ mod tests {
     #[test]
     fn plan_validation_fails_closed_for_a_missing_cell_even_after_rehash() {
         let mut plan = valid_plan_fixture();
-        let object = plan.as_object_mut().unwrap();
-        let runs = object.get_mut("planned_runs").unwrap().as_array_mut().unwrap();
-        runs.remove(0);
-        object.insert("run_count".to_string(), json!(runs.len()));
-        object.remove("plan_sha256");
+        let run_count = {
+            let runs = plan
+                .as_object_mut()
+                .unwrap()
+                .get_mut("planned_runs")
+                .unwrap()
+                .as_array_mut()
+                .unwrap();
+            runs.remove(0);
+            runs.len()
+        };
+        {
+            let object = plan.as_object_mut().unwrap();
+            object.insert("run_count".to_string(), json!(run_count));
+            object.remove("plan_sha256");
+        }
         let new_sha = digest_value(&plan).unwrap();
         plan.as_object_mut()
             .unwrap()
