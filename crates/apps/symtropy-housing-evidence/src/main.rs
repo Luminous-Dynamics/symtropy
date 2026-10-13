@@ -926,6 +926,41 @@ mod tests {
     }
 
     #[test]
+    fn evaluated_claim_rejects_unknown_toolchain_id() {
+        let (schema, mut manifest, root, expected) = set_up_pass_manifest();
+        manifest["claims"][0]["tool_id"] = json!("unregistered-tool");
+        let result = evaluate_manifest(&schema, &manifest, Some(&expected), true, Some(&root));
+        assert_eq!(result.effective_status, STATUS_BLOCKED);
+        assert!(result.issues.iter().any(|issue| issue.contains("unknown tool_id")));
+        fs::remove_dir_all(root).expect("clean temp dir");
+    }
+
+    #[test]
+    fn evaluated_claim_requires_tool_executable_digest() {
+        let (schema, mut manifest, root, expected) = set_up_pass_manifest();
+        manifest["toolchain"][0].as_object_mut().unwrap().remove("executable_or_container_sha256");
+        let result = evaluate_manifest(&schema, &manifest, Some(&expected), true, Some(&root));
+        assert_eq!(result.effective_status, STATUS_BLOCKED);
+        assert!(result.issues.iter().any(|issue| issue.contains("no executable/container digest")));
+        fs::remove_dir_all(root).expect("clean temp dir");
+    }
+
+    #[test]
+    fn code_compliance_claim_requires_a_rule_pack_source() {
+        let (schema, mut manifest, root, expected) = set_up_pass_manifest();
+        manifest["claims"][0]["claim_type"] = json!("code_compliance");
+        manifest["claims"][0]["requirement"] = json!({
+            "requirement_id": "SYNTHETIC-CLAUSE",
+            "source_id": "missing-source",
+            "applicability_notes": "test fixture only"
+        });
+        let result = evaluate_manifest(&schema, &manifest, Some(&expected), true, Some(&root));
+        assert_eq!(result.effective_status, STATUS_BLOCKED);
+        assert!(result.issues.iter().any(|issue| issue.contains("source absent from the rule pack")));
+        fs::remove_dir_all(root).expect("clean temp dir");
+    }
+
+    #[test]
     fn missing_mandatory_claim_is_not_a_pass() {
         let (schema, manifest, root, _) = set_up_pass_manifest();
         let expected = BTreeSet::from([
