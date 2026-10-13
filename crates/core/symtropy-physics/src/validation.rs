@@ -98,6 +98,10 @@ impl PhysicsScenario3d {
         if self.steps == 0 {
             return Err(ScenarioValidationError::ZeroSteps);
         }
+        let total_duration_s = self.dt_s * self.steps as f64;
+        if !total_duration_s.is_finite() || total_duration_s <= 0.0 {
+            return Err(ScenarioValidationError::InvalidSimulationDuration);
+        }
         if self.sample_every_steps == 0 {
             return Err(ScenarioValidationError::ZeroSampleStride);
         }
@@ -173,6 +177,7 @@ pub enum ScenarioValidationError {
     UnsupportedSchemaVersion(u32),
     EmptyScenarioId,
     InvalidTimeStep,
+    InvalidSimulationDuration,
     ZeroSteps,
     ZeroSampleStride,
     NonFiniteGravity,
@@ -195,6 +200,10 @@ impl fmt::Display for ScenarioValidationError {
             }
             Self::EmptyScenarioId => write!(f, "scenario_id must not be empty"),
             Self::InvalidTimeStep => write!(f, "dt_s must be finite and greater than zero"),
+            Self::InvalidSimulationDuration => write!(
+                f,
+                "dt_s multiplied by steps must produce a finite positive duration"
+            ),
             Self::ZeroSteps => write!(f, "steps must be greater than zero"),
             Self::ZeroSampleStride => write!(f, "sample_every_steps must be greater than zero"),
             Self::NonFiniteGravity => write!(f, "gravity_mps2 must be finite"),
@@ -685,6 +694,17 @@ mod tests {
             Err(ScenarioValidationError::DuplicateBodyId(ValidationBodyId(
                 7
             )))
+        );
+    }
+
+    #[test]
+    fn validation_rejects_total_duration_overflow() {
+        let mut scenario = free_fall_scenario();
+        scenario.dt_s = f64::MAX;
+        scenario.steps = 2;
+        assert_eq!(
+            scenario.validate(),
+            Err(ScenarioValidationError::InvalidSimulationDuration)
         );
     }
 
