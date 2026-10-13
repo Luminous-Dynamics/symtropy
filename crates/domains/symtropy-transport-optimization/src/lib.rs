@@ -725,15 +725,31 @@ impl CargoTransferEquipmentProfile {
     }
 }
 
-/// Validate one module against one explicit intermodal transfer edge and the
-/// terminal equipment assigned to that edge. Movement-edge/fleet compatibility
-/// is still checked separately with check_module_compatibility; this function
-/// does not perform route allocation or safety-critical load calculations.
+/// Binds a proposed module transfer to one named equipment resource and the
+/// capacity unit used by the corresponding transfer edge. This is a planning
+/// binding, not a reservation or a claim that the equipment is available in a
+/// particular time window.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct CargoTransferResourceBinding {
+    pub transfer_edge_id: String,
+    pub equipment_id: String,
+    pub terminal_id: String,
+    /// Capacity consumed by this proposed transfer in the edge's declared unit.
+    pub capacity_units: u64,
+    pub capacity_unit: QuantityUnit,
+}
+
+/// Validate one module against one explicit intermodal transfer edge, the
+/// selected terminal equipment, and a resource binding. Movement-edge/fleet
+/// compatibility is checked separately with check_module_compatibility; this
+/// function does not schedule equipment, allocate shared capacity across
+/// multiple requests, or perform safety-critical load calculations.
 pub fn check_cargo_transfer_compatibility(
     profile: &CargoModuleProfile,
     instance: &CargoModuleInstance,
     edge: &Edge,
     equipment: &CargoTransferEquipmentProfile,
+    binding: &CargoTransferResourceBinding,
 ) -> Result<(), CargoError> {
     let (from_mode, to_mode) = match edge.operation {
         EdgeOperation::Transfer { from, to } => (from, to),
@@ -745,6 +761,25 @@ pub fn check_cargo_transfer_compatibility(
     }
     if edge.capacity == 0 {
         return Err(CargoError::TransferCapacityUnavailable);
+    }
+    if binding.transfer_edge_id.trim().is_empty()
+        || binding.equipment_id.trim().is_empty()
+        || binding.terminal_id.trim().is_empty()
+        || binding.capacity_units == 0
+    {
+        return Err(CargoError::TransferResourceBindingInvalid);
+    }
+    if binding.transfer_edge_id != edge.id
+        || binding.equipment_id != equipment.equipment_id
+        || binding.terminal_id != equipment.terminal_id
+    {
+        return Err(CargoError::TransferResourceBindingMismatch);
+    }
+    if binding.capacity_unit != edge.capacity_unit {
+        return Err(CargoError::TransferCapacityUnitMismatch);
+    }
+    if binding.capacity_units > edge.capacity {
+        return Err(CargoError::TransferCapacityExceeded);
     }
     if !equipment.supported_mode_pairs.contains(&(from_mode, to_mode)) {
         return Err(CargoError::TransferModePairUnsupported);
@@ -1024,6 +1059,10 @@ pub enum CargoError {
     TransferTerminalMismatch,
     TransferModePairUnsupported,
     TransferCapacityUnavailable,
+    TransferResourceBindingInvalid,
+    TransferResourceBindingMismatch,
+    TransferCapacityUnitMismatch,
+    TransferCapacityExceeded,
 }
 
 impl fmt::Display for CargoError {
@@ -1088,6 +1127,18 @@ impl fmt::Display for CargoError {
             }
             Self::TransferCapacityUnavailable => {
                 write!(f, "transfer edge has no declared positive capacity")
+            }
+            Self::TransferResourceBindingInvalid => {
+                write!(f, "transfer resource binding is incomplete or consumes zero capacity")
+            }
+            Self::TransferResourceBindingMismatch => {
+                write!(f, "transfer resource binding does not match the selected edge, equipment and terminal")
+            }
+            Self::TransferCapacityUnitMismatch => {
+                write!(f, "transfer resource binding capacity unit does not match the edge")
+            }
+            Self::TransferCapacityExceeded => {
+                write!(f, "proposed transfer consumes more capacity than the edge declares")
             }
         }
     }
@@ -2177,6 +2228,16 @@ mod tests {
         )
     }
 
+    fn cargo_transfer_resource_binding() -> CargoTransferResourceBinding {
+        CargoTransferResourceBinding {
+            transfer_edge_id: "road-rail-at-hub".to_owned(),
+            equipment_id: "hub-cross-dock-crane-3".to_owned(),
+            terminal_id: "Hub".to_owned(),
+            capacity_units: 1,
+            capacity_unit: QuantityUnit::Shipments,
+        }
+    }
+
     fn rail_equipment() -> HandlingEquipmentProfile {
         HandlingEquipmentProfile {
             equipment_id: "rail-wagon-position-7".to_owned(),
@@ -2202,7 +2263,13 @@ mod tests {
         let edge = road_rail_transfer_edge();
         let equipment = cargo_transfer_equipment();
         assert_eq!(
-            check_cargo_transfer_compatibility(&profile, &instance, &edge, &equipment),
+            check_cargo_transfer_compatibility(
+                &profile,
+                &instance,
+                &edge,
+                &equipment,
+                &cargo_transfer_resource_binding(),
+            ),
             Ok(())
         );
     }
@@ -2216,14 +2283,26 @@ mod tests {
         let mut equipment = cargo_transfer_equipment();
         equipment.terminal_id = "Different-terminal".to_owned();
         assert_eq!(
-            check_cargo_transfer_compatibility(&profile, &instance, &edge, &equipment),
+            check_cargo_transfer_compatibility(
+                &profile,
+                &instance,
+                &edge,
+                &equipment,
+                &cargo_transfer_resource_binding(),
+            ),
             Err(CargoError::TransferTerminalMismatch)
         );
 
         let mut equipment = cargo_transfer_equipment();
         equipment.supported_mode_pairs = BTreeSet::from([(Mode::Rail, Mode::Maritime)]);
         assert_eq!(
-            check_cargo_transfer_compatibility(&profile, &instance, &edge, &equipment),
+            check_cargo_transfer_compatibility(
+                &profile,
+                &instance,
+                &edge,
+                &equipment,
+                &cargo_transfer_resource_binding(),
+            ),
             Err(CargoError::TransferModePairUnsupported)
         );
     }
@@ -2244,14 +2323,26 @@ mod tests {
             metrics(10, 0, 120, 5_000, 2, 1, 0, 1, 1),
         );
         assert_eq!(
-            check_cargo_transfer_compatibility(&profile, &instance, &movement, &equipment),
+            check_cargo_transfer_compatibility(
+                &profile,
+                &instance,
+                &movement,
+                &equipment,
+                &cargo_transfer_resource_binding(),
+            ),
             Err(CargoError::TransferEdgeRequired)
         );
 
         let mut no_capacity = road_rail_transfer_edge();
         no_capacity.capacity = 0;
         assert_eq!(
-            check_cargo_transfer_compatibility(&profile, &instance, &no_capacity, &equipment),
+            check_cargo_transfer_compatibility(
+                &profile,
+                &instance,
+                &no_capacity,
+                &equipment,
+                &cargo_transfer_resource_binding(),
+            ),
             Err(CargoError::TransferCapacityUnavailable)
         );
     }
@@ -2265,15 +2356,70 @@ mod tests {
         let mut equipment = cargo_transfer_equipment();
         equipment.interfaces = BTreeSet::from([HandlingInterface::TankCoupling]);
         assert_eq!(
-            check_cargo_transfer_compatibility(&profile, &instance, &edge, &equipment),
+            check_cargo_transfer_compatibility(
+                &profile,
+                &instance,
+                &edge,
+                &equipment,
+                &cargo_transfer_resource_binding(),
+            ),
             Err(CargoError::HandlingInterfaceMismatch)
         );
 
         let mut equipment = cargo_transfer_equipment();
         equipment.max_module_gross_mass_grams = 1;
         assert_eq!(
-            check_cargo_transfer_compatibility(&profile, &instance, &edge, &equipment),
+            check_cargo_transfer_compatibility(
+                &profile,
+                &instance,
+                &edge,
+                &equipment,
+                &cargo_transfer_resource_binding(),
+            ),
             Err(CargoError::EquipmentGrossMassExceeded)
+        );
+    }
+
+    #[test]
+    fn cargo_transfer_rejects_stale_resource_binding_units_and_capacity() {
+        let profile = iso_container_profile();
+        let instance = cargo_instance(&profile);
+        let edge = road_rail_transfer_edge();
+        let equipment = cargo_transfer_equipment();
+
+        let mut binding = cargo_transfer_resource_binding();
+        binding.transfer_edge_id = "different-edge".to_owned();
+        assert_eq!(
+            check_cargo_transfer_compatibility(&profile, &instance, &edge, &equipment, &binding),
+            Err(CargoError::TransferResourceBindingMismatch)
+        );
+
+        let mut binding = cargo_transfer_resource_binding();
+        binding.equipment_id = "different-equipment".to_owned();
+        assert_eq!(
+            check_cargo_transfer_compatibility(&profile, &instance, &edge, &equipment, &binding),
+            Err(CargoError::TransferResourceBindingMismatch)
+        );
+
+        let mut binding = cargo_transfer_resource_binding();
+        binding.capacity_unit = QuantityUnit::Teu;
+        assert_eq!(
+            check_cargo_transfer_compatibility(&profile, &instance, &edge, &equipment, &binding),
+            Err(CargoError::TransferCapacityUnitMismatch)
+        );
+
+        let mut binding = cargo_transfer_resource_binding();
+        binding.capacity_units = 101;
+        assert_eq!(
+            check_cargo_transfer_compatibility(&profile, &instance, &edge, &equipment, &binding),
+            Err(CargoError::TransferCapacityExceeded)
+        );
+
+        let mut binding = cargo_transfer_resource_binding();
+        binding.capacity_units = 0;
+        assert_eq!(
+            check_cargo_transfer_compatibility(&profile, &instance, &edge, &equipment, &binding),
+            Err(CargoError::TransferResourceBindingInvalid)
         );
     }
 
