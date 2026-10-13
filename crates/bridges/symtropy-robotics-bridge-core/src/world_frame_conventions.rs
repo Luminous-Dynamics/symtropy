@@ -10,6 +10,7 @@
 use crate::world_contract::{
     SolverRequestIdentityV1, SolverResultEnvelopeV1, WorldManifestV1, WorldValidationIssue,
 };
+use crate::world_manifest_commitment::WorldManifestCommitmentError;
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use std::collections::BTreeSet;
@@ -331,10 +332,10 @@ impl QualifiedWorldManifestV2 {
         let world_digest = self.world
             .content_digest_v1()
             .map_err(|error| match error {
-                crate::world_manifest_commitment::WorldManifestCommitmentError::InvalidManifest(
+                WorldManifestCommitmentError::InvalidManifest(
                     issues,
                 ) => QualifiedWorldError::InvalidWorldManifest(issues),
-                crate::world_manifest_commitment::WorldManifestCommitmentError::CanonicalBytesTooLarge {
+                WorldManifestCommitmentError::CanonicalBytesTooLarge {
                     limit_bytes,
                 } => QualifiedWorldError::WorldManifestCommitmentTooLarge { limit_bytes },
             })?;
@@ -399,10 +400,10 @@ impl QualifiedSolverRequestV2 {
             .world
             .content_digest_v1()
             .map_err(|error| match error {
-                crate::world_manifest_commitment::WorldManifestCommitmentError::InvalidManifest(
+                WorldManifestCommitmentError::InvalidManifest(
                     issues,
                 ) => QualifiedWorldError::InvalidWorldManifest(issues),
-                crate::world_manifest_commitment::WorldManifestCommitmentError::CanonicalBytesTooLarge {
+                WorldManifestCommitmentError::CanonicalBytesTooLarge {
                     limit_bytes,
                 } => QualifiedWorldError::WorldManifestCommitmentTooLarge { limit_bytes },
             })?;
