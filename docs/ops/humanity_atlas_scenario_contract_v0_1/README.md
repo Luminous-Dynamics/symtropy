@@ -64,6 +64,15 @@ Do not collapse source reliability, causal-edge confidence, forecast probability
 5. **Mycelix evidence workflow:** record source, attribution, dispute, and review receipts; preserve superseded claims rather than erasing their history.
 6. **Qualification:** run unit checks locally, then historical hindcasts with time-cutoff data, sensitivity and stress tests, calibration checks, and independent model review for consequential claims.
 
+
+## Private simulator access in GitHub Actions
+
+The real-artifact workflow must check out `Luminous-Dynamics/luminous-dynamics`, which is a private repository. The `GITHUB_TOKEN` issued to this Symtropy workflow does not automatically grant cross-repository access.
+
+Before the real-artifact qualification can run in GitHub Actions, configure the repository or organization Actions secret `LUMINOUS_MONOREPO_READ_TOKEN` as a narrowly scoped read-only credential (fine-grained personal access token or equivalent GitHub App token) with **Contents: read** access to `Luminous-Dynamics/luminous-dynamics`. Do not paste the token into a workflow file, issue, or pull-request comment. The workflow passes the secret only to the producer checkout and fails closed when it is missing or cannot read the private repository.
+
+When access is unavailable, the workflow records `qualification_state: not_passed` and a blocker reason. That outcome is **blocked/not qualified**, not a skipped-as-success or a pass. A successful checkout alone is also not qualification: the real simulator capture, schema validation, independent Sol-Atlas consumer, exact artifact digests and final evidence packet must all complete.
+
 ## v0.1 limitations
 
 - Numeric scalar interventions only (set, add, multiply); categorical and graph mutations require a future schema version.
