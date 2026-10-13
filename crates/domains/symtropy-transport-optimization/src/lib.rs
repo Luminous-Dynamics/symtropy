@@ -2833,6 +2833,39 @@ mod tests {
     }
 
     #[test]
+    fn cargo_transfer_capacity_plan_rejects_duplicate_edges_invalid_scope_and_wrong_terminal() {
+        let binding = cargo_transfer_resource_binding();
+        let edge = road_rail_transfer_edge();
+        let budget = equipment_capacity("hub-cross-dock-crane-3", 2, QuantityUnit::Shipments);
+        assert_eq!(
+            validate_cargo_transfer_capacity_plan(
+                &[binding.clone()],
+                &[edge.clone(), edge.clone()],
+                &[budget.clone()],
+            ),
+            Err(CargoError::TransferCapacityPlanInvalid)
+        );
+
+        let mut missing_scope = binding.clone();
+        missing_scope.capacity_scope_id.clear();
+        assert_eq!(
+            validate_cargo_transfer_capacity_plan(
+                &[missing_scope],
+                &[edge.clone()],
+                &[budget.clone()],
+            ),
+            Err(CargoError::TransferResourceBindingInvalid)
+        );
+
+        let mut wrong_terminal = budget.clone();
+        wrong_terminal.terminal_id = "Other-terminal".to_owned();
+        assert_eq!(
+            validate_cargo_transfer_capacity_plan(&[binding], &[edge], &[wrong_terminal]),
+            Err(CargoError::TransferResourceBindingMismatch)
+        );
+    }
+
+    #[test]
     fn cargo_transfer_capacity_plan_rejects_capacity_unit_mismatch_and_overflow() {
         let mut binding = cargo_transfer_resource_binding();
         binding.capacity_unit = QuantityUnit::Teu;
