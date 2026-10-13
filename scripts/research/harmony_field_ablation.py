@@ -317,7 +317,7 @@ def validate_plan(plan):
     return errors
 
 
-def validate_result(record, planned, commit, artifact_root):
+def validate_result(record, planned, commit, artifact_root, plan_sha):
     errors = []
     label = "result " + planned["run_id"]
     if not isinstance(record, dict):
@@ -328,6 +328,8 @@ def validate_result(record, planned, commit, artifact_root):
         errors.append(label + ": run_id mismatch")
     if record.get("candidate_commit") != commit:
         errors.append(label + ": candidate_commit mismatch")
+    if record.get("plan_sha256") != plan_sha:
+        errors.append(label + ": plan_sha256 mismatch")
     if record.get("configuration_sha256") != planned["configuration_sha256"]:
         errors.append(label + ": configuration_sha256 mismatch")
     status = record.get("run_status")
@@ -416,7 +418,7 @@ def validate_results(plan, path, artifact_root=None):
             errors.append(f"duplicate result for {run_id}")
             continue
         by_id[run_id] = item
-        errors.extend(validate_result(item, planned_by_id[run_id], plan["candidate_commit"], root))
+        errors.extend(validate_result(item, planned_by_id[run_id], plan["candidate_commit"], root, plan["plan_sha256"]))
     missing = set(planned_by_id) - set(by_id)
     if missing:
         errors.append(f"{len(missing)} planned result record(s) missing; missing is not zero or pass")
@@ -436,6 +438,8 @@ def validate_results(plan, path, artifact_root=None):
         "plan_sha256": plan["plan_sha256"],
         "candidate_commit": plan["candidate_commit"],
         "task_id": plan["task_id"],
+        "validator_tool_sha256": file_sha256(Path(__file__)),
+        "python_version": sys.version.split()[0],
         "planned_run_count": len(planned_by_id),
         "result_record_count": len(records),
         "completed_run_count": completed,
@@ -604,6 +608,9 @@ def analyze_results(plan, results_path, artifact_root=None, bootstrap_replicates
         "plan_sha256": plan["plan_sha256"],
         "candidate_commit": plan["candidate_commit"],
         "task_id": plan["task_id"],
+        "manifest_tool_sha256": plan["tool_sha256"],
+        "analysis_tool_sha256": file_sha256(Path(__file__)),
+        "python_version": sys.version.split()[0],
         "primary_endpoint": endpoint,
         "positive_effect_means": "better according to preregistered primary_endpoint.direction",
         "held_out_seed_count": len(held_out),
@@ -691,6 +698,7 @@ def self_test():
                     "schema_version": RESULT_SCHEMA,
                     "run_id": run["run_id"],
                     "candidate_commit": plan["candidate_commit"],
+                    "plan_sha256": plan["plan_sha256"],
                     "configuration_sha256": run["configuration_sha256"],
                     "run_status": "completed",
                     "termination_reason": "task_complete",
@@ -797,6 +805,7 @@ def self_test():
                 first = plan["planned_runs"][0]
                 record = {"schema_version": RESULT_SCHEMA, "run_id": first["run_id"],
                           "candidate_commit": plan["candidate_commit"],
+                          "plan_sha256": plan["plan_sha256"],
                           "configuration_sha256": first["configuration_sha256"],
                           "run_status": [], "termination_reason": "malformed",
                           "primary_endpoint": None, "validation_failure_count": 0,
