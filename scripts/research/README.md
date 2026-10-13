@@ -24,9 +24,9 @@ Example structure (illustrative only; replace these values with a real, reviewed
         "max_steps": 1000
       },
       "random_stream_contract": {
-        "strategy": "counter_based_event_keyed",
-        "treatment_alignment": "event_keyed",
-        "alignment_evidence": "REPLACE_WITH_ACTUAL_IMPLEMENTATION_AND_VERIFICATION"
+        "strategy": "single_stateful_stream",
+        "treatment_alignment": "same_seed_only",
+        "alignment_evidence": "ILLUSTRATIVE_ONLY_REPLACE_WITH_AUDITED_RNG_STRATEGY_AND_LIMITATIONS"
       }
     }
 
