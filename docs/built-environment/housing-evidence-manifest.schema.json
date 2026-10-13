@@ -386,6 +386,7 @@
         "claim_type",
         "statement",
         "status",
+        "mandatory",
         "subject_element_ids",
         "limitations"
       ],
@@ -550,6 +551,10 @@
               ]
             }
           }
+        },
+        "mandatory": {
+          "type": "boolean",
+          "description": "Whether this claim is required for an aggregate PASS."
         }
       },
       "allOf": [
@@ -611,5 +616,88 @@
         }
       ]
     }
-  }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "overall_status": {
+            "const": "PASS"
+          }
+        },
+        "required": [
+          "overall_status"
+        ]
+      },
+      "then": {
+        "required": [
+          "jurisdiction",
+          "rule_pack",
+          "claims"
+        ],
+        "properties": {
+          "jurisdiction": {
+            "required": [
+              "resolution_status"
+            ],
+            "properties": {
+              "resolution_status": {
+                "const": "confirmed"
+              }
+            }
+          },
+          "rule_pack": {
+            "required": [
+              "status"
+            ],
+            "properties": {
+              "status": {
+                "const": "reviewed_for_use"
+              }
+            }
+          },
+          "claims": {
+            "contains": {
+              "type": "object",
+              "properties": {
+                "mandatory": {
+                  "const": true
+                },
+                "status": {
+                  "const": "PASS"
+                }
+              },
+              "required": [
+                "mandatory",
+                "status"
+              ]
+            },
+            "minContains": 1,
+            "items": {
+              "if": {
+                "properties": {
+                  "mandatory": {
+                    "const": true
+                  }
+                },
+                "required": [
+                  "mandatory"
+                ]
+              },
+              "then": {
+                "required": [
+                  "status"
+                ],
+                "properties": {
+                  "status": {
+                    "const": "PASS"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  ]
 }
