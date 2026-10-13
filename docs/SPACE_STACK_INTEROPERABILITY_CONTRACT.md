@@ -1,7 +1,7 @@
 # Space Stack Interoperability Contract
 
 **Status:** engineering proposal and current code-audit findings; not flight qualification, a safety certification, or a claim that the listed interfaces are already implemented across all repositories.  
-**Date:** 12 October 2026  
+**Date:** 13 October 2026  
 **Scope:** Symthaea, Mycelix Space, Sol Atlas, Symtropy.
 
 ## Goal
@@ -114,6 +114,8 @@ Required cases should cover at least: a well-conditioned isotropic baseline with
 
 The NASA SDK uses MATLAB and its README notes that data files include Git LFS-managed `.mat` assets. Before automation or redistribution, pin the MATLAB/toolbox environment, ensure required LFS data are materialized, and review the applicable NASA Open Source Software Agreement. This contract records comparison targets, not vendoring permission or an observed numerical match.
 
+The next differential-test increment is draft [Mycelix PR #5006](https://github.com/Luminous-Dynamics/mycelix/pull/5006). It adds four synthetic cases with non-zero encounter-plane covariance cross terms and passes them through the public `ConjunctionAnalyzer::try_assess` path, comparing `GaussianSmallDiskApprox2D` with a separately implemented Gauss-Legendre integral over a circular Gaussian region. The independent reference calculation reproduced all four frozen values to floating-point precision across radial quadrature orders 60, 100, 160 and 220. The checked Rust path and the new CI replay are authored but the exact PR head was still queued when observed; do not call this verified parity yet. These synthetic fixtures extend the selected Orekit scalar cases and NASA CARA reference work, but establish neither covariance realism nor operational Pc qualification.
+
 **Interpretation boundary:** passing these fixtures demonstrates reproducible parity for the pinned cases only. It does not establish covariance realism, source authenticity, forecast calibration, operational risk qualification, or maneuver authority. Maintain the distinct labels for method identity, model validity, numerical verification, calibration, and operational decision.
 
 ## Priority order
@@ -169,4 +171,4 @@ Next research increment: include the currently advertised August 2026 NASA CARA 
 
 Research references: [NASA CARA publicly available software](https://www.nasa.gov/cara/publicly-available-cara-software/), [NASA CARA R&D](https://www.nasa.gov/cara/research-and-development/), [NASA CARA publications](https://www.nasa.gov/cara/cara-publications/), and [Orekit's documented Alfano 2005 implementation](https://www.orekit.org/site-orekit-13.1.3/apidocs/org/orekit/ssa/collision/shorttermencounter/probability/twod/ShortTermEncounter2DPOCMethodType.html). These are independent reference targets; the current code has not been shown numerically equivalent to them.
 
-**Status boundary:** PRs #4969 and #4972 are draft, proposed changes. The current Mycelix head's dedicated orbital/Space workflow remained queued at the latest observation; no current-head pass is claimed. These changes establish neither calibrated covariance nor validated collision probability, cislunar propagation, real-time flight-safety authority, or flight qualification. This research pass did not run a complete flight-dynamics campaign.
+**Status boundary (13 October 2026):** Mycelix PRs #4969, #4972, #4999 and #5006 remain draft/proposed work. PR #5006's latest observed head was `4d4811c7cd60a5c81ef1c41a2481a2dab97377a5`; its Space orbital-mechanics and D6S canonical-qualification workflows were queued (runs [38441947840](https://github.com/Luminous-Dynamics/mycelix/actions/runs/38441947840) and [38441947676](https://github.com/Luminous-Dynamics/mycelix/actions/runs/38441947676)). PR #4999's exact-head Rust/D6S jobs also remained queued at the latest observation. Symtropy PR #1576's observed head `65dbe8f84eb9561f7094c8a74fa8a25bf64836ee` had macOS and Windows jobs passed and Ubuntu queued; its cross-platform matrix is incomplete. No unobserved or queued check is a pass. These proposed changes establish neither calibrated covariance nor validated operational collision probability, cislunar propagation, real-time flight-safety authority, or flight qualification. No complete flight-dynamics campaign was run.
