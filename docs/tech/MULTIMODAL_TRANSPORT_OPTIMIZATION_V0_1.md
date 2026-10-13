@@ -308,13 +308,16 @@ A first deterministic Rust reference module now lives in the domain crate `symtr
 
 The crate's toy passenger and cargo cases use **synthetic illustrative numbers only**. They demonstrate that a fast/high-cost/high-emission route can remain on the Pareto frontier beside a slower/lower-cost/lower-emission intermodal route. They do not represent actual Gauteng–Durban prices or a recommendation for a real corridor.
 
-This is a *route-option enumerator*, not a complete transport optimization system. It does not yet allocate multiple simultaneous demands against shared capacity, optimize timetable/service frequency or vehicle schedules, select infrastructure investments, estimate stochastic reliability from data, or validate cost factors against operators. These limitations are explicit.
+The first modular-cargo contract is also implemented in the crate: typed profile families (including ISO-series containers, swap bodies, pallets, returnable crates, tanks/flat racks, bulk bags and aircraft ULDs); standards/conformity evidence; dimensions, usable volume, tare/payload/gross-mass checks; permitted modes; declared lifting/locking interfaces; seal and inspection state; contents digest; temperature evidence; power and cold-chain requirements; and an equipment compatibility validator. It fails closed on mass/volume/envelope overruns, unsupported mode/family/interfaces, nonserviceable or unsealed units where the profile requires a seal, missing/out-of-range temperature evidence, unavailable power and unverified aircraft ULD profiles when the aircraft profile requires verified ULDs. An equipment profile only needs to match an accepted handling interface, not every optional interface the module exposes.
+
+This is a *route-option enumerator plus first-step module/equipment compatibility contract*, not a complete transport optimization system. Module profiles are not yet incorporated into the route solver's cargo-flow assignment or transfer scheduling; the solver does not yet allocate multiple simultaneous demands against shared capacity, optimize timetables/service frequency or vehicle schedules, select infrastructure investments, estimate stochastic reliability from data, or validate cost factors against operators. These limitations are explicit.
 
 Next steps:
-1. qualify the exact Rust crate and its toy-network tests;
-2. add multiple-demand min-cost flow with shared capacity and explicit unserved demand;
-3. introduce timetable and transfer-window feasibility;
-4. add versioned input adapters for real South African route, service, tariff, dwell, load, and energy data;
-5. compare Pareto and sensitivity outputs against held-out operator/official measurements before discussing a specific cost-saving winner.
+1. qualify the exact Rust crate and its route/module toy-network tests;
+2. bind module compatibility to actual transfer edges and equipment availability/capacity;
+3. add multiple-demand min-cost flow with shared capacity and explicit unserved demand;
+4. introduce timetable, dwell, transfer-window and empty-module-repositioning feasibility;
+5. add versioned input adapters for real South African route, service, tariff, module inventory, dwell, load, and energy data;
+6. compare Pareto and sensitivity outputs against held-out operator/official measurements before discussing a specific cost-saving winner.
 
 Learned predictions, real-time dispatch and investment MILPs stay out of scope until the base flow/accounting invariants and evidence adapters qualify.
