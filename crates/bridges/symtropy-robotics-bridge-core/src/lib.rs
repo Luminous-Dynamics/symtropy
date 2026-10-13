@@ -20,8 +20,9 @@ pub use sensor_model::{
 
 pub use excavation_contract::{
     ExcavationContractErrorV1, ExcavationDispositionV1, ExcavationResponseV1,
-    ExcavationToolProfileV1, MaterialAwareExcavationRequestV1,
-    MaterialAwareExcavationResultV1, MATERIAL_AWARE_EXCAVATION_SCHEMA_VERSION,
+    ExcavationSpatialDeltaV1, ExcavationToolProfileV1,
+    MaterialAwareExcavationRequestV1, MaterialAwareExcavationResultV1,
+    MATERIAL_AWARE_EXCAVATION_SCHEMA_VERSION,
 };
 pub use agent::{RoboticAgent, spawn_robot_body};
 pub use haptic::{HapticAttestation, HapticOracle};
