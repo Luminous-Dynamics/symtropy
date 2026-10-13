@@ -225,7 +225,7 @@ impl MaterialAwareExcavationRequestV1 {
                 "angular_speed_rad_s",
             ));
         }
-        for (field, value) [
+        for (field, value) in [
             ("feed_speed_limit_m_s", self.tool.feed_speed_limit_m_s),
             ("angular_speed_limit_rad_s", self.tool.angular_speed_limit_rad_s),
             ("power_limit_w", self.tool.power_limit_w),
