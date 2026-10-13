@@ -258,6 +258,12 @@ impl WorldManifestV1 {
                     format!("{path}.dropout_probability"),
                 ));
             }
+            if sensor.saturation_min.is_some() != sensor.saturation_max.is_some() {
+                issues.push(WorldValidationIssue::new(
+                    WorldValidationCode::InvalidRange,
+                    format!("{path}.saturation"),
+                ));
+            }
             if let (Some(min), Some(max)) = (sensor.saturation_min, sensor.saturation_max) {
                 if !min.is_finite() || !max.is_finite() || min >= max {
                     issues.push(WorldValidationIssue::new(
@@ -688,7 +694,8 @@ mod tests {
     #[test]
     fn duplicate_sensor_identity_is_rejected() {
         let mut manifest = valid_manifest();
-        manifest.sensors.push(manifest.sensors[0].clone());
+        let duplicate = manifest.sensors[0].clone();
+        manifest.sensors.push(duplicate);
         let issues = manifest.validate().unwrap_err();
         assert!(issues.iter().any(|issue| {
             issue.code == WorldValidationCode::DuplicateIdentity
@@ -718,6 +725,30 @@ mod tests {
         result.request.world_generation += 1;
         let issues = result.validate_against(&expected).unwrap_err();
         assert!(issues.iter().any(|issue| {
+            issue.code == WorldValidationCode::RequestIdentityMismatch
+        }));
+    }
+
+    #[test]
+    fn solver_result_rejects_stale_input_digest_and_time_interval() {
+        let expected = valid_request();
+        let mut result = SolverResultEnvelopeV1 {
+            schema_version: SOLVER_RESULT_SCHEMA_VERSION,
+            request: expected.clone(),
+            disposition: SolverResultDisposition::CompletedWithinEnvelope,
+            output_digest_sha256: Some("e".repeat(SHA256_HEX_LENGTH)),
+            outputs: Vec::new(),
+            warnings: Vec::new(),
+        };
+
+        result.request.input_digest_sha256 = "f".repeat(SHA256_HEX_LENGTH);
+        assert!(result.validate_against(&expected).unwrap_err().iter().any(|issue| {
+            issue.code == WorldValidationCode::RequestIdentityMismatch
+        }));
+
+        result.request = expected.clone();
+        result.request.simulation_time_end_ns += 1;
+        assert!(result.validate_against(&expected).unwrap_err().iter().any(|issue| {
             issue.code == WorldValidationCode::RequestIdentityMismatch
         }));
     }
