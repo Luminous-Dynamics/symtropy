@@ -546,6 +546,20 @@ mod tests {
     }
 
     #[test]
+    fn zero_mse_has_no_relative_standard_uncertainty() {
+        let observation = observation(CuttingPowerInputV1::MeasuredToolInterfacePower {
+            mechanical_power_w: 0.0,
+        });
+        let mse = observation.calculate_mse().unwrap();
+        let mut input = uncertainty_input("cut-test-001");
+        input.power_standard_uncertainty_w = 0.0;
+        input.removed_volume_rate_standard_uncertainty_m3_s = 1.0e-7;
+        let uncertainty = mse.propagate_standard_uncertainty(&input).unwrap();
+        assert_eq!(uncertainty.standard_uncertainty_pa, 0.0);
+        assert_eq!(uncertainty.relative_standard_uncertainty, None);
+    }
+
+    #[test]
     fn mse_uncertainty_applies_the_covariance_term_with_correct_sensitivity_coefficients() {
         let observation = observation(CuttingPowerInputV1::MeasuredToolInterfacePower {
             mechanical_power_w: 1_500.0,
