@@ -312,7 +312,7 @@ The crate's toy passenger and cargo cases use **synthetic illustrative numbers o
 
 The modular-cargo contract is being strengthened in layers:
 
-- **Safe orientation:** module profiles and handling equipment must explicitly share an approved axis orientation. Dimensions are checked after that declared permutation; geometric fit alone does not certify stability, lashing, cargo distribution or safe restraint.
+- **Safe orientation:** module profiles and handling equipment must explicitly share an approved axis orientation. Dimensions are checked after that declared permutation; geometric fit alone does not certify stability, lashing, cargo distribution or safe restraint. **Center-of-gravity envelopes, local floor/point-load pressure, acceleration load cases and engineering load-distribution validation are not yet implemented** and remain mandatory follow-on checks before real dispatch use.
 - **Load-securing evidence:** profiles may require an inspection/securement record; missing or failed evidence rejects dispatch.
 - **Aircraft position compatibility:** when equipment requires verified ULDs, the profile must declare position-specific aircraft/ULD eligibility evidence matching the aircraft type, loading position, accepted ULD type code and gross-mass limit. These are evidence fields, not proof of an external certificate by themselves.
 - **Revisioned custody handoff:** custody transfers check source custodian/location, module identity, revision and stable contents digest. Stale/replayed receipts fail; a seal-state change requires a nonempty evidence digest; the returned state carries the latest receipt digest. Persistence, cryptographic signatures, issuer authorization and concurrent-writer serialization remain outside this function and must be supplied by the authoritative custody service.
@@ -328,10 +328,11 @@ At this tranche, the Rust source has 30 authored test cases; they still require 
 
 Next steps:
 1. qualify the exact Rust crate and its route/module/custody/economics toy tests;
-2. bind module compatibility to actual transfer edges, authorized equipment positions and live availability/capacity;
-3. add multiple-demand min-cost flow with shared capacity and explicit unserved demand;
-4. introduce timetable, dwell, transfer-window, empty-module repositioning and asset-pooling feasibility;
-5. add versioned adapters for real South African route, service, tariff, module inventory, dwell, load, energy and reusable-packaging data;
-6. compare Pareto and sensitivity outputs against held-out operator/official measurements before discussing a specific cost-saving winner.
+2. add center-of-gravity, floor/point-load, acceleration/restraint and load-distribution evidence contracts from applicable equipment manuals;
+3. bind module compatibility to actual transfer edges, authorized equipment positions and live availability/capacity;
+4. add multiple-demand min-cost flow with shared capacity and explicit unserved demand;
+5. introduce timetable, dwell, transfer-window, empty-module repositioning and asset-pooling feasibility;
+6. add versioned adapters for real South African route, service, tariff, module inventory, dwell, load, energy and reusable-packaging data;
+7. compare Pareto and sensitivity outputs against held-out operator/official measurements before discussing a specific cost-saving winner.
 
 Learned predictions, real-time dispatch and investment MILPs stay out of scope until the base flow/accounting invariants and evidence adapters qualify.
