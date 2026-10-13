@@ -24,44 +24,44 @@ The manifest planner/validator/analyzer comes from the separate HarmonyField man
 
 After the manifest tool is present in the checkout, create a deliberately small pipeline smoke plan with one dimension, one source strength, one radius, one development seed, and two held-out seeds:
 
-\`\`\`bash
-python3 scripts/research/harmony_field_ablation.py plan \\
-  --candidate-commit "$(git rev-parse HEAD)" \\
-  --task-id harmony-field-crossing-traffic-smoke-v1 \\
-  --scenario-config scripts/research/scenarios/harmony_field_crossing_traffic_smoke.json \\
-  --seeds 101,102,103 --held-out-seeds 102,103 \\
-  --dimensions 3 --source-strengths 1.0 --radii 20.0 \\
+```bash
+python3 scripts/research/harmony_field_ablation.py plan \
+  --candidate-commit "$(git rev-parse HEAD)" \
+  --task-id harmony-field-crossing-traffic-smoke-v1 \
+  --scenario-config scripts/research/scenarios/harmony_field_crossing_traffic_smoke.json \
+  --seeds 101,102,103 --held-out-seeds 102,103 \
+  --dimensions 3 --source-strengths 1.0 --radii 20.0 \
   --output /tmp/harmony-field-smoke-plan.json
-\`\`\`
+```
 
 Use a new, empty artifact directory for each execution. The adapter runs each cell twice; with this example it executes 48 fresh-world runs (24 planned cells, each run twice).
 
-\`\`\`bash
-cargo run --locked -p symtropy-consciousness-physics \\
-  --example harmony_field_ablation_adapter -- \\
-  --plan /tmp/harmony-field-smoke-plan.json \\
+```bash
+cargo run --locked -p symtropy-consciousness-physics \
+  --example harmony_field_ablation_adapter -- \
+  --plan /tmp/harmony-field-smoke-plan.json \
   --artifact-root /tmp/harmony-field-smoke-artifacts
-\`\`\`
+```
 
 Validate the evidence before any analysis:
 
-\`\`\`bash
-python3 scripts/research/harmony_field_ablation.py validate \\
-  --plan /tmp/harmony-field-smoke-plan.json \\
-  --results /tmp/harmony-field-smoke-artifacts/results.jsonl \\
-  --artifact-root /tmp/harmony-field-smoke-artifacts \\
+```bash
+python3 scripts/research/harmony_field_ablation.py validate \
+  --plan /tmp/harmony-field-smoke-plan.json \
+  --results /tmp/harmony-field-smoke-artifacts/results.jsonl \
+  --artifact-root /tmp/harmony-field-smoke-artifacts \
   --report /tmp/harmony-field-smoke-artifacts/validation-report.json
-\`\`\`
+```
 
 Only a validated manifest can be analyzed:
 
-\`\`\`bash
-python3 scripts/research/harmony_field_ablation.py analyze \\
-  --plan /tmp/harmony-field-smoke-plan.json \\
-  --results /tmp/harmony-field-smoke-artifacts/results.jsonl \\
-  --artifact-root /tmp/harmony-field-smoke-artifacts \\
+```bash
+python3 scripts/research/harmony_field_ablation.py analyze \
+  --plan /tmp/harmony-field-smoke-plan.json \
+  --results /tmp/harmony-field-smoke-artifacts/results.jsonl \
+  --artifact-root /tmp/harmony-field-smoke-artifacts \
   --output /tmp/harmony-field-smoke-artifacts/analysis.json
-\`\`\`
+```
 
 The two held-out seeds are only enough to exercise the pipeline and catch gross failures; they are not a sample-size rationale, and bootstrap intervals with so few blocks are unstable. Do not publish an effect estimate from this smoke plan as evidence that the model is beneficial. A future confirmatory task needs domain review, pilot-derived power/sample-size planning, prespecified primary utility, expanded held-out blocks, sensitivity coverage, and an independently reviewed task adapter.
 
