@@ -7,6 +7,9 @@
 //! identities at the boundary. It does not implement physics and does not
 //! certify that any declared solver is physically accurate.
 
+use crate::material_profile::{
+    MaterialEvidenceClassV1, MaterialQuantityV1, RockMaterialProfileV1,
+};
 use crate::platform::PlatformType;
 use serde::{Deserialize, Serialize};
 use std::collections::{BTreeMap, BTreeSet};
@@ -180,6 +183,8 @@ pub struct WorldManifestV1 {
     pub frames: Vec<CoordinateFrameV1>,
     pub fidelity: PhysicsFidelity,
     pub world_assets: Vec<ArtifactRef>,
+    /// Evidence-bearing rock/material profiles used by this scenario.
+    pub material_profiles: Vec<RockMaterialProfileV1>,
     pub solvers: Vec<SolverDeclarationV1>,
     pub sensors: Vec<SensorProfileV1>,
     pub platforms: Vec<PlatformProfileV1>,
@@ -221,6 +226,94 @@ impl WorldManifestV1 {
 
         for (index, artifact) in self.world_assets.iter().enumerate() {
             artifact.validate_at(&format!("world_assets[{index}]"), &mut issues);
+        }
+
+        let mut material_profile_ids = BTreeSet::new();
+        for (index, profile) in self.material_profiles.iter().enumerate() {
+            let path = format!("material_profiles[{index}]");
+            if profile.profile_id.trim().is_empty()
+                || profile.profile_id.trim() != profile.profile_id.as_str()
+                || profile.display_label.trim().is_empty()
+                || profile.condition.condition_id.trim().is_empty()
+            {
+                issues.push(WorldValidationIssue::new(
+                    WorldValidationCode::InvalidMaterial,
+                    &path,
+                ));
+            }
+            if !material_profile_ids.insert(profile.profile_id.as_str()) {
+                issues.push(WorldValidationIssue::new(
+                    WorldValidationCode::DuplicateIdentity,
+                    format!("{path}.profile_id"),
+                ));
+            }
+
+            if profile
+                .condition
+                .temperature_k
+                .is_some_and(|value| !value.is_finite() || value <= 0.0)
+                || profile
+                    .condition
+                    .water_saturation_fraction
+                    .is_some_and(|value| !value.is_finite() || !(0.0..=1.0).contains(&value))
+                || profile
+                    .condition
+                    .confining_pressure_pa
+                    .is_some_and(|value| !value.is_finite() || value < 0.0)
+            {
+                issues.push(WorldValidationIssue::new(
+                    WorldValidationCode::InvalidMaterialCondition,
+                    format!("{path}.condition"),
+                ));
+            }
+
+            let mut quantities = BTreeSet::new();
+            for (property_index, property) in profile.properties.iter().enumerate() {
+                let property_path = format!("{path}.properties[{property_index}]");
+                if !quantities.insert(property.quantity) {
+                    issues.push(WorldValidationIssue::new(
+                        WorldValidationCode::DuplicateMaterialQuantity,
+                        format!("{property_path}.quantity"),
+                    ));
+                }
+                if property.unit.trim().is_empty() {
+                    issues.push(WorldValidationIssue::new(
+                        WorldValidationCode::MissingUnit,
+                        format!("{property_path}.unit"),
+                    ));
+                } else if property.unit != property.quantity.canonical_unit() {
+                    issues.push(WorldValidationIssue::new(
+                        WorldValidationCode::InvalidMaterialUnit,
+                        format!("{property_path}.unit"),
+                    ));
+                }
+                if !property.quantity.value_is_in_physical_range(property.value_si)
+                    || property.uncertainty_std_si.is_some_and(|value| !value.is_finite() || value < 0.0)
+                {
+                    issues.push(WorldValidationIssue::new(
+                        WorldValidationCode::InvalidMaterialProperty,
+                        format!("{property_path}.value_or_uncertainty"),
+                    ));
+                }
+
+                if property.evidence_class.requires_source() && property.source.is_none() {
+                    issues.push(WorldValidationIssue::new(
+                        WorldValidationCode::MissingEvidenceSource,
+                        format!("{property_path}.source"),
+                    ));
+                }
+                if property.evidence_class.requires_sample_or_site()
+                    && property.sample_or_site_id.as_deref().is_none_or(|id| id.trim().is_empty())
+                {
+                    issues.push(WorldValidationIssue::new(
+                        WorldValidationCode::MissingEvidenceSource,
+                        format!("{property_path}.sample_or_site_id"),
+                    ));
+                }
+                if let Some(source) = &property.source {
+                    source.validate_at(&format!("{property_path}.source"), &mut issues);
+                }
+            }
         }
 
         let mut solver_ids = BTreeSet::new();
@@ -596,6 +689,8 @@ pub struct SolverRequestIdentityV1 {
     pub request_id: u64,
     pub world_generation: u64,
     pub solver_id: String,
+    /// Explicit material profiles used by this solver request; also covered by input_digest_sha256.
+    pub material_profile_ids: Vec<String>,
     pub input_digest_sha256: String,
     pub simulation_time_start_ns: u64,
     pub simulation_time_end_ns: u64,
@@ -621,6 +716,24 @@ impl SolverRequestIdentityV1 {
                 WorldValidationCode::InvalidDigest,
                 "request_identity.input_digest_sha256",
             ));
+        }
+
+        let mut material_profile_ids = BTreeSet::new();
+        for (index, material_profile_id) in self.material_profile_ids.iter().enumerate() {
+            if material_profile_id.trim().is_empty()
+                || material_profile_id.trim() != material_profile_id.as_str()
+            {
+                issues.push(WorldValidationIssue::new(
+                    WorldValidationCode::InvalidMaterial,
+                    format!("request_identity.material_profile_ids[{index}]"),
+                ));
+            }
+            if !material_profile_ids.insert(material_profile_id.as_str()) {
+                issues.push(WorldValidationIssue::new(
+                    WorldValidationCode::DuplicateIdentity,
+                    format!("request_identity.material_profile_ids[{index}]"),
+                ));
+            }
         }
         if issues.is_empty() {
             Ok(())
@@ -785,6 +898,20 @@ impl WorldManifestV1 {
             ));
         }
 
+        let material_profile_ids: BTreeSet<&str> = self
+            .material_profiles
+            .iter()
+            .map(|profile| profile.profile_id.as_str())
+            .collect();
+        for (index, material_profile_id) in expected_request.material_profile_ids.iter().enumerate() {
+            if !material_profile_ids.contains(material_profile_id.as_str()) {
+                issues.push(WorldValidationIssue::new(
+                    WorldValidationCode::UnknownMaterialReference,
+                    format!("request.material_profile_ids[{index}]"),
+                ));
+            }
+        }
+
         let frame_ids: BTreeSet<&str> = self
             .frames
             .iter()
@@ -849,9 +976,15 @@ pub enum WorldValidationCode {
     InvalidFrame,
     FrameCycle,
     InvalidTransform,
-    MissingFrame,
     UnknownFrameReference,
     UnknownFrameProvider,
+    InvalidMaterial,
+    InvalidMaterialCondition,
+    InvalidMaterialUnit,
+    InvalidMaterialProperty,
+    DuplicateMaterialQuantity,
+    MissingEvidenceSource,
+    UnknownMaterialReference,
 }
 
 fn is_sha256_hex(value: &str) -> bool {
@@ -902,6 +1035,40 @@ mod tests {
             ],
             fidelity: PhysicsFidelity::ReducedOrder,
             world_assets: vec![artifact("tunnel-geometry")],
+            material_profiles: vec![RockMaterialProfileV1 {
+                profile_id: "granite-lab-001".to_owned(),
+                lithology: crate::material_profile::RockLithologyV1::Granite,
+                display_label: "Granite laboratory specimen A".to_owned(),
+                condition: crate::material_profile::RockMaterialConditionV1 {
+                    condition_id: "dry-room-temperature-v1".to_owned(),
+                    temperature_k: Some(293.15),
+                    water_saturation_fraction: Some(0.05),
+                    confining_pressure_pa: Some(0.0),
+                    orientation_description: Some("parallel to specimen axis".to_owned()),
+                    alteration_description: Some("fresh, visibly unweathered specimen".to_owned()),
+                },
+                properties: vec![
+                    crate::material_profile::MaterialPropertyV1 {
+                        quantity: MaterialQuantityV1::BulkDensity,
+                        value_si: 2670.0,
+                        unit: "kg/m^3".to_owned(),
+                        uncertainty_std_si: Some(35.0),
+                        evidence_class: MaterialEvidenceClassV1::LaboratoryMeasured,
+                        source: Some(artifact("granite-lab-report")),
+                        sample_or_site_id: Some("GRANITE-A-01".to_owned()),
+                    },
+                    crate::material_profile::MaterialPropertyV1 {
+                        quantity: MaterialQuantityV1::UnconfinedCompressiveStrength,
+                        value_si: 125.0e6,
+                        unit: "Pa".to_owned(),
+                        uncertainty_std_si: Some(8.0e6),
+                        evidence_class: MaterialEvidenceClassV1::LaboratoryMeasured,
+                        source: Some(artifact("granite-lab-report")),
+                        sample_or_site_id: Some("GRANITE-A-01".to_owned()),
+                    },
+                ],
+                notes: Some("Fixture values validate the contract only; they are not endorsed canonical granite properties.".to_owned()),
+            }],
             solvers: vec![SolverDeclarationV1 {
                 solver_id: "acoustic-reference".to_owned(),
                 domain: PhysicsDomain::Acoustic,
@@ -953,6 +1120,7 @@ mod tests {
             request_id: 7,
             world_generation: 12,
             solver_id: "acoustic-reference".to_owned(),
+            material_profile_ids: vec!["granite-lab-001".to_owned()],
             input_digest_sha256: "d".repeat(SHA256_HEX_LENGTH),
             simulation_time_start_ns: 10_000_000,
             simulation_time_end_ns: 11_000_000,
@@ -1139,6 +1307,47 @@ mod tests {
         assert!(issues.iter().any(|issue| {
             issue.code == WorldValidationCode::UnknownFrameProvider
                 && issue.path == "frames[1].transform_to_parent.provider_artifact_id"
+        }));
+    }
+
+    #[test]
+    fn material_properties_require_canonical_units_and_traceable_measured_sources() {
+        let mut manifest = valid_manifest();
+        manifest.material_profiles[0].properties[1].unit = "MPa".to_owned();
+        manifest.material_profiles[0].properties[1].source = None;
+        let issues = manifest.validate().unwrap_err();
+        assert!(issues.iter().any(|issue| issue.code == WorldValidationCode::InvalidMaterialUnit));
+        assert!(issues.iter().any(|issue| issue.code == WorldValidationCode::MissingEvidenceSource));
+    }
+
+    #[test]
+    fn synthetic_profile_can_be_sparse_but_bad_saturation_is_rejected() {
+        let mut manifest = valid_manifest();
+        manifest.material_profiles[0].properties.clear();
+        manifest.material_profiles[0].condition.water_saturation_fraction = Some(1.1);
+        let issues = manifest.validate().unwrap_err();
+        assert!(issues.iter().any(|issue| issue.code == WorldValidationCode::InvalidMaterialCondition));
+    }
+
+    #[test]
+    fn solver_admission_rejects_undeclared_material_profile() {
+        let manifest = valid_manifest();
+        let mut expected = valid_request();
+        expected.material_profile_ids = vec!["basalt-unknown".to_owned()];
+        let result = SolverResultEnvelopeV1 {
+            schema_version: SOLVER_RESULT_SCHEMA_VERSION,
+            request: expected.clone(),
+            disposition: SolverResultDisposition::NumericalNonConvergence,
+            output_digest_sha256: None,
+            outputs: Vec::new(),
+            warnings: Vec::new(),
+        };
+        let issues = manifest
+            .validate_solver_result_against_world(&expected, &result)
+            .unwrap_err();
+        assert!(issues.iter().any(|issue| {
+            issue.code == WorldValidationCode::UnknownMaterialReference
+                && issue.path == "request.material_profile_ids[0]"
         }));
     }
 

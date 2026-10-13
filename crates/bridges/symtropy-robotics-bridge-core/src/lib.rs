@@ -5,6 +5,7 @@
 
 pub mod agent;
 pub mod haptic;
+pub mod material_profile;
 pub mod motor;
 pub mod platform;
 pub mod safety;
@@ -17,6 +18,10 @@ pub use sensor_model::{
 
 pub use agent::{RoboticAgent, spawn_robot_body};
 pub use haptic::{HapticAttestation, HapticOracle};
+pub use material_profile::{
+    MaterialEvidenceClassV1, MaterialPropertyV1, MaterialQuantityV1, RockLithologyV1,
+    RockMaterialConditionV1, RockMaterialProfileV1,
+};
 pub use motor::{MotorPlanner, UniformGainPlanner};
 pub use platform::PlatformType;
 pub use safety::JointSafetyAuthority;
