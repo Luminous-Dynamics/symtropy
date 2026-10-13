@@ -440,7 +440,9 @@ impl WorldManifestV1 {
         let mut frame_ids = BTreeSet::new();
         for (index, frame) in self.frames.iter().enumerate() {
             let path = format!("frames[{index}]");
-            if frame.frame_id.trim().is_empty() || frame.frame_id.trim() != frame.frame_id {
+            if frame.frame_id.trim().is_empty()
+                || frame.frame_id.trim() != frame.frame_id.as_str()
+            {
                 issues.push(WorldValidationIssue::new(
                     WorldValidationCode::InvalidFrame,
                     format!("{path}.frame_id"),
@@ -476,7 +478,7 @@ impl WorldManifestV1 {
         for (index, frame) in self.frames.iter().enumerate() {
             let path = format!("frames[{index}]");
             if let Some(parent_id) = frame.parent_frame_id.as_deref() {
-                if parent_id == frame.frame_id {
+                if parent_id == frame.frame_id.as_str() {
                     issues.push(WorldValidationIssue::new(
                         WorldValidationCode::InvalidFrame,
                         format!("{path}.parent_frame_id"),
@@ -529,7 +531,9 @@ impl WorldManifestV1 {
                 } => {
                     if frame.parent_frame_id.is_none()
                         || provider_artifact_id.trim().is_empty()
+                        || provider_artifact_id.trim() != provider_artifact_id.as_str()
                         || provider_frame_id.trim().is_empty()
+                        || provider_frame_id.trim() != provider_frame_id.as_str()
                     {
                         issues.push(WorldValidationIssue::new(
                             WorldValidationCode::InvalidTransform,
@@ -671,9 +675,9 @@ impl SolverResultEnvelopeV1 {
     ///
     /// Results for a different request, world generation, input digest, or
     /// simulation-time interval are rejected as stale/mismatched evidence.
-    /// Validate result structure and request identity. For world admission,
-    /// also call WorldManifestV1::validate_solver_result_against_world so
-    /// output frame IDs are checked against the authoritative frame registry.
+    /// This validates structure and request identity only; world admission must
+    /// use WorldManifestV1::validate_solver_result_against_world to also check
+    /// output frames and that the requested solver is declared by the world.
     pub fn validate_against(
         &self,
         expected: &SolverRequestIdentityV1,
@@ -754,7 +758,6 @@ impl SolverResultEnvelopeV1 {
     }
 }
 
-
 impl WorldManifestV1 {
     /// Validate the world, exact request identity, result structure, and every
     /// result frame reference before the result is admitted to this world.
@@ -769,6 +772,17 @@ impl WorldManifestV1 {
         }
         if let Err(mut result_issues) = result.validate_against(expected_request) {
             issues.append(&mut result_issues);
+        }
+
+        if !self
+            .solvers
+            .iter()
+            .any(|solver| solver.solver_id.as_str() == expected_request.solver_id.as_str())
+        {
+            issues.push(WorldValidationIssue::new(
+                WorldValidationCode::UnknownSolverReference,
+                "request.solver_id",
+            ));
         }
 
         let frame_ids: BTreeSet<&str> = self
@@ -1125,6 +1139,28 @@ mod tests {
         assert!(issues.iter().any(|issue| {
             issue.code == WorldValidationCode::UnknownFrameProvider
                 && issue.path == "frames[1].transform_to_parent.provider_artifact_id"
+        }));
+    }
+
+    #[test]
+    fn world_admission_rejects_undeclared_solver() {
+        let manifest = valid_manifest();
+        let mut expected = valid_request();
+        expected.solver_id = "missing-solver".to_owned();
+        let result = SolverResultEnvelopeV1 {
+            schema_version: SOLVER_RESULT_SCHEMA_VERSION,
+            request: expected.clone(),
+            disposition: SolverResultDisposition::NumericalNonConvergence,
+            output_digest_sha256: None,
+            outputs: Vec::new(),
+            warnings: Vec::new(),
+        };
+        let issues = manifest
+            .validate_solver_result_against_world(&expected, &result)
+            .unwrap_err();
+        assert!(issues.iter().any(|issue| {
+            issue.code == WorldValidationCode::UnknownSolverReference
+                && issue.path == "request.solver_id"
         }));
     }
 
