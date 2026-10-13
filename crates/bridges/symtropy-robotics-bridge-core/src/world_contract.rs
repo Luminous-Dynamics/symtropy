@@ -247,7 +247,9 @@ impl WorldManifestV1 {
                     format!("{path}.sample_rate_hz"),
                 ));
             }
-            if sensor.jitter_ns > i64::MAX as u64 {
+            if sensor.jitter_ns > i64::MAX as u64
+                || sensor.jitter_ns > sensor.latency_ns
+            {
                 issues.push(WorldValidationIssue::new(
                     WorldValidationCode::InvalidRange,
                     format!("{path}.jitter_ns"),
@@ -710,12 +712,25 @@ mod tests {
     fn sensor_timing_parameters_must_fit_integer_nanosecond_clock() {
         let mut manifest = valid_manifest();
         manifest.sensors[0].sample_rate_hz = 1.0e10;
+        manifest.sensors[0].latency_ns = 1;
         manifest.sensors[0].jitter_ns = (i64::MAX as u64) + 1;
         let issues = manifest.validate().unwrap_err();
         assert!(issues.iter().any(|issue| {
             issue.code == WorldValidationCode::InvalidSensorRate
                 && issue.path == "sensors[0].sample_rate_hz"
         }));
+        assert!(issues.iter().any(|issue| {
+            issue.code == WorldValidationCode::InvalidRange
+                && issue.path == "sensors[0].jitter_ns"
+        }));
+    }
+
+    #[test]
+    fn jitter_cannot_exceed_latency_and_bias_the_timestamp_distribution() {
+        let mut manifest = valid_manifest();
+        manifest.sensors[0].latency_ns = 1;
+        manifest.sensors[0].jitter_ns = 2;
+        let issues = manifest.validate().unwrap_err();
         assert!(issues.iter().any(|issue| {
             issue.code == WorldValidationCode::InvalidRange
                 && issue.path == "sensors[0].jitter_ns"
