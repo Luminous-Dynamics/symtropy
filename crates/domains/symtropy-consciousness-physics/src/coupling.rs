@@ -252,6 +252,91 @@ impl EntityConsciousness {
     }
 }
 
+/// Independent treatment switches for HarmonyField ablation experiments.
+///
+/// These switches isolate the three mechanisms named in the research protocol:
+/// spatial friction modulation (F), resonance-scaled collision prediction error (R),
+/// and proximity-weighted emotional contagion (E). Defaults preserve the previous
+/// simulation behavior; experiments should explicitly record this configuration.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct HarmonyFieldMechanismToggles {
+    /// F: apply HarmonyField resonance to the contact friction multiplier.
+    pub friction_modulation: bool,
+    /// R: scale collision prediction error by the profiles' resonance.
+    pub resonance_prediction_error: bool,
+    /// E: update emotional activations from nearby entities.
+    pub emotional_contagion: bool,
+}
+
+impl Default for HarmonyFieldMechanismToggles {
+    fn default() -> Self {
+        Self {
+            friction_modulation: true,
+            resonance_prediction_error: true,
+            emotional_contagion: true,
+        }
+    }
+}
+
+impl HarmonyFieldMechanismToggles {
+    /// Return the eight configurations in A000, A001, ..., A111 factorial order.
+    ///
+    /// The arm identifier stores F as the most significant bit, R as the middle
+    /// bit, and E as the least significant bit. This explicit enumeration prevents
+    /// ablation runners from accidentally omitting a treatment combination.
+    pub const fn factorial_arms() -> [Self; 8] {
+        [
+            Self {
+                friction_modulation: false,
+                resonance_prediction_error: false,
+                emotional_contagion: false,
+            },
+            Self {
+                friction_modulation: false,
+                resonance_prediction_error: false,
+                emotional_contagion: true,
+            },
+            Self {
+                friction_modulation: false,
+                resonance_prediction_error: true,
+                emotional_contagion: false,
+            },
+            Self {
+                friction_modulation: false,
+                resonance_prediction_error: true,
+                emotional_contagion: true,
+            },
+            Self {
+                friction_modulation: true,
+                resonance_prediction_error: false,
+                emotional_contagion: false,
+            },
+            Self {
+                friction_modulation: true,
+                resonance_prediction_error: false,
+                emotional_contagion: true,
+            },
+            Self {
+                friction_modulation: true,
+                resonance_prediction_error: true,
+                emotional_contagion: false,
+            },
+            Self {
+                friction_modulation: true,
+                resonance_prediction_error: true,
+                emotional_contagion: true,
+            },
+        ]
+    }
+
+    /// Stable integer identifier for the F/R/E factorial arm (A000 = 0, A111 = 7).
+    pub const fn arm_id(self) -> u8 {
+        ((self.friction_modulation as u8) << 2)
+            | ((self.resonance_prediction_error as u8) << 1)
+            | (self.emotional_contagion as u8)
+    }
+}
+
 /// The consciousness field: aggregates all entity consciousness states
 /// and provides physics modulation functions.
 pub struct ConsciousnessField<const D: usize> {
@@ -274,6 +359,8 @@ pub struct ConsciousnessField<const D: usize> {
     pub ledger: ThermodynamicLedger,
     /// Tunable thermodynamic constants.
     pub constants: ThermodynamicConstants,
+    /// Independent mechanism switches for matched ablation experiments.
+    pub mechanism_toggles: HarmonyFieldMechanismToggles,
     /// Accumulated sanctuary absorption (deferred from &self → &mut self).
     /// Uses AtomicU64 storing f64 bits for thread safety (Bevy requires Sync).
     sanctuary_absorbed: std::sync::atomic::AtomicU64,
@@ -294,6 +381,7 @@ impl<const D: usize> ConsciousnessField<D> {
             collective_phi: 0.0,
             ledger: ThermodynamicLedger::new(),
             constants: ThermodynamicConstants::default(),
+            mechanism_toggles: HarmonyFieldMechanismToggles::default(),
             sanctuary_absorbed: std::sync::atomic::AtomicU64::new(0u64.to_le()),
             harmony_field_validation_failures: std::sync::atomic::AtomicU64::new(0),
         }
@@ -562,6 +650,9 @@ impl<const D: usize> ConsciousnessField<D> {
         positions: &[(BodyHandle, symtropy_math::Point<D>)],
         dt: f64,
     ) {
+        if !self.mechanism_toggles.emotional_contagion {
+            return;
+        }
         use crate::harmony_field::{EMOTIONAL_CONTAGION_IDX, contagion_update};
 
         // Snapshot: (position_as_svector, emotion, phi) for all entities
@@ -688,6 +779,9 @@ impl<const D: usize> PhysicsCallback<D> for ConsciousnessField<D> {
     }
 
     fn friction_multiplier(&self, contact_point: &SVector<f64, D>, body: BodyHandle) -> f64 {
+        if !self.mechanism_toggles.friction_modulation {
+            return 1.0;
+        }
         if self.harmony_field.sources.is_empty() {
             return 1.0;
         }
@@ -720,8 +814,9 @@ impl<const D: usize> PhysicsCallback<D> for ConsciousnessField<D> {
 
         let drain_rate = self.constants.collision_energy_drain;
 
-        // Compute resonance between colliding bodies for prediction error scaling
-        let resonance = {
+        // When R is disabled, preserve the unmodulated collision-surprise path.
+        // A zero resonance yields surprise_factor = 1.0 below.
+        let resonance = if self.mechanism_toggles.resonance_prediction_error {
             let harm_a = self
                 .entities
                 .get(&event.body_a)
@@ -750,6 +845,8 @@ impl<const D: usize> PhysicsCallback<D> for ConsciousnessField<D> {
                 }
                 _ => 0.0,
             }
+        } else {
+            0.0
         };
 
         if let Some(entity) = self.entities.get_mut(&event.body_a) {
@@ -1151,6 +1248,148 @@ mod tests {
             (energy_after - energy_before).abs() < 1e-10,
             "disabled leakage should not affect energy"
         );
+    }
+
+    #[test]
+    fn factorial_arm_generator_enumerates_all_eight_combinations_in_stable_order() {
+        let arms = HarmonyFieldMechanismToggles::factorial_arms();
+        for (expected_id, arm) in arms.iter().enumerate() {
+            assert_eq!(arm.arm_id(), expected_id as u8);
+        }
+        assert_eq!(arms[0].arm_id(), 0); // A000: no mechanisms enabled
+        assert_eq!(arms[7].arm_id(), 7); // A111: all mechanisms enabled
+        assert_eq!(arms[7], HarmonyFieldMechanismToggles::default());
+    }
+
+    #[test]
+    fn factorial_switches_default_to_existing_behavior() {
+        assert_eq!(
+            HarmonyFieldMechanismToggles::default(),
+            HarmonyFieldMechanismToggles {
+                friction_modulation: true,
+                resonance_prediction_error: true,
+                emotional_contagion: true,
+            }
+        );
+    }
+
+    #[test]
+    fn friction_modulation_switch_returns_neutral_multiplier_when_disabled() {
+        use symtropy_physics::world::PhysicsCallback;
+
+        let mut field = ConsciousnessField::<3>::new();
+        let handle = BodyHandle(0);
+        field.register(handle, 100.0, 10.0);
+        field.entities.get_mut(&handle).unwrap().harmony_activations[7] = 1.0;
+        field.rebuild_harmony_field(&[(handle, symtropy_math::Point::origin())]);
+
+        let contact = SVector::from([0.0, 0.0, 0.0]);
+        let enabled = PhysicsCallback::<3>::friction_multiplier(&field, &contact, handle);
+        field.mechanism_toggles.friction_modulation = false;
+        let disabled = PhysicsCallback::<3>::friction_multiplier(&field, &contact, handle);
+
+        assert!(enabled < 1.0);
+        assert_eq!(disabled, 1.0);
+    }
+
+    #[test]
+    fn resonance_prediction_error_switch_is_independent() {
+        use symtropy_physics::contact::CollisionEvent;
+        use symtropy_physics::world::PhysicsCallback;
+
+        fn field_with_profiles() -> (ConsciousnessField<3>, BodyHandle, BodyHandle) {
+            let mut field = ConsciousnessField::<3>::new();
+            let a = BodyHandle(0);
+            let b = BodyHandle(1);
+            field.register(a, 100.0, 10.0);
+            field.register(b, 100.0, 10.0);
+            field.entities.get_mut(&a).unwrap().harmony_activations[0] = 1.0;
+            field.entities.get_mut(&b).unwrap().harmony_activations[0] = 1.0;
+            (field, a, b)
+        }
+
+        let event = |a, b| CollisionEvent {
+            body_a: a,
+            body_b: b,
+            impulse: 10.0,
+            normal: SVector::from([1.0, 0.0, 0.0]),
+            depth: 0.25,
+        };
+
+        let (mut enabled, a, b) = field_with_profiles();
+        PhysicsCallback::<3>::on_collision(&mut enabled, &event(a, b));
+        let enabled_error = enabled.entities.get(&a).unwrap().prediction_error;
+
+        let (mut disabled, a, b) = field_with_profiles();
+        disabled.mechanism_toggles.resonance_prediction_error = false;
+        PhysicsCallback::<3>::on_collision(&mut disabled, &event(a, b));
+        let disabled_error = disabled.entities.get(&a).unwrap().prediction_error;
+
+        assert!(enabled_error > 0.0);
+        assert!(disabled_error > enabled_error);
+        assert!((enabled_error - 0.01).abs() < 1e-12);
+        assert!((disabled_error - 0.1).abs() < 1e-12);
+    }
+
+    #[test]
+    fn emotional_contagion_switch_is_independent() {
+        use crate::harmony_field::EMOTIONAL_CONTAGION_IDX;
+        use symthaea_consciousness_equation::ConsciousnessInputs;
+
+        let inputs = ConsciousnessInputs {
+            phi: 0.8,
+            broadcast: 0.8,
+            working_memory: 0.7,
+            attention: 0.7,
+            recurrence: 0.6,
+            embodiment: 0.8,
+            knowledge: 0.6,
+            synchrony: 0.7,
+        };
+        let source = BodyHandle(0);
+        let receiver = BodyHandle(1);
+        let positions = [
+            (source, symtropy_math::Point::new([0.0, 0.0, 0.0])),
+            (receiver, symtropy_math::Point::new([5.0, 0.0, 0.0])),
+        ];
+
+        let mut enabled = ConsciousnessField::<3>::new();
+        enabled.register(source, 100.0, 10.0);
+        enabled.register(receiver, 100.0, 10.0);
+        enabled.update_entity(source, &inputs, symtropy_math::Point::origin());
+        enabled.update_entity(receiver, &inputs, symtropy_math::Point::origin());
+        enabled
+            .entities
+            .get_mut(&source)
+            .unwrap()
+            .harmony_activations[EMOTIONAL_CONTAGION_IDX] = 1.0;
+        enabled.spread_emotional_contagion(&positions, 1.0);
+        let enabled_receiver = enabled
+            .entities
+            .get(&receiver)
+            .unwrap()
+            .harmony_activations[EMOTIONAL_CONTAGION_IDX];
+
+        let mut disabled = ConsciousnessField::<3>::new();
+        disabled.register(source, 100.0, 10.0);
+        disabled.register(receiver, 100.0, 10.0);
+        disabled.update_entity(source, &inputs, symtropy_math::Point::origin());
+        disabled.update_entity(receiver, &inputs, symtropy_math::Point::origin());
+        disabled
+            .entities
+            .get_mut(&source)
+            .unwrap()
+            .harmony_activations[EMOTIONAL_CONTAGION_IDX] = 1.0;
+        disabled.mechanism_toggles.emotional_contagion = false;
+        disabled.spread_emotional_contagion(&positions, 1.0);
+        let disabled_receiver = disabled
+            .entities
+            .get(&receiver)
+            .unwrap()
+            .harmony_activations[EMOTIONAL_CONTAGION_IDX];
+
+        assert!(enabled_receiver > 0.0);
+        assert_eq!(disabled_receiver, 0.0);
     }
 
     #[test]
