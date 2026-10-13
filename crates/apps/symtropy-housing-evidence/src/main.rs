@@ -33,6 +33,7 @@ use std::{
 };
 
 const STATUS_PASS: &str = "PASS";
+const STATUS_EVIDENCE_INTEGRITY_VERIFIED: &str = "EVIDENCE_INTEGRITY_VERIFIED";
 const STATUS_FAIL: &str = "FAIL";
 const EMBEDDED_SCHEMA: &str = include_str!("../../../../docs/built-environment/housing-evidence-manifest.schema.json");
 const STATUS_NOT_EVALUATED: &str = "NOT_EVALUATED";
@@ -94,11 +95,14 @@ fn main() -> ExitCode {
                 return ExitCode::from(2);
             }
             if report.declared_status.as_deref() == Some(STATUS_PASS)
-                && report.effective_status != STATUS_PASS
+                && report.effective_status != STATUS_EVIDENCE_INTEGRITY_VERIFIED
             {
                 return ExitCode::from(2);
             }
-            if require_pass && report.effective_status != STATUS_PASS {
+            if require_pass
+                && (report.declared_status.as_deref() != Some(STATUS_PASS)
+                    || report.effective_status != STATUS_EVIDENCE_INTEGRITY_VERIFIED)
+            {
                 return ExitCode::from(3);
             }
             ExitCode::SUCCESS
@@ -228,7 +232,9 @@ fn read_expected_claims_file(path: &Path) -> Result<(ExpectedClaimsFile, String)
     if !expected.rule_pack.is_object() {
         return Err("expected-claims rule_pack must be an object".to_string());
     }
-    if !expected.toolchain.is_array() || expected.toolchain.as_array().is_some_and(Vec::is_empty) {
+    if !expected.toolchain.is_array()
+        || expected.toolchain.as_array().is_some_and(|tools| tools.is_empty())
+    {
         return Err("expected-claims toolchain must be a non-empty array".to_string());
     }
     if expected.mandatory_claims.is_empty() {
@@ -746,7 +752,7 @@ fn evaluate_manifest(
             true,
             case_id,
             declared_status,
-            STATUS_PASS,
+            STATUS_EVIDENCE_INTEGRITY_VERIFIED,
             verified_count,
             Vec::new(),
         ),
@@ -1118,7 +1124,13 @@ mod tests {
         ];
         let (report, require_pass) = run(args).expect("verify pinned pass");
         assert!(require_pass);
-        assert_eq!(report.effective_status, STATUS_PASS, "{:?}", report.issues);
+        assert_eq!(
+            report.effective_status,
+            STATUS_EVIDENCE_INTEGRITY_VERIFIED,
+            "{:?}",
+            report.issues
+        );
+        assert_eq!(report.declared_status.as_deref(), Some(STATUS_PASS));
         assert!(report.schema_sha256.is_some());
         let manifest_digest = sha256_hex(&manifest_bytes);
         assert_eq!(report.manifest_sha256.as_deref(), Some(manifest_digest.as_str()));
@@ -1166,7 +1178,13 @@ mod tests {
         let (schema, manifest, root, expected) = set_up_pass_manifest();
         let result = evaluate_manifest(&schema, &manifest, Some(&expected), true, Some(&root));
         assert!(result.schema_valid, "{:?}", result.issues);
-        assert_eq!(result.effective_status, STATUS_PASS, "{:?}", result.issues);
+        assert_eq!(
+            result.effective_status,
+            STATUS_EVIDENCE_INTEGRITY_VERIFIED,
+            "{:?}",
+            result.issues
+        );
+        assert_eq!(result.declared_status.as_deref(), Some(STATUS_PASS));
         assert_eq!(result.artifact_digests_verified, 2);
         fs::remove_dir_all(root).expect("clean temp dir");
     }
@@ -1257,7 +1275,13 @@ mod tests {
         expected.rule_pack = manifest["rule_pack"].clone();
 
         let result = evaluate_manifest(&schema, &manifest, Some(&expected), true, Some(&root));
-        assert_eq!(result.effective_status, STATUS_PASS, "{:?}", result.issues);
+        assert_eq!(
+            result.effective_status,
+            STATUS_EVIDENCE_INTEGRITY_VERIFIED,
+            "{:?}",
+            result.issues
+        );
+        assert_eq!(result.declared_status.as_deref(), Some(STATUS_PASS));
         assert_eq!(result.artifact_digests_verified, 3);
         fs::remove_dir_all(root).expect("clean temp dir");
     }

@@ -11,9 +11,9 @@ This binary is a fail-closed verifier for the draft housing evidence manifest. I
 - compares each mandatory claim's type, statement, element scope, requirement reference, validity domain, and acceptance criteria against that contract;
 - requires mandatory code-compliance claims to cite a rule-pack source snapshot whose digest resolves to locally verifiable artifact bytes;
 - requires local artifact bytes under an explicit root and verifies their SHA-256 digests for every referenced artifact in a candidate `PASS`;
-- emits a machine-readable report that distinguishes the declared status from the verifier's effective status.
+- emits a machine-readable report that keeps the manifest's declared engineering status separate from the verifier's evidence-integrity verdict.
 
-It does **not** parse or interpret legislation/SANS clauses, check structural calculations, establish physical truth, verify a person's professional registration, or issue approvals. Hash verification shows only that retrieved bytes match a declared digest.
+It does **not** parse or interpret legislation/SANS clauses, independently recompute structural/building-physics results, determine whether a measured result satisfies an engineering criterion, establish physical truth, verify a person's professional registration, or issue approvals. A successful package verdict is named `EVIDENCE_INTEGRITY_VERIFIED`, not `PASS`: it means the pinned contract, manifest structure, and referenced local bytes passed these checks. The manifest's declared engineering status remains an assertion from the evidence producer.
 
 ## Run
 
@@ -96,9 +96,9 @@ The verifier hashes the exact bytes of the manifest, embedded schema, and provid
 
 ## Exit codes
 
-- `0`: the manifest/schema check completed without a blocking error. This alone does **not** mean the building passed; inspect `effective_status`.
-- `2`: malformed input/schema, inconsistent artifact references, unavailable/mismatched referenced bytes, or a declared `PASS` that the verifier cannot support.
-- `3`: `--require-pass` was requested but the effective status is a valid non-`PASS` state such as `NOT_EVALUATED` or `REQUIRES_REVIEW`.
+- `0`: the manifest/schema check completed without a blocking error. Inspect both `declared_status` and `effective_status`; this exit code is not an engineering pass.
+- `2`: malformed input/schema, inconsistent artifact references, unavailable/mismatched referenced bytes, or a declared `PASS` whose evidence package could not be integrity-verified.
+- `3`: `--require-pass` was requested but the manifest did not declare `PASS` with an `EVIDENCE_INTEGRITY_VERIFIED` verdict. This is an evidence-package gate, not certification.
 
 Use `--require-pass` in gates where an engineering verification result is required. Preserve the JSON report as an evidence artifact.
 
@@ -110,6 +110,6 @@ This is an analytical oracle and unit/verification plumbing test only. It does *
 
 ## Trust boundaries
 
-A full aggregate `PASS` requires all of the following: a valid embedded schema, a schema-valid manifest, confirmed jurisdiction, a rule pack explicitly marked `reviewed_for_use`, an exact match between manifest mandatory claims and the independent expected-claim set, references that resolve, and locally verified artifact bytes. This is necessary for integrity but still not sufficient for regulatory approval.
+An `EVIDENCE_INTEGRITY_VERIFIED` verdict requires all of the following: a valid embedded schema, a schema-valid manifest, exact matching against the independently pinned schema/case/jurisdiction/model/rule-pack/toolchain contract, exact mandatory-claim coverage and criteria, resolvable references, and locally verified artifact bytes. This verdict does **not** independently calculate structural capacity, heat transfer, fire behaviour, costs, or code compliance. The manifest's `overall_status: PASS` is still a declared claim by the producer. Independent solver verification, correct interpretation of applicable requirements, qualified review, and statutory approval remain separate gates.
 
 The schema and verifier are versioned together. If the schema changes, its matching test fixture and verifier tests must be reviewed in the same change. The schema's JSON Schema validity does not prove that the mandatory requirement set, criteria, model revision, or rule-pack revision are the ones intended by the project; the externally pinned expected-claims contract constrains those values. The trusted party must still review and pin the contract itself.
