@@ -586,7 +586,7 @@ def validate_assessment(
         "contract_version": "0.1",
         "assessment_id": document.get("assessment_id"),
         "assessment_status": "VALIDATED_ASSESSMENT_NOT_POLICY_APPROVAL",
-        "artifact_bytes_verified": bool(verify_artifacts),
+        "artifact_bytes_verified": bool(verify_artifacts and artifacts),
         "ranking": None,
         "alternatives": report_alternatives,
         "limitations": [
