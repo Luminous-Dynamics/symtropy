@@ -218,10 +218,9 @@ impl SensorModelV1 {
         } else {
             let jitter = rng.symmetric_integer(self.profile.jitter_ns);
             let latency = self.profile.latency_ns as i128;
-            // Jitter must not produce delivery before acquisition, even when
-            // its magnitude exceeds nominal latency.
-            let effective_jitter = jitter.max(-latency);
-            let delivery = acquisition_time_ns as i128 + latency + effective_jitter;
+            // Profile validation guarantees |jitter| <= latency, so this is
+            // truly symmetric jitter with no truncation-induced timing bias.
+            let delivery = acquisition_time_ns as i128 + latency + jitter;
             if delivery < acquisition_time_ns as i128 || delivery > u64::MAX as i128 {
                 return Err(SensorModelError::ClockOverflow);
             }
@@ -308,6 +307,11 @@ fn validate_profile(profile: &SensorProfileV1) -> Result<(), SensorModelError> {
     if profile.jitter_ns > i64::MAX as u64 {
         return Err(SensorModelError::InvalidProfile(
             "jitter magnitude exceeds signed timestamp range",
+        ));
+    }
+    if profile.jitter_ns > profile.latency_ns {
+        return Err(SensorModelError::InvalidProfile(
+            "jitter magnitude must not exceed nominal latency",
         ));
     }
     match (profile.saturation_min, profile.saturation_max) {
@@ -445,6 +449,19 @@ mod tests {
         assert_eq!(sample_left.sample_index, 0);
         assert_eq!(sample_left.scheduled_time_ns, 0);
         assert_eq!(sample_left.acquisition_time_ns, 0);
+    }
+
+    #[test]
+    fn jitter_larger_than_latency_is_rejected_instead_of_clipped() {
+        let mut profile = profile();
+        profile.latency_ns = 1;
+        profile.jitter_ns = 2;
+        assert!(matches!(
+            SensorModelV1::new(1, profile),
+            Err(SensorModelError::InvalidProfile(
+                "jitter magnitude must not exceed nominal latency"
+            ))
+        ));
     }
 
     #[test]
