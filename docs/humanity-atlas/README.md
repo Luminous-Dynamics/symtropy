@@ -56,5 +56,6 @@ References:
 - UNDP, [The Human Development Index — what it is and what it is not](https://hdr.undp.org/content/human-development-index-what-it-and-what-it-not).
 - NIST, [Measurement Uncertainty](https://www.nist.gov/itl/sed/topic-areas/measurement-uncertainty) and [Reporting Uncertainty](https://www.nist.gov/pml/nist-technical-note-1297/nist-tn-1297-7-reporting-uncertainty).
 - OECD, [Decision-making under uncertainty](https://www.oecd.org/en/publications/managing-climate-risks-facing-up-to-losses-and-damages_55ea1cc9-en/full-report/component-8.html).
+- NASA, [Systems Engineering Handbook — Appendix D: Requirements Verification Matrix and Appendix E: Validation Plan](https://www.nasa.gov/reference/system-engineering-handbook-appendix/): link each requirement to its source, verification method, validation plan, evidence, and disposition of anomalies.
 
 **Evidence boundary:** the fixture is explicitly not evidence. The tests establish behavior of the schema and verifier only. They do not show that any real-world intervention improves well-being.
