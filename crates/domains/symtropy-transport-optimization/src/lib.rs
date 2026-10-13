@@ -462,7 +462,9 @@ impl fmt::Display for CargoError {
             Self::TemperatureOutOfRange => {
                 write!(f, "observed cargo temperature is outside the required band")
             }
-            Self::ModeNotPermitted => write!(f, "module profile does not permit this transport mode"),
+            Self::ModeNotPermitted => {
+                write!(f, "module profile does not permit this transport mode")
+            }
             Self::ProfileNonConforming => write!(f, "module profile is marked nonconforming"),
             Self::AircraftUldNotVerified => {
                 write!(f, "air transport requires a verified aircraft ULD profile")
@@ -1562,7 +1564,9 @@ mod tests {
         profile.interfaces = BTreeSet::from([HandlingInterface::AircraftRestraint]);
         profile.permitted_modes = BTreeSet::from([Mode::Air, Mode::Road]);
 
-        let instance = cargo_instance(&profile);
+        let mut instance = cargo_instance(&profile);
+        instance.payload_mass_grams = 100_000;
+        instance.occupied_volume_litres = 2_000;
         let equipment = HandlingEquipmentProfile {
             equipment_id: "certified-aircraft-position-1".to_owned(),
             mode: Mode::Air,
