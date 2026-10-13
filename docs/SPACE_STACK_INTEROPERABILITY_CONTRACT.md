@@ -73,12 +73,15 @@ Use applicable standards as interoperability targets rather than inventing repla
 
 - **CCSDS 502.0-B-3, Orbit Data Messages (May 2023), with Technical Corrigendum 1 (issued June 2026 and listed by CCSDS on 2 October 2026):** implement OPM, OMM, OEM and OCM adapters against the corrected publication. Preserve message identity, central body, reference frame, time system, covariance/metadata semantics and registered keyword constraints. Keep any internal richer schema; use corrected examples in conformance tests and do not claim interoperability until parser/serializer tests pass.
 - **CCSDS Conjunction Data Message:** exchange conjunction events and covariance/metadata using the applicable controlled version, preserving frame, epoch and uncertainty semantics.
+- **IETF RFC 9171, Bundle Protocol Version 7 (BPv7):** use as the standard reference for store-carry-forward networking over intermittent, disrupted or long-delay links. Keep the Symthaea telemetry queue, encrypted application envelope and durable receiver inbox distinct from a BPv7 implementation or CCSDS space-link profile; transport conformance needs its own bundle lifecycle, endpoint identity, lifetime/expiry, integrity and interoperability tests.
 - **NASA / ESA / JAXA LunaNet Interoperability Specification v5 (published 7 February 2025):** align lunar network, communications, navigation and timing service concepts, message identity and availability assumptions.
 - **USGS lunar grid releases:** enforce source-specific LTM/LPS/LGRS/ACC projection and lunar datum metadata; the named grid spacing is not a terrain-accuracy claim.
 - **NASA-HDBK-7009B implementation guidance (3 February 2026):** maintain documented model credibility, verification/validation plans, uncertainty characterization and intended-use boundaries.
 - **NASA software assurance/safety guidance:** define safety requirements, independent verification, hazard traceability and lifecycle evidence before a physical deployment claim.
 
 These sources guide the design; this proposal does not claim CCSDS or NASA compliance.
+
+The existing [Symthaea satellite telemetry research PR #7425](https://github.com/Luminous-Dynamics/symthaea/pull/7425) documents RFC 9171 as transport context and explicitly says its in-memory/SQLite queues are application-layer policy components, not BPv7. Preserve that boundary in integration work: authenticated telemetry envelopes and durable ACK/replay behavior are useful components, but do not claim BPv7, spacecraft radio/link interoperability, or operational privacy guarantees without independent conformance and deployment evidence.
 
 ## Reference campaign
 
