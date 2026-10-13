@@ -286,6 +286,7 @@ impl SurveyUncertaintyV1 {
 
 /// PSD check for a symmetric 3x3 covariance matrix. Scaling before the
 /// principal-minor checks avoids a tolerance tied to the absolute unit scale.
+#[allow(clippy::needless_range_loop)] // Indexed matrix algebra compares symmetric coordinate pairs.
 fn covariance_is_positive_semidefinite(matrix: &[[f64; 3]; 3]) -> bool {
     if !matrix.iter().flatten().all(|value| value.is_finite()) {
         return false;
@@ -496,10 +497,6 @@ impl SurveyObservationV1 {
         }
         if let Some(uncertainty) = &self.uncertainty {
             uncertainty.validate()?;
-        }
-        if self.uncertainty.is_none() && self.uncertainty_artifact.is_none() {
-            // This is allowed for raw evidence, but downstream qualification must
-            // reject it if uncertainty is required by the selected policy.
         }
         validate_artifact(&self.payload_artifact, "payload_artifact")?;
         validate_artifact(&self.calibration_artifact, "calibration_artifact")?;
@@ -847,14 +844,6 @@ impl SurveyProcessingReceiptV1 {
                     .ok_or_else(|| SurveyContractErrorV1::UnknownObservation(id.clone()))?;
                 if expected_role.is_some_and(|role| observation.role != role) {
                     return Err(SurveyContractErrorV1::InvalidProcessingReceipt(field));
-                }
-                if expected_role.is_none()
-                    && observation.role == SurveyObservationRoleV1::IndependentCheckpoint
-                    && self.independent_checkpoint_ids.iter().any(|used| used == id)
-                {
-                    return Err(SurveyContractErrorV1::InvalidProcessingReceipt(
-                        "excluded_checkpoint_used",
-                    ));
                 }
             }
         }
