@@ -745,6 +745,28 @@ pub(crate) mod tests {
     }
 
     #[test]
+    fn duplicate_frame_convention_bindings_are_rejected() {
+        let world = sample_world();
+        let mut registry = registry_for(&world);
+        registry.frames.push(registry.frames[0].clone());
+        assert!(matches!(
+            registry.validate_for_world(&world),
+            Err(issues) if issues.iter().any(|issue|
+                issue.code == FrameConventionIssueCode::DuplicateFrameIdentity)
+        ));
+    }
+
+    #[test]
+    fn unsupported_qualified_world_schema_is_rejected() {
+        let mut world = qualified_world();
+        world.schema_version = QUALIFIED_WORLD_SCHEMA_VERSION_V2 + 1;
+        assert!(matches!(
+            world.validate(),
+            Err(QualifiedWorldError::UnsupportedQualifiedWorldSchemaVersion)
+        ));
+    }
+
+    #[test]
     fn custom_convention_is_pinned_and_hex_case_normalized() {
         let registry = FrameConventionRegistryV1 {
             schema_version: FRAME_CONVENTION_REGISTRY_SCHEMA_VERSION_V1,
