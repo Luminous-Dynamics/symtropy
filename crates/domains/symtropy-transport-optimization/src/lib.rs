@@ -800,7 +800,7 @@ pub fn validate_cargo_transfer_capacity_plan(
 
     let mut edges_by_id = BTreeMap::new();
     for edge in edges {
-        if edge.id.trim().is_empty() || edges_by_id.insert(edge.id.as_str(), edge).is_some() {
+        if edge.id.trim().is_empty() || edges_by_id.insert(edge.id.clone(), edge).is_some() {
             return Err(CargoError::TransferCapacityPlanInvalid);
         }
     }
@@ -841,7 +841,7 @@ pub fn validate_cargo_transfer_capacity_plan(
         }
 
         let edge = edges_by_id
-            .get(binding.transfer_edge_id.as_str())
+            .get(&binding.transfer_edge_id)
             .ok_or(CargoError::TransferResourceBindingMismatch)?;
         if !matches!(edge.operation, EdgeOperation::Transfer { .. })
             || edge.from != edge.to
@@ -908,7 +908,7 @@ pub fn validate_cargo_transfer_capacity_plan(
     let mut capacity_uses = Vec::with_capacity(edge_used.len() + equipment_used.len());
     for ((resource_id, capacity_scope_id, capacity_unit), used) in edge_used {
         let edge = edges_by_id
-            .get(resource_id.as_str())
+            .get(&resource_id)
             .ok_or(CargoError::TransferResourceBindingMismatch)?;
         capacity_uses.push(CargoTransferCapacityUse {
             resource_kind: CargoTransferCapacityResourceKind::TransferEdge,
