@@ -60,6 +60,7 @@ Each result line must include the following minimum fields:
       "schema_version": "luminous.harmony-field-ablation-result.v1",
       "run_id": "COPY_FROM_PLAN",
       "candidate_commit": "FULL_40_CHARACTER_COMMIT_SHA",
+      "plan_sha256": "COPY_FROM_PLAN",
       "configuration_sha256": "COPY_FROM_PLAN",
       "run_status": "completed",
       "termination_reason": "RECORD_ACTUAL_REASON",
@@ -88,6 +89,24 @@ The values above are placeholders for the schema only, not measured Symtropy res
 A qualified manifest requires every planned record, complete eight-arm/grid coverage, matching configuration identities, completed runs, zero validation/non-finite counters, and recorded replay evidence. Artifact/replay paths must be relative to the declared artifact root (default: result file's directory), may not traverse parents, and are hashed from the actual files; a digest string that does not match the bytes fails qualification. Path resolution rejects symlinks that escape the declared root. Missing records, unexpected records, duplicate records, malformed data, or unaccepted replay statuses fail closed.
 
 Exit code 0 means the manifest meets these mechanical checks only. Exit code 1 means results are not qualified; exit code 2 means the plan/input is invalid. Even a mechanically qualified manifest is **not** a utility analysis. A separate, predeclared paired/factorial effect analysis with uncertainty intervals is still required.
+
+## 5. Analyze held-out effects
+
+After the manifest validates, estimate paired arm differences and factorial main/interaction contrasts using held-out seeds only:
+
+    python3 scripts/research/harmony_field_ablation.py analyze \
+      --plan plan.json \
+      --results results.jsonl \
+      --artifact-root ./run-artifacts \
+      --bootstrap-replicates 5000 \
+      --bootstrap-seed 20261013 \
+      --output analysis-report.json
+
+The analyzer re-validates the plan, result records, and artifact bytes before calculating effects. It reports each arm's paired difference against A000 and the F, R, E, F×R, F×E, R×E, and F×R×E contrasts for each dimension/strength/radius variant. The endpoint is sign-adjusted using the preregistered direction so positive differences mean better on that metric.
+
+The 95% percentile bootstrap resamples matched seed blocks; its replicate count and seed are recorded. At least two held-out seeds are required, although two are not necessarily enough for useful precision: choose sample size from a pilot-based precision/power rationale. The intervals are descriptive; no multiplicity adjustment is applied, and they do not guarantee confirmatory family-wise error control. A result that does not clear the preregistered meaningful-effect threshold is inconclusive relative to that threshold, not proof of equivalence.
+
+The analysis is limited to the specified simulator/task/configuration. It does not establish empirical validity, subjective consciousness, or a physical field law.
 
 ## 5. Analyze held-out effects
 
