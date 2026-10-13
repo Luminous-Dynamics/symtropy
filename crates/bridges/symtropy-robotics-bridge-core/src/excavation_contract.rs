@@ -14,6 +14,7 @@ use crate::world_contract::{
 use serde::{Deserialize, Serialize};
 
 pub const MATERIAL_AWARE_EXCAVATION_SCHEMA_VERSION: u16 = 1;
+pub const EXCAVATION_STATE_DELTA_SCHEMA_VERSION: u16 = 1;
 const SHA256_HEX_LENGTH: usize = 64;
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -377,7 +378,7 @@ fn validate_spatial_delta(
         || delta.base_geometry_artifact != request.target_geometry_artifact
         || delta.coordinate_frame_id != request.target_frame_id
         || delta.coordinate_frame_id.trim().is_empty()
-        || delta.state_delta_schema_version == 0
+        || delta.state_delta_schema_version != EXCAVATION_STATE_DELTA_SCHEMA_VERSION
         || !valid_artifact(&delta.base_geometry_artifact)
         || !valid_artifact(&delta.result_geometry_artifact)
         || !valid_artifact(&delta.state_delta_artifact)
@@ -738,16 +739,23 @@ mod tests {
             Err(ExcavationContractErrorV1::InvalidSpatialDelta)
         );
 
-        let mut missing_delta_schema = result(ExcavationDispositionV1::CompletedWithinEnvelope);
-        missing_delta_schema.spatial_delta.as_mut().unwrap().state_delta_schema_version = 0;
-        assert_eq!(
-            missing_delta_schema.validate_against(
-                &world,
-                &"d".repeat(SHA256_HEX_LENGTH),
-                &expected
-            ),
-            Err(ExcavationContractErrorV1::InvalidSpatialDelta)
-        );
+        for unsupported_version in [0, 2] {
+            let mut unsupported_delta_schema =
+                result(ExcavationDispositionV1::CompletedWithinEnvelope);
+            unsupported_delta_schema
+                .spatial_delta
+                .as_mut()
+                .unwrap()
+                .state_delta_schema_version = unsupported_version;
+            assert_eq!(
+                unsupported_delta_schema.validate_against(
+                    &world,
+                    &"d".repeat(SHA256_HEX_LENGTH),
+                    &expected
+                ),
+                Err(ExcavationContractErrorV1::InvalidSpatialDelta)
+            );
+        }
     }
 
     #[test]
