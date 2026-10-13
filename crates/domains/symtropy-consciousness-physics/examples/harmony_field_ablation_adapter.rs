@@ -1301,3 +1301,104 @@ fn main() {
         process::exit(2);
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn config_for_arm(arm_index: usize) -> Value {
+        let arm = &expected_arms()[arm_index];
+        json!({
+            "protocol_version": PROTOCOL_VERSION,
+            "candidate_commit": "0123456789abcdef0123456789abcdef01234567",
+            "task_id": TASK_ID,
+            "scenario_config_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "seed": 42,
+            "seed_partition": "development",
+            "dimension": 3,
+            "source_strength": 1.0,
+            "influence_radius": 20.0,
+            "arm_id": arm["arm_id"],
+            "arm_index": arm_index,
+            "mechanisms": {
+                "friction_modulation": arm["friction_modulation"],
+                "resonance_prediction_error": arm["resonance_prediction_error"],
+                "emotional_contagion": arm["emotional_contagion"]
+            }
+        })
+    }
+
+    #[test]
+    fn factorial_arm_ids_match_the_switch_bits() {
+        let arms = expected_arms();
+        assert_eq!(arms.len(), 8);
+        for (index, arm) in arms.iter().enumerate() {
+            assert_eq!(arm["arm_index"].as_u64(), Some(index as u64));
+            assert_eq!(
+                arm["arm_id"].as_str(),
+                Some(&format!(
+                    "A{}{}{}",
+                    arm["friction_modulation"].as_bool().unwrap() as u8,
+                    arm["resonance_prediction_error"].as_bool().unwrap() as u8,
+                    arm["emotional_contagion"].as_bool().unwrap() as u8
+                ))
+            );
+        }
+        assert_eq!(arms[0]["arm_id"], "A000");
+        assert_eq!(arms[7]["arm_id"], "A111");
+    }
+
+    #[test]
+    fn seeded_initial_state_is_stable_and_seed_sensitive() {
+        assert_eq!(initial_state_value(42), initial_state_value(42));
+        assert_ne!(initial_state_value(42), initial_state_value(43));
+        assert_eq!(
+            digest_value(&initial_state_value(42)).unwrap(),
+            digest_value(&initial_state_value(42)).unwrap()
+        );
+    }
+
+    #[test]
+    fn real_physics_smoke_runs_a000_and_a111_with_exact_replay() {
+        let candidate = "0123456789abcdef0123456789abcdef01234567";
+        let plan_sha = "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb";
+        let run_id = format!("run-{}", "0".repeat(64));
+
+        for arm_index in [0_usize, 7_usize] {
+            let config = config_for_arm(arm_index);
+            let first = run_simulation(&config, &run_id, candidate, plan_sha)
+                .expect("real PhysicsWorld smoke execution must return a trace");
+            let replay = run_simulation(&config, &run_id, candidate, plan_sha)
+                .expect("fresh-world replay must return a trace");
+
+            let first_bytes = serde_json_runtime::to_vec(&first.trace).unwrap();
+            let replay_bytes = serde_json_runtime::to_vec(&replay.trace).unwrap();
+            assert_eq!(first_bytes, replay_bytes, "arm A{arm_index} replay mismatch");
+            assert_eq!(first.initial_state_sha256, replay.initial_state_sha256);
+            assert_eq!(first.validation_failure_count, 0, "arm A{arm_index} callback validation failed");
+            assert_eq!(first.nonfinite_count, 0, "arm A{arm_index} emitted non-finite values");
+            assert!(first.primary_endpoint.is_finite());
+            assert_eq!(
+                first.trace["frames"].as_array().map(Vec::len),
+                Some(MAX_STEPS),
+                "arm A{arm_index} did not run the fixed tick budget"
+            );
+            assert_eq!(
+                first.trace["frames"][0]["states"].as_array().map(Vec::len),
+                Some(AGENT_COUNT)
+            );
+            assert_eq!(
+                first.trace["configuration"]["mechanisms"]["friction_modulation"].as_bool(),
+                Some(arm_index == 4 || arm_index == 5 || arm_index == 6 || arm_index == 7)
+            );
+            assert_eq!(
+                first.trace["configuration"]["mechanisms"]["resonance_prediction_error"].as_bool(),
+                Some(arm_index & 2 != 0)
+            );
+            assert_eq!(
+                first.trace["configuration"]["mechanisms"]["emotional_contagion"].as_bool(),
+                Some(arm_index & 1 != 0)
+            );
+        }
+    }
+}
