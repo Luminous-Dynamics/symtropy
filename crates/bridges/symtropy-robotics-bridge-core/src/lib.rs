@@ -4,6 +4,7 @@
 //! Core types and traits for robotic agents in Symtropy.
 
 pub mod agent;
+pub mod excavation_contract;
 pub mod haptic;
 pub mod material_profile;
 pub mod motor;
@@ -17,6 +18,11 @@ pub use sensor_model::{
     SensorSampleV1, SensorTruthChannelV1,
 };
 
+pub use excavation_contract::{
+    ExcavationContractErrorV1, ExcavationDispositionV1, ExcavationResponseV1,
+    ExcavationToolProfileV1, MaterialAwareExcavationRequestV1,
+    MaterialAwareExcavationResultV1, MATERIAL_AWARE_EXCAVATION_SCHEMA_VERSION,
+};
 pub use agent::{RoboticAgent, spawn_robot_body};
 pub use haptic::{HapticAttestation, HapticOracle};
 pub use material_profile::{
