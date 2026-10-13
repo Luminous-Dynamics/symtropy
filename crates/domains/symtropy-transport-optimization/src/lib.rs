@@ -284,6 +284,11 @@ impl CargoModuleProfile {
                 ));
             }
         }
+        if self.max_payload_mass_grams == 0 {
+            return Err(CargoError::InvalidProfile(
+                "maximum payload mass must be positive",
+            ));
+        }
         if self.max_gross_mass_grams < self.tare_mass_grams
             || self
                 .tare_mass_grams
@@ -703,10 +708,8 @@ pub fn estimate_reusable_module_economics(
         .baseline_handling_cost_avoided_per_cycle_minor_units
         .checked_mul(cycles)
         .ok_or(CargoEconomicsError::ArithmeticOverflow)?;
-    let average_cost = lifecycle_cost
-        .checked_add(cycles - 1)
-        .ok_or(CargoEconomicsError::ArithmeticOverflow)?
-        / cycles;
+    let average_cost = lifecycle_cost / cycles
+        + u64::from(lifecycle_cost % cycles != 0);
     let empty_return_energy_wh = input
         .empty_return_energy_wh_per_cycle
         .checked_mul(cycles)
@@ -1841,6 +1844,91 @@ mod tests {
     }
 
     #[test]
+    fn cargo_utilization_reports_mass_and_volume_and_binding_dimension() {
+        let profile = iso_container_profile();
+        let mut instance = cargo_instance(&profile);
+        instance.payload_mass_grams = profile.max_payload_mass_grams / 2;
+        instance.occupied_volume_litres = profile.usable_volume_litres / 4;
+        let utilization = instance.utilization_against(&profile).unwrap();
+        assert_eq!(utilization.mass_basis_points, 5_000);
+        assert_eq!(utilization.volume_basis_points, 2_500);
+        assert_eq!(utilization.binding_constraint, BindingConstraint::Mass);
+
+        instance.occupied_volume_litres = profile.usable_volume_litres / 2;
+        let utilization = instance.utilization_against(&profile).unwrap();
+        assert_eq!(utilization.binding_constraint, BindingConstraint::MassAndVolume);
+    }
+
+    fn reusable_economics_fixture() -> ReusableModuleEconomics {
+        ReusableModuleEconomics {
+            module_profile_id: "returnable-container-v1".to_owned(),
+            currency_code: "ZAR".to_owned(),
+            planned_delivery_cycles: 100,
+            acquisition_cost_minor_units: 100,
+            replacement_cost_minor_units: 100,
+            cleaning_and_inspection_cost_per_cycle_minor_units: 5,
+            repair_cost_per_cycle_minor_units: 1,
+            empty_reposition_cost_per_cycle_minor_units: 20,
+            baseline_handling_cost_avoided_per_cycle_minor_units: 40,
+            expected_module_loss_rate_parts_per_million: 10_000,
+            empty_return_energy_wh_per_cycle: 300,
+            empty_return_ghg_grams_co2e_per_cycle: 10,
+        }
+    }
+
+    #[test]
+    fn reusable_module_economics_includes_empty_returns_and_replacement_allowance() {
+        let result =
+            estimate_reusable_module_economics(&reusable_economics_fixture()).unwrap();
+        assert_eq!(result.planned_delivery_cycles, 100);
+        assert_eq!(result.replacement_allowance, 1);
+        assert_eq!(result.lifecycle_reusable_cost_minor_units, 2_800);
+        assert_eq!(result.baseline_handling_cost_avoided_minor_units, 4_000);
+        assert_eq!(result.net_incremental_cost_minor_units, -1_200);
+        assert_eq!(result.average_reusable_cost_per_delivery_minor_units, 28);
+        assert_eq!(result.empty_return_energy_wh, 30_000);
+        assert_eq!(result.empty_return_ghg_grams_co2e, 1_000);
+    }
+
+    #[test]
+    fn reusable_module_economics_rejects_invalid_inputs_and_overflow() {
+        let mut input = reusable_economics_fixture();
+        input.planned_delivery_cycles = 0;
+        assert_eq!(
+            estimate_reusable_module_economics(&input),
+            Err(CargoEconomicsError::InvalidInput(
+                "planned delivery cycles must be positive"
+            ))
+        );
+
+        let mut input = reusable_economics_fixture();
+        input.expected_module_loss_rate_parts_per_million = 1_000_001;
+        assert_eq!(
+            estimate_reusable_module_economics(&input),
+            Err(CargoEconomicsError::InvalidInput(
+                "module loss rate cannot exceed one million parts per million"
+            ))
+        );
+
+        let mut input = reusable_economics_fixture();
+        input.planned_delivery_cycles = 2;
+        input.cleaning_and_inspection_cost_per_cycle_minor_units = u64::MAX;
+        assert_eq!(
+            estimate_reusable_module_economics(&input),
+            Err(CargoEconomicsError::ArithmeticOverflow)
+        );
+    }
+
+    #[test]
+    fn reusable_module_economics_does_not_claim_savings_when_returns_are_expensive() {
+        let mut input = reusable_economics_fixture();
+        input.empty_reposition_cost_per_cycle_minor_units = 100;
+        input.baseline_handling_cost_avoided_per_cycle_minor_units = 5;
+        let result = estimate_reusable_module_economics(&input).unwrap();
+        assert!(result.net_incremental_cost_minor_units > 0);
+    }
+
+    #[test]
     fn modular_cargo_accepts_matching_verified_profile_and_equipment() {
         let profile = iso_container_profile();
         let instance = cargo_instance(&profile);
@@ -1950,7 +2038,8 @@ mod tests {
     fn cargo_compatibility_uses_only_declared_safe_orientations() {
         let mut profile = iso_container_profile();
         profile.outer_dimensions_mm = [6_000, 2_400, 2_500];
-        profile.permitted_orientations = BTreeSet::from([CargoOrientation::XYZ, CargoOrientation::XZY]);
+        profile.permitted_orientations =
+            BTreeSet::from([CargoOrientation::XYZ, CargoOrientation::XZY]);
         let instance = cargo_instance(&profile);
         let mut equipment = rail_equipment();
         equipment.accepted_orientations = BTreeSet::from([CargoOrientation::XZY]);
