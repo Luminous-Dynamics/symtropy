@@ -1,0 +1,38 @@
+name: Flourishing assessment contract
+
+on:
+  pull_request:
+    paths:
+      - "docs/humanity-atlas/flourishing-assessment-v0.1.schema.json"
+      - "scripts/research/validate_flourishing_assessment.py"
+      - "scripts/research/test_validate_flourishing_assessment.py"
+      - ".github/workflows/flourishing-assessment-contract.yml"
+  push:
+    paths:
+      - "docs/humanity-atlas/flourishing-assessment-v0.1.schema.json"
+      - "scripts/research/validate_flourishing_assessment.py"
+      - "scripts/research/test_validate_flourishing_assessment.py"
+      - ".github/workflows/flourishing-assessment-contract.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  contract:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: Check out exact revision
+        uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install pinned schema validator
+        run: python -m pip install --disable-pip-version-check "jsonschema==4.26.0"
+      - name: Parse schema as JSON
+        run: python -m json.tool docs/humanity-atlas/flourishing-assessment-v0.1.schema.json > /dev/null
+      - name: Compile checker and tests
+        run: python -m py_compile scripts/research/validate_flourishing_assessment.py scripts/research/test_validate_flourishing_assessment.py
+      - name: Run fail-closed regression suite
+        run: python -m unittest discover -s scripts/research -p 'test_validate_flourishing_assessment.py' -v
