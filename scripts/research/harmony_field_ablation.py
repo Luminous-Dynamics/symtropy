@@ -509,7 +509,6 @@ def analyze_results(plan, results_path, artifact_root=None, bootstrap_replicates
             "manifest_validation": validity,
             "errors": [f"could not load validated analysis inputs: {exc}"],
         }
-    plans = {item["run_id"]: item["configuration"] for item in plan["planned_runs"]}
     records = {item["run_id"]: item for item in raw_records}
     grouped = {}
     for seed in held_out:
@@ -548,7 +547,6 @@ def analyze_results(plan, results_path, artifact_root=None, bootstrap_replicates
                 "errors": [f"held-out factorial cells missing: {missing_cells[:10]}"],
             }
         seed_order = [seed for seed in held_out]
-        per_seed_arm_effects = []
         arm_effects = []
         for arm in arms():
             arm_id = arm["arm_id"]
@@ -734,6 +732,42 @@ def self_test():
                 self.assertEqual(report["validation_status"], "NOT_QUALIFIED")
                 self.assertEqual(report["completed_runs_with_invalid_counters"], 1)
 
+        def test_analysis_recovers_synthetic_friction_only_effect(self):
+            with tempfile.TemporaryDirectory() as tmp:
+                scenario = self.scenario(Path(tmp) / "scenario.json")
+                args = argparse.Namespace(candidate_commit="f"*40, task_id="synthetic-estimator-test",
+                                          scenario_config=scenario, seeds=[1,2,3], held_out_seeds=[2,3],
+                                          dimensions=[3], source_strengths=[1.0], radii=[8.0])
+                plan = make_plan(args)
+                records = self.complete_records(plan, Path(tmp))
+                configs = {r["run_id"]: r["configuration"] for r in plan["planned_runs"]}
+                for record in records:
+                    enabled = configs[record["run_id"]]["mechanisms"]["friction_modulation"]
+                    record["primary_endpoint"] = 1.0 if enabled else 0.0
+                results = Path(tmp) / "results.jsonl"
+                results.write_text("".join(json.dumps(r) + "\\n" for r in records), encoding="utf-8")
+                report = analyze_results(plan, results, Path(tmp), bootstrap_replicates=100, bootstrap_seed=23)
+                self.assertEqual(report["analysis_status"], "analyzed_held_out_runs")
+                self.assertEqual(report["held_out_seed_count"], 2)
+                effects = report["variants"][0]["factorial_main_and_interaction_effects"]
+                by_name = {effect["contrast"]: effect for effect in effects}
+                self.assertAlmostEqual(by_name["F"]["effect_positive_is_better"], 1.0)
+                self.assertEqual(by_name["F"]["bootstrap_95_percentile_interval"], [1.0, 1.0])
+                self.assertAlmostEqual(by_name["R"]["effect_positive_is_better"], 0.0)
+                self.assertAlmostEqual(by_name["E"]["effect_positive_is_better"], 0.0)
+
+        def test_analysis_refuses_unqualified_manifest(self):
+            with tempfile.TemporaryDirectory() as tmp:
+                scenario = self.scenario(Path(tmp) / "scenario.json")
+                args = argparse.Namespace(candidate_commit="a"*40, task_id="smoke",
+                                          scenario_config=scenario, seeds=[1,2], held_out_seeds=[2],
+                                          dimensions=[3], source_strengths=[1.0], radii=[8.0])
+                plan = make_plan(args)
+                result = Path(tmp) / "results.jsonl"
+                result.write_text("", encoding="utf-8")
+                report = analyze_results(plan, result, Path(tmp), bootstrap_replicates=100)
+                self.assertEqual(report["analysis_status"], "NOT_QUALIFIED")
+
         def test_modified_artifact_bytes_fail_hash_verification(self):
             with tempfile.TemporaryDirectory() as tmp:
                 scenario = self.scenario(Path(tmp) / "scenario.json")
@@ -791,6 +825,13 @@ def main():
     v.add_argument("--results", required=True, type=Path)
     v.add_argument("--report", required=True, type=Path)
     v.add_argument("--artifact-root", type=Path, help="root for relative artifact paths (default: results file directory)")
+    a = sub.add_parser("analyze", help="estimate held-out paired arm and factorial effects; refuses unqualified manifests")
+    a.add_argument("--plan", required=True, type=Path)
+    a.add_argument("--results", required=True, type=Path)
+    a.add_argument("--artifact-root", type=Path, help="root for relative artifact paths (default: results file directory)")
+    a.add_argument("--output", required=True, type=Path)
+    a.add_argument("--bootstrap-replicates", type=int, default=5000)
+    a.add_argument("--bootstrap-seed", type=int, default=20261013)
     sub.add_parser("self-test", help="run the built-in dependency-free tests")
     args = parser.parse_args()
     if args.command == "self-test":
@@ -811,6 +852,12 @@ def main():
     except ValidationError as exc:
         print(json.dumps({"validation_status": "invalid_plan", "errors": [str(exc)]}, indent=2))
         return 2
+    if args.command == "analyze":
+        report = analyze_results(plan, args.results, args.artifact_root,
+                                 args.bootstrap_replicates, args.bootstrap_seed)
+        atomic_json(args.output, report)
+        print(json.dumps(report, sort_keys=True, indent=2))
+        return 0 if report.get("analysis_status") == "analyzed_held_out_runs" else 1
     report = validate_results(plan, args.results, args.artifact_root)
     atomic_json(args.report, report)
     print(json.dumps(report, sort_keys=True, indent=2))
