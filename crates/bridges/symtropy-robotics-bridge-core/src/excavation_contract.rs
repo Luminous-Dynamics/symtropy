@@ -827,17 +827,72 @@ mod tests {
 
     fn valid_cell_removal_mask() -> CellRemovalMaskV1 {
         CellRemovalMaskV1 {
-            schema_version: CELL_REMOVAL_MASK_SCHEMA_VERSION,
             source_artifact: artifact("rock-face-delta-001", '7'),
-            base_world_generation: 7,
-            base_geometry_artifact: artifact("rock-face-geometry", '8'),
-            material_profile_id: "granite-synthetic-001".to_owned(),
-            coordinate_frame_id: "world".to_owned(),
-            grid_origin_m: [0.0, 0.0, 0.0],
-            cell_size_m: [0.1, 0.1, 0.1],
-            grid_dimensions: [10, 8, 6],
-            removed_cells: vec![[1, 2, 3], [1, 2, 4], [2, 2, 4]],
+            payload: CellRemovalMaskPayloadV1 {
+                schema_version: CELL_REMOVAL_MASK_SCHEMA_VERSION,
+                base_world_generation: 7,
+                base_geometry_artifact: artifact("rock-face-geometry", '8'),
+                material_profile_id: "granite-synthetic-001".to_owned(),
+                coordinate_frame_id: "world".to_owned(),
+                grid_origin_m: [0.0, 0.0, 0.0],
+                cell_size_m: [0.1, 0.1, 0.1],
+                grid_dimensions: [10, 8, 6],
+                removed_cells: vec![[1, 2, 3], [1, 2, 4], [2, 2, 4]],
+            },
         }
+    }
+
+    #[test]
+    fn cell_mask_json_decoder_verifies_exact_artifact_bytes() {
+        use sha2::{Digest, Sha256};
+
+        let payload = valid_cell_removal_mask().payload;
+        let bytes = serde_json::to_vec(&payload).unwrap();
+        let digest = format!("{:x}", Sha256::digest(&bytes));
+        let source_artifact = ArtifactRef {
+            artifact_id: "rock-face-delta-001".to_owned(),
+            uri: "urn:symtropy:synthetic:rock-face-delta-001".to_owned(),
+            sha256: digest,
+        };
+        let mut delta = result(ExcavationDispositionV1::CompletedWithinEnvelope)
+            .spatial_delta
+            .unwrap();
+        delta.state_delta_artifact = source_artifact.clone();
+        let decoded =
+            CellRemovalMaskV1::decode_verified_json(&bytes, source_artifact.clone()).unwrap();
+        assert_eq!(decoded.payload, payload);
+        assert!(decoded
+            .validate_against(
+                &world(),
+                &"d".repeat(SHA256_HEX_LENGTH),
+                &request(),
+                &delta
+            )
+            .is_ok());
+
+        let mut tampered = bytes.clone();
+        tampered.push(b' ');
+        assert_eq!(
+            CellRemovalMaskV1::decode_verified_json(&tampered, source_artifact),
+            Err(ExcavationContractErrorV1::CellMaskPayloadDigestMismatch)
+        );
+    }
+
+    #[test]
+    fn cell_mask_json_decoder_rejects_unknown_fields() {
+        use sha2::{Digest, Sha256};
+
+        let bytes = br#"{"schema_version":1,"unknown":true}"#;
+        let digest = format!("{:x}", Sha256::digest(bytes));
+        let source_artifact = ArtifactRef {
+            artifact_id: "mask-payload".to_owned(),
+            uri: "urn:symtropy:test:mask-payload".to_owned(),
+            sha256: digest,
+        };
+        assert_eq!(
+            CellRemovalMaskV1::decode_verified_json(bytes, source_artifact),
+            Err(ExcavationContractErrorV1::InvalidCellMaskPayload)
+        );
     }
 
     #[test]
@@ -865,12 +920,12 @@ mod tests {
             .spatial_delta
             .unwrap();
         let mut mask = valid_cell_removal_mask();
-        mask.removed_cells = vec![[1, 2, 3], [1, 2, 3]];
+        mask.payload.removed_cells = vec![[1, 2, 3], [1, 2, 3]];
         assert_eq!(
             mask.validate_against(&world, &"d".repeat(SHA256_HEX_LENGTH), &request, &delta),
             Err(ExcavationContractErrorV1::CellIndicesNotCanonical)
         );
-        mask.removed_cells = vec![[2, 2, 4], [1, 2, 3]];
+        mask.payload.removed_cells = vec![[2, 2, 4], [1, 2, 3]];
         assert_eq!(
             mask.validate_against(&world, &"d".repeat(SHA256_HEX_LENGTH), &request, &delta),
             Err(ExcavationContractErrorV1::CellIndicesNotCanonical)
@@ -885,13 +940,13 @@ mod tests {
             .spatial_delta
             .unwrap();
         let mut mask = valid_cell_removal_mask();
-        mask.removed_cells = vec![[10, 0, 0]];
+        mask.payload.removed_cells = vec![[10, 0, 0]];
         assert_eq!(
             mask.validate_against(&world, &"d".repeat(SHA256_HEX_LENGTH), &request, &delta),
             Err(ExcavationContractErrorV1::CellIndexOutOfBounds([10, 0, 0]))
         );
         mask = valid_cell_removal_mask();
-        mask.cell_size_m[1] = f64::NAN;
+        mask.payload.cell_size_m[1] = f64::NAN;
         assert_eq!(
             mask.validate_against(&world, &"d".repeat(SHA256_HEX_LENGTH), &request, &delta),
             Err(ExcavationContractErrorV1::InvalidCellGrid)
@@ -912,7 +967,7 @@ mod tests {
             Err(ExcavationContractErrorV1::CellMaskArtifactMismatch)
         );
         mask = valid_cell_removal_mask();
-        mask.material_profile_id = "different-material".to_owned();
+        mask.payload.material_profile_id = "different-material".to_owned();
         assert_eq!(
             mask.validate_against(&world, &"d".repeat(SHA256_HEX_LENGTH), &request, &delta),
             Err(ExcavationContractErrorV1::CellMaskMaterialMismatch)
