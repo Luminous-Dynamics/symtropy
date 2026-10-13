@@ -115,9 +115,6 @@ jobs:
 
       - name: Record pre-qualification checkout blocker
         if: failure()
-        env:
-          ATLAS_QUALIFICATION_DIR: ${{ env.ATLAS_QUALIFICATION_DIR }}
-          GITHUB_WORKSPACE: ${{ github.workspace }}
         run: |
           python3 - "$ATLAS_QUALIFICATION_DIR/qualification-execution-status.json" "$GITHUB_WORKSPACE/luminous-dynamics" "$GITHUB_WORKSPACE/sol-atlas-leptos" <<'PY'
           import json, os, sys
