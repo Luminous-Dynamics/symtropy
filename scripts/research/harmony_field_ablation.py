@@ -144,7 +144,7 @@ def validate_scenario(scenario):
         "single_stateful_stream",
         "deterministic_no_randomness",
     }
-    if strategy not in strategies:
+    if not isinstance(strategy, str) or strategy not in strategies:
         raise ValidationError("random_stream_contract.strategy must identify the actual RNG strategy")
     alignment = random_contract.get("treatment_alignment")
     alignments = {
@@ -153,7 +153,7 @@ def validate_scenario(scenario):
         "same_seed_only",
         "not_applicable",
     }
-    if alignment not in alignments:
+    if not isinstance(alignment, str) or alignment not in alignments:
         raise ValidationError("random_stream_contract.treatment_alignment must explicitly identify cross-treatment alignment")
     evidence = random_contract.get("alignment_evidence")
     if not isinstance(evidence, str) or not evidence.strip():
@@ -696,6 +696,18 @@ def self_test():
             self.assertEqual(digest({"b": 2, "a": 1}), digest({"a": 1, "b": 2}))
             with self.assertRaises(ValidationError):
                 digest({"nan": float("nan")})
+
+        def test_random_stream_contract_rejects_malformed_values_without_crashing(self):
+            with tempfile.TemporaryDirectory() as tmp:
+                scenario_path = self.scenario(Path(tmp) / "scenario.json")
+                scenario = json.loads(scenario_path.read_text(encoding="utf-8"))
+                scenario["random_stream_contract"]["strategy"] = []
+                with self.assertRaises(ValidationError):
+                    validate_scenario(scenario)
+                scenario["random_stream_contract"]["strategy"] = "single_stateful_stream"
+                scenario["random_stream_contract"]["treatment_alignment"] = ["same_seed_only"]
+                with self.assertRaises(ValidationError):
+                    validate_scenario(scenario)
 
         def test_plan_is_repeatable_and_complete(self):
             with tempfile.TemporaryDirectory() as tmp:
