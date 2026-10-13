@@ -649,6 +649,25 @@ pub(crate) mod tests {
     }
 
     #[test]
+    fn frame_convention_registry_matches_independent_golden_vector() {
+        let registry = registry_for(&sample_world());
+        let bytes = registry.canonical_bytes_v1().unwrap();
+        assert_eq!(bytes.len(), 107);
+        assert_eq!(
+            registry.content_digest_v1().unwrap().to_hex(),
+            "2ff85b064397f5e636b8b7510c7f7322581300d9d0d35c8a348dce6d50c7c0d2"
+        );
+    }
+
+    #[test]
+    fn qualified_world_matches_independent_golden_vector() {
+        assert_eq!(
+            qualified_world().content_digest_v2().unwrap().to_hex(),
+            "962c4a535296a60b34905d73393e820c193d1eac7c87b1f53d2702b2e1f9f38b"
+        );
+    }
+
+    #[test]
     fn registry_digest_is_independent_of_entry_order() {
         let world = sample_world();
         let registry = registry_for(&world);
