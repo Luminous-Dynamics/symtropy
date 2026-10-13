@@ -631,10 +631,31 @@ impl WorldManifestV1 {
                 let mut visited = BTreeSet::new();
                 let mut cursor = Some(sensor.frame_id.as_str());
                 let mut descends_from_platform = false;
+                let mut kinematic_providers_match = true;
                 while let Some(frame_id) = cursor {
                     if !visited.insert(frame_id) {
                         break;
                     }
+
+                    // Every moving frame between the sensor and its owning
+                    // platform base must be supplied by that platform's exact
+                    // kinematics artifact. Merely referencing *some* declared
+                    // robot's artifact can otherwise create a plausible but
+                    // physically unrelated transform chain.
+                    if let Some(frame) = frame_by_id.get(frame_id) {
+                        if let FrameTransformV1::Kinematic {
+                            provider_artifact_id,
+                            ..
+                        } = &frame.transform_to_parent
+                        {
+                            if provider_artifact_id.as_str()
+                                != platform.kinematics.artifact_id.as_str()
+                            {
+                                kinematic_providers_match = false;
+                            }
+                        }
+                    }
+
                     if frame_id == platform.base_frame_id.as_str() {
                         descends_from_platform = true;
                         break;
@@ -644,6 +665,14 @@ impl WorldManifestV1 {
                 if !descends_from_platform {
                     issues.push(WorldValidationIssue::new(
                         WorldValidationCode::SensorFrameNotAttachedToPlatform,
+                        format!(
+                            "platforms[{platform_index}].sensor_ids[{sensor_index}]"
+                        ),
+                    ));
+                }
+                if !kinematic_providers_match {
+                    issues.push(WorldValidationIssue::new(
+                        WorldValidationCode::SensorFrameProviderMismatch,
                         format!(
                             "platforms[{platform_index}].sensor_ids[{sensor_index}]"
                         ),
@@ -945,6 +974,7 @@ pub enum WorldValidationCode {
     WorldGenerationMismatch,
     InvalidPlatformBaseFrame,
     SensorFrameNotAttachedToPlatform,
+    SensorFrameProviderMismatch,
 }
 
 fn is_sha256_hex(value: &str) -> bool {
@@ -1357,5 +1387,43 @@ mod tests {
         }));
     }
 
+
+
+    #[test]
+    fn sensor_frame_rejects_a_different_declared_robots_kinematics_provider() {
+        let mut manifest = valid_manifest();
+
+        let mut other_platform = manifest.platforms[0].clone();
+        other_platform.platform_id = "rock-scout-02".to_owned();
+        other_platform.geometry = artifact("robot-geometry-02");
+        other_platform.kinematics = artifact("robot-kinematics-02");
+        other_platform.base_frame_id = "rock-scout-02-base".to_owned();
+        other_platform.sensor_ids.clear();
+
+        manifest.frames.push(CoordinateFrameV1 {
+            frame_id: "rock-scout-02-base".to_owned(),
+            parent_frame_id: Some("world".to_owned()),
+            transform_to_parent: FrameTransformV1::Kinematic {
+                provider_artifact_id: "robot-kinematics-02".to_owned(),
+                provider_frame_id: "base_link".to_owned(),
+            },
+        });
+        manifest.frames.push(CoordinateFrameV1 {
+            frame_id: "misowned-joint".to_owned(),
+            parent_frame_id: Some("rock-scout-base".to_owned()),
+            transform_to_parent: FrameTransformV1::Kinematic {
+                provider_artifact_id: "robot-kinematics-02".to_owned(),
+                provider_frame_id: "joint_1".to_owned(),
+            },
+        });
+        manifest.frames[2].parent_frame_id = Some("misowned-joint".to_owned());
+        manifest.platforms.push(other_platform);
+
+        let issues = manifest.validate().unwrap_err();
+        assert!(issues.iter().any(|issue| {
+            issue.code == WorldValidationCode::SensorFrameProviderMismatch
+                && issue.path == "platforms[0].sensor_ids[0]"
+        }));
+    }
 
 }
