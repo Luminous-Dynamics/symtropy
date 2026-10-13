@@ -126,6 +126,42 @@ Use a time-expanded graph or equivalent scheduling model where timetable, cut-of
 
 The system may share corridor capacity (road congestion, port slots, energy supply) but each demand type keeps its own service constraints and output metrics.
 
+### 5.3 Modular cargo units and transfer interfaces
+
+Treat the **cargo module** as a first-class planning object. A reusable module should cross compatible legs while keeping its identity, declared contents, dimensions, mass, sealing/inspection status and custody history intact. Modularity is useful only where the next vehicle/terminal can actually accept and safely handle the unit; a universal digital identity is not a universal physical form factor.
+
+Prefer adapters to established profiles rather than defining a new global box standard:
+- ISO Series 1 freight containers with declared ISO 668 envelope/rating and ISO 1161 corner-fitting profile;
+- regional rail/road swap bodies;
+- pallets, crates, roll cages and reusable inner modules for warehouse and last-mile work;
+- tanks, flat racks, and bulk/FIBC units where commodity handling requires them;
+- aircraft-approved IATA Unit Load Devices (ULDs) as a separate family with aircraft-position, restraint, serviceability, centre-of-gravity and certified maximum gross mass constraints.
+
+Represent the profile family, standard edition/version and conformity evidence explicitly. A profile that merely resembles a standard must be marked unverified, not certified. A route edge or handling station should declare what profile families, mass/envelope limits, locks/lift interfaces, orientation and environmental controls it supports. Compatibility requires checking the actual equipment and operating envelope, not comparing nominal length alone.
+
+At minimum, each module instance carries:
+- stable module ID, profile ID/version and traceable inspection/serviceability state;
+- outer dimensions and usable volume with explicit units;
+- tare mass, declared payload mass, maximum payload and maximum gross mass;
+- handling/locking interface and allowed orientation;
+- cargo requirements such as temperature band, humidity, power, tilt/shock, segregation and hazardous-goods controls;
+- declared security seal state and custody/contents digest;
+- cleanliness/contamination state for food, water, medicines and sensitive cargo;
+- module availability, location, ownership/custodian and expected empty return/repositioning.
+
+**Safety contracts:** reject overweight/over-volume loads, unsupported equipment/profile pairs, failed inspection, broken seals where policy requires intact seals, hazardous cargo incompatibility, cold-chain excursion, invalid lift/restraint and unavailable modules. Air cargo must use aircraft-approved ULD envelopes and restraint rules, not a scaled-up maritime container assumption. Packing/strapping and centre-of-gravity safety remain explicit operational checks; packing authority and module identity do not certify the cargo as correctly secured.
+
+Model nested units only where the equipment actually supports them. E.g., standardized inner tote → roll cage/pallet → swap body/container → vehicle is a *composed handling plan*, not an implicit physical nesting guarantee. Each consolidation/deconsolidation event records a custody receipt, handling time, energy/cost, seal change, mass/volume reconciliation and damage/temperature observations. Cargo contents are not reweighed/recounted as a new independent load on every leg.
+
+The economic comparison must include the whole-cycle cost: module purchase/depreciation, cleaning, inspection, repair/loss, return imbalance, empty repositioning, tare mass, usable-volume utilization, labor/robotic handling, compatible terminal investment and repacking avoided. Report utilization by both mass and volume (the binding constraint matters), and compare net door-to-door outcomes against a declared baseline. Do not advertise modularity as savings until handling dwell, damage, empty-return and asset-pooling assumptions are measured.
+
+Research anchors:
+- [ISO 668:2020](https://committee.iso.org/standard/76912.html): Series 1 freight-container dimensions/classifications/ratings.
+- [ISO 1161](https://committee.iso.org/cms/live/live/en/sites/isoorg/contents/data/standard/08/64/86404.html): corner/intermediate fittings; Edition 6 was listed as under publication in October 2026, so adapters should record the exact edition rather than assume it.
+- [IATA Unit Load Devices](https://www.iata.org/uld): aircraft ULDs are aircraft components subject to structural, serviceability, weight and operational requirements.
+- [IMO/ILO/UNECE CTU Code](https://unece.org/transport/intermodal-transport/imoilounece-code-practice-packing-cargo-transport-units-ctu-code): packing, securing, overloading and contents declaration.
+- [World Development Report 2025 — Standards for Development](https://www.worldbank.org/en/publication/wdr2025): standards and containerization as coordination infrastructure.
+
 ## 6. Optimization formulation
 
 Let \(k\) identify a passenger group or cargo class and \(a\) a feasible time-dependent movement or transfer edge.
