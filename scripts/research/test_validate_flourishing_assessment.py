@@ -405,6 +405,42 @@ class FlourishingAssessmentTests(unittest.TestCase):
         self.assertTrue(any("does not bind matching values" in error and "threshold" in error for error in errors))
         self.assertIsNone(report)
 
+    def test_preregistration_artifact_cannot_be_cited_as_outcome_evidence(self) -> None:
+        doc = add_evidence_and_known_values(assessment())
+        prereg_id = doc["constraints"][0]["preregistration_artifact_id"]
+        doc["alternatives"][0]["outcomes"][0]["artifact_ids"] = [prereg_id]
+        errors, report = validate_assessment(doc)
+        self.assertTrue(any("cannot support a measured outcome" in error for error in errors))
+        self.assertIsNone(report)
+
+    def test_subgroup_coverage_mismatch_prevents_constraint_pass(self) -> None:
+        doc = add_evidence_and_known_values(assessment())
+        constraint = doc["constraints"][0]
+        constraint["scope"] = "overall_and_subgroups"
+        refresh_preregistration_artifacts(doc)
+        for alternative, group_id in zip(doc["alternatives"], ["area-a", "area-b"]):
+            outcome = alternative["outcomes"][1]
+            outcome["subgroups"] = [{
+                "group_id": group_id,
+                "status": "KNOWN",
+                "value": 0.5,
+                "uncertainty": {
+                    "status": "QUANTIFIED",
+                    "lower": 0.5,
+                    "upper": 0.5,
+                    "interpretation": "scenario_envelope",
+                    "method": "synthetic subgroup value",
+                },
+                "missing_reason": None,
+                "artifact_ids": ["sample-artifact"],
+            }]
+        errors, report = validate_with_artifacts(doc)
+        self.assertEqual(errors, [])
+        for alternative in report["alternatives"]:
+            self.assertEqual(alternative["constraint_results"][0]["status"], "UNKNOWN")
+            self.assertEqual(alternative["constraint_results"][0]["reason"], "subgroup_coverage_mismatch")
+            self.assertEqual(alternative["comparison_status"], "UNRESOLVED")
+
     def test_subgroup_violation_is_not_hidden_by_an_unknown_subgroup(self) -> None:
         doc = add_evidence_and_known_values(assessment())
         constraint = doc["constraints"][0]
