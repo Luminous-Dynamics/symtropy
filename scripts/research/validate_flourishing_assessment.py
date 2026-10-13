@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
-"""Fail-closed semantic checker for Humanity Atlas flourishing assessments.
+"""Fail-closed schema and semantic checker for Humanity Atlas flourishing assessments.
 
-Standard-library only. The JSON Schema defines the wire shape; this checker
-adds cross-record, chronology, artifact-integrity, and tri-state decision rules.
-It does not rank alternatives or certify a model or policy.
+The command-line entry point requires jsonschema==4.26.0 for Draft 2020-12
+shape validation. Cross-record and artifact-integrity checks use the standard
+library. This tool does not rank alternatives or certify a model or policy.
 """
 from __future__ import annotations
 
@@ -340,6 +340,7 @@ def _reject_nonstandard_constant(value: str) -> None:
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("assessment", type=Path, help="assessment JSON file")
+    parser.add_argument("--schema", type=Path, help="Draft 2020-12 schema (default: repository schema)")
     parser.add_argument("--artifact-root", type=Path, help="root for verifying artifact paths (default: assessment parent)")
     parser.add_argument("--report", type=Path, help="optional path for a JSON evaluation report")
     args = parser.parse_args(argv)
@@ -350,6 +351,39 @@ def main(argv: list[str] | None = None) -> int:
     except (OSError, json.JSONDecodeError, ValueError) as exc:
         print(f"ERROR: cannot read valid JSON assessment: {exc}", file=sys.stderr)
         return 2
+
+    try:
+        import jsonschema
+    except ImportError:
+        print("ERROR: schema validation dependency missing; install jsonschema==4.26.0", file=sys.stderr)
+        return 2
+
+    schema_path = args.schema or (
+        Path(__file__).resolve().parents[2]
+        / "docs/humanity-atlas/flourishing-assessment-v0.1.schema.json"
+    )
+    try:
+        with schema_path.open("r", encoding="utf-8") as stream:
+            schema = json.load(stream, parse_constant=_reject_nonstandard_constant)
+        shape_validator = jsonschema.Draft202012Validator(
+            schema, format_checker=jsonschema.FormatChecker()
+        )
+        schema_errors = sorted(
+            shape_validator.iter_errors(document),
+            key=lambda err: tuple(str(part) for part in err.absolute_path),
+        )
+    except (OSError, json.JSONDecodeError, ValueError) as exc:
+        print(f"ERROR: cannot read schema {schema_path}: {exc}", file=sys.stderr)
+        return 2
+    except Exception as exc:
+        print(f"ERROR: cannot initialize Draft 2020-12 schema validator: {exc}", file=sys.stderr)
+        return 2
+
+    if schema_errors:
+        for error in schema_errors:
+            path = ".".join(str(part) for part in error.absolute_path) or "<root>"
+            print(f"ERROR: schema {path}: {error.message}", file=sys.stderr)
+        return 1
 
     root = args.artifact_root or args.assessment.parent
     errors, report = validate_assessment(document, artifact_root=root, verify_artifacts=True)
