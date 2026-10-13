@@ -166,6 +166,9 @@ impl Network {
         if self.nodes.is_empty() {
             return Err(ModelError::EmptyNetwork);
         }
+        if self.nodes.iter().any(|node| node.trim().is_empty()) {
+            return Err(ModelError::InvalidNodeIdentity);
+        }
         if self.currency_code.len() != 3
             || !self.currency_code.bytes().all(|byte| byte.is_ascii_uppercase())
         {
@@ -921,6 +924,13 @@ mod tests {
             EdgeMetrics::default(),
         ));
         assert_eq!(network.validate(), Err(ModelError::UnknownNode("C".to_owned())));
+    }
+
+    #[test]
+    fn validation_rejects_blank_nodes_inserted_after_construction() {
+        let mut network = Network::new(["A", "B"], "ZAR").unwrap();
+        network.nodes.insert("   ".to_owned());
+        assert_eq!(network.validate(), Err(ModelError::InvalidNodeIdentity));
     }
 
     #[test]
