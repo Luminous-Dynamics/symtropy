@@ -402,7 +402,7 @@ fn assert_restitution_is_observable(
     assert!(inelastic_peak.is_finite() && bouncy_peak.is_finite());
     assert!(
         bouncy_peak > inelastic_peak + 0.20,
-        "{backend} restitution did not produce a meaningful bounce: inelastic={inelastic_peak}, bouncy={bouncy_peak}"
+        "{backend} restitution response too small: low={inelastic_peak}, high={bouncy_peak}"
     );
 }
 
