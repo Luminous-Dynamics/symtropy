@@ -314,6 +314,8 @@ pub enum TraceComparisonError {
     },
     ScenarioMismatch,
     SampleCountMismatch,
+    EmptyTrace,
+    InvalidSampleSequence { backend: String, sample_index: usize },
     SampleStepMismatch {
         left: u64,
         right: u64,
@@ -348,6 +350,14 @@ impl fmt::Display for TraceComparisonError {
             ),
             Self::ScenarioMismatch => write!(f, "trace scenario_id values differ"),
             Self::SampleCountMismatch => write!(f, "trace sample counts differ"),
+            Self::EmptyTrace => write!(f, "trace must contain at least one sample"),
+            Self::InvalidSampleSequence {
+                backend,
+                sample_index,
+            } => write!(
+                f,
+                "trace from backend {backend} has invalid sample ordering at index {sample_index}"
+            ),
             Self::SampleStepMismatch { left, right } => {
                 write!(f, "trace sample steps differ: left={left}, right={right}")
             }
@@ -394,6 +404,8 @@ pub fn compare_traces_3d(
     if left.samples.len() != right.samples.len() {
         return Err(TraceComparisonError::SampleCountMismatch);
     }
+    validate_sample_sequence(left)?;
+    validate_sample_sequence(right)?;
 
     let mut metrics = DifferentialMetrics3d {
         scenario_id: left.scenario_id.clone(),
@@ -522,6 +534,36 @@ pub fn run_native_scenario_3d(
         },
         samples,
     })
+}
+
+fn validate_sample_sequence(trace: &PhysicsTrace3d) -> Result<(), TraceComparisonError> {
+    let Some(first) = trace.samples.first() else {
+        return Err(TraceComparisonError::EmptyTrace);
+    };
+    if first.step != 0 {
+        return Err(TraceComparisonError::InvalidSampleSequence {
+            backend: trace.backend.engine.clone(),
+            sample_index: 0,
+        });
+    }
+    if !first.time_s.is_finite() {
+        return Err(TraceComparisonError::NonFiniteSampleTime { step: first.step });
+    }
+
+    for (index, pair) in trace.samples.windows(2).enumerate() {
+        let previous = &pair[0];
+        let current = &pair[1];
+        if !current.time_s.is_finite() {
+            return Err(TraceComparisonError::NonFiniteSampleTime { step: current.step });
+        }
+        if current.step <= previous.step || current.time_s <= previous.time_s {
+            return Err(TraceComparisonError::InvalidSampleSequence {
+                backend: trace.backend.engine.clone(),
+                sample_index: index + 1,
+            });
+        }
+    }
+    Ok(())
 }
 
 fn body_map(
@@ -817,6 +859,27 @@ mod tests {
     }
 
     #[test]
+    fn trace_comparison_rejects_empty_and_nonmonotonic_traces() {
+        let mut empty = one_sample_trace();
+        empty.samples.clear();
+        assert_eq!(
+            compare_traces_3d(&empty, &empty.clone()),
+            Err(TraceComparisonError::EmptyTrace)
+        );
+
+        let mut repeated_step = one_sample_trace();
+        repeated_step.samples.push(repeated_step.samples[0].clone());
+        let expected = TraceComparisonError::InvalidSampleSequence {
+            backend: "test".to_owned(),
+            sample_index: 1,
+        };
+        assert_eq!(
+            compare_traces_3d(&repeated_step, &repeated_step.clone()),
+            Err(expected)
+        );
+    }
+
+    #[test]
     fn trace_comparison_rejects_unknown_schema_version() {
         let left = one_sample_trace();
         let mut right = left.clone();
@@ -866,8 +929,6 @@ mod tests {
     fn non_finite_observation_is_explicit_instead_of_poisoning_metrics() {
         let mut left = one_sample_trace();
         left.scenario_id = "nan".to_owned();
-        left.samples[0].step = 1;
-        left.samples[0].time_s = 1.0;
         left.samples[0].bodies[0].position_m = [f64::NAN, 0.0, 0.0];
         let mut right = left.clone();
         right.samples[0].bodies[0].position_m = [0.0, 0.0, 0.0];
