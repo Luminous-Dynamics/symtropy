@@ -72,6 +72,8 @@ A separate requirements file has this shape:
       "statement": "Required structural design checks for the named model elements.",
       "subject_element_ids": ["column-01", "beam-01"],
       "requirement": null,
+      "tool_id": "approved-solver",
+      "input_artifact_sha256": ["aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"],
       "validity_domain": "defined model revision and stated load case",
       "acceptance_criteria": "All specified capacity and serviceability limits are met."
     }
@@ -79,7 +81,7 @@ A separate requirements file has this shape:
 }
 ```
 
-The requirements contract must come from a controlled source independent of the manifest, and its expected SHA-256 digest must be supplied out of band. It pins the schema version, case ID, jurisdiction, exact model, rule-pack and toolchain objects, plus the complete mandatory claim contract—not just stable claim IDs. The model object pins its revision and artifact IDs; model, source-snapshot, tool and result bytes referenced by digest are verified locally. Each claim contract pins its type, statement, element scope, requirement reference, validity domain, and acceptance criteria. The all-zero executable digest above is illustrative only and must never be used for a real case. Merely storing this file next to a manifest does not make it an independent trust anchor.
+The requirements contract must come from a controlled source independent of the manifest, and its expected SHA-256 digest must be supplied out of band. It pins the schema version, case ID, jurisdiction, exact model, rule-pack and toolchain objects, plus the complete mandatory claim contract—not just stable claim IDs. The model object pins its revision and artifact IDs; model, source-snapshot, tool and result bytes referenced by digest are verified locally. Each claim contract pins its type, statement, element scope, requirement reference, approved tool ID, input-artifact digests, validity domain, and acceptance criteria. The all-zero executable digest and all-`a` input digest above are illustrative placeholders only; never use these literal values for a real case. Merely storing this file next to a manifest does not make it an independent trust anchor.
 
 Artifacts referenced by `model.artifact_ids`, `model.unit_mapping_artifact_sha256`, and claim input/output digest arrays must be present in `evidence_artifacts`. Their `uri` values must be safe, unescaped relative file paths under the artifact root. Example: `model/main.ifc`, with the file located at `<artifact-root>/model/main.ifc`.
 

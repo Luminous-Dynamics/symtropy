@@ -76,6 +76,8 @@ struct ExpectedClaimContract {
     subject_element_ids: Vec<String>,
     // Explicit null is required when the claim is not tied to a named code requirement.
     requirement: Value,
+    tool_id: String,
+    input_artifact_sha256: Vec<String>,
     validity_domain: String,
     acceptance_criteria: String,
 }
@@ -246,6 +248,8 @@ fn read_expected_claims_file(path: &Path) -> Result<(ExpectedClaimsFile, String)
         if claim.claim_id.trim().is_empty()
             || claim.claim_type.trim().is_empty()
             || claim.statement.trim().is_empty()
+            || claim.tool_id.trim().is_empty()
+            || claim.input_artifact_sha256.is_empty()
             || claim.validity_domain.trim().is_empty()
             || claim.acceptance_criteria.trim().is_empty()
         {
@@ -256,6 +260,21 @@ fn read_expected_claims_file(path: &Path) -> Result<(ExpectedClaimsFile, String)
                 "expected claim {} requirement must be an object or explicit null",
                 claim.claim_id
             ));
+        }
+        let mut input_digests = BTreeSet::new();
+        for digest in &claim.input_artifact_sha256 {
+            if !is_sha256(digest) {
+                return Err(format!(
+                    "expected claim {} has a malformed input artifact SHA-256: {digest}",
+                    claim.claim_id
+                ));
+            }
+            if !input_digests.insert(digest) {
+                return Err(format!(
+                    "expected claim {} has duplicate input artifact digest: {digest}",
+                    claim.claim_id
+                ));
+            }
         }
         let mut elements = BTreeSet::new();
         for element_id in &claim.subject_element_ids {
@@ -694,6 +713,27 @@ fn evaluate_manifest(
                 expected.claim_id
             ));
         }
+        if actual["tool_id"].as_str() != Some(expected.tool_id.as_str()) {
+            contract_issues.push(format!(
+                "mandatory claim {} differs from the pinned tool_id",
+                expected.claim_id
+            ));
+        }
+        let actual_inputs: BTreeSet<String> = actual["input_artifact_sha256"]
+            .as_array()
+            .into_iter()
+            .flatten()
+            .filter_map(Value::as_str)
+            .map(ToString::to_string)
+            .collect();
+        let expected_inputs: BTreeSet<String> =
+            expected.input_artifact_sha256.iter().cloned().collect();
+        if actual_inputs != expected_inputs {
+            contract_issues.push(format!(
+                "mandatory claim {} differs from the pinned input artifact digests",
+                expected.claim_id
+            ));
+        }
         if actual["validity_domain"].as_str() != Some(expected.validity_domain.as_str()) {
             contract_issues.push(format!(
                 "mandatory claim {} differs from the pinned validity domain",
@@ -1068,6 +1108,13 @@ mod tests {
                 statement: manifest["claims"][0]["statement"].as_str().unwrap().to_string(),
                 subject_element_ids: Vec::new(),
                 requirement: Value::Null,
+                tool_id: manifest["claims"][0]["tool_id"].as_str().unwrap().to_string(),
+                input_artifact_sha256: vec![
+                    manifest["claims"][0]["input_artifact_sha256"][0]
+                        .as_str()
+                        .unwrap()
+                        .to_string(),
+                ],
                 validity_domain: "test-only".to_string(),
                 acceptance_criteria: "test-only".to_string(),
             }],
@@ -1233,6 +1280,10 @@ mod tests {
             statement: "Synthetic expected fire-performance claim.".to_string(),
             subject_element_ids: Vec::new(),
             requirement: Value::Null,
+            tool_id: "synthetic-tool".to_string(),
+            input_artifact_sha256: vec![
+                "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa".to_string()
+            ],
             validity_domain: "test-only".to_string(),
             acceptance_criteria: "test-only".to_string(),
         });
@@ -1295,6 +1346,23 @@ mod tests {
         assert_eq!(result.effective_status, STATUS_INSUFFICIENT_EVIDENCE);
         assert!(result.issues.iter().any(|issue| {
             issue.contains("pinned acceptance criteria")
+        }));
+        fs::remove_dir_all(root).expect("clean temp dir");
+    }
+
+    #[test]
+    fn changed_claim_inputs_cannot_reuse_a_pinned_requirements_contract() {
+        let (schema, mut manifest, root, expected) = set_up_pass_manifest();
+        let substituted_digest = manifest["toolchain"][0]["executable_or_container_sha256"]
+            .as_str()
+            .unwrap()
+            .to_string();
+        manifest["claims"][0]["input_artifact_sha256"] = json!([substituted_digest]);
+
+        let result = evaluate_manifest(&schema, &manifest, Some(&expected), true, Some(&root));
+        assert_eq!(result.effective_status, STATUS_INSUFFICIENT_EVIDENCE);
+        assert!(result.issues.iter().any(|issue| {
+            issue.contains("pinned input artifact digests")
         }));
         fs::remove_dir_all(root).expect("clean temp dir");
     }
