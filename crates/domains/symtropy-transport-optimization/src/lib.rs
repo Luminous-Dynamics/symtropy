@@ -7,7 +7,8 @@
 //! It enumerates a bounded Pareto frontier for one demand at a time. Edge
 //! capacity is checked for each request, but simultaneous multi-demand capacity
 //! allocation, timetables, capital planning, stochastic scenarios, and live data
-//! integration are intentionally future work.
+//! integration are intentionally future work. Test costs are synthetic illustrations, not local
+//! tariffs or operational measurements.
 //!
 //! Every edge metric is non-negative and expressed per demand unit, except
 //! distance and elapsed time, which describe the route. Monetary fields use
@@ -399,7 +400,7 @@ impl fmt::Display for ModelError {
             Self::InvalidSearchLimits => write!(f, "search label limits must be positive"),
             Self::LabelLimitExceeded { state, limit } => write!(
                 f,
-                "Pareto search label limit {limit} exceeded at state {state}; result was not truncated silently"
+                "Pareto label limit {limit} exceeded at {state}; frontier was not truncated"
             ),
             Self::MetricOverflow => write!(f, "route metric arithmetic overflowed"),
         }
@@ -786,7 +787,8 @@ mod tests {
             QuantityUnit::Passengers,
             metrics(20, 10, 900, 12_000, 200, 200, 2, 2, 2),
         ));
-        let routes = pareto_routes(&network, &passenger_demand(1), SearchLimits::default()).unwrap();
+        let routes =
+            pareto_routes(&network, &passenger_demand(1), SearchLimits::default()).unwrap();
 
         assert_eq!(routes.len(), 1);
         assert_eq!(routes[0].edge_ids, vec!["good".to_owned()]);
@@ -1040,6 +1042,21 @@ mod tests {
             "rail-maritime-transfer".to_owned(),
             "ship-linehaul".to_owned(),
         ]);
+    }
+
+
+
+    #[test]
+    fn aggregate_cost_overflow_is_rejected() {
+        let route = Route {
+            edge_ids: vec!["synthetic".to_owned()],
+            transfer_count: 0,
+            metrics_per_unit: RouteMetrics {
+                operator_cost_minor_per_unit: u64::MAX,
+                ..RouteMetrics::default()
+            },
+        };
+        assert_eq!(route.aggregate(2), Err(ModelError::MetricOverflow));
     }
 
 }
