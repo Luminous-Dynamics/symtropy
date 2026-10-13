@@ -158,6 +158,10 @@ The initial scenario should exercise the entire evidence contract without claimi
 
 Then add further disciplines one at a time—structural, fire, moisture/thermal, energy, water/sanitation, accessibility, drainage, cost and construction simulation—only when each domain has a suitable reference suite and clear validity boundary.
 
+### First analytical reference case
+
+A deliberately small analytical oracle now lives at [`benchmarks/cantilever-beam-linear-static-v1.json`](benchmarks/cantilever-beam-linear-static-v1.json), with an integration test at `crates/apps/symtropy-housing-evidence/tests/reference_cantilever_beam.rs`. It checks rectangular-section inertia, a linear-static Euler-Bernoulli cantilever's tip deflection, support bending stress, and invalid non-positive inputs. This establishes a known-answer case and exercises units/calculation plumbing; it does not compare an external solver yet, validate FEM, or establish building safety. The first solver-adapter milestone must reproduce this oracle and then pass a broader independent benchmark set.
+
 ### Acceptance gates
 
 The first slice is accepted only if:
