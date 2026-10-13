@@ -12,6 +12,7 @@ use crate::world_contract::{
     ArtifactRef, PhysicsDomain, SolverDeclarationV1, WorldManifestV1, WorldValidationIssue,
 };
 use serde::{Deserialize, Serialize};
+use sha2::{Digest, Sha256};
 
 pub const MATERIAL_AWARE_EXCAVATION_SCHEMA_VERSION: u16 = 1;
 pub const EXCAVATION_STATE_DELTA_SCHEMA_VERSION: u16 = 1;
@@ -102,16 +103,14 @@ pub struct ExcavationSpatialDeltaV1 {
 /** Supported schema for a decoded cell-removal-mask artifact. */
 pub const CELL_REMOVAL_MASK_SCHEMA_VERSION: u16 = 1;
 
-/// A decoded, grid-indexed cell-removal mask.
+/// Serializable JSON payload for a grid-indexed cell-removal mask.
 ///
-/// The decoder that constructs this value must verify the exact artifact bytes
-/// against `source_artifact.sha256` before calling `validate_against`. This
-/// type provides semantic validation of the decoded structure; it does not
-/// perform byte decoding or mutate terrain.
+/// The payload intentionally excludes its own digest: that digest is computed
+/// over these exact JSON bytes and carried out-of-band by an artifact reference.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-pub struct CellRemovalMaskV1 {
+#[serde(deny_unknown_fields)]
+pub struct CellRemovalMaskPayloadV1 {
     pub schema_version: u16,
-    pub source_artifact: ArtifactRef,
     pub base_world_generation: u64,
     pub base_geometry_artifact: ArtifactRef,
     pub material_profile_id: String,
@@ -124,6 +123,16 @@ pub struct CellRemovalMaskV1 {
     pub grid_dimensions: [u32; 3],
     /// Unique cell indices in strict lexicographic order for deterministic replay.
     pub removed_cells: Vec<[u32; 3]>,
+}
+
+/// A decoded cell-removal mask bound to the exact bytes from which it was parsed.
+///
+/// Use `decode_verified_json` for untrusted data paths. Semantic validation
+/// does not mutate terrain; a separate generation-checked commit is required.
+#[derive(Debug, Clone, PartialEq)]
+pub struct CellRemovalMaskV1 {
+    pub payload: CellRemovalMaskPayloadV1,
+    source_artifact: ArtifactRef,
 }
 
 /// A measured or solver-reported excavation output. Values use named SI units.
@@ -179,6 +188,9 @@ pub enum ExcavationContractErrorV1 {
     UnknownTargetFrame(String),
     InvalidSpatialDelta,
     InvalidCellRemovalMaskSchema,
+    InvalidCellMaskPayload,
+    InvalidCellMaskArtifact,
+    CellMaskPayloadDigestMismatch,
     CellMaskFormatMismatch,
     CellMaskArtifactMismatch,
     CellMaskMaterialMismatch,
@@ -199,6 +211,26 @@ pub enum ExcavationContractErrorV1 {
 }
 
 impl CellRemovalMaskV1 {
+    /// Decode strict JSON only when its exact bytes match the supplied artifact digest.
+    ///
+    /// The artifact reference is out-of-band; embedding its own digest in the
+    /// bytes being hashed would make the digest self-referential.
+    pub fn decode_verified_json(
+        bytes: &[u8],
+        source_artifact: ArtifactRef,
+    ) -> Result<Self, ExcavationContractErrorV1> {
+        if !valid_artifact(&source_artifact) {
+            return Err(ExcavationContractErrorV1::InvalidCellMaskArtifact);
+        }
+        let actual_digest = format!("{:x}", Sha256::digest(bytes));
+        if !actual_digest.eq_ignore_ascii_case(&source_artifact.sha256) {
+            return Err(ExcavationContractErrorV1::CellMaskPayloadDigestMismatch);
+        }
+        let payload: CellRemovalMaskPayloadV1 = serde_json::from_slice(bytes)
+            .map_err(|_| ExcavationContractErrorV1::InvalidCellMaskPayload)?;
+        Ok(Self { payload, source_artifact })
+    }
+
     /// Validate a decoded mask against the exact request, world and result delta.
     ///
     /// The caller must supply the digest of the canonical world-manifest bytes
@@ -216,46 +248,47 @@ impl CellRemovalMaskV1 {
         if delta.state_delta_format != ExcavationStateDeltaFormatV1::CellRemovalMask {
             return Err(ExcavationContractErrorV1::CellMaskFormatMismatch);
         }
-        if self.schema_version != CELL_REMOVAL_MASK_SCHEMA_VERSION {
+        let payload = &self.payload;
+        if payload.schema_version != CELL_REMOVAL_MASK_SCHEMA_VERSION {
             return Err(ExcavationContractErrorV1::InvalidCellRemovalMaskSchema);
         }
         if !valid_artifact(&self.source_artifact)
             || self.source_artifact != delta.state_delta_artifact
-            || self.base_geometry_artifact != delta.base_geometry_artifact
-            || self.base_world_generation != delta.base_world_generation
-            || self.coordinate_frame_id != delta.coordinate_frame_id
+            || payload.base_geometry_artifact != delta.base_geometry_artifact
+            || payload.base_world_generation != delta.base_world_generation
+            || payload.coordinate_frame_id != delta.coordinate_frame_id
         {
             return Err(ExcavationContractErrorV1::CellMaskArtifactMismatch);
         }
-        if self.material_profile_id != request.material_profile_id {
+        if payload.material_profile_id != request.material_profile_id {
             return Err(ExcavationContractErrorV1::CellMaskMaterialMismatch);
         }
-        if self.grid_dimensions.iter().any(|dimension| *dimension == 0)
-            || !self.grid_origin_m.iter().all(|coordinate| coordinate.is_finite())
-            || !self.cell_size_m.iter().all(|size| size.is_finite() && *size > 0.0)
+        if payload.grid_dimensions.iter().any(|dimension| *dimension == 0)
+            || !payload.grid_origin_m.iter().all(|coordinate| coordinate.is_finite())
+            || !payload.cell_size_m.iter().all(|size| size.is_finite() && *size > 0.0)
         {
             return Err(ExcavationContractErrorV1::InvalidCellGrid);
         }
         for axis in 0..3 {
-            let extent = f64::from(self.grid_dimensions[axis]) * self.cell_size_m[axis];
-            if !extent.is_finite() || !(self.grid_origin_m[axis] + extent).is_finite() {
+            let extent = f64::from(payload.grid_dimensions[axis]) * payload.cell_size_m[axis];
+            if !extent.is_finite() || !(payload.grid_origin_m[axis] + extent).is_finite() {
                 return Err(ExcavationContractErrorV1::InvalidCellGrid);
             }
         }
-        if !world.frames.iter().any(|frame| frame.frame_id == self.coordinate_frame_id) {
+        if !world.frames.iter().any(|frame| frame.frame_id == payload.coordinate_frame_id) {
             return Err(ExcavationContractErrorV1::UnknownTargetFrame(
-                self.coordinate_frame_id.clone(),
+                payload.coordinate_frame_id.clone(),
             ));
         }
-        if self.removed_cells.is_empty() {
+        if payload.removed_cells.is_empty() {
             return Err(ExcavationContractErrorV1::EmptyCellRemovalMask);
         }
-        for cell in &self.removed_cells {
-            if (0..3).any(|axis| cell[axis] >= self.grid_dimensions[axis]) {
+        for cell in &payload.removed_cells {
+            if (0..3).any(|axis| cell[axis] >= payload.grid_dimensions[axis]) {
                 return Err(ExcavationContractErrorV1::CellIndexOutOfBounds(*cell));
             }
         }
-        if !self.removed_cells.windows(2).all(|pair| pair[0] < pair[1]) {
+        if !payload.removed_cells.windows(2).all(|pair| pair[0] < pair[1]) {
             return Err(ExcavationContractErrorV1::CellIndicesNotCanonical);
         }
         Ok(())
