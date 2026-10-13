@@ -504,9 +504,16 @@ def self_test():
                 self.assertEqual(report["validation_status"], "NOT_QUALIFIED")
                 self.assertEqual(report["missing_run_count"], 16)
 
-        def complete_records(self, plan):
+        def complete_records(self, plan, artifact_root):
+            artifact_root.mkdir(parents=True, exist_ok=True)
             records = []
             for run in plan["planned_runs"]:
+                trace_name = run["run_id"] + ".trace"
+                replay_name = run["run_id"] + ".replay.json"
+                trace = artifact_root / trace_name
+                replay = artifact_root / replay_name
+                trace.write_bytes(("trace:" + run["run_id"]).encode("utf-8"))
+                replay.write_bytes(("replay:" + run["run_id"]).encode("utf-8"))
                 records.append({
                     "schema_version": RESULT_SCHEMA,
                     "run_id": run["run_id"],
@@ -519,9 +526,11 @@ def self_test():
                     "validation_failure_count": 0,
                     "nonfinite_count": 0,
                     "invariant_drift": 0.0,
-                    "artifact_sha256": "f"*64,
+                    "artifact_path": trace_name,
+                    "artifact_sha256": file_sha256(trace),
                     "replay_status": "exact_match",
-                    "replay_evidence_sha256": "e"*64,
+                    "replay_evidence_path": replay_name,
+                    "replay_evidence_sha256": file_sha256(replay),
                 })
             return records
 
@@ -533,8 +542,8 @@ def self_test():
                                           source_strengths=[1.0], radii=[8.0])
                 plan = make_plan(args)
                 results = Path(tmp) / "results.jsonl"
-                results.write_text("".join(json.dumps(r) + "\n" for r in self.complete_records(plan)), encoding="utf-8")
-                report = validate_results(plan, results)
+                results.write_text("".join(json.dumps(r) + "\n" for r in self.complete_records(plan, Path(tmp))), encoding="utf-8")
+                report = validate_results(plan, results, Path(tmp))
                 self.assertEqual(report["validation_status"], "qualified_manifest")
                 self.assertEqual(report["completed_run_count"], 16)
                 self.assertIn("no effect estimates", report["note"])
@@ -546,11 +555,11 @@ def self_test():
                                           seeds=[1,2], held_out_seeds=[2], dimensions=[3],
                                           source_strengths=[1.0], radii=[8.0])
                 plan = make_plan(args)
-                records = self.complete_records(plan)
+                records = self.complete_records(plan, Path(tmp))
                 records[0]["validation_failure_count"] = 1
                 results = Path(tmp) / "results.jsonl"
                 results.write_text("".join(json.dumps(r) + "\n" for r in records), encoding="utf-8")
-                report = validate_results(plan, results)
+                report = validate_results(plan, results, Path(tmp))
                 self.assertEqual(report["validation_status"], "NOT_QUALIFIED")
                 self.assertEqual(report["completed_runs_with_invalid_counters"], 1)
 
