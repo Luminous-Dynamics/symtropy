@@ -102,6 +102,8 @@ pub struct ExcavationSpatialDeltaV1 {
 
 /** Supported schema for a decoded cell-removal-mask artifact. */
 pub const CELL_REMOVAL_MASK_SCHEMA_VERSION: u16 = 1;
+/// Single-mask JSON cap; larger geometry changes should be split into tiles.
+pub const MAX_CELL_REMOVAL_MASK_PAYLOAD_BYTES: usize = 64 * 1024 * 1024;
 
 /// Serializable JSON payload for a grid-indexed cell-removal mask.
 ///
@@ -189,6 +191,7 @@ pub enum ExcavationContractErrorV1 {
     InvalidSpatialDelta,
     InvalidCellRemovalMaskSchema,
     InvalidCellMaskPayload,
+    CellMaskPayloadTooLarge,
     InvalidCellMaskArtifact,
     CellMaskPayloadDigestMismatch,
     CellMaskFormatMismatch,
@@ -219,6 +222,9 @@ impl CellRemovalMaskV1 {
         bytes: &[u8],
         source_artifact: ArtifactRef,
     ) -> Result<Self, ExcavationContractErrorV1> {
+        if bytes.len() > MAX_CELL_REMOVAL_MASK_PAYLOAD_BYTES {
+            return Err(ExcavationContractErrorV1::CellMaskPayloadTooLarge);
+        }
         if !valid_artifact(&source_artifact) {
             return Err(ExcavationContractErrorV1::InvalidCellMaskArtifact);
         }
@@ -892,6 +898,28 @@ mod tests {
         assert_eq!(
             CellRemovalMaskV1::decode_verified_json(bytes, source_artifact),
             Err(ExcavationContractErrorV1::InvalidCellMaskPayload)
+        );
+    }
+
+    #[test]
+    fn cell_mask_rejects_empty_masks_and_unsupported_schema_versions() {
+        let world = world();
+        let request = request();
+        let delta = result(ExcavationDispositionV1::CompletedWithinEnvelope)
+            .spatial_delta
+            .unwrap();
+        let mut mask = valid_cell_removal_mask();
+        mask.payload.removed_cells.clear();
+        assert_eq!(
+            mask.validate_against(&world, &"d".repeat(SHA256_HEX_LENGTH), &request, &delta),
+            Err(ExcavationContractErrorV1::EmptyCellRemovalMask)
+        );
+
+        mask = valid_cell_removal_mask();
+        mask.payload.schema_version = CELL_REMOVAL_MASK_SCHEMA_VERSION + 1;
+        assert_eq!(
+            mask.validate_against(&world, &"d".repeat(SHA256_HEX_LENGTH), &request, &delta),
+            Err(ExcavationContractErrorV1::InvalidCellRemovalMaskSchema)
         );
     }
 
