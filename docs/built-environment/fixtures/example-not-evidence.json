@@ -1,5 +1,4 @@
 {
-  "$schema": "urn:luminous-dynamics:schemas:housing-evidence-manifest:0.1.0",
   "schema_version": "0.1.0",
   "case_id": "example-only/dwelling-001",
   "created_at": "2026-10-13T09:00:00Z",
