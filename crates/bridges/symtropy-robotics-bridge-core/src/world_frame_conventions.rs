@@ -13,7 +13,7 @@ use crate::world_contract::{
 };
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
-use std::collections::{BTreeMap, BTreeSet};
+use std::collections::BTreeSet;
 use std::fmt;
 
 pub const FRAME_CONVENTION_REGISTRY_SCHEMA_VERSION_V1: u16 = 1;
@@ -131,6 +131,8 @@ pub enum QualifiedWorldError {
     InvalidWorldManifest(Vec<WorldValidationIssue>),
     InvalidFrameConventionRegistry(Vec<FrameConventionIssue>),
     FrameConventionBytesTooLarge { limit_bytes: usize },
+    WorldManifestCommitmentTooLarge { limit_bytes: usize },
+    UnsupportedQualifiedWorldSchemaVersion,
     QualifiedWorldDigestMismatch,
     RequestQualifiedWorldDigestMismatch,
     ResultQualifiedWorldDigestMismatch,
@@ -148,6 +150,13 @@ impl fmt::Display for QualifiedWorldError {
                 f,
                 "frame convention registry exceeds {limit_bytes} canonical bytes"
             ),
+            Self::WorldManifestCommitmentTooLarge { limit_bytes } => write!(
+                f,
+                "base world manifest exceeds {limit_bytes} canonical bytes"
+            ),
+            Self::UnsupportedQualifiedWorldSchemaVersion => {
+                f.write_str("unsupported qualified-world schema version")
+            }
             Self::QualifiedWorldDigestMismatch => {
                 f.write_str("qualified world commitment does not match its components")
             }
@@ -283,7 +292,7 @@ pub struct QualifiedWorldManifestV2 {
 impl QualifiedWorldManifestV2 {
     pub fn validate(&self) -> Result<(), QualifiedWorldError> {
         if self.schema_version != QUALIFIED_WORLD_SCHEMA_VERSION_V2 {
-            return Err(QualifiedWorldError::QualifiedWorldDigestMismatch);
+            return Err(QualifiedWorldError::UnsupportedQualifiedWorldSchemaVersion);
         }
         self.world
             .validate()
@@ -307,7 +316,7 @@ impl QualifiedWorldManifestV2 {
                 ) => QualifiedWorldError::InvalidWorldManifest(issues),
                 crate::world_manifest_commitment::WorldManifestCommitmentError::CanonicalBytesTooLarge {
                     limit_bytes,
-                } => QualifiedWorldError::FrameConventionBytesTooLarge { limit_bytes },
+                } => QualifiedWorldError::WorldManifestCommitmentTooLarge { limit_bytes },
             })?;
         let convention_digest = self.frame_conventions.content_digest_v1()?;
         let mut bytes = Vec::with_capacity(
@@ -372,7 +381,7 @@ impl QualifiedSolverRequestV2 {
                 ) => QualifiedWorldError::InvalidWorldManifest(issues),
                 crate::world_manifest_commitment::WorldManifestCommitmentError::CanonicalBytesTooLarge {
                     limit_bytes,
-                } => QualifiedWorldError::FrameConventionBytesTooLarge { limit_bytes },
+                } => QualifiedWorldError::WorldManifestCommitmentTooLarge { limit_bytes },
             })?;
         if identity.world_manifest_digest != expected_inner_digest {
             return Err(QualifiedWorldError::QualifiedWorldDigestMismatch);
@@ -506,8 +515,8 @@ pub(crate) mod tests {
     fn sample_world() -> WorldManifestV1 {
         WorldManifestV1 {
             schema_version: WORLD_MANIFEST_SCHEMA_VERSION,
-            scenario_id: "convention-smoke-v1".to_owned(),
-            world_generation: 1,
+            scenario_id: "commitment-smoke-v1".to_owned(),
+            world_generation: 3,
             seed: 42,
             fixed_step_ns: 1_000_000,
             gravity_mps2: [0.0, -9.81, 0.0],
@@ -570,12 +579,20 @@ pub(crate) mod tests {
                 mass_kg: 25.0,
                 control_rate_hz: 200.0,
                 controller_interface_version: 1,
-                actuators: vec![ActuatorProfileV1 {
-                    actuator_id: "arm".to_owned(),
-                    min_command: -1.0,
-                    max_command: 1.0,
-                    command_unit: "N*m".to_owned(),
-                }],
+                actuators: vec![
+                    ActuatorProfileV1 {
+                        actuator_id: "arm".to_owned(),
+                        min_command: -1.0,
+                        max_command: 1.0,
+                        command_unit: "N*m".to_owned(),
+                    },
+                    ActuatorProfileV1 {
+                        actuator_id: "feed".to_owned(),
+                        min_command: 0.0,
+                        max_command: 0.01,
+                        command_unit: "m/s".to_owned(),
+                    },
+                ],
                 sensor_ids: vec!["camera-0".to_owned()],
             }],
         }
