@@ -27,6 +27,18 @@ Tags 0–3 follow conventions described in [ROS REP-103](https://reps.openroboti
 
 The metadata is a declaration, not an automatic coordinate conversion. Consumers must understand the declared convention before interpreting or transforming vectors. Translations remain metres and existing static rotations remain XYZW, as specified by the base world contract. The convention label must not be inferred from a frame's name.
 
+## Safe vector-component conversion
+
+The library provides `convention_conversion_matrix_v1(from, to)` and `convert_vector_v1(vector, from, to)` for exact conversions within compatible reference families only. The returned matrix has entries in `{-1, 0, +1}`; it performs axis permutation/sign changes, not interpolation.
+
+- Body FLU ↔ body FRD uses `[[1,0,0],[0,-1,0],[0,0,-1]]`.
+- Local NED ↔ ENU uses `[[0,1,0],[1,0,0],[0,0,-1]]`.
+
+The implementation composes basis matrices as `v_target = B_targetᵀ B_source v_source`. Tests pin both matrices and example vectors. It rejects conversions between body, local-geographic, and camera-optical families instead of guessing a rotation; any `ExternalSpec` requires a separate verified adapter. Non-finite vectors are rejected.
+
+This API converts components of a vector in the same underlying physical reference frame. It does not change the vector's physical frame, account for different origins, compose robot/camera mount transforms, or convert poses. Use the declared world frame graph and a verified rigid transform when the physical frames differ.
+
+
 For `ExternalSpec`, both a non-empty URI and a 64-character SHA-256 string are required, together with an explicit handedness declaration. Right-handed is the only accepted value; a left-handed declaration is rejected before commitment because the base frame-transform model uses proper rotations. The handedness byte is encoded as 0 for right-handed and 1 for left-handed; canonical v1 validation currently accepts only 0. Hex case is normalized to 32 raw bytes. The library pins the referenced specification's identity but does not fetch the URI or independently verify external document bytes.
 
 ## Registry canonical bytes V1
@@ -71,6 +83,6 @@ The Rust unit tests and `scripts/verify_frame_convention_registry_v1.py` target 
 
 ## Non-claims and next qualification gates
 
-This contract does not prove a solver actually interpreted axes correctly, that external specifications were fetched and verified, that units are physically appropriate, that a solver ran, or that results are numerically or physically accurate. There is no automatic matrix conversion routine yet. Future conversions should be explicit, tested, and convention-aware, not an implicit side effect of hashing labels.
+This contract does not prove a solver actually interpreted axes correctly, that external specifications were fetched and verified, that units are physically appropriate, that a solver ran, or that results are numerically or physically accurate. The component-conversion helper only covers two known same-family signed-permutation mappings; it is not a general frame transform or a pose converter.
 
 Before promotion, run Rust formatting, focused crate tests, Clippy, and exact-head CI. Missing, queued, or unexecuted checks are not PASS.
