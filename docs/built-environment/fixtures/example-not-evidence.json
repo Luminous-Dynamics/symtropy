@@ -71,7 +71,8 @@
         "reviewer_role": null,
         "reviewed_at": null,
         "review_record_artifact_sha256": null
-      }
+      },
+      "mandatory": true
     }
   ],
   "overall_status": "NOT_EVALUATED",
