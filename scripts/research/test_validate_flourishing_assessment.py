@@ -257,9 +257,28 @@ class FlourishingAssessmentTests(unittest.TestCase):
     @unittest.skipIf(jsonschema is None, "jsonschema dependency is installed by the CI workflow")
     def test_unknown_fixture_conforms_to_pinned_draft_2020_12_schema(self) -> None:
         schema = json.loads(SCHEMA_PATH.read_text(encoding="utf-8"))
+        jsonschema.Draft202012Validator.check_schema(schema)
         jsonschema.Draft202012Validator(
             schema, format_checker=jsonschema.FormatChecker()
         ).validate(assessment())
+
+    @unittest.skipIf(jsonschema is None, "jsonschema dependency is installed by the CI workflow")
+    def test_subgroup_uncertainty_reference_resolves(self) -> None:
+        doc = add_evidence_and_known_values(assessment())
+        outcome = doc["alternatives"][0]["outcomes"][1]
+        outcome["subgroups"] = [{
+            "group_id": "area-a",
+            "status": "KNOWN",
+            "value": 0.5,
+            "uncertainty": {"lower": 0.2, "upper": 0.8, "method": "synthetic interval"},
+            "missing_reason": None,
+            "artifact_ids": ["sample-artifact"],
+        }]
+        schema = json.loads(SCHEMA_PATH.read_text(encoding="utf-8"))
+        validator = jsonschema.Draft202012Validator(
+            schema, format_checker=jsonschema.FormatChecker()
+        )
+        self.assertEqual(list(validator.iter_errors(doc)), [])
 
     @unittest.skipIf(jsonschema is None, "jsonschema dependency is installed by the CI workflow")
     def test_schema_rejects_unknown_value_inconsistency(self) -> None:
