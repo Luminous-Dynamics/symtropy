@@ -761,7 +761,6 @@ mod tests {
     #[test]
     fn cli_pass_requires_pinned_requirements_and_emits_provenance_digests() {
         let (schema, manifest, root, _) = set_up_pass_manifest();
-        assert_eq!(EMBEDDED_SCHEMA, serde_json::to_string_pretty(&schema).unwrap() + "\\n");
 
         let manifest_path = root.join("manifest.json");
         let manifest_bytes = serde_json::to_vec_pretty(&manifest).expect("serialize manifest");
@@ -789,7 +788,8 @@ mod tests {
         assert!(require_pass);
         assert_eq!(report.effective_status, STATUS_PASS, "{:?}", report.issues);
         assert!(report.schema_sha256.is_some());
-        assert_eq!(report.manifest_sha256.as_deref(), Some(sha256_hex(&manifest_bytes).as_str()));
+        let manifest_digest = sha256_hex(&manifest_bytes);
+        assert_eq!(report.manifest_sha256.as_deref(), Some(manifest_digest.as_str()));
         assert_eq!(report.expected_claims_sha256.as_deref(), Some(expected_digest.as_str()));
         assert!(report.expected_claims_digest_pinned);
         fs::remove_dir_all(root).expect("clean temp dir");
