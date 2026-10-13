@@ -71,7 +71,7 @@ impl fmt::Display for FrameConventionConversionError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::IncompatibleConventionFamilies => f.write_str(
-                "coordinate conventions use different reference families; an explicit frame transform is required",
+                "different reference families require an explicit frame transform",
             ),
             Self::ExternalConventionRequiresAdapter => f.write_str(
                 "external coordinate conventions require an explicit, separately verified adapter",
