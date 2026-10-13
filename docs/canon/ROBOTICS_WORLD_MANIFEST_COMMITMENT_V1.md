@@ -53,7 +53,7 @@ After the domain and canonical-format version, fields are encoded in this exact 
 11. Sensor count and sensors sorted by sensor ID.
 12. Platform count and platforms sorted by platform ID.
 
-Sorting applies only to collections whose meaning is set membership rather than sequence order. Fixed numeric arrays retain their defined order. Per-platform actuators are sorted by actuator ID; a platform's sensor-ID membership list is sorted lexicographically. Duplicate identities, including duplicate world-asset artifact IDs, are rejected by manifest validation before encoding. World asset artifact IDs must be unique within the world_assets table; reuse the same identity through platform geometry/kinematics references rather than declaring conflicting rows.
+Sorting applies only to collections whose meaning is set membership rather than sequence order. Fixed numeric arrays retain their defined order. Per-platform actuators are sorted by actuator ID; a platform's sensor-ID membership list is sorted lexicographically. Duplicate identities, including duplicate world-asset artifact IDs, are rejected by manifest validation before encoding. World asset artifact IDs must be unique within the world_assets table; reuse the same identity through platform geometry/kinematics references rather than declaring duplicate rows. Across every ArtifactRef location (world_assets, platform geometry/kinematics, and sensor calibration), one nonblank artifact_id may not claim conflicting SHA-256 content digests; hexadecimal letter case is ignored. URI aliases are allowed when they claim the same content digest, and each URI remains included in the world-manifest commitment.
 
 ## Nested field grammars
 
