@@ -91,6 +91,25 @@ That makes it a plausible external candidate for bounded questions such as defor
 
 The Functional Mock-up Interface (FMI) is an established model exchange/co-simulation standard. A solver that already supports a suitable FMI export can be connected through an FMI adapter in a later phase. Do not force FMI onto a solver that does not expose the right variables or semantics. First define the canonical evidence/result contract; then implement a native process/API adapter and/or FMI adapter as justified.
 
+### Rust-native acoustic candidates for an early prototype
+
+Two current Rust crates are worth testing as bounded acoustic components rather than adopting blindly:
+
+- [math-fem](https://docs.rs/math-fem/latest/math_fem/) documents a finite-element Helmholtz solver with 2-D/3-D meshes, impedance/absorption boundary conditions, PML, frequency sweeps and a room-acoustics CLI.
+- [math-bem](https://docs.rs/math-bem/latest/math_bem/) documents a boundary-element solver for acoustic scattering/room acoustics, with analytical validation examples and structured outputs.
+
+These are candidates for early sensor-propagation experiments and software integration. Room acoustics or a frequency-domain Helmholtz solve does **not** automatically model transient acoustic emission from a crack, wave propagation through heterogeneous fractured granite, ultrasonic tool-rock coupling, or acoustic-emission sensor performance. Each intended use requires a benchmark that matches geometry, scale, boundary conditions, wave band and measured outputs.
+
+Current Rust FEM crates should also be treated as components, not turnkey hard-rock solvers. For example, a linear-elastic FEM implementation is not a fracture-propagation model. Keep the first Rust-native test small and analytically verifiable; delegate coupled THMC/fracture/electromagnetic work to mature specialist solvers when their models and benchmarks fit.
+
+### Multiphysics candidates for heavier domains
+
+- [OpenGeoSys](https://www.opengeosys.org/stable/) is a candidate for bounded subsurface THMC, poromechanics and selected fracture problems, backed by a substantial benchmark library.
+- [Elmer FEM](https://github.com/ElmerCSC/elmerfem) documents structural mechanics, fluids, heat transfer and electromagnetics in a general finite-element suite.
+- [MOOSE](https://mooseframework.inl.gov/modules/) provides modular applications for electromagnetics, heat transfer, solid mechanics, phase field, peridynamics and porous flow. It is a candidate framework for composing physics, not a ready-made plasma-rock model.
+
+For microwave/electro-pulse/plasma-jet work, no one small Rust crate surfaced as an established end-to-end rock-removal solver. The likely path is a specialist solver plus a narrow Rust adapter, a frozen benchmark and independent validation. Do not equate “has an electromagnetic module” with “predicts breakdown or plasma-rock erosion correctly.”
+
 ### Keep the selection test-driven
 
 A solver choice record must state: target question, represented mechanisms, omitted mechanisms, constitutive model, calibration data, boundary conditions, failure modes, reproducible case, license/access constraints, and what result would reject the candidate.
