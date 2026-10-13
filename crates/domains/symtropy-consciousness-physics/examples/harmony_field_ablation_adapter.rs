@@ -1307,7 +1307,8 @@ mod tests {
     use super::*;
 
     fn config_for_arm(arm_index: usize) -> Value {
-        let arm = &expected_arms()[arm_index];
+        let arms = expected_arms();
+        let arm = &arms[arm_index];
         json!({
             "protocol_version": PROTOCOL_VERSION,
             "candidate_commit": "0123456789abcdef0123456789abcdef01234567",
@@ -1354,6 +1355,102 @@ mod tests {
             digest_value(&initial_state_value(42)).unwrap(),
             digest_value(&initial_state_value(42)).unwrap()
         );
+    }
+
+    fn valid_plan_fixture() -> Value {
+        let candidate_commit = "0123456789abcdef0123456789abcdef01234567";
+        let task_id = TASK_ID;
+        let scenario = json!({
+            "task_description": TASK_DESCRIPTION,
+            "task_parameters": expected_task_parameters(),
+            "primary_endpoint": expected_endpoint(),
+            "solver_and_timestep": expected_solver(),
+            "random_stream_contract": expected_rng_contract()
+        });
+        let scenario_sha256 = digest_value(&scenario).unwrap();
+        let arms = expected_arms();
+        let seeds = [(101_u64, "development"), (102_u64, "held_out")];
+        let mut planned_runs = Vec::new();
+        for (seed, partition) in seeds {
+            for arm in &arms {
+                let configuration = json!({
+                    "protocol_version": PROTOCOL_VERSION,
+                    "candidate_commit": candidate_commit,
+                    "task_id": task_id,
+                    "scenario_config_sha256": scenario_sha256,
+                    "seed": seed,
+                    "seed_partition": partition,
+                    "dimension": 3,
+                    "source_strength": 1.0,
+                    "influence_radius": 20.0,
+                    "arm_id": arm["arm_id"],
+                    "arm_index": arm["arm_index"],
+                    "mechanisms": {
+                        "friction_modulation": arm["friction_modulation"],
+                        "resonance_prediction_error": arm["resonance_prediction_error"],
+                        "emotional_contagion": arm["emotional_contagion"]
+                    }
+                });
+                let config_sha256 = digest_value(&configuration).unwrap();
+                planned_runs.push(json!({
+                    "run_id": format!("run-{config_sha256}"),
+                    "configuration_sha256": config_sha256,
+                    "configuration": configuration,
+                    "run_status": "planned"
+                }));
+            }
+        }
+        let unsigned = json!({
+            "schema_version": PLAN_SCHEMA,
+            "protocol_version": PROTOCOL_VERSION,
+            "tool_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+            "candidate_commit": candidate_commit,
+            "task_id": task_id,
+            "scenario_config": scenario,
+            "scenario_config_sha256": scenario_sha256,
+            "seed_partition": {
+                "development": [101],
+                "held_out": [102]
+            },
+            "factorial_arms": arms,
+            "parameter_grid": {
+                "dimensions": [3],
+                "source_strengths": [1.0],
+                "influence_radii": [20.0],
+                "kernel_exponent_rule": "max(dimension - 1, 1)",
+                "kernel_exponent_is_runtime_parameter": false
+            },
+            "run_count": planned_runs.len(),
+            "planned_runs": planned_runs,
+            "plan_status": "planned_not_executed"
+        });
+        let plan_sha256 = digest_value(&unsigned).unwrap();
+        let mut plan = unsigned;
+        plan.as_object_mut()
+            .unwrap()
+            .insert("plan_sha256".to_string(), json!(plan_sha256));
+        plan
+    }
+
+    #[test]
+    fn canonical_plan_validation_accepts_complete_hashed_factorial_grid() {
+        let plan = valid_plan_fixture();
+        assert!(validate_plan(&plan).is_ok(), "{:?}", validate_plan(&plan));
+    }
+
+    #[test]
+    fn plan_validation_fails_closed_for_a_missing_cell_even_after_rehash() {
+        let mut plan = valid_plan_fixture();
+        let object = plan.as_object_mut().unwrap();
+        let runs = object.get_mut("planned_runs").unwrap().as_array_mut().unwrap();
+        runs.remove(0);
+        object.insert("run_count".to_string(), json!(runs.len()));
+        object.remove("plan_sha256");
+        let new_sha = digest_value(&plan).unwrap();
+        plan.as_object_mut()
+            .unwrap()
+            .insert("plan_sha256".to_string(), json!(new_sha));
+        assert!(validate_plan(&plan).is_err(), "missing factorial cell was accepted");
     }
 
     #[test]
