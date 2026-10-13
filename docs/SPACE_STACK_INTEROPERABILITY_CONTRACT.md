@@ -98,6 +98,22 @@ Build one simulation campaign that uses all four projects:
 
 Fault cases: stale ephemeris, frame mismatch, missing terrain tile, malformed covariance, interrupted relay, reduced power, actuator non-finiteness, expired authorization, failed deployment, and recovery-path loss.
 
+## P1 reference lane: conjunction-probability numerics (Earth orbit only)
+
+Mycelix issue [#4973](https://github.com/Luminous-Dynamics/mycelix/issues/4973) tracks independent validation of the current method and its heuristic uncertainty range. Use the public NASA CARA Analysis Tools source as a pinned comparison target, not as a claim of operational approval:
+
+- Upstream baseline: [nasa/CARA_Analysis_Tools](https://github.com/nasa/CARA_Analysis_Tools/commit/ce0f00722c56808755ee0adbe47a4e3d56439484), commit `ce0f00722c56808755ee0adbe47a4e3d56439484` (2026-10-05).
+- 2-D Foster implementation: [`Pc2D_Foster.m`](https://github.com/nasa/CARA_Analysis_Tools/blob/ce0f00722c56808755ee0adbe47a4e3d56439484/DistributedMatlab/ProbabilityOfCollision/Pc2D_Foster.m), Git blob `84dbc44bf6276c1cf66343a680ac7e3b87a5f528`.
+- 3-D Hall implementation: [`Pc3D_Hall.m`](https://github.com/nasa/CARA_Analysis_Tools/blob/ce0f00722c56808755ee0adbe47a4e3d56439484/DistributedMatlab/ProbabilityOfCollision/Pc3D_Hall.m), Git blob `6bf7d84bc7506f3a440b59368d1de58c7fe99d6a`.
+
+Keep these as **separate methods**. Do not use an output from one as the expected answer for the other, and do not apply an Earth-orbit reference case to cislunar dynamics without a separately justified model. For each frozen case, retain the exact input bytes and hashes, both object states and epochs, realized reference-frame convention, covariance matrix values/units, hard-body radius, geometry selector, integration tolerances, upstream commit and file blob, toolchain/version, output Pc, and any validity/remediation flags. Tests must retain remediation status and projected encounter-plane covariance alongside the scalar result; a matching scalar alone can hide differences in covariance conditioning.
+
+Required cases should cover at least: a well-conditioned isotropic baseline with an independent closed-form check; anisotropic covariance; low and high miss-distance regimes; changed hard-body radius; cases near documented method limits; and invalid/degenerate encounter geometry that must produce an explicit refusal rather than a numeric risk. Use an independent implementation or Monte Carlo check where appropriate, with documented tolerances and sampling uncertainty. Do not label `pc/10` or `min(pc*10, 1)` as confidence bounds or conservative guarantees; keep them explicitly heuristic unless a validated uncertainty method replaces them.
+
+The NASA SDK uses MATLAB and its README notes that data files include Git LFS-managed `.mat` assets. Before automation or redistribution, pin the MATLAB/toolbox environment, ensure required LFS data are materialized, and review the applicable NASA Open Source Software Agreement. This contract records comparison targets, not vendoring permission or an observed numerical match.
+
+**Interpretation boundary:** passing these fixtures demonstrates reproducible parity for the pinned cases only. It does not establish covariance realism, source authenticity, forecast calibration, operational risk qualification, or maneuver authority. Maintain the distinct labels for method identity, model validity, numerical verification, calibration, and operational decision.
+
 ## Priority order
 
 **P0 — Contract integrity:** explicit frame/body/time/unit identifiers; reject incompatible inputs; fail closed on non-finite controller inputs/telemetry; bounded propagation APIs.
