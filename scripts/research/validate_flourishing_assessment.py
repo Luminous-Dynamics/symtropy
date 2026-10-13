@@ -298,6 +298,8 @@ def validate_assessment(
             errors.append(f"constraints[{constraint_id}]: must be predeclared no later than analysis_started_at")
 
     # Verify paths before reading bytes; a digest string alone is not evidence of integrity.
+    verified_artifact_contents: dict[str, bytes] = {}
+    preregistration_limit = 64 * 1024
     for artifact_id, artifact in artifacts.items():
         relative = artifact.get("path")
         digest = artifact.get("sha256")
@@ -321,16 +323,111 @@ def validate_assessment(
             if not candidate.is_file():
                 errors.append(f"artifacts[{artifact_id}]: file not found: {relative}")
                 continue
-            hasher = hashlib.sha256()
-            try:
-                with candidate.open("rb") as stream:
-                    for chunk in iter(lambda: stream.read(1024 * 1024), b""):
-                        hasher.update(chunk)
-            except OSError as exc:
-                errors.append(f"artifacts[{artifact_id}]: cannot read {relative}: {exc}")
-                continue
-            if hasher.hexdigest().lower() != digest.lower():
-                errors.append(f"artifacts[{artifact_id}]: SHA-256 mismatch for {relative}")
+
+            if artifact.get("purpose") == "pre-registration":
+                try:
+                    with candidate.open("rb") as stream:
+                        payload = stream.read(preregistration_limit + 1)
+                except OSError as exc:
+                    errors.append(f"artifacts[{artifact_id}]: cannot read {relative}: {exc}")
+                    continue
+                if len(payload) > preregistration_limit:
+                    errors.append(
+                        f"artifacts[{artifact_id}]: pre-registration artifact exceeds {preregistration_limit} bytes"
+                    )
+                    continue
+                actual_digest = hashlib.sha256(payload).hexdigest()
+                if actual_digest.lower() != digest.lower():
+                    errors.append(f"artifacts[{artifact_id}]: SHA-256 mismatch for {relative}")
+                    continue
+                verified_artifact_contents[artifact_id] = payload
+            else:
+                hasher = hashlib.sha256()
+                try:
+                    with candidate.open("rb") as stream:
+                        for chunk in iter(lambda: stream.read(1024 * 1024), b""):
+                            hasher.update(chunk)
+                except OSError as exc:
+                    errors.append(f"artifacts[{artifact_id}]: cannot read {relative}: {exc}")
+                    continue
+                if hasher.hexdigest().lower() != digest.lower():
+                    errors.append(f"artifacts[{artifact_id}]: SHA-256 mismatch for {relative}")
+
+    # A preregistration artifact must bind the actual constraint, not merely be
+    # any digest-registered file labelled "pre-registration".
+    required_prereg_fields = {
+        "contract_version", "artifact_type", "constraint_id", "metric_id",
+        "comparator", "threshold", "threshold_upper", "scope",
+        "non_compensable", "declared_at", "rationale", "registered_by",
+    }
+    for constraint_id, constraint in constraints.items():
+        preregistration_id = constraint.get("preregistration_artifact_id")
+        if not isinstance(preregistration_id, str):
+            continue
+        preregistration_bytes = verified_artifact_contents.get(preregistration_id)
+        if preregistration_bytes is None:
+            # Missing/unverified bytes keep the constraint unresolved through its
+            # tri-state result; other structural or hash errors already fail validation.
+            continue
+        try:
+            preregistration_doc = json.loads(
+                preregistration_bytes.decode("utf-8"),
+                parse_constant=_reject_nonstandard_constant,
+            )
+        except (UnicodeDecodeError, json.JSONDecodeError, ValueError) as exc:
+            errors.append(
+                f"constraints[{constraint_id}]: pre-registration artifact is not valid strict JSON: {exc}"
+            )
+            continue
+        if not isinstance(preregistration_doc, dict) or set(preregistration_doc) != required_prereg_fields:
+            errors.append(
+                f"constraints[{constraint_id}]: pre-registration artifact fields must exactly match the v0.1 contract"
+            )
+            continue
+
+        expected_upper = constraint.get("threshold_upper") if constraint.get("comparator") == "between" else None
+        comparisons = {
+            "contract_version": preregistration_doc.get("contract_version") == "0.1",
+            "artifact_type": preregistration_doc.get("artifact_type") == "humanity_atlas_constraint_preregistration",
+            "constraint_id": preregistration_doc.get("constraint_id") == constraint_id,
+            "metric_id": preregistration_doc.get("metric_id") == constraint.get("metric_id"),
+            "comparator": preregistration_doc.get("comparator") == constraint.get("comparator"),
+            "threshold": _is_number(preregistration_doc.get("threshold"))
+            and _is_number(constraint.get("threshold"))
+            and preregistration_doc["threshold"] == constraint["threshold"],
+            "threshold_upper": (
+                preregistration_doc.get("threshold_upper") is None
+                if expected_upper is None
+                else _is_number(preregistration_doc.get("threshold_upper"))
+                and _is_number(expected_upper)
+                and preregistration_doc["threshold_upper"] == expected_upper
+            ),
+            "scope": preregistration_doc.get("scope") == constraint.get("scope"),
+            "non_compensable": preregistration_doc.get("non_compensable") is True
+            and constraint.get("non_compensable") is True,
+            "rationale": isinstance(preregistration_doc.get("rationale"), str)
+            and len(preregistration_doc["rationale"].strip()) >= 12,
+            "registered_by": isinstance(preregistration_doc.get("registered_by"), str)
+            and len(preregistration_doc["registered_by"].strip()) >= 3,
+        }
+        declared_at = _time(
+            preregistration_doc.get("declared_at"),
+            f"constraints[{constraint_id}].preregistration.declared_at",
+            errors,
+        )
+        predeclared_at = _time(
+            constraint.get("predeclared_at"),
+            f"constraints[{constraint_id}].predeclared_at",
+            errors,
+        )
+        comparisons["declared_at"] = (
+            declared_at is not None and predeclared_at is not None and declared_at == predeclared_at
+        )
+        if not all(comparisons.values()):
+            mismatched = sorted(key for key, matches in comparisons.items() if not matches)
+            errors.append(
+                f"constraints[{constraint_id}]: pre-registration artifact does not bind matching values for {mismatched}"
+            )
 
     metric_ids = set(metrics)
     required_hard_metric_ids = {
