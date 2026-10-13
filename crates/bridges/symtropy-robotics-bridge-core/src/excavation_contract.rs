@@ -619,6 +619,14 @@ mod tests {
             Err(ExcavationContractErrorV1::UndeclaredToolGeometryArtifact)
         );
 
+        let mut unknown_target_geometry = request();
+        unknown_target_geometry.target_geometry_artifact = artifact("undeclared-rock-face", '8');
+        assert_eq!(
+            unknown_target_geometry
+                .validate_against_world(&world(), &"d".repeat(SHA256_HEX_LENGTH)),
+            Err(ExcavationContractErrorV1::UndeclaredTargetGeometryArtifact)
+        );
+
         let mut excessive_feed = request();
         excessive_feed.feed_speed_m_s = 0.01;
         assert_eq!(
@@ -658,6 +666,21 @@ mod tests {
             artifact("different-rock-face", '8');
         assert_eq!(
             stale_geometry.validate_against(&world, &"d".repeat(SHA256_HEX_LENGTH), &expected),
+            Err(ExcavationContractErrorV1::InvalidSpatialDelta)
+        );
+
+        let mut skipped_generation = result(ExcavationDispositionV1::CompletedWithinEnvelope);
+        skipped_generation.spatial_delta.as_mut().unwrap().result_world_generation = 9;
+        assert_eq!(
+            skipped_generation.validate_against(&world, &"d".repeat(SHA256_HEX_LENGTH), &expected),
+            Err(ExcavationContractErrorV1::InvalidSpatialDelta)
+        );
+
+        let mut bad_delta_digest = result(ExcavationDispositionV1::CompletedWithinEnvelope);
+        bad_delta_digest.spatial_delta.as_mut().unwrap().state_delta_artifact.sha256 =
+            "not-a-sha256".to_owned();
+        assert_eq!(
+            bad_delta_digest.validate_against(&world, &"d".repeat(SHA256_HEX_LENGTH), &expected),
             Err(ExcavationContractErrorV1::InvalidSpatialDelta)
         );
     }
