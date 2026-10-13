@@ -2263,7 +2263,7 @@ mod tests {
         let edge = road_rail_transfer_edge();
 
         let mut equipment = cargo_transfer_equipment();
-        equipment.interfaces = BTreeSet::from([HandlingInterface::ForkPockets]);
+        equipment.interfaces = BTreeSet::from([HandlingInterface::TankCoupling]);
         assert_eq!(
             check_cargo_transfer_compatibility(&profile, &instance, &edge, &equipment),
             Err(CargoError::HandlingInterfaceMismatch)
