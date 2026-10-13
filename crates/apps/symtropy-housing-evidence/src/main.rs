@@ -33,6 +33,7 @@ use std::{
 };
 
 const STATUS_PASS: &str = "PASS";
+const EMBEDDED_SCHEMA: &str = include_str!("../../../../docs/built-environment/housing-evidence-manifest.schema.json");
 const STATUS_NOT_EVALUATED: &str = "NOT_EVALUATED";
 const STATUS_BLOCKED: &str = "BLOCKED";
 const STATUS_INSUFFICIENT_EVIDENCE: &str = "INSUFFICIENT_EVIDENCE";
@@ -79,17 +80,16 @@ fn main() -> ExitCode {
 }
 
 fn run(args: Vec<String>) -> Result<(VerificationReport, bool), String> {
-    if args.len() < 2 {
+    if args.is_empty() {
         return Err(usage());
     }
 
-    let schema_path = PathBuf::from(&args[0]);
-    let manifest_path = PathBuf::from(&args[1]);
+    let manifest_path = PathBuf::from(&args[0]);
     let mut expected_claims_path: Option<PathBuf> = None;
     let mut artifact_root: Option<PathBuf> = None;
     let mut require_pass = false;
 
-    let mut index = 2;
+    let mut index = 1;
     while index < args.len() {
         match args[index].as_str() {
             "--expected-claims" => {
@@ -108,7 +108,8 @@ fn run(args: Vec<String>) -> Result<(VerificationReport, bool), String> {
         index += 1;
     }
 
-    let schema = read_json(&schema_path)?;
+    let schema: Value = serde_json::from_str(EMBEDDED_SCHEMA)
+        .map_err(|error| format!("embedded evidence schema is not valid JSON: {error}"))?;
     reject_external_refs(&schema)?;
     draft202012::meta::validate(&schema)
         .map_err(|error| format!("schema is invalid under JSON Schema 2020-12: {error}"))?;
