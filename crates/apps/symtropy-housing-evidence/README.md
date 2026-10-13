@@ -6,7 +6,7 @@ This binary is a fail-closed verifier for the draft housing evidence manifest. I
 
 - validates manifests against the checked-in JSON Schema Draft 2020-12 schema embedded at compile time;
 - rejects external schema references, so schema validation cannot fetch remote content;
-- checks artifact/claim identifiers and SHA-256 cross-references;
+- checks artifact/claim identifiers and SHA-256 cross-references, including the executable/container and configuration digests of tools used by evaluated claims;
 - requires a separately provided mandatory-claim set before accepting an aggregate `PASS`;
 - requires local artifact bytes under an explicit root and verifies their SHA-256 digests for every referenced artifact in a candidate `PASS`;
 - emits a machine-readable report that distinguishes the declared status from the verifier's effective status.
