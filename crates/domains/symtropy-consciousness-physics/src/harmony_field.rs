@@ -365,10 +365,7 @@ impl<const D: usize> HarmonyField<D> {
                     return Err(HarmonyFieldInputError::NonFiniteResonanceInput { vector, index });
                 }
                 if *value < 0.0 {
-                    return Err(HarmonyFieldInputError::NegativeResonanceInput {
-                        vector,
-                        index,
-                    });
+                    return Err(HarmonyFieldInputError::NegativeResonanceInput { vector, index });
                 }
             }
         }
@@ -851,14 +848,7 @@ mod tests {
             Err(HarmonyFieldInputError::NegativeCreatedAt { .. })
         ));
         assert!(matches!(
-            HarmonySource::<3>::try_new(
-                Point::origin(),
-                valid_activations,
-                1.0,
-                10.0,
-                0.0,
-                -1.0,
-            ),
+            HarmonySource::<3>::try_new(Point::origin(), valid_activations, 1.0, 10.0, 0.0, -1.0,),
             Err(HarmonyFieldInputError::NonPositivePropagationSpeed { .. })
         ));
         let mut over_activation = valid_activations;
