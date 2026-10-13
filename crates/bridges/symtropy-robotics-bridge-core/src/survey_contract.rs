@@ -89,6 +89,23 @@ fn validate_artifact(
     Ok(())
 }
 
+fn verify_content_addressed<T: Serialize>(
+    value: &T,
+    artifact: &ArtifactRef,
+    path: &'static str,
+) -> Result<(), SurveyContractErrorV1> {
+    validate_artifact(artifact, path)?;
+    let bytes = serde_json::to_vec(value).map_err(|_| SurveyContractErrorV1::InvalidPayload)?;
+    if bytes.len() > MAX_SURVEY_EVIDENCE_BYTES {
+        return Err(SurveyContractErrorV1::PayloadTooLarge);
+    }
+    let actual = format!("{:x}", Sha256::digest(&bytes));
+    if !actual.eq_ignore_ascii_case(&artifact.sha256) {
+        return Err(SurveyContractErrorV1::PayloadDigestMismatch);
+    }
+    Ok(())
+}
+
 fn ensure_unique<'a>(
     values: impl IntoIterator<Item = &'a str>,
     field: &'static str,
@@ -612,6 +629,8 @@ pub struct SurveyAccuracyMetricsV1 {
     pub vertical_accuracy_95_m: f64,
     /// Minimum reliably detectable change under the declared method and domain.
     pub detection_limit_m: Option<f64>,
+    pub estimated_changed_volume_m3: Option<f64>,
+    pub changed_volume_standard_uncertainty_m3: Option<f64>,
     pub uncertainty_method_id: String,
 }
 
@@ -635,6 +654,17 @@ impl SurveyAccuracyMetricsV1 {
         {
             return Err(SurveyContractErrorV1::InvalidProcessingReceipt(
                 "detection_limit_m",
+            ));
+        }
+        if self
+            .estimated_changed_volume_m3
+            .is_some_and(|value| !value.is_finite() || value < 0.0)
+            || self
+                .changed_volume_standard_uncertainty_m3
+                .is_some_and(|value| !value.is_finite() || value < 0.0)
+        {
+            return Err(SurveyContractErrorV1::InvalidProcessingReceipt(
+                "volume_metrics",
             ));
         }
         if !identity_is_valid(&self.uncertainty_method_id) {
@@ -775,16 +805,16 @@ impl SurveyProcessingReceiptV1 {
                     "qualified_without_evidence",
                 ));
             }
-            if self.stage == SurveyProcessingStageV1::QualifiedChangeEstimate
-                && self
-                    .accuracy_metrics
-                    .as_ref()
-                    .and_then(|metrics| metrics.detection_limit_m)
-                    .is_none()
-            {
-                return Err(SurveyContractErrorV1::InvalidProcessingReceipt(
-                    "qualified_change_without_detection_limit",
-                ));
+            if self.stage == SurveyProcessingStageV1::QualifiedChangeEstimate {
+                let metrics = self.accuracy_metrics.as_ref().expect("checked above");
+                if metrics.detection_limit_m.is_none()
+                    || metrics.estimated_changed_volume_m3.is_none()
+                    || metrics.changed_volume_standard_uncertainty_m3.is_none()
+                {
+                    return Err(SurveyContractErrorV1::InvalidProcessingReceipt(
+                        "qualified_change_without_change_metrics",
+                    ));
+                }
             }
         } else if self.stage == SurveyProcessingStageV1::QualifiedChangeEstimate {
             return Err(SurveyContractErrorV1::InvalidProcessingReceipt(
@@ -794,12 +824,24 @@ impl SurveyProcessingReceiptV1 {
         Ok(())
     }
 
+    pub fn verify_artifact(
+        &self,
+        artifact: &ArtifactRef,
+    ) -> Result<(), SurveyContractErrorV1> {
+        self.validate_basic()?;
+        verify_content_addressed(self, artifact, "processing_receipt_artifact")
+    }
+
     pub fn validate_against(
         &self,
         observations: &[SurveyObservationV1],
         frames: &[SurveyCoordinateFrameV1],
     ) -> Result<(), SurveyContractErrorV1> {
         self.validate_basic()?;
+        ensure_unique(
+            observations.iter().map(|observation| observation.observation_id.as_str()),
+            "observation_id",
+        )?;
 
         let observation_map: BTreeMap<&str, &SurveyObservationV1> = observations
             .iter()
@@ -844,6 +886,13 @@ impl SurveyProcessingReceiptV1 {
                     .ok_or_else(|| SurveyContractErrorV1::UnknownObservation(id.clone()))?;
                 if expected_role.is_some_and(|role| observation.role != role) {
                     return Err(SurveyContractErrorV1::InvalidProcessingReceipt(field));
+                }
+                if expected_role.is_some()
+                    && !self.source_frame_ids.contains(&observation.frame_id)
+                {
+                    return Err(SurveyContractErrorV1::InvalidProcessingReceipt(
+                        "observation_frame_not_declared",
+                    ));
                 }
             }
         }
@@ -931,9 +980,9 @@ impl SurveyChangeCandidateV1 {
         current_frame_id: &str,
         qualification_receipt_artifact: &ArtifactRef,
         receipt: &SurveyProcessingReceiptV1,
-        observations: &[SurveyObservationV1],
-        frames: &[SurveyCoordinateFrameV1],
+        evidence: &SurveyEvidenceEnvelopeV1,
         policy: &SurveyAdmissionPolicyV1,
+        policy_artifact: &ArtifactRef,
     ) -> Result<(), SurveyContractErrorV1> {
         self.validate_basic()?;
         policy.validate()?;
@@ -948,12 +997,15 @@ impl SurveyChangeCandidateV1 {
             return Err(SurveyContractErrorV1::CoordinateFrameMismatch);
         }
         if self.qualification_receipt_artifact != *qualification_receipt_artifact
-            || self.admission_policy_artifact != policy.policy_artifact
+            || self.admission_policy_artifact != *policy_artifact
         {
             return Err(SurveyContractErrorV1::AdmissionPolicyMismatch);
         }
 
-        receipt.validate_against(observations, frames)?;
+        evidence.validate()?;
+        receipt.verify_artifact(qualification_receipt_artifact)?;
+        policy.verify_artifact(policy_artifact)?;
+        receipt.validate_against(&evidence.observations, &evidence.frames)?;
         if receipt.stage != SurveyProcessingStageV1::QualifiedChangeEstimate
             || receipt.disposition != SurveyProcessingDispositionV1::Qualified
             || receipt.output_artifact.as_ref() != Some(&self.change_estimate_artifact)
@@ -977,6 +1029,13 @@ impl SurveyChangeCandidateV1 {
             .accuracy_metrics
             .as_ref()
             .ok_or(SurveyContractErrorV1::QualificationReceiptMismatch)?;
+        if metrics.detection_limit_m != Some(self.minimum_detectable_change_m)
+            || metrics.estimated_changed_volume_m3 != Some(self.changed_volume_m3)
+            || metrics.changed_volume_standard_uncertainty_m3
+                != Some(self.volume_standard_uncertainty_m3)
+        {
+            return Err(SurveyContractErrorV1::QualificationReceiptMismatch);
+        }
         if metrics.horizontal_accuracy_95_m > policy.max_horizontal_accuracy_95_m
             || metrics.vertical_accuracy_95_m > policy.max_vertical_accuracy_95_m
         {
@@ -1004,7 +1063,6 @@ impl SurveyChangeCandidateV1 {
 pub struct SurveyAdmissionPolicyV1 {
     pub schema_version: u16,
     pub policy_id: String,
-    pub policy_artifact: ArtifactRef,
     pub minimum_independent_checkpoints: usize,
     pub max_horizontal_accuracy_95_m: f64,
     pub max_vertical_accuracy_95_m: f64,
@@ -1034,8 +1092,15 @@ impl SurveyAdmissionPolicyV1 {
         {
             return Err(SurveyContractErrorV1::InvalidPayload);
         }
-        validate_artifact(&self.policy_artifact, "policy_artifact")?;
         Ok(())
+    }
+
+    pub fn verify_artifact(
+        &self,
+        artifact: &ArtifactRef,
+    ) -> Result<(), SurveyContractErrorV1> {
+        self.validate()?;
+        verify_content_addressed(self, artifact, "admission_policy_artifact")
     }
 }
 
@@ -1328,6 +1393,8 @@ mod tests {
             horizontal_accuracy_95_m: 0.02,
             vertical_accuracy_95_m: 0.04,
             detection_limit_m: Some(0.1),
+            estimated_changed_volume_m3: Some(1.0),
+            changed_volume_standard_uncertainty_m3: Some(0.1),
             uncertainty_method_id: "held-out-checkpoint-v1".to_owned(),
         }
     }
@@ -1356,11 +1423,28 @@ mod tests {
         }
     }
 
+    fn serialized_artifact<T: Serialize>(id: &str, value: &T) -> ArtifactRef {
+        let bytes = serde_json::to_vec(value).expect("serialize artifact payload");
+        ArtifactRef {
+            artifact_id: id.to_owned(),
+            uri: format!("survey-test://{id}"),
+            sha256: format!("{:x}", Sha256::digest(&bytes)),
+        }
+    }
+
+    fn evidence_for_admission() -> SurveyEvidenceEnvelopeV1 {
+        let mut evidence = envelope();
+        evidence.observations = vec![
+            observation("fit", SurveyObservationRoleV1::FitOrCalibration, 200),
+            observation("check", SurveyObservationRoleV1::IndependentCheckpoint, 300),
+        ];
+        evidence
+    }
+
     fn policy() -> SurveyAdmissionPolicyV1 {
         SurveyAdmissionPolicyV1 {
             schema_version: 1,
             policy_id: "mine-survey-admission-v1".to_owned(),
-            policy_artifact: artifact("policy"),
             minimum_independent_checkpoints: 1,
             max_horizontal_accuracy_95_m: 0.05,
             max_vertical_accuracy_95_m: 0.05,
@@ -1526,20 +1610,17 @@ mod tests {
     fn candidate_admission_binds_generation_geometry_frame_and_policy() {
         let earlier = artifact("earlier-survey");
         let later = artifact("later-survey");
-        let receipt_artifact = artifact("receipt-artifact");
         let admission_policy = policy();
+        let policy_artifact = serialized_artifact("policy-artifact", &admission_policy);
+        let receipt = qualified_receipt(&earlier, &later);
+        let receipt_artifact = serialized_artifact("receipt-artifact", &receipt);
+        let evidence = evidence_for_admission();
         let candidate = candidate(
             &earlier,
             &later,
             &receipt_artifact,
-            &admission_policy.policy_artifact,
+            &policy_artifact,
         );
-        let receipt = qualified_receipt(&earlier, &later);
-        let observations = [
-            observation("fit", SurveyObservationRoleV1::FitOrCalibration, 200),
-            observation("check", SurveyObservationRoleV1::IndependentCheckpoint, 300),
-        ];
-        let frames = [frame("mine-local")];
 
         assert!(candidate
             .validate_for_admission(
@@ -1548,9 +1629,9 @@ mod tests {
                 "mine-local",
                 &receipt_artifact,
                 &receipt,
-                &observations,
-                &frames,
+                &evidence,
                 &admission_policy,
+                &policy_artifact,
             )
             .is_ok());
         assert_eq!(
@@ -1560,9 +1641,9 @@ mod tests {
                 "mine-local",
                 &receipt_artifact,
                 &receipt,
-                &observations,
-                &frames,
+                &evidence,
                 &admission_policy,
+                &policy_artifact,
             ),
             Err(SurveyContractErrorV1::StaleWorldGeneration)
         );
@@ -1573,9 +1654,9 @@ mod tests {
                 "mine-local",
                 &receipt_artifact,
                 &receipt,
-                &observations,
-                &frames,
+                &evidence,
                 &admission_policy,
+                &policy_artifact,
             ),
             Err(SurveyContractErrorV1::BaseGeometryMismatch)
         );
@@ -1585,28 +1666,33 @@ mod tests {
     fn candidate_rejects_uncertainty_over_policy_limit() {
         let earlier = artifact("earlier-survey");
         let later = artifact("later-survey");
-        let receipt_artifact = artifact("receipt-artifact");
         let admission_policy = policy();
+        let mut receipt = qualified_receipt(&earlier, &later);
+        receipt
+            .accuracy_metrics
+            .as_mut()
+            .expect("metrics")
+            .changed_volume_standard_uncertainty_m3 = Some(0.21);
+        let receipt_artifact = serialized_artifact("receipt-artifact", &receipt);
+        let policy_artifact = serialized_artifact("policy-artifact", &admission_policy);
         let mut candidate = candidate(
             &earlier,
             &later,
             &receipt_artifact,
-            &admission_policy.policy_artifact,
+            &policy_artifact,
         );
         candidate.volume_standard_uncertainty_m3 = 0.21;
+
         assert_eq!(
             candidate.validate_for_admission(
                 7,
                 &artifact("geometry-before"),
                 "mine-local",
                 &receipt_artifact,
-                &qualified_receipt(&earlier, &later),
-                &[
-                    observation("fit", SurveyObservationRoleV1::FitOrCalibration, 200),
-                    observation("check", SurveyObservationRoleV1::IndependentCheckpoint, 300),
-                ],
-                &[frame("mine-local")],
+                &receipt,
+                &evidence_for_admission(),
                 &admission_policy,
+                &policy_artifact,
             ),
             Err(SurveyContractErrorV1::VolumeUncertaintyExceeded)
         );
@@ -1616,28 +1702,28 @@ mod tests {
     fn candidate_below_detection_limit_ratio_is_not_admissible() {
         let earlier = artifact("earlier-survey");
         let later = artifact("later-survey");
-        let receipt_artifact = artifact("receipt-artifact");
         let admission_policy = policy();
+        let receipt = qualified_receipt(&earlier, &later);
+        let receipt_artifact = serialized_artifact("receipt-artifact", &receipt);
+        let policy_artifact = serialized_artifact("policy-artifact", &admission_policy);
         let mut candidate = candidate(
             &earlier,
             &later,
             &receipt_artifact,
-            &admission_policy.policy_artifact,
+            &policy_artifact,
         );
         candidate.change_magnitude_m = 0.15;
+
         assert_eq!(
             candidate.validate_for_admission(
                 7,
                 &artifact("geometry-before"),
                 "mine-local",
                 &receipt_artifact,
-                &qualified_receipt(&earlier, &later),
-                &[
-                    observation("fit", SurveyObservationRoleV1::FitOrCalibration, 200),
-                    observation("check", SurveyObservationRoleV1::IndependentCheckpoint, 300),
-                ],
-                &[frame("mine-local")],
+                &receipt,
+                &evidence_for_admission(),
                 &admission_policy,
+                &policy_artifact,
             ),
             Err(SurveyContractErrorV1::ChangeBelowDetectionLimit)
         );
