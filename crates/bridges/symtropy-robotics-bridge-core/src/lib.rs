@@ -8,6 +8,7 @@ pub mod haptic;
 pub mod motor;
 pub mod platform;
 pub mod safety;
+pub mod world_contract;
 
 pub use agent::{RoboticAgent, spawn_robot_body};
 pub use haptic::{HapticAttestation, HapticOracle};
