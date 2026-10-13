@@ -122,6 +122,375 @@ impl Edge {
     }
 }
 
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub enum CargoModuleFamily {
+    IsoSeries1Container,
+    SwapBody,
+    Pallet,
+    RollCage,
+    ReturnableCrate,
+    TankContainer,
+    FlatRack,
+    FlexibleIntermediateBulkContainer,
+    AircraftUld,
+    ColdChainPod,
+    Custom,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub enum HandlingInterface {
+    IsoCornerFittings,
+    TopLift,
+    ForkPockets,
+    GrapplerRecess,
+    AircraftRestraint,
+    RollerDeck,
+    TankCoupling,
+    BulkDischarge,
+    ManualHandling,
+    Custom(String),
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum ProfileConformity {
+    Verified {
+        standard_id: String,
+        edition: String,
+        evidence_digest: String,
+    },
+    DeclaredUnverified,
+    NonConforming,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct TemperatureBand {
+    pub min_millicelsius: i32,
+    pub max_millicelsius: i32,
+}
+
+impl TemperatureBand {
+    pub fn validate(self) -> Result<Self, CargoError> {
+        if self.min_millicelsius > self.max_millicelsius {
+            return Err(CargoError::InvalidTemperatureBand);
+        }
+        Ok(self)
+    }
+
+    fn contains_band(self, required: Self) -> bool {
+        self.min_millicelsius <= required.min_millicelsius
+            && self.max_millicelsius >= required.max_millicelsius
+    }
+
+    fn contains(self, observed_millicelsius: i32) -> bool {
+        (self.min_millicelsius..=self.max_millicelsius).contains(&observed_millicelsius)
+    }
+}
+
+/// Versioned physical cargo-unit contract. Dimensions use millimetres, mass
+/// uses grams, volume uses litres, and temperatures use thousandths of °C.
+/// Profile conformity is data, not a claim inferred from approximate geometry.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct CargoModuleProfile {
+    pub profile_id: String,
+    pub family: CargoModuleFamily,
+    pub conformity: ProfileConformity,
+    pub outer_dimensions_mm: [u32; 3],
+    pub usable_volume_litres: u64,
+    pub tare_mass_grams: u64,
+    pub max_payload_mass_grams: u64,
+    pub max_gross_mass_grams: u64,
+    pub interfaces: BTreeSet<HandlingInterface>,
+    pub permitted_modes: BTreeSet<Mode>,
+    pub required_temperature_millicelsius: Option<TemperatureBand>,
+    pub requires_power: bool,
+    pub requires_intact_seal: bool,
+}
+
+impl CargoModuleProfile {
+    pub fn validate(&self) -> Result<(), CargoError> {
+        if self.profile_id.trim().is_empty() {
+            return Err(CargoError::InvalidProfile("profile identity is empty"));
+        }
+        if self.outer_dimensions_mm.contains(&0) || self.usable_volume_litres == 0 {
+            return Err(CargoError::InvalidProfile(
+                "dimensions and usable volume must be positive",
+            ));
+        }
+        if self.max_gross_mass_grams < self.tare_mass_grams
+            || self
+                .tare_mass_grams
+                .checked_add(self.max_payload_mass_grams)
+                .is_none_or(|total| total > self.max_gross_mass_grams)
+        {
+            return Err(CargoError::InvalidProfile(
+                "tare plus rated payload exceeds maximum gross mass",
+            ));
+        }
+        if self.interfaces.is_empty() || self.permitted_modes.is_empty() {
+            return Err(CargoError::InvalidProfile(
+                "at least one handling interface and permitted mode are required",
+            ));
+        }
+        if let Some(band) = self.required_temperature_millicelsius {
+            band.validate()?;
+            if !self.requires_power {
+                // Passive insulated modules are permitted; this boolean means
+                // the module itself requires external power, not refrigeration.
+            }
+        }
+        match &self.conformity {
+            ProfileConformity::Verified {
+                standard_id,
+                edition,
+                evidence_digest,
+            } if standard_id.trim().is_empty()
+                || edition.trim().is_empty()
+                || evidence_digest.trim().is_empty() =>
+            {
+                return Err(CargoError::InvalidProfile(
+                    "verified profile requires standard, edition and evidence digest",
+                ));
+            }
+            ProfileConformity::Verified { .. }
+            | ProfileConformity::DeclaredUnverified
+            | ProfileConformity::NonConforming => {}
+        }
+        Ok(())
+    }
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum CargoSealStatus {
+    Intact,
+    Broken,
+    NotPresent,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum CargoServiceability {
+    Serviceable,
+    InspectionRequired,
+    Damaged,
+    Quarantined,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct CargoModuleInstance {
+    pub module_id: String,
+    pub profile_id: String,
+    pub payload_mass_grams: u64,
+    pub occupied_volume_litres: u64,
+    pub contents_digest: String,
+    pub seal_status: CargoSealStatus,
+    pub serviceability: CargoServiceability,
+    /// Required when the profile declares a controlled temperature band.
+    pub observed_temperature_millicelsius: Option<i32>,
+}
+
+impl CargoModuleInstance {
+    pub fn validate_against(
+        &self,
+        profile: &CargoModuleProfile,
+    ) -> Result<u64, CargoError> {
+        profile.validate()?;
+        if self.module_id.trim().is_empty()
+            || self.profile_id != profile.profile_id
+            || self.contents_digest.trim().is_empty()
+        {
+            return Err(CargoError::InvalidInstance(
+                "module/profile identity and contents digest are required",
+            ));
+        }
+        if self.payload_mass_grams > profile.max_payload_mass_grams {
+            return Err(CargoError::PayloadExceeded);
+        }
+        if self.occupied_volume_litres > profile.usable_volume_litres {
+            return Err(CargoError::VolumeExceeded);
+        }
+        if profile.requires_intact_seal && self.seal_status != CargoSealStatus::Intact {
+            return Err(CargoError::SealRequirementFailed);
+        }
+        if self.serviceability != CargoServiceability::Serviceable {
+            return Err(CargoError::ModuleNotServiceable);
+        }
+        if let Some(required_band) = profile.required_temperature_millicelsius {
+            let Some(observed) = self.observed_temperature_millicelsius else {
+                return Err(CargoError::TemperatureEvidenceMissing);
+            };
+            if !required_band.contains(observed) {
+                return Err(CargoError::TemperatureOutOfRange);
+            }
+        }
+        profile
+            .tare_mass_grams
+            .checked_add(self.payload_mass_grams)
+            .filter(|gross| *gross <= profile.max_gross_mass_grams)
+            .ok_or(CargoError::GrossMassExceeded)
+    }
+}
+
+/// The declared limits and interfaces of a specific vehicle position, rack,
+/// aircraft ULD position, crane, or terminal handling station.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct HandlingEquipmentProfile {
+    pub equipment_id: String,
+    pub mode: Mode,
+    pub max_module_dimensions_mm: [u32; 3],
+    pub max_module_gross_mass_grams: u64,
+    pub supported_families: BTreeSet<CargoModuleFamily>,
+    pub interfaces: BTreeSet<HandlingInterface>,
+    pub available_temperature_millicelsius: Option<TemperatureBand>,
+    pub supplies_module_power: bool,
+    pub requires_verified_aircraft_uld: bool,
+}
+
+impl HandlingEquipmentProfile {
+    pub fn validate(&self) -> Result<(), CargoError> {
+        if self.equipment_id.trim().is_empty()
+            || self.max_module_dimensions_mm.contains(&0)
+            || self.max_module_gross_mass_grams == 0
+            || self.supported_families.is_empty()
+            || self.interfaces.is_empty()
+        {
+            return Err(CargoError::InvalidEquipment(
+                "identity, dimensions, mass, supported families and interfaces are required",
+            ));
+        }
+        if let Some(band) = self.available_temperature_millicelsius {
+            band.validate()?;
+        }
+        Ok(())
+    }
+}
+
+/// Check one actual module against one piece of actual handling equipment.
+/// This does not certify the equipment or prove route-wide feasibility.
+pub fn check_module_compatibility(
+    profile: &CargoModuleProfile,
+    instance: &CargoModuleInstance,
+    equipment: &HandlingEquipmentProfile,
+) -> Result<(), CargoError> {
+    let gross_mass = instance.validate_against(profile)?;
+    equipment.validate()?;
+
+    if !profile.permitted_modes.contains(&equipment.mode) {
+        return Err(CargoError::ModeNotPermitted);
+    }
+    if profile.conformity == ProfileConformity::NonConforming {
+        return Err(CargoError::ProfileNonConforming);
+    }
+    if equipment.mode == Mode::Air
+        && equipment.requires_verified_aircraft_uld
+        && (profile.family != CargoModuleFamily::AircraftUld
+            || !matches!(profile.conformity, ProfileConformity::Verified { .. }))
+    {
+        return Err(CargoError::AircraftUldNotVerified);
+    }
+    if !equipment.supported_families.contains(&profile.family) {
+        return Err(CargoError::FamilyNotSupported);
+    }
+    if profile
+        .interfaces
+        .iter()
+        .any(|interface| !equipment.interfaces.contains(interface))
+    {
+        return Err(CargoError::HandlingInterfaceMismatch);
+    }
+    if profile
+        .outer_dimensions_mm
+        .iter()
+        .zip(equipment.max_module_dimensions_mm)
+        .any(|(module, limit)| *module > limit)
+    {
+        return Err(CargoError::DimensionsExceeded);
+    }
+    if gross_mass > equipment.max_module_gross_mass_grams {
+        return Err(CargoError::EquipmentGrossMassExceeded);
+    }
+    if profile.requires_power && !equipment.supplies_module_power {
+        return Err(CargoError::ModulePowerUnavailable);
+    }
+    if let Some(required) = profile.required_temperature_millicelsius {
+        let Some(available) = equipment.available_temperature_millicelsius else {
+            return Err(CargoError::TemperatureControlUnavailable);
+        };
+        if !available.contains_band(required) {
+            return Err(CargoError::TemperatureControlUnavailable);
+        }
+    }
+    Ok(())
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum CargoError {
+    InvalidProfile(&'static str),
+    InvalidInstance(&'static str),
+    InvalidEquipment(&'static str),
+    InvalidTemperatureBand,
+    PayloadExceeded,
+    VolumeExceeded,
+    GrossMassExceeded,
+    SealRequirementFailed,
+    ModuleNotServiceable,
+    TemperatureEvidenceMissing,
+    TemperatureOutOfRange,
+    ModeNotPermitted,
+    ProfileNonConforming,
+    AircraftUldNotVerified,
+    FamilyNotSupported,
+    HandlingInterfaceMismatch,
+    DimensionsExceeded,
+    EquipmentGrossMassExceeded,
+    ModulePowerUnavailable,
+    TemperatureControlUnavailable,
+}
+
+impl fmt::Display for CargoError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::InvalidProfile(reason) => write!(f, "invalid cargo module profile: {reason}"),
+            Self::InvalidInstance(reason) => write!(f, "invalid cargo module instance: {reason}"),
+            Self::InvalidEquipment(reason) => {
+                write!(f, "invalid cargo handling equipment profile: {reason}")
+            }
+            Self::InvalidTemperatureBand => write!(f, "temperature band has minimum above maximum"),
+            Self::PayloadExceeded => write!(f, "cargo payload exceeds the module profile rating"),
+            Self::VolumeExceeded => write!(f, "cargo volume exceeds usable module volume"),
+            Self::GrossMassExceeded => write!(f, "module gross mass exceeds its profile rating"),
+            Self::SealRequirementFailed => write!(f, "required module seal is not intact"),
+            Self::ModuleNotServiceable => write!(f, "module is not currently serviceable"),
+            Self::TemperatureEvidenceMissing => {
+                write!(f, "temperature-controlled module has no current temperature evidence")
+            }
+            Self::TemperatureOutOfRange => {
+                write!(f, "observed cargo temperature is outside the required band")
+            }
+            Self::ModeNotPermitted => write!(f, "module profile does not permit this transport mode"),
+            Self::ProfileNonConforming => write!(f, "module profile is marked nonconforming"),
+            Self::AircraftUldNotVerified => {
+                write!(f, "air transport requires a verified aircraft ULD profile")
+            }
+            Self::FamilyNotSupported => write!(f, "equipment does not support this module family"),
+            Self::HandlingInterfaceMismatch => {
+                write!(f, "module handling/locking interfaces do not match equipment")
+            }
+            Self::DimensionsExceeded => {
+                write!(f, "module envelope exceeds the equipment profile")
+            }
+            Self::EquipmentGrossMassExceeded => {
+                write!(f, "module gross mass exceeds equipment position rating")
+            }
+            Self::ModulePowerUnavailable => write!(f, "module power requirement cannot be met"),
+            Self::TemperatureControlUnavailable => {
+                write!(f, "equipment cannot satisfy the module temperature requirement")
+            }
+        }
+    }
+}
+
+impl std::error::Error for CargoError {}
+
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Network {
     pub currency_code: String,
