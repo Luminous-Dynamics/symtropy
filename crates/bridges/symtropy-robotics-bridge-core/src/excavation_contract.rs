@@ -351,7 +351,8 @@ fn is_sha256_hex(value: &str) -> bool {
 mod tests {
     use super::*;
     use crate::material_profile::{
-        MaterialEvidenceClassV1, MaterialPropertyV1, MaterialQuantityV1,
+        MaterialEvidenceClassV1, MaterialPropertyV1, MaterialQuantityV1, RockLithologyV1,
+        RockMaterialConditionV1, RockMaterialProfileV1,
     };
     use crate::world_contract::{
         CoordinateFrameV1, FrameTransformV1, PhysicsFidelity, SolverDeclarationV1,
