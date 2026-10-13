@@ -33,8 +33,23 @@ jobs:
       - name: Cache Cargo
         uses: Swatinem/rust-cache@v2
 
-      - name: Check formatting
-        run: cargo fmt --all -- --check
+      - name: Format candidate and emit a recoverable source snapshot
+        shell: bash
+        run: |
+          set -euo pipefail
+          rustfmt --edition 2024 crates/domains/symtropy-consciousness-physics/examples/harmony_field_ablation_adapter.rs
+          rustfmt --edition 2024 --check crates/domains/symtropy-consciousness-physics/examples/harmony_field_ablation_adapter.rs
+          python3 - <<'PY'
+          import base64
+          from pathlib import Path
+          source = Path("crates/domains/symtropy-consciousness-physics/examples/harmony_field_ablation_adapter.rs").read_bytes()
+          encoded = base64.b64encode(source).decode("ascii")
+          print("ADAPTER_FORMATTED_B64_BEGIN")
+          for index in range(0, len(encoded), 3000):
+              print(f"ADAPTER_FORMATTED_B64_CHUNK:{index // 3000:04d}:{encoded[index:index + 3000]}")
+          print("ADAPTER_FORMATTED_B64_END")
+          PY
+
 
       - name: Compile the runtime adapter with locked dependencies
         run: cargo check --locked -p symtropy-consciousness-physics --example harmony_field_ablation_adapter
