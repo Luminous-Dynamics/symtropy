@@ -8,6 +8,7 @@ pub mod haptic;
 pub mod material_profile;
 pub mod motor;
 pub mod platform;
+pub mod rock_cutting_metrics;
 pub mod safety;
 pub mod sensor_model;
 pub mod world_contract;
@@ -23,5 +24,9 @@ pub use material_profile::{
     RockMaterialConditionV1, RockMaterialProfileV1,
 };
 pub use motor::{MotorPlanner, UniformGainPlanner};
+pub use rock_cutting_metrics::{
+    CuttingMetricError, CuttingPowerBasisV1, CuttingPowerInputV1, MechanicalSpecificEnergyV1,
+    RockCuttingObservationV1,
+};
 pub use platform::PlatformType;
 pub use safety::JointSafetyAuthority;
