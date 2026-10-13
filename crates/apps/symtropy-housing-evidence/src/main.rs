@@ -1291,7 +1291,8 @@ mod tests {
         assert!(result.schema_valid, "{:?}", result.issues);
         assert_eq!(result.effective_status, STATUS_FAIL);
         assert!(result.issues.iter().any(|issue| {
-            issue.contains("FAIL takes precedence")
+            issue.contains("understates mandatory claim state")
+                && issue.contains("FAIL")
                 && issue.contains("example-structural-claim")
         }));
         fs::remove_dir_all(root).expect("clean temp dir");
