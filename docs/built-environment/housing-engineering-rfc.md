@@ -27,6 +27,12 @@ The platform must make it easy to discover what is known, what failed, what is m
 
 The projects exchange artifacts through versioned, documented interfaces. Avoid hidden cross-project assumptions and avoid making one repository a monolithic dependency for all the others.
 
+### Repository-resolution note: Sol-Atlas
+
+The public standalone Symtropy repository still marks its `sol-atlas-core` and `sol-atlas-bevy` path dependencies as stripped, and its `atlas` feature is described as a planetary-globe/game view. I did not find a canonical public `Luminous-Dynamics/sol-atlas` repository in this review. The separate public [`terra-atlas` repository](https://github.com/Luminous-Dynamics/terra-atlas) describes itself as a renewable-energy investment and project-mapping platform; it must not be assumed to be the same system or to provide authoritative housing survey, geotechnical, flood, or code-compliance data.
+
+Therefore, the Sol-Atlas adapter remains an **unresolved interface**, not an implemented dependency. Before coding the adapter, resolve the canonical source/repo and define the data contract. Any site facts used for a real design must carry source, resolution, capture date, coordinate reference system, coverage, uncertainty and suitability notes, and must explicitly state when a survey, geotechnical investigation or specialist study is still required.
+
 ## 3. Shared model and evidence contract
 
 ### 3.1 Interchange
