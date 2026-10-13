@@ -55,6 +55,120 @@ pub enum FrameHandednessV1 {
     LeftHanded,
 }
 
+/// Exact signed-permutation matrix mapping vector components from one convention
+/// into another compatible convention. Every row and column has one nonzero
+/// element, either -1 or +1, so the mapping introduces no interpolation.
+pub type AxisConversionMatrixV1 = [[i8; 3]; 3];
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum FrameConventionConversionError {
+    IncompatibleConventionFamilies,
+    ExternalConventionRequiresAdapter,
+    NonFiniteVector,
+}
+
+impl fmt::Display for FrameConventionConversionError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::IncompatibleConventionFamilies => f.write_str(
+                "coordinate conventions use different reference families; an explicit frame transform is required",
+            ),
+            Self::ExternalConventionRequiresAdapter => f.write_str(
+                "external coordinate conventions require an explicit, separately verified adapter",
+            ),
+            Self::NonFiniteVector => f.write_str("cannot convert a non-finite vector"),
+        }
+    }
+}
+
+impl std::error::Error for FrameConventionConversionError {}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum KnownConventionFamily {
+    Body,
+    LocalGeographic,
+    CameraOptical,
+}
+
+/// Return a deterministic component-conversion matrix for two conventions that
+/// describe the same physical reference family. This function never guesses a
+/// rotation between body, geographic, and camera-optical frames.
+pub fn convention_conversion_matrix_v1(
+    from: &FrameAxisConventionV1,
+    to: &FrameAxisConventionV1,
+) -> Result<AxisConversionMatrixV1, FrameConventionConversionError> {
+    let (from_family, from_to_common) = convention_basis_to_common(from)?;
+    let (to_family, to_to_common) = convention_basis_to_common(to)?;
+    if from_family != to_family {
+        return Err(FrameConventionConversionError::IncompatibleConventionFamilies);
+    }
+
+    // v_common = B_from * v_from, while v_target = B_target^T * v_common.
+    Ok(multiply_axis_matrices(transpose_axis_matrix(to_to_common), from_to_common))
+}
+
+/// Convert finite vector components between compatible conventions.
+pub fn convert_vector_v1(
+    vector: [f64; 3],
+    from: &FrameAxisConventionV1,
+    to: &FrameAxisConventionV1,
+) -> Result<[f64; 3], FrameConventionConversionError> {
+    if !vector.iter().all(|value| value.is_finite()) {
+        return Err(FrameConventionConversionError::NonFiniteVector);
+    }
+    let matrix = convention_conversion_matrix_v1(from, to)?;
+    Ok(std::array::from_fn(|row| {
+        (0..3)
+            .map(|column| f64::from(matrix[row][column]) * vector[column])
+            .sum()
+    }))
+}
+
+fn convention_basis_to_common(
+    convention: &FrameAxisConventionV1,
+) -> Result<(KnownConventionFamily, AxisConversionMatrixV1), FrameConventionConversionError> {
+    const IDENTITY: AxisConversionMatrixV1 = [[1, 0, 0], [0, 1, 0], [0, 0, 1]];
+    match convention {
+        FrameAxisConventionV1::BodyForwardLeftUp => {
+            Ok((KnownConventionFamily::Body, IDENTITY))
+        }
+        FrameAxisConventionV1::FrdForwardRightDown => Ok((
+            KnownConventionFamily::Body,
+            [[1, 0, 0], [0, -1, 0], [0, 0, -1]],
+        )),
+        FrameAxisConventionV1::EnuEastNorthUp => {
+            Ok((KnownConventionFamily::LocalGeographic, IDENTITY))
+        }
+        FrameAxisConventionV1::NedNorthEastDown => Ok((
+            KnownConventionFamily::LocalGeographic,
+            [[0, 1, 0], [1, 0, 0], [0, 0, -1]],
+        )),
+        FrameAxisConventionV1::CameraOpticalRightDownForward => {
+            Ok((KnownConventionFamily::CameraOptical, IDENTITY))
+        }
+        FrameAxisConventionV1::ExternalSpec { .. } => {
+            Err(FrameConventionConversionError::ExternalConventionRequiresAdapter)
+        }
+    }
+}
+
+fn transpose_axis_matrix(matrix: AxisConversionMatrixV1) -> AxisConversionMatrixV1 {
+    std::array::from_fn(|row| std::array::from_fn(|column| matrix[column][row]))
+}
+
+fn multiply_axis_matrices(
+    left: AxisConversionMatrixV1,
+    right: AxisConversionMatrixV1,
+) -> AxisConversionMatrixV1 {
+    std::array::from_fn(|row| {
+        std::array::from_fn(|column| {
+            (0..3)
+                .map(|inner| left[row][inner] * right[inner][column])
+                .sum()
+        })
+    })
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct FrameConventionBindingV1 {
     pub frame_id: String,
@@ -690,6 +804,44 @@ pub(crate) mod tests {
             outputs: Vec::new(),
             warnings: Vec::new(),
         }
+    }
+
+    #[test]
+    fn known_body_and_geographic_conversions_use_exact_signed_permutations() {
+        let frd = FrameAxisConventionV1::FrdForwardRightDown;
+        let flu = FrameAxisConventionV1::BodyForwardLeftUp;
+        assert_eq!(
+            convention_conversion_matrix_v1(&frd, &flu).unwrap(),
+            [[1, 0, 0], [0, -1, 0], [0, 0, -1]]
+        );
+        assert_eq!(convert_vector_v1([1.0, 2.0, 3.0], &frd, &flu).unwrap(), [1.0, -2.0, -3.0]);
+
+        let ned = FrameAxisConventionV1::NedNorthEastDown;
+        let enu = FrameAxisConventionV1::EnuEastNorthUp;
+        assert_eq!(
+            convention_conversion_matrix_v1(&ned, &enu).unwrap(),
+            [[0, 1, 0], [1, 0, 0], [0, 0, -1]]
+        );
+        assert_eq!(convert_vector_v1([1.0, 2.0, 3.0], &ned, &enu).unwrap(), [2.0, 1.0, -3.0]);
+    }
+
+    #[test]
+    fn convention_conversion_never_guesses_across_reference_families() {
+        assert!(matches!(
+            convention_conversion_matrix_v1(
+                &FrameAxisConventionV1::BodyForwardLeftUp,
+                &FrameAxisConventionV1::CameraOpticalRightDownForward
+            ),
+            Err(FrameConventionConversionError::IncompatibleConventionFamilies)
+        ));
+        assert!(matches!(
+            convert_vector_v1(
+                [f64::NAN, 0.0, 0.0],
+                &FrameAxisConventionV1::BodyForwardLeftUp,
+                &FrameAxisConventionV1::BodyForwardLeftUp
+            ),
+            Err(FrameConventionConversionError::NonFiniteVector)
+        ));
     }
 
     #[test]
