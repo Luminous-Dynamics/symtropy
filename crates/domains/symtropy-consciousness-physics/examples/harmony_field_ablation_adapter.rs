@@ -206,6 +206,30 @@ fn expected_rng_contract() -> Value {
     })
 }
 
+fn expected_task_parameters() -> Value {
+    json!({
+        "start_positions_model_units": STARTS,
+        "goal_positions_model_units": GOALS,
+        "initial_position_jitter_half_width": 0.25,
+        "gravity": [0.0, 0.0, 0.0],
+        "body": {
+            "radius": BODY_RADIUS,
+            "mass": 1.0,
+            "friction": 0.6,
+            "restitution": 0.05,
+            "linear_damping": 0.1
+        },
+        "controller": {
+            "kp": KP,
+            "kd": KD,
+            "force_norm_cap": FORCE_CAP
+        },
+        "goal_radius": GOAL_RADIUS,
+        "initial_harmony_profiles": HARMONY_PROFILES
+    })
+}
+
+
 fn number_list(value: &Value, field: &str) -> Result<Vec<f64>, String> {
     let values = value
         .as_array()
@@ -279,6 +303,9 @@ fn validate_plan(plan: &Value) -> Result<(), String> {
     }
     if scenario.get("primary_endpoint") != Some(&expected_endpoint()) {
         return Err("primary_endpoint differs from the frozen smoke endpoint".to_string());
+    }
+    if scenario.get("task_parameters") != Some(&expected_task_parameters()) {
+        return Err("task_parameters differ from the frozen initial state/controller contract".to_string());
     }
     if scenario.get("solver_and_timestep") != Some(&expected_solver()) {
         return Err("solver_and_timestep differs from the frozen smoke configuration".to_string());
