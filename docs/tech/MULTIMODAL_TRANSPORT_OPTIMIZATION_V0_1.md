@@ -158,8 +158,10 @@ The economic comparison must include the whole-cycle cost: module purchase/depre
 Research anchors:
 - [ISO 668:2020](https://committee.iso.org/standard/76912.html): Series 1 freight-container dimensions/classifications/ratings.
 - [ISO 1161](https://committee.iso.org/cms/live/live/en/sites/isoorg/contents/data/standard/08/64/86404.html): corner/intermediate fittings; Edition 6 was listed as under publication in October 2026, so adapters should record the exact edition rather than assume it.
-- [IATA Unit Load Devices](https://www.iata.org/uld): aircraft ULDs are aircraft components subject to structural, serviceability, weight and operational requirements.
-- [IMO/ILO/UNECE CTU Code](https://unece.org/transport/intermodal-transport/imoilounece-code-practice-packing-cargo-transport-units-ctu-code): packing, securing, overloading and contents declaration.
+- [IATA Unit Load Devices](https://www.iata.org/uld): aircraft ULDs are aircraft components subject to structural, serviceability, weight and operational requirements; the [2026 ULD Regulations, 14th edition](https://www.iata.org/en/publications/manuals/uld-regulations/) added life-cycle assessment guidance.
+- [IATA ULD serviceability checks](https://www.iata.org/en/publications/newsletters/iata-knowledge-hub/how-to-conduct-a-uld-serviceability-check/): gross mass, allowable position load and centre-of-gravity constraints remain explicit.
+- [IMO/ILO/UNECE CTU Code](https://unece.org/transport/intermodal-transport/imoilounece-code-practice-packing-cargo-transport-units-ctu-code): packing, securing, overloading and contents declaration. The [2025 CTU Code revision working document](https://unece.org/transport/documents/2026/07/working-documents/imoilounece-code-practice-packing-cargo-transport) must be tracked as a revision/work document unless and until its final status is confirmed.
+- [Reusable packaging review](https://www.sciencedirect.com/science/article/pii/S0925527320301201): reusable packaging requires joint accounting of economic/environmental impacts, packaging-system design and reverse logistics; reuse does not guarantee a net benefit when return, cleaning and loss costs are ignored.
 - [World Development Report 2025 — Standards for Development](https://www.worldbank.org/en/publication/wdr2025): standards and containerization as coordination infrastructure.
 
 ## 6. Optimization formulation
@@ -308,16 +310,25 @@ A first deterministic Rust reference module now lives in the domain crate `symtr
 
 The crate's toy passenger and cargo cases use **synthetic illustrative numbers only**. They demonstrate that a fast/high-cost/high-emission route can remain on the Pareto frontier beside a slower/lower-cost/lower-emission intermodal route. They do not represent actual Gauteng–Durban prices or a recommendation for a real corridor.
 
-The first modular-cargo contract is also implemented in the crate: typed profile families (including ISO-series containers, swap bodies, pallets, returnable crates, tanks/flat racks, bulk bags and aircraft ULDs); standards/conformity evidence; dimensions, usable volume, tare/payload/gross-mass checks; permitted modes; declared lifting/locking interfaces; seal and inspection state; contents digest; temperature evidence; power and cold-chain requirements; and an equipment compatibility validator. It fails closed on mass/volume/envelope overruns, unsupported mode/family/interfaces, nonserviceable or unsealed units where the profile requires a seal, missing/out-of-range temperature evidence, unavailable power and unverified aircraft ULD profiles when the aircraft profile requires verified ULDs. An equipment profile only needs to match an accepted handling interface, not every optional interface the module exposes.
+The modular-cargo contract is being strengthened in layers:
 
-This is a *route-option enumerator plus first-step module/equipment compatibility contract*, not a complete transport optimization system. Module profiles are not yet incorporated into the route solver's cargo-flow assignment or transfer scheduling; the solver does not yet allocate multiple simultaneous demands against shared capacity, optimize timetables/service frequency or vehicle schedules, select infrastructure investments, estimate stochastic reliability from data, or validate cost factors against operators. These limitations are explicit.
+- **Safe orientation:** module profiles and handling equipment must explicitly share an approved axis orientation. Dimensions are checked after that declared permutation; geometric fit alone does not certify stability, lashing, cargo distribution or safe restraint.
+- **Load-securing evidence:** profiles may require an inspection/securement record; missing or failed evidence rejects dispatch.
+- **Aircraft position compatibility:** when equipment requires verified ULDs, the profile must declare position-specific aircraft/ULD eligibility evidence matching the aircraft type, loading position, accepted ULD type code and gross-mass limit. These are evidence fields, not proof of an external certificate by themselves.
+- **Revisioned custody handoff:** custody transfers check source custodian/location, module identity, revision and stable contents digest. Stale/replayed receipts fail; any seal-state change requires a nonempty evidence digest. Persistence, signatures, issuer authorization and concurrent-writer serialization remain outside this function and must be supplied by the authoritative custody service.
+- **Mass and volume utilization:** report both rates and identify the binding capacity; the lower percentage alone should not obscure whether mass or cube is the actual limit.
+- **Reusable-module economics:** a scenario calculator includes initial acquisition, cleaning/inspection, repair, empty repositioning, a conservative replacement allowance from the declared loss-rate assumption, avoided baseline handling cost, plus empty-return energy/emissions. Its result is sensitivity arithmetic, not measured savings or a statistical loss prediction.
+
+The contracts fail closed on mass/volume/envelope overruns, unsupported mode/family/orientation/interface, nonserviceable or improperly sealed units, absent load-securing evidence when required, temperature/power failure, arithmetic overflow, stale custody revisions, contents changes and aircraft-ULD/position mismatch. A compatible interface means at least one explicitly compatible certified/declared interface is supported, not that every optional interface on a module must be present.
+
+This remains a *single-demand route-option enumerator plus first-step module/equipment and custody/economics contracts*, not a complete transport optimization system. Module profiles are not yet incorporated into the route solver's cargo-flow assignment or transfer scheduling; the solver does not yet allocate multiple simultaneous demands against shared capacity, optimize timetables/service frequency or vehicle schedules, select infrastructure investments, estimate stochastic reliability from data, or validate cost factors against operators. Custody checks are pure state-transition guards, not a signed/atomic ledger. Standard references and evidence digests must not be described as ISO or IATA certification.
 
 Next steps:
-1. qualify the exact Rust crate and its route/module toy-network tests;
-2. bind module compatibility to actual transfer edges and equipment availability/capacity;
+1. qualify the exact Rust crate and its route/module/custody/economics toy tests;
+2. bind module compatibility to actual transfer edges, authorized equipment positions and live availability/capacity;
 3. add multiple-demand min-cost flow with shared capacity and explicit unserved demand;
-4. introduce timetable, dwell, transfer-window and empty-module-repositioning feasibility;
-5. add versioned input adapters for real South African route, service, tariff, module inventory, dwell, load, and energy data;
+4. introduce timetable, dwell, transfer-window, empty-module repositioning and asset-pooling feasibility;
+5. add versioned adapters for real South African route, service, tariff, module inventory, dwell, load, energy and reusable-packaging data;
 6. compare Pareto and sensitivity outputs against held-out operator/official measurements before discussing a specific cost-saving winner.
 
 Learned predictions, real-time dispatch and investment MILPs stay out of scope until the base flow/accounting invariants and evidence adapters qualify.
