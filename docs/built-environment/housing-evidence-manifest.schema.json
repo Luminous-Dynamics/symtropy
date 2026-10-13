@@ -616,16 +616,20 @@
                 "minItems": 1
               },
               "measured_result": {
-                "minLength": 1
+                "minLength": 1,
+                "type": "string"
               },
               "acceptance_criteria": {
-                "minLength": 1
+                "minLength": 1,
+                "type": "string"
               },
               "validity_domain": {
-                "minLength": 1
+                "minLength": 1,
+                "type": "string"
               },
               "tool_id": {
-                "minLength": 1
+                "minLength": 1,
+                "type": "string"
               },
               "input_artifact_sha256": {
                 "minItems": 1
@@ -746,4 +750,4 @@
       }
     }
   ]
-}
+}\n

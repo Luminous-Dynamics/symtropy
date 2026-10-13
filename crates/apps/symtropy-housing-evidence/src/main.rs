@@ -1394,6 +1394,22 @@ mod tests {
     }
 
     #[test]
+    fn evaluated_fail_claim_rejects_null_measured_result() {
+        let (schema, mut manifest, root, _) = set_up_pass_manifest();
+        manifest["claims"][0]["status"] = json!(STATUS_FAIL);
+        manifest["overall_status"] = json!(STATUS_FAIL);
+        manifest["claims"][0]["measured_result"] = Value::Null;
+
+        let result = evaluate_manifest(&schema, &manifest, None, false, Some(&root));
+        assert!(!result.schema_valid);
+        assert_eq!(result.effective_status, STATUS_BLOCKED);
+        assert!(result.issues.iter().any(|issue| {
+            issue.contains("measured_result") && issue.contains("schema validation")
+        }));
+        fs::remove_dir_all(root).expect("clean temp dir");
+    }
+
+    #[test]
     fn synthetic_not_evaluated_fixture_is_valid_but_not_a_pass() {
         let (schema, manifest) = fixture_values();
         let result = evaluate_manifest(&schema, &manifest, None, false, None);
