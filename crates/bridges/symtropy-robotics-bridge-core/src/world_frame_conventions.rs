@@ -842,6 +842,16 @@ pub(crate) mod tests {
             ),
             Err(FrameConventionConversionError::NonFiniteVector)
         ));
+
+        let external = FrameAxisConventionV1::ExternalSpec {
+            handedness: FrameHandednessV1::RightHanded,
+            specification_uri: "urn:example:coordinate-spec:1".to_owned(),
+            specification_sha256: "ab".repeat(32),
+        };
+        assert!(matches!(
+            convention_conversion_matrix_v1(&external, &external),
+            Err(FrameConventionConversionError::ExternalConventionRequiresAdapter)
+        ));
     }
 
     #[test]
