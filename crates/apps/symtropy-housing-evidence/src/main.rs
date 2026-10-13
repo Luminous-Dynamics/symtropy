@@ -360,7 +360,7 @@ fn evaluate_manifest(
             issues.push(format!("duplicate claim_id: {id}"));
         }
 
-        if matches!(claim["status"].as_str(), Some(STATUS_PASS | STATUS_FAIL)) {
+        if claim["status"].as_str().is_some_and(|status| status == STATUS_PASS || status == STATUS_FAIL) {
             let Some(tool_id) = claim["tool_id"].as_str() else {
                 issues.push(format!("evaluated claim {id} has no tool_id"));
                 continue;
