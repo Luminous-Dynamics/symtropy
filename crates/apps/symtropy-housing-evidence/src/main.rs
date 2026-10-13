@@ -40,6 +40,10 @@ const STATUS_INSUFFICIENT_EVIDENCE: &str = "INSUFFICIENT_EVIDENCE";
 
 #[derive(Debug, Serialize)]
 struct VerificationReport {
+    verifier_version: String,
+    schema_sha256: Option<String>,
+    manifest_sha256: Option<String>,
+    expected_claims_sha256: Option<String>,
     schema_valid: bool,
     case_id: Option<String>,
     declared_status: Option<String>,
@@ -86,6 +90,7 @@ fn run(args: Vec<String>) -> Result<(VerificationReport, bool), String> {
 
     let manifest_path = PathBuf::from(&args[0]);
     let mut expected_claims_path: Option<PathBuf> = None;
+    let mut expected_claims_sha256: Option<String> = None;
     let mut artifact_root: Option<PathBuf> = None;
     let mut require_pass = false;
 
@@ -96,6 +101,14 @@ fn run(args: Vec<String>) -> Result<(VerificationReport, bool), String> {
                 index += 1;
                 let value = args.get(index).ok_or_else(usage)?;
                 expected_claims_path = Some(PathBuf::from(value));
+            }
+            "--expected-claims-sha256" => {
+                index += 1;
+                let value = args.get(index).ok_or_else(usage)?;
+                if !is_sha256(value) {
+                    return Err("--expected-claims-sha256 must be 64 lowercase hexadecimal characters".to_string());
+                }
+                expected_claims_sha256 = Some(value.clone());
             }
             "--artifact-root" => {
                 index += 1;
@@ -114,18 +127,50 @@ fn run(args: Vec<String>) -> Result<(VerificationReport, bool), String> {
     draft202012::meta::validate(&schema)
         .map_err(|error| format!("schema is invalid under JSON Schema 2020-12: {error}"))?;
 
-    let manifest = read_json(&manifest_path)?;
-    let expected_claim_ids = expected_claims_path
+    if expected_claims_sha256.is_some() && expected_claims_path.is_none() {
+        return Err("--expected-claims-sha256 requires --expected-claims".to_string());
+    }
+
+    let manifest_bytes = fs::read(&manifest_path)
+        .map_err(|error| format!("cannot read {}: {error}", manifest_path.display()))?;
+    let manifest: Value = serde_json::from_slice(&manifest_bytes)
+        .map_err(|error| format!("{} is not valid JSON: {error}", manifest_path.display()))?;
+    let manifest_sha256 = sha256_hex(&manifest_bytes);
+
+    let expected_claim_data = expected_claims_path
         .as_deref()
         .map(read_expected_claim_ids)
         .transpose()?;
+    let (expected_claim_ids, expected_claims_actual_sha256) = match expected_claim_data {
+        Some((ids, digest)) => (Some(ids), Some(digest)),
+        None => (None, None),
+    };
+    let expected_claims_pinned = match (
+        expected_claims_sha256.as_deref(),
+        expected_claims_actual_sha256.as_deref(),
+    ) {
+        (Some(expected), Some(actual)) if expected == actual => true,
+        (Some(_), Some(actual)) => {
+            return Err(format!(
+                "mandatory-claims file SHA-256 mismatch; actual digest is {actual}"
+            ));
+        }
+        (None, Some(_)) | (None, None) => false,
+        (Some(_), None) => {
+            return Err("--expected-claims-sha256 requires --expected-claims".to_string());
+        }
+    };
 
-    let report = evaluate_manifest(
+    let mut report = evaluate_manifest(
         &schema,
         &manifest,
         expected_claim_ids.as_ref(),
+        expected_claims_pinned,
         artifact_root.as_deref(),
     );
+    report.schema_sha256 = Some(sha256_hex(EMBEDDED_SCHEMA.as_bytes()));
+    report.manifest_sha256 = Some(manifest_sha256);
+    report.expected_claims_sha256 = expected_claims_actual_sha256;
     Ok((report, require_pass))
 }
 
@@ -141,8 +186,10 @@ fn read_json(path: &Path) -> Result<Value, String> {
         .map_err(|error| format!("{} is not valid JSON: {error}", path.display()))
 }
 
-fn read_expected_claim_ids(path: &Path) -> Result<BTreeSet<String>, String> {
-    let value = read_json(path)?;
+fn read_expected_claim_ids(path: &Path) -> Result<(BTreeSet<String>, String), String> {
+    let bytes = fs::read(path).map_err(|error| format!("cannot read {}: {error}", path.display()))?;
+    let value: Value = serde_json::from_slice(&bytes)
+        .map_err(|error| format!("{} is not valid JSON: {error}", path.display()))?;
     let ids = value
         .get("mandatory_claim_ids")
         .and_then(Value::as_array)
@@ -167,7 +214,14 @@ fn read_expected_claim_ids(path: &Path) -> Result<BTreeSet<String>, String> {
             return Err(format!("duplicate expected mandatory claim ID: {id}"));
         }
     }
-    Ok(result)
+    Ok((result, sha256_hex(&bytes)))
+}
+
+fn is_sha256(value: &str) -> bool {
+    value.len() == 64
+        && value
+            .bytes()
+            .all(|byte| byte.is_ascii_digit() || (b'a'..=b'f').contains(&byte))
 }
 
 fn reject_external_refs(value: &Value) -> Result<(), String> {
@@ -198,6 +252,7 @@ fn evaluate_manifest(
     schema: &Value,
     manifest: &Value,
     expected_claim_ids: Option<&BTreeSet<String>>,
+    expected_claims_pinned: bool,
     artifact_root: Option<&Path>,
 ) -> VerificationReport {
     let case_id = manifest
@@ -598,6 +653,10 @@ fn report(
     issues: Vec<String>,
 ) -> VerificationReport {
     VerificationReport {
+        verifier_version: env!("CARGO_PKG_VERSION").to_string(),
+        schema_sha256: None,
+        manifest_sha256: None,
+        expected_claims_sha256: None,
         schema_valid,
         case_id,
         declared_status,
@@ -682,7 +741,7 @@ mod tests {
     #[test]
     fn synthetic_not_evaluated_fixture_is_valid_but_not_a_pass() {
         let (schema, manifest) = fixture_values();
-        let result = evaluate_manifest(&schema, &manifest, None, None);
+        let result = evaluate_manifest(&schema, &manifest, None, false, None);
         assert!(result.schema_valid, "{:?}", result.issues);
         assert_eq!(result.effective_status, STATUS_NOT_EVALUATED);
         assert_eq!(result.artifact_digests_verified, 0);
@@ -691,7 +750,7 @@ mod tests {
     #[test]
     fn pass_is_insufficient_without_independent_expected_claim_set() {
         let (schema, manifest, root, _) = set_up_pass_manifest();
-        let result = evaluate_manifest(&schema, &manifest, None, Some(&root));
+        let result = evaluate_manifest(&schema, &manifest, None, false, Some(&root));
         assert_eq!(result.effective_status, STATUS_INSUFFICIENT_EVIDENCE);
         assert!(!result.issues.is_empty());
         fs::remove_dir_all(root).expect("clean temp dir");
@@ -700,7 +759,7 @@ mod tests {
     #[test]
     fn valid_shaped_pass_requires_and_verifies_artifact_bytes() {
         let (schema, manifest, root, expected) = set_up_pass_manifest();
-        let result = evaluate_manifest(&schema, &manifest, Some(&expected), Some(&root));
+        let result = evaluate_manifest(&schema, &manifest, Some(&expected), true, Some(&root));
         assert!(result.schema_valid, "{:?}", result.issues);
         assert_eq!(result.effective_status, STATUS_PASS, "{:?}", result.issues);
         assert_eq!(result.artifact_digests_verified, 1);
@@ -714,7 +773,7 @@ mod tests {
             "example-structural-claim".to_string(),
             "independently-required-fire-claim".to_string(),
         ]);
-        let result = evaluate_manifest(&schema, &manifest, Some(&expected), Some(&root));
+        let result = evaluate_manifest(&schema, &manifest, Some(&expected), true, Some(&root));
         assert_eq!(result.effective_status, STATUS_INSUFFICIENT_EVIDENCE);
         assert!(result.issues.iter().any(|issue| issue.contains("mandatory claim set")));
         fs::remove_dir_all(root).expect("clean temp dir");
@@ -728,7 +787,7 @@ mod tests {
         let digest = manifest["evidence_artifacts"][0]["sha256"].as_str().unwrap();
         manifest["claims"][0]["input_artifact_sha256"] = json!([digest]);
         manifest["claims"][0]["output_artifact_sha256"] = json!([digest]);
-        let result = evaluate_manifest(&schema, &manifest, Some(&expected), Some(&root));
+        let result = evaluate_manifest(&schema, &manifest, Some(&expected), true, Some(&root));
         assert_eq!(result.effective_status, STATUS_BLOCKED);
         assert!(result.issues.iter().any(|issue| issue.contains("SHA-256 mismatch")));
         fs::remove_dir_all(root).expect("clean temp dir");
