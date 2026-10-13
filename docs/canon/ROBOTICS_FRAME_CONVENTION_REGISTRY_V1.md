@@ -23,11 +23,11 @@ The registry uses explicit numeric tags; Rust enum declaration order is not hash
 | 4 | `FrdForwardRightDown` | +X forward, +Y right, +Z down |
 | 255 | `ExternalSpec` | Named external convention, pinned by URI and 32-byte SHA-256 |
 
-Tags 0–4 are based on conventions described in [ROS REP-103](https://reps.openrobotics.org/rep-0103/). In particular, REP-103 describes right-handed frames, body x-forward/y-left/z-up, ENU, NED secondary frames, and camera optical axes. REP-105 defines common mobile-platform frame semantics including `earth`, `map`, `odom`, and `base_link`; the convention registry does not replace that frame-topology specification.
+Tags 0–3 follow conventions described in [ROS REP-103](https://reps.openrobotics.org/rep-0103/): right-handed frames, body x-forward/y-left/z-up, ENU, NED secondary frames, and camera optical axes. Tag 4 (FRD, x-forward/y-right/z-down) is documented in the [MAVLink frame definitions](https://mavlink.io/en/messages/common.html#MAV_FRAME). [ROS REP-105](https://reps.openrobotics.org/rep-0105/) defines common mobile-platform frame semantics including `earth`, `map`, `odom`, and `base_link`; the convention registry does not replace that frame-topology specification.
 
 The metadata is a declaration, not an automatic coordinate conversion. Consumers must understand the declared convention before interpreting or transforming vectors. Translations remain metres and existing static rotations remain XYZW, as specified by the base world contract. The convention label must not be inferred from a frame's name.
 
-For `ExternalSpec`, both a non-empty URI and a 64-character SHA-256 string are required. Hex case is normalized to 32 raw bytes. The library pins the referenced specification's identity but does not fetch the URI or independently verify external document bytes.
+For `ExternalSpec`, both a non-empty URI and a 64-character SHA-256 string are required, together with an explicit handedness declaration. Right-handed is the only accepted value; a left-handed declaration is rejected before commitment because the base frame-transform model uses proper rotations. The handedness byte is encoded as 0 for right-handed and 1 for left-handed; canonical v1 validation currently accepts only 0. Hex case is normalized to 32 raw bytes. The library pins the referenced specification's identity but does not fetch the URI or independently verify external document bytes.
 
 ## Registry canonical bytes V1
 
@@ -37,7 +37,7 @@ The registry commitment uses SHA-256 over these bytes:
 2. Canonical-format version as unsigned 16-bit big-endian integer `1`.
 3. Registry schema version as unsigned 16-bit big-endian integer `1`.
 4. Binding count as unsigned 64-bit big-endian integer.
-5. Bindings sorted by exact UTF-8 frame ID; each binding has the frame ID as unsigned-64-bit-length-prefixed UTF-8, followed by its one-byte convention tag. Tag 255 additionally encodes the specification URI using the same string grammar and then the raw 32-byte specification digest.
+5. Bindings sorted by exact UTF-8 frame ID; each binding has the frame ID as unsigned-64-bit-length-prefixed UTF-8, followed by its one-byte convention tag. Tag 255 additionally encodes the handedness byte, specification URI using the same string grammar, and raw 32-byte specification digest.
 
 UTF-8 strings are not Unicode-normalized. Duplicate frame IDs are invalid rather than resolved by ordering. The canonical registry output is capped at 4 MiB.
 
