@@ -26,11 +26,13 @@ Example structure (illustrative only; replace these values with a real, reviewed
       "random_stream_contract": {
         "strategy": "single_stateful_stream",
         "treatment_alignment": "same_seed_only",
-        "alignment_evidence": "ILLUSTRATIVE_ONLY_REPLACE_WITH_AUDITED_RNG_STRATEGY_AND_LIMITATIONS"
+        "alignment_evidence": "ILLUSTRATIVE_ONLY_REPLACE_WITH_AUDITED_RNG_STRATEGY_AND_LIMITATIONS",
+        "alignment_evidence_path": "rng-alignment-review.md",
+        "alignment_evidence_sha256": "REPLACE_WITH_64_CHARACTER_SHA256"
       }
     }
 
-Do not use this illustrative threshold or timestep merely because they appear here. They must suit the task and selected solver. Include all other scenario inputs in the same file so the file hash identifies the declared scenario configuration. The random-stream contract is required: a shared top-level seed does not guarantee that treatment arms receive the same random variates when branch behavior consumes draws differently. Declare the actual RNG strategy and whether cross-treatment draws are event-keyed, verified common random numbers, only same-seed blocks, or not applicable. Provide concrete alignment evidence; do not claim common random numbers are verified without demonstrating alignment.
+Do not use this illustrative threshold or timestep merely because they appear here. They must suit the task and selected solver. Include all other scenario inputs in the same file so the file hash identifies the declared scenario configuration. The random-stream contract is required: a shared top-level seed does not guarantee that treatment arms receive the same random variates when branch behavior consumes draws differently. Declare the actual RNG strategy and whether cross-treatment draws are event-keyed, verified common random numbers, only same-seed blocks, or not applicable. Provide concrete alignment evidence; do not claim common random numbers are verified without demonstrating alignment. The evidence must be an actual file under the artifact root; provide its relative path and SHA-256. The validator re-hashes the file bytes and rejects a mismatch or a path that escapes the artifact root.
 
 ## 2. Generate a plan
 
