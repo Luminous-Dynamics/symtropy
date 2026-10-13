@@ -14,12 +14,14 @@ on:
   push:
     paths:
       - "docs/humanity-atlas/flourishing-assessment-v0.1.schema.json"
+      - "docs/humanity-atlas/constraint-preregistration-v0.1.schema.json"
       - "docs/humanity-atlas/flourishing-evaluation-contract-v0.1.md"
       - "docs/humanity-atlas/README.md"
       - "docs/humanity-atlas/fixtures/flourishing-assessment.not-evidence.json"
       - "scripts/research/validate_flourishing_assessment.py"
       - "scripts/research/test_validate_flourishing_assessment.py"
       - ".github/workflows/flourishing-assessment-contract.yml"
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -29,8 +31,6 @@ permissions:
 concurrency:
   group: flourishing-assessment-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
-
-workflow_dispatch:
 
 jobs:
   contract:
