@@ -238,13 +238,18 @@ fn read_expected_claims_file(path: &Path) -> Result<(ExpectedClaimsFile, String)
         return Err("expected-claims schema_version must not be empty".to_string());
     }
     if !is_sha256(&expected.schema_sha256) {
-        return Err("expected-claims schema_sha256 must be 64 lowercase hexadecimal characters".to_string());
+        return Err(
+            "expected-claims schema_sha256 must be 64 lowercase hexadecimal characters".to_string(),
+        );
     }
     if expected.verifier_version.trim().is_empty() {
         return Err("expected-claims verifier_version must not be empty".to_string());
     }
     if !is_sha256(&expected.verifier_binary_sha256) {
-        return Err("expected-claims verifier_binary_sha256 must be 64 lowercase hexadecimal characters".to_string());
+        return Err(
+            "expected-claims verifier_binary_sha256 must be 64 lowercase hexadecimal characters"
+                .to_string(),
+        );
     }
     if expected.case_id.trim().is_empty() {
         return Err("expected-claims case_id must not be empty".to_string());
@@ -1120,8 +1125,12 @@ fn safe_local_artifact_path(root: &Path, uri: &str) -> Result<PathBuf, String> {
 fn current_verifier_binary_sha256() -> Result<String, String> {
     let executable = env::current_exe()
         .map_err(|error| format!("cannot resolve verifier executable: {error}"))?;
-    let bytes = fs::read(&executable)
-        .map_err(|error| format!("cannot read verifier executable {}: {error}", executable.display()))?;
+    let bytes = fs::read(&executable).map_err(|error| {
+        format!(
+            "cannot read verifier executable {}: {error}",
+            executable.display()
+        )
+    })?;
     Ok(sha256_hex(&bytes))
 }
 
@@ -1346,6 +1355,14 @@ mod tests {
             STATUS_EVIDENCE_INTEGRITY_VERIFIED
         );
         assert!(report.schema_sha256.is_some());
+        assert_eq!(
+            report.schema_sha256.as_deref(),
+            Some(expected.schema_sha256.as_str())
+        );
+        assert_eq!(
+            report.verifier_binary_sha256.as_deref(),
+            Some(expected.verifier_binary_sha256.as_str())
+        );
         let manifest_digest = sha256_hex(&manifest_bytes);
         assert_eq!(report.manifest_sha256.as_deref(), Some(manifest_digest.as_str()));
         assert_eq!(report.expected_claims_sha256.as_deref(), Some(expected_digest.as_str()));
