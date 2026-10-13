@@ -55,7 +55,7 @@ pub mod wasm_bindings;
 pub use biometrics::{
     BiometricHistory, BiometricNormParams, BiometricSample, ChannelNorm, neutral_inputs,
 };
-pub use coupling::{ConsciousnessField, EntityConsciousness};
+pub use coupling::{ConsciousnessField, EntityConsciousness, HarmonyFieldMechanismToggles};
 pub use energy::EnergyBudget;
 pub use harmony_field::{HarmonyField, HarmonyFieldInputError, HarmonySource};
 pub use macro_bridge::{MacroWorldModifiers, apply_macro_modifiers};
