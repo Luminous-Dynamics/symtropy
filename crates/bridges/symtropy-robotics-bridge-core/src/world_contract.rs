@@ -232,8 +232,15 @@ impl WorldManifestV1 {
             ));
         }
 
+        let mut world_asset_ids = BTreeSet::new();
         for (index, artifact) in self.world_assets.iter().enumerate() {
             artifact.validate_at(&format!("world_assets[{index}]"), &mut issues);
+            if !world_asset_ids.insert(artifact.artifact_id.as_str()) {
+                issues.push(WorldValidationIssue::new(
+                    WorldValidationCode::DuplicateIdentity,
+                    format!("world_assets[{index}].artifact_id"),
+                ));
+            }
         }
 
         let mut solver_ids = BTreeSet::new();
@@ -1570,6 +1577,18 @@ mod tests {
             manifest.validate_solver_result_against_world(&expected, &result),
             Ok(())
         );
+    }
+
+
+    #[test]
+    fn duplicate_world_asset_identity_is_rejected() {
+        let mut manifest = valid_manifest();
+        manifest.world_assets.push(manifest.world_assets[0].clone());
+        let issues = manifest.validate().unwrap_err();
+        assert!(issues.iter().any(|issue| {
+            issue.code == WorldValidationCode::DuplicateIdentity
+                && issue.path == "world_assets[1].artifact_id"
+        }));
     }
 
 }
