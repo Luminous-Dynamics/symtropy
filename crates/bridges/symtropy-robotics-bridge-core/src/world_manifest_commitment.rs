@@ -114,9 +114,7 @@ impl WorldManifestV1 {
         encoder.u8(fidelity_tag(self.fidelity));
 
         let mut assets: Vec<&ArtifactRef> = self.world_assets.iter().collect();
-        assets.sort_by(|a, b| {
-            (&a.artifact_id, &a.uri, &a.sha256).cmp(&(&b.artifact_id, &b.uri, &b.sha256))
-        });
+        assets.sort_by(|a, b| a.artifact_id.cmp(&b.artifact_id));
         encoder.count(assets.len());
         for asset in assets {
             encode_artifact(&mut encoder, asset);
