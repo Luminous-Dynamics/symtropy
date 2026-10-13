@@ -43,9 +43,16 @@ pub enum FrameAxisConventionV1 {
     FrdForwardRightDown,
     /// Convention defined by an external, content-pinned specification.
     ExternalSpec {
+        handedness: FrameHandednessV1,
         specification_uri: String,
         specification_sha256: String,
     },
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum FrameHandednessV1 {
+    RightHanded,
+    LeftHanded,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -202,11 +209,13 @@ impl FrameConventionRegistryV1 {
                 ));
             }
             if let FrameAxisConventionV1::ExternalSpec {
+                handedness,
                 specification_uri,
                 specification_sha256,
             } = &binding.convention
             {
-                if specification_uri.trim().is_empty()
+                if *handedness != FrameHandednessV1::RightHanded
+                    || specification_uri.trim().is_empty()
                     || !is_sha256_hex(specification_sha256)
                 {
                     issues.push(FrameConventionIssue::new(
@@ -415,8 +424,12 @@ fn encode_convention(encoder: &mut RegistryEncoder, convention: &FrameAxisConven
         FrameAxisConventionV1::NedNorthEastDown => encoder.u8(2),
         FrameAxisConventionV1::CameraOpticalRightDownForward => encoder.u8(3),
         FrameAxisConventionV1::FrdForwardRightDown => encoder.u8(4),
-        FrameAxisConventionV1::ExternalSpec { specification_uri, specification_sha256 } => {
+        FrameAxisConventionV1::ExternalSpec { handedness, specification_uri, specification_sha256 } => {
             encoder.u8(255);
+            encoder.u8(match handedness {
+                FrameHandednessV1::RightHanded => 0,
+                FrameHandednessV1::LeftHanded => 1,
+            });
             encoder.string(specification_uri);
             encoder.raw(&decode_sha256_hex(specification_sha256));
         }
@@ -707,6 +720,7 @@ pub(crate) mod tests {
             frames: vec![FrameConventionBindingV1 {
                 frame_id: "custom".to_owned(),
                 convention: FrameAxisConventionV1::ExternalSpec {
+                    handedness: FrameHandednessV1::RightHanded,
                     specification_uri: "urn:example:coordinate-spec:1".to_owned(),
                     specification_sha256: "ab".repeat(32),
                 },
@@ -718,6 +732,26 @@ pub(crate) mod tests {
             &mut upper.frames[0].convention else { unreachable!() };
         *specification_sha256 = specification_sha256.to_uppercase();
         assert_eq!(digest, upper.content_digest_v1().unwrap());
+    }
+
+    #[test]
+    fn left_handed_external_spec_is_rejected_before_commitment() {
+        let registry = FrameConventionRegistryV1 {
+            schema_version: FRAME_CONVENTION_REGISTRY_SCHEMA_VERSION_V1,
+            frames: vec![FrameConventionBindingV1 {
+                frame_id: "custom".to_owned(),
+                convention: FrameAxisConventionV1::ExternalSpec {
+                    handedness: FrameHandednessV1::LeftHanded,
+                    specification_uri: "urn:example:left-handed:1".to_owned(),
+                    specification_sha256: "ab".repeat(32),
+                },
+            }],
+        };
+        assert!(matches!(
+            registry.validate(),
+            Err(issues) if issues.iter().any(|issue|
+                issue.code == FrameConventionIssueCode::InvalidExternalSpecification)
+        ));
     }
 
     #[test]
