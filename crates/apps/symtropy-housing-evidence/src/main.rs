@@ -1864,6 +1864,26 @@ mod tests {
         fs::remove_dir_all(root).expect("clean temp dir");
     }
 
+    #[cfg(unix)]
+    #[test]
+    fn artifact_link_target_must_remain_under_declared_root() {
+        use std::os::unix::fs::symlink;
+
+        let root = temp_dir("link-root");
+        let target_root = temp_dir("link-target");
+        fs::write(target_root.join("target.bin"), b"fixture bytes")
+            .expect("write test target");
+        symlink(target_root.join("target.bin"), root.join("alias.bin"))
+            .expect("create test file link");
+        let canonical_root = fs::canonicalize(&root).expect("canonical temp root");
+
+        let result = safe_local_artifact_path(&canonical_root, "alias.bin");
+        assert!(matches!(result, Err(error) if error.contains("declared artifact root")));
+
+        fs::remove_dir_all(root).expect("clean root");
+        fs::remove_dir_all(target_root).expect("clean target");
+    }
+
     #[test]
     fn schema_cannot_fetch_external_references() {
         let value = json!({"$ref": "https://example.invalid/external.json"});
