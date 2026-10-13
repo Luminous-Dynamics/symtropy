@@ -8,10 +8,6 @@
 //! input digest, tool, material or solver. Numerical results still require
 //! independent benchmark and held-out physical validation before promotion.
 
-use crate::material_profile::{
-    MaterialEvidenceClassV1, RockLithologyV1, RockMaterialConditionV1,
-    RockMaterialProfileV1,
-};
 use crate::world_contract::{
     ArtifactRef, PhysicsDomain, SolverDeclarationV1, WorldManifestV1, WorldValidationIssue,
 };
