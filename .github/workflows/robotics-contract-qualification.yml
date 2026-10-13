@@ -1,0 +1,56 @@
+name: Robotics contract qualification
+
+on:
+  push:
+    branches:
+      - 'feat/**'
+    paths:
+      - '.github/workflows/robotics-contract-qualification.yml'
+      - 'crates/bridges/symtropy-robotics-bridge-core/**'
+      - 'Cargo.toml'
+      - 'Cargo.lock'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: robotics-contract-qualification-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  robotics-core:
+    name: Robotics bridge core (exact push head)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout exact pushed revision
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+
+      - name: Install pinned Rust toolchain
+        uses: dtolnay/rust-toolchain@6bed0761d98439e5a578e2877258200ad565ba87
+        with:
+          toolchain: 1.96.0
+          components: clippy, rustfmt
+
+      - name: Record and verify exact-head provenance
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          printf 'HEAD=%s\n' "$(git rev-parse HEAD)"
+          rustc --version --verbose
+          cargo --version
+          cargo fmt --version
+          cargo clippy --version
+          test -z "$(git status --porcelain)"
+
+      - name: Check workspace formatting
+        run: cargo fmt --all -- --check
+
+      - name: Clippy robotics bridge core
+        run: cargo clippy --locked -p symtropy-robotics-bridge-core --all-targets -- -D warnings
+
+      - name: Test robotics bridge core
+        run: cargo test --locked -p symtropy-robotics-bridge-core --all-targets
