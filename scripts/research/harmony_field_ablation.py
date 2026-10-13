@@ -445,6 +445,177 @@ def validate_results(plan, path, artifact_root=None):
     }
 
 
+def percentile(values, probability):
+    ordered = sorted(values)
+    if not ordered:
+        raise ValidationError("cannot calculate percentile from an empty sample")
+    position = (len(ordered) - 1) * probability
+    lower = math.floor(position)
+    upper = math.ceil(position)
+    if lower == upper:
+        return ordered[lower]
+    fraction = position - lower
+    return ordered[lower] * (1.0 - fraction) + ordered[upper] * fraction
+
+
+def bootstrap_mean_interval(values, replicates, rng):
+    if not values:
+        raise ValidationError("cannot estimate effect without paired seed-level values")
+    if replicates < 100:
+        raise ValidationError("bootstrap replicates must be at least 100")
+    estimate = sum(values) / len(values)
+    means = []
+    for _ in range(replicates):
+        sample = [values[rng.randrange(len(values))] for _ in values]
+        means.append(sum(sample) / len(sample))
+    return estimate, percentile(means, 0.025), percentile(means, 0.975)
+
+
+def interpret_effect(lower, upper, threshold):
+    if lower > threshold:
+        return "meaningful_benefit_supported_by_interval"
+    if upper < -threshold:
+        return "meaningful_harm_supported_by_interval"
+    return "inconclusive_relative_to_preregistered_threshold"
+
+
+def analyze_results(plan, results_path, artifact_root=None, bootstrap_replicates=5000, bootstrap_seed=20261013):
+    """Estimate held-out paired arm effects and factorial contrasts; no p-values or causal overclaim."""
+    validity = validate_results(plan, results_path, artifact_root)
+    if validity.get("validation_status") != "qualified_manifest":
+        return {
+            "schema_version": "luminous.harmony-field-ablation-analysis.v1",
+            "analysis_status": "NOT_QUALIFIED",
+            "manifest_validation": validity,
+            "errors": ["analysis refused because the result manifest is not mechanically qualified"],
+        }
+    held_out = plan["seed_partition"]["held_out"]
+    if len(held_out) < 2:
+        return {
+            "schema_version": "luminous.harmony-field-ablation-analysis.v1",
+            "analysis_status": "NOT_QUALIFIED",
+            "manifest_validation": validity,
+            "errors": ["at least two held-out seed blocks are required for the bootstrap interval"],
+        }
+    try:
+        endpoint = plan["scenario_config"]["primary_endpoint"]
+        threshold = float(endpoint["meaningful_effect_threshold"])
+        sign = 1.0 if endpoint["direction"] == "higher_is_better" else -1.0
+        raw_records = [json.loads(line) for line in results_path.read_text(encoding="utf-8").splitlines() if line.strip()]
+    except (OSError, KeyError, TypeError, ValueError, json.JSONDecodeError) as exc:
+        return {
+            "schema_version": "luminous.harmony-field-ablation-analysis.v1",
+            "analysis_status": "NOT_QUALIFIED",
+            "manifest_validation": validity,
+            "errors": [f"could not load validated analysis inputs: {exc}"],
+        }
+    plans = {item["run_id"]: item["configuration"] for item in plan["planned_runs"]}
+    records = {item["run_id"]: item for item in raw_records}
+    grouped = {}
+    for seed in held_out:
+        for planned in plan["planned_runs"]:
+            cfg = planned["configuration"]
+            if cfg["seed"] != seed:
+                continue
+            group = (cfg["dimension"], cfg["source_strength"], cfg["influence_radius"])
+            grouped.setdefault(group, {}).setdefault(seed, {})[cfg["arm_id"]] = (
+                float(records[planned["run_id"]]["primary_endpoint"]) * sign
+            )
+    contrast_factors = [
+        ("F", ("friction_modulation",)),
+        ("R", ("resonance_prediction_error",)),
+        ("E", ("emotional_contagion",)),
+        ("F×R", ("friction_modulation", "resonance_prediction_error")),
+        ("F×E", ("friction_modulation", "emotional_contagion")),
+        ("R×E", ("resonance_prediction_error", "emotional_contagion")),
+        ("F×R×E", ("friction_modulation", "resonance_prediction_error", "emotional_contagion")),
+    ]
+    arms_by_id = {a["arm_id"]: a for a in arms()}
+    rng = __import__("random").Random(bootstrap_seed)
+    variants = []
+    for group in sorted(grouped):
+        seed_values = grouped[group]
+        missing_cells = [
+            f"seed={seed},arm={arm['arm_id']}"
+            for seed in held_out for arm in arms()
+            if arm["arm_id"] not in seed_values.get(seed, {})
+        ]
+        if missing_cells:
+            return {
+                "schema_version": "luminous.harmony-field-ablation-analysis.v1",
+                "analysis_status": "NOT_QUALIFIED",
+                "manifest_validation": validity,
+                "errors": [f"held-out factorial cells missing: {missing_cells[:10]}"],
+            }
+        seed_order = [seed for seed in held_out]
+        per_seed_arm_effects = []
+        arm_effects = []
+        for arm in arms():
+            arm_id = arm["arm_id"]
+            deltas = [seed_values[seed][arm_id] - seed_values[seed]["A000"] for seed in seed_order]
+            estimate, lower, upper = bootstrap_mean_interval(deltas, bootstrap_replicates, rng)
+            arm_effects.append({
+                "arm_id": arm_id,
+                "arm_index": arm["arm_index"],
+                "paired_difference_by_held_out_seed": [
+                    {"seed": seed, "difference_positive_is_better": delta}
+                    for seed, delta in zip(seed_order, deltas)
+                ],
+                "mean_paired_difference_positive_is_better": estimate,
+                "bootstrap_95_percentile_interval": [lower, upper],
+                "interpretation": "baseline" if arm_id == "A000" else interpret_effect(lower, upper, threshold),
+            })
+        factorial_effects = []
+        for name, keys in contrast_factors:
+            per_seed = []
+            for seed in seed_order:
+                positive, negative = [], []
+                for arm_id, values in seed_values[seed].items():
+                    arm = arms_by_id[arm_id]
+                    product = 1
+                    for key in keys:
+                        product *= 1 if arm[key] else -1
+                    (positive if product == 1 else negative).append(values)
+                per_seed.append(sum(positive) / len(positive) - sum(negative) / len(negative))
+            estimate, lower, upper = bootstrap_mean_interval(per_seed, bootstrap_replicates, rng)
+            factorial_effects.append({
+                "contrast": name,
+                "effect_positive_is_better": estimate,
+                "bootstrap_95_percentile_interval": [lower, upper],
+                "effect_by_held_out_seed": [
+                    {"seed": seed, "effect_positive_is_better": value}
+                    for seed, value in zip(seed_order, per_seed)
+                ],
+                "interpretation": interpret_effect(lower, upper, threshold),
+            })
+        variants.append({
+            "dimension": group[0],
+            "source_strength": group[1],
+            "influence_radius": group[2],
+            "held_out_seed_count": len(seed_order),
+            "arm_vs_A000": arm_effects,
+            "factorial_main_and_interaction_effects": factorial_effects,
+        })
+    return {
+        "schema_version": "luminous.harmony-field-ablation-analysis.v1",
+        "analysis_status": "analyzed_held_out_runs",
+        "plan_sha256": plan["plan_sha256"],
+        "candidate_commit": plan["candidate_commit"],
+        "task_id": plan["task_id"],
+        "primary_endpoint": endpoint,
+        "positive_effect_means": "better according to preregistered primary_endpoint.direction",
+        "held_out_seed_count": len(held_out),
+        "bootstrap": {
+            "replicates": bootstrap_replicates,
+            "random_seed": bootstrap_seed,
+            "interval": "95% percentile bootstrap over matched seed blocks",
+            "multiplicity_adjustment": "none; intervals are descriptive and not confirmatory family-wise guarantees",
+        },
+        "variants": variants,
+        "interpretation_boundary": "This report estimates effects within the specified simulator/task/configuration only. It does not establish empirical validity, consciousness, or a physical field. A complete manifest does not guarantee an adequate model.",
+    }
+
+
 def self_test():
     import unittest
     import tempfile
