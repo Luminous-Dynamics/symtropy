@@ -207,6 +207,35 @@ class FlourishingAssessmentTests(unittest.TestCase):
             {"READY_FOR_COMPARISON"},
         )
 
+    def test_unquantified_hard_constraint_remains_unresolved(self) -> None:
+        doc = add_evidence_and_known_values(assessment())
+        candidate_constraint = doc["alternatives"][1]["outcomes"][1]
+        candidate_constraint["uncertainty"] = {
+            "status": "NOT_QUANTIFIED",
+            "method": "uncertainty budget assessment",
+            "reason": "no defensible interval is available",
+        }
+        errors, report = validate_assessment(doc)
+        self.assertEqual(errors, [])
+        by_id = {a["alternative_id"]: a for a in report["alternatives"]}
+        self.assertEqual(by_id["candidate"]["constraint_results"][0]["status"], "UNKNOWN")
+        self.assertEqual(by_id["candidate"]["comparison_status"], "UNRESOLVED")
+
+    def test_unquantified_non_constraint_outcome_is_incomplete(self) -> None:
+        doc = add_evidence_and_known_values(assessment())
+        for alternative in doc["alternatives"]:
+            alternative["outcomes"][0]["uncertainty"] = {
+                "status": "NOT_QUANTIFIED",
+                "method": "uncertainty budget assessment",
+                "reason": "no defensible interval is available",
+            }
+        errors, report = validate_assessment(doc)
+        self.assertEqual(errors, [])
+        self.assertEqual(
+            {a["comparison_status"] for a in report["alternatives"]},
+            {"OUTCOME_INCOMPLETE"},
+        )
+
     def test_invalid_between_thresholds_rejected_even_when_values_unknown(self) -> None:
         doc = assessment()
         doc["constraints"][0]["comparator"] = "between"
@@ -347,6 +376,16 @@ class FlourishingAssessmentTests(unittest.TestCase):
         self.assertEqual(list(validator.iter_errors(doc)), [])
 
     @unittest.skipIf(jsonschema is None, "jsonschema dependency is installed by the CI workflow")
+    def test_coverage_interval_requires_probability(self) -> None:
+        doc = add_evidence_and_known_values(assessment())
+        uncertainty = doc["alternatives"][0]["outcomes"][0]["uncertainty"]
+        uncertainty["interpretation"] = "coverage_interval"
+        schema = json.loads(SCHEMA_PATH.read_text(encoding="utf-8"))
+        validator = jsonschema.Draft202012Validator(
+            schema, format_checker=jsonschema.FormatChecker()
+        )
+        self.assertTrue(list(validator.iter_errors(doc)))
+
     def test_schema_rejects_unknown_value_inconsistency(self) -> None:
         doc = assessment()
         doc["alternatives"][0]["outcomes"][0]["value"] = 0.0
