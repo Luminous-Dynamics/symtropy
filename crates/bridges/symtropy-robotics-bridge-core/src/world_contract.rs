@@ -9,7 +9,7 @@
 
 use crate::platform::PlatformType;
 use serde::{Deserialize, Serialize};
-use std::collections::BTreeSet;
+use std::collections::{BTreeMap, BTreeSet};
 
 pub const WORLD_MANIFEST_SCHEMA_VERSION: u16 = 1;
 pub const SOLVER_RESULT_SCHEMA_VERSION: u16 = 1;
@@ -82,10 +82,45 @@ impl ArtifactRef {
     }
 }
 
+/// A named coordinate frame in the world's frame topology.
+///
+/// The root frame is always "world". Static transforms map a point expressed
+/// in this frame into its parent frame using
+/// p_parent = R_parent_child * p_child + t_parent_child. Kinematic transforms
+/// name the exact robot-kinematics artifact and the frame inside that artifact
+/// which supplies the time-varying transform; this contract validates the
+/// reference, not the external kinematics implementation.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct CoordinateFrameV1 {
+    pub frame_id: String,
+    pub parent_frame_id: Option<String>,
+    pub transform_to_parent: FrameTransformV1,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(tag = "kind", rename_all = "snake_case")]
+pub enum FrameTransformV1 {
+    /// Only the unique "world" root may use this variant.
+    Root,
+    /// Transform from this frame to its parent, in metres and XYZW quaternion order.
+    Static {
+        translation_m: [f64; 3],
+        rotation_xyzw: [f64; 4],
+    },
+    /// The transform is provided at runtime by a declared platform kinematics
+    /// artifact. The referenced provider frame name is artifact-scoped.
+    Kinematic {
+        provider_artifact_id: String,
+        provider_frame_id: String,
+    },
+}
+
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct SensorProfileV1 {
     pub sensor_id: String,
     pub modality: SensorModality,
+    /// Frame in which the sensor measurement origin/orientation is defined.
+    pub frame_id: String,
     pub model_solver_id: Option<String>,
     pub calibration_artifact: Option<ArtifactRef>,
     pub sample_rate_hz: f64,
@@ -112,6 +147,8 @@ pub struct PlatformProfileV1 {
     pub platform_type: PlatformType,
     pub geometry: ArtifactRef,
     pub kinematics: ArtifactRef,
+    /// Frame representing the platform's base pose in the world frame graph.
+    pub base_frame_id: String,
     pub mass_kg: f64,
     pub control_rate_hz: f64,
     pub controller_interface_version: u16,
@@ -139,6 +176,8 @@ pub struct WorldManifestV1 {
     /// Fixed world step in integer nanoseconds; wall-clock cadence is separate.
     pub fixed_step_ns: u64,
     pub gravity_mps2: [f64; 3],
+    /// Authoritative coordinate-frame registry/parent topology for this world.
+    pub frames: Vec<CoordinateFrameV1>,
     pub fidelity: PhysicsFidelity,
     pub world_assets: Vec<ArtifactRef>,
     pub solvers: Vec<SolverDeclarationV1>,
@@ -380,10 +419,169 @@ impl WorldManifestV1 {
             }
         }
 
+        self.validate_coordinate_frames(&mut issues);
+
         if issues.is_empty() {
             Ok(())
         } else {
             Err(issues)
+        }
+    }
+
+    fn validate_coordinate_frames(&self, issues: &mut Vec<WorldValidationIssue>) {
+        if self.frames.is_empty() {
+            issues.push(WorldValidationIssue::new(
+                WorldValidationCode::MissingFrame,
+                "frames",
+            ));
+            return;
+        }
+
+        let mut frame_ids = BTreeSet::new();
+        for (index, frame) in self.frames.iter().enumerate() {
+            let path = format!("frames[{index}]");
+            if frame.frame_id.trim().is_empty() || frame.frame_id.trim() != frame.frame_id {
+                issues.push(WorldValidationIssue::new(
+                    WorldValidationCode::InvalidFrame,
+                    format!("{path}.frame_id"),
+                ));
+            }
+            if !frame_ids.insert(frame.frame_id.as_str()) {
+                issues.push(WorldValidationIssue::new(
+                    WorldValidationCode::DuplicateIdentity,
+                    format!("{path}.frame_id"),
+                ));
+            }
+        }
+
+        let roots = self.frames.iter().filter(|frame| frame.parent_frame_id.is_none()).count();
+        let world_root_is_valid = self.frames.iter().any(|frame| {
+            frame.frame_id == "world"
+                && frame.parent_frame_id.is_none()
+                && matches!(&frame.transform_to_parent, FrameTransformV1::Root)
+        });
+        if roots != 1 || !world_root_is_valid {
+            issues.push(WorldValidationIssue::new(
+                WorldValidationCode::MissingFrame,
+                "frames.world_root",
+            ));
+        }
+
+        let parent_by_id: BTreeMap<&str, Option<&str>> = self
+            .frames
+            .iter()
+            .map(|frame| (frame.frame_id.as_str(), frame.parent_frame_id.as_deref()))
+            .collect();
+
+        for (index, frame) in self.frames.iter().enumerate() {
+            let path = format!("frames[{index}]");
+            if let Some(parent_id) = frame.parent_frame_id.as_deref() {
+                if parent_id == frame.frame_id {
+                    issues.push(WorldValidationIssue::new(
+                        WorldValidationCode::InvalidFrame,
+                        format!("{path}.parent_frame_id"),
+                    ));
+                } else if !frame_ids.contains(parent_id) {
+                    issues.push(WorldValidationIssue::new(
+                        WorldValidationCode::UnknownFrameReference,
+                        format!("{path}.parent_frame_id"),
+                    ));
+                }
+            }
+
+            match &frame.transform_to_parent {
+                FrameTransformV1::Root => {
+                    if frame.frame_id != "world" || frame.parent_frame_id.is_some() {
+                        issues.push(WorldValidationIssue::new(
+                            WorldValidationCode::InvalidFrame,
+                            format!("{path}.transform_to_parent"),
+                        ));
+                    }
+                }
+                FrameTransformV1::Static {
+                    translation_m,
+                    rotation_xyzw,
+                } => {
+                    if frame.parent_frame_id.is_none() {
+                        issues.push(WorldValidationIssue::new(
+                            WorldValidationCode::InvalidFrame,
+                            format!("{path}.parent_frame_id"),
+                        ));
+                    }
+                    let translation_is_finite = translation_m.iter().all(|value| value.is_finite());
+                    let quaternion_is_finite =
+                        rotation_xyzw.iter().all(|value| value.is_finite());
+                    let quaternion_norm_squared =
+                        rotation_xyzw.iter().map(|value| value * value).sum::<f64>();
+                    if !translation_is_finite
+                        || !quaternion_is_finite
+                        || (quaternion_norm_squared - 1.0).abs() > 1e-6
+                    {
+                        issues.push(WorldValidationIssue::new(
+                            WorldValidationCode::InvalidTransform,
+                            format!("{path}.transform_to_parent"),
+                        ));
+                    }
+                }
+                FrameTransformV1::Kinematic {
+                    provider_artifact_id,
+                    provider_frame_id,
+                } => {
+                    if frame.parent_frame_id.is_none()
+                        || provider_artifact_id.trim().is_empty()
+                        || provider_frame_id.trim().is_empty()
+                    {
+                        issues.push(WorldValidationIssue::new(
+                            WorldValidationCode::InvalidTransform,
+                            format!("{path}.transform_to_parent"),
+                        ));
+                    }
+                    let provider_is_declared = self.platforms.iter().any(|platform| {
+                        platform.kinematics.artifact_id.as_str()
+                            == provider_artifact_id.as_str()
+                    });
+                    if !provider_is_declared {
+                        issues.push(WorldValidationIssue::new(
+                            WorldValidationCode::UnknownFrameProvider,
+                            format!("{path}.transform_to_parent.provider_artifact_id"),
+                        ));
+                    }
+                }
+            }
+        }
+
+        // A valid parent registry is a forest with exactly one world root;
+        // reject cycles explicitly rather than relying on root-count checks.
+        for (index, frame) in self.frames.iter().enumerate() {
+            let mut visited = BTreeSet::new();
+            let mut cursor = Some(frame.frame_id.as_str());
+            while let Some(frame_id) = cursor {
+                if !visited.insert(frame_id) {
+                    issues.push(WorldValidationIssue::new(
+                        WorldValidationCode::FrameCycle,
+                        format!("frames[{index}].parent_frame_id"),
+                    ));
+                    break;
+                }
+                cursor = parent_by_id.get(frame_id).copied().flatten();
+            }
+        }
+
+        for (index, sensor) in self.sensors.iter().enumerate() {
+            if !frame_ids.contains(sensor.frame_id.as_str()) {
+                issues.push(WorldValidationIssue::new(
+                    WorldValidationCode::UnknownFrameReference,
+                    format!("sensors[{index}].frame_id"),
+                ));
+            }
+        }
+        for (index, platform) in self.platforms.iter().enumerate() {
+            if !frame_ids.contains(platform.base_frame_id.as_str()) {
+                issues.push(WorldValidationIssue::new(
+                    WorldValidationCode::UnknownFrameReference,
+                    format!("platforms[{index}].base_frame_id"),
+                ));
+            }
         }
     }
 }
@@ -473,6 +671,9 @@ impl SolverResultEnvelopeV1 {
     ///
     /// Results for a different request, world generation, input digest, or
     /// simulation-time interval are rejected as stale/mismatched evidence.
+    /// Validate result structure and request identity. For world admission,
+    /// also call WorldManifestV1::validate_solver_result_against_world so
+    /// output frame IDs are checked against the authoritative frame registry.
     pub fn validate_against(
         &self,
         expected: &SolverRequestIdentityV1,
@@ -553,6 +754,45 @@ impl SolverResultEnvelopeV1 {
     }
 }
 
+
+impl WorldManifestV1 {
+    /// Validate the world, exact request identity, result structure, and every
+    /// result frame reference before the result is admitted to this world.
+    pub fn validate_solver_result_against_world(
+        &self,
+        expected_request: &SolverRequestIdentityV1,
+        result: &SolverResultEnvelopeV1,
+    ) -> Result<(), Vec<WorldValidationIssue>> {
+        let mut issues = Vec::new();
+        if let Err(mut manifest_issues) = self.validate() {
+            issues.append(&mut manifest_issues);
+        }
+        if let Err(mut result_issues) = result.validate_against(expected_request) {
+            issues.append(&mut result_issues);
+        }
+
+        let frame_ids: BTreeSet<&str> = self
+            .frames
+            .iter()
+            .map(|frame| frame.frame_id.as_str())
+            .collect();
+        for (index, output) in result.outputs.iter().enumerate() {
+            if !frame_ids.contains(output.frame_id.as_str()) {
+                issues.push(WorldValidationIssue::new(
+                    WorldValidationCode::UnknownFrameReference,
+                    format!("outputs[{index}].frame_id"),
+                ));
+            }
+        }
+
+        if issues.is_empty() {
+            Ok(())
+        } else {
+            Err(issues)
+        }
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct WorldValidationIssue {
     pub code: WorldValidationCode,
@@ -592,6 +832,12 @@ pub enum WorldValidationCode {
     UnknownSensorReference,
     InvalidOutput,
     RequestIdentityMismatch,
+    InvalidFrame,
+    FrameCycle,
+    InvalidTransform,
+    MissingFrame,
+    UnknownFrameReference,
+    UnknownFrameProvider,
 }
 
 fn is_sha256_hex(value: &str) -> bool {
@@ -617,6 +863,29 @@ mod tests {
             seed: 42,
             fixed_step_ns: 1_000_000,
             gravity_mps2: [0.0, -9.81, 0.0],
+            frames: vec![
+                CoordinateFrameV1 {
+                    frame_id: "world".to_owned(),
+                    parent_frame_id: None,
+                    transform_to_parent: FrameTransformV1::Root,
+                },
+                CoordinateFrameV1 {
+                    frame_id: "rock-scout-base".to_owned(),
+                    parent_frame_id: Some("world".to_owned()),
+                    transform_to_parent: FrameTransformV1::Kinematic {
+                        provider_artifact_id: "robot-kinematics".to_owned(),
+                        provider_frame_id: "base_link".to_owned(),
+                    },
+                },
+                CoordinateFrameV1 {
+                    frame_id: "ae-front-left".to_owned(),
+                    parent_frame_id: Some("rock-scout-base".to_owned()),
+                    transform_to_parent: FrameTransformV1::Static {
+                        translation_m: [0.1, 0.05, 0.2],
+                        rotation_xyzw: [0.0, 0.0, 0.0, 1.0],
+                    },
+                },
+            ],
             fidelity: PhysicsFidelity::ReducedOrder,
             world_assets: vec![artifact("tunnel-geometry")],
             solvers: vec![SolverDeclarationV1 {
@@ -632,6 +901,7 @@ mod tests {
             sensors: vec![SensorProfileV1 {
                 sensor_id: "ae-front-left".to_owned(),
                 modality: SensorModality::AcousticEmission,
+                frame_id: "ae-front-left".to_owned(),
                 model_solver_id: Some("acoustic-reference".to_owned()),
                 calibration_artifact: Some(artifact("ae-calibration")),
                 sample_rate_hz: 48_000.0,
@@ -648,6 +918,7 @@ mod tests {
                 platform_type: PlatformType::Manipulator,
                 geometry: artifact("robot-geometry"),
                 kinematics: artifact("robot-kinematics"),
+                base_frame_id: "rock-scout-base".to_owned(),
                 mass_kg: 25.0,
                 control_rate_hz: 200.0,
                 controller_interface_version: 1,
@@ -804,4 +1075,84 @@ mod tests {
         result.outputs.clear();
         assert_eq!(result.validate_against(&expected), Ok(()));
     }
+
+    #[test]
+    fn sensor_and_platform_frames_must_exist_in_world_registry() {
+        let mut manifest = valid_manifest();
+        manifest.sensors[0].frame_id = "missing-sensor-frame".to_owned();
+        manifest.platforms[0].base_frame_id = "missing-base-frame".to_owned();
+        let issues = manifest.validate().unwrap_err();
+        assert!(issues.iter().any(|issue| {
+            issue.code == WorldValidationCode::UnknownFrameReference
+                && issue.path == "sensors[0].frame_id"
+        }));
+        assert!(issues.iter().any(|issue| {
+            issue.code == WorldValidationCode::UnknownFrameReference
+                && issue.path == "platforms[0].base_frame_id"
+        }));
+    }
+
+    #[test]
+    fn coordinate_frame_cycles_are_rejected() {
+        let mut manifest = valid_manifest();
+        manifest.frames[1].parent_frame_id = Some("ae-front-left".to_owned());
+        let issues = manifest.validate().unwrap_err();
+        assert!(issues.iter().any(|issue| issue.code == WorldValidationCode::FrameCycle));
+    }
+
+    #[test]
+    fn static_transform_requires_finite_translation_and_unit_quaternion() {
+        let mut manifest = valid_manifest();
+        manifest.frames[2].transform_to_parent = FrameTransformV1::Static {
+            translation_m: [0.0, f64::NAN, 0.0],
+            rotation_xyzw: [0.0, 0.0, 0.0, 2.0],
+        };
+        let issues = manifest.validate().unwrap_err();
+        assert!(issues.iter().any(|issue| {
+            issue.code == WorldValidationCode::InvalidTransform
+                && issue.path == "frames[2].transform_to_parent"
+        }));
+    }
+
+    #[test]
+    fn kinematic_frame_must_reference_declared_platform_kinematics() {
+        let mut manifest = valid_manifest();
+        manifest.frames[1].transform_to_parent = FrameTransformV1::Kinematic {
+            provider_artifact_id: "unregistered-kinematics".to_owned(),
+            provider_frame_id: "base_link".to_owned(),
+        };
+        let issues = manifest.validate().unwrap_err();
+        assert!(issues.iter().any(|issue| {
+            issue.code == WorldValidationCode::UnknownFrameProvider
+                && issue.path == "frames[1].transform_to_parent.provider_artifact_id"
+        }));
+    }
+
+    #[test]
+    fn world_admission_rejects_result_in_undeclared_frame() {
+        let manifest = valid_manifest();
+        let expected = valid_request();
+        let result = SolverResultEnvelopeV1 {
+            schema_version: SOLVER_RESULT_SCHEMA_VERSION,
+            request: expected.clone(),
+            disposition: SolverResultDisposition::CompletedWithinEnvelope,
+            output_digest_sha256: Some("e".repeat(SHA256_HEX_LENGTH)),
+            outputs: vec![QuantityValueV1 {
+                quantity: "penetration_rate".to_owned(),
+                value: 0.002,
+                unit: "m/s".to_owned(),
+                frame_id: "invented-frame".to_owned(),
+                uncertainty_std: Some(0.0001),
+            }],
+            warnings: Vec::new(),
+        };
+        let issues = manifest
+            .validate_solver_result_against_world(&expected, &result)
+            .unwrap_err();
+        assert!(issues.iter().any(|issue| {
+            issue.code == WorldValidationCode::UnknownFrameReference
+                && issue.path == "outputs[0].frame_id"
+        }));
+    }
+
 }
