@@ -8,7 +8,7 @@
 //! manufacturing successful result records.
 
 use nalgebra::SVector;
-use serde_json_runtime::{json, Map, Number, Value};
+use serde_json_runtime::{json, Number, Value};
 use sha2::{Digest, Sha256};
 use std::collections::{BTreeMap, BTreeSet};
 use std::env;
@@ -600,6 +600,7 @@ fn capture_states(
 
 fn run_simulation(
     configuration: &Value,
+    run_id: &str,
     candidate_commit: &str,
     plan_sha: &str,
 ) -> Result<SimulationOutput, String> {
@@ -632,9 +633,6 @@ fn run_simulation(
             .and_then(Value::as_bool)
             .ok_or_else(|| "emotional_contagion switch missing".to_string())?,
     };
-    let run_id = value_string(configuration, "task_id")
-        .unwrap_or(TASK_ID)
-        .to_string();
     let cfg_sha = digest_value(configuration)?;
     let initial_state = initial_state_value(seed);
     let initial_state_sha256 = digest_value(&initial_state)?;
@@ -831,7 +829,7 @@ fn run_simulation(
     let trace = json!({
         "schema_version": RESULT_SCHEMA,
         "task_id": TASK_ID,
-        "run_id_configuration_task": run_id,
+        "run_id": run_id,
         "candidate_commit": candidate_commit,
         "plan_sha256": plan_sha,
         "configuration_sha256": cfg_sha,
@@ -1048,7 +1046,7 @@ fn execute() -> Result<(), String> {
             .get("configuration")
             .ok_or_else(|| format!("{run_id} configuration missing"))?;
         let seed = cfg.get("seed").and_then(Value::as_u64).unwrap_or(0);
-        let first = catch_unwind(AssertUnwindSafe(|| run_simulation(cfg, &candidate_commit, &plan_sha)));
+        let first = catch_unwind(AssertUnwindSafe(|| run_simulation(cfg, &run_id, &candidate_commit, &plan_sha)));
         let replay = catch_unwind(AssertUnwindSafe(|| run_simulation(cfg, &candidate_commit, &plan_sha)));
 
         let first_output = match first {
