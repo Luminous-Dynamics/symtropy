@@ -384,10 +384,14 @@ impl fmt::Display for ModelError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::EmptyNetwork => write!(f, "network must contain at least one node"),
-            Self::InvalidCurrencyCode => write!(f, "currency code must be three uppercase ASCII letters"),
+            Self::InvalidCurrencyCode => {
+                write!(f, "currency code must be three uppercase ASCII letters")
+            }
             Self::InvalidNodeIdentity => write!(f, "node identity must not be empty"),
             Self::DuplicateNode(node) => write!(f, "duplicate network node {node}"),
-            Self::DuplicateOrEmptyEdgeId(edge) => write!(f, "edge identity is empty or duplicated: {edge}"),
+            Self::DuplicateOrEmptyEdgeId(edge) => {
+                write!(f, "edge identity is empty or duplicated: {edge}")
+            }
             Self::UnknownNode(node) => write!(f, "unknown network node {node}"),
             Self::MovementSelfLoop(edge) => write!(f, "movement edge {edge} cannot be a self-loop"),
             Self::RedundantTransfer(edge) => write!(f, "transfer edge {edge} must change mode"),
@@ -721,7 +725,8 @@ mod tests {
     #[test]
     fn returns_pareto_tradeoff_instead_of_hiding_time_cost_tradeoff() {
         let network = competing_mode_network();
-        let routes = pareto_routes(&network, &passenger_demand(1), SearchLimits::default()).unwrap();
+        let routes =
+            pareto_routes(&network, &passenger_demand(1), SearchLimits::default()).unwrap();
 
         assert_eq!(routes.len(), 2);
         assert!(routes.iter().any(|route| route.edge_ids == vec!["air-direct".to_owned()]));
@@ -859,7 +864,7 @@ mod tests {
 
     #[test]
     fn deadline_and_transfer_limits_prune_infeasible_routes() {
-        let mut network = competing_mode_network();
+        let network = competing_mode_network();
         let mut demand = passenger_demand(1);
         demand.max_elapsed_seconds = Some(2_000);
         let routes = pareto_routes(&network, &demand, SearchLimits::default()).unwrap();
@@ -870,7 +875,7 @@ mod tests {
         demand.max_transfers = Some(0);
         let routes = pareto_routes(&network, &demand, SearchLimits::default()).unwrap();
         assert_eq!(routes.len(), 1);
-        assert_eq!(routes[0].edge_ids, ["air-direct"]);
+        assert_eq!(routes[0].edge_ids, vec!["air-direct".to_owned()]);
 
     }
 
@@ -895,7 +900,7 @@ mod tests {
 
         let mut network = Network::new(["A", "B"], "ZAR").unwrap();
         network.add_edge(Edge::movement(
-            "overflow",
+            "cost-edge",
             "A",
             "B",
             Mode::Road,
