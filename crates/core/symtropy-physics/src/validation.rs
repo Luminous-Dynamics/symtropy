@@ -540,14 +540,14 @@ fn validate_sample_sequence(trace: &PhysicsTrace3d) -> Result<(), TraceCompariso
     let Some(first) = trace.samples.first() else {
         return Err(TraceComparisonError::EmptyTrace);
     };
-    if first.step != 0 {
+    if !first.time_s.is_finite() {
+        return Err(TraceComparisonError::NonFiniteSampleTime { step: first.step });
+    }
+    if first.step != 0 || first.time_s != 0.0 {
         return Err(TraceComparisonError::InvalidSampleSequence {
             backend: trace.backend.engine.clone(),
             sample_index: 0,
         });
-    }
-    if !first.time_s.is_finite() {
-        return Err(TraceComparisonError::NonFiniteSampleTime { step: first.step });
     }
 
     for (index, pair) in trace.samples.windows(2).enumerate() {
@@ -896,14 +896,19 @@ mod tests {
 
     #[test]
     fn trace_comparison_rejects_mismatched_sample_time() {
-        let left = one_sample_trace();
+        let mut left = one_sample_trace();
+        let mut later_sample = left.samples[0].clone();
+        later_sample.step = 1;
+        later_sample.time_s = 1.0;
+        left.samples.push(later_sample);
+
         let mut right = left.clone();
-        right.samples[0].time_s = 0.5;
+        right.samples[1].time_s = 0.5;
         assert_eq!(
             compare_traces_3d(&left, &right),
             Err(TraceComparisonError::SampleTimeMismatch {
-                step: 0,
-                left: 0.0,
+                step: 1,
+                left: 1.0,
                 right: 0.5,
             })
         );
